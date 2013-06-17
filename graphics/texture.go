@@ -32,11 +32,13 @@ type Texture struct {
 func createTexture(width, height int, pixels []uint8) *Texture{
 	textureWidth := int(Clp2(uint64(width)))
 	textureHeight := int(Clp2(uint64(height)))
-	if width != textureWidth {
-		panic("sorry, but width should be power of 2")
-	}
-	if height != textureHeight {
-		panic("sorry, but height should be power of 2")
+	if pixels != nil {
+		if width != textureWidth {
+			panic("sorry, but width should be power of 2")
+		}
+		if height != textureHeight {
+			panic("sorry, but height should be power of 2")
+		}
 	}
 	texture := &Texture{
 		id: 0,

@@ -49,8 +49,8 @@ func main() {
 	cargc := C.int(len(cargs))
 
 	screenWidth  := 256
-	screenHeight := 256
-	screenScale  := 1
+	screenHeight := 240
+	screenScale  := 2
 
 	C.glutInit(&cargc, &cargs[0])
 	C.glutInitDisplayMode(C.GLUT_RGBA);
