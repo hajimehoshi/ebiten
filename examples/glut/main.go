@@ -6,9 +6,14 @@ package main
 // #include <GLUT/glut.h>
 //
 // void display(void);
+// void idle(void);
 //
 // static void setDisplayFunc(void) {
 //   glutDisplayFunc(display);
+// }
+//
+// static void setIdleFunc(void) {
+//   glutIdleFunc(idle);
 // }
 //
 import "C"
@@ -34,6 +39,12 @@ func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Text
 //export display
 func display() {
 	device.Update()
+	C.glutSwapBuffers()
+}
+
+//export idle
+func idle() {
+	C.glutPostRedisplay()
 }
 
 func main() {
@@ -62,6 +73,7 @@ func main() {
 	C.glutCreateWindow(title)
 
 	C.setDisplayFunc()
+	C.setIdleFunc()
 
 	game := &DemoGame{}
 	device = graphics.NewDevice(screenWidth, screenHeight, screenScale,
