@@ -20,6 +20,7 @@ import "C"
 import (
 	"image/color"
 	"os"
+	"time"
 	"unsafe"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
@@ -33,7 +34,7 @@ func (game *DemoGame) Update() {
 }
 
 func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
-	g.Fill(&color.RGBA{R: 0, G: 0, B: 255, A: 255})
+	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 }
 
 //export display
@@ -75,11 +76,26 @@ func main() {
 	C.setDisplayFunc()
 	C.setIdleFunc()
 
+	ch := make(chan bool, 1)
 	game := &DemoGame{}
 	device = graphics.NewDevice(screenWidth, screenHeight, screenScale,
 		func(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
+			ch<- true
 			game.Draw(g, offscreen)
+			<-ch
 		})
+
+	go func() {
+		const frameTime = time.Second / 60
+		lastTime := time.Now()
+		for {
+			ch<- true
+			game.Update()
+			<-ch
+			time.Sleep(frameTime - time.Since(lastTime))
+			lastTime = time.Now()
+		}
+	}()
 
 	C.glutMainLoop()
 }

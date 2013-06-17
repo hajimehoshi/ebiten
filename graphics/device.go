@@ -35,7 +35,6 @@ func (device *Device) Update() {
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
 	g.SetOffscreen(device.offscreenTexture)
 	g.Clear()
-	// TODO: lock this!
 	device.drawFunc(g, device.offscreenTexture)
 	g.flush()
 	
