@@ -8,11 +8,8 @@ package main
 // void display(void);
 // void idle(void);
 //
-// static void setDisplayFunc(void) {
+// static void setGlutFuncs(void) {
 //   glutDisplayFunc(display);
-// }
-//
-// static void setIdleFunc(void) {
 //   glutIdleFunc(idle);
 // }
 //
@@ -73,8 +70,7 @@ func main() {
 	defer C.free(unsafe.Pointer(title))
 	C.glutCreateWindow(title)
 
-	C.setDisplayFunc()
-	C.setIdleFunc()
+	C.setGlutFuncs()
 
 	ch := make(chan bool, 1)
 	game := &DemoGame{}
