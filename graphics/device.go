@@ -6,7 +6,7 @@ package graphics
 // #include <stdlib.h>
 import "C"
 
-type device struct {
+type Device struct {
 	screenWidth int
 	screenHeight int
 	screenScale int
@@ -15,9 +15,9 @@ type device struct {
 	drawFunc func(*GraphicsContext, *Texture)
 }
 
-// This method should be called on the UI thread??
-func newDevice(screenWidth, screenHeight, screenScale int, drawFunc func(*GraphicsContext, *Texture)) *device {
-	return &device{
+func NewDevice(screenWidth, screenHeight, screenScale int,
+	drawFunc func(*GraphicsContext, *Texture)) *Device {
+	device := &Device{
 		screenWidth: screenWidth,
 		screenHeight: screenHeight,
 		screenScale: screenScale,
@@ -25,29 +25,29 @@ func newDevice(screenWidth, screenHeight, screenScale int, drawFunc func(*Graphi
 		offscreenTexture: NewTexture(screenWidth, screenHeight),
 		drawFunc: drawFunc,
 	}
+	return device
 }
 
-// This method should be called on the UI thread??
-func (d *device) Update() {
-	g := d.graphicsContext
-	// g.initialize()
+func (device *Device) Update() {
+	g := device.graphicsContext
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
-	g.SetOffscreen(d.offscreenTexture)
+	g.SetOffscreen(device.offscreenTexture)
 	g.Clear()
-	d.drawFunc(g, d.offscreenTexture)
+	// TODO: lock this!
+	device.drawFunc(g, device.offscreenTexture)
 	g.flush()
+	
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
 	g.resetOffscreen()
 	g.Clear()
-
 	geometryMatrix := IdentityGeometryMatrix()
 	geometryMatrix.SetA(AffineMatrixElement(g.screenScale))
 	geometryMatrix.SetD(AffineMatrixElement(g.screenScale))
-	g.DrawTexture(d.offscreenTexture,
-		0, 0, d.screenWidth, d.screenHeight,
+	g.DrawTexture(device.offscreenTexture,
+		0, 0, device.screenWidth, device.screenHeight,
 		geometryMatrix, IdentityColorMatrix())
 	g.flush()
 }

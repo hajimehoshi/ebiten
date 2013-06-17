@@ -7,7 +7,7 @@ import "C"
 import (
 	"image"
 	"unsafe"
-	"../ui"
+	"github.com/hajimehoshi/go-ebiten/ui"
 )
 
 func Clp2(x uint64) uint64 {
@@ -47,14 +47,18 @@ func createTexture(width, height int, pixels []uint8) *Texture{
 	}
 
 	ch := make(chan C.GLuint)
+	// TODO: should wait?
+	go func() {
+		texture.id = <-ch
+	}()
 	ui.ExecuteOnUIThread(func() {
 		textureID := C.GLuint(0)
 		C.glGenTextures(1, (*C.GLuint)(&textureID))
+		if textureID == 0 {
+			panic("glGenTexture failed")
+		}
 		C.glPixelStorei(C.GL_UNPACK_ALIGNMENT, 4)
 		C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(textureID))
-		if textureID != 0 {
-			panic("glBindTexture failed")
-		}
 		
 		ptr := unsafe.Pointer(nil)
 		if pixels != nil {
@@ -71,10 +75,6 @@ func createTexture(width, height int, pixels []uint8) *Texture{
 		ch<- textureID
 		close(ch)
 	})
-	// TODO: should wait?
-	go func() {
-		texture.id = <-ch
-	}()
 
 	return texture
 }
