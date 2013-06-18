@@ -92,7 +92,3 @@ func NewTextureFromRGBA(image *image.RGBA) *Texture {
 func (texture *Texture) IsAvailable() bool {
 	return texture.id != 0
 }
-
-func init() {
-	// TODO: Initialize OpenGL here?
-}

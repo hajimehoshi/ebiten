@@ -76,21 +76,19 @@ func main() {
 	game := &DemoGame{}
 	device = graphics.NewDevice(screenWidth, screenHeight, screenScale,
 		func(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
-			<-ch
+			ticket := <-ch
 			game.Draw(g, offscreen)
-			ch<- true
+			ch<- ticket
 		})
 
 	go func() {
 		const frameTime = time.Second / 60
-		lastTime := time.Now()
+		tick := time.Tick(frameTime)
 		for {
-			<-ch
+			<-tick
+			ticket := <-ch
 			game.Update()
-			ch<- true
-			now := time.Now()
-			time.Sleep(frameTime - now.Sub(lastTime))
-			lastTime = now
+			ch<- ticket
 		}
 	}()
 	ch<- true
