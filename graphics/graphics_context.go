@@ -8,7 +8,6 @@ import "C"
 import (
 	"fmt"
 	"image/color"
-	"math"
 	"unsafe"
 )
 
@@ -110,10 +109,20 @@ func (context *GraphicsContext) DrawTexture(texture *Texture,
 	C.glDisableClientState(C.GL_VERTEX_ARRAY)
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 func (context *GraphicsContext) SetOffscreen(texture *Texture) {
 	framebuffer := C.GLuint(0)
 	if texture != nil {
 		framebuffer = context.getFramebuffer(texture)
+		if framebuffer == context.mainFramebuffer {
+			panic("invalid framebuffer")
+		}
 	} else {
 		framebuffer = context.mainFramebuffer
 	}
@@ -136,9 +145,7 @@ func (context *GraphicsContext) SetOffscreen(texture *Texture) {
 		tx     = -1
 		ty     = 1
 	}
-	C.glViewport(0, 0,
-		C.GLsizei(math.Abs(float64(width))),
-		C.GLsizei(math.Abs(float64(height))))
+	C.glViewport(0, 0, C.GLsizei(abs(width)), C.GLsizei(abs(height)))
 	e11 := float32(2.0) / float32(width)
 	e22 := float32(2.0) / float32(height)
 	e41 := float32(tx)

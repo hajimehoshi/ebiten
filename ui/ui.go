@@ -10,8 +10,3 @@ type UI interface {
 	ScreenScale() int
 	Run(device *graphics.Device)
 }
-
-func ExecuteOnUIThread(f func()) {
-	// TODO: implement!
-	f()
-}

@@ -92,6 +92,7 @@ func (ui *GlutUI) Run(device *graphics.Device) {
 
 type DemoGame struct {
 	ebitenTexture *graphics.Texture
+	x int
 }
 
 func (game *DemoGame) Update() {
@@ -109,6 +110,7 @@ func (game *DemoGame) Update() {
 
 		game.ebitenTexture = currentUI.device.NewTextureFromImage(img)
 	}
+	game.x++
 }
 
 func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
@@ -116,9 +118,12 @@ func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Text
 	if game.ebitenTexture == nil {
 		return
 	}
+	geometryMatrix := graphics.IdentityGeometryMatrix()
+	geometryMatrix.SetTx(graphics.AffineMatrixElement(game.x))
+	geometryMatrix.SetTy(graphics.AffineMatrixElement(game.x))
 	g.DrawTexture(game.ebitenTexture,
 		0, 0, game.ebitenTexture.Width, game.ebitenTexture.Height,
-		graphics.IdentityGeometryMatrix(),
+		geometryMatrix,
 		graphics.IdentityColorMatrix())
 }
 

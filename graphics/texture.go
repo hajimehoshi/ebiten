@@ -28,7 +28,7 @@ type Texture struct {
 }
 
 func createTexture(device *Device, width, height int, pixels []uint8) *Texture{
-	textureWidth := int(Clp2(uint64(width)))
+	textureWidth  := int(Clp2(uint64(width)))
 	textureHeight := int(Clp2(uint64(height)))
 	if pixels != nil {
 		if width != textureWidth {
