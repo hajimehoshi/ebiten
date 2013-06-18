@@ -76,22 +76,24 @@ func main() {
 	game := &DemoGame{}
 	device = graphics.NewDevice(screenWidth, screenHeight, screenScale,
 		func(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
-			ch<- true
-			game.Draw(g, offscreen)
 			<-ch
+			game.Draw(g, offscreen)
+			ch<- true
 		})
 
 	go func() {
 		const frameTime = time.Second / 60
 		lastTime := time.Now()
 		for {
-			ch<- true
-			game.Update()
 			<-ch
-			time.Sleep(frameTime - time.Since(lastTime))
-			lastTime = time.Now()
+			game.Update()
+			ch<- true
+			now := time.Now()
+			time.Sleep(frameTime - now.Sub(lastTime))
+			lastTime = now
 		}
 	}()
+	ch<- true
 
 	C.glutMainLoop()
 }
