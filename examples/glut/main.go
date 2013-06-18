@@ -133,5 +133,5 @@ func main() {
 	currentUI = &GlutUI{}
 	currentUI.Init()
 
-	ebiten.Run(game, currentUI)
+	ebiten.OpenGLRun(game, currentUI)
 }
