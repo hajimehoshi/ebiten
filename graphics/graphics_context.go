@@ -6,6 +6,7 @@ package graphics
 // #include <OpenGL/gl.h>
 import "C"
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"unsafe"
@@ -117,8 +118,8 @@ func (context *GraphicsContext) SetOffscreen(texture *Texture) {
 		framebuffer = context.mainFramebuffer
 	}
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) != C.GL_FRAMEBUFFER_COMPLETE {
-		panic("glBindFramebuffer failed")
+	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER); err != C.GL_FRAMEBUFFER_COMPLETE {
+		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 	C.glEnable(C.GL_BLEND)
 	C.glBlendFunc(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA)

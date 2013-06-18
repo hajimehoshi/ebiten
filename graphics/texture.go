@@ -5,9 +5,7 @@ package graphics
 // #include <OpenGL/gl.h>
 import "C"
 import (
-	"image"
 	"unsafe"
-	"github.com/hajimehoshi/go-ebiten/ui"
 )
 
 func Clp2(x uint64) uint64 {
@@ -29,7 +27,7 @@ type Texture struct {
 	TextureHeight int
 }
 
-func createTexture(width, height int, pixels []uint8) *Texture{
+func createTexture(device *Device, width, height int, pixels []uint8) *Texture{
 	textureWidth := int(Clp2(uint64(width)))
 	textureHeight := int(Clp2(uint64(height)))
 	if pixels != nil {
@@ -48,12 +46,7 @@ func createTexture(width, height int, pixels []uint8) *Texture{
 		TextureHeight: textureHeight,
 	}
 
-	ch := make(chan C.GLuint)
-	// TODO: should wait?
-	go func() {
-		texture.id = <-ch
-	}()
-	ui.ExecuteOnUIThread(func() {
+	device.executeWhenDrawing(func() {
 		textureID := C.GLuint(0)
 		C.glGenTextures(1, (*C.GLuint)(&textureID))
 		if textureID == 0 {
@@ -74,19 +67,11 @@ func createTexture(width, height int, pixels []uint8) *Texture{
 		C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 		C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
-		ch<- textureID
-		close(ch)
+		// TODO: lock?
+		texture.id = textureID
 	})
 
 	return texture
-}
-
-func NewTexture(width, height int) *Texture {
-	return createTexture(width, height, nil)
-}
-
-func NewTextureFromRGBA(image *image.RGBA) *Texture {
-	return createTexture(image.Rect.Size().X, image.Rect.Size().Y, image.Pix)
 }
 
 func (texture *Texture) IsAvailable() bool {

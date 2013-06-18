@@ -15,28 +15,27 @@ package main
 //
 import "C"
 import (
+	"image"
 	"image/color"
+	_ "image/png"
 	"os"
-	"time"
 	"unsafe"
+	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
-var device *graphics.Device
-
-type DemoGame struct {
+type GlutUI struct{
+	screenWidth int
+	screenHeight int
+	screenScale int
+	device *graphics.Device
 }
 
-func (game *DemoGame) Update() {
-}
-
-func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
-	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
-}
+var currentUI *GlutUI
 
 //export display
 func display() {
-	device.Update()
+	currentUI.device.Update()
 	C.glutSwapBuffers()
 }
 
@@ -45,7 +44,7 @@ func idle() {
 	C.glutPostRedisplay()
 }
 
-func main() {
+func (ui *GlutUI) Init() {
 	cargs := []*C.char{}
 	for _, arg := range os.Args {
 		cargs = append(cargs, C.CString(arg))
@@ -57,41 +56,76 @@ func main() {
 	}()
 	cargc := C.int(len(cargs))
 
-	screenWidth  := 256
-	screenHeight := 240
-	screenScale  := 2
+	ui.screenWidth  = 256
+	ui.screenHeight = 240
+	ui.screenScale  = 2
 
 	C.glutInit(&cargc, &cargs[0])
 	C.glutInitDisplayMode(C.GLUT_RGBA);
-	C.glutInitWindowSize(C.int(screenWidth * screenScale),
-		C.int(screenHeight * screenScale))
+	C.glutInitWindowSize(
+		C.int(ui.screenWidth  * ui.screenScale),
+		C.int(ui.screenHeight * ui.screenScale))
 
 	title := C.CString("Ebiten Demo")
 	defer C.free(unsafe.Pointer(title))
 	C.glutCreateWindow(title)
 
 	C.setGlutFuncs()
+}
 
-	ch := make(chan bool, 1)
-	game := &DemoGame{}
-	device = graphics.NewDevice(screenWidth, screenHeight, screenScale,
-		func(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
-			ticket := <-ch
-			game.Draw(g, offscreen)
-			ch<- ticket
-		})
+func (ui *GlutUI) ScreenWidth() int {
+	return ui.screenWidth
+}
 
-	go func() {
-		const frameTime = time.Second / 60
-		tick := time.Tick(frameTime)
-		for {
-			<-tick
-			ticket := <-ch
-			game.Update()
-			ch<- ticket
-		}
-	}()
-	ch<- true
+func (ui *GlutUI) ScreenHeight() int {
+	return ui.screenHeight
+}
 
+func (ui *GlutUI) ScreenScale() int {
+	return ui.screenScale
+}
+
+func (ui *GlutUI) Run(device *graphics.Device) {
+	ui.device = device
 	C.glutMainLoop()
+}
+
+type DemoGame struct {
+	ebitenTexture *graphics.Texture
+}
+
+func (game *DemoGame) Update() {
+	if game.ebitenTexture == nil {
+		file, err := os.Open("ebiten.png")
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+		
+		img, _, err := image.Decode(file)
+		if err != nil {
+			panic(err)
+		}
+
+		game.ebitenTexture = currentUI.device.NewTextureFromImage(img)
+	}
+}
+
+func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
+	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
+	if game.ebitenTexture == nil {
+		return
+	}
+	g.DrawTexture(game.ebitenTexture,
+		0, 0, game.ebitenTexture.Width, game.ebitenTexture.Height,
+		graphics.IdentityGeometryMatrix(),
+		graphics.IdentityColorMatrix())
+}
+
+func main() {
+	game := &DemoGame{}
+	currentUI = &GlutUI{}
+	currentUI.Init()
+
+	ebiten.Run(game, currentUI)
 }
