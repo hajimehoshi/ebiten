@@ -28,7 +28,7 @@ type GlutUI struct{
 	screenWidth int
 	screenHeight int
 	screenScale int
-	device *graphics.Device
+	device graphics.Device
 }
 
 var currentUI *GlutUI
@@ -85,13 +85,13 @@ func (ui *GlutUI) ScreenScale() int {
 	return ui.screenScale
 }
 
-func (ui *GlutUI) Run(device *graphics.Device) {
+func (ui *GlutUI) Run(device graphics.Device) {
 	ui.device = device
 	C.glutMainLoop()
 }
 
 type DemoGame struct {
-	ebitenTexture *graphics.Texture
+	ebitenTexture graphics.Texture
 	x int
 }
 
@@ -108,12 +108,13 @@ func (game *DemoGame) Update() {
 			panic(err)
 		}
 
+		// TODO: It looks strange to get a texture from the device.
 		game.ebitenTexture = currentUI.device.NewTextureFromImage(img)
 	}
 	game.x++
 }
 
-func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Texture) {
+func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 	if game.ebitenTexture == nil {
 		return
@@ -122,7 +123,7 @@ func (game *DemoGame) Draw(g *graphics.GraphicsContext, offscreen *graphics.Text
 	geometryMatrix.SetTx(graphics.AffineMatrixElement(game.x))
 	geometryMatrix.SetTy(graphics.AffineMatrixElement(game.x))
 	g.DrawTexture(game.ebitenTexture,
-		0, 0, game.ebitenTexture.Width, game.ebitenTexture.Height,
+		0, 0, game.ebitenTexture.Width(), game.ebitenTexture.Height(),
 		geometryMatrix,
 		graphics.IdentityColorMatrix())
 }

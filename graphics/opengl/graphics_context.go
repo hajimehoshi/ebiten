@@ -1,4 +1,4 @@
-package graphics
+package opengl
 
 // #cgo LDFLAGS: -framework OpenGL
 //
@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image/color"
 	"unsafe"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
 type GraphicsContext struct {
@@ -45,8 +46,8 @@ func (context *GraphicsContext) Clear() {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (context *GraphicsContext) Fill(color color.Color) {
-	r, g, b, a := color.RGBA()
+func (context *GraphicsContext) Fill(clr color.Color) {
+	r, g, b, a := clr.RGBA()
 	max := 65535.0
 	C.glClearColor(
 		C.GLclampf(float64(r) / max),
@@ -56,15 +57,17 @@ func (context *GraphicsContext) Fill(color color.Color) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (context *GraphicsContext) DrawRect(x, y, width, height int, color color.Color) {
+func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Color) {
 	// TODO: implement!
 }
 
-func (context *GraphicsContext) DrawTexture(texture *Texture,
+func (context *GraphicsContext) DrawTexture(tex graphics.Texture,
 	srcX, srcY, srcWidth, srcHeight int,
-	geometryMatrix *GeometryMatrix, colorMatrix *ColorMatrix) {
+	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
 	geometryMatrix = geometryMatrix.Clone()
 	colorMatrix    = colorMatrix.Clone()
+
+	texture := tex.(*Texture)
 
 	context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
@@ -80,10 +83,10 @@ func (context *GraphicsContext) DrawTexture(texture *Texture,
 		x2, y2,
 	}
 
-	tu1 := float32(srcX)             / float32(texture.TextureWidth)
-	tu2 := float32(srcX + srcWidth)  / float32(texture.TextureWidth)
-	tv1 := float32(srcY)             / float32(texture.TextureHeight)
-	tv2 := float32(srcY + srcHeight) / float32(texture.TextureHeight)
+	tu1 := float32(srcX)             / float32(texture.textureWidth)
+	tu2 := float32(srcX + srcWidth)  / float32(texture.textureWidth)
+	tv1 := float32(srcY)             / float32(texture.textureHeight)
+	tv2 := float32(srcY + srcHeight) / float32(texture.textureHeight)
 	texCoord := [...]float32{
 		tu1, tv1,
 		tu2, tv1,
@@ -116,7 +119,12 @@ func abs(x int) int {
 	return x
 }
 
-func (context *GraphicsContext) SetOffscreen(texture *Texture) {
+func (context *GraphicsContext) SetOffscreen(tex graphics.Texture) {
+	var texture *Texture = nil
+	if tex != nil {
+		texture = tex.(*Texture)
+	}
+	// TODO: glFlush() here?
 	framebuffer := C.GLuint(0)
 	if texture != nil {
 		framebuffer = context.getFramebuffer(texture)
@@ -135,8 +143,8 @@ func (context *GraphicsContext) SetOffscreen(texture *Texture) {
 
 	width, height, tx, ty := 0, 0, 0, 0
 	if framebuffer != context.mainFramebuffer {
-		width  = texture.TextureWidth
-		height = texture.TextureHeight
+		width  = texture.textureWidth
+		height = texture.textureHeight
 		tx     = -1
 		ty     = -1
 	} else {
@@ -169,7 +177,7 @@ func (context *GraphicsContext) flush() {
 
 // This method should be called on the UI thread.
 func (context *GraphicsContext) setShaderProgram(
-	geometryMatrix *GeometryMatrix, colorMatrix *ColorMatrix) {
+	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
 	program := C.GLuint(0)
 	if colorMatrix.IsIdentity() {
 		program = regularShaderProgram

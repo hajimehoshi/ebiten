@@ -1,4 +1,4 @@
-package graphics
+package opengl
 
 // #cgo LDFLAGS: -framework OpenGL
 //
@@ -7,6 +7,7 @@ package graphics
 import "C"
 import (
 	"image"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
 type Device struct {
@@ -15,12 +16,12 @@ type Device struct {
 	screenScale int
 	graphicsContext *GraphicsContext
 	offscreenTexture *Texture
-	drawFunc func(*GraphicsContext, *Texture)
+	drawFunc func(graphics.GraphicsContext, graphics.Texture)
 	funcs []func()
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int,
-	drawFunc func(*GraphicsContext, *Texture)) *Device {
+	drawFunc func(graphics.GraphicsContext, graphics.Texture)) *Device {
 	device := &Device{
 		screenWidth: screenWidth,
 		screenHeight: screenHeight,
@@ -29,7 +30,7 @@ func NewDevice(screenWidth, screenHeight, screenScale int,
 		drawFunc: drawFunc,
 		funcs: []func(){},
 	}
-	device.offscreenTexture = device.NewTexture(screenWidth, screenHeight)
+	device.offscreenTexture = device.NewTexture(screenWidth, screenHeight).(*Texture)
 	return device
 }
 
@@ -52,20 +53,20 @@ func (device *Device) Update() {
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
 	g.resetOffscreen()
 	g.Clear()
-	geometryMatrix := IdentityGeometryMatrix()
-	geometryMatrix.SetA(AffineMatrixElement(g.screenScale))
-	geometryMatrix.SetD(AffineMatrixElement(g.screenScale))
+	geometryMatrix := graphics.IdentityGeometryMatrix()
+	geometryMatrix.SetA(graphics.AffineMatrixElement(g.screenScale))
+	geometryMatrix.SetD(graphics.AffineMatrixElement(g.screenScale))
 	g.DrawTexture(device.offscreenTexture,
 		0, 0, device.screenWidth, device.screenHeight,
-		geometryMatrix, IdentityColorMatrix())
+		geometryMatrix, graphics.IdentityColorMatrix())
 	g.flush()
 }
 
-func (device *Device) NewTexture(width, height int) *Texture {
+func (device *Device) NewTexture(width, height int) graphics.Texture {
 	return createTexture(device, width, height, nil)
 }
 
-func (device *Device) NewTextureFromImage(img image.Image) *Texture {
+func (device *Device) NewTextureFromImage(img image.Image) graphics.Texture {
 	var pix []uint8
 	switch img.(type) {
 	case *image.RGBA:

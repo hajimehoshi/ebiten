@@ -1,4 +1,4 @@
-package graphics
+package opengl
 
 // #cgo LDFLAGS: -framework OpenGL
 //

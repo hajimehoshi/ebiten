@@ -1,4 +1,4 @@
-package graphics
+package opengl
 
 // #cgo LDFLAGS: -framework OpenGL
 //
@@ -21,10 +21,10 @@ func Clp2(x uint64) uint64 {
 
 type Texture struct {
 	id C.GLuint
-	Width int
-	Height int
-	TextureWidth int
-	TextureHeight int
+	width int
+	height int
+	textureWidth int
+	textureHeight int
 }
 
 func createTexture(device *Device, width, height int, pixels []uint8) *Texture{
@@ -40,10 +40,10 @@ func createTexture(device *Device, width, height int, pixels []uint8) *Texture{
 	}
 	texture := &Texture{
 		id: 0,
-		Width: width,
-		Height: height,
-		TextureWidth: textureWidth,
-		TextureHeight: textureHeight,
+		width: width,
+		height: height,
+		textureWidth: textureWidth,
+		textureHeight: textureHeight,
 	}
 
 	device.executeWhenDrawing(func() {
@@ -72,6 +72,22 @@ func createTexture(device *Device, width, height int, pixels []uint8) *Texture{
 	})
 
 	return texture
+}
+
+func (texture *Texture) Width() int {
+	return texture.width
+}
+
+func (texture *Texture) Height() int {
+	return texture.height
+}
+
+func (texture *Texture) TextureWidth() int {
+	return texture.textureWidth
+}
+
+func (texture *Texture) TextureHeight() int {
+	return texture.textureHeight
 }
 
 func (texture *Texture) IsAvailable() bool {

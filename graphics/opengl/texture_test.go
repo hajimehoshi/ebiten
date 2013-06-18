@@ -1,4 +1,4 @@
-package graphics_test
+package opengl_test
 
 import (
 	"testing"

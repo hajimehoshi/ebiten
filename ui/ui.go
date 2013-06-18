@@ -8,5 +8,5 @@ type UI interface {
 	ScreenWidth() int
 	ScreenHeight() int
 	ScreenScale() int
-	Run(device *graphics.Device)
+	Run(device graphics.Device)
 }
