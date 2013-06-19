@@ -54,8 +54,8 @@ func (device *Device) Update() {
 	g.resetOffscreen()
 	g.Clear()
 	geometryMatrix := graphics.IdentityGeometryMatrix()
-	geometryMatrix.SetA(graphics.AffineMatrixElement(g.screenScale))
-	geometryMatrix.SetD(graphics.AffineMatrixElement(g.screenScale))
+	geometryMatrix.SetA(float64(g.screenScale))
+	geometryMatrix.SetD(float64(g.screenScale))
 	g.DrawTexture(device.offscreenTexture,
 		0, 0, device.screenWidth, device.screenHeight,
 		geometryMatrix, graphics.IdentityColorMatrix())

@@ -1,9 +1,9 @@
 package graphics
 
-type AffineMatrixElement float64
+type affineMatrixElement float64
 
 type AffineMatrix struct {
-	elements  []AffineMatrixElement
+	elements  []affineMatrixElement
 	dimension int
 }
 
@@ -13,7 +13,7 @@ func NewAffineMatrix(dimension int) *AffineMatrix {
 	}
 	matrix := &AffineMatrix{}
 	elementsNumber := dimension * (dimension - 1)
-	matrix.elements = make([]AffineMatrixElement, elementsNumber)
+	matrix.elements = make([]affineMatrixElement, elementsNumber)
 	matrix.dimension = dimension
 	return matrix
 }
@@ -41,7 +41,7 @@ func (matrix *AffineMatrix) Clone() *AffineMatrix {
 	return result
 }
 
-func (matrix *AffineMatrix) Element(i, j int) AffineMatrixElement {
+func (matrix *AffineMatrix) Element(i, j int) float64 {
 	dimension := matrix.dimension
 	if i < 0 || dimension <= i {
 		panic("out of range index i")
@@ -55,10 +55,10 @@ func (matrix *AffineMatrix) Element(i, j int) AffineMatrixElement {
 		}
 		return 0
 	}
-	return matrix.elements[i*dimension+j]
+	return float64(matrix.elements[i*dimension+j])
 }
 
-func (matrix *AffineMatrix) SetElement(i, j int, element AffineMatrixElement) {
+func (matrix *AffineMatrix) SetElement(i, j int, element float64) {
 	dimension := matrix.dimension
 	if i < 0 || dimension-1 <= i {
 		panic("out of range index i")
@@ -66,7 +66,7 @@ func (matrix *AffineMatrix) SetElement(i, j int, element AffineMatrixElement) {
 	if j < 0 || dimension <= j {
 		panic("out of range index j")
 	}
-	matrix.elements[i*dimension+j] = element
+	matrix.elements[i*dimension+j] = affineMatrixElement(element)
 }
 
 func (matrix *AffineMatrix) IsIdentity() bool {
@@ -96,7 +96,7 @@ func (rhs *AffineMatrix) Concat(lhs *AffineMatrix) *AffineMatrix {
 
 	for i := 0; i < dimension-1; i++ {
 		for j := 0; j < dimension; j++ {
-			var element AffineMatrixElement = 0.0
+			element := affineMatrixElement(0.0)
 			for k := 0; k < dimension-1; k++ {
 				element += lhs.elements[i*dimension+k] *
 					rhs.elements[k*dimension+j]

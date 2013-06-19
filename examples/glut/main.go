@@ -120,8 +120,8 @@ func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Textur
 		return
 	}
 	geometryMatrix := graphics.IdentityGeometryMatrix()
-	geometryMatrix.SetTx(graphics.AffineMatrixElement(game.x))
-	geometryMatrix.SetTy(graphics.AffineMatrixElement(game.x))
+	geometryMatrix.SetTx(float64(game.x))
+	geometryMatrix.SetTy(float64(game.x))
 	g.DrawTexture(game.ebitenTexture,
 		0, 0, game.ebitenTexture.Width(), game.ebitenTexture.Height(),
 		geometryMatrix,

@@ -18,50 +18,50 @@ func (matrix *GeometryMatrix) Clone() *GeometryMatrix {
 	return &GeometryMatrix{*(matrix.AffineMatrix.Clone())}
 }
 
-func (matrix *GeometryMatrix) A() AffineMatrixElement {
+func (matrix *GeometryMatrix) A() float64 {
 	return matrix.Element(0, 0)
 }
 
-func (matrix *GeometryMatrix) B() AffineMatrixElement {
+func (matrix *GeometryMatrix) B() float64 {
 	return matrix.Element(0, 1)
 }
 
-func (matrix *GeometryMatrix) C() AffineMatrixElement {
+func (matrix *GeometryMatrix) C() float64 {
 	return matrix.Element(1, 0)
 }
 
-func (matrix *GeometryMatrix) D() AffineMatrixElement {
+func (matrix *GeometryMatrix) D() float64 {
 	return matrix.Element(1, 1)
 }
 
-func (matrix *GeometryMatrix) Tx() AffineMatrixElement {
+func (matrix *GeometryMatrix) Tx() float64 {
 	return matrix.Element(0, 2)
 }
 
-func (matrix *GeometryMatrix) Ty() AffineMatrixElement {
+func (matrix *GeometryMatrix) Ty() float64 {
 	return matrix.Element(1, 2)
 }
 
-func (matrix *GeometryMatrix) SetA(a AffineMatrixElement) {
+func (matrix *GeometryMatrix) SetA(a float64) {
 	matrix.SetElement(0, 0, a)
 }
 
-func (matrix *GeometryMatrix) SetB(b AffineMatrixElement) {
+func (matrix *GeometryMatrix) SetB(b float64) {
 	matrix.SetElement(0, 1, b)
 }
 
-func (matrix *GeometryMatrix) SetC(c AffineMatrixElement) {
+func (matrix *GeometryMatrix) SetC(c float64) {
 	matrix.SetElement(1, 0, c)
 }
 
-func (matrix *GeometryMatrix) SetD(d AffineMatrixElement) {
+func (matrix *GeometryMatrix) SetD(d float64) {
 	matrix.SetElement(1, 1, d)
 }
 
-func (matrix *GeometryMatrix) SetTx(tx AffineMatrixElement) {
+func (matrix *GeometryMatrix) SetTx(tx float64) {
 	matrix.SetElement(0, 2, tx)
 }
 
-func (matrix *GeometryMatrix) SetTy(ty AffineMatrixElement) {
+func (matrix *GeometryMatrix) SetTy(ty float64) {
 	matrix.SetElement(1, 2, ty)
 }
