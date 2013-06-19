@@ -21,15 +21,15 @@ func Clp2(x uint64) uint64 {
 }
 
 type Texture struct {
-	id C.GLuint
-	width int
-	height int
-	textureWidth int
+	id            C.GLuint
+	width         int
+	height        int
+	textureWidth  int
 	textureHeight int
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
-	textureWidth  := int(Clp2(uint64(width)))
+	textureWidth := int(Clp2(uint64(width)))
 	textureHeight := int(Clp2(uint64(height)))
 	if pixels != nil {
 		if width != textureWidth {
@@ -40,10 +40,10 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 		}
 	}
 	texture := &Texture{
-		id: 0,
-		width: width,
-		height: height,
-		textureWidth: textureWidth,
+		id:            0,
+		width:         width,
+		height:        height,
+		textureWidth:  textureWidth,
 		textureHeight: textureHeight,
 	}
 
@@ -54,7 +54,7 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	}
 	C.glPixelStorei(C.GL_UNPACK_ALIGNMENT, 4)
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(textureID))
-	
+
 	ptr := unsafe.Pointer(nil)
 	if pixels != nil {
 		ptr = unsafe.Pointer(&pixels[0])

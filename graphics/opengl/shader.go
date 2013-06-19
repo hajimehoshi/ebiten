@@ -10,14 +10,14 @@ import (
 )
 
 type shader struct {
-	id C.GLuint
-	name string
+	id     C.GLuint
+	name   string
 	source string
 }
 
 var (
 	vertexShader = &shader{
-		id: 0,
+		id:   0,
 		name: "vertex_shader",
 		source: `
 attribute /*highp*/ vec2 vertex;
@@ -33,7 +33,7 @@ void main(void) {
 `,
 	}
 	fragmentShader = &shader{
-		id: 0,
+		id:   0,
 		name: "fragment_shader",
 		source: `
 uniform /*lowp*/ sampler2D texture;
@@ -45,7 +45,7 @@ void main(void) {
 `,
 	}
 	colorMatrixShader = &shader{
-		id: 0,
+		id:   0,
 		name: "color_matrix_shader",
 		source: `
 uniform /*highp*/ sampler2D texture;
@@ -62,7 +62,7 @@ void main(void) {
 )
 
 var (
-	regularShaderProgram = C.GLuint(0)
+	regularShaderProgram     = C.GLuint(0)
 	colorMatrixShaderProgram = C.GLuint(0)
 )
 

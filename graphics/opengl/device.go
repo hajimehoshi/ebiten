@@ -10,22 +10,22 @@ import (
 )
 
 type Device struct {
-	screenWidth int
-	screenHeight int
-	screenScale int
-	graphicsContext *GraphicsContext
+	screenWidth      int
+	screenHeight     int
+	screenScale      int
+	graphicsContext  *GraphicsContext
 	offscreenTexture graphics.Texture
-	drawFunc func(graphics.GraphicsContext, graphics.TextureID)
+	drawFunc         func(graphics.GraphicsContext, graphics.TextureID)
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int,
 	drawFunc func(graphics.GraphicsContext, graphics.TextureID)) *Device {
 	device := &Device{
-		screenWidth: screenWidth,
-		screenHeight: screenHeight,
-		screenScale: screenScale,
+		screenWidth:     screenWidth,
+		screenHeight:    screenHeight,
+		screenScale:     screenScale,
 		graphicsContext: newGraphicsContext(screenWidth, screenHeight, screenScale),
-		drawFunc: drawFunc,
+		drawFunc:        drawFunc,
 	}
 	device.offscreenTexture =
 		device.graphicsContext.NewTexture(screenWidth, screenHeight)
@@ -41,7 +41,7 @@ func (device *Device) Update() {
 	g.Clear()
 	device.drawFunc(g, device.offscreenTexture.ID)
 	g.flush()
-	
+
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
 	g.resetOffscreen()

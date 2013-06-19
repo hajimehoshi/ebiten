@@ -15,21 +15,21 @@ package main
 //
 import "C"
 import (
+	"github.com/hajimehoshi/go-ebiten"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"image"
 	"image/color"
 	_ "image/png"
 	"os"
 	"runtime"
 	"unsafe"
-	"github.com/hajimehoshi/go-ebiten"
-	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
-type GlutUI struct{
-	screenWidth int
+type GlutUI struct {
+	screenWidth  int
 	screenHeight int
-	screenScale int
-	device graphics.Device
+	screenScale  int
+	device       graphics.Device
 }
 
 var currentUI *GlutUI
@@ -57,15 +57,15 @@ func (ui *GlutUI) Init() {
 	}()
 	cargc := C.int(len(cargs))
 
-	ui.screenWidth  = 256
+	ui.screenWidth = 256
 	ui.screenHeight = 240
-	ui.screenScale  = 2
+	ui.screenScale = 2
 
 	C.glutInit(&cargc, &cargs[0])
-	C.glutInitDisplayMode(C.GLUT_RGBA);
+	C.glutInitDisplayMode(C.GLUT_RGBA)
 	C.glutInitWindowSize(
-		C.int(ui.screenWidth  * ui.screenScale),
-		C.int(ui.screenHeight * ui.screenScale))
+		C.int(ui.screenWidth*ui.screenScale),
+		C.int(ui.screenHeight*ui.screenScale))
 
 	title := C.CString("Ebiten Demo")
 	defer C.free(unsafe.Pointer(title))
@@ -93,7 +93,7 @@ func (ui *GlutUI) Run(device graphics.Device) {
 
 type DemoGame struct {
 	ebitenTexture graphics.Texture
-	x int
+	x             int
 }
 
 func (game *DemoGame) Init(tf graphics.TextureFactory) {
@@ -102,7 +102,7 @@ func (game *DemoGame) Init(tf graphics.TextureFactory) {
 		panic(err)
 	}
 	defer file.Close()
-	
+
 	img, _, err := image.Decode(file)
 	if err != nil {
 		panic(err)

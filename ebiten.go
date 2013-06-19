@@ -1,9 +1,9 @@
 package ebiten
 
 import (
-	"time"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
+	"time"
 )
 
 type Game interface {
@@ -26,7 +26,7 @@ func OpenGLRun(game Game, ui UI) {
 		func(g graphics.GraphicsContext, offscreen graphics.TextureID) {
 			ticket := <-ch
 			game.Draw(g, offscreen)
-			ch<- ticket
+			ch <- ticket
 		})
 
 	go func() {
@@ -36,11 +36,11 @@ func OpenGLRun(game Game, ui UI) {
 			<-tick
 			ticket := <-ch
 			game.Update()
-			ch<- ticket
+			ch <- ticket
 		}
 	}()
 
 	game.Init(device.TextureFactory())
-	ch<- true
+	ch <- true
 	ui.Run(device)
 }

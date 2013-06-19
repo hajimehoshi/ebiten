@@ -1,8 +1,8 @@
 package graphics_test
 
 import (
-	"testing"
 	. "."
+	"testing"
 )
 
 func setElements(matrix *AffineMatrix, elements [][]float64) {

@@ -25,8 +25,8 @@ type TextureFactory interface {
 }
 
 type Texture struct {
-	ID TextureID
-	Width int
+	ID     TextureID
+	Width  int
 	Height int
 }
 

@@ -1,14 +1,14 @@
 package opengl_test
 
 import (
-	"testing"
 	. "."
+	"testing"
 )
 
 func TestClp2(t *testing.T) {
 	testCases := []struct {
 		expected uint64
-		arg uint64
+		arg      uint64
 	}{
 		{256, 255},
 		{256, 256},
@@ -22,6 +22,6 @@ func TestClp2(t *testing.T) {
 			t.Errorf("Clp(%d) = %d, wanted %d",
 				testCase.arg, got, wanted)
 		}
-		
+
 	}
 }

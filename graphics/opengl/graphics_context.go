@@ -7,32 +7,32 @@ package opengl
 import "C"
 import (
 	"fmt"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"image"
 	"image/color"
 	"unsafe"
-	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
 type GraphicsContext struct {
-	screenWidth int
-	screenHeight int
-	screenScale int
-	textures map[graphics.TextureID]*Texture
-	projectionMatrix [16]float32
+	screenWidth          int
+	screenHeight         int
+	screenScale          int
+	textures             map[graphics.TextureID]*Texture
+	projectionMatrix     [16]float32
 	currentShaderProgram C.GLuint
-	mainFramebuffer C.GLuint
-	framebuffers map[C.GLuint]C.GLuint
+	mainFramebuffer      C.GLuint
+	framebuffers         map[C.GLuint]C.GLuint
 }
 
 // This method should be called on the UI thread.
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsContext {
 	context := &GraphicsContext{
-		screenWidth: screenWidth,
-		screenHeight: screenHeight,
-		screenScale: screenScale,
-		textures: map[graphics.TextureID]*Texture{},
+		screenWidth:     screenWidth,
+		screenHeight:    screenHeight,
+		screenScale:     screenScale,
+		textures:        map[graphics.TextureID]*Texture{},
 		mainFramebuffer: 0,
-		framebuffers: map[C.GLuint]C.GLuint{},
+		framebuffers:    map[C.GLuint]C.GLuint{},
 	}
 	// main framebuffer should be created sooner than any other framebuffers!
 	mainFramebuffer := C.GLint(0)
@@ -53,10 +53,10 @@ func (context *GraphicsContext) Fill(clr color.Color) {
 	r, g, b, a := clr.RGBA()
 	max := 65535.0
 	C.glClearColor(
-		C.GLclampf(float64(r) / max),
-		C.GLclampf(float64(g) / max),
-		C.GLclampf(float64(b) / max),
-		C.GLclampf(float64(a) / max))
+		C.GLclampf(float64(r)/max),
+		C.GLclampf(float64(g)/max),
+		C.GLclampf(float64(b)/max),
+		C.GLclampf(float64(a)/max))
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
@@ -69,7 +69,7 @@ func (context *GraphicsContext) DrawTexture(
 	srcX, srcY, srcWidth, srcHeight int,
 	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
 	geometryMatrix = geometryMatrix.Clone()
-	colorMatrix    = colorMatrix.Clone()
+	colorMatrix = colorMatrix.Clone()
 
 	texture := context.textures[textureID]
 
@@ -87,10 +87,10 @@ func (context *GraphicsContext) DrawTexture(
 		x2, y2,
 	}
 
-	tu1 := float32(srcX)             / float32(texture.textureWidth)
-	tu2 := float32(srcX + srcWidth)  / float32(texture.textureWidth)
-	tv1 := float32(srcY)             / float32(texture.textureHeight)
-	tv2 := float32(srcY + srcHeight) / float32(texture.textureHeight)
+	tu1 := float32(srcX) / float32(texture.textureWidth)
+	tu2 := float32(srcX+srcWidth) / float32(texture.textureWidth)
+	tv1 := float32(srcY) / float32(texture.textureHeight)
+	tv2 := float32(srcY+srcHeight) / float32(texture.textureHeight)
 	texCoord := [...]float32{
 		tu1, tv1,
 		tu2, tv1,
@@ -138,8 +138,7 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 	C.glFlush()
 
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER);
-	err != C.GL_FRAMEBUFFER_COMPLETE {
+	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER); err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 	C.glEnable(C.GL_BLEND)
@@ -147,15 +146,15 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 
 	width, height, tx, ty := 0, 0, 0, 0
 	if framebuffer != context.mainFramebuffer {
-		width  = textureWidth
+		width = textureWidth
 		height = textureHeight
-		tx     = -1
-		ty     = -1
+		tx = -1
+		ty = -1
 	} else {
-		width  = context.screenWidth * context.screenScale
+		width = context.screenWidth * context.screenScale
 		height = -1 * context.screenHeight * context.screenScale
-		tx     = -1
-		ty     = 1
+		tx = -1
+		ty = 1
 	}
 	C.glViewport(0, 0, C.GLsizei(abs(width)), C.GLsizei(abs(height)))
 	e11 := float32(2.0) / float32(width)
@@ -163,9 +162,9 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 	e41 := float32(tx)
 	e42 := float32(ty)
 	context.projectionMatrix = [...]float32{
-		e11, 0,   0, 0,
-		0,   e22, 0, 0,
-		0,   0,   1, 0,
+		e11, 0, 0, 0,
+		0, e22, 0, 0,
+		0, 0, 1, 0,
 		e41, e42, 0, 1,
 	}
 }
@@ -196,16 +195,16 @@ func (context *GraphicsContext) setShaderProgram(
 		1, C.GL_FALSE,
 		(*C.GLfloat)(&context.projectionMatrix[0]))
 
-	a  := float32(geometryMatrix.A())
-	b  := float32(geometryMatrix.B())
-	c  := float32(geometryMatrix.C())
-	d  := float32(geometryMatrix.D())
+	a := float32(geometryMatrix.A())
+	b := float32(geometryMatrix.B())
+	c := float32(geometryMatrix.C())
+	d := float32(geometryMatrix.D())
 	tx := float32(geometryMatrix.Tx())
 	ty := float32(geometryMatrix.Ty())
 	glModelviewMatrix := [...]float32{
-		a,  c,  0, 0,
-		b,  d,  0, 0,
-		0,  0,  1, 0,
+		a, c, 0, 0,
+		b, d, 0, 0,
+		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
 	C.glUniformMatrix4fv(getUniformLocation(program, "modelview_matrix"),
@@ -241,7 +240,7 @@ func (context *GraphicsContext) setShaderProgram(
 		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
 }
 
-func (context *GraphicsContext) getFramebuffer(textureID C.GLuint) C.GLuint{
+func (context *GraphicsContext) getFramebuffer(textureID C.GLuint) C.GLuint {
 	framebuffer, ok := context.framebuffers[textureID]
 	if ok {
 		return framebuffer
