@@ -15,37 +15,37 @@ func TestGeometryMatrixElements(t *testing.T) {
 	matrix.SetTy(6)
 
 	got := matrix.A()
-	want := AffineMatrixElement(1)
+	want := float64(1)
 	if want != got {
 		t.Errorf("matrix.A() = %f, want %f", got, want)
 	}
 
 	got = matrix.B()
-	want = AffineMatrixElement(2)
+	want = float64(2)
 	if want != got {
 		t.Errorf("matrix.B() = %f, want %f", got, want)
 	}
 
 	got = matrix.C()
-	want = AffineMatrixElement(3)
+	want = float64(3)
 	if want != got {
 		t.Errorf("matrix.C() = %f, want %f", got, want)
 	}
 
 	got = matrix.D()
-	want = AffineMatrixElement(4)
+	want = float64(4)
 	if want != got {
 		t.Errorf("matrix.D() = %f, want %f", got, want)
 	}
 
 	got = matrix.Tx()
-	want = AffineMatrixElement(5)
+	want = float64(5)
 	if want != got {
 		t.Errorf("matrix.Tx() = %f, want %f", got, want)
 	}
 
 	got = matrix.Ty()
-	want = AffineMatrixElement(6)
+	want = float64(6)
 	if want != got {
 		t.Errorf("matrix.Ty() = %f, want %f", got, want)
 	}
