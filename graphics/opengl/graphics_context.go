@@ -41,6 +41,23 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsCon
 	return context
 }
 
+var glTextureCache = map[*graphics.Texture]*Texture{}
+
+func glTexture(tex *graphics.Texture) *Texture {
+	if glTex, ok := glTextureCache[tex]; ok {
+		return glTex
+	}
+
+	var glTex *Texture = nil
+	if tex.Image != nil {
+		glTex = newTextureFromImage(tex.Image)
+	} else {
+		glTex = newTexture(tex.Width, tex.Height)
+	}
+	glTextureCache[tex] = glTex
+	return glTex
+}
+
 func (context *GraphicsContext) Clear() {
 	C.glClearColor(0, 0, 0, 1)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
@@ -61,13 +78,13 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 	// TODO: implement!
 }
 
-func (context *GraphicsContext) DrawTexture(tex graphics.Texture,
+func (context *GraphicsContext) DrawTexture(tex *graphics.Texture,
 	srcX, srcY, srcWidth, srcHeight int,
 	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
 	geometryMatrix = geometryMatrix.Clone()
 	colorMatrix    = colorMatrix.Clone()
 
-	texture := tex.(*Texture)
+	texture := glTexture(tex)
 
 	context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
@@ -119,12 +136,12 @@ func abs(x int) int {
 	return x
 }
 
-func (context *GraphicsContext) SetOffscreen(tex graphics.Texture) {
+func (context *GraphicsContext) SetOffscreen(tex *graphics.Texture) {
 	C.glFlush()
 
 	var texture *Texture = nil
 	if tex != nil {
-		texture = tex.(*Texture)
+		texture = glTexture(tex)
 	}
 	framebuffer := C.GLuint(0)
 	if texture != nil {

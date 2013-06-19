@@ -91,7 +91,7 @@ func (ui *GlutUI) Run(device graphics.Device) {
 }
 
 type DemoGame struct {
-	ebitenTexture graphics.Texture
+	ebitenTexture *graphics.Texture
 	x int
 }
 
@@ -108,13 +108,12 @@ func (game *DemoGame) Update() {
 			panic(err)
 		}
 
-		// TODO: It looks strange to get a texture from the device.
-		game.ebitenTexture = currentUI.device.NewTextureFromImage(img)
+		game.ebitenTexture = graphics.NewTextureFromImage(img)
 	}
 	game.x++
 }
 
-func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen *graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 	if game.ebitenTexture == nil {
 		return
@@ -123,7 +122,7 @@ func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Textur
 	geometryMatrix.SetTx(float64(game.x))
 	geometryMatrix.SetTy(float64(game.x))
 	g.DrawTexture(game.ebitenTexture,
-		0, 0, game.ebitenTexture.Width(), game.ebitenTexture.Height(),
+		0, 0, game.ebitenTexture.Width, game.ebitenTexture.Height,
 		geometryMatrix,
 		graphics.IdentityColorMatrix())
 }
