@@ -14,6 +14,10 @@ func IdentityColorMatrix() *ColorMatrix {
 	return &ColorMatrix{*IdentityAffineMatrix(colorMatrixDimension)}
 }
 
+func (matrix *ColorMatrix) Concat(other *ColorMatrix) *ColorMatrix {
+	return &ColorMatrix{*matrix.AffineMatrix.Concat(&other.AffineMatrix)}
+}
+
 func (matrix *ColorMatrix) Clone() *ColorMatrix {
 	return &ColorMatrix{*(matrix.AffineMatrix.Clone())}
 }

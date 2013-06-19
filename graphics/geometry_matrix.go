@@ -1,5 +1,9 @@
 package graphics
 
+import (
+	"math"
+)
+
 type GeometryMatrix struct {
 	AffineMatrix
 }
@@ -12,6 +16,27 @@ func NewGeometryMatrix() *GeometryMatrix {
 
 func IdentityGeometryMatrix() *GeometryMatrix {
 	return &GeometryMatrix{*IdentityAffineMatrix(geometryMatrixDimension)}
+}
+
+func TranslateMatrix(tx, ty float64) *GeometryMatrix {
+	matrix := IdentityGeometryMatrix()
+	matrix.SetTx(tx)
+	matrix.SetTy(ty)
+	return matrix
+}
+
+func RotateMatrix(theta float64) *GeometryMatrix {
+	matrix := NewGeometryMatrix()
+	cos, sin := math.Cos(theta), math.Sin(theta)
+	matrix.SetA(cos)
+	matrix.SetB(-sin)
+	matrix.SetC(sin)
+	matrix.SetD(cos)
+	return matrix
+}
+
+func (matrix *GeometryMatrix) Concat(other *GeometryMatrix) *GeometryMatrix {
+	return &GeometryMatrix{*matrix.AffineMatrix.Concat(&other.AffineMatrix)}
 }
 
 func (matrix *GeometryMatrix) Clone() *GeometryMatrix {

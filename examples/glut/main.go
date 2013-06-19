@@ -117,10 +117,13 @@ func (game *DemoGame) Update() {
 func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.TextureID) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 	geometryMatrix := graphics.IdentityGeometryMatrix()
-	geometryMatrix.SetTx(float64(game.x))
-	geometryMatrix.SetTy(float64(game.x))
+	tx, ty := float64(game.ebitenTexture.Width), float64(game.ebitenTexture.Height)
+	geometryMatrix = geometryMatrix.Concat(graphics.TranslateMatrix(-tx/2, -ty/2))
+	geometryMatrix = geometryMatrix.Concat(graphics.RotateMatrix(float64(game.x) / 60))
+	geometryMatrix = geometryMatrix.Concat(graphics.TranslateMatrix(tx/2, ty/2))
+	geometryMatrix = geometryMatrix.Concat(graphics.TranslateMatrix(100, 100))
 	g.DrawTexture(game.ebitenTexture.ID,
-		0, 0, game.ebitenTexture.Width, game.ebitenTexture.Height,
+		0, 0, int(tx), int(ty),
 		geometryMatrix,
 		graphics.IdentityColorMatrix())
 }
@@ -133,4 +136,5 @@ func main() {
 	currentUI.Init()
 
 	ebiten.OpenGLRun(game, currentUI)
+
 }
