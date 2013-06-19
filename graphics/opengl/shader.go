@@ -137,19 +137,23 @@ func initializeShaders() {
 	C.glDeleteShader(colorMatrixShader.id)
 }
 
-func isOpenGLES2() bool {
-	// TODO: Implement!
-	return false
-}
-
 const (
 	qualifierVariableTypeAttribute = iota
 	qualifierVariableTypeUniform
 )
 
-// This method should be called on the UI thread.
-// TODO: Can we cache the locations?
+var (
+	shaderLocationCache = map[int]map[string]C.GLint{
+		qualifierVariableTypeAttribute: map[string]C.GLint{},
+		qualifierVariableTypeUniform:   map[string]C.GLint{},
+	}
+)
+
 func getLocation(program C.GLuint, name string, qualifierVariableType int) C.GLint {
+	if location, ok := shaderLocationCache[qualifierVariableType][name]; ok {
+		return location
+	}
+
 	locationName := C.CString(name)
 	defer C.free(unsafe.Pointer(locationName))
 
@@ -165,16 +169,15 @@ func getLocation(program C.GLuint, name string, qualifierVariableType int) C.GLi
 	if location == -1 {
 		panic("glGetUniformLocation failed")
 	}
+	shaderLocationCache[qualifierVariableType][name] = location
 
 	return location
 }
 
-// This method should be called on the UI thread.
 func getAttributeLocation(program C.GLuint, name string) C.GLint {
 	return getLocation(program, name, qualifierVariableTypeAttribute)
 }
 
-// This method should be called on the UI thread.
 func getUniformLocation(program C.GLuint, name string) C.GLint {
 	return getLocation(program, name, qualifierVariableTypeUniform)
 }

@@ -12,7 +12,7 @@ type Game interface {
 	Draw(g graphics.GraphicsContext, offscreen graphics.Texture)
 }
 
-func Run(game Game, u ui.UI) {
+func OpenGLRun(game Game, u ui.UI) {
 	ch := make(chan bool, 1)
 	device := opengl.NewDevice(
 		u.ScreenWidth(), u.ScreenHeight(), u.ScreenScale(),
