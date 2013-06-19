@@ -19,6 +19,7 @@ import (
 	"image/color"
 	_ "image/png"
 	"os"
+	"runtime"
 	"unsafe"
 	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
@@ -125,6 +126,8 @@ func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Textur
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	game := &DemoGame{}
 	currentUI = &GlutUI{}
 	currentUI.Init()
