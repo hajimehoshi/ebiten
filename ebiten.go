@@ -4,7 +4,6 @@ import (
 	"time"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
-	"github.com/hajimehoshi/go-ebiten/ui"
 )
 
 type Game interface {
@@ -12,10 +11,17 @@ type Game interface {
 	Draw(g graphics.GraphicsContext, offscreen graphics.Texture)
 }
 
-func OpenGLRun(game Game, u ui.UI) {
+type UI interface {
+	ScreenWidth() int
+	ScreenHeight() int
+	ScreenScale() int
+	Run(device graphics.Device)
+}
+
+func OpenGLRun(game Game, ui UI) {
 	ch := make(chan bool, 1)
 	device := opengl.NewDevice(
-		u.ScreenWidth(), u.ScreenHeight(), u.ScreenScale(),
+		ui.ScreenWidth(), ui.ScreenHeight(), ui.ScreenScale(),
 		func(g graphics.GraphicsContext, offscreen graphics.Texture) {
 			ticket := <-ch
 			game.Draw(g, offscreen)
@@ -34,5 +40,5 @@ func OpenGLRun(game Game, u ui.UI) {
 	}()
 	ch<- true
 
-	u.Run(device)
+	ui.Run(device)
 }
