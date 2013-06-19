@@ -120,11 +120,12 @@ func abs(x int) int {
 }
 
 func (context *GraphicsContext) SetOffscreen(tex graphics.Texture) {
+	C.glFlush()
+
 	var texture *Texture = nil
 	if tex != nil {
 		texture = tex.(*Texture)
 	}
-	// TODO: glFlush() here?
 	framebuffer := C.GLuint(0)
 	if texture != nil {
 		framebuffer = context.getFramebuffer(texture)
