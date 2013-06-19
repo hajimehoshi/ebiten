@@ -91,37 +91,34 @@ func (ui *GlutUI) Run(device graphics.Device) {
 }
 
 type DemoGame struct {
-	ebitenTexture *graphics.Texture
+	ebitenTexture graphics.Texture
 	x int
 }
 
-func (game *DemoGame) Update() {
-	if game.ebitenTexture == nil {
-		file, err := os.Open("ebiten.png")
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-		
-		img, _, err := image.Decode(file)
-		if err != nil {
-			panic(err)
-		}
-
-		game.ebitenTexture = graphics.NewTextureFromImage(img)
+func (game *DemoGame) Init(tf graphics.TextureFactory) {
+	file, err := os.Open("ebiten.png")
+	if err != nil {
+		panic(err)
 	}
+	defer file.Close()
+	
+	img, _, err := image.Decode(file)
+	if err != nil {
+		panic(err)
+	}
+	game.ebitenTexture = tf.NewTextureFromImage(img)
+}
+
+func (game *DemoGame) Update() {
 	game.x++
 }
 
-func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen *graphics.Texture) {
+func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.TextureID) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
-	if game.ebitenTexture == nil {
-		return
-	}
 	geometryMatrix := graphics.IdentityGeometryMatrix()
 	geometryMatrix.SetTx(float64(game.x))
 	geometryMatrix.SetTy(float64(game.x))
-	g.DrawTexture(game.ebitenTexture,
+	g.DrawTexture(game.ebitenTexture.ID,
 		0, 0, game.ebitenTexture.Width, game.ebitenTexture.Height,
 		geometryMatrix,
 		graphics.IdentityColorMatrix())

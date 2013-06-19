@@ -7,6 +7,7 @@ package opengl
 import "C"
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"unsafe"
 	"github.com/hajimehoshi/go-ebiten/graphics"
@@ -16,9 +17,10 @@ type GraphicsContext struct {
 	screenWidth int
 	screenHeight int
 	screenScale int
-	mainFramebuffer C.GLuint
+	textures map[graphics.TextureID]*Texture
 	projectionMatrix [16]float32
 	currentShaderProgram C.GLuint
+	mainFramebuffer C.GLuint
 	framebuffers map[C.GLuint]C.GLuint
 }
 
@@ -28,6 +30,7 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsCon
 		screenWidth: screenWidth,
 		screenHeight: screenHeight,
 		screenScale: screenScale,
+		textures: map[graphics.TextureID]*Texture{},
 		mainFramebuffer: 0,
 		framebuffers: map[C.GLuint]C.GLuint{},
 	}
@@ -39,23 +42,6 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsCon
 	initializeShaders()
 
 	return context
-}
-
-var glTextureCache = map[*graphics.Texture]*Texture{}
-
-func glTexture(tex *graphics.Texture) *Texture {
-	if glTex, ok := glTextureCache[tex]; ok {
-		return glTex
-	}
-
-	var glTex *Texture = nil
-	if tex.Image != nil {
-		glTex = newTextureFromImage(tex.Image)
-	} else {
-		glTex = newTexture(tex.Width, tex.Height)
-	}
-	glTextureCache[tex] = glTex
-	return glTex
 }
 
 func (context *GraphicsContext) Clear() {
@@ -78,13 +64,14 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 	// TODO: implement!
 }
 
-func (context *GraphicsContext) DrawTexture(tex *graphics.Texture,
+func (context *GraphicsContext) DrawTexture(
+	textureID graphics.TextureID,
 	srcX, srcY, srcWidth, srcHeight int,
 	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
 	geometryMatrix = geometryMatrix.Clone()
 	colorMatrix    = colorMatrix.Clone()
 
-	texture := glTexture(tex)
+	texture := context.textures[textureID]
 
 	context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
@@ -136,24 +123,23 @@ func abs(x int) int {
 	return x
 }
 
-func (context *GraphicsContext) SetOffscreen(tex *graphics.Texture) {
+func (context *GraphicsContext) SetOffscreen(textureID graphics.TextureID) {
+	texture := context.textures[textureID]
+	framebuffer := context.getFramebuffer(texture.id)
+	if framebuffer == context.mainFramebuffer {
+		panic("invalid framebuffer")
+	}
+	context.setOffscreenFramebuffer(framebuffer,
+		texture.textureWidth, texture.textureHeight)
+}
+
+func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
+	textureWidth, textureHeight int) {
 	C.glFlush()
 
-	var texture *Texture = nil
-	if tex != nil {
-		texture = glTexture(tex)
-	}
-	framebuffer := C.GLuint(0)
-	if texture != nil {
-		framebuffer = context.getFramebuffer(texture)
-		if framebuffer == context.mainFramebuffer {
-			panic("invalid framebuffer")
-		}
-	} else {
-		framebuffer = context.mainFramebuffer
-	}
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER); err != C.GL_FRAMEBUFFER_COMPLETE {
+	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER);
+	err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 	C.glEnable(C.GL_BLEND)
@@ -161,8 +147,8 @@ func (context *GraphicsContext) SetOffscreen(tex *graphics.Texture) {
 
 	width, height, tx, ty := 0, 0, 0, 0
 	if framebuffer != context.mainFramebuffer {
-		width  = texture.textureWidth
-		height = texture.textureHeight
+		width  = textureWidth
+		height = textureHeight
 		tx     = -1
 		ty     = -1
 	} else {
@@ -185,7 +171,7 @@ func (context *GraphicsContext) SetOffscreen(tex *graphics.Texture) {
 }
 
 func (context *GraphicsContext) resetOffscreen() {
-	context.SetOffscreen(nil)
+	context.setOffscreenFramebuffer(context.mainFramebuffer, 0, 0)
 }
 
 // This method should be called on the UI thread.
@@ -255,9 +241,8 @@ func (context *GraphicsContext) setShaderProgram(
 		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
 }
 
-// This method should be called on the UI thread.
-func (context *GraphicsContext) getFramebuffer(texture *Texture) C.GLuint{
-	framebuffer, ok := context.framebuffers[texture.id]
+func (context *GraphicsContext) getFramebuffer(textureID C.GLuint) C.GLuint{
+	framebuffer, ok := context.framebuffers[textureID]
 	if ok {
 		return framebuffer
 	}
@@ -269,23 +254,44 @@ func (context *GraphicsContext) getFramebuffer(texture *Texture) C.GLuint{
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, newFramebuffer)
 	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
-		C.GL_TEXTURE_2D, texture.id, 0)
+		C.GL_TEXTURE_2D, textureID, 0)
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
 	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) != C.GL_FRAMEBUFFER_COMPLETE {
 		panic("creating framebuffer failed")
 	}
 
-	context.framebuffers[texture.id] = newFramebuffer
+	context.framebuffers[textureID] = newFramebuffer
 	return newFramebuffer
 }
 
-// This method should be called on the UI thread.
-func (context *GraphicsContext) deleteFramebuffer(texture *Texture) {
-	framebuffer, ok := context.framebuffers[texture.id]
+func (context *GraphicsContext) deleteFramebuffer(textureID C.GLuint) {
+	framebuffer, ok := context.framebuffers[textureID]
 	if !ok {
 		// TODO: panic?
 		return
 	}
 	C.glDeleteFramebuffers(1, &framebuffer)
-	delete(context.framebuffers, texture.id)
+	delete(context.framebuffers, textureID)
+}
+
+func (context *GraphicsContext) NewTexture(width, height int) graphics.Texture {
+	texture := newTexture(width, height)
+	id := graphics.TextureID(texture.id)
+	context.textures[id] = texture
+	return graphics.Texture{
+		ID:     id,
+		Width:  texture.width,
+		Height: texture.height,
+	}
+}
+
+func (context *GraphicsContext) NewTextureFromImage(img image.Image) graphics.Texture {
+	texture := newTextureFromImage(img)
+	id := graphics.TextureID(texture.id)
+	context.textures[id] = texture
+	return graphics.Texture{
+		ID:     id,
+		Width:  texture.width,
+		Height: texture.height,
+	}
 }

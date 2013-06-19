@@ -7,28 +7,27 @@ import (
 
 type Device interface {
 	Update()
+	TextureFactory() TextureFactory
 }
 
 type GraphicsContext interface {
 	Clear()
 	Fill(color color.Color)
-	DrawTexture(texture *Texture,
+	DrawTexture(textureId TextureID,
 		srcX, srcY, srcWidth, srcHeight int,
 		geometryMatrix *GeometryMatrix, colorMatrix *ColorMatrix)
-	SetOffscreen(texture *Texture)
+	SetOffscreen(textureId TextureID)
+}
+
+type TextureFactory interface {
+	NewTexture(width, height int) Texture
+	NewTextureFromImage(img image.Image) Texture
 }
 
 type Texture struct {
+	ID TextureID
 	Width int
 	Height int
-	Image image.Image
 }
 
-func NewTexture(width, height int) *Texture {
-	return &Texture{width, height, nil}
-}
-
-func NewTextureFromImage(img image.Image) *Texture {
-	size := img.Bounds().Size()
-	return &Texture{size.X, size.Y, img}
-}
+type TextureID int

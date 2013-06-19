@@ -7,8 +7,9 @@ import (
 )
 
 type Game interface {
+	Init(tf graphics.TextureFactory)
 	Update()
-	Draw(g graphics.GraphicsContext, offscreen *graphics.Texture)
+	Draw(g graphics.GraphicsContext, offscreen graphics.TextureID)
 }
 
 type UI interface {
@@ -22,7 +23,7 @@ func OpenGLRun(game Game, ui UI) {
 	ch := make(chan bool, 1)
 	device := opengl.NewDevice(
 		ui.ScreenWidth(), ui.ScreenHeight(), ui.ScreenScale(),
-		func(g graphics.GraphicsContext, offscreen *graphics.Texture) {
+		func(g graphics.GraphicsContext, offscreen graphics.TextureID) {
 			ticket := <-ch
 			game.Draw(g, offscreen)
 			ch<- ticket
@@ -38,7 +39,8 @@ func OpenGLRun(game Game, ui UI) {
 			ch<- ticket
 		}
 	}()
-	ch<- true
 
+	game.Init(device.TextureFactory())
+	ch<- true
 	ui.Run(device)
 }
