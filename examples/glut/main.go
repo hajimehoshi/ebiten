@@ -115,7 +115,7 @@ func (game *DemoGame) Update() {
 	game.x++
 }
 
-func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.TextureID) {
+func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()
