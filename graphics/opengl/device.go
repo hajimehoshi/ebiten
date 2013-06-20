@@ -7,6 +7,7 @@ package opengl
 import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
+	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 )
 
 type Device struct {
@@ -46,12 +47,17 @@ func (device *Device) Update() {
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
 	g.resetOffscreen()
 	g.Clear()
-	geometryMatrix := graphics.IdentityGeometryMatrix()
-	geometryMatrix.SetA(float64(g.screenScale))
-	geometryMatrix.SetD(float64(g.screenScale))
+
+	scale := float64(g.screenScale)
+	geometryMatrix := matrix.Geometry{
+		[2][3]float64{
+			{scale, 0,     0},
+			{0,     scale, 0},
+		},
+	}
 	g.DrawTexture(device.offscreenTexture.ID,
 		0, 0, device.screenWidth, device.screenHeight,
-		geometryMatrix, graphics.IdentityColorMatrix())
+		geometryMatrix, matrix.IdentityColor())
 	g.flush()
 }
 

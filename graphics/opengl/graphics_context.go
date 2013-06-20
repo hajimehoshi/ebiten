@@ -8,6 +8,7 @@ import "C"
 import (
 	"fmt"
 	"github.com/hajimehoshi/go.ebiten/graphics"
+	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
 	"image/color"
 	"unsafe"
@@ -67,9 +68,7 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 func (context *GraphicsContext) DrawTexture(
 	textureID graphics.TextureID,
 	srcX, srcY, srcWidth, srcHeight int,
-	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
-	geometryMatrix = geometryMatrix.Clone()
-	colorMatrix = colorMatrix.Clone()
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 
 	texture := context.textures[textureID]
 
@@ -180,7 +179,7 @@ func (context *GraphicsContext) flush() {
 
 // This method should be called on the UI thread.
 func (context *GraphicsContext) setShaderProgram(
-	geometryMatrix *graphics.GeometryMatrix, colorMatrix *graphics.ColorMatrix) {
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	program := C.GLuint(0)
 	if colorMatrix.IsIdentity() {
 		program = regularShaderProgram
@@ -195,12 +194,12 @@ func (context *GraphicsContext) setShaderProgram(
 		1, C.GL_FALSE,
 		(*C.GLfloat)(&context.projectionMatrix[0]))
 
-	a := float32(geometryMatrix.A())
-	b := float32(geometryMatrix.B())
-	c := float32(geometryMatrix.C())
-	d := float32(geometryMatrix.D())
-	tx := float32(geometryMatrix.Tx())
-	ty := float32(geometryMatrix.Ty())
+	a := float32(geometryMatrix.Elements[0][0])
+	b := float32(geometryMatrix.Elements[0][1])
+	c := float32(geometryMatrix.Elements[1][0])
+	d := float32(geometryMatrix.Elements[1][1])
+	tx := float32(geometryMatrix.Elements[0][2])
+	ty := float32(geometryMatrix.Elements[1][2])
 	glModelviewMatrix := [...]float32{
 		a, c, 0, 0,
 		b, d, 0, 0,
@@ -220,7 +219,7 @@ func (context *GraphicsContext) setShaderProgram(
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
-			e[i][j] = float32(colorMatrix.Element(i, j))
+			e[i][j] = float32(colorMatrix.Elements[i][j])
 		}
 	}
 

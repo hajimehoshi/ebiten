@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
 	"image/color"
 )
@@ -15,7 +16,7 @@ type GraphicsContext interface {
 	Fill(color color.Color)
 	DrawTexture(textureId TextureID,
 		srcX, srcY, srcWidth, srcHeight int,
-		geometryMatrix *GeometryMatrix, colorMatrix *ColorMatrix)
+		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
 	SetOffscreen(textureId TextureID)
 }
 
