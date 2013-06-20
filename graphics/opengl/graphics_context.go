@@ -7,7 +7,7 @@ package opengl
 import "C"
 import (
 	"fmt"
-	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go.ebiten/graphics"
 	"image"
 	"image/color"
 	"unsafe"
