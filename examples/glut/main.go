@@ -123,7 +123,8 @@ func (game *DemoGame) Draw(g graphics.GraphicsContext, offscreen graphics.Textur
 	geometryMatrix.Translate(-tx/2, -ty/2)
 	geometryMatrix.Rotate(float64(game.x) / 60)
 	geometryMatrix.Translate(tx/2, ty/2)
-	geometryMatrix.Translate(100, 100)
+	centerX, centerY := float64(offscreen.Width) / 2, float64(offscreen.Height) / 2
+	geometryMatrix.Translate(centerX - tx/2, centerY - ty/2)
 	g.DrawTexture(game.ebitenTexture.ID,
 		0, 0, int(tx), int(ty),
 		geometryMatrix,
