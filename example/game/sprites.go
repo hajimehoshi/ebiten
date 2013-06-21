@@ -61,7 +61,6 @@ func (sprite *Sprite) Update() {
 type Sprites struct {
 	ebitenTexture graphics.Texture
 	sprites       []*Sprite
-	angle         int
 }
 
 func NewSprites() *Sprites {
@@ -103,7 +102,6 @@ func (game *Sprites) Update() {
 	for _, sprite := range game.sprites {
 		sprite.Update()
 	}
-	game.angle++
 }
 
 func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
