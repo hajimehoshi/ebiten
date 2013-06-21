@@ -24,10 +24,7 @@ import (
 )
 
 type GlutUI struct {
-	screenWidth  int
-	screenHeight int
-	screenScale  int
-	device       graphics.Device
+	device graphics.Device
 }
 
 var currentUI *GlutUI
@@ -43,7 +40,7 @@ func idle() {
 	C.glutPostRedisplay()
 }
 
-func (ui *GlutUI) Init() {
+func (ui *GlutUI) Init(screenWidth, screenHeight, screenScale int) {
 	cargs := []*C.char{}
 	for _, arg := range os.Args {
 		cargs = append(cargs, C.CString(arg))
@@ -55,33 +52,17 @@ func (ui *GlutUI) Init() {
 	}()
 	cargc := C.int(len(cargs))
 
-	ui.screenWidth = 256
-	ui.screenHeight = 240
-	ui.screenScale = 2
-
 	C.glutInit(&cargc, &cargs[0])
 	C.glutInitDisplayMode(C.GLUT_RGBA)
 	C.glutInitWindowSize(
-		C.int(ui.screenWidth*ui.screenScale),
-		C.int(ui.screenHeight*ui.screenScale))
+		C.int(screenWidth*screenScale),
+		C.int(screenHeight*screenScale))
 
 	title := C.CString("Ebiten Demo")
 	defer C.free(unsafe.Pointer(title))
 	C.glutCreateWindow(title)
 
 	C.setGlutFuncs()
-}
-
-func (ui *GlutUI) ScreenWidth() int {
-	return ui.screenWidth
-}
-
-func (ui *GlutUI) ScreenHeight() int {
-	return ui.screenHeight
-}
-
-func (ui *GlutUI) ScreenScale() int {
-	return ui.screenScale
 }
 
 func (ui *GlutUI) Run(device graphics.Device) {
@@ -104,8 +85,10 @@ func main() {
 	default:
 		gm = game.NewRotatingImage()
 	}
-	currentUI = &GlutUI{}
-	currentUI.Init()
 
-	ebiten.OpenGLRun(gm, currentUI)
+	screenScale := 2
+	currentUI = &GlutUI{}
+	currentUI.Init(gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
+
+	ebiten.OpenGLRun(gm, currentUI, screenScale)
 }

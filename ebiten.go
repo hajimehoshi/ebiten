@@ -7,22 +7,21 @@ import (
 )
 
 type Game interface {
+	ScreenWidth() int
+	ScreenHeight() int
 	Init(tf graphics.TextureFactory)
 	Update()
 	Draw(g graphics.GraphicsContext, offscreen graphics.Texture)
 }
 
 type UI interface {
-	ScreenWidth() int
-	ScreenHeight() int
-	ScreenScale() int
 	Run(device graphics.Device)
 }
 
-func OpenGLRun(game Game, ui UI) {
+func OpenGLRun(game Game, ui UI, screenScale int) {
 	ch := make(chan bool, 1)
 	device := opengl.NewDevice(
-		ui.ScreenWidth(), ui.ScreenHeight(), ui.ScreenScale(),
+		game.ScreenWidth(), game.ScreenHeight(), screenScale,
 		func(g graphics.GraphicsContext, offscreen graphics.Texture) {
 			ticket := <-ch
 			game.Draw(g, offscreen)
