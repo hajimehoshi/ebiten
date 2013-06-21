@@ -66,14 +66,9 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 }
 
 func (context *GraphicsContext) DrawTexture(
-	textureID graphics.TextureID, source graphics.Rectangle,
+	textureID graphics.TextureID, source graphics.Rect,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	locations := []graphics.TextureLocation{
-		{
-			graphics.Point{0, 0},
-			source,
-		},
-	}
+	locations := []graphics.TextureLocation{{0, 0, source}}
 	context.DrawTextures(textureID, locations,
 		geometryMatrix, colorMatrix)
 }
@@ -87,7 +82,6 @@ func (context *GraphicsContext) DrawTextures(
 	context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
 
-
 	vertexAttrLocation := getAttributeLocation(context.currentShaderProgram, "vertex")
 	textureAttrLocation := getAttributeLocation(context.currentShaderProgram, "texture")
 
@@ -96,10 +90,10 @@ func (context *GraphicsContext) DrawTextures(
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
 	for _, location := range locations {
-		x1 := float32(location.Location.X)
-		x2 := float32(location.Location.X + location.Source.Size.Width)
-		y1 := float32(location.Location.Y)
-		y2 := float32(location.Location.Y + location.Source.Size.Height)
+		x1 := float32(location.LocationX)
+		x2 := float32(location.LocationX + location.Source.Width)
+		y1 := float32(location.LocationY)
+		y2 := float32(location.LocationY + location.Source.Height)
 		vertex := [...]float32{
 			x1, y1,
 			x2, y1,
@@ -108,10 +102,10 @@ func (context *GraphicsContext) DrawTextures(
 		}
 
 		src := location.Source
-		tu1 := float32(src.Location.X) / float32(texture.textureWidth)
-		tu2 := float32(src.Location.X+src.Size.Width) / float32(texture.textureWidth)
-		tv1 := float32(src.Location.Y) / float32(texture.textureHeight)
-		tv2 := float32(src.Location.Y+src.Size.Height) / float32(texture.textureHeight)
+		tu1 := float32(src.X) / float32(texture.textureWidth)
+		tu2 := float32(src.X+src.Width) / float32(texture.textureWidth)
+		tv1 := float32(src.Y) / float32(texture.textureHeight)
+		tv2 := float32(src.Y+src.Height) / float32(texture.textureHeight)
 		texCoord := [...]float32{
 			tu1, tv1,
 			tu2, tv1,

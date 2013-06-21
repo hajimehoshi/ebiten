@@ -110,10 +110,10 @@ func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture
 	texture := game.ebitenTexture
 	for _, sprite := range game.sprites {
 		location := graphics.TextureLocation{
-			Location: graphics.Point{sprite.x, sprite.y},
-			Source: graphics.Rectangle{
-				graphics.Point{0, 0},
-				graphics.Size{texture.Width, texture.Height},
+			LocationX: sprite.x,
+			LocationY: sprite.y,
+			Source: graphics.Rect{
+				0, 0, texture.Width, texture.Height,
 			},
 		}
 		locations = append(locations, location)

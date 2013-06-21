@@ -11,31 +11,24 @@ type Device interface {
 	TextureFactory() TextureFactory
 }
 
-type Point struct {
-	X int
-	Y int
-}
-
-type Size struct {
-	Width int
+type Rect struct {
+	X      int
+	Y      int
+	Width  int
 	Height int
 }
 
-type Rectangle struct {
-	Location Point
-	Size Size
-}
-
 type TextureLocation struct {
-	Location Point
-	Source Rectangle
+	LocationX int
+	LocationY int
+	Source    Rect
 }
 
 type GraphicsContext interface {
 	Clear()
 	Fill(color color.Color)
 	DrawTexture(textureId TextureID,
-		source Rectangle,
+		source Rect,
 		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
 	DrawTextures(textureId TextureID,
 		locations []TextureLocation,
