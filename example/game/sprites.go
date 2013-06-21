@@ -11,26 +11,26 @@ import (
 )
 
 type Sprite struct {
-	width int
+	width  int
 	height int
-	ch      chan bool
-	x       int
-	y       int
-	vx      int
-	vy      int
+	ch     chan bool
+	x      int
+	y      int
+	vx     int
+	vy     int
 }
 
 func NewSprite(screenWidth, screenHeight, width, height int) *Sprite {
 	maxX := screenWidth - width
 	maxY := screenHeight - height
 	sprite := &Sprite{
-		width: width,
+		width:  width,
 		height: height,
-		ch:      make(chan bool),
-		x:       rand.Intn(maxX),
-		y:       rand.Intn(maxY),
-		vx:      rand.Intn(2)*2 - 1,
-		vy:      rand.Intn(2)*2 - 1,
+		ch:     make(chan bool),
+		x:      rand.Intn(maxX),
+		y:      rand.Intn(maxY),
+		vx:     rand.Intn(2)*2 - 1,
+		vy:     rand.Intn(2)*2 - 1,
 	}
 	go sprite.update(screenWidth, screenHeight)
 	return sprite
@@ -61,6 +61,7 @@ func (sprite *Sprite) Update() {
 type Sprites struct {
 	ebitenTexture graphics.Texture
 	sprites       []*Sprite
+	angle int
 }
 
 func NewSprites() *Sprites {
@@ -102,6 +103,7 @@ func (game *Sprites) Update() {
 	for _, sprite := range game.sprites {
 		sprite.Update()
 	}
+	game.angle++
 }
 
 func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
@@ -120,8 +122,9 @@ func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture
 		}
 		locations = append(locations, location)
 	}
-	g.DrawTextures(texture.ID, locations,
-		matrix.IdentityGeometry(), matrix.IdentityColor())
+	geometryMatrix := matrix.IdentityGeometry()
+	g.DrawTextureParts(texture.ID, locations,
+		geometryMatrix, matrix.IdentityColor())
 }
 
 func init() {

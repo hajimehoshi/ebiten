@@ -66,14 +66,15 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 }
 
 func (context *GraphicsContext) DrawTexture(
-	textureID graphics.TextureID, source graphics.Rect,
+	texture graphics.Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	source := graphics.Rect{0, 0, texture.Width, texture.Height}
 	locations := []graphics.TextureLocation{{0, 0, source}}
-	context.DrawTextures(textureID, locations,
+	context.DrawTextureParts(texture.ID, locations,
 		geometryMatrix, colorMatrix)
 }
 
-func (context *GraphicsContext) DrawTextures(
+func (context *GraphicsContext) DrawTextureParts(
 	textureID graphics.TextureID, locations []graphics.TextureLocation,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 

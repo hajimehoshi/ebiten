@@ -27,12 +27,13 @@ type TextureLocation struct {
 type GraphicsContext interface {
 	Clear()
 	Fill(color color.Color)
-	DrawTexture(textureId TextureID,
-		source Rect,
-		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
-	DrawTextures(textureId TextureID,
+	DrawTexture(texture Texture,
+		geometryMatrix matrix.Geometry,
+		colorMatrix matrix.Color)
+	DrawTextureParts(textureId TextureID,
 		locations []TextureLocation,
-		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
+		geometryMatrix matrix.Geometry,
+		colorMatrix matrix.Color)
 	SetOffscreen(textureId TextureID)
 }
 
