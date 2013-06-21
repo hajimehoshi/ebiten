@@ -66,7 +66,20 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 }
 
 func (context *GraphicsContext) DrawTexture(
-	textureID graphics.TextureID, src graphics.Rectangle,
+	textureID graphics.TextureID, source graphics.Rectangle,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	locations := []graphics.TextureLocation{
+		{
+			graphics.Point{0, 0},
+			source,
+		},
+	}
+	context.DrawTextures(textureID, locations,
+		geometryMatrix, colorMatrix)
+}
+
+func (context *GraphicsContext) DrawTextures(
+	textureID graphics.TextureID, locations []graphics.TextureLocation,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 
 	texture := context.textures[textureID]
@@ -74,27 +87,6 @@ func (context *GraphicsContext) DrawTexture(
 	context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
 
-	x1 := float32(0)
-	x2 := float32(src.Width)
-	y1 := float32(0)
-	y2 := float32(src.Height)
-	vertex := [...]float32{
-		x1, y1,
-		x2, y1,
-		x1, y2,
-		x2, y2,
-	}
-
-	tu1 := float32(src.X) / float32(texture.textureWidth)
-	tu2 := float32(src.X+src.Width) / float32(texture.textureWidth)
-	tv1 := float32(src.Y) / float32(texture.textureHeight)
-	tv2 := float32(src.Y+src.Height) / float32(texture.textureHeight)
-	texCoord := [...]float32{
-		tu1, tv1,
-		tu2, tv1,
-		tu1, tv2,
-		tu2, tv2,
-	}
 
 	vertexAttrLocation := getAttributeLocation(context.currentShaderProgram, "vertex")
 	textureAttrLocation := getAttributeLocation(context.currentShaderProgram, "texture")
@@ -103,11 +95,35 @@ func (context *GraphicsContext) DrawTexture(
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
-	C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2, C.GL_FLOAT, C.GL_FALSE,
-		0, unsafe.Pointer(&vertex[0]))
-	C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2, C.GL_FLOAT, C.GL_FALSE,
-		0, unsafe.Pointer(&texCoord[0]))
-	C.glDrawArrays(C.GL_TRIANGLE_STRIP, 0, 4)
+	for _, location := range locations {
+		x1 := float32(location.Location.X)
+		x2 := float32(location.Location.X + location.Source.Size.Width)
+		y1 := float32(location.Location.Y)
+		y2 := float32(location.Location.Y + location.Source.Size.Height)
+		vertex := [...]float32{
+			x1, y1,
+			x2, y1,
+			x1, y2,
+			x2, y2,
+		}
+
+		src := location.Source
+		tu1 := float32(src.Location.X) / float32(texture.textureWidth)
+		tu2 := float32(src.Location.X+src.Size.Width) / float32(texture.textureWidth)
+		tv1 := float32(src.Location.Y) / float32(texture.textureHeight)
+		tv2 := float32(src.Location.Y+src.Size.Height) / float32(texture.textureHeight)
+		texCoord := [...]float32{
+			tu1, tv1,
+			tu2, tv1,
+			tu1, tv2,
+			tu2, tv2,
+		}
+		C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2, C.GL_FLOAT, C.GL_FALSE,
+			0, unsafe.Pointer(&vertex[0]))
+		C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2, C.GL_FLOAT, C.GL_FALSE,
+			0, unsafe.Pointer(&texCoord[0]))
+		C.glDrawArrays(C.GL_TRIANGLE_STRIP, 0, 4)
+	}
 	C.glDisableVertexAttribArray(C.GLuint(textureAttrLocation))
 	C.glDisableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)

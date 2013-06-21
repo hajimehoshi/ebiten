@@ -56,7 +56,10 @@ func (device *Device) Update() {
 		},
 	}
 	g.DrawTexture(device.offscreenTexture.ID,
-		graphics.Rectangle{0, 0, device.screenWidth, device.screenHeight},
+		graphics.Rectangle{
+			graphics.Point{0, 0},
+			graphics.Size{device.screenWidth, device.screenHeight},
+		},
 		geometryMatrix, matrix.IdentityColor())
 	g.flush()
 }

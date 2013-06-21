@@ -57,16 +57,6 @@ func (sprite *Sprite) Update() {
 	<-sprite.ch
 }
 
-func (sprite *Sprite) Draw(g graphics.GraphicsContext) {
-	geometryMatrix := matrix.IdentityGeometry()
-	geometryMatrix.Translate(float64(sprite.x), float64(sprite.y))
-
-	g.DrawTexture(sprite.texture.ID,
-		graphics.Rectangle{0, 0, sprite.texture.Width, sprite.texture.Height},
-		geometryMatrix,
-		matrix.IdentityColor())
-}
-
 type Sprites struct {
 	ebitenTexture graphics.Texture
 	sprites       []*Sprite
@@ -97,7 +87,7 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	}
 	game.ebitenTexture = tf.NewTextureFromImage(img)
 	game.sprites = []*Sprite{}
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 1000; i++ {
 		sprite := NewSprite(
 			game.ScreenWidth(),
 			game.ScreenHeight(),
@@ -114,9 +104,22 @@ func (game *Sprites) Update() {
 
 func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
+
+	// Draw the sprites
+	locations := make([]graphics.TextureLocation, 0, len(game.sprites))
+	texture := game.ebitenTexture
 	for _, sprite := range game.sprites {
-		sprite.Draw(g)
+		location := graphics.TextureLocation{
+			Location: graphics.Point{sprite.x, sprite.y},
+			Source: graphics.Rectangle{
+				graphics.Point{0, 0},
+				graphics.Size{texture.Width, texture.Height},
+			},
+		}
+		locations = append(locations, location)
 	}
+	g.DrawTextures(texture.ID, locations,
+		matrix.IdentityGeometry(), matrix.IdentityColor())
 }
 
 func init() {
