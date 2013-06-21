@@ -92,9 +92,20 @@ func (ui *GlutUI) Run(device graphics.Device) {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	game := game.NewRotatingImage()
+	gameName := ""
+	if 2 <= len(os.Args) {
+		gameName = os.Args[1]
+	}
+
+	var gm ebiten.Game
+	switch gameName {
+	case "sprites":
+		gm = game.NewSprites()
+	default:
+		gm = game.NewRotatingImage()
+	}
 	currentUI = &GlutUI{}
 	currentUI.Init()
 
-	ebiten.OpenGLRun(game, currentUI)
+	ebiten.OpenGLRun(gm, currentUI)
 }
