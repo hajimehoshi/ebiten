@@ -51,8 +51,8 @@ func (device *Device) Update() {
 	scale := float64(g.screenScale)
 	geometryMatrix := matrix.Geometry{
 		[2][3]float64{
-			{scale, 0,     0},
-			{0,     scale, 0},
+			{scale, 0, 0},
+			{0, scale, 0},
 		},
 	}
 	g.DrawTexture(device.offscreenTexture.ID,

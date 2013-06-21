@@ -52,7 +52,7 @@ func (matrix *Geometry) Rotate(theta float64) {
 	rotate := Geometry{
 		[2][3]float64{
 			{cos, -sin, 0},
-			{sin, cos,  0},
+			{sin, cos, 0},
 		},
 	}
 	matrix.Concat(rotate)
