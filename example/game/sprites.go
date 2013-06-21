@@ -61,7 +61,7 @@ func (sprite *Sprite) Update() {
 type Sprites struct {
 	ebitenTexture graphics.Texture
 	sprites       []*Sprite
-	angle int
+	angle         int
 }
 
 func NewSprites() *Sprites {
