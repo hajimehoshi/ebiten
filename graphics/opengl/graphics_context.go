@@ -66,8 +66,7 @@ func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Colo
 }
 
 func (context *GraphicsContext) DrawTexture(
-	textureID graphics.TextureID,
-	srcX, srcY, srcWidth, srcHeight int,
+	textureID graphics.TextureID, src graphics.Rectangle,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 
 	texture := context.textures[textureID]
@@ -76,9 +75,9 @@ func (context *GraphicsContext) DrawTexture(
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
 
 	x1 := float32(0)
-	x2 := float32(srcWidth)
+	x2 := float32(src.Width)
 	y1 := float32(0)
-	y2 := float32(srcHeight)
+	y2 := float32(src.Height)
 	vertex := [...]float32{
 		x1, y1,
 		x2, y1,
@@ -86,10 +85,10 @@ func (context *GraphicsContext) DrawTexture(
 		x2, y2,
 	}
 
-	tu1 := float32(srcX) / float32(texture.textureWidth)
-	tu2 := float32(srcX+srcWidth) / float32(texture.textureWidth)
-	tv1 := float32(srcY) / float32(texture.textureHeight)
-	tv2 := float32(srcY+srcHeight) / float32(texture.textureHeight)
+	tu1 := float32(src.X) / float32(texture.textureWidth)
+	tu2 := float32(src.X+src.Width) / float32(texture.textureWidth)
+	tv1 := float32(src.Y) / float32(texture.textureHeight)
+	tv2 := float32(src.Y+src.Height) / float32(texture.textureHeight)
 	texCoord := [...]float32{
 		tu1, tv1,
 		tu2, tv1,

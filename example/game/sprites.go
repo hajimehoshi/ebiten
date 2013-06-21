@@ -62,7 +62,7 @@ func (sprite *Sprite) Draw(g graphics.GraphicsContext) {
 	geometryMatrix.Translate(float64(sprite.x), float64(sprite.y))
 
 	g.DrawTexture(sprite.texture.ID,
-		0, 0, sprite.texture.Width, sprite.texture.Height,
+		graphics.Rectangle{0, 0, sprite.texture.Width, sprite.texture.Height},
 		geometryMatrix,
 		matrix.IdentityColor())
 }

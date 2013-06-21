@@ -11,11 +11,18 @@ type Device interface {
 	TextureFactory() TextureFactory
 }
 
+type Rectangle struct {
+	X      int
+	Y      int
+	Width  int
+	Height int
+}
+
 type GraphicsContext interface {
 	Clear()
 	Fill(color color.Color)
 	DrawTexture(textureId TextureID,
-		srcX, srcY, srcWidth, srcHeight int,
+		src Rectangle,
 		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
 	SetOffscreen(textureId TextureID)
 }

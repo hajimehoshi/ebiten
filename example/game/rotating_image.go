@@ -57,7 +57,7 @@ func (game *RotatingImage) Draw(g graphics.GraphicsContext, offscreen graphics.T
 	geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
 
 	g.DrawTexture(game.ebitenTexture.ID,
-		0, 0, int(tx), int(ty),
+		graphics.Rectangle{0, 0, int(tx), int(ty)},
 		geometryMatrix,
 		matrix.IdentityColor())
 }
