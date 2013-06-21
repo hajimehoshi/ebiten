@@ -31,21 +31,25 @@ func NewSprite(screenWidth, screenHeight int,
 		vx:      rand.Intn(2)*2 - 1,
 		vy:      rand.Intn(2)*2 - 1,
 	}
-	go func() {
-		for {
-			<-sprite.ch
-			sprite.x += sprite.vx
-			sprite.y += sprite.vy
-			if sprite.x < 0 || maxX <= sprite.x {
-				sprite.vx = -sprite.vx
-			}
-			if sprite.y < 0 || maxY <= sprite.y {
-				sprite.vy = -sprite.vy
-			}
-			sprite.ch <- true
-		}
-	}()
+	go sprite.update(screenWidth, screenHeight)
 	return sprite
+}
+
+func (sprite *Sprite) update(screenWidth, screenHeight int) {
+	maxX := screenWidth - sprite.texture.Width
+	maxY := screenHeight - sprite.texture.Height
+	for {
+		<-sprite.ch
+		sprite.x += sprite.vx
+		sprite.y += sprite.vy
+		if sprite.x < 0 || maxX <= sprite.x {
+			sprite.vx = -sprite.vx
+		}
+		if sprite.y < 0 || maxY <= sprite.y {
+			sprite.vy = -sprite.vy
+		}
+		sprite.ch <- true
+	}
 }
 
 func (sprite *Sprite) Update() {
