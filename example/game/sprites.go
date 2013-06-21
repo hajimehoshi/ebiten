@@ -11,7 +11,8 @@ import (
 )
 
 type Sprite struct {
-	texture graphics.Texture
+	width int
+	height int
 	ch      chan bool
 	x       int
 	y       int
@@ -19,12 +20,12 @@ type Sprite struct {
 	vy      int
 }
 
-func NewSprite(screenWidth, screenHeight int,
-	texture graphics.Texture) *Sprite {
-	maxX := screenWidth - texture.Width
-	maxY := screenHeight - texture.Height
+func NewSprite(screenWidth, screenHeight, width, height int) *Sprite {
+	maxX := screenWidth - width
+	maxY := screenHeight - height
 	sprite := &Sprite{
-		texture: texture,
+		width: width,
+		height: height,
 		ch:      make(chan bool),
 		x:       rand.Intn(maxX),
 		y:       rand.Intn(maxY),
@@ -36,8 +37,8 @@ func NewSprite(screenWidth, screenHeight int,
 }
 
 func (sprite *Sprite) update(screenWidth, screenHeight int) {
-	maxX := screenWidth - sprite.texture.Width
-	maxY := screenHeight - sprite.texture.Height
+	maxX := screenWidth - sprite.width
+	maxY := screenHeight - sprite.height
 	for {
 		<-sprite.ch
 		sprite.x += sprite.vx
@@ -91,7 +92,8 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 		sprite := NewSprite(
 			game.ScreenWidth(),
 			game.ScreenHeight(),
-			game.ebitenTexture)
+			game.ebitenTexture.Width,
+			game.ebitenTexture.Height)
 		game.sprites = append(game.sprites, sprite)
 	}
 }
