@@ -18,7 +18,7 @@ type Rect struct {
 	Height int
 }
 
-type TextureLocation struct {
+type TexturePart struct {
 	LocationX int
 	LocationY int
 	Source    Rect
@@ -32,7 +32,7 @@ type GraphicsContext interface {
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
 	DrawTextureParts(textureId TextureID,
-		locations []TextureLocation,
+		locations []TexturePart,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
 	SetOffscreen(textureId TextureID)

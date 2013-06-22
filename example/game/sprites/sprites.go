@@ -20,7 +20,7 @@ type Sprite struct {
 	vy     int
 }
 
-func NewSprite(screenWidth, screenHeight, width, height int) *Sprite {
+func newSprite(screenWidth, screenHeight, width, height int) *Sprite {
 	maxX := screenWidth - width
 	maxY := screenHeight - height
 	sprite := &Sprite{
@@ -89,7 +89,7 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	game.ebitenTexture = tf.NewTextureFromImage(img)
 	game.sprites = []*Sprite{}
 	for i := 0; i < 1000; i++ {
-		sprite := NewSprite(
+		sprite := newSprite(
 			game.ScreenWidth(),
 			game.ScreenHeight(),
 			game.ebitenTexture.Width,
@@ -108,10 +108,10 @@ func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	// Draw the sprites
-	locations := make([]graphics.TextureLocation, 0, len(game.sprites))
+	locations := make([]graphics.TexturePart, 0, len(game.sprites))
 	texture := game.ebitenTexture
 	for _, sprite := range game.sprites {
-		location := graphics.TextureLocation{
+		location := graphics.TexturePart{
 			LocationX: sprite.x,
 			LocationY: sprite.y,
 			Source: graphics.Rect{

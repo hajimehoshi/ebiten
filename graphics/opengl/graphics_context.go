@@ -121,13 +121,13 @@ func (context *GraphicsContext) DrawTexture(
 	texture graphics.Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	source := graphics.Rect{0, 0, texture.Width, texture.Height}
-	locations := []graphics.TextureLocation{{0, 0, source}}
+	locations := []graphics.TexturePart{{0, 0, source}}
 	context.DrawTextureParts(texture.ID, locations,
 		geometryMatrix, colorMatrix)
 }
 
 func (context *GraphicsContext) DrawTextureParts(
-	textureID graphics.TextureID, locations []graphics.TextureLocation,
+	textureID graphics.TextureID, locations []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 
 	texture := context.textures[textureID]
