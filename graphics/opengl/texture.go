@@ -26,7 +26,6 @@ type Texture struct {
 	height        int
 	textureWidth  int
 	textureHeight int
-	isDirty       bool
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
@@ -69,7 +68,6 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
 	texture.id = textureID
-	texture.isDirty = pixels == nil
 
 	return texture
 }
