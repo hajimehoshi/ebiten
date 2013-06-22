@@ -1,4 +1,4 @@
-package game
+package sprites
 
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
@@ -63,7 +63,7 @@ type Sprites struct {
 	sprites       []*Sprite
 }
 
-func NewSprites() *Sprites {
+func New() *Sprites {
 	return &Sprites{}
 }
 

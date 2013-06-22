@@ -225,9 +225,9 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 		e11 = float32(2) / float32(textureWidth)
 		e22 = -1 * float32(2) / float32(textureHeight)
 		e41 = -1
-		e42 = -1 + height / float32(textureHeight) * 2
+		e42 = -1 + height/float32(textureHeight)*2
 	}
-	
+
 	context.projectionMatrix = [...]float32{
 		e11, 0, 0, 0,
 		0, e22, 0, 0,

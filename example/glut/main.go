@@ -16,7 +16,8 @@ package main
 import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/example/game"
+	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
+	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"os"
 	"runtime"
@@ -81,9 +82,11 @@ func main() {
 	var gm ebiten.Game
 	switch gameName {
 	case "sprites":
-		gm = game.NewSprites()
+		gm = sprites.New()
+	case "rotating":
+		gm = rotating.New()
 	default:
-		gm = game.NewRotatingImage()
+		gm = rotating.New()
 	}
 
 	screenScale := 2

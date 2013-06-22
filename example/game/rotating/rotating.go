@@ -1,4 +1,4 @@
-package game
+package rotating
 
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
@@ -14,7 +14,7 @@ type RotatingImage struct {
 	x             int
 }
 
-func NewRotatingImage() *RotatingImage {
+func New() *RotatingImage {
 	return &RotatingImage{}
 }
 
