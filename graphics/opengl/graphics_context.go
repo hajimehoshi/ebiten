@@ -70,12 +70,14 @@ func (context *GraphicsContext) Fill(clr color.Color) {
 func (context *GraphicsContext) DrawRect(rect graphics.Rect, clr color.Color) {
 	width := float32(context.currentOffscreenWidth)
 	height := float32(context.currentOffscreenHeight)
+	textureWidth := float32(Clp2(uint64(width)))
+	textureHeight := float32(Clp2(uint64(height)))
 
 	// Normalize the coord between -1.0 and 1.0.
-	x1 := float32(rect.X)/width*2.0 - 1.0
-	x2 := float32(rect.X+rect.Width)/width*2.0 - 1.0
-	y1 := float32(rect.Y)/height*2.0 - 1.0
-	y2 := float32(rect.Y+rect.Height)/height*2.0 - 1.0
+	x1 := float32(rect.X)/textureWidth*2.0 - 1.0
+	x2 := float32(rect.X+rect.Width)/textureHeight*2.0 - 1.0
+	y1 := float32(rect.Y)/textureHeight*2.0 - 1.0
+	y2 := float32(rect.Y+rect.Height)/textureHeight*2.0 - 1.0
 	vertex := [...]float32{
 		x1, y1,
 		x2, y1,
@@ -196,6 +198,11 @@ func (context *GraphicsContext) SetOffscreen(textureID graphics.TextureID) {
 
 func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 	textureWidth, textureHeight int) {
+	if framebuffer == context.mainFramebuffer {
+		textureWidth = int(Clp2(uint64(context.screenWidth * context.screenScale)))
+		textureHeight = int(Clp2(uint64(context.screenHeight * context.screenScale)))
+	}
+
 	C.glFlush()
 
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
@@ -205,23 +212,22 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 	C.glEnable(C.GL_BLEND)
 	C.glBlendFunc(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA)
 
-	width, height, tx, ty := 0, 0, 0, 0
+	C.glViewport(0, 0, C.GLsizei(abs(textureWidth)), C.GLsizei(abs(textureHeight)))
+
+	var e11, e22, e41, e42 float32
 	if framebuffer != context.mainFramebuffer {
-		width = textureWidth
-		height = textureHeight
-		tx = -1
-		ty = -1
+		e11 = float32(2) / float32(textureWidth)
+		e22 = float32(2) / float32(textureWidth)
+		e41 = -1
+		e42 = -1
 	} else {
-		width = context.screenWidth * context.screenScale
-		height = -1 * context.screenHeight * context.screenScale
-		tx = -1
-		ty = 1
+		height := float32(context.screenHeight) * float32(context.screenScale)
+		e11 = float32(2) / float32(textureWidth)
+		e22 = -1 * float32(2) / float32(textureHeight)
+		e41 = -1
+		e42 = -1 + height / float32(textureHeight) * 2
 	}
-	C.glViewport(0, 0, C.GLsizei(abs(width)), C.GLsizei(abs(height)))
-	e11 := float32(2.0) / float32(width)
-	e22 := float32(2.0) / float32(height)
-	e41 := float32(tx)
-	e42 := float32(ty)
+	
 	context.projectionMatrix = [...]float32{
 		e11, 0, 0, 0,
 		0, e22, 0, 0,
@@ -232,8 +238,8 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 
 func (context *GraphicsContext) resetOffscreen() {
 	context.setOffscreenFramebuffer(context.mainFramebuffer, 0, 0)
-	context.currentOffscreenWidth = context.screenWidth
-	context.currentOffscreenHeight = context.screenHeight
+	context.currentOffscreenWidth = context.screenWidth * context.screenScale
+	context.currentOffscreenHeight = context.screenHeight * context.screenScale
 }
 
 // This method should be called on the UI thread.
