@@ -67,8 +67,8 @@ func (context *GraphicsContext) Fill(clr color.Color) {
 func (context *GraphicsContext) DrawRect(rect graphics.Rect, clr color.Color) {
 	width := float32(context.currentOffscreenWidth)
 	height := float32(context.currentOffscreenHeight)
-	textureWidth := float32(Clp2(uint64(width)))
-	textureHeight := float32(Clp2(uint64(height)))
+	textureWidth := float32(clp2(uint64(width)))
+	textureHeight := float32(clp2(uint64(height)))
 
 	// Normalize the coord between -1.0 and 1.0.
 	x1 := float32(rect.X)/textureWidth*2.0 - 1.0
@@ -196,8 +196,8 @@ func (context *GraphicsContext) SetOffscreen(textureID graphics.TextureID) {
 func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 	textureWidth, textureHeight int) {
 	if framebuffer == context.mainFramebuffer {
-		textureWidth = int(Clp2(uint64(context.screenWidth * context.screenScale)))
-		textureHeight = int(Clp2(uint64(context.screenHeight * context.screenScale)))
+		textureWidth = int(clp2(uint64(context.screenWidth * context.screenScale)))
+		textureHeight = int(clp2(uint64(context.screenHeight * context.screenScale)))
 	}
 
 	C.glFlush()

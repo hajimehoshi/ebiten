@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-func Clp2(x uint64) uint64 {
+func clp2(x uint64) uint64 {
 	x -= 1
 	x |= (x >> 1)
 	x |= (x >> 2)
@@ -29,8 +29,8 @@ type Texture struct {
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
-	textureWidth := int(Clp2(uint64(width)))
-	textureHeight := int(Clp2(uint64(height)))
+	textureWidth := int(clp2(uint64(width)))
+	textureHeight := int(clp2(uint64(height)))
 	if pixels != nil {
 		if width != textureWidth {
 			panic("sorry, but width should be power of 2")
