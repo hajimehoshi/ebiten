@@ -51,6 +51,8 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsCon
 func (context *GraphicsContext) Clear() {
 	C.glClearColor(0, 0, 0, 1)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
+
+	// ??
 	C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)
 	C.glDisableClientState(C.GL_VERTEX_ARRAY)
 	C.glDisableClientState(C.GL_COLOR_ARRAY)
@@ -194,6 +196,11 @@ func (context *GraphicsContext) SetOffscreen(textureID graphics.TextureID) {
 	}
 	context.setOffscreenFramebuffer(framebuffer,
 		texture.textureWidth, texture.textureHeight)
+
+	if texture.isDirty {
+		context.Clear()
+		texture.isDirty = false
+	}
 }
 
 func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,

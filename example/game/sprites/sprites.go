@@ -123,10 +123,6 @@ func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture
 	geometryMatrix := matrix.IdentityGeometry()
 	g.DrawTextureParts(texture.ID, locations,
 		geometryMatrix, matrix.IdentityColor())
-	g.DrawRect(
-		graphics.Rect{10, 10, 50, 50},
-		&color.RGBA{255, 128, 128, 128},
-	)
 }
 
 func init() {

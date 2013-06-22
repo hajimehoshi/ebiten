@@ -16,6 +16,7 @@ package main
 import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten"
+	"github.com/hajimehoshi/go.ebiten/example/game/rects"
 	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go.ebiten/graphics"
@@ -81,10 +82,12 @@ func main() {
 
 	var gm ebiten.Game
 	switch gameName {
-	case "sprites":
-		gm = sprites.New()
+	case "rects":
+		gm = rects.New()
 	case "rotating":
 		gm = rotating.New()
+	case "sprites":
+		gm = sprites.New()
 	default:
 		gm = rotating.New()
 	}
