@@ -11,18 +11,21 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
 	"image/color"
+	"math"
 	"unsafe"
 )
 
 type GraphicsContext struct {
-	screenWidth          int
-	screenHeight         int
-	screenScale          int
-	textures             map[graphics.TextureID]*Texture
-	projectionMatrix     [16]float32
-	currentShaderProgram C.GLuint
-	mainFramebuffer      C.GLuint
-	framebuffers         map[C.GLuint]C.GLuint
+	screenWidth            int
+	screenHeight           int
+	screenScale            int
+	textures               map[graphics.TextureID]*Texture
+	currentOffscreenWidth  int
+	currentOffscreenHeight int
+	projectionMatrix       [16]float32
+	currentShaderProgram   C.GLuint
+	mainFramebuffer        C.GLuint
+	framebuffers           map[C.GLuint]C.GLuint
 }
 
 // This method should be called on the UI thread.
@@ -48,11 +51,14 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsCon
 func (context *GraphicsContext) Clear() {
 	C.glClearColor(0, 0, 0, 1)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
+	C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)
+	C.glDisableClientState(C.GL_VERTEX_ARRAY)
+	C.glDisableClientState(C.GL_COLOR_ARRAY)
 }
 
 func (context *GraphicsContext) Fill(clr color.Color) {
 	r, g, b, a := clr.RGBA()
-	max := 65535.0
+	max := float64(math.MaxUint16)
 	C.glClearColor(
 		C.GLclampf(float64(r)/max),
 		C.GLclampf(float64(g)/max),
@@ -61,8 +67,50 @@ func (context *GraphicsContext) Fill(clr color.Color) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (context *GraphicsContext) DrawRect(x, y, width, height int, clr color.Color) {
-	// TODO: implement!
+func (context *GraphicsContext) DrawRect(rect graphics.Rect, clr color.Color) {
+	width := float32(context.currentOffscreenWidth)
+	height := float32(context.currentOffscreenHeight)
+
+	// Normalize the coord between -1.0 and 1.0.
+	x1 := float32(rect.X)/width*2.0 - 1.0
+	x2 := float32(rect.X+rect.Width)/width*2.0 - 1.0
+	y1 := float32(rect.Y)/height*2.0 - 1.0
+	y2 := float32(rect.Y+rect.Height)/height*2.0 - 1.0
+	vertex := [...]float32{
+		x1, y1,
+		x2, y1,
+		x1, y2,
+		x2, y2,
+	}
+
+	origR, origG, origB, origA := clr.RGBA()
+	max := float32(math.MaxUint16)
+	r := float32(origR) / max
+	g := float32(origG) / max
+	b := float32(origB) / max
+	a := float32(origA) / max
+	color := [...]float32{
+		r, g, b, a,
+		r, g, b, a,
+		r, g, b, a,
+		r, g, b, a,
+	}
+
+	C.glUseProgram(0)
+	context.currentShaderProgram = 0
+	C.glDisable(C.GL_TEXTURE_2D)
+	C.glEnableClientState(C.GL_VERTEX_ARRAY)
+	C.glEnableClientState(C.GL_COLOR_ARRAY)
+	C.glVertexPointer(2, C.GL_FLOAT, C.GL_FALSE, unsafe.Pointer(&vertex[0]))
+	C.glColorPointer(4, C.GL_FLOAT, C.GL_FALSE, unsafe.Pointer(&color[0]))
+	C.glDrawArrays(C.GL_TRIANGLE_STRIP, 0, 4)
+	C.glDisableClientState(C.GL_COLOR_ARRAY)
+	C.glDisableClientState(C.GL_VERTEX_ARRAY)
+	C.glEnable(C.GL_TEXTURE_2D)
+
+	if glError := C.glGetError(); glError != C.GL_NO_ERROR {
+		panic("OpenGL error")
+	}
 }
 
 func (context *GraphicsContext) DrawTexture(
@@ -90,6 +138,7 @@ func (context *GraphicsContext) DrawTextureParts(
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
+	// TODO: Refactoring
 	for _, location := range locations {
 		x1 := float32(location.LocationX)
 		x2 := float32(location.LocationX + location.Source.Width)
@@ -134,6 +183,9 @@ func abs(x int) int {
 
 func (context *GraphicsContext) SetOffscreen(textureID graphics.TextureID) {
 	texture := context.textures[textureID]
+	context.currentOffscreenWidth = texture.width
+	context.currentOffscreenHeight = texture.height
+
 	framebuffer := context.getFramebuffer(texture.id)
 	if framebuffer == context.mainFramebuffer {
 		panic("invalid framebuffer")
@@ -180,6 +232,8 @@ func (context *GraphicsContext) setOffscreenFramebuffer(framebuffer C.GLuint,
 
 func (context *GraphicsContext) resetOffscreen() {
 	context.setOffscreenFramebuffer(context.mainFramebuffer, 0, 0)
+	context.currentOffscreenWidth = context.screenWidth
+	context.currentOffscreenHeight = context.screenHeight
 }
 
 // This method should be called on the UI thread.

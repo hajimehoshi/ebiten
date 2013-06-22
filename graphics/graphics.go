@@ -27,6 +27,7 @@ type TextureLocation struct {
 type GraphicsContext interface {
 	Clear()
 	Fill(color color.Color)
+	DrawRect(rect Rect, clr color.Color)
 	DrawTexture(texture Texture,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
