@@ -6,10 +6,12 @@ package main
 // #include <GLUT/glut.h>
 //
 // void display(void);
+// void mouse(int button, int state, int x, int y);
 // void idle(void);
 //
 // static void setGlutFuncs(void) {
 //   glutDisplayFunc(display);
+//   glutMouseFunc(mouse);
 //   glutIdleFunc(idle);
 // }
 //
@@ -35,6 +37,11 @@ var currentUI *GlutUI
 func display() {
 	currentUI.device.Update()
 	C.glutSwapBuffers()
+}
+
+//export mouse
+func mouse(button, state, x, y C.int) {
+	
 }
 
 //export idle

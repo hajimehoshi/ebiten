@@ -113,11 +113,13 @@ func (context *GraphicsContext) DrawRect(rect graphics.Rect, clr color.Color) {
 }
 
 func (context *GraphicsContext) DrawTexture(
-	texture graphics.Texture,
+	textureID graphics.TextureID,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	source := graphics.Rect{0, 0, texture.Width, texture.Height}
+	texture := context.textures[textureID]
+
+	source := graphics.Rect{0, 0, texture.width, texture.height}
 	locations := []graphics.TexturePart{{0, 0, source}}
-	context.DrawTextureParts(texture.ID, locations,
+	context.DrawTextureParts(textureID, locations,
 		geometryMatrix, colorMatrix)
 }
 

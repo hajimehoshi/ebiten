@@ -90,7 +90,7 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 		panic(err)
 	}
 	game.sprites = []*Sprite{}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		sprite := newSprite(
 			game.ScreenWidth(),
 			game.ScreenHeight(),

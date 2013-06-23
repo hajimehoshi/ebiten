@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type TapInfo struct {
+	X int
+	Y int
+}
+
 type Game interface {
 	ScreenWidth() int
 	ScreenHeight() int
@@ -20,7 +25,7 @@ type UI interface {
 
 func OpenGLRun(game Game, ui UI, screenScale int) {
 	ch := make(chan bool, 1)
-	device := opengl.NewDevice(
+	graphicsDevice := opengl.NewDevice(
 		game.ScreenWidth(), game.ScreenHeight(), screenScale,
 		func(g graphics.GraphicsContext, offscreen graphics.Texture) {
 			ticket := <-ch
@@ -39,7 +44,7 @@ func OpenGLRun(game Game, ui UI, screenScale int) {
 		}
 	}()
 
-	game.Init(device.TextureFactory())
+	game.Init(graphicsDevice.TextureFactory())
 	ch <- true
-	ui.Run(device)
+	ui.Run(graphicsDevice)
 }

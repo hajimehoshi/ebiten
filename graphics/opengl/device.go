@@ -55,7 +55,7 @@ func (device *Device) Update() {
 			{0, scale, 0},
 		},
 	}
-	g.DrawTexture(device.offscreenTexture,
+	g.DrawTexture(device.offscreenTexture.ID,
 		geometryMatrix, matrix.IdentityColor())
 	g.flush()
 }

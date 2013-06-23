@@ -28,14 +28,14 @@ type GraphicsContext interface {
 	Clear()
 	Fill(color color.Color)
 	DrawRect(rect Rect, clr color.Color)
-	DrawTexture(texture Texture,
+	DrawTexture(textureID TextureID,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
-	DrawTextureParts(textureId TextureID,
+	DrawTextureParts(textureID TextureID,
 		locations []TexturePart,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
-	SetOffscreen(textureId TextureID)
+	SetOffscreen(textureID TextureID)
 }
 
 type TextureFactory interface {

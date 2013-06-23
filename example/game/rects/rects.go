@@ -50,7 +50,7 @@ func (game *Rects) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) 
 	)
 
 	g.SetOffscreen(offscreen.ID)
-	g.DrawTexture(game.rectsTexture,
+	g.DrawTexture(game.rectsTexture.ID,
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }
