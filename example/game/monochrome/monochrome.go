@@ -11,10 +11,15 @@ import (
 
 type Monochrome struct {
 	ebitenTexture graphics.Texture
+	ch            chan bool
+	colorMatrix   matrix.Color
 }
 
 func New() *Monochrome {
-	return &Monochrome{}
+	return &Monochrome{
+		ch: make(chan bool),
+		colorMatrix: matrix.IdentityColor(),
+	}
 }
 
 func (game *Monochrome) ScreenWidth() int {
@@ -43,9 +48,55 @@ func (game *Monochrome) Init(tf graphics.TextureFactory) {
 	if game.ebitenTexture, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
+
+	go game.update()
+}
+
+func mean(a, b matrix.Color, k float64) matrix.Color {
+	dim := a.Dim()
+	result := matrix.Color{}
+	for i := 0; i < dim - 1; i++ {
+		for j := 0; j < dim; j++ {
+			result.Elements[i][j] =
+				a.Elements[i][j] * (1 - k) +
+				b.Elements[i][j] * k
+		}
+	}
+	return result
+}
+
+func (game *Monochrome) update() {
+	colorI := matrix.IdentityColor()
+	colorMonochrome := matrix.Monochrome()
+	for {
+		for i := 0; i < game.Fps(); i++ {
+			<-game.ch
+			rate := float64(i) / float64(game.Fps())
+			game.colorMatrix = mean(colorI, colorMonochrome, rate)
+			game.ch <- true
+		}
+		for i := 0; i < game.Fps(); i++ {
+			<-game.ch
+			game.colorMatrix = colorMonochrome
+			game.ch <- true
+		}
+		for i := 0; i < game.Fps(); i++ {
+			<-game.ch
+			rate := float64(i) / float64(game.Fps())
+			game.colorMatrix = mean(colorMonochrome, colorI, rate)
+			game.ch <- true
+		}
+		for i := 0; i < game.Fps(); i++ {
+			<-game.ch
+			game.colorMatrix = colorI
+			game.ch <- true
+		}
+	}
 }
 
 func (game *Monochrome) Update() {
+	game.ch <- true
+	<-game.ch
 }
 
 func (game *Monochrome) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
@@ -56,5 +107,5 @@ func (game *Monochrome) Draw(g graphics.GraphicsContext, offscreen graphics.Text
 	ty := game.ScreenHeight() / 2 - game.ebitenTexture.Height / 2
 	geometryMatrix.Translate(float64(tx), float64(ty))
 	g.DrawTexture(game.ebitenTexture.ID,
-		geometryMatrix, matrix.Monochrome())
+		geometryMatrix, game.colorMatrix)
 }
