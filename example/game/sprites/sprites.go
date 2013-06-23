@@ -75,6 +75,10 @@ func (game *Sprites) ScreenHeight() int {
 	return 240
 }
 
+func (game *Sprites) Fps() int {
+	return 60
+}
+
 func (game *Sprites) Init(tf graphics.TextureFactory) {
 	file, err := os.Open("ebiten.png")
 	if err != nil {

@@ -14,6 +14,7 @@ type TapInfo struct {
 type Game interface {
 	ScreenWidth() int
 	ScreenHeight() int
+	Fps() int
 	Init(tf graphics.TextureFactory)
 	Update()
 	Draw(g graphics.GraphicsContext, offscreen graphics.Texture)
@@ -34,7 +35,7 @@ func OpenGLRun(game Game, ui UI, screenScale int) {
 		})
 
 	go func() {
-		const frameTime = time.Second / 60
+		frameTime := time.Duration(int64(time.Second) / int64(game.Fps()))
 		tick := time.Tick(frameTime)
 		for {
 			<-tick
