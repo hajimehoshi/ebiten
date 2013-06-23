@@ -18,6 +18,7 @@ package main
 import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten"
+	"github.com/hajimehoshi/go.ebiten/example/game/monochrome"
 	"github.com/hajimehoshi/go.ebiten/example/game/rects"
 	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
@@ -89,6 +90,8 @@ func main() {
 
 	var gm ebiten.Game
 	switch gameName {
+	case "monochrome":
+		gm = monochrome.New()
 	case "rects":
 		gm = rects.New()
 	case "rotating":

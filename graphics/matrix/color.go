@@ -38,3 +38,17 @@ func (matrix *Color) element(i, j int) float64 {
 func (matrix *Color) setElement(i, j int, element float64) {
 	matrix.Elements[i][j] = element
 }
+
+func Monochrome() Color {
+	const r float64 = 6968.0 / 32768.0
+	const g float64 = 23434.0 / 32768.0
+	const b float64 = 2366.0 / 32768.0
+	return Color{
+		[colorDim - 1][colorDim]float64{
+			{r, g, b, 0, 0},
+			{r, g, b, 0, 0},
+			{r, g, b, 0, 0},
+			{0, 0, 0, 1, 0},
+		},
+	}
+}

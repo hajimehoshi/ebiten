@@ -293,10 +293,10 @@ func (context *GraphicsContext) setShaderProgram(
 	}
 
 	glColorMatrix := [...]float32{
-		e[0][0], e[0][1], e[0][2], e[0][3],
-		e[1][0], e[1][1], e[1][2], e[1][3],
-		e[2][0], e[2][1], e[2][2], e[2][3],
-		e[3][0], e[3][1], e[3][2], e[3][3],
+		e[0][0], e[1][0], e[2][0], e[3][0],
+		e[0][1], e[1][1], e[2][1], e[3][1],
+		e[0][2], e[1][2], e[2][2], e[3][2],
+		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
 	C.glUniformMatrix4fv(getUniformLocation(program, "color_matrix"),
 		1, C.GL_FALSE, (*C.GLfloat)(&glColorMatrix[0]))
