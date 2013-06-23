@@ -86,7 +86,9 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	game.ebitenTexture = tf.NewTextureFromImage(img)
+	if game.ebitenTexture, err = tf.NewTextureFromImage(img); err != nil {
+		panic(err)
+	}
 	game.sprites = []*Sprite{}
 	for i := 0; i < 1000; i++ {
 		sprite := newSprite(

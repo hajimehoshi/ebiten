@@ -355,13 +355,16 @@ func (context *GraphicsContext) NewTexture(width, height int) graphics.Texture {
 	}
 }
 
-func (context *GraphicsContext) NewTextureFromImage(img image.Image) graphics.Texture {
-	texture := newTextureFromImage(img)
+func (context *GraphicsContext) NewTextureFromImage(img image.Image) (graphics.Texture, error) {
+	texture, err := newTextureFromImage(img)
+	if err != nil {
+		return graphics.Texture{}, err
+	}
 	id := graphics.TextureID(texture.id)
 	context.textures[id] = texture
 	return graphics.Texture{
 		ID:     id,
 		Width:  texture.width,
 		Height: texture.height,
-	}
+	}, nil
 }

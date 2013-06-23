@@ -40,7 +40,7 @@ type GraphicsContext interface {
 
 type TextureFactory interface {
 	NewTexture(width, height int) Texture
-	NewTextureFromImage(img image.Image) Texture
+	NewTextureFromImage(img image.Image) (Texture, error)
 }
 
 type Texture struct {

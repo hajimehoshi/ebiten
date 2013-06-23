@@ -38,7 +38,9 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	game.ebitenTexture = tf.NewTextureFromImage(img)
+	if game.ebitenTexture, err = tf.NewTextureFromImage(img); err != nil {
+		panic(err)
+	}
 }
 
 func (game *Rotating) Update() {

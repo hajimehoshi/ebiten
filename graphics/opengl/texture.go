@@ -72,11 +72,17 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	return texture
 }
 
+type textureError string
+
+func (err textureError) Error() string {
+	return "Texture Error: " + string(err)
+}
+
 func newTexture(width, height int) *Texture {
 	return createTexture(width, height, nil)
 }
 
-func newTextureFromImage(img image.Image) *Texture {
+func newTextureFromImage(img image.Image) (*Texture, error) {
 	var pix []uint8
 	switch img.(type) {
 	case *image.RGBA:
@@ -84,8 +90,8 @@ func newTextureFromImage(img image.Image) *Texture {
 	case *image.NRGBA:
 		pix = img.(*image.NRGBA).Pix
 	default:
-		panic("image should be RGBA or NRGBA")
+		return nil, textureError("image format must be RGBA or NRGBA")
 	}
 	size := img.Bounds().Size()
-	return createTexture(size.X, size.Y, pix)
+	return createTexture(size.X, size.Y, pix), nil
 }
