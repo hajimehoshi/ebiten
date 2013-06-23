@@ -17,7 +17,7 @@ type Monochrome struct {
 
 func New() *Monochrome {
 	return &Monochrome{
-		ch: make(chan bool),
+		ch:          make(chan bool),
 		colorMatrix: matrix.IdentityColor(),
 	}
 }
@@ -55,11 +55,11 @@ func (game *Monochrome) Init(tf graphics.TextureFactory) {
 func mean(a, b matrix.Color, k float64) matrix.Color {
 	dim := a.Dim()
 	result := matrix.Color{}
-	for i := 0; i < dim - 1; i++ {
+	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
 			result.Elements[i][j] =
-				a.Elements[i][j] * (1 - k) +
-				b.Elements[i][j] * k
+				a.Elements[i][j]*(1-k) +
+					b.Elements[i][j]*k
 		}
 	}
 	return result
@@ -103,8 +103,8 @@ func (game *Monochrome) Draw(g graphics.GraphicsContext, offscreen graphics.Text
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()
-	tx := game.ScreenWidth() / 2 - game.ebitenTexture.Width / 2
-	ty := game.ScreenHeight() / 2 - game.ebitenTexture.Height / 2
+	tx := game.ScreenWidth()/2 - game.ebitenTexture.Width/2
+	ty := game.ScreenHeight()/2 - game.ebitenTexture.Height/2
 	geometryMatrix.Translate(float64(tx), float64(ty))
 	g.DrawTexture(game.ebitenTexture.ID,
 		geometryMatrix, game.colorMatrix)

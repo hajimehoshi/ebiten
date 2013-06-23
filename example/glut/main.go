@@ -42,7 +42,7 @@ func display() {
 
 //export mouse
 func mouse(button, state, x, y C.int) {
-	
+
 }
 
 //export idle

@@ -57,7 +57,7 @@ func (game *Rotating) Draw(g graphics.GraphicsContext, offscreen graphics.Textur
 	geometryMatrix := matrix.IdentityGeometry()
 	tx, ty := float64(game.ebitenTexture.Width), float64(game.ebitenTexture.Height)
 	geometryMatrix.Translate(-tx/2, -ty/2)
-	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(game.Fps() * 10))
+	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(game.Fps()*10))
 	geometryMatrix.Translate(tx/2, ty/2)
 	centerX := float64(game.ScreenWidth()) / 2
 	centerY := float64(game.ScreenHeight()) / 2
