@@ -47,8 +47,7 @@ func (matrix *Geometry) Translate(tx, ty float64) {
 }
 
 func (matrix *Geometry) Rotate(theta float64) {
-	cos := math.Cos(theta)
-	sin := math.Sin(theta)
+	sin, cos := math.Sincos(theta)
 	rotate := Geometry{
 		[2][3]float64{
 			{cos, -sin, 0},
