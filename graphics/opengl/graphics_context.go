@@ -49,7 +49,7 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) *GraphicsCon
 }
 
 func (context *GraphicsContext) Clear() {
-	C.glClearColor(0, 0, 0, 1)
+	C.glClearColor(0, 0, 0, 0)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
