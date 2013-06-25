@@ -29,8 +29,23 @@ import (
 	"unsafe"
 )
 
+type GlutInputEventState int
+
+const (
+	GlutInputEventStateUp GlutInputEventState = iota
+	GlutInputEventStateDown
+)
+
+type GlutInputEvent struct {
+	State GlutInputEventState
+	X     int
+	Y     int
+}
+
 type GlutUI struct {
-	device graphics.Device
+	screenScale      int
+	device           graphics.Device
+	glutInputEventCh chan GlutInputEvent
 }
 
 var currentUI *GlutUI
@@ -42,8 +57,21 @@ func display() {
 }
 
 //export mouse
-func mouse(button, state, x, y C.int) {
-
+func mouse(button, glutState, x, y C.int) {
+	var state GlutInputEventState
+	switch glutState {
+	case C.GLUT_UP:
+		state = GlutInputEventStateUp
+	case C.GLUT_DOWN:
+		state = GlutInputEventStateDown
+	default:
+		panic("invalid glutState")
+	}
+	currentUI.glutInputEventCh <- GlutInputEvent{
+		State: state,
+		X:     int(x),
+		Y:     int(y),
+	}
 }
 
 //export idle
@@ -52,6 +80,9 @@ func idle() {
 }
 
 func (ui *GlutUI) Init(screenWidth, screenHeight, screenScale int) {
+	ui.screenScale = screenScale
+	ui.glutInputEventCh = make(chan GlutInputEvent, 10)
+
 	cargs := []*C.char{}
 	for _, arg := range os.Args {
 		cargs = append(cargs, C.CString(arg))
@@ -109,5 +140,29 @@ func main() {
 	currentUI = &GlutUI{}
 	currentUI.Init(gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
 
-	ebiten.OpenGLRun(gm, currentUI, screenScale)
+	input := make(chan ebiten.InputState)
+	go func() {
+		ch := currentUI.glutInputEventCh
+		var inputState ebiten.InputState
+		for {
+			select {
+			case event := <-ch:
+				switch event.State {
+				case GlutInputEventStateUp:
+					inputState.IsTapped = false
+					inputState.X = 0
+					inputState.Y = 0
+				case GlutInputEventStateDown:
+					inputState.IsTapped = true
+					inputState.X = event.X
+					inputState.Y = event.Y
+				}
+			default:
+				// do nothing
+			}
+			input <- inputState
+		}
+	}()
+
+	ebiten.OpenGLRun(gm, currentUI, screenScale, input)
 }

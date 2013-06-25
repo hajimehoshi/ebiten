@@ -1,6 +1,7 @@
 package rects
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image/color"
@@ -32,7 +33,7 @@ func (game *Rects) Init(tf graphics.TextureFactory) {
 	game.rectsTexture = tf.NewTexture(game.ScreenWidth(), game.ScreenHeight())
 }
 
-func (game *Rects) Update() {
+func (game *Rects) Update(input ebiten.InputState) {
 }
 
 func (game *Rects) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {

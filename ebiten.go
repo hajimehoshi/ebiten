@@ -16,7 +16,7 @@ type Game interface {
 	ScreenHeight() int
 	Fps() int
 	Init(tf graphics.TextureFactory)
-	Update()
+	Update(input InputState)
 	Draw(g graphics.GraphicsContext, offscreen graphics.Texture)
 }
 
@@ -24,7 +24,13 @@ type UI interface {
 	Run(device graphics.Device)
 }
 
-func OpenGLRun(game Game, ui UI, screenScale int) {
+type InputState struct {
+	IsTapped bool
+	X        int
+	Y        int
+}
+
+func OpenGLRun(game Game, ui UI, screenScale int, input chan InputState) {
 	ch := make(chan bool, 1)
 	graphicsDevice := opengl.NewDevice(
 		game.ScreenWidth(), game.ScreenHeight(), screenScale,
@@ -40,7 +46,8 @@ func OpenGLRun(game Game, ui UI, screenScale int) {
 		for {
 			<-tick
 			ticket := <-ch
-			game.Update()
+			inputState := <-input
+			game.Update(inputState)
 			ch <- ticket
 		}
 	}()
