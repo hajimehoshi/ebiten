@@ -9,6 +9,7 @@ import (
 type Device interface {
 	Update()
 	TextureFactory() TextureFactory
+	OffscreenTexture() Texture
 }
 
 type Rect struct {
@@ -26,7 +27,7 @@ type TexturePart struct {
 
 type GraphicsContext interface {
 	Clear()
-	Fill(color color.Color)
+	Fill(clr color.Color)
 	DrawRect(rect Rect, clr color.Color)
 	DrawTexture(textureID TextureID,
 		geometryMatrix matrix.Geometry,

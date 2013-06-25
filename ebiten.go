@@ -30,29 +30,35 @@ type InputState struct {
 	Y        int
 }
 
-func OpenGLRun(game Game, ui UI, screenScale int, input chan InputState) {
-	ch := make(chan bool, 1)
+func OpenGLRun(game Game, ui UI, screenScale int, input <-chan InputState) {
+	deviceUpdate := make(chan bool)
+	commandSet := make(chan chan func(graphics.GraphicsContext))
+
 	graphicsDevice := opengl.NewDevice(
-		game.ScreenWidth(), game.ScreenHeight(), screenScale,
-		func(g graphics.GraphicsContext, offscreen graphics.Texture) {
-			ticket := <-ch
-			game.Draw(g, offscreen)
-			ch <- ticket
-		})
+		game.ScreenWidth(), game.ScreenHeight(), screenScale, deviceUpdate, commandSet)
+
+	game.Init(graphicsDevice.TextureFactory())
 
 	go func() {
 		frameTime := time.Duration(int64(time.Second) / int64(game.Fps()))
-		tick := time.Tick(frameTime)
+		updateTick := time.Tick(frameTime)
 		for {
-			<-tick
-			ticket := <-ch
-			inputState := <-input
-			game.Update(inputState)
-			ch <- ticket
+			select {
+			case <-updateTick:
+				inputState := <-input
+				game.Update(inputState)
+			case <-deviceUpdate:
+				commands := make(chan func(graphics.GraphicsContext))
+				commandSet <- commands
+				g := graphics.NewAsyncGraphicsContext(commands)
+				// TODO: graphicsDevice is shared by multiple goroutines.
+				game.Draw(g, graphicsDevice.OffscreenTexture())
+				close(commands)
+			}
 		}
 	}()
 
-	game.Init(graphicsDevice.TextureFactory())
-	ch <- true
+
+	// UI should be executed on the main thread.
 	ui.Run(graphicsDevice)
 }

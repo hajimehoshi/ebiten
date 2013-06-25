@@ -16,21 +16,30 @@ type Device struct {
 	screenScale      int
 	graphicsContext  *GraphicsContext
 	offscreenTexture graphics.Texture
-	drawFunc         func(graphics.GraphicsContext, graphics.Texture)
+	deviceUpdate     chan<- bool
+	commandSet       <-chan chan func(graphics.GraphicsContext)
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int,
-	drawFunc func(graphics.GraphicsContext, graphics.Texture)) *Device {
+	deviceUpdate chan<- bool,
+	commandSet <-chan chan func(graphics.GraphicsContext)) *Device {
+	graphicsContext := newGraphicsContext(screenWidth, screenHeight, screenScale)
+
 	device := &Device{
 		screenWidth:     screenWidth,
 		screenHeight:    screenHeight,
 		screenScale:     screenScale,
-		graphicsContext: newGraphicsContext(screenWidth, screenHeight, screenScale),
-		drawFunc:        drawFunc,
+		deviceUpdate:    deviceUpdate,
+		commandSet:      commandSet,
+		graphicsContext: graphicsContext,
 	}
 	device.offscreenTexture =
 		device.graphicsContext.NewTexture(screenWidth, screenHeight)
 	return device
+}
+
+func (device *Device) OffscreenTexture() graphics.Texture {
+	return device.offscreenTexture
 }
 
 func (device *Device) Update() {
@@ -40,7 +49,13 @@ func (device *Device) Update() {
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
 	g.SetOffscreen(device.offscreenTexture.ID)
 	g.Clear()
-	device.drawFunc(g, device.offscreenTexture)
+
+	device.deviceUpdate <- true
+	commands := <-device.commandSet
+	for command := range commands {
+		command(g)
+	}
+
 	g.flush()
 
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
