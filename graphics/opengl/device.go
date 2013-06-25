@@ -17,12 +17,13 @@ type Device struct {
 	graphicsContext  *GraphicsContext
 	offscreenTexture graphics.Texture
 	deviceUpdate     chan<- bool
-	commandSet       <-chan chan func(graphics.GraphicsContext)
+	gameDraw         <-chan func(graphics.GraphicsContext, graphics.Texture)
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int,
 	deviceUpdate chan<- bool,
-	commandSet <-chan chan func(graphics.GraphicsContext)) *Device {
+	gameDraw <-chan func(graphics.GraphicsContext, graphics.Texture)) *Device {
+
 	graphicsContext := newGraphicsContext(screenWidth, screenHeight, screenScale)
 
 	device := &Device{
@@ -30,7 +31,7 @@ func NewDevice(screenWidth, screenHeight, screenScale int,
 		screenHeight:    screenHeight,
 		screenScale:     screenScale,
 		deviceUpdate:    deviceUpdate,
-		commandSet:      commandSet,
+		gameDraw:        gameDraw,
 		graphicsContext: graphicsContext,
 	}
 	device.offscreenTexture =
@@ -51,10 +52,8 @@ func (device *Device) Update() {
 	g.Clear()
 
 	device.deviceUpdate <- true
-	commands := <-device.commandSet
-	for command := range commands {
-		command(g)
-	}
+	f := <-device.gameDraw
+	f(g, device.offscreenTexture)
 
 	g.flush()
 
