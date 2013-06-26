@@ -17,10 +17,10 @@ type Device struct {
 	graphicsContext  *GraphicsContext
 	offscreenTexture graphics.Texture
 	deviceUpdate     chan chan graphics.Drawable
+	updating         chan chan func()
 }
 
-func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
-
+func NewDevice(screenWidth, screenHeight, screenScale int, updating chan chan func()) *Device {
 	graphicsContext := newGraphicsContext(screenWidth, screenHeight, screenScale)
 
 	device := &Device{
@@ -29,9 +29,18 @@ func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
 		screenScale:     screenScale,
 		deviceUpdate:    make(chan chan graphics.Drawable),
 		graphicsContext: graphicsContext,
+		updating:        updating,
 	}
 	device.offscreenTexture =
 		device.graphicsContext.NewTexture(screenWidth, screenHeight)
+
+	go func() {
+		for {
+			ch := <-device.updating
+			ch <- device.Update
+		}
+	}()
+
 	return device
 }
 

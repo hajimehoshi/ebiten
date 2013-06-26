@@ -11,7 +11,6 @@ type Drawable interface {
 }
 
 type Device interface {
-	Update()
 	TextureFactory() TextureFactory
 	Drawing() <-chan chan Drawable
 }

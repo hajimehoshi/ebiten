@@ -27,6 +27,7 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
 	"os"
 	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -45,16 +46,18 @@ type GlutInputEvent struct {
 
 type GlutUI struct {
 	screenScale      int
-	device           graphics.Device
 	glutInputEventCh chan GlutInputEvent
+	updating         chan chan func()
 }
 
 var currentUI *GlutUI
 
 //export display
 func display() {
-	// TODO: Use channels?
-	currentUI.device.Update()
+	ch := make(chan func())
+	currentUI.updating <- ch
+	f := <-ch
+	f()
 	C.glutSwapBuffers()
 }
 
@@ -81,10 +84,11 @@ func idle() {
 	C.glutPostRedisplay()
 }
 
-func NewGlutUI(screenWidth, screenHeight, screenScale int) *GlutUI{
+func NewGlutUI(screenWidth, screenHeight, screenScale int) *GlutUI {
 	ui := &GlutUI{
-		screenScale: screenScale,
+		screenScale:      screenScale,
 		glutInputEventCh: make(chan GlutInputEvent, 10),
+		updating:         make(chan chan func()),
 	}
 
 	cargs := []*C.char{}
@@ -113,8 +117,7 @@ func NewGlutUI(screenWidth, screenHeight, screenScale int) *GlutUI{
 	return ui
 }
 
-func (ui *GlutUI) Run(device graphics.Device) {
-	ui.device = device
+func (ui *GlutUI) Run() {
 	C.glutMainLoop()
 }
 
@@ -126,24 +129,24 @@ func main() {
 		gameName = os.Args[1]
 	}
 
-	var gm ebiten.Game
+	var game ebiten.Game
 	switch gameName {
 	case "blank":
-		gm = blank.New()
+		game = blank.New()
 	case "monochrome":
-		gm = monochrome.New()
+		game = monochrome.New()
 	case "rects":
-		gm = rects.New()
+		game = rects.New()
 	case "rotating":
-		gm = rotating.New()
+		game = rotating.New()
 	case "sprites":
-		gm = sprites.New()
+		game = sprites.New()
 	default:
-		gm = rotating.New()
+		game = rotating.New()
 	}
 
 	screenScale := 2
-	currentUI = NewGlutUI(gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
+	currentUI = NewGlutUI(game.ScreenWidth(), game.ScreenHeight(), screenScale)
 
 	input := make(chan ebiten.InputState)
 	go func() {
@@ -170,8 +173,38 @@ func main() {
 	}()
 
 	graphicsDevice := opengl.NewDevice(
-		gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
+		game.ScreenWidth(), game.ScreenHeight(), screenScale,
+		currentUI.updating)
 
-	gm.Init(graphicsDevice.TextureFactory())
-	ebiten.Run(gm, currentUI, screenScale, graphicsDevice, input)
+	game.Init(graphicsDevice.TextureFactory())
+	draw := graphicsDevice.Drawing()
+
+	go func() {
+		frameTime := time.Duration(int64(time.Second) / int64(game.Fps()))
+		update := time.Tick(frameTime)
+		for {
+			select {
+			case <-update:
+				inputState := <-input
+				game.Update(inputState)
+			case gameDraw := <-draw:
+				ch := make(chan interface{})
+				s := &SyncDrawable{game, ch}
+				gameDraw <- s
+				<-ch
+			}
+		}
+	}()
+
+	currentUI.Run()
+}
+
+type SyncDrawable struct {
+	drawable graphics.Drawable
+	ch chan interface{}
+}
+
+func (s *SyncDrawable) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+	s.drawable.Draw(g, offscreen)
+	close(s.ch)
 }
