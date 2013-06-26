@@ -153,20 +153,16 @@ func main() {
 		ch := currentUI.glutInputEventCh
 		var inputState ebiten.InputState
 		for {
-			select {
-			case event := <-ch:
-				switch event.State {
-				case GlutInputEventStateUp:
-					inputState.IsTapped = false
-					inputState.X = 0
-					inputState.Y = 0
-				case GlutInputEventStateDown:
-					inputState.IsTapped = true
-					inputState.X = event.X
-					inputState.Y = event.Y
-				}
-			default:
-				// do nothing
+			event := <-ch
+			switch event.State {
+			case GlutInputEventStateUp:
+				inputState.IsTapped = false
+				inputState.X = 0
+				inputState.Y = 0
+			case GlutInputEventStateDown:
+				inputState.IsTapped = true
+				inputState.X = event.X
+				inputState.Y = event.Y
 			}
 			input <- inputState
 		}
@@ -182,11 +178,13 @@ func main() {
 	go func() {
 		frameTime := time.Duration(int64(time.Second) / int64(game.Fps()))
 		update := time.Tick(frameTime)
+		inputState := ebiten.InputState{}
 		for {
 			select {
+			case inputState = <-input:
 			case <-update:
-				inputState := <-input
 				game.Update(inputState)
+				inputState = ebiten.InputState{}
 			case gameDraw := <-draw:
 				ch := make(chan interface{})
 				s := &SyncDrawable{game, ch}
