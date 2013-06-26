@@ -2,7 +2,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
-	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
+	"runtime"
 	"time"
 )
 
@@ -30,40 +30,34 @@ type InputState struct {
 	Y        int
 }
 
-func mainLoop(game Game, input <-chan InputState,
-	deviceUpdate chan bool,
-	gameDraw chan func(graphics.GraphicsContext, graphics.Texture)) {
+func mainLoop(game Game, input <-chan InputState, draw <-chan chan graphics.Drawable) {
 	frameTime := time.Duration(int64(time.Second) / int64(game.Fps()))
-	updateTick := time.Tick(frameTime)
+	update := time.Tick(frameTime)
 	for {
 		select {
-		case <-updateTick:
+		case <-update:
 			inputState := <-input
 			game.Update(inputState)
-		case <-deviceUpdate:
-			ch := make(chan interface{})
-			gameDraw <- func(g graphics.GraphicsContext,
-				offscreen graphics.Texture) {
-				game.Draw(g, offscreen)
-				close(ch)
-			}
-			<-ch
+		case gameDraw := <-draw:
+			gameDraw <- game
+			// TODO: wait!
 		}
 	}
 }
 
-func OpenGLRun(game Game, ui UI, screenScale int, input <-chan InputState) {
-	deviceUpdate := make(chan bool)
-	gameDraw := make(chan func(graphics.GraphicsContext, graphics.Texture))
+func Run(game Game, ui UI,
+	screenScale int,
+	graphicsDevice graphics.Device,
+	input <-chan InputState) {
 
-	graphicsDevice := opengl.NewDevice(
-		game.ScreenWidth(), game.ScreenHeight(),
-		screenScale, deviceUpdate, gameDraw)
+	draw := graphicsDevice.Drawing()
 
-	game.Init(graphicsDevice.TextureFactory())
-
-	go mainLoop(game, input, deviceUpdate, gameDraw)
+	go mainLoop(game, input, draw)
 
 	// UI should be executed on the main thread.
 	ui.Run(graphicsDevice)
+}
+
+func init() {
+	runtime.LockOSThread()
 }

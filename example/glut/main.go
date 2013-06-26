@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go.ebiten/graphics"
+	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
 	"os"
 	"runtime"
 	"unsafe"
@@ -52,6 +53,7 @@ var currentUI *GlutUI
 
 //export display
 func display() {
+	// TODO: Use channels?
 	currentUI.device.Update()
 	C.glutSwapBuffers()
 }
@@ -79,9 +81,11 @@ func idle() {
 	C.glutPostRedisplay()
 }
 
-func (ui *GlutUI) Init(screenWidth, screenHeight, screenScale int) {
-	ui.screenScale = screenScale
-	ui.glutInputEventCh = make(chan GlutInputEvent, 10)
+func NewGlutUI(screenWidth, screenHeight, screenScale int) *GlutUI{
+	ui := &GlutUI{
+		screenScale: screenScale,
+		glutInputEventCh: make(chan GlutInputEvent, 10),
+	}
 
 	cargs := []*C.char{}
 	for _, arg := range os.Args {
@@ -105,6 +109,8 @@ func (ui *GlutUI) Init(screenWidth, screenHeight, screenScale int) {
 	C.glutCreateWindow(title)
 
 	C.setGlutFuncs()
+
+	return ui
 }
 
 func (ui *GlutUI) Run(device graphics.Device) {
@@ -137,8 +143,7 @@ func main() {
 	}
 
 	screenScale := 2
-	currentUI = &GlutUI{}
-	currentUI.Init(gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
+	currentUI = NewGlutUI(gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
 
 	input := make(chan ebiten.InputState)
 	go func() {
@@ -164,5 +169,9 @@ func main() {
 		}
 	}()
 
-	ebiten.OpenGLRun(gm, currentUI, screenScale, input)
+	graphicsDevice := opengl.NewDevice(
+		gm.ScreenWidth(), gm.ScreenHeight(), screenScale)
+
+	gm.Init(graphicsDevice.TextureFactory())
+	ebiten.Run(gm, currentUI, screenScale, graphicsDevice, input)
 }

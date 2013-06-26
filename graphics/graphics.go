@@ -6,10 +6,14 @@ import (
 	"image/color"
 )
 
+type Drawable interface {
+	Draw(g GraphicsContext, offscreen Texture)
+}
+
 type Device interface {
 	Update()
 	TextureFactory() TextureFactory
-	OffscreenTexture() Texture
+	Drawing() <-chan chan Drawable
 }
 
 type Rect struct {
