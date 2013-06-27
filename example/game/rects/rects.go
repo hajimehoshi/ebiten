@@ -36,7 +36,7 @@ func (game *Rects) Init(tf graphics.TextureFactory) {
 func (game *Rects) Update(input ebiten.InputState) {
 }
 
-func (game *Rects) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+func (game *Rects) Draw(g graphics.Context, offscreen graphics.Texture) {
 	g.SetOffscreen(game.rectsTexture.ID)
 
 	x := rand.Intn(game.ScreenWidth())

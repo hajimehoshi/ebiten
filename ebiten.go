@@ -15,7 +15,7 @@ type Game interface {
 	Fps() int
 	Init(tf graphics.TextureFactory)
 	Update(input InputState)
-	Draw(g graphics.GraphicsContext, offscreen graphics.Texture)
+	Draw(g graphics.Context, offscreen graphics.Texture)
 }
 
 type UI interface {

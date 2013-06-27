@@ -111,7 +111,7 @@ func (game *Sprites) Update(input ebiten.InputState) {
 	}
 }
 
-func (game *Sprites) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+func (game *Sprites) Draw(g graphics.Context, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	// Draw the sprites

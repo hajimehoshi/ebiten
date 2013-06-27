@@ -100,7 +100,7 @@ func (game *Monochrome) Update(input ebiten.InputState) {
 	<-game.ch
 }
 
-func (game *Monochrome) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+func (game *Monochrome) Draw(g graphics.Context, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()

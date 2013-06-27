@@ -30,5 +30,5 @@ func (game *Blank) Init(tf graphics.TextureFactory) {
 func (game *Blank) Update(input ebiten.InputState) {
 }
 
-func (game *Blank) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+func (game *Blank) Draw(g graphics.Context, offscreen graphics.Texture) {
 }

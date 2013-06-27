@@ -52,7 +52,7 @@ func (game *Rotating) Update(input ebiten.InputState) {
 	game.x++
 }
 
-func (game *Rotating) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
+func (game *Rotating) Draw(g graphics.Context, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()

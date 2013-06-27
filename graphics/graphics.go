@@ -6,13 +6,10 @@ import (
 	"image/color"
 )
 
-type Drawable interface {
-	Draw(g GraphicsContext, offscreen Texture)
-}
-
 type Device interface {
+	Initializing() <-chan chan func(TextureFactory)
 	TextureFactory() TextureFactory
-	Drawing() <-chan chan Drawable
+	Drawing() <-chan chan func(g Context, offscreen Texture)
 }
 
 type Rect struct {
@@ -28,7 +25,7 @@ type TexturePart struct {
 	Source    Rect
 }
 
-type GraphicsContext interface {
+type Context interface {
 	Clear()
 	Fill(clr color.Color)
 	DrawRect(rect Rect, clr color.Color)

@@ -185,10 +185,12 @@ func main() {
 			case <-update:
 				game.Update(inputState)
 				inputState = ebiten.InputState{}
-			case gameDraw := <-draw:
+			case drawing := <-draw:
 				ch := make(chan interface{})
-				s := &SyncDrawable{game, ch}
-				gameDraw <- s
+				drawing <- func(g graphics.Context, offscreen graphics.Texture) {
+					game.Draw(g, offscreen)
+					close(ch)
+				}
 				<-ch
 			}
 		}
@@ -197,12 +199,18 @@ func main() {
 	currentUI.Run()
 }
 
-type SyncDrawable struct {
-	drawable graphics.Drawable
-	ch chan interface{}
+type FuncInitializer struct {
+	f func(graphics.TextureFactory)
 }
 
-func (s *SyncDrawable) Draw(g graphics.GraphicsContext, offscreen graphics.Texture) {
-	s.drawable.Draw(g, offscreen)
-	close(s.ch)
+func (i *FuncInitializer) Initialize(tf graphics.TextureFactory) {
+	i.f(tf)
+}
+
+type FuncDrawable struct {
+	f func(graphics.Context, graphics.Texture)
+}
+
+func (d *FuncDrawable) Draw(g graphics.Context, offscreen graphics.Texture) {
+	d.f(g, offscreen)
 }
