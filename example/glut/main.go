@@ -198,19 +198,3 @@ func main() {
 
 	currentUI.Run()
 }
-
-type FuncInitializer struct {
-	f func(graphics.TextureFactory)
-}
-
-func (i *FuncInitializer) Initialize(tf graphics.TextureFactory) {
-	i.f(tf)
-}
-
-type FuncDrawable struct {
-	f func(graphics.Context, graphics.Texture)
-}
-
-func (d *FuncDrawable) Draw(g graphics.Context, offscreen graphics.Texture) {
-	d.f(g, offscreen)
-}
