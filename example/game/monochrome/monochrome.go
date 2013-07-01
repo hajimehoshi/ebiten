@@ -21,7 +21,6 @@
 package monochrome
 
 import (
-	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
@@ -115,7 +114,7 @@ func (game *Monochrome) update() {
 	}
 }
 
-func (game *Monochrome) Update(input ebiten.InputState) {
+func (game *Monochrome) Update() {
 	game.ch <- true
 	<-game.ch
 }

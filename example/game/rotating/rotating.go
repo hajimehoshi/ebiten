@@ -21,7 +21,6 @@
 package rotating
 
 import (
-	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
@@ -68,7 +67,7 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Rotating) Update(input ebiten.InputState) {
+func (game *Rotating) Update() {
 	game.x++
 }
 

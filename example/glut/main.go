@@ -165,8 +165,16 @@ func main() {
 		game = rotating.New()
 	}
 
-	screenScale := 2
-	currentUI = NewGlutUI(game.ScreenWidth(), game.ScreenHeight(), screenScale)
+	const screenScale = 2
+	currentUI = NewGlutUI(game.ScreenWidth(), game.ScreenHeight(),
+		screenScale)
+
+	graphicsDevice := opengl.NewDevice(
+		game.ScreenWidth(), game.ScreenHeight(), screenScale,
+		currentUI.updating)
+
+	game.Init(graphicsDevice.TextureFactory())
+	draw := graphicsDevice.Drawing()
 
 	input := make(chan ebiten.InputState)
 	go func() {
@@ -188,23 +196,15 @@ func main() {
 		}
 	}()
 
-	graphicsDevice := opengl.NewDevice(
-		game.ScreenWidth(), game.ScreenHeight(), screenScale,
-		currentUI.updating)
-
-	game.Init(graphicsDevice.TextureFactory())
-	draw := graphicsDevice.Drawing()
-
 	go func() {
-		frameTime := time.Duration(int64(time.Second) / int64(game.Fps()))
+		frameTime := time.Duration(
+			int64(time.Second) / int64(game.Fps()))
 		update := time.Tick(frameTime)
-		inputState := ebiten.InputState{}
 		for {
 			select {
-			case inputState = <-input:
+			case <-input:
 			case <-update:
-				game.Update(inputState)
-				inputState = ebiten.InputState{}
+				game.Update()
 			case drawing := <-draw:
 				ch := make(chan interface{})
 				drawing <- func(g graphics.Context, offscreen graphics.Texture) {

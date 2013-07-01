@@ -24,17 +24,12 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 )
 
-type TapInfo struct {
-	X int
-	Y int
-}
-
 type Game interface {
 	ScreenWidth() int
 	ScreenHeight() int
 	Fps() int
 	Init(tf graphics.TextureFactory)
-	Update(input InputState)
+	Update()
 	Draw(g graphics.Context, offscreen graphics.Texture)
 }
 
