@@ -18,56 +18,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package graphics
+package input
 
 import (
-	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
-	"image"
-	"image/color"
+	"github.com/hajimehoshi/go.ebiten/graphics"
 )
 
-type Device interface {
-	Initializing() <-chan chan func(TextureFactory)
-	TextureFactory() TextureFactory
-	Drawing() <-chan chan func(g Context, offscreen Texture)
+type Input struct {
 }
 
-type Rect struct {
-	X      int
-	Y      int
-	Width  int
-	Height int
+func New() *Input {
+	return &Input{}
 }
 
-type TexturePart struct {
-	LocationX int
-	LocationY int
-	Source    Rect
+func (game *Input) ScreenWidth() int {
+	return 256
 }
 
-type Context interface {
-	Clear()
-	Fill(clr color.Color)
-	DrawRect(rect Rect, clr color.Color)
-	DrawTexture(textureID TextureID,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
-	DrawTextureParts(textureID TextureID,
-		parts []TexturePart,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
-	SetOffscreen(textureID TextureID)
+func (game *Input) ScreenHeight() int {
+	return 240
 }
 
-type TextureFactory interface {
-	NewTexture(width, height int) Texture
-	NewTextureFromImage(img image.Image) (Texture, error)
+func (game *Input) Fps() int {
+	return 60
 }
 
-type Texture struct {
-	ID     TextureID
-	Width  int
-	Height int
+func (game *Input) Init(tf graphics.TextureFactory) {
 }
 
-type TextureID int
+func (game *Input) Update() {
+}
+
+func (game *Input) Draw(g graphics.Context, offscreen graphics.Texture) {
+}

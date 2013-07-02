@@ -144,7 +144,7 @@ func (context *Context) DrawTexture(
 }
 
 func (context *Context) DrawTextureParts(
-	textureID graphics.TextureID, locations []graphics.TexturePart,
+	textureID graphics.TextureID, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 
 	texture := context.textures[textureID]
@@ -160,11 +160,11 @@ func (context *Context) DrawTextureParts(
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
 	// TODO: Refactoring
-	for _, location := range locations {
-		x1 := float32(location.LocationX)
-		x2 := float32(location.LocationX + location.Source.Width)
-		y1 := float32(location.LocationY)
-		y2 := float32(location.LocationY + location.Source.Height)
+	for _, part := range parts {
+		x1 := float32(part.LocationX)
+		x2 := float32(part.LocationX + part.Source.Width)
+		y1 := float32(part.LocationY)
+		y2 := float32(part.LocationY + part.Source.Height)
 		vertex := [...]float32{
 			x1, y1,
 			x2, y1,
@@ -172,7 +172,7 @@ func (context *Context) DrawTextureParts(
 			x2, y2,
 		}
 
-		src := location.Source
+		src := part.Source
 		tu1 := float32(src.X) / float32(texture.textureWidth)
 		tu2 := float32(src.X+src.Width) / float32(texture.textureWidth)
 		tv1 := float32(src.Y) / float32(texture.textureHeight)

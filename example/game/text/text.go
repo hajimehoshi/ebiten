@@ -18,41 +18,38 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package rotating
+package text
 
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
 	"image/color"
-	_ "image/png"
-	"math"
 	"os"
 )
 
-type Rotating struct {
-	ebitenTexture graphics.Texture
-	x             int
+type Text struct {
+	textTexture graphics.Texture
 }
 
-func New() *Rotating {
-	return &Rotating{}
+func New() *Text {
+	return &Text{}
 }
 
-func (game *Rotating) ScreenWidth() int {
+func (game *Text) ScreenWidth() int {
 	return 256
 }
 
-func (game *Rotating) ScreenHeight() int {
+func (game *Text) ScreenHeight() int {
 	return 240
 }
 
-func (game *Rotating) Fps() int {
+func (game *Text) Fps() int {
 	return 60
 }
 
-func (game *Rotating) Init(tf graphics.TextureFactory) {
-	file, err := os.Open("images/ebiten.png")
+func (game *Text) Init(tf graphics.TextureFactory) {
+	file, err := os.Open("images/text.png")
 	if err != nil {
 		panic(err)
 	}
@@ -62,28 +59,41 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.ebitenTexture, err = tf.NewTextureFromImage(img); err != nil {
+	if game.textTexture, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
 }
 
-func (game *Rotating) Update() {
-	game.x++
+func (game *Text) Update() {
 }
 
-func (game *Rotating) Draw(g graphics.Context, offscreen graphics.Texture) {
+func (game *Text) Draw(g graphics.Context, offscreen graphics.Texture) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
+	game.drawText(g, "Hello, World!", 10, 10)
+}
+
+func (game *Text) drawText(g graphics.Context, text string, x, y int) {
+	const letterWidth = 6
+	const letterHeight = 16
+
+	parts := []graphics.TexturePart{}
+	textX := 0
+	for _, c := range text {
+		code := int(c)
+		x := (code % 32) * letterWidth
+		y := (code / 32) * letterHeight
+		source := graphics.Rect{x, y, letterWidth, letterHeight}
+		parts = append(parts, graphics.TexturePart{
+			LocationX: textX,
+			LocationY: 0,
+			Source:    source,
+		})
+		textX += letterWidth
+	}
 
 	geometryMatrix := matrix.IdentityGeometry()
-	tx, ty := float64(game.ebitenTexture.Width), float64(game.ebitenTexture.Height)
-	geometryMatrix.Translate(-tx/2, -ty/2)
-	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(game.Fps()*10))
-	geometryMatrix.Translate(tx/2, ty/2)
-	centerX := float64(game.ScreenWidth()) / 2
-	centerY := float64(game.ScreenHeight()) / 2
-	geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
-
-	g.DrawTexture(game.ebitenTexture.ID,
-		geometryMatrix,
-		matrix.IdentityColor())
+	geometryMatrix.Translate(float64(x), float64(y))
+	colorMatrix := matrix.IdentityColor()
+	g.DrawTextureParts(game.textTexture.ID, parts,
+		geometryMatrix, colorMatrix)
 }

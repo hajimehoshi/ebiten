@@ -100,7 +100,7 @@ func (game *Sprites) Fps() int {
 }
 
 func (game *Sprites) Init(tf graphics.TextureFactory) {
-	file, err := os.Open("ebiten.png")
+	file, err := os.Open("images/ebiten.png")
 	if err != nil {
 		panic(err)
 	}

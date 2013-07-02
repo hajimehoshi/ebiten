@@ -55,7 +55,7 @@ func (game *Monochrome) Fps() int {
 }
 
 func (game *Monochrome) Init(tf graphics.TextureFactory) {
-	file, err := os.Open("ebiten.png")
+	file, err := os.Open("images/ebiten.png")
 	if err != nil {
 		panic(err)
 	}
