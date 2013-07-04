@@ -36,6 +36,7 @@ import (
 )
 
 type Context struct {
+	screen                 graphics.Texture
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
@@ -66,6 +67,14 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	initializeShaders()
 
 	return context
+}
+
+func (context *Context) setScreen(screen graphics.Texture) {
+	context.screen = screen
+}
+
+func (context *Context) Screen() graphics.Texture {
+	return context.screen
 }
 
 func (context *Context) Clear() {

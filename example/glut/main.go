@@ -44,7 +44,6 @@ import (
 	"github.com/hajimehoshi/go.ebiten/example/game/rects"
 	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
-	"github.com/hajimehoshi/go.ebiten/example/game/text"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
 	"os"
@@ -145,8 +144,6 @@ func main() {
 		game = rotating.New()
 	case "sprites":
 		game = sprites.New()
-	case "text":
-		game = text.New()
 	default:
 		game = rotating.New()
 	}
@@ -191,15 +188,16 @@ func main() {
 		frameTime := time.Duration(
 			int64(time.Second) / int64(game.Fps()))
 		update := time.Tick(frameTime)
+		inputState := ebiten.InputState{-1, -1}
 		for {
 			select {
-			case <-input:
+			case inputState = <-input:
 			case <-update:
-				game.Update()
+				game.Update(inputState)
 			case drawing := <-draw:
 				ch := make(chan interface{})
-				drawing <- func(g graphics.Context, offscreen graphics.Texture) {
-					game.Draw(g, offscreen)
+				drawing <- func(context graphics.Context) {
+					game.Draw(context)
 					close(ch)
 				}
 				<-ch

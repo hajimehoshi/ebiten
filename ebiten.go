@@ -29,8 +29,8 @@ type Game interface {
 	ScreenHeight() int
 	Fps() int
 	Init(tf graphics.TextureFactory)
-	Update()
-	Draw(g graphics.Context, offscreen graphics.Texture)
+	Update(inputState InputState)
+	Draw(g graphics.Context)
 }
 
 type UI interface {
@@ -38,7 +38,6 @@ type UI interface {
 }
 
 type InputState struct {
-	IsTapped bool
-	X        int
-	Y        int
+	X int
+	Y int
 }

@@ -21,6 +21,7 @@
 package monochrome
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
@@ -114,12 +115,12 @@ func (game *Monochrome) update() {
 	}
 }
 
-func (game *Monochrome) Update() {
+func (game *Monochrome) Update(inputState ebiten.InputState) {
 	game.ch <- true
 	<-game.ch
 }
 
-func (game *Monochrome) Draw(g graphics.Context, offscreen graphics.Texture) {
+func (game *Monochrome) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()

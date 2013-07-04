@@ -36,7 +36,7 @@ type Device struct {
 	screenScale      int
 	context          *Context
 	offscreenTexture graphics.Texture
-	drawing          chan chan func(graphics.Context, graphics.Texture)
+	drawing          chan chan func(graphics.Context)
 	updating         chan chan func()
 }
 
@@ -47,12 +47,13 @@ func NewDevice(screenWidth, screenHeight, screenScale int, updating chan chan fu
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
-		drawing:      make(chan chan func(graphics.Context, graphics.Texture)),
+		drawing:      make(chan chan func(graphics.Context)),
 		context:      context,
 		updating:     updating,
 	}
 	device.offscreenTexture =
 		device.context.NewTexture(screenWidth, screenHeight)
+	device.context.setScreen(device.offscreenTexture)
 
 	go func() {
 		for {
@@ -64,12 +65,8 @@ func NewDevice(screenWidth, screenHeight, screenScale int, updating chan chan fu
 	return device
 }
 
-func (device *Device) Drawing() <-chan chan func(graphics.Context, graphics.Texture) {
+func (device *Device) Drawing() <-chan chan func(graphics.Context) {
 	return device.drawing
-}
-
-func (device *Device) OffscreenTexture() graphics.Texture {
-	return device.offscreenTexture
 }
 
 func (device *Device) Update() {
@@ -80,10 +77,10 @@ func (device *Device) Update() {
 	g.SetOffscreen(device.offscreenTexture.ID)
 	g.Clear()
 
-	ch := make(chan func(graphics.Context, graphics.Texture))
+	ch := make(chan func(graphics.Context))
 	device.drawing <- ch
 	drawable := <-ch
-	drawable(g, device.offscreenTexture)
+	drawable(g)
 
 	g.flush()
 

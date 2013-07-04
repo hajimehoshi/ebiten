@@ -21,6 +21,7 @@
 package blank
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 )
 
@@ -46,8 +47,8 @@ func (game *Blank) Fps() int {
 func (game *Blank) Init(tf graphics.TextureFactory) {
 }
 
-func (game *Blank) Update() {
+func (game *Blank) Update(inputState ebiten.InputState) {
 }
 
-func (game *Blank) Draw(g graphics.Context, offscreen graphics.Texture) {
+func (game *Blank) Draw(context graphics.Context) {
 }

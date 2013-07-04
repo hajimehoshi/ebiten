@@ -21,6 +21,7 @@
 package rects
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image/color"
@@ -52,10 +53,10 @@ func (game *Rects) Init(tf graphics.TextureFactory) {
 	game.rectsTexture = tf.NewTexture(game.ScreenWidth(), game.ScreenHeight())
 }
 
-func (game *Rects) Update() {
+func (game *Rects) Update(inputState ebiten.InputState) {
 }
 
-func (game *Rects) Draw(g graphics.Context, offscreen graphics.Texture) {
+func (game *Rects) Draw(g graphics.Context) {
 	g.SetOffscreen(game.rectsTexture.ID)
 
 	x := rand.Intn(game.ScreenWidth())
@@ -73,7 +74,7 @@ func (game *Rects) Draw(g graphics.Context, offscreen graphics.Texture) {
 		&color.RGBA{red, green, blue, alpha},
 	)
 
-	g.SetOffscreen(offscreen.ID)
+	g.SetOffscreen(g.Screen().ID)
 	g.DrawTexture(game.rectsTexture.ID,
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())

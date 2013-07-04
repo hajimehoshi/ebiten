@@ -29,7 +29,7 @@ import (
 type Device interface {
 	Initializing() <-chan chan func(TextureFactory)
 	TextureFactory() TextureFactory
-	Drawing() <-chan chan func(g Context, offscreen Texture)
+	Drawing() <-chan chan func(Context)
 }
 
 type Rect struct {
@@ -46,6 +46,7 @@ type TexturePart struct {
 }
 
 type Context interface {
+	Screen() Texture
 	Clear()
 	Fill(clr color.Color)
 	DrawRect(rect Rect, clr color.Color)

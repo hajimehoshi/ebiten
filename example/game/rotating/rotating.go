@@ -21,6 +21,7 @@
 package rotating
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
@@ -67,11 +68,11 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Rotating) Update() {
+func (game *Rotating) Update(inputState ebiten.InputState) {
 	game.x++
 }
 
-func (game *Rotating) Draw(g graphics.Context, offscreen graphics.Texture) {
+func (game *Rotating) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()

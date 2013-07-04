@@ -21,6 +21,7 @@
 package sprites
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
@@ -124,13 +125,13 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Sprites) Update() {
+func (game *Sprites) Update(inputState ebiten.InputState) {
 	for _, sprite := range game.sprites {
 		sprite.Update()
 	}
 }
 
-func (game *Sprites) Draw(g graphics.Context, offscreen graphics.Texture) {
+func (game *Sprites) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	// Draw the sprites
