@@ -31,29 +31,21 @@ import (
 )
 
 type Device struct {
-	screenWidth      int
-	screenHeight     int
-	screenScale      int
-	context          *Context
-	offscreenTexture graphics.Texture
-	drawing          chan chan func(graphics.Context)
-	updating         chan chan func()
+	screenScale int
+	context     *Context
+	drawing     chan chan func(graphics.Context)
+	updating    chan chan func()
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int, updating chan chan func()) *Device {
 	context := newContext(screenWidth, screenHeight, screenScale)
 
 	device := &Device{
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
-		drawing:      make(chan chan func(graphics.Context)),
-		context:      context,
-		updating:     updating,
+		screenScale: screenScale,
+		drawing:     make(chan chan func(graphics.Context)),
+		context:     context,
+		updating:    updating,
 	}
-	device.offscreenTexture =
-		device.context.NewTexture(screenWidth, screenHeight)
-	device.context.setScreen(device.offscreenTexture)
 
 	go func() {
 		for {
@@ -70,35 +62,35 @@ func (device *Device) Drawing() <-chan chan func(graphics.Context) {
 }
 
 func (device *Device) Update() {
-	g := device.context
+	context := device.context
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
-	g.SetOffscreen(device.offscreenTexture.ID)
-	g.Clear()
+	context.SetOffscreen(context.Screen().ID)
+	context.Clear()
 
 	ch := make(chan func(graphics.Context))
 	device.drawing <- ch
 	drawable := <-ch
-	drawable(g)
+	drawable(context)
 
-	g.flush()
+	context.flush()
 
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
-	g.resetOffscreen()
-	g.Clear()
+	context.resetOffscreen()
+	context.Clear()
 
-	scale := float64(g.screenScale)
+	scale := float64(context.screenScale)
 	geometryMatrix := matrix.Geometry{
 		[2][3]float64{
 			{scale, 0, 0},
 			{0, scale, 0},
 		},
 	}
-	g.DrawTexture(device.offscreenTexture.ID,
+	context.DrawTexture(context.Screen().ID,
 		geometryMatrix, matrix.IdentityColor())
-	g.flush()
+	context.flush()
 }
 
 func (device *Device) TextureFactory() graphics.TextureFactory {

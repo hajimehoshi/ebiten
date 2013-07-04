@@ -66,11 +66,9 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 
 	initializeShaders()
 
-	return context
-}
+	context.screen = context.NewTexture(screenWidth, screenHeight)
 
-func (context *Context) setScreen(screen graphics.Texture) {
-	context.screen = screen
+	return context
 }
 
 func (context *Context) Screen() graphics.Texture {
