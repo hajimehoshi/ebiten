@@ -26,11 +26,13 @@ package main
 // #include <GLUT/glut.h>
 //
 // void display(void);
+// void mouse(int button, int state, int x, int y);
 // void motion(int x, int y);
 // void idle(void);
 //
 // static void setGlutFuncs(void) {
 //   glutDisplayFunc(display);
+//   glutMouseFunc(mouse);
 //   glutMotionFunc(motion);
 //   glutIdleFunc(idle);
 // }
@@ -53,6 +55,7 @@ import (
 )
 
 type GlutInputEvent struct {
+	IsActive bool
 	X int
 	Y int
 }
@@ -73,9 +76,18 @@ func display() {
 	C.glutSwapBuffers()
 }
 
+//export mouse
+func mouse(button, state, x, y C.int) {
+	event := GlutInputEvent{false, -1, -1}
+	if state == C.GLUT_UP {
+		currentUI.glutInputting <- event
+	}
+}
+
 //export motion
 func motion(x, y C.int) {
 	currentUI.glutInputting <- GlutInputEvent{
+		IsActive: true,
 		X: int(x),
 		Y: int(y),
 	}
@@ -173,21 +185,29 @@ func main() {
 		ch := currentUI.glutInputting
 		for {
 			event := <-ch
-			x := event.X / screenScale
-			y := event.Y / screenScale
-			if x < 0 {
-				x = 0
-			} else if screenWidth <= x {
-				x = screenWidth - 1
-			}
-			if y < 0 {
-				y = 0
-			} else if screenHeight <= y {
-				y = screenHeight - 1
-			}
-			input <- ebiten.InputState{
-				X: x,
-				Y: y,
+			if event.IsActive {
+				x := event.X / screenScale
+				y := event.Y / screenScale
+				if x < 0 {
+					x = 0
+				} else if screenWidth <= x {
+					x = screenWidth - 1
+				}
+				if y < 0 {
+					y = 0
+				} else if screenHeight <= y {
+					y = screenHeight - 1
+				}
+				input <- ebiten.InputState{
+					X: x,
+					Y: y,
+				}
+			} else {
+				input <- ebiten.InputState{
+					X: -1,
+					Y: -1,
+				}
+				
 			}
 		}
 	}()
