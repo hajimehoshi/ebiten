@@ -79,9 +79,12 @@ func display() {
 //export mouse
 func mouse(button, state, x, y C.int) {
 	event := GlutInputEvent{false, -1, -1}
-	if state == C.GLUT_UP {
-		currentUI.glutInputting <- event
+	if state == C.GLUT_DOWN {
+		event.IsActive = true
+		event.X = int(x)
+		event.Y = int(y)
 	}
+	currentUI.glutInputting <- event
 }
 
 //export motion
@@ -185,6 +188,7 @@ func main() {
 		ch := currentUI.glutInputting
 		for {
 			event := <-ch
+			inputState := ebiten.InputState{-1, -1}
 			if event.IsActive {
 				x := event.X / screenScale
 				y := event.Y / screenScale
@@ -198,17 +202,10 @@ func main() {
 				} else if screenHeight <= y {
 					y = screenHeight - 1
 				}
-				input <- ebiten.InputState{
-					X: x,
-					Y: y,
-				}
-			} else {
-				input <- ebiten.InputState{
-					X: -1,
-					Y: -1,
-				}
-				
+				inputState.X = x
+				inputState.Y = y
 			}
+			input <- inputState
 		}
 	}()
 
