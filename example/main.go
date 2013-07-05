@@ -60,8 +60,5 @@ func main() {
 	}
 
 	const screenScale = 2
-	screenWidth := game.ScreenWidth()
-	screenHeight := game.ScreenHeight()
-	ui := glut.New(screenWidth, screenHeight, screenScale)
-	ui.Run(game)
+	glut.Run(game, screenScale)
 }
