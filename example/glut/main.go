@@ -122,6 +122,14 @@ func (ui *GlutUI) Run() {
 	C.glutMainLoop()
 }
 
+type GameContext struct {
+	inputState ebiten.InputState
+}
+
+func (context *GameContext) InputState() ebiten.InputState {
+	return context.inputState
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -188,12 +196,14 @@ func main() {
 		frameTime := time.Duration(
 			int64(time.Second) / int64(game.Fps()))
 		update := time.Tick(frameTime)
-		inputState := ebiten.InputState{-1, -1}
+		gameContext := &GameContext{
+			inputState: ebiten.InputState{-1, -1},
+		}
 		for {
 			select {
-			case inputState = <-input:
+			case gameContext.inputState = <-input:
 			case <-update:
-				game.Update(inputState)
+				game.Update(gameContext)
 			case drawing := <-draw:
 				ch := make(chan interface{})
 				drawing <- func(context graphics.Context) {

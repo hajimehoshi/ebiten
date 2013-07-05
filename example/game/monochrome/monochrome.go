@@ -115,7 +115,7 @@ func (game *Monochrome) update() {
 	}
 }
 
-func (game *Monochrome) Update(inputState ebiten.InputState) {
+func (game *Monochrome) Update(context ebiten.GameContext) {
 	game.ch <- true
 	<-game.ch
 }

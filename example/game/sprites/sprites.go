@@ -125,7 +125,7 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Sprites) Update(inputState ebiten.InputState) {
+func (game *Sprites) Update(context ebiten.GameContext) {
 	for _, sprite := range game.sprites {
 		sprite.Update()
 	}

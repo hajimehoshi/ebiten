@@ -53,7 +53,7 @@ func (game *Rects) Init(tf graphics.TextureFactory) {
 	game.rectsTexture = tf.NewTexture(game.ScreenWidth(), game.ScreenHeight())
 }
 
-func (game *Rects) Update(inputState ebiten.InputState) {
+func (game *Rects) Update(context ebiten.GameContext) {
 }
 
 func (game *Rects) Draw(g graphics.Context) {

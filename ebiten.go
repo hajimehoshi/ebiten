@@ -29,12 +29,12 @@ type Game interface {
 	ScreenHeight() int
 	Fps() int
 	Init(tf graphics.TextureFactory)
-	Update(inputState InputState)
-	Draw(g graphics.Context)
+	Update(context GameContext)
+	Draw(context graphics.Context)
 }
 
-type UI interface {
-	Run()
+type GameContext interface {
+	InputState() InputState
 }
 
 type InputState struct {

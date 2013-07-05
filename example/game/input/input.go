@@ -67,8 +67,8 @@ func (game *Input) Init(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Input) Update(inputState ebiten.InputState) {
-	game.inputState = inputState
+func (game *Input) Update(context ebiten.GameContext) {
+	game.inputState = context.InputState()
 }
 
 func (game *Input) Draw(g graphics.Context) {

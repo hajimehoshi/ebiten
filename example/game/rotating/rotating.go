@@ -68,7 +68,7 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Rotating) Update(inputState ebiten.InputState) {
+func (game *Rotating) Update(context ebiten.GameContext) {
 	game.x++
 }
 
