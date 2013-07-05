@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package main
+// This package is experimental.
+package glut
 
 // #cgo LDFLAGS: -framework GLUT -framework OpenGL
 //
@@ -40,28 +41,24 @@ package main
 import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/example/game/blank"
-	"github.com/hajimehoshi/go.ebiten/example/game/input"
-	"github.com/hajimehoshi/go.ebiten/example/game/monochrome"
-	"github.com/hajimehoshi/go.ebiten/example/game/rects"
-	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
-	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
 	"os"
-	"runtime"
 	"time"
 	"unsafe"
 )
 
-type GlutInputEvent struct {
+type glutInputEvent struct {
 	IsActive bool
 	X int
 	Y int
 }
 
 type GlutUI struct {
-	glutInputting chan GlutInputEvent
+	screenWidth   int
+	screenHeight  int
+	screenScale   int
+	glutInputting chan glutInputEvent
 	updating      chan chan func()
 }
 
@@ -78,7 +75,7 @@ func display() {
 
 //export mouse
 func mouse(button, state, x, y C.int) {
-	event := GlutInputEvent{false, -1, -1}
+	event := glutInputEvent{false, -1, -1}
 	if state == C.GLUT_DOWN {
 		event.IsActive = true
 		event.X = int(x)
@@ -89,7 +86,7 @@ func mouse(button, state, x, y C.int) {
 
 //export motion
 func motion(x, y C.int) {
-	currentUI.glutInputting <- GlutInputEvent{
+	currentUI.glutInputting <- glutInputEvent{
 		IsActive: true,
 		X: int(x),
 		Y: int(y),
@@ -101,9 +98,12 @@ func idle() {
 	C.glutPostRedisplay()
 }
 
-func NewGlutUI(screenWidth, screenHeight, screenScale int) *GlutUI {
+func New(screenWidth, screenHeight, screenScale int) *GlutUI {
 	ui := &GlutUI{
-		glutInputting: make(chan GlutInputEvent, 10),
+		screenWidth:   screenWidth,
+		screenHeight:  screenHeight,
+		screenScale:   screenScale,
+		glutInputting: make(chan glutInputEvent, 10),
 		updating:      make(chan chan func()),
 	}
 
@@ -130,54 +130,13 @@ func NewGlutUI(screenWidth, screenHeight, screenScale int) *GlutUI {
 
 	C.setGlutFuncs()
 
+	currentUI = ui
 	return ui
 }
 
-func (ui *GlutUI) Run() {
-	C.glutMainLoop()
-}
-
-type GameContext struct {
-	inputState ebiten.InputState
-}
-
-func (context *GameContext) InputState() ebiten.InputState {
-	return context.inputState
-}
-
-func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	gameName := ""
-	if 2 <= len(os.Args) {
-		gameName = os.Args[1]
-	}
-
-	var game ebiten.Game
-	switch gameName {
-	case "blank":
-		game = blank.New()
-	case "input":
-		game = input.New()
-	case "monochrome":
-		game = monochrome.New()
-	case "rects":
-		game = rects.New()
-	case "rotating":
-		game = rotating.New()
-	case "sprites":
-		game = sprites.New()
-	default:
-		game = rotating.New()
-	}
-
-	const screenScale = 2
-	screenWidth := game.ScreenWidth()
-	screenHeight := game.ScreenHeight()
-	currentUI = NewGlutUI(screenWidth, screenHeight, screenScale)
-
+func (ui *GlutUI) Run(game ebiten.Game) {
 	graphicsDevice := opengl.NewDevice(
-		screenWidth, screenHeight, screenScale,
+		ui.screenWidth, ui.screenHeight, ui.screenScale,
 		currentUI.updating)
 
 	game.Init(graphicsDevice.TextureFactory())
@@ -185,6 +144,9 @@ func main() {
 
 	input := make(chan ebiten.InputState)
 	go func() {
+		screenWidth := ui.screenWidth
+		screenHeight := ui.screenHeight
+		screenScale := ui.screenScale
 		ch := currentUI.glutInputting
 		for {
 			event := <-ch
@@ -232,5 +194,13 @@ func main() {
 		}
 	}()
 
-	currentUI.Run()
+	C.glutMainLoop()
+}
+
+type GameContext struct {
+	inputState ebiten.InputState
+}
+
+func (context *GameContext) InputState() ebiten.InputState {
+	return context.inputState
 }
