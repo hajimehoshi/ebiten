@@ -96,7 +96,7 @@ func idle() {
 	C.glutPostRedisplay()
 }
 
-func new(screenWidth, screenHeight, screenScale int) *GlutUI {
+func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	ui := &GlutUI{
 		glutInputting: make(chan glutInputEvent, 10),
 		updating:      make(chan chan func()),
@@ -119,20 +119,20 @@ func new(screenWidth, screenHeight, screenScale int) *GlutUI {
 		C.int(screenWidth*screenScale),
 		C.int(screenHeight*screenScale))
 
-	title := C.CString("Ebiten Demo")
-	defer C.free(unsafe.Pointer(title))
-	C.glutCreateWindow(title)
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+	C.glutCreateWindow(cTitle)
 
 	C.setGlutFuncs()
 
 	return ui
 }
 
-func Run(game ebiten.Game, screenScale int) {
+func Run(game ebiten.Game, screenScale int, title string) {
 	screenWidth := game.ScreenWidth()
 	screenHeight := game.ScreenHeight()
 
-	ui := new(screenWidth, screenHeight, screenScale)
+	ui := new(screenWidth, screenHeight, screenScale, title)
 	currentUI = ui
 
 	graphicsDevice := opengl.NewDevice(
