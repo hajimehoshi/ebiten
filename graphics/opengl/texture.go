@@ -40,6 +40,22 @@ func clp2(x uint64) uint64 {
 	return x + 1
 }
 
+func adjustPixels(width, height int, pixels []uint8) []uint8 {
+	textureWidth := int(clp2(uint64(width)))
+	textureHeight := int(clp2(uint64(height)))
+	if width == textureWidth && height == textureHeight {
+		return pixels
+	}
+
+	newPixels := make([]uint8, textureWidth*textureHeight*4)
+
+	for j := 0; j < height; j++ {
+		copy(newPixels[textureWidth*4*j:],
+			pixels[width*4*j:width*4*j+width*4])
+	}
+	return newPixels
+}
+
 type Texture struct {
 	id            C.GLuint
 	width         int
@@ -49,16 +65,11 @@ type Texture struct {
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
+	if pixels != nil {
+		pixels = adjustPixels(width, height, pixels)
+	}
 	textureWidth := int(clp2(uint64(width)))
 	textureHeight := int(clp2(uint64(height)))
-	if pixels != nil {
-		if width != textureWidth {
-			panic("sorry, but width should be power of 2")
-		}
-		if height != textureHeight {
-			panic("sorry, but height should be power of 2")
-		}
-	}
 	texture := &Texture{
 		id:            0,
 		width:         width,
