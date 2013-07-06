@@ -50,8 +50,8 @@ import (
 
 type glutInputEvent struct {
 	IsActive bool
-	X int
-	Y int
+	X        int
+	Y        int
 }
 
 type GlutUI struct {
@@ -86,8 +86,8 @@ func mouse(button, state, x, y C.int) {
 func motion(x, y C.int) {
 	currentUI.glutInputting <- glutInputEvent{
 		IsActive: true,
-		X: int(x),
-		Y: int(y),
+		X:        int(x),
+		Y:        int(y),
 	}
 }
 
