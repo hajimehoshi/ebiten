@@ -28,6 +28,7 @@ import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
+	"runtime"
 )
 
 type Device struct {
@@ -95,4 +96,8 @@ func (device *Device) Update() {
 
 func (device *Device) TextureFactory() graphics.TextureFactory {
 	return device.context
+}
+
+func init() {
+	runtime.LockOSThread()
 }
