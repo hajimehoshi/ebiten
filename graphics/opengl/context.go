@@ -166,7 +166,7 @@ func (context *Context) DrawTextureParts(
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
-	// TODO: Refactoring
+	// TODO: Optimization
 	for _, part := range parts {
 		x1 := float32(part.LocationX)
 		x2 := float32(part.LocationX + part.Source.Width)
