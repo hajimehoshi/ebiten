@@ -153,8 +153,10 @@ func (context *Context) DrawTexture(
 func (context *Context) DrawTextureParts(
 	textureID graphics.TextureID, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-
 	texture := context.textures[textureID]
+	if texture == nil {
+		panic("invalid texture ID")
+	}
 
 	context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
