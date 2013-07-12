@@ -63,6 +63,7 @@ type Texture struct {
 	height        int
 	textureWidth  int
 	textureHeight int
+	framebuffer   C.GLuint
 	isVirtual     bool
 }
 

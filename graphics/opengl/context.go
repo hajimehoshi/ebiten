@@ -36,38 +36,33 @@ import (
 )
 
 type Context struct {
-	screen                 graphics.Texture
+	screen                 *Texture
 	screenScale            int
 	textures               map[graphics.TextureID]*Texture
-	currentOffscreenWidth  int
-	currentOffscreenHeight int
+	currentOffscreen       *Texture
 	projectionMatrix       [16]float32
 	currentShaderProgram   C.GLuint
-	mainFramebuffer        C.GLuint
 	mainFramebufferTexture *Texture
-	framebuffers           map[C.GLuint]C.GLuint
 }
 
 // This method should be called on the UI thread.
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		screenScale:     screenScale,
-		textures:        map[graphics.TextureID]*Texture{},
-		mainFramebuffer: 0,
-		framebuffers:    map[C.GLuint]C.GLuint{},
+		screenScale: screenScale,
+		textures:    map[graphics.TextureID]*Texture{},
 	}
 	// main framebuffer should be created sooner than any other framebuffers!
 	mainFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
-	context.mainFramebuffer = C.GLuint(mainFramebuffer)
 
 	context.mainFramebufferTexture = newVirtualTexture(
-		screenWidth * screenScale,
-		screenHeight * screenScale)
+		screenWidth*screenScale,
+		screenHeight*screenScale)
+	context.mainFramebufferTexture.framebuffer = C.GLuint(mainFramebuffer)
 
 	initializeShaders()
 
-	context.screen = context.NewTexture(screenWidth, screenHeight)
+	context.screen = context.NewTexture(screenWidth, screenHeight).(*Texture)
 
 	return context
 }
@@ -93,8 +88,8 @@ func (context *Context) Fill(clr color.Color) {
 }
 
 func (context *Context) DrawRect(rect graphics.Rect, clr color.Color) {
-	width := float32(context.currentOffscreenWidth)
-	height := float32(context.currentOffscreenHeight)
+	width := float32(context.currentOffscreen.Width())
+	height := float32(context.currentOffscreen.Height())
 	textureWidth := float32(clp2(uint64(width)))
 	textureHeight := float32(clp2(uint64(height)))
 
@@ -214,47 +209,38 @@ func abs(x int) int {
 
 func (context *Context) SetOffscreen(textureID graphics.TextureID) {
 	texture := context.textures[textureID]
-	context.currentOffscreenWidth = texture.width
-	context.currentOffscreenHeight = texture.height
-
-	framebuffer := context.getFramebuffer(texture.id)
-	if framebuffer == context.mainFramebuffer {
-		panic("invalid framebuffer")
+	if texture.framebuffer == 0 {
+		texture.framebuffer = createFramebuffer(texture.id)
 	}
-	context.setOffscreenFramebuffer(framebuffer,
-		texture.textureWidth, texture.textureHeight)
+	context.setOffscreen(texture)
+	context.currentOffscreen = texture
 }
 
-func (context *Context) setOffscreenFramebuffer(framebuffer C.GLuint,
-	textureWidth, textureHeight int) {
-	if framebuffer == context.mainFramebuffer {
-		textureWidth = context.mainFramebufferTexture.textureWidth
-		textureHeight = context.mainFramebufferTexture.textureHeight
-	}
-
+func (context *Context) setOffscreen(texture *Texture) {
 	C.glFlush()
 
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, texture.framebuffer)
 	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER); err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 	C.glEnable(C.GL_BLEND)
 	C.glBlendFunc(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA)
 
-	C.glViewport(0, 0, C.GLsizei(abs(textureWidth)), C.GLsizei(abs(textureHeight)))
+	C.glViewport(0, 0, C.GLsizei(abs(texture.textureWidth)),
+		C.GLsizei(abs(texture.textureHeight)))
 
 	var e11, e22, e41, e42 float32
-	if framebuffer != context.mainFramebuffer {
-		e11 = float32(2) / float32(textureWidth)
-		e22 = float32(2) / float32(textureWidth)
+	if texture != context.mainFramebufferTexture {
+		e11 = float32(2) / float32(texture.textureWidth)
+		e22 = float32(2) / float32(texture.textureWidth)
 		e41 = -1
 		e42 = -1
 	} else {
-		height := float32(context.mainFramebufferTexture.Height())
-		e11 = float32(2) / float32(textureWidth)
-		e22 = -1 * float32(2) / float32(textureHeight)
+		height := float32(texture.Height())
+		e11 = float32(2) / float32(texture.textureWidth)
+		e22 = -1 * float32(2) / float32(texture.textureHeight)
 		e41 = -1
-		e42 = -1 + height/float32(textureHeight)*2
+		e42 = -1 + height/float32(texture.textureHeight)*2
 	}
 
 	context.projectionMatrix = [...]float32{
@@ -266,9 +252,8 @@ func (context *Context) setOffscreenFramebuffer(framebuffer C.GLuint,
 }
 
 func (context *Context) resetOffscreen() {
-	context.setOffscreenFramebuffer(context.mainFramebuffer, 0, 0)
-	context.currentOffscreenWidth = context.mainFramebufferTexture.Width()
-	context.currentOffscreenHeight = context.mainFramebufferTexture.Height()
+	context.setOffscreen(context.mainFramebufferTexture)
+	context.currentOffscreen = context.mainFramebufferTexture
 }
 
 // This method should be called on the UI thread.
@@ -338,18 +323,13 @@ func (context *Context) setShaderProgram(
 		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
 }
 
-func (context *Context) getFramebuffer(textureID C.GLuint) C.GLuint {
-	framebuffer, ok := context.framebuffers[textureID]
-	if ok {
-		return framebuffer
-	}
-
-	newFramebuffer := C.GLuint(0)
-	C.glGenFramebuffers(1, &newFramebuffer)
+func createFramebuffer(textureID C.GLuint) C.GLuint {
+	framebuffer := C.GLuint(0)
+	C.glGenFramebuffers(1, &framebuffer)
 
 	origFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, newFramebuffer)
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
 	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
 		C.GL_TEXTURE_2D, textureID, 0)
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
@@ -357,18 +337,7 @@ func (context *Context) getFramebuffer(textureID C.GLuint) C.GLuint {
 		panic("creating framebuffer failed")
 	}
 
-	context.framebuffers[textureID] = newFramebuffer
-	return newFramebuffer
-}
-
-func (context *Context) deleteFramebuffer(textureID C.GLuint) {
-	framebuffer, ok := context.framebuffers[textureID]
-	if !ok {
-		// TODO: panic?
-		return
-	}
-	C.glDeleteFramebuffers(1, &framebuffer)
-	delete(context.framebuffers, textureID)
+	return framebuffer
 }
 
 func (context *Context) NewTexture(width, height int) graphics.Texture {
