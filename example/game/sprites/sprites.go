@@ -119,8 +119,8 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 		sprite := newSprite(
 			game.ScreenWidth(),
 			game.ScreenHeight(),
-			game.ebitenTexture.Width,
-			game.ebitenTexture.Height)
+			game.ebitenTexture.Width(),
+			game.ebitenTexture.Height())
 		game.sprites = append(game.sprites, sprite)
 	}
 }
@@ -142,13 +142,13 @@ func (game *Sprites) Draw(g graphics.Context) {
 			LocationX: sprite.x,
 			LocationY: sprite.y,
 			Source: graphics.Rect{
-				0, 0, texture.Width, texture.Height,
+				0, 0, texture.Width(), texture.Height(),
 			},
 		}
 		locations = append(locations, location)
 	}
 	geometryMatrix := matrix.IdentityGeometry()
-	g.DrawTextureParts(texture.ID, locations,
+	g.DrawTextureParts(texture.ID(), locations,
 		geometryMatrix, matrix.IdentityColor())
 }
 

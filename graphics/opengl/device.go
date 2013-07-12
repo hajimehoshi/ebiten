@@ -67,7 +67,7 @@ func (device *Device) Update() {
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
-	context.SetOffscreen(context.Screen().ID)
+	context.SetOffscreen(context.Screen().ID())
 	context.Clear()
 
 	ch := make(chan func(graphics.Context))
@@ -89,7 +89,7 @@ func (device *Device) Update() {
 			{0, scale, 0},
 		},
 	}
-	context.DrawTexture(context.Screen().ID,
+	context.DrawTexture(context.Screen().ID(),
 		geometryMatrix, matrix.IdentityColor())
 	context.flush()
 }

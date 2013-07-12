@@ -25,6 +25,7 @@ package opengl
 // #include <OpenGL/gl.h>
 import "C"
 import (
+	"github.com/hajimehoshi/go.ebiten/graphics"
 	"image"
 	"unsafe"
 )
@@ -62,6 +63,19 @@ type Texture struct {
 	height        int
 	textureWidth  int
 	textureHeight int
+	isVirtual     bool
+}
+
+func (texture *Texture) ID() graphics.TextureID {
+	return graphics.TextureID(texture.id)
+}
+
+func (texture *Texture) Width() int {
+	return texture.width
+}
+
+func (texture *Texture) Height() int {
+	return texture.height
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
@@ -76,11 +90,12 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 		height:        height,
 		textureWidth:  textureWidth,
 		textureHeight: textureHeight,
+		isVirtual:     false,
 	}
 
 	textureID := C.GLuint(0)
 	C.glGenTextures(1, (*C.GLuint)(&textureID))
-	if textureID == 0 {
+	if textureID < 0 {
 		panic("glGenTexture failed")
 	}
 	C.glPixelStorei(C.GL_UNPACK_ALIGNMENT, 4)
@@ -125,4 +140,15 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 	}
 	size := img.Bounds().Size()
 	return createTexture(size.X, size.Y, pix), nil
+}
+
+func newVirtualTexture(width, height int) *Texture {
+	return &Texture{
+		id:            0,
+		width:         width,
+		height:        height,
+		textureWidth:  int(clp2(uint64(width))),
+		textureHeight: int(clp2(uint64(height))),
+		isVirtual:     true,
+	}
 }

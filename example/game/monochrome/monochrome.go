@@ -124,9 +124,9 @@ func (game *Monochrome) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()
-	tx := game.ScreenWidth()/2 - game.ebitenTexture.Width/2
-	ty := game.ScreenHeight()/2 - game.ebitenTexture.Height/2
+	tx := game.ScreenWidth()/2 - game.ebitenTexture.Width()/2
+	ty := game.ScreenHeight()/2 - game.ebitenTexture.Height()/2
 	geometryMatrix.Translate(float64(tx), float64(ty))
-	g.DrawTexture(game.ebitenTexture.ID,
+	g.DrawTexture(game.ebitenTexture.ID(),
 		geometryMatrix, game.colorMatrix)
 }

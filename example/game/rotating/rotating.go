@@ -76,7 +76,7 @@ func (game *Rotating) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
 	geometryMatrix := matrix.IdentityGeometry()
-	tx, ty := float64(game.ebitenTexture.Width), float64(game.ebitenTexture.Height)
+	tx, ty := float64(game.ebitenTexture.Width()), float64(game.ebitenTexture.Height())
 	geometryMatrix.Translate(-tx/2, -ty/2)
 	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(game.Fps()*10))
 	geometryMatrix.Translate(tx/2, ty/2)
@@ -84,7 +84,7 @@ func (game *Rotating) Draw(g graphics.Context) {
 	centerY := float64(game.ScreenHeight()) / 2
 	geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
 
-	g.DrawTexture(game.ebitenTexture.ID,
+	g.DrawTexture(game.ebitenTexture.ID(),
 		geometryMatrix,
 		matrix.IdentityColor())
 }

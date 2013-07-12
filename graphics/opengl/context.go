@@ -37,8 +37,6 @@ import (
 
 type Context struct {
 	screen                 graphics.Texture
-	screenWidth            int
-	screenHeight           int
 	screenScale            int
 	textures               map[graphics.TextureID]*Texture
 	currentOffscreenWidth  int
@@ -46,14 +44,13 @@ type Context struct {
 	projectionMatrix       [16]float32
 	currentShaderProgram   C.GLuint
 	mainFramebuffer        C.GLuint
+	mainFramebufferTexture *Texture
 	framebuffers           map[C.GLuint]C.GLuint
 }
 
 // This method should be called on the UI thread.
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		screenWidth:     screenWidth,
-		screenHeight:    screenHeight,
 		screenScale:     screenScale,
 		textures:        map[graphics.TextureID]*Texture{},
 		mainFramebuffer: 0,
@@ -63,6 +60,10 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	mainFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 	context.mainFramebuffer = C.GLuint(mainFramebuffer)
+
+	context.mainFramebufferTexture = newVirtualTexture(
+		screenWidth * screenScale,
+		screenHeight * screenScale)
 
 	initializeShaders()
 
@@ -227,8 +228,8 @@ func (context *Context) SetOffscreen(textureID graphics.TextureID) {
 func (context *Context) setOffscreenFramebuffer(framebuffer C.GLuint,
 	textureWidth, textureHeight int) {
 	if framebuffer == context.mainFramebuffer {
-		textureWidth = int(clp2(uint64(context.screenWidth * context.screenScale)))
-		textureHeight = int(clp2(uint64(context.screenHeight * context.screenScale)))
+		textureWidth = context.mainFramebufferTexture.textureWidth
+		textureHeight = context.mainFramebufferTexture.textureHeight
 	}
 
 	C.glFlush()
@@ -249,7 +250,7 @@ func (context *Context) setOffscreenFramebuffer(framebuffer C.GLuint,
 		e41 = -1
 		e42 = -1
 	} else {
-		height := float32(context.screenHeight) * float32(context.screenScale)
+		height := float32(context.mainFramebufferTexture.Height())
 		e11 = float32(2) / float32(textureWidth)
 		e22 = -1 * float32(2) / float32(textureHeight)
 		e41 = -1
@@ -266,8 +267,8 @@ func (context *Context) setOffscreenFramebuffer(framebuffer C.GLuint,
 
 func (context *Context) resetOffscreen() {
 	context.setOffscreenFramebuffer(context.mainFramebuffer, 0, 0)
-	context.currentOffscreenWidth = context.screenWidth * context.screenScale
-	context.currentOffscreenHeight = context.screenHeight * context.screenScale
+	context.currentOffscreenWidth = context.mainFramebufferTexture.Width()
+	context.currentOffscreenHeight = context.mainFramebufferTexture.Height()
 }
 
 // This method should be called on the UI thread.
@@ -375,27 +376,19 @@ func (context *Context) NewTexture(width, height int) graphics.Texture {
 	id := graphics.TextureID(texture.id)
 	context.textures[id] = texture
 
-	context.SetOffscreen(id)
+	context.SetOffscreen(texture.ID())
 	context.Clear()
 	context.resetOffscreen()
 
-	return graphics.Texture{
-		ID:     id,
-		Width:  texture.width,
-		Height: texture.height,
-	}
+	return texture
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (graphics.Texture, error) {
 	texture, err := newTextureFromImage(img)
 	if err != nil {
-		return graphics.Texture{}, err
+		return nil, err
 	}
 	id := graphics.TextureID(texture.id)
 	context.textures[id] = texture
-	return graphics.Texture{
-		ID:     id,
-		Width:  texture.width,
-		Height: texture.height,
-	}, nil
+	return texture, nil
 }

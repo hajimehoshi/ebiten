@@ -107,6 +107,6 @@ func (game *Input) drawText(g graphics.Context, text string, x, y int) {
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Translate(float64(x), float64(y))
 	colorMatrix := matrix.IdentityColor()
-	g.DrawTextureParts(game.textTexture.ID, parts,
+	g.DrawTextureParts(game.textTexture.ID(), parts,
 		geometryMatrix, colorMatrix)
 }

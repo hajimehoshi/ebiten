@@ -65,10 +65,10 @@ type TextureFactory interface {
 	NewTextureFromImage(img image.Image) (Texture, error)
 }
 
-type Texture struct {
-	ID     TextureID
-	Width  int
-	Height int
+type Texture interface {
+	ID() TextureID
+	Width() int
+	Height() int
 }
 
 type TextureID int

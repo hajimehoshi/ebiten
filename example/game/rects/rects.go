@@ -57,7 +57,7 @@ func (game *Rects) Update(context ebiten.GameContext) {
 }
 
 func (game *Rects) Draw(g graphics.Context) {
-	g.SetOffscreen(game.rectsTexture.ID)
+	g.SetOffscreen(game.rectsTexture.ID())
 
 	x := rand.Intn(game.ScreenWidth())
 	y := rand.Intn(game.ScreenHeight())
@@ -74,8 +74,8 @@ func (game *Rects) Draw(g graphics.Context) {
 		&color.RGBA{red, green, blue, alpha},
 	)
 
-	g.SetOffscreen(g.Screen().ID)
-	g.DrawTexture(game.rectsTexture.ID,
+	g.SetOffscreen(g.Screen().ID())
+	g.DrawTexture(game.rectsTexture.ID(),
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }
