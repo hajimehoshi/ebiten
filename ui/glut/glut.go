@@ -188,7 +188,11 @@ func Run(game ebiten.Game, screenScale int, title string) {
 				}
 				<-ch
 			}
+			if gameContext.terminated {
+				break
+			}
 		}
+		os.Exit(0)
 	}()
 
 	C.glutMainLoop()
@@ -196,8 +200,13 @@ func Run(game ebiten.Game, screenScale int, title string) {
 
 type GameContext struct {
 	inputState ebiten.InputState
+	terminated bool
 }
 
 func (context *GameContext) InputState() ebiten.InputState {
 	return context.inputState
+}
+
+func (context *GameContext) Terminate() {
+	context.terminated = true
 }

@@ -18,27 +18,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-package ebiten
+package terminate
 
 import (
+	"github.com/hajimehoshi/go.ebiten"
 	"github.com/hajimehoshi/go.ebiten/graphics"
 )
 
-type Game interface {
-	ScreenWidth() int
-	ScreenHeight() int
-	Fps() int
-	Init(tf graphics.TextureFactory)
-	Update(context GameContext)
-	Draw(context graphics.Context)
+type Terminate struct {
+	life int
 }
 
-type GameContext interface {
-	InputState() InputState
-	Terminate()
+func New() *Terminate {
+	return &Terminate{60}
 }
 
-type InputState struct {
-	X int
-	Y int
+func (game *Terminate) ScreenWidth() int {
+	return 256
 }
+
+func (game *Terminate) ScreenHeight() int {
+	return 240
+}
+
+func (game *Terminate) Fps() int {
+	return 60
+}
+
+func (game *Terminate) Init(tf graphics.TextureFactory) {
+}
+
+func (game *Terminate) Update(context ebiten.GameContext) {
+	game.life--
+	if game.life <= 0 {
+		context.Terminate()
+	}
+}
+
+func (game *Terminate) Draw(context graphics.Context) {
+}
+
