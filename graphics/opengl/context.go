@@ -37,6 +37,8 @@ import (
 
 type Context struct {
 	screen                 *Texture
+	screenWidth            int
+	screenHeight           int
 	screenScale            int
 	textures               map[graphics.TextureID]*Texture
 	currentOffscreen       *Texture
@@ -48,23 +50,28 @@ type Context struct {
 // This method should be called on the UI thread.
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		screenScale: screenScale,
-		textures:    map[graphics.TextureID]*Texture{},
+		screenWidth:  screenWidth,
+		screenHeight: screenHeight,
+		screenScale:  screenScale,
+		textures:     map[graphics.TextureID]*Texture{},
 	}
+	return context
+}
+
+func (context *Context) Init() {
 	// main framebuffer should be created sooner than any other framebuffers!
 	mainFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
 	context.mainFramebufferTexture = newVirtualTexture(
-		screenWidth*screenScale,
-		screenHeight*screenScale)
+		context.screenWidth*context.screenScale,
+		context.screenHeight*context.screenScale)
 	context.mainFramebufferTexture.framebuffer = C.GLuint(mainFramebuffer)
 
 	initializeShaders()
 
-	context.screen = context.NewTexture(screenWidth, screenHeight).(*Texture)
-
-	return context
+	context.screen =
+		context.NewTexture(context.screenWidth, context.screenHeight).(*Texture)
 }
 
 func (context *Context) Screen() graphics.Texture {

@@ -55,19 +55,16 @@ type glutInputEvent struct {
 }
 
 type GlutUI struct {
-	screenScale   int
-	glutInputting chan glutInputEvent
-	updating      chan chan func()
+	screenScale    int
+	glutInputting  chan glutInputEvent
+	graphicsDevice *opengl.Device
 }
 
 var currentUI *GlutUI
 
 //export display
 func display() {
-	ch := make(chan func())
-	currentUI.updating <- ch
-	f := <-ch
-	f()
+	currentUI.graphicsDevice.Update()
 	C.glutSwapBuffers()
 }
 
@@ -97,9 +94,11 @@ func idle() {
 }
 
 func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
+	graphicsDevice := opengl.NewDevice(
+		screenWidth, screenHeight, screenScale)
 	ui := &GlutUI{
-		glutInputting: make(chan glutInputEvent, 10),
-		updating:      make(chan chan func()),
+		glutInputting:  make(chan glutInputEvent, 10),
+		graphicsDevice: graphicsDevice,
 	}
 
 	cargs := []*C.char{}
@@ -125,6 +124,8 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 
 	C.setGlutFuncs()
 
+	graphicsDevice.Init()
+
 	return ui
 }
 
@@ -135,12 +136,8 @@ func Run(game ebiten.Game, screenScale int, title string) {
 	ui := new(screenWidth, screenHeight, screenScale, title)
 	currentUI = ui
 
-	graphicsDevice := opengl.NewDevice(
-		screenWidth, screenHeight, screenScale,
-		ui.updating)
-
-	game.Init(graphicsDevice.TextureFactory())
-	draw := graphicsDevice.Drawing()
+	game.Init(ui.graphicsDevice.TextureFactory())
+	draw := ui.graphicsDevice.Drawing()
 
 	input := make(chan ebiten.InputState)
 	go func() {

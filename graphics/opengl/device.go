@@ -32,30 +32,23 @@ import (
 )
 
 type Device struct {
-	screenScale int
-	context     *Context
-	drawing     chan chan func(graphics.Context)
-	updating    chan chan func()
+	screenScale  int
+	context      *Context
+	drawing      chan chan func(graphics.Context)
 }
 
-func NewDevice(screenWidth, screenHeight, screenScale int, updating chan chan func()) *Device {
-	context := newContext(screenWidth, screenHeight, screenScale)
-
+func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
+	graphicsContext := newContext(screenWidth, screenHeight, screenScale)
 	device := &Device{
-		screenScale: screenScale,
-		drawing:     make(chan chan func(graphics.Context)),
-		context:     context,
-		updating:    updating,
+		screenScale:  screenScale,
+		context:      graphicsContext,
+		drawing:      make(chan chan func(graphics.Context)),
 	}
-
-	go func() {
-		for {
-			ch := <-device.updating
-			ch <- device.Update
-		}
-	}()
-
 	return device
+}
+
+func (device *Device) Init() {
+	device.context.Init()
 }
 
 func (device *Device) Drawing() <-chan chan func(graphics.Context) {

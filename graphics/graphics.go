@@ -26,12 +26,6 @@ import (
 	"image/color"
 )
 
-type Device interface {
-	Initializing() <-chan chan func(TextureFactory)
-	TextureFactory() TextureFactory
-	Drawing() <-chan chan func(Context)
-}
-
 type Rect struct {
 	X      int
 	Y      int
