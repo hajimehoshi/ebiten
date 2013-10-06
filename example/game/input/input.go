@@ -47,10 +47,6 @@ func (game *Input) ScreenHeight() int {
 	return 240
 }
 
-func (game *Input) Fps() int {
-	return 60
-}
-
 func (game *Input) Init(tf graphics.TextureFactory) {
 	file, err := os.Open("images/text.png")
 	if err != nil {

@@ -41,10 +41,6 @@ func (game *Terminate) ScreenHeight() int {
 	return 240
 }
 
-func (game *Terminate) Fps() int {
-	return 60
-}
-
 func (game *Terminate) Init(tf graphics.TextureFactory) {
 }
 

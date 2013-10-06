@@ -51,10 +51,6 @@ func (game *Monochrome) ScreenHeight() int {
 	return 240
 }
 
-func (game *Monochrome) Fps() int {
-	return 60
-}
-
 func (game *Monochrome) Init(tf graphics.TextureFactory) {
 	file, err := os.Open("images/ebiten.png")
 	if err != nil {
@@ -90,24 +86,24 @@ func (game *Monochrome) update() {
 	colorI := matrix.IdentityColor()
 	colorMonochrome := matrix.Monochrome()
 	for {
-		for i := 0; i < game.Fps(); i++ {
+		for i := 0; i < ebiten.FPS; i++ {
 			<-game.ch
-			rate := float64(i) / float64(game.Fps())
+			rate := float64(i) / float64(ebiten.FPS)
 			game.colorMatrix = mean(colorI, colorMonochrome, rate)
 			game.ch <- true
 		}
-		for i := 0; i < game.Fps(); i++ {
+		for i := 0; i < ebiten.FPS; i++ {
 			<-game.ch
 			game.colorMatrix = colorMonochrome
 			game.ch <- true
 		}
-		for i := 0; i < game.Fps(); i++ {
+		for i := 0; i < ebiten.FPS; i++ {
 			<-game.ch
-			rate := float64(i) / float64(game.Fps())
+			rate := float64(i) / float64(ebiten.FPS)
 			game.colorMatrix = mean(colorMonochrome, colorI, rate)
 			game.ch <- true
 		}
-		for i := 0; i < game.Fps(); i++ {
+		for i := 0; i < ebiten.FPS; i++ {
 			<-game.ch
 			game.colorMatrix = colorI
 			game.ch <- true

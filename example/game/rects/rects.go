@@ -45,10 +45,6 @@ func (game *Rects) ScreenHeight() int {
 	return 240
 }
 
-func (game *Rects) Fps() int {
-	return 60
-}
-
 func (game *Rects) Init(tf graphics.TextureFactory) {
 	game.rectsTexture = tf.NewTexture(game.ScreenWidth(), game.ScreenHeight())
 }

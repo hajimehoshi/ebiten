@@ -24,10 +24,13 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 )
 
+const (
+	FPS = 60
+)
+
 type Game interface {
 	ScreenWidth() int
 	ScreenHeight() int
-	Fps() int
 	Init(tf graphics.TextureFactory)
 	Update(context GameContext)
 	Draw(context graphics.Context)

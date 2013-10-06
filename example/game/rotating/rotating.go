@@ -48,10 +48,6 @@ func (game *Rotating) ScreenHeight() int {
 	return 240
 }
 
-func (game *Rotating) Fps() int {
-	return 60
-}
-
 func (game *Rotating) Init(tf graphics.TextureFactory) {
 	file, err := os.Open("images/ebiten.png")
 	if err != nil {
@@ -78,7 +74,7 @@ func (game *Rotating) Draw(g graphics.Context) {
 	geometryMatrix := matrix.IdentityGeometry()
 	tx, ty := float64(game.ebitenTexture.Width()), float64(game.ebitenTexture.Height())
 	geometryMatrix.Translate(-tx/2, -ty/2)
-	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(game.Fps()*10))
+	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(ebiten.FPS*10))
 	geometryMatrix.Translate(tx/2, ty/2)
 	centerX := float64(game.ScreenWidth()) / 2
 	centerY := float64(game.ScreenHeight()) / 2

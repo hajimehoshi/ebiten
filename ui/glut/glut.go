@@ -172,7 +172,7 @@ func Run(game ebiten.Game, screenScale int, title string) {
 
 	go func() {
 		frameTime := time.Duration(
-			int64(time.Second) / int64(game.Fps()))
+			int64(time.Second) / int64(ebiten.FPS))
 		tick := time.Tick(frameTime)
 		gameContext := &GameContext{
 			inputState: ebiten.InputState{-1, -1},
