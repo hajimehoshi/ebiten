@@ -32,17 +32,15 @@ import (
 )
 
 type Device struct {
-	screenScale  int
-	context      *Context
-	drawing      chan chan func(graphics.Context)
+	screenScale int
+	context     *Context
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
 	graphicsContext := newContext(screenWidth, screenHeight, screenScale)
 	device := &Device{
-		screenScale:  screenScale,
-		context:      graphicsContext,
-		drawing:      make(chan chan func(graphics.Context)),
+		screenScale: screenScale,
+		context:     graphicsContext,
 	}
 	return device
 }
@@ -51,11 +49,7 @@ func (device *Device) Init() {
 	device.context.Init()
 }
 
-func (device *Device) Drawing() <-chan chan func(graphics.Context) {
-	return device.drawing
-}
-
-func (device *Device) Update() {
+func (device *Device) Update(draw func(graphics.Context)) {
 	context := device.context
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
@@ -63,10 +57,7 @@ func (device *Device) Update() {
 	context.SetOffscreen(context.Screen().ID())
 	context.Clear()
 
-	ch := make(chan func(graphics.Context))
-	device.drawing <- ch
-	drawable := <-ch
-	drawable(context)
+	draw(context)
 
 	context.flush()
 

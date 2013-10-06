@@ -58,13 +58,17 @@ type GlutUI struct {
 	screenScale    int
 	glutInputting  chan glutInputEvent
 	graphicsDevice *opengl.Device
+	updating       chan func(graphics.Context)
+	updated        chan bool
 }
 
 var currentUI *GlutUI
 
 //export display
 func display() {
-	currentUI.graphicsDevice.Update()
+	draw := <-currentUI.updating
+	currentUI.graphicsDevice.Update(draw)
+	currentUI.updated <- true
 	C.glutSwapBuffers()
 }
 
@@ -99,6 +103,8 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	ui := &GlutUI{
 		glutInputting:  make(chan glutInputEvent, 10),
 		graphicsDevice: graphicsDevice,
+		updating:       make(chan func(graphics.Context)),
+		updated:        make(chan bool),
 	}
 
 	cargs := []*C.char{}
@@ -137,7 +143,6 @@ func Run(game ebiten.Game, screenScale int, title string) {
 	currentUI = ui
 
 	game.Init(ui.graphicsDevice.TextureFactory())
-	draw := ui.graphicsDevice.Drawing()
 
 	input := make(chan ebiten.InputState)
 	go func() {
@@ -168,22 +173,20 @@ func Run(game ebiten.Game, screenScale int, title string) {
 	go func() {
 		frameTime := time.Duration(
 			int64(time.Second) / int64(game.Fps()))
-		update := time.Tick(frameTime)
+		tick := time.Tick(frameTime)
 		gameContext := &GameContext{
 			inputState: ebiten.InputState{-1, -1},
+		}
+		draw := func(context graphics.Context) {
+			game.Draw(context)
 		}
 		for {
 			select {
 			case gameContext.inputState = <-input:
-			case <-update:
+			case <-tick:
 				game.Update(gameContext)
-			case drawing := <-draw:
-				ch := make(chan interface{})
-				drawing <- func(context graphics.Context) {
-					game.Draw(context)
-					close(ch)
-				}
-				<-ch
+			case ui.updating <- draw:
+				<-ui.updated
 			}
 			if gameContext.terminated {
 				break
