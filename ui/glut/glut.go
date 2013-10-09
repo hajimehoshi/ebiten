@@ -177,15 +177,12 @@ func Run(game ebiten.Game, screenScale int, title string) {
 		gameContext := &GameContext{
 			inputState: ebiten.InputState{-1, -1},
 		}
-		draw := func(context graphics.Context) {
-			game.Draw(context)
-		}
 		for {
 			select {
 			case gameContext.inputState = <-input:
 			case <-tick:
 				game.Update(gameContext)
-			case ui.updating <- draw:
+			case ui.updating <- game.Draw:
 				<-ui.updated
 			}
 			if gameContext.terminated {

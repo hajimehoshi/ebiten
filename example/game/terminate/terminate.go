@@ -53,4 +53,3 @@ func (game *Terminate) Update(context ebiten.GameContext) {
 
 func (game *Terminate) Draw(context graphics.Context) {
 }
-
