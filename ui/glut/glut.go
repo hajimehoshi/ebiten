@@ -135,10 +135,7 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	return ui
 }
 
-func Run(game ebiten.Game, screenScale int, title string) {
-	screenWidth := game.ScreenWidth()
-	screenHeight := game.ScreenHeight()
-
+func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title string) {
 	ui := new(screenWidth, screenHeight, screenScale, title)
 	currentUI = ui
 
@@ -175,7 +172,9 @@ func Run(game ebiten.Game, screenScale int, title string) {
 			int64(time.Second) / int64(ebiten.FPS))
 		tick := time.Tick(frameTime)
 		gameContext := &GameContext{
-			inputState: ebiten.InputState{-1, -1},
+			screenWidth:  screenWidth,
+			screenHeight: screenHeight,
+			inputState:   ebiten.InputState{-1, -1},
 		}
 		for {
 			select {
@@ -196,8 +195,18 @@ func Run(game ebiten.Game, screenScale int, title string) {
 }
 
 type GameContext struct {
-	inputState ebiten.InputState
-	terminated bool
+	screenWidth  int
+	screenHeight int
+	inputState   ebiten.InputState
+	terminated   bool
+}
+
+func (context *GameContext) ScreenWidth() int {
+	return context.screenWidth
+}
+
+func (context *GameContext) ScreenHeight() int {
+	return context.screenHeight
 }
 
 func (context *GameContext) InputState() ebiten.InputState {

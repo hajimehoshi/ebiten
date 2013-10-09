@@ -31,24 +31,18 @@ import (
 )
 
 type Monochrome struct {
-	ebitenTexture graphics.Texture
-	ch            chan bool
-	colorMatrix   matrix.Color
+	ebitenTexture  graphics.Texture
+	ch             chan bool
+	colorMatrix    matrix.Color
+	geometryMatrix matrix.Geometry
 }
 
 func New() *Monochrome {
 	return &Monochrome{
-		ch:          make(chan bool),
-		colorMatrix: matrix.IdentityColor(),
+		ch:             make(chan bool),
+		colorMatrix:    matrix.IdentityColor(),
+		geometryMatrix: matrix.IdentityGeometry(),
 	}
-}
-
-func (game *Monochrome) ScreenWidth() int {
-	return 256
-}
-
-func (game *Monochrome) ScreenHeight() int {
-	return 240
 }
 
 func (game *Monochrome) Init(tf graphics.TextureFactory) {
@@ -114,15 +108,16 @@ func (game *Monochrome) update() {
 func (game *Monochrome) Update(context ebiten.GameContext) {
 	game.ch <- true
 	<-game.ch
+
+	game.geometryMatrix = matrix.IdentityGeometry()
+	tx := context.ScreenWidth()/2 - game.ebitenTexture.Width()/2
+	ty := context.ScreenHeight()/2 - game.ebitenTexture.Height()/2
+	game.geometryMatrix.Translate(float64(tx), float64(ty))
 }
 
 func (game *Monochrome) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
 
-	geometryMatrix := matrix.IdentityGeometry()
-	tx := game.ScreenWidth()/2 - game.ebitenTexture.Width()/2
-	ty := game.ScreenHeight()/2 - game.ebitenTexture.Height()/2
-	geometryMatrix.Translate(float64(tx), float64(ty))
 	g.DrawTexture(game.ebitenTexture.ID(),
-		geometryMatrix, game.colorMatrix)
+		game.geometryMatrix, game.colorMatrix)
 }

@@ -63,5 +63,5 @@ func main() {
 	}
 
 	const screenScale = 2
-	glut.Run(game, screenScale, "Ebiten Demo")
+	glut.Run(game, 256, 240, screenScale, "Ebiten Demo")
 }

@@ -31,44 +31,38 @@ import (
 
 type Rects struct {
 	rectsTexture graphics.Texture
+	rect         *graphics.Rect
+	rectColor    *color.RGBA
 }
 
 func New() *Rects {
-	return &Rects{}
-}
-
-func (game *Rects) ScreenWidth() int {
-	return 256
-}
-
-func (game *Rects) ScreenHeight() int {
-	return 240
+	return &Rects{
+		rect:      &graphics.Rect{},
+		rectColor: &color.RGBA{},
+	}
 }
 
 func (game *Rects) Init(tf graphics.TextureFactory) {
-	game.rectsTexture = tf.NewTexture(game.ScreenWidth(), game.ScreenHeight())
+	// TODO: fix
+	game.rectsTexture = tf.NewTexture(256, 240)
 }
 
 func (game *Rects) Update(context ebiten.GameContext) {
+	game.rect.X = rand.Intn(context.ScreenWidth())
+	game.rect.Y = rand.Intn(context.ScreenHeight())
+	game.rect.Width = rand.Intn(context.ScreenWidth() - game.rect.X)
+	game.rect.Height = rand.Intn(context.ScreenHeight() - game.rect.Y)
+
+	game.rectColor.R = uint8(rand.Intn(256))
+	game.rectColor.G = uint8(rand.Intn(256))
+	game.rectColor.B = uint8(rand.Intn(256))
+	game.rectColor.A = uint8(rand.Intn(256))
 }
 
 func (game *Rects) Draw(g graphics.Context) {
 	g.SetOffscreen(game.rectsTexture.ID())
 
-	x := rand.Intn(game.ScreenWidth())
-	y := rand.Intn(game.ScreenHeight())
-	width := rand.Intn(game.ScreenWidth() - x)
-	height := rand.Intn(game.ScreenHeight() - y)
-
-	red := uint8(rand.Intn(256))
-	green := uint8(rand.Intn(256))
-	blue := uint8(rand.Intn(256))
-	alpha := uint8(rand.Intn(256))
-
-	g.DrawRect(
-		graphics.Rect{x, y, width, height},
-		&color.RGBA{red, green, blue, alpha},
-	)
+	g.DrawRect(*game.rect, game.rectColor)
 
 	g.SetOffscreen(g.Screen().ID())
 	g.DrawTexture(game.rectsTexture.ID(),

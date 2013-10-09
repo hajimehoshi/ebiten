@@ -39,14 +39,6 @@ func New() *Input {
 	return &Input{}
 }
 
-func (game *Input) ScreenWidth() int {
-	return 256
-}
-
-func (game *Input) ScreenHeight() int {
-	return 240
-}
-
 func (game *Input) Init(tf graphics.TextureFactory) {
 	file, err := os.Open("images/text.png")
 	if err != nil {

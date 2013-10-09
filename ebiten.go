@@ -29,14 +29,14 @@ const (
 )
 
 type Game interface {
-	ScreenWidth() int
-	ScreenHeight() int
 	Init(tf graphics.TextureFactory)
 	Update(context GameContext)
 	Draw(context graphics.Context)
 }
 
 type GameContext interface {
+	ScreenWidth() int
+	ScreenHeight() int
 	InputState() InputState
 	Terminate()
 }

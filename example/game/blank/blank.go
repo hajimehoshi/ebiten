@@ -32,14 +32,6 @@ func New() *Blank {
 	return &Blank{}
 }
 
-func (game *Blank) ScreenWidth() int {
-	return 256
-}
-
-func (game *Blank) ScreenHeight() int {
-	return 240
-}
-
 func (game *Blank) Init(tf graphics.TextureFactory) {
 }
 

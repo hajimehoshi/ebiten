@@ -32,20 +32,13 @@ import (
 )
 
 type Rotating struct {
-	ebitenTexture graphics.Texture
-	x             int
+	ebitenTexture  graphics.Texture
+	x              int
+	geometryMatrix matrix.Geometry
 }
 
 func New() *Rotating {
 	return &Rotating{}
-}
-
-func (game *Rotating) ScreenWidth() int {
-	return 256
-}
-
-func (game *Rotating) ScreenHeight() int {
-	return 240
 }
 
 func (game *Rotating) Init(tf graphics.TextureFactory) {
@@ -66,21 +59,20 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 
 func (game *Rotating) Update(context ebiten.GameContext) {
 	game.x++
+
+	game.geometryMatrix = matrix.IdentityGeometry()
+	tx, ty := float64(game.ebitenTexture.Width()), float64(game.ebitenTexture.Height())
+	game.geometryMatrix.Translate(-tx/2, -ty/2)
+	game.geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(ebiten.FPS*10))
+	game.geometryMatrix.Translate(tx/2, ty/2)
+	centerX := float64(context.ScreenWidth()) / 2
+	centerY := float64(context.ScreenHeight()) / 2
+	game.geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
 }
 
 func (game *Rotating) Draw(g graphics.Context) {
 	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
-
-	geometryMatrix := matrix.IdentityGeometry()
-	tx, ty := float64(game.ebitenTexture.Width()), float64(game.ebitenTexture.Height())
-	geometryMatrix.Translate(-tx/2, -ty/2)
-	geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(ebiten.FPS*10))
-	geometryMatrix.Translate(tx/2, ty/2)
-	centerX := float64(game.ScreenWidth()) / 2
-	centerY := float64(game.ScreenHeight()) / 2
-	geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
-
 	g.DrawTexture(game.ebitenTexture.ID(),
-		geometryMatrix,
+		game.geometryMatrix,
 		matrix.IdentityColor())
 }

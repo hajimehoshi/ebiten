@@ -42,12 +42,9 @@ type Context struct {
 	screenScale            int
 	textures               map[graphics.TextureID]*Texture
 	currentOffscreen       *Texture
-	projectionMatrix       [16]float32
-	currentShaderProgram   C.GLuint
 	mainFramebufferTexture *Texture
 }
 
-// This method should be called on the UI thread.
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
 		screenWidth:  screenWidth,
@@ -126,7 +123,6 @@ func (context *Context) DrawRect(rect graphics.Rect, clr color.Color) {
 	}
 
 	C.glUseProgram(0)
-	context.currentShaderProgram = 0
 	C.glDisable(C.GL_TEXTURE_2D)
 	C.glEnableClientState(C.GL_VERTEX_ARRAY)
 	C.glEnableClientState(C.GL_COLOR_ARRAY)
@@ -161,11 +157,11 @@ func (context *Context) DrawTextureParts(
 		panic("invalid texture ID")
 	}
 
-	context.setShaderProgram(geometryMatrix, colorMatrix)
+	shaderProgram := context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
 
-	vertexAttrLocation := getAttributeLocation(context.currentShaderProgram, "vertex")
-	textureAttrLocation := getAttributeLocation(context.currentShaderProgram, "texture")
+	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
+	textureAttrLocation := getAttributeLocation(shaderProgram, "texture")
 
 	C.glEnableClientState(C.GL_VERTEX_ARRAY)
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
@@ -220,10 +216,11 @@ func (context *Context) SetOffscreen(textureID graphics.TextureID) {
 		texture.framebuffer = createFramebuffer(texture.id)
 	}
 	context.setOffscreen(texture)
-	context.currentOffscreen = texture
 }
 
 func (context *Context) setOffscreen(texture *Texture) {
+	context.currentOffscreen = texture
+
 	C.glFlush()
 
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, texture.framebuffer)
@@ -235,6 +232,18 @@ func (context *Context) setOffscreen(texture *Texture) {
 
 	C.glViewport(0, 0, C.GLsizei(abs(texture.textureWidth)),
 		C.GLsizei(abs(texture.textureHeight)))
+}
+
+func (context *Context) resetOffscreen() {
+	context.setOffscreen(context.mainFramebufferTexture)
+}
+
+func (context *Context) flush() {
+	C.glFlush()
+}
+
+func (context *Context) projectionMatrix() [16]float32 {
+	texture := context.currentOffscreen
 
 	var e11, e22, e41, e42 float32
 	if texture != context.mainFramebufferTexture {
@@ -250,7 +259,7 @@ func (context *Context) setOffscreen(texture *Texture) {
 		e42 = -1 + height/float32(texture.textureHeight)*2
 	}
 
-	context.projectionMatrix = [...]float32{
+	return [...]float32{
 		e11, 0, 0, 0,
 		0, e22, 0, 0,
 		0, 0, 1, 0,
@@ -258,20 +267,8 @@ func (context *Context) setOffscreen(texture *Texture) {
 	}
 }
 
-func (context *Context) resetOffscreen() {
-	context.setOffscreen(context.mainFramebufferTexture)
-	context.currentOffscreen = context.mainFramebufferTexture
-}
-
-// This method should be called on the UI thread.
-func (context *Context) flush() {
-	C.glFlush()
-}
-
-// This method should be called on the UI thread.
 func (context *Context) setShaderProgram(
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	program := C.GLuint(0)
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) (program C.GLuint) {
 	if colorMatrix.IsIdentity() {
 		program = regularShaderProgram
 	} else {
@@ -279,11 +276,11 @@ func (context *Context) setShaderProgram(
 	}
 	// TODO: cache and skip?
 	C.glUseProgram(program)
-	context.currentShaderProgram = program
 
+	projectionMatrix := context.projectionMatrix()
 	C.glUniformMatrix4fv(getUniformLocation(program, "projection_matrix"),
 		1, C.GL_FALSE,
-		(*C.GLfloat)(&context.projectionMatrix[0]))
+		(*C.GLfloat)(&projectionMatrix[0]))
 
 	a := float32(geometryMatrix.Elements[0][0])
 	b := float32(geometryMatrix.Elements[0][1])
@@ -328,6 +325,8 @@ func (context *Context) setShaderProgram(
 	}
 	C.glUniform4fv(getUniformLocation(program, "color_matrix_translation"),
 		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
+
+	return
 }
 
 func createFramebuffer(textureID C.GLuint) C.GLuint {

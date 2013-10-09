@@ -88,14 +88,6 @@ func New() *Sprites {
 	return &Sprites{}
 }
 
-func (game *Sprites) ScreenWidth() int {
-	return 256
-}
-
-func (game *Sprites) ScreenHeight() int {
-	return 240
-}
-
 func (game *Sprites) Init(tf graphics.TextureFactory) {
 	file, err := os.Open("images/ebiten.png")
 	if err != nil {
@@ -112,9 +104,10 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	}
 	game.sprites = []*Sprite{}
 	for i := 0; i < 100; i++ {
+		// TODO: fix
 		sprite := newSprite(
-			game.ScreenWidth(),
-			game.ScreenHeight(),
+			256,
+			240,
 			game.ebitenTexture.Width(),
 			game.ebitenTexture.Height())
 		game.sprites = append(game.sprites, sprite)

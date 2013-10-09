@@ -33,14 +33,6 @@ func New() *Terminate {
 	return &Terminate{60}
 }
 
-func (game *Terminate) ScreenWidth() int {
-	return 256
-}
-
-func (game *Terminate) ScreenHeight() int {
-	return 240
-}
-
 func (game *Terminate) Init(tf graphics.TextureFactory) {
 }
 
