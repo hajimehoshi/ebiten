@@ -74,7 +74,7 @@ func display() {
 
 //export mouse
 func mouse(button, state, x, y C.int) {
-	event := glutInputEvent{false, -1, -1}
+	event := glutInputEvent{false, 0, 0}
 	if state == C.GLUT_DOWN {
 		event.IsActive = true
 		event.X = int(x)
@@ -118,6 +118,7 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	}()
 	cargc := C.int(len(cargs))
 
+	// Initialize OpenGL
 	C.glutInit(&cargc, &cargs[0])
 	C.glutInitDisplayMode(C.GLUT_RGBA)
 	C.glutInitWindowSize(
@@ -128,6 +129,7 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	defer C.free(unsafe.Pointer(cTitle))
 	C.glutCreateWindow(cTitle)
 
+	// Set the callbacks
 	C.setGlutFuncs()
 
 	graphicsDevice.Init()
