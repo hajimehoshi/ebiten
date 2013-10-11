@@ -91,53 +91,6 @@ func (context *Context) Fill(clr color.Color) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (context *Context) DrawRect(rect graphics.Rect, clr color.Color) {
-	width := float32(context.currentOffscreen.Width())
-	height := float32(context.currentOffscreen.Height())
-	textureWidth := float32(clp2(uint64(width)))
-	textureHeight := float32(clp2(uint64(height)))
-
-	// Normalize the coord between -1.0 and 1.0.
-	x1 := float32(rect.X)/textureWidth*2.0 - 1.0
-	x2 := float32(rect.X+rect.Width)/textureHeight*2.0 - 1.0
-	y1 := float32(rect.Y)/textureHeight*2.0 - 1.0
-	y2 := float32(rect.Y+rect.Height)/textureHeight*2.0 - 1.0
-	vertex := [...]float32{
-		x1, y1,
-		x2, y1,
-		x1, y2,
-		x2, y2,
-	}
-
-	origR, origG, origB, origA := clr.RGBA()
-	max := float32(math.MaxUint16)
-	r := float32(origR) / max
-	g := float32(origG) / max
-	b := float32(origB) / max
-	a := float32(origA) / max
-	color := [...]float32{
-		r, g, b, a,
-		r, g, b, a,
-		r, g, b, a,
-		r, g, b, a,
-	}
-
-	C.glUseProgram(0)
-	C.glDisable(C.GL_TEXTURE_2D)
-	C.glEnableClientState(C.GL_VERTEX_ARRAY)
-	C.glEnableClientState(C.GL_COLOR_ARRAY)
-	C.glVertexPointer(2, C.GL_FLOAT, C.GL_FALSE, unsafe.Pointer(&vertex[0]))
-	C.glColorPointer(4, C.GL_FLOAT, C.GL_FALSE, unsafe.Pointer(&color[0]))
-	C.glDrawArrays(C.GL_TRIANGLE_STRIP, 0, 4)
-	C.glDisableClientState(C.GL_COLOR_ARRAY)
-	C.glDisableClientState(C.GL_VERTEX_ARRAY)
-	C.glEnable(C.GL_TEXTURE_2D)
-
-	if glError := C.glGetError(); glError != C.GL_NO_ERROR {
-		panic("OpenGL error")
-	}
-}
-
 func (context *Context) DrawTexture(
 	textureID graphics.TextureID,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {

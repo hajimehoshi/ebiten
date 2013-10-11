@@ -43,7 +43,6 @@ type Context interface {
 	Screen() Texture
 	Clear()
 	Fill(clr color.Color)
-	DrawRect(rect Rect, clr color.Color)
 	DrawTexture(textureID TextureID,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)

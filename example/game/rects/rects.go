@@ -25,33 +25,41 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image/color"
+	"math"
 	"math/rand"
 	"time"
 )
 
 type Rects struct {
-	rectsTexture graphics.Texture
-	rect         *graphics.Rect
-	rectColor    *color.RGBA
+	rectTexture        graphics.Texture
+	rectTextureInited  bool
+	rectsTexture       graphics.Texture
+	rectsTextureInited bool
+	rectBounds         *graphics.Rect
+	rectColor          *color.RGBA
 }
 
 func New() *Rects {
 	return &Rects{
-		rect:      &graphics.Rect{},
-		rectColor: &color.RGBA{},
+		rectTextureInited:  false,
+		rectsTextureInited: false,
+		rectBounds:         &graphics.Rect{},
+		rectColor:          &color.RGBA{},
 	}
 }
 
 func (game *Rects) Init(tf graphics.TextureFactory) {
-	// TODO: fix
+	game.rectTexture = tf.NewTexture(16, 16)
 	game.rectsTexture = tf.NewTexture(256, 240)
 }
 
 func (game *Rects) Update(context ebiten.GameContext) {
-	game.rect.X = rand.Intn(context.ScreenWidth())
-	game.rect.Y = rand.Intn(context.ScreenHeight())
-	game.rect.Width = rand.Intn(context.ScreenWidth() - game.rect.X)
-	game.rect.Height = rand.Intn(context.ScreenHeight() - game.rect.Y)
+	game.rectBounds.X = rand.Intn(context.ScreenWidth())
+	game.rectBounds.Y = rand.Intn(context.ScreenHeight())
+	game.rectBounds.Width =
+		rand.Intn(context.ScreenWidth() - game.rectBounds.X)
+	game.rectBounds.Height =
+		rand.Intn(context.ScreenHeight() - game.rectBounds.Y)
 
 	game.rectColor.R = uint8(rand.Intn(256))
 	game.rectColor.G = uint8(rand.Intn(256))
@@ -59,10 +67,46 @@ func (game *Rects) Update(context ebiten.GameContext) {
 	game.rectColor.A = uint8(rand.Intn(256))
 }
 
-func (game *Rects) Draw(g graphics.Context) {
-	g.SetOffscreen(game.rectsTexture.ID())
+func (game *Rects) rectGeometryMatrix() matrix.Geometry {
+	geometryMatrix := matrix.IdentityGeometry()
+	scaleX := float64(game.rectBounds.Width) /
+		float64(game.rectTexture.Width())
+	scaleY := float64(game.rectBounds.Height) /
+		float64(game.rectTexture.Height())
+	geometryMatrix.Scale(scaleX, scaleY)
+	geometryMatrix.Translate(
+		float64(game.rectBounds.X), float64(game.rectBounds.Y))
+	return geometryMatrix
+}
 
-	g.DrawRect(*game.rect, game.rectColor)
+func (game *Rects) rectColorMatrix() matrix.Color {
+	colorMatrix := matrix.IdentityColor()
+	colorMatrix.Elements[0][0] =
+		float64(game.rectColor.R) / float64(math.MaxUint8)
+	colorMatrix.Elements[1][1] =
+		float64(game.rectColor.G) / float64(math.MaxUint8)
+	colorMatrix.Elements[2][2] =
+		float64(game.rectColor.B) / float64(math.MaxUint8)
+	colorMatrix.Elements[3][3] =
+		float64(game.rectColor.A) / float64(math.MaxUint8)
+	return colorMatrix
+}
+
+func (game *Rects) Draw(g graphics.Context) {
+	if !game.rectTextureInited {
+		g.SetOffscreen(game.rectTexture.ID())
+		g.Fill(&color.White)
+		game.rectTextureInited = true
+	}
+
+	g.SetOffscreen(game.rectsTexture.ID())
+	if !game.rectsTextureInited {
+		g.Fill(&color.RGBA{0, 0, 0, 255})
+		game.rectsTextureInited = true
+	}
+	g.DrawTexture(game.rectTexture.ID(),
+		game.rectGeometryMatrix(),
+		game.rectColorMatrix())
 
 	g.SetOffscreen(g.Screen().ID())
 	g.DrawTexture(game.rectsTexture.ID(),
