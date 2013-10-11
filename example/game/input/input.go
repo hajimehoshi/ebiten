@@ -26,7 +26,6 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
-	"image/color"
 	"os"
 )
 
@@ -60,7 +59,7 @@ func (game *Input) Update(context ebiten.GameContext) {
 }
 
 func (game *Input) Draw(g graphics.Context) {
-	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
+	g.Fill(128, 128, 255)
 	str := fmt.Sprintf(`Input State:
   X: %d
   Y: %d`, game.inputState.X, game.inputState.Y)

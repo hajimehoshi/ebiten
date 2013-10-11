@@ -23,7 +23,6 @@ package graphics
 import (
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
-	"image/color"
 )
 
 type Rect struct {
@@ -42,7 +41,7 @@ type TexturePart struct {
 type Context interface {
 	Screen() RenderTarget
 	Clear()
-	Fill(clr color.Color)
+	Fill(r, g, b uint8)
 	DrawTexture(textureID TextureID,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)

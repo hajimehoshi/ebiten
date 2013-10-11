@@ -30,7 +30,6 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
-	"image/color"
 	"math"
 	"unsafe"
 )
@@ -77,18 +76,16 @@ func (context *Context) Screen() graphics.RenderTarget {
 }
 
 func (context *Context) Clear() {
-	C.glClearColor(0, 0, 0, 255)
-	C.glClear(C.GL_COLOR_BUFFER_BIT)
+	context.Fill(0, 0, 0)
 }
 
-func (context *Context) Fill(clr color.Color) {
-	r, g, b, a := clr.RGBA()
-	const max = float64(math.MaxUint16)
+func (context *Context) Fill(r, g, b uint8) {
+	const max = float64(math.MaxUint8)
 	C.glClearColor(
 		C.GLclampf(float64(r)/max),
 		C.GLclampf(float64(g)/max),
 		C.GLclampf(float64(b)/max),
-		C.GLclampf(float64(a)/max))
+		1)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 

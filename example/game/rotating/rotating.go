@@ -25,7 +25,6 @@ import (
 	"github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
 	"image"
-	"image/color"
 	_ "image/png"
 	"math"
 	"os"
@@ -71,7 +70,7 @@ func (game *Rotating) Update(context ebiten.GameContext) {
 }
 
 func (game *Rotating) Draw(g graphics.Context) {
-	g.Fill(&color.RGBA{R: 128, G: 128, B: 255, A: 255})
+	g.Fill(128, 128, 255)
 	g.DrawTexture(game.ebitenTexture.ID(),
 		game.geometryMatrix,
 		matrix.IdentityColor())

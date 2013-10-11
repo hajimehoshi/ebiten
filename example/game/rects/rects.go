@@ -95,13 +95,13 @@ func (game *Rects) rectColorMatrix() matrix.Color {
 func (game *Rects) Draw(g graphics.Context) {
 	if !game.rectTextureInited {
 		g.SetOffscreen(game.rectTexture.ID())
-		g.Fill(&color.White)
+		g.Fill(255, 255, 255)
 		game.rectTextureInited = true
 	}
 
 	g.SetOffscreen(game.offscreen.ID())
 	if !game.offscreenInited {
-		g.Fill(&color.RGBA{0, 0, 0, 255})
+		g.Fill(0, 0, 0)
 		game.offscreenInited = true
 	}
 	g.DrawTexture(game.rectTexture.Texture().ID(),
