@@ -31,26 +31,26 @@ import (
 )
 
 type Rects struct {
-	rectTexture        graphics.Texture
-	rectTextureInited  bool
-	rectsTexture       graphics.Texture
-	rectsTextureInited bool
-	rectBounds         *graphics.Rect
-	rectColor          *color.RGBA
+	rectTexture       graphics.Texture
+	rectTextureInited bool
+	offscreen         graphics.Texture
+	offscreenInited   bool
+	rectBounds        *graphics.Rect
+	rectColor         *color.RGBA
 }
 
 func New() *Rects {
 	return &Rects{
-		rectTextureInited:  false,
-		rectsTextureInited: false,
-		rectBounds:         &graphics.Rect{},
-		rectColor:          &color.RGBA{},
+		rectTextureInited: false,
+		offscreenInited:   false,
+		rectBounds:        &graphics.Rect{},
+		rectColor:         &color.RGBA{},
 	}
 }
 
 func (game *Rects) Init(tf graphics.TextureFactory) {
 	game.rectTexture = tf.NewTexture(16, 16)
-	game.rectsTexture = tf.NewTexture(256, 240)
+	game.offscreen = tf.NewTexture(256, 240)
 }
 
 func (game *Rects) Update(context ebiten.GameContext) {
@@ -99,17 +99,17 @@ func (game *Rects) Draw(g graphics.Context) {
 		game.rectTextureInited = true
 	}
 
-	g.SetOffscreen(game.rectsTexture.ID())
-	if !game.rectsTextureInited {
+	g.SetOffscreen(game.offscreen.ID())
+	if !game.offscreenInited {
 		g.Fill(&color.RGBA{0, 0, 0, 255})
-		game.rectsTextureInited = true
+		game.offscreenInited = true
 	}
 	g.DrawTexture(game.rectTexture.ID(),
 		game.rectGeometryMatrix(),
 		game.rectColorMatrix())
 
 	g.SetOffscreen(g.Screen().ID())
-	g.DrawTexture(game.rectsTexture.ID(),
+	g.DrawTexture(game.offscreen.ID(),
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }

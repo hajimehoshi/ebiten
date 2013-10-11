@@ -102,19 +102,21 @@ func (game *Sprites) Init(tf graphics.TextureFactory) {
 	if game.ebitenTexture, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
-	game.sprites = []*Sprite{}
-	for i := 0; i < 100; i++ {
-		// TODO: fix
-		sprite := newSprite(
-			256,
-			240,
-			game.ebitenTexture.Width(),
-			game.ebitenTexture.Height())
-		game.sprites = append(game.sprites, sprite)
-	}
 }
 
 func (game *Sprites) Update(context ebiten.GameContext) {
+	if game.sprites == nil {
+		game.sprites = []*Sprite{}
+		for i := 0; i < 100; i++ {
+			sprite := newSprite(
+				context.ScreenWidth(),
+				context.ScreenHeight(),
+				game.ebitenTexture.Width(),
+				game.ebitenTexture.Height())
+			game.sprites = append(game.sprites, sprite)
+		}
+	}
+
 	for _, sprite := range game.sprites {
 		sprite.Update()
 	}
