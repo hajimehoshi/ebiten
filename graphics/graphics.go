@@ -74,4 +74,3 @@ type RenderTarget interface {
 }
 
 type RenderTargetID int
-

@@ -307,8 +307,7 @@ func createFramebuffer(textureID C.GLuint) C.GLuint {
 	return framebuffer
 }
 
-func (context *Context) NewRenderTarget(width, height int) (
-	graphics.RenderTarget) {
+func (context *Context) NewRenderTarget(width, height int) graphics.RenderTarget {
 	renderTarget := newRenderTarget(width, height)
 	context.textures[renderTarget.id] = (*Texture)(renderTarget)
 
