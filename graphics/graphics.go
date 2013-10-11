@@ -40,7 +40,7 @@ type TexturePart struct {
 }
 
 type Context interface {
-	Screen() Texture
+	Screen() RenderTarget
 	Clear()
 	Fill(clr color.Color)
 	DrawTexture(textureID TextureID,
@@ -50,11 +50,11 @@ type Context interface {
 		parts []TexturePart,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
-	SetOffscreen(textureID TextureID)
+	SetOffscreen(renderTargetID RenderTargetID)
 }
 
 type TextureFactory interface {
-	NewTexture(width, height int) Texture
+	NewRenderTarget(width, height int) RenderTarget
 	NewTextureFromImage(img image.Image) (Texture, error)
 }
 
@@ -65,3 +65,13 @@ type Texture interface {
 }
 
 type TextureID int
+
+type RenderTarget interface {
+	Texture() Texture
+	ID() RenderTargetID
+	Width() int
+	Height() int
+}
+
+type RenderTargetID int
+

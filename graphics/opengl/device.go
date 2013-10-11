@@ -73,7 +73,7 @@ func (device *Device) Update(draw func(graphics.Context)) {
 			{0, scale, 0},
 		},
 	}
-	context.DrawTexture(context.Screen().ID(),
+	context.DrawTexture(context.Screen().Texture().ID(),
 		geometryMatrix, matrix.IdentityColor())
 	context.flush()
 }

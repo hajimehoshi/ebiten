@@ -64,7 +64,6 @@ type Texture struct {
 	textureWidth  int
 	textureHeight int
 	framebuffer   C.GLuint
-	isVirtual     bool
 }
 
 func (texture *Texture) ID() graphics.TextureID {
@@ -91,7 +90,6 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 		height:        height,
 		textureWidth:  textureWidth,
 		textureHeight: textureHeight,
-		isVirtual:     false,
 	}
 
 	textureID := C.GLuint(0)
@@ -125,8 +123,9 @@ func (err textureError) Error() string {
 	return "Texture Error: " + string(err)
 }
 
-func newTexture(width, height int) *Texture {
-	return createTexture(width, height, nil)
+func newRenderTarget(width, height int) *RenderTarget {
+	renderTarget := createTexture(width, height, nil)
+	return (*RenderTarget)(renderTarget)
 }
 
 func newTextureFromImage(img image.Image) (*Texture, error) {
@@ -143,13 +142,33 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 	return createTexture(size.X, size.Y, pix), nil
 }
 
-func newVirtualTexture(width, height int) *Texture {
-	return &Texture{
+func newRenderTargetWithFramebuffer(width, height int,
+	framebuffer C.GLuint) *RenderTarget {
+	texture := &Texture{
 		id:            0,
 		width:         width,
 		height:        height,
 		textureWidth:  int(clp2(uint64(width))),
 		textureHeight: int(clp2(uint64(height))),
-		isVirtual:     true,
+		framebuffer:   framebuffer,
 	}
+	return (*RenderTarget)(texture)
+}
+
+type RenderTarget Texture
+
+func (renderTarget *RenderTarget) Texture() graphics.Texture {
+	return (*Texture)(renderTarget)
+}
+
+func (renderTarget *RenderTarget) ID() graphics.RenderTargetID {
+	return graphics.RenderTargetID(renderTarget.id)
+}
+
+func (renderTarget *RenderTarget) Width() int {
+	return renderTarget.width
+}
+
+func (renderTarget *RenderTarget) Height() int {
+	return renderTarget.height
 }

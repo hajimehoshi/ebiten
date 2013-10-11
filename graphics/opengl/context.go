@@ -36,13 +36,13 @@ import (
 )
 
 type Context struct {
-	screen                 *Texture
+	screen                 *RenderTarget
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
-	textures               map[graphics.TextureID]*Texture
-	currentOffscreen       *Texture
-	mainFramebufferTexture *Texture
+	textures               map[C.GLuint]*Texture
+	currentOffscreen       *RenderTarget
+	mainFramebufferTexture *RenderTarget
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
@@ -50,28 +50,29 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
-		textures:     map[graphics.TextureID]*Texture{},
+		textures:     map[C.GLuint]*Texture{},
 	}
 	return context
 }
 
 func (context *Context) Init() {
-	// main framebuffer should be created sooner than any other framebuffers!
+	// The main framebuffer should be created sooner than any other
+	// framebuffers!
 	mainFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
-	context.mainFramebufferTexture = newVirtualTexture(
+	context.mainFramebufferTexture = newRenderTargetWithFramebuffer(
 		context.screenWidth*context.screenScale,
-		context.screenHeight*context.screenScale)
-	context.mainFramebufferTexture.framebuffer = C.GLuint(mainFramebuffer)
+		context.screenHeight*context.screenScale,
+		C.GLuint(mainFramebuffer))
 
 	initializeShaders()
 
-	context.screen =
-		context.NewTexture(context.screenWidth, context.screenHeight).(*Texture)
+	context.screen = context.NewRenderTarget(
+		context.screenWidth, context.screenHeight).(*RenderTarget)
 }
 
-func (context *Context) Screen() graphics.Texture {
+func (context *Context) Screen() graphics.RenderTarget {
 	return context.screen
 }
 
@@ -82,7 +83,7 @@ func (context *Context) Clear() {
 
 func (context *Context) Fill(clr color.Color) {
 	r, g, b, a := clr.RGBA()
-	max := float64(math.MaxUint16)
+	const max = float64(math.MaxUint16)
 	C.glClearColor(
 		C.GLclampf(float64(r)/max),
 		C.GLclampf(float64(g)/max),
@@ -94,7 +95,7 @@ func (context *Context) Fill(clr color.Color) {
 func (context *Context) DrawTexture(
 	textureID graphics.TextureID,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture := context.textures[textureID]
+	texture := context.textures[C.GLuint(textureID)]
 
 	source := graphics.Rect{0, 0, texture.width, texture.height}
 	locations := []graphics.TexturePart{{0, 0, source}}
@@ -105,7 +106,7 @@ func (context *Context) DrawTexture(
 func (context *Context) DrawTextureParts(
 	textureID graphics.TextureID, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture := context.textures[textureID]
+	texture := context.textures[C.GLuint(textureID)]
 	if texture == nil {
 		panic("invalid texture ID")
 	}
@@ -144,9 +145,11 @@ func (context *Context) DrawTextureParts(
 			tu1, tv2,
 			tu2, tv2,
 		}
-		C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2, C.GL_FLOAT, C.GL_FALSE,
+		C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2,
+			C.GL_FLOAT, C.GL_FALSE,
 			0, unsafe.Pointer(&vertex[0]))
-		C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2, C.GL_FLOAT, C.GL_FALSE,
+		C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2,
+			C.GL_FLOAT, C.GL_FALSE,
 			0, unsafe.Pointer(&texCoord[0]))
 		C.glDrawArrays(C.GL_TRIANGLE_STRIP, 0, 4)
 	}
@@ -163,21 +166,23 @@ func abs(x int) int {
 	return x
 }
 
-func (context *Context) SetOffscreen(textureID graphics.TextureID) {
-	texture := context.textures[textureID]
-	if texture.framebuffer == 0 {
-		texture.framebuffer = createFramebuffer(texture.id)
+func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {
+	renderTarget :=
+		(*RenderTarget)(context.textures[C.GLuint(renderTargetID)])
+	if renderTarget.framebuffer == 0 {
+		renderTarget.framebuffer = createFramebuffer(renderTarget.id)
 	}
-	context.setOffscreen(texture)
+	context.setOffscreen(renderTarget)
 }
 
-func (context *Context) setOffscreen(texture *Texture) {
-	context.currentOffscreen = texture
+func (context *Context) setOffscreen(renderTarget *RenderTarget) {
+	context.currentOffscreen = renderTarget
 
 	C.glFlush()
 
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, texture.framebuffer)
-	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER); err != C.GL_FRAMEBUFFER_COMPLETE {
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, renderTarget.framebuffer)
+	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
+	if err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 
@@ -185,8 +190,8 @@ func (context *Context) setOffscreen(texture *Texture) {
 	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 		C.GL_ZERO, C.GL_ONE)
 
-	C.glViewport(0, 0, C.GLsizei(abs(texture.textureWidth)),
-		C.GLsizei(abs(texture.textureHeight)))
+	C.glViewport(0, 0, C.GLsizei(abs(renderTarget.textureWidth)),
+		C.GLsizei(abs(renderTarget.textureHeight)))
 }
 
 func (context *Context) resetOffscreen() {
@@ -294,31 +299,32 @@ func createFramebuffer(textureID C.GLuint) C.GLuint {
 	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
 		C.GL_TEXTURE_2D, textureID, 0)
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
-	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) != C.GL_FRAMEBUFFER_COMPLETE {
+	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
+		C.GL_FRAMEBUFFER_COMPLETE {
 		panic("creating framebuffer failed")
 	}
 
 	return framebuffer
 }
 
-func (context *Context) NewTexture(width, height int) graphics.Texture {
-	texture := newTexture(width, height)
-	id := graphics.TextureID(texture.id)
-	context.textures[id] = texture
+func (context *Context) NewRenderTarget(width, height int) (
+	graphics.RenderTarget) {
+	renderTarget := newRenderTarget(width, height)
+	context.textures[renderTarget.id] = (*Texture)(renderTarget)
 
-	context.SetOffscreen(texture.ID())
+	context.SetOffscreen(renderTarget.ID())
 	context.Clear()
 	context.resetOffscreen()
 
-	return texture
+	return renderTarget
 }
 
-func (context *Context) NewTextureFromImage(img image.Image) (graphics.Texture, error) {
+func (context *Context) NewTextureFromImage(img image.Image) (
+	graphics.Texture, error) {
 	texture, err := newTextureFromImage(img)
 	if err != nil {
 		return nil, err
 	}
-	id := graphics.TextureID(texture.id)
-	context.textures[id] = texture
+	context.textures[texture.id] = texture
 	return texture, nil
 }

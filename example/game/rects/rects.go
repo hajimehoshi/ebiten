@@ -31,9 +31,9 @@ import (
 )
 
 type Rects struct {
-	rectTexture       graphics.Texture
+	rectTexture       graphics.RenderTarget
 	rectTextureInited bool
-	offscreen         graphics.Texture
+	offscreen         graphics.RenderTarget
 	offscreenInited   bool
 	rectBounds        *graphics.Rect
 	rectColor         *color.RGBA
@@ -49,8 +49,8 @@ func New() *Rects {
 }
 
 func (game *Rects) Init(tf graphics.TextureFactory) {
-	game.rectTexture = tf.NewTexture(16, 16)
-	game.offscreen = tf.NewTexture(256, 240)
+	game.rectTexture = tf.NewRenderTarget(16, 16)
+	game.offscreen = tf.NewRenderTarget(256, 240)
 }
 
 func (game *Rects) Update(context ebiten.GameContext) {
@@ -104,12 +104,12 @@ func (game *Rects) Draw(g graphics.Context) {
 		g.Fill(&color.RGBA{0, 0, 0, 255})
 		game.offscreenInited = true
 	}
-	g.DrawTexture(game.rectTexture.ID(),
+	g.DrawTexture(game.rectTexture.Texture().ID(),
 		game.rectGeometryMatrix(),
 		game.rectColorMatrix())
 
 	g.SetOffscreen(g.Screen().ID())
-	g.DrawTexture(game.offscreen.ID(),
+	g.DrawTexture(game.offscreen.Texture().ID(),
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }
