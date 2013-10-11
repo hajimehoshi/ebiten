@@ -76,7 +76,7 @@ func (context *Context) Screen() graphics.Texture {
 }
 
 func (context *Context) Clear() {
-	C.glClearColor(0, 0, 0, 0)
+	C.glClearColor(0, 0, 0, 255)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
@@ -227,8 +227,10 @@ func (context *Context) setOffscreen(texture *Texture) {
 	if err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER); err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
+
 	C.glEnable(C.GL_BLEND)
-	C.glBlendFunc(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA)
+	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
+		C.GL_ZERO, C.GL_ONE)
 
 	C.glViewport(0, 0, C.GLsizei(abs(texture.textureWidth)),
 		C.GLsizei(abs(texture.textureHeight)))
