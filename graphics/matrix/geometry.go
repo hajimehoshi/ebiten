@@ -66,6 +66,15 @@ func (matrix *Geometry) Translate(tx, ty float64) {
 	matrix.Elements[1][2] += ty
 }
 
+func (matrix *Geometry) Scale(x, y float64) {
+	matrix.Elements[0][0] = x * matrix.Elements[0][0]
+	matrix.Elements[0][1] = x * matrix.Elements[0][1]
+	matrix.Elements[0][2] = x * matrix.Elements[0][2]
+	matrix.Elements[1][0] = y * matrix.Elements[1][0]
+	matrix.Elements[1][1] = y * matrix.Elements[1][1]
+	matrix.Elements[1][2] = y * matrix.Elements[1][2]
+}
+
 func (matrix *Geometry) Rotate(theta float64) {
 	sin, cos := math.Sincos(theta)
 	rotate := Geometry{
