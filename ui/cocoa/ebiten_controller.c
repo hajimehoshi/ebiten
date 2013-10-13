@@ -8,8 +8,7 @@
 }
 
 - (id)initWithWindow:(NSWindow*)window {
-  self = [super init];
-  if (self != nil) {
+  if (self = [super init]) {
     self->window_ = window;
   }
   return self;

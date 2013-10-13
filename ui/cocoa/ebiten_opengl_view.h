@@ -12,8 +12,6 @@ typedef bool updating(void);
 
 - (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime;
 - (void)setUpdatingFunc:(updating*)updatingFunc;
-- (void)terminate;
-- (bool)isTerminated;
 
 @end
 

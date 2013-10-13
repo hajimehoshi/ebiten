@@ -52,8 +52,7 @@
   (void)alert;
   (void)contextInfo;
   if (returnCode == NSAlertDefaultReturn) {
-    EbitenOpenGLView* glView = [self contentView];
-    [glView terminate];
+    [NSApp terminate:nil];
   }
 }
 

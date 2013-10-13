@@ -30,7 +30,6 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
   CVDisplayLinkRef displayLink_;
   updating* updating_;
   //ebiten::input* input_;
-  bool isTerminated_;
 }
 
 - (id)init {
@@ -47,7 +46,6 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
 
 - (void)prepareOpenGL {
   [super prepareOpenGL];
-  self->isTerminated_ = false;
   NSOpenGLContext* openGLContext = [self openGLContext];
   assert(openGLContext != nil);
   GLint const swapInterval = 1;
@@ -139,14 +137,6 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                             static_cast<int>(y));
     self->input_->set_touched(0, true);
     }*/
-}
-
-- (void)terminate {
-  self->isTerminated_ = true;
-}
-
-- (bool)isTerminated {
-  return self->isTerminated_;
 }
 
 @end

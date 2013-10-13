@@ -24,13 +24,13 @@ static NSWindow* generateWindow(size_t width, size_t height) {
   EbitenOpenGLView* glView =
     [[EbitenOpenGLView alloc] initWithFrame:rect
                                 pixelFormat:format];
-                                [window setContentView:glView];
+  [window setContentView:glView];
   //[window makeFirstResponder:glView];
 
   return window;
 }
 
-void Run(size_t width, size_t height, size_t scale) {
+void Run(size_t width, size_t height, size_t scale, const char* title) {
   @autoreleasepool {
     NSWindow* window = generateWindow(width * scale, height * scale);
     EbitenController* controller = [[EbitenController alloc]
