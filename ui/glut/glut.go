@@ -78,13 +78,10 @@ func idle() {
 }
 
 func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
-	graphicsDevice := opengl.NewDevice(
-		screenWidth, screenHeight, screenScale)
 	ui := &GlutUI{
-		glutInputting:  make(chan glutInputEvent, 10),
-		graphicsDevice: graphicsDevice,
-		updating:       make(chan func(graphics.Context)),
-		updated:        make(chan bool),
+		glutInputting: make(chan glutInputEvent, 10),
+		updating:      make(chan func(graphics.Context)),
+		updated:       make(chan bool),
 	}
 
 	cargs := []*C.char{}
@@ -109,11 +106,6 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	defer C.free(unsafe.Pointer(cTitle))
 	C.glutCreateWindow(cTitle)
 
-	// Set the callbacks
-	C.setGlutFuncs()
-
-	graphicsDevice.Init()
-
 	return ui
 }
 
@@ -121,6 +113,11 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title str
 	ui := new(screenWidth, screenHeight, screenScale, title)
 	currentUI = ui
 
+	graphicsDevice := opengl.NewDevice(
+		screenWidth, screenHeight, screenScale)
+	ui.graphicsDevice = graphicsDevice
+	graphicsDevice.Init()
+	
 	game.Init(ui.graphicsDevice.TextureFactory())
 
 	input := make(chan ebiten.InputState)
@@ -170,6 +167,9 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title str
 		os.Exit(0)
 	}()
 
+	// Set the callbacks
+	C.setGlutFuncs()
+	
 	C.glutMainLoop()
 }
 

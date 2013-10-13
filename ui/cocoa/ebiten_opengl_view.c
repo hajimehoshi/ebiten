@@ -2,6 +2,10 @@
 
 #include "ebiten_opengl_view.h"
 
+void ebiten_EbitenOpenGLView_Initialized(void);
+void ebiten_EbitenOpenGLView_Updating(void);
+void ebiten_EbitenOpenGLView_InputUpdated(int x, int y);
+
 // Reference:
 //   http://developer.apple.com/library/mac/#qa/qa1385/_index.html
 //   http://www.alecjacobson.com/weblog/?p=2185
@@ -28,15 +32,9 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
 @implementation EbitenOpenGLView {
 @private
   CVDisplayLinkRef displayLink_;
-  updating* updating_;
-  //ebiten::input* input_;
-}
-
-- (id)init {
-  if (self = [super init]) {
-    self->updating_ = NULL;
-  }
-  return self;
+  size_t screenWidth_;
+  size_t screenHeight_;
+  size_t screenScale_;
 }
 
 - (void)dealloc {
@@ -48,7 +46,7 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
   [super prepareOpenGL];
   NSOpenGLContext* openGLContext = [self openGLContext];
   assert(openGLContext != nil);
-  GLint const swapInterval = 1;
+  GLint swapInterval = 1;
   [openGLContext setValues:&swapInterval
               forParameter:NSOpenGLCPSwapInterval]; 
   CVDisplayLinkCreateWithActiveCGDisplays(&self->displayLink_);
@@ -62,39 +60,23 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                                       cglContext,
                                                       cglPixelFormat);
   CVDisplayLinkStart(self->displayLink_);
+
+  ebiten_EbitenOpenGLView_Initialized();
 }
 
 - (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime {
   (void)outputTime;
-  if (!self->updating_) {
-    return kCVReturnSuccess;
-  }
   NSOpenGLContext* context = [self openGLContext];
   assert(context != nil);
   [context makeCurrentContext];
-  bool terminated = false;
   {
     CGLLockContext((CGLContextObj)[context CGLContextObj]);
-    terminated = self->updating_();
+    ebiten_EbitenOpenGLView_Updating();
     [context flushBuffer];
     CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
   }
-  if (terminated) {
-    //CVDisplayLinkStop(self->displayLink_);
-    [NSApp terminate:nil];
-    return kCVReturnSuccess;
-  }
   return kCVReturnSuccess;
 }
-
-- (void)setUpdatingFunc:(updating*)func {
-  self->updating_ = func;
-}
-
-// TODO
-// - (void)setInput:(ebiten::input&)input {
-//   self->input_ = &input;
-// }
 
 - (BOOL)isFlipped {
   return YES;
@@ -103,40 +85,50 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
 - (void)mouseDown:(NSEvent*)theEvent {
   NSPoint location = [self convertPoint:[theEvent locationInWindow]
                                fromView:nil];
-  // TODO
-  /*
-  if (self->input_) {
-    int x = location.x;
-    int y = location.y;
-    // TODO: Screen size
-    self->input_->set_touches_real_location(0,
-                                            static_cast<int>(x),
-                                            static_cast<int>(y));
-    self->input_->set_touched(0, true);
-    }*/
+  int x = location.x / self->screenScale_;
+  int y = location.y / self->screenScale_;
+  if (x < 0) {
+    x = 0;
+  } else if (self->screenWidth_<= x) {
+    x = self->screenWidth_ - 1;
+  }
+  if (y < 0) {
+    y = 0;
+  } else if (self->screenHeight_<= y) {
+    y = self->screenHeight_ - 1;
+  }
+  ebiten_EbitenOpenGLView_InputUpdated(x, y);
 }
 
 - (void)mouseUp:(NSEvent*)theEvent {
   (void)theEvent;
-  // TODO
-  /*if (self->input_) {
-    self->input_->set_touches_real_location(0, -1, -1);
-    self->input_->set_touched(0, false);
-    }*/
+  ebiten_EbitenOpenGLView_InputUpdated(-1, -1);
 }
 
 - (void)mouseDragged:(NSEvent*)theEvent {
   NSPoint location = [self convertPoint:[theEvent locationInWindow]
                                fromView:nil];
-  // TODO
-  /*if (self->input_) {
-    int x = location.x;
-    int y = location.y;
-    self->input_->set_touches_real_location(0,
-                                            static_cast<int>(x),
-                                            static_cast<int>(y));
-    self->input_->set_touched(0, true);
-    }*/
+  int x = location.x / self->screenScale_;
+  int y = location.y / self->screenScale_;
+  if (x < 0) {
+    x = 0;
+  } else if (self->screenWidth_<= x) {
+    x = self->screenWidth_ - 1;
+  }
+  if (y < 0) {
+    y = 0;
+  } else if (self->screenHeight_<= y) {
+    y = self->screenHeight_ - 1;
+  }
+  ebiten_EbitenOpenGLView_InputUpdated(x, y);
+}
+
+- (void)setScreenWidth:(size_t)screenWidth
+          screenHeight:(size_t)screenHeight
+           screenScale:(size_t)screenScale {
+  self->screenWidth_ = screenWidth;
+  self->screenHeight_ = screenHeight;
+  self->screenScale_ = screenScale;
 }
 
 @end

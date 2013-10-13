@@ -6,12 +6,12 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 
-typedef bool updating(void);
-
 @interface EbitenOpenGLView : NSOpenGLView
 
 - (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime;
-- (void)setUpdatingFunc:(updating*)updatingFunc;
+- (void)setScreenWidth:(size_t)screenWidth
+          screenHeight:(size_t)screenHeight
+           screenScale:(size_t)screenScale;
 
 @end
 

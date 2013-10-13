@@ -6,12 +6,12 @@
 #import "ebiten_opengl_view.h"
 #import "ebiten_window.h"
 
-static NSWindow* generateWindow(size_t width, size_t height) {
+static NSWindow* generateWindow(size_t width, size_t height, size_t scale, const char* title) {
   EbitenWindow* window = [[EbitenWindow alloc]
-                           initWithSize:NSMakeSize(width, height)];
+                           initWithSize:NSMakeSize(width * scale, height * scale)];
   assert(window != nil);
 
-  NSRect const rect = NSMakeRect(0, 0, width, height);
+  NSRect const rect = NSMakeRect(0, 0, width * scale, height * scale);
   NSOpenGLPixelFormatAttribute const attributes[] = {
     NSOpenGLPFAWindow,
     NSOpenGLPFADoubleBuffer,
@@ -24,7 +24,11 @@ static NSWindow* generateWindow(size_t width, size_t height) {
   EbitenOpenGLView* glView =
     [[EbitenOpenGLView alloc] initWithFrame:rect
                                 pixelFormat:format];
+  [glView setScreenWidth:width
+            screenHeight:height
+             screenScale:scale];
   [window setContentView:glView];
+  [window setTitle: [[NSString alloc] initWithUTF8String:title]];
   //[window makeFirstResponder:glView];
 
   return window;
@@ -32,7 +36,7 @@ static NSWindow* generateWindow(size_t width, size_t height) {
 
 void Run(size_t width, size_t height, size_t scale, const char* title) {
   @autoreleasepool {
-    NSWindow* window = generateWindow(width * scale, height * scale);
+    NSWindow* window = generateWindow(width, height, scale, title);
     EbitenController* controller = [[EbitenController alloc]
                                     initWithWindow:window];
     NSApplication* app = [NSApplication sharedApplication];
