@@ -17,14 +17,14 @@ import (
 )
 
 type UI struct {
-	game           ebiten.Game
 	screenWidth    int
 	screenHeight   int
 	screenScale    int
 	graphicsDevice *opengl.Device
-	inited         chan bool
-	updating       chan bool
-	updated        chan bool
+	initializing   chan ebiten.Game
+	initialized    chan ebiten.Game
+	updating       chan ebiten.Game
+	updated        chan ebiten.Game
 	input          chan ebiten.InputState
 }
 
@@ -42,16 +42,16 @@ func ebiten_EbitenOpenGLView_Initialized() {
 		currentUI.screenScale)
 	currentUI.graphicsDevice.Init()
 
-	currentUI.game.Init(currentUI.graphicsDevice.TextureFactory())
-
-	currentUI.inited <- true
+	game := <-currentUI.initializing
+	game.Init(currentUI.graphicsDevice.TextureFactory())
+	currentUI.initialized <- game
 }
 
 //export ebiten_EbitenOpenGLView_Updating
 func ebiten_EbitenOpenGLView_Updating() {
-	<-currentUI.updating
-	currentUI.graphicsDevice.Update(currentUI.game.Draw)
-	currentUI.updated <- true
+	game := <-currentUI.updating
+	currentUI.graphicsDevice.Update(game.Draw)
+	currentUI.updated <- game
 }
 
 //export ebiten_EbitenOpenGLView_InputUpdated
@@ -79,17 +79,14 @@ func ebiten_EbitenOpenGLView_InputUpdated(inputType C.InputType, cx, cy C.int) {
 
 func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int,
 	title string) {
-	cTitle := C.CString(title)
-	defer C.free(unsafe.Pointer(cTitle))
-
 	currentUI = &UI{
-		game:         game,
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
-		inited:       make(chan bool),
-		updating:     make(chan bool),
-		updated:      make(chan bool),
+		initializing: make(chan ebiten.Game),
+		initialized:  make(chan ebiten.Game),
+		updating:     make(chan ebiten.Game),
+		updated:      make(chan ebiten.Game),
 		input:        make(chan ebiten.InputState),
 	}
 
@@ -102,18 +99,21 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int,
 			screenHeight: screenHeight,
 			inputState:   ebiten.InputState{-1, -1},
 		}
-		<-currentUI.inited
+		currentUI.initializing <- game
+		game = <-currentUI.initialized
 		for {
 			select {
 			case gameContext.inputState = <-currentUI.input:
 			case <-tick:
 				game.Update(gameContext)
-			case currentUI.updating <- true:
-				<-currentUI.updated
+			case currentUI.updating <- game:
+				game = <-currentUI.updated
 			}
 		}
 	}()
 
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
 	C.Run(C.size_t(screenWidth),
 		C.size_t(screenHeight),
 		C.size_t(screenScale),

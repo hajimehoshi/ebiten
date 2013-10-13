@@ -1,12 +1,12 @@
 // -*- objc -*-
 
-#import "ebiten_opengl_view.h"
 #import "ebiten_window.h"
+
+#import "ebiten_opengl_view.h"
 
 @implementation EbitenWindow
 
 - (id)initWithSize:(NSSize)size {
-  [NSApplication sharedApplication];
   NSUInteger style = (NSTitledWindowMask | NSClosableWindowMask |
                       NSMiniaturizableWindowMask);
   NSRect windowRect =
@@ -27,6 +27,21 @@
   [self setReleasedWhenClosed:YES];
   [self setDelegate:self];
   [self setDocumentEdited:YES];
+
+  NSRect rect = NSMakeRect(0, 0, size.width, size.height);
+  NSOpenGLPixelFormatAttribute attributes[] = {
+    NSOpenGLPFAWindow,
+    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFAAccelerated,
+    NSOpenGLPFADepthSize, 32,
+    0,
+  };
+  NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc]
+                                  initWithAttributes:attributes];
+  EbitenOpenGLView* glView =
+    [[EbitenOpenGLView alloc] initWithFrame:rect
+                                pixelFormat:format];
+  [self setContentView:glView];
   return self;
 }
 

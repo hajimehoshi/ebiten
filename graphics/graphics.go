@@ -45,6 +45,8 @@ type Texture interface {
 
 type TextureID int
 
+// The interface of a render target. This is essentially same as a texture, but
+// it is assumed that the all alpha of a render target is maximum.
 type RenderTarget interface {
 	Texture() Texture
 	ID() RenderTargetID
