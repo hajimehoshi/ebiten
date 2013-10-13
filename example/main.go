@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/go.ebiten/example/game/rects"
 	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
-	"github.com/hajimehoshi/go.ebiten/example/game/terminate"
+	_ "github.com/hajimehoshi/go.ebiten/ui/cocoa"
 	"github.com/hajimehoshi/go.ebiten/ui/glut"
 	"os"
 	"runtime"
@@ -36,8 +36,6 @@ func main() {
 		game = rotating.New()
 	case "sprites":
 		game = sprites.New()
-	case "terminate":
-		game = terminate.New()
 	default:
 		game = rotating.New()
 	}

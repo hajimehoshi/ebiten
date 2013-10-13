@@ -166,9 +166,6 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title str
 			case ui.updating <- game.Draw:
 				<-ui.updated
 			}
-			if gameContext.terminated {
-				break
-			}
 		}
 		os.Exit(0)
 	}()
@@ -180,7 +177,6 @@ type GameContext struct {
 	screenWidth  int
 	screenHeight int
 	inputState   ebiten.InputState
-	terminated   bool
 }
 
 func (context *GameContext) ScreenWidth() int {
@@ -193,8 +189,4 @@ func (context *GameContext) ScreenHeight() int {
 
 func (context *GameContext) InputState() ebiten.InputState {
 	return context.inputState
-}
-
-func (context *GameContext) Terminate() {
-	context.terminated = true
 }

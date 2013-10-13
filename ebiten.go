@@ -18,7 +18,6 @@ type GameContext interface {
 	ScreenWidth() int
 	ScreenHeight() int
 	InputState() InputState
-	Terminate()
 }
 
 type InputState struct {
