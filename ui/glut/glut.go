@@ -117,7 +117,7 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title str
 		screenWidth, screenHeight, screenScale)
 	ui.graphicsDevice = graphicsDevice
 	graphicsDevice.Init()
-	
+
 	game.Init(ui.graphicsDevice.TextureFactory())
 
 	input := make(chan ebiten.InputState)
@@ -169,7 +169,7 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title str
 
 	// Set the callbacks
 	C.setGlutFuncs()
-	
+
 	C.glutMainLoop()
 }
 

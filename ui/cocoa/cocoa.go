@@ -4,13 +4,13 @@ package cocoa
 // #cgo LDFLAGS: -framework Cocoa -framework OpenGL -framework QuartzCore
 //
 // #include <stdlib.h>
+// #include "input.h"
 //
 // void Run(size_t width, size_t height, size_t scale, const char* title);
 //
 import "C"
 import (
 	"github.com/hajimehoshi/go.ebiten"
-	// "github.com/hajimehoshi/go.ebiten/graphics"
 	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
 	"time"
 	"unsafe"
@@ -55,8 +55,26 @@ func ebiten_EbitenOpenGLView_Updating() {
 }
 
 //export ebiten_EbitenOpenGLView_InputUpdated
-func ebiten_EbitenOpenGLView_InputUpdated(x, y C.int) {
-	currentUI.input <- ebiten.InputState{int(x), int(y)}
+func ebiten_EbitenOpenGLView_InputUpdated(inputType C.int, cx, cy C.int) {
+	if inputType == C.InputTypeMouseUp {
+		currentUI.input <- ebiten.InputState{-1, -1}
+		return
+	}
+
+	x, y := int(cx), int(cy)
+	x /= currentUI.screenScale
+	y /= currentUI.screenScale
+	if x < 0 {
+		x = 0
+	} else if currentUI.screenWidth <= x {
+		x = currentUI.screenWidth - 1
+	}
+	if y < 0 {
+		y = 0
+	} else if currentUI.screenHeight <= y {
+		y = currentUI.screenHeight - 1
+	}
+	currentUI.input <- ebiten.InputState{x, y}
 }
 
 func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int,

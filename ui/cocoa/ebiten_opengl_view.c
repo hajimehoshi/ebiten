@@ -1,10 +1,11 @@
 // -*- objc -*-
 
 #include "ebiten_opengl_view.h"
+#include "input.h"
 
 void ebiten_EbitenOpenGLView_Initialized(void);
 void ebiten_EbitenOpenGLView_Updating(void);
-void ebiten_EbitenOpenGLView_InputUpdated(int x, int y);
+void ebiten_EbitenOpenGLView_InputUpdated(enum InputType inputType, int x, int y);
 
 // Reference:
 //   http://developer.apple.com/library/mac/#qa/qa1385/_index.html
@@ -32,9 +33,6 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
 @implementation EbitenOpenGLView {
 @private
   CVDisplayLinkRef displayLink_;
-  size_t screenWidth_;
-  size_t screenHeight_;
-  size_t screenScale_;
 }
 
 - (void)dealloc {
@@ -85,50 +83,26 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
 - (void)mouseDown:(NSEvent*)theEvent {
   NSPoint location = [self convertPoint:[theEvent locationInWindow]
                                fromView:nil];
-  int x = location.x / self->screenScale_;
-  int y = location.y / self->screenScale_;
-  if (x < 0) {
-    x = 0;
-  } else if (self->screenWidth_<= x) {
-    x = self->screenWidth_ - 1;
-  }
-  if (y < 0) {
-    y = 0;
-  } else if (self->screenHeight_<= y) {
-    y = self->screenHeight_ - 1;
-  }
-  ebiten_EbitenOpenGLView_InputUpdated(x, y);
+  int x = location.x;
+  int y = location.y;
+  ebiten_EbitenOpenGLView_InputUpdated(InputTypeMouseDown, x, y);
 }
 
 - (void)mouseUp:(NSEvent*)theEvent {
   (void)theEvent;
-  ebiten_EbitenOpenGLView_InputUpdated(-1, -1);
+  NSPoint location = [self convertPoint:[theEvent locationInWindow]
+                               fromView:nil];
+  int x = location.x;
+  int y = location.y;
+  ebiten_EbitenOpenGLView_InputUpdated(InputTypeMouseUp, x, y);
 }
 
 - (void)mouseDragged:(NSEvent*)theEvent {
   NSPoint location = [self convertPoint:[theEvent locationInWindow]
                                fromView:nil];
-  int x = location.x / self->screenScale_;
-  int y = location.y / self->screenScale_;
-  if (x < 0) {
-    x = 0;
-  } else if (self->screenWidth_<= x) {
-    x = self->screenWidth_ - 1;
-  }
-  if (y < 0) {
-    y = 0;
-  } else if (self->screenHeight_<= y) {
-    y = self->screenHeight_ - 1;
-  }
-  ebiten_EbitenOpenGLView_InputUpdated(x, y);
-}
-
-- (void)setScreenWidth:(size_t)screenWidth
-          screenHeight:(size_t)screenHeight
-           screenScale:(size_t)screenScale {
-  self->screenWidth_ = screenWidth;
-  self->screenHeight_ = screenHeight;
-  self->screenScale_ = screenScale;
+  int x = location.x;
+  int y = location.y;
+  ebiten_EbitenOpenGLView_InputUpdated(InputTypeMouseDragged, x, y);
 }
 
 @end

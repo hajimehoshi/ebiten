@@ -24,9 +24,6 @@ static NSWindow* generateWindow(size_t width, size_t height, size_t scale, const
   EbitenOpenGLView* glView =
     [[EbitenOpenGLView alloc] initWithFrame:rect
                                 pixelFormat:format];
-  [glView setScreenWidth:width
-            screenHeight:height
-             screenScale:scale];
   [window setContentView:glView];
   [window setTitle: [[NSString alloc] initWithUTF8String:title]];
   //[window makeFirstResponder:glView];
