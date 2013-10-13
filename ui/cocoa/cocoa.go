@@ -55,7 +55,7 @@ func ebiten_EbitenOpenGLView_Updating() {
 }
 
 //export ebiten_EbitenOpenGLView_InputUpdated
-func ebiten_EbitenOpenGLView_InputUpdated(inputType C.int, cx, cy C.int) {
+func ebiten_EbitenOpenGLView_InputUpdated(inputType C.InputType, cx, cy C.int) {
 	if inputType == C.InputTypeMouseUp {
 		currentUI.input <- ebiten.InputState{-1, -1}
 		return

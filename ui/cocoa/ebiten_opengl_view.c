@@ -5,7 +5,7 @@
 
 void ebiten_EbitenOpenGLView_Initialized(void);
 void ebiten_EbitenOpenGLView_Updating(void);
-void ebiten_EbitenOpenGLView_InputUpdated(enum InputType inputType, int x, int y);
+void ebiten_EbitenOpenGLView_InputUpdated(InputType inputType, int x, int y);
 
 // Reference:
 //   http://developer.apple.com/library/mac/#qa/qa1385/_index.html
