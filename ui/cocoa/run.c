@@ -7,8 +7,9 @@
 
 void Run(size_t width, size_t height, size_t scale, const char* title) {
   @autoreleasepool {
+    NSSize size = NSMakeSize(width * scale, height * scale);
     EbitenWindow* window = [[EbitenWindow alloc]
-                            initWithSize:NSMakeSize(width * scale, height * scale)];
+                            initWithSize:size];
     [window setTitle: [[NSString alloc] initWithUTF8String:title]];  
     EbitenController* controller = [[EbitenController alloc]
                                     initWithWindow:window];

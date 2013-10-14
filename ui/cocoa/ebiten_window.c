@@ -14,11 +14,13 @@
                             styleMask:style];
   NSScreen* screen = [[NSScreen screens] objectAtIndex:0];
   NSSize screenSize = [screen visibleFrame].size;
-  // Reference: Mac OS X Human Interface Guidelines: UI Element Guidelines: Windows
+  // Reference: Mac OS X Human Interface Guidelines: UI Element Guidelines:
+  // Windows
   // http://developer.apple.com/library/mac/#documentation/UserExperience/Conceptual/AppleHIGuidelines/Windows/Windows.html
-  NSRect contentRect = NSMakeRect((screenSize.width - windowRect.size.width) / 2,
-                                  (screenSize.height - windowRect.size.height) * 2 / 3,
-                                  size.width, size.height);
+  NSRect contentRect =
+    NSMakeRect((screenSize.width - windowRect.size.width) / 2,
+               (screenSize.height - windowRect.size.height) * 2 / 3,
+               size.width, size.height);
   self = [super initWithContentRect:contentRect
                           styleMask:style
                             backing:NSBackingStoreBuffered
@@ -53,9 +55,10 @@
                                    alternateButton:nil
                                        otherButton:@"Cancel"
                          informativeTextWithFormat:@""];
+    SEL selector = @selector(alertDidEnd:returnCode:contextInfo:);
     [alert beginSheetModalForWindow:sender
                       modalDelegate:self
-                     didEndSelector:@selector(alertDidEnd:returnCode:contextInfo:)
+                     didEndSelector:selector
                         contextInfo:nil];
   }
   return NO;

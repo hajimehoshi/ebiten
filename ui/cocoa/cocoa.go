@@ -12,7 +12,6 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
-	"time"
 	"unsafe"
 )
 
@@ -20,15 +19,73 @@ type UI struct {
 	screenWidth    int
 	screenHeight   int
 	screenScale    int
-	graphicsDevice *opengl.Device
+	title          string
 	initializing   chan ebiten.Game
 	initialized    chan ebiten.Game
 	updating       chan ebiten.Game
 	updated        chan ebiten.Game
 	input          chan ebiten.InputState
+	graphicsDevice *opengl.Device
 }
 
 var currentUI *UI
+
+func New(screenWidth, screenHeight, screenScale int, title string) *UI {
+	if currentUI != nil {
+		panic("UI can't be duplicated.")
+	}
+	ui := &UI{
+		screenWidth:  screenWidth,
+		screenHeight: screenHeight,
+		screenScale:  screenScale,
+		title:        title,
+		initializing: make(chan ebiten.Game),
+		initialized:  make(chan ebiten.Game),
+		updating:     make(chan ebiten.Game),
+		updated:      make(chan ebiten.Game),
+		input:        make(chan ebiten.InputState),
+	}
+	currentUI = ui
+	return ui
+}
+
+func (ui *UI) MainLoop() {
+	cTitle := C.CString(ui.title)
+	defer C.free(unsafe.Pointer(cTitle))
+
+	C.Run(C.size_t(ui.screenWidth),
+		C.size_t(ui.screenHeight),
+		C.size_t(ui.screenScale),
+		cTitle)
+}
+
+func (ui *UI) ScreenWidth() int {
+	return ui.screenWidth
+}
+
+func (ui *UI) ScreenHeight() int {
+	return ui.screenHeight
+}
+
+func (ui *UI) Initializing() chan<- ebiten.Game {
+	return ui.initializing
+}
+
+func (ui *UI) Initialized() <-chan ebiten.Game {
+	return ui.initialized
+}
+
+func (ui *UI) Updating() chan<- ebiten.Game {
+	return ui.updating
+}
+
+func (ui *UI) Updated() <-chan ebiten.Game {
+	return ui.updated
+}
+
+func (ui *UI) Input() <-chan ebiten.InputState {
+	return ui.input
+}
 
 //export ebiten_EbitenOpenGLView_Initialized
 func ebiten_EbitenOpenGLView_Initialized() {
@@ -75,65 +132,4 @@ func ebiten_EbitenOpenGLView_InputUpdated(inputType C.InputType, cx, cy C.int) {
 		y = currentUI.screenHeight - 1
 	}
 	currentUI.input <- ebiten.InputState{x, y}
-}
-
-func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int,
-	title string) {
-	currentUI = &UI{
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
-		initializing: make(chan ebiten.Game),
-		initialized:  make(chan ebiten.Game),
-		updating:     make(chan ebiten.Game),
-		updated:      make(chan ebiten.Game),
-		input:        make(chan ebiten.InputState),
-	}
-
-	go func() {
-		frameTime := time.Duration(
-			int64(time.Second) / int64(ebiten.FPS))
-		tick := time.Tick(frameTime)
-		gameContext := &GameContext{
-			screenWidth:  screenWidth,
-			screenHeight: screenHeight,
-			inputState:   ebiten.InputState{-1, -1},
-		}
-		currentUI.initializing <- game
-		game = <-currentUI.initialized
-		for {
-			select {
-			case gameContext.inputState = <-currentUI.input:
-			case <-tick:
-				game.Update(gameContext)
-			case currentUI.updating <- game:
-				game = <-currentUI.updated
-			}
-		}
-	}()
-
-	cTitle := C.CString(title)
-	defer C.free(unsafe.Pointer(cTitle))
-	C.Run(C.size_t(screenWidth),
-		C.size_t(screenHeight),
-		C.size_t(screenScale),
-		cTitle)
-}
-
-type GameContext struct {
-	screenWidth  int
-	screenHeight int
-	inputState   ebiten.InputState
-}
-
-func (context *GameContext) ScreenWidth() int {
-	return context.screenWidth
-}
-
-func (context *GameContext) ScreenHeight() int {
-	return context.screenHeight
-}
-
-func (context *GameContext) InputState() ebiten.InputState {
-	return context.inputState
 }

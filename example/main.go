@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/example/game/rects"
 	"github.com/hajimehoshi/go-ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go-ebiten/example/game/sprites"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	_ "github.com/hajimehoshi/go-ebiten/ui/glut"
 	"os"
@@ -41,5 +42,6 @@ func main() {
 	}
 
 	const screenScale = 2
-	cocoa.Run(game, 256, 240, screenScale, "Ebiten Demo")
+	cocoaUI := cocoa.New(256, 240, screenScale, "Ebiten Demo")
+	ui.Run(cocoaUI, game)
 }
