@@ -1,7 +1,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/go.ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
 const (

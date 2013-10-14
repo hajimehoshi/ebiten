@@ -1,9 +1,9 @@
 package sprites
 
 import (
-	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/graphics"
-	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten"
+	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"image"
 	"math/rand"
 	"os"

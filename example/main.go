@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/example/game/blank"
-	"github.com/hajimehoshi/go.ebiten/example/game/input"
-	"github.com/hajimehoshi/go.ebiten/example/game/monochrome"
-	"github.com/hajimehoshi/go.ebiten/example/game/rects"
-	"github.com/hajimehoshi/go.ebiten/example/game/rotating"
-	"github.com/hajimehoshi/go.ebiten/example/game/sprites"
-	"github.com/hajimehoshi/go.ebiten/ui/cocoa"
-	_ "github.com/hajimehoshi/go.ebiten/ui/glut"
+	"github.com/hajimehoshi/go-ebiten"
+	"github.com/hajimehoshi/go-ebiten/example/game/blank"
+	"github.com/hajimehoshi/go-ebiten/example/game/input"
+	"github.com/hajimehoshi/go-ebiten/example/game/monochrome"
+	"github.com/hajimehoshi/go-ebiten/example/game/rects"
+	"github.com/hajimehoshi/go-ebiten/example/game/rotating"
+	"github.com/hajimehoshi/go-ebiten/example/game/sprites"
+	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
+	_ "github.com/hajimehoshi/go-ebiten/ui/glut"
 	"os"
 	"runtime"
 )

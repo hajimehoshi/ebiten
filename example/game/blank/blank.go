@@ -1,8 +1,8 @@
 package blank
 
 import (
-	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
 type Blank struct {

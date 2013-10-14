@@ -1,9 +1,9 @@
 package rects
 
 import (
-	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/graphics"
-	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten"
+	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"image/color"
 	"math"
 	"math/rand"

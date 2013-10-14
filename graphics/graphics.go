@@ -1,7 +1,7 @@
 package graphics
 
 import (
-	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"image"
 )
 

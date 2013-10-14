@@ -5,7 +5,7 @@ package opengl
 // #include <OpenGL/gl.h>
 import "C"
 import (
-	"github.com/hajimehoshi/go.ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"image"
 	"unsafe"
 )

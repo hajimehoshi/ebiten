@@ -20,9 +20,9 @@ package glut
 //
 import "C"
 import (
-	"github.com/hajimehoshi/go.ebiten"
-	"github.com/hajimehoshi/go.ebiten/graphics"
-	"github.com/hajimehoshi/go.ebiten/graphics/opengl"
+	"github.com/hajimehoshi/go-ebiten"
+	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"os"
 	"time"
 	"unsafe"

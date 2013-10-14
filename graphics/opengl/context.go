@@ -7,8 +7,8 @@ package opengl
 import "C"
 import (
 	"fmt"
-	"github.com/hajimehoshi/go.ebiten/graphics"
-	"github.com/hajimehoshi/go.ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"image"
 	"math"
 	"unsafe"
