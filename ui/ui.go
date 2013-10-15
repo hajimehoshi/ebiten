@@ -7,13 +7,13 @@ import (
 
 type UI interface {
 	MainLoop()
-	ScreenWidth()  int
+	ScreenWidth() int
 	ScreenHeight() int
 	Initializing() chan<- ebiten.Game
-	Initialized()  <-chan ebiten.Game
-	Updating()     chan<- ebiten.Game
-	Updated()      <-chan ebiten.Game
-	Input()        <-chan ebiten.InputState
+	Initialized() <-chan ebiten.Game
+	Updating() chan<- ebiten.Game
+	Updated() <-chan ebiten.Game
+	Input() <-chan ebiten.InputState
 }
 
 func mainLoop(ui UI, game ebiten.Game) {

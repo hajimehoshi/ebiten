@@ -53,15 +53,15 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		panic("UI can't be duplicated.")
 	}
 	ui := &UI{
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
-		title:        title,
-		initializing: make(chan ebiten.Game),
-		initialized:  make(chan ebiten.Game),
-		updating:     make(chan ebiten.Game),
-		updated:      make(chan ebiten.Game),
-		input:        make(chan ebiten.InputState),
+		screenWidth:   screenWidth,
+		screenHeight:  screenHeight,
+		screenScale:   screenScale,
+		title:         title,
+		initializing:  make(chan ebiten.Game),
+		initialized:   make(chan ebiten.Game),
+		updating:      make(chan ebiten.Game),
+		updated:       make(chan ebiten.Game),
+		input:         make(chan ebiten.InputState),
 		glutInputting: make(chan glutInputEvent),
 	}
 	currentUI = ui
