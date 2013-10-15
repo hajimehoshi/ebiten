@@ -21,10 +21,8 @@ package glut
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten"
-	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"os"
-	"time"
 	"unsafe"
 )
 
@@ -34,60 +32,44 @@ type glutInputEvent struct {
 	Y        int
 }
 
-type GlutUI struct {
+type UI struct {
+	screenWidth    int
+	screenHeight   int
 	screenScale    int
-	glutInputting  chan glutInputEvent
+	title          string
+	initializing   chan ebiten.Game
+	initialized    chan ebiten.Game
+	updating       chan ebiten.Game
+	updated        chan ebiten.Game
+	input          chan ebiten.InputState
 	graphicsDevice *opengl.Device
-	updating       chan func(graphics.Context)
-	updated        chan bool
+	glutInputting  chan glutInputEvent
 }
 
-var currentUI *GlutUI
+var currentUI *UI
 
-//export display
-func display() {
-	draw := <-currentUI.updating
-	currentUI.graphicsDevice.Update(draw)
-	currentUI.updated <- true
-	C.glutSwapBuffers()
-}
-
-//export mouse
-func mouse(button, state, x, y C.int) {
-	event := glutInputEvent{false, 0, 0}
-	if state == C.GLUT_DOWN {
-		event.IsActive = true
-		event.X = int(x)
-		event.Y = int(y)
+func New(screenWidth, screenHeight, screenScale int, title string) *UI {
+	if currentUI != nil {
+		panic("UI can't be duplicated.")
 	}
-	currentUI.glutInputting <- event
+	ui := &UI{
+		screenWidth:  screenWidth,
+		screenHeight: screenHeight,
+		screenScale:  screenScale,
+		title:        title,
+		initializing: make(chan ebiten.Game),
+		initialized:  make(chan ebiten.Game),
+		updating:     make(chan ebiten.Game),
+		updated:      make(chan ebiten.Game),
+		input:        make(chan ebiten.InputState),
+		glutInputting: make(chan glutInputEvent),
+	}
+	currentUI = ui
+	return ui
 }
 
-//export motion
-func motion(x, y C.int) {
-	currentUI.glutInputting <- glutInputEvent{
-		IsActive: true,
-		X:        int(x),
-		Y:        int(y),
-	}
-}
-
-//export idle
-func idle() {
-	C.glutPostRedisplay()
-}
-
-func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
-	ui := &GlutUI{
-		glutInputting: make(chan glutInputEvent, 10),
-		updating:      make(chan func(graphics.Context)),
-		updated:       make(chan bool),
-	}
-
-	cargs := []*C.char{}
-	for _, arg := range os.Args {
-		cargs = append(cargs, C.CString(arg))
-	}
+func (ui *UI) MainLoop() {
+	cargs := []*C.char{C.CString(os.Args[0])}
 	defer func() {
 		for _, carg := range cargs {
 			C.free(unsafe.Pointer(carg))
@@ -99,73 +81,20 @@ func new(screenWidth, screenHeight, screenScale int, title string) *GlutUI {
 	C.glutInit(&cargc, &cargs[0])
 	C.glutInitDisplayMode(C.GLUT_RGBA)
 	C.glutInitWindowSize(
-		C.int(screenWidth*screenScale),
-		C.int(screenHeight*screenScale))
+		C.int(ui.screenWidth*ui.screenScale),
+		C.int(ui.screenHeight*ui.screenScale))
 
-	cTitle := C.CString(title)
+	cTitle := C.CString(ui.title)
 	defer C.free(unsafe.Pointer(cTitle))
 	C.glutCreateWindow(cTitle)
 
-	return ui
-}
+	ui.graphicsDevice = opengl.NewDevice(
+		ui.screenWidth, ui.screenHeight, ui.screenScale)
+	ui.graphicsDevice.Init()
 
-func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title string) {
-	ui := new(screenWidth, screenHeight, screenScale, title)
-	currentUI = ui
-
-	graphicsDevice := opengl.NewDevice(
-		screenWidth, screenHeight, screenScale)
-	ui.graphicsDevice = graphicsDevice
-	graphicsDevice.Init()
-
+	game := <-ui.initializing
 	game.Init(ui.graphicsDevice.TextureFactory())
-
-	input := make(chan ebiten.InputState)
-	go func() {
-		ch := ui.glutInputting
-		for {
-			event := <-ch
-			inputState := ebiten.InputState{-1, -1}
-			if event.IsActive {
-				x := event.X / screenScale
-				y := event.Y / screenScale
-				if x < 0 {
-					x = 0
-				} else if screenWidth <= x {
-					x = screenWidth - 1
-				}
-				if y < 0 {
-					y = 0
-				} else if screenHeight <= y {
-					y = screenHeight - 1
-				}
-				inputState.X = x
-				inputState.Y = y
-			}
-			input <- inputState
-		}
-	}()
-
-	go func() {
-		frameTime := time.Duration(
-			int64(time.Second) / int64(ebiten.FPS))
-		tick := time.Tick(frameTime)
-		gameContext := &GameContext{
-			screenWidth:  screenWidth,
-			screenHeight: screenHeight,
-			inputState:   ebiten.InputState{-1, -1},
-		}
-		for {
-			select {
-			case gameContext.inputState = <-input:
-			case <-tick:
-				game.Update(gameContext)
-			case ui.updating <- game.Draw:
-				<-ui.updated
-			}
-		}
-		os.Exit(0)
-	}()
+	ui.initialized <- game
 
 	// Set the callbacks
 	C.setGlutFuncs()
@@ -173,20 +102,75 @@ func Run(game ebiten.Game, screenWidth, screenHeight, screenScale int, title str
 	C.glutMainLoop()
 }
 
-type GameContext struct {
-	screenWidth  int
-	screenHeight int
-	inputState   ebiten.InputState
+func (ui *UI) ScreenWidth() int {
+	return ui.screenWidth
 }
 
-func (context *GameContext) ScreenWidth() int {
-	return context.screenWidth
+func (ui *UI) ScreenHeight() int {
+	return ui.screenHeight
 }
 
-func (context *GameContext) ScreenHeight() int {
-	return context.screenHeight
+func (ui *UI) Initializing() chan<- ebiten.Game {
+	return ui.initializing
 }
 
-func (context *GameContext) InputState() ebiten.InputState {
-	return context.inputState
+func (ui *UI) Initialized() <-chan ebiten.Game {
+	return ui.initialized
+}
+
+func (ui *UI) Updating() chan<- ebiten.Game {
+	return ui.updating
+}
+
+func (ui *UI) Updated() <-chan ebiten.Game {
+	return ui.updated
+}
+
+func (ui *UI) Input() <-chan ebiten.InputState {
+	return ui.input
+}
+
+func (ui *UI) normalizePoint(x, y int) (newX, newY int) {
+	x /= ui.screenScale
+	y /= ui.screenScale
+	if x < 0 {
+		x = 0
+	} else if ui.screenWidth <= x {
+		x = ui.screenWidth - 1
+	}
+	if y < 0 {
+		y = 0
+	} else if ui.screenHeight <= y {
+		y = ui.screenHeight - 1
+	}
+	return x, y
+}
+
+//export display
+func display() {
+	game := <-currentUI.updating
+	currentUI.graphicsDevice.Update(game.Draw)
+	currentUI.updated <- game
+	C.glutSwapBuffers()
+}
+
+//export mouse
+func mouse(button, state, x, y C.int) {
+	if state != C.GLUT_DOWN {
+		currentUI.input <- ebiten.InputState{-1, -1}
+		return
+	}
+	newX, newY := currentUI.normalizePoint(int(x), int(y))
+	currentUI.input <- ebiten.InputState{newX, newY}
+}
+
+//export motion
+func motion(x, y C.int) {
+	newX, newY := currentUI.normalizePoint(int(x), int(y))
+	currentUI.input <- ebiten.InputState{newX, newY}
+}
+
+//export idle
+func idle() {
+	C.glutPostRedisplay()
 }
