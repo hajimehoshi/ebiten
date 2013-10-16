@@ -16,15 +16,16 @@ import (
 )
 
 type UI struct {
-	screenWidth  int
-	screenHeight int
-	screenScale  int
-	title        string
-	initializing chan ebiten.Game
-	initialized  chan ebiten.Game
-	updating     chan ebiten.Game
-	updated      chan ebiten.Game
-	input        chan ebiten.InputState
+	screenWidth    int
+	screenHeight   int
+	screenScale    int
+	title          string
+	initializing   chan ebiten.Game
+	initialized    chan ebiten.Game
+	updating       chan ebiten.Game
+	updated        chan ebiten.Game
+	input          chan ebiten.InputState
+	graphicsDevice *opengl.Device
 }
 
 var currentUI *UI

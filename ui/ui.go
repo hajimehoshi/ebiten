@@ -17,6 +17,9 @@ type UI interface {
 }
 
 func mainLoop(ui UI, game ebiten.Game) {
+	ui.Initializing() <- game
+	game = <-ui.Initialized()
+
 	frameTime := time.Duration(int64(time.Second) / int64(ebiten.FPS))
 	tick := time.Tick(frameTime)
 	gameContext := &GameContext{
@@ -24,8 +27,6 @@ func mainLoop(ui UI, game ebiten.Game) {
 		screenHeight: ui.ScreenHeight(),
 		inputState:   ebiten.InputState{-1, -1},
 	}
-	ui.Initializing() <- game
-	game = <-ui.Initialized()
 	for {
 		select {
 		case gameContext.inputState = <-ui.Input():
