@@ -88,7 +88,7 @@ func (game *Rects) Draw(g graphics.Context) {
 		game.rectGeometryMatrix(),
 		game.rectColorMatrix())
 
-	g.SetOffscreen(g.Screen().ID())
+	g.ResetOffscreen()
 	g.DrawTexture(game.offscreen.Texture().ID(),
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
