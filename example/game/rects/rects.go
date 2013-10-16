@@ -20,10 +20,10 @@ type Rects struct {
 }
 
 const (
-	rectTextureWidth = 16
+	rectTextureWidth  = 16
 	rectTextureHeight = 16
-	offscreenWidth = 256
-	offscreenHeight = 240
+	offscreenWidth    = 256
+	offscreenHeight   = 240
 )
 
 func New() *Rects {

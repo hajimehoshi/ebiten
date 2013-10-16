@@ -10,6 +10,11 @@ import (
 	"os"
 )
 
+const (
+	ebitenTextureWidth = 57
+	ebitenTextureHeight = 26
+)
+
 type Rotating struct {
 	ebitenTexture  graphics.Texture
 	x              int
@@ -40,7 +45,7 @@ func (game *Rotating) Update(context ebiten.GameContext) {
 	game.x++
 
 	game.geometryMatrix = matrix.IdentityGeometry()
-	tx, ty := float64(game.ebitenTexture.Width()), float64(game.ebitenTexture.Height())
+	tx, ty := float64(ebitenTextureWidth), float64(ebitenTextureHeight)
 	game.geometryMatrix.Translate(-tx/2, -ty/2)
 	game.geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(ebiten.FPS*10))
 	game.geometryMatrix.Translate(tx/2, ty/2)

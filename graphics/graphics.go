@@ -39,8 +39,6 @@ type TextureFactory interface {
 
 type Texture interface {
 	ID() TextureID
-	Width() int
-	Height() int
 }
 
 type TextureID int

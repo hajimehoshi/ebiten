@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	ebitenTextureWidth = 57
+	ebitenTextureHeight = 26
+)
+
 type Sprite struct {
 	width  int
 	height int
@@ -90,8 +95,8 @@ func (game *Sprites) Update(context ebiten.GameContext) {
 			sprite := newSprite(
 				context.ScreenWidth(),
 				context.ScreenHeight(),
-				game.ebitenTexture.Width(),
-				game.ebitenTexture.Height())
+				ebitenTextureWidth,
+				ebitenTextureHeight)
 			game.sprites = append(game.sprites, sprite)
 		}
 	}
@@ -112,7 +117,7 @@ func (game *Sprites) Draw(g graphics.Context) {
 			LocationX: sprite.x,
 			LocationY: sprite.y,
 			Source: graphics.Rect{
-				0, 0, texture.Width(), texture.Height(),
+				0, 0, ebitenTextureWidth, ebitenTextureHeight,
 			},
 		}
 		locations = append(locations, location)

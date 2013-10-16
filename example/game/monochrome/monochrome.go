@@ -9,6 +9,11 @@ import (
 	"os"
 )
 
+const (
+	ebitenTextureWidth = 57
+	ebitenTextureHeight = 26
+)
+
 type Monochrome struct {
 	ebitenTexture  graphics.Texture
 	ch             chan bool
@@ -89,8 +94,8 @@ func (game *Monochrome) Update(context ebiten.GameContext) {
 	<-game.ch
 
 	game.geometryMatrix = matrix.IdentityGeometry()
-	tx := context.ScreenWidth()/2 - game.ebitenTexture.Width()/2
-	ty := context.ScreenHeight()/2 - game.ebitenTexture.Height()/2
+	tx := context.ScreenWidth()/2 - ebitenTextureWidth/2
+	ty := context.ScreenHeight()/2 - ebitenTextureHeight/2
 	game.geometryMatrix.Translate(float64(tx), float64(ty))
 }
 
