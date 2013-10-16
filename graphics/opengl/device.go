@@ -34,7 +34,7 @@ func (device *Device) Update(draw func(graphics.Context)) {
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
-	context.SetOffscreen(context.Screen().ID())
+	context.ResetOffscreen()
 	context.Clear()
 
 	draw(context)
@@ -53,7 +53,7 @@ func (device *Device) Update(draw func(graphics.Context)) {
 			{0, scale, 0},
 		},
 	}
-	context.DrawTexture(context.Screen().Texture().ID(),
+	context.DrawTexture(context.screen.Texture().ID(),
 		geometryMatrix, matrix.IdentityColor())
 	context.flush()
 }

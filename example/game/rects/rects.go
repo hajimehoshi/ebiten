@@ -19,6 +19,13 @@ type Rects struct {
 	rectColor         *color.RGBA
 }
 
+const (
+	rectTextureWidth = 16
+	rectTextureHeight = 16
+	offscreenWidth = 256
+	offscreenHeight = 240
+)
+
 func New() *Rects {
 	return &Rects{
 		rectTextureInited: false,
@@ -29,8 +36,8 @@ func New() *Rects {
 }
 
 func (game *Rects) Init(tf graphics.TextureFactory) {
-	game.rectTexture = tf.NewRenderTarget(16, 16)
-	game.offscreen = tf.NewRenderTarget(256, 240)
+	game.rectTexture = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
+	game.offscreen = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
 }
 
 func (game *Rects) Update(context ebiten.GameContext) {
@@ -41,18 +48,18 @@ func (game *Rects) Update(context ebiten.GameContext) {
 	game.rectBounds.Height =
 		rand.Intn(context.ScreenHeight() - game.rectBounds.Y)
 
-	game.rectColor.R = uint8(rand.Intn(256))
-	game.rectColor.G = uint8(rand.Intn(256))
-	game.rectColor.B = uint8(rand.Intn(256))
-	game.rectColor.A = uint8(rand.Intn(256))
+	game.rectColor.R = uint8(rand.Intn(math.MaxUint8))
+	game.rectColor.G = uint8(rand.Intn(math.MaxUint8))
+	game.rectColor.B = uint8(rand.Intn(math.MaxUint8))
+	game.rectColor.A = uint8(rand.Intn(math.MaxUint8))
 }
 
 func (game *Rects) rectGeometryMatrix() matrix.Geometry {
 	geometryMatrix := matrix.IdentityGeometry()
 	scaleX := float64(game.rectBounds.Width) /
-		float64(game.rectTexture.Width())
+		float64(rectTextureWidth)
 	scaleY := float64(game.rectBounds.Height) /
-		float64(game.rectTexture.Height())
+		float64(rectTextureHeight)
 	geometryMatrix.Scale(scaleX, scaleY)
 	geometryMatrix.Translate(
 		float64(game.rectBounds.X), float64(game.rectBounds.Y))

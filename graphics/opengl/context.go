@@ -51,10 +51,6 @@ func (context *Context) Init() {
 		context.screenWidth, context.screenHeight).(*RenderTarget)
 }
 
-func (context *Context) Screen() graphics.RenderTarget {
-	return context.screen
-}
-
 func (context *Context) Clear() {
 	context.Fill(0, 0, 0)
 }
@@ -136,6 +132,10 @@ func (context *Context) DrawTextureParts(
 	C.glDisableClientState(C.GL_VERTEX_ARRAY)
 }
 
+func (context *Context) ResetOffscreen() {
+	context.setOffscreen(context.screen)
+}
+
 func abs(x int) int {
 	if x < 0 {
 		return -x
@@ -189,7 +189,7 @@ func (context *Context) projectionMatrix() [16]float32 {
 		e41 = -1
 		e42 = -1
 	} else {
-		height := float32(texture.Height())
+		height := float32(texture.height)
 		e11 = float32(2) / float32(texture.textureWidth)
 		e22 = -1 * float32(2) / float32(texture.textureHeight)
 		e41 = -1

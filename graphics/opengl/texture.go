@@ -144,11 +144,3 @@ func (renderTarget *RenderTarget) Texture() graphics.Texture {
 func (renderTarget *RenderTarget) ID() graphics.RenderTargetID {
 	return graphics.RenderTargetID(renderTarget.id)
 }
-
-func (renderTarget *RenderTarget) Width() int {
-	return renderTarget.width
-}
-
-func (renderTarget *RenderTarget) Height() int {
-	return renderTarget.height
-}
