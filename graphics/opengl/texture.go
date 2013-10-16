@@ -137,8 +137,8 @@ func newRenderTargetWithFramebuffer(width, height int,
 
 type RenderTarget Texture
 
-func (renderTarget *RenderTarget) Texture() graphics.Texture {
-	return (*Texture)(renderTarget)
+func (renderTarget *RenderTarget) TextureID() graphics.TextureID {
+	return graphics.TextureID(renderTarget.id)
 }
 
 func (renderTarget *RenderTarget) ID() graphics.RenderTargetID {

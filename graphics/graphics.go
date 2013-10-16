@@ -19,6 +19,8 @@ type TexturePart struct {
 }
 
 type Context interface {
+	TextureID(renderTargetID RenderTargetID) TextureID
+
 	Clear()
 	Fill(r, g, b uint8)
 	DrawTexture(textureID TextureID,
@@ -33,21 +35,12 @@ type Context interface {
 }
 
 type TextureFactory interface {
-	NewRenderTarget(width, height int) RenderTarget
-	NewTextureFromImage(img image.Image) (Texture, error)
-}
-
-type Texture interface {
-	ID() TextureID
+	NewRenderTarget(width, height int) RenderTargetID
+	NewTextureFromImage(img image.Image) (TextureID, error)
 }
 
 type TextureID int
 
-// The interface of a render target. This is essentially same as a texture, but
-// it is assumed that the all alpha of a render target is maximum.
-type RenderTarget interface {
-	Texture() Texture
-	ID() RenderTargetID
-}
-
+// A render target is essentially same as a texture, but it is assumed that the
+// all alpha of a render target is maximum.
 type RenderTargetID int

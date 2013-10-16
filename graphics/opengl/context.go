@@ -47,8 +47,13 @@ func (context *Context) Init() {
 
 	initializeShaders()
 
-	context.screen = context.NewRenderTarget(
-		context.screenWidth, context.screenHeight).(*RenderTarget)
+	screenID := context.NewRenderTarget(
+		context.screenWidth, context.screenHeight)
+	context.screen = (*RenderTarget)(context.textures[C.GLuint(screenID)])
+}
+
+func (context *Context) TextureID(renderTargetID graphics.RenderTargetID) graphics.TextureID {
+	return graphics.TextureID(renderTargetID)
 }
 
 func (context *Context) Clear() {
@@ -284,7 +289,7 @@ func createFramebuffer(textureID C.GLuint) C.GLuint {
 	return framebuffer
 }
 
-func (context *Context) NewRenderTarget(width, height int) graphics.RenderTarget {
+func (context *Context) NewRenderTarget(width, height int) graphics.RenderTargetID {
 	renderTarget := newRenderTarget(width, height)
 	context.textures[renderTarget.id] = (*Texture)(renderTarget)
 
@@ -292,15 +297,15 @@ func (context *Context) NewRenderTarget(width, height int) graphics.RenderTarget
 	context.Clear()
 	context.resetOffscreen()
 
-	return renderTarget
+	return renderTarget.ID()
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (
-	graphics.Texture, error) {
+	graphics.TextureID, error) {
 	texture, err := newTextureFromImage(img)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	context.textures[texture.id] = texture
-	return texture, nil
+	return texture.ID(), nil
 }

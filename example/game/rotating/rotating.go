@@ -16,7 +16,7 @@ const (
 )
 
 type Rotating struct {
-	ebitenTexture  graphics.Texture
+	ebitenTextureID  graphics.TextureID
 	x              int
 	geometryMatrix matrix.Geometry
 }
@@ -36,7 +36,7 @@ func (game *Rotating) Init(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.ebitenTexture, err = tf.NewTextureFromImage(img); err != nil {
+	if game.ebitenTextureID, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
 }
@@ -56,7 +56,7 @@ func (game *Rotating) Update(context ebiten.GameContext) {
 
 func (game *Rotating) Draw(g graphics.Context) {
 	g.Fill(128, 128, 255)
-	g.DrawTexture(game.ebitenTexture.ID(),
+	g.DrawTexture(game.ebitenTextureID,
 		game.geometryMatrix,
 		matrix.IdentityColor())
 }
