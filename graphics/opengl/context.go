@@ -15,13 +15,13 @@ import (
 )
 
 type Context struct {
-	screen                 *RenderTarget
+	screen                 *Texture
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
 	textures               map[C.GLuint]*Texture
-	currentOffscreen       *RenderTarget
-	mainFramebufferTexture *RenderTarget
+	currentOffscreen       *Texture
+	mainFramebufferTexture *Texture
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
@@ -49,7 +49,7 @@ func (context *Context) Init() {
 
 	screenID := context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
-	context.screen = (*RenderTarget)(context.textures[C.GLuint(screenID)])
+	context.screen = context.textures[C.GLuint(screenID)]
 }
 
 func (context *Context) TextureID(renderTargetID graphics.RenderTargetID) graphics.TextureID {
@@ -149,15 +149,15 @@ func abs(x int) int {
 }
 
 func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {
-	renderTarget :=
-		(*RenderTarget)(context.textures[C.GLuint(renderTargetID)])
+	renderTarget := context.textures[C.GLuint(renderTargetID)]
+	// TODO: This is a kind of side-effect.
 	if renderTarget.framebuffer == 0 {
 		renderTarget.framebuffer = createFramebuffer(renderTarget.id)
 	}
 	context.setOffscreen(renderTarget)
 }
 
-func (context *Context) setOffscreen(renderTarget *RenderTarget) {
+func (context *Context) setOffscreen(renderTarget *Texture) {
 	context.currentOffscreen = renderTarget
 
 	C.glFlush()
@@ -293,11 +293,12 @@ func (context *Context) NewRenderTarget(width, height int) graphics.RenderTarget
 	renderTarget := newRenderTarget(width, height)
 	context.textures[renderTarget.id] = (*Texture)(renderTarget)
 
-	context.SetOffscreen(renderTarget.ID())
+	//context.setOffscreen((*Texture)(renderTarget))
+	context.SetOffscreen(graphics.RenderTargetID(renderTarget.id))
 	context.Clear()
 	context.resetOffscreen()
 
-	return renderTarget.ID()
+	return graphics.RenderTargetID(renderTarget.id)
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (

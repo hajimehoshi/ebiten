@@ -103,9 +103,8 @@ func (err textureError) Error() string {
 	return "Texture Error: " + string(err)
 }
 
-func newRenderTarget(width, height int) *RenderTarget {
-	renderTarget := createTexture(width, height, nil)
-	return (*RenderTarget)(renderTarget)
+func newRenderTarget(width, height int) *Texture {
+	return createTexture(width, height, nil)
 }
 
 func newTextureFromImage(img image.Image) (*Texture, error) {
@@ -123,8 +122,8 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 }
 
 func newRenderTargetWithFramebuffer(width, height int,
-	framebuffer C.GLuint) *RenderTarget {
-	texture := &Texture{
+	framebuffer C.GLuint) *Texture {
+	return &Texture{
 		id:            0,
 		width:         width,
 		height:        height,
@@ -132,15 +131,4 @@ func newRenderTargetWithFramebuffer(width, height int,
 		textureHeight: int(clp2(uint64(height))),
 		framebuffer:   framebuffer,
 	}
-	return (*RenderTarget)(texture)
-}
-
-type RenderTarget Texture
-
-func (renderTarget *RenderTarget) TextureID() graphics.TextureID {
-	return graphics.TextureID(renderTarget.id)
-}
-
-func (renderTarget *RenderTarget) ID() graphics.RenderTargetID {
-	return graphics.RenderTargetID(renderTarget.id)
 }
