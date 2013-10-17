@@ -19,19 +19,19 @@ type TexturePart struct {
 }
 
 type Context interface {
-	TextureID(renderTargetID RenderTargetID) TextureID
+	ToTexture(renderTargetID RenderTargetID) TextureID
 
 	Clear()
 	Fill(r, g, b uint8)
-	DrawTexture(textureID TextureID,
+	DrawTexture(id TextureID,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
-	DrawTextureParts(textureID TextureID,
+	DrawTextureParts(id TextureID,
 		parts []TexturePart,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
 	ResetOffscreen()
-	SetOffscreen(renderTargetID RenderTargetID)
+	SetOffscreen(id RenderTargetID)
 }
 
 type TextureFactory interface {

@@ -52,7 +52,7 @@ func (context *Context) Init() {
 	context.screen = context.textures[C.GLuint(screenID)]
 }
 
-func (context *Context) TextureID(renderTargetID graphics.RenderTargetID) graphics.TextureID {
+func (context *Context) ToTexture(renderTargetID graphics.RenderTargetID) graphics.TextureID {
 	return graphics.TextureID(renderTargetID)
 }
 
@@ -172,7 +172,7 @@ func (context *Context) setOffscreen(renderTarget *Texture) {
 		C.GLsizei(abs(renderTarget.textureHeight)))
 }
 
-func (context *Context) resetOffscreen() {
+func (context *Context) setMainFramebufferOffscreen() {
 	context.setOffscreen(context.mainFramebufferTexture)
 }
 
@@ -273,7 +273,7 @@ func (context *Context) NewRenderTarget(width, height int) graphics.RenderTarget
 
 	context.setOffscreen((*Texture)(renderTarget))
 	context.Clear()
-	context.resetOffscreen()
+	context.setMainFramebufferOffscreen()
 
 	return graphics.RenderTargetID(renderTarget.id)
 }

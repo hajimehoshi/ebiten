@@ -11,7 +11,7 @@ import (
 
 type Input struct {
 	textTextureID graphics.TextureID
-	inputState  ebiten.InputState
+	inputState    ebiten.InputState
 }
 
 func New() *Input {

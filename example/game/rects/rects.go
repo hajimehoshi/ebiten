@@ -11,9 +11,9 @@ import (
 )
 
 type Rects struct {
-	rectTextureID       graphics.RenderTargetID
+	rectTextureID     graphics.RenderTargetID
 	rectTextureInited bool
-	offscreenID         graphics.RenderTargetID
+	offscreenID       graphics.RenderTargetID
 	offscreenInited   bool
 	rectBounds        *graphics.Rect
 	rectColor         *color.RGBA
@@ -91,12 +91,12 @@ func (game *Rects) Draw(g graphics.Context) {
 		g.Fill(0, 0, 0)
 		game.offscreenInited = true
 	}
-	g.DrawTexture(g.TextureID(game.rectTextureID),
+	g.DrawTexture(g.ToTexture(game.rectTextureID),
 		game.rectGeometryMatrix(),
 		game.rectColorMatrix())
 
 	g.ResetOffscreen()
-	g.DrawTexture(g.TextureID(game.offscreenID),
+	g.DrawTexture(g.ToTexture(game.offscreenID),
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }

@@ -43,8 +43,7 @@ func (device *Device) Update(draw func(graphics.Context)) {
 
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
-	// TODO: The name is not good.
-	context.resetOffscreen()
+	context.setMainFramebufferOffscreen()
 	context.Clear()
 
 	scale := float64(context.screenScale)

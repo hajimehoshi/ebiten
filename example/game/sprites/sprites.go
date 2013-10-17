@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ebitenTextureWidth = 57
+	ebitenTextureWidth  = 57
 	ebitenTextureHeight = 26
 )
 
@@ -65,7 +65,7 @@ func (sprite *Sprite) Update() {
 
 type Sprites struct {
 	ebitenTextureID graphics.TextureID
-	sprites       []*Sprite
+	sprites         []*Sprite
 }
 
 func New() *Sprites {

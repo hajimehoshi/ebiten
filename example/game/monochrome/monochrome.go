@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	ebitenTextureWidth = 57
+	ebitenTextureWidth  = 57
 	ebitenTextureHeight = 26
 )
 
 type Monochrome struct {
-	ebitenTextureID  graphics.TextureID
-	ch             chan bool
-	colorMatrix    matrix.Color
-	geometryMatrix matrix.Geometry
+	ebitenTextureID graphics.TextureID
+	ch              chan bool
+	colorMatrix     matrix.Color
+	geometryMatrix  matrix.Geometry
 }
 
 func New() *Monochrome {

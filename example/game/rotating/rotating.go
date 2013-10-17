@@ -11,14 +11,14 @@ import (
 )
 
 const (
-	ebitenTextureWidth = 57
+	ebitenTextureWidth  = 57
 	ebitenTextureHeight = 26
 )
 
 type Rotating struct {
-	ebitenTextureID  graphics.TextureID
-	x              int
-	geometryMatrix matrix.Geometry
+	ebitenTextureID graphics.TextureID
+	x               int
+	geometryMatrix  matrix.Geometry
 }
 
 func New() *Rotating {
