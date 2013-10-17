@@ -150,10 +150,6 @@ func abs(x int) int {
 
 func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {
 	renderTarget := context.textures[C.GLuint(renderTargetID)]
-	// TODO: This is a kind of side-effect.
-	if renderTarget.framebuffer == 0 {
-		renderTarget.framebuffer = createFramebuffer(renderTarget.id)
-	}
 	context.setOffscreen(renderTarget)
 }
 
@@ -271,30 +267,11 @@ func (context *Context) setShaderProgram(
 	return
 }
 
-func createFramebuffer(textureID C.GLuint) C.GLuint {
-	framebuffer := C.GLuint(0)
-	C.glGenFramebuffers(1, &framebuffer)
-
-	origFramebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
-		C.GL_TEXTURE_2D, textureID, 0)
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
-	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
-		C.GL_FRAMEBUFFER_COMPLETE {
-		panic("creating framebuffer failed")
-	}
-
-	return framebuffer
-}
-
 func (context *Context) NewRenderTarget(width, height int) graphics.RenderTargetID {
 	renderTarget := newRenderTarget(width, height)
 	context.textures[renderTarget.id] = (*Texture)(renderTarget)
 
-	//context.setOffscreen((*Texture)(renderTarget))
-	context.SetOffscreen(graphics.RenderTargetID(renderTarget.id))
+	context.setOffscreen((*Texture)(renderTarget))
 	context.Clear()
 	context.resetOffscreen()
 

@@ -104,7 +104,9 @@ func (err textureError) Error() string {
 }
 
 func newRenderTarget(width, height int) *Texture {
-	return createTexture(width, height, nil)
+	texture := createTexture(width, height, nil)
+	texture.framebuffer = createFramebuffer(texture.id)
+	return texture
 }
 
 func newTextureFromImage(img image.Image) (*Texture, error) {
@@ -131,4 +133,22 @@ func newRenderTargetWithFramebuffer(width, height int,
 		textureHeight: int(clp2(uint64(height))),
 		framebuffer:   framebuffer,
 	}
+}
+
+func createFramebuffer(textureID C.GLuint) C.GLuint {
+	framebuffer := C.GLuint(0)
+	C.glGenFramebuffers(1, &framebuffer)
+
+	origFramebuffer := C.GLint(0)
+	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
+	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
+		C.GL_TEXTURE_2D, textureID, 0)
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
+	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
+		C.GL_FRAMEBUFFER_COMPLETE {
+		panic("creating framebuffer failed")
+	}
+
+	return framebuffer
 }
