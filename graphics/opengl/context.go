@@ -186,7 +186,7 @@ func (context *Context) projectionMatrix() [16]float32 {
 	var e11, e22, e41, e42 float32
 	if texture != context.mainFramebufferTexture {
 		e11 = float32(2) / float32(texture.textureWidth)
-		e22 = float32(2) / float32(texture.textureWidth)
+		e22 = float32(2) / float32(texture.textureHeight)
 		e41 = -1
 		e42 = -1
 	} else {
