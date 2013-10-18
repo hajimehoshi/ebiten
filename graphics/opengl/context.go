@@ -141,13 +141,6 @@ func (context *Context) ResetOffscreen() {
 	context.setOffscreen(context.screen)
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {
 	renderTarget := context.textures[C.GLuint(renderTargetID)]
 	context.setOffscreen(renderTarget)
@@ -168,8 +161,8 @@ func (context *Context) setOffscreen(renderTarget *Texture) {
 	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 		C.GL_ZERO, C.GL_ONE)
 
-	C.glViewport(0, 0, C.GLsizei(abs(renderTarget.textureWidth)),
-		C.GLsizei(abs(renderTarget.textureHeight)))
+	C.glViewport(0, 0, C.GLsizei(renderTarget.textureWidth),
+		C.GLsizei(renderTarget.textureHeight))
 }
 
 func (context *Context) setMainFramebufferOffscreen() {

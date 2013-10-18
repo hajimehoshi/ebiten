@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/example/game/rects"
 	"github.com/hajimehoshi/go-ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go-ebiten/example/game/sprites"
+	"github.com/hajimehoshi/go-ebiten/example/game/testpattern"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"github.com/hajimehoshi/go-ebiten/ui/glut"
@@ -43,6 +44,8 @@ func main() {
 		game = rotating.New()
 	case "sprites":
 		game = sprites.New()
+	case "testpattern":
+		game = testpattern.New()
 	}
 
 	const screenWidth = 256

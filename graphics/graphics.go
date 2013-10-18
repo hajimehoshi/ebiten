@@ -19,7 +19,7 @@ type TexturePart struct {
 }
 
 type Context interface {
-	ToTexture(renderTargetID RenderTargetID) TextureID
+	ToTexture(id RenderTargetID) TextureID
 
 	Clear()
 	Fill(r, g, b uint8)
