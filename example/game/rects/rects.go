@@ -44,9 +44,9 @@ func (game *Rects) Update(context ebiten.GameContext) {
 	game.rectBounds.X = rand.Intn(context.ScreenWidth())
 	game.rectBounds.Y = rand.Intn(context.ScreenHeight())
 	game.rectBounds.Width =
-		rand.Intn(context.ScreenWidth() - game.rectBounds.X)
+		rand.Intn(context.ScreenWidth() - game.rectBounds.X) + 1
 	game.rectBounds.Height =
-		rand.Intn(context.ScreenHeight() - game.rectBounds.Y)
+		rand.Intn(context.ScreenHeight() - game.rectBounds.Y) + 1
 
 	game.rectColor.R = uint8(rand.Intn(math.MaxUint8))
 	game.rectColor.G = uint8(rand.Intn(math.MaxUint8))
