@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-func clp2(x uint64) uint64 {
+func nextPowerOf2(x uint64) uint64 {
 	x -= 1
 	x |= (x >> 1)
 	x |= (x >> 2)
@@ -22,8 +22,8 @@ func clp2(x uint64) uint64 {
 }
 
 func adjustPixels(width, height int, pixels []uint8) []uint8 {
-	textureWidth := int(clp2(uint64(width)))
-	textureHeight := int(clp2(uint64(height)))
+	textureWidth := int(nextPowerOf2(uint64(width)))
+	textureHeight := int(nextPowerOf2(uint64(height)))
 	if width == textureWidth && height == textureHeight {
 		return pixels
 	}
@@ -62,8 +62,8 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	if pixels != nil {
 		pixels = adjustPixels(width, height, pixels)
 	}
-	textureWidth := int(clp2(uint64(width)))
-	textureHeight := int(clp2(uint64(height)))
+	textureWidth := int(nextPowerOf2(uint64(width)))
+	textureHeight := int(nextPowerOf2(uint64(height)))
 	texture := &Texture{
 		id:            0,
 		width:         width,
@@ -129,8 +129,8 @@ func newRenderTargetWithFramebuffer(width, height int,
 		id:            0,
 		width:         width,
 		height:        height,
-		textureWidth:  int(clp2(uint64(width))),
-		textureHeight: int(clp2(uint64(height))),
+		textureWidth:  int(nextPowerOf2(uint64(width))),
+		textureHeight: int(nextPowerOf2(uint64(height))),
 		framebuffer:   framebuffer,
 	}
 }

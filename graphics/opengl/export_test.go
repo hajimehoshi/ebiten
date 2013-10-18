@@ -1,4 +1,4 @@
 package opengl
 
 var AdjustPixels = adjustPixels
-var Clp2 = clp2
+var NextPowerOf2 = nextPowerOf2

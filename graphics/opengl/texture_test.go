@@ -36,7 +36,7 @@ func TestAdjustPixels(t *testing.T) {
 	}
 }
 
-func TestClp2(t *testing.T) {
+func TestNextPowerOf2(t *testing.T) {
 	testCases := []struct {
 		expected uint64
 		arg      uint64
@@ -47,7 +47,7 @@ func TestClp2(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		got := Clp2(testCase.arg)
+		got := NextPowerOf2(testCase.arg)
 		wanted := testCase.expected
 		if wanted != got {
 			t.Errorf("Clp(%d) = %d, wanted %d",
