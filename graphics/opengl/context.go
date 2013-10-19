@@ -15,21 +15,23 @@ import (
 )
 
 type Context struct {
-	screen                 *Texture
+	screen                 *RenderTarget
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
-	textures               map[C.GLuint]*Texture
-	currentOffscreen       *Texture
-	mainFramebufferTexture *Texture
+	textures               map[graphics.TextureID]*Texture
+	renderTargets          map[graphics.RenderTargetID]*RenderTarget
+	currentOffscreen       *RenderTarget
+	mainFramebufferTexture *RenderTarget
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
-		textures:     map[C.GLuint]*Texture{},
+		screenWidth:   screenWidth,
+		screenHeight:  screenHeight,
+		screenScale:   screenScale,
+		textures:      map[graphics.TextureID]*Texture{},
+		renderTargets: map[graphics.RenderTargetID]*RenderTarget{},
 	}
 	return context
 }
@@ -49,11 +51,12 @@ func (context *Context) Init() {
 
 	screenID := context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
-	context.screen = context.textures[C.GLuint(screenID)]
+	context.screen = context.renderTargets[screenID]
 }
 
 func (context *Context) ToTexture(renderTargetID graphics.RenderTargetID) graphics.TextureID {
-	return graphics.TextureID(renderTargetID)
+	renderTarget := context.renderTargets[renderTargetID]
+	return renderTarget.texture.ID()
 }
 
 func (context *Context) Clear() {
@@ -73,8 +76,10 @@ func (context *Context) Fill(r, g, b uint8) {
 func (context *Context) DrawTexture(
 	textureID graphics.TextureID,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture := context.textures[C.GLuint(textureID)]
-
+	texture, ok := context.textures[textureID]
+	if !ok {
+		panic("invalid texture ID")
+	}
 	source := graphics.Rect{0, 0, texture.width, texture.height}
 	locations := []graphics.TexturePart{{0, 0, source}}
 	context.DrawTextureParts(textureID, locations,
@@ -84,13 +89,14 @@ func (context *Context) DrawTexture(
 func (context *Context) DrawTextureParts(
 	textureID graphics.TextureID, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture := context.textures[C.GLuint(textureID)]
-	if texture == nil {
+
+	texture, ok := context.textures[textureID]
+	if !ok {
 		panic("invalid texture ID")
 	}
 
 	shaderProgram := context.setShaderProgram(geometryMatrix, colorMatrix)
-	C.glBindTexture(C.GL_TEXTURE_2D, texture.id)
+	C.glBindTexture(C.GL_TEXTURE_2D, texture.native)
 
 	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
 	textureAttrLocation := getAttributeLocation(shaderProgram, "texture")
@@ -142,11 +148,11 @@ func (context *Context) ResetOffscreen() {
 }
 
 func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {
-	renderTarget := context.textures[C.GLuint(renderTargetID)]
+	renderTarget := context.renderTargets[renderTargetID]
 	context.setOffscreen(renderTarget)
 }
 
-func (context *Context) setOffscreen(renderTarget *Texture) {
+func (context *Context) setOffscreen(renderTarget *RenderTarget) {
 	context.currentOffscreen = renderTarget
 
 	C.glFlush()
@@ -161,8 +167,8 @@ func (context *Context) setOffscreen(renderTarget *Texture) {
 	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 		C.GL_ZERO, C.GL_ONE)
 
-	C.glViewport(0, 0, C.GLsizei(renderTarget.textureWidth),
-		C.GLsizei(renderTarget.textureHeight))
+	C.glViewport(0, 0, C.GLsizei(renderTarget.texture.textureWidth),
+		C.GLsizei(renderTarget.texture.textureHeight))
 }
 
 func (context *Context) setMainFramebufferOffscreen() {
@@ -174,16 +180,16 @@ func (context *Context) flush() {
 }
 
 func (context *Context) projectionMatrix() [16]float32 {
-	texture := context.currentOffscreen
+	texture := context.currentOffscreen.texture
 
 	e11 := float32(2) / float32(texture.textureWidth)
 	e22 := float32(2) / float32(texture.textureHeight)
 	e41 := float32(-1)
 	e42 := float32(-1)
 
-	if texture == context.mainFramebufferTexture {
+	if context.currentOffscreen.ID() == context.mainFramebufferTexture.ID() {
 		e22 *= -1
-		e42 += float32(texture.height)/float32(texture.textureHeight)*2
+		e42 += float32(texture.height) / float32(texture.textureHeight) * 2
 	}
 
 	return [...]float32{
@@ -258,13 +264,14 @@ func (context *Context) setShaderProgram(
 
 func (context *Context) NewRenderTarget(width, height int) graphics.RenderTargetID {
 	renderTarget := newRenderTarget(width, height)
-	context.textures[renderTarget.id] = (*Texture)(renderTarget)
+	context.renderTargets[renderTarget.ID()] = renderTarget
+	context.textures[renderTarget.texture.ID()] = renderTarget.texture
 
-	context.setOffscreen((*Texture)(renderTarget))
+	context.setOffscreen(renderTarget)
 	context.Clear()
 	context.setMainFramebufferOffscreen()
 
-	return graphics.RenderTargetID(renderTarget.id)
+	return renderTarget.ID()
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (
@@ -273,6 +280,6 @@ func (context *Context) NewTextureFromImage(img image.Image) (
 	if err != nil {
 		return 0, err
 	}
-	context.textures[texture.id] = texture
+	context.textures[texture.ID()] = texture
 	return texture.ID(), nil
 }

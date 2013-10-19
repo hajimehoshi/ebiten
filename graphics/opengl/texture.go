@@ -38,24 +38,22 @@ func adjustPixels(width, height int, pixels []uint8) []uint8 {
 }
 
 type Texture struct {
-	id            C.GLuint
+	id            graphics.TextureID
+	native        C.GLuint
 	width         int
 	height        int
 	textureWidth  int
 	textureHeight int
-	framebuffer   C.GLuint
+}
+
+type RenderTarget struct {
+	id          graphics.RenderTargetID
+	texture     *Texture
+	framebuffer C.GLuint
 }
 
 func (texture *Texture) ID() graphics.TextureID {
-	return graphics.TextureID(texture.id)
-}
-
-func (texture *Texture) Width() int {
-	return texture.width
-}
-
-func (texture *Texture) Height() int {
-	return texture.height
+	return texture.id
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
@@ -72,13 +70,13 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 		textureHeight: textureHeight,
 	}
 
-	textureID := C.GLuint(0)
-	C.glGenTextures(1, (*C.GLuint)(&textureID))
-	if textureID < 0 {
+	nativeTexture := C.GLuint(0)
+	C.glGenTextures(1, (*C.GLuint)(&nativeTexture))
+	if nativeTexture < 0 {
 		panic("glGenTexture failed")
 	}
 	C.glPixelStorei(C.GL_UNPACK_ALIGNMENT, 4)
-	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(textureID))
+	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(nativeTexture))
 
 	ptr := unsafe.Pointer(nil)
 	if pixels != nil {
@@ -92,21 +90,35 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 	C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
-	texture.id = textureID
+	texture.native = nativeTexture
+
+	texture.id = graphics.TextureID(<-newID)
 
 	return texture
+}
+
+func newRenderTarget(width, height int) *RenderTarget {
+	texture := createTexture(width, height, nil)
+	framebuffer := createFramebuffer(texture.native)
+	return &RenderTarget{
+		id:          graphics.RenderTargetID(<-newID),
+		texture:     texture,
+		framebuffer: framebuffer,
+	}
+}
+
+func (renderTarget *RenderTarget) ID() graphics.RenderTargetID {
+	return renderTarget.id
+}
+
+func (renderTarget *RenderTarget) Texture() *Texture {
+	return renderTarget.texture
 }
 
 type textureError string
 
 func (err textureError) Error() string {
 	return "Texture Error: " + string(err)
-}
-
-func newRenderTarget(width, height int) *Texture {
-	texture := createTexture(width, height, nil)
-	texture.framebuffer = createFramebuffer(texture.id)
-	return texture
 }
 
 func newTextureFromImage(img image.Image) (*Texture, error) {
@@ -124,18 +136,21 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 }
 
 func newRenderTargetWithFramebuffer(width, height int,
-	framebuffer C.GLuint) *Texture {
-	return &Texture{
-		id:            0,
+	framebuffer C.GLuint) *RenderTarget {
+	texture := &Texture{
+		id:            graphics.TextureID(<-newID),
 		width:         width,
 		height:        height,
 		textureWidth:  int(nextPowerOf2(uint64(width))),
 		textureHeight: int(nextPowerOf2(uint64(height))),
-		framebuffer:   framebuffer,
+	}
+	return &RenderTarget{
+		texture:     texture,
+		framebuffer: framebuffer,
 	}
 }
 
-func createFramebuffer(textureID C.GLuint) C.GLuint {
+func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 	framebuffer := C.GLuint(0)
 	C.glGenFramebuffers(1, &framebuffer)
 
@@ -143,7 +158,7 @@ func createFramebuffer(textureID C.GLuint) C.GLuint {
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
 	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
-		C.GL_TEXTURE_2D, textureID, 0)
+		C.GL_TEXTURE_2D, nativeTexture, 0)
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
 	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
 		C.GL_FRAMEBUFFER_COMPLETE {
@@ -151,4 +166,15 @@ func createFramebuffer(textureID C.GLuint) C.GLuint {
 	}
 
 	return framebuffer
+}
+
+var newID chan int
+
+func init() {
+	newID = make(chan int)
+	go func() {
+		for i := 0; ; i++ {
+			newID <- i
+		}
+	}()
 }
