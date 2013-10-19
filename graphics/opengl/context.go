@@ -16,22 +16,25 @@ import (
 
 type Context struct {
 	screen                 *RenderTarget
+	screenId               graphics.RenderTargetID
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
 	textures               map[graphics.TextureID]*Texture
 	renderTargets          map[graphics.RenderTargetID]*RenderTarget
+	renderTargetToTexture  map[graphics.RenderTargetID]graphics.TextureID
 	currentOffscreen       *RenderTarget
 	mainFramebufferTexture *RenderTarget
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		screenWidth:   screenWidth,
-		screenHeight:  screenHeight,
-		screenScale:   screenScale,
-		textures:      map[graphics.TextureID]*Texture{},
-		renderTargets: map[graphics.RenderTargetID]*RenderTarget{},
+		screenWidth:           screenWidth,
+		screenHeight:          screenHeight,
+		screenScale:           screenScale,
+		textures:              map[graphics.TextureID]*Texture{},
+		renderTargets:         map[graphics.RenderTargetID]*RenderTarget{},
+		renderTargetToTexture: map[graphics.RenderTargetID]graphics.TextureID{},
 	}
 	return context
 }
@@ -49,14 +52,13 @@ func (context *Context) Init() {
 
 	initializeShaders()
 
-	screenID := context.NewRenderTarget(
+	context.screenId = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
-	context.screen = context.renderTargets[screenID]
+	context.screen = context.renderTargets[context.screenId]
 }
 
 func (context *Context) ToTexture(renderTargetID graphics.RenderTargetID) graphics.TextureID {
-	renderTarget := context.renderTargets[renderTargetID]
-	return renderTarget.texture.ID()
+	return context.renderTargetToTexture[renderTargetID]
 }
 
 func (context *Context) Clear() {
@@ -187,7 +189,7 @@ func (context *Context) projectionMatrix() [16]float32 {
 	e41 := float32(-1)
 	e42 := float32(-1)
 
-	if context.currentOffscreen.ID() == context.mainFramebufferTexture.ID() {
+	if context.currentOffscreen == context.mainFramebufferTexture {
 		e22 *= -1
 		e42 += float32(texture.height) / float32(texture.textureHeight) * 2
 	}
@@ -264,14 +266,17 @@ func (context *Context) setShaderProgram(
 
 func (context *Context) NewRenderTarget(width, height int) graphics.RenderTargetID {
 	renderTarget := newRenderTarget(width, height)
-	context.renderTargets[renderTarget.ID()] = renderTarget
-	context.textures[renderTarget.texture.ID()] = renderTarget.texture
+	renderTargetId := graphics.RenderTargetID(<-newId)
+	textureId := graphics.TextureID(<-newId)
+	context.renderTargets[renderTargetId] = renderTarget
+	context.textures[textureId] = renderTarget.texture
+	context.renderTargetToTexture[renderTargetId] = textureId
 
 	context.setOffscreen(renderTarget)
 	context.Clear()
 	context.setMainFramebufferOffscreen()
 
-	return renderTarget.ID()
+	return renderTargetId
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (
@@ -280,6 +285,18 @@ func (context *Context) NewTextureFromImage(img image.Image) (
 	if err != nil {
 		return 0, err
 	}
-	context.textures[texture.ID()] = texture
-	return texture.ID(), nil
+	textureId := graphics.TextureID(<-newId)
+	context.textures[textureId] = texture
+	return textureId, nil
+}
+
+var newId chan int
+
+func init() {
+	newId = make(chan int)
+	go func() {
+		for i := 0; ; i++ {
+			newId <- i
+		}
+	}()
 }

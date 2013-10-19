@@ -5,7 +5,6 @@ package opengl
 // #include <OpenGL/gl.h>
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
 	"image"
 	"unsafe"
 )
@@ -38,7 +37,6 @@ func adjustPixels(width, height int, pixels []uint8) []uint8 {
 }
 
 type Texture struct {
-	id            graphics.TextureID
 	native        C.GLuint
 	width         int
 	height        int
@@ -47,13 +45,8 @@ type Texture struct {
 }
 
 type RenderTarget struct {
-	id          graphics.RenderTargetID
 	texture     *Texture
 	framebuffer C.GLuint
-}
-
-func (texture *Texture) ID() graphics.TextureID {
-	return texture.id
 }
 
 func createTexture(width, height int, pixels []uint8) *Texture {
@@ -63,7 +56,6 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	textureWidth := int(nextPowerOf2(uint64(width)))
 	textureHeight := int(nextPowerOf2(uint64(height)))
 	texture := &Texture{
-		id:            0,
 		width:         width,
 		height:        height,
 		textureWidth:  textureWidth,
@@ -92,8 +84,6 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 
 	texture.native = nativeTexture
 
-	texture.id = graphics.TextureID(<-newID)
-
 	return texture
 }
 
@@ -101,18 +91,9 @@ func newRenderTarget(width, height int) *RenderTarget {
 	texture := createTexture(width, height, nil)
 	framebuffer := createFramebuffer(texture.native)
 	return &RenderTarget{
-		id:          graphics.RenderTargetID(<-newID),
 		texture:     texture,
 		framebuffer: framebuffer,
 	}
-}
-
-func (renderTarget *RenderTarget) ID() graphics.RenderTargetID {
-	return renderTarget.id
-}
-
-func (renderTarget *RenderTarget) Texture() *Texture {
-	return renderTarget.texture
 }
 
 type textureError string
@@ -138,7 +119,6 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 func newRenderTargetWithFramebuffer(width, height int,
 	framebuffer C.GLuint) *RenderTarget {
 	texture := &Texture{
-		id:            graphics.TextureID(<-newID),
 		width:         width,
 		height:        height,
 		textureWidth:  int(nextPowerOf2(uint64(width))),
@@ -166,15 +146,4 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 	}
 
 	return framebuffer
-}
-
-var newID chan int
-
-func init() {
-	newID = make(chan int)
-	go func() {
-		for i := 0; ; i++ {
-			newID <- i
-		}
-	}()
 }
