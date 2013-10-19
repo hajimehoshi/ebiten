@@ -176,18 +176,14 @@ func (context *Context) flush() {
 func (context *Context) projectionMatrix() [16]float32 {
 	texture := context.currentOffscreen
 
-	var e11, e22, e41, e42 float32
-	if texture != context.mainFramebufferTexture {
-		e11 = float32(2) / float32(texture.textureWidth)
-		e22 = float32(2) / float32(texture.textureHeight)
-		e41 = -1
-		e42 = -1
-	} else {
-		height := float32(texture.height)
-		e11 = float32(2) / float32(texture.textureWidth)
-		e22 = -1 * float32(2) / float32(texture.textureHeight)
-		e41 = -1
-		e42 = -1 + height/float32(texture.textureHeight)*2
+	e11 := float32(2) / float32(texture.textureWidth)
+	e22 := float32(2) / float32(texture.textureHeight)
+	e41 := float32(-1)
+	e42 := float32(-1)
+
+	if texture == context.mainFramebufferTexture {
+		e22 *= -1
+		e42 += float32(texture.height)/float32(texture.textureHeight)*2
 	}
 
 	return [...]float32{
