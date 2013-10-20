@@ -67,7 +67,16 @@ func createTexture(width, height int) *Texture {
 	}
 }
 
-func createTextureFromImage(img image.Image) *Texture {
+func newRenderTarget(width, height int) (*RenderTarget, error) {
+	texture := createTexture(width, height)
+	framebuffer := createFramebuffer(texture.native)
+	return &RenderTarget{
+		texture:     texture,
+		framebuffer: framebuffer,
+	}, nil
+}
+
+func newTextureFromImage(img image.Image) (*Texture, error) {
 	size := img.Bounds().Size()
 	width, height := size.X, size.Y
 
@@ -93,20 +102,7 @@ func createTextureFromImage(img image.Image) *Texture {
 		textureWidth:  textureWidth,
 		textureHeight: textureHeight,
 		native:        nativeTexture,
-	}
-}
-
-func newRenderTarget(width, height int) *RenderTarget {
-	texture := createTexture(width, height)
-	framebuffer := createFramebuffer(texture.native)
-	return &RenderTarget{
-		texture:     texture,
-		framebuffer: framebuffer,
-	}
-}
-
-func newTextureFromImage(img image.Image) (*Texture, error) {
-	return createTextureFromImage(img), nil
+	}, nil
 }
 
 func newRenderTargetWithFramebuffer(width, height int,

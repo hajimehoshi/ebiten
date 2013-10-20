@@ -51,8 +51,12 @@ func (context *Context) Init() {
 
 	initializeShaders()
 
-	context.screenId = context.NewRenderTarget(
+	var err error
+	context.screenId, err = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
+	if err != nil {
+		panic("initializing the offscreen failed: " + err.Error())
+	}
 }
 
 func (context *Context) ToTexture(renderTargetID graphics.RenderTargetID) graphics.TextureID {
@@ -262,8 +266,12 @@ func (context *Context) setShaderProgram(
 	return
 }
 
-func (context *Context) NewRenderTarget(width, height int) graphics.RenderTargetID {
-	renderTarget := newRenderTarget(width, height)
+func (context *Context) NewRenderTarget(width, height int) (
+	graphics.RenderTargetID, error) {
+	renderTarget, err := newRenderTarget(width, height)
+	if err != nil {
+		return 0, nil
+	}
 	renderTargetId := graphics.RenderTargetID(<-newId)
 	textureId := graphics.TextureID(<-newId)
 	context.renderTargets[renderTargetId] = renderTarget
@@ -274,7 +282,7 @@ func (context *Context) NewRenderTarget(width, height int) graphics.RenderTarget
 	context.Clear()
 	context.setMainFramebufferOffscreen()
 
-	return renderTargetId
+	return renderTargetId, nil
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (

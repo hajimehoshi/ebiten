@@ -36,8 +36,15 @@ func New() *Rects {
 }
 
 func (game *Rects) InitTextures(tf graphics.TextureFactory) {
-	game.rectTextureID = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
-	game.offscreenID = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
+	var err error
+	game.rectTextureID, err = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
+	if err != nil {
+		panic(err)
+	}
+	game.offscreenID, err = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (game *Rects) Update(context ebiten.GameContext) {

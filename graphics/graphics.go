@@ -35,7 +35,7 @@ type Context interface {
 }
 
 type TextureFactory interface {
-	NewRenderTarget(width, height int) RenderTargetID
+	NewRenderTarget(width, height int) (RenderTargetID, error)
 	NewTextureFromImage(img image.Image) (TextureID, error)
 }
 
