@@ -69,6 +69,9 @@ type Sprites struct {
 }
 
 func New() *Sprites {
+	go func() {
+		
+	}()
 	return &Sprites{}
 }
 

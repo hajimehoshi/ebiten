@@ -6,6 +6,7 @@ package opengl
 import "C"
 import (
 	"image"
+	"image/draw"
 	"unsafe"
 )
 
@@ -18,22 +19,6 @@ func nextPowerOf2(x uint64) uint64 {
 	x |= (x >> 16)
 	x |= (x >> 32)
 	return x + 1
-}
-
-func adjustPixels(width, height int, pixels []uint8) []uint8 {
-	textureWidth := int(nextPowerOf2(uint64(width)))
-	textureHeight := int(nextPowerOf2(uint64(height)))
-	if width == textureWidth && height == textureHeight {
-		return pixels
-	}
-
-	newPixels := make([]uint8, textureWidth*textureHeight*4)
-
-	for j := 0; j < height; j++ {
-		copy(newPixels[textureWidth*4*j:],
-			pixels[width*4*j:width*4*j+width*4])
-	}
-	return newPixels
 }
 
 type Texture struct {
@@ -49,20 +34,9 @@ type RenderTarget struct {
 	framebuffer C.GLuint
 }
 
-func createTexture(width, height int, pixels []uint8) *Texture {
-	if pixels != nil {
-		pixels = adjustPixels(width, height, pixels)
-	}
-	textureWidth := int(nextPowerOf2(uint64(width)))
-	textureHeight := int(nextPowerOf2(uint64(height)))
-	texture := &Texture{
-		width:         width,
-		height:        height,
-		textureWidth:  textureWidth,
-		textureHeight: textureHeight,
-	}
-
+func createNativeTexture(textureWidth, textureHeight int, pixels unsafe.Pointer) C.GLuint {
 	nativeTexture := C.GLuint(0)
+
 	C.glGenTextures(1, (*C.GLuint)(&nativeTexture))
 	if nativeTexture < 0 {
 		panic("glGenTexture failed")
@@ -70,25 +44,60 @@ func createTexture(width, height int, pixels []uint8) *Texture {
 	C.glPixelStorei(C.GL_UNPACK_ALIGNMENT, 4)
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(nativeTexture))
 
-	ptr := unsafe.Pointer(nil)
-	if pixels != nil {
-		ptr = unsafe.Pointer(&pixels[0])
-	}
 	C.glTexImage2D(C.GL_TEXTURE_2D, 0, C.GL_RGBA,
 		C.GLsizei(textureWidth), C.GLsizei(textureHeight),
-		0, C.GL_RGBA, C.GL_UNSIGNED_BYTE, ptr)
+		0, C.GL_RGBA, C.GL_UNSIGNED_BYTE, pixels)
 
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 	C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
-	texture.native = nativeTexture
+	return nativeTexture
+}
 
-	return texture
+func createTexture(width, height int) *Texture {
+	textureWidth := int(nextPowerOf2(uint64(width)))
+	textureHeight := int(nextPowerOf2(uint64(height)))
+	return &Texture{
+		width:         width,
+		height:        height,
+		textureWidth:  textureWidth,
+		textureHeight: textureHeight,
+		native:        createNativeTexture(textureWidth, textureHeight, nil),
+	}
+}
+
+func createTextureFromImage(img image.Image) *Texture {
+	size := img.Bounds().Size()
+	width, height := size.X, size.Y
+
+	textureWidth := int(nextPowerOf2(uint64(width)))
+	textureHeight := int(nextPowerOf2(uint64(height)))
+
+	adjustedImageBound := image.Rectangle{
+		image.ZP,
+		image.Point{textureWidth, textureHeight},
+	}
+	adjustedImage := image.NewNRGBA(adjustedImageBound)
+	dstBound := image.Rectangle{
+		image.ZP,
+		img.Bounds().Size(),
+	}
+	draw.Draw(adjustedImage, dstBound, img, image.ZP, draw.Src)
+	pixelsPtr := unsafe.Pointer(&adjustedImage.Pix[0])
+	nativeTexture := createNativeTexture(textureWidth, textureHeight, pixelsPtr)
+
+	return &Texture{
+		width:         width,
+		height:        height,
+		textureWidth:  textureWidth,
+		textureHeight: textureHeight,
+		native:        nativeTexture,
+	}
 }
 
 func newRenderTarget(width, height int) *RenderTarget {
-	texture := createTexture(width, height, nil)
+	texture := createTexture(width, height)
 	framebuffer := createFramebuffer(texture.native)
 	return &RenderTarget{
 		texture:     texture,
@@ -96,24 +105,8 @@ func newRenderTarget(width, height int) *RenderTarget {
 	}
 }
 
-type textureError string
-
-func (err textureError) Error() string {
-	return "Texture Error: " + string(err)
-}
-
 func newTextureFromImage(img image.Image) (*Texture, error) {
-	var pix []uint8
-	switch img.(type) {
-	case *image.RGBA:
-		pix = img.(*image.RGBA).Pix
-	case *image.NRGBA:
-		pix = img.(*image.NRGBA).Pix
-	default:
-		return nil, textureError("image format must be RGBA or NRGBA")
-	}
-	size := img.Bounds().Size()
-	return createTexture(size.X, size.Y, pix), nil
+	return createTextureFromImage(img), nil
 }
 
 func newRenderTargetWithFramebuffer(width, height int,
