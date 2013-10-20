@@ -72,7 +72,7 @@ func New() *Sprites {
 	return &Sprites{}
 }
 
-func (game *Sprites) Init(tf graphics.TextureFactory) {
+func (game *Sprites) InitTextures(tf graphics.TextureFactory) {
 	file, err := os.Open("images/ebiten.png")
 	if err != nil {
 		panic(err)

@@ -15,7 +15,6 @@ import (
 )
 
 type Context struct {
-	screen                 *RenderTarget
 	screenId               graphics.RenderTargetID
 	screenWidth            int
 	screenHeight           int
@@ -54,7 +53,6 @@ func (context *Context) Init() {
 
 	context.screenId = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
-	context.screen = context.renderTargets[context.screenId]
 }
 
 func (context *Context) ToTexture(renderTargetID graphics.RenderTargetID) graphics.TextureID {
@@ -146,7 +144,7 @@ func (context *Context) DrawTextureParts(
 }
 
 func (context *Context) ResetOffscreen() {
-	context.setOffscreen(context.screen)
+	context.SetOffscreen(context.screenId)
 }
 
 func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {

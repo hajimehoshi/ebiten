@@ -100,7 +100,7 @@ func ebiten_EbitenOpenGLView_Initialized() {
 	currentUI.graphicsDevice.Init()
 
 	game := <-currentUI.initializing
-	game.Init(currentUI.graphicsDevice.TextureFactory())
+	game.InitTextures(currentUI.graphicsDevice.TextureFactory())
 	currentUI.initialized <- game
 }
 

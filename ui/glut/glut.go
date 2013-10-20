@@ -93,7 +93,7 @@ func (ui *UI) MainLoop() {
 	ui.graphicsDevice.Init()
 
 	game := <-ui.initializing
-	game.Init(ui.graphicsDevice.TextureFactory())
+	game.InitTextures(ui.graphicsDevice.TextureFactory())
 	ui.initialized <- game
 
 	// Set the callbacks

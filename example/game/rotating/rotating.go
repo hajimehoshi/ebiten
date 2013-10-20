@@ -25,7 +25,7 @@ func New() *Rotating {
 	return &Rotating{}
 }
 
-func (game *Rotating) Init(tf graphics.TextureFactory) {
+func (game *Rotating) InitTextures(tf graphics.TextureFactory) {
 	file, err := os.Open("images/ebiten.png")
 	if err != nil {
 		panic(err)

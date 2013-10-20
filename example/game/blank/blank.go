@@ -12,7 +12,7 @@ func New() *Blank {
 	return &Blank{}
 }
 
-func (game *Blank) Init(tf graphics.TextureFactory) {
+func (game *Blank) InitTextures(tf graphics.TextureFactory) {
 }
 
 func (game *Blank) Update(context ebiten.GameContext) {

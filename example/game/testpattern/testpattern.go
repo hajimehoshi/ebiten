@@ -21,7 +21,7 @@ func New() *TestPattern {
 	return &TestPattern{}
 }
 
-func (game *TestPattern) Init(tf graphics.TextureFactory) {
+func (game *TestPattern) InitTextures(tf graphics.TextureFactory) {
 	file, err := os.Open("images/test_pattern.png")
 	if err != nil {
 		panic(err)

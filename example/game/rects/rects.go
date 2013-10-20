@@ -35,7 +35,7 @@ func New() *Rects {
 	}
 }
 
-func (game *Rects) Init(tf graphics.TextureFactory) {
+func (game *Rects) InitTextures(tf graphics.TextureFactory) {
 	game.rectTextureID = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
 	game.offscreenID = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
 }

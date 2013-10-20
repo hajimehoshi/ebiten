@@ -18,7 +18,7 @@ func New() *Input {
 	return &Input{}
 }
 
-func (game *Input) Init(tf graphics.TextureFactory) {
+func (game *Input) InitTextures(tf graphics.TextureFactory) {
 	file, err := os.Open("images/text.png")
 	if err != nil {
 		panic(err)

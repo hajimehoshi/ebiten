@@ -29,7 +29,7 @@ func New() *Monochrome {
 	}
 }
 
-func (game *Monochrome) Init(tf graphics.TextureFactory) {
+func (game *Monochrome) InitTextures(tf graphics.TextureFactory) {
 	file, err := os.Open("images/ebiten.png")
 	if err != nil {
 		panic(err)

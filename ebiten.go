@@ -9,7 +9,7 @@ const (
 )
 
 type Game interface {
-	Init(tf graphics.TextureFactory)
+	InitTextures(tf graphics.TextureFactory)
 	Update(context GameContext)
 	Draw(context graphics.Context)
 }
