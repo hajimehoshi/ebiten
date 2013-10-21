@@ -15,7 +15,7 @@ const (
 )
 
 type Monochrome struct {
-	ebitenTextureID graphics.TextureID
+	ebitenTextureId graphics.TextureId
 	ch              chan bool
 	colorMatrix     matrix.Color
 	geometryMatrix  matrix.Geometry
@@ -40,7 +40,7 @@ func (game *Monochrome) InitTextures(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.ebitenTextureID, err = tf.NewTextureFromImage(img); err != nil {
+	if game.ebitenTextureId, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
 
@@ -102,6 +102,6 @@ func (game *Monochrome) Update(context ebiten.GameContext) {
 func (game *Monochrome) Draw(g graphics.Context) {
 	g.Fill(128, 128, 255)
 
-	g.DrawTexture(game.ebitenTextureID,
+	g.DrawTexture(game.ebitenTextureId,
 		game.geometryMatrix, game.colorMatrix)
 }

@@ -15,13 +15,13 @@ import (
 )
 
 type Context struct {
-	screenId               graphics.RenderTargetID
+	screenId               graphics.RenderTargetId
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
-	textures               map[graphics.TextureID]*Texture
-	renderTargets          map[graphics.RenderTargetID]*RenderTarget
-	renderTargetToTexture  map[graphics.RenderTargetID]graphics.TextureID
+	textures               map[graphics.TextureId]*Texture
+	renderTargets          map[graphics.RenderTargetId]*RenderTarget
+	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
 	currentOffscreen       *RenderTarget
 	mainFramebufferTexture *RenderTarget
 }
@@ -31,9 +31,9 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenWidth:           screenWidth,
 		screenHeight:          screenHeight,
 		screenScale:           screenScale,
-		textures:              map[graphics.TextureID]*Texture{},
-		renderTargets:         map[graphics.RenderTargetID]*RenderTarget{},
-		renderTargetToTexture: map[graphics.RenderTargetID]graphics.TextureID{},
+		textures:              map[graphics.TextureId]*Texture{},
+		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
+		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 	}
 	return context
 }
@@ -59,8 +59,8 @@ func (context *Context) Init() {
 	}
 }
 
-func (context *Context) ToTexture(renderTargetID graphics.RenderTargetID) graphics.TextureID {
-	return context.renderTargetToTexture[renderTargetID]
+func (context *Context) ToTexture(renderTargetId graphics.RenderTargetId) graphics.TextureId {
+	return context.renderTargetToTexture[renderTargetId]
 }
 
 func (context *Context) Clear() {
@@ -78,25 +78,25 @@ func (context *Context) Fill(r, g, b uint8) {
 }
 
 func (context *Context) DrawTexture(
-	textureID graphics.TextureID,
+	textureId graphics.TextureId,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture, ok := context.textures[textureID]
+	texture, ok := context.textures[textureId]
 	if !ok {
 		panic("invalid texture ID")
 	}
 	source := graphics.Rect{0, 0, texture.width, texture.height}
 	locations := []graphics.TexturePart{{0, 0, source}}
-	context.DrawTextureParts(textureID, locations,
+	context.DrawTextureParts(textureId, locations,
 		geometryMatrix, colorMatrix)
 }
 
 func (context *Context) DrawTextureParts(
-	textureID graphics.TextureID, parts []graphics.TexturePart,
+	textureId graphics.TextureId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 
-	texture, ok := context.textures[textureID]
+	texture, ok := context.textures[textureId]
 	if !ok {
-		panic("invalid texture ID")
+		panic("invalid texture Id")
 	}
 
 	shaderProgram := context.setShaderProgram(geometryMatrix, colorMatrix)
@@ -151,8 +151,8 @@ func (context *Context) ResetOffscreen() {
 	context.SetOffscreen(context.screenId)
 }
 
-func (context *Context) SetOffscreen(renderTargetID graphics.RenderTargetID) {
-	renderTarget := context.renderTargets[renderTargetID]
+func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
+	renderTarget := context.renderTargets[renderTargetId]
 	context.setOffscreen(renderTarget)
 }
 
@@ -267,13 +267,13 @@ func (context *Context) setShaderProgram(
 }
 
 func (context *Context) NewRenderTarget(width, height int) (
-	graphics.RenderTargetID, error) {
+	graphics.RenderTargetId, error) {
 	renderTarget, err := newRenderTarget(width, height)
 	if err != nil {
 		return 0, nil
 	}
-	renderTargetId := graphics.RenderTargetID(<-newId)
-	textureId := graphics.TextureID(<-newId)
+	renderTargetId := graphics.RenderTargetId(<-newId)
+	textureId := graphics.TextureId(<-newId)
 	context.renderTargets[renderTargetId] = renderTarget
 	context.textures[textureId] = renderTarget.texture
 	context.renderTargetToTexture[renderTargetId] = textureId
@@ -286,12 +286,12 @@ func (context *Context) NewRenderTarget(width, height int) (
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (
-	graphics.TextureID, error) {
+	graphics.TextureId, error) {
 	texture, err := newTextureFromImage(img)
 	if err != nil {
 		return 0, err
 	}
-	textureId := graphics.TextureID(<-newId)
+	textureId := graphics.TextureId(<-newId)
 	context.textures[textureId] = texture
 	return textureId, nil
 }

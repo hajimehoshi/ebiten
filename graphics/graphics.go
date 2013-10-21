@@ -19,28 +19,28 @@ type TexturePart struct {
 }
 
 type Context interface {
-	ToTexture(id RenderTargetID) TextureID
+	ToTexture(id RenderTargetId) TextureId
 
 	Clear()
 	Fill(r, g, b uint8)
-	DrawTexture(id TextureID,
+	DrawTexture(id TextureId,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
-	DrawTextureParts(id TextureID,
+	DrawTextureParts(id TextureId,
 		parts []TexturePart,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
 	ResetOffscreen()
-	SetOffscreen(id RenderTargetID)
+	SetOffscreen(id RenderTargetId)
 }
 
 type TextureFactory interface {
-	NewRenderTarget(width, height int) (RenderTargetID, error)
-	NewTextureFromImage(img image.Image) (TextureID, error)
+	NewRenderTarget(width, height int) (RenderTargetId, error)
+	NewTextureFromImage(img image.Image) (TextureId, error)
 }
 
-type TextureID int
+type TextureId int
 
 // A render target is essentially same as a texture, but it is assumed that the
 // all alpha of a render target is maximum.
-type RenderTargetID int
+type RenderTargetId int

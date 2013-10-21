@@ -64,7 +64,7 @@ func (sprite *Sprite) Update() {
 }
 
 type Sprites struct {
-	ebitenTextureID graphics.TextureID
+	ebitenTextureId graphics.TextureId
 	sprites         []*Sprite
 }
 
@@ -86,7 +86,7 @@ func (game *Sprites) InitTextures(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.ebitenTextureID, err = tf.NewTextureFromImage(img); err != nil {
+	if game.ebitenTextureId, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
 }
@@ -125,7 +125,7 @@ func (game *Sprites) Draw(g graphics.Context) {
 		locations = append(locations, location)
 	}
 	geometryMatrix := matrix.IdentityGeometry()
-	g.DrawTextureParts(game.ebitenTextureID, locations,
+	g.DrawTextureParts(game.ebitenTextureId, locations,
 		geometryMatrix, matrix.IdentityColor())
 }
 

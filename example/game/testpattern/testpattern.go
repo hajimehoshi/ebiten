@@ -11,7 +11,7 @@ import (
 )
 
 type TestPattern struct {
-	textureId     graphics.TextureID
+	textureId     graphics.TextureId
 	textureWidth  int
 	textureHeight int
 	geos          []matrix.Geometry

@@ -10,7 +10,7 @@ import (
 )
 
 type Input struct {
-	textTextureID graphics.TextureID
+	textTextureId graphics.TextureId
 	inputState    ebiten.InputState
 }
 
@@ -29,7 +29,7 @@ func (game *Input) InitTextures(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.textTextureID, err = tf.NewTextureFromImage(img); err != nil {
+	if game.textTextureId, err = tf.NewTextureFromImage(img); err != nil {
 		panic(err)
 	}
 }
@@ -74,6 +74,6 @@ func (game *Input) drawText(g graphics.Context, text string, x, y int) {
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Translate(float64(x), float64(y))
 	colorMatrix := matrix.IdentityColor()
-	g.DrawTextureParts(game.textTextureID, parts,
+	g.DrawTextureParts(game.textTextureId, parts,
 		geometryMatrix, colorMatrix)
 }

@@ -11,9 +11,9 @@ import (
 )
 
 type Rects struct {
-	rectTextureID     graphics.RenderTargetID
+	rectTextureId     graphics.RenderTargetId
 	rectTextureInited bool
-	offscreenID       graphics.RenderTargetID
+	offscreenId       graphics.RenderTargetId
 	offscreenInited   bool
 	rectBounds        *graphics.Rect
 	rectColor         *color.RGBA
@@ -37,11 +37,11 @@ func New() *Rects {
 
 func (game *Rects) InitTextures(tf graphics.TextureFactory) {
 	var err error
-	game.rectTextureID, err = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
+	game.rectTextureId, err = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
 	if err != nil {
 		panic(err)
 	}
-	game.offscreenID, err = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
+	game.offscreenId, err = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
 	if err != nil {
 		panic(err)
 	}
@@ -88,22 +88,22 @@ func (game *Rects) rectColorMatrix() matrix.Color {
 
 func (game *Rects) Draw(g graphics.Context) {
 	if !game.rectTextureInited {
-		g.SetOffscreen(game.rectTextureID)
+		g.SetOffscreen(game.rectTextureId)
 		g.Fill(255, 255, 255)
 		game.rectTextureInited = true
 	}
 
-	g.SetOffscreen(game.offscreenID)
+	g.SetOffscreen(game.offscreenId)
 	if !game.offscreenInited {
 		g.Fill(0, 0, 0)
 		game.offscreenInited = true
 	}
-	g.DrawTexture(g.ToTexture(game.rectTextureID),
+	g.DrawTexture(g.ToTexture(game.rectTextureId),
 		game.rectGeometryMatrix(),
 		game.rectColorMatrix())
 
 	g.ResetOffscreen()
-	g.DrawTexture(g.ToTexture(game.offscreenID),
+	g.DrawTexture(g.ToTexture(game.offscreenId),
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }
