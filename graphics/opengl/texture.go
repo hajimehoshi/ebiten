@@ -22,16 +22,42 @@ func nextPowerOf2(x uint64) uint64 {
 }
 
 type Texture struct {
-	native        C.GLuint
-	width         int
-	height        int
-	textureWidth  int
-	textureHeight int
+	native interface{}
+	width  int
+	height int
+}
+
+func (texture *Texture) Native() interface{} {
+	return texture.native
+}
+
+func (texture *Texture) textureWidth() int {
+	return int(nextPowerOf2(uint64(texture.width)))
+}
+
+func (texture *Texture) textureHeight() int {
+	return int(nextPowerOf2(uint64(texture.height)))
+}
+
+func (texture *Texture) U(x int) float64 {
+	return float64(x) / float64(texture.textureWidth())
+}
+
+func (texture *Texture) V(y int) float64 {
+	return float64(y) / float64(texture.textureHeight())
 }
 
 type RenderTarget struct {
 	texture     *Texture
 	framebuffer C.GLuint
+}
+
+func (renderTarget *RenderTarget) SetAsViewport(setter interface{
+	SetViewport(x, y, width, height int)
+}) {
+	texture := renderTarget.texture
+	x, y, width, height := 0, 0, texture.textureWidth(), texture.textureHeight()
+	setter.SetViewport(x, y, width, height)
 }
 
 func createNativeTexture(textureWidth, textureHeight int, pixels unsafe.Pointer) C.GLuint {
@@ -56,20 +82,17 @@ func createNativeTexture(textureWidth, textureHeight int, pixels unsafe.Pointer)
 }
 
 func createTexture(width, height int) *Texture {
-	textureWidth := int(nextPowerOf2(uint64(width)))
-	textureHeight := int(nextPowerOf2(uint64(height)))
-	return &Texture{
-		width:         width,
-		height:        height,
-		textureWidth:  textureWidth,
-		textureHeight: textureHeight,
-		native:        createNativeTexture(textureWidth, textureHeight, nil),
+	texture := &Texture{
+		width:  width,
+		height: height,
 	}
+	texture.native = createNativeTexture(texture.textureWidth(), texture.textureHeight(), nil)
+	return texture
 }
 
 func newRenderTarget(width, height int) (*RenderTarget, error) {
 	texture := createTexture(width, height)
-	framebuffer := createFramebuffer(texture.native)
+	framebuffer := createFramebuffer(texture.Native().(C.GLuint))
 	return &RenderTarget{
 		texture:     texture,
 		framebuffer: framebuffer,
@@ -80,12 +103,14 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 	size := img.Bounds().Size()
 	width, height := size.X, size.Y
 
-	textureWidth := int(nextPowerOf2(uint64(width)))
-	textureHeight := int(nextPowerOf2(uint64(height)))
+	texture := &Texture{
+		width:         width,
+		height:        height,
+	}
 
 	adjustedImageBound := image.Rectangle{
 		image.ZP,
-		image.Point{textureWidth, textureHeight},
+		image.Point{texture.textureWidth(), texture.textureHeight()},
 	}
 	adjustedImage := image.NewNRGBA(adjustedImageBound)
 	dstBound := image.Rectangle{
@@ -94,24 +119,16 @@ func newTextureFromImage(img image.Image) (*Texture, error) {
 	}
 	draw.Draw(adjustedImage, dstBound, img, image.ZP, draw.Src)
 	pixelsPtr := unsafe.Pointer(&adjustedImage.Pix[0])
-	nativeTexture := createNativeTexture(textureWidth, textureHeight, pixelsPtr)
-
-	return &Texture{
-		width:         width,
-		height:        height,
-		textureWidth:  textureWidth,
-		textureHeight: textureHeight,
-		native:        nativeTexture,
-	}, nil
+	texture.native = createNativeTexture(
+		texture.textureWidth(), texture.textureHeight(), pixelsPtr)
+	return texture, nil
 }
 
 func newRenderTargetWithFramebuffer(width, height int,
 	framebuffer C.GLuint) *RenderTarget {
 	texture := &Texture{
-		width:         width,
-		height:        height,
-		textureWidth:  int(nextPowerOf2(uint64(width))),
-		textureHeight: int(nextPowerOf2(uint64(height))),
+		width:  width,
+		height: height,
 	}
 	return &RenderTarget{
 		texture:     texture,

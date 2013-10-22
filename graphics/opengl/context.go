@@ -24,6 +24,7 @@ type Context struct {
 	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
 	currentOffscreen       *RenderTarget
 	mainFramebufferTexture *RenderTarget
+	projectionMatrix       [16]float32
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
@@ -96,11 +97,11 @@ func (context *Context) DrawTextureParts(
 
 	texture, ok := context.textures[textureId]
 	if !ok {
-		panic("invalid texture Id")
+		panic("invalid texture ID")
 	}
 
 	shaderProgram := context.setShaderProgram(geometryMatrix, colorMatrix)
-	C.glBindTexture(C.GL_TEXTURE_2D, texture.native)
+	C.glBindTexture(C.GL_TEXTURE_2D, texture.Native().(C.GLuint))
 
 	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
 	textureAttrLocation := getAttributeLocation(shaderProgram, "texture")
@@ -123,10 +124,10 @@ func (context *Context) DrawTextureParts(
 		}
 
 		src := part.Source
-		tu1 := float32(src.X) / float32(texture.textureWidth)
-		tu2 := float32(src.X+src.Width) / float32(texture.textureWidth)
-		tv1 := float32(src.Y) / float32(texture.textureHeight)
-		tv2 := float32(src.Y+src.Height) / float32(texture.textureHeight)
+		tu1 := float32(texture.U(src.X))
+		tu2 := float32(texture.U(src.X + src.Width))
+		tv1 := float32(texture.V(src.Y))
+		tv2 := float32(texture.V(src.Y + src.Height))
 		texCoord := [...]float32{
 			tu1, tv1,
 			tu2, tv1,
@@ -171,8 +172,41 @@ func (context *Context) setOffscreen(renderTarget *RenderTarget) {
 	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 		C.GL_ZERO, C.GL_ONE)
 
-	C.glViewport(0, 0, C.GLsizei(renderTarget.texture.textureWidth),
-		C.GLsizei(renderTarget.texture.textureHeight))
+	context.currentOffscreen.SetAsViewport(context)
+}
+
+func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
+	e11 := float64(2) / float64(right-left)
+	e22 := float64(2) / float64(top-bottom)
+	e14 := -1 * float64(right+left) / float64(right-left)
+	e24 := -1 * float64(top+bottom) / float64(top-bottom)
+
+	return [4][4]float64{
+		{e11, 0, 0, e14},
+		{0, e22, 0, e24},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1},
+	}
+}
+
+func (context *Context) SetViewport(x, y, width, height int) {
+	C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
+
+	matrix := orthoProjectionMatrix(x, width, y, height)
+	if context.currentOffscreen == context.mainFramebufferTexture {
+		// Flip Y and translate
+		matrix[1][1] *= -1
+		actualHeight := context.screenHeight * context.screenScale
+		matrix[1][3] += float64(actualHeight) / float64(height) * 2
+	}
+
+	for j := 0; j < 4; j++ {
+		for i := 0; i < 4; i++ {
+			context.projectionMatrix[i+j*4] = float32(matrix[i][j])
+		}
+	}
+
+	// TODO: call 'setShaderProgram' here?
 }
 
 func (context *Context) setMainFramebufferOffscreen() {
@@ -181,27 +215,6 @@ func (context *Context) setMainFramebufferOffscreen() {
 
 func (context *Context) flush() {
 	C.glFlush()
-}
-
-func (context *Context) projectionMatrix() [16]float32 {
-	texture := context.currentOffscreen.texture
-
-	e11 := float32(2) / float32(texture.textureWidth)
-	e22 := float32(2) / float32(texture.textureHeight)
-	e41 := float32(-1)
-	e42 := float32(-1)
-
-	if context.currentOffscreen == context.mainFramebufferTexture {
-		e22 *= -1
-		e42 += float32(texture.height) / float32(texture.textureHeight) * 2
-	}
-
-	return [...]float32{
-		e11, 0, 0, 0,
-		0, e22, 0, 0,
-		0, 0, 1, 0,
-		e41, e42, 0, 1,
-	}
 }
 
 func (context *Context) setShaderProgram(
@@ -214,10 +227,9 @@ func (context *Context) setShaderProgram(
 	// TODO: cache and skip?
 	C.glUseProgram(program)
 
-	projectionMatrix := context.projectionMatrix()
 	C.glUniformMatrix4fv(getUniformLocation(program, "projection_matrix"),
 		1, C.GL_FALSE,
-		(*C.GLfloat)(&projectionMatrix[0]))
+		(*C.GLfloat)(&context.projectionMatrix[0]))
 
 	a := float32(geometryMatrix.Elements[0][0])
 	b := float32(geometryMatrix.Elements[0][1])
@@ -280,6 +292,7 @@ func (context *Context) NewRenderTarget(width, height int) (
 
 	context.setOffscreen(renderTarget)
 	context.Clear()
+	// TODO: Is it OK to revert he main framebuffer?
 	context.setMainFramebufferOffscreen()
 
 	return renderTargetId, nil
