@@ -104,6 +104,9 @@ func (context *Context) DrawTextureParts(
 	if !ok {
 		panic("invalid texture ID")
 	}
+	if len(parts) == 0 {
+		return
+	}
 
 	shaderProgram := context.setShaderProgram(geometryMatrix, colorMatrix)
 	C.glBindTexture(C.GL_TEXTURE_2D, texture.Native().(C.GLuint))
@@ -115,38 +118,46 @@ func (context *Context) DrawTextureParts(
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
-	// TODO: Optimization
-	for _, part := range parts {
+	vertices := []float32{}
+	texCoords := []float32{}
+	indicies := []uint32{}
+	// TODO: Check len(parts) and GL_MAX_ELEMENTS_INDICES
+	for i, part := range parts {
 		x1 := float32(part.LocationX)
 		x2 := float32(part.LocationX + part.Source.Width)
 		y1 := float32(part.LocationY)
 		y2 := float32(part.LocationY + part.Source.Height)
-		vertex := [...]float32{
+		vertices = append(vertices,
 			x1, y1,
 			x2, y1,
 			x1, y2,
 			x2, y2,
-		}
-
+		)
 		src := part.Source
 		tu1 := float32(texture.U(src.X))
 		tu2 := float32(texture.U(src.X + src.Width))
 		tv1 := float32(texture.V(src.Y))
 		tv2 := float32(texture.V(src.Y + src.Height))
-		texCoord := [...]float32{
+		texCoords = append(texCoords,
 			tu1, tv1,
 			tu2, tv1,
 			tu1, tv2,
 			tu2, tv2,
-		}
-		C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2,
-			C.GL_FLOAT, C.GL_FALSE,
-			0, unsafe.Pointer(&vertex[0]))
-		C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2,
-			C.GL_FLOAT, C.GL_FALSE,
-			0, unsafe.Pointer(&texCoord[0]))
-		C.glDrawArrays(C.GL_TRIANGLE_STRIP, 0, 4)
+		)
+		base := uint32(i*4)
+		indicies = append(indicies,
+			base, base+1, base+2,
+			base+1, base+2, base+3,
+		)
 	}
+	C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2,
+		C.GL_FLOAT, C.GL_FALSE,
+		0, unsafe.Pointer(&vertices[0]))
+	C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2,
+		C.GL_FLOAT, C.GL_FALSE,
+		0, unsafe.Pointer(&texCoords[0]))
+	C.glDrawElements(C.GL_TRIANGLES, C.GLsizei(len(indicies)),
+		C.GL_UNSIGNED_INT, unsafe.Pointer(&indicies[0]))
 	C.glDisableVertexAttribArray(C.GLuint(textureAttrLocation))
 	C.glDisableVertexAttribArray(C.GLuint(vertexAttrLocation))
 	C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)
