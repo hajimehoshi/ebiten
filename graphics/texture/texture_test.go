@@ -1,4 +1,4 @@
-package opengl_test
+package texture_test
 
 import (
 	. "."

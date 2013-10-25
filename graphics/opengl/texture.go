@@ -5,21 +5,11 @@ package opengl
 // #include <OpenGL/gl.h>
 import "C"
 import (
+	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"unsafe"
 )
-
-type RenderTarget struct {
-	texture     *texture.Texture
-	framebuffer C.GLuint
-}
-
-func (renderTarget *RenderTarget) SetAsViewport(setter interface{
-	SetViewport(x, y, width, height int)
-}) {
-	renderTarget.texture.SetAsViewport(0, 0, setter)
-}
 
 func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) C.GLuint {
 	nativeTexture := C.GLuint(0)
@@ -57,27 +47,21 @@ func (creator *NativeTextureCreator) CreateFromImage(img *image.NRGBA) (interfac
 	return createNativeTexture(size.X, size.Y, img.Pix), nil
 }
 
-func newRenderTarget(width, height int) (*RenderTarget, error) {
+func newRenderTarget(width, height int) (*rendertarget.RenderTarget, error) {
 	texture, err := texture.New(width, height, &NativeTextureCreator{})
 	if err != nil {
 		return nil, err
 	}
 	framebuffer := createFramebuffer(texture.Native().(C.GLuint))
-	return &RenderTarget{
-		texture:     texture,
-		framebuffer: framebuffer,
-	}, nil
+	return rendertarget.NewWithFramebuffer(texture, framebuffer), nil
 }
 
-func newRenderTargetWithFramebuffer(width, height int, framebuffer C.GLuint) (*RenderTarget, error) {
+func newRenderTargetWithFramebuffer(width, height int, framebuffer C.GLuint) (*rendertarget.RenderTarget, error) {
 	texture, err := texture.New(width, height, &NativeTextureCreator{})
 	if err != nil {
 		return nil, err
 	}
-	return &RenderTarget{
-		texture:     texture,
-		framebuffer: framebuffer,
-	}, nil
+	return rendertarget.NewWithFramebuffer(texture, framebuffer), nil
 }
 
 func createFramebuffer(nativeTexture C.GLuint) C.GLuint {

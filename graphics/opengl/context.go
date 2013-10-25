@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
+	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
@@ -21,10 +23,10 @@ type Context struct {
 	screenHeight           int
 	screenScale            int
 	textures               map[graphics.TextureId]*texture.Texture
-	renderTargets          map[graphics.RenderTargetId]*RenderTarget
+	renderTargets          map[graphics.RenderTargetId]*rendertarget.RenderTarget
 	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
-	currentOffscreen       *RenderTarget
-	mainFramebufferTexture *RenderTarget
+	currentOffscreen       *rendertarget.RenderTarget
+	mainFramebufferTexture *rendertarget.RenderTarget
 	projectionMatrix       [16]float32
 }
 
@@ -34,7 +36,7 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenHeight:          screenHeight,
 		screenScale:           screenScale,
 		textures:              map[graphics.TextureId]*texture.Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
+		renderTargets:         map[graphics.RenderTargetId]*rendertarget.RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 	}
 	return context
@@ -55,7 +57,7 @@ func (context *Context) Init() {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
 
-	initializeShaders()
+	shader.Initialize()
 
 	context.screenId, err = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
@@ -82,37 +84,21 @@ func (context *Context) Fill(r, g, b uint8) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (context *Context) DrawTexture(
-	textureId graphics.TextureId,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture, ok := context.textures[textureId]
-	if !ok {
-		panic("invalid texture ID")
-	}
-	// TODO: fix this
-	source := graphics.Rect{0, 0, texture.Width(), texture.Height()}
-	locations := []graphics.TexturePart{{0, 0, source}}
-	context.DrawTextureParts(textureId, locations,
-		geometryMatrix, colorMatrix)
+type TextureDrawing struct {
+	context        *Context
+	geometryMatrix matrix.Geometry
+	colorMatrix    matrix.Color
 }
 
-func (context *Context) DrawTextureParts(
-	textureId graphics.TextureId, parts []graphics.TexturePart,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-
-	texture, ok := context.textures[textureId]
-	if !ok {
-		panic("invalid texture ID")
-	}
-	if len(parts) == 0 {
+func (t *TextureDrawing) Draw(native interface{}, quads []texture.Quad) {
+	if len(quads) == 0 {
 		return
 	}
+	shaderProgram := t.context.setShaderProgram(t.geometryMatrix, t.colorMatrix)
+	C.glBindTexture(C.GL_TEXTURE_2D, native.(C.GLuint))
 
-	shaderProgram := context.setShaderProgram(geometryMatrix, colorMatrix)
-	C.glBindTexture(C.GL_TEXTURE_2D, texture.Native().(C.GLuint))
-
-	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
-	textureAttrLocation := getAttributeLocation(shaderProgram, "texture")
+	vertexAttrLocation := shader.GetAttributeLocation(shaderProgram, "vertex")
+	textureAttrLocation := shader.GetAttributeLocation(shaderProgram, "texture")
 
 	C.glEnableClientState(C.GL_VERTEX_ARRAY)
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
@@ -122,29 +108,28 @@ func (context *Context) DrawTextureParts(
 	texCoords := []float32{}
 	indicies := []uint32{}
 	// TODO: Check len(parts) and GL_MAX_ELEMENTS_INDICES
-	for i, part := range parts {
-		x1 := float32(part.LocationX)
-		x2 := float32(part.LocationX + part.Source.Width)
-		y1 := float32(part.LocationY)
-		y2 := float32(part.LocationY + part.Source.Height)
+	for i, quad := range quads {
+		x1 := quad.VertexX1
+		x2 := quad.VertexX2
+		y1 := quad.VertexY1
+		y2 := quad.VertexY2
 		vertices = append(vertices,
 			x1, y1,
 			x2, y1,
 			x1, y2,
 			x2, y2,
 		)
-		src := part.Source
-		tu1 := float32(texture.U(src.X))
-		tu2 := float32(texture.U(src.X + src.Width))
-		tv1 := float32(texture.V(src.Y))
-		tv2 := float32(texture.V(src.Y + src.Height))
+		u1 := quad.TextureCoordU1
+		u2 := quad.TextureCoordU2
+		v1 := quad.TextureCoordV1
+		v2 := quad.TextureCoordV2
 		texCoords = append(texCoords,
-			tu1, tv1,
-			tu2, tv1,
-			tu1, tv2,
-			tu2, tv2,
+			u1, v1,
+			u2, v1,
+			u1, v2,
+			u2, v2,
 		)
-		base := uint32(i*4)
+		base := uint32(i * 4)
 		indicies = append(indicies,
 			base, base+1, base+2,
 			base+1, base+2, base+3,
@@ -164,6 +149,28 @@ func (context *Context) DrawTextureParts(
 	C.glDisableClientState(C.GL_VERTEX_ARRAY)
 }
 
+func (context *Context) DrawTexture(
+	textureId graphics.TextureId,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	texture, ok := context.textures[textureId]
+	if !ok {
+		panic("invalid texture ID")
+	}
+	drawing := &TextureDrawing{context, geometryMatrix, colorMatrix}
+	texture.Draw(drawing.Draw)
+}
+
+func (context *Context) DrawTextureParts(
+	textureId graphics.TextureId, parts []graphics.TexturePart,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	texture, ok := context.textures[textureId]
+	if !ok {
+		panic("invalid texture ID")
+	}
+	drawing := &TextureDrawing{context, geometryMatrix, colorMatrix}
+	texture.DrawParts(parts, drawing.Draw)
+}
+
 func (context *Context) ResetOffscreen() {
 	context.SetOffscreen(context.screenId)
 }
@@ -173,12 +180,13 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	context.setOffscreen(renderTarget)
 }
 
-func (context *Context) setOffscreen(renderTarget *RenderTarget) {
+func (context *Context) setOffscreen(renderTarget *rendertarget.RenderTarget) {
 	context.currentOffscreen = renderTarget
 
 	C.glFlush()
 
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, renderTarget.framebuffer)
+	framebuffer := renderTarget.Framebuffer().(C.GLuint)
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
 	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
 	if err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
@@ -188,23 +196,34 @@ func (context *Context) setOffscreen(renderTarget *RenderTarget) {
 	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 		C.GL_ZERO, C.GL_ONE)
 
-	context.currentOffscreen.SetAsViewport(context)
+	isUsingMainFramebuffer := context.currentOffscreen == context.mainFramebufferTexture
+	setter := &viewportSetter{
+		isUsingMainFramebuffer,
+		context.screenHeight * context.screenScale,
+		context,
+	}
+	context.currentOffscreen.SetAsViewport(setter.Set)
 }
 
-func (context *Context) SetViewport(x, y, width, height int) {
+type viewportSetter struct {
+	isUsingMainFramebuffer bool
+	actualScreenHeight     int
+	context                *Context
+}
+
+func (v *viewportSetter) Set(x, y, width, height int) {
 	C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
 
 	matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
-	if context.currentOffscreen == context.mainFramebufferTexture {
+	if v.isUsingMainFramebuffer {
 		// Flip Y and move to fit with the top of the window.
 		matrix[1][1] *= -1
-		actualHeight := context.screenHeight * context.screenScale
-		matrix[1][3] += float64(actualHeight) / float64(height) * 2
+		matrix[1][3] += float64(v.actualScreenHeight) / float64(height) * 2
 	}
 
 	for j := 0; j < 4; j++ {
 		for i := 0; i < 4; i++ {
-			context.projectionMatrix[i+j*4] = float32(matrix[i][j])
+			v.context.projectionMatrix[i+j*4] = float32(matrix[i][j])
 		}
 	}
 
@@ -220,64 +239,8 @@ func (context *Context) flush() {
 }
 
 func (context *Context) setShaderProgram(
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) (program C.GLuint) {
-	if colorMatrix.IsIdentity() {
-		program = regularShaderProgram
-	} else {
-		program = colorMatrixShaderProgram
-	}
-	// TODO: cache and skip?
-	C.glUseProgram(program)
-
-	C.glUniformMatrix4fv(getUniformLocation(program, "projection_matrix"),
-		1, C.GL_FALSE,
-		(*C.GLfloat)(&context.projectionMatrix[0]))
-
-	a := float32(geometryMatrix.Elements[0][0])
-	b := float32(geometryMatrix.Elements[0][1])
-	c := float32(geometryMatrix.Elements[1][0])
-	d := float32(geometryMatrix.Elements[1][1])
-	tx := float32(geometryMatrix.Elements[0][2])
-	ty := float32(geometryMatrix.Elements[1][2])
-	glModelviewMatrix := [...]float32{
-		a, c, 0, 0,
-		b, d, 0, 0,
-		0, 0, 1, 0,
-		tx, ty, 0, 1,
-	}
-	C.glUniformMatrix4fv(getUniformLocation(program, "modelview_matrix"),
-		1, C.GL_FALSE,
-		(*C.GLfloat)(&glModelviewMatrix[0]))
-
-	C.glUniform1i(getUniformLocation(program, "texture"), 0)
-
-	if program != colorMatrixShaderProgram {
-		return
-	}
-
-	e := [4][5]float32{}
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
-			e[i][j] = float32(colorMatrix.Elements[i][j])
-		}
-	}
-
-	glColorMatrix := [...]float32{
-		e[0][0], e[1][0], e[2][0], e[3][0],
-		e[0][1], e[1][1], e[2][1], e[3][1],
-		e[0][2], e[1][2], e[2][2], e[3][2],
-		e[0][3], e[1][3], e[2][3], e[3][3],
-	}
-	C.glUniformMatrix4fv(getUniformLocation(program, "color_matrix"),
-		1, C.GL_FALSE, (*C.GLfloat)(&glColorMatrix[0]))
-
-	glColorMatrixTranslation := [...]float32{
-		e[0][4], e[1][4], e[2][4], e[3][4],
-	}
-	C.glUniform4fv(getUniformLocation(program, "color_matrix_translation"),
-		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
-
-	return
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) (program shader.Program) {
+	return shader.Use(context.projectionMatrix, geometryMatrix, colorMatrix)
 }
 
 func (context *Context) NewRenderTarget(width, height int) (
@@ -289,7 +252,7 @@ func (context *Context) NewRenderTarget(width, height int) (
 	renderTargetId := graphics.RenderTargetId(<-newId)
 	textureId := graphics.TextureId(<-newId)
 	context.renderTargets[renderTargetId] = renderTarget
-	context.textures[textureId] = renderTarget.texture
+	context.textures[textureId] = renderTarget.Texture()
 	context.renderTargetToTexture[renderTargetId] = textureId
 
 	context.setOffscreen(renderTarget)
