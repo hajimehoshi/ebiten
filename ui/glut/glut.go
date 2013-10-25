@@ -1,6 +1,7 @@
 // This package is experimental.
 package glut
 
+// #cgo CFLAGS: -Wno-deprecated-declarations
 // #cgo LDFLAGS: -framework GLUT -framework OpenGL
 //
 // #include <stdlib.h>

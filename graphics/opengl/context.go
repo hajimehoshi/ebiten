@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
 	"unsafe"
@@ -19,7 +20,7 @@ type Context struct {
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
-	textures               map[graphics.TextureId]*Texture
+	textures               map[graphics.TextureId]*texture.Texture
 	renderTargets          map[graphics.RenderTargetId]*RenderTarget
 	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
 	currentOffscreen       *RenderTarget
@@ -32,7 +33,7 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenWidth:           screenWidth,
 		screenHeight:          screenHeight,
 		screenScale:           screenScale,
-		textures:              map[graphics.TextureId]*Texture{},
+		textures:              map[graphics.TextureId]*texture.Texture{},
 		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 	}
@@ -45,14 +46,17 @@ func (context *Context) Init() {
 	mainFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
-	context.mainFramebufferTexture = newRenderTargetWithFramebuffer(
+	var err error
+	context.mainFramebufferTexture, err = newRenderTargetWithFramebuffer(
 		context.screenWidth*context.screenScale,
 		context.screenHeight*context.screenScale,
 		C.GLuint(mainFramebuffer))
+	if err != nil {
+		panic("creating main framebuffer failed: " + err.Error())
+	}
 
 	initializeShaders()
 
-	var err error
 	context.screenId, err = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
 	if err != nil {
@@ -85,7 +89,8 @@ func (context *Context) DrawTexture(
 	if !ok {
 		panic("invalid texture ID")
 	}
-	source := graphics.Rect{0, 0, texture.width, texture.height}
+	// TODO: fix this
+	source := graphics.Rect{0, 0, texture.Width(), texture.Height()}
 	locations := []graphics.TexturePart{{0, 0, source}}
 	context.DrawTextureParts(textureId, locations,
 		geometryMatrix, colorMatrix)
@@ -175,26 +180,12 @@ func (context *Context) setOffscreen(renderTarget *RenderTarget) {
 	context.currentOffscreen.SetAsViewport(context)
 }
 
-func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
-	e11 := float64(2) / float64(right-left)
-	e22 := float64(2) / float64(top-bottom)
-	e14 := -1 * float64(right+left) / float64(right-left)
-	e24 := -1 * float64(top+bottom) / float64(top-bottom)
-
-	return [4][4]float64{
-		{e11, 0, 0, e14},
-		{0, e22, 0, e24},
-		{0, 0, 1, 0},
-		{0, 0, 0, 1},
-	}
-}
-
 func (context *Context) SetViewport(x, y, width, height int) {
 	C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
 
-	matrix := orthoProjectionMatrix(x, width, y, height)
+	matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
 	if context.currentOffscreen == context.mainFramebufferTexture {
-		// Flip Y and translate
+		// Flip Y and move to fit with the top of the window.
 		matrix[1][1] *= -1
 		actualHeight := context.screenHeight * context.screenScale
 		matrix[1][3] += float64(actualHeight) / float64(height) * 2
@@ -300,7 +291,7 @@ func (context *Context) NewRenderTarget(width, height int) (
 
 func (context *Context) NewTextureFromImage(img image.Image) (
 	graphics.TextureId, error) {
-	texture, err := newTextureFromImage(img)
+	texture, err := texture.NewFromImage(img, &NativeTextureCreator{})
 	if err != nil {
 		return 0, err
 	}
