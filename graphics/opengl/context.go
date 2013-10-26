@@ -56,8 +56,6 @@ func (context *Context) Init() {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
 
-	shader.Init()
-
 	context.screenId, err = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
 	if err != nil {
@@ -83,36 +81,30 @@ func (context *Context) Fill(r, g, b uint8) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-type TextureDrawing struct {
-	projectionMatrix [16]float32
-	geometryMatrix   matrix.Geometry
-	colorMatrix      matrix.Color
-}
-
-func (t *TextureDrawing) Draw(native interface{}, quads []texture.Quad) {
-	shader.DrawTexture(uint(native.(C.GLuint)), t.projectionMatrix, quads, t.geometryMatrix, t.colorMatrix)
-}
-
 func (context *Context) DrawTexture(
 	textureId graphics.TextureId,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture, ok := context.textures[textureId]
+	tex, ok := context.textures[textureId]
 	if !ok {
 		panic("invalid texture ID")
 	}
-	drawing := &TextureDrawing{context.projectionMatrix, geometryMatrix, colorMatrix}
-	texture.Draw(drawing.Draw)
+	tex.Draw(func(native interface{}, quads []texture.Quad) {
+		shader.DrawTexture(uint(native.(C.GLuint)), context.projectionMatrix, quads,
+			geometryMatrix, colorMatrix)
+	})
 }
 
 func (context *Context) DrawTextureParts(
 	textureId graphics.TextureId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture, ok := context.textures[textureId]
+	tex, ok := context.textures[textureId]
 	if !ok {
 		panic("invalid texture ID")
 	}
-	drawing := &TextureDrawing{context.projectionMatrix, geometryMatrix, colorMatrix}
-	texture.DrawParts(parts, drawing.Draw)
+	tex.DrawParts(parts, func(native interface{}, quads []texture.Quad) {
+		shader.DrawTexture(uint(native.(C.GLuint)), context.projectionMatrix, quads,
+			geometryMatrix, colorMatrix)
+	})
 }
 
 func (context *Context) ResetOffscreen() {
@@ -170,8 +162,6 @@ func (v *viewportSetter) Set(x, y, width, height int) {
 			v.context.projectionMatrix[i+j*4] = float32(matrix[i][j])
 		}
 	}
-
-	// TODO: call 'setShaderProgram' here?
 }
 
 func (context *Context) setMainFramebufferOffscreen() {
@@ -204,7 +194,7 @@ func (context *Context) NewRenderTarget(width, height int) (
 
 func (context *Context) NewTextureFromImage(img image.Image) (
 	graphics.TextureId, error) {
-	texture, err := texture.NewFromImage(img, &NativeTextureCreator{})
+	texture, err := texture.NewFromImage(img, createFromImage)
 	if err != nil {
 		return 0, err
 	}

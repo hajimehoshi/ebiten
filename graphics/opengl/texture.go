@@ -36,19 +36,17 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) C.GLui
 	return nativeTexture
 }
 
-type NativeTextureCreator struct{}
-
-func (creator *NativeTextureCreator) Create(textureWidth, textureHeight int) (interface{}, error) {
+func create(textureWidth, textureHeight int) (interface{}, error) {
 	return createNativeTexture(textureWidth, textureHeight, nil), nil
 }
 
-func (creator *NativeTextureCreator) CreateFromImage(img *image.NRGBA) (interface{}, error) {
+func createFromImage(img *image.NRGBA) (interface{}, error) {
 	size := img.Bounds().Size()
 	return createNativeTexture(size.X, size.Y, img.Pix), nil
 }
 
 func newRenderTarget(width, height int) (*rendertarget.RenderTarget, error) {
-	texture, err := texture.New(width, height, &NativeTextureCreator{})
+	texture, err := texture.New(width, height, create)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +55,7 @@ func newRenderTarget(width, height int) (*rendertarget.RenderTarget, error) {
 }
 
 func newRenderTargetWithFramebuffer(width, height int, framebuffer C.GLuint) (*rendertarget.RenderTarget, error) {
-	texture, err := texture.New(width, height, &NativeTextureCreator{})
+	texture, err := texture.New(width, height, create)
 	if err != nil {
 		return nil, err
 	}

@@ -23,24 +23,20 @@ type Texture struct {
 	height int
 }
 
-func New(width, height int, creator interface {
-	Create(textureWidth, textureHeight int) (interface{}, error)
-}) (*Texture, error) {
+func New(width, height int, create func(textureWidth, textureHeight int) (interface{}, error)) (*Texture, error) {
 	texture := &Texture{
 		width:  width,
 		height: height,
 	}
 	var err error
-	texture.native, err = creator.Create(texture.textureWidth(), texture.textureHeight())
+	texture.native, err = create(texture.textureWidth(), texture.textureHeight())
 	if err != nil {
 		return nil, err
 	}
 	return texture, nil
 }
 
-func NewFromImage(img image.Image, creator interface {
-	CreateFromImage(img *image.NRGBA) (interface{}, error)
-}) (*Texture, error) {
+func NewFromImage(img image.Image, create func(img *image.NRGBA) (interface{}, error)) (*Texture, error) {
 	size := img.Bounds().Size()
 	width, height := size.X, size.Y
 	texture := &Texture{
@@ -58,7 +54,7 @@ func NewFromImage(img image.Image, creator interface {
 	}
 	draw.Draw(adjustedImage, dstBound, img, image.ZP, draw.Src)
 	var err error
-	texture.native, err = creator.CreateFromImage(adjustedImage)
+	texture.native, err = create(adjustedImage)
 	if err != nil {
 		return nil, err
 	}

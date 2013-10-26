@@ -114,7 +114,11 @@ func createProgram(shaders ...*shader) C.GLuint {
 	return program
 }
 
-func Init() {
+var (
+	initialized = false
+)
+
+func initialize() {
 	// TODO: when should this function be called?
 	vertexShader.id = C.glCreateShader(C.GL_VERTEX_SHADER)
 	if vertexShader.id == 0 {
@@ -139,6 +143,8 @@ func Init() {
 	C.glDeleteShader(vertexShader.id)
 	C.glDeleteShader(fragmentShader.id)
 	C.glDeleteShader(colorMatrixShader.id)
+
+	initialized = true
 }
 
 const (
@@ -246,6 +252,10 @@ func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatr
 
 func DrawTexture(native uint, projectionMatrix [16]float32, quads []texture.Quad,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	if !initialized {
+		initialize()
+	}
+
 	if len(quads) == 0 {
 		return
 	}
