@@ -14,7 +14,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
-	"unsafe"
 )
 
 type Context struct {
@@ -57,7 +56,7 @@ func (context *Context) Init() {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
 
-	shader.Initialize()
+	shader.Init()
 
 	context.screenId, err = context.NewRenderTarget(
 		context.screenWidth, context.screenHeight)
@@ -85,68 +84,13 @@ func (context *Context) Fill(r, g, b uint8) {
 }
 
 type TextureDrawing struct {
-	context        *Context
-	geometryMatrix matrix.Geometry
-	colorMatrix    matrix.Color
+	projectionMatrix [16]float32
+	geometryMatrix   matrix.Geometry
+	colorMatrix      matrix.Color
 }
 
 func (t *TextureDrawing) Draw(native interface{}, quads []texture.Quad) {
-	if len(quads) == 0 {
-		return
-	}
-	shaderProgram := t.context.setShaderProgram(t.geometryMatrix, t.colorMatrix)
-	C.glBindTexture(C.GL_TEXTURE_2D, native.(C.GLuint))
-
-	vertexAttrLocation := shader.GetAttributeLocation(shaderProgram, "vertex")
-	textureAttrLocation := shader.GetAttributeLocation(shaderProgram, "texture")
-
-	C.glEnableClientState(C.GL_VERTEX_ARRAY)
-	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
-	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
-	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
-	vertices := []float32{}
-	texCoords := []float32{}
-	indicies := []uint32{}
-	// TODO: Check len(parts) and GL_MAX_ELEMENTS_INDICES
-	for i, quad := range quads {
-		x1 := quad.VertexX1
-		x2 := quad.VertexX2
-		y1 := quad.VertexY1
-		y2 := quad.VertexY2
-		vertices = append(vertices,
-			x1, y1,
-			x2, y1,
-			x1, y2,
-			x2, y2,
-		)
-		u1 := quad.TextureCoordU1
-		u2 := quad.TextureCoordU2
-		v1 := quad.TextureCoordV1
-		v2 := quad.TextureCoordV2
-		texCoords = append(texCoords,
-			u1, v1,
-			u2, v1,
-			u1, v2,
-			u2, v2,
-		)
-		base := uint32(i * 4)
-		indicies = append(indicies,
-			base, base+1, base+2,
-			base+1, base+2, base+3,
-		)
-	}
-	C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2,
-		C.GL_FLOAT, C.GL_FALSE,
-		0, unsafe.Pointer(&vertices[0]))
-	C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2,
-		C.GL_FLOAT, C.GL_FALSE,
-		0, unsafe.Pointer(&texCoords[0]))
-	C.glDrawElements(C.GL_TRIANGLES, C.GLsizei(len(indicies)),
-		C.GL_UNSIGNED_INT, unsafe.Pointer(&indicies[0]))
-	C.glDisableVertexAttribArray(C.GLuint(textureAttrLocation))
-	C.glDisableVertexAttribArray(C.GLuint(vertexAttrLocation))
-	C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)
-	C.glDisableClientState(C.GL_VERTEX_ARRAY)
+	shader.DrawTexture(uint(native.(C.GLuint)), t.projectionMatrix, quads, t.geometryMatrix, t.colorMatrix)
 }
 
 func (context *Context) DrawTexture(
@@ -156,7 +100,7 @@ func (context *Context) DrawTexture(
 	if !ok {
 		panic("invalid texture ID")
 	}
-	drawing := &TextureDrawing{context, geometryMatrix, colorMatrix}
+	drawing := &TextureDrawing{context.projectionMatrix, geometryMatrix, colorMatrix}
 	texture.Draw(drawing.Draw)
 }
 
@@ -167,7 +111,7 @@ func (context *Context) DrawTextureParts(
 	if !ok {
 		panic("invalid texture ID")
 	}
-	drawing := &TextureDrawing{context, geometryMatrix, colorMatrix}
+	drawing := &TextureDrawing{context.projectionMatrix, geometryMatrix, colorMatrix}
 	texture.DrawParts(parts, drawing.Draw)
 }
 
@@ -236,11 +180,6 @@ func (context *Context) setMainFramebufferOffscreen() {
 
 func (context *Context) flush() {
 	C.glFlush()
-}
-
-func (context *Context) setShaderProgram(
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) (program shader.Program) {
-	return shader.Use(context.projectionMatrix, geometryMatrix, colorMatrix)
 }
 
 func (context *Context) NewRenderTarget(width, height int) (
