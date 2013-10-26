@@ -24,7 +24,6 @@ type Context struct {
 	textures               map[graphics.TextureId]*texture.Texture
 	renderTargets          map[graphics.RenderTargetId]*rendertarget.RenderTarget
 	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
-	currentOffscreen       *rendertarget.RenderTarget
 	mainFramebufferTexture *rendertarget.RenderTarget
 	projectionMatrix       [16]float32
 }
@@ -89,7 +88,8 @@ func (context *Context) DrawTexture(
 		panic("invalid texture ID")
 	}
 	tex.Draw(func(native interface{}, quads []texture.Quad) {
-		shader.DrawTexture(uint(native.(C.GLuint)), context.projectionMatrix, quads,
+		shader.DrawTexture(shader.Texture(native.(C.GLuint)),
+			context.projectionMatrix, quads,
 			geometryMatrix, colorMatrix)
 	})
 }
@@ -102,7 +102,8 @@ func (context *Context) DrawTextureParts(
 		panic("invalid texture ID")
 	}
 	tex.DrawParts(parts, func(native interface{}, quads []texture.Quad) {
-		shader.DrawTexture(uint(native.(C.GLuint)), context.projectionMatrix, quads,
+		shader.DrawTexture(shader.Texture(native.(C.GLuint)),
+			context.projectionMatrix, quads,
 			geometryMatrix, colorMatrix)
 	})
 }
@@ -117,8 +118,6 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 }
 
 func (context *Context) setOffscreen(renderTarget *rendertarget.RenderTarget) {
-	context.currentOffscreen = renderTarget
-
 	C.glFlush()
 
 	framebuffer := renderTarget.Framebuffer().(C.GLuint)
@@ -132,13 +131,13 @@ func (context *Context) setOffscreen(renderTarget *rendertarget.RenderTarget) {
 	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 		C.GL_ZERO, C.GL_ONE)
 
-	isUsingMainFramebuffer := context.currentOffscreen == context.mainFramebufferTexture
+	isUsingMainFramebuffer := renderTarget == context.mainFramebufferTexture
 	setter := &viewportSetter{
 		isUsingMainFramebuffer,
 		context.screenHeight * context.screenScale,
 		context,
 	}
-	context.currentOffscreen.SetAsViewport(setter.Set)
+	renderTarget.SetAsViewport(setter.Set)
 }
 
 type viewportSetter struct {
