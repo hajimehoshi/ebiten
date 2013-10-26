@@ -69,7 +69,7 @@ var (
 func (s *shader) compile() {
 	csource := (*C.GLchar)(C.CString(s.source))
 	// TODO: defer?
-	//defer C.free(unsafe.Pointer(csource))
+	// defer C.free(unsafe.Pointer(csource))
 
 	C.glShaderSource(s.id, 1, &csource, nil)
 	C.glCompileShader(s.id)

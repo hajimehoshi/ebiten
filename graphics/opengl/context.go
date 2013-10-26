@@ -60,6 +60,11 @@ func (context *Context) Init() {
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
+	screen := context.renderTargets[context.screenId]
+	C.glBindTexture(C.GL_TEXTURE_2D, screen.Texture().Native().(C.GLuint))
+	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
+	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
+	C.glBindTexture(C.GL_TEXTURE_2D, 0)
 }
 
 func (context *Context) ToTexture(renderTargetId graphics.RenderTargetId) graphics.TextureId {

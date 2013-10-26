@@ -175,7 +175,7 @@ func DrawTexture(native Texture, projectionMatrix [16]float32, quads []texture.Q
 	shaderProgram := use(projectionMatrix, geometryMatrix, colorMatrix)
 	// This state affects the other functions, so can't disable here...
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(native))
-	//defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
+	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
 	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
 	textureAttrLocation := getAttributeLocation(shaderProgram, "texture")

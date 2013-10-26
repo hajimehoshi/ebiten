@@ -32,17 +32,12 @@ func (device *Device) Init() {
 func (device *Device) Update(draw func(graphics.Context)) {
 	context := device.context
 	C.glEnable(C.GL_TEXTURE_2D)
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
 	context.ResetOffscreen()
 	context.Clear()
 
 	draw(context)
 
 	context.flush()
-
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
 	context.setMainFramebufferOffscreen()
 	context.Clear()
 

@@ -20,6 +20,10 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) C.GLui
 	}
 	C.glPixelStorei(C.GL_UNPACK_ALIGNMENT, 4)
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(nativeTexture))
+	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
+
+	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
+	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
 
 	ptr := unsafe.Pointer(nil)
 	if pixels != nil {
@@ -28,10 +32,6 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) C.GLui
 	C.glTexImage2D(C.GL_TEXTURE_2D, 0, C.GL_RGBA,
 		C.GLsizei(textureWidth), C.GLsizei(textureHeight),
 		0, C.GL_RGBA, C.GL_UNSIGNED_BYTE, ptr)
-
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
-	C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
 	return nativeTexture
 }
