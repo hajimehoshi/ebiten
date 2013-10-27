@@ -21,11 +21,10 @@ func (renderTarget *RenderTarget) Texture() *texture.Texture {
 	return renderTarget.texture
 }
 
-// TODO: Remove this
-func (renderTarget *RenderTarget) Framebuffer() interface{} {
-	return renderTarget.framebuffer
-}
-
 func (renderTarget *RenderTarget) SetAsViewport(setter func(x, y, width, height int)) {
 	renderTarget.texture.SetAsViewport(setter)
+}
+
+func (renderTarget *RenderTarget) SetAsOffscreen(setter func(framebuffer interface{})) {
+	setter(renderTarget.framebuffer)
 }

@@ -12,7 +12,15 @@ import (
 
 type Native C.GLuint
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) Native {
+type Filter int
+
+const (
+	FilterLinear = iota
+	FilterNearest
+)
+
+func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
+	filter Filter) Native {
 	nativeTexture := C.GLuint(0)
 
 	C.glGenTextures(1, (*C.GLuint)(&nativeTexture))
@@ -23,8 +31,17 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) Native
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(nativeTexture))
 	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_LINEAR)
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_LINEAR)
+	glFilter := C.GLint(0)
+	switch filter {
+	case FilterLinear:
+		glFilter = C.GL_LINEAR
+	case FilterNearest:
+		glFilter = C.GL_NEAREST
+	default:
+		panic("not reached")
+	}
+	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, glFilter)
+	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, glFilter)
 
 	ptr := unsafe.Pointer(nil)
 	if pixels != nil {
@@ -37,17 +54,20 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) Native
 	return Native(nativeTexture)
 }
 
-func create(textureWidth, textureHeight int) (interface{}, error) {
-	return createNativeTexture(textureWidth, textureHeight, nil), nil
+func create(textureWidth, textureHeight int, filter Filter) (interface{}, error) {
+	return createNativeTexture(textureWidth, textureHeight, nil, filter), nil
 }
 
 func createFromImage(img *image.NRGBA) (interface{}, error) {
 	size := img.Bounds().Size()
-	return createNativeTexture(size.X, size.Y, img.Pix), nil
+	return createNativeTexture(size.X, size.Y, img.Pix, FilterLinear), nil
 }
 
-func New(width, height int) (*gtexture.Texture, error) {
-	return gtexture.New(width, height, create)
+func New(width, height int, filter Filter) (*gtexture.Texture, error) {
+	f := func(textureWidth, textureHeight int) (interface{}, error) {
+		return create(textureWidth, textureHeight, filter)
+	}
+	return gtexture.New(width, height, f)
 }
 
 func NewFromImage(img image.Image) (*gtexture.Texture, error) {

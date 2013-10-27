@@ -49,24 +49,20 @@ func (context *Context) Init() {
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
 	var err error
-	context.mainFramebufferTexture, err = rendertarget.NewRenderTargetWithFramebuffer(
+	context.mainFramebufferTexture, err = rendertarget.NewWithFramebuffer(
 		context.screenWidth*context.screenScale,
 		context.screenHeight*context.screenScale,
-		rendertarget.Framebuffer(mainFramebuffer))
+		rendertarget.Framebuffer(mainFramebuffer),
+		texture.FilterLinear)
 	if err != nil {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
 
-	context.screenId, err = context.NewRenderTarget(
-		context.screenWidth, context.screenHeight)
+	context.screenId, err = context.newRenderTarget(
+		context.screenWidth, context.screenHeight, texture.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
-	screen := context.renderTargets[context.screenId]
-	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(screen.Texture().Native().(texture.Native)))
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
-	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
-	C.glBindTexture(C.GL_TEXTURE_2D, 0)
 }
 
 func (context *Context) ToTexture(renderTargetId graphics.RenderTargetId) graphics.TextureId {
@@ -127,24 +123,26 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 func (context *Context) setOffscreen(renderTarget *grendertarget.RenderTarget) {
 	C.glFlush()
 
-	framebuffer := C.GLuint(renderTarget.Framebuffer().(rendertarget.Framebuffer))
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
-	if err != C.GL_FRAMEBUFFER_COMPLETE {
-		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
-	}
+	renderTarget.SetAsOffscreen(func(framebuffer interface{}) {
+		f := framebuffer.(rendertarget.Framebuffer)
+		C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(f))
+		err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
+		if err != C.GL_FRAMEBUFFER_COMPLETE {
+			panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
+		}
 
-	C.glEnable(C.GL_BLEND)
-	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
-		C.GL_ZERO, C.GL_ONE)
+		C.glEnable(C.GL_BLEND)
+		C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
+			C.GL_ZERO, C.GL_ONE)
 
-	isUsingMainFramebuffer := renderTarget == context.mainFramebufferTexture
-	setter := &viewportSetter{
-		isUsingMainFramebuffer,
-		context.screenHeight * context.screenScale,
-		context,
-	}
-	renderTarget.SetAsViewport(setter.Set)
+		isUsingMainFramebuffer := renderTarget == context.mainFramebufferTexture
+		setter := &viewportSetter{
+			isUsingMainFramebuffer,
+			context.screenHeight * context.screenScale,
+			context,
+		}
+		renderTarget.SetAsViewport(setter.Set)
+	})
 }
 
 type viewportSetter struct {
@@ -178,9 +176,9 @@ func (context *Context) flush() {
 	C.glFlush()
 }
 
-func (context *Context) NewRenderTarget(width, height int) (
+func (context *Context) newRenderTarget(width, height int, filter texture.Filter) (
 	graphics.RenderTargetId, error) {
-	renderTarget, err := rendertarget.NewRenderTarget(width, height)
+	renderTarget, err := rendertarget.New(width, height, filter)
 	if err != nil {
 		return 0, nil
 	}
@@ -196,6 +194,11 @@ func (context *Context) NewRenderTarget(width, height int) (
 	context.setMainFramebufferOffscreen()
 
 	return renderTargetId, nil
+}
+
+func (context *Context) NewRenderTarget(width, height int) (
+	graphics.RenderTargetId, error) {
+	return context.newRenderTarget(width, height, texture.FilterLinear)
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (

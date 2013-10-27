@@ -23,20 +23,23 @@ type Texture struct {
 	height int
 }
 
-func New(width, height int, create func(textureWidth, textureHeight int) (interface{}, error)) (*Texture, error) {
+func New(width, height int, create func(textureWidth, textureHeight int) (
+	interface{}, error)) (*Texture, error) {
 	texture := &Texture{
 		width:  width,
 		height: height,
 	}
 	var err error
-	texture.native, err = create(texture.textureWidth(), texture.textureHeight())
+	texture.native, err = create(texture.textureWidth(),
+		texture.textureHeight())
 	if err != nil {
 		return nil, err
 	}
 	return texture, nil
 }
 
-func NewFromImage(img image.Image, create func(img *image.NRGBA) (interface{}, error)) (*Texture, error) {
+func NewFromImage(img image.Image, create func(img *image.NRGBA) (
+	interface{}, error)) (*Texture, error) {
 	size := img.Bounds().Size()
 	width, height := size.X, size.Y
 	texture := &Texture{
@@ -67,11 +70,6 @@ func (texture *Texture) textureWidth() int {
 
 func (texture *Texture) textureHeight() int {
 	return int(nextPowerOf2(uint64(texture.height)))
-}
-
-// TODO: Remove this
-func (texture *Texture) Native() interface{} {
-	return texture.native
 }
 
 func (texture *Texture) u(x int) float32 {
@@ -110,7 +108,8 @@ func (texture *Texture) Draw(draw func(native interface{}, quads []Quad)) {
 	draw(texture.native, []Quad{quad})
 }
 
-func (texture *Texture) DrawParts(parts []graphics.TexturePart, draw func(native interface{}, quads []Quad)) {
+func (texture *Texture) DrawParts(parts []graphics.TexturePart,
+	draw func(native interface{}, quads []Quad)) {
 	quads := []Quad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)
@@ -125,4 +124,8 @@ func (texture *Texture) DrawParts(parts []graphics.TexturePart, draw func(native
 		quads = append(quads, quad)
 	}
 	draw(texture.native, quads)
+}
+
+func (texture *Texture) CreateFramebuffer(create func(native interface{})) {
+	create(texture.native)
 }
