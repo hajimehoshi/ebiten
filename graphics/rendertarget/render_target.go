@@ -16,11 +16,6 @@ func NewWithFramebuffer(texture *texture.Texture, framebuffer interface{}) *Rend
 	}
 }
 
-// TODO: Remove this
-func (renderTarget *RenderTarget) Texture() *texture.Texture {
-	return renderTarget.texture
-}
-
 func (renderTarget *RenderTarget) SetAsViewport(setter func(x, y, width, height int)) {
 	renderTarget.texture.SetAsViewport(setter)
 }
