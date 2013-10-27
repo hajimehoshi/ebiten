@@ -38,6 +38,9 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 }
 
 func (context *Context) Init() {
+	C.glEnable(C.GL_TEXTURE_2D)
+	C.glEnable(C.GL_BLEND)
+
 	// The main framebuffer should be created sooner than any other
 	// framebuffers!
 	mainFramebuffer := C.GLint(0)
@@ -119,7 +122,6 @@ func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
 			panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 		}
 
-		C.glEnable(C.GL_BLEND)
 		C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 			C.GL_ZERO, C.GL_ONE)
 

@@ -1,10 +1,5 @@
 package opengl
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <OpenGL/gl.h>
-// #include <stdlib.h>
-import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
@@ -31,7 +26,6 @@ func (device *Device) Init() {
 
 func (device *Device) Update(draw func(graphics.Context)) {
 	context := device.context
-	C.glEnable(C.GL_TEXTURE_2D)
 	context.ResetOffscreen()
 	context.Clear()
 
@@ -42,12 +36,8 @@ func (device *Device) Update(draw func(graphics.Context)) {
 	context.Clear()
 
 	scale := float64(context.screenScale)
-	geometryMatrix := matrix.Geometry{
-		[2][3]float64{
-			{scale, 0, 0},
-			{0, scale, 0},
-		},
-	}
+	geometryMatrix := matrix.IdentityGeometry()
+	geometryMatrix.Scale(scale, scale)
 	context.DrawTexture(context.ToTexture(context.screenId),
 		geometryMatrix, matrix.IdentityColor())
 	context.flush()
