@@ -54,8 +54,10 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	return Native(nativeTexture)
 }
 
-func create(textureWidth, textureHeight int, filter Filter) (interface{}, error) {
-	return createNativeTexture(textureWidth, textureHeight, nil, filter), nil
+func create(textureWidth, textureHeight int, filter Filter) (
+	interface{}, error) {
+	return createNativeTexture(textureWidth, textureHeight,
+		nil, filter), nil
 }
 
 func createFromImage(img *image.NRGBA) (interface{}, error) {

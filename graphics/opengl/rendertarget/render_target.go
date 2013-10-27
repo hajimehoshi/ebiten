@@ -6,8 +6,8 @@ package rendertarget
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
+	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 )
 
 type Framebuffer C.GLuint
@@ -29,6 +29,11 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 		panic("creating framebuffer failed")
 	}
 
+	// Set this framebuffer opaque because alpha values on a target might be
+	// confusing.
+	C.glClearColor(0, 0, 0, 1)
+	C.glClear(C.GL_COLOR_BUFFER_BIT)
+
 	return framebuffer
 }
 
@@ -38,7 +43,7 @@ func New(width, height int, filter texture.Filter) (
 	if err != nil {
 		return nil, nil, err
 	}
-	f := func(native interface{}) interface{}{
+	f := func(native interface{}) interface{} {
 		return createFramebuffer(C.GLuint(native.(texture.Native)))
 	}
 	framebuffer := tex.CreateFramebuffer(f)

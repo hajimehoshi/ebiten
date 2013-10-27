@@ -23,23 +23,18 @@ type Context struct {
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
-	textures               map[graphics.TextureId]*gtexture.Texture
-	renderTargets          map[graphics.RenderTargetId]*grendertarget.RenderTarget
-	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
+	ids                    *ids
 	mainFramebufferTexture *grendertarget.RenderTarget
 	projectionMatrix       [16]float32
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
-	context := &Context{
-		screenWidth:           screenWidth,
-		screenHeight:          screenHeight,
-		screenScale:           screenScale,
-		textures:              map[graphics.TextureId]*gtexture.Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*grendertarget.RenderTarget{},
-		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
+	return &Context{
+		screenWidth:  screenWidth,
+		screenHeight: screenHeight,
+		screenScale:  screenScale,
+		ids:          newIds(),
 	}
-	return context
 }
 
 func (context *Context) Init() {
@@ -57,7 +52,7 @@ func (context *Context) Init() {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
 
-	context.screenId, err = context.newRenderTarget(
+	context.screenId, err = context.createRenderTarget(
 		context.screenWidth, context.screenHeight, texture.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
@@ -65,7 +60,7 @@ func (context *Context) Init() {
 }
 
 func (context *Context) ToTexture(renderTargetId graphics.RenderTargetId) graphics.TextureId {
-	return context.renderTargetToTexture[renderTargetId]
+	return context.ids.ToTexture(renderTargetId)
 }
 
 func (context *Context) Clear() {
@@ -85,10 +80,7 @@ func (context *Context) Fill(r, g, b uint8) {
 func (context *Context) DrawTexture(
 	textureId graphics.TextureId,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	tex, ok := context.textures[textureId]
-	if !ok {
-		panic("invalid texture ID")
-	}
+	tex := context.ids.TextureAt(textureId)
 	tex.Draw(func(native interface{}, quads []gtexture.Quad) {
 		shader.DrawTexture(native.(texture.Native),
 			context.projectionMatrix, quads,
@@ -99,10 +91,7 @@ func (context *Context) DrawTexture(
 func (context *Context) DrawTextureParts(
 	textureId graphics.TextureId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	tex, ok := context.textures[textureId]
-	if !ok {
-		panic("invalid texture ID")
-	}
+	tex := context.ids.TextureAt(textureId)
 	tex.DrawParts(parts, func(native interface{}, quads []gtexture.Quad) {
 		shader.DrawTexture(native.(texture.Native),
 			context.projectionMatrix, quads,
@@ -115,7 +104,7 @@ func (context *Context) ResetOffscreen() {
 }
 
 func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
-	renderTarget := context.renderTargets[renderTargetId]
+	renderTarget := context.ids.RenderTargetAt(renderTargetId)
 	context.setOffscreen(renderTarget)
 }
 
@@ -175,49 +164,21 @@ func (context *Context) flush() {
 	C.glFlush()
 }
 
-func (context *Context) newRenderTarget(width, height int, filter texture.Filter) (
+func (context *Context) createRenderTarget(width, height int, filter texture.Filter) (
 	graphics.RenderTargetId, error) {
-	renderTarget, texture, err := rendertarget.New(width, height, filter)
+	renderTargetId, err := context.ids.CreateRenderTarget(width, height, filter)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
-	renderTargetId := graphics.RenderTargetId(<-newId)
-	textureId := graphics.TextureId(<-newId)
-	context.renderTargets[renderTargetId] = renderTarget
-	context.textures[textureId] = texture
-	context.renderTargetToTexture[renderTargetId] = textureId
-
-	context.setOffscreen(renderTarget)
-	context.Clear()
-	// TODO: Is it OK to revert he main framebuffer?
-	context.setMainFramebufferOffscreen()
-
 	return renderTargetId, nil
 }
 
 func (context *Context) NewRenderTarget(width, height int) (
 	graphics.RenderTargetId, error) {
-	return context.newRenderTarget(width, height, texture.FilterLinear)
+	return context.createRenderTarget(width, height, texture.FilterLinear)
 }
 
 func (context *Context) NewTextureFromImage(img image.Image) (
 	graphics.TextureId, error) {
-	texture, err := texture.NewFromImage(img)
-	if err != nil {
-		return 0, err
-	}
-	textureId := graphics.TextureId(<-newId)
-	context.textures[textureId] = texture
-	return textureId, nil
-}
-
-var newId chan int
-
-func init() {
-	newId = make(chan int)
-	go func() {
-		for i := 0; ; i++ {
-			newId <- i
-		}
-	}()
+	return context.ids.CreateTextureFromImage(img)
 }
