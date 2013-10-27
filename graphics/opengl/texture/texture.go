@@ -5,7 +5,6 @@ package texture
 // #include <OpenGL/gl.h>
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"unsafe"
@@ -47,41 +46,8 @@ func createFromImage(img *image.NRGBA) (interface{}, error) {
 	return createNativeTexture(size.X, size.Y, img.Pix), nil
 }
 
-type Framebuffer C.GLuint
-
-func NewRenderTarget(width, height int) (*rendertarget.RenderTarget, error) {
-	texture, err := gtexture.New(width, height, create)
-	if err != nil {
-		return nil, err
-	}
-	framebuffer := createFramebuffer(C.GLuint(texture.Native().(Native)))
-	return rendertarget.NewWithFramebuffer(texture, Framebuffer(framebuffer)), nil
-}
-
-func NewRenderTargetWithFramebuffer(width, height int, framebuffer Framebuffer) (*rendertarget.RenderTarget, error) {
-	texture, err := gtexture.New(width, height, create)
-	if err != nil {
-		return nil, err
-	}
-	return rendertarget.NewWithFramebuffer(texture, framebuffer), nil
-}
-
-func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
-	framebuffer := C.GLuint(0)
-	C.glGenFramebuffers(1, &framebuffer)
-
-	origFramebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
-		C.GL_TEXTURE_2D, nativeTexture, 0)
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
-	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
-		C.GL_FRAMEBUFFER_COMPLETE {
-		panic("creating framebuffer failed")
-	}
-
-	return framebuffer
+func New(width, height int) (*gtexture.Texture, error) {
+	return gtexture.New(width, height, create)
 }
 
 func NewFromImage(img image.Image) (*gtexture.Texture, error) {

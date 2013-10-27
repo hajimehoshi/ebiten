@@ -80,7 +80,7 @@ func getLocation(program C.GLuint, name string, qualifierVariableType int) C.GLi
 	defer C.free(unsafe.Pointer(locationName))
 
 	location := C.GLint(-1)
-	
+
 	switch qualifierVariableType {
 	case qualifierVariableTypeAttribute:
 		location = C.glGetAttribLocation(program, (*C.GLchar)(locationName))
@@ -111,7 +111,7 @@ func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatr
 		program = programColorMatrix
 	}
 	C.glUseProgram(program)
-	
+
 	C.glUniformMatrix4fv(C.GLint(getUniformLocation(program, "projection_matrix")),
 		1, C.GL_FALSE, (*C.GLfloat)(&projectionMatrix[0]))
 

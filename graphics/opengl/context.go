@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
-	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
+	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
@@ -23,9 +24,9 @@ type Context struct {
 	screenHeight           int
 	screenScale            int
 	textures               map[graphics.TextureId]*gtexture.Texture
-	renderTargets          map[graphics.RenderTargetId]*rendertarget.RenderTarget
+	renderTargets          map[graphics.RenderTargetId]*grendertarget.RenderTarget
 	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
-	mainFramebufferTexture *rendertarget.RenderTarget
+	mainFramebufferTexture *grendertarget.RenderTarget
 	projectionMatrix       [16]float32
 }
 
@@ -35,7 +36,7 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenHeight:          screenHeight,
 		screenScale:           screenScale,
 		textures:              map[graphics.TextureId]*gtexture.Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*rendertarget.RenderTarget{},
+		renderTargets:         map[graphics.RenderTargetId]*grendertarget.RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 	}
 	return context
@@ -48,10 +49,10 @@ func (context *Context) Init() {
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
 	var err error
-	context.mainFramebufferTexture, err = texture.NewRenderTargetWithFramebuffer(
+	context.mainFramebufferTexture, err = rendertarget.NewRenderTargetWithFramebuffer(
 		context.screenWidth*context.screenScale,
 		context.screenHeight*context.screenScale,
-		texture.Framebuffer(mainFramebuffer))
+		rendertarget.Framebuffer(mainFramebuffer))
 	if err != nil {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
@@ -123,10 +124,10 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	context.setOffscreen(renderTarget)
 }
 
-func (context *Context) setOffscreen(renderTarget *rendertarget.RenderTarget) {
+func (context *Context) setOffscreen(renderTarget *grendertarget.RenderTarget) {
 	C.glFlush()
 
-	framebuffer := C.GLuint(renderTarget.Framebuffer().(texture.Framebuffer))
+	framebuffer := C.GLuint(renderTarget.Framebuffer().(rendertarget.Framebuffer))
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
 	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
 	if err != C.GL_FRAMEBUFFER_COMPLETE {
@@ -179,7 +180,7 @@ func (context *Context) flush() {
 
 func (context *Context) NewRenderTarget(width, height int) (
 	graphics.RenderTargetId, error) {
-	renderTarget, err := texture.NewRenderTarget(width, height)
+	renderTarget, err := rendertarget.NewRenderTarget(width, height)
 	if err != nil {
 		return 0, nil
 	}
