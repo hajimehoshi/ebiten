@@ -126,6 +126,7 @@ func (texture *Texture) DrawParts(parts []graphics.TexturePart,
 	draw(texture.native, quads)
 }
 
-func (texture *Texture) CreateFramebuffer(create func(native interface{})) {
-	create(texture.native)
+func (texture *Texture) CreateFramebuffer(
+	create func(native interface{}) interface{}) interface{} {
+	return create(texture.native)
 }

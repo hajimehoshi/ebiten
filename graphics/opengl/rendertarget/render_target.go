@@ -37,12 +37,12 @@ func New(width, height int, filter texture.Filter) (
 	if err != nil {
 		return nil, err
 	}
-	framebuffer := C.GLuint(0)
-	tex.CreateFramebuffer(func(native interface{}) {
-		framebuffer =
-			createFramebuffer(C.GLuint(native.(texture.Native)))
-	})
-	return rendertarget.NewWithFramebuffer(tex, Framebuffer(framebuffer)), nil
+	f := func(native interface{}) interface{}{
+		return createFramebuffer(C.GLuint(native.(texture.Native)))
+	}
+	framebuffer := tex.CreateFramebuffer(f)
+	return rendertarget.NewWithFramebuffer(tex,
+		Framebuffer(framebuffer.(C.GLuint))), nil
 }
 
 func NewWithFramebuffer(width, height int, framebuffer Framebuffer,
