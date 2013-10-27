@@ -114,7 +114,7 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
 	C.glFlush()
 
-	rt.SetAsOffscreen(func(framebuffer interface{}) {
+	rt.SetAsOffscreen(func(framebuffer interface{}, x, y, width, height int) {
 		f := framebuffer.(rendertarget.Framebuffer)
 		C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(f))
 		err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
@@ -125,37 +125,22 @@ func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
 		C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
 			C.GL_ZERO, C.GL_ONE)
 
-		isUsingMainFramebuffer := rt == context.mainFramebufferTexture
-		setter := &viewportSetter{
-			isUsingMainFramebuffer,
-			context.screenHeight * context.screenScale,
-			context,
+		C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
+
+		matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
+		if rt == context.mainFramebufferTexture {
+			actualScreenHeight := context.screenHeight * context.screenScale
+			// Flip Y and move to fit with the top of the window.
+			matrix[1][1] *= -1
+			matrix[1][3] += float64(actualScreenHeight) / float64(height) * 2
 		}
-		rt.SetAsViewport(setter.Set)
+
+		for j := 0; j < 4; j++ {
+			for i := 0; i < 4; i++ {
+				context.projectionMatrix[i+j*4] = float32(matrix[i][j])
+			}
+		}
 	})
-}
-
-type viewportSetter struct {
-	isUsingMainFramebuffer bool
-	actualScreenHeight     int
-	context                *Context
-}
-
-func (v *viewportSetter) Set(x, y, width, height int) {
-	C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
-
-	matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
-	if v.isUsingMainFramebuffer {
-		// Flip Y and move to fit with the top of the window.
-		matrix[1][1] *= -1
-		matrix[1][3] += float64(v.actualScreenHeight) / float64(height) * 2
-	}
-
-	for j := 0; j < 4; j++ {
-		for i := 0; i < 4; i++ {
-			v.context.projectionMatrix[i+j*4] = float32(matrix[i][j])
-		}
-	}
 }
 
 func (context *Context) setMainFramebufferOffscreen() {

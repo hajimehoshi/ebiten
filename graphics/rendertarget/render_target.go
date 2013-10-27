@@ -16,10 +16,9 @@ func NewWithFramebuffer(texture *texture.Texture, framebuffer interface{}) *Rend
 	}
 }
 
-func (renderTarget *RenderTarget) SetAsViewport(setter func(x, y, width, height int)) {
-	renderTarget.texture.SetAsViewport(setter)
-}
-
-func (renderTarget *RenderTarget) SetAsOffscreen(setter func(framebuffer interface{})) {
-	setter(renderTarget.framebuffer)
+func (renderTarget *RenderTarget) SetAsOffscreen(
+	setter func(framebuffer interface{}, x, y, width, height int)) {
+	renderTarget.texture.SetAsViewport(func(x, y, width, height int) {
+		setter(renderTarget.framebuffer, x, y, width, height)
+	})
 }
