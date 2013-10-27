@@ -46,9 +46,9 @@ func New(width, height int, filter texture.Filter) (
 		Framebuffer(framebuffer.(C.GLuint))), tex, nil
 }
 
-func NewWithFramebuffer(width, height int, framebuffer Framebuffer,
-	filter texture.Filter) (*rendertarget.RenderTarget, error) {
-	tex, err := texture.New(width, height, filter)
+func NewWithFramebuffer(width, height int, framebuffer Framebuffer) (
+	*rendertarget.RenderTarget, error) {
+	tex, err := texture.NewEmpty(width, height)
 	if err != nil {
 		return nil, err
 	}

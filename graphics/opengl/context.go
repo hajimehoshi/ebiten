@@ -52,8 +52,7 @@ func (context *Context) Init() {
 	context.mainFramebufferTexture, err = rendertarget.NewWithFramebuffer(
 		context.screenWidth*context.screenScale,
 		context.screenHeight*context.screenScale,
-		rendertarget.Framebuffer(mainFramebuffer),
-		texture.FilterLinear)
+		rendertarget.Framebuffer(mainFramebuffer))
 	if err != nil {
 		panic("creating main framebuffer failed: " + err.Error())
 	}

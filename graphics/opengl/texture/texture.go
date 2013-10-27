@@ -70,6 +70,13 @@ func New(width, height int, filter Filter) (*gtexture.Texture, error) {
 	return gtexture.New(width, height, f)
 }
 
+func NewEmpty(width, height int) (*gtexture.Texture, error) {
+	f := func(textureWidth, textureHeight int) (interface{}, error) {
+		return nil, nil
+	}
+	return gtexture.New(width, height, f)
+}
+
 func NewFromImage(img image.Image) (*gtexture.Texture, error) {
 	return gtexture.NewFromImage(img, createFromImage)
 }
