@@ -1,4 +1,4 @@
-package opengl
+package texture
 
 // #cgo LDFLAGS: -framework OpenGL
 //
@@ -6,12 +6,14 @@ package opengl
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
-	"github.com/hajimehoshi/go-ebiten/graphics/texture"
+	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"unsafe"
 )
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) C.GLuint {
+type Native C.GLuint
+
+func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) Native {
 	nativeTexture := C.GLuint(0)
 
 	C.glGenTextures(1, (*C.GLuint)(&nativeTexture))
@@ -33,7 +35,7 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8) C.GLui
 		C.GLsizei(textureWidth), C.GLsizei(textureHeight),
 		0, C.GL_RGBA, C.GL_UNSIGNED_BYTE, ptr)
 
-	return nativeTexture
+	return Native(nativeTexture)
 }
 
 func create(textureWidth, textureHeight int) (interface{}, error) {
@@ -45,17 +47,19 @@ func createFromImage(img *image.NRGBA) (interface{}, error) {
 	return createNativeTexture(size.X, size.Y, img.Pix), nil
 }
 
-func newRenderTarget(width, height int) (*rendertarget.RenderTarget, error) {
-	texture, err := texture.New(width, height, create)
+type Framebuffer C.GLuint
+
+func NewRenderTarget(width, height int) (*rendertarget.RenderTarget, error) {
+	texture, err := gtexture.New(width, height, create)
 	if err != nil {
 		return nil, err
 	}
-	framebuffer := createFramebuffer(texture.Native().(C.GLuint))
-	return rendertarget.NewWithFramebuffer(texture, framebuffer), nil
+	framebuffer := createFramebuffer(C.GLuint(texture.Native().(Native)))
+	return rendertarget.NewWithFramebuffer(texture, Framebuffer(framebuffer)), nil
 }
 
-func newRenderTargetWithFramebuffer(width, height int, framebuffer C.GLuint) (*rendertarget.RenderTarget, error) {
-	texture, err := texture.New(width, height, create)
+func NewRenderTargetWithFramebuffer(width, height int, framebuffer Framebuffer) (*rendertarget.RenderTarget, error) {
+	texture, err := gtexture.New(width, height, create)
 	if err != nil {
 		return nil, err
 	}
@@ -78,4 +82,8 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 	}
 
 	return framebuffer
+}
+
+func NewFromImage(img image.Image) (*gtexture.Texture, error) {
+	return gtexture.NewFromImage(img, createFromImage)
 }

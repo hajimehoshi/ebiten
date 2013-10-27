@@ -7,7 +7,8 @@ package shader
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/texture"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
+	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"unsafe"
 )
 
@@ -161,9 +162,7 @@ func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatr
 	return program
 }
 
-type Texture C.GLuint
-
-func DrawTexture(native Texture, projectionMatrix [16]float32, quads []texture.Quad,
+func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []gtexture.Quad,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	if !initialized {
 		initialize()

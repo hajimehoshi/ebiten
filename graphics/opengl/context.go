@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
-	"github.com/hajimehoshi/go-ebiten/graphics/texture"
+	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
 )
@@ -21,7 +22,7 @@ type Context struct {
 	screenWidth            int
 	screenHeight           int
 	screenScale            int
-	textures               map[graphics.TextureId]*texture.Texture
+	textures               map[graphics.TextureId]*gtexture.Texture
 	renderTargets          map[graphics.RenderTargetId]*rendertarget.RenderTarget
 	renderTargetToTexture  map[graphics.RenderTargetId]graphics.TextureId
 	mainFramebufferTexture *rendertarget.RenderTarget
@@ -33,7 +34,7 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenWidth:           screenWidth,
 		screenHeight:          screenHeight,
 		screenScale:           screenScale,
-		textures:              map[graphics.TextureId]*texture.Texture{},
+		textures:              map[graphics.TextureId]*gtexture.Texture{},
 		renderTargets:         map[graphics.RenderTargetId]*rendertarget.RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 	}
@@ -47,10 +48,10 @@ func (context *Context) Init() {
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
 	var err error
-	context.mainFramebufferTexture, err = newRenderTargetWithFramebuffer(
+	context.mainFramebufferTexture, err = texture.NewRenderTargetWithFramebuffer(
 		context.screenWidth*context.screenScale,
 		context.screenHeight*context.screenScale,
-		C.GLuint(mainFramebuffer))
+		texture.Framebuffer(mainFramebuffer))
 	if err != nil {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
@@ -61,7 +62,7 @@ func (context *Context) Init() {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
 	screen := context.renderTargets[context.screenId]
-	C.glBindTexture(C.GL_TEXTURE_2D, screen.Texture().Native().(C.GLuint))
+	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(screen.Texture().Native().(texture.Native)))
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MAG_FILTER, C.GL_NEAREST)
 	C.glTexParameteri(C.GL_TEXTURE_2D, C.GL_TEXTURE_MIN_FILTER, C.GL_NEAREST)
 	C.glBindTexture(C.GL_TEXTURE_2D, 0)
@@ -92,8 +93,8 @@ func (context *Context) DrawTexture(
 	if !ok {
 		panic("invalid texture ID")
 	}
-	tex.Draw(func(native interface{}, quads []texture.Quad) {
-		shader.DrawTexture(shader.Texture(native.(C.GLuint)),
+	tex.Draw(func(native interface{}, quads []gtexture.Quad) {
+		shader.DrawTexture(native.(texture.Native),
 			context.projectionMatrix, quads,
 			geometryMatrix, colorMatrix)
 	})
@@ -106,8 +107,8 @@ func (context *Context) DrawTextureParts(
 	if !ok {
 		panic("invalid texture ID")
 	}
-	tex.DrawParts(parts, func(native interface{}, quads []texture.Quad) {
-		shader.DrawTexture(shader.Texture(native.(C.GLuint)),
+	tex.DrawParts(parts, func(native interface{}, quads []gtexture.Quad) {
+		shader.DrawTexture(native.(texture.Native),
 			context.projectionMatrix, quads,
 			geometryMatrix, colorMatrix)
 	})
@@ -125,7 +126,7 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 func (context *Context) setOffscreen(renderTarget *rendertarget.RenderTarget) {
 	C.glFlush()
 
-	framebuffer := renderTarget.Framebuffer().(C.GLuint)
+	framebuffer := C.GLuint(renderTarget.Framebuffer().(texture.Framebuffer))
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
 	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
 	if err != C.GL_FRAMEBUFFER_COMPLETE {
@@ -178,7 +179,7 @@ func (context *Context) flush() {
 
 func (context *Context) NewRenderTarget(width, height int) (
 	graphics.RenderTargetId, error) {
-	renderTarget, err := newRenderTarget(width, height)
+	renderTarget, err := texture.NewRenderTarget(width, height)
 	if err != nil {
 		return 0, nil
 	}
@@ -198,7 +199,7 @@ func (context *Context) NewRenderTarget(width, height int) (
 
 func (context *Context) NewTextureFromImage(img image.Image) (
 	graphics.TextureId, error) {
-	texture, err := texture.NewFromImage(img, createFromImage)
+	texture, err := texture.NewFromImage(img)
 	if err != nil {
 		return 0, err
 	}
