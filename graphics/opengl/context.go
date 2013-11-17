@@ -111,35 +111,45 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	context.setOffscreen(renderTarget)
 }
 
+func (context *Context) doSetOffscreen(
+	usingMainFramebuffer bool,
+	framebuffer interface{}, x, y, width, height int) {
+	f := framebuffer.(rendertarget.Framebuffer)
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(f))
+	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
+	if err != C.GL_FRAMEBUFFER_COMPLETE {
+		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
+	}
+
+	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
+		C.GL_ZERO, C.GL_ONE)
+
+	C.glViewport(C.GLint(x), C.GLint(y),
+		C.GLsizei(width), C.GLsizei(height))
+
+	matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
+	if usingMainFramebuffer {
+		actualScreenHeight := context.screenHeight * context.screenScale
+		// Flip Y and move to fit with the top of the window.
+		matrix[1][1] *= -1
+		matrix[1][3] += float64(actualScreenHeight) / float64(height) * 2
+	}
+
+	for j := 0; j < 4; j++ {
+		for i := 0; i < 4; i++ {
+			context.projectionMatrix[i+j*4] = float32(matrix[i][j])
+		}
+	}
+}
+
 func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
 	C.glFlush()
 
-	rt.SetAsOffscreen(func(framebuffer interface{}, x, y, width, height int) {
-		f := framebuffer.(rendertarget.Framebuffer)
-		C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(f))
-		err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
-		if err != C.GL_FRAMEBUFFER_COMPLETE {
-			panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
-		}
-
-		C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
-			C.GL_ZERO, C.GL_ONE)
-
-		C.glViewport(C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height))
-
-		matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
-		if rt == context.mainFramebufferTexture {
-			actualScreenHeight := context.screenHeight * context.screenScale
-			// Flip Y and move to fit with the top of the window.
-			matrix[1][1] *= -1
-			matrix[1][3] += float64(actualScreenHeight) / float64(height) * 2
-		}
-
-		for j := 0; j < 4; j++ {
-			for i := 0; i < 4; i++ {
-				context.projectionMatrix[i+j*4] = float32(matrix[i][j])
-			}
-		}
+	usingMainFramebuffer := rt == context.mainFramebufferTexture
+	rt.SetAsOffscreen(func(framebuffer interface{},
+		x, y, width, height int) {
+		context.doSetOffscreen(usingMainFramebuffer, framebuffer,
+			x, y, width, height)
 	})
 }
 

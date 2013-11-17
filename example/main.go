@@ -11,7 +11,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/example/game/testpattern"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
-	"github.com/hajimehoshi/go-ebiten/ui/glut"
+	// "github.com/hajimehoshi/go-ebiten/ui/glut"
 	"os"
 	"runtime"
 )
@@ -58,8 +58,6 @@ func main() {
 		fallthrough
 	case "cocoa":
 		u = cocoa.New(screenWidth, screenHeight, screenScale, title)
-	case "glut":
-		u = glut.New(screenWidth, screenHeight, screenScale, title)
 	}
-	ui.Run(u, game)
+	u.Run(game)
 }

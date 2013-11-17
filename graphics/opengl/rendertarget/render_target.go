@@ -6,7 +6,7 @@ package rendertarget
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	"github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
+	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 )
 
@@ -38,7 +38,7 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 }
 
 func New(width, height int, filter texture.Filter) (
-	*rendertarget.RenderTarget, *gtexture.Texture, error) {
+	*grendertarget.RenderTarget, *gtexture.Texture, error) {
 	tex, err := texture.New(width, height, filter)
 	if err != nil {
 		return nil, nil, err
@@ -47,15 +47,15 @@ func New(width, height int, filter texture.Filter) (
 		return createFramebuffer(C.GLuint(native.(texture.Native)))
 	}
 	framebuffer := tex.CreateFramebuffer(f)
-	return rendertarget.NewWithFramebuffer(tex,
+	return grendertarget.NewWithFramebuffer(tex,
 		Framebuffer(framebuffer.(C.GLuint))), tex, nil
 }
 
 func NewWithFramebuffer(width, height int, framebuffer Framebuffer) (
-	*rendertarget.RenderTarget, error) {
+	*grendertarget.RenderTarget, error) {
 	tex, err := texture.NewEmpty(width, height)
 	if err != nil {
 		return nil, err
 	}
-	return rendertarget.NewWithFramebuffer(tex, framebuffer), nil
+	return grendertarget.NewWithFramebuffer(tex, framebuffer), nil
 }

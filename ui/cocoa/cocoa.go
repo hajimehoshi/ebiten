@@ -12,20 +12,40 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
+	"sync"
+	"time"
 	"unsafe"
 )
 
+type GameContext struct {
+	screenWidth  int
+	screenHeight int
+	inputState   ebiten.InputState
+}
+
+func (context *GameContext) ScreenWidth() int {
+	return context.screenWidth
+}
+
+func (context *GameContext) ScreenHeight() int {
+	return context.screenHeight
+}
+
+func (context *GameContext) InputState() ebiten.InputState {
+	return context.inputState
+}
+
 type UI struct {
-	screenWidth    int
-	screenHeight   int
-	screenScale    int
-	title          string
-	initializing   chan ebiten.Game
-	initialized    chan ebiten.Game
-	updating       chan ebiten.Game
-	updated        chan ebiten.Game
-	input          chan ebiten.InputState
-	graphicsDevice *opengl.Device
+	screenWidth               int
+	screenHeight              int
+	screenScale               int
+	title                     string
+	updating                  chan ebiten.Game
+	updated                   chan ebiten.Game
+	input                     chan ebiten.InputState
+	graphicsDevice            *opengl.Device
+	funcsExecutedOnMainThread []func() // TODO: map?
+	lock                      sync.Mutex
 }
 
 var currentUI *UI
@@ -39,17 +59,38 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 		title:        title,
-		initializing: make(chan ebiten.Game),
-		initialized:  make(chan ebiten.Game),
 		updating:     make(chan ebiten.Game),
 		updated:      make(chan ebiten.Game),
 		input:        make(chan ebiten.InputState),
+		funcsExecutedOnMainThread: []func(){},
 	}
 	currentUI = ui
 	return ui
 }
 
-func (ui *UI) MainLoop() {
+func (ui *UI) gameMainLoop(game ebiten.Game) {
+	frameTime := time.Duration(int64(time.Second) / int64(ebiten.FPS))
+	tick := time.Tick(frameTime)
+	gameContext := &GameContext{
+		screenWidth:  ui.screenWidth,
+		screenHeight: ui.screenHeight,
+		inputState:   ebiten.InputState{-1, -1},
+	}
+	ui.InitializeGame(game)
+	for {
+		select {
+		case gameContext.inputState = <-ui.input:
+		case <-tick:
+			game.Update(gameContext)
+		case ui.updating <- game:
+			game = <-ui.updated
+		}
+	}
+}
+
+func (ui *UI) Run(game ebiten.Game) {
+	go ui.gameMainLoop(game)
+
 	cTitle := C.CString(ui.title)
 	defer C.free(unsafe.Pointer(cTitle))
 
@@ -59,32 +100,20 @@ func (ui *UI) MainLoop() {
 		cTitle)
 }
 
-func (ui *UI) ScreenWidth() int {
-	return ui.screenWidth
+func (ui *UI) InitializeGame(game ebiten.Game) {
+	ui.lock.Lock()
+	defer ui.lock.Unlock()
+	ui.funcsExecutedOnMainThread = append(ui.funcsExecutedOnMainThread, func() {
+		game.InitTextures(ui.graphicsDevice.TextureFactory())
+	})
 }
 
-func (ui *UI) ScreenHeight() int {
-	return ui.screenHeight
-}
-
-func (ui *UI) Initializing() chan<- ebiten.Game {
-	return ui.initializing
-}
-
-func (ui *UI) Initialized() <-chan ebiten.Game {
-	return ui.initialized
-}
-
-func (ui *UI) Updating() chan<- ebiten.Game {
-	return ui.updating
-}
-
-func (ui *UI) Updated() <-chan ebiten.Game {
-	return ui.updated
-}
-
-func (ui *UI) Input() <-chan ebiten.InputState {
-	return ui.input
+func (ui *UI) DrawGame(game ebiten.Game) {
+	ui.lock.Lock()
+	defer ui.lock.Unlock()
+	ui.funcsExecutedOnMainThread = append(ui.funcsExecutedOnMainThread, func() {
+		ui.graphicsDevice.Update(game.Draw)
+	})
 }
 
 //export ebiten_EbitenOpenGLView_Initialized
@@ -98,14 +127,17 @@ func ebiten_EbitenOpenGLView_Initialized() {
 		currentUI.screenHeight,
 		currentUI.screenScale)
 	currentUI.graphicsDevice.Init()
-
-	game := <-currentUI.initializing
-	game.InitTextures(currentUI.graphicsDevice.TextureFactory())
-	currentUI.initialized <- game
 }
 
 //export ebiten_EbitenOpenGLView_Updating
 func ebiten_EbitenOpenGLView_Updating() {
+	currentUI.lock.Lock()
+	defer currentUI.lock.Unlock()
+	for _, f := range currentUI.funcsExecutedOnMainThread {
+		f()
+	}
+	currentUI.funcsExecutedOnMainThread = currentUI.funcsExecutedOnMainThread[0:0]
+
 	game := <-currentUI.updating
 	currentUI.graphicsDevice.Update(game.Draw)
 	currentUI.updated <- game
