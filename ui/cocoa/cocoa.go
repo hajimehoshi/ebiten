@@ -14,8 +14,13 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"sync"
 	"time"
+	"runtime"
 	"unsafe"
 )
+
+func init() {
+	runtime.LockOSThread()
+}
 
 type GameContext struct {
 	screenWidth  int
@@ -90,6 +95,7 @@ func (ui *UI) gameMainLoop(game ebiten.Game) {
 
 func (ui *UI) Run(game ebiten.Game) {
 	go ui.gameMainLoop(game)
+	runtime.LockOSThread()
 
 	cTitle := C.CString(ui.title)
 	defer C.free(unsafe.Pointer(cTitle))
@@ -126,7 +132,6 @@ func ebiten_EbitenOpenGLView_Initialized() {
 		currentUI.screenWidth,
 		currentUI.screenHeight,
 		currentUI.screenScale)
-	currentUI.graphicsDevice.Init()
 }
 
 //export ebiten_EbitenOpenGLView_Updating

@@ -29,15 +29,13 @@ type Context struct {
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
-	return &Context{
+	context := &Context{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 		ids:          newIds(),
 	}
-}
 
-func (context *Context) Init() {
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glEnable(C.GL_BLEND)
 
@@ -60,6 +58,8 @@ func (context *Context) Init() {
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
+
+	return context
 }
 
 func (context *Context) ToTexture(renderTargetId graphics.RenderTargetId) graphics.TextureId {

@@ -3,25 +3,17 @@ package opengl
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"runtime"
 )
 
 type Device struct {
-	screenScale int
 	context     *Context
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
 	graphicsContext := newContext(screenWidth, screenHeight, screenScale)
-	device := &Device{
-		screenScale: screenScale,
+	return &Device{
 		context:     graphicsContext,
 	}
-	return device
-}
-
-func (device *Device) Init() {
-	device.context.Init()
 }
 
 func (device *Device) Update(draw func(graphics.Context)) {
@@ -45,8 +37,4 @@ func (device *Device) Update(draw func(graphics.Context)) {
 
 func (device *Device) TextureFactory() graphics.TextureFactory {
 	return device.context
-}
-
-func init() {
-	runtime.LockOSThread()
 }
