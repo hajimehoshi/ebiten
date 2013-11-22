@@ -8,7 +8,7 @@
 
 @interface EbitenOpenGLView : NSOpenGLView
 
-- (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime;
+//- (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime;
 
 @end
 

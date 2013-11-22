@@ -9,9 +9,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go-ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go-ebiten/example/game/testpattern"
-	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
-	// "github.com/hajimehoshi/go-ebiten/ui/glut"
 	"os"
 	"runtime"
 )
@@ -22,10 +20,6 @@ func main() {
 	gameName := ""
 	if 2 <= len(os.Args) {
 		gameName = os.Args[1]
-	}
-	uiName := "cocoa"
-	if 3 <= len(os.Args) {
-		uiName = os.Args[2]
 	}
 
 	var game ebiten.Game
@@ -52,12 +46,11 @@ func main() {
 	const screenHeight = 240
 	const screenScale = 2
 	const title = "Ebiten Demo"
-	var u ui.UI
-	switch uiName {
-	default:
-		fallthrough
-	case "cocoa":
-		u = cocoa.New(screenWidth, screenHeight, screenScale, title)
+	ui := cocoa.New(screenWidth, screenHeight, screenScale, title)
+	ui.Start(game)
+	ui.InitTextures(game)
+	for {
+		ui.WaitEvents()
+		ui.Draw(game.Draw)
 	}
-	u.Run(game)
 }

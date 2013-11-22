@@ -6,13 +6,13 @@ import (
 )
 
 type Device struct {
-	context     *Context
+	context *Context
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
-	graphicsContext := newContext(screenWidth, screenHeight, screenScale)
+	context := newContext(screenWidth, screenHeight, screenScale)
 	return &Device{
-		context:     graphicsContext,
+		context: context,
 	}
 }
 

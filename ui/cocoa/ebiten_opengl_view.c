@@ -13,7 +13,7 @@ void ebiten_EbitenOpenGLView_InputUpdated(InputType inputType, int x, int y);
 
 // TODO: Use NSViewController?
 
-static CVReturn
+/*static CVReturn
 EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
                           CVTimeStamp const* now,
                           CVTimeStamp const* outputTime,
@@ -28,19 +28,26 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
     EbitenOpenGLView* view = (__bridge EbitenOpenGLView*)displayLinkContext;
     return [view getFrameForTime:outputTime];
   }
-}
+  }*/
 
 @implementation EbitenOpenGLView {
-@private
-  CVDisplayLinkRef displayLink_;
+  /*@private
+    CVDisplayLinkRef displayLink_;*/
 }
 
-- (void)dealloc {
+/*- (void)dealloc {
   CVDisplayLinkRelease(self->displayLink_);
-  // Do not call [super dealloc] because of ARC.
-}
+#if !__has_feature(objc_arc)
+  [super dealloc];
+#endif
+}*/
 
-- (void)prepareOpenGL {
+/*- (void)prepareOpenGL {
+  [super prepareOpenGL];
+  ebiten_EbitenOpenGLView_Initialized();
+  }*/
+
+/*- (void)prepareOpenGL {
   [super prepareOpenGL];
   NSOpenGLContext* openGLContext = [self openGLContext];
   assert(openGLContext != nil);
@@ -60,9 +67,9 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
   CVDisplayLinkStart(self->displayLink_);
 
   ebiten_EbitenOpenGLView_Initialized();
-}
+  }*/
 
-- (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime {
+/*- (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime {
   (void)outputTime;
   NSOpenGLContext* context = [self openGLContext];
   assert(context != nil);
@@ -74,7 +81,7 @@ EbitenDisplayLinkCallback(CVDisplayLinkRef displayLink,
     CGLUnlockContext((CGLContextObj)[context CGLContextObj]);
   }
   return kCVReturnSuccess;
-}
+  }*/
 
 - (BOOL)isFlipped {
   return YES;

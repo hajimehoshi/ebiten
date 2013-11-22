@@ -12,6 +12,8 @@
          returnCode:(NSInteger)returnCode
         contextInfo:(void*)contextInfo;
 - (BOOL)windowShouldClose:(id)sender;
+- (void)beginDrawing;
+- (void)endDrawing;
 
 @end
 

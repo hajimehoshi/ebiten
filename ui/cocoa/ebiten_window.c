@@ -2,9 +2,16 @@
 
 #import "ebiten_window.h"
 
+#include <OpenGL/gl.h>
+
 #import "ebiten_opengl_view.h"
 
+void ebiten_EbitenOpenGLView_Initialized(void);
+
 @implementation EbitenWindow
+{
+  NSOpenGLContext* glContext_;
+}
 
 - (id)initWithSize:(NSSize)size {
   NSUInteger style = (NSTitledWindowMask | NSClosableWindowMask |
@@ -31,6 +38,20 @@
   [self setDocumentEdited:YES];
 
   NSRect rect = NSMakeRect(0, 0, size.width, size.height);
+  NSView* contentView = [[NSView alloc] initWithFrame:rect];
+  [self setContentView:contentView];
+
+  return self;
+
+  /*EbitenOpenGLView* contentView =
+    [[EbitenOpenGLView alloc] initWithFrame:rect
+    pixelFormat:format];*/
+}
+
+- (NSOpenGLContext*)glContext {
+  if (self->glContext_ != nil)
+    return self->glContext_;
+
   NSOpenGLPixelFormatAttribute attributes[] = {
     NSOpenGLPFAWindow,
     NSOpenGLPFADoubleBuffer,
@@ -40,11 +61,15 @@
   };
   NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc]
                                   initWithAttributes:attributes];
-  EbitenOpenGLView* glView =
-    [[EbitenOpenGLView alloc] initWithFrame:rect
-                                pixelFormat:format];
-  [self setContentView:glView];
-  return self;
+  self->glContext_ = [[NSOpenGLContext alloc] initWithFormat:format
+                                                shareContext:nil];
+  [self->glContext_ setView:[self contentView]];
+  [self->glContext_ makeCurrentContext];
+  ebiten_EbitenOpenGLView_Initialized();
+
+  [format release];
+
+  return self->glContext_;
 }
 
 - (BOOL)windowShouldClose:(id)sender {
@@ -60,6 +85,7 @@
                       modalDelegate:self
                      didEndSelector:selector
                         contextInfo:nil];
+    [alert release];
   }
   return NO;
 }
@@ -74,5 +100,13 @@
   }
 }
 
-@end
+- (void)beginDrawing {
+  [[self glContext] makeCurrentContext];
+  glClear(GL_COLOR_BUFFER_BIT);
+}
 
+- (void)endDrawing {
+  [[self glContext] flushBuffer];
+}
+
+@end
