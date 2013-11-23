@@ -6,8 +6,6 @@
 #import "ebiten_controller.h"
 #import "ebiten_window.h"
 
-static NSOpenGLContext* glContext_;
-
 void StartApplication() {
   EbitenController* controller = [[EbitenController alloc] init];
   NSApplication* app = [NSApplication sharedApplication];
@@ -34,13 +32,18 @@ void* CreateGLContext() {
 }
 
 void* CreateWindow(size_t width, size_t height, const char* title) {
+  NSOpenGLContext* glContext = CreateGLContext();
+  [glContext makeCurrentContext];
+
   NSSize size = NSMakeSize(width, height);
   EbitenWindow* window = [[EbitenWindow alloc]
-                            initWithSize:size];
+                            initWithSize:size
+                               glContext:glContext];
   [window setTitle: [[NSString alloc] initWithUTF8String:title]];
   [window makeKeyAndOrderFront:nil];
-  glContext_ = CreateGLContext();
-  [glContext_ makeCurrentContext];
+
+  [glContext setView:[window contentView]];
+
   return window;
 }
 
@@ -58,10 +61,9 @@ void PollEvents(void) {
 }
 
 void BeginDrawing(void* window) {
-  [glContext_ setView:[(EbitenWindow*)window contentView]];
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void EndDrawing(void* window) {
-  [glContext_ flushBuffer];
+  [[(EbitenWindow*)window glContext] flushBuffer];
 }

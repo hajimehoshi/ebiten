@@ -7,7 +7,9 @@
 
 @interface EbitenWindow : NSWindow<NSWindowDelegate>
 
-- (id)initWithSize:(NSSize)size;
+- (id)initWithSize:(NSSize)size
+         glContext:(NSOpenGLContext*)glContext;
+- (NSOpenGLContext*)glContext;
 
 @end
 

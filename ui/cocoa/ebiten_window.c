@@ -6,9 +6,15 @@
 
 #import "ebiten_content_view.h"
 
-@implementation EbitenWindow
+@implementation EbitenWindow {
+@private
+  NSOpenGLContext* glContext_;
+}
 
-- (id)initWithSize:(NSSize)size {
+- (id)initWithSize:(NSSize)size
+         glContext:(NSOpenGLContext*)glContext {
+  self->glContext_ = glContext;
+
   NSUInteger style = (NSTitledWindowMask | NSClosableWindowMask |
                       NSMiniaturizableWindowMask);
   NSRect windowRect =
@@ -39,6 +45,10 @@
   return self;
 }
 
+- (NSOpenGLContext*)glContext {
+  return self->glContext_;
+}
+
 - (BOOL)windowShouldClose:(id)sender {
   if ([sender isDocumentEdited]) {
     // TODO: add the application's name
@@ -63,7 +73,8 @@
   (void)alert;
   (void)contextInfo;
   if (returnCode == NSAlertDefaultReturn) {
-    [NSApp terminate:nil];
+    [self->glContext_ release];
+    [self close];
   }
 }
 
