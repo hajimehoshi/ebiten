@@ -3,15 +3,6 @@
 #import "ebiten_controller.h"
 
 @implementation EbitenController {
-@private
-  NSWindow* window_;
-}
-
-- (id)initWithWindow:(NSWindow*)window {
-  if (self = [super init]) {
-    self->window_ = window;
-  }
-  return self;
 }
 
 - (void)initMenu {
@@ -32,9 +23,6 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNotification {
   (void)aNotification;
-  NSWindow* window = self->window_;
-  assert(window);
-  [window makeKeyAndOrderFront:nil];
   [self initMenu];
 }
 

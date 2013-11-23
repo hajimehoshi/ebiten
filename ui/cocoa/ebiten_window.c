@@ -53,7 +53,6 @@
                                   initWithAttributes:attributes];
   self->glContext_ = [[NSOpenGLContext alloc] initWithFormat:format
                                                 shareContext:nil];
-  [self->glContext_ setView:[self contentView]];
   [self->glContext_ makeCurrentContext];
 
   [format release];
@@ -88,12 +87,16 @@
 }
 
 - (void)beginDrawing {
-  [self->glContext_ makeCurrentContext];
+  [self->glContext_ setView:[self contentView]];
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
 - (void)endDrawing {
   [self->glContext_ flushBuffer];
+}
+
+- (BOOL)canBecomeMainWindow {
+  return YES;
 }
 
 @end

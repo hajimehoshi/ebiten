@@ -7,9 +7,6 @@
 
 @interface EbitenController : NSObject<NSApplicationDelegate>
 
-- (id)initWithWindow:(NSWindow*)window;
-- (void)applicationDidFinishLaunching:(NSNotification*)aNotification;
-
 @end
 
 #endif

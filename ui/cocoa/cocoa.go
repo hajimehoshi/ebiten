@@ -6,10 +6,11 @@ package cocoa
 // #include <stdlib.h>
 // #include "input.h"
 //
-// void Start(size_t width, size_t height, size_t scale, const char* title);
+// void StartApplication(void);
+// void* CreateWindow(size_t width, size_t height, const char* title);
 // void PollEvents(void);
-// void BeginDrawing(void);
-// void EndDrawing(void);
+// void BeginDrawing(void* window);
+// void EndDrawing(void* window);
 //
 import "C"
 import (
@@ -47,10 +48,10 @@ type UI struct {
 	screenWidth     int
 	screenHeight    int
 	screenScale     int
-	title           string
 	graphicsDevice  *opengl.Device
 	gameContext     *GameContext
 	gameContextLock sync.Mutex
+	window          unsafe.Pointer
 }
 
 var currentUI *UI
@@ -63,7 +64,6 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
-		title:        title,
 		gameContext: &GameContext{
 			screenWidth:  screenWidth,
 			screenHeight: screenHeight,
@@ -71,22 +71,22 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		},
 		gameContextLock: sync.Mutex{},
 	}
-	currentUI = ui
-	return ui
-}
 
-func (ui *UI) Start() {
-	cTitle := C.CString(ui.title)
+	cTitle := C.CString(title)
 	defer C.free(unsafe.Pointer(cTitle))
 
-	C.Start(C.size_t(ui.screenWidth),
-		C.size_t(ui.screenHeight),
-		C.size_t(ui.screenScale),
+	C.StartApplication()
+
+	ui.window = C.CreateWindow(C.size_t(ui.screenWidth * ui.screenScale),
+		C.size_t(ui.screenHeight * ui.screenScale),
 		cTitle)
 	ui.graphicsDevice = opengl.NewDevice(
 		ui.screenWidth,
 		ui.screenHeight,
 		ui.screenScale)
+
+	currentUI = ui
+	return ui
 }
 
 func (ui *UI) PollEvents() {
@@ -94,9 +94,9 @@ func (ui *UI) PollEvents() {
 }
 
 func (ui *UI) InitTextures(f func(graphics.TextureFactory)) {
-	C.BeginDrawing()
+	C.BeginDrawing(ui.window)
 	f(ui.graphicsDevice.TextureFactory())
-	C.EndDrawing()
+	C.EndDrawing(ui.window)
 }
 
 func (ui *UI) Update(f func(ebiten.GameContext)) {
@@ -106,9 +106,9 @@ func (ui *UI) Update(f func(ebiten.GameContext)) {
 }
 
 func (ui *UI) Draw(f func(graphics.Context)) {
-	C.BeginDrawing()
+	C.BeginDrawing(ui.window)
 	ui.graphicsDevice.Update(f)
-	C.EndDrawing()
+	C.EndDrawing(ui.window)
 }
 
 //export ebiten_InputUpdated

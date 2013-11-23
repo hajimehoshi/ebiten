@@ -5,7 +5,24 @@
 #import "ebiten_controller.h"
 #import "ebiten_window.h"
 
-static EbitenWindow* currentWindow = 0;
+void StartApplication() {
+  EbitenController* controller = [[EbitenController alloc] init];
+  NSApplication* app = [NSApplication sharedApplication];
+  [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+  [app setDelegate:controller];
+  [app finishLaunching];
+  [app activateIgnoringOtherApps:YES];
+}
+
+void* CreateWindow(size_t width, size_t height, const char* title) {
+  NSSize size = NSMakeSize(width, height);
+  EbitenWindow* window = [[EbitenWindow alloc]
+                            initWithSize:size];
+  [window setTitle: [[NSString alloc] initWithUTF8String:title]];
+  [window makeKeyAndOrderFront:nil];
+  [window initializeGLContext];
+  return window;
+}
 
 void PollEvents(void) {
   for (;;) {
@@ -20,30 +37,10 @@ void PollEvents(void) {
   }
 }
 
-void Start(size_t width, size_t height, size_t scale, const char* title) {
-  NSSize size = NSMakeSize(width * scale, height * scale);
-  EbitenWindow* window = [[EbitenWindow alloc]
-                            initWithSize:size];
-  [window setTitle: [[NSString alloc] initWithUTF8String:title]];
-  EbitenController* controller = [[EbitenController alloc]
-                                    initWithWindow:window];
-  NSApplication* app = [NSApplication sharedApplication];
-  [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-  [app setDelegate:controller];
-  [app finishLaunching];
-  [app activateIgnoringOtherApps:YES];
-
-  currentWindow = window;
-
-  PollEvents();
-
-  [window initializeGLContext];
+void BeginDrawing(void* window) {
+  [(EbitenWindow*)window beginDrawing];
 }
 
-void BeginDrawing(void) {
-  [currentWindow beginDrawing];
-}
-
-void EndDrawing(void) {
-  [currentWindow endDrawing];
+void EndDrawing(void* window) {
+  [(EbitenWindow*)window endDrawing];
 }

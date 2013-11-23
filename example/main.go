@@ -51,7 +51,6 @@ func main() {
 	const fps = 60
 	const title = "Ebiten Demo"
 	ui := cocoa.New(screenWidth, screenHeight, screenScale, title)
-	ui.Start()
 	ui.InitTextures(game.InitTextures)
 
 	lock := sync.Mutex{}
