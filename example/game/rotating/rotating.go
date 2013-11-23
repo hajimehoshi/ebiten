@@ -42,12 +42,14 @@ func (game *Rotating) InitTextures(tf graphics.TextureFactory) {
 }
 
 func (game *Rotating) Update(context ebiten.GameContext) {
+	const fps = 60
+
 	game.x++
 
 	game.geometryMatrix = matrix.IdentityGeometry()
 	tx, ty := float64(ebitenTextureWidth), float64(ebitenTextureHeight)
 	game.geometryMatrix.Translate(-tx/2, -ty/2)
-	game.geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(ebiten.FPS*10))
+	game.geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(fps*10))
 	game.geometryMatrix.Translate(tx/2, ty/2)
 	centerX := float64(context.ScreenWidth()) / 2
 	centerY := float64(context.ScreenHeight()) / 2

@@ -61,27 +61,28 @@ func mean(a, b matrix.Color, k float64) matrix.Color {
 }
 
 func (game *Monochrome) update() {
+	const fps = 60
 	colorI := matrix.IdentityColor()
 	colorMonochrome := matrix.Monochrome()
 	for {
-		for i := 0; i < ebiten.FPS; i++ {
+		for i := 0; i < fps; i++ {
 			<-game.ch
-			rate := float64(i) / float64(ebiten.FPS)
+			rate := float64(i) / float64(fps)
 			game.colorMatrix = mean(colorI, colorMonochrome, rate)
 			game.ch <- true
 		}
-		for i := 0; i < ebiten.FPS; i++ {
+		for i := 0; i < fps; i++ {
 			<-game.ch
 			game.colorMatrix = colorMonochrome
 			game.ch <- true
 		}
-		for i := 0; i < ebiten.FPS; i++ {
+		for i := 0; i < fps; i++ {
 			<-game.ch
-			rate := float64(i) / float64(ebiten.FPS)
+			rate := float64(i) / float64(fps)
 			game.colorMatrix = mean(colorMonochrome, colorI, rate)
 			game.ch <- true
 		}
-		for i := 0; i < ebiten.FPS; i++ {
+		for i := 0; i < fps; i++ {
 			<-game.ch
 			game.colorMatrix = colorI
 			game.ch <- true

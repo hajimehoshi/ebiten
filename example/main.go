@@ -48,15 +48,16 @@ func main() {
 	const screenWidth = 256
 	const screenHeight = 240
 	const screenScale = 2
+	const fps = 60
 	const title = "Ebiten Demo"
 	ui := cocoa.New(screenWidth, screenHeight, screenScale, title)
 	ui.Start()
 	ui.InitTextures(game.InitTextures)
 
-	frameTime := time.Duration(int64(time.Second) / int64(ebiten.FPS))
-	tick := time.Tick(frameTime)
 	lock := sync.Mutex{}
 	go func() {
+		frameTime := time.Duration(int64(time.Second) / int64(fps))
+		tick := time.Tick(frameTime)
 		for {
 			<-tick
 			ui.Update(func(c ebiten.GameContext) {

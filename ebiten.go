@@ -4,10 +4,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
-const (
-	FPS = 60
-)
-
 type Game interface {
 	InitTextures(tf graphics.TextureFactory)
 	Update(context GameContext)
