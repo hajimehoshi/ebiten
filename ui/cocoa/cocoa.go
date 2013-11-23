@@ -1,13 +1,13 @@
 package cocoa
 
 // #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework Cocoa -framework OpenGL -framework QuartzCore
-// 
+// #cgo LDFLAGS: -framework Cocoa -framework OpenGL
+//
 // #include <stdlib.h>
 // #include "input.h"
 //
 // void Start(size_t width, size_t height, size_t scale, const char* title);
-// void WaitEvents(void);
+// void PollEvents(void);
 // void BeginDrawing(void);
 // void EndDrawing(void);
 //
@@ -18,7 +18,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"runtime"
 	"sync"
-	"time"
 	"unsafe"
 )
 
@@ -45,16 +44,13 @@ func (context *GameContext) InputState() ebiten.InputState {
 }
 
 type UI struct {
-	screenWidth       int
-	screenHeight      int
-	screenScale       int
-	title             string
-	updating          chan struct{}
-	updated           chan struct{}
-	input             chan ebiten.InputState
-	graphicsDevice    *opengl.Device
-	lock              sync.Mutex
-	gameContext       *GameContext
+	screenWidth    int
+	screenHeight   int
+	screenScale    int
+	title          string
+	graphicsDevice *opengl.Device
+	lock           sync.Mutex
+	gameContext    *GameContext
 }
 
 var currentUI *UI
@@ -64,13 +60,10 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		panic("UI can't be duplicated.")
 	}
 	ui := &UI{
-		screenWidth:       screenWidth,
-		screenHeight:      screenHeight,
-		screenScale:       screenScale,
-		title:             title,
-		updating:          make(chan struct{}),
-		updated:           make(chan struct{}),
-		input:             make(chan ebiten.InputState),
+		screenWidth:  screenWidth,
+		screenHeight: screenHeight,
+		screenScale:  screenScale,
+		title:        title,
 		gameContext: &GameContext{
 			screenWidth:  screenWidth,
 			screenHeight: screenHeight,
@@ -81,24 +74,7 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 	return ui
 }
 
-func (ui *UI) gameMainLoop(game ebiten.Game) {
-	frameTime := time.Duration(int64(time.Second) / int64(ebiten.FPS))
-	tick := time.Tick(frameTime)
-	for {
-		select {
-		case ui.gameContext.inputState = <-ui.input:
-		case <-tick:
-			game.Update(ui.gameContext)
-		case ui.updating <- struct{}{}:
-			//ui.DrawGame(game)
-			<-ui.updated
-		}
-	}
-}
-
-func (ui *UI) Start(game ebiten.Game) {
-	go ui.gameMainLoop(game)
-
+func (ui *UI) Start() {
 	cTitle := C.CString(ui.title)
 	defer C.free(unsafe.Pointer(cTitle))
 
@@ -106,17 +82,21 @@ func (ui *UI) Start(game ebiten.Game) {
 		C.size_t(ui.screenHeight),
 		C.size_t(ui.screenScale),
 		cTitle)
-	C.WaitEvents()
+	C.PollEvents()
 }
 
-func (ui *UI) WaitEvents() {
-	C.WaitEvents()
+func (ui *UI) PollEvents() {
+	C.PollEvents()
 }
 
-func (ui *UI) InitTextures(game ebiten.Game) {
+func (ui *UI) InitTextures(f func(graphics.TextureFactory)) {
 	C.BeginDrawing()
-	game.InitTextures(ui.graphicsDevice.TextureFactory())
+	f(ui.graphicsDevice.TextureFactory())
 	C.EndDrawing()
+}
+
+func (ui *UI) Update(f func(ebiten.GameContext)) {
+	f(ui.gameContext)
 }
 
 func (ui *UI) Draw(f func(graphics.Context)) {
@@ -136,14 +116,10 @@ func ebiten_EbitenOpenGLView_Initialized() {
 		currentUI.screenScale)
 }
 
-//export ebiten_EbitenOpenGLView_Updating
-func ebiten_EbitenOpenGLView_Updating() {
-}
-
 //export ebiten_EbitenOpenGLView_InputUpdated
 func ebiten_EbitenOpenGLView_InputUpdated(inputType C.InputType, cx, cy C.int) {
 	if inputType == C.InputTypeMouseUp {
-		currentUI.input <- ebiten.InputState{-1, -1}
+		currentUI.gameContext.inputState = ebiten.InputState{-1, -1}
 		return
 	}
 
@@ -160,5 +136,5 @@ func ebiten_EbitenOpenGLView_InputUpdated(inputType C.InputType, cx, cy C.int) {
 	} else if currentUI.screenHeight <= y {
 		y = currentUI.screenHeight - 1
 	}
-	currentUI.input <- ebiten.InputState{x, y}
+	currentUI.gameContext.inputState = ebiten.InputState{x, y}
 }

@@ -23,7 +23,7 @@ void Start(size_t width, size_t height, size_t scale, const char* title) {
   currentWindow = window;
 }
 
-void WaitEvents(void) {
+void PollEvents(void) {
   for (;;) {
     NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
                                         untilDate:[NSDate distantPast]

@@ -4,7 +4,7 @@
 
 #include <OpenGL/gl.h>
 
-#import "ebiten_opengl_view.h"
+#import "ebiten_content_view.h"
 
 void ebiten_EbitenOpenGLView_Initialized(void);
 
@@ -38,14 +38,10 @@ void ebiten_EbitenOpenGLView_Initialized(void);
   [self setDocumentEdited:YES];
 
   NSRect rect = NSMakeRect(0, 0, size.width, size.height);
-  NSView* contentView = [[NSView alloc] initWithFrame:rect];
+  NSView* contentView = [[EbitenContentView alloc] initWithFrame:rect];
   [self setContentView:contentView];
 
   return self;
-
-  /*EbitenOpenGLView* contentView =
-    [[EbitenOpenGLView alloc] initWithFrame:rect
-    pixelFormat:format];*/
 }
 
 - (NSOpenGLContext*)glContext {

@@ -12,6 +12,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"os"
 	"runtime"
+	"time"
 )
 
 func main() {
@@ -47,10 +48,18 @@ func main() {
 	const screenScale = 2
 	const title = "Ebiten Demo"
 	ui := cocoa.New(screenWidth, screenHeight, screenScale, title)
-	ui.Start(game)
-	ui.InitTextures(game)
+	ui.Start()
+	ui.InitTextures(game.InitTextures)
+
+	frameTime := time.Duration(int64(time.Second) / int64(ebiten.FPS))
+	tick := time.Tick(frameTime)
 	for {
-		ui.WaitEvents()
+		ui.PollEvents()
+		select {
+		case <-tick:
+			ui.Update(game.Update)
+		default:
+		}
 		ui.Draw(game.Draw)
 	}
 }

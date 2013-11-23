@@ -6,9 +6,7 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 
-@interface EbitenOpenGLView : NSOpenGLView
-
-//- (CVReturn)getFrameForTime:(CVTimeStamp const*)outputTime;
+@interface EbitenContentView : NSView
 
 @end
 
