@@ -8,9 +8,6 @@
 @interface EbitenWindow : NSWindow<NSWindowDelegate>
 
 - (id)initWithSize:(NSSize)size;
-- (void)initializeGLContext;
-- (void)beginDrawing;
-- (void)endDrawing;
 
 @end
 

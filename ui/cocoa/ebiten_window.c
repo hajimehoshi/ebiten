@@ -6,9 +6,7 @@
 
 #import "ebiten_content_view.h"
 
-@implementation EbitenWindow {
-  NSOpenGLContext* glContext_;
-}
+@implementation EbitenWindow
 
 - (id)initWithSize:(NSSize)size {
   NSUInteger style = (NSTitledWindowMask | NSClosableWindowMask |
@@ -41,23 +39,6 @@
   return self;
 }
 
-- (void)initializeGLContext {
-  NSOpenGLPixelFormatAttribute attributes[] = {
-    NSOpenGLPFAWindow,
-    NSOpenGLPFADoubleBuffer,
-    NSOpenGLPFAAccelerated,
-    NSOpenGLPFADepthSize, 32,
-    0,
-  };
-  NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc]
-                                  initWithAttributes:attributes];
-  self->glContext_ = [[NSOpenGLContext alloc] initWithFormat:format
-                                                shareContext:nil];
-  [self->glContext_ makeCurrentContext];
-
-  [format release];
-}
-
 - (BOOL)windowShouldClose:(id)sender {
   if ([sender isDocumentEdited]) {
     // TODO: add the application's name
@@ -84,15 +65,6 @@
   if (returnCode == NSAlertDefaultReturn) {
     [NSApp terminate:nil];
   }
-}
-
-- (void)beginDrawing {
-  [self->glContext_ setView:[self contentView]];
-  glClear(GL_COLOR_BUFFER_BIT);
-}
-
-- (void)endDrawing {
-  [self->glContext_ flushBuffer];
 }
 
 - (BOOL)canBecomeMainWindow {
