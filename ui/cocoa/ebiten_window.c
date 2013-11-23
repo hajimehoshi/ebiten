@@ -6,10 +6,7 @@
 
 #import "ebiten_content_view.h"
 
-void ebiten_Initialized(void);
-
-@implementation EbitenWindow
-{
+@implementation EbitenWindow {
   NSOpenGLContext* glContext_;
 }
 
@@ -44,10 +41,7 @@ void ebiten_Initialized(void);
   return self;
 }
 
-- (NSOpenGLContext*)glContext {
-  if (self->glContext_ != nil)
-    return self->glContext_;
-
+- (void)initializeGLContext {
   NSOpenGLPixelFormatAttribute attributes[] = {
     NSOpenGLPFAWindow,
     NSOpenGLPFADoubleBuffer,
@@ -61,11 +55,8 @@ void ebiten_Initialized(void);
                                                 shareContext:nil];
   [self->glContext_ setView:[self contentView]];
   [self->glContext_ makeCurrentContext];
-  ebiten_Initialized();
 
   [format release];
-
-  return self->glContext_;
 }
 
 - (BOOL)windowShouldClose:(id)sender {
@@ -97,12 +88,12 @@ void ebiten_Initialized(void);
 }
 
 - (void)beginDrawing {
-  [[self glContext] makeCurrentContext];
+  [self->glContext_ makeCurrentContext];
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
 - (void)endDrawing {
-  [[self glContext] flushBuffer];
+  [self->glContext_ flushBuffer];
 }
 
 @end

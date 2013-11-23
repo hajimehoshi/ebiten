@@ -7,22 +7,6 @@
 
 static EbitenWindow* currentWindow = 0;
 
-void Start(size_t width, size_t height, size_t scale, const char* title) {
-  NSSize size = NSMakeSize(width * scale, height * scale);
-  EbitenWindow* window = [[EbitenWindow alloc]
-                            initWithSize:size];
-  [window setTitle: [[NSString alloc] initWithUTF8String:title]];  
-  EbitenController* controller = [[EbitenController alloc]
-                                    initWithWindow:window];
-  NSApplication* app = [NSApplication sharedApplication];
-  [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-  [app setDelegate:controller];
-  [app finishLaunching];
-  [app activateIgnoringOtherApps:YES];
-
-  currentWindow = window;
-}
-
 void PollEvents(void) {
   for (;;) {
     NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
@@ -34,6 +18,26 @@ void PollEvents(void) {
     }
     [NSApp sendEvent:event];
   }
+}
+
+void Start(size_t width, size_t height, size_t scale, const char* title) {
+  NSSize size = NSMakeSize(width * scale, height * scale);
+  EbitenWindow* window = [[EbitenWindow alloc]
+                            initWithSize:size];
+  [window setTitle: [[NSString alloc] initWithUTF8String:title]];
+  EbitenController* controller = [[EbitenController alloc]
+                                    initWithWindow:window];
+  NSApplication* app = [NSApplication sharedApplication];
+  [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+  [app setDelegate:controller];
+  [app finishLaunching];
+  [app activateIgnoringOtherApps:YES];
+
+  currentWindow = window;
+
+  PollEvents();
+
+  [window initializeGLContext];
 }
 
 void BeginDrawing(void) {

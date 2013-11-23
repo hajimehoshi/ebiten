@@ -44,13 +44,13 @@ func (context *GameContext) InputState() ebiten.InputState {
 }
 
 type UI struct {
-	screenWidth    int
-	screenHeight   int
-	screenScale    int
-	title          string
-	graphicsDevice *opengl.Device
-	lock           sync.Mutex
-	gameContext    *GameContext
+	screenWidth     int
+	screenHeight    int
+	screenScale     int
+	title           string
+	graphicsDevice  *opengl.Device
+	gameContext     *GameContext
+	gameContextLock sync.Mutex
 }
 
 var currentUI *UI
@@ -69,6 +69,7 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 			screenHeight: screenHeight,
 			inputState:   ebiten.InputState{-1, -1},
 		},
+		gameContextLock: sync.Mutex{},
 	}
 	currentUI = ui
 	return ui
@@ -82,7 +83,10 @@ func (ui *UI) Start() {
 		C.size_t(ui.screenHeight),
 		C.size_t(ui.screenScale),
 		cTitle)
-	C.PollEvents()
+	ui.graphicsDevice = opengl.NewDevice(
+		ui.screenWidth,
+		ui.screenHeight,
+		ui.screenScale)
 }
 
 func (ui *UI) PollEvents() {
@@ -96,6 +100,8 @@ func (ui *UI) InitTextures(f func(graphics.TextureFactory)) {
 }
 
 func (ui *UI) Update(f func(ebiten.GameContext)) {
+	ui.gameContextLock.Lock()
+	defer ui.gameContextLock.Unlock()
 	f(ui.gameContext)
 }
 
@@ -105,36 +111,30 @@ func (ui *UI) Draw(f func(graphics.Context)) {
 	C.EndDrawing()
 }
 
-//export ebiten_Initialized
-func ebiten_Initialized() {
-	if currentUI.graphicsDevice != nil {
-		panic("The graphics device is already initialized")
-	}
-	currentUI.graphicsDevice = opengl.NewDevice(
-		currentUI.screenWidth,
-		currentUI.screenHeight,
-		currentUI.screenScale)
-}
-
 //export ebiten_InputUpdated
 func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
+	ui := currentUI
+
+	ui.gameContextLock.Lock()
+	defer ui.gameContextLock.Unlock()
+
 	if inputType == C.InputTypeMouseUp {
-		currentUI.gameContext.inputState = ebiten.InputState{-1, -1}
+		ui.gameContext.inputState = ebiten.InputState{-1, -1}
 		return
 	}
 
 	x, y := int(cx), int(cy)
-	x /= currentUI.screenScale
-	y /= currentUI.screenScale
+	x /= ui.screenScale
+	y /= ui.screenScale
 	if x < 0 {
 		x = 0
-	} else if currentUI.screenWidth <= x {
-		x = currentUI.screenWidth - 1
+	} else if ui.screenWidth <= x {
+		x = ui.screenWidth - 1
 	}
 	if y < 0 {
 		y = 0
-	} else if currentUI.screenHeight <= y {
-		y = currentUI.screenHeight - 1
+	} else if ui.screenHeight <= y {
+		y = ui.screenHeight - 1
 	}
-	currentUI.gameContext.inputState = ebiten.InputState{x, y}
+	ui.gameContext.inputState = ebiten.InputState{x, y}
 }

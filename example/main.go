@@ -9,9 +9,11 @@ import (
 	"github.com/hajimehoshi/go-ebiten/example/game/rotating"
 	"github.com/hajimehoshi/go-ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go-ebiten/example/game/testpattern"
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -53,13 +55,23 @@ func main() {
 
 	frameTime := time.Duration(int64(time.Second) / int64(ebiten.FPS))
 	tick := time.Tick(frameTime)
+	lock := sync.Mutex{}
+	go func() {
+		for {
+			<-tick
+			ui.Update(func(c ebiten.GameContext) {
+				lock.Lock()
+				defer lock.Unlock()
+				game.Update(c)
+			})
+		}
+	}()
 	for {
 		ui.PollEvents()
-		select {
-		case <-tick:
-			ui.Update(game.Update)
-		default:
-		}
-		ui.Draw(game.Draw)
+		ui.Draw(func(c graphics.Context) {
+			lock.Lock()
+			defer lock.Unlock()
+			game.Draw(c)
+		})
 	}
 }
