@@ -105,8 +105,8 @@ func (ui *UI) Draw(f func(graphics.Context)) {
 	C.EndDrawing()
 }
 
-//export ebiten_EbitenOpenGLView_Initialized
-func ebiten_EbitenOpenGLView_Initialized() {
+//export ebiten_Initialized
+func ebiten_Initialized() {
 	if currentUI.graphicsDevice != nil {
 		panic("The graphics device is already initialized")
 	}
@@ -116,8 +116,8 @@ func ebiten_EbitenOpenGLView_Initialized() {
 		currentUI.screenScale)
 }
 
-//export ebiten_EbitenOpenGLView_InputUpdated
-func ebiten_EbitenOpenGLView_InputUpdated(inputType C.InputType, cx, cy C.int) {
+//export ebiten_InputUpdated
+func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 	if inputType == C.InputTypeMouseUp {
 		currentUI.gameContext.inputState = ebiten.InputState{-1, -1}
 		return

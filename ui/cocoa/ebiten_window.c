@@ -6,7 +6,7 @@
 
 #import "ebiten_content_view.h"
 
-void ebiten_EbitenOpenGLView_Initialized(void);
+void ebiten_Initialized(void);
 
 @implementation EbitenWindow
 {
@@ -61,7 +61,7 @@ void ebiten_EbitenOpenGLView_Initialized(void);
                                                 shareContext:nil];
   [self->glContext_ setView:[self contentView]];
   [self->glContext_ makeCurrentContext];
-  ebiten_EbitenOpenGLView_Initialized();
+  ebiten_Initialized();
 
   [format release];
 
