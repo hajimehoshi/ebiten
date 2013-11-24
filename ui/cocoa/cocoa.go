@@ -7,7 +7,9 @@ package cocoa
 // #include "input.h"
 //
 // void StartApplication(void);
-// void* CreateWindow(size_t width, size_t height, const char* title);
+// void* CreateGLContext(void* sharedGLContext);
+// void SetCurrentGLContext(void* glContext);
+// void* CreateWindow(size_t width, size_t height, const char* title, void* glContext);
 // void PollEvents(void);
 // void BeginDrawing(void* window);
 // void EndDrawing(void* window);
@@ -77,14 +79,17 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 
 	C.StartApplication()
 
-	ui.window = C.CreateWindow(C.size_t(ui.screenWidth * ui.screenScale),
-		C.size_t(ui.screenHeight * ui.screenScale),
-		cTitle)
+	context := C.CreateGLContext(unsafe.Pointer(nil))
+	C.SetCurrentGLContext(context);
 	ui.graphicsDevice = opengl.NewDevice(
 		ui.screenWidth,
 		ui.screenHeight,
 		ui.screenScale)
 
+	ui.window = C.CreateWindow(C.size_t(ui.screenWidth * ui.screenScale),
+		C.size_t(ui.screenHeight * ui.screenScale),
+		cTitle,
+		context)
 	currentUI = ui
 	return ui
 }

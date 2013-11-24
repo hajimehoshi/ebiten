@@ -15,7 +15,7 @@ void StartApplication() {
   [app activateIgnoringOtherApps:YES];
 }
 
-void* CreateGLContext() {
+void* CreateGLContext(void* sharedGLContext) {
   NSOpenGLPixelFormatAttribute attributes[] = {
     NSOpenGLPFAWindow,
     NSOpenGLPFADoubleBuffer,
@@ -25,24 +25,27 @@ void* CreateGLContext() {
   };
   NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc]
                                   initWithAttributes:attributes];
-  NSOpenGLContext* glContext = [[NSOpenGLContext alloc] initWithFormat:format
-                                                          shareContext:nil];
+  NSOpenGLContext* glContext =
+    [[NSOpenGLContext alloc] initWithFormat:format
+                               shareContext:(NSOpenGLContext*)sharedGLContext];
   [format release];
   return glContext;
 }
 
-void* CreateWindow(size_t width, size_t height, const char* title) {
-  NSOpenGLContext* glContext = CreateGLContext();
-  [glContext makeCurrentContext];
+void SetCurrentGLContext(void* glContext) {
+  [(NSOpenGLContext*)glContext makeCurrentContext];
+}
 
+// This takes the ownership of glContext.
+void* CreateWindow(size_t width, size_t height, const char* title, void* glContext) {
   NSSize size = NSMakeSize(width, height);
   EbitenWindow* window = [[EbitenWindow alloc]
                             initWithSize:size
-                               glContext:glContext];
+                               glContext:(NSOpenGLContext*)glContext];
   [window setTitle: [[NSString alloc] initWithUTF8String:title]];
   [window makeKeyAndOrderFront:nil];
 
-  [glContext setView:[window contentView]];
+  [(NSOpenGLContext*)glContext setView:[window contentView]];
 
   return window;
 }
@@ -61,6 +64,7 @@ void PollEvents(void) {
 }
 
 void BeginDrawing(void* window) {
+  [[(EbitenWindow*)window glContext] makeCurrentContext];
   glClear(GL_COLOR_BUFFER_BIT);
 }
 
