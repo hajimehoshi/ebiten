@@ -23,6 +23,25 @@ type Texture struct {
 	height int
 }
 
+func AdjustImage(img image.Image, width, height int) *image.NRGBA {
+	adjustedImageBounds := image.Rectangle{
+		image.ZP,
+		image.Point{width, height},
+	}
+	if nrgba := img.(*image.NRGBA); nrgba != nil &&
+		img.Bounds() == adjustedImageBounds {
+		return nrgba
+	}
+
+	adjustedImage := image.NewNRGBA(adjustedImageBounds)
+	dstBounds := image.Rectangle{
+		image.ZP,
+		img.Bounds().Size(),
+	}
+	draw.Draw(adjustedImage, dstBounds, img, image.ZP, draw.Src)
+	return adjustedImage
+}
+
 func New(width, height int, create func(textureWidth, textureHeight int) (
 	interface{}, error)) (*Texture, error) {
 	texture := &Texture{
@@ -46,16 +65,7 @@ func NewFromImage(img image.Image, create func(img *image.NRGBA) (
 		width:  width,
 		height: height,
 	}
-	adjustedImageBound := image.Rectangle{
-		image.ZP,
-		image.Point{texture.textureWidth(), texture.textureHeight()},
-	}
-	adjustedImage := image.NewNRGBA(adjustedImageBound)
-	dstBound := image.Rectangle{
-		image.ZP,
-		img.Bounds().Size(),
-	}
-	draw.Draw(adjustedImage, dstBound, img, image.ZP, draw.Src)
+	adjustedImage := AdjustImage(img, texture.textureWidth(), texture.textureHeight())
 	var err error
 	texture.native, err = create(adjustedImage)
 	if err != nil {

@@ -22,7 +22,8 @@ func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []gt
 		return
 	}
 	shaderProgram := use(projectionMatrix, geometryMatrix, colorMatrix)
-	// This state affects the other functions, so can't disable here...
+	defer C.glUseProgram(0)
+
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(native))
 	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
 

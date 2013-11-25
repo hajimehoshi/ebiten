@@ -103,7 +103,11 @@ func getUniformLocation(program C.GLuint, name string) C.GLint {
 	return getLocation(program, name, qualifierVariableTypeUniform)
 }
 
-func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) C.GLuint {
+func program() {
+}
+
+func use(projectionMatrix [16]float32,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) C.GLuint {
 	program := programRegular
 	if !colorMatrix.IsIdentity() {
 		program = programColorMatrix
