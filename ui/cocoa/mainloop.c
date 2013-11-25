@@ -36,13 +36,16 @@ void SetCurrentGLContext(void* glContext) {
   [(NSOpenGLContext*)glContext makeCurrentContext];
 }
 
-// This takes the ownership of glContext.
-void* CreateWindow(size_t width, size_t height, const char* title, void* glContext) {
+void* CreateWindow(size_t width, size_t height, const char* title, void* sharedGLContext) {
+  NSOpenGLContext* glContext = CreateGLContext(sharedGLContext);
+  [glContext makeCurrentContext];
+
   NSSize size = NSMakeSize(width, height);
   EbitenWindow* window = [[EbitenWindow alloc]
                             initWithSize:size
-                               glContext:(NSOpenGLContext*)glContext];
-  [window setTitle: [[NSString alloc] initWithUTF8String:title]];
+                               glContext:glContext];
+  [window setTitle: [[NSString alloc]
+                      initWithUTF8String:title]];
   [window makeKeyAndOrderFront:nil];
 
   [(NSOpenGLContext*)glContext setView:[window contentView]];

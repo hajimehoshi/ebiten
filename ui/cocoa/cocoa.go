@@ -9,7 +9,7 @@ package cocoa
 // void StartApplication(void);
 // void* CreateGLContext(void* sharedGLContext);
 // void SetCurrentGLContext(void* glContext);
-// void* CreateWindow(size_t width, size_t height, const char* title, void* glContext);
+// void* CreateWindow(size_t width, size_t height, const char* title, void* sharedGLContext);
 // void PollEvents(void);
 // void BeginDrawing(void* window);
 // void EndDrawing(void* window);

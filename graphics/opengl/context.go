@@ -36,9 +36,6 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		ids:          newIds(),
 	}
 
-	C.glEnable(C.GL_TEXTURE_2D)
-	C.glEnable(C.GL_BLEND)
-
 	// The main framebuffer should be created sooner than any other
 	// framebuffers!
 	mainFramebuffer := C.GLint(0)
@@ -58,6 +55,8 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
+
+	context.Init()
 
 	return context
 }
@@ -100,6 +99,11 @@ func (context *Context) DrawTextureParts(
 			context.projectionMatrix, quads,
 			geometryMatrix, colorMatrix)
 	})
+}
+
+func (context *Context) Init() {
+	C.glEnable(C.GL_TEXTURE_2D)
+	C.glEnable(C.GL_BLEND)
 }
 
 func (context *Context) ResetOffscreen() {
