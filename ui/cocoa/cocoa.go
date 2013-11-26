@@ -80,14 +80,14 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 	C.StartApplication()
 
 	context := C.CreateGLContext(unsafe.Pointer(nil))
-	C.SetCurrentGLContext(context);
+	C.SetCurrentGLContext(context)
 	ui.graphicsDevice = opengl.NewDevice(
 		ui.screenWidth,
 		ui.screenHeight,
 		ui.screenScale)
 
-	ui.window = C.CreateWindow(C.size_t(ui.screenWidth * ui.screenScale),
-		C.size_t(ui.screenHeight * ui.screenScale),
+	ui.window = C.CreateWindow(C.size_t(ui.screenWidth*ui.screenScale),
+		C.size_t(ui.screenHeight*ui.screenScale),
 		cTitle,
 		context)
 	currentUI = ui

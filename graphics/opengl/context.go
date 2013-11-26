@@ -8,23 +8,24 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
+	// "github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
+	// gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
 )
 
 type Context struct {
-	screenId               graphics.RenderTargetId
-	screenWidth            int
-	screenHeight           int
-	screenScale            int
-	ids                    *ids
-	mainFramebufferTexture *grendertarget.RenderTarget
-	projectionMatrix       [16]float32
+	screenId     graphics.RenderTargetId
+	screenWidth  int
+	screenHeight int
+	screenScale  int
+	ids          *ids
+	//mainFramebufferTexture *grendertarget.RenderTarget
+	//projectionMatrix [16]float32
+	offscreen        *offscreen.Offscreen
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
@@ -33,22 +34,10 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 		ids:          newIds(),
+		offscreen:    offscreen.New(screenWidth, screenHeight, screenScale),
 	}
-
-	// The main framebuffer should be created sooner than any other
-	// framebuffers!
-	mainFramebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
 	var err error
-	context.mainFramebufferTexture, err = rendertarget.NewWithFramebuffer(
-		context.screenWidth*context.screenScale,
-		context.screenHeight*context.screenScale,
-		rendertarget.Framebuffer(mainFramebuffer))
-	if err != nil {
-		panic("creating main framebuffer failed: " + err.Error())
-	}
-
 	context.screenId, err = context.createRenderTarget(
 		context.screenWidth, context.screenHeight, texture.FilterNearest)
 	if err != nil {
@@ -82,22 +71,14 @@ func (context *Context) DrawTexture(
 	textureId graphics.TextureId,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	tex := context.ids.TextureAt(textureId)
-	tex.Draw(func(native interface{}, quads []gtexture.Quad) {
-		shader.DrawTexture(native.(texture.Native),
-			context.projectionMatrix, quads,
-			geometryMatrix, colorMatrix)
-	})
+	context.offscreen.DrawTexture(tex, geometryMatrix, colorMatrix)
 }
 
 func (context *Context) DrawTextureParts(
 	textureId graphics.TextureId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	tex := context.ids.TextureAt(textureId)
-	tex.DrawParts(parts, func(native interface{}, quads []gtexture.Quad) {
-		shader.DrawTexture(native.(texture.Native),
-			context.projectionMatrix, quads,
-			geometryMatrix, colorMatrix)
-	})
+	context.offscreen.DrawTextureParts(tex, parts, geometryMatrix, colorMatrix)
 }
 
 func (context *Context) Init() {
@@ -115,19 +96,16 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 }
 
 func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
-	C.glFlush()
+	/*C.glFlush()
 
-	setter := &OffscreenSetter{
-		context.screenHeight,
-		context.screenScale,
-		rt == context.mainFramebufferTexture,
-		&context.projectionMatrix,
-	}
-	rt.SetAsOffscreen(setter)
+	rt.SetAsOffscreen(context.offscreen)
+	context.projectionMatrix = setter.projectionMatrix*/
+	context.offscreen.Set(rt)
 }
 
 func (context *Context) setMainFramebufferOffscreen() {
-	context.setOffscreen(context.mainFramebufferTexture)
+	//context.setOffscreen(context.mainFramebufferTexture)
+	context.offscreen.SetMainFramebuffer()
 }
 
 func (context *Context) flush() {
