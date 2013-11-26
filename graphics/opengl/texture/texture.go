@@ -66,19 +66,22 @@ func createFromImage(img *image.NRGBA) (interface{}, error) {
 }
 
 func New(width, height int, filter Filter) (*gtexture.Texture, error) {
-	f := func(textureWidth, textureHeight int) (interface{}, error) {
-		return create(textureWidth, textureHeight, filter)
+	native, err := create(gtexture.AdjustSize(width), gtexture.AdjustSize(height), filter)
+	if err != nil {
+		return nil, err
 	}
-	return gtexture.New(width, height, f)
+	return gtexture.New(native, width, height), nil
 }
 
 func NewEmpty(width, height int) (*gtexture.Texture, error) {
-	f := func(textureWidth, textureHeight int) (interface{}, error) {
-		return nil, nil
-	}
-	return gtexture.New(width, height, f)
+	return gtexture.New(nil, width, height), nil
 }
 
 func NewFromImage(img image.Image) (*gtexture.Texture, error) {
-	return gtexture.NewFromImage(img, createFromImage)
+	native, err := createFromImage(gtexture.AdjustImage(img))
+	if err != nil {
+		return nil, err
+	}
+	size := img.Bounds().Size()
+	return gtexture.New(native, size.X, size.Y), nil
 }
