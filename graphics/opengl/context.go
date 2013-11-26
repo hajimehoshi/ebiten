@@ -9,10 +9,8 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
-	// "github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
-	// gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"math"
 )
@@ -23,9 +21,7 @@ type Context struct {
 	screenHeight int
 	screenScale  int
 	ids          *ids
-	//mainFramebufferTexture *grendertarget.RenderTarget
-	//projectionMatrix [16]float32
-	offscreen        *offscreen.Offscreen
+	offscreen    *offscreen.Offscreen
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
@@ -96,15 +92,10 @@ func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 }
 
 func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
-	/*C.glFlush()
-
-	rt.SetAsOffscreen(context.offscreen)
-	context.projectionMatrix = setter.projectionMatrix*/
 	context.offscreen.Set(rt)
 }
 
 func (context *Context) setMainFramebufferOffscreen() {
-	//context.setOffscreen(context.mainFramebufferTexture)
 	context.offscreen.SetMainFramebuffer()
 }
 
