@@ -10,32 +10,25 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	"image"
 	"math"
 )
 
 type Context struct {
-	screenId     graphics.RenderTargetId
-	screenWidth  int
-	screenHeight int
-	screenScale  int
-	ids          *ids
-	offscreen    *offscreen.Offscreen
+	screenId  graphics.RenderTargetId
+	ids       *ids
+	offscreen *offscreen.Offscreen
 }
 
 func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
-		ids:          newIds(),
-		offscreen:    offscreen.New(screenWidth, screenHeight, screenScale),
+		ids:       newIds(),
+		offscreen: offscreen.New(screenWidth, screenHeight, screenScale),
 	}
 
 	var err error
 	context.screenId, err = context.createRenderTarget(
-		context.screenWidth, context.screenHeight, texture.FilterNearest)
+		screenWidth, screenHeight, texture.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
@@ -88,11 +81,7 @@ func (context *Context) ResetOffscreen() {
 
 func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	renderTarget := context.ids.RenderTargetAt(renderTargetId)
-	context.setOffscreen(renderTarget)
-}
-
-func (context *Context) setOffscreen(rt *grendertarget.RenderTarget) {
-	context.offscreen.Set(rt)
+	context.offscreen.Set(renderTarget)
 }
 
 func (context *Context) setMainFramebufferOffscreen() {

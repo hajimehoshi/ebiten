@@ -6,13 +6,15 @@ import (
 )
 
 type Device struct {
-	context *Context
+	context     *Context
+	screenScale int
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
 	context := newContext(screenWidth, screenHeight, screenScale)
 	return &Device{
-		context: context,
+		context:     context,
+		screenScale: screenScale,
 	}
 }
 
@@ -28,7 +30,7 @@ func (device *Device) Update(draw func(graphics.Context)) {
 	context.setMainFramebufferOffscreen()
 	context.Clear()
 
-	scale := float64(context.screenScale)
+	scale := float64(device.screenScale)
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Scale(scale, scale)
 	context.DrawTexture(context.ToTexture(context.screenId),
