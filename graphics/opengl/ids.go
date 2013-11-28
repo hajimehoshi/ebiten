@@ -4,14 +4,13 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 )
 
 type ids struct {
 	textures              map[graphics.TextureId]*gtexture.Texture
-	renderTargets         map[graphics.RenderTargetId]*grendertarget.RenderTarget
+	renderTargets         map[graphics.RenderTargetId]*gtexture.RenderTarget
 	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
 	counts                chan int
 }
@@ -19,7 +18,7 @@ type ids struct {
 func newIds() *ids {
 	ids := &ids{
 		textures:              map[graphics.TextureId]*gtexture.Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*grendertarget.RenderTarget{},
+		renderTargets:         map[graphics.RenderTargetId]*gtexture.RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 		counts:                make(chan int),
 	}
@@ -35,7 +34,7 @@ func (i *ids) TextureAt(id graphics.TextureId) *gtexture.Texture {
 	return i.textures[id]
 }
 
-func (i *ids) RenderTargetAt(id graphics.RenderTargetId) *grendertarget.RenderTarget {
+func (i *ids) RenderTargetAt(id graphics.RenderTargetId) *gtexture.RenderTarget {
 	return i.renderTargets[id]
 }
 

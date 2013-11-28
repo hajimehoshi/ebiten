@@ -1,23 +1,19 @@
-package rendertarget
-
-import (
-	"github.com/hajimehoshi/go-ebiten/graphics/texture"
-)
-
-type OffscreenSetter interface {
-	Set(framebuffer interface{}, x, y, width, height int)
-}
+package texture
 
 type RenderTarget struct {
-	texture     *texture.Texture
+	texture     *Texture
 	framebuffer interface{}
 }
 
-func NewWithFramebuffer(texture *texture.Texture, framebuffer interface{}) *RenderTarget {
+func NewRenderTarget(texture *Texture, framebuffer interface{}) *RenderTarget {
 	return &RenderTarget{
 		texture:     texture,
 		framebuffer: framebuffer,
 	}
+}
+
+type OffscreenSetter interface {
+	Set(framebuffer interface{}, x, y, width, height int)
 }
 
 func (renderTarget *RenderTarget) SetAsOffscreen(setter OffscreenSetter) {

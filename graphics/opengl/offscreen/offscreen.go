@@ -12,14 +12,13 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	grendertarget "github.com/hajimehoshi/go-ebiten/graphics/rendertarget"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 )
 
 type Offscreen struct {
 	screenHeight           int
 	screenScale            int
-	mainFramebufferTexture *grendertarget.RenderTarget
+	mainFramebufferTexture *gtexture.RenderTarget
 	projectionMatrix       [16]float32
 }
 
@@ -46,7 +45,7 @@ func New(screenWidth, screenHeight, screenScale int) *Offscreen {
 	return offscreen
 }
 
-func (o *Offscreen) Set(rt *grendertarget.RenderTarget) {
+func (o *Offscreen) Set(rt *gtexture.RenderTarget) {
 	C.glFlush()
 	rt.SetAsOffscreen(&setter{o, rt == o.mainFramebufferTexture})
 }
@@ -57,15 +56,13 @@ func (o *Offscreen) SetMainFramebuffer() {
 
 func (o *Offscreen) DrawTexture(texture *gtexture.Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	d := &drawable{o, geometryMatrix, colorMatrix}
-	texture.Draw(d.Draw)
+	texture.Draw(&drawable{o, geometryMatrix, colorMatrix})
 }
 
 func (o *Offscreen) DrawTextureParts(texture *gtexture.Texture,
 	parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	d := &drawable{o, geometryMatrix, colorMatrix}
-	texture.DrawParts(parts, d.Draw)
+	texture.DrawParts(parts, &drawable{o, geometryMatrix, colorMatrix})
 }
 
 type setter struct {

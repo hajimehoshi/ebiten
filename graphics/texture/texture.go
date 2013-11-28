@@ -77,7 +77,11 @@ type Quad struct {
 	TextureCoordV2 float32
 }
 
-func (texture *Texture) Draw(draw func(native interface{}, quads []Quad)) {
+type Drawable interface {
+	Draw(native interface{}, quads []Quad)
+}
+
+func (texture *Texture) Draw(drawable Drawable) {
 	x1 := float32(0)
 	x2 := float32(texture.width)
 	y1 := float32(0)
@@ -87,11 +91,10 @@ func (texture *Texture) Draw(draw func(native interface{}, quads []Quad)) {
 	v1 := texture.v(0)
 	v2 := texture.v(texture.height)
 	quad := Quad{x1, x2, y1, y2, u1, u2, v1, v2}
-	draw(texture.native, []Quad{quad})
+	drawable.Draw(texture.native, []Quad{quad})
 }
 
-func (texture *Texture) DrawParts(parts []graphics.TexturePart,
-	draw func(native interface{}, quads []Quad)) {
+func (texture *Texture) DrawParts(parts []graphics.TexturePart, drawable Drawable) {
 	quads := []Quad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)
@@ -105,7 +108,7 @@ func (texture *Texture) DrawParts(parts []graphics.TexturePart,
 		quad := Quad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}
-	draw(texture.native, quads)
+	drawable.Draw(texture.native, quads)
 }
 
 func (texture *Texture) CreateFramebuffer(

@@ -64,6 +64,7 @@ func createFromImage(img *image.NRGBA) (interface{}, error) {
 	return createNativeTexture(size.X, size.Y, img.Pix, FilterLinear), nil
 }
 
+// TODO: Rename them
 func New(width, height int, filter Filter) (*gtexture.Texture, error) {
 	native, err := create(gtexture.AdjustSize(width), gtexture.AdjustSize(height), filter)
 	if err != nil {
