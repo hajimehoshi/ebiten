@@ -110,8 +110,3 @@ func (texture *Texture) DrawParts(parts []graphics.TexturePart, drawable Drawabl
 	}
 	drawable.Draw(texture.native, quads)
 }
-
-func (texture *Texture) CreateFramebuffer(
-	create func(native interface{}) interface{}) interface{} {
-	return create(texture.native)
-}

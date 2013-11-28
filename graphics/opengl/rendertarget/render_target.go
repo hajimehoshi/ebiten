@@ -11,7 +11,7 @@ import (
 
 type Framebuffer C.GLuint
 
-func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
+func createFramebuffer(nativeTexture C.GLuint) Framebuffer {
 	framebuffer := C.GLuint(0)
 	C.glGenFramebuffers(1, &framebuffer)
 
@@ -33,7 +33,7 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 	C.glClearColor(0, 0, 0, 1)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 
-	return framebuffer
+	return Framebuffer(framebuffer)
 }
 
 // TODO: Rename them
@@ -46,9 +46,7 @@ func New(width, height int, filter texture.Filter) (
 	f := func(native interface{}) interface{} {
 		return createFramebuffer(C.GLuint(native.(texture.Native)))
 	}
-	framebuffer := tex.CreateFramebuffer(f)
-	return gtexture.NewRenderTarget(tex,
-		Framebuffer(framebuffer.(C.GLuint))), tex, nil
+	return gtexture.NewRenderTarget(tex, f), tex, nil
 }
 
 func NewWithFramebuffer(width, height int, framebuffer Framebuffer) (
@@ -57,5 +55,8 @@ func NewWithFramebuffer(width, height int, framebuffer Framebuffer) (
 	if err != nil {
 		return nil, err
 	}
-	return gtexture.NewRenderTarget(tex, framebuffer), nil
+	f := func(native interface{}) interface{} {
+		return framebuffer
+	}
+	return gtexture.NewRenderTarget(tex, f), nil
 }

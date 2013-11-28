@@ -5,10 +5,10 @@ type RenderTarget struct {
 	framebuffer interface{}
 }
 
-func NewRenderTarget(texture *Texture, framebuffer interface{}) *RenderTarget {
+func NewRenderTarget(texture *Texture, create func(native interface{}) interface{}) *RenderTarget {
 	return &RenderTarget{
 		texture:     texture,
-		framebuffer: framebuffer,
+		framebuffer: create(texture.native),
 	}
 }
 
