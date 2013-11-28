@@ -49,7 +49,7 @@ func Create(width, height int, filter texture.Filter) (
 	if err != nil {
 		return nil, nil, err
 	}
-	return tex.NewRenderTarget(&framebufferCreator{}), tex, nil
+	return tex.CreateRenderTarget(&framebufferCreator{}), tex, nil
 }
 
 func CreateWithFramebuffer(width, height int, framebuffer Framebuffer) (

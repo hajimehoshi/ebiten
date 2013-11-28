@@ -111,7 +111,6 @@ type FramebufferCreator interface {
 	Create(native interface{}) interface{}
 }
 
-func (texture *Texture) NewRenderTarget(creator FramebufferCreator) *RenderTarget {
+func (texture *Texture) CreateRenderTarget(creator FramebufferCreator) *RenderTarget {
 	return NewRenderTarget(creator.Create(texture.native), texture.width, texture.height)
 }
-

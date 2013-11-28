@@ -70,6 +70,7 @@ func (context *Context) DrawTextureParts(
 	context.offscreen.DrawTextureParts(tex, parts, geometryMatrix, colorMatrix)
 }
 
+// Init initializes the context. The initial state is saved for each GL context.
 func (context *Context) Init() {
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glEnable(C.GL_BLEND)

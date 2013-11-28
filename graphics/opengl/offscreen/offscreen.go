@@ -28,8 +28,6 @@ func New(screenWidth, screenHeight, screenScale int) *Offscreen {
 		screenScale:  screenScale,
 	}
 
-	// The main framebuffer should be created sooner than any other
-	// framebuffers!
 	mainFramebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
