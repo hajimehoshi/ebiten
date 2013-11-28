@@ -62,10 +62,6 @@ func (texture *Texture) v(y int) float32 {
 	return float32(y) / float32(AdjustSize(texture.height))
 }
 
-func (texture *Texture) SetAsViewport(setter func(x, y, width, height int)) {
-	setter(0, 0, AdjustSize(texture.width), AdjustSize(texture.height))
-}
-
 type Quad struct {
 	VertexX1       float32
 	VertexX2       float32
@@ -110,3 +106,12 @@ func (texture *Texture) DrawParts(parts []graphics.TexturePart, drawable Drawabl
 	}
 	drawable.Draw(texture.native, quads)
 }
+
+type FramebufferCreator interface {
+	Create(native interface{}) interface{}
+}
+
+func (texture *Texture) NewRenderTarget(creator FramebufferCreator) *RenderTarget {
+	return NewRenderTarget(creator.Create(texture.native), texture.width, texture.height)
+}
+

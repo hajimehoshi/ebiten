@@ -101,12 +101,12 @@ func (context *Context) createRenderTarget(width, height int, filter texture.Fil
 	return renderTargetId, nil
 }
 
-func (context *Context) NewRenderTarget(width, height int) (
+func (context *Context) CreateRenderTarget(width, height int) (
 	graphics.RenderTargetId, error) {
 	return context.createRenderTarget(width, height, texture.FilterLinear)
 }
 
-func (context *Context) NewTextureFromImage(img image.Image) (
+func (context *Context) CreateTextureFromImage(img image.Image) (
 	graphics.TextureId, error) {
 	return context.ids.CreateTextureFromImage(img)
 }

@@ -34,7 +34,7 @@ func New(screenWidth, screenHeight, screenScale int) *Offscreen {
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
 
 	var err error
-	offscreen.mainFramebufferTexture, err = rendertarget.NewWithFramebuffer(
+	offscreen.mainFramebufferTexture, err = rendertarget.CreateWithFramebuffer(
 		screenWidth*screenScale,
 		screenHeight*screenScale,
 		rendertarget.Framebuffer(mainFramebuffer))

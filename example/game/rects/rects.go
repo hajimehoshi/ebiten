@@ -37,11 +37,11 @@ func New() *Rects {
 
 func (game *Rects) InitTextures(tf graphics.TextureFactory) {
 	var err error
-	game.rectTextureId, err = tf.NewRenderTarget(rectTextureWidth, rectTextureHeight)
+	game.rectTextureId, err = tf.CreateRenderTarget(rectTextureWidth, rectTextureHeight)
 	if err != nil {
 		panic(err)
 	}
-	game.offscreenId, err = tf.NewRenderTarget(offscreenWidth, offscreenHeight)
+	game.offscreenId, err = tf.CreateRenderTarget(offscreenWidth, offscreenHeight)
 	if err != nil {
 		panic(err)
 	}

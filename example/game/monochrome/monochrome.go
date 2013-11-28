@@ -40,7 +40,7 @@ func (game *Monochrome) InitTextures(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.ebitenTextureId, err = tf.NewTextureFromImage(img); err != nil {
+	if game.ebitenTextureId, err = tf.CreateTextureFromImage(img); err != nil {
 		panic(err)
 	}
 

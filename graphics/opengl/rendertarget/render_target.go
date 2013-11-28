@@ -36,27 +36,23 @@ func createFramebuffer(nativeTexture C.GLuint) Framebuffer {
 	return Framebuffer(framebuffer)
 }
 
-// TODO: Rename them
-func New(width, height int, filter texture.Filter) (
+type framebufferCreator struct {
+}
+
+func (f *framebufferCreator) Create(native interface{}) interface{} {
+	return createFramebuffer(C.GLuint(native.(texture.Native)))
+}
+
+func Create(width, height int, filter texture.Filter) (
 	*gtexture.RenderTarget, *gtexture.Texture, error) {
-	tex, err := texture.New(width, height, filter)
+	tex, err := texture.Create(width, height, filter)
 	if err != nil {
 		return nil, nil, err
 	}
-	f := func(native interface{}) interface{} {
-		return createFramebuffer(C.GLuint(native.(texture.Native)))
-	}
-	return gtexture.NewRenderTarget(tex, f), tex, nil
+	return tex.NewRenderTarget(&framebufferCreator{}), tex, nil
 }
 
-func NewWithFramebuffer(width, height int, framebuffer Framebuffer) (
+func CreateWithFramebuffer(width, height int, framebuffer Framebuffer) (
 	*gtexture.RenderTarget, error) {
-	tex, err := texture.NewEmpty(width, height)
-	if err != nil {
-		return nil, err
-	}
-	f := func(native interface{}) interface{} {
-		return framebuffer
-	}
-	return gtexture.NewRenderTarget(tex, f), nil
+	return gtexture.NewRenderTarget(framebuffer, width, height), nil
 }

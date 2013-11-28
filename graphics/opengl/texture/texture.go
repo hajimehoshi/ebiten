@@ -15,7 +15,7 @@ type Native C.GLuint
 type Filter int
 
 const (
-	FilterLinear = iota
+	FilterLinear Filter = iota
 	FilterNearest
 )
 
@@ -64,20 +64,16 @@ func createFromImage(img *image.NRGBA) (interface{}, error) {
 	return createNativeTexture(size.X, size.Y, img.Pix, FilterLinear), nil
 }
 
-// TODO: Rename them
-func New(width, height int, filter Filter) (*gtexture.Texture, error) {
-	native, err := create(gtexture.AdjustSize(width), gtexture.AdjustSize(height), filter)
+func Create(width, height int, filter Filter) (*gtexture.Texture, error) {
+	native, err := create(gtexture.AdjustSize(width),
+		gtexture.AdjustSize(height), filter)
 	if err != nil {
 		return nil, err
 	}
 	return gtexture.New(native, width, height), nil
 }
 
-func NewEmpty(width, height int) (*gtexture.Texture, error) {
-	return gtexture.New(nil, width, height), nil
-}
-
-func NewFromImage(img image.Image) (*gtexture.Texture, error) {
+func CreateFromImage(img image.Image) (*gtexture.Texture, error) {
 	native, err := createFromImage(gtexture.AdjustImage(img))
 	if err != nil {
 		return nil, err

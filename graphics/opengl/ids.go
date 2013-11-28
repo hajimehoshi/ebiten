@@ -44,7 +44,7 @@ func (i *ids) ToTexture(id graphics.RenderTargetId) graphics.TextureId {
 
 func (i *ids) CreateTextureFromImage(img image.Image) (
 	graphics.TextureId, error) {
-	texture, err := texture.NewFromImage(img)
+	texture, err := texture.CreateFromImage(img)
 	if err != nil {
 		return 0, err
 	}
@@ -55,7 +55,7 @@ func (i *ids) CreateTextureFromImage(img image.Image) (
 
 func (i *ids) CreateRenderTarget(width, height int, filter texture.Filter) (
 	graphics.RenderTargetId, error) {
-	renderTarget, texture, err := rendertarget.New(width, height, filter)
+	renderTarget, texture, err := rendertarget.Create(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
