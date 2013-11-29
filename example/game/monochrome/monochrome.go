@@ -100,7 +100,7 @@ func (game *Monochrome) Update(context ebiten.GameContext) {
 	game.geometryMatrix.Translate(float64(tx), float64(ty))
 }
 
-func (game *Monochrome) Draw(g graphics.Context) {
+func (game *Monochrome) Draw(g graphics.Canvas) {
 	g.Fill(128, 128, 255)
 
 	g.DrawTexture(game.ebitenTextureId,

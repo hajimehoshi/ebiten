@@ -18,7 +18,7 @@ func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
 	}
 }
 
-func (device *Device) Update(draw func(graphics.Context)) {
+func (device *Device) Update(draw func(graphics.Canvas)) {
 	context := device.context
 	context.Init()
 	context.ResetOffscreen()

@@ -38,7 +38,7 @@ func (game *Input) Update(context ebiten.GameContext) {
 	game.inputState = context.InputState()
 }
 
-func (game *Input) Draw(g graphics.Context) {
+func (game *Input) Draw(g graphics.Canvas) {
 	g.Fill(128, 128, 255)
 	str := fmt.Sprintf(`Input State:
   X: %d
@@ -46,7 +46,7 @@ func (game *Input) Draw(g graphics.Context) {
 	game.drawText(g, str, 5, 5)
 }
 
-func (game *Input) drawText(g graphics.Context, text string, x, y int) {
+func (game *Input) drawText(g graphics.Canvas, text string, x, y int) {
 	const letterWidth = 6
 	const letterHeight = 16
 

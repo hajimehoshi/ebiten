@@ -18,5 +18,5 @@ func (game *Blank) InitTextures(tf graphics.TextureFactory) {
 func (game *Blank) Update(context ebiten.GameContext) {
 }
 
-func (game *Blank) Draw(context graphics.Context) {
+func (game *Blank) Draw(canvas graphics.Canvas) {
 }

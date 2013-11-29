@@ -110,7 +110,7 @@ func (ui *UI) Update(f func(ebiten.GameContext)) {
 	f(ui.gameContext)
 }
 
-func (ui *UI) Draw(f func(graphics.Context)) {
+func (ui *UI) Draw(f func(graphics.Canvas)) {
 	C.BeginDrawing(ui.window)
 	ui.graphicsDevice.Update(f)
 	C.EndDrawing(ui.window)

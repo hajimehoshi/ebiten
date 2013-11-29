@@ -18,7 +18,7 @@ type TexturePart struct {
 	Source    Rect
 }
 
-type Context interface {
+type Canvas interface {
 	ToTexture(id RenderTargetId) TextureId
 
 	Clear()

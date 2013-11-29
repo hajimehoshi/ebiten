@@ -109,7 +109,7 @@ func (game *Sprites) Update(context ebiten.GameContext) {
 	}
 }
 
-func (game *Sprites) Draw(g graphics.Context) {
+func (game *Sprites) Draw(g graphics.Canvas) {
 	g.Fill(128, 128, 255)
 
 	// Draw the sprites

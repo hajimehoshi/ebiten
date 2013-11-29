@@ -68,7 +68,7 @@ func main() {
 	}()
 	for {
 		ui.PollEvents()
-		ui.Draw(func(c graphics.Context) {
+		ui.Draw(func(c graphics.Canvas) {
 			lock.Lock()
 			defer lock.Unlock()
 			game.Draw(c)

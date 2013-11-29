@@ -56,7 +56,7 @@ func (game *Rotating) Update(context ebiten.GameContext) {
 	game.geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
 }
 
-func (game *Rotating) Draw(g graphics.Context) {
+func (game *Rotating) Draw(g graphics.Canvas) {
 	g.Fill(128, 128, 255)
 	g.DrawTexture(game.ebitenTextureId,
 		game.geometryMatrix,

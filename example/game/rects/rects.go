@@ -86,7 +86,7 @@ func (game *Rects) rectColorMatrix() matrix.Color {
 	return colorMatrix
 }
 
-func (game *Rects) Draw(g graphics.Context) {
+func (game *Rects) Draw(g graphics.Canvas) {
 	if !game.rectTextureInited {
 		g.SetOffscreen(game.rectTextureId)
 		g.Fill(255, 255, 255)

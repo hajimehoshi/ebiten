@@ -72,7 +72,7 @@ func (game *TestPattern) Update(context ebiten.GameContext) {
 	game.geos = append(game.geos, geo)
 }
 
-func (game *TestPattern) Draw(g graphics.Context) {
+func (game *TestPattern) Draw(g graphics.Canvas) {
 	for _, geo := range game.geos {
 		g.DrawTexture(game.textureId, geo, matrix.IdentityColor())
 	}

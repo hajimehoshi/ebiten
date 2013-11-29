@@ -7,7 +7,7 @@ import (
 type Game interface {
 	InitTextures(tf graphics.TextureFactory)
 	Update(context GameContext)
-	Draw(context graphics.Context)
+	Draw(canvas graphics.Canvas)
 }
 
 type GameContext interface {
