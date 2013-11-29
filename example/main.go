@@ -17,6 +17,12 @@ import (
 	"time"
 )
 
+type Game interface {
+	InitTextures(tf graphics.TextureFactory)
+	Update(context ebiten.GameContext)
+	Draw(canvas graphics.Canvas)
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -25,7 +31,7 @@ func main() {
 		gameName = os.Args[1]
 	}
 
-	var game ebiten.Game
+	var game Game
 	switch gameName {
 	case "blank":
 		game = blank.New()
@@ -50,7 +56,8 @@ func main() {
 	const screenScale = 2
 	const fps = 60
 	const title = "Ebiten Demo"
-	ui := cocoa.New(screenWidth, screenHeight, screenScale, title)
+
+	var ui ebiten.UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
 	ui.InitTextures(game.InitTextures)
 
 	lock := sync.Mutex{}
@@ -66,8 +73,24 @@ func main() {
 			})
 		}
 	}()
+
+	inputStateUpdated := ui.InputStateUpdated()
 	for {
 		ui.PollEvents()
+	events:
+		for {
+			select {
+			case e := <-inputStateUpdated:
+				type InputStateUpdatedHandler interface {
+					InputStateUpdated() chan<- ebiten.InputStateUpdatedEvent
+				}
+				if game2, ok := game.(InputStateUpdatedHandler); ok {
+					game2.InputStateUpdated() <- e
+				}
+			default:
+				break events
+			}
+		}
 		ui.Draw(func(c graphics.Canvas) {
 			lock.Lock()
 			defer lock.Unlock()

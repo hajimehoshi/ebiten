@@ -20,7 +20,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"runtime"
-	"sync"
 	"unsafe"
 )
 
@@ -31,7 +30,6 @@ func init() {
 type GameContext struct {
 	screenWidth  int
 	screenHeight int
-	inputState   ebiten.InputState
 }
 
 func (context *GameContext) ScreenWidth() int {
@@ -42,18 +40,15 @@ func (context *GameContext) ScreenHeight() int {
 	return context.screenHeight
 }
 
-func (context *GameContext) InputState() ebiten.InputState {
-	return context.inputState
-}
-
 type UI struct {
-	screenWidth     int
-	screenHeight    int
-	screenScale     int
-	graphicsDevice  *opengl.Device
-	gameContext     *GameContext
-	gameContextLock sync.Mutex
-	window          unsafe.Pointer
+	screenWidth               int
+	screenHeight              int
+	screenScale               int
+	graphicsDevice            *opengl.Device
+	gameContext               *GameContext
+	window                    unsafe.Pointer
+	inputStateUpdatedChs      chan chan ebiten.InputStateUpdatedEvent
+	inputStateUpdatedNotified chan ebiten.InputStateUpdatedEvent
 }
 
 var currentUI *UI
@@ -69,9 +64,9 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		gameContext: &GameContext{
 			screenWidth:  screenWidth,
 			screenHeight: screenHeight,
-			inputState:   ebiten.InputState{-1, -1},
 		},
-		gameContextLock: sync.Mutex{},
+		inputStateUpdatedChs:      make(chan chan ebiten.InputStateUpdatedEvent),
+		inputStateUpdatedNotified: make(chan ebiten.InputStateUpdatedEvent),
 	}
 
 	cTitle := C.CString(title)
@@ -91,7 +86,24 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		cTitle,
 		context)
 	currentUI = ui
+
+	go ui.chLoop()
+
 	return ui
+}
+
+func (ui *UI) chLoop() {
+	inputStateUpdated := []chan ebiten.InputStateUpdatedEvent{}
+	for {
+		select {
+		case ch := <-ui.inputStateUpdatedChs:
+			inputStateUpdated = append(inputStateUpdated, ch)
+		case e := <-ui.inputStateUpdatedNotified:
+			for _, ch := range inputStateUpdated {
+				ch <- e
+			}
+		}
+	}
 }
 
 func (ui *UI) PollEvents() {
@@ -105,8 +117,6 @@ func (ui *UI) InitTextures(f func(graphics.TextureFactory)) {
 }
 
 func (ui *UI) Update(f func(ebiten.GameContext)) {
-	ui.gameContextLock.Lock()
-	defer ui.gameContextLock.Unlock()
 	f(ui.gameContext)
 }
 
@@ -116,15 +126,27 @@ func (ui *UI) Draw(f func(graphics.Canvas)) {
 	C.EndDrawing(ui.window)
 }
 
+func (ui *UI) InputStateUpdated() <-chan ebiten.InputStateUpdatedEvent {
+	ch := make(chan ebiten.InputStateUpdatedEvent)
+	go func() {
+		ui.inputStateUpdatedChs <- ch
+	}()
+	return ch
+}
+
+func (ui *UI) notifyInputStateUpdated(e ebiten.InputStateUpdatedEvent) {
+	go func() {
+		ui.inputStateUpdatedNotified <- e
+	}()
+}
+
 //export ebiten_InputUpdated
 func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 	ui := currentUI
 
-	ui.gameContextLock.Lock()
-	defer ui.gameContextLock.Unlock()
-
 	if inputType == C.InputTypeMouseUp {
-		ui.gameContext.inputState = ebiten.InputState{-1, -1}
+		e := ebiten.InputStateUpdatedEvent{-1, -1}
+		ui.notifyInputStateUpdated(e)
 		return
 	}
 
@@ -141,5 +163,6 @@ func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 	} else if ui.screenHeight <= y {
 		y = ui.screenHeight - 1
 	}
-	ui.gameContext.inputState = ebiten.InputState{x, y}
+	e := ebiten.InputStateUpdatedEvent{x, y}
+	ui.notifyInputStateUpdated(e)
 }

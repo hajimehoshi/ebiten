@@ -11,11 +11,21 @@ import (
 
 type Input struct {
 	textTextureId graphics.TextureId
-	inputState    ebiten.InputState
+	inputStateCh  chan ebiten.InputStateUpdatedEvent
+	x             int
+	y             int
 }
 
 func New() *Input {
-	return &Input{}
+	return &Input{
+		inputStateCh: make(chan ebiten.InputStateUpdatedEvent, 1),
+		x:            -1,
+		y:            -1,
+	}
+}
+
+func (game *Input) InputStateUpdated() chan<- ebiten.InputStateUpdatedEvent {
+	return game.inputStateCh
 }
 
 func (game *Input) InitTextures(tf graphics.TextureFactory) {
@@ -35,14 +45,22 @@ func (game *Input) InitTextures(tf graphics.TextureFactory) {
 }
 
 func (game *Input) Update(context ebiten.GameContext) {
-	game.inputState = context.InputState()
+events:
+	for {
+		select {
+		case e := <-game.inputStateCh:
+			game.x, game.y = e.X, e.Y
+		default:
+			break events
+		}
+	}
 }
 
 func (game *Input) Draw(g graphics.Canvas) {
 	g.Fill(128, 128, 255)
 	str := fmt.Sprintf(`Input State:
   X: %d
-  Y: %d`, game.inputState.X, game.inputState.Y)
+  Y: %d`, game.x, game.y)
 	game.drawText(g, str, 5, 5)
 }
 

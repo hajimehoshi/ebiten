@@ -4,19 +4,33 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
-type Game interface {
-	InitTextures(tf graphics.TextureFactory)
-	Update(context GameContext)
-	Draw(canvas graphics.Canvas)
-}
-
+// TODO: Remove this
 type GameContext interface {
 	ScreenWidth() int
 	ScreenHeight() int
-	InputState() InputState
 }
 
-type InputState struct {
+type ScreenSizeUpdatedEvent struct {
+	Width  int
+	Height int
+}
+
+type InputStateUpdatedEvent struct {
 	X int
 	Y int
+}
+
+type UIEvents interface {
+	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
+}
+
+type UI interface {
+	PollEvents()
+	InitTextures(func(graphics.TextureFactory))
+	Draw(func(graphics.Canvas))
+
+	InputStateUpdated() <-chan InputStateUpdatedEvent
+
+	// TODO: Remove this
+	Update(func(GameContext))
 }
