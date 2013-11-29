@@ -98,12 +98,12 @@ func (game *Rects) Draw(g graphics.Canvas) {
 		g.Fill(0, 0, 0)
 		game.offscreenInited = true
 	}
-	g.DrawTexture(g.ToTexture(game.rectTextureId),
+	g.DrawRenderTarget(game.rectTextureId,
 		game.rectGeometryMatrix(),
 		game.rectColorMatrix())
 
 	g.ResetOffscreen()
-	g.DrawTexture(g.ToTexture(game.offscreenId),
+	g.DrawRenderTarget(game.offscreenId,
 		matrix.IdentityGeometry(),
 		matrix.IdentityColor())
 }

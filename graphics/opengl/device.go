@@ -33,7 +33,7 @@ func (device *Device) Update(draw func(graphics.Canvas)) {
 	scale := float64(device.screenScale)
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Scale(scale, scale)
-	context.DrawTexture(context.ToTexture(context.screenId),
+	context.DrawRenderTarget(context.screenId,
 		geometryMatrix, matrix.IdentityColor())
 	context.flush()
 }

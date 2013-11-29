@@ -38,10 +38,6 @@ func newContext(screenWidth, screenHeight, screenScale int) *Context {
 	return context
 }
 
-func (context *Context) ToTexture(renderTargetId graphics.RenderTargetId) graphics.TextureId {
-	return context.ids.ToTexture(renderTargetId)
-}
-
 func (context *Context) Clear() {
 	context.Fill(0, 0, 0)
 }
@@ -57,17 +53,29 @@ func (context *Context) Fill(r, g, b uint8) {
 }
 
 func (context *Context) DrawTexture(
-	textureId graphics.TextureId,
+	id graphics.TextureId,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	tex := context.ids.TextureAt(textureId)
+	tex := context.ids.TextureAt(id)
 	context.offscreen.DrawTexture(tex, geometryMatrix, colorMatrix)
 }
 
-func (context *Context) DrawTextureParts(
-	textureId graphics.TextureId, parts []graphics.TexturePart,
+func (context *Context) DrawRenderTarget(
+	id graphics.RenderTargetId,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	tex := context.ids.TextureAt(textureId)
+	context.DrawTexture(context.ids.ToTexture(id), geometryMatrix, colorMatrix)
+}
+
+func (context *Context) DrawTextureParts(
+	id graphics.TextureId, parts []graphics.TexturePart,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	tex := context.ids.TextureAt(id)
 	context.offscreen.DrawTextureParts(tex, parts, geometryMatrix, colorMatrix)
+}
+
+func (context *Context) DrawRenderTargetParts(
+	id graphics.RenderTargetId, parts []graphics.TexturePart,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	context.DrawTextureParts(context.ids.ToTexture(id), parts, geometryMatrix, colorMatrix)
 }
 
 // Init initializes the context. The initial state is saved for each GL context.
