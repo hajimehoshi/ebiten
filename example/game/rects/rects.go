@@ -47,13 +47,29 @@ func (game *Rects) InitTextures(tf graphics.TextureFactory) {
 	}
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func abs(a int) int {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
+
 func (game *Rects) Update(context ebiten.GameContext) {
-	game.rectBounds.X = rand.Intn(context.ScreenWidth())
-	game.rectBounds.Y = rand.Intn(context.ScreenHeight())
-	game.rectBounds.Width =
-		rand.Intn(context.ScreenWidth()-game.rectBounds.X) + 1
-	game.rectBounds.Height =
-		rand.Intn(context.ScreenHeight()-game.rectBounds.Y) + 1
+	x1 := rand.Intn(context.ScreenWidth())
+	x2 := rand.Intn(context.ScreenWidth())
+	y1 := rand.Intn(context.ScreenHeight())
+	y2 := rand.Intn(context.ScreenHeight())
+	game.rectBounds.X = min(x1, x2)
+	game.rectBounds.Y = min(y1, y2)
+	game.rectBounds.Width = abs(x1 - x2)
+	game.rectBounds.Height = abs(y1 - y2)
 
 	game.rectColor.R = uint8(rand.Intn(math.MaxUint8))
 	game.rectColor.G = uint8(rand.Intn(math.MaxUint8))
