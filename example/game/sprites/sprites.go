@@ -66,13 +66,19 @@ func (sprite *Sprite) Update() {
 type Sprites struct {
 	ebitenTextureId graphics.TextureId
 	sprites         []*Sprite
+	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenWidth         int
+	screenHeight        int
 }
 
 func New() *Sprites {
-	go func() {
+	return &Sprites{
+		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
+	}
+}
 
-	}()
-	return &Sprites{}
+func (game *Sprites) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
+	return game.screenSizeUpdatedCh
 }
 
 func (game *Sprites) InitTextures(tf graphics.TextureFactory) {
@@ -91,13 +97,27 @@ func (game *Sprites) InitTextures(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Sprites) Update(context ebiten.GameContext) {
+func (game *Sprites) Update() {
+events:
+	for {
+		select {
+		case e := <-game.screenSizeUpdatedCh:
+			game.screenWidth, game.screenHeight = e.Width, e.Height
+		default:
+			break events
+		}
+	}
+
+	if game.screenWidth == 0 || game.screenHeight == 0 {
+		return
+	}
+
 	if game.sprites == nil {
 		game.sprites = []*Sprite{}
 		for i := 0; i < 100; i++ {
 			sprite := newSprite(
-				context.ScreenWidth(),
-				context.ScreenHeight(),
+				game.screenWidth,
+				game.screenHeight,
 				ebitenTextureWidth,
 				ebitenTextureHeight)
 			game.sprites = append(game.sprites, sprite)

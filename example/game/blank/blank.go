@@ -1,7 +1,6 @@
 package blank
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
@@ -15,7 +14,7 @@ func New() *Blank {
 func (game *Blank) InitTextures(tf graphics.TextureFactory) {
 }
 
-func (game *Blank) Update(context ebiten.GameContext) {
+func (game *Blank) Update() {
 }
 
 func (game *Blank) Draw(canvas graphics.Canvas) {

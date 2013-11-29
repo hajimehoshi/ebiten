@@ -17,6 +17,9 @@ type Rects struct {
 	offscreenInited   bool
 	rectBounds        *graphics.Rect
 	rectColor         *color.RGBA
+	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenWidth         int
+	screenHeight        int
 }
 
 const (
@@ -32,7 +35,12 @@ func New() *Rects {
 		offscreenInited:   false,
 		rectBounds:        &graphics.Rect{},
 		rectColor:         &color.RGBA{},
+		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
 	}
+}
+
+func (game *Rects) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
+	return game.screenSizeUpdatedCh
 }
 
 func (game *Rects) InitTextures(tf graphics.TextureFactory) {
@@ -61,11 +69,25 @@ func abs(a int) int {
 	return a
 }
 
-func (game *Rects) Update(context ebiten.GameContext) {
-	x1 := rand.Intn(context.ScreenWidth())
-	x2 := rand.Intn(context.ScreenWidth())
-	y1 := rand.Intn(context.ScreenHeight())
-	y2 := rand.Intn(context.ScreenHeight())
+func (game *Rects) Update() {
+events:
+	for {
+		select {
+		case e := <-game.screenSizeUpdatedCh:
+			game.screenWidth, game.screenHeight = e.Width, e.Height
+		default:
+			break events
+		}
+	}
+
+	if game.screenWidth == 0 || game.screenHeight == 0 {
+		return
+	}
+
+	x1 := rand.Intn(game.screenWidth)
+	x2 := rand.Intn(game.screenWidth)
+	y1 := rand.Intn(game.screenHeight)
+	y2 := rand.Intn(game.screenHeight)
 	game.rectBounds.X = min(x1, x2)
 	game.rectBounds.Y = min(y1, y2)
 	game.rectBounds.Width = abs(x1 - x2)

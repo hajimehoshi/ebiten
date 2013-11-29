@@ -10,22 +10,22 @@ import (
 )
 
 type Input struct {
-	textTextureId graphics.TextureId
-	inputStateCh  chan ebiten.InputStateUpdatedEvent
-	x             int
-	y             int
+	textTextureId       graphics.TextureId
+	inputStateUpdatedCh chan ebiten.InputStateUpdatedEvent
+	x                   int
+	y                   int
 }
 
 func New() *Input {
 	return &Input{
-		inputStateCh: make(chan ebiten.InputStateUpdatedEvent, 1),
-		x:            -1,
-		y:            -1,
+		inputStateUpdatedCh: make(chan ebiten.InputStateUpdatedEvent),
+		x:                   -1,
+		y:                   -1,
 	}
 }
 
 func (game *Input) InputStateUpdated() chan<- ebiten.InputStateUpdatedEvent {
-	return game.inputStateCh
+	return game.inputStateUpdatedCh
 }
 
 func (game *Input) InitTextures(tf graphics.TextureFactory) {
@@ -44,11 +44,11 @@ func (game *Input) InitTextures(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Input) Update(context ebiten.GameContext) {
+func (game *Input) Update() {
 events:
 	for {
 		select {
-		case e := <-game.inputStateCh:
+		case e := <-game.inputStateUpdatedCh:
 			game.x, game.y = e.X, e.Y
 		default:
 			break events

@@ -15,18 +15,26 @@ const (
 )
 
 type Monochrome struct {
-	ebitenTextureId graphics.TextureId
-	ch              chan bool
-	colorMatrix     matrix.Color
-	geometryMatrix  matrix.Geometry
+	ebitenTextureId     graphics.TextureId
+	ch                  chan bool
+	colorMatrix         matrix.Color
+	geometryMatrix      matrix.Geometry
+	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenWidth         int
+	screenHeight        int
 }
 
 func New() *Monochrome {
 	return &Monochrome{
-		ch:             make(chan bool),
-		colorMatrix:    matrix.IdentityColor(),
-		geometryMatrix: matrix.IdentityGeometry(),
+		ch:                  make(chan bool),
+		colorMatrix:         matrix.IdentityColor(),
+		geometryMatrix:      matrix.IdentityGeometry(),
+		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
 	}
+}
+
+func (game *Monochrome) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
+	return game.screenSizeUpdatedCh
 }
 
 func (game *Monochrome) InitTextures(tf graphics.TextureFactory) {
@@ -90,13 +98,23 @@ func (game *Monochrome) update() {
 	}
 }
 
-func (game *Monochrome) Update(context ebiten.GameContext) {
+func (game *Monochrome) Update() {
+events:
+	for {
+		select {
+		case e := <-game.screenSizeUpdatedCh:
+			game.screenWidth, game.screenHeight = e.Width, e.Height
+		default:
+			break events
+		}
+	}
+
 	game.ch <- true
 	<-game.ch
 
 	game.geometryMatrix = matrix.IdentityGeometry()
-	tx := context.ScreenWidth()/2 - ebitenTextureWidth/2
-	ty := context.ScreenHeight()/2 - ebitenTextureHeight/2
+	tx := game.screenWidth/2 - ebitenTextureWidth/2
+	ty := game.screenHeight/2 - ebitenTextureHeight/2
 	game.geometryMatrix.Translate(float64(tx), float64(ty))
 }
 

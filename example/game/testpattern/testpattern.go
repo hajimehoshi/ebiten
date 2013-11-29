@@ -1,7 +1,6 @@
 package testpattern
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"image"
@@ -40,7 +39,7 @@ func (game *TestPattern) InitTextures(tf graphics.TextureFactory) {
 	game.textureHeight = size.Y
 }
 
-func (game *TestPattern) Update(context ebiten.GameContext) {
+func (game *TestPattern) Update() {
 	geo := matrix.IdentityGeometry()
 	geo.Translate(13, 13)
 	game.geos = append(game.geos, geo)

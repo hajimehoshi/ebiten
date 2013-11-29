@@ -27,28 +27,17 @@ func init() {
 	runtime.LockOSThread()
 }
 
-type GameContext struct {
-	screenWidth  int
-	screenHeight int
-}
-
-func (context *GameContext) ScreenWidth() int {
-	return context.screenWidth
-}
-
-func (context *GameContext) ScreenHeight() int {
-	return context.screenHeight
-}
-
 type UI struct {
 	screenWidth               int
 	screenHeight              int
 	screenScale               int
 	graphicsDevice            *opengl.Device
-	gameContext               *GameContext
 	window                    unsafe.Pointer
+	initialEventSent          bool
 	inputStateUpdatedChs      chan chan ebiten.InputStateUpdatedEvent
 	inputStateUpdatedNotified chan ebiten.InputStateUpdatedEvent
+	screenSizeUpdatedChs      chan chan ebiten.ScreenSizeUpdatedEvent
+	screenSizeUpdatedNotified chan ebiten.ScreenSizeUpdatedEvent
 }
 
 var currentUI *UI
@@ -61,12 +50,11 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
-		gameContext: &GameContext{
-			screenWidth:  screenWidth,
-			screenHeight: screenHeight,
-		},
+		initialEventSent:          false,
 		inputStateUpdatedChs:      make(chan chan ebiten.InputStateUpdatedEvent),
 		inputStateUpdatedNotified: make(chan ebiten.InputStateUpdatedEvent),
+		screenSizeUpdatedChs:      make(chan chan ebiten.ScreenSizeUpdatedEvent),
+		screenSizeUpdatedNotified: make(chan ebiten.ScreenSizeUpdatedEvent),
 	}
 
 	cTitle := C.CString(title)
@@ -94,6 +82,7 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 
 func (ui *UI) chLoop() {
 	inputStateUpdated := []chan ebiten.InputStateUpdatedEvent{}
+	screenSizeUpdated := []chan ebiten.ScreenSizeUpdatedEvent{}
 	for {
 		select {
 		case ch := <-ui.inputStateUpdatedChs:
@@ -102,22 +91,29 @@ func (ui *UI) chLoop() {
 			for _, ch := range inputStateUpdated {
 				ch <- e
 			}
+		case ch := <-ui.screenSizeUpdatedChs:
+			screenSizeUpdated = append(screenSizeUpdated, ch)
+		case e := <-ui.screenSizeUpdatedNotified:
+			for _, ch := range screenSizeUpdated {
+				ch <- e
+			}
 		}
 	}
 }
 
 func (ui *UI) PollEvents() {
 	C.PollEvents()
+	if !ui.initialEventSent {
+		e := ebiten.ScreenSizeUpdatedEvent{ui.screenWidth, ui.screenHeight}
+		ui.notifyScreenSizeUpdated(e)
+		ui.initialEventSent = true
+	}
 }
 
 func (ui *UI) InitTextures(f func(graphics.TextureFactory)) {
 	C.BeginDrawing(ui.window)
 	f(ui.graphicsDevice.TextureFactory())
 	C.EndDrawing(ui.window)
-}
-
-func (ui *UI) Update(f func(ebiten.GameContext)) {
-	f(ui.gameContext)
 }
 
 func (ui *UI) Draw(f func(graphics.Canvas)) {
@@ -138,6 +134,27 @@ func (ui *UI) notifyInputStateUpdated(e ebiten.InputStateUpdatedEvent) {
 	go func() {
 		ui.inputStateUpdatedNotified <- e
 	}()
+}
+
+func (ui *UI) ScreenSizeUpdated() <-chan ebiten.ScreenSizeUpdatedEvent {
+	ch := make(chan ebiten.ScreenSizeUpdatedEvent)
+	go func() {
+		ui.screenSizeUpdatedChs <- ch
+	}()
+	return ch
+}
+
+func (ui *UI) notifyScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+	go func() {
+		ui.screenSizeUpdatedNotified <- e
+	}()
+}
+
+//export ebiten_ScreenSizeUpdated
+func ebiten_ScreenSizeUpdated(width, height int) {
+	ui := currentUI
+	e := ebiten.ScreenSizeUpdatedEvent{width, height}
+	ui.notifyScreenSizeUpdated(e)
 }
 
 //export ebiten_InputUpdated

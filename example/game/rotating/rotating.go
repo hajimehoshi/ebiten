@@ -19,10 +19,19 @@ type Rotating struct {
 	ebitenTextureId graphics.TextureId
 	x               int
 	geometryMatrix  matrix.Geometry
+	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenWidth         int
+	screenHeight        int
 }
 
 func New() *Rotating {
-	return &Rotating{}
+	return &Rotating{
+		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
+	}
+}
+
+func (game *Rotating) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
+	return game.screenSizeUpdatedCh
 }
 
 func (game *Rotating) InitTextures(tf graphics.TextureFactory) {
@@ -41,7 +50,21 @@ func (game *Rotating) InitTextures(tf graphics.TextureFactory) {
 	}
 }
 
-func (game *Rotating) Update(context ebiten.GameContext) {
+func (game *Rotating) Update() {
+events:
+	for {
+		select {
+		case e := <-game.screenSizeUpdatedCh:
+			game.screenWidth, game.screenHeight = e.Width, e.Height
+		default:
+			break events
+		}
+	}
+
+	if game.screenWidth == 0 || game.screenHeight == 0 {
+		return
+	}
+
 	const fps = 60
 
 	game.x++
@@ -51,8 +74,8 @@ func (game *Rotating) Update(context ebiten.GameContext) {
 	game.geometryMatrix.Translate(-tx/2, -ty/2)
 	game.geometryMatrix.Rotate(float64(game.x) * 2 * math.Pi / float64(fps*10))
 	game.geometryMatrix.Translate(tx/2, ty/2)
-	centerX := float64(context.ScreenWidth()) / 2
-	centerY := float64(context.ScreenHeight()) / 2
+	centerX := float64(game.screenWidth) / 2
+	centerY := float64(game.screenHeight) / 2
 	game.geometryMatrix.Translate(centerX-tx/2, centerY-ty/2)
 }
 

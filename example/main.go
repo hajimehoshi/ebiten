@@ -19,7 +19,7 @@ import (
 
 type Game interface {
 	InitTextures(tf graphics.TextureFactory)
-	Update(context ebiten.GameContext)
+	Update()
 	Draw(canvas graphics.Canvas)
 }
 
@@ -66,25 +66,33 @@ func main() {
 		tick := time.Tick(frameTime)
 		for {
 			<-tick
-			ui.Update(func(c ebiten.GameContext) {
+			func() {
 				lock.Lock()
 				defer lock.Unlock()
-				game.Update(c)
-			})
+				game.Update()
+			}()
 		}
 	}()
 
 	inputStateUpdated := ui.InputStateUpdated()
+	screenSizeUpdated := ui.ScreenSizeUpdated()
 	for {
 		ui.PollEvents()
 	events:
 		for {
 			select {
+			case e := <-screenSizeUpdated:
+				type Handler interface {
+					ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent
+				}
+				if game2, ok := game.(Handler); ok {
+					game2.ScreenSizeUpdated() <- e
+				}
 			case e := <-inputStateUpdated:
-				type InputStateUpdatedHandler interface {
+				type Handler interface {
 					InputStateUpdated() chan<- ebiten.InputStateUpdatedEvent
 				}
-				if game2, ok := game.(InputStateUpdatedHandler); ok {
+				if game2, ok := game.(Handler); ok {
 					game2.InputStateUpdated() <- e
 				}
 			default:
