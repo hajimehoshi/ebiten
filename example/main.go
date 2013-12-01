@@ -81,20 +81,26 @@ func main() {
 	events:
 		for {
 			select {
-			case e := <-screenSizeUpdated:
-				type Handler interface {
-					OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent)
+			case e, ok := <-inputStateUpdated:
+				if ok {
+					type Handler interface {
+						OnInputStateUpdated(ebiten.InputStateUpdatedEvent)
+					}
+					if game2, ok := game.(Handler); ok {
+						game2.OnInputStateUpdated(e)
+					}
 				}
-				if game2, ok := game.(Handler); ok {
-					game2.OnScreenSizeUpdated(e)
+				inputStateUpdated = ui.ObserveInputStateUpdated()
+			case e, ok := <-screenSizeUpdated:
+				if ok {
+					type Handler interface {
+						OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent)
+					}
+					if game2, ok := game.(Handler); ok {
+						game2.OnScreenSizeUpdated(e)
+					}
 				}
-			case e := <-inputStateUpdated:
-				type Handler interface {
-					OnInputStateUpdated(ebiten.InputStateUpdatedEvent)
-				}
-				if game2, ok := game.(Handler); ok {
-					game2.OnInputStateUpdated(e)
-				}
+				screenSizeUpdated = ui.ObserveScreenSizeUpdated()
 			default:
 				break events
 			}

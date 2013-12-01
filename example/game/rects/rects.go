@@ -11,12 +11,12 @@ import (
 )
 
 type Rects struct {
-	rectTextureId     graphics.RenderTargetId
-	rectTextureInited bool
-	offscreenId       graphics.RenderTargetId
-	offscreenInited   bool
-	rectBounds        *graphics.Rect
-	rectColor         *color.RGBA
+	rectTextureId       graphics.RenderTargetId
+	rectTextureInited   bool
+	offscreenId         graphics.RenderTargetId
+	offscreenInited     bool
+	rectBounds          *graphics.Rect
+	rectColor           *color.RGBA
 	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int
@@ -31,10 +31,10 @@ const (
 
 func New() *Rects {
 	return &Rects{
-		rectTextureInited: false,
-		offscreenInited:   false,
-		rectBounds:        &graphics.Rect{},
-		rectColor:         &color.RGBA{},
+		rectTextureInited:   false,
+		offscreenInited:     false,
+		rectBounds:          &graphics.Rect{},
+		rectColor:           &color.RGBA{},
 		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
 	}
 }

@@ -16,9 +16,9 @@ const (
 )
 
 type Rotating struct {
-	ebitenTextureId graphics.TextureId
-	x               int
-	geometryMatrix  matrix.Geometry
+	ebitenTextureId     graphics.TextureId
+	x                   int
+	geometryMatrix      matrix.Geometry
 	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int

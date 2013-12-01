@@ -64,8 +64,8 @@ func (sprite *Sprite) Update() {
 }
 
 type Sprites struct {
-	ebitenTextureId graphics.TextureId
-	sprites         []*Sprite
+	ebitenTextureId     graphics.TextureId
+	sprites             []*Sprite
 	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int

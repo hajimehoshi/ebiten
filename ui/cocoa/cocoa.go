@@ -47,9 +47,9 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		panic("UI can't be duplicated.")
 	}
 	ui := &UI{
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
+		screenWidth:               screenWidth,
+		screenHeight:              screenHeight,
+		screenScale:               screenScale,
 		initialEventSent:          false,
 		inputStateUpdatedChs:      make(chan chan ebiten.InputStateUpdatedEvent),
 		inputStateUpdatedNotified: make(chan ebiten.InputStateUpdatedEvent),
@@ -90,13 +90,17 @@ func (ui *UI) chLoop() {
 		case e := <-ui.inputStateUpdatedNotified:
 			for _, ch := range inputStateUpdated {
 				ch <- e
+				close(ch)
 			}
+			inputStateUpdated = []chan ebiten.InputStateUpdatedEvent{}
 		case ch := <-ui.screenSizeUpdatedChs:
 			screenSizeUpdated = append(screenSizeUpdated, ch)
 		case e := <-ui.screenSizeUpdatedNotified:
 			for _, ch := range screenSizeUpdated {
 				ch <- e
+				close(ch)
 			}
+			screenSizeUpdated = []chan ebiten.ScreenSizeUpdatedEvent{}
 		}
 	}
 }
