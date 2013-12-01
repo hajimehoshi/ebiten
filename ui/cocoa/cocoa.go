@@ -122,7 +122,7 @@ func (ui *UI) Draw(f func(graphics.Canvas)) {
 	C.EndDrawing(ui.window)
 }
 
-func (ui *UI) InputStateUpdated() <-chan ebiten.InputStateUpdatedEvent {
+func (ui *UI) ObserveInputStateUpdated() <-chan ebiten.InputStateUpdatedEvent {
 	ch := make(chan ebiten.InputStateUpdatedEvent)
 	go func() {
 		ui.inputStateUpdatedChs <- ch
@@ -132,11 +132,12 @@ func (ui *UI) InputStateUpdated() <-chan ebiten.InputStateUpdatedEvent {
 
 func (ui *UI) notifyInputStateUpdated(e ebiten.InputStateUpdatedEvent) {
 	go func() {
+		e := e
 		ui.inputStateUpdatedNotified <- e
 	}()
 }
 
-func (ui *UI) ScreenSizeUpdated() <-chan ebiten.ScreenSizeUpdatedEvent {
+func (ui *UI) ObserveScreenSizeUpdated() <-chan ebiten.ScreenSizeUpdatedEvent {
 	ch := make(chan ebiten.ScreenSizeUpdatedEvent)
 	go func() {
 		ui.screenSizeUpdatedChs <- ch
@@ -146,6 +147,7 @@ func (ui *UI) ScreenSizeUpdated() <-chan ebiten.ScreenSizeUpdatedEvent {
 
 func (ui *UI) notifyScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
 	go func() {
+		e := e
 		ui.screenSizeUpdatedNotified <- e
 	}()
 }

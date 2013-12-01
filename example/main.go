@@ -74,8 +74,8 @@ func main() {
 		}
 	}()
 
-	inputStateUpdated := ui.InputStateUpdated()
-	screenSizeUpdated := ui.ScreenSizeUpdated()
+	inputStateUpdated := ui.ObserveInputStateUpdated()
+	screenSizeUpdated := ui.ObserveScreenSizeUpdated()
 	for {
 		ui.PollEvents()
 	events:
@@ -83,17 +83,17 @@ func main() {
 			select {
 			case e := <-screenSizeUpdated:
 				type Handler interface {
-					ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent
+					OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent)
 				}
 				if game2, ok := game.(Handler); ok {
-					game2.ScreenSizeUpdated() <- e
+					game2.OnScreenSizeUpdated(e)
 				}
 			case e := <-inputStateUpdated:
 				type Handler interface {
-					InputStateUpdated() chan<- ebiten.InputStateUpdatedEvent
+					OnInputStateUpdated(ebiten.InputStateUpdatedEvent)
 				}
 				if game2, ok := game.(Handler); ok {
-					game2.InputStateUpdated() <- e
+					game2.OnInputStateUpdated(e)
 				}
 			default:
 				break events

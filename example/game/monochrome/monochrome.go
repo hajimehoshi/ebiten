@@ -33,8 +33,11 @@ func New() *Monochrome {
 	}
 }
 
-func (game *Monochrome) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
-	return game.screenSizeUpdatedCh
+func (game *Monochrome) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+	go func() {
+		e := e
+		game.screenSizeUpdatedCh <- e
+	}()
 }
 
 func (game *Monochrome) InitTextures(tf graphics.TextureFactory) {

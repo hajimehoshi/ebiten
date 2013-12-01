@@ -77,8 +77,11 @@ func New() *Sprites {
 	}
 }
 
-func (game *Sprites) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
-	return game.screenSizeUpdatedCh
+func (game *Sprites) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+	go func() {
+		e := e
+		game.screenSizeUpdatedCh <- e
+	}()
 }
 
 func (game *Sprites) InitTextures(tf graphics.TextureFactory) {

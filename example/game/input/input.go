@@ -24,8 +24,11 @@ func New() *Input {
 	}
 }
 
-func (game *Input) InputStateUpdated() chan<- ebiten.InputStateUpdatedEvent {
-	return game.inputStateUpdatedCh
+func (game *Input) OnInputStateUpdated(e ebiten.InputStateUpdatedEvent) {
+	go func() {
+		e := e
+		game.inputStateUpdatedCh <- e
+	}()
 }
 
 func (game *Input) InitTextures(tf graphics.TextureFactory) {

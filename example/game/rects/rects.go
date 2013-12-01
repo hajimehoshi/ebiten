@@ -39,8 +39,11 @@ func New() *Rects {
 	}
 }
 
-func (game *Rects) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
-	return game.screenSizeUpdatedCh
+func (game *Rects) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+	go func() {
+		e := e
+		game.screenSizeUpdatedCh <- e
+	}()
 }
 
 func (game *Rects) InitTextures(tf graphics.TextureFactory) {

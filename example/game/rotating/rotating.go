@@ -30,8 +30,11 @@ func New() *Rotating {
 	}
 }
 
-func (game *Rotating) ScreenSizeUpdated() chan<- ebiten.ScreenSizeUpdatedEvent {
-	return game.screenSizeUpdatedCh
+func (game *Rotating) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+	go func() {
+		e := e
+		game.screenSizeUpdatedCh <- e
+	}()
 }
 
 func (game *Rotating) InitTextures(tf graphics.TextureFactory) {
