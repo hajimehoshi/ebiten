@@ -1,12 +1,12 @@
 package matrix
 
-type Affine interface {
+type affine interface {
 	Dim() int
 	element(i, j int) float64
 	setElement(i, j int, element float64)
 }
 
-func isIdentity(matrix Affine) bool {
+func isIdentity(matrix affine) bool {
 	dim := matrix.Dim()
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
@@ -21,7 +21,7 @@ func isIdentity(matrix Affine) bool {
 	return true
 }
 
-func mul(lhs, rhs, result Affine) {
+func mul(lhs, rhs, result affine) {
 	dim := lhs.Dim()
 	if dim != rhs.Dim() {
 		panic("diffrent-sized matrices can't be multiplied")

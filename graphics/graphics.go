@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"image"
 )
 
@@ -16,28 +15,6 @@ type TexturePart struct {
 	LocationX int
 	LocationY int
 	Source    Rect
-}
-
-type Canvas interface {
-	Clear()
-	Fill(r, g, b uint8)
-	DrawTexture(id TextureId,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
-	DrawRenderTarget(id RenderTargetId,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
-	DrawTextureParts(id TextureId,
-		parts []TexturePart,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
-	DrawRenderTargetParts(id RenderTargetId,
-		parts []TexturePart,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
-
-	ResetOffscreen()
-	SetOffscreen(id RenderTargetId)
 }
 
 type TextureFactory interface {

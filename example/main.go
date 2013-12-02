@@ -13,7 +13,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 )
 
@@ -60,25 +59,13 @@ func main() {
 	var ui ebiten.UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
 	ui.InitTextures(game.InitTextures)
 
-	lock := sync.Mutex{}
+	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
+		inputStateUpdated := ui.ObserveInputStateUpdated()
+		screenSizeUpdated := ui.ObserveScreenSizeUpdated()
+
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
-		for {
-			<-tick
-			func() {
-				lock.Lock()
-				defer lock.Unlock()
-				game.Update()
-			}()
-		}
-	}()
-
-	inputStateUpdated := ui.ObserveInputStateUpdated()
-	screenSizeUpdated := ui.ObserveScreenSizeUpdated()
-	for {
-		ui.PollEvents()
-	events:
 		for {
 			select {
 			case e, ok := <-inputStateUpdated:
@@ -101,14 +88,21 @@ func main() {
 					}
 				}
 				screenSizeUpdated = ui.ObserveScreenSizeUpdated()
-			default:
-				break events
+			case <-tick:
+				game.Update()
+			case canvas := <-drawing:
+				game.Draw(canvas)
+				drawing <- canvas
 			}
 		}
+	}()
+
+	for {
+		ui.PollEvents()
 		ui.Draw(func(c graphics.Canvas) {
-			lock.Lock()
-			defer lock.Unlock()
-			game.Draw(c)
+			drawing <- graphics.NewLazyCanvas()
+			canvas := <-drawing
+			canvas.Flush(c)
 		})
 	}
 }
