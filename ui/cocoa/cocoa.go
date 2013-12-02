@@ -75,34 +75,43 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		context)
 	currentUI = ui
 
-	go ui.chLoop()
+	ui.eventLoop()
 
 	return ui
 }
 
-func (ui *UI) chLoop() {
-	inputStateUpdated := []chan ebiten.InputStateUpdatedEvent{}
-	screenSizeUpdated := []chan ebiten.ScreenSizeUpdatedEvent{}
-	for {
-		select {
-		case ch := <-ui.inputStateUpdatedChs:
-			inputStateUpdated = append(inputStateUpdated, ch)
-		case e := <-ui.inputStateUpdatedNotified:
-			for _, ch := range inputStateUpdated {
-				ch <- e
-				close(ch)
+func (ui *UI) eventLoop() {
+	go func() {
+		inputStateUpdated := []chan ebiten.InputStateUpdatedEvent{}
+		for {
+			select {
+			case ch := <-ui.inputStateUpdatedChs:
+				inputStateUpdated = append(inputStateUpdated, ch)
+			case e := <-ui.inputStateUpdatedNotified:
+				for _, ch := range inputStateUpdated {
+					ch <- e
+					close(ch)
+				}
+				inputStateUpdated = inputStateUpdated[0:0]
 			}
-			inputStateUpdated = []chan ebiten.InputStateUpdatedEvent{}
-		case ch := <-ui.screenSizeUpdatedChs:
-			screenSizeUpdated = append(screenSizeUpdated, ch)
-		case e := <-ui.screenSizeUpdatedNotified:
-			for _, ch := range screenSizeUpdated {
-				ch <- e
-				close(ch)
-			}
-			screenSizeUpdated = []chan ebiten.ScreenSizeUpdatedEvent{}
 		}
-	}
+	}()
+
+	go func() {
+		screenSizeUpdated := []chan ebiten.ScreenSizeUpdatedEvent{}
+		for {
+			select {
+			case ch := <-ui.screenSizeUpdatedChs:
+				screenSizeUpdated = append(screenSizeUpdated, ch)
+			case e := <-ui.screenSizeUpdatedNotified:
+				for _, ch := range screenSizeUpdated {
+					ch <- e
+					close(ch)
+				}
+				screenSizeUpdated = []chan ebiten.ScreenSizeUpdatedEvent{}
+			}
+		}
+	}()
 }
 
 func (ui *UI) PollEvents() {
