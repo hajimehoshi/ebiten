@@ -16,9 +16,9 @@ package cocoa
 //
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"runtime"
 	"unsafe"
 )
@@ -34,10 +34,10 @@ type UI struct {
 	graphicsDevice            *opengl.Device
 	window                    unsafe.Pointer
 	initialEventSent          bool
-	inputStateUpdatedChs      chan chan ebiten.InputStateUpdatedEvent
-	inputStateUpdatedNotified chan ebiten.InputStateUpdatedEvent
-	screenSizeUpdatedChs      chan chan ebiten.ScreenSizeUpdatedEvent
-	screenSizeUpdatedNotified chan ebiten.ScreenSizeUpdatedEvent
+	inputStateUpdatedChs      chan chan ui.InputStateUpdatedEvent
+	inputStateUpdatedNotified chan ui.InputStateUpdatedEvent
+	screenSizeUpdatedChs      chan chan ui.ScreenSizeUpdatedEvent
+	screenSizeUpdatedNotified chan ui.ScreenSizeUpdatedEvent
 }
 
 var currentUI *UI
@@ -46,15 +46,15 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 	if currentUI != nil {
 		panic("UI can't be duplicated.")
 	}
-	ui := &UI{
+	u := &UI{
 		screenWidth:               screenWidth,
 		screenHeight:              screenHeight,
 		screenScale:               screenScale,
 		initialEventSent:          false,
-		inputStateUpdatedChs:      make(chan chan ebiten.InputStateUpdatedEvent),
-		inputStateUpdatedNotified: make(chan ebiten.InputStateUpdatedEvent),
-		screenSizeUpdatedChs:      make(chan chan ebiten.ScreenSizeUpdatedEvent),
-		screenSizeUpdatedNotified: make(chan ebiten.ScreenSizeUpdatedEvent),
+		inputStateUpdatedChs:      make(chan chan ui.InputStateUpdatedEvent),
+		inputStateUpdatedNotified: make(chan ui.InputStateUpdatedEvent),
+		screenSizeUpdatedChs:      make(chan chan ui.ScreenSizeUpdatedEvent),
+		screenSizeUpdatedNotified: make(chan ui.ScreenSizeUpdatedEvent),
 	}
 
 	cTitle := C.CString(title)
@@ -64,30 +64,30 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 
 	context := C.CreateGLContext(unsafe.Pointer(nil))
 	C.SetCurrentGLContext(context)
-	ui.graphicsDevice = opengl.NewDevice(
-		ui.screenWidth,
-		ui.screenHeight,
-		ui.screenScale)
+	u.graphicsDevice = opengl.NewDevice(
+		u.screenWidth,
+		u.screenHeight,
+		u.screenScale)
 
-	ui.window = C.CreateWindow(C.size_t(ui.screenWidth*ui.screenScale),
-		C.size_t(ui.screenHeight*ui.screenScale),
+	u.window = C.CreateWindow(C.size_t(u.screenWidth*u.screenScale),
+		C.size_t(u.screenHeight*u.screenScale),
 		cTitle,
 		context)
-	currentUI = ui
+	currentUI = u
 
-	ui.eventLoop()
+	u.eventLoop()
 
-	return ui
+	return u
 }
 
-func (ui *UI) eventLoop() {
+func (u *UI) eventLoop() {
 	go func() {
-		inputStateUpdated := []chan ebiten.InputStateUpdatedEvent{}
+		inputStateUpdated := []chan ui.InputStateUpdatedEvent{}
 		for {
 			select {
-			case ch := <-ui.inputStateUpdatedChs:
+			case ch := <-u.inputStateUpdatedChs:
 				inputStateUpdated = append(inputStateUpdated, ch)
-			case e := <-ui.inputStateUpdatedNotified:
+			case e := <-u.inputStateUpdatedNotified:
 				for _, ch := range inputStateUpdated {
 					ch <- e
 					close(ch)
@@ -98,103 +98,101 @@ func (ui *UI) eventLoop() {
 	}()
 
 	go func() {
-		screenSizeUpdated := []chan ebiten.ScreenSizeUpdatedEvent{}
+		screenSizeUpdated := []chan ui.ScreenSizeUpdatedEvent{}
 		for {
 			select {
-			case ch := <-ui.screenSizeUpdatedChs:
+			case ch := <-u.screenSizeUpdatedChs:
 				screenSizeUpdated = append(screenSizeUpdated, ch)
-			case e := <-ui.screenSizeUpdatedNotified:
+			case e := <-u.screenSizeUpdatedNotified:
 				for _, ch := range screenSizeUpdated {
 					ch <- e
 					close(ch)
 				}
-				screenSizeUpdated = []chan ebiten.ScreenSizeUpdatedEvent{}
+				screenSizeUpdated = []chan ui.ScreenSizeUpdatedEvent{}
 			}
 		}
 	}()
 }
 
-func (ui *UI) PollEvents() {
+func (u *UI) PollEvents() {
 	C.PollEvents()
-	if !ui.initialEventSent {
-		e := ebiten.ScreenSizeUpdatedEvent{ui.screenWidth, ui.screenHeight}
-		ui.notifyScreenSizeUpdated(e)
-		ui.initialEventSent = true
+	if !u.initialEventSent {
+		e := ui.ScreenSizeUpdatedEvent{u.screenWidth, u.screenHeight}
+		u.notifyScreenSizeUpdated(e)
+		u.initialEventSent = true
 	}
 }
 
-func (ui *UI) InitTextures(f func(graphics.TextureFactory)) {
-	C.BeginDrawing(ui.window)
-	f(ui.graphicsDevice.TextureFactory())
-	C.EndDrawing(ui.window)
+func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
+	C.BeginDrawing(u.window)
+	f(u.graphicsDevice.TextureFactory())
+	C.EndDrawing(u.window)
 }
 
-func (ui *UI) Draw(f func(graphics.Canvas)) {
-	C.BeginDrawing(ui.window)
-	ui.graphicsDevice.Update(f)
-	C.EndDrawing(ui.window)
+func (u *UI) Draw(f func(graphics.Canvas)) {
+	C.BeginDrawing(u.window)
+	u.graphicsDevice.Update(f)
+	C.EndDrawing(u.window)
 }
 
-func (ui *UI) ObserveInputStateUpdated() <-chan ebiten.InputStateUpdatedEvent {
-	ch := make(chan ebiten.InputStateUpdatedEvent)
+func (u *UI) ObserveInputStateUpdated() <-chan ui.InputStateUpdatedEvent {
+	ch := make(chan ui.InputStateUpdatedEvent)
 	go func() {
-		ui.inputStateUpdatedChs <- ch
+		u.inputStateUpdatedChs <- ch
 	}()
 	return ch
 }
 
-func (ui *UI) notifyInputStateUpdated(e ebiten.InputStateUpdatedEvent) {
+func (u *UI) notifyInputStateUpdated(e ui.InputStateUpdatedEvent) {
 	go func() {
-		e := e
-		ui.inputStateUpdatedNotified <- e
+		u.inputStateUpdatedNotified <- e
 	}()
 }
 
-func (ui *UI) ObserveScreenSizeUpdated() <-chan ebiten.ScreenSizeUpdatedEvent {
-	ch := make(chan ebiten.ScreenSizeUpdatedEvent)
+func (u *UI) ObserveScreenSizeUpdated() <-chan ui.ScreenSizeUpdatedEvent {
+	ch := make(chan ui.ScreenSizeUpdatedEvent)
 	go func() {
-		ui.screenSizeUpdatedChs <- ch
+		u.screenSizeUpdatedChs <- ch
 	}()
 	return ch
 }
 
-func (ui *UI) notifyScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+func (u *UI) notifyScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	go func() {
-		e := e
-		ui.screenSizeUpdatedNotified <- e
+		u.screenSizeUpdatedNotified <- e
 	}()
 }
 
 //export ebiten_ScreenSizeUpdated
 func ebiten_ScreenSizeUpdated(width, height int) {
-	ui := currentUI
-	e := ebiten.ScreenSizeUpdatedEvent{width, height}
-	ui.notifyScreenSizeUpdated(e)
+	u := currentUI
+	e := ui.ScreenSizeUpdatedEvent{width, height}
+	u.notifyScreenSizeUpdated(e)
 }
 
 //export ebiten_InputUpdated
 func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
-	ui := currentUI
+	u := currentUI
 
 	if inputType == C.InputTypeMouseUp {
-		e := ebiten.InputStateUpdatedEvent{-1, -1}
-		ui.notifyInputStateUpdated(e)
+		e := ui.InputStateUpdatedEvent{-1, -1}
+		u.notifyInputStateUpdated(e)
 		return
 	}
 
 	x, y := int(cx), int(cy)
-	x /= ui.screenScale
-	y /= ui.screenScale
+	x /= u.screenScale
+	y /= u.screenScale
 	if x < 0 {
 		x = 0
-	} else if ui.screenWidth <= x {
-		x = ui.screenWidth - 1
+	} else if u.screenWidth <= x {
+		x = u.screenWidth - 1
 	}
 	if y < 0 {
 		y = 0
-	} else if ui.screenHeight <= y {
-		y = ui.screenHeight - 1
+	} else if u.screenHeight <= y {
+		y = u.screenHeight - 1
 	}
-	e := ebiten.InputStateUpdatedEvent{x, y}
-	ui.notifyInputStateUpdated(e)
+	e := ui.InputStateUpdatedEvent{x, y}
+	u.notifyInputStateUpdated(e)
 }

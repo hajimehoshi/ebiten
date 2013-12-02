@@ -1,9 +1,9 @@
 package rotating
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image"
 	_ "image/png"
 	"math"
@@ -19,18 +19,18 @@ type Rotating struct {
 	ebitenTextureId     graphics.TextureId
 	x                   int
 	geometryMatrix      matrix.Geometry
-	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenSizeUpdatedCh chan ui.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int
 }
 
 func New() *Rotating {
 	return &Rotating{
-		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
+		screenSizeUpdatedCh: make(chan ui.ScreenSizeUpdatedEvent),
 	}
 }
 
-func (game *Rotating) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+func (game *Rotating) OnScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	go func() {
 		e := e
 		game.screenSizeUpdatedCh <- e

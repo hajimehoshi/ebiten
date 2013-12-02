@@ -1,4 +1,4 @@
-package ebiten
+package ui
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
@@ -21,7 +21,7 @@ type UIEvents interface {
 
 type UI interface {
 	PollEvents()
-	InitTextures(func(graphics.TextureFactory))
+	LoadResources(func(graphics.TextureFactory))
 	Draw(func(graphics.Canvas))
 	UIEvents
 }

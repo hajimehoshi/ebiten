@@ -1,9 +1,9 @@
 package rects
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image/color"
 	"math"
 	"math/rand"
@@ -17,7 +17,7 @@ type Rects struct {
 	offscreenInited     bool
 	rectBounds          *graphics.Rect
 	rectColor           *color.RGBA
-	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenSizeUpdatedCh chan ui.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int
 }
@@ -35,11 +35,11 @@ func New() *Rects {
 		offscreenInited:     false,
 		rectBounds:          &graphics.Rect{},
 		rectColor:           &color.RGBA{},
-		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
+		screenSizeUpdatedCh: make(chan ui.ScreenSizeUpdatedEvent),
 	}
 }
 
-func (game *Rects) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+func (game *Rects) OnScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	go func() {
 		e := e
 		game.screenSizeUpdatedCh <- e

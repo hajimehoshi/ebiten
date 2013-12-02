@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/example/game/blank"
 	"github.com/hajimehoshi/go-ebiten/example/game/input"
 	"github.com/hajimehoshi/go-ebiten/example/game/monochrome"
@@ -10,6 +9,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/example/game/sprites"
 	"github.com/hajimehoshi/go-ebiten/example/game/testpattern"
 	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"os"
 	"runtime"
@@ -56,38 +56,40 @@ func main() {
 	const fps = 60
 	const title = "Ebiten Demo"
 
-	var ui ebiten.UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
-	ui.InitTextures(game.InitTextures)
+	var u ui.UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
+	// TODO: Get a map or something
+	u.LoadResources(game.InitTextures)
 
 	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
-		inputStateUpdated := ui.ObserveInputStateUpdated()
-		screenSizeUpdated := ui.ObserveScreenSizeUpdated()
+		inputStateUpdated := u.ObserveInputStateUpdated()
+		screenSizeUpdated := u.ObserveScreenSizeUpdated()
 
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
 		for {
 			select {
 			case e, ok := <-inputStateUpdated:
+				// TODO: Use Adaptor?
 				if ok {
 					type Handler interface {
-						OnInputStateUpdated(ebiten.InputStateUpdatedEvent)
+						OnInputStateUpdated(ui.InputStateUpdatedEvent)
 					}
 					if game2, ok := game.(Handler); ok {
 						game2.OnInputStateUpdated(e)
 					}
 				}
-				inputStateUpdated = ui.ObserveInputStateUpdated()
+				inputStateUpdated = u.ObserveInputStateUpdated()
 			case e, ok := <-screenSizeUpdated:
 				if ok {
 					type Handler interface {
-						OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent)
+						OnScreenSizeUpdated(ui.ScreenSizeUpdatedEvent)
 					}
 					if game2, ok := game.(Handler); ok {
 						game2.OnScreenSizeUpdated(e)
 					}
 				}
-				screenSizeUpdated = ui.ObserveScreenSizeUpdated()
+				screenSizeUpdated = u.ObserveScreenSizeUpdated()
 			case <-tick:
 				game.Update()
 			case canvas := <-drawing:
@@ -98,11 +100,11 @@ func main() {
 	}()
 
 	for {
-		ui.PollEvents()
-		ui.Draw(func(c graphics.Canvas) {
+		u.PollEvents()
+		u.Draw(func(actualCanvas graphics.Canvas) {
 			drawing <- graphics.NewLazyCanvas()
 			canvas := <-drawing
-			canvas.Flush(c)
+			canvas.Flush(actualCanvas)
 		})
 	}
 }

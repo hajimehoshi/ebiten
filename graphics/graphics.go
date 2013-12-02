@@ -1,9 +1,5 @@
 package graphics
 
-import (
-	"image"
-)
-
 type Rect struct {
 	X      int
 	Y      int
@@ -15,11 +11,6 @@ type TexturePart struct {
 	LocationX int
 	LocationY int
 	Source    Rect
-}
-
-type TextureFactory interface {
-	CreateRenderTarget(width, height int) (RenderTargetId, error)
-	CreateTextureFromImage(img image.Image) (TextureId, error)
 }
 
 type TextureId int

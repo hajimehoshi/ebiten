@@ -1,9 +1,9 @@
 package sprites
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image"
 	"math/rand"
 	"os"
@@ -66,18 +66,18 @@ func (sprite *Sprite) Update() {
 type Sprites struct {
 	ebitenTextureId     graphics.TextureId
 	sprites             []*Sprite
-	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenSizeUpdatedCh chan ui.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int
 }
 
 func New() *Sprites {
 	return &Sprites{
-		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
+		screenSizeUpdatedCh: make(chan ui.ScreenSizeUpdatedEvent),
 	}
 }
 
-func (game *Sprites) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+func (game *Sprites) OnScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	go func() {
 		e := e
 		game.screenSizeUpdatedCh <- e

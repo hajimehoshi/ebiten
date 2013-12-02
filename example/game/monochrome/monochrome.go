@@ -1,9 +1,9 @@
 package monochrome
 
 import (
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image"
 	_ "image/png"
 	"os"
@@ -19,7 +19,7 @@ type Monochrome struct {
 	ch                  chan bool
 	colorMatrix         matrix.Color
 	geometryMatrix      matrix.Geometry
-	screenSizeUpdatedCh chan ebiten.ScreenSizeUpdatedEvent
+	screenSizeUpdatedCh chan ui.ScreenSizeUpdatedEvent
 	screenWidth         int
 	screenHeight        int
 }
@@ -29,11 +29,11 @@ func New() *Monochrome {
 		ch:                  make(chan bool),
 		colorMatrix:         matrix.IdentityColor(),
 		geometryMatrix:      matrix.IdentityGeometry(),
-		screenSizeUpdatedCh: make(chan ebiten.ScreenSizeUpdatedEvent),
+		screenSizeUpdatedCh: make(chan ui.ScreenSizeUpdatedEvent),
 	}
 }
 
-func (game *Monochrome) OnScreenSizeUpdated(e ebiten.ScreenSizeUpdatedEvent) {
+func (game *Monochrome) OnScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	go func() {
 		e := e
 		game.screenSizeUpdatedCh <- e

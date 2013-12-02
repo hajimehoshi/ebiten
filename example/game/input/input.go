@@ -2,29 +2,29 @@ package input
 
 import (
 	"fmt"
-	"github.com/hajimehoshi/go-ebiten"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image"
 	"os"
 )
 
 type Input struct {
 	textTextureId       graphics.TextureId
-	inputStateUpdatedCh chan ebiten.InputStateUpdatedEvent
+	inputStateUpdatedCh chan ui.InputStateUpdatedEvent
 	x                   int
 	y                   int
 }
 
 func New() *Input {
 	return &Input{
-		inputStateUpdatedCh: make(chan ebiten.InputStateUpdatedEvent),
+		inputStateUpdatedCh: make(chan ui.InputStateUpdatedEvent),
 		x:                   -1,
 		y:                   -1,
 	}
 }
 
-func (game *Input) OnInputStateUpdated(e ebiten.InputStateUpdatedEvent) {
+func (game *Input) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
 	go func() {
 		e := e
 		game.inputStateUpdatedCh <- e

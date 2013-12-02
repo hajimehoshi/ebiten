@@ -7,6 +7,7 @@ import (
 type Canvas interface {
 	Clear()
 	Fill(r, g, b uint8)
+	// TODO: Refacotring
 	DrawTexture(id TextureId,
 		geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)
