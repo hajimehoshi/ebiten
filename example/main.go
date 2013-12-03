@@ -59,12 +59,11 @@ func main() {
 	var u ui.UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
 	// TODO: Get a map or something
 	u.LoadResources(game.InitTextures)
+	inputStateUpdated := u.InputStateUpdated()
+	screenSizeUpdated := u.ScreenSizeUpdated()
 
 	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
-		inputStateUpdated := u.InputStateUpdated()
-		screenSizeUpdated := u.ScreenSizeUpdated()
-
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
 		for {

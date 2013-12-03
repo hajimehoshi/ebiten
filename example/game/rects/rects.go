@@ -48,11 +48,11 @@ func (game *Rects) OnScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 
 func (game *Rects) InitTextures(tf graphics.TextureFactory) {
 	var err error
-	game.rectTextureId, err = tf.CreateRenderTarget(rectTextureWidth, rectTextureHeight)
+	game.rectTextureId, err = tf.CreateRenderTarget("rect", rectTextureWidth, rectTextureHeight)
 	if err != nil {
 		panic(err)
 	}
-	game.offscreenId, err = tf.CreateRenderTarget(offscreenWidth, offscreenHeight)
+	game.offscreenId, err = tf.CreateRenderTarget("offscreen", offscreenWidth, offscreenHeight)
 	if err != nil {
 		panic(err)
 	}

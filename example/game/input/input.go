@@ -42,7 +42,7 @@ func (game *Input) InitTextures(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.textTextureId, err = tf.CreateTextureFromImage(img); err != nil {
+	if game.textTextureId, err = tf.CreateTextureFromImage("text", img); err != nil {
 		panic(err)
 	}
 }

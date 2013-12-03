@@ -31,7 +31,7 @@ func (game *TestPattern) InitTextures(tf graphics.TextureFactory) {
 	if err != nil {
 		panic(err)
 	}
-	if game.textureId, err = tf.CreateTextureFromImage(img); err != nil {
+	if game.textureId, err = tf.CreateTextureFromImage("test", img); err != nil {
 		panic(err)
 	}
 	size := img.Bounds().Size()
