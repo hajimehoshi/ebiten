@@ -28,16 +28,14 @@ func init() {
 }
 
 type UI struct {
-	screenWidth               int
-	screenHeight              int
-	screenScale               int
-	graphicsDevice            *opengl.Device
-	window                    unsafe.Pointer
-	initialEventSent          bool
-	inputStateUpdatedChs      chan chan ui.InputStateUpdatedEvent
-	inputStateUpdatedNotified chan ui.InputStateUpdatedEvent
-	screenSizeUpdatedChs      chan chan ui.ScreenSizeUpdatedEvent
-	screenSizeUpdatedNotified chan ui.ScreenSizeUpdatedEvent
+	screenWidth       int
+	screenHeight      int
+	screenScale       int
+	graphicsDevice    *opengl.Device
+	window            unsafe.Pointer
+	initialEventSent  bool
+	screenSizeUpdated chan ui.ScreenSizeUpdatedEvent // initialized lazily
+	inputStateUpdated chan ui.InputStateUpdatedEvent // initialized lazily
 }
 
 var currentUI *UI
@@ -47,14 +45,10 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		panic("UI can't be duplicated.")
 	}
 	u := &UI{
-		screenWidth:               screenWidth,
-		screenHeight:              screenHeight,
-		screenScale:               screenScale,
-		initialEventSent:          false,
-		inputStateUpdatedChs:      make(chan chan ui.InputStateUpdatedEvent),
-		inputStateUpdatedNotified: make(chan ui.InputStateUpdatedEvent),
-		screenSizeUpdatedChs:      make(chan chan ui.ScreenSizeUpdatedEvent),
-		screenSizeUpdatedNotified: make(chan ui.ScreenSizeUpdatedEvent),
+		screenWidth:      screenWidth,
+		screenHeight:     screenHeight,
+		screenScale:      screenScale,
+		initialEventSent: false,
 	}
 
 	cTitle := C.CString(title)
@@ -75,43 +69,7 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		context)
 	currentUI = u
 
-	u.eventLoop()
-
 	return u
-}
-
-func (u *UI) eventLoop() {
-	go func() {
-		inputStateUpdated := []chan ui.InputStateUpdatedEvent{}
-		for {
-			select {
-			case ch := <-u.inputStateUpdatedChs:
-				inputStateUpdated = append(inputStateUpdated, ch)
-			case e := <-u.inputStateUpdatedNotified:
-				for _, ch := range inputStateUpdated {
-					ch <- e
-					close(ch)
-				}
-				inputStateUpdated = inputStateUpdated[0:0]
-			}
-		}
-	}()
-
-	go func() {
-		screenSizeUpdated := []chan ui.ScreenSizeUpdatedEvent{}
-		for {
-			select {
-			case ch := <-u.screenSizeUpdatedChs:
-				screenSizeUpdated = append(screenSizeUpdated, ch)
-			case e := <-u.screenSizeUpdatedNotified:
-				for _, ch := range screenSizeUpdated {
-					ch <- e
-					close(ch)
-				}
-				screenSizeUpdated = []chan ui.ScreenSizeUpdatedEvent{}
-			}
-		}
-	}()
 }
 
 func (u *UI) PollEvents() {
@@ -121,6 +79,10 @@ func (u *UI) PollEvents() {
 		u.notifyScreenSizeUpdated(e)
 		u.initialEventSent = true
 	}
+}
+
+func (u *UI) LoadTextures(map[int]string) {
+	// TODO: Implement
 }
 
 func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
@@ -135,31 +97,37 @@ func (u *UI) Draw(f func(graphics.Canvas)) {
 	C.EndDrawing(u.window)
 }
 
-func (u *UI) ObserveInputStateUpdated() <-chan ui.InputStateUpdatedEvent {
-	ch := make(chan ui.InputStateUpdatedEvent)
-	go func() {
-		u.inputStateUpdatedChs <- ch
-	}()
-	return ch
-}
-
-func (u *UI) notifyInputStateUpdated(e ui.InputStateUpdatedEvent) {
-	go func() {
-		u.inputStateUpdatedNotified <- e
-	}()
-}
-
-func (u *UI) ObserveScreenSizeUpdated() <-chan ui.ScreenSizeUpdatedEvent {
-	ch := make(chan ui.ScreenSizeUpdatedEvent)
-	go func() {
-		u.screenSizeUpdatedChs <- ch
-	}()
-	return ch
+func (u *UI) ScreenSizeUpdated() <-chan ui.ScreenSizeUpdatedEvent {
+	if u.screenSizeUpdated != nil {
+		return u.screenSizeUpdated
+	}
+	u.screenSizeUpdated = make(chan ui.ScreenSizeUpdatedEvent)
+	return u.screenSizeUpdated
 }
 
 func (u *UI) notifyScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
+	if u.screenSizeUpdated == nil {
+		return
+	}
 	go func() {
-		u.screenSizeUpdatedNotified <- e
+		u.screenSizeUpdated <- e
+	}()
+}
+
+func (u *UI) InputStateUpdated() <-chan ui.InputStateUpdatedEvent {
+	if u.inputStateUpdated != nil {
+		return u.inputStateUpdated
+	}
+	u.inputStateUpdated = make(chan ui.InputStateUpdatedEvent)
+	return u.inputStateUpdated
+}
+
+func (u *UI) notifyInputStateUpdated(e ui.InputStateUpdatedEvent) {
+	if u.inputStateUpdated == nil {
+		return
+	}
+	go func() {
+		u.inputStateUpdated <- e
 	}()
 }
 

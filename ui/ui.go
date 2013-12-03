@@ -15,13 +15,14 @@ type InputStateUpdatedEvent struct {
 }
 
 type UIEvents interface {
-	ObserveScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
-	ObserveInputStateUpdated() <-chan InputStateUpdatedEvent
+	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
+	InputStateUpdated() <-chan InputStateUpdatedEvent
 }
 
 type UI interface {
 	PollEvents()
 	LoadResources(func(graphics.TextureFactory))
+	LoadTextures(map[int]string)
 	Draw(func(graphics.Canvas))
 	UIEvents
 }

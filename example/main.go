@@ -62,8 +62,8 @@ func main() {
 
 	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
-		inputStateUpdated := u.ObserveInputStateUpdated()
-		screenSizeUpdated := u.ObserveScreenSizeUpdated()
+		inputStateUpdated := u.InputStateUpdated()
+		screenSizeUpdated := u.ScreenSizeUpdated()
 
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
@@ -78,8 +78,9 @@ func main() {
 					if game2, ok := game.(Handler); ok {
 						game2.OnInputStateUpdated(e)
 					}
+				} else {
+					inputStateUpdated = nil
 				}
-				inputStateUpdated = u.ObserveInputStateUpdated()
 			case e, ok := <-screenSizeUpdated:
 				if ok {
 					type Handler interface {
@@ -88,8 +89,9 @@ func main() {
 					if game2, ok := game.(Handler); ok {
 						game2.OnScreenSizeUpdated(e)
 					}
+				} else {
+					screenSizeUpdated = nil
 				}
-				screenSizeUpdated = u.ObserveScreenSizeUpdated()
 			case <-tick:
 				game.Update()
 			case canvas := <-drawing:
