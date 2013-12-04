@@ -19,13 +19,8 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"github.com/hajimehoshi/go-ebiten/ui"
-	"runtime"
 	"unsafe"
 )
-
-func init() {
-	runtime.LockOSThread()
-}
 
 type UI struct {
 	screenWidth       int
@@ -87,7 +82,7 @@ func (u *UI) LoadTextures(map[int]string) {
 
 func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
 	C.BeginDrawing(u.window)
-	f(u.graphicsDevice.TextureFactory())
+	f(u.graphicsDevice)
 	C.EndDrawing(u.window)
 }
 

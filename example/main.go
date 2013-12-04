@@ -24,6 +24,7 @@ type Game interface {
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.LockOSThread()
 
 	gameName := ""
 	if 2 <= len(os.Args) {
