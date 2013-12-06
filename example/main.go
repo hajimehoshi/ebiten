@@ -57,7 +57,11 @@ func main() {
 	const fps = 60
 	const title = "Ebiten Demo"
 
-	var u ui.UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
+	type UI interface {
+		ui.UI
+		//graphics.TextureFactory
+	}
+	var u UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
 	// TODO: Get a map or something
 	u.LoadResources(game.InitTextures)
 	inputStateUpdated := u.InputStateUpdated()
@@ -72,10 +76,9 @@ func main() {
 			case e, ok := <-inputStateUpdated:
 				// TODO: Use Adaptor?
 				if ok {
-					type Handler interface {
+					if game2, ok := game.(interface {
 						OnInputStateUpdated(ui.InputStateUpdatedEvent)
-					}
-					if game2, ok := game.(Handler); ok {
+					}); ok {
 						game2.OnInputStateUpdated(e)
 					}
 				} else {
@@ -83,10 +86,9 @@ func main() {
 				}
 			case e, ok := <-screenSizeUpdated:
 				if ok {
-					type Handler interface {
+					if game2, ok := game.(interface {
 						OnScreenSizeUpdated(ui.ScreenSizeUpdatedEvent)
-					}
-					if game2, ok := game.(Handler); ok {
+					}); ok {
 						game2.OnScreenSizeUpdated(e)
 					}
 				} else {

@@ -22,7 +22,6 @@ type UIEvents interface {
 type UI interface {
 	PollEvents()
 	LoadResources(func(graphics.TextureFactory))
-	LoadTextures(map[int]string)
 	Draw(func(graphics.Canvas))
 	UIEvents
 }

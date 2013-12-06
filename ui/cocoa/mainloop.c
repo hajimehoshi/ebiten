@@ -32,10 +32,6 @@ void* CreateGLContext(void* sharedGLContext) {
   return glContext;
 }
 
-void SetCurrentGLContext(void* glContext) {
-  [(NSOpenGLContext*)glContext makeCurrentContext];
-}
-
 void* CreateWindow(size_t width, size_t height, const char* title, void* sharedGLContext) {
   NSOpenGLContext* glContext = CreateGLContext(sharedGLContext);
   [glContext makeCurrentContext];
@@ -66,7 +62,13 @@ void PollEvents(void) {
   }
 }
 
+void UseGLContext(void* glContext) {
+  // TODO: CGLLock
+  [(NSOpenGLContext*)glContext makeCurrentContext];
+}
+
 void BeginDrawing(void* window) {
+  // TODO: CGLLock
   [[(EbitenWindow*)window glContext] makeCurrentContext];
   glClear(GL_COLOR_BUFFER_BIT);
 }

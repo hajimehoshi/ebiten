@@ -3,13 +3,9 @@ package cocoa
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Cocoa -framework OpenGL
 //
-// #include <stdlib.h>
 // #include "input.h"
 //
 // void StartApplication(void);
-// void* CreateGLContext(void* sharedGLContext);
-// void SetCurrentGLContext(void* glContext);
-// void* CreateWindow(size_t width, size_t height, const char* title, void* sharedGLContext);
 // void PollEvents(void);
 // void BeginDrawing(void* window);
 // void EndDrawing(void* window);
@@ -19,18 +15,19 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"github.com/hajimehoshi/go-ebiten/ui"
+	"image"
 	"unsafe"
 )
 
 type UI struct {
-	screenWidth       int
-	screenHeight      int
-	screenScale       int
-	graphicsDevice    *opengl.Device
-	window            unsafe.Pointer
-	initialEventSent  bool
-	screenSizeUpdated chan ui.ScreenSizeUpdatedEvent // initialized lazily
-	inputStateUpdated chan ui.InputStateUpdatedEvent // initialized lazily
+	screenWidth      int
+	screenHeight     int
+	screenScale      int
+	graphicsDevice   *opengl.Device
+	window           unsafe.Pointer
+	initialEventSent bool
+	textureFactory   *textureFactory
+	uiEvents
 }
 
 var currentUI *UI
@@ -46,22 +43,22 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 		initialEventSent: false,
 	}
 
-	cTitle := C.CString(title)
-	defer C.free(unsafe.Pointer(cTitle))
-
 	C.StartApplication()
 
-	context := C.CreateGLContext(unsafe.Pointer(nil))
-	C.SetCurrentGLContext(context)
-	u.graphicsDevice = opengl.NewDevice(
-		u.screenWidth,
-		u.screenHeight,
-		u.screenScale)
+	u.textureFactory = runTextureFactory()
 
-	u.window = C.CreateWindow(C.size_t(u.screenWidth*u.screenScale),
-		C.size_t(u.screenHeight*u.screenScale),
-		cTitle,
-		context)
+	u.textureFactory.UseContext(func() {
+		u.graphicsDevice = opengl.NewDevice(
+			u.screenWidth,
+			u.screenHeight,
+			u.screenScale)
+	})
+
+	u.window = u.textureFactory.CreateWindow(
+		u.screenWidth*u.screenScale,
+		u.screenHeight*u.screenScale,
+		title)
+
 	currentUI = u
 
 	return u
@@ -71,19 +68,20 @@ func (u *UI) PollEvents() {
 	C.PollEvents()
 	if !u.initialEventSent {
 		e := ui.ScreenSizeUpdatedEvent{u.screenWidth, u.screenHeight}
-		u.notifyScreenSizeUpdated(e)
+		u.uiEvents.notifyScreenSizeUpdated(e)
 		u.initialEventSent = true
 	}
 }
 
-func (u *UI) LoadTextures(map[int]string) {
-	// TODO: Implement
+func (u *UI) CreateRenderTarget(tag string, width, height int) {
+}
+
+func (u *UI) CreateTexture(tag string, img image.Image) {
 }
 
 func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
-	C.BeginDrawing(u.window)
+	// This should be executed on the shared-context context
 	f(u.graphicsDevice)
-	C.EndDrawing(u.window)
 }
 
 func (u *UI) Draw(f func(graphics.Canvas)) {
@@ -92,45 +90,11 @@ func (u *UI) Draw(f func(graphics.Canvas)) {
 	C.EndDrawing(u.window)
 }
 
-func (u *UI) ScreenSizeUpdated() <-chan ui.ScreenSizeUpdatedEvent {
-	if u.screenSizeUpdated != nil {
-		return u.screenSizeUpdated
-	}
-	u.screenSizeUpdated = make(chan ui.ScreenSizeUpdatedEvent)
-	return u.screenSizeUpdated
-}
-
-func (u *UI) notifyScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
-	if u.screenSizeUpdated == nil {
-		return
-	}
-	go func() {
-		u.screenSizeUpdated <- e
-	}()
-}
-
-func (u *UI) InputStateUpdated() <-chan ui.InputStateUpdatedEvent {
-	if u.inputStateUpdated != nil {
-		return u.inputStateUpdated
-	}
-	u.inputStateUpdated = make(chan ui.InputStateUpdatedEvent)
-	return u.inputStateUpdated
-}
-
-func (u *UI) notifyInputStateUpdated(e ui.InputStateUpdatedEvent) {
-	if u.inputStateUpdated == nil {
-		return
-	}
-	go func() {
-		u.inputStateUpdated <- e
-	}()
-}
-
 //export ebiten_ScreenSizeUpdated
 func ebiten_ScreenSizeUpdated(width, height int) {
 	u := currentUI
 	e := ui.ScreenSizeUpdatedEvent{width, height}
-	u.notifyScreenSizeUpdated(e)
+	u.uiEvents.notifyScreenSizeUpdated(e)
 }
 
 //export ebiten_InputUpdated
@@ -139,7 +103,7 @@ func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 
 	if inputType == C.InputTypeMouseUp {
 		e := ui.InputStateUpdatedEvent{-1, -1}
-		u.notifyInputStateUpdated(e)
+		u.uiEvents.notifyInputStateUpdated(e)
 		return
 	}
 
@@ -157,5 +121,5 @@ func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 		y = u.screenHeight - 1
 	}
 	e := ui.InputStateUpdatedEvent{x, y}
-	u.notifyInputStateUpdated(e)
+	u.uiEvents.notifyInputStateUpdated(e)
 }

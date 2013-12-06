@@ -79,7 +79,6 @@ func New() *Sprites {
 
 func (game *Sprites) OnScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	go func() {
-		e := e
 		game.screenSizeUpdatedCh <- e
 	}()
 }

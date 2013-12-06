@@ -3,6 +3,7 @@ package opengl
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"image"
 )
 
 type Device struct {
@@ -18,8 +19,8 @@ func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
 	}
 }
 
-func (device *Device) Update(draw func(graphics.Canvas)) {
-	context := device.context
+func (d *Device) Update(draw func(graphics.Canvas)) {
+	context := d.context
 	context.Init()
 	context.ResetOffscreen()
 	context.Clear()
@@ -30,7 +31,7 @@ func (device *Device) Update(draw func(graphics.Canvas)) {
 	context.setMainFramebufferOffscreen()
 	context.Clear()
 
-	scale := float64(device.screenScale)
+	scale := float64(d.screenScale)
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Scale(scale, scale)
 	context.DrawRenderTarget(context.screenId,
@@ -38,6 +39,10 @@ func (device *Device) Update(draw func(graphics.Canvas)) {
 	context.flush()
 }
 
-func (device *Device) TextureFactory() graphics.TextureFactory {
-	return device.context
+func (d *Device) CreateRenderTarget(tag string, width, height int) (graphics.RenderTargetId, error) {
+	return d.context.CreateRenderTarget(tag, width, height)
+}
+
+func (d *Device) CreateTextureFromImage(tag string, img image.Image) (graphics.TextureId, error) {
+	return d.context.CreateTextureFromImage(tag, img)
 }
