@@ -23,10 +23,10 @@ type UI struct {
 	screenWidth      int
 	screenHeight     int
 	screenScale      int
-	graphicsDevice   *opengl.Device
 	window           unsafe.Pointer
 	initialEventSent bool
 	textureFactory   *textureFactory
+	graphicsDevice   *opengl.Device
 	uiEvents
 }
 
@@ -73,10 +73,44 @@ func (u *UI) PollEvents() {
 	}
 }
 
-func (u *UI) CreateRenderTarget(tag string, width, height int) {
+func (u *UI) CreateTexture(tag string, img image.Image) {
+	go func() {
+		var id graphics.TextureId
+		var err error
+		u.textureFactory.UseContext(func() {
+			id, err = u.graphicsDevice.CreateTextureFromImage("", img)
+		})
+		e := graphics.TextureCreatedEvent{
+			Tag:   tag,
+			Id:    id,
+			Error: err,
+		}
+		u.textureFactory.notifyTextureCreated(e)
+	}()
 }
 
-func (u *UI) CreateTexture(tag string, img image.Image) {
+func (u *UI) CreateRenderTarget(tag string, width, height int) {
+	go func() {
+		var id graphics.RenderTargetId
+		var err error
+		u.textureFactory.UseContext(func() {
+			id, err = u.graphicsDevice.CreateRenderTarget("", width, height)
+		})
+		e := graphics.RenderTargetCreatedEvent{
+			Tag:   tag,
+			Id:    id,
+			Error: err,
+		}
+		u.textureFactory.notifyRenderTargetCreated(e)
+	}()
+}
+
+func (u *UI) TextureCreated() <-chan graphics.TextureCreatedEvent {
+	return u.textureFactory.TextureCreated()
+}
+
+func (u *UI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
+	return u.textureFactory.RenderTargetCreated()
 }
 
 func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
@@ -85,6 +119,7 @@ func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
 }
 
 func (u *UI) Draw(f func(graphics.Canvas)) {
+	// TODO: Use UseContext instead
 	C.BeginDrawing(u.window)
 	u.graphicsDevice.Update(f)
 	C.EndDrawing(u.window)

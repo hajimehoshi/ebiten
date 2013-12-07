@@ -5,6 +5,7 @@ package cocoa
 // void* CreateGLContext(void* sharedGLContext);
 // void* CreateWindow(size_t width, size_t height, const char* title, void* sharedGLContext);
 // void UseGLContext(void* glContext);
+// void UnuseGLContext(void);
 //
 import "C"
 import (
@@ -40,8 +41,8 @@ func (t *textureFactory) loop() {
 		case f := <-t.funcs:
 			C.UseGLContext(t.sharedContext)
 			f()
+			C.UnuseGLContext()
 			t.funcsDone <- struct{}{}
-			// TODO: Unuse
 		}
 	}
 }

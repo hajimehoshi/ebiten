@@ -39,10 +39,11 @@ func (d *Device) Update(draw func(graphics.Canvas)) {
 	context.flush()
 }
 
+// TODO: Remove 'tag'
 func (d *Device) CreateRenderTarget(tag string, width, height int) (graphics.RenderTargetId, error) {
-	return d.context.CreateRenderTarget(tag, width, height)
+	return d.context.CreateRenderTarget(width, height)
 }
 
 func (d *Device) CreateTextureFromImage(tag string, img image.Image) (graphics.TextureId, error) {
-	return d.context.CreateTextureFromImage(tag, img)
+	return d.context.CreateTextureFromImage(img)
 }

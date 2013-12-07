@@ -62,9 +62,19 @@ void PollEvents(void) {
   }
 }
 
-void UseGLContext(void* glContext) {
-  // TODO: CGLLock
-  [(NSOpenGLContext*)glContext makeCurrentContext];
+void UseGLContext(void* glContextPtr) {
+  NSOpenGLContext* glContext = (NSOpenGLContext*)glContextPtr;
+  CGLContextObj cglContext = [glContext CGLContextObj];
+  CGLLockContext(cglContext);
+  [glContext makeCurrentContext];
+}
+
+void UnuseGLContext(void) {
+  NSOpenGLContext* glContext = [NSOpenGLContext currentContext];
+  [glContext flushBuffer];
+  [NSOpenGLContext clearCurrentContext];
+  CGLContextObj cglContext = [glContext CGLContextObj];
+  CGLUnlockContext(cglContext);
 }
 
 void BeginDrawing(void* window) {

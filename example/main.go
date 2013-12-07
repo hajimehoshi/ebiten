@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
+	"image"
 	"os"
 	"runtime"
 	"time"
@@ -20,6 +21,20 @@ type Game interface {
 	InitTextures(tf graphics.TextureFactory)
 	Update()
 	Draw(canvas graphics.Canvas)
+}
+
+func loadImage(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
 }
 
 func main() {
@@ -59,13 +74,22 @@ func main() {
 
 	type UI interface {
 		ui.UI
-		//graphics.TextureFactory
+		graphics.TextureFactory2
 	}
 	var u UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
-	// TODO: Get a map or something
+
+	// TODO: Remove this
 	u.LoadResources(game.InitTextures)
+
+	textureCreated := u.TextureCreated()
 	inputStateUpdated := u.InputStateUpdated()
 	screenSizeUpdated := u.ScreenSizeUpdated()
+
+	img, err := loadImage("images/ebiten.png")
+	if err != nil {
+		panic(err)
+	}
+	u.CreateTexture("ebiten", img)
 
 	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
@@ -73,6 +97,12 @@ func main() {
 		tick := time.Tick(frameTime)
 		for {
 			select {
+			case e, ok := <-textureCreated:
+				if ok {
+					print(e.Error)
+				} else {
+					textureCreated = nil
+				}
 			case e, ok := <-inputStateUpdated:
 				// TODO: Use Adaptor?
 				if ok {

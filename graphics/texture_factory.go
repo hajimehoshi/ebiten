@@ -11,9 +11,9 @@ type TextureCreatedEvent struct {
 }
 
 type RenderTargetCreatedEvent struct {
-	Tag            string
-	RenderTargetId RenderTargetId
-	Error          error
+	Tag   string
+	Id    RenderTargetId
+	Error error
 }
 
 type TextureFactoryEvents interface {
@@ -28,6 +28,7 @@ type TextureFactory2 interface {
 	TextureFactoryEvents
 }
 
+// TODO: Deprecated
 type TextureFactory interface {
 	CreateRenderTarget(tag string, width, height int) (RenderTargetId, error)
 	CreateTextureFromImage(tag string, img image.Image) (TextureId, error)
