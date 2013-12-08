@@ -1,5 +1,10 @@
 package matrix
 
+import (
+	"image/color"
+	"math"
+)
+
 const colorDim = 5
 
 type Color struct {
@@ -50,5 +55,18 @@ func Monochrome() Color {
 			{r, g, b, 0, 0},
 			{0, 0, 0, 1, 0},
 		},
+	}
+}
+
+func (matrix *Color) Scale(clr color.Color) {
+	r, g, b, a := clr.RGBA()
+	rf := float64(r) / float64(math.MaxUint16)
+	gf := float64(g) / float64(math.MaxUint16)
+	bf := float64(b) / float64(math.MaxUint16)
+	af := float64(a) / float64(math.MaxUint16)
+	for i, e := range []float64{rf, gf, bf, af} {
+		for j := 0; j < 4; j++ {
+			matrix.Elements[i][j] *= e
+		}
 	}
 }

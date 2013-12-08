@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
@@ -75,10 +76,11 @@ func (game *Game) Draw(g graphics.Canvas) {
 
 	g.Fill(128, 128, 255)
 	game.drawTexture(g, game.drawInfo.textureGeo, matrix.IdentityColor())
-	game.drawText(g, game.drawInfo.inputStr, 5, 5)
+	game.drawText(g, game.drawInfo.inputStr, 6, 6, &color.RGBA{0x0, 0x0, 0x0, 0x80})
+	game.drawText(g, game.drawInfo.inputStr, 5, 5, color.White)
 }
 
-func (game *Game) drawText(g graphics.Canvas, text string, x, y int) {
+func (game *Game) drawText(g graphics.Canvas, text string, x, y int, clr color.Color) {
 	const letterWidth = 6
 	const letterHeight = 16
 
@@ -106,6 +108,7 @@ func (game *Game) drawText(g graphics.Canvas, text string, x, y int) {
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Translate(float64(x), float64(y))
 	colorMatrix := matrix.IdentityColor()
+	colorMatrix.Scale(clr)
 	g.DrawTextureParts(game.drawInfo.textures["text"], parts,
 		geometryMatrix, colorMatrix)
 }
