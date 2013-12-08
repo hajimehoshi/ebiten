@@ -50,9 +50,8 @@ void* CreateGLContext(void* sharedGLContext) {
   return glContext;
 }
 
-void* CreateWindow(size_t width, size_t height, const char* title, void* sharedGLContext) {
-  NSOpenGLContext* glContext = CreateGLContext(sharedGLContext);
-  [glContext makeCurrentContext];
+void* CreateWindow(size_t width, size_t height, const char* title, void* glContext_) {
+  NSOpenGLContext* glContext = (NSOpenGLContext*)glContext_;
 
   NSSize size = NSMakeSize(width, height);
   EbitenWindow* window = [[EbitenWindow alloc]
@@ -93,6 +92,10 @@ void UnuseGLContext(void) {
   [NSOpenGLContext clearCurrentContext];
   CGLContextObj cglContext = [glContext CGLContextObj];
   CGLUnlockContext(cglContext);
+}
+
+void* GetGLContext(void* window) {
+  return [(EbitenWindow*)window glContext];
 }
 
 void BeginDrawing(void* window) {

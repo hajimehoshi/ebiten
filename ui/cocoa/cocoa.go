@@ -7,8 +7,6 @@ package cocoa
 //
 // void StartApplication(void);
 // void PollEvents(void);
-// void BeginDrawing(void* window);
-// void EndDrawing(void* window);
 //
 import "C"
 import (
@@ -16,14 +14,13 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"image"
-	"unsafe"
 )
 
 type UI struct {
 	screenWidth      int
 	screenHeight     int
 	screenScale      int
-	window           unsafe.Pointer
+	window           *window
 	initialEventSent bool
 	textureFactory   *textureFactory
 	graphicsDevice   *opengl.Device
@@ -114,10 +111,9 @@ func (u *UI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
 }
 
 func (u *UI) Draw(f func(graphics.Canvas)) {
-	// TODO: Use UseContext instead
-	C.BeginDrawing(u.window)
-	u.graphicsDevice.Update(f)
-	C.EndDrawing(u.window)
+	u.window.UseContext(func() {
+		u.graphicsDevice.Update(f)
+	})
 }
 
 //export ebiten_ScreenSizeUpdated
