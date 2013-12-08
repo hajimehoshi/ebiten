@@ -42,6 +42,7 @@ func main() {
 	var u UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
 
 	textureCreated := u.TextureCreated()
+	renderTargetCreated := u.RenderTargetCreated()
 	inputStateUpdated := u.InputStateUpdated()
 	screenSizeUpdated := u.ScreenSizeUpdated()
 
@@ -57,6 +58,14 @@ func main() {
 		}()
 	}
 
+	for tag, size := range RenderTargetSizes {
+		tag := tag
+		size := size
+		go func() {
+			u.CreateRenderTarget(tag, size.Width, size.Height)
+		}()
+	}
+
 	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
 		game := NewGame()
@@ -64,18 +73,12 @@ func main() {
 		tick := time.Tick(frameTime)
 		for {
 			select {
-			case e, ok := <-textureCreated:
-				if ok {
-					game.OnTextureCreated(e)
-				} else {
-					textureCreated = nil
-				}
-			case e, ok := <-inputStateUpdated:
-				if ok {
-					game.OnInputStateUpdated(e)
-				} else {
-					inputStateUpdated = nil
-				}
+			case e := <-textureCreated:
+				game.OnTextureCreated(e)
+			case e := <-renderTargetCreated:
+				game.OnRenderTargetCreated(e)
+			case e := <-inputStateUpdated:
+				game.OnInputStateUpdated(e)
 			case _, ok := <-screenSizeUpdated:
 				if ok {
 					// Do nothing

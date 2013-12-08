@@ -14,13 +14,23 @@ var TexturePaths = map[string]string{
 	"text":   "images/text.png",
 }
 
+type Size struct {
+	Width  int
+	Height int
+}
+
+var RenderTargetSizes = map[string]Size{
+	"whole": Size{256, 254},
+}
+
 type drawInfo struct {
-	textures     map[string]graphics.TextureId
-	inputStr     string
-	textureX     int
-	textureY     int
-	textureAngle float64
-	textureGeo   matrix.Geometry
+	textures      map[string]graphics.TextureId
+	renderTargets map[string]graphics.RenderTargetId
+	inputStr      string
+	textureX      int
+	textureY      int
+	textureAngle  float64
+	textureGeo    matrix.Geometry
 }
 
 type Game struct {
@@ -40,11 +50,12 @@ func NewGame() *Game {
 		inputPrevY: -1,
 		counter:    0,
 		drawInfo: drawInfo{
-			textures:     map[string]graphics.TextureId{},
-			textureX:     0,
-			textureY:     0,
-			textureAngle: 0,
-			textureGeo:   matrix.IdentityGeometry(),
+			textures:      map[string]graphics.TextureId{},
+			renderTargets: map[string]graphics.RenderTargetId{},
+			textureX:      0,
+			textureY:      0,
+			textureAngle:  0,
+			textureGeo:    matrix.IdentityGeometry(),
 		},
 	}
 }
@@ -56,11 +67,32 @@ func (game *Game) OnTextureCreated(e graphics.TextureCreatedEvent) {
 	game.textures[e.Tag.(string)] = e.Id
 }
 
+func (game *Game) OnRenderTargetCreated(e graphics.RenderTargetCreatedEvent) {
+	if e.Error != nil {
+		panic(e.Error)
+	}
+	game.renderTargets[e.Tag.(string)] = e.Id
+}
+
 func (game *Game) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
 	game.inputX, game.inputY = e.X, e.Y
 }
 
+func (game *Game) isInitialized() bool {
+	if len(game.drawInfo.textures) < len(TexturePaths) {
+		return false
+	}
+	if len(game.drawInfo.renderTargets) < len(RenderTargetSizes) {
+		return false
+	}
+	return true
+}
+
 func (game *Game) Update() {
+	if !game.isInitialized() {
+		return
+	}
+
 	const textureWidth = 57
 	const textureHeight = 26
 
@@ -78,27 +110,37 @@ func (game *Game) Update() {
 	}
 	game.drawInfo.textureAngle = 2 * math.Pi * float64(game.counter) / 600
 
-	game.drawInfo.textureGeo = matrix.IdentityGeometry()
+	geo := matrix.IdentityGeometry()
+	geo.Translate(-textureWidth/2, -textureHeight/2)
+	geo.Rotate(game.drawInfo.textureAngle)
+	geo.Translate(textureWidth/2, textureHeight/2)
+	geo.Translate(float64(game.textureX), float64(game.textureY))
 
-	game.drawInfo.textureGeo.Translate(-textureWidth/2, -textureHeight/2)
-	game.drawInfo.textureGeo.Rotate(game.drawInfo.textureAngle)
-	game.drawInfo.textureGeo.Translate(textureWidth/2, textureHeight/2)
-
-	game.drawInfo.textureGeo.Translate(float64(game.textureX), float64(game.textureY))
+	game.drawInfo.textureGeo = geo
 
 	// Update for the next frame.
 	game.inputPrevX, game.inputPrevY = game.inputX, game.inputY
 }
 
 func (game *Game) Draw(g graphics.Canvas) {
-	if len(game.drawInfo.textures) < len(TexturePaths) {
+	if !game.isInitialized() {
 		return
 	}
 
-	g.Fill(128, 128, 255)
+	whole := game.drawInfo.renderTargets["whole"]
+	g.SetOffscreen(whole)
+
+	g.Fill(0x40, 0x60, 0xb0)
 	game.drawTexture(g, game.drawInfo.textureGeo, matrix.IdentityColor())
 	game.drawText(g, game.drawInfo.inputStr, 6, 6, &color.RGBA{0x0, 0x0, 0x0, 0x80})
 	game.drawText(g, game.drawInfo.inputStr, 5, 5, color.White)
+
+	g.ResetOffscreen()
+	g.DrawRenderTarget(whole, matrix.IdentityGeometry(), matrix.IdentityColor())
+	wholeGeo := matrix.IdentityGeometry()
+	wholeGeo.Scale(0.25, 0.25)
+	wholeGeo.Translate(256*3/4, 240*3/4)
+	g.DrawRenderTarget(whole, wholeGeo, matrix.IdentityColor())
 }
 
 func (game *Game) drawText(g graphics.Canvas, text string, x, y int, clr color.Color) {
