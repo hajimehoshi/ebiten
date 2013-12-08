@@ -1,11 +1,12 @@
 package main
 
 import (
-	"image/color"
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/ui"
+	"image/color"
+	"math"
 )
 
 var TexturePaths = map[string]string{
@@ -14,9 +15,12 @@ var TexturePaths = map[string]string{
 }
 
 type drawInfo struct {
-	textures   map[string]graphics.TextureId
-	inputStr   string
-	textureGeo matrix.Geometry
+	textures     map[string]graphics.TextureId
+	inputStr     string
+	textureX     int
+	textureY     int
+	textureAngle float64
+	textureGeo   matrix.Geometry
 }
 
 type Game struct {
@@ -36,8 +40,11 @@ func NewGame() *Game {
 		inputPrevY: -1,
 		counter:    0,
 		drawInfo: drawInfo{
-			textures:   map[string]graphics.TextureId{},
-			textureGeo: matrix.IdentityGeometry(),
+			textures:     map[string]graphics.TextureId{},
+			textureX:     0,
+			textureY:     0,
+			textureAngle: 0,
+			textureGeo:   matrix.IdentityGeometry(),
 		},
 	}
 }
@@ -54,6 +61,9 @@ func (game *Game) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
 }
 
 func (game *Game) Update() {
+	const textureWidth = 57
+	const textureHeight = 26
+
 	game.counter++
 	game.drawInfo.inputStr = fmt.Sprintf(`Input State:
   X: %d
@@ -61,9 +71,20 @@ func (game *Game) Update() {
 
 	if game.inputPrevX != -1 && game.inputPrevY != -1 &&
 		game.inputX != -1 && game.inputY != -1 {
-		dx, dy := game.inputX - game.inputPrevX, game.inputY - game.inputPrevY
-		game.drawInfo.textureGeo.Translate(float64(dx), float64(dy))
+		dx, dy := game.inputX-game.inputPrevX, game.inputY-game.inputPrevY
+		game.textureX += dx
+		game.textureY += dy
+
 	}
+	game.drawInfo.textureAngle = 2 * math.Pi * float64(game.counter) / 600
+
+	game.drawInfo.textureGeo = matrix.IdentityGeometry()
+
+	game.drawInfo.textureGeo.Translate(-textureWidth/2, -textureHeight/2)
+	game.drawInfo.textureGeo.Rotate(game.drawInfo.textureAngle)
+	game.drawInfo.textureGeo.Translate(textureWidth, textureHeight)
+
+	game.drawInfo.textureGeo.Translate(float64(game.textureX), float64(game.textureY))
 
 	// Update for the next frame.
 	game.inputPrevX, game.inputPrevY = game.inputX, game.inputY
