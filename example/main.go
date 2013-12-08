@@ -46,13 +46,15 @@ func main() {
 	screenSizeUpdated := u.ScreenSizeUpdated()
 
 	for tag, path := range TexturePaths {
-		//go func() {
+		tag := tag
+		path := path
+		go func() {
 			img, err := loadImage(path)
 			if err != nil {
 				panic(err)
 			}
 			u.CreateTexture(tag, img)
-		//}()
+		}()
 	}
 
 	drawing := make(chan *graphics.LazyCanvas)
