@@ -9,7 +9,7 @@ import (
 
 var TexturePaths = map[string]string{
 	"ebiten": "images/ebiten.png",
-	"text": "images/text.png",
+	"text":   "images/text.png",
 }
 
 type Game struct {
