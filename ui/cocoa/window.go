@@ -42,7 +42,6 @@ func runWindow(width, height int, title string, sharedContext unsafe.Pointer) *w
 		w.loop()
 	}()
 	<-ch
-	// TODO: Activate here?
 	return w
 }
 

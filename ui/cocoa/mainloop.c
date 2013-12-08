@@ -66,6 +66,8 @@ void* CreateWindow(size_t width, size_t height, const char* title, void* glConte
   return window;
 }
 
+static BOOL initialBoot = YES;
+
 void PollEvents(void) {
   for (;;) {
     NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
@@ -76,6 +78,10 @@ void PollEvents(void) {
       break;
     }
     [NSApp sendEvent:event];
+  }
+  if (initialBoot) {
+    [NSApp activateIgnoringOtherApps:YES];
+    initialBoot = NO;
   }
 }
 
