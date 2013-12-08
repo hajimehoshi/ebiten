@@ -73,7 +73,7 @@ func (u *UI) PollEvents() {
 	}
 }
 
-func (u *UI) CreateTexture(tag string, img image.Image) {
+func (u *UI) CreateTexture(tag interface{}, img image.Image) {
 	go func() {
 		var id graphics.TextureId
 		var err error
@@ -89,7 +89,7 @@ func (u *UI) CreateTexture(tag string, img image.Image) {
 	}()
 }
 
-func (u *UI) CreateRenderTarget(tag string, width, height int) {
+func (u *UI) CreateRenderTarget(tag interface{}, width, height int) {
 	go func() {
 		var id graphics.RenderTargetId
 		var err error
@@ -111,11 +111,6 @@ func (u *UI) TextureCreated() <-chan graphics.TextureCreatedEvent {
 
 func (u *UI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
 	return u.textureFactory.RenderTargetCreated()
-}
-
-func (u *UI) LoadResources(f func(graphics.TextureFactory)) {
-	// This should be executed on the shared-context context
-	f(u.graphicsDevice)
 }
 
 func (u *UI) Draw(f func(graphics.Canvas)) {

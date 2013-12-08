@@ -5,13 +5,13 @@ import (
 )
 
 type TextureCreatedEvent struct {
-	Tag   string
+	Tag   interface{}
 	Id    TextureId
 	Error error
 }
 
 type RenderTargetCreatedEvent struct {
-	Tag   string
+	Tag   interface{}
 	Id    RenderTargetId
 	Error error
 }
@@ -21,16 +21,8 @@ type TextureFactoryEvents interface {
 	RenderTargetCreated() <-chan RenderTargetCreatedEvent
 }
 
-// TODO: Rename this later
-type TextureFactory2 interface {
-	CreateRenderTarget(tag string, width, height int)
-	CreateTexture(tag string, img image.Image)
-	TextureFactoryEvents
-}
-
-// TODO: Deprecated
 type TextureFactory interface {
-	CreateRenderTarget(tag string, width, height int) (RenderTargetId, error)
-	CreateTextureFromImage(tag string, img image.Image) (TextureId, error)
-	//TextureFactoryEvents
+	CreateRenderTarget(tag interface{}, width, height int)
+	CreateTexture(tag interface{}, img image.Image)
+	TextureFactoryEvents
 }

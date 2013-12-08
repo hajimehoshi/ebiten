@@ -1,53 +1,48 @@
-package input
+package main
 
 import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/ui"
-	"image"
-	"os"
 )
 
-type Input struct {
-	textTextureId       graphics.TextureId
+var TexturePaths = map[string]string{
+	"ebiten": "images/ebiten.png",
+	"text": "images/text.png",
+}
+
+type Game struct {
+	textures            map[string]graphics.TextureId
 	inputStateUpdatedCh chan ui.InputStateUpdatedEvent
 	x                   int
 	y                   int
 }
 
-func New() *Input {
-	return &Input{
+func NewGame() *Game {
+	return &Game{
+		textures:            map[string]graphics.TextureId{},
 		inputStateUpdatedCh: make(chan ui.InputStateUpdatedEvent),
 		x:                   -1,
 		y:                   -1,
 	}
 }
 
-func (game *Input) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
+func (game *Game) OnTextureCreated(e graphics.TextureCreatedEvent) {
+	if e.Error != nil {
+		panic(e.Error)
+	}
+	game.textures[e.Tag.(string)] = e.Id
+}
+
+func (game *Game) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
 	go func() {
 		e := e
 		game.inputStateUpdatedCh <- e
 	}()
 }
 
-func (game *Input) InitTextures(tf graphics.TextureFactory) {
-	file, err := os.Open("images/text.png")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	img, _, err := image.Decode(file)
-	if err != nil {
-		panic(err)
-	}
-	if game.textTextureId, err = tf.CreateTextureFromImage("text", img); err != nil {
-		panic(err)
-	}
-}
-
-func (game *Input) Update() {
+func (game *Game) Update() {
 events:
 	for {
 		select {
@@ -59,7 +54,11 @@ events:
 	}
 }
 
-func (game *Input) Draw(g graphics.Canvas) {
+func (game *Game) Draw(g graphics.Canvas) {
+	if len(game.textures) < len(TexturePaths) {
+		return
+	}
+
 	g.Fill(128, 128, 255)
 	str := fmt.Sprintf(`Input State:
   X: %d
@@ -67,7 +66,7 @@ func (game *Input) Draw(g graphics.Canvas) {
 	game.drawText(g, str, 5, 5)
 }
 
-func (game *Input) drawText(g graphics.Canvas, text string, x, y int) {
+func (game *Game) drawText(g graphics.Canvas, text string, x, y int) {
 	const letterWidth = 6
 	const letterHeight = 16
 
@@ -95,6 +94,6 @@ func (game *Input) drawText(g graphics.Canvas, text string, x, y int) {
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Translate(float64(x), float64(y))
 	colorMatrix := matrix.IdentityColor()
-	g.DrawTextureParts(game.textTextureId, parts,
+	g.DrawTextureParts(game.textures["text"], parts,
 		geometryMatrix, colorMatrix)
 }
