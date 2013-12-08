@@ -129,7 +129,6 @@ func (game *Game) Draw(g graphics.Canvas) {
 
 	whole := game.drawInfo.renderTargets["whole"]
 	g.SetOffscreen(whole)
-
 	g.Fill(0x40, 0x60, 0xb0)
 	game.drawTexture(g, game.drawInfo.textureGeo, matrix.IdentityColor())
 	game.drawText(g, game.drawInfo.inputStr, 6, 6, &color.RGBA{0x0, 0x0, 0x0, 0x80})
@@ -138,9 +137,11 @@ func (game *Game) Draw(g graphics.Canvas) {
 	g.ResetOffscreen()
 	g.DrawRenderTarget(whole, matrix.IdentityGeometry(), matrix.IdentityColor())
 	wholeGeo := matrix.IdentityGeometry()
-	wholeGeo.Scale(0.25, 0.25)
-	wholeGeo.Translate(256*3/4, 240*3/4)
-	g.DrawRenderTarget(whole, wholeGeo, matrix.IdentityColor())
+	wholeGeo.Scale(0.5, 0.5)
+	wholeGeo.Translate(256/2, 240/2)
+	wholeColor := matrix.IdentityColor()
+	wholeColor.Scale(&color.RGBA{0x80, 0x80, 0x80, 0x80})
+	g.DrawRenderTarget(whole, wholeGeo, wholeColor)
 }
 
 func (game *Game) drawText(g graphics.Canvas, text string, x, y int, clr color.Color) {
