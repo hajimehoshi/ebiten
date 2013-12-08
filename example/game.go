@@ -12,19 +12,32 @@ var TexturePaths = map[string]string{
 	"text":   "images/text.png",
 }
 
+type drawInfo struct {
+	textures   map[string]graphics.TextureId
+	inputStr   string
+	textureGeo matrix.Geometry
+}
+
 type Game struct {
-	textures            map[string]graphics.TextureId
-	inputStateUpdatedCh chan ui.InputStateUpdatedEvent
-	x                   int
-	y                   int
+	inputX     int
+	inputY     int
+	inputPrevX int
+	inputPrevY int
+	counter    int
+	drawInfo
 }
 
 func NewGame() *Game {
 	return &Game{
-		textures:            map[string]graphics.TextureId{},
-		inputStateUpdatedCh: make(chan ui.InputStateUpdatedEvent),
-		x:                   -1,
-		y:                   -1,
+		inputX:     -1,
+		inputY:     -1,
+		inputPrevX: -1,
+		inputPrevY: -1,
+		counter:    0,
+		drawInfo: drawInfo{
+			textures:   map[string]graphics.TextureId{},
+			textureGeo: matrix.IdentityGeometry(),
+		},
 	}
 }
 
@@ -36,34 +49,33 @@ func (game *Game) OnTextureCreated(e graphics.TextureCreatedEvent) {
 }
 
 func (game *Game) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
-	go func() {
-		e := e
-		game.inputStateUpdatedCh <- e
-	}()
+	game.inputX, game.inputY = e.X, e.Y
 }
 
 func (game *Game) Update() {
-events:
-	for {
-		select {
-		case e := <-game.inputStateUpdatedCh:
-			game.x, game.y = e.X, e.Y
-		default:
-			break events
-		}
+	game.counter++
+	game.drawInfo.inputStr = fmt.Sprintf(`Input State:
+  X: %d
+  Y: %d`, game.inputX, game.inputY)
+
+	if game.inputPrevX != -1 && game.inputPrevY != -1 &&
+		game.inputX != -1 && game.inputY != -1 {
+		dx, dy := game.inputX - game.inputPrevX, game.inputY - game.inputPrevY
+		game.drawInfo.textureGeo.Translate(float64(dx), float64(dy))
 	}
+
+	// Update for the next frame.
+	game.inputPrevX, game.inputPrevY = game.inputX, game.inputY
 }
 
 func (game *Game) Draw(g graphics.Canvas) {
-	if len(game.textures) < len(TexturePaths) {
+	if len(game.drawInfo.textures) < len(TexturePaths) {
 		return
 	}
 
 	g.Fill(128, 128, 255)
-	str := fmt.Sprintf(`Input State:
-  X: %d
-  Y: %d`, game.x, game.y)
-	game.drawText(g, str, 5, 5)
+	game.drawTexture(g, game.drawInfo.textureGeo, matrix.IdentityColor())
+	game.drawText(g, game.drawInfo.inputStr, 5, 5)
 }
 
 func (game *Game) drawText(g graphics.Canvas, text string, x, y int) {
@@ -94,6 +106,10 @@ func (game *Game) drawText(g graphics.Canvas, text string, x, y int) {
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Translate(float64(x), float64(y))
 	colorMatrix := matrix.IdentityColor()
-	g.DrawTextureParts(game.textures["text"], parts,
+	g.DrawTextureParts(game.drawInfo.textures["text"], parts,
 		geometryMatrix, colorMatrix)
+}
+
+func (game *Game) drawTexture(g graphics.Canvas, geo matrix.Geometry, color matrix.Color) {
+	g.DrawTexture(game.drawInfo.textures["ebiten"], geo, color)
 }
