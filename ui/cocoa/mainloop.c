@@ -6,13 +6,31 @@
 #import "ebiten_controller.h"
 #import "ebiten_window.h"
 
-void StartApplication() {
+void initMenu(void) {
+  NSString* processName = [[NSProcessInfo processInfo] processName];
+
+  NSMenu* menuBar = [NSMenu new];
+  [NSApp setMainMenu: menuBar];
+
+  NSMenuItem* rootMenuItem = [NSMenuItem new];
+  [menuBar addItem:rootMenuItem];
+
+  NSMenu* appMenu = [NSMenu new];
+  [rootMenuItem setSubmenu:appMenu];
+  [appMenu addItemWithTitle:[@"Quit " stringByAppendingString:processName]
+                     action:@selector(performClose:)
+              keyEquivalent:@"q"];
+}
+
+void StartApplication(void) {
   EbitenController* controller = [[EbitenController alloc] init];
   NSApplication* app = [NSApplication sharedApplication];
   [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+
+  initMenu();
+
   [app setDelegate:controller];
   [app finishLaunching];
-  [app activateIgnoringOtherApps:YES];
 }
 
 void* CreateGLContext(void* sharedGLContext) {
