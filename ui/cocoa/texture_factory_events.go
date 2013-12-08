@@ -5,7 +5,7 @@ import (
 )
 
 type textureFactoryEvents struct {
-	textureCreated chan graphics.TextureCreatedEvent
+	textureCreated      chan graphics.TextureCreatedEvent
 	renderTargetCreated chan graphics.RenderTargetCreatedEvent
 }
 

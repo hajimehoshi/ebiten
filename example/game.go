@@ -82,7 +82,7 @@ func (game *Game) Update() {
 
 	game.drawInfo.textureGeo.Translate(-textureWidth/2, -textureHeight/2)
 	game.drawInfo.textureGeo.Rotate(game.drawInfo.textureAngle)
-	game.drawInfo.textureGeo.Translate(textureWidth, textureHeight)
+	game.drawInfo.textureGeo.Translate(textureWidth/2, textureHeight/2)
 
 	game.drawInfo.textureGeo.Translate(float64(game.textureX), float64(game.textureY))
 
