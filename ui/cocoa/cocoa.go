@@ -75,7 +75,7 @@ func (u *UI) CreateTexture(tag interface{}, img image.Image) {
 		var id graphics.TextureId
 		var err error
 		u.textureFactory.UseContext(func() {
-			id, err = u.graphicsDevice.CreateTextureFromImage("", img)
+			id, err = u.graphicsDevice.CreateTexture(img)
 		})
 		e := graphics.TextureCreatedEvent{
 			Tag:   tag,
@@ -91,7 +91,7 @@ func (u *UI) CreateRenderTarget(tag interface{}, width, height int) {
 		var id graphics.RenderTargetId
 		var err error
 		u.textureFactory.UseContext(func() {
-			id, err = u.graphicsDevice.CreateRenderTarget("", width, height)
+			id, err = u.graphicsDevice.CreateRenderTarget(width, height)
 		})
 		e := graphics.RenderTargetCreatedEvent{
 			Tag:   tag,

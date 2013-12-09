@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+func init() {
+	runtime.LockOSThread()
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
+
 func loadImage(path string) (image.Image, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -26,9 +31,6 @@ func loadImage(path string) (image.Image, error) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	runtime.LockOSThread()
-
 	const screenWidth = 256
 	const screenHeight = 240
 	const screenScale = 2
