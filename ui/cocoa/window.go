@@ -12,19 +12,21 @@ package cocoa
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"runtime"
 	"unsafe"
 )
 
-type window struct {
+type Window struct {
 	ui        *UI
 	native    unsafe.Pointer
+	canvas    *opengl.Canvas
 	funcs     chan func()
 	funcsDone chan struct{}
 }
 
-func runWindow(ui *UI, width, height int, title string, sharedContext unsafe.Pointer) *window {
-	w := &window{
+func runWindow(ui *UI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
+	w := &Window{
 		ui:        ui,
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
@@ -37,18 +39,21 @@ func runWindow(ui *UI, width, height int, title string, sharedContext unsafe.Poi
 	go func() {
 		runtime.LockOSThread()
 		glContext := C.CreateGLContext(sharedContext)
-		w.native = C.CreateWindow(C.size_t(width),
-			C.size_t(height),
+		w.native = C.CreateWindow(C.size_t(width*scale),
+			C.size_t(height*scale),
 			cTitle,
 			glContext)
 		close(ch)
 		w.loop()
 	}()
 	<-ch
+	w.useContext(func() {
+		w.canvas = ui.graphicsDevice.CreateCanvas(width, height, scale)
+	})
 	return w
 }
 
-func (w *window) loop() {
+func (w *Window) loop() {
 	for {
 		select {
 		case f := <-w.funcs:
@@ -61,13 +66,13 @@ func (w *window) loop() {
 	}
 }
 
-func (w *window) Draw(f func(graphics.Canvas)) {
+func (w *Window) Draw(f func(graphics.Canvas)) {
 	w.useContext(func() {
-		w.ui.graphicsDevice.Update(f)
+		w.ui.graphicsDevice.Update(w.canvas, f)
 	})
 }
 
-func (w *window) useContext(f func()) {
+func (w *Window) useContext(f func()) {
 	w.funcs <- f
 	<-w.funcsDone
 }

@@ -2,47 +2,37 @@ package opengl
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	"image"
 )
 
 type Device struct {
-	canvas      *Canvas
-	screenScale int
+	ids    *ids
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
-	canvas := newCanvas(screenWidth, screenHeight, screenScale)
-	return &Device{
-		canvas:     canvas,
-		screenScale: screenScale,
+	device := &Device{
+		ids: newIds(),
 	}
+	return device
 }
 
-func (d *Device) Update(draw func(graphics.Canvas)) {
-	canvas := d.canvas
-	canvas.Init()
-	canvas.ResetOffscreen()
-	canvas.Clear()
+func (d *Device) CreateCanvas(screenWidth, screenHeight, screenScale int) *Canvas {
+	return newCanvas(d.ids, screenWidth, screenHeight, screenScale)
+}
 
-	draw(canvas)
-
-	canvas.flush()
-	canvas.setMainFramebufferOffscreen()
-	canvas.Clear()
-
-	scale := float64(d.screenScale)
-	geometryMatrix := matrix.IdentityGeometry()
-	geometryMatrix.Scale(scale, scale)
-	canvas.DrawRenderTarget(canvas.screenId,
-		geometryMatrix, matrix.IdentityColor())
-	canvas.flush()
+func (d *Device) Update(canvas *Canvas, draw func(graphics.Canvas)) {
+	canvas.update(draw)
 }
 
 func (d *Device) CreateRenderTarget(width, height int) (graphics.RenderTargetId, error) {
-	return d.canvas.CreateRenderTarget(width, height)
+	renderTargetId, err := d.ids.CreateRenderTarget(width, height, texture.FilterLinear)
+	if err != nil {
+		return 0, err
+	}
+	return renderTargetId, nil
 }
 
 func (d *Device) CreateTexture(img image.Image) (graphics.TextureId, error) {
-	return d.canvas.CreateTextureFromImage(img)
+	return d.ids.CreateTextureFromImage(img)
 }

@@ -20,7 +20,7 @@ type UI struct {
 	screenWidth      int
 	screenHeight     int
 	screenScale      int
-	window           *window
+	window           *Window
 	initialEventSent bool
 	textureFactory   *textureFactory
 	graphicsDevice   *opengl.Device
@@ -50,16 +50,19 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 			u.screenHeight,
 			u.screenScale)
 	})
-
-	u.window = u.textureFactory.createWindow(
-		u,
-		u.screenWidth*u.screenScale,
-		u.screenHeight*u.screenScale,
+	u.window = u.CreateWindow(
+		u.screenWidth,
+		u.screenHeight,
+		u.screenScale,
 		title)
 
 	currentUI = u
 
 	return u
+}
+
+func (u *UI) CreateWindow(width, height, scale int, title string) *Window {
+	return u.textureFactory.createWindow(u, width, height, scale, title)
 }
 
 func (u *UI) PollEvents() {

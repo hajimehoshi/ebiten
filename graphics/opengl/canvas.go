@@ -10,32 +10,50 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	"image"
 	"math"
 )
 
 type Canvas struct {
-	screenId  graphics.RenderTargetId
-	ids       *ids
-	offscreen *offscreen.Offscreen
+	screenId    graphics.RenderTargetId
+	ids         *ids
+	offscreen   *offscreen.Offscreen
+	screenScale int
 }
 
-func newCanvas(screenWidth, screenHeight, screenScale int) *Canvas {
+func newCanvas(ids *ids, screenWidth, screenHeight, screenScale int) *Canvas {
 	canvas := &Canvas{
-		ids:       newIds(),
-		offscreen: offscreen.New(screenWidth, screenHeight, screenScale),
+		ids:         ids,
+		offscreen:   offscreen.New(screenWidth, screenHeight, screenScale),
+		screenScale: screenScale,
 	}
 
 	var err error
-	canvas.screenId, err = canvas.createRenderTarget(
+	canvas.screenId, err = ids.CreateRenderTarget(
 		screenWidth, screenHeight, texture.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
 
-	canvas.Init()
-
 	return canvas
+}
+
+func (canvas *Canvas) update(draw func(graphics.Canvas)) {
+	canvas.init()
+	canvas.ResetOffscreen()
+	canvas.Clear()
+
+	draw(canvas)
+
+	canvas.flush()
+	canvas.setMainFramebufferOffscreen()
+	canvas.Clear()
+
+	scale := float64(canvas.screenScale)
+	geometryMatrix := matrix.IdentityGeometry()
+	geometryMatrix.Scale(scale, scale)
+	canvas.DrawRenderTarget(canvas.screenId,
+		geometryMatrix, matrix.IdentityColor())
+	canvas.flush()
 }
 
 func (canvas *Canvas) Clear() {
@@ -78,8 +96,8 @@ func (canvas *Canvas) DrawRenderTargetParts(
 	canvas.DrawTextureParts(canvas.ids.ToTexture(id), parts, geometryMatrix, colorMatrix)
 }
 
-// Init initializes the canvas. The initial state is saved for each GL canvas.
-func (canvas *Canvas) Init() {
+// init initializes the canvas. The initial state is saved for each GL canvas.
+func (canvas *Canvas) init() {
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glEnable(C.GL_BLEND)
 }
@@ -99,23 +117,4 @@ func (canvas *Canvas) setMainFramebufferOffscreen() {
 
 func (canvas *Canvas) flush() {
 	C.glFlush()
-}
-
-func (canvas *Canvas) createRenderTarget(width, height int, filter texture.Filter) (
-	graphics.RenderTargetId, error) {
-	renderTargetId, err := canvas.ids.CreateRenderTarget(width, height, filter)
-	if err != nil {
-		return 0, err
-	}
-	return renderTargetId, nil
-}
-
-func (canvas *Canvas) CreateRenderTarget(width, height int) (
-	graphics.RenderTargetId, error) {
-	return canvas.createRenderTarget(width, height, texture.FilterLinear)
-}
-
-func (canvas *Canvas) CreateTextureFromImage(img image.Image) (
-	graphics.TextureId, error) {
-	return canvas.ids.CreateTextureFromImage(img)
 }
