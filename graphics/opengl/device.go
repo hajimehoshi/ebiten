@@ -7,42 +7,42 @@ import (
 )
 
 type Device struct {
-	context     *Context
+	canvas      *Canvas
 	screenScale int
 }
 
 func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
-	context := newContext(screenWidth, screenHeight, screenScale)
+	canvas := newCanvas(screenWidth, screenHeight, screenScale)
 	return &Device{
-		context:     context,
+		canvas:     canvas,
 		screenScale: screenScale,
 	}
 }
 
 func (d *Device) Update(draw func(graphics.Canvas)) {
-	context := d.context
-	context.Init()
-	context.ResetOffscreen()
-	context.Clear()
+	canvas := d.canvas
+	canvas.Init()
+	canvas.ResetOffscreen()
+	canvas.Clear()
 
-	draw(context)
+	draw(canvas)
 
-	context.flush()
-	context.setMainFramebufferOffscreen()
-	context.Clear()
+	canvas.flush()
+	canvas.setMainFramebufferOffscreen()
+	canvas.Clear()
 
 	scale := float64(d.screenScale)
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Scale(scale, scale)
-	context.DrawRenderTarget(context.screenId,
+	canvas.DrawRenderTarget(canvas.screenId,
 		geometryMatrix, matrix.IdentityColor())
-	context.flush()
+	canvas.flush()
 }
 
 func (d *Device) CreateRenderTarget(width, height int) (graphics.RenderTargetId, error) {
-	return d.context.CreateRenderTarget(width, height)
+	return d.canvas.CreateRenderTarget(width, height)
 }
 
 func (d *Device) CreateTexture(img image.Image) (graphics.TextureId, error) {
-	return d.context.CreateTextureFromImage(img)
+	return d.canvas.CreateTextureFromImage(img)
 }

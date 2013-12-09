@@ -45,11 +45,11 @@ func (t *textureFactory) loop() {
 	}
 }
 
-func (t *textureFactory) UseContext(f func()) {
+func (t *textureFactory) useContext(f func()) {
 	t.funcs <- f
 	<-t.funcsDone
 }
 
-func (t *textureFactory) CreateWindow(width, height int, title string) *window {
-	return runWindow(width, height, title, t.sharedContext)
+func (t *textureFactory) createWindow(ui *UI, width, height int, title string) *window {
+	return runWindow(ui, width, height, title, t.sharedContext)
 }

@@ -11,18 +11,21 @@ package cocoa
 //
 import "C"
 import (
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"runtime"
 	"unsafe"
 )
 
 type window struct {
+	ui        *UI
 	native    unsafe.Pointer
 	funcs     chan func()
 	funcsDone chan struct{}
 }
 
-func runWindow(width, height int, title string, sharedContext unsafe.Pointer) *window {
+func runWindow(ui *UI, width, height int, title string, sharedContext unsafe.Pointer) *window {
 	w := &window{
+		ui:        ui,
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}
@@ -58,7 +61,13 @@ func (w *window) loop() {
 	}
 }
 
-func (w *window) UseContext(f func()) {
+func (w *window) Draw(f func(graphics.Canvas)) {
+	w.useContext(func() {
+		w.ui.graphicsDevice.Update(f)
+	})
+}
+
+func (w *window) useContext(f func()) {
 	w.funcs <- f
 	<-w.funcsDone
 }

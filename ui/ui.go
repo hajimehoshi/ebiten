@@ -24,3 +24,13 @@ type UI interface {
 	Draw(func(graphics.Canvas))
 	UIEvents
 }
+
+type WindowEvents interface {
+	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
+	InputStateUpdated() <-chan InputStateUpdatedEvent
+}
+
+type Window interface {
+	Draw(func(graphics.Canvas))
+	WindowEvents
+}

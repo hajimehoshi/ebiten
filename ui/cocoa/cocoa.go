@@ -44,14 +44,15 @@ func New(screenWidth, screenHeight, screenScale int, title string) *UI {
 
 	u.textureFactory = runTextureFactory()
 
-	u.textureFactory.UseContext(func() {
+	u.textureFactory.useContext(func() {
 		u.graphicsDevice = opengl.NewDevice(
 			u.screenWidth,
 			u.screenHeight,
 			u.screenScale)
 	})
 
-	u.window = u.textureFactory.CreateWindow(
+	u.window = u.textureFactory.createWindow(
+		u,
 		u.screenWidth*u.screenScale,
 		u.screenHeight*u.screenScale,
 		title)
@@ -74,7 +75,7 @@ func (u *UI) CreateTexture(tag interface{}, img image.Image) {
 	go func() {
 		var id graphics.TextureId
 		var err error
-		u.textureFactory.UseContext(func() {
+		u.textureFactory.useContext(func() {
 			id, err = u.graphicsDevice.CreateTexture(img)
 		})
 		e := graphics.TextureCreatedEvent{
@@ -90,7 +91,7 @@ func (u *UI) CreateRenderTarget(tag interface{}, width, height int) {
 	go func() {
 		var id graphics.RenderTargetId
 		var err error
-		u.textureFactory.UseContext(func() {
+		u.textureFactory.useContext(func() {
 			id, err = u.graphicsDevice.CreateRenderTarget(width, height)
 		})
 		e := graphics.RenderTargetCreatedEvent{
@@ -111,9 +112,7 @@ func (u *UI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
 }
 
 func (u *UI) Draw(f func(graphics.Canvas)) {
-	u.window.UseContext(func() {
-		u.graphicsDevice.Update(f)
-	})
+	u.window.Draw(f)
 }
 
 //export ebiten_ScreenSizeUpdated
