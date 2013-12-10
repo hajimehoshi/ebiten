@@ -40,13 +40,12 @@ func main() {
 		ui.UI
 		graphics.TextureFactory
 	}
-	var u UI = cocoa.New(screenWidth, screenHeight, screenScale, title)
+	var u UI = cocoa.NewUI()
+	window := u.CreateWindow(screenWidth, screenHeight, screenScale, title)
 
 	textureCreated := u.TextureCreated()
 	renderTargetCreated := u.RenderTargetCreated()
-	inputStateUpdated := u.InputStateUpdated()
-	screenSizeUpdated := u.ScreenSizeUpdated()
-
+	
 	for tag, path := range TexturePaths {
 		tag := tag
 		path := path
@@ -69,6 +68,8 @@ func main() {
 
 	drawing := make(chan *graphics.LazyCanvas)
 	go func() {
+		inputStateUpdated := window.InputStateUpdated()
+		screenSizeUpdated := window.ScreenSizeUpdated()
 		game := NewGame()
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
@@ -97,7 +98,7 @@ func main() {
 
 	for {
 		u.PollEvents()
-		u.Draw(func(actualCanvas graphics.Canvas) {
+		window.Draw(func(actualCanvas graphics.Canvas) {
 			drawing <- graphics.NewLazyCanvas()
 			canvas := <-drawing
 			canvas.Flush(actualCanvas)

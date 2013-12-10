@@ -2,6 +2,8 @@ package cocoa
 
 // #include <stdlib.h>
 //
+// #include "input.h"
+//
 // void* CreateWindow(size_t width, size_t height, const char* title, void* glContext);
 // void* CreateGLContext(void* sharedGLContext);
 //
@@ -13,23 +15,33 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"runtime"
 	"unsafe"
 )
 
 type Window struct {
-	ui        *UI
-	native    unsafe.Pointer
-	canvas    *opengl.Canvas
-	funcs     chan func()
-	funcsDone chan struct{}
+	ui           *UI
+	screenWidth  int
+	screenHeight int
+	screenScale  int
+	native       unsafe.Pointer
+	canvas       *opengl.Canvas
+	funcs        chan func()
+	funcsDone    chan struct{}
+	windowEvents
 }
+
+var windows = map[unsafe.Pointer]*Window{}
 
 func runWindow(ui *UI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
 	w := &Window{
-		ui:        ui,
-		funcs:     make(chan func()),
-		funcsDone: make(chan struct{}),
+		ui:           ui,
+		screenWidth:  width,
+		screenHeight: height,
+		screenScale:  scale,
+		funcs:        make(chan func()),
+		funcsDone:    make(chan struct{}),
 	}
 
 	cTitle := C.CString(title)
@@ -43,6 +55,7 @@ func runWindow(ui *UI, width, height, scale int, title string, sharedContext uns
 			C.size_t(height*scale),
 			cTitle,
 			glContext)
+		windows[w.native] = w
 		close(ch)
 		w.loop()
 	}()
@@ -75,4 +88,38 @@ func (w *Window) Draw(f func(graphics.Canvas)) {
 func (w *Window) useContext(f func()) {
 	w.funcs <- f
 	<-w.funcsDone
+}
+
+/*//export ebiten_ScreenSizeUpdated
+func ebiten_ScreenSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
+	u := currentUI
+	e := ui.ScreenSizeUpdatedEvent{width, height}
+	u.windowEvents.notifyScreenSizeUpdated(e)
+}*/
+
+//export ebiten_InputUpdated
+func ebiten_InputUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx, cy C.int) {
+	w := windows[nativeWindow]
+
+	if inputType == C.InputTypeMouseUp {
+		e := ui.InputStateUpdatedEvent{-1, -1}
+		w.notifyInputStateUpdated(e)
+		return
+	}
+
+	x, y := int(cx), int(cy)
+	x /= w.screenScale
+	y /= w.screenScale
+	if x < 0 {
+		x = 0
+	} else if w.screenWidth <= x {
+		x = w.screenWidth - 1
+	}
+	if y < 0 {
+		y = 0
+	} else if w.screenHeight <= y {
+		y = w.screenHeight - 1
+	}
+	e := ui.InputStateUpdatedEvent{x, y}
+	w.notifyInputStateUpdated(e)
 }

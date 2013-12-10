@@ -3,7 +3,7 @@
 #include "ebiten_content_view.h"
 #include "input.h"
 
-void ebiten_InputUpdated(InputType inputType, int x, int y);
+void ebiten_InputUpdated(void* nativeWindow, InputType inputType, int x, int y);
 
 @implementation EbitenContentView {
 }
@@ -17,7 +17,7 @@ void ebiten_InputUpdated(InputType inputType, int x, int y);
                                fromView:nil];
   int x = location.x;
   int y = location.y;
-  ebiten_InputUpdated(InputTypeMouseDown, x, y);
+  ebiten_InputUpdated([self window], InputTypeMouseDown, x, y);
 }
 
 - (void)mouseUp:(NSEvent*)theEvent {
@@ -26,7 +26,7 @@ void ebiten_InputUpdated(InputType inputType, int x, int y);
                                fromView:nil];
   int x = location.x;
   int y = location.y;
-  ebiten_InputUpdated(InputTypeMouseUp, x, y);
+  ebiten_InputUpdated([self window], InputTypeMouseUp, x, y);
 }
 
 - (void)mouseDragged:(NSEvent*)theEvent {
@@ -34,7 +34,7 @@ void ebiten_InputUpdated(InputType inputType, int x, int y);
                                fromView:nil];
   int x = location.x;
   int y = location.y;
-  ebiten_InputUpdated(InputTypeMouseDragged, x, y);
+  ebiten_InputUpdated([self window], InputTypeMouseDragged, x, y);
 }
 
 @end

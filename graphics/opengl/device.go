@@ -7,10 +7,10 @@ import (
 )
 
 type Device struct {
-	ids    *ids
+	ids *ids
 }
 
-func NewDevice(screenWidth, screenHeight, screenScale int) *Device {
+func NewDevice() *Device {
 	device := &Device{
 		ids: newIds(),
 	}

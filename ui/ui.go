@@ -14,15 +14,9 @@ type InputStateUpdatedEvent struct {
 	Y int
 }
 
-type UIEvents interface {
-	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
-	InputStateUpdated() <-chan InputStateUpdatedEvent
-}
-
 type UI interface {
 	PollEvents()
-	Draw(func(graphics.Canvas))
-	UIEvents
+	CreateWindow(screenWidth, screenHeight, screenScale int, title string) Window
 }
 
 type WindowEvents interface {
