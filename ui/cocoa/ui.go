@@ -24,7 +24,7 @@ type UI struct {
 	initialEventSent bool
 	textureFactory   *textureFactory
 	graphicsDevice   *opengl.Device
-	uiEvents
+	windowEvents
 }
 
 var currentUI *UI
@@ -69,7 +69,7 @@ func (u *UI) PollEvents() {
 	C.PollEvents()
 	if !u.initialEventSent {
 		e := ui.ScreenSizeUpdatedEvent{u.screenWidth, u.screenHeight}
-		u.uiEvents.notifyScreenSizeUpdated(e)
+		u.windowEvents.notifyScreenSizeUpdated(e)
 		u.initialEventSent = true
 	}
 }
@@ -122,7 +122,7 @@ func (u *UI) Draw(f func(graphics.Canvas)) {
 func ebiten_ScreenSizeUpdated(width, height int) {
 	u := currentUI
 	e := ui.ScreenSizeUpdatedEvent{width, height}
-	u.uiEvents.notifyScreenSizeUpdated(e)
+	u.windowEvents.notifyScreenSizeUpdated(e)
 }
 
 //export ebiten_InputUpdated
@@ -131,7 +131,7 @@ func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 
 	if inputType == C.InputTypeMouseUp {
 		e := ui.InputStateUpdatedEvent{-1, -1}
-		u.uiEvents.notifyInputStateUpdated(e)
+		u.windowEvents.notifyInputStateUpdated(e)
 		return
 	}
 
@@ -149,5 +149,5 @@ func ebiten_InputUpdated(inputType C.InputType, cx, cy C.int) {
 		y = u.screenHeight - 1
 	}
 	e := ui.InputStateUpdatedEvent{x, y}
-	u.uiEvents.notifyInputStateUpdated(e)
+	u.windowEvents.notifyInputStateUpdated(e)
 }
