@@ -25,6 +25,7 @@ type Window struct {
 	screenWidth  int
 	screenHeight int
 	screenScale  int
+	closed       bool
 	native       unsafe.Pointer
 	canvas       *opengl.Canvas
 	funcs        chan func()
@@ -40,6 +41,7 @@ func runWindow(ui *UI, width, height, scale int, title string, sharedContext uns
 		screenWidth:  width,
 		screenHeight: height,
 		screenScale:  scale,
+		closed:       false,
 		funcs:        make(chan func()),
 		funcsDone:    make(chan struct{}),
 	}
@@ -80,6 +82,9 @@ func (w *Window) loop() {
 }
 
 func (w *Window) Draw(f func(graphics.Canvas)) {
+	if w.closed {
+		return
+	}
 	w.useContext(func() {
 		w.ui.graphicsDevice.Update(w.canvas, f)
 	})
@@ -127,5 +132,6 @@ func ebiten_InputUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx,
 //export ebiten_WindowClosed
 func ebiten_WindowClosed(nativeWindow unsafe.Pointer) {
 	w := windows[nativeWindow]
+	w.closed = true
 	w.notifyWindowClosed(ui.WindowClosedEvent{})
 }
