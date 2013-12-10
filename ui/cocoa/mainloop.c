@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <OpenGL/gl.h>
 
-#import "ebiten_controller.h"
 #import "ebiten_window.h"
 
 void initMenu(void) {
@@ -23,13 +22,11 @@ void initMenu(void) {
 }
 
 void StartApplication(void) {
-  EbitenController* controller = [[EbitenController alloc] init];
   NSApplication* app = [NSApplication sharedApplication];
   [app setActivationPolicy:NSApplicationActivationPolicyRegular];
 
   initMenu();
 
-  [app setDelegate:controller];
   [app finishLaunching];
 }
 

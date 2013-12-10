@@ -32,7 +32,7 @@ func loadImage(path string) (image.Image, error) {
 func main() {
 	const screenWidth = 256
 	const screenHeight = 240
-	const screenScale = 2
+	const screenScale = 3
 	const fps = 60
 	const title = "Ebiten Demo"
 
