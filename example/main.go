@@ -13,7 +13,6 @@ import (
 
 func init() {
 	runtime.LockOSThread()
-	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
 func loadImage(path string) (image.Image, error) {
