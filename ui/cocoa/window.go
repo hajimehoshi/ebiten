@@ -123,3 +123,9 @@ func ebiten_InputUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx,
 	e := ui.InputStateUpdatedEvent{x, y}
 	w.notifyInputStateUpdated(e)
 }
+
+//export ebiten_WindowClosed
+func ebiten_WindowClosed(nativeWindow unsafe.Pointer) {
+	w := windows[nativeWindow]
+	w.notifyWindowClosed(ui.WindowClosedEvent{})
+}

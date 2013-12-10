@@ -14,6 +14,9 @@ type InputStateUpdatedEvent struct {
 	Y int
 }
 
+type WindowClosedEvent struct {
+}
+
 type UI interface {
 	PollEvents()
 	CreateWindow(screenWidth, screenHeight, screenScale int, title string) Window
@@ -22,6 +25,7 @@ type UI interface {
 type WindowEvents interface {
 	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
 	InputStateUpdated() <-chan InputStateUpdatedEvent
+	WindowClosed() <-chan WindowClosedEvent
 }
 
 type Window interface {

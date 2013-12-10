@@ -7,6 +7,7 @@ import (
 type windowEvents struct {
 	screenSizeUpdated chan ui.ScreenSizeUpdatedEvent // initialized lazily
 	inputStateUpdated chan ui.InputStateUpdatedEvent // initialized lazily
+	windowClosed chan ui.WindowClosedEvent // initialized lazily
 }
 
 func (w *windowEvents) ScreenSizeUpdated() <-chan ui.ScreenSizeUpdatedEvent {
@@ -42,3 +43,21 @@ func (w *windowEvents) notifyInputStateUpdated(e ui.InputStateUpdatedEvent) {
 		w.inputStateUpdated <- e
 	}()
 }
+
+func (w *windowEvents) WindowClosed() <-chan ui.WindowClosedEvent {
+	if w.windowClosed != nil {
+		return w.windowClosed
+	}
+	w.windowClosed = make(chan ui.WindowClosedEvent)
+	return w.windowClosed
+}
+
+func (w *windowEvents) notifyWindowClosed(e ui.WindowClosedEvent) {
+	if w.windowClosed == nil {
+		return
+	}
+	go func() {
+		w.windowClosed <- e
+	}()
+}
+

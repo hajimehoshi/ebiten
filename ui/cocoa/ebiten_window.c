@@ -6,6 +6,8 @@
 
 #import "ebiten_content_view.h"
 
+void ebiten_WindowClosed(void* nativeWindow);
+
 @implementation EbitenWindow {
 @private
   NSOpenGLContext* glContext_;
@@ -75,6 +77,7 @@
   if (returnCode == NSAlertDefaultReturn) {
     [self->glContext_ release];
     [self close];
+    ebiten_WindowClosed(self);
   }
 }
 
