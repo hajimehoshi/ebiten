@@ -21,7 +21,7 @@ import (
 )
 
 type Window struct {
-	ui           *UI
+	ui           *cocoaUI
 	screenWidth  int
 	screenHeight int
 	screenScale  int
@@ -35,7 +35,7 @@ type Window struct {
 
 var windows = map[unsafe.Pointer]*Window{}
 
-func runWindow(ui *UI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
+func runWindow(ui *cocoaUI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
 	w := &Window{
 		ui:           ui,
 		screenWidth:  width,
@@ -134,4 +134,5 @@ func ebiten_WindowClosed(nativeWindow unsafe.Pointer) {
 	w := windows[nativeWindow]
 	w.closed = true
 	w.notifyWindowClosed(ui.WindowClosedEvent{})
+	delete(windows, nativeWindow)
 }

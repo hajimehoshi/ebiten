@@ -14,40 +14,55 @@ import (
 	"image"
 )
 
-type UI struct {
+type cocoaUI struct {
 	textureFactory *textureFactory
 	graphicsDevice *opengl.Device
 }
 
-var currentUI *UI
+var currentUI *cocoaUI
 
-func NewUI() *UI {
+func getCurrentUI() *cocoaUI {
 	if currentUI != nil {
-		panic("UI can't be duplicated.")
+		return currentUI
 	}
-	u := &UI{}
+
+	currentUI = &cocoaUI{}
 
 	C.StartApplication()
 
-	u.textureFactory = runTextureFactory()
-	u.textureFactory.useContext(func() {
-		u.graphicsDevice = opengl.NewDevice()
+	currentUI.textureFactory = runTextureFactory()
+	currentUI.textureFactory.useContext(func() {
+		currentUI.graphicsDevice = opengl.NewDevice()
 	})
 
-	currentUI = u
-
-	return u
+	return currentUI
 }
 
-func (u *UI) CreateWindow(width, height, scale int, title string) ui.Window {
+func UI() ui.UI {
+	return getCurrentUI()
+}
+
+func TextureFactory() graphics.TextureFactory {
+	return getCurrentUI()
+}
+
+func (u *cocoaUI) CreateWindow(width, height, scale int, title string) ui.Window {
 	return u.textureFactory.createWindow(u, width, height, scale, title)
 }
 
-func (u *UI) PollEvents() {
+func (u *cocoaUI) PollEvents() {
 	C.PollEvents()
 }
 
-func (u *UI) CreateTexture(tag interface{}, img image.Image) {
+func (u *cocoaUI) TextureCreated() <-chan graphics.TextureCreatedEvent {
+	return u.textureFactory.TextureCreated()
+}
+
+func (u *cocoaUI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
+	return u.textureFactory.RenderTargetCreated()
+}
+
+func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image) {
 	go func() {
 		var id graphics.TextureId
 		var err error
@@ -63,7 +78,7 @@ func (u *UI) CreateTexture(tag interface{}, img image.Image) {
 	}()
 }
 
-func (u *UI) CreateRenderTarget(tag interface{}, width, height int) {
+func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
 	go func() {
 		var id graphics.RenderTargetId
 		var err error
@@ -77,12 +92,4 @@ func (u *UI) CreateRenderTarget(tag interface{}, width, height int) {
 		}
 		u.textureFactory.notifyRenderTargetCreated(e)
 	}()
-}
-
-func (u *UI) TextureCreated() <-chan graphics.TextureCreatedEvent {
-	return u.textureFactory.TextureCreated()
-}
-
-func (u *UI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
-	return u.textureFactory.RenderTargetCreated()
 }

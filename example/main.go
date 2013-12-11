@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"image"
 	_ "image/png"
@@ -36,15 +35,12 @@ func main() {
 	const fps = 60
 	const title = "Ebiten Demo"
 
-	type UI interface {
-		ui.UI
-		graphics.TextureFactory
-	}
-	var u UI = cocoa.NewUI()
-	window := u.CreateWindow(screenWidth, screenHeight, screenScale, title)
+	ui := cocoa.UI()
+	textureFactory := cocoa.TextureFactory()
+	window := ui.CreateWindow(screenWidth, screenHeight, screenScale, title)
 
-	textureCreated := u.TextureCreated()
-	renderTargetCreated := u.RenderTargetCreated()
+	textureCreated := textureFactory.TextureCreated()
+	renderTargetCreated := textureFactory.RenderTargetCreated()
 	
 	for tag, path := range TexturePaths {
 		tag := tag
@@ -54,7 +50,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			u.CreateTexture(tag, img)
+			textureFactory.CreateTexture(tag, img)
 		}()
 	}
 
@@ -62,7 +58,7 @@ func main() {
 		tag := tag
 		size := size
 		go func() {
-			u.CreateRenderTarget(tag, size.Width, size.Height)
+			textureFactory.CreateRenderTarget(tag, size.Width, size.Height)
 		}()
 	}
 
@@ -103,7 +99,7 @@ func main() {
 	}()
 
 	for {
-		u.PollEvents()
+		ui.PollEvents()
 		select {
 		default:
 			window.Draw(func(actualCanvas graphics.Canvas) {

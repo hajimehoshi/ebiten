@@ -50,6 +50,6 @@ func (t *textureFactory) useContext(f func()) {
 	<-t.funcsDone
 }
 
-func (t *textureFactory) createWindow(ui *UI, width, height, scale int, title string) *Window {
+func (t *textureFactory) createWindow(ui *cocoaUI, width, height, scale int, title string) *Window {
 	return runWindow(ui, width, height, scale, title, t.sharedContext)
 }
