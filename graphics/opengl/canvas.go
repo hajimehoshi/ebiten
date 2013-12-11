@@ -38,14 +38,16 @@ func newCanvas(ids *ids, screenWidth, screenHeight, screenScale int) *Canvas {
 }
 
 func (canvas *Canvas) update(draw func(graphics.Canvas)) {
-	canvas.init()
+	C.glEnable(C.GL_TEXTURE_2D)
+	C.glEnable(C.GL_BLEND)
+
 	canvas.ResetOffscreen()
 	canvas.Clear()
 
 	draw(canvas)
 
-	canvas.flush()
-	canvas.setMainFramebufferOffscreen()
+	C.glFlush()
+	canvas.offscreen.SetMainFramebuffer()
 	canvas.Clear()
 
 	scale := float64(canvas.screenScale)
@@ -53,7 +55,7 @@ func (canvas *Canvas) update(draw func(graphics.Canvas)) {
 	geometryMatrix.Scale(scale, scale)
 	canvas.DrawRenderTarget(canvas.screenId,
 		geometryMatrix, matrix.IdentityColor())
-	canvas.flush()
+	C.glFlush()
 }
 
 func (canvas *Canvas) Clear() {
@@ -96,10 +98,8 @@ func (canvas *Canvas) DrawRenderTargetParts(
 	canvas.DrawTextureParts(canvas.ids.ToTexture(id), parts, geometryMatrix, colorMatrix)
 }
 
-// init initializes the canvas. The initial state is saved for each GL canvas.
-func (canvas *Canvas) init() {
-	C.glEnable(C.GL_TEXTURE_2D)
-	C.glEnable(C.GL_BLEND)
+func (canvas *Canvas) DrawLines(lines []graphics.Line) {
+	canvas.offscreen.DrawLines(lines)
 }
 
 func (canvas *Canvas) ResetOffscreen() {
@@ -109,12 +109,4 @@ func (canvas *Canvas) ResetOffscreen() {
 func (canvas *Canvas) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	renderTarget := canvas.ids.RenderTargetAt(renderTargetId)
 	canvas.offscreen.Set(renderTarget)
-}
-
-func (canvas *Canvas) setMainFramebufferOffscreen() {
-	canvas.offscreen.SetMainFramebuffer()
-}
-
-func (canvas *Canvas) flush() {
-	C.glFlush()
 }

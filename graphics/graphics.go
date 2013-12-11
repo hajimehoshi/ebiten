@@ -1,5 +1,9 @@
 package graphics
 
+import (
+	"image/color"
+)
+
 type Rect struct {
 	X      int
 	Y      int
@@ -11,6 +15,12 @@ type TexturePart struct {
 	LocationX int
 	LocationY int
 	Source    Rect
+}
+
+type Line struct {
+	X1, Y1 int
+	X2, Y2 int
+	Color color.Color
 }
 
 type TextureId int
