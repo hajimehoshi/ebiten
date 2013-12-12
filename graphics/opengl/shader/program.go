@@ -10,49 +10,59 @@ import (
 	"unsafe"
 )
 
-func createProgram(shaders ...*shader) C.GLuint {
-	program := C.glCreateProgram()
-	for _, shader := range shaders {
-		C.glAttachShader(program, shader.id)
+type program struct {
+	native    C.GLuint
+	shaderIds []shaderId
+}
+
+type programId int
+
+const (
+	programRegular programId = iota
+	programColorMatrix
+)
+
+var programs = map[programId]*program{
+	programRegular: &program{
+		shaderIds: []shaderId{shaderVertex, shaderFragment},
+	},
+	programColorMatrix: &program{
+		shaderIds: []shaderId{shaderVertex, shaderColorMatrix},
+	},
+}
+
+func (p *program) create() {
+	p.native = C.glCreateProgram()
+	if p.native == 0 {
+		panic("glCreateProgram failed")
 	}
-	C.glLinkProgram(program)
+
+	for _, shaderId := range p.shaderIds {
+		C.glAttachShader(p.native, shaders[shaderId].native)
+	}
+	C.glLinkProgram(p.native)
 	linked := C.GLint(C.GL_FALSE)
-	C.glGetProgramiv(program, C.GL_LINK_STATUS, &linked)
+	C.glGetProgramiv(p.native, C.GL_LINK_STATUS, &linked)
 	if linked == C.GL_FALSE {
 		panic("program error")
 	}
-	return program
 }
 
-var (
-	initialized = false
-)
+var initialized = false
 
 func initialize() {
-	// TODO: when should this function be called?
-	vertexShader.id = C.glCreateShader(C.GL_VERTEX_SHADER)
-	if vertexShader.id == 0 {
-		panic("creating shader failed")
+	for _, shader := range shaders {
+		shader.compile()
 	}
-	fragmentShader.id = C.glCreateShader(C.GL_FRAGMENT_SHADER)
-	if fragmentShader.id == 0 {
-		panic("creating shader failed")
+	defer func() {
+		for _, shader := range shaders {
+			shader.delete()
+		}
+	}()
+
+	for _, program := range programs {
+		program.create()
 	}
-	colorMatrixShader.id = C.glCreateShader(C.GL_FRAGMENT_SHADER)
-	if colorMatrixShader.id == 0 {
-		panic("creating shader failed")
-	}
-
-	vertexShader.compile()
-	fragmentShader.compile()
-	colorMatrixShader.compile()
-
-	programRegular = createProgram(vertexShader, fragmentShader)
-	programColorMatrix = createProgram(vertexShader, colorMatrixShader)
-
-	C.glDeleteShader(vertexShader.id)
-	C.glDeleteShader(fragmentShader.id)
-	C.glDeleteShader(colorMatrixShader.id)
 
 	initialized = true
 }
@@ -105,13 +115,14 @@ func getUniformLocation(program C.GLuint, name string) C.GLint {
 
 func use(projectionMatrix [16]float32,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) C.GLuint {
-	program := programRegular
+	programId := programRegular
 	if !colorMatrix.IsIdentity() {
-		program = programColorMatrix
+		programId = programColorMatrix
 	}
-	C.glUseProgram(program)
+	program := programs[programId]
+	C.glUseProgram(program.native)
 
-	C.glUniformMatrix4fv(C.GLint(getUniformLocation(program, "projection_matrix")),
+	C.glUniformMatrix4fv(C.GLint(getUniformLocation(program.native, "projection_matrix")),
 		1, C.GL_FALSE, (*C.GLfloat)(&projectionMatrix[0]))
 
 	a := float32(geometryMatrix.Elements[0][0])
@@ -126,14 +137,14 @@ func use(projectionMatrix [16]float32,
 		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
-	C.glUniformMatrix4fv(getUniformLocation(program, "modelview_matrix"),
+	C.glUniformMatrix4fv(getUniformLocation(program.native, "modelview_matrix"),
 		1, C.GL_FALSE,
 		(*C.GLfloat)(&glModelviewMatrix[0]))
 
-	C.glUniform1i(getUniformLocation(program, "texture"), 0)
+	C.glUniform1i(getUniformLocation(program.native, "texture"), 0)
 
-	if program != programColorMatrix {
-		return program
+	if programId != programColorMatrix {
+		return program.native
 	}
 
 	e := [4][5]float32{}
@@ -149,14 +160,14 @@ func use(projectionMatrix [16]float32,
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	C.glUniformMatrix4fv(getUniformLocation(program, "color_matrix"),
+	C.glUniformMatrix4fv(getUniformLocation(program.native, "color_matrix"),
 		1, C.GL_FALSE, (*C.GLfloat)(&glColorMatrix[0]))
 
 	glColorMatrixTranslation := [...]float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	C.glUniform4fv(getUniformLocation(program, "color_matrix_translation"),
+	C.glUniform4fv(getUniformLocation(program.native, "color_matrix_translation"),
 		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
 
-	return program
+	return program.native
 }

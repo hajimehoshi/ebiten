@@ -41,7 +41,7 @@ func main() {
 
 	textureCreated := textureFactory.TextureCreated()
 	renderTargetCreated := textureFactory.RenderTargetCreated()
-	
+
 	for tag, path := range TexturePaths {
 		tag := tag
 		path := path
