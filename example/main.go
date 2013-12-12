@@ -82,9 +82,7 @@ func main() {
 			case e := <-inputStateUpdated:
 				game.OnInputStateUpdated(e)
 			case _, ok := <-screenSizeUpdated:
-				if ok {
-					// Do nothing
-				} else {
+				if !ok {
 					screenSizeUpdated = nil
 				}
 			case <-windowClosed:
@@ -98,15 +96,19 @@ func main() {
 		}
 	}()
 
+	frameTime := time.Duration(int64(time.Second) / 120)
+	tick := time.Tick(frameTime)
 	for {
 		ui.PollEvents()
 		select {
 		default:
+			drawing <- graphics.NewLazyCanvas()
+			canvas := <-drawing
 			window.Draw(func(actualCanvas graphics.Canvas) {
-				drawing <- graphics.NewLazyCanvas()
-				canvas := <-drawing
 				canvas.Flush(actualCanvas)
 			})
+			// To avoid a busy loop, take a rest after drawing.
+			<-tick
 		case <-quit:
 			return
 		}
