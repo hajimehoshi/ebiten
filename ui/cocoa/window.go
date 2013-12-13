@@ -27,7 +27,7 @@ type Window struct {
 	screenScale  int
 	closed       bool
 	native       unsafe.Pointer
-	canvas       *opengl.Canvas
+	context       *opengl.Context
 	funcs        chan func()
 	funcsDone    chan struct{}
 	windowEvents
@@ -62,8 +62,8 @@ func runWindow(ui *cocoaUI, width, height, scale int, title string, sharedContex
 		w.loop()
 	}()
 	<-ch
-	w.useContext(func() {
-		w.canvas = ui.graphicsDevice.CreateCanvas(width, height, scale)
+	w.useGLContext(func() {
+		w.context = ui.graphicsDevice.CreateContext(width, height, scale)
 	})
 	return w
 }
@@ -81,16 +81,16 @@ func (w *Window) loop() {
 	}
 }
 
-func (w *Window) Draw(f func(graphics.Canvas)) {
+func (w *Window) Draw(f func(graphics.Context)) {
 	if w.closed {
 		return
 	}
-	w.useContext(func() {
-		w.ui.graphicsDevice.Update(w.canvas, f)
+	w.useGLContext(func() {
+		w.ui.graphicsDevice.Update(w.context, f)
 	})
 }
 
-func (w *Window) useContext(f func()) {
+func (w *Window) useGLContext(f func()) {
 	w.funcs <- f
 	<-w.funcsDone
 }

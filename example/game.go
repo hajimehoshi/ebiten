@@ -122,7 +122,7 @@ func (game *Game) Update() {
 	game.inputPrevX, game.inputPrevY = game.inputX, game.inputY
 }
 
-func (game *Game) Draw(g graphics.Canvas) {
+func (game *Game) Draw(g graphics.Context) {
 	if !game.isInitialized() {
 		return
 	}
@@ -144,7 +144,7 @@ func (game *Game) Draw(g graphics.Canvas) {
 	g.DrawRenderTarget(whole, wholeGeo, wholeColor)
 }
 
-func (game *Game) drawText(g graphics.Canvas, text string, x, y int, clr color.Color) {
+func (game *Game) drawText(g graphics.Context, text string, x, y int, clr color.Color) {
 	const letterWidth = 6
 	const letterHeight = 16
 
@@ -177,6 +177,6 @@ func (game *Game) drawText(g graphics.Canvas, text string, x, y int, clr color.C
 		geometryMatrix, colorMatrix)
 }
 
-func (game *Game) drawTexture(g graphics.Canvas, geo matrix.Geometry, color matrix.Color) {
+func (game *Game) drawTexture(g graphics.Context, geo matrix.Geometry, color matrix.Color) {
 	g.DrawTexture(game.drawInfo.textures["ebiten"], geo, color)
 }

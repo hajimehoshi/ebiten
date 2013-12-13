@@ -17,12 +17,12 @@ func NewDevice() *Device {
 	return device
 }
 
-func (d *Device) CreateCanvas(screenWidth, screenHeight, screenScale int) *Canvas {
-	return newCanvas(d.ids, screenWidth, screenHeight, screenScale)
+func (d *Device) CreateContext(screenWidth, screenHeight, screenScale int) *Context {
+	return newContext(d.ids, screenWidth, screenHeight, screenScale)
 }
 
-func (d *Device) Update(canvas *Canvas, draw func(graphics.Canvas)) {
-	canvas.update(draw)
+func (d *Device) Update(context *Context, draw func(graphics.Context)) {
+	context.update(draw)
 }
 
 func (d *Device) CreateRenderTarget(width, height int) (graphics.RenderTargetId, error) {

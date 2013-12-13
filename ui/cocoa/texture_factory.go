@@ -45,7 +45,7 @@ func (t *textureFactory) loop() {
 	}
 }
 
-func (t *textureFactory) useContext(f func()) {
+func (t *textureFactory) useGLContext(f func()) {
 	t.funcs <- f
 	<-t.funcsDone
 }

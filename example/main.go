@@ -62,7 +62,7 @@ func main() {
 		}()
 	}
 
-	drawing := make(chan *graphics.LazyCanvas)
+	drawing := make(chan *graphics.LazyContext)
 	quit := make(chan struct{})
 	go func() {
 		defer close(quit)
@@ -89,9 +89,9 @@ func main() {
 				return
 			case <-tick:
 				game.Update()
-			case canvas := <-drawing:
-				game.Draw(canvas)
-				drawing <- canvas
+			case context := <-drawing:
+				game.Draw(context)
+				drawing <- context
 			}
 		}
 	}()
@@ -100,11 +100,11 @@ func main() {
 		ui.PollEvents()
 		select {
 		default:
-			drawing <- graphics.NewLazyCanvas()
-			canvas := <-drawing
+			drawing <- graphics.NewLazyContext()
+			context := <-drawing
 
-			window.Draw(func(actualCanvas graphics.Canvas) {
-				canvas.Flush(actualCanvas)
+			window.Draw(func(actualContext graphics.Context) {
+				context.Flush(actualContext)
 			})
 			after := time.After(time.Duration(int64(time.Second) / 120))
 			ui.PollEvents()

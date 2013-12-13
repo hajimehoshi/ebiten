@@ -31,7 +31,7 @@ func getCurrentUI() *cocoaUI {
 	C.StartApplication()
 
 	currentUI.textureFactory = runTextureFactory()
-	currentUI.textureFactory.useContext(func() {
+	currentUI.textureFactory.useGLContext(func() {
 		currentUI.graphicsDevice = opengl.NewDevice()
 	})
 
@@ -66,7 +66,7 @@ func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image) {
 	go func() {
 		var id graphics.TextureId
 		var err error
-		u.textureFactory.useContext(func() {
+		u.textureFactory.useGLContext(func() {
 			id, err = u.graphicsDevice.CreateTexture(img)
 		})
 		e := graphics.TextureCreatedEvent{
@@ -82,7 +82,7 @@ func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
 	go func() {
 		var id graphics.RenderTargetId
 		var err error
-		u.textureFactory.useContext(func() {
+		u.textureFactory.useGLContext(func() {
 			id, err = u.graphicsDevice.CreateRenderTarget(width, height)
 		})
 		e := graphics.RenderTargetCreatedEvent{

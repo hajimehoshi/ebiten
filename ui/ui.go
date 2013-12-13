@@ -29,6 +29,6 @@ type WindowEvents interface {
 }
 
 type Window interface {
-	Draw(func(graphics.Canvas))
+	Draw(func(graphics.Context))
 	WindowEvents
 }
