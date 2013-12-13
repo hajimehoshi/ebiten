@@ -76,8 +76,10 @@ func (c *LazyCanvas) DrawTextureParts(id TextureId,
 	parts []TexturePart,
 	geometryMatrix matrix.Geometry,
 	colorMatrix matrix.Color) {
+	parts2 := make([]TexturePart, len(parts))
+	copy(parts2, parts)
 	c.funcs = append(c.funcs, func(actual Canvas) {
-		actual.DrawTextureParts(id, parts, geometryMatrix, colorMatrix)
+		actual.DrawTextureParts(id, parts2, geometryMatrix, colorMatrix)
 	})
 }
 
@@ -85,8 +87,10 @@ func (c *LazyCanvas) DrawRenderTargetParts(id RenderTargetId,
 	parts []TexturePart,
 	geometryMatrix matrix.Geometry,
 	colorMatrix matrix.Color) {
+	parts2 := make([]TexturePart, len(parts))
+	copy(parts2, parts)
 	c.funcs = append(c.funcs, func(actual Canvas) {
-		actual.DrawRenderTargetParts(id, parts, geometryMatrix, colorMatrix)
+		actual.DrawRenderTargetParts(id, parts2, geometryMatrix, colorMatrix)
 	})
 }
 
