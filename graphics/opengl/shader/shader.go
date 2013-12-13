@@ -29,14 +29,14 @@ var shaders = map[shaderId]*shader{
 	shaderVertex: &shader{
 		shaderType: C.GL_VERTEX_SHADER,
 		source: `
-attribute vec2 vertex;
-attribute vec2 texture;
 uniform mat4 projection_matrix;
 uniform mat4 modelview_matrix;
-varying vec2 tex_coord;
+attribute vec2 vertex;
+attribute vec2 tex_coord;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
-  tex_coord = texture;
+  vertex_out_tex_coord = tex_coord;
   gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
 }
 `,
@@ -45,10 +45,10 @@ void main(void) {
 		shaderType: C.GL_FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
-varying vec2 tex_coord;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
-  gl_FragColor = texture2D(texture, tex_coord);
+  gl_FragColor = texture2D(texture, vertex_out_tex_coord);
 }
 `,
 	},
@@ -58,10 +58,10 @@ void main(void) {
 uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
-varying vec2 tex_coord;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
-  vec4 color = texture2D(texture, tex_coord);
+  vec4 color = texture2D(texture, vertex_out_tex_coord);
   gl_FragColor = (color_matrix * color) + color_matrix_translation;
 }
 `,

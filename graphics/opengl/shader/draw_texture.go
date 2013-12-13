@@ -9,14 +9,17 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
+	"sync"
 	"unsafe"
 )
 
+var once sync.Once
+
 func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []gtexture.Quad,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	if !initialized {
+	once.Do(func() {
 		initialize()
-	}
+	})
 
 	if len(quads) == 0 {
 		return
@@ -28,14 +31,14 @@ func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []gt
 	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
 
 	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
-	textureAttrLocation := getAttributeLocation(shaderProgram, "texture")
+	texCoordAttrLocation := getAttributeLocation(shaderProgram, "tex_coord")
 
 	C.glEnableClientState(C.GL_VERTEX_ARRAY)
 	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
 	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
-	C.glEnableVertexAttribArray(C.GLuint(textureAttrLocation))
+	C.glEnableVertexAttribArray(C.GLuint(texCoordAttrLocation))
 	defer func() {
-		C.glDisableVertexAttribArray(C.GLuint(textureAttrLocation))
+		C.glDisableVertexAttribArray(C.GLuint(texCoordAttrLocation))
 		C.glDisableVertexAttribArray(C.GLuint(vertexAttrLocation))
 		C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)
 		C.glDisableClientState(C.GL_VERTEX_ARRAY)
@@ -75,7 +78,7 @@ func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []gt
 	C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2,
 		C.GL_FLOAT, C.GL_FALSE,
 		0, unsafe.Pointer(&vertices[0]))
-	C.glVertexAttribPointer(C.GLuint(textureAttrLocation), 2,
+	C.glVertexAttribPointer(C.GLuint(texCoordAttrLocation), 2,
 		C.GL_FLOAT, C.GL_FALSE,
 		0, unsafe.Pointer(&texCoords[0]))
 	C.glDrawElements(C.GL_TRIANGLES, C.GLsizei(len(indicies)),

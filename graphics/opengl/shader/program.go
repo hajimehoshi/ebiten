@@ -48,8 +48,6 @@ func (p *program) create() {
 	}
 }
 
-var initialized = false
-
 func initialize() {
 	for _, shader := range shaders {
 		shader.compile()
@@ -63,24 +61,24 @@ func initialize() {
 	for _, program := range programs {
 		program.create()
 	}
-
-	initialized = true
 }
 
+type qualifierVariableType int
+
 const (
-	qualifierVariableTypeAttribute = iota
+	qualifierVariableTypeAttribute qualifierVariableType = iota
 	qualifierVariableTypeUniform
 )
 
 var (
-	shaderLocationCache = map[int]map[string]C.GLint{
+	shaderLocationCache = map[qualifierVariableType]map[string]C.GLint{
 		qualifierVariableTypeAttribute: map[string]C.GLint{},
 		qualifierVariableTypeUniform:   map[string]C.GLint{},
 	}
 )
 
-func getLocation(program C.GLuint, name string, qualifierVariableType int) C.GLint {
-	if location, ok := shaderLocationCache[qualifierVariableType][name]; ok {
+func getLocation(program C.GLuint, name string, qvType qualifierVariableType) C.GLint {
+	if location, ok := shaderLocationCache[qvType][name]; ok {
 		return location
 	}
 
@@ -89,7 +87,7 @@ func getLocation(program C.GLuint, name string, qualifierVariableType int) C.GLi
 
 	location := C.GLint(-1)
 
-	switch qualifierVariableType {
+	switch qvType {
 	case qualifierVariableTypeAttribute:
 		location = C.glGetAttribLocation(program, (*C.GLchar)(locationName))
 	case qualifierVariableTypeUniform:
@@ -100,7 +98,7 @@ func getLocation(program C.GLuint, name string, qualifierVariableType int) C.GLi
 	if location == -1 {
 		panic("glGetUniformLocation failed")
 	}
-	shaderLocationCache[qualifierVariableType][name] = location
+	shaderLocationCache[qvType][name] = location
 
 	return location
 }

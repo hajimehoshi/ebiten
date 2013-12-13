@@ -96,19 +96,19 @@ func main() {
 		}
 	}()
 
-	frameTime := time.Duration(int64(time.Second) / 120)
-	tick := time.Tick(frameTime)
 	for {
 		ui.PollEvents()
 		select {
 		default:
 			drawing <- graphics.NewLazyCanvas()
 			canvas := <-drawing
+
 			window.Draw(func(actualCanvas graphics.Canvas) {
 				canvas.Flush(actualCanvas)
 			})
-			// To avoid a busy loop, take a rest after drawing.
-			<-tick
+			after := time.After(time.Duration(int64(time.Second) / 120))
+			ui.PollEvents()
+			<-after
 		case <-quit:
 			return
 		}
