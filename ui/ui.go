@@ -9,7 +9,7 @@ type ScreenSizeUpdatedEvent struct {
 	Height int
 }
 
-type InputStateUpdatedEvent struct {
+type MouseStateUpdatedEvent struct {
 	X int
 	Y int
 }
@@ -24,7 +24,7 @@ type UI interface {
 
 type WindowEvents interface {
 	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
-	InputStateUpdated() <-chan InputStateUpdatedEvent
+	MouseStateUpdated() <-chan MouseStateUpdatedEvent
 	WindowClosed() <-chan WindowClosedEvent
 }
 

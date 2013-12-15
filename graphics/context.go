@@ -25,6 +25,8 @@ type Context interface {
 
 	ResetOffscreen()
 	SetOffscreen(id RenderTargetId)
+
+	// TODO: glTextureSubImage2D
 }
 
 type LazyContext struct {

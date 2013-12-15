@@ -34,20 +34,20 @@ type drawInfo struct {
 }
 
 type Game struct {
-	inputX     int
-	inputY     int
-	inputPrevX int
-	inputPrevY int
+	mouseX     int
+	mouseY     int
+	mousePrevX int
+	mousePrevY int
 	counter    int
 	drawInfo
 }
 
 func NewGame() *Game {
 	return &Game{
-		inputX:     -1,
-		inputY:     -1,
-		inputPrevX: -1,
-		inputPrevY: -1,
+		mouseX:     -1,
+		mouseY:     -1,
+		mousePrevX: -1,
+		mousePrevY: -1,
 		counter:    0,
 		drawInfo: drawInfo{
 			textures:      map[string]graphics.TextureId{},
@@ -74,8 +74,8 @@ func (game *Game) OnRenderTargetCreated(e graphics.RenderTargetCreatedEvent) {
 	game.renderTargets[e.Tag.(string)] = e.Id
 }
 
-func (game *Game) OnInputStateUpdated(e ui.InputStateUpdatedEvent) {
-	game.inputX, game.inputY = e.X, e.Y
+func (game *Game) OnMouseStateUpdated(e ui.MouseStateUpdatedEvent) {
+	game.mouseX, game.mouseY = e.X, e.Y
 }
 
 func (game *Game) isInitialized() bool {
@@ -99,11 +99,11 @@ func (game *Game) Update() {
 	game.counter++
 	game.drawInfo.inputStr = fmt.Sprintf(`Input State:
   X: %d
-  Y: %d`, game.inputX, game.inputY)
+  Y: %d`, game.mouseX, game.mouseY)
 
-	if game.inputPrevX != -1 && game.inputPrevY != -1 &&
-		game.inputX != -1 && game.inputY != -1 {
-		dx, dy := game.inputX-game.inputPrevX, game.inputY-game.inputPrevY
+	if game.mousePrevX != -1 && game.mousePrevY != -1 &&
+		game.mouseX != -1 && game.mouseY != -1 {
+		dx, dy := game.mouseX-game.mousePrevX, game.mouseY-game.mousePrevY
 		game.textureX += dx
 		game.textureY += dy
 
@@ -119,7 +119,7 @@ func (game *Game) Update() {
 	game.drawInfo.textureGeo = geo
 
 	// Update for the next frame.
-	game.inputPrevX, game.inputPrevY = game.inputX, game.inputY
+	game.mousePrevX, game.mousePrevY = game.mouseX, game.mouseY
 }
 
 func (game *Game) Draw(g graphics.Context) {

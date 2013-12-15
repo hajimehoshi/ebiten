@@ -27,7 +27,7 @@ type Window struct {
 	screenScale  int
 	closed       bool
 	native       unsafe.Pointer
-	context       *opengl.Context
+	context      *opengl.Context
 	funcs        chan func()
 	funcsDone    chan struct{}
 	windowEvents
@@ -102,12 +102,12 @@ func ebiten_ScreenSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
 	u.windowEvents.notifyScreenSizeUpdated(e)
 }*/
 
-//export ebiten_InputUpdated
-func ebiten_InputUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx, cy C.int) {
+//export ebiten_MouseStateUpdated
+func ebiten_MouseStateUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx, cy C.int) {
 	w := windows[nativeWindow]
 
 	if inputType == C.InputTypeMouseUp {
-		e := ui.InputStateUpdatedEvent{-1, -1}
+		e := ui.MouseStateUpdatedEvent{-1, -1}
 		w.notifyInputStateUpdated(e)
 		return
 	}
@@ -125,7 +125,7 @@ func ebiten_InputUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx,
 	} else if w.screenHeight <= y {
 		y = w.screenHeight - 1
 	}
-	e := ui.InputStateUpdatedEvent{x, y}
+	e := ui.MouseStateUpdatedEvent{x, y}
 	w.notifyInputStateUpdated(e)
 }
 

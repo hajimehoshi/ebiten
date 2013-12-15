@@ -6,7 +6,7 @@ import (
 
 type windowEvents struct {
 	screenSizeUpdated chan ui.ScreenSizeUpdatedEvent // initialized lazily
-	inputStateUpdated chan ui.InputStateUpdatedEvent // initialized lazily
+	mouseStateUpdated chan ui.MouseStateUpdatedEvent // initialized lazily
 	windowClosed      chan ui.WindowClosedEvent      // initialized lazily
 }
 
@@ -27,20 +27,20 @@ func (w *windowEvents) notifyScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
 	}()
 }
 
-func (w *windowEvents) InputStateUpdated() <-chan ui.InputStateUpdatedEvent {
-	if w.inputStateUpdated != nil {
-		return w.inputStateUpdated
+func (w *windowEvents) MouseStateUpdated() <-chan ui.MouseStateUpdatedEvent {
+	if w.mouseStateUpdated != nil {
+		return w.mouseStateUpdated
 	}
-	w.inputStateUpdated = make(chan ui.InputStateUpdatedEvent)
-	return w.inputStateUpdated
+	w.mouseStateUpdated = make(chan ui.MouseStateUpdatedEvent)
+	return w.mouseStateUpdated
 }
 
-func (w *windowEvents) notifyInputStateUpdated(e ui.InputStateUpdatedEvent) {
-	if w.inputStateUpdated == nil {
+func (w *windowEvents) notifyInputStateUpdated(e ui.MouseStateUpdatedEvent) {
+	if w.mouseStateUpdated == nil {
 		return
 	}
 	go func() {
-		w.inputStateUpdated <- e
+		w.mouseStateUpdated <- e
 	}()
 }
 

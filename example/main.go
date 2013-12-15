@@ -67,7 +67,7 @@ func main() {
 	go func() {
 		defer close(quit)
 
-		inputStateUpdated := window.InputStateUpdated()
+		mouseStateUpdated := window.MouseStateUpdated()
 		screenSizeUpdated := window.ScreenSizeUpdated()
 		windowClosed := window.WindowClosed()
 		game := NewGame()
@@ -79,8 +79,8 @@ func main() {
 				game.OnTextureCreated(e)
 			case e := <-renderTargetCreated:
 				game.OnRenderTargetCreated(e)
-			case e := <-inputStateUpdated:
-				game.OnInputStateUpdated(e)
+			case e := <-mouseStateUpdated:
+				game.OnMouseStateUpdated(e)
 			case _, ok := <-screenSizeUpdated:
 				if !ok {
 					screenSizeUpdated = nil
