@@ -3,6 +3,8 @@
 #include "ebiten_content_view.h"
 #include "input.h"
 
+void ebiten_KeyDown(void* nativeWindow, int keyCode);
+void ebiten_KeyUp(void* nativeWindow, int keyCode);
 void ebiten_MouseStateUpdated(void* nativeWindow, InputType inputType, int x, int y);
 
 @implementation EbitenContentView {
@@ -17,10 +19,11 @@ void ebiten_MouseStateUpdated(void* nativeWindow, InputType inputType, int x, in
 }
 
 - (void)keyDown:(NSEvent*)theEvent {
-  [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
+  ebiten_KeyDown([self window], [theEvent keyCode]);
 }
 
-- (void)insertText:(id)aString {
+- (void)keyUp:(NSEvent*)theEvent {
+  ebiten_KeyUp([self window], [theEvent keyCode]);
 }
 
 - (void)mouseDown:(NSEvent*)theEvent {
@@ -46,19 +49,6 @@ void ebiten_MouseStateUpdated(void* nativeWindow, InputType inputType, int x, in
   int x = location.x;
   int y = location.y;
   ebiten_MouseStateUpdated([self window], InputTypeMouseDragged, x, y);
-}
-
-- (void)moveDown:(id)sender {
-  
-}
-
-- (void)moveLeft:(id)sender {
-}
-
-- (void)moveRight:(id)sender {
-}
-
-- (void)moveUp:(id)sender {
 }
 
 @end

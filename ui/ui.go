@@ -4,9 +4,22 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
+type Key int
+
+const (
+	KeyUp Key = iota
+	KeyDown
+	KeyLeft
+	KeyRight
+)
+
 type ScreenSizeUpdatedEvent struct {
 	Width  int
 	Height int
+}
+
+type KeyStateUpdatedEvent struct {
+	Keys []Key
 }
 
 type MouseStateUpdatedEvent struct {

@@ -27,6 +27,7 @@ type Window struct {
 	screenScale  int
 	closed       bool
 	native       unsafe.Pointer
+	pressedKeys  map[ui.Key]struct{}
 	context      *opengl.Context
 	funcs        chan func()
 	funcsDone    chan struct{}
@@ -35,13 +36,14 @@ type Window struct {
 
 var windows = map[unsafe.Pointer]*Window{}
 
-func runWindow(ui *cocoaUI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
+func runWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
 	w := &Window{
-		ui:           ui,
+		ui:           cocoaUI,
 		screenWidth:  width,
 		screenHeight: height,
 		screenScale:  scale,
 		closed:       false,
+		pressedKeys:  map[ui.Key]struct{}{},
 		funcs:        make(chan func()),
 		funcsDone:    make(chan struct{}),
 	}
@@ -63,7 +65,7 @@ func runWindow(ui *cocoaUI, width, height, scale int, title string, sharedContex
 	}()
 	<-ch
 	w.useGLContext(func() {
-		w.context = ui.graphicsDevice.CreateContext(width, height, scale)
+		w.context = w.ui.graphicsDevice.CreateContext(width, height, scale)
 	})
 	return w
 }
@@ -101,6 +103,33 @@ func ebiten_ScreenSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
 	e := ui.ScreenSizeUpdatedEvent{width, height}
 	u.windowEvents.notifyScreenSizeUpdated(e)
 }*/
+
+var cocoaKeyCodeToKey = map[int]ui.Key{
+	123: ui.KeyLeft,
+	124: ui.KeyRight,
+	125: ui.KeyUp,
+	126: ui.KeyDown,
+}
+
+//export ebiten_KeyDown
+func ebiten_KeyDown(nativeWindow unsafe.Pointer, keyCode int) {
+	key, ok := cocoaKeyCodeToKey[keyCode]
+	if !ok {
+		return
+	}
+	w := windows[nativeWindow]
+	w.pressedKeys[key] = struct{}{}
+}
+
+//export ebiten_KeyUp
+func ebiten_KeyUp(nativeWindow unsafe.Pointer, keyCode int) {
+	key, ok := cocoaKeyCodeToKey[keyCode]
+	if !ok {
+		return
+	}
+	w := windows[nativeWindow]
+	delete(w.pressedKeys, key)
+}
 
 //export ebiten_MouseStateUpdated
 func ebiten_MouseStateUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx, cy C.int) {
