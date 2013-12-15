@@ -137,7 +137,7 @@ func ebiten_MouseStateUpdated(nativeWindow unsafe.Pointer, inputType C.InputType
 
 	if inputType == C.InputTypeMouseUp {
 		e := ui.MouseStateUpdatedEvent{-1, -1}
-		w.notifyInputStateUpdated(e)
+		w.notify(e)
 		return
 	}
 
@@ -155,13 +155,13 @@ func ebiten_MouseStateUpdated(nativeWindow unsafe.Pointer, inputType C.InputType
 		y = w.screenHeight - 1
 	}
 	e := ui.MouseStateUpdatedEvent{x, y}
-	w.notifyInputStateUpdated(e)
+	w.notify(e)
 }
 
 //export ebiten_WindowClosed
 func ebiten_WindowClosed(nativeWindow unsafe.Pointer) {
 	w := windows[nativeWindow]
 	w.closed = true
-	w.notifyWindowClosed(ui.WindowClosedEvent{})
+	w.notify(ui.WindowClosedEvent{})
 	delete(windows, nativeWindow)
 }

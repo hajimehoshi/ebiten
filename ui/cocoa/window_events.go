@@ -10,21 +10,35 @@ type windowEvents struct {
 	windowClosed      chan ui.WindowClosedEvent      // initialized lazily
 }
 
+func (w *windowEvents) notify(e interface{}) {
+	go func() {
+		w.doNotify(e)
+	}()
+}
+
+func (w *windowEvents) doNotify(e interface{}) {
+	switch e := e.(type) {
+	case ui.ScreenSizeUpdatedEvent:
+		if w.screenSizeUpdated != nil {
+			w.screenSizeUpdated <- e
+		}
+	case ui.MouseStateUpdatedEvent:
+		if w.mouseStateUpdated != nil {
+			w.mouseStateUpdated <- e
+		}
+	case ui.WindowClosedEvent:
+		if w.windowClosed != nil {
+			w.windowClosed <- e
+		}
+	}
+}
+
 func (w *windowEvents) ScreenSizeUpdated() <-chan ui.ScreenSizeUpdatedEvent {
 	if w.screenSizeUpdated != nil {
 		return w.screenSizeUpdated
 	}
 	w.screenSizeUpdated = make(chan ui.ScreenSizeUpdatedEvent)
 	return w.screenSizeUpdated
-}
-
-func (w *windowEvents) notifyScreenSizeUpdated(e ui.ScreenSizeUpdatedEvent) {
-	if w.screenSizeUpdated == nil {
-		return
-	}
-	go func() {
-		w.screenSizeUpdated <- e
-	}()
 }
 
 func (w *windowEvents) MouseStateUpdated() <-chan ui.MouseStateUpdatedEvent {
@@ -35,28 +49,10 @@ func (w *windowEvents) MouseStateUpdated() <-chan ui.MouseStateUpdatedEvent {
 	return w.mouseStateUpdated
 }
 
-func (w *windowEvents) notifyInputStateUpdated(e ui.MouseStateUpdatedEvent) {
-	if w.mouseStateUpdated == nil {
-		return
-	}
-	go func() {
-		w.mouseStateUpdated <- e
-	}()
-}
-
 func (w *windowEvents) WindowClosed() <-chan ui.WindowClosedEvent {
 	if w.windowClosed != nil {
 		return w.windowClosed
 	}
 	w.windowClosed = make(chan ui.WindowClosedEvent)
 	return w.windowClosed
-}
-
-func (w *windowEvents) notifyWindowClosed(e ui.WindowClosedEvent) {
-	if w.windowClosed == nil {
-		return
-	}
-	go func() {
-		w.windowClosed <- e
-	}()
 }
