@@ -121,6 +121,16 @@ func ebiten_ScreenSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
 	u.windowEvents.notifyScreenSizeUpdated(e)
 }*/
 
+func (w *Window) keyStateUpdatedEvent() ui.KeyStateUpdatedEvent {
+	keys := []ui.Key{}
+	for key, _ := range w.pressedKeys {
+		keys = append(keys, key)
+	}
+	return ui.KeyStateUpdatedEvent{
+		Keys: keys,
+	}
+}
+
 var cocoaKeyCodeToKey = map[int]ui.Key{
 	123: ui.KeyLeft,
 	124: ui.KeyRight,
@@ -136,6 +146,7 @@ func ebiten_KeyDown(nativeWindow unsafe.Pointer, keyCode int) {
 	}
 	w := windows[nativeWindow]
 	w.pressedKeys[key] = struct{}{}
+	w.notify(w.keyStateUpdatedEvent())
 }
 
 //export ebiten_KeyUp
@@ -146,6 +157,7 @@ func ebiten_KeyUp(nativeWindow unsafe.Pointer, keyCode int) {
 	}
 	w := windows[nativeWindow]
 	delete(w.pressedKeys, key)
+	w.notify(w.keyStateUpdatedEvent())
 }
 
 //export ebiten_MouseStateUpdated

@@ -72,6 +72,8 @@ func (game *Game) HandleEvent(e interface{}) {
 			panic(e.Error)
 		}
 		game.renderTargets[e.Tag.(string)] = e.Id
+	case ui.KeyStateUpdatedEvent:
+		fmt.Printf("%v\n", e.Keys)
 	case ui.MouseStateUpdatedEvent:
 		game.mouseX, game.mouseY = e.X, e.Y
 	}
