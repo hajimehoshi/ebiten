@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
 	"image"
 	_ "image/png"
@@ -35,12 +36,11 @@ func main() {
 	const fps = 60
 	const title = "Ebiten Demo"
 
-	ui := cocoa.UI()
+	u := cocoa.UI()
 	textureFactory := cocoa.TextureFactory()
-	window := ui.CreateWindow(screenWidth, screenHeight, screenScale, title)
+	window := u.CreateWindow(screenWidth, screenHeight, screenScale, title)
 
-	textureCreated := textureFactory.TextureCreated()
-	renderTargetCreated := textureFactory.RenderTargetCreated()
+	textureFactoryEvents := textureFactory.Events()
 
 	for tag, path := range TexturePaths {
 		tag := tag
@@ -67,26 +67,19 @@ func main() {
 	go func() {
 		defer close(quit)
 
-		mouseStateUpdated := window.MouseStateUpdated()
-		screenSizeUpdated := window.ScreenSizeUpdated()
-		windowClosed := window.WindowClosed()
+		windowEvents := window.Events()
 		game := NewGame()
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
 		for {
 			select {
-			case e := <-textureCreated:
-				game.OnTextureCreated(e)
-			case e := <-renderTargetCreated:
-				game.OnRenderTargetCreated(e)
-			case e := <-mouseStateUpdated:
-				game.OnMouseStateUpdated(e)
-			case _, ok := <-screenSizeUpdated:
-				if !ok {
-					screenSizeUpdated = nil
+			case e := <-textureFactoryEvents:
+				game.HandleEvent(e)
+			case e := <-windowEvents:
+				if _, ok := e.(ui.WindowClosedEvent); ok {
+					return
 				}
-			case <-windowClosed:
-				return
+				game.HandleEvent(e)
 			case <-tick:
 				game.Update()
 			case context := <-drawing:
@@ -97,7 +90,7 @@ func main() {
 	}()
 
 	for {
-		ui.PollEvents()
+		u.PollEvents()
 		select {
 		default:
 			drawing <- graphics.NewLazyContext()
@@ -107,7 +100,7 @@ func main() {
 				context.Flush(actualContext)
 			})
 			after := time.After(time.Duration(int64(time.Second) / 120))
-			ui.PollEvents()
+			u.PollEvents()
 			<-after
 		case <-quit:
 			return

@@ -60,22 +60,21 @@ func NewGame() *Game {
 	}
 }
 
-func (game *Game) OnTextureCreated(e graphics.TextureCreatedEvent) {
-	if e.Error != nil {
-		panic(e.Error)
+func (game *Game) HandleEvent(e interface{}) {
+	switch e := e.(type) {
+	case graphics.TextureCreatedEvent:
+		if e.Error != nil {
+			panic(e.Error)
+		}
+		game.textures[e.Tag.(string)] = e.Id
+	case graphics.RenderTargetCreatedEvent:
+		if e.Error != nil {
+			panic(e.Error)
+		}
+		game.renderTargets[e.Tag.(string)] = e.Id
+	case ui.MouseStateUpdatedEvent:
+		game.mouseX, game.mouseY = e.X, e.Y
 	}
-	game.textures[e.Tag.(string)] = e.Id
-}
-
-func (game *Game) OnRenderTargetCreated(e graphics.RenderTargetCreatedEvent) {
-	if e.Error != nil {
-		panic(e.Error)
-	}
-	game.renderTargets[e.Tag.(string)] = e.Id
-}
-
-func (game *Game) OnMouseStateUpdated(e ui.MouseStateUpdatedEvent) {
-	game.mouseX, game.mouseY = e.X, e.Y
 }
 
 func (game *Game) isInitialized() bool {

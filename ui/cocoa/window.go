@@ -31,7 +31,7 @@ type Window struct {
 	context      *opengl.Context
 	funcs        chan func()
 	funcsDone    chan struct{}
-	windowEvents
+	events       chan interface{}
 }
 
 var windows = map[unsafe.Pointer]*Window{}
@@ -95,6 +95,23 @@ func (w *Window) Draw(f func(graphics.Context)) {
 func (w *Window) useGLContext(f func()) {
 	w.funcs <- f
 	<-w.funcsDone
+}
+
+func (w *Window) Events() <-chan interface{} {
+	if w.events != nil {
+		return w.events
+	}
+	w.events = make(chan interface{})
+	return w.events
+}
+
+func (w *Window) notify(e interface{}) {
+	if w.events == nil {
+		return
+	}
+	go func() {
+		w.events <- e
+	}()
 }
 
 /*//export ebiten_ScreenSizeUpdated

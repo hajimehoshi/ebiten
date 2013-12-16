@@ -14,7 +14,6 @@ type textureFactory struct {
 	sharedContext unsafe.Pointer
 	funcs         chan func()
 	funcsDone     chan struct{}
-	textureFactoryEvents
 }
 
 func runTextureFactory() *textureFactory {

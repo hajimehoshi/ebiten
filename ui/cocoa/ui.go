@@ -16,6 +16,7 @@ import (
 
 type cocoaUI struct {
 	textureFactory *textureFactory
+	textureFactoryEvents chan interface{}
 	graphicsDevice *opengl.Device
 }
 
@@ -54,12 +55,12 @@ func (u *cocoaUI) PollEvents() {
 	C.PollEvents()
 }
 
-func (u *cocoaUI) TextureCreated() <-chan graphics.TextureCreatedEvent {
-	return u.textureFactory.TextureCreated()
-}
-
-func (u *cocoaUI) RenderTargetCreated() <-chan graphics.RenderTargetCreatedEvent {
-	return u.textureFactory.RenderTargetCreated()
+func (u *cocoaUI) Events() <-chan interface{} {
+	if u.textureFactoryEvents != nil {
+		return u.textureFactoryEvents
+	}
+	u.textureFactoryEvents = make(chan interface{})
+	return u.textureFactoryEvents
 }
 
 func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image) {
@@ -74,7 +75,7 @@ func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image) {
 			Id:    id,
 			Error: err,
 		}
-		u.textureFactory.notifyTextureCreated(e)
+		u.textureFactoryEvents <- e
 	}()
 }
 
@@ -90,6 +91,6 @@ func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
 			Id:    id,
 			Error: err,
 		}
-		u.textureFactory.notifyRenderTargetCreated(e)
+		u.textureFactoryEvents <- e
 	}()
 }

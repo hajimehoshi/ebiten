@@ -35,13 +35,7 @@ type UI interface {
 	CreateWindow(screenWidth, screenHeight, screenScale int, title string) Window
 }
 
-type WindowEvents interface {
-	ScreenSizeUpdated() <-chan ScreenSizeUpdatedEvent
-	MouseStateUpdated() <-chan MouseStateUpdatedEvent
-	WindowClosed() <-chan WindowClosedEvent
-}
-
 type Window interface {
 	Draw(func(graphics.Context))
-	WindowEvents
+	Events() <-chan interface{}
 }

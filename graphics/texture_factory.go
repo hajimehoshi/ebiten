@@ -16,13 +16,8 @@ type RenderTargetCreatedEvent struct {
 	Error error
 }
 
-type TextureFactoryEvents interface {
-	TextureCreated() <-chan TextureCreatedEvent
-	RenderTargetCreated() <-chan RenderTargetCreatedEvent
-}
-
 type TextureFactory interface {
 	CreateRenderTarget(tag interface{}, width, height int)
 	CreateTexture(tag interface{}, img image.Image)
-	TextureFactoryEvents
+	Events() <-chan interface{}
 }
