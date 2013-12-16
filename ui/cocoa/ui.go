@@ -70,6 +70,9 @@ func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image) {
 		u.textureFactory.useGLContext(func() {
 			id, err = u.graphicsDevice.CreateTexture(img)
 		})
+		if u.textureFactoryEvents == nil {
+			return
+		}
 		e := graphics.TextureCreatedEvent{
 			Tag:   tag,
 			Id:    id,
@@ -86,6 +89,9 @@ func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
 		u.textureFactory.useGLContext(func() {
 			id, err = u.graphicsDevice.CreateRenderTarget(width, height)
 		})
+		if u.textureFactoryEvents == nil {
+			return
+		}
 		e := graphics.RenderTargetCreatedEvent{
 			Tag:   tag,
 			Id:    id,
