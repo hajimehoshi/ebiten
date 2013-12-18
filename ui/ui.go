@@ -11,9 +11,10 @@ const (
 	KeyDown
 	KeyLeft
 	KeyRight
+	KeySpace
 )
 
-type ScreenSizeUpdatedEvent struct {
+type WindowSizeUpdatedEvent struct {
 	Width  int
 	Height int
 }

@@ -1,9 +1,5 @@
 package graphics
 
-import (
-	"image/color"
-)
-
 type Rect struct {
 	X      int
 	Y      int
@@ -17,11 +13,12 @@ type TexturePart struct {
 	Source    Rect
 }
 
-type Line struct {
-	X1, Y1 int
-	X2, Y2 int
-	Color  color.Color
-}
+type Filter int
+
+const (
+	FilterNearest Filter = iota
+	FilterLinear
+)
 
 type TextureId int
 

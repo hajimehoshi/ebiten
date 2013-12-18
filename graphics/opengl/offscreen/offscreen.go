@@ -63,10 +63,6 @@ func (o *Offscreen) DrawTextureParts(texture *gtexture.Texture,
 	texture.DrawParts(parts, &drawable{o, geometryMatrix, colorMatrix})
 }
 
-func (o *Offscreen) DrawLines(lines []graphics.Line) {
-	// TODO: Implement!
-}
-
 type setter struct {
 	offscreen            *Offscreen
 	usingMainFramebuffer bool

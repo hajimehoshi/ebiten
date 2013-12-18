@@ -15,9 +15,9 @@ import (
 )
 
 type cocoaUI struct {
-	textureFactory *textureFactory
+	textureFactory       *textureFactory
 	textureFactoryEvents chan interface{}
-	graphicsDevice *opengl.Device
+	graphicsDevice       *opengl.Device
 }
 
 var currentUI *cocoaUI
@@ -63,12 +63,12 @@ func (u *cocoaUI) Events() <-chan interface{} {
 	return u.textureFactoryEvents
 }
 
-func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image) {
+func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
 	go func() {
 		var id graphics.TextureId
 		var err error
 		u.textureFactory.useGLContext(func() {
-			id, err = u.graphicsDevice.CreateTexture(img)
+			id, err = u.graphicsDevice.CreateTexture(img, filter)
 		})
 		if u.textureFactoryEvents == nil {
 			return

@@ -18,6 +18,6 @@ type RenderTargetCreatedEvent struct {
 
 type TextureFactory interface {
 	CreateRenderTarget(tag interface{}, width, height int)
-	CreateTexture(tag interface{}, img image.Image)
+	CreateTexture(tag interface{}, img image.Image, filter Filter)
 	Events() <-chan interface{}
 }

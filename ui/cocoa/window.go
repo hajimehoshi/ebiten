@@ -114,12 +114,13 @@ func (w *Window) notify(e interface{}) {
 	}()
 }
 
-/*//export ebiten_ScreenSizeUpdated
-func ebiten_ScreenSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
-	u := currentUI
-	e := ui.ScreenSizeUpdatedEvent{width, height}
-	u.windowEvents.notifyScreenSizeUpdated(e)
-}*/
+// Now this function is not used anywhere.
+//export ebiten_WindowSizeUpdated
+func ebiten_WindowSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
+	w := windows[nativeWindow]
+	e := ui.WindowSizeUpdatedEvent{width, height}
+	w.notify(e)
+}
 
 func (w *Window) keyStateUpdatedEvent() ui.KeyStateUpdatedEvent {
 	keys := []ui.Key{}
@@ -132,6 +133,7 @@ func (w *Window) keyStateUpdatedEvent() ui.KeyStateUpdatedEvent {
 }
 
 var cocoaKeyCodeToKey = map[int]ui.Key{
+	49:  ui.KeySpace,
 	123: ui.KeyLeft,
 	124: ui.KeyRight,
 	125: ui.KeyUp,

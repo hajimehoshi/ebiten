@@ -2,7 +2,6 @@ package opengl
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	"image"
 )
 
@@ -26,13 +25,13 @@ func (d *Device) Update(context *Context, draw func(graphics.Context)) {
 }
 
 func (d *Device) CreateRenderTarget(width, height int) (graphics.RenderTargetId, error) {
-	renderTargetId, err := d.ids.CreateRenderTarget(width, height, texture.FilterLinear)
+	renderTargetId, err := d.ids.CreateRenderTarget(width, height, graphics.FilterLinear)
 	if err != nil {
 		return 0, err
 	}
 	return renderTargetId, nil
 }
 
-func (d *Device) CreateTexture(img image.Image) (graphics.TextureId, error) {
-	return d.ids.CreateTextureFromImage(img)
+func (d *Device) CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureId, error) {
+	return d.ids.CreateTexture(img, filter)
 }

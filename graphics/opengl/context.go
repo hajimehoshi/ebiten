@@ -9,7 +9,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	"math"
 )
 
@@ -29,10 +28,11 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 
 	var err error
 	context.screenId, err = ids.CreateRenderTarget(
-		screenWidth, screenHeight, texture.FilterNearest)
+		screenWidth, screenHeight, graphics.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
+	context.Clear()
 
 	return context
 }
@@ -96,10 +96,6 @@ func (context *Context) DrawRenderTargetParts(
 	id graphics.RenderTargetId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	context.DrawTextureParts(context.ids.ToTexture(id), parts, geometryMatrix, colorMatrix)
-}
-
-func (context *Context) DrawLines(lines []graphics.Line) {
-	context.offscreen.DrawLines(lines)
 }
 
 func (context *Context) ResetOffscreen() {

@@ -36,7 +36,7 @@ func AdjustImage(img image.Image) *image.NRGBA {
 			AdjustSize(height),
 		},
 	}
-	if nrgba := img.(*image.NRGBA); nrgba != nil &&
+	if nrgba, ok := img.(*image.NRGBA); ok &&
 		img.Bounds() == adjustedImageBounds {
 		return nrgba
 	}

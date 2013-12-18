@@ -5,6 +5,7 @@ package rendertarget
 // #include <OpenGL/gl.h>
 import "C"
 import (
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 )
@@ -43,7 +44,7 @@ func (f *framebufferCreator) Create(native interface{}) interface{} {
 	return createFramebuffer(C.GLuint(native.(texture.Native)))
 }
 
-func Create(width, height int, filter texture.Filter) (
+func Create(width, height int, filter graphics.Filter) (
 	*gtexture.RenderTarget, *gtexture.Texture, error) {
 	tex, err := texture.Create(width, height, filter)
 	if err != nil {

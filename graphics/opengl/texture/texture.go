@@ -5,6 +5,7 @@ package texture
 // #include <OpenGL/gl.h>
 import "C"
 import (
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"unsafe"
@@ -12,15 +13,8 @@ import (
 
 type Native C.GLuint
 
-type Filter int
-
-const (
-	FilterLinear Filter = iota
-	FilterNearest
-)
-
 func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
-	filter Filter) Native {
+	filter graphics.Filter) Native {
 	nativeTexture := C.GLuint(0)
 
 	C.glGenTextures(1, (*C.GLuint)(&nativeTexture))
@@ -33,9 +27,9 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 
 	glFilter := C.GLint(0)
 	switch filter {
-	case FilterLinear:
+	case graphics.FilterLinear:
 		glFilter = C.GL_LINEAR
-	case FilterNearest:
+	case graphics.FilterNearest:
 		glFilter = C.GL_NEAREST
 	default:
 		panic("not reached")
@@ -54,17 +48,12 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	return Native(nativeTexture)
 }
 
-func create(textureWidth, textureHeight int, filter Filter) (
+func create(textureWidth, textureHeight int, filter graphics.Filter) (
 	interface{}, error) {
 	return createNativeTexture(textureWidth, textureHeight, nil, filter), nil
 }
 
-func createFromImage(img *image.NRGBA) (interface{}, error) {
-	size := img.Bounds().Size()
-	return createNativeTexture(size.X, size.Y, img.Pix, FilterLinear), nil
-}
-
-func Create(width, height int, filter Filter) (*gtexture.Texture, error) {
+func Create(width, height int, filter graphics.Filter) (*gtexture.Texture, error) {
 	native, err := create(gtexture.AdjustSize(width),
 		gtexture.AdjustSize(height), filter)
 	if err != nil {
@@ -73,11 +62,9 @@ func Create(width, height int, filter Filter) (*gtexture.Texture, error) {
 	return gtexture.New(native, width, height), nil
 }
 
-func CreateFromImage(img image.Image) (*gtexture.Texture, error) {
-	native, err := createFromImage(gtexture.AdjustImage(img))
-	if err != nil {
-		return nil, err
-	}
-	size := img.Bounds().Size()
+func CreateFromImage(img image.Image, filter graphics.Filter) (*gtexture.Texture, error) {
+	adjustedImage := gtexture.AdjustImage(img)
+	size := adjustedImage.Bounds().Size()
+	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return gtexture.New(native, size.X, size.Y), nil
 }

@@ -50,9 +50,9 @@ func (i *ids) ToTexture(id graphics.RenderTargetId) graphics.TextureId {
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) CreateTextureFromImage(img image.Image) (
+func (i *ids) CreateTexture(img image.Image, filter graphics.Filter) (
 	graphics.TextureId, error) {
-	texture, err := texture.CreateFromImage(img)
+	texture, err := texture.CreateFromImage(img, filter)
 	if err != nil {
 		return 0, err
 	}
@@ -64,7 +64,7 @@ func (i *ids) CreateTextureFromImage(img image.Image) (
 	return textureId, nil
 }
 
-func (i *ids) CreateRenderTarget(width, height int, filter texture.Filter) (
+func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 	graphics.RenderTargetId, error) {
 	renderTarget, texture, err := rendertarget.Create(width, height, filter)
 	if err != nil {
