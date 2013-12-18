@@ -58,15 +58,28 @@ func Monochrome() Color {
 	}
 }
 
-func (matrix *Color) Scale(clr color.Color) {
+func rgba(clr color.Color) (float64, float64, float64, float64) {
 	r, g, b, a := clr.RGBA()
 	rf := float64(r) / float64(math.MaxUint16)
 	gf := float64(g) / float64(math.MaxUint16)
 	bf := float64(b) / float64(math.MaxUint16)
 	af := float64(a) / float64(math.MaxUint16)
+	return rf, gf, bf, af
+}
+
+func (matrix *Color) Scale(clr color.Color) {
+	rf, gf, bf, af := rgba(clr)
 	for i, e := range []float64{rf, gf, bf, af} {
 		for j := 0; j < 4; j++ {
 			matrix.Elements[i][j] *= e
 		}
 	}
+}
+
+func (matrix *Color) Translate(clr color.Color) {
+	rf, gf, bf, af := rgba(clr)
+	matrix.Elements[0][4] = rf
+	matrix.Elements[1][4] = gf
+	matrix.Elements[2][4] = bf
+	matrix.Elements[3][4] = af
 }

@@ -12,6 +12,7 @@ const (
 	KeyLeft
 	KeyRight
 	KeySpace
+	KeyMax
 )
 
 type WindowSizeUpdatedEvent struct {

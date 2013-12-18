@@ -1,7 +1,6 @@
 package blocks
 
 import (
-	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"image"
@@ -14,18 +13,13 @@ type Size struct {
 	Height int
 }
 
-var texturePaths = map[string]string{
-	"background": "images/blocks/background.png",
-	"font":       "images/blocks/font.png",
-}
-
-var renderTargetSizes = map[string]Size{
-	"whole": Size{256, 254},
-}
-
 const ScreenWidth = 256
 const ScreenHeight = 240
 
+var texturePaths = map[string]string{}
+var renderTargetSizes = map[string]Size{}
+
+// TODO: Make this not a global variable.
 var drawInfo = struct {
 	textures      map[string]graphics.TextureId
 	renderTargets map[string]graphics.RenderTargetId
@@ -34,8 +28,14 @@ var drawInfo = struct {
 	renderTargets: map[string]graphics.RenderTargetId{},
 }
 
+type GameState struct {
+	SceneManager *SceneManager
+	Input        *Input
+}
+
 type Game struct {
 	sceneManager *SceneManager
+	input        *Input
 }
 
 func loadImage(path string) (image.Image, error) {
@@ -77,6 +77,7 @@ func (game *Game) startLoadingTextures(textureFactory graphics.TextureFactory) {
 func NewGame(textureFactory graphics.TextureFactory) *Game {
 	game := &Game{
 		sceneManager: NewSceneManager(NewTitleScene()),
+		input:        NewInput(),
 	}
 	game.startLoadingTextures(textureFactory)
 	return game
@@ -95,7 +96,7 @@ func (game *Game) HandleEvent(e interface{}) {
 		}
 		drawInfo.renderTargets[e.Tag.(string)] = e.Id
 	case ui.KeyStateUpdatedEvent:
-		fmt.Printf("%v\n", e.Keys)
+		game.input.UpdateKeys(e.Keys)
 	case ui.MouseStateUpdatedEvent:
 	}
 }
@@ -114,7 +115,11 @@ func (game *Game) Update() {
 	if !game.isInitialized() {
 		return
 	}
-	game.sceneManager.Update()
+	game.input.Update()
+	game.sceneManager.Update(&GameState{
+		SceneManager: game.sceneManager,
+		Input:        game.input,
+	})
 }
 
 func (game *Game) Draw(context graphics.Context) {
@@ -123,36 +128,3 @@ func (game *Game) Draw(context graphics.Context) {
 	}
 	game.sceneManager.Draw(context)
 }
-
-/*func (game *Game) drawText(g graphics.Context, text string, x, y int, clr color.Color) {
-	const letterWidth = 6
-	const letterHeight = 16
-
-	parts := []graphics.TexturePart{}
-	textX := 0
-	textY := 0
-	for _, c := range text {
-		if c == '\n' {
-			textX = 0
-			textY += letterHeight
-			continue
-		}
-		code := int(c)
-		x := (code % 32) * letterWidth
-		y := (code / 32) * letterHeight
-		source := graphics.Rect{x, y, letterWidth, letterHeight}
-		parts = append(parts, graphics.TexturePart{
-			LocationX: textX,
-			LocationY: textY,
-			Source:    source,
-		})
-		textX += letterWidth
-	}
-
-	geometryMatrix := matrix.IdentityGeometry()
-	geometryMatrix.Translate(float64(x), float64(y))
-	colorMatrix := matrix.IdentityColor()
-	colorMatrix.Scale(clr)
-	g.DrawTextureParts(drawInfo.textures["text"], parts,
-		geometryMatrix, colorMatrix)
-}*/

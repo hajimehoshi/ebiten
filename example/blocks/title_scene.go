@@ -3,8 +3,13 @@ package blocks
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image/color"
 )
+
+func init() {
+	texturePaths["background"] = "images/blocks/background.png"
+}
 
 type TitleScene struct {
 	count int
@@ -14,13 +19,21 @@ func NewTitleScene() *TitleScene {
 	return &TitleScene{}
 }
 
-func (s *TitleScene) Update(state GameState) {
+func (s *TitleScene) Update(state *GameState) {
 	s.count++
+	if state.Input.StateForKey(ui.KeySpace) == 1 {
+		state.SceneManager.GoTo(NewGameScene())
+	}
 }
 
 func (s *TitleScene) Draw(context graphics.Context) {
 	drawTitleBackground(context, s.count)
 	drawLogo(context, "BLOCKS")
+
+	message := "PRESS SPACE TO START"
+	x := (ScreenWidth-textWidth(message)) / 2
+	y := ScreenHeight-48
+	drawTextWithShadow(context, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
 func drawTitleBackground(context graphics.Context, c int) {
@@ -32,50 +45,25 @@ func drawTitleBackground(context graphics.Context, c int) {
 	for j := -1; j < ScreenHeight/textureHeight+1; j++ {
 		for i := 0; i < ScreenWidth/textureWidth+1; i++ {
 			parts = append(parts, graphics.TexturePart{
-				LocationX: i*textureWidth,
-				LocationY: j*textureHeight,
+				LocationX: i * textureWidth,
+				LocationY: j * textureHeight,
 				Source:    graphics.Rect{0, 0, textureWidth, textureHeight},
 			})
 		}
 	}
 
-	dx := -c % textureWidth / 2
-	dy := c % textureHeight / 2
+	dx := (-c/4) % textureWidth
+	dy := (c/4) % textureHeight
 	geo := matrix.IdentityGeometry()
 	geo.Translate(float64(dx), float64(dy))
-	context.DrawTextureParts(backgroundTextureId, parts, geo, matrix.IdentityColor())
+	clr := matrix.IdentityColor()
+	context.DrawTextureParts(backgroundTextureId, parts, geo, clr)
 }
 
 func drawLogo(context graphics.Context, str string) {
-	const charWidth = 8
-	const charHeight = 8
-	
-	fontTextureId := drawInfo.textures["font"]
-	parts := []graphics.TexturePart{}
-	
-	locationX := 0
-	locationY := 0
-	for _, c := range str {
-		if c == '\n' {
-			locationX = 0
-			locationY += charHeight
-			continue
-		}
-		code := int(c)
-		x := (code % 16) * charWidth
-		y := ((code - 32) / 16) * charHeight
-		parts = append(parts, graphics.TexturePart{
-			LocationX: locationX,
-			LocationY: locationY,
-			Source: graphics.Rect{x, y, charWidth, charHeight},
-		})
-		locationX += charWidth
-	}
-
-	geo := matrix.IdentityGeometry()
-	geo.Scale(4, 4)
-	clr := matrix.IdentityColor()
-	
-	clr.Scale(color.RGBA{0x00, 0x00, 0x60, 0xff})
-	context.DrawTextureParts(fontTextureId, parts, geo, clr)
+	scale := 4
+	textWidth := textWidth(str) * scale
+	x := (ScreenWidth - textWidth) / 2
+	y := 32
+	drawTextWithShadow(context, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
 }
