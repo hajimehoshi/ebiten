@@ -20,7 +20,7 @@ func (f *Field) IsBlocked(x, y int) bool {
 	if y < 0 {
 		return false
 	}
-	if fieldBlockNumX <= y {
+	if fieldBlockNumY <= y {
 		return true
 	}
 	return f.blocks[x][y] != BlockTypeNone
@@ -42,6 +42,13 @@ func (f *Field) MovePieceToRight(piece *Piece, x, y int, angle Angle) int {
 		return x
 	}
 	return x + 1
+}
+
+func (f *Field) DropPiece(piece *Piece, x, y int, angle Angle) int {
+	if f.collides(piece, x, y+1, angle) {
+		return y
+	}
+	return y + 1
 }
 
 func (f *Field) RotatePieceRight(piece *Piece, x, y int, angle Angle) Angle {

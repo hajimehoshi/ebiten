@@ -136,8 +136,8 @@ var cocoaKeyCodeToKey = map[int]ui.Key{
 	49:  ui.KeySpace,
 	123: ui.KeyLeft,
 	124: ui.KeyRight,
-	125: ui.KeyUp,
-	126: ui.KeyDown,
+	125: ui.KeyDown,
+	126: ui.KeyUp,
 }
 
 //export ebiten_KeyDown

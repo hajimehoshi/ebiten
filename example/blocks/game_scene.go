@@ -36,9 +36,8 @@ const fieldWidth = blockWidth * fieldBlockNumX
 const fieldHeight = blockHeight * fieldBlockNumY
 
 func (s *GameScene) choosePiece() *Piece {
-	//num := NormalBlockTypeNum
-	//blockType := BlockType(s.rand.Intn(num) + 1)
-	blockType := BlockType1
+	num := NormalBlockTypeNum
+	blockType := BlockType(s.rand.Intn(num) + 1)
 	return Pieces[blockType]
 }
 
@@ -55,15 +54,21 @@ func (s *GameScene) Update(state *GameState) {
 			s.currentPiece, s.currentPieceX, s.currentPieceY,
 			s.currentPieceAngle)
 	}
-	l := state.Input.StateForKey(ui.KeyLeft)
-	if l == 1 || (10 <= l && l % 2 == 0) {
+	if l := state.Input.StateForKey(ui.KeyLeft);
+	l == 1 || (10 <= l && l % 2 == 0) {
 		s.currentPieceX = s.field.MovePieceToLeft(
 			s.currentPiece, s.currentPieceX, s.currentPieceY,
 			s.currentPieceAngle)
 	}
-	r := state.Input.StateForKey(ui.KeyRight)
-	if r == 1 || (10 <= r && r % 2 == 0) {
+	if r := state.Input.StateForKey(ui.KeyRight);
+	r == 1 || (10 <= r && r % 2 == 0) {
 		s.currentPieceX = s.field.MovePieceToRight(
+			s.currentPiece, s.currentPieceX, s.currentPieceY,
+			s.currentPieceAngle)
+	}
+	if d := state.Input.StateForKey(ui.KeyDown);
+	(d - 1) % 2 == 0 {
+		s.currentPieceY = s.field.DropPiece(
 			s.currentPiece, s.currentPieceX, s.currentPieceY,
 			s.currentPieceAngle)
 	}
