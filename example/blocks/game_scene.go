@@ -3,6 +3,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/ui"
 	"image/color"
 	"math/rand"
 	"time"
@@ -13,10 +14,13 @@ func init() {
 }
 
 type GameScene struct {
-	field        *Field
-	rand         *rand.Rand
-	currentPiece *Piece
-	nextPiece    *Piece
+	field             *Field
+	rand              *rand.Rand
+	currentPiece      *Piece
+	currentPieceX     int
+	currentPieceY     int
+	currentPieceAngle Angle
+	nextPiece         *Piece
 }
 
 func NewGameScene() *GameScene {
@@ -32,15 +36,36 @@ const fieldWidth = blockWidth * fieldBlockNumX
 const fieldHeight = blockHeight * fieldBlockNumY
 
 func (s *GameScene) choosePiece() *Piece {
-	// Omit BlockTypeNone.
-	num := int(BlockTypeMax) - 1
-	blockType := BlockType(s.rand.Intn(num) + 1)
+	//num := NormalBlockTypeNum
+	//blockType := BlockType(s.rand.Intn(num) + 1)
+	blockType := BlockType1
 	return Pieces[blockType]
 }
 
 func (s *GameScene) Update(state *GameState) {
 	if s.currentPiece == nil {
 		s.currentPiece = s.choosePiece()
+		x, y := s.currentPiece.InitialPosition()
+		s.currentPieceX = x
+		s.currentPieceY = y
+		s.currentPieceAngle = Angle0
+	}
+	if state.Input.StateForKey(ui.KeySpace) == 1 {
+		s.currentPieceAngle = s.field.RotatePieceRight(
+			s.currentPiece, s.currentPieceX, s.currentPieceY,
+			s.currentPieceAngle)
+	}
+	l := state.Input.StateForKey(ui.KeyLeft)
+	if l == 1 || (10 <= l && l % 2 == 0) {
+		s.currentPieceX = s.field.MovePieceToLeft(
+			s.currentPiece, s.currentPieceX, s.currentPieceY,
+			s.currentPieceAngle)
+	}
+	r := state.Input.StateForKey(ui.KeyRight)
+	if r == 1 || (10 <= r && r % 2 == 0) {
+		s.currentPieceX = s.field.MovePieceToRight(
+			s.currentPiece, s.currentPieceX, s.currentPieceY,
+			s.currentPieceAngle)
 	}
 }
 
@@ -49,8 +74,8 @@ func (s *GameScene) Draw(context graphics.Context) {
 
 	field := drawInfo.textures["empty"]
 	geoMat := matrix.IdentityGeometry()
-	geoMat.Scale(float64(fieldWidth) / float64(emptyWidth),
-		float64(fieldHeight) / float64(emptyHeight))
+	geoMat.Scale(float64(fieldWidth)/float64(emptyWidth),
+		float64(fieldHeight)/float64(emptyHeight))
 	geoMat.Translate(20, 20) // magic number?
 	colorMat := matrix.IdentityColor()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
@@ -61,6 +86,7 @@ func (s *GameScene) Draw(context graphics.Context) {
 	s.field.Draw(context, geoMat)
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(context, geoMat)
+		s.currentPiece.Draw(context, 20, 20,
+			s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
 	}
 }
