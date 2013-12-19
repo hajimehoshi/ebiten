@@ -44,6 +44,10 @@ func (f *Field) MovePieceToRight(piece *Piece, x, y int, angle Angle) int {
 	return x + 1
 }
 
+func (f *Field) PieceDroppable(piece *Piece, x, y int, angle Angle) bool {
+	return !f.collides(piece, x, y+1, angle)
+}
+
 func (f *Field) DropPiece(piece *Piece, x, y int, angle Angle) int {
 	if f.collides(piece, x, y+1, angle) {
 		return y

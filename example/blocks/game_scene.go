@@ -21,6 +21,7 @@ type GameScene struct {
 	currentPieceY     int
 	currentPieceAngle Angle
 	nextPiece         *Piece
+	landingCount      int
 }
 
 func NewGameScene() *GameScene {
@@ -42,6 +43,8 @@ func (s *GameScene) choosePiece() *Piece {
 }
 
 func (s *GameScene) Update(state *GameState) {
+	const maxLandingCount = 30
+
 	if s.currentPiece == nil {
 		s.currentPiece = s.choosePiece()
 		x, y := s.currentPiece.InitialPosition()
@@ -49,28 +52,44 @@ func (s *GameScene) Update(state *GameState) {
 		s.currentPieceY = y
 		s.currentPieceAngle = Angle0
 	}
+	piece := s.currentPiece
+	x := s.currentPieceX
+	y := s.currentPieceY
+	angle := s.currentPieceAngle
+	moved := false
 	if state.Input.StateForKey(ui.KeySpace) == 1 {
-		s.currentPieceAngle = s.field.RotatePieceRight(
-			s.currentPiece, s.currentPieceX, s.currentPieceY,
-			s.currentPieceAngle)
+		orig := angle
+		s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
+		moved = orig != angle
 	}
 	if l := state.Input.StateForKey(ui.KeyLeft);
 	l == 1 || (10 <= l && l % 2 == 0) {
-		s.currentPieceX = s.field.MovePieceToLeft(
-			s.currentPiece, s.currentPieceX, s.currentPieceY,
-			s.currentPieceAngle)
+		orig := x
+		s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
+		moved = orig != x
 	}
 	if r := state.Input.StateForKey(ui.KeyRight);
 	r == 1 || (10 <= r && r % 2 == 0) {
-		s.currentPieceX = s.field.MovePieceToRight(
-			s.currentPiece, s.currentPieceX, s.currentPieceY,
-			s.currentPieceAngle)
+		orig := y
+		s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
+		moved = orig != y
 	}
 	if d := state.Input.StateForKey(ui.KeyDown);
 	(d - 1) % 2 == 0 {
-		s.currentPieceY = s.field.DropPiece(
-			s.currentPiece, s.currentPieceX, s.currentPieceY,
-			s.currentPieceAngle)
+		orig := y
+		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
+		moved = orig != y
+	}
+	if moved {
+		s.landingCount = 0
+	} else if !s.field.PieceDroppable(piece, x, y, angle) {
+		s.landingCount++
+		if maxLandingCount <= s.landingCount {
+			print("landing!\n")
+			// TODO: implement
+			s.currentPiece = nil
+			s.landingCount = 0
+		}
 	}
 }
 
