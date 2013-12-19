@@ -42,15 +42,22 @@ func (s *GameScene) choosePiece() *Piece {
 	return Pieces[blockType]
 }
 
+func (s *GameScene) initCurrentPiece(piece *Piece) {
+	s.currentPiece = piece
+	x, y := s.currentPiece.InitialPosition()
+	s.currentPieceX = x
+	s.currentPieceY = y
+	s.currentPieceAngle = Angle0
+}
+
 func (s *GameScene) Update(state *GameState) {
-	const maxLandingCount = 30
+	const maxLandingCount = 60
 
 	if s.currentPiece == nil {
-		s.currentPiece = s.choosePiece()
-		x, y := s.currentPiece.InitialPosition()
-		s.currentPieceX = x
-		s.currentPieceY = y
-		s.currentPieceAngle = Angle0
+		s.initCurrentPiece(s.choosePiece())
+	}
+	if s.nextPiece == nil {
+		s.nextPiece = s.choosePiece()
 	}
 	piece := s.currentPiece
 	x := s.currentPieceX
@@ -58,36 +65,36 @@ func (s *GameScene) Update(state *GameState) {
 	angle := s.currentPieceAngle
 	moved := false
 	if state.Input.StateForKey(ui.KeySpace) == 1 {
-		orig := angle
 		s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
-		moved = orig != angle
+		moved = angle != s.currentPieceAngle
 	}
 	if l := state.Input.StateForKey(ui.KeyLeft);
 	l == 1 || (10 <= l && l % 2 == 0) {
-		orig := x
 		s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
-		moved = orig != x
+		moved = x != s.currentPieceX
 	}
 	if r := state.Input.StateForKey(ui.KeyRight);
 	r == 1 || (10 <= r && r % 2 == 0) {
-		orig := y
 		s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
-		moved = orig != y
+		moved = y != s.currentPieceX
 	}
 	if d := state.Input.StateForKey(ui.KeyDown);
 	(d - 1) % 2 == 0 {
-		orig := y
 		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
-		moved = orig != y
+		moved = y != s.currentPieceY
 	}
 	if moved {
 		s.landingCount = 0
 	} else if !s.field.PieceDroppable(piece, x, y, angle) {
-		s.landingCount++
+		if 0 < state.Input.StateForKey(ui.KeyDown) {
+			s.landingCount += 10
+		} else {
+			s.landingCount++
+		}
 		if maxLandingCount <= s.landingCount {
-			print("landing!\n")
-			// TODO: implement
-			s.currentPiece = nil
+			s.field.AbsorbPiece(piece, x, y, angle)
+			s.initCurrentPiece(s.nextPiece)
+			s.nextPiece = nil
 			s.landingCount = 0
 		}
 	}

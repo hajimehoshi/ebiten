@@ -193,6 +193,18 @@ func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 	return false
 }
 
+func (p *Piece) absorbInto(field *Field, x, y int, angle Angle) {
+	size := len(p.blocks)
+	for i := 0; i < size; i++ {
+		for j := 0; j < size; j++ {
+			if p.isBlocked(i, j, angle) {
+				// TODO: Is it OK to access field.block directly?
+				field.blocks[x+i][y+j] = p.blockType
+			}
+		}
+	}
+}
+
 func (p *Piece) Draw(context graphics.Context, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)

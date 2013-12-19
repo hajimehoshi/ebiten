@@ -62,6 +62,11 @@ func (f *Field) RotatePieceRight(piece *Piece, x, y int, angle Angle) Angle {
 	return angle.RotateRight()
 }
 
+
+func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) {
+	piece.absorbInto(f, x, y, angle)
+}
+
 func (f *Field) Draw(context graphics.Context, geo matrix.Geometry) {
 	blocks := make([][]BlockType, len(f.blocks))
 	for i, blockCol := range f.blocks {
