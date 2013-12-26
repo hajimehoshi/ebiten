@@ -193,7 +193,7 @@ func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 	return false
 }
 
-func (p *Piece) absorbInto(field *Field, x, y int, angle Angle) {
+func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	size := len(p.blocks)
 	for i := 0; i < size; i++ {
 		for j := 0; j < size; j++ {
