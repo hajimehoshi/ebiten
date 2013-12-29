@@ -2,9 +2,9 @@
 
 #import "ebiten_window.h"
 
-#include <OpenGL/gl.h>
-
 #import "ebiten_content_view.h"
+
+@class NSOpenGLContext;
 
 void ebiten_WindowClosed(void* nativeWindow);
 
@@ -16,6 +16,7 @@ void ebiten_WindowClosed(void* nativeWindow);
 - (id)initWithSize:(NSSize)size
          glContext:(NSOpenGLContext*)glContext {
   self->glContext_ = glContext;
+  [self->glContext_ retain];
 
   NSUInteger style = (NSTitledWindowMask | NSClosableWindowMask |
                       NSMiniaturizableWindowMask);
@@ -35,14 +36,16 @@ void ebiten_WindowClosed(void* nativeWindow);
                           styleMask:style
                             backing:NSBackingStoreBuffered
                               defer:YES];
-  assert(self != nil);
-  [self setReleasedWhenClosed:YES];
-  [self setDelegate:self];
-  [self setDocumentEdited:YES];
+  if (self != nil) {
+    [self setReleasedWhenClosed:YES];
+    [self setDelegate:self];
+    [self setDocumentEdited:YES];
 
-  NSRect rect = NSMakeRect(0, 0, size.width, size.height);
-  NSView* contentView = [[EbitenContentView alloc] initWithFrame:rect];
-  [self setContentView:contentView];
+    NSRect rect = NSMakeRect(0, 0, size.width, size.height);
+    NSView* contentView = [[EbitenContentView alloc] initWithFrame:rect];
+    [self setContentView:contentView];
+    [contentView release];
+  }
 
   return self;
 }

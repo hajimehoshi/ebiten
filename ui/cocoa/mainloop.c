@@ -54,11 +54,15 @@ void* CreateWindow(size_t width, size_t height, const char* title, void* glConte
   EbitenWindow* window = [[EbitenWindow alloc]
                             initWithSize:size
                                glContext:glContext];
-  [window setTitle: [[NSString alloc]
-                      initWithUTF8String:title]];
+  NSString* nsTitle = [[NSString alloc]
+                      initWithUTF8String:title];
+  [window setTitle: nsTitle];
+  [nsTitle release];
+
   [window makeKeyAndOrderFront:nil];
 
-  [(NSOpenGLContext*)glContext setView:[window contentView]];
+  [glContext setView:[window contentView]];
+  [glContext release];
 
   return window;
 }
