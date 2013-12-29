@@ -10,12 +10,16 @@ void initMenu(void) {
 
   NSMenu* menuBar = [NSMenu new];
   [NSApp setMainMenu: menuBar];
+  [menuBar release];
 
   NSMenuItem* rootMenuItem = [NSMenuItem new];
   [menuBar addItem:rootMenuItem];
+  [rootMenuItem release];
 
   NSMenu* appMenu = [NSMenu new];
   [rootMenuItem setSubmenu:appMenu];
+  [appMenu release];
+
   [appMenu addItemWithTitle:[@"Quit " stringByAppendingString:processName]
                      action:@selector(performClose:)
               keyEquivalent:@"q"];
@@ -49,21 +53,19 @@ void* CreateGLContext(void* sharedGLContext) {
 
 void* CreateWindow(size_t width, size_t height, const char* title, void* glContext_) {
   NSOpenGLContext* glContext = (NSOpenGLContext*)glContext_;
-
   NSSize size = NSMakeSize(width, height);
   EbitenWindow* window = [[EbitenWindow alloc]
                             initWithSize:size
                                glContext:glContext];
+  [glContext release];
+
   NSString* nsTitle = [[NSString alloc]
                       initWithUTF8String:title];
   [window setTitle: nsTitle];
   [nsTitle release];
 
   [window makeKeyAndOrderFront:nil];
-
   [glContext setView:[window contentView]];
-  [glContext release];
-
   return window;
 }
 
