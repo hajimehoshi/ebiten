@@ -4,11 +4,16 @@ package cocoa
 //
 // #include "input.h"
 //
-// void* CreateWindow(size_t width, size_t height, const char* title, void* glContext);
-// void* CreateGLContext(void* sharedGLContext);
+// @class NSWindow;
+// @class NSOpenGLContext;
 //
-// void* GetGLContext(void* window);
-// void UseGLContext(void* glContext);
+// typedef NSWindow* NSWindowPtr;
+//
+// NSWindow* CreateWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext);
+// NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext);
+//
+// NSOpenGLContext* GetGLContext(NSWindow* window);
+// void UseGLContext(NSOpenGLContext* glContext);
 // void UnuseGLContext(void);
 //
 import "C"
@@ -26,7 +31,7 @@ type Window struct {
 	screenHeight int
 	screenScale  int
 	closed       bool
-	native       unsafe.Pointer
+	native       *C.NSWindow
 	pressedKeys  map[ui.Key]struct{}
 	context      *opengl.Context
 	funcs        chan func()
@@ -34,9 +39,9 @@ type Window struct {
 	events       chan interface{}
 }
 
-var windows = map[unsafe.Pointer]*Window{}
+var windows = map[*C.NSWindow]*Window{}
 
-func runWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedContext unsafe.Pointer) *Window {
+func runWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedContext *C.NSOpenGLContext) *Window {
 	w := &Window{
 		ui:           cocoaUI,
 		screenWidth:  width,
@@ -116,7 +121,7 @@ func (w *Window) notify(e interface{}) {
 
 // Now this function is not used anywhere.
 //export ebiten_WindowSizeUpdated
-func ebiten_WindowSizeUpdated(nativeWindow unsafe.Pointer, width, height int) {
+func ebiten_WindowSizeUpdated(nativeWindow C.NSWindowPtr, width, height int) {
 	w := windows[nativeWindow]
 	e := ui.WindowSizeUpdatedEvent{width, height}
 	w.notify(e)
@@ -141,7 +146,7 @@ var cocoaKeyCodeToKey = map[int]ui.Key{
 }
 
 //export ebiten_KeyDown
-func ebiten_KeyDown(nativeWindow unsafe.Pointer, keyCode int) {
+func ebiten_KeyDown(nativeWindow C.NSWindowPtr, keyCode int) {
 	key, ok := cocoaKeyCodeToKey[keyCode]
 	if !ok {
 		return
@@ -152,7 +157,7 @@ func ebiten_KeyDown(nativeWindow unsafe.Pointer, keyCode int) {
 }
 
 //export ebiten_KeyUp
-func ebiten_KeyUp(nativeWindow unsafe.Pointer, keyCode int) {
+func ebiten_KeyUp(nativeWindow C.NSWindowPtr, keyCode int) {
 	key, ok := cocoaKeyCodeToKey[keyCode]
 	if !ok {
 		return
@@ -163,7 +168,7 @@ func ebiten_KeyUp(nativeWindow unsafe.Pointer, keyCode int) {
 }
 
 //export ebiten_MouseStateUpdated
-func ebiten_MouseStateUpdated(nativeWindow unsafe.Pointer, inputType C.InputType, cx, cy C.int) {
+func ebiten_MouseStateUpdated(nativeWindow C.NSWindowPtr, inputType C.InputType, cx, cy C.int) {
 	w := windows[nativeWindow]
 
 	if inputType == C.InputTypeMouseUp {
@@ -190,7 +195,7 @@ func ebiten_MouseStateUpdated(nativeWindow unsafe.Pointer, inputType C.InputType
 }
 
 //export ebiten_WindowClosed
-func ebiten_WindowClosed(nativeWindow unsafe.Pointer) {
+func ebiten_WindowClosed(nativeWindow C.NSWindowPtr) {
 	w := windows[nativeWindow]
 	w.closed = true
 	w.notify(ui.WindowClosedEvent{})

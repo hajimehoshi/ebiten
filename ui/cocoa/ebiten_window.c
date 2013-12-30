@@ -45,6 +45,11 @@ void ebiten_WindowClosed(void* nativeWindow);
   return self;
 }
 
+- (void)dealloc {
+  [self->glContext_ release];
+  [super dealloc];
+}
+
 - (NSOpenGLContext*)glContext {
   return self->glContext_;
 }
@@ -73,7 +78,6 @@ void ebiten_WindowClosed(void* nativeWindow);
   (void)alert;
   (void)contextInfo;
   if (returnCode == NSAlertDefaultReturn) {
-    [self->glContext_ release];
     [self close];
     ebiten_WindowClosed(self);
   }

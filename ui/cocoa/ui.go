@@ -47,7 +47,7 @@ func TextureFactory() graphics.TextureFactory {
 	return getCurrentUI()
 }
 
-func (u *cocoaUI) CreateWindow(width, height, scale int, title string) ui.Window {
+func (u *cocoaUI) CreateGameWindow(width, height, scale int, title string) ui.GameWindow {
 	return u.textureFactory.createWindow(u, width, height, scale, title)
 }
 

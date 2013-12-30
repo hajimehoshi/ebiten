@@ -1,17 +1,18 @@
 package cocoa
 
-// void* CreateGLContext(void* sharedGLContext);
-// void UseGLContext(void* glContext);
+// @class NSOpenGLContext;
+//
+// NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext);
+// void UseGLContext(NSOpenGLContext* glContext);
 // void UnuseGLContext(void);
 //
 import "C"
 import (
 	"runtime"
-	"unsafe"
 )
 
 type textureFactory struct {
-	sharedContext unsafe.Pointer
+	sharedContext *C.NSOpenGLContext
 	funcs         chan func()
 	funcsDone     chan struct{}
 }
@@ -24,7 +25,7 @@ func runTextureFactory() *textureFactory {
 	ch := make(chan struct{})
 	go func() {
 		runtime.LockOSThread()
-		t.sharedContext = C.CreateGLContext(unsafe.Pointer(nil))
+		t.sharedContext = C.CreateGLContext(nil)
 		close(ch)
 		t.loop()
 	}()

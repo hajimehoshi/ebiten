@@ -28,7 +28,7 @@ func main() {
 
 	u := cocoa.UI()
 	textureFactory := cocoa.TextureFactory()
-	window := u.CreateWindow(screenWidth, screenHeight, screenScale, title)
+	window := u.CreateGameWindow(screenWidth, screenHeight, screenScale, title)
 
 	textureFactoryEvents := textureFactory.Events()
 
