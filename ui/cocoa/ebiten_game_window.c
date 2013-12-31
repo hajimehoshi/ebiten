@@ -1,14 +1,14 @@
 // -*- objc -*-
 
-#import "ebiten_window.h"
+#import "ebiten_game_window.h"
 
-#import "ebiten_content_view.h"
+#import "ebiten_game_content_view.h"
 
 @class NSOpenGLContext;
 
 void ebiten_WindowClosed(void* nativeWindow);
 
-@implementation EbitenWindow {
+@implementation EbitenGameWindow {
 @private
   NSOpenGLContext* glContext_;
 }
@@ -37,7 +37,7 @@ void ebiten_WindowClosed(void* nativeWindow);
     [self setDocumentEdited:YES];
 
     NSRect rect = NSMakeRect(0, 0, size.width, size.height);
-    NSView* contentView = [[EbitenContentView alloc] initWithFrame:rect];
+    NSView* contentView = [[EbitenGameContentView alloc] initWithFrame:rect];
     [self setContentView:contentView];
     [contentView release];
   }

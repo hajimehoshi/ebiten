@@ -1,13 +1,13 @@
 // -*- objc -*-
 
-#include "ebiten_content_view.h"
+#include "ebiten_game_content_view.h"
 #include "input.h"
 
-void ebiten_KeyDown(void* nativeWindow, int keyCode);
-void ebiten_KeyUp(void* nativeWindow, int keyCode);
-void ebiten_MouseStateUpdated(void* nativeWindow, InputType inputType, int x, int y);
+void ebiten_KeyDown(NSWindow* nativeWindow, int keyCode);
+void ebiten_KeyUp(NSWindow* nativeWindow, int keyCode);
+void ebiten_MouseStateUpdated(NSWindow* nativeWindow, InputType inputType, int x, int y);
 
-@implementation EbitenContentView {
+@implementation EbitenGameContentView {
 }
 
 - (BOOL)acceptsFirstResponder {

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <OpenGL/gl.h>
 
-#import "ebiten_window.h"
+#import "ebiten_game_window.h"
 
 void initMenu(void) {
   NSString* processName = [[NSProcessInfo processInfo] processName];
@@ -53,9 +53,9 @@ NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext) {
 
 NSWindow* CreateWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext) {
   NSSize size = NSMakeSize(width, height);
-  EbitenWindow* window = [[EbitenWindow alloc]
-                            initWithSize:size
-                               glContext:glContext];
+  EbitenGameWindow* window = [[EbitenGameWindow alloc]
+                               initWithSize:size
+                                  glContext:glContext];
   [glContext release];
 
   NSString* nsTitle = [[NSString alloc]
@@ -101,5 +101,5 @@ void UnuseGLContext(void) {
 }
 
 NSOpenGLContext* GetGLContext(NSWindow* window) {
-  return [(EbitenWindow*)window glContext];
+  return [(EbitenGameWindow*)window glContext];
 }
