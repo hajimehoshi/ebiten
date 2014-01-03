@@ -48,7 +48,7 @@ func TextureFactory() graphics.TextureFactory {
 }
 
 func (u *cocoaUI) CreateGameWindow(width, height, scale int, title string) ui.GameWindow {
-	return u.textureFactory.createWindow(u, width, height, scale, title)
+	return u.textureFactory.createGameWindow(u, width, height, scale, title)
 }
 
 func (u *cocoaUI) PollEvents() {

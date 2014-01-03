@@ -51,7 +51,7 @@ NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext) {
   return glContext;
 }
 
-NSWindow* CreateWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext) {
+EbitenGameWindow* CreateGameWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext) {
   NSSize size = NSMakeSize(width, height);
   EbitenGameWindow* window = [[EbitenGameWindow alloc]
                                initWithSize:size
@@ -100,6 +100,6 @@ void UnuseGLContext(void) {
   CGLUnlockContext(cglContext);
 }
 
-NSOpenGLContext* GetGLContext(NSWindow* window) {
-  return [(EbitenGameWindow*)window glContext];
+NSOpenGLContext* GetGLContext(EbitenGameWindow* window) {
+  return [window glContext];
 }

@@ -4,15 +4,15 @@ package cocoa
 //
 // #include "input.h"
 //
-// @class NSWindow;
+// @class EbitenGameWindow;
 // @class NSOpenGLContext;
 //
-// typedef NSWindow* NSWindowPtr;
+// typedef EbitenGameWindow* EbitenGameWindowPtr;
 //
-// NSWindow* CreateWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext);
+// EbitenGameWindow* CreateGameWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext);
 // NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext);
 //
-// NSOpenGLContext* GetGLContext(NSWindow* window);
+// NSOpenGLContext* GetGLContext(EbitenGameWindow* window);
 // void UseGLContext(NSOpenGLContext* glContext);
 // void UnuseGLContext(void);
 //
@@ -25,13 +25,13 @@ import (
 	"unsafe"
 )
 
-type Window struct {
+type GameWindow struct {
 	ui           *cocoaUI
 	screenWidth  int
 	screenHeight int
 	screenScale  int
 	closed       bool
-	native       *C.NSWindow
+	native       *C.EbitenGameWindow
 	pressedKeys  map[ui.Key]struct{}
 	context      *opengl.Context
 	funcs        chan func()
@@ -39,10 +39,10 @@ type Window struct {
 	events       chan interface{}
 }
 
-var windows = map[*C.NSWindow]*Window{}
+var windows = map[*C.EbitenGameWindow]*GameWindow{}
 
-func runWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedContext *C.NSOpenGLContext) *Window {
-	w := &Window{
+func runGameWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedContext *C.NSOpenGLContext) *GameWindow {
+	w := &GameWindow{
 		ui:           cocoaUI,
 		screenWidth:  width,
 		screenHeight: height,
@@ -60,7 +60,7 @@ func runWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedC
 	go func() {
 		runtime.LockOSThread()
 		glContext := C.CreateGLContext(sharedContext)
-		w.native = C.CreateWindow(C.size_t(width*scale),
+		w.native = C.CreateGameWindow(C.size_t(width*scale),
 			C.size_t(height*scale),
 			cTitle,
 			glContext)
@@ -75,7 +75,7 @@ func runWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedC
 	return w
 }
 
-func (w *Window) loop() {
+func (w *GameWindow) loop() {
 	for {
 		select {
 		case f := <-w.funcs:
@@ -88,7 +88,7 @@ func (w *Window) loop() {
 	}
 }
 
-func (w *Window) Draw(f func(graphics.Context)) {
+func (w *GameWindow) Draw(f func(graphics.Context)) {
 	if w.closed {
 		return
 	}
@@ -97,12 +97,12 @@ func (w *Window) Draw(f func(graphics.Context)) {
 	})
 }
 
-func (w *Window) useGLContext(f func()) {
+func (w *GameWindow) useGLContext(f func()) {
 	w.funcs <- f
 	<-w.funcsDone
 }
 
-func (w *Window) Events() <-chan interface{} {
+func (w *GameWindow) Events() <-chan interface{} {
 	if w.events != nil {
 		return w.events
 	}
@@ -110,7 +110,7 @@ func (w *Window) Events() <-chan interface{} {
 	return w.events
 }
 
-func (w *Window) notify(e interface{}) {
+func (w *GameWindow) notify(e interface{}) {
 	if w.events == nil {
 		return
 	}
@@ -121,13 +121,13 @@ func (w *Window) notify(e interface{}) {
 
 // Now this function is not used anywhere.
 //export ebiten_WindowSizeUpdated
-func ebiten_WindowSizeUpdated(nativeWindow C.NSWindowPtr, width, height int) {
+func ebiten_WindowSizeUpdated(nativeWindow C.EbitenGameWindowPtr, width, height int) {
 	w := windows[nativeWindow]
 	e := ui.WindowSizeUpdatedEvent{width, height}
 	w.notify(e)
 }
 
-func (w *Window) keyStateUpdatedEvent() ui.KeyStateUpdatedEvent {
+func (w *GameWindow) keyStateUpdatedEvent() ui.KeyStateUpdatedEvent {
 	keys := []ui.Key{}
 	for key, _ := range w.pressedKeys {
 		keys = append(keys, key)
@@ -146,7 +146,7 @@ var cocoaKeyCodeToKey = map[int]ui.Key{
 }
 
 //export ebiten_KeyDown
-func ebiten_KeyDown(nativeWindow C.NSWindowPtr, keyCode int) {
+func ebiten_KeyDown(nativeWindow C.EbitenGameWindowPtr, keyCode int) {
 	key, ok := cocoaKeyCodeToKey[keyCode]
 	if !ok {
 		return
@@ -157,7 +157,7 @@ func ebiten_KeyDown(nativeWindow C.NSWindowPtr, keyCode int) {
 }
 
 //export ebiten_KeyUp
-func ebiten_KeyUp(nativeWindow C.NSWindowPtr, keyCode int) {
+func ebiten_KeyUp(nativeWindow C.EbitenGameWindowPtr, keyCode int) {
 	key, ok := cocoaKeyCodeToKey[keyCode]
 	if !ok {
 		return
@@ -168,7 +168,7 @@ func ebiten_KeyUp(nativeWindow C.NSWindowPtr, keyCode int) {
 }
 
 //export ebiten_MouseStateUpdated
-func ebiten_MouseStateUpdated(nativeWindow C.NSWindowPtr, inputType C.InputType, cx, cy C.int) {
+func ebiten_MouseStateUpdated(nativeWindow C.EbitenGameWindowPtr, inputType C.InputType, cx, cy C.int) {
 	w := windows[nativeWindow]
 
 	if inputType == C.InputTypeMouseUp {
@@ -195,7 +195,7 @@ func ebiten_MouseStateUpdated(nativeWindow C.NSWindowPtr, inputType C.InputType,
 }
 
 //export ebiten_WindowClosed
-func ebiten_WindowClosed(nativeWindow C.NSWindowPtr) {
+func ebiten_WindowClosed(nativeWindow C.EbitenGameWindowPtr) {
 	w := windows[nativeWindow]
 	w.closed = true
 	w.notify(ui.WindowClosedEvent{})

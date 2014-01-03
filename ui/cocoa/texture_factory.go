@@ -50,6 +50,6 @@ func (t *textureFactory) useGLContext(f func()) {
 	<-t.funcsDone
 }
 
-func (t *textureFactory) createWindow(ui *cocoaUI, width, height, scale int, title string) *Window {
-	return runWindow(ui, width, height, scale, title, t.sharedContext)
+func (t *textureFactory) createGameWindow(ui *cocoaUI, width, height, scale int, title string) *GameWindow {
+	return runGameWindow(ui, width, height, scale, title, t.sharedContext)
 }
