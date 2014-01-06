@@ -26,31 +26,31 @@ import (
 )
 
 type GameWindow struct {
-	ui           *cocoaUI
-	screenWidth  int
-	screenHeight int
-	screenScale  int
-	closed       bool
-	native       *C.EbitenGameWindow
-	pressedKeys  map[ui.Key]struct{}
-	context      *opengl.Context
-	funcs        chan func()
-	funcsDone    chan struct{}
-	events       chan interface{}
+	graphicsDevice *opengl.Device
+	screenWidth    int
+	screenHeight   int
+	screenScale    int
+	closed         bool
+	native         *C.EbitenGameWindow
+	pressedKeys    map[ui.Key]struct{}
+	context        *opengl.Context
+	funcs          chan func()
+	funcsDone      chan struct{}
+	events         chan interface{}
 }
 
 var windows = map[*C.EbitenGameWindow]*GameWindow{}
 
-func runGameWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sharedContext *C.NSOpenGLContext) *GameWindow {
+func runGameWindow(graphicsDevice *opengl.Device, width, height, scale int, title string, sharedContext *C.NSOpenGLContext) *GameWindow {
 	w := &GameWindow{
-		ui:           cocoaUI,
-		screenWidth:  width,
-		screenHeight: height,
-		screenScale:  scale,
-		closed:       false,
-		pressedKeys:  map[ui.Key]struct{}{},
-		funcs:        make(chan func()),
-		funcsDone:    make(chan struct{}),
+		graphicsDevice: graphicsDevice,
+		screenWidth:    width,
+		screenHeight:   height,
+		screenScale:    scale,
+		closed:         false,
+		pressedKeys:    map[ui.Key]struct{}{},
+		funcs:          make(chan func()),
+		funcsDone:      make(chan struct{}),
 	}
 
 	cTitle := C.CString(title)
@@ -70,7 +70,7 @@ func runGameWindow(cocoaUI *cocoaUI, width, height, scale int, title string, sha
 	}()
 	<-ch
 	w.useGLContext(func() {
-		w.context = w.ui.graphicsDevice.CreateContext(width, height, scale)
+		w.context = w.graphicsDevice.CreateContext(width, height, scale)
 	})
 	return w
 }
@@ -93,7 +93,7 @@ func (w *GameWindow) Draw(f func(graphics.Context)) {
 		return
 	}
 	w.useGLContext(func() {
-		w.ui.graphicsDevice.Update(w.context, f)
+		w.graphicsDevice.Update(w.context, f)
 	})
 }
 

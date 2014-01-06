@@ -35,6 +35,7 @@ type WindowClosedEvent struct {
 type UI interface {
 	PollEvents()
 	CreateGameWindow(screenWidth, screenHeight, screenScale int, title string) GameWindow
+	MainLoop()
 }
 
 type Window interface {
@@ -43,5 +44,5 @@ type Window interface {
 
 type GameWindow interface {
 	Draw(func(graphics.Context))
-	Events() <-chan interface{}
+	Window
 }

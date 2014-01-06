@@ -59,6 +59,8 @@ func main() {
 		}
 	}()
 
+	//u.MainLoop()
+
 	for {
 		u.PollEvents()
 		select {

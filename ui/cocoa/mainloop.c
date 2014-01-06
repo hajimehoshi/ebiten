@@ -25,6 +25,15 @@ void initMenu(void) {
               keyEquivalent:@"q"];
 }
 
+void Run(void) {
+  NSAutoreleasePool * pool = [NSAutoreleasePool new];
+  NSApplication* app = [NSApplication sharedApplication];
+  [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+  //initMenu();
+  [app run];
+  [pool drain];
+}
+
 void StartApplication(void) {
   NSApplication* app = [NSApplication sharedApplication];
   [app setActivationPolicy:NSApplicationActivationPolicyRegular];

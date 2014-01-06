@@ -3,21 +3,18 @@ package cocoa
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Cocoa -framework OpenGL
 //
+// void Run(void);
 // void StartApplication(void);
 // void PollEvents(void);
 //
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"github.com/hajimehoshi/go-ebiten/ui"
-	"image"
 )
 
 type cocoaUI struct {
-	textureFactory       *textureFactory
-	textureFactoryEvents chan interface{}
-	graphicsDevice       *opengl.Device
+	textureFactory *textureFactory
 }
 
 var currentUI *cocoaUI
@@ -32,10 +29,6 @@ func getCurrentUI() *cocoaUI {
 	C.StartApplication()
 
 	currentUI.textureFactory = runTextureFactory()
-	currentUI.textureFactory.useGLContext(func() {
-		currentUI.graphicsDevice = opengl.NewDevice()
-	})
-
 	return currentUI
 }
 
@@ -44,59 +37,17 @@ func UI() ui.UI {
 }
 
 func TextureFactory() graphics.TextureFactory {
-	return getCurrentUI()
+	return getCurrentUI().textureFactory
 }
 
 func (u *cocoaUI) CreateGameWindow(width, height, scale int, title string) ui.GameWindow {
-	return u.textureFactory.createGameWindow(u, width, height, scale, title)
+	return u.textureFactory.createGameWindow(width, height, scale, title)
 }
 
 func (u *cocoaUI) PollEvents() {
 	C.PollEvents()
 }
 
-func (u *cocoaUI) Events() <-chan interface{} {
-	if u.textureFactoryEvents != nil {
-		return u.textureFactoryEvents
-	}
-	u.textureFactoryEvents = make(chan interface{})
-	return u.textureFactoryEvents
-}
-
-func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
-	go func() {
-		var id graphics.TextureId
-		var err error
-		u.textureFactory.useGLContext(func() {
-			id, err = u.graphicsDevice.CreateTexture(img, filter)
-		})
-		if u.textureFactoryEvents == nil {
-			return
-		}
-		e := graphics.TextureCreatedEvent{
-			Tag:   tag,
-			Id:    id,
-			Error: err,
-		}
-		u.textureFactoryEvents <- e
-	}()
-}
-
-func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
-	go func() {
-		var id graphics.RenderTargetId
-		var err error
-		u.textureFactory.useGLContext(func() {
-			id, err = u.graphicsDevice.CreateRenderTarget(width, height)
-		})
-		if u.textureFactoryEvents == nil {
-			return
-		}
-		e := graphics.RenderTargetCreatedEvent{
-			Tag:   tag,
-			Id:    id,
-			Error: err,
-		}
-		u.textureFactoryEvents <- e
-	}()
+func (u *cocoaUI) MainLoop() {
+	C.Run()
 }
