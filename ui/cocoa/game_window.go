@@ -30,6 +30,7 @@ type GameWindow struct {
 	screenWidth    int
 	screenHeight   int
 	screenScale    int
+	title          string
 	closed         bool
 	native         *C.EbitenGameWindow
 	pressedKeys    map[ui.Key]struct{}
@@ -41,27 +42,30 @@ type GameWindow struct {
 
 var windows = map[*C.EbitenGameWindow]*GameWindow{}
 
-func runGameWindow(graphicsDevice *opengl.Device, width, height, scale int, title string, sharedContext *C.NSOpenGLContext) *GameWindow {
-	w := &GameWindow{
-		graphicsDevice: graphicsDevice,
-		screenWidth:    width,
-		screenHeight:   height,
-		screenScale:    scale,
-		closed:         false,
-		pressedKeys:    map[ui.Key]struct{}{},
-		funcs:          make(chan func()),
-		funcsDone:      make(chan struct{}),
+func newGameWindow(width, height, scale int, title string) *GameWindow {
+	return &GameWindow{
+		screenWidth:  width,
+		screenHeight: height,
+		screenScale:  scale,
+		title:        title,
+		closed:       false,
+		pressedKeys:  map[ui.Key]struct{}{},
+		funcs:        make(chan func()),
+		funcsDone:    make(chan struct{}),
 	}
+}
 
-	cTitle := C.CString(title)
+func (w *GameWindow) run(graphicsDevice *opengl.Device, sharedContext *C.NSOpenGLContext) {
+	cTitle := C.CString(w.title)
 	defer C.free(unsafe.Pointer(cTitle))
 
 	ch := make(chan struct{})
 	go func() {
 		runtime.LockOSThread()
 		glContext := C.CreateGLContext(sharedContext)
-		w.native = C.CreateGameWindow(C.size_t(width*scale),
-			C.size_t(height*scale),
+		w.graphicsDevice = graphicsDevice
+		w.native = C.CreateGameWindow(C.size_t(w.screenWidth*w.screenScale),
+			C.size_t(w.screenHeight*w.screenScale),
 			cTitle,
 			glContext)
 		windows[w.native] = w
@@ -70,9 +74,9 @@ func runGameWindow(graphicsDevice *opengl.Device, width, height, scale int, titl
 	}()
 	<-ch
 	w.useGLContext(func() {
-		w.context = w.graphicsDevice.CreateContext(width, height, scale)
+		w.context = w.graphicsDevice.CreateContext(
+			w.screenWidth, w.screenHeight, w.screenScale)
 	})
-	return w
 }
 
 func (w *GameWindow) loop() {

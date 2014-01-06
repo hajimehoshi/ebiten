@@ -15,37 +15,45 @@ import (
 )
 
 type textureFactory struct {
-	sharedContext  *C.NSOpenGLContext
+	inited         chan struct{}
 	graphicsDevice *opengl.Device
 	events         chan interface{}
 	funcs          chan func()
 	funcsDone      chan struct{}
+	gameWindows    chan *GameWindow
 }
 
-func runTextureFactory() *textureFactory {
-	t := &textureFactory{
-		funcs:     make(chan func()),
-		funcsDone: make(chan struct{}),
+func newTextureFactory() *textureFactory {
+	return &textureFactory{
+		inited:      make(chan struct{}),
+		funcs:       make(chan func()),
+		funcsDone:   make(chan struct{}),
+		gameWindows: make(chan *GameWindow),
 	}
-	ch := make(chan struct{})
+}
+
+func (t *textureFactory) run() {
+	var sharedContext *C.NSOpenGLContext
 	go func() {
 		runtime.LockOSThread()
-		t.sharedContext = C.CreateGLContext(nil)
-		close(ch)
-		t.loop()
-	}()
-	<-ch
-	t.useGLContext(func() {
 		t.graphicsDevice = opengl.NewDevice()
-	})
-	return t
+		sharedContext = C.CreateGLContext(nil)
+		close(t.inited)
+		t.loop(sharedContext)
+	}()
+	<-t.inited
+	go func() {
+		for w := range t.gameWindows {
+			w.run(t.graphicsDevice, sharedContext)
+		}
+	}()
 }
 
-func (t *textureFactory) loop() {
+func (t *textureFactory) loop(sharedContext *C.NSOpenGLContext) {
 	for {
 		select {
 		case f := <-t.funcs:
-			C.UseGLContext(t.sharedContext)
+			C.UseGLContext(sharedContext)
 			f()
 			C.UnuseGLContext()
 			t.funcsDone <- struct{}{}
@@ -59,7 +67,11 @@ func (t *textureFactory) useGLContext(f func()) {
 }
 
 func (t *textureFactory) createGameWindow(width, height, scale int, title string) *GameWindow {
-	return runGameWindow(t.graphicsDevice, width, height, scale, title, t.sharedContext)
+	w := newGameWindow(width, height, scale, title)
+	go func() {
+		t.gameWindows <- w
+	}()
+	return w
 }
 
 func (t *textureFactory) Events() <-chan interface{} {
@@ -72,6 +84,7 @@ func (t *textureFactory) Events() <-chan interface{} {
 
 func (t *textureFactory) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
 	go func() {
+		<-t.inited
 		var id graphics.TextureId
 		var err error
 		t.useGLContext(func() {
@@ -91,6 +104,7 @@ func (t *textureFactory) CreateTexture(tag interface{}, img image.Image, filter 
 
 func (t *textureFactory) CreateRenderTarget(tag interface{}, width, height int) {
 	go func() {
+		<-t.inited
 		var id graphics.RenderTargetId
 		var err error
 		t.useGLContext(func() {

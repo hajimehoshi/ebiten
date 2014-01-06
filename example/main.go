@@ -59,7 +59,7 @@ func main() {
 		}
 	}()
 
-	//u.MainLoop()
+	u.RunMainLoop()
 
 	for {
 		u.PollEvents()

@@ -25,10 +25,8 @@ func getCurrentUI() *cocoaUI {
 	}
 
 	currentUI = &cocoaUI{}
+	currentUI.textureFactory = newTextureFactory()
 
-	C.StartApplication()
-
-	currentUI.textureFactory = runTextureFactory()
 	return currentUI
 }
 
@@ -48,6 +46,10 @@ func (u *cocoaUI) PollEvents() {
 	C.PollEvents()
 }
 
-func (u *cocoaUI) MainLoop() {
-	C.Run()
+func (u *cocoaUI) RunMainLoop() {
+	C.StartApplication()
+	currentUI.textureFactory.run()
+
+	// TODO: Enable the loop
+	//C.Run()
 }
