@@ -62,19 +62,8 @@ func (texture *Texture) v(y int) float32 {
 	return float32(y) / float32(AdjustSize(texture.height))
 }
 
-type Quad struct {
-	VertexX1       float32
-	VertexX2       float32
-	VertexY1       float32
-	VertexY2       float32
-	TextureCoordU1 float32
-	TextureCoordU2 float32
-	TextureCoordV1 float32
-	TextureCoordV2 float32
-}
-
 type Drawable interface {
-	Draw(native interface{}, quads []Quad)
+	Draw(native interface{}, quads []graphics.TextureQuad)
 }
 
 func (texture *Texture) Draw(drawable Drawable) {
@@ -86,12 +75,12 @@ func (texture *Texture) Draw(drawable Drawable) {
 	u2 := texture.u(texture.width)
 	v1 := texture.v(0)
 	v2 := texture.v(texture.height)
-	quad := Quad{x1, x2, y1, y2, u1, u2, v1, v2}
-	drawable.Draw(texture.native, []Quad{quad})
+	quad := graphics.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
+	drawable.Draw(texture.native, []graphics.TextureQuad{quad})
 }
 
 func (texture *Texture) DrawParts(parts []graphics.TexturePart, drawable Drawable) {
-	quads := []Quad{}
+	quads := []graphics.TextureQuad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)
 		x2 := float32(part.LocationX + part.Source.Width)
@@ -101,7 +90,7 @@ func (texture *Texture) DrawParts(parts []graphics.TexturePart, drawable Drawabl
 		u2 := texture.u(part.Source.X + part.Source.Width)
 		v1 := texture.v(part.Source.Y)
 		v2 := texture.v(part.Source.Y + part.Source.Height)
-		quad := Quad{x1, x2, y1, y2, u1, u2, v1, v2}
+		quad := graphics.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}
 	drawable.Draw(texture.native, quads)

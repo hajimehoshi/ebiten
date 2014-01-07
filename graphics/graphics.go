@@ -20,6 +20,17 @@ const (
 	FilterLinear
 )
 
+type TextureQuad struct {
+	VertexX1       float32
+	VertexX2       float32
+	VertexY1       float32
+	VertexY2       float32
+	TextureCoordU1 float32
+	TextureCoordU2 float32
+	TextureCoordV1 float32
+	TextureCoordV2 float32
+}
+
 type TextureId int
 
 // A render target is essentially same as a texture, but it is assumed that the

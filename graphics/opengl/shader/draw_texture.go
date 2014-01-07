@@ -6,17 +6,16 @@ package shader
 // #include <stdlib.h>
 import "C"
 import (
+	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"sync"
 	"unsafe"
 )
 
 var once sync.Once
 
-func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []gtexture.Quad,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+func DrawTexture(native texture.Native, projectionMatrix [16]float32, quads []graphics.TextureQuad, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	once.Do(func() {
 		initialize()
 	})

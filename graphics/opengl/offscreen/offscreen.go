@@ -103,7 +103,7 @@ type drawable struct {
 	colorMatrix    matrix.Color
 }
 
-func (d *drawable) Draw(native interface{}, quads []gtexture.Quad) {
+func (d *drawable) Draw(native interface{}, quads []graphics.TextureQuad) {
 	shader.DrawTexture(native.(texture.Native),
 		d.offscreen.projectionMatrix, quads,
 		d.geometryMatrix, d.colorMatrix)
