@@ -31,8 +31,8 @@ func (s *TitleScene) Draw(context graphics.Context) {
 	drawLogo(context, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
-	x := (ScreenWidth-textWidth(message)) / 2
-	y := ScreenHeight-48
+	x := (ScreenWidth - textWidth(message)) / 2
+	y := ScreenHeight - 48
 	drawTextWithShadow(context, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
@@ -52,8 +52,8 @@ func drawTitleBackground(context graphics.Context, c int) {
 		}
 	}
 
-	dx := (-c/4) % textureWidth
-	dy := (c/4) % textureHeight
+	dx := (-c / 4) % textureWidth
+	dy := (c / 4) % textureHeight
 	geo := matrix.IdentityGeometry()
 	geo.Translate(float64(dx), float64(dy))
 	clr := matrix.IdentityColor()

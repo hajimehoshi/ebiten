@@ -170,12 +170,12 @@ func (p *Piece) isBlocked(i, j int, angle Angle) bool {
 	case Angle0:
 	case Angle90:
 		i2 = j
-		j2 = size-1-i
+		j2 = size - 1 - i
 	case Angle180:
-		i2 = size-1-i
-		j2 = size-1-j
+		i2 = size - 1 - i
+		j2 = size - 1 - j
 	case Angle270:
-		i2 = size-1-j
+		i2 = size - 1 - j
 		j2 = i
 	}
 	return p.blocks[i2][j2]
@@ -218,8 +218,8 @@ func (p *Piece) Draw(context graphics.Context, fieldX, fieldY int, pieceX, piece
 	}
 
 	geoMat := matrix.IdentityGeometry()
-	x := fieldX + pieceX * blockWidth
-	y := fieldY + pieceY * blockHeight
+	x := fieldX + pieceX*blockWidth
+	y := fieldY + pieceY*blockHeight
 	geoMat.Translate(float64(x), float64(y))
 
 	drawBlocks(context, blocks, geoMat)

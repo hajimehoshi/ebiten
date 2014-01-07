@@ -68,18 +68,15 @@ func (s *GameScene) Update(state *GameState) {
 		s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
 		moved = angle != s.currentPieceAngle
 	}
-	if l := state.Input.StateForKey(ui.KeyLeft);
-	l == 1 || (10 <= l && l % 2 == 0) {
+	if l := state.Input.StateForKey(ui.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
 		s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
 		moved = x != s.currentPieceX
 	}
-	if r := state.Input.StateForKey(ui.KeyRight);
-	r == 1 || (10 <= r && r % 2 == 0) {
+	if r := state.Input.StateForKey(ui.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
 		s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
 		moved = y != s.currentPieceX
 	}
-	if d := state.Input.StateForKey(ui.KeyDown);
-	(d - 1) % 2 == 0 {
+	if d := state.Input.StateForKey(ui.KeyDown); (d-1)%2 == 0 {
 		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 		moved = y != s.currentPieceY
 	}
