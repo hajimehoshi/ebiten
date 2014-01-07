@@ -12,7 +12,6 @@ package cocoa
 // EbitenGameWindow* CreateGameWindow(size_t width, size_t height, const char* title, NSOpenGLContext* glContext);
 // NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext);
 //
-// NSOpenGLContext* GetGLContext(EbitenGameWindow* window);
 // void UseGLContext(NSOpenGLContext* glContext);
 // void UnuseGLContext(void);
 //
@@ -31,12 +30,11 @@ type GameWindow struct {
 	screenHeight   int
 	screenScale    int
 	title          string
-	closed         bool
 	native         *C.EbitenGameWindow
 	pressedKeys    map[ui.Key]struct{}
-	context        *opengl.Context
-	funcs          chan func()
+	funcs          chan func(*opengl.Context)
 	funcsDone      chan struct{}
+	closed         chan struct{}
 	events         chan interface{}
 }
 
@@ -48,10 +46,10 @@ func newGameWindow(width, height, scale int, title string) *GameWindow {
 		screenHeight: height,
 		screenScale:  scale,
 		title:        title,
-		closed:       false,
 		pressedKeys:  map[ui.Key]struct{}{},
-		funcs:        make(chan func()),
+		funcs:        make(chan func(*opengl.Context)),
 		funcsDone:    make(chan struct{}),
+		closed:       make(chan struct{}),
 	}
 }
 
@@ -70,22 +68,30 @@ func (w *GameWindow) run(graphicsDevice *opengl.Device, sharedContext *C.NSOpenG
 			glContext)
 		windows[w.native] = w
 		close(ch)
-		w.loop()
+		w.loop(glContext)
 	}()
 	<-ch
-	w.useGLContext(func() {
-		w.context = w.graphicsDevice.CreateContext(
-			w.screenWidth, w.screenHeight, w.screenScale)
-	})
 }
 
-func (w *GameWindow) loop() {
+func (w *GameWindow) loop(glContext *C.NSOpenGLContext) {
+	C.UseGLContext(glContext)
+	context := w.graphicsDevice.CreateContext(
+		w.screenWidth, w.screenHeight, w.screenScale)
+	C.UnuseGLContext()
+
+	defer func() {
+		C.UseGLContext(glContext)
+		context.Dispose()
+		C.UnuseGLContext()
+	}()
+
 	for {
 		select {
+		case <-w.closed:
+			return
 		case f := <-w.funcs:
-			glContext := C.GetGLContext(w.native)
 			C.UseGLContext(glContext)
-			f()
+			f(context)
 			C.UnuseGLContext()
 			w.funcsDone <- struct{}{}
 		}
@@ -93,15 +99,12 @@ func (w *GameWindow) loop() {
 }
 
 func (w *GameWindow) Draw(f func(graphics.Context)) {
-	if w.closed {
-		return
-	}
-	w.useGLContext(func() {
-		w.graphicsDevice.Update(w.context, f)
+	w.useGLContext(func(context *opengl.Context) {
+		w.graphicsDevice.Update(context, f)
 	})
 }
 
-func (w *GameWindow) useGLContext(f func()) {
+func (w *GameWindow) useGLContext(f func(*opengl.Context)) {
 	w.funcs <- f
 	<-w.funcsDone
 }
@@ -201,7 +204,7 @@ func ebiten_MouseStateUpdated(nativeWindow C.EbitenGameWindowPtr, inputType C.In
 //export ebiten_WindowClosed
 func ebiten_WindowClosed(nativeWindow C.EbitenGameWindowPtr) {
 	w := windows[nativeWindow]
-	w.closed = true
+	close(w.closed)
 	w.notify(ui.WindowClosedEvent{})
 	delete(windows, nativeWindow)
 }

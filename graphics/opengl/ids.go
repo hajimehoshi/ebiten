@@ -81,3 +81,9 @@ func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 
 	return renderTargetId, nil
 }
+
+func (i *ids) DeleteRenderTarget(id graphics.RenderTargetId) {
+	renderTarget := i.renderTargets[id]
+	rendertarget.Dispose(renderTarget)
+	delete(i.renderTargets, id)
+}

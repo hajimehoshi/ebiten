@@ -21,3 +21,11 @@ type OffscreenSetter interface {
 func (r *RenderTarget) SetAsOffscreen(setter OffscreenSetter) {
 	setter.Set(r.framebuffer, 0, 0, r.offscreenWidth, r.offscreenHeight)
 }
+
+type RenderTargetDisposer interface {
+	Dispose(framebuffer interface{})
+}
+
+func (r *RenderTarget) Dispose(disposer RenderTargetDisposer) {
+	disposer.Dispose(r.framebuffer)
+}

@@ -57,3 +57,15 @@ func CreateWithFramebuffer(width, height int, framebuffer Framebuffer) (
 	*gtexture.RenderTarget, error) {
 	return gtexture.NewRenderTarget(framebuffer, width, height), nil
 }
+
+type disposer struct {
+}
+
+func (d *disposer) Dispose(native interface{}) {
+	framebuffer := C.GLuint(native.(Framebuffer))
+	C.glDeleteFramebuffers(1, &framebuffer)
+}
+
+func Dispose(renderTarget *gtexture.RenderTarget) {
+	renderTarget.Dispose(&disposer{})
+}

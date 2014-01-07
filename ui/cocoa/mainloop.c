@@ -108,7 +108,3 @@ void UnuseGLContext(void) {
   CGLContextObj cglContext = [glContext CGLContextObj];
   CGLUnlockContext(cglContext);
 }
-
-NSOpenGLContext* GetGLContext(EbitenGameWindow* window) {
-  return [window glContext];
-}

@@ -37,6 +37,10 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 	return context
 }
 
+func (context *Context) Dispose() {
+	context.ids.DeleteRenderTarget(context.screenId)
+}
+
 func (context *Context) update(draw func(graphics.Context)) {
 	C.glEnable(C.GL_TEXTURE_2D)
 	C.glEnable(C.GL_BLEND)
