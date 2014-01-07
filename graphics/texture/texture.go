@@ -2,20 +2,7 @@ package texture
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"image"
-	"image/draw"
 )
-
-func nextPowerOf2(x uint64) uint64 {
-	x -= 1
-	x |= (x >> 1)
-	x |= (x >> 2)
-	x |= (x >> 4)
-	x |= (x >> 8)
-	x |= (x >> 16)
-	x |= (x >> 32)
-	return x + 1
-}
 
 type Texture struct {
 	native interface{}
@@ -23,43 +10,16 @@ type Texture struct {
 	height int
 }
 
-func AdjustSize(size int) int {
-	return int(nextPowerOf2(uint64(size)))
-}
-
-func AdjustImage(img image.Image) *image.NRGBA {
-	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
-	adjustedImageBounds := image.Rectangle{
-		image.ZP,
-		image.Point{
-			AdjustSize(width),
-			AdjustSize(height),
-		},
-	}
-	if nrgba, ok := img.(*image.NRGBA); ok &&
-		img.Bounds() == adjustedImageBounds {
-		return nrgba
-	}
-
-	adjustedImage := image.NewNRGBA(adjustedImageBounds)
-	dstBounds := image.Rectangle{
-		image.ZP,
-		img.Bounds().Size(),
-	}
-	draw.Draw(adjustedImage, dstBounds, img, image.ZP, draw.Src)
-	return adjustedImage
-}
-
 func New(native interface{}, width, height int) *Texture {
 	return &Texture{native, width, height}
 }
 
 func (texture *Texture) u(x int) float32 {
-	return float32(x) / float32(AdjustSize(texture.width))
+	return float32(x) / float32(graphics.AdjustSizeForTexture(texture.width))
 }
 
 func (texture *Texture) v(y int) float32 {
-	return float32(y) / float32(AdjustSize(texture.height))
+	return float32(y) / float32(graphics.AdjustSizeForTexture(texture.height))
 }
 
 type Drawable interface {

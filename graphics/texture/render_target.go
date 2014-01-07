@@ -1,5 +1,9 @@
 package texture
 
+import (
+	"github.com/hajimehoshi/go-ebiten/graphics"
+)
+
 type RenderTarget struct {
 	framebuffer     interface{}
 	offscreenWidth  int
@@ -9,8 +13,8 @@ type RenderTarget struct {
 func NewRenderTarget(framebuffer interface{}, width, height int) *RenderTarget {
 	return &RenderTarget{
 		framebuffer:     framebuffer,
-		offscreenWidth:  AdjustSize(width),
-		offscreenHeight: AdjustSize(height),
+		offscreenWidth:  graphics.AdjustSizeForTexture(width),
+		offscreenHeight: graphics.AdjustSizeForTexture(height),
 	}
 }
 

@@ -54,8 +54,8 @@ func create(textureWidth, textureHeight int, filter graphics.Filter) (
 }
 
 func Create(width, height int, filter graphics.Filter) (*gtexture.Texture, error) {
-	native, err := create(gtexture.AdjustSize(width),
-		gtexture.AdjustSize(height), filter)
+	native, err := create(graphics.AdjustSizeForTexture(width),
+		graphics.AdjustSizeForTexture(height), filter)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func Create(width, height int, filter graphics.Filter) (*gtexture.Texture, error
 }
 
 func CreateFromImage(img image.Image, filter graphics.Filter) (*gtexture.Texture, error) {
-	adjustedImage := gtexture.AdjustImage(img)
+	adjustedImage := graphics.AdjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return gtexture.New(native, size.X, size.Y), nil

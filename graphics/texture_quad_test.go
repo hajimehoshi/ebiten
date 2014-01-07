@@ -1,4 +1,4 @@
-package texture_test
+package graphics_test
 
 import (
 	. "."
