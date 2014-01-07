@@ -48,17 +48,10 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	return Native(nativeTexture)
 }
 
-func create(textureWidth, textureHeight int, filter graphics.Filter) (
-	interface{}, error) {
-	return createNativeTexture(textureWidth, textureHeight, nil, filter), nil
-}
-
 func Create(width, height int, filter graphics.Filter) (*gtexture.Texture, error) {
-	native, err := create(graphics.AdjustSizeForTexture(width),
-		graphics.AdjustSizeForTexture(height), filter)
-	if err != nil {
-		return nil, err
-	}
+	native := createNativeTexture(
+		graphics.AdjustSizeForTexture(width),
+		graphics.AdjustSizeForTexture(height), nil, filter)
 	return gtexture.New(native, width, height), nil
 }
 
