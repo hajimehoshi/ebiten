@@ -9,7 +9,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 )
 
@@ -33,7 +32,7 @@ func New(screenWidth, screenHeight, screenScale int) *Offscreen {
 	offscreen.mainFramebufferTexture, err = rendertarget.CreateWithFramebuffer(
 		screenWidth*screenScale,
 		screenHeight*screenScale,
-		rendertarget.Framebuffer(mainFramebuffer))
+		texture.Framebuffer(mainFramebuffer))
 	if err != nil {
 		panic("creating main framebuffer failed: " + err.Error())
 	}
@@ -55,20 +54,14 @@ func (o *Offscreen) SetMainFramebuffer() {
 func (o *Offscreen) DrawTexture(texture *texture.Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	projectionMatrix := o.projectionMatrix()
-	quad := graphics.TextureQuadForTexture(texture.Width, texture.Height)
-	shader.DrawTexture(texture.Native,
-		projectionMatrix, []graphics.TextureQuad{quad},
-		geometryMatrix, colorMatrix)
+	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)	
 }
 
 func (o *Offscreen) DrawTextureParts(texture *texture.Texture,
 	parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	projectionMatrix := o.projectionMatrix()
-	quads := graphics.TextureQuadsForTextureParts(parts, texture.Width, texture.Height)
-	shader.DrawTexture(texture.Native,
-		projectionMatrix, quads,
-		geometryMatrix, colorMatrix)
+	texture.DrawParts(parts, projectionMatrix, geometryMatrix, colorMatrix)
 }
 
 func (o *Offscreen) projectionMatrix() [16]float32 {

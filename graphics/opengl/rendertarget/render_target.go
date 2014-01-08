@@ -10,37 +10,10 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 )
 
-type Framebuffer C.GLuint
-
 type RenderTarget struct {
-	framebuffer Framebuffer
-	width  int
-	height int
-}
-
-func createFramebuffer(nativeTexture C.GLuint) Framebuffer {
-	framebuffer := C.GLuint(0)
-	C.glGenFramebuffers(1, &framebuffer)
-
-	origFramebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
-
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	defer C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
-
-	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
-		C.GL_TEXTURE_2D, nativeTexture, 0)
-	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
-		C.GL_FRAMEBUFFER_COMPLETE {
-		panic("creating framebuffer failed")
-	}
-
-	// Set this framebuffer opaque because alpha values on a target might be
-	// confusing.
-	C.glClearColor(0, 0, 0, 1)
-	C.glClear(C.GL_COLOR_BUFFER_BIT)
-
-	return Framebuffer(framebuffer)
+	framebuffer texture.Framebuffer
+	width       int
+	height      int
 }
 
 func Create(width, height int, filter graphics.Filter) (
@@ -49,11 +22,11 @@ func Create(width, height int, filter graphics.Filter) (
 	if err != nil {
 		return nil, nil, err
 	}
-	framebuffer := createFramebuffer(C.GLuint(tex.Native))
-	return &RenderTarget{framebuffer, tex.Width, tex.Height}, tex, nil
+	framebuffer := tex.CreateFramebuffer()
+	return &RenderTarget{framebuffer, width, height}, tex, nil
 }
 
-func CreateWithFramebuffer(width, height int, framebuffer Framebuffer) (
+func CreateWithFramebuffer(width, height int, framebuffer texture.Framebuffer) (
 	*RenderTarget, error) {
 	return &RenderTarget{framebuffer, width, height}, nil
 }
