@@ -12,13 +12,12 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 )
 
 type Offscreen struct {
 	screenHeight           int
 	screenScale            int
-	mainFramebufferTexture *gtexture.RenderTarget
+	mainFramebufferTexture *rendertarget.RenderTarget
 	projectionMatrix       [16]float32
 }
 
@@ -43,34 +42,36 @@ func New(screenWidth, screenHeight, screenScale int) *Offscreen {
 	return offscreen
 }
 
-func (o *Offscreen) Set(rt *gtexture.RenderTarget) {
+func (o *Offscreen) Set(rt *rendertarget.RenderTarget) {
 	C.glFlush()
-	rt.SetAsOffscreen(&setter{o, rt == o.mainFramebufferTexture})
+	// TODO: Calc x, y, width, heigth at another function
+	o.doSet(rt.Framebuffer, 0, 0,
+		graphics.AdjustSizeForTexture(rt.Width), graphics.AdjustSizeForTexture(rt.Height))
 }
 
 func (o *Offscreen) SetMainFramebuffer() {
 	o.Set(o.mainFramebufferTexture)
 }
 
-func (o *Offscreen) DrawTexture(texture *gtexture.Texture,
+func (o *Offscreen) DrawTexture(texture *texture.Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture.Draw(&drawable{o, geometryMatrix, colorMatrix})
+	quad := graphics.TextureQuadForTexture(texture.Width, texture.Height)
+	shader.DrawTexture(texture.Native,
+		o.projectionMatrix, []graphics.TextureQuad{quad},
+		geometryMatrix, colorMatrix)
 }
 
-func (o *Offscreen) DrawTextureParts(texture *gtexture.Texture,
+func (o *Offscreen) DrawTextureParts(texture *texture.Texture,
 	parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	texture.DrawParts(parts, &drawable{o, geometryMatrix, colorMatrix})
+	quads := graphics.TextureQuadsForTextureParts(parts, texture.Width, texture.Height)
+	shader.DrawTexture(texture.Native,
+		o.projectionMatrix, quads,
+		geometryMatrix, colorMatrix)
 }
 
-type setter struct {
-	offscreen            *Offscreen
-	usingMainFramebuffer bool
-}
-
-func (s *setter) Set(framebuffer interface{}, x, y, width, height int) {
-	f := framebuffer.(rendertarget.Framebuffer)
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(f))
+func (o *Offscreen) doSet(framebuffer rendertarget.Framebuffer, x, y, width, height int) {
+	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(framebuffer))
 	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
 	if err != C.GL_FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
@@ -83,8 +84,8 @@ func (s *setter) Set(framebuffer interface{}, x, y, width, height int) {
 		C.GLsizei(width), C.GLsizei(height))
 
 	matrix := graphics.OrthoProjectionMatrix(x, width, y, height)
-	if s.usingMainFramebuffer {
-		actualScreenHeight := s.offscreen.screenHeight * s.offscreen.screenScale
+	if framebuffer == o.mainFramebufferTexture.Framebuffer {
+		actualScreenHeight := o.screenHeight * o.screenScale
 		// Flip Y and move to fit with the top of the window.
 		matrix[1][1] *= -1
 		matrix[1][3] += float64(actualScreenHeight) / float64(height) * 2
@@ -92,19 +93,7 @@ func (s *setter) Set(framebuffer interface{}, x, y, width, height int) {
 
 	for j := 0; j < 4; j++ {
 		for i := 0; i < 4; i++ {
-			s.offscreen.projectionMatrix[i+j*4] = float32(matrix[i][j])
+			o.projectionMatrix[i+j*4] = float32(matrix[i][j])
 		}
 	}
-}
-
-type drawable struct {
-	offscreen      *Offscreen
-	geometryMatrix matrix.Geometry
-	colorMatrix    matrix.Color
-}
-
-func (d *drawable) Draw(native interface{}, quads []graphics.TextureQuad) {
-	shader.DrawTexture(native.(texture.Native),
-		d.offscreen.projectionMatrix, quads,
-		d.geometryMatrix, d.colorMatrix)
 }

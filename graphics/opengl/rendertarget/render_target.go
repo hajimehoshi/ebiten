@@ -7,10 +7,15 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 )
 
 type Framebuffer C.GLuint
+
+type RenderTarget struct {
+	Framebuffer
+	Width  int
+	Height int
+}
 
 func createFramebuffer(nativeTexture C.GLuint) Framebuffer {
 	framebuffer := C.GLuint(0)
@@ -37,35 +42,22 @@ func createFramebuffer(nativeTexture C.GLuint) Framebuffer {
 	return Framebuffer(framebuffer)
 }
 
-type framebufferCreator struct {
-}
-
-func (f *framebufferCreator) Create(native interface{}) interface{} {
-	return createFramebuffer(C.GLuint(native.(texture.Native)))
-}
-
 func Create(width, height int, filter graphics.Filter) (
-	*gtexture.RenderTarget, *gtexture.Texture, error) {
+	*RenderTarget, *texture.Texture, error) {
 	tex, err := texture.Create(width, height, filter)
 	if err != nil {
 		return nil, nil, err
 	}
-	return tex.CreateRenderTarget(&framebufferCreator{}), tex, nil
+	framebuffer := createFramebuffer(C.GLuint(tex.Native))
+	return &RenderTarget{framebuffer, tex.Width, tex.Height}, tex, nil
 }
 
 func CreateWithFramebuffer(width, height int, framebuffer Framebuffer) (
-	*gtexture.RenderTarget, error) {
-	return gtexture.NewRenderTarget(framebuffer, width, height), nil
+	*RenderTarget, error) {
+	return &RenderTarget{framebuffer, width, height}, nil
 }
 
-type disposer struct {
-}
-
-func (d *disposer) Dispose(native interface{}) {
-	framebuffer := C.GLuint(native.(Framebuffer))
-	C.glDeleteFramebuffers(1, &framebuffer)
-}
-
-func Dispose(renderTarget *gtexture.RenderTarget) {
-	renderTarget.Dispose(&disposer{})
+func (r *RenderTarget) Dispose() {
+	f := C.GLuint(r.Framebuffer)
+	C.glDeleteFramebuffers(1, &f)
 }

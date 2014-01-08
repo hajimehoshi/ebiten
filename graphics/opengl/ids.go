@@ -4,23 +4,22 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"sync"
 )
 
 type ids struct {
 	lock                  sync.RWMutex
-	textures              map[graphics.TextureId]*gtexture.Texture
-	renderTargets         map[graphics.RenderTargetId]*gtexture.RenderTarget
+	textures              map[graphics.TextureId]*texture.Texture
+	renderTargets         map[graphics.RenderTargetId]*rendertarget.RenderTarget
 	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
 	counts                chan int
 }
 
 func newIds() *ids {
 	ids := &ids{
-		textures:              map[graphics.TextureId]*gtexture.Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*gtexture.RenderTarget{},
+		textures:              map[graphics.TextureId]*texture.Texture{},
+		renderTargets:         map[graphics.RenderTargetId]*rendertarget.RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 		counts:                make(chan int),
 	}
@@ -32,13 +31,13 @@ func newIds() *ids {
 	return ids
 }
 
-func (i *ids) TextureAt(id graphics.TextureId) *gtexture.Texture {
+func (i *ids) TextureAt(id graphics.TextureId) *texture.Texture {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.textures[id]
 }
 
-func (i *ids) RenderTargetAt(id graphics.RenderTargetId) *gtexture.RenderTarget {
+func (i *ids) RenderTargetAt(id graphics.RenderTargetId) *rendertarget.RenderTarget {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.renderTargets[id]
@@ -84,6 +83,6 @@ func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 
 func (i *ids) DeleteRenderTarget(id graphics.RenderTargetId) {
 	renderTarget := i.renderTargets[id]
-	rendertarget.Dispose(renderTarget)
+	renderTarget.Dispose()
 	delete(i.renderTargets, id)
 }

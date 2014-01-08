@@ -6,12 +6,17 @@ package texture
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	gtexture "github.com/hajimehoshi/go-ebiten/graphics/texture"
 	"image"
 	"unsafe"
 )
 
 type Native C.GLuint
+
+type Texture struct {
+	Native
+	Width  int
+	Height int
+}
 
 func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	filter graphics.Filter) Native {
@@ -48,16 +53,16 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	return Native(nativeTexture)
 }
 
-func Create(width, height int, filter graphics.Filter) (*gtexture.Texture, error) {
+func Create(width, height int, filter graphics.Filter) (*Texture, error) {
 	native := createNativeTexture(
 		graphics.AdjustSizeForTexture(width),
 		graphics.AdjustSizeForTexture(height), nil, filter)
-	return gtexture.New(native, width, height), nil
+	return &Texture{native, width, height}, nil
 }
 
-func CreateFromImage(img image.Image, filter graphics.Filter) (*gtexture.Texture, error) {
+func CreateFromImage(img image.Image, filter graphics.Filter) (*Texture, error) {
 	adjustedImage := graphics.AdjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
-	return gtexture.New(native, size.X, size.Y), nil
+	return &Texture{native, size.X, size.Y}, nil
 }
