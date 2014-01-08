@@ -1,10 +1,5 @@
 package offscreen
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <stdlib.h>
-// #include <OpenGL/gl.h>
-import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
@@ -25,24 +20,14 @@ func New(screenWidth, screenHeight, screenScale int) *Offscreen {
 		screenScale:  screenScale,
 	}
 
-	mainFramebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &mainFramebuffer)
-
-	var err error
-	offscreen.mainFramebufferTexture, err = rendertarget.CreateWithFramebuffer(
+	offscreen.mainFramebufferTexture = rendertarget.NewWithCurrentFramebuffer(
 		screenWidth*screenScale,
-		screenHeight*screenScale,
-		texture.Framebuffer(mainFramebuffer))
-	if err != nil {
-		panic("creating main framebuffer failed: " + err.Error())
-	}
-	offscreen.currentRenderTarget = offscreen.mainFramebufferTexture
+		screenHeight*screenScale)
 
 	return offscreen
 }
 
 func (o *Offscreen) Set(rt *rendertarget.RenderTarget) {
-	C.glFlush()
 	o.currentRenderTarget = rt
 	rt.SetAsViewport()
 }

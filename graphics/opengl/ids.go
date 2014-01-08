@@ -65,17 +65,20 @@ func (i *ids) CreateTexture(img image.Image, filter graphics.Filter) (
 
 func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 	graphics.RenderTargetId, error) {
-	renderTarget, texture, err := rendertarget.Create(width, height, filter)
+	
+	texture, err := texture.Create(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
-	renderTargetId := graphics.RenderTargetId(<-i.counts)
+	renderTarget := texture.CreateRenderTarget()
+
 	textureId := graphics.TextureId(<-i.counts)
+	renderTargetId := graphics.RenderTargetId(<-i.counts)
 
 	i.lock.Lock()
 	defer i.lock.Unlock()
-	i.renderTargets[renderTargetId] = renderTarget
 	i.textures[textureId] = texture
+	i.renderTargets[renderTargetId] = renderTarget
 	i.renderTargetToTexture[renderTargetId] = textureId
 
 	return renderTargetId, nil
@@ -84,5 +87,11 @@ func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 func (i *ids) DeleteRenderTarget(id graphics.RenderTargetId) {
 	renderTarget := i.renderTargets[id]
 	renderTarget.Dispose()
+
+	i.lock.Lock()
+	defer i.lock.Unlock()
 	delete(i.renderTargets, id)
+
+	// TODO: Remove the related texture
 }
+
