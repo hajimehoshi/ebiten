@@ -23,7 +23,7 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	filter graphics.Filter) C.GLuint {
 	nativeTexture := C.GLuint(0)
 
-	C.glGenTextures(1, (*C.GLuint)(&nativeTexture))
+	C.glGenTextures(1, &nativeTexture)
 	if nativeTexture < 0 {
 		panic("glGenTexture failed")
 	}
@@ -86,4 +86,8 @@ func (t *Texture) DrawParts(parts []graphics.TexturePart, projectionMatrix [16]f
 	shader.DrawTexture(shader.NativeTexture(t.native),
 		projectionMatrix, quads,
 		geometryMatrix, colorMatrix)
+}
+
+func (t *Texture) Dispose() {
+	C.glDeleteTextures(1, &t.native)
 }

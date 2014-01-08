@@ -77,6 +77,5 @@ func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
 }
 
 func (r *RenderTarget) Dispose() {
-	f := C.GLuint(r.framebuffer)
-	C.glDeleteFramebuffers(1, &f)
+	C.glDeleteFramebuffers(1, &r.framebuffer)
 }

@@ -83,9 +83,9 @@ func TextureQuadsForTextureParts(parts []TexturePart, width, height int) []Textu
 		y1 := float32(part.LocationY)
 		y2 := float32(part.LocationY + part.Source.Height)
 		u1 := u(part.Source.X, width)
-		u2 := u(part.Source.X + part.Source.Width, width)
+		u2 := u(part.Source.X+part.Source.Width, width)
 		v1 := v(part.Source.Y, height)
-		v2 := v(part.Source.Y + part.Source.Height, height)
+		v2 := v(part.Source.Y+part.Source.Height, height)
 		quad := TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}

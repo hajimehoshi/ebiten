@@ -39,7 +39,7 @@ func (o *Offscreen) SetMainFramebuffer() {
 func (o *Offscreen) DrawTexture(texture *texture.Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	projectionMatrix := o.projectionMatrix()
-	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)	
+	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)
 }
 
 func (o *Offscreen) DrawTextureParts(texture *texture.Texture,
