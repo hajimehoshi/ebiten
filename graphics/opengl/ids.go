@@ -2,6 +2,8 @@ package opengl
 
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	"image"
@@ -31,19 +33,19 @@ func newIds() *ids {
 	return ids
 }
 
-func (i *ids) TextureAt(id graphics.TextureId) *texture.Texture {
+func (i *ids) textureAt(id graphics.TextureId) *texture.Texture {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.textures[id]
 }
 
-func (i *ids) RenderTargetAt(id graphics.RenderTargetId) *rendertarget.RenderTarget {
+func (i *ids) renderTargetAt(id graphics.RenderTargetId) *rendertarget.RenderTarget {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.renderTargets[id]
 }
 
-func (i *ids) ToTexture(id graphics.RenderTargetId) graphics.TextureId {
+func (i *ids) toTexture(id graphics.RenderTargetId) graphics.TextureId {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.renderTargetToTexture[id]
@@ -98,4 +100,30 @@ func (i *ids) DeleteRenderTarget(id graphics.RenderTargetId) {
 	delete(i.renderTargets, id)
 	delete(i.renderTargetToTexture, id)
 	delete(i.textures, textureId)
+}
+
+func (i *ids) DrawTexture(id graphics.TextureId, offscreen *offscreen.Offscreen,
+	geo matrix.Geometry, color matrix.Color) {
+	texture := i.textureAt(id)
+	offscreen.DrawTexture(texture, geo, color)
+}
+
+func (i *ids) DrawTextureParts(id graphics.TextureId, offscreen *offscreen.Offscreen,
+	parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+	texture := i.textureAt(id)
+	offscreen.DrawTextureParts(texture, parts, geo, color)
+}
+
+func (i *ids) DrawRenderTarget(id graphics.RenderTargetId, offscreen *offscreen.Offscreen,
+	geo matrix.Geometry, color matrix.Color) {
+	i.DrawTexture(i.toTexture(id), offscreen, geo, color)
+}
+
+func (i *ids) DrawRenderTargetParts(id graphics.RenderTargetId, offscreen *offscreen.Offscreen,
+	parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+	i.DrawTextureParts(i.toTexture(id), offscreen, parts, geo, color)
+}
+
+func (i *ids) SetRenderTargetAsOffscreen(id graphics.RenderTargetId, offscreen *offscreen.Offscreen) {
+	offscreen.Set(i.renderTargetAt(id))
 }
