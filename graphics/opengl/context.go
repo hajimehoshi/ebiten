@@ -8,14 +8,14 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 )
 
 type Context struct {
 	screenId    graphics.RenderTargetId
+	mainId      graphics.RenderTargetId
+	currentId   graphics.RenderTargetId
 	ids         *ids
-	offscreen   *offscreen.Offscreen
 	screenScale int
 }
 
@@ -25,9 +25,9 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 		screenHeight*screenScale)
 	context := &Context{
 		ids:         ids,
-		offscreen:   offscreen.New(mainFramebuffer),
 		screenScale: screenScale,
 	}
+	context.mainId = context.ids.AddRenderTarget(mainFramebuffer)
 
 	var err error
 	context.screenId, err = ids.CreateRenderTarget(
@@ -56,7 +56,7 @@ func (context *Context) update(draw func(graphics.Context)) {
 	draw(context)
 
 	C.glFlush()
-	context.offscreen.SetMainFramebuffer()
+	context.SetOffscreen(context.mainId)
 	context.Clear()
 
 	scale := float64(context.screenScale)
@@ -72,36 +72,36 @@ func (context *Context) Clear() {
 }
 
 func (context *Context) Fill(r, g, b uint8) {
-	context.offscreen.Fill(r, g, b)
+	context.ids.FillRenderTarget(context.currentId, r, g, b)
 }
 
 func (context *Context) DrawTexture(
 	id graphics.TextureId, geo matrix.Geometry, color matrix.Color) {
-	context.ids.DrawTexture(id, context.offscreen, geo, color)
+	context.ids.DrawTexture(context.currentId, id, geo, color)
 }
 
 func (context *Context) DrawRenderTarget(
 	id graphics.RenderTargetId,
 	geo matrix.Geometry, color matrix.Color) {
-	context.ids.DrawRenderTarget(id, context.offscreen, geo, color)
+	context.ids.DrawRenderTarget(context.currentId, id, geo, color)
 }
 
 func (context *Context) DrawTextureParts(
 	id graphics.TextureId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	context.ids.DrawTextureParts(id, context.offscreen, parts, geometryMatrix, colorMatrix)
+	context.ids.DrawTextureParts(context.currentId, id, parts, geometryMatrix, colorMatrix)
 }
 
 func (context *Context) DrawRenderTargetParts(
 	id graphics.RenderTargetId, parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	context.ids.DrawRenderTargetParts(id, context.offscreen, parts, geometryMatrix, colorMatrix)
+	context.ids.DrawRenderTargetParts(context.currentId, id, parts, geometryMatrix, colorMatrix)
 }
 
 func (context *Context) ResetOffscreen() {
-	context.SetOffscreen(context.screenId)
+	context.currentId = context.screenId
 }
 
 func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
-	context.ids.SetRenderTargetAsOffscreen(renderTargetId, context.offscreen)
+	context.currentId = renderTargetId
 }

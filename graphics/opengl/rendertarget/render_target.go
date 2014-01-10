@@ -7,8 +7,16 @@ import "C"
 import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"math"
 )
+
+type Texture interface {
+	Draw(projectionMatrix [4][4]float64,
+		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
+	DrawParts(parts []graphics.TexturePart, projectionMatrix [4][4]float64,
+		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
+}
 
 type NativeTexture C.GLuint
 
@@ -97,10 +105,6 @@ func (r *RenderTarget) Dispose() {
 	C.glDeleteFramebuffers(1, &r.framebuffer)
 }
 
-func (r *RenderTarget) Clear() {
-	r.Fill(0, 0, 0)
-}
-
 func (r *RenderTarget) Fill(red, green, blue uint8) {
 	r.SetAsViewport()
 	const max = float64(math.MaxUint8)
@@ -110,4 +114,19 @@ func (r *RenderTarget) Fill(red, green, blue uint8) {
 		C.GLclampf(float64(blue)/max),
 		1)
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
+}
+
+func (r *RenderTarget) DrawTexture(texture Texture,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	r.SetAsViewport()
+	projectionMatrix := r.ProjectionMatrix()
+	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)
+}
+
+func (r *RenderTarget) DrawTextureParts(texture Texture,
+	parts []graphics.TexturePart,
+	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	r.SetAsViewport()
+	projectionMatrix := r.ProjectionMatrix()
+	texture.DrawParts(parts, projectionMatrix, geometryMatrix, colorMatrix)
 }
