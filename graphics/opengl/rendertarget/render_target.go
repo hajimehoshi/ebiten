@@ -15,12 +15,15 @@ type RenderTarget struct {
 	framebuffer C.GLuint
 	width       int
 	height      int
+	flipY       bool
 }
 
 func NewWithCurrentFramebuffer(width, height int) *RenderTarget {
 	framebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &framebuffer)
-	return &RenderTarget{C.GLuint(framebuffer), width, height}
+	rt := &RenderTarget{C.GLuint(framebuffer), width, height, true}
+	rt.setAsViewport()
+	return rt
 }
 
 func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
@@ -50,10 +53,10 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 
 func CreateFromTexture(native NativeTexture, width, height int) *RenderTarget {
 	framebuffer := createFramebuffer(C.GLuint(native))
-	return &RenderTarget{framebuffer, width, height}
+	return &RenderTarget{framebuffer, width, height, false}
 }
 
-func (r *RenderTarget) SetAsViewport() {
+func (r *RenderTarget) setAsViewport() {
 	C.glFlush()
 
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(r.framebuffer))
@@ -70,10 +73,26 @@ func (r *RenderTarget) SetAsViewport() {
 	C.glViewport(0, 0, C.GLsizei(width), C.GLsizei(height))
 }
 
+func (r *RenderTarget) SetAsViewport() {
+	current := C.GLint(0)
+	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &current)
+	if C.GLuint(current) == r.framebuffer {
+		return
+	}
+	r.setAsViewport()
+}
+
 func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
 	width := graphics.AdjustSizeForTexture(r.width)
 	height := graphics.AdjustSizeForTexture(r.height)
-	return graphics.OrthoProjectionMatrix(0, width, 0, height)
+	matrix := graphics.OrthoProjectionMatrix(0, width, 0, height)
+	if r.flipY {
+		// Flip Y and move to fit with the top of the window.
+		matrix[1][1] *= -1
+		matrix[1][3] += float64(r.height) /
+			float64(graphics.AdjustSizeForTexture(r.height)) * 2
+	}
+	return matrix
 }
 
 func (r *RenderTarget) Dispose() {

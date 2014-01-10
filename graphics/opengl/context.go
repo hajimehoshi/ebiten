@@ -9,6 +9,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"math"
 )
 
@@ -20,9 +21,12 @@ type Context struct {
 }
 
 func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
+	mainFramebuffer := rendertarget.NewWithCurrentFramebuffer(
+		screenWidth*screenScale,
+		screenHeight*screenScale)
 	context := &Context{
 		ids:         ids,
-		offscreen:   offscreen.New(screenWidth, screenHeight, screenScale),
+		offscreen:   offscreen.New(mainFramebuffer),
 		screenScale: screenScale,
 	}
 

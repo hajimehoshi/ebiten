@@ -19,6 +19,16 @@ type Texture struct {
 	height int
 }
 
+func glMatrix(matrix [4][4]float64) [16]float32 {
+	result := [16]float32{}
+	for j := 0; j < 4; j++ {
+		for i := 0; i < 4; i++ {
+			result[i+j*4] = float32(matrix[i][j])
+		}
+	}
+	return result
+}
+
 func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	filter graphics.Filter) C.GLuint {
 	nativeTexture := C.GLuint(0)
@@ -73,18 +83,18 @@ func (t *Texture) CreateRenderTarget() *rendertarget.RenderTarget {
 		rendertarget.NativeTexture(t.native), t.width, t.height)
 }
 
-func (t *Texture) Draw(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+func (t *Texture) Draw(projectionMatrix [4][4]float64, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	quad := graphics.TextureQuadForTexture(t.width, t.height)
 	shader.DrawTexture(shader.NativeTexture(t.native),
-		projectionMatrix, []graphics.TextureQuad{quad},
+		glMatrix(projectionMatrix), []graphics.TextureQuad{quad},
 		geometryMatrix, colorMatrix)
 }
 
-func (t *Texture) DrawParts(parts []graphics.TexturePart, projectionMatrix [16]float32,
+func (t *Texture) DrawParts(parts []graphics.TexturePart, projectionMatrix [4][4]float64,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	quads := graphics.TextureQuadsForTextureParts(parts, t.width, t.height)
 	shader.DrawTexture(shader.NativeTexture(t.native),
-		projectionMatrix, quads,
+		glMatrix(projectionMatrix), quads,
 		geometryMatrix, colorMatrix)
 }
 
