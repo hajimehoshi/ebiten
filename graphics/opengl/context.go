@@ -10,7 +10,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/offscreen"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
-	"math"
 )
 
 type Context struct {
@@ -36,12 +35,14 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
+	context.ResetOffscreen()
 	context.Clear()
 
 	return context
 }
 
 func (context *Context) Dispose() {
+	// TODO: remove main framebuffer?
 	context.ids.DeleteRenderTarget(context.screenId)
 }
 
@@ -71,13 +72,7 @@ func (context *Context) Clear() {
 }
 
 func (context *Context) Fill(r, g, b uint8) {
-	const max = float64(math.MaxUint8)
-	C.glClearColor(
-		C.GLclampf(float64(r)/max),
-		C.GLclampf(float64(g)/max),
-		C.GLclampf(float64(b)/max),
-		1)
-	C.glClear(C.GL_COLOR_BUFFER_BIT)
+	context.offscreen.Fill(r, g, b)
 }
 
 func (context *Context) DrawTexture(

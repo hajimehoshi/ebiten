@@ -15,6 +15,8 @@ type Texture interface {
 type RenderTarget interface {
 	SetAsViewport()
 	ProjectionMatrix() [4][4]float64
+	Clear()
+	Fill(r, g, b uint8)
 }
 
 type Offscreen struct {
@@ -30,7 +32,6 @@ func New(mainFramebuffer RenderTarget) *Offscreen {
 
 func (o *Offscreen) Set(rt RenderTarget) {
 	o.currentRenderTarget = rt
-	rt.SetAsViewport()
 }
 
 func (o *Offscreen) SetMainFramebuffer() {
@@ -39,6 +40,7 @@ func (o *Offscreen) SetMainFramebuffer() {
 
 func (o *Offscreen) DrawTexture(texture Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	o.currentRenderTarget.SetAsViewport()
 	projectionMatrix := o.currentRenderTarget.ProjectionMatrix()
 	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)
 }
@@ -46,6 +48,15 @@ func (o *Offscreen) DrawTexture(texture Texture,
 func (o *Offscreen) DrawTextureParts(texture Texture,
 	parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	o.currentRenderTarget.SetAsViewport()
 	projectionMatrix := o.currentRenderTarget.ProjectionMatrix()
 	texture.DrawParts(parts, projectionMatrix, geometryMatrix, colorMatrix)
+}
+
+func (o *Offscreen) Clear() {
+	o.currentRenderTarget.Clear()
+}
+
+func (o *Offscreen) Fill(r, g, b uint8) {
+	o.currentRenderTarget.Fill(r, g, b)
 }

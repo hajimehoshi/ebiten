@@ -7,6 +7,7 @@ import "C"
 import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
+	"math"
 )
 
 type NativeTexture C.GLuint
@@ -21,9 +22,7 @@ type RenderTarget struct {
 func NewWithCurrentFramebuffer(width, height int) *RenderTarget {
 	framebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &framebuffer)
-	rt := &RenderTarget{C.GLuint(framebuffer), width, height, true}
-	rt.setAsViewport()
-	return rt
+	return &RenderTarget{C.GLuint(framebuffer), width, height, true}
 }
 
 func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
@@ -87,7 +86,6 @@ func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
 	height := graphics.AdjustSizeForTexture(r.height)
 	matrix := graphics.OrthoProjectionMatrix(0, width, 0, height)
 	if r.flipY {
-		// Flip Y and move to fit with the top of the window.
 		matrix[1][1] *= -1
 		matrix[1][3] += float64(r.height) /
 			float64(graphics.AdjustSizeForTexture(r.height)) * 2
@@ -97,4 +95,19 @@ func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
 
 func (r *RenderTarget) Dispose() {
 	C.glDeleteFramebuffers(1, &r.framebuffer)
+}
+
+func (r *RenderTarget) Clear() {
+	r.Fill(0, 0, 0)
+}
+
+func (r *RenderTarget) Fill(red, green, blue uint8) {
+	r.SetAsViewport()
+	const max = float64(math.MaxUint8)
+	C.glClearColor(
+		C.GLclampf(float64(red)/max),
+		C.GLclampf(float64(green)/max),
+		C.GLclampf(float64(blue)/max),
+		1)
+	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
