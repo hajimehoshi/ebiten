@@ -53,14 +53,14 @@ func newGameWindow(width, height, scale int, title string) *GameWindow {
 	}
 }
 
-func (w *GameWindow) run(graphicsDevice *opengl.Device, sharedContext *C.NSOpenGLContext) {
+func (w *GameWindow) run(graphicsDevice *opengl.Device, sharedGLContext *C.NSOpenGLContext) {
 	cTitle := C.CString(w.title)
 	defer C.free(unsafe.Pointer(cTitle))
 
 	ch := make(chan struct{})
 	go func() {
 		runtime.LockOSThread()
-		glContext := C.CreateGLContext(sharedContext)
+		glContext := C.CreateGLContext(sharedGLContext)
 		w.graphicsDevice = graphicsDevice
 		w.native = C.CreateGameWindow(C.size_t(w.screenWidth*w.screenScale),
 			C.size_t(w.screenHeight*w.screenScale),

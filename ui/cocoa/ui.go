@@ -14,7 +14,7 @@ import (
 )
 
 type cocoaUI struct {
-	textureFactory *textureFactory
+	sharedContext *sharedContext
 }
 
 var currentUI *cocoaUI
@@ -25,7 +25,7 @@ func getCurrentUI() *cocoaUI {
 	}
 
 	currentUI = &cocoaUI{}
-	currentUI.textureFactory = newTextureFactory()
+	currentUI.sharedContext = newSharedContext()
 
 	return currentUI
 }
@@ -35,11 +35,11 @@ func UI() ui.UI {
 }
 
 func TextureFactory() graphics.TextureFactory {
-	return getCurrentUI().textureFactory
+	return getCurrentUI().sharedContext
 }
 
 func (u *cocoaUI) CreateGameWindow(width, height, scale int, title string) ui.GameWindow {
-	return u.textureFactory.createGameWindow(width, height, scale, title)
+	return u.sharedContext.createGameWindow(width, height, scale, title)
 }
 
 func (u *cocoaUI) PollEvents() {
@@ -48,8 +48,16 @@ func (u *cocoaUI) PollEvents() {
 
 func (u *cocoaUI) RunMainLoop() {
 	C.StartApplication()
-	currentUI.textureFactory.run()
+	currentUI.sharedContext.run()
 
 	// TODO: Enable the loop
 	//C.Run()
 }
+
+/*func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
+	t.sharedContext.CreateTexture(tag, img, filter)
+}
+
+func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
+	t.sharedContext.CreateRenderTarget(tag, width, height)
+}*/

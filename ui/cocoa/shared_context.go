@@ -14,7 +14,7 @@ import (
 	"runtime"
 )
 
-type textureFactory struct {
+type sharedContext struct {
 	inited         chan struct{}
 	graphicsDevice *opengl.Device
 	events         chan interface{}
@@ -23,8 +23,8 @@ type textureFactory struct {
 	gameWindows    chan *GameWindow
 }
 
-func newTextureFactory() *textureFactory {
-	return &textureFactory{
+func newSharedContext() *sharedContext {
+	return &sharedContext{
 		inited:      make(chan struct{}),
 		funcs:       make(chan func()),
 		funcsDone:   make(chan struct{}),
@@ -32,28 +32,28 @@ func newTextureFactory() *textureFactory {
 	}
 }
 
-func (t *textureFactory) run() {
-	var sharedContext *C.NSOpenGLContext
+func (t *sharedContext) run() {
+	var sharedGLContext *C.NSOpenGLContext
 	go func() {
 		runtime.LockOSThread()
 		t.graphicsDevice = opengl.NewDevice()
-		sharedContext = C.CreateGLContext(nil)
+		sharedGLContext = C.CreateGLContext(nil)
 		close(t.inited)
-		t.loop(sharedContext)
+		t.loop(sharedGLContext)
 	}()
 	<-t.inited
 	go func() {
 		for w := range t.gameWindows {
-			w.run(t.graphicsDevice, sharedContext)
+			w.run(t.graphicsDevice, sharedGLContext)
 		}
 	}()
 }
 
-func (t *textureFactory) loop(sharedContext *C.NSOpenGLContext) {
+func (t *sharedContext) loop(sharedGLContext *C.NSOpenGLContext) {
 	for {
 		select {
 		case f := <-t.funcs:
-			C.UseGLContext(sharedContext)
+			C.UseGLContext(sharedGLContext)
 			f()
 			C.UnuseGLContext()
 			t.funcsDone <- struct{}{}
@@ -61,12 +61,12 @@ func (t *textureFactory) loop(sharedContext *C.NSOpenGLContext) {
 	}
 }
 
-func (t *textureFactory) useGLContext(f func()) {
+func (t *sharedContext) useGLContext(f func()) {
 	t.funcs <- f
 	<-t.funcsDone
 }
 
-func (t *textureFactory) createGameWindow(width, height, scale int, title string) *GameWindow {
+func (t *sharedContext) createGameWindow(width, height, scale int, title string) *GameWindow {
 	w := newGameWindow(width, height, scale, title)
 	go func() {
 		t.gameWindows <- w
@@ -74,7 +74,7 @@ func (t *textureFactory) createGameWindow(width, height, scale int, title string
 	return w
 }
 
-func (t *textureFactory) Events() <-chan interface{} {
+func (t *sharedContext) Events() <-chan interface{} {
 	if t.events != nil {
 		return t.events
 	}
@@ -82,7 +82,7 @@ func (t *textureFactory) Events() <-chan interface{} {
 	return t.events
 }
 
-func (t *textureFactory) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
+func (t *sharedContext) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
 	go func() {
 		<-t.inited
 		var id graphics.TextureId
@@ -93,16 +93,15 @@ func (t *textureFactory) CreateTexture(tag interface{}, img image.Image, filter 
 		if t.events == nil {
 			return
 		}
-		e := graphics.TextureCreatedEvent{
+		t.events <- graphics.TextureCreatedEvent{
 			Tag:   tag,
 			Id:    id,
 			Error: err,
 		}
-		t.events <- e
 	}()
 }
 
-func (t *textureFactory) CreateRenderTarget(tag interface{}, width, height int) {
+func (t *sharedContext) CreateRenderTarget(tag interface{}, width, height int) {
 	go func() {
 		<-t.inited
 		var id graphics.RenderTargetId
@@ -113,11 +112,10 @@ func (t *textureFactory) CreateRenderTarget(tag interface{}, width, height int) 
 		if t.events == nil {
 			return
 		}
-		e := graphics.RenderTargetCreatedEvent{
+		t.events <- graphics.RenderTargetCreatedEvent{
 			Tag:   tag,
 			Id:    id,
 			Error: err,
 		}
-		t.events <- e
 	}()
 }

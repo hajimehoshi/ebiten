@@ -55,7 +55,6 @@ func (context *Context) update(draw func(graphics.Context)) {
 
 	draw(context)
 
-	C.glFlush()
 	context.SetOffscreen(context.mainId)
 	context.Clear()
 
