@@ -5,7 +5,10 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"github.com/hajimehoshi/go-ebiten/ui/cocoa"
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -61,6 +64,8 @@ func main() {
 
 	u.RunMainLoop()
 
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
 	for {
 		u.PollEvents()
 		select {
@@ -74,6 +79,8 @@ func main() {
 			after := time.After(time.Duration(int64(time.Second) / 120))
 			u.PollEvents()
 			<-after
+		case <-s:
+			return
 		case <-quit:
 			return
 		}
