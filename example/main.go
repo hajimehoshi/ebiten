@@ -66,7 +66,7 @@ func main() {
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
 	for {
-		u.PollEvents()
+		u.DoEvents()
 		select {
 		default:
 			drawing <- graphics.NewLazyContext()
@@ -76,7 +76,7 @@ func main() {
 				context.Flush(actualContext)
 			})
 			after := time.After(time.Duration(int64(time.Second) / 120))
-			u.PollEvents()
+			u.DoEvents()
 			<-after
 		case <-s:
 			return

@@ -77,7 +77,7 @@ EbitenGameWindow* CreateGameWindow(size_t width, size_t height, const char* titl
   return window;
 }
 
-void PollEvents(void) {
+void DoEvents(void) {
   for (;;) {
     NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
                                         untilDate:[NSDate distantPast]

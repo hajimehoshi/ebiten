@@ -5,7 +5,7 @@ package cocoa
 //
 // void Run(void);
 // void StartApplication(void);
-// void PollEvents(void);
+// void DoEvents(void);
 //
 import "C"
 import (
@@ -42,8 +42,8 @@ func (u *cocoaUI) CreateGameWindow(width, height, scale int, title string) ui.Ga
 	return u.sharedContext.createGameWindow(width, height, scale, title)
 }
 
-func (u *cocoaUI) PollEvents() {
-	C.PollEvents()
+func (u *cocoaUI) DoEvents() {
+	C.DoEvents()
 }
 
 func (u *cocoaUI) RunMainLoop() {
