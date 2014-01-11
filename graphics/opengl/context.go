@@ -1,10 +1,5 @@
 package opengl
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <stdlib.h>
-// #include <OpenGL/gl.h>
-import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
@@ -38,6 +33,8 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 	context.ResetOffscreen()
 	context.Clear()
 
+	enableAlphaBlending()
+
 	return context
 }
 
@@ -47,9 +44,6 @@ func (context *Context) Dispose() {
 }
 
 func (context *Context) update(draw func(graphics.Context)) {
-	C.glEnable(C.GL_TEXTURE_2D)
-	C.glEnable(C.GL_BLEND)
-
 	context.ResetOffscreen()
 	context.Clear()
 
@@ -63,7 +57,8 @@ func (context *Context) update(draw func(graphics.Context)) {
 	geometryMatrix.Scale(scale, scale)
 	context.DrawRenderTarget(context.screenId,
 		geometryMatrix, matrix.IdentityColor())
-	C.glFlush()
+
+	flush()
 }
 
 func (context *Context) Clear() {
