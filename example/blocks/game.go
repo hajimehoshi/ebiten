@@ -69,7 +69,7 @@ func (game *Game) startLoadingTextures(textureFactory graphics.TextureFactory) {
 		tag := tag
 		size := size
 		go func() {
-			textureFactory.CreateRenderTarget(tag, size.Width, size.Height)
+			textureFactory.CreateRenderTarget(tag, size.Width, size.Height, graphics.FilterNearest)
 		}()
 	}
 }

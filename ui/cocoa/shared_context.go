@@ -101,13 +101,13 @@ func (t *sharedContext) CreateTexture(tag interface{}, img image.Image, filter g
 	}()
 }
 
-func (t *sharedContext) CreateRenderTarget(tag interface{}, width, height int) {
+func (t *sharedContext) CreateRenderTarget(tag interface{}, width, height int, filter graphics.Filter) {
 	go func() {
 		<-t.inited
 		var id graphics.RenderTargetId
 		var err error
 		t.useGLContext(func() {
-			id, err = t.sharedContext.CreateRenderTarget(width, height)
+			id, err = t.sharedContext.CreateRenderTarget(width, height, filter)
 		})
 		if t.events == nil {
 			return

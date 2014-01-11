@@ -17,7 +17,7 @@ type RenderTargetCreatedEvent struct {
 }
 
 type TextureFactory interface {
-	CreateRenderTarget(tag interface{}, width, height int) // TODO: Add filter
+	CreateRenderTarget(tag interface{}, width, height int, filter Filter)
 	CreateTexture(tag interface{}, img image.Image, filter Filter)
 	Events() <-chan interface{}
 }

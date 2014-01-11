@@ -25,8 +25,8 @@ func (s *SharedContext) CreateContext(screenWidth, screenHeight, screenScale int
 	return newContext(s.ids, screenWidth, screenHeight, screenScale)
 }
 
-func (s *SharedContext) CreateRenderTarget(width, height int) (graphics.RenderTargetId, error) {
-	return s.ids.CreateRenderTarget(width, height, graphics.FilterLinear)
+func (s *SharedContext) CreateRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetId, error) {
+	return s.ids.CreateRenderTarget(width, height, filter)
 }
 
 func (s *SharedContext) CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureId, error) {
