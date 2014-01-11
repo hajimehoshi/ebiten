@@ -9,10 +9,16 @@ type SharedContext struct {
 	ids *ids
 }
 
-func NewSharedContext() *SharedContext {
-	return &SharedContext{
+var sharedContext *SharedContext = nil
+
+func Initialize() *SharedContext {
+	if sharedContext != nil {
+		panic("OpenGL is already initialized")
+	}
+	sharedContext = &SharedContext{
 		ids: newIds(),
 	}
+	return sharedContext
 }
 
 func (s *SharedContext) CreateContext(screenWidth, screenHeight, screenScale int) *Context {
