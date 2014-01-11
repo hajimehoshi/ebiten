@@ -72,11 +72,13 @@ func (w *GameWindow) run(graphicsSharedContext *opengl.SharedContext, sharedGLCo
 			w.screenWidth, w.screenHeight, w.screenScale)
 		C.UnuseGLContext()
 
-		w.loop(context, glContext)
+		defer func() {
+			C.UseGLContext(glContext)
+			context.Dispose()
+			C.UnuseGLContext()
+		}()
 
-		C.UseGLContext(glContext)
-		context.Dispose()
-		C.UnuseGLContext()
+		w.loop(context, glContext)
 	}()
 	<-ch
 }
@@ -96,9 +98,14 @@ func (w *GameWindow) loop(context *opengl.Context, glContext *C.NSOpenGLContext)
 }
 
 func (w *GameWindow) Draw(f func(graphics.Context)) {
-	w.useGLContext(func(context *opengl.Context) {
-		context.Update(f)
-	})
+	select {
+	case <-w.closed:
+		return
+	default:
+		w.useGLContext(func(context *opengl.Context) {
+			context.Update(f)
+		})
+	}
 }
 
 func (w *GameWindow) useGLContext(f func(*opengl.Context)) {
