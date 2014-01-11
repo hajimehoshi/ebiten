@@ -10,10 +10,9 @@ type SharedContext struct {
 }
 
 func NewSharedContext() *SharedContext {
-	device := &SharedContext{
+	return &SharedContext{
 		ids: newIds(),
 	}
-	return device
 }
 
 func (s *SharedContext) CreateContext(screenWidth, screenHeight, screenScale int) *Context {

@@ -33,13 +33,12 @@ func main() {
 	textureFactory := cocoa.TextureFactory()
 	window := u.CreateGameWindow(screenWidth, screenHeight, screenScale, title)
 
-	textureFactoryEvents := textureFactory.Events()
-
 	drawing := make(chan *graphics.LazyContext)
 	quit := make(chan struct{})
 	go func() {
 		defer close(quit)
 
+		textureFactoryEvents := textureFactory.Events()
 		windowEvents := window.Events()
 		var game Game = blocks.NewGame(textureFactory)
 		frameTime := time.Duration(int64(time.Second) / int64(fps))

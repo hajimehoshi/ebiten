@@ -15,14 +15,14 @@ type Context struct {
 }
 
 func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
-	mainFramebuffer := rendertarget.NewWithCurrentFramebuffer(
-		screenWidth*screenScale,
-		screenHeight*screenScale)
 	context := &Context{
 		ids:         ids,
 		screenScale: screenScale,
 	}
-	context.mainId = context.ids.AddRenderTarget(mainFramebuffer)
+	mainRenderTarget := rendertarget.NewWithCurrentFramebuffer(
+		screenWidth*screenScale,
+		screenHeight*screenScale)
+	context.mainId = context.ids.AddRenderTarget(mainRenderTarget)
 
 	var err error
 	context.screenId, err = ids.CreateRenderTarget(

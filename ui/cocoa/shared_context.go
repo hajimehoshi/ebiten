@@ -15,12 +15,12 @@ import (
 )
 
 type sharedContext struct {
-	inited         chan struct{}
+	inited                chan struct{}
 	graphicsSharedContext *opengl.SharedContext
-	events         chan interface{}
-	funcs          chan func()
-	funcsDone      chan struct{}
-	gameWindows    chan *GameWindow
+	events                chan interface{}
+	funcs                 chan func()
+	funcsDone             chan struct{}
+	gameWindows           chan *GameWindow
 }
 
 func newSharedContext() *sharedContext {
