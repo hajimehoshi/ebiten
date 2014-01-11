@@ -16,7 +16,7 @@ import (
 
 type sharedContext struct {
 	inited         chan struct{}
-	graphicsDevice *opengl.Device
+	graphicsSharedContext *opengl.SharedContext
 	events         chan interface{}
 	funcs          chan func()
 	funcsDone      chan struct{}
@@ -36,7 +36,7 @@ func (t *sharedContext) run() {
 	var sharedGLContext *C.NSOpenGLContext
 	go func() {
 		runtime.LockOSThread()
-		t.graphicsDevice = opengl.NewDevice()
+		t.graphicsSharedContext = opengl.NewSharedContext()
 		sharedGLContext = C.CreateGLContext(nil)
 		close(t.inited)
 		t.loop(sharedGLContext)
@@ -44,7 +44,7 @@ func (t *sharedContext) run() {
 	<-t.inited
 	go func() {
 		for w := range t.gameWindows {
-			w.run(t.graphicsDevice, sharedGLContext)
+			w.run(t.graphicsSharedContext, sharedGLContext)
 		}
 	}()
 }
@@ -88,7 +88,7 @@ func (t *sharedContext) CreateTexture(tag interface{}, img image.Image, filter g
 		var id graphics.TextureId
 		var err error
 		t.useGLContext(func() {
-			id, err = t.graphicsDevice.CreateTexture(img, filter)
+			id, err = t.graphicsSharedContext.CreateTexture(img, filter)
 		})
 		if t.events == nil {
 			return
@@ -107,7 +107,7 @@ func (t *sharedContext) CreateRenderTarget(tag interface{}, width, height int) {
 		var id graphics.RenderTargetId
 		var err error
 		t.useGLContext(func() {
-			id, err = t.graphicsDevice.CreateRenderTarget(width, height)
+			id, err = t.graphicsSharedContext.CreateRenderTarget(width, height)
 		})
 		if t.events == nil {
 			return

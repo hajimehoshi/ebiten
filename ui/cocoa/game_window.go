@@ -25,17 +25,16 @@ import (
 )
 
 type GameWindow struct {
-	graphicsDevice *opengl.Device
-	screenWidth    int
-	screenHeight   int
-	screenScale    int
-	title          string
-	native         *C.EbitenGameWindow
-	pressedKeys    map[ui.Key]struct{}
-	funcs          chan func(*opengl.Context)
-	funcsDone      chan struct{}
-	closed         chan struct{}
-	events         chan interface{}
+	screenWidth  int
+	screenHeight int
+	screenScale  int
+	title        string
+	native       *C.EbitenGameWindow
+	pressedKeys  map[ui.Key]struct{}
+	funcs        chan func(*opengl.Context)
+	funcsDone    chan struct{}
+	closed       chan struct{}
+	events       chan interface{}
 }
 
 var windows = map[*C.EbitenGameWindow]*GameWindow{}
@@ -53,7 +52,7 @@ func newGameWindow(width, height, scale int, title string) *GameWindow {
 	}
 }
 
-func (w *GameWindow) run(graphicsDevice *opengl.Device, sharedGLContext *C.NSOpenGLContext) {
+func (w *GameWindow) run(graphicsSharedContext *opengl.SharedContext, sharedGLContext *C.NSOpenGLContext) {
 	cTitle := C.CString(w.title)
 	defer C.free(unsafe.Pointer(cTitle))
 
@@ -61,30 +60,28 @@ func (w *GameWindow) run(graphicsDevice *opengl.Device, sharedGLContext *C.NSOpe
 	go func() {
 		runtime.LockOSThread()
 		glContext := C.CreateGLContext(sharedGLContext)
-		w.graphicsDevice = graphicsDevice
 		w.native = C.CreateGameWindow(C.size_t(w.screenWidth*w.screenScale),
 			C.size_t(w.screenHeight*w.screenScale),
 			cTitle,
 			glContext)
 		windows[w.native] = w
 		close(ch)
-		w.loop(glContext)
-	}()
-	<-ch
-}
 
-func (w *GameWindow) loop(glContext *C.NSOpenGLContext) {
-	C.UseGLContext(glContext)
-	context := w.graphicsDevice.CreateContext(
-		w.screenWidth, w.screenHeight, w.screenScale)
-	C.UnuseGLContext()
+		C.UseGLContext(glContext)
+		context := graphicsSharedContext.CreateContext(
+			w.screenWidth, w.screenHeight, w.screenScale)
+		C.UnuseGLContext()
 
-	defer func() {
+		w.loop(context, glContext)
+
 		C.UseGLContext(glContext)
 		context.Dispose()
 		C.UnuseGLContext()
 	}()
+	<-ch
+}
 
+func (w *GameWindow) loop(context *opengl.Context, glContext *C.NSOpenGLContext) {
 	for {
 		select {
 		case <-w.closed:
@@ -100,7 +97,7 @@ func (w *GameWindow) loop(glContext *C.NSOpenGLContext) {
 
 func (w *GameWindow) Draw(f func(graphics.Context)) {
 	w.useGLContext(func(context *opengl.Context) {
-		w.graphicsDevice.Update(context, f)
+		context.Update(f)
 	})
 }
 

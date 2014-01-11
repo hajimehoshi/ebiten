@@ -43,7 +43,7 @@ func (context *Context) Dispose() {
 	context.ids.DeleteRenderTarget(context.screenId)
 }
 
-func (context *Context) update(draw func(graphics.Context)) {
+func (context *Context) Update(draw func(graphics.Context)) {
 	context.ResetOffscreen()
 	context.Clear()
 
