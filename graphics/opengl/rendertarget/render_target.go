@@ -64,6 +64,12 @@ func CreateFromTexture(native NativeTexture, width, height int) *RenderTarget {
 }
 
 func (r *RenderTarget) setAsViewport() {
+	current := C.GLint(0)
+	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &current)
+	if C.GLuint(current) == r.framebuffer {
+		return
+	}
+
 	C.glFlush()
 
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(r.framebuffer))
@@ -80,16 +86,7 @@ func (r *RenderTarget) setAsViewport() {
 	C.glViewport(0, 0, C.GLsizei(width), C.GLsizei(height))
 }
 
-func (r *RenderTarget) SetAsViewport() {
-	current := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &current)
-	if C.GLuint(current) == r.framebuffer {
-		return
-	}
-	r.setAsViewport()
-}
-
-func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
+func (r *RenderTarget) projectionMatrix() [4][4]float64 {
 	width := graphics.AdjustSizeForTexture(r.width)
 	height := graphics.AdjustSizeForTexture(r.height)
 	matrix := graphics.OrthoProjectionMatrix(0, width, 0, height)
@@ -106,7 +103,7 @@ func (r *RenderTarget) Dispose() {
 }
 
 func (r *RenderTarget) Fill(red, green, blue uint8) {
-	r.SetAsViewport()
+	r.setAsViewport()
 	const max = float64(math.MaxUint8)
 	C.glClearColor(
 		C.GLclampf(float64(red)/max),
@@ -118,15 +115,15 @@ func (r *RenderTarget) Fill(red, green, blue uint8) {
 
 func (r *RenderTarget) DrawTexture(texture Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	r.SetAsViewport()
-	projectionMatrix := r.ProjectionMatrix()
+	r.setAsViewport()
+	projectionMatrix := r.projectionMatrix()
 	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)
 }
 
 func (r *RenderTarget) DrawTextureParts(texture Texture,
 	parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	r.SetAsViewport()
-	projectionMatrix := r.ProjectionMatrix()
+	r.setAsViewport()
+	projectionMatrix := r.projectionMatrix()
 	texture.DrawParts(parts, projectionMatrix, geometryMatrix, colorMatrix)
 }
