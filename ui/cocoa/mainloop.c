@@ -32,10 +32,9 @@ void StartApplication(void) {
 
   NSApplication* app = [NSApplication sharedApplication];
   [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-
   initMenu();
-
   [app finishLaunching];
+  [NSApp activateIgnoringOtherApps:YES];
 }
 
 void DoEvents(void) {
@@ -48,12 +47,6 @@ void DoEvents(void) {
       break;
     }
     [NSApp sendEvent:event];
-  }
-
-  static BOOL initialBoot = YES;
-  if (initialBoot) {
-    [NSApp activateIgnoringOtherApps:YES];
-    initialBoot = NO;
   }
 
   [pool drain];
