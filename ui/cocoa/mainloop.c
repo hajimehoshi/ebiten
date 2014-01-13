@@ -5,6 +5,8 @@
 
 #import "ebiten_game_window.h"
 
+static NSAutoreleasePool* pool = NULL;
+
 void initMenu(void) {
   NSString* processName = [[NSProcessInfo processInfo] processName];
 
@@ -25,22 +27,41 @@ void initMenu(void) {
               keyEquivalent:@"q"];
 }
 
-void Run(void) {
-  NSAutoreleasePool * pool = [NSAutoreleasePool new];
-  NSApplication* app = [NSApplication sharedApplication];
-  [app setActivationPolicy:NSApplicationActivationPolicyRegular];
-  //initMenu();
-  [app run];
-  [pool drain];
-}
-
 void StartApplication(void) {
+  pool = [NSAutoreleasePool new];
+
   NSApplication* app = [NSApplication sharedApplication];
   [app setActivationPolicy:NSApplicationActivationPolicyRegular];
 
   initMenu();
 
   [app finishLaunching];
+}
+
+void DoEvents(void) {
+  for (;;) {
+    NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
+                                        untilDate:[NSDate distantPast]
+                                           inMode:NSDefaultRunLoopMode
+                                          dequeue:YES];
+    if (event == nil) {
+      break;
+    }
+    [NSApp sendEvent:event];
+  }
+
+  static BOOL initialBoot = YES;
+  if (initialBoot) {
+    [NSApp activateIgnoringOtherApps:YES];
+    initialBoot = NO;
+  }
+
+  [pool drain];
+  pool = [NSAutoreleasePool new];
+}
+
+void TerminateApplication(void) {
+  [pool drain];  
 }
 
 NSOpenGLContext* CreateGLContext(NSOpenGLContext* sharedGLContext) {
@@ -75,24 +96,6 @@ EbitenGameWindow* CreateGameWindow(size_t width, size_t height, const char* titl
   [window makeKeyAndOrderFront:nil];
   [glContext setView:[window contentView]];
   return window;
-}
-
-void DoEvents(void) {
-  for (;;) {
-    NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
-                                        untilDate:[NSDate distantPast]
-                                           inMode:NSDefaultRunLoopMode
-                                          dequeue:YES];
-    if (event == nil) {
-      break;
-    }
-    [NSApp sendEvent:event];
-  }
-  static BOOL initialBoot = YES;
-  if (initialBoot) {
-    [NSApp activateIgnoringOtherApps:YES];
-    initialBoot = NO;
-  }
 }
 
 void UseGLContext(NSOpenGLContext* glContext) {

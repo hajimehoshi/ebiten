@@ -57,11 +57,11 @@ void ebiten_WindowClosed(void* nativeWindow);
 - (BOOL)windowShouldClose:(id)sender {
   if ([sender isDocumentEdited]) {
     // TODO: add the application's name
-    NSAlert* alert = [NSAlert alertWithMessageText:@"Quit the game?"
-                                     defaultButton:@"Quit"
-                                   alternateButton:nil
-                                       otherButton:@"Cancel"
-                         informativeTextWithFormat:@""];
+    NSAlert* alert = [NSAlert new];
+    [alert setMessageText:@"Quit the game?"];
+    [alert addButtonWithTitle:@"Quit"];
+    [alert addButtonWithTitle:@"Cancel"];
+    [alert setAlertStyle:NSWarningAlertStyle];
     SEL selector = @selector(alertDidEnd:returnCode:contextInfo:);
     [alert beginSheetModalForWindow:sender
                       modalDelegate:self
@@ -75,9 +75,7 @@ void ebiten_WindowClosed(void* nativeWindow);
 - (void)alertDidEnd:(NSAlert*)alert
          returnCode:(NSInteger)returnCode
         contextInfo:(void*)contextInfo {
-  (void)alert;
-  (void)contextInfo;
-  if (returnCode == NSAlertDefaultReturn) {
+  if (returnCode == NSAlertFirstButtonReturn) {
     [self close];
     ebiten_WindowClosed(self);
   }

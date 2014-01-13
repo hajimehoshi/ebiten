@@ -33,7 +33,7 @@ func main() {
 	textureFactory := cocoa.TextureFactory()
 	window := u.CreateGameWindow(screenWidth, screenHeight, screenScale, title)
 
-	drawing := make(chan *graphics.LazyContext)
+	drawing := make(chan struct{})
 	quit := make(chan struct{})
 	go func() {
 		defer close(quit)
@@ -54,14 +54,17 @@ func main() {
 				}
 			case <-tick:
 				game.Update()
-			case context := <-drawing:
-				game.Draw(context)
-				drawing <- context
+			case <-drawing:
+				window.Draw(func(context graphics.Context) {
+					game.Draw(context)
+				})
+				drawing <- struct{}{}
 			}
 		}
 	}()
 
-	u.RunMainLoop()
+	u.Start()
+	defer u.Terminate()
 
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
@@ -69,15 +72,8 @@ func main() {
 		u.DoEvents()
 		select {
 		default:
-			drawing <- graphics.NewLazyContext()
-			context := <-drawing
-
-			window.Draw(func(actualContext graphics.Context) {
-				context.Flush(actualContext)
-			})
-			after := time.After(time.Duration(int64(time.Second) / 120))
-			u.DoEvents()
-			<-after
+			drawing <- struct{}{}
+			<-drawing
 		case <-s:
 			return
 		case <-quit:

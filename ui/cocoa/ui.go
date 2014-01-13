@@ -3,9 +3,9 @@ package cocoa
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Cocoa -framework OpenGL
 //
-// void Run(void);
 // void StartApplication(void);
 // void DoEvents(void);
+// void TerminateApplication(void);
 //
 import "C"
 import (
@@ -46,18 +46,12 @@ func (u *cocoaUI) DoEvents() {
 	C.DoEvents()
 }
 
-func (u *cocoaUI) RunMainLoop() {
+func (u *cocoaUI) Start() {
 	C.StartApplication()
 	currentUI.sharedContext.run()
-
-	// TODO: Enable the loop
-	//C.Run()
 }
 
-/*func (u *cocoaUI) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
-	t.sharedContext.CreateTexture(tag, img, filter)
+func (u *cocoaUI) Terminate() {
+	// TODO: Close existing windows
+	C.TerminateApplication()
 }
-
-func (u *cocoaUI) CreateRenderTarget(tag interface{}, width, height int) {
-	t.sharedContext.CreateRenderTarget(tag, width, height)
-}*/

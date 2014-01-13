@@ -33,9 +33,10 @@ type WindowClosedEvent struct {
 }
 
 type UI interface {
-	DoEvents()
 	CreateGameWindow(screenWidth, screenHeight, screenScale int, title string) GameWindow
-	RunMainLoop()
+	Start()
+	DoEvents()
+	Terminate()
 }
 
 type Window interface {

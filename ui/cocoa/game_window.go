@@ -98,14 +98,17 @@ func (w *GameWindow) loop(context *opengl.Context, glContext *C.NSOpenGLContext)
 }
 
 func (w *GameWindow) Draw(f func(graphics.Context)) {
+	//after := time.After(time.Duration(int64(time.Second) / 120))
+	//defer <-after
+
 	select {
 	case <-w.closed:
 		return
 	default:
-		w.useGLContext(func(context *opengl.Context) {
-			context.Update(f)
-		})
 	}
+	w.useGLContext(func(context *opengl.Context) {
+		context.Update(f)
+	})
 }
 
 func (w *GameWindow) useGLContext(f func(*opengl.Context)) {
