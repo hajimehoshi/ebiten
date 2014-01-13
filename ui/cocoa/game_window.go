@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
 	"github.com/hajimehoshi/go-ebiten/ui"
 	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -98,14 +99,18 @@ func (w *GameWindow) loop(context *opengl.Context, glContext *C.NSOpenGLContext)
 }
 
 func (w *GameWindow) Draw(f func(graphics.Context)) {
-	//after := time.After(time.Duration(int64(time.Second) / 120))
-	//defer <-after
-
 	select {
 	case <-w.closed:
 		return
 	default:
 	}
+
+	// Wait 10 millisecond at least to avoid busy loop.
+	after := time.After(time.Duration(int64(time.Millisecond) * 10))
+	defer func() {
+		<-after
+	}()
+
 	w.useGLContext(func(context *opengl.Context) {
 		context.Update(f)
 	})
