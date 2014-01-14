@@ -90,9 +90,12 @@ func (w *GameWindow) loop(context *opengl.Context, glContext *C.NSOpenGLContext)
 		case <-w.closed:
 			return
 		case f := <-w.funcs:
+			// Wait 10 millisecond at least to avoid busy loop.
+			after := time.After(time.Duration(int64(time.Millisecond) * 10))
 			C.UseGLContext(glContext)
 			f(context)
 			C.UnuseGLContext()
+			<-after
 			w.funcsDone <- struct{}{}
 		}
 	}
@@ -104,13 +107,6 @@ func (w *GameWindow) Draw(f func(graphics.Context)) {
 		return
 	default:
 	}
-
-	// Wait 10 millisecond at least to avoid busy loop.
-	after := time.After(time.Duration(int64(time.Millisecond) * 10))
-	defer func() {
-		<-after
-	}()
-
 	w.useGLContext(func(context *opengl.Context) {
 		context.Update(f)
 	})
