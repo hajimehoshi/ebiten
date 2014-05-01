@@ -107,7 +107,7 @@ func (s *GameScene) Draw(context graphics.Context) {
 	geoMat.Translate(20, 20) // magic number?
 	colorMat := matrix.IdentityColor()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
-	context.DrawTexture(field, geoMat, colorMat)
+	context.Texture(field).Draw(geoMat, colorMat)
 
 	geoMat = matrix.IdentityGeometry()
 	geoMat.Translate(20, 20)

@@ -54,41 +54,25 @@ func (context *Context) Update(draw func(graphics.Context)) {
 	scale := float64(context.screenScale)
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Scale(scale, scale)
-	context.DrawRenderTarget(context.screenId,
-		geometryMatrix, matrix.IdentityColor())
+	context.RenderTarget(context.screenId).Draw(geometryMatrix, matrix.IdentityColor())
 
 	flush()
 }
 
-func (context *Context) Clear() {
-	context.Fill(0, 0, 0)
+func (c *Context) Clear() {
+	c.Fill(0, 0, 0)
 }
 
-func (context *Context) Fill(r, g, b uint8) {
-	context.ids.FillRenderTarget(context.currentId, r, g, b)
+func (c *Context) Fill(r, g, b uint8) {
+	c.ids.FillRenderTarget(c.currentId, r, g, b)
 }
 
-func (context *Context) DrawTexture(
-	id graphics.TextureId, geo matrix.Geometry, color matrix.Color) {
-	context.ids.DrawTexture(context.currentId, id, geo, color)
+func (c *Context) Texture(id graphics.TextureId) graphics.Drawer {
+	return &TextureWithContext{id, c}
 }
 
-func (context *Context) DrawRenderTarget(
-	id graphics.RenderTargetId,
-	geo matrix.Geometry, color matrix.Color) {
-	context.ids.DrawRenderTarget(context.currentId, id, geo, color)
-}
-
-func (context *Context) DrawTextureParts(
-	id graphics.TextureId, parts []graphics.TexturePart,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	context.ids.DrawTextureParts(context.currentId, id, parts, geometryMatrix, colorMatrix)
-}
-
-func (context *Context) DrawRenderTargetParts(
-	id graphics.RenderTargetId, parts []graphics.TexturePart,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	context.ids.DrawRenderTargetParts(context.currentId, id, parts, geometryMatrix, colorMatrix)
+func (c *Context) RenderTarget(id graphics.RenderTargetId) graphics.Drawer {
+	return &RenderTargetWithContext{id, c}
 }
 
 func (context *Context) ResetOffscreen() {
@@ -97,4 +81,30 @@ func (context *Context) ResetOffscreen() {
 
 func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	context.currentId = renderTargetId
+}
+
+type TextureWithContext struct {
+	id      graphics.TextureId
+	context *Context
+}
+
+func (t *TextureWithContext) Draw(geo matrix.Geometry, color matrix.Color) {
+	t.context.ids.DrawTexture(t.context.currentId, t.id, geo, color)
+}
+
+func (t *TextureWithContext) DrawParts(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+	t.context.ids.DrawTextureParts(t.context.currentId, t.id, parts, geo, color)
+}
+
+type RenderTargetWithContext struct {
+	id      graphics.RenderTargetId
+	context *Context
+}
+
+func (r *RenderTargetWithContext) Draw(geo matrix.Geometry, color matrix.Color) {
+	r.context.ids.DrawRenderTarget(r.context.currentId, r.id, geo, color)
+}
+
+func (r *RenderTargetWithContext) DrawParts(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+	r.context.ids.DrawRenderTargetParts(r.context.currentId, r.id, parts, geo, color)
 }

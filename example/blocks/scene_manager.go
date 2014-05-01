@@ -62,11 +62,11 @@ func (s *SceneManager) Draw(context graphics.Context) {
 
 	context.ResetOffscreen()
 	color := matrix.IdentityColor()
-	context.DrawRenderTarget(from, matrix.IdentityGeometry(), color)
+	context.RenderTarget(from).Draw(matrix.IdentityGeometry(), color)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
 	color.Elements[3][3] = alpha
-	context.DrawRenderTarget(to, matrix.IdentityGeometry(), color)
+	context.RenderTarget(to).Draw(matrix.IdentityGeometry(), color)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {

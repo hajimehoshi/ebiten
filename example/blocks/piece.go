@@ -144,7 +144,7 @@ func drawBlocks(context graphics.Context, blocks [][]BlockType, geo matrix.Geome
 		}
 	}
 	blocksTexture := drawInfo.textures["blocks"]
-	context.DrawTextureParts(blocksTexture, parts, geo, matrix.IdentityColor())
+	context.Texture(blocksTexture).DrawParts(parts, geo, matrix.IdentityColor())
 }
 
 func (p *Piece) InitialPosition() (int, int) {
