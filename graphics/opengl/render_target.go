@@ -1,4 +1,4 @@
-package rendertarget
+package opengl
 
 // #cgo LDFLAGS: -framework OpenGL
 //
@@ -11,15 +11,6 @@ import (
 	"math"
 )
 
-type Texture interface {
-	Draw(projectionMatrix [4][4]float64,
-		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
-	DrawParts(parts []graphics.TexturePart, projectionMatrix [4][4]float64,
-		geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
-}
-
-type NativeTexture C.GLuint
-
 type RenderTarget struct {
 	framebuffer C.GLuint
 	width       int
@@ -27,7 +18,7 @@ type RenderTarget struct {
 	flipY       bool
 }
 
-func NewWithCurrentFramebuffer(width, height int) *RenderTarget {
+func newRTWithCurrentFramebuffer(width, height int) *RenderTarget {
 	framebuffer := C.GLint(0)
 	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &framebuffer)
 	return &RenderTarget{C.GLuint(framebuffer), width, height, true}
@@ -56,11 +47,6 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 
 	return framebuffer
-}
-
-func CreateFromTexture(native NativeTexture, width, height int) *RenderTarget {
-	framebuffer := createFramebuffer(C.GLuint(native))
-	return &RenderTarget{framebuffer, width, height, false}
 }
 
 func (r *RenderTarget) setAsViewport() {
@@ -113,14 +99,14 @@ func (r *RenderTarget) Fill(red, green, blue uint8) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (r *RenderTarget) DrawTexture(texture Texture,
+func (r *RenderTarget) DrawTexture(texture *Texture,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	r.setAsViewport()
 	projectionMatrix := r.projectionMatrix()
 	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)
 }
 
-func (r *RenderTarget) DrawTextureParts(texture Texture,
+func (r *RenderTarget) DrawTextureParts(texture *Texture,
 	parts []graphics.TexturePart,
 	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
 	r.setAsViewport()

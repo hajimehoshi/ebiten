@@ -1,4 +1,4 @@
-package texture
+package opengl
 
 // #cgo LDFLAGS: -framework OpenGL
 //
@@ -7,7 +7,6 @@ import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"image"
 	"unsafe"
@@ -64,23 +63,18 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	return nativeTexture
 }
 
-func Create(width, height int, filter graphics.Filter) (*Texture, error) {
+func createTexture(width, height int, filter graphics.Filter) (*Texture, error) {
 	native := createNativeTexture(
 		graphics.AdjustSizeForTexture(width),
 		graphics.AdjustSizeForTexture(height), nil, filter)
 	return &Texture{native, width, height}, nil
 }
 
-func CreateFromImage(img image.Image, filter graphics.Filter) (*Texture, error) {
+func createTextureFromImage(img image.Image, filter graphics.Filter) (*Texture, error) {
 	adjustedImage := graphics.AdjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return &Texture{native, size.X, size.Y}, nil
-}
-
-func (t *Texture) CreateRenderTarget() *rendertarget.RenderTarget {
-	return rendertarget.CreateFromTexture(
-		rendertarget.NativeTexture(t.native), t.width, t.height)
 }
 
 func (t *Texture) Draw(projectionMatrix [4][4]float64, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {

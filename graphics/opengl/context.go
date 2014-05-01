@@ -3,7 +3,6 @@ package opengl
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
 )
 
 type Context struct {
@@ -19,7 +18,7 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 		ids:         ids,
 		screenScale: screenScale,
 	}
-	mainRenderTarget := rendertarget.NewWithCurrentFramebuffer(
+	mainRenderTarget := newRTWithCurrentFramebuffer(
 		screenWidth*screenScale,
 		screenHeight*screenScale)
 	context.mainId = context.ids.AddRenderTarget(mainRenderTarget)

@@ -3,24 +3,22 @@ package opengl
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/rendertarget"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/texture"
 	"image"
 	"sync"
 )
 
 type ids struct {
 	lock                  sync.RWMutex
-	textures              map[graphics.TextureId]*texture.Texture
-	renderTargets         map[graphics.RenderTargetId]*rendertarget.RenderTarget
+	textures              map[graphics.TextureId]*Texture
+	renderTargets         map[graphics.RenderTargetId]*RenderTarget
 	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
 	counts                chan int
 }
 
 func newIds() *ids {
 	ids := &ids{
-		textures:              map[graphics.TextureId]*texture.Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*rendertarget.RenderTarget{},
+		textures:              map[graphics.TextureId]*Texture{},
+		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 		counts:                make(chan int),
 	}
@@ -32,13 +30,13 @@ func newIds() *ids {
 	return ids
 }
 
-func (i *ids) textureAt(id graphics.TextureId) *texture.Texture {
+func (i *ids) textureAt(id graphics.TextureId) *Texture {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.textures[id]
 }
 
-func (i *ids) renderTargetAt(id graphics.RenderTargetId) *rendertarget.RenderTarget {
+func (i *ids) renderTargetAt(id graphics.RenderTargetId) *RenderTarget {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	return i.renderTargets[id]
@@ -52,7 +50,7 @@ func (i *ids) toTexture(id graphics.RenderTargetId) graphics.TextureId {
 
 func (i *ids) CreateTexture(img image.Image, filter graphics.Filter) (
 	graphics.TextureId, error) {
-	texture, err := texture.CreateFromImage(img, filter)
+	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
 	}
@@ -67,11 +65,12 @@ func (i *ids) CreateTexture(img image.Image, filter graphics.Filter) (
 func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 	graphics.RenderTargetId, error) {
 
-	texture, err := texture.Create(width, height, filter)
+	texture, err := createTexture(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
-	renderTarget := texture.CreateRenderTarget()
+	framebuffer := createFramebuffer(texture.native)
+	renderTarget := &RenderTarget{framebuffer, texture.width, texture.height, false}
 
 	textureId := graphics.TextureId(<-i.counts)
 	renderTargetId := graphics.RenderTargetId(<-i.counts)
@@ -86,7 +85,7 @@ func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 }
 
 // NOTE: renderTarget can't be used as a texture.
-func (i *ids) AddRenderTarget(renderTarget *rendertarget.RenderTarget) graphics.RenderTargetId {
+func (i *ids) AddRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetId {
 	id := graphics.RenderTargetId(<-i.counts)
 
 	i.lock.Lock()
