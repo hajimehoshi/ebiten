@@ -4,6 +4,19 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
 )
 
+type Rect struct {
+	X      int
+	Y      int
+	Width  int
+	Height int
+}
+
+type TexturePart struct {
+	LocationX int
+	LocationY int
+	Source    Rect
+}
+
 type Drawer interface {
 	Draw(geometryMatrix matrix.Geometry,
 		colorMatrix matrix.Color)

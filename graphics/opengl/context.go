@@ -21,10 +21,10 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 	mainRenderTarget := newRTWithCurrentFramebuffer(
 		screenWidth*screenScale,
 		screenHeight*screenScale)
-	context.mainId = context.ids.AddRenderTarget(mainRenderTarget)
+	context.mainId = context.ids.addRenderTarget(mainRenderTarget)
 
 	var err error
-	context.screenId, err = ids.CreateRenderTarget(
+	context.screenId, err = ids.createRenderTarget(
 		screenWidth, screenHeight, graphics.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
@@ -39,7 +39,7 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 
 func (context *Context) Dispose() {
 	// TODO: remove main framebuffer?
-	context.ids.DeleteRenderTarget(context.screenId)
+	context.ids.deleteRenderTarget(context.screenId)
 }
 
 func (context *Context) Update(draw func(graphics.Context)) {
@@ -54,7 +54,8 @@ func (context *Context) Update(draw func(graphics.Context)) {
 	scale := float64(context.screenScale)
 	geometryMatrix := matrix.IdentityGeometry()
 	geometryMatrix.Scale(scale, scale)
-	context.RenderTarget(context.screenId).Draw(geometryMatrix, matrix.IdentityColor())
+	context.RenderTarget(context.screenId).Draw(
+		geometryMatrix, matrix.IdentityColor())
 
 	flush()
 }
@@ -64,7 +65,7 @@ func (c *Context) Clear() {
 }
 
 func (c *Context) Fill(r, g, b uint8) {
-	c.ids.FillRenderTarget(c.currentId, r, g, b)
+	c.ids.fillRenderTarget(c.currentId, r, g, b)
 }
 
 func (c *Context) Texture(id graphics.TextureId) graphics.Drawer {
@@ -72,7 +73,7 @@ func (c *Context) Texture(id graphics.TextureId) graphics.Drawer {
 }
 
 func (c *Context) RenderTarget(id graphics.RenderTargetId) graphics.Drawer {
-	return &RenderTargetWithContext{id, c}
+	return &TextureWithContext{c.ids.toTexture(id), c}
 }
 
 func (context *Context) ResetOffscreen() {
@@ -89,22 +90,12 @@ type TextureWithContext struct {
 }
 
 func (t *TextureWithContext) Draw(geo matrix.Geometry, color matrix.Color) {
-	t.context.ids.DrawTexture(t.context.currentId, t.id, geo, color)
+	t.context.ids.drawTexture(t.context.currentId, t.id, geo, color)
 }
 
-func (t *TextureWithContext) DrawParts(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
-	t.context.ids.DrawTextureParts(t.context.currentId, t.id, parts, geo, color)
-}
-
-type RenderTargetWithContext struct {
-	id      graphics.RenderTargetId
-	context *Context
-}
-
-func (r *RenderTargetWithContext) Draw(geo matrix.Geometry, color matrix.Color) {
-	r.context.ids.DrawRenderTarget(r.context.currentId, r.id, geo, color)
-}
-
-func (r *RenderTargetWithContext) DrawParts(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
-	r.context.ids.DrawRenderTargetParts(r.context.currentId, r.id, parts, geo, color)
+func (t *TextureWithContext) DrawParts(
+	parts []graphics.TexturePart,
+	geo matrix.Geometry,
+	color matrix.Color) {
+	t.context.ids.drawTextureParts(t.context.currentId, t.id, parts, geo, color)
 }

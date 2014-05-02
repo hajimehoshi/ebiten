@@ -7,12 +7,31 @@ import (
 	"sync"
 )
 
+var idsInstance *ids = newIds()
+
+func CreateContext(
+	screenWidth, screenHeight, screenScale int) *Context {
+	return newContext(idsInstance, screenWidth, screenHeight, screenScale)
+}
+
+func CreateRenderTarget(
+	width, height int,
+	filter graphics.Filter) (graphics.RenderTargetId, error) {
+	return idsInstance.createRenderTarget(width, height, filter)
+}
+
+func CreateTexture(
+	img image.Image,
+	filter graphics.Filter) (graphics.TextureId, error) {
+	return idsInstance.createTexture(img, filter)
+}
+
 type ids struct {
-	lock                  sync.RWMutex
 	textures              map[graphics.TextureId]*Texture
 	renderTargets         map[graphics.RenderTargetId]*RenderTarget
 	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
 	counts                chan int
+	sync.RWMutex
 }
 
 func newIds() *ids {
@@ -31,24 +50,24 @@ func newIds() *ids {
 }
 
 func (i *ids) textureAt(id graphics.TextureId) *Texture {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+	i.RLock()
+	defer i.RUnlock()
 	return i.textures[id]
 }
 
 func (i *ids) renderTargetAt(id graphics.RenderTargetId) *RenderTarget {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+	i.RLock()
+	defer i.RUnlock()
 	return i.renderTargets[id]
 }
 
 func (i *ids) toTexture(id graphics.RenderTargetId) graphics.TextureId {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
+	i.RLock()
+	defer i.RUnlock()
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) CreateTexture(img image.Image, filter graphics.Filter) (
+func (i *ids) createTexture(img image.Image, filter graphics.Filter) (
 	graphics.TextureId, error) {
 	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
@@ -56,13 +75,13 @@ func (i *ids) CreateTexture(img image.Image, filter graphics.Filter) (
 	}
 	textureId := graphics.TextureId(<-i.counts)
 
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.Lock()
+	defer i.Unlock()
 	i.textures[textureId] = texture
 	return textureId, nil
 }
 
-func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
+func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (
 	graphics.RenderTargetId, error) {
 
 	texture, err := createTexture(width, height, filter)
@@ -75,8 +94,8 @@ func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 	textureId := graphics.TextureId(<-i.counts)
 	renderTargetId := graphics.RenderTargetId(<-i.counts)
 
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.Lock()
+	defer i.Unlock()
 	i.textures[textureId] = texture
 	i.renderTargets[renderTargetId] = renderTarget
 	i.renderTargetToTexture[renderTargetId] = textureId
@@ -85,54 +104,52 @@ func (i *ids) CreateRenderTarget(width, height int, filter graphics.Filter) (
 }
 
 // NOTE: renderTarget can't be used as a texture.
-func (i *ids) AddRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetId {
+func (i *ids) addRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetId {
 	id := graphics.RenderTargetId(<-i.counts)
 
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.Lock()
+	defer i.Unlock()
 	i.renderTargets[id] = renderTarget
 
 	return id
 }
 
-func (i *ids) DeleteRenderTarget(id graphics.RenderTargetId) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+func (i *ids) deleteRenderTarget(id graphics.RenderTargetId) {
+	i.Lock()
+	defer i.Unlock()
 
 	renderTarget := i.renderTargets[id]
 	textureId := i.renderTargetToTexture[id]
 	texture := i.textures[textureId]
 
-	renderTarget.Dispose()
-	texture.Dispose()
+	renderTarget.dispose()
+	texture.dispose()
 
 	delete(i.renderTargets, id)
 	delete(i.renderTargetToTexture, id)
 	delete(i.textures, textureId)
 }
 
-func (i *ids) FillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
-	i.renderTargetAt(id).Fill(r, g, b)
+func (i *ids) fillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
+	i.renderTargetAt(id).fill(r, g, b)
 }
 
-func (i *ids) DrawTexture(target graphics.RenderTargetId, id graphics.TextureId,
-	geo matrix.Geometry, color matrix.Color) {
+func (i *ids) drawTexture(
+	target graphics.RenderTargetId,
+	id graphics.TextureId,
+	geo matrix.Geometry,
+	color matrix.Color) {
 	texture := i.textureAt(id)
-	i.renderTargetAt(target).DrawTexture(texture, geo, color)
+	parts := []graphics.TexturePart{
+		{0, 0, graphics.Rect{0, 0, texture.width, texture.height}},
+	}
+	i.renderTargetAt(target).drawTexture(texture, parts, geo, color)
 }
 
-func (i *ids) DrawTextureParts(target graphics.RenderTargetId, id graphics.TextureId,
+func (i *ids) drawTextureParts(
+	target graphics.RenderTargetId,
+	id graphics.TextureId,
 	parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
 	texture := i.textureAt(id)
-	i.renderTargetAt(target).DrawTextureParts(texture, parts, geo, color)
-}
-
-func (i *ids) DrawRenderTarget(target graphics.RenderTargetId, id graphics.RenderTargetId,
-	geo matrix.Geometry, color matrix.Color) {
-	i.DrawTexture(target, i.toTexture(id), geo, color)
-}
-
-func (i *ids) DrawRenderTargetParts(target graphics.RenderTargetId, id graphics.RenderTargetId,
-	parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
-	i.DrawTextureParts(target, i.toTexture(id), parts, geo, color)
+	i.renderTargetAt(target).drawTexture(texture, parts, geo, color)
 }

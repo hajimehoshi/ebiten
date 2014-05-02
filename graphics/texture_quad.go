@@ -62,20 +62,7 @@ func v(y int, height int) float32 {
 	return float32(y) / float32(AdjustSizeForTexture(height))
 }
 
-// TODO: Remove this if possible
-func TextureQuadForTexture(width, height int) TextureQuad {
-	x1 := float32(0)
-	x2 := float32(width)
-	y1 := float32(0)
-	y2 := float32(height)
-	u1 := u(0, width)
-	u2 := u(width, width)
-	v1 := v(0, height)
-	v2 := v(height, height)
-	return TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
-}
-
-func TextureQuadsForTextureParts(parts []TexturePart, width, height int) []TextureQuad {
+func TextureQuads(parts []TexturePart, width, height int) []TextureQuad {
 	quads := []TextureQuad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)

@@ -53,7 +53,7 @@ func newGameWindow(width, height, scale int, title string) *GameWindow {
 	}
 }
 
-func (w *GameWindow) run(graphicsSharedContext *opengl.SharedContext, sharedGLContext *C.NSOpenGLContext) {
+func (w *GameWindow) run(sharedGLContext *C.NSOpenGLContext) {
 	cTitle := C.CString(w.title)
 	defer C.free(unsafe.Pointer(cTitle))
 
@@ -69,7 +69,7 @@ func (w *GameWindow) run(graphicsSharedContext *opengl.SharedContext, sharedGLCo
 		close(ch)
 
 		C.UseGLContext(glContext)
-		context := graphicsSharedContext.CreateContext(
+		context := opengl.CreateContext(
 			w.screenWidth, w.screenHeight, w.screenScale)
 		C.UnuseGLContext()
 

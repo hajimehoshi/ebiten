@@ -6,8 +6,6 @@ package opengl
 import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"image"
 	"unsafe"
 )
@@ -18,17 +16,9 @@ type Texture struct {
 	height int
 }
 
-func glMatrix(matrix [4][4]float64) [16]float32 {
-	result := [16]float32{}
-	for j := 0; j < 4; j++ {
-		for i := 0; i < 4; i++ {
-			result[i+j*4] = float32(matrix[i][j])
-		}
-	}
-	return result
-}
-
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
+func createNativeTexture(
+	textureWidth, textureHeight int,
+	pixels []uint8,
 	filter graphics.Filter) C.GLuint {
 	nativeTexture := C.GLuint(0)
 
@@ -63,35 +53,26 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8,
 	return nativeTexture
 }
 
-func createTexture(width, height int, filter graphics.Filter) (*Texture, error) {
+func createTexture(
+	width, height int,
+	filter graphics.Filter) (*Texture, error) {
 	native := createNativeTexture(
 		graphics.AdjustSizeForTexture(width),
-		graphics.AdjustSizeForTexture(height), nil, filter)
+		graphics.AdjustSizeForTexture(height),
+		nil,
+		filter)
 	return &Texture{native, width, height}, nil
 }
 
-func createTextureFromImage(img image.Image, filter graphics.Filter) (*Texture, error) {
+func createTextureFromImage(
+	img image.Image,
+	filter graphics.Filter) (*Texture, error) {
 	adjustedImage := graphics.AdjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return &Texture{native, size.X, size.Y}, nil
 }
 
-func (t *Texture) Draw(projectionMatrix [4][4]float64, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	quad := graphics.TextureQuadForTexture(t.width, t.height)
-	shader.DrawTexture(shader.NativeTexture(t.native),
-		glMatrix(projectionMatrix), []graphics.TextureQuad{quad},
-		geometryMatrix, colorMatrix)
-}
-
-func (t *Texture) DrawParts(parts []graphics.TexturePart, projectionMatrix [4][4]float64,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	quads := graphics.TextureQuadsForTextureParts(parts, t.width, t.height)
-	shader.DrawTexture(shader.NativeTexture(t.native),
-		glMatrix(projectionMatrix), quads,
-		geometryMatrix, colorMatrix)
-}
-
-func (t *Texture) Dispose() {
+func (t *Texture) dispose() {
 	C.glDeleteTextures(1, &t.native)
 }

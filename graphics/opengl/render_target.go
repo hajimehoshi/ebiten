@@ -8,8 +8,19 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"math"
 )
+
+func glMatrix(matrix [4][4]float64) [16]float32 {
+	result := [16]float32{}
+	for j := 0; j < 4; j++ {
+		for i := 0; i < 4; i++ {
+			result[i+j*4] = float32(matrix[i][j])
+		}
+	}
+	return result
+}
 
 type RenderTarget struct {
 	framebuffer C.GLuint
@@ -84,11 +95,11 @@ func (r *RenderTarget) projectionMatrix() [4][4]float64 {
 	return matrix
 }
 
-func (r *RenderTarget) Dispose() {
+func (r *RenderTarget) dispose() {
 	C.glDeleteFramebuffers(1, &r.framebuffer)
 }
 
-func (r *RenderTarget) Fill(red, green, blue uint8) {
+func (r *RenderTarget) fill(red, green, blue uint8) {
 	r.setAsViewport()
 	const max = float64(math.MaxUint8)
 	C.glClearColor(
@@ -99,17 +110,18 @@ func (r *RenderTarget) Fill(red, green, blue uint8) {
 	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
-func (r *RenderTarget) DrawTexture(texture *Texture,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
-	r.setAsViewport()
-	projectionMatrix := r.projectionMatrix()
-	texture.Draw(projectionMatrix, geometryMatrix, colorMatrix)
-}
-
-func (r *RenderTarget) DrawTextureParts(texture *Texture,
+func (r *RenderTarget) drawTexture(
+	texture *Texture,
 	parts []graphics.TexturePart,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+	geometryMatrix matrix.Geometry,
+	colorMatrix matrix.Color) {
 	r.setAsViewport()
 	projectionMatrix := r.projectionMatrix()
-	texture.DrawParts(parts, projectionMatrix, geometryMatrix, colorMatrix)
+	quads := graphics.TextureQuads(parts, texture.width, texture.height)
+	shader.DrawTexture(
+		shader.NativeTexture(texture.native),
+		glMatrix(projectionMatrix),
+		quads,
+		geometryMatrix,
+		colorMatrix)
 }
