@@ -7,9 +7,6 @@ import "C"
 import (
 	"fmt"
 	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
-	"math"
 )
 
 func glMatrix(matrix [4][4]float64) [16]float32 {
@@ -29,21 +26,11 @@ type RenderTarget struct {
 	flipY       bool
 }
 
-func newRTWithCurrentFramebuffer(width, height int) *RenderTarget {
-	framebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &framebuffer)
-	return &RenderTarget{C.GLuint(framebuffer), width, height, true}
-}
-
 func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 	framebuffer := C.GLuint(0)
 	C.glGenFramebuffers(1, &framebuffer)
 
-	origFramebuffer := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &origFramebuffer)
-
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-	defer C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(origFramebuffer))
 
 	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
 		C.GL_TEXTURE_2D, nativeTexture, 0)
@@ -61,12 +48,6 @@ func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
 }
 
 func (r *RenderTarget) setAsViewport() {
-	current := C.GLint(0)
-	C.glGetIntegerv(C.GL_FRAMEBUFFER_BINDING, &current)
-	if C.GLuint(current) == r.framebuffer {
-		return
-	}
-
 	C.glFlush()
 
 	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(r.framebuffer))
@@ -97,31 +78,4 @@ func (r *RenderTarget) projectionMatrix() [4][4]float64 {
 
 func (r *RenderTarget) dispose() {
 	C.glDeleteFramebuffers(1, &r.framebuffer)
-}
-
-func (r *RenderTarget) fill(red, green, blue uint8) {
-	r.setAsViewport()
-	const max = float64(math.MaxUint8)
-	C.glClearColor(
-		C.GLclampf(float64(red)/max),
-		C.GLclampf(float64(green)/max),
-		C.GLclampf(float64(blue)/max),
-		1)
-	C.glClear(C.GL_COLOR_BUFFER_BIT)
-}
-
-func (r *RenderTarget) drawTexture(
-	texture *Texture,
-	parts []graphics.TexturePart,
-	geometryMatrix matrix.Geometry,
-	colorMatrix matrix.Color) {
-	r.setAsViewport()
-	projectionMatrix := r.projectionMatrix()
-	quads := graphics.TextureQuads(parts, texture.width, texture.height)
-	shader.DrawTexture(
-		shader.NativeTexture(texture.native),
-		glMatrix(projectionMatrix),
-		quads,
-		geometryMatrix,
-		colorMatrix)
 }
