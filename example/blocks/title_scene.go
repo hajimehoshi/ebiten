@@ -26,21 +26,21 @@ func (s *TitleScene) Update(state *GameState) {
 	}
 }
 
-func (s *TitleScene) Draw(context graphics.Context) {
-	drawTitleBackground(context, s.count)
-	drawLogo(context, "BLOCKS")
+func (s *TitleScene) Draw(context graphics.Context, textures *Textures) {
+	drawTitleBackground(context, textures, s.count)
+	drawLogo(context, textures, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - textWidth(message)) / 2
 	y := ScreenHeight - 48
-	drawTextWithShadow(context, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
+	drawTextWithShadow(context, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(context graphics.Context, c int) {
+func drawTitleBackground(context graphics.Context, textures *Textures, c int) {
 	const textureWidth = 32
 	const textureHeight = 32
 
-	backgroundTextureId := drawInfo.textures["background"]
+	backgroundTextureId := textures.GetTexture("background")
 	parts := []graphics.TexturePart{}
 	for j := -1; j < ScreenHeight/textureHeight+1; j++ {
 		for i := 0; i < ScreenWidth/textureWidth+1; i++ {
@@ -60,10 +60,10 @@ func drawTitleBackground(context graphics.Context, c int) {
 	context.Texture(backgroundTextureId).Draw(parts, geo, clr)
 }
 
-func drawLogo(context graphics.Context, str string) {
+func drawLogo(context graphics.Context, textures *Textures, str string) {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	drawTextWithShadow(context, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
+	drawTextWithShadow(context, textures, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
 }

@@ -77,11 +77,11 @@ func (c *Context) Fill(r, g, b uint8) {
 }
 
 func (c *Context) Texture(id graphics.TextureId) graphics.Drawer {
-	return &TextureWithContext{id, c}
+	return &textureWithContext{id, c}
 }
 
 func (c *Context) RenderTarget(id graphics.RenderTargetId) graphics.Drawer {
-	return &TextureWithContext{c.ids.toTexture(id), c}
+	return &textureWithContext{c.ids.toTexture(id), c}
 }
 
 func (c *Context) ResetOffscreen() {
@@ -92,12 +92,12 @@ func (c *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
 	c.currentId = renderTargetId
 }
 
-type TextureWithContext struct {
+type textureWithContext struct {
 	id      graphics.TextureId
 	context *Context
 }
 
-func (t *TextureWithContext) Draw(
+func (t *textureWithContext) Draw(
 	parts []graphics.TexturePart,
 	geo matrix.Geometry,
 	color matrix.Color) {

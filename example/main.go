@@ -38,15 +38,12 @@ func main() {
 	go func() {
 		defer close(quit)
 
-		textureFactoryEvents := textureFactory.Events()
 		windowEvents := window.Events()
 		var game Game = blocks.NewGame(textureFactory)
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
 		for {
 			select {
-			case e := <-textureFactoryEvents:
-				game.HandleEvent(e)
 			case e := <-windowEvents:
 				game.HandleEvent(e)
 				if _, ok := e.(ui.WindowClosedEvent); ok {

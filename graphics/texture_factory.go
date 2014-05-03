@@ -18,19 +18,16 @@ type TextureId int
 type RenderTargetId int
 
 type TextureCreatedEvent struct {
-	Tag   interface{}
 	Id    TextureId
 	Error error
 }
 
 type RenderTargetCreatedEvent struct {
-	Tag   interface{}
 	Id    RenderTargetId
 	Error error
 }
 
 type TextureFactory interface {
-	CreateRenderTarget(tag interface{}, width, height int, filter Filter)
-	CreateTexture(tag interface{}, img image.Image, filter Filter)
-	Events() <-chan interface{}
+	CreateRenderTarget(width, height int, filter Filter) <-chan RenderTargetCreatedEvent
+	CreateTexture(img image.Image, filter Filter) <-chan TextureCreatedEvent
 }

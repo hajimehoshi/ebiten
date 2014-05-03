@@ -14,7 +14,7 @@ func init() {
 
 type Scene interface {
 	Update(state *GameState)
-	Draw(context graphics.Context)
+	Draw(context graphics.Context, textures *Textures)
 }
 
 const transitionMaxCount = 20
@@ -45,20 +45,20 @@ func (s *SceneManager) Update(state *GameState) {
 	}
 }
 
-func (s *SceneManager) Draw(context graphics.Context) {
+func (s *SceneManager) Draw(context graphics.Context, textures *Textures) {
 	if s.transitionCount == -1 {
-		s.current.Draw(context)
+		s.current.Draw(context, textures)
 		return
 	}
-	from := drawInfo.renderTargets["scene_manager_transition_from"]
+	from := textures.GetRenderTarget("scene_manager_transition_from")
 	context.SetOffscreen(from)
 	context.Clear()
-	s.current.Draw(context)
+	s.current.Draw(context, textures)
 
-	to := drawInfo.renderTargets["scene_manager_transition_to"]
+	to := textures.GetRenderTarget("scene_manager_transition_to")
 	context.SetOffscreen(to)
 	context.Clear()
-	s.next.Draw(context)
+	s.next.Draw(context, textures)
 
 	context.ResetOffscreen()
 	color := matrix.IdentityColor()

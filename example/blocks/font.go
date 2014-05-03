@@ -17,8 +17,13 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(context graphics.Context, str string, x, y, scale int, clr color.Color) {
-	fontTextureId := drawInfo.textures["font"]
+func drawText(
+	context graphics.Context,
+	textures *Textures,
+	str string,
+	x, y, scale int,
+	clr color.Color) {
+	fontTextureId := textures.GetTexture("font")
 	parts := []graphics.TexturePart{}
 
 	locationX := 0
@@ -48,7 +53,12 @@ func drawText(context graphics.Context, str string, x, y, scale int, clr color.C
 	context.Texture(fontTextureId).Draw(parts, geoMat, clrMat)
 }
 
-func drawTextWithShadow(context graphics.Context, str string, x, y, scale int, clr color.Color) {
-	drawText(context, str, x+1, y+1, scale, color.RGBA{0, 0, 0, 0x80})
-	drawText(context, str, x, y, scale, clr)
+func drawTextWithShadow(
+	context graphics.Context,
+	textures *Textures,
+	str string,
+	x, y, scale int,
+	clr color.Color) {
+	drawText(context, textures, str, x+1, y+1, scale, color.RGBA{0, 0, 0, 0x80})
+	drawText(context, textures, str, x, y, scale, clr)
 }

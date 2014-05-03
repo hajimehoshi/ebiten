@@ -16,7 +16,6 @@ import (
 
 type sharedContext struct {
 	inited      chan struct{}
-	events      chan interface{}
 	funcs       chan func()
 	funcsDone   chan struct{}
 	gameWindows chan *GameWindow
@@ -72,15 +71,10 @@ func (t *sharedContext) createGameWindow(width, height, scale int, title string)
 	return w
 }
 
-func (t *sharedContext) Events() <-chan interface{} {
-	if t.events != nil {
-		return t.events
-	}
-	t.events = make(chan interface{})
-	return t.events
-}
-
-func (t *sharedContext) CreateTexture(tag interface{}, img image.Image, filter graphics.Filter) {
+func (t *sharedContext) CreateTexture(
+	img image.Image,
+	filter graphics.Filter) <-chan graphics.TextureCreatedEvent {
+	ch := make(chan graphics.TextureCreatedEvent)
 	go func() {
 		<-t.inited
 		var id graphics.TextureId
@@ -88,18 +82,19 @@ func (t *sharedContext) CreateTexture(tag interface{}, img image.Image, filter g
 		t.useGLContext(func() {
 			id, err = opengl.CreateTexture(img, filter)
 		})
-		if t.events == nil {
-			return
-		}
-		t.events <- graphics.TextureCreatedEvent{
-			Tag:   tag,
+		ch <- graphics.TextureCreatedEvent{
 			Id:    id,
 			Error: err,
 		}
+		close(ch)
 	}()
+	return ch
 }
 
-func (t *sharedContext) CreateRenderTarget(tag interface{}, width, height int, filter graphics.Filter) {
+func (t *sharedContext) CreateRenderTarget(
+	width, height int,
+	filter graphics.Filter) <-chan graphics.RenderTargetCreatedEvent {
+	ch := make(chan graphics.RenderTargetCreatedEvent)
 	go func() {
 		<-t.inited
 		var id graphics.RenderTargetId
@@ -107,13 +102,11 @@ func (t *sharedContext) CreateRenderTarget(tag interface{}, width, height int, f
 		t.useGLContext(func() {
 			id, err = opengl.CreateRenderTarget(width, height, filter)
 		})
-		if t.events == nil {
-			return
-		}
-		t.events <- graphics.RenderTargetCreatedEvent{
-			Tag:   tag,
+		ch <- graphics.RenderTargetCreatedEvent{
 			Id:    id,
 			Error: err,
 		}
+		close(ch)
 	}()
+	return ch
 }

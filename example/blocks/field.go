@@ -93,11 +93,11 @@ func (f *Field) Flush() {
 	}
 }
 
-func (f *Field) Draw(context graphics.Context, geo matrix.Geometry) {
+func (f *Field) Draw(context graphics.Context, textures *Textures, geo matrix.Geometry) {
 	blocks := make([][]BlockType, len(f.blocks))
 	for i, blockCol := range f.blocks {
 		blocks[i] = make([]BlockType, len(blockCol))
 		copy(blocks[i], blockCol[:])
 	}
-	drawBlocks(context, blocks, geo)
+	drawBlocks(context, textures, blocks, geo)
 }

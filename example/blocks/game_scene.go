@@ -97,10 +97,10 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(context graphics.Context) {
+func (s *GameScene) Draw(context graphics.Context, textures *Textures) {
 	context.Fill(0xff, 0xff, 0xff)
 
-	field := drawInfo.textures["empty"]
+	field := textures.GetTexture("empty")
 	geoMat := matrix.IdentityGeometry()
 	geoMat.Scale(
 		float64(fieldWidth)/float64(emptyWidth),
@@ -117,11 +117,12 @@ func (s *GameScene) Draw(context graphics.Context) {
 
 	geoMat = matrix.IdentityGeometry()
 	geoMat.Translate(20, 20)
-	s.field.Draw(context, geoMat)
+	s.field.Draw(context, textures, geoMat)
 
 	if s.currentPiece != nil {
 		s.currentPiece.Draw(
 			context,
+			textures,
 			20, 20,
 			s.currentPieceX,
 			s.currentPieceY,
