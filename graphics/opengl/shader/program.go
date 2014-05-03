@@ -85,7 +85,8 @@ func getLocation(program C.GLuint, name string, qvType qualifierVariableType) C.
 	locationName := C.CString(name)
 	defer C.free(unsafe.Pointer(locationName))
 
-	location := C.GLint(-1)
+	const invalidLocation = -1
+	location := C.GLint(invalidLocation)
 
 	switch qvType {
 	case qualifierVariableTypeAttribute:
@@ -95,7 +96,7 @@ func getLocation(program C.GLuint, name string, qvType qualifierVariableType) C.
 	default:
 		panic("no reach")
 	}
-	if location == -1 {
+	if location == invalidLocation {
 		panic("glGetUniformLocation failed")
 	}
 	shaderLocationCache[qvType][name] = location
@@ -112,7 +113,8 @@ func getUniformLocation(program C.GLuint, name string) C.GLint {
 }
 
 func use(projectionMatrix [16]float32,
-	geometryMatrix matrix.Geometry, colorMatrix matrix.Color) C.GLuint {
+	geometryMatrix matrix.Geometry,
+	colorMatrix matrix.Color) C.GLuint {
 	programId := programRegular
 	if !colorMatrix.IsIdentity() {
 		programId = programColorMatrix

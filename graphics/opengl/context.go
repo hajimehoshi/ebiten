@@ -1,15 +1,14 @@
 package opengl
 
-import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-)
-
 // #cgo LDFLAGS: -framework OpenGL
 //
 // #include <stdlib.h>
 // #include <OpenGL/gl.h>
 import "C"
+import (
+	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+)
 
 func enableAlphaBlending() {
 	C.glEnable(C.GL_TEXTURE_2D)

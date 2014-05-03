@@ -25,6 +25,7 @@ func DrawTexture(native NativeTexture, projectionMatrix [16]float32,
 	if len(quads) == 0 {
 		return
 	}
+	// TODO: Check performance
 	shaderProgram := use(projectionMatrix, geometryMatrix, colorMatrix)
 	defer C.glUseProgram(0)
 
