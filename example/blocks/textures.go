@@ -34,7 +34,11 @@ func NewTextures(textureFactory graphics.TextureFactory) *Textures {
 		textures:          map[string]graphics.TextureId{},
 		renderTargets:     map[string]graphics.RenderTargetId{},
 	}
-	go textures.loop()
+	go func() {
+		for {
+			textures.loopMain()
+		}
+	}()
 	return textures
 }
 
@@ -52,43 +56,41 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func (t *Textures) loop() {
-	for {
-		select {
-		case p := <-t.texturePaths:
-			name := p.name
-			path := p.path
-			go func() {
-				img, err := loadImage(path)
-				if err != nil {
-					panic(err)
-				}
-				id, err := t.textureFactory.CreateTexture(
-					img,
-					graphics.FilterNearest)
-				if err != nil {
-					panic(err)
-				}
-				t.Lock()
-				defer t.Unlock()
-				t.textures[name] = id
-			}()
-		case s := <-t.renderTargetSizes:
-			name := s.name
-			size := s.size
-			go func() {
-				id, err := t.textureFactory.CreateRenderTarget(
-					size.Width,
-					size.Height,
-					graphics.FilterNearest)
-				if err != nil {
-					panic(err)
-				}
-				t.Lock()
-				defer t.Unlock()
-				t.renderTargets[name] = id
-			}()
-		}
+func (t *Textures) loopMain() {
+	select {
+	case p := <-t.texturePaths:
+		name := p.name
+		path := p.path
+		go func() {
+			img, err := loadImage(path)
+			if err != nil {
+				panic(err)
+			}
+			id, err := t.textureFactory.CreateTexture(
+				img,
+				graphics.FilterNearest)
+			if err != nil {
+				panic(err)
+			}
+			t.Lock()
+			defer t.Unlock()
+			t.textures[name] = id
+		}()
+	case s := <-t.renderTargetSizes:
+		name := s.name
+		size := s.size
+		go func() {
+			id, err := t.textureFactory.CreateRenderTarget(
+				size.Width,
+				size.Height,
+				graphics.FilterNearest)
+			if err != nil {
+				panic(err)
+			}
+			t.Lock()
+			defer t.Unlock()
+			t.renderTargets[name] = id
+		}()
 	}
 }
 
