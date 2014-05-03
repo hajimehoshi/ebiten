@@ -1,9 +1,15 @@
 package opengl
 
+// #cgo LDFLAGS: -framework OpenGL
+//
+// #include <OpenGL/gl.h>
+import "C"
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
 	"image"
+	"math"
 	"sync"
 )
 
@@ -30,6 +36,7 @@ type ids struct {
 	renderTargets         map[graphics.RenderTargetId]*RenderTarget
 	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
 	counts                chan int
+	currentRenderTargetId graphics.RenderTargetId
 	sync.RWMutex
 }
 
@@ -39,6 +46,7 @@ func newIds() *ids {
 		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
 		counts:                make(chan int),
+		currentRenderTargetId: -1,
 	}
 	go func() {
 		for i := 1; ; i++ {
@@ -88,6 +96,8 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (
 		return 0, err
 	}
 	framebuffer := createFramebuffer(texture.native)
+	// The current binded framebuffer can be changed.
+	i.currentRenderTargetId = -1
 	renderTarget := &RenderTarget{framebuffer, texture.width, texture.height, false}
 
 	textureId := graphics.TextureId(<-i.counts)
@@ -130,13 +140,39 @@ func (i *ids) deleteRenderTarget(id graphics.RenderTargetId) {
 }
 
 func (i *ids) fillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
-	i.renderTargetAt(id).fill(r, g, b)
+	i.setViewportIfNeeded(id)
+	const max = float64(math.MaxUint8)
+	C.glClearColor(
+		C.GLclampf(float64(r)/max),
+		C.GLclampf(float64(g)/max),
+		C.GLclampf(float64(b)/max),
+		1)
+	C.glClear(C.GL_COLOR_BUFFER_BIT)
 }
 
 func (i *ids) drawTexture(
 	target graphics.RenderTargetId,
 	id graphics.TextureId,
-	parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+	parts []graphics.TexturePart,
+	geo matrix.Geometry,
+	color matrix.Color) {
 	texture := i.textureAt(id)
-	i.renderTargetAt(target).drawTexture(texture, parts, geo, color)
+	i.setViewportIfNeeded(target)
+	r := i.renderTargetAt(target)
+	projectionMatrix := r.projectionMatrix()
+	quads := graphics.TextureQuads(parts, texture.width, texture.height)
+	shader.DrawTexture(
+		shader.NativeTexture(texture.native),
+		glMatrix(projectionMatrix),
+		quads,
+		geo,
+		color)
+}
+
+func (i *ids) setViewportIfNeeded(id graphics.RenderTargetId) {
+	r := i.renderTargetAt(id)
+	if i.currentRenderTargetId != id {
+		r.setAsViewport()
+		i.currentRenderTargetId = id
+	}
 }

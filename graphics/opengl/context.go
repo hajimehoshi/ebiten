@@ -22,7 +22,7 @@ func flush() {
 
 type Context struct {
 	screenId     graphics.RenderTargetId
-	mainId       graphics.RenderTargetId
+	defaultId    graphics.RenderTargetId
 	currentId    graphics.RenderTargetId
 	ids          *ids
 	screenWidth  int
@@ -37,10 +37,13 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
-	mainRenderTarget := newRTWithCurrentFramebuffer(
-		screenWidth*screenScale,
-		screenHeight*screenScale)
-	context.mainId = context.ids.addRenderTarget(mainRenderTarget)
+	defaultRenderTarget := &RenderTarget{
+		framebuffer: C.GLuint(0),
+		width:       screenWidth * screenScale,
+		height:      screenHeight * screenScale,
+		flipY:       true,
+	}
+	context.defaultId = context.ids.addRenderTarget(defaultRenderTarget)
 
 	var err error
 	context.screenId, err = ids.createRenderTarget(
@@ -57,7 +60,7 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 }
 
 func (c *Context) Dispose() {
-	// TODO: remove main framebuffer?
+	// TODO: remove the default framebuffer?
 	c.ids.deleteRenderTarget(c.screenId)
 }
 
@@ -67,7 +70,7 @@ func (c *Context) Update(draw func(graphics.Context)) {
 
 	draw(c)
 
-	c.SetOffscreen(c.mainId)
+	c.SetOffscreen(c.defaultId)
 	c.Clear()
 
 	scale := float64(c.screenScale)
