@@ -73,40 +73,24 @@ func (t *sharedContext) createGameWindow(width, height, scale int, title string)
 
 func (t *sharedContext) CreateTexture(
 	img image.Image,
-	filter graphics.Filter) <-chan graphics.TextureCreatedEvent {
-	ch := make(chan graphics.TextureCreatedEvent)
-	go func() {
-		<-t.inited
-		var id graphics.TextureId
-		var err error
-		t.useGLContext(func() {
-			id, err = opengl.CreateTexture(img, filter)
-		})
-		ch <- graphics.TextureCreatedEvent{
-			Id:    id,
-			Error: err,
-		}
-		close(ch)
-	}()
-	return ch
+	filter graphics.Filter) (graphics.TextureId, error) {
+	<-t.inited
+	var id graphics.TextureId
+	var err error
+	t.useGLContext(func() {
+		id, err = opengl.CreateTexture(img, filter)
+	})
+	return id, err
 }
 
 func (t *sharedContext) CreateRenderTarget(
 	width, height int,
-	filter graphics.Filter) <-chan graphics.RenderTargetCreatedEvent {
-	ch := make(chan graphics.RenderTargetCreatedEvent)
-	go func() {
-		<-t.inited
-		var id graphics.RenderTargetId
-		var err error
-		t.useGLContext(func() {
-			id, err = opengl.CreateRenderTarget(width, height, filter)
-		})
-		ch <- graphics.RenderTargetCreatedEvent{
-			Id:    id,
-			Error: err,
-		}
-		close(ch)
-	}()
-	return ch
+	filter graphics.Filter) (graphics.RenderTargetId, error) {
+	<-t.inited
+	var id graphics.RenderTargetId
+	var err error
+	t.useGLContext(func() {
+		id, err = opengl.CreateRenderTarget(width, height, filter)
+	})
+	return id, err
 }

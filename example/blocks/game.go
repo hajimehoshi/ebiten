@@ -3,6 +3,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"github.com/hajimehoshi/go-ebiten/ui"
+	_ "image/png"
 )
 
 type Size struct {

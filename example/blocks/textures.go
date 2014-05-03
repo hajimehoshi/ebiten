@@ -3,7 +3,6 @@ package blocks
 import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"image"
-	_ "image/png"
 	"os"
 	"sync"
 )
@@ -64,36 +63,30 @@ func (t *Textures) loop() {
 				if err != nil {
 					panic(err)
 				}
-				ch := t.textureFactory.CreateTexture(
+				id, err := t.textureFactory.CreateTexture(
 					img,
 					graphics.FilterNearest)
-				go func() {
-					e := <-ch
-					if e.Error != nil {
-						panic(e.Error)
-					}
-					t.Lock()
-					defer t.Unlock()
-					t.textures[name] = e.Id
-				}()
+				if err != nil {
+					panic(err)
+				}
+				t.Lock()
+				defer t.Unlock()
+				t.textures[name] = id
 			}()
 		case s := <-t.renderTargetSizes:
 			name := s.name
 			size := s.size
 			go func() {
-				ch := t.textureFactory.CreateRenderTarget(
+				id, err := t.textureFactory.CreateRenderTarget(
 					size.Width,
 					size.Height,
 					graphics.FilterNearest)
-				go func() {
-					e := <-ch
-					if e.Error != nil {
-						panic(e.Error)
-					}
-					t.Lock()
-					defer t.Unlock()
-					t.renderTargets[name] = e.Id
-				}()
+				if err != nil {
+					panic(err)
+				}
+				t.Lock()
+				defer t.Unlock()
+				t.renderTargets[name] = id
 			}()
 		}
 	}

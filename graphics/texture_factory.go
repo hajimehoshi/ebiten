@@ -17,17 +17,7 @@ type TextureId int
 // all alpha of a render target is maximum.
 type RenderTargetId int
 
-type TextureCreatedEvent struct {
-	Id    TextureId
-	Error error
-}
-
-type RenderTargetCreatedEvent struct {
-	Id    RenderTargetId
-	Error error
-}
-
 type TextureFactory interface {
-	CreateRenderTarget(width, height int, filter Filter) <-chan RenderTargetCreatedEvent
-	CreateTexture(img image.Image, filter Filter) <-chan TextureCreatedEvent
+	CreateRenderTarget(width, height int, filter Filter) (RenderTargetId, error)
+	CreateTexture(img image.Image, filter Filter) (TextureId, error)
 }
