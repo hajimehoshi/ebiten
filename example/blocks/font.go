@@ -45,7 +45,7 @@ func drawText(context graphics.Context, str string, x, y, scale int, clr color.C
 	geoMat.Translate(float64(x), float64(y))
 	clrMat := matrix.IdentityColor()
 	clrMat.Scale(clr)
-	context.Texture(fontTextureId).DrawParts(parts, geoMat, clrMat)
+	context.Texture(fontTextureId).Draw(parts, geoMat, clrMat)
 }
 
 func drawTextWithShadow(context graphics.Context, str string, x, y, scale int, clr color.Color) {

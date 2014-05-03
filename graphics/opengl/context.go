@@ -6,17 +6,21 @@ import (
 )
 
 type Context struct {
-	screenId    graphics.RenderTargetId
-	mainId      graphics.RenderTargetId
-	currentId   graphics.RenderTargetId
-	ids         *ids
-	screenScale int
+	screenId     graphics.RenderTargetId
+	mainId       graphics.RenderTargetId
+	currentId    graphics.RenderTargetId
+	ids          *ids
+	screenWidth  int
+	screenHeight int
+	screenScale  int
 }
 
 func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 	context := &Context{
-		ids:         ids,
-		screenScale: screenScale,
+		ids:          ids,
+		screenWidth:  screenWidth,
+		screenHeight: screenHeight,
+		screenScale:  screenScale,
 	}
 	mainRenderTarget := newRTWithCurrentFramebuffer(
 		screenWidth*screenScale,
@@ -37,25 +41,29 @@ func newContext(ids *ids, screenWidth, screenHeight, screenScale int) *Context {
 	return context
 }
 
-func (context *Context) Dispose() {
+func (c *Context) Dispose() {
 	// TODO: remove main framebuffer?
-	context.ids.deleteRenderTarget(context.screenId)
+	c.ids.deleteRenderTarget(c.screenId)
 }
 
-func (context *Context) Update(draw func(graphics.Context)) {
-	context.ResetOffscreen()
-	context.Clear()
+func (c *Context) Update(draw func(graphics.Context)) {
+	c.ResetOffscreen()
+	c.Clear()
 
-	draw(context)
+	draw(c)
 
-	context.SetOffscreen(context.mainId)
-	context.Clear()
+	c.SetOffscreen(c.mainId)
+	c.Clear()
 
-	scale := float64(context.screenScale)
-	geometryMatrix := matrix.IdentityGeometry()
-	geometryMatrix.Scale(scale, scale)
-	context.RenderTarget(context.screenId).Draw(
-		geometryMatrix, matrix.IdentityColor())
+	scale := float64(c.screenScale)
+	geo := matrix.IdentityGeometry()
+	geo.Scale(scale, scale)
+	graphics.DrawWhole(
+		c.RenderTarget(c.screenId),
+		c.screenWidth,
+		c.screenHeight,
+		geo,
+		matrix.IdentityColor())
 
 	flush()
 }
@@ -76,12 +84,12 @@ func (c *Context) RenderTarget(id graphics.RenderTargetId) graphics.Drawer {
 	return &TextureWithContext{c.ids.toTexture(id), c}
 }
 
-func (context *Context) ResetOffscreen() {
-	context.currentId = context.screenId
+func (c *Context) ResetOffscreen() {
+	c.currentId = c.screenId
 }
 
-func (context *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
-	context.currentId = renderTargetId
+func (c *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
+	c.currentId = renderTargetId
 }
 
 type TextureWithContext struct {
@@ -89,13 +97,9 @@ type TextureWithContext struct {
 	context *Context
 }
 
-func (t *TextureWithContext) Draw(geo matrix.Geometry, color matrix.Color) {
-	t.context.ids.drawTexture(t.context.currentId, t.id, geo, color)
-}
-
-func (t *TextureWithContext) DrawParts(
+func (t *TextureWithContext) Draw(
 	parts []graphics.TexturePart,
 	geo matrix.Geometry,
 	color matrix.Color) {
-	t.context.ids.drawTextureParts(t.context.currentId, t.id, parts, geo, color)
+	t.context.ids.drawTexture(t.context.currentId, t.id, parts, geo, color)
 }

@@ -9,8 +9,7 @@ import (
 
 var idsInstance *ids = newIds()
 
-func CreateContext(
-	screenWidth, screenHeight, screenScale int) *Context {
+func NewContext(screenWidth, screenHeight, screenScale int) *Context {
 	return newContext(idsInstance, screenWidth, screenHeight, screenScale)
 }
 
@@ -135,18 +134,6 @@ func (i *ids) fillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
 }
 
 func (i *ids) drawTexture(
-	target graphics.RenderTargetId,
-	id graphics.TextureId,
-	geo matrix.Geometry,
-	color matrix.Color) {
-	texture := i.textureAt(id)
-	parts := []graphics.TexturePart{
-		{0, 0, graphics.Rect{0, 0, texture.width, texture.height}},
-	}
-	i.renderTargetAt(target).drawTexture(texture, parts, geo, color)
-}
-
-func (i *ids) drawTextureParts(
 	target graphics.RenderTargetId,
 	id graphics.TextureId,
 	parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {

@@ -102,19 +102,29 @@ func (s *GameScene) Draw(context graphics.Context) {
 
 	field := drawInfo.textures["empty"]
 	geoMat := matrix.IdentityGeometry()
-	geoMat.Scale(float64(fieldWidth)/float64(emptyWidth),
+	geoMat.Scale(
+		float64(fieldWidth)/float64(emptyWidth),
 		float64(fieldHeight)/float64(emptyHeight))
 	geoMat.Translate(20, 20) // magic number?
 	colorMat := matrix.IdentityColor()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
-	context.Texture(field).Draw(geoMat, colorMat)
+	graphics.DrawWhole(
+		context.Texture(field),
+		emptyWidth,
+		emptyHeight,
+		geoMat,
+		colorMat)
 
 	geoMat = matrix.IdentityGeometry()
 	geoMat.Translate(20, 20)
 	s.field.Draw(context, geoMat)
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(context, 20, 20,
-			s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
+		s.currentPiece.Draw(
+			context,
+			20, 20,
+			s.currentPieceX,
+			s.currentPieceY,
+			s.currentPieceAngle)
 	}
 }

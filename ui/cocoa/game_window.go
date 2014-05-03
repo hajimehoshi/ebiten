@@ -69,7 +69,7 @@ func (w *GameWindow) run(sharedGLContext *C.NSOpenGLContext) {
 		close(ch)
 
 		C.UseGLContext(glContext)
-		context := opengl.CreateContext(
+		context := opengl.NewContext(
 			w.screenWidth, w.screenHeight, w.screenScale)
 		C.UnuseGLContext()
 
