@@ -52,14 +52,6 @@ func NewGame(textures Textures) *Game {
 	return game
 }
 
-func (game *Game) HandleEvent(e interface{}) {
-	switch e := e.(type) {
-	case ui.KeyStateUpdatedEvent:
-		game.input.UpdateKeys(e.Keys)
-	case ui.MouseStateUpdatedEvent:
-	}
-}
-
 func (game *Game) isInitialized() bool {
 	for name, _ := range texturePaths {
 		if !game.textures.Has(name) {
@@ -74,11 +66,11 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-func (game *Game) Update() {
+func (game *Game) Update(state ui.CanvasState) {
 	if !game.isInitialized() {
 		return
 	}
-	game.input.Update()
+	game.input.Update(state.Keys)
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        game.input,

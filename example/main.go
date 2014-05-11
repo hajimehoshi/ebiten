@@ -13,8 +13,7 @@ import (
 )
 
 type Game interface {
-	HandleEvent(e interface{})
-	Update()
+	Update(state ui.CanvasState)
 	Draw(c graphics.Context)
 }
 
@@ -31,9 +30,8 @@ func main() {
 	const title = "Ebiten Demo"
 
 	u := cocoa.UI()
-	window := u.CreateGameWindow(screenWidth, screenHeight, screenScale, title)
+	canvas := u.CreateCanvas(screenWidth, screenHeight, screenScale, title)
 
-	windowEvents := window.Events()
 	textureFactory := cocoa.TextureFactory()
 	var game Game = blocks.NewGame(NewTextures(textureFactory))
 	tick := time.Tick(frameTime)
@@ -47,16 +45,18 @@ func main() {
 		u.DoEvents()
 		select {
 		default:
-			window.Draw(func(context graphics.Context) {
-				game.Draw(context)
-			})
+			canvas.Draw(game.Draw)
 		case <-tick:
-			game.Update()
-		case e := <-windowEvents:
+			state := canvas.State()
+			game.Update(state)
+			if state.IsClosed {
+				return
+			}
+		/*case e := <-windowEvents:
 			game.HandleEvent(e)
 			if _, ok := e.(ui.WindowClosedEvent); ok {
 				return
-			}
+			}*/
 		case <-sigterm:
 			return
 		}

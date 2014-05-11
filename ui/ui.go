@@ -15,35 +15,24 @@ const (
 	KeyMax
 )
 
-type WindowSizeUpdatedEvent struct {
-	Width  int
-	Height int
-}
-
-type KeyStateUpdatedEvent struct {
-	Keys []Key
-}
-
-type MouseStateUpdatedEvent struct {
-	X int
-	Y int
-}
-
-type WindowClosedEvent struct {
-}
-
 type UI interface {
-	CreateGameWindow(screenWidth, screenHeight, screenScale int, title string) GameWindow
+	CreateCanvas(widht, height, scale int, title string) Canvas
 	Start()
 	DoEvents()
 	Terminate()
 }
 
-type Window interface {
-	Events() <-chan interface{}
+type CanvasState struct {
+	Width    int
+	Height   int
+	Scale    int
+	Keys     []Key
+	MouseX   int
+	MouseY   int
+	IsClosed bool
 }
 
-type GameWindow interface {
+type Canvas interface {
 	Draw(func(graphics.Context))
-	Window
+	State() CanvasState
 }

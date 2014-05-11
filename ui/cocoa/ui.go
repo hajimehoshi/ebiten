@@ -38,7 +38,7 @@ func TextureFactory() graphics.TextureFactory {
 	return getCurrentUI().sharedContext
 }
 
-func (u *cocoaUI) CreateGameWindow(width, height, scale int, title string) ui.GameWindow {
+func (u *cocoaUI) CreateCanvas(width, height, scale int, title string) ui.Canvas {
 	return u.sharedContext.createGameWindow(width, height, scale, title)
 }
 
