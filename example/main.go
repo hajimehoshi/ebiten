@@ -27,53 +27,37 @@ func main() {
 	const screenHeight = blocks.ScreenHeight
 	const screenScale = 2
 	const fps = 60
+	const frameTime = time.Duration(int64(time.Second) / int64(fps))
 	const title = "Ebiten Demo"
 
 	u := cocoa.UI()
 	window := u.CreateGameWindow(screenWidth, screenHeight, screenScale, title)
 
-	drawing := make(chan struct{})
-	quit := make(chan struct{})
-	go func() {
-		defer close(quit)
+	windowEvents := window.Events()
+	textureFactory := cocoa.TextureFactory()
+	var game Game = blocks.NewGame(NewTextures(textureFactory))
+	tick := time.Tick(frameTime)
 
-		windowEvents := window.Events()
-		textureFactory := cocoa.TextureFactory()
-		var game Game = blocks.NewGame(NewTextures(textureFactory))
-		frameTime := time.Duration(int64(time.Second) / int64(fps))
-		tick := time.Tick(frameTime)
-		for {
-			select {
-			case e := <-windowEvents:
-				game.HandleEvent(e)
-				if _, ok := e.(ui.WindowClosedEvent); ok {
-					return
-				}
-			case <-tick:
-				game.Update()
-			case <-drawing:
-				window.Draw(func(context graphics.Context) {
-					game.Draw(context)
-				})
-				drawing <- struct{}{}
-			}
-		}
-	}()
+	sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, os.Interrupt, syscall.SIGTERM)
 
 	u.Start()
 	defer u.Terminate()
-
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
 	for {
 		u.DoEvents()
 		select {
 		default:
-			drawing <- struct{}{}
-			<-drawing
-		case <-s:
-			return
-		case <-quit:
+			window.Draw(func(context graphics.Context) {
+				game.Draw(context)
+			})
+		case <-tick:
+			game.Update()
+		case e := <-windowEvents:
+			game.HandleEvent(e)
+			if _, ok := e.(ui.WindowClosedEvent); ok {
+				return
+			}
+		case <-sigterm:
 			return
 		}
 	}
