@@ -27,7 +27,6 @@ func DrawTexture(native NativeTexture, projectionMatrix [16]float32,
 	}
 	// TODO: Check performance
 	shaderProgram := use(projectionMatrix, geometryMatrix, colorMatrix)
-	defer C.glUseProgram(0)
 
 	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(native))
 	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)

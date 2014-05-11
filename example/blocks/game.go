@@ -23,17 +23,25 @@ type GameState struct {
 	Input        *Input
 }
 
+type Textures interface {
+	RequestTexture(name string, path string)
+	RequestRenderTarget(name string, size Size)
+	Has(name string) bool
+	GetTexture(name string) graphics.TextureId
+	GetRenderTarget(name string) graphics.RenderTargetId
+}
+
 type Game struct {
 	sceneManager *SceneManager
 	input        *Input
-	textures     *Textures
+	textures     Textures
 }
 
-func NewGame(textureFactory graphics.TextureFactory) *Game {
+func NewGame(textures Textures) *Game {
 	game := &Game{
 		sceneManager: NewSceneManager(NewTitleScene()),
 		input:        NewInput(),
-		textures:     NewTextures(textureFactory),
+		textures:     textures,
 	}
 	for name, path := range texturePaths {
 		game.textures.RequestTexture(name, path)

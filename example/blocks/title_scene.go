@@ -26,7 +26,7 @@ func (s *TitleScene) Update(state *GameState) {
 	}
 }
 
-func (s *TitleScene) Draw(context graphics.Context, textures *Textures) {
+func (s *TitleScene) Draw(context graphics.Context, textures Textures) {
 	drawTitleBackground(context, textures, s.count)
 	drawLogo(context, textures, "BLOCKS")
 
@@ -36,7 +36,7 @@ func (s *TitleScene) Draw(context graphics.Context, textures *Textures) {
 	drawTextWithShadow(context, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(context graphics.Context, textures *Textures, c int) {
+func drawTitleBackground(context graphics.Context, textures Textures, c int) {
 	const textureWidth = 32
 	const textureHeight = 32
 
@@ -60,7 +60,7 @@ func drawTitleBackground(context graphics.Context, textures *Textures, c int) {
 	context.Texture(backgroundTextureId).Draw(parts, geo, clr)
 }
 
-func drawLogo(context graphics.Context, textures *Textures, str string) {
+func drawLogo(context graphics.Context, textures Textures, str string) {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2

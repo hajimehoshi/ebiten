@@ -125,7 +125,7 @@ const fieldBlockNumY = 20
 
 func drawBlocks(
 	context graphics.Context,
-	textures *Textures,
+	textures Textures,
 	blocks [][]BlockType,
 	geo matrix.Geometry) {
 	parts := []graphics.TexturePart{}
@@ -211,7 +211,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 
 func (p *Piece) Draw(
 	context graphics.Context,
-	textures *Textures,
+	textures Textures,
 	fieldX, fieldY int,
 	pieceX, pieceY int,
 	angle Angle) {

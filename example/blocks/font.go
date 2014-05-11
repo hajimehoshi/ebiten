@@ -19,7 +19,7 @@ func textWidth(str string) int {
 
 func drawText(
 	context graphics.Context,
-	textures *Textures,
+	textures Textures,
 	str string,
 	x, y, scale int,
 	clr color.Color) {
@@ -55,7 +55,7 @@ func drawText(
 
 func drawTextWithShadow(
 	context graphics.Context,
-	textures *Textures,
+	textures Textures,
 	str string,
 	x, y, scale int,
 	clr color.Color) {

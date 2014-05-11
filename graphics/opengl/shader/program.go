@@ -23,6 +23,7 @@ const (
 )
 
 var programs = map[programId]*program{
+	// TODO: programRegular is not used for now. Remove this.
 	programRegular: &program{
 		shaderIds: []shaderId{shaderVertex, shaderFragment},
 	},
@@ -115,11 +116,9 @@ func getUniformLocation(program C.GLuint, name string) C.GLint {
 func use(projectionMatrix [16]float32,
 	geometryMatrix matrix.Geometry,
 	colorMatrix matrix.Color) C.GLuint {
-	programId := programRegular
-	if !colorMatrix.IsIdentity() {
-		programId = programColorMatrix
-	}
+	programId :=  programColorMatrix
 	program := programs[programId]
+	// TODO: Check the performance.
 	C.glUseProgram(program.native)
 
 	C.glUniformMatrix4fv(C.GLint(getUniformLocation(program.native, "projection_matrix")),
@@ -142,10 +141,6 @@ func use(projectionMatrix [16]float32,
 		(*C.GLfloat)(&glModelviewMatrix[0]))
 
 	C.glUniform1i(getUniformLocation(program.native, "texture"), 0)
-
-	if programId != programColorMatrix {
-		return program.native
-	}
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {

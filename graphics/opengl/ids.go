@@ -35,7 +35,7 @@ type ids struct {
 	textures              map[graphics.TextureId]*Texture
 	renderTargets         map[graphics.RenderTargetId]*RenderTarget
 	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
-	counts                chan int
+	lastId                int
 	currentRenderTargetId graphics.RenderTargetId
 	sync.RWMutex
 }
@@ -45,14 +45,9 @@ func newIds() *ids {
 		textures:              map[graphics.TextureId]*Texture{},
 		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
 		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
-		counts:                make(chan int),
+		lastId:                0,
 		currentRenderTargetId: -1,
 	}
-	go func() {
-		for i := 1; ; i++ {
-			ids.counts <- i
-		}
-	}()
 	return ids
 }
 
@@ -80,10 +75,11 @@ func (i *ids) createTexture(img image.Image, filter graphics.Filter) (
 	if err != nil {
 		return 0, err
 	}
-	textureId := graphics.TextureId(<-i.counts)
 
 	i.Lock()
 	defer i.Unlock()
+	i.lastId++
+	textureId := graphics.TextureId(i.lastId)
 	i.textures[textureId] = texture
 	return textureId, nil
 }
@@ -100,11 +96,13 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (
 	i.currentRenderTargetId = -1
 	renderTarget := &RenderTarget{framebuffer, texture.width, texture.height, false}
 
-	textureId := graphics.TextureId(<-i.counts)
-	renderTargetId := graphics.RenderTargetId(<-i.counts)
-
 	i.Lock()
 	defer i.Unlock()
+	i.lastId++
+	textureId := graphics.TextureId(i.lastId)
+	i.lastId++
+	renderTargetId := graphics.RenderTargetId(i.lastId)
+
 	i.textures[textureId] = texture
 	i.renderTargets[renderTargetId] = renderTarget
 	i.renderTargetToTexture[renderTargetId] = textureId
@@ -114,10 +112,10 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (
 
 // NOTE: renderTarget can't be used as a texture.
 func (i *ids) addRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetId {
-	id := graphics.RenderTargetId(<-i.counts)
-
 	i.Lock()
 	defer i.Unlock()
+	i.lastId++
+	id := graphics.RenderTargetId(i.lastId)
 	i.renderTargets[id] = renderTarget
 
 	return id

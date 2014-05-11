@@ -97,7 +97,7 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(context graphics.Context, textures *Textures) {
+func (s *GameScene) Draw(context graphics.Context, textures Textures) {
 	context.Fill(0xff, 0xff, 0xff)
 
 	field := textures.GetTexture("empty")

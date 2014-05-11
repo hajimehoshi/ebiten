@@ -30,7 +30,6 @@ func main() {
 	const title = "Ebiten Demo"
 
 	u := cocoa.UI()
-	textureFactory := cocoa.TextureFactory()
 	window := u.CreateGameWindow(screenWidth, screenHeight, screenScale, title)
 
 	drawing := make(chan struct{})
@@ -39,7 +38,8 @@ func main() {
 		defer close(quit)
 
 		windowEvents := window.Events()
-		var game Game = blocks.NewGame(textureFactory)
+		textureFactory := cocoa.TextureFactory()
+		var game Game = blocks.NewGame(NewTextures(textureFactory))
 		frameTime := time.Duration(int64(time.Second) / int64(fps))
 		tick := time.Tick(frameTime)
 		for {

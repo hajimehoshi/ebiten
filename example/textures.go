@@ -1,6 +1,7 @@
-package blocks
+package main
 
 import (
+	"github.com/hajimehoshi/go-ebiten/example/blocks"
 	"github.com/hajimehoshi/go-ebiten/graphics"
 	"image"
 	"os"
@@ -14,7 +15,7 @@ type namePath struct {
 
 type nameSize struct {
 	name string
-	size Size
+	size blocks.Size
 }
 
 type Textures struct {
@@ -98,7 +99,7 @@ func (t *Textures) RequestTexture(name string, path string) {
 	t.texturePaths <- namePath{name, path}
 }
 
-func (t *Textures) RequestRenderTarget(name string, size Size) {
+func (t *Textures) RequestRenderTarget(name string, size blocks.Size) {
 	t.renderTargetSizes <- nameSize{name, size}
 }
 

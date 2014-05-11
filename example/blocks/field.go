@@ -93,7 +93,7 @@ func (f *Field) Flush() {
 	}
 }
 
-func (f *Field) Draw(context graphics.Context, textures *Textures, geo matrix.Geometry) {
+func (f *Field) Draw(context graphics.Context, textures Textures, geo matrix.Geometry) {
 	blocks := make([][]BlockType, len(f.blocks))
 	for i, blockCol := range f.blocks {
 		blocks[i] = make([]BlockType, len(blockCol))
