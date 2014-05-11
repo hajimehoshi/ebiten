@@ -70,7 +70,7 @@ func (game *Game) Update(state ui.CanvasState) {
 	if !game.isInitialized() {
 		return
 	}
-	game.input.Update(state.Keys)
+	game.input.Update(state.PressedKeys)
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        game.input,

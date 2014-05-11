@@ -22,14 +22,18 @@ type UI interface {
 	Terminate()
 }
 
+type Keys interface {
+	Includes(key Key) bool
+}
+
 type CanvasState struct {
-	Width    int
-	Height   int
-	Scale    int
-	Keys     []Key
-	MouseX   int
-	MouseY   int
-	IsClosed bool
+	Width       int
+	Height      int
+	Scale       int
+	PressedKeys Keys
+	MouseX      int
+	MouseY      int
+	IsClosed    bool
 }
 
 type Canvas interface {

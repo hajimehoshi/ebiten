@@ -22,14 +22,9 @@ func (i *Input) StateForKey(key ui.Key) int {
 	return i.states[key]
 }
 
-func (i *Input) Update(keys []ui.Key) {
-	pressedKeys := map[ui.Key]struct{}{}
-	for _, key := range keys {
-		pressedKeys[key] = struct{}{}
-	}
-
+func (i *Input) Update(keys ui.Keys) {
 	for key, _ := range i.states {
-		if _, ok := pressedKeys[key]; !ok {
+		if !keys.Includes(key) {
 			i.states[key] = 0
 			continue
 		}

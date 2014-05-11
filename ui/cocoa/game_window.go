@@ -26,14 +26,32 @@ import (
 	"unsafe"
 )
 
+type Keys map[ui.Key]struct{}
+
+func newKeys() Keys {
+	return Keys(map[ui.Key]struct{}{})
+}
+
+func (k Keys) add(key ui.Key) {
+	k[key] = struct{}{}
+}
+
+func (k Keys) remove(key ui.Key) {
+	delete(k, key)
+}
+
+func (k Keys) Includes(key ui.Key) bool {
+	_, ok := k[key]
+	return ok
+}
+
 type GameWindow struct {
-	state       ui.CanvasState
-	title       string
-	native      *C.EbitenGameWindow
-	pressedKeys map[ui.Key]struct{}
-	funcs       chan func(*opengl.Context)
-	funcsDone   chan struct{}
-	closed      chan struct{}
+	state     ui.CanvasState
+	title     string
+	native    *C.EbitenGameWindow
+	funcs     chan func(*opengl.Context)
+	funcsDone chan struct{}
+	closed    chan struct{}
 	sync.RWMutex
 }
 
@@ -41,21 +59,20 @@ var windows = map[*C.EbitenGameWindow]*GameWindow{}
 
 func newGameWindow(width, height, scale int, title string) *GameWindow {
 	state := ui.CanvasState{
-		Width:    width,
-		Height:   height,
-		Scale:    scale,
-		Keys:     []ui.Key{},
-		MouseX:   -1,
-		MouseY:   -1,
-		IsClosed: false,
+		Width:       width,
+		Height:      height,
+		Scale:       scale,
+		PressedKeys: newKeys(),
+		MouseX:      -1,
+		MouseY:      -1,
+		IsClosed:    false,
 	}
 	return &GameWindow{
-		state:       state,
-		title:       title,
-		pressedKeys: map[ui.Key]struct{}{},
-		funcs:       make(chan func(*opengl.Context)),
-		funcsDone:   make(chan struct{}),
-		closed:      make(chan struct{}),
+		state:     state,
+		title:     title,
+		funcs:     make(chan func(*opengl.Context)),
+		funcsDone: make(chan struct{}),
+		closed:    make(chan struct{}),
 	}
 }
 
@@ -145,16 +162,10 @@ func ebiten_KeyDown(nativeWindow C.EbitenGameWindowPtr, keyCode int) {
 		return
 	}
 	w := windows[nativeWindow]
-	w.pressedKeys[key] = struct{}{}
-
-	keys := []ui.Key{}
-	for key, _ := range w.pressedKeys {
-		keys = append(keys, key)
-	}
 
 	w.Lock()
 	defer w.Unlock()
-	w.state.Keys = keys
+	w.state.PressedKeys.(Keys).add(key)
 }
 
 //export ebiten_KeyUp
@@ -164,16 +175,10 @@ func ebiten_KeyUp(nativeWindow C.EbitenGameWindowPtr, keyCode int) {
 		return
 	}
 	w := windows[nativeWindow]
-	delete(w.pressedKeys, key)
-
-	keys := []ui.Key{}
-	for key, _ := range w.pressedKeys {
-		keys = append(keys, key)
-	}
 
 	w.Lock()
 	defer w.Unlock()
-	w.state.Keys = keys
+	w.state.PressedKeys.(Keys).remove(key)
 }
 
 //export ebiten_MouseStateUpdated
@@ -216,6 +221,6 @@ func ebiten_WindowClosed(nativeWindow C.EbitenGameWindowPtr) {
 	w.Lock()
 	defer w.Unlock()
 	w.state.IsClosed = true
-	
+
 	delete(windows, nativeWindow)
 }
