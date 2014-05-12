@@ -13,7 +13,7 @@ import (
 )
 
 type Game interface {
-	Update(state ui.CanvasState)
+	Update(state ui.InputState)
 	Draw(c graphics.Context)
 }
 
@@ -47,16 +47,10 @@ func main() {
 		default:
 			canvas.Draw(game.Draw)
 		case <-tick:
-			state := canvas.State()
-			game.Update(state)
-			if state.IsClosed {
+			game.Update(canvas.InputState())
+			if canvas.IsClosed() {
 				return
 			}
-		/*case e := <-windowEvents:
-			game.HandleEvent(e)
-			if _, ok := e.(ui.WindowClosedEvent); ok {
-				return
-			}*/
 		case <-sigterm:
 			return
 		}

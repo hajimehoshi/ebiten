@@ -32,6 +32,14 @@ func newKeys() Keys {
 	return Keys(map[ui.Key]struct{}{})
 }
 
+func (k Keys) clone() Keys {
+	n := newKeys()
+	for key, value := range k {
+		n[key] = value
+	}
+	return n
+}
+
 func (k Keys) add(key ui.Key) {
 	k[key] = struct{}{}
 }
@@ -45,35 +53,67 @@ func (k Keys) Includes(key ui.Key) bool {
 	return ok
 }
 
+type InputState struct {
+	pressedKeys Keys
+	mouseX      int
+	mouseY      int
+}
+
+func (i *InputState) PressedKeys() ui.Keys {
+	return i.pressedKeys
+}
+
+func (i *InputState) MouseX() int {
+	return i.mouseX
+}
+
+func (i *InputState) MouseY() int {
+	return i.mouseY
+}
+
+func (i *InputState) setMouseXY(x, y int) {
+	i.mouseX = x
+	i.mouseY = y
+}
+
 type GameWindow struct {
-	state     ui.CanvasState
-	title     string
-	native    *C.EbitenGameWindow
-	funcs     chan func(*opengl.Context)
-	funcsDone chan struct{}
-	closed    chan struct{}
+	width      int
+	height     int
+	scale      int
+	isClosed   bool
+	inputState *InputState
+	title      string
+	native     *C.EbitenGameWindow
+	funcs      chan func(*opengl.Context)
+	funcsDone  chan struct{}
+	closed     chan struct{}
 	sync.RWMutex
 }
 
 var windows = map[*C.EbitenGameWindow]*GameWindow{}
 
 func newGameWindow(width, height, scale int, title string) *GameWindow {
-	state := ui.CanvasState{
-		Width:       width,
-		Height:      height,
-		Scale:       scale,
-		PressedKeys: newKeys(),
-		MouseX:      -1,
-		MouseY:      -1,
-		IsClosed:    false,
+	inputState := &InputState{
+		pressedKeys: newKeys(),
+		mouseX:      -1,
+		mouseY:      -1,
 	}
 	return &GameWindow{
-		state:     state,
-		title:     title,
-		funcs:     make(chan func(*opengl.Context)),
-		funcsDone: make(chan struct{}),
-		closed:    make(chan struct{}),
+		width:      width,
+		height:     height,
+		scale:      scale,
+		inputState: inputState,
+		title:      title,
+		funcs:      make(chan func(*opengl.Context)),
+		funcsDone:  make(chan struct{}),
+		closed:     make(chan struct{}),
 	}
+}
+
+func (w *GameWindow) IsClosed() bool {
+	w.RLock()
+	defer w.RUnlock()
+	return w.isClosed
 }
 
 func (w *GameWindow) run(sharedGLContext *C.NSOpenGLContext) {
@@ -85,8 +125,8 @@ func (w *GameWindow) run(sharedGLContext *C.NSOpenGLContext) {
 		runtime.LockOSThread()
 		glContext := C.CreateGLContext(sharedGLContext)
 		w.native = C.CreateGameWindow(
-			C.size_t(w.state.Width*w.state.Scale),
-			C.size_t(w.state.Height*w.state.Scale),
+			C.size_t(w.width*w.scale),
+			C.size_t(w.height*w.scale),
 			cTitle,
 			glContext)
 		windows[w.native] = w
@@ -94,7 +134,7 @@ func (w *GameWindow) run(sharedGLContext *C.NSOpenGLContext) {
 
 		C.UseGLContext(glContext)
 		context := opengl.NewContext(
-			w.state.Width, w.state.Height, w.state.Scale)
+			w.width, w.height, w.scale)
 		C.UnuseGLContext()
 
 		defer func() {
@@ -141,10 +181,14 @@ func (w *GameWindow) useGLContext(f func(*opengl.Context)) {
 	<-w.funcsDone
 }
 
-func (w *GameWindow) State() ui.CanvasState {
+func (w *GameWindow) InputState() ui.InputState {
 	w.RLock()
 	defer w.RUnlock()
-	return w.state
+	return &InputState{
+		pressedKeys: w.inputState.pressedKeys.clone(),
+		mouseX:      w.inputState.mouseX,
+		mouseY:      w.inputState.mouseY,
+	}
 }
 
 var cocoaKeyCodeToKey = map[int]ui.Key{
@@ -165,7 +209,7 @@ func ebiten_KeyDown(nativeWindow C.EbitenGameWindowPtr, keyCode int) {
 
 	w.Lock()
 	defer w.Unlock()
-	w.state.PressedKeys.(Keys).add(key)
+	w.inputState.pressedKeys.add(key)
 }
 
 //export ebiten_KeyUp
@@ -178,7 +222,7 @@ func ebiten_KeyUp(nativeWindow C.EbitenGameWindowPtr, keyCode int) {
 
 	w.Lock()
 	defer w.Unlock()
-	w.state.PressedKeys.(Keys).remove(key)
+	w.inputState.pressedKeys.remove(key)
 }
 
 //export ebiten_MouseStateUpdated
@@ -188,29 +232,27 @@ func ebiten_MouseStateUpdated(nativeWindow C.EbitenGameWindowPtr, inputType C.In
 	if inputType == C.InputTypeMouseUp {
 		w.Lock()
 		defer w.Unlock()
-		w.state.MouseX = -1
-		w.state.MouseY = -1
+		w.inputState.setMouseXY(-1, -1)
 		return
 	}
 
 	x, y := int(cx), int(cy)
-	x /= w.state.Scale
-	y /= w.state.Scale
+	x /= w.scale
+	y /= w.scale
 	if x < 0 {
 		x = 0
-	} else if w.state.Width <= x {
-		x = w.state.Width - 1
+	} else if w.width <= x {
+		x = w.width - 1
 	}
 	if y < 0 {
 		y = 0
-	} else if w.state.Height <= y {
-		y = w.state.Height - 1
+	} else if w.height <= y {
+		y = w.height - 1
 	}
 
 	w.Lock()
 	defer w.Unlock()
-	w.state.MouseX = x
-	w.state.MouseY = y
+	w.inputState.setMouseXY(x, y)
 }
 
 //export ebiten_WindowClosed
@@ -220,7 +262,7 @@ func ebiten_WindowClosed(nativeWindow C.EbitenGameWindowPtr) {
 
 	w.Lock()
 	defer w.Unlock()
-	w.state.IsClosed = true
+	w.isClosed = true
 
 	delete(windows, nativeWindow)
 }

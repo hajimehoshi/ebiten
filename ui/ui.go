@@ -26,17 +26,14 @@ type Keys interface {
 	Includes(key Key) bool
 }
 
-type CanvasState struct {
-	Width       int
-	Height      int
-	Scale       int
-	PressedKeys Keys
-	MouseX      int
-	MouseY      int
-	IsClosed    bool
+type InputState interface {
+	PressedKeys() Keys
+	MouseX() int
+	MouseY() int
 }
 
 type Canvas interface {
 	Draw(func(graphics.Context))
-	State() CanvasState
+	IsClosed() bool
+	InputState() InputState
 }
