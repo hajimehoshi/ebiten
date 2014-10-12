@@ -9,16 +9,6 @@ import (
 	"github.com/hajimehoshi/go-ebiten/graphics"
 )
 
-func glMatrix(matrix [4][4]float64) [16]float32 {
-	result := [16]float32{}
-	for j := 0; j < 4; j++ {
-		for i := 0; i < 4; i++ {
-			result[i+j*4] = float32(matrix[i][j])
-		}
-	}
-	return result
-}
-
 type RenderTarget struct {
 	framebuffer C.GLuint
 	width       int

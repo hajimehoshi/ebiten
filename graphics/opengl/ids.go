@@ -13,10 +13,30 @@ import (
 	"sync"
 )
 
-var idsInstance *ids = newIds()
+func glMatrix(matrix [4][4]float64) [16]float32 {
+	result := [16]float32{}
+	for j := 0; j < 4; j++ {
+		for i := 0; i < 4; i++ {
+			result[i+j*4] = float32(matrix[i][j])
+		}
+	}
+	return result
+}
 
-func NewContext(screenWidth, screenHeight, screenScale int) *Context {
-	return newContext(idsInstance, screenWidth, screenHeight, screenScale)
+type ids struct {
+	textures              map[graphics.TextureId]*Texture
+	renderTargets         map[graphics.RenderTargetId]*RenderTarget
+	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
+	lastId                int
+	currentRenderTargetId graphics.RenderTargetId
+	sync.RWMutex
+}
+
+var idsInstance = &ids{
+	textures:              map[graphics.TextureId]*Texture{},
+	renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
+	renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
+	currentRenderTargetId: -1,
 }
 
 func CreateRenderTarget(
@@ -29,26 +49,6 @@ func CreateTexture(
 	img image.Image,
 	filter graphics.Filter) (graphics.TextureId, error) {
 	return idsInstance.createTexture(img, filter)
-}
-
-type ids struct {
-	textures              map[graphics.TextureId]*Texture
-	renderTargets         map[graphics.RenderTargetId]*RenderTarget
-	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
-	lastId                int
-	currentRenderTargetId graphics.RenderTargetId
-	sync.RWMutex
-}
-
-func newIds() *ids {
-	ids := &ids{
-		textures:              map[graphics.TextureId]*Texture{},
-		renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
-		renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
-		lastId:                0,
-		currentRenderTargetId: -1,
-	}
-	return ids
 }
 
 func (i *ids) textureAt(id graphics.TextureId) *Texture {
@@ -94,7 +94,11 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (
 	framebuffer := createFramebuffer(texture.native)
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
-	renderTarget := &RenderTarget{framebuffer, texture.width, texture.height, false}
+	renderTarget := &RenderTarget{
+		framebuffer: framebuffer,
+		width:       texture.width,
+		height:      texture.height,
+	}
 
 	i.Lock()
 	defer i.Unlock()
