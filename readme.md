@@ -22,7 +22,7 @@ changed easily.
 ## How to execute the example
 
 ```
-:; cd example
+:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
 :; go run *.go
 ```
 
