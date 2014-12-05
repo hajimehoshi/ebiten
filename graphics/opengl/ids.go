@@ -5,9 +5,9 @@ package opengl
 // #include <OpenGL/gl.h>
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl/shader"
+	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten/graphics/opengl/shader"
 	"image"
 	"math"
 	"sync"

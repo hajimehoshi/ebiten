@@ -9,8 +9,8 @@ package cocoa
 //
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/ui"
+	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/ui"
 )
 
 type cocoaUI struct {

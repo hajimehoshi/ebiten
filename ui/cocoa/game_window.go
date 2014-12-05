@@ -17,9 +17,9 @@ package cocoa
 //
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/graphics/opengl"
-	"github.com/hajimehoshi/go-ebiten/ui"
+	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/ui"
 	"runtime"
 	"sync"
 	"time"

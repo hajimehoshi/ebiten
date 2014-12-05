@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/graphics"
 )
 
 type Key int

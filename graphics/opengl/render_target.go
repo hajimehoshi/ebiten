@@ -6,7 +6,7 @@ package opengl
 import "C"
 import (
 	"fmt"
-	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/graphics"
 )
 
 type RenderTarget struct {

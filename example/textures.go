@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/hajimehoshi/go-ebiten/example/blocks"
-	"github.com/hajimehoshi/go-ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/example/blocks"
+	"github.com/hajimehoshi/ebiten/graphics"
 	"image"
 	"os"
 	"sync"

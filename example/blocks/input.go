@@ -1,7 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/go-ebiten/ui"
+	"github.com/hajimehoshi/ebiten/ui"
 )
 
 type Input struct {

@@ -1,8 +1,8 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics"
-	"github.com/hajimehoshi/go-ebiten/ui"
+	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/ui"
 	_ "image/png"
 )
 

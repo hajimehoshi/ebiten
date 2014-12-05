@@ -6,7 +6,7 @@ package shader
 // #include <stdlib.h>
 import "C"
 import (
-	"github.com/hajimehoshi/go-ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten/graphics/matrix"
 	"unsafe"
 )
 
