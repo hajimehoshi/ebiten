@@ -42,8 +42,7 @@ func NewContext(screenWidth, screenHeight, screenScale int) *Context {
 	context.defaultId = idsInstance.addRenderTarget(defaultRenderTarget)
 
 	var err error
-	context.screenId, err = idsInstance.createRenderTarget(
-		screenWidth, screenHeight, graphics.FilterNearest)
+	context.screenId, err = idsInstance.createRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
 	if err != nil {
 		panic("initializing the offscreen failed: " + err.Error())
 	}
@@ -60,6 +59,7 @@ func (c *Context) Dispose() {
 	idsInstance.deleteRenderTarget(c.screenId)
 }
 
+// TODO: This interface is confusing: Can we change this?
 func (c *Context) Update(draw func(graphics.Context)) {
 	c.ResetOffscreen()
 	c.Clear()
@@ -72,12 +72,7 @@ func (c *Context) Update(draw func(graphics.Context)) {
 	scale := float64(c.screenScale)
 	geo := matrix.IdentityGeometry()
 	geo.Scale(scale, scale)
-	graphics.DrawWhole(
-		c.RenderTarget(c.screenId),
-		c.screenWidth,
-		c.screenHeight,
-		geo,
-		matrix.IdentityColor())
+	graphics.DrawWhole(c.RenderTarget(c.screenId), c.screenWidth, c.screenHeight, geo, matrix.IdentityColor())
 
 	flush()
 }
@@ -111,9 +106,6 @@ type textureWithContext struct {
 	context *Context
 }
 
-func (t *textureWithContext) Draw(
-	parts []graphics.TexturePart,
-	geo matrix.Geometry,
-	color matrix.Color) {
+func (t *textureWithContext) Draw(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
 	idsInstance.drawTexture(t.context.currentId, t.id, parts, geo, color)
 }

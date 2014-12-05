@@ -4,7 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/example/blocks"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/ui"
-	"github.com/hajimehoshi/ebiten/ui/dummy"
+	"github.com/hajimehoshi/ebiten/ui/glfw"
 	"os"
 	"os/signal"
 	"runtime"
@@ -29,11 +29,11 @@ func main() {
 	const frameTime = time.Duration(int64(time.Second) / int64(fps))
 	const title = "Ebiten Demo"
 
-	u := new(dummy.UI)
+	u := new(glfw.UI)
 	canvas := u.CreateCanvas(screenWidth, screenHeight, screenScale, title)
 
-	textureFactory := new(dummy.TextureFactory)
-	var game Game = blocks.NewGame(NewTextures(textureFactory))
+	textureFactory := u.TextureFactory()
+	game := blocks.NewGame(NewTextures(textureFactory))
 	tick := time.Tick(frameTime)
 
 	sigterm := make(chan os.Signal, 1)
