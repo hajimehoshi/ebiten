@@ -9,6 +9,16 @@ Please read example/main.go and example/blocks/*.
 Be careful that this library is now being developed actively and API can be
 changed easily.
 
+## How to install Ebiten on Mac OS X
+
+```
+:; brew install glew
+:; brew install glfw
+:; go get -u github.com/go-gl/gl
+:; go get -u github.com/go-gl/glfw
+:; go get -u github.com/hajimehoshi/ebiten
+```
+
 ## How to execute the example
 
 ```
