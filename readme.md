@@ -11,8 +11,10 @@ changed easily.
 
 ## How to execute the example
 
- :; cd example
- :; go run *.go
+```
+:; cd example
+:; go run *.go
+```
 
 ## License
 
