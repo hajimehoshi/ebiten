@@ -7,7 +7,7 @@ import "C"
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/graphics/opengl/shader"
+	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
 	"image"
 	"math"
 	"sync"
