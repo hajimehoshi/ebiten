@@ -1,6 +1,7 @@
 package glfw
 
 import (
+	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/ui"
 )
 
@@ -8,14 +9,6 @@ type Keys map[ui.Key]struct{}
 
 func newKeys() Keys {
 	return Keys(map[ui.Key]struct{}{})
-}
-
-func (k Keys) clone() Keys {
-	n := newKeys()
-	for key, value := range k {
-		n[key] = value
-	}
-	return n
 }
 
 func (k Keys) add(key ui.Key) {
@@ -37,6 +30,14 @@ type InputState struct {
 	mouseY      int
 }
 
+func newInputState() *InputState {
+	return &InputState{
+		pressedKeys: newKeys(),
+		mouseX:      -1,
+		mouseY:      -1,
+	}
+}
+
 func (i *InputState) PressedKeys() ui.Keys {
 	return i.pressedKeys
 }
@@ -47,4 +48,22 @@ func (i *InputState) MouseX() int {
 
 func (i *InputState) MouseY() int {
 	return i.mouseY
+}
+
+var glfwKeyCodeToKey = map[glfw.Key]ui.Key{
+	glfw.KeySpace: ui.KeySpace,
+	glfw.KeyLeft:  ui.KeyLeft,
+	glfw.KeyRight: ui.KeyRight,
+	glfw.KeyUp:    ui.KeyUp,
+	glfw.KeyDown:  ui.KeyDown,
+}
+
+func (i *InputState) update(window *glfw.Window) {
+	for g, u := range glfwKeyCodeToKey {
+		if window.GetKey(g) == glfw.Press {
+			i.pressedKeys.add(u)
+		} else {
+			i.pressedKeys.remove(u)
+		}
+	}
 }

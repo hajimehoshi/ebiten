@@ -22,7 +22,6 @@ func (u *UI) CreateCanvas(width, height, scale int, title string) ui.Canvas {
 		panic("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)
-	//glfw.WindowHint(glfw.ClientAPI, glfw.OpenGLESAPI)
 	u.canvas = NewCanvas(width, height, scale, title)
 	return u.canvas
 }
@@ -31,7 +30,8 @@ func (u *UI) Start() {
 }
 
 func (u *UI) DoEvents() {
-        glfw.PollEvents()	
+        glfw.PollEvents()
+	u.canvas.update()
 }
 
 func (u *UI) Terminate() {

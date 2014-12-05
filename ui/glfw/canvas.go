@@ -10,10 +10,11 @@ import (
 )
 
 type Canvas struct {
-	window    *glfw.Window
-	context   *opengl.Context
-	funcs     chan func()
-	funcsDone chan struct{}
+	window     *glfw.Window
+	inputState *InputState
+	context    *opengl.Context
+	funcs      chan func()
+	funcsDone  chan struct{}
 }
 
 func NewCanvas(width, height, scale int, title string) *Canvas {
@@ -22,15 +23,15 @@ func NewCanvas(width, height, scale int, title string) *Canvas {
 		panic(err)
 	}
 	canvas := &Canvas{
-		window:    window,
-		funcs:     make(chan func()),
-		funcsDone: make(chan struct{}),
+		window:     window,
+		inputState: newInputState(),
+		funcs:      make(chan func()),
+		funcsDone:  make(chan struct{}),
 	}
 
 	// For retina displays, recalculate the scale with the framebuffer size.
-	windowWidth, windowHeight := window.GetFramebufferSize()
+	windowWidth, _ := window.GetFramebufferSize()
 	realScale := windowWidth / width
-	_ = windowHeight
 
 	canvas.run()
 	canvas.use(func() {
@@ -51,7 +52,7 @@ func (c *Canvas) IsClosed() bool {
 }
 
 func (c *Canvas) InputState() ui.InputState {
-	return &InputState{newKeys(), -1, -1}
+	return c.inputState
 }
 
 func (c *Canvas) CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureId, error) {
@@ -88,4 +89,8 @@ func (c *Canvas) run() {
 func (c *Canvas) use(f func()) {
 	c.funcs <- f
 	<-c.funcsDone
+}
+
+func (c *Canvas) update() {
+	c.inputState.update(c.window)
 }
