@@ -14,7 +14,7 @@ func init() {
 
 type Scene interface {
 	Update(state *GameState)
-	Draw(context graphics.Context, textures Textures)
+	Draw(context graphics.Context, textures *Textures)
 }
 
 const transitionMaxCount = 20
@@ -45,7 +45,7 @@ func (s *SceneManager) Update(state *GameState) {
 	}
 }
 
-func (s *SceneManager) Draw(context graphics.Context, textures Textures) {
+func (s *SceneManager) Draw(context graphics.Context, textures *Textures) {
 	if s.transitionCount == -1 {
 		s.current.Draw(context, textures)
 		return

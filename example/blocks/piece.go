@@ -123,11 +123,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(
-	context graphics.Context,
-	textures Textures,
-	blocks [][]BlockType,
-	geo matrix.Geometry) {
+func drawBlocks(context graphics.Context, textures *Textures, blocks [][]BlockType, geo matrix.Geometry) {
 	parts := []graphics.TexturePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -209,12 +205,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(
-	context graphics.Context,
-	textures Textures,
-	fieldX, fieldY int,
-	pieceX, pieceY int,
-	angle Angle) {
+func (p *Piece) Draw(context graphics.Context, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {

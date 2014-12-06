@@ -23,7 +23,7 @@ changed easily.
 
 ```
 :; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
-:; go run *.go
+:; go run main.go
 ```
 
 ## License

@@ -17,16 +17,13 @@ type UI struct {
 	canvas *Canvas
 }
 
-func (u *UI) CreateCanvas(width, height, scale int, title string) ui.Canvas {
+func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, graphics.TextureFactory) {
 	if !glfw.Init() {
 		panic("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	u.canvas = NewCanvas(width, height, scale, title)
-	return u.canvas
-}
-
-func (u *UI) Start() {
+	return u.canvas, u.canvas
 }
 
 func (u *UI) DoEvents() {
@@ -36,8 +33,4 @@ func (u *UI) DoEvents() {
 
 func (u *UI) Terminate() {
 	glfw.Terminate()
-}
-
-func (u *UI) TextureFactory() graphics.TextureFactory {
-	return u.canvas
 }

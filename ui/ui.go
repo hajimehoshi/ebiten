@@ -16,8 +16,7 @@ const (
 )
 
 type UI interface {
-	CreateCanvas(widht, height, scale int, title string) Canvas
-	Start()
+	Start(widht, height, scale int, title string) (Canvas, graphics.TextureFactory)
 	DoEvents()
 	Terminate()
 }

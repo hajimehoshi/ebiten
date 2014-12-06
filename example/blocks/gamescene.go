@@ -97,7 +97,7 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(context graphics.Context, textures Textures) {
+func (s *GameScene) Draw(context graphics.Context, textures *Textures) {
 	context.Fill(0xff, 0xff, 0xff)
 
 	field := textures.GetTexture("empty")
@@ -108,24 +108,13 @@ func (s *GameScene) Draw(context graphics.Context, textures Textures) {
 	geoMat.Translate(20, 20) // magic number?
 	colorMat := matrix.ColorI()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
-	graphics.DrawWhole(
-		context.Texture(field),
-		emptyWidth,
-		emptyHeight,
-		geoMat,
-		colorMat)
+	graphics.DrawWhole(context.Texture(field), emptyWidth, emptyHeight, geoMat, colorMat)
 
 	geoMat = matrix.GeometryI()
 	geoMat.Translate(20, 20)
 	s.field.Draw(context, textures, geoMat)
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(
-			context,
-			textures,
-			20, 20,
-			s.currentPieceX,
-			s.currentPieceY,
-			s.currentPieceAngle)
+		s.currentPiece.Draw(context, textures, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
 	}
 }
