@@ -43,11 +43,12 @@ func NewCanvas(width, height, scale int, title string) *Canvas {
 	return canvas
 }
 
-func (c *Canvas) Draw(f func(graphics.Context)) {
+func (c *Canvas) Draw(d ui.Drawer) (err error) {
 	c.use(func() {
-		c.context.Update(f)
+		err = c.context.Update(d)
 		c.window.SwapBuffers()
 	})
+	return
 }
 
 func (c *Canvas) IsClosed() bool {

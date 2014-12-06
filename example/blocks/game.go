@@ -54,7 +54,7 @@ func (game *Game) isInitialized() bool {
 
 var once sync.Once
 
-func (game *Game) Update() {
+func (game *Game) Update() error {
 	once.Do(func() {
 		for name, path := range texturePaths {
 			game.textures.RequestTexture(name, path)
@@ -64,18 +64,20 @@ func (game *Game) Update() {
 		}
 	})
 	if !game.isInitialized() {
-		return
+		return nil
 	}
 	game.input.Update()
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        game.input,
 	})
+	return nil
 }
 
-func (game *Game) Draw(context graphics.Context) {
+func (game *Game) Draw(context graphics.Context) error {
 	if !game.isInitialized() {
-		return
+		return nil
 	}
 	game.sceneManager.Draw(context, game.textures)
+	return nil
 }

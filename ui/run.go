@@ -9,12 +9,15 @@ import (
 )
 
 type Game interface {
-	Draw(context graphics.Context)
-	Update()
+	Update() error
+	Draw(context graphics.Context) error
 }
 
-func Run(u UI, game Game, width, height, scale int, title string, fps int) {
-	canvas := u.Start(width, height, scale, title)
+func Run(u UI, game Game, width, height, scale int, title string, fps int) error {
+	canvas, err := u.Start(width, height, scale, title)
+	if err != nil {
+		return err
+	}
 
 	frameTime := time.Duration(int64(time.Second) / int64(fps))
 	tick := time.Tick(frameTime)
@@ -26,14 +29,18 @@ func Run(u UI, game Game, width, height, scale int, title string, fps int) {
 		u.DoEvents()
 		select {
 		default:
-			canvas.Draw(game.Draw)
+			if err := canvas.Draw(game); err != nil {
+				return err
+			}
 		case <-tick:
-			game.Update()
+			if err := game.Update(); err != nil {
+				return err
+			}
 			if canvas.IsClosed() {
-				return
+				return nil
 			}
 		case <-sigterm:
-			return
+			return nil
 		}
 	}
 }

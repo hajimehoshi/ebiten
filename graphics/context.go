@@ -18,16 +18,10 @@ type TexturePart struct {
 }
 
 type Drawer interface {
-	Draw(parts []TexturePart,
-		geometryMatrix matrix.Geometry,
-		colorMatrix matrix.Color)
+	Draw(parts []TexturePart, geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
 }
 
-func DrawWhole(
-	drawer Drawer,
-	width, height int,
-	geo matrix.Geometry,
-	color matrix.Color) {
+func DrawWhole(drawer Drawer, width, height int, geo matrix.Geometry, color matrix.Color) {
 	parts := []TexturePart{
 		{0, 0, Rect{0, 0, width, height}},
 	}

@@ -1,6 +1,7 @@
 package glfw
 
 import (
+	"errors"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/ui"
 	"log"
@@ -16,13 +17,14 @@ type UI struct {
 	canvas *Canvas
 }
 
-func (u *UI) Start(width, height, scale int, title string) ui.Canvas {
+func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
 	if !glfw.Init() {
-		panic("glfw.Init() fails")
+		// TODO: Use glfw error
+		return nil, errors.New("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	u.canvas = NewCanvas(width, height, scale, title)
-	return u.canvas
+	return u.canvas, nil
 }
 
 func (u *UI) DoEvents() {

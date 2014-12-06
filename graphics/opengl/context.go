@@ -4,6 +4,7 @@ import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten/ui"
 	"sync"
 )
 
@@ -59,11 +60,13 @@ func (c *Context) Dispose() {
 }
 
 // TODO: This interface is confusing: Can we change this?
-func (c *Context) Update(draw func(graphics.Context)) {
+func (c *Context) Update(drawer ui.Drawer) error {
 	c.ResetOffscreen()
 	c.Clear()
 
-	draw(c)
+	if err := drawer.Draw(c); err != nil {
+		return err
+	}
 
 	c.SetOffscreen(c.defaultId)
 	c.Clear()
@@ -74,6 +77,7 @@ func (c *Context) Update(draw func(graphics.Context)) {
 	graphics.DrawWhole(c.RenderTarget(c.screenId), c.screenWidth, c.screenHeight, geo, matrix.ColorI())
 
 	flush()
+	return nil
 }
 
 func (c *Context) Clear() {
