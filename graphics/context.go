@@ -31,11 +31,9 @@ func DrawWhole(drawer Drawer, width, height int, geo matrix.Geometry, color matr
 type Context interface {
 	Clear()
 	Fill(r, g, b uint8)
-	Texture(id TextureId) Drawer
-	RenderTarget(id RenderTargetId) Drawer
+	Texture(id TextureID) Drawer
+	RenderTarget(id RenderTargetID) Drawer
 
 	ResetOffscreen()
-	SetOffscreen(id RenderTargetId)
-
-	// TODO: glTextureSubImage2D
+	SetOffscreen(id RenderTargetID)
 }

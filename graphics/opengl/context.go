@@ -15,9 +15,9 @@ func flush() {
 var onceInit sync.Once
 
 type Context struct {
-	screenId     graphics.RenderTargetId
-	defaultId    graphics.RenderTargetId
-	currentId    graphics.RenderTargetId
+	screenId     graphics.RenderTargetID
+	defaultId    graphics.RenderTargetID
+	currentId    graphics.RenderTargetID
 	screenWidth  int
 	screenHeight int
 	screenScale  int
@@ -88,11 +88,11 @@ func (c *Context) Fill(r, g, b uint8) {
 	idsInstance.fillRenderTarget(c.currentId, r, g, b)
 }
 
-func (c *Context) Texture(id graphics.TextureId) graphics.Drawer {
+func (c *Context) Texture(id graphics.TextureID) graphics.Drawer {
 	return &textureWithContext{id, c}
 }
 
-func (c *Context) RenderTarget(id graphics.RenderTargetId) graphics.Drawer {
+func (c *Context) RenderTarget(id graphics.RenderTargetID) graphics.Drawer {
 	return &textureWithContext{idsInstance.toTexture(id), c}
 }
 
@@ -100,12 +100,12 @@ func (c *Context) ResetOffscreen() {
 	c.currentId = c.screenId
 }
 
-func (c *Context) SetOffscreen(renderTargetId graphics.RenderTargetId) {
+func (c *Context) SetOffscreen(renderTargetId graphics.RenderTargetID) {
 	c.currentId = renderTargetId
 }
 
 type textureWithContext struct {
-	id      graphics.TextureId
+	id      graphics.TextureID
 	context *Context
 }
 

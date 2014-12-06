@@ -20,8 +20,8 @@ type nameSize struct {
 type Textures struct {
 	texturePaths      chan namePath
 	renderTargetSizes chan nameSize
-	textures          map[string]graphics.TextureId
-	renderTargets     map[string]graphics.RenderTargetId
+	textures          map[string]graphics.TextureID
+	renderTargets     map[string]graphics.RenderTargetID
 	sync.RWMutex
 }
 
@@ -29,8 +29,8 @@ func NewTextures() *Textures {
 	textures := &Textures{
 		texturePaths:      make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
-		textures:          map[string]graphics.TextureId{},
-		renderTargets:     map[string]graphics.RenderTargetId{},
+		textures:          map[string]graphics.TextureID{},
+		renderTargets:     map[string]graphics.RenderTargetID{},
 	}
 	go func() {
 		for {
@@ -106,13 +106,13 @@ func (t *Textures) Has(name string) bool {
 	return ok
 }
 
-func (t *Textures) GetTexture(name string) graphics.TextureId {
+func (t *Textures) GetTexture(name string) graphics.TextureID {
 	t.RLock()
 	defer t.RUnlock()
 	return t.textures[name]
 }
 
-func (t *Textures) GetRenderTarget(name string) graphics.RenderTargetId {
+func (t *Textures) GetRenderTarget(name string) graphics.RenderTargetID {
 	t.RLock()
 	defer t.RUnlock()
 	return t.renderTargets[name]

@@ -21,52 +21,52 @@ func glMatrix(matrix [4][4]float64) [16]float32 {
 }
 
 type ids struct {
-	textures              map[graphics.TextureId]*Texture
-	renderTargets         map[graphics.RenderTargetId]*RenderTarget
-	renderTargetToTexture map[graphics.RenderTargetId]graphics.TextureId
+	textures              map[graphics.TextureID]*Texture
+	renderTargets         map[graphics.RenderTargetID]*RenderTarget
+	renderTargetToTexture map[graphics.RenderTargetID]graphics.TextureID
 	lastId                int
-	currentRenderTargetId graphics.RenderTargetId
+	currentRenderTargetId graphics.RenderTargetID
 	sync.RWMutex
 }
 
 var idsInstance = &ids{
-	textures:              map[graphics.TextureId]*Texture{},
-	renderTargets:         map[graphics.RenderTargetId]*RenderTarget{},
-	renderTargetToTexture: map[graphics.RenderTargetId]graphics.TextureId{},
+	textures:              map[graphics.TextureID]*Texture{},
+	renderTargets:         map[graphics.RenderTargetID]*RenderTarget{},
+	renderTargetToTexture: map[graphics.RenderTargetID]graphics.TextureID{},
 	currentRenderTargetId: -1,
 }
 
 func CreateRenderTarget(
 	width, height int,
-	filter graphics.Filter) (graphics.RenderTargetId, error) {
+	filter graphics.Filter) (graphics.RenderTargetID, error) {
 	return idsInstance.createRenderTarget(width, height, filter)
 }
 
 func CreateTexture(
 	img image.Image,
-	filter graphics.Filter) (graphics.TextureId, error) {
+	filter graphics.Filter) (graphics.TextureID, error) {
 	return idsInstance.createTexture(img, filter)
 }
 
-func (i *ids) textureAt(id graphics.TextureId) *Texture {
+func (i *ids) textureAt(id graphics.TextureID) *Texture {
 	i.RLock()
 	defer i.RUnlock()
 	return i.textures[id]
 }
 
-func (i *ids) renderTargetAt(id graphics.RenderTargetId) *RenderTarget {
+func (i *ids) renderTargetAt(id graphics.RenderTargetID) *RenderTarget {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargets[id]
 }
 
-func (i *ids) toTexture(id graphics.RenderTargetId) graphics.TextureId {
+func (i *ids) toTexture(id graphics.RenderTargetID) graphics.TextureID {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.TextureId, error) {
+func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
 	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
@@ -75,12 +75,12 @@ func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.T
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
-	textureId := graphics.TextureId(i.lastId)
+	textureId := graphics.TextureID(i.lastId)
 	i.textures[textureId] = texture
 	return textureId, nil
 }
 
-func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetId, error) {
+func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
 	texture, err := createTexture(width, height, filter)
 	if err != nil {
 		return 0, err
@@ -97,9 +97,9 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (gra
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
-	textureId := graphics.TextureId(i.lastId)
+	textureId := graphics.TextureID(i.lastId)
 	i.lastId++
-	renderTargetId := graphics.RenderTargetId(i.lastId)
+	renderTargetId := graphics.RenderTargetID(i.lastId)
 
 	i.textures[textureId] = texture
 	i.renderTargets[renderTargetId] = renderTarget
@@ -109,17 +109,17 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (gra
 }
 
 // NOTE: renderTarget can't be used as a texture.
-func (i *ids) addRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetId {
+func (i *ids) addRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetID {
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
-	id := graphics.RenderTargetId(i.lastId)
+	id := graphics.RenderTargetID(i.lastId)
 	i.renderTargets[id] = renderTarget
 
 	return id
 }
 
-func (i *ids) deleteRenderTarget(id graphics.RenderTargetId) {
+func (i *ids) deleteRenderTarget(id graphics.RenderTargetID) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -135,7 +135,7 @@ func (i *ids) deleteRenderTarget(id graphics.RenderTargetId) {
 	delete(i.textures, textureId)
 }
 
-func (i *ids) fillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
+func (i *ids) fillRenderTarget(id graphics.RenderTargetID, r, g, b uint8) {
 	i.setViewportIfNeeded(id)
 	const max = float64(math.MaxUint8)
 	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), 1)
@@ -143,8 +143,8 @@ func (i *ids) fillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
 }
 
 func (i *ids) drawTexture(
-	target graphics.RenderTargetId,
-	id graphics.TextureId,
+	target graphics.RenderTargetID,
+	id graphics.TextureID,
 	parts []graphics.TexturePart,
 	geo matrix.Geometry,
 	color matrix.Color) {
@@ -156,7 +156,7 @@ func (i *ids) drawTexture(
 	shader.DrawTexture(texture.native, glMatrix(projectionMatrix), quads, geo, color)
 }
 
-func (i *ids) setViewportIfNeeded(id graphics.RenderTargetId) {
+func (i *ids) setViewportIfNeeded(id graphics.RenderTargetID) {
 	r := i.renderTargetAt(id)
 	if i.currentRenderTargetId != id {
 		r.setAsViewport()
