@@ -10,7 +10,7 @@ import (
 
 type Game interface {
 	Draw(context graphics.Context)
-	Update(inputState InputState)
+	Update()
 	SetTextureFactory(textureFactory graphics.TextureFactory)
 }
 
@@ -30,7 +30,7 @@ func Run(u UI, game Game, width, height, scale int, title string, fps int) {
 		default:
 			canvas.Draw(game.Draw)
 		case <-tick:
-			game.Update(canvas.InputState())
+			game.Update()
 			if canvas.IsClosed() {
 				return
 			}

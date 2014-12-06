@@ -2,7 +2,6 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/ui"
 	_ "image/png"
 )
 
@@ -61,11 +60,11 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-func (game *Game) Update(state ui.InputState) {
+func (game *Game) Update() {
 	if !game.isInitialized() {
 		return
 	}
-	game.input.Update(state)
+	game.input.Update()
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        game.input,

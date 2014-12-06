@@ -10,11 +10,11 @@ import (
 )
 
 type Canvas struct {
-	window     *glfw.Window
-	inputState *InputState
-	context    *opengl.Context
-	funcs      chan func()
-	funcsDone  chan struct{}
+	window    *glfw.Window
+	context   *opengl.Context
+	keyboard  *Keyboard
+	funcs     chan func()
+	funcsDone chan struct{}
 }
 
 func NewCanvas(width, height, scale int, title string) *Canvas {
@@ -23,11 +23,14 @@ func NewCanvas(width, height, scale int, title string) *Canvas {
 		panic(err)
 	}
 	canvas := &Canvas{
-		window:     window,
-		inputState: newInputState(),
-		funcs:      make(chan func()),
-		funcsDone:  make(chan struct{}),
+		window:    window,
+		keyboard:  NewKeyboard(),
+		funcs:     make(chan func()),
+		funcsDone: make(chan struct{}),
 	}
+
+	ui.SetKeyboard(canvas.keyboard)
+	graphics.SetTextureFactory(canvas)
 
 	// For retina displays, recalculate the scale with the framebuffer size.
 	windowWidth, _ := window.GetFramebufferSize()
@@ -49,10 +52,6 @@ func (c *Canvas) Draw(f func(graphics.Context)) {
 
 func (c *Canvas) IsClosed() bool {
 	return c.window.ShouldClose()
-}
-
-func (c *Canvas) InputState() ui.InputState {
-	return c.inputState
 }
 
 func (c *Canvas) CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureId, error) {
@@ -92,5 +91,5 @@ func (c *Canvas) use(f func()) {
 }
 
 func (c *Canvas) update() {
-	c.inputState.update(c.window)
+	c.keyboard.update(c.window)
 }
