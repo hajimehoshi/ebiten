@@ -45,10 +45,10 @@ func drawText(
 		locationX += charWidth
 	}
 
-	geoMat := matrix.IdentityGeometry()
+	geoMat := matrix.GeometryI()
 	geoMat.Scale(float64(scale), float64(scale))
 	geoMat.Translate(float64(x), float64(y))
-	clrMat := matrix.IdentityColor()
+	clrMat := matrix.ColorI()
 	clrMat.Scale(clr)
 	context.Texture(fontTextureId).Draw(parts, geoMat, clrMat)
 }

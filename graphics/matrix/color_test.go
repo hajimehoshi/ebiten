@@ -6,7 +6,7 @@ import (
 )
 
 func TestColorIdentity(t *testing.T) {
-	matrix := IdentityColor()
+	matrix := ColorI()
 	got := matrix.IsIdentity()
 	want := true
 	if want != got {

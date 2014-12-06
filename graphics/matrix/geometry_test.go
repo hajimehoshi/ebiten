@@ -6,7 +6,7 @@ import (
 )
 
 func TestGeometryIdentity(t *testing.T) {
-	matrix := IdentityGeometry()
+	matrix := GeometryI()
 	got := matrix.IsIdentity()
 	want := true
 	if want != got {

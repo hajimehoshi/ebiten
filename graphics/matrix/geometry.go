@@ -10,7 +10,7 @@ type Geometry struct {
 	Elements [geometryDim - 1][geometryDim]float64
 }
 
-func IdentityGeometry() Geometry {
+func GeometryI() Geometry {
 	return Geometry{
 		[geometryDim - 1][geometryDim]float64{
 			{1, 0, 0},

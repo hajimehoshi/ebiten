@@ -11,7 +11,7 @@ type Color struct {
 	Elements [colorDim - 1][colorDim]float64
 }
 
-func IdentityColor() Color {
+func ColorI() Color {
 	return Color{
 		[colorDim - 1][colorDim]float64{
 			{1, 0, 0, 0, 0},

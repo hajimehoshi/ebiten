@@ -101,12 +101,12 @@ func (s *GameScene) Draw(context graphics.Context, textures Textures) {
 	context.Fill(0xff, 0xff, 0xff)
 
 	field := textures.GetTexture("empty")
-	geoMat := matrix.IdentityGeometry()
+	geoMat := matrix.GeometryI()
 	geoMat.Scale(
 		float64(fieldWidth)/float64(emptyWidth),
 		float64(fieldHeight)/float64(emptyHeight))
 	geoMat.Translate(20, 20) // magic number?
-	colorMat := matrix.IdentityColor()
+	colorMat := matrix.ColorI()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
 	graphics.DrawWhole(
 		context.Texture(field),
@@ -115,7 +115,7 @@ func (s *GameScene) Draw(context graphics.Context, textures Textures) {
 		geoMat,
 		colorMat)
 
-	geoMat = matrix.IdentityGeometry()
+	geoMat = matrix.GeometryI()
 	geoMat.Translate(20, 20)
 	s.field.Draw(context, textures, geoMat)
 

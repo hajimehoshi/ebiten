@@ -69,9 +69,9 @@ func (c *Context) Update(draw func(graphics.Context)) {
 	c.Clear()
 
 	scale := float64(c.screenScale)
-	geo := matrix.IdentityGeometry()
+	geo := matrix.GeometryI()
 	geo.Scale(scale, scale)
-	graphics.DrawWhole(c.RenderTarget(c.screenId), c.screenWidth, c.screenHeight, geo, matrix.IdentityColor())
+	graphics.DrawWhole(c.RenderTarget(c.screenId), c.screenWidth, c.screenHeight, geo, matrix.ColorI())
 
 	flush()
 }

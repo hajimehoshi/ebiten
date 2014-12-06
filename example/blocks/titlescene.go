@@ -54,9 +54,9 @@ func drawTitleBackground(context graphics.Context, textures Textures, c int) {
 
 	dx := (-c / 4) % textureWidth
 	dy := (c / 4) % textureHeight
-	geo := matrix.IdentityGeometry()
+	geo := matrix.GeometryI()
 	geo.Translate(float64(dx), float64(dy))
-	clr := matrix.IdentityColor()
+	clr := matrix.ColorI()
 	context.Texture(backgroundTextureId).Draw(parts, geo, clr)
 }
 

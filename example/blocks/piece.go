@@ -148,7 +148,7 @@ func drawBlocks(
 		}
 	}
 	blocksTexture := textures.GetTexture("blocks")
-	context.Texture(blocksTexture).Draw(parts, geo, matrix.IdentityColor())
+	context.Texture(blocksTexture).Draw(parts, geo, matrix.ColorI())
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -226,7 +226,7 @@ func (p *Piece) Draw(
 		}
 	}
 
-	geoMat := matrix.IdentityGeometry()
+	geoMat := matrix.GeometryI()
 	x := fieldX + pieceX*blockWidth
 	y := fieldY + pieceY*blockHeight
 	geoMat.Translate(float64(x), float64(y))
