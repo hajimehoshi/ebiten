@@ -1,10 +1,7 @@
 package opengl
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <OpenGL/gl.h>
-import "C"
 import (
+	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
 	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
@@ -69,8 +66,7 @@ func (i *ids) toTexture(id graphics.RenderTargetId) graphics.TextureId {
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) createTexture(img image.Image, filter graphics.Filter) (
-	graphics.TextureId, error) {
+func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.TextureId, error) {
 	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
@@ -84,14 +80,12 @@ func (i *ids) createTexture(img image.Image, filter graphics.Filter) (
 	return textureId, nil
 }
 
-func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (
-	graphics.RenderTargetId, error) {
-
+func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetId, error) {
 	texture, err := createTexture(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
-	framebuffer := createFramebuffer(texture.native)
+	framebuffer := createFramebuffer(gl.Texture(texture.native))
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
 	renderTarget := &RenderTarget{
@@ -144,12 +138,8 @@ func (i *ids) deleteRenderTarget(id graphics.RenderTargetId) {
 func (i *ids) fillRenderTarget(id graphics.RenderTargetId, r, g, b uint8) {
 	i.setViewportIfNeeded(id)
 	const max = float64(math.MaxUint8)
-	C.glClearColor(
-		C.GLclampf(float64(r)/max),
-		C.GLclampf(float64(g)/max),
-		C.GLclampf(float64(b)/max),
-		1)
-	C.glClear(C.GL_COLOR_BUFFER_BIT)
+	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), 1)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
 func (i *ids) drawTexture(
@@ -163,12 +153,7 @@ func (i *ids) drawTexture(
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.projectionMatrix()
 	quads := graphics.TextureQuads(parts, texture.width, texture.height)
-	shader.DrawTexture(
-		shader.NativeTexture(texture.native),
-		glMatrix(projectionMatrix),
-		quads,
-		geo,
-		color)
+	shader.DrawTexture(texture.native, glMatrix(projectionMatrix), quads, geo, color)
 }
 
 func (i *ids) setViewportIfNeeded(id graphics.RenderTargetId) {

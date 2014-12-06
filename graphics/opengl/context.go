@@ -1,23 +1,17 @@
 package opengl
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <stdlib.h>
-// #include <OpenGL/gl.h>
-import "C"
 import (
+	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"sync"
 )
 
-func enableAlphaBlending() {
-	C.glEnable(C.GL_TEXTURE_2D)
-	C.glEnable(C.GL_BLEND)
+func flush() {
+	gl.Flush()
 }
 
-func flush() {
-	C.glFlush()
-}
+var onceInit sync.Once
 
 type Context struct {
 	screenId     graphics.RenderTargetId
@@ -29,11 +23,18 @@ type Context struct {
 }
 
 func NewContext(screenWidth, screenHeight, screenScale int) *Context {
+	onceInit.Do(func() {
+		gl.Init()
+		gl.Enable(gl.TEXTURE_2D)
+		gl.Enable(gl.BLEND)
+	})
+
 	context := &Context{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
+
 	defaultRenderTarget := &RenderTarget{
 		width:  screenWidth * screenScale,
 		height: screenHeight * screenScale,
@@ -48,8 +49,6 @@ func NewContext(screenWidth, screenHeight, screenScale int) *Context {
 	}
 	context.ResetOffscreen()
 	context.Clear()
-
-	enableAlphaBlending()
 
 	return context
 }

@@ -1,17 +1,12 @@
 package shader
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <OpenGL/gl.h>
-// #include <stdlib.h>
-import "C"
 import (
+	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"unsafe"
 )
 
 type program struct {
-	native    C.GLuint
+	native    gl.Program
 	shaderIds []shaderId
 }
 
@@ -33,18 +28,16 @@ var programs = map[programId]*program{
 }
 
 func (p *program) create() {
-	p.native = C.glCreateProgram()
+	p.native = gl.CreateProgram()
 	if p.native == 0 {
 		panic("glCreateProgram failed")
 	}
 
 	for _, shaderId := range p.shaderIds {
-		C.glAttachShader(p.native, shaders[shaderId].native)
+		p.native.AttachShader(shaders[shaderId].native)
 	}
-	C.glLinkProgram(p.native)
-	linked := C.GLint(C.GL_FALSE)
-	C.glGetProgramiv(p.native, C.GL_LINK_STATUS, &linked)
-	if linked == C.GL_FALSE {
+	p.native.Link()
+	if p.native.Get(gl.LINK_STATUS) == gl.FALSE {
 		panic("program error")
 	}
 }
@@ -72,57 +65,49 @@ const (
 )
 
 var (
-	shaderLocationCache = map[qualifierVariableType]map[string]C.GLint{
-		qualifierVariableTypeAttribute: map[string]C.GLint{},
-		qualifierVariableTypeUniform:   map[string]C.GLint{},
+	shaderLocationCache = map[qualifierVariableType]map[string]gl.AttribLocation{
+		qualifierVariableTypeAttribute: map[string]gl.AttribLocation{},
+		qualifierVariableTypeUniform:   map[string]gl.AttribLocation{},
 	}
 )
 
-func getLocation(program C.GLuint, name string, qvType qualifierVariableType) C.GLint {
+func getLocation(program gl.Program, name string, qvType qualifierVariableType) gl.AttribLocation {
 	if location, ok := shaderLocationCache[qvType][name]; ok {
 		return location
 	}
 
-	locationName := C.CString(name)
-	defer C.free(unsafe.Pointer(locationName))
-
-	const invalidLocation = -1
-	location := C.GLint(invalidLocation)
-
+	location := gl.AttribLocation(-1)
 	switch qvType {
 	case qualifierVariableTypeAttribute:
-		location = C.glGetAttribLocation(program, (*C.GLchar)(locationName))
+		location = program.GetAttribLocation(name)
 	case qualifierVariableTypeUniform:
-		location = C.glGetUniformLocation(program, (*C.GLchar)(locationName))
+		location = gl.AttribLocation(program.GetUniformLocation(name))
 	default:
 		panic("no reach")
 	}
-	if location == invalidLocation {
-		panic("glGetUniformLocation failed")
+	if location == -1 {
+		panic("GetAttribLocation failed")
 	}
 	shaderLocationCache[qvType][name] = location
 
 	return location
 }
 
-func getAttributeLocation(program C.GLuint, name string) C.GLint {
+func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
 	return getLocation(program, name, qualifierVariableTypeAttribute)
 }
 
-func getUniformLocation(program C.GLuint, name string) C.GLint {
-	return getLocation(program, name, qualifierVariableTypeUniform)
+func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
+	return gl.UniformLocation(getLocation(program, name, qualifierVariableTypeUniform))
 }
 
-func use(projectionMatrix [16]float32,
-	geometryMatrix matrix.Geometry,
-	colorMatrix matrix.Color) C.GLuint {
+func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) gl.Program {
 	programId :=  programColorMatrix
 	program := programs[programId]
 	// TODO: Check the performance.
-	C.glUseProgram(program.native)
+	program.native.Use()
 
-	C.glUniformMatrix4fv(C.GLint(getUniformLocation(program.native, "projection_matrix")),
-		1, C.GL_FALSE, (*C.GLfloat)(&projectionMatrix[0]))
+	getUniformLocation(program.native, "projection_matrix").UniformMatrix4fv(false, projectionMatrix)
 
 	a := float32(geometryMatrix.Elements[0][0])
 	b := float32(geometryMatrix.Elements[0][1])
@@ -136,11 +121,9 @@ func use(projectionMatrix [16]float32,
 		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
-	C.glUniformMatrix4fv(getUniformLocation(program.native, "modelview_matrix"),
-		1, C.GL_FALSE,
-		(*C.GLfloat)(&glModelviewMatrix[0]))
+	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
 
-	C.glUniform1i(getUniformLocation(program.native, "texture"), 0)
+	getUniformLocation(program.native, "texture").Uniform1i(0)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -155,14 +138,11 @@ func use(projectionMatrix [16]float32,
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	C.glUniformMatrix4fv(getUniformLocation(program.native, "color_matrix"),
-		1, C.GL_FALSE, (*C.GLfloat)(&glColorMatrix[0]))
-
+	getUniformLocation(program.native, "color_matrix").UniformMatrix4fv(false, glColorMatrix)
 	glColorMatrixTranslation := [...]float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	C.glUniform4fv(getUniformLocation(program.native, "color_matrix_translation"),
-		1, (*C.GLfloat)(&glColorMatrixTranslation[0]))
+	getUniformLocation(program.native, "color_matrix_translation").Uniform4fv(1, glColorMatrixTranslation[:])
 
 	return program.native
 }

@@ -1,18 +1,13 @@
 package shader
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <OpenGL/gl.h>
-// #include <stdlib.h>
-import "C"
 import (
-	"fmt"
-	"unsafe"
+	"github.com/go-gl/gl"
+	"log"
 )
 
 type shader struct {
-	native     C.GLuint
-	shaderType C.GLenum
+	native     gl.Shader
+	shaderType gl.GLenum
 	source     string
 }
 
@@ -27,7 +22,7 @@ const (
 
 var shaders = map[shaderId]*shader{
 	shaderVertex: &shader{
-		shaderType: C.GL_VERTEX_SHADER,
+		shaderType: gl.VERTEX_SHADER,
 		source: `
 uniform mat4 projection_matrix;
 uniform mat4 modelview_matrix;
@@ -42,7 +37,7 @@ void main(void) {
 `,
 	},
 	shaderFragment: &shader{
-		shaderType: C.GL_FRAGMENT_SHADER,
+		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
 varying vec2 vertex_out_tex_coord;
@@ -53,7 +48,7 @@ void main(void) {
 `,
 	},
 	shaderColorMatrix: &shader{
-		shaderType: C.GL_FRAGMENT_SHADER,
+		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
 uniform mat4 color_matrix;
@@ -67,7 +62,7 @@ void main(void) {
 `,
 	},
 	shaderSolidColor: &shader{
-		shaderType: C.GL_FRAGMENT_SHADER,
+		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform vec4 color;
 
@@ -79,40 +74,27 @@ void main(void) {
 }
 
 func (s *shader) compile() {
-	s.native = C.glCreateShader(s.shaderType)
+	s.native = gl.CreateShader(s.shaderType)
 	if s.native == 0 {
 		panic("glCreateShader failed")
 	}
 
-	csource := (*C.GLchar)(C.CString(s.source))
-	// TODO: defer?
-	// defer C.free(unsafe.Pointer(csource))
+	s.native.Source(s.source)
+	s.native.Compile()
 
-	C.glShaderSource(s.native, 1, &csource, nil)
-	C.glCompileShader(s.native)
-
-	compiled := C.GLint(C.GL_FALSE)
-	C.glGetShaderiv(s.native, C.GL_COMPILE_STATUS, &compiled)
-	if compiled == C.GL_FALSE {
+	if s.native.Get(gl.COMPILE_STATUS) == gl.FALSE {
 		s.showShaderLog()
 		panic("shader compile failed")
 	}
 }
 
 func (s *shader) showShaderLog() {
-	logSize := C.GLint(0)
-	C.glGetShaderiv(s.native, C.GL_INFO_LOG_LENGTH, &logSize)
-	if logSize == 0 {
+	if s.native.Get(gl.INFO_LOG_LENGTH) == 0 {
 		return
 	}
-	length := C.GLsizei(0)
-	buffer := make([]C.GLchar, logSize)
-	C.glGetShaderInfoLog(s.native, C.GLsizei(logSize), &length, &buffer[0])
-
-	message := string(C.GoBytes(unsafe.Pointer(&buffer[0]), C.int(length)))
-	fmt.Printf("shader error: %s\n", message)
+	log.Fatalf("shader error: %s\n", s.native.GetInfoLog())
 }
 
 func (s *shader) delete() {
-	C.glDeleteShader(s.native)
+	s.native.Delete()
 }

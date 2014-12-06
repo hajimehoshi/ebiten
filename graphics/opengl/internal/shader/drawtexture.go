@@ -1,23 +1,15 @@
 package shader
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <OpenGL/gl.h>
-// #include <stdlib.h>
-import "C"
 import (
+	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
 	"sync"
-	"unsafe"
 )
-
-type NativeTexture C.GLuint
 
 var once sync.Once
 
-func DrawTexture(native NativeTexture, projectionMatrix [16]float32,
-	quads []graphics.TextureQuad, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) {
+func DrawTexture(native gl.Texture, projectionMatrix [16]float32, quads []graphics.TextureQuad, geo matrix.Geometry, color matrix.Color) {
 	once.Do(func() {
 		initialize()
 	})
@@ -26,23 +18,23 @@ func DrawTexture(native NativeTexture, projectionMatrix [16]float32,
 		return
 	}
 	// TODO: Check performance
-	shaderProgram := use(projectionMatrix, geometryMatrix, colorMatrix)
+	shaderProgram := use(projectionMatrix, geo, color)
 
-	C.glBindTexture(C.GL_TEXTURE_2D, C.GLuint(native))
-	defer C.glBindTexture(C.GL_TEXTURE_2D, 0)
+	native.Bind(gl.TEXTURE_2D)
+	defer gl.Texture(0).Bind(gl.TEXTURE_2D)
 
 	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
 	texCoordAttrLocation := getAttributeLocation(shaderProgram, "tex_coord")
 
-	C.glEnableClientState(C.GL_VERTEX_ARRAY)
-	C.glEnableClientState(C.GL_TEXTURE_COORD_ARRAY)
-	C.glEnableVertexAttribArray(C.GLuint(vertexAttrLocation))
-	C.glEnableVertexAttribArray(C.GLuint(texCoordAttrLocation))
+	gl.EnableClientState(gl.VERTEX_ARRAY)
+	gl.EnableClientState(gl.TEXTURE_COORD_ARRAY)
+	vertexAttrLocation.EnableArray()
+	texCoordAttrLocation.EnableArray()
 	defer func() {
-		C.glDisableVertexAttribArray(C.GLuint(texCoordAttrLocation))
-		C.glDisableVertexAttribArray(C.GLuint(vertexAttrLocation))
-		C.glDisableClientState(C.GL_TEXTURE_COORD_ARRAY)
-		C.glDisableClientState(C.GL_VERTEX_ARRAY)
+		texCoordAttrLocation.DisableArray()
+		vertexAttrLocation.DisableArray()
+		gl.DisableClientState(gl.TEXTURE_COORD_ARRAY)
+		gl.DisableClientState(gl.VERTEX_ARRAY)
 	}()
 
 	vertices := []float32{}
@@ -76,12 +68,7 @@ func DrawTexture(native NativeTexture, projectionMatrix [16]float32,
 			base+1, base+2, base+3,
 		)
 	}
-	C.glVertexAttribPointer(C.GLuint(vertexAttrLocation), 2,
-		C.GL_FLOAT, C.GL_FALSE,
-		0, unsafe.Pointer(&vertices[0]))
-	C.glVertexAttribPointer(C.GLuint(texCoordAttrLocation), 2,
-		C.GL_FLOAT, C.GL_FALSE,
-		0, unsafe.Pointer(&texCoords[0]))
-	C.glDrawElements(C.GL_TRIANGLES, C.GLsizei(len(indicies)),
-		C.GL_UNSIGNED_INT, unsafe.Pointer(&indicies[0]))
+	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, vertices)
+	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords)
+	gl.DrawElements(gl.TRIANGLES, len(indicies), gl.UNSIGNED_INT, indicies)
 }

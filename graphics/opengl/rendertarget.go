@@ -1,57 +1,49 @@
 package opengl
 
-// #cgo LDFLAGS: -framework OpenGL
-//
-// #include <OpenGL/gl.h>
-import "C"
 import (
 	"fmt"
+	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
 )
 
 type RenderTarget struct {
-	framebuffer C.GLuint
+	framebuffer gl.Framebuffer
 	width       int
 	height      int
 	flipY       bool
 }
 
-func createFramebuffer(nativeTexture C.GLuint) C.GLuint {
-	framebuffer := C.GLuint(0)
-	C.glGenFramebuffers(1, &framebuffer)
+func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
+	framebuffer := gl.GenFramebuffer()
+	framebuffer.Bind()
 
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, framebuffer)
-
-	C.glFramebufferTexture2D(C.GL_FRAMEBUFFER, C.GL_COLOR_ATTACHMENT0,
-		C.GL_TEXTURE_2D, nativeTexture, 0)
-	if C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER) !=
-		C.GL_FRAMEBUFFER_COMPLETE {
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+		gl.TEXTURE_2D, nativeTexture, 0)
+	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
 		panic("creating framebuffer failed")
 	}
 
 	// Set this framebuffer opaque because alpha values on a target might be
 	// confusing.
-	C.glClearColor(0, 0, 0, 1)
-	C.glClear(C.GL_COLOR_BUFFER_BIT)
+	gl.ClearColor(0, 0, 0, 1)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	return framebuffer
 }
 
 func (r *RenderTarget) setAsViewport() {
-	C.glFlush()
-
-	C.glBindFramebuffer(C.GL_FRAMEBUFFER, C.GLuint(r.framebuffer))
-	err := C.glCheckFramebufferStatus(C.GL_FRAMEBUFFER)
-	if err != C.GL_FRAMEBUFFER_COMPLETE {
+	gl.Flush()
+	r.framebuffer.Bind()
+	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+	if err != gl.FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 
-	C.glBlendFuncSeparate(C.GL_SRC_ALPHA, C.GL_ONE_MINUS_SRC_ALPHA,
-		C.GL_ZERO, C.GL_ONE)
+	gl.BlendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE)
 
 	width := graphics.AdjustSizeForTexture(r.width)
 	height := graphics.AdjustSizeForTexture(r.height)
-	C.glViewport(0, 0, C.GLsizei(width), C.GLsizei(height))
+	gl.Viewport(0, 0, width, height)
 }
 
 func (r *RenderTarget) projectionMatrix() [4][4]float64 {
@@ -67,5 +59,5 @@ func (r *RenderTarget) projectionMatrix() [4][4]float64 {
 }
 
 func (r *RenderTarget) dispose() {
-	C.glDeleteFramebuffers(1, &r.framebuffer)
+	r.framebuffer.Delete()
 }
