@@ -10,21 +10,8 @@ type program struct {
 	shaderIds []shaderId
 }
 
-type programId int
-
-const (
-	programRegular programId = iota
-	programColorMatrix
-)
-
-var programs = map[programId]*program{
-	// TODO: programRegular is not used for now. Remove this.
-	programRegular: &program{
-		shaderIds: []shaderId{shaderVertex, shaderFragment},
-	},
-	programColorMatrix: &program{
-		shaderIds: []shaderId{shaderVertex, shaderColorMatrix},
-	},
+var programColorMatrix = program{
+	shaderIds: []shaderId{shaderVertex, shaderColorMatrix},
 }
 
 func (p *program) create() {
@@ -52,9 +39,8 @@ func initialize() {
 		}
 	}()
 
-	for _, program := range programs {
-		program.create()
-	}
+	programColorMatrix.create()
+	programColorMatrix.native.Use()
 }
 
 type qualifierVariableType int
@@ -66,8 +52,8 @@ const (
 
 var (
 	shaderLocationCache = map[qualifierVariableType]map[string]gl.AttribLocation{
-		qualifierVariableTypeAttribute: map[string]gl.AttribLocation{},
-		qualifierVariableTypeUniform:   map[string]gl.AttribLocation{},
+		qualifierVariableTypeAttribute: {},
+		qualifierVariableTypeUniform:   {},
 	}
 )
 
@@ -102,10 +88,8 @@ func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
 }
 
 func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) gl.Program {
-	programId :=  programColorMatrix
-	program := programs[programId]
 	// TODO: Check the performance.
-	program.native.Use()
+	program := programColorMatrix
 
 	getUniformLocation(program.native, "projection_matrix").UniformMatrix4fv(false, projectionMatrix)
 

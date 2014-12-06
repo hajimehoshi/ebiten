@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	glfw.SetErrorCallback(func (err glfw.ErrorCode, desc string) {
+	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
 		log.Fatalf("%v: %v\n", err, desc)
 	})
 }
@@ -30,7 +30,7 @@ func (u *UI) Start() {
 }
 
 func (u *UI) DoEvents() {
-        glfw.PollEvents()
+	glfw.PollEvents()
 	u.canvas.update()
 }
 

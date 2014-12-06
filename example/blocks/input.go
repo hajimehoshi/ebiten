@@ -23,7 +23,7 @@ func (i *Input) StateForKey(key ui.Key) int {
 }
 
 func (i *Input) Update(keys ui.Keys) {
-	for key, _ := range i.states {
+	for key := range i.states {
 		if !keys.Includes(key) {
 			i.states[key] = 0
 			continue

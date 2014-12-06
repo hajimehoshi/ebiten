@@ -60,7 +60,7 @@ func toBlocks(ints [][]int) [][]bool {
 }
 
 var Pieces = map[BlockType]*Piece{
-	BlockType1: &Piece{
+	BlockType1: {
 		blockType: BlockType1,
 		blocks: toBlocks([][]int{
 			{0, 0, 0, 0},
@@ -69,7 +69,7 @@ var Pieces = map[BlockType]*Piece{
 			{0, 0, 0, 0},
 		}),
 	},
-	BlockType2: &Piece{
+	BlockType2: {
 		blockType: BlockType2,
 		blocks: toBlocks([][]int{
 			{1, 0, 0},
@@ -77,7 +77,7 @@ var Pieces = map[BlockType]*Piece{
 			{0, 0, 0},
 		}),
 	},
-	BlockType3: &Piece{
+	BlockType3: {
 		blockType: BlockType3,
 		blocks: toBlocks([][]int{
 			{0, 1, 0},
@@ -85,7 +85,7 @@ var Pieces = map[BlockType]*Piece{
 			{0, 0, 0},
 		}),
 	},
-	BlockType4: &Piece{
+	BlockType4: {
 		blockType: BlockType4,
 		blocks: toBlocks([][]int{
 			{0, 0, 1},
@@ -93,7 +93,7 @@ var Pieces = map[BlockType]*Piece{
 			{0, 0, 0},
 		}),
 	},
-	BlockType5: &Piece{
+	BlockType5: {
 		blockType: BlockType5,
 		blocks: toBlocks([][]int{
 			{1, 1, 0},
@@ -101,7 +101,7 @@ var Pieces = map[BlockType]*Piece{
 			{0, 0, 0},
 		}),
 	},
-	BlockType6: &Piece{
+	BlockType6: {
 		blockType: BlockType6,
 		blocks: toBlocks([][]int{
 			{0, 1, 1},
@@ -109,7 +109,7 @@ var Pieces = map[BlockType]*Piece{
 			{0, 0, 0},
 		}),
 	},
-	BlockType7: &Piece{
+	BlockType7: {
 		blockType: BlockType7,
 		blocks: toBlocks([][]int{
 			{1, 1},
@@ -217,9 +217,9 @@ func (p *Piece) Draw(
 	angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
-	for i, _ := range p.blocks {
+	for i := range p.blocks {
 		blocks[i] = make([]BlockType, size)
-		for j, _ := range blocks[i] {
+		for j := range blocks[i] {
 			if p.isBlocked(i, j, angle) {
 				blocks[i][j] = p.blockType
 			}

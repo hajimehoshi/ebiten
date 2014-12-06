@@ -45,7 +45,7 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 func createTexture(width, height int, filter graphics.Filter) (*Texture, error) {
 	w := graphics.AdjustSizeForTexture(width)
 	h := graphics.AdjustSizeForTexture(height)
-	native := createNativeTexture(w, h,  nil, filter)
+	native := createNativeTexture(w, h, nil, filter)
 	return &Texture{native, width, height}, nil
 }
 

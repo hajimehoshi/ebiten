@@ -53,12 +53,12 @@ func NewGame(textures Textures) *Game {
 }
 
 func (game *Game) isInitialized() bool {
-	for name, _ := range texturePaths {
+	for name := range texturePaths {
 		if !game.textures.Has(name) {
 			return false
 		}
 	}
-	for name, _ := range renderTargetSizes {
+	for name := range renderTargetSizes {
 		if !game.textures.Has(name) {
 			return false
 		}

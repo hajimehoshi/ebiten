@@ -21,7 +21,7 @@ const (
 )
 
 var shaders = map[shaderId]*shader{
-	shaderVertex: &shader{
+	shaderVertex: {
 		shaderType: gl.VERTEX_SHADER,
 		source: `
 uniform mat4 projection_matrix;
@@ -36,7 +36,7 @@ void main(void) {
 }
 `,
 	},
-	shaderFragment: &shader{
+	shaderFragment: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
@@ -47,7 +47,7 @@ void main(void) {
 }
 `,
 	},
-	shaderColorMatrix: &shader{
+	shaderColorMatrix: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
@@ -61,7 +61,7 @@ void main(void) {
 }
 `,
 	},
-	shaderSolidColor: &shader{
+	shaderSolidColor: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform vec4 color;
