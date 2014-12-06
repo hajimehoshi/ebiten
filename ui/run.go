@@ -11,12 +11,10 @@ import (
 type Game interface {
 	Draw(context graphics.Context)
 	Update()
-	SetTextureFactory(textureFactory graphics.TextureFactory)
 }
 
 func Run(u UI, game Game, width, height, scale int, title string, fps int) {
 	canvas := u.Start(width, height, scale, title)
-	game.SetTextureFactory(canvas)
 
 	frameTime := time.Duration(int64(time.Second) / int64(fps))
 	tick := time.Tick(frameTime)

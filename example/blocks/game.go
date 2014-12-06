@@ -3,6 +3,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
 	_ "image/png"
+	"sync"
 )
 
 type Size struct {
@@ -32,18 +33,9 @@ func NewGame() *Game {
 	game := &Game{
 		sceneManager: NewSceneManager(NewTitleScene()),
 		input:        NewInput(),
+		textures:     NewTextures(),
 	}
 	return game
-}
-
-func (game *Game) SetTextureFactory(textureFactory graphics.TextureFactory) {
-	game.textures = NewTextures(textureFactory)
-	for name, path := range texturePaths {
-		game.textures.RequestTexture(name, path)
-	}
-	for name, size := range renderTargetSizes {
-		game.textures.RequestRenderTarget(name, size)
-	}
 }
 
 func (game *Game) isInitialized() bool {
@@ -60,7 +52,17 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
+var once sync.Once
+
 func (game *Game) Update() {
+	once.Do(func() {
+		for name, path := range texturePaths {
+			game.textures.RequestTexture(name, path)
+		}
+		for name, size := range renderTargetSizes {
+			game.textures.RequestRenderTarget(name, size)
+		}
+	})
 	if !game.isInitialized() {
 		return
 	}

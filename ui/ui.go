@@ -11,7 +11,6 @@ type UI interface {
 }
 
 type Canvas interface {
-	graphics.TextureFactory
 	Draw(func(graphics.Context))
 	IsClosed() bool
 }

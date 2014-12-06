@@ -18,7 +18,6 @@ type nameSize struct {
 }
 
 type Textures struct {
-	textureFactory    graphics.TextureFactory
 	texturePaths      chan namePath
 	renderTargetSizes chan nameSize
 	textures          map[string]graphics.TextureId
@@ -26,9 +25,8 @@ type Textures struct {
 	sync.RWMutex
 }
 
-func NewTextures(textureFactory graphics.TextureFactory) *Textures {
+func NewTextures() *Textures {
 	textures := &Textures{
-		textureFactory:    textureFactory,
 		texturePaths:      make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
 		textures:          map[string]graphics.TextureId{},
@@ -66,7 +64,7 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := t.textureFactory.CreateTexture(img, graphics.FilterNearest)
+			id, err := graphics.CreateTexture(img, graphics.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -78,7 +76,7 @@ func (t *Textures) loopMain() {
 		name := s.name
 		size := s.size
 		go func() {
-			id, err := t.textureFactory.CreateRenderTarget(size.Width, size.Height, graphics.FilterNearest)
+			id, err := graphics.CreateRenderTarget(size.Width, size.Height, graphics.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
