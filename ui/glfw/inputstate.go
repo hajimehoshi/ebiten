@@ -38,8 +38,8 @@ func newInputState() *InputState {
 	}
 }
 
-func (i *InputState) PressedKeys() ui.Keys {
-	return i.pressedKeys
+func (i *InputState) IsPressedKey(key ui.Key) bool {
+	return i.pressedKeys.Includes(key)
 }
 
 func (i *InputState) MouseX() int {

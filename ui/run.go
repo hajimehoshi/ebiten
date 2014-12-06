@@ -15,8 +15,8 @@ type Game interface {
 }
 
 func Run(u UI, game Game, width, height, scale int, title string, fps int) {
-	canvas, textureFactory := u.Start(width, height, scale, title)
-	game.SetTextureFactory(textureFactory)
+	canvas := u.Start(width, height, scale, title)
+	game.SetTextureFactory(canvas)
 
 	frameTime := time.Duration(int64(time.Second) / int64(fps))
 	tick := time.Tick(frameTime)

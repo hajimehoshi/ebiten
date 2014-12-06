@@ -65,7 +65,7 @@ func (game *Game) Update(state ui.InputState) {
 	if !game.isInitialized() {
 		return
 	}
-	game.input.Update(state.PressedKeys())
+	game.input.Update(state)
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        game.input,

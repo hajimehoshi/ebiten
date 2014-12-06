@@ -22,9 +22,9 @@ func (i *Input) StateForKey(key ui.Key) int {
 	return i.states[key]
 }
 
-func (i *Input) Update(keys ui.Keys) {
+func (i *Input) Update(inputState ui.InputState) {
 	for key := range i.states {
-		if !keys.Includes(key) {
+		if !inputState.IsPressedKey(key) {
 			i.states[key] = 0
 			continue
 		}
