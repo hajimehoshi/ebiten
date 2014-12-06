@@ -26,6 +26,15 @@ changed easily.
 :; go run main.go
 ```
 
+### How to benchmark the example
+
+```
+:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
+:; go build -o=example main.go
+:; ./example -cpuprofile=cpu.out
+:; go tool pprof ./example cpu.out
+```
+
 ## License
 
 Copyright 2014 Hajime Hoshi
