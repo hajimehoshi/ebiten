@@ -26,11 +26,11 @@ var idsInstance = &ids{
 	currentRenderTargetId: -1,
 }
 
-func CreateRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+func NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
 	return idsInstance.createRenderTarget(width, height, filter)
 }
 
-func CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+func NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
 	return idsInstance.createTexture(img, filter)
 }
 
@@ -138,7 +138,7 @@ func (i *ids) drawTexture(
 	i.setViewportIfNeeded(target)
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.projectionMatrix()
-	quads := graphics.TextureQuads(parts, texture.width, texture.height)
+	quads := shader.TextureQuads(parts, texture.width, texture.height)
 	shader.DrawTexture(texture.native, projectionMatrix, quads, geo, color)
 }
 

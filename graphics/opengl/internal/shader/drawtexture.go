@@ -2,7 +2,6 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
 	"sync"
 )
@@ -19,7 +18,7 @@ func glMatrix(matrix [4][4]float64) [16]float32 {
 
 var once sync.Once
 
-func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []graphics.TextureQuad, geo matrix.Geometry, color matrix.Color) {
+func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo matrix.Geometry, color matrix.Color) {
 	once.Do(func() {
 		initialize()
 	})

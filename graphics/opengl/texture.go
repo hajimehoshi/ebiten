@@ -3,8 +3,33 @@ package opengl
 import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
 	"image"
+	"image/draw"
 )
+
+func adjustImageForTexture(img image.Image) *image.NRGBA {
+	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
+	adjustedImageBounds := image.Rectangle{
+		image.ZP,
+		image.Point{
+			shader.AdjustSizeForTexture(width),
+			shader.AdjustSizeForTexture(height),
+		},
+	}
+	if nrgba, ok := img.(*image.NRGBA); ok &&
+		img.Bounds() == adjustedImageBounds {
+		return nrgba
+	}
+
+	adjustedImage := image.NewNRGBA(adjustedImageBounds)
+	dstBounds := image.Rectangle{
+		image.ZP,
+		img.Bounds().Size(),
+	}
+	draw.Draw(adjustedImage, dstBounds, img, image.ZP, draw.Src)
+	return adjustedImage
+}
 
 type Texture struct {
 	native gl.Texture
@@ -43,14 +68,14 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 }
 
 func createTexture(width, height int, filter graphics.Filter) (*Texture, error) {
-	w := graphics.AdjustSizeForTexture(width)
-	h := graphics.AdjustSizeForTexture(height)
+	w := shader.AdjustSizeForTexture(width)
+	h := shader.AdjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
 	return &Texture{native, width, height}, nil
 }
 
 func createTextureFromImage(img image.Image, filter graphics.Filter) (*Texture, error) {
-	adjustedImage := graphics.AdjustImageForTexture(img)
+	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return &Texture{native, size.X, size.Y}, nil

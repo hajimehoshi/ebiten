@@ -3,8 +3,22 @@ package opengl
 import (
 	"fmt"
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
 )
+
+func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
+	e11 := float64(2) / float64(right-left)
+	e22 := float64(2) / float64(top-bottom)
+	e14 := -1 * float64(right+left) / float64(right-left)
+	e24 := -1 * float64(top+bottom) / float64(top-bottom)
+
+	return [4][4]float64{
+		{e11, 0, 0, e14},
+		{0, e22, 0, e24},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1},
+	}
+}
 
 type RenderTarget struct {
 	framebuffer gl.Framebuffer
@@ -41,19 +55,18 @@ func (r *RenderTarget) setAsViewport() {
 
 	gl.BlendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE)
 
-	width := graphics.AdjustSizeForTexture(r.width)
-	height := graphics.AdjustSizeForTexture(r.height)
+	width := shader.AdjustSizeForTexture(r.width)
+	height := shader.AdjustSizeForTexture(r.height)
 	gl.Viewport(0, 0, width, height)
 }
 
 func (r *RenderTarget) projectionMatrix() [4][4]float64 {
-	width := graphics.AdjustSizeForTexture(r.width)
-	height := graphics.AdjustSizeForTexture(r.height)
-	matrix := graphics.OrthoProjectionMatrix(0, width, 0, height)
+	width := shader.AdjustSizeForTexture(r.width)
+	height := shader.AdjustSizeForTexture(r.height)
+	matrix := orthoProjectionMatrix(0, width, 0, height)
 	if r.flipY {
 		matrix[1][1] *= -1
-		matrix[1][3] += float64(r.height) /
-			float64(graphics.AdjustSizeForTexture(r.height)) * 2
+		matrix[1][3] += float64(r.height) / float64(shader.AdjustSizeForTexture(r.height)) * 2
 	}
 	return matrix
 }

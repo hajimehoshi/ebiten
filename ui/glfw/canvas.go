@@ -55,20 +55,20 @@ func (c *Canvas) IsClosed() bool {
 	return c.window.ShouldClose()
 }
 
-func (c *Canvas) CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+func (c *Canvas) NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
 	var id graphics.TextureID
 	var err error
 	c.use(func() {
-		id, err = opengl.CreateTexture(img, filter)
+		id, err = opengl.NewTextureID(img, filter)
 	})
 	return id, err
 }
 
-func (c *Canvas) CreateRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+func (c *Canvas) NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
 	var id graphics.RenderTargetID
 	var err error
 	c.use(func() {
-		id, err = opengl.CreateRenderTarget(width, height, filter)
+		id, err = opengl.NewRenderTargetID(width, height, filter)
 	})
 	return id, err
 }

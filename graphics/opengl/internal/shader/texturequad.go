@@ -1,8 +1,7 @@
-package graphics
+package shader
 
 import (
-	"image"
-	"image/draw"
+	"github.com/hajimehoshi/ebiten/graphics"
 )
 
 type TextureQuad struct {
@@ -31,29 +30,6 @@ func AdjustSizeForTexture(size int) int {
 	return int(NextPowerOf2(uint64(size)))
 }
 
-func AdjustImageForTexture(img image.Image) *image.NRGBA {
-	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
-	adjustedImageBounds := image.Rectangle{
-		image.ZP,
-		image.Point{
-			AdjustSizeForTexture(width),
-			AdjustSizeForTexture(height),
-		},
-	}
-	if nrgba, ok := img.(*image.NRGBA); ok &&
-		img.Bounds() == adjustedImageBounds {
-		return nrgba
-	}
-
-	adjustedImage := image.NewNRGBA(adjustedImageBounds)
-	dstBounds := image.Rectangle{
-		image.ZP,
-		img.Bounds().Size(),
-	}
-	draw.Draw(adjustedImage, dstBounds, img, image.ZP, draw.Src)
-	return adjustedImage
-}
-
 func u(x int, width int) float32 {
 	return float32(x) / float32(AdjustSizeForTexture(width))
 }
@@ -62,7 +38,7 @@ func v(y int, height int) float32 {
 	return float32(y) / float32(AdjustSizeForTexture(height))
 }
 
-func TextureQuads(parts []TexturePart, width, height int) []TextureQuad {
+func TextureQuads(parts []graphics.TexturePart, width, height int) []TextureQuad {
 	quads := []TextureQuad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)

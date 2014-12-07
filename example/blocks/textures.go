@@ -65,7 +65,7 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := graphics.CreateTexture(img, graphics.FilterNearest)
+			id, err := graphics.NewTextureID(img, graphics.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -77,7 +77,7 @@ func (t *Textures) loopMain() {
 		name := s.name
 		size := s.size
 		go func() {
-			id, err := graphics.CreateRenderTarget(size.Width, size.Height, graphics.FilterNearest)
+			id, err := graphics.NewRenderTargetID(size.Width, size.Height, graphics.FilterNearest)
 			if err != nil {
 				panic(err)
 			}

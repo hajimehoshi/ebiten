@@ -20,24 +20,24 @@ type RenderTargetID int
 var currentTextureFactory TextureFactory
 
 type TextureFactory interface {
-	CreateRenderTarget(width, height int, filter Filter) (RenderTargetID, error)
-	CreateTexture(img image.Image, filter Filter) (TextureID, error)
+	NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error)
+	NewTextureID(img image.Image, filter Filter) (TextureID, error)
 }
 
 func SetTextureFactory(textureFactory TextureFactory) {
 	currentTextureFactory = textureFactory
 }
 
-func CreateRenderTarget(width, height int, filter Filter) (RenderTargetID, error) {
+func NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error) {
 	if currentTextureFactory == nil {
-		panic("graphics.CreateRenderTarget: currentTextureFactory is not set.")
+		panic("graphics.NewRenderTarget: currentTextureFactory is not set.")
 	}
-	return currentTextureFactory.CreateRenderTarget(width, height, filter)
+	return currentTextureFactory.NewRenderTargetID(width, height, filter)
 }
 
-func CreateTexture(img image.Image, filter Filter) (TextureID, error) {
+func NewTextureID(img image.Image, filter Filter) (TextureID, error) {
 	if currentTextureFactory == nil {
-		panic("graphics.CreateTexture: currentTextureFactory is not set")
+		panic("graphics.NewTexture: currentTextureFactory is not set")
 	}
-	return currentTextureFactory.CreateTexture(img, filter)
+	return currentTextureFactory.NewTextureID(img, filter)
 }

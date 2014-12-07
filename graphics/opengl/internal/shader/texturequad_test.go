@@ -1,4 +1,4 @@
-package graphics_test
+package shader_test
 
 import (
 	. "."
