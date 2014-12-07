@@ -27,11 +27,11 @@ var idsInstance = &ids{
 }
 
 func NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
-	return idsInstance.newRenderTarget(width, height, filter)
+	return idsInstance.createRenderTarget(width, height, filter)
 }
 
 func NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
-	return idsInstance.newTexture(img, filter)
+	return idsInstance.createTexture(img, filter)
 }
 
 func (i *ids) textureAt(id graphics.TextureID) *texture {
@@ -52,8 +52,8 @@ func (i *ids) toTexture(id graphics.RenderTargetID) graphics.TextureID {
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) newTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
-	texture, err := newTextureFromImage(img, filter)
+func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
 	}
@@ -66,12 +66,12 @@ func (i *ids) newTexture(img image.Image, filter graphics.Filter) (graphics.Text
 	return textureId, nil
 }
 
-func (i *ids) newRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
-	texture, err := newTexture(width, height, filter)
+func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+	texture, err := createTexture(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
-	framebuffer := newFramebuffer(gl.Texture(texture.native))
+	framebuffer := createFramebuffer(gl.Texture(texture.native))
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
 	r := &renderTarget{
@@ -128,18 +128,12 @@ func (i *ids) fillRenderTarget(id graphics.RenderTargetID, r, g, b uint8) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
-func (i *ids) drawTexture(
-	target graphics.RenderTargetID,
-	id graphics.TextureID,
-	parts []graphics.TexturePart,
-	geo matrix.Geometry,
-	color matrix.Color) {
+func (i *ids) drawTexture(target graphics.RenderTargetID, id graphics.TextureID, parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
 	texture := i.textureAt(id)
 	i.setViewportIfNeeded(target)
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.projectionMatrix()
-	quads := shader.TextureQuads(parts, texture.width, texture.height)
-	shader.DrawTexture(texture.native, projectionMatrix, quads, geo, color)
+	shader.DrawTexture(texture.native, texture.width, texture.height, projectionMatrix, parts, geo, color)
 }
 
 func (i *ids) setViewportIfNeeded(id graphics.RenderTargetID) {

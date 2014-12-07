@@ -5,40 +5,16 @@ import (
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
 	"github.com/hajimehoshi/ebiten/ui"
-	"sync"
 )
 
 type ContextUpdater struct {
 	context *context
 }
 
-func NewContextUpdater(screenWidth, screenHeight, screenScale int) *ContextUpdater {
-	return &ContextUpdater{
-		context: newContext(screenWidth, screenHeight, screenScale),
-	}
-}
-
-func (u *ContextUpdater) Update(drawer ui.Drawer) error {
-	return u.context.update(drawer)
-}
-
-var onceInit sync.Once
-
-type context struct {
-	screenId     graphics.RenderTargetID
-	defaultId    graphics.RenderTargetID
-	currentId    graphics.RenderTargetID
-	screenWidth  int
-	screenHeight int
-	screenScale  int
-}
-
-func newContext(screenWidth, screenHeight, screenScale int) *context {
-	onceInit.Do(func() {
-		gl.Init()
-		gl.Enable(gl.TEXTURE_2D)
-		gl.Enable(gl.BLEND)
-	})
+func Initialize(screenWidth, screenHeight, screenScale int) (*ContextUpdater, error) {
+	gl.Init()
+	gl.Enable(gl.TEXTURE_2D)
+	gl.Enable(gl.BLEND)
 
 	c := &context{
 		screenWidth:  screenWidth,
@@ -47,22 +23,34 @@ func newContext(screenWidth, screenHeight, screenScale int) *context {
 	}
 
 	// The defualt framebuffer should be 0.
-	defaultRenderTarget := &renderTarget{
+	c.defaultId = idsInstance.addRenderTarget(&renderTarget{
 		width:  screenWidth * screenScale,
 		height: screenHeight * screenScale,
 		flipY:  true,
-	}
-	c.defaultId = idsInstance.addRenderTarget(defaultRenderTarget)
+	})
 
 	var err error
-	c.screenId, err = idsInstance.newRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
+	c.screenId, err = idsInstance.createRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
 	if err != nil {
-		panic("opengl.newContext: initializing the offscreen failed: " + err.Error())
+		return nil, err
 	}
 	c.ResetOffscreen()
 	c.Clear()
 
-	return c
+	return &ContextUpdater{c}, nil
+}
+
+func (u *ContextUpdater) Update(drawer ui.Drawer) error {
+	return u.context.update(drawer)
+}
+
+type context struct {
+	screenId     graphics.RenderTargetID
+	defaultId    graphics.RenderTargetID
+	currentId    graphics.RenderTargetID
+	screenWidth  int
+	screenHeight int
+	screenScale  int
 }
 
 func (c *context) dispose() {

@@ -17,8 +17,7 @@ func adjustImageForTexture(img image.Image) *image.NRGBA {
 			shader.AdjustSizeForTexture(height),
 		},
 	}
-	if nrgba, ok := img.(*image.NRGBA); ok &&
-		img.Bounds() == adjustedImageBounds {
+	if nrgba, ok := img.(*image.NRGBA); ok && img.Bounds() == adjustedImageBounds {
 		return nrgba
 	}
 
@@ -37,7 +36,7 @@ type texture struct {
 	height int
 }
 
-func newNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter graphics.Filter) gl.Texture {
+func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter graphics.Filter) gl.Texture {
 	nativeTexture := gl.GenTexture()
 	if nativeTexture < 0 {
 		panic("glGenTexture failed")
@@ -67,17 +66,17 @@ func newNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter gr
 	return nativeTexture
 }
 
-func newTexture(width, height int, filter graphics.Filter) (*texture, error) {
+func createTexture(width, height int, filter graphics.Filter) (*texture, error) {
 	w := shader.AdjustSizeForTexture(width)
 	h := shader.AdjustSizeForTexture(height)
-	native := newNativeTexture(w, h, nil, filter)
+	native := createNativeTexture(w, h, nil, filter)
 	return &texture{native, width, height}, nil
 }
 
-func newTextureFromImage(img image.Image, filter graphics.Filter) (*texture, error) {
+func createTextureFromImage(img image.Image, filter graphics.Filter) (*texture, error) {
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
-	native := newNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
+	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return &texture{native, size.X, size.Y}, nil
 }
 

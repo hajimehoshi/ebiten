@@ -4,7 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/graphics"
 )
 
-type TextureQuad struct {
+type textureQuad struct {
 	VertexX1       float32
 	VertexX2       float32
 	VertexY1       float32
@@ -38,8 +38,8 @@ func v(y int, height int) float32 {
 	return float32(y) / float32(AdjustSizeForTexture(height))
 }
 
-func TextureQuads(parts []graphics.TexturePart, width, height int) []TextureQuad {
-	quads := []TextureQuad{}
+func textureQuads(parts []graphics.TexturePart, width, height int) []textureQuad {
+	quads := []textureQuad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)
 		x2 := float32(part.LocationX + part.Source.Width)
@@ -49,7 +49,7 @@ func TextureQuads(parts []graphics.TexturePart, width, height int) []TextureQuad
 		u2 := u(part.Source.X+part.Source.Width, width)
 		v1 := v(part.Source.Y, height)
 		v2 := v(part.Source.Y+part.Source.Height, height)
-		quad := TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
+		quad := textureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}
 	return quads

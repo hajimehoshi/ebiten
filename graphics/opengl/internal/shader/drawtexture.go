@@ -2,6 +2,7 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
 	"sync"
 )
@@ -18,14 +19,15 @@ func glMatrix(matrix [4][4]float64) [16]float32 {
 
 var once sync.Once
 
-func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo matrix.Geometry, color matrix.Color) {
+func DrawTexture(native gl.Texture, width, height int, projectionMatrix [4][4]float64, parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
 	once.Do(func() {
 		initialize()
 	})
 
-	if len(quads) == 0 {
+	if len(parts) == 0 {
 		return
 	}
+	quads := textureQuads(parts, width, height)
 	// TODO: Check performance
 	shaderProgram := use(glMatrix(projectionMatrix), geo, color)
 

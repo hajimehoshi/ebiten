@@ -27,12 +27,11 @@ type renderTarget struct {
 	flipY       bool
 }
 
-func newFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
+func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
-		gl.TEXTURE_2D, nativeTexture, 0)
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nativeTexture, 0)
 	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
 		panic("creating framebuffer failed")
 	}

@@ -4,7 +4,6 @@ import (
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/input"
 	"github.com/hajimehoshi/ebiten/ui"
 	"image"
 	"runtime"
@@ -13,35 +12,9 @@ import (
 type canvas struct {
 	window         *glfw.Window
 	contextUpdater *opengl.ContextUpdater
-	keyboard       *keyboard
+	keyboard       keyboard
 	funcs          chan func()
 	funcsDone      chan struct{}
-}
-
-func newCanvas(width, height, scale int, title string) *canvas {
-	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
-	if err != nil {
-		panic(err)
-	}
-	canvas := &canvas{
-		window:    window,
-		keyboard:  newKeyboard(),
-		funcs:     make(chan func()),
-		funcsDone: make(chan struct{}),
-	}
-
-	input.SetKeyboard(canvas.keyboard)
-	graphics.SetTextureFactory(canvas)
-
-	// For retina displays, recalculate the scale with the framebuffer size.
-	windowWidth, _ := window.GetFramebufferSize()
-	realScale := windowWidth / width
-
-	canvas.run()
-	canvas.use(func() {
-		canvas.contextUpdater = opengl.NewContextUpdater(width, height, realScale)
-	})
-	return canvas
 }
 
 func (c *canvas) Draw(d ui.Drawer) (err error) {
@@ -74,7 +47,7 @@ func (c *canvas) NewRenderTargetID(width, height int, filter graphics.Filter) (g
 	return id, err
 }
 
-func (c *canvas) run() {
+func (c *canvas) run(width, height, scale int) {
 	go func() {
 		runtime.LockOSThread()
 		c.window.MakeContextCurrent()

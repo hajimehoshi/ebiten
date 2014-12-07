@@ -43,62 +43,40 @@ func initialize() {
 	programColorMatrix.native.Use()
 }
 
-type qualifierVariableType int
+// NOTE: This caches are now used only for programColorMatrix
+var attribLocationCache = map[string]gl.AttribLocation{}
+var uniformLocationCache = map[string]gl.UniformLocation{}
 
-const (
-	qualifierVariableTypeAttribute qualifierVariableType = iota
-	qualifierVariableTypeUniform
-)
-
-var (
-	shaderLocationCache = map[qualifierVariableType]map[string]gl.AttribLocation{
-		qualifierVariableTypeAttribute: {},
-		qualifierVariableTypeUniform:   {},
-	}
-)
-
-func getLocation(program gl.Program, name string, qvType qualifierVariableType) gl.AttribLocation {
-	if location, ok := shaderLocationCache[qvType][name]; ok {
+func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
+	if location, ok := attribLocationCache[name]; ok {
 		return location
 	}
-
-	location := gl.AttribLocation(-1)
-	switch qvType {
-	case qualifierVariableTypeAttribute:
-		location = program.GetAttribLocation(name)
-	case qualifierVariableTypeUniform:
-		location = gl.AttribLocation(program.GetUniformLocation(name))
-	default:
-		panic("no reach")
-	}
-	if location == -1 {
-		panic("GetAttribLocation failed")
-	}
-	shaderLocationCache[qvType][name] = location
-
+	location := program.GetAttribLocation(name)
+	attribLocationCache[name] = location
 	return location
 }
 
-func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
-	return getLocation(program, name, qualifierVariableTypeAttribute)
-}
-
 func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
-	return gl.UniformLocation(getLocation(program, name, qualifierVariableTypeUniform))
+	if location, ok := uniformLocationCache[name]; ok {
+		return location
+	}
+	location := program.GetUniformLocation(name)
+	uniformLocationCache[name] = location
+	return location
 }
 
-func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatrix matrix.Color) gl.Program {
+func use(projectionMatrix [16]float32, geo matrix.Geometry, color matrix.Color) gl.Program {
 	// TODO: Check the performance.
 	program := programColorMatrix
 
 	getUniformLocation(program.native, "projection_matrix").UniformMatrix4fv(false, projectionMatrix)
 
-	a := float32(geometryMatrix.Elements[0][0])
-	b := float32(geometryMatrix.Elements[0][1])
-	c := float32(geometryMatrix.Elements[1][0])
-	d := float32(geometryMatrix.Elements[1][1])
-	tx := float32(geometryMatrix.Elements[0][2])
-	ty := float32(geometryMatrix.Elements[1][2])
+	a := float32(geo.Elements[0][0])
+	b := float32(geo.Elements[0][1])
+	c := float32(geo.Elements[1][0])
+	d := float32(geo.Elements[1][1])
+	tx := float32(geo.Elements[0][2])
+	ty := float32(geo.Elements[1][2])
 	glModelviewMatrix := [...]float32{
 		a, c, 0, 0,
 		b, d, 0, 0,
@@ -112,7 +90,7 @@ func use(projectionMatrix [16]float32, geometryMatrix matrix.Geometry, colorMatr
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
-			e[i][j] = float32(colorMatrix.Elements[i][j])
+			e[i][j] = float32(color.Elements[i][j])
 		}
 	}
 
