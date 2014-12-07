@@ -7,9 +7,19 @@ import (
 	"sync"
 )
 
+func glMatrix(matrix [4][4]float64) [16]float32 {
+	result := [16]float32{}
+	for j := 0; j < 4; j++ {
+		for i := 0; i < 4; i++ {
+			result[i+j*4] = float32(matrix[i][j])
+		}
+	}
+	return result
+}
+
 var once sync.Once
 
-func DrawTexture(native gl.Texture, projectionMatrix [16]float32, quads []graphics.TextureQuad, geo matrix.Geometry, color matrix.Color) {
+func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []graphics.TextureQuad, geo matrix.Geometry, color matrix.Color) {
 	once.Do(func() {
 		initialize()
 	})
@@ -18,7 +28,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [16]float32, quads []graphi
 		return
 	}
 	// TODO: Check performance
-	shaderProgram := use(projectionMatrix, geo, color)
+	shaderProgram := use(glMatrix(projectionMatrix), geo, color)
 
 	native.Bind(gl.TEXTURE_2D)
 	defer gl.Texture(0).Bind(gl.TEXTURE_2D)

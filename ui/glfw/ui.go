@@ -19,7 +19,6 @@ type UI struct {
 
 func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
 	if !glfw.Init() {
-		// TODO: Use glfw error
 		return nil, errors.New("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)

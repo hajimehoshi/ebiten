@@ -3,6 +3,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
 	"image"
+	_ "image/png"
 	"os"
 	"sync"
 )

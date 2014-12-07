@@ -10,16 +10,6 @@ import (
 	"sync"
 )
 
-func glMatrix(matrix [4][4]float64) [16]float32 {
-	result := [16]float32{}
-	for j := 0; j < 4; j++ {
-		for i := 0; i < 4; i++ {
-			result[i+j*4] = float32(matrix[i][j])
-		}
-	}
-	return result
-}
-
 type ids struct {
 	textures              map[graphics.TextureID]*Texture
 	renderTargets         map[graphics.RenderTargetID]*RenderTarget
@@ -36,15 +26,11 @@ var idsInstance = &ids{
 	currentRenderTargetId: -1,
 }
 
-func CreateRenderTarget(
-	width, height int,
-	filter graphics.Filter) (graphics.RenderTargetID, error) {
+func CreateRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
 	return idsInstance.createRenderTarget(width, height, filter)
 }
 
-func CreateTexture(
-	img image.Image,
-	filter graphics.Filter) (graphics.TextureID, error) {
+func CreateTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
 	return idsInstance.createTexture(img, filter)
 }
 
@@ -153,7 +139,7 @@ func (i *ids) drawTexture(
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.projectionMatrix()
 	quads := graphics.TextureQuads(parts, texture.width, texture.height)
-	shader.DrawTexture(texture.native, glMatrix(projectionMatrix), quads, geo, color)
+	shader.DrawTexture(texture.native, projectionMatrix, quads, geo, color)
 }
 
 func (i *ids) setViewportIfNeeded(id graphics.RenderTargetID) {
