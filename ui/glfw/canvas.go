@@ -10,22 +10,22 @@ import (
 	"runtime"
 )
 
-type Canvas struct {
+type canvas struct {
 	window    *glfw.Window
 	context   *opengl.Context
-	keyboard  *Keyboard
+	keyboard  *keyboard
 	funcs     chan func()
 	funcsDone chan struct{}
 }
 
-func NewCanvas(width, height, scale int, title string) *Canvas {
+func newCanvas(width, height, scale int, title string) *canvas {
 	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
 	if err != nil {
 		panic(err)
 	}
-	canvas := &Canvas{
+	canvas := &canvas{
 		window:    window,
-		keyboard:  NewKeyboard(),
+		keyboard:  newKeyboard(),
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}
@@ -44,7 +44,7 @@ func NewCanvas(width, height, scale int, title string) *Canvas {
 	return canvas
 }
 
-func (c *Canvas) Draw(d ui.Drawer) (err error) {
+func (c *canvas) Draw(d ui.Drawer) (err error) {
 	c.use(func() {
 		err = c.context.Update(d)
 		c.window.SwapBuffers()
@@ -52,11 +52,11 @@ func (c *Canvas) Draw(d ui.Drawer) (err error) {
 	return
 }
 
-func (c *Canvas) IsClosed() bool {
+func (c *canvas) IsClosed() bool {
 	return c.window.ShouldClose()
 }
 
-func (c *Canvas) NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+func (c *canvas) NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
 	var id graphics.TextureID
 	var err error
 	c.use(func() {
@@ -65,7 +65,7 @@ func (c *Canvas) NewTextureID(img image.Image, filter graphics.Filter) (graphics
 	return id, err
 }
 
-func (c *Canvas) NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+func (c *canvas) NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
 	var id graphics.RenderTargetID
 	var err error
 	c.use(func() {
@@ -74,7 +74,7 @@ func (c *Canvas) NewRenderTargetID(width, height int, filter graphics.Filter) (g
 	return id, err
 }
 
-func (c *Canvas) run() {
+func (c *canvas) run() {
 	go func() {
 		runtime.LockOSThread()
 		c.window.MakeContextCurrent()
@@ -87,11 +87,11 @@ func (c *Canvas) run() {
 	}()
 }
 
-func (c *Canvas) use(f func()) {
+func (c *canvas) use(f func()) {
 	c.funcs <- f
 	<-c.funcsDone
 }
 
-func (c *Canvas) update() {
+func (c *canvas) update() {
 	c.keyboard.update(c.window)
 }

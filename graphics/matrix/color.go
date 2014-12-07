@@ -5,15 +5,15 @@ import (
 	"math"
 )
 
-const colorDim = 5
+const ColorDim = 5
 
 type Color struct {
-	Elements [colorDim - 1][colorDim]float64
+	Elements [ColorDim - 1][ColorDim]float64
 }
 
 func ColorI() Color {
 	return Color{
-		[colorDim - 1][colorDim]float64{
+		[ColorDim - 1][ColorDim]float64{
 			{1, 0, 0, 0, 0},
 			{0, 1, 0, 0, 0},
 			{0, 0, 1, 0, 0},
@@ -23,7 +23,7 @@ func ColorI() Color {
 }
 
 func (matrix *Color) Dim() int {
-	return colorDim
+	return ColorDim
 }
 
 func (matrix *Color) Concat(other Color) {
@@ -49,7 +49,7 @@ func Monochrome() Color {
 	const g float64 = 23434.0 / 32768.0
 	const b float64 = 2366.0 / 32768.0
 	return Color{
-		[colorDim - 1][colorDim]float64{
+		[ColorDim - 1][ColorDim]float64{
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},

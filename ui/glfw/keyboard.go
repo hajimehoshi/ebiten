@@ -5,17 +5,17 @@ import (
 	"github.com/hajimehoshi/ebiten/input"
 )
 
-type Keyboard struct {
+type keyboard struct {
 	pressedKeys map[input.Key]struct{}
 }
 
-func NewKeyboard() *Keyboard {
-	return &Keyboard{
+func newKeyboard() *keyboard {
+	return &keyboard{
 		pressedKeys: map[input.Key]struct{}{},
 	}
 }
 
-func (k *Keyboard) IsKeyPressed(key input.Key) bool {
+func (k *keyboard) IsKeyPressed(key input.Key) bool {
 	_, ok := k.pressedKeys[key]
 	return ok
 }
@@ -28,7 +28,7 @@ var glfwKeyCodeToKey = map[glfw.Key]input.Key{
 	glfw.KeyDown:  input.KeyDown,
 }
 
-func (k *Keyboard) update(window *glfw.Window) {
+func (k *keyboard) update(window *glfw.Window) {
 	for g, u := range glfwKeyCodeToKey {
 		if window.GetKey(g) == glfw.Press {
 			k.pressedKeys[u] = struct{}{}

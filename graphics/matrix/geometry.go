@@ -4,15 +4,15 @@ import (
 	"math"
 )
 
-const geometryDim = 3
+const GeometryDim = 3
 
 type Geometry struct {
-	Elements [geometryDim - 1][geometryDim]float64
+	Elements [GeometryDim - 1][GeometryDim]float64
 }
 
 func GeometryI() Geometry {
 	return Geometry{
-		[geometryDim - 1][geometryDim]float64{
+		[GeometryDim - 1][GeometryDim]float64{
 			{1, 0, 0},
 			{0, 1, 0},
 		},
@@ -20,7 +20,7 @@ func GeometryI() Geometry {
 }
 
 func (matrix *Geometry) Dim() int {
-	return geometryDim
+	return GeometryDim
 }
 
 func (matrix *Geometry) Concat(other Geometry) {

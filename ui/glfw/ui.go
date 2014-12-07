@@ -2,19 +2,19 @@ package glfw
 
 import (
 	"errors"
+	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/ui"
-	"log"
 )
 
 func init() {
 	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
-		log.Fatalf("%v: %v\n", err, desc)
+		panic(fmt.Sprintf("%v: %v\n", err, desc))
 	})
 }
 
 type UI struct {
-	canvas *Canvas
+	canvas *canvas
 }
 
 func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
@@ -22,7 +22,7 @@ func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
 		return nil, errors.New("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)
-	u.canvas = NewCanvas(width, height, scale, title)
+	u.canvas = newCanvas(width, height, scale, title)
 	return u.canvas, nil
 }
 
