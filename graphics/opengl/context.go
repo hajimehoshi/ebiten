@@ -55,9 +55,9 @@ func newContext(screenWidth, screenHeight, screenScale int) *context {
 	c.defaultId = idsInstance.addRenderTarget(defaultRenderTarget)
 
 	var err error
-	c.screenId, err = idsInstance.createRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
+	c.screenId, err = idsInstance.newRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
 	if err != nil {
-		panic("opengl.NewContext: initializing the offscreen failed: " + err.Error())
+		panic("opengl.newContext: initializing the offscreen failed: " + err.Error())
 	}
 	c.ResetOffscreen()
 	c.Clear()

@@ -27,11 +27,11 @@ var idsInstance = &ids{
 }
 
 func NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
-	return idsInstance.createRenderTarget(width, height, filter)
+	return idsInstance.newRenderTarget(width, height, filter)
 }
 
 func NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
-	return idsInstance.createTexture(img, filter)
+	return idsInstance.newTexture(img, filter)
 }
 
 func (i *ids) textureAt(id graphics.TextureID) *texture {
@@ -52,8 +52,8 @@ func (i *ids) toTexture(id graphics.RenderTargetID) graphics.TextureID {
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
-	texture, err := createTextureFromImage(img, filter)
+func (i *ids) newTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+	texture, err := newTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
 	}
@@ -66,12 +66,12 @@ func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.T
 	return textureId, nil
 }
 
-func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
-	texture, err := createTexture(width, height, filter)
+func (i *ids) newRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+	texture, err := newTexture(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
-	framebuffer := createFramebuffer(gl.Texture(texture.native))
+	framebuffer := newFramebuffer(gl.Texture(texture.native))
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
 	r := &renderTarget{

@@ -37,7 +37,7 @@ type texture struct {
 	height int
 }
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter graphics.Filter) gl.Texture {
+func newNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter graphics.Filter) gl.Texture {
 	nativeTexture := gl.GenTexture()
 	if nativeTexture < 0 {
 		panic("glGenTexture failed")
@@ -67,17 +67,17 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	return nativeTexture
 }
 
-func createTexture(width, height int, filter graphics.Filter) (*texture, error) {
+func newTexture(width, height int, filter graphics.Filter) (*texture, error) {
 	w := shader.AdjustSizeForTexture(width)
 	h := shader.AdjustSizeForTexture(height)
-	native := createNativeTexture(w, h, nil, filter)
+	native := newNativeTexture(w, h, nil, filter)
 	return &texture{native, width, height}, nil
 }
 
-func createTextureFromImage(img image.Image, filter graphics.Filter) (*texture, error) {
+func newTextureFromImage(img image.Image, filter graphics.Filter) (*texture, error) {
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
-	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
+	native := newNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	return &texture{native, size.X, size.Y}, nil
 }
 

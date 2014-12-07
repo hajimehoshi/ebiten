@@ -27,7 +27,7 @@ type renderTarget struct {
 	flipY       bool
 }
 
-func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
+func newFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
