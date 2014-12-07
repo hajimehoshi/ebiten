@@ -3,7 +3,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/ui"
+	"github.com/hajimehoshi/ebiten/input"
 	"image/color"
 	"math/rand"
 	"time"
@@ -64,26 +64,26 @@ func (s *GameScene) Update(state *GameState) {
 	y := s.currentPieceY
 	angle := s.currentPieceAngle
 	moved := false
-	if state.Input.StateForKey(ui.KeySpace) == 1 {
+	if state.Input.StateForKey(input.KeySpace) == 1 {
 		s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
 		moved = angle != s.currentPieceAngle
 	}
-	if l := state.Input.StateForKey(ui.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
+	if l := state.Input.StateForKey(input.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
 		s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
 		moved = x != s.currentPieceX
 	}
-	if r := state.Input.StateForKey(ui.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
+	if r := state.Input.StateForKey(input.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
 		s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
 		moved = y != s.currentPieceX
 	}
-	if d := state.Input.StateForKey(ui.KeyDown); (d-1)%2 == 0 {
+	if d := state.Input.StateForKey(input.KeyDown); (d-1)%2 == 0 {
 		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 		moved = y != s.currentPieceY
 	}
 	if moved {
 		s.landingCount = 0
 	} else if !s.field.PieceDroppable(piece, x, y, angle) {
-		if 0 < state.Input.StateForKey(ui.KeyDown) {
+		if 0 < state.Input.StateForKey(input.KeyDown) {
 			s.landingCount += 10
 		} else {
 			s.landingCount++

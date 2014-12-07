@@ -3,7 +3,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/ui"
+	"github.com/hajimehoshi/ebiten/input"
 	"image/color"
 )
 
@@ -21,7 +21,7 @@ func NewTitleScene() *TitleScene {
 
 func (s *TitleScene) Update(state *GameState) {
 	s.count++
-	if state.Input.StateForKey(ui.KeySpace) == 1 {
+	if state.Input.StateForKey(input.KeySpace) == 1 {
 		state.SceneManager.GoTo(NewGameScene())
 	}
 }

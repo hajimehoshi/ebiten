@@ -4,6 +4,7 @@ import (
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/input"
 	"github.com/hajimehoshi/ebiten/ui"
 	"image"
 	"runtime"
@@ -29,7 +30,7 @@ func NewCanvas(width, height, scale int, title string) *Canvas {
 		funcsDone: make(chan struct{}),
 	}
 
-	ui.SetKeyboard(canvas.keyboard)
+	input.SetKeyboard(canvas.keyboard)
 	graphics.SetTextureFactory(canvas)
 
 	// For retina displays, recalculate the scale with the framebuffer size.

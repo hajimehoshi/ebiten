@@ -1,4 +1,4 @@
-package ui
+package input
 
 type Key int
 

@@ -2,30 +2,30 @@ package glfw
 
 import (
 	glfw "github.com/go-gl/glfw3"
-	"github.com/hajimehoshi/ebiten/ui"
+	"github.com/hajimehoshi/ebiten/input"
 )
 
 type Keyboard struct {
-	pressedKeys map[ui.Key]struct{}
+	pressedKeys map[input.Key]struct{}
 }
 
 func NewKeyboard() *Keyboard {
 	return &Keyboard{
-		pressedKeys: map[ui.Key]struct{}{},
+		pressedKeys: map[input.Key]struct{}{},
 	}
 }
 
-func (k *Keyboard) IsKeyPressed(key ui.Key) bool {
+func (k *Keyboard) IsKeyPressed(key input.Key) bool {
 	_, ok := k.pressedKeys[key]
 	return ok
 }
 
-var glfwKeyCodeToKey = map[glfw.Key]ui.Key{
-	glfw.KeySpace: ui.KeySpace,
-	glfw.KeyLeft:  ui.KeyLeft,
-	glfw.KeyRight: ui.KeyRight,
-	glfw.KeyUp:    ui.KeyUp,
-	glfw.KeyDown:  ui.KeyDown,
+var glfwKeyCodeToKey = map[glfw.Key]input.Key{
+	glfw.KeySpace: input.KeySpace,
+	glfw.KeyLeft:  input.KeyLeft,
+	glfw.KeyRight: input.KeyRight,
+	glfw.KeyUp:    input.KeyUp,
+	glfw.KeyDown:  input.KeyDown,
 }
 
 func (k *Keyboard) update(window *glfw.Window) {

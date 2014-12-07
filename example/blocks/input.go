@@ -1,16 +1,16 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/ui"
+	"github.com/hajimehoshi/ebiten/input"
 )
 
 type Input struct {
-	states map[ui.Key]int
+	states map[input.Key]int
 }
 
 func NewInput() *Input {
-	states := map[ui.Key]int{}
-	for key := ui.Key(0); key < ui.KeyMax; key++ {
+	states := map[input.Key]int{}
+	for key := input.Key(0); key < input.KeyMax; key++ {
 		states[key] = 0
 	}
 	return &Input{
@@ -18,13 +18,13 @@ func NewInput() *Input {
 	}
 }
 
-func (i *Input) StateForKey(key ui.Key) int {
+func (i *Input) StateForKey(key input.Key) int {
 	return i.states[key]
 }
 
 func (i *Input) Update() {
 	for key := range i.states {
-		if !ui.IsKeyPressed(key) {
+		if !input.IsKeyPressed(key) {
 			i.states[key] = 0
 			continue
 		}
