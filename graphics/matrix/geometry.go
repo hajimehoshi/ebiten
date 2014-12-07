@@ -19,7 +19,7 @@ func GeometryI() Geometry {
 	}
 }
 
-func (matrix *Geometry) Dim() int {
+func (matrix *Geometry) dim() int {
 	return GeometryDim
 }
 

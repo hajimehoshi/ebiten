@@ -22,7 +22,7 @@ func ColorI() Color {
 	}
 }
 
-func (matrix *Color) Dim() int {
+func (matrix *Color) dim() int {
 	return ColorDim
 }
 
