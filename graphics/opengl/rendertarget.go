@@ -20,7 +20,7 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 	}
 }
 
-type RenderTarget struct {
+type renderTarget struct {
 	framebuffer gl.Framebuffer
 	width       int
 	height      int
@@ -45,7 +45,7 @@ func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 	return framebuffer
 }
 
-func (r *RenderTarget) setAsViewport() {
+func (r *renderTarget) setAsViewport() {
 	gl.Flush()
 	r.framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
@@ -60,7 +60,7 @@ func (r *RenderTarget) setAsViewport() {
 	gl.Viewport(0, 0, width, height)
 }
 
-func (r *RenderTarget) projectionMatrix() [4][4]float64 {
+func (r *renderTarget) projectionMatrix() [4][4]float64 {
 	width := shader.AdjustSizeForTexture(r.width)
 	height := shader.AdjustSizeForTexture(r.height)
 	matrix := orthoProjectionMatrix(0, width, 0, height)
@@ -71,6 +71,6 @@ func (r *RenderTarget) projectionMatrix() [4][4]float64 {
 	return matrix
 }
 
-func (r *RenderTarget) dispose() {
+func (r *renderTarget) dispose() {
 	r.framebuffer.Delete()
 }

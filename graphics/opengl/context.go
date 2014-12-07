@@ -8,13 +8,23 @@ import (
 	"sync"
 )
 
-func flush() {
-	gl.Flush()
+type ContextUpdater struct {
+	context *context
+}
+
+func NewContextUpdater(screenWidth, screenHeight, screenScale int) *ContextUpdater {
+	return &ContextUpdater{
+		context: newContext(screenWidth, screenHeight, screenScale),
+	}
+}
+
+func (u *ContextUpdater) Update(drawer ui.Drawer) error {
+	return u.context.update(drawer)
 }
 
 var onceInit sync.Once
 
-type Context struct {
+type context struct {
 	screenId     graphics.RenderTargetID
 	defaultId    graphics.RenderTargetID
 	currentId    graphics.RenderTargetID
@@ -23,44 +33,68 @@ type Context struct {
 	screenScale  int
 }
 
-func NewContext(screenWidth, screenHeight, screenScale int) *Context {
+func newContext(screenWidth, screenHeight, screenScale int) *context {
 	onceInit.Do(func() {
 		gl.Init()
 		gl.Enable(gl.TEXTURE_2D)
 		gl.Enable(gl.BLEND)
 	})
 
-	context := &Context{
+	c := &context{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
 
-	defaultRenderTarget := &RenderTarget{
+	// The defualt framebuffer should be 0.
+	defaultRenderTarget := &renderTarget{
 		width:  screenWidth * screenScale,
 		height: screenHeight * screenScale,
 		flipY:  true,
 	}
-	context.defaultId = idsInstance.addRenderTarget(defaultRenderTarget)
+	c.defaultId = idsInstance.addRenderTarget(defaultRenderTarget)
 
 	var err error
-	context.screenId, err = idsInstance.createRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
+	c.screenId, err = idsInstance.createRenderTarget(screenWidth, screenHeight, graphics.FilterNearest)
 	if err != nil {
 		panic("opengl.NewContext: initializing the offscreen failed: " + err.Error())
 	}
-	context.ResetOffscreen()
-	context.Clear()
+	c.ResetOffscreen()
+	c.Clear()
 
-	return context
+	return c
 }
 
-func (c *Context) Dispose() {
-	// TODO: remove the default framebuffer?
+func (c *context) dispose() {
+	// NOTE: Now this method is not used anywhere.
 	idsInstance.deleteRenderTarget(c.screenId)
 }
 
-// TODO: This interface is confusing: Can we change this?
-func (c *Context) Update(drawer ui.Drawer) error {
+func (c *context) Clear() {
+	c.Fill(0, 0, 0)
+}
+
+func (c *context) Fill(r, g, b uint8) {
+	idsInstance.fillRenderTarget(c.currentId, r, g, b)
+}
+
+func (c *context) Texture(id graphics.TextureID) graphics.Drawer {
+	return &textureWithContext{id, c}
+}
+
+func (c *context) RenderTarget(id graphics.RenderTargetID) graphics.Drawer {
+	return &textureWithContext{idsInstance.toTexture(id), c}
+}
+
+func (c *context) ResetOffscreen() {
+	c.currentId = c.screenId
+}
+
+func (c *context) SetOffscreen(renderTargetId graphics.RenderTargetID) {
+	c.currentId = renderTargetId
+}
+
+func (c *context) update(drawer ui.Drawer) error {
 	c.ResetOffscreen()
 	c.Clear()
 
@@ -76,37 +110,13 @@ func (c *Context) Update(drawer ui.Drawer) error {
 	geo.Scale(scale, scale)
 	graphics.DrawWhole(c.RenderTarget(c.screenId), c.screenWidth, c.screenHeight, geo, matrix.ColorI())
 
-	flush()
+	gl.Flush()
 	return nil
-}
-
-func (c *Context) Clear() {
-	c.Fill(0, 0, 0)
-}
-
-func (c *Context) Fill(r, g, b uint8) {
-	idsInstance.fillRenderTarget(c.currentId, r, g, b)
-}
-
-func (c *Context) Texture(id graphics.TextureID) graphics.Drawer {
-	return &textureWithContext{id, c}
-}
-
-func (c *Context) RenderTarget(id graphics.RenderTargetID) graphics.Drawer {
-	return &textureWithContext{idsInstance.toTexture(id), c}
-}
-
-func (c *Context) ResetOffscreen() {
-	c.currentId = c.screenId
-}
-
-func (c *Context) SetOffscreen(renderTargetId graphics.RenderTargetID) {
-	c.currentId = renderTargetId
 }
 
 type textureWithContext struct {
 	id      graphics.TextureID
-	context *Context
+	context *context
 }
 
 func (t *textureWithContext) Draw(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {

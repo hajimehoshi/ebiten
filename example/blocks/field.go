@@ -67,6 +67,19 @@ func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) {
 	f.Flush()
 }
 
+func (f *Field) setBlock(x, y int, blockType BlockType) {
+	f.blocks[x][y] = blockType
+}
+
+func (f *Field) Flush() {
+	flushedLineNum := 0
+	for j := fieldBlockNumY - 1; 0 <= j; j-- {
+		if f.flushLine(j + flushedLineNum) {
+			flushedLineNum++
+		}
+	}
+}
+
 func (f *Field) flushLine(j int) bool {
 	for i := 0; i < fieldBlockNumX; i++ {
 		if f.blocks[i][j] == BlockTypeNone {
@@ -82,15 +95,6 @@ func (f *Field) flushLine(j int) bool {
 		f.blocks[i][0] = BlockTypeNone
 	}
 	return true
-}
-
-func (f *Field) Flush() {
-	flushedLineNum := 0
-	for j := fieldBlockNumY - 1; 0 <= j; j-- {
-		if f.flushLine(j + flushedLineNum) {
-			flushedLineNum++
-		}
-	}
 }
 
 func (f *Field) Draw(context graphics.Context, textures *Textures, geo matrix.Geometry) {

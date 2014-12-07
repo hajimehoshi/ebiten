@@ -198,8 +198,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	for i := 0; i < size; i++ {
 		for j := 0; j < size; j++ {
 			if p.isBlocked(i, j, angle) {
-				// TODO: Is it OK to access field.block directly?
-				field.blocks[x+i][y+j] = p.blockType
+				field.setBlock(x+i, y+j, p.blockType)
 			}
 		}
 	}

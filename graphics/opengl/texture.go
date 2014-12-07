@@ -31,7 +31,7 @@ func adjustImageForTexture(img image.Image) *image.NRGBA {
 	return adjustedImage
 }
 
-type Texture struct {
+type texture struct {
 	native gl.Texture
 	width  int
 	height int
@@ -67,20 +67,20 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	return nativeTexture
 }
 
-func createTexture(width, height int, filter graphics.Filter) (*Texture, error) {
+func createTexture(width, height int, filter graphics.Filter) (*texture, error) {
 	w := shader.AdjustSizeForTexture(width)
 	h := shader.AdjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
-	return &Texture{native, width, height}, nil
+	return &texture{native, width, height}, nil
 }
 
-func createTextureFromImage(img image.Image, filter graphics.Filter) (*Texture, error) {
+func createTextureFromImage(img image.Image, filter graphics.Filter) (*texture, error) {
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
-	return &Texture{native, size.X, size.Y}, nil
+	return &texture{native, size.X, size.Y}, nil
 }
 
-func (t *Texture) dispose() {
+func (t *texture) dispose() {
 	t.native.Delete()
 }

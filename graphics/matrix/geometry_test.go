@@ -26,37 +26,36 @@ func TestGeometryConcat(t *testing.T) {
 		{0, 1, 1},
 	}
 
-	// TODO: 'matrix1x2' may not be a good name.
-	matrix1x2 := matrix1
-	matrix1x2.Concat(matrix2)
+	matrix3 := matrix1
+	matrix3.Concat(matrix2)
 	expected := [][]float64{
 		{2, 0, 1},
 		{0, 2, 1},
 	}
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 3; j++ {
-			got := matrix1x2.Elements[i][j]
+			got := matrix3.Elements[i][j]
 			want := expected[i][j]
 			if want != got {
-				t.Errorf("matrix1x2.Element(%d, %d) = %f,"+
+				t.Errorf("matrix3.Element(%d, %d) = %f,"+
 					" want %f",
 					i, j, got, want)
 			}
 		}
 	}
 
-	matrix2x1 := matrix2
-	matrix2x1.Concat(matrix1)
+	matrix4 := matrix2
+	matrix4.Concat(matrix1)
 	expected = [][]float64{
 		{2, 0, 2},
 		{0, 2, 2},
 	}
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 3; j++ {
-			got := matrix2x1.Elements[i][j]
+			got := matrix4.Elements[i][j]
 			want := expected[i][j]
 			if want != got {
-				t.Errorf("matrix2x1.Element(%d, %d) = %f, want %f",
+				t.Errorf("matrix4.Element(%d, %d) = %f, want %f",
 					i, j, got, want)
 			}
 		}

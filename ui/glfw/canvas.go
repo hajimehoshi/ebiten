@@ -11,11 +11,11 @@ import (
 )
 
 type canvas struct {
-	window    *glfw.Window
-	context   *opengl.Context
-	keyboard  *keyboard
-	funcs     chan func()
-	funcsDone chan struct{}
+	window         *glfw.Window
+	contextUpdater *opengl.ContextUpdater
+	keyboard       *keyboard
+	funcs          chan func()
+	funcsDone      chan struct{}
 }
 
 func newCanvas(width, height, scale int, title string) *canvas {
@@ -39,14 +39,14 @@ func newCanvas(width, height, scale int, title string) *canvas {
 
 	canvas.run()
 	canvas.use(func() {
-		canvas.context = opengl.NewContext(width, height, realScale)
+		canvas.contextUpdater = opengl.NewContextUpdater(width, height, realScale)
 	})
 	return canvas
 }
 
 func (c *canvas) Draw(d ui.Drawer) (err error) {
 	c.use(func() {
-		err = c.context.Update(d)
+		err = c.contextUpdater.Update(d)
 		c.window.SwapBuffers()
 	})
 	return

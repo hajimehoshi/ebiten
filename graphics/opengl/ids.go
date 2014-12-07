@@ -11,8 +11,8 @@ import (
 )
 
 type ids struct {
-	textures              map[graphics.TextureID]*Texture
-	renderTargets         map[graphics.RenderTargetID]*RenderTarget
+	textures              map[graphics.TextureID]*texture
+	renderTargets         map[graphics.RenderTargetID]*renderTarget
 	renderTargetToTexture map[graphics.RenderTargetID]graphics.TextureID
 	lastId                int
 	currentRenderTargetId graphics.RenderTargetID
@@ -20,8 +20,8 @@ type ids struct {
 }
 
 var idsInstance = &ids{
-	textures:              map[graphics.TextureID]*Texture{},
-	renderTargets:         map[graphics.RenderTargetID]*RenderTarget{},
+	textures:              map[graphics.TextureID]*texture{},
+	renderTargets:         map[graphics.RenderTargetID]*renderTarget{},
 	renderTargetToTexture: map[graphics.RenderTargetID]graphics.TextureID{},
 	currentRenderTargetId: -1,
 }
@@ -34,13 +34,13 @@ func NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, 
 	return idsInstance.createTexture(img, filter)
 }
 
-func (i *ids) textureAt(id graphics.TextureID) *Texture {
+func (i *ids) textureAt(id graphics.TextureID) *texture {
 	i.RLock()
 	defer i.RUnlock()
 	return i.textures[id]
 }
 
-func (i *ids) renderTargetAt(id graphics.RenderTargetID) *RenderTarget {
+func (i *ids) renderTargetAt(id graphics.RenderTargetID) *renderTarget {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargets[id]
@@ -74,7 +74,7 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (gra
 	framebuffer := createFramebuffer(gl.Texture(texture.native))
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
-	renderTarget := &RenderTarget{
+	r := &renderTarget{
 		framebuffer: framebuffer,
 		width:       texture.width,
 		height:      texture.height,
@@ -88,14 +88,14 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (gra
 	renderTargetId := graphics.RenderTargetID(i.lastId)
 
 	i.textures[textureId] = texture
-	i.renderTargets[renderTargetId] = renderTarget
+	i.renderTargets[renderTargetId] = r
 	i.renderTargetToTexture[renderTargetId] = textureId
 
 	return renderTargetId, nil
 }
 
 // NOTE: renderTarget can't be used as a texture.
-func (i *ids) addRenderTarget(renderTarget *RenderTarget) graphics.RenderTargetID {
+func (i *ids) addRenderTarget(renderTarget *renderTarget) graphics.RenderTargetID {
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
