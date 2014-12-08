@@ -4,19 +4,14 @@ import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/graphics"
 	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/ui"
 )
 
-type ContextUpdater struct {
-	context *context
-}
-
-func Initialize(screenWidth, screenHeight, screenScale int) (*ContextUpdater, error) {
+func Initialize(screenWidth, screenHeight, screenScale int) (*Context, error) {
 	gl.Init()
 	gl.Enable(gl.TEXTURE_2D)
 	gl.Enable(gl.BLEND)
 
-	c := &context{
+	c := &Context{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
@@ -37,14 +32,10 @@ func Initialize(screenWidth, screenHeight, screenScale int) (*ContextUpdater, er
 	c.ResetOffscreen()
 	c.Clear()
 
-	return &ContextUpdater{c}, nil
+	return c, nil
 }
 
-func (u *ContextUpdater) Update(drawer ui.Drawer) error {
-	return u.context.update(drawer)
-}
-
-type context struct {
+type Context struct {
 	screenId     graphics.RenderTargetID
 	defaultId    graphics.RenderTargetID
 	currentId    graphics.RenderTargetID
@@ -53,43 +44,41 @@ type context struct {
 	screenScale  int
 }
 
-func (c *context) dispose() {
+func (c *Context) dispose() {
 	// NOTE: Now this method is not used anywhere.
 	idsInstance.deleteRenderTarget(c.screenId)
 }
 
-func (c *context) Clear() {
+func (c *Context) Clear() {
 	c.Fill(0, 0, 0)
 }
 
-func (c *context) Fill(r, g, b uint8) {
+func (c *Context) Fill(r, g, b uint8) {
 	idsInstance.fillRenderTarget(c.currentId, r, g, b)
 }
 
-func (c *context) Texture(id graphics.TextureID) graphics.Drawer {
+func (c *Context) Texture(id graphics.TextureID) graphics.Drawer {
 	return &textureWithContext{id, c}
 }
 
-func (c *context) RenderTarget(id graphics.RenderTargetID) graphics.Drawer {
+func (c *Context) RenderTarget(id graphics.RenderTargetID) graphics.Drawer {
 	return &textureWithContext{idsInstance.toTexture(id), c}
 }
 
-func (c *context) ResetOffscreen() {
+func (c *Context) ResetOffscreen() {
 	c.currentId = c.screenId
 }
 
-func (c *context) SetOffscreen(renderTargetId graphics.RenderTargetID) {
+func (c *Context) SetOffscreen(renderTargetId graphics.RenderTargetID) {
 	c.currentId = renderTargetId
 }
 
-func (c *context) update(drawer ui.Drawer) error {
+func (c *Context) PreUpdate() {
 	c.ResetOffscreen()
 	c.Clear()
+}
 
-	if err := drawer.Draw(c); err != nil {
-		return err
-	}
-
+func (c *Context) PostUpdate() {
 	c.SetOffscreen(c.defaultId)
 	c.Clear()
 
@@ -99,12 +88,11 @@ func (c *context) update(drawer ui.Drawer) error {
 	graphics.DrawWhole(c.RenderTarget(c.screenId), c.screenWidth, c.screenHeight, geo, matrix.ColorI())
 
 	gl.Flush()
-	return nil
 }
 
 type textureWithContext struct {
 	id      graphics.TextureID
-	context *context
+	context *Context
 }
 
 func (t *textureWithContext) Draw(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {

@@ -16,10 +16,20 @@ const (
 // TextureID represents an ID of a texture.
 type TextureID int
 
+// IsNil returns true if the texture is nil.
+func (i TextureID) IsNil() bool {
+	return i == 0
+}
+
 // RenderTargetID represents an ID of a render target.
 // A render target is essentially same as a texture, but it is assumed that the
 // all alpha of a render target is maximum.
 type RenderTargetID int
+
+// IsNil returns true if the render target is nil.
+func (i RenderTargetID) IsNil() bool {
+	return i == 0
+}
 
 var currentTextureFactory TextureFactory
 

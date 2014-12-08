@@ -29,7 +29,7 @@ func main() {
 
 	u := new(glfw.UI)
 	game := NewGame()
-	if err := ui.Run(u, game, ScreenWidth, ScreenHeight, 2, "Ebiten Demo", 60); err != nil {
+	if err := ui.Run(u, game, ScreenWidth, ScreenHeight, 2, "Blocks (Ebiten Demo)", 60); err != nil {
 		log.Fatal(err)
 	}
 }

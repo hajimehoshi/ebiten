@@ -10,17 +10,23 @@ import (
 )
 
 type canvas struct {
-	window         *glfw.Window
-	contextUpdater *opengl.ContextUpdater
-	keyboard       keyboard
-	mouse          mouse
-	funcs          chan func()
-	funcsDone      chan struct{}
+	window    *glfw.Window
+	context   *opengl.Context
+	keyboard  keyboard
+	mouse     mouse
+	funcs     chan func()
+	funcsDone chan struct{}
 }
 
 func (c *canvas) Draw(d ui.Drawer) (err error) {
 	c.use(func() {
-		err = c.contextUpdater.Update(d)
+		c.context.PreUpdate()
+	})
+	if err = d.Draw(&context{c}); err != nil {
+		return
+	}
+	c.use(func() {
+		c.context.PostUpdate()
 		c.window.SwapBuffers()
 	})
 	return
@@ -54,6 +60,7 @@ func (c *canvas) run(width, height, scale int) {
 		c.window.MakeContextCurrent()
 		glfw.SwapInterval(1)
 		for {
+
 			f := <-c.funcs
 			f()
 			c.funcsDone <- struct{}{}

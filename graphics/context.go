@@ -21,7 +21,7 @@ type TexturePart struct {
 
 // A Drawer is the interface that draws itself.
 type Drawer interface {
-	Draw(parts []TexturePart, geometryMatrix matrix.Geometry, colorMatrix matrix.Color)
+	Draw(parts []TexturePart, geo matrix.Geometry, color matrix.Color)
 }
 
 // DrawWhole draws the whole texture.

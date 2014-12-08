@@ -45,7 +45,7 @@ func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
 	windowWidth, _ := window.GetFramebufferSize()
 	realScale := windowWidth / width
 	c.use(func() {
-		c.contextUpdater, err = opengl.Initialize(width, height, realScale)
+		c.context, err = opengl.Initialize(width, height, realScale)
 	})
 	if err != nil {
 		return nil, err
