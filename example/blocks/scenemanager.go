@@ -1,4 +1,4 @@
-package main
+package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/graphics"

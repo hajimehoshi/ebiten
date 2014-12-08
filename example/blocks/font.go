@@ -1,4 +1,4 @@
-package main
+package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	texturePaths["font"] = "../images/blocks/font.png"
+	texturePaths["font"] = "images/blocks/font.png"
 }
 
 const charWidth = 8

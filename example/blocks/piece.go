@@ -1,4 +1,4 @@
-package main
+package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	texturePaths["blocks"] = "../images/blocks/blocks.png"
+	texturePaths["blocks"] = "images/blocks/blocks.png"
 }
 
 type Angle int

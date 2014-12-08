@@ -23,14 +23,14 @@ changed easily.
 
 ```
 :; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example/blocks
-:; go run *.go
+:; go run blocks.go
 ```
 
 ### How to benchmark the example
 
 ```
 :; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example/blocks
-:; go build -o=example *.go
+:; go build -o=example blocks.go
 :; ./example -cpuprofile=cpu.out
 :; go tool pprof ./example cpu.out
 ```

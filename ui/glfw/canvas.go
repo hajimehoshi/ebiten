@@ -60,9 +60,7 @@ func (c *canvas) run(width, height, scale int) {
 		c.window.MakeContextCurrent()
 		glfw.SwapInterval(1)
 		for {
-
-			f := <-c.funcs
-			f()
+			(<-c.funcs)()
 			c.funcsDone <- struct{}{}
 		}
 	}()

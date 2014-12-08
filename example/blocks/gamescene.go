@@ -1,4 +1,4 @@
-package main
+package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	texturePaths["empty"] = "../images/blocks/empty.png"
+	texturePaths["empty"] = "images/blocks/empty.png"
 }
 
 type GameScene struct {

@@ -1,4 +1,4 @@
-package main
+package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten/graphics"
@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	texturePaths["background"] = "../images/blocks/background.png"
+	texturePaths["background"] = "images/blocks/background.png"
 }
 
 type TitleScene struct {
