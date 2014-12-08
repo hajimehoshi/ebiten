@@ -1,4 +1,4 @@
-package blocks
+package main
 
 import (
 	"github.com/hajimehoshi/ebiten/input"

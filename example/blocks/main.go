@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/hajimehoshi/ebiten/example/blocks"
 	"github.com/hajimehoshi/ebiten/ui"
 	"github.com/hajimehoshi/ebiten/ui/glfw"
 	"log"
@@ -29,8 +28,8 @@ func main() {
 	}
 
 	u := new(glfw.UI)
-	game := blocks.NewGame()
-	if err := ui.Run(u, game, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Ebiten Demo", 60); err != nil {
+	game := NewGame()
+	if err := ui.Run(u, game, ScreenWidth, ScreenHeight, 2, "Ebiten Demo", 60); err != nil {
 		log.Fatal(err)
 	}
 }
