@@ -46,7 +46,7 @@ or without modification, either commercially and noncommercially.
 THESE FONTS ARE PROVIDED "AS IS" WITHOUT WARRANTY.
 ```
 
-## other files
+## Other files
 
 ```
 Copyright 2014 Hajime Hoshi

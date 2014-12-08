@@ -57,11 +57,7 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, glFilter)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, glFilter)
 
-	ptr := interface{}(nil)
-	if pixels != nil {
-		ptr = pixels
-	}
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, ptr)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 
 	return nativeTexture
 }

@@ -2,6 +2,7 @@ package input
 
 type Key int
 
+// TODO: Add more keys.
 const (
 	KeyUp Key = iota
 	KeyDown
@@ -23,7 +24,7 @@ func SetKeyboard(keyboard Keyboard) {
 
 func IsKeyPressed(key Key) bool {
 	if currentKeyboard == nil {
-		panic("ui.IsKeyPressed: currentKeyboard is not set")
+		panic("input.IsKeyPressed: currentKeyboard is not set")
 	}
 	return currentKeyboard.IsKeyPressed(key)
 }

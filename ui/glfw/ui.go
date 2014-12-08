@@ -36,6 +36,7 @@ func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
 		funcsDone: make(chan struct{}),
 	}
 	input.SetKeyboard(&c.keyboard)
+	input.SetMouse(&c.mouse)
 	graphics.SetTextureFactory(c)
 
 	c.run(width, height, scale)

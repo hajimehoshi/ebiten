@@ -13,6 +13,7 @@ type canvas struct {
 	window         *glfw.Window
 	contextUpdater *opengl.ContextUpdater
 	keyboard       keyboard
+	mouse          mouse
 	funcs          chan func()
 	funcsDone      chan struct{}
 }
@@ -67,4 +68,5 @@ func (c *canvas) use(f func()) {
 
 func (c *canvas) update() {
 	c.keyboard.update(c.window)
+	c.mouse.update(c.window)
 }
