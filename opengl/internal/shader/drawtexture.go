@@ -2,16 +2,15 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 	"sync"
 )
 
-func glMatrix(matrix [4][4]float64) [16]float32 {
+func glMatrix(ebiten [4][4]float64) [16]float32 {
 	result := [16]float32{}
 	for j := 0; j < 4; j++ {
 		for i := 0; i < 4; i++ {
-			result[i+j*4] = float32(matrix[i][j])
+			result[i+j*4] = float32(ebiten[i][j])
 		}
 	}
 	return result
@@ -19,7 +18,8 @@ func glMatrix(matrix [4][4]float64) [16]float32 {
 
 var once sync.Once
 
-func DrawTexture(native gl.Texture, width, height int, projectionMatrix [4][4]float64, parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+// TODO: Use VBO
+func DrawTexture(native gl.Texture, width, height int, projectionMatrix [4][4]float64, parts []ebiten.TexturePart, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) {
 	once.Do(func() {
 		initialize()
 	})
@@ -51,7 +51,7 @@ func DrawTexture(native gl.Texture, width, height int, projectionMatrix [4][4]fl
 	vertices := []float32{}
 	texCoords := []float32{}
 	indicies := []uint32{}
-	// TODO: Check len(parts) and GL_MAX_ELEMENTS_INDICES
+	// TODO: Check len(parts) and gl.MAX_ELEMENTS_INDICES?
 	for i, quad := range quads {
 		x1 := quad.VertexX1
 		x2 := quad.VertexX2

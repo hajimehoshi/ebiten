@@ -2,8 +2,8 @@ package opengl
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/opengl/internal/shader"
 	"image"
 	"image/draw"
 )
@@ -36,7 +36,7 @@ type texture struct {
 	height int
 }
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter graphics.Filter) gl.Texture {
+func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter ebiten.Filter) gl.Texture {
 	nativeTexture := gl.GenTexture()
 	if nativeTexture < 0 {
 		panic("glGenTexture failed")
@@ -47,9 +47,9 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 
 	glFilter := 0
 	switch filter {
-	case graphics.FilterLinear:
+	case ebiten.FilterLinear:
 		glFilter = gl.LINEAR
-	case graphics.FilterNearest:
+	case ebiten.FilterNearest:
 		glFilter = gl.NEAREST
 	default:
 		panic("not reached")
@@ -62,14 +62,14 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	return nativeTexture
 }
 
-func createTexture(width, height int, filter graphics.Filter) (*texture, error) {
+func createTexture(width, height int, filter ebiten.Filter) (*texture, error) {
 	w := shader.AdjustSizeForTexture(width)
 	h := shader.AdjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
 	return &texture{native, width, height}, nil
 }
 
-func createTextureFromImage(img image.Image, filter graphics.Filter) (*texture, error) {
+func createTextureFromImage(img image.Image, filter ebiten.Filter) (*texture, error) {
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)

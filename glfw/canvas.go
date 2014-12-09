@@ -2,23 +2,22 @@ package glfw
 
 import (
 	glfw "github.com/go-gl/glfw3"
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/ui"
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/opengl"
 	"image"
 	"runtime"
 )
 
 type canvas struct {
 	window    *glfw.Window
-	context   *opengl.Context
+	context   *opengl.GraphicsContext
 	keyboard  keyboard
 	mouse     mouse
 	funcs     chan func()
 	funcsDone chan struct{}
 }
 
-func (c *canvas) Draw(d ui.Drawer) (err error) {
+func (c *canvas) Draw(d ebiten.Drawer2) (err error) {
 	c.use(func() {
 		c.context.PreUpdate()
 	})
@@ -36,8 +35,8 @@ func (c *canvas) IsClosed() bool {
 	return c.window.ShouldClose()
 }
 
-func (c *canvas) NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
-	var id graphics.TextureID
+func (c *canvas) NewTextureID(img image.Image, filter ebiten.Filter) (ebiten.TextureID, error) {
+	var id ebiten.TextureID
 	var err error
 	c.use(func() {
 		id, err = opengl.NewTextureID(img, filter)
@@ -45,8 +44,8 @@ func (c *canvas) NewTextureID(img image.Image, filter graphics.Filter) (graphics
 	return id, err
 }
 
-func (c *canvas) NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
-	var id graphics.RenderTargetID
+func (c *canvas) NewRenderTargetID(width, height int, filter ebiten.Filter) (ebiten.RenderTargetID, error) {
+	var id ebiten.RenderTargetID
 	var err error
 	c.use(func() {
 		id, err = opengl.NewRenderTargetID(width, height, filter)

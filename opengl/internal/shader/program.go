@@ -2,7 +2,7 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 )
 
 type program struct {
@@ -65,7 +65,7 @@ func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
 	return location
 }
 
-func use(projectionMatrix [16]float32, geo matrix.Geometry, color matrix.Color) gl.Program {
+func use(projectionMatrix [16]float32, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) gl.Program {
 	// TODO: Check the performance.
 	program := programColorMatrix
 

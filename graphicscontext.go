@@ -1,8 +1,4 @@
-package graphics
-
-import (
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
-)
+package ebiten
 
 // A Rect represents a rectangle.
 type Rect struct {
@@ -21,11 +17,11 @@ type TexturePart struct {
 
 // A Drawer is the interface that draws itself.
 type Drawer interface {
-	Draw(parts []TexturePart, geo matrix.Geometry, color matrix.Color)
+	Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix)
 }
 
 // DrawWhole draws the whole texture.
-func DrawWhole(drawer Drawer, width, height int, geo matrix.Geometry, color matrix.Color) {
+func DrawWhole(drawer Drawer, width, height int, geo GeometryMatrix, color ColorMatrix) {
 	parts := []TexturePart{
 		{0, 0, Rect{0, 0, width, height}},
 	}
@@ -33,7 +29,7 @@ func DrawWhole(drawer Drawer, width, height int, geo matrix.Geometry, color matr
 }
 
 // A Context is the interface that means a context of rendering.
-type Context interface {
+type GraphicsContext interface {
 	Clear()
 	Fill(r, g, b uint8)
 	Texture(id TextureID) Drawer

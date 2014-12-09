@@ -1,4 +1,4 @@
-package input
+package ebiten
 
 type Key int
 

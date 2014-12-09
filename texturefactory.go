@@ -1,4 +1,4 @@
-package graphics
+package ebiten
 
 import (
 	"image"

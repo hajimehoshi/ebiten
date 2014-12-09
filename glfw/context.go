@@ -1,15 +1,14 @@
 package glfw
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 )
 
 type context struct {
 	canvas *canvas
 }
 
-var _ graphics.Context = new(context)
+var _ ebiten.GraphicsContext = new(context)
 
 func (c *context) Clear() {
 	c.canvas.use(func() {
@@ -23,7 +22,7 @@ func (c *context) Fill(r, g, b uint8) {
 	})
 }
 
-func (c *context) Texture(id graphics.TextureID) (d graphics.Drawer) {
+func (c *context) Texture(id ebiten.TextureID) (d ebiten.Drawer) {
 	c.canvas.use(func() {
 		d = &drawer{
 			canvas:      c.canvas,
@@ -33,7 +32,7 @@ func (c *context) Texture(id graphics.TextureID) (d graphics.Drawer) {
 	return
 }
 
-func (c *context) RenderTarget(id graphics.RenderTargetID) (d graphics.Drawer) {
+func (c *context) RenderTarget(id ebiten.RenderTargetID) (d ebiten.Drawer) {
 	c.canvas.use(func() {
 		d = &drawer{
 			canvas:      c.canvas,
@@ -49,7 +48,7 @@ func (c *context) ResetOffscreen() {
 	})
 }
 
-func (c *context) SetOffscreen(id graphics.RenderTargetID) {
+func (c *context) SetOffscreen(id ebiten.RenderTargetID) {
 	c.canvas.use(func() {
 		c.canvas.context.SetOffscreen(id)
 	})
@@ -57,12 +56,12 @@ func (c *context) SetOffscreen(id graphics.RenderTargetID) {
 
 type drawer struct {
 	canvas      *canvas
-	innerDrawer graphics.Drawer
+	innerDrawer ebiten.Drawer
 }
 
-var _ graphics.Drawer = new(drawer)
+var _ ebiten.Drawer = new(drawer)
 
-func (d *drawer) Draw(parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+func (d *drawer) Draw(parts []ebiten.TexturePart, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) {
 	d.canvas.use(func() {
 		d.innerDrawer.Draw(parts, geo, color)
 	})

@@ -1,8 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 )
 
 func init() {
@@ -123,8 +122,8 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(context graphics.Context, textures *Textures, blocks [][]BlockType, geo matrix.Geometry) {
-	parts := []graphics.TexturePart{}
+func drawBlocks(context ebiten.GraphicsContext, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
+	parts := []ebiten.TexturePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
 			if block == BlockTypeNone {
@@ -132,11 +131,11 @@ func drawBlocks(context graphics.Context, textures *Textures, blocks [][]BlockTy
 			}
 			locationX := i * blockWidth
 			locationY := j * blockHeight
-			source := graphics.Rect{
+			source := ebiten.Rect{
 				(int(block) - 1) * blockWidth, 0,
 				blockWidth, blockHeight}
 			parts = append(parts,
-				graphics.TexturePart{
+				ebiten.TexturePart{
 					LocationX: locationX,
 					LocationY: locationY,
 					Source:    source,
@@ -144,7 +143,7 @@ func drawBlocks(context graphics.Context, textures *Textures, blocks [][]BlockTy
 		}
 	}
 	blocksTexture := textures.GetTexture("blocks")
-	context.Texture(blocksTexture).Draw(parts, geo, matrix.ColorI())
+	context.Texture(blocksTexture).Draw(parts, geo, ebiten.ColorMatrixI())
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -204,7 +203,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(context graphics.Context, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
+func (p *Piece) Draw(context ebiten.GraphicsContext, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -216,7 +215,7 @@ func (p *Piece) Draw(context graphics.Context, textures *Textures, fieldX, field
 		}
 	}
 
-	geoMat := matrix.GeometryI()
+	geoMat := ebiten.GeometryMatrixI()
 	x := fieldX + pieceX*blockWidth
 	y := fieldY + pieceY*blockHeight
 	geoMat.Translate(float64(x), float64(y))

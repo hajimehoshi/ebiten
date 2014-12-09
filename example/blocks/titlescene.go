@@ -1,9 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/input"
+	"github.com/hajimehoshi/ebiten"
 	"image/color"
 )
 
@@ -21,12 +19,12 @@ func NewTitleScene() *TitleScene {
 
 func (s *TitleScene) Update(state *GameState) {
 	s.count++
-	if state.Input.StateForKey(input.KeySpace) == 1 {
+	if state.Input.StateForKey(ebiten.KeySpace) == 1 {
 		state.SceneManager.GoTo(NewGameScene())
 	}
 }
 
-func (s *TitleScene) Draw(context graphics.Context, textures *Textures) {
+func (s *TitleScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
 	drawTitleBackground(context, textures, s.count)
 	drawLogo(context, textures, "BLOCKS")
 
@@ -36,31 +34,31 @@ func (s *TitleScene) Draw(context graphics.Context, textures *Textures) {
 	drawTextWithShadow(context, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(context graphics.Context, textures *Textures, c int) {
+func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c int) {
 	const textureWidth = 32
 	const textureHeight = 32
 
 	backgroundTextureId := textures.GetTexture("background")
-	parts := []graphics.TexturePart{}
+	parts := []ebiten.TexturePart{}
 	for j := -1; j < ScreenHeight/textureHeight+1; j++ {
 		for i := 0; i < ScreenWidth/textureWidth+1; i++ {
-			parts = append(parts, graphics.TexturePart{
+			parts = append(parts, ebiten.TexturePart{
 				LocationX: i * textureWidth,
 				LocationY: j * textureHeight,
-				Source:    graphics.Rect{0, 0, textureWidth, textureHeight},
+				Source:    ebiten.Rect{0, 0, textureWidth, textureHeight},
 			})
 		}
 	}
 
 	dx := (-c / 4) % textureWidth
 	dy := (c / 4) % textureHeight
-	geo := matrix.GeometryI()
+	geo := ebiten.GeometryMatrixI()
 	geo.Translate(float64(dx), float64(dy))
-	clr := matrix.ColorI()
+	clr := ebiten.ColorMatrixI()
 	context.Texture(backgroundTextureId).Draw(parts, geo, clr)
 }
 
-func drawLogo(context graphics.Context, textures *Textures, str string) {
+func drawLogo(context ebiten.GraphicsContext, textures *Textures, str string) {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2

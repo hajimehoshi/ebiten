@@ -1,7 +1,7 @@
 package shader
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten"
 )
 
 type textureQuad struct {
@@ -38,7 +38,7 @@ func v(y int, height int) float32 {
 	return float32(y) / float32(AdjustSizeForTexture(height))
 }
 
-func textureQuads(parts []graphics.TexturePart, width, height int) []textureQuad {
+func textureQuads(parts []ebiten.TexturePart, width, height int) []textureQuad {
 	quads := []textureQuad{}
 	for _, part := range parts {
 		x1 := float32(part.LocationX)

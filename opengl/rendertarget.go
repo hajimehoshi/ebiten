@@ -3,7 +3,7 @@ package opengl
 import (
 	"fmt"
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
+	"github.com/hajimehoshi/ebiten/opengl/internal/shader"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
@@ -62,12 +62,12 @@ func (r *renderTarget) setAsViewport() {
 func (r *renderTarget) projectionMatrix() [4][4]float64 {
 	width := shader.AdjustSizeForTexture(r.width)
 	height := shader.AdjustSizeForTexture(r.height)
-	matrix := orthoProjectionMatrix(0, width, 0, height)
+	ebiten := orthoProjectionMatrix(0, width, 0, height)
 	if r.flipY {
-		matrix[1][1] *= -1
-		matrix[1][3] += float64(r.height) / float64(shader.AdjustSizeForTexture(r.height)) * 2
+		ebiten[1][1] *= -1
+		ebiten[1][3] += float64(r.height) / float64(shader.AdjustSizeForTexture(r.height)) * 2
 	}
-	return matrix
+	return ebiten
 }
 
 func (r *renderTarget) dispose() {

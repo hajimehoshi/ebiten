@@ -2,57 +2,56 @@ package opengl
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/graphics/opengl/internal/shader"
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/opengl/internal/shader"
 	"image"
 	"math"
 	"sync"
 )
 
 type ids struct {
-	textures              map[graphics.TextureID]*texture
-	renderTargets         map[graphics.RenderTargetID]*renderTarget
-	renderTargetToTexture map[graphics.RenderTargetID]graphics.TextureID
+	textures              map[ebiten.TextureID]*texture
+	renderTargets         map[ebiten.RenderTargetID]*renderTarget
+	renderTargetToTexture map[ebiten.RenderTargetID]ebiten.TextureID
 	lastId                int
-	currentRenderTargetId graphics.RenderTargetID
+	currentRenderTargetId ebiten.RenderTargetID
 	sync.RWMutex
 }
 
 var idsInstance = &ids{
-	textures:              map[graphics.TextureID]*texture{},
-	renderTargets:         map[graphics.RenderTargetID]*renderTarget{},
-	renderTargetToTexture: map[graphics.RenderTargetID]graphics.TextureID{},
+	textures:              map[ebiten.TextureID]*texture{},
+	renderTargets:         map[ebiten.RenderTargetID]*renderTarget{},
+	renderTargetToTexture: map[ebiten.RenderTargetID]ebiten.TextureID{},
 	currentRenderTargetId: -1,
 }
 
-func NewRenderTargetID(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+func NewRenderTargetID(width, height int, filter ebiten.Filter) (ebiten.RenderTargetID, error) {
 	return idsInstance.createRenderTarget(width, height, filter)
 }
 
-func NewTextureID(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+func NewTextureID(img image.Image, filter ebiten.Filter) (ebiten.TextureID, error) {
 	return idsInstance.createTexture(img, filter)
 }
 
-func (i *ids) textureAt(id graphics.TextureID) *texture {
+func (i *ids) textureAt(id ebiten.TextureID) *texture {
 	i.RLock()
 	defer i.RUnlock()
 	return i.textures[id]
 }
 
-func (i *ids) renderTargetAt(id graphics.RenderTargetID) *renderTarget {
+func (i *ids) renderTargetAt(id ebiten.RenderTargetID) *renderTarget {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargets[id]
 }
 
-func (i *ids) toTexture(id graphics.RenderTargetID) graphics.TextureID {
+func (i *ids) toTexture(id ebiten.RenderTargetID) ebiten.TextureID {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.TextureID, error) {
+func (i *ids) createTexture(img image.Image, filter ebiten.Filter) (ebiten.TextureID, error) {
 	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
@@ -61,12 +60,12 @@ func (i *ids) createTexture(img image.Image, filter graphics.Filter) (graphics.T
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
-	textureId := graphics.TextureID(i.lastId)
+	textureId := ebiten.TextureID(i.lastId)
 	i.textures[textureId] = texture
 	return textureId, nil
 }
 
-func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (graphics.RenderTargetID, error) {
+func (i *ids) createRenderTarget(width, height int, filter ebiten.Filter) (ebiten.RenderTargetID, error) {
 	texture, err := createTexture(width, height, filter)
 	if err != nil {
 		return 0, err
@@ -83,9 +82,9 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (gra
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
-	textureId := graphics.TextureID(i.lastId)
+	textureId := ebiten.TextureID(i.lastId)
 	i.lastId++
-	renderTargetId := graphics.RenderTargetID(i.lastId)
+	renderTargetId := ebiten.RenderTargetID(i.lastId)
 
 	i.textures[textureId] = texture
 	i.renderTargets[renderTargetId] = r
@@ -95,17 +94,17 @@ func (i *ids) createRenderTarget(width, height int, filter graphics.Filter) (gra
 }
 
 // NOTE: renderTarget can't be used as a texture.
-func (i *ids) addRenderTarget(renderTarget *renderTarget) graphics.RenderTargetID {
+func (i *ids) addRenderTarget(renderTarget *renderTarget) ebiten.RenderTargetID {
 	i.Lock()
 	defer i.Unlock()
 	i.lastId++
-	id := graphics.RenderTargetID(i.lastId)
+	id := ebiten.RenderTargetID(i.lastId)
 	i.renderTargets[id] = renderTarget
 
 	return id
 }
 
-func (i *ids) deleteRenderTarget(id graphics.RenderTargetID) {
+func (i *ids) deleteRenderTarget(id ebiten.RenderTargetID) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -121,14 +120,14 @@ func (i *ids) deleteRenderTarget(id graphics.RenderTargetID) {
 	delete(i.textures, textureId)
 }
 
-func (i *ids) fillRenderTarget(id graphics.RenderTargetID, r, g, b uint8) {
+func (i *ids) fillRenderTarget(id ebiten.RenderTargetID, r, g, b uint8) {
 	i.setViewportIfNeeded(id)
 	const max = float64(math.MaxUint8)
 	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
-func (i *ids) drawTexture(target graphics.RenderTargetID, id graphics.TextureID, parts []graphics.TexturePart, geo matrix.Geometry, color matrix.Color) {
+func (i *ids) drawTexture(target ebiten.RenderTargetID, id ebiten.TextureID, parts []ebiten.TexturePart, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) {
 	texture := i.textureAt(id)
 	i.setViewportIfNeeded(target)
 	r := i.renderTargetAt(target)
@@ -136,7 +135,7 @@ func (i *ids) drawTexture(target graphics.RenderTargetID, id graphics.TextureID,
 	shader.DrawTexture(texture.native, texture.width, texture.height, projectionMatrix, parts, geo, color)
 }
 
-func (i *ids) setViewportIfNeeded(id graphics.RenderTargetID) {
+func (i *ids) setViewportIfNeeded(id ebiten.RenderTargetID) {
 	r := i.renderTargetAt(id)
 	if i.currentRenderTargetId != id {
 		r.setAsViewport()

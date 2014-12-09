@@ -1,4 +1,4 @@
-package matrix_test
+package ebiten_test
 
 import (
 	. "."
@@ -6,8 +6,8 @@ import (
 )
 
 func TestColorIdentity(t *testing.T) {
-	matrix := ColorI()
-	got := matrix.IsIdentity()
+	ebiten := ColorMatrixI()
+	got := ebiten.IsIdentity()
 	want := true
 	if want != got {
 		t.Errorf("matrix.IsIdentity() = %t, want %t", got, want)

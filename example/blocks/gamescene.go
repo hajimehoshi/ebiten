@@ -1,9 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
-	"github.com/hajimehoshi/ebiten/input"
+	"github.com/hajimehoshi/ebiten"
 	"image/color"
 	"math/rand"
 	"time"
@@ -64,26 +62,26 @@ func (s *GameScene) Update(state *GameState) {
 	y := s.currentPieceY
 	angle := s.currentPieceAngle
 	moved := false
-	if state.Input.StateForKey(input.KeySpace) == 1 {
+	if state.Input.StateForKey(ebiten.KeySpace) == 1 {
 		s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
 		moved = angle != s.currentPieceAngle
 	}
-	if l := state.Input.StateForKey(input.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
+	if l := state.Input.StateForKey(ebiten.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
 		s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
 		moved = x != s.currentPieceX
 	}
-	if r := state.Input.StateForKey(input.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
+	if r := state.Input.StateForKey(ebiten.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
 		s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
 		moved = y != s.currentPieceX
 	}
-	if d := state.Input.StateForKey(input.KeyDown); (d-1)%2 == 0 {
+	if d := state.Input.StateForKey(ebiten.KeyDown); (d-1)%2 == 0 {
 		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 		moved = y != s.currentPieceY
 	}
 	if moved {
 		s.landingCount = 0
 	} else if !s.field.PieceDroppable(piece, x, y, angle) {
-		if 0 < state.Input.StateForKey(input.KeyDown) {
+		if 0 < state.Input.StateForKey(ebiten.KeyDown) {
 			s.landingCount += 10
 		} else {
 			s.landingCount++
@@ -97,20 +95,20 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(context graphics.Context, textures *Textures) {
+func (s *GameScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
 	context.Fill(0xff, 0xff, 0xff)
 
 	field := textures.GetTexture("empty")
-	geoMat := matrix.GeometryI()
+	geoMat := ebiten.GeometryMatrixI()
 	geoMat.Scale(
 		float64(fieldWidth)/float64(emptyWidth),
 		float64(fieldHeight)/float64(emptyHeight))
 	geoMat.Translate(20, 20) // magic number?
-	colorMat := matrix.ColorI()
+	colorMat := ebiten.ColorMatrixI()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
-	graphics.DrawWhole(context.Texture(field), emptyWidth, emptyHeight, geoMat, colorMat)
+	ebiten.DrawWhole(context.Texture(field), emptyWidth, emptyHeight, geoMat, colorMat)
 
-	geoMat = matrix.GeometryI()
+	geoMat = ebiten.GeometryMatrixI()
 	geoMat.Translate(20, 20)
 	s.field.Draw(context, textures, geoMat)
 

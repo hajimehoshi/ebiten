@@ -1,8 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 	"image/color"
 )
 
@@ -17,9 +16,9 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(context graphics.Context, textures *Textures, str string, x, y, scale int, clr color.Color) {
+func drawText(context ebiten.GraphicsContext, textures *Textures, str string, x, y, scale int, clr color.Color) {
 	fontTextureId := textures.GetTexture("font")
-	parts := []graphics.TexturePart{}
+	parts := []ebiten.TexturePart{}
 
 	locationX := 0
 	locationY := 0
@@ -32,23 +31,23 @@ func drawText(context graphics.Context, textures *Textures, str string, x, y, sc
 		code := int(c)
 		x := (code % 16) * charWidth
 		y := ((code - 32) / 16) * charHeight
-		parts = append(parts, graphics.TexturePart{
+		parts = append(parts, ebiten.TexturePart{
 			LocationX: locationX,
 			LocationY: locationY,
-			Source:    graphics.Rect{x, y, charWidth, charHeight},
+			Source:    ebiten.Rect{x, y, charWidth, charHeight},
 		})
 		locationX += charWidth
 	}
 
-	geoMat := matrix.GeometryI()
+	geoMat := ebiten.GeometryMatrixI()
 	geoMat.Scale(float64(scale), float64(scale))
 	geoMat.Translate(float64(x), float64(y))
-	clrMat := matrix.ColorI()
+	clrMat := ebiten.ColorMatrixI()
 	clrMat.Scale(clr)
 	context.Texture(fontTextureId).Draw(parts, geoMat, clrMat)
 }
 
-func drawTextWithShadow(context graphics.Context, textures *Textures, str string, x, y, scale int, clr color.Color) {
+func drawTextWithShadow(context ebiten.GraphicsContext, textures *Textures, str string, x, y, scale int, clr color.Color) {
 	drawText(context, textures, str, x+1, y+1, scale, color.RGBA{0, 0, 0, 0x80})
 	drawText(context, textures, str, x, y, scale, clr)
 }

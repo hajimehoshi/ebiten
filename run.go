@@ -1,7 +1,6 @@
-package ui
+package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,7 +9,7 @@ import (
 
 type Game interface {
 	Update() error
-	Draw(context graphics.Context) error
+	Draw(context GraphicsContext) error
 }
 
 func Run(u UI, game Game, width, height, scale int, title string, fps int) error {

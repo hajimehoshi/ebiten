@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/input"
-	"github.com/hajimehoshi/ebiten/ui"
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/opengl"
 )
 
 func init() {
@@ -20,7 +18,7 @@ type UI struct {
 	canvas *canvas
 }
 
-func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
+func (u *UI) Start(width, height, scale int, title string) (ebiten.Canvas, error) {
 	if !glfw.Init() {
 		return nil, errors.New("glfw.Init() fails")
 	}
@@ -35,9 +33,9 @@ func (u *UI) Start(width, height, scale int, title string) (ui.Canvas, error) {
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}
-	input.SetKeyboard(&c.keyboard)
-	input.SetMouse(&c.mouse)
-	graphics.SetTextureFactory(c)
+	ebiten.SetKeyboard(&c.keyboard)
+	ebiten.SetMouse(&c.mouse)
+	ebiten.SetTextureFactory(c)
 
 	c.run(width, height, scale)
 

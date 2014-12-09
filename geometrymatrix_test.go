@@ -1,4 +1,4 @@
-package matrix_test
+package ebiten_test
 
 import (
 	. "."
@@ -6,8 +6,8 @@ import (
 )
 
 func TestGeometryIdentity(t *testing.T) {
-	matrix := GeometryI()
-	got := matrix.IsIdentity()
+	ebiten := GeometryMatrixI()
+	got := ebiten.IsIdentity()
 	want := true
 	if want != got {
 		t.Errorf("matrix.IsIdentity() = %t, want %t", got, want)
@@ -15,8 +15,8 @@ func TestGeometryIdentity(t *testing.T) {
 }
 
 func TestGeometryConcat(t *testing.T) {
-	matrix1 := Geometry{}
-	matrix2 := Geometry{}
+	matrix1 := GeometryMatrix{}
+	matrix2 := GeometryMatrix{}
 	matrix1.Elements = [2][3]float64{
 		{2, 0, 0},
 		{0, 2, 0},

@@ -1,4 +1,4 @@
-package matrix
+package ebiten
 
 type affine interface {
 	dim() int
@@ -6,11 +6,11 @@ type affine interface {
 	setElement(i, j int, element float64)
 }
 
-func isIdentity(matrix affine) bool {
-	dim := matrix.dim()
+func isIdentity(ebiten affine) bool {
+	dim := ebiten.dim()
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
-			element := matrix.element(i, j)
+			element := ebiten.element(i, j)
 			if i == j && element != 1 {
 				return false
 			} else if i != j && element != 0 {

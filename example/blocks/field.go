@@ -1,8 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 )
 
 type Field struct {
@@ -97,7 +96,7 @@ func (f *Field) flushLine(j int) bool {
 	return true
 }
 
-func (f *Field) Draw(context graphics.Context, textures *Textures, geo matrix.Geometry) {
+func (f *Field) Draw(context ebiten.GraphicsContext, textures *Textures, geo ebiten.GeometryMatrix) {
 	blocks := make([][]BlockType, len(f.blocks))
 	for i, blockCol := range f.blocks {
 		blocks[i] = make([]BlockType, len(blockCol))

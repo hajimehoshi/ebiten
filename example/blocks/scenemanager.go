@@ -1,8 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
-	"github.com/hajimehoshi/ebiten/graphics/matrix"
+	"github.com/hajimehoshi/ebiten"
 )
 
 func init() {
@@ -14,7 +13,7 @@ func init() {
 
 type Scene interface {
 	Update(state *GameState)
-	Draw(context graphics.Context, textures *Textures)
+	Draw(context ebiten.GraphicsContext, textures *Textures)
 }
 
 const transitionMaxCount = 20
@@ -45,7 +44,7 @@ func (s *SceneManager) Update(state *GameState) {
 	}
 }
 
-func (s *SceneManager) Draw(context graphics.Context, textures *Textures) {
+func (s *SceneManager) Draw(context ebiten.GraphicsContext, textures *Textures) {
 	if s.transitionCount == -1 {
 		s.current.Draw(context, textures)
 		return
@@ -61,21 +60,21 @@ func (s *SceneManager) Draw(context graphics.Context, textures *Textures) {
 	s.next.Draw(context, textures)
 
 	context.ResetOffscreen()
-	color := matrix.ColorI()
-	graphics.DrawWhole(
+	color := ebiten.ColorMatrixI()
+	ebiten.DrawWhole(
 		context.RenderTarget(from),
 		ScreenWidth,
 		ScreenHeight,
-		matrix.GeometryI(),
+		ebiten.GeometryMatrixI(),
 		color)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
 	color.Elements[3][3] = alpha
-	graphics.DrawWhole(
+	ebiten.DrawWhole(
 		context.RenderTarget(to),
 		ScreenWidth,
 		ScreenHeight,
-		matrix.GeometryI(),
+		ebiten.GeometryMatrixI(),
 		color)
 }
 

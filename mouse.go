@@ -1,4 +1,4 @@
-package input
+package ebiten
 
 type MouseButton int
 
@@ -12,7 +12,7 @@ const (
 var currentMouse Mouse
 
 type Mouse interface {
-	CurrentPosition() (x, y int)
+	CursorPosition() (x, y int)
 	IsMouseButtonPressed(mouseButton MouseButton) bool
 }
 
@@ -20,11 +20,11 @@ func SetMouse(mouse Mouse) {
 	currentMouse = mouse
 }
 
-func CurrentPosition() (x, y int) {
+func CursorPosition() (x, y int) {
 	if currentMouse == nil {
 		panic("input.CurrentPosition: currentMouse is not set")
 	}
-	return currentMouse.CurrentPosition()
+	return currentMouse.CursorPosition()
 }
 
 func IsMouseButtonPressed(button MouseButton) bool {

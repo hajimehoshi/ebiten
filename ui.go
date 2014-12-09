@@ -1,8 +1,4 @@
-package ui
-
-import (
-	"github.com/hajimehoshi/ebiten/graphics"
-)
+package ebiten
 
 type UI interface {
 	Start(widht, height, scale int, title string) (Canvas, error)
@@ -10,11 +6,12 @@ type UI interface {
 	Terminate()
 }
 
-type Drawer interface {
-	Draw(c graphics.Context) error
+// FIXME: rename this
+type Drawer2 interface {
+	Draw(c GraphicsContext) error
 }
 
 type Canvas interface {
-	Draw(drawer Drawer) error
+	Draw(drawer Drawer2) error
 	IsClosed() bool
 }

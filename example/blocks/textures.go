@@ -1,7 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten"
 	"image"
 	_ "image/png"
 	"os"
@@ -21,8 +21,8 @@ type nameSize struct {
 type Textures struct {
 	texturePaths      chan namePath
 	renderTargetSizes chan nameSize
-	textures          map[string]graphics.TextureID
-	renderTargets     map[string]graphics.RenderTargetID
+	textures          map[string]ebiten.TextureID
+	renderTargets     map[string]ebiten.RenderTargetID
 	sync.RWMutex
 }
 
@@ -30,8 +30,8 @@ func NewTextures() *Textures {
 	textures := &Textures{
 		texturePaths:      make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
-		textures:          map[string]graphics.TextureID{},
-		renderTargets:     map[string]graphics.RenderTargetID{},
+		textures:          map[string]ebiten.TextureID{},
+		renderTargets:     map[string]ebiten.RenderTargetID{},
 	}
 	go func() {
 		for {
@@ -65,7 +65,7 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := graphics.NewTextureID(img, graphics.FilterNearest)
+			id, err := ebiten.NewTextureID(img, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -77,7 +77,7 @@ func (t *Textures) loopMain() {
 		name := s.name
 		size := s.size
 		go func() {
-			id, err := graphics.NewRenderTargetID(size.Width, size.Height, graphics.FilterNearest)
+			id, err := ebiten.NewRenderTargetID(size.Width, size.Height, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -107,13 +107,13 @@ func (t *Textures) Has(name string) bool {
 	return ok
 }
 
-func (t *Textures) GetTexture(name string) graphics.TextureID {
+func (t *Textures) GetTexture(name string) ebiten.TextureID {
 	t.RLock()
 	defer t.RUnlock()
 	return t.textures[name]
 }
 
-func (t *Textures) GetRenderTarget(name string) graphics.RenderTargetID {
+func (t *Textures) GetRenderTarget(name string) ebiten.RenderTargetID {
 	t.RLock()
 	defer t.RUnlock()
 	return t.renderTargets[name]

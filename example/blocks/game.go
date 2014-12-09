@@ -1,7 +1,7 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten/graphics"
+	"github.com/hajimehoshi/ebiten"
 	"sync"
 )
 
@@ -24,14 +24,14 @@ type GameState struct {
 
 type Game struct {
 	sceneManager *SceneManager
-	input        *Input
+	ebiten       *Input
 	textures     *Textures
 }
 
 func NewGame() *Game {
 	game := &Game{
 		sceneManager: NewSceneManager(NewTitleScene()),
-		input:        NewInput(),
+		ebiten:       NewInput(),
 		textures:     NewTextures(),
 	}
 	return game
@@ -65,15 +65,15 @@ func (game *Game) Update() error {
 	if !game.isInitialized() {
 		return nil
 	}
-	game.input.Update()
+	game.ebiten.Update()
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
-		Input:        game.input,
+		Input:        game.ebiten,
 	})
 	return nil
 }
 
-func (game *Game) Draw(context graphics.Context) error {
+func (game *Game) Draw(context ebiten.GraphicsContext) error {
 	if !game.isInitialized() {
 		return nil
 	}
