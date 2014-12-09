@@ -20,15 +20,15 @@ import (
 	"math"
 )
 
-const GeometryDim = 3
+const GeometryMatrixDim = 3
 
 type GeometryMatrix struct {
-	Elements [GeometryDim - 1][GeometryDim]float64
+	Elements [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
 
 func GeometryMatrixI() GeometryMatrix {
 	return GeometryMatrix{
-		[GeometryDim - 1][GeometryDim]float64{
+		[GeometryMatrixDim - 1][GeometryMatrixDim]float64{
 			{1, 0, 0},
 			{0, 1, 0},
 		},
@@ -36,7 +36,7 @@ func GeometryMatrixI() GeometryMatrix {
 }
 
 func (g *GeometryMatrix) dim() int {
-	return GeometryDim
+	return GeometryMatrixDim
 }
 
 func (g *GeometryMatrix) Concat(other GeometryMatrix) {
