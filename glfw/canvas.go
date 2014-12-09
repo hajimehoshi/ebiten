@@ -19,7 +19,7 @@ package glfw
 import (
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
 	"runtime"
 )

@@ -19,7 +19,7 @@ package opengl
 import (
 	"fmt"
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/opengl/internal/shader"
+	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {

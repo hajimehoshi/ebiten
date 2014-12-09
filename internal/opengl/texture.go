@@ -19,7 +19,7 @@ package opengl
 import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/opengl/internal/shader"
+	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 	"image"
 	"image/draw"
 )

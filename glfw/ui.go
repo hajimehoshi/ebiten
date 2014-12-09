@@ -21,7 +21,7 @@ import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func init() {
