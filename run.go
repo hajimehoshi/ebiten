@@ -28,8 +28,11 @@ type Game interface {
 	Draw(context GraphicsContext) error
 }
 
-func Run(u UI, game Game, width, height, scale int, title string, fps int) error {
-	canvas, err := u.Start(width, height, scale, title)
+// Run runs the game. Basically, this function executes ui.Start() at the start,
+// calls ui.DoEvent(), game.Update() and game.Draw() at a regular interval, and finally
+// calls ui.Terminate().
+func Run(ui UI, game Game, width, height, scale int, title string, fps int) error {
+	canvas, err := ui.Start(width, height, scale, title)
 	if err != nil {
 		return err
 	}
@@ -39,9 +42,9 @@ func Run(u UI, game Game, width, height, scale int, title string, fps int) error
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, os.Interrupt, syscall.SIGTERM)
 
-	defer u.Terminate()
+	defer ui.Terminate()
 	for {
-		u.DoEvents()
+		ui.DoEvents()
 		select {
 		default:
 			if err := canvas.Draw(game); err != nil {

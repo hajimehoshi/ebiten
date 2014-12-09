@@ -16,6 +16,18 @@ limitations under the License.
 
 package ebiten
 
+type Key int
+
+// TODO: Add more keys.
+const (
+	KeyUp Key = iota
+	KeyDown
+	KeyLeft
+	KeyRight
+	KeySpace
+	KeyMax
+)
+
 type MouseButton int
 
 const (
@@ -25,27 +37,35 @@ const (
 	MouseButtonMax
 )
 
-var currentMouse Mouse
-
-type Mouse interface {
+type Input interface {
+	IsKeyPressed(key Key) bool
 	CursorPosition() (x, y int)
 	IsMouseButtonPressed(mouseButton MouseButton) bool
 }
 
-func SetMouse(mouse Mouse) {
-	currentMouse = mouse
+var currentInput Input
+
+func SetInput(input Input) {
+	currentInput = input
+}
+
+func IsKeyPressed(key Key) bool {
+	if currentInput == nil {
+		panic("ebiten.IsKeyPressed: currentInput is not set")
+	}
+	return currentInput.IsKeyPressed(key)
 }
 
 func CursorPosition() (x, y int) {
-	if currentMouse == nil {
-		panic("input.CurrentPosition: currentMouse is not set")
+	if currentInput == nil {
+		panic("ebiten.CurrentPosition: currentInput is not set")
 	}
-	return currentMouse.CursorPosition()
+	return currentInput.CursorPosition()
 }
 
 func IsMouseButtonPressed(button MouseButton) bool {
-	if currentMouse == nil {
-		panic("input.IsMouseButtonPressed: currentMouse is not set")
+	if currentInput == nil {
+		panic("ebiten.IsMouseButtonPressed: currentInput is not set")
 	}
-	return currentMouse.IsMouseButtonPressed(button)
+	return currentInput.IsMouseButtonPressed(button)
 }

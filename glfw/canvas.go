@@ -27,8 +27,7 @@ import (
 type canvas struct {
 	window    *glfw.Window
 	context   *opengl.GraphicsContext
-	keyboard  keyboard
-	mouse     mouse
+	input     input
 	funcs     chan func()
 	funcsDone chan struct{}
 }
@@ -87,6 +86,5 @@ func (c *canvas) use(f func()) {
 }
 
 func (c *canvas) update() {
-	c.keyboard.update(c.window)
-	c.mouse.update(c.window)
+	c.input.update(c.window)
 }

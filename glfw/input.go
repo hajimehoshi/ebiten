@@ -19,14 +19,26 @@ package glfw
 import (
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten"
+	"math"
 )
 
-type keyboard struct {
-	keyPressed [ebiten.KeyMax]bool
+type input struct {
+	keyPressed         [ebiten.KeyMax]bool
+	mouseButtonPressed [ebiten.MouseButtonMax]bool
+	cursorX            int
+	cursorY            int
 }
 
-func (k *keyboard) IsKeyPressed(key ebiten.Key) bool {
-	return k.keyPressed[key]
+func (i *input) IsKeyPressed(key ebiten.Key) bool {
+	return i.keyPressed[key]
+}
+
+func (i *input) IsMouseButtonPressed(button ebiten.MouseButton) bool {
+	return i.mouseButtonPressed[button]
+}
+
+func (i *input) CursorPosition() (x, y int) {
+	return i.cursorX, i.cursorY
 }
 
 var glfwKeyCodeToKey = map[glfw.Key]ebiten.Key{
@@ -37,8 +49,14 @@ var glfwKeyCodeToKey = map[glfw.Key]ebiten.Key{
 	glfw.KeyDown:  ebiten.KeyDown,
 }
 
-func (k *keyboard) update(window *glfw.Window) {
+func (i *input) update(window *glfw.Window) {
 	for g, u := range glfwKeyCodeToKey {
-		k.keyPressed[u] = window.GetKey(g) == glfw.Press
+		i.keyPressed[u] = window.GetKey(g) == glfw.Press
 	}
+	for b := ebiten.MouseButtonLeft; b < ebiten.MouseButtonMax; b++ {
+		i.mouseButtonPressed[b] = window.GetMouseButton(glfw.MouseButton(b)) == glfw.Press
+	}
+	x, y := window.GetCursorPosition()
+	i.cursorX = int(math.Floor(x))
+	i.cursorY = int(math.Floor(y))
 }

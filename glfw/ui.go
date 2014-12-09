@@ -49,8 +49,7 @@ func (u *UI) Start(width, height, scale int, title string) (ebiten.Canvas, error
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}
-	ebiten.SetKeyboard(&c.keyboard)
-	ebiten.SetMouse(&c.mouse)
+	ebiten.SetInput(&c.input)
 	ebiten.SetTextureFactory(c)
 
 	c.run(width, height, scale)
