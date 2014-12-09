@@ -6,12 +6,11 @@ type UI interface {
 	Terminate()
 }
 
-// FIXME: rename this
-type Drawer2 interface {
+type GraphicsContextDrawer interface {
 	Draw(c GraphicsContext) error
 }
 
 type Canvas interface {
-	Draw(drawer Drawer2) error
+	Draw(drawer GraphicsContextDrawer) error
 	IsClosed() bool
 }
