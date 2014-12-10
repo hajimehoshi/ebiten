@@ -46,6 +46,7 @@ func (u *UI) Start(game ebiten.Game, width, height, scale int, title string) err
 
 	c := &canvas{
 		window:    window,
+		scale:     scale,
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}

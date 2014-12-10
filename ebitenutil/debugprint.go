@@ -34,7 +34,7 @@ func DebugPrint(ga ebiten.GameContext, gr ebiten.GraphicsContext, str string) {
 	defaultDebugPrintState.DebugPrint(ga, gr, str)
 }
 
-func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y int) {
+func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y int, clr color.Color) {
 	parts := []ebiten.TexturePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -54,12 +54,11 @@ func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y i
 		})
 		locationX += assets.TextImageCharWidth
 	}
-	geo := ebiten.GeometryMatrixI()
-	geo.Translate(float64(x)+1, float64(y))
-	clr := ebiten.ColorMatrixI()
-	// TODO: Is this color OK?
-	clr.Scale(color.RGBA{0x80, 0x80, 0x80, 0xff})
-	gr.Texture(d.textTexture).Draw(parts, geo, clr)
+	geom := ebiten.GeometryMatrixI()
+	geom.Translate(float64(x)+1, float64(y))
+	clrm := ebiten.ColorMatrixI()
+	clrm.Scale(clr)
+	gr.Texture(d.textTexture).Draw(parts, geom, clrm)
 }
 
 func (d *debugPrintState) DebugPrint(ga ebiten.GameContext, gr ebiten.GraphicsContext, str string) {
@@ -81,5 +80,6 @@ func (d *debugPrintState) DebugPrint(ga ebiten.GameContext, gr ebiten.GraphicsCo
 			panic(err)
 		}
 	}
-	d.drawText(gr, str, 0, d.y)
+	d.drawText(gr, str, 1, d.y+1, &color.RGBA{0x00, 0x00, 0x00, 0x80})
+	d.drawText(gr, str, 0, d.y, &color.RGBA{0xff, 0xff, 0xff, 0xff})
 }

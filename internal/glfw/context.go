@@ -58,15 +58,15 @@ func (c *graphicsContext) RenderTarget(id ebiten.RenderTargetID) (d ebiten.Drawe
 	return
 }
 
-func (c *graphicsContext) ResetOffscreen() {
+func (c *graphicsContext) PopOffscreen() {
 	c.canvas.use(func() {
-		c.canvas.graphicsContext.ResetOffscreen()
+		c.canvas.graphicsContext.PopOffscreen()
 	})
 }
 
-func (c *graphicsContext) SetOffscreen(id ebiten.RenderTargetID) {
+func (c *graphicsContext) PushOffscreen(id ebiten.RenderTargetID) {
 	c.canvas.use(func() {
-		c.canvas.graphicsContext.SetOffscreen(id)
+		c.canvas.graphicsContext.PushOffscreen(id)
 	})
 }
 

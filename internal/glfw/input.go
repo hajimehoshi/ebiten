@@ -49,7 +49,7 @@ var glfwKeyCodeToKey = map[glfw.Key]ebiten.Key{
 	glfw.KeyDown:  ebiten.KeyDown,
 }
 
-func (i *input) update(window *glfw.Window) {
+func (i *input) update(window *glfw.Window, scale int) {
 	for g, u := range glfwKeyCodeToKey {
 		i.keyPressed[u] = window.GetKey(g) == glfw.Press
 	}
@@ -57,6 +57,6 @@ func (i *input) update(window *glfw.Window) {
 		i.mouseButtonPressed[b] = window.GetMouseButton(glfw.MouseButton(b)) == glfw.Press
 	}
 	x, y := window.GetCursorPosition()
-	i.cursorX = int(math.Floor(x))
-	i.cursorY = int(math.Floor(y))
+	i.cursorX = int(math.Floor(x)) / scale
+	i.cursorY = int(math.Floor(y)) / scale
 }

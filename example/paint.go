@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/runner"
@@ -35,12 +36,14 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 		if err != nil {
 			return err
 		}
-		gr.SetOffscreen(g.canvasRenderTarget)
+		gr.PushOffscreen(g.canvasRenderTarget)
 		gr.Fill(0xff, 0xff, 0xff)
+		gr.PopOffscreen()
 	}
-	gr.ResetOffscreen()
 	ebiten.DrawWhole(gr.RenderTarget(g.canvasRenderTarget), screenWidth, screenHeight, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
-	ebitenutil.DebugPrint(g.gameContext, gr, "Hello\nWorld!")
+
+	mx, my := g.gameContext.CursorPosition()
+	ebitenutil.DebugPrint(g.gameContext, gr, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil
 }
 

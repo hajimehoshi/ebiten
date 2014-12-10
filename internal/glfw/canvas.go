@@ -26,6 +26,7 @@ import (
 
 type canvas struct {
 	window          *glfw.Window
+	scale           int
 	graphicsContext *opengl.GraphicsContext
 	input           input
 	funcs           chan func()
@@ -86,7 +87,7 @@ func (c *canvas) use(f func()) {
 }
 
 func (c *canvas) update() {
-	c.input.update(c.window)
+	c.input.update(c.window, c.scale)
 }
 
 func (c *canvas) IsKeyPressed(key ebiten.Key) bool {
