@@ -32,8 +32,7 @@ type Game interface {
 // calls ui.DoEvent(), game.Update() and game.Draw() at a regular interval, and finally
 // calls ui.Terminate().
 func Run(ui UI, game Game, width, height, scale int, title string, fps int) error {
-	canvas, err := ui.Start(width, height, scale, title)
-	if err != nil {
+	if err := ui.Start(width, height, scale, title); err != nil {
 		return err
 	}
 
@@ -45,17 +44,17 @@ func Run(ui UI, game Game, width, height, scale int, title string, fps int) erro
 	defer ui.Terminate()
 	for {
 		ui.DoEvents()
+		if ui.IsClosed() {
+			return nil
+		}
 		select {
 		default:
-			if err := canvas.Draw(game); err != nil {
+			if err := ui.Draw(game); err != nil {
 				return err
 			}
 		case <-tick:
 			if err := game.Update(); err != nil {
 				return err
-			}
-			if canvas.IsClosed() {
-				return nil
 			}
 		case <-sigterm:
 			return nil

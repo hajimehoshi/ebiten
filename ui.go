@@ -17,16 +17,13 @@ limitations under the License.
 package ebiten
 
 type UI interface {
-	Start(widht, height, scale int, title string) (Canvas, error)
+	Start(widht, height, scale int, title string) error
 	DoEvents()
 	Terminate()
+	Draw(drawer GraphicsContextDrawer) error
+	IsClosed() bool
 }
 
 type GraphicsContextDrawer interface {
 	Draw(d GraphicsContext) error
-}
-
-type Canvas interface {
-	Draw(drawer GraphicsContextDrawer) error
-	IsClosed() bool
 }

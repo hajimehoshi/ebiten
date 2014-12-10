@@ -32,7 +32,7 @@ type canvas struct {
 	funcsDone chan struct{}
 }
 
-func (c *canvas) Draw(d ebiten.GraphicsContextDrawer) (err error) {
+func (c *canvas) draw(d ebiten.GraphicsContextDrawer) (err error) {
 	c.use(func() {
 		c.context.PreUpdate()
 	})
@@ -46,7 +46,7 @@ func (c *canvas) Draw(d ebiten.GraphicsContextDrawer) (err error) {
 	return
 }
 
-func (c *canvas) IsClosed() bool {
+func (c *canvas) isClosed() bool {
 	return c.window.ShouldClose()
 }
 

@@ -34,14 +34,14 @@ type UI struct {
 	canvas *canvas
 }
 
-func (u *UI) Start(width, height, scale int, title string) (ebiten.Canvas, error) {
+func (u *UI) Start(width, height, scale int, title string) error {
 	if !glfw.Init() {
-		return nil, errors.New("glfw.Init() fails")
+		return errors.New("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	c := &canvas{
@@ -61,11 +61,11 @@ func (u *UI) Start(width, height, scale int, title string) (ebiten.Canvas, error
 		c.context, err = opengl.Initialize(width, height, realScale)
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	u.canvas = c
-	return c, nil
+	return nil
 }
 
 func (u *UI) DoEvents() {
@@ -75,4 +75,12 @@ func (u *UI) DoEvents() {
 
 func (u *UI) Terminate() {
 	glfw.Terminate()
+}
+
+func (u *UI) Draw(drawer ebiten.GraphicsContextDrawer) error {
+	return u.canvas.draw(drawer)
+}
+
+func (u *UI) IsClosed() bool {
+	return u.canvas.isClosed()
 }
