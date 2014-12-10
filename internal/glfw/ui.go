@@ -30,15 +30,11 @@ func init() {
 	})
 }
 
-type GraphicsContextDrawer interface {
-	Draw(d ebiten.GraphicsContext) error
-}
-
 type UI struct {
 	canvas *canvas
 }
 
-func (u *UI) Start(width, height, scale int, title string) error {
+func (u *UI) Start(game ebiten.Game, width, height, scale int, title string) error {
 	if !glfw.Init() {
 		return errors.New("glfw.Init() fails")
 	}
@@ -53,7 +49,6 @@ func (u *UI) Start(width, height, scale int, title string) error {
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}
-	ebiten.SetGameContext(c)
 
 	c.run(width, height, scale)
 
@@ -68,6 +63,7 @@ func (u *UI) Start(width, height, scale int, title string) error {
 	}
 
 	u.canvas = c
+	game.Initialize(c)
 
 	return nil
 }
@@ -81,10 +77,10 @@ func (u *UI) Terminate() {
 	glfw.Terminate()
 }
 
-func (u *UI) Draw(drawer GraphicsContextDrawer) error {
-	return u.canvas.draw(drawer)
-}
-
 func (u *UI) IsClosed() bool {
 	return u.canvas.isClosed()
+}
+
+func (u *UI) DrawGame(game ebiten.Game) error {
+	return u.canvas.draw(game)
 }

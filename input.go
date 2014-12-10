@@ -36,24 +36,3 @@ const (
 	MouseButtonMiddle
 	MouseButtonMax
 )
-
-func IsKeyPressed(key Key) bool {
-	if currentGameContext == nil {
-		panic("ebiten.IsKeyPressed: currentGameContext is not set")
-	}
-	return currentGameContext.IsKeyPressed(key)
-}
-
-func CursorPosition() (x, y int) {
-	if currentGameContext == nil {
-		panic("ebiten.CurrentPosition: currentGameContext is not set")
-	}
-	return currentGameContext.CursorPosition()
-}
-
-func IsMouseButtonPressed(button MouseButton) bool {
-	if currentGameContext == nil {
-		panic("ebiten.IsMouseButtonPressed: currentGameContext is not set")
-	}
-	return currentGameContext.IsMouseButtonPressed(button)
-}

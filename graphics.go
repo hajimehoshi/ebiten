@@ -50,7 +50,33 @@ type GraphicsContext interface {
 	Fill(r, g, b uint8)
 	Texture(id TextureID) Drawer
 	RenderTarget(id RenderTargetID) Drawer
-
 	ResetOffscreen()
 	SetOffscreen(id RenderTargetID)
+}
+
+// Filter represents the type of filter to be used when a texture or a render
+// target is maginified or minified.
+type Filter int
+
+const (
+	FilterNearest Filter = iota
+	FilterLinear
+)
+
+// TextureID represents an ID of a texture.
+type TextureID int
+
+// IsNil returns true if the texture is nil.
+func (i TextureID) IsNil() bool {
+	return i == 0
+}
+
+// RenderTargetID represents an ID of a render target.
+// A render target is essentially same as a texture, but it is assumed that the
+// all alpha of a render target is maximum.
+type RenderTargetID int
+
+// IsNil returns true if the render target is nil.
+func (i RenderTargetID) IsNil() bool {
+	return i == 0
 }

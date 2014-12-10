@@ -20,16 +20,16 @@ import (
 	"image"
 )
 
+type Game interface {
+	Initialize(g GameContext)
+	Update() error
+	Draw(gr GraphicsContext) error
+}
+
 type GameContext interface {
 	IsKeyPressed(key Key) bool
 	CursorPosition() (x, y int)
 	IsMouseButtonPressed(mouseButton MouseButton) bool
 	NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error)
 	NewTextureID(img image.Image, filter Filter) (TextureID, error)
-}
-
-var currentGameContext GameContext
-
-func SetGameContext(g GameContext) {
-	currentGameContext = g
 }

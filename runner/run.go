@@ -25,26 +25,19 @@ import (
 	"time"
 )
 
-type Game interface {
-	Update() error
-	Draw(context ebiten.GraphicsContext) error
-}
-
-// Run runs the game. Basically, this function executes ui.Start() at the start,
-// calls ui.DoEvent(), game.Update() and game.Draw() at a regular interval, and finally
-// calls ui.Terminate().
-func Run(game Game, width, height, scale int, title string, fps int) error {
+// Run runs the game.
+func Run(game ebiten.Game, width, height, scale int, title string, fps int) error {
 	ui := new(glfw.UI)
-	if err := ui.Start(width, height, scale, title); err != nil {
+	if err := ui.Start(game, width, height, scale, title); err != nil {
 		return err
 	}
+	defer ui.Terminate()
 
 	frameTime := time.Duration(int64(time.Second) / int64(fps))
 	tick := time.Tick(frameTime)
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, os.Interrupt, syscall.SIGTERM)
 
-	defer ui.Terminate()
 	for {
 		ui.DoEvents()
 		if ui.IsClosed() {
@@ -52,7 +45,7 @@ func Run(game Game, width, height, scale int, title string, fps int) error {
 		}
 		select {
 		default:
-			if err := ui.Draw(game); err != nil {
+			if err := ui.DrawGame(game); err != nil {
 				return err
 			}
 		case <-tick:

@@ -18,7 +18,6 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"sync"
 )
 
 type Size struct {
@@ -39,21 +38,24 @@ type GameState struct {
 }
 
 type Game struct {
+	gameContext  ebiten.GameContext
 	sceneManager *SceneManager
-	ebiten       *Input
+	input        *Input
 	textures     *Textures
 }
 
 func NewGame() *Game {
 	game := &Game{
 		sceneManager: NewSceneManager(NewTitleScene()),
-		ebiten:       NewInput(),
-		textures:     NewTextures(),
+		input:        NewInput(),
 	}
 	return game
 }
 
 func (game *Game) isInitialized() bool {
+	if game.textures == nil {
+		return false
+	}
 	for name := range texturePaths {
 		if !game.textures.Has(name) {
 			return false
@@ -67,32 +69,33 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-var once sync.Once
+func (game *Game) Initialize(g ebiten.GameContext) {
+	game.gameContext = g
+	game.textures = NewTextures(g)
+	for name, path := range texturePaths {
+		game.textures.RequestTexture(name, path)
+	}
+	for name, size := range renderTargetSizes {
+		game.textures.RequestRenderTarget(name, size)
+	}
+}
 
 func (game *Game) Update() error {
-	once.Do(func() {
-		for name, path := range texturePaths {
-			game.textures.RequestTexture(name, path)
-		}
-		for name, size := range renderTargetSizes {
-			game.textures.RequestRenderTarget(name, size)
-		}
-	})
 	if !game.isInitialized() {
 		return nil
 	}
-	game.ebiten.Update()
+	game.input.Update(game.gameContext)
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
-		Input:        game.ebiten,
+		Input:        game.input,
 	})
 	return nil
 }
 
-func (game *Game) Draw(context ebiten.GraphicsContext) error {
+func (game *Game) Draw(g ebiten.GraphicsContext) error {
 	if !game.isInitialized() {
 		return nil
 	}
-	game.sceneManager.Draw(context, game.textures)
+	game.sceneManager.Draw(g, game.textures)
 	return nil
 }

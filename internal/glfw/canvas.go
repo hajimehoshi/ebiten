@@ -32,11 +32,11 @@ type canvas struct {
 	funcsDone       chan struct{}
 }
 
-func (c *canvas) draw(d GraphicsContextDrawer) (err error) {
+func (c *canvas) draw(game ebiten.Game) (err error) {
 	c.use(func() {
 		c.graphicsContext.PreUpdate()
 	})
-	if err = d.Draw(&graphicsContext{c}); err != nil {
+	if err = game.Draw(&graphicsContext{c}); err != nil {
 		return
 	}
 	c.use(func() {

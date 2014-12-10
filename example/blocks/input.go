@@ -38,9 +38,9 @@ func (i *Input) StateForKey(key ebiten.Key) int {
 	return i.states[key]
 }
 
-func (i *Input) Update() {
+func (i *Input) Update(g ebiten.GameContext) {
 	for key := range i.states {
-		if !ebiten.IsKeyPressed(key) {
+		if !g.IsKeyPressed(key) {
 			i.states[key] = 0
 			continue
 		}
