@@ -50,8 +50,8 @@ type GraphicsContext interface {
 	Fill(r, g, b uint8)
 	Texture(id TextureID) Drawer
 	RenderTarget(id RenderTargetID) Drawer
-	PushOffscreen(id RenderTargetID)
-	PopOffscreen()
+	PushRenderTarget(id RenderTargetID)
+	PopRenderTarget()
 }
 
 // Filter represents the type of filter to be used when a texture or a render

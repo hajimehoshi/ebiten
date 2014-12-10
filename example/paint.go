@@ -36,9 +36,9 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 		if err != nil {
 			return err
 		}
-		gr.PushOffscreen(g.canvasRenderTarget)
+		gr.PushRenderTarget(g.canvasRenderTarget)
 		gr.Fill(0xff, 0xff, 0xff)
-		gr.PopOffscreen()
+		gr.PopRenderTarget()
 	}
 	ebiten.DrawWhole(gr.RenderTarget(g.canvasRenderTarget), screenWidth, screenHeight, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 

@@ -66,16 +66,16 @@ func (s *SceneManager) Draw(context ebiten.GraphicsContext, textures *Textures) 
 		return
 	}
 	from := textures.GetRenderTarget("scene_manager_transition_from")
-	context.PushOffscreen(from)
+	context.PushRenderTarget(from)
 	context.Clear()
 	s.current.Draw(context, textures)
-	context.PopOffscreen()
+	context.PopRenderTarget()
 
 	to := textures.GetRenderTarget("scene_manager_transition_to")
-	context.PushOffscreen(to)
+	context.PushRenderTarget(to)
 	context.Clear()
 	s.next.Draw(context, textures)
-	context.PopOffscreen()
+	context.PopRenderTarget()
 
 	color := ebiten.ColorMatrixI()
 	ebiten.DrawWhole(

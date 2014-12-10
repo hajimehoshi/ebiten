@@ -84,22 +84,22 @@ func (c *GraphicsContext) RenderTarget(id ebiten.RenderTargetID) ebiten.Drawer {
 	return &textureWithContext{idsInstance.toTexture(id), c}
 }
 
-func (c *GraphicsContext) PushOffscreen(renderTargetID ebiten.RenderTargetID) {
+func (c *GraphicsContext) PushRenderTarget(renderTargetID ebiten.RenderTargetID) {
 	c.currentIDs = append(c.currentIDs, renderTargetID)
 }
 
-func (c *GraphicsContext) PopOffscreen() {
+func (c *GraphicsContext) PopRenderTarget() {
 	c.currentIDs = c.currentIDs[:len(c.currentIDs)-1]
 }
 
 func (c *GraphicsContext) PreUpdate() {
 	c.currentIDs = []ebiten.RenderTargetID{c.defaultID}
-	c.PushOffscreen(c.screenID)
+	c.PushRenderTarget(c.screenID)
 	c.Clear()
 }
 
 func (c *GraphicsContext) PostUpdate() {
-	c.PopOffscreen()
+	c.PopRenderTarget()
 	c.Clear()
 
 	scale := float64(c.screenScale)
