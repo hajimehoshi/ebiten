@@ -25,22 +25,22 @@ import (
 )
 
 type canvas struct {
-	window    *glfw.Window
-	context   *opengl.GraphicsContext
-	input     input
-	funcs     chan func()
-	funcsDone chan struct{}
+	window          *glfw.Window
+	graphicsContext *opengl.GraphicsContext
+	input           input
+	funcs           chan func()
+	funcsDone       chan struct{}
 }
 
 func (c *canvas) draw(d GraphicsContextDrawer) (err error) {
 	c.use(func() {
-		c.context.PreUpdate()
+		c.graphicsContext.PreUpdate()
 	})
-	if err = d.Draw(&context{c}); err != nil {
+	if err = d.Draw(&graphicsContext{c}); err != nil {
 		return
 	}
 	c.use(func() {
-		c.context.PostUpdate()
+		c.graphicsContext.PostUpdate()
 		c.window.SwapBuffers()
 	})
 	return
@@ -87,4 +87,16 @@ func (c *canvas) use(f func()) {
 
 func (c *canvas) update() {
 	c.input.update(c.window)
+}
+
+func (c *canvas) IsKeyPressed(key ebiten.Key) bool {
+	return c.input.IsKeyPressed(key)
+}
+
+func (c *canvas) IsMouseButtonPressed(button ebiten.MouseButton) bool {
+	return c.input.IsMouseButtonPressed(button)
+}
+
+func (c *canvas) CursorPosition() (x, y int) {
+	return c.input.CursorPosition()
 }

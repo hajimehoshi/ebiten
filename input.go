@@ -37,35 +37,23 @@ const (
 	MouseButtonMax
 )
 
-type Input interface {
-	IsKeyPressed(key Key) bool
-	CursorPosition() (x, y int)
-	IsMouseButtonPressed(mouseButton MouseButton) bool
-}
-
-var currentInput Input
-
-func SetInput(input Input) {
-	currentInput = input
-}
-
 func IsKeyPressed(key Key) bool {
-	if currentInput == nil {
-		panic("ebiten.IsKeyPressed: currentInput is not set")
+	if currentGameContext == nil {
+		panic("ebiten.IsKeyPressed: currentGameContext is not set")
 	}
-	return currentInput.IsKeyPressed(key)
+	return currentGameContext.IsKeyPressed(key)
 }
 
 func CursorPosition() (x, y int) {
-	if currentInput == nil {
-		panic("ebiten.CurrentPosition: currentInput is not set")
+	if currentGameContext == nil {
+		panic("ebiten.CurrentPosition: currentGameContext is not set")
 	}
-	return currentInput.CursorPosition()
+	return currentGameContext.CursorPosition()
 }
 
 func IsMouseButtonPressed(button MouseButton) bool {
-	if currentInput == nil {
-		panic("ebiten.IsMouseButtonPressed: currentInput is not set")
+	if currentGameContext == nil {
+		panic("ebiten.IsMouseButtonPressed: currentGameContext is not set")
 	}
-	return currentInput.IsMouseButtonPressed(button)
+	return currentGameContext.IsMouseButtonPressed(button)
 }

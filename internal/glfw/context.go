@@ -20,53 +20,53 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-type context struct {
+type graphicsContext struct {
 	canvas *canvas
 }
 
-var _ ebiten.GraphicsContext = new(context)
+var _ ebiten.GraphicsContext = new(graphicsContext)
 
-func (c *context) Clear() {
+func (c *graphicsContext) Clear() {
 	c.canvas.use(func() {
-		c.canvas.context.Clear()
+		c.canvas.graphicsContext.Clear()
 	})
 }
 
-func (c *context) Fill(r, g, b uint8) {
+func (c *graphicsContext) Fill(r, g, b uint8) {
 	c.canvas.use(func() {
-		c.canvas.context.Fill(r, g, b)
+		c.canvas.graphicsContext.Fill(r, g, b)
 	})
 }
 
-func (c *context) Texture(id ebiten.TextureID) (d ebiten.Drawer) {
+func (c *graphicsContext) Texture(id ebiten.TextureID) (d ebiten.Drawer) {
 	c.canvas.use(func() {
 		d = &drawer{
 			canvas:      c.canvas,
-			innerDrawer: c.canvas.context.Texture(id),
+			innerDrawer: c.canvas.graphicsContext.Texture(id),
 		}
 	})
 	return
 }
 
-func (c *context) RenderTarget(id ebiten.RenderTargetID) (d ebiten.Drawer) {
+func (c *graphicsContext) RenderTarget(id ebiten.RenderTargetID) (d ebiten.Drawer) {
 	c.canvas.use(func() {
 		d = &drawer{
 			canvas:      c.canvas,
-			innerDrawer: c.canvas.context.RenderTarget(id),
+			innerDrawer: c.canvas.graphicsContext.RenderTarget(id),
 		}
 	})
 	return
 }
 
-func (c *context) ResetOffscreen() {
+func (c *graphicsContext) ResetOffscreen() {
 	c.canvas.use(func() {
-		c.canvas.context.ResetOffscreen()
+		c.canvas.graphicsContext.ResetOffscreen()
 	})
 }
 
-func (c *context) SetOffscreen(id ebiten.RenderTargetID) {
+func (c *graphicsContext) SetOffscreen(id ebiten.RenderTargetID) {
 	c.canvas.use(func() {
-		c.canvas.context.SetOffscreen(id)
+		c.canvas.graphicsContext.SetOffscreen(id)
 	})
 }
 

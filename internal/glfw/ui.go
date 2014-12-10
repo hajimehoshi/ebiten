@@ -53,8 +53,7 @@ func (u *UI) Start(width, height, scale int, title string) error {
 		funcs:     make(chan func()),
 		funcsDone: make(chan struct{}),
 	}
-	ebiten.SetInput(&c.input)
-	ebiten.SetTextureFactory(c)
+	ebiten.SetGameContext(c)
 
 	c.run(width, height, scale)
 
@@ -62,13 +61,14 @@ func (u *UI) Start(width, height, scale int, title string) error {
 	windowWidth, _ := window.GetFramebufferSize()
 	realScale := windowWidth / width
 	c.use(func() {
-		c.context, err = opengl.Initialize(width, height, realScale)
+		c.graphicsContext, err = opengl.Initialize(width, height, realScale)
 	})
 	if err != nil {
 		return err
 	}
 
 	u.canvas = c
+
 	return nil
 }
 
