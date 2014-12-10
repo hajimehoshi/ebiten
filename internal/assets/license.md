@@ -1,4 +1,26 @@
-/*
+# License
+
+## text.png
+
+```
+-
+M+ BITMAP FONTS            Copyright 2002-2005  COZ <coz@users.sourceforge.jp>
+-
+
+LICENSE
+
+
+
+
+These fonts are free softwares.
+Unlimited permission is granted to use, copy, and distribute it, with
+or without modification, either commercially and noncommercially.
+THESE FONTS ARE PROVIDED "AS IS" WITHOUT WARRANTY.
+```
+
+## Other files
+
+```
 Copyright 2014 Hajime Hoshi
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,24 +34,4 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-*/
-
-package ebiten
-
-import (
-	"image"
-)
-
-type Game interface {
-	Initialize(g GameContext) error
-	Update() error
-	Draw(gr GraphicsContext) error
-}
-
-type GameContext interface {
-	IsKeyPressed(key Key) bool
-	CursorPosition() (x, y int)
-	IsMouseButtonPressed(mouseButton MouseButton) bool
-	NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error)
-	NewTextureID(img image.Image, filter Filter) (TextureID, error)
-}
+```

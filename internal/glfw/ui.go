@@ -63,7 +63,9 @@ func (u *UI) Start(game ebiten.Game, width, height, scale int, title string) err
 	}
 
 	u.canvas = c
-	game.Initialize(c)
+	if err := game.Initialize(c); err != nil {
+		return err
+	}
 
 	return nil
 }

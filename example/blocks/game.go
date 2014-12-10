@@ -69,7 +69,7 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-func (game *Game) Initialize(g ebiten.GameContext) {
+func (game *Game) Initialize(g ebiten.GameContext) error {
 	game.gameContext = g
 	game.textures = NewTextures(g)
 	for name, path := range texturePaths {
@@ -78,6 +78,7 @@ func (game *Game) Initialize(g ebiten.GameContext) {
 	for name, size := range renderTargetSizes {
 		game.textures.RequestRenderTarget(name, size)
 	}
+	return nil
 }
 
 func (game *Game) Update() error {

@@ -28,24 +28,6 @@ Email: info@9031.com
 http://www.sozai-page.com/02_sozai/b/b04/b04_002/b04_002.html
 ```
 
-## text.png
-
-```
--
-M+ BITMAP FONTS            Copyright 2002-2005  COZ <coz@users.sourceforge.jp>
--
-
-LICENSE
-
-
-
-
-These fonts are free softwares.
-Unlimited permission is granted to use, copy, and distribute it, with
-or without modification, either commercially and noncommercially.
-THESE FONTS ARE PROVIDED "AS IS" WITHOUT WARRANTY.
-```
-
 ## Other files
 
 ```

@@ -14,22 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ebiten
+package assets
 
 import (
+	"bytes"
 	"image"
+	_ "image/png"
 )
 
-type Game interface {
-	Initialize(g GameContext) error
-	Update() error
-	Draw(gr GraphicsContext) error
-}
+const FileNameText = "text.png"
 
-type GameContext interface {
-	IsKeyPressed(key Key) bool
-	CursorPosition() (x, y int)
-	IsMouseButtonPressed(mouseButton MouseButton) bool
-	NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error)
-	NewTextureID(img image.Image, filter Filter) (TextureID, error)
+//go:generate go-bindata -nocompress -pkg=assets -nomemcopy text.png
+
+const (
+	TextImageWidth      = 192
+	TextImageHeight     = 128
+	TextImageCharWidth  = TextImageWidth / 32
+	TextImageCharHeight = TextImageHeight / 8
+)
+
+func TextImage() (image.Image, error) {
+	b, err := Asset("text.png")
+	if err != nil {
+		return nil, err
+	}
+	img, _, err := image.Decode(bytes.NewBuffer(b))
+	return img, err
 }
