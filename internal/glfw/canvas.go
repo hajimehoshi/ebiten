@@ -32,7 +32,7 @@ type canvas struct {
 	funcsDone chan struct{}
 }
 
-func (c *canvas) draw(d ebiten.GraphicsContextDrawer) (err error) {
+func (c *canvas) draw(d GraphicsContextDrawer) (err error) {
 	c.use(func() {
 		c.context.PreUpdate()
 	})

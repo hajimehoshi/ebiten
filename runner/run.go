@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ebiten
+package runner
 
 import (
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/glfw"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,13 +27,14 @@ import (
 
 type Game interface {
 	Update() error
-	Draw(context GraphicsContext) error
+	Draw(context ebiten.GraphicsContext) error
 }
 
 // Run runs the game. Basically, this function executes ui.Start() at the start,
 // calls ui.DoEvent(), game.Update() and game.Draw() at a regular interval, and finally
 // calls ui.Terminate().
-func Run(ui UI, game Game, width, height, scale int, title string, fps int) error {
+func Run(game Game, width, height, scale int, title string, fps int) error {
+	ui := new(glfw.UI)
 	if err := ui.Start(width, height, scale, title); err != nil {
 		return err
 	}

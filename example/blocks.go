@@ -18,9 +18,8 @@ package main
 
 import (
 	"flag"
-	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/example/blocks"
-	"github.com/hajimehoshi/ebiten/glfw"
+	"github.com/hajimehoshi/ebiten/runner"
 	"log"
 	"os"
 	"runtime"
@@ -44,9 +43,8 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	ui := new(glfw.UI)
 	game := blocks.NewGame()
-	if err := ebiten.Run(ui, game, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Blocks (Ebiten Demo)", 60); err != nil {
+	if err := runner.Run(game, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Blocks (Ebiten Demo)", 60); err != nil {
 		log.Fatal(err)
 	}
 }

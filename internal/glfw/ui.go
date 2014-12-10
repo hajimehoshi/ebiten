@@ -30,6 +30,10 @@ func init() {
 	})
 }
 
+type GraphicsContextDrawer interface {
+	Draw(d ebiten.GraphicsContext) error
+}
+
 type UI struct {
 	canvas *canvas
 }
@@ -77,7 +81,7 @@ func (u *UI) Terminate() {
 	glfw.Terminate()
 }
 
-func (u *UI) Draw(drawer ebiten.GraphicsContextDrawer) error {
+func (u *UI) Draw(drawer GraphicsContextDrawer) error {
 	return u.canvas.draw(drawer)
 }
 
