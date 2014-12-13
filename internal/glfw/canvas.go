@@ -17,6 +17,7 @@ limitations under the License.
 package glfw
 
 import (
+	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -55,7 +56,16 @@ func (c *canvas) NewTextureID(img image.Image, filter ebiten.Filter) (ebiten.Tex
 	var id ebiten.TextureID
 	var err error
 	c.use(func() {
-		id, err = opengl.NewTextureID(img, filter)
+		glFilter := 0
+		switch filter {
+		case ebiten.FilterNearest:
+			glFilter = gl.NEAREST
+		case ebiten.FilterLinear:
+			glFilter = gl.LINEAR
+		default:
+			panic("not reached")
+		}
+		id, err = opengl.NewTextureID(img, glFilter)
 	})
 	return id, err
 }
@@ -64,7 +74,16 @@ func (c *canvas) NewRenderTargetID(width, height int, filter ebiten.Filter) (ebi
 	var id ebiten.RenderTargetID
 	var err error
 	c.use(func() {
-		id, err = opengl.NewRenderTargetID(width, height, filter)
+		glFilter := 0
+		switch filter {
+		case ebiten.FilterNearest:
+			glFilter = gl.NEAREST
+		case ebiten.FilterLinear:
+			glFilter = gl.LINEAR
+		default:
+			panic("not reached")
+		}
+		id, err = opengl.NewRenderTargetID(width, height, glFilter)
 	})
 	return id, err
 }

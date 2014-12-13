@@ -18,7 +18,6 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten"
 )
 
 type program struct {
@@ -81,18 +80,18 @@ func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
 	return location
 }
 
-func use(projectionMatrix [16]float32, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) gl.Program {
+func use(projectionMatrix [16]float32, geo Matrix, color Matrix) gl.Program {
 	// TODO: Check the performance.
 	program := programColorMatrix
 
 	getUniformLocation(program.native, "projection_matrix").UniformMatrix4fv(false, projectionMatrix)
 
-	a := float32(geo.Elements[0][0])
-	b := float32(geo.Elements[0][1])
-	c := float32(geo.Elements[1][0])
-	d := float32(geo.Elements[1][1])
-	tx := float32(geo.Elements[0][2])
-	ty := float32(geo.Elements[1][2])
+	a := float32(geo.Element(0, 0))
+	b := float32(geo.Element(0, 1))
+	c := float32(geo.Element(1, 0))
+	d := float32(geo.Element(1, 1))
+	tx := float32(geo.Element(0, 2))
+	ty := float32(geo.Element(1, 2))
 	glModelviewMatrix := [...]float32{
 		a, c, 0, 0,
 		b, d, 0, 0,
@@ -106,7 +105,7 @@ func use(projectionMatrix [16]float32, geo ebiten.GeometryMatrix, color ebiten.C
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
-			e[i][j] = float32(color.Elements[i][j])
+			e[i][j] = float32(color.Element(i, j))
 		}
 	}
 

@@ -40,7 +40,7 @@ func Initialize(screenWidth, screenHeight, screenScale int) (*GraphicsContext, e
 	})
 
 	var err error
-	c.screenID, err = idsInstance.createRenderTarget(screenWidth, screenHeight, ebiten.FilterNearest)
+	c.screenID, err = idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
 	if err != nil {
 		return nil, err
 	}

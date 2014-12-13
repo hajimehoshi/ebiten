@@ -42,6 +42,10 @@ func (c *ColorMatrix) dim() int {
 	return ColorMatrixDim
 }
 
+func (c *ColorMatrix) Element(i, j int) float64 {
+	return c.Elements[i][j]
+}
+
 func (c *ColorMatrix) Concat(other ColorMatrix) {
 	result := ColorMatrix{}
 	mul(&other, c, &result)
@@ -50,10 +54,6 @@ func (c *ColorMatrix) Concat(other ColorMatrix) {
 
 func (c *ColorMatrix) IsIdentity() bool {
 	return isIdentity(c)
-}
-
-func (c *ColorMatrix) element(i, j int) float64 {
-	return c.Elements[i][j]
 }
 
 func (c *ColorMatrix) setElement(i, j int, element float64) {

@@ -50,6 +50,7 @@ type GraphicsContext interface {
 	Fill(r, g, b uint8)
 	Texture(id TextureID) Drawer
 	RenderTarget(id RenderTargetID) Drawer
+	// TODO: ScreenRenderTarget() Drawer
 	PushRenderTarget(id RenderTargetID)
 	PopRenderTarget()
 }

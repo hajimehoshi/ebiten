@@ -19,7 +19,6 @@ package opengl
 import (
 	"fmt"
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
@@ -70,18 +69,18 @@ func (r *renderTarget) setAsViewport() {
 
 	gl.BlendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE)
 
-	width := shader.AdjustSizeForTexture(r.width)
-	height := shader.AdjustSizeForTexture(r.height)
+	width := adjustSizeForTexture(r.width)
+	height := adjustSizeForTexture(r.height)
 	gl.Viewport(0, 0, width, height)
 }
 
 func (r *renderTarget) projectionMatrix() [4][4]float64 {
-	width := shader.AdjustSizeForTexture(r.width)
-	height := shader.AdjustSizeForTexture(r.height)
+	width := adjustSizeForTexture(r.width)
+	height := adjustSizeForTexture(r.height)
 	ebiten := orthoProjectionMatrix(0, width, 0, height)
 	if r.flipY {
 		ebiten[1][1] *= -1
-		ebiten[1][3] += float64(r.height) / float64(shader.AdjustSizeForTexture(r.height)) * 2
+		ebiten[1][3] += float64(r.height) / float64(adjustSizeForTexture(r.height)) * 2
 	}
 	return ebiten
 }

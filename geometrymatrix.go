@@ -39,6 +39,10 @@ func (g *GeometryMatrix) dim() int {
 	return GeometryMatrixDim
 }
 
+func (g *GeometryMatrix) Element(i, j int) float64 {
+	return g.Elements[i][j]
+}
+
 func (g *GeometryMatrix) Concat(other GeometryMatrix) {
 	result := GeometryMatrix{}
 	mul(&other, g, &result)
@@ -47,10 +51,6 @@ func (g *GeometryMatrix) Concat(other GeometryMatrix) {
 
 func (g *GeometryMatrix) IsIdentity() bool {
 	return isIdentity(g)
-}
-
-func (g *GeometryMatrix) element(i, j int) float64 {
-	return g.Elements[i][j]
 }
 
 func (g *GeometryMatrix) setElement(i, j int, element float64) {

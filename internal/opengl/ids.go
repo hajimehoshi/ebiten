@@ -41,11 +41,11 @@ var idsInstance = &ids{
 	currentRenderTargetId: -1,
 }
 
-func NewRenderTargetID(width, height int, filter ebiten.Filter) (ebiten.RenderTargetID, error) {
+func NewRenderTargetID(width, height int, filter int) (ebiten.RenderTargetID, error) {
 	return idsInstance.createRenderTarget(width, height, filter)
 }
 
-func NewTextureID(img image.Image, filter ebiten.Filter) (ebiten.TextureID, error) {
+func NewTextureID(img image.Image, filter int) (ebiten.TextureID, error) {
 	return idsInstance.createTexture(img, filter)
 }
 
@@ -67,7 +67,7 @@ func (i *ids) toTexture(id ebiten.RenderTargetID) ebiten.TextureID {
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) createTexture(img image.Image, filter ebiten.Filter) (ebiten.TextureID, error) {
+func (i *ids) createTexture(img image.Image, filter int) (ebiten.TextureID, error) {
 	texture, err := createTextureFromImage(img, filter)
 	if err != nil {
 		return 0, err
@@ -81,7 +81,7 @@ func (i *ids) createTexture(img image.Image, filter ebiten.Filter) (ebiten.Textu
 	return textureId, nil
 }
 
-func (i *ids) createRenderTarget(width, height int, filter ebiten.Filter) (ebiten.RenderTargetID, error) {
+func (i *ids) createRenderTarget(width, height int, filter int) (ebiten.RenderTargetID, error) {
 	texture, err := createTexture(width, height, filter)
 	if err != nil {
 		return 0, err
@@ -148,7 +148,8 @@ func (i *ids) drawTexture(target ebiten.RenderTargetID, id ebiten.TextureID, par
 	i.setViewportIfNeeded(target)
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.projectionMatrix()
-	shader.DrawTexture(texture.native, texture.width, texture.height, projectionMatrix, parts, geo, color)
+	quads := textureQuads(parts, texture.width, texture.height)
+	shader.DrawTexture(texture.native, projectionMatrix, quads, &geo, &color)
 }
 
 func (i *ids) setViewportIfNeeded(id ebiten.RenderTargetID) {

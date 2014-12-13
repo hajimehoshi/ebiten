@@ -18,15 +18,14 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten"
 	"sync"
 )
 
-func glMatrix(ebiten [4][4]float64) [16]float32 {
+func glMatrix(m [4][4]float64) [16]float32 {
 	result := [16]float32{}
 	for j := 0; j < 4; j++ {
 		for i := 0; i < 4; i++ {
-			result[i+j*4] = float32(ebiten[i][j])
+			result[i+j*4] = float32(m[i][j])
 		}
 	}
 	return result
@@ -34,16 +33,19 @@ func glMatrix(ebiten [4][4]float64) [16]float32 {
 
 var once sync.Once
 
+type Matrix interface {
+	Element(i, j int) float64
+}
+
 // TODO: Use VBO
-func DrawTexture(native gl.Texture, width, height int, projectionMatrix [4][4]float64, parts []ebiten.TexturePart, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) {
+func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
 	once.Do(func() {
 		initialize()
 	})
 
-	if len(parts) == 0 {
+	if len(quads) == 0 {
 		return
 	}
-	quads := textureQuads(parts, width, height)
 	// TODO: Check performance
 	shaderProgram := use(glMatrix(projectionMatrix), geo, color)
 
@@ -67,7 +69,7 @@ func DrawTexture(native gl.Texture, width, height int, projectionMatrix [4][4]fl
 	vertices := []float32{}
 	texCoords := []float32{}
 	indicies := []uint32{}
-	// TODO: Check len(parts) and gl.MAX_ELEMENTS_INDICES?
+	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	for i, quad := range quads {
 		x1 := quad.VertexX1
 		x2 := quad.VertexX2

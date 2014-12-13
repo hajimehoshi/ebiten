@@ -18,8 +18,6 @@ package opengl
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 	"image"
 	"image/draw"
 )
@@ -29,8 +27,8 @@ func adjustImageForTexture(img image.Image) *image.NRGBA {
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
 		image.Point{
-			shader.AdjustSizeForTexture(width),
-			shader.AdjustSizeForTexture(height),
+			adjustSizeForTexture(width),
+			adjustSizeForTexture(height),
 		},
 	}
 	if nrgba, ok := img.(*image.NRGBA); ok && img.Bounds() == adjustedImageBounds {
@@ -52,7 +50,7 @@ type texture struct {
 	height int
 }
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter ebiten.Filter) gl.Texture {
+func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter int) gl.Texture {
 	nativeTexture := gl.GenTexture()
 	if nativeTexture < 0 {
 		panic("glGenTexture failed")
@@ -61,31 +59,22 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	nativeTexture.Bind(gl.TEXTURE_2D)
 	defer gl.Texture(0).Bind(gl.TEXTURE_2D)
 
-	glFilter := 0
-	switch filter {
-	case ebiten.FilterLinear:
-		glFilter = gl.LINEAR
-	case ebiten.FilterNearest:
-		glFilter = gl.NEAREST
-	default:
-		panic("not reached")
-	}
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, glFilter)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, glFilter)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter)
 
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 
 	return nativeTexture
 }
 
-func createTexture(width, height int, filter ebiten.Filter) (*texture, error) {
-	w := shader.AdjustSizeForTexture(width)
-	h := shader.AdjustSizeForTexture(height)
+func createTexture(width, height int, filter int) (*texture, error) {
+	w := adjustSizeForTexture(width)
+	h := adjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
 	return &texture{native, width, height}, nil
 }
 
-func createTextureFromImage(img image.Image, filter ebiten.Filter) (*texture, error) {
+func createTextureFromImage(img image.Image, filter int) (*texture, error) {
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
