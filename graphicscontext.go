@@ -14,29 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package opengl
+package ebiten
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func Initialize(screenWidth, screenHeight, screenScale int) (*GraphicsContext, error) {
+func Initialize(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	gl.Init()
 	gl.Enable(gl.TEXTURE_2D)
 	gl.Enable(gl.BLEND)
 
-	c := &GraphicsContext{
+	c := &graphicsContext{
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
 
 	// The defualt framebuffer should be 0.
-	c.defaultID = idsInstance.addRenderTarget(&renderTarget{
-		width:  screenWidth * screenScale,
-		height: screenHeight * screenScale,
-		flipY:  true,
+	c.defaultID = idsInstance.addRenderTarget(&opengl.RenderTarget{
+		Width:  screenWidth * screenScale,
+		Height: screenHeight * screenScale,
+		FlipY:  true,
 	})
 
 	var err error
@@ -46,76 +46,76 @@ func Initialize(screenWidth, screenHeight, screenScale int) (*GraphicsContext, e
 	}
 
 	// TODO: This is a special stack only for clearing. Can we change this?
-	c.currentIDs = []ebiten.RenderTargetID{c.screenID}
+	c.currentIDs = []RenderTargetID{c.screenID}
 	c.Clear()
 
 	return c, nil
 }
 
-type GraphicsContext struct {
-	screenID     ebiten.RenderTargetID
-	defaultID    ebiten.RenderTargetID
-	currentIDs   []ebiten.RenderTargetID
+type graphicsContext struct {
+	screenID     RenderTargetID
+	defaultID    RenderTargetID
+	currentIDs   []RenderTargetID
 	screenWidth  int
 	screenHeight int
 	screenScale  int
 }
 
-var _ ebiten.GraphicsContext = new(GraphicsContext)
+var _ GraphicsContext = new(graphicsContext)
 
-func (c *GraphicsContext) dispose() {
+func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
 	idsInstance.deleteRenderTarget(c.screenID)
 }
 
-func (c *GraphicsContext) Clear() {
+func (c *graphicsContext) Clear() {
 	c.Fill(0, 0, 0)
 }
 
-func (c *GraphicsContext) Fill(r, g, b uint8) {
+func (c *graphicsContext) Fill(r, g, b uint8) {
 	idsInstance.fillRenderTarget(c.currentIDs[len(c.currentIDs)-1], r, g, b)
 }
 
-func (c *GraphicsContext) Texture(id ebiten.TextureID) ebiten.Drawer {
+func (c *graphicsContext) Texture(id TextureID) Drawer {
 	return &textureWithContext{id, c}
 }
 
-func (c *GraphicsContext) RenderTarget(id ebiten.RenderTargetID) ebiten.Drawer {
+func (c *graphicsContext) RenderTarget(id RenderTargetID) Drawer {
 	return &textureWithContext{idsInstance.toTexture(id), c}
 }
 
-func (c *GraphicsContext) PushRenderTarget(renderTargetID ebiten.RenderTargetID) {
+func (c *graphicsContext) PushRenderTarget(renderTargetID RenderTargetID) {
 	c.currentIDs = append(c.currentIDs, renderTargetID)
 }
 
-func (c *GraphicsContext) PopRenderTarget() {
+func (c *graphicsContext) PopRenderTarget() {
 	c.currentIDs = c.currentIDs[:len(c.currentIDs)-1]
 }
 
-func (c *GraphicsContext) PreUpdate() {
-	c.currentIDs = []ebiten.RenderTargetID{c.defaultID}
+func (c *graphicsContext) PreUpdate() {
+	c.currentIDs = []RenderTargetID{c.defaultID}
 	c.PushRenderTarget(c.screenID)
 	c.Clear()
 }
 
-func (c *GraphicsContext) PostUpdate() {
+func (c *graphicsContext) PostUpdate() {
 	c.PopRenderTarget()
 	c.Clear()
 
 	scale := float64(c.screenScale)
-	geo := ebiten.GeometryMatrixI()
+	geo := GeometryMatrixI()
 	geo.Scale(scale, scale)
-	ebiten.DrawWhole(c.RenderTarget(c.screenID), c.screenWidth, c.screenHeight, geo, ebiten.ColorMatrixI())
+	DrawWhole(c.RenderTarget(c.screenID), c.screenWidth, c.screenHeight, geo, ColorMatrixI())
 
 	gl.Flush()
 }
 
 type textureWithContext struct {
-	id      ebiten.TextureID
-	context *GraphicsContext
+	id      TextureID
+	context *graphicsContext
 }
 
-func (t *textureWithContext) Draw(parts []ebiten.TexturePart, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) {
+func (t *textureWithContext) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) {
 	currentID := t.context.currentIDs[len(t.context.currentIDs)-1]
 	idsInstance.drawTexture(currentID, t.id, parts, geo, color)
 }

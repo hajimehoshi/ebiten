@@ -20,15 +20,20 @@ import (
 	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
 	"runtime"
 )
 
+type GraphicsContext interface {
+	ebiten.GraphicsContext
+	PreUpdate()
+	PostUpdate()
+}
+
 type canvas struct {
 	window          *glfw.Window
 	scale           int
-	graphicsContext *opengl.GraphicsContext
+	graphicsContext GraphicsContext
 	input           input
 	funcs           chan func()
 	funcsDone       chan struct{}
@@ -65,7 +70,7 @@ func (c *canvas) NewTextureID(img image.Image, filter ebiten.Filter) (ebiten.Tex
 		default:
 			panic("not reached")
 		}
-		id, err = opengl.NewTextureID(img, glFilter)
+		id, err = ebiten.NewTextureID(img, glFilter)
 	})
 	return id, err
 }
@@ -83,7 +88,7 @@ func (c *canvas) NewRenderTargetID(width, height int, filter ebiten.Filter) (ebi
 		default:
 			panic("not reached")
 		}
-		id, err = opengl.NewRenderTargetID(width, height, glFilter)
+		id, err = ebiten.NewRenderTargetID(width, height, glFilter)
 	})
 	return id, err
 }

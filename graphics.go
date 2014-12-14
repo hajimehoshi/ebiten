@@ -16,6 +16,11 @@ limitations under the License.
 
 package ebiten
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
+)
+
 // A Rect represents a rectangle.
 type Rect struct {
 	X      int
@@ -80,4 +85,29 @@ type RenderTargetID int
 // IsNil returns true if the render target is nil.
 func (i RenderTargetID) IsNil() bool {
 	return i == 0
+}
+
+func u(x int, width int) float32 {
+	return float32(x) / float32(opengl.AdjustSizeForTexture(width))
+}
+
+func v(y int, height int) float32 {
+	return float32(y) / float32(opengl.AdjustSizeForTexture(height))
+}
+
+func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {
+	quads := make([]shader.TextureQuad, 0, len(parts))
+	for _, part := range parts {
+		x1 := float32(part.LocationX)
+		x2 := float32(part.LocationX + part.Source.Width)
+		y1 := float32(part.LocationY)
+		y2 := float32(part.LocationY + part.Source.Height)
+		u1 := u(part.Source.X, width)
+		u2 := u(part.Source.X+part.Source.Width, width)
+		v1 := v(part.Source.Y, height)
+		v2 := v(part.Source.Y+part.Source.Height, height)
+		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
+		quads = append(quads, quad)
+	}
+	return quads
 }

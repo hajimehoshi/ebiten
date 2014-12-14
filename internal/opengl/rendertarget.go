@@ -35,14 +35,18 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 	}
 }
 
-type renderTarget struct {
-	framebuffer gl.Framebuffer
-	width       int
-	height      int
-	flipY       bool
+type RenderTarget struct {
+	Framebuffer gl.Framebuffer
+	Width       int
+	Height      int
+	FlipY       bool
 }
 
-func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
+func (r *RenderTarget) Dispose() {
+	r.Framebuffer.Delete()
+}
+
+func CreateFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
@@ -59,9 +63,9 @@ func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 	return framebuffer
 }
 
-func (r *renderTarget) setAsViewport() {
+func (r *RenderTarget) SetAsViewport() {
 	gl.Flush()
-	r.framebuffer.Bind()
+	r.Framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if err != gl.FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
@@ -69,22 +73,18 @@ func (r *renderTarget) setAsViewport() {
 
 	gl.BlendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE)
 
-	width := adjustSizeForTexture(r.width)
-	height := adjustSizeForTexture(r.height)
+	width := AdjustSizeForTexture(r.Width)
+	height := AdjustSizeForTexture(r.Height)
 	gl.Viewport(0, 0, width, height)
 }
 
-func (r *renderTarget) projectionMatrix() [4][4]float64 {
-	width := adjustSizeForTexture(r.width)
-	height := adjustSizeForTexture(r.height)
-	ebiten := orthoProjectionMatrix(0, width, 0, height)
-	if r.flipY {
-		ebiten[1][1] *= -1
-		ebiten[1][3] += float64(r.height) / float64(adjustSizeForTexture(r.height)) * 2
+func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
+	width := AdjustSizeForTexture(r.Width)
+	height := AdjustSizeForTexture(r.Height)
+	m := orthoProjectionMatrix(0, width, 0, height)
+	if r.FlipY {
+		m[1][1] *= -1
+		m[1][3] += float64(r.Height) / float64(AdjustSizeForTexture(r.Height)) * 2
 	}
-	return ebiten
-}
-
-func (r *renderTarget) dispose() {
-	r.framebuffer.Delete()
+	return m
 }

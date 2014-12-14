@@ -21,7 +21,6 @@ import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func init() {
@@ -57,7 +56,7 @@ func (u *UI) Start(game ebiten.Game, width, height, scale int, title string) err
 	windowWidth, _ := window.GetFramebufferSize()
 	realScale := windowWidth / width
 	c.use(func() {
-		c.graphicsContext, err = opengl.Initialize(width, height, realScale)
+		c.graphicsContext, err = ebiten.Initialize(width, height, realScale)
 	})
 	if err != nil {
 		return err

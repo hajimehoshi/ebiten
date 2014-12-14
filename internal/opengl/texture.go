@@ -22,13 +22,28 @@ import (
 	"image/draw"
 )
 
+func NextPowerOf2(x uint64) uint64 {
+	x -= 1
+	x |= (x >> 1)
+	x |= (x >> 2)
+	x |= (x >> 4)
+	x |= (x >> 8)
+	x |= (x >> 16)
+	x |= (x >> 32)
+	return x + 1
+}
+
+func AdjustSizeForTexture(size int) int {
+	return int(NextPowerOf2(uint64(size)))
+}
+
 func adjustImageForTexture(img image.Image) *image.NRGBA {
 	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
 		image.Point{
-			adjustSizeForTexture(width),
-			adjustSizeForTexture(height),
+			AdjustSizeForTexture(width),
+			AdjustSizeForTexture(height),
 		},
 	}
 	if nrgba, ok := img.(*image.NRGBA); ok && img.Bounds() == adjustedImageBounds {
@@ -44,10 +59,22 @@ func adjustImageForTexture(img image.Image) *image.NRGBA {
 	return adjustedImage
 }
 
-type texture struct {
+type Texture struct {
 	native gl.Texture
 	width  int
 	height int
+}
+
+func (t *Texture) Native() gl.Texture {
+	return t.native
+}
+
+func (t *Texture) Width() int {
+	return t.width
+}
+
+func (t *Texture) Height() int {
+	return t.height
 }
 
 func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter int) gl.Texture {
@@ -67,20 +94,20 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	return nativeTexture
 }
 
-func createTexture(width, height int, filter int) (*texture, error) {
-	w := adjustSizeForTexture(width)
-	h := adjustSizeForTexture(height)
+func CreateTexture(width, height int, filter int) (*Texture, error) {
+	w := AdjustSizeForTexture(width)
+	h := AdjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
-	return &texture{native, width, height}, nil
+	return &Texture{native, width, height}, nil
 }
 
-func createTextureFromImage(img image.Image, filter int) (*texture, error) {
+func CreateTextureFromImage(img image.Image, filter int) (*Texture, error) {
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
-	return &texture{native, size.X, size.Y}, nil
+	return &Texture{native, size.X, size.Y}, nil
 }
 
-func (t *texture) dispose() {
+func (t *Texture) Dispose() {
 	t.native.Delete()
 }
