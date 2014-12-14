@@ -21,22 +21,22 @@ import (
 	"math"
 )
 
-type Input struct {
+type input struct {
 	keyPressed         [KeyMax]bool
 	mouseButtonPressed [MouseButtonMax]bool
 	cursorX            int
 	cursorY            int
 }
 
-func (i *Input) IsKeyPressed(key Key) bool {
+func (i *input) IsKeyPressed(key Key) bool {
 	return i.keyPressed[key]
 }
 
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
+func (i *input) IsMouseButtonPressed(button MouseButton) bool {
 	return i.mouseButtonPressed[button]
 }
 
-func (i *Input) CursorPosition() (x, y int) {
+func (i *input) CursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
@@ -48,7 +48,7 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 	glfw.KeyDown:  KeyDown,
 }
 
-func (i *Input) Update(window *glfw.Window, scale int) {
+func (i *input) Update(window *glfw.Window, scale int) {
 	for g, u := range glfwKeyCodeToKey {
 		i.keyPressed[u] = window.GetKey(g) == glfw.Press
 	}

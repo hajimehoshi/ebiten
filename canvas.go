@@ -27,7 +27,7 @@ type canvas struct {
 	window          *glfw.Window
 	scale           int
 	graphicsContext *graphicsContext
-	input           Input
+	input           input
 	funcs           chan func()
 	funcsDone       chan struct{}
 }
