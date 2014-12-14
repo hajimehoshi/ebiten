@@ -49,7 +49,7 @@ func DrawWhole(drawer Drawer, width, height int, geo GeometryMatrix, color Color
 	return drawer.Draw(parts, geo, color)
 }
 
-// A Context is the interface that means a context of rendering.
+// A GraphicsContext is the interface that means a context of rendering.
 type GraphicsContext interface {
 	Clear() error
 	Fill(r, g, b uint8) error
@@ -64,6 +64,7 @@ type GraphicsContext interface {
 // target is maginified or minified.
 type Filter int
 
+// Filters
 const (
 	FilterNearest Filter = iota
 	FilterLinear

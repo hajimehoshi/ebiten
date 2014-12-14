@@ -21,12 +21,15 @@ import (
 	"math"
 )
 
+// ColorMatrixDim is a dimension of a ColorMatrix.
 const ColorMatrixDim = 5
 
+// A ColorMatrix represents a matrix to transform coloring when rendering a texture or a render target.
 type ColorMatrix struct {
 	Elements [ColorMatrixDim - 1][ColorMatrixDim]float64
 }
 
+// ColorMatrixI returns an identity color matrix.
 func ColorMatrixI() ColorMatrix {
 	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
@@ -42,16 +45,19 @@ func (c *ColorMatrix) dim() int {
 	return ColorMatrixDim
 }
 
+// Element returns a value of a matrix at (i, j).
 func (c *ColorMatrix) Element(i, j int) float64 {
 	return c.Elements[i][j]
 }
 
+// Concat multiplies a color matrix with the other color matrix.
 func (c *ColorMatrix) Concat(other ColorMatrix) {
 	result := ColorMatrix{}
 	mul(&other, c, &result)
 	*c = result
 }
 
+// IsIdentity returns a boolean indicating whether the color matrix is an identity.
 func (c *ColorMatrix) IsIdentity() bool {
 	return isIdentity(c)
 }
@@ -60,6 +66,7 @@ func (c *ColorMatrix) setElement(i, j int, element float64) {
 	c.Elements[i][j] = element
 }
 
+// Monochrome returns a color matrix to make the texture monochrome.
 func Monochrome() ColorMatrix {
 	const r float64 = 6968.0 / 32768.0
 	const g float64 = 23434.0 / 32768.0
@@ -83,6 +90,7 @@ func rgba(clr color.Color) (float64, float64, float64, float64) {
 	return rf, gf, bf, af
 }
 
+// Scale scales the color matrix by clr.
 func (c *ColorMatrix) Scale(clr color.Color) {
 	rf, gf, bf, af := rgba(clr)
 	for i, e := range []float64{rf, gf, bf, af} {
@@ -92,6 +100,7 @@ func (c *ColorMatrix) Scale(clr color.Color) {
 	}
 }
 
+// Translate translates the color matrix by clr.
 func (c *ColorMatrix) Translate(clr color.Color) {
 	rf, gf, bf, af := rgba(clr)
 	c.Elements[0][4] = rf

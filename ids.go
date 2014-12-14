@@ -29,8 +29,8 @@ type ids struct {
 	textures              map[TextureID]*opengl.Texture
 	renderTargets         map[RenderTargetID]*opengl.RenderTarget
 	renderTargetToTexture map[RenderTargetID]TextureID
-	lastId                int
-	currentRenderTargetId RenderTargetID
+	lastID                int
+	currentRenderTargetID RenderTargetID
 	sync.RWMutex
 }
 
@@ -38,7 +38,7 @@ var idsInstance = &ids{
 	textures:              map[TextureID]*opengl.Texture{},
 	renderTargets:         map[RenderTargetID]*opengl.RenderTarget{},
 	renderTargetToTexture: map[RenderTargetID]TextureID{},
-	currentRenderTargetId: -1,
+	currentRenderTargetID: -1,
 }
 
 func (i *ids) textureAt(id TextureID) *opengl.Texture {
@@ -67,10 +67,10 @@ func (i *ids) createTexture(img image.Image, filter int) (TextureID, error) {
 
 	i.Lock()
 	defer i.Unlock()
-	i.lastId++
-	textureId := TextureID(i.lastId)
-	i.textures[textureId] = texture
-	return textureId, nil
+	i.lastID++
+	textureID := TextureID(i.lastID)
+	i.textures[textureID] = texture
+	return textureID, nil
 }
 
 func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID, error) {
@@ -80,7 +80,7 @@ func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID,
 	}
 
 	// The current binded framebuffer can be changed.
-	i.currentRenderTargetId = -1
+	i.currentRenderTargetID = -1
 	r, err := opengl.NewRenderTargetFromTexture(texture)
 	if err != nil {
 		return 0, err
@@ -88,24 +88,24 @@ func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID,
 
 	i.Lock()
 	defer i.Unlock()
-	i.lastId++
-	textureId := TextureID(i.lastId)
-	i.lastId++
-	renderTargetId := RenderTargetID(i.lastId)
+	i.lastID++
+	textureID := TextureID(i.lastID)
+	i.lastID++
+	renderTargetID := RenderTargetID(i.lastID)
 
-	i.textures[textureId] = texture
-	i.renderTargets[renderTargetId] = r
-	i.renderTargetToTexture[renderTargetId] = textureId
+	i.textures[textureID] = texture
+	i.renderTargets[renderTargetID] = r
+	i.renderTargetToTexture[renderTargetID] = textureID
 
-	return renderTargetId, nil
+	return renderTargetID, nil
 }
 
 // NOTE: renderTarget can't be used as a texture.
 func (i *ids) addRenderTarget(renderTarget *opengl.RenderTarget) RenderTargetID {
 	i.Lock()
 	defer i.Unlock()
-	i.lastId++
-	id := RenderTargetID(i.lastId)
+	i.lastID++
+	id := RenderTargetID(i.lastID)
 	i.renderTargets[id] = renderTarget
 
 	return id
@@ -116,15 +116,15 @@ func (i *ids) deleteRenderTarget(id RenderTargetID) {
 	defer i.Unlock()
 
 	renderTarget := i.renderTargets[id]
-	textureId := i.renderTargetToTexture[id]
-	texture := i.textures[textureId]
+	textureID := i.renderTargetToTexture[id]
+	texture := i.textures[textureID]
 
 	renderTarget.Dispose()
 	texture.Dispose()
 
 	delete(i.renderTargets, id)
 	delete(i.renderTargetToTexture, id)
-	delete(i.textures, textureId)
+	delete(i.textures, textureID)
 }
 
 func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) error {
@@ -151,11 +151,11 @@ func (i *ids) drawTexture(target RenderTargetID, id TextureID, parts []TexturePa
 
 func (i *ids) setViewportIfNeeded(id RenderTargetID) error {
 	r := i.renderTargetAt(id)
-	if i.currentRenderTargetId != id {
+	if i.currentRenderTargetID != id {
 		if err := r.SetAsViewport(); err != nil {
 			return err
 		}
-		i.currentRenderTargetId = id
+		i.currentRenderTargetID = id
 	}
 	return nil
 }

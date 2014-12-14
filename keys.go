@@ -16,9 +16,12 @@ limitations under the License.
 
 package ebiten
 
+// A Key represents a keyboard key.
 type Key int
 
 // TODO: Add more keys.
+
+// Keys
 const (
 	KeyUp Key = iota
 	KeyDown
@@ -28,8 +31,10 @@ const (
 	KeyMax
 )
 
+// A MouseButton represents a mouse button.
 type MouseButton int
 
+// MouseButtons
 const (
 	MouseButtonLeft MouseButton = iota
 	MouseButtonRight

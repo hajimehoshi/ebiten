@@ -20,12 +20,15 @@ import (
 	"math"
 )
 
+// GeometryMatrixDim is a dimension of a GeometryMatrix.
 const GeometryMatrixDim = 3
 
+// A GeometryMatrix represents a matrix to transform geometry when rendering a texture or a render target.
 type GeometryMatrix struct {
 	Elements [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
 
+// GeometryMatrixI returns an identity geometry matrix.
 func GeometryMatrixI() GeometryMatrix {
 	return GeometryMatrix{
 		[GeometryMatrixDim - 1][GeometryMatrixDim]float64{
@@ -39,16 +42,19 @@ func (g *GeometryMatrix) dim() int {
 	return GeometryMatrixDim
 }
 
+// Element returns a value of a matrix at (i, j).
 func (g *GeometryMatrix) Element(i, j int) float64 {
 	return g.Elements[i][j]
 }
 
+// Concat multiplies a geometry matrix with the other geometry matrix.
 func (g *GeometryMatrix) Concat(other GeometryMatrix) {
 	result := GeometryMatrix{}
 	mul(&other, g, &result)
 	*g = result
 }
 
+// IsIdentity returns a boolean indicating whether the geometry matrix is an identity.
 func (g *GeometryMatrix) IsIdentity() bool {
 	return isIdentity(g)
 }
@@ -57,11 +63,13 @@ func (g *GeometryMatrix) setElement(i, j int, element float64) {
 	g.Elements[i][j] = element
 }
 
+// Translate translates the geometry matrix by (tx, ty).
 func (g *GeometryMatrix) Translate(tx, ty float64) {
 	g.Elements[0][2] += tx
 	g.Elements[1][2] += ty
 }
 
+// Scale scales the geometry matrix by (x, y).
 func (g *GeometryMatrix) Scale(x, y float64) {
 	g.Elements[0][0] *= x
 	g.Elements[0][1] *= x
@@ -71,6 +79,7 @@ func (g *GeometryMatrix) Scale(x, y float64) {
 	g.Elements[1][2] *= y
 }
 
+// Rotate rotates the geometry matrix by theta.
 func (g *GeometryMatrix) Rotate(theta float64) {
 	sin, cos := math.Sincos(theta)
 	rotate := GeometryMatrix{

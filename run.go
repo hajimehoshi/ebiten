@@ -23,6 +23,7 @@ import (
 	"time"
 )
 
+// A Game is the interface that represents a game.
 type Game interface {
 	Update() error
 	Draw(gr GraphicsContext) error
