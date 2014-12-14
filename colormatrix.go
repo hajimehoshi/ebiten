@@ -66,7 +66,7 @@ func (c *ColorMatrix) setElement(i, j int, element float64) {
 	c.Elements[i][j] = element
 }
 
-// Monochrome returns a color matrix to make the texture monochrome.
+// Monochrome returns a color matrix to make an image monochrome.
 func Monochrome() ColorMatrix {
 	const r float64 = 6968.0 / 32768.0
 	const g float64 = 23434.0 / 32768.0
