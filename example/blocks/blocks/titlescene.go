@@ -69,7 +69,7 @@ func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c i
 	dx := (-c / 4) % textureWidth
 	dy := (c / 4) % textureHeight
 	geo := ebiten.GeometryMatrixI()
-	geo.Translate(float64(dx), float64(dy))
+	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
 	clr := ebiten.ColorMatrixI()
 	context.Texture(backgroundTextureId).Draw(parts, geo, clr)
 }

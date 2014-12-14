@@ -63,30 +63,33 @@ func (g *GeometryMatrix) setElement(i, j int, element float64) {
 	g.Elements[i][j] = element
 }
 
-// Translate translates the geometry matrix by (tx, ty).
-func (g *GeometryMatrix) Translate(tx, ty float64) {
-	g.Elements[0][2] += tx
-	g.Elements[1][2] += ty
+// ScaleGeometry returns a matrix that scales a geometry matrix by (x, y).
+func ScaleGeometry(x, y float64) GeometryMatrix {
+	return GeometryMatrix{
+		[2][3]float64{
+			{x, 0, 0},
+			{0, y, 0},
+		},
+	}
 }
 
-// Scale scales the geometry matrix by (x, y).
-func (g *GeometryMatrix) Scale(x, y float64) {
-	g.Elements[0][0] *= x
-	g.Elements[0][1] *= x
-	g.Elements[0][2] *= x
-	g.Elements[1][0] *= y
-	g.Elements[1][1] *= y
-	g.Elements[1][2] *= y
+// TranslateGeometry returns a matrix taht translates a geometry matrix by (tx, ty).
+func TranslateGeometry(tx, ty float64) GeometryMatrix {
+	return GeometryMatrix{
+		[2][3]float64{
+			{1, 0, tx},
+			{0, 1, ty},
+		},
+	}
 }
 
-// Rotate rotates the geometry matrix by theta.
-func (g *GeometryMatrix) Rotate(theta float64) {
+// RotateGeometry returns a matrix that rotates a geometry matrix by theta.
+func RotateGeometry(theta float64) GeometryMatrix {
 	sin, cos := math.Sincos(theta)
-	rotate := GeometryMatrix{
+	return GeometryMatrix{
 		[2][3]float64{
 			{cos, -sin, 0},
 			{sin, cos, 0},
 		},
 	}
-	g.Concat(rotate)
 }

@@ -116,16 +116,14 @@ func (s *GameScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
 
 	field := textures.GetTexture("empty")
 	geoMat := ebiten.GeometryMatrixI()
-	geoMat.Scale(
-		float64(fieldWidth)/float64(emptyWidth),
-		float64(fieldHeight)/float64(emptyHeight))
-	geoMat.Translate(20, 20) // magic number?
+	geoMat.Concat(ebiten.ScaleGeometry(float64(fieldWidth)/float64(emptyWidth), float64(fieldHeight)/float64(emptyHeight)))
+	geoMat.Concat(ebiten.TranslateGeometry(20, 20)) // TODO: magic number?
 	colorMat := ebiten.ColorMatrixI()
 	colorMat.Scale(color.RGBA{0, 0, 0, 0x80})
 	ebiten.DrawWhole(context.Texture(field), emptyWidth, emptyHeight, geoMat, colorMat)
 
 	geoMat = ebiten.GeometryMatrixI()
-	geoMat.Translate(20, 20)
+	geoMat.Concat(ebiten.TranslateGeometry(20, 20))
 	s.field.Draw(context, textures, geoMat)
 
 	if s.currentPiece != nil {

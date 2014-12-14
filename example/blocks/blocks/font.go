@@ -56,8 +56,8 @@ func drawText(context ebiten.GraphicsContext, textures *Textures, str string, x,
 	}
 
 	geoMat := ebiten.GeometryMatrixI()
-	geoMat.Scale(float64(scale), float64(scale))
-	geoMat.Translate(float64(x), float64(y))
+	geoMat.Concat(ebiten.ScaleGeometry(float64(scale), float64(scale)))
+	geoMat.Concat(ebiten.TranslateGeometry(float64(x), float64(y)))
 	clrMat := ebiten.ColorMatrixI()
 	clrMat.Scale(clr)
 	context.Texture(fontTextureId).Draw(parts, geoMat, clrMat)

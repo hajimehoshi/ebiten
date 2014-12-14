@@ -101,7 +101,7 @@ func (c *graphicsContext) postUpdate() {
 
 	scale := float64(c.screenScale)
 	geo := GeometryMatrixI()
-	geo.Scale(scale, scale)
+	geo.Concat(ScaleGeometry(scale, scale))
 	DrawWhole(c.RenderTarget(c.screenID), c.screenWidth, c.screenHeight, geo, ColorMatrixI())
 
 	gl.Flush()

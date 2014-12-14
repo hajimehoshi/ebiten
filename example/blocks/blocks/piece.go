@@ -234,7 +234,7 @@ func (p *Piece) Draw(context ebiten.GraphicsContext, textures *Textures, fieldX,
 	geoMat := ebiten.GeometryMatrixI()
 	x := fieldX + pieceX*blockWidth
 	y := fieldY + pieceY*blockHeight
-	geoMat.Translate(float64(x), float64(y))
+	geoMat.Concat(ebiten.TranslateGeometry(float64(x), float64(y)))
 
 	drawBlocks(context, textures, blocks, geoMat)
 }
