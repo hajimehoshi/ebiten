@@ -95,7 +95,7 @@ func ScaleColor(clr color.Color) ColorMatrix {
 }
 
 // TranslateColor returns a color matrix that translates a color matrix by clr.
-func (c *ColorMatrix) Translate(clr color.Color) ColorMatrix {
+func TranslateColor(clr color.Color) ColorMatrix {
 	rf, gf, bf, af := rgba(clr)
 	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
