@@ -19,7 +19,7 @@ package main
 import (
 	"flag"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/example/blocks"
+	"github.com/hajimehoshi/ebiten/example/blocks/blocks"
 	"log"
 	"os"
 	"runtime"

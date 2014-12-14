@@ -22,15 +22,15 @@ changed easily.
 ## How to execute the example
 
 ```
-:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example/blocks
-:; go run blocks.go
+:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
+:; go run blocks/main.go
 ```
 
 ### How to benchmark the example
 
 ```
-:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example/blocks
-:; go build -o=example blocks.go
+:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
+:; go build -o=example blocks/main.go
 :; ./example -cpuprofile=cpu.out
 :; go tool pprof ./example cpu.out
 ```
