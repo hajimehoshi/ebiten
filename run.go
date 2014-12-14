@@ -23,9 +23,17 @@ import (
 	"time"
 )
 
+var currentUI *ui
+
 // Run runs the game.
 func Run(game Game, width, height, scale int, title string, fps int) error {
 	ui := new(ui)
+
+	currentUI = ui
+	defer func() {
+		currentUI = nil
+	}()
+
 	if err := ui.Start(game, width, height, scale, title); err != nil {
 		return err
 	}

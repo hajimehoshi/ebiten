@@ -30,8 +30,8 @@ type debugPrintState struct {
 
 var defaultDebugPrintState = new(debugPrintState)
 
-func DebugPrint(ga ebiten.GameContext, gr ebiten.GraphicsContext, str string) {
-	defaultDebugPrintState.DebugPrint(ga, gr, str)
+func DebugPrint(gr ebiten.GraphicsContext, str string) {
+	defaultDebugPrintState.DebugPrint(gr, str)
 }
 
 func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y int, clr color.Color) {
@@ -61,13 +61,13 @@ func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y i
 	gr.Texture(d.textTexture).Draw(parts, geom, clrm)
 }
 
-func (d *debugPrintState) DebugPrint(ga ebiten.GameContext, gr ebiten.GraphicsContext, str string) {
+func (d *debugPrintState) DebugPrint(gr ebiten.GraphicsContext, str string) {
 	if d.textTexture.IsNil() {
 		img, err := assets.TextImage()
 		if err != nil {
 			panic(err)
 		}
-		d.textTexture, err = ga.NewTextureID(img, ebiten.FilterNearest)
+		d.textTexture, err = ebiten.NewTextureID(img, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}
@@ -75,7 +75,7 @@ func (d *debugPrintState) DebugPrint(ga ebiten.GameContext, gr ebiten.GraphicsCo
 	if d.debugPrintRenderTarget.IsNil() {
 		width, height := 256, 256
 		var err error
-		d.debugPrintRenderTarget, err = ga.NewRenderTargetID(width, height, ebiten.FilterNearest)
+		d.debugPrintRenderTarget, err = ebiten.NewRenderTargetID(width, height, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}

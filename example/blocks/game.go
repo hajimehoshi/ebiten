@@ -18,6 +18,7 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"sync"
 )
 
 type Size struct {
@@ -38,7 +39,7 @@ type GameState struct {
 }
 
 type Game struct {
-	gameContext  ebiten.GameContext
+	once         sync.Once
 	sceneManager *SceneManager
 	input        *Input
 	textures     *Textures
@@ -69,23 +70,20 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-func (game *Game) Initialize(g ebiten.GameContext) error {
-	game.gameContext = g
-	game.textures = NewTextures(g)
-	for name, path := range texturePaths {
-		game.textures.RequestTexture(name, path)
-	}
-	for name, size := range renderTargetSizes {
-		game.textures.RequestRenderTarget(name, size)
-	}
-	return nil
-}
-
 func (game *Game) Update() error {
+	game.once.Do(func() {
+		game.textures = NewTextures()
+		for name, path := range texturePaths {
+			game.textures.RequestTexture(name, path)
+		}
+		for name, size := range renderTargetSizes {
+			game.textures.RequestRenderTarget(name, size)
+		}
+	})
 	if !game.isInitialized() {
 		return nil
 	}
-	game.input.Update(game.gameContext)
+	game.input.Update()
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        game.input,

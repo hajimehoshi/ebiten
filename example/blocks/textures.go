@@ -35,7 +35,6 @@ type nameSize struct {
 }
 
 type Textures struct {
-	gameContext       ebiten.GameContext
 	texturePaths      chan namePath
 	renderTargetSizes chan nameSize
 	textures          map[string]ebiten.TextureID
@@ -43,9 +42,8 @@ type Textures struct {
 	sync.RWMutex
 }
 
-func NewTextures(g ebiten.GameContext) *Textures {
+func NewTextures() *Textures {
 	textures := &Textures{
-		gameContext:       g,
 		texturePaths:      make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
 		textures:          map[string]ebiten.TextureID{},
@@ -83,7 +81,7 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := t.gameContext.NewTextureID(img, ebiten.FilterNearest)
+			id, err := ebiten.NewTextureID(img, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -95,7 +93,7 @@ func (t *Textures) loopMain() {
 		name := s.name
 		size := s.size
 		go func() {
-			id, err := t.gameContext.NewRenderTargetID(size.Width, size.Height, ebiten.FilterNearest)
+			id, err := ebiten.NewRenderTargetID(size.Width, size.Height, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
