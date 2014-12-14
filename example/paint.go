@@ -14,15 +14,26 @@ const (
 )
 
 type Game struct {
+	brushRenderTarget  ebiten.RenderTargetID
 	canvasRenderTarget ebiten.RenderTargetID
 }
 
 func (g *Game) Update() error {
-	// TODO: Implement
 	return nil
 }
 
 func (g *Game) Draw(gr ebiten.GraphicsContext) error {
+	if g.brushRenderTarget.IsNil() {
+		var err error
+		g.brushRenderTarget, err = ebiten.NewRenderTargetID(1, 1, ebiten.FilterNearest)
+		if err != nil {
+			return err
+		}
+
+		gr.PushRenderTarget(g.brushRenderTarget)
+		gr.Fill(0, 0, 0)
+		gr.PopRenderTarget()
+	}
 	if g.canvasRenderTarget.IsNil() {
 		var err error
 		g.canvasRenderTarget, err = ebiten.NewRenderTargetID(screenWidth, screenHeight, ebiten.FilterNearest)
@@ -33,9 +44,18 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 		gr.Fill(0xff, 0xff, 0xff)
 		gr.PopRenderTarget()
 	}
+	mx, my := ebiten.CursorPosition()
+
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		gr.PushRenderTarget(g.canvasRenderTarget)
+		geo := ebiten.GeometryMatrixI()
+		geo.Translate(float64(mx), float64(my))
+		ebiten.DrawWhole(gr.RenderTarget(g.brushRenderTarget), 1, 1, geo, ebiten.ColorMatrixI())
+		gr.PopRenderTarget()
+	}
+
 	ebiten.DrawWhole(gr.RenderTarget(g.canvasRenderTarget), screenWidth, screenHeight, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 
-	mx, my := ebiten.CursorPosition()
 	ebitenutil.DebugPrint(gr, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil
 }
