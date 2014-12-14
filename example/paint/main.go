@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"image/color"
 	"log"
+	"math"
 	"runtime"
 )
 
@@ -14,11 +16,15 @@ const (
 )
 
 type Game struct {
+	count              int
 	brushRenderTarget  ebiten.RenderTargetID
 	canvasRenderTarget ebiten.RenderTargetID
 }
 
 func (g *Game) Update() error {
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		g.count++
+	}
 	return nil
 }
 
@@ -31,7 +37,7 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 		}
 
 		gr.PushRenderTarget(g.brushRenderTarget)
-		gr.Fill(0, 0, 0)
+		gr.Fill(0xff, 0xff, 0xff)
 		gr.PopRenderTarget()
 	}
 	if g.canvasRenderTarget.IsNil() {
@@ -50,7 +56,11 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 		gr.PushRenderTarget(g.canvasRenderTarget)
 		geo := ebiten.GeometryMatrixI()
 		geo.Translate(float64(mx), float64(my))
-		ebiten.DrawWhole(gr.RenderTarget(g.brushRenderTarget), 1, 1, geo, ebiten.ColorMatrixI())
+		clr := ebiten.ColorMatrixI()
+		clr.Scale(color.RGBA{0xff, 0xff, 0x00, 0xff})
+		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
+		clr.Concat(ebiten.RotateHue(theta))
+		ebiten.DrawWhole(gr.RenderTarget(g.brushRenderTarget), 1, 1, geo, clr)
 		gr.PopRenderTarget()
 	}
 

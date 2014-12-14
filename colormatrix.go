@@ -68,14 +68,31 @@ func (c *ColorMatrix) setElement(i, j int, element float64) {
 
 // Monochrome returns a color matrix to make an image monochrome.
 func Monochrome() ColorMatrix {
-	const r float64 = 6968.0 / 32768.0
-	const g float64 = 23434.0 / 32768.0
-	const b float64 = 2366.0 / 32768.0
+	const r = 6968.0 / 32768.0
+	const g = 23434.0 / 32768.0
+	const b = 2366.0 / 32768.0
 	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
+			{0, 0, 0, 1, 0},
+		},
+	}
+}
+
+// RotateHue returns a color matrix to rotate the hue
+func RotateHue(theta float64) ColorMatrix {
+	sin, cos := math.Sincos(theta)
+	v1 := cos + (1.0-cos)/3.0
+	v2 := 1.0/3.0*(1.0-cos) - math.Sqrt(1.0/3.0)*sin
+	v3 := 1.0/3.0*(1.0-cos) + math.Sqrt(1.0/3.0)*sin
+	// TODO: Need to clamp the values between 0 and 1?
+	return ColorMatrix{
+		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+			{v1, v2, v3, 0, 0},
+			{v3, v1, v2, 0, 0},
+			{v2, v3, v1, 0, 0},
 			{0, 0, 0, 1, 0},
 		},
 	}
