@@ -28,15 +28,15 @@ type input struct {
 	cursorY            int
 }
 
-func (i *input) IsKeyPressed(key Key) bool {
+func (i *input) isKeyPressed(key Key) bool {
 	return i.keyPressed[key]
 }
 
-func (i *input) IsMouseButtonPressed(button MouseButton) bool {
+func (i *input) isMouseButtonPressed(button MouseButton) bool {
 	return i.mouseButtonPressed[button]
 }
 
-func (i *input) CursorPosition() (x, y int) {
+func (i *input) cursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
@@ -48,7 +48,7 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 	glfw.KeyDown:  KeyDown,
 }
 
-func (i *input) Update(window *glfw.Window, scale int) {
+func (i *input) update(window *glfw.Window, scale int) {
 	for g, u := range glfwKeyCodeToKey {
 		i.keyPressed[u] = window.GetKey(g) == glfw.Press
 	}

@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func initialize(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
+func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	gl.Init()
 	gl.Enable(gl.TEXTURE_2D)
 	gl.Enable(gl.BLEND)
@@ -33,11 +33,8 @@ func initialize(screenWidth, screenHeight, screenScale int) (*graphicsContext, e
 	}
 
 	// The defualt framebuffer should be 0.
-	c.defaultID = idsInstance.addRenderTarget(&opengl.RenderTarget{
-		Width:  screenWidth * screenScale,
-		Height: screenHeight * screenScale,
-		FlipY:  true,
-	})
+	r := opengl.NewRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
+	c.defaultID = idsInstance.addRenderTarget(r)
 
 	var err error
 	c.screenID, err = idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)

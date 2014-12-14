@@ -86,14 +86,10 @@ func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID,
 	if err != nil {
 		return 0, err
 	}
-	framebuffer := opengl.CreateFramebuffer(texture.Native())
+
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
-	r := &opengl.RenderTarget{
-		Framebuffer: framebuffer,
-		Width:       texture.Width(),
-		Height:      texture.Height(),
-	}
+	r := opengl.NewRenderTargetFromTexture(texture)
 
 	i.Lock()
 	defer i.Unlock()

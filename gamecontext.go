@@ -17,30 +17,37 @@ limitations under the License.
 package ebiten
 
 import (
+	"github.com/go-gl/gl"
 	"image"
 )
 
-type Game interface {
-	Update() error
-	Draw(gr GraphicsContext) error
-}
-
 func IsKeyPressed(key Key) bool {
-	return currentUI.canvas.input.IsKeyPressed(key)
+	return currentUI.canvas.input.isKeyPressed(key)
 }
 
 func CursorPosition() (x, y int) {
-	return currentUI.canvas.input.CursorPosition()
+	return currentUI.canvas.input.cursorPosition()
 }
 
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return currentUI.canvas.input.IsMouseButtonPressed(mouseButton)
+	return currentUI.canvas.input.isMouseButtonPressed(mouseButton)
+}
+
+func glFilter(f Filter) int {
+	switch f {
+	case FilterNearest:
+		return gl.NEAREST
+	case FilterLinear:
+		return gl.LINEAR
+	default:
+		panic("not reached")
+	}
 }
 
 func NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error) {
-	return currentUI.canvas.NewRenderTargetID(width, height, filter)
+	return currentUI.canvas.newRenderTargetID(width, height, glFilter(filter))
 }
 
 func NewTextureID(img image.Image, filter Filter) (TextureID, error) {
-	return currentUI.canvas.NewTextureID(img, filter)
+	return currentUI.canvas.newTextureID(img, glFilter(filter))
 }

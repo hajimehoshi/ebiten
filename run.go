@@ -23,6 +23,11 @@ import (
 	"time"
 )
 
+type Game interface {
+	Update() error
+	Draw(gr GraphicsContext) error
+}
+
 var currentUI *ui
 
 // Run runs the game.
@@ -34,10 +39,10 @@ func Run(game Game, width, height, scale int, title string, fps int) error {
 		currentUI = nil
 	}()
 
-	if err := ui.Start(game, width, height, scale, title); err != nil {
+	if err := ui.start(game, width, height, scale, title); err != nil {
 		return err
 	}
-	defer ui.Terminate()
+	defer ui.terminate()
 
 	frameTime := time.Duration(int64(time.Second) / int64(fps))
 	tick := time.Tick(frameTime)
@@ -45,13 +50,13 @@ func Run(game Game, width, height, scale int, title string, fps int) error {
 	signal.Notify(sigterm, os.Interrupt, syscall.SIGTERM)
 
 	for {
-		ui.DoEvents()
-		if ui.IsClosed() {
+		ui.doEvents()
+		if ui.isClosed() {
 			return nil
 		}
 		select {
 		default:
-			if err := ui.DrawGame(game); err != nil {
+			if err := ui.drawGame(game); err != nil {
 				return err
 			}
 		case <-tick:

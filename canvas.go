@@ -17,7 +17,6 @@ limitations under the License.
 package ebiten
 
 import (
-	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
 	"image"
 	"runtime"
@@ -30,6 +29,29 @@ type canvas struct {
 	input           input
 	funcs           chan func()
 	funcsDone       chan struct{}
+}
+
+func newCanvas(window *glfw.Window, width, height, scale int) (*canvas, error) {
+	c := &canvas{
+		window:    window,
+		scale:     scale,
+		funcs:     make(chan func()),
+		funcsDone: make(chan struct{}),
+	}
+
+	c.run(width, height, scale)
+
+	// For retina displays, recalculate the scale with the framebuffer size.
+	windowWidth, _ := window.GetFramebufferSize()
+	realScale := windowWidth / width
+	var err error
+	c.use(func() {
+		c.graphicsContext, err = newGraphicsContext(width, height, realScale)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func (c *canvas) draw(game Game) (err error) {
@@ -50,38 +72,20 @@ func (c *canvas) isClosed() bool {
 	return c.window.ShouldClose()
 }
 
-func (c *canvas) NewTextureID(img image.Image, filter Filter) (TextureID, error) {
+func (c *canvas) newTextureID(img image.Image, filter int) (TextureID, error) {
 	var id TextureID
 	var err error
 	c.use(func() {
-		glFilter := 0
-		switch filter {
-		case FilterNearest:
-			glFilter = gl.NEAREST
-		case FilterLinear:
-			glFilter = gl.LINEAR
-		default:
-			panic("not reached")
-		}
-		id, err = newTextureID(img, glFilter)
+		id, err = newTextureID(img, filter)
 	})
 	return id, err
 }
 
-func (c *canvas) NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error) {
+func (c *canvas) newRenderTargetID(width, height int, filter int) (RenderTargetID, error) {
 	var id RenderTargetID
 	var err error
 	c.use(func() {
-		glFilter := 0
-		switch filter {
-		case FilterNearest:
-			glFilter = gl.NEAREST
-		case FilterLinear:
-			glFilter = gl.LINEAR
-		default:
-			panic("not reached")
-		}
-		id, err = newRenderTargetID(width, height, glFilter)
+		id, err = newRenderTargetID(width, height, filter)
 	})
 	return id, err
 }
@@ -104,17 +108,5 @@ func (c *canvas) use(f func()) {
 }
 
 func (c *canvas) update() {
-	c.input.Update(c.window, c.scale)
-}
-
-func (c *canvas) IsKeyPressed(key Key) bool {
-	return c.input.IsKeyPressed(key)
-}
-
-func (c *canvas) IsMouseButtonPressed(button MouseButton) bool {
-	return c.input.IsMouseButtonPressed(button)
-}
-
-func (c *canvas) CursorPosition() (x, y int) {
-	return c.input.CursorPosition()
+	c.input.update(c.window, c.scale)
 }

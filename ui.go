@@ -32,7 +32,7 @@ type ui struct {
 	canvas *canvas
 }
 
-func (u *ui) Start(game Game, width, height, scale int, title string) error {
+func (u *ui) start(game Game, width, height, scale int, title string) error {
 	if !glfw.Init() {
 		return errors.New("glfw.Init() fails")
 	}
@@ -42,43 +42,28 @@ func (u *ui) Start(game Game, width, height, scale int, title string) error {
 		return err
 	}
 
-	c := &canvas{
-		window:    window,
-		scale:     scale,
-		funcs:     make(chan func()),
-		funcsDone: make(chan struct{}),
-	}
-
-	c.run(width, height, scale)
-
-	// For retina displays, recalculate the scale with the framebuffer size.
-	windowWidth, _ := window.GetFramebufferSize()
-	realScale := windowWidth / width
-	c.use(func() {
-		c.graphicsContext, err = initialize(width, height, realScale)
-	})
+	c, err := newCanvas(window, width, height, scale)
 	if err != nil {
 		return err
 	}
-
 	u.canvas = c
 
 	return nil
 }
 
-func (u *ui) DoEvents() {
+func (u *ui) doEvents() {
 	glfw.PollEvents()
 	u.canvas.update()
 }
 
-func (u *ui) Terminate() {
+func (u *ui) terminate() {
 	glfw.Terminate()
 }
 
-func (u *ui) IsClosed() bool {
+func (u *ui) isClosed() bool {
 	return u.canvas.isClosed()
 }
 
-func (u *ui) DrawGame(game Game) error {
+func (u *ui) drawGame(game Game) error {
 	return u.canvas.draw(game)
 }

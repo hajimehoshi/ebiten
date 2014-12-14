@@ -36,17 +36,46 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 }
 
 type RenderTarget struct {
-	Framebuffer gl.Framebuffer
-	Width       int
-	Height      int
-	FlipY       bool
+	framebuffer gl.Framebuffer
+	width       int
+	height      int
+	flipY       bool
+}
+
+func NewRenderTarget(width, height int, flipY bool) *RenderTarget {
+	return &RenderTarget{
+		width:  width,
+		height: height,
+		flipY:  flipY,
+	}
+}
+
+func NewRenderTargetFromTexture(texture *Texture) *RenderTarget {
+	framebuffer := createFramebuffer(texture.Native())
+	return &RenderTarget{
+		framebuffer: framebuffer,
+		width:       texture.Width(),
+		height:      texture.Height(),
+	}
+}
+
+func (r *RenderTarget) Width() int {
+	return r.width
+}
+
+func (r *RenderTarget) Height() int {
+	return r.height
+}
+
+func (r *RenderTarget) FlipY() bool {
+	return r.flipY
 }
 
 func (r *RenderTarget) Dispose() {
-	r.Framebuffer.Delete()
+	r.framebuffer.Delete()
 }
 
-func CreateFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
+func createFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
@@ -65,7 +94,7 @@ func CreateFramebuffer(nativeTexture gl.Texture) gl.Framebuffer {
 
 func (r *RenderTarget) SetAsViewport() {
 	gl.Flush()
-	r.Framebuffer.Bind()
+	r.framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if err != gl.FRAMEBUFFER_COMPLETE {
 		panic(fmt.Sprintf("glBindFramebuffer failed: %d", err))
@@ -73,18 +102,18 @@ func (r *RenderTarget) SetAsViewport() {
 
 	gl.BlendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE)
 
-	width := AdjustSizeForTexture(r.Width)
-	height := AdjustSizeForTexture(r.Height)
+	width := AdjustSizeForTexture(r.width)
+	height := AdjustSizeForTexture(r.height)
 	gl.Viewport(0, 0, width, height)
 }
 
 func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
-	width := AdjustSizeForTexture(r.Width)
-	height := AdjustSizeForTexture(r.Height)
+	width := AdjustSizeForTexture(r.width)
+	height := AdjustSizeForTexture(r.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
-	if r.FlipY {
+	if r.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(r.Height) / float64(AdjustSizeForTexture(r.Height)) * 2
+		m[1][3] += float64(r.height) / float64(AdjustSizeForTexture(r.height)) * 2
 	}
 	return m
 }
