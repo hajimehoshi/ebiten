@@ -87,11 +87,18 @@ func (u *ui) drawGame(game Game) error {
 	return u.draw(game)
 }
 
+func (u *ui) Sync(f func()) {
+	u.use(f)
+}
+
 func (u *ui) draw(game Game) (err error) {
 	u.use(func() {
 		u.graphicsContext.preUpdate()
 	})
-	if err = game.Draw(&syncGraphicsContext{u}); err != nil {
+	if err = game.Draw(&syncGraphicsContext{
+		syncer:               u,
+		innerGraphicsContext: u.graphicsContext,
+	}); err != nil {
 		return
 	}
 	u.use(func() {
