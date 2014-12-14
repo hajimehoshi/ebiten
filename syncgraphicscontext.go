@@ -14,31 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package glfw
+package ebiten
 
-import (
-	"github.com/hajimehoshi/ebiten"
-)
-
-type graphicsContext struct {
+type syncGraphicsContext struct {
 	canvas *canvas
 }
 
-var _ ebiten.GraphicsContext = new(graphicsContext)
+var _ GraphicsContext = new(syncGraphicsContext)
 
-func (c *graphicsContext) Clear() {
+func (c *syncGraphicsContext) Clear() {
 	c.canvas.use(func() {
 		c.canvas.graphicsContext.Clear()
 	})
 }
 
-func (c *graphicsContext) Fill(r, g, b uint8) {
+func (c *syncGraphicsContext) Fill(r, g, b uint8) {
 	c.canvas.use(func() {
 		c.canvas.graphicsContext.Fill(r, g, b)
 	})
 }
 
-func (c *graphicsContext) Texture(id ebiten.TextureID) (d ebiten.Drawer) {
+func (c *syncGraphicsContext) Texture(id TextureID) (d Drawer) {
 	c.canvas.use(func() {
 		d = &drawer{
 			canvas:      c.canvas,
@@ -48,7 +44,7 @@ func (c *graphicsContext) Texture(id ebiten.TextureID) (d ebiten.Drawer) {
 	return
 }
 
-func (c *graphicsContext) RenderTarget(id ebiten.RenderTargetID) (d ebiten.Drawer) {
+func (c *syncGraphicsContext) RenderTarget(id RenderTargetID) (d Drawer) {
 	c.canvas.use(func() {
 		d = &drawer{
 			canvas:      c.canvas,
@@ -58,13 +54,13 @@ func (c *graphicsContext) RenderTarget(id ebiten.RenderTargetID) (d ebiten.Drawe
 	return
 }
 
-func (c *graphicsContext) PopRenderTarget() {
+func (c *syncGraphicsContext) PopRenderTarget() {
 	c.canvas.use(func() {
 		c.canvas.graphicsContext.PopRenderTarget()
 	})
 }
 
-func (c *graphicsContext) PushRenderTarget(id ebiten.RenderTargetID) {
+func (c *syncGraphicsContext) PushRenderTarget(id RenderTargetID) {
 	c.canvas.use(func() {
 		c.canvas.graphicsContext.PushRenderTarget(id)
 	})
@@ -72,12 +68,12 @@ func (c *graphicsContext) PushRenderTarget(id ebiten.RenderTargetID) {
 
 type drawer struct {
 	canvas      *canvas
-	innerDrawer ebiten.Drawer
+	innerDrawer Drawer
 }
 
-var _ ebiten.Drawer = new(drawer)
+var _ Drawer = new(drawer)
 
-func (d *drawer) Draw(parts []ebiten.TexturePart, geo ebiten.GeometryMatrix, color ebiten.ColorMatrix) {
+func (d *drawer) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) {
 	d.canvas.use(func() {
 		d.innerDrawer.Draw(parts, geo, color)
 	})

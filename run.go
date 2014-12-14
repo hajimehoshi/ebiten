@@ -14,11 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package runner
+package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/glfw"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,8 +24,8 @@ import (
 )
 
 // Run runs the game.
-func Run(game ebiten.Game, width, height, scale int, title string, fps int) error {
-	ui := new(glfw.UI)
+func Run(game Game, width, height, scale int, title string, fps int) error {
+	ui := new(ui)
 	if err := ui.Start(game, width, height, scale, title); err != nil {
 		return err
 	}

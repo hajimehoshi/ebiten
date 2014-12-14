@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func Initialize(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
+func initialize(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	gl.Init()
 	gl.Enable(gl.TEXTURE_2D)
 	gl.Enable(gl.BLEND)

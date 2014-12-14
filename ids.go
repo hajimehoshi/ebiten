@@ -41,11 +41,11 @@ var idsInstance = &ids{
 	currentRenderTargetId: -1,
 }
 
-func NewRenderTargetID(width, height int, filter int) (RenderTargetID, error) {
+func newRenderTargetID(width, height int, filter int) (RenderTargetID, error) {
 	return idsInstance.createRenderTarget(width, height, filter)
 }
 
-func NewTextureID(img image.Image, filter int) (TextureID, error) {
+func newTextureID(img image.Image, filter int) (TextureID, error) {
 	return idsInstance.createTexture(img, filter)
 }
 

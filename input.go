@@ -16,23 +16,46 @@ limitations under the License.
 
 package ebiten
 
-type Key int
-
-// TODO: Add more keys.
-const (
-	KeyUp Key = iota
-	KeyDown
-	KeyLeft
-	KeyRight
-	KeySpace
-	KeyMax
+import (
+	glfw "github.com/go-gl/glfw3"
+	"math"
 )
 
-type MouseButton int
+type Input struct {
+	keyPressed         [KeyMax]bool
+	mouseButtonPressed [MouseButtonMax]bool
+	cursorX            int
+	cursorY            int
+}
 
-const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
-	MouseButtonMax
-)
+func (i *Input) IsKeyPressed(key Key) bool {
+	return i.keyPressed[key]
+}
+
+func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
+	return i.mouseButtonPressed[button]
+}
+
+func (i *Input) CursorPosition() (x, y int) {
+	return i.cursorX, i.cursorY
+}
+
+var glfwKeyCodeToKey = map[glfw.Key]Key{
+	glfw.KeySpace: KeySpace,
+	glfw.KeyLeft:  KeyLeft,
+	glfw.KeyRight: KeyRight,
+	glfw.KeyUp:    KeyUp,
+	glfw.KeyDown:  KeyDown,
+}
+
+func (i *Input) Update(window *glfw.Window, scale int) {
+	for g, u := range glfwKeyCodeToKey {
+		i.keyPressed[u] = window.GetKey(g) == glfw.Press
+	}
+	for b := MouseButtonLeft; b < MouseButtonMax; b++ {
+		i.mouseButtonPressed[b] = window.GetMouseButton(glfw.MouseButton(b)) == glfw.Press
+	}
+	x, y := window.GetCursorPosition()
+	i.cursorX = int(math.Floor(x)) / scale
+	i.cursorY = int(math.Floor(y)) / scale
+}
