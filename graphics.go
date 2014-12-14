@@ -38,21 +38,21 @@ type TexturePart struct {
 
 // A Drawer is the interface that draws itself.
 type Drawer interface {
-	Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix)
+	Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
 }
 
 // DrawWhole draws the whole texture.
-func DrawWhole(drawer Drawer, width, height int, geo GeometryMatrix, color ColorMatrix) {
+func DrawWhole(drawer Drawer, width, height int, geo GeometryMatrix, color ColorMatrix) error {
 	parts := []TexturePart{
 		{0, 0, Rect{0, 0, width, height}},
 	}
-	drawer.Draw(parts, geo, color)
+	return drawer.Draw(parts, geo, color)
 }
 
 // A Context is the interface that means a context of rendering.
 type GraphicsContext interface {
-	Clear()
-	Fill(r, g, b uint8)
+	Clear() error
+	Fill(r, g, b uint8) error
 	Texture(id TextureID) Drawer
 	RenderTarget(id RenderTargetID) Drawer
 	// TODO: ScreenRenderTarget() Drawer

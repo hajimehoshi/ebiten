@@ -81,7 +81,10 @@ func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID,
 
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetId = -1
-	r := opengl.NewRenderTargetFromTexture(texture)
+	r, err := opengl.NewRenderTargetFromTexture(texture)
+	if err != nil {
+		return 0, err
+	}
 
 	i.Lock()
 	defer i.Unlock()
@@ -124,26 +127,35 @@ func (i *ids) deleteRenderTarget(id RenderTargetID) {
 	delete(i.textures, textureId)
 }
 
-func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) {
-	i.setViewportIfNeeded(id)
+func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) error {
+	if err := i.setViewportIfNeeded(id); err != nil {
+		return err
+	}
 	const max = float64(math.MaxUint8)
 	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), 1)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
+	return nil
 }
 
-func (i *ids) drawTexture(target RenderTargetID, id TextureID, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) {
+func (i *ids) drawTexture(target RenderTargetID, id TextureID, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
 	texture := i.textureAt(id)
-	i.setViewportIfNeeded(target)
+	if err := i.setViewportIfNeeded(target); err != nil {
+		return err
+	}
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.ProjectionMatrix()
 	quads := textureQuads(parts, texture.Width(), texture.Height())
 	shader.DrawTexture(texture.Native(), projectionMatrix, quads, &geo, &color)
+	return nil
 }
 
-func (i *ids) setViewportIfNeeded(id RenderTargetID) {
+func (i *ids) setViewportIfNeeded(id RenderTargetID) error {
 	r := i.renderTargetAt(id)
 	if i.currentRenderTargetId != id {
-		r.SetAsViewport()
+		if err := r.SetAsViewport(); err != nil {
+			return err
+		}
 		i.currentRenderTargetId = id
 	}
+	return nil
 }

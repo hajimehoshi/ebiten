@@ -27,16 +27,18 @@ type syncGraphicsContext struct {
 
 var _ GraphicsContext = new(syncGraphicsContext)
 
-func (c *syncGraphicsContext) Clear() {
+func (c *syncGraphicsContext) Clear() (err error) {
 	c.syncer.Sync(func() {
-		c.innerGraphicsContext.Clear()
+		err = c.innerGraphicsContext.Clear()
 	})
+	return
 }
 
-func (c *syncGraphicsContext) Fill(r, g, b uint8) {
+func (c *syncGraphicsContext) Fill(r, g, b uint8) (err error) {
 	c.syncer.Sync(func() {
-		c.innerGraphicsContext.Fill(r, g, b)
+		err = c.innerGraphicsContext.Fill(r, g, b)
 	})
+	return
 }
 
 func (c *syncGraphicsContext) Texture(id TextureID) (d Drawer) {
@@ -78,8 +80,9 @@ type drawer struct {
 
 var _ Drawer = new(drawer)
 
-func (d *drawer) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) {
+func (d *drawer) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
 	d.syncer.Sync(func() {
-		d.innerDrawer.Draw(parts, geo, color)
+		err = d.innerDrawer.Draw(parts, geo, color)
 	})
+	return
 }

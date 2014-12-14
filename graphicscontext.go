@@ -64,12 +64,12 @@ func (c *graphicsContext) dispose() {
 	idsInstance.deleteRenderTarget(c.screenID)
 }
 
-func (c *graphicsContext) Clear() {
-	c.Fill(0, 0, 0)
+func (c *graphicsContext) Clear() error {
+	return c.Fill(0, 0, 0)
 }
 
-func (c *graphicsContext) Fill(r, g, b uint8) {
-	idsInstance.fillRenderTarget(c.currentIDs[len(c.currentIDs)-1], r, g, b)
+func (c *graphicsContext) Fill(r, g, b uint8) error {
+	return idsInstance.fillRenderTarget(c.currentIDs[len(c.currentIDs)-1], r, g, b)
 }
 
 func (c *graphicsContext) Texture(id TextureID) Drawer {
@@ -112,7 +112,7 @@ type textureWithContext struct {
 	context *graphicsContext
 }
 
-func (t *textureWithContext) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) {
+func (t *textureWithContext) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
 	currentID := t.context.currentIDs[len(t.context.currentIDs)-1]
-	idsInstance.drawTexture(currentID, t.id, parts, geo, color)
+	return idsInstance.drawTexture(currentID, t.id, parts, geo, color)
 }
