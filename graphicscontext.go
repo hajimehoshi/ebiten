@@ -26,25 +26,24 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 	gl.Enable(gl.TEXTURE_2D)
 	gl.Enable(gl.BLEND)
 
+	// The defualt framebuffer should be 0.
+	r := opengl.NewRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
+
+	screenID, err := idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &graphicsContext{
+		currentIDs:   make([]RenderTargetID, 1),
+		defaultID:    idsInstance.addRenderTarget(r),
+		screenID:     screenID,
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
 
-	// The defualt framebuffer should be 0.
-	r := opengl.NewRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
-	c.defaultID = idsInstance.addRenderTarget(r)
-
-	var err error
-	c.screenID, err = idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: This is a special stack only for clearing. Can we change this?
-	c.currentIDs = []RenderTargetID{c.screenID}
-	c.Clear()
+	idsInstance.fillRenderTarget(c.screenID, 0, 0, 0)
 
 	return c, nil
 }
@@ -90,7 +89,8 @@ func (c *graphicsContext) PopRenderTarget() {
 }
 
 func (c *graphicsContext) preUpdate() {
-	c.currentIDs = []RenderTargetID{c.defaultID}
+	c.currentIDs = c.currentIDs[0:1]
+	c.currentIDs[0] = c.defaultID
 	c.PushRenderTarget(c.screenID)
 	c.Clear()
 }
