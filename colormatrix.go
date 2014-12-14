@@ -81,6 +81,32 @@ func Monochrome() ColorMatrix {
 	}
 }
 
+// ScaleColor returns a color matrix that scales a color matrix by clr.
+func ScaleColor(clr color.Color) ColorMatrix {
+	rf, gf, bf, af := rgba(clr)
+	return ColorMatrix{
+		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+			{rf, 0, 0, 0, 0},
+			{0, gf, 0, 0, 0},
+			{0, 0, bf, 0, 0},
+			{0, 0, 0, af, 0},
+		},
+	}
+}
+
+// TranslateColor returns a color matrix that translates a color matrix by clr.
+func (c *ColorMatrix) Translate(clr color.Color) ColorMatrix {
+	rf, gf, bf, af := rgba(clr)
+	return ColorMatrix{
+		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+			{1, 0, 0, 0, rf},
+			{0, 1, 0, 0, gf},
+			{0, 0, 1, 0, bf},
+			{0, 0, 0, 1, af},
+		},
+	}
+}
+
 // RotateHue returns a color matrix to rotate the hue
 func RotateHue(theta float64) ColorMatrix {
 	sin, cos := math.Sincos(theta)
@@ -105,23 +131,4 @@ func rgba(clr color.Color) (float64, float64, float64, float64) {
 	bf := float64(b) / float64(math.MaxUint16)
 	af := float64(a) / float64(math.MaxUint16)
 	return rf, gf, bf, af
-}
-
-// Scale scales the color matrix by clr.
-func (c *ColorMatrix) Scale(clr color.Color) {
-	rf, gf, bf, af := rgba(clr)
-	for i, e := range []float64{rf, gf, bf, af} {
-		for j := 0; j < 4; j++ {
-			c.Elements[i][j] *= e
-		}
-	}
-}
-
-// Translate translates the color matrix by clr.
-func (c *ColorMatrix) Translate(clr color.Color) {
-	rf, gf, bf, af := rgba(clr)
-	c.Elements[0][4] = rf
-	c.Elements[1][4] = gf
-	c.Elements[2][4] = bf
-	c.Elements[3][4] = af
 }
