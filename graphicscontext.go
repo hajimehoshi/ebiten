@@ -89,13 +89,13 @@ func (c *graphicsContext) PopRenderTarget() {
 	c.currentIDs = c.currentIDs[:len(c.currentIDs)-1]
 }
 
-func (c *graphicsContext) PreUpdate() {
+func (c *graphicsContext) preUpdate() {
 	c.currentIDs = []RenderTargetID{c.defaultID}
 	c.PushRenderTarget(c.screenID)
 	c.Clear()
 }
 
-func (c *graphicsContext) PostUpdate() {
+func (c *graphicsContext) postUpdate() {
 	c.PopRenderTarget()
 	c.Clear()
 

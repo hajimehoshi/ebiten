@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
+	"image"
+	"runtime"
 )
 
 func init() {
@@ -29,31 +31,48 @@ func init() {
 }
 
 type ui struct {
-	canvas *canvas
+	window          *glfw.Window
+	scale           int
+	graphicsContext *graphicsContext
+	input           input
+	funcs           chan func()
+	funcsDone       chan struct{}
 }
 
-func (u *ui) start(game Game, width, height, scale int, title string) error {
+func newUI(game Game, width, height, scale int, title string) (*ui, error) {
 	if !glfw.Init() {
-		return errors.New("glfw.Init() fails")
+		return nil, errors.New("glfw.Init() fails")
 	}
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	c, err := newCanvas(window, width, height, scale)
+	u := &ui{
+		window:    window,
+		scale:     scale,
+		funcs:     make(chan func()),
+		funcsDone: make(chan struct{}),
+	}
+
+	u.run(width, height, scale)
+
+	// For retina displays, recalculate the scale with the framebuffer size.
+	windowWidth, _ := window.GetFramebufferSize()
+	realScale := windowWidth / width
+	u.use(func() {
+		u.graphicsContext, err = newGraphicsContext(width, height, realScale)
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	u.canvas = c
-
-	return nil
+	return u, nil
 }
 
 func (u *ui) doEvents() {
 	glfw.PollEvents()
-	u.canvas.update()
+	u.update()
 }
 
 func (u *ui) terminate() {
@@ -61,9 +80,62 @@ func (u *ui) terminate() {
 }
 
 func (u *ui) isClosed() bool {
-	return u.canvas.isClosed()
+	return u.window.ShouldClose()
 }
 
 func (u *ui) drawGame(game Game) error {
-	return u.canvas.draw(game)
+	return u.draw(game)
+}
+
+func (u *ui) draw(game Game) (err error) {
+	u.use(func() {
+		u.graphicsContext.preUpdate()
+	})
+	if err = game.Draw(&syncGraphicsContext{u}); err != nil {
+		return
+	}
+	u.use(func() {
+		u.graphicsContext.postUpdate()
+		u.window.SwapBuffers()
+	})
+	return
+}
+
+func (u *ui) newTextureID(img image.Image, filter int) (TextureID, error) {
+	var id TextureID
+	var err error
+	u.use(func() {
+		id, err = idsInstance.createTexture(img, filter)
+	})
+	return id, err
+}
+
+func (u *ui) newRenderTargetID(width, height int, filter int) (RenderTargetID, error) {
+	var id RenderTargetID
+	var err error
+	u.use(func() {
+		id, err = idsInstance.createRenderTarget(width, height, filter)
+	})
+	return id, err
+}
+
+func (u *ui) run(width, height, scale int) {
+	go func() {
+		runtime.LockOSThread()
+		u.window.MakeContextCurrent()
+		glfw.SwapInterval(1)
+		for {
+			(<-u.funcs)()
+			u.funcsDone <- struct{}{}
+		}
+	}()
+}
+
+func (u *ui) use(f func()) {
+	u.funcs <- f
+	<-u.funcsDone
+}
+
+func (u *ui) update() {
+	u.input.update(u.window, u.scale)
 }

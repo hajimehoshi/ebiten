@@ -22,15 +22,15 @@ import (
 )
 
 func IsKeyPressed(key Key) bool {
-	return currentUI.canvas.input.isKeyPressed(key)
+	return currentUI.input.isKeyPressed(key)
 }
 
 func CursorPosition() (x, y int) {
-	return currentUI.canvas.input.cursorPosition()
+	return currentUI.input.cursorPosition()
 }
 
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return currentUI.canvas.input.isMouseButtonPressed(mouseButton)
+	return currentUI.input.isMouseButtonPressed(mouseButton)
 }
 
 func glFilter(f Filter) int {
@@ -45,9 +45,9 @@ func glFilter(f Filter) int {
 }
 
 func NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error) {
-	return currentUI.canvas.newRenderTargetID(width, height, glFilter(filter))
+	return currentUI.newRenderTargetID(width, height, glFilter(filter))
 }
 
 func NewTextureID(img image.Image, filter Filter) (TextureID, error) {
-	return currentUI.canvas.newTextureID(img, glFilter(filter))
+	return currentUI.newTextureID(img, glFilter(filter))
 }

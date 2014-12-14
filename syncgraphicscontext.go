@@ -17,64 +17,64 @@ limitations under the License.
 package ebiten
 
 type syncGraphicsContext struct {
-	canvas *canvas
+	ui *ui
 }
 
 var _ GraphicsContext = new(syncGraphicsContext)
 
 func (c *syncGraphicsContext) Clear() {
-	c.canvas.use(func() {
-		c.canvas.graphicsContext.Clear()
+	c.ui.use(func() {
+		c.ui.graphicsContext.Clear()
 	})
 }
 
 func (c *syncGraphicsContext) Fill(r, g, b uint8) {
-	c.canvas.use(func() {
-		c.canvas.graphicsContext.Fill(r, g, b)
+	c.ui.use(func() {
+		c.ui.graphicsContext.Fill(r, g, b)
 	})
 }
 
 func (c *syncGraphicsContext) Texture(id TextureID) (d Drawer) {
-	c.canvas.use(func() {
+	c.ui.use(func() {
 		d = &drawer{
-			canvas:      c.canvas,
-			innerDrawer: c.canvas.graphicsContext.Texture(id),
+			ui:          c.ui,
+			innerDrawer: c.ui.graphicsContext.Texture(id),
 		}
 	})
 	return
 }
 
 func (c *syncGraphicsContext) RenderTarget(id RenderTargetID) (d Drawer) {
-	c.canvas.use(func() {
+	c.ui.use(func() {
 		d = &drawer{
-			canvas:      c.canvas,
-			innerDrawer: c.canvas.graphicsContext.RenderTarget(id),
+			ui:          c.ui,
+			innerDrawer: c.ui.graphicsContext.RenderTarget(id),
 		}
 	})
 	return
 }
 
 func (c *syncGraphicsContext) PopRenderTarget() {
-	c.canvas.use(func() {
-		c.canvas.graphicsContext.PopRenderTarget()
+	c.ui.use(func() {
+		c.ui.graphicsContext.PopRenderTarget()
 	})
 }
 
 func (c *syncGraphicsContext) PushRenderTarget(id RenderTargetID) {
-	c.canvas.use(func() {
-		c.canvas.graphicsContext.PushRenderTarget(id)
+	c.ui.use(func() {
+		c.ui.graphicsContext.PushRenderTarget(id)
 	})
 }
 
 type drawer struct {
-	canvas      *canvas
+	ui          *ui
 	innerDrawer Drawer
 }
 
 var _ Drawer = new(drawer)
 
 func (d *drawer) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) {
-	d.canvas.use(func() {
+	d.ui.use(func() {
 		d.innerDrawer.Draw(parts, geo, color)
 	})
 }

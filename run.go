@@ -32,17 +32,16 @@ var currentUI *ui
 
 // Run runs the game.
 func Run(game Game, width, height, scale int, title string, fps int) error {
-	ui := new(ui)
+	ui, err := newUI(game, width, height, scale, title)
+	if err != nil {
+		return err
+	}
+	defer ui.terminate()
 
 	currentUI = ui
 	defer func() {
 		currentUI = nil
 	}()
-
-	if err := ui.start(game, width, height, scale, title); err != nil {
-		return err
-	}
-	defer ui.terminate()
 
 	frameTime := time.Duration(int64(time.Second) / int64(fps))
 	tick := time.Tick(frameTime)

@@ -41,14 +41,6 @@ var idsInstance = &ids{
 	currentRenderTargetId: -1,
 }
 
-func newRenderTargetID(width, height int, filter int) (RenderTargetID, error) {
-	return idsInstance.createRenderTarget(width, height, filter)
-}
-
-func newTextureID(img image.Image, filter int) (TextureID, error) {
-	return idsInstance.createTexture(img, filter)
-}
-
 func (i *ids) textureAt(id TextureID) *opengl.Texture {
 	i.RLock()
 	defer i.RUnlock()
