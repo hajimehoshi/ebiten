@@ -54,10 +54,8 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		gr.PushRenderTarget(g.canvasRenderTarget)
-		geo := ebiten.GeometryMatrixI()
-		geo.Concat(ebiten.TranslateGeometry(float64(mx), float64(my)))
-		clr := ebiten.ColorMatrixI()
-		clr.Concat(ebiten.ScaleColor(color.RGBA{0xff, 0xff, 0x00, 0xff}))
+		geo := ebiten.TranslateGeometry(float64(mx), float64(my))
+		clr := ebiten.ScaleColor(color.RGBA{0xff, 0x40, 0x40, 0xff})
 		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
 		ebiten.DrawWhole(gr.RenderTarget(g.brushRenderTarget), 1, 1, geo, clr)
