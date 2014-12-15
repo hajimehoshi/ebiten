@@ -110,34 +110,17 @@ func TranslateColor(clr color.Color) ColorMatrix {
 // RotateHue returns a color matrix to rotate the hue
 func RotateHue(theta float64) ColorMatrix {
 	sin, cos := math.Sincos(theta)
-	// RBG to YIQ
-	c := ColorMatrix{
+	v1 := cos + (1.0 - cos) / 3.0
+	v2 := (1.0 / 3.0) * (1.0 - cos) - math.Sqrt(1.0 / 3.0) * sin
+	v3 := (1.0 / 3.0) * (1.0 - cos) + math.Sqrt(1.0 / 3.0) * sin
+	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
-			{0.299, 0.587, 0.114, 0, 0},
-			{0.596, -0.275, -0.321, 0, 0},
-			{0.212, -0.523, 0.311, 0, 0},
+			{v1, v2, v3, 0, 0},
+			{v3, v1, v2, 0, 0},
+			{v2, v3, v1, 0, 0},
 			{0, 0, 0, 1, 0},
 		},
 	}
-	// Rotate around the Y axis
-	c.Concat(ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
-			{1, 0, 0, 0, 0},
-			{0, cos, sin, 0, 0},
-			{0, -sin, cos, 0, 0},
-			{0, 0, 0, 1, 0},
-		},
-	})
-	// YIQ to RGB
-	c.Concat(ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
-			{1, 0.956, 0.621, 0, 0},
-			{1, -0.272, -0.647, 0, 0},
-			{1, -1.105, 1.702, 0, 0},
-			{0, 0, 0, 1, 0},
-		},
-	})
-	return c
 }
 
 func rgba(clr color.Color) (float64, float64, float64, float64) {
