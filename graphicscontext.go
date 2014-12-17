@@ -22,10 +22,6 @@ import (
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	gl.Init()
-	gl.Enable(gl.TEXTURE_2D)
-	gl.Enable(gl.BLEND)
-
 	// The defualt framebuffer should be 0.
 	r := opengl.NewRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
 

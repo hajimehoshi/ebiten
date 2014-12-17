@@ -18,6 +18,7 @@ package ebiten
 
 import (
 	"fmt"
+	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
 	"image"
 	"runtime"
@@ -47,6 +48,11 @@ func init() {
 		funcs:  make(chan func()),
 	}
 	currentUI.run()
+	currentUI.use(func() {
+		gl.Init()
+		gl.Enable(gl.TEXTURE_2D)
+		gl.Enable(gl.BLEND)
+	})
 }
 
 type ui struct {

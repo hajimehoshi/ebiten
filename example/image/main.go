@@ -39,7 +39,7 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 
 func main() {
 	g := new(Game)
-	id, err := ebitenutil.LoadImageAndCreateTexture("images/gophers.jpg", ebiten.FilterLinear)
+	id, err := ebitenutil.NewTextureIDFromFile("images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
 		log.Fatal(err)
 	}

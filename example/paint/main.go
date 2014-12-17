@@ -23,6 +23,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"sync"
 )
 
 const (
@@ -31,6 +32,7 @@ const (
 )
 
 type Game struct {
+	init               sync.Once
 	count              int
 	brushRenderTarget  ebiten.RenderTargetID
 	canvasRenderTarget ebiten.RenderTargetID
@@ -40,27 +42,15 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.count++
 	}
-	if g.brushRenderTarget.IsNil() {
-		var err error
-		g.brushRenderTarget, err = ebiten.NewRenderTargetID(1, 1, ebiten.FilterNearest)
-		if err != nil {
-			return err
-		}
-
+	g.init.Do(func() {
 		gr.PushRenderTarget(g.brushRenderTarget)
 		gr.Fill(0xff, 0xff, 0xff)
 		gr.PopRenderTarget()
-	}
-	if g.canvasRenderTarget.IsNil() {
-		var err error
-		g.canvasRenderTarget, err = ebiten.NewRenderTargetID(screenWidth, screenHeight, ebiten.FilterNearest)
-		if err != nil {
-			return err
-		}
 		gr.PushRenderTarget(g.canvasRenderTarget)
 		gr.Fill(0xff, 0xff, 0xff)
 		gr.PopRenderTarget()
-	}
+	})
+
 	mx, my := ebiten.CursorPosition()
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
@@ -81,6 +71,15 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 
 func main() {
 	g := new(Game)
+	var err error
+	g.brushRenderTarget, err = ebiten.NewRenderTargetID(1, 1, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	g.canvasRenderTarget, err = ebiten.NewRenderTargetID(screenWidth, screenHeight, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
