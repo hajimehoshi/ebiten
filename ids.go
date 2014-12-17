@@ -21,32 +21,16 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 	"math"
-	"sync"
 )
 
 type ids struct {
-	renderTargets         map[*RenderTarget]*opengl.RenderTarget
-	renderTargetToTexture map[*RenderTarget]*Texture
-	lastID                int
-	currentRenderTarget   *RenderTarget
-	sync.RWMutex
+	currentRenderTarget *RenderTarget
 }
 
-var idsInstance = &ids{
-	renderTargets:         map[*RenderTarget]*opengl.RenderTarget{},
-	renderTargetToTexture: map[*RenderTarget]*Texture{},
-}
-
-func (i *ids) renderTargetAt(renderTarget *RenderTarget) *opengl.RenderTarget {
-	i.RLock()
-	defer i.RUnlock()
-	return i.renderTargets[renderTarget]
-}
+var idsInstance = &ids{}
 
 func (i *ids) toTexture(renderTarget *RenderTarget) *Texture {
-	i.RLock()
-	defer i.RUnlock()
-	return i.renderTargetToTexture[renderTarget]
+	return renderTarget.texture
 }
 
 func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, error) {
@@ -57,48 +41,30 @@ func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, 
 
 	// The current binded framebuffer can be changed.
 	i.currentRenderTarget = nil
-	r, err := opengl.NewRenderTargetFromTexture(glTexture)
+	glRenderTarget, err := opengl.NewRenderTargetFromTexture(glTexture)
 	if err != nil {
 		return nil, err
 	}
 
-	i.Lock()
-	defer i.Unlock()
 	texture := &Texture{glTexture}
-	i.lastID++
-	renderTarget := &RenderTarget{i.lastID}
-
-	//i.textures[texture] = glTexture
-	i.renderTargets[renderTarget] = r
-	i.renderTargetToTexture[renderTarget] = texture
+	renderTarget := &RenderTarget{glRenderTarget, texture}
 
 	return renderTarget, nil
 }
 
 // NOTE: renderTarget can't be used as a texture.
 func (i *ids) addRenderTarget(glRenderTarget *opengl.RenderTarget) *RenderTarget {
-	i.Lock()
-	defer i.Unlock()
-	i.lastID++
-	renderTarget := &RenderTarget{i.lastID}
-	i.renderTargets[renderTarget] = glRenderTarget
-
-	return renderTarget
+	return &RenderTarget{glRenderTarget, nil}
 }
 
 func (i *ids) deleteRenderTarget(renderTarget *RenderTarget) {
-	i.Lock()
-	defer i.Unlock()
 
-	glRenderTarget := i.renderTargets[renderTarget]
-	texture := i.renderTargetToTexture[renderTarget]
+	glRenderTarget := renderTarget.glRenderTarget
+	texture := renderTarget.texture
 	glTexture := texture.glTexture
 
 	glRenderTarget.Dispose()
 	glTexture.Dispose()
-
-	delete(i.renderTargets, renderTarget)
-	delete(i.renderTargetToTexture, renderTarget)
 }
 
 func (i *ids) fillRenderTarget(renderTarget *RenderTarget, r, g, b uint8) error {
@@ -116,17 +82,15 @@ func (i *ids) drawTexture(target *RenderTarget, texture *Texture, parts []Textur
 	if err := i.setViewportIfNeeded(target); err != nil {
 		return err
 	}
-	r := i.renderTargetAt(target)
-	projectionMatrix := r.ProjectionMatrix()
+	projectionMatrix := target.glRenderTarget.ProjectionMatrix()
 	quads := textureQuads(parts, glTexture.Width(), glTexture.Height())
 	shader.DrawTexture(glTexture.Native(), projectionMatrix, quads, &geo, &color)
 	return nil
 }
 
 func (i *ids) setViewportIfNeeded(renderTarget *RenderTarget) error {
-	r := i.renderTargetAt(renderTarget)
 	if i.currentRenderTarget != renderTarget {
-		if err := r.SetAsViewport(); err != nil {
+		if err := renderTarget.glRenderTarget.SetAsViewport(); err != nil {
 			return err
 		}
 		i.currentRenderTarget = renderTarget

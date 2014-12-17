@@ -79,7 +79,8 @@ type Texture struct {
 // A render target is essentially same as a texture, but it is assumed that the
 // all alpha values of a render target is maximum.
 type RenderTarget struct {
-	id int
+	glRenderTarget *opengl.RenderTarget
+	texture        *Texture
 }
 
 func u(x int, width int) float32 {
