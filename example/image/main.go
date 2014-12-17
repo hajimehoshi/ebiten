@@ -30,16 +30,33 @@ const (
 )
 
 type Game struct {
-	count          int
-	gophersTexture *ebiten.Texture
+	count           int
+	horizontalCount int
+	verticalCount   int
+	gophersTexture  *ebiten.Texture
 }
 
 func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	g.count++
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		g.horizontalCount--
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		g.horizontalCount++
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyDown) {
+		g.verticalCount--
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		g.verticalCount++
+	}
 
 	w, h := g.gophersTexture.Size()
 	geo := ebiten.TranslateGeometry(-float64(w)/2, -float64(h)/2)
-	geo.Concat(ebiten.ScaleGeometry(0.5, 0.5))
+	scaleX := 0.5 * math.Pow(1.05, float64(g.horizontalCount))
+	scaleY := 0.5 * math.Pow(1.05, float64(g.verticalCount))
+	geo.Concat(ebiten.ScaleGeometry(scaleX, scaleY))
+	geo.Concat(ebiten.RotateGeometry(float64(g.count%720) * 2 * math.Pi / 720))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
 	clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
 	ebiten.DrawWholeTexture(gr, g.gophersTexture, geo, clr)
