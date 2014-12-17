@@ -41,12 +41,22 @@ type Drawer interface {
 	Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
 }
 
-// DrawWhole draws the whole texture.
-func DrawWhole(drawer Drawer, width, height int, geo GeometryMatrix, color ColorMatrix) error {
+// DrawWholeTexture draws the whole texture.
+func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
+	w, h := texture.Size()
 	parts := []TexturePart{
-		{0, 0, Rect{0, 0, width, height}},
+		{0, 0, Rect{0, 0, w, h}},
 	}
-	return drawer.Draw(parts, geo, color)
+	return g.Texture(texture).Draw(parts, geo, color)
+}
+
+// DrawWholeRenderTarget draws the whole render target.
+func DrawWholeRenderTarget(g GraphicsContext, renderTarget *RenderTarget, geo GeometryMatrix, color ColorMatrix) error {
+	w, h := renderTarget.Size()
+	parts := []TexturePart{
+		{0, 0, Rect{0, 0, w, h}},
+	}
+	return g.RenderTarget(renderTarget).Draw(parts, geo, color)
 }
 
 // A GraphicsContext is the interface that means a context of rendering.

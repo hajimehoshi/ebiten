@@ -45,8 +45,6 @@ func NewGameScene() *GameScene {
 	}
 }
 
-const emptyWidth = 16
-const emptyHeight = 16
 const fieldWidth = blockWidth * fieldBlockNumX
 const fieldHeight = blockHeight * fieldBlockNumY
 
@@ -115,10 +113,11 @@ func (s *GameScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
 	context.Fill(0xff, 0xff, 0xff)
 
 	field := textures.GetTexture("empty")
-	geoMat := ebiten.ScaleGeometry(float64(fieldWidth)/float64(emptyWidth), float64(fieldHeight)/float64(emptyHeight))
+	w, h := field.Size()
+	geoMat := ebiten.ScaleGeometry(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20)) // TODO: magic number?
 	colorMat := ebiten.ScaleColor(color.RGBA{0, 0, 0, 0x80})
-	ebiten.DrawWhole(context.Texture(field), emptyWidth, emptyHeight, geoMat, colorMat)
+	ebiten.DrawWholeTexture(context, field, geoMat, colorMat)
 
 	geoMat = ebiten.GeometryMatrixI()
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20))

@@ -42,7 +42,7 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	geo.Concat(ebiten.ScaleGeometry(0.5, 0.5))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
 	clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
-	ebiten.DrawWhole(gr.Texture(g.gophersTexture), w, h, geo, clr)
+	ebiten.DrawWholeTexture(gr, g.gophersTexture, geo, clr)
 	return nil
 }
 

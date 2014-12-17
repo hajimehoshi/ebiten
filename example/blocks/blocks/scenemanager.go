@@ -78,21 +78,11 @@ func (s *SceneManager) Draw(context ebiten.GraphicsContext, textures *Textures) 
 	context.PopRenderTarget()
 
 	color := ebiten.ColorMatrixI()
-	ebiten.DrawWhole(
-		context.RenderTarget(from),
-		ScreenWidth,
-		ScreenHeight,
-		ebiten.GeometryMatrixI(),
-		color)
+	ebiten.DrawWholeRenderTarget(context, from, ebiten.GeometryMatrixI(), color)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
 	color.Elements[3][3] = alpha
-	ebiten.DrawWhole(
-		context.RenderTarget(to),
-		ScreenWidth,
-		ScreenHeight,
-		ebiten.GeometryMatrixI(),
-		color)
+	ebiten.DrawWholeRenderTarget(context, to, ebiten.GeometryMatrixI(), color)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {
