@@ -54,9 +54,9 @@ type GraphicsContext interface {
 	Clear() error
 	Fill(r, g, b uint8) error
 	Texture(texture *Texture) Drawer
-	RenderTarget(id RenderTargetID) Drawer
+	RenderTarget(id *RenderTarget) Drawer
 	// TODO: ScreenRenderTarget() Drawer
-	PushRenderTarget(id RenderTargetID)
+	PushRenderTarget(id *RenderTarget)
 	PopRenderTarget()
 }
 
@@ -70,30 +70,16 @@ const (
 	FilterLinear
 )
 
+// Texture represents a texture.
 type Texture struct {
 	id int
 }
 
+// RenderTarget represents a render target.
+// A render target is essentially same as a texture, but it is assumed that the
+// all alpha values of a render target is maximum.
 type RenderTarget struct {
 	id int
-}
-
-// TextureID represents an ID of a texture.
-/*type TextureID int
-
-// IsNil returns true if the texture is nil.
-func (i TextureID) IsNil() bool {
-	return i == 0
-}*/
-
-// RenderTargetID represents an ID of a render target.
-// A render target is essentially same as a texture, but it is assumed that the
-// all alpha of a render target is maximum.
-type RenderTargetID int
-
-// IsNil returns true if the render target is nil.
-func (i RenderTargetID) IsNil() bool {
-	return i == 0
 }
 
 func u(x int, width int) float32 {

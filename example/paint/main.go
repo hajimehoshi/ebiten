@@ -33,8 +33,8 @@ const (
 type Game struct {
 	inited             bool
 	count              int
-	brushRenderTarget  ebiten.RenderTargetID
-	canvasRenderTarget ebiten.RenderTargetID
+	brushRenderTarget  *ebiten.RenderTarget
+	canvasRenderTarget *ebiten.RenderTarget
 }
 
 func (g *Game) Update(gr ebiten.GraphicsContext) error {
@@ -72,11 +72,11 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 func main() {
 	g := new(Game)
 	var err error
-	g.brushRenderTarget, err = ebiten.NewRenderTargetID(1, 1, ebiten.FilterNearest)
+	g.brushRenderTarget, err = ebiten.NewRenderTarget(1, 1, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.canvasRenderTarget, err = ebiten.NewRenderTargetID(screenWidth, screenHeight, ebiten.FilterNearest)
+	g.canvasRenderTarget, err = ebiten.NewRenderTarget(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

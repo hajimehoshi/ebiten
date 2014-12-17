@@ -27,18 +27,17 @@ import (
 
 type ids struct {
 	textures              map[*Texture]*opengl.Texture
-	renderTargets         map[RenderTargetID]*opengl.RenderTarget
-	renderTargetToTexture map[RenderTargetID]*Texture
+	renderTargets         map[*RenderTarget]*opengl.RenderTarget
+	renderTargetToTexture map[*RenderTarget]*Texture
 	lastID                int
-	currentRenderTargetID RenderTargetID
+	currentRenderTarget   *RenderTarget
 	sync.RWMutex
 }
 
 var idsInstance = &ids{
 	textures:              map[*Texture]*opengl.Texture{},
-	renderTargets:         map[RenderTargetID]*opengl.RenderTarget{},
-	renderTargetToTexture: map[RenderTargetID]*Texture{},
-	currentRenderTargetID: -1,
+	renderTargets:         map[*RenderTarget]*opengl.RenderTarget{},
+	renderTargetToTexture: map[*RenderTarget]*Texture{},
 }
 
 func (i *ids) textureAt(texture *Texture) *opengl.Texture {
@@ -47,16 +46,16 @@ func (i *ids) textureAt(texture *Texture) *opengl.Texture {
 	return i.textures[texture]
 }
 
-func (i *ids) renderTargetAt(id RenderTargetID) *opengl.RenderTarget {
+func (i *ids) renderTargetAt(renderTarget *RenderTarget) *opengl.RenderTarget {
 	i.RLock()
 	defer i.RUnlock()
-	return i.renderTargets[id]
+	return i.renderTargets[renderTarget]
 }
 
-func (i *ids) toTexture(id RenderTargetID) *Texture {
+func (i *ids) toTexture(renderTarget *RenderTarget) *Texture {
 	i.RLock()
 	defer i.RUnlock()
-	return i.renderTargetToTexture[id]
+	return i.renderTargetToTexture[renderTarget]
 }
 
 func (i *ids) createTexture(img image.Image, filter int) (*Texture, error) {
@@ -73,17 +72,17 @@ func (i *ids) createTexture(img image.Image, filter int) (*Texture, error) {
 	return texture, nil
 }
 
-func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID, error) {
+func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, error) {
 	glTexture, err := opengl.CreateTexture(width, height, filter)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// The current binded framebuffer can be changed.
-	i.currentRenderTargetID = -1
+	i.currentRenderTarget = nil
 	r, err := opengl.NewRenderTargetFromTexture(glTexture)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	i.Lock()
@@ -91,44 +90,44 @@ func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID,
 	i.lastID++
 	texture := &Texture{i.lastID}
 	i.lastID++
-	renderTargetID := RenderTargetID(i.lastID)
+	renderTarget := &RenderTarget{i.lastID}
 
 	i.textures[texture] = glTexture
-	i.renderTargets[renderTargetID] = r
-	i.renderTargetToTexture[renderTargetID] = texture
+	i.renderTargets[renderTarget] = r
+	i.renderTargetToTexture[renderTarget] = texture
 
-	return renderTargetID, nil
+	return renderTarget, nil
 }
 
 // NOTE: renderTarget can't be used as a texture.
-func (i *ids) addRenderTarget(renderTarget *opengl.RenderTarget) RenderTargetID {
+func (i *ids) addRenderTarget(glRenderTarget *opengl.RenderTarget) *RenderTarget {
 	i.Lock()
 	defer i.Unlock()
 	i.lastID++
-	id := RenderTargetID(i.lastID)
-	i.renderTargets[id] = renderTarget
+	renderTarget := &RenderTarget{i.lastID}
+	i.renderTargets[renderTarget] = glRenderTarget
 
-	return id
+	return renderTarget
 }
 
-func (i *ids) deleteRenderTarget(id RenderTargetID) {
+func (i *ids) deleteRenderTarget(renderTarget *RenderTarget) {
 	i.Lock()
 	defer i.Unlock()
 
-	renderTarget := i.renderTargets[id]
-	texture := i.renderTargetToTexture[id]
+	glRenderTarget := i.renderTargets[renderTarget]
+	texture := i.renderTargetToTexture[renderTarget]
 	glTexture := i.textures[texture]
 
-	renderTarget.Dispose()
+	glRenderTarget.Dispose()
 	glTexture.Dispose()
 
-	delete(i.renderTargets, id)
-	delete(i.renderTargetToTexture, id)
+	delete(i.renderTargets, renderTarget)
+	delete(i.renderTargetToTexture, renderTarget)
 	delete(i.textures, texture)
 }
 
-func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) error {
-	if err := i.setViewportIfNeeded(id); err != nil {
+func (i *ids) fillRenderTarget(renderTarget *RenderTarget, r, g, b uint8) error {
+	if err := i.setViewportIfNeeded(renderTarget); err != nil {
 		return err
 	}
 	const max = float64(math.MaxUint8)
@@ -137,7 +136,7 @@ func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) error {
 	return nil
 }
 
-func (i *ids) drawTexture(target RenderTargetID, texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+func (i *ids) drawTexture(target *RenderTarget, texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
 	glTexture := i.textureAt(texture)
 	if err := i.setViewportIfNeeded(target); err != nil {
 		return err
@@ -149,13 +148,13 @@ func (i *ids) drawTexture(target RenderTargetID, texture *Texture, parts []Textu
 	return nil
 }
 
-func (i *ids) setViewportIfNeeded(id RenderTargetID) error {
-	r := i.renderTargetAt(id)
-	if i.currentRenderTargetID != id {
+func (i *ids) setViewportIfNeeded(renderTarget *RenderTarget) error {
+	r := i.renderTargetAt(renderTarget)
+	if i.currentRenderTarget != renderTarget {
 		if err := r.SetAsViewport(); err != nil {
 			return err
 		}
-		i.currentRenderTargetID = id
+		i.currentRenderTarget = renderTarget
 	}
 	return nil
 }

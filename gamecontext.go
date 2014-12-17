@@ -47,9 +47,9 @@ func glFilter(f Filter) int {
 	}
 }
 
-// NewRenderTargetID returns a new RenderTargetID.
-func NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error) {
-	return currentUI.newRenderTargetID(width, height, glFilter(filter))
+// NewRenderTarget returns a new RenderTarget.
+func NewRenderTarget(width, height int, filter Filter) (*RenderTarget, error) {
+	return currentUI.newRenderTarget(width, height, glFilter(filter))
 }
 
 // NewTexture returns a new Texture.

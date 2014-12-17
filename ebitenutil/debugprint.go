@@ -24,7 +24,7 @@ import (
 
 type debugPrintState struct {
 	textTexture            *ebiten.Texture
-	debugPrintRenderTarget ebiten.RenderTargetID
+	debugPrintRenderTarget *ebiten.RenderTarget
 	y                      int
 }
 
@@ -72,10 +72,10 @@ func (d *debugPrintState) DebugPrint(gr ebiten.GraphicsContext, str string) {
 			panic(err)
 		}
 	}
-	if d.debugPrintRenderTarget.IsNil() {
+	if d.debugPrintRenderTarget == nil {
 		width, height := 256, 256
 		var err error
-		d.debugPrintRenderTarget, err = ebiten.NewRenderTargetID(width, height, ebiten.FilterNearest)
+		d.debugPrintRenderTarget, err = ebiten.NewRenderTarget(width, height, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}

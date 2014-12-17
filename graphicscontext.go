@@ -25,29 +25,29 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 	// The defualt framebuffer should be 0.
 	r := opengl.NewRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
 
-	screenID, err := idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
+	screen, err := idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
 	if err != nil {
 		return nil, err
 	}
 
 	c := &graphicsContext{
-		currentIDs:   make([]RenderTargetID, 1),
-		defaultID:    idsInstance.addRenderTarget(r),
-		screenID:     screenID,
+		currents:     make([]*RenderTarget, 1),
+		defaultR:     idsInstance.addRenderTarget(r),
+		screen:       screen,
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
 
-	idsInstance.fillRenderTarget(c.screenID, 0, 0, 0)
+	idsInstance.fillRenderTarget(c.screen, 0, 0, 0)
 
 	return c, nil
 }
 
 type graphicsContext struct {
-	screenID     RenderTargetID
-	defaultID    RenderTargetID
-	currentIDs   []RenderTargetID
+	screen       *RenderTarget
+	defaultR     *RenderTarget
+	currents     []*RenderTarget
 	screenWidth  int
 	screenHeight int
 	screenScale  int
@@ -57,7 +57,7 @@ var _ GraphicsContext = new(graphicsContext)
 
 func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
-	idsInstance.deleteRenderTarget(c.screenID)
+	idsInstance.deleteRenderTarget(c.screen)
 }
 
 func (c *graphicsContext) Clear() error {
@@ -65,29 +65,29 @@ func (c *graphicsContext) Clear() error {
 }
 
 func (c *graphicsContext) Fill(r, g, b uint8) error {
-	return idsInstance.fillRenderTarget(c.currentIDs[len(c.currentIDs)-1], r, g, b)
+	return idsInstance.fillRenderTarget(c.currents[len(c.currents)-1], r, g, b)
 }
 
 func (c *graphicsContext) Texture(texture *Texture) Drawer {
 	return &textureWithContext{texture, c}
 }
 
-func (c *graphicsContext) RenderTarget(id RenderTargetID) Drawer {
+func (c *graphicsContext) RenderTarget(id *RenderTarget) Drawer {
 	return &textureWithContext{idsInstance.toTexture(id), c}
 }
 
-func (c *graphicsContext) PushRenderTarget(renderTargetID RenderTargetID) {
-	c.currentIDs = append(c.currentIDs, renderTargetID)
+func (c *graphicsContext) PushRenderTarget(renderTarget *RenderTarget) {
+	c.currents = append(c.currents, renderTarget)
 }
 
 func (c *graphicsContext) PopRenderTarget() {
-	c.currentIDs = c.currentIDs[:len(c.currentIDs)-1]
+	c.currents = c.currents[:len(c.currents)-1]
 }
 
 func (c *graphicsContext) preUpdate() {
-	c.currentIDs = c.currentIDs[0:1]
-	c.currentIDs[0] = c.defaultID
-	c.PushRenderTarget(c.screenID)
+	c.currents = c.currents[0:1]
+	c.currents[0] = c.defaultR
+	c.PushRenderTarget(c.screen)
 	c.Clear()
 }
 
@@ -98,7 +98,7 @@ func (c *graphicsContext) postUpdate() {
 	scale := float64(c.screenScale)
 	geo := GeometryMatrixI()
 	geo.Concat(ScaleGeometry(scale, scale))
-	DrawWhole(c.RenderTarget(c.screenID), c.screenWidth, c.screenHeight, geo, ColorMatrixI())
+	DrawWhole(c.RenderTarget(c.screen), c.screenWidth, c.screenHeight, geo, ColorMatrixI())
 
 	gl.Flush()
 }
@@ -109,6 +109,6 @@ type textureWithContext struct {
 }
 
 func (t *textureWithContext) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
-	currentID := t.context.currentIDs[len(t.context.currentIDs)-1]
-	return idsInstance.drawTexture(currentID, t.texture, parts, geo, color)
+	current := t.context.currents[len(t.context.currents)-1]
+	return idsInstance.drawTexture(current, t.texture, parts, geo, color)
 }

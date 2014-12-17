@@ -136,13 +136,13 @@ func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
 	return texture, err
 }
 
-func (u *ui) newRenderTargetID(width, height int, filter int) (RenderTargetID, error) {
-	var id RenderTargetID
+func (u *ui) newRenderTarget(width, height int, filter int) (*RenderTarget, error) {
+	var renderTarget *RenderTarget
 	var err error
 	u.use(func() {
-		id, err = idsInstance.createRenderTarget(width, height, filter)
+		renderTarget, err = idsInstance.createRenderTarget(width, height, filter)
 	})
-	return id, err
+	return renderTarget, err
 }
 
 func (u *ui) run() {

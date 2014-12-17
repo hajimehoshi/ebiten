@@ -51,11 +51,11 @@ func (c *syncGraphicsContext) Texture(texture *Texture) (d Drawer) {
 	return
 }
 
-func (c *syncGraphicsContext) RenderTarget(id RenderTargetID) (d Drawer) {
+func (c *syncGraphicsContext) RenderTarget(renderTarget *RenderTarget) (d Drawer) {
 	c.syncer.Sync(func() {
 		d = &drawer{
 			syncer:      c.syncer,
-			innerDrawer: c.innerGraphicsContext.RenderTarget(id),
+			innerDrawer: c.innerGraphicsContext.RenderTarget(renderTarget),
 		}
 	})
 	return
@@ -67,9 +67,9 @@ func (c *syncGraphicsContext) PopRenderTarget() {
 	})
 }
 
-func (c *syncGraphicsContext) PushRenderTarget(id RenderTargetID) {
+func (c *syncGraphicsContext) PushRenderTarget(renderTarget *RenderTarget) {
 	c.syncer.Sync(func() {
-		c.innerGraphicsContext.PushRenderTarget(id)
+		c.innerGraphicsContext.PushRenderTarget(renderTarget)
 	})
 }
 
