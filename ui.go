@@ -24,22 +24,18 @@ import (
 	"runtime"
 )
 
-func init() {
-	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
-		panic(fmt.Sprintf("%v: %v\n", err, desc))
-	})
-}
-
 type ui struct {
 	window          *glfw.Window
 	scale           int
 	graphicsContext *graphicsContext
 	input           input
 	funcs           chan func()
-	funcsDone       chan struct{}
 }
 
-func newUI(game Game, width, height, scale int, title string) (*ui, error) {
+func newUI(width, height, scale int, title string) (*ui, error) {
+	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
+		panic(fmt.Sprintf("%v: %v\n", err, desc))
+	})
 	if !glfw.Init() {
 		return nil, errors.New("glfw.Init() fails")
 	}
@@ -50,10 +46,9 @@ func newUI(game Game, width, height, scale int, title string) (*ui, error) {
 	}
 
 	u := &ui{
-		window:    window,
-		scale:     scale,
-		funcs:     make(chan func()),
-		funcsDone: make(chan struct{}),
+		window: window,
+		scale:  scale,
+		funcs:  make(chan func()),
 	}
 
 	u.run(width, height, scale)
@@ -83,19 +78,15 @@ func (u *ui) isClosed() bool {
 	return u.window.ShouldClose()
 }
 
-func (u *ui) drawGame(game Game) error {
-	return u.draw(game)
-}
-
 func (u *ui) Sync(f func()) {
 	u.use(f)
 }
 
-func (u *ui) draw(game Game) (err error) {
+func (u *ui) draw(f func(GraphicsContext) error) (err error) {
 	u.use(func() {
 		u.graphicsContext.preUpdate()
 	})
-	if err = game.Draw(&syncGraphicsContext{
+	if err = f(&syncGraphicsContext{
 		syncer:               u,
 		innerGraphicsContext: u.graphicsContext,
 	}); err != nil {
@@ -131,16 +122,19 @@ func (u *ui) run(width, height, scale int) {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
 		glfw.SwapInterval(1)
-		for {
-			(<-u.funcs)()
-			u.funcsDone <- struct{}{}
+		for f := range u.funcs {
+			f()
 		}
 	}()
 }
 
 func (u *ui) use(f func()) {
-	u.funcs <- f
-	<-u.funcsDone
+	ch := make(chan struct{})
+	u.funcs <- func() {
+		f()
+		close(ch)
+	}
+	<-ch
 }
 
 func (u *ui) update() {

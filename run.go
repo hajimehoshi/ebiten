@@ -19,6 +19,7 @@ package ebiten
 import (
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 )
@@ -31,9 +32,14 @@ type Game interface {
 
 var currentUI *ui
 
+func init() {
+	runtime.LockOSThread()
+}
+
 // Run runs the game.
+// This function must be called from the main thread.
 func Run(game Game, width, height, scale int, title string, fps int) error {
-	ui, err := newUI(game, width, height, scale, title)
+	ui, err := newUI(width, height, scale, title)
 	if err != nil {
 		return err
 	}
@@ -56,7 +62,7 @@ func Run(game Game, width, height, scale int, title string, fps int) error {
 		}
 		select {
 		default:
-			if err := ui.drawGame(game); err != nil {
+			if err := ui.draw(game.Draw); err != nil {
 				return err
 			}
 		case <-tick:
