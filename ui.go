@@ -132,7 +132,7 @@ func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
 	var texture *Texture
 	var err error
 	u.use(func() {
-		glTexture, err := opengl.CreateTextureFromImage(img, filter)
+		glTexture, err := opengl.NewTextureFromImage(img, filter)
 		if err != nil {
 			return
 		}

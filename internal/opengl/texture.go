@@ -94,18 +94,19 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 	return nativeTexture
 }
 
-func CreateTexture(width, height int, filter int) (*Texture, error) {
+func NewTexture(width, height int, filter int) (*Texture, error) {
 	w := AdjustSizeForTexture(width)
 	h := AdjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
 	return &Texture{native, width, height}, nil
 }
 
-func CreateTextureFromImage(img image.Image, filter int) (*Texture, error) {
+func NewTextureFromImage(img image.Image, filter int) (*Texture, error) {
+	origSize := img.Bounds().Size()
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
 	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
-	return &Texture{native, size.X, size.Y}, nil
+	return &Texture{native, origSize.X, origSize.Y}, nil
 }
 
 func (t *Texture) Dispose() {

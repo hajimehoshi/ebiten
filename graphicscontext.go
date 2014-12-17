@@ -32,7 +32,7 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 
 	c := &graphicsContext{
 		currents:     make([]*RenderTarget, 1),
-		defaultR:     idsInstance.addRenderTarget(r),
+		defaultR:     &RenderTarget{r, nil},
 		screen:       screen,
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
@@ -57,7 +57,12 @@ var _ GraphicsContext = new(graphicsContext)
 
 func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
-	idsInstance.deleteRenderTarget(c.screen)
+	glRenderTarget := c.screen.glRenderTarget
+	texture := c.screen.texture
+	glTexture := texture.glTexture
+
+	glRenderTarget.Dispose()
+	glTexture.Dispose()
 }
 
 func (c *graphicsContext) Clear() error {
@@ -72,8 +77,8 @@ func (c *graphicsContext) Texture(texture *Texture) Drawer {
 	return &textureWithContext{texture, c}
 }
 
-func (c *graphicsContext) RenderTarget(id *RenderTarget) Drawer {
-	return &textureWithContext{idsInstance.toTexture(id), c}
+func (c *graphicsContext) RenderTarget(renderTarget *RenderTarget) Drawer {
+	return &textureWithContext{renderTarget.texture, c}
 }
 
 func (c *graphicsContext) PushRenderTarget(renderTarget *RenderTarget) {

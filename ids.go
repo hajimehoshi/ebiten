@@ -23,18 +23,16 @@ import (
 	"math"
 )
 
+// ids manages the current render target to be used.
+// TODO: Change this name. `ids` is not appropriate for now.
 type ids struct {
 	currentRenderTarget *RenderTarget
 }
 
 var idsInstance = &ids{}
 
-func (i *ids) toTexture(renderTarget *RenderTarget) *Texture {
-	return renderTarget.texture
-}
-
 func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, error) {
-	glTexture, err := opengl.CreateTexture(width, height, filter)
+	glTexture, err := opengl.NewTexture(width, height, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -50,21 +48,6 @@ func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, 
 	renderTarget := &RenderTarget{glRenderTarget, texture}
 
 	return renderTarget, nil
-}
-
-// NOTE: renderTarget can't be used as a texture.
-func (i *ids) addRenderTarget(glRenderTarget *opengl.RenderTarget) *RenderTarget {
-	return &RenderTarget{glRenderTarget, nil}
-}
-
-func (i *ids) deleteRenderTarget(renderTarget *RenderTarget) {
-
-	glRenderTarget := renderTarget.glRenderTarget
-	texture := renderTarget.texture
-	glTexture := texture.glTexture
-
-	glRenderTarget.Dispose()
-	glTexture.Dispose()
 }
 
 func (i *ids) fillRenderTarget(renderTarget *RenderTarget, r, g, b uint8) error {

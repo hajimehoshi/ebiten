@@ -75,12 +75,22 @@ type Texture struct {
 	glTexture *opengl.Texture
 }
 
+// Size returns the size of the texture.
+func (t *Texture) Size() (width int, height int) {
+	return t.glTexture.Width(), t.glTexture.Height()
+}
+
 // RenderTarget represents a render target.
 // A render target is essentially same as a texture, but it is assumed that the
 // all alpha values of a render target is maximum.
 type RenderTarget struct {
 	glRenderTarget *opengl.RenderTarget
 	texture        *Texture
+}
+
+// Size returns the size of the render target.
+func (r *RenderTarget) Size() (width int, height int) {
+	return r.glRenderTarget.Width(), r.glRenderTarget.Height()
 }
 
 func u(x int, width int) float32 {
