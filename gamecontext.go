@@ -52,7 +52,7 @@ func NewRenderTargetID(width, height int, filter Filter) (RenderTargetID, error)
 	return currentUI.newRenderTargetID(width, height, glFilter(filter))
 }
 
-// NewTextureID returns a new TextureID.
-func NewTextureID(img image.Image, filter Filter) (TextureID, error) {
-	return currentUI.newTextureID(img, glFilter(filter))
+// NewTexture returns a new Texture.
+func NewTexture(img image.Image, filter Filter) (*Texture, error) {
+	return currentUI.newTexture(img, glFilter(filter))
 }

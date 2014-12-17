@@ -68,8 +68,8 @@ func (c *graphicsContext) Fill(r, g, b uint8) error {
 	return idsInstance.fillRenderTarget(c.currentIDs[len(c.currentIDs)-1], r, g, b)
 }
 
-func (c *graphicsContext) Texture(id TextureID) Drawer {
-	return &textureWithContext{id, c}
+func (c *graphicsContext) Texture(texture *Texture) Drawer {
+	return &textureWithContext{texture, c}
 }
 
 func (c *graphicsContext) RenderTarget(id RenderTargetID) Drawer {
@@ -104,11 +104,11 @@ func (c *graphicsContext) postUpdate() {
 }
 
 type textureWithContext struct {
-	id      TextureID
+	texture *Texture
 	context *graphicsContext
 }
 
 func (t *textureWithContext) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
 	currentID := t.context.currentIDs[len(t.context.currentIDs)-1]
-	return idsInstance.drawTexture(currentID, t.id, parts, geo, color)
+	return idsInstance.drawTexture(currentID, t.texture, parts, geo, color)
 }

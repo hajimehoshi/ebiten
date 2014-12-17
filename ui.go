@@ -127,13 +127,13 @@ func (u *ui) draw(f func(GraphicsContext) error) (err error) {
 	return
 }
 
-func (u *ui) newTextureID(img image.Image, filter int) (TextureID, error) {
-	var id TextureID
+func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
+	var texture *Texture
 	var err error
 	u.use(func() {
-		id, err = idsInstance.createTexture(img, filter)
+		texture, err = idsInstance.createTexture(img, filter)
 	})
-	return id, err
+	return texture, err
 }
 
 func (u *ui) newRenderTargetID(width, height int, filter int) (RenderTargetID, error) {

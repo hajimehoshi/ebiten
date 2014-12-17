@@ -41,11 +41,11 @@ func (c *syncGraphicsContext) Fill(r, g, b uint8) (err error) {
 	return
 }
 
-func (c *syncGraphicsContext) Texture(id TextureID) (d Drawer) {
+func (c *syncGraphicsContext) Texture(texture *Texture) (d Drawer) {
 	c.syncer.Sync(func() {
 		d = &drawer{
 			syncer:      c.syncer,
-			innerDrawer: c.innerGraphicsContext.Texture(id),
+			innerDrawer: c.innerGraphicsContext.Texture(texture),
 		}
 	})
 	return

@@ -53,7 +53,7 @@ func DrawWhole(drawer Drawer, width, height int, geo GeometryMatrix, color Color
 type GraphicsContext interface {
 	Clear() error
 	Fill(r, g, b uint8) error
-	Texture(id TextureID) Drawer
+	Texture(texture *Texture) Drawer
 	RenderTarget(id RenderTargetID) Drawer
 	// TODO: ScreenRenderTarget() Drawer
 	PushRenderTarget(id RenderTargetID)
@@ -70,13 +70,21 @@ const (
 	FilterLinear
 )
 
+type Texture struct {
+	id int
+}
+
+type RenderTarget struct {
+	id int
+}
+
 // TextureID represents an ID of a texture.
-type TextureID int
+/*type TextureID int
 
 // IsNil returns true if the texture is nil.
 func (i TextureID) IsNil() bool {
 	return i == 0
-}
+}*/
 
 // RenderTargetID represents an ID of a render target.
 // A render target is essentially same as a texture, but it is assumed that the

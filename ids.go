@@ -26,25 +26,25 @@ import (
 )
 
 type ids struct {
-	textures              map[TextureID]*opengl.Texture
+	textures              map[*Texture]*opengl.Texture
 	renderTargets         map[RenderTargetID]*opengl.RenderTarget
-	renderTargetToTexture map[RenderTargetID]TextureID
+	renderTargetToTexture map[RenderTargetID]*Texture
 	lastID                int
 	currentRenderTargetID RenderTargetID
 	sync.RWMutex
 }
 
 var idsInstance = &ids{
-	textures:              map[TextureID]*opengl.Texture{},
+	textures:              map[*Texture]*opengl.Texture{},
 	renderTargets:         map[RenderTargetID]*opengl.RenderTarget{},
-	renderTargetToTexture: map[RenderTargetID]TextureID{},
+	renderTargetToTexture: map[RenderTargetID]*Texture{},
 	currentRenderTargetID: -1,
 }
 
-func (i *ids) textureAt(id TextureID) *opengl.Texture {
+func (i *ids) textureAt(texture *Texture) *opengl.Texture {
 	i.RLock()
 	defer i.RUnlock()
-	return i.textures[id]
+	return i.textures[texture]
 }
 
 func (i *ids) renderTargetAt(id RenderTargetID) *opengl.RenderTarget {
@@ -53,35 +53,35 @@ func (i *ids) renderTargetAt(id RenderTargetID) *opengl.RenderTarget {
 	return i.renderTargets[id]
 }
 
-func (i *ids) toTexture(id RenderTargetID) TextureID {
+func (i *ids) toTexture(id RenderTargetID) *Texture {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargetToTexture[id]
 }
 
-func (i *ids) createTexture(img image.Image, filter int) (TextureID, error) {
-	texture, err := opengl.CreateTextureFromImage(img, filter)
+func (i *ids) createTexture(img image.Image, filter int) (*Texture, error) {
+	glTexture, err := opengl.CreateTextureFromImage(img, filter)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	i.Lock()
 	defer i.Unlock()
 	i.lastID++
-	textureID := TextureID(i.lastID)
-	i.textures[textureID] = texture
-	return textureID, nil
+	texture := &Texture{i.lastID}
+	i.textures[texture] = glTexture
+	return texture, nil
 }
 
 func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID, error) {
-	texture, err := opengl.CreateTexture(width, height, filter)
+	glTexture, err := opengl.CreateTexture(width, height, filter)
 	if err != nil {
 		return 0, err
 	}
 
 	// The current binded framebuffer can be changed.
 	i.currentRenderTargetID = -1
-	r, err := opengl.NewRenderTargetFromTexture(texture)
+	r, err := opengl.NewRenderTargetFromTexture(glTexture)
 	if err != nil {
 		return 0, err
 	}
@@ -89,13 +89,13 @@ func (i *ids) createRenderTarget(width, height int, filter int) (RenderTargetID,
 	i.Lock()
 	defer i.Unlock()
 	i.lastID++
-	textureID := TextureID(i.lastID)
+	texture := &Texture{i.lastID}
 	i.lastID++
 	renderTargetID := RenderTargetID(i.lastID)
 
-	i.textures[textureID] = texture
+	i.textures[texture] = glTexture
 	i.renderTargets[renderTargetID] = r
-	i.renderTargetToTexture[renderTargetID] = textureID
+	i.renderTargetToTexture[renderTargetID] = texture
 
 	return renderTargetID, nil
 }
@@ -116,15 +116,15 @@ func (i *ids) deleteRenderTarget(id RenderTargetID) {
 	defer i.Unlock()
 
 	renderTarget := i.renderTargets[id]
-	textureID := i.renderTargetToTexture[id]
-	texture := i.textures[textureID]
+	texture := i.renderTargetToTexture[id]
+	glTexture := i.textures[texture]
 
 	renderTarget.Dispose()
-	texture.Dispose()
+	glTexture.Dispose()
 
 	delete(i.renderTargets, id)
 	delete(i.renderTargetToTexture, id)
-	delete(i.textures, textureID)
+	delete(i.textures, texture)
 }
 
 func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) error {
@@ -137,15 +137,15 @@ func (i *ids) fillRenderTarget(id RenderTargetID, r, g, b uint8) error {
 	return nil
 }
 
-func (i *ids) drawTexture(target RenderTargetID, id TextureID, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
-	texture := i.textureAt(id)
+func (i *ids) drawTexture(target RenderTargetID, texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+	glTexture := i.textureAt(texture)
 	if err := i.setViewportIfNeeded(target); err != nil {
 		return err
 	}
 	r := i.renderTargetAt(target)
 	projectionMatrix := r.ProjectionMatrix()
-	quads := textureQuads(parts, texture.Width(), texture.Height())
-	shader.DrawTexture(texture.Native(), projectionMatrix, quads, &geo, &color)
+	quads := textureQuads(parts, glTexture.Width(), glTexture.Height())
+	shader.DrawTexture(glTexture.Native(), projectionMatrix, quads, &geo, &color)
 	return nil
 }
 

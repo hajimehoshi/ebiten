@@ -19,8 +19,10 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"image"
 	_ "image/jpeg"
 	"log"
+	"math"
 )
 
 const (
@@ -29,21 +31,33 @@ const (
 )
 
 type Game struct {
-	gophersTexture ebiten.TextureID
+	count                int
+	gophersTexture       *ebiten.Texture
+	gophersTextureWidth  int
+	gophersTextureHeight int
 }
 
 func (g *Game) Update(gr ebiten.GraphicsContext) error {
-	ebiten.DrawWhole(gr.Texture(g.gophersTexture), 500, 414, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
+	g.count++
+
+	geo := ebiten.TranslateGeometry(-float64(g.gophersTextureWidth)/2, -float64(g.gophersTextureHeight)/2)
+	geo.Concat(ebiten.ScaleGeometry(0.5, 0.5))
+	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
+	clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
+	ebiten.DrawWhole(gr.Texture(g.gophersTexture), g.gophersTextureWidth, g.gophersTextureHeight, geo, clr)
 	return nil
 }
 
 func main() {
 	g := new(Game)
-	id, err := ebitenutil.NewTextureIDFromFile("images/gophers.jpg", ebiten.FilterLinear)
+	var img image.Image
+	var err error
+	g.gophersTexture, img, err = ebitenutil.NewTextureFromFile("images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.gophersTexture = id
+	g.gophersTextureWidth = img.Bounds().Size().X
+	g.gophersTextureHeight = img.Bounds().Size().Y
 	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

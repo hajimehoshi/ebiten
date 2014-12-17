@@ -23,7 +23,6 @@ import (
 	"image/color"
 	"log"
 	"math"
-	"sync"
 )
 
 const (
@@ -32,7 +31,7 @@ const (
 )
 
 type Game struct {
-	init               sync.Once
+	inited             bool
 	count              int
 	brushRenderTarget  ebiten.RenderTargetID
 	canvasRenderTarget ebiten.RenderTargetID
@@ -42,14 +41,15 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.count++
 	}
-	g.init.Do(func() {
+	if !g.inited {
 		gr.PushRenderTarget(g.brushRenderTarget)
 		gr.Fill(0xff, 0xff, 0xff)
 		gr.PopRenderTarget()
 		gr.PushRenderTarget(g.canvasRenderTarget)
 		gr.Fill(0xff, 0xff, 0xff)
 		gr.PopRenderTarget()
-	})
+		g.inited = true
+	}
 
 	mx, my := ebiten.CursorPosition()
 

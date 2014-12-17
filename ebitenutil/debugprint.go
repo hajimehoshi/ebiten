@@ -23,7 +23,7 @@ import (
 )
 
 type debugPrintState struct {
-	textTexture            ebiten.TextureID
+	textTexture            *ebiten.Texture
 	debugPrintRenderTarget ebiten.RenderTargetID
 	y                      int
 }
@@ -62,12 +62,12 @@ func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y i
 }
 
 func (d *debugPrintState) DebugPrint(gr ebiten.GraphicsContext, str string) {
-	if d.textTexture.IsNil() {
+	if d.textTexture == nil {
 		img, err := assets.TextImage()
 		if err != nil {
 			panic(err)
 		}
-		d.textTexture, err = ebiten.NewTextureID(img, ebiten.FilterNearest)
+		d.textTexture, err = ebiten.NewTexture(img, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}

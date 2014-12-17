@@ -37,7 +37,7 @@ type nameSize struct {
 type Textures struct {
 	texturePaths      chan namePath
 	renderTargetSizes chan nameSize
-	textures          map[string]ebiten.TextureID
+	textures          map[string]*ebiten.Texture
 	renderTargets     map[string]ebiten.RenderTargetID
 	sync.RWMutex
 }
@@ -46,7 +46,7 @@ func NewTextures() *Textures {
 	textures := &Textures{
 		texturePaths:      make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
-		textures:          map[string]ebiten.TextureID{},
+		textures:          map[string]*ebiten.Texture{},
 		renderTargets:     map[string]ebiten.RenderTargetID{},
 	}
 	go func() {
@@ -81,7 +81,7 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := ebiten.NewTextureID(img, ebiten.FilterNearest)
+			id, err := ebiten.NewTexture(img, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -123,7 +123,7 @@ func (t *Textures) Has(name string) bool {
 	return ok
 }
 
-func (t *Textures) GetTexture(name string) ebiten.TextureID {
+func (t *Textures) GetTexture(name string) *ebiten.Texture {
 	t.RLock()
 	defer t.RUnlock()
 	return t.textures[name]

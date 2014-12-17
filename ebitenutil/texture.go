@@ -22,15 +22,19 @@ import (
 	"os"
 )
 
-func NewTextureIDFromFile(path string, filter ebiten.Filter) (ebiten.TextureID, error) {
+func NewTextureFromFile(path string, filter ebiten.Filter) (*ebiten.Texture, image.Image, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
 	defer file.Close()
 	img, _, err := image.Decode(file)
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
-	return ebiten.NewTextureID(img, filter)
+	texture, err := ebiten.NewTexture(img, filter)
+	if err != nil {
+		return nil, nil, err
+	}
+	return texture, img, err
 }
