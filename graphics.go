@@ -72,7 +72,7 @@ const (
 
 // Texture represents a texture.
 type Texture struct {
-	id int
+	glTexture *opengl.Texture
 }
 
 // RenderTarget represents a render target.

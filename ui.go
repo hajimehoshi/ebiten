@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
 	"runtime"
 )
@@ -131,7 +132,11 @@ func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
 	var texture *Texture
 	var err error
 	u.use(func() {
-		texture, err = idsInstance.createTexture(img, filter)
+		glTexture, err := opengl.CreateTextureFromImage(img, filter)
+		if err != nil {
+			return
+		}
+		texture = &Texture{glTexture}
 	})
 	return texture, err
 }

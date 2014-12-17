@@ -20,13 +20,11 @@ import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
-	"image"
 	"math"
 	"sync"
 )
 
 type ids struct {
-	textures              map[*Texture]*opengl.Texture
 	renderTargets         map[*RenderTarget]*opengl.RenderTarget
 	renderTargetToTexture map[*RenderTarget]*Texture
 	lastID                int
@@ -35,15 +33,8 @@ type ids struct {
 }
 
 var idsInstance = &ids{
-	textures:              map[*Texture]*opengl.Texture{},
 	renderTargets:         map[*RenderTarget]*opengl.RenderTarget{},
 	renderTargetToTexture: map[*RenderTarget]*Texture{},
-}
-
-func (i *ids) textureAt(texture *Texture) *opengl.Texture {
-	i.RLock()
-	defer i.RUnlock()
-	return i.textures[texture]
 }
 
 func (i *ids) renderTargetAt(renderTarget *RenderTarget) *opengl.RenderTarget {
@@ -56,20 +47,6 @@ func (i *ids) toTexture(renderTarget *RenderTarget) *Texture {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargetToTexture[renderTarget]
-}
-
-func (i *ids) createTexture(img image.Image, filter int) (*Texture, error) {
-	glTexture, err := opengl.CreateTextureFromImage(img, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	i.Lock()
-	defer i.Unlock()
-	i.lastID++
-	texture := &Texture{i.lastID}
-	i.textures[texture] = glTexture
-	return texture, nil
 }
 
 func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, error) {
@@ -87,12 +64,11 @@ func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, 
 
 	i.Lock()
 	defer i.Unlock()
-	i.lastID++
-	texture := &Texture{i.lastID}
+	texture := &Texture{glTexture}
 	i.lastID++
 	renderTarget := &RenderTarget{i.lastID}
 
-	i.textures[texture] = glTexture
+	//i.textures[texture] = glTexture
 	i.renderTargets[renderTarget] = r
 	i.renderTargetToTexture[renderTarget] = texture
 
@@ -116,14 +92,13 @@ func (i *ids) deleteRenderTarget(renderTarget *RenderTarget) {
 
 	glRenderTarget := i.renderTargets[renderTarget]
 	texture := i.renderTargetToTexture[renderTarget]
-	glTexture := i.textures[texture]
+	glTexture := texture.glTexture
 
 	glRenderTarget.Dispose()
 	glTexture.Dispose()
 
 	delete(i.renderTargets, renderTarget)
 	delete(i.renderTargetToTexture, renderTarget)
-	delete(i.textures, texture)
 }
 
 func (i *ids) fillRenderTarget(renderTarget *RenderTarget, r, g, b uint8) error {
@@ -137,7 +112,7 @@ func (i *ids) fillRenderTarget(renderTarget *RenderTarget, r, g, b uint8) error 
 }
 
 func (i *ids) drawTexture(target *RenderTarget, texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
-	glTexture := i.textureAt(texture)
+	glTexture := texture.glTexture
 	if err := i.setViewportIfNeeded(target); err != nil {
 		return err
 	}
