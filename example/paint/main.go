@@ -23,7 +23,6 @@ import (
 	"image/color"
 	"log"
 	"math"
-	"runtime"
 )
 
 const (
@@ -37,14 +36,10 @@ type Game struct {
 	canvasRenderTarget ebiten.RenderTargetID
 }
 
-func (g *Game) Update() error {
+func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.count++
 	}
-	return nil
-}
-
-func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 	if g.brushRenderTarget.IsNil() {
 		var err error
 		g.brushRenderTarget, err = ebiten.NewRenderTargetID(1, 1, ebiten.FilterNearest)
@@ -84,13 +79,9 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 	return nil
 }
 
-func init() {
-	runtime.LockOSThread()
-}
-
 func main() {
-	game := new(Game)
-	if err := ebiten.Run(game, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)", 60); err != nil {
+	g := new(Game)
+	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

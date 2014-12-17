@@ -33,7 +33,7 @@ type Game struct {
 	gophersTexture ebiten.TextureID
 }
 
-func (g *Game) Update() error {
+func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	if g.gophersTexture.IsNil() {
 		file, err := os.Open("images/gophers.jpg")
 		if err != nil {
@@ -50,10 +50,6 @@ func (g *Game) Update() error {
 		}
 		g.gophersTexture = id
 	}
-	return nil
-}
-
-func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 	if g.gophersTexture.IsNil() {
 		return nil
 	}
@@ -62,7 +58,8 @@ func (g *Game) Draw(gr ebiten.GraphicsContext) error {
 }
 
 func main() {
-	if err := ebiten.Run(new(Game), screenWidth, screenHeight, 2, "Image (Ebiten Demo)", 60); err != nil {
+	g := new(Game)
+	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

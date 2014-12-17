@@ -17,18 +17,8 @@ limitations under the License.
 package ebiten
 
 import (
-	"os"
-	"os/signal"
 	"runtime"
-	"syscall"
-	"time"
 )
-
-// A Game is the interface that represents a game.
-type Game interface {
-	Update() error
-	Draw(gr GraphicsContext) error
-}
 
 var currentUI *ui
 
@@ -38,7 +28,7 @@ func init() {
 
 // Run runs the game.
 // This function must be called from the main thread.
-func Run(game Game, width, height, scale int, title string, fps int) error {
+func Run(f func(GraphicsContext) error, width, height, scale int, title string) error {
 	ui, err := newUI(width, height, scale, title)
 	if err != nil {
 		return err
@@ -50,27 +40,13 @@ func Run(game Game, width, height, scale int, title string, fps int) error {
 		currentUI = nil
 	}()
 
-	frameTime := time.Duration(int64(time.Second) / int64(fps))
-	tick := time.Tick(frameTime)
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, os.Interrupt, syscall.SIGTERM)
-
 	for {
 		ui.doEvents()
 		if ui.isClosed() {
 			return nil
 		}
-		select {
-		default:
-			if err := ui.draw(game.Draw); err != nil {
-				return err
-			}
-		case <-tick:
-			if err := game.Update(); err != nil {
-				return err
-			}
-		case <-sigterm:
-			return nil
+		if err := ui.draw(f); err != nil {
+			return err
 		}
 	}
 }

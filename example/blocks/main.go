@@ -44,7 +44,7 @@ func main() {
 	}
 
 	game := blocks.NewGame()
-	if err := ebiten.Run(game, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Blocks (Ebiten Demo)", 60); err != nil {
+	if err := ebiten.Run(game.Update, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Blocks (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
