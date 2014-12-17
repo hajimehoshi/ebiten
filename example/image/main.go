@@ -18,10 +18,9 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"image"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	_ "image/jpeg"
 	"log"
-	"os"
 )
 
 const (
@@ -34,31 +33,17 @@ type Game struct {
 }
 
 func (g *Game) Update(gr ebiten.GraphicsContext) error {
-	if g.gophersTexture.IsNil() {
-		file, err := os.Open("images/gophers.jpg")
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		img, _, err := image.Decode(file)
-		if err != nil {
-			return err
-		}
-		id, err := ebiten.NewTextureID(img, ebiten.FilterLinear)
-		if err != nil {
-			return err
-		}
-		g.gophersTexture = id
-	}
-	if g.gophersTexture.IsNil() {
-		return nil
-	}
 	ebiten.DrawWhole(gr.Texture(g.gophersTexture), 500, 414, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 	return nil
 }
 
 func main() {
 	g := new(Game)
+	id, err := ebitenutil.LoadImageAndCreateTexture("images/gophers.jpg", ebiten.FilterLinear)
+	if err != nil {
+		log.Fatal(err)
+	}
+	g.gophersTexture = id
 	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

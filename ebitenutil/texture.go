@@ -14,30 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ebiten
+package ebitenutil
 
-// Run runs the game.
-// This function must be called from the main thread.
-func Run(f func(GraphicsContext) error, width, height, scale int, title string) error {
-	err := startUI(width, height, scale, title)
+import (
+	"github.com/hajimehoshi/ebiten"
+	"image"
+	"os"
+)
+
+func LoadImageAndCreateTexture(path string, filter ebiten.Filter) (ebiten.TextureID, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	ui := currentUI
-	defer ui.terminate()
-
-	currentUI = ui
-	defer func() {
-		currentUI = nil
-	}()
-
-	for {
-		ui.doEvents()
-		if ui.isClosed() {
-			return nil
-		}
-		if err := ui.draw(f); err != nil {
-			return err
-		}
+	defer file.Close()
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return 0, err
 	}
+	return ebiten.NewTextureID(img, filter)
 }

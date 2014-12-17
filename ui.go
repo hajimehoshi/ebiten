@@ -17,12 +17,37 @@ limitations under the License.
 package ebiten
 
 import (
-	"errors"
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"image"
 	"runtime"
 )
+
+var currentUI *ui
+
+func init() {
+	runtime.LockOSThread()
+
+	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
+		panic(fmt.Sprintf("%v: %v\n", err, desc))
+	})
+	if !glfw.Init() {
+		panic("glfw.Init() fails")
+	}
+	glfw.WindowHint(glfw.Visible, glfw.False)
+	glfw.WindowHint(glfw.Resizable, glfw.False)
+
+	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	currentUI = &ui{
+		window: window,
+		funcs:  make(chan func()),
+	}
+	currentUI.run()
+}
 
 type ui struct {
 	window          *glfw.Window
@@ -32,37 +57,34 @@ type ui struct {
 	funcs           chan func()
 }
 
-func newUI(width, height, scale int, title string) (*ui, error) {
-	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
-		panic(fmt.Sprintf("%v: %v\n", err, desc))
-	})
-	if !glfw.Init() {
-		return nil, errors.New("glfw.Init() fails")
-	}
-	glfw.WindowHint(glfw.Resizable, glfw.False)
-	window, err := glfw.CreateWindow(width*scale, height*scale, title, nil, nil)
+func startUI(width, height, scale int, title string) error {
+	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	u := &ui{
-		window: window,
-		scale:  scale,
-		funcs:  make(chan func()),
+	videoMode, err := monitor.GetVideoMode()
+	if err != nil {
+		return err
 	}
+	x := (videoMode.Width - width*scale) / 2
+	y := (videoMode.Height - height*scale) / 3
 
-	u.run(width, height, scale)
+	window := currentUI.window
+	window.SetSize(width*scale, height*scale)
+	window.SetTitle(title)
+	window.SetPosition(x, y)
+	window.Show()
+
+	ui := currentUI
+	ui.scale = scale
 
 	// For retina displays, recalculate the scale with the framebuffer size.
 	windowWidth, _ := window.GetFramebufferSize()
 	realScale := windowWidth / width
-	u.use(func() {
-		u.graphicsContext, err = newGraphicsContext(width, height, realScale)
+	ui.use(func() {
+		ui.graphicsContext, err = newGraphicsContext(width, height, realScale)
 	})
-	if err != nil {
-		return nil, err
-	}
-	return u, nil
+	return err
 }
 
 func (u *ui) doEvents() {
@@ -117,11 +139,10 @@ func (u *ui) newRenderTargetID(width, height int, filter int) (RenderTargetID, e
 	return id, err
 }
 
-func (u *ui) run(width, height, scale int) {
+func (u *ui) run() {
 	go func() {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
-		glfw.SwapInterval(1)
 		for f := range u.funcs {
 			f()
 		}
