@@ -31,9 +31,8 @@ type Rect struct {
 
 // A TexturePart represents a part of a texture.
 type TexturePart struct {
-	LocationX int
-	LocationY int
-	Source    Rect
+	Dst Rect
+	Src Rect
 }
 
 // A Drawer is the interface that draws itself.
@@ -45,7 +44,7 @@ type Drawer interface {
 func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := texture.Size()
 	parts := []TexturePart{
-		{0, 0, Rect{0, 0, w, h}},
+		{Rect{0, 0, w, h}, Rect{0, 0, w, h}},
 	}
 	return g.Texture(texture).Draw(parts, geo, color)
 }
@@ -54,7 +53,7 @@ func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, c
 func DrawWholeRenderTarget(g GraphicsContext, renderTarget *RenderTarget, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := renderTarget.Size()
 	parts := []TexturePart{
-		{0, 0, Rect{0, 0, w, h}},
+		{Rect{0, 0, w, h}, Rect{0, 0, w, h}},
 	}
 	return g.RenderTarget(renderTarget).Draw(parts, geo, color)
 }
@@ -114,14 +113,14 @@ func v(y int, height int) float32 {
 func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {
 	quads := make([]shader.TextureQuad, 0, len(parts))
 	for _, part := range parts {
-		x1 := float32(part.LocationX)
-		x2 := float32(part.LocationX + part.Source.Width)
-		y1 := float32(part.LocationY)
-		y2 := float32(part.LocationY + part.Source.Height)
-		u1 := u(part.Source.X, width)
-		u2 := u(part.Source.X+part.Source.Width, width)
-		v1 := v(part.Source.Y, height)
-		v2 := v(part.Source.Y+part.Source.Height, height)
+		x1 := float32(part.Dst.X)
+		x2 := float32(part.Dst.X + part.Dst.Width)
+		y1 := float32(part.Dst.Y)
+		y2 := float32(part.Dst.Y + part.Dst.Height)
+		u1 := u(part.Src.X, width)
+		u2 := u(part.Src.X+part.Src.Width, width)
+		v1 := v(part.Src.Y, height)
+		v2 := v(part.Src.Y+part.Src.Height, height)
 		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}

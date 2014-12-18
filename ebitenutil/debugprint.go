@@ -48,9 +48,8 @@ func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y i
 		srcX := (code % xCharNum) * assets.TextImageCharWidth
 		srcY := (code / xCharNum) * assets.TextImageCharHeight
 		parts = append(parts, ebiten.TexturePart{
-			LocationX: locationX,
-			LocationY: locationY,
-			Source:    ebiten.Rect{srcX, srcY, assets.TextImageCharWidth, assets.TextImageCharHeight},
+			Dst: ebiten.Rect{locationX, locationY, assets.TextImageCharWidth, assets.TextImageCharHeight},
+			Src: ebiten.Rect{srcX, srcY, assets.TextImageCharWidth, assets.TextImageCharHeight},
 		})
 		locationX += assets.TextImageCharWidth
 	}

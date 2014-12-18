@@ -147,15 +147,9 @@ func drawBlocks(context ebiten.GraphicsContext, textures *Textures, blocks [][]B
 			}
 			locationX := i * blockWidth
 			locationY := j * blockHeight
-			source := ebiten.Rect{
-				(int(block) - 1) * blockWidth, 0,
-				blockWidth, blockHeight}
-			parts = append(parts,
-				ebiten.TexturePart{
-					LocationX: locationX,
-					LocationY: locationY,
-					Source:    source,
-				})
+			dst := ebiten.Rect{locationX, locationY, blockWidth, blockHeight}
+			src := ebiten.Rect{(int(block) - 1) * blockWidth, 0, blockWidth, blockHeight}
+			parts = append(parts, ebiten.TexturePart{dst, src})
 		}
 	}
 	blocksTexture := textures.GetTexture("blocks")
