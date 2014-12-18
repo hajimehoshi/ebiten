@@ -36,8 +36,7 @@ func drawText(context ebiten.GraphicsContext, textures *Textures, str string, x,
 	fontTextureId := textures.GetTexture("font")
 	parts := []ebiten.TexturePart{}
 
-	locationX := 0
-	locationY := 0
+	locationX, locationY := 0, 0
 	for _, c := range str {
 		if c == '\n' {
 			locationX = 0
@@ -45,10 +44,10 @@ func drawText(context ebiten.GraphicsContext, textures *Textures, str string, x,
 			continue
 		}
 		code := int(c)
-		x := (code % 16) * charWidth
-		y := ((code - 32) / 16) * charHeight
+		x := float64(code%16) * charWidth
+		y := float64((code-32)/16) * charHeight
 		parts = append(parts, ebiten.TexturePart{
-			Dst: ebiten.Rect{locationX, locationY, charWidth, charHeight},
+			Dst: ebiten.Rect{float64(locationX), float64(locationY), charWidth, charHeight},
 			Src: ebiten.Rect{x, y, charWidth, charHeight},
 		})
 		locationX += charWidth

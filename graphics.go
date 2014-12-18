@@ -23,10 +23,10 @@ import (
 
 // A Rect represents a rectangle.
 type Rect struct {
-	X      int
-	Y      int
-	Width  int
-	Height int
+	X      float64
+	Y      float64
+	Width  float64
+	Height float64
 }
 
 // A TexturePart represents a part of a texture.
@@ -44,7 +44,7 @@ type Drawer interface {
 func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := texture.Size()
 	parts := []TexturePart{
-		{Rect{0, 0, w, h}, Rect{0, 0, w, h}},
+		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
 	return g.Texture(texture).Draw(parts, geo, color)
 }
@@ -53,7 +53,7 @@ func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, c
 func DrawWholeRenderTarget(g GraphicsContext, renderTarget *RenderTarget, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := renderTarget.Size()
 	parts := []TexturePart{
-		{Rect{0, 0, w, h}, Rect{0, 0, w, h}},
+		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
 	return g.RenderTarget(renderTarget).Draw(parts, geo, color)
 }
@@ -102,11 +102,11 @@ func (r *RenderTarget) Size() (width int, height int) {
 	return r.glRenderTarget.Width(), r.glRenderTarget.Height()
 }
 
-func u(x int, width int) float32 {
+func u(x float64, width int) float32 {
 	return float32(x) / float32(opengl.AdjustSizeForTexture(width))
 }
 
-func v(y int, height int) float32 {
+func v(y float64, height int) float32 {
 	return float32(y) / float32(opengl.AdjustSizeForTexture(height))
 }
 

@@ -59,7 +59,7 @@ func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c i
 	for j := -1; j < ScreenHeight/textureHeight+1; j++ {
 		for i := 0; i < ScreenWidth/textureWidth+1; i++ {
 			parts = append(parts, ebiten.TexturePart{
-				Dst: ebiten.Rect{i * textureWidth, j * textureHeight, textureWidth, textureHeight},
+				Dst: ebiten.Rect{float64(i * textureWidth), float64(j * textureHeight), textureWidth, textureHeight},
 				Src: ebiten.Rect{0, 0, textureWidth, textureHeight},
 			})
 		}
