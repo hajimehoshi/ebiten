@@ -153,7 +153,7 @@ func drawBlocks(context ebiten.GraphicsContext, textures *Textures, blocks [][]B
 		}
 	}
 	blocksTexture := textures.GetTexture("blocks")
-	context.Texture(blocksTexture).Draw(parts, geo, ebiten.ColorMatrixI())
+	context.DrawTexture(blocksTexture, parts, geo, ebiten.ColorMatrixI())
 }
 
 func (p *Piece) InitialPosition() (int, int) {

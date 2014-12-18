@@ -59,11 +59,11 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 		clr := ebiten.ScaleColor(color.RGBA{0xff, 0x40, 0x40, 0xff})
 		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		ebiten.DrawWholeRenderTarget(gr, g.brushRenderTarget, geo, clr)
+		ebiten.DrawWholeTexture(gr, g.brushRenderTarget.Texture(), geo, clr)
 		gr.PopRenderTarget()
 	}
 
-	ebiten.DrawWholeRenderTarget(gr, g.canvasRenderTarget, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
+	ebiten.DrawWholeTexture(gr, g.canvasRenderTarget.Texture(), ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 
 	ebitenutil.DebugPrint(gr, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil

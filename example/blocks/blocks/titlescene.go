@@ -54,7 +54,7 @@ func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c i
 	const textureWidth = 32
 	const textureHeight = 32
 
-	backgroundTextureId := textures.GetTexture("background")
+	backgroundTexture := textures.GetTexture("background")
 	parts := []ebiten.TexturePart{}
 	for j := -1; j < ScreenHeight/textureHeight+1; j++ {
 		for i := 0; i < ScreenWidth/textureWidth+1; i++ {
@@ -70,7 +70,7 @@ func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c i
 	geo := ebiten.GeometryMatrixI()
 	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
 	clr := ebiten.ColorMatrixI()
-	context.Texture(backgroundTextureId).Draw(parts, geo, clr)
+	context.DrawTexture(backgroundTexture, parts, geo, clr)
 }
 
 func drawLogo(context ebiten.GraphicsContext, textures *Textures, str string) {

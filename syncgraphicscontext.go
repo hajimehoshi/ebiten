@@ -41,22 +41,9 @@ func (c *syncGraphicsContext) Fill(r, g, b uint8) (err error) {
 	return
 }
 
-func (c *syncGraphicsContext) Texture(texture *Texture) (d Drawer) {
+func (c *syncGraphicsContext) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
 	c.syncer.Sync(func() {
-		d = &drawer{
-			syncer:      c.syncer,
-			innerDrawer: c.innerGraphicsContext.Texture(texture),
-		}
-	})
-	return
-}
-
-func (c *syncGraphicsContext) RenderTarget(renderTarget *RenderTarget) (d Drawer) {
-	c.syncer.Sync(func() {
-		d = &drawer{
-			syncer:      c.syncer,
-			innerDrawer: c.innerGraphicsContext.RenderTarget(renderTarget),
-		}
+		err = c.innerGraphicsContext.DrawTexture(texture, parts, geo, color)
 	})
 	return
 }
@@ -71,18 +58,4 @@ func (c *syncGraphicsContext) PushRenderTarget(renderTarget *RenderTarget) {
 	c.syncer.Sync(func() {
 		c.innerGraphicsContext.PushRenderTarget(renderTarget)
 	})
-}
-
-type drawer struct {
-	syncer      syncer
-	innerDrawer Drawer
-}
-
-var _ Drawer = new(drawer)
-
-func (d *drawer) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
-	d.syncer.Sync(func() {
-		err = d.innerDrawer.Draw(parts, geo, color)
-	})
-	return
 }

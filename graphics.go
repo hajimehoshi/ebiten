@@ -35,42 +35,26 @@ type TexturePart struct {
 	Src Rect
 }
 
-// A Drawer is the interface that draws itself.
-type Drawer interface {
-	Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
-}
-
 // DrawWholeTexture draws the whole texture.
 func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := texture.Size()
 	parts := []TexturePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
-	return g.Texture(texture).Draw(parts, geo, color)
-}
-
-// DrawWholeRenderTarget draws the whole render target.
-func DrawWholeRenderTarget(g GraphicsContext, renderTarget *RenderTarget, geo GeometryMatrix, color ColorMatrix) error {
-	w, h := renderTarget.Size()
-	parts := []TexturePart{
-		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
-	}
-	return g.RenderTarget(renderTarget).Draw(parts, geo, color)
+	return g.DrawTexture(texture, parts, geo, color)
 }
 
 // A GraphicsContext is the interface that means a context of rendering.
 type GraphicsContext interface {
 	Clear() error
 	Fill(r, g, b uint8) error
-	Texture(texture *Texture) Drawer
-	RenderTarget(id *RenderTarget) Drawer
+	DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
 	// TODO: ScreenRenderTarget() Drawer
 	PushRenderTarget(id *RenderTarget)
 	PopRenderTarget()
 }
 
-// Filter represents the type of filter to be used when a texture or a render
-// target is maginified or minified.
+// Filter represents the type of filter to be used when a texture is maginified or minified.
 type Filter int
 
 // Filters
@@ -95,6 +79,11 @@ func (t *Texture) Size() (width int, height int) {
 type RenderTarget struct {
 	glRenderTarget *opengl.RenderTarget
 	texture        *Texture
+}
+
+// Texture returns the texture of the render target.
+func (r *RenderTarget) Texture() *Texture {
+	return r.texture
 }
 
 // Size returns the size of the render target.

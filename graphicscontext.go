@@ -73,12 +73,9 @@ func (c *graphicsContext) Fill(r, g, b uint8) error {
 	return idsInstance.fillRenderTarget(c.currents[len(c.currents)-1], r, g, b)
 }
 
-func (c *graphicsContext) Texture(texture *Texture) Drawer {
-	return &textureWithContext{texture, c}
-}
-
-func (c *graphicsContext) RenderTarget(renderTarget *RenderTarget) Drawer {
-	return &textureWithContext{renderTarget.texture, c}
+func (c *graphicsContext) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+	current := c.currents[len(c.currents)-1]
+	return idsInstance.drawTexture(current, texture, parts, geo, color)
 }
 
 func (c *graphicsContext) PushRenderTarget(renderTarget *RenderTarget) {
@@ -103,17 +100,7 @@ func (c *graphicsContext) postUpdate() {
 	scale := float64(c.screenScale)
 	geo := GeometryMatrixI()
 	geo.Concat(ScaleGeometry(scale, scale))
-	DrawWholeRenderTarget(c, c.screen, geo, ColorMatrixI())
+	DrawWholeTexture(c, c.screen.texture, geo, ColorMatrixI())
 
 	gl.Flush()
-}
-
-type textureWithContext struct {
-	texture *Texture
-	context *graphicsContext
-}
-
-func (t *textureWithContext) Draw(parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
-	current := t.context.currents[len(t.context.currents)-1]
-	return idsInstance.drawTexture(current, t.texture, parts, geo, color)
 }

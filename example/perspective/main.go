@@ -48,7 +48,7 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
 	geo.Concat(ebiten.ScaleGeometry(0.4, 0.4))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	gr.Texture(g.gophersTexture).Draw(parts, geo, ebiten.ColorMatrixI())
+	gr.DrawTexture(g.gophersTexture, parts, geo, ebiten.ColorMatrixI())
 	return nil
 }
 
