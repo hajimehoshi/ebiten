@@ -55,7 +55,7 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 func main() {
 	g := new(Game)
 	var err error
-	g.gophersTexture, _, err = ebitenutil.NewTextureFromFile("images/gophers.jpg", ebiten.FilterLinear)
+	g.gophersTexture, _, err = ebitenutil.NewTextureFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
