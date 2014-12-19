@@ -56,18 +56,6 @@ void main(void) {
 }
 `,
 	},
-	// TODO: Now this shader is not used
-	shaderFragment: {
-		shaderType: gl.FRAGMENT_SHADER,
-		source: `
-uniform sampler2D texture;
-varying vec2 vertex_out_tex_coord0;
-
-void main(void) {
-  gl_FragColor = texture2D(texture, vertex_out_tex_coord0);
-}
-`,
-	},
 	shaderColorMatrix: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
@@ -85,17 +73,6 @@ void main(void) {
 
   gl_FragColor.a = color0.a + color1.a - color0.a * color1.a;
   gl_FragColor.rgb = (color0.a * color0.rgb + (1.0 - color0.a) * color1.a * color1.rgb) / gl_FragColor.a;
-}
-`,
-	},
-	// TODO: Now this shader is not used
-	shaderSolidColor: {
-		shaderType: gl.FRAGMENT_SHADER,
-		source: `
-uniform vec4 color;
-
-void main(void) {
-  gl_FragColor = color;
 }
 `,
 	},
