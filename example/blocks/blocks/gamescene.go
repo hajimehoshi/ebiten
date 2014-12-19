@@ -110,7 +110,7 @@ func (s *GameScene) Update(state *GameState) {
 }
 
 func (s *GameScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
-	context.Fill(0xff, 0xff, 0xff)
+	context.Fill(color.White)
 
 	field := textures.GetTexture("empty")
 	w, h := field.Size()

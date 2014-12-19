@@ -17,9 +17,8 @@ limitations under the License.
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
+	"image/color"
 )
 
 // A Rect represents a rectangle.
@@ -48,7 +47,7 @@ func DrawWholeTexture(g GraphicsContext, texture *Texture, geo GeometryMatrix, c
 // A GraphicsContext is the interface that means a context of rendering.
 type GraphicsContext interface {
 	Clear() error
-	Fill(r, g, b uint8) error
+	Fill(clr color.Color) error
 	DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
 	// TODO: ScreenRenderTarget() Drawer
 	PushRenderTarget(id *RenderTarget)
@@ -90,29 +89,4 @@ func (r *RenderTarget) Texture() *Texture {
 // Size returns the size of the render target.
 func (r *RenderTarget) Size() (width int, height int) {
 	return r.glRenderTarget.Width(), r.glRenderTarget.Height()
-}
-
-func u(x float64, width int) float32 {
-	return float32(x) / float32(internal.AdjustSizeForTexture(width))
-}
-
-func v(y float64, height int) float32 {
-	return float32(y) / float32(internal.AdjustSizeForTexture(height))
-}
-
-func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {
-	quads := make([]shader.TextureQuad, 0, len(parts))
-	for _, part := range parts {
-		x1 := float32(part.Dst.X)
-		x2 := float32(part.Dst.X + part.Dst.Width)
-		y1 := float32(part.Dst.Y)
-		y2 := float32(part.Dst.Y + part.Dst.Height)
-		u1 := u(part.Src.X, width)
-		u2 := u(part.Src.X+part.Src.Width, width)
-		v1 := v(part.Src.Y, height)
-		v2 := v(part.Src.Y+part.Src.Height, height)
-		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
-		quads = append(quads, quad)
-	}
-	return quads
 }

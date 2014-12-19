@@ -19,6 +19,7 @@ package ebiten
 import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"image/color"
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
@@ -41,7 +42,7 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 		screenScale:  screenScale,
 	}
 
-	idsInstance.fillRenderTarget(c.screen, 0, 0, 0)
+	idsInstance.fillRenderTarget(c.screen, color.RGBA{0, 0, 0, 0})
 
 	return c, nil
 }
@@ -68,11 +69,11 @@ func (c *graphicsContext) dispose() {
 }
 
 func (c *graphicsContext) Clear() error {
-	return c.Fill(0, 0, 0)
+	return c.Fill(color.RGBA{0, 0, 0, 0})
 }
 
-func (c *graphicsContext) Fill(r, g, b uint8) error {
-	return idsInstance.fillRenderTarget(c.currents[len(c.currents)-1], r, g, b)
+func (c *graphicsContext) Fill(clr color.Color) error {
+	return idsInstance.fillRenderTarget(c.currents[len(c.currents)-1], clr)
 }
 
 func (c *graphicsContext) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {

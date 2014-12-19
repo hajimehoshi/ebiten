@@ -18,8 +18,10 @@ package ebiten
 
 import (
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
+	"image/color"
 	"math"
 )
 
@@ -45,17 +47,19 @@ func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, 
 	}
 
 	texture := &Texture{glTexture}
+	// TODO: Is |texture| necessary?
 	renderTarget := &RenderTarget{glRenderTarget, texture}
 
 	return renderTarget, nil
 }
 
-func (i *ids) fillRenderTarget(renderTarget *RenderTarget, r, g, b uint8) error {
+func (i *ids) fillRenderTarget(renderTarget *RenderTarget, clr color.Color) error {
 	if err := i.setViewportIfNeeded(renderTarget); err != nil {
 		return err
 	}
-	const max = float64(math.MaxUint8)
-	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), 1)
+	const max = math.MaxUint16
+	r, g, b, a := clr.RGBA()
+	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), gl.GLclampf(float64(a)/max))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	return nil
 }
@@ -81,4 +85,29 @@ func (i *ids) setViewportIfNeeded(renderTarget *RenderTarget) error {
 		i.currentRenderTarget = renderTarget
 	}
 	return nil
+}
+
+func u(x float64, width int) float32 {
+	return float32(x) / float32(internal.AdjustSizeForTexture(width))
+}
+
+func v(y float64, height int) float32 {
+	return float32(y) / float32(internal.AdjustSizeForTexture(height))
+}
+
+func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {
+	quads := make([]shader.TextureQuad, 0, len(parts))
+	for _, part := range parts {
+		x1 := float32(part.Dst.X)
+		x2 := float32(part.Dst.X + part.Dst.Width)
+		y1 := float32(part.Dst.Y)
+		y2 := float32(part.Dst.Y + part.Dst.Height)
+		u1 := u(part.Src.X, width)
+		u2 := u(part.Src.X+part.Src.Width, width)
+		v1 := v(part.Src.Y, height)
+		v2 := v(part.Src.Y+part.Src.Height, height)
+		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
+		quads = append(quads, quad)
+	}
+	return quads
 }

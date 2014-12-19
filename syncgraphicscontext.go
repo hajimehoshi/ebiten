@@ -16,6 +16,10 @@ limitations under the License.
 
 package ebiten
 
+import (
+	"image/color"
+)
+
 type syncer interface {
 	Sync(f func())
 }
@@ -34,9 +38,9 @@ func (c *syncGraphicsContext) Clear() (err error) {
 	return
 }
 
-func (c *syncGraphicsContext) Fill(r, g, b uint8) (err error) {
+func (c *syncGraphicsContext) Fill(clr color.Color) (err error) {
 	c.syncer.Sync(func() {
-		err = c.innerGraphicsContext.Fill(r, g, b)
+		err = c.innerGraphicsContext.Fill(clr)
 	})
 	return
 }

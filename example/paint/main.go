@@ -43,10 +43,10 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	}
 	if !g.inited {
 		gr.PushRenderTarget(g.brushRenderTarget)
-		gr.Fill(0xff, 0xff, 0xff)
+		gr.Fill(color.White)
 		gr.PopRenderTarget()
 		gr.PushRenderTarget(g.canvasRenderTarget)
-		gr.Fill(0xff, 0xff, 0xff)
+		gr.Fill(color.White)
 		gr.PopRenderTarget()
 		g.inited = true
 	}
