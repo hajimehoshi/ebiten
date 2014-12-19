@@ -22,8 +22,10 @@ import (
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	// The defualt framebuffer should be 0.
-	r := opengl.NewRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
+	r, t, err := opengl.NewZeroRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
+	if err != nil {
+		return nil, err
+	}
 
 	screen, err := idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
 	if err != nil {
@@ -32,7 +34,7 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 
 	c := &graphicsContext{
 		currents:     make([]*RenderTarget, 1),
-		defaultR:     &RenderTarget{r, nil},
+		defaultR:     &RenderTarget{r, &Texture{t}},
 		screen:       screen,
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,

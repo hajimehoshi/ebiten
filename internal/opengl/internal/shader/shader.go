@@ -42,41 +42,53 @@ var shaders = map[shaderId]*shader{
 		source: `
 uniform mat4 projection_matrix;
 uniform mat4 modelview_matrix;
+uniform mat4 modelview_matrix_n;
 attribute vec2 vertex;
-attribute vec2 tex_coord;
-varying vec2 vertex_out_tex_coord;
+attribute vec2 tex_coord0;
+attribute vec2 tex_coord1;
+varying vec2 vertex_out_tex_coord0;
+varying vec2 vertex_out_tex_coord1;
 
 void main(void) {
-  vertex_out_tex_coord = tex_coord;
+  vertex_out_tex_coord0 = tex_coord0;
+  vertex_out_tex_coord1 = (modelview_matrix_n * vec4(tex_coord1, 0, 1)).xy;
   gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
 }
 `,
 	},
+	// TODO: Now this shader is not used
 	shaderFragment: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
-varying vec2 vertex_out_tex_coord;
+varying vec2 vertex_out_tex_coord0;
 
 void main(void) {
-  gl_FragColor = texture2D(texture, vertex_out_tex_coord);
+  gl_FragColor = texture2D(texture, vertex_out_tex_coord0);
 }
 `,
 	},
 	shaderColorMatrix: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
-uniform sampler2D texture;
+uniform sampler2D texture0;
+uniform sampler2D texture1;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
-varying vec2 vertex_out_tex_coord;
+varying vec2 vertex_out_tex_coord0;
+varying vec2 vertex_out_tex_coord1;
 
 void main(void) {
-  vec4 color = texture2D(texture, vertex_out_tex_coord);
-  gl_FragColor = (color_matrix * color) + color_matrix_translation;
+  vec4 color0 = texture2D(texture0, vertex_out_tex_coord0);
+  vec4 color1 = texture2D(texture1, vertex_out_tex_coord1);
+  color0 = (color_matrix * color0) + color_matrix_translation;
+
+  gl_FragColor.a = color0.a + color1.a - color0.a * color1.a;
+  gl_FragColor.rgb = (color0.a * color0.rgb + (1.0 - color0.a) * color1.a * color1.rgb) / gl_FragColor.a;
 }
 `,
 	},
+	// TODO: Now this shader is not used
 	shaderSolidColor: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `

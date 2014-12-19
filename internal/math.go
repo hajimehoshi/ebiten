@@ -14,30 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package opengl_test
+package internal
 
-import (
-	. "."
-	"testing"
-)
+func NextPowerOf2(x uint64) uint64 {
+	x -= 1
+	x |= (x >> 1)
+	x |= (x >> 2)
+	x |= (x >> 4)
+	x |= (x >> 8)
+	x |= (x >> 16)
+	x |= (x >> 32)
+	return x + 1
+}
 
-func TestNextPowerOf2(t *testing.T) {
-	testCases := []struct {
-		expected uint64
-		arg      uint64
-	}{
-		{256, 255},
-		{256, 256},
-		{512, 257},
-	}
-
-	for _, testCase := range testCases {
-		got := NextPowerOf2(testCase.arg)
-		wanted := testCase.expected
-		if wanted != got {
-			t.Errorf("Clp(%d) = %d, wanted %d",
-				testCase.arg, got, wanted)
-		}
-
-	}
+func AdjustSizeForTexture(size int) int {
+	return int(NextPowerOf2(uint64(size)))
 }

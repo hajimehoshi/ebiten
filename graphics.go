@@ -17,6 +17,7 @@ limitations under the License.
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 )
@@ -92,11 +93,11 @@ func (r *RenderTarget) Size() (width int, height int) {
 }
 
 func u(x float64, width int) float32 {
-	return float32(x) / float32(opengl.AdjustSizeForTexture(width))
+	return float32(x) / float32(internal.AdjustSizeForTexture(width))
 }
 
 func v(y float64, height int) float32 {
-	return float32(y) / float32(opengl.AdjustSizeForTexture(height))
+	return float32(y) / float32(internal.AdjustSizeForTexture(height))
 }
 
 func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {

@@ -32,7 +32,7 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(context ebiten.GraphicsContext, textures *Textures, str string, x, y, scale int, clr color.Color) {
+func drawText(context ebiten.GraphicsContext, textures *Textures, str string, ox, oy, scale int, clr color.Color) {
 	fontTextureId := textures.GetTexture("font")
 	parts := []ebiten.TexturePart{}
 
@@ -53,11 +53,9 @@ func drawText(context ebiten.GraphicsContext, textures *Textures, str string, x,
 		locationX += charWidth
 	}
 
-	geoMat := ebiten.GeometryMatrixI()
-	geoMat.Concat(ebiten.ScaleGeometry(float64(scale), float64(scale)))
-	geoMat.Concat(ebiten.TranslateGeometry(float64(x), float64(y)))
-	clrMat := ebiten.ColorMatrixI()
-	clrMat.Concat(ebiten.ScaleColor(clr))
+	geoMat := ebiten.ScaleGeometry(float64(scale), float64(scale))
+	geoMat.Concat(ebiten.TranslateGeometry(float64(ox), float64(oy)))
+	clrMat := ebiten.ScaleColor(clr)
 	context.DrawTexture(fontTextureId, parts, geoMat, clrMat)
 }
 

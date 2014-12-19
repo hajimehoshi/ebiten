@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
@@ -43,12 +44,23 @@ type RenderTarget struct {
 	flipY       bool
 }
 
-func NewRenderTarget(width, height int, flipY bool) *RenderTarget {
-	return &RenderTarget{
+func NewZeroRenderTarget(width, height int, flipY bool) (*RenderTarget, *Texture, error) {
+	r := &RenderTarget{
 		width:  width,
 		height: height,
 		flipY:  flipY,
 	}
+	// The framebuffer 0 can't be enlarged, so any filter is acceptable.
+	t, err := NewTexture(width, height, gl.NEAREST)
+	if err != nil {
+		return nil, nil, err
+	}
+	// TODO: Does this affect the current rendering target?
+	gl.Framebuffer(0).Bind()
+	if err := framebufferTexture(t.native); err != nil {
+		return nil, nil, err
+	}
+	return r, t, err
 }
 
 func NewRenderTargetFromTexture(texture *Texture) (*RenderTarget, error) {
@@ -80,20 +92,26 @@ func (r *RenderTarget) Dispose() {
 }
 
 func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
+	// TODO: Does this affect the current rendering target?
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nativeTexture, 0)
-	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-		return 0, errors.New("creating framebuffer failed")
+	if err := framebufferTexture(nativeTexture); err != nil {
+		return 0, err
 	}
 
-	// Set this framebuffer opaque because alpha values on a target might be
-	// confusing.
-	gl.ClearColor(0, 0, 0, 1)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-
 	return framebuffer, nil
+}
+
+func framebufferTexture(nativeTexture gl.Texture) error {
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nativeTexture, 0)
+	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
+		return errors.New("creating framebuffer failed")
+	}
+
+	gl.ClearColor(0, 0, 0, 0)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	return nil
 }
 
 func (r *RenderTarget) SetAsViewport() error {
@@ -104,21 +122,19 @@ func (r *RenderTarget) SetAsViewport() error {
 		return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", err))
 	}
 
-	gl.BlendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE)
-
-	width := AdjustSizeForTexture(r.width)
-	height := AdjustSizeForTexture(r.height)
+	width := internal.AdjustSizeForTexture(r.width)
+	height := internal.AdjustSizeForTexture(r.height)
 	gl.Viewport(0, 0, width, height)
 	return nil
 }
 
 func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
-	width := AdjustSizeForTexture(r.width)
-	height := AdjustSizeForTexture(r.height)
+	width := internal.AdjustSizeForTexture(r.width)
+	height := internal.AdjustSizeForTexture(r.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
 	if r.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(r.height) / float64(AdjustSizeForTexture(r.height)) * 2
+		m[1][3] += float64(r.height) / float64(internal.AdjustSizeForTexture(r.height)) * 2
 	}
 	return m
 }

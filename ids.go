@@ -67,7 +67,9 @@ func (i *ids) drawTexture(target *RenderTarget, texture *Texture, parts []Textur
 	}
 	projectionMatrix := target.glRenderTarget.ProjectionMatrix()
 	quads := textureQuads(parts, glTexture.Width(), glTexture.Height())
-	shader.DrawTexture(glTexture.Native(), projectionMatrix, quads, &geo, &color)
+	w, h := target.Size()
+	shader.DrawTexture(glTexture.Native(), target.texture.glTexture.Native(), w, h, projectionMatrix, quads, &geo, &color)
+	gl.Flush()
 	return nil
 }
 

@@ -18,32 +18,18 @@ package opengl
 
 import (
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal"
 	"image"
 	"image/draw"
 )
-
-func NextPowerOf2(x uint64) uint64 {
-	x -= 1
-	x |= (x >> 1)
-	x |= (x >> 2)
-	x |= (x >> 4)
-	x |= (x >> 8)
-	x |= (x >> 16)
-	x |= (x >> 32)
-	return x + 1
-}
-
-func AdjustSizeForTexture(size int) int {
-	return int(NextPowerOf2(uint64(size)))
-}
 
 func adjustImageForTexture(img image.Image) *image.NRGBA {
 	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
 		image.Point{
-			AdjustSizeForTexture(width),
-			AdjustSizeForTexture(height),
+			internal.AdjustSizeForTexture(width),
+			internal.AdjustSizeForTexture(height),
 		},
 	}
 	if nrgba, ok := img.(*image.NRGBA); ok && img.Bounds() == adjustedImageBounds {
@@ -95,8 +81,8 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 }
 
 func NewTexture(width, height int, filter int) (*Texture, error) {
-	w := AdjustSizeForTexture(width)
-	h := AdjustSizeForTexture(height)
+	w := internal.AdjustSizeForTexture(width)
+	h := internal.AdjustSizeForTexture(height)
 	native := createNativeTexture(w, h, nil, filter)
 	return &Texture{native, width, height}, nil
 }

@@ -14,16 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package shader
+package internal_test
 
-// TODO: Rename X1, X2 -> X0, X1
-type TextureQuad struct {
-	VertexX1       float32
-	VertexX2       float32
-	VertexY1       float32
-	VertexY2       float32
-	TextureCoordU1 float32
-	TextureCoordU2 float32
-	TextureCoordV1 float32
-	TextureCoordV2 float32
+import (
+	. "."
+	"testing"
+)
+
+func TestNextPowerOf2(t *testing.T) {
+	testCases := []struct {
+		expected uint64
+		arg      uint64
+	}{
+		{256, 255},
+		{256, 256},
+		{512, 257},
+	}
+
+	for _, testCase := range testCases {
+		got := NextPowerOf2(testCase.arg)
+		wanted := testCase.expected
+		if wanted != got {
+			t.Errorf("Clp(%d) = %d, wanted %d", testCase.arg, got, wanted)
+		}
+
+	}
 }

@@ -18,6 +18,7 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal"
 	"sync"
 )
 
@@ -38,7 +39,7 @@ type Matrix interface {
 }
 
 // TODO: Use VBO
-func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
+func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
 	once.Do(func() {
 		initialize()
 	})
@@ -47,27 +48,39 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		return
 	}
 	// TODO: Check performance
-	shaderProgram := use(glMatrix(projectionMatrix), geo, color)
+	shaderProgram := use(glMatrix(projectionMatrix), width, height, geo, color)
 
+	gl.ActiveTexture(gl.TEXTURE0)
 	native.Bind(gl.TEXTURE_2D)
-	defer gl.Texture(0).Bind(gl.TEXTURE_2D)
+
+	gl.ActiveTexture(gl.TEXTURE1)
+	target.Bind(gl.TEXTURE_2D)
+
+	texture0UniformLocation := getUniformLocation(shaderProgram, "texture0")
+	texture1UniformLocation := getUniformLocation(shaderProgram, "texture1")
+	texture0UniformLocation.Uniform1i(0)
+	texture1UniformLocation.Uniform1i(1)
 
 	vertexAttrLocation := getAttributeLocation(shaderProgram, "vertex")
-	texCoordAttrLocation := getAttributeLocation(shaderProgram, "tex_coord")
+	texCoord0AttrLocation := getAttributeLocation(shaderProgram, "tex_coord0")
+	texCoord1AttrLocation := getAttributeLocation(shaderProgram, "tex_coord1")
 
 	gl.EnableClientState(gl.VERTEX_ARRAY)
 	gl.EnableClientState(gl.TEXTURE_COORD_ARRAY)
 	vertexAttrLocation.EnableArray()
-	texCoordAttrLocation.EnableArray()
+	texCoord0AttrLocation.EnableArray()
+	texCoord1AttrLocation.EnableArray()
 	defer func() {
-		texCoordAttrLocation.DisableArray()
+		texCoord1AttrLocation.DisableArray()
+		texCoord0AttrLocation.DisableArray()
 		vertexAttrLocation.DisableArray()
 		gl.DisableClientState(gl.TEXTURE_COORD_ARRAY)
 		gl.DisableClientState(gl.VERTEX_ARRAY)
 	}()
 
 	vertices := []float32{}
-	texCoords := []float32{}
+	texCoords0 := []float32{}
+	texCoords1 := []float32{}
 	indicies := []uint32{}
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	for i, quad := range quads {
@@ -85,11 +98,23 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		u2 := quad.TextureCoordU2
 		v1 := quad.TextureCoordV1
 		v2 := quad.TextureCoordV2
-		texCoords = append(texCoords,
+		texCoords0 = append(texCoords0,
 			u1, v1,
 			u2, v1,
 			u1, v2,
 			u2, v2,
+		)
+		w := float32(internal.AdjustSizeForTexture(width))
+		h := float32(internal.AdjustSizeForTexture(height))
+		xx1 := x1 / w
+		xx2 := x2 / w
+		yy1 := y1 / h
+		yy2 := y2 / h
+		texCoords1 = append(texCoords1,
+			xx1, yy1,
+			xx2, yy1,
+			xx1, yy2,
+			xx2, yy2,
 		)
 		base := uint32(i * 4)
 		indicies = append(indicies,
@@ -98,6 +123,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		)
 	}
 	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, vertices)
-	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords)
+	texCoord0AttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords0)
+	texCoord1AttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords1)
 	gl.DrawElements(gl.TRIANGLES, len(indicies), gl.UNSIGNED_INT, indicies)
 }

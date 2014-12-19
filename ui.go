@@ -52,7 +52,6 @@ func init() {
 	currentUI.use(func() {
 		gl.Init()
 		gl.Enable(gl.TEXTURE_2D)
-		gl.Enable(gl.BLEND)
 	})
 }
 

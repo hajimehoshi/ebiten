@@ -18,6 +18,7 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal"
 )
 
 type program struct {
@@ -80,7 +81,7 @@ func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
 	return location
 }
 
-func use(projectionMatrix [16]float32, geo Matrix, color Matrix) gl.Program {
+func use(projectionMatrix [16]float32, width, height int, geo Matrix, color Matrix) gl.Program {
 	// TODO: Check the performance.
 	program := programColorMatrix
 
@@ -99,6 +100,15 @@ func use(projectionMatrix [16]float32, geo Matrix, color Matrix) gl.Program {
 		tx, ty, 0, 1,
 	}
 	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
+	txn := tx / float32(internal.AdjustSizeForTexture(width))
+	tyn := ty / float32(internal.AdjustSizeForTexture(height))
+	glModelviewMatrixN := [...]float32{
+		a, c, 0, 0,
+		b, d, 0, 0,
+		0, 0, 1, 0,
+		txn, tyn, 0, 1,
+	}
+	getUniformLocation(program.native, "modelview_matrix_n").UniformMatrix4fv(false, glModelviewMatrixN)
 
 	getUniformLocation(program.native, "texture").Uniform1i(0)
 
