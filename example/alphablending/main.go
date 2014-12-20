@@ -37,16 +37,19 @@ type Game struct {
 
 func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	g.count++
-	g.count %= 120
-	diff := float64(g.count) * 0.5
-	if 60 < g.count {
-		diff = float64(120-g.count) * 0.5
+	g.count %= 600
+	diff := float64(g.count) * 0.2
+	switch {
+	case 480 < g.count:
+		diff = 0
+	case 240 < g.count:
+		diff = float64(480-g.count) * 0.2
 	}
 
 	gr.PushRenderTarget(g.tmpRenderTarget)
 	gr.Clear()
 	for i := 0; i < 10; i++ {
-		geo := ebiten.TranslateGeometry(15+float64(i)*(20+diff), 20)
+		geo := ebiten.TranslateGeometry(15+float64(i)*(diff), 20)
 		clr := ebiten.ScaleColor(color.RGBA{0xff, 0xff, 0xff, 0x80})
 		ebiten.DrawWholeTexture(gr, g.ebitenTexture, geo, clr)
 	}
@@ -54,7 +57,7 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 
 	gr.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
-		geo := ebiten.TranslateGeometry(0, float64(i)*(10+diff))
+		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()
 		ebiten.DrawWholeTexture(gr, g.tmpRenderTarget.Texture(), geo, clr)
 	}

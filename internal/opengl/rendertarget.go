@@ -86,22 +86,15 @@ func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
-	if err := framebufferTexture(nativeTexture); err != nil {
-		return 0, err
-	}
-
-	return framebuffer, nil
-}
-
-func framebufferTexture(nativeTexture gl.Texture) error {
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nativeTexture, 0)
 	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-		return errors.New("creating framebuffer failed")
+		return 0, errors.New("creating framebuffer failed")
 	}
 
 	gl.ClearColor(0, 0, 0, 0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
-	return nil
+
+	return framebuffer, nil
 }
 
 func (r *RenderTarget) SetAsViewport() error {

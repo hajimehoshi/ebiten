@@ -96,6 +96,8 @@ func (c *graphicsContext) preUpdate() {
 func (c *graphicsContext) postUpdate() {
 	c.PopRenderTarget()
 
+	// We don't need to clear the default render target (framebuffer).
+	// For the default framebuffer, a special shader is used.
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
