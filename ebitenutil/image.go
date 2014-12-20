@@ -22,7 +22,7 @@ import (
 	"os"
 )
 
-func NewTextureFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
+func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, nil, err

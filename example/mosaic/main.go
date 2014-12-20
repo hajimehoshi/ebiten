@@ -47,7 +47,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 func main() {
 	g := new(Game)
 	var err error
-	g.gophersTexture, _, err = ebitenutil.NewTextureFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	g.gophersTexture, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
