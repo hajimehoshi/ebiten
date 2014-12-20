@@ -114,8 +114,8 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 			u1, v1,
 		)
 		if program == programColorMatrix.native {
-			w := float32(internal.AdjustSizeForTexture(width))
-			h := float32(internal.AdjustSizeForTexture(height))
+			w := float32(internal.NextPowerOf2Int(width))
+			h := float32(internal.NextPowerOf2Int(height))
 			xx0 := x0 / w
 			xx1 := x1 / w
 			yy0 := y0 / h

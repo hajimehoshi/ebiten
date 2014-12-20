@@ -97,8 +97,8 @@ func useProgramColorMatrix(projectionMatrix [16]float32, width, height int, geo 
 	}
 	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
 
-	txn := tx / float32(internal.AdjustSizeForTexture(width))
-	tyn := ty / float32(internal.AdjustSizeForTexture(height))
+	txn := tx / float32(internal.NextPowerOf2Int(width))
+	tyn := ty / float32(internal.NextPowerOf2Int(height))
 	glModelviewMatrixN := [...]float32{
 		a, c, 0, 0,
 		b, d, 0, 0,

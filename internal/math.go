@@ -27,6 +27,6 @@ func NextPowerOf2(x uint64) uint64 {
 	return x + 1
 }
 
-func AdjustSizeForTexture(size int) int {
+func NextPowerOf2Int(size int) int {
 	return int(NextPowerOf2(uint64(size)))
 }

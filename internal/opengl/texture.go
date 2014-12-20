@@ -28,8 +28,8 @@ func adjustImageForTexture(img image.Image) *image.NRGBA {
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
 		image.Point{
-			internal.AdjustSizeForTexture(width),
-			internal.AdjustSizeForTexture(height),
+			internal.NextPowerOf2Int(width),
+			internal.NextPowerOf2Int(height),
 		},
 	}
 	if nrgba, ok := img.(*image.NRGBA); ok && img.Bounds() == adjustedImageBounds {
@@ -77,8 +77,8 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 }
 
 func NewTexture(width, height int, filter int) (*Texture, error) {
-	w := internal.AdjustSizeForTexture(width)
-	h := internal.AdjustSizeForTexture(height)
+	w := internal.NextPowerOf2Int(width)
+	h := internal.NextPowerOf2Int(height)
 	native := createNativeTexture(w, h, nil, filter)
 	return &Texture{native, width, height}, nil
 }

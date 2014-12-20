@@ -86,11 +86,11 @@ func (r *innerRenderTarget) DrawTexture(texture *Texture, parts []TexturePart, g
 }
 
 func u(x float64, width int) float32 {
-	return float32(x) / float32(internal.AdjustSizeForTexture(width))
+	return float32(x) / float32(internal.NextPowerOf2Int(width))
 }
 
 func v(y float64, height int) float32 {
-	return float32(y) / float32(internal.AdjustSizeForTexture(height))
+	return float32(y) / float32(internal.NextPowerOf2Int(height))
 }
 
 func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {

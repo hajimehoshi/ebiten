@@ -100,19 +100,19 @@ func (r *RenderTarget) SetAsViewport() error {
 		return errors.New("glBindFramebuffer failed: the context is different?")
 	}
 
-	width := internal.AdjustSizeForTexture(r.width)
-	height := internal.AdjustSizeForTexture(r.height)
+	width := internal.NextPowerOf2Int(r.width)
+	height := internal.NextPowerOf2Int(r.height)
 	gl.Viewport(0, 0, width, height)
 	return nil
 }
 
 func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
-	width := internal.AdjustSizeForTexture(r.width)
-	height := internal.AdjustSizeForTexture(r.height)
+	width := internal.NextPowerOf2Int(r.width)
+	height := internal.NextPowerOf2Int(r.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
 	if r.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(r.height) / float64(internal.AdjustSizeForTexture(r.height)) * 2
+		m[1][3] += float64(r.height) / float64(internal.NextPowerOf2Int(r.height)) * 2
 	}
 	return m
 }
