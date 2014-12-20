@@ -56,7 +56,7 @@ func drawText(r *ebiten.RenderTarget, textures *Textures, str string, ox, oy, sc
 	geoMat := ebiten.ScaleGeometry(float64(scale), float64(scale))
 	geoMat.Concat(ebiten.TranslateGeometry(float64(ox), float64(oy)))
 	clrMat := ebiten.ScaleColor(clr)
-	r.DrawTexture(fontTextureId, parts, geoMat, clrMat)
+	r.DrawImage(fontTextureId, parts, geoMat, clrMat)
 }
 
 func drawTextWithShadow(r *ebiten.RenderTarget, textures *Textures, str string, x, y, scale int, clr color.Color) {

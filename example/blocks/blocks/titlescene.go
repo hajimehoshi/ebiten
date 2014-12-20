@@ -70,7 +70,7 @@ func drawTitleBackground(r *ebiten.RenderTarget, textures *Textures, c int) {
 	geo := ebiten.GeometryMatrixI()
 	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
 	clr := ebiten.ColorMatrixI()
-	r.DrawTexture(backgroundTexture, parts, geo, clr)
+	r.DrawImage(backgroundTexture, parts, geo, clr)
 }
 
 func drawLogo(r *ebiten.RenderTarget, textures *Textures, str string) {

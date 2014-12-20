@@ -69,7 +69,7 @@ func (c *graphicsContext) postUpdate() error {
 	parts := []TexturePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
-	if err := c.defaultR.DrawTexture(c.screen.texture, parts, geo, clr); err != nil {
+	if err := c.defaultR.DrawImage(c.screen.texture, parts, geo, clr); err != nil {
 		return err
 	}
 

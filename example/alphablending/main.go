@@ -53,7 +53,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(15+float64(i)*(diff), 20)
 		clr := ebiten.ScaleColor(color.RGBA{0xff, 0xff, 0xff, 0x80})
-		if err := ebiten.DrawWholeTexture(g.tmpRenderTarget, g.ebitenTexture, geo, clr); err != nil {
+		if err := ebiten.DrawWholeImage(g.tmpRenderTarget, g.ebitenTexture, geo, clr); err != nil {
 			return err
 		}
 	}
@@ -62,7 +62,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()
-		if err := ebiten.DrawWholeTexture(r, g.tmpRenderTarget.Texture(), geo, clr); err != nil {
+		if err := ebiten.DrawWholeImage(r, g.tmpRenderTarget.Texture(), geo, clr); err != nil {
 			return err
 		}
 	}

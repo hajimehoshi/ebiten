@@ -37,10 +37,10 @@ type Game struct {
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {
 	geo := ebiten.ScaleGeometry(1.0/mosaicRatio, 1.0/mosaicRatio)
-	ebiten.DrawWholeTexture(g.gophersRenderTarget, g.gophersTexture, geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(g.gophersRenderTarget, g.gophersTexture, geo, ebiten.ColorMatrixI())
 
 	geo = ebiten.ScaleGeometry(mosaicRatio/2.0, mosaicRatio/2.0)
-	ebiten.DrawWholeTexture(r, g.gophersRenderTarget.Texture(), geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(r, g.gophersRenderTarget.Texture(), geo, ebiten.ColorMatrixI())
 	return nil
 }
 

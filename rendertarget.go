@@ -68,7 +68,7 @@ func (r *innerRenderTarget) Fill(clr color.Color) error {
 	return nil
 }
 
-func (r *innerRenderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+func (r *innerRenderTarget) DrawImage(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
@@ -141,9 +141,9 @@ func (r *RenderTarget) Fill(clr color.Color) (err error) {
 	return
 }
 
-func (r *RenderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+func (r *RenderTarget) DrawImage(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
 	r.syncer.Sync(func() {
-		err = r.inner.DrawTexture(texture, parts, geo, color)
+		err = r.inner.DrawImage(texture, parts, geo, color)
 	})
 	return
 }

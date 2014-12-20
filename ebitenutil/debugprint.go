@@ -57,7 +57,7 @@ func (d *debugPrintState) drawText(r *ebiten.RenderTarget, str string, x, y int,
 	geom.Concat(ebiten.TranslateGeometry(float64(x)+1, float64(y)))
 	clrm := ebiten.ColorMatrixI()
 	clrm.Concat(ebiten.ScaleColor(clr))
-	r.DrawTexture(d.textTexture, parts, geom, clrm)
+	r.DrawImage(d.textTexture, parts, geom, clrm)
 }
 
 func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {

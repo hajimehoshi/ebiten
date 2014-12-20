@@ -60,7 +60,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
 	//clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
 	clr := ebiten.ColorMatrixI()
-	ebiten.DrawWholeTexture(r, g.gophersTexture, geo, clr)
+	ebiten.DrawWholeImage(r, g.gophersTexture, geo, clr)
 	return nil
 }
 

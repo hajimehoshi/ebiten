@@ -35,12 +35,12 @@ type TexturePart struct {
 }
 
 // DrawWholeTexture draws the whole texture.
-func DrawWholeTexture(r *RenderTarget, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
+func DrawWholeImage(r *RenderTarget, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := texture.Size()
 	parts := []TexturePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
-	return r.DrawTexture(texture, parts, geo, color)
+	return r.DrawImage(texture, parts, geo, color)
 }
 
 // Filter represents the type of filter to be used when a texture is maginified or minified.
