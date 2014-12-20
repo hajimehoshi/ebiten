@@ -24,7 +24,7 @@ import (
 // ColorMatrixDim is a dimension of a ColorMatrix.
 const ColorMatrixDim = 5
 
-// A ColorMatrix represents a matrix to transform coloring when rendering a texture or a render target.
+// A ColorMatrix represents a matrix to transform coloring when rendering an image.
 type ColorMatrix struct {
 	Elements [ColorMatrixDim - 1][ColorMatrixDim]float64
 }

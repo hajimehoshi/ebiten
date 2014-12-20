@@ -31,7 +31,7 @@ const (
 const mosaicRatio = 16
 
 type Game struct {
-	gophersTexture      *ebiten.Texture
+	gophersTexture      *ebiten.Image
 	gophersRenderTarget *ebiten.RenderTarget
 }
 

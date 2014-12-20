@@ -32,7 +32,7 @@ const (
 type Game struct {
 	count           int
 	tmpRenderTarget *ebiten.RenderTarget
-	ebitenTexture   *ebiten.Texture
+	ebitenTexture   *ebiten.Image
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {

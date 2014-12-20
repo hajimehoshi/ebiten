@@ -35,15 +35,15 @@ type ImagePart struct {
 }
 
 // DrawWholeImage draws the whole image.
-func DrawWholeImage(r *RenderTarget, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
-	w, h := texture.Size()
+func DrawWholeImage(r *RenderTarget, image *Image, geo GeometryMatrix, color ColorMatrix) error {
+	w, h := image.Size()
 	parts := []ImagePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
-	return r.DrawImage(texture, parts, geo, color)
+	return r.DrawImage(image, parts, geo, color)
 }
 
-// Filter represents the type of filter to be used when a texture is maginified or minified.
+// Filter represents the type of filter to be used when an image is maginified or minified.
 type Filter int
 
 // Filters
@@ -52,12 +52,12 @@ const (
 	FilterLinear
 )
 
-// Texture represents a texture.
-type Texture struct {
+// An Image represents an image to be rendered.
+type Image struct {
 	glTexture *opengl.Texture
 }
 
-// Size returns the size of the texture.
-func (t *Texture) Size() (width int, height int) {
-	return t.glTexture.Size()
+// Size returns the size of the image.
+func (i *Image) Size() (width int, height int) {
+	return i.glTexture.Size()
 }

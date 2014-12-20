@@ -29,7 +29,7 @@ const (
 )
 
 type Game struct {
-	gophersTexture *ebiten.Texture
+	gophersTexture *ebiten.Image
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {

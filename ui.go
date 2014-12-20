@@ -131,17 +131,17 @@ func (u *ui) draw(f func(*RenderTarget) error) (err error) {
 	return
 }
 
-func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
-	var texture *Texture
+func (u *ui) newImage(img image.Image, filter int) (*Image, error) {
+	var i *Image
 	var err error
 	u.use(func() {
 		glTexture, err := opengl.NewTextureFromImage(img, filter)
 		if err != nil {
 			return
 		}
-		texture = &Texture{glTexture}
+		i = &Image{glTexture}
 	})
-	return texture, err
+	return i, err
 }
 
 func (u *ui) newRenderTarget(width, height int, filter int) (*RenderTarget, error) {

@@ -33,7 +33,7 @@ type Game struct {
 	count           int
 	horizontalCount int
 	verticalCount   int
-	gophersTexture  *ebiten.Texture
+	gophersTexture  *ebiten.Image
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {

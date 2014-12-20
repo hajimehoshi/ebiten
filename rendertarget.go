@@ -27,7 +27,7 @@ import (
 
 type innerRenderTarget struct {
 	glRenderTarget *opengl.RenderTarget
-	image          *Texture
+	image          *Image
 }
 
 func newInnerRenderTarget(width, height int, filter int) (*innerRenderTarget, error) {
@@ -41,8 +41,8 @@ func newInnerRenderTarget(width, height int, filter int) (*innerRenderTarget, er
 		return nil, err
 	}
 
-	texture := &Texture{glTexture}
-	return &innerRenderTarget{glRenderTarget, texture}, nil
+	image := &Image{glTexture}
+	return &innerRenderTarget{glRenderTarget, image}, nil
 }
 
 func (r *innerRenderTarget) size() (width, height int) {
@@ -68,11 +68,11 @@ func (r *innerRenderTarget) Fill(clr color.Color) error {
 	return nil
 }
 
-func (r *innerRenderTarget) DrawImage(texture *Texture, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
+func (r *innerRenderTarget) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
-	glTexture := texture.glTexture
+	glTexture := image.glTexture
 	w, h := glTexture.Size()
 	quads := textureQuads(parts, w, h)
 	targetNativeTexture := gl.Texture(0)
@@ -119,7 +119,7 @@ type RenderTarget struct {
 	inner  *innerRenderTarget
 }
 
-func (r *RenderTarget) Image() *Texture {
+func (r *RenderTarget) Image() *Image {
 	return r.inner.image
 }
 
@@ -141,9 +141,9 @@ func (r *RenderTarget) Fill(clr color.Color) (err error) {
 	return
 }
 
-func (r *RenderTarget) DrawImage(texture *Texture, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+func (r *RenderTarget) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
 	r.syncer.Sync(func() {
-		err = r.inner.DrawImage(texture, parts, geo, color)
+		err = r.inner.DrawImage(image, parts, geo, color)
 	})
 	return
 }

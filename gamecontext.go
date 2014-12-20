@@ -53,6 +53,6 @@ func NewRenderTarget(width, height int, filter Filter) (*RenderTarget, error) {
 }
 
 // NewImage returns a new image.
-func NewImage(img image.Image, filter Filter) (*Texture, error) {
-	return currentUI.newTexture(img, glFilter(filter))
+func NewImage(img image.Image, filter Filter) (*Image, error) {
+	return currentUI.newImage(img, glFilter(filter))
 }

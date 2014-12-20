@@ -23,7 +23,7 @@ import (
 )
 
 type debugPrintState struct {
-	textTexture            *ebiten.Texture
+	textTexture            *ebiten.Image
 	debugPrintRenderTarget *ebiten.RenderTarget
 	y                      int
 }

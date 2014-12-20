@@ -23,7 +23,7 @@ import (
 // GeometryMatrixDim is a dimension of a GeometryMatrix.
 const GeometryMatrixDim = 3
 
-// A GeometryMatrix represents a matrix to transform geometry when rendering a texture or a render target.
+// A GeometryMatrix represents a matrix to transform geometry when rendering an image.
 type GeometryMatrix struct {
 	Elements [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
