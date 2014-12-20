@@ -31,9 +31,9 @@ type shaderId int
 
 const (
 	shaderVertex shaderId = iota
-	shaderFragment
+	shaderVertexFinal
 	shaderColorMatrix
-	shaderSolidColor
+	shaderColorFinal
 )
 
 var shaders = map[shaderId]*shader{
@@ -56,6 +56,21 @@ void main(void) {
 }
 `,
 	},
+	shaderVertexFinal: {
+		shaderType: gl.VERTEX_SHADER,
+		source: `
+uniform mat4 projection_matrix;
+uniform mat4 modelview_matrix;
+attribute vec2 vertex;
+attribute vec2 tex_coord0;
+varying vec2 vertex_out_tex_coord0;
+
+void main(void) {
+  vertex_out_tex_coord0 = tex_coord0;
+  gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
+}
+`,
+	},
 	shaderColorMatrix: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
@@ -73,6 +88,19 @@ void main(void) {
 
   gl_FragColor.a = color0.a + color1.a - color0.a * color1.a;
   gl_FragColor.rgb = (color0.a * color0.rgb + (1.0 - color0.a) * color1.a * color1.rgb) / gl_FragColor.a;
+}
+`,
+	},
+	shaderColorFinal: {
+		shaderType: gl.FRAGMENT_SHADER,
+		source: `
+uniform sampler2D texture0;
+varying vec2 vertex_out_tex_coord0;
+
+void main(void) {
+  vec4 color0 = texture2D(texture0, vertex_out_tex_coord0);
+  gl_FragColor.rgb = color0.a * color0.rgb;
+  gl_FragColor.a = 1.0;
 }
 `,
 	},

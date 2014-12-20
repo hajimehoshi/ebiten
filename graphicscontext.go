@@ -23,7 +23,7 @@ import (
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	r, t, err := opengl.NewZeroRenderTarget(screenWidth*screenScale, screenHeight*screenScale, true)
+	r, err := opengl.NewZeroRenderTarget(screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return nil, err
 	}
@@ -32,18 +32,14 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 	if err != nil {
 		return nil, err
 	}
-
 	c := &graphicsContext{
 		currents:     make([]*RenderTarget, 1),
-		defaultR:     &RenderTarget{r, &Texture{t}},
+		defaultR:     &RenderTarget{r, nil},
 		screen:       screen,
 		screenWidth:  screenWidth,
 		screenHeight: screenHeight,
 		screenScale:  screenScale,
 	}
-
-	idsInstance.fillRenderTarget(c.screen, color.RGBA{0, 0, 0, 0})
-
 	return c, nil
 }
 
@@ -92,17 +88,18 @@ func (c *graphicsContext) PopRenderTarget() {
 func (c *graphicsContext) preUpdate() {
 	c.currents = c.currents[0:1]
 	c.currents[0] = c.defaultR
+
 	c.PushRenderTarget(c.screen)
-	c.Fill(color.RGBA{0, 0, 0, 0xff})
+	c.Clear()
 }
 
 func (c *graphicsContext) postUpdate() {
 	c.PopRenderTarget()
-	c.Clear()
 
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
-	DrawWholeTexture(c, c.screen.texture, geo, ColorMatrixI())
+	clr := ColorMatrixI()
+	DrawWholeTexture(c, c.screen.texture, geo, clr)
 
 	gl.Flush()
 }

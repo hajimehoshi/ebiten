@@ -30,6 +30,10 @@ var programColorMatrix = program{
 	shaderIds: []shaderId{shaderVertex, shaderColorMatrix},
 }
 
+var programColorFinal = program{
+	shaderIds: []shaderId{shaderVertexFinal, shaderColorFinal},
+}
+
 func (p *program) create() {
 	p.native = gl.CreateProgram()
 	if p.native == 0 {
@@ -56,32 +60,24 @@ func initialize() {
 	}()
 
 	programColorMatrix.create()
-	programColorMatrix.native.Use()
+	programColorFinal.create()
 }
 
-// NOTE: This caches are now used only for programColorMatrix
-var attribLocationCache = map[string]gl.AttribLocation{}
-var uniformLocationCache = map[string]gl.UniformLocation{}
-
 func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
-	if location, ok := attribLocationCache[name]; ok {
-		return location
-	}
-	location := program.GetAttribLocation(name)
-	attribLocationCache[name] = location
-	return location
+	return program.GetAttribLocation(name)
 }
 
 func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
-	if location, ok := uniformLocationCache[name]; ok {
-		return location
-	}
-	location := program.GetUniformLocation(name)
-	uniformLocationCache[name] = location
-	return location
+	return program.GetUniformLocation(name)
 }
 
-func use(projectionMatrix [16]float32, width, height int, geo Matrix, color Matrix) gl.Program {
+var lastProgram gl.Program = 0
+
+func useProgramColorMatrix(projectionMatrix [16]float32, width, height int, geo Matrix, color Matrix) gl.Program {
+	if lastProgram != programColorMatrix.native {
+		programColorMatrix.native.Use()
+		lastProgram = programColorMatrix.native
+	}
 	// TODO: Check the performance.
 	program := programColorMatrix
 
@@ -100,6 +96,7 @@ func use(projectionMatrix [16]float32, width, height int, geo Matrix, color Matr
 		tx, ty, 0, 1,
 	}
 	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
+
 	txn := tx / float32(internal.AdjustSizeForTexture(width))
 	tyn := ty / float32(internal.AdjustSizeForTexture(height))
 	glModelviewMatrixN := [...]float32{
@@ -110,7 +107,8 @@ func use(projectionMatrix [16]float32, width, height int, geo Matrix, color Matr
 	}
 	getUniformLocation(program.native, "modelview_matrix_n").UniformMatrix4fv(false, glModelviewMatrixN)
 
-	getUniformLocation(program.native, "texture").Uniform1i(0)
+	getUniformLocation(program.native, "texture0").Uniform1i(0)
+	getUniformLocation(program.native, "texture1").Uniform1i(1)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -130,6 +128,35 @@ func use(projectionMatrix [16]float32, width, height int, geo Matrix, color Matr
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
 	getUniformLocation(program.native, "color_matrix_translation").Uniform4fv(1, glColorMatrixTranslation[:])
+
+	return program.native
+}
+
+func useProgramColorFinal(projectionMatrix [16]float32, geo Matrix) gl.Program {
+	if lastProgram != programColorFinal.native {
+		programColorFinal.native.Use()
+		lastProgram = programColorFinal.native
+	}
+
+	program := programColorFinal
+
+	getUniformLocation(program.native, "projection_matrix").UniformMatrix4fv(false, projectionMatrix)
+
+	a := float32(geo.Element(0, 0))
+	b := float32(geo.Element(0, 1))
+	c := float32(geo.Element(1, 0))
+	d := float32(geo.Element(1, 1))
+	tx := float32(geo.Element(0, 2))
+	ty := float32(geo.Element(1, 2))
+	glModelviewMatrix := [...]float32{
+		a, c, 0, 0,
+		b, d, 0, 0,
+		0, 0, 1, 0,
+		tx, ty, 0, 1,
+	}
+	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
+
+	getUniformLocation(program.native, "texture0").Uniform1i(0)
 
 	return program.native
 }

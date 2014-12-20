@@ -44,23 +44,13 @@ type RenderTarget struct {
 	flipY       bool
 }
 
-func NewZeroRenderTarget(width, height int, flipY bool) (*RenderTarget, *Texture, error) {
+func NewZeroRenderTarget(width, height int) (*RenderTarget, error) {
 	r := &RenderTarget{
 		width:  width,
 		height: height,
-		flipY:  flipY,
+		flipY:  true,
 	}
-	// The framebuffer 0 can't be enlarged, so any filter is acceptable.
-	t, err := NewTexture(width, height, gl.NEAREST)
-	if err != nil {
-		return nil, nil, err
-	}
-	// TODO: Does this affect the current rendering target?
-	gl.Framebuffer(0).Bind()
-	if err := framebufferTexture(t.native); err != nil {
-		return nil, nil, err
-	}
-	return r, t, err
+	return r, nil
 }
 
 func NewRenderTargetFromTexture(texture *Texture) (*RenderTarget, error) {
