@@ -73,7 +73,6 @@ func (i *ids) drawTexture(target *RenderTarget, texture *Texture, parts []Textur
 	quads := textureQuads(parts, glTexture.Width(), glTexture.Height())
 	w, h := target.Size()
 	shader.DrawTexture(glTexture.Native(), target.texture.glTexture.Native(), w, h, projectionMatrix, quads, &geo, &color)
-	gl.Flush()
 	return nil
 }
 

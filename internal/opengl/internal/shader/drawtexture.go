@@ -126,4 +126,6 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 	texCoord0AttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords0)
 	texCoord1AttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords1)
 	gl.DrawElements(gl.TRIANGLES, len(indicies), gl.UNSIGNED_INT, indicies)
+
+	gl.Flush()
 }
