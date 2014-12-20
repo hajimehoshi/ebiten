@@ -138,7 +138,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(r ebiten.RenderTarget, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
+func drawBlocks(r *ebiten.RenderTarget, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
 	parts := []ebiten.TexturePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -213,7 +213,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(r ebiten.RenderTarget, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
+func (p *Piece) Draw(r *ebiten.RenderTarget, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {

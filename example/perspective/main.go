@@ -32,7 +32,7 @@ type Game struct {
 	gophersTexture *ebiten.Texture
 }
 
-func (g *Game) Update(r ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.RenderTarget) error {
 	parts := []ebiten.TexturePart{}
 	w, h := g.gophersTexture.Size()
 	for i := 0; i < h; i++ {

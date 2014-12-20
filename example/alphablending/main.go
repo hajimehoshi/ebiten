@@ -31,11 +31,11 @@ const (
 
 type Game struct {
 	count           int
-	tmpRenderTarget ebiten.RenderTarget
+	tmpRenderTarget *ebiten.RenderTarget
 	ebitenTexture   *ebiten.Texture
 }
 
-func (g *Game) Update(r ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.RenderTarget) error {
 	g.count++
 	g.count %= 600
 	diff := float64(g.count) * 0.2

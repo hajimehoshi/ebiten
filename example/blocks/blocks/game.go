@@ -70,7 +70,7 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-func (game *Game) Update(r ebiten.RenderTarget) error {
+func (game *Game) Update(r *ebiten.RenderTarget) error {
 	game.once.Do(func() {
 		game.textures = NewTextures()
 		for name, path := range texturePaths {

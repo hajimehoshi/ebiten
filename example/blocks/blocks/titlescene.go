@@ -40,7 +40,7 @@ func (s *TitleScene) Update(state *GameState) {
 	}
 }
 
-func (s *TitleScene) Draw(r ebiten.RenderTarget, textures *Textures) {
+func (s *TitleScene) Draw(r *ebiten.RenderTarget, textures *Textures) {
 	drawTitleBackground(r, textures, s.count)
 	drawLogo(r, textures, "BLOCKS")
 
@@ -50,7 +50,7 @@ func (s *TitleScene) Draw(r ebiten.RenderTarget, textures *Textures) {
 	drawTextWithShadow(r, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(r ebiten.RenderTarget, textures *Textures, c int) {
+func drawTitleBackground(r *ebiten.RenderTarget, textures *Textures, c int) {
 	const textureWidth = 32
 	const textureHeight = 32
 
@@ -73,7 +73,7 @@ func drawTitleBackground(r ebiten.RenderTarget, textures *Textures, c int) {
 	r.DrawTexture(backgroundTexture, parts, geo, clr)
 }
 
-func drawLogo(r ebiten.RenderTarget, textures *Textures, str string) {
+func drawLogo(r *ebiten.RenderTarget, textures *Textures, str string) {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2

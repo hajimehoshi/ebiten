@@ -110,14 +110,14 @@ func (u *ui) Sync(f func()) {
 	u.use(f)
 }
 
-func (u *ui) draw(f func(RenderTarget) error) (err error) {
+func (u *ui) draw(f func(*RenderTarget) error) (err error) {
 	u.use(func() {
 		err = u.graphicsContext.preUpdate()
 	})
 	if err != nil {
 		return
 	}
-	err = f(&syncRenderTarget{syncer: u, inner: u.graphicsContext.screen})
+	err = f(&RenderTarget{syncer: u, inner: u.graphicsContext.screen})
 	if err != nil {
 		return
 	}
@@ -144,13 +144,13 @@ func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
 	return texture, err
 }
 
-func (u *ui) newRenderTarget(width, height int, filter int) (RenderTarget, error) {
-	var renderTarget RenderTarget
+func (u *ui) newRenderTarget(width, height int, filter int) (*RenderTarget, error) {
+	var renderTarget *renderTarget
 	var err error
 	u.use(func() {
 		renderTarget, err = newRenderTarget(width, height, filter)
 	})
-	return &syncRenderTarget{u, renderTarget}, err
+	return &RenderTarget{u, renderTarget}, err
 }
 
 func (u *ui) run() {

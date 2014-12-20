@@ -36,7 +36,7 @@ type Game struct {
 	gophersTexture  *ebiten.Texture
 }
 
-func (g *Game) Update(r ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.RenderTarget) error {
 	g.count++
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		g.horizontalCount--

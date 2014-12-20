@@ -29,7 +29,7 @@ func init() {
 
 type Scene interface {
 	Update(state *GameState)
-	Draw(r ebiten.RenderTarget, textures *Textures)
+	Draw(r *ebiten.RenderTarget, textures *Textures)
 }
 
 const transitionMaxCount = 20
@@ -60,7 +60,7 @@ func (s *SceneManager) Update(state *GameState) {
 	}
 }
 
-func (s *SceneManager) Draw(r ebiten.RenderTarget, textures *Textures) {
+func (s *SceneManager) Draw(r *ebiten.RenderTarget, textures *Textures) {
 	if s.transitionCount == -1 {
 		s.current.Draw(r, textures)
 		return

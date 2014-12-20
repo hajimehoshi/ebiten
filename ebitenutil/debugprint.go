@@ -24,17 +24,17 @@ import (
 
 type debugPrintState struct {
 	textTexture            *ebiten.Texture
-	debugPrintRenderTarget ebiten.RenderTarget
+	debugPrintRenderTarget *ebiten.RenderTarget
 	y                      int
 }
 
 var defaultDebugPrintState = new(debugPrintState)
 
-func DebugPrint(r ebiten.RenderTarget, str string) {
+func DebugPrint(r *ebiten.RenderTarget, str string) {
 	defaultDebugPrintState.DebugPrint(r, str)
 }
 
-func (d *debugPrintState) drawText(r ebiten.RenderTarget, str string, x, y int, clr color.Color) {
+func (d *debugPrintState) drawText(r *ebiten.RenderTarget, str string, x, y int, clr color.Color) {
 	parts := []ebiten.TexturePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -60,7 +60,7 @@ func (d *debugPrintState) drawText(r ebiten.RenderTarget, str string, x, y int, 
 	r.DrawTexture(d.textTexture, parts, geom, clrm)
 }
 
-func (d *debugPrintState) DebugPrint(r ebiten.RenderTarget, str string) {
+func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {
 	if d.textTexture == nil {
 		img, err := assets.TextImage()
 		if err != nil {

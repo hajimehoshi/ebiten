@@ -25,15 +25,6 @@ import (
 	"math"
 )
 
-// TODO: Rename
-type RenderTarget interface {
-	Texture() *Texture
-	Size() (width, height int)
-	Clear() error
-	Fill(clr color.Color) error
-	DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
-}
-
 type renderTarget struct {
 	glRenderTarget *opengl.RenderTarget
 	texture        *Texture
@@ -127,36 +118,36 @@ type syncer interface {
 	Sync(func())
 }
 
-type syncRenderTarget struct {
+type RenderTarget struct {
 	syncer syncer
-	inner  RenderTarget
+	inner  *renderTarget
 }
 
-func (c *syncRenderTarget) Texture() *Texture {
-	return c.inner.Texture()
+func (r *RenderTarget) Texture() *Texture {
+	return r.inner.Texture()
 }
 
-func (c *syncRenderTarget) Size() (width, height int) {
-	return c.inner.Size()
+func (r *RenderTarget) Size() (width, height int) {
+	return r.inner.Size()
 }
 
-func (c *syncRenderTarget) Clear() (err error) {
-	c.syncer.Sync(func() {
-		err = c.inner.Clear()
+func (r *RenderTarget) Clear() (err error) {
+	r.syncer.Sync(func() {
+		err = r.inner.Clear()
 	})
 	return
 }
 
-func (c *syncRenderTarget) Fill(clr color.Color) (err error) {
-	c.syncer.Sync(func() {
-		err = c.inner.Fill(clr)
+func (r *RenderTarget) Fill(clr color.Color) (err error) {
+	r.syncer.Sync(func() {
+		err = r.inner.Fill(clr)
 	})
 	return
 }
 
-func (c *syncRenderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
-	c.syncer.Sync(func() {
-		err = c.inner.DrawTexture(texture, parts, geo, color)
+func (r *RenderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+	r.syncer.Sync(func() {
+		err = r.inner.DrawTexture(texture, parts, geo, color)
 	})
 	return
 }

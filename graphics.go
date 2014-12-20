@@ -34,8 +34,12 @@ type TexturePart struct {
 	Src Rect
 }
 
+type TextureDrawer interface {
+	DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
+}
+
 // DrawWholeTexture draws the whole texture.
-func DrawWholeTexture(r RenderTarget, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
+func DrawWholeTexture(r TextureDrawer, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := texture.Size()
 	parts := []TexturePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},

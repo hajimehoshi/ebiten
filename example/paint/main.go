@@ -33,11 +33,11 @@ const (
 type Game struct {
 	inited             bool
 	count              int
-	brushRenderTarget  ebiten.RenderTarget
-	canvasRenderTarget ebiten.RenderTarget
+	brushRenderTarget  *ebiten.RenderTarget
+	canvasRenderTarget *ebiten.RenderTarget
 }
 
-func (g *Game) Update(r ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.RenderTarget) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.count++
 	}
