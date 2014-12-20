@@ -93,7 +93,7 @@ func (c *graphicsContext) preUpdate() {
 	c.currents = c.currents[0:1]
 	c.currents[0] = c.defaultR
 	c.PushRenderTarget(c.screen)
-	c.Clear()
+	c.Fill(color.RGBA{0, 0, 0, 0xff})
 }
 
 func (c *graphicsContext) postUpdate() {
@@ -101,8 +101,7 @@ func (c *graphicsContext) postUpdate() {
 	c.Clear()
 
 	scale := float64(c.screenScale)
-	geo := GeometryMatrixI()
-	geo.Concat(ScaleGeometry(scale, scale))
+	geo := ScaleGeometry(scale, scale)
 	DrawWholeTexture(c, c.screen.texture, geo, ColorMatrixI())
 
 	gl.Flush()
