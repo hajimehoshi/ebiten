@@ -27,7 +27,7 @@ import (
 
 type innerRenderTarget struct {
 	glRenderTarget *opengl.RenderTarget
-	texture        *Texture
+	image          *Texture
 }
 
 func newInnerRenderTarget(width, height int, filter int) (*innerRenderTarget, error) {
@@ -76,8 +76,8 @@ func (r *innerRenderTarget) DrawImage(texture *Texture, parts []ImagePart, geo G
 	w, h := glTexture.Size()
 	quads := textureQuads(parts, w, h)
 	targetNativeTexture := gl.Texture(0)
-	if r.texture != nil {
-		targetNativeTexture = r.texture.glTexture.Native()
+	if r.image != nil {
+		targetNativeTexture = r.image.glTexture.Native()
 	}
 	w2, h2 := r.size()
 	projectionMatrix := r.glRenderTarget.ProjectionMatrix()
@@ -120,7 +120,7 @@ type RenderTarget struct {
 }
 
 func (r *RenderTarget) Image() *Texture {
-	return r.inner.texture
+	return r.inner.image
 }
 
 func (r *RenderTarget) Size() (width, height int) {
