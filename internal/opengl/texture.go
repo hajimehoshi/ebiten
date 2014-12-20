@@ -55,12 +55,8 @@ func (t *Texture) Native() gl.Texture {
 	return t.native
 }
 
-func (t *Texture) Width() int {
-	return t.width
-}
-
-func (t *Texture) Height() int {
-	return t.height
+func (t *Texture) Size() (width, height int) {
+	return t.width, t.height
 }
 
 func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter int) gl.Texture {

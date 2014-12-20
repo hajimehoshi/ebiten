@@ -58,19 +58,16 @@ func NewRenderTargetFromTexture(texture *Texture) (*RenderTarget, error) {
 	if err != nil {
 		return nil, err
 	}
+	w, h := texture.Size()
 	return &RenderTarget{
 		framebuffer: framebuffer,
-		width:       texture.Width(),
-		height:      texture.Height(),
+		width:       w,
+		height:      h,
 	}, nil
 }
 
-func (r *RenderTarget) Width() int {
-	return r.width
-}
-
-func (r *RenderTarget) Height() int {
-	return r.height
+func (r *RenderTarget) Size() (width, height int) {
+	return r.width, r.height
 }
 
 func (r *RenderTarget) Dispose() {

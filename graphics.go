@@ -59,5 +59,5 @@ type Texture struct {
 
 // Size returns the size of the texture.
 func (t *Texture) Size() (width int, height int) {
-	return t.glTexture.Width(), t.glTexture.Height()
+	return t.glTexture.Size()
 }

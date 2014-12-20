@@ -46,7 +46,7 @@ func newInnerRenderTarget(width, height int, filter int) (*innerRenderTarget, er
 }
 
 func (r *innerRenderTarget) size() (width, height int) {
-	return r.glRenderTarget.Width(), r.glRenderTarget.Height()
+	return r.glRenderTarget.Size()
 }
 
 func (r *innerRenderTarget) Clear() error {
@@ -73,14 +73,15 @@ func (r *innerRenderTarget) DrawTexture(texture *Texture, parts []TexturePart, g
 		return err
 	}
 	glTexture := texture.glTexture
-	quads := textureQuads(parts, glTexture.Width(), glTexture.Height())
+	w, h := glTexture.Size()
+	quads := textureQuads(parts, w, h)
 	targetNativeTexture := gl.Texture(0)
 	if r.texture != nil {
 		targetNativeTexture = r.texture.glTexture.Native()
 	}
-	w, h := r.size()
+	w2, h2 := r.size()
 	projectionMatrix := r.glRenderTarget.ProjectionMatrix()
-	shader.DrawTexture(glTexture.Native(), targetNativeTexture, w, h, projectionMatrix, quads, &geo, &color)
+	shader.DrawTexture(glTexture.Native(), targetNativeTexture, w2, h2, projectionMatrix, quads, &geo, &color)
 	return nil
 }
 
