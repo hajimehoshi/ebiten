@@ -93,38 +93,38 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 	indicies := []uint32{}
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	for i, quad := range quads {
+		x0 := quad.VertexX0
 		x1 := quad.VertexX1
-		x2 := quad.VertexX2
+		y0 := quad.VertexY0
 		y1 := quad.VertexY1
-		y2 := quad.VertexY2
 		vertices = append(vertices,
+			x0, y0,
+			x1, y0,
+			x0, y1,
 			x1, y1,
-			x2, y1,
-			x1, y2,
-			x2, y2,
 		)
+		u0 := quad.TextureCoordU0
 		u1 := quad.TextureCoordU1
-		u2 := quad.TextureCoordU2
+		v0 := quad.TextureCoordV0
 		v1 := quad.TextureCoordV1
-		v2 := quad.TextureCoordV2
 		texCoords0 = append(texCoords0,
+			u0, v0,
+			u1, v0,
+			u0, v1,
 			u1, v1,
-			u2, v1,
-			u1, v2,
-			u2, v2,
 		)
 		if program == programColorMatrix.native {
 			w := float32(internal.AdjustSizeForTexture(width))
 			h := float32(internal.AdjustSizeForTexture(height))
+			xx0 := x0 / w
 			xx1 := x1 / w
-			xx2 := x2 / w
+			yy0 := y0 / h
 			yy1 := y1 / h
-			yy2 := y2 / h
 			texCoords1 = append(texCoords1,
+				xx0, yy0,
+				xx1, yy0,
+				xx0, yy1,
 				xx1, yy1,
-				xx2, yy1,
-				xx1, yy2,
-				xx2, yy2,
 			)
 		}
 		base := uint32(i * 4)

@@ -16,14 +16,13 @@ limitations under the License.
 
 package shader
 
-// TODO: Rename X1, X2 -> X0, X1
 type TextureQuad struct {
+	VertexX0       float32
 	VertexX1       float32
-	VertexX2       float32
+	VertexY0       float32
 	VertexY1       float32
-	VertexY2       float32
+	TextureCoordU0 float32
 	TextureCoordU1 float32
-	TextureCoordU2 float32
+	TextureCoordV0 float32
 	TextureCoordV1 float32
-	TextureCoordV2 float32
 }
