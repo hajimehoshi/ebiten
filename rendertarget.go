@@ -119,7 +119,7 @@ type RenderTarget struct {
 	inner  *innerRenderTarget
 }
 
-func (r *RenderTarget) Texture() *Texture {
+func (r *RenderTarget) Image() *Texture {
 	return r.inner.texture
 }
 

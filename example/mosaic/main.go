@@ -40,7 +40,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	ebiten.DrawWholeImage(g.gophersRenderTarget, g.gophersTexture, geo, ebiten.ColorMatrixI())
 
 	geo = ebiten.ScaleGeometry(mosaicRatio/2.0, mosaicRatio/2.0)
-	ebiten.DrawWholeImage(r, g.gophersRenderTarget.Texture(), geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(r, g.gophersRenderTarget.Image(), geo, ebiten.ColorMatrixI())
 	return nil
 }
 
