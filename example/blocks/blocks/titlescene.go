@@ -40,17 +40,17 @@ func (s *TitleScene) Update(state *GameState) {
 	}
 }
 
-func (s *TitleScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
-	drawTitleBackground(context, textures, s.count)
-	drawLogo(context, textures, "BLOCKS")
+func (s *TitleScene) Draw(r ebiten.RenderTarget, textures *Textures) {
+	drawTitleBackground(r, textures, s.count)
+	drawLogo(r, textures, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - textWidth(message)) / 2
 	y := ScreenHeight - 48
-	drawTextWithShadow(context, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
+	drawTextWithShadow(r, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c int) {
+func drawTitleBackground(r ebiten.RenderTarget, textures *Textures, c int) {
 	const textureWidth = 32
 	const textureHeight = 32
 
@@ -70,13 +70,13 @@ func drawTitleBackground(context ebiten.GraphicsContext, textures *Textures, c i
 	geo := ebiten.GeometryMatrixI()
 	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
 	clr := ebiten.ColorMatrixI()
-	context.DrawTexture(backgroundTexture, parts, geo, clr)
+	r.DrawTexture(backgroundTexture, parts, geo, clr)
 }
 
-func drawLogo(context ebiten.GraphicsContext, textures *Textures, str string) {
+func drawLogo(r ebiten.RenderTarget, textures *Textures, str string) {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	drawTextWithShadow(context, textures, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
+	drawTextWithShadow(r, textures, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
 }

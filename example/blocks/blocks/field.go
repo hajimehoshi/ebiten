@@ -112,11 +112,11 @@ func (f *Field) flushLine(j int) bool {
 	return true
 }
 
-func (f *Field) Draw(context ebiten.GraphicsContext, textures *Textures, geo ebiten.GeometryMatrix) {
+func (f *Field) Draw(r ebiten.RenderTarget, textures *Textures, geo ebiten.GeometryMatrix) {
 	blocks := make([][]BlockType, len(f.blocks))
 	for i, blockCol := range f.blocks {
 		blocks[i] = make([]BlockType, len(blockCol))
 		copy(blocks[i], blockCol[:])
 	}
-	drawBlocks(context, textures, blocks, geo)
+	drawBlocks(r, textures, blocks, geo)
 }

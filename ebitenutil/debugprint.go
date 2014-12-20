@@ -24,17 +24,17 @@ import (
 
 type debugPrintState struct {
 	textTexture            *ebiten.Texture
-	debugPrintRenderTarget *ebiten.RenderTarget
+	debugPrintRenderTarget ebiten.RenderTarget
 	y                      int
 }
 
 var defaultDebugPrintState = new(debugPrintState)
 
-func DebugPrint(gr ebiten.GraphicsContext, str string) {
-	defaultDebugPrintState.DebugPrint(gr, str)
+func DebugPrint(r ebiten.RenderTarget, str string) {
+	defaultDebugPrintState.DebugPrint(r, str)
 }
 
-func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y int, clr color.Color) {
+func (d *debugPrintState) drawText(r ebiten.RenderTarget, str string, x, y int, clr color.Color) {
 	parts := []ebiten.TexturePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -57,10 +57,10 @@ func (d *debugPrintState) drawText(gr ebiten.GraphicsContext, str string, x, y i
 	geom.Concat(ebiten.TranslateGeometry(float64(x)+1, float64(y)))
 	clrm := ebiten.ColorMatrixI()
 	clrm.Concat(ebiten.ScaleColor(clr))
-	gr.DrawTexture(d.textTexture, parts, geom, clrm)
+	r.DrawTexture(d.textTexture, parts, geom, clrm)
 }
 
-func (d *debugPrintState) DebugPrint(gr ebiten.GraphicsContext, str string) {
+func (d *debugPrintState) DebugPrint(r ebiten.RenderTarget, str string) {
 	if d.textTexture == nil {
 		img, err := assets.TextImage()
 		if err != nil {
@@ -79,6 +79,6 @@ func (d *debugPrintState) DebugPrint(gr ebiten.GraphicsContext, str string) {
 			panic(err)
 		}
 	}
-	d.drawText(gr, str, 1, d.y+1, &color.RGBA{0x00, 0x00, 0x00, 0x80})
-	d.drawText(gr, str, 0, d.y, &color.RGBA{0xff, 0xff, 0xff, 0xff})
+	d.drawText(r, str, 1, d.y+1, &color.RGBA{0x00, 0x00, 0x00, 0x80})
+	d.drawText(r, str, 0, d.y, &color.RGBA{0xff, 0xff, 0xff, 0xff})
 }

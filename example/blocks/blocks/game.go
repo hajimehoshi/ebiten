@@ -70,7 +70,7 @@ func (game *Game) isInitialized() bool {
 	return true
 }
 
-func (game *Game) Update(g ebiten.GraphicsContext) error {
+func (game *Game) Update(r ebiten.RenderTarget) error {
 	game.once.Do(func() {
 		game.textures = NewTextures()
 		for name, path := range texturePaths {
@@ -88,6 +88,6 @@ func (game *Game) Update(g ebiten.GraphicsContext) error {
 		SceneManager: game.sceneManager,
 		Input:        game.input,
 	})
-	game.sceneManager.Draw(g, game.textures)
+	game.sceneManager.Draw(r, game.textures)
 	return nil
 }

@@ -48,7 +48,7 @@ func glFilter(f Filter) int {
 }
 
 // NewRenderTarget returns a new RenderTarget.
-func NewRenderTarget(width, height int, filter Filter) (*RenderTarget, error) {
+func NewRenderTarget(width, height int, filter Filter) (RenderTarget, error) {
 	return currentUI.newRenderTarget(width, height, glFilter(filter))
 }
 

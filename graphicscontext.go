@@ -19,7 +19,6 @@ package ebiten
 import (
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"image/color"
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
@@ -28,31 +27,23 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 		return nil, err
 	}
 
-	screen, err := idsInstance.createRenderTarget(screenWidth, screenHeight, gl.NEAREST)
+	screen, err := newRenderTarget(screenWidth, screenHeight, gl.NEAREST)
 	if err != nil {
 		return nil, err
 	}
 	c := &graphicsContext{
-		currents:     make([]*RenderTarget, 1),
-		defaultR:     &RenderTarget{r, nil},
-		screen:       screen,
-		screenWidth:  screenWidth,
-		screenHeight: screenHeight,
-		screenScale:  screenScale,
+		defaultR:    &renderTarget{r, nil},
+		screen:      screen,
+		screenScale: screenScale,
 	}
 	return c, nil
 }
 
 type graphicsContext struct {
-	screen       *RenderTarget
-	defaultR     *RenderTarget
-	currents     []*RenderTarget
-	screenWidth  int
-	screenHeight int
-	screenScale  int
+	screen      *renderTarget
+	defaultR    *renderTarget
+	screenScale int
 }
-
-var _ GraphicsContext = new(graphicsContext)
 
 func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
@@ -64,44 +55,20 @@ func (c *graphicsContext) dispose() {
 	glTexture.Dispose()
 }
 
-func (c *graphicsContext) Clear() error {
-	return c.Fill(color.RGBA{0, 0, 0, 0})
+func (c *graphicsContext) preUpdate() error {
+	return c.screen.Clear()
 }
 
-func (c *graphicsContext) Fill(clr color.Color) error {
-	return idsInstance.fillRenderTarget(c.currents[len(c.currents)-1], clr)
-}
-
-func (c *graphicsContext) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
-	current := c.currents[len(c.currents)-1]
-	return idsInstance.drawTexture(current, texture, parts, geo, color)
-}
-
-func (c *graphicsContext) PushRenderTarget(renderTarget *RenderTarget) {
-	c.currents = append(c.currents, renderTarget)
-}
-
-func (c *graphicsContext) PopRenderTarget() {
-	c.currents = c.currents[:len(c.currents)-1]
-}
-
-func (c *graphicsContext) preUpdate() {
-	c.currents = c.currents[0:1]
-	c.currents[0] = c.defaultR
-
-	c.PushRenderTarget(c.screen)
-	c.Clear()
-}
-
-func (c *graphicsContext) postUpdate() {
-	c.PopRenderTarget()
-
+func (c *graphicsContext) postUpdate() error {
 	// We don't need to clear the default render target (framebuffer).
 	// For the default framebuffer, a special shader is used.
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
-	DrawWholeTexture(c, c.screen.texture, geo, clr)
+	if err := DrawWholeTexture(c.defaultR, c.screen.texture, geo, clr); err != nil {
+		return err
+	}
 
 	gl.Flush()
+	return nil
 }

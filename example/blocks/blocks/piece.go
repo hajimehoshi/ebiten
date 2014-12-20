@@ -138,7 +138,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(context ebiten.GraphicsContext, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
+func drawBlocks(r ebiten.RenderTarget, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
 	parts := []ebiten.TexturePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -153,7 +153,7 @@ func drawBlocks(context ebiten.GraphicsContext, textures *Textures, blocks [][]B
 		}
 	}
 	blocksTexture := textures.GetTexture("blocks")
-	context.DrawTexture(blocksTexture, parts, geo, ebiten.ColorMatrixI())
+	r.DrawTexture(blocksTexture, parts, geo, ebiten.ColorMatrixI())
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -213,7 +213,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(context ebiten.GraphicsContext, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
+func (p *Piece) Draw(r ebiten.RenderTarget, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -230,5 +230,5 @@ func (p *Piece) Draw(context ebiten.GraphicsContext, textures *Textures, fieldX,
 	y := fieldY + pieceY*blockHeight
 	geoMat.Concat(ebiten.TranslateGeometry(float64(x), float64(y)))
 
-	drawBlocks(context, textures, blocks, geoMat)
+	drawBlocks(r, textures, blocks, geoMat)
 }

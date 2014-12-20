@@ -33,39 +33,33 @@ const (
 type Game struct {
 	inited             bool
 	count              int
-	brushRenderTarget  *ebiten.RenderTarget
-	canvasRenderTarget *ebiten.RenderTarget
+	brushRenderTarget  ebiten.RenderTarget
+	canvasRenderTarget ebiten.RenderTarget
 }
 
-func (g *Game) Update(gr ebiten.GraphicsContext) error {
+func (g *Game) Update(r ebiten.RenderTarget) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.count++
 	}
 	if !g.inited {
-		gr.PushRenderTarget(g.brushRenderTarget)
-		gr.Fill(color.White)
-		gr.PopRenderTarget()
-		gr.PushRenderTarget(g.canvasRenderTarget)
-		gr.Fill(color.White)
-		gr.PopRenderTarget()
+		g.brushRenderTarget.Fill(color.White)
+		g.canvasRenderTarget.Fill(color.White)
 		g.inited = true
 	}
 
 	mx, my := ebiten.CursorPosition()
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		gr.PushRenderTarget(g.canvasRenderTarget)
 		geo := ebiten.TranslateGeometry(float64(mx), float64(my))
 		clr := ebiten.ScaleColor(color.RGBA{0xff, 0x40, 0x40, 0xff})
 		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		ebiten.DrawWholeTexture(gr, g.brushRenderTarget.Texture(), geo, clr)
-		gr.PopRenderTarget()
+		ebiten.DrawWholeTexture(g.canvasRenderTarget, g.brushRenderTarget.Texture(), geo, clr)
 	}
 
-	ebiten.DrawWholeTexture(gr, g.canvasRenderTarget.Texture(), ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
+	ebiten.DrawWholeTexture(r, g.canvasRenderTarget.Texture(), ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 
-	ebitenutil.DebugPrint(gr, fmt.Sprintf("(%d, %d)", mx, my))
+	ebitenutil.DebugPrint(r, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil
 }
 

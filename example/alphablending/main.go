@@ -31,11 +31,11 @@ const (
 
 type Game struct {
 	count           int
-	tmpRenderTarget *ebiten.RenderTarget
+	tmpRenderTarget ebiten.RenderTarget
 	ebitenTexture   *ebiten.Texture
 }
 
-func (g *Game) Update(gr ebiten.GraphicsContext) error {
+func (g *Game) Update(r ebiten.RenderTarget) error {
 	g.count++
 	g.count %= 600
 	diff := float64(g.count) * 0.2
@@ -45,21 +45,26 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	case 240 < g.count:
 		diff = float64(480-g.count) * 0.2
 	}
+	_ = diff
 
-	gr.PushRenderTarget(g.tmpRenderTarget)
-	gr.Clear()
+	if err := g.tmpRenderTarget.Clear(); err != nil {
+		return err
+	}
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(15+float64(i)*(diff), 20)
 		clr := ebiten.ScaleColor(color.RGBA{0xff, 0xff, 0xff, 0x80})
-		ebiten.DrawWholeTexture(gr, g.ebitenTexture, geo, clr)
+		if err := ebiten.DrawWholeTexture(g.tmpRenderTarget, g.ebitenTexture, geo, clr); err != nil {
+			return err
+		}
 	}
-	gr.PopRenderTarget()
 
-	gr.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
+	r.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()
-		ebiten.DrawWholeTexture(gr, g.tmpRenderTarget.Texture(), geo, clr)
+		if err := ebiten.DrawWholeTexture(r, g.tmpRenderTarget.Texture(), geo, clr); err != nil {
+			return err
+		}
 	}
 	return nil
 }

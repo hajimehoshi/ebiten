@@ -109,21 +109,21 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(context ebiten.GraphicsContext, textures *Textures) {
-	context.Fill(color.White)
+func (s *GameScene) Draw(r ebiten.RenderTarget, textures *Textures) {
+	r.Fill(color.White)
 
 	field := textures.GetTexture("empty")
 	w, h := field.Size()
 	geoMat := ebiten.ScaleGeometry(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20)) // TODO: magic number?
 	colorMat := ebiten.ScaleColor(color.RGBA{0, 0, 0, 0x80})
-	ebiten.DrawWholeTexture(context, field, geoMat, colorMat)
+	ebiten.DrawWholeTexture(r, field, geoMat, colorMat)
 
 	geoMat = ebiten.GeometryMatrixI()
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20))
-	s.field.Draw(context, textures, geoMat)
+	s.field.Draw(r, textures, geoMat)
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(context, textures, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
+		s.currentPiece.Draw(r, textures, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
 	}
 }

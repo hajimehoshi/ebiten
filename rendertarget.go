@@ -25,69 +25,76 @@ import (
 	"math"
 )
 
-// ids manages the current render target to be used.
-// TODO: Change this name. `ids` is not appropriate for now.
-type ids struct {
-	currentRenderTarget *RenderTarget
+// TODO: Rename
+type RenderTarget interface {
+	Texture() *Texture
+	Size() (width, height int)
+	Clear() error
+	Fill(clr color.Color) error
+	DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error
 }
 
-var idsInstance = &ids{}
+type renderTarget struct {
+	glRenderTarget *opengl.RenderTarget
+	texture        *Texture
+}
 
-func (i *ids) createRenderTarget(width, height int, filter int) (*RenderTarget, error) {
+func newRenderTarget(width, height int, filter int) (*renderTarget, error) {
 	glTexture, err := opengl.NewTexture(width, height, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	// The current binded framebuffer can be changed.
-	i.currentRenderTarget = nil
 	glRenderTarget, err := opengl.NewRenderTargetFromTexture(glTexture)
 	if err != nil {
 		return nil, err
 	}
 
 	texture := &Texture{glTexture}
-	// TODO: Is |texture| necessary?
-	renderTarget := &RenderTarget{glRenderTarget, texture}
-	i.fillRenderTarget(renderTarget, color.RGBA{0, 0, 0, 0})
-
+	renderTarget := &renderTarget{glRenderTarget, texture}
 	return renderTarget, nil
 }
 
-func (i *ids) fillRenderTarget(renderTarget *RenderTarget, clr color.Color) error {
-	if err := i.setViewportIfNeeded(renderTarget); err != nil {
+func (r *renderTarget) Texture() *Texture {
+	return r.texture
+}
+
+func (r *renderTarget) Size() (width, height int) {
+	return r.glRenderTarget.Width(), r.glRenderTarget.Height()
+}
+
+func (r *renderTarget) Clear() error {
+	return r.Fill(color.RGBA{0, 0, 0, 0})
+}
+
+func (r *renderTarget) Fill(clr color.Color) error {
+	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
 	const max = math.MaxUint16
-	r, g, b, a := clr.RGBA()
-	gl.ClearColor(gl.GLclampf(float64(r)/max), gl.GLclampf(float64(g)/max), gl.GLclampf(float64(b)/max), gl.GLclampf(float64(a)/max))
+	cr, cg, cb, ca := clr.RGBA()
+	rf := gl.GLclampf(float64(cr) / max)
+	gf := gl.GLclampf(float64(cg) / max)
+	bf := gl.GLclampf(float64(cb) / max)
+	af := gl.GLclampf(float64(ca) / max)
+	gl.ClearColor(rf, gf, bf, af)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	return nil
 }
 
-func (i *ids) drawTexture(target *RenderTarget, texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
-	glTexture := texture.glTexture
-	if err := i.setViewportIfNeeded(target); err != nil {
+func (r *renderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
-	projectionMatrix := target.glRenderTarget.ProjectionMatrix()
+	glTexture := texture.glTexture
 	quads := textureQuads(parts, glTexture.Width(), glTexture.Height())
-	w, h := target.Size()
 	targetNativeTexture := gl.Texture(0)
-	if target.texture != nil {
-		targetNativeTexture = target.texture.glTexture.Native()
+	if r.texture != nil {
+		targetNativeTexture = r.texture.glTexture.Native()
 	}
+	w, h := r.Size()
+	projectionMatrix := r.glRenderTarget.ProjectionMatrix()
 	shader.DrawTexture(glTexture.Native(), targetNativeTexture, w, h, projectionMatrix, quads, &geo, &color)
-	return nil
-}
-
-func (i *ids) setViewportIfNeeded(renderTarget *RenderTarget) error {
-	if i.currentRenderTarget != renderTarget {
-		if err := renderTarget.glRenderTarget.SetAsViewport(); err != nil {
-			return err
-		}
-		i.currentRenderTarget = renderTarget
-	}
 	return nil
 }
 
@@ -114,4 +121,42 @@ func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {
 		quads = append(quads, quad)
 	}
 	return quads
+}
+
+type syncer interface {
+	Sync(func())
+}
+
+type syncRenderTarget struct {
+	syncer syncer
+	inner  RenderTarget
+}
+
+func (c *syncRenderTarget) Texture() *Texture {
+	return c.inner.Texture()
+}
+
+func (c *syncRenderTarget) Size() (width, height int) {
+	return c.inner.Size()
+}
+
+func (c *syncRenderTarget) Clear() (err error) {
+	c.syncer.Sync(func() {
+		err = c.inner.Clear()
+	})
+	return
+}
+
+func (c *syncRenderTarget) Fill(clr color.Color) (err error) {
+	c.syncer.Sync(func() {
+		err = c.inner.Fill(clr)
+	})
+	return
+}
+
+func (c *syncRenderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+	c.syncer.Sync(func() {
+		err = c.inner.DrawTexture(texture, parts, geo, color)
+	})
+	return
 }

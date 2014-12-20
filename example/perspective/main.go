@@ -32,7 +32,7 @@ type Game struct {
 	gophersTexture *ebiten.Texture
 }
 
-func (g *Game) Update(gr ebiten.GraphicsContext) error {
+func (g *Game) Update(r ebiten.RenderTarget) error {
 	parts := []ebiten.TexturePart{}
 	w, h := g.gophersTexture.Size()
 	for i := 0; i < h; i++ {
@@ -48,7 +48,7 @@ func (g *Game) Update(gr ebiten.GraphicsContext) error {
 	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
 	geo.Concat(ebiten.ScaleGeometry(0.4, 0.4))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	gr.DrawTexture(g.gophersTexture, parts, geo, ebiten.ColorMatrixI())
+	r.DrawTexture(g.gophersTexture, parts, geo, ebiten.ColorMatrixI())
 	return nil
 }
 

@@ -32,17 +32,15 @@ const mosaicRatio = 16
 
 type Game struct {
 	gophersTexture      *ebiten.Texture
-	gophersRenderTarget *ebiten.RenderTarget
+	gophersRenderTarget ebiten.RenderTarget
 }
 
-func (g *Game) Update(gr ebiten.GraphicsContext) error {
-	gr.PushRenderTarget(g.gophersRenderTarget)
+func (g *Game) Update(r ebiten.RenderTarget) error {
 	geo := ebiten.ScaleGeometry(1.0/mosaicRatio, 1.0/mosaicRatio)
-	ebiten.DrawWholeTexture(gr, g.gophersTexture, geo, ebiten.ColorMatrixI())
-	gr.PopRenderTarget()
+	ebiten.DrawWholeTexture(g.gophersRenderTarget, g.gophersTexture, geo, ebiten.ColorMatrixI())
 
 	geo = ebiten.ScaleGeometry(mosaicRatio/2.0, mosaicRatio/2.0)
-	ebiten.DrawWholeTexture(gr, g.gophersRenderTarget.Texture(), geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeTexture(r, g.gophersRenderTarget.Texture(), geo, ebiten.ColorMatrixI())
 	return nil
 }
 

@@ -18,7 +18,7 @@ package ebiten
 
 // Run runs the game.
 // This function must be called from the main thread.
-func Run(f func(GraphicsContext) error, width, height, scale int, title string) error {
+func Run(f func(RenderTarget) error, width, height, scale int, title string) error {
 	err := startUI(width, height, scale, title)
 	if err != nil {
 		return err

@@ -73,16 +73,11 @@ func (r *RenderTarget) Height() int {
 	return r.height
 }
 
-func (r *RenderTarget) FlipY() bool {
-	return r.flipY
-}
-
 func (r *RenderTarget) Dispose() {
 	r.framebuffer.Delete()
 }
 
 func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
-	// TODO: Does this affect the current rendering target?
 	framebuffer := gl.GenFramebuffer()
 	framebuffer.Bind()
 
@@ -102,7 +97,10 @@ func (r *RenderTarget) SetAsViewport() error {
 	r.framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if err != gl.FRAMEBUFFER_COMPLETE {
-		return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", err))
+		if gl.GetError() != 0 {
+			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
+		}
+		return errors.New("glBindFramebuffer failed: the context is different?")
 	}
 
 	width := internal.AdjustSizeForTexture(r.width)

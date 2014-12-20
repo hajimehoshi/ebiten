@@ -29,7 +29,7 @@ func init() {
 
 type Scene interface {
 	Update(state *GameState)
-	Draw(context ebiten.GraphicsContext, textures *Textures)
+	Draw(r ebiten.RenderTarget, textures *Textures)
 }
 
 const transitionMaxCount = 20
@@ -60,29 +60,25 @@ func (s *SceneManager) Update(state *GameState) {
 	}
 }
 
-func (s *SceneManager) Draw(context ebiten.GraphicsContext, textures *Textures) {
+func (s *SceneManager) Draw(r ebiten.RenderTarget, textures *Textures) {
 	if s.transitionCount == -1 {
-		s.current.Draw(context, textures)
+		s.current.Draw(r, textures)
 		return
 	}
 	from := textures.GetRenderTarget("scene_manager_transition_from")
-	context.PushRenderTarget(from)
-	context.Clear()
-	s.current.Draw(context, textures)
-	context.PopRenderTarget()
+	from.Clear()
+	s.current.Draw(from, textures)
 
 	to := textures.GetRenderTarget("scene_manager_transition_to")
-	context.PushRenderTarget(to)
-	context.Clear()
-	s.next.Draw(context, textures)
-	context.PopRenderTarget()
+	to.Clear()
+	s.next.Draw(to, textures)
 
 	color := ebiten.ColorMatrixI()
-	ebiten.DrawWholeTexture(context, from.Texture(), ebiten.GeometryMatrixI(), color)
+	ebiten.DrawWholeTexture(r, from.Texture(), ebiten.GeometryMatrixI(), color)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
 	color.Elements[3][3] = alpha
-	ebiten.DrawWholeTexture(context, to.Texture(), ebiten.GeometryMatrixI(), color)
+	ebiten.DrawWholeTexture(r, to.Texture(), ebiten.GeometryMatrixI(), color)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {
