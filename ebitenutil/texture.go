@@ -32,7 +32,7 @@ func NewTextureFromFile(path string, filter ebiten.Filter) (*ebiten.Texture, ima
 	if err != nil {
 		return nil, nil, err
 	}
-	texture, err := ebiten.NewTexture(img, filter)
+	texture, err := ebiten.NewImage(img, filter)
 	if err != nil {
 		return nil, nil, err
 	}

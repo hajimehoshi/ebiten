@@ -66,7 +66,7 @@ func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {
 		if err != nil {
 			panic(err)
 		}
-		d.textTexture, err = ebiten.NewTexture(img, ebiten.FilterNearest)
+		d.textTexture, err = ebiten.NewImage(img, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}

@@ -81,7 +81,7 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := ebiten.NewTexture(img, ebiten.FilterNearest)
+			id, err := ebiten.NewImage(img, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
