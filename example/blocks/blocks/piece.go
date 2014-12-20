@@ -139,7 +139,7 @@ const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
 func drawBlocks(r *ebiten.RenderTarget, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
-	parts := []ebiten.TexturePart{}
+	parts := []ebiten.ImagePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
 			if block == BlockTypeNone {
@@ -149,7 +149,7 @@ func drawBlocks(r *ebiten.RenderTarget, textures *Textures, blocks [][]BlockType
 			locationY := float64(j * blockHeight)
 			dst := ebiten.Rect{locationX, locationY, blockWidth, blockHeight}
 			src := ebiten.Rect{float64(int(block)-1) * blockWidth, 0, blockWidth, blockHeight}
-			parts = append(parts, ebiten.TexturePart{dst, src})
+			parts = append(parts, ebiten.ImagePart{dst, src})
 		}
 	}
 	blocksTexture := textures.GetTexture("blocks")

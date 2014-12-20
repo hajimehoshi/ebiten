@@ -33,12 +33,12 @@ type Game struct {
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {
-	parts := []ebiten.TexturePart{}
+	parts := []ebiten.ImagePart{}
 	w, h := g.gophersTexture.Size()
 	for i := 0; i < h; i++ {
 		width := float64(w) + float64(i)*0.75
 		x := float64(h-i) * 0.75 / 2
-		part := ebiten.TexturePart{
+		part := ebiten.ImagePart{
 			Dst: ebiten.Rect{x, float64(i), width, 1},
 			Src: ebiten.Rect{0, float64(i), float64(w), 1},
 		}

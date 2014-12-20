@@ -68,7 +68,7 @@ func (r *innerRenderTarget) Fill(clr color.Color) error {
 	return nil
 }
 
-func (r *innerRenderTarget) DrawImage(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+func (r *innerRenderTarget) DrawImage(texture *Texture, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func v(y float64, height int) float32 {
 	return float32(y) / float32(internal.NextPowerOf2Int(height))
 }
 
-func textureQuads(parts []TexturePart, width, height int) []shader.TextureQuad {
+func textureQuads(parts []ImagePart, width, height int) []shader.TextureQuad {
 	quads := make([]shader.TextureQuad, 0, len(parts))
 	for _, part := range parts {
 		x1 := float32(part.Dst.X)
@@ -141,7 +141,7 @@ func (r *RenderTarget) Fill(clr color.Color) (err error) {
 	return
 }
 
-func (r *RenderTarget) DrawImage(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+func (r *RenderTarget) DrawImage(texture *Texture, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
 	r.syncer.Sync(func() {
 		err = r.inner.DrawImage(texture, parts, geo, color)
 	})

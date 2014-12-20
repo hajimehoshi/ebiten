@@ -35,7 +35,7 @@ func DebugPrint(r *ebiten.RenderTarget, str string) {
 }
 
 func (d *debugPrintState) drawText(r *ebiten.RenderTarget, str string, x, y int, clr color.Color) {
-	parts := []ebiten.TexturePart{}
+	parts := []ebiten.ImagePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
 		if c == '\n' {
@@ -47,7 +47,7 @@ func (d *debugPrintState) drawText(r *ebiten.RenderTarget, str string, x, y int,
 		const xCharNum = assets.TextImageWidth / assets.TextImageCharWidth
 		srcX := float64(code%xCharNum) * assets.TextImageCharWidth
 		srcY := float64(code/xCharNum) * assets.TextImageCharHeight
-		parts = append(parts, ebiten.TexturePart{
+		parts = append(parts, ebiten.ImagePart{
 			Dst: ebiten.Rect{float64(locationX), float64(locationY), assets.TextImageCharWidth, assets.TextImageCharHeight},
 			Src: ebiten.Rect{srcX, srcY, assets.TextImageCharWidth, assets.TextImageCharHeight},
 		})

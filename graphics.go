@@ -28,16 +28,16 @@ type Rect struct {
 	Height float64
 }
 
-// A TexturePart represents a part of a texture.
-type TexturePart struct {
+// An ImagePart represents a part of an image.
+type ImagePart struct {
 	Dst Rect
 	Src Rect
 }
 
-// DrawWholeTexture draws the whole texture.
+// DrawWholeImage draws the whole image.
 func DrawWholeImage(r *RenderTarget, texture *Texture, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := texture.Size()
-	parts := []TexturePart{
+	parts := []ImagePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
 	return r.DrawImage(texture, parts, geo, color)

@@ -34,7 +34,7 @@ func textWidth(str string) int {
 
 func drawText(r *ebiten.RenderTarget, textures *Textures, str string, ox, oy, scale int, clr color.Color) {
 	fontTextureId := textures.GetTexture("font")
-	parts := []ebiten.TexturePart{}
+	parts := []ebiten.ImagePart{}
 
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -46,7 +46,7 @@ func drawText(r *ebiten.RenderTarget, textures *Textures, str string, ox, oy, sc
 		code := int(c)
 		x := float64(code%16) * charWidth
 		y := float64((code-32)/16) * charHeight
-		parts = append(parts, ebiten.TexturePart{
+		parts = append(parts, ebiten.ImagePart{
 			Dst: ebiten.Rect{float64(locationX), float64(locationY), charWidth, charHeight},
 			Src: ebiten.Rect{x, y, charWidth, charHeight},
 		})

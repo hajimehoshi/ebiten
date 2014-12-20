@@ -66,7 +66,7 @@ func (c *graphicsContext) postUpdate() error {
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
 	w, h := c.screen.texture.Size()
-	parts := []TexturePart{
+	parts := []ImagePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
 	if err := c.defaultR.DrawImage(c.screen.texture, parts, geo, clr); err != nil {
