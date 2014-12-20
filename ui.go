@@ -145,12 +145,12 @@ func (u *ui) newTexture(img image.Image, filter int) (*Texture, error) {
 }
 
 func (u *ui) newRenderTarget(width, height int, filter int) (*RenderTarget, error) {
-	var renderTarget *renderTarget
+	var innerRenderTarget *innerRenderTarget
 	var err error
 	u.use(func() {
-		renderTarget, err = newRenderTarget(width, height, filter)
+		innerRenderTarget, err = newInnerRenderTarget(width, height, filter)
 	})
-	return &RenderTarget{u, renderTarget}, err
+	return &RenderTarget{u, innerRenderTarget}, err
 }
 
 func (u *ui) run() {

@@ -27,12 +27,12 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 		return nil, err
 	}
 
-	screen, err := newRenderTarget(screenWidth, screenHeight, gl.NEAREST)
+	screen, err := newInnerRenderTarget(screenWidth, screenHeight, gl.NEAREST)
 	if err != nil {
 		return nil, err
 	}
 	c := &graphicsContext{
-		defaultR:    &renderTarget{r, nil},
+		defaultR:    &innerRenderTarget{r, nil},
 		screen:      screen,
 		screenScale: screenScale,
 	}
@@ -40,8 +40,8 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 }
 
 type graphicsContext struct {
-	screen      *renderTarget
-	defaultR    *renderTarget
+	screen      *innerRenderTarget
+	defaultR    *innerRenderTarget
 	screenScale int
 }
 
@@ -65,7 +65,11 @@ func (c *graphicsContext) postUpdate() error {
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
-	if err := DrawWholeTexture(c.defaultR, c.screen.texture, geo, clr); err != nil {
+	w, h := c.screen.texture.Size()
+	parts := []TexturePart{
+		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
+	}
+	if err := c.defaultR.DrawTexture(c.screen.texture, parts, geo, clr); err != nil {
 		return err
 	}
 

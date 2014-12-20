@@ -25,12 +25,12 @@ import (
 	"math"
 )
 
-type renderTarget struct {
+type innerRenderTarget struct {
 	glRenderTarget *opengl.RenderTarget
 	texture        *Texture
 }
 
-func newRenderTarget(width, height int, filter int) (*renderTarget, error) {
+func newInnerRenderTarget(width, height int, filter int) (*innerRenderTarget, error) {
 	glTexture, err := opengl.NewTexture(width, height, filter)
 	if err != nil {
 		return nil, err
@@ -42,23 +42,18 @@ func newRenderTarget(width, height int, filter int) (*renderTarget, error) {
 	}
 
 	texture := &Texture{glTexture}
-	renderTarget := &renderTarget{glRenderTarget, texture}
-	return renderTarget, nil
+	return &innerRenderTarget{glRenderTarget, texture}, nil
 }
 
-func (r *renderTarget) Texture() *Texture {
-	return r.texture
-}
-
-func (r *renderTarget) Size() (width, height int) {
+func (r *innerRenderTarget) size() (width, height int) {
 	return r.glRenderTarget.Width(), r.glRenderTarget.Height()
 }
 
-func (r *renderTarget) Clear() error {
+func (r *innerRenderTarget) Clear() error {
 	return r.Fill(color.RGBA{0, 0, 0, 0})
 }
 
-func (r *renderTarget) Fill(clr color.Color) error {
+func (r *innerRenderTarget) Fill(clr color.Color) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
@@ -73,7 +68,7 @@ func (r *renderTarget) Fill(clr color.Color) error {
 	return nil
 }
 
-func (r *renderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
+func (r *innerRenderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo GeometryMatrix, color ColorMatrix) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
@@ -83,7 +78,7 @@ func (r *renderTarget) DrawTexture(texture *Texture, parts []TexturePart, geo Ge
 	if r.texture != nil {
 		targetNativeTexture = r.texture.glTexture.Native()
 	}
-	w, h := r.Size()
+	w, h := r.size()
 	projectionMatrix := r.glRenderTarget.ProjectionMatrix()
 	shader.DrawTexture(glTexture.Native(), targetNativeTexture, w, h, projectionMatrix, quads, &geo, &color)
 	return nil
@@ -120,15 +115,15 @@ type syncer interface {
 
 type RenderTarget struct {
 	syncer syncer
-	inner  *renderTarget
+	inner  *innerRenderTarget
 }
 
 func (r *RenderTarget) Texture() *Texture {
-	return r.inner.Texture()
+	return r.inner.texture
 }
 
 func (r *RenderTarget) Size() (width, height int) {
-	return r.inner.Size()
+	return r.inner.size()
 }
 
 func (r *RenderTarget) Clear() (err error) {
