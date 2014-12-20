@@ -29,12 +29,12 @@ const (
 )
 
 type Game struct {
-	gophersTexture *ebiten.Image
+	gophersImage *ebiten.Image
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {
 	parts := []ebiten.ImagePart{}
-	w, h := g.gophersTexture.Size()
+	w, h := g.gophersImage.Size()
 	for i := 0; i < h; i++ {
 		width := float64(w) + float64(i)*0.75
 		x := float64(h-i) * 0.75 / 2
@@ -48,14 +48,14 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
 	geo.Concat(ebiten.ScaleGeometry(0.4, 0.4))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	r.DrawImage(g.gophersTexture, parts, geo, ebiten.ColorMatrixI())
+	r.DrawImage(g.gophersImage, parts, geo, ebiten.ColorMatrixI())
 	return nil
 }
 
 func main() {
 	g := new(Game)
 	var err error
-	g.gophersTexture, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	g.gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

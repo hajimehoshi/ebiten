@@ -33,7 +33,7 @@ type Game struct {
 	count           int
 	horizontalCount int
 	verticalCount   int
-	gophersTexture  *ebiten.Image
+	gophersImage    *ebiten.Image
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {
@@ -51,7 +51,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 		g.verticalCount++
 	}
 
-	w, h := g.gophersTexture.Size()
+	w, h := g.gophersImage.Size()
 	geo := ebiten.TranslateGeometry(-float64(w)/2, -float64(h)/2)
 	scaleX := 0.5 * math.Pow(1.05, float64(g.horizontalCount))
 	scaleY := 0.5 * math.Pow(1.05, float64(g.verticalCount))
@@ -60,14 +60,14 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
 	//clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
 	clr := ebiten.ColorMatrixI()
-	ebiten.DrawWholeImage(r, g.gophersTexture, geo, clr)
+	ebiten.DrawWholeImage(r, g.gophersImage, geo, clr)
 	return nil
 }
 
 func main() {
 	g := new(Game)
 	var err error
-	g.gophersTexture, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	g.gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

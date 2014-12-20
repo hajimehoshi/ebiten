@@ -31,13 +31,13 @@ const (
 const mosaicRatio = 16
 
 type Game struct {
-	gophersTexture      *ebiten.Image
+	gophersImage        *ebiten.Image
 	gophersRenderTarget *ebiten.RenderTarget
 }
 
 func (g *Game) Update(r *ebiten.RenderTarget) error {
 	geo := ebiten.ScaleGeometry(1.0/mosaicRatio, 1.0/mosaicRatio)
-	ebiten.DrawWholeImage(g.gophersRenderTarget, g.gophersTexture, geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(g.gophersRenderTarget, g.gophersImage, geo, ebiten.ColorMatrixI())
 
 	geo = ebiten.ScaleGeometry(mosaicRatio/2.0, mosaicRatio/2.0)
 	ebiten.DrawWholeImage(r, g.gophersRenderTarget.Image(), geo, ebiten.ColorMatrixI())
@@ -47,11 +47,11 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 func main() {
 	g := new(Game)
 	var err error
-	g.gophersTexture, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	g.gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	w, h := g.gophersTexture.Size()
+	w, h := g.gophersImage.Size()
 	g.gophersRenderTarget, err = ebiten.NewRenderTarget(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)

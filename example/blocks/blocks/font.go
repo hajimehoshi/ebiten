@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	texturePaths["font"] = "images/blocks/font.png"
+	imagePaths["font"] = "images/blocks/font.png"
 }
 
 const charWidth = 8
@@ -32,8 +32,8 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(r *ebiten.RenderTarget, textures *Textures, str string, ox, oy, scale int, clr color.Color) {
-	fontTextureId := textures.GetTexture("font")
+func drawText(r *ebiten.RenderTarget, images *Images, str string, ox, oy, scale int, clr color.Color) {
+	fontImageId := images.GetImage("font")
 	parts := []ebiten.ImagePart{}
 
 	locationX, locationY := 0, 0
@@ -56,10 +56,10 @@ func drawText(r *ebiten.RenderTarget, textures *Textures, str string, ox, oy, sc
 	geoMat := ebiten.ScaleGeometry(float64(scale), float64(scale))
 	geoMat.Concat(ebiten.TranslateGeometry(float64(ox), float64(oy)))
 	clrMat := ebiten.ScaleColor(clr)
-	r.DrawImage(fontTextureId, parts, geoMat, clrMat)
+	r.DrawImage(fontImageId, parts, geoMat, clrMat)
 }
 
-func drawTextWithShadow(r *ebiten.RenderTarget, textures *Textures, str string, x, y, scale int, clr color.Color) {
-	drawText(r, textures, str, x+1, y+1, scale, color.RGBA{0, 0, 0, 0x80})
-	drawText(r, textures, str, x, y, scale, clr)
+func drawTextWithShadow(r *ebiten.RenderTarget, images *Images, str string, x, y, scale int, clr color.Color) {
+	drawText(r, images, str, x+1, y+1, scale, color.RGBA{0, 0, 0, 0x80})
+	drawText(r, images, str, x, y, scale, clr)
 }

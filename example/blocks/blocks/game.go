@@ -27,7 +27,7 @@ type Size struct {
 }
 
 // TODO: Should they be global??
-var texturePaths = map[string]string{}
+var imagePaths = map[string]string{}
 var renderTargetSizes = map[string]Size{}
 
 const ScreenWidth = 256
@@ -42,7 +42,7 @@ type Game struct {
 	once         sync.Once
 	sceneManager *SceneManager
 	input        *Input
-	textures     *Textures
+	images       *Images
 }
 
 func NewGame() *Game {
@@ -54,16 +54,16 @@ func NewGame() *Game {
 }
 
 func (game *Game) isInitialized() bool {
-	if game.textures == nil {
+	if game.images == nil {
 		return false
 	}
-	for name := range texturePaths {
-		if !game.textures.Has(name) {
+	for name := range imagePaths {
+		if !game.images.Has(name) {
 			return false
 		}
 	}
 	for name := range renderTargetSizes {
-		if !game.textures.Has(name) {
+		if !game.images.Has(name) {
 			return false
 		}
 	}
@@ -72,12 +72,12 @@ func (game *Game) isInitialized() bool {
 
 func (game *Game) Update(r *ebiten.RenderTarget) error {
 	game.once.Do(func() {
-		game.textures = NewTextures()
-		for name, path := range texturePaths {
-			game.textures.RequestTexture(name, path)
+		game.images = NewImages()
+		for name, path := range imagePaths {
+			game.images.RequestImage(name, path)
 		}
 		for name, size := range renderTargetSizes {
-			game.textures.RequestRenderTarget(name, size)
+			game.images.RequestRenderTarget(name, size)
 		}
 	})
 	if !game.isInitialized() {
@@ -88,6 +88,6 @@ func (game *Game) Update(r *ebiten.RenderTarget) error {
 		SceneManager: game.sceneManager,
 		Input:        game.input,
 	})
-	game.sceneManager.Draw(r, game.textures)
+	game.sceneManager.Draw(r, game.images)
 	return nil
 }

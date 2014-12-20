@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	texturePaths["blocks"] = "images/blocks/blocks.png"
+	imagePaths["blocks"] = "images/blocks/blocks.png"
 }
 
 type Angle int
@@ -138,7 +138,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(r *ebiten.RenderTarget, textures *Textures, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
+func drawBlocks(r *ebiten.RenderTarget, images *Images, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
 	parts := []ebiten.ImagePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -152,8 +152,8 @@ func drawBlocks(r *ebiten.RenderTarget, textures *Textures, blocks [][]BlockType
 			parts = append(parts, ebiten.ImagePart{dst, src})
 		}
 	}
-	blocksTexture := textures.GetTexture("blocks")
-	r.DrawImage(blocksTexture, parts, geo, ebiten.ColorMatrixI())
+	blocksImage := images.GetImage("blocks")
+	r.DrawImage(blocksImage, parts, geo, ebiten.ColorMatrixI())
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -213,7 +213,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(r *ebiten.RenderTarget, textures *Textures, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
+func (p *Piece) Draw(r *ebiten.RenderTarget, images *Images, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -230,5 +230,5 @@ func (p *Piece) Draw(r *ebiten.RenderTarget, textures *Textures, fieldX, fieldY 
 	y := fieldY + pieceY*blockHeight
 	geoMat.Concat(ebiten.TranslateGeometry(float64(x), float64(y)))
 
-	drawBlocks(r, textures, blocks, geoMat)
+	drawBlocks(r, images, blocks, geoMat)
 }

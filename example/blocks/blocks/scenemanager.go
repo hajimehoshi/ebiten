@@ -29,7 +29,7 @@ func init() {
 
 type Scene interface {
 	Update(state *GameState)
-	Draw(r *ebiten.RenderTarget, textures *Textures)
+	Draw(r *ebiten.RenderTarget, images *Images)
 }
 
 const transitionMaxCount = 20
@@ -60,18 +60,18 @@ func (s *SceneManager) Update(state *GameState) {
 	}
 }
 
-func (s *SceneManager) Draw(r *ebiten.RenderTarget, textures *Textures) {
+func (s *SceneManager) Draw(r *ebiten.RenderTarget, images *Images) {
 	if s.transitionCount == -1 {
-		s.current.Draw(r, textures)
+		s.current.Draw(r, images)
 		return
 	}
-	from := textures.GetRenderTarget("scene_manager_transition_from")
+	from := images.GetRenderTarget("scene_manager_transition_from")
 	from.Clear()
-	s.current.Draw(from, textures)
+	s.current.Draw(from, images)
 
-	to := textures.GetRenderTarget("scene_manager_transition_to")
+	to := images.GetRenderTarget("scene_manager_transition_to")
 	to.Clear()
-	s.next.Draw(to, textures)
+	s.next.Draw(to, images)
 
 	color := ebiten.ColorMatrixI()
 	ebiten.DrawWholeImage(r, from.Image(), ebiten.GeometryMatrixI(), color)

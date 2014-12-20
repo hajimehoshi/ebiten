@@ -34,27 +34,27 @@ type nameSize struct {
 	size Size
 }
 
-type Textures struct {
-	texturePaths      chan namePath
+type Images struct {
+	imagePaths        chan namePath
 	renderTargetSizes chan nameSize
-	textures          map[string]*ebiten.Image
+	images            map[string]*ebiten.Image
 	renderTargets     map[string]*ebiten.RenderTarget
 	sync.RWMutex
 }
 
-func NewTextures() *Textures {
-	textures := &Textures{
-		texturePaths:      make(chan namePath),
+func NewImages() *Images {
+	images := &Images{
+		imagePaths:        make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
-		textures:          map[string]*ebiten.Image{},
+		images:            map[string]*ebiten.Image{},
 		renderTargets:     map[string]*ebiten.RenderTarget{},
 	}
 	go func() {
 		for {
-			textures.loopMain()
+			images.loopMain()
 		}
 	}()
-	return textures
+	return images
 }
 
 func loadImage(path string) (image.Image, error) {
@@ -71,9 +71,9 @@ func loadImage(path string) (image.Image, error) {
 	return img, nil
 }
 
-func (t *Textures) loopMain() {
+func (i *Images) loopMain() {
 	select {
-	case p := <-t.texturePaths:
+	case p := <-i.imagePaths:
 		name := p.name
 		path := p.path
 		go func() {
@@ -85,11 +85,11 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			t.Lock()
-			defer t.Unlock()
-			t.textures[name] = id
+			i.Lock()
+			defer i.Unlock()
+			i.images[name] = id
 		}()
-	case s := <-t.renderTargetSizes:
+	case s := <-i.renderTargetSizes:
 		name := s.name
 		size := s.size
 		go func() {
@@ -97,40 +97,40 @@ func (t *Textures) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			t.Lock()
-			defer t.Unlock()
-			t.renderTargets[name] = id
+			i.Lock()
+			defer i.Unlock()
+			i.renderTargets[name] = id
 		}()
 	}
 }
 
-func (t *Textures) RequestTexture(name string, path string) {
-	t.texturePaths <- namePath{name, path}
+func (i *Images) RequestImage(name string, path string) {
+	i.imagePaths <- namePath{name, path}
 }
 
-func (t *Textures) RequestRenderTarget(name string, size Size) {
-	t.renderTargetSizes <- nameSize{name, size}
+func (i *Images) RequestRenderTarget(name string, size Size) {
+	i.renderTargetSizes <- nameSize{name, size}
 }
 
-func (t *Textures) Has(name string) bool {
-	t.RLock()
-	defer t.RUnlock()
-	_, ok := t.textures[name]
+func (i *Images) Has(name string) bool {
+	i.RLock()
+	defer i.RUnlock()
+	_, ok := i.images[name]
 	if ok {
 		return true
 	}
-	_, ok = t.renderTargets[name]
+	_, ok = i.renderTargets[name]
 	return ok
 }
 
-func (t *Textures) GetTexture(name string) *ebiten.Image {
-	t.RLock()
-	defer t.RUnlock()
-	return t.textures[name]
+func (i *Images) GetImage(name string) *ebiten.Image {
+	i.RLock()
+	defer i.RUnlock()
+	return i.images[name]
 }
 
-func (t *Textures) GetRenderTarget(name string) *ebiten.RenderTarget {
-	t.RLock()
-	defer t.RUnlock()
-	return t.renderTargets[name]
+func (i *Images) GetRenderTarget(name string) *ebiten.RenderTarget {
+	i.RLock()
+	defer i.RUnlock()
+	return i.renderTargets[name]
 }

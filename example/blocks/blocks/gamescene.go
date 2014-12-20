@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	texturePaths["empty"] = "images/blocks/empty.png"
+	imagePaths["empty"] = "images/blocks/empty.png"
 }
 
 type GameScene struct {
@@ -109,10 +109,10 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(r *ebiten.RenderTarget, textures *Textures) {
+func (s *GameScene) Draw(r *ebiten.RenderTarget, images *Images) {
 	r.Fill(color.White)
 
-	field := textures.GetTexture("empty")
+	field := images.GetImage("empty")
 	w, h := field.Size()
 	geoMat := ebiten.ScaleGeometry(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20)) // TODO: magic number?
@@ -121,9 +121,9 @@ func (s *GameScene) Draw(r *ebiten.RenderTarget, textures *Textures) {
 
 	geoMat = ebiten.GeometryMatrixI()
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20))
-	s.field.Draw(r, textures, geoMat)
+	s.field.Draw(r, images, geoMat)
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(r, textures, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
+		s.currentPiece.Draw(r, images, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
 	}
 }

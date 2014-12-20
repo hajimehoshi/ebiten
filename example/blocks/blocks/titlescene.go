@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	texturePaths["background"] = "images/blocks/background.png"
+	imagePaths["background"] = "images/blocks/background.png"
 }
 
 type TitleScene struct {
@@ -40,43 +40,43 @@ func (s *TitleScene) Update(state *GameState) {
 	}
 }
 
-func (s *TitleScene) Draw(r *ebiten.RenderTarget, textures *Textures) {
-	drawTitleBackground(r, textures, s.count)
-	drawLogo(r, textures, "BLOCKS")
+func (s *TitleScene) Draw(r *ebiten.RenderTarget, images *Images) {
+	drawTitleBackground(r, images, s.count)
+	drawLogo(r, images, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - textWidth(message)) / 2
 	y := ScreenHeight - 48
-	drawTextWithShadow(r, textures, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
+	drawTextWithShadow(r, images, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(r *ebiten.RenderTarget, textures *Textures, c int) {
-	const textureWidth = 32
-	const textureHeight = 32
+func drawTitleBackground(r *ebiten.RenderTarget, images *Images, c int) {
+	const imageWidth = 32
+	const imageHeight = 32
 
-	backgroundTexture := textures.GetTexture("background")
+	backgroundImage := images.GetImage("background")
 	parts := []ebiten.ImagePart{}
-	for j := -1; j < ScreenHeight/textureHeight+1; j++ {
-		for i := 0; i < ScreenWidth/textureWidth+1; i++ {
+	for j := -1; j < ScreenHeight/imageHeight+1; j++ {
+		for i := 0; i < ScreenWidth/imageWidth+1; i++ {
 			parts = append(parts, ebiten.ImagePart{
-				Dst: ebiten.Rect{float64(i * textureWidth), float64(j * textureHeight), textureWidth, textureHeight},
-				Src: ebiten.Rect{0, 0, textureWidth, textureHeight},
+				Dst: ebiten.Rect{float64(i * imageWidth), float64(j * imageHeight), imageWidth, imageHeight},
+				Src: ebiten.Rect{0, 0, imageWidth, imageHeight},
 			})
 		}
 	}
 
-	dx := (-c / 4) % textureWidth
-	dy := (c / 4) % textureHeight
+	dx := (-c / 4) % imageWidth
+	dy := (c / 4) % imageHeight
 	geo := ebiten.GeometryMatrixI()
 	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
 	clr := ebiten.ColorMatrixI()
-	r.DrawImage(backgroundTexture, parts, geo, clr)
+	r.DrawImage(backgroundImage, parts, geo, clr)
 }
 
-func drawLogo(r *ebiten.RenderTarget, textures *Textures, str string) {
+func drawLogo(r *ebiten.RenderTarget, images *Images, str string) {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	drawTextWithShadow(r, textures, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
+	drawTextWithShadow(r, images, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
 }
