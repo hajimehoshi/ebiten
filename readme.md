@@ -14,8 +14,6 @@ changed easily.
 ```
 :; brew install glew
 :; brew install glfw3 # or homebrew/versions/glfw3
-:; go get -u github.com/go-gl/gl
-:; go get -u github.com/go-gl/glfw3
 :; go get -u github.com/hajimehoshi/ebiten
 ```
 
