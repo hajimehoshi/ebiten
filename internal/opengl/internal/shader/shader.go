@@ -87,7 +87,7 @@ void main(void) {
   color0 = (color_matrix * color0) + color_matrix_translation;
 
   // Photoshop-like RGBA blending
-  gl_FragColor.a = color0.a + color1.a - color0.a * color1.a;
+  gl_FragColor.a = color0.a + (1.0 - color0.a) * color1.a;
   gl_FragColor.rgb = (color0.a * color0.rgb + (1.0 - color0.a) * color1.a * color1.rgb) / gl_FragColor.a;
 }
 `,

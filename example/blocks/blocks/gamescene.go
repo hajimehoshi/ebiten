@@ -116,7 +116,7 @@ func (s *GameScene) Draw(r *ebiten.RenderTarget, images *Images) {
 	w, h := field.Size()
 	geoMat := ebiten.ScaleGeometry(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geoMat.Concat(ebiten.TranslateGeometry(20, 20)) // TODO: magic number?
-	colorMat := ebiten.ScaleColor(color.RGBA{0, 0, 0, 0x80})
+	colorMat := ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5)
 	ebiten.DrawWholeImage(r, field, geoMat, colorMat)
 
 	geoMat = ebiten.GeometryMatrixI()

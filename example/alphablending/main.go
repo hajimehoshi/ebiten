@@ -52,13 +52,13 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	}
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(15+float64(i)*(diff), 20)
-		clr := ebiten.ScaleColor(color.RGBA{0xff, 0xff, 0xff, 0x80})
+		clr := ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5)
 		if err := ebiten.DrawWholeImage(g.tmpRenderTarget, g.ebitenImage, geo, clr); err != nil {
 			return err
 		}
 	}
 
-	r.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
+	r.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()

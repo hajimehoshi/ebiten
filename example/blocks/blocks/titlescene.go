@@ -47,7 +47,7 @@ func (s *TitleScene) Draw(r *ebiten.RenderTarget, images *Images) {
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - textWidth(message)) / 2
 	y := ScreenHeight - 48
-	drawTextWithShadow(r, images, message, x, y, 1, color.RGBA{0x80, 0, 0, 0xff})
+	drawTextWithShadow(r, images, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
 }
 
 func drawTitleBackground(r *ebiten.RenderTarget, images *Images, c int) {
@@ -78,5 +78,5 @@ func drawLogo(r *ebiten.RenderTarget, images *Images, str string) {
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	drawTextWithShadow(r, images, str, x, y, scale, color.RGBA{0x00, 0x00, 0x80, 0xff})
+	drawTextWithShadow(r, images, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
 }

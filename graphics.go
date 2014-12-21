@@ -53,6 +53,7 @@ const (
 )
 
 // An Image represents an image to be rendered.
+// An image's pixels are stored as non alpha-premultiplied.
 type Image struct {
 	glTexture *opengl.Texture
 }

@@ -17,7 +17,6 @@ limitations under the License.
 package ebiten
 
 import (
-	"image/color"
 	"math"
 )
 
@@ -81,28 +80,26 @@ func Monochrome() ColorMatrix {
 	}
 }
 
-// ScaleColor returns a color matrix that scales a color matrix by clr.
-func ScaleColor(clr color.Color) ColorMatrix {
-	rf, gf, bf, af := rgba(clr)
+// ScaleColor returns a color matrix that scales a color matrix by the given color (r, g, b, a).
+func ScaleColor(r, g, b, a float64) ColorMatrix {
 	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
-			{rf, 0, 0, 0, 0},
-			{0, gf, 0, 0, 0},
-			{0, 0, bf, 0, 0},
-			{0, 0, 0, af, 0},
+			{r, 0, 0, 0, 0},
+			{0, g, 0, 0, 0},
+			{0, 0, b, 0, 0},
+			{0, 0, 0, a, 0},
 		},
 	}
 }
 
-// TranslateColor returns a color matrix that translates a color matrix by clr.
-func TranslateColor(clr color.Color) ColorMatrix {
-	rf, gf, bf, af := rgba(clr)
+// TranslateColor returns a color matrix that translates a color matrix by the given color (r, g, b, a).
+func TranslateColor(r, g, b, a float64) ColorMatrix {
 	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
-			{1, 0, 0, 0, rf},
-			{0, 1, 0, 0, gf},
-			{0, 0, 1, 0, bf},
-			{0, 0, 0, 1, af},
+			{1, 0, 0, 0, r},
+			{0, 1, 0, 0, g},
+			{0, 0, 1, 0, b},
+			{0, 0, 0, 1, a},
 		},
 	}
 }
@@ -123,11 +120,11 @@ func RotateHue(theta float64) ColorMatrix {
 	}
 }
 
-func rgba(clr color.Color) (float64, float64, float64, float64) {
-	r, g, b, a := clr.RGBA()
-	rf := float64(r) / float64(math.MaxUint16)
-	gf := float64(g) / float64(math.MaxUint16)
-	bf := float64(b) / float64(math.MaxUint16)
-	af := float64(a) / float64(math.MaxUint16)
+func rgba(r, g, b, a uint8) (float64, float64, float64, float64) {
+	const max = math.MaxUint8
+	rf := float64(r) / max
+	gf := float64(g) / max
+	bf := float64(b) / max
+	af := float64(a) / max
 	return rf, gf, bf, af
 }

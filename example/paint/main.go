@@ -51,7 +51,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		geo := ebiten.TranslateGeometry(float64(mx), float64(my))
-		clr := ebiten.ScaleColor(color.RGBA{0xff, 0x40, 0x40, 0xff})
+		clr := ebiten.ScaleColor(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
 		ebiten.DrawWholeImage(g.canvasRenderTarget, g.brushRenderTarget.Image(), geo, clr)

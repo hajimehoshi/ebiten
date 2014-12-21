@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 	"image/color"
-	"math"
 )
 
 type innerRenderTarget struct {
@@ -50,20 +49,15 @@ func (r *innerRenderTarget) size() (width, height int) {
 }
 
 func (r *innerRenderTarget) Clear() error {
-	return r.Fill(color.RGBA{0, 0, 0, 0})
+	return r.Fill(color.Transparent)
 }
 
 func (r *innerRenderTarget) Fill(clr color.Color) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
-	const max = math.MaxUint16
-	cr, cg, cb, ca := clr.RGBA()
-	rf := gl.GLclampf(float64(cr) / max)
-	gf := gl.GLclampf(float64(cg) / max)
-	bf := gl.GLclampf(float64(cb) / max)
-	af := gl.GLclampf(float64(ca) / max)
-	gl.ClearColor(rf, gf, bf, af)
+	rf, gf, bf, af := internal.RGBA(clr)
+	gl.ClearColor(gl.GLclampf(rf), gl.GLclampf(gf), gl.GLclampf(bf), gl.GLclampf(af))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	return nil
 }

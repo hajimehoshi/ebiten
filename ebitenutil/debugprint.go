@@ -18,6 +18,7 @@ package ebitenutil
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/assets"
 	"image/color"
 )
@@ -34,7 +35,7 @@ func DebugPrint(r *ebiten.RenderTarget, str string) {
 	defaultDebugPrintState.DebugPrint(r, str)
 }
 
-func (d *debugPrintState) drawText(r *ebiten.RenderTarget, str string, x, y int, clr color.Color) {
+func (d *debugPrintState) drawText(rt *ebiten.RenderTarget, str string, x, y int, c color.Color) {
 	parts := []ebiten.ImagePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -53,11 +54,10 @@ func (d *debugPrintState) drawText(r *ebiten.RenderTarget, str string, x, y int,
 		})
 		locationX += assets.TextImageCharWidth
 	}
-	geom := ebiten.GeometryMatrixI()
-	geom.Concat(ebiten.TranslateGeometry(float64(x)+1, float64(y)))
-	clrm := ebiten.ColorMatrixI()
-	clrm.Concat(ebiten.ScaleColor(clr))
-	r.DrawImage(d.textTexture, parts, geom, clrm)
+	geo := ebiten.TranslateGeometry(float64(x)+1, float64(y))
+	r, g, b, a := internal.RGBA(c)
+	clr := ebiten.ScaleColor(r, g, b, a)
+	rt.DrawImage(d.textTexture, parts, geo, clr)
 }
 
 func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {
@@ -79,6 +79,6 @@ func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {
 			panic(err)
 		}
 	}
-	d.drawText(r, str, 1, d.y+1, &color.RGBA{0x00, 0x00, 0x00, 0x80})
-	d.drawText(r, str, 0, d.y, &color.RGBA{0xff, 0xff, 0xff, 0xff})
+	d.drawText(r, str, 1, d.y+1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	d.drawText(r, str, 0, d.y, color.NRGBA{0xff, 0xff, 0xff, 0xff})
 }

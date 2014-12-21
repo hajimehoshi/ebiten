@@ -19,6 +19,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten"
 	"image/color"
+	"math"
 )
 
 func init() {
@@ -32,7 +33,7 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(r *ebiten.RenderTarget, images *Images, str string, ox, oy, scale int, clr color.Color) {
+func drawText(rt *ebiten.RenderTarget, images *Images, str string, ox, oy, scale int, c color.Color) {
 	fontImageId := images.GetImage("font")
 	parts := []ebiten.ImagePart{}
 
@@ -53,13 +54,19 @@ func drawText(r *ebiten.RenderTarget, images *Images, str string, ox, oy, scale 
 		locationX += charWidth
 	}
 
-	geoMat := ebiten.ScaleGeometry(float64(scale), float64(scale))
-	geoMat.Concat(ebiten.TranslateGeometry(float64(ox), float64(oy)))
-	clrMat := ebiten.ScaleColor(clr)
-	r.DrawImage(fontImageId, parts, geoMat, clrMat)
+	geo := ebiten.ScaleGeometry(float64(scale), float64(scale))
+	geo.Concat(ebiten.TranslateGeometry(float64(ox), float64(oy)))
+	c2 := color.NRGBA64Model.Convert(c).(color.NRGBA64)
+	const max = math.MaxUint16
+	r := float64(c2.R) / max
+	g := float64(c2.G) / max
+	b := float64(c2.B) / max
+	a := float64(c2.A) / max
+	clr := ebiten.ScaleColor(r, g, b, a)
+	rt.DrawImage(fontImageId, parts, geo, clr)
 }
 
-func drawTextWithShadow(r *ebiten.RenderTarget, images *Images, str string, x, y, scale int, clr color.Color) {
-	drawText(r, images, str, x+1, y+1, scale, color.RGBA{0, 0, 0, 0x80})
-	drawText(r, images, str, x, y, scale, clr)
+func drawTextWithShadow(rt *ebiten.RenderTarget, images *Images, str string, x, y, scale int, clr color.Color) {
+	drawText(rt, images, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80})
+	drawText(rt, images, str, x, y, scale, clr)
 }
