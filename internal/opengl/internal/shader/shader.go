@@ -86,7 +86,11 @@ void main(void) {
   vec4 color1 = texture2D(texture1, vertex_out_tex_coord1);
   color0 = (color_matrix * color0) + color_matrix_translation;
 
-  // Photoshop-like RGBA blending
+  // Photoshop-like RGBA blending.
+  //
+  // NOTE: If the textures are alpha premultiplied, this calc would be much simpler,
+  // but the color matrix must be applied to the straight alpha colors.
+  // Thus, straight alpha colors are used in Ebiten.
   gl_FragColor.a = color0.a + (1.0 - color0.a) * color1.a;
   gl_FragColor.rgb = (color0.a * color0.rgb + (1.0 - color0.a) * color1.a * color1.rgb) / gl_FragColor.a;
 }
