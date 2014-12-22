@@ -24,6 +24,11 @@ import (
 const ColorMatrixDim = 5
 
 // A ColorMatrix represents a matrix to transform coloring when rendering an image.
+//
+// A ColorMatrix is applied to the source alpha color
+// while an Image's pixels' format is alpha premultiplied.
+// Before applying a matrix, a color is un-multiplied, and after applying the matrix,
+// the color is multiplied again.
 type ColorMatrix struct {
 	Elements [ColorMatrixDim - 1][ColorMatrixDim]float64
 }

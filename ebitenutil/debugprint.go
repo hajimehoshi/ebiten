@@ -18,9 +18,9 @@ package ebitenutil
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/assets"
 	"image/color"
+	"math"
 )
 
 type debugPrintState struct {
@@ -55,7 +55,11 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 		locationX += assets.TextImageCharWidth
 	}
 	geo := ebiten.TranslateGeometry(float64(x)+1, float64(y))
-	r, g, b, a := internal.RGBA(c)
+	cc := color.NRGBA64Model.Convert(c).(color.NRGBA64)
+	r := float64(cc.R) / math.MaxUint16
+	g := float64(cc.G) / math.MaxUint16
+	b := float64(cc.B) / math.MaxUint16
+	a := float64(cc.A) / math.MaxUint16
 	clr := ebiten.ScaleColor(r, g, b, a)
 	rt.DrawImage(d.textImage, parts, geo, clr)
 }
