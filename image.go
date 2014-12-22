@@ -100,7 +100,7 @@ type syncer interface {
 	Sync(func())
 }
 
-// An image represents an image.
+// Image represents an image.
 // The pixel format is non alpha-premultiplied.
 type Image struct {
 	syncer syncer

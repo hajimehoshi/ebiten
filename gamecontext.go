@@ -52,7 +52,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	return currentUI.newImage(width, height, glFilter(filter))
 }
 
-// NewImage creates a new image with the given image (img).
+// NewImageFromImage creates a new image with the given image (img).
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	return currentUI.newImageFromImage(img, glFilter(filter))
 }
