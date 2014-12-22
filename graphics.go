@@ -31,12 +31,12 @@ type ImagePart struct {
 }
 
 // DrawWholeImage draws the whole image.
-func DrawWholeImage(r *Image, image *Image, geo GeometryMatrix, color ColorMatrix) error {
+func DrawWholeImage(target *Image, image *Image, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := image.Size()
 	parts := []ImagePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
-	return r.DrawImage(image, parts, geo, color)
+	return target.DrawImage(image, parts, geo, color)
 }
 
 // Filter represents the type of filter to be used when an image is maginified or minified.
