@@ -30,33 +30,32 @@ const (
 
 const mosaicRatio = 16
 
-type Game struct {
+var (
 	gophersImage        *ebiten.Image
 	gophersRenderTarget *ebiten.Image
-}
+)
 
-func (g *Game) Update(r *ebiten.Image) error {
+func Update(screen *ebiten.Image) error {
 	geo := ebiten.ScaleGeometry(1.0/mosaicRatio, 1.0/mosaicRatio)
-	ebiten.DrawWholeImage(g.gophersRenderTarget, g.gophersImage, geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(gophersRenderTarget, gophersImage, geo, ebiten.ColorMatrixI())
 
 	geo = ebiten.ScaleGeometry(mosaicRatio/2.0, mosaicRatio/2.0)
-	ebiten.DrawWholeImage(r, g.gophersRenderTarget, geo, ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(screen, gophersRenderTarget, geo, ebiten.ColorMatrixI())
 	return nil
 }
 
 func main() {
-	g := new(Game)
 	var err error
-	g.gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	w, h := g.gophersImage.Size()
-	g.gophersRenderTarget, err = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
+	w, h := gophersImage.Size()
+	gophersRenderTarget, err = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Mosaic (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Mosaic (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

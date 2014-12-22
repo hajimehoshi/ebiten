@@ -36,7 +36,7 @@ var (
 	saved           bool
 )
 
-func Update(r *ebiten.Image) error {
+func Update(screen *ebiten.Image) error {
 	count++
 	count %= 600
 	diff := float64(count) * 0.2
@@ -58,17 +58,17 @@ func Update(r *ebiten.Image) error {
 		}
 	}
 
-	r.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
+	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()
-		if err := ebiten.DrawWholeImage(r, tmpRenderTarget, geo, clr); err != nil {
+		if err := ebiten.DrawWholeImage(screen, tmpRenderTarget, geo, clr); err != nil {
 			return err
 		}
 	}
 
 	if !saved && ebiten.IsKeyPressed(ebiten.KeySpace) {
-		if err := ebitenutil.SaveImageAsPNG("out.png", r); err != nil {
+		if err := ebitenutil.SaveImageAsPNG("out.png", screen); err != nil {
 			return err
 		}
 		saved = true

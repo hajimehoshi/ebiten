@@ -30,21 +30,15 @@ const (
 	screenHeight = 240
 )
 
-type Game struct {
-	inited             bool
+var (
 	count              int
 	brushRenderTarget  *ebiten.Image
 	canvasRenderTarget *ebiten.Image
-}
+)
 
-func (g *Game) Update(r *ebiten.Image) error {
+func Update(screen *ebiten.Image) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		g.count++
-	}
-	if !g.inited {
-		g.brushRenderTarget.Fill(color.White)
-		g.canvasRenderTarget.Fill(color.White)
-		g.inited = true
+		count++
 	}
 
 	mx, my := ebiten.CursorPosition()
@@ -52,29 +46,32 @@ func (g *Game) Update(r *ebiten.Image) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		geo := ebiten.TranslateGeometry(float64(mx), float64(my))
 		clr := ebiten.ScaleColor(1.0, 0.25, 0.25, 1.0)
-		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
+		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		ebiten.DrawWholeImage(g.canvasRenderTarget, g.brushRenderTarget, geo, clr)
+		ebiten.DrawWholeImage(canvasRenderTarget, brushRenderTarget, geo, clr)
 	}
 
-	ebiten.DrawWholeImage(r, g.canvasRenderTarget, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(screen, canvasRenderTarget, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 
-	ebitenutil.DebugPrint(r, fmt.Sprintf("(%d, %d)", mx, my))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil
 }
 
 func main() {
-	g := new(Game)
 	var err error
-	g.brushRenderTarget, err = ebiten.NewImage(1, 1, ebiten.FilterNearest)
+	brushRenderTarget, err = ebiten.NewImage(4, 4, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.canvasRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	brushRenderTarget.Fill(color.White)
+
+	canvasRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
+	canvasRenderTarget.Fill(color.White)
+
+	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

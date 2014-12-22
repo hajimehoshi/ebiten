@@ -28,13 +28,13 @@ const (
 	screenHeight = 240
 )
 
-type Game struct {
+var (
 	gophersImage *ebiten.Image
-}
+)
 
-func (g *Game) Update(r *ebiten.Image) error {
+func Update(screen *ebiten.Image) error {
 	parts := []ebiten.ImagePart{}
-	w, h := g.gophersImage.Size()
+	w, h := gophersImage.Size()
 	for i := 0; i < h; i++ {
 		width := float64(w) + float64(i)*0.75
 		x := float64(h-i) * 0.75 / 2
@@ -48,18 +48,17 @@ func (g *Game) Update(r *ebiten.Image) error {
 	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
 	geo.Concat(ebiten.ScaleGeometry(0.4, 0.4))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	r.DrawImage(g.gophersImage, parts, geo, ebiten.ColorMatrixI())
+	screen.DrawImage(gophersImage, parts, geo, ebiten.ColorMatrixI())
 	return nil
 }
 
 func main() {
-	g := new(Game)
 	var err error
-	g.gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Perspective (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Perspective (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
