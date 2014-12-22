@@ -31,9 +31,7 @@ type shaderId int
 
 const (
 	shaderVertex shaderId = iota
-	shaderVertexFinal
 	shaderColorMatrix
-	shaderColorFinal
 )
 
 var shaders = map[shaderId]*shader{
@@ -62,26 +60,18 @@ varying vec2 vertex_out_tex_coord;
 
 void main(void) {
   vec4 color = texture2D(texture, vertex_out_tex_coord);
-  // Un-premultiply alpha
-  color.rgb /= color.a;
-  // Apply the color matrix
-  color = (color_matrix * color) + color_matrix_translation;
-  // Premultiply alpha
-  color = clamp(color, 0.0, 1.0);
-  color.rgb *= color.a;
+
+  if (color_matrix != mat4(1.0) || color_matrix_translation != vec4(0.0)) {
+    // Un-premultiply alpha
+    color.rgb /= color.a;
+    // Apply the color matrix
+    color = (color_matrix * color) + color_matrix_translation;
+    color = clamp(color, 0.0, 1.0);
+    // Premultiply alpha
+    color.rgb *= color.a;
+  }
 
   gl_FragColor = color;
-}
-`,
-	},
-	shaderColorFinal: {
-		shaderType: gl.FRAGMENT_SHADER,
-		source: `
-uniform sampler2D texture;
-varying vec2 vertex_out_tex_coord;
-
-void main(void) {
-  gl_FragColor = texture2D(texture, vertex_out_tex_coord);
 }
 `,
 	},

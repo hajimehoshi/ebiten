@@ -47,12 +47,7 @@ func DrawTexture(native gl.Texture, target gl.Texture, projectionMatrix [4][4]fl
 		return
 	}
 	// TODO: Check performance
-	program := gl.Program(0)
-	if 0 < target {
-		program = useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
-	} else {
-		program = useProgramColorFinal(glMatrix(projectionMatrix), geo)
-	}
+	program := useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	native.Bind(gl.TEXTURE_2D)
