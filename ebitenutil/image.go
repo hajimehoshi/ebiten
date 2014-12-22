@@ -19,6 +19,7 @@ package ebitenutil
 import (
 	"github.com/hajimehoshi/ebiten"
 	"image"
+	"image/png"
 	"os"
 )
 
@@ -37,4 +38,16 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 		return nil, nil, err
 	}
 	return img2, img, err
+}
+
+func SaveImageAsPNG(path string, img *ebiten.Image) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if err := png.Encode(file, img); err != nil {
+		return err
+	}
+	return nil
 }

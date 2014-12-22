@@ -29,31 +29,31 @@ const (
 	screenHeight = 240
 )
 
-type Game struct {
+var (
 	count           int
 	tmpRenderTarget *ebiten.Image
 	ebitenImage     *ebiten.Image
-}
+	saved           bool
+)
 
-func (g *Game) Update(r *ebiten.Image) error {
-	g.count++
-	g.count %= 600
-	diff := float64(g.count) * 0.2
+func Update(r *ebiten.Image) error {
+	count++
+	count %= 600
+	diff := float64(count) * 0.2
 	switch {
-	case 480 < g.count:
+	case 480 < count:
 		diff = 0
-	case 240 < g.count:
-		diff = float64(480-g.count) * 0.2
+	case 240 < count:
+		diff = float64(480-count) * 0.2
 	}
-	_ = diff
 
-	if err := g.tmpRenderTarget.Clear(); err != nil {
+	if err := tmpRenderTarget.Clear(); err != nil {
 		return err
 	}
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(15+float64(i)*(diff), 20)
 		clr := ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5)
-		if err := ebiten.DrawWholeImage(g.tmpRenderTarget, g.ebitenImage, geo, clr); err != nil {
+		if err := ebiten.DrawWholeImage(tmpRenderTarget, ebitenImage, geo, clr); err != nil {
 			return err
 		}
 	}
@@ -62,25 +62,32 @@ func (g *Game) Update(r *ebiten.Image) error {
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()
-		if err := ebiten.DrawWholeImage(r, g.tmpRenderTarget, geo, clr); err != nil {
+		if err := ebiten.DrawWholeImage(r, tmpRenderTarget, geo, clr); err != nil {
 			return err
 		}
 	}
+
+	if !saved && ebiten.IsKeyPressed(ebiten.KeySpace) {
+		if err := ebitenutil.SaveImageAsPNG("out.png", r); err != nil {
+			return err
+		}
+		saved = true
+	}
+
 	return nil
 }
 
 func main() {
-	g := new(Game)
 	var err error
-	g.ebitenImage, _, err = ebitenutil.NewImageFromFile("images/ebiten.png", ebiten.FilterNearest)
+	ebitenImage, _, err = ebitenutil.NewImageFromFile("images/ebiten.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.tmpRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	tmpRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Alpha Blending (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Alpha Blending (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -38,7 +38,7 @@ type Matrix interface {
 }
 
 // TODO: Use VBO
-func DrawTexture(native gl.Texture, target gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
+func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
 	once.Do(func() {
 		initialize()
 	})
@@ -51,11 +51,6 @@ func DrawTexture(native gl.Texture, target gl.Texture, projectionMatrix [4][4]fl
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	native.Bind(gl.TEXTURE_2D)
-
-	if 0 < target {
-		gl.ActiveTexture(gl.TEXTURE1)
-		target.Bind(gl.TEXTURE_2D)
-	}
 
 	vertexAttrLocation := getAttributeLocation(program, "vertex")
 	texCoordAttrLocation := getAttributeLocation(program, "tex_coord")

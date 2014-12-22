@@ -148,7 +148,7 @@ func (u *ui) newImageFromImage(img image.Image, filter int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{u, innerImage}, nil
+	return &Image{syncer: u, inner: innerImage}, nil
 }
 
 func (u *ui) newImage(width, height int, filter int) (*Image, error) {
@@ -166,7 +166,7 @@ func (u *ui) newImage(width, height int, filter int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{u, innerImage}, nil
+	return &Image{syncer: u, inner: innerImage}, nil
 }
 
 func (u *ui) run() {

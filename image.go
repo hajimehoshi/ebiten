@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
+	"image"
 	"image/color"
 )
 
@@ -61,12 +62,8 @@ func (i *innerImage) drawImage(image *innerImage, parts []ImagePart, geo Geometr
 	}
 	w, h := image.texture.Size()
 	quads := textureQuads(parts, w, h)
-	targetNativeTexture := gl.Texture(0)
-	if i.texture != nil {
-		targetNativeTexture = i.texture.Native()
-	}
 	projectionMatrix := i.framebuffer.ProjectionMatrix()
-	shader.DrawTexture(image.texture.Native(), targetNativeTexture, projectionMatrix, quads, &geo, &color)
+	shader.DrawTexture(image.texture.Native(), projectionMatrix, quads, &geo, &color)
 	return nil
 }
 
@@ -104,6 +101,7 @@ type syncer interface {
 type Image struct {
 	syncer syncer
 	inner  *innerImage
+	pixels []uint8
 }
 
 // Size returns the size of the image.
@@ -113,6 +111,7 @@ func (i *Image) Size() (width, height int) {
 
 // Clear resets the pixels of the image into 0.
 func (i *Image) Clear() (err error) {
+	i.pixels = nil
 	i.syncer.Sync(func() {
 		err = i.inner.Clear()
 	})
@@ -121,6 +120,7 @@ func (i *Image) Clear() (err error) {
 
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
+	i.pixels = nil
 	i.syncer.Sync(func() {
 		err = i.inner.Fill(clr)
 	})
@@ -133,8 +133,39 @@ func (i *Image) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, c
 }
 
 func (i *Image) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+	i.pixels = nil
 	i.syncer.Sync(func() {
 		err = i.inner.drawImage(image, parts, geo, color)
 	})
 	return
+}
+
+// Bounds returns the bounds of the image.
+func (i *Image) Bounds() image.Rectangle {
+	w, h := i.inner.size()
+	return image.Rect(0, 0, w, h)
+}
+
+// ColorModel returns the color model of the image.
+func (i *Image) ColorModel() color.Model {
+	return color.RGBAModel
+}
+
+// At returns the color of the image at (x, y).
+// This method may read pixels from GPU to VRAM and be slow.
+func (i *Image) At(x, y int) color.Color {
+	if i.pixels == nil {
+		i.syncer.Sync(func() {
+			var err error
+			i.pixels, err = i.inner.texture.Pixels()
+			if err != nil {
+				panic(err)
+			}
+		})
+	}
+	w, _ := i.inner.size()
+	w = internal.NextPowerOf2Int(w)
+	idx := 4*x + 4*y*w
+	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
+	return color.RGBA{r, g, b, a}
 }
