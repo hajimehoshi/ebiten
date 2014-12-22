@@ -65,9 +65,8 @@ func (i *innerImage) drawImage(image *innerImage, parts []ImagePart, geo Geometr
 	if i.texture != nil {
 		targetNativeTexture = i.texture.Native()
 	}
-	w2, h2 := i.size()
 	projectionMatrix := i.renderTarget.ProjectionMatrix()
-	shader.DrawTexture(image.texture.Native(), targetNativeTexture, w2, h2, projectionMatrix, quads, &geo, &color)
+	shader.DrawTexture(image.texture.Native(), targetNativeTexture, projectionMatrix, quads, &geo, &color)
 	return nil
 }
 

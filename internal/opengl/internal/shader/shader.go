@@ -42,31 +42,12 @@ var shaders = map[shaderId]*shader{
 		source: `
 uniform mat4 projection_matrix;
 uniform mat4 modelview_matrix;
-uniform mat4 modelview_matrix_n;
 attribute vec2 vertex;
-attribute vec2 tex_coord0;
-attribute vec2 tex_coord1;
-varying vec2 vertex_out_tex_coord0;
-varying vec2 vertex_out_tex_coord1;
+attribute vec2 tex_coord;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
-  vertex_out_tex_coord0 = tex_coord0;
-  vertex_out_tex_coord1 = (modelview_matrix_n * vec4(tex_coord1, 0, 1)).xy;
-  gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
-}
-`,
-	},
-	shaderVertexFinal: {
-		shaderType: gl.VERTEX_SHADER,
-		source: `
-uniform mat4 projection_matrix;
-uniform mat4 modelview_matrix;
-attribute vec2 vertex;
-attribute vec2 tex_coord0;
-varying vec2 vertex_out_tex_coord0;
-
-void main(void) {
-  vertex_out_tex_coord0 = tex_coord0;
+  vertex_out_tex_coord = tex_coord;
   gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
 }
 `,
@@ -74,37 +55,33 @@ void main(void) {
 	shaderColorMatrix: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
-uniform sampler2D texture0;
-uniform sampler2D texture1;
+uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
-varying vec2 vertex_out_tex_coord0;
-varying vec2 vertex_out_tex_coord1;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
-  vec4 color0 = texture2D(texture0, vertex_out_tex_coord0);
-  vec4 color1 = texture2D(texture1, vertex_out_tex_coord1);
+  vec4 color = texture2D(texture, vertex_out_tex_coord);
   // Un-premultiply alpha
-  color0.rgb /= color0.a;
+  color.rgb /= color.a;
   // Apply the color matrix
-  color0 = (color_matrix * color0) + color_matrix_translation;
+  color = (color_matrix * color) + color_matrix_translation;
   // Premultiply alpha
-  color0 = clamp(color0, 0.0, 1.0);
-  color0.rgb *= color0.a;
+  color = clamp(color, 0.0, 1.0);
+  color.rgb *= color.a;
 
-  gl_FragColor = color0 + (1.0 - color0.a) * color1;
+  gl_FragColor = color;
 }
 `,
 	},
 	shaderColorFinal: {
 		shaderType: gl.FRAGMENT_SHADER,
 		source: `
-uniform sampler2D texture0;
-varying vec2 vertex_out_tex_coord0;
+uniform sampler2D texture;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
-  vec4 color0 = texture2D(texture0, vertex_out_tex_coord0);
-  gl_FragColor = color0;
+  gl_FragColor = texture2D(texture, vertex_out_tex_coord);
 }
 `,
 	},

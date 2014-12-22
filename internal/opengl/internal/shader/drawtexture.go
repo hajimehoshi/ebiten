@@ -18,7 +18,6 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/internal"
 	"sync"
 )
 
@@ -39,7 +38,7 @@ type Matrix interface {
 }
 
 // TODO: Use VBO
-func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
+func DrawTexture(native gl.Texture, target gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
 	once.Do(func() {
 		initialize()
 	})
@@ -50,7 +49,7 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 	// TODO: Check performance
 	program := gl.Program(0)
 	if 0 < target {
-		program = useProgramColorMatrix(glMatrix(projectionMatrix), width, height, geo, color)
+		program = useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
 	} else {
 		program = useProgramColorFinal(glMatrix(projectionMatrix), geo)
 	}
@@ -64,32 +63,21 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 	}
 
 	vertexAttrLocation := getAttributeLocation(program, "vertex")
-	texCoord0AttrLocation := getAttributeLocation(program, "tex_coord0")
-	texCoord1AttrLocation := gl.AttribLocation(0)
-	if program == programColorMatrix.native {
-		texCoord1AttrLocation = getAttributeLocation(program, "tex_coord1")
-	}
+	texCoordAttrLocation := getAttributeLocation(program, "tex_coord")
 
 	gl.EnableClientState(gl.VERTEX_ARRAY)
 	gl.EnableClientState(gl.TEXTURE_COORD_ARRAY)
 	vertexAttrLocation.EnableArray()
-	texCoord0AttrLocation.EnableArray()
-	if program == programColorMatrix.native {
-		texCoord1AttrLocation.EnableArray()
-	}
+	texCoordAttrLocation.EnableArray()
 	defer func() {
-		if program == programColorMatrix.native {
-			texCoord1AttrLocation.DisableArray()
-		}
-		texCoord0AttrLocation.DisableArray()
+		texCoordAttrLocation.DisableArray()
 		vertexAttrLocation.DisableArray()
 		gl.DisableClientState(gl.TEXTURE_COORD_ARRAY)
 		gl.DisableClientState(gl.VERTEX_ARRAY)
 	}()
 
 	vertices := []float32{}
-	texCoords0 := []float32{}
-	texCoords1 := []float32{}
+	texCoords := []float32{}
 	indicies := []uint32{}
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	for i, quad := range quads {
@@ -107,26 +95,12 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 		u1 := quad.TextureCoordU1
 		v0 := quad.TextureCoordV0
 		v1 := quad.TextureCoordV1
-		texCoords0 = append(texCoords0,
+		texCoords = append(texCoords,
 			u0, v0,
 			u1, v0,
 			u0, v1,
 			u1, v1,
 		)
-		if program == programColorMatrix.native {
-			w := float32(internal.NextPowerOf2Int(width))
-			h := float32(internal.NextPowerOf2Int(height))
-			xx0 := x0 / w
-			xx1 := x1 / w
-			yy0 := y0 / h
-			yy1 := y1 / h
-			texCoords1 = append(texCoords1,
-				xx0, yy0,
-				xx1, yy0,
-				xx0, yy1,
-				xx1, yy1,
-			)
-		}
 		base := uint32(i * 4)
 		indicies = append(indicies,
 			base, base+1, base+2,
@@ -134,10 +108,7 @@ func DrawTexture(native gl.Texture, target gl.Texture, width, height int, projec
 		)
 	}
 	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, vertices)
-	texCoord0AttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords0)
-	if program == programColorMatrix.native {
-		texCoord1AttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords1)
-	}
+	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords)
 	gl.DrawElements(gl.TRIANGLES, len(indicies), gl.UNSIGNED_INT, indicies)
 
 	gl.Flush()

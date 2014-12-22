@@ -18,7 +18,6 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"github.com/hajimehoshi/ebiten/internal"
 )
 
 type program struct {
@@ -31,7 +30,7 @@ var programColorMatrix = program{
 }
 
 var programColorFinal = program{
-	shaderIds: []shaderId{shaderVertexFinal, shaderColorFinal},
+	shaderIds: []shaderId{shaderVertex, shaderColorFinal},
 }
 
 func (p *program) create() {
@@ -73,7 +72,7 @@ func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
 
 var lastProgram gl.Program = 0
 
-func useProgramColorMatrix(projectionMatrix [16]float32, width, height int, geo Matrix, color Matrix) gl.Program {
+func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matrix) gl.Program {
 	if lastProgram != programColorMatrix.native {
 		programColorMatrix.native.Use()
 		lastProgram = programColorMatrix.native
@@ -97,18 +96,7 @@ func useProgramColorMatrix(projectionMatrix [16]float32, width, height int, geo 
 	}
 	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
 
-	txn := tx / float32(internal.NextPowerOf2Int(width))
-	tyn := ty / float32(internal.NextPowerOf2Int(height))
-	glModelviewMatrixN := [...]float32{
-		a, c, 0, 0,
-		b, d, 0, 0,
-		0, 0, 1, 0,
-		txn, tyn, 0, 1,
-	}
-	getUniformLocation(program.native, "modelview_matrix_n").UniformMatrix4fv(false, glModelviewMatrixN)
-
-	getUniformLocation(program.native, "texture0").Uniform1i(0)
-	getUniformLocation(program.native, "texture1").Uniform1i(1)
+	getUniformLocation(program.native, "texture").Uniform1i(0)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -156,7 +144,7 @@ func useProgramColorFinal(projectionMatrix [16]float32, geo Matrix) gl.Program {
 	}
 	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
 
-	getUniformLocation(program.native, "texture0").Uniform1i(0)
+	getUniformLocation(program.native, "texture").Uniform1i(0)
 
 	return program.native
 }

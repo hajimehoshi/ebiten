@@ -52,6 +52,9 @@ func init() {
 	currentUI.use(func() {
 		gl.Init()
 		gl.Enable(gl.TEXTURE_2D)
+		// Textures' pixel formats are alpha premultiplied.
+		gl.Enable(gl.BLEND)
+		gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 	})
 }
 
