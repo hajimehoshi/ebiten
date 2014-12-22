@@ -52,8 +52,8 @@ type graphicsContext struct {
 
 func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
-	glRenderTarget := c.screen.glRenderTarget
-	glTexture := c.screen.glTexture
+	glRenderTarget := c.screen.renderTarget
+	glTexture := c.screen.texture
 
 	glRenderTarget.Dispose()
 	glTexture.Dispose()

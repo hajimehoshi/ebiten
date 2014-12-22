@@ -25,29 +25,28 @@ import (
 )
 
 type innerImage struct {
-	// TODO: Rename them later.
-	glRenderTarget *opengl.Image
-	glTexture      *opengl.Texture
+	renderTarget *opengl.Image
+	texture      *opengl.Texture
 }
 
-func newInnerImage(glTexture *opengl.Texture, filter int) (*innerImage, error) {
-	glRenderTarget, err := opengl.NewRenderTargetFromTexture(glTexture)
+func newInnerImage(texture *opengl.Texture, filter int) (*innerImage, error) {
+	renderTarget, err := opengl.NewRenderTargetFromTexture(texture)
 	if err != nil {
 		return nil, err
 	}
-	return &innerImage{glRenderTarget, glTexture}, nil
+	return &innerImage{renderTarget, texture}, nil
 }
 
-func (r *innerImage) size() (width, height int) {
-	return r.glRenderTarget.Size()
+func (i *innerImage) size() (width, height int) {
+	return i.renderTarget.Size()
 }
 
-func (r *innerImage) Clear() error {
-	return r.Fill(color.Transparent)
+func (i *innerImage) Clear() error {
+	return i.Fill(color.Transparent)
 }
 
-func (r *innerImage) Fill(clr color.Color) error {
-	if err := r.glRenderTarget.SetAsViewport(); err != nil {
+func (i *innerImage) Fill(clr color.Color) error {
+	if err := i.renderTarget.SetAsViewport(); err != nil {
 		return err
 	}
 	rf, gf, bf, af := internal.RGBA(clr)
@@ -56,19 +55,19 @@ func (r *innerImage) Fill(clr color.Color) error {
 	return nil
 }
 
-func (r *innerImage) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
-	if err := r.glRenderTarget.SetAsViewport(); err != nil {
+func (i *innerImage) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
+	if err := i.renderTarget.SetAsViewport(); err != nil {
 		return err
 	}
-	w, h := image.glTexture.Size()
+	w, h := image.texture.Size()
 	quads := textureQuads(parts, w, h)
 	targetNativeTexture := gl.Texture(0)
-	if r.glTexture != nil {
-		targetNativeTexture = r.glTexture.Native()
+	if i.texture != nil {
+		targetNativeTexture = i.texture.Native()
 	}
-	w2, h2 := r.size()
-	projectionMatrix := r.glRenderTarget.ProjectionMatrix()
-	shader.DrawTexture(image.glTexture.Native(), targetNativeTexture, w2, h2, projectionMatrix, quads, &geo, &color)
+	w2, h2 := i.size()
+	projectionMatrix := i.renderTarget.ProjectionMatrix()
+	shader.DrawTexture(image.texture.Native(), targetNativeTexture, w2, h2, projectionMatrix, quads, &geo, &color)
 	return nil
 }
 
@@ -101,36 +100,42 @@ type syncer interface {
 	Sync(func())
 }
 
+// An image represents an image.
+// The pixel format is non alpha-premultiplied.
 type Image struct {
 	syncer syncer
 	inner  *innerImage
 }
 
-func (r *Image) Size() (width, height int) {
-	return r.inner.size()
+// Size returns the size of the image.
+func (i *Image) Size() (width, height int) {
+	return i.inner.size()
 }
 
-func (r *Image) Clear() (err error) {
-	r.syncer.Sync(func() {
-		err = r.inner.Clear()
+// Clear resets the pixels of the image into 0.
+func (i *Image) Clear() (err error) {
+	i.syncer.Sync(func() {
+		err = i.inner.Clear()
 	})
 	return
 }
 
-func (r *Image) Fill(clr color.Color) (err error) {
-	r.syncer.Sync(func() {
-		err = r.inner.Fill(clr)
+// Fill fills the image with a solid color.
+func (i *Image) Fill(clr color.Color) (err error) {
+	i.syncer.Sync(func() {
+		err = i.inner.Fill(clr)
 	})
 	return
 }
 
-func (r *Image) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
-	return r.drawImage(image.inner, parts, geo, color)
+// DrawImage draws the given image on the receiver (i).
+func (i *Image) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+	return i.drawImage(image.inner, parts, geo, color)
 }
 
-func (r *Image) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
-	r.syncer.Sync(func() {
-		err = r.inner.drawImage(image, parts, geo, color)
+func (i *Image) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+	i.syncer.Sync(func() {
+		err = i.inner.drawImage(image, parts, geo, color)
 	})
 	return
 }
