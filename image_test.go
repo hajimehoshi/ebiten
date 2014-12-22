@@ -25,21 +25,34 @@ import (
 	"testing"
 )
 
-func TestNewImageFromImage(t *testing.T) {
-	file, err := os.Open("testdata/ebiten.png")
+func openImage(path string) (*Image, image.Image, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		t.Fatal(err)
-		return
+		return nil, nil, err
 	}
 	defer file.Close()
 
 	img, _, err := image.Decode(file)
 	if err != nil {
-		t.Fatal(err)
-		return
+		return nil, nil, err
 	}
 
 	eimg, err := NewImageFromImage(img, FilterNearest)
+	if err != nil {
+		return nil, nil, err
+	}
+	return eimg, img, nil
+}
+
+func diff(x, y uint8) uint8 {
+	if x <= y {
+		return y - x
+	}
+	return x - y
+}
+
+func TestPixels(t *testing.T) {
+	eimg, img, err := openImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -54,7 +67,64 @@ func TestNewImageFromImage(t *testing.T) {
 			got := eimg.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i, j))
 			if got != want {
-				t.Errorf("img(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestComposition(t *testing.T) {
+	img2Color := color.NRGBA{0x24, 0x3f, 0x6a, 0x88}
+	img3Color := color.NRGBA{0x85, 0xa3, 0x08, 0xd3}
+
+	img1, _, err := openImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	w, h := img1.Bounds().Size().X, img1.Bounds().Size().Y
+
+	img2, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	img3, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	img2.Fill(img2Color)
+	img3.Fill(img3Color)
+	img_12_3, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	DrawWholeImage(img2, img1, GeometryMatrixI(), ColorMatrixI())
+	DrawWholeImage(img3, img2, GeometryMatrixI(), ColorMatrixI())
+	DrawWholeImage(img_12_3, img3, GeometryMatrixI(), ColorMatrixI())
+
+	img2.Fill(img2Color)
+	img3.Fill(img3Color)
+	img_1_23, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	DrawWholeImage(img3, img2, GeometryMatrixI(), ColorMatrixI())
+	DrawWholeImage(img3, img1, GeometryMatrixI(), ColorMatrixI())
+	DrawWholeImage(img_1_23, img3, GeometryMatrixI(), ColorMatrixI())
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			c1 := img_12_3.At(i, j).(color.RGBA)
+			c2 := img_1_23.At(i, j).(color.RGBA)
+			if 1 < diff(c1.R, c2.R) || 1 < diff(c1.G, c2.G) || 1 < diff(c1.B, c2.B) || 1 < diff(c1.A, c2.A) {
+				t.Errorf("img_12_3.At(%d, %d) = %#v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
 			}
 		}
 	}
