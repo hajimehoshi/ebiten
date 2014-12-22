@@ -25,20 +25,20 @@ import (
 )
 
 type innerImage struct {
-	renderTarget *opengl.Image
-	texture      *opengl.Texture
+	framebuffer *opengl.Framebuffer
+	texture     *opengl.Texture
 }
 
 func newInnerImage(texture *opengl.Texture, filter int) (*innerImage, error) {
-	renderTarget, err := opengl.NewRenderTargetFromTexture(texture)
+	framebuffer, err := opengl.NewFramebufferFromTexture(texture)
 	if err != nil {
 		return nil, err
 	}
-	return &innerImage{renderTarget, texture}, nil
+	return &innerImage{framebuffer, texture}, nil
 }
 
 func (i *innerImage) size() (width, height int) {
-	return i.renderTarget.Size()
+	return i.framebuffer.Size()
 }
 
 func (i *innerImage) Clear() error {
@@ -46,7 +46,7 @@ func (i *innerImage) Clear() error {
 }
 
 func (i *innerImage) Fill(clr color.Color) error {
-	if err := i.renderTarget.SetAsViewport(); err != nil {
+	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
 	}
 	rf, gf, bf, af := internal.RGBA(clr)
@@ -56,7 +56,7 @@ func (i *innerImage) Fill(clr color.Color) error {
 }
 
 func (i *innerImage) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
-	if err := i.renderTarget.SetAsViewport(); err != nil {
+	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
 	}
 	w, h := image.texture.Size()
@@ -65,7 +65,7 @@ func (i *innerImage) drawImage(image *innerImage, parts []ImagePart, geo Geometr
 	if i.texture != nil {
 		targetNativeTexture = i.texture.Native()
 	}
-	projectionMatrix := i.renderTarget.ProjectionMatrix()
+	projectionMatrix := i.framebuffer.ProjectionMatrix()
 	shader.DrawTexture(image.texture.Native(), targetNativeTexture, projectionMatrix, quads, &geo, &color)
 	return nil
 }

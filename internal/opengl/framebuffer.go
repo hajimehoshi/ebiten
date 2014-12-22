@@ -37,15 +37,15 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 	}
 }
 
-type Image struct {
+type Framebuffer struct {
 	framebuffer gl.Framebuffer
 	width       int
 	height      int
 	flipY       bool
 }
 
-func NewZeroRenderTarget(width, height int) (*Image, error) {
-	r := &Image{
+func NewZeroFramebuffer(width, height int) (*Framebuffer, error) {
+	r := &Framebuffer{
 		width:  width,
 		height: height,
 		flipY:  true,
@@ -53,25 +53,25 @@ func NewZeroRenderTarget(width, height int) (*Image, error) {
 	return r, nil
 }
 
-func NewRenderTargetFromTexture(texture *Texture) (*Image, error) {
+func NewFramebufferFromTexture(texture *Texture) (*Framebuffer, error) {
 	framebuffer, err := createFramebuffer(texture.Native())
 	if err != nil {
 		return nil, err
 	}
 	w, h := texture.Size()
-	return &Image{
+	return &Framebuffer{
 		framebuffer: framebuffer,
 		width:       w,
 		height:      h,
 	}, nil
 }
 
-func (r *Image) Size() (width, height int) {
-	return r.width, r.height
+func (f *Framebuffer) Size() (width, height int) {
+	return f.width, f.height
 }
 
-func (r *Image) Dispose() {
-	r.framebuffer.Delete()
+func (f *Framebuffer) Dispose() {
+	f.framebuffer.Delete()
 }
 
 func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
@@ -86,9 +86,9 @@ func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
 	return framebuffer, nil
 }
 
-func (r *Image) SetAsViewport() error {
+func (f *Framebuffer) SetAsViewport() error {
 	gl.Flush()
-	r.framebuffer.Bind()
+	f.framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if err != gl.FRAMEBUFFER_COMPLETE {
 		if gl.GetError() != 0 {
@@ -97,19 +97,19 @@ func (r *Image) SetAsViewport() error {
 		return errors.New("glBindFramebuffer failed: the context is different?")
 	}
 
-	width := internal.NextPowerOf2Int(r.width)
-	height := internal.NextPowerOf2Int(r.height)
+	width := internal.NextPowerOf2Int(f.width)
+	height := internal.NextPowerOf2Int(f.height)
 	gl.Viewport(0, 0, width, height)
 	return nil
 }
 
-func (r *Image) ProjectionMatrix() [4][4]float64 {
-	width := internal.NextPowerOf2Int(r.width)
-	height := internal.NextPowerOf2Int(r.height)
+func (f *Framebuffer) ProjectionMatrix() [4][4]float64 {
+	width := internal.NextPowerOf2Int(f.width)
+	height := internal.NextPowerOf2Int(f.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
-	if r.flipY {
+	if f.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(r.height) / float64(internal.NextPowerOf2Int(r.height)) * 2
+		m[1][3] += float64(f.height) / float64(internal.NextPowerOf2Int(f.height)) * 2
 	}
 	return m
 }

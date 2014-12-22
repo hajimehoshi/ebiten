@@ -22,7 +22,7 @@ import (
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	r, err := opengl.NewZeroRenderTarget(screenWidth*screenScale, screenHeight*screenScale)
+	f, err := opengl.NewZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 	}
 
 	c := &graphicsContext{
-		defaultR:    &innerImage{r, nil},
+		defaultR:    &innerImage{f, nil},
 		screen:      screen,
 		screenScale: screenScale,
 	}
@@ -52,11 +52,11 @@ type graphicsContext struct {
 
 func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
-	glRenderTarget := c.screen.renderTarget
-	glTexture := c.screen.texture
+	framebuffer := c.screen.framebuffer
+	texture := c.screen.texture
 
-	glRenderTarget.Dispose()
-	glTexture.Dispose()
+	framebuffer.Dispose()
+	texture.Dispose()
 }
 
 func (c *graphicsContext) preUpdate() error {
