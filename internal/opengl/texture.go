@@ -23,7 +23,7 @@ import (
 	"image/draw"
 )
 
-func adjustImageForTexture(img image.Image) *image.NRGBA {
+func adjustImageForTexture(img image.Image) *image.RGBA {
 	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
@@ -32,11 +32,11 @@ func adjustImageForTexture(img image.Image) *image.NRGBA {
 			internal.NextPowerOf2Int(height),
 		},
 	}
-	if nrgba, ok := img.(*image.NRGBA); ok && img.Bounds() == adjustedImageBounds {
+	if nrgba, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
 		return nrgba
 	}
 
-	adjustedImage := image.NewNRGBA(adjustedImageBounds)
+	adjustedImage := image.NewRGBA(adjustedImageBounds)
 	dstBounds := image.Rectangle{
 		image.ZP,
 		img.Bounds().Size(),

@@ -101,7 +101,7 @@ type syncer interface {
 }
 
 // Image represents an image.
-// The pixel format is non alpha-premultiplied.
+// The pixel format is alpha-premultiplied.
 type Image struct {
 	syncer syncer
 	inner  *innerImage

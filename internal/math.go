@@ -37,11 +37,11 @@ func NextPowerOf2Int(size int) int {
 }
 
 func RGBA(clr color.Color) (r, g, b, a float64) {
-	clr2 := color.NRGBA64Model.Convert(clr).(color.NRGBA64)
+	cr, cg, cb, ca := clr.RGBA()
 	const max = math.MaxUint16
-	r = float64(clr2.R) / max
-	g = float64(clr2.G) / max
-	b = float64(clr2.B) / max
-	a = float64(clr2.A) / max
+	r = float64(cr) / max
+	g = float64(cg) / max
+	b = float64(cb) / max
+	a = float64(ca) / max
 	return
 }
