@@ -29,51 +29,50 @@ const (
 	screenHeight = 240
 )
 
-type Game struct {
+var (
 	count           int
 	horizontalCount int
 	verticalCount   int
 	gophersImage    *ebiten.Image
-}
+)
 
-func (g *Game) Update(r *ebiten.Image) error {
-	g.count++
+func Update(screen *ebiten.Image) error {
+	count++
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		g.horizontalCount--
+		horizontalCount--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		g.horizontalCount++
+		horizontalCount++
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		g.verticalCount--
+		verticalCount--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		g.verticalCount++
+		verticalCount++
 	}
 
-	w, h := g.gophersImage.Size()
+	w, h := gophersImage.Size()
 	geo := ebiten.TranslateGeometry(-float64(w)/2, -float64(h)/2)
-	scaleX := 0.5 * math.Pow(1.05, float64(g.horizontalCount))
-	scaleY := 0.5 * math.Pow(1.05, float64(g.verticalCount))
+	scaleX := 0.5 * math.Pow(1.05, float64(horizontalCount))
+	scaleY := 0.5 * math.Pow(1.05, float64(verticalCount))
 	geo.Concat(ebiten.ScaleGeometry(scaleX, scaleY))
-	geo.Concat(ebiten.RotateGeometry(float64(g.count%720) * 2 * math.Pi / 720))
+	geo.Concat(ebiten.RotateGeometry(float64(count%720) * 2 * math.Pi / 720))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	//clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
+	//clr := ebiten.RotateHue(float64(count%180) * 2 * math.Pi / 180)
 	clr := ebiten.ColorMatrixI()
-	if err := ebiten.DrawWholeImage(r, g.gophersImage, geo, clr); err != nil {
+	if err := ebiten.DrawWholeImage(screen, gophersImage, geo, clr); err != nil {
 		return err
 	}
 	return nil
 }
 
 func main() {
-	g := new(Game)
 	var err error
-	g.gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

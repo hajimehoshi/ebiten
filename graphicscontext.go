@@ -64,8 +64,10 @@ func (c *graphicsContext) preUpdate() error {
 }
 
 func (c *graphicsContext) postUpdate() error {
-	// We don't need to clear the default render target (framebuffer).
-	// For the default framebuffer, a special shader is used.
+	if err := c.defaultR.Clear(); err != nil {
+		return err
+	}
+
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
