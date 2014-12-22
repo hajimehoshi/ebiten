@@ -17,7 +17,6 @@ limitations under the License.
 package ebiten
 
 import (
-	"github.com/go-gl/gl"
 	"image"
 )
 
@@ -36,23 +35,12 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return currentUI.input.isMouseButtonPressed(mouseButton)
 }
 
-func glFilter(f Filter) int {
-	switch f {
-	case FilterNearest:
-		return gl.NEAREST
-	case FilterLinear:
-		return gl.LINEAR
-	default:
-		panic("not reached")
-	}
-}
-
 // NewImage returns an empty image.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	return currentUI.newImage(width, height, glFilter(filter))
+	return currentUI.newImage(width, height, filter)
 }
 
 // NewImageFromImage creates a new image with the given image (img).
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
-	return currentUI.newImageFromImage(img, glFilter(filter))
+	return currentUI.newImageFromImage(img, filter)
 }

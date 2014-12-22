@@ -18,7 +18,6 @@ package ebiten
 
 import (
 	"fmt"
-	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
@@ -50,11 +49,7 @@ func init() {
 	}
 	currentUI.run()
 	currentUI.use(func() {
-		gl.Init()
-		gl.Enable(gl.TEXTURE_2D)
-		// Textures' pixel formats are alpha premultiplied.
-		gl.Enable(gl.BLEND)
-		gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+		opengl.Init()
 	})
 }
 
@@ -134,16 +129,16 @@ func (u *ui) draw(f func(*Image) error) (err error) {
 	return
 }
 
-func (u *ui) newImageFromImage(img image.Image, filter int) (*Image, error) {
+func (u *ui) newImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	var innerImage *innerImage
 	var err error
 	u.use(func() {
 		var texture *opengl.Texture
-		texture, err = opengl.NewTextureFromImage(img, filter)
+		texture, err = opengl.NewTextureFromImage(img, opengl.Filter(filter))
 		if err != nil {
 			return
 		}
-		innerImage, err = newInnerImage(texture, filter)
+		innerImage, err = newInnerImage(texture)
 	})
 	if err != nil {
 		return nil, err
@@ -151,16 +146,16 @@ func (u *ui) newImageFromImage(img image.Image, filter int) (*Image, error) {
 	return &Image{syncer: u, inner: innerImage}, nil
 }
 
-func (u *ui) newImage(width, height int, filter int) (*Image, error) {
+func (u *ui) newImage(width, height int, filter Filter) (*Image, error) {
 	var innerImage *innerImage
 	var err error
 	u.use(func() {
 		var texture *opengl.Texture
-		texture, err = opengl.NewTexture(width, height, filter)
+		texture, err = opengl.NewTexture(width, height, opengl.Filter(filter))
 		if err != nil {
 			return
 		}
-		innerImage, err = newInnerImage(texture, filter)
+		innerImage, err = newInnerImage(texture)
 		innerImage.Clear()
 	})
 	if err != nil {

@@ -16,6 +16,10 @@ limitations under the License.
 
 package ebiten
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/opengl"
+)
+
 // A Rect represents a rectangle.
 type Rect struct {
 	X      float64
@@ -40,10 +44,10 @@ func DrawWholeImage(target *Image, image *Image, geo GeometryMatrix, color Color
 }
 
 // Filter represents the type of filter to be used when an image is maginified or minified.
-type Filter int
+type Filter opengl.Filter
 
 // Filters
 const (
-	FilterNearest Filter = iota
-	FilterLinear
+	FilterNearest = Filter(opengl.FilterNearest)
+	FilterLinear  = Filter(opengl.FilterLinear)
 )

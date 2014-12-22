@@ -17,7 +17,6 @@ limitations under the License.
 package ebiten
 
 import (
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -27,11 +26,11 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 		return nil, err
 	}
 
-	texture, err := opengl.NewTexture(screenWidth, screenHeight, gl.NEAREST)
+	texture, err := opengl.NewTexture(screenWidth, screenHeight, opengl.Filter(FilterNearest))
 	if err != nil {
 		return nil, err
 	}
-	screen, err := newInnerImage(texture, gl.NEAREST)
+	screen, err := newInnerImage(texture)
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +78,6 @@ func (c *graphicsContext) postUpdate() error {
 		return err
 	}
 
-	gl.Flush()
+	opengl.Flush()
 	return nil
 }

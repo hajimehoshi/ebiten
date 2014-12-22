@@ -17,7 +17,6 @@ limitations under the License.
 package ebiten
 
 import (
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
@@ -30,7 +29,7 @@ type innerImage struct {
 	texture     *opengl.Texture
 }
 
-func newInnerImage(texture *opengl.Texture, filter int) (*innerImage, error) {
+func newInnerImage(texture *opengl.Texture) (*innerImage, error) {
 	framebuffer, err := opengl.NewFramebufferFromTexture(texture)
 	if err != nil {
 		return nil, err
@@ -50,9 +49,8 @@ func (i *innerImage) Fill(clr color.Color) error {
 	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
 	}
-	rf, gf, bf, af := internal.RGBA(clr)
-	gl.ClearColor(gl.GLclampf(rf), gl.GLclampf(gf), gl.GLclampf(bf), gl.GLclampf(af))
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	r, g, b, a := internal.RGBA(clr)
+	opengl.Clear(r, g, b, a)
 	return nil
 }
 
