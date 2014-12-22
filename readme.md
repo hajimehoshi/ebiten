@@ -1,15 +1,15 @@
 # Ebiten (海老天)
 
-A simple 2D game library in Go.
+* A simple 2D game library in Go.
+* Works only on Mac OS X so far.
+* [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
-## How to use
+## Usage
 
-Please read Go files in the example directory.
+* Please read Go files in the example directory.
+* Be careful that this library is now being developed actively and API can be changed easily.
 
-Be careful that this library is now being developed actively and API can be
-changed easily.
-
-## How to install Ebiten on Mac OS X
+## Install on Mac OS X
 
 ```
 :; brew install glew
@@ -17,14 +17,14 @@ changed easily.
 :; go get -u github.com/hajimehoshi/ebiten
 ```
 
-## How to execute the example
+## Execute the example
 
 ```
 :; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
 :; go run blocks/main.go
 ```
 
-### How to benchmark the example
+### Benchmark the example
 
 ```
 :; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
