@@ -36,7 +36,7 @@ type Game struct {
 	gophersImage    *ebiten.Image
 }
 
-func (g *Game) Update(r *ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.Image) error {
 	g.count++
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		g.horizontalCount--
@@ -60,7 +60,9 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
 	//clr := ebiten.RotateHue(float64(g.count%180) * 2 * math.Pi / 180)
 	clr := ebiten.ColorMatrixI()
-	ebiten.DrawWholeImage(r, g.gophersImage, geo, clr)
+	if err := ebiten.DrawWholeImage(r, g.gophersImage, geo, clr); err != nil {
+		return err
+	}
 	return nil
 }
 

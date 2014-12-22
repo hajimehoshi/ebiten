@@ -16,10 +16,6 @@ limitations under the License.
 
 package ebiten
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/opengl"
-)
-
 // A Rect represents a rectangle.
 type Rect struct {
 	X      float64
@@ -35,7 +31,7 @@ type ImagePart struct {
 }
 
 // DrawWholeImage draws the whole image.
-func DrawWholeImage(r *RenderTarget, image *Image, geo GeometryMatrix, color ColorMatrix) error {
+func DrawWholeImage(r *Image, image *Image, geo GeometryMatrix, color ColorMatrix) error {
 	w, h := image.Size()
 	parts := []ImagePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
@@ -51,14 +47,3 @@ const (
 	FilterNearest Filter = iota
 	FilterLinear
 )
-
-// An Image represents an image to be rendered.
-// An image's pixels are stored as non alpha-premultiplied.
-type Image struct {
-	glTexture *opengl.Texture
-}
-
-// Size returns the size of the image.
-func (i *Image) Size() (width int, height int) {
-	return i.glTexture.Size()
-}

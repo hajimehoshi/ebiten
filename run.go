@@ -17,8 +17,11 @@ limitations under the License.
 package ebiten
 
 // Run runs the game.
+// f is a function which is called at every frame.
+// The argument (*Image) is the render target that represents the screen.
+//
 // This function must be called from the main thread.
-func Run(f func(*RenderTarget) error, width, height, scale int, title string) error {
+func Run(f func(*Image) error, width, height, scale int, title string) error {
 	err := startUI(width, height, scale, title)
 	if err != nil {
 		return err

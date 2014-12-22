@@ -27,12 +27,17 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 		return nil, err
 	}
 
-	screen, err := newInnerRenderTarget(screenWidth, screenHeight, gl.NEAREST)
+	texture, err := opengl.NewTexture(screenWidth, screenHeight, gl.NEAREST)
 	if err != nil {
 		return nil, err
 	}
+	screen, err := newInnerImage(texture, gl.NEAREST)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &graphicsContext{
-		defaultR:    &innerRenderTarget{r, nil},
+		defaultR:    &innerImage{r, nil},
 		screen:      screen,
 		screenScale: screenScale,
 	}
@@ -40,15 +45,15 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 }
 
 type graphicsContext struct {
-	screen      *innerRenderTarget
-	defaultR    *innerRenderTarget
+	screen      *innerImage
+	defaultR    *innerImage
 	screenScale int
 }
 
 func (c *graphicsContext) dispose() {
 	// NOTE: Now this method is not used anywhere.
 	glRenderTarget := c.screen.glRenderTarget
-	glTexture := c.screen.image.glTexture
+	glTexture := c.screen.glTexture
 
 	glRenderTarget.Dispose()
 	glTexture.Dispose()
@@ -64,11 +69,11 @@ func (c *graphicsContext) postUpdate() error {
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
-	w, h := c.screen.image.Size()
+	w, h := c.screen.size()
 	parts := []ImagePart{
 		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
 	}
-	if err := c.defaultR.DrawImage(c.screen.image, parts, geo, clr); err != nil {
+	if err := c.defaultR.drawImage(c.screen, parts, geo, clr); err != nil {
 		return err
 	}
 

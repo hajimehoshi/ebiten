@@ -24,18 +24,18 @@ import (
 )
 
 type debugPrintState struct {
-	textTexture            *ebiten.Image
-	debugPrintRenderTarget *ebiten.RenderTarget
+	textImage              *ebiten.Image
+	debugPrintRenderTarget *ebiten.Image
 	y                      int
 }
 
 var defaultDebugPrintState = new(debugPrintState)
 
-func DebugPrint(r *ebiten.RenderTarget, str string) {
+func DebugPrint(r *ebiten.Image, str string) {
 	defaultDebugPrintState.DebugPrint(r, str)
 }
 
-func (d *debugPrintState) drawText(rt *ebiten.RenderTarget, str string, x, y int, c color.Color) {
+func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
 	parts := []ebiten.ImagePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -57,16 +57,16 @@ func (d *debugPrintState) drawText(rt *ebiten.RenderTarget, str string, x, y int
 	geo := ebiten.TranslateGeometry(float64(x)+1, float64(y))
 	r, g, b, a := internal.RGBA(c)
 	clr := ebiten.ScaleColor(r, g, b, a)
-	rt.DrawImage(d.textTexture, parts, geo, clr)
+	rt.DrawImage(d.textImage, parts, geo, clr)
 }
 
-func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {
-	if d.textTexture == nil {
+func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
+	if d.textImage == nil {
 		img, err := assets.TextImage()
 		if err != nil {
 			panic(err)
 		}
-		d.textTexture, err = ebiten.NewImage(img, ebiten.FilterNearest)
+		d.textImage, err = ebiten.NewImageFromImage(img, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}
@@ -74,7 +74,7 @@ func (d *debugPrintState) DebugPrint(r *ebiten.RenderTarget, str string) {
 	if d.debugPrintRenderTarget == nil {
 		width, height := 256, 256
 		var err error
-		d.debugPrintRenderTarget, err = ebiten.NewRenderTarget(width, height, ebiten.FilterNearest)
+		d.debugPrintRenderTarget, err = ebiten.NewImage(width, height, ebiten.FilterNearest)
 		if err != nil {
 			panic(err)
 		}

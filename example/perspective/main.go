@@ -32,7 +32,7 @@ type Game struct {
 	gophersImage *ebiten.Image
 }
 
-func (g *Game) Update(r *ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.Image) error {
 	parts := []ebiten.ImagePart{}
 	w, h := g.gophersImage.Size()
 	for i := 0; i < h; i++ {

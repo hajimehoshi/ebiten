@@ -33,11 +33,11 @@ const (
 type Game struct {
 	inited             bool
 	count              int
-	brushRenderTarget  *ebiten.RenderTarget
-	canvasRenderTarget *ebiten.RenderTarget
+	brushRenderTarget  *ebiten.Image
+	canvasRenderTarget *ebiten.Image
 }
 
-func (g *Game) Update(r *ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.Image) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.count++
 	}
@@ -54,10 +54,10 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 		clr := ebiten.ScaleColor(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(g.count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		ebiten.DrawWholeImage(g.canvasRenderTarget, g.brushRenderTarget.Image(), geo, clr)
+		ebiten.DrawWholeImage(g.canvasRenderTarget, g.brushRenderTarget, geo, clr)
 	}
 
-	ebiten.DrawWholeImage(r, g.canvasRenderTarget.Image(), ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
+	ebiten.DrawWholeImage(r, g.canvasRenderTarget, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
 
 	ebitenutil.DebugPrint(r, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil
@@ -66,11 +66,11 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 func main() {
 	g := new(Game)
 	var err error
-	g.brushRenderTarget, err = ebiten.NewRenderTarget(1, 1, ebiten.FilterNearest)
+	g.brushRenderTarget, err = ebiten.NewImage(1, 1, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.canvasRenderTarget, err = ebiten.NewRenderTarget(screenWidth, screenHeight, ebiten.FilterNearest)
+	g.canvasRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

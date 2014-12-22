@@ -38,7 +38,7 @@ type Images struct {
 	imagePaths        chan namePath
 	renderTargetSizes chan nameSize
 	images            map[string]*ebiten.Image
-	renderTargets     map[string]*ebiten.RenderTarget
+	renderTargets     map[string]*ebiten.Image
 	sync.RWMutex
 }
 
@@ -47,7 +47,7 @@ func NewImages() *Images {
 		imagePaths:        make(chan namePath),
 		renderTargetSizes: make(chan nameSize),
 		images:            map[string]*ebiten.Image{},
-		renderTargets:     map[string]*ebiten.RenderTarget{},
+		renderTargets:     map[string]*ebiten.Image{},
 	}
 	go func() {
 		for {
@@ -81,7 +81,7 @@ func (i *Images) loopMain() {
 			if err != nil {
 				panic(err)
 			}
-			id, err := ebiten.NewImage(img, ebiten.FilterNearest)
+			id, err := ebiten.NewImageFromImage(img, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -93,7 +93,7 @@ func (i *Images) loopMain() {
 		name := s.name
 		size := s.size
 		go func() {
-			id, err := ebiten.NewRenderTarget(size.Width, size.Height, ebiten.FilterNearest)
+			id, err := ebiten.NewImage(size.Width, size.Height, ebiten.FilterNearest)
 			if err != nil {
 				panic(err)
 			}
@@ -129,7 +129,7 @@ func (i *Images) GetImage(name string) *ebiten.Image {
 	return i.images[name]
 }
 
-func (i *Images) GetRenderTarget(name string) *ebiten.RenderTarget {
+func (i *Images) GetRenderTarget(name string) *ebiten.Image {
 	i.RLock()
 	defer i.RUnlock()
 	return i.renderTargets[name]

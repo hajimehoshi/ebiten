@@ -24,35 +24,29 @@ import (
 	"image/color"
 )
 
-type innerRenderTarget struct {
-	glRenderTarget *opengl.RenderTarget
-	image          *Image
+type innerImage struct {
+	// TODO: Rename them later.
+	glRenderTarget *opengl.Image
+	glTexture      *opengl.Texture
 }
 
-func newInnerRenderTarget(width, height int, filter int) (*innerRenderTarget, error) {
-	glTexture, err := opengl.NewTexture(width, height, filter)
-	if err != nil {
-		return nil, err
-	}
-
+func newInnerImage(glTexture *opengl.Texture, filter int) (*innerImage, error) {
 	glRenderTarget, err := opengl.NewRenderTargetFromTexture(glTexture)
 	if err != nil {
 		return nil, err
 	}
-
-	image := &Image{glTexture}
-	return &innerRenderTarget{glRenderTarget, image}, nil
+	return &innerImage{glRenderTarget, glTexture}, nil
 }
 
-func (r *innerRenderTarget) size() (width, height int) {
+func (r *innerImage) size() (width, height int) {
 	return r.glRenderTarget.Size()
 }
 
-func (r *innerRenderTarget) Clear() error {
+func (r *innerImage) Clear() error {
 	return r.Fill(color.Transparent)
 }
 
-func (r *innerRenderTarget) Fill(clr color.Color) error {
+func (r *innerImage) Fill(clr color.Color) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
@@ -62,20 +56,19 @@ func (r *innerRenderTarget) Fill(clr color.Color) error {
 	return nil
 }
 
-func (r *innerRenderTarget) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
+func (r *innerImage) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
 	if err := r.glRenderTarget.SetAsViewport(); err != nil {
 		return err
 	}
-	glTexture := image.glTexture
-	w, h := glTexture.Size()
+	w, h := image.glTexture.Size()
 	quads := textureQuads(parts, w, h)
 	targetNativeTexture := gl.Texture(0)
-	if r.image != nil {
-		targetNativeTexture = r.image.glTexture.Native()
+	if r.glTexture != nil {
+		targetNativeTexture = r.glTexture.Native()
 	}
 	w2, h2 := r.size()
 	projectionMatrix := r.glRenderTarget.ProjectionMatrix()
-	shader.DrawTexture(glTexture.Native(), targetNativeTexture, w2, h2, projectionMatrix, quads, &geo, &color)
+	shader.DrawTexture(image.glTexture.Native(), targetNativeTexture, w2, h2, projectionMatrix, quads, &geo, &color)
 	return nil
 }
 
@@ -108,36 +101,36 @@ type syncer interface {
 	Sync(func())
 }
 
-type RenderTarget struct {
+type Image struct {
 	syncer syncer
-	inner  *innerRenderTarget
+	inner  *innerImage
 }
 
-func (r *RenderTarget) Image() *Image {
-	return r.inner.image
-}
-
-func (r *RenderTarget) Size() (width, height int) {
+func (r *Image) Size() (width, height int) {
 	return r.inner.size()
 }
 
-func (r *RenderTarget) Clear() (err error) {
+func (r *Image) Clear() (err error) {
 	r.syncer.Sync(func() {
 		err = r.inner.Clear()
 	})
 	return
 }
 
-func (r *RenderTarget) Fill(clr color.Color) (err error) {
+func (r *Image) Fill(clr color.Color) (err error) {
 	r.syncer.Sync(func() {
 		err = r.inner.Fill(clr)
 	})
 	return
 }
 
-func (r *RenderTarget) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+func (r *Image) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+	return r.drawImage(image.inner, parts, geo, color)
+}
+
+func (r *Image) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
 	r.syncer.Sync(func() {
-		err = r.inner.DrawImage(image, parts, geo, color)
+		err = r.inner.drawImage(image, parts, geo, color)
 	})
 	return
 }

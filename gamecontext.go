@@ -47,12 +47,12 @@ func glFilter(f Filter) int {
 	}
 }
 
-// NewRenderTarget returns a new RenderTarget.
-func NewRenderTarget(width, height int, filter Filter) (*RenderTarget, error) {
-	return currentUI.newRenderTarget(width, height, glFilter(filter))
+// NewImage returns an empty image.
+func NewImage(width, height int, filter Filter) (*Image, error) {
+	return currentUI.newImage(width, height, glFilter(filter))
 }
 
-// NewImage returns a new image.
-func NewImage(img image.Image, filter Filter) (*Image, error) {
-	return currentUI.newImage(img, glFilter(filter))
+// NewImage creates a new image with the given image (img).
+func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
+	return currentUI.newImageFromImage(img, glFilter(filter))
 }

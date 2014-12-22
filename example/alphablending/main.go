@@ -31,11 +31,11 @@ const (
 
 type Game struct {
 	count           int
-	tmpRenderTarget *ebiten.RenderTarget
+	tmpRenderTarget *ebiten.Image
 	ebitenImage     *ebiten.Image
 }
 
-func (g *Game) Update(r *ebiten.RenderTarget) error {
+func (g *Game) Update(r *ebiten.Image) error {
 	g.count++
 	g.count %= 600
 	diff := float64(g.count) * 0.2
@@ -62,7 +62,7 @@ func (g *Game) Update(r *ebiten.RenderTarget) error {
 	for i := 0; i < 10; i++ {
 		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
 		clr := ebiten.ColorMatrixI()
-		if err := ebiten.DrawWholeImage(r, g.tmpRenderTarget.Image(), geo, clr); err != nil {
+		if err := ebiten.DrawWholeImage(r, g.tmpRenderTarget, geo, clr); err != nil {
 			return err
 		}
 	}
@@ -76,7 +76,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	g.tmpRenderTarget, err = ebiten.NewRenderTarget(screenWidth, screenHeight, ebiten.FilterNearest)
+	g.tmpRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

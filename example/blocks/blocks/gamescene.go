@@ -109,7 +109,7 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(r *ebiten.RenderTarget, images *Images) {
+func (s *GameScene) Draw(r *ebiten.Image, images *Images) {
 	r.Fill(color.White)
 
 	field := images.GetImage("empty")

@@ -37,15 +37,15 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 	}
 }
 
-type RenderTarget struct {
+type Image struct {
 	framebuffer gl.Framebuffer
 	width       int
 	height      int
 	flipY       bool
 }
 
-func NewZeroRenderTarget(width, height int) (*RenderTarget, error) {
-	r := &RenderTarget{
+func NewZeroRenderTarget(width, height int) (*Image, error) {
+	r := &Image{
 		width:  width,
 		height: height,
 		flipY:  true,
@@ -53,24 +53,24 @@ func NewZeroRenderTarget(width, height int) (*RenderTarget, error) {
 	return r, nil
 }
 
-func NewRenderTargetFromTexture(texture *Texture) (*RenderTarget, error) {
+func NewRenderTargetFromTexture(texture *Texture) (*Image, error) {
 	framebuffer, err := createFramebuffer(texture.Native())
 	if err != nil {
 		return nil, err
 	}
 	w, h := texture.Size()
-	return &RenderTarget{
+	return &Image{
 		framebuffer: framebuffer,
 		width:       w,
 		height:      h,
 	}, nil
 }
 
-func (r *RenderTarget) Size() (width, height int) {
+func (r *Image) Size() (width, height int) {
 	return r.width, r.height
 }
 
-func (r *RenderTarget) Dispose() {
+func (r *Image) Dispose() {
 	r.framebuffer.Delete()
 }
 
@@ -83,13 +83,10 @@ func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
 		return 0, errors.New("creating framebuffer failed")
 	}
 
-	gl.ClearColor(0, 0, 0, 0)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-
 	return framebuffer, nil
 }
 
-func (r *RenderTarget) SetAsViewport() error {
+func (r *Image) SetAsViewport() error {
 	gl.Flush()
 	r.framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
@@ -106,7 +103,7 @@ func (r *RenderTarget) SetAsViewport() error {
 	return nil
 }
 
-func (r *RenderTarget) ProjectionMatrix() [4][4]float64 {
+func (r *Image) ProjectionMatrix() [4][4]float64 {
 	width := internal.NextPowerOf2Int(r.width)
 	height := internal.NextPowerOf2Int(r.height)
 	m := orthoProjectionMatrix(0, width, 0, height)

@@ -33,7 +33,7 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(rt *ebiten.RenderTarget, images *Images, str string, ox, oy, scale int, c color.Color) {
+func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c color.Color) {
 	fontImageId := images.GetImage("font")
 	parts := []ebiten.ImagePart{}
 
@@ -66,7 +66,7 @@ func drawText(rt *ebiten.RenderTarget, images *Images, str string, ox, oy, scale
 	rt.DrawImage(fontImageId, parts, geo, clr)
 }
 
-func drawTextWithShadow(rt *ebiten.RenderTarget, images *Images, str string, x, y, scale int, clr color.Color) {
+func drawTextWithShadow(rt *ebiten.Image, images *Images, str string, x, y, scale int, clr color.Color) {
 	drawText(rt, images, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80})
 	drawText(rt, images, str, x, y, scale, clr)
 }

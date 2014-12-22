@@ -110,14 +110,14 @@ func (u *ui) Sync(f func()) {
 	u.use(f)
 }
 
-func (u *ui) draw(f func(*RenderTarget) error) (err error) {
+func (u *ui) draw(f func(*Image) error) (err error) {
 	u.use(func() {
 		err = u.graphicsContext.preUpdate()
 	})
 	if err != nil {
 		return
 	}
-	err = f(&RenderTarget{syncer: u, inner: u.graphicsContext.screen})
+	err = f(&Image{syncer: u, inner: u.graphicsContext.screen})
 	if err != nil {
 		return
 	}
@@ -131,26 +131,39 @@ func (u *ui) draw(f func(*RenderTarget) error) (err error) {
 	return
 }
 
-func (u *ui) newImage(img image.Image, filter int) (*Image, error) {
-	var i *Image
+func (u *ui) newImageFromImage(img image.Image, filter int) (*Image, error) {
+	var innerImage *innerImage
 	var err error
 	u.use(func() {
-		glTexture, err := opengl.NewTextureFromImage(img, filter)
+		var texture *opengl.Texture
+		texture, err = opengl.NewTextureFromImage(img, filter)
 		if err != nil {
 			return
 		}
-		i = &Image{glTexture}
+		innerImage, err = newInnerImage(texture, filter)
 	})
-	return i, err
+	if err != nil {
+		return nil, err
+	}
+	return &Image{u, innerImage}, nil
 }
 
-func (u *ui) newRenderTarget(width, height int, filter int) (*RenderTarget, error) {
-	var innerRenderTarget *innerRenderTarget
+func (u *ui) newImage(width, height int, filter int) (*Image, error) {
+	var innerImage *innerImage
 	var err error
 	u.use(func() {
-		innerRenderTarget, err = newInnerRenderTarget(width, height, filter)
+		var texture *opengl.Texture
+		texture, err = opengl.NewTexture(width, height, filter)
+		if err != nil {
+			return
+		}
+		innerImage, err = newInnerImage(texture, filter)
+		innerImage.Clear()
 	})
-	return &RenderTarget{u, innerRenderTarget}, err
+	if err != nil {
+		return nil, err
+	}
+	return &Image{u, innerImage}, nil
 }
 
 func (u *ui) run() {
