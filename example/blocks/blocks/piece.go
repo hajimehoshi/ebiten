@@ -18,6 +18,7 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"image"
 )
 
 func init() {
@@ -145,10 +146,11 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, geo ebite
 			if block == BlockTypeNone {
 				continue
 			}
-			locationX := float64(i * blockWidth)
-			locationY := float64(j * blockHeight)
-			dst := ebiten.Rect{locationX, locationY, blockWidth, blockHeight}
-			src := ebiten.Rect{float64(int(block)-1) * blockWidth, 0, blockWidth, blockHeight}
+			locationX := i * blockWidth
+			locationY := j * blockHeight
+			dst := image.Rect(locationX, locationY, locationX+blockWidth, locationY+blockHeight)
+			srcX := (int(block) - 1) * blockWidth
+			src := image.Rect(srcX, 0, srcX+blockWidth, blockHeight)
 			parts = append(parts, ebiten.ImagePart{dst, src})
 		}
 	}

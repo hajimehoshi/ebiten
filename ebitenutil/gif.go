@@ -40,7 +40,8 @@ func (r *recorder) update(screen *ebiten.Image) error {
 		return nil
 	}
 	img := image.NewPaletted(screen.Bounds(), palette.Plan9)
-	draw.Draw(img, img.Bounds(), screen, screen.Bounds().Min, draw.Over)
+	// TODO: This is too slow.
+	draw.Draw(img, img.Bounds(), screen, screen.Bounds().Min, draw.Src)
 	r.gif.Image[r.currentFrame] = img
 	// The actual FPS is 60, but GIF can't have such FPS. Set 50 FPS instead.
 	r.gif.Delay[r.currentFrame] = 2

@@ -18,29 +18,22 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"image"
 )
-
-// A Rect represents a rectangle.
-type Rect struct {
-	X      float64
-	Y      float64
-	Width  float64
-	Height float64
-}
 
 // An ImagePart represents a part of an image.
 type ImagePart struct {
-	Dst Rect
-	Src Rect
+	Dst image.Rectangle
+	Src image.Rectangle
 }
 
 // DrawWholeImage draws the whole image.
-func DrawWholeImage(target *Image, image *Image, geo GeometryMatrix, color ColorMatrix) error {
-	w, h := image.Size()
+func DrawWholeImage(target *Image, img *Image, geo GeometryMatrix, color ColorMatrix) error {
+	w, h := img.Size()
 	parts := []ImagePart{
-		{Rect{0, 0, float64(w), float64(h)}, Rect{0, 0, float64(w), float64(h)}},
+		{image.Rect(0, 0, w, h), image.Rect(0, 0, w, h)},
 	}
-	return target.DrawImage(image, parts, geo, color)
+	return target.DrawImage(img, parts, geo, color)
 }
 
 // Filter represents the type of filter to be used when an image is maginified or minified.

@@ -19,6 +19,7 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"image"
 	_ "image/jpeg"
 	"log"
 )
@@ -36,11 +37,11 @@ func Update(screen *ebiten.Image) error {
 	parts := []ebiten.ImagePart{}
 	w, h := gophersImage.Size()
 	for i := 0; i < h; i++ {
-		width := float64(w) + float64(i)*0.75
-		x := float64(h-i) * 0.75 / 2
+		width := w + i*3/4
+		x := ((h - i) * 3 / 4) / 2
 		part := ebiten.ImagePart{
-			Dst: ebiten.Rect{x, float64(i), width, 1},
-			Src: ebiten.Rect{0, float64(i), float64(w), 1},
+			Dst: image.Rect(x, i, x+width, i+1),
+			Src: image.Rect(0, i, w, i+1),
 		}
 		parts = append(parts, part)
 	}

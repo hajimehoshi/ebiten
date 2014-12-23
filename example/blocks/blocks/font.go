@@ -18,6 +18,7 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"image"
 	"image/color"
 	"math"
 )
@@ -45,11 +46,11 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 			continue
 		}
 		code := int(c)
-		x := float64(code%16) * charWidth
-		y := float64((code-32)/16) * charHeight
+		x := (code % 16) * charWidth
+		y := ((code - 32) / 16) * charHeight
 		parts = append(parts, ebiten.ImagePart{
-			Dst: ebiten.Rect{float64(locationX), float64(locationY), charWidth, charHeight},
-			Src: ebiten.Rect{x, y, charWidth, charHeight},
+			Dst: image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight),
+			Src: image.Rect(x, y, x+charWidth, y+charHeight),
 		})
 		locationX += charWidth
 	}

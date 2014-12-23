@@ -76,14 +76,14 @@ func v(y float64, height int) float32 {
 func textureQuads(parts []ImagePart, width, height int) []shader.TextureQuad {
 	quads := make([]shader.TextureQuad, 0, len(parts))
 	for _, part := range parts {
-		x1 := float32(part.Dst.X)
-		x2 := float32(part.Dst.X + part.Dst.Width)
-		y1 := float32(part.Dst.Y)
-		y2 := float32(part.Dst.Y + part.Dst.Height)
-		u1 := u(part.Src.X, width)
-		u2 := u(part.Src.X+part.Src.Width, width)
-		v1 := v(part.Src.Y, height)
-		v2 := v(part.Src.Y+part.Src.Height, height)
+		x1 := float32(part.Dst.Min.X)
+		x2 := float32(part.Dst.Max.X)
+		y1 := float32(part.Dst.Min.Y)
+		y2 := float32(part.Dst.Max.Y)
+		u1 := u(float64(part.Src.Min.X), width)
+		u2 := u(float64(part.Src.Max.X), width)
+		v1 := v(float64(part.Src.Min.Y), height)
+		v2 := v(float64(part.Src.Max.Y), height)
 		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}

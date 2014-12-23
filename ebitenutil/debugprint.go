@@ -19,6 +19,7 @@ package ebitenutil
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/assets"
+	"image"
 	"image/color"
 	"math"
 )
@@ -46,11 +47,11 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 		}
 		code := int(c)
 		const xCharNum = assets.TextImageWidth / assets.TextImageCharWidth
-		srcX := float64(code%xCharNum) * assets.TextImageCharWidth
-		srcY := float64(code/xCharNum) * assets.TextImageCharHeight
+		srcX := (code % xCharNum) * assets.TextImageCharWidth
+		srcY := (code / xCharNum) * assets.TextImageCharHeight
 		parts = append(parts, ebiten.ImagePart{
-			Dst: ebiten.Rect{float64(locationX), float64(locationY), assets.TextImageCharWidth, assets.TextImageCharHeight},
-			Src: ebiten.Rect{srcX, srcY, assets.TextImageCharWidth, assets.TextImageCharHeight},
+			Dst: image.Rect(locationX, locationY, locationX+assets.TextImageCharWidth, locationY+assets.TextImageCharHeight),
+			Src: image.Rect(srcX, srcY, srcX+assets.TextImageCharWidth, srcY+assets.TextImageCharHeight),
 		})
 		locationX += assets.TextImageCharWidth
 	}

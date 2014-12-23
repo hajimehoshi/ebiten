@@ -18,6 +18,7 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"image"
 	"image/color"
 )
 
@@ -58,9 +59,11 @@ func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
 	parts := []ebiten.ImagePart{}
 	for j := -1; j < ScreenHeight/imageHeight+1; j++ {
 		for i := 0; i < ScreenWidth/imageWidth+1; i++ {
+			dstX := i * imageWidth
+			dstY := j * imageHeight
 			parts = append(parts, ebiten.ImagePart{
-				Dst: ebiten.Rect{float64(i * imageWidth), float64(j * imageHeight), imageWidth, imageHeight},
-				Src: ebiten.Rect{0, 0, imageWidth, imageHeight},
+				Dst: image.Rect(dstX, dstY, dstX+imageWidth, dstY+imageHeight),
+				Src: image.Rect(0, 0, imageWidth, imageHeight),
 			})
 		}
 	}
