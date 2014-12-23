@@ -36,7 +36,7 @@ var (
 	saved           bool
 )
 
-func Update(screen *ebiten.Image) error {
+func update(screen *ebiten.Image) error {
 	count++
 	count %= 600
 	diff := float64(count) * 0.2
@@ -87,7 +87,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Alpha Blending (Ebiten Demo)"); err != nil {
+	update := update
+	// f, _ := os.Create("out.gif")
+	// update = ebitenutil.RecordScreenAsGIF(update, f, 100)
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Alpha Blending (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
