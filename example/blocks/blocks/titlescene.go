@@ -56,15 +56,13 @@ func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
 	const imageHeight = 32
 
 	backgroundImage := images.GetImage("background")
-	parts := []ebiten.ImagePart{}
+	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
 	for j := -1; j < ScreenHeight/imageHeight+1; j++ {
 		for i := 0; i < ScreenWidth/imageWidth+1; i++ {
 			dstX := i * imageWidth
 			dstY := j * imageHeight
-			parts = append(parts, ebiten.ImagePart{
-				Dst: image.Rect(dstX, dstY, dstX+imageWidth, dstY+imageHeight),
-				Src: image.Rect(0, 0, imageWidth, imageHeight),
-			})
+			dsts = append(dsts, image.Rect(dstX, dstY, dstX+imageWidth, dstY+imageHeight))
+			srcs = append(srcs, image.Rect(0, 0, imageWidth, imageHeight))
 		}
 	}
 
@@ -73,7 +71,7 @@ func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
 	geo := ebiten.GeometryMatrixI()
 	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
 	clr := ebiten.ColorMatrixI()
-	r.DrawImage(backgroundImage, parts, geo, clr)
+	r.DrawImage(dsts, backgroundImage, srcs, geo, clr)
 }
 
 func drawLogo(r *ebiten.Image, images *Images, str string) {

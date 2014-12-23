@@ -36,7 +36,7 @@ func textWidth(str string) int {
 
 func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c color.Color) {
 	fontImageId := images.GetImage("font")
-	parts := []ebiten.ImagePart{}
+	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
 
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -48,10 +48,8 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 		code := int(c)
 		x := (code % 16) * charWidth
 		y := ((code - 32) / 16) * charHeight
-		parts = append(parts, ebiten.ImagePart{
-			Dst: image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight),
-			Src: image.Rect(x, y, x+charWidth, y+charHeight),
-		})
+		dsts = append(dsts, image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight))
+		srcs = append(srcs, image.Rect(x, y, x+charWidth, y+charHeight))
 		locationX += charWidth
 	}
 
@@ -64,7 +62,7 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 	b := float64(c2.B) / max
 	a := float64(c2.A) / max
 	clr := ebiten.ScaleColor(r, g, b, a)
-	rt.DrawImage(fontImageId, parts, geo, clr)
+	rt.DrawImage(dsts, fontImageId, srcs, geo, clr)
 }
 
 func drawTextWithShadow(rt *ebiten.Image, images *Images, str string, x, y, scale int, clr color.Color) {

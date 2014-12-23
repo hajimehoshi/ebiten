@@ -140,7 +140,7 @@ const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
 func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
-	parts := []ebiten.ImagePart{}
+	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
 			if block == BlockTypeNone {
@@ -148,14 +148,13 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, geo ebite
 			}
 			locationX := i * blockWidth
 			locationY := j * blockHeight
-			dst := image.Rect(locationX, locationY, locationX+blockWidth, locationY+blockHeight)
+			dsts = append(dsts, image.Rect(locationX, locationY, locationX+blockWidth, locationY+blockHeight))
 			srcX := (int(block) - 1) * blockWidth
-			src := image.Rect(srcX, 0, srcX+blockWidth, blockHeight)
-			parts = append(parts, ebiten.ImagePart{dst, src})
+			srcs = append(srcs, image.Rect(srcX, 0, srcX+blockWidth, blockHeight))
 		}
 	}
 	blocksImage := images.GetImage("blocks")
-	r.DrawImage(blocksImage, parts, geo, ebiten.ColorMatrixI())
+	r.DrawImage(dsts, blocksImage, srcs, geo, ebiten.ColorMatrixI())
 }
 
 func (p *Piece) InitialPosition() (int, int) {

@@ -54,12 +54,12 @@ func (i *innerImage) Fill(clr color.Color) error {
 	return nil
 }
 
-func (i *innerImage) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) error {
+func (i *innerImage) drawImage(dsts []image.Rectangle, image *innerImage, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) error {
 	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
 	}
 	w, h := image.texture.Size()
-	quads := textureQuads(parts, w, h)
+	quads := textureQuads(dsts, srcs, w, h)
 	projectionMatrix := i.framebuffer.ProjectionMatrix()
 	shader.DrawTexture(image.texture.Native(), projectionMatrix, quads, &geo, &color)
 	return nil
@@ -73,17 +73,22 @@ func v(y float64, height int) float32 {
 	return float32(y) / float32(internal.NextPowerOf2Int(height))
 }
 
-func textureQuads(parts []ImagePart, width, height int) []shader.TextureQuad {
-	quads := make([]shader.TextureQuad, 0, len(parts))
-	for _, part := range parts {
-		x1 := float32(part.Dst.Min.X)
-		x2 := float32(part.Dst.Max.X)
-		y1 := float32(part.Dst.Min.Y)
-		y2 := float32(part.Dst.Max.Y)
-		u1 := u(float64(part.Src.Min.X), width)
-		u2 := u(float64(part.Src.Max.X), width)
-		v1 := v(float64(part.Src.Min.Y), height)
-		v2 := v(float64(part.Src.Max.Y), height)
+func textureQuads(dsts, srcs []image.Rectangle, width, height int) []shader.TextureQuad {
+	l := len(dsts)
+	if len(srcs) < l {
+		l = len(srcs)
+	}
+	quads := make([]shader.TextureQuad, 0, l)
+	for i := 0; i < l; i++ {
+		dst, src := dsts[i], srcs[i]
+		x1 := float32(dst.Min.X)
+		x2 := float32(dst.Max.X)
+		y1 := float32(dst.Min.Y)
+		y2 := float32(dst.Max.Y)
+		u1 := u(float64(src.Min.X), width)
+		u2 := u(float64(src.Max.X), width)
+		v1 := v(float64(src.Min.Y), height)
+		v2 := v(float64(src.Max.Y), height)
 		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
 		quads = append(quads, quad)
 	}
@@ -127,14 +132,14 @@ func (i *Image) Fill(clr color.Color) (err error) {
 }
 
 // DrawImage draws the given image on the receiver (i).
-func (i *Image) DrawImage(image *Image, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
-	return i.drawImage(image.inner, parts, geo, color)
+func (i *Image) DrawImage(dsts []image.Rectangle, image *Image, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) (err error) {
+	return i.drawImage(dsts, image.inner, srcs, geo, color)
 }
 
-func (i *Image) drawImage(image *innerImage, parts []ImagePart, geo GeometryMatrix, color ColorMatrix) (err error) {
+func (i *Image) drawImage(dsts []image.Rectangle, image *innerImage, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {
-		err = i.inner.drawImage(image, parts, geo, color)
+		err = i.inner.drawImage(dsts, image, srcs, geo, color)
 	})
 	return
 }
@@ -151,7 +156,8 @@ func (i *Image) ColorModel() color.Model {
 }
 
 // At returns the color of the image at (x, y).
-// This method may read pixels from GPU to VRAM and be slow.
+//
+// This method loads pixels from GPU to VRAM if necessary.
 func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
 		i.syncer.Sync(func() {

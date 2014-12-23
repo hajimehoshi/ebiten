@@ -37,7 +37,7 @@ func DebugPrint(r *ebiten.Image, str string) {
 }
 
 func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
-	parts := []ebiten.ImagePart{}
+	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
 		if c == '\n' {
@@ -49,10 +49,10 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 		const xCharNum = assets.TextImageWidth / assets.TextImageCharWidth
 		srcX := (code % xCharNum) * assets.TextImageCharWidth
 		srcY := (code / xCharNum) * assets.TextImageCharHeight
-		parts = append(parts, ebiten.ImagePart{
-			Dst: image.Rect(locationX, locationY, locationX+assets.TextImageCharWidth, locationY+assets.TextImageCharHeight),
-			Src: image.Rect(srcX, srcY, srcX+assets.TextImageCharWidth, srcY+assets.TextImageCharHeight),
-		})
+		dst := image.Rect(locationX, locationY, locationX+assets.TextImageCharWidth, locationY+assets.TextImageCharHeight)
+		src := image.Rect(srcX, srcY, srcX+assets.TextImageCharWidth, srcY+assets.TextImageCharHeight)
+		dsts = append(dsts, dst)
+		srcs = append(srcs, src)
 		locationX += assets.TextImageCharWidth
 	}
 	geo := ebiten.TranslateGeometry(float64(x)+1, float64(y))
@@ -62,7 +62,7 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	b := float64(cc.B) / math.MaxUint16
 	a := float64(cc.A) / math.MaxUint16
 	clr := ebiten.ScaleColor(r, g, b, a)
-	rt.DrawImage(d.textImage, parts, geo, clr)
+	rt.DrawImage(dsts, d.textImage, srcs, geo, clr)
 }
 
 func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {

@@ -72,10 +72,9 @@ func (c *graphicsContext) postUpdate() error {
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
 	w, h := c.screen.size()
-	parts := []ImagePart{
-		{image.Rect(0, 0, w, h), image.Rect(0, 0, w, h)},
-	}
-	if err := c.defaultR.drawImage(c.screen, parts, geo, clr); err != nil {
+	dsts := []image.Rectangle{image.Rect(0, 0, w, h)}
+	srcs := []image.Rectangle{image.Rect(0, 0, w, h)}
+	if err := c.defaultR.drawImage(dsts, c.screen, srcs, geo, clr); err != nil {
 		return err
 	}
 
