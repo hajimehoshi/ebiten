@@ -73,12 +73,11 @@ func (s *SceneManager) Draw(r *ebiten.Image, images *Images) {
 	to.Clear()
 	s.next.Draw(to, images)
 
-	color := ebiten.ColorMatrixI()
-	ebiten.DrawWholeImage(r, from, ebiten.GeometryMatrixI(), color)
+	ebiten.DrawImage(r, from, 0, 0)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
-	color.Elements[3][3] = alpha
-	ebiten.DrawWholeImage(r, to, ebiten.GeometryMatrixI(), color)
+	color := ebiten.ScaleColor(1, 1, 1, alpha)
+	ebiten.DrawImageColor(r, to, 0, 0, color)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {

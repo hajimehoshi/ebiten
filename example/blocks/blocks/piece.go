@@ -139,7 +139,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, geo ebiten.GeometryMatrix) {
+func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int) {
 	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -154,7 +154,7 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, geo ebite
 		}
 	}
 	blocksImage := images.GetImage("blocks")
-	r.DrawImage(dsts, blocksImage, srcs, geo, ebiten.ColorMatrixI())
+	ebiten.DrawImageParts(r, dsts, blocksImage, srcs, x, y)
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -226,10 +226,7 @@ func (p *Piece) Draw(r *ebiten.Image, images *Images, fieldX, fieldY int, pieceX
 		}
 	}
 
-	geoMat := ebiten.GeometryMatrixI()
 	x := fieldX + pieceX*blockWidth
 	y := fieldY + pieceY*blockHeight
-	geoMat.Concat(ebiten.TranslateGeometry(float64(x), float64(y)))
-
-	drawBlocks(r, images, blocks, geoMat)
+	drawBlocks(r, images, blocks, x, y)
 }

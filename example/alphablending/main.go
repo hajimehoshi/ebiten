@@ -51,18 +51,15 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 	for i := 0; i < 10; i++ {
-		geo := ebiten.TranslateGeometry(15+float64(i)*(diff), 20)
 		clr := ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5)
-		if err := ebiten.DrawWholeImage(tmpRenderTarget, ebitenImage, geo, clr); err != nil {
+		if err := ebiten.DrawImageColor(tmpRenderTarget, ebitenImage, 15+int(float64(i)*diff), 20, clr); err != nil {
 			return err
 		}
 	}
 
 	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
-		geo := ebiten.TranslateGeometry(0, float64(i)*(diff))
-		clr := ebiten.ColorMatrixI()
-		if err := ebiten.DrawWholeImage(screen, tmpRenderTarget, geo, clr); err != nil {
+		if err := ebiten.DrawImage(screen, tmpRenderTarget, 0, int(float64(i)*diff)); err != nil {
 			return err
 		}
 	}

@@ -68,10 +68,7 @@ func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
 
 	dx := (-c / 4) % imageWidth
 	dy := (c / 4) % imageHeight
-	geo := ebiten.GeometryMatrixI()
-	geo.Concat(ebiten.TranslateGeometry(float64(dx), float64(dy)))
-	clr := ebiten.ColorMatrixI()
-	r.DrawImage(dsts, backgroundImage, srcs, geo, clr)
+	ebiten.DrawImageParts(r, dsts, backgroundImage, srcs, dx, dy)
 }
 
 func drawLogo(r *ebiten.Image, images *Images, str string) {

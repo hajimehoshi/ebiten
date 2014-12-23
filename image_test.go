@@ -104,9 +104,9 @@ func TestComposition(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	DrawWholeImage(img2, img1, GeometryMatrixI(), ColorMatrixI())
-	DrawWholeImage(img3, img2, GeometryMatrixI(), ColorMatrixI())
-	DrawWholeImage(img_12_3, img3, GeometryMatrixI(), ColorMatrixI())
+	DrawImageGeometryColor(img2, img1, GeometryMatrixI(), ColorMatrixI())
+	DrawImageGeometryColor(img3, img2, GeometryMatrixI(), ColorMatrixI())
+	DrawImageGeometryColor(img_12_3, img3, GeometryMatrixI(), ColorMatrixI())
 
 	img2.Fill(img2Color)
 	img3.Fill(img3Color)
@@ -115,9 +115,9 @@ func TestComposition(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	DrawWholeImage(img3, img2, GeometryMatrixI(), ColorMatrixI())
-	DrawWholeImage(img3, img1, GeometryMatrixI(), ColorMatrixI())
-	DrawWholeImage(img_1_23, img3, GeometryMatrixI(), ColorMatrixI())
+	DrawImageGeometryColor(img3, img2, GeometryMatrixI(), ColorMatrixI())
+	DrawImageGeometryColor(img3, img1, GeometryMatrixI(), ColorMatrixI())
+	DrawImageGeometryColor(img_1_23, img3, GeometryMatrixI(), ColorMatrixI())
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {

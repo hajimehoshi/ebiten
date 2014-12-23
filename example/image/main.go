@@ -58,9 +58,7 @@ func Update(screen *ebiten.Image) error {
 	geo.Concat(ebiten.ScaleGeometry(scaleX, scaleY))
 	geo.Concat(ebiten.RotateGeometry(float64(count%720) * 2 * math.Pi / 720))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	//clr := ebiten.RotateHue(float64(count%180) * 2 * math.Pi / 180)
-	clr := ebiten.ColorMatrixI()
-	if err := ebiten.DrawWholeImage(screen, gophersImage, geo, clr); err != nil {
+	if err := ebiten.DrawImageGeometry(screen, gophersImage, geo); err != nil {
 		return err
 	}
 	return nil

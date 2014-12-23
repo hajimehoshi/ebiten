@@ -46,7 +46,7 @@ func Update(screen *ebiten.Image) error {
 	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
 	geo.Concat(ebiten.ScaleGeometry(0.4, 0.4))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
-	screen.DrawImage(dsts, gophersImage, srcs, geo, ebiten.ColorMatrixI())
+	ebiten.DrawImagePartsGeometry(screen, dsts, gophersImage, srcs, geo)
 	return nil
 }
 

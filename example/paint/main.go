@@ -44,14 +44,13 @@ func Update(screen *ebiten.Image) error {
 	mx, my := ebiten.CursorPosition()
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		geo := ebiten.TranslateGeometry(float64(mx), float64(my))
 		clr := ebiten.ScaleColor(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		ebiten.DrawWholeImage(canvasRenderTarget, brushRenderTarget, geo, clr)
+		ebiten.DrawImageColor(canvasRenderTarget, brushRenderTarget, mx, my, clr)
 	}
 
-	ebiten.DrawWholeImage(screen, canvasRenderTarget, ebiten.GeometryMatrixI(), ebiten.ColorMatrixI())
+	ebiten.DrawImage(screen, canvasRenderTarget, 0, 0)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil

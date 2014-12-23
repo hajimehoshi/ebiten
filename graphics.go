@@ -18,16 +18,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"image"
 )
-
-// DrawWholeImage draws the whole image.
-func DrawWholeImage(target *Image, img *Image, geo GeometryMatrix, color ColorMatrix) error {
-	w, h := img.Size()
-	dsts := []image.Rectangle{image.Rect(0, 0, w, h)}
-	srcs := []image.Rectangle{image.Rect(0, 0, w, h)}
-	return target.DrawImage(dsts, img, srcs, geo, color)
-}
 
 // Filter represents the type of filter to be used when an image is maginified or minified.
 type Filter opengl.Filter
