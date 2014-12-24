@@ -20,8 +20,8 @@ import (
 )
 
 func TestColorIdentity(t *testing.T) {
-	ebiten := ColorMatrixI()
-	got := ebiten.IsIdentity()
+	m := ColorMatrixI()
+	got := m.IsIdentity()
 	want := true
 	if want != got {
 		t.Errorf("matrix.IsIdentity() = %t, want %t", got, want)

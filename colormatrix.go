@@ -28,6 +28,7 @@ const ColorMatrixDim = 5
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
 type ColorMatrix struct {
+	// es represents elements.
 	es [ColorMatrixDim - 1][ColorMatrixDim]float64
 }
 

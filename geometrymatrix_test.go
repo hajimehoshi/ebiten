@@ -20,8 +20,8 @@ import (
 )
 
 func TestGeometryIdentity(t *testing.T) {
-	ebiten := GeometryMatrixI()
-	got := ebiten.IsIdentity()
+	m := GeometryMatrixI()
+	got := m.IsIdentity()
 	want := true
 	if want != got {
 		t.Errorf("matrix.IsIdentity() = %t, want %t", got, want)

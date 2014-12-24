@@ -23,6 +23,7 @@ const GeometryMatrixDim = 3
 
 // A GeometryMatrix represents a matrix to transform geometry when rendering an image.
 type GeometryMatrix struct {
+	// es represents elements.
 	es [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
 
