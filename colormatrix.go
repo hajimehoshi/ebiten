@@ -28,7 +28,7 @@ const ColorMatrixDim = 5
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
 type ColorMatrix struct {
-	Elements [ColorMatrixDim - 1][ColorMatrixDim]float64
+	es [ColorMatrixDim - 1][ColorMatrixDim]float64
 }
 
 // ColorMatrixI returns an identity color matrix.
@@ -49,7 +49,7 @@ func (c *ColorMatrix) dim() int {
 
 // Element returns a value of a matrix at (i, j).
 func (c *ColorMatrix) Element(i, j int) float64 {
-	return c.Elements[i][j]
+	return c.es[i][j]
 }
 
 // Concat multiplies a color matrix with the other color matrix.
@@ -65,7 +65,7 @@ func (c *ColorMatrix) IsIdentity() bool {
 }
 
 func (c *ColorMatrix) setElement(i, j int, element float64) {
-	c.Elements[i][j] = element
+	c.es[i][j] = element
 }
 
 // Monochrome returns a color matrix to make an image monochrome.

@@ -29,16 +29,8 @@ func TestGeometryIdentity(t *testing.T) {
 }
 
 func TestGeometryConcat(t *testing.T) {
-	matrix1 := GeometryMatrix{}
-	matrix2 := GeometryMatrix{}
-	matrix1.Elements = [2][3]float64{
-		{2, 0, 0},
-		{0, 2, 0},
-	}
-	matrix2.Elements = [2][3]float64{
-		{1, 0, 1},
-		{0, 1, 1},
-	}
+	matrix1 := ScaleGeometry(2, 2)
+	matrix2 := TranslateGeometry(1, 1)
 
 	matrix3 := matrix1
 	matrix3.Concat(matrix2)
@@ -48,7 +40,7 @@ func TestGeometryConcat(t *testing.T) {
 	}
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 3; j++ {
-			got := matrix3.Elements[i][j]
+			got := matrix3.Element(i, j)
 			want := expected[i][j]
 			if want != got {
 				t.Errorf("matrix3.Element(%d, %d) = %f,"+
@@ -66,7 +58,7 @@ func TestGeometryConcat(t *testing.T) {
 	}
 	for i := 0; i < 2; i++ {
 		for j := 0; j < 3; j++ {
-			got := matrix4.Elements[i][j]
+			got := matrix4.Element(i, j)
 			want := expected[i][j]
 			if want != got {
 				t.Errorf("matrix4.Element(%d, %d) = %f, want %f",

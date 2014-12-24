@@ -23,7 +23,7 @@ const GeometryMatrixDim = 3
 
 // A GeometryMatrix represents a matrix to transform geometry when rendering an image.
 type GeometryMatrix struct {
-	Elements [GeometryMatrixDim - 1][GeometryMatrixDim]float64
+	es [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
 
 // GeometryMatrixI returns an identity geometry matrix.
@@ -42,7 +42,7 @@ func (g *GeometryMatrix) dim() int {
 
 // Element returns a value of a matrix at (i, j).
 func (g *GeometryMatrix) Element(i, j int) float64 {
-	return g.Elements[i][j]
+	return g.es[i][j]
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
@@ -58,7 +58,7 @@ func (g *GeometryMatrix) IsIdentity() bool {
 }
 
 func (g *GeometryMatrix) setElement(i, j int, element float64) {
-	g.Elements[i][j] = element
+	g.es[i][j] = element
 }
 
 // ScaleGeometry returns a matrix that scales a geometry matrix by (x, y).
