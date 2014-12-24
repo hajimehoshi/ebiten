@@ -60,7 +60,12 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 	b := float64(c2.B) / max
 	a := float64(c2.A) / max
 	clr := ebiten.ScaleColor(r, g, b, a)
-	rt.DrawImage(dsts, fontImageId, srcs, geo, clr)
+	rt.DrawImage(fontImageId, &ebiten.ImageDrawOption{
+		DstParts:       dsts,
+		SrcParts:       srcs,
+		GeometryMatrix: &geo,
+		ColorMatrix:    &clr,
+	})
 }
 
 func drawTextWithShadow(rt *ebiten.Image, images *Images, str string, x, y, scale int, clr color.Color) {

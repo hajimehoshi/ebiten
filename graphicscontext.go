@@ -16,7 +16,6 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"image"
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
@@ -69,10 +68,11 @@ func (c *graphicsContext) postUpdate() error {
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
 	clr := ColorMatrixI()
-	w, h := c.screen.size()
-	dsts := []image.Rectangle{image.Rect(0, 0, w, h)}
-	srcs := []image.Rectangle{image.Rect(0, 0, w, h)}
-	if err := c.defaultR.drawImage(dsts, c.screen, srcs, geo, clr); err != nil {
+	option := &ImageDrawOption{
+		GeometryMatrix: &geo,
+		ColorMatrix:    &clr,
+	}
+	if err := c.defaultR.drawImage(c.screen, option); err != nil {
 		return err
 	}
 

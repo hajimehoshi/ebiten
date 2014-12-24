@@ -52,14 +52,42 @@ func (i *innerImage) Fill(clr color.Color) error {
 	return nil
 }
 
-func (i *innerImage) drawImage(dsts []image.Rectangle, image *innerImage, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) error {
+func (i *innerImage) drawImage(img *innerImage, option *ImageDrawOption) error {
+	if option == nil {
+		option = &ImageDrawOption{}
+	}
+	dsts := option.DstParts
+	if dsts == nil {
+		w, h := img.size()
+		dsts = []image.Rectangle{
+			image.Rect(0, 0, w, h),
+		}
+	}
+	srcs := option.SrcParts
+	if srcs == nil {
+		w, h := img.size()
+		srcs = []image.Rectangle{
+			image.Rect(0, 0, w, h),
+		}
+	}
+	geo := option.GeometryMatrix
+	if geo == nil {
+		i := GeometryMatrixI()
+		geo = &i
+	}
+	clr := option.ColorMatrix
+	if clr == nil {
+		i := ColorMatrixI()
+		clr = &i
+	}
+
 	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
 	}
-	w, h := image.texture.Size()
+	w, h := img.texture.Size()
 	quads := textureQuads(dsts, srcs, w, h)
 	projectionMatrix := i.framebuffer.ProjectionMatrix()
-	shader.DrawTexture(image.texture.Native(), projectionMatrix, quads, &geo, &color)
+	shader.DrawTexture(img.texture.Native(), projectionMatrix, quads, geo, clr)
 	return nil
 }
 
@@ -134,14 +162,14 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // After determining parts to draw, this applies the geometry matrix geo and the color matrix color.
 //
 // If you want to draw a whole image simply, use DrawWholeImage.
-func (i *Image) DrawImage(dsts []image.Rectangle, image *Image, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) (err error) {
-	return i.drawImage(dsts, image.inner, srcs, geo, color)
+func (i *Image) DrawImage(image *Image, option *ImageDrawOption) (err error) {
+	return i.drawImage(image.inner, option)
 }
 
-func (i *Image) drawImage(dsts []image.Rectangle, image *innerImage, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) (err error) {
+func (i *Image) drawImage(image *innerImage, option *ImageDrawOption) (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {
-		err = i.inner.drawImage(dsts, image, srcs, geo, color)
+		err = i.inner.drawImage(image, option)
 	})
 	return
 }
@@ -175,4 +203,11 @@ func (i *Image) At(x, y int) color.Color {
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}
+}
+
+type ImageDrawOption struct {
+	DstParts       []image.Rectangle
+	SrcParts       []image.Rectangle
+	GeometryMatrix *GeometryMatrix
+	ColorMatrix    *ColorMatrix
 }

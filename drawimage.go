@@ -52,5 +52,11 @@ func DrawImagePartsColor(target *Image, dsts []image.Rectangle, img *Image, srcs
 }
 
 func DrawImagePartsGeometryColor(target *Image, dsts []image.Rectangle, img *Image, srcs []image.Rectangle, geo GeometryMatrix, color ColorMatrix) error {
-	return target.DrawImage(dsts, img, srcs, geo, color)
+	op := &ImageDrawOption{
+		DstParts:       dsts,
+		SrcParts:       srcs,
+		GeometryMatrix: &geo,
+		ColorMatrix:    &color,
+	}
+	return target.DrawImage(img, op)
 }
