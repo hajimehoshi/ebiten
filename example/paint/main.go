@@ -45,10 +45,12 @@ func Update(screen *ebiten.Image) error {
 		clr := ebiten.ScaleColor(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		ebiten.DrawImageColor(canvasRenderTarget, brushRenderTarget, mx, my, clr)
+		op := ebiten.At(mx, my)
+		op.ColorMatrix = &clr
+		canvasRenderTarget.DrawImage(brushRenderTarget, op)
 	}
 
-	ebiten.DrawImage(screen, canvasRenderTarget, 0, 0)
+	screen.DrawImage(canvasRenderTarget, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("(%d, %d)", mx, my))
 	return nil

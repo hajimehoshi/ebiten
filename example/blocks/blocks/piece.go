@@ -152,7 +152,10 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int)
 		}
 	}
 	blocksImage := images.GetImage("blocks")
-	ebiten.DrawImageParts(r, dsts, blocksImage, srcs, x, y)
+	op := ebiten.At(x, y)
+	op.SrcParts = srcs
+	op.DstParts = dsts
+	r.DrawImage(blocksImage, op)
 }
 
 func (p *Piece) InitialPosition() (int, int) {

@@ -57,15 +57,12 @@ func (i *innerImage) drawImage(img *innerImage, option *ImageDrawOption) error {
 		option = &ImageDrawOption{}
 	}
 	dsts := option.DstParts
-	if dsts == nil {
+	srcs := option.SrcParts
+	if srcs == nil || dsts == nil {
 		w, h := img.size()
 		dsts = []image.Rectangle{
 			image.Rect(0, 0, w, h),
 		}
-	}
-	srcs := option.SrcParts
-	if srcs == nil {
-		w, h := img.size()
 		srcs = []image.Rectangle{
 			image.Rect(0, 0, w, h),
 		}
@@ -210,4 +207,11 @@ type ImageDrawOption struct {
 	SrcParts       []image.Rectangle
 	GeometryMatrix *GeometryMatrix
 	ColorMatrix    *ColorMatrix
+}
+
+func At(x, y int) *ImageDrawOption {
+	geo := TranslateGeometry(float64(x), float64(y))
+	return &ImageDrawOption{
+		GeometryMatrix: &geo,
+	}
 }

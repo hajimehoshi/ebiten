@@ -102,9 +102,9 @@ func TestComposition(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	DrawImage(img2, img1, 0, 0)
-	DrawImage(img3, img2, 0, 0)
-	DrawImage(img_12_3, img3, 0, 0)
+	img2.DrawImage(img1, nil)
+	img3.DrawImage(img2, nil)
+	img_12_3.DrawImage(img3, nil)
 
 	img2.Fill(img2Color)
 	img3.Fill(img3Color)
@@ -113,9 +113,9 @@ func TestComposition(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	DrawImage(img3, img2, 0, 0)
-	DrawImage(img3, img1, 0, 0)
-	DrawImage(img_1_23, img3, 0, 0)
+	img3.DrawImage(img2, nil)
+	img3.DrawImage(img1, nil)
+	img_1_23.DrawImage(img3, nil)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
