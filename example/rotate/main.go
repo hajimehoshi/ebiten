@@ -36,7 +36,7 @@ var (
 	gophersImage    *ebiten.Image
 )
 
-func Update(screen *ebiten.Image) error {
+func update(screen *ebiten.Image) error {
 	count++
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		horizontalCount--
@@ -53,8 +53,8 @@ func Update(screen *ebiten.Image) error {
 
 	w, h := gophersImage.Size()
 	geo := ebiten.TranslateGeometry(-float64(w)/2, -float64(h)/2)
-	scaleX := 0.5 * math.Pow(1.05, float64(horizontalCount))
-	scaleY := 0.5 * math.Pow(1.05, float64(verticalCount))
+	scaleX := math.Pow(1.05, float64(horizontalCount))
+	scaleY := math.Pow(1.05, float64(verticalCount))
 	geo.Concat(ebiten.ScaleGeometry(scaleX, scaleY))
 	geo.Concat(ebiten.RotateGeometry(float64(count%720) * 2 * math.Pi / 720))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
@@ -70,7 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Image (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

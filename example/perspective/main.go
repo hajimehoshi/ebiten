@@ -33,7 +33,7 @@ var (
 	gophersImage *ebiten.Image
 )
 
-func Update(screen *ebiten.Image) error {
+func update(screen *ebiten.Image) error {
 	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
 	w, h := gophersImage.Size()
 	for i := 0; i < h; i++ {
@@ -44,7 +44,6 @@ func Update(screen *ebiten.Image) error {
 	}
 	maxWidth := float64(w) + float64(h)*0.75
 	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
-	geo.Concat(ebiten.ScaleGeometry(0.4, 0.4))
 	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
 	ebiten.DrawImagePartsGeometry(screen, dsts, gophersImage, srcs, geo)
 	return nil
@@ -56,7 +55,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Perspective (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Perspective (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
