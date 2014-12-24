@@ -1,13 +1,20 @@
 # Ebiten (海老天)
 
-* A simple 2D game library in Go.
-* Works only on Mac OS X so far.
+* A simple 2D game library in Go
+* Works only on Mac OS X so far
 * [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
-## Usage
+## Features
 
-* Please read Go files in the example directory.
-* Be careful that this library is now being developed actively and API can be changed easily.
+* 2D Graphics
+* Input (Mouse, Keyboard)
+
+## Example
+
+* example/mosaic - Mosaics an image
+* example/perspective - See an image in a perspective view
+* example/rotate - Rotates an image
+* etc.
 
 ## Install on Mac OS X
 
