@@ -53,6 +53,13 @@ func (g *GeometryMatrix) Concat(other GeometryMatrix) {
 	*g = result
 }
 
+// Add adds a geometry matrix with the other geometry matrix.
+func (g *GeometryMatrix) Add(other GeometryMatrix) {
+	result := GeometryMatrix{}
+	add(&other, g, &result)
+	*g = result
+}
+
 func (g *GeometryMatrix) setElement(i, j int, element float64) {
 	g.es[i][j] = element
 }

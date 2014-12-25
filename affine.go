@@ -35,6 +35,19 @@ func isIdentity(ebiten affine) bool {
 	return true
 }
 
+func add(lhs, rhs, result affine) {
+	dim := lhs.dim()
+	if dim != rhs.dim() {
+		panic("diffrent-sized matrices can't be multiplied")
+	}
+
+	for i := 0; i < dim-1; i++ {
+		for j := 0; j < dim; j++ {
+			result.setElement(i, j, lhs.Element(i, j)+rhs.Element(i, j))
+		}
+	}
+}
+
 func mul(lhs, rhs, result affine) {
 	dim := lhs.dim()
 	if dim != rhs.dim() {

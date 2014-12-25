@@ -60,6 +60,13 @@ func (c *ColorMatrix) Concat(other ColorMatrix) {
 	*c = result
 }
 
+// Add adds a color matrix with the other color matrix.
+func (c *ColorMatrix) Add(other ColorMatrix) {
+	result := ColorMatrix{}
+	add(&other, c, &result)
+	*c = result
+}
+
 func (c *ColorMatrix) setElement(i, j int, element float64) {
 	c.es[i][j] = element
 }
