@@ -16,6 +16,7 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
+	"unsafe"
 )
 
 func glMatrix(m [4][4]float64) [16]float32 {
@@ -33,20 +34,27 @@ type Matrix interface {
 }
 
 type vbo struct {
-	indexBuffer gl.Buffer
+	indexBuffer  gl.Buffer
+	vertexBuffer gl.Buffer
 }
 
 const size = 10000
 
 var currentVBO *vbo
 
+const uint16Size = 2
+const short32Size = 4
+
 func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
+	const stride = 4 * 4
 	if currentVBO == nil {
 		initialize()
 		currentVBO = &vbo{
-			indexBuffer: gl.GenBuffer(),
+			indexBuffer:  gl.GenBuffer(),
+			vertexBuffer: gl.GenBuffer(),
 		}
+
 		currentVBO.indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
 		indices := make([]uint16, 6*size)
 		for i := uint16(0); i < size; i++ {
@@ -57,7 +65,11 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 			indices[6*i+4] = 4*i + 2
 			indices[6*i+5] = 4*i + 3
 		}
-		gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices), indices, gl.STATIC_DRAW)
+		gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, uint16Size*len(indices), indices, gl.STATIC_DRAW)
+
+		currentVBO.vertexBuffer.Bind(gl.ARRAY_BUFFER)
+		vertices := make([]float32, stride*size)
+		gl.BufferData(gl.ARRAY_BUFFER, short32Size*len(vertices), vertices, gl.DYNAMIC_DRAW)
 	}
 
 	if len(quads) == 0 {
@@ -83,32 +95,31 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		gl.DisableClientState(gl.VERTEX_ARRAY)
 	}()
 
+	// TODO: Fix this dirty hack after fixing https://github.com/go-gl/gl/issues/174
+	v := (*int)(unsafe.Pointer(uintptr(4 * 0)))
+	t := (*int)(unsafe.Pointer(uintptr(4 * 2)))
+	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, v)
+	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, t)
+
 	vertices := []float32{}
-	texCoords := []float32{}
 	for _, quad := range quads {
 		x0 := quad.VertexX0
 		x1 := quad.VertexX1
 		y0 := quad.VertexY0
 		y1 := quad.VertexY1
-		vertices = append(vertices,
-			x0, y0,
-			x1, y0,
-			x0, y1,
-			x1, y1,
-		)
 		u0 := quad.TextureCoordU0
 		u1 := quad.TextureCoordU1
 		v0 := quad.TextureCoordV0
 		v1 := quad.TextureCoordV1
-		texCoords = append(texCoords,
-			u0, v0,
-			u1, v0,
-			u0, v1,
-			u1, v1,
+		vertices = append(vertices,
+			x0, y0, u0, v0,
+			x1, y0, u1, v0,
+			x0, y1, u0, v1,
+			x1, y1, u1, v1,
 		)
 	}
-	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, vertices)
-	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords)
+	gl.BufferSubData(gl.ARRAY_BUFFER, 0, short32Size*len(vertices), vertices)
+	// TODO: Pass 0 after fixing the gl bug
 	gl.DrawElements(gl.TRIANGLES, 6*len(quads), gl.UNSIGNED_SHORT, nil)
 
 	gl.Flush()
