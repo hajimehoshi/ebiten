@@ -33,29 +33,20 @@ type Matrix interface {
 	Element(i, j int) float64
 }
 
-type vbo struct {
-	indexBuffer  gl.Buffer
-	vertexBuffer gl.Buffer
-}
+var initialized = false
 
 const size = 10000
-
-var currentVBO *vbo
-
 const uint16Size = 2
 const short32Size = 4
 
 func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
-	if currentVBO == nil {
+	if !initialized {
 		initialize()
-		currentVBO = &vbo{
-			indexBuffer:  gl.GenBuffer(),
-			vertexBuffer: gl.GenBuffer(),
-		}
 
-		currentVBO.indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
+		indexBuffer := gl.GenBuffer()
+		indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
 		indices := make([]uint16, 6*size)
 		for i := uint16(0); i < size; i++ {
 			indices[6*i+0] = 4*i + 0
@@ -67,9 +58,12 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		}
 		gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, uint16Size*len(indices), indices, gl.STATIC_DRAW)
 
-		currentVBO.vertexBuffer.Bind(gl.ARRAY_BUFFER)
+		vertexBuffer := gl.GenBuffer()
+		vertexBuffer.Bind(gl.ARRAY_BUFFER)
 		vertices := make([]float32, stride*size)
 		gl.BufferData(gl.ARRAY_BUFFER, short32Size*len(vertices), vertices, gl.DYNAMIC_DRAW)
+
+		initialized = true
 	}
 
 	if len(quads) == 0 {
