@@ -48,6 +48,7 @@ func init() {
 	currentUI.run()
 	currentUI.use(func() {
 		opengl.Init()
+		glfw.SwapInterval(1)
 	})
 }
 
@@ -175,8 +176,8 @@ func (u *ui) run() {
 func (u *ui) use(f func()) {
 	ch := make(chan struct{})
 	u.funcs <- func() {
+		defer close(ch)
 		f()
-		close(ch)
 	}
 	<-ch
 }
