@@ -209,7 +209,7 @@ type DrawImageOptions struct {
 	ColorMatrix    *ColorMatrix
 }
 
-func At(x, y int) *DrawImageOptions {
+func DrawImageAt(x, y int) *DrawImageOptions {
 	geo := TranslateGeometry(float64(x), float64(y))
 	return &DrawImageOptions{
 		GeometryMatrix: &geo,

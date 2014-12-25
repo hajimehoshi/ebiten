@@ -66,7 +66,7 @@ func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
 
 	dx := (-c / 4) % imageWidth
 	dy := (c / 4) % imageHeight
-	op := ebiten.At(dx, dy)
+	op := ebiten.DrawImageAt(dx, dy)
 	op.SrcParts = srcs
 	op.DstParts = dsts
 	r.DrawImage(backgroundImage, op)

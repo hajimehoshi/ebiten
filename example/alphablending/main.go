@@ -50,7 +50,7 @@ func update(screen *ebiten.Image) error {
 	}
 	for i := 0; i < 10; i++ {
 		clr := ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5)
-		op := ebiten.At(15+int(float64(i)*diff), 20)
+		op := ebiten.DrawImageAt(15+int(float64(i)*diff), 20)
 		op.ColorMatrix = &clr
 		if err := tmpRenderTarget.DrawImage(ebitenImage, op); err != nil {
 			return err
@@ -59,7 +59,7 @@ func update(screen *ebiten.Image) error {
 
 	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
-		op := ebiten.At(0, int(float64(i)*diff))
+		op := ebiten.DrawImageAt(0, int(float64(i)*diff))
 		if err := screen.DrawImage(tmpRenderTarget, op); err != nil {
 			return err
 		}
