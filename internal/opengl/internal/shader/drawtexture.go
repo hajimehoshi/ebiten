@@ -16,7 +16,6 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"sync"
 )
 
 func glMatrix(m [4][4]float64) [16]float32 {
@@ -29,17 +28,37 @@ func glMatrix(m [4][4]float64) [16]float32 {
 	return result
 }
 
-var once sync.Once
-
 type Matrix interface {
 	Element(i, j int) float64
 }
 
-// TODO: Use VBO
+type vbo struct {
+	indexBuffer gl.Buffer
+}
+
+const size = 10000
+
+var currentVBO *vbo
+
 func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
-	once.Do(func() {
+	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
+	if currentVBO == nil {
 		initialize()
-	})
+		currentVBO = &vbo{
+			indexBuffer: gl.GenBuffer(),
+		}
+		currentVBO.indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
+		indices := make([]uint16, 6*size)
+		for i := uint16(0); i < size; i++ {
+			indices[6*i+0] = 4*i + 0
+			indices[6*i+1] = 4*i + 1
+			indices[6*i+2] = 4*i + 2
+			indices[6*i+3] = 4*i + 1
+			indices[6*i+4] = 4*i + 2
+			indices[6*i+5] = 4*i + 3
+		}
+		gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices), indices, gl.STATIC_DRAW)
+	}
 
 	if len(quads) == 0 {
 		return
@@ -66,9 +85,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 
 	vertices := []float32{}
 	texCoords := []float32{}
-	indicies := []uint32{}
-	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
-	for i, quad := range quads {
+	for _, quad := range quads {
 		x0 := quad.VertexX0
 		x1 := quad.VertexX1
 		y0 := quad.VertexY0
@@ -89,15 +106,10 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 			u0, v1,
 			u1, v1,
 		)
-		base := uint32(i * 4)
-		indicies = append(indicies,
-			base, base+1, base+2,
-			base+1, base+2, base+3,
-		)
 	}
 	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, vertices)
 	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, 0, texCoords)
-	gl.DrawElements(gl.TRIANGLES, len(indicies), gl.UNSIGNED_INT, indicies)
+	gl.DrawElements(gl.TRIANGLES, 6*len(quads), gl.UNSIGNED_SHORT, nil)
 
 	gl.Flush()
 }
