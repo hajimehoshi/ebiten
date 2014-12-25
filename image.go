@@ -52,12 +52,12 @@ func (i *innerImage) Fill(clr color.Color) error {
 	return nil
 }
 
-func (i *innerImage) drawImage(img *innerImage, option *DrawImageOptions) error {
-	if option == nil {
-		option = &DrawImageOptions{}
+func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error {
+	if options == nil {
+		options = &DrawImageOptions{}
 	}
-	dsts := option.DstParts
-	srcs := option.SrcParts
+	dsts := options.DstParts
+	srcs := options.SrcParts
 	if srcs == nil || dsts == nil {
 		w, h := img.size()
 		dsts = []image.Rectangle{
@@ -67,12 +67,12 @@ func (i *innerImage) drawImage(img *innerImage, option *DrawImageOptions) error 
 			image.Rect(0, 0, w, h),
 		}
 	}
-	geo := option.GeometryMatrix
+	geo := options.GeometryMatrix
 	if geo == nil {
 		i := GeometryMatrixI()
 		geo = &i
 	}
-	clr := option.ColorMatrix
+	clr := options.ColorMatrix
 	if clr == nil {
 		i := ColorMatrixI()
 		clr = &i
@@ -155,12 +155,28 @@ func (i *Image) Fill(clr color.Color) (err error) {
 }
 
 // DrawImage draws the given image on the receiver image.
-// This method accepts the parts of the given image at the parts of the destination as the option.
-// After determining parts to draw, this applies the geometry matrix and the color matrix as the option.
+// This method accepts the parts of the given image at the parts of the destination as the options.
+// After determining parts to draw, this applies the geometry matrix and the color matrix as the options.
 //
 // If you want to draw a whole image simply, use DrawWholeImage.
-func (i *Image) DrawImage(image *Image, option *DrawImageOptions) (err error) {
-	return i.drawImage(image.inner, option)
+func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
+	return i.drawImage(image.inner, options)
+}
+
+// DrawImageAt draws the given image on the receiver image at the position (x, y).
+//
+// If a geometry matrix is specified, the geometry matrix is applied ahead of the image is translated by (x, y).
+func (i *Image) DrawImageAt(image *Image, x, y int, options *DrawImageOptions) (err error) {
+	if options == nil {
+		options = &DrawImageOptions{}
+	}
+	if options.GeometryMatrix == nil {
+		geo := TranslateGeometry(float64(x), float64(y))
+		options.GeometryMatrix = &geo
+	} else {
+		options.GeometryMatrix.Concat(TranslateGeometry(float64(x), float64(y)))
+	}
+	return i.drawImage(image.inner, options)
 }
 
 func (i *Image) drawImage(image *innerImage, option *DrawImageOptions) (err error) {
@@ -202,16 +218,10 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
+// A DrawImageOptions presents options to render an image on an image.
 type DrawImageOptions struct {
 	DstParts       []image.Rectangle
 	SrcParts       []image.Rectangle
 	GeometryMatrix *GeometryMatrix
 	ColorMatrix    *ColorMatrix
-}
-
-func DrawImageAt(x, y int) *DrawImageOptions {
-	geo := TranslateGeometry(float64(x), float64(y))
-	return &DrawImageOptions{
-		GeometryMatrix: &geo,
-	}
 }

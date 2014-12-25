@@ -59,11 +59,11 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	b := float64(cc.B) / math.MaxUint16
 	a := float64(cc.A) / math.MaxUint16
 	clr := ebiten.ScaleColor(r, g, b, a)
-	op := ebiten.DrawImageAt(x+1, y)
-	op.DstParts = dsts
-	op.SrcParts = srcs
-	op.ColorMatrix = &clr
-	rt.DrawImage(d.textImage, op)
+	rt.DrawImageAt(d.textImage, x+1, y, &ebiten.DrawImageOptions{
+		DstParts:    dsts,
+		SrcParts:    srcs,
+		ColorMatrix: &clr,
+	})
 }
 
 func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
