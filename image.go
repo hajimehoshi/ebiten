@@ -165,7 +165,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 
 // DrawImageAt draws the given image on the receiver image at the position (x, y).
 //
-// If a geometry matrix is specified, the geometry matrix is applied ahead of the image is translated by (x, y).
+// If a geometry matrix is specified, the geometry matrix is applied ahead of translating the image by (x, y).
 func (i *Image) DrawImageAt(image *Image, x, y int, options *DrawImageOptions) (err error) {
 	if options == nil {
 		options = &DrawImageOptions{}
