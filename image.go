@@ -52,9 +52,9 @@ func (i *innerImage) Fill(clr color.Color) error {
 	return nil
 }
 
-func (i *innerImage) drawImage(img *innerImage, option *ImageDrawOptions) error {
+func (i *innerImage) drawImage(img *innerImage, option *DrawImageOptions) error {
 	if option == nil {
-		option = &ImageDrawOptions{}
+		option = &DrawImageOptions{}
 	}
 	dsts := option.DstParts
 	srcs := option.SrcParts
@@ -159,11 +159,11 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // After determining parts to draw, this applies the geometry matrix geo and the color matrix color.
 //
 // If you want to draw a whole image simply, use DrawWholeImage.
-func (i *Image) DrawImage(image *Image, option *ImageDrawOptions) (err error) {
+func (i *Image) DrawImage(image *Image, option *DrawImageOptions) (err error) {
 	return i.drawImage(image.inner, option)
 }
 
-func (i *Image) drawImage(image *innerImage, option *ImageDrawOptions) (err error) {
+func (i *Image) drawImage(image *innerImage, option *DrawImageOptions) (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {
 		err = i.inner.drawImage(image, option)
@@ -202,16 +202,16 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-type ImageDrawOptions struct {
+type DrawImageOptions struct {
 	DstParts       []image.Rectangle
 	SrcParts       []image.Rectangle
 	GeometryMatrix *GeometryMatrix
 	ColorMatrix    *ColorMatrix
 }
 
-func At(x, y int) *ImageDrawOptions {
+func At(x, y int) *DrawImageOptions {
 	geo := TranslateGeometry(float64(x), float64(y))
-	return &ImageDrawOptions{
+	return &DrawImageOptions{
 		GeometryMatrix: &geo,
 	}
 }

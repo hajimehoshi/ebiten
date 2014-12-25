@@ -90,8 +90,8 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 	}()
 
 	// TODO: Fix this dirty hack after fixing https://github.com/go-gl/gl/issues/174
-	v := (*int)(unsafe.Pointer(uintptr(4 * 0)))
-	t := (*int)(unsafe.Pointer(uintptr(4 * 2)))
+	v := (*int)(unsafe.Pointer(uintptr(short32Size * 0)))
+	t := (*int)(unsafe.Pointer(uintptr(short32Size * 2)))
 	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, v)
 	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, t)
 
