@@ -13,17 +13,3 @@
 // limitations under the License.
 
 package ebiten_test
-
-import (
-	. "."
-	"testing"
-)
-
-func TestColorIdentity(t *testing.T) {
-	m := NewColorMatrix()
-	got := m.IsIdentity()
-	want := true
-	if want != got {
-		t.Errorf("matrix.IsIdentity() = %t, want %t", got, want)
-	}
-}

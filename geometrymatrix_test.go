@@ -19,15 +19,6 @@ import (
 	"testing"
 )
 
-func TestGeometryIdentity(t *testing.T) {
-	m := NewGeometryMatrix()
-	got := m.IsIdentity()
-	want := true
-	if want != got {
-		t.Errorf("matrix.IsIdentity() = %t, want %t", got, want)
-	}
-}
-
 func TestGeometryConcat(t *testing.T) {
 	matrix1 := ScaleGeometry(2, 2)
 	matrix2 := TranslateGeometry(1, 1)

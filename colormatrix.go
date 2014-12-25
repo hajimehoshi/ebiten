@@ -60,11 +60,6 @@ func (c *ColorMatrix) Concat(other ColorMatrix) {
 	*c = result
 }
 
-// IsIdentity returns a boolean indicating whether the color matrix is an identity.
-func (c *ColorMatrix) IsIdentity() bool {
-	return isIdentity(c)
-}
-
 func (c *ColorMatrix) setElement(i, j int, element float64) {
 	c.es[i][j] = element
 }

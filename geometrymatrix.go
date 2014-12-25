@@ -53,11 +53,6 @@ func (g *GeometryMatrix) Concat(other GeometryMatrix) {
 	*g = result
 }
 
-// IsIdentity returns a boolean indicating whether the geometry matrix is an identity.
-func (g *GeometryMatrix) IsIdentity() bool {
-	return isIdentity(g)
-}
-
 func (g *GeometryMatrix) setElement(i, j int, element float64) {
 	g.es[i][j] = element
 }
