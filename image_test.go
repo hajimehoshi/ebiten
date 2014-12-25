@@ -124,6 +124,12 @@ func TestComposition(t *testing.T) {
 			if 1 < diff(c1.R, c2.R) || 1 < diff(c1.G, c2.G) || 1 < diff(c1.B, c2.B) || 1 < diff(c1.A, c2.A) {
 				t.Errorf("img_12_3.At(%d, %d) = %#v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
 			}
+			if c1.A == 0 {
+				t.Fatalf("img_12_3.At(%d, %d).A = 0; nothing is rendered?", i, j)
+			}
+			if c2.A == 0 {
+				t.Fatalf("img_1_23.At(%d, %d).A = 0; nothing is rendered?", i, j)
+			}
 		}
 	}
 }
