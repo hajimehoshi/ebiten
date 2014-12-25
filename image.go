@@ -155,8 +155,8 @@ func (i *Image) Fill(clr color.Color) (err error) {
 }
 
 // DrawImage draws the given image on the receiver image.
-// This method accepts the parts srcs of the given image at the parts of the destination dsts.
-// After determining parts to draw, this applies the geometry matrix geo and the color matrix color.
+// This method accepts the parts of the given image at the parts of the destination as the option.
+// After determining parts to draw, this applies the geometry matrix and the color matrix as the option.
 //
 // If you want to draw a whole image simply, use DrawWholeImage.
 func (i *Image) DrawImage(image *Image, option *DrawImageOptions) (err error) {
