@@ -32,8 +32,8 @@ type ColorMatrix struct {
 	es [ColorMatrixDim - 1][ColorMatrixDim]float64
 }
 
-// ColorMatrixI returns an identity color matrix.
-func ColorMatrixI() ColorMatrix {
+// NewColorMatrix returns an identity color matrix.
+func NewColorMatrix() ColorMatrix {
 	return ColorMatrix{
 		[ColorMatrixDim - 1][ColorMatrixDim]float64{
 			{1, 0, 0, 0, 0},

@@ -20,7 +20,7 @@ import (
 )
 
 func TestColorIdentity(t *testing.T) {
-	m := ColorMatrixI()
+	m := NewColorMatrix()
 	got := m.IsIdentity()
 	want := true
 	if want != got {

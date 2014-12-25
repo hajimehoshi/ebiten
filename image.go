@@ -69,12 +69,12 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 	}
 	geo := options.GeometryMatrix
 	if geo == nil {
-		i := GeometryMatrixI()
+		i := NewGeometryMatrix()
 		geo = &i
 	}
 	clr := options.ColorMatrix
 	if clr == nil {
-		i := ColorMatrixI()
+		i := NewColorMatrix()
 		clr = &i
 	}
 
@@ -155,10 +155,16 @@ func (i *Image) Fill(clr color.Color) (err error) {
 }
 
 // DrawImage draws the given image on the receiver image.
-// This method accepts the parts of the given image at the parts of the destination as the options.
-// After determining parts to draw, this applies the geometry matrix and the color matrix as the options.
 //
-// If you want to draw a whole image simply, use DrawWholeImage.
+// This method accepts the options.
+// The parts of the given image at the parts of the destination.
+// After determining parts to draw, this applies the geometry matrix and the color matrix.
+//
+// If options is nil or its members are nil, the default values are used.
+//     DstParts:       (0, 0) - (source width, source height)
+//     SrcParts:       (0, 0) - (source width, source height) (i.e. the whole source image)
+//     GeometryMatrix: Identity matrix
+//     ColorMatrix:    Identity matrix (that changes no colors)
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return i.drawImage(image.inner, options)
 }

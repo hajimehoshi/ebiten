@@ -27,8 +27,8 @@ type GeometryMatrix struct {
 	es [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
 
-// GeometryMatrixI returns an identity geometry matrix.
-func GeometryMatrixI() GeometryMatrix {
+// NewGeometryMatrix returns an identity geometry matrix.
+func NewGeometryMatrix() GeometryMatrix {
 	return GeometryMatrix{
 		[GeometryMatrixDim - 1][GeometryMatrixDim]float64{
 			{1, 0, 0},

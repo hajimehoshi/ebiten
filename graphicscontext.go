@@ -67,7 +67,7 @@ func (c *graphicsContext) postUpdate() error {
 
 	scale := float64(c.screenScale)
 	geo := ScaleGeometry(scale, scale)
-	clr := ColorMatrixI()
+	clr := NewColorMatrix()
 	option := &DrawImageOptions{
 		GeometryMatrix: &geo,
 		ColorMatrix:    &clr,

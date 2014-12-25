@@ -20,7 +20,7 @@ import (
 )
 
 func TestGeometryIdentity(t *testing.T) {
-	m := GeometryMatrixI()
+	m := NewGeometryMatrix()
 	got := m.IsIdentity()
 	want := true
 	if want != got {
