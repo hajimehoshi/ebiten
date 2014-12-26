@@ -59,7 +59,8 @@ func (c ColorM) Element(i, j int) float64 {
 }
 
 // Concat multiplies a color matrix with the other color matrix.
-func (c *ColorM) Concat(other ColorM) {
+// This returns c.
+func (c *ColorM) Concat(other ColorM) ColorM {
 	if !c.initialized {
 		c.es = colorMatrixEsI()
 		c.initialized = true
@@ -67,10 +68,12 @@ func (c *ColorM) Concat(other ColorM) {
 	result := ColorM{}
 	mul(&other, c, &result)
 	*c = result
+	return *c
 }
 
 // Add adds a color matrix with the other color matrix.
-func (c *ColorM) Add(other ColorM) {
+// This returns c.
+func (c *ColorM) Add(other ColorM) ColorM {
 	if !c.initialized {
 		c.es = colorMatrixEsI()
 		c.initialized = true
@@ -78,6 +81,7 @@ func (c *ColorM) Add(other ColorM) {
 	result := ColorM{}
 	add(&other, c, &result)
 	*c = result
+	return *c
 }
 
 // SetElement sets an element at (i, j).
