@@ -1,7 +1,10 @@
 # Ebiten (海老天)
 
 * A simple 2D game library in Go
-* Works only on Mac OS X so far
+* Works on
+  * Mac OS X
+  * Linux (maybe)
+  * Windows (possibly)
 * [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
 ## Features
