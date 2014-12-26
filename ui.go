@@ -72,16 +72,16 @@ func startUI(width, height, scale int, title string) error {
 	x := (videoMode.Width - width*scale) / 2
 	y := (videoMode.Height - height*scale) / 3
 
+	ch := make(chan struct{})
 	window := currentUI.window
+	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+		close(ch)
+	})
 	window.SetSize(width*scale, height*scale)
 	window.SetTitle(title)
 	window.SetPosition(x, y)
 	window.Show()
 
-	ch := make(chan struct{})
-	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-		close(ch)
-	})
 	for {
 		done := false
 		glfw.PollEvents()
