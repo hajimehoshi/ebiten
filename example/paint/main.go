@@ -45,7 +45,8 @@ func Update(screen *ebiten.Image) error {
 		clr := ebiten.ScaleColor(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
-		canvasRenderTarget.DrawImageAt(brushRenderTarget, mx, my, &ebiten.DrawImageOptions{
+		canvasRenderTarget.DrawImage(brushRenderTarget, &ebiten.DrawImageOptions{
+			GeoM:   ebiten.TranslateGeo(float64(mx), float64(my)),
 			ColorM: clr,
 		})
 	}

@@ -58,9 +58,10 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	g := float64(cc.G) / math.MaxUint16
 	b := float64(cc.B) / math.MaxUint16
 	a := float64(cc.A) / math.MaxUint16
-	rt.DrawImageAt(d.textImage, x+1, y, &ebiten.DrawImageOptions{
+	rt.DrawImage(d.textImage, &ebiten.DrawImageOptions{
 		DstParts: dsts,
 		SrcParts: srcs,
+		GeoM:     ebiten.TranslateGeo(float64(x+1), float64(y)),
 		ColorM:   ebiten.ScaleColor(r, g, b, a),
 	})
 }

@@ -161,17 +161,6 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return i.drawImage(image.inner, options)
 }
 
-// DrawImageAt draws the given image on the receiver image at the position (x, y).
-//
-// If a geometry matrix is specified, the geometry matrix is applied ahead of translating the image by (x, y).
-func (i *Image) DrawImageAt(image *Image, x, y int, options *DrawImageOptions) (err error) {
-	if options == nil {
-		options = &DrawImageOptions{}
-	}
-	options.GeoM.Concat(TranslateGeo(float64(x), float64(y)))
-	return i.drawImage(image.inner, options)
-}
-
 func (i *Image) drawImage(image *innerImage, option *DrawImageOptions) (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {

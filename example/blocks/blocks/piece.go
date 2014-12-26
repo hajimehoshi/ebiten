@@ -144,15 +144,15 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int)
 			if block == BlockTypeNone {
 				continue
 			}
-			locationX := i * blockWidth
-			locationY := j * blockHeight
+			locationX := i*blockWidth + x
+			locationY := j*blockHeight + y
 			dsts = append(dsts, image.Rect(locationX, locationY, locationX+blockWidth, locationY+blockHeight))
 			srcX := (int(block) - 1) * blockWidth
 			srcs = append(srcs, image.Rect(srcX, 0, srcX+blockWidth, blockHeight))
 		}
 	}
 	blocksImage := images.GetImage("blocks")
-	r.DrawImageAt(blocksImage, x, y, &ebiten.DrawImageOptions{
+	r.DrawImage(blocksImage, &ebiten.DrawImageOptions{
 		SrcParts: srcs,
 		DstParts: dsts,
 	})

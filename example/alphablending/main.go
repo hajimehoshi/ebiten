@@ -50,16 +50,20 @@ func update(screen *ebiten.Image) error {
 	}
 	for i := 0; i < 10; i++ {
 		op := &ebiten.DrawImageOptions{
+			GeoM:   ebiten.TranslateGeo(15+float64(i)*diff, 20),
 			ColorM: ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5),
 		}
-		if err := tmpRenderTarget.DrawImageAt(ebitenImage, 15+int(float64(i)*diff), 20, op); err != nil {
+		if err := tmpRenderTarget.DrawImage(ebitenImage, op); err != nil {
 			return err
 		}
 	}
 
 	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 	for i := 0; i < 10; i++ {
-		if err := screen.DrawImageAt(tmpRenderTarget, 0, int(float64(i)*diff), nil); err != nil {
+		op := &ebiten.DrawImageOptions{
+			GeoM: ebiten.TranslateGeo(0, float64(i)*diff),
+		}
+		if err := screen.DrawImage(tmpRenderTarget, op); err != nil {
 			return err
 		}
 	}
