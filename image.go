@@ -68,15 +68,7 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 		}
 	}
 	geo := options.GeometryMatrix
-	if geo == nil {
-		i := NewGeometryMatrix()
-		geo = &i
-	}
 	clr := options.ColorMatrix
-	if clr == nil {
-		i := NewColorMatrix()
-		clr = &i
-	}
 
 	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
@@ -176,12 +168,7 @@ func (i *Image) DrawImageAt(image *Image, x, y int, options *DrawImageOptions) (
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
-	if options.GeometryMatrix == nil {
-		geo := TranslateGeometry(float64(x), float64(y))
-		options.GeometryMatrix = &geo
-	} else {
-		options.GeometryMatrix.Concat(TranslateGeometry(float64(x), float64(y)))
-	}
+	options.GeometryMatrix.Concat(TranslateGeometry(float64(x), float64(y)))
 	return i.drawImage(image.inner, options)
 }
 
@@ -228,6 +215,6 @@ func (i *Image) At(x, y int) color.Color {
 type DrawImageOptions struct {
 	DstParts       []image.Rectangle
 	SrcParts       []image.Rectangle
-	GeometryMatrix *GeometryMatrix
-	ColorMatrix    *ColorMatrix
+	GeometryMatrix GeometryMatrix
+	ColorMatrix    ColorMatrix
 }

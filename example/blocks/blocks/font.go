@@ -63,8 +63,8 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 	rt.DrawImage(fontImageId, &ebiten.DrawImageOptions{
 		DstParts:       dsts,
 		SrcParts:       srcs,
-		GeometryMatrix: &geo,
-		ColorMatrix:    &clr,
+		GeometryMatrix: geo,
+		ColorMatrix:    clr,
 	})
 }
 

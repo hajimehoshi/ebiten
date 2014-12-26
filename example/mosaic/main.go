@@ -34,14 +34,11 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
-	geo := ebiten.ScaleGeometry(1.0/mosaicRatio, 1.0/mosaicRatio)
 	gophersRenderTarget.DrawImage(gophersImage, &ebiten.DrawImageOptions{
-		GeometryMatrix: &geo,
+		GeometryMatrix: ebiten.ScaleGeometry(1.0/mosaicRatio, 1.0/mosaicRatio),
 	})
-
-	geo = ebiten.ScaleGeometry(mosaicRatio, mosaicRatio)
 	screen.DrawImage(gophersRenderTarget, &ebiten.DrawImageOptions{
-		GeometryMatrix: &geo,
+		GeometryMatrix: ebiten.ScaleGeometry(mosaicRatio, mosaicRatio),
 	})
 	return nil
 }

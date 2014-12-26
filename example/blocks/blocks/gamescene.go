@@ -114,10 +114,9 @@ func (s *GameScene) Draw(r *ebiten.Image, images *Images) {
 	w, h := field.Size()
 	geo := ebiten.ScaleGeometry(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geo.Concat(ebiten.TranslateGeometry(20, 20)) // TODO: magic number?
-	clr := ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5)
 	r.DrawImage(field, &ebiten.DrawImageOptions{
-		GeometryMatrix: &geo,
-		ColorMatrix:    &clr,
+		GeometryMatrix: geo,
+		ColorMatrix:    ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5),
 	})
 
 	s.field.Draw(r, images, 20, 20)

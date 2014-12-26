@@ -46,7 +46,7 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{
 		DstParts:       dsts,
 		SrcParts:       srcs,
-		GeometryMatrix: &geo,
+		GeometryMatrix: geo,
 	})
 	return nil
 }
