@@ -36,6 +36,7 @@ type Matrix interface {
 var initialized = false
 
 const size = 10000
+// TODO: Use unsafe.SizeOf?
 const uint16Size = 2
 const short32Size = 4
 
@@ -44,6 +45,11 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 	const stride = 4 * 4
 	if !initialized {
 		initialize()
+
+		vertexBuffer := gl.GenBuffer()
+		vertexBuffer.Bind(gl.ARRAY_BUFFER)
+		vertices := make([]float32, stride*size)
+		gl.BufferData(gl.ARRAY_BUFFER, short32Size*len(vertices), vertices, gl.DYNAMIC_DRAW)
 
 		indexBuffer := gl.GenBuffer()
 		indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
@@ -57,11 +63,6 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 			indices[6*i+5] = 4*i + 3
 		}
 		gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, uint16Size*len(indices), indices, gl.STATIC_DRAW)
-
-		vertexBuffer := gl.GenBuffer()
-		vertexBuffer.Bind(gl.ARRAY_BUFFER)
-		vertices := make([]float32, stride*size)
-		gl.BufferData(gl.ARRAY_BUFFER, short32Size*len(vertices), vertices, gl.DYNAMIC_DRAW)
 
 		initialized = true
 	}
@@ -78,15 +79,11 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 	vertexAttrLocation := getAttributeLocation(program, "vertex")
 	texCoordAttrLocation := getAttributeLocation(program, "tex_coord")
 
-	gl.EnableClientState(gl.VERTEX_ARRAY)
-	gl.EnableClientState(gl.TEXTURE_COORD_ARRAY)
 	vertexAttrLocation.EnableArray()
 	texCoordAttrLocation.EnableArray()
 	defer func() {
 		texCoordAttrLocation.DisableArray()
 		vertexAttrLocation.DisableArray()
-		gl.DisableClientState(gl.TEXTURE_COORD_ARRAY)
-		gl.DisableClientState(gl.VERTEX_ARRAY)
 	}()
 
 	// TODO: Fix this dirty hack after fixing https://github.com/go-gl/gl/issues/174
