@@ -78,6 +78,23 @@ func startUI(width, height, scale int, title string) error {
 	window.SetPosition(x, y)
 	window.Show()
 
+	ch := make(chan struct{})
+	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+		close(ch)
+	})
+	for {
+		done := false
+		glfw.PollEvents()
+		select {
+		case <-ch:
+			done = true
+		default:
+		}
+		if done {
+			break
+		}
+	}
+
 	ui := currentUI
 	ui.scale = scale
 

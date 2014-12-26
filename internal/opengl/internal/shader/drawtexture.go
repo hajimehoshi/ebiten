@@ -36,6 +36,7 @@ type Matrix interface {
 var initialized = false
 
 const size = 10000
+
 // TODO: Use unsafe.SizeOf?
 const uint16Size = 2
 const short32Size = 4
@@ -48,8 +49,8 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 
 		vertexBuffer := gl.GenBuffer()
 		vertexBuffer.Bind(gl.ARRAY_BUFFER)
-		vertices := make([]float32, stride*size)
-		gl.BufferData(gl.ARRAY_BUFFER, short32Size*len(vertices), vertices, gl.DYNAMIC_DRAW)
+		s := short32Size * stride * size
+		gl.BufferData(gl.ARRAY_BUFFER, s, nil, gl.DYNAMIC_DRAW)
 
 		indexBuffer := gl.GenBuffer()
 		indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
