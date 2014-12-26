@@ -43,7 +43,8 @@ func add(lhs, rhs, result affine) {
 
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
-			result.SetElement(i, j, lhs.Element(i, j)+rhs.Element(i, j))
+			v := lhs.Element(i, j) + rhs.Element(i, j)
+			result.SetElement(i, j, v)
 		}
 	}
 }

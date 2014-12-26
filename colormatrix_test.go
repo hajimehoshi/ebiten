@@ -13,3 +13,38 @@
 // limitations under the License.
 
 package ebiten_test
+
+import (
+	. "."
+	"testing"
+)
+
+func TestColorInit(t *testing.T) {
+	var m ColorMatrix
+	for i := 0; i < ColorMatrixDim-1; i++ {
+		for j := 0; j < ColorMatrixDim; j++ {
+			got := m.Element(i, j)
+			want := 0.0
+			if i == j {
+				want = 1
+			}
+			if want != got {
+				t.Errorf("m.Element(%d, %d) = %f, want %f", i, j, got, want)
+			}
+		}
+	}
+
+	m.Add(m)
+	for i := 0; i < ColorMatrixDim-1; i++ {
+		for j := 0; j < ColorMatrixDim; j++ {
+			got := m.Element(i, j)
+			want := 0.0
+			if i == j {
+				want = 2
+			}
+			if want != got {
+				t.Errorf("m.Element(%d, %d) = %f, want %f", i, j, got, want)
+			}
+		}
+	}
+}

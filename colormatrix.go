@@ -29,32 +29,45 @@ const ColorMatrixDim = 5
 // the color is multiplied again.
 type ColorMatrix struct {
 	// es represents elements.
-	es [ColorMatrixDim - 1][ColorMatrixDim]float64
+	es *[ColorMatrixDim - 1][ColorMatrixDim]float64
+}
+
+func colorMatrixEsI() *[ColorMatrixDim - 1][ColorMatrixDim]float64 {
+	return &[ColorMatrixDim - 1][ColorMatrixDim]float64{
+		{1, 0, 0, 0, 0},
+		{0, 1, 0, 0, 0},
+		{0, 0, 1, 0, 0},
+		{0, 0, 0, 1, 0},
+	}
 }
 
 // NewColorMatrix returns an identity color matrix.
 func NewColorMatrix() ColorMatrix {
 	return ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
-			{1, 0, 0, 0, 0},
-			{0, 1, 0, 0, 0},
-			{0, 0, 1, 0, 0},
-			{0, 0, 0, 1, 0},
-		},
+		es: colorMatrixEsI(),
 	}
 }
 
-func (c *ColorMatrix) dim() int {
+func (c ColorMatrix) dim() int {
 	return ColorMatrixDim
 }
 
 // Element returns a value of a matrix at (i, j).
-func (c *ColorMatrix) Element(i, j int) float64 {
+func (c ColorMatrix) Element(i, j int) float64 {
+	if c.es == nil {
+		if i == j {
+			return 1
+		}
+		return 0
+	}
 	return c.es[i][j]
 }
 
 // Concat multiplies a color matrix with the other color matrix.
 func (c *ColorMatrix) Concat(other ColorMatrix) {
+	if c.es == nil {
+		c.es = colorMatrixEsI()
+	}
 	result := ColorMatrix{}
 	mul(&other, c, &result)
 	*c = result
@@ -62,6 +75,9 @@ func (c *ColorMatrix) Concat(other ColorMatrix) {
 
 // Add adds a color matrix with the other color matrix.
 func (c *ColorMatrix) Add(other ColorMatrix) {
+	if c.es == nil {
+		c.es = colorMatrixEsI()
+	}
 	result := ColorMatrix{}
 	add(&other, c, &result)
 	*c = result
@@ -69,6 +85,9 @@ func (c *ColorMatrix) Add(other ColorMatrix) {
 
 // SetElement sets an element at (i, j).
 func (c *ColorMatrix) SetElement(i, j int, element float64) {
+	if c.es == nil {
+		c.es = colorMatrixEsI()
+	}
 	c.es[i][j] = element
 }
 
@@ -78,7 +97,7 @@ func Monochrome() ColorMatrix {
 	const g = 23434.0 / 32768.0
 	const b = 2366.0 / 32768.0
 	return ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+		&[ColorMatrixDim - 1][ColorMatrixDim]float64{
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
@@ -90,7 +109,7 @@ func Monochrome() ColorMatrix {
 // ScaleColor returns a color matrix that scales a color matrix by the given color (r, g, b, a).
 func ScaleColor(r, g, b, a float64) ColorMatrix {
 	return ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+		&[ColorMatrixDim - 1][ColorMatrixDim]float64{
 			{r, 0, 0, 0, 0},
 			{0, g, 0, 0, 0},
 			{0, 0, b, 0, 0},
@@ -102,7 +121,7 @@ func ScaleColor(r, g, b, a float64) ColorMatrix {
 // TranslateColor returns a color matrix that translates a color matrix by the given color (r, g, b, a).
 func TranslateColor(r, g, b, a float64) ColorMatrix {
 	return ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+		&[ColorMatrixDim - 1][ColorMatrixDim]float64{
 			{1, 0, 0, 0, r},
 			{0, 1, 0, 0, g},
 			{0, 0, 1, 0, b},
@@ -118,7 +137,7 @@ func RotateHue(theta float64) ColorMatrix {
 	v2 := (1.0/3.0)*(1.0-cos) - math.Sqrt(1.0/3.0)*sin
 	v3 := (1.0/3.0)*(1.0-cos) + math.Sqrt(1.0/3.0)*sin
 	return ColorMatrix{
-		[ColorMatrixDim - 1][ColorMatrixDim]float64{
+		&[ColorMatrixDim - 1][ColorMatrixDim]float64{
 			{v1, v2, v3, 0, 0},
 			{v3, v1, v2, 0, 0},
 			{v2, v3, v1, 0, 0},
