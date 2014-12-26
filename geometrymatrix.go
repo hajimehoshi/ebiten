@@ -22,6 +22,8 @@ import (
 const GeometryMatrixDim = 3
 
 // A GeometryMatrix represents a matrix to transform geometry when rendering an image.
+//
+// The initial value is identity.
 type GeometryMatrix struct {
 	// es represents elements.
 	es *[GeometryMatrixDim - 1][GeometryMatrixDim]float64
@@ -31,13 +33,6 @@ func geometryMatrixEsI() *[GeometryMatrixDim - 1][GeometryMatrixDim]float64 {
 	return &[GeometryMatrixDim - 1][GeometryMatrixDim]float64{
 		{1, 0, 0},
 		{0, 1, 0},
-	}
-}
-
-// NewGeometryMatrix returns an identity geometry matrix.
-func NewGeometryMatrix() GeometryMatrix {
-	return GeometryMatrix{
-		es: geometryMatrixEsI(),
 	}
 }
 

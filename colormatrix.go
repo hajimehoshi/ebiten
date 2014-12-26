@@ -27,6 +27,8 @@ const ColorMatrixDim = 5
 // while an Image's pixels' format is alpha premultiplied.
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
+//
+// The initial value is identity.
 type ColorMatrix struct {
 	// es represents elements.
 	es *[ColorMatrixDim - 1][ColorMatrixDim]float64
@@ -38,13 +40,6 @@ func colorMatrixEsI() *[ColorMatrixDim - 1][ColorMatrixDim]float64 {
 		{0, 1, 0, 0, 0},
 		{0, 0, 1, 0, 0},
 		{0, 0, 0, 1, 0},
-	}
-}
-
-// NewColorMatrix returns an identity color matrix.
-func NewColorMatrix() ColorMatrix {
-	return ColorMatrix{
-		es: colorMatrixEsI(),
 	}
 }
 
