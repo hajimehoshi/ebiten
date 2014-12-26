@@ -49,6 +49,17 @@ func TestGeometryInit(t *testing.T) {
 	}
 }
 
+func TestGeometryAssign(t *testing.T) {
+	m := ScaleGeometry(1, 1) // Create elements explicitly
+	m2 := m
+	m.SetElement(0, 0, 0)
+	got := m2.Element(0, 0)
+	want := 1.0
+	if want != got {
+		t.Errorf("m2.Element(%d, %d) = %f, want %f", 0, 0, got, want)
+	}
+}
+
 func TestGeometryConcat(t *testing.T) {
 	matrix1 := ScaleGeometry(2, 2)
 	matrix2 := TranslateGeometry(1, 1)

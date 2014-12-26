@@ -152,7 +152,7 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // The parts of the given image at the parts of the destination.
 // After determining parts to draw, this applies the geometry matrix and the color matrix.
 //
-// If options is nil or its members are nil, the default values are used.
+// Here are the default values:
 //     DstParts:       (0, 0) - (source width, source height)
 //     SrcParts:       (0, 0) - (source width, source height) (i.e. the whole source image)
 //     GeometryMatrix: Identity matrix

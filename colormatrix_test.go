@@ -48,3 +48,14 @@ func TestColorInit(t *testing.T) {
 		}
 	}
 }
+
+func TestColorAssign(t *testing.T) {
+	m := ScaleColor(1, 1, 1, 1) // Create elements explicitly
+	m2 := m
+	m.SetElement(0, 0, 0)
+	got := m2.Element(0, 0)
+	want := 1.0
+	if want != got {
+		t.Errorf("m2.Element(%d, %d) = %f, want %f", 0, 0, got, want)
+	}
+}

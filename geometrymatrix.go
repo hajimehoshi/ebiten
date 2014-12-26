@@ -25,12 +25,12 @@ const GeometryMatrixDim = 3
 //
 // The initial value is identity.
 type GeometryMatrix struct {
-	// es represents elements.
-	es *[GeometryMatrixDim - 1][GeometryMatrixDim]float64
+	initialized bool
+	es          [GeometryMatrixDim - 1][GeometryMatrixDim]float64
 }
 
-func geometryMatrixEsI() *[GeometryMatrixDim - 1][GeometryMatrixDim]float64 {
-	return &[GeometryMatrixDim - 1][GeometryMatrixDim]float64{
+func geometryMatrixEsI() [GeometryMatrixDim - 1][GeometryMatrixDim]float64 {
+	return [GeometryMatrixDim - 1][GeometryMatrixDim]float64{
 		{1, 0, 0},
 		{0, 1, 0},
 	}
@@ -42,7 +42,7 @@ func (g GeometryMatrix) dim() int {
 
 // Element returns a value of a matrix at (i, j).
 func (g GeometryMatrix) Element(i, j int) float64 {
-	if g.es == nil {
+	if !g.initialized {
 		if i == j {
 			return 1
 		}
@@ -53,8 +53,9 @@ func (g GeometryMatrix) Element(i, j int) float64 {
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
 func (g *GeometryMatrix) Concat(other GeometryMatrix) {
-	if g.es == nil {
+	if !g.initialized {
 		g.es = geometryMatrixEsI()
+		g.initialized = true
 	}
 	result := GeometryMatrix{}
 	mul(&other, g, &result)
@@ -63,8 +64,9 @@ func (g *GeometryMatrix) Concat(other GeometryMatrix) {
 
 // Add adds a geometry matrix with the other geometry matrix.
 func (g *GeometryMatrix) Add(other GeometryMatrix) {
-	if g.es == nil {
+	if !g.initialized {
 		g.es = geometryMatrixEsI()
+		g.initialized = true
 	}
 	result := GeometryMatrix{}
 	add(&other, g, &result)
@@ -73,8 +75,9 @@ func (g *GeometryMatrix) Add(other GeometryMatrix) {
 
 // SetElement sets an element at (i, j).
 func (g *GeometryMatrix) SetElement(i, j int, element float64) {
-	if g.es == nil {
+	if !g.initialized {
 		g.es = geometryMatrixEsI()
+		g.initialized = true
 	}
 	g.es[i][j] = element
 }
@@ -82,7 +85,8 @@ func (g *GeometryMatrix) SetElement(i, j int, element float64) {
 // ScaleGeometry returns a matrix that scales a geometry matrix by (x, y).
 func ScaleGeometry(x, y float64) GeometryMatrix {
 	return GeometryMatrix{
-		es: &[2][3]float64{
+		initialized: true,
+		es: [2][3]float64{
 			{x, 0, 0},
 			{0, y, 0},
 		},
@@ -92,7 +96,8 @@ func ScaleGeometry(x, y float64) GeometryMatrix {
 // TranslateGeometry returns a matrix taht translates a geometry matrix by (tx, ty).
 func TranslateGeometry(tx, ty float64) GeometryMatrix {
 	return GeometryMatrix{
-		es: &[2][3]float64{
+		initialized: true,
+		es: [2][3]float64{
 			{1, 0, tx},
 			{0, 1, ty},
 		},
@@ -103,7 +108,8 @@ func TranslateGeometry(tx, ty float64) GeometryMatrix {
 func RotateGeometry(theta float64) GeometryMatrix {
 	sin, cos := math.Sincos(theta)
 	return GeometryMatrix{
-		es: &[2][3]float64{
+		initialized: true,
+		es: [2][3]float64{
 			{cos, -sin, 0},
 			{sin, cos, 0},
 		},
