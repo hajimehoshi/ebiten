@@ -50,7 +50,7 @@ func update(screen *ebiten.Image) error {
 	}
 	for i := 0; i < 10; i++ {
 		op := &ebiten.DrawImageOptions{
-			ColorMatrix: ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5),
+			ColorM: ebiten.ScaleColor(1.0, 1.0, 1.0, 0.5),
 		}
 		if err := tmpRenderTarget.DrawImageAt(ebitenImage, 15+int(float64(i)*diff), 20, op); err != nil {
 			return err

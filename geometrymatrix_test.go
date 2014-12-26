@@ -20,9 +20,9 @@ import (
 )
 
 func TestGeometryInit(t *testing.T) {
-	var m GeometryMatrix
-	for i := 0; i < GeometryMatrixDim-1; i++ {
-		for j := 0; j < GeometryMatrixDim; j++ {
+	var m GeoM
+	for i := 0; i < GeoMDim-1; i++ {
+		for j := 0; j < GeoMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -35,8 +35,8 @@ func TestGeometryInit(t *testing.T) {
 	}
 
 	m.Add(m)
-	for i := 0; i < GeometryMatrixDim-1; i++ {
-		for j := 0; j < GeometryMatrixDim; j++ {
+	for i := 0; i < GeoMDim-1; i++ {
+		for j := 0; j < GeoMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -50,7 +50,7 @@ func TestGeometryInit(t *testing.T) {
 }
 
 func TestGeometryAssign(t *testing.T) {
-	m := ScaleGeometry(1, 1) // Create elements explicitly
+	m := ScaleGeo(1, 1) // Create elements explicitly
 	m2 := m
 	m.SetElement(0, 0, 0)
 	got := m2.Element(0, 0)
@@ -61,8 +61,8 @@ func TestGeometryAssign(t *testing.T) {
 }
 
 func TestGeometryConcat(t *testing.T) {
-	matrix1 := ScaleGeometry(2, 2)
-	matrix2 := TranslateGeometry(1, 1)
+	matrix1 := ScaleGeo(2, 2)
+	matrix2 := TranslateGeo(1, 1)
 
 	matrix3 := matrix1
 	matrix3.Concat(matrix2)

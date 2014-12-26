@@ -20,9 +20,9 @@ import (
 )
 
 func TestColorInit(t *testing.T) {
-	var m ColorMatrix
-	for i := 0; i < ColorMatrixDim-1; i++ {
-		for j := 0; j < ColorMatrixDim; j++ {
+	var m ColorM
+	for i := 0; i < ColorMDim-1; i++ {
+		for j := 0; j < ColorMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {
@@ -35,8 +35,8 @@ func TestColorInit(t *testing.T) {
 	}
 
 	m.Add(m)
-	for i := 0; i < ColorMatrixDim-1; i++ {
-		for j := 0; j < ColorMatrixDim; j++ {
+	for i := 0; i < ColorMDim-1; i++ {
+		for j := 0; j < ColorMDim; j++ {
 			got := m.Element(i, j)
 			want := 0.0
 			if i == j {

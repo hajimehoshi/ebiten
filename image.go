@@ -67,8 +67,8 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 			image.Rect(0, 0, w, h),
 		}
 	}
-	geo := options.GeometryMatrix
-	clr := options.ColorMatrix
+	geo := options.GeoM
+	clr := options.ColorM
 
 	if err := i.framebuffer.SetAsViewport(); err != nil {
 		return err
@@ -168,7 +168,7 @@ func (i *Image) DrawImageAt(image *Image, x, y int, options *DrawImageOptions) (
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
-	options.GeometryMatrix.Concat(TranslateGeometry(float64(x), float64(y)))
+	options.GeoM.Concat(TranslateGeo(float64(x), float64(y)))
 	return i.drawImage(image.inner, options)
 }
 
@@ -213,8 +213,8 @@ func (i *Image) At(x, y int) color.Color {
 
 // A DrawImageOptions presents options to render an image on an image.
 type DrawImageOptions struct {
-	DstParts       []image.Rectangle
-	SrcParts       []image.Rectangle
-	GeometryMatrix GeometryMatrix
-	ColorMatrix    ColorMatrix
+	DstParts []image.Rectangle
+	SrcParts []image.Rectangle
+	GeoM     GeoM
+	ColorM   ColorM
 }

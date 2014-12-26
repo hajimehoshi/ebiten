@@ -41,12 +41,12 @@ func update(screen *ebiten.Image) error {
 		srcs = append(srcs, image.Rect(0, i, w, i+1))
 	}
 	maxWidth := float64(w) + float64(h)*0.75
-	geo := ebiten.TranslateGeometry(-maxWidth/2, -float64(h)/2)
-	geo.Concat(ebiten.TranslateGeometry(screenWidth/2, screenHeight/2))
+	geo := ebiten.TranslateGeo(-maxWidth/2, -float64(h)/2)
+	geo.Concat(ebiten.TranslateGeo(screenWidth/2, screenHeight/2))
 	screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{
-		DstParts:       dsts,
-		SrcParts:       srcs,
-		GeometryMatrix: geo,
+		DstParts: dsts,
+		SrcParts: srcs,
+		GeoM:     geo,
 	})
 	return nil
 }

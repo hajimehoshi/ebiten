@@ -46,7 +46,7 @@ func Update(screen *ebiten.Image) error {
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		clr.Concat(ebiten.RotateHue(theta))
 		canvasRenderTarget.DrawImageAt(brushRenderTarget, mx, my, &ebiten.DrawImageOptions{
-			ColorMatrix: clr,
+			ColorM: clr,
 		})
 	}
 

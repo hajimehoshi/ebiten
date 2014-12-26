@@ -51,8 +51,8 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 		locationX += charWidth
 	}
 
-	geo := ebiten.ScaleGeometry(float64(scale), float64(scale))
-	geo.Concat(ebiten.TranslateGeometry(float64(ox), float64(oy)))
+	geo := ebiten.ScaleGeo(float64(scale), float64(scale))
+	geo.Concat(ebiten.TranslateGeo(float64(ox), float64(oy)))
 	c2 := color.NRGBA64Model.Convert(c).(color.NRGBA64)
 	const max = math.MaxUint16
 	r := float64(c2.R) / max
@@ -61,10 +61,10 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 	a := float64(c2.A) / max
 	clr := ebiten.ScaleColor(r, g, b, a)
 	rt.DrawImage(fontImageId, &ebiten.DrawImageOptions{
-		DstParts:       dsts,
-		SrcParts:       srcs,
-		GeometryMatrix: geo,
-		ColorMatrix:    clr,
+		DstParts: dsts,
+		SrcParts: srcs,
+		GeoM:     geo,
+		ColorM:   clr,
 	})
 }
 

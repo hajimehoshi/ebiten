@@ -18,24 +18,24 @@ import (
 	"math"
 )
 
-// ColorMatrixDim is a dimension of a ColorMatrix.
-const ColorMatrixDim = 5
+// ColorMDim is a dimension of a ColorM.
+const ColorMDim = 5
 
-// A ColorMatrix represents a matrix to transform coloring when rendering an image.
+// A ColorM represents a matrix to transform coloring when rendering an image.
 //
-// A ColorMatrix is applied to the source alpha color
+// A ColorM is applied to the source alpha color
 // while an Image's pixels' format is alpha premultiplied.
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
 //
 // The initial value is identity.
-type ColorMatrix struct {
+type ColorM struct {
 	initialized bool
-	es          [ColorMatrixDim - 1][ColorMatrixDim]float64
+	es          [ColorMDim - 1][ColorMDim]float64
 }
 
-func colorMatrixEsI() [ColorMatrixDim - 1][ColorMatrixDim]float64 {
-	return [ColorMatrixDim - 1][ColorMatrixDim]float64{
+func colorMatrixEsI() [ColorMDim - 1][ColorMDim]float64 {
+	return [ColorMDim - 1][ColorMDim]float64{
 		{1, 0, 0, 0, 0},
 		{0, 1, 0, 0, 0},
 		{0, 0, 1, 0, 0},
@@ -43,12 +43,12 @@ func colorMatrixEsI() [ColorMatrixDim - 1][ColorMatrixDim]float64 {
 	}
 }
 
-func (c ColorMatrix) dim() int {
-	return ColorMatrixDim
+func (c ColorM) dim() int {
+	return ColorMDim
 }
 
 // Element returns a value of a matrix at (i, j).
-func (c ColorMatrix) Element(i, j int) float64 {
+func (c ColorM) Element(i, j int) float64 {
 	if !c.initialized {
 		if i == j {
 			return 1
@@ -59,29 +59,29 @@ func (c ColorMatrix) Element(i, j int) float64 {
 }
 
 // Concat multiplies a color matrix with the other color matrix.
-func (c *ColorMatrix) Concat(other ColorMatrix) {
+func (c *ColorM) Concat(other ColorM) {
 	if !c.initialized {
 		c.es = colorMatrixEsI()
 		c.initialized = true
 	}
-	result := ColorMatrix{}
+	result := ColorM{}
 	mul(&other, c, &result)
 	*c = result
 }
 
 // Add adds a color matrix with the other color matrix.
-func (c *ColorMatrix) Add(other ColorMatrix) {
+func (c *ColorM) Add(other ColorM) {
 	if !c.initialized {
 		c.es = colorMatrixEsI()
 		c.initialized = true
 	}
-	result := ColorMatrix{}
+	result := ColorM{}
 	add(&other, c, &result)
 	*c = result
 }
 
 // SetElement sets an element at (i, j).
-func (c *ColorMatrix) SetElement(i, j int, element float64) {
+func (c *ColorM) SetElement(i, j int, element float64) {
 	if !c.initialized {
 		c.es = colorMatrixEsI()
 		c.initialized = true
@@ -90,13 +90,13 @@ func (c *ColorMatrix) SetElement(i, j int, element float64) {
 }
 
 // Monochrome returns a color matrix to make an image monochrome.
-func Monochrome() ColorMatrix {
+func Monochrome() ColorM {
 	const r = 6968.0 / 32768.0
 	const g = 23434.0 / 32768.0
 	const b = 2366.0 / 32768.0
-	return ColorMatrix{
+	return ColorM{
 		initialized: true,
-		es: [ColorMatrixDim - 1][ColorMatrixDim]float64{
+		es: [ColorMDim - 1][ColorMDim]float64{
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
 			{r, g, b, 0, 0},
@@ -106,10 +106,10 @@ func Monochrome() ColorMatrix {
 }
 
 // ScaleColor returns a color matrix that scales a color matrix by the given color (r, g, b, a).
-func ScaleColor(r, g, b, a float64) ColorMatrix {
-	return ColorMatrix{
+func ScaleColor(r, g, b, a float64) ColorM {
+	return ColorM{
 		initialized: true,
-		es: [ColorMatrixDim - 1][ColorMatrixDim]float64{
+		es: [ColorMDim - 1][ColorMDim]float64{
 			{r, 0, 0, 0, 0},
 			{0, g, 0, 0, 0},
 			{0, 0, b, 0, 0},
@@ -119,10 +119,10 @@ func ScaleColor(r, g, b, a float64) ColorMatrix {
 }
 
 // TranslateColor returns a color matrix that translates a color matrix by the given color (r, g, b, a).
-func TranslateColor(r, g, b, a float64) ColorMatrix {
-	return ColorMatrix{
+func TranslateColor(r, g, b, a float64) ColorM {
+	return ColorM{
 		initialized: true,
-		es: [ColorMatrixDim - 1][ColorMatrixDim]float64{
+		es: [ColorMDim - 1][ColorMDim]float64{
 			{1, 0, 0, 0, r},
 			{0, 1, 0, 0, g},
 			{0, 0, 1, 0, b},
@@ -132,14 +132,14 @@ func TranslateColor(r, g, b, a float64) ColorMatrix {
 }
 
 // RotateHue returns a color matrix to rotate the hue
-func RotateHue(theta float64) ColorMatrix {
+func RotateHue(theta float64) ColorM {
 	sin, cos := math.Sincos(theta)
 	v1 := cos + (1.0-cos)/3.0
 	v2 := (1.0/3.0)*(1.0-cos) - math.Sqrt(1.0/3.0)*sin
 	v3 := (1.0/3.0)*(1.0-cos) + math.Sqrt(1.0/3.0)*sin
-	return ColorMatrix{
+	return ColorM{
 		initialized: true,
-		es: [ColorMatrixDim - 1][ColorMatrixDim]float64{
+		es: [ColorMDim - 1][ColorMDim]float64{
 			{v1, v2, v3, 0, 0},
 			{v3, v1, v2, 0, 0},
 			{v2, v3, v1, 0, 0},

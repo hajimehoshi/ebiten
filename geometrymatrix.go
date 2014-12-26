@@ -18,30 +18,30 @@ import (
 	"math"
 )
 
-// GeometryMatrixDim is a dimension of a GeometryMatrix.
-const GeometryMatrixDim = 3
+// GeoMDim is a dimension of a GeoM.
+const GeoMDim = 3
 
-// A GeometryMatrix represents a matrix to transform geometry when rendering an image.
+// A GeoM represents a matrix to transform geometry when rendering an image.
 //
 // The initial value is identity.
-type GeometryMatrix struct {
+type GeoM struct {
 	initialized bool
-	es          [GeometryMatrixDim - 1][GeometryMatrixDim]float64
+	es          [GeoMDim - 1][GeoMDim]float64
 }
 
-func geometryMatrixEsI() [GeometryMatrixDim - 1][GeometryMatrixDim]float64 {
-	return [GeometryMatrixDim - 1][GeometryMatrixDim]float64{
+func geometryMatrixEsI() [GeoMDim - 1][GeoMDim]float64 {
+	return [GeoMDim - 1][GeoMDim]float64{
 		{1, 0, 0},
 		{0, 1, 0},
 	}
 }
 
-func (g GeometryMatrix) dim() int {
-	return GeometryMatrixDim
+func (g GeoM) dim() int {
+	return GeoMDim
 }
 
 // Element returns a value of a matrix at (i, j).
-func (g GeometryMatrix) Element(i, j int) float64 {
+func (g GeoM) Element(i, j int) float64 {
 	if !g.initialized {
 		if i == j {
 			return 1
@@ -52,29 +52,29 @@ func (g GeometryMatrix) Element(i, j int) float64 {
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
-func (g *GeometryMatrix) Concat(other GeometryMatrix) {
+func (g *GeoM) Concat(other GeoM) {
 	if !g.initialized {
 		g.es = geometryMatrixEsI()
 		g.initialized = true
 	}
-	result := GeometryMatrix{}
+	result := GeoM{}
 	mul(&other, g, &result)
 	*g = result
 }
 
 // Add adds a geometry matrix with the other geometry matrix.
-func (g *GeometryMatrix) Add(other GeometryMatrix) {
+func (g *GeoM) Add(other GeoM) {
 	if !g.initialized {
 		g.es = geometryMatrixEsI()
 		g.initialized = true
 	}
-	result := GeometryMatrix{}
+	result := GeoM{}
 	add(&other, g, &result)
 	*g = result
 }
 
 // SetElement sets an element at (i, j).
-func (g *GeometryMatrix) SetElement(i, j int, element float64) {
+func (g *GeoM) SetElement(i, j int, element float64) {
 	if !g.initialized {
 		g.es = geometryMatrixEsI()
 		g.initialized = true
@@ -82,9 +82,9 @@ func (g *GeometryMatrix) SetElement(i, j int, element float64) {
 	g.es[i][j] = element
 }
 
-// ScaleGeometry returns a matrix that scales a geometry matrix by (x, y).
-func ScaleGeometry(x, y float64) GeometryMatrix {
-	return GeometryMatrix{
+// ScaleGeo returns a matrix that scales a geometry matrix by (x, y).
+func ScaleGeo(x, y float64) GeoM {
+	return GeoM{
 		initialized: true,
 		es: [2][3]float64{
 			{x, 0, 0},
@@ -93,9 +93,9 @@ func ScaleGeometry(x, y float64) GeometryMatrix {
 	}
 }
 
-// TranslateGeometry returns a matrix taht translates a geometry matrix by (tx, ty).
-func TranslateGeometry(tx, ty float64) GeometryMatrix {
-	return GeometryMatrix{
+// TranslateGeo returns a matrix taht translates a geometry matrix by (tx, ty).
+func TranslateGeo(tx, ty float64) GeoM {
+	return GeoM{
 		initialized: true,
 		es: [2][3]float64{
 			{1, 0, tx},
@@ -104,10 +104,10 @@ func TranslateGeometry(tx, ty float64) GeometryMatrix {
 	}
 }
 
-// RotateGeometry returns a matrix that rotates a geometry matrix by theta.
-func RotateGeometry(theta float64) GeometryMatrix {
+// RotateGeo returns a matrix that rotates a geometry matrix by theta.
+func RotateGeo(theta float64) GeoM {
 	sin, cos := math.Sincos(theta)
-	return GeometryMatrix{
+	return GeoM{
 		initialized: true,
 		es: [2][3]float64{
 			{cos, -sin, 0},
