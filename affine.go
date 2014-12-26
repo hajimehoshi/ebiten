@@ -17,7 +17,7 @@ package ebiten
 type affine interface {
 	dim() int
 	Element(i, j int) float64
-	setElement(i, j int, element float64)
+	SetElement(i, j int, element float64)
 }
 
 func isIdentity(ebiten affine) bool {
@@ -43,7 +43,7 @@ func add(lhs, rhs, result affine) {
 
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
-			result.setElement(i, j, lhs.Element(i, j)+rhs.Element(i, j))
+			result.SetElement(i, j, lhs.Element(i, j)+rhs.Element(i, j))
 		}
 	}
 }
@@ -64,7 +64,7 @@ func mul(lhs, rhs, result affine) {
 			if j == dim-1 {
 				element += lhs.Element(i, j)
 			}
-			result.setElement(i, j, element)
+			result.SetElement(i, j, element)
 		}
 	}
 }

@@ -67,7 +67,8 @@ func (c *ColorMatrix) Add(other ColorMatrix) {
 	*c = result
 }
 
-func (c *ColorMatrix) setElement(i, j int, element float64) {
+// SetElement sets an element at (i, j).
+func (c *ColorMatrix) SetElement(i, j int, element float64) {
 	c.es[i][j] = element
 }
 

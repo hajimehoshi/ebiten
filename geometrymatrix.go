@@ -60,7 +60,8 @@ func (g *GeometryMatrix) Add(other GeometryMatrix) {
 	*g = result
 }
 
-func (g *GeometryMatrix) setElement(i, j int, element float64) {
+// SetElement sets an element at (i, j).
+func (g *GeometryMatrix) SetElement(i, j int, element float64) {
 	g.es[i][j] = element
 }
 
