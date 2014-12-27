@@ -17,35 +17,77 @@ package ebitenutil
 import (
 	"github.com/hajimehoshi/ebiten"
 	"image"
-	"image/color/palette"
+	"image/color"
+	//"image/color/palette"
 	"image/draw"
 	"image/gif"
 	"io"
+	"sync"
 )
 
 type recorder struct {
 	inner        func(screen *ebiten.Image) error
 	writer       io.Writer
+	frameNum     int
+	skips        int
 	gif          *gif.GIF
 	currentFrame int
+	wg           sync.WaitGroup
+}
+
+var palette = color.Palette{
+	color.RGBA{0x00, 0x00, 0x00, 0xff},
+	color.RGBA{0xff, 0x00, 0x00, 0xff},
+	color.RGBA{0x00, 0xff, 0x00, 0xff},
+	color.RGBA{0x00, 0x00, 0xff, 0xff},
+	color.RGBA{0xff, 0xff, 0x00, 0xff},
+	color.RGBA{0xff, 0x00, 0xff, 0xff},
+	color.RGBA{0x00, 0xff, 0xff, 0xff},
+	color.RGBA{0xff, 0xff, 0xff, 0xff},
+}
+
+func (r *recorder) delay() int {
+	// Assume that the FPS is 60.
+	delay := 100 * r.skips / 60
+	if delay < 2 {
+		return 2
+	}
+	return delay
 }
 
 func (r *recorder) update(screen *ebiten.Image) error {
 	if err := r.inner(screen); err != nil {
 		return err
 	}
-	if r.currentFrame == len(r.gif.Image) {
+	if r.currentFrame == r.frameNum {
 		return nil
 	}
-	img := image.NewPaletted(screen.Bounds(), palette.Plan9)
-	// TODO: This is too slow.
-	draw.Draw(img, img.Bounds(), screen, screen.Bounds().Min, draw.Src)
-	r.gif.Image[r.currentFrame] = img
-	// The actual FPS is 60, but GIF can't have such FPS. Set 50 FPS instead.
-	r.gif.Delay[r.currentFrame] = 2
+	if r.currentFrame%r.skips == 0 {
+		if r.gif == nil {
+			num := (r.frameNum-1)/r.skips + 1
+			r.gif = &gif.GIF{
+				Image:     make([]*image.Paletted, num),
+				Delay:     make([]int, num),
+				LoopCount: -1,
+			}
+		}
+		s := image.NewNRGBA(screen.Bounds())
+		draw.Draw(s, s.Bounds(), screen, screen.Bounds().Min, draw.Src)
+
+		img := image.NewPaletted(s.Bounds(), palette)
+		f := r.currentFrame / r.skips
+		r.wg.Add(1)
+		go func() {
+			defer r.wg.Done()
+			draw.FloydSteinberg.Draw(img, img.Bounds(), s, s.Bounds().Min)
+			r.gif.Image[f] = img
+			r.gif.Delay[f] = r.delay()
+		}()
+	}
 
 	r.currentFrame++
-	if r.currentFrame == len(r.gif.Image) {
+	if r.currentFrame == r.frameNum {
+		r.wg.Wait()
 		if err := gif.EncodeAll(r.writer, r.gif); err != nil {
 			return err
 		}
@@ -77,13 +119,10 @@ func (r *recorder) update(screen *ebiten.Image) error {
 //     }
 func RecordScreenAsGIF(update func(*ebiten.Image) error, out io.Writer, frameNum int) func(*ebiten.Image) error {
 	r := &recorder{
-		inner:  update,
-		writer: out,
-		gif: &gif.GIF{
-			Image:     make([]*image.Paletted, frameNum),
-			Delay:     make([]int, frameNum),
-			LoopCount: -1,
-		},
+		inner:    update,
+		writer:   out,
+		frameNum: frameNum,
+		skips:    4,
 	}
 	return r.update
 }
