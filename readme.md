@@ -1,4 +1,4 @@
-# Ebiten (海老天)
+# Ebiten (海老天) v1.0.0-alpha
 
 * A simple 2D game library in Go
 * Works on
@@ -42,6 +42,10 @@
 :; ./example -cpuprofile=cpu.out
 :; go tool pprof ./example cpu.out
 ```
+
+## Versioning
+
+* We adopted [Semantic Versioning](http://semver.org/)
 
 ## License
 
