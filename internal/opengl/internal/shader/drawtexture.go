@@ -16,7 +16,6 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
-	"unsafe"
 )
 
 func glMatrix(m [4][4]float64) [16]float32 {
@@ -87,11 +86,8 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		vertexAttrLocation.DisableArray()
 	}()
 
-	// TODO: Fix this dirty hack after fixing https://github.com/go-gl/gl/issues/174
-	v := (*int)(unsafe.Pointer(uintptr(short32Size * 0)))
-	t := (*int)(unsafe.Pointer(uintptr(short32Size * 2)))
-	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, v)
-	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, t)
+	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(short32Size*0))
+	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(short32Size*2))
 
 	vertices := []float32{}
 	for _, quad := range quads {
@@ -111,8 +107,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		)
 	}
 	gl.BufferSubData(gl.ARRAY_BUFFER, 0, short32Size*len(vertices), vertices)
-	// TODO: Pass 0 after fixing the gl bug
-	gl.DrawElements(gl.TRIANGLES, 6*len(quads), gl.UNSIGNED_SHORT, nil)
+	gl.DrawElements(gl.TRIANGLES, 6*len(quads), gl.UNSIGNED_SHORT, uintptr(0))
 
 	gl.Flush()
 }
