@@ -21,6 +21,16 @@ import (
 // ColorMDim is a dimension of a ColorM.
 const ColorMDim = 5
 
+var colorMI = ColorM{
+	initialized: true,
+	es: [ColorMDim - 1][ColorMDim]float64{
+		{1, 0, 0, 0, 0},
+		{0, 1, 0, 0, 0},
+		{0, 0, 1, 0, 0},
+		{0, 0, 0, 1, 0},
+	},
+}
+
 // A ColorM represents a matrix to transform coloring when rendering an image.
 //
 // A ColorM is applied to the source alpha color
@@ -32,15 +42,6 @@ const ColorMDim = 5
 type ColorM struct {
 	initialized bool
 	es          [ColorMDim - 1][ColorMDim]float64
-}
-
-func colorMatrixEsI() [ColorMDim - 1][ColorMDim]float64 {
-	return [ColorMDim - 1][ColorMDim]float64{
-		{1, 0, 0, 0, 0},
-		{0, 1, 0, 0, 0},
-		{0, 0, 1, 0, 0},
-		{0, 0, 0, 1, 0},
-	}
 }
 
 func (c ColorM) dim() int {
@@ -62,8 +63,7 @@ func (c ColorM) Element(i, j int) float64 {
 // This returns c.
 func (c *ColorM) Concat(other ColorM) ColorM {
 	if !c.initialized {
-		c.es = colorMatrixEsI()
-		c.initialized = true
+		*c = colorMI
 	}
 	result := ColorM{}
 	mul(&other, c, &result)
@@ -75,8 +75,7 @@ func (c *ColorM) Concat(other ColorM) ColorM {
 // This returns c.
 func (c *ColorM) Add(other ColorM) ColorM {
 	if !c.initialized {
-		c.es = colorMatrixEsI()
-		c.initialized = true
+		*c = colorMI
 	}
 	result := ColorM{}
 	add(&other, c, &result)
@@ -87,8 +86,7 @@ func (c *ColorM) Add(other ColorM) ColorM {
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
 	if !c.initialized {
-		c.es = colorMatrixEsI()
-		c.initialized = true
+		*c = colorMI
 	}
 	c.es[i][j] = element
 }

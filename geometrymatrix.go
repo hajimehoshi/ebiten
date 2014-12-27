@@ -21,19 +21,20 @@ import (
 // GeoMDim is a dimension of a GeoM.
 const GeoMDim = 3
 
+var geoMI = GeoM{
+	initialized: true,
+	es: [2][3]float64{
+		{1, 0, 0},
+		{0, 1, 0},
+	},
+}
+
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
 // The initial value is identity.
 type GeoM struct {
 	initialized bool
 	es          [GeoMDim - 1][GeoMDim]float64
-}
-
-func geometryMatrixEsI() [GeoMDim - 1][GeoMDim]float64 {
-	return [GeoMDim - 1][GeoMDim]float64{
-		{1, 0, 0},
-		{0, 1, 0},
-	}
 }
 
 func (g GeoM) dim() int {
@@ -55,8 +56,7 @@ func (g GeoM) Element(i, j int) float64 {
 // This returns g.
 func (g *GeoM) Concat(other GeoM) GeoM {
 	if !g.initialized {
-		g.es = geometryMatrixEsI()
-		g.initialized = true
+		*g = geoMI
 	}
 	result := GeoM{}
 	mul(&other, g, &result)
@@ -68,8 +68,7 @@ func (g *GeoM) Concat(other GeoM) GeoM {
 // This returns g.
 func (g *GeoM) Add(other GeoM) GeoM {
 	if !g.initialized {
-		g.es = geometryMatrixEsI()
-		g.initialized = true
+		*g = geoMI
 	}
 	result := GeoM{}
 	add(&other, g, &result)
@@ -80,8 +79,7 @@ func (g *GeoM) Add(other GeoM) GeoM {
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
 	if !g.initialized {
-		g.es = geometryMatrixEsI()
-		g.initialized = true
+		*g = geoMI
 	}
 	g.es[i][j] = element
 }
