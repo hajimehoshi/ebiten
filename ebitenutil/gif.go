@@ -56,6 +56,25 @@ func (r *recorder) update(screen *ebiten.Image) error {
 // RecordScreenAsGIF returns updating function with recording the screen as an animation GIF image.
 //
 // This encodes each screen at each frame and may slows the application.
+//
+// Here is the example to record initial 120 frames of your game:
+//
+//     func update(screen *ebiten.Image) error {
+//         // ...
+//     }
+//
+//     func main() {
+//         out, err := os.Create("output.gif")
+//         if err != nil {
+//             log.Fatal(err)
+//         }
+//         defer out.Close()
+//
+//         update := RecordScreenAsGIF(update, out, 120)
+//         if err := ebiten.Run(update, 320, 240, 2, "Your game's title"); err != nil {
+//             log.Fatal(err)
+//         }
+//     }
 func RecordScreenAsGIF(update func(*ebiten.Image) error, out io.Writer, frameNum int) func(*ebiten.Image) error {
 	r := &recorder{
 		inner:  update,
