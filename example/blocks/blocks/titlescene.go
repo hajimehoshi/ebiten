@@ -57,19 +57,20 @@ func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
 	dy := (c / 4) % imageHeight
 
 	backgroundImage := images.GetImage("background")
-	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
+	parts := []ebiten.ImagePart{}
 	for j := -1; j < ScreenHeight/imageHeight+1; j++ {
 		for i := 0; i < ScreenWidth/imageWidth+1; i++ {
 			dstX := i*imageWidth + dx
 			dstY := j*imageHeight + dy
-			dsts = append(dsts, image.Rect(dstX, dstY, dstX+imageWidth, dstY+imageHeight))
-			srcs = append(srcs, image.Rect(0, 0, imageWidth, imageHeight))
+			parts = append(parts, ebiten.ImagePart{
+				Dst: image.Rect(dstX, dstY, dstX+imageWidth, dstY+imageHeight),
+				Src: image.Rect(0, 0, imageWidth, imageHeight),
+			})
 		}
 	}
 
 	r.DrawImage(backgroundImage, &ebiten.DrawImageOptions{
-		SrcParts: srcs,
-		DstParts: dsts,
+		Parts: parts,
 	})
 }
 

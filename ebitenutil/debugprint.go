@@ -35,7 +35,7 @@ func DebugPrint(r *ebiten.Image, str string) {
 }
 
 func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
-	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
+	parts := []ebiten.ImagePart{}
 	locationX, locationY := 0, 0
 	for _, c := range str {
 		if c == '\n' {
@@ -49,8 +49,7 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 		srcY := (code / xCharNum) * assets.TextImageCharHeight
 		dst := image.Rect(locationX, locationY, locationX+assets.TextImageCharWidth, locationY+assets.TextImageCharHeight)
 		src := image.Rect(srcX, srcY, srcX+assets.TextImageCharWidth, srcY+assets.TextImageCharHeight)
-		dsts = append(dsts, dst)
-		srcs = append(srcs, src)
+		parts = append(parts, ebiten.ImagePart{Dst: dst, Src: src})
 		locationX += assets.TextImageCharWidth
 	}
 	cc := color.NRGBA64Model.Convert(c).(color.NRGBA64)
@@ -59,10 +58,9 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	b := float64(cc.B) / math.MaxUint16
 	a := float64(cc.A) / math.MaxUint16
 	rt.DrawImage(d.textImage, &ebiten.DrawImageOptions{
-		DstParts: dsts,
-		SrcParts: srcs,
-		GeoM:     ebiten.TranslateGeo(float64(x+1), float64(y)),
-		ColorM:   ebiten.ScaleColor(r, g, b, a),
+		Parts:  parts,
+		GeoM:   ebiten.TranslateGeo(float64(x+1), float64(y)),
+		ColorM: ebiten.ScaleColor(r, g, b, a),
 	})
 }
 

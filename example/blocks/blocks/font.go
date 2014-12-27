@@ -34,7 +34,7 @@ func textWidth(str string) int {
 
 func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c color.Color) {
 	fontImageId := images.GetImage("font")
-	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
+	parts := []ebiten.ImagePart{}
 
 	locationX, locationY := 0, 0
 	for _, c := range str {
@@ -46,8 +46,10 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 		code := int(c)
 		x := (code % 16) * charWidth
 		y := ((code - 32) / 16) * charHeight
-		dsts = append(dsts, image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight))
-		srcs = append(srcs, image.Rect(x, y, x+charWidth, y+charHeight))
+		parts = append(parts, ebiten.ImagePart{
+			Dst: image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight),
+			Src: image.Rect(x, y, x+charWidth, y+charHeight),
+		})
 		locationX += charWidth
 	}
 
@@ -61,10 +63,9 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 	a := float64(c2.A) / max
 	clr := ebiten.ScaleColor(r, g, b, a)
 	rt.DrawImage(fontImageId, &ebiten.DrawImageOptions{
-		DstParts: dsts,
-		SrcParts: srcs,
-		GeoM:     geo,
-		ColorM:   clr,
+		Parts:  parts,
+		GeoM:   geo,
+		ColorM: clr,
 	})
 }
 

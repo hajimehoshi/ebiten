@@ -138,7 +138,7 @@ const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
 func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int) {
-	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
+	parts := []ebiten.ImagePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
 			if block == BlockTypeNone {
@@ -146,15 +146,16 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int)
 			}
 			locationX := i*blockWidth + x
 			locationY := j*blockHeight + y
-			dsts = append(dsts, image.Rect(locationX, locationY, locationX+blockWidth, locationY+blockHeight))
 			srcX := (int(block) - 1) * blockWidth
-			srcs = append(srcs, image.Rect(srcX, 0, srcX+blockWidth, blockHeight))
+			parts = append(parts, ebiten.ImagePart{
+				Dst: image.Rect(locationX, locationY, locationX+blockWidth, locationY+blockHeight),
+				Src: image.Rect(srcX, 0, srcX+blockWidth, blockHeight),
+			})
 		}
 	}
 	blocksImage := images.GetImage("blocks")
 	r.DrawImage(blocksImage, &ebiten.DrawImageOptions{
-		SrcParts: srcs,
-		DstParts: dsts,
+		Parts: parts,
 	})
 }
 

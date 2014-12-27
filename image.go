@@ -56,15 +56,14 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
-	dsts := options.DstParts
-	srcs := options.SrcParts
-	if srcs == nil || dsts == nil {
+	parts := options.Parts
+	if parts == nil {
 		w, h := img.size()
-		dsts = []image.Rectangle{
-			image.Rect(0, 0, w, h),
-		}
-		srcs = []image.Rectangle{
-			image.Rect(0, 0, w, h),
+		parts = []ImagePart{
+			{
+				Dst: image.Rect(0, 0, w, h),
+				Src: image.Rect(0, 0, w, h),
+			},
 		}
 	}
 	geo := options.GeoM
@@ -74,7 +73,7 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 		return err
 	}
 	w, h := img.texture.Size()
-	quads := textureQuads(dsts, srcs, w, h)
+	quads := textureQuads(parts, w, h)
 	projectionMatrix := i.framebuffer.ProjectionMatrix()
 	shader.DrawTexture(img.texture.Native(), projectionMatrix, quads, geo, clr)
 	return nil
@@ -88,14 +87,10 @@ func v(y float64, height int) float32 {
 	return float32(y) / float32(internal.NextPowerOf2Int(height))
 }
 
-func textureQuads(dsts, srcs []image.Rectangle, width, height int) []shader.TextureQuad {
-	l := len(dsts)
-	if len(srcs) < l {
-		l = len(srcs)
-	}
-	quads := make([]shader.TextureQuad, 0, l)
-	for i := 0; i < l; i++ {
-		dst, src := dsts[i], srcs[i]
+func textureQuads(parts []ImagePart, width, height int) []shader.TextureQuad {
+	quads := make([]shader.TextureQuad, 0, len(parts))
+	for _, part := range parts {
+		dst, src := part.Dst, part.Src
 		x1 := float32(dst.Min.X)
 		x2 := float32(dst.Max.X)
 		y1 := float32(dst.Min.Y)
@@ -200,10 +195,14 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
+type ImagePart struct {
+	Dst image.Rectangle
+	Src image.Rectangle
+}
+
 // A DrawImageOptions presents options to render an image on an image.
 type DrawImageOptions struct {
-	DstParts []image.Rectangle
-	SrcParts []image.Rectangle
-	GeoM     GeoM
-	ColorM   ColorM
+	Parts  []ImagePart
+	GeoM   GeoM
+	ColorM ColorM
 }

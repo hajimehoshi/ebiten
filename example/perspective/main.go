@@ -32,21 +32,22 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
-	dsts, srcs := []image.Rectangle{}, []image.Rectangle{}
+	parts := []ebiten.ImagePart{}
 	w, h := gophersImage.Size()
 	for i := 0; i < h; i++ {
 		width := w + i*3/4
 		x := ((h - i) * 3 / 4) / 2
-		dsts = append(dsts, image.Rect(x, i, x+width, i+1))
-		srcs = append(srcs, image.Rect(0, i, w, i+1))
+		parts = append(parts, ebiten.ImagePart{
+			Dst: image.Rect(x, i, x+width, i+1),
+			Src: image.Rect(0, i, w, i+1),
+		})
 	}
 	maxWidth := float64(w) + float64(h)*0.75
 	geo := ebiten.TranslateGeo(-maxWidth/2, -float64(h)/2)
 	geo.Concat(ebiten.TranslateGeo(screenWidth/2, screenHeight/2))
 	screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{
-		DstParts: dsts,
-		SrcParts: srcs,
-		GeoM:     geo,
+		Parts: parts,
+		GeoM:  geo,
 	})
 	return nil
 }
