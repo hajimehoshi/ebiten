@@ -23,11 +23,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 const (
 	outputPath   = "public/index.html"
-	readMePath   = "../readme.md"
 	templatePath = "index_tmpl.html"
 )
 
@@ -70,18 +70,27 @@ func safeHTML(text string) template.HTML {
 	return template.HTML(text)
 }
 
+type example struct {
+	Name string
+}
+
+func (e *example) Source() string {
+	path := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "hajimehoshi", "ebiten", "example", e.Name, "main.go")
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	str := regexp.MustCompile("(?s)^.*?\n\n").ReplaceAllString(string(b), "")
+	return str
+}
+
 func main() {
 	f, err := os.Create(outputPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
-
-	// Parse readme.md
-	readme, err := parseMarkdown(readMePath)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	funcs := template.FuncMap{
 		"comment":  comment,
@@ -92,9 +101,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	data := map[string]string{
-		"License": license,
-		"ReadMe":  readme,
+	examples := []example{
+		{Name: "mosaic"},
+		{Name: "perspective"},
+		{Name: "rotate"},
+	}
+	data := map[string]interface{}{
+		"License":  license,
+		"Examples": examples,
 	}
 	if err := t.Funcs(funcs).Execute(f, data); err != nil {
 		log.Fatal(err)

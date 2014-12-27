@@ -31,7 +31,7 @@
 
 ```
 :; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
-:; go run blocks/main.go
+:; go run rotate/main.go
 ```
 
 ### Benchmark the example

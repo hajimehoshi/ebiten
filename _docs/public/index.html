@@ -12,87 +12,224 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.-->
-<h1>
-<a id="user-content-ebiten-海老天-v100-alpha" class="anchor" href="#ebiten-%E6%B5%B7%E8%80%81%E5%A4%A9-v100-alpha" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ebiten (海老天) v1.0.0-alpha</h1>
-
+<h1>Ebiten (海老天) v1.0.0-alpha</h1>
 <ul>
-<li>A simple 2D game library in Go</li>
-<li>Works on
-
-<ul>
-<li>Mac OS X</li>
-<li>Linux (maybe)</li>
-<li>Windows (possibly)</li>
-</ul>
-</li>
-<li><a href="http://godoc.org/github.com/hajimehoshi/ebiten">API Docs</a></li>
+  <li>A simple 2D game library in Go</li>
+  <li>Works on
+    <ul>
+      <li>Mac OS X</li>
+      <li>Linux (maybe)</li>
+      <li>Windows (possibly)</li>
+    </ul>
+  </li>
+  <li><a href="http://godoc.org/github.com/hajimehoshi/ebiten">API Docs</a></li>
+  <li><a href="http://github.com/hajimehoshi/ebiten">Source Code</a></li>
 </ul>
 
-<h2>
-<a id="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
-
+<h2>Features</h2>
 <ul>
 <li>2D Graphics</li>
 <li>Input (Mouse, Keyboard)</li>
 </ul>
 
-<h2>
-<a id="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+<h2>Example</h2>
+<table>
+  
+  <tr>
+    <td><pre><code>package main
 
-<ul>
-<li>example/mosaic - Mosaics an image</li>
-<li>example/perspective - See an image in a perspective view</li>
-<li>example/rotate - Rotates an image</li>
-<li>etc.</li>
-</ul>
+import (
+	&#34;github.com/hajimehoshi/ebiten&#34;
+	&#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+	_ &#34;image/jpeg&#34;
+	&#34;log&#34;
+)
 
-<h2>
-<a id="user-content-install-on-mac-os-x" class="anchor" href="#install-on-mac-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install on Mac OS X</h2>
+const (
+	screenWidth  = 320
+	screenHeight = 240
+)
 
+const mosaicRatio = 16
+
+var (
+	gophersImage        *ebiten.Image
+	gophersRenderTarget *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+	gophersRenderTarget.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{
+		GeoM: ebiten.ScaleGeo(1.0/mosaicRatio, 1.0/mosaicRatio),
+	})
+	screen.DrawImage(gophersRenderTarget, &amp;ebiten.DrawImageOptions{
+		GeoM: ebiten.ScaleGeo(mosaicRatio, mosaicRatio),
+	})
+	return nil
+}
+
+func main() {
+	var err error
+	gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w, h := gophersImage.Size()
+	gophersRenderTarget, err = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Mosaic (Ebiten Demo)&#34;); err != nil {
+		log.Fatal(err)
+	}
+}
+</code></pre></td>
+    <td><img src="mosaic.gif" width="320" height="240"></td>
+  </tr>
+  
+  <tr>
+    <td><pre><code>package main
+
+import (
+	&#34;github.com/hajimehoshi/ebiten&#34;
+	&#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+	&#34;image&#34;
+	_ &#34;image/jpeg&#34;
+	&#34;log&#34;
+)
+
+const (
+	screenWidth  = 320
+	screenHeight = 240
+)
+
+var (
+	gophersImage *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+	parts := []ebiten.ImagePart{}
+	w, h := gophersImage.Size()
+	for i := 0; i &lt; h; i&#43;&#43; {
+		width := w &#43; i*3/4
+		x := ((h - i) * 3 / 4) / 2
+		parts = append(parts, ebiten.ImagePart{
+			Dst: image.Rect(x, i, x&#43;width, i&#43;1),
+			Src: image.Rect(0, i, w, i&#43;1),
+		})
+	}
+	maxWidth := float64(w) &#43; float64(h)*0.75
+	geo := ebiten.TranslateGeo(-maxWidth/2, -float64(h)/2)
+	geo.Concat(ebiten.TranslateGeo(screenWidth/2, screenHeight/2))
+	screen.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{
+		Parts: parts,
+		GeoM:  geo,
+	})
+	return nil
+}
+
+func main() {
+	var err error
+	gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Perspective (Ebiten Demo)&#34;); err != nil {
+		log.Fatal(err)
+	}
+}
+</code></pre></td>
+    <td><img src="perspective.gif" width="320" height="240"></td>
+  </tr>
+  
+  <tr>
+    <td><pre><code>package main
+
+import (
+	&#34;github.com/hajimehoshi/ebiten&#34;
+	&#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+	_ &#34;image/jpeg&#34;
+	&#34;log&#34;
+	&#34;math&#34;
+)
+
+const (
+	screenWidth  = 320
+	screenHeight = 240
+)
+
+var (
+	count           int
+	horizontalCount int
+	verticalCount   int
+	gophersImage    *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+	count&#43;&#43;
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		horizontalCount--
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		horizontalCount&#43;&#43;
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyDown) {
+		verticalCount--
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+		verticalCount&#43;&#43;
+	}
+
+	w, h := gophersImage.Size()
+	geo := ebiten.TranslateGeo(-float64(w)/2, -float64(h)/2)
+	scaleX := math.Pow(1.05, float64(horizontalCount))
+	scaleY := math.Pow(1.05, float64(verticalCount))
+	geo.Concat(ebiten.ScaleGeo(scaleX, scaleY))
+	geo.Concat(ebiten.RotateGeo(float64(count%720) * 2 * math.Pi / 720))
+	geo.Concat(ebiten.TranslateGeo(screenWidth/2, screenHeight/2))
+	if err := screen.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{
+		GeoM: geo,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func main() {
+	var err error
+	gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Image (Ebiten Demo)&#34;); err != nil {
+		log.Fatal(err)
+	}
+}
+</code></pre></td>
+    <td><img src="rotate.gif" width="320" height="240"></td>
+  </tr>
+  
+</table>
+
+<h2>Install on Mac OS X</h2>
 <pre><code>:; brew install glew
 :; brew install glfw3 # or homebrew/versions/glfw3
-:; go get -u github.com/hajimehoshi/ebiten
-</code></pre>
+:; go get -u github.com/hajimehoshi/ebiten</code></pre>
 
-<h2>
-<a id="user-content-execute-the-example" class="anchor" href="#execute-the-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execute the example</h2>
-
+<h2>Execute the example</h2>
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
-:; go run blocks/main.go
-</code></pre>
+:; go run rotate/main.go</code></pre>
 
-<h3>
-<a id="user-content-benchmark-the-example" class="anchor" href="#benchmark-the-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Benchmark the example</h3>
-
-<pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
-:; go build -o=example blocks/main.go
-:; ./example -cpuprofile=cpu.out
-:; go tool pprof ./example cpu.out
-</code></pre>
-
-<h2>
-<a id="user-content-versioning" class="anchor" href="#versioning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Versioning</h2>
-
-<ul>
-<li>We adopted <a href="http://semver.org/">Semantic Versioning</a>
-</li>
-</ul>
-
-<h2>
-<a id="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
-
+<h2>License</h2>
 <pre><code>Copyright 2014 Hajime Hoshi
 
-Licensed under the Apache License, Version 2.0 (the "License");
+Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
+distributed under the License is distributed on an &#34;AS IS&#34; BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
-limitations under the License.
-</code></pre>
-
+limitations under the License.</code></pre>

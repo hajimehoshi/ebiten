@@ -1,3 +1,43 @@
 <!DOCTYPE html>
-{{ comment .License }}
-{{ safeHTML .ReadMe }}
+{{comment .License}}
+<h1>Ebiten (海老天) v1.0.0-alpha</h1>
+<ul>
+  <li>A simple 2D game library in Go</li>
+  <li>Works on
+    <ul>
+      <li>Mac OS X</li>
+      <li>Linux (maybe)</li>
+      <li>Windows (possibly)</li>
+    </ul>
+  </li>
+  <li><a href="http://godoc.org/github.com/hajimehoshi/ebiten">API Docs</a></li>
+  <li><a href="http://github.com/hajimehoshi/ebiten">Source Code</a></li>
+</ul>
+
+<h2>Features</h2>
+<ul>
+<li>2D Graphics</li>
+<li>Input (Mouse, Keyboard)</li>
+</ul>
+
+<h2>Example</h2>
+<table>
+  {{range .Examples}}
+  <tr>
+    <td><pre><code>{{.Source}}</code></pre></td>
+    <td><img src="{{.Name}}.gif" width="320" height="240"></td>
+  </tr>
+  {{end}}
+</table>
+
+<h2>Install on Mac OS X</h2>
+<pre><code>:; brew install glew
+:; brew install glfw3 # or homebrew/versions/glfw3
+:; go get -u github.com/hajimehoshi/ebiten</code></pre>
+
+<h2>Execute the example</h2>
+<pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
+:; go run rotate/main.go</code></pre>
+
+<h2>License</h2>
+<pre><code>{{.License}}</code></pre>
