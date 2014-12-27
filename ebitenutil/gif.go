@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"image"
 	"image/color"
-	//"image/color/palette"
+	"image/color/palette"
 	"image/draw"
 	"image/gif"
 	"io"
@@ -35,7 +35,7 @@ type recorder struct {
 	wg           sync.WaitGroup
 }
 
-var palette = color.Palette{
+var cheapPalette = color.Palette{
 	color.RGBA{0x00, 0x00, 0x00, 0xff},
 	color.RGBA{0xff, 0x00, 0x00, 0xff},
 	color.RGBA{0x00, 0xff, 0x00, 0xff},
@@ -53,6 +53,13 @@ func (r *recorder) delay() int {
 		return 2
 	}
 	return delay
+}
+
+func (r *recorder) palette() color.Palette {
+	if 1 < (r.frameNum-1)/r.skips+1 {
+		return cheapPalette
+	}
+	return palette.Plan9
 }
 
 func (r *recorder) update(screen *ebiten.Image) error {
@@ -74,7 +81,7 @@ func (r *recorder) update(screen *ebiten.Image) error {
 		s := image.NewNRGBA(screen.Bounds())
 		draw.Draw(s, s.Bounds(), screen, screen.Bounds().Min, draw.Src)
 
-		img := image.NewPaletted(s.Bounds(), palette)
+		img := image.NewPaletted(s.Bounds(), r.palette())
 		f := r.currentFrame / r.skips
 		r.wg.Add(1)
 		go func() {
@@ -122,7 +129,7 @@ func RecordScreenAsGIF(update func(*ebiten.Image) error, out io.Writer, frameNum
 		inner:    update,
 		writer:   out,
 		frameNum: frameNum,
-		skips:    4,
+		skips:    5,
 	}
 	return r.update
 }
