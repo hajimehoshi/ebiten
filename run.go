@@ -14,6 +14,10 @@
 
 package ebiten
 
+import (
+	"time"
+)
+
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -33,6 +37,8 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}()
 
 	for {
+		// To avoid busy loop when the window is inactive, wait 1/120 [sec] at least.
+		ch := time.After(1 * time.Second / 120)
 		ui.doEvents()
 		if ui.isClosed() {
 			return nil
@@ -40,5 +46,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if err := ui.draw(f); err != nil {
 			return err
 		}
+		<-ch
 	}
 }
