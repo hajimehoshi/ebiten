@@ -16,12 +16,19 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image"
 	"image/color"
 )
 
+var imageBackground *ebiten.Image
+
 func init() {
-	imagePaths["background"] = "images/blocks/background.png"
+	var err error
+	imageBackground, _, err = ebitenutil.NewImageFromFile("images/blocks/background.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type TitleScene struct {
@@ -40,7 +47,7 @@ func (s *TitleScene) Update(state *GameState) {
 }
 
 func (s *TitleScene) Draw(r *ebiten.Image, images *Images) {
-	drawTitleBackground(r, images, s.count)
+	drawTitleBackground(r, s.count)
 	drawLogo(r, images, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
@@ -49,14 +56,14 @@ func (s *TitleScene) Draw(r *ebiten.Image, images *Images) {
 	drawTextWithShadow(r, images, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(r *ebiten.Image, images *Images, c int) {
+func drawTitleBackground(r *ebiten.Image, c int) {
 	const imageWidth = 32
 	const imageHeight = 32
 
 	dx := (-c / 4) % imageWidth
 	dy := (c / 4) % imageHeight
 
-	backgroundImage := images.GetImage("background")
+	backgroundImage := imageBackground
 	parts := []ebiten.ImagePart{}
 	for j := -1; j < ScreenHeight/imageHeight+1; j++ {
 		for i := 0; i < ScreenWidth/imageWidth+1; i++ {

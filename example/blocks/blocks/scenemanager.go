@@ -18,11 +18,21 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
+var (
+	transitionFrom *ebiten.Image
+	transitionTo   *ebiten.Image
+)
+
 func init() {
-	renderTargetSizes["scene_manager_transition_from"] =
-		Size{ScreenWidth, ScreenHeight}
-	renderTargetSizes["scene_manager_transition_to"] =
-		Size{ScreenWidth, ScreenHeight}
+	var err error
+	transitionFrom, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	transitionTo, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Scene interface {
@@ -63,21 +73,18 @@ func (s *SceneManager) Draw(r *ebiten.Image, images *Images) {
 		s.current.Draw(r, images)
 		return
 	}
-	from := images.GetRenderTarget("scene_manager_transition_from")
-	from.Clear()
-	s.current.Draw(from, images)
+	transitionFrom.Clear()
+	s.current.Draw(transitionFrom, images)
 
-	to := images.GetRenderTarget("scene_manager_transition_to")
-	to.Clear()
-	s.next.Draw(to, images)
+	transitionTo.Clear()
+	s.next.Draw(transitionTo, images)
 
-	r.DrawImage(from, nil)
+	r.DrawImage(transitionFrom, nil)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
-	op := &ebiten.DrawImageOptions{
+	r.DrawImage(transitionTo, &ebiten.DrawImageOptions{
 		ColorM: ebiten.ScaleColor(1, 1, 1, alpha),
-	}
-	r.DrawImage(to, op)
+	})
 }
 
 func (s *SceneManager) GoTo(scene Scene) {

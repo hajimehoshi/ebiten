@@ -16,13 +16,20 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image/color"
 	"math/rand"
 	"time"
 )
 
+var imageEmpty *ebiten.Image
+
 func init() {
-	imagePaths["empty"] = "images/blocks/empty.png"
+	var err error
+	imageEmpty, _, err = ebitenutil.NewImageFromFile("images/blocks/empty.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type GameScene struct {
@@ -110,7 +117,7 @@ func (s *GameScene) Update(state *GameState) {
 func (s *GameScene) Draw(r *ebiten.Image, images *Images) {
 	r.Fill(color.White)
 
-	field := images.GetImage("empty")
+	field := imageEmpty
 	w, h := field.Size()
 	geo := ebiten.ScaleGeo(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geo.Concat(ebiten.TranslateGeo(20, 20)) // TODO: magic number?

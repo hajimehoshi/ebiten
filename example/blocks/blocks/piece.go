@@ -16,11 +16,18 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image"
 )
 
+var imageBlocks *ebiten.Image
+
 func init() {
-	imagePaths["blocks"] = "images/blocks/blocks.png"
+	var err error
+	imageBlocks, _, err = ebitenutil.NewImageFromFile("images/blocks/blocks.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Angle int
@@ -153,8 +160,7 @@ func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int)
 			})
 		}
 	}
-	blocksImage := images.GetImage("blocks")
-	r.DrawImage(blocksImage, &ebiten.DrawImageOptions{
+	r.DrawImage(imageBlocks, &ebiten.DrawImageOptions{
 		Parts: parts,
 	})
 }

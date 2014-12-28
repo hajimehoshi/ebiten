@@ -24,10 +24,6 @@ type Size struct {
 	Height int
 }
 
-// TODO: Should they be global??
-var imagePaths = map[string]string{}
-var renderTargetSizes = map[string]Size{}
-
 const ScreenWidth = 256
 const ScreenHeight = 240
 
@@ -51,36 +47,7 @@ func NewGame() *Game {
 	return game
 }
 
-func (game *Game) isInitialized() bool {
-	if game.images == nil {
-		return false
-	}
-	for name := range imagePaths {
-		if !game.images.Has(name) {
-			return false
-		}
-	}
-	for name := range renderTargetSizes {
-		if !game.images.Has(name) {
-			return false
-		}
-	}
-	return true
-}
-
 func (game *Game) Update(r *ebiten.Image) error {
-	game.once.Do(func() {
-		game.images = NewImages()
-		for name, path := range imagePaths {
-			game.images.RequestImage(name, path)
-		}
-		for name, size := range renderTargetSizes {
-			game.images.RequestRenderTarget(name, size)
-		}
-	})
-	if !game.isInitialized() {
-		return nil
-	}
 	game.input.Update()
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,

@@ -16,13 +16,20 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image"
 	"image/color"
 	"math"
 )
 
+var imageFont *ebiten.Image
+
 func init() {
-	imagePaths["font"] = "images/blocks/font.png"
+	var err error
+	imageFont, _, err = ebitenutil.NewImageFromFile("images/blocks/font.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
 }
 
 const charWidth = 8
@@ -33,7 +40,6 @@ func textWidth(str string) int {
 }
 
 func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c color.Color) {
-	fontImageId := images.GetImage("font")
 	parts := []ebiten.ImagePart{}
 
 	locationX, locationY := 0, 0
@@ -62,7 +68,7 @@ func drawText(rt *ebiten.Image, images *Images, str string, ox, oy, scale int, c
 	b := float64(c2.B) / max
 	a := float64(c2.A) / max
 	clr := ebiten.ScaleColor(r, g, b, a)
-	rt.DrawImage(fontImageId, &ebiten.DrawImageOptions{
+	rt.DrawImage(imageFont, &ebiten.DrawImageOptions{
 		Parts:  parts,
 		GeoM:   geo,
 		ColorM: clr,
