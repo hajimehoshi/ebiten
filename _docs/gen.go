@@ -83,7 +83,7 @@ func main() {
 	name := filepath.Base(templatePath)
 	t, err := template.New(name).Funcs(funcs).ParseFiles(templatePath)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	examples := []example{
 		{Name: "hue"},
