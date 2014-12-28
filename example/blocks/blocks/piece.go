@@ -144,7 +144,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(r *ebiten.Image, images *Images, blocks [][]BlockType, x, y int) {
+func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int) {
 	parts := []ebiten.ImagePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -222,7 +222,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(r *ebiten.Image, images *Images, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
+func (p *Piece) Draw(r *ebiten.Image, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -236,5 +236,5 @@ func (p *Piece) Draw(r *ebiten.Image, images *Images, fieldX, fieldY int, pieceX
 
 	x := fieldX + pieceX*blockWidth
 	y := fieldY + pieceY*blockHeight
-	drawBlocks(r, images, blocks, x, y)
+	drawBlocks(r, blocks, x, y)
 }

@@ -114,7 +114,7 @@ func (s *GameScene) Update(state *GameState) {
 	}
 }
 
-func (s *GameScene) Draw(r *ebiten.Image, images *Images) {
+func (s *GameScene) Draw(r *ebiten.Image) {
 	r.Fill(color.White)
 
 	field := imageEmpty
@@ -126,9 +126,9 @@ func (s *GameScene) Draw(r *ebiten.Image, images *Images) {
 		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5),
 	})
 
-	s.field.Draw(r, images, 20, 20)
+	s.field.Draw(r, 20, 20)
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(r, images, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
+		s.currentPiece.Draw(r, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
 	}
 }

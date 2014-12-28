@@ -110,11 +110,11 @@ func (f *Field) flushLine(j int) bool {
 	return true
 }
 
-func (f *Field) Draw(r *ebiten.Image, images *Images, x, y int) {
+func (f *Field) Draw(r *ebiten.Image, x, y int) {
 	blocks := make([][]BlockType, len(f.blocks))
 	for i, blockCol := range f.blocks {
 		blocks[i] = make([]BlockType, len(blockCol))
 		copy(blocks[i], blockCol[:])
 	}
-	drawBlocks(r, images, blocks, x, y)
+	drawBlocks(r, blocks, x, y)
 }

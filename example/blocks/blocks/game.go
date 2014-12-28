@@ -36,7 +36,6 @@ type Game struct {
 	once         sync.Once
 	sceneManager *SceneManager
 	input        *Input
-	images       *Images
 }
 
 func NewGame() *Game {
@@ -53,6 +52,6 @@ func (game *Game) Update(r *ebiten.Image) error {
 		SceneManager: game.sceneManager,
 		Input:        game.input,
 	})
-	game.sceneManager.Draw(r, game.images)
+	game.sceneManager.Draw(r)
 	return nil
 }
