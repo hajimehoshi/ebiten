@@ -149,12 +149,3 @@ func RotateHue(theta float64) ColorM {
 		},
 	}
 }
-
-func rgba(r, g, b, a uint8) (float64, float64, float64, float64) {
-	const max = math.MaxUint8
-	rf := float64(r) / max
-	gf := float64(g) / max
-	bf := float64(b) / max
-	af := float64(a) / max
-	return rf, gf, bf, af
-}
