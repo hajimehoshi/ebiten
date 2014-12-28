@@ -1,5 +1,20 @@
 <!DOCTYPE html>
 {{comment .License}}
+<style>
+table.examples td {
+  vertical-align: top;
+}
+table.examples td.code {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+}
+table.examples td.code pre {
+  height: 240px;
+  overflow: auto;
+}
+
+</style>
 <h1>Ebiten (海老天) v1.0.0-alpha</h1>
 <ul>
   <li>A simple 2D game library in Go</li>
@@ -21,10 +36,12 @@
 </ul>
 
 <h2>Example</h2>
-<table>
+<table class="examples">
   {{range .Examples}}
   <tr>
-    <td><pre><code>{{.Source}}</code></pre></td>
+    <td class="code"><pre><code>// <b>{{.Name}}</b>
+
+{{.Source}}</code></pre></td>
     <td><img src="{{.Name}}.gif" width="320" height="240"></td>
   </tr>
   {{end}}

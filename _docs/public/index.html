@@ -12,6 +12,21 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.-->
+<style>
+table.examples td {
+  vertical-align: top;
+}
+table.examples td.code {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+}
+table.examples td.code pre {
+  height: 240px;
+  overflow: auto;
+}
+
+</style>
 <h1>Ebiten (海老天) v1.0.0-alpha</h1>
 <ul>
   <li>A simple 2D game library in Go</li>
@@ -33,10 +48,12 @@ limitations under the License.-->
 </ul>
 
 <h2>Example</h2>
-<table>
+<table class="examples">
   
   <tr>
-    <td><pre><code>package main
+    <td class="code"><pre><code>// <b>hue</b>
+
+package main
 
 import (
 	&#34;github.com/hajimehoshi/ebiten&#34;
@@ -59,10 +76,10 @@ var (
 func update(screen *ebiten.Image) error {
 	count&#43;&#43;
 	w, h := gophersImage.Size()
-	geo := ebiten.TranslateGeo(float64(screenWidth - w)/2, float64(screenHeight - h) / 2)
+	geo := ebiten.TranslateGeo(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
 	clr := ebiten.RotateHue(float64(count%360) * 2 * math.Pi / 360)
 	if err := screen.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{
-		GeoM: geo,
+		GeoM:   geo,
 		ColorM: clr,
 	}); err != nil {
 		return err
@@ -85,7 +102,9 @@ func main() {
   </tr>
   
   <tr>
-    <td><pre><code>package main
+    <td class="code"><pre><code>// <b>mosaic</b>
+
+package main
 
 import (
 	&#34;github.com/hajimehoshi/ebiten&#34;
@@ -136,7 +155,9 @@ func main() {
   </tr>
   
   <tr>
-    <td><pre><code>package main
+    <td class="code"><pre><code>// <b>perspective</b>
+
+package main
 
 import (
 	&#34;github.com/hajimehoshi/ebiten&#34;
@@ -191,7 +212,9 @@ func main() {
   </tr>
   
   <tr>
-    <td><pre><code>package main
+    <td class="code"><pre><code>// <b>rotate</b>
+
+package main
 
 import (
 	&#34;github.com/hajimehoshi/ebiten&#34;
