@@ -23,6 +23,10 @@ import (
 // The argument (*Image) is the render target that represents the screen.
 //
 // This function must be called from the main thread.
+//
+// The given function f is expected to be called 60 times a second,
+// but this is not strictly guaranteed.
+// If you need to care about time, you need to check the current time in f.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
 	err := startUI(width, height, scale, title)
 	if err != nil {
