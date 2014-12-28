@@ -36,7 +36,7 @@ func update(screen *ebiten.Image) error {
 	count++
 	w, h := gophersImage.Size()
 	geo := ebiten.TranslateGeo(-float64(w)/2, -float64(h)/2)
-	geo.Concat(ebiten.RotateGeo(float64(count%720) * 2 * math.Pi / 720))
+	geo.Concat(ebiten.RotateGeo(float64(count%360) * 2 * math.Pi / 360))
 	geo.Concat(ebiten.TranslateGeo(screenWidth/2, screenHeight/2))
 	if err := screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{
 		GeoM: geo,
