@@ -20,5 +20,7 @@
 //         // Define your game.
 //     }
 //
-//     ebiten.Run(update, 320, 240, 2, "Your game's title")
+//     func main() {
+//         ebiten.Run(update, 320, 240, 2, "Your game's title")
+//     }
 package ebiten
