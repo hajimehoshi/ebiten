@@ -1,6 +1,6 @@
 # Ebiten (海老天) v1.0.0-alpha
 
-* A simple 2D game library in Go
+* A simple SNES-like 2D game library in Go
 * Works on
   * Mac OS X
   * Linux (maybe)

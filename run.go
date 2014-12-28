@@ -26,7 +26,7 @@ import (
 //
 // The given function f is expected to be called 60 times a second,
 // but this is not strictly guaranteed.
-// If you need to care about time, you need to check the current time in f.
+// If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
 	err := startUI(width, height, scale, title)
 	if err != nil {
