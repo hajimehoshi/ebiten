@@ -17,7 +17,6 @@
 package main
 
 import (
-	"github.com/google/go-github/github"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -45,21 +44,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.`
-
-func parseMarkdown(path string) (string, error) {
-	md, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-
-	client := github.NewClient(nil)
-	html, _, err := client.Markdown(string(md), nil)
-	if err != nil {
-		return "", err
-	}
-
-	return html, nil
-}
 
 func comment(text string) template.HTML {
 	// TODO: text should be escaped
