@@ -1,5 +1,7 @@
 # Ebiten (海老天) v1.0.0-alpha
 
+[![Build Status](https://travis-ci.org/hajimehoshi/ebiten.svg?branch=master)](https://travis-ci.org/hajimehoshi/ebiten)
+
 * A simple SNES-like 2D game library in Go
 * Works on
   * Mac OS X
