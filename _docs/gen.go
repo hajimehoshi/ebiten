@@ -102,6 +102,7 @@ func main() {
 		panic(err)
 	}
 	examples := []example{
+		{Name: "hue"},
 		{Name: "mosaic"},
 		{Name: "perspective"},
 		{Name: "rotate"},

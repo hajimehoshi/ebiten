@@ -43,6 +43,55 @@ import (
 	&#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 	_ &#34;image/jpeg&#34;
 	&#34;log&#34;
+	&#34;math&#34;
+)
+
+const (
+	screenWidth  = 320
+	screenHeight = 240
+)
+
+var (
+	count        int
+	gophersImage *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+	count&#43;&#43;
+	w, h := gophersImage.Size()
+	geo := ebiten.TranslateGeo(float64(screenWidth - w)/2, float64(screenHeight - h) / 2)
+	clr := ebiten.RotateHue(float64(count%360) * 2 * math.Pi / 360)
+	if err := screen.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{
+		GeoM: geo,
+		ColorM: clr,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func main() {
+	var err error
+	gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Image (Ebiten Demo)&#34;); err != nil {
+		log.Fatal(err)
+	}
+}
+</code></pre></td>
+    <td><img src="hue.gif" width="320" height="240"></td>
+  </tr>
+  
+  <tr>
+    <td><pre><code>package main
+
+import (
+	&#34;github.com/hajimehoshi/ebiten&#34;
+	&#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+	_ &#34;image/jpeg&#34;
+	&#34;log&#34;
 )
 
 const (
@@ -158,32 +207,14 @@ const (
 )
 
 var (
-	count           int
-	horizontalCount int
-	verticalCount   int
-	gophersImage    *ebiten.Image
+	count        int
+	gophersImage *ebiten.Image
 )
 
 func update(screen *ebiten.Image) error {
 	count&#43;&#43;
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		horizontalCount--
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		horizontalCount&#43;&#43;
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		verticalCount--
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		verticalCount&#43;&#43;
-	}
-
 	w, h := gophersImage.Size()
 	geo := ebiten.TranslateGeo(-float64(w)/2, -float64(h)/2)
-	scaleX := math.Pow(1.05, float64(horizontalCount))
-	scaleY := math.Pow(1.05, float64(verticalCount))
-	geo.Concat(ebiten.ScaleGeo(scaleX, scaleY))
 	geo.Concat(ebiten.RotateGeo(float64(count%720) * 2 * math.Pi / 720))
 	geo.Concat(ebiten.TranslateGeo(screenWidth/2, screenHeight/2))
 	if err := screen.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{
