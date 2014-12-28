@@ -129,7 +129,7 @@ func RecordScreenAsGIF(update func(*ebiten.Image) error, out io.Writer, frameNum
 		inner:    update,
 		writer:   out,
 		frameNum: frameNum,
-		skips:    5,
+		skips:    10,
 	}
 	return r.update
 }
