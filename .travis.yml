@@ -1,5 +1,8 @@
 language: go
 
+install:
+  - sudo apt-get install -qq libglfw-dev libglew-dev
+
 script: go test ./...
 
 notifications:
