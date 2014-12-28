@@ -64,15 +64,16 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	})
 }
 
-func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
+// DebugPrint prints the given text str on the given image r.
+func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) error {
 	if d.textImage == nil {
 		img, err := assets.TextImage()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		d.textImage, err = ebiten.NewImageFromImage(img, ebiten.FilterNearest)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 	if d.debugPrintRenderTarget == nil {
@@ -80,9 +81,10 @@ func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
 		var err error
 		d.debugPrintRenderTarget, err = ebiten.NewImage(width, height, ebiten.FilterNearest)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 	d.drawText(r, str, 1, d.y+1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
 	d.drawText(r, str, 0, d.y, color.NRGBA{0xff, 0xff, 0xff, 0xff})
+	return nil
 }

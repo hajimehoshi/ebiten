@@ -75,8 +75,7 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 	w, h := img.texture.Size()
 	quads := textureQuads(parts, w, h)
 	projectionMatrix := i.framebuffer.ProjectionMatrix()
-	shader.DrawTexture(img.texture.Native(), projectionMatrix, quads, geo, clr)
-	return nil
+	return shader.DrawTexture(img.texture.Native(), projectionMatrix, quads, geo, clr)
 }
 
 func u(x float64, width int) float32 {
@@ -200,7 +199,7 @@ type ImagePart struct {
 	Src image.Rectangle
 }
 
-// A DrawImageOptions presents options to render an image on an image.
+// A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
 	Parts  []ImagePart
 	GeoM   GeoM

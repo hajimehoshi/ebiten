@@ -40,11 +40,13 @@ const size = 10000
 const uint16Size = 2
 const short32Size = 4
 
-func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) {
+func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) error {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
 	if !initialized {
-		initialize()
+		if err := initialize(); err != nil {
+			return err
+		}
 
 		vertexBuffer := gl.GenBuffer()
 		vertexBuffer.Bind(gl.ARRAY_BUFFER)
@@ -68,7 +70,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 	}
 
 	if len(quads) == 0 {
-		return
+		return nil
 	}
 	// TODO: Check performance
 	program := useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
@@ -110,4 +112,5 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 	gl.DrawElements(gl.TRIANGLES, 6*len(quads), gl.UNSIGNED_SHORT, uintptr(0))
 
 	gl.Flush()
+	return nil
 }

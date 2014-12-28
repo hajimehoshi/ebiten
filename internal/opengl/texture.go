@@ -59,10 +59,10 @@ func (t *Texture) Size() (width, height int) {
 	return t.width, t.height
 }
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter Filter) gl.Texture {
+func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter Filter) (gl.Texture, error) {
 	nativeTexture := gl.GenTexture()
 	if nativeTexture < 0 {
-		panic("glGenTexture failed")
+		return 0, errors.New("glGenTexture failed")
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	nativeTexture.Bind(gl.TEXTURE_2D)
@@ -73,7 +73,7 @@ func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter
 
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 
-	return nativeTexture
+	return nativeTexture, nil
 }
 
 func NewTexture(width, height int, filter Filter) (*Texture, error) {
@@ -85,7 +85,10 @@ func NewTexture(width, height int, filter Filter) (*Texture, error) {
 	if h < 4 {
 		return nil, errors.New("height must be equal or more than 4.")
 	}
-	native := createNativeTexture(w, h, nil, filter)
+	native, err := createNativeTexture(w, h, nil, filter)
+	if err != nil {
+		return nil, err
+	}
 	return &Texture{native, width, height}, nil
 }
 
@@ -99,7 +102,10 @@ func NewTextureFromImage(img image.Image, filter Filter) (*Texture, error) {
 	}
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
-	native := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
+	native, err := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
+	if err != nil {
+		return nil, err
+	}
 	return &Texture{native, origSize.X, origSize.Y}, nil
 }
 

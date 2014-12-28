@@ -15,8 +15,9 @@
 package shader
 
 import (
+	"errors"
+	"fmt"
 	"github.com/go-gl/gl"
-	"log"
 )
 
 type shader struct {
@@ -75,26 +76,26 @@ void main(void) {
 	},
 }
 
-func (s *shader) compile() {
+func (s *shader) compile() error {
 	s.native = gl.CreateShader(s.shaderType)
 	if s.native == 0 {
-		panic("glCreateShader failed")
+		return errors.New("glCreateShader failed")
 	}
 
 	s.native.Source(s.source)
 	s.native.Compile()
 
 	if s.native.Get(gl.COMPILE_STATUS) == gl.FALSE {
-		s.showShaderLog()
-		panic("shader compile failed")
+		return errors.New(fmt.Sprintf("shader compile failed: %s", s.shaderLog()))
 	}
+	return nil
 }
 
-func (s *shader) showShaderLog() {
+func (s *shader) shaderLog() string {
 	if s.native.Get(gl.INFO_LOG_LENGTH) == 0 {
-		return
+		return ""
 	}
-	log.Fatalf("shader error: %s\n", s.native.GetInfoLog())
+	return s.native.GetInfoLog()
 }
 
 func (s *shader) delete() {

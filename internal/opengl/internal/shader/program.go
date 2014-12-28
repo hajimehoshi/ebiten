@@ -15,6 +15,7 @@
 package shader
 
 import (
+	"errors"
 	"github.com/go-gl/gl"
 )
 
@@ -27,10 +28,10 @@ var programColorMatrix = program{
 	shaderIds: []shaderId{shaderVertex, shaderColorMatrix},
 }
 
-func (p *program) create() {
+func (p *program) create() error {
 	p.native = gl.CreateProgram()
 	if p.native == 0 {
-		panic("glCreateProgram failed")
+		return errors.New("glCreateProgram failed")
 	}
 
 	for _, shaderId := range p.shaderIds {
@@ -38,13 +39,16 @@ func (p *program) create() {
 	}
 	p.native.Link()
 	if p.native.Get(gl.LINK_STATUS) == gl.FALSE {
-		panic("program error")
+		return errors.New("program error")
 	}
+	return nil
 }
 
-func initialize() {
+func initialize() error {
 	for _, shader := range shaders {
-		shader.compile()
+		if err := shader.compile(); err != nil {
+			return err
+		}
 	}
 	defer func() {
 		for _, shader := range shaders {
@@ -52,7 +56,7 @@ func initialize() {
 		}
 	}()
 
-	programColorMatrix.create()
+	return programColorMatrix.create()
 }
 
 func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
