@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-const maxFlushCount = 30
+const maxFlushCount = 20
 
 type Field struct {
 	blocks        [fieldBlockNumX][fieldBlockNumY]BlockType

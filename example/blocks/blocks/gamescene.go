@@ -16,14 +16,19 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image/color"
+	_ "image/jpeg"
 	"math/rand"
 	"strconv"
 	"time"
 )
 
-var imageEmpty *ebiten.Image
-var imageGameover *ebiten.Image
+var (
+	imageEmpty    *ebiten.Image
+	imageGameBG   *ebiten.Image
+	imageGameover *ebiten.Image
+)
 
 func init() {
 	var err error
@@ -32,6 +37,11 @@ func init() {
 		panic(err)
 	}
 	imageEmpty.Fill(color.White)
+
+	imageGameBG, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterLinear)
+	if err != nil {
+		panic(err)
+	}
 
 	imageGameover, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
 	if err != nil {
@@ -50,7 +60,7 @@ func drawRect(r *ebiten.Image, x, y, width, height int) error {
 	geo.Concat(ebiten.TranslateGeo(float64(x), float64(y)))
 	return r.DrawImage(imageEmpty, &ebiten.DrawImageOptions{
 		GeoM:   geo,
-		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5),
+		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.75),
 	})
 }
 
@@ -89,6 +99,34 @@ func NewGameScene() *GameScene {
 		field: NewField(),
 		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+}
+
+func (s *GameScene) drawBackground(r *ebiten.Image) error {
+	if err := r.Fill(color.White); err != nil {
+		return err
+	}
+
+	w, h := imageGameBG.Size()
+	geo := ebiten.TranslateGeo(-float64(w)/2, -float64(h)/2)
+	scaleW := ScreenWidth / float64(w)
+	scaleH := ScreenHeight / float64(h)
+	scale := scaleW
+	if scale < scaleH {
+		scale = scaleH
+	}
+	geo.Concat(ebiten.ScaleGeo(scale, scale))
+	geo.Concat(ebiten.TranslateGeo(ScreenWidth/2, ScreenHeight/2))
+
+	a := 0.7
+	m := ebiten.Monochrome()
+	m.Concat(ebiten.ScaleColor(a, a, a, a))
+	clr := ebiten.ScaleColor(1-a, 1-a, 1-a, 1-a)
+	clr.Add(m)
+	clr.Concat(ebiten.TranslateColor(0.3, 0.3, 0.3, 0))
+	return r.DrawImage(imageGameBG, &ebiten.DrawImageOptions{
+		GeoM:   geo,
+		ColorM: clr,
+	})
 }
 
 const fieldWidth = blockWidth * fieldBlockNumX
@@ -134,7 +172,9 @@ func (s *GameScene) Update(state *GameState) error {
 	s.field.Update()
 
 	if s.gameover {
-		// TODO: Go back to the title by pressing something
+		if state.Input.StateForKey(ebiten.KeySpace) == 1 {
+			state.SceneManager.GoTo(NewTitleScene())
+		}
 		return nil
 	}
 
@@ -227,7 +267,7 @@ func (s *GameScene) goNextPiece() {
 }
 
 func (s *GameScene) Draw(r *ebiten.Image) error {
-	if err := r.Fill(color.White); err != nil {
+	if err := s.drawBackground(r); err != nil {
 		return err
 	}
 
