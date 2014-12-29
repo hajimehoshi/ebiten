@@ -23,6 +23,7 @@ import (
 )
 
 var imageEmpty *ebiten.Image
+var imageGameover *ebiten.Image
 
 func init() {
 	var err error
@@ -31,6 +32,16 @@ func init() {
 		panic(err)
 	}
 	imageEmpty.Fill(color.White)
+
+	imageGameover, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	y := (ScreenHeight - blockHeight) / 2
+	if err := drawTextWithShadowCenter(imageGameover, "GAME OVER", 0, y, 1, color.White, ScreenWidth); err != nil {
+		panic(err)
+	}
 }
 
 func drawRect(r *ebiten.Image, x, y, width, height int) error {
@@ -70,6 +81,7 @@ type GameScene struct {
 	currentFrame       int
 	score              int
 	lines              int
+	gameover           bool
 }
 
 func NewGameScene() *GameScene {
@@ -119,6 +131,10 @@ func (s *GameScene) addScore(lines int) {
 }
 
 func (s *GameScene) Update(state *GameState) error {
+	if s.gameover {
+		return nil
+	}
+
 	s.currentFrame++
 
 	const maxLandingCount = 60
@@ -128,6 +144,8 @@ func (s *GameScene) Update(state *GameState) error {
 	if s.nextPiece == nil {
 		s.nextPiece = s.choosePiece()
 	}
+
+	// Move piece by user input.
 	piece := s.currentPiece
 	x := s.currentPieceX
 	y := s.currentPieceY
@@ -176,8 +194,11 @@ func (s *GameScene) Update(state *GameState) error {
 				s.addScore(lines)
 			}
 			s.initCurrentPiece(s.nextPiece)
-			s.nextPiece = nil
+			s.nextPiece = s.choosePiece()
 			s.landingCount = 0
+			if s.currentPiece.Collides(s.field, s.currentPieceX, s.currentPieceY, s.currentPieceAngle) {
+				s.gameover = true
+			}
 		}
 	}
 	return nil
@@ -245,5 +266,10 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 			return err
 		}
 	}
+
+	if s.gameover {
+		r.DrawImage(imageGameover, nil)
+	}
+
 	return nil
 }

@@ -210,6 +210,10 @@ func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 	return false
 }
 
+func (p *Piece) Collides(field *Field, x, y int, angle Angle) bool {
+	return p.collides(field, x, y, angle)
+}
+
 func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	size := len(p.blocks)
 	for i := 0; i < size; i++ {
