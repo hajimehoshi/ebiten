@@ -42,7 +42,7 @@ func main() {
 	}
 
 	game := blocks.NewGame()
-	update = ebitenutil.RecordScreenAsGIF(update, f, 360)
+	update := game.Update
 	if err := ebiten.Run(update, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Blocks (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
