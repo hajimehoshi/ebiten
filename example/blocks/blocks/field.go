@@ -75,22 +75,23 @@ func (f *Field) RotatePieceRight(piece *Piece, x, y int, angle Angle) Angle {
 	return angle.RotateRight()
 }
 
-func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) {
+func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) int {
 	piece.AbsorbInto(f, x, y, angle)
-	f.Flush()
+	return f.Flush()
 }
 
 func (f *Field) setBlock(x, y int, blockType BlockType) {
 	f.blocks[x][y] = blockType
 }
 
-func (f *Field) Flush() {
+func (f *Field) Flush() int {
 	flushedLineNum := 0
 	for j := fieldBlockNumY - 1; 0 <= j; j-- {
 		if f.flushLine(j + flushedLineNum) {
 			flushedLineNum++
 		}
 	}
+	return flushedLineNum
 }
 
 func (f *Field) flushLine(j int) bool {

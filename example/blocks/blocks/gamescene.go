@@ -43,14 +43,17 @@ func drawRect(r *ebiten.Image, x, y, width, height int) error {
 }
 
 type GameScene struct {
-	field             *Field
-	rand              *rand.Rand
-	currentPiece      *Piece
-	currentPieceX     int
-	currentPieceY     int
-	currentPieceAngle Angle
-	nextPiece         *Piece
-	landingCount      int
+	field              *Field
+	rand               *rand.Rand
+	currentPiece       *Piece
+	currentPieceX      int
+	currentPieceY      int
+	currentPieceYCarry int
+	currentPieceAngle  Angle
+	nextPiece          *Piece
+	landingCount       int
+	currentFrame       int
+	lines              int
 }
 
 func NewGameScene() *GameScene {
@@ -74,12 +77,18 @@ func (s *GameScene) initCurrentPiece(piece *Piece) {
 	x, y := s.currentPiece.InitialPosition()
 	s.currentPieceX = x
 	s.currentPieceY = y
+	s.currentPieceYCarry = 0
 	s.currentPieceAngle = Angle0
 }
 
-func (s *GameScene) Update(state *GameState) error {
-	const maxLandingCount = 60
+func (s *GameScene) level() int {
+	return s.lines / 10
+}
 
+func (s *GameScene) Update(state *GameState) error {
+	s.currentFrame++
+
+	const maxLandingCount = 60
 	if s.currentPiece == nil {
 		s.initCurrentPiece(s.choosePiece())
 	}
@@ -107,16 +116,26 @@ func (s *GameScene) Update(state *GameState) error {
 		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 		moved = y != s.currentPieceY
 	}
+
+	// Drop the current piece with gravity.
+	s.currentPieceYCarry += 2*s.level() + 1
+	for 60 <= s.currentPieceYCarry {
+		s.currentPieceYCarry -= 60
+		s.currentPieceY = s.field.DropPiece(piece, s.currentPieceX, s.currentPieceY, angle)
+		moved = y != s.currentPieceY
+	}
+
 	if moved {
 		s.landingCount = 0
-	} else if !s.field.PieceDroppable(piece, x, y, angle) {
+	} else if !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
 		if 0 < state.Input.StateForKey(ebiten.KeyDown) {
 			s.landingCount += 10
 		} else {
 			s.landingCount++
 		}
 		if maxLandingCount <= s.landingCount {
-			s.field.AbsorbPiece(piece, x, y, angle)
+			lines := s.field.AbsorbPiece(piece, s.currentPieceX, s.currentPieceY, angle)
+			s.lines += lines
 			s.initCurrentPiece(s.nextPiece)
 			s.nextPiece = nil
 			s.landingCount = 0
