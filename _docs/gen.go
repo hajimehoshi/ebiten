@@ -17,10 +17,12 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -52,12 +54,20 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	devVersion = string(b)
+	stableVersion = strings.TrimSpace(string(b))
+}
+
+func init() {
+	b, err := exec.Command("git", "show", "master:version.txt").Output()
+	if err != nil {
+		panic(err)
+	}
+	devVersion = strings.TrimSpace(string(b))
 }
 
 func comment(text string) template.HTML {
 	// TODO: text should be escaped
-	return template.HTML("<!--" + text + "-->")
+	return template.HTML("<!--\n" + text + "\n-->")
 }
 
 func safeHTML(text string) template.HTML {
@@ -97,14 +107,7 @@ func (e *example) Source() string {
 }
 
 func versions() string {
-	vers := []string{}
-	if stableVersion != "" {
-		vers = append(vers, "Stable: "+stableVersion)
-	}
-	if devVersion != "" {
-		vers = append(vers, "Development: "+devVersion)
-	}
-	return strings.Join(vers, ", ")
+	return fmt.Sprintf("v%s (dev: v%s)", stableVersion, devVersion)
 }
 
 func main() {
@@ -132,9 +135,10 @@ func main() {
 		{Name: "rotate"},
 	}
 	data := map[string]interface{}{
-		"License":  license,
-		"Versions": versions(),
-		"Examples": examples,
+		"License":       license,
+		"StableVersion": stableVersion,
+		"DevVersion":    devVersion,
+		"Examples":      examples,
 	}
 	if err := t.Funcs(funcs).Execute(f, data); err != nil {
 		log.Fatal(err)
