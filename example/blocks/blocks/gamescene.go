@@ -131,7 +131,10 @@ func (s *GameScene) addScore(lines int) {
 }
 
 func (s *GameScene) Update(state *GameState) error {
+	s.field.Update()
+
 	if s.gameover {
+		// TODO: Go back to the title by pressing something
 		return nil
 	}
 
@@ -145,63 +148,82 @@ func (s *GameScene) Update(state *GameState) error {
 		s.nextPiece = s.choosePiece()
 	}
 
-	// Move piece by user input.
-	piece := s.currentPiece
-	x := s.currentPieceX
-	y := s.currentPieceY
-	angle := s.currentPieceAngle
 	moved := false
-	if state.Input.StateForKey(ebiten.KeySpace) == 1 {
-		s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
-		moved = angle != s.currentPieceAngle
-	}
-	if l := state.Input.StateForKey(ebiten.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
-		s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
-		moved = x != s.currentPieceX
-	}
-	if r := state.Input.StateForKey(ebiten.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
-		s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
-		moved = y != s.currentPieceX
-	}
-	if d := state.Input.StateForKey(ebiten.KeyDown); (d-1)%2 == 0 {
-		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
-		moved = y != s.currentPieceY
-		if moved {
-			s.score++
+	piece := s.currentPiece
+	angle := s.currentPieceAngle
+
+	// Move piece by user input.
+	if !s.field.Flushing() {
+		piece := s.currentPiece
+		x := s.currentPieceX
+		y := s.currentPieceY
+		if state.Input.StateForKey(ebiten.KeySpace) == 1 {
+			s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
+			moved = angle != s.currentPieceAngle
+		}
+		if l := state.Input.StateForKey(ebiten.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
+			s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
+			moved = x != s.currentPieceX
+		}
+		if r := state.Input.StateForKey(ebiten.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
+			s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
+			moved = y != s.currentPieceX
+		}
+		if d := state.Input.StateForKey(ebiten.KeyDown); (d-1)%2 == 0 {
+			s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
+			moved = y != s.currentPieceY
+			if moved {
+				s.score++
+			}
 		}
 	}
 
 	// Drop the current piece with gravity.
-	s.currentPieceYCarry += 2*s.level() + 1
-	for 60 <= s.currentPieceYCarry {
-		s.currentPieceYCarry -= 60
-		s.currentPieceY = s.field.DropPiece(piece, s.currentPieceX, s.currentPieceY, angle)
-		moved = y != s.currentPieceY
+	if !s.field.Flushing() {
+		y := s.currentPieceY
+		angle := s.currentPieceAngle
+		s.currentPieceYCarry += 2*s.level() + 1
+		for 60 <= s.currentPieceYCarry {
+			s.currentPieceYCarry -= 60
+			s.currentPieceY = s.field.DropPiece(piece, s.currentPieceX, s.currentPieceY, angle)
+			moved = y != s.currentPieceY
+		}
 	}
 
 	if moved {
 		s.landingCount = 0
-	} else if !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
+	} else if !s.field.Flushing() && !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
 		if 0 < state.Input.StateForKey(ebiten.KeyDown) {
 			s.landingCount += 10
 		} else {
 			s.landingCount++
 		}
 		if maxLandingCount <= s.landingCount {
-			lines := s.field.AbsorbPiece(piece, s.currentPieceX, s.currentPieceY, angle)
-			s.lines += lines
-			if 0 < lines {
-				s.addScore(lines)
+			s.field.AbsorbPiece(piece, s.currentPieceX, s.currentPieceY, angle)
+			if s.field.Flushing() {
+				s.field.SetEndFlushing(func(lines int) {
+					s.lines += lines
+					if 0 < lines {
+						s.addScore(lines)
+					}
+					s.goNextPiece()
+				})
+			} else {
+				s.goNextPiece()
 			}
-			s.initCurrentPiece(s.nextPiece)
-			s.nextPiece = s.choosePiece()
-			s.landingCount = 0
-			if s.currentPiece.Collides(s.field, s.currentPieceX, s.currentPieceY, s.currentPieceAngle) {
-				s.gameover = true
-			}
+
 		}
 	}
 	return nil
+}
+
+func (s *GameScene) goNextPiece() {
+	s.initCurrentPiece(s.nextPiece)
+	s.nextPiece = s.choosePiece()
+	s.landingCount = 0
+	if s.currentPiece.Collides(s.field, s.currentPieceX, s.currentPieceY, s.currentPieceAngle) {
+		s.gameover = true
+	}
 }
 
 func (s *GameScene) Draw(r *ebiten.Image) error {
@@ -252,7 +274,7 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 	if err := s.field.Draw(r, fieldX, fieldY); err != nil {
 		return err
 	}
-	if s.currentPiece != nil {
+	if s.currentPiece != nil && !s.field.Flushing() {
 		x := fieldX + s.currentPieceX*blockWidth
 		y := fieldY + s.currentPieceY*blockHeight
 		if err := s.currentPiece.Draw(r, x, y, s.currentPieceAngle); err != nil {

@@ -36,6 +36,7 @@ const charWidth = 8
 const charHeight = 8
 
 func textWidth(str string) int {
+	// TODO: Take care about '\n'
 	return charWidth * len(str)
 }
 

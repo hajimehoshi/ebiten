@@ -143,7 +143,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int) error {
+func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) error {
 	parts := []ebiten.ImagePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -160,7 +160,8 @@ func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int) error {
 		}
 	}
 	return r.DrawImage(imageBlocks, &ebiten.DrawImageOptions{
-		Parts: parts,
+		Parts:  parts,
+		ColorM: clr,
 	})
 }
 
@@ -242,5 +243,5 @@ func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) error {
 			}
 		}
 	}
-	return drawBlocks(r, blocks, x, y)
+	return drawBlocks(r, blocks, x, y, ebiten.ColorM{})
 }
