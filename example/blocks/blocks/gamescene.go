@@ -18,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"image/color"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -42,6 +43,20 @@ func drawRect(r *ebiten.Image, x, y, width, height int) error {
 	})
 }
 
+func drawTextBox(r *ebiten.Image, label, content string, x, y, width int) error {
+	if err := drawTextWithShadow(r, label, x, y, 1, color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
+		return err
+	}
+	y += blockWidth
+	if err := drawRect(r, x, y, width, 2*blockHeight); err != nil {
+		return err
+	}
+	if err := drawTextWithShadowRight(r, content, x, y+blockHeight*3/4, 1, color.White, width-blockWidth/2); err != nil {
+		return err
+	}
+	return nil
+}
+
 type GameScene struct {
 	field              *Field
 	rand               *rand.Rand
@@ -53,6 +68,7 @@ type GameScene struct {
 	nextPiece          *Piece
 	landingCount       int
 	currentFrame       int
+	score              int
 	lines              int
 }
 
@@ -85,6 +101,23 @@ func (s *GameScene) level() int {
 	return s.lines / 10
 }
 
+func (s *GameScene) addScore(lines int) {
+	base := 0
+	switch lines {
+	case 1:
+		base = 100
+	case 2:
+		base = 300
+	case 3:
+		base = 600
+	case 4:
+		base = 1000
+	default:
+		panic("not reach")
+	}
+	s.score += (s.level() + 1) * base
+}
+
 func (s *GameScene) Update(state *GameState) error {
 	s.currentFrame++
 
@@ -115,6 +148,9 @@ func (s *GameScene) Update(state *GameState) error {
 	if d := state.Input.StateForKey(ebiten.KeyDown); (d-1)%2 == 0 {
 		s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 		moved = y != s.currentPieceY
+		if moved {
+			s.score++
+		}
 	}
 
 	// Drop the current piece with gravity.
@@ -136,6 +172,9 @@ func (s *GameScene) Update(state *GameState) error {
 		if maxLandingCount <= s.landingCount {
 			lines := s.field.AbsorbPiece(piece, s.currentPieceX, s.currentPieceY, angle)
 			s.lines += lines
+			if 0 < lines {
+				s.addScore(lines)
+			}
 			s.initCurrentPiece(s.nextPiece)
 			s.nextPiece = nil
 			s.landingCount = 0
@@ -164,10 +203,31 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 	}
 	nextX := x
 	nextY := y + blockHeight
-	if err := drawRect(r, nextX, nextY, blockWidth*5, blockHeight*5); err != nil {
+	if err := drawRect(r, nextX, nextY, 5*blockWidth, 5*blockHeight); err != nil {
+		return err
+	}
+	x = nextX
+	y = nextY + 5*blockHeight + blockHeight
+
+	// Draw score
+	width := ScreenWidth - 2*blockWidth - x
+	if err := drawTextBox(r, "SCORE", strconv.Itoa(s.score), x, y, width); err != nil {
 		return err
 	}
 
+	// Draw level
+	y += 4 * blockHeight
+	if err := drawTextBox(r, "LEVEL", strconv.Itoa(s.level()), x, y, width); err != nil {
+		return err
+	}
+
+	// Draw lines
+	y += 4 * blockHeight
+	if err := drawTextBox(r, "LINES", strconv.Itoa(s.lines), x, y, width); err != nil {
+		return err
+	}
+
+	// Draw blocks
 	if err := s.field.Draw(r, fieldX, fieldY); err != nil {
 		return err
 	}

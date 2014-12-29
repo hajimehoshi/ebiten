@@ -84,3 +84,9 @@ func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color
 	}
 	return nil
 }
+
+func drawTextWithShadowRight(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) error {
+	w := textWidth(str) * scale
+	x += width - w
+	return drawTextWithShadow(rt, str, x, y, scale, clr)
+}
