@@ -53,27 +53,23 @@ func (g GeoM) Element(i, j int) float64 {
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
-// This returns g.
-func (g *GeoM) Concat(other GeoM) GeoM {
+func (g *GeoM) Concat(other GeoM) {
 	if !g.initialized {
 		*g = geoMI
 	}
 	result := GeoM{}
 	mul(&other, g, &result)
 	*g = result
-	return *g
 }
 
 // Add adds a geometry matrix with the other geometry matrix.
-// This returns g.
-func (g *GeoM) Add(other GeoM) GeoM {
+func (g *GeoM) Add(other GeoM) {
 	if !g.initialized {
 		*g = geoMI
 	}
 	result := GeoM{}
 	add(&other, g, &result)
 	*g = result
-	return *g
 }
 
 // SetElement sets an element at (i, j).
