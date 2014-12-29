@@ -58,13 +58,30 @@ type example struct {
 	Name string
 }
 
+func (e *example) Width() int {
+	if e.Name == "blocks" {
+		return 256
+	}
+	return 320
+}
+
+func (e *example) Height() int {
+	if e.Name == "blocks" {
+		return 240
+	}
+	return 240
+}
+
 func (e *example) Source() string {
+	if e.Name == "blocks" {
+		return "// Please read example/blocks/main.go and example/blocks/blocks/*.go"
+	}
+
 	path := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "hajimehoshi", "ebiten", "example", e.Name, "main.go")
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
-
 	str := regexp.MustCompile("(?s)^.*?\n\n").ReplaceAllString(string(b), "")
 	return str
 }
@@ -86,6 +103,7 @@ func main() {
 		log.Fatal(err)
 	}
 	examples := []example{
+		{Name: "blocks"},
 		{Name: "hue"},
 		{Name: "mosaic"},
 		{Name: "perspective"},

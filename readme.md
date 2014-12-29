@@ -16,6 +16,7 @@
 
 ## Example
 
+* example/blocks - Puzzle game you know
 * example/hue - Changes the hue of an image
 * example/mosaic - Mosaics an image
 * example/perspective - See an image in a perspective view
