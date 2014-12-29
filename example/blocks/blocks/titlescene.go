@@ -39,14 +39,15 @@ func NewTitleScene() *TitleScene {
 	return &TitleScene{}
 }
 
-func (s *TitleScene) Update(state *GameState) {
+func (s *TitleScene) Update(state *GameState) error {
 	s.count++
 	if state.Input.StateForKey(ebiten.KeySpace) == 1 {
 		state.SceneManager.GoTo(NewGameScene())
 	}
+	return nil
 }
 
-func (s *TitleScene) Draw(r *ebiten.Image) {
+func (s *TitleScene) Draw(r *ebiten.Image) error {
 	drawTitleBackground(r, s.count)
 	drawLogo(r, "BLOCKS")
 
@@ -54,29 +55,27 @@ func (s *TitleScene) Draw(r *ebiten.Image) {
 	x := (ScreenWidth - textWidth(message)) / 2
 	y := ScreenHeight - 48
 	drawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
+	return nil
 }
 
 func drawTitleBackground(r *ebiten.Image, c int) {
-	const imageWidth = 32
-	const imageHeight = 32
+	w, h := imageBackground.Size()
+	dx := (-c / 4) % w
+	dy := (c / 4) % h
 
-	dx := (-c / 4) % imageWidth
-	dy := (c / 4) % imageHeight
-
-	backgroundImage := imageBackground
 	parts := []ebiten.ImagePart{}
-	for j := -1; j < ScreenHeight/imageHeight+1; j++ {
-		for i := 0; i < ScreenWidth/imageWidth+1; i++ {
-			dstX := i*imageWidth + dx
-			dstY := j*imageHeight + dy
+	for j := -1; j < ScreenHeight/h+1; j++ {
+		for i := 0; i < ScreenWidth/w+1; i++ {
+			dstX := i*w + dx
+			dstY := j*h + dy
 			parts = append(parts, ebiten.ImagePart{
-				Dst: image.Rect(dstX, dstY, dstX+imageWidth, dstY+imageHeight),
-				Src: image.Rect(0, 0, imageWidth, imageHeight),
+				Dst: image.Rect(dstX, dstY, dstX+w, dstY+h),
+				Src: image.Rect(0, 0, w, h),
 			})
 		}
 	}
 
-	r.DrawImage(backgroundImage, &ebiten.DrawImageOptions{
+	r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
 		Parts: parts,
 	})
 }

@@ -36,8 +36,8 @@ func init() {
 }
 
 type Scene interface {
-	Update(state *GameState)
-	Draw(r *ebiten.Image)
+	Update(state *GameState) error
+	Draw(screen *ebiten.Image) error
 }
 
 const transitionMaxCount = 20
@@ -55,10 +55,9 @@ func NewSceneManager(initScene Scene) *SceneManager {
 	}
 }
 
-func (s *SceneManager) Update(state *GameState) {
+func (s *SceneManager) Update(state *GameState) error {
 	if s.transitionCount == -1 {
-		s.current.Update(state)
-		return
+		return s.current.Update(state)
 	}
 	s.transitionCount++
 	if transitionMaxCount <= s.transitionCount {
@@ -66,23 +65,29 @@ func (s *SceneManager) Update(state *GameState) {
 		s.next = nil
 		s.transitionCount = -1
 	}
+	return nil
 }
 
-func (s *SceneManager) Draw(r *ebiten.Image) {
+func (s *SceneManager) Draw(r *ebiten.Image) error {
 	if s.transitionCount == -1 {
-		s.current.Draw(r)
-		return
+		return s.current.Draw(r)
 	}
 	transitionFrom.Clear()
-	s.current.Draw(transitionFrom)
+	if err := s.current.Draw(transitionFrom); err != nil {
+		return err
+	}
 
 	transitionTo.Clear()
-	s.next.Draw(transitionTo)
+	if err := s.next.Draw(transitionTo); err != nil {
+		return err
+	}
 
-	r.DrawImage(transitionFrom, nil)
+	if err := r.DrawImage(transitionFrom, nil); err != nil {
+		return err
+	}
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
-	r.DrawImage(transitionTo, &ebiten.DrawImageOptions{
+	return r.DrawImage(transitionTo, &ebiten.DrawImageOptions{
 		ColorM: ebiten.ScaleColor(1, 1, 1, alpha),
 	})
 }

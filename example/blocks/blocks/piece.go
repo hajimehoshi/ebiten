@@ -57,9 +57,8 @@ const (
 	BlockType5
 	BlockType6
 	BlockType7
+	BlockTypeMax = BlockType7
 )
-
-const NormalBlockTypeNum = 7
 
 type Piece struct {
 	blockType BlockType
@@ -144,7 +143,7 @@ const blockHeight = 10
 const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
-func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int) {
+func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int) error {
 	parts := []ebiten.ImagePart{}
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
@@ -160,7 +159,7 @@ func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int) {
 			})
 		}
 	}
-	r.DrawImage(imageBlocks, &ebiten.DrawImageOptions{
+	return r.DrawImage(imageBlocks, &ebiten.DrawImageOptions{
 		Parts: parts,
 	})
 }
@@ -222,7 +221,7 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(r *ebiten.Image, fieldX, fieldY int, pieceX, pieceY int, angle Angle) {
+func (p *Piece) Draw(r *ebiten.Image, fieldX, fieldY int, pieceX, pieceY int, angle Angle) error {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -236,5 +235,5 @@ func (p *Piece) Draw(r *ebiten.Image, fieldX, fieldY int, pieceX, pieceY int, an
 
 	x := fieldX + pieceX*blockWidth
 	y := fieldY + pieceY*blockHeight
-	drawBlocks(r, blocks, x, y)
+	return drawBlocks(r, blocks, x, y)
 }

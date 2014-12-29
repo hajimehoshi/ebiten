@@ -54,7 +54,7 @@ const fieldWidth = blockWidth * fieldBlockNumX
 const fieldHeight = blockHeight * fieldBlockNumY
 
 func (s *GameScene) choosePiece() *Piece {
-	num := NormalBlockTypeNum
+	num := int(BlockTypeMax)
 	blockType := BlockType(s.rand.Intn(num) + 1)
 	return Pieces[blockType]
 }
@@ -67,7 +67,7 @@ func (s *GameScene) initCurrentPiece(piece *Piece) {
 	s.currentPieceAngle = Angle0
 }
 
-func (s *GameScene) Update(state *GameState) {
+func (s *GameScene) Update(state *GameState) error {
 	const maxLandingCount = 60
 
 	if s.currentPiece == nil {
@@ -112,23 +112,31 @@ func (s *GameScene) Update(state *GameState) {
 			s.landingCount = 0
 		}
 	}
+	return nil
 }
 
-func (s *GameScene) Draw(r *ebiten.Image) {
-	r.Fill(color.White)
+func (s *GameScene) Draw(r *ebiten.Image) error {
+	if err := r.Fill(color.White); err != nil {
+		return err
+	}
 
 	field := imageEmpty
 	w, h := field.Size()
 	geo := ebiten.ScaleGeo(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
 	geo.Concat(ebiten.TranslateGeo(20, 20)) // TODO: magic number?
-	r.DrawImage(field, &ebiten.DrawImageOptions{
+	if err := r.DrawImage(field, &ebiten.DrawImageOptions{
 		GeoM:   geo,
 		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5),
-	})
+	}); err != nil {
+		return err
+	}
 
-	s.field.Draw(r, 20, 20)
+	if err := s.field.Draw(r, 20, 20); err != nil {
+		return err
+	}
 
 	if s.currentPiece != nil {
-		s.currentPiece.Draw(r, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
+		return s.currentPiece.Draw(r, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
 	}
+	return nil
 }

@@ -27,9 +27,7 @@ func NewInput() *Input {
 	for key := ebiten.Key(0); key < ebiten.KeyMax; key++ {
 		states[key] = 0
 	}
-	return &Input{
-		states: states,
-	}
+	return &Input{states}
 }
 
 func (i *Input) StateForKey(key ebiten.Key) int {
@@ -42,6 +40,6 @@ func (i *Input) Update() {
 			i.states[key] = 0
 			continue
 		}
-		i.states[key] += 1
+		i.states[key]++
 	}
 }

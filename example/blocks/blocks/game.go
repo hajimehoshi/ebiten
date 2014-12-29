@@ -19,11 +19,6 @@ import (
 	"sync"
 )
 
-type Size struct {
-	Width  int
-	Height int
-}
-
 const ScreenWidth = 256
 const ScreenHeight = 240
 

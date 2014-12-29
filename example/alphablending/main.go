@@ -68,13 +68,6 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 
-	if !saved && ebiten.IsKeyPressed(ebiten.KeySpace) {
-		if err := ebitenutil.SaveImageAsPNG("out.png", screen); err != nil {
-			return err
-		}
-		saved = true
-	}
-
 	return nil
 }
 
