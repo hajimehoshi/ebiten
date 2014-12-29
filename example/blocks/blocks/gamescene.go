@@ -64,8 +64,10 @@ func drawRect(r *ebiten.Image, x, y, width, height int) error {
 	})
 }
 
+var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
+
 func drawTextBox(r *ebiten.Image, label, content string, x, y, width int) error {
-	if err := drawTextWithShadow(r, label, x, y, 1, color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
+	if err := drawTextWithShadow(r, label, x, y, 1, fontColor); err != nil {
 		return err
 	}
 	y += blockWidth
@@ -281,7 +283,7 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 	// Draw next
 	x := fieldX + fieldWidth + blockWidth*2
 	y := fieldY
-	if err := drawTextWithShadow(r, "NEXT", x, y, 1, color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
+	if err := drawTextWithShadow(r, "NEXT", x, y, 1, fontColor); err != nil {
 		return err
 	}
 	nextX := x
