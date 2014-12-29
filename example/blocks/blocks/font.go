@@ -39,7 +39,7 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) {
+func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) error {
 	parts := []ebiten.ImagePart{}
 
 	locationX, locationY := 0, 0
@@ -68,14 +68,19 @@ func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) {
 	b := float64(c2.B) / max
 	a := float64(c2.A) / max
 	clr := ebiten.ScaleColor(r, g, b, a)
-	rt.DrawImage(imageFont, &ebiten.DrawImageOptions{
+	return rt.DrawImage(imageFont, &ebiten.DrawImageOptions{
 		Parts:  parts,
 		GeoM:   geo,
 		ColorM: clr,
 	})
 }
 
-func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) {
-	drawText(rt, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80})
-	drawText(rt, str, x, y, scale, clr)
+func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) error {
+	if err := drawText(rt, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80}); err != nil {
+		return err
+	}
+	if err := drawText(rt, str, x, y, scale, clr); err != nil {
+		return err
+	}
+	return nil
 }

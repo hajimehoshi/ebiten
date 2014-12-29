@@ -48,17 +48,20 @@ func (s *TitleScene) Update(state *GameState) error {
 }
 
 func (s *TitleScene) Draw(r *ebiten.Image) error {
-	drawTitleBackground(r, s.count)
-	drawLogo(r, "BLOCKS")
+	if err := drawTitleBackground(r, s.count); err != nil {
+		return err
+	}
+	if err := drawLogo(r, "BLOCKS"); err != nil {
+		return err
+	}
 
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - textWidth(message)) / 2
 	y := ScreenHeight - 48
-	drawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
-	return nil
+	return drawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
 }
 
-func drawTitleBackground(r *ebiten.Image, c int) {
+func drawTitleBackground(r *ebiten.Image, c int) error {
 	w, h := imageBackground.Size()
 	dx := (-c / 4) % w
 	dy := (c / 4) % h
@@ -75,15 +78,15 @@ func drawTitleBackground(r *ebiten.Image, c int) {
 		}
 	}
 
-	r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
+	return r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
 		Parts: parts,
 	})
 }
 
-func drawLogo(r *ebiten.Image, str string) {
+func drawLogo(r *ebiten.Image, str string) error {
 	scale := 4
 	textWidth := textWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	drawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
+	return drawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
 }

@@ -16,7 +16,6 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image/color"
 	"math/rand"
 	"time"
@@ -26,10 +25,21 @@ var imageEmpty *ebiten.Image
 
 func init() {
 	var err error
-	imageEmpty, _, err = ebitenutil.NewImageFromFile("images/blocks/empty.png", ebiten.FilterNearest)
+	imageEmpty, err = ebiten.NewImage(16, 16, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}
+	imageEmpty.Fill(color.White)
+}
+
+func drawRect(r *ebiten.Image, x, y, width, height int) error {
+	w, h := imageEmpty.Size()
+	geo := ebiten.ScaleGeo(float64(width)/float64(w), float64(height)/float64(h))
+	geo.Concat(ebiten.TranslateGeo(float64(x), float64(y)))
+	return r.DrawImage(imageEmpty, &ebiten.DrawImageOptions{
+		GeoM:   geo,
+		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5),
+	})
 }
 
 type GameScene struct {
@@ -120,23 +130,41 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 		return err
 	}
 
-	field := imageEmpty
-	w, h := field.Size()
-	geo := ebiten.ScaleGeo(float64(fieldWidth)/float64(w), float64(fieldHeight)/float64(h))
-	geo.Concat(ebiten.TranslateGeo(20, 20)) // TODO: magic number?
-	if err := r.DrawImage(field, &ebiten.DrawImageOptions{
-		GeoM:   geo,
-		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.5),
-	}); err != nil {
+	const fieldX, fieldY = 20, 20
+
+	// Draw field
+	if err := drawRect(r, fieldX, fieldY, fieldWidth, fieldHeight); err != nil {
 		return err
 	}
 
-	if err := s.field.Draw(r, 20, 20); err != nil {
+	// Draw next
+	x := fieldX + fieldWidth + blockWidth*2
+	y := fieldY
+	if err := drawTextWithShadow(r, "NEXT", x, y, 1, color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
+		return err
+	}
+	nextX := x
+	nextY := y + blockHeight
+	if err := drawRect(r, nextX, nextY, blockWidth*5, blockHeight*5); err != nil {
 		return err
 	}
 
+	if err := s.field.Draw(r, fieldX, fieldY); err != nil {
+		return err
+	}
 	if s.currentPiece != nil {
-		return s.currentPiece.Draw(r, 20, 20, s.currentPieceX, s.currentPieceY, s.currentPieceAngle)
+		x := fieldX + s.currentPieceX*blockWidth
+		y := fieldY + s.currentPieceY*blockHeight
+		if err := s.currentPiece.Draw(r, x, y, s.currentPieceAngle); err != nil {
+			return err
+		}
+	}
+	if s.nextPiece != nil {
+		x := nextX
+		y := nextY
+		if err := s.nextPiece.DrawAtCenter(r, x, y, blockWidth*5, blockHeight*5, 0); err != nil {
+			return err
+		}
 	}
 	return nil
 }

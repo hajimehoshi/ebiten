@@ -221,7 +221,13 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) Draw(r *ebiten.Image, fieldX, fieldY int, pieceX, pieceY int, angle Angle) error {
+func (p *Piece) DrawAtCenter(r *ebiten.Image, x, y, width, height int, angle Angle) error {
+	x += (width - len(p.blocks[0])*blockWidth) / 2
+	y += (height - len(p.blocks)*blockHeight) / 2
+	return p.Draw(r, x, y, angle)
+}
+
+func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) error {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -232,8 +238,5 @@ func (p *Piece) Draw(r *ebiten.Image, fieldX, fieldY int, pieceX, pieceY int, an
 			}
 		}
 	}
-
-	x := fieldX + pieceX*blockWidth
-	y := fieldY + pieceY*blockHeight
 	return drawBlocks(r, blocks, x, y)
 }
