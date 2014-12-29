@@ -23,27 +23,37 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 const (
 	outputPath   = "public/index.html"
-	templatePath = "index_tmpl.html"
+	templatePath = "index.tmpl.html"
 )
 
-// TODO: License should be on another file
-const license = `Copyright 2014 Hajime Hoshi
+var license = ""
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+func init() {
+	b, err := ioutil.ReadFile("../license.txt")
+	if err != nil {
+		panic(err)
+	}
+	license = string(b)
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	// TODO: Year check
+}
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.`
+var stableVersion = ""
+
+var devVersion = ""
+
+func init() {
+	b, err := ioutil.ReadFile("../version.txt")
+	if err != nil {
+		panic(err)
+	}
+	devVersion = string(b)
+}
 
 func comment(text string) template.HTML {
 	// TODO: text should be escaped
@@ -86,6 +96,17 @@ func (e *example) Source() string {
 	return str
 }
 
+func versions() string {
+	vers := []string{}
+	if stableVersion != "" {
+		vers = append(vers, "Stable: "+stableVersion)
+	}
+	if devVersion != "" {
+		vers = append(vers, "Development: "+devVersion)
+	}
+	return strings.Join(vers, ", ")
+}
+
 func main() {
 	f, err := os.Create(outputPath)
 	if err != nil {
@@ -102,6 +123,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	examples := []example{
 		{Name: "blocks"},
 		{Name: "hue"},
@@ -111,6 +133,7 @@ func main() {
 	}
 	data := map[string]interface{}{
 		"License":  license,
+		"Versions": versions(),
 		"Examples": examples,
 	}
 	if err := t.Funcs(funcs).Execute(f, data); err != nil {
