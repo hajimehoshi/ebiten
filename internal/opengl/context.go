@@ -12,15 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphics
+package opengl
 
 import (
 	"github.com/go-gl/gl"
 )
 
-type Filter int
+type Context struct {
+}
 
-const (
-	FilterNearest Filter = gl.NEAREST
-	FilterLinear         = gl.LINEAR
-)
+func NewContext() *Context {
+	c := &Context{}
+	c.init()
+	return c
+}
+
+func (c *Context) init() {
+	gl.Init()
+	gl.Enable(gl.TEXTURE_2D)
+	// Textures' pixel formats are alpha premultiplied.
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+}

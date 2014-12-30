@@ -18,6 +18,7 @@ import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
 	"runtime"
 )
@@ -47,7 +48,7 @@ func init() {
 	}
 	currentUI.run()
 	currentUI.use(func() {
-		graphics.Init()
+		currentUI.glContext = opengl.NewContext()
 		glfw.SwapInterval(1)
 	})
 }
@@ -55,6 +56,7 @@ func init() {
 type ui struct {
 	window          *glfw.Window
 	scale           int
+	glContext       *opengl.Context
 	graphicsContext *graphicsContext
 	input           input
 	funcs           chan func()
