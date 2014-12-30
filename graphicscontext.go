@@ -15,16 +15,16 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	f, err := opengl.NewZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
+	f, err := graphics.NewZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return nil, err
 	}
 
-	texture, err := opengl.NewTexture(screenWidth, screenHeight, opengl.Filter(FilterNearest))
+	texture, err := graphics.NewTexture(screenWidth, screenHeight, graphics.Filter(FilterNearest))
 	if err != nil {
 		return nil, err
 	}

@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package opengl
+package graphics
 
 import (
 	"errors"
 	"fmt"
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
-	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {

@@ -17,7 +17,7 @@ package ebiten
 import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"image"
 	"runtime"
 )
@@ -47,7 +47,7 @@ func init() {
 	}
 	currentUI.run()
 	currentUI.use(func() {
-		opengl.Init()
+		graphics.Init()
 		glfw.SwapInterval(1)
 	})
 }
@@ -149,8 +149,8 @@ func (u *ui) newImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	var innerImage *innerImage
 	var err error
 	u.use(func() {
-		var texture *opengl.Texture
-		texture, err = opengl.NewTextureFromImage(img, opengl.Filter(filter))
+		var texture *graphics.Texture
+		texture, err = graphics.NewTextureFromImage(img, graphics.Filter(filter))
 		if err != nil {
 			return
 		}
@@ -166,8 +166,8 @@ func (u *ui) newImage(width, height int, filter Filter) (*Image, error) {
 	var innerImage *innerImage
 	var err error
 	u.use(func() {
-		var texture *opengl.Texture
-		texture, err = opengl.NewTexture(width, height, opengl.Filter(filter))
+		var texture *graphics.Texture
+		texture, err = graphics.NewTexture(width, height, graphics.Filter(filter))
 		if err != nil {
 			return
 		}

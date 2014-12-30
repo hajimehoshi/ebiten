@@ -16,18 +16,18 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"image"
 	"image/color"
 )
 
 type innerImage struct {
-	framebuffer *opengl.Framebuffer
-	texture     *opengl.Texture
+	framebuffer *graphics.Framebuffer
+	texture     *graphics.Texture
 }
 
-func newInnerImage(texture *opengl.Texture) (*innerImage, error) {
-	framebuffer, err := opengl.NewFramebufferFromTexture(texture)
+func newInnerImage(texture *graphics.Texture) (*innerImage, error) {
+	framebuffer, err := graphics.NewFramebufferFromTexture(texture)
 	if err != nil {
 		return nil, err
 	}
