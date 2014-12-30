@@ -44,7 +44,7 @@ const size = 10000
 
 // TODO: Use unsafe.SizeOf?
 const uint16Size = 2
-const short32Size = 4
+const float32Size = 4
 
 func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
@@ -56,7 +56,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads Textur
 
 		vertexBuffer := gl.GenBuffer()
 		vertexBuffer.Bind(gl.ARRAY_BUFFER)
-		s := short32Size * stride * size
+		s := float32Size * stride * size
 		gl.BufferData(gl.ARRAY_BUFFER, s, nil, gl.DYNAMIC_DRAW)
 
 		indexBuffer := gl.GenBuffer()
@@ -94,8 +94,8 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads Textur
 		vertexAttrLocation.DisableArray()
 	}()
 
-	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(short32Size*0))
-	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(short32Size*2))
+	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(float32Size*0))
+	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(float32Size*2))
 
 	vertices := []float32{}
 	for i := 0; i < quads.Len(); i++ {
@@ -108,7 +108,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads Textur
 			x1, y1, u1, v1,
 		)
 	}
-	gl.BufferSubData(gl.ARRAY_BUFFER, 0, short32Size*len(vertices), vertices)
+	gl.BufferSubData(gl.ARRAY_BUFFER, 0, float32Size*len(vertices), vertices)
 	gl.DrawElements(gl.TRIANGLES, 6*quads.Len(), gl.UNSIGNED_SHORT, uintptr(0))
 
 	gl.Flush()
