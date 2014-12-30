@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
+	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
@@ -84,7 +85,7 @@ func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
 	return framebuffer, nil
 }
 
-func (f *Framebuffer) SetAsViewport() error {
+func (f *Framebuffer) setAsViewport() error {
 	gl.Flush()
 	f.framebuffer.Bind()
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
@@ -101,7 +102,7 @@ func (f *Framebuffer) SetAsViewport() error {
 	return nil
 }
 
-func (f *Framebuffer) ProjectionMatrix() [4][4]float64 {
+func (f *Framebuffer) projectionMatrix() [4][4]float64 {
 	width := internal.NextPowerOf2Int(f.width)
 	height := internal.NextPowerOf2Int(f.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
@@ -110,4 +111,32 @@ func (f *Framebuffer) ProjectionMatrix() [4][4]float64 {
 		m[1][3] += float64(f.height) / float64(internal.NextPowerOf2Int(f.height)) * 2
 	}
 	return m
+}
+
+type Matrix interface {
+	Element(i, j int) float64
+}
+
+type TextureQuads interface {
+	Len() int
+	Vertex(i int) (x0, y0, x1, y1 float32)
+	Texture(i int) (u0, v0, u1, v1 float32)
+}
+
+func (f *Framebuffer) Fill(r, g, b, a float64) error {
+	if err := f.setAsViewport(); err != nil {
+		return err
+	}
+	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	return nil
+}
+
+func (f *Framebuffer) DrawTexture(t *Texture, quads TextureQuads, geo, clr Matrix) error {
+	if err := f.setAsViewport(); err != nil {
+		return err
+	}
+	projectionMatrix := f.projectionMatrix()
+	// TODO: Define texture.Draw()
+	return shader.DrawTexture(t.native, projectionMatrix, quads, geo, clr)
 }

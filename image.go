@@ -17,7 +17,6 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/opengl/internal/shader"
 	"image"
 	"image/color"
 )
@@ -44,12 +43,8 @@ func (i *innerImage) Clear() error {
 }
 
 func (i *innerImage) Fill(clr color.Color) error {
-	if err := i.framebuffer.SetAsViewport(); err != nil {
-		return err
-	}
 	r, g, b, a := internal.RGBA(clr)
-	opengl.Clear(r, g, b, a)
-	return nil
+	return i.framebuffer.Fill(r, g, b, a)
 }
 
 func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error {
@@ -68,14 +63,9 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 	}
 	geo := options.GeoM
 	clr := options.ColorM
-
-	if err := i.framebuffer.SetAsViewport(); err != nil {
-		return err
-	}
-	w, h := img.texture.Size()
-	quads := textureQuads(parts, w, h)
-	projectionMatrix := i.framebuffer.ProjectionMatrix()
-	return shader.DrawTexture(img.texture.Native(), projectionMatrix, quads, geo, clr)
+	w, h := img.size()
+	quads := &textureQuads{parts, w, h}
+	return i.framebuffer.DrawTexture(img.texture, quads, geo, clr)
 }
 
 func u(x float64, width int) float32 {
@@ -86,22 +76,25 @@ func v(y float64, height int) float32 {
 	return float32(y) / float32(internal.NextPowerOf2Int(height))
 }
 
-func textureQuads(parts []ImagePart, width, height int) []shader.TextureQuad {
-	quads := make([]shader.TextureQuad, 0, len(parts))
-	for _, part := range parts {
-		dst, src := part.Dst, part.Src
-		x1 := float32(dst.Min.X)
-		x2 := float32(dst.Max.X)
-		y1 := float32(dst.Min.Y)
-		y2 := float32(dst.Max.Y)
-		u1 := u(float64(src.Min.X), width)
-		u2 := u(float64(src.Max.X), width)
-		v1 := v(float64(src.Min.Y), height)
-		v2 := v(float64(src.Max.Y), height)
-		quad := shader.TextureQuad{x1, x2, y1, y2, u1, u2, v1, v2}
-		quads = append(quads, quad)
-	}
-	return quads
+type textureQuads struct {
+	parts  []ImagePart
+	width  int
+	height int
+}
+
+func (t *textureQuads) Len() int {
+	return len(t.parts)
+}
+
+func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 float32) {
+	dst := t.parts[i].Dst
+	return float32(dst.Min.X), float32(dst.Min.Y), float32(dst.Max.X), float32(dst.Max.Y)
+}
+
+func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float32) {
+	src := t.parts[i].Src
+	w, h := t.width, t.height
+	return u(float64(src.Min.X), w), v(float64(src.Min.Y), h), u(float64(src.Max.X), w), v(float64(src.Max.Y), h)
 }
 
 type syncer interface {

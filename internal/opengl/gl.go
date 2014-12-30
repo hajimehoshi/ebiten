@@ -32,12 +32,3 @@ func Init() {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
-
-func Clear(r, g, b, a float64) {
-	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-}
-
-func Flush() {
-	gl.Flush()
-}

@@ -32,6 +32,12 @@ type Matrix interface {
 	Element(i, j int) float64
 }
 
+type TextureQuads interface {
+	Len() int
+	Vertex(i int) (x0, y0, x1, y1 float32)
+	Texture(i int) (u0, v0, u1, v1 float32)
+}
+
 var initialized = false
 
 const size = 10000
@@ -40,7 +46,7 @@ const size = 10000
 const uint16Size = 2
 const short32Size = 4
 
-func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []TextureQuad, geo Matrix, color Matrix) error {
+func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
 	if !initialized {
@@ -69,7 +75,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		initialized = true
 	}
 
-	if len(quads) == 0 {
+	if quads.Len() == 0 {
 		return nil
 	}
 	// TODO: Check performance
@@ -92,15 +98,9 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(short32Size*2))
 
 	vertices := []float32{}
-	for _, quad := range quads {
-		x0 := quad.VertexX0
-		x1 := quad.VertexX1
-		y0 := quad.VertexY0
-		y1 := quad.VertexY1
-		u0 := quad.TextureCoordU0
-		u1 := quad.TextureCoordU1
-		v0 := quad.TextureCoordV0
-		v1 := quad.TextureCoordV1
+	for i := 0; i < quads.Len(); i++ {
+		x0, y0, x1, y1 := quads.Vertex(i)
+		u0, v0, u1, v1 := quads.Texture(i)
 		vertices = append(vertices,
 			x0, y0, u0, v0,
 			x1, y0, u1, v0,
@@ -109,7 +109,7 @@ func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads []Text
 		)
 	}
 	gl.BufferSubData(gl.ARRAY_BUFFER, 0, short32Size*len(vertices), vertices)
-	gl.DrawElements(gl.TRIANGLES, 6*len(quads), gl.UNSIGNED_SHORT, uintptr(0))
+	gl.DrawElements(gl.TRIANGLES, 6*quads.Len(), gl.UNSIGNED_SHORT, uintptr(0))
 
 	gl.Flush()
 	return nil

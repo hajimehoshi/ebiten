@@ -72,7 +72,5 @@ func (c *graphicsContext) postUpdate() error {
 	if err := c.defaultR.drawImage(c.screen, options); err != nil {
 		return err
 	}
-
-	opengl.Flush()
 	return nil
 }
