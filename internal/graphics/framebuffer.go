@@ -67,14 +67,14 @@ func (f *Framebuffer) Size() (width, height int) {
 	return f.width, f.height
 }
 
-func (f *Framebuffer) Dispose() {
-	f.native.Delete()
+func (f *Framebuffer) Dispose(c *opengl.Context) {
+	c.DeleteFramebuffer(f.native)
 }
 
-func (f *Framebuffer) setAsViewport() error {
+func (f *Framebuffer) setAsViewport(c *opengl.Context) error {
 	width := internal.NextPowerOf2Int(f.width)
 	height := internal.NextPowerOf2Int(f.height)
-	return f.native.SetAsViewport(width, height)
+	return c.SetViewport(f.native, width, height)
 }
 
 func (f *Framebuffer) projectionMatrix() [4][4]float64 {
@@ -98,15 +98,15 @@ type TextureQuads interface {
 	Texture(i int) (u0, v0, u1, v1 float32)
 }
 
-func (f *Framebuffer) Fill(r, g, b, a float64) error {
-	if err := f.setAsViewport(); err != nil {
+func (f *Framebuffer) Fill(c *opengl.Context, r, g, b, a float64) error {
+	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
-	return f.native.Fill(r, g, b, a)
+	return c.FillFramebuffer(f.native, r, g, b, a)
 }
 
 func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix) error {
-	if err := f.setAsViewport(); err != nil {
+	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	projectionMatrix := f.projectionMatrix()

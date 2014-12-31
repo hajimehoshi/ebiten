@@ -29,13 +29,13 @@ func initialize(c *opengl.Context) error {
 	if err != nil {
 		return err
 	}
-	defer shaders[shaderVertex].native.Delete()
+	defer c.DeleteShader(shaders[shaderVertex].native)
 
 	shaders[shaderColorMatrix].native, err = c.NewShader(c.FragmentShader, shaders[shaderColorMatrix].source)
 	if err != nil {
 		return err
 	}
-	defer shaders[shaderColorMatrix].native.Delete()
+	defer c.DeleteShader(shaders[shaderColorMatrix].native)
 
 	shaders := []opengl.Shader{
 		shaders[shaderVertex].native,
@@ -66,31 +66,30 @@ func initialize(c *opengl.Context) error {
 
 var lastProgram opengl.Program = 0
 
-func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matrix) opengl.Program {
+func useProgramColorMatrix(c *opengl.Context, projectionMatrix [16]float32, geo Matrix, color Matrix) opengl.Program {
 	if lastProgram != programColorMatrix {
-		programColorMatrix.Use()
+		c.UseProgram(programColorMatrix)
 		lastProgram = programColorMatrix
 	}
 	// TODO: Check the performance.
 	program := programColorMatrix
 
-	program.GetUniformLocation("projection_matrix").UniformMatrix4fv(projectionMatrix)
+	c.UniformMatrix4fv(program, "projection_matrix", projectionMatrix)
 
-	a := float32(geo.Element(0, 0))
-	b := float32(geo.Element(0, 1))
-	c := float32(geo.Element(1, 0))
-	d := float32(geo.Element(1, 1))
+	ma := float32(geo.Element(0, 0))
+	mb := float32(geo.Element(0, 1))
+	mc := float32(geo.Element(1, 0))
+	md := float32(geo.Element(1, 1))
 	tx := float32(geo.Element(0, 2))
 	ty := float32(geo.Element(1, 2))
 	glModelviewMatrix := [...]float32{
-		a, c, 0, 0,
-		b, d, 0, 0,
+		ma, mc, 0, 0,
+		mb, md, 0, 0,
 		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
-	program.GetUniformLocation("modelview_matrix").UniformMatrix4fv(glModelviewMatrix)
-
-	program.GetUniformLocation("texture").Uniform1i(0)
+	c.UniformMatrix4fv(program, "modelview_matrix", glModelviewMatrix)
+	c.Uniform1i(program, "texture", 0)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -105,11 +104,11 @@ func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matri
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	program.GetUniformLocation("color_matrix").UniformMatrix4fv(glColorMatrix)
+	c.UniformMatrix4fv(program, "color_matrix", glColorMatrix)
 	glColorMatrixTranslation := [...]float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	program.GetUniformLocation("color_matrix_translation").Uniform4fv(1, glColorMatrixTranslation[:])
+	c.Uniform4fv(program, "color_matrix_translation", glColorMatrixTranslation)
 
 	return program
 }

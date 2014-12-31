@@ -174,7 +174,7 @@ func (u *ui) newImage(width, height int, filter Filter) (*Image, error) {
 			return
 		}
 		innerImage, err = newInnerImage(u.glContext, texture)
-		innerImage.Clear()
+		innerImage.Clear(u.glContext)
 	})
 	if err != nil {
 		return nil, err

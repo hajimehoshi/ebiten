@@ -58,23 +58,20 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4]
 	}
 
 	// TODO: Check performance
-	program := useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
+	program := useProgramColorMatrix(c, glMatrix(projectionMatrix), geo, color)
 
 	// TODO: Do we have to call gl.ActiveTexture(gl.TEXTURE0)?
-	texture.Bind()
+	c.BindTexture(texture)
 
-	vertexAttrLocation := program.GetAttributeLocation("vertex")
-	texCoordAttrLocation := program.GetAttributeLocation("tex_coord")
-
-	vertexAttrLocation.EnableArray()
-	texCoordAttrLocation.EnableArray()
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "tex_coord")
 	defer func() {
-		texCoordAttrLocation.DisableArray()
-		vertexAttrLocation.DisableArray()
+		c.DisableVertexAttribArray(program, "tex_coord")
+		c.DisableVertexAttribArray(program, "vertex")
 	}()
 
-	vertexAttrLocation.AttribPointer(stride, uintptr(float32Size*0))
-	texCoordAttrLocation.AttribPointer(stride, uintptr(float32Size*2))
+	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
+	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
 
 	vertices := []float32{}
 	for i := 0; i < quads.Len(); i++ {

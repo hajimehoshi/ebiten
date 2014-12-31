@@ -39,13 +39,13 @@ func (i *innerImage) size() (width, height int) {
 	return i.framebuffer.Size()
 }
 
-func (i *innerImage) Clear() error {
-	return i.Fill(color.Transparent)
+func (i *innerImage) Clear(c *opengl.Context) error {
+	return i.Fill(c, color.Transparent)
 }
 
-func (i *innerImage) Fill(clr color.Color) error {
+func (i *innerImage) Fill(c *opengl.Context, clr color.Color) error {
 	r, g, b, a := internal.RGBA(clr)
-	return i.framebuffer.Fill(r, g, b, a)
+	return i.framebuffer.Fill(c, r, g, b, a)
 }
 
 func (i *innerImage) drawImage(c *opengl.Context, img *innerImage, options *DrawImageOptions) error {
@@ -120,7 +120,7 @@ func (i *Image) Size() (width, height int) {
 func (i *Image) Clear() (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {
-		err = i.inner.Clear()
+		err = i.inner.Clear(currentUI.glContext)
 	})
 	return
 }
@@ -129,7 +129,7 @@ func (i *Image) Clear() (err error) {
 func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {
-		err = i.inner.Fill(clr)
+		err = i.inner.Fill(currentUI.glContext, clr)
 	})
 	return
 }
@@ -175,7 +175,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
 		i.syncer.Sync(func() {
 			var err error
-			i.pixels, err = i.inner.texture.Pixels()
+			i.pixels, err = i.inner.texture.Pixels(currentUI.glContext)
 			if err != nil {
 				panic(err)
 			}

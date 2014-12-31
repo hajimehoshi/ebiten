@@ -55,16 +55,16 @@ func (c *graphicsContext) dispose() {
 	framebuffer := c.screen.framebuffer
 	texture := c.screen.texture
 
-	framebuffer.Dispose()
-	texture.Dispose()
+	framebuffer.Dispose(c.glContext)
+	texture.Dispose(c.glContext)
 }
 
 func (c *graphicsContext) preUpdate() error {
-	return c.screen.Clear()
+	return c.screen.Clear(c.glContext)
 }
 
 func (c *graphicsContext) postUpdate() error {
-	if err := c.defaultR.Clear(); err != nil {
+	if err := c.defaultR.Clear(c.glContext); err != nil {
 		return err
 	}
 

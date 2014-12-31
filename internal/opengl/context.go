@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !js
+
 package opengl
 
 import (
@@ -20,106 +22,10 @@ import (
 	"github.com/go-gl/gl"
 )
 
-type FilterType int
-type ShaderType int
-type BufferType int
-type BufferUsageType int
-
 type Texture gl.Texture
-
-func (t Texture) Pixels(width, height int) ([]uint8, error) {
-	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
-	pixels := make([]uint8, 4*width*height)
-	gl.Texture(t).Bind(gl.TEXTURE_2D)
-	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-	if e := gl.GetError(); e != gl.NO_ERROR {
-		// TODO: Use glu.ErrorString
-		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
-	}
-	return pixels, nil
-}
-
-func (t Texture) Bind() {
-	gl.Texture(t).Bind(gl.TEXTURE_2D)
-}
-
-func (t Texture) Delete() {
-	gl.Texture(t).Delete()
-}
-
 type Framebuffer gl.Framebuffer
-
-func (f Framebuffer) SetAsViewport(width, height int) error {
-	gl.Flush()
-	gl.Framebuffer(f).Bind()
-	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
-	if err != gl.FRAMEBUFFER_COMPLETE {
-		if gl.GetError() != 0 {
-			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
-		}
-		return errors.New("glBindFramebuffer failed: the context is different?")
-	}
-	gl.Viewport(0, 0, width, height)
-	return nil
-}
-
-func (f Framebuffer) Fill(r, g, b, a float64) error {
-	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	return nil
-}
-
-func (f Framebuffer) Delete() {
-	gl.Framebuffer(f).Delete()
-}
-
 type Shader gl.Shader
-
-func (s Shader) Delete() {
-	gl.Shader(s).Delete()
-}
-
 type Program gl.Program
-
-func (p Program) Use() {
-	gl.Program(p).Use()
-}
-
-func (p Program) GetAttributeLocation(name string) AttribLocation {
-	return AttribLocation(gl.Program(p).GetAttribLocation(name))
-}
-
-func (p Program) GetUniformLocation(name string) UniformLocation {
-	return UniformLocation(gl.Program(p).GetUniformLocation(name))
-}
-
-type AttribLocation int
-
-func (a AttribLocation) EnableArray() {
-	gl.AttribLocation(a).EnableArray()
-}
-
-func (a AttribLocation) DisableArray() {
-	gl.AttribLocation(a).DisableArray()
-}
-
-func (a AttribLocation) AttribPointer(stride int, x uintptr) {
-	gl.AttribLocation(a).AttribPointer(2, gl.FLOAT, false, stride, x)
-}
-
-type UniformLocation int
-
-func (u UniformLocation) UniformMatrix4fv(matrix [16]float32) {
-	gl.UniformLocation(u).UniformMatrix4fv(false, matrix)
-}
-
-func (u UniformLocation) Uniform4fv(count int, v []float32) {
-	gl.UniformLocation(u).Uniform4fv(count, v)
-}
-
-func (u UniformLocation) Uniform1i(v int) {
-	gl.UniformLocation(u).Uniform1i(v)
-}
 
 type Context struct {
 	Nearest            FilterType
@@ -172,6 +78,26 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterTyp
 	return Texture(t), nil
 }
 
+func (c *Context) TexturePixels(t Texture, width, height int) ([]uint8, error) {
+	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
+	pixels := make([]uint8, 4*width*height)
+	gl.Texture(t).Bind(gl.TEXTURE_2D)
+	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	if e := gl.GetError(); e != gl.NO_ERROR {
+		// TODO: Use glu.ErrorString
+		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
+	}
+	return pixels, nil
+}
+
+func (c *Context) BindTexture(t Texture) {
+	gl.Texture(t).Bind(gl.TEXTURE_2D)
+}
+
+func (c *Context) DeleteTexture(t Texture) {
+	gl.Texture(t).Delete()
+}
+
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	f := gl.GenFramebuffer()
 	f.Bind()
@@ -182,6 +108,30 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	}
 
 	return Framebuffer(f), nil
+}
+
+func (c *Context) SetViewport(f Framebuffer, width, height int) error {
+	gl.Flush()
+	gl.Framebuffer(f).Bind()
+	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+	if err != gl.FRAMEBUFFER_COMPLETE {
+		if gl.GetError() != 0 {
+			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
+		}
+		return errors.New("glBindFramebuffer failed: the context is different?")
+	}
+	gl.Viewport(0, 0, width, height)
+	return nil
+}
+
+func (c *Context) FillFramebuffer(f Framebuffer, r, g, b, a float64) error {
+	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	return nil
+}
+
+func (c *Context) DeleteFramebuffer(f Framebuffer) {
+	gl.Framebuffer(f).Delete()
 }
 
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
@@ -204,6 +154,10 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	return Shader(s), nil
 }
 
+func (c *Context) DeleteShader(s Shader) {
+	gl.Shader(s).Delete()
+}
+
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	p := gl.CreateProgram()
 	if p == 0 {
@@ -218,6 +172,35 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 		return 0, errors.New("program error")
 	}
 	return Program(p), nil
+}
+
+func (c *Context) UseProgram(p Program) {
+	gl.Program(p).Use()
+}
+
+func (c *Context) Uniform1i(p Program, location string, v int) {
+	// TODO: Cache the location names.
+	gl.Program(p).GetUniformLocation(location).Uniform1i(v)
+}
+
+func (c *Context) Uniform4fv(p Program, location string, v [4]float32) {
+	gl.Program(p).GetUniformLocation(location).Uniform4fv(1, v[:])
+}
+
+func (c *Context) UniformMatrix4fv(p Program, location string, v [16]float32) {
+	gl.Program(p).GetUniformLocation(location).UniformMatrix4fv(false, v)
+}
+
+func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
+	gl.Program(p).GetAttribLocation(location).AttribPointer(2, gl.FLOAT, false, stride, v)
+}
+
+func (c *Context) EnableVertexAttribArray(p Program, location string) {
+	gl.Program(p).GetAttribLocation(location).EnableArray()
+}
+
+func (c *Context) DisableVertexAttribArray(p Program, location string) {
+	gl.Program(p).GetAttribLocation(location).DisableArray()
 }
 
 func (c *Context) NewBuffer(bufferType BufferType, size int, ptr interface{}, bufferUsageType BufferUsageType) {
