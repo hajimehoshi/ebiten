@@ -15,6 +15,7 @@
 package graphics
 
 import (
+	// TODO: Remove this
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
@@ -103,9 +104,7 @@ func (f *Framebuffer) Fill(r, g, b, a float64) error {
 	if err := f.setAsViewport(); err != nil {
 		return err
 	}
-	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	return nil
+	return f.framebuffer.Fill(r, g, b, a)
 }
 
 func (f *Framebuffer) DrawTexture(t *Texture, quads TextureQuads, geo, clr Matrix) error {

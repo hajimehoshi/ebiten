@@ -66,6 +66,12 @@ func (f Framebuffer) SetAsViewport(width, height int) error {
 	return nil
 }
 
+func (f Framebuffer) Fill(r, g, b, a float64) error {
+	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	return nil
+}
+
 func (f Framebuffer) Delete() {
 	gl.Framebuffer(f).Delete()
 }
