@@ -35,10 +35,10 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 }
 
 type Framebuffer struct {
-	framebuffer opengl.Framebuffer
-	width       int
-	height      int
-	flipY       bool
+	native opengl.Framebuffer
+	width  int
+	height int
+	flipY  bool
 }
 
 func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, error) {
@@ -51,15 +51,15 @@ func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, err
 }
 
 func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffer, error) {
-	framebuffer, err := c.NewFramebuffer(opengl.Texture(texture.native))
+	f, err := c.NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
 		return nil, err
 	}
 	w, h := texture.Size()
 	return &Framebuffer{
-		framebuffer: framebuffer,
-		width:       w,
-		height:      h,
+		native: f,
+		width:  w,
+		height: h,
 	}, nil
 }
 
@@ -68,13 +68,13 @@ func (f *Framebuffer) Size() (width, height int) {
 }
 
 func (f *Framebuffer) Dispose() {
-	f.framebuffer.Delete()
+	f.native.Delete()
 }
 
 func (f *Framebuffer) setAsViewport() error {
 	width := internal.NextPowerOf2Int(f.width)
 	height := internal.NextPowerOf2Int(f.height)
-	return f.framebuffer.SetAsViewport(width, height)
+	return f.native.SetAsViewport(width, height)
 }
 
 func (f *Framebuffer) projectionMatrix() [4][4]float64 {
@@ -102,7 +102,7 @@ func (f *Framebuffer) Fill(r, g, b, a float64) error {
 	if err := f.setAsViewport(); err != nil {
 		return err
 	}
-	return f.framebuffer.Fill(r, g, b, a)
+	return f.native.Fill(r, g, b, a)
 }
 
 func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix) error {
