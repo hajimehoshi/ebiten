@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"errors"
+	"fmt"
 	"github.com/go-gl/gl"
 )
 
@@ -32,6 +33,22 @@ type Context struct {
 }
 
 type Texture gl.Texture
+
+func (t Texture) Pixels(width, height int) ([]uint8, error) {
+	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
+	pixels := make([]uint8, 4*width*height)
+	gl.Texture(t).Bind(gl.TEXTURE_2D)
+	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	if e := gl.GetError(); e != gl.NO_ERROR {
+		// TODO: Use glu.ErrorString
+		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
+	}
+	return pixels, nil
+}
+
+func (t Texture) Delete() {
+	gl.Texture(t).Delete()
+}
 
 func NewContext() *Context {
 	c := &Context{

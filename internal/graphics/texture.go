@@ -16,8 +16,6 @@ package graphics
 
 import (
 	"errors"
-	"fmt"
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
@@ -90,17 +88,10 @@ func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filte
 }
 
 func (t *Texture) Dispose() {
-	gl.Texture(t.native).Delete()
+	t.native.Delete()
 }
 
 func (t *Texture) Pixels() ([]uint8, error) {
 	w, h := internal.NextPowerOf2Int(t.width), internal.NextPowerOf2Int(t.height)
-	pixels := make([]uint8, 4*w*h)
-	gl.Texture(t.native).Bind(gl.TEXTURE_2D)
-	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-	if e := gl.GetError(); e != gl.NO_ERROR {
-		// TODO: Use glu.ErrorString
-		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
-	}
-	return pixels, nil
+	return t.native.Pixels(w, h)
 }
