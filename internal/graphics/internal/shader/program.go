@@ -47,8 +47,8 @@ func initialize(c *opengl.Context) error {
 	}
 
 	const stride = 4 * 4
-	s := float32Size * stride * size
-	c.NewBuffer(c.ArrayBuffer, s, nil, c.DynamicDraw)
+	v := make([]float32, stride*size)
+	c.NewBuffer(c.ArrayBuffer, v, c.DynamicDraw)
 
 	indices := make([]uint16, 6*size)
 	for i := uint16(0); i < size; i++ {
@@ -59,7 +59,7 @@ func initialize(c *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	c.NewBuffer(c.ElementArrayBuffer, uint16Size*len(indices), indices, c.StaticDraw)
+	c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
 	return nil
 }

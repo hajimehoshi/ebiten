@@ -18,3 +18,15 @@ type FilterType int
 type ShaderType int
 type BufferType int
 type BufferUsageType int
+
+type Context struct {
+	Nearest            FilterType
+	Linear             FilterType
+	VertexShader       ShaderType
+	FragmentShader     ShaderType
+	ArrayBuffer        BufferType
+	ElementArrayBuffer BufferType
+	DynamicDraw        BufferUsageType
+	StaticDraw         BufferUsageType
+	*context
+}
