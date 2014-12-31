@@ -41,8 +41,6 @@ type TextureQuads interface {
 
 var initialized = false
 
-const size = 10000
-
 // TODO: Use unsafe.SizeOf?
 const uint16Size = 2
 const float32Size = 4
@@ -54,31 +52,13 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4]
 		if err := initialize(c); err != nil {
 			return err
 		}
-
-		vertexBuffer := gl.GenBuffer()
-		vertexBuffer.Bind(gl.ARRAY_BUFFER)
-		s := float32Size * stride * size
-		gl.BufferData(gl.ARRAY_BUFFER, s, nil, gl.DYNAMIC_DRAW)
-
-		indexBuffer := gl.GenBuffer()
-		indexBuffer.Bind(gl.ELEMENT_ARRAY_BUFFER)
-		indices := make([]uint16, 6*size)
-		for i := uint16(0); i < size; i++ {
-			indices[6*i+0] = 4*i + 0
-			indices[6*i+1] = 4*i + 1
-			indices[6*i+2] = 4*i + 2
-			indices[6*i+3] = 4*i + 1
-			indices[6*i+4] = 4*i + 2
-			indices[6*i+5] = 4*i + 3
-		}
-		gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, uint16Size*len(indices), indices, gl.STATIC_DRAW)
-
 		initialized = true
 	}
 
 	if quads.Len() == 0 {
 		return nil
 	}
+
 	// TODO: Check performance
 	program := useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
 

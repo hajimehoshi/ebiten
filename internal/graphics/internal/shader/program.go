@@ -21,6 +21,8 @@ import (
 var programColorMatrix opengl.Program
 
 func initialize(c *opengl.Context) error {
+	const size = 10000
+
 	var err error
 	shaders[shaderVertex].native, err = c.NewShader(c.VertexShader, shaders[shaderVertex].source)
 	if err != nil {
@@ -39,6 +41,22 @@ func initialize(c *opengl.Context) error {
 		shaders[shaderColorMatrix].native,
 	}
 	programColorMatrix, err = c.NewProgram(shaders)
+
+	const stride = 4 * 4
+	s := float32Size * stride * size
+	c.NewBuffer(c.ArrayBuffer, s, nil, c.DynamicDraw)
+
+	indices := make([]uint16, 6*size)
+	for i := uint16(0); i < size; i++ {
+		indices[6*i+0] = 4*i + 0
+		indices[6*i+1] = 4*i + 1
+		indices[6*i+2] = 4*i + 2
+		indices[6*i+3] = 4*i + 1
+		indices[6*i+4] = 4*i + 2
+		indices[6*i+5] = 4*i + 3
+	}
+	c.NewBuffer(c.ElementArrayBuffer, uint16Size*len(indices), indices, c.StaticDraw)
+
 	return err
 }
 

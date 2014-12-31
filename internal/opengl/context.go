@@ -20,19 +20,10 @@ import (
 	"github.com/go-gl/gl"
 )
 
-type Filter int
-
-const (
-	filterNearest Filter = gl.NEAREST
-	filterLinear         = gl.LINEAR
-)
-
+type FilterType int
 type ShaderType int
-
-const (
-	shaderTypeVertex   ShaderType = gl.VERTEX_SHADER
-	shaderTypeFragment            = gl.FRAGMENT_SHADER
-)
+type BufferType int
+type BufferUsageType int
 
 type Texture gl.Texture
 
@@ -127,18 +118,26 @@ func (u UniformLocation) Uniform1i(v int) {
 }
 
 type Context struct {
-	Nearest        Filter
-	Linear         Filter
-	VertexShader   ShaderType
-	FragmentShader ShaderType
+	Nearest            FilterType
+	Linear             FilterType
+	VertexShader       ShaderType
+	FragmentShader     ShaderType
+	ArrayBuffer        BufferType
+	ElementArrayBuffer BufferType
+	DynamicDraw        BufferUsageType
+	StaticDraw         BufferUsageType
 }
 
 func NewContext() *Context {
 	c := &Context{
-		Nearest:        filterNearest,
-		Linear:         filterLinear,
-		VertexShader:   shaderTypeVertex,
-		FragmentShader: shaderTypeFragment,
+		Nearest:            gl.NEAREST,
+		Linear:             gl.LINEAR,
+		VertexShader:       gl.VERTEX_SHADER,
+		FragmentShader:     gl.FRAGMENT_SHADER,
+		ArrayBuffer:        gl.ARRAY_BUFFER,
+		ElementArrayBuffer: gl.ELEMENT_ARRAY_BUFFER,
+		DynamicDraw:        gl.DYNAMIC_DRAW,
+		StaticDraw:         gl.STATIC_DRAW,
 	}
 	c.init()
 	return c
@@ -152,7 +151,7 @@ func (c *Context) init() {
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterType) (Texture, error) {
 	t := gl.GenTexture()
 	if t < 0 {
 		return 0, errors.New("glGenTexture failed")
@@ -215,4 +214,9 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 		return 0, errors.New("program error")
 	}
 	return Program(p), nil
+}
+
+func (c *Context) NewBuffer(bufferType BufferType, size int, ptr interface{}, bufferUsageType BufferUsageType) {
+	gl.GenBuffer().Bind(gl.GLenum(bufferType))
+	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsageType))
 }
