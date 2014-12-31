@@ -15,11 +15,10 @@
 package graphics
 
 import (
-	"errors"
-	"fmt"
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
@@ -37,13 +36,13 @@ func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
 }
 
 type Framebuffer struct {
-	framebuffer gl.Framebuffer
+	framebuffer opengl.Framebuffer
 	width       int
 	height      int
 	flipY       bool
 }
 
-func NewZeroFramebuffer(width, height int) (*Framebuffer, error) {
+func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, error) {
 	r := &Framebuffer{
 		width:  width,
 		height: height,
@@ -52,8 +51,8 @@ func NewZeroFramebuffer(width, height int) (*Framebuffer, error) {
 	return r, nil
 }
 
-func NewFramebufferFromTexture(texture *Texture) (*Framebuffer, error) {
-	framebuffer, err := createFramebuffer(gl.Texture(texture.native))
+func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffer, error) {
+	framebuffer, err := c.NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
 		return nil, err
 	}
@@ -73,33 +72,10 @@ func (f *Framebuffer) Dispose() {
 	f.framebuffer.Delete()
 }
 
-func createFramebuffer(nativeTexture gl.Texture) (gl.Framebuffer, error) {
-	framebuffer := gl.GenFramebuffer()
-	framebuffer.Bind()
-
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, nativeTexture, 0)
-	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-		return 0, errors.New("creating framebuffer failed")
-	}
-
-	return framebuffer, nil
-}
-
 func (f *Framebuffer) setAsViewport() error {
-	gl.Flush()
-	f.framebuffer.Bind()
-	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
-	if err != gl.FRAMEBUFFER_COMPLETE {
-		if gl.GetError() != 0 {
-			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
-		}
-		return errors.New("glBindFramebuffer failed: the context is different?")
-	}
-
 	width := internal.NextPowerOf2Int(f.width)
 	height := internal.NextPowerOf2Int(f.height)
-	gl.Viewport(0, 0, width, height)
-	return nil
+	return f.framebuffer.SetAsViewport(width, height)
 }
 
 func (f *Framebuffer) projectionMatrix() [4][4]float64 {

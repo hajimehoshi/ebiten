@@ -20,7 +20,7 @@ import (
 )
 
 func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	f, err := graphics.NewZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
+	f, err := graphics.NewZeroFramebuffer(c, screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScal
 	if err != nil {
 		return nil, err
 	}
-	screen, err := newInnerImage(texture)
+	screen, err := newInnerImage(c, texture)
 	if err != nil {
 		return nil, err
 	}

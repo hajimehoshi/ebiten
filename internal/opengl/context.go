@@ -50,6 +50,26 @@ func (t Texture) Delete() {
 	gl.Texture(t).Delete()
 }
 
+type Framebuffer gl.Framebuffer
+
+func (f Framebuffer) SetAsViewport(width, height int) error {
+	gl.Flush()
+	gl.Framebuffer(f).Bind()
+	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+	if err != gl.FRAMEBUFFER_COMPLETE {
+		if gl.GetError() != 0 {
+			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
+		}
+		return errors.New("glBindFramebuffer failed: the context is different?")
+	}
+	gl.Viewport(0, 0, width, height)
+	return nil
+}
+
+func (f Framebuffer) Delete() {
+	gl.Framebuffer(f).Delete()
+}
+
 func NewContext() *Context {
 	c := &Context{
 		Nearest: filterNearest,
@@ -82,4 +102,16 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 
 	return Texture(t), nil
+}
+
+func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
+	f := gl.GenFramebuffer()
+	f.Bind()
+
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, gl.Texture(texture), 0)
+	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
+		return 0, errors.New("creating framebuffer failed")
+	}
+
+	return Framebuffer(f), nil
 }
