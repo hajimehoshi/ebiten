@@ -98,15 +98,11 @@ func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float32) {
 	return u(float64(src.Min.X), w), v(float64(src.Min.Y), h), u(float64(src.Max.X), w), v(float64(src.Max.Y), h)
 }
 
-type syncer interface {
-	Sync(func())
-}
-
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
 type Image struct {
-	syncer syncer
+	ui     *ui
 	inner  *innerImage
 	pixels []uint8
 }
@@ -119,8 +115,8 @@ func (i *Image) Size() (width, height int) {
 // Clear resets the pixels of the image into 0.
 func (i *Image) Clear() (err error) {
 	i.pixels = nil
-	i.syncer.Sync(func() {
-		err = i.inner.Clear(currentUI.glContext)
+	i.ui.use(func() {
+		err = i.inner.Clear(i.ui.glContext)
 	})
 	return
 }
@@ -128,8 +124,8 @@ func (i *Image) Clear() (err error) {
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
-	i.syncer.Sync(func() {
-		err = i.inner.Fill(currentUI.glContext, clr)
+	i.ui.use(func() {
+		err = i.inner.Fill(i.ui.glContext, clr)
 	})
 	return
 }
@@ -151,8 +147,8 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 
 func (i *Image) drawImage(image *innerImage, option *DrawImageOptions) (err error) {
 	i.pixels = nil
-	i.syncer.Sync(func() {
-		err = i.inner.drawImage(currentUI.glContext, image, option)
+	i.ui.use(func() {
+		err = i.inner.drawImage(i.ui.glContext, image, option)
 	})
 	return
 }
@@ -173,9 +169,9 @@ func (i *Image) ColorModel() color.Model {
 // This method loads pixels from GPU to VRAM if necessary.
 func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
-		i.syncer.Sync(func() {
+		i.ui.use(func() {
 			var err error
-			i.pixels, err = i.inner.texture.Pixels(currentUI.glContext)
+			i.pixels, err = i.inner.texture.Pixels(i.ui.glContext)
 			if err != nil {
 				panic(err)
 			}

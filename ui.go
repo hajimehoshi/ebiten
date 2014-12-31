@@ -42,15 +42,16 @@ func init() {
 		panic(err)
 	}
 
-	currentUI = &ui{
+	u := &ui{
 		window: window,
 		funcs:  make(chan func()),
 	}
-	currentUI.run()
-	currentUI.use(func() {
-		currentUI.glContext = opengl.NewContext()
+	u.run()
+	u.use(func() {
+		u.glContext = opengl.NewContext()
 		glfw.SwapInterval(1)
 	})
+	currentUI = u
 }
 
 type ui struct {
@@ -62,20 +63,21 @@ type ui struct {
 	funcs           chan func()
 }
 
-func startUI(width, height, scale int, title string) error {
+func startUI(width, height, scale int, title string) (*ui, error) {
 	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	videoMode, err := monitor.GetVideoMode()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	x := (videoMode.Width - width*scale) / 2
 	y := (videoMode.Height - height*scale) / 3
 
 	ch := make(chan struct{})
-	window := currentUI.window
+	ui := currentUI
+	window := ui.window
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
 		close(ch)
 	})
@@ -97,7 +99,6 @@ func startUI(width, height, scale int, title string) error {
 		}
 	}
 
-	ui := currentUI
 	ui.scale = scale
 
 	// For retina displays, recalculate the scale with the framebuffer size.
@@ -106,7 +107,7 @@ func startUI(width, height, scale int, title string) error {
 	ui.use(func() {
 		ui.graphicsContext, err = newGraphicsContext(ui.glContext, width, height, realScale)
 	})
-	return err
+	return ui, err
 }
 
 func (u *ui) doEvents() {
@@ -122,10 +123,6 @@ func (u *ui) isClosed() bool {
 	return u.window.ShouldClose()
 }
 
-func (u *ui) Sync(f func()) {
-	u.use(f)
-}
-
 func (u *ui) draw(f func(*Image) error) (err error) {
 	u.use(func() {
 		err = u.graphicsContext.preUpdate()
@@ -133,7 +130,7 @@ func (u *ui) draw(f func(*Image) error) (err error) {
 	if err != nil {
 		return
 	}
-	err = f(&Image{syncer: u, inner: u.graphicsContext.screen})
+	err = f(&Image{ui: u, inner: u.graphicsContext.screen})
 	if err != nil {
 		return
 	}
@@ -161,7 +158,7 @@ func (u *ui) newImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{syncer: u, inner: innerImage}, nil
+	return &Image{ui: u, inner: innerImage}, nil
 }
 
 func (u *ui) newImage(width, height int, filter Filter) (*Image, error) {
@@ -179,7 +176,7 @@ func (u *ui) newImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{syncer: u, inner: innerImage}, nil
+	return &Image{ui: u, inner: innerImage}, nil
 }
 
 func (u *ui) run() {

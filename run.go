@@ -28,17 +28,11 @@ import (
 // but this is not strictly guaranteed.
 // If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
-	err := startUI(width, height, scale, title)
+	ui, err := startUI(width, height, scale, title)
 	if err != nil {
 		return err
 	}
-	ui := currentUI
 	defer ui.terminate()
-
-	currentUI = ui
-	defer func() {
-		currentUI = nil
-	}()
 
 	for {
 		// To avoid busy loop when the window is inactive, wait 1/120 [sec] at least.
