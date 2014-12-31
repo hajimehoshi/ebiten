@@ -15,7 +15,6 @@
 package shader
 
 import (
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -42,7 +41,6 @@ type TextureQuads interface {
 var initialized = false
 
 // TODO: Use unsafe.SizeOf?
-const uint16Size = 2
 const float32Size = 4
 
 func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
@@ -62,8 +60,8 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4]
 	// TODO: Check performance
 	program := useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
 
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.Texture(texture).Bind(gl.TEXTURE_2D)
+	// TODO: Do we have to call gl.ActiveTexture(gl.TEXTURE0)?
+	texture.Bind()
 
 	vertexAttrLocation := program.GetAttributeLocation("vertex")
 	texCoordAttrLocation := program.GetAttributeLocation("tex_coord")
@@ -89,9 +87,9 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4]
 			x1, y1, u1, v1,
 		)
 	}
-	gl.BufferSubData(gl.ARRAY_BUFFER, 0, float32Size*len(vertices), vertices)
-	gl.DrawElements(gl.TRIANGLES, 6*quads.Len(), gl.UNSIGNED_SHORT, uintptr(0))
+	c.BufferSubData(c.ArrayBuffer, vertices)
+	c.DrawElements(6 * quads.Len())
 
-	gl.Flush()
+	c.Flush()
 	return nil
 }

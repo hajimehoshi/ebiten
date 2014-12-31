@@ -39,6 +39,10 @@ func (t Texture) Pixels(width, height int) ([]uint8, error) {
 	return pixels, nil
 }
 
+func (t Texture) Bind() {
+	gl.Texture(t).Bind(gl.TEXTURE_2D)
+}
+
 func (t Texture) Delete() {
 	gl.Texture(t).Delete()
 }
@@ -219,4 +223,17 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 func (c *Context) NewBuffer(bufferType BufferType, size int, ptr interface{}, bufferUsageType BufferUsageType) {
 	gl.GenBuffer().Bind(gl.GLenum(bufferType))
 	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsageType))
+}
+
+func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
+	const float32Size = 4
+	gl.BufferSubData(gl.GLenum(bufferType), 0, float32Size*len(data), data)
+}
+
+func (c *Context) DrawElements(len int) {
+	gl.DrawElements(gl.TRIANGLES, len, gl.UNSIGNED_SHORT, uintptr(0))
+}
+
+func (c *Context) Flush() {
+	gl.Flush()
 }

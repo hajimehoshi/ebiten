@@ -22,6 +22,7 @@ var programColorMatrix opengl.Program
 
 func initialize(c *opengl.Context) error {
 	const size = 10000
+	const uint16Size = 2
 
 	var err error
 	shaders[shaderVertex].native, err = c.NewShader(c.VertexShader, shaders[shaderVertex].source)
@@ -41,6 +42,9 @@ func initialize(c *opengl.Context) error {
 		shaders[shaderColorMatrix].native,
 	}
 	programColorMatrix, err = c.NewProgram(shaders)
+	if err != nil {
+		return err
+	}
 
 	const stride = 4 * 4
 	s := float32Size * stride * size
@@ -57,7 +61,7 @@ func initialize(c *opengl.Context) error {
 	}
 	c.NewBuffer(c.ElementArrayBuffer, uint16Size*len(indices), indices, c.StaticDraw)
 
-	return err
+	return nil
 }
 
 var lastProgram opengl.Program = 0
