@@ -16,15 +16,16 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
+func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	f, err := graphics.NewZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return nil, err
 	}
 
-	texture, err := graphics.NewTexture(screenWidth, screenHeight, graphics.Filter(FilterNearest))
+	texture, err := graphics.NewTexture(c, screenWidth, screenHeight, c.Nearest)
 	if err != nil {
 		return nil, err
 	}
@@ -33,12 +34,12 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 		return nil, err
 	}
 
-	c := &graphicsContext{
+	gc := &graphicsContext{
 		defaultR:    &innerImage{f, nil},
 		screen:      screen,
 		screenScale: screenScale,
 	}
-	return c, nil
+	return gc, nil
 }
 
 type graphicsContext struct {

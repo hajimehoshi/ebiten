@@ -53,7 +53,7 @@ func NewZeroFramebuffer(width, height int) (*Framebuffer, error) {
 }
 
 func NewFramebufferFromTexture(texture *Texture) (*Framebuffer, error) {
-	framebuffer, err := createFramebuffer(texture.Native())
+	framebuffer, err := createFramebuffer(gl.Texture(texture.native))
 	if err != nil {
 		return nil, err
 	}
@@ -138,5 +138,5 @@ func (f *Framebuffer) DrawTexture(t *Texture, quads TextureQuads, geo, clr Matri
 	}
 	projectionMatrix := f.projectionMatrix()
 	// TODO: Define texture.Draw()
-	return shader.DrawTexture(t.native, projectionMatrix, quads, geo, clr)
+	return shader.DrawTexture(gl.Texture(t.native), projectionMatrix, quads, geo, clr)
 }

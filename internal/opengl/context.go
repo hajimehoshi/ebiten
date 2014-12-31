@@ -15,14 +15,29 @@
 package opengl
 
 import (
+	"errors"
 	"github.com/go-gl/gl"
 )
 
+type Filter int
+
+const (
+	filterNearest Filter = gl.NEAREST
+	filterLinear         = gl.LINEAR
+)
+
 type Context struct {
+	Nearest Filter
+	Linear  Filter
 }
 
+type Texture gl.Texture
+
 func NewContext() *Context {
-	c := &Context{}
+	c := &Context{
+		Nearest: filterNearest,
+		Linear:  filterLinear,
+	}
 	c.init()
 	return c
 }
@@ -33,4 +48,21 @@ func (c *Context) init() {
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+}
+
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
+	t := gl.GenTexture()
+	if t < 0 {
+		return 0, errors.New("glGenTexture failed")
+	}
+	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
+	t.Bind(gl.TEXTURE_2D)
+	defer gl.Texture(0).Bind(gl.TEXTURE_2D)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
+
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+
+	return Texture(t), nil
 }

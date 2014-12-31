@@ -104,7 +104,7 @@ func startUI(width, height, scale int, title string) error {
 	windowWidth, _ := window.GetFramebufferSize()
 	realScale := windowWidth / width
 	ui.use(func() {
-		ui.graphicsContext, err = newGraphicsContext(width, height, realScale)
+		ui.graphicsContext, err = newGraphicsContext(ui.glContext, width, height, realScale)
 	})
 	return err
 }
@@ -152,7 +152,7 @@ func (u *ui) newImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	var err error
 	u.use(func() {
 		var texture *graphics.Texture
-		texture, err = graphics.NewTextureFromImage(img, graphics.Filter(filter))
+		texture, err = graphics.NewTextureFromImage(u.glContext, img, glFilter(u.glContext, filter))
 		if err != nil {
 			return
 		}
@@ -169,7 +169,7 @@ func (u *ui) newImage(width, height int, filter Filter) (*Image, error) {
 	var err error
 	u.use(func() {
 		var texture *graphics.Texture
-		texture, err = graphics.NewTexture(width, height, graphics.Filter(filter))
+		texture, err = graphics.NewTexture(u.glContext, width, height, glFilter(u.glContext, filter))
 		if err != nil {
 			return
 		}

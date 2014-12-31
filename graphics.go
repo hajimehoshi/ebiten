@@ -15,14 +15,24 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 // Filter represents the type of filter to be used when an image is maginified or minified.
-type Filter graphics.Filter
+type Filter int
 
 // Filters
 const (
-	FilterNearest = Filter(graphics.FilterNearest)
-	FilterLinear  = Filter(graphics.FilterLinear)
+	FilterNearest Filter = iota
+	FilterLinear
 )
+
+func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
+	switch filter {
+	case FilterNearest:
+		return c.Nearest
+	case FilterLinear:
+		return c.Linear
+	}
+	panic("not reach")
+}

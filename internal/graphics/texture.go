@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image"
 	"image/draw"
 )
@@ -46,37 +47,16 @@ func adjustImageForTexture(img image.Image) *image.RGBA {
 }
 
 type Texture struct {
-	native gl.Texture
+	native opengl.Texture
 	width  int
 	height int
-}
-
-func (t *Texture) Native() gl.Texture {
-	return t.native
 }
 
 func (t *Texture) Size() (width, height int) {
 	return t.width, t.height
 }
 
-func createNativeTexture(textureWidth, textureHeight int, pixels []uint8, filter Filter) (gl.Texture, error) {
-	nativeTexture := gl.GenTexture()
-	if nativeTexture < 0 {
-		return 0, errors.New("glGenTexture failed")
-	}
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
-	nativeTexture.Bind(gl.TEXTURE_2D)
-	defer gl.Texture(0).Bind(gl.TEXTURE_2D)
-
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
-
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textureWidth, textureHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-
-	return nativeTexture, nil
-}
-
-func NewTexture(width, height int, filter Filter) (*Texture, error) {
+func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Texture, error) {
 	w := internal.NextPowerOf2Int(width)
 	h := internal.NextPowerOf2Int(height)
 	if w < 4 {
@@ -85,14 +65,14 @@ func NewTexture(width, height int, filter Filter) (*Texture, error) {
 	if h < 4 {
 		return nil, errors.New("height must be equal or more than 4.")
 	}
-	native, err := createNativeTexture(w, h, nil, filter)
+	native, err := c.NewTexture(w, h, nil, filter)
 	if err != nil {
 		return nil, err
 	}
 	return &Texture{native, width, height}, nil
 }
 
-func NewTextureFromImage(img image.Image, filter Filter) (*Texture, error) {
+func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filter) (*Texture, error) {
 	origSize := img.Bounds().Size()
 	if origSize.X < 4 {
 		return nil, errors.New("width must be equal or more than 4.")
@@ -102,7 +82,7 @@ func NewTextureFromImage(img image.Image, filter Filter) (*Texture, error) {
 	}
 	adjustedImage := adjustImageForTexture(img)
 	size := adjustedImage.Bounds().Size()
-	native, err := createNativeTexture(size.X, size.Y, adjustedImage.Pix, filter)
+	native, err := c.NewTexture(size.X, size.Y, adjustedImage.Pix, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -110,13 +90,13 @@ func NewTextureFromImage(img image.Image, filter Filter) (*Texture, error) {
 }
 
 func (t *Texture) Dispose() {
-	t.native.Delete()
+	gl.Texture(t.native).Delete()
 }
 
 func (t *Texture) Pixels() ([]uint8, error) {
 	w, h := internal.NextPowerOf2Int(t.width), internal.NextPowerOf2Int(t.height)
 	pixels := make([]uint8, 4*w*h)
-	t.native.Bind(gl.TEXTURE_2D)
+	gl.Texture(t.native).Bind(gl.TEXTURE_2D)
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	if e := gl.GetError(); e != gl.NO_ERROR {
 		// TODO: Use glu.ErrorString
