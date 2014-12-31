@@ -15,7 +15,6 @@
 package shader
 
 import (
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -70,8 +69,4 @@ void main(void) {
 }
 `,
 	},
-}
-
-func (s *shader) delete() {
-	gl.Shader(s.native).Delete()
 }

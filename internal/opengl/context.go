@@ -80,14 +80,38 @@ func (f Framebuffer) Delete() {
 
 type Shader gl.Shader
 
-type Program gl.Program
-
-func (p Program) GetAttribLocation(name string) int {
-	return int(p.GetAttribLocation(name))
+func (s Shader) Delete() {
+	gl.Shader(s).Delete()
 }
 
-func (p Program) GetUniformLocation(name string) int {
-	return int(p.GetUniformLocation(name))
+type Program gl.Program
+
+func (p Program) Use() {
+	gl.Program(p).Use()
+}
+
+func (p Program) GetAttribLocation(name string) AttribLocation {
+	return AttribLocation(gl.Program(p).GetAttribLocation(name))
+}
+
+func (p Program) GetUniformLocation(name string) UniformLocation {
+	return UniformLocation(gl.Program(p).GetUniformLocation(name))
+}
+
+type AttribLocation int
+
+type UniformLocation int
+
+func (u UniformLocation) UniformMatrix4fv(matrix [16]float32) {
+	gl.UniformLocation(u).UniformMatrix4fv(false, matrix)
+}
+
+func (u UniformLocation) Uniform4fv(count int, v []float32) {
+	gl.UniformLocation(u).Uniform4fv(count, v)
+}
+
+func (u UniformLocation) Uniform1i(v int) {
+	gl.UniformLocation(u).Uniform1i(v)
 }
 
 type Context struct {
@@ -165,18 +189,18 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	return Shader(s), nil
 }
 
-func (c *Context) NewProgram() (Program, error) {
+func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	p := gl.CreateProgram()
 	if p == 0 {
 		return 0, errors.New("glCreateProgram failed")
 	}
 
-	/*for _, shaderId := range p.shaderIds {
-		p.native.AttachShader(shaders[shaderId].native)
+	for _, shader := range shaders {
+		p.AttachShader(gl.Shader(shader))
 	}
-	p.native.Link()
-	if p.native.Get(gl.LINK_STATUS) == gl.FALSE {
-		return errors.New("program error")
-	}*/
+	p.Link()
+	if p.Get(gl.LINK_STATUS) == gl.FALSE {
+		return 0, errors.New("program error")
+	}
 	return Program(p), nil
 }

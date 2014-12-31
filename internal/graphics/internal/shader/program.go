@@ -15,35 +15,11 @@
 package shader
 
 import (
-	"errors"
 	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-type program struct {
-	native    gl.Program
-	shaderIds []shaderId
-}
-
-var programColorMatrix = program{
-	shaderIds: []shaderId{shaderVertex, shaderColorMatrix},
-}
-
-func (p *program) create() error {
-	p.native = gl.CreateProgram()
-	if p.native == 0 {
-		return errors.New("glCreateProgram failed")
-	}
-
-	for _, shaderId := range p.shaderIds {
-		p.native.AttachShader(gl.Shader(shaders[shaderId].native))
-	}
-	p.native.Link()
-	if p.native.Get(gl.LINK_STATUS) == gl.FALSE {
-		return errors.New("program error")
-	}
-	return nil
-}
+var programColorMatrix opengl.Program
 
 func initialize(c *opengl.Context) error {
 	var err error
@@ -51,36 +27,37 @@ func initialize(c *opengl.Context) error {
 	if err != nil {
 		return err
 	}
-	defer shaders[shaderVertex].delete()
+	defer shaders[shaderVertex].native.Delete()
 
 	shaders[shaderColorMatrix].native, err = c.NewShader(c.FragmentShader, shaders[shaderColorMatrix].source)
 	if err != nil {
 		return err
 	}
-	defer shaders[shaderColorMatrix].delete()
+	defer shaders[shaderColorMatrix].native.Delete()
 
-	return programColorMatrix.create()
+	shaders := []opengl.Shader{
+		shaders[shaderVertex].native,
+		shaders[shaderColorMatrix].native,
+	}
+	programColorMatrix, err = c.NewProgram(shaders)
+	return err
 }
 
 func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
 	return program.GetAttribLocation(name)
 }
 
-func getUniformLocation(program gl.Program, name string) gl.UniformLocation {
-	return program.GetUniformLocation(name)
-}
-
-var lastProgram gl.Program = 0
+var lastProgram opengl.Program = 0
 
 func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matrix) gl.Program {
-	if lastProgram != programColorMatrix.native {
-		programColorMatrix.native.Use()
-		lastProgram = programColorMatrix.native
+	if lastProgram != programColorMatrix {
+		programColorMatrix.Use()
+		lastProgram = programColorMatrix
 	}
 	// TODO: Check the performance.
 	program := programColorMatrix
 
-	getUniformLocation(program.native, "projection_matrix").UniformMatrix4fv(false, projectionMatrix)
+	program.GetUniformLocation("projection_matrix").UniformMatrix4fv(projectionMatrix)
 
 	a := float32(geo.Element(0, 0))
 	b := float32(geo.Element(0, 1))
@@ -94,9 +71,9 @@ func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matri
 		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
-	getUniformLocation(program.native, "modelview_matrix").UniformMatrix4fv(false, glModelviewMatrix)
+	program.GetUniformLocation("modelview_matrix").UniformMatrix4fv(glModelviewMatrix)
 
-	getUniformLocation(program.native, "texture").Uniform1i(0)
+	program.GetUniformLocation("texture").Uniform1i(0)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -111,11 +88,11 @@ func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matri
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	getUniformLocation(program.native, "color_matrix").UniformMatrix4fv(false, glColorMatrix)
+	program.GetUniformLocation("color_matrix").UniformMatrix4fv(glColorMatrix)
 	glColorMatrixTranslation := [...]float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	getUniformLocation(program.native, "color_matrix_translation").Uniform4fv(1, glColorMatrixTranslation[:])
+	program.GetUniformLocation("color_matrix_translation").Uniform4fv(1, glColorMatrixTranslation[:])
 
-	return program.native
+	return gl.Program(program)
 }
