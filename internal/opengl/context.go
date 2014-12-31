@@ -178,17 +178,16 @@ func (c *Context) UseProgram(p Program) {
 	gl.Program(p).Use()
 }
 
-func (c *Context) Uniform1i(p Program, location string, v int) {
-	// TODO: Cache the location names.
-	gl.Program(p).GetUniformLocation(location).Uniform1i(v)
-}
-
-func (c *Context) Uniform4fv(p Program, location string, v [4]float32) {
-	gl.Program(p).GetUniformLocation(location).Uniform4fv(1, v[:])
-}
-
-func (c *Context) UniformMatrix4fv(p Program, location string, v [16]float32) {
-	gl.Program(p).GetUniformLocation(location).UniformMatrix4fv(false, v)
+func (c *Context) Uniform(p Program, location string, v interface{}) {
+	l := gl.Program(p).GetUniformLocation(location)
+	switch v := v.(type) {
+	case int:
+		l.Uniform1i(v)
+	case [4]float32:
+		l.Uniform4fv(1, v[:])
+	case [16]float32:
+		l.UniformMatrix4fv(false, v)
+	}
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
