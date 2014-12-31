@@ -47,7 +47,7 @@ const size = 10000
 const uint16Size = 2
 const float32Size = 4
 
-func DrawTexture(c *opengl.Context, native gl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
+func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
 	if !initialized {
@@ -83,7 +83,7 @@ func DrawTexture(c *opengl.Context, native gl.Texture, projectionMatrix [4][4]fl
 	program := useProgramColorMatrix(glMatrix(projectionMatrix), geo, color)
 
 	gl.ActiveTexture(gl.TEXTURE0)
-	native.Bind(gl.TEXTURE_2D)
+	gl.Texture(texture).Bind(gl.TEXTURE_2D)
 
 	vertexAttrLocation := program.GetAttributeLocation("vertex")
 	texCoordAttrLocation := program.GetAttributeLocation("tex_coord")

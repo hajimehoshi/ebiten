@@ -15,8 +15,6 @@
 package graphics
 
 import (
-	// TODO: Remove this
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -113,5 +111,5 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 	}
 	projectionMatrix := f.projectionMatrix()
 	// TODO: Define texture.Draw()
-	return shader.DrawTexture(c, gl.Texture(t.native), projectionMatrix, quads, geo, clr)
+	return shader.DrawTexture(c, t.native, projectionMatrix, quads, geo, clr)
 }
