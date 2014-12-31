@@ -64,7 +64,7 @@ func initialize(c *opengl.Context) error {
 	return nil
 }
 
-var lastProgram opengl.Program = 0
+var lastProgram opengl.Program
 
 func useProgramColorMatrix(c *opengl.Context, projectionMatrix [16]float32, geo Matrix, color Matrix) opengl.Program {
 	if lastProgram != programColorMatrix {
