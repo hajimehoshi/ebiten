@@ -17,6 +17,7 @@ package shader
 import (
 	"errors"
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 type program struct {
@@ -35,7 +36,7 @@ func (p *program) create() error {
 	}
 
 	for _, shaderId := range p.shaderIds {
-		p.native.AttachShader(shaders[shaderId].native)
+		p.native.AttachShader(gl.Shader(shaders[shaderId].native))
 	}
 	p.native.Link()
 	if p.native.Get(gl.LINK_STATUS) == gl.FALSE {
@@ -44,17 +45,19 @@ func (p *program) create() error {
 	return nil
 }
 
-func initialize() error {
-	for _, shader := range shaders {
-		if err := shader.compile(); err != nil {
-			return err
-		}
+func initialize(c *opengl.Context) error {
+	var err error
+	shaders[shaderVertex].native, err = c.NewShader(c.VertexShader, shaders[shaderVertex].source)
+	if err != nil {
+		return err
 	}
-	defer func() {
-		for _, shader := range shaders {
-			shader.delete()
-		}
-	}()
+	defer shaders[shaderVertex].delete()
+
+	shaders[shaderColorMatrix].native, err = c.NewShader(c.FragmentShader, shaders[shaderColorMatrix].source)
+	if err != nil {
+		return err
+	}
+	defer shaders[shaderColorMatrix].delete()
 
 	return programColorMatrix.create()
 }

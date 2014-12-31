@@ -107,11 +107,11 @@ func (f *Framebuffer) Fill(r, g, b, a float64) error {
 	return f.framebuffer.Fill(r, g, b, a)
 }
 
-func (f *Framebuffer) DrawTexture(t *Texture, quads TextureQuads, geo, clr Matrix) error {
+func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix) error {
 	if err := f.setAsViewport(); err != nil {
 		return err
 	}
 	projectionMatrix := f.projectionMatrix()
 	// TODO: Define texture.Draw()
-	return shader.DrawTexture(gl.Texture(t.native), projectionMatrix, quads, geo, clr)
+	return shader.DrawTexture(c, gl.Texture(t.native), projectionMatrix, quads, geo, clr)
 }

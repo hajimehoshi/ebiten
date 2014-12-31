@@ -16,6 +16,7 @@ package shader
 
 import (
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func glMatrix(m [4][4]float64) [16]float32 {
@@ -46,11 +47,11 @@ const size = 10000
 const uint16Size = 2
 const float32Size = 4
 
-func DrawTexture(native gl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
+func DrawTexture(c *opengl.Context, native gl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
 	if !initialized {
-		if err := initialize(); err != nil {
+		if err := initialize(c); err != nil {
 			return err
 		}
 

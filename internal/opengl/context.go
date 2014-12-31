@@ -27,10 +27,12 @@ const (
 	filterLinear         = gl.LINEAR
 )
 
-type Context struct {
-	Nearest Filter
-	Linear  Filter
-}
+type ShaderType int
+
+const (
+	shaderTypeVertex   ShaderType = gl.VERTEX_SHADER
+	shaderTypeFragment            = gl.FRAGMENT_SHADER
+)
 
 type Texture gl.Texture
 
@@ -76,10 +78,31 @@ func (f Framebuffer) Delete() {
 	gl.Framebuffer(f).Delete()
 }
 
+type Shader gl.Shader
+
+type Program gl.Program
+
+func (p Program) GetAttribLocation(name string) int {
+	return int(p.GetAttribLocation(name))
+}
+
+func (p Program) GetUniformLocation(name string) int {
+	return int(p.GetUniformLocation(name))
+}
+
+type Context struct {
+	Nearest        Filter
+	Linear         Filter
+	VertexShader   ShaderType
+	FragmentShader ShaderType
+}
+
 func NewContext() *Context {
 	c := &Context{
-		Nearest: filterNearest,
-		Linear:  filterLinear,
+		Nearest:        filterNearest,
+		Linear:         filterLinear,
+		VertexShader:   shaderTypeVertex,
+		FragmentShader: shaderTypeFragment,
 	}
 	c.init()
 	return c
@@ -120,4 +143,40 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	}
 
 	return Framebuffer(f), nil
+}
+
+func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
+	s := gl.CreateShader(gl.GLenum(shaderType))
+	if s == 0 {
+		println(gl.GetError())
+		return 0, errors.New("glCreateShader failed")
+	}
+
+	s.Source(source)
+	s.Compile()
+
+	if s.Get(gl.COMPILE_STATUS) == gl.FALSE {
+		log := ""
+		if s.Get(gl.INFO_LOG_LENGTH) != 0 {
+			log = s.GetInfoLog()
+		}
+		return 0, errors.New(fmt.Sprintf("shader compile failed: %s", log))
+	}
+	return Shader(s), nil
+}
+
+func (c *Context) NewProgram() (Program, error) {
+	p := gl.CreateProgram()
+	if p == 0 {
+		return 0, errors.New("glCreateProgram failed")
+	}
+
+	/*for _, shaderId := range p.shaderIds {
+		p.native.AttachShader(shaders[shaderId].native)
+	}
+	p.native.Link()
+	if p.native.Get(gl.LINK_STATUS) == gl.FALSE {
+		return errors.New("program error")
+	}*/
+	return Program(p), nil
 }

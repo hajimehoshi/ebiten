@@ -35,6 +35,7 @@ func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScal
 	}
 
 	gc := &graphicsContext{
+		glContext:   c,
 		defaultR:    &innerImage{f, nil},
 		screen:      screen,
 		screenScale: screenScale,
@@ -43,6 +44,7 @@ func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScal
 }
 
 type graphicsContext struct {
+	glContext   *opengl.Context
 	screen      *innerImage
 	defaultR    *innerImage
 	screenScale int
@@ -70,7 +72,7 @@ func (c *graphicsContext) postUpdate() error {
 	options := &DrawImageOptions{
 		GeoM: ScaleGeo(scale, scale),
 	}
-	if err := c.defaultR.drawImage(c.screen, options); err != nil {
+	if err := c.defaultR.drawImage(c.glContext, c.screen, options); err != nil {
 		return err
 	}
 	return nil

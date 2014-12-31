@@ -15,15 +15,13 @@
 package shader
 
 import (
-	"errors"
-	"fmt"
 	"github.com/go-gl/gl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 type shader struct {
-	native     gl.Shader
-	shaderType gl.GLenum
-	source     string
+	native opengl.Shader
+	source string
 }
 
 type shaderId int
@@ -35,7 +33,6 @@ const (
 
 var shaders = map[shaderId]*shader{
 	shaderVertex: {
-		shaderType: gl.VERTEX_SHADER,
 		source: `
 uniform mat4 projection_matrix;
 uniform mat4 modelview_matrix;
@@ -50,7 +47,6 @@ void main(void) {
 `,
 	},
 	shaderColorMatrix: {
-		shaderType: gl.FRAGMENT_SHADER,
 		source: `
 uniform sampler2D texture;
 uniform mat4 color_matrix;
@@ -76,28 +72,6 @@ void main(void) {
 	},
 }
 
-func (s *shader) compile() error {
-	s.native = gl.CreateShader(s.shaderType)
-	if s.native == 0 {
-		return errors.New("glCreateShader failed")
-	}
-
-	s.native.Source(s.source)
-	s.native.Compile()
-
-	if s.native.Get(gl.COMPILE_STATUS) == gl.FALSE {
-		return errors.New(fmt.Sprintf("shader compile failed: %s", s.shaderLog()))
-	}
-	return nil
-}
-
-func (s *shader) shaderLog() string {
-	if s.native.Get(gl.INFO_LOG_LENGTH) == 0 {
-		return ""
-	}
-	return s.native.GetInfoLog()
-}
-
 func (s *shader) delete() {
-	s.native.Delete()
+	gl.Shader(s.native).Delete()
 }

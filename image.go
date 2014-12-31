@@ -48,7 +48,7 @@ func (i *innerImage) Fill(clr color.Color) error {
 	return i.framebuffer.Fill(r, g, b, a)
 }
 
-func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error {
+func (i *innerImage) drawImage(c *opengl.Context, img *innerImage, options *DrawImageOptions) error {
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
@@ -66,7 +66,7 @@ func (i *innerImage) drawImage(img *innerImage, options *DrawImageOptions) error
 	clr := options.ColorM
 	w, h := img.size()
 	quads := &textureQuads{parts, w, h}
-	return i.framebuffer.DrawTexture(img.texture, quads, geo, clr)
+	return i.framebuffer.DrawTexture(c, img.texture, quads, geo, clr)
 }
 
 func u(x float64, width int) float32 {
@@ -152,7 +152,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 func (i *Image) drawImage(image *innerImage, option *DrawImageOptions) (err error) {
 	i.pixels = nil
 	i.syncer.Sync(func() {
-		err = i.inner.drawImage(image, option)
+		err = i.inner.drawImage(currentUI.glContext, image, option)
 	})
 	return
 }
