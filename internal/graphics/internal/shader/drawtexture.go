@@ -85,8 +85,8 @@ func DrawTexture(c *opengl.Context, native gl.Texture, projectionMatrix [4][4]fl
 	gl.ActiveTexture(gl.TEXTURE0)
 	native.Bind(gl.TEXTURE_2D)
 
-	vertexAttrLocation := getAttributeLocation(program, "vertex")
-	texCoordAttrLocation := getAttributeLocation(program, "tex_coord")
+	vertexAttrLocation := program.GetAttributeLocation("vertex")
+	texCoordAttrLocation := program.GetAttributeLocation("tex_coord")
 
 	vertexAttrLocation.EnableArray()
 	texCoordAttrLocation.EnableArray()
@@ -95,8 +95,8 @@ func DrawTexture(c *opengl.Context, native gl.Texture, projectionMatrix [4][4]fl
 		vertexAttrLocation.DisableArray()
 	}()
 
-	vertexAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(float32Size*0))
-	texCoordAttrLocation.AttribPointer(2, gl.FLOAT, false, stride, uintptr(float32Size*2))
+	vertexAttrLocation.AttribPointer(stride, uintptr(float32Size*0))
+	texCoordAttrLocation.AttribPointer(stride, uintptr(float32Size*2))
 
 	vertices := []float32{}
 	for i := 0; i < quads.Len(); i++ {

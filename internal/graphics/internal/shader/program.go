@@ -15,7 +15,6 @@
 package shader
 
 import (
-	"github.com/go-gl/gl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -43,13 +42,9 @@ func initialize(c *opengl.Context) error {
 	return err
 }
 
-func getAttributeLocation(program gl.Program, name string) gl.AttribLocation {
-	return program.GetAttribLocation(name)
-}
-
 var lastProgram opengl.Program = 0
 
-func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matrix) gl.Program {
+func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matrix) opengl.Program {
 	if lastProgram != programColorMatrix {
 		programColorMatrix.Use()
 		lastProgram = programColorMatrix
@@ -94,5 +89,5 @@ func useProgramColorMatrix(projectionMatrix [16]float32, geo Matrix, color Matri
 	}
 	program.GetUniformLocation("color_matrix_translation").Uniform4fv(1, glColorMatrixTranslation[:])
 
-	return gl.Program(program)
+	return program
 }

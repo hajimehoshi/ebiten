@@ -90,7 +90,7 @@ func (p Program) Use() {
 	gl.Program(p).Use()
 }
 
-func (p Program) GetAttribLocation(name string) AttribLocation {
+func (p Program) GetAttributeLocation(name string) AttribLocation {
 	return AttribLocation(gl.Program(p).GetAttribLocation(name))
 }
 
@@ -99,6 +99,18 @@ func (p Program) GetUniformLocation(name string) UniformLocation {
 }
 
 type AttribLocation int
+
+func (a AttribLocation) EnableArray() {
+	gl.AttribLocation(a).EnableArray()
+}
+
+func (a AttribLocation) DisableArray() {
+	gl.AttribLocation(a).DisableArray()
+}
+
+func (a AttribLocation) AttribPointer(stride int, x uintptr) {
+	gl.AttribLocation(a).AttribPointer(2, gl.FLOAT, false, stride, x)
+}
 
 type UniformLocation int
 
