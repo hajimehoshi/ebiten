@@ -32,10 +32,6 @@ func Use(f func(*opengl.Context)) {
 	<-ch
 }
 
-func ActualScale() int {
-	return current.actualScale
-}
-
 func DoEvents() {
 	current.doEvents()
 }
@@ -86,22 +82,21 @@ func init() {
 }
 
 type ui struct {
-	window      *glfw.Window
-	scale       int
-	actualScale int
-	glContext   *opengl.Context
-	input       input
-	funcs       chan func()
+	window    *glfw.Window
+	scale     int
+	glContext *opengl.Context
+	input     input
+	funcs     chan func()
 }
 
-func Start(width, height, scale int, title string) error {
+func Start(width, height, scale int, title string) (actualScale int, err error) {
 	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	videoMode, err := monitor.GetVideoMode()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	x := (videoMode.Width - width*scale) / 2
 	y := (videoMode.Height - height*scale) / 3
@@ -134,9 +129,9 @@ func Start(width, height, scale int, title string) error {
 
 	// For retina displays, recalculate the scale with the framebuffer size.
 	windowWidth, _ := window.GetFramebufferSize()
-	ui.actualScale = windowWidth / width
+	actualScale = windowWidth / width
 
-	return err
+	return actualScale, nil
 }
 
 func (u *ui) doEvents() {

@@ -30,15 +30,15 @@ import (
 // but this is not strictly guaranteed.
 // If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
-	if err := ui.Start(width, height, scale, title); err != nil {
+	actualScale, err := ui.Start(width, height, scale, title)
+	if err != nil {
 		return err
 	}
 	defer ui.Terminate()
 
 	var graphicsContext *graphicsContext
-	var err error
 	ui.Use(func(c *opengl.Context) {
-		graphicsContext, err = newGraphicsContext(c, width, height, ui.ActualScale())
+		graphicsContext, err = newGraphicsContext(c, width, height, actualScale)
 	})
 	if err != nil {
 		return err
