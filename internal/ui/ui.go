@@ -21,10 +21,10 @@ import (
 	"runtime"
 )
 
-var currentUI *UI
+var current *UI
 
 func Current() *UI {
-	return currentUI
+	return current
 }
 
 func init() {
@@ -57,7 +57,7 @@ func init() {
 			f()
 		}
 	}()
-	currentUI = u
+	current = u
 }
 
 type UI struct {
@@ -65,7 +65,7 @@ type UI struct {
 	scale       int
 	actualScale int
 	glContext   *opengl.Context
-	input       input
+	input       Input
 	funcs       chan func()
 }
 
@@ -82,7 +82,7 @@ func New(width, height, scale int, title string) (*UI, error) {
 	y := (videoMode.Height - height*scale) / 3
 
 	ch := make(chan struct{})
-	ui := currentUI
+	ui := current
 	window := ui.window
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
 		close(ch)
@@ -135,7 +135,7 @@ func (u *UI) SwapBuffers() {
 	u.window.SwapBuffers()
 }
 
-func (u *UI) Input() *input {
+func (u *UI) Input() *Input {
 	return &u.input
 }
 
