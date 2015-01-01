@@ -103,7 +103,6 @@ func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float32) {
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
 type Image struct {
-	ui     *ui.UI
 	inner  *innerImage
 	pixels []uint8
 }
@@ -116,7 +115,7 @@ func (i *Image) Size() (width, height int) {
 // Clear resets the pixels of the image into 0.
 func (i *Image) Clear() (err error) {
 	i.pixels = nil
-	i.ui.Use(func(c *opengl.Context) {
+	ui.Use(func(c *opengl.Context) {
 		err = i.inner.Clear(c)
 	})
 	return
@@ -125,7 +124,7 @@ func (i *Image) Clear() (err error) {
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
-	i.ui.Use(func(c *opengl.Context) {
+	ui.Use(func(c *opengl.Context) {
 		err = i.inner.Fill(c, clr)
 	})
 	return
@@ -148,7 +147,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 
 func (i *Image) drawImage(image *innerImage, option *DrawImageOptions) (err error) {
 	i.pixels = nil
-	i.ui.Use(func(c *opengl.Context) {
+	ui.Use(func(c *opengl.Context) {
 		err = i.inner.drawImage(c, image, option)
 	})
 	return
@@ -170,7 +169,7 @@ func (i *Image) ColorModel() color.Model {
 // This method loads pixels from GPU to VRAM if necessary.
 func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
-		i.ui.Use(func(c *opengl.Context) {
+		ui.Use(func(c *opengl.Context) {
 			var err error
 			i.pixels, err = i.inner.texture.Pixels(c)
 			if err != nil {

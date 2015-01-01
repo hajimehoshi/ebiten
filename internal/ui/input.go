@@ -39,22 +39,34 @@ const (
 	MouseButtonMax
 )
 
-type Input struct {
+func IsKeyPressed(key Key) bool {
+	return current.input.isKeyPressed(key)
+}
+
+func IsMouseButtonPressed(button MouseButton) bool {
+	return current.input.isMouseButtonPressed(button)
+}
+
+func CursorPosition() (x, y int) {
+	return current.input.cursorPosition()
+}
+
+type input struct {
 	keyPressed         [KeyMax]bool
 	mouseButtonPressed [MouseButtonMax]bool
 	cursorX            int
 	cursorY            int
 }
 
-func (i *Input) IsKeyPressed(key Key) bool {
+func (i *input) isKeyPressed(key Key) bool {
 	return i.keyPressed[key]
 }
 
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
+func (i *input) isMouseButtonPressed(button MouseButton) bool {
 	return i.mouseButtonPressed[button]
 }
 
-func (i *Input) CursorPosition() (x, y int) {
+func (i *input) cursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
@@ -66,7 +78,7 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 	glfw.KeyDown:  KeyDown,
 }
 
-func (i *Input) update(window *glfw.Window, scale int) {
+func (i *input) update(window *glfw.Window, scale int) {
 	for g, u := range glfwKeyCodeToKey {
 		i.keyPressed[u] = window.GetKey(g) == glfw.Press
 	}

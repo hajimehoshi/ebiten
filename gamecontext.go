@@ -23,24 +23,24 @@ import (
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 func IsKeyPressed(key Key) bool {
-	return ui.Current().Input().IsKeyPressed(ui.Key(key))
+	return ui.IsKeyPressed(ui.Key(key))
 }
 
 // CursorPosition returns a position of a mouse cursor.
 func CursorPosition() (x, y int) {
-	return ui.Current().Input().CursorPosition()
+	return ui.CursorPosition()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return ui.Current().Input().IsMouseButtonPressed(ui.MouseButton(mouseButton))
+	return ui.IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
 
 // NewImage returns an empty image.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	var innerImage *innerImage
 	var err error
-	ui.Current().Use(func(c *opengl.Context) {
+	ui.Use(func(c *opengl.Context) {
 		var texture *graphics.Texture
 		texture, err = graphics.NewTexture(c, width, height, glFilter(c, filter))
 		if err != nil {
@@ -52,14 +52,14 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{ui: ui.Current(), inner: innerImage}, nil
+	return &Image{inner: innerImage}, nil
 }
 
 // NewImageFromImage creates a new image with the given image (img).
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	var innerImage *innerImage
 	var err error
-	ui.Current().Use(func(c *opengl.Context) {
+	ui.Use(func(c *opengl.Context) {
 		var texture *graphics.Texture
 		texture, err = graphics.NewTextureFromImage(c, img, glFilter(c, filter))
 		if err != nil {
@@ -70,5 +70,5 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{ui: ui.Current(), inner: innerImage}, nil
+	return &Image{inner: innerImage}, nil
 }

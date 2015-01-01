@@ -21,10 +21,35 @@ import (
 	"runtime"
 )
 
-var current *UI
+var current *ui
 
-func Current() *UI {
-	return current
+func Use(f func(*opengl.Context)) {
+	ch := make(chan struct{})
+	current.funcs <- func() {
+		defer close(ch)
+		f(current.glContext)
+	}
+	<-ch
+}
+
+func ActualScale() int {
+	return current.actualScale
+}
+
+func DoEvents() {
+	current.doEvents()
+}
+
+func Terminate() {
+	current.terminate()
+}
+
+func IsClosed() bool {
+	return current.isClosed()
+}
+
+func SwapBuffers() {
+	current.swapBuffers()
 }
 
 func init() {
@@ -44,7 +69,7 @@ func init() {
 		panic(err)
 	}
 
-	u := &UI{
+	u := &ui{
 		window: window,
 		funcs:  make(chan func()),
 	}
@@ -60,23 +85,23 @@ func init() {
 	current = u
 }
 
-type UI struct {
+type ui struct {
 	window      *glfw.Window
 	scale       int
 	actualScale int
 	glContext   *opengl.Context
-	input       Input
+	input       input
 	funcs       chan func()
 }
 
-func New(width, height, scale int, title string) (*UI, error) {
+func Start(width, height, scale int, title string) error {
 	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	videoMode, err := monitor.GetVideoMode()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	x := (videoMode.Width - width*scale) / 2
 	y := (videoMode.Height - height*scale) / 3
@@ -111,39 +136,22 @@ func New(width, height, scale int, title string) (*UI, error) {
 	windowWidth, _ := window.GetFramebufferSize()
 	ui.actualScale = windowWidth / width
 
-	return ui, err
+	return err
 }
 
-func (u *UI) ActualScale() int {
-	return u.actualScale
-}
-
-func (u *UI) DoEvents() {
+func (u *ui) doEvents() {
 	glfw.PollEvents()
 	u.input.update(u.window, u.scale)
 }
 
-func (u *UI) Terminate() {
+func (u *ui) terminate() {
 	glfw.Terminate()
 }
 
-func (u *UI) IsClosed() bool {
+func (u *ui) isClosed() bool {
 	return u.window.ShouldClose()
 }
 
-func (u *UI) SwapBuffers() {
+func (u *ui) swapBuffers() {
 	u.window.SwapBuffers()
-}
-
-func (u *UI) Input() *Input {
-	return &u.input
-}
-
-func (u *UI) Use(f func(*opengl.Context)) {
-	ch := make(chan struct{})
-	u.funcs <- func() {
-		defer close(ch)
-		f(u.glContext)
-	}
-	<-ch
 }
