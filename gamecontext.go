@@ -15,30 +15,60 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 	"image"
 )
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 func IsKeyPressed(key Key) bool {
-	return currentUI.input.isKeyPressed(key)
+	return ui.Current().Input().IsKeyPressed(ui.Key(key))
 }
 
 // CursorPosition returns a position of a mouse cursor.
 func CursorPosition() (x, y int) {
-	return currentUI.input.cursorPosition()
+	return ui.Current().Input().CursorPosition()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return currentUI.input.isMouseButtonPressed(mouseButton)
+	return ui.Current().Input().IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
 
 // NewImage returns an empty image.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	return currentUI.newImage(width, height, filter)
+	var innerImage *innerImage
+	var err error
+	ui.Current().Use(func(c *opengl.Context) {
+		var texture *graphics.Texture
+		texture, err = graphics.NewTexture(c, width, height, glFilter(c, filter))
+		if err != nil {
+			return
+		}
+		innerImage, err = newInnerImage(c, texture)
+		innerImage.Clear(c)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Image{ui: ui.Current(), inner: innerImage}, nil
 }
 
 // NewImageFromImage creates a new image with the given image (img).
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
-	return currentUI.newImageFromImage(img, filter)
+	var innerImage *innerImage
+	var err error
+	ui.Current().Use(func(c *opengl.Context) {
+		var texture *graphics.Texture
+		texture, err = graphics.NewTextureFromImage(c, img, glFilter(c, filter))
+		if err != nil {
+			return
+		}
+		innerImage, err = newInnerImage(c, texture)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Image{ui: ui.Current(), inner: innerImage}, nil
 }

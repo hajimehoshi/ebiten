@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 	"time"
 )
 
@@ -28,20 +30,44 @@ import (
 // but this is not strictly guaranteed.
 // If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
-	ui, err := startUI(width, height, scale, title)
+	ui, err := ui.New(width, height, scale, title)
 	if err != nil {
 		return err
 	}
-	defer ui.terminate()
+	defer ui.Terminate()
+
+	var graphicsContext *graphicsContext
+	ui.Use(func(c *opengl.Context) {
+		graphicsContext, err = newGraphicsContext(c, width, height, ui.RealScale())
+	})
+	if err != nil {
+		return err
+	}
 
 	for {
 		// To avoid busy loop when the window is inactive, wait 1/120 [sec] at least.
 		ch := time.After(1 * time.Second / 120)
-		ui.doEvents()
-		if ui.isClosed() {
+		ui.DoEvents()
+		if ui.IsClosed() {
 			return nil
 		}
-		if err := ui.draw(f); err != nil {
+		ui.Use(func(*opengl.Context) {
+			err = graphicsContext.preUpdate()
+		})
+		if err != nil {
+			return err
+		}
+		if err := f(&Image{ui: ui, inner: graphicsContext.screen}); err != nil {
+			return err
+		}
+		ui.Use(func(*opengl.Context) {
+			err = graphicsContext.postUpdate()
+			if err != nil {
+				return
+			}
+			ui.SwapBuffers()
+		})
+		if err != nil {
 			return err
 		}
 		<-ch

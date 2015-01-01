@@ -34,13 +34,12 @@ func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScal
 		return nil, err
 	}
 
-	gc := &graphicsContext{
+	return &graphicsContext{
 		glContext:   c,
 		defaultR:    &innerImage{f, nil},
 		screen:      screen,
 		screenScale: screenScale,
-	}
-	return gc, nil
+	}, nil
 }
 
 type graphicsContext struct {

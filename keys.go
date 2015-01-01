@@ -14,19 +14,25 @@
 
 package ebiten
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/ui"
+)
+
 // A Key represents a keyboard key.
 type Key int
 
 // TODO: Add more keys.
 
+// TODO: Generate this automatically.
+
 // Keys
 const (
-	KeyUp Key = iota
-	KeyDown
-	KeyLeft
-	KeyRight
-	KeySpace
-	KeyMax
+	KeyUp    = Key(ui.KeyUp)
+	KeyDown  = Key(ui.KeyDown)
+	KeyLeft  = Key(ui.KeyLeft)
+	KeyRight = Key(ui.KeyRight)
+	KeySpace = Key(ui.KeySpace)
+	KeyMax   = Key(ui.KeyMax)
 )
 
 // A MouseButton represents a mouse button.
@@ -34,8 +40,8 @@ type MouseButton int
 
 // MouseButtons
 const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
-	MouseButtonMax
+	MouseButtonLeft   = MouseButton(ui.MouseButtonLeft)
+	MouseButtonRight  = MouseButton(ui.MouseButtonRight)
+	MouseButtonMiddle = MouseButton(ui.MouseButtonMiddle)
+	MouseButtonMax    = MouseButton(ui.MouseButtonMax)
 )

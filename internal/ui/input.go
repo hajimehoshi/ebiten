@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2015 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package ui
 
 import (
 	glfw "github.com/go-gl/glfw3"
 	"math"
+)
+
+type Key int
+
+const (
+	KeyUp Key = iota
+	KeyDown
+	KeyLeft
+	KeyRight
+	KeySpace
+	KeyMax
+)
+
+type MouseButton int
+
+const (
+	MouseButtonLeft MouseButton = iota
+	MouseButtonRight
+	MouseButtonMiddle
+	MouseButtonMax
 )
 
 type input struct {
@@ -26,15 +46,15 @@ type input struct {
 	cursorY            int
 }
 
-func (i *input) isKeyPressed(key Key) bool {
+func (i *input) IsKeyPressed(key Key) bool {
 	return i.keyPressed[key]
 }
 
-func (i *input) isMouseButtonPressed(button MouseButton) bool {
+func (i *input) IsMouseButtonPressed(button MouseButton) bool {
 	return i.mouseButtonPressed[button]
 }
 
-func (i *input) cursorPosition() (x, y int) {
+func (i *input) CursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
