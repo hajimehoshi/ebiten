@@ -38,7 +38,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 
 	var graphicsContext *graphicsContext
 	ui.Use(func(c *opengl.Context) {
-		graphicsContext, err = newGraphicsContext(c, width, height, ui.RealScale())
+		graphicsContext, err = newGraphicsContext(c, width, height, ui.ActualScale())
 	})
 	if err != nil {
 		return err

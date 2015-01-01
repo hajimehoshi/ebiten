@@ -61,12 +61,12 @@ func init() {
 }
 
 type UI struct {
-	window    *glfw.Window
-	scale     int
-	realScale int
-	glContext *opengl.Context
-	input     input
-	funcs     chan func()
+	window      *glfw.Window
+	scale       int
+	actualScale int
+	glContext   *opengl.Context
+	input       input
+	funcs       chan func()
 }
 
 func New(width, height, scale int, title string) (*UI, error) {
@@ -109,13 +109,13 @@ func New(width, height, scale int, title string) (*UI, error) {
 
 	// For retina displays, recalculate the scale with the framebuffer size.
 	windowWidth, _ := window.GetFramebufferSize()
-	ui.realScale = windowWidth / width
+	ui.actualScale = windowWidth / width
 
 	return ui, err
 }
 
-func (u *UI) RealScale() int {
-	return u.realScale
+func (u *UI) ActualScale() int {
+	return u.actualScale
 }
 
 func (u *UI) DoEvents() {
