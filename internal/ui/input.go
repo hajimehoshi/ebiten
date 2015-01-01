@@ -19,26 +19,6 @@ import (
 	"math"
 )
 
-type Key int
-
-const (
-	KeyUp Key = iota
-	KeyDown
-	KeyLeft
-	KeyRight
-	KeySpace
-	KeyMax
-)
-
-type MouseButton int
-
-const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
-	MouseButtonMax
-)
-
 func IsKeyPressed(key Key) bool {
 	return current.input.isKeyPressed(key)
 }
