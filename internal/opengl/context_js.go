@@ -84,6 +84,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterTyp
 
 func (c *Context) TexturePixels(t Texture, width, height int) ([]uint8, error) {
 	gl := c.gl
+	gl.Flush()
 	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
 	pixels := js.Global.Get("Uint8Array").New(4 * width * height)
 	gl.BindTexture(gl.TEXTURE_2D, t)

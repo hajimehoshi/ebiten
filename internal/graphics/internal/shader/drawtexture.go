@@ -86,7 +86,5 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4]
 	}
 	c.BufferSubData(c.ArrayBuffer, vertices)
 	c.DrawElements(6 * quads.Len())
-
-	c.Flush()
 	return nil
 }

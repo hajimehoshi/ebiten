@@ -31,7 +31,7 @@ func Use(f func(*opengl.Context)) {
 }
 
 func DoEvents() {
-	time.Sleep(1)
+	time.Sleep(0)
 }
 
 func Terminate() {
