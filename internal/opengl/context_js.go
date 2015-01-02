@@ -132,13 +132,7 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	} else {
 		gl.BindFramebuffer(gl.FRAMEBUFFER, nullVal)
 	}
-	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
-	if err != gl.FRAMEBUFFER_COMPLETE {
-		if gl.GetError() != 0 {
-			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
-		}
-		return errors.New("glBindFramebuffer failed: the context is different?")
-	}
+	// gl.CheckFramebufferStatus might cause a performance problem. Don't call this here.
 	gl.Viewport(0, 0, width, height)
 	return nil
 }
