@@ -20,13 +20,8 @@ import (
 	"github.com/hajimehoshi/ebiten/example/blocks/blocks"
 	"log"
 	"os"
-	"runtime"
 	"runtime/pprof"
 )
-
-func init() {
-	runtime.LockOSThread()
-}
 
 var cpuProfile = flag.String("cpuprofile", "", "write cpu profile to file")
 
