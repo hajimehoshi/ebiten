@@ -32,6 +32,9 @@ type context struct {
 	gl *webgl.Context
 }
 
+// TODO: Is there any better way to get null value?
+var nullVal = js.Global.Call("eval", "null")
+
 func NewContext(gl *webgl.Context) *Context {
 	c := &Context{
 		Nearest:            FilterType(gl.NEAREST),
@@ -123,7 +126,11 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl := c.gl
 	gl.Flush()
-	gl.BindFramebuffer(gl.FRAMEBUFFER, f)
+	if f != nil {
+		gl.BindFramebuffer(gl.FRAMEBUFFER, f)
+	} else {
+		gl.BindFramebuffer(gl.FRAMEBUFFER, nullVal)
+	}
 	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if err != gl.FRAMEBUFFER_COMPLETE {
 		if gl.GetError() != 0 {
