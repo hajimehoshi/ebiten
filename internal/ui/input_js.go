@@ -16,17 +16,34 @@
 
 package ui
 
+var keyCodeToKey = map[int]Key{
+	32: KeySpace,
+	37: KeyLeft,
+	39: KeyRight,
+	38: KeyUp,
+	40: KeyDown,
+}
+
+var currentInput input
+
 func IsKeyPressed(key Key) bool {
-	// TODO: Implement this.
-	return false
+	return currentInput.isKeyPressed(key)
 }
 
 func IsMouseButtonPressed(button MouseButton) bool {
-	// TODO: Implement this.
-	return false
+	return currentInput.isMouseButtonPressed(button)
 }
 
 func CursorPosition() (x, y int) {
-	// TODO: Implement this.
-	return 0, 0
+	return currentInput.cursorPosition()
+}
+
+func (i *input) keyDown(key int) {
+	k := keyCodeToKey[key]
+	i.keyPressed[k] = true
+}
+
+func (i *input) keyUp(key int) {
+	k := keyCodeToKey[key]
+	i.keyPressed[k] = false
 }

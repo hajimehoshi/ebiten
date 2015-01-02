@@ -66,6 +66,21 @@ func init() {
 		panic(err)
 	}
 	context = opengl.NewContext(webglContext)
+
+	// Make the canvas focusable.
+	canvas.Call("setAttribute", "tabindex", 1)
+	canvas.Get("style").Set("outline", "none")
+
+	canvas.Set("onkeydown", func(e js.Object) {
+		defer e.Call("preventDefault")
+		code := e.Get("keyCode").Int()
+		currentInput.keyDown(code)
+	})
+	canvas.Set("onkeyup", func(e js.Object) {
+		defer e.Call("preventDefault")
+		code := e.Get("keyCode").Int()
+		currentInput.keyUp(code)
+	})
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {
