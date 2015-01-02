@@ -144,7 +144,16 @@ const fieldBlockNumX = 10
 const fieldBlockNumY = 20
 
 func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) error {
-	parts := []ebiten.ImagePart{}
+	l := 0
+	for _, blockCol := range blocks {
+		for _, block := range blockCol {
+			if block == BlockTypeNone {
+				continue
+			}
+			l++
+		}
+	}
+	parts := make([]ebiten.ImagePart, 0, l)
 	for i, blockCol := range blocks {
 		for j, block := range blockCol {
 			if block == BlockTypeNone {

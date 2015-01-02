@@ -41,7 +41,7 @@ func textWidth(str string) int {
 }
 
 func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) error {
-	parts := []ebiten.ImagePart{}
+	parts := make([]ebiten.ImagePart, 0, len(str))
 
 	locationX, locationY := 0, 0
 	for _, c := range str {

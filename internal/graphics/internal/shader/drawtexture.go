@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func glMatrix(m [4][4]float64) [16]float32 {
+func glMatrix(m *[4][4]float64) [16]float32 {
 	result := [16]float32{}
 	for j := 0; j < 4; j++ {
 		for i := 0; i < 4; i++ {
@@ -43,7 +43,7 @@ var initialized = false
 // TODO: Use unsafe.SizeOf?
 const float32Size = 4
 
-func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix [4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
+func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
 	if !initialized {

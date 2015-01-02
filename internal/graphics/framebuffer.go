@@ -20,13 +20,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func orthoProjectionMatrix(left, right, bottom, top int) [4][4]float64 {
+func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
 	e11 := float64(2) / float64(right-left)
 	e22 := float64(2) / float64(top-bottom)
 	e14 := -1 * float64(right+left) / float64(right-left)
 	e24 := -1 * float64(top+bottom) / float64(top-bottom)
 
-	return [4][4]float64{
+	return &[4][4]float64{
 		{e11, 0, 0, e14},
 		{0, e22, 0, e24},
 		{0, 0, 1, 0},
@@ -77,7 +77,7 @@ func (f *Framebuffer) setAsViewport(c *opengl.Context) error {
 	return c.SetViewport(f.native, width, height)
 }
 
-func (f *Framebuffer) projectionMatrix() [4][4]float64 {
+func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	width := internal.NextPowerOf2Int(f.width)
 	height := internal.NextPowerOf2Int(f.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
