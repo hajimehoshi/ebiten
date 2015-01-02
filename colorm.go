@@ -44,12 +44,12 @@ type ColorM struct {
 	es          [ColorMDim - 1][ColorMDim]float64
 }
 
-func (c ColorM) dim() int {
+func (c *ColorM) dim() int {
 	return ColorMDim
 }
 
 // Element returns a value of a matrix at (i, j).
-func (c ColorM) Element(i, j int) float64 {
+func (c *ColorM) Element(i, j int) float64 {
 	if !c.initialized {
 		if i == j {
 			return 1

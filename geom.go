@@ -37,12 +37,12 @@ type GeoM struct {
 	es          [GeoMDim - 1][GeoMDim]float64
 }
 
-func (g GeoM) dim() int {
+func (g *GeoM) dim() int {
 	return GeoMDim
 }
 
 // Element returns a value of a matrix at (i, j).
-func (g GeoM) Element(i, j int) float64 {
+func (g *GeoM) Element(i, j int) float64 {
 	if !g.initialized {
 		if i == j {
 			return 1

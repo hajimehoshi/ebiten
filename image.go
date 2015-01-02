@@ -67,7 +67,7 @@ func (i *innerImage) drawImage(c *opengl.Context, img *innerImage, options *Draw
 	clr := options.ColorM
 	w, h := img.size()
 	quads := &textureQuads{parts, w, h}
-	return i.framebuffer.DrawTexture(c, img.texture, quads, geo, clr)
+	return i.framebuffer.DrawTexture(c, img.texture, quads, &geo, &clr)
 }
 
 func u(x float64, width int) float32 {
