@@ -58,6 +58,7 @@ func init() {
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
 	doc.Get("body").Call("appendChild", canvas)
+	doc.Get("body").Get("style").Set("backgroundColor", "#000")
 	webglContext, err := webgl.NewContext(canvas, &webgl.ContextAttributes{
 		Alpha:              true,
 		PremultipliedAlpha: true,
