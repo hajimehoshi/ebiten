@@ -43,6 +43,7 @@ func NewContext(gl *webgl.Context) *Context {
 		DynamicDraw:        BufferUsageType(gl.DYNAMIC_DRAW),
 		StaticDraw:         BufferUsageType(gl.STATIC_DRAW),
 	}
+	c.gl = gl
 	c.init()
 	return c
 }
