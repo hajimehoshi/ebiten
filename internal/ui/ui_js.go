@@ -47,8 +47,17 @@ func SwapBuffers() {
 }
 
 func init() {
-	canvas = js.Global.Get("Canvas").New()
-	js.Global.Get("document").Get("body").Call("appendChild", canvas)
+	ch := make(chan struct{})
+	js.Global.Get("window").Set("onload", func() {
+		close(ch)
+	})
+	<-ch
+
+	doc := js.Global.Get("document")
+	canvas = doc.Call("createElement", "canvas")
+	canvas.Set("width", 16)
+	canvas.Set("height", 16)
+	doc.Get("body").Call("appendChild", canvas)
 	webglContext, err := webgl.NewContext(canvas, &webgl.ContextAttributes{
 		Alpha:              true,
 		PremultipliedAlpha: true,
@@ -60,5 +69,7 @@ func init() {
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {
+	canvas.Set("width", width*scale)
+	canvas.Set("height", height*scale)
 	return scale, nil
 }

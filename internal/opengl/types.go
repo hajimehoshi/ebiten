@@ -28,5 +28,5 @@ type Context struct {
 	ElementArrayBuffer BufferType
 	DynamicDraw        BufferUsageType
 	StaticDraw         BufferUsageType
-	*context
+	context
 }

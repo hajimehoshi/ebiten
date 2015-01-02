@@ -50,7 +50,6 @@ func NewContext(gl *webgl.Context) *Context {
 
 func (c *Context) init() {
 	gl := c.gl
-	gl.Enable(gl.TEXTURE_2D)
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
