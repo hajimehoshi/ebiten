@@ -4,6 +4,7 @@
 
 * A simple SNES-like 2D game library in Go
 * Works on
+  * HTML5 (powered by [GopherJS](http://gopherjs.org/))
   * Mac OS X
   * Linux (maybe)
   * Windows (possibly)
@@ -29,6 +30,12 @@
 :; brew install glew
 :; brew install glfw3 # or homebrew/versions/glfw3
 :; go get -u github.com/hajimehoshi/ebiten
+```
+
+If you want to use GopherJS, execute this:
+
+```
+:; go get -u -tag=js github.com/hajimehoshi/ebiten
 ```
 
 ## Execute the example

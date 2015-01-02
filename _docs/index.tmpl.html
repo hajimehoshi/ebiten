@@ -26,6 +26,7 @@ table.examples td.code pre {
   <li>A simple SNES-like 2D game library in Go</li>
   <li>Works on
     <ul>
+      <li>HTML5 (powered by <a href="http://gopherjs.org/">GopherJS</a>)
       <li>Mac OS X</li>
       <li>Linux (maybe)</li>
       <li>Windows (possibly)</li>
@@ -57,6 +58,8 @@ table.examples td.code pre {
 <pre><code>:; brew install glew
 :; brew install glfw3 # or homebrew/versions/glfw3
 :; go get -u github.com/hajimehoshi/ebiten</code></pre>
+<p>If you want to use GopherJS, execute this:</p>
+<pre><code>:; go get -u -tag=js github.com/hajimehoshi/ebiten</code></pre>
 
 <h2>Execute the example</h2>
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
