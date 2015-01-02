@@ -19,19 +19,14 @@ import (
 	"math"
 )
 
-func NextPowerOf2(x uint64) uint64 {
+func NextPowerOf2Int(x int) int {
 	x -= 1
 	x |= (x >> 1)
 	x |= (x >> 2)
 	x |= (x >> 4)
 	x |= (x >> 8)
 	x |= (x >> 16)
-	x |= (x >> 32)
 	return x + 1
-}
-
-func NextPowerOf2Int(size int) int {
-	return int(NextPowerOf2(uint64(size)))
 }
 
 func RGBA(clr color.Color) (r, g, b, a float64) {
