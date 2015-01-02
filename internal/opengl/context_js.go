@@ -63,7 +63,6 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterTyp
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	gl.BindTexture(gl.TEXTURE_2D, t)
-	defer gl.BindTexture(gl.TEXTURE_2D, nil)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
@@ -71,7 +70,11 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterTyp
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
 	//     GLenum type, ArrayBufferView? pixels);
-	gl.Call("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	var p interface{}
+	if pixels != nil {
+		p = pixels
+	}
+	gl.Call("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, p)
 
 	return Texture(t), nil
 }
@@ -97,6 +100,11 @@ func (c *Context) BindTexture(t Texture) {
 func (c *Context) DeleteTexture(t Texture) {
 	gl := c.gl
 	gl.DeleteTexture(t)
+}
+
+func (c *Context) GlslHighpSupported() bool {
+	gl := c.gl
+	return gl.Call("getShaderPrecisionFormat", gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).Get("precision").Int() != 0
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {

@@ -24,22 +24,21 @@ func initialize(c *opengl.Context) error {
 	const size = 10000
 	const uint16Size = 2
 
-	var err error
-	shaders[shaderVertex].native, err = c.NewShader(c.VertexShader, shaders[shaderVertex].source)
+	shaderVertexNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertex))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaders[shaderVertex].native)
+	defer c.DeleteShader(shaderVertexNative)
 
-	shaders[shaderColorMatrix].native, err = c.NewShader(c.FragmentShader, shaders[shaderColorMatrix].source)
+	shaderColorMatrixNative, err := c.NewShader(c.FragmentShader, shader(c, shaderColorMatrix))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaders[shaderColorMatrix].native)
+	defer c.DeleteShader(shaderColorMatrixNative)
 
 	shaders := []opengl.Shader{
-		shaders[shaderVertex].native,
-		shaders[shaderColorMatrix].native,
+		shaderVertexNative,
+		shaderColorMatrixNative,
 	}
 	programColorMatrix, err = c.NewProgram(shaders)
 	if err != nil {

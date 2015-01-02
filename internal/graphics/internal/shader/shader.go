@@ -16,12 +16,8 @@ package shader
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"strings"
 )
-
-type shader struct {
-	native opengl.Shader
-	source string
-}
 
 type shaderId int
 
@@ -30,30 +26,37 @@ const (
 	shaderColorMatrix
 )
 
-var shaders = map[shaderId]*shader{
-	shaderVertex: {
-		source: `
-uniform mat4 projection_matrix;
-uniform mat4 modelview_matrix;
-attribute vec2 vertex;
-attribute vec2 tex_coord;
-varying vec2 vertex_out_tex_coord;
+func shader(c *opengl.Context, id shaderId) string {
+	str := shaders[id]
+	if !c.GlslHighpSupported() {
+		str = strings.Replace(str, "highp ", "", -1)
+		str = strings.Replace(str, "lowp ", "", -1)
+	}
+	return str
+}
+
+// TODO: Create version 100 for WebGL
+var shaders = map[shaderId]string{
+	shaderVertex: `
+uniform highp mat4 projection_matrix;
+uniform highp mat4 modelview_matrix;
+attribute highp vec2 vertex;
+attribute highp vec2 tex_coord;
+varying highp vec2 vertex_out_tex_coord;
 
 void main(void) {
   vertex_out_tex_coord = tex_coord;
   gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
 }
 `,
-	},
-	shaderColorMatrix: {
-		source: `
-uniform sampler2D texture;
-uniform mat4 color_matrix;
-uniform vec4 color_matrix_translation;
-varying vec2 vertex_out_tex_coord;
+	shaderColorMatrix: `
+uniform lowp sampler2D texture;
+uniform lowp mat4 color_matrix;
+uniform lowp vec4 color_matrix_translation;
+varying highp vec2 vertex_out_tex_coord;
 
 void main(void) {
-  vec4 color = texture2D(texture, vertex_out_tex_coord);
+  lowp vec4 color = texture2D(texture, vertex_out_tex_coord);
 
   if (color_matrix != mat4(1.0) || color_matrix_translation != vec4(0.0)) {
     // Un-premultiply alpha
@@ -68,5 +71,4 @@ void main(void) {
   gl_FragColor = color;
 }
 `,
-	},
 }

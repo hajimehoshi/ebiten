@@ -58,7 +58,6 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterTyp
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	t.Bind(gl.TEXTURE_2D)
-	defer gl.Texture(0).Bind(gl.TEXTURE_2D)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
@@ -146,6 +145,10 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 func (c *Context) DeleteShader(s Shader) {
 	gl.Shader(s).Delete()
+}
+
+func (c *Context) GlslHighpSupported() bool {
+	return false
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
