@@ -28,7 +28,7 @@ type Framebuffer js.Object
 type Shader js.Object
 type Program js.Object
 type UniformLocation js.Object
-type AttribLocation js.Object
+type AttribLocation int
 
 type context struct {
 	gl *webgl.Context
@@ -227,20 +227,35 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
 	gl := c.gl
-	l := gl.GetAttribLocation(p, location)
-	gl.VertexAttribPointer(l, 2, gl.FLOAT, false, stride, int(v))
+	key := locationCacheKey{p, location}
+	l, ok := attribLocationCache[key]
+	if !ok {
+		l = AttribLocation(gl.GetAttribLocation(p, location))
+		attribLocationCache[key] = l
+	}
+	gl.VertexAttribPointer(int(l), 2, gl.FLOAT, false, stride, int(v))
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	l := gl.GetAttribLocation(p, location)
-	gl.EnableVertexAttribArray(l)
+	key := locationCacheKey{p, location}
+	l, ok := attribLocationCache[key]
+	if !ok {
+		l = AttribLocation(gl.GetAttribLocation(p, location))
+		attribLocationCache[key] = l
+	}
+	gl.EnableVertexAttribArray(int(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	l := gl.GetAttribLocation(p, location)
-	gl.DisableVertexAttribArray(l)
+	key := locationCacheKey{p, location}
+	l, ok := attribLocationCache[key]
+	if !ok {
+		l = AttribLocation(gl.GetAttribLocation(p, location))
+		attribLocationCache[key] = l
+	}
+	gl.DisableVertexAttribArray(int(l))
 }
 
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageType BufferUsageType) {

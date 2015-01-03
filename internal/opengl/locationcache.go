@@ -20,3 +20,4 @@ type locationCacheKey struct {
 }
 
 var uniformLocationCache = map[locationCacheKey]UniformLocation{}
+var attribLocationCache = map[locationCacheKey]AttribLocation{}
