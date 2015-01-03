@@ -126,9 +126,14 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	return Framebuffer(f), nil
 }
 
+var lastFramebuffer Framebuffer
+
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl := c.gl
-	gl.Flush()
+	if lastFramebuffer != f {
+		gl.Flush()
+		lastFramebuffer = f
+	}
 	if f != nil {
 		gl.BindFramebuffer(gl.FRAMEBUFFER, f)
 	} else {
