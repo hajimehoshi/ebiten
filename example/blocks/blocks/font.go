@@ -15,12 +15,12 @@
 package blocks
 
 import (
+	"errors"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image"
 	"image/color"
 	"math"
-	"strings"
 )
 
 var imageFont *ebiten.Image
@@ -41,11 +41,15 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
+var fontImageParts = make([]ebiten.ImagePart, 0, 256)
+
 func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) error {
-	parts := make([]ebiten.ImagePart, len(strings.Replace(str, "\n", "", -1)))
+	if cap(fontImageParts) < len(str) {
+		return errors.New("str is too long")
+	}
+	parts := fontImageParts[:0]
 
 	locationX, locationY := 0, 0
-	i := 0
 	for _, c := range str {
 		if c == '\n' {
 			locationX = 0
@@ -55,9 +59,10 @@ func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) er
 		code := int(c)
 		x := (code % 16) * charWidth
 		y := ((code - 32) / 16) * charHeight
-		parts[i].Dst = image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight)
-		parts[i].Src = image.Rect(x, y, x+charWidth, y+charHeight)
-		i++
+		parts = append(parts, ebiten.ImagePart{
+			Dst: image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight),
+			Src: image.Rect(x, y, x+charWidth, y+charHeight),
+		})
 		locationX += charWidth
 	}
 
