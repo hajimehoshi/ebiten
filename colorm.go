@@ -79,6 +79,26 @@ func (c *ColorM) Add(other ColorM) {
 	*c = result
 }
 
+func (c *ColorM) Scale(r, g, b, a float64) {
+	if !c.initialized {
+		*c = colorMI
+	}
+	c.es[0][0] *= r
+	c.es[1][1] *= g
+	c.es[2][2] *= b
+	c.es[3][3] *= a
+}
+
+func (c *ColorM) Translate(r, g, b, a float64) {
+	if !c.initialized {
+		*c = colorMI
+	}
+	c.es[0][4] += r
+	c.es[1][4] += g
+	c.es[2][4] += b
+	c.es[3][4] += a
+}
+
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
 	if !c.initialized {

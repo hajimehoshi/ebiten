@@ -72,6 +72,22 @@ func (g *GeoM) Add(other GeoM) {
 	*g = result
 }
 
+func (g *GeoM) Scale(x, y float64) {
+	if !g.initialized {
+		*g = geoMI
+	}
+	g.es[0][0] *= x
+	g.es[1][1] *= y
+}
+
+func (g *GeoM) Translate(tx, ty float64) {
+	if !g.initialized {
+		*g = geoMI
+	}
+	g.es[0][2] += tx
+	g.es[1][2] += ty
+}
+
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
 	if !g.initialized {

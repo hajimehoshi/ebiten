@@ -20,6 +20,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"strings"
 )
 
 var imageFont *ebiten.Image
@@ -41,9 +42,10 @@ func textWidth(str string) int {
 }
 
 func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) error {
-	parts := make([]ebiten.ImagePart, 0, len(str))
+	parts := make([]ebiten.ImagePart, len(strings.Replace(str, "\n", "", -1)))
 
 	locationX, locationY := 0, 0
+	i := 0
 	for _, c := range str {
 		if c == '\n' {
 			locationX = 0
@@ -53,27 +55,27 @@ func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) er
 		code := int(c)
 		x := (code % 16) * charWidth
 		y := ((code - 32) / 16) * charHeight
-		parts = append(parts, ebiten.ImagePart{
-			Dst: image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight),
-			Src: image.Rect(x, y, x+charWidth, y+charHeight),
-		})
+		parts[i].Dst = image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight)
+		parts[i].Src = image.Rect(x, y, x+charWidth, y+charHeight)
+		i++
 		locationX += charWidth
 	}
 
-	geo := ebiten.ScaleGeo(float64(scale), float64(scale))
-	geo.Concat(ebiten.TranslateGeo(float64(ox), float64(oy)))
+	options := &ebiten.DrawImageOptions{
+		Parts: parts,
+	}
+	options.GeoM.Scale(float64(scale), float64(scale))
+	options.GeoM.Translate(float64(ox), float64(oy))
+
 	c2 := color.NRGBA64Model.Convert(c).(color.NRGBA64)
 	const max = math.MaxUint16
 	r := float64(c2.R) / max
 	g := float64(c2.G) / max
 	b := float64(c2.B) / max
 	a := float64(c2.A) / max
-	clr := ebiten.ScaleColor(r, g, b, a)
-	return rt.DrawImage(imageFont, &ebiten.DrawImageOptions{
-		Parts:  parts,
-		GeoM:   geo,
-		ColorM: clr,
-	})
+	options.ColorM.Scale(r, g, b, a)
+
+	return rt.DrawImage(imageFont, options)
 }
 
 func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) error {
