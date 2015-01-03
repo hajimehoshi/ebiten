@@ -30,8 +30,8 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	var content js.Object
 	ch := make(chan struct{})
 	req := js.Global.Get("XMLHttpRequest").New()
-	req.Set("responseType", "arraybuffer")
 	req.Call("open", "GET", path, true)
+	req.Set("responseType", "arraybuffer")
 	req.Set("onload", func() {
 		defer close(ch)
 		status := req.Get("status").Int()
