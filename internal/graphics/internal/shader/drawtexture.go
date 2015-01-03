@@ -18,8 +18,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func glMatrix(m *[4][4]float64) [16]float32 {
-	result := [16]float32{}
+func glMatrix(m *[4][4]float64) []float32 {
+	result := make([]float32, 16)
 	for j := 0; j < 4; j++ {
 		for i := 0; i < 4; i++ {
 			result[i+j*4] = float32(m[i][j])

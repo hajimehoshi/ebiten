@@ -65,7 +65,7 @@ func initialize(c *opengl.Context) error {
 
 var lastProgram opengl.Program
 
-func useProgramColorMatrix(c *opengl.Context, projectionMatrix [16]float32, geo Matrix, color Matrix) opengl.Program {
+func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Matrix, color Matrix) opengl.Program {
 	if lastProgram != programColorMatrix {
 		c.UseProgram(programColorMatrix)
 		lastProgram = programColorMatrix
@@ -81,7 +81,7 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix [16]float32, geo 
 	md := float32(geo.Element(1, 1))
 	tx := float32(geo.Element(0, 2))
 	ty := float32(geo.Element(1, 2))
-	glModelviewMatrix := [...]float32{
+	glModelviewMatrix := []float32{
 		ma, mc, 0, 0,
 		mb, md, 0, 0,
 		0, 0, 1, 0,
@@ -97,14 +97,14 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix [16]float32, geo 
 		}
 	}
 
-	glColorMatrix := [...]float32{
+	glColorMatrix := []float32{
 		e[0][0], e[1][0], e[2][0], e[3][0],
 		e[0][1], e[1][1], e[2][1], e[3][1],
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
 	c.Uniform(program, "color_matrix", glColorMatrix)
-	glColorMatrixTranslation := [...]float32{
+	glColorMatrixTranslation := []float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
 	c.Uniform(program, "color_matrix_translation", glColorMatrixTranslation)

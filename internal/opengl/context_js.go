@@ -27,6 +27,8 @@ type Texture js.Object
 type Framebuffer js.Object
 type Shader js.Object
 type Program js.Object
+type UniformLocation js.Object
+type AttribLocation js.Object
 
 type context struct {
 	gl *webgl.Context
@@ -196,14 +198,26 @@ func (c *Context) UseProgram(p Program) {
 
 func (c *Context) Uniform(p Program, location string, v interface{}) {
 	gl := c.gl
-	l := gl.GetUniformLocation(p, location)
+	key := locationCacheKey{p, location}
+	l, ok := uniformLocationCache[key]
+	if !ok {
+		l = gl.GetUniformLocation(p, location)
+		uniformLocationCache[key] = l
+	}
 	switch v := v.(type) {
 	case int:
 		gl.Uniform1i(l, v)
-	case [4]float32:
-		gl.Call("uniform4fv", l, v[:])
-	case [16]float32:
-		gl.UniformMatrix4fv(l, false, v[:])
+	case []float32:
+		switch len(v) {
+		case 4:
+			gl.Call("uniform4fv", l, v)
+		case 16:
+			gl.UniformMatrix4fv(l, false, v)
+		default:
+			panic("not reach")
+		}
+	default:
+		panic("not reach")
 	}
 }
 

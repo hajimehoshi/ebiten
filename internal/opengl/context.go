@@ -26,6 +26,8 @@ type Texture int
 type Framebuffer int
 type Shader int
 type Program int
+type UniformLocation int
+type AttribLocation int
 
 type context struct{}
 
@@ -177,10 +179,19 @@ func (c *Context) Uniform(p Program, location string, v interface{}) {
 	switch v := v.(type) {
 	case int:
 		l.Uniform1i(v)
-	case [4]float32:
-		l.Uniform4fv(1, v[:])
-	case [16]float32:
-		l.UniformMatrix4fv(false, v)
+	case []float32:
+		switch len(v) {
+		case 4:
+			l.Uniform4fv(1, v)
+		case 16:
+			v2 := [16]float32{}
+			copy(v2[:], v)
+			l.UniformMatrix4fv(false, v2)
+		default:
+			panic("not reach")
+		}
+	default:
+		panic("not reach")
 	}
 }
 
