@@ -76,8 +76,10 @@ func (g *GeoM) Scale(x, y float64) {
 	if !g.initialized {
 		*g = geoMI
 	}
-	g.es[0][0] *= x
-	g.es[1][1] *= y
+	for i := 0; i < GeoMDim; i++ {
+		g.es[0][i] *= x
+		g.es[1][i] *= y
+	}
 }
 
 func (g *GeoM) Translate(tx, ty float64) {

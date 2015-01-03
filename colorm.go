@@ -83,10 +83,12 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 	if !c.initialized {
 		*c = colorMI
 	}
-	c.es[0][0] *= r
-	c.es[1][1] *= g
-	c.es[2][2] *= b
-	c.es[3][3] *= a
+	for i := 0; i < ColorMDim; i++ {
+		c.es[0][i] *= r
+		c.es[1][i] *= g
+		c.es[2][i] *= b
+		c.es[3][i] *= a
+	}
 }
 
 func (c *ColorM) Translate(r, g, b, a float64) {
