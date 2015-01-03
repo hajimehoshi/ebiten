@@ -174,22 +174,20 @@ func (c *Context) UseProgram(p Program) {
 	gl.Program(p).Use()
 }
 
-func (c *Context) Uniform(p Program, location string, v interface{}) {
+func (c *Context) UniformInt(p Program, location string, v int) {
 	l := gl.Program(p).GetUniformLocation(location)
-	switch v := v.(type) {
-	case int:
-		l.Uniform1i(v)
-	case []float32:
-		switch len(v) {
-		case 4:
-			l.Uniform4fv(1, v)
-		case 16:
-			v2 := [16]float32{}
-			copy(v2[:], v)
-			l.UniformMatrix4fv(false, v2)
-		default:
-			panic("not reach")
-		}
+	l.Uniform1i(v)
+}
+
+func (c *Context) UniformFloats(p Program, location string, v []float32) {
+	l := gl.Program(p).GetUniformLocation(location)
+	switch len(v) {
+	case 4:
+		l.Uniform4fv(1, v)
+	case 16:
+		v2 := [16]float32{}
+		copy(v2[:], v)
+		l.UniformMatrix4fv(false, v2)
 	default:
 		panic("not reach")
 	}

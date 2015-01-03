@@ -68,12 +68,12 @@ func (i *innerImage) drawImage(c *opengl.Context, img *innerImage, options *Draw
 	return i.framebuffer.DrawTexture(c, img.texture, quads, &options.GeoM, &options.ColorM)
 }
 
-func u(x float64, width int) float32 {
-	return float32(x) / float32(internal.NextPowerOf2Int(width))
+func u(x float32, width int) float32 {
+	return x / float32(internal.NextPowerOf2Int(width))
 }
 
-func v(y float64, height int) float32 {
-	return float32(y) / float32(internal.NextPowerOf2Int(height))
+func v(y float32, height int) float32 {
+	return y / float32(internal.NextPowerOf2Int(height))
 }
 
 type textureQuads struct {
@@ -94,7 +94,7 @@ func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 float32) {
 func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float32) {
 	src := t.parts[i].Src
 	w, h := t.width, t.height
-	return u(float64(src.Min.X), w), v(float64(src.Min.Y), h), u(float64(src.Max.X), w), v(float64(src.Max.Y), h)
+	return u(float32(src.Min.X), w), v(float32(src.Min.Y), h), u(float32(src.Max.X), w), v(float32(src.Max.Y), h)
 }
 
 // Image represents an image.

@@ -73,7 +73,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
 	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
 
-	vertices := []float32{}
+	vertices := make([]float32, 0, quads.Len())
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		u0, v0, u1, v1 := quads.Texture(i)

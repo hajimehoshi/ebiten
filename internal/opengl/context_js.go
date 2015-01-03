@@ -196,7 +196,7 @@ func (c *Context) UseProgram(p Program) {
 	gl.UseProgram(p)
 }
 
-func (c *Context) Uniform(p Program, location string, v interface{}) {
+func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
 	key := locationCacheKey{p, location}
 	l, ok := uniformLocationCache[key]
@@ -204,18 +204,22 @@ func (c *Context) Uniform(p Program, location string, v interface{}) {
 		l = gl.GetUniformLocation(p, location)
 		uniformLocationCache[key] = l
 	}
-	switch v := v.(type) {
-	case int:
-		gl.Uniform1i(l, v)
-	case []float32:
-		switch len(v) {
-		case 4:
-			gl.Call("uniform4fv", l, v)
-		case 16:
-			gl.UniformMatrix4fv(l, false, v)
-		default:
-			panic("not reach")
-		}
+	gl.Uniform1i(l, v)
+}
+
+func (c *Context) UniformFloats(p Program, location string, v []float32) {
+	gl := c.gl
+	key := locationCacheKey{p, location}
+	l, ok := uniformLocationCache[key]
+	if !ok {
+		l = gl.GetUniformLocation(p, location)
+		uniformLocationCache[key] = l
+	}
+	switch len(v) {
+	case 4:
+		gl.Call("uniform4fv", l, v)
+	case 16:
+		gl.UniformMatrix4fv(l, false, v)
 	default:
 		panic("not reach")
 	}

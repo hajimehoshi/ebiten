@@ -73,7 +73,7 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Ma
 	// TODO: Check the performance.
 	program := programColorMatrix
 
-	c.Uniform(program, "projection_matrix", projectionMatrix)
+	c.UniformFloats(program, "projection_matrix", projectionMatrix)
 
 	ma := float32(geo.Element(0, 0))
 	mb := float32(geo.Element(0, 1))
@@ -87,8 +87,8 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Ma
 		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
-	c.Uniform(program, "modelview_matrix", glModelviewMatrix)
-	c.Uniform(program, "texture", 0)
+	c.UniformFloats(program, "modelview_matrix", glModelviewMatrix)
+	c.UniformInt(program, "texture", 0)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -103,11 +103,11 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Ma
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	c.Uniform(program, "color_matrix", glColorMatrix)
+	c.UniformFloats(program, "color_matrix", glColorMatrix)
 	glColorMatrixTranslation := []float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	c.Uniform(program, "color_matrix_translation", glColorMatrixTranslation)
+	c.UniformFloats(program, "color_matrix_translation", glColorMatrixTranslation)
 
 	return program
 }
