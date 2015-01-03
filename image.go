@@ -87,12 +87,14 @@ func (t *textureQuads) Len() int {
 }
 
 func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 float32) {
-	dst := t.parts[i].Dst
+	p := &t.parts[i]
+	dst := &p.Dst
 	return float32(dst.Min.X), float32(dst.Min.Y), float32(dst.Max.X), float32(dst.Max.Y)
 }
 
 func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float32) {
-	src := t.parts[i].Src
+	p := &t.parts[i]
+	src := &p.Src
 	w, h := t.width, t.height
 	return u(float32(src.Min.X), w), v(float32(src.Min.Y), h), u(float32(src.Max.X), w), v(float32(src.Max.Y), h)
 }
