@@ -109,22 +109,24 @@ func (s *GameScene) drawBackground(r *ebiten.Image) error {
 	}
 
 	w, h := imageGameBG.Size()
-	geo := ebiten.TranslateGeo(-float64(w)/2, -float64(h)/2)
+	var geo ebiten.GeoM
+	geo.Translate(-float64(w)/2, -float64(h)/2)
 	scaleW := ScreenWidth / float64(w)
 	scaleH := ScreenHeight / float64(h)
 	scale := scaleW
 	if scale < scaleH {
 		scale = scaleH
 	}
-	geo.Concat(ebiten.ScaleGeo(scale, scale))
-	geo.Concat(ebiten.TranslateGeo(ScreenWidth/2, ScreenHeight/2))
+	geo.Scale(scale, scale)
+	geo.Translate(ScreenWidth/2, ScreenHeight/2)
 
 	a := 0.7
 	m := ebiten.Monochrome()
-	m.Concat(ebiten.ScaleColor(a, a, a, a))
-	clr := ebiten.ScaleColor(1-a, 1-a, 1-a, 1-a)
+	m.Scale(a, a, a, a)
+	var clr ebiten.ColorM
+	clr.Scale(1-a, 1-a, 1-a, 1-a)
 	clr.Add(m)
-	clr.Concat(ebiten.TranslateColor(0.3, 0.3, 0.3, 0))
+	clr.Translate(0.3, 0.3, 0.3, 0)
 	return r.DrawImage(imageGameBG, &ebiten.DrawImageOptions{
 		GeoM:   geo,
 		ColorM: clr,

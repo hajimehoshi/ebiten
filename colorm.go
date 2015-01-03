@@ -21,16 +21,6 @@ import (
 // ColorMDim is a dimension of a ColorM.
 const ColorMDim = 5
 
-var colorMI = ColorM{
-	initialized: true,
-	es: [ColorMDim - 1][ColorMDim]float64{
-		{1, 0, 0, 0, 0},
-		{0, 1, 0, 0, 0},
-		{0, 0, 1, 0, 0},
-		{0, 0, 0, 1, 0},
-	},
-}
-
 // A ColorM represents a matrix to transform coloring when rendering an image.
 //
 // A ColorM is applied to the source alpha color
@@ -48,6 +38,14 @@ func (c *ColorM) dim() int {
 	return ColorMDim
 }
 
+func (c *ColorM) initialize() {
+	c.initialized = true
+	c.es[0][0] = 1
+	c.es[1][1] = 1
+	c.es[2][2] = 1
+	c.es[3][3] = 1
+}
+
 // Element returns a value of a matrix at (i, j).
 func (c *ColorM) Element(i, j int) float64 {
 	if !c.initialized {
@@ -62,7 +60,7 @@ func (c *ColorM) Element(i, j int) float64 {
 // Concat multiplies a color matrix with the other color matrix.
 func (c *ColorM) Concat(other ColorM) {
 	if !c.initialized {
-		*c = colorMI
+		c.initialize()
 	}
 	result := ColorM{}
 	mul(&other, c, &result)
@@ -72,7 +70,7 @@ func (c *ColorM) Concat(other ColorM) {
 // Add adds a color matrix with the other color matrix.
 func (c *ColorM) Add(other ColorM) {
 	if !c.initialized {
-		*c = colorMI
+		c.initialize()
 	}
 	result := ColorM{}
 	add(&other, c, &result)
@@ -81,7 +79,7 @@ func (c *ColorM) Add(other ColorM) {
 
 func (c *ColorM) Scale(r, g, b, a float64) {
 	if !c.initialized {
-		*c = colorMI
+		c.initialize()
 	}
 	for i := 0; i < ColorMDim; i++ {
 		c.es[0][i] *= r
@@ -93,7 +91,7 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 
 func (c *ColorM) Translate(r, g, b, a float64) {
 	if !c.initialized {
-		*c = colorMI
+		c.initialize()
 	}
 	c.es[0][4] += r
 	c.es[1][4] += g
@@ -104,7 +102,7 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
 	if !c.initialized {
-		*c = colorMI
+		c.initialize()
 	}
 	c.es[i][j] = element
 }

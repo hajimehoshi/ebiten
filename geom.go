@@ -21,14 +21,6 @@ import (
 // GeoMDim is a dimension of a GeoM.
 const GeoMDim = 3
 
-var geoMI = GeoM{
-	initialized: true,
-	es: [2][3]float64{
-		{1, 0, 0},
-		{0, 1, 0},
-	},
-}
-
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
 // The initial value is identity.
@@ -39,6 +31,12 @@ type GeoM struct {
 
 func (g *GeoM) dim() int {
 	return GeoMDim
+}
+
+func (g *GeoM) initialize() {
+	g.initialized = true
+	g.es[0][0] = 1
+	g.es[1][1] = 1
 }
 
 // Element returns a value of a matrix at (i, j).
@@ -55,7 +53,7 @@ func (g *GeoM) Element(i, j int) float64 {
 // Concat multiplies a geometry matrix with the other geometry matrix.
 func (g *GeoM) Concat(other GeoM) {
 	if !g.initialized {
-		*g = geoMI
+		g.initialize()
 	}
 	result := GeoM{}
 	mul(&other, g, &result)
@@ -65,7 +63,7 @@ func (g *GeoM) Concat(other GeoM) {
 // Add adds a geometry matrix with the other geometry matrix.
 func (g *GeoM) Add(other GeoM) {
 	if !g.initialized {
-		*g = geoMI
+		g.initialize()
 	}
 	result := GeoM{}
 	add(&other, g, &result)
@@ -74,7 +72,7 @@ func (g *GeoM) Add(other GeoM) {
 
 func (g *GeoM) Scale(x, y float64) {
 	if !g.initialized {
-		*g = geoMI
+		g.initialize()
 	}
 	for i := 0; i < GeoMDim; i++ {
 		g.es[0][i] *= x
@@ -84,7 +82,7 @@ func (g *GeoM) Scale(x, y float64) {
 
 func (g *GeoM) Translate(tx, ty float64) {
 	if !g.initialized {
-		*g = geoMI
+		g.initialize()
 	}
 	g.es[0][2] += tx
 	g.es[1][2] += ty
@@ -93,7 +91,7 @@ func (g *GeoM) Translate(tx, ty float64) {
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
 	if !g.initialized {
-		*g = geoMI
+		g.initialize()
 	}
 	g.es[i][j] = element
 }
