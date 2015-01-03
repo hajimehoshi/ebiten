@@ -14,10 +14,7 @@
 
 package opengl
 
-type locationCacheKey struct {
-	program Program
-	name    string
-}
-
-var uniformLocationCache = map[locationCacheKey]UniformLocation{}
-var attribLocationCache = map[locationCacheKey]AttribLocation{}
+// Note: This cache is created only for one program.
+// If we use two or more programs, the key of the map should be changed.
+var uniformLocationCache = map[string]UniformLocation{}
+var attribLocationCache = map[string]AttribLocation{}

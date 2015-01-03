@@ -198,22 +198,20 @@ func (c *Context) UseProgram(p Program) {
 
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
-	key := locationCacheKey{p, location}
-	l, ok := uniformLocationCache[key]
+	l, ok := uniformLocationCache[location]
 	if !ok {
 		l = gl.GetUniformLocation(p, location)
-		uniformLocationCache[key] = l
+		uniformLocationCache[location] = l
 	}
 	gl.Uniform1i(l, v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
-	key := locationCacheKey{p, location}
-	l, ok := uniformLocationCache[key]
+	l, ok := uniformLocationCache[location]
 	if !ok {
 		l = gl.GetUniformLocation(p, location)
-		uniformLocationCache[key] = l
+		uniformLocationCache[location] = l
 	}
 	switch len(v) {
 	case 4:
@@ -227,33 +225,30 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
 	gl := c.gl
-	key := locationCacheKey{p, location}
-	l, ok := attribLocationCache[key]
+	l, ok := attribLocationCache[location]
 	if !ok {
 		l = AttribLocation(gl.GetAttribLocation(p, location))
-		attribLocationCache[key] = l
+		attribLocationCache[location] = l
 	}
 	gl.VertexAttribPointer(int(l), 2, gl.FLOAT, false, stride, int(v))
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	key := locationCacheKey{p, location}
-	l, ok := attribLocationCache[key]
+	l, ok := attribLocationCache[location]
 	if !ok {
 		l = AttribLocation(gl.GetAttribLocation(p, location))
-		attribLocationCache[key] = l
+		attribLocationCache[location] = l
 	}
 	gl.EnableVertexAttribArray(int(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	key := locationCacheKey{p, location}
-	l, ok := attribLocationCache[key]
+	l, ok := attribLocationCache[location]
 	if !ok {
 		l = AttribLocation(gl.GetAttribLocation(p, location))
-		attribLocationCache[key] = l
+		attribLocationCache[location] = l
 	}
 	gl.DisableVertexAttribArray(int(l))
 }
