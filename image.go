@@ -49,22 +49,56 @@ func (i *innerImage) Fill(c *opengl.Context, clr color.Color) error {
 	return i.framebuffer.Fill(c, r, g, b, a)
 }
 
+// TODO: Remove this in the future.
+type imageParts []ImagePart
+
+func (p imageParts) Len() int {
+	return len(p)
+}
+
+func (p imageParts) Dst(i int) (x0, y0, x1, y1 int) {
+	dst := &p[i].Dst
+	return dst.Min.X, dst.Min.Y, dst.Max.X, dst.Max.Y
+}
+
+func (p imageParts) Src(i int) (x0, y0, x1, y1 int) {
+	src := &p[i].Src
+	return src.Min.X, src.Min.Y, src.Max.X, src.Max.Y
+}
+
+type wholeImage struct {
+	width  int
+	height int
+}
+
+func (w *wholeImage) Len() int {
+	return 1
+}
+
+func (w *wholeImage) Dst(i int) (x0, y0, x1, y1 int) {
+	return 0, 0, w.width, w.height
+}
+
+func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
+	return 0, 0, w.width, w.height
+}
+
 func (i *innerImage) drawImage(c *opengl.Context, img *innerImage, options *DrawImageOptions) error {
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
-	parts := options.Parts
+	parts := options.ImageParts
 	if parts == nil {
-		w, h := img.size()
-		parts = []ImagePart{
-			{
-				Dst: image.Rect(0, 0, w, h),
-				Src: image.Rect(0, 0, w, h),
-			},
+		dparts := options.Parts
+		if dparts != nil {
+			parts = imageParts(dparts)
+		} else {
+			w, h := img.size()
+			parts = &wholeImage{w, h}
 		}
 	}
 	w, h := img.size()
-	quads := &textureQuads{parts, w, h}
+	quads := &textureQuads{parts: parts, width: w, height: h}
 	return i.framebuffer.DrawTexture(c, img.texture, quads, &options.GeoM, &options.ColorM)
 }
 
@@ -77,26 +111,24 @@ func v(y float32, height int) float32 {
 }
 
 type textureQuads struct {
-	parts  []ImagePart
+	parts  ImageParts
 	width  int
 	height int
 }
 
 func (t *textureQuads) Len() int {
-	return len(t.parts)
+	return t.parts.Len()
 }
 
 func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 float32) {
-	p := &t.parts[i]
-	dst := &p.Dst
-	return float32(dst.Min.X), float32(dst.Min.Y), float32(dst.Max.X), float32(dst.Max.Y)
+	ix0, iy0, ix1, iy1 := t.parts.Dst(i)
+	return float32(ix0), float32(iy0), float32(ix1), float32(iy1)
 }
 
 func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float32) {
-	p := &t.parts[i]
-	src := &p.Src
+	x0, y0, x1, y1 := t.parts.Src(i)
 	w, h := t.width, t.height
-	return u(float32(src.Min.X), w), v(float32(src.Min.Y), h), u(float32(src.Max.X), w), v(float32(src.Max.Y), h)
+	return u(float32(x0), w), v(float32(y0), h), u(float32(x1), w), v(float32(y1), h)
 }
 
 // Image represents an image.
@@ -184,14 +216,25 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
+// Deprecated: Use ImageParts instead.
 type ImagePart struct {
 	Dst image.Rectangle
 	Src image.Rectangle
 }
 
+// An ImageParts represents the parts of the destination image and the parts of the source image.
+type ImageParts interface {
+	Len() int
+	Dst(i int) (x0, y0, x1, y1 int)
+	Src(i int) (x0, y0, x1, y1 int)
+}
+
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
-	Parts  []ImagePart
-	GeoM   GeoM
-	ColorM ColorM
+	ImageParts ImageParts
+	GeoM       GeoM
+	ColorM     ColorM
+
+	// Deprecated: Use ImageParts instead.
+	Parts []ImagePart
 }

@@ -76,6 +76,9 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		u0, v0, u1, v1 := quads.Texture(i)
+		if x0 == x1 || y0 == y1 || u0 == u1 || v0 == v1 {
+			continue
+		}
 		vertices = append(vertices,
 			x0, y0, u0, v0,
 			x1, y0, u1, v0,
@@ -83,7 +86,10 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 			x1, y1, u1, v1,
 		)
 	}
+	if len(vertices) == 0 {
+		return nil
+	}
 	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(6 * quads.Len())
+	c.DrawElements(6 * len(vertices) / 16)
 	return nil
 }

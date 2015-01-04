@@ -15,12 +15,11 @@
 package blocks
 
 import (
-	"errors"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"image"
 	"image/color"
 	"math"
+	"strings"
 )
 
 var imageFont *ebiten.Image
@@ -41,43 +40,51 @@ func textWidth(str string) int {
 	return charWidth * len(str)
 }
 
-var fontImageParts = make([]ebiten.ImagePart, 0, 256)
+type fontImageParts string
+
+func (f fontImageParts) Len() int {
+	return len(f)
+}
+
+func (f fontImageParts) Dst(i int) (x0, y0, x1, y1 int) {
+	x := i - strings.LastIndex(string(f)[:i], "\n") - 1
+	y := strings.Count(string(f)[:i], "\n")
+	x *= charWidth
+	y *= charHeight
+	if x < 0 {
+		return 0, 0, 0, 0
+	}
+	return x, y, x + charWidth, y + charHeight
+}
+
+func (f fontImageParts) Src(i int) (x0, y0, x1, y1 int) {
+	code := int(f[i])
+	if code == '\n' {
+		return 0, 0, 0, 0
+	}
+	x := (code % 16) * charWidth
+	y := ((code - 32) / 16) * charHeight
+	return x, y, x + charWidth, y + charHeight
+}
 
 func drawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) error {
-	if cap(fontImageParts) < len(str) {
-		return errors.New("str is too long")
-	}
-	parts := fontImageParts[:0]
-
-	locationX, locationY := 0, 0
-	for _, c := range str {
-		if c == '\n' {
-			locationX = 0
-			locationY += charHeight
-			continue
-		}
-		code := int(c)
-		x := (code % 16) * charWidth
-		y := ((code - 32) / 16) * charHeight
-		parts = append(parts, ebiten.ImagePart{
-			Dst: image.Rect(locationX, locationY, locationX+charWidth, locationY+charHeight),
-			Src: image.Rect(x, y, x+charWidth, y+charHeight),
-		})
-		locationX += charWidth
-	}
-
 	options := &ebiten.DrawImageOptions{
-		Parts: parts,
+		ImageParts: fontImageParts(str),
 	}
 	options.GeoM.Scale(float64(scale), float64(scale))
 	options.GeoM.Translate(float64(ox), float64(oy))
 
-	c2 := color.NRGBA64Model.Convert(c).(color.NRGBA64)
+	ur, ug, ub, ua := c.RGBA()
 	const max = math.MaxUint16
-	r := float64(c2.R) / max
-	g := float64(c2.G) / max
-	b := float64(c2.B) / max
-	a := float64(c2.A) / max
+	r := float64(ur) / max
+	g := float64(ug) / max
+	b := float64(ub) / max
+	a := float64(ua) / max
+	if 0 < a {
+		r /= a
+		g /= a
+		b /= a
+	}
 	options.ColorM.Scale(r, g, b, a)
 
 	return rt.DrawImage(imageFont, options)

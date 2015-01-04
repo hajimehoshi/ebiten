@@ -56,7 +56,7 @@ If you want to use GopherJS, execute this:
 
 ## Versioning
 
-* We adopted [Semantic Versioning](http://semver.org/)
+* We obey [Semantic Versioning](http://semver.org/) basically
 
 ## License
 
