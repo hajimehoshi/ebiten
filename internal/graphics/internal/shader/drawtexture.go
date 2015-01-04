@@ -19,13 +19,12 @@ import (
 )
 
 func glMatrix(m *[4][4]float64) []float32 {
-	result := make([]float32, 16)
-	for j := 0; j < 4; j++ {
-		for i := 0; i < 4; i++ {
-			result[i+j*4] = float32(m[i][j])
-		}
+	return []float32{
+		float32(m[0][0]), float32(m[1][0]), float32(m[2][0]), float32(m[3][0]),
+		float32(m[0][1]), float32(m[1][1]), float32(m[2][1]), float32(m[3][1]),
+		float32(m[0][2]), float32(m[1][2]), float32(m[2][2]), float32(m[3][2]),
+		float32(m[0][3]), float32(m[1][3]), float32(m[2][3]), float32(m[3][3]),
 	}
-	return result
 }
 
 type Matrix interface {
