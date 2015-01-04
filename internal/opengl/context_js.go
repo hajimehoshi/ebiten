@@ -34,9 +34,6 @@ type context struct {
 	gl *webgl.Context
 }
 
-// TODO: Is there any better way to get null value?
-var nullVal = js.Global.Call("eval", "null")
-
 func NewContext(gl *webgl.Context) *Context {
 	c := &Context{
 		Nearest:            FilterType(gl.NEAREST),
@@ -63,7 +60,7 @@ func (c *Context) init() {
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterType) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
-	if t.IsNull() {
+	if t == nil {
 		return nil, errors.New("glGenTexture failed")
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
@@ -137,7 +134,7 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	if f != nil {
 		gl.BindFramebuffer(gl.FRAMEBUFFER, f)
 	} else {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, nullVal)
+		gl.BindFramebuffer(gl.FRAMEBUFFER, nil)
 	}
 	// gl.CheckFramebufferStatus might cause a performance problem. Don't call this here.
 	gl.Viewport(0, 0, width, height)
@@ -159,7 +156,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
 	gl := c.gl
 	s := gl.CreateShader(int(shaderType))
-	if s.IsNull() {
+	if s == nil {
 		println(gl.GetError())
 		return nil, errors.New("glCreateShader failed")
 	}
@@ -182,7 +179,7 @@ func (c *Context) DeleteShader(s Shader) {
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
-	if p.IsNull() {
+	if p == nil {
 		return nil, errors.New("glCreateProgram failed")
 	}
 
