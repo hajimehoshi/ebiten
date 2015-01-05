@@ -4,7 +4,7 @@
 
 * A simple SNES-like 2D game library in Go
 * Works on
-  * HTML5 (powered by [GopherJS](http://gopherjs.org/))
+  * Web browsers (powered by [GopherJS](http://gopherjs.org/))
   * Mac OS X
   * Linux (maybe)
   * Windows (possibly)
@@ -45,7 +45,7 @@ If you want to use GopherJS, execute this:
 :; go run blocks/main.go
 ```
 
-## Execute the example on your browser
+## Execute the example on a web browser
 
 ```
 :; go get github.com/gopherjs/gopherjs
@@ -55,6 +55,22 @@ If you want to use GopherJS, execute this:
 Then, open ``localhost:8000`` on your browser.
 
 ``localhost:8000/?EXAMPLE_NAME`` shows other examples (e.g. ``localhost:8000/?rotate``).
+
+## Run your game on a web browser
+
+Compile your game with GopherJS:
+
+```
+:; go get github.com/gopherjs/gopherjs
+:; gopherjs build -o yourgame.js path/to/yourgame
+```
+
+Then, open the below HTML on your HTTP server:
+
+```html
+<!DOCTYPE html>
+<script src="yourgame.js"></script>
+```
 
 ### Benchmark the example
 

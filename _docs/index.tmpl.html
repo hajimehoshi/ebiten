@@ -32,7 +32,7 @@ table.examples iframe {
   <li>A simple SNES-like 2D game library in Go</li>
   <li>Works on
     <ul>
-      <li>HTML5 (powered by <a href="http://gopherjs.org/">GopherJS</a>)
+      <li>Web browsers (powered by <a href="http://gopherjs.org/">GopherJS</a>)
       <li>Mac OS X</li>
       <li>Linux (maybe)</li>
       <li>Windows (possibly)</li>
@@ -75,13 +75,21 @@ table.examples iframe {
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
 :; go run rotate/main.go</code></pre>
 
-<h2>Execute the example on your browser</h2>
+<h2>Execute the example on a web browser</h2>
 <p>If you can the example screens above, Ebiten is working on your browser! Each example above works as an independent html in an iframe. If you want to execute the examples apart from this site, execute this:</p>
 <pre><code>:; go get github.com/gopherjs/gopherjs
 :; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go</code></pre>
 <p>Then, open <code>localhost:8000</code> on your browser.</p>
 <p><code>localhost:8000/?EXAMPLE_NAME</code> shows other examples (e.g. <code>localhost:8000/?rotate</code>).</p>
 <p>Of cource, you can execute gopherjs yourself. Please see <a href="http://gopherjs.org/">GopherJS site</a> for more detail.</p>
+
+<h2>Run your game on a web browser</h2>
+<p>Compile your game with GopherJS:</p>
+<pre><code>:; go get github.com/gopherjs/gopherjs
+:; gopherjs build -o yourgame.js path/to/yourgame</code></pre>
+<p>Then, open the below HTML on your HTTP server:</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;script src="yourgame.js"&gt;&lt;/script&gt;</code></pre>
 
 <h2>Change Log</h2>
 <h3>2015-??-??</h3>
