@@ -27,8 +27,43 @@ import (
 var (
 	imageEmpty    *ebiten.Image
 	imageGameBG   *ebiten.Image
+	imageWindows  *ebiten.Image
 	imageGameover *ebiten.Image
 )
+
+func fieldWindowPosition() (x, y int) {
+	return 20, 20
+}
+
+func nextWindowLabelPosition() (x, y int) {
+	x, y = fieldWindowPosition()
+	return x + fieldWidth + 2*blockWidth, y
+}
+
+func nextWindowPosition() (x, y int) {
+	x, y = nextWindowLabelPosition()
+	return x, y + blockHeight
+}
+
+func textBoxWidth() int {
+	x, _ := nextWindowPosition()
+	return ScreenWidth - 2*blockWidth - x
+}
+
+func scoreTextBoxPosition() (x, y int) {
+	x, y = nextWindowPosition()
+	return x, y + 6*blockHeight
+}
+
+func levelTextBoxPosition() (x, y int) {
+	x, y = scoreTextBoxPosition()
+	return x, y + 4*blockHeight
+}
+
+func linesTextBoxPosition() (x, y int) {
+	x, y = levelTextBoxPosition()
+	return x, y + 4*blockHeight
+}
 
 func init() {
 	var err error
@@ -38,23 +73,60 @@ func init() {
 	}
 	imageEmpty.Fill(color.White)
 
+	// Background
 	imageGameBG, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
 		panic(err)
 	}
 
+	// Windows
+	imageWindows, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	// Windows: Field
+	x, y := fieldWindowPosition()
+	if err := drawWindow(imageWindows, x, y, fieldWidth, fieldHeight); err != nil {
+		panic(err)
+	}
+	// Windows: Next
+	x, y = nextWindowLabelPosition()
+	if err := drawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor); err != nil {
+		panic(err)
+	}
+	x, y = nextWindowPosition()
+	if err := drawWindow(imageWindows, x, y, 5*blockWidth, 5*blockHeight); err != nil {
+		panic(err)
+	}
+	// Windows: Score
+	x, y = scoreTextBoxPosition()
+	if err := drawTextBox(imageWindows, "SCORE", x, y, textBoxWidth()); err != nil {
+		panic(err)
+	}
+	// Windows: Level
+	x, y = levelTextBoxPosition()
+	if err := drawTextBox(imageWindows, "LEVEL", x, y, textBoxWidth()); err != nil {
+		panic(err)
+	}
+	// Windows: Lines
+	x, y = linesTextBoxPosition()
+	if err := drawTextBox(imageWindows, "LINES", x, y, textBoxWidth()); err != nil {
+		panic(err)
+	}
+
+	// Gameover
 	imageGameover, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}
 	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
-	y := (ScreenHeight - blockHeight) / 2
+	y = (ScreenHeight - blockHeight) / 2
 	if err := drawTextWithShadowCenter(imageGameover, "GAME OVER", 0, y, 1, color.White, ScreenWidth); err != nil {
 		panic(err)
 	}
 }
 
-func drawRect(r *ebiten.Image, x, y, width, height int) error {
+func drawWindow(r *ebiten.Image, x, y, width, height int) error {
 	w, h := imageEmpty.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(float64(width)/float64(w), float64(height)/float64(h))
@@ -65,14 +137,19 @@ func drawRect(r *ebiten.Image, x, y, width, height int) error {
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
 
-func drawTextBox(r *ebiten.Image, label, content string, x, y, width int) error {
+func drawTextBox(r *ebiten.Image, label string, x, y, width int) error {
 	if err := drawTextWithShadow(r, label, x, y, 1, fontColor); err != nil {
 		return err
 	}
 	y += blockWidth
-	if err := drawRect(r, x, y, width, 2*blockHeight); err != nil {
+	if err := drawWindow(r, x, y, width, 2*blockHeight); err != nil {
 		return err
 	}
+	return nil
+}
+
+func drawTextBoxContent(r *ebiten.Image, content string, x, y, width int) error {
+	y += blockWidth
 	if err := drawTextWithShadowRight(r, content, x, y+blockHeight*3/4, 1, color.White, width-blockWidth/2); err != nil {
 		return err
 	}
@@ -271,46 +348,30 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 		return err
 	}
 
-	const fieldX, fieldY = 20, 20
-
-	// Draw field
-	if err := drawRect(r, fieldX, fieldY, fieldWidth, fieldHeight); err != nil {
+	if err := r.DrawImage(imageWindows, nil); err != nil {
 		return err
 	}
-
-	// Draw next
-	x := fieldX + fieldWidth + blockWidth*2
-	y := fieldY
-	if err := drawTextWithShadow(r, "NEXT", x, y, 1, fontColor); err != nil {
-		return err
-	}
-	nextX := x
-	nextY := y + blockHeight
-	if err := drawRect(r, nextX, nextY, 5*blockWidth, 5*blockHeight); err != nil {
-		return err
-	}
-	x = nextX
-	y = nextY + 5*blockHeight + blockHeight
 
 	// Draw score
-	width := ScreenWidth - 2*blockWidth - x
-	if err := drawTextBox(r, "SCORE", strconv.Itoa(s.score), x, y, width); err != nil {
+	x, y := scoreTextBoxPosition()
+	if err := drawTextBoxContent(r, strconv.Itoa(s.score), x, y, textBoxWidth()); err != nil {
 		return err
 	}
 
 	// Draw level
-	y += 4 * blockHeight
-	if err := drawTextBox(r, "LEVEL", strconv.Itoa(s.level()), x, y, width); err != nil {
+	x, y = levelTextBoxPosition()
+	if err := drawTextBoxContent(r, strconv.Itoa(s.level()), x, y, textBoxWidth()); err != nil {
 		return err
 	}
 
 	// Draw lines
-	y += 4 * blockHeight
-	if err := drawTextBox(r, "LINES", strconv.Itoa(s.lines), x, y, width); err != nil {
+	x, y = linesTextBoxPosition()
+	if err := drawTextBoxContent(r, strconv.Itoa(s.lines), x, y, textBoxWidth()); err != nil {
 		return err
 	}
 
 	// Draw blocks
+	fieldX, fieldY := fieldWindowPosition()
 	if err := s.field.Draw(r, fieldX, fieldY); err != nil {
 		return err
 	}
@@ -322,8 +383,9 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 		}
 	}
 	if s.nextPiece != nil {
-		x := nextX
-		y := nextY
+		// TODO: Make functions to get these values.
+		x := fieldX + fieldWidth + blockWidth*2
+		y := fieldY + blockHeight
 		if err := s.nextPiece.DrawAtCenter(r, x, y, blockWidth*5, blockHeight*5, 0); err != nil {
 			return err
 		}
