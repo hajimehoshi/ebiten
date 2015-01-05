@@ -85,6 +85,8 @@ func init() {
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {
+	doc := js.Global.Get("document")
+	doc.Set("title", title)
 	canvas.Set("width", width*scale)
 	canvas.Set("height", height*scale)
 	return scale, nil
