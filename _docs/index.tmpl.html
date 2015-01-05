@@ -55,10 +55,10 @@ table.examples iframe {
     <td class="code"><pre><code>// <b>{{.Name}}</b>
 
 {{.Source}}</code></pre></td>
-    {{if ne .Name "blocks"}}
-    <td><iframe src="example/{{.Name}}.html" width="{{.Width}}" height="{{.Height}}"></iframe></td>
+    {{if eq .Name "blocks"}}
+    <td>Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="{{.Width}}" height="{{.Height}}"></a></td>
     {{else}}
-    <td>(TODO: Implement link)</td>
+    <td><iframe src="example/{{.Name}}.html" width="{{.Width}}" height="{{.Height}}"></iframe></td>
     {{end}}
   </tr>
   {{end}}
