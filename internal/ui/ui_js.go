@@ -20,6 +20,7 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/gopherjs/webgl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"strconv"
 	"time"
 )
 
@@ -58,7 +59,18 @@ func init() {
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
 	doc.Get("body").Call("appendChild", canvas)
-	doc.Get("body").Get("style").Set("backgroundColor", "#000")
+
+	htmlStyle := doc.Get("documentElement").Get("style")
+	htmlStyle.Set("height", "100%")
+
+	bodyStyle := doc.Get("body").Get("style")
+	bodyStyle.Set("backgroundColor", "#000")
+	bodyStyle.Set("position", "relative")
+	bodyStyle.Set("height", "100%")
+
+	canvasStyle := canvas.Get("style")
+	canvasStyle.Set("position", "absolute")
+
 	webglContext, err := webgl.NewContext(canvas, &webgl.ContextAttributes{
 		Alpha:              true,
 		PremultipliedAlpha: true,
@@ -89,5 +101,8 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	doc.Set("title", title)
 	canvas.Set("width", width*scale)
 	canvas.Set("height", height*scale)
+	canvasStyle := canvas.Get("style")
+	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(width*scale/2)+"px)")
+	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(height*scale/2)+"px)")
 	return scale, nil
 }
