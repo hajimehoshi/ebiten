@@ -17,7 +17,6 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"image"
 	"image/color"
 )
 
@@ -31,15 +30,39 @@ func init() {
 	}
 }
 
+type titleImageParts struct {
+	image *ebiten.Image
+	count int
+}
+
+func (t *titleImageParts) Len() int {
+	w, h := t.image.Size()
+	return (ScreenWidth/w + 1) * (ScreenHeight/h + 2)
+}
+
+func (t *titleImageParts) Dst(i int) (x0, y0, x1, y1 int) {
+	w, h := t.image.Size()
+	i, j := i%(ScreenWidth/w+1), i/(ScreenWidth/w+1)-1
+	dx := (-t.count / 4) % w
+	dy := (t.count / 4) % h
+	dstX := i*w + dx
+	dstY := j*h + dy
+	return dstX, dstY, dstX + w, dstY + h
+}
+
+func (t *titleImageParts) Src(i int) (x0, y0, x1, y1 int) {
+	w, h := t.image.Size()
+	return 0, 0, w, h
+}
+
 type TitleScene struct {
 	count int
-	parts []ebiten.ImagePart
+	parts *titleImageParts
 }
 
 func NewTitleScene() *TitleScene {
-	w, h := imageBackground.Size()
 	return &TitleScene{
-		parts: make([]ebiten.ImagePart, (ScreenHeight/h+2)*(ScreenWidth/w+2)),
+		parts: &titleImageParts{imageBackground, 0},
 	}
 }
 
@@ -66,23 +89,9 @@ func (s *TitleScene) Draw(r *ebiten.Image) error {
 }
 
 func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) error {
-	w, h := imageBackground.Size()
-	dx := (-c / 4) % w
-	dy := (c / 4) % h
-
-	index := 0
-	for j := -1; j < ScreenHeight/h+1; j++ {
-		for i := 0; i < ScreenWidth/w+1; i++ {
-			dstX := i*w + dx
-			dstY := j*h + dy
-			s.parts[index].Dst = image.Rect(dstX, dstY, dstX+w, dstY+h)
-			s.parts[index].Src = image.Rect(0, 0, w, h)
-			index++
-		}
-	}
-
+	s.parts.count = c
 	return r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
-		Parts: s.parts,
+		ImageParts: s.parts,
 	})
 }
 

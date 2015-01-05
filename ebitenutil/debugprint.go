@@ -17,51 +17,70 @@ package ebitenutil
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/assets"
-	"image"
 	"image/color"
 	"math"
+	"strings"
 )
+
+type debugPrintImageParts string
+
+func (f debugPrintImageParts) Len() int {
+	return len(f)
+}
+
+func (f debugPrintImageParts) Dst(i int) (x0, y0, x1, y1 int) {
+	cw, ch := assets.TextImageCharWidth, assets.TextImageCharHeight
+	x := i - strings.LastIndex(string(f)[:i], "\n") - 1
+	y := strings.Count(string(f)[:i], "\n")
+	x *= cw
+	y *= ch
+	if x < 0 {
+		return 0, 0, 0, 0
+	}
+	return x, y, x + cw, y + ch
+}
+
+func (f debugPrintImageParts) Src(i int) (x0, y0, x1, y1 int) {
+	cw, ch := assets.TextImageCharWidth, assets.TextImageCharHeight
+	const n = assets.TextImageWidth / assets.TextImageCharWidth
+	code := int(f[i])
+	if code == '\n' {
+		return 0, 0, 0, 0
+	}
+	x := (code % n) * cw
+	y := (code / n) * ch
+	return x, y, x + cw, y + ch
+}
 
 type debugPrintState struct {
 	textImage              *ebiten.Image
 	debugPrintRenderTarget *ebiten.Image
-	y                      int
 }
 
-var defaultDebugPrintState = new(debugPrintState)
+var defaultDebugPrintState = &debugPrintState{}
 
 func DebugPrint(r *ebiten.Image, str string) {
 	defaultDebugPrintState.DebugPrint(r, str)
 }
 
 func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
-	parts := []ebiten.ImagePart{}
-	locationX, locationY := 0, 0
-	for _, c := range str {
-		if c == '\n' {
-			locationX = 0
-			locationY += assets.TextImageCharHeight
-			continue
-		}
-		code := int(c)
-		const xCharNum = assets.TextImageWidth / assets.TextImageCharWidth
-		srcX := (code % xCharNum) * assets.TextImageCharWidth
-		srcY := (code / xCharNum) * assets.TextImageCharHeight
-		dst := image.Rect(locationX, locationY, locationX+assets.TextImageCharWidth, locationY+assets.TextImageCharHeight)
-		src := image.Rect(srcX, srcY, srcX+assets.TextImageCharWidth, srcY+assets.TextImageCharHeight)
-		parts = append(parts, ebiten.ImagePart{Dst: dst, Src: src})
-		locationX += assets.TextImageCharWidth
+	ur, ug, ub, ua := c.RGBA()
+	const max = math.MaxUint16
+	r := float64(ur) / max
+	g := float64(ug) / max
+	b := float64(ub) / max
+	a := float64(ua) / max
+	if 0 < a {
+		r /= a
+		g /= a
+		b /= a
 	}
-	cc := color.NRGBA64Model.Convert(c).(color.NRGBA64)
-	r := float64(cc.R) / math.MaxUint16
-	g := float64(cc.G) / math.MaxUint16
-	b := float64(cc.B) / math.MaxUint16
-	a := float64(cc.A) / math.MaxUint16
-	rt.DrawImage(d.textImage, &ebiten.DrawImageOptions{
-		Parts:  parts,
-		GeoM:   ebiten.TranslateGeo(float64(x+1), float64(y)),
-		ColorM: ebiten.ScaleColor(r, g, b, a),
-	})
+	op := &ebiten.DrawImageOptions{
+		ImageParts: debugPrintImageParts(str),
+	}
+	op.GeoM.Translate(float64(x+1), float64(y))
+	op.ColorM.Scale(r, g, b, a)
+	rt.DrawImage(d.textImage, op)
 }
 
 // DebugPrint prints the given text str on the given image r.
@@ -84,7 +103,7 @@ func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) error {
 			return err
 		}
 	}
-	d.drawText(r, str, 1, d.y+1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
-	d.drawText(r, str, 0, d.y, color.NRGBA{0xff, 0xff, 0xff, 0xff})
+	d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})
 	return nil
 }

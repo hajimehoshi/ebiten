@@ -169,10 +169,10 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // After determining parts to draw, this applies the geometry matrix and the color matrix.
 //
 // Here are the default values:
-//     Parts:  (0, 0) - (source width, source height) to (0, 0) - (source width, source height)
-//             (i.e. the whole source image)
-//     GeoM:   Identity matrix
-//     ColorM: Identity matrix (that changes no colors)
+//     ImageParts: (0, 0) - (source width, source height) to (0, 0) - (source width, source height)
+//                 (i.e. the whole source image)
+//     GeoM:       Identity matrix
+//     ColorM:     Identity matrix (that changes no colors)
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return i.drawImage(image.inner, options)
 }
