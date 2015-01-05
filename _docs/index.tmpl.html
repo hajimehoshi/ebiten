@@ -19,6 +19,12 @@ table.examples td.code pre {
   height: 240px;
   overflow: auto;
 }
+table.examples iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
 </style>
 <h1>Ebiten (海老天)</h1>
 <p>v{{.StableVersion}}</p>
@@ -49,7 +55,11 @@ table.examples td.code pre {
     <td class="code"><pre><code>// <b>{{.Name}}</b>
 
 {{.Source}}</code></pre></td>
-    <td><img src="{{.Name}}.gif" width="{{.Width}}" height="{{.Height}}"></td>
+    {{if ne .Name "blocks"}}
+    <td><iframe src="example/{{.Name}}.html" width="{{.Width}}" height="{{.Height}}"></iframe></td>
+    {{else}}
+    <td>(TODO: Implement link)</td>
+    {{end}}
   </tr>
   {{end}}
 </table>

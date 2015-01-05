@@ -28,11 +28,6 @@ import (
 	"strings"
 )
 
-const (
-	outputPath   = "public/index.html"
-	templatePath = "index.tmpl.html"
-)
-
 var license = ""
 
 func init() {
@@ -110,10 +105,23 @@ func versions() string {
 	return fmt.Sprintf("v%s (dev: v%s)", stableVersion, devVersion)
 }
 
-func main() {
-	f, err := os.Create(outputPath)
+var examples = []example{
+	{Name: "blocks"},
+	{Name: "hue"},
+	{Name: "mosaic"},
+	{Name: "perspective"},
+	{Name: "rotate"},
+}
+
+func clear() error {
+	// TODO: favicon?
+	return nil
+}
+
+func outputMain() error {
+	f, err := os.Create("public/index.html")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer f.Close()
 
@@ -121,26 +129,71 @@ func main() {
 		"comment":  comment,
 		"safeHTML": safeHTML,
 	}
+	const templatePath = "index.tmpl.html"
 	name := filepath.Base(templatePath)
 	t, err := template.New(name).Funcs(funcs).ParseFiles(templatePath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	examples := []example{
-		{Name: "blocks"},
-		{Name: "hue"},
-		{Name: "mosaic"},
-		{Name: "perspective"},
-		{Name: "rotate"},
-	}
 	data := map[string]interface{}{
 		"License":       license,
 		"StableVersion": stableVersion,
 		"DevVersion":    devVersion,
 		"Examples":      examples,
 	}
+	return t.Funcs(funcs).Execute(f, data)
+}
+
+func outputExample(e *example) error {
+	const dir = "public/example"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	f, err := os.Create(filepath.Join(dir, e.Name+".html"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	funcs := template.FuncMap{
+		"comment":  comment,
+		"safeHTML": safeHTML,
+	}
+	const templatePath = "example.tmpl.html"
+	name := filepath.Base(templatePath)
+	t, err := template.New(name).Funcs(funcs).ParseFiles(templatePath)
+	if err != nil {
+		return err
+	}
+
+	data := map[string]interface{}{
+		"License": license,
+		"Example": e,
+	}
 	if err := t.Funcs(funcs).Execute(f, data); err != nil {
+		return err
+	}
+
+	out := filepath.Join(dir, e.Name+".js")
+	path := "github.com/hajimehoshi/ebiten/example/" + e.Name
+	if err := exec.Command("gopherjs", "build", "-m", "-o", out, path).Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	if err := clear(); err != nil {
 		log.Fatal(err)
+	}
+	if err := outputMain(); err != nil {
+		log.Fatal(err)
+	}
+	for _, e := range examples {
+		if err := outputExample(&e); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

@@ -67,7 +67,7 @@ Then, open ``localhost:8000`` on your browser.
 
 ## Versioning
 
-* We obey [Semantic Versioning](http://semver.org/) basically
+* We obey [Semantic Versioning](http://semver.org/) basically.
 
 ## License
 

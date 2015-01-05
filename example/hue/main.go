@@ -50,7 +50,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Hue (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Hue (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

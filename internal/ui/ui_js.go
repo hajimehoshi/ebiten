@@ -62,11 +62,15 @@ func init() {
 
 	htmlStyle := doc.Get("documentElement").Get("style")
 	htmlStyle.Set("height", "100%")
+	htmlStyle.Set("margin", "0")
+	htmlStyle.Set("padding", "0")
 
 	bodyStyle := doc.Get("body").Get("style")
 	bodyStyle.Set("backgroundColor", "#000")
 	bodyStyle.Set("position", "relative")
 	bodyStyle.Set("height", "100%")
+	bodyStyle.Set("margin", "0")
+	bodyStyle.Set("padding", "0")
 
 	canvasStyle := canvas.Get("style")
 	canvasStyle.Set("position", "absolute")
@@ -102,7 +106,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	canvas.Set("width", width*scale)
 	canvas.Set("height", height*scale)
 	canvasStyle := canvas.Get("style")
-	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(width*scale/2)+"px)")
-	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(height*scale/2)+"px)")
+	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(width*scale/2)+"px)")
+	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(height*scale/2)+"px)")
 	return scale, nil
 }
