@@ -216,7 +216,7 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-// Deprecated: Use ImageParts instead.
+// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
 type ImagePart struct {
 	Dst image.Rectangle
 	Src image.Rectangle
@@ -235,6 +235,6 @@ type DrawImageOptions struct {
 	GeoM       GeoM
 	ColorM     ColorM
 
-	// Deprecated: Use ImageParts instead.
+	// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
 	Parts []ImagePart
 }
