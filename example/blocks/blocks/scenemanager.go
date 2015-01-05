@@ -87,9 +87,9 @@ func (s *SceneManager) Draw(r *ebiten.Image) error {
 	}
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
-	return r.DrawImage(transitionTo, &ebiten.DrawImageOptions{
-		ColorM: ebiten.ScaleColor(1, 1, 1, alpha),
-	})
+	op := &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(1, 1, 1, alpha)
+	return r.DrawImage(transitionTo, op)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {
