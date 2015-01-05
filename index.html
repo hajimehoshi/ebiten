@@ -34,6 +34,12 @@ table.examples td.code pre {
   height: 240px;
   overflow: auto;
 }
+table.examples iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
 </style>
 <h1>Ebiten (海老天)</h1>
 <p>v1.1.0-alpha</p>
@@ -64,7 +70,9 @@ table.examples td.code pre {
     <td class="code"><pre><code>// <b>blocks</b>
 
 // Please read example/blocks/main.go and example/blocks/blocks/*.go</code></pre></td>
-    <td><img src="blocks.gif" width="256" height="240"></td>
+    
+    <td>(TODO: Implement link)</td>
+    
   </tr>
   
   <tr>
@@ -108,12 +116,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Hue (Ebiten Demo)&#34;); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Hue (Ebiten Demo)&#34;); err != nil {
 		log.Fatal(err)
 	}
 }
 </code></pre></td>
-    <td><img src="hue.gif" width="320" height="240"></td>
+    
+    <td><iframe src="example/hue.html" width="320" height="240"></iframe></td>
+    
   </tr>
   
   <tr>
@@ -161,12 +171,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Mosaic (Ebiten Demo)&#34;); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Mosaic (Ebiten Demo)&#34;); err != nil {
 		log.Fatal(err)
 	}
 }
 </code></pre></td>
-    <td><img src="mosaic.gif" width="320" height="240"></td>
+    
+    <td><iframe src="example/mosaic.html" width="320" height="240"></iframe></td>
+    
   </tr>
   
   <tr>
@@ -229,12 +241,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Perspective (Ebiten Demo)&#34;); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Perspective (Ebiten Demo)&#34;); err != nil {
 		log.Fatal(err)
 	}
 }
 </code></pre></td>
-    <td><img src="perspective.gif" width="320" height="240"></td>
+    
+    <td><iframe src="example/perspective.html" width="320" height="240"></iframe></td>
+    
   </tr>
   
   <tr>
@@ -279,12 +293,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Rotate (Ebiten Demo)&#34;); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Rotate (Ebiten Demo)&#34;); err != nil {
 		log.Fatal(err)
 	}
 }
 </code></pre></td>
-    <td><img src="rotate.gif" width="320" height="240"></td>
+    
+    <td><iframe src="example/rotate.html" width="320" height="240"></iframe></td>
+    
   </tr>
   
 </table>
