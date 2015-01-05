@@ -65,6 +65,12 @@ table.examples td.code pre {
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
 :; go run rotate/main.go</code></pre>
 
+<h2>Execute the example on your browser</h2>
+<pre><code>:; go get github.com/gopherjs/gopherjs
+:; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go</code></pre>
+<p>Then, open <code>localhost:8000</code> on your browser.</p>
+<p><code>localhost:8000/?EXAMPLE_NAME</code> shows other examples (e.g. <code>localhost:8000/?rotate</code>).</p>
+
 <h2>License</h2>
 <h3>Ebiten</h3>
 <pre>{{.License}}</pre>

@@ -41,14 +41,25 @@ If you want to use GopherJS, execute this:
 ## Execute the example
 
 ```
-:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
-:; go run rotate/main.go
+:; cd $GOPATH/src/github.com/hajimehoshi/ebiten/example
+:; go run blocks/main.go
 ```
+
+## Execute the example on your browser
+
+```
+:; go get github.com/gopherjs/gopherjs
+:; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go
+```
+
+Then, open ``localhost:8000`` on your browser.
+
+``localhost:8000/?EXAMPLE_NAME`` shows other examples (e.g. ``localhost:8000/?rotate``).
 
 ### Benchmark the example
 
 ```
-:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
+:; cd $GOPATH/src/github.com/hajimehoshi/ebiten/example
 :; go build -o=example blocks/main.go
 :; ./example -cpuprofile=cpu.out
 :; go tool pprof ./example cpu.out
