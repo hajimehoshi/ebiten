@@ -88,6 +88,10 @@ func (g *GeoM) Translate(tx, ty float64) {
 	g.es[1][2] += ty
 }
 
+func (g *GeoM) Rotate(theta float64) {
+	g.Concat(RotateGeo(theta))
+}
+
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
 	if !g.initialized {

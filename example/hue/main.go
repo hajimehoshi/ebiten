@@ -35,12 +35,10 @@ var (
 func update(screen *ebiten.Image) error {
 	count++
 	w, h := gophersImage.Size()
-	geo := ebiten.TranslateGeo(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
-	clr := ebiten.RotateHue(float64(count%360) * 2 * math.Pi / 360)
-	if err := screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{
-		GeoM:   geo,
-		ColorM: clr,
-	}); err != nil {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
+	op.ColorM.Concat(ebiten.RotateHue(float64(count%360) * 2 * math.Pi / 360))
+	if err := screen.DrawImage(gophersImage, op); err != nil {
 		return err
 	}
 	return nil

@@ -68,9 +68,8 @@ func (c *graphicsContext) postUpdate() error {
 	}
 
 	scale := float64(c.screenScale)
-	options := &DrawImageOptions{
-		GeoM: ScaleGeo(scale, scale),
-	}
+	options := &DrawImageOptions{}
+	options.GeoM.Scale(scale, scale)
 	if err := c.defaultR.drawImage(c.glContext, c.screen, options); err != nil {
 		return err
 	}

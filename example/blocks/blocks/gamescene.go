@@ -56,12 +56,11 @@ func init() {
 
 func drawRect(r *ebiten.Image, x, y, width, height int) error {
 	w, h := imageEmpty.Size()
-	geo := ebiten.ScaleGeo(float64(width)/float64(w), float64(height)/float64(h))
-	geo.Concat(ebiten.TranslateGeo(float64(x), float64(y)))
-	return r.DrawImage(imageEmpty, &ebiten.DrawImageOptions{
-		GeoM:   geo,
-		ColorM: ebiten.ScaleColor(0.0, 0.0, 0.0, 0.75),
-	})
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(width)/float64(w), float64(height)/float64(h))
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorM.Scale(0.0, 0.0, 0.0, 0.75)
+	return r.DrawImage(imageEmpty, op)
 }
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
@@ -109,28 +108,25 @@ func (s *GameScene) drawBackground(r *ebiten.Image) error {
 	}
 
 	w, h := imageGameBG.Size()
-	var geo ebiten.GeoM
-	geo.Translate(-float64(w)/2, -float64(h)/2)
 	scaleW := ScreenWidth / float64(w)
 	scaleH := ScreenHeight / float64(h)
 	scale := scaleW
 	if scale < scaleH {
 		scale = scaleH
 	}
-	geo.Scale(scale, scale)
-	geo.Translate(ScreenWidth/2, ScreenHeight/2)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Scale(scale, scale)
+	op.GeoM.Translate(ScreenWidth/2, ScreenHeight/2)
 
 	a := 0.7
 	m := ebiten.Monochrome()
 	m.Scale(a, a, a, a)
-	var clr ebiten.ColorM
-	clr.Scale(1-a, 1-a, 1-a, 1-a)
-	clr.Add(m)
-	clr.Translate(0.3, 0.3, 0.3, 0)
-	return r.DrawImage(imageGameBG, &ebiten.DrawImageOptions{
-		GeoM:   geo,
-		ColorM: clr,
-	})
+	op.ColorM.Scale(1-a, 1-a, 1-a, 1-a)
+	op.ColorM.Add(m)
+	op.ColorM.Translate(0.3, 0.3, 0.3, 0)
+	return r.DrawImage(imageGameBG, op)
 }
 
 const fieldWidth = blockWidth * fieldBlockNumX

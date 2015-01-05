@@ -34,12 +34,12 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
-	gophersRenderTarget.DrawImage(gophersImage, &ebiten.DrawImageOptions{
-		GeoM: ebiten.ScaleGeo(1.0/mosaicRatio, 1.0/mosaicRatio),
-	})
-	screen.DrawImage(gophersRenderTarget, &ebiten.DrawImageOptions{
-		GeoM: ebiten.ScaleGeo(mosaicRatio, mosaicRatio),
-	})
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
+	gophersRenderTarget.DrawImage(gophersImage, op)
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(mosaicRatio, mosaicRatio)
+	screen.DrawImage(gophersRenderTarget, op)
 	return nil
 }
 
