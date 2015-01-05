@@ -173,6 +173,9 @@ func (i *Image) Fill(clr color.Color) (err error) {
 //                 (i.e. the whole source image)
 //     GeoM:       Identity matrix
 //     ColorM:     Identity matrix (that changes no colors)
+//
+// Be careful that this method is potentially slow.
+// It would be better if you could call this method fewer times.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return i.drawImage(image.inner, options)
 }
