@@ -67,9 +67,10 @@ table.examples iframe {
 <h2>Install on Mac OS X</h2>
 <pre><code>:; brew install glew
 :; brew install glfw3 # or homebrew/versions/glfw3
-:; go get -u github.com/hajimehoshi/ebiten</code></pre>
-<p>If you want to use GopherJS, execute this:</p>
-<pre><code>:; go get -u -tag=js github.com/hajimehoshi/ebiten</code></pre>
+:; go get github.com/hajimehoshi/ebiten</code></pre>
+<p>If you want to run your game on a web browser, execute this:</p>
+<pre><code>:; go get github.com/gopherjs/gopherjs
+:; go get github.com/gopherjs/webgl</code></pre>
 
 <h2>Execute the example</h2>
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
@@ -77,16 +78,14 @@ table.examples iframe {
 
 <h2>Execute the example on a web browser</h2>
 <p>If you can the example screens above, Ebiten is working on your browser! Each example above works as an independent html in an iframe. If you want to execute the examples apart from this site, execute this:</p>
-<pre><code>:; go get github.com/gopherjs/gopherjs
-:; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go</code></pre>
+<pre><code>:; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go</code></pre>
 <p>Then, open <code>localhost:8000</code> on your browser.</p>
 <p><code>localhost:8000/?EXAMPLE_NAME</code> shows other examples (e.g. <code>localhost:8000/?rotate</code>).</p>
 <p>Of cource, you can execute gopherjs yourself. Please see <a href="http://gopherjs.org/">GopherJS site</a> for more detail.</p>
 
 <h2>Run your game on a web browser</h2>
 <p>Compile your game with GopherJS:</p>
-<pre><code>:; go get github.com/gopherjs/gopherjs
-:; gopherjs build -o yourgame.js path/to/yourgame</code></pre>
+<pre><code>:; gopherjs build -o yourgame.js path/to/yourgame</code></pre>
 <p>Then, open the below HTML on your HTTP server:</p>
 <pre><code>&lt;!DOCTYPE html&gt;
 &lt;script src="yourgame.js"&gt;&lt;/script&gt;</code></pre>
