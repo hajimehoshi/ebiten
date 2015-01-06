@@ -33,22 +33,3 @@ const (
 	MouseButtonMiddle
 	MouseButtonMax
 )
-
-type input struct {
-	keyPressed         [KeyMax]bool
-	mouseButtonPressed [MouseButtonMax]bool
-	cursorX            int
-	cursorY            int
-}
-
-func (i *input) isKeyPressed(key Key) bool {
-	return i.keyPressed[key]
-}
-
-func (i *input) isMouseButtonPressed(button MouseButton) bool {
-	return i.mouseButtonPressed[button]
-}
-
-func (i *input) cursorPosition() (x, y int) {
-	return i.cursorX, i.cursorY
-}

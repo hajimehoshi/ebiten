@@ -12,43 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
-
 package ui
 
-import (
-	glfw "github.com/go-gl/glfw3"
-	"math"
-)
-
-func IsKeyPressed(key Key) bool {
-	return current.input.isKeyPressed(key)
+type input struct {
+	keyPressed         [KeyMax]bool
+	mouseButtonPressed [MouseButtonMax]bool
+	cursorX            int
+	cursorY            int
 }
 
-func IsMouseButtonPressed(button MouseButton) bool {
-	return current.input.isMouseButtonPressed(button)
+func (i *input) isKeyPressed(key Key) bool {
+	return i.keyPressed[key]
 }
 
-func CursorPosition() (x, y int) {
-	return current.input.cursorPosition()
+func (i *input) isMouseButtonPressed(button MouseButton) bool {
+	return i.mouseButtonPressed[button]
 }
 
-var glfwKeyCodeToKey = map[glfw.Key]Key{
-	glfw.KeySpace: KeySpace,
-	glfw.KeyLeft:  KeyLeft,
-	glfw.KeyRight: KeyRight,
-	glfw.KeyUp:    KeyUp,
-	glfw.KeyDown:  KeyDown,
-}
-
-func (i *input) update(window *glfw.Window, scale int) {
-	for g, u := range glfwKeyCodeToKey {
-		i.keyPressed[u] = window.GetKey(g) == glfw.Press
-	}
-	for b := MouseButtonLeft; b < MouseButtonMax; b++ {
-		i.mouseButtonPressed[b] = window.GetMouseButton(glfw.MouseButton(b)) == glfw.Press
-	}
-	x, y := window.GetCursorPosition()
-	i.cursorX = int(math.Floor(x)) / scale
-	i.cursorY = int(math.Floor(y)) / scale
+func (i *input) cursorPosition() (x, y int) {
+	return i.cursorX, i.cursorY
 }
