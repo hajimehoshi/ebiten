@@ -17,6 +17,7 @@
 // Note:
 //   * Respect GLFW key names
 //   * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent.keyCode
+//   * It is best to replace keyCode with code, but many browsers don't implement it.
 
 package main
 
@@ -123,7 +124,7 @@ const uiKeysJSTmpl = `{{.License}}
 package ui
 
 var keyCodeToKey = map[int]Key{
-{{range $code, $name := .Keys}}{{$code}}: {{$name}},
+{{range $code, $name := .KeyCodeToName}}{{$code}}: {{$name}},
 {{end}}
 }
 `
@@ -162,10 +163,10 @@ func main() {
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		tmpl.Execute(f, map[string]interface{}{
-			"License":  license,
-			"Keys":     keyCodeToName,
-			"Codes":    codes,
-			"KeyNames": names,
+			"License":       license,
+			"KeyCodeToName": keyCodeToName,
+			"Codes":         codes,
+			"KeyNames":      names,
 		})
 	}
 }

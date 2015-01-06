@@ -34,7 +34,7 @@ var (
 	canvasRenderTarget *ebiten.Image
 )
 
-func Update(screen *ebiten.Image) error {
+func update(screen *ebiten.Image) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		count++
 	}
@@ -76,7 +76,7 @@ func main() {
 	}
 	canvasRenderTarget.Fill(color.White)
 
-	if err := ebiten.Run(Update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
