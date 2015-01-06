@@ -49,7 +49,7 @@ func diff(x, y uint8) uint8 {
 	return x - y
 }
 
-func TestPixels(t *testing.T) {
+func TestImagePixels(t *testing.T) {
 	eimg, img, err := openImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestPixels(t *testing.T) {
 	}
 }
 
-func TestComposition(t *testing.T) {
+func TestImageComposition(t *testing.T) {
 	img2Color := color.NRGBA{0x24, 0x3f, 0x6a, 0x88}
 	img3Color := color.NRGBA{0x85, 0xa3, 0x08, 0xd3}
 
@@ -131,6 +131,17 @@ func TestComposition(t *testing.T) {
 				t.Fatalf("img_1_23.At(%d, %d).A = 0; nothing is rendered?", i, j)
 			}
 		}
+	}
+}
+
+func TestImageSelf(t *testing.T) {
+	img, _, err := openImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img.DrawImage(img, nil); err == nil {
+		t.Fatalf("img.DrawImage(img, nil) doesn't return error; an error should be return")
 	}
 }
 

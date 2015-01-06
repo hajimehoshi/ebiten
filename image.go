@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"errors"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -177,6 +178,9 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // Be careful that this method is potentially slow.
 // It would be better if you could call this method fewer times.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
+	if i == image {
+		return errors.New("Image.DrawImage: image should be different from the receiver")
+	}
 	return i.drawImage(image.inner, options)
 }
 
