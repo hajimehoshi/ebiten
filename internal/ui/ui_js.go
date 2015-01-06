@@ -129,6 +129,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 		y -= rect.Get("top").Int()
 		currentInput.mouseMove(x/scale, y/scale)
 	})
+	canvas.Call("focus")
 
 	return scale, nil
 }
