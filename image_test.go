@@ -141,7 +141,7 @@ func TestImageSelf(t *testing.T) {
 		return
 	}
 	if err := img.DrawImage(img, nil); err == nil {
-		t.Fatalf("img.DrawImage(img, nil) doesn't return error; an error should be return")
+		t.Fatalf("img.DrawImage(img, nil) doesn't return error; an error should be returned")
 	}
 }
 
