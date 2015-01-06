@@ -16,14 +16,6 @@
 
 package ui
 
-var keyCodeToKey = map[int]Key{
-	32: KeySpace,
-	37: KeyLeft,
-	39: KeyRight,
-	38: KeyUp,
-	40: KeyDown,
-}
-
 var currentInput input
 
 func IsKeyPressed(key Key) bool {

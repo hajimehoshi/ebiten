@@ -33,14 +33,6 @@ func CursorPosition() (x, y int) {
 	return current.input.cursorPosition()
 }
 
-var glfwKeyCodeToKey = map[glfw.Key]Key{
-	glfw.KeySpace: KeySpace,
-	glfw.KeyLeft:  KeyLeft,
-	glfw.KeyRight: KeyRight,
-	glfw.KeyUp:    KeyUp,
-	glfw.KeyDown:  KeyDown,
-}
-
 func (i *input) update(window *glfw.Window, scale int) {
 	for g, u := range glfwKeyCodeToKey {
 		i.keyPressed[u] = window.GetKey(g) == glfw.Press

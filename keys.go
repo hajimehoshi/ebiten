@@ -21,10 +21,6 @@ import (
 // A Key represents a keyboard key.
 type Key int
 
-// TODO: Add more keys.
-
-// TODO: Generate this automatically.
-
 // Keys
 const (
 	KeyUp    = Key(ui.KeyUp)
