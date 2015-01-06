@@ -98,6 +98,7 @@ func (e *example) Source() string {
 		panic(err)
 	}
 	str := regexp.MustCompile("(?s)^.*?\n\n").ReplaceAllString(string(b), "")
+	str = strings.Replace(str, "\t", "    ", -1)
 	return str
 }
 
