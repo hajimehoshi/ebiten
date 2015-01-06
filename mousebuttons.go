@@ -26,5 +26,4 @@ const (
 	MouseButtonLeft   = MouseButton(ui.MouseButtonLeft)
 	MouseButtonRight  = MouseButton(ui.MouseButtonRight)
 	MouseButtonMiddle = MouseButton(ui.MouseButtonMiddle)
-	MouseButtonMax    = MouseButton(ui.MouseButtonMax)
 )

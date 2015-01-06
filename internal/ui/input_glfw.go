@@ -37,7 +37,7 @@ func (i *input) update(window *glfw.Window, scale int) {
 	for g, e := range glfwKeyCodeToKey {
 		i.keyPressed[e] = window.GetKey(g) == glfw.Press
 	}
-	for b := MouseButtonLeft; b < MouseButtonMax; b++ {
+	for b := 0; b < len(i.mouseButtonPressed); b++ {
 		i.mouseButtonPressed[b] = window.GetMouseButton(glfw.MouseButton(b)) == glfw.Press
 	}
 	x, y := window.GetCursorPosition()

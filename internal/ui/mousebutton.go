@@ -20,5 +20,4 @@ const (
 	MouseButtonLeft MouseButton = iota
 	MouseButtonRight
 	MouseButtonMiddle
-	MouseButtonMax
 )
