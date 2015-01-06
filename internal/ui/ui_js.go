@@ -71,6 +71,9 @@ func init() {
 	bodyStyle.Set("height", "100%")
 	bodyStyle.Set("margin", "0")
 	bodyStyle.Set("padding", "0")
+	doc.Get("body").Set("onclick", func() {
+		canvas.Call("focus")
+	})
 
 	canvasStyle := canvas.Get("style")
 	canvasStyle.Set("position", "absolute")
