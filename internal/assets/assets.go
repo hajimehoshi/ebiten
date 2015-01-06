@@ -22,7 +22,7 @@ import (
 
 const FileNameText = "text.png"
 
-//go:generate go-bindata -nocompress -pkg=assets -nomemcopy text.png
+//go:generate go-bindata -nocompress -pkg=assets text.png
 //go:generate gofmt -w .
 
 const (
@@ -38,5 +38,8 @@ func TextImage() (image.Image, error) {
 		return nil, err
 	}
 	img, _, err := image.Decode(bytes.NewBuffer(b))
-	return img, err
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
 }
