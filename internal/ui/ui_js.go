@@ -89,27 +89,27 @@ func init() {
 	canvas.Get("style").Set("outline", "none")
 
 	canvas.Set("onkeydown", func(e js.Object) {
-		defer e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
+		button := e.Get("button").Int()
+		currentInput.mouseDown(button)
 	})
 	canvas.Set("onkeyup", func(e js.Object) {
-		defer e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
 		currentInput.keyUp(code)
+		button := e.Get("button").Int()
+		currentInput.mouseUp(button)
 	})
 	canvas.Set("onmousedown", func(e js.Object) {
-		defer e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.mouseDown(button)
 	})
 	canvas.Set("onmouseup", func(e js.Object) {
-		defer e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.mouseUp(button)
 	})
-	canvas.Set("oncontextmenu", func(e js.Object) {
-		defer e.Call("preventDefault")
+	canvas.Set("oncontextmenu", func(e js.Object) bool {
+		return false
 	})
 }
 
@@ -123,7 +123,6 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(height*scale/2)+"px)")
 
 	canvas.Set("onmousemove", func(e js.Object) {
-		defer e.Call("preventDefault")
 		rect := canvas.Call("getBoundingClientRect")
 		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 		x -= rect.Get("left").Int()
