@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2015 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,30 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package blocks
+package ebiten
 
-import (
-	"github.com/hajimehoshi/ebiten"
-)
-
-type Input struct {
-	states [256]int
-}
-
-func NewInput() *Input {
-	return &Input{}
-}
-
-func (i *Input) StateForKey(key ebiten.Key) int {
-	return i.states[key]
-}
-
-func (i *Input) Update() {
-	for key := range i.states {
-		if !ebiten.IsKeyPressed(ebiten.Key(key)) {
-			i.states[key] = 0
-			continue
-		}
-		i.states[key]++
-	}
-}
+//go:generate go run genkeys.go
+//go:generate gofmt -w .

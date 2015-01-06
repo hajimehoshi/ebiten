@@ -17,19 +17,72 @@ package ui
 type Key int
 
 const (
-	KeyUp Key = iota
+	Key0 Key = iota
+	Key1
+	Key2
+	Key3
+	Key4
+	Key5
+	Key6
+	Key7
+	Key8
+	Key9
+	KeyA
+	KeyB
+	KeyC
+	KeyCapsLock
+	KeyComma
+	KeyD
+	KeyDelete
 	KeyDown
+	KeyE
+	KeyEnd
+	KeyEnter
+	KeyEscape
+	KeyF
+	KeyF1
+	KeyF10
+	KeyF11
+	KeyF12
+	KeyF2
+	KeyF3
+	KeyF4
+	KeyF5
+	KeyF6
+	KeyF7
+	KeyF8
+	KeyF9
+	KeyG
+	KeyH
+	KeyHome
+	KeyI
+	KeyInsert
+	KeyJ
+	KeyK
+	KeyL
 	KeyLeft
+	KeyLeftAlt
+	KeyLeftControl
+	KeyLeftShift
+	KeyM
+	KeyN
+	KeyO
+	KeyP
+	KeyPageDown
+	KeyPageUp
+	KeyPeriod
+	KeyQ
+	KeyR
 	KeyRight
+	KeyS
 	KeySpace
-	KeyMax
-)
-
-type MouseButton int
-
-const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
-	MouseButtonMax
+	KeyT
+	KeyTab
+	KeyU
+	KeyUp
+	KeyV
+	KeyW
+	KeyX
+	KeyY
+	KeyZ
 )

@@ -15,8 +15,8 @@
 package ui
 
 type input struct {
-	keyPressed         [KeyMax]bool
-	mouseButtonPressed [MouseButtonMax]bool
+	keyPressed         [256]bool
+	mouseButtonPressed [256]bool
 	cursorX            int
 	cursorY            int
 }

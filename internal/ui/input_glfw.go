@@ -34,8 +34,8 @@ func CursorPosition() (x, y int) {
 }
 
 func (i *input) update(window *glfw.Window, scale int) {
-	for g, u := range glfwKeyCodeToKey {
-		i.keyPressed[u] = window.GetKey(g) == glfw.Press
+	for g, e := range glfwKeyCodeToKey {
+		i.keyPressed[e] = window.GetKey(g) == glfw.Press
 	}
 	for b := MouseButtonLeft; b < MouseButtonMax; b++ {
 		i.mouseButtonPressed[b] = window.GetMouseButton(glfw.MouseButton(b)) == glfw.Press
