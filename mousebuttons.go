@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2015 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,15 +18,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-// A Key represents a keyboard key.
-type Key int
+// A MouseButton represents a mouse button.
+type MouseButton int
 
-// Keys
+// MouseButtons
 const (
-	KeyUp    = Key(ui.KeyUp)
-	KeyDown  = Key(ui.KeyDown)
-	KeyLeft  = Key(ui.KeyLeft)
-	KeyRight = Key(ui.KeyRight)
-	KeySpace = Key(ui.KeySpace)
-	KeyMax   = Key(ui.KeyMax)
+	MouseButtonLeft   = MouseButton(ui.MouseButtonLeft)
+	MouseButtonRight  = MouseButton(ui.MouseButtonRight)
+	MouseButtonMiddle = MouseButton(ui.MouseButtonMiddle)
+	MouseButtonMax    = MouseButton(ui.MouseButtonMax)
 )
