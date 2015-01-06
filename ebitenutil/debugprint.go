@@ -59,8 +59,8 @@ type debugPrintState struct {
 
 var defaultDebugPrintState = &debugPrintState{}
 
-func DebugPrint(r *ebiten.Image, str string) {
-	defaultDebugPrintState.DebugPrint(r, str)
+func DebugPrint(r *ebiten.Image, str string) error {
+	return defaultDebugPrintState.DebugPrint(r, str)
 }
 
 func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {

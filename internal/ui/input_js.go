@@ -47,3 +47,31 @@ func (i *input) keyUp(key int) {
 	k := keyCodeToKey[key]
 	i.keyPressed[k] = false
 }
+
+func (i *input) mouseDown(button int) {
+	p := &i.mouseButtonPressed
+	switch button {
+	case 0:
+		p[MouseButtonLeft] = true
+	case 1:
+		p[MouseButtonMiddle] = true
+	case 2:
+		p[MouseButtonRight] = true
+	}
+}
+
+func (i *input) mouseUp(button int) {
+	p := &i.mouseButtonPressed
+	switch button {
+	case 0:
+		p[MouseButtonLeft] = false
+	case 1:
+		p[MouseButtonMiddle] = false
+	case 2:
+		p[MouseButtonRight] = false
+	}
+}
+
+func (i *input) mouseMove(x, y int) {
+	i.cursorX, i.cursorY = x, y
+}

@@ -47,12 +47,18 @@ func Update(screen *ebiten.Image) error {
 		op.ColorM.Scale(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		op.ColorM.Concat(ebiten.RotateHue(theta))
-		canvasRenderTarget.DrawImage(brushRenderTarget, op)
+		if err := canvasRenderTarget.DrawImage(brushRenderTarget, op); err != nil {
+			return err
+		}
 	}
 
-	screen.DrawImage(canvasRenderTarget, nil)
+	if err := screen.DrawImage(canvasRenderTarget, nil); err != nil {
+		return err
+	}
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("(%d, %d)", mx, my))
+	if err := ebitenutil.DebugPrint(screen, fmt.Sprintf("(%d, %d)", mx, my)); err != nil {
+		return err
+	}
 	return nil
 }
 
