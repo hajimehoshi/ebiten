@@ -7,23 +7,31 @@
 body {
   font-family: sans-serif;
 }
-table.examples td {
-  vertical-align: top;
+table.examples {
+  border-collapse: separate;
+  border-spacing: 0 1em;
 }
-table.examples td.code {
-  border-color: #999;
-  border-style: solid;
-  border-width: 1px;
+table.examples td {
+  padding: 0;
+  vertical-align: top;
 }
 table.examples td.code pre {
   height: 240px;
+  margin: 0;
   overflow: auto;
 }
-table.examples iframe {
+table.examples td.screen {
+  padding-left: 1em;
+}
+table.examples iframe, table.examples img {
   border-color: #999;
   border-style: solid;
   border-width: 1px;
   overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
 }
 </style>
 <h1>Ebiten (海老天)</h1>
@@ -56,9 +64,9 @@ table.examples iframe {
 
 {{.Source}}</code></pre></td>
     {{if eq .Name "blocks"}}
-    <td>Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="{{.Width}}" height="{{.Height}}"></a></td>
+    <td class="screen">Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="{{.Width}}" height="{{.Height}}"></a></td>
     {{else}}
-    <td><iframe src="example/{{.Name}}.html" width="{{.Width}}" height="{{.Height}}"></iframe></td>
+    <td class="screen"><iframe src="example/{{.Name}}.html" width="{{.Width}}" height="{{.Height}}"></iframe></td>
     {{end}}
   </tr>
   {{end}}

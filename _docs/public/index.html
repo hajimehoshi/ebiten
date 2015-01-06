@@ -22,23 +22,31 @@ limitations under the License.
 body {
   font-family: sans-serif;
 }
-table.examples td {
-  vertical-align: top;
+table.examples {
+  border-collapse: separate;
+  border-spacing: 0 1em;
 }
-table.examples td.code {
-  border-color: #999;
-  border-style: solid;
-  border-width: 1px;
+table.examples td {
+  padding: 0;
+  vertical-align: top;
 }
 table.examples td.code pre {
   height: 240px;
+  margin: 0;
   overflow: auto;
 }
-table.examples iframe {
+table.examples td.screen {
+  padding-left: 1em;
+}
+table.examples iframe, table.examples img {
   border-color: #999;
   border-style: solid;
   border-width: 1px;
   overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
 }
 </style>
 <h1>Ebiten (海老天)</h1>
@@ -71,7 +79,7 @@ table.examples iframe {
 
 // Please read example/blocks/main.go and example/blocks/blocks/*.go</code></pre></td>
     
-    <td>Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="256" height="240"></a></td>
+    <td class="screen">Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="256" height="240"></a></td>
     
   </tr>
   
@@ -122,7 +130,7 @@ func main() {
 }
 </code></pre></td>
     
-    <td><iframe src="example/hue.html" width="320" height="240"></iframe></td>
+    <td class="screen"><iframe src="example/hue.html" width="320" height="240"></iframe></td>
     
   </tr>
   
@@ -177,7 +185,7 @@ func main() {
 }
 </code></pre></td>
     
-    <td><iframe src="example/mosaic.html" width="320" height="240"></iframe></td>
+    <td class="screen"><iframe src="example/mosaic.html" width="320" height="240"></iframe></td>
     
   </tr>
   
@@ -247,7 +255,7 @@ func main() {
 }
 </code></pre></td>
     
-    <td><iframe src="example/perspective.html" width="320" height="240"></iframe></td>
+    <td class="screen"><iframe src="example/perspective.html" width="320" height="240"></iframe></td>
     
   </tr>
   
@@ -299,7 +307,7 @@ func main() {
 }
 </code></pre></td>
     
-    <td><iframe src="example/rotate.html" width="320" height="240"></iframe></td>
+    <td class="screen"><iframe src="example/rotate.html" width="320" height="240"></iframe></td>
     
   </tr>
   
