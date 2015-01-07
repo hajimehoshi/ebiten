@@ -31,12 +31,18 @@ func CursorPosition() (x, y int) {
 }
 
 func (i *input) keyDown(key int) {
-	k := keyCodeToKey[key]
+	k, ok := keyCodeToKey[key]
+	if !ok {
+		return
+	}
 	i.keyPressed[k] = true
 }
 
 func (i *input) keyUp(key int) {
-	k := keyCodeToKey[key]
+	k, ok := keyCodeToKey[key]
+	if !ok {
+		return
+	}
 	i.keyPressed[k] = false
 }
 
