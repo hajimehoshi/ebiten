@@ -17,6 +17,7 @@
 package ui
 
 var keyCodeToKey = map[int]Key{
+	8:   KeyBackspace,
 	9:   KeyTab,
 	13:  KeyEnter,
 	16:  KeyLeftShift,

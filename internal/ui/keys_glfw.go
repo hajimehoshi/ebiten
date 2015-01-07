@@ -57,6 +57,7 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 	glfw.KeyX:           KeyX,
 	glfw.KeyY:           KeyY,
 	glfw.KeyZ:           KeyZ,
+	glfw.KeyBackspace:   KeyBackspace,
 	glfw.KeyCapsLock:    KeyCapsLock,
 	glfw.KeyComma:       KeyComma,
 	glfw.KeyDelete:      KeyDelete,

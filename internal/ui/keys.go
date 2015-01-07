@@ -53,6 +53,7 @@ const (
 	KeyX
 	KeyY
 	KeyZ
+	KeyBackspace
 	KeyCapsLock
 	KeyComma
 	KeyDelete

@@ -55,6 +55,8 @@ func init() {
 		0x27: "Right",
 		0x26: "Up",
 		0x1B: "Escape",
+		// The keys not listed in the Mozilla site:
+		0x08: "Backspace",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {

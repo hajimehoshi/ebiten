@@ -59,6 +59,7 @@ const (
 	KeyX           = Key(ui.KeyX)
 	KeyY           = Key(ui.KeyY)
 	KeyZ           = Key(ui.KeyZ)
+	KeyBackspace   = Key(ui.KeyBackspace)
 	KeyCapsLock    = Key(ui.KeyCapsLock)
 	KeyComma       = Key(ui.KeyComma)
 	KeyDelete      = Key(ui.KeyDelete)
