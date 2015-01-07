@@ -20,6 +20,8 @@ import (
 	"time"
 )
 
+var fps = 0
+
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -44,9 +46,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		return err
 	}
 
+	frames := 0
+	t0 := time.Now().UnixNano()
+	tt0 := t0
 	for {
-		// To avoid busy loop when the window is inactive, wait 1/120 [sec] at least.
-		ch := time.After(1 * time.Second / 120)
 		ui.DoEvents()
 		if ui.IsClosed() {
 			return nil
@@ -70,6 +73,21 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if err != nil {
 			return err
 		}
-		<-ch
+
+		// Wait if the frame is too fast.
+		now := time.Now().UnixNano()
+		d := time.Duration(now - t0)
+		if d < time.Second/90 {
+			time.Sleep(time.Second/60 - d)
+		}
+		t0 = now
+
+		// Calc the current FPS.
+		frames++
+		if time.Second <= time.Duration(now-tt0) {
+			fps = frames
+			tt0 = now
+			frames = 0
+		}
 	}
 }
