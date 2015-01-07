@@ -134,14 +134,30 @@ func init() {
 	})
 }
 
+func devicePixelRatio() int {
+	// TODO: What if ratio is not an integer but a float?
+	ratio := js.Global.Get("window").Get("devicePixelRatio").Int()
+	if ratio == 0 {
+		ratio = 1
+	}
+	return ratio
+}
+
 func Start(width, height, scale int, title string) (actualScale int, err error) {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
-	canvas.Set("width", width*scale)
-	canvas.Set("height", height*scale)
+	// for retina
+	actualScale = scale * devicePixelRatio()
+	canvas.Set("width", width*actualScale)
+	canvas.Set("height", height*actualScale)
 	canvasStyle := canvas.Get("style")
-	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(width*scale/2)+"px)")
-	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(height*scale/2)+"px)")
+
+	cssWidth := width * scale
+	cssHeight := height * scale
+	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
+	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
+	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(cssWidth/2)+"px)")
+	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
 
 	canvas.Set("onmousemove", func(e js.Object) {
 		rect := canvas.Call("getBoundingClientRect")
@@ -152,5 +168,5 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	})
 	canvas.Call("focus")
 
-	return scale, nil
+	return actualScale, nil
 }
