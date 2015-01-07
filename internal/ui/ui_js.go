@@ -21,7 +21,6 @@ import (
 	"github.com/gopherjs/webgl"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"strconv"
-	"time"
 )
 
 var canvas js.Object
@@ -32,7 +31,12 @@ func Use(f func(*opengl.Context)) {
 }
 
 func DoEvents() {
-	time.Sleep(0)
+	// TODO: requestAnimationFrame is not called when the window is not activated.
+	ch := make(chan struct{})
+	js.Global.Get("window").Call("requestAnimationFrame", func() {
+		close(ch)
+	})
+	<-ch
 }
 
 func Terminate() {
