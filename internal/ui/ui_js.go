@@ -31,10 +31,11 @@ var windowIsFocused = true
 func init() {
 	// TODO: Check IE
 	window := js.Global.Get("window")
-	window.Set("onfocus", func() {
+	// Get the top window in case that this window is in an iframe.
+	window.Get("top").Call("addEventListener", "focus", func() {
 		windowIsFocused = true
 	})
-	window.Set("onblur", func() {
+	window.Get("top").Call("addEventListener", "blur", func() {
 		windowIsFocused = false
 	})
 }
