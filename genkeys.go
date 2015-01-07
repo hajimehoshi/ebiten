@@ -35,38 +35,38 @@ var keyCodeToName map[int]string
 
 func init() {
 	keyCodeToName = map[int]string{
-		0xBC: "KeyComma",
-		0xBE: "KeyPeriod",
-		0x12: "KeyLeftAlt",
-		0x14: "KeyCapsLock",
-		0x11: "KeyLeftControl",
-		0x10: "KeyLeftShift",
-		0x0D: "KeyEnter",
-		0x20: "KeySpace",
-		0x09: "KeyTab",
-		0x2E: "KeyDelete",
-		0x23: "KeyEnd",
-		0x24: "KeyHome",
-		0x2D: "KeyInsert",
-		0x22: "KeyPageDown",
-		0x21: "KeyPageUp",
-		0x28: "KeyDown",
-		0x25: "KeyLeft",
-		0x27: "KeyRight",
-		0x26: "KeyUp",
-		0x1B: "KeyEscape",
+		0xBC: "Comma",
+		0xBE: "Period",
+		0x12: "LeftAlt",
+		0x14: "CapsLock",
+		0x11: "LeftControl",
+		0x10: "LeftShift",
+		0x0D: "Enter",
+		0x20: "Space",
+		0x09: "Tab",
+		0x2E: "Delete",
+		0x23: "End",
+		0x24: "Home",
+		0x2D: "Insert",
+		0x22: "PageDown",
+		0x21: "PageUp",
+		0x28: "Down",
+		0x25: "Left",
+		0x27: "Right",
+		0x26: "Up",
+		0x1B: "Escape",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		keyCodeToName[int(c)] = "Key" + string(c)
+		keyCodeToName[int(c)] = string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		keyCodeToName[int(c)] = "Key" + string(c)
+		keyCodeToName[int(c)] = string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
-		keyCodeToName[0x70+i-1] = "KeyF" + strconv.Itoa(i)
+		keyCodeToName[0x70+i-1] = "F" + strconv.Itoa(i)
 	}
 }
 
@@ -84,7 +84,7 @@ type Key int
 
 // Keys
 const (
-{{range $index, $key := .KeyNames}}{{$key}} = Key(ui.{{$key}})
+{{range $index, $name := .KeyNames}}Key{{$name}} = Key(ui.Key{{$name}})
 {{end}}
 )
 `
@@ -96,7 +96,7 @@ package ui
 type Key int
 
 const (
-{{range $index, $key := .KeyNames}}{{$key}}{{if eq $index 0}} Key = iota{{end}}
+{{range $index, $name := .KeyNames}}Key{{$name}}{{if eq $index 0}} Key = iota{{end}}
 {{end}}
 )
 `
@@ -112,7 +112,7 @@ import (
 )
 
 var glfwKeyCodeToKey = map[glfw.Key]Key{
-{{range $index, $key := .KeyNames}}glfw.{{$key}}: {{$key}},
+{{range $index, $name := .KeyNames}}glfw.Key{{$name}}: Key{{$name}},
 {{end}}
 }
 `
@@ -124,10 +124,88 @@ const uiKeysJSTmpl = `{{.License}}
 package ui
 
 var keyCodeToKey = map[int]Key{
-{{range $code, $name := .KeyCodeToName}}{{$code}}: {{$name}},
+{{range $code, $name := .KeyCodeToName}}{{$code}}: Key{{$name}},
 {{end}}
 }
 `
+
+type KeyNames []string
+
+func (k KeyNames) digit(name string) int {
+	if len(name) != 1 {
+		return -1
+	}
+	c := name[0]
+	if c < '0' || '9' < c {
+		return -1
+	}
+	return int(c - '0')
+}
+
+func (k KeyNames) alphabet(name string) rune {
+	if len(name) != 1 {
+		return -1
+	}
+	c := rune(name[0])
+	if c < 'A' || 'Z' < c {
+		return -1
+	}
+	return c
+}
+
+func (k KeyNames) function(name string) int {
+	if len(name) < 2 {
+		return -1
+	}
+	if name[0] != 'F' {
+		return -1
+	}
+	i, err := strconv.Atoi(name[1:])
+	if err != nil {
+		return -1
+	}
+	return i
+}
+
+func (k KeyNames) Len() int {
+	return len(k)
+}
+
+func (k KeyNames) Less(i, j int) bool {
+	k0, k1 := k[i], k[j]
+	d0, d1 := k.digit(k0), k.digit(k1)
+	a0, a1 := k.alphabet(k0), k.alphabet(k1)
+	f0, f1 := k.function(k0), k.function(k1)
+	if d0 != -1 {
+		if d1 != -1 {
+			return d0 < d1
+		}
+		return true
+	}
+	if a0 != -1 {
+		if d1 != -1 {
+			return false
+		}
+		if a1 != -1 {
+			return a0 < a1
+		}
+		return true
+	}
+	if d1 != -1 {
+		return false
+	}
+	if a1 != -1 {
+		return false
+	}
+	if f0 != -1 && f1 != -1 {
+		return f0 < f1
+	}
+	return k0 < k1
+}
+
+func (k KeyNames) Swap(i, j int) {
+	k[i], k[j] = k[j], k[i]
+}
 
 func main() {
 	l, err := ioutil.ReadFile("license.txt")
@@ -143,7 +221,7 @@ func main() {
 		names = append(names, name)
 		codes = append(codes, code)
 	}
-	sort.Strings(names)
+	sort.Sort(KeyNames(names))
 	sort.Ints(codes)
 
 	for path, tmpl := range map[string]string{
