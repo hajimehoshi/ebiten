@@ -19,6 +19,7 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -61,6 +62,11 @@ func update(screen *ebiten.Image) error {
 	for c := 'A'; c <= 'Z'; c++ {
 		if ebiten.IsKeyPressed(ebiten.Key(c) - 'A' + ebiten.KeyA) {
 			pressed = append(pressed, string(c))
+		}
+	}
+	for i := 1; i <= 12; i++ {
+		if ebiten.IsKeyPressed(ebiten.Key(i) + ebiten.KeyF1 - 1) {
+			pressed = append(pressed, "F"+strconv.Itoa(i))
 		}
 	}
 	for key, name := range keyNames {
