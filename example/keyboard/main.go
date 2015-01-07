@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"log"
-	"strconv"
+	"sort"
 	"strings"
 )
 
@@ -27,27 +27,48 @@ const (
 	screenHeight = 240
 )
 
-// TODO: Add Key.String()
+// TODO: Add Key.String() by stringer
 
-var keys = []ebiten.Key{
-	ebiten.Key0, ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4,
-	ebiten.Key5, ebiten.Key6, ebiten.Key7, ebiten.Key8, ebiten.Key9,
-	ebiten.KeyA, ebiten.KeyB, ebiten.KeyC, ebiten.KeyD, ebiten.KeyE,
-	ebiten.KeyF, ebiten.KeyG, ebiten.KeyH, ebiten.KeyI, ebiten.KeyJ,
-	ebiten.KeyK, ebiten.KeyL, ebiten.KeyM, ebiten.KeyN, ebiten.KeyO,
-	ebiten.KeyP, ebiten.KeyQ, ebiten.KeyR, ebiten.KeyS, ebiten.KeyT,
-	ebiten.KeyU, ebiten.KeyV, ebiten.KeyW, ebiten.KeyX, ebiten.KeyY,
-	ebiten.KeyZ,
+var keyNames = map[ebiten.Key]string{
+	ebiten.KeyComma:  "','",
+	ebiten.KeyDelete: "Delete",
+	ebiten.KeyEnter:  "Enter",
+	ebiten.KeyEscape: "Escape",
+	ebiten.KeyPeriod: "'.'",
+	ebiten.KeySpace:  "Space",
+	ebiten.KeyTab:    "Tab",
+
+	// Arrows
+	ebiten.KeyDown:  "Down",
+	ebiten.KeyLeft:  "Left",
+	ebiten.KeyRight: "Right",
+	ebiten.KeyUp:    "Up",
+
+	// Mods
+	ebiten.KeyLeftShift:   "Shift",
+	ebiten.KeyLeftControl: "Ctrl",
+	ebiten.KeyLeftAlt:     "Alt",
 }
 
 func update(screen *ebiten.Image) error {
 	pressed := []string{}
-	for _, key := range keys {
-		if ebiten.IsKeyPressed(key) {
-			pressed = append(pressed, strconv.Itoa(int(key)))
+	for i := 0; i <= 9; i++ {
+		if ebiten.IsKeyPressed(ebiten.Key(i) + ebiten.Key0) {
+			pressed = append(pressed, string(i+'0'))
 		}
 	}
-	str := "Pressed Keys: " + strings.Join(pressed, ",")
+	for c := 'A'; c <= 'Z'; c++ {
+		if ebiten.IsKeyPressed(ebiten.Key(c) - 'A' + ebiten.KeyA) {
+			pressed = append(pressed, string(c))
+		}
+	}
+	for key, name := range keyNames {
+		if ebiten.IsKeyPressed(key) {
+			pressed = append(pressed, name)
+		}
+	}
+	sort.Strings(pressed)
+	str := "Pressed Keys: " + strings.Join(pressed, ", ")
 	ebitenutil.DebugPrint(screen, str)
 	return nil
 }
