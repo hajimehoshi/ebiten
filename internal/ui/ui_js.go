@@ -109,21 +109,25 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
-	canvas.Set("onkeydown", func(e js.Object) {
+	canvas.Set("onkeydown", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
+		return false
 	})
-	canvas.Set("onkeyup", func(e js.Object) {
+	canvas.Set("onkeyup", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		currentInput.keyUp(code)
+		return false
 	})
-	canvas.Set("onmousedown", func(e js.Object) {
+	canvas.Set("onmousedown", func(e js.Object) bool {
 		button := e.Get("button").Int()
 		currentInput.mouseDown(button)
+		return false
 	})
-	canvas.Set("onmouseup", func(e js.Object) {
+	canvas.Set("onmouseup", func(e js.Object) bool {
 		button := e.Get("button").Int()
 		currentInput.mouseUp(button)
+		return false
 	})
 	canvas.Set("oncontextmenu", func(e js.Object) bool {
 		return false
