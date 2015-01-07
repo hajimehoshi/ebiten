@@ -5,7 +5,7 @@
 * A simple SNES-like 2D game library in Go
 * Works on
   * Web browsers (powered by [GopherJS](http://gopherjs.org/))
-    * Support browsers: Chrome, Firefox, Safari on desktops
+    * Supported browsers: Chrome, Firefox, Safari on desktops
   * Mac OS X
   * Linux (maybe)
   * Windows (possibly)
