@@ -30,13 +30,14 @@ const (
 // TODO: Add Key.String() by stringer
 
 var keyNames = map[ebiten.Key]string{
-	ebiten.KeyComma:  "','",
-	ebiten.KeyDelete: "Delete",
-	ebiten.KeyEnter:  "Enter",
-	ebiten.KeyEscape: "Escape",
-	ebiten.KeyPeriod: "'.'",
-	ebiten.KeySpace:  "Space",
-	ebiten.KeyTab:    "Tab",
+	ebiten.KeyBackspace: "Backspace",
+	ebiten.KeyComma:     "','",
+	ebiten.KeyDelete:    "Delete",
+	ebiten.KeyEnter:     "Enter",
+	ebiten.KeyEscape:    "Escape",
+	ebiten.KeyPeriod:    "'.'",
+	ebiten.KeySpace:     "Space",
+	ebiten.KeyTab:       "Tab",
 
 	// Arrows
 	ebiten.KeyDown:  "Down",
