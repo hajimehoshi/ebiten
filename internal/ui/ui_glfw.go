@@ -21,6 +21,7 @@ import (
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"runtime"
+	"time"
 )
 
 var current *ui
@@ -136,9 +137,17 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	return actualScale, nil
 }
 
-func (u *ui) doEvents() {
+func (u *ui) pollEvents() {
 	glfw.PollEvents()
 	u.input.update(u.window, u.scale)
+}
+
+func (u *ui) doEvents() {
+	u.pollEvents()
+	for current.window.GetAttribute(glfw.Focused) == 0 {
+		time.Sleep(time.Second / 60)
+		u.pollEvents()
+	}
 }
 
 func (u *ui) terminate() {

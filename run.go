@@ -47,8 +47,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}
 
 	frames := 0
-	t0 := time.Now().UnixNano()
-	tt0 := t0
+	t := time.Now().UnixNano()
 	for {
 		ui.DoEvents()
 		if ui.IsClosed() {
@@ -74,19 +73,13 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			return err
 		}
 
-		// Wait if the frame is too fast.
-		now := time.Now().UnixNano()
-		d := time.Duration(now - t0)
-		if d < time.Second/90 {
-			time.Sleep(time.Second/60 - d)
-		}
-		t0 = now
-
 		// Calc the current FPS.
+		now := time.Now().UnixNano()
 		frames++
-		if time.Second <= time.Duration(now-tt0) {
-			fps = frames
-			tt0 = now
+		if time.Second <= time.Duration(now-t) {
+			fps = int(int64(frames) * int64(time.Second) / (now - t))
+			// TODO: How to show the current FPS?
+			t = now
 			frames = 0
 		}
 	}

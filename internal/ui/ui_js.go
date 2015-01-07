@@ -26,17 +26,36 @@ import (
 var canvas js.Object
 var context *opengl.Context
 
+var windowIsFocused = true
+
+func init() {
+	// TODO: Check IE
+	window := js.Global.Get("window")
+	window.Set("onfocus", func() {
+		windowIsFocused = true
+	})
+	window.Set("onblur", func() {
+		windowIsFocused = false
+	})
+}
+
 func Use(f func(*opengl.Context)) {
 	f(context)
 }
 
-func DoEvents() {
-	// TODO: requestAnimationFrame is not called when the window is not activated.
+func vsync() {
 	ch := make(chan struct{})
 	js.Global.Get("window").Call("requestAnimationFrame", func() {
 		close(ch)
 	})
 	<-ch
+}
+
+func DoEvents() {
+	vsync()
+	for !windowIsFocused {
+		vsync()
+	}
 }
 
 func Terminate() {
