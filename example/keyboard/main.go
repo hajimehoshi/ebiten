@@ -35,7 +35,7 @@ var keyNames = map[ebiten.Key]string{
 	ebiten.KeyComma:     "','",
 	ebiten.KeyDelete:    "Delete",
 	ebiten.KeyEnter:     "Enter",
-	ebiten.KeyEscape:    "Escape",
+	ebiten.KeyEscape:    "Esc",
 	ebiten.KeyPeriod:    "'.'",
 	ebiten.KeySpace:     "Space",
 	ebiten.KeyTab:       "Tab",
@@ -47,9 +47,9 @@ var keyNames = map[ebiten.Key]string{
 	ebiten.KeyUp:    "Up",
 
 	// Mods
-	ebiten.KeyLeftShift:   "Shift",
-	ebiten.KeyLeftControl: "Ctrl",
-	ebiten.KeyLeftAlt:     "Alt",
+	ebiten.KeyShift:   "Shift",
+	ebiten.KeyControl: "Ctrl",
+	ebiten.KeyAlt:     "Alt",
 }
 
 func update(screen *ebiten.Image) error {

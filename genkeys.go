@@ -37,10 +37,10 @@ func init() {
 	keyCodeToName = map[int]string{
 		0xBC: "Comma",
 		0xBE: "Period",
-		0x12: "LeftAlt",
+		0x12: "Alt",
 		0x14: "CapsLock",
-		0x11: "LeftControl",
-		0x10: "LeftShift",
+		0x11: "Control",
+		0x10: "Shift",
 		0x0D: "Enter",
 		0x20: "Space",
 		0x09: "Tab",
@@ -114,8 +114,14 @@ import (
 )
 
 var glfwKeyCodeToKey = map[glfw.Key]Key{
-{{range $index, $name := .KeyNames}}glfw.Key{{$name}}: Key{{$name}},
+{{range $index, $name := .KeyNamesWithoutMods}}glfw.Key{{$name}}: Key{{$name}},
 {{end}}
+	glfw.KeyLeftAlt:      KeyAlt,
+	glfw.KeyRightAlt:     KeyAlt,
+	glfw.KeyLeftControl:  KeyControl,
+	glfw.KeyRightControl: KeyControl,
+	glfw.KeyLeftShift:    KeyShift,
+	glfw.KeyRightShift:   KeyShift,
 }
 `
 
@@ -218,12 +224,17 @@ func main() {
 	license := "// " + strings.Join(lines[:len(lines)-1], "\n// ")
 
 	names := []string{}
+	namesWithoutMods := []string{}
 	codes := []int{}
 	for code, name := range keyCodeToName {
 		names = append(names, name)
 		codes = append(codes, code)
+		if name != "Alt" && name != "Control" && name != "Shift" {
+			namesWithoutMods = append(namesWithoutMods, name)
+		}
 	}
 	sort.Sort(KeyNames(names))
+	sort.Sort(KeyNames(namesWithoutMods))
 	sort.Ints(codes)
 
 	for path, tmpl := range map[string]string{
@@ -243,10 +254,11 @@ func main() {
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		tmpl.Execute(f, map[string]interface{}{
-			"License":       license,
-			"KeyCodeToName": keyCodeToName,
-			"Codes":         codes,
-			"KeyNames":      names,
+			"License":             license,
+			"KeyCodeToName":       keyCodeToName,
+			"Codes":               codes,
+			"KeyNames":            names,
+			"KeyNamesWithoutMods": namesWithoutMods,
 		})
 	}
 }

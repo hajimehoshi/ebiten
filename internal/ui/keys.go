@@ -53,9 +53,11 @@ const (
 	KeyX
 	KeyY
 	KeyZ
+	KeyAlt
 	KeyBackspace
 	KeyCapsLock
 	KeyComma
+	KeyControl
 	KeyDelete
 	KeyDown
 	KeyEnd
@@ -76,13 +78,11 @@ const (
 	KeyHome
 	KeyInsert
 	KeyLeft
-	KeyLeftAlt
-	KeyLeftControl
-	KeyLeftShift
 	KeyPageDown
 	KeyPageUp
 	KeyPeriod
 	KeyRight
+	KeyShift
 	KeySpace
 	KeyTab
 	KeyUp
