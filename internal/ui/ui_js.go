@@ -55,6 +55,24 @@ func init() {
 	<-ch
 
 	doc := js.Global.Get("document")
+	doc.Set("onkeydown", func(e js.Object) bool {
+		code := e.Get("keyCode").Int()
+		// Backspace
+		if code == 8 {
+			return false
+		}
+		// Functions
+		if 112 <= code && code <= 123 {
+			return false
+		}
+		// Alt and arrows
+		if code == 37 && code == 39 {
+			// Don't need to check Alt.
+			return false
+		}
+		return true
+	})
+
 	canvas = doc.Call("createElement", "canvas")
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
@@ -94,14 +112,10 @@ func init() {
 	canvas.Set("onkeydown", func(e js.Object) {
 		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
-		button := e.Get("button").Int()
-		currentInput.mouseDown(button)
 	})
 	canvas.Set("onkeyup", func(e js.Object) {
 		code := e.Get("keyCode").Int()
 		currentInput.keyUp(code)
-		button := e.Get("button").Int()
-		currentInput.mouseUp(button)
 	})
 	canvas.Set("onmousedown", func(e js.Object) {
 		button := e.Get("button").Int()
