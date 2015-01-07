@@ -274,8 +274,12 @@ func (s *GameScene) Update(state *GameState) error {
 		piece := s.currentPiece
 		x := s.currentPieceX
 		y := s.currentPieceY
-		if state.Input.StateForKey(ebiten.KeySpace) == 1 {
+		if state.Input.StateForKey(ebiten.KeySpace) == 1 || state.Input.StateForKey(ebiten.KeyX) == 1 {
 			s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
+			moved = angle != s.currentPieceAngle
+		}
+		if state.Input.StateForKey(ebiten.KeyZ) == 1 {
+			s.currentPieceAngle = s.field.RotatePieceLeft(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
 		}
 		if l := state.Input.StateForKey(ebiten.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {

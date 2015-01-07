@@ -79,6 +79,13 @@ func (f *Field) RotatePieceRight(piece *Piece, x, y int, angle Angle) Angle {
 	return angle.RotateRight()
 }
 
+func (f *Field) RotatePieceLeft(piece *Piece, x, y int, angle Angle) Angle {
+	if f.collides(piece, x, y, angle.RotateLeft()) {
+		return angle
+	}
+	return angle.RotateLeft()
+}
+
 func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) {
 	piece.AbsorbInto(f, x, y, angle)
 	if f.flushable() {

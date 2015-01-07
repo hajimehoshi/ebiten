@@ -45,6 +45,13 @@ func (a Angle) RotateRight() Angle {
 	return a + 1
 }
 
+func (a Angle) RotateLeft() Angle {
+	if a == Angle0 {
+		return Angle270
+	}
+	return a - 1
+}
+
 type BlockType int
 
 const (
