@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"image"
 	"image/color"
 	"log"
 	"math"
@@ -29,9 +30,9 @@ const (
 )
 
 var (
-	count              int
-	brushRenderTarget  *ebiten.Image
-	canvasRenderTarget *ebiten.Image
+	count       int
+	brushImage  *ebiten.Image
+	canvasImage *ebiten.Image
 )
 
 func update(screen *ebiten.Image) error {
@@ -47,12 +48,12 @@ func update(screen *ebiten.Image) error {
 		op.ColorM.Scale(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		op.ColorM.Concat(ebiten.RotateHue(theta))
-		if err := canvasRenderTarget.DrawImage(brushRenderTarget, op); err != nil {
+		if err := canvasImage.DrawImage(brushImage, op); err != nil {
 			return err
 		}
 	}
 
-	if err := screen.DrawImage(canvasRenderTarget, nil); err != nil {
+	if err := screen.DrawImage(canvasImage, nil); err != nil {
 		return err
 	}
 
@@ -64,17 +65,27 @@ func update(screen *ebiten.Image) error {
 
 func main() {
 	var err error
-	brushRenderTarget, err = ebiten.NewImage(4, 4, ebiten.FilterNearest)
+	const a0, a1, a2 = 0x40, 0xc0, 0xff
+	pixels := []uint8{
+		a0, a1, a1, a0,
+		a1, a2, a2, a1,
+		a1, a2, a2, a1,
+		a0, a1, a1, a0,
+	}
+	brushImage, err = ebiten.NewImageFromImage(&image.Alpha{
+		Pix:    pixels,
+		Stride: 4,
+		Rect:   image.Rect(0, 0, 4, 4),
+	}, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	brushRenderTarget.Fill(color.White)
 
-	canvasRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	canvasImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	canvasRenderTarget.Fill(color.White)
+	canvasImage.Fill(color.White)
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
