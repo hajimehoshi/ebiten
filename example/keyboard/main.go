@@ -28,8 +28,6 @@ const (
 	screenHeight = 240
 )
 
-// TODO: Add Key.String() by stringer
-
 var keyNames = map[ebiten.Key]string{
 	ebiten.KeyBackspace: "Backspace",
 	ebiten.KeyComma:     "','",

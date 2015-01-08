@@ -35,7 +35,6 @@ func shader(c *opengl.Context, id shaderId) string {
 	return str
 }
 
-// TODO: Create version 100 for WebGL
 var shaders = map[shaderId]string{
 	shaderVertex: `
 uniform highp mat4 projection_matrix;

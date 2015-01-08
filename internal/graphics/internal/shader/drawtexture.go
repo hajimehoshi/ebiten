@@ -39,10 +39,10 @@ type TextureQuads interface {
 
 var initialized = false
 
-// TODO: Use unsafe.SizeOf?
-const float32Size = 4
-
 func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
+	// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
+	const float32Size = 4
+
 	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
 	const stride = 4 * 4
 	if !initialized {
@@ -56,7 +56,6 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return nil
 	}
 
-	// TODO: Check performance
 	program := useProgramColorMatrix(c, glMatrix(projectionMatrix), geo, color)
 
 	// TODO: Do we have to call gl.ActiveTexture(gl.TEXTURE0)?

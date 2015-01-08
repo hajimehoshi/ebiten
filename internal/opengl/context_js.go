@@ -259,7 +259,6 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageTyp
 	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(int(bufferType), b)
-	// TODO: Can we assign integer to gl.bufferData?
 	gl.BufferData(int(bufferType), v, int(bufferUsageType))
 }
 

@@ -46,8 +46,7 @@ func initialize(c *opengl.Context) error {
 	}
 
 	const stride = 4 * 4
-	v := make([]float32, stride*size)
-	c.NewBuffer(c.ArrayBuffer, v, c.DynamicDraw)
+	c.NewBuffer(c.ArrayBuffer, stride*size, c.DynamicDraw)
 
 	indices := make([]uint16, 6*size)
 	for i := uint16(0); i < size; i++ {
@@ -70,7 +69,6 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Ma
 		c.UseProgram(programColorMatrix)
 		lastProgram = programColorMatrix
 	}
-	// TODO: Check the performance.
 	program := programColorMatrix
 
 	c.UniformFloats(program, "projection_matrix", projectionMatrix)
