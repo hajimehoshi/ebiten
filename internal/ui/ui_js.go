@@ -26,18 +26,9 @@ import (
 var canvas js.Object
 var context *opengl.Context
 
-var windowIsFocused = true
-
-func init() {
-	// TODO: Check IE
-	window := js.Global.Get("window")
-	// Get the top window in case that this window is in an iframe.
-	window.Get("top").Call("addEventListener", "focus", func() {
-		windowIsFocused = true
-	})
-	window.Get("top").Call("addEventListener", "blur", func() {
-		windowIsFocused = false
-	})
+func shown() bool {
+	w := js.Global.Get("window").Get("top")
+	return !w.Get("document").Get("hidden").Bool()
 }
 
 func Use(f func(*opengl.Context)) {
@@ -54,7 +45,7 @@ func vsync() {
 
 func DoEvents() {
 	vsync()
-	for !windowIsFocused {
+	for !shown() {
 		vsync()
 	}
 }
