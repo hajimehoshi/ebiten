@@ -22,27 +22,11 @@ limitations under the License.
 body {
   font-family: sans-serif;
 }
-table.examples {
-  border-collapse: separate;
-  border-spacing: 0 1em;
-}
-table.examples td {
-  padding: 0;
-  vertical-align: top;
-}
-table.examples td.code pre {
-  height: 240px;
-  margin: 0;
-  overflow: auto;
-}
-table.examples td.screen {
-  padding-left: 1em;
-}
-table.examples iframe, table.examples img {
+img.example {
+  background-color: #000;
   border-color: #999;
   border-style: solid;
   border-width: 1px;
-  overflow: hidden;
 }
 pre {
   background: #eee;
@@ -56,6 +40,10 @@ pre {
   <li>Works on
     <ul>
       <li>Web browsers (powered by <a href="http://gopherjs.org/">GopherJS</a>)
+        <ul>
+          <li>Supported browsers: Chrome, Firefox, Safari on desktops</li>
+        </ul>
+      </li>
       <li>Mac OS X</li>
       <li>Linux (maybe)</li>
       <li>Windows (possibly)</li>
@@ -72,246 +60,21 @@ pre {
 </ul>
 
 <h2>Example</h2>
-<table class="examples">
+<p>
   
-  <tr>
-    <td class="code"><pre><code>// <b>blocks</b>
-
-// Please read example/blocks/main.go and example/blocks/blocks/*.go</code></pre></td>
-    
-    <td class="screen">Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="256" height="240"></a></td>
-    
-  </tr>
+  <a href="example/hue.html"><img src="images/example/hue.png" width="320" height="240" alt="Ebiten example: hue" class="example"></a>
   
-  <tr>
-    <td class="code"><pre><code>// <b>hue</b>
-
-package main
-
-import (
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    _ &#34;image/jpeg&#34;
-    &#34;log&#34;
-    &#34;math&#34;
-)
-
-const (
-    screenWidth  = 320
-    screenHeight = 240
-)
-
-var (
-    count        int
-    gophersImage *ebiten.Image
-)
-
-func update(screen *ebiten.Image) error {
-    count&#43;&#43;
-    w, h := gophersImage.Size()
-    op := &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
-    op.ColorM.Concat(ebiten.RotateHue(float64(count%360) * 2 * math.Pi / 360))
-    if err := screen.DrawImage(gophersImage, op); err != nil {
-        return err
-    }
-    return nil
-}
-
-func main() {
-    var err error
-    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Hue (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
-}
-</code></pre></td>
-    
-    <td class="screen"><iframe src="example/hue.html" width="320" height="240"></iframe></td>
-    
-  </tr>
+  <a href="example/keyboard.html"><img src="images/example/keyboard.png" width="320" height="240" alt="Ebiten example: keyboard" class="example"></a>
   
-  <tr>
-    <td class="code"><pre><code>// <b>mosaic</b>
-
-package main
-
-import (
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    _ &#34;image/jpeg&#34;
-    &#34;log&#34;
-)
-
-const (
-    screenWidth  = 320
-    screenHeight = 240
-)
-
-const mosaicRatio = 16
-
-var (
-    gophersImage        *ebiten.Image
-    gophersRenderTarget *ebiten.Image
-)
-
-func update(screen *ebiten.Image) error {
-    op := &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
-    gophersRenderTarget.DrawImage(gophersImage, op)
-    op = &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Scale(mosaicRatio, mosaicRatio)
-    screen.DrawImage(gophersRenderTarget, op)
-    return nil
-}
-
-func main() {
-    var err error
-    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    w, h := gophersImage.Size()
-    gophersRenderTarget, err = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Mosaic (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
-}
-</code></pre></td>
-    
-    <td class="screen"><iframe src="example/mosaic.html" width="320" height="240"></iframe></td>
-    
-  </tr>
+  <a href="example/mosaic.html"><img src="images/example/mosaic.png" width="320" height="240" alt="Ebiten example: mosaic" class="example"></a>
   
-  <tr>
-    <td class="code"><pre><code>// <b>perspective</b>
-
-package main
-
-import (
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    _ &#34;image/jpeg&#34;
-    &#34;log&#34;
-)
-
-const (
-    screenWidth  = 320
-    screenHeight = 240
-)
-
-var (
-    gophersImage *ebiten.Image
-)
-
-type parts struct {
-    image *ebiten.Image
-}
-
-func (p parts) Len() int {
-    _, h := p.image.Size()
-    return h
-}
-
-func (p parts) Dst(i int) (x0, y0, x1, y1 int) {
-    w, h := p.image.Size()
-    width := w &#43; i*3/4
-    x := ((h - i) * 3 / 4) / 2
-    return x, i, x &#43; width, i &#43; 1
-}
-
-func (p parts) Src(i int) (x0, y0, x1, y1 int) {
-    w, _ := p.image.Size()
-    return 0, i, w, i &#43; 1
-}
-
-func update(screen *ebiten.Image) error {
-    op := &amp;ebiten.DrawImageOptions{
-        ImageParts: &amp;parts{gophersImage},
-    }
-    w, h := gophersImage.Size()
-    maxWidth := float64(w) &#43; float64(h)*0.75
-    op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
-    op.GeoM.Translate(screenWidth/2, screenHeight/2)
-    screen.DrawImage(gophersImage, op)
-    return nil
-}
-
-func main() {
-    var err error
-    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Perspective (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
-}
-</code></pre></td>
-    
-    <td class="screen"><iframe src="example/perspective.html" width="320" height="240"></iframe></td>
-    
-  </tr>
+  <a href="example/perspective.html"><img src="images/example/perspective.png" width="320" height="240" alt="Ebiten example: perspective" class="example"></a>
   
-  <tr>
-    <td class="code"><pre><code>// <b>rotate</b>
-
-package main
-
-import (
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    _ &#34;image/jpeg&#34;
-    &#34;log&#34;
-    &#34;math&#34;
-)
-
-const (
-    screenWidth  = 320
-    screenHeight = 240
-)
-
-var (
-    count        int
-    gophersImage *ebiten.Image
-)
-
-func update(screen *ebiten.Image) error {
-    count&#43;&#43;
-    w, h := gophersImage.Size()
-    op := &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-    op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
-    op.GeoM.Translate(screenWidth/2, screenHeight/2)
-    if err := screen.DrawImage(gophersImage, op); err != nil {
-        return err
-    }
-    return nil
-}
-
-func main() {
-    var err error
-    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Rotate (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
-}
-</code></pre></td>
-    
-    <td class="screen"><iframe src="example/rotate.html" width="320" height="240"></iframe></td>
-    
-  </tr>
+  <a href="example/rotate.html"><img src="images/example/rotate.png" width="320" height="240" alt="Ebiten example: rotate" class="example"></a>
   
-</table>
+  <a href="example/blocks.html"><img src="images/example/blocks.png" width="256" height="240" alt="Ebiten example: blocks" class="example"></a>
+  
+</p>
 
 <h2>Install on Mac OS X</h2>
 <pre><code>:; brew install glew
@@ -325,19 +88,16 @@ func main() {
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
 :; go run rotate/main.go</code></pre>
 
-<h2>Execute the example on a web browser</h2>
-<p>If you can the example screens above, Ebiten is working on your browser! Each example above works as an independent html in an iframe. If you want to execute the examples apart from this site, execute this:</p>
-<pre><code>:; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go</code></pre>
-<p>Then, open <code>localhost:8000</code> on your browser.</p>
-<p><code>localhost:8000/?EXAMPLE_NAME</code> shows other examples (e.g. <code>localhost:8000/?rotate</code>).</p>
-<p>Of cource, you can execute gopherjs yourself. Please see <a href="http://gopherjs.org/">GopherJS site</a> for more detail.</p>
+<h2>Run your game on a desktop</h2>
+<p>Just execute your Go program. That's it!</p>
 
 <h2>Run your game on a web browser</h2>
-<p>Compile your game with GopherJS:</p>
+<p>Compile your game with <a href="http://gopherjs.org/">GopherJS</a>:</p>
 <pre><code>:; gopherjs build -o yourgame.js path/to/yourgame</code></pre>
 <p>Then, open the below HTML on your HTTP server:</p>
 <pre><code>&lt;!DOCTYPE html&gt;
 &lt;script src="yourgame.js"&gt;&lt;/script&gt;</code></pre>
+<p>NOTE: <code>file://</code> URL may not work with Ebiten. Execute your game on a HTTP server.</p>
 
 <h2>Change Log</h2>
 <h3>2015-??-??</h3>
@@ -352,6 +112,7 @@ func main() {
           <li>A lot of keyboard keys have been added. KeyMax and MouseButtonMax were removed.</li>
         </ul>
       </li>
+      <li>The game is stopped when the window is not active.</li>
     </ul>
   </li>
 </ul>
@@ -386,3 +147,5 @@ limitations under the License.
 </pre>
 <h3>Go Gopher photograph</h3>
 <p><a href="http://blog.golang.org/go-programming-language-turns-two">The original photograph of Go gophers by Chris Nokleberg</a> is licensed under the Creative Commons 3.0 Attributions license.</p>
+
+<footer>© 2015 Hajime Hoshi</footer>
