@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -38,7 +39,13 @@ func init() {
 	}
 	license = strings.TrimSpace(string(b))
 
-	// TODO: Year check
+	year, err := strconv.Atoi(regexp.MustCompile(`^Copyright (\d+)`).FindStringSubmatch(license)[1])
+	if err != nil {
+		panic(err)
+	}
+	if year != time.Now().Year() {
+		panic("the license's year is not this year")
+	}
 }
 
 var copyright = ""
