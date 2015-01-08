@@ -208,7 +208,11 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageType BufferUsageType) {
 	gl.GenBuffer().Bind(gl.GLenum(bufferType))
 	size := 0
+	ptr := v
 	switch v := v.(type) {
+	case int:
+		size = v
+		ptr = nil
 	case []uint16:
 		size = 2 * len(v)
 	case []float32:
@@ -216,7 +220,7 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageTyp
 	default:
 		panic("not reach")
 	}
-	gl.BufferData(gl.GLenum(bufferType), size, v, gl.GLenum(bufferUsageType))
+	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsageType))
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
