@@ -132,6 +132,7 @@ var examples = []example{
 	{Name: "hue"},
 	{Name: "keyboard"},
 	{Name: "mosaic"},
+	{Name: "paint"},
 	{Name: "perspective"},
 	{Name: "rotate"},
 	{Name: "blocks"},
