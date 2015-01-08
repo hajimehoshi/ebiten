@@ -36,7 +36,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	license = string(b)
+	license = strings.TrimSpace(string(b))
 
 	// TODO: Year check
 }
