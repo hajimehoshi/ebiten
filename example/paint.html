@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!--
+Copyright 2015 Hajime Hoshi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<style>
+body {
+  font-family: sans-serif;
+}
+iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
+}
+</style>
+<nav><a href="..">Ebiten</a></nav>
+
+<h1>paint</h1>
+<iframe src="paint.content.html" width="640" height="480"></iframe>
+<pre><code>package main
+
+import (
+    &#34;fmt&#34;
+    &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+    &#34;image&#34;
+    &#34;image/color&#34;
+    &#34;log&#34;
+    &#34;math&#34;
+)
+
+const (
+    screenWidth  = 320
+    screenHeight = 240
+)
+
+var (
+    count       int
+    brushImage  *ebiten.Image
+    canvasImage *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+    if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+        count&#43;&#43;
+    }
+
+    mx, my := ebiten.CursorPosition()
+
+    if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(float64(mx), float64(my))
+        op.ColorM.Scale(1.0, 0.25, 0.25, 1.0)
+        theta := 2.0 * math.Pi * float64(count%60) / 60.0
+        op.ColorM.Concat(ebiten.RotateHue(theta))
+        if err := canvasImage.DrawImage(brushImage, op); err != nil {
+            return err
+        }
+    }
+
+    if err := screen.DrawImage(canvasImage, nil); err != nil {
+        return err
+    }
+
+    if err := ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;(%d, %d)&#34;, mx, my)); err != nil {
+        return err
+    }
+    return nil
+}
+
+func main() {
+    var err error
+    const a0, a1, a2 = 0x40, 0xc0, 0xff
+    pixels := []uint8{
+        a0, a1, a1, a0,
+        a1, a2, a2, a1,
+        a1, a2, a2, a1,
+        a0, a1, a1, a0,
+    }
+    brushImage, err = ebiten.NewImageFromImage(&amp;image.Alpha{
+        Pix:    pixels,
+        Stride: 4,
+        Rect:   image.Rect(0, 0, 4, 4),
+    }, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    canvasImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    canvasImage.Fill(color.White)
+
+    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Paint (Ebiten Demo)&#34;); err != nil {
+        log.Fatal(err)
+    }
+}
+</code></pre>
+
+
+<footer>© 2015 Hajime Hoshi</footer>
