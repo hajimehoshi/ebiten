@@ -15,4 +15,72 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 -->
-<script src="mosaic.js"></script>
+<style>
+body {
+  font-family: sans-serif;
+}
+iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
+}
+</style>
+<nav><a href="..">Ebiten</a></nav>
+
+<h1>mosaic</h1>
+<iframe src="mosaic.content.html" width="640" height="480"></iframe>
+<pre><code>package main
+
+import (
+    &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+    _ &#34;image/jpeg&#34;
+    &#34;log&#34;
+)
+
+const (
+    screenWidth  = 320
+    screenHeight = 240
+)
+
+const mosaicRatio = 16
+
+var (
+    gophersImage        *ebiten.Image
+    gophersRenderTarget *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+    op := &amp;ebiten.DrawImageOptions{}
+    op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
+    gophersRenderTarget.DrawImage(gophersImage, op)
+    op = &amp;ebiten.DrawImageOptions{}
+    op.GeoM.Scale(mosaicRatio, mosaicRatio)
+    screen.DrawImage(gophersRenderTarget, op)
+    return nil
+}
+
+func main() {
+    var err error
+    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;images/gophers.jpg&#34;, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    w, h := gophersImage.Size()
+    gophersRenderTarget, err = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Mosaic (Ebiten Demo)&#34;); err != nil {
+        log.Fatal(err)
+    }
+}
+</code></pre>
+
+
+<footer>© 2015 Hajime Hoshi</footer>

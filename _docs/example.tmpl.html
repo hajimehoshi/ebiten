@@ -1,3 +1,25 @@
 <!DOCTYPE html>
 {{comment .License}}
-<script src="{{.Example.Name}}.js"></script>
+<style>
+body {
+  font-family: sans-serif;
+}
+iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
+}
+</style>
+<nav><a href="..">Ebiten</a></nav>
+{{with .Example}}
+<h1>{{.Name}}</h1>
+<iframe src="{{.Name}}.content.html" width="{{.Width}}" height="{{.Height}}"></iframe>
+<pre><code>{{.Source}}</code></pre>
+{{end}}
+
+<footer>{{.Copyright}}</footer>

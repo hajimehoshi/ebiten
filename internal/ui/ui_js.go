@@ -27,8 +27,7 @@ var canvas js.Object
 var context *opengl.Context
 
 func shown() bool {
-	w := js.Global.Get("window").Get("top")
-	return !w.Get("document").Get("hidden").Bool()
+	return !js.Global.Get("document").Get("hidden").Bool()
 }
 
 func Use(f func(*opengl.Context)) {

@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//    http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var license = ""
@@ -38,6 +39,12 @@ func init() {
 	license = string(b)
 
 	// TODO: Year check
+}
+
+var copyright = ""
+
+func init() {
+	copyright = fmt.Sprintf("© %d Hajime Hoshi", time.Now().Year())
 }
 
 var stableVersion = ""
@@ -73,18 +80,26 @@ type example struct {
 	Name string
 }
 
-func (e *example) Width() int {
+func (e *example) ThumbWidth() int {
 	if e.Name == "blocks" {
 		return 256
 	}
 	return 320
 }
 
-func (e *example) Height() int {
+func (e *example) ThumbHeight() int {
 	if e.Name == "blocks" {
 		return 240
 	}
 	return 240
+}
+
+func (e *example) Width() int {
+	return e.ThumbWidth() * 2
+}
+
+func (e *example) Height() int {
+	return e.ThumbHeight() * 2
 }
 
 func (e *example) Source() string {
@@ -107,15 +122,39 @@ func versions() string {
 }
 
 var examples = []example{
-	{Name: "blocks"},
 	{Name: "hue"},
+	{Name: "keyboard"},
 	{Name: "mosaic"},
 	{Name: "perspective"},
 	{Name: "rotate"},
+	{Name: "blocks"},
 }
 
 func clear() error {
-	// TODO: favicon?
+	if err := filepath.Walk("public", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// Remove auto-generated html files.
+		m, err := regexp.MatchString(".html$", path)
+		if err != nil {
+			return err
+		}
+		if !m {
+			return nil
+		}
+		// Remove example resources that are copied.
+		m, err = regexp.MatchString("public/example/images", path)
+		if err != nil {
+			return err
+		}
+		if !m {
+			return nil
+		}
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -139,11 +178,52 @@ func outputMain() error {
 
 	data := map[string]interface{}{
 		"License":       license,
+		"Copyright":     copyright,
 		"StableVersion": stableVersion,
 		"DevVersion":    devVersion,
 		"Examples":      examples,
 	}
 	return t.Funcs(funcs).Execute(f, data)
+}
+
+func outputExampleContent(e *example) error {
+	const dir = "public/example"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	f, err := os.Create(filepath.Join(dir, e.Name+".content.html"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	funcs := template.FuncMap{
+		"comment":  comment,
+		"safeHTML": safeHTML,
+	}
+	const templatePath = "examplecontent.tmpl.html"
+	name := filepath.Base(templatePath)
+	t, err := template.New(name).Funcs(funcs).ParseFiles(templatePath)
+	if err != nil {
+		return err
+	}
+
+	data := map[string]interface{}{
+		"License":   license,
+		"Copyright": copyright,
+		"Example":   e,
+	}
+	if err := t.Funcs(funcs).Execute(f, data); err != nil {
+		return err
+	}
+
+	out := filepath.Join(dir, e.Name+".js")
+	path := "github.com/hajimehoshi/ebiten/example/" + e.Name
+	if err := exec.Command("gopherjs", "build", "-m", "-o", out, path).Run(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func outputExample(e *example) error {
@@ -169,20 +249,11 @@ func outputExample(e *example) error {
 	}
 
 	data := map[string]interface{}{
-		"License": license,
-		"Example": e,
+		"License":   license,
+		"Copyright": copyright,
+		"Example":   e,
 	}
-	if err := t.Funcs(funcs).Execute(f, data); err != nil {
-		return err
-	}
-
-	out := filepath.Join(dir, e.Name+".js")
-	path := "github.com/hajimehoshi/ebiten/example/" + e.Name
-	if err := exec.Command("gopherjs", "build", "-m", "-o", out, path).Run(); err != nil {
-		return err
-	}
-
-	return nil
+	return t.Funcs(funcs).Execute(f, data)
 }
 
 func main() {
@@ -193,6 +264,9 @@ func main() {
 		log.Fatal(err)
 	}
 	for _, e := range examples {
+		if err := outputExampleContent(&e); err != nil {
+			log.Fatal(err)
+		}
 		if err := outputExample(&e); err != nil {
 			log.Fatal(err)
 		}

@@ -7,27 +7,11 @@
 body {
   font-family: sans-serif;
 }
-table.examples {
-  border-collapse: separate;
-  border-spacing: 0 1em;
-}
-table.examples td {
-  padding: 0;
-  vertical-align: top;
-}
-table.examples td.code pre {
-  height: 240px;
-  margin: 0;
-  overflow: auto;
-}
-table.examples td.screen {
-  padding-left: 1em;
-}
-table.examples iframe, table.examples img {
+img.example {
+  background-color: #000;
   border-color: #999;
   border-style: solid;
   border-width: 1px;
-  overflow: hidden;
 }
 pre {
   background: #eee;
@@ -61,20 +45,11 @@ pre {
 </ul>
 
 <h2>Example</h2>
-<table class="examples">
+<p>
   {{range .Examples}}
-  <tr>
-    <td class="code"><pre><code>// <b>{{.Name}}</b>
-
-{{.Source}}</code></pre></td>
-    {{if eq .Name "blocks"}}
-    <td class="screen">Click to play!<br><a href="example/blocks.html"><img src="blocks.png" width="{{.Width}}" height="{{.Height}}"></a></td>
-    {{else}}
-    <td class="screen"><iframe src="example/{{.Name}}.html" width="{{.Width}}" height="{{.Height}}"></iframe></td>
-    {{end}}
-  </tr>
+  <a href="example/{{.Name}}.html"><img src="images/example/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="example"></a>
   {{end}}
-</table>
+</p>
 
 <h2>Install on Mac OS X</h2>
 <pre><code>:; brew install glew
@@ -88,19 +63,16 @@ pre {
 <pre><code>:; cd $GOHOME/src/github.com/hajimehoshi/ebiten/example
 :; go run rotate/main.go</code></pre>
 
-<h2>Execute the example on a web browser</h2>
-<p>If you can the example screens above, Ebiten is working on your browser! Each example above works as an independent html in an iframe. If you want to execute the examples apart from this site, execute this:</p>
-<pre><code>:; go run $GOPATH/src/github.com/hajimehoshi/ebiten/example/server/main.go</code></pre>
-<p>Then, open <code>localhost:8000</code> on your browser.</p>
-<p><code>localhost:8000/?EXAMPLE_NAME</code> shows other examples (e.g. <code>localhost:8000/?rotate</code>).</p>
-<p>Of cource, you can execute gopherjs yourself. Please see <a href="http://gopherjs.org/">GopherJS site</a> for more detail.</p>
+<h2>Run your game on a desktop</h2>
+<p>Just execute your Go program. That's it!</p>
 
 <h2>Run your game on a web browser</h2>
-<p>Compile your game with GopherJS:</p>
+<p>Compile your game with <a href="http://gopherjs.org/">GopherJS</a>:</p>
 <pre><code>:; gopherjs build -o yourgame.js path/to/yourgame</code></pre>
 <p>Then, open the below HTML on your HTTP server:</p>
 <pre><code>&lt;!DOCTYPE html&gt;
 &lt;script src="yourgame.js"&gt;&lt;/script&gt;</code></pre>
+<p>NOTE: <code>file://</code> URL may not work with Ebiten. Execute your game on a HTTP server.</p>
 
 <h2>Change Log</h2>
 <h3>2015-??-??</h3>
@@ -137,3 +109,5 @@ pre {
 <pre>{{.License}}</pre>
 <h3>Go Gopher photograph</h3>
 <p><a href="http://blog.golang.org/go-programming-language-turns-two">The original photograph of Go gophers by Chris Nokleberg</a> is licensed under the Creative Commons 3.0 Attributions license.</p>
+
+<footer>{{.Copyright}}</footer>
