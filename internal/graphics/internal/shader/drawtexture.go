@@ -43,7 +43,8 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
 	const float32Size = 4
 
-	// TODO: Check len(quads) and gl.MAX_ELEMENTS_INDICES?
+	// TODO: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
+	// Let's use them to compare to len(quads).
 	const stride = 4 * 4
 	if !initialized {
 		if err := initialize(c); err != nil {
@@ -58,7 +59,8 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 	program := useProgramColorMatrix(c, glMatrix(projectionMatrix), geo, color)
 
-	// TODO: Do we have to call gl.ActiveTexture(gl.TEXTURE0)?
+	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
+	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
 	c.BindTexture(texture)
 
 	c.EnableVertexAttribArray(program, "vertex")

@@ -76,7 +76,6 @@ func (c *Context) TexturePixels(t Texture, width, height int) ([]uint8, error) {
 	gl.Texture(t).Bind(gl.TEXTURE_2D)
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	if e := gl.GetError(); e != gl.NO_ERROR {
-		// TODO: Use glu.ErrorString
 		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
 	}
 	return pixels, nil

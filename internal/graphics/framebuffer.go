@@ -110,6 +110,5 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 		return err
 	}
 	projectionMatrix := f.projectionMatrix()
-	// TODO: Define texture.Draw()
 	return shader.DrawTexture(c, t.native, projectionMatrix, quads, geo, clr)
 }
