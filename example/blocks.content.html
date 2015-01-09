@@ -14,4 +14,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<script src="blocks.js"></script>
+<script>
+'use strict';
+window.addEventListener('load', function() {
+  function isProduction() {
+    var l = window.top.location;
+    if (l.hash === '#_production') {
+      return true;
+    }
+    if (l.hostname === 'localhost' || l.hostname === '127.0.0.1') {
+      return false;
+    }
+    return true;
+  }
+
+  var s = document.createElement('script');
+  var src = 'blocks.js';
+  if (isProduction()) {
+    src = 'http://hajimehoshi.github.io/ebiten.pagestorage/master/' + src;
+  }
+  s.src = src;
+  document.body.appendChild(s);
+});
+</script>
