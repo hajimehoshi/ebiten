@@ -55,7 +55,6 @@ func init() {
 }
 
 var stableVersion = ""
-
 var devVersion = ""
 
 func init() {
@@ -64,6 +63,15 @@ func init() {
 		panic(err)
 	}
 	stableVersion = strings.TrimSpace(string(b))
+}
+
+func currentBranch() string {
+	r, err := ioutil.ReadFile("../.git/HEAD")
+	if err != nil {
+		panic(err)
+	}
+	rr := strings.TrimSpace(string(r))
+	return regexp.MustCompile(`^ref: refs/heads/(.+)$`).FindStringSubmatch(rr)[1]
 }
 
 func init() {
@@ -217,9 +225,10 @@ func outputExampleContent(e *example) error {
 	}
 
 	data := map[string]interface{}{
-		"License":   license,
-		"Copyright": copyright,
-		"Example":   e,
+		"License":       license,
+		"Copyright":     copyright,
+		"CurrentBranch": currentBranch(),
+		"Example":       e,
 	}
 	if err := t.Funcs(funcs).Execute(f, data); err != nil {
 		return err

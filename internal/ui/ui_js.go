@@ -62,13 +62,14 @@ func SwapBuffers() {
 }
 
 func init() {
-	ch := make(chan struct{})
-	js.Global.Get("window").Set("onload", func() {
-		close(ch)
-	})
-	<-ch
-
 	doc := js.Global.Get("document")
+	if doc.Get("body") == nil {
+		ch := make(chan struct{})
+		js.Global.Get("window").Call("addEventListener", "load", func() {
+			close(ch)
+		})
+		<-ch
+	}
 	doc.Set("onkeydown", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		// Backspace
