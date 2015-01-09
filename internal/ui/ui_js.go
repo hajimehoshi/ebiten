@@ -62,6 +62,8 @@ func SwapBuffers() {
 }
 
 func init() {
+	// TODO: Implement this with node-webgl mainly for testing.
+
 	doc := js.Global.Get("document")
 	if doc.Get("body") == nil {
 		ch := make(chan struct{})
