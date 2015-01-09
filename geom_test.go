@@ -15,7 +15,7 @@
 package ebiten_test
 
 import (
-	. "."
+	. "github.com/hajimehoshi/ebiten"
 	"testing"
 )
 
