@@ -19,6 +19,7 @@ package ui
 import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
+	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"runtime"
 	"time"
@@ -81,6 +82,9 @@ func init() {
 			f()
 		}
 	}()
+
+	audio.Init()
+
 	current = u
 }
 
@@ -133,6 +137,8 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	// For retina displays, recalculate the scale with the framebuffer size.
 	windowWidth, _ := window.GetFramebufferSize()
 	actualScale = windowWidth / width
+
+	audio.Start()
 
 	return actualScale, nil
 }
