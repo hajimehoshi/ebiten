@@ -163,7 +163,6 @@ func devicePixelRatio() int {
 func Start(width, height, scale int, title string) (actualScale int, err error) {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
-	// for retina
 	actualScale = scale * devicePixelRatio()
 	canvas.Set("width", width*actualScale)
 	canvas.Set("height", height*actualScale)
@@ -173,6 +172,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	cssHeight := height * scale
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
 	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
+	// CSS calc requires space chars.
 	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(cssWidth/2)+"px)")
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
 
