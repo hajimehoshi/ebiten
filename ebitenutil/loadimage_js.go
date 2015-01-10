@@ -32,7 +32,7 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	req := js.Global.Get("XMLHttpRequest").New()
 	req.Call("open", "GET", path, true)
 	req.Set("responseType", "arraybuffer")
-	req.Set("onload", func() {
+	req.Call("addEventListener", "load", func() {
 		defer close(ch)
 		status := req.Get("status").Int()
 		if 200 <= status && status < 400 {
@@ -41,7 +41,7 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 		}
 		err = errors.New(fmt.Sprintf("http error: %d", status))
 	})
-	req.Set("onerror", func() {
+	req.Call("addEventListener", "error", func() {
 		defer close(ch)
 		// TODO: Add more information.
 		err = errors.New("http error")

@@ -72,7 +72,7 @@ func init() {
 		})
 		<-ch
 	}
-	doc.Set("onkeydown", func(e js.Object) bool {
+	doc.Call("addEventListener", "keydown", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		// Backspace
 		if code == 8 {
@@ -106,7 +106,7 @@ func init() {
 	bodyStyle.Set("height", "100%")
 	bodyStyle.Set("margin", "0")
 	bodyStyle.Set("padding", "0")
-	doc.Get("body").Set("onclick", func() {
+	doc.Get("body").Call("addEventListener", "click", func() {
 		canvas.Call("focus")
 	})
 
@@ -126,27 +126,27 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
-	canvas.Set("onkeydown", func(e js.Object) bool {
+	canvas.Call("addEventListener", "keydown", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
 		return false
 	})
-	canvas.Set("onkeyup", func(e js.Object) bool {
+	canvas.Call("addEventListener", "keyup", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		currentInput.keyUp(code)
 		return false
 	})
-	canvas.Set("onmousedown", func(e js.Object) bool {
+	canvas.Call("addEventListener", "mousedown", func(e js.Object) bool {
 		button := e.Get("button").Int()
 		currentInput.mouseDown(button)
 		return false
 	})
-	canvas.Set("onmouseup", func(e js.Object) bool {
+	canvas.Call("addEventListener", "mouseup", func(e js.Object) bool {
 		button := e.Get("button").Int()
 		currentInput.mouseUp(button)
 		return false
 	})
-	canvas.Set("oncontextmenu", func(e js.Object) bool {
+	canvas.Call("addEventListener", "contextmenu", func(e js.Object) bool {
 		return false
 	})
 }
@@ -176,7 +176,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(cssWidth/2)+"px)")
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
 
-	canvas.Set("onmousemove", func(e js.Object) {
+	canvas.Call("addEventListener", "mousemove", func(e js.Object) {
 		rect := canvas.Call("getBoundingClientRect")
 		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 		x -= rect.Get("left").Int()
