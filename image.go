@@ -205,7 +205,7 @@ func (i *Image) ColorModel() color.Model {
 
 // At returns the color of the image at (x, y).
 //
-// This method loads pixels from GPU to VRAM if necessary.
+// This method loads pixels from VRAM to system memory if necessary.
 func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
 		ui.Use(func(c *opengl.Context) {
