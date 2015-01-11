@@ -20,7 +20,12 @@ import (
 	"time"
 )
 
-var fps = 0
+var fps = 0.0
+
+// CurrentFPS returns the current number of frames per second.
+func CurrentFPS() float64 {
+	return fps
+}
 
 // Run runs the game.
 // f is a function which is called at every frame.
@@ -77,8 +82,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		now := time.Now().UnixNano()
 		frames++
 		if time.Second <= time.Duration(now-t) {
-			fps = int(int64(frames) * int64(time.Second) / (now - t))
-			// TODO: How to show the current FPS?
+			fps = float64(frames) * float64(time.Second) / float64(now-t)
 			t = now
 			frames = 0
 		}
