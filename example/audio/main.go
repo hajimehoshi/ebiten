@@ -19,7 +19,6 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"log"
-	"math/rand"
 )
 
 const (
@@ -30,30 +29,34 @@ const (
 var frames = 0
 
 const (
-	hzA  = 440.0
-	hzAS = 466.2
-	hzB  = 493.9
-	hzC  = 523.3
-	hzCS = 554.4
-	hzD  = 587.3
-	hzDS = 622.3
-	hzE  = 659.3
-	hzF  = 698.5
-	hzFS = 740.0
-	hzG  = 784.0
-	hzGS = 830.6
+	freqA  = 440.0
+	freqAS = 466.2
+	freqB  = 493.9
+	freqC  = 523.3
+	freqCS = 554.4
+	freqD  = 587.3
+	freqDS = 622.3
+	freqE  = 659.3
+	freqF  = 698.5
+	freqFS = 740.0
+	freqG  = 784.0
+	freqGS = 830.6
 )
 
 // TODO: Need API to get sample rate?
 const sampleRate = 44100
 
-func square(out []float32, hz float64, sequence float64) {
-	length := int(sampleRate / hz)
+const score = `CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`
+
+var scoreIndex = 0
+
+func square(out []float32, volume float64, freq float64, sequence float64) {
+	length := int(sampleRate / freq)
 	if length == 0 {
-		panic("invalid hz")
+		panic("invalid freq")
 	}
 	for i := 0; i < len(out); i++ {
-		a := float32(1.0)
+		a := float32(volume)
 		if i%length < int(float64(length)*sequence) {
 			a = 0
 		}
@@ -61,22 +64,45 @@ func square(out []float32, hz float64, sequence float64) {
 	}
 }
 
+func addNote() {
+	const size = sampleRate / 60
+	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
+
+	defer func() {
+		scoreIndex++
+		scoreIndex %= len(score)
+	}()
+	l := make([]float32, size*30)
+	r := make([]float32, size*30)
+	note := score[scoreIndex]
+	for note == ' ' {
+		scoreIndex++
+		scoreIndex %= len(score)
+		note = score[scoreIndex]
+	}
+	freq := 0.0
+	switch {
+	case note == 'R':
+		return
+	case note <= 'B':
+		freq = notes[int(note)+len(notes)-int('C')]
+	default:
+		freq = notes[note-'C']
+	}
+	vol := 1.0 / 32.0
+	square(l, vol, freq, 0.5)
+	square(r, vol, freq, 0.5)
+	ebiten.AddToAudioBuffer(l, r)
+}
+
 func update(screen *ebiten.Image) error {
 	defer func() {
 		frames++
 	}()
-
-	const size = sampleRate / 60 // 3600 BPM
-	notes := []float64{hzA, hzB, hzC, hzD, hzE, hzF, hzG, hzA * 2}
 	if frames%30 == 0 {
-		l := make([]float32, size*30)
-		r := make([]float32, size*30)
-		note := notes[rand.Intn(len(notes))]
-		square(l, note, 0.5)
-		square(r, note, 0.5)
-		ebiten.AppendAudioBuffer(l, r)
+		addNote()
 	}
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("%0.2f", ebiten.CurrentFPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
 }
 

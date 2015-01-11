@@ -18,6 +18,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
-func AppendAudioBuffer(l []float32, r []float32) {
+func AppendToAudioBuffer(l []float32, r []float32) {
 	audio.Append(l, r)
+}
+
+func AddToAudioBuffer(l []float32, r []float32) {
+	audio.Add(l, r)
 }

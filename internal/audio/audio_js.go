@@ -76,3 +76,19 @@ func Append(l []float32, r []float32) {
 	bufferL = append(bufferL, l...)
 	bufferR = append(bufferR, r...)
 }
+
+func Add(l []float32, r []float32) {
+	// TODO: Adjust timing for frame?
+	if len(l) != len(r) {
+		panic("len(l) must equal to len(r)")
+	}
+	m := min(len(l), len(bufferL))
+	for i := 0; i < m; i++ {
+		bufferL[i] += l[i]
+		bufferR[i] += r[i]
+	}
+	if m < len(l) {
+		bufferL = append(bufferL, l[m:]...)
+		bufferR = append(bufferR, r[m:]...)
+	}
+}
