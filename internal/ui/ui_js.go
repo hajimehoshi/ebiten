@@ -42,11 +42,12 @@ func vsync() {
 	<-ch
 }
 
-func DoEvents() {
+func DoEvents() error {
 	vsync()
 	for !shown() {
 		vsync()
 	}
+	return nil
 }
 
 func Terminate() {

@@ -14,21 +14,43 @@
 
 package ui
 
+func IsKeyPressed(key Key) bool {
+	return currentInput.keyPressed[key]
+}
+
+func CursorPosition() (x, y int) {
+	return currentInput.cursorX, currentInput.cursorY
+}
+
+func IsMouseButtonPressed(button MouseButton) bool {
+	return currentInput.mouseButtonPressed[button]
+}
+
+func GamepadAxis(j int, dir int) float64 {
+	if len(currentInput.gamepads) <= j {
+		return 0
+	}
+	return currentInput.gamepads[j].axes[dir]
+}
+
+func IsGamepadButtonPressed(j int, button GamepadButton) bool {
+	if len(currentInput.gamepads) <= j {
+		return false
+	}
+	return currentInput.gamepads[j].buttonPressed[button]
+}
+
+var currentInput input
+
 type input struct {
 	keyPressed         [256]bool
 	mouseButtonPressed [256]bool
 	cursorX            int
 	cursorY            int
+	gamepads           [16]gamePad
 }
 
-func (i *input) isKeyPressed(key Key) bool {
-	return i.keyPressed[key]
-}
-
-func (i *input) isMouseButtonPressed(button MouseButton) bool {
-	return i.mouseButtonPressed[button]
-}
-
-func (i *input) cursorPosition() (x, y int) {
-	return i.cursorX, i.cursorY
+type gamePad struct {
+	axes          [2]float64
+	buttonPressed [256]bool
 }

@@ -35,8 +35,8 @@ func Use(f func(*opengl.Context)) {
 	<-ch
 }
 
-func DoEvents() {
-	current.doEvents()
+func DoEvents() error {
+	return current.doEvents()
 }
 
 func Terminate() {
@@ -88,7 +88,6 @@ type ui struct {
 	window    *glfw.Window
 	scale     int
 	glContext *opengl.Context
-	input     input
 	funcs     chan func()
 }
 
@@ -137,17 +136,22 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	return actualScale, nil
 }
 
-func (u *ui) pollEvents() {
+func (u *ui) pollEvents() error {
 	glfw.PollEvents()
-	u.input.update(u.window, u.scale)
+	return currentInput.update(u.window, u.scale)
 }
 
-func (u *ui) doEvents() {
-	u.pollEvents()
+func (u *ui) doEvents() error {
+	if err := u.pollEvents(); err != nil {
+		return err
+	}
 	for current.window.GetAttribute(glfw.Focused) == 0 {
 		time.Sleep(time.Second / 60)
-		u.pollEvents()
+		if err := u.pollEvents(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (u *ui) terminate() {

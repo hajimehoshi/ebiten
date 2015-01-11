@@ -36,6 +36,14 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return ui.IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
 
+func GamepadAxis(j int, dir int) float64 {
+	return ui.GamepadAxis(j, dir)
+}
+
+func IsGamepadButtonPressed(j int, button GamepadButton) bool {
+	return ui.IsGamepadButtonPressed(j, ui.GamepadButton(button))
+}
+
 // NewImage returns an empty image.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	var innerImage *innerImage

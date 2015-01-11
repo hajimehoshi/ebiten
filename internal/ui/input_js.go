@@ -16,20 +16,6 @@
 
 package ui
 
-var currentInput input
-
-func IsKeyPressed(key Key) bool {
-	return currentInput.isKeyPressed(key)
-}
-
-func IsMouseButtonPressed(button MouseButton) bool {
-	return currentInput.isMouseButtonPressed(button)
-}
-
-func CursorPosition() (x, y int) {
-	return currentInput.cursorPosition()
-}
-
 func (i *input) keyDown(key int) {
 	k, ok := keyCodeToKey[key]
 	if !ok {

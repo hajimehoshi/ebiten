@@ -21,25 +21,13 @@ import (
 	"math"
 )
 
-func IsKeyPressed(key Key) bool {
-	return current.input.isKeyPressed(key)
-}
-
-func IsMouseButtonPressed(button MouseButton) bool {
-	return current.input.isMouseButtonPressed(button)
-}
-
-func CursorPosition() (x, y int) {
-	return current.input.cursorPosition()
-}
-
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
 	glfw.MouseButtonRight:  MouseButtonRight,
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *input) update(window *glfw.Window, scale int) {
+func (i *input) update(window *glfw.Window, scale int) error {
 	for g, e := range glfwKeyCodeToKey {
 		i.keyPressed[e] = window.GetKey(g) == glfw.Press
 	}
@@ -49,4 +37,32 @@ func (i *input) update(window *glfw.Window, scale int) {
 	x, y := window.GetCursorPosition()
 	i.cursorX = int(math.Floor(x)) / scale
 	i.cursorY = int(math.Floor(y)) / scale
+	for j := glfw.Joystick(0); j < glfw.Joystick(len(i.gamepads)); j++ {
+		if !glfw.JoystickPresent(j) {
+			continue
+		}
+		axes32, err := glfw.GetJoystickAxes(j)
+		if err != nil {
+			return err
+		}
+		for a := 0; a < len(i.gamepads[j].axes); a++ {
+			if len(axes32) <= a {
+				i.gamepads[j].axes[a] = 0
+				continue
+			}
+			i.gamepads[j].axes[a] = float64(axes32[a])
+		}
+		buttons, err := glfw.GetJoystickButtons(j)
+		if err != nil {
+			return err
+		}
+		for b := 0; b < len(i.gamepads[j].buttonPressed); b++ {
+			if len(buttons) <= b {
+				i.gamepads[j].buttonPressed[b] = false
+				continue
+			}
+			i.gamepads[j].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
+		}
+	}
+	return nil
 }
