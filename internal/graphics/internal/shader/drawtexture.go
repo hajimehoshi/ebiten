@@ -40,12 +40,11 @@ type TextureQuads interface {
 var initialized = false
 
 func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
-	// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
-	const float32Size = 4
-
 	// TODO: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
-	// Let's use them to compare to len(quads).
+	// Let's use them to compare to len(quads) in the future.
+
 	const stride = 4 * 4
+
 	if !initialized {
 		if err := initialize(c); err != nil {
 			return err
@@ -57,21 +56,8 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return nil
 	}
 
-	program := useProgramTexture(c, glMatrix(projectionMatrix), geo, color)
-
-	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
-	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	c.BindTexture(texture)
-
-	c.EnableVertexAttribArray(program, "vertex")
-	c.EnableVertexAttribArray(program, "tex_coord")
-	defer func() {
-		c.DisableVertexAttribArray(program, "tex_coord")
-		c.DisableVertexAttribArray(program, "vertex")
-	}()
-
-	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
-	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
+	f := useProgramTexture(c, glMatrix(projectionMatrix), texture, geo, color)
+	defer f.FinishProgram()
 
 	vertices := make([]float32, 0, stride*quads.Len())
 	for i := 0; i < quads.Len(); i++ {

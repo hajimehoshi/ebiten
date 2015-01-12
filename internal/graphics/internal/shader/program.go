@@ -64,7 +64,17 @@ func initialize(c *opengl.Context) error {
 
 var lastProgram opengl.Program
 
-func useProgramTexture(c *opengl.Context, projectionMatrix []float32, geo Matrix, color Matrix) opengl.Program {
+type programFinisher func()
+
+func (p programFinisher) FinishProgram() {
+	p()
+}
+
+func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture opengl.Texture, geo Matrix, color Matrix) programFinisher {
+	// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
+	const float32Size = 4
+	const stride = 4 * 4
+
 	if lastProgram != programTexture {
 		c.UseProgram(programTexture)
 		lastProgram = programTexture
@@ -107,5 +117,18 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, geo Matrix
 	}
 	c.UniformFloats(program, "color_matrix_translation", glColorMatrixTranslation)
 
-	return program
+	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
+	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
+	c.BindTexture(texture)
+
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "tex_coord")
+
+	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
+	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
+
+	return func() {
+		c.DisableVertexAttribArray(program, "tex_coord")
+		c.DisableVertexAttribArray(program, "vertex")
+	}
 }
