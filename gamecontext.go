@@ -70,37 +70,49 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 
 // NewImage returns an empty image.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	var innerImage *innerImage
+	var img *Image
 	var err error
 	ui.Use(func(c *opengl.Context) {
 		var texture *graphics.Texture
+		var framebuffer *graphics.Framebuffer
 		texture, err = graphics.NewTexture(c, width, height, glFilter(c, filter))
 		if err != nil {
 			return
 		}
-		innerImage, err = newInnerImage(c, texture)
-		innerImage.Clear(c)
+		framebuffer, err = graphics.NewFramebufferFromTexture(c, texture)
+		if err != nil {
+			return
+		}
+		img = &Image{framebuffer: framebuffer, texture: texture}
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &Image{inner: innerImage}, nil
+	if err := img.Clear(); err != nil {
+		return nil, err
+	}
+	return img, nil
 }
 
 // NewImageFromImage creates a new image with the given image (img).
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
-	var innerImage *innerImage
+	var eimg *Image
 	var err error
 	ui.Use(func(c *opengl.Context) {
 		var texture *graphics.Texture
+		var framebuffer *graphics.Framebuffer
 		texture, err = graphics.NewTextureFromImage(c, img, glFilter(c, filter))
 		if err != nil {
 			return
 		}
-		innerImage, err = newInnerImage(c, texture)
+		framebuffer, err = graphics.NewFramebufferFromTexture(c, texture)
+		if err != nil {
+			return
+		}
+		eimg = &Image{framebuffer: framebuffer, texture: texture}
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &Image{inner: innerImage}, nil
+	return eimg, nil
 }

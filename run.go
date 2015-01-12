@@ -60,22 +60,16 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if ui.IsClosed() {
 			return nil
 		}
-		ui.Use(func(*opengl.Context) {
-			err = graphicsContext.preUpdate()
-		})
-		if err != nil {
+		if err := graphicsContext.preUpdate(); err != nil {
 			return err
 		}
-		if err := f(&Image{inner: graphicsContext.screen}); err != nil {
+		if err := f(graphicsContext.screen); err != nil {
 			return err
 		}
-		ui.Use(func(*opengl.Context) {
-			err = graphicsContext.postUpdate()
-			if err != nil {
-				return
-			}
-			ui.SwapBuffers()
-		})
+		if err := graphicsContext.postUpdate(); err != nil {
+			return err
+		}
+		ui.SwapBuffers()
 		if err != nil {
 			return err
 		}
