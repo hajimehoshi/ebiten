@@ -37,33 +37,33 @@ func (i *input) update(window *glfw.Window, scale int) error {
 	x, y := window.GetCursorPosition()
 	i.cursorX = int(math.Floor(x)) / scale
 	i.cursorY = int(math.Floor(y)) / scale
-	for j := glfw.Joystick(0); j < glfw.Joystick(len(i.gamepads)); j++ {
-		if !glfw.JoystickPresent(j) {
+	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
+		if !glfw.JoystickPresent(id) {
 			continue
 		}
-		axes32, err := glfw.GetJoystickAxes(j)
+		axes32, err := glfw.GetJoystickAxes(id)
 		if err != nil {
 			return err
 		}
-		i.gamepads[j].axisNum = len(axes32)
-		for a := 0; a < len(i.gamepads[j].axes); a++ {
+		i.gamepads[id].axisNum = len(axes32)
+		for a := 0; a < len(i.gamepads[id].axes); a++ {
 			if len(axes32) <= a {
-				i.gamepads[j].axes[a] = 0
+				i.gamepads[id].axes[a] = 0
 				continue
 			}
-			i.gamepads[j].axes[a] = float64(axes32[a])
+			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
-		buttons, err := glfw.GetJoystickButtons(j)
+		buttons, err := glfw.GetJoystickButtons(id)
 		if err != nil {
 			return err
 		}
-		i.gamepads[j].buttonNum = len(buttons)
-		for b := 0; b < len(i.gamepads[j].buttonPressed); b++ {
+		i.gamepads[id].buttonNum = len(buttons)
+		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
 			if len(buttons) <= b {
-				i.gamepads[j].buttonPressed[b] = false
+				i.gamepads[id].buttonPressed[b] = false
 				continue
 			}
-			i.gamepads[j].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
+			i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
 		}
 	}
 	return nil

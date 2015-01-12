@@ -47,6 +47,7 @@ func DoEvents() error {
 	for !shown() {
 		vsync()
 	}
+	currentInput.updateGamepads()
 	return nil
 }
 
@@ -66,9 +67,10 @@ func init() {
 	// TODO: Implement this with node-webgl mainly for testing.
 
 	doc := js.Global.Get("document")
+	window := js.Global.Get("window")
 	if doc.Get("body") == nil {
 		ch := make(chan struct{})
-		js.Global.Get("window").Call("addEventListener", "load", func() {
+		window.Call("addEventListener", "load", func() {
 			close(ch)
 		})
 		<-ch
@@ -127,6 +129,7 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
+	// Keyboard
 	canvas.Call("addEventListener", "keydown", func(e js.Object) bool {
 		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
@@ -137,6 +140,8 @@ func init() {
 		currentInput.keyUp(code)
 		return false
 	})
+
+	// Mouse
 	canvas.Call("addEventListener", "mousedown", func(e js.Object) bool {
 		button := e.Get("button").Int()
 		currentInput.mouseDown(button)
@@ -149,6 +154,14 @@ func init() {
 	})
 	canvas.Call("addEventListener", "contextmenu", func(e js.Object) bool {
 		return false
+	})
+
+	// Gamepad
+	window.Call("addEventListener", "gamepadconnected", func(e js.Object) {
+		print(e)
+	})
+	window.Call("addEventListener", "gamepaddisconnected", func(e js.Object) {
+		print(e)
 	})
 }
 

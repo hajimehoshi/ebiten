@@ -29,6 +29,7 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
+	// TODO: API to get the available, lowest ID
 	const gamepadID = 0
 	axes := []string{}
 	pressedButtons := []string{}
