@@ -65,7 +65,11 @@ func (i *input) mouseMove(x, y int) {
 }
 
 func (i *input) updateGamepads() {
-	gamepads := js.Global.Get("navigator").Call("getGamepads")
+	nav := js.Global.Get("navigator")
+	if nav.Get("getGamepads") == js.Undefined {
+		return
+	}
+	gamepads := nav.Call("getGamepads")
 	l := gamepads.Get("length").Int()
 	for id := 0; id < l; id++ {
 		gamepad := gamepads.Index(id)

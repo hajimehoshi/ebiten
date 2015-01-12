@@ -158,10 +158,6 @@ func init() {
 
 	// Gamepad
 	window.Call("addEventListener", "gamepadconnected", func(e js.Object) {
-		print(e)
-	})
-	window.Call("addEventListener", "gamepaddisconnected", func(e js.Object) {
-		print(e)
 	})
 }
 
