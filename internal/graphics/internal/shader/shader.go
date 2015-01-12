@@ -23,7 +23,7 @@ type shaderId int
 
 const (
 	shaderVertex shaderId = iota
-	shaderColorMatrix
+	shaderFragmentTexture
 )
 
 func shader(c *opengl.Context, id shaderId) string {
@@ -48,7 +48,7 @@ void main(void) {
   gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
 }
 `,
-	shaderColorMatrix: `
+	shaderFragmentTexture: `
 uniform lowp sampler2D texture;
 uniform lowp mat4 color_matrix;
 uniform lowp vec4 color_matrix_translation;

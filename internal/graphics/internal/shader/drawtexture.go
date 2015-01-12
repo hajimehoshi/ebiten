@@ -57,7 +57,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return nil
 	}
 
-	program := useProgramColorMatrix(c, glMatrix(projectionMatrix), geo, color)
+	program := useProgramTexture(c, glMatrix(projectionMatrix), geo, color)
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml

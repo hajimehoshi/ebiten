@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-var programColorMatrix opengl.Program
+var programTexture opengl.Program
 
 func initialize(c *opengl.Context) error {
 	const size = 10000
@@ -30,17 +30,17 @@ func initialize(c *opengl.Context) error {
 	}
 	defer c.DeleteShader(shaderVertexNative)
 
-	shaderColorMatrixNative, err := c.NewShader(c.FragmentShader, shader(c, shaderColorMatrix))
+	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaderColorMatrixNative)
+	defer c.DeleteShader(shaderFragmentTextureNative)
 
 	shaders := []opengl.Shader{
 		shaderVertexNative,
-		shaderColorMatrixNative,
+		shaderFragmentTextureNative,
 	}
-	programColorMatrix, err = c.NewProgram(shaders)
+	programTexture, err = c.NewProgram(shaders)
 	if err != nil {
 		return err
 	}
@@ -64,12 +64,12 @@ func initialize(c *opengl.Context) error {
 
 var lastProgram opengl.Program
 
-func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Matrix, color Matrix) opengl.Program {
-	if lastProgram != programColorMatrix {
-		c.UseProgram(programColorMatrix)
-		lastProgram = programColorMatrix
+func useProgramTexture(c *opengl.Context, projectionMatrix []float32, geo Matrix, color Matrix) opengl.Program {
+	if lastProgram != programTexture {
+		c.UseProgram(programTexture)
+		lastProgram = programTexture
 	}
-	program := programColorMatrix
+	program := programTexture
 
 	c.UniformFloats(program, "projection_matrix", projectionMatrix)
 

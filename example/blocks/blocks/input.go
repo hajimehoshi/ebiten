@@ -19,7 +19,8 @@ import (
 )
 
 type Input struct {
-	states [256]int
+	keyStates           [256]int
+	gamepadButtonStates [4]int
 }
 
 func NewInput() *Input {
@@ -27,15 +28,28 @@ func NewInput() *Input {
 }
 
 func (i *Input) StateForKey(key ebiten.Key) int {
-	return i.states[key]
+	return i.keyStates[key]
+}
+
+func (i *Input) StateForGamepadButton(button ebiten.GamepadButton) int {
+	return i.gamepadButtonStates[button]
 }
 
 func (i *Input) Update() {
-	for key := range i.states {
+	for key := range i.keyStates {
 		if !ebiten.IsKeyPressed(ebiten.Key(key)) {
-			i.states[key] = 0
+			i.keyStates[key] = 0
 			continue
 		}
-		i.states[key]++
+		i.keyStates[key]++
+	}
+
+	const gamepadID = 0
+	for b := range i.gamepadButtonStates {
+		if !ebiten.IsGamepadButtonPressed(gamepadID, ebiten.GamepadButton(b)) {
+			i.gamepadButtonStates[b] = 0
+			continue
+		}
+		i.gamepadButtonStates[b]++
 	}
 }
