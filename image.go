@@ -94,6 +94,36 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return
 }
 
+// A Rects represents the set of rectangles.
+type Rects interface {
+	Len() int
+	Points(i int) (x0, y0, x1, y1 int)
+}
+
+type rectVertexQuads struct {
+	Rects
+}
+
+func (l rectVertexQuads) Len() int {
+	return l.Rects.Len()
+}
+
+func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 float32) {
+	ix0, iy0, ix1, iy1 := l.Rects.Points(i)
+	return float32(ix0), float32(iy0), float32(ix1), float32(iy1)
+}
+
+// DrawRects draws rectangles on the image.
+//
+// NOTE: This method is experimental.
+func (i *Image) DrawRects(clr color.Color, rects Rects) (err error) {
+	r, g, b, a := internal.RGBA(clr)
+	ui.Use(func(c *opengl.Context) {
+		err = i.framebuffer.DrawRects(c, r, g, b, a, &rectVertexQuads{rects})
+	})
+	return
+}
+
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
 	w, h := i.Size()

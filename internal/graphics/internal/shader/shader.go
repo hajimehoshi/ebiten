@@ -24,6 +24,7 @@ type shaderId int
 const (
 	shaderVertex shaderId = iota
 	shaderFragmentTexture
+	shaderFragmentRect
 )
 
 func shader(c *opengl.Context, id shaderId) string {
@@ -67,6 +68,14 @@ void main(void) {
     color.rgb *= color.a;
   }
 
+  gl_FragColor = color;
+}
+`,
+	shaderFragmentRect: `
+uniform lowp vec4 color;
+varying highp vec2 vertex_out_tex_coord;
+
+void main(void) {
   gl_FragColor = color;
 }
 `,

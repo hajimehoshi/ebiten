@@ -109,6 +109,19 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
-	projectionMatrix := f.projectionMatrix()
-	return shader.DrawTexture(c, t.native, projectionMatrix, quads, geo, clr)
+	p := f.projectionMatrix()
+	return shader.DrawTexture(c, t.native, p, quads, geo, clr)
+}
+
+type VertexQuads interface {
+	Len() int
+	Vertex(i int) (x0, y0, x1, y1 float32)
+}
+
+func (f *Framebuffer) DrawRects(c *opengl.Context, r, g, b, a float64, quads VertexQuads) error {
+	if err := f.setAsViewport(c); err != nil {
+		return err
+	}
+	p := f.projectionMatrix()
+	return shader.DrawRects(c, p, r, g, b, a, quads)
 }

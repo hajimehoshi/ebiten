@@ -18,7 +18,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-var programTexture opengl.Program
+var (
+	programTexture opengl.Program
+	programRect    opengl.Program
+)
 
 func initialize(c *opengl.Context) error {
 	const size = 10000
@@ -36,11 +39,24 @@ func initialize(c *opengl.Context) error {
 	}
 	defer c.DeleteShader(shaderFragmentTextureNative)
 
-	shaders := []opengl.Shader{
+	shaderFragmentRectNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentRect))
+	if err != nil {
+		return err
+	}
+	defer c.DeleteShader(shaderFragmentRectNative)
+
+	programTexture, err = c.NewProgram([]opengl.Shader{
 		shaderVertexNative,
 		shaderFragmentTextureNative,
+	})
+	if err != nil {
+		return err
 	}
-	programTexture, err = c.NewProgram(shaders)
+
+	programRect, err = c.NewProgram([]opengl.Shader{
+		shaderVertexNative,
+		shaderFragmentRectNative,
+	})
 	if err != nil {
 		return err
 	}
@@ -120,6 +136,41 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
 	c.BindTexture(texture)
+
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "tex_coord")
+
+	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
+	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
+
+	return func() {
+		c.DisableVertexAttribArray(program, "tex_coord")
+		c.DisableVertexAttribArray(program, "vertex")
+	}
+}
+
+func useProgramRect(c *opengl.Context, projectionMatrix []float32, r, g, b, a float64) programFinisher {
+	const float32Size = 4
+	const stride = 4 * 4
+
+	if lastProgram != programRect {
+		c.UseProgram(programRect)
+		lastProgram = programRect
+	}
+	program := programRect
+
+	c.UniformFloats(program, "projection_matrix", projectionMatrix)
+
+	glModelviewMatrix := []float32{
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	}
+	c.UniformFloats(program, "modelview_matrix", glModelviewMatrix)
+
+	clr := []float32{float32(r), float32(g), float32(b), float32(a)}
+	c.UniformFloats(program, "color", clr)
 
 	c.EnableVertexAttribArray(program, "vertex")
 	c.EnableVertexAttribArray(program, "tex_coord")
