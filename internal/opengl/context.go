@@ -26,8 +26,14 @@ type Texture int
 type Framebuffer int
 type Shader int
 type Program int
-type UniformLocation int
-type AttribLocation int
+type UniformLocation gl.UniformLocation
+type AttribLocation gl.AttribLocation
+
+type ProgramID int
+
+func GetProgramID(p Program) ProgramID {
+	return ProgramID(p)
+}
 
 type context struct{}
 
@@ -173,13 +179,17 @@ func (c *Context) UseProgram(p Program) {
 	gl.Program(p).Use()
 }
 
+func (c *Context) GetUniformLocation(p Program, location string) UniformLocation {
+	return UniformLocation(gl.Program(p).GetUniformLocation(location))
+}
+
 func (c *Context) UniformInt(p Program, location string, v int) {
-	l := gl.Program(p).GetUniformLocation(location)
+	l := gl.UniformLocation(GetUniformLocation(c, p, location))
 	l.Uniform1i(v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
-	l := gl.Program(p).GetUniformLocation(location)
+	l := gl.UniformLocation(GetUniformLocation(c, p, location))
 	switch len(v) {
 	case 4:
 		l.Uniform4fv(1, v)
@@ -192,16 +202,23 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	}
 }
 
+func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
+	return AttribLocation(gl.Program(p).GetAttribLocation(location))
+}
+
 func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
-	gl.Program(p).GetAttribLocation(location).AttribPointer(2, gl.FLOAT, false, stride, v)
+	l := gl.AttribLocation(GetAttribLocation(c, p, location))
+	l.AttribPointer(2, gl.FLOAT, false, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
-	gl.Program(p).GetAttribLocation(location).EnableArray()
+	l := gl.AttribLocation(GetAttribLocation(c, p, location))
+	l.EnableArray()
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
-	gl.Program(p).GetAttribLocation(location).DisableArray()
+	l := gl.AttribLocation(GetAttribLocation(c, p, location))
+	l.DisableArray()
 }
 
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageType BufferUsageType) {

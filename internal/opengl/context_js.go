@@ -30,6 +30,12 @@ type Program js.Object
 type UniformLocation js.Object
 type AttribLocation int
 
+type ProgramID int
+
+func GetProgramID(p Program) ProgramID {
+	return ProgramID(p.Get("__ebiten_programId").Int())
+}
+
 type context struct {
 	gl *webgl.Context
 }
@@ -175,12 +181,16 @@ func (c *Context) DeleteShader(s Shader) {
 	gl.DeleteShader(s)
 }
 
+var lastProgramID ProgramID = 0
+
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
 	if p == nil {
 		return nil, errors.New("glCreateProgram failed")
 	}
+	p.Set("__ebiten_programId", lastProgramID)
+	lastProgramID++
 
 	for _, shader := range shaders {
 		gl.AttachShader(p, shader)
@@ -197,23 +207,20 @@ func (c *Context) UseProgram(p Program) {
 	gl.UseProgram(p)
 }
 
+func (c *Context) GetUniformLocation(p Program, location string) UniformLocation {
+	gl := c.gl
+	return gl.GetUniformLocation(p, location)
+}
+
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
-	l, ok := uniformLocationCache[location]
-	if !ok {
-		l = gl.GetUniformLocation(p, location)
-		uniformLocationCache[location] = l
-	}
+	l := GetUniformLocation(c, p, location)
 	gl.Uniform1i(l, v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
-	l, ok := uniformLocationCache[location]
-	if !ok {
-		l = gl.GetUniformLocation(p, location)
-		uniformLocationCache[location] = l
-	}
+	l := GetUniformLocation(c, p, location)
 	switch len(v) {
 	case 4:
 		gl.Call("uniform4fv", l, v)
@@ -224,33 +231,26 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	}
 }
 
+func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
+	gl := c.gl
+	return AttribLocation(gl.GetAttribLocation(p, location))
+}
+
 func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
 	gl := c.gl
-	l, ok := attribLocationCache[location]
-	if !ok {
-		l = AttribLocation(gl.GetAttribLocation(p, location))
-		attribLocationCache[location] = l
-	}
+	l := GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(int(l), 2, gl.FLOAT, false, stride, int(v))
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	l, ok := attribLocationCache[location]
-	if !ok {
-		l = AttribLocation(gl.GetAttribLocation(p, location))
-		attribLocationCache[location] = l
-	}
+	l := GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(int(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	l, ok := attribLocationCache[location]
-	if !ok {
-		l = AttribLocation(gl.GetAttribLocation(p, location))
-		attribLocationCache[location] = l
-	}
+	l := GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(int(l))
 }
 
