@@ -36,12 +36,22 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return ui.IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
 
-func GamepadAxis(j int, dir int) float64 {
-	return ui.GamepadAxis(j, dir)
+// TODO: docs
+
+func GamepadAxisNum(id int) int {
+	return ui.GamepadAxisNum(id)
 }
 
-func IsGamepadButtonPressed(j int, button GamepadButton) bool {
-	return ui.IsGamepadButtonPressed(j, ui.GamepadButton(button))
+func GamepadAxis(id int, axis int) float64 {
+	return ui.GamepadAxis(id, axis)
+}
+
+func GamepadButtonNum(id int) int {
+	return ui.GamepadButtonNum(id)
+}
+
+func IsGamepadButtonPressed(id int, button GamepadButton) bool {
+	return ui.IsGamepadButtonPressed(id, ui.GamepadButton(button))
 }
 
 // NewImage returns an empty image.

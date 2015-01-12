@@ -45,6 +45,7 @@ func (i *input) update(window *glfw.Window, scale int) error {
 		if err != nil {
 			return err
 		}
+		i.gamepads[j].axisNum = len(axes32)
 		for a := 0; a < len(i.gamepads[j].axes); a++ {
 			if len(axes32) <= a {
 				i.gamepads[j].axes[a] = 0
@@ -56,6 +57,7 @@ func (i *input) update(window *glfw.Window, scale int) error {
 		if err != nil {
 			return err
 		}
+		i.gamepads[j].buttonNum = len(buttons)
 		for b := 0; b < len(i.gamepads[j].buttonPressed); b++ {
 			if len(buttons) <= b {
 				i.gamepads[j].buttonPressed[b] = false

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"log"
@@ -28,13 +29,29 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
-	pressed := []string{}
-	for b := ebiten.GamepadButton(0); b < 16; b++ {
-		if ebiten.IsGamepadButtonPressed(0, b) {
-			pressed = append(pressed, strconv.Itoa(int(b)))
+	const gamepadID = 0
+	axes := []string{}
+	pressedButtons := []string{}
+
+	maxAxis := ebiten.GamepadAxisNum(gamepadID)
+	for a := 0; a < maxAxis; a++ {
+		v := ebiten.GamepadAxis(gamepadID, a)
+		axes = append(axes, fmt.Sprintf("%d: %0.6f", a, v))
+	}
+
+	maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(gamepadID))
+	for b := ebiten.GamepadButton(gamepadID); b < maxButton; b++ {
+		if ebiten.IsGamepadButtonPressed(gamepadID, b) {
+			pressedButtons = append(pressedButtons, strconv.Itoa(int(b)))
 		}
 	}
-	str := "Pressed Keys: " + strings.Join(pressed, ", ")
+
+	str := `Gamepad
+  Axes:
+    {{.Axes}}
+  Pressed Buttons: {{.Buttons}}`
+	str = strings.Replace(str, "{{.Axes}}", strings.Join(axes, "\n    "), -1)
+	str = strings.Replace(str, "{{.Buttons}}", strings.Join(pressedButtons, ", "), -1)
 	ebitenutil.DebugPrint(screen, str)
 	return nil
 }

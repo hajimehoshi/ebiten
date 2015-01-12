@@ -26,18 +26,32 @@ func IsMouseButtonPressed(button MouseButton) bool {
 	return currentInput.mouseButtonPressed[button]
 }
 
-func GamepadAxis(j int, dir int) float64 {
-	if len(currentInput.gamepads) <= j {
+func GamepadAxisNum(id int) int {
+	if len(currentInput.gamepads) <= id {
 		return 0
 	}
-	return currentInput.gamepads[j].axes[dir]
+	return currentInput.gamepads[id].axisNum
 }
 
-func IsGamepadButtonPressed(j int, button GamepadButton) bool {
-	if len(currentInput.gamepads) <= j {
+func GamepadAxis(id int, axis int) float64 {
+	if len(currentInput.gamepads) <= id {
+		return 0
+	}
+	return currentInput.gamepads[id].axes[axis]
+}
+
+func GamepadButtonNum(id int) int {
+	if len(currentInput.gamepads) <= id {
+		return 0
+	}
+	return currentInput.gamepads[id].buttonNum
+}
+
+func IsGamepadButtonPressed(id int, button GamepadButton) bool {
+	if len(currentInput.gamepads) <= id {
 		return false
 	}
-	return currentInput.gamepads[j].buttonPressed[button]
+	return currentInput.gamepads[id].buttonPressed[button]
 }
 
 var currentInput input
@@ -51,6 +65,8 @@ type input struct {
 }
 
 type gamePad struct {
-	axes          [2]float64
+	axisNum       int
+	axes          [16]float64
+	buttonNum     int
 	buttonPressed [256]bool
 }
