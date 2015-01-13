@@ -64,7 +64,13 @@ func SwapBuffers() {
 }
 
 func init() {
-	// TODO: Implement this with node-webgl mainly for testing.
+	if js.Global.Get("require") != js.Undefined {
+		// Use headless-gl for testing.
+		nodeGl := js.Global.Call("require", "gl")
+		webglContext := nodeGl.Call("createContext", 16, 16)
+		context = opengl.NewContext(&webgl.Context{Object: webglContext})
+		return
+	}
 
 	doc := js.Global.Get("document")
 	window := js.Global.Get("window")

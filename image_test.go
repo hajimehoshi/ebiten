@@ -19,16 +19,16 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
-	"os"
 	"testing"
 )
 
+var ebitenImageBin = ""
+
 func openImage(path string) (*Image, image.Image, error) {
-	file, err := os.Open(path)
+	file, err := readFile(path)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer file.Close()
 
 	img, _, err := image.Decode(file)
 	if err != nil {
