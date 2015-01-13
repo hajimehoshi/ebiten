@@ -15,6 +15,8 @@
 package shader
 
 import (
+	"errors"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -55,6 +57,10 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 	if quads.Len() == 0 {
 		return nil
+	}
+	// TODO: Change this panic if image.DrawImage allows more than quadsMaxNum parts.
+	if quadsMaxNum < quads.Len() {
+		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
 	}
 
 	f := useProgramTexture(c, glMatrix(projectionMatrix), texture, geo, color)
