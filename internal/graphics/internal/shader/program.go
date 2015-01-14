@@ -23,7 +23,7 @@ var (
 	programRect    opengl.Program
 )
 
-const quadsMaxNum = 10000
+const quadsMaxNum = 65536 / 6
 
 func initialize(c *opengl.Context) error {
 	const uint16Size = 2
@@ -63,7 +63,8 @@ func initialize(c *opengl.Context) error {
 	}
 
 	const stride = 4 * 4
-	c.NewBuffer(c.ArrayBuffer, stride*quadsMaxNum, c.DynamicDraw)
+	const float32Size = 4
+	c.NewBuffer(c.ArrayBuffer, float32Size*stride*quadsMaxNum, c.DynamicDraw)
 
 	indices := make([]uint16, 6*quadsMaxNum)
 	for i := uint16(0); i < quadsMaxNum; i++ {

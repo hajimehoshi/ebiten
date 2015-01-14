@@ -267,7 +267,6 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageTyp
 
 func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
 	gl := c.gl
-	const float32Size = 4
 	gl.BufferSubData(int(bufferType), 0, data)
 }
 

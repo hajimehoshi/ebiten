@@ -92,7 +92,7 @@ func (s Sprites) Src(i int) (x0, y0, x1, y1 int) {
 	return s[i].Src()
 }
 
-var sprites = make(Sprites, 2500)
+var sprites = make(Sprites, 10000)
 
 func update(screen *ebiten.Image) error {
 	sprites.Update()
