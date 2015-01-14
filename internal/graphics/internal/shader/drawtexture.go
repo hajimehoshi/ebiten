@@ -15,6 +15,8 @@
 package shader
 
 import (
+	"errors"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -55,6 +57,9 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 	if quads.Len() == 0 {
 		return nil
+	}
+	if quadsMaxNum < quads.Len() {
+		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
 	}
 
 	program := useProgramColorMatrix(c, glMatrix(projectionMatrix), geo, color)

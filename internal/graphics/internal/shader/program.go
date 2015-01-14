@@ -20,8 +20,9 @@ import (
 
 var programColorMatrix opengl.Program
 
+const quadsMaxNum = 10000
+
 func initialize(c *opengl.Context) error {
-	const size = 10000
 	const uint16Size = 2
 
 	shaderVertexNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertex))
@@ -46,10 +47,11 @@ func initialize(c *opengl.Context) error {
 	}
 
 	const stride = 4 * 4
-	c.NewBuffer(c.ArrayBuffer, stride*size, c.DynamicDraw)
+	const float32Size = 4
+	c.NewBuffer(c.ArrayBuffer, float32Size*stride*quadsMaxNum, c.DynamicDraw)
 
-	indices := make([]uint16, 6*size)
-	for i := uint16(0); i < size; i++ {
+	indices := make([]uint16, 6*quadsMaxNum)
+	for i := uint16(0); i < quadsMaxNum; i++ {
 		indices[6*i+0] = 4*i + 0
 		indices[6*i+1] = 4*i + 1
 		indices[6*i+2] = 4*i + 2
