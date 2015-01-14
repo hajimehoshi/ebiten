@@ -59,7 +59,8 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return nil
 	}
 	// TODO: Change this panic if image.DrawImage allows more than quadsMaxNum parts.
-	if quadsMaxNum < quads.Len() {
+	// TODO: Kinder message
+	if quadsMaxNum < 4*quads.Len() {
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
 	}
 
