@@ -108,9 +108,9 @@ func (l rectVertexQuads) Len() int {
 	return l.Rects.Len()
 }
 
-func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 float32) {
+func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 float64) {
 	ix0, iy0, ix1, iy1 := l.Rects.Points(i)
-	return float32(ix0), float32(iy0), float32(ix1), float32(iy1)
+	return float64(ix0), float64(iy0), float64(ix1), float64(iy1)
 }
 
 // DrawRects draws rectangles on the image.

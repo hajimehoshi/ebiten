@@ -94,8 +94,8 @@ type Matrix interface {
 
 type TextureQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 float32)
-	Texture(i int) (u0, v0, u1, v1 float32)
+	Vertex(i int) (x0, y0, x1, y1 float64)
+	Texture(i int) (u0, v0, u1, v1 float64)
 }
 
 func (f *Framebuffer) Fill(c *opengl.Context, r, g, b, a float64) error {
@@ -115,7 +115,7 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 
 type VertexQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 float32)
+	Vertex(i int) (x0, y0, x1, y1 float64)
 }
 
 func (f *Framebuffer) DrawRects(c *opengl.Context, r, g, b, a float64, quads VertexQuads) error {

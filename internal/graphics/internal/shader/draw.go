@@ -35,18 +35,18 @@ type Matrix interface {
 
 type TextureQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 float32)
-	Texture(i int) (u0, v0, u1, v1 float32)
+	Vertex(i int) (x0, y0, x1, y1 float64)
+	Texture(i int) (u0, v0, u1, v1 float64)
 }
+
+// TODO: better name?
+const stride = 4 * 4
 
 var initialized = false
 
 func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 	// Let's use them to compare to len(quads) in the future.
-
-	// TODO: Unify stride or other consts
-	const stride = 4 * 4
 
 	if !initialized {
 		if err := initialize(c); err != nil {
@@ -73,10 +73,10 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 			continue
 		}
 		vertices = append(vertices,
-			x0, y0, u0, v0,
-			x1, y0, u1, v0,
-			x0, y1, u0, v1,
-			x1, y1, u1, v1,
+			float32(x0), float32(y0), float32(u0), float32(v0),
+			float32(x1), float32(y0), float32(u1), float32(v0),
+			float32(x0), float32(y1), float32(u0), float32(v1),
+			float32(x1), float32(y1), float32(u1), float32(v1),
 		)
 	}
 	if len(vertices) == 0 {
@@ -89,7 +89,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 type VertexQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 float32)
+	Vertex(i int) (x0, y0, x1, y1 float64)
 }
 
 func max(a, b float32) float32 {
@@ -99,9 +99,9 @@ func max(a, b float32) float32 {
 	return a
 }
 
-func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a float64, quads VertexQuads) error {
-	const stride = 4 * 4
+var vertices = make([]float32, 0, stride*quadsMaxNum)
 
+func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a float64, quads VertexQuads) error {
 	if !initialized {
 		if err := initialize(c); err != nil {
 			return err
@@ -116,17 +116,17 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a fl
 	f := useProgramRect(c, glMatrix(projectionMatrix), r, g, b, a)
 	defer f.FinishProgram()
 
-	vertices := make([]float32, 0, stride*quads.Len())
+	vertices := vertices[0:0]
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		if x0 == x1 || y0 == y1 {
 			continue
 		}
 		vertices = append(vertices,
-			x0, y0, 0, 0,
-			x1, y0, 1, 0,
-			x0, y1, 0, 1,
-			x1, y1, 1, 1,
+			float32(x0), float32(y0), 0, 0,
+			float32(x1), float32(y0), 1, 0,
+			float32(x0), float32(y1), 0, 1,
+			float32(x1), float32(y1), 1, 1,
 		)
 	}
 	if len(vertices) == 0 {
