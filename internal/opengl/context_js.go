@@ -112,7 +112,7 @@ func (c *Context) DeleteTexture(t Texture) {
 
 func (c *Context) GlslHighpSupported() bool {
 	gl := c.gl
-	// node-gl library may not define getShaderPrecisionFormat.
+	// headless-gl library may not define getShaderPrecisionFormat.
 	if gl.Get("getShaderPrecisionFormat") == js.Undefined {
 		return false
 	}
