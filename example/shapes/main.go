@@ -28,6 +28,7 @@ const (
 )
 
 var rectsToDraw = make([]image.Rectangle, 100)
+var colors = make([]color.NRGBA, 100)
 
 func min(a, b int) int {
 	if a < b {
@@ -48,22 +49,31 @@ func init() {
 		x0, x1 := rand.Intn(screenWidth), rand.Intn(screenWidth)
 		y0, y1 := rand.Intn(screenHeight), rand.Intn(screenHeight)
 		rectsToDraw[i] = image.Rect(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1))
+		r, g, b, a := uint8(rand.Intn(0xff)), uint8(rand.Intn(0xff)), uint8(rand.Intn(0xff)), uint8(rand.Intn(0xff))
+		colors[i] = color.NRGBA{r, g, b, a}
 	}
 }
 
-type rects []image.Rectangle
+type rects struct {
+	rects  []image.Rectangle
+	colors []color.NRGBA
+}
 
 func (r rects) Len() int {
-	return len(r)
+	return len(r.rects)
 }
 
 func (r rects) Points(i int) (x0, y0, x1, y1 int) {
-	rect := &r[i]
+	rect := &r.rects[i]
 	return rect.Min.X, rect.Min.Y, rect.Max.X, rect.Max.Y
 }
 
+func (r rects) Color(i int) color.Color {
+	return r.colors[i]
+}
+
 func update(screen *ebiten.Image) error {
-	screen.DrawRects(color.NRGBA{0x80, 0x80, 0xff, 0x80}, rects(rectsToDraw))
+	screen.DrawRects(&rects{rectsToDraw, colors})
 	return nil
 }
 

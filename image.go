@@ -98,6 +98,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 type Rects interface {
 	Len() int
 	Points(i int) (x0, y0, x1, y1 int)
+	Color(i int) color.Color
 }
 
 type rectVertexQuads struct {
@@ -113,13 +114,16 @@ func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 float64) {
 	return float64(ix0), float64(iy0), float64(ix1), float64(iy1)
 }
 
+func (l rectVertexQuads) Color(i int) color.Color {
+	return l.Rects.Color(i)
+}
+
 // DrawRects draws rectangles on the image.
 //
 // NOTE: This method is experimental.
-func (i *Image) DrawRects(clr color.Color, rects Rects) (err error) {
-	r, g, b, a := internal.RGBA(clr)
+func (i *Image) DrawRects(rects Rects) (err error) {
 	ui.Use(func(c *opengl.Context) {
-		err = i.framebuffer.DrawRects(c, r, g, b, a, &rectVertexQuads{rects})
+		err = i.framebuffer.DrawRects(c, &rectVertexQuads{rects})
 	})
 	return
 }

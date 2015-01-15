@@ -18,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"image/color"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
@@ -116,12 +117,13 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 type VertexQuads interface {
 	Len() int
 	Vertex(i int) (x0, y0, x1, y1 float64)
+	Color(i int) color.Color
 }
 
-func (f *Framebuffer) DrawRects(c *opengl.Context, r, g, b, a float64, quads VertexQuads) error {
+func (f *Framebuffer) DrawRects(c *opengl.Context, quads VertexQuads) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.DrawRects(c, p, r, g, b, a, quads)
+	return shader.DrawRects(c, p, quads)
 }

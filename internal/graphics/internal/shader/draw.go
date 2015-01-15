@@ -17,7 +17,9 @@ package shader
 import (
 	"errors"
 	"fmt"
+	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"image/color"
 )
 
 func glMatrix(m *[4][4]float64) []float32 {
@@ -91,6 +93,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 type VertexQuads interface {
 	Len() int
 	Vertex(i int) (x0, y0, x1, y1 float64)
+	Color(i int) color.Color
 }
 
 func max(a, b float32) float32 {
@@ -100,7 +103,7 @@ func max(a, b float32) float32 {
 	return a
 }
 
-func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a float64, quads VertexQuads) error {
+func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, quads VertexQuads) error {
 	if !initialized {
 		if err := initialize(c); err != nil {
 			return err
@@ -122,6 +125,7 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a fl
 		if x0 == x1 || y0 == y1 {
 			continue
 		}
+		r, g, b, a := internal.RGBA(quads.Color(i))
 		vertices = append(vertices,
 			float32(x0), float32(y0), float32(r), float32(g), float32(b), float32(a),
 			float32(x1), float32(y0), float32(r), float32(g), float32(b), float32(a),
