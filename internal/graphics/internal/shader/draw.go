@@ -42,6 +42,8 @@ type TextureQuads interface {
 // TODO: better name?
 const stride = 4 * 4
 
+var vertices = make([]float32, 0, stride*quadsMaxNum)
+
 var initialized = false
 
 func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
@@ -65,7 +67,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	f := useProgramTexture(c, glMatrix(projectionMatrix), texture, geo, color)
 	defer f.FinishProgram()
 
-	vertices := make([]float32, 0, stride*quads.Len())
+	vertices := vertices[0:0]
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		u0, v0, u1, v1 := quads.Texture(i)
@@ -98,8 +100,6 @@ func max(a, b float32) float32 {
 	}
 	return a
 }
-
-var vertices = make([]float32, 0, stride*quadsMaxNum)
 
 func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a float64, quads VertexQuads) error {
 	if !initialized {
