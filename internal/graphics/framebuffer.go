@@ -102,7 +102,7 @@ func (f *Framebuffer) Fill(c *opengl.Context, r, g, b, a float64) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
-	return c.FillFramebuffer(f.native, r, g, b, a)
+	return c.FillFramebuffer(r, g, b, a)
 }
 
 func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix) error {

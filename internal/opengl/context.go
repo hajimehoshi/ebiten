@@ -121,7 +121,7 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	return nil
 }
 
-func (c *Context) FillFramebuffer(f Framebuffer, r, g, b, a float64) error {
+func (c *Context) FillFramebuffer(r, g, b, a float64) error {
 	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	return nil
