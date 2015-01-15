@@ -206,9 +206,9 @@ func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
 	return AttribLocation(gl.Program(p).GetAttribLocation(location))
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
+func (c *Context) VertexAttribPointer(p Program, location string, stride int, size int, v uintptr) {
 	l := gl.AttribLocation(GetAttribLocation(c, p, location))
-	l.AttribPointer(2, gl.FLOAT, false, stride, v)
+	l.AttribPointer(uint(size), gl.FLOAT, false, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {

@@ -39,10 +39,7 @@ type TextureQuads interface {
 	Texture(i int) (u0, v0, u1, v1 float64)
 }
 
-// TODO: better name?
-const stride = 4 * 4
-
-var vertices = make([]float32, 0, stride*quadsMaxNum)
+var vertices = make([]float32, 0, 4*8*quadsMaxNum)
 
 var initialized = false
 
@@ -68,6 +65,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	defer f.FinishProgram()
 
 	vertices := vertices[0:0]
+	num := 0
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		u0, v0, u1, v1 := quads.Texture(i)
@@ -80,12 +78,13 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 			float32(x0), float32(y1), float32(u0), float32(v1),
 			float32(x1), float32(y1), float32(u1), float32(v1),
 		)
+		num++
 	}
 	if len(vertices) == 0 {
 		return nil
 	}
 	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(6 * len(vertices) / 16)
+	c.DrawElements(6 * num)
 	return nil
 }
 
@@ -113,27 +112,29 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, r, g, b, a fl
 		return nil
 	}
 
-	f := useProgramRect(c, glMatrix(projectionMatrix), r, g, b, a)
+	f := useProgramRect(c, glMatrix(projectionMatrix))
 	defer f.FinishProgram()
 
 	vertices := vertices[0:0]
+	num := 0
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		if x0 == x1 || y0 == y1 {
 			continue
 		}
 		vertices = append(vertices,
-			float32(x0), float32(y0), 0, 0,
-			float32(x1), float32(y0), 1, 0,
-			float32(x0), float32(y1), 0, 1,
-			float32(x1), float32(y1), 1, 1,
+			float32(x0), float32(y0), float32(r), float32(g), float32(b), float32(a),
+			float32(x1), float32(y0), float32(r), float32(g), float32(b), float32(a),
+			float32(x0), float32(y1), float32(r), float32(g), float32(b), float32(a),
+			float32(x1), float32(y1), float32(r), float32(g), float32(b), float32(a),
 		)
+		num++
 	}
 	if len(vertices) == 0 {
 		return nil
 	}
 	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(6 * len(vertices) / 16)
+	c.DrawElements(6 * num)
 
 	return nil
 }

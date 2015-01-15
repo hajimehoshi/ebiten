@@ -25,6 +25,9 @@ var (
 
 const quadsMaxNum = 65536 / 6
 
+// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
+const float32Size = 4
+
 func initialize(c *opengl.Context) error {
 	const uint16Size = 2
 
@@ -33,6 +36,12 @@ func initialize(c *opengl.Context) error {
 		return err
 	}
 	defer c.DeleteShader(shaderVertexNative)
+
+	shaderVertexColorNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColor))
+	if err != nil {
+		return err
+	}
+	defer c.DeleteShader(shaderVertexColorNative)
 
 	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
 	if err != nil {
@@ -55,16 +64,15 @@ func initialize(c *opengl.Context) error {
 	}
 
 	programRect, err = c.NewProgram([]opengl.Shader{
-		shaderVertexNative,
+		shaderVertexColorNative,
 		shaderFragmentRectNative,
 	})
 	if err != nil {
 		return err
 	}
 
-	const stride = 4 * 4
-	const float32Size = 4
-	c.NewBuffer(c.ArrayBuffer, float32Size*stride*quadsMaxNum, c.DynamicDraw)
+	const stride = float32Size * 8 // 8 = (2 for vertex) + (2 for texture) + (4 for color)
+	c.NewBuffer(c.ArrayBuffer, 4*stride*quadsMaxNum, c.DynamicDraw)
 
 	indices := make([]uint16, 6*quadsMaxNum)
 	for i := uint16(0); i < quadsMaxNum; i++ {
@@ -89,10 +97,6 @@ func (p programFinisher) FinishProgram() {
 }
 
 func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture opengl.Texture, geo Matrix, color Matrix) programFinisher {
-	// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
-	const float32Size = 4
-	const stride = 4 * 4
-
 	if lastProgram != programTexture {
 		c.UseProgram(programTexture)
 		lastProgram = programTexture
@@ -142,8 +146,8 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 	c.EnableVertexAttribArray(program, "vertex")
 	c.EnableVertexAttribArray(program, "tex_coord")
 
-	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
-	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
+	c.VertexAttribPointer(program, "vertex", float32Size*4, 2, uintptr(float32Size*0))
+	c.VertexAttribPointer(program, "tex_coord", float32Size*4, 2, uintptr(float32Size*2))
 
 	return func() {
 		c.DisableVertexAttribArray(program, "tex_coord")
@@ -151,10 +155,7 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 	}
 }
 
-func useProgramRect(c *opengl.Context, projectionMatrix []float32, r, g, b, a float64) programFinisher {
-	const float32Size = 4
-	const stride = 4 * 4
-
+func useProgramRect(c *opengl.Context, projectionMatrix []float32) programFinisher {
 	if lastProgram != programRect {
 		c.UseProgram(programRect)
 		lastProgram = programRect
@@ -163,25 +164,14 @@ func useProgramRect(c *opengl.Context, projectionMatrix []float32, r, g, b, a fl
 
 	c.UniformFloats(program, "projection_matrix", projectionMatrix)
 
-	glModelviewMatrix := []float32{
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
-	}
-	c.UniformFloats(program, "modelview_matrix", glModelviewMatrix)
-
-	clr := []float32{float32(r), float32(g), float32(b), float32(a)}
-	c.UniformFloats(program, "color", clr)
-
 	c.EnableVertexAttribArray(program, "vertex")
-	c.EnableVertexAttribArray(program, "tex_coord")
+	c.EnableVertexAttribArray(program, "color")
 
-	c.VertexAttribPointer(program, "vertex", stride, uintptr(float32Size*0))
-	c.VertexAttribPointer(program, "tex_coord", stride, uintptr(float32Size*2))
+	c.VertexAttribPointer(program, "vertex", float32Size*6, 2, uintptr(float32Size*0))
+	c.VertexAttribPointer(program, "color", float32Size*6, 4, uintptr(float32Size*2))
 
 	return func() {
-		c.DisableVertexAttribArray(program, "tex_coord")
+		c.DisableVertexAttribArray(program, "color")
 		c.DisableVertexAttribArray(program, "vertex")
 	}
 }
