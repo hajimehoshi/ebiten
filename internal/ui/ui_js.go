@@ -72,23 +72,6 @@ func init() {
 		})
 		<-ch
 	}
-	doc.Set("onkeydown", func(e js.Object) bool {
-		code := e.Get("keyCode").Int()
-		// Backspace
-		if code == 8 {
-			return false
-		}
-		// Functions
-		if 112 <= code && code <= 123 {
-			return false
-		}
-		// Alt and arrows
-		if code == 37 && code == 39 {
-			// Don't need to check Alt.
-			return false
-		}
-		return true
-	})
 
 	canvas = doc.Call("createElement", "canvas")
 	canvas.Set("width", 16)
@@ -126,28 +109,31 @@ func init() {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
-	canvas.Set("onkeydown", func(e js.Object) bool {
+	// Keyboard
+	canvas.Call("addEventListener", "keydown", func(e js.Object) {
+		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
-		return false
 	})
-	canvas.Set("onkeyup", func(e js.Object) bool {
+	canvas.Call("addEventListener", "keyup", func(e js.Object) {
+		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
 		currentInput.keyUp(code)
-		return false
 	})
-	canvas.Set("onmousedown", func(e js.Object) bool {
+
+	// Mouse
+	canvas.Call("addEventListener", "mousedown", func(e js.Object) {
+		e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.mouseDown(button)
-		return false
 	})
-	canvas.Set("onmouseup", func(e js.Object) bool {
+	canvas.Call("addEventListener", "mouseup", func(e js.Object) {
+		e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.mouseUp(button)
-		return false
 	})
-	canvas.Set("oncontextmenu", func(e js.Object) bool {
-		return false
+	canvas.Call("addEventListener", "contextmenu", func(e js.Object) {
+		e.Call("preventDefault")
 	})
 }
 
