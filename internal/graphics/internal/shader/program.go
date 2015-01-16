@@ -95,7 +95,7 @@ func (p programFinisher) FinishProgram() {
 }
 
 func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture opengl.Texture, geo Matrix, color Matrix) programFinisher {
-	if lastProgram != programTexture {
+	if !lastProgram.Equals(programTexture) {
 		c.UseProgram(programTexture)
 		lastProgram = programTexture
 	}

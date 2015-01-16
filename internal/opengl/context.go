@@ -26,6 +26,12 @@ type Texture int
 type Framebuffer int
 type Shader int
 type Program int
+
+// TODO: Remove this after the GopherJS bug was fixed (#159)
+func (p Program) Equals(other Program) bool {
+	return p == other
+}
+
 type UniformLocation gl.UniformLocation
 type AttribLocation gl.AttribLocation
 

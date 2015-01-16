@@ -39,6 +39,11 @@ type Program struct {
 	js.Object
 }
 
+// TODO: Remove this after the GopherJS bug was fixed (#159)
+func (p Program) Equals(other Program) bool {
+	return p.Object == other.Object
+}
+
 type UniformLocation struct {
 	js.Object
 }
@@ -151,7 +156,8 @@ var lastFramebuffer Framebuffer
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl := c.gl
-	if lastFramebuffer != f {
+	// TODO: Fix this after the GopherJS bug was fixed (#159)
+	if lastFramebuffer.Object != f.Object {
 		gl.Flush()
 		lastFramebuffer = f
 	}
