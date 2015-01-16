@@ -95,32 +95,12 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return
 }
 
-// A Rects represents the set of rectangles.
-type Rects interface {
-	Len() int
-	Points(i int) (x0, y0, x1, y1 int)
-	Color(i int) color.Color
-}
-
-type rectVertexQuads struct {
-	Rects
-}
-
-func (l rectVertexQuads) Len() int {
-	return l.Rects.Len()
-}
-
-func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 int) {
-	return l.Rects.Points(i)
-}
-
-func (l rectVertexQuads) Color(i int) color.Color {
-	return l.Rects.Color(i)
+// DrawRect draws a rectangle.
+func (i *Image) DrawRect(x, y, width, height int, clr color.Color) error {
+	return i.DrawRects(&rect{x, y, width, height, clr})
 }
 
 // DrawRects draws rectangles on the image.
-//
-// NOTE: This method is experimental.
 func (i *Image) DrawRects(rects Rects) (err error) {
 	ui.Use(func(c *opengl.Context) {
 		err = i.framebuffer.DrawRects(c, &rectVertexQuads{rects})
