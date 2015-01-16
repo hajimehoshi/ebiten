@@ -154,7 +154,7 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 }
 
 func useProgramRect(c *opengl.Context, projectionMatrix []float32) programFinisher {
-	if lastProgram != programRect {
+	if !lastProgram.Equals(programRect) {
 		c.UseProgram(programRect)
 		lastProgram = programRect
 	}
