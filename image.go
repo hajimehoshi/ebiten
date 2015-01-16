@@ -48,6 +48,7 @@ func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
 	r, g, b, a := internal.RGBA(clr)
 	ui.Use(func(c *opengl.Context) {
+		// TODO: Change to pass color.Color
 		err = i.framebuffer.Fill(c, r, g, b, a)
 	})
 	return
@@ -109,9 +110,8 @@ func (l rectVertexQuads) Len() int {
 	return l.Rects.Len()
 }
 
-func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 float64) {
-	ix0, iy0, ix1, iy1 := l.Rects.Points(i)
-	return float64(ix0), float64(iy0), float64(ix1), float64(iy1)
+func (l rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 int) {
+	return l.Rects.Points(i)
 }
 
 func (l rectVertexQuads) Color(i int) color.Color {

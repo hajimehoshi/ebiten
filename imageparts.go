@@ -17,6 +17,7 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal"
 	"image"
+	"math"
 )
 
 // Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
@@ -66,12 +67,12 @@ func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
 	return 0, 0, w.width, w.height
 }
 
-func u(x float64, width int) float64 {
-	return x / float64(internal.NextPowerOf2Int(width))
+func u(x int, width int) int {
+	return math.MaxInt16 * x / internal.NextPowerOf2Int(width)
 }
 
-func v(y float64, height int) float64 {
-	return y / float64(internal.NextPowerOf2Int(height))
+func v(y int, height int) int {
+	return math.MaxInt16 * y / internal.NextPowerOf2Int(height)
 }
 
 type textureQuads struct {
@@ -84,13 +85,12 @@ func (t *textureQuads) Len() int {
 	return t.parts.Len()
 }
 
-func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 float64) {
-	ix0, iy0, ix1, iy1 := t.parts.Dst(i)
-	return float64(ix0), float64(iy0), float64(ix1), float64(iy1)
+func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 int) {
+	return t.parts.Dst(i)
 }
 
-func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 float64) {
+func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 int) {
 	x0, y0, x1, y1 := t.parts.Src(i)
 	w, h := t.width, t.height
-	return u(float64(x0), w), v(float64(y0), h), u(float64(x1), w), v(float64(y1), h)
+	return u(x0, w), v(y0, h), u(x1, w), v(y1, h)
 }

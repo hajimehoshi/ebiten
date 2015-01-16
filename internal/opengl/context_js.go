@@ -256,10 +256,14 @@ func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
 	return AttribLocation(gl.GetAttribLocation(p.Object, location))
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, stride int, size int, v uintptr) {
+func (c *Context) VertexAttribPointer(p Program, location string, signed bool, normalize bool, stride int, size int, v uintptr) {
 	gl := c.gl
 	l := GetAttribLocation(c, p, location)
-	gl.VertexAttribPointer(int(l), size, gl.FLOAT, false, stride, int(v))
+	t := gl.SHORT
+	if !signed {
+		t = gl.UNSIGNED_SHORT
+	}
+	gl.VertexAttribPointer(int(l), size, t, normalize, stride, int(v))
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
@@ -281,7 +285,7 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageTyp
 	gl.BufferData(int(bufferType), v, int(bufferUsageType))
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
+func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl := c.gl
 	gl.BufferSubData(int(bufferType), 0, data)
 }

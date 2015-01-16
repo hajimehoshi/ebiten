@@ -17,7 +17,6 @@ package shader
 import (
 	"errors"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image/color"
 )
@@ -37,11 +36,11 @@ type Matrix interface {
 
 type TextureQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 float64)
-	Texture(i int) (u0, v0, u1, v1 float64)
+	Vertex(i int) (x0, y0, x1, y1 int)
+	Texture(i int) (u0, v0, u1, v1 int)
 }
 
-var vertices = make([]float32, 0, 4*8*quadsMaxNum)
+var vertices = make([]int16, 0, 4*8*quadsMaxNum)
 
 var initialized = false
 
@@ -75,10 +74,10 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 			continue
 		}
 		vertices = append(vertices,
-			float32(x0), float32(y0), float32(u0), float32(v0),
-			float32(x1), float32(y0), float32(u1), float32(v0),
-			float32(x0), float32(y1), float32(u0), float32(v1),
-			float32(x1), float32(y1), float32(u1), float32(v1),
+			int16(x0), int16(y0), int16(u0), int16(v0),
+			int16(x1), int16(y0), int16(u1), int16(v0),
+			int16(x0), int16(y1), int16(u0), int16(v1),
+			int16(x1), int16(y1), int16(u1), int16(v1),
 		)
 		num++
 	}
@@ -92,7 +91,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 type VertexQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 float64)
+	Vertex(i int) (x0, y0, x1, y1 int)
 	Color(i int) color.Color
 }
 
@@ -125,12 +124,12 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, quads VertexQ
 		if x0 == x1 || y0 == y1 {
 			continue
 		}
-		r, g, b, a := internal.RGBA(quads.Color(i))
+		r, g, b, a := quads.Color(i).RGBA()
 		vertices = append(vertices,
-			float32(x0), float32(y0), float32(r), float32(g), float32(b), float32(a),
-			float32(x1), float32(y0), float32(r), float32(g), float32(b), float32(a),
-			float32(x0), float32(y1), float32(r), float32(g), float32(b), float32(a),
-			float32(x1), float32(y1), float32(r), float32(g), float32(b), float32(a),
+			int16(x0), int16(y0), int16(r), int16(g), int16(b), int16(a),
+			int16(x1), int16(y0), int16(r), int16(g), int16(b), int16(a),
+			int16(x0), int16(y1), int16(r), int16(g), int16(b), int16(a),
+			int16(x1), int16(y1), int16(r), int16(g), int16(b), int16(a),
 		)
 		num++
 	}

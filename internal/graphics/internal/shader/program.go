@@ -26,11 +26,9 @@ var (
 const quadsMaxNum = 65536 / 6
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
-const float32Size = 4
+const int16Size = 2
 
 func initialize(c *opengl.Context) error {
-	const uint16Size = 2
-
 	shaderVertexNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertex))
 	if err != nil {
 		return err
@@ -71,7 +69,7 @@ func initialize(c *opengl.Context) error {
 		return err
 	}
 
-	const stride = float32Size * 8 // 8 = (2 for vertex) + (2 for texture) + (4 for color)
+	const stride = int16Size * 8 // 8 = (2 for vertex) + (2 for texture) + (4 for color)
 	c.NewBuffer(c.ArrayBuffer, 4*stride*quadsMaxNum, c.DynamicDraw)
 
 	indices := make([]uint16, 6*quadsMaxNum)
@@ -146,8 +144,8 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 	c.EnableVertexAttribArray(program, "vertex")
 	c.EnableVertexAttribArray(program, "tex_coord")
 
-	c.VertexAttribPointer(program, "vertex", float32Size*4, 2, uintptr(float32Size*0))
-	c.VertexAttribPointer(program, "tex_coord", float32Size*4, 2, uintptr(float32Size*2))
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*4, 2, uintptr(int16Size*0))
+	c.VertexAttribPointer(program, "tex_coord", true, true, int16Size*4, 2, uintptr(int16Size*2))
 
 	return func() {
 		c.DisableVertexAttribArray(program, "tex_coord")
@@ -167,8 +165,8 @@ func useProgramRect(c *opengl.Context, projectionMatrix []float32) programFinish
 	c.EnableVertexAttribArray(program, "vertex")
 	c.EnableVertexAttribArray(program, "color")
 
-	c.VertexAttribPointer(program, "vertex", float32Size*6, 2, uintptr(float32Size*0))
-	c.VertexAttribPointer(program, "color", float32Size*6, 4, uintptr(float32Size*2))
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, uintptr(int16Size*0))
+	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, uintptr(int16Size*2))
 
 	return func() {
 		c.DisableVertexAttribArray(program, "color")
