@@ -42,20 +42,3 @@ func (r *rect) Rect(i int) (x, y, width, height int) {
 func (r *rect) Color(i int) color.Color {
 	return r.color
 }
-
-type rectVertexQuads struct {
-	Rects
-}
-
-func (l *rectVertexQuads) Len() int {
-	return l.Rects.Len()
-}
-
-func (l *rectVertexQuads) Vertex(i int) (x0, y0, x1, y1 int) {
-	x, y, width, height := l.Rects.Rect(i)
-	return x, y, x + width, y + height
-}
-
-func (l *rectVertexQuads) Color(i int) color.Color {
-	return l.Rects.Color(i)
-}

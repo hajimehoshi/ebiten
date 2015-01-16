@@ -114,16 +114,16 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 	return shader.DrawTexture(c, t.native, p, quads, geo, clr)
 }
 
-type VertexQuads interface {
+type Rects interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 int)
+	Rect(i int) (x, y, width, height int)
 	Color(i int) color.Color
 }
 
-func (f *Framebuffer) DrawRects(c *opengl.Context, quads VertexQuads) error {
+func (f *Framebuffer) DrawRects(c *opengl.Context, rects Rects) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.DrawRects(c, p, quads)
+	return shader.DrawRects(c, p, rects)
 }

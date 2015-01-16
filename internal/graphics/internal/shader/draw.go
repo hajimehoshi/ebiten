@@ -89,20 +89,13 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	return nil
 }
 
-type VertexQuads interface {
+type Rects interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 int)
+	Rect(i int) (x, y, width, height int)
 	Color(i int) color.Color
 }
 
-func max(a, b float32) float32 {
-	if a < b {
-		return b
-	}
-	return a
-}
-
-func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, quads VertexQuads) error {
+func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
 	if !initialized {
 		if err := initialize(c); err != nil {
 			return err
@@ -110,7 +103,7 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, quads VertexQ
 		initialized = true
 	}
 
-	if quads.Len() == 0 {
+	if rects.Len() == 0 {
 		return nil
 	}
 
@@ -119,12 +112,13 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, quads VertexQ
 
 	vertices := vertices[0:0]
 	num := 0
-	for i := 0; i < quads.Len(); i++ {
-		x0, y0, x1, y1 := quads.Vertex(i)
-		if x0 == x1 || y0 == y1 {
+	for i := 0; i < rects.Len(); i++ {
+		x, y, w, h := rects.Rect(i)
+		if w == 0 || h == 0 {
 			continue
 		}
-		r, g, b, a := quads.Color(i).RGBA()
+		x0, y0, x1, y1 := x, y, x+w, y+h
+		r, g, b, a := rects.Color(i).RGBA()
 		vertices = append(vertices,
 			int16(x0), int16(y0), int16(r), int16(g), int16(b), int16(a),
 			int16(x1), int16(y0), int16(r), int16(g), int16(b), int16(a),

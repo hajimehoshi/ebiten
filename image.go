@@ -103,7 +103,7 @@ func (i *Image) DrawRect(x, y, width, height int, clr color.Color) error {
 // DrawRects draws rectangles on the image.
 func (i *Image) DrawRects(rects Rects) (err error) {
 	ui.Use(func(c *opengl.Context) {
-		err = i.framebuffer.DrawRects(c, &rectVertexQuads{rects})
+		err = i.framebuffer.DrawRects(c, rects)
 	})
 	return
 }
