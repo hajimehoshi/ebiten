@@ -29,7 +29,9 @@ const (
 )
 
 var (
-	ebitenImage *ebiten.Image
+	ebitenImage       *ebiten.Image
+	ebitenImageWidth  = 0
+	ebitenImageHeight = 0
 )
 
 type Sprite struct {
@@ -67,11 +69,6 @@ func (s *Sprite) Dst() (x0, y0, x1, y1 int) {
 	return s.x, s.y, s.x + w, s.y + h
 }
 
-func (s *Sprite) Src() (x0, y0, x1, y1 int) {
-	w, h := s.image.Size()
-	return 0, 0, w, h
-}
-
 type Sprites []*Sprite
 
 func (s Sprites) Update() {
@@ -89,7 +86,7 @@ func (s Sprites) Dst(i int) (x0, y0, x1, y1 int) {
 }
 
 func (s Sprites) Src(i int) (x0, y0, x1, y1 int) {
-	return s[i].Src()
+	return 0, 0, ebitenImageWidth, ebitenImageHeight
 }
 
 var sprites = make(Sprites, 10000)
@@ -113,6 +110,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	ebitenImageWidth, ebitenImageHeight = ebitenImage.Size()
 	for i, _ := range sprites {
 		w, h := ebitenImage.Size()
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
