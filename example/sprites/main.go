@@ -64,11 +64,6 @@ func (s *Sprite) Update() {
 	}
 }
 
-func (s *Sprite) Dst() (x0, y0, x1, y1 int) {
-	w, h := s.image.Size()
-	return s.x, s.y, s.x + w, s.y + h
-}
-
 type Sprites []*Sprite
 
 func (s Sprites) Update() {
@@ -82,7 +77,8 @@ func (s Sprites) Len() int {
 }
 
 func (s Sprites) Dst(i int) (x0, y0, x1, y1 int) {
-	return s[i].Dst()
+	ss := s[i]
+	return ss.x, ss.y, ss.x + ebitenImageWidth, ss.y + ebitenImageHeight
 }
 
 func (s Sprites) Src(i int) (x0, y0, x1, y1 int) {
