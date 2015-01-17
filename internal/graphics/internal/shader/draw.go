@@ -91,7 +91,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 type Lines interface {
 	Len() int
-	Points(i int) (x0, y0, x1, y1 float64)
+	Points(i int) (x0, y0, x1, y1 int)
 	Color(i int) color.Color
 }
 

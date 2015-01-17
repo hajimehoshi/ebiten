@@ -116,7 +116,7 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 
 type Lines interface {
 	Len() int
-	Points(i int) (x0, y0, x1, y1 float64)
+	Points(i int) (x0, y0, x1, y1 int)
 	Color(i int) color.Color
 }
 

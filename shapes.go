@@ -21,13 +21,13 @@ import (
 // A Lines represents the set of lines.
 type Lines interface {
 	Len() int
-	Points(i int) (x0, y0, x1, y1 float64)
+	Points(i int) (x0, y0, x1, y1 int)
 	Color(i int) color.Color
 }
 
 type line struct {
-	x0, y0 float64
-	x1, y1 float64
+	x0, y0 int
+	x1, y1 int
 	color  color.Color
 }
 
@@ -35,7 +35,7 @@ func (l *line) Len() int {
 	return 1
 }
 
-func (l *line) Points(i int) (x0, y0, x1, y1 float64) {
+func (l *line) Points(i int) (x0, y0, x1, y1 int) {
 	return l.x0, l.y0, l.x1, l.y1
 }
 
@@ -51,9 +51,8 @@ func (r *rectsAsLines) Len() int {
 	return r.Rects.Len() * 4
 }
 
-func (r *rectsAsLines) Points(i int) (x0, y0, x1, y1 float64) {
-	ix, iy, iw, ih := r.Rects.Rect(i / 4)
-	x, y, w, h := float64(ix), float64(iy), float64(iw), float64(ih)
+func (r *rectsAsLines) Points(i int) (x0, y0, x1, y1 int) {
+	x, y, w, h := r.Rects.Rect(i / 4)
 	switch i % 4 {
 	case 0:
 		return x, y, x + w, y
