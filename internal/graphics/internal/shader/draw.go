@@ -135,7 +135,7 @@ func DrawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) 
 
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height float64)
+	Rect(i int) (x, y, width, height int)
 	Color(i int) color.Color
 }
 

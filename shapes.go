@@ -52,7 +52,8 @@ func (r *rectsAsLines) Len() int {
 }
 
 func (r *rectsAsLines) Points(i int) (x0, y0, x1, y1 float64) {
-	x, y, w, h := r.Rects.Rect(i / 4)
+	ix, iy, iw, ih := r.Rects.Rect(i / 4)
+	x, y, w, h := float64(ix), float64(iy), float64(iw), float64(ih)
 	switch i % 4 {
 	case 0:
 		return x, y, x + w, y
@@ -73,13 +74,13 @@ func (r *rectsAsLines) Color(i int) color.Color {
 // A Rects represents the set of rectangles.
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height float64)
+	Rect(i int) (x, y, width, height int)
 	Color(i int) color.Color
 }
 
 type rect struct {
-	x, y          float64
-	width, height float64
+	x, y          int
+	width, height int
 	color         color.Color
 }
 
@@ -87,7 +88,7 @@ func (r *rect) Len() int {
 	return 1
 }
 
-func (r *rect) Rect(i int) (x, y, width, height float64) {
+func (r *rect) Rect(i int) (x, y, width, height int) {
 	return r.x, r.y, r.width, r.height
 }
 

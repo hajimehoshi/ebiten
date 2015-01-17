@@ -27,7 +27,7 @@ const (
 
 func update(screen *ebiten.Image) error {
 	for i := 0; i < 6; i++ {
-		screen.DrawRect(float64(2*i), float64(2*i), 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
+		screen.DrawRect(2*i, 2*i, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
 	}
 	screen.FillRect(10, 10, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
 	screen.FillRect(20, 20, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})

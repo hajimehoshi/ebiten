@@ -130,7 +130,7 @@ func (f *Framebuffer) DrawLines(c *opengl.Context, lines Lines) error {
 
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height float64)
+	Rect(i int) (x, y, width, height int)
 	Color(i int) color.Color
 }
 
