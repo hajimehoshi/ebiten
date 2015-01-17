@@ -21,13 +21,13 @@ import (
 // A Lines represents the set of lines.
 type Lines interface {
 	Len() int
-	Points(i int) (x0, y0, x1, y1 int) // TODO: Change to float64?
+	Points(i int) (x0, y0, x1, y1 float64)
 	Color(i int) color.Color
 }
 
 type line struct {
-	x0, y0 int
-	x1, y1 int
+	x0, y0 float64
+	x1, y1 float64
 	color  color.Color
 }
 
@@ -35,7 +35,7 @@ func (l *line) Len() int {
 	return 1
 }
 
-func (l *line) Points(i int) (x0, y0, x1, y1 int) {
+func (l *line) Points(i int) (x0, y0, x1, y1 float64) {
 	return l.x0, l.y0, l.x1, l.y1
 }
 
@@ -51,17 +51,17 @@ func (r *rectsAsLines) Len() int {
 	return r.Rects.Len() * 4
 }
 
-func (r *rectsAsLines) Points(i int) (x0, y0, x1, y1 int) {
+func (r *rectsAsLines) Points(i int) (x0, y0, x1, y1 float64) {
 	x, y, w, h := r.Rects.Rect(i / 4)
 	switch i % 4 {
 	case 0:
 		return x, y, x + w, y
 	case 1:
-		return x, y, x + 1, y + h
+		return x, y + 1, x, y + h - 1
 	case 2:
-		return x, y + h, x + w, y + h
+		return x, y + h - 1, x + w, y + h - 1
 	case 3:
-		return x + w, y, x + w, y + h
+		return x + w - 1, y + 1, x + w - 1, y + h - 1
 	}
 	panic("not reach")
 }
@@ -73,13 +73,13 @@ func (r *rectsAsLines) Color(i int) color.Color {
 // A Rects represents the set of rectangles.
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height int) // TODO: Change to float64?
+	Rect(i int) (x, y, width, height float64)
 	Color(i int) color.Color
 }
 
 type rect struct {
-	x, y          int
-	width, height int
+	x, y          float64
+	width, height float64
 	color         color.Color
 }
 
@@ -87,7 +87,7 @@ func (r *rect) Len() int {
 	return 1
 }
 
-func (r *rect) Rect(i int) (x, y, width, height int) {
+func (r *rect) Rect(i int) (x, y, width, height float64) {
 	return r.x, r.y, r.width, r.height
 }
 

@@ -96,7 +96,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 }
 
 // DrawLine draws a line.
-func (i *Image) DrawLine(x0, y0, x1, y1 int, clr color.Color) error {
+func (i *Image) DrawLine(x0, y0, x1, y1 float64, clr color.Color) error {
 	return i.DrawLines(&line{x0, y0, x1, y1, clr})
 }
 
@@ -108,7 +108,7 @@ func (i *Image) DrawLines(lines Lines) (err error) {
 	return
 }
 
-func (i *Image) DrawRect(x, y, width, height int, clr color.Color) error {
+func (i *Image) DrawRect(x, y, width, height float64, clr color.Color) error {
 	return i.DrawLines(&rectsAsLines{&rect{x, y, width, height, clr}})
 }
 
@@ -117,7 +117,7 @@ func (i *Image) DrawRects(rects Rects) error {
 }
 
 // FillRect draws a filled rectangle.
-func (i *Image) FillRect(x, y, width, height int, clr color.Color) error {
+func (i *Image) FillRect(x, y, width, height float64, clr color.Color) error {
 	return i.FillRects(&rect{x, y, width, height, clr})
 }
 

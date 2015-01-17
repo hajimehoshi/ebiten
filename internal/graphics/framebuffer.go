@@ -116,7 +116,7 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 
 type Lines interface {
 	Len() int
-	Points(i int) (x0, y0, x1, y1 int)
+	Points(i int) (x0, y0, x1, y1 float64)
 	Color(i int) color.Color
 }
 
@@ -130,7 +130,7 @@ func (f *Framebuffer) DrawLines(c *opengl.Context, lines Lines) error {
 
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height int)
+	Rect(i int) (x, y, width, height float64)
 	Color(i int) color.Color
 }
 

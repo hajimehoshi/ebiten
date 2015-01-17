@@ -26,11 +26,13 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
-	screen.DrawRect(0, 0, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
+	for i := 0; i < 6; i++ {
+		screen.DrawRect(float64(2*i), float64(2*i), 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
+	}
 	screen.FillRect(10, 10, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
 	screen.FillRect(20, 20, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
-	screen.DrawLine(130, 10, 140, 150, color.NRGBA{0xff, 0x80, 0x80, 0x80})
-	screen.DrawLine(140, 10, 150, 150, color.NRGBA{0xff, 0x80, 0x80, 0x80})
+	screen.DrawLine(130, 0, 140, 100, color.NRGBA{0xff, 0x80, 0x80, 0x80})
+	screen.DrawLine(140, 0, 150, 100, color.NRGBA{0xff, 0x80, 0x80, 0x80})
 	return nil
 }
 

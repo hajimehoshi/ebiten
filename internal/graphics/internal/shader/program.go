@@ -25,8 +25,9 @@ var (
 )
 
 var (
-	programTexture opengl.Program
-	programSolid   opengl.Program
+	programTexture   opengl.Program
+	programSolidRect opengl.Program
+	programSolidLine opengl.Program
 )
 
 const indicesNum = math.MaxUint16 + 1
@@ -34,19 +35,26 @@ const quadsMaxNum = indicesNum / 6
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
 const int16Size = 2
+const float32Size = 4
 
 func initialize(c *opengl.Context) error {
-	shaderVertexNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertex))
+	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaderVertexNative)
+	defer c.DeleteShader(shaderVertexModelviewNative)
 
 	shaderVertexColorNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColor))
 	if err != nil {
 		return err
 	}
 	defer c.DeleteShader(shaderVertexColorNative)
+
+	shaderVertexColorLineNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColorLine))
+	if err != nil {
+		return err
+	}
+	defer c.DeleteShader(shaderVertexColorLineNative)
 
 	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
 	if err != nil {
@@ -61,14 +69,14 @@ func initialize(c *opengl.Context) error {
 	defer c.DeleteShader(shaderFragmentSolidNative)
 
 	programTexture, err = c.NewProgram([]opengl.Shader{
-		shaderVertexNative,
+		shaderVertexModelviewNative,
 		shaderFragmentTextureNative,
 	})
 	if err != nil {
 		return err
 	}
 
-	programSolid, err = c.NewProgram([]opengl.Shader{
+	programSolidRect, err = c.NewProgram([]opengl.Shader{
 		shaderVertexColorNative,
 		shaderFragmentSolidNative,
 	})
@@ -76,7 +84,16 @@ func initialize(c *opengl.Context) error {
 		return err
 	}
 
-	const stride = int16Size * 8 // 8 = (2 for vertex) + (2 for texture) + (4 for color)
+	programSolidLine, err = c.NewProgram([]opengl.Shader{
+		shaderVertexColorLineNative,
+		shaderFragmentSolidNative,
+	})
+	if err != nil {
+		return err
+	}
+
+	// 16 [bytse] is an arbitrary number which seems enough to draw anything. Fix this if necessary.
+	const stride = 16
 	c.NewBuffer(c.ArrayBuffer, 4*stride*quadsMaxNum, c.DynamicDraw)
 
 	indices := make([]uint16, 6*quadsMaxNum)
@@ -107,7 +124,7 @@ func (p programFinisher) FinishProgram() {
 	p()
 }
 
-func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture opengl.Texture, geo Matrix, color Matrix) programFinisher {
+func useProgramForTexture(c *opengl.Context, projectionMatrix []float32, texture opengl.Texture, geo Matrix, color Matrix) programFinisher {
 	if !lastProgram.Equals(programTexture) {
 		c.UseProgram(programTexture)
 		lastProgram = programTexture
@@ -168,12 +185,12 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 	}
 }
 
-func useProgramLines(c *opengl.Context, projectionMatrix []float32) programFinisher {
-	if !lastProgram.Equals(programSolid) {
-		c.UseProgram(programSolid)
-		lastProgram = programSolid
+func useProgramForLines(c *opengl.Context, projectionMatrix []float32) programFinisher {
+	if !lastProgram.Equals(programSolidLine) {
+		c.UseProgram(programSolidLine)
+		lastProgram = programSolidLine
 	}
-	program := programSolid
+	program := programSolidLine
 
 	c.BindElementArrayBuffer(indexBufferLines)
 
@@ -192,12 +209,12 @@ func useProgramLines(c *opengl.Context, projectionMatrix []float32) programFinis
 	}
 }
 
-func useProgramRects(c *opengl.Context, projectionMatrix []float32) programFinisher {
-	if !lastProgram.Equals(programSolid) {
-		c.UseProgram(programSolid)
-		lastProgram = programSolid
+func useProgramForRects(c *opengl.Context, projectionMatrix []float32) programFinisher {
+	if !lastProgram.Equals(programSolidRect) {
+		c.UseProgram(programSolidRect)
+		lastProgram = programSolidRect
 	}
-	program := programSolid
+	program := programSolidRect
 
 	c.BindElementArrayBuffer(indexBufferQuads)
 

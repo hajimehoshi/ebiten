@@ -62,7 +62,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
 	}
 
-	f := useProgramTexture(c, glMatrix(projectionMatrix), texture, geo, color)
+	f := useProgramForTexture(c, glMatrix(projectionMatrix), texture, geo, color)
 	defer f.FinishProgram()
 
 	vertices := vertices[0:0]
@@ -91,7 +91,7 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 
 type Lines interface {
 	Len() int
-	Points(i int) (x0, y0, x1, y1 int)
+	Points(i int) (x0, y0, x1, y1 float64)
 	Color(i int) color.Color
 }
 
@@ -107,7 +107,7 @@ func DrawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) 
 		return nil
 	}
 
-	f := useProgramLines(c, glMatrix(projectionMatrix))
+	f := useProgramForLines(c, glMatrix(projectionMatrix))
 	defer f.FinishProgram()
 
 	vertices := vertices[0:0]
@@ -135,7 +135,7 @@ func DrawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) 
 
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height int)
+	Rect(i int) (x, y, width, height float64)
 	Color(i int) color.Color
 }
 
@@ -151,7 +151,7 @@ func FillRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) 
 		return nil
 	}
 
-	f := useProgramRects(c, glMatrix(projectionMatrix))
+	f := useProgramForRects(c, glMatrix(projectionMatrix))
 	defer f.FinishProgram()
 
 	vertices := vertices[0:0]
