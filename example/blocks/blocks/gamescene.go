@@ -120,7 +120,7 @@ func init() {
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) error {
-	return r.FillRect(x, y, width, height, color.NRGBA{0, 0, 0, 0xc0})
+	return r.DrawFilledRect(x, y, width, height, color.NRGBA{0, 0, 0, 0xc0})
 }
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}

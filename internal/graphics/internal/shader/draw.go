@@ -139,7 +139,7 @@ type Rects interface {
 	Color(i int) color.Color
 }
 
-func FillRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
+func DrawFilledRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
 	if !initialized {
 		if err := initialize(c); err != nil {
 			return err

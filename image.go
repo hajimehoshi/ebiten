@@ -118,15 +118,15 @@ func (i *Image) DrawRects(rects Rects) error {
 	return i.DrawLines(&rectsAsLines{rects})
 }
 
-// FillRect draws a filled rectangle.
-func (i *Image) FillRect(x, y, width, height int, clr color.Color) error {
-	return i.FillRects(&rect{x, y, width, height, clr})
+// DrawFilledRect draws a filled rectangle.
+func (i *Image) DrawFilledRect(x, y, width, height int, clr color.Color) error {
+	return i.DrawFilledRects(&rect{x, y, width, height, clr})
 }
 
-// FillRects draws filled rectangles on the image.
-func (i *Image) FillRects(rects Rects) (err error) {
+// DrawFilledRects draws filled rectangles on the image.
+func (i *Image) DrawFilledRects(rects Rects) (err error) {
 	ui.Use(func(c *opengl.Context) {
-		err = i.framebuffer.FillRects(c, rects)
+		err = i.framebuffer.DrawFilledRects(c, rects)
 	})
 	return
 }

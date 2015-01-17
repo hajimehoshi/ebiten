@@ -134,12 +134,12 @@ type Rects interface {
 	Color(i int) color.Color
 }
 
-func (f *Framebuffer) FillRects(c *opengl.Context, rects Rects) error {
+func (f *Framebuffer) DrawFilledRects(c *opengl.Context, rects Rects) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.FillRects(c, p, rects)
+	return shader.DrawFilledRects(c, p, rects)
 }
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
