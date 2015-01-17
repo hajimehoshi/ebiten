@@ -26,6 +26,7 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
+	screen.DrawRect(0, 0, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
 	screen.FillRect(10, 10, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
 	screen.FillRect(20, 20, 100, 100, color.NRGBA{0x80, 0x80, 0xff, 0x80})
 	screen.DrawLine(130, 10, 140, 150, color.NRGBA{0xff, 0x80, 0x80, 0x80})

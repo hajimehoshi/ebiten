@@ -43,6 +43,33 @@ func (l *line) Color(i int) color.Color {
 	return l.color
 }
 
+type rectsAsLines struct {
+	Rects
+}
+
+func (r *rectsAsLines) Len() int {
+	return r.Rects.Len() * 4
+}
+
+func (r *rectsAsLines) Points(i int) (x0, y0, x1, y1 int) {
+	x, y, w, h := r.Rects.Rect(i / 4)
+	switch i % 4 {
+	case 0:
+		return x, y, x + w, y
+	case 1:
+		return x, y, x + 1, y + h
+	case 2:
+		return x, y + h, x + w, y + h
+	case 3:
+		return x + w, y, x + w, y + h
+	}
+	panic("not reach")
+}
+
+func (r *rectsAsLines) Color(i int) color.Color {
+	return r.Rects.Color(i / 4)
+}
+
 // A Rects represents the set of rectangles.
 type Rects interface {
 	Len() int
