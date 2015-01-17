@@ -22,12 +22,10 @@ import (
 	"github.com/go-gl/gl"
 )
 
-// TODO: Why int?
-
-type Texture int
-type Framebuffer int
-type Shader int
-type Program int
+type Texture gl.Texture
+type Framebuffer gl.Framebuffer
+type Shader gl.Shader
+type Program gl.Program
 type Buffer gl.Buffer
 
 // TODO: Remove this after the GopherJS bug was fixed (#159)
