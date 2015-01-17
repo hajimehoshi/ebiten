@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
+	"math"
 	"os"
 	"testing"
 )
@@ -142,6 +143,34 @@ func TestImageSelf(t *testing.T) {
 	}
 	if err := img.DrawImage(img, nil); err == nil {
 		t.Fatalf("img.DrawImage(img, nil) doesn't return error; an error should be returned")
+	}
+}
+
+func TestImageDotByDotInversion(t *testing.T) {
+	img0, _, err := openImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	w, h := img0.Size()
+	img1, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	op := &DrawImageOptions{}
+	op.GeoM.Rotate(2 * math.Pi / 2)
+	op.GeoM.Translate(float64(w), float64(h))
+	img1.DrawImage(img0, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			c0 := img0.At(i, j).(color.RGBA)
+			c1 := img1.At(w-i-1, h-j-1).(color.RGBA)
+			if c0 != c1 {
+				t.Errorf("c0 should equal to c1 but not: c0: %v, c1: %v", c0, c1)
+			}
+		}
 	}
 }
 
