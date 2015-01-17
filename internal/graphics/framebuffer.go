@@ -112,3 +112,9 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 	projectionMatrix := f.projectionMatrix()
 	return shader.DrawTexture(c, t.native, projectionMatrix, quads, geo, clr)
 }
+
+func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
+	w, h := f.Size()
+	w, h = internal.NextPowerOf2Int(w), internal.NextPowerOf2Int(h)
+	return c.FramebufferPixels(f.native, w, h)
+}

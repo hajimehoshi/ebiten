@@ -168,7 +168,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 			c0 := img0.At(i, j).(color.RGBA)
 			c1 := img1.At(w-i-1, h-j-1).(color.RGBA)
 			if c0 != c1 {
-				t.Errorf("c0 should equal to c1 but not: c0: %v, c1: %v", c0, c1)
+				t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[1]d, %[2]d) but not: %[3]v vs %[4]v", i, j, c0, c1)
 			}
 		}
 	}

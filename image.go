@@ -210,7 +210,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
 		ui.Use(func(c *opengl.Context) {
 			var err error
-			i.pixels, err = i.inner.texture.Pixels(c)
+			i.pixels, err = i.inner.framebuffer.Pixels(c)
 			if err != nil {
 				panic(err)
 			}
