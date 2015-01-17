@@ -85,7 +85,51 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return nil
 	}
 	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(6 * num)
+	c.DrawElements(c.Triangles, 6*num)
+	return nil
+}
+
+type Lines interface {
+	Len() int
+	Points(i int) (x0, y0, x1, y1 int)
+	Color(i int) color.Color
+}
+
+func DrawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) error {
+	if !initialized {
+		if err := initialize(c); err != nil {
+			return err
+		}
+		initialized = true
+	}
+
+	if lines.Len() == 0 {
+		return nil
+	}
+
+	f := useProgramLines(c, glMatrix(projectionMatrix))
+	defer f.FinishProgram()
+
+	vertices := vertices[0:0]
+	num := 0
+	for i := 0; i < lines.Len(); i++ {
+		x0, y0, x1, y1 := lines.Points(i)
+		if x0 == x1 && y0 == y1 {
+			continue
+		}
+		r, g, b, a := lines.Color(i).RGBA()
+		vertices = append(vertices,
+			int16(x0), int16(y0), int16(r), int16(g), int16(b), int16(a),
+			int16(x1), int16(y1), int16(r), int16(g), int16(b), int16(a),
+		)
+		num++
+	}
+	if len(vertices) == 0 {
+		return nil
+	}
+	c.BufferSubData(c.ArrayBuffer, vertices)
+	c.DrawElements(c.Lines, 2*num)
+
 	return nil
 }
 
@@ -95,7 +139,7 @@ type Rects interface {
 	Color(i int) color.Color
 }
 
-func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
+func FillRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
 	if !initialized {
 		if err := initialize(c); err != nil {
 			return err
@@ -107,7 +151,7 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) 
 		return nil
 	}
 
-	f := useProgramRect(c, glMatrix(projectionMatrix))
+	f := useProgramRects(c, glMatrix(projectionMatrix))
 	defer f.FinishProgram()
 
 	vertices := vertices[0:0]
@@ -131,7 +175,7 @@ func DrawRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) 
 		return nil
 	}
 	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(6 * num)
+	c.DrawElements(c.Triangles, 6*num)
 
 	return nil
 }

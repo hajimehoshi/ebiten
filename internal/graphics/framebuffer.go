@@ -114,16 +114,30 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 	return shader.DrawTexture(c, t.native, p, quads, geo, clr)
 }
 
+type Lines interface {
+	Len() int
+	Points(i int) (x0, y0, x1, y1 int)
+	Color(i int) color.Color
+}
+
+func (f *Framebuffer) DrawLines(c *opengl.Context, lines Lines) error {
+	if err := f.setAsViewport(c); err != nil {
+		return err
+	}
+	p := f.projectionMatrix()
+	return shader.DrawLines(c, p, lines)
+}
+
 type Rects interface {
 	Len() int
 	Rect(i int) (x, y, width, height int)
 	Color(i int) color.Color
 }
 
-func (f *Framebuffer) DrawRects(c *opengl.Context, rects Rects) error {
+func (f *Framebuffer) FillRects(c *opengl.Context, rects Rects) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.DrawRects(c, p, rects)
+	return shader.FillRects(c, p, rects)
 }

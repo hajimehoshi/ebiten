@@ -54,7 +54,7 @@ func (t *Texture) Size() (width, height int) {
 	return t.width, t.height
 }
 
-func NewTexture(c *opengl.Context, width, height int, filter opengl.FilterType) (*Texture, error) {
+func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Texture, error) {
 	w := internal.NextPowerOf2Int(width)
 	h := internal.NextPowerOf2Int(height)
 	if w < 4 {
@@ -70,7 +70,7 @@ func NewTexture(c *opengl.Context, width, height int, filter opengl.FilterType) 
 	return &Texture{native, width, height}, nil
 }
 
-func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.FilterType) (*Texture, error) {
+func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filter) (*Texture, error) {
 	origSize := img.Bounds().Size()
 	if origSize.X < 4 {
 		return nil, errors.New("width must be equal or more than 4.")

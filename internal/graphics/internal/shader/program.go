@@ -16,13 +16,20 @@ package shader
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"math"
+)
+
+var (
+	indexBufferLines opengl.Buffer
+	indexBufferQuads opengl.Buffer
 )
 
 var (
 	programTexture opengl.Program
-	programRect    opengl.Program
+	programSolid   opengl.Program
 )
 
+// TODO: Use math.MaxUint16??
 const quadsMaxNum = 65536 / 6
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
@@ -47,11 +54,11 @@ func initialize(c *opengl.Context) error {
 	}
 	defer c.DeleteShader(shaderFragmentTextureNative)
 
-	shaderFragmentRectNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentRect))
+	shaderFragmentSolidNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentSolid))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaderFragmentRectNative)
+	defer c.DeleteShader(shaderFragmentSolidNative)
 
 	programTexture, err = c.NewProgram([]opengl.Shader{
 		shaderVertexNative,
@@ -61,9 +68,9 @@ func initialize(c *opengl.Context) error {
 		return err
 	}
 
-	programRect, err = c.NewProgram([]opengl.Shader{
+	programSolid, err = c.NewProgram([]opengl.Shader{
 		shaderVertexColorNative,
-		shaderFragmentRectNative,
+		shaderFragmentSolidNative,
 	})
 	if err != nil {
 		return err
@@ -81,7 +88,14 @@ func initialize(c *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+	indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+
+	// TODO: Use math.MaxUint16
+	indices = make([]uint16, 65536)
+	for i := uint16(0); i < math.MaxUint16; i++ {
+		indices[i] = i
+	}
+	indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
 	return nil
 }
@@ -100,6 +114,8 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 		lastProgram = programTexture
 	}
 	program := programTexture
+
+	c.BindElementArrayBuffer(indexBufferQuads)
 
 	c.UniformFloats(program, "projection_matrix", projectionMatrix)
 
@@ -153,12 +169,38 @@ func useProgramTexture(c *opengl.Context, projectionMatrix []float32, texture op
 	}
 }
 
-func useProgramRect(c *opengl.Context, projectionMatrix []float32) programFinisher {
-	if !lastProgram.Equals(programRect) {
-		c.UseProgram(programRect)
-		lastProgram = programRect
+func useProgramLines(c *opengl.Context, projectionMatrix []float32) programFinisher {
+	if !lastProgram.Equals(programSolid) {
+		c.UseProgram(programSolid)
+		lastProgram = programSolid
 	}
-	program := programRect
+	program := programSolid
+
+	c.BindElementArrayBuffer(indexBufferLines)
+
+	c.UniformFloats(program, "projection_matrix", projectionMatrix)
+
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "color")
+
+	// TODO: Change to floats?
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, uintptr(int16Size*0))
+	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, uintptr(int16Size*2))
+
+	return func() {
+		c.DisableVertexAttribArray(program, "color")
+		c.DisableVertexAttribArray(program, "vertex")
+	}
+}
+
+func useProgramRects(c *opengl.Context, projectionMatrix []float32) programFinisher {
+	if !lastProgram.Equals(programSolid) {
+		c.UseProgram(programSolid)
+		lastProgram = programSolid
+	}
+	program := programSolid
+
+	c.BindElementArrayBuffer(indexBufferQuads)
 
 	c.UniformFloats(program, "projection_matrix", projectionMatrix)
 

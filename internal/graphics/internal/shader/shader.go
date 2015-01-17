@@ -25,7 +25,7 @@ const (
 	shaderVertex shaderId = iota
 	shaderVertexColor
 	shaderFragmentTexture
-	shaderFragmentRect
+	shaderFragmentSolid
 )
 
 func shader(c *opengl.Context, id shaderId) string {
@@ -83,7 +83,7 @@ void main(void) {
   gl_FragColor = color;
 }
 `,
-	shaderFragmentRect: `
+	shaderFragmentSolid: `
 varying lowp vec4 vertex_out_color;
 
 void main(void) {

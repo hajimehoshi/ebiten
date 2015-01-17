@@ -95,15 +95,28 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return
 }
 
+// DrawLine draws a line.
+func (i *Image) DrawLine(x0, y0, x1, y1 int, clr color.Color) error {
+	return i.DrawLines(&line{x0, y0, x1, y1, clr})
+}
+
+// DrawLines draws lines.
+func (i *Image) DrawLines(lines Lines) (err error) {
+	ui.Use(func(c *opengl.Context) {
+		err = i.framebuffer.DrawLines(c, lines)
+	})
+	return
+}
+
 // DrawRect draws a rectangle.
-func (i *Image) DrawRect(x, y, width, height int, clr color.Color) error {
-	return i.DrawRects(&rect{x, y, width, height, clr})
+func (i *Image) FillRect(x, y, width, height int, clr color.Color) error {
+	return i.FillRects(&rect{x, y, width, height, clr})
 }
 
 // DrawRects draws rectangles on the image.
-func (i *Image) DrawRects(rects Rects) (err error) {
+func (i *Image) FillRects(rects Rects) (err error) {
 	ui.Use(func(c *opengl.Context) {
-		err = i.framebuffer.DrawRects(c, rects)
+		err = i.framebuffer.FillRects(c, rects)
 	})
 	return
 }

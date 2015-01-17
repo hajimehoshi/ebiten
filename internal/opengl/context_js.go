@@ -39,6 +39,10 @@ type Program struct {
 	js.Object
 }
 
+type Buffer struct {
+	js.Object
+}
+
 // TODO: Remove this after the GopherJS bug was fixed (#159)
 func (p Program) Equals(other Program) bool {
 	return p.Object == other.Object
@@ -62,14 +66,16 @@ type context struct {
 
 func NewContext(gl *webgl.Context) *Context {
 	c := &Context{
-		Nearest:            FilterType(gl.NEAREST),
-		Linear:             FilterType(gl.LINEAR),
+		Nearest:            Filter(gl.NEAREST),
+		Linear:             Filter(gl.LINEAR),
 		VertexShader:       ShaderType(gl.VERTEX_SHADER),
 		FragmentShader:     ShaderType(gl.FRAGMENT_SHADER),
 		ArrayBuffer:        BufferType(gl.ARRAY_BUFFER),
 		ElementArrayBuffer: BufferType(gl.ELEMENT_ARRAY_BUFFER),
-		DynamicDraw:        BufferUsageType(gl.DYNAMIC_DRAW),
-		StaticDraw:         BufferUsageType(gl.STATIC_DRAW),
+		DynamicDraw:        BufferUsage(gl.DYNAMIC_DRAW),
+		StaticDraw:         BufferUsage(gl.STATIC_DRAW),
+		Triangles:          Mode(gl.TRIANGLES),
+		Lines:              Mode(gl.LINES),
 	}
 	c.gl = gl
 	c.init()
@@ -83,7 +89,7 @@ func (c *Context) init() {
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterType) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t == nil {
@@ -284,11 +290,17 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(int(l))
 }
 
-func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageType BufferUsageType) {
+func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(int(bufferType), b)
-	gl.BufferData(int(bufferType), v, int(bufferUsageType))
+	gl.BufferData(int(bufferType), v, int(bufferUsage))
+	return Buffer{b}
+}
+
+func (c *Context) BindElementArrayBuffer(b Buffer) {
+	gl := c.gl
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.Object)
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
@@ -296,9 +308,9 @@ func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl.BufferSubData(int(bufferType), 0, data)
 }
 
-func (c *Context) DrawElements(len int) {
+func (c *Context) DrawElements(mode Mode, len int) {
 	gl := c.gl
-	gl.DrawElements(gl.TRIANGLES, len, gl.UNSIGNED_SHORT, 0)
+	gl.DrawElements(int(mode), len, gl.UNSIGNED_SHORT, 0)
 }
 
 func (c *Context) Flush() {

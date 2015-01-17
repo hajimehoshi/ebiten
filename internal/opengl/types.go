@@ -14,19 +14,22 @@
 
 package opengl
 
-type FilterType int
+type Filter int
 type ShaderType int
 type BufferType int
-type BufferUsageType int
+type BufferUsage int
+type Mode int
 
 type Context struct {
-	Nearest            FilterType
-	Linear             FilterType
+	Nearest            Filter
+	Linear             Filter
 	VertexShader       ShaderType
 	FragmentShader     ShaderType
 	ArrayBuffer        BufferType
 	ElementArrayBuffer BufferType
-	DynamicDraw        BufferUsageType
-	StaticDraw         BufferUsageType
+	DynamicDraw        BufferUsage
+	StaticDraw         BufferUsage
+	Triangles          Mode
+	Lines              Mode
 	context
 }

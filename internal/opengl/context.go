@@ -22,10 +22,13 @@ import (
 	"github.com/go-gl/gl"
 )
 
+// TODO: Why int?
+
 type Texture int
 type Framebuffer int
 type Shader int
 type Program int
+type Buffer gl.Buffer
 
 // TODO: Remove this after the GopherJS bug was fixed (#159)
 func (p Program) Equals(other Program) bool {
@@ -53,6 +56,8 @@ func NewContext() *Context {
 		ElementArrayBuffer: gl.ELEMENT_ARRAY_BUFFER,
 		DynamicDraw:        gl.DYNAMIC_DRAW,
 		StaticDraw:         gl.STATIC_DRAW,
+		Triangles:          gl.TRIANGLES,
+		Lines:              gl.LINES,
 	}
 	c.init()
 	return c
@@ -65,7 +70,7 @@ func (c *Context) init() {
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterType) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	t := gl.GenTexture()
 	if t < 0 {
 		return 0, errors.New("glGenTexture failed")
@@ -231,8 +236,9 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	l.DisableArray()
 }
 
-func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageType BufferUsageType) {
-	gl.GenBuffer().Bind(gl.GLenum(bufferType))
+func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
+	b := gl.GenBuffer()
+	b.Bind(gl.GLenum(bufferType))
 	size := 0
 	ptr := v
 	switch v := v.(type) {
@@ -246,7 +252,12 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageTyp
 	default:
 		panic("not reach")
 	}
-	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsageType))
+	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsage))
+	return Buffer(b)
+}
+
+func (c *Context) BindElementArrayBuffer(b Buffer) {
+	gl.Buffer(b).Bind(gl.ELEMENT_ARRAY_BUFFER)
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
@@ -254,8 +265,8 @@ func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl.BufferSubData(gl.GLenum(bufferType), 0, int16Size*len(data), data)
 }
 
-func (c *Context) DrawElements(len int) {
-	gl.DrawElements(gl.TRIANGLES, len, gl.UNSIGNED_SHORT, uintptr(0))
+func (c *Context) DrawElements(mode Mode, len int) {
+	gl.DrawElements(gl.GLenum(mode), len, gl.UNSIGNED_SHORT, uintptr(0))
 }
 
 func (c *Context) Flush() {

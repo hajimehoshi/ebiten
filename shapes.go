@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2015 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,35 @@ import (
 	"image/color"
 )
 
+// A Lines represents the set of lines.
+type Lines interface {
+	Len() int
+	Points(i int) (x0, y0, x1, y1 int) // TODO: Change to float64?
+	Color(i int) color.Color
+}
+
+type line struct {
+	x0, y0 int
+	x1, y1 int
+	color  color.Color
+}
+
+func (l *line) Len() int {
+	return 1
+}
+
+func (l *line) Points(i int) (x0, y0, x1, y1 int) {
+	return l.x0, l.y0, l.x1, l.y1
+}
+
+func (l *line) Color(i int) color.Color {
+	return l.color
+}
+
 // A Rects represents the set of rectangles.
 type Rects interface {
 	Len() int
-	Rect(i int) (x, y, width, height int)
+	Rect(i int) (x, y, width, height int) // TODO: Change to float64?
 	Color(i int) color.Color
 }
 
