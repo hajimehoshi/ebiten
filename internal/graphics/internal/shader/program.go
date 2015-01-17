@@ -29,8 +29,8 @@ var (
 	programSolid   opengl.Program
 )
 
-// TODO: Use math.MaxUint16??
-const quadsMaxNum = 65536 / 6
+const indicesNum = math.MaxUint16 + 1
+const quadsMaxNum = indicesNum / 6
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
 const int16Size = 2
@@ -90,10 +90,9 @@ func initialize(c *opengl.Context) error {
 	}
 	indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
-	// TODO: Use math.MaxUint16
-	indices = make([]uint16, 65536)
-	for i := uint16(0); i < math.MaxUint16; i++ {
-		indices[i] = i
+	indices = make([]uint16, indicesNum)
+	for i := 0; i < len(indices); i++ {
+		indices[i] = uint16(i)
 	}
 	indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
