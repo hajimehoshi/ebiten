@@ -108,12 +108,12 @@ func (i *Image) DrawLines(lines Lines) (err error) {
 	return
 }
 
-// DrawRect draws a rectangle.
+// FillRect draws a filled rectangle.
 func (i *Image) FillRect(x, y, width, height int, clr color.Color) error {
 	return i.FillRects(&rect{x, y, width, height, clr})
 }
 
-// DrawRects draws rectangles on the image.
+// FillRects draws filled rectangles on the image.
 func (i *Image) FillRects(rects Rects) (err error) {
 	ui.Use(func(c *opengl.Context) {
 		err = i.framebuffer.FillRects(c, rects)
