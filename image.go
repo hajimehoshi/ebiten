@@ -147,7 +147,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
 		ui.Use(func(c *opengl.Context) {
 			var err error
-			i.pixels, err = i.texture.Pixels(c)
+			i.pixels, err = i.framebuffer.Pixels(c)
 			if err != nil {
 				panic(err)
 			}

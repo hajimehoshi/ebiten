@@ -64,6 +64,8 @@ type context struct {
 	gl *webgl.Context
 }
 
+var lastFramebuffer Framebuffer
+
 func NewContext(gl *webgl.Context) *Context {
 	c := &Context{
 		Nearest:            Filter(gl.NEAREST),
@@ -113,12 +115,14 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture{t}, nil
 }
 
-func (c *Context) TexturePixels(t Texture, width, height int) ([]uint8, error) {
+func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	gl := c.gl
 	gl.Flush()
-	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
+
+	lastFramebuffer = Framebuffer{nil}
+	gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
+
 	pixels := js.Global.Get("Uint8Array").New(4 * width * height)
-	gl.BindTexture(gl.TEXTURE_2D, t.Object)
 	gl.ReadPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	if e := gl.GetError(); e != gl.NO_ERROR {
 		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
@@ -148,6 +152,7 @@ func (c *Context) GlslHighpSupported() bool {
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
+	lastFramebuffer = Framebuffer{nil}
 	gl.BindFramebuffer(gl.FRAMEBUFFER, f)
 
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.Object, 0)
@@ -157,8 +162,6 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 
 	return Framebuffer{f}, nil
 }
-
-var lastFramebuffer Framebuffer
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl := c.gl

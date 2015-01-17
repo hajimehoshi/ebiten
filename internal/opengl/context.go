@@ -84,12 +84,13 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture(t), nil
 }
 
-func (c *Context) TexturePixels(t Texture, width, height int) ([]uint8, error) {
+func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	gl.Flush()
-	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
+
+	gl.Framebuffer(f).Bind()
+
 	pixels := make([]uint8, 4*width*height)
-	gl.Texture(t).Bind(gl.TEXTURE_2D)
-	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	gl.ReadPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	if e := gl.GetError(); e != gl.NO_ERROR {
 		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
 	}

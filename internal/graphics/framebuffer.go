@@ -141,3 +141,9 @@ func (f *Framebuffer) FillRects(c *opengl.Context, rects Rects) error {
 	p := f.projectionMatrix()
 	return shader.FillRects(c, p, rects)
 }
+
+func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
+	w, h := f.Size()
+	w, h = internal.NextPowerOf2Int(w), internal.NextPowerOf2Int(h)
+	return c.FramebufferPixels(f.native, w, h)
+}
