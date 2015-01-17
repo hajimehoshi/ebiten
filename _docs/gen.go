@@ -151,23 +151,29 @@ func clear() error {
 		if err != nil {
 			return err
 		}
+		if m, _ := regexp.MatchString("~$", path); m {
+			return nil
+		}
 		// Remove auto-generated html files.
 		m, err := regexp.MatchString(".html$", path)
 		if err != nil {
 			return err
 		}
-		if !m {
-			return nil
+		if m {
+			return os.Remove(path)
 		}
 		// Remove example resources that are copied.
-		m, err = regexp.MatchString("public/example/images", path)
+		m, err = regexp.MatchString("^public/example/images$", path)
 		if err != nil {
 			return err
 		}
-		if !m {
-			return nil
+		if m {
+			if err := os.RemoveAll(path); err != nil {
+				return err
+			}
+			return filepath.SkipDir
 		}
-		return os.Remove(path)
+		return nil
 	}); err != nil {
 		return err
 	}
