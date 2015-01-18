@@ -17,6 +17,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/example/internal"
 	"image/color"
 	_ "image/jpeg"
 	"math/rand"
@@ -84,7 +85,7 @@ func init() {
 	}
 	// Windows: Next
 	x, y = nextWindowLabelPosition()
-	if err := drawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor); err != nil {
+	if err := internal.ArcadeFont.DrawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor); err != nil {
 		panic(err)
 	}
 	x, y = nextWindowPosition()
@@ -126,7 +127,7 @@ func drawWindow(r *ebiten.Image, x, y, width, height int) error {
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
 
 func drawTextBox(r *ebiten.Image, label string, x, y, width int) error {
-	if err := drawTextWithShadow(r, label, x, y, 1, fontColor); err != nil {
+	if err := internal.ArcadeFont.DrawTextWithShadow(r, label, x, y, 1, fontColor); err != nil {
 		return err
 	}
 	y += blockWidth
