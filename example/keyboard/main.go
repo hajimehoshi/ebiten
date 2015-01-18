@@ -17,10 +17,9 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/example/keyboard/keyboard"
 	"log"
-	"sort"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -28,13 +27,23 @@ const (
 	screenHeight = 240
 )
 
+var keyboardImage *ebiten.Image
+
+func init() {
+	var err error
+	keyboardImage, _, err = ebitenutil.NewImageFromFile("images/keyboard/keyboard.png", ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 var keyNames = map[ebiten.Key]string{
-	ebiten.KeyBackspace: "Backspace",
-	ebiten.KeyComma:     "','",
-	ebiten.KeyDelete:    "Delete",
+	ebiten.KeyBackspace: "BS",
+	ebiten.KeyComma:     ",",
+	ebiten.KeyDelete:    "Del",
 	ebiten.KeyEnter:     "Enter",
 	ebiten.KeyEscape:    "Esc",
-	ebiten.KeyPeriod:    "'.'",
+	ebiten.KeyPeriod:    ".",
 	ebiten.KeySpace:     "Space",
 	ebiten.KeyTab:       "Tab",
 
@@ -50,7 +59,32 @@ var keyNames = map[ebiten.Key]string{
 	ebiten.KeyAlt:     "Alt",
 }
 
+type pressedKeysParts []string
+
+func (p pressedKeysParts) Len() int {
+	return len(p)
+}
+
+func (p pressedKeysParts) Dst(i int) (x0, y0, x1, y1 int) {
+	k := p[i]
+	r, ok := keyboard.KeyRect(k)
+	if !ok {
+		return 0, 0, 0, 0
+	}
+	return r.Min.X, r.Min.Y, r.Max.X, r.Max.Y
+}
+
+func (p pressedKeysParts) Src(i int) (x0, y0, x1, y1 int) {
+	return p.Dst(i)
+}
+
 func update(screen *ebiten.Image) error {
+	const offsetX, offsetY = 24, 40
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(offsetX, offsetY)
+	op.ColorM.Scale(0.5, 0.5, 0.5, 1)
+	screen.DrawImage(keyboardImage, op)
+
 	pressed := []string{}
 	for i := 0; i <= 9; i++ {
 		if ebiten.IsKeyPressed(ebiten.Key(i) + ebiten.Key0) {
@@ -72,9 +106,13 @@ func update(screen *ebiten.Image) error {
 			pressed = append(pressed, name)
 		}
 	}
-	sort.Strings(pressed)
-	str := "Pressed Keys: " + strings.Join(pressed, ", ")
-	ebitenutil.DebugPrint(screen, str)
+
+	op = &ebiten.DrawImageOptions{
+		ImageParts: pressedKeysParts(pressed),
+	}
+	op.GeoM.Translate(offsetX, offsetY)
+	screen.DrawImage(keyboardImage, op)
+
 	return nil
 }
 

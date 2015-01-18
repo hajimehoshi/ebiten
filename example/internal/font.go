@@ -19,6 +19,8 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image/color"
 	"math"
+	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -40,7 +42,9 @@ func (f *Font) TextWidth(str string) int {
 }
 
 func init() {
-	arcadeFontImage, _, err := ebitenutil.NewImageFromFile("images/arcadefont.png", ebiten.FilterNearest)
+	_, path, _, _ := runtime.Caller(0)
+	arcadeFontPath := filepath.Join(filepath.Dir(path), "..", "images", "arcadefont.png")
+	arcadeFontImage, _, err := ebitenutil.NewImageFromFile(arcadeFontPath, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}
