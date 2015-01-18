@@ -1,6 +1,6 @@
 # License
 
-## blocks/font.png
+## arcadefont.png
 
 ```
 9031 Font ReadMe
