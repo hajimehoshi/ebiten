@@ -238,6 +238,7 @@ func (s *GameScene) Update(state *GameState) error {
 	s.field.Update()
 
 	if s.gameover {
+		// TODO: Gamepad key?
 		if state.Input.StateForKey(ebiten.KeySpace) == 1 {
 			state.SceneManager.GoTo(NewTitleScene())
 		}
@@ -263,23 +264,23 @@ func (s *GameScene) Update(state *GameState) error {
 		piece := s.currentPiece
 		x := s.currentPieceX
 		y := s.currentPieceY
-		if state.Input.StateForKey(ebiten.KeySpace) == 1 || state.Input.StateForKey(ebiten.KeyX) == 1 {
+		if state.Input.IsRotateRightTrigger() {
 			s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
 		}
-		if state.Input.StateForKey(ebiten.KeyZ) == 1 {
+		if state.Input.IsRotateLeftTrigger() {
 			s.currentPieceAngle = s.field.RotatePieceLeft(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
 		}
-		if l := state.Input.StateForKey(ebiten.KeyLeft); l == 1 || (10 <= l && l%2 == 0) {
+		if l := state.Input.StateForLeft(); l == 1 || (10 <= l && l%2 == 0) {
 			s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
 			moved = x != s.currentPieceX
 		}
-		if r := state.Input.StateForKey(ebiten.KeyRight); r == 1 || (10 <= r && r%2 == 0) {
+		if r := state.Input.StateForRight(); r == 1 || (10 <= r && r%2 == 0) {
 			s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
 			moved = y != s.currentPieceX
 		}
-		if d := state.Input.StateForKey(ebiten.KeyDown); (d-1)%2 == 0 {
+		if d := state.Input.StateForDown(); (d-1)%2 == 0 {
 			s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 			moved = y != s.currentPieceY
 			if moved {
@@ -303,7 +304,7 @@ func (s *GameScene) Update(state *GameState) error {
 	if moved {
 		s.landingCount = 0
 	} else if !s.field.Flushing() && !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
-		if 0 < state.Input.StateForKey(ebiten.KeyDown) {
+		if 0 < state.Input.StateForDown() {
 			s.landingCount += 10
 		} else {
 			s.landingCount++

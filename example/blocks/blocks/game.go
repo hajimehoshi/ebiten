@@ -30,22 +30,20 @@ type GameState struct {
 type Game struct {
 	once         sync.Once
 	sceneManager *SceneManager
-	input        *Input
+	input        Input
 }
 
 func NewGame() *Game {
-	game := &Game{
+	return &Game{
 		sceneManager: NewSceneManager(NewTitleScene()),
-		input:        NewInput(),
 	}
-	return game
 }
 
 func (game *Game) Update(r *ebiten.Image) error {
 	game.input.Update()
 	game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
-		Input:        game.input,
+		Input:        &game.input,
 	})
 	game.sceneManager.Draw(r)
 	return nil

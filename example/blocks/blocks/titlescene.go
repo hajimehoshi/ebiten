@@ -67,10 +67,38 @@ func NewTitleScene() *TitleScene {
 	}
 }
 
+func anyGamepadStdButtonPressed(i *Input) bool {
+	for _, b := range gamepadStdButtons {
+		if i.gamepadConfig.IsButtonPressed(0, b) {
+			return true
+		}
+	}
+	return false
+}
+
+func anyGamepadButtonPressed(i *Input) bool {
+	bn := ebiten.GamepadButton(ebiten.GamepadButtonNum(0))
+	for b := ebiten.GamepadButton(0); b < bn; b++ {
+		if i.StateForGamepadButton(b) == 1 {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *TitleScene) Update(state *GameState) error {
 	s.count++
 	if state.Input.StateForKey(ebiten.KeySpace) == 1 {
 		state.SceneManager.GoTo(NewGameScene())
+		return nil
+	}
+	if anyGamepadStdButtonPressed(state.Input) {
+		state.SceneManager.GoTo(NewGameScene())
+		return nil
+	}
+	if anyGamepadButtonPressed(state.Input) {
+		state.SceneManager.GoTo(NewGamepadScene())
+		return nil
 	}
 	return nil
 }
@@ -86,7 +114,10 @@ func (s *TitleScene) Draw(r *ebiten.Image) error {
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - internal.ArcadeFont.TextWidth(message)) / 2
 	y := ScreenHeight - 48
-	return internal.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
+	if err := internal.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) error {
