@@ -45,6 +45,10 @@ func (e *ellipsesLines) Len() int {
 	return e.Rects.Len() * e.lineNum()
 }
 
+func round(x float64) int {
+	return int(x + 0.5)
+}
+
 func (e *ellipsesLines) Points(i int) (x0, y0, x1, y1 int) {
 	n := e.lineNum()
 	x, y, w, h := e.Rects.Rect(i / n)
@@ -59,11 +63,13 @@ func (e *ellipsesLines) Points(i int) (x0, y0, x1, y1 int) {
 	fy0, fx0 := math.Sincos(theta0)
 	fy1, fx1 := math.Sincos(theta1)
 	hw, hh := (float64(w)-1)/2, (float64(h)-1)/2
-	fx0 = fx0*hw + float64(x) + hw
-	fx1 = fx1*hw + float64(x) + hw
-	fy0 = fy0*hh + float64(y) + hh
-	fy1 = fy1*hh + float64(y) + hh
-	return int(fx0), int(fy0), int(fx1), int(fy1)
+	fx0 = fx0*hw + hw + float64(x)
+	fx1 = fx1*hw + hw + float64(x)
+	fy0 = fy0*hh + hh + float64(y)
+	fy1 = fy1*hh + hh + float64(y)
+	// TODO: The last fy1 may differ from first fy0 with very slightly difference,
+	// which makes the lack of 1 pixel.
+	return round(fx0), round(fy0), round(fx1), round(fy1)
 }
 
 func (e *ellipsesLines) Color(i int) color.Color {

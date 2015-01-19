@@ -19,7 +19,7 @@ import (
 	"github.com/hajimehoshi/ebiten/exp/shape"
 	"image/color"
 	"log"
-	"math"
+	//"math"
 )
 
 const (
@@ -36,8 +36,8 @@ func update(screen *ebiten.Image) error {
 	screen.DrawLine(130, 0, 140, 100, color.NRGBA{0xff, 0x80, 0x80, 0x80})
 	screen.DrawLine(140, 0, 150, 100, color.NRGBA{0xff, 0x80, 0x80, 0x80})
 
-	shape.DrawEllipse(screen, 0, 0, 100, 50, color.NRGBA{0x80, 0xff, 0x80, 0x80})
-	shape.DrawArc(screen, 0, 0, 100, 50, 0, math.Pi/2, color.NRGBA{0xff, 0x80, 0x80, 0x80})
+	shape.DrawEllipse(screen, 0, 0, 200, 200, color.NRGBA{0x80, 0xff, 0x80, 0x80})
+	//shape.DrawArc(screen, 0, 0, 50, 50, 0, math.Pi/2, color.NRGBA{0xff, 0x80, 0x80, 0x80})
 	return nil
 }
 
