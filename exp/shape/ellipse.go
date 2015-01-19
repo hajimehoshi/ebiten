@@ -60,6 +60,8 @@ func (e *ellipsesLines) Points(i int) (x0, y0, x1, y1 int) {
 	}
 	theta0 = math.Max(theta0, e.angle0)
 	theta1 = math.Min(theta1, e.angle1)
+	theta0 = math.Mod(theta0, 2*math.Pi)
+	theta1 = math.Mod(theta1, 2*math.Pi)
 	fy0, fx0 := math.Sincos(theta0)
 	fy1, fx1 := math.Sincos(theta1)
 	hw, hh := (float64(w)-1)/2, (float64(h)-1)/2
