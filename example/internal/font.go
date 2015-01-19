@@ -42,8 +42,15 @@ func (f *Font) TextWidth(str string) int {
 }
 
 func init() {
-	_, path, _, _ := runtime.Caller(0)
-	arcadeFontPath := filepath.Join(filepath.Dir(path), "..", "images", "arcadefont.png")
+	dir := ""
+	if runtime.GOARCH != "js" {
+		// Get the path of this file (font.go).
+		_, path, _, _ := runtime.Caller(0)
+		path = filepath.Dir(path)
+		dir = filepath.Join(path, "..")
+	}
+	arcadeFontPath := filepath.Join(dir, "images", "arcadefont.png")
+
 	arcadeFontImage, _, err := ebitenutil.NewImageFromFile(arcadeFontPath, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
