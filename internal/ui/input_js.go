@@ -60,7 +60,7 @@ func (i *input) mouseUp(button int) {
 	}
 }
 
-func (i *input) mouseMove(x, y int) {
+func (i *input) setMouseCursor(x, y int) {
 	i.cursorX, i.cursorY = x, y
 }
 

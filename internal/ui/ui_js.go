@@ -135,19 +135,58 @@ func init() {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.mouseDown(button)
+		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mouseup", func(e js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.mouseUp(button)
+		setMouseCursorFromEvent(e)
+	})
+	canvas.Call("addEventListener", "mousemove", func(e js.Object) {
+		e.Call("preventDefault")
+		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "contextmenu", func(e js.Object) {
 		e.Call("preventDefault")
 	})
 
+	// Touch (emulating mouse events)
+	// TODO: Need to create indimendent touch functions?
+	canvas.Call("addEventListener", "touchstart", func(e js.Object) {
+		e.Call("preventDefault")
+		currentInput.mouseDown(0)
+		touches := e.Get("changedTouches")
+		touch := touches.Index(0)
+		setMouseCursorFromEvent(touch)
+	})
+	canvas.Call("addEventListener", "touchend", func(e js.Object) {
+		e.Call("preventDefault")
+		currentInput.mouseUp(0)
+		touches := e.Get("changedTouches")
+		touch := touches.Index(0)
+		setMouseCursorFromEvent(touch)
+	})
+	canvas.Call("addEventListener", "touchmove", func(e js.Object) {
+		e.Call("preventDefault")
+		touches := e.Get("changedTouches")
+		touch := touches.Index(0)
+		setMouseCursorFromEvent(touch)
+	})
+
 	// Gamepad
 	window.Call("addEventListener", "gamepadconnected", func(e js.Object) {
+		// Do nothing.
 	})
+}
+
+func setMouseCursorFromEvent(e js.Object) {
+	scale := canvas.Get("dataset").Get("ebitenScale").Int() // TODO: Float?
+	rect := canvas.Call("getBoundingClientRect")
+	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
+	x -= rect.Get("left").Int()
+	y -= rect.Get("top").Int()
+	currentInput.setMouseCursor(x/scale, y/scale)
 }
 
 func devicePixelRatio() int {
@@ -165,6 +204,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	actualScale = scale * devicePixelRatio()
 	canvas.Set("width", width*actualScale)
 	canvas.Set("height", height*actualScale)
+	canvas.Get("dataset").Set("ebitenScale", scale)
 	canvasStyle := canvas.Get("style")
 
 	cssWidth := width * scale
@@ -175,13 +215,6 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(cssWidth/2)+"px)")
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
 
-	canvas.Call("addEventListener", "mousemove", func(e js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-		x -= rect.Get("left").Int()
-		y -= rect.Get("top").Int()
-		currentInput.mouseMove(x/scale, y/scale)
-	})
 	canvas.Call("focus")
 
 	return actualScale, nil
