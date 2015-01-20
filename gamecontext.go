@@ -69,6 +69,11 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 }
 
 // NewImage returns an empty image.
+//
+// NewImage generates a new texture and a new framebuffer.
+// Be careful that image objects will never be released
+// even though nothing refers the image object and GC works.
+// It is because there is no way to define finalizers for Go objects if you use GopherJS.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	var img *Image
 	var err error

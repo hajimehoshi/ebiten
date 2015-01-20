@@ -105,6 +105,10 @@ func (c *Context) DeleteTexture(t Texture) {
 	gl.Texture(t).Delete()
 }
 
+func (c *Context) TexSubImage2D(p []uint8, width, height int) {
+	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
+}
+
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	f := gl.GenFramebuffer()
 	f.Bind()

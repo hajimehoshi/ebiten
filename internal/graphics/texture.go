@@ -90,3 +90,9 @@ func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filte
 func (t *Texture) Dispose(c *opengl.Context) {
 	c.DeleteTexture(t.native)
 }
+
+func (t *Texture) ReplacePixels(c *opengl.Context, p []uint8) error {
+	c.BindTexture(t.native)
+	c.TexSubImage2D(p, t.width, t.height)
+	return nil
+}

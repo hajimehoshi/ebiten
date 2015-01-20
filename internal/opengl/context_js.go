@@ -103,6 +103,8 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
 
+	// TODO: Can we use glTexSubImage2D with linear filtering?
+
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
 	//     GLenum type, ArrayBufferView? pixels);
@@ -140,13 +142,12 @@ func (c *Context) DeleteTexture(t Texture) {
 	gl.DeleteTexture(t.Object)
 }
 
-func (c *Context) GlslHighpSupported() bool {
+func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	gl := c.gl
-	// headless-gl library may not define getShaderPrecisionFormat.
-	if gl.Get("getShaderPrecisionFormat") == js.Undefined {
-		return false
-	}
-	return gl.Call("getShaderPrecisionFormat", gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).Get("precision").Int() != 0
+	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+	//                    GLsizei width, GLsizei height,
+	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
+	gl.Call("texSubImage2D", gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
 }
 
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
@@ -214,6 +215,15 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 func (c *Context) DeleteShader(s Shader) {
 	gl := c.gl
 	gl.DeleteShader(s.Object)
+}
+
+func (c *Context) GlslHighpSupported() bool {
+	gl := c.gl
+	// headless-gl library may not define getShaderPrecisionFormat.
+	if gl.Get("getShaderPrecisionFormat") == js.Undefined {
+		return false
+	}
+	return gl.Call("getShaderPrecisionFormat", gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).Get("precision").Int() != 0
 }
 
 var lastProgramID ProgramID = 0

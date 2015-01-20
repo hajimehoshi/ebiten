@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -160,6 +161,26 @@ func (i *Image) At(x, y int) color.Color {
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}
+}
+
+// ReplacePixels replaces the pixels of image with p.
+//
+// The given p must represent RGBA pre-multiplied alpha values.
+//
+// len(p) must equal to 4 * (image width) * (image height)
+//
+// This function may be slow.
+func (i *Image) ReplacePixels(p []uint8) error {
+	w, h := i.Size()
+	l := 4 * w * h
+	if len(p) != l {
+		return errors.New(fmt.Sprintf("p's length must be %d", l))
+	}
+	var err error
+	ui.Use(func(c *opengl.Context) {
+		err = i.texture.ReplacePixels(c, p)
+	})
+	return err
 }
 
 // A DrawImageOptions represents options to render an image on an image.
