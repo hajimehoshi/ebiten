@@ -22,6 +22,7 @@ import (
 	einternal "github.com/hajimehoshi/ebiten/internal"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"log"
 	"os"
@@ -103,12 +104,18 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 		y += height
 	}
 
+	palette := color.Palette([]color.Color{
+		color.Transparent, color.Opaque,
+	})
+	palettedImg := image.NewPaletted(img.Bounds(), palette)
+	draw.Draw(palettedImg, palettedImg.Bounds(), img, image.ZP, draw.Src)
+
 	f, err := os.Create("images/keyboard/keyboard.png")
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	if err := png.Encode(f, img); err != nil {
+	if err := png.Encode(f, palettedImg); err != nil {
 		return nil, err
 	}
 	return keyMap, nil
