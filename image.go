@@ -163,13 +163,11 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-// ReplacePixels replaces the pixels of image with p.
+// ReplacePixels replaces the pixels of the image with p.
 //
-// The given p must represent RGBA pre-multiplied alpha values.
+// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
 //
-// len(p) must equal to 4 * (image width) * (image height)
-//
-// This function may be slow.
+// This function may be slow (as for implementation, this calls glTexSubImage2D).
 func (i *Image) ReplacePixels(p []uint8) error {
 	w, h := i.Size()
 	l := 4 * w * h
