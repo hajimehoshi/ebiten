@@ -18,6 +18,7 @@ import (
 	. "github.com/hajimehoshi/ebiten"
 	"image"
 	"image/color"
+	"image/draw"
 	_ "image/png"
 	"math"
 	"testing"
@@ -25,13 +26,21 @@ import (
 
 var ebitenImageBin = ""
 
-func openImage(path string) (*Image, image.Image, error) {
+func openImage(path string) (image.Image, error) {
 	file, err := readFile(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
+}
+
+func openEbitenImage(path string) (*Image, image.Image, error) {
+	img, err := openImage(path)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -51,22 +60,22 @@ func diff(x, y uint8) uint8 {
 }
 
 func TestImagePixels(t *testing.T) {
-	eimg, img, err := openImage("testdata/ebiten.png")
+	img0, img, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
 
-	if got := eimg.Bounds().Size(); got != img.Bounds().Size() {
+	if got := img0.Bounds().Size(); got != img.Bounds().Size() {
 		t.Errorf("img size: got %d; want %d", got, img.Bounds().Size())
 	}
 
-	for j := 0; j < eimg.Bounds().Size().Y; j++ {
-		for i := 0; i < eimg.Bounds().Size().X; i++ {
-			got := eimg.At(i, j)
+	for j := 0; j < img0.Bounds().Size().Y; j++ {
+		for i := 0; i < img0.Bounds().Size().X; i++ {
+			got := img0.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i, j))
 			if got != want {
-				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
 			}
 		}
 	}
@@ -76,7 +85,7 @@ func TestImageComposition(t *testing.T) {
 	img2Color := color.NRGBA{0x24, 0x3f, 0x6a, 0x88}
 	img3Color := color.NRGBA{0x85, 0xa3, 0x08, 0xd3}
 
-	img1, _, err := openImage("testdata/ebiten.png")
+	img1, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -136,7 +145,7 @@ func TestImageComposition(t *testing.T) {
 }
 
 func TestImageSelf(t *testing.T) {
-	img, _, err := openImage("testdata/ebiten.png")
+	img, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -147,7 +156,7 @@ func TestImageSelf(t *testing.T) {
 }
 
 func TestImageDotByDotInversion(t *testing.T) {
-	img0, _, err := openImage("testdata/ebiten.png")
+	img0, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -169,6 +178,35 @@ func TestImageDotByDotInversion(t *testing.T) {
 			c1 := img1.At(w-i-1, h-j-1).(color.RGBA)
 			if c0 != c1 {
 				t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[1]d, %[2]d) but not: %[3]v vs %[4]v", i, j, c0, c1)
+			}
+		}
+	}
+}
+
+func TestReplacePixels(t *testing.T) {
+	origImg, err := openImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	// Convert to RGBA
+	img := image.NewRGBA(origImg.Bounds())
+	draw.Draw(img, img.Bounds(), origImg, image.ZP, draw.Src)
+
+	size := img.Bounds().Size()
+	img0, err := NewImage(size.X, size.Y, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	img0.ReplacePixels(img.Pix)
+	for j := 0; j < img0.Bounds().Size().Y; j++ {
+		for i := 0; i < img0.Bounds().Size().X; i++ {
+			got := img.At(i, j)
+			want := img0.At(i, j)
+			if got != want {
+				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
 			}
 		}
 	}
