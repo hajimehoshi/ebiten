@@ -31,8 +31,8 @@ func adjustImageForTexture(img image.Image) *image.RGBA {
 			internal.NextPowerOf2Int(height),
 		},
 	}
-	if nrgba, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
-		return nrgba
+	if adjustedImage, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
+		return adjustedImage
 	}
 
 	adjustedImage := image.NewRGBA(adjustedImageBounds)
