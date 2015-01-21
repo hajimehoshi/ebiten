@@ -103,6 +103,7 @@ func (i *Image) DrawLine(x0, y0, x1, y1 int, clr color.Color) error {
 
 // DrawLines draws lines.
 func (i *Image) DrawLines(lines Lines) (err error) {
+	i.pixels = nil
 	ui.Use(func(c *opengl.Context) {
 		err = i.framebuffer.DrawLines(c, lines)
 	})
@@ -126,6 +127,7 @@ func (i *Image) DrawFilledRect(x, y, width, height int, clr color.Color) error {
 
 // DrawFilledRects draws filled rectangles on the image.
 func (i *Image) DrawFilledRects(rects Rects) (err error) {
+	i.pixels = nil
 	ui.Use(func(c *opengl.Context) {
 		err = i.framebuffer.DrawFilledRects(c, rects)
 	})
@@ -169,6 +171,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
 func (i *Image) ReplacePixels(p []uint8) error {
+	i.pixels = nil
 	w, h := i.Size()
 	l := 4 * w * h
 	if len(p) != l {
