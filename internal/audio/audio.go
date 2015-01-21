@@ -27,3 +27,7 @@ func Start() {
 func Append(l []float32, r []float32) {
 	// TODO: Implement
 }
+
+func Add(l []float32, r []float32) {
+	// TODO: Implement
+}
