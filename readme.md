@@ -14,7 +14,7 @@
 ## Features
 
 * 2D Graphics
-* Input (Mouse, Keyboard)
+* Input (Mouse, Keyboard, Gamepad)
 
 ## Documentation
 

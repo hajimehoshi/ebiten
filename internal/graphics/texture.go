@@ -31,8 +31,8 @@ func adjustImageForTexture(img image.Image) *image.RGBA {
 			internal.NextPowerOf2Int(height),
 		},
 	}
-	if nrgba, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
-		return nrgba
+	if adjustedImage, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
+		return adjustedImage
 	}
 
 	adjustedImage := image.NewRGBA(adjustedImageBounds)
@@ -54,7 +54,7 @@ func (t *Texture) Size() (width, height int) {
 	return t.width, t.height
 }
 
-func NewTexture(c *opengl.Context, width, height int, filter opengl.FilterType) (*Texture, error) {
+func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Texture, error) {
 	w := internal.NextPowerOf2Int(width)
 	h := internal.NextPowerOf2Int(height)
 	if w < 4 {
@@ -70,7 +70,7 @@ func NewTexture(c *opengl.Context, width, height int, filter opengl.FilterType) 
 	return &Texture{native, width, height}, nil
 }
 
-func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.FilterType) (*Texture, error) {
+func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filter) (*Texture, error) {
 	origSize := img.Bounds().Size()
 	if origSize.X < 4 {
 		return nil, errors.New("width must be equal or more than 4.")
@@ -91,7 +91,8 @@ func (t *Texture) Dispose(c *opengl.Context) {
 	c.DeleteTexture(t.native)
 }
 
-func (t *Texture) Pixels(c *opengl.Context) ([]uint8, error) {
-	w, h := internal.NextPowerOf2Int(t.width), internal.NextPowerOf2Int(t.height)
-	return c.TexturePixels(t.native, w, h)
+func (t *Texture) ReplacePixels(c *opengl.Context, p []uint8) error {
+	c.BindTexture(t.native)
+	c.TexSubImage2D(p, t.width, t.height)
+	return nil
 }

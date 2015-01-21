@@ -16,26 +16,97 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/exp/gamepad"
 )
 
-type Input struct {
-	states [256]int
+var gamepadStdButtons = []gamepad.StdButton{
+	gamepad.StdButtonLL,
+	gamepad.StdButtonLR,
+	gamepad.StdButtonLD,
+	gamepad.StdButtonRD,
+	gamepad.StdButtonRR,
 }
 
-func NewInput() *Input {
-	return &Input{}
+type Input struct {
+	keyStates              [256]int
+	gamepadButtonStates    [256]int
+	gamepadStdButtonStates [16]int
+	gamepadConfig          gamepad.Configuration
 }
 
 func (i *Input) StateForKey(key ebiten.Key) int {
-	return i.states[key]
+	return i.keyStates[key]
+}
+
+func (i *Input) StateForGamepadButton(b ebiten.GamepadButton) int {
+	return i.gamepadButtonStates[b]
+}
+
+func (i *Input) stateForGamepadStdButton(b gamepad.StdButton) int {
+	return i.gamepadStdButtonStates[b]
 }
 
 func (i *Input) Update() {
-	for key := range i.states {
+	for key := range i.keyStates {
 		if !ebiten.IsKeyPressed(ebiten.Key(key)) {
-			i.states[key] = 0
+			i.keyStates[key] = 0
 			continue
 		}
-		i.states[key]++
+		i.keyStates[key]++
 	}
+
+	const gamepadID = 0
+	for b := range i.gamepadButtonStates {
+		if !ebiten.IsGamepadButtonPressed(gamepadID, ebiten.GamepadButton(b)) {
+			i.gamepadButtonStates[b] = 0
+			continue
+		}
+		i.gamepadButtonStates[b]++
+	}
+
+	for _, b := range gamepadStdButtons {
+		if !i.gamepadConfig.IsButtonPressed(gamepadID, b) {
+			i.gamepadStdButtonStates[b] = 0
+			continue
+		}
+		i.gamepadStdButtonStates[b]++
+	}
+}
+
+func (i *Input) IsRotateRightTrigger() bool {
+	if i.StateForKey(ebiten.KeySpace) == 1 || i.StateForKey(ebiten.KeyX) == 1 {
+		return true
+	}
+	return i.stateForGamepadStdButton(gamepad.StdButtonRR) == 1
+}
+
+func (i *Input) IsRotateLeftTrigger() bool {
+	if i.StateForKey(ebiten.KeyZ) == 1 {
+		return true
+	}
+	return i.stateForGamepadStdButton(gamepad.StdButtonRD) == 1
+}
+
+func (i *Input) StateForLeft() int {
+	v := i.StateForKey(ebiten.KeyLeft)
+	if 0 < v {
+		return v
+	}
+	return i.stateForGamepadStdButton(gamepad.StdButtonLL)
+}
+
+func (i *Input) StateForRight() int {
+	v := i.StateForKey(ebiten.KeyRight)
+	if 0 < v {
+		return v
+	}
+	return i.stateForGamepadStdButton(gamepad.StdButtonLR)
+}
+
+func (i *Input) StateForDown() int {
+	v := i.StateForKey(ebiten.KeyDown)
+	if 0 < v {
+		return v
+	}
+	return i.stateForGamepadStdButton(gamepad.StdButtonLD)
 }

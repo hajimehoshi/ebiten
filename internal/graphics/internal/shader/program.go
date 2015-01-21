@@ -16,40 +16,88 @@ package shader
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"math"
 )
 
-var programColorMatrix opengl.Program
+var (
+	indexBufferLines opengl.Buffer
+	indexBufferQuads opengl.Buffer
+)
+
+var (
+	programTexture   opengl.Program
+	programSolidRect opengl.Program
+	programSolidLine opengl.Program
+)
+
+const indicesNum = math.MaxUint16 + 1
+const quadsMaxNum = indicesNum / 6
+
+// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
+const int16Size = 2
+const float32Size = 4
 
 func initialize(c *opengl.Context) error {
-	const size = 10000
-	const uint16Size = 2
-
-	shaderVertexNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertex))
+	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaderVertexNative)
+	defer c.DeleteShader(shaderVertexModelviewNative)
 
-	shaderColorMatrixNative, err := c.NewShader(c.FragmentShader, shader(c, shaderColorMatrix))
+	shaderVertexColorNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColor))
 	if err != nil {
 		return err
 	}
-	defer c.DeleteShader(shaderColorMatrixNative)
+	defer c.DeleteShader(shaderVertexColorNative)
 
-	shaders := []opengl.Shader{
-		shaderVertexNative,
-		shaderColorMatrixNative,
+	shaderVertexColorLineNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColorLine))
+	if err != nil {
+		return err
 	}
-	programColorMatrix, err = c.NewProgram(shaders)
+	defer c.DeleteShader(shaderVertexColorLineNative)
+
+	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
+	if err != nil {
+		return err
+	}
+	defer c.DeleteShader(shaderFragmentTextureNative)
+
+	shaderFragmentSolidNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentSolid))
+	if err != nil {
+		return err
+	}
+	defer c.DeleteShader(shaderFragmentSolidNative)
+
+	programTexture, err = c.NewProgram([]opengl.Shader{
+		shaderVertexModelviewNative,
+		shaderFragmentTextureNative,
+	})
 	if err != nil {
 		return err
 	}
 
-	const stride = 4 * 4
-	c.NewBuffer(c.ArrayBuffer, stride*size, c.DynamicDraw)
+	programSolidRect, err = c.NewProgram([]opengl.Shader{
+		shaderVertexColorNative,
+		shaderFragmentSolidNative,
+	})
+	if err != nil {
+		return err
+	}
 
-	indices := make([]uint16, 6*size)
-	for i := uint16(0); i < size; i++ {
+	programSolidLine, err = c.NewProgram([]opengl.Shader{
+		shaderVertexColorLineNative,
+		shaderFragmentSolidNative,
+	})
+	if err != nil {
+		return err
+	}
+
+	// 16 [bytse] is an arbitrary number which seems enough to draw anything. Fix this if necessary.
+	const stride = 16
+	c.NewBuffer(c.ArrayBuffer, 4*stride*quadsMaxNum, c.DynamicDraw)
+
+	indices := make([]uint16, 6*quadsMaxNum)
+	for i := uint16(0); i < quadsMaxNum; i++ {
 		indices[6*i+0] = 4*i + 0
 		indices[6*i+1] = 4*i + 1
 		indices[6*i+2] = 4*i + 2
@@ -57,19 +105,33 @@ func initialize(c *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+	indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+
+	indices = make([]uint16, indicesNum)
+	for i := 0; i < len(indices); i++ {
+		indices[i] = uint16(i)
+	}
+	indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
 	return nil
 }
 
 var lastProgram opengl.Program
 
-func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Matrix, color Matrix) opengl.Program {
-	if lastProgram != programColorMatrix {
-		c.UseProgram(programColorMatrix)
-		lastProgram = programColorMatrix
+type programFinisher func()
+
+func (p programFinisher) FinishProgram() {
+	p()
+}
+
+func useProgramForTexture(c *opengl.Context, projectionMatrix []float32, texture opengl.Texture, geo Matrix, color Matrix) programFinisher {
+	if !lastProgram.Equals(programTexture) {
+		c.UseProgram(programTexture)
+		lastProgram = programTexture
 	}
-	program := programColorMatrix
+	program := programTexture
+
+	c.BindElementArrayBuffer(indexBufferQuads)
 
 	c.UniformFloats(program, "projection_matrix", projectionMatrix)
 
@@ -107,5 +169,65 @@ func useProgramColorMatrix(c *opengl.Context, projectionMatrix []float32, geo Ma
 	}
 	c.UniformFloats(program, "color_matrix_translation", glColorMatrixTranslation)
 
-	return program
+	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
+	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
+	c.BindTexture(texture)
+
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "tex_coord")
+
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*4, 2, uintptr(int16Size*0))
+	c.VertexAttribPointer(program, "tex_coord", true, true, int16Size*4, 2, uintptr(int16Size*2))
+
+	return func() {
+		c.DisableVertexAttribArray(program, "tex_coord")
+		c.DisableVertexAttribArray(program, "vertex")
+	}
+}
+
+func useProgramForLines(c *opengl.Context, projectionMatrix []float32) programFinisher {
+	if !lastProgram.Equals(programSolidLine) {
+		c.UseProgram(programSolidLine)
+		lastProgram = programSolidLine
+	}
+	program := programSolidLine
+
+	c.BindElementArrayBuffer(indexBufferLines)
+
+	c.UniformFloats(program, "projection_matrix", projectionMatrix)
+
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "color")
+
+	// TODO: Change to floats?
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, uintptr(int16Size*0))
+	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, uintptr(int16Size*2))
+
+	return func() {
+		c.DisableVertexAttribArray(program, "color")
+		c.DisableVertexAttribArray(program, "vertex")
+	}
+}
+
+func useProgramForRects(c *opengl.Context, projectionMatrix []float32) programFinisher {
+	if !lastProgram.Equals(programSolidRect) {
+		c.UseProgram(programSolidRect)
+		lastProgram = programSolidRect
+	}
+	program := programSolidRect
+
+	c.BindElementArrayBuffer(indexBufferQuads)
+
+	c.UniformFloats(program, "projection_matrix", projectionMatrix)
+
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "color")
+
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, uintptr(int16Size*0))
+	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, uintptr(int16Size*2))
+
+	return func() {
+		c.DisableVertexAttribArray(program, "color")
+		c.DisableVertexAttribArray(program, "vertex")
+	}
 }

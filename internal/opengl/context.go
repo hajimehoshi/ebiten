@@ -22,12 +22,25 @@ import (
 	"github.com/go-gl/gl"
 )
 
-type Texture int
-type Framebuffer int
-type Shader int
-type Program int
-type UniformLocation int
-type AttribLocation int
+type Texture gl.Texture
+type Framebuffer gl.Framebuffer
+type Shader gl.Shader
+type Program gl.Program
+type Buffer gl.Buffer
+
+// TODO: Remove this after the GopherJS bug was fixed (#159)
+func (p Program) Equals(other Program) bool {
+	return p == other
+}
+
+type UniformLocation gl.UniformLocation
+type AttribLocation gl.AttribLocation
+
+type ProgramID int
+
+func GetProgramID(p Program) ProgramID {
+	return ProgramID(p)
+}
 
 type context struct{}
 
@@ -41,6 +54,8 @@ func NewContext() *Context {
 		ElementArrayBuffer: gl.ELEMENT_ARRAY_BUFFER,
 		DynamicDraw:        gl.DYNAMIC_DRAW,
 		StaticDraw:         gl.STATIC_DRAW,
+		Triangles:          gl.TRIANGLES,
+		Lines:              gl.LINES,
 	}
 	c.init()
 	return c
@@ -53,7 +68,7 @@ func (c *Context) init() {
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterType) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	t := gl.GenTexture()
 	if t < 0 {
 		return 0, errors.New("glGenTexture failed")
@@ -69,12 +84,13 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter FilterTyp
 	return Texture(t), nil
 }
 
-func (c *Context) TexturePixels(t Texture, width, height int) ([]uint8, error) {
+func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	gl.Flush()
-	// TODO: Use glGetTexLevelParameteri and GL_TEXTURE_WIDTH?
+
+	gl.Framebuffer(f).Bind()
+
 	pixels := make([]uint8, 4*width*height)
-	gl.Texture(t).Bind(gl.TEXTURE_2D)
-	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	gl.ReadPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	if e := gl.GetError(); e != gl.NO_ERROR {
 		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
 	}
@@ -87,6 +103,10 @@ func (c *Context) BindTexture(t Texture) {
 
 func (c *Context) DeleteTexture(t Texture) {
 	gl.Texture(t).Delete()
+}
+
+func (c *Context) TexSubImage2D(p []uint8, width, height int) {
+	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
@@ -115,7 +135,7 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	return nil
 }
 
-func (c *Context) FillFramebuffer(f Framebuffer, r, g, b, a float64) error {
+func (c *Context) FillFramebuffer(r, g, b, a float64) error {
 	gl.ClearColor(gl.GLclampf(r), gl.GLclampf(g), gl.GLclampf(b), gl.GLclampf(a))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	return nil
@@ -173,13 +193,17 @@ func (c *Context) UseProgram(p Program) {
 	gl.Program(p).Use()
 }
 
+func (c *Context) GetUniformLocation(p Program, location string) UniformLocation {
+	return UniformLocation(gl.Program(p).GetUniformLocation(location))
+}
+
 func (c *Context) UniformInt(p Program, location string, v int) {
-	l := gl.Program(p).GetUniformLocation(location)
+	l := gl.UniformLocation(GetUniformLocation(c, p, location))
 	l.Uniform1i(v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
-	l := gl.Program(p).GetUniformLocation(location)
+	l := gl.UniformLocation(GetUniformLocation(c, p, location))
 	switch len(v) {
 	case 4:
 		l.Uniform4fv(1, v)
@@ -192,20 +216,32 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	}
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, stride int, v uintptr) {
-	gl.Program(p).GetAttribLocation(location).AttribPointer(2, gl.FLOAT, false, stride, v)
+func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
+	return AttribLocation(gl.Program(p).GetAttribLocation(location))
+}
+
+func (c *Context) VertexAttribPointer(p Program, location string, signed bool, normalize bool, stride int, size int, v uintptr) {
+	l := gl.AttribLocation(GetAttribLocation(c, p, location))
+	t := gl.GLenum(gl.SHORT)
+	if !signed {
+		t = gl.UNSIGNED_SHORT
+	}
+	l.AttribPointer(uint(size), t, normalize, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
-	gl.Program(p).GetAttribLocation(location).EnableArray()
+	l := gl.AttribLocation(GetAttribLocation(c, p, location))
+	l.EnableArray()
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
-	gl.Program(p).GetAttribLocation(location).DisableArray()
+	l := gl.AttribLocation(GetAttribLocation(c, p, location))
+	l.DisableArray()
 }
 
-func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageType BufferUsageType) {
-	gl.GenBuffer().Bind(gl.GLenum(bufferType))
+func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
+	b := gl.GenBuffer()
+	b.Bind(gl.GLenum(bufferType))
 	size := 0
 	ptr := v
 	switch v := v.(type) {
@@ -219,16 +255,21 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsageTyp
 	default:
 		panic("not reach")
 	}
-	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsageType))
+	gl.BufferData(gl.GLenum(bufferType), size, ptr, gl.GLenum(bufferUsage))
+	return Buffer(b)
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
-	const float32Size = 4
-	gl.BufferSubData(gl.GLenum(bufferType), 0, float32Size*len(data), data)
+func (c *Context) BindElementArrayBuffer(b Buffer) {
+	gl.Buffer(b).Bind(gl.ELEMENT_ARRAY_BUFFER)
 }
 
-func (c *Context) DrawElements(len int) {
-	gl.DrawElements(gl.TRIANGLES, len, gl.UNSIGNED_SHORT, uintptr(0))
+func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
+	const int16Size = 2
+	gl.BufferSubData(gl.GLenum(bufferType), 0, int16Size*len(data), data)
+}
+
+func (c *Context) DrawElements(mode Mode, len int) {
+	gl.DrawElements(gl.GLenum(mode), len, gl.UNSIGNED_SHORT, uintptr(0))
 }
 
 func (c *Context) Flush() {

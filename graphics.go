@@ -27,7 +27,7 @@ const (
 	FilterLinear
 )
 
-func glFilter(c *opengl.Context, filter Filter) opengl.FilterType {
+func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
 	switch filter {
 	case FilterNearest:
 		return c.Nearest

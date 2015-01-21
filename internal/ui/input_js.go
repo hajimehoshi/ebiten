@@ -16,19 +16,9 @@
 
 package ui
 
-var currentInput input
-
-func IsKeyPressed(key Key) bool {
-	return currentInput.isKeyPressed(key)
-}
-
-func IsMouseButtonPressed(button MouseButton) bool {
-	return currentInput.isMouseButtonPressed(button)
-}
-
-func CursorPosition() (x, y int) {
-	return currentInput.cursorPosition()
-}
+import (
+	"github.com/gopherjs/gopherjs/js"
+)
 
 func (i *input) keyDown(key int) {
 	k, ok := keyCodeToKey[key]
@@ -70,6 +60,43 @@ func (i *input) mouseUp(button int) {
 	}
 }
 
-func (i *input) mouseMove(x, y int) {
+func (i *input) setMouseCursor(x, y int) {
 	i.cursorX, i.cursorY = x, y
+}
+
+func (i *input) updateGamepads() {
+	nav := js.Global.Get("navigator")
+	if nav.Get("getGamepads") == js.Undefined {
+		return
+	}
+	gamepads := nav.Call("getGamepads")
+	l := gamepads.Get("length").Int()
+	for id := 0; id < l; id++ {
+		gamepad := gamepads.Index(id)
+		if gamepad == js.Undefined || gamepad == nil {
+			continue
+		}
+
+		axes := gamepad.Get("axes")
+		axesNum := axes.Get("length").Int()
+		i.gamepads[id].axisNum = axesNum
+		for a := 0; a < len(i.gamepads[id].axes); a++ {
+			if axesNum <= a {
+				i.gamepads[id].axes[a] = 0
+				continue
+			}
+			i.gamepads[id].axes[a] = axes.Index(a).Float()
+		}
+
+		buttons := gamepad.Get("buttons")
+		buttonsNum := buttons.Get("length").Int()
+		i.gamepads[id].buttonNum = buttonsNum
+		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
+			if buttonsNum <= b {
+				i.gamepads[id].buttonPressed[b] = false
+				continue
+			}
+			i.gamepads[id].buttonPressed[b] = buttons.Index(b).Get("pressed").Bool()
+		}
+	}
 }

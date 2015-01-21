@@ -29,14 +29,14 @@ func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScal
 	if err != nil {
 		return nil, err
 	}
-	screen, err := newInnerImage(c, texture)
+	screenF, err := graphics.NewFramebufferFromTexture(c, texture)
 	if err != nil {
 		return nil, err
 	}
-
+	screen := &Image{framebuffer: screenF, texture: texture}
 	return &graphicsContext{
 		glContext:   c,
-		defaultR:    &innerImage{f, nil},
+		defaultR:    &Image{framebuffer: f, texture: nil},
 		screen:      screen,
 		screenScale: screenScale,
 	}, nil
@@ -44,8 +44,8 @@ func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScal
 
 type graphicsContext struct {
 	glContext   *opengl.Context
-	screen      *innerImage
-	defaultR    *innerImage
+	screen      *Image
+	defaultR    *Image
 	screenScale int
 }
 
@@ -59,18 +59,18 @@ func (c *graphicsContext) dispose() {
 }
 
 func (c *graphicsContext) preUpdate() error {
-	return c.screen.Clear(c.glContext)
+	return c.screen.Clear()
 }
 
 func (c *graphicsContext) postUpdate() error {
-	if err := c.defaultR.Clear(c.glContext); err != nil {
+	if err := c.defaultR.Clear(); err != nil {
 		return err
 	}
 
 	scale := float64(c.screenScale)
 	options := &DrawImageOptions{}
 	options.GeoM.Scale(scale, scale)
-	if err := c.defaultR.drawImage(c.glContext, c.screen, options); err != nil {
+	if err := c.defaultR.DrawImage(c.screen, options); err != nil {
 		return err
 	}
 	return nil

@@ -22,8 +22,11 @@ import (
 type shaderId int
 
 const (
-	shaderVertex shaderId = iota
-	shaderColorMatrix
+	shaderVertexModelview shaderId = iota
+	shaderVertexColor
+	shaderVertexColorLine
+	shaderFragmentTexture
+	shaderFragmentSolid
 )
 
 func shader(c *opengl.Context, id shaderId) string {
@@ -36,7 +39,7 @@ func shader(c *opengl.Context, id shaderId) string {
 }
 
 var shaders = map[shaderId]string{
-	shaderVertex: `
+	shaderVertexModelview: `
 uniform highp mat4 projection_matrix;
 uniform highp mat4 modelview_matrix;
 attribute highp vec2 vertex;
@@ -48,7 +51,29 @@ void main(void) {
   gl_Position = projection_matrix * modelview_matrix * vec4(vertex, 0, 1);
 }
 `,
-	shaderColorMatrix: `
+	shaderVertexColor: `
+uniform highp mat4 projection_matrix;
+attribute highp vec2 vertex;
+attribute lowp vec4 color;
+varying lowp vec4 vertex_out_color;
+
+void main(void) {
+  vertex_out_color = color;
+  gl_Position = projection_matrix * vec4(vertex, 0, 1);
+}
+`,
+	shaderVertexColorLine: `
+uniform highp mat4 projection_matrix;
+attribute highp vec2 vertex;
+attribute lowp vec4 color;
+varying lowp vec4 vertex_out_color;
+
+void main(void) {
+  vertex_out_color = color;
+  gl_Position = projection_matrix * vec4(vertex + vec2(0.5, 0.5), 0, 1);
+}
+`,
+	shaderFragmentTexture: `
 uniform lowp sampler2D texture;
 uniform lowp mat4 color_matrix;
 uniform lowp vec4 color_matrix_translation;
@@ -68,6 +93,13 @@ void main(void) {
   }
 
   gl_FragColor = color;
+}
+`,
+	shaderFragmentSolid: `
+varying lowp vec4 vertex_out_color;
+
+void main(void) {
+  gl_FragColor = vertex_out_color;
 }
 `,
 }
