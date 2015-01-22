@@ -18,10 +18,15 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
-func AppendToAudioBuffer(l []float32, r []float32) {
-	audio.Append(l, r)
+func AudioSampleRate() int {
+	return audio.SampleRate
 }
 
-func AddToAudioBuffer(l []float32, r []float32) {
-	audio.Add(l, r)
+func AppendToAudioBuffer(channel int, l []float32, r []float32) bool {
+	return audio.Append(channel, l, r)
+}
+
+// TODO: better name
+func CurrentAudioTime() int {
+	return audio.CurrentBytes()
 }

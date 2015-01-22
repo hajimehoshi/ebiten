@@ -16,6 +16,8 @@
 
 package audio
 
+const SampleRate = 44100
+
 func Init() {
 	// TODO: Implement
 }
@@ -24,10 +26,12 @@ func Start() {
 	// TODO: Implement
 }
 
-func Append(l []float32, r []float32) {
+func Append(channel int, l []float32, r []float32) bool {
 	// TODO: Implement
+	return false
 }
 
-func Add(l []float32, r []float32) {
+func CurrentBytes() int {
 	// TODO: Implement
+	return 0
 }

@@ -43,15 +43,12 @@ const (
 	freqGS = 830.6
 )
 
-// TODO: Need API to get sample rate?
-const sampleRate = 44100
-
 const score = `CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`
 
 var scoreIndex = 0
 
 func square(out []float32, volume float64, freq float64, sequence float64) {
-	length := int(sampleRate / freq)
+	length := int(float64(ebiten.AudioSampleRate()) / freq)
 	if length == 0 {
 		panic("invalid freq")
 	}
@@ -65,15 +62,15 @@ func square(out []float32, volume float64, freq float64, sequence float64) {
 }
 
 func addNote() {
-	const size = sampleRate / 60
+	size := ebiten.AudioSampleRate() / 60
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 
 	defer func() {
 		scoreIndex++
 		scoreIndex %= len(score)
 	}()
-	l := make([]float32, size*30)
-	r := make([]float32, size*30)
+	l := make([]float32, size*30*2)
+	r := make([]float32, size*30*2)
 	note := score[scoreIndex]
 	for note == ' ' {
 		scoreIndex++
@@ -92,7 +89,7 @@ func addNote() {
 	vol := 1.0 / 32.0
 	square(l, vol, freq, 0.5)
 	square(r, vol, freq, 0.5)
-	ebiten.AddToAudioBuffer(l, r)
+	ebiten.AppendToAudioBuffer(-1, l, r)
 }
 
 func update(screen *ebiten.Image) error {
