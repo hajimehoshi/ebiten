@@ -171,6 +171,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
 func (i *Image) ReplacePixels(p []uint8) error {
+	// TODO: Can we set p to pixels?
 	i.pixels = nil
 	w, h := i.Size()
 	l := 4 * w * h

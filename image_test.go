@@ -203,8 +203,23 @@ func TestReplacePixels(t *testing.T) {
 	img0.ReplacePixels(img.Pix)
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
 		for i := 0; i < img0.Bounds().Size().X; i++ {
-			got := img.At(i, j)
-			want := img0.At(i, j)
+			got := img0.At(i, j)
+			want := img.At(i, j)
+			if got != want {
+				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
+
+	p := make([]uint8, 4*size.X*size.Y)
+	for i, _ := range p {
+		p[i] = 0x80
+	}
+	img0.ReplacePixels(p)
+	for j := 0; j < img0.Bounds().Size().Y; j++ {
+		for i := 0; i < img0.Bounds().Size().X; i++ {
+			got := img0.At(i, j)
+			want := color.RGBA{p[4*i], p[4*i+1], p[4*i+2], p[4*i+3]}
 			if got != want {
 				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
 			}
