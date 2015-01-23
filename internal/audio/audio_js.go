@@ -27,10 +27,11 @@ var context js.Object
 const bufferSize = 1024
 const SampleRate = 44100
 
+var nextInsertion = 0
+
 type channel struct {
-	l             []float32
-	r             []float32
-	nextInsertion int
+	l []float32
+	r []float32
 }
 
 var channels = make([]*channel, 16)
@@ -84,8 +85,8 @@ func Init() {
 			usedLen := min(bufferSize, len(ch.l))
 			ch.l = ch.l[usedLen:]
 			ch.r = ch.r[usedLen:]
-			ch.nextInsertion -= min(bufferSize, ch.nextInsertion)
 		}
+		nextInsertion -= min(bufferSize, nextInsertion)
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?
 			if len(inputL) <= i {
@@ -100,12 +101,7 @@ func Init() {
 }
 
 func Update() {
-	for _, ch := range channels {
-		if len(ch.l) == 0 {
-			continue
-		}
-		ch.nextInsertion += SampleRate / 60
-	}
+	nextInsertion += SampleRate / 60
 }
 
 func Start() {
@@ -116,14 +112,14 @@ func Start() {
 func channelAt(i int) *channel {
 	if i == -1 {
 		for _, ch := range channels {
-			if len(ch.l) <= ch.nextInsertion {
+			if len(ch.l) <= nextInsertion {
 				return ch
 			}
 		}
 		return nil
 	}
 	ch := channels[i]
-	if len(ch.l) <= ch.nextInsertion {
+	if len(ch.l) <= nextInsertion {
 		return ch
 	}
 	return nil
@@ -138,9 +134,8 @@ func Append(i int, l []float32, r []float32) bool {
 	if ch == nil {
 		return false
 	}
-	print(ch.nextInsertion)
-	ch.l = append(ch.l, make([]float32, ch.nextInsertion-len(ch.l))...)
-	ch.r = append(ch.r, make([]float32, ch.nextInsertion-len(ch.r))...)
+	ch.l = append(ch.l, make([]float32, nextInsertion-len(ch.l))...)
+	ch.r = append(ch.r, make([]float32, nextInsertion-len(ch.r))...)
 	ch.l = append(ch.l, l...)
 	ch.r = append(ch.r, r...)
 	return true
