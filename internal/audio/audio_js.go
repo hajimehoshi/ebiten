@@ -55,7 +55,7 @@ func min(a, b int) int {
 var currentBytes = 0
 
 func CurrentBytes() int {
-	return currentBytes
+	return currentBytes + nextInsertion
 }
 
 func Init() {
