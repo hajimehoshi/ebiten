@@ -14,11 +14,6 @@
 
 package internal
 
-import (
-	"image/color"
-	"math"
-)
-
 func NextPowerOf2Int(x int) int {
 	x -= 1
 	x |= (x >> 1)
@@ -27,14 +22,4 @@ func NextPowerOf2Int(x int) int {
 	x |= (x >> 8)
 	x |= (x >> 16)
 	return x + 1
-}
-
-func RGBA(clr color.Color) (r, g, b, a float64) {
-	cr, cg, cb, ca := clr.RGBA()
-	const max = math.MaxUint16
-	r = float64(cr) / max
-	g = float64(cg) / max
-	b = float64(cb) / max
-	a = float64(ca) / max
-	return
 }

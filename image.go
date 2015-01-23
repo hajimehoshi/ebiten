@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"image"
 	"image/color"
+	"math"
 )
 
 // Image represents an image.
@@ -47,7 +48,13 @@ func (i *Image) Clear() (err error) {
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
-	r, g, b, a := internal.RGBA(clr)
+	//r, g, b, a := internal.RGBA(clr)
+	cr, cg, cb, ca := clr.RGBA()
+	const max = math.MaxUint16
+	r := float64(cr) / max
+	g := float64(cg) / max
+	b := float64(cb) / max
+	a := float64(ca) / max
 	ui.Use(func(c *opengl.Context) {
 		// TODO: Change to pass color.Color
 		err = i.framebuffer.Fill(c, r, g, b, a)
