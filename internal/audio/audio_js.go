@@ -28,8 +28,9 @@ const bufferSize = 1024
 const SampleRate = 44100
 
 type channel struct {
-	l []float32
-	r []float32
+	l             []float32
+	r             []float32
+	nextInsertion int
 }
 
 var channels = make([]*channel, 16)
@@ -83,6 +84,7 @@ func Init() {
 			usedLen := min(bufferSize, len(ch.l))
 			ch.l = ch.l[usedLen:]
 			ch.r = ch.r[usedLen:]
+			ch.nextInsertion -= min(bufferSize, ch.nextInsertion)
 		}
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?
@@ -97,6 +99,15 @@ func Init() {
 	})
 }
 
+func Update() {
+	for _, ch := range channels {
+		if len(ch.l) == 0 {
+			continue
+		}
+		ch.nextInsertion += SampleRate / 60
+	}
+}
+
 func Start() {
 	// TODO: For iOS, node should be connected with a buffer node.
 	node.Call("connect", context.Get("destination"))
@@ -105,19 +116,17 @@ func Start() {
 func channelAt(i int) *channel {
 	if i == -1 {
 		for _, ch := range channels {
-			if 0 < len(ch.l) {
-				continue
+			if len(ch.l) <= ch.nextInsertion {
+				return ch
 			}
-			return ch
 		}
 		return nil
 	}
 	ch := channels[i]
-	// TODO: Can we append even though all data is not consumed? Need game timer?
-	if 0 < len(ch.l) {
-		return nil
+	if len(ch.l) <= ch.nextInsertion {
+		return ch
 	}
-	return ch
+	return nil
 }
 
 func Append(i int, l []float32, r []float32) bool {
@@ -129,6 +138,9 @@ func Append(i int, l []float32, r []float32) bool {
 	if ch == nil {
 		return false
 	}
+	print(ch.nextInsertion)
+	ch.l = append(ch.l, make([]float32, ch.nextInsertion-len(ch.l))...)
+	ch.r = append(ch.r, make([]float32, ch.nextInsertion-len(ch.r))...)
 	ch.l = append(ch.l, l...)
 	ch.r = append(ch.r, r...)
 	return true

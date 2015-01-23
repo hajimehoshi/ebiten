@@ -48,6 +48,12 @@ const score = `CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`
 var scoreIndex = 0
 
 func square(out []float32, volume float64, freq float64, sequence float64) {
+	if freq == 0 {
+		for i := 0; i < len(out); i++ {
+			out[i] = 0
+		}
+		return
+	}
 	length := int(float64(ebiten.AudioSampleRate()) / freq)
 	if length == 0 {
 		panic("invalid freq")
@@ -69,8 +75,8 @@ func addNote() {
 		scoreIndex++
 		scoreIndex %= len(score)
 	}()
-	l := make([]float32, size*30*2)
-	r := make([]float32, size*30*2)
+	l := make([]float32, size*30)
+	r := make([]float32, size*30)
 	note := score[scoreIndex]
 	for note == ' ' {
 		scoreIndex++
@@ -80,7 +86,7 @@ func addNote() {
 	freq := 0.0
 	switch {
 	case note == 'R':
-		return
+		freq = 0
 	case note <= 'B':
 		freq = notes[int(note)+len(notes)-int('C')]
 	default:
@@ -89,7 +95,7 @@ func addNote() {
 	vol := 1.0 / 32.0
 	square(l, vol, freq, 0.5)
 	square(r, vol, freq, 0.5)
-	ebiten.AppendToAudioBuffer(-1, l, r)
+	ebiten.AppendToAudioBuffer(0, l, r)
 }
 
 func update(screen *ebiten.Image) error {

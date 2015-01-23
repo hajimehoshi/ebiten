@@ -35,3 +35,7 @@ func CurrentBytes() int {
 	// TODO: Implement
 	return 0
 }
+
+func Update() {
+	// TODO: Implement
+}
