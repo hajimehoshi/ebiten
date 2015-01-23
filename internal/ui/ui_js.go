@@ -19,6 +19,7 @@ package ui
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/gopherjs/webgl"
+	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"strconv"
 )
@@ -26,6 +27,8 @@ import (
 var canvas js.Object
 var context *opengl.Context
 
+// TODO: This returns true even when the browser is not active.
+// The current behavior causes sound noise...
 func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
 }
@@ -36,6 +39,8 @@ func Use(f func(*opengl.Context)) {
 
 func vsync() {
 	ch := make(chan struct{})
+	// TODO: In iOS8, this is called at every 1/30[sec] frame.
+	// Can we use DOMHighResTimeStamp?
 	js.Global.Get("window").Call("requestAnimationFrame", func() {
 		close(ch)
 	})
@@ -178,6 +183,8 @@ func init() {
 	window.Call("addEventListener", "gamepadconnected", func(e js.Object) {
 		// Do nothing.
 	})
+
+	audio.Init()
 }
 
 func setMouseCursorFromEvent(e js.Object) {
@@ -216,6 +223,8 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
 
 	canvas.Call("focus")
+
+	audio.Start()
 
 	return actualScale, nil
 }

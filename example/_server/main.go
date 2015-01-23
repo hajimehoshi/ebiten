@@ -61,7 +61,7 @@ func createJSIfNeeded(name string) (string, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
-	if (err != nil && os.IsNotExist(err)) || time.Now().Sub(stat.ModTime()) > 10*time.Second {
+	if (err != nil && os.IsNotExist(err)) || time.Now().Sub(stat.ModTime()) > 5*time.Second {
 		target := "github.com/hajimehoshi/ebiten/example/" + name
 		out, err := exec.Command("gopherjs", "build", "-o", out, target).CombinedOutput()
 		if err != nil {
