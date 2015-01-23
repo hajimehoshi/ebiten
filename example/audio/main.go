@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/exp/audio"
 	"log"
 )
 
@@ -54,7 +55,7 @@ func square(out []float32, volume float64, freq float64, sequence float64) {
 		}
 		return
 	}
-	length := int(float64(ebiten.AudioSampleRate()) / freq)
+	length := int(float64(audio.SampleRate()) / freq)
 	if length == 0 {
 		panic("invalid freq")
 	}
@@ -68,7 +69,7 @@ func square(out []float32, volume float64, freq float64, sequence float64) {
 }
 
 func addNote() {
-	size := ebiten.AudioSampleRate() / 60
+	size := audio.SampleRate() / 60
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 
 	defer func() {
@@ -92,10 +93,10 @@ func addNote() {
 	default:
 		freq = notes[note-'C']
 	}
-	vol := 1.0 / 32.0
-	square(l, vol, freq, 0.5)
-	square(r, vol, freq, 0.5)
-	ebiten.AppendToAudioBuffer(0, l, r)
+	vol := 1.0 / 16.0
+	square(l, vol, freq, 0.25)
+	square(r, vol, freq, 0.25)
+	audio.AppendToBuffer(0, l, r)
 }
 
 func update(screen *ebiten.Image) error {

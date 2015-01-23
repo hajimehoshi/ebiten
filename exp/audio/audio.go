@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package audio
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
-func AudioSampleRate() int {
+func SampleRate() int {
 	return audio.SampleRate
 }
 
-func AppendToAudioBuffer(channel int, l []float32, r []float32) bool {
+func AppendToBuffer(channel int, l []float32, r []float32) bool {
 	return audio.Append(channel, l, r)
 }
 
 // TODO: better name
-func CurrentAudioTime() int {
+func CurrentTime() int {
 	return audio.CurrentBytes()
 }
