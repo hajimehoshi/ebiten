@@ -12,24 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !js
+
 package audio
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/audio"
-)
-
-func SampleRate() int {
-	return audio.SampleRate
+func initialize() {
+	// TODO: Implement
 }
 
-// TODO: better name
-func AppendToBuffer(channel int, l []float32, r []float32) bool {
-	return audio.Append(channel, l, r)
-}
-
-// TODO: Add funciton to append samples to the buffer without adjusting.
-
-// TODO: better name
-func CurrentTime() int {
-	return audio.CurrentBytes()
+func start() {
+	// TODO: Implement
 }
