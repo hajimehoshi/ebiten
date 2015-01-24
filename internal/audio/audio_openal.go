@@ -17,9 +17,34 @@
 package audio
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
 	"github.com/timshannon/go-openal/openal"
+	"math"
 	"runtime"
+	"time"
 )
+
+func toBytes(l, r []float32) []byte {
+	if len(l) != len(r) {
+		panic("len(l) must equal to len(r)")
+	}
+	b := &bytes.Buffer{}
+	for i, _ := range l {
+		l := int16(l[i] * math.MaxInt16)
+		r := int16(r[i] * math.MaxInt16)
+		if err := binary.Write(b, binary.LittleEndian, []int16{l, r}); err != nil {
+			panic(err)
+		}
+	}
+	return b.Bytes()
+}
+
+type sample struct {
+	l []float32
+	r []float32
+}
 
 func initialize() {
 	ch := make(chan struct{})
@@ -30,15 +55,50 @@ func initialize() {
 		context := device.CreateContext()
 		context.Activate()
 
-		buffer := openal.NewBuffer()
-		//buffer.SetData(openal.FormatStereo16)
-		_ = buffer
+		source := openal.NewSource()
+
+		if alErr := openal.GetError(); alErr != 0 {
+			panic(fmt.Sprintf("OpenAL initialize error: %d", alErr))
+		}
 
 		close(ch)
+
+		emptyBytes := make([]byte, 4*bufferSize)
+
+		const bufferNum = 16
+		buffers := openal.NewBuffers(bufferNum)
+		for _, buffer := range buffers {
+			buffer.SetData(openal.FormatStereo16, emptyBytes, SampleRate)
+			source.QueueBuffer(buffer)
+		}
+		source.Play()
+		if alErr := openal.GetError(); alErr != 0 {
+			panic(fmt.Sprintf("OpenAL error: %d", alErr))
+		}
+
+		for {
+			if source.State() != openal.Playing {
+				panic(fmt.Sprintf("invalid source state: %d (0x%[1]x)", source.State()))
+			}
+			processed := source.BuffersProcessed()
+			if processed == 0 {
+				time.Sleep(1)
+				continue
+			}
+			buffers := make([]openal.Buffer, processed)
+			source.UnqueueBuffers(buffers)
+			for _, buffer := range buffers {
+				l, r := loadChannelBuffers()
+				b := toBytes(l, r)
+				buffer.SetData(openal.FormatStereo16, b, SampleRate)
+				source.QueueBuffer(buffer)
+				nextInsertionPosition -= min(bufferSize, nextInsertionPosition)
+			}
+		}
 	}()
 	<-ch
 }
 
 func start() {
-	// TODO: Implement
+	// Do nothing
 }

@@ -14,6 +14,10 @@
 
 package audio
 
+import (
+	"sync"
+)
+
 const bufferSize = 1024
 const SampleRate = 44100
 
@@ -28,6 +32,7 @@ type channel struct {
 var MaxChannel = 32
 
 var channels = make([]*channel, MaxChannel)
+var channelsLock sync.Mutex
 
 func init() {
 	for i, _ := range channels {
@@ -46,8 +51,30 @@ func Start() {
 	start()
 }
 
+func isPlaying(channel int) bool {
+	ch := channels[channel]
+	return nextInsertionPosition < len(ch.l)
+}
+
+func channelAt(i int) *channel {
+	if i == -1 {
+		for i, _ := range channels {
+			if !isPlaying(i) {
+				return channels[i]
+			}
+		}
+		return nil
+	}
+	if !isPlaying(i) {
+		return channels[i]
+	}
+	return nil
+}
+
 func Play(channel int, l []float32, r []float32) bool {
-	// TODO: Mutex (especially for OpenAL)
+	channelsLock.Lock()
+	defer channelsLock.Unlock()
+
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
@@ -63,7 +90,9 @@ func Play(channel int, l []float32, r []float32) bool {
 }
 
 func Queue(channel int, l []float32, r []float32) {
-	// TODO: Mutex (especially for OpenAL)
+	channelsLock.Lock()
+	defer channelsLock.Unlock()
+
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
@@ -76,21 +105,6 @@ func Update() {
 	nextInsertionPosition += SampleRate / 60
 }
 
-func channelAt(i int) *channel {
-	if i == -1 {
-		for i, _ := range channels {
-			if !IsPlaying(i) {
-				return channels[i]
-			}
-		}
-		return nil
-	}
-	if !IsPlaying(i) {
-		return channels[i]
-	}
-	return nil
-}
-
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -98,7 +112,22 @@ func min(a, b int) int {
 	return b
 }
 
+func isChannelsEmpty() bool {
+	channelsLock.Lock()
+	defer channelsLock.Unlock()
+
+	for _, ch := range channels {
+		if 0 < len(ch.l) {
+			return false
+		}
+	}
+	return true
+}
+
 func loadChannelBuffers() (l, r []float32) {
+	channelsLock.Lock()
+	defer channelsLock.Unlock()
+
 	inputL := make([]float32, bufferSize)
 	inputR := make([]float32, bufferSize)
 	for _, ch := range channels {
@@ -118,6 +147,8 @@ func loadChannelBuffers() (l, r []float32) {
 }
 
 func IsPlaying(channel int) bool {
-	ch := channels[channel]
-	return nextInsertionPosition < len(ch.l)
+	channelsLock.Lock()
+	defer channelsLock.Unlock()
+
+	return isPlaying(channel)
 }
