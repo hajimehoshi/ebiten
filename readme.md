@@ -8,13 +8,13 @@
     * Supported browsers: Chrome, Firefox, Safari on desktops
   * Mac OS X
   * Linux (maybe)
-  * Windows (possibly)
 * [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
 ## Features
 
 * 2D Graphics
 * Input (Mouse, Keyboard, Gamepad)
+* Audio (Very primitive API. experimental)
 
 ## Documentation
 
