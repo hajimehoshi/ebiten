@@ -46,9 +46,7 @@ func Queue(channel int, l []float32, r []float32) {
 	audio.Queue(channel, l, r)
 }
 
-// TODO: Add funciton to append samples to the buffer without adjusting.
-
-// TODO: better name
-func CurrentTime() int {
-	return audio.CurrentBytes()
+// IsPlaying returns a boolean value which indicates if the channel buffer has data to play.
+func IsPlaying(channel int) bool {
+	return audio.IsPlaying(channel)
 }

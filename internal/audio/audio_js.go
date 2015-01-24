@@ -31,13 +31,13 @@ func initialize() {
 	node = context.Call("createScriptProcessor", bufferSize, 0, 2)
 	node.Call("addEventListener", "audioprocess", func(e js.Object) {
 		defer func() {
-			currentBytes += bufferSize
+			currentPosition += bufferSize
 		}()
 
 		l := e.Get("outputBuffer").Call("getChannelData", 0)
 		r := e.Get("outputBuffer").Call("getChannelData", 1)
 		inputL, inputR := loadChannelBuffers()
-		nextInsertion -= min(bufferSize, nextInsertion)
+		nextInsertionPosition -= min(bufferSize, nextInsertionPosition)
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?
 			if len(inputL) <= i {

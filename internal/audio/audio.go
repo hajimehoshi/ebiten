@@ -17,8 +17,8 @@ package audio
 const bufferSize = 1024
 const SampleRate = 44100
 
-var nextInsertion = 0
-var currentBytes = 0
+var nextInsertionPosition = 0
+var currentPosition = 0
 
 type channel struct {
 	l []float32
@@ -55,8 +55,8 @@ func Play(channel int, l []float32, r []float32) bool {
 	if ch == nil {
 		return false
 	}
-	ch.l = append(ch.l, make([]float32, nextInsertion-len(ch.l))...)
-	ch.r = append(ch.r, make([]float32, nextInsertion-len(ch.r))...)
+	ch.l = append(ch.l, make([]float32, nextInsertionPosition-len(ch.l))...)
+	ch.r = append(ch.r, make([]float32, nextInsertionPosition-len(ch.r))...)
 	ch.l = append(ch.l, l...)
 	ch.r = append(ch.r, r...)
 	return true
@@ -72,26 +72,21 @@ func Queue(channel int, l []float32, r []float32) {
 	ch.r = append(ch.r, r...)
 }
 
-func CurrentBytes() int {
-	return currentBytes + nextInsertion
-}
-
 func Update() {
-	nextInsertion += SampleRate / 60
+	nextInsertionPosition += SampleRate / 60
 }
 
 func channelAt(i int) *channel {
 	if i == -1 {
-		for _, ch := range channels {
-			if len(ch.l) <= nextInsertion {
-				return ch
+		for i, _ := range channels {
+			if !IsPlaying(i) {
+				return channels[i]
 			}
 		}
 		return nil
 	}
-	ch := channels[i]
-	if len(ch.l) <= nextInsertion {
-		return ch
+	if !IsPlaying(i) {
+		return channels[i]
 	}
 	return nil
 }
@@ -121,4 +116,9 @@ func loadChannelBuffers() (l, r []float32) {
 		ch.r = ch.r[usedLen:]
 	}
 	return inputL, inputR
+}
+
+func IsPlaying(channel int) bool {
+	ch := channels[channel]
+	return nextInsertionPosition < len(ch.l)
 }

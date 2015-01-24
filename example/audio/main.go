@@ -62,7 +62,7 @@ func square(out []float32, volume float64, freq float64, sequence float64) {
 	for i := 0; i < len(out); i++ {
 		a := float32(volume)
 		if i%length < int(float64(length)*sequence) {
-			a = 0
+			a = -a
 		}
 		out[i] = a
 	}
