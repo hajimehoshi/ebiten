@@ -25,7 +25,9 @@ type channel struct {
 	r []float32
 }
 
-var channels = make([]*channel, 16)
+var MaxChannel = 32
+
+var channels = make([]*channel, MaxChannel)
 
 func init() {
 	for i, _ := range channels {
@@ -44,7 +46,7 @@ func Start() {
 	start()
 }
 
-func Append(channel int, l []float32, r []float32) bool {
+func Play(channel int, l []float32, r []float32) bool {
 	// TODO: Mutex (especially for OpenAL)
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
@@ -58,6 +60,16 @@ func Append(channel int, l []float32, r []float32) bool {
 	ch.l = append(ch.l, l...)
 	ch.r = append(ch.r, r...)
 	return true
+}
+
+func Queue(channel int, l []float32, r []float32) {
+	// TODO: Mutex (especially for OpenAL)
+	if len(l) != len(r) {
+		panic("len(l) must equal to len(r)")
+	}
+	ch := channels[channel]
+	ch.l = append(ch.l, l...)
+	ch.r = append(ch.r, r...)
 }
 
 func CurrentBytes() int {

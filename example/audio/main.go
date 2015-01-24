@@ -96,7 +96,7 @@ func addNote() {
 	vol := 1.0 / 16.0
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
-	audio.AppendToBuffer(0, l, r)
+	audio.Play(0, l, r)
 }
 
 func update(screen *ebiten.Image) error {
