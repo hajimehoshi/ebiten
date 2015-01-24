@@ -110,7 +110,6 @@ func loadChannelBuffers() (l, r []float32) {
 			inputL[i] += ch.l[i]
 			inputR[i] += ch.r[i]
 		}
-		// TODO: Use copyFromChannel?
 		usedLen := min(bufferSize, len(ch.l))
 		ch.l = ch.l[usedLen:]
 		ch.r = ch.r[usedLen:]

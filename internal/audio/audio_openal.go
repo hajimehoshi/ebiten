@@ -16,8 +16,27 @@
 
 package audio
 
+import (
+	"github.com/timshannon/go-openal/openal"
+	"runtime"
+)
+
 func initialize() {
-	// TODO: Implement
+	ch := make(chan struct{})
+	go func() {
+		runtime.LockOSThread()
+
+		device := openal.OpenDevice("")
+		context := device.CreateContext()
+		context.Activate()
+
+		buffer := openal.NewBuffer()
+		//buffer.SetData(openal.FormatStereo16)
+		_ = buffer
+
+		close(ch)
+	}()
+	<-ch
 }
 
 func start() {
