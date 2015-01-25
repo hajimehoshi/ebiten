@@ -38,7 +38,7 @@ func initialize() {
 		r := e.Get("outputBuffer").Call("getChannelData", 1)
 		inputL, inputR := loadChannelBuffers()
 		nextInsertionPosition -= min(bufferSize, nextInsertionPosition)
-		const max = 1 << 16
+		const max = 1 << 15
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?
 			if len(inputL) <= i {

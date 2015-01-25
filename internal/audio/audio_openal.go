@@ -31,7 +31,7 @@ func toBytes(l, r []int16) []byte {
 		panic("len(l) must equal to len(r)")
 	}
 	b := &bytes.Buffer{}
-	for i, _ := range l {
+	for i := 0; i < len(l); i++ {
 		if err := binary.Write(b, binary.LittleEndian, []int16{l[i], r[i]}); err != nil {
 			panic(err)
 		}
