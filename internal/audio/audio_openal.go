@@ -62,7 +62,7 @@ func initialize() {
 		emptyBytes := make([]byte, 4*bufferSize)
 
 		for _, source := range sources {
-			const bufferNum = 16
+			const bufferNum = 4
 			buffers := openal.NewBuffers(bufferNum)
 			for _, buffer := range buffers {
 				buffer.SetData(openal.FormatStereo16, emptyBytes, SampleRate)
@@ -81,6 +81,7 @@ func initialize() {
 				if processed == 0 {
 					continue
 				}
+
 				oneProcessed = true
 				buffers := make([]openal.Buffer, processed)
 				source.UnqueueBuffers(buffers)
@@ -89,6 +90,10 @@ func initialize() {
 					b := toBytes(l, r)
 					buffer.SetData(openal.FormatStereo16, b, SampleRate)
 					source.QueueBuffer(buffer)
+				}
+				if source.State() == openal.Stopped {
+					source.Rewind()
+					source.Play()
 				}
 			}
 			if !oneProcessed {
