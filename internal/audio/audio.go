@@ -18,6 +18,8 @@ import (
 	"sync"
 )
 
+var audioEnabled = false
+
 const bufferSize = 1024
 const SampleRate = 44100
 
@@ -75,6 +77,10 @@ func Play(channel int, l []float32, r []float32) bool {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
+	if !audioEnabled {
+		return false
+	}
+
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
@@ -92,6 +98,10 @@ func Play(channel int, l []float32, r []float32) bool {
 func Queue(channel int, l []float32, r []float32) {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
+
+	if !audioEnabled {
+		return
+	}
 
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
@@ -116,6 +126,10 @@ func isChannelsEmpty() bool {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
+	if !audioEnabled {
+		return true
+	}
+
 	for _, ch := range channels {
 		if 0 < len(ch.l) {
 			return false
@@ -127,6 +141,10 @@ func isChannelsEmpty() bool {
 func loadChannelBuffers() (l, r []float32) {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
+
+	if !audioEnabled {
+		return nil, nil
+	}
 
 	inputL := make([]float32, bufferSize)
 	inputR := make([]float32, bufferSize)
@@ -149,6 +167,10 @@ func loadChannelBuffers() (l, r []float32) {
 func IsPlaying(channel int) bool {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
+
+	if !audioEnabled {
+		return false
+	}
 
 	return isPlaying(channel)
 }

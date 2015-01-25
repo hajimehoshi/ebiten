@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/timshannon/go-openal/openal"
+	"log"
 	"math"
 	"runtime"
 	"time"
@@ -55,12 +56,14 @@ func initialize() {
 		context := device.CreateContext()
 		context.Activate()
 
-		source := openal.NewSource()
-
 		if alErr := openal.GetError(); alErr != 0 {
-			panic(fmt.Sprintf("OpenAL initialize error: %d", alErr))
+			log.Printf("OpenAL initialize error: %d", alErr)
+			close(ch)
+			return
 		}
 
+		audioEnabled = true
+		source := openal.NewSource()
 		close(ch)
 
 		emptyBytes := make([]byte, 4*bufferSize)

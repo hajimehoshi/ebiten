@@ -49,6 +49,7 @@ func initialize() {
 			r.SetIndex(i, inputR[i])
 		}
 	})
+	audioEnabled = true
 }
 
 func start() {
