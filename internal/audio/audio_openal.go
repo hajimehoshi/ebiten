@@ -60,39 +60,46 @@ func initialize() {
 		}
 
 		audioEnabled = true
-		source := openal.NewSource()
+		sources := openal.NewSources(MaxChannel)
 		close(ch)
 
 		emptyBytes := make([]byte, 4*bufferSize)
 
-		const bufferNum = 16
-		buffers := openal.NewBuffers(bufferNum)
-		for _, buffer := range buffers {
-			buffer.SetData(openal.FormatStereo16, emptyBytes, SampleRate)
-			source.QueueBuffer(buffer)
-		}
-		source.Play()
-		if alErr := openal.GetError(); alErr != 0 {
-			panic(fmt.Sprintf("OpenAL error: %d", alErr))
+		for _, source := range sources {
+			const bufferNum = 16
+			buffers := openal.NewBuffers(bufferNum)
+			for _, buffer := range buffers {
+				buffer.SetData(openal.FormatStereo16, emptyBytes, SampleRate)
+				source.QueueBuffer(buffer)
+			}
+			source.Play()
+			if alErr := openal.GetError(); alErr != 0 {
+				panic(fmt.Sprintf("OpenAL error: %d", alErr))
+			}
 		}
 
 		for {
-			if source.State() != openal.Playing {
-				panic(fmt.Sprintf("invalid source state: %d (0x%[1]x)", source.State()))
+			oneProcessed := false
+			for channel, source := range sources {
+				if source.State() != openal.Playing {
+					panic(fmt.Sprintf("invalid source state: %d (0x%[1]x)", source.State()))
+				}
+				processed := source.BuffersProcessed()
+				if processed == 0 {
+					continue
+				}
+				oneProcessed = true
+				buffers := make([]openal.Buffer, processed)
+				source.UnqueueBuffers(buffers)
+				for _, buffer := range buffers {
+					l, r := loadChannelBuffer(channel)
+					b := toBytes(l, r)
+					buffer.SetData(openal.FormatStereo16, b, SampleRate)
+					source.QueueBuffer(buffer)
+				}
 			}
-			processed := source.BuffersProcessed()
-			if processed == 0 {
+			if !oneProcessed {
 				time.Sleep(1)
-				continue
-			}
-			buffers := make([]openal.Buffer, processed)
-			source.UnqueueBuffers(buffers)
-			for _, buffer := range buffers {
-				l, r := loadChannelBuffers()
-				b := toBytes(l, r)
-				buffer.SetData(openal.FormatStereo16, b, SampleRate)
-				source.QueueBuffer(buffer)
-				nextInsertionPosition -= min(bufferSize, nextInsertionPosition)
 			}
 		}
 	}()

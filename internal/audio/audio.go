@@ -23,12 +23,12 @@ var audioEnabled = false
 const bufferSize = 1024
 const SampleRate = 44100
 
-var nextInsertionPosition = 0
 var currentPosition = 0
 
 type channel struct {
-	l []int16
-	r []int16
+	l                     []int16
+	r                     []int16
+	nextInsertionPosition int
 }
 
 var MaxChannel = 32
@@ -55,7 +55,7 @@ func Start() {
 
 func isPlaying(channel int) bool {
 	ch := channels[channel]
-	return nextInsertionPosition < len(ch.l)
+	return ch.nextInsertionPosition < len(ch.l)
 }
 
 func channelAt(i int) *channel {
@@ -88,8 +88,8 @@ func Play(channel int, l []int16, r []int16) bool {
 	if ch == nil {
 		return false
 	}
-	ch.l = append(ch.l, make([]int16, nextInsertionPosition-len(ch.l))...)
-	ch.r = append(ch.r, make([]int16, nextInsertionPosition-len(ch.r))...)
+	ch.l = append(ch.l, make([]int16, ch.nextInsertionPosition-len(ch.l))...)
+	ch.r = append(ch.r, make([]int16, ch.nextInsertionPosition-len(ch.r))...)
 	ch.l = append(ch.l, l...)
 	ch.r = append(ch.r, r...)
 	return true
@@ -112,7 +112,9 @@ func Queue(channel int, l []int16, r []int16) {
 }
 
 func Update() {
-	nextInsertionPosition += SampleRate / 60
+	for _, ch := range channels {
+		ch.nextInsertionPosition += SampleRate / 60
+	}
 }
 
 func min(a, b int) int {
@@ -138,7 +140,31 @@ func isChannelsEmpty() bool {
 	return true
 }
 
-func loadChannelBuffers() (l, r []int16) {
+func loadChannelBuffer(channel int) (l, r []int16) {
+	channelsLock.Lock()
+	defer channelsLock.Unlock()
+
+	if !audioEnabled {
+		return nil, nil
+	}
+
+	ch := channels[channel]
+	inputL := make([]int16, bufferSize)
+	inputR := make([]int16, bufferSize)
+	length := min(len(ch.l), bufferSize)
+	for i := 0; i < length; i++ {
+		inputL[i] = ch.l[i]
+		inputR[i] = ch.r[i]
+	}
+	usedLen := min(bufferSize, len(ch.l))
+	ch.l = ch.l[usedLen:]
+	ch.r = ch.r[usedLen:]
+
+	ch.nextInsertionPosition -= min(bufferSize, ch.nextInsertionPosition)
+	return inputL, inputR
+}
+
+/*func loadChannelBuffers() (l, r []int16) {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
@@ -162,7 +188,7 @@ func loadChannelBuffers() (l, r []int16) {
 		ch.r = ch.r[usedLen:]
 	}
 	return inputL, inputR
-}
+}*/
 
 func IsPlaying(channel int) bool {
 	channelsLock.Lock()

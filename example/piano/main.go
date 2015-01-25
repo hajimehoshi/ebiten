@@ -43,7 +43,7 @@ func init() {
 			a := amp[j] * math.Exp(-5*float64(i)/(x[j]*s))
 			v += a * math.Sin(float64(i)*twoPiF*float64(j+1)/s)
 		}
-		pcm[i] = v
+		pcm[i] = v / 5.0
 	}
 }
 
@@ -112,7 +112,7 @@ func update(screen *ebiten.Image) error {
 		if keyStates[key] != 1 {
 			continue
 		}
-		addNote(220*math.Exp2(float64(i)/12.0), 1.0/8.0)
+		addNote(220*math.Exp2(float64(i)/12.0), 1.0)
 	}
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil

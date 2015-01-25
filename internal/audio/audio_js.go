@@ -21,23 +21,18 @@ import (
 )
 
 // Keep this so as not to be destroyed by GC.
-var node js.Object
+var nodes = []js.Object{}
 var context js.Object
 
-func initialize() {
-	context = js.Global.Get("AudioContext").New()
-	// TODO: ScriptProcessorNode will be replaced with Audio WebWorker.
-	// https://developer.mozilla.org/ja/docs/Web/API/ScriptProcessorNode
-	node = context.Call("createScriptProcessor", bufferSize, 0, 2)
-	node.Call("addEventListener", "audioprocess", func(e js.Object) {
+func audioProcess(channel int) func(e js.Object) {
+	return func(e js.Object) {
 		defer func() {
 			currentPosition += bufferSize
 		}()
 
 		l := e.Get("outputBuffer").Call("getChannelData", 0)
 		r := e.Get("outputBuffer").Call("getChannelData", 1)
-		inputL, inputR := loadChannelBuffers()
-		nextInsertionPosition -= min(bufferSize, nextInsertionPosition)
+		inputL, inputR := loadChannelBuffer(channel)
 		const max = 1 << 15
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?
@@ -49,11 +44,24 @@ func initialize() {
 			l.SetIndex(i, float64(inputL[i])/max)
 			r.SetIndex(i, float64(inputR[i])/max)
 		}
-	})
+	}
+}
+
+func initialize() {
+	context = js.Global.Get("AudioContext").New()
+	// TODO: ScriptProcessorNode will be replaced with Audio WebWorker.
+	// https://developer.mozilla.org/ja/docs/Web/API/ScriptProcessorNode
+	for i := 0; i < MaxChannel; i++ {
+		node := context.Call("createScriptProcessor", bufferSize, 0, 2)
+		node.Call("addEventListener", "audioprocess", audioProcess(i))
+		nodes = append(nodes, node)
+	}
 	audioEnabled = true
 }
 
 func start() {
 	// TODO: For iOS, node should be connected with a buffer node.
-	node.Call("connect", context.Get("destination"))
+	for _, node := range nodes {
+		node.Call("connect", context.Get("destination"))
+	}
 }
