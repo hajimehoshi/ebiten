@@ -62,7 +62,9 @@ func initialize() {
 		emptyBytes := make([]byte, 4*bufferSize)
 
 		for _, source := range sources {
-			const bufferNum = 4
+			// 3 is the least number?
+			// http://stackoverflow.com/questions/14932004/play-sound-with-openalstream
+			const bufferNum = 3
 			buffers := openal.NewBuffers(bufferNum)
 			for _, buffer := range buffers {
 				buffer.SetData(openal.FormatStereo16, emptyBytes, SampleRate)
