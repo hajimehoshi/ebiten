@@ -39,11 +39,6 @@ func toBytes(l, r []int16) []byte {
 	return b.Bytes()
 }
 
-type sample struct {
-	l []float32
-	r []float32
-}
-
 func initialize() {
 	ch := make(chan struct{})
 	go func() {
@@ -56,6 +51,7 @@ func initialize() {
 		if alErr := openal.GetError(); alErr != 0 {
 			log.Printf("OpenAL initialize error: %d", alErr)
 			close(ch)
+			// Graceful ending: Audio is not available on Travis CI.
 			return
 		}
 
@@ -81,9 +77,6 @@ func initialize() {
 		for {
 			oneProcessed := false
 			for channel, source := range sources {
-				if source.State() != openal.Playing {
-					panic(fmt.Sprintf("invalid source state: %d (0x%[1]x)", source.State()))
-				}
 				processed := source.BuffersProcessed()
 				if processed == 0 {
 					continue

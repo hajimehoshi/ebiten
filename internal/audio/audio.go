@@ -164,32 +164,6 @@ func loadChannelBuffer(channel int) (l, r []int16) {
 	return inputL, inputR
 }
 
-/*func loadChannelBuffers() (l, r []int16) {
-	channelsLock.Lock()
-	defer channelsLock.Unlock()
-
-	if !audioEnabled {
-		return nil, nil
-	}
-
-	inputL := make([]int16, bufferSize)
-	inputR := make([]int16, bufferSize)
-	for _, ch := range channels {
-		if len(ch.l) == 0 {
-			continue
-		}
-		l := min(len(ch.l), bufferSize)
-		for i := 0; i < l; i++ {
-			inputL[i] += ch.l[i]
-			inputR[i] += ch.r[i]
-		}
-		usedLen := min(bufferSize, len(ch.l))
-		ch.l = ch.l[usedLen:]
-		ch.r = ch.r[usedLen:]
-	}
-	return inputL, inputR
-}*/
-
 func IsPlaying(channel int) bool {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
