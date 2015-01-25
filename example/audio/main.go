@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/exp/audio"
 	"log"
+	"math"
 )
 
 const (
@@ -48,7 +49,7 @@ const score = `CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`
 
 var scoreIndex = 0
 
-func square(out []float32, volume float64, freq float64, sequence float64) {
+func square(out []int16, volume float64, freq float64, sequence float64) {
 	if freq == 0 {
 		for i := 0; i < len(out); i++ {
 			out[i] = 0
@@ -60,7 +61,7 @@ func square(out []float32, volume float64, freq float64, sequence float64) {
 		panic("invalid freq")
 	}
 	for i := 0; i < len(out); i++ {
-		a := float32(volume)
+		a := int16(volume * math.MaxInt16)
 		if i%length < int(float64(length)*sequence) {
 			a = -a
 		}
@@ -76,8 +77,8 @@ func addNote() {
 		scoreIndex++
 		scoreIndex %= len(score)
 	}()
-	l := make([]float32, size*30)
-	r := make([]float32, size*30)
+	l := make([]int16, size*30)
+	r := make([]int16, size*30)
 	note := score[scoreIndex]
 	for note == ' ' {
 		scoreIndex++

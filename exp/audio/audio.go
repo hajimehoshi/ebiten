@@ -32,7 +32,7 @@ var MaxChannel = audio.MaxChannel
 // If the channel is not empty, this function does nothing and returns false. This returns true otherwise.
 //
 // This function is useful to play SE or a note of PCM synthesis immediately.
-func Play(channel int, l []float32, r []float32) bool {
+func Play(channel int, l []int16, r []int16) bool {
 	return audio.Play(channel, l, r)
 }
 
@@ -42,7 +42,7 @@ func Play(channel int, l []float32, r []float32) bool {
 // channel must be a channel index. You can't give -1 to channel.
 //
 // This function is useful to play streaming data.
-func Queue(channel int, l []float32, r []float32) {
+func Queue(channel int, l []int16, r []int16) {
 	audio.Queue(channel, l, r)
 }
 

@@ -38,6 +38,7 @@ func initialize() {
 		r := e.Get("outputBuffer").Call("getChannelData", 1)
 		inputL, inputR := loadChannelBuffers()
 		nextInsertionPosition -= min(bufferSize, nextInsertionPosition)
+		const max = 1 << 16
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?
 			if len(inputL) <= i {
@@ -45,8 +46,8 @@ func initialize() {
 				r.SetIndex(i, 0)
 				continue
 			}
-			l.SetIndex(i, inputL[i])
-			r.SetIndex(i, inputR[i])
+			l.SetIndex(i, float64(inputL[i])/max)
+			r.SetIndex(i, float64(inputR[i])/max)
 		}
 	})
 	audioEnabled = true

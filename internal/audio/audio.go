@@ -27,8 +27,8 @@ var nextInsertionPosition = 0
 var currentPosition = 0
 
 type channel struct {
-	l []float32
-	r []float32
+	l []int16
+	r []int16
 }
 
 var MaxChannel = 32
@@ -39,8 +39,8 @@ var channelsLock sync.Mutex
 func init() {
 	for i, _ := range channels {
 		channels[i] = &channel{
-			l: []float32{},
-			r: []float32{},
+			l: []int16{},
+			r: []int16{},
 		}
 	}
 }
@@ -73,7 +73,7 @@ func channelAt(i int) *channel {
 	return nil
 }
 
-func Play(channel int, l []float32, r []float32) bool {
+func Play(channel int, l []int16, r []int16) bool {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
@@ -88,14 +88,14 @@ func Play(channel int, l []float32, r []float32) bool {
 	if ch == nil {
 		return false
 	}
-	ch.l = append(ch.l, make([]float32, nextInsertionPosition-len(ch.l))...)
-	ch.r = append(ch.r, make([]float32, nextInsertionPosition-len(ch.r))...)
+	ch.l = append(ch.l, make([]int16, nextInsertionPosition-len(ch.l))...)
+	ch.r = append(ch.r, make([]int16, nextInsertionPosition-len(ch.r))...)
 	ch.l = append(ch.l, l...)
 	ch.r = append(ch.r, r...)
 	return true
 }
 
-func Queue(channel int, l []float32, r []float32) {
+func Queue(channel int, l []int16, r []int16) {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
@@ -138,7 +138,7 @@ func isChannelsEmpty() bool {
 	return true
 }
 
-func loadChannelBuffers() (l, r []float32) {
+func loadChannelBuffers() (l, r []int16) {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
@@ -146,8 +146,8 @@ func loadChannelBuffers() (l, r []float32) {
 		return nil, nil
 	}
 
-	inputL := make([]float32, bufferSize)
-	inputR := make([]float32, bufferSize)
+	inputL := make([]int16, bufferSize)
+	inputR := make([]int16, bufferSize)
 	for _, ch := range channels {
 		if len(ch.l) == 0 {
 			continue
