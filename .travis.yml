@@ -9,7 +9,7 @@ before_install:
   - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ utopic main restricted universe multiverse'
   - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ utopic-updates main restricted universe multiverse'
   - sudo apt-get update -qq
-  - sudo apt-get install -qq libglew-dev libglfw3-dev libopenal-dev
+  - sudo apt-get install -qq libglew-dev libglfw3-dev libopenal1 libopenal-dev
   - export NODE_PATH=$(npm config get prefix)/lib/node_modules
   - npm install --global gl
 
