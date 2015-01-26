@@ -95,6 +95,7 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	ch := make(chan struct{})
 	window := u.window
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+		window.SetFramebufferSizeCallback(nil)
 		close(ch)
 	})
 	window.SetSize(width*scale, height*scale)
