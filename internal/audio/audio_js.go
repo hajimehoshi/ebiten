@@ -24,6 +24,8 @@ import (
 var nodes = []js.Object{}
 var context js.Object
 
+const bufferSize = 1024
+
 func audioProcess(channel int) func(e js.Object) {
 	return func(e js.Object) {
 		defer func() {
@@ -32,7 +34,7 @@ func audioProcess(channel int) func(e js.Object) {
 
 		l := e.Get("outputBuffer").Call("getChannelData", 0)
 		r := e.Get("outputBuffer").Call("getChannelData", 1)
-		inputL, inputR := loadChannelBuffer(channel)
+		inputL, inputR := loadChannelBuffer(channel, bufferSize)
 		const max = 1 << 15
 		for i := 0; i < bufferSize; i++ {
 			// TODO: Use copyFromChannel?

@@ -20,7 +20,6 @@ import (
 
 var audioEnabled = false
 
-const bufferSize = 1024
 const SampleRate = 44100
 
 var currentPosition = 0
@@ -140,7 +139,7 @@ func isChannelsEmpty() bool {
 	return true
 }
 
-func loadChannelBuffer(channel int) (l, r []int16) {
+func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
 	channelsLock.Lock()
 	defer channelsLock.Unlock()
 
