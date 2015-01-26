@@ -17,7 +17,6 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 	"time"
 )
 
@@ -38,14 +37,15 @@ func CurrentFPS() float64 {
 // but this is not strictly guaranteed.
 // If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
-	actualScale, err := ui.Start(width, height, scale, title)
+	ui := currentUI
+	actualScale, err := ui.start(width, height, scale, title)
 	if err != nil {
 		return err
 	}
-	defer ui.Terminate()
+	defer ui.terminate()
 
 	var graphicsContext *graphicsContext
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		graphicsContext, err = newGraphicsContext(c, width, height, actualScale)
 	})
 	if err != nil {
@@ -55,10 +55,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	frames := 0
 	t := time.Now().UnixNano()
 	for {
-		if err := ui.DoEvents(); err != nil {
+		if err := ui.doEvents(); err != nil {
 			return err
 		}
-		if ui.IsClosed() {
+		if ui.isClosed() {
 			return nil
 		}
 		if err := graphicsContext.preUpdate(); err != nil {
@@ -72,7 +72,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		}
 		// TODO: I'm not sure this is 'Update'. Is 'Tick' better?
 		audio.Update()
-		ui.SwapBuffers()
+		ui.swapBuffers()
 		if err != nil {
 			return err
 		}

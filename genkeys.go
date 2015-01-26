@@ -77,7 +77,6 @@ const ebitenKeysTmpl = `{{.License}}
 
 package ebiten
 
-
 import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )

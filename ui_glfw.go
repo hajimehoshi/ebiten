@@ -14,42 +14,27 @@
 
 // +build !js
 
-package ui
+package ebiten
 
 import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 	"runtime"
 	"time"
 )
 
-var current *ui
+var currentUI *userInterface
 
-func Use(f func(*opengl.Context)) {
+func useGLContext(f func(*opengl.Context)) {
 	ch := make(chan struct{})
-	current.funcs <- func() {
+	currentUI.funcs <- func() {
 		defer close(ch)
-		f(current.glContext)
+		f(currentUI.glContext)
 	}
 	<-ch
-}
-
-func DoEvents() error {
-	return current.doEvents()
-}
-
-func Terminate() {
-	current.terminate()
-}
-
-func IsClosed() bool {
-	return current.isClosed()
-}
-
-func SwapBuffers() {
-	current.swapBuffers()
 }
 
 func init() {
@@ -69,7 +54,7 @@ func init() {
 		panic(err)
 	}
 
-	u := &ui{
+	u := &userInterface{
 		window: window,
 		funcs:  make(chan func()),
 	}
@@ -85,17 +70,17 @@ func init() {
 
 	audio.Init()
 
-	current = u
+	currentUI = u
 }
 
-type ui struct {
+type userInterface struct {
 	window    *glfw.Window
 	scale     int
 	glContext *opengl.Context
 	funcs     chan func()
 }
 
-func Start(width, height, scale int, title string) (actualScale int, err error) {
+func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
 	monitor, err := glfw.GetPrimaryMonitor()
 	if err != nil {
 		return 0, err
@@ -108,8 +93,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	y := (videoMode.Height - height*scale) / 3
 
 	ch := make(chan struct{})
-	ui := current
-	window := ui.window
+	window := u.window
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
 		close(ch)
 	})
@@ -131,7 +115,7 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 		}
 	}
 
-	ui.scale = scale
+	u.scale = scale
 
 	// For retina displays, recalculate the scale with the framebuffer size.
 	windowWidth, _ := window.GetFramebufferSize()
@@ -142,16 +126,16 @@ func Start(width, height, scale int, title string) (actualScale int, err error) 
 	return actualScale, nil
 }
 
-func (u *ui) pollEvents() error {
+func (u *userInterface) pollEvents() error {
 	glfw.PollEvents()
-	return currentInput.update(u.window, u.scale)
+	return ui.UpdateInput(u.window, u.scale)
 }
 
-func (u *ui) doEvents() error {
+func (u *userInterface) doEvents() error {
 	if err := u.pollEvents(); err != nil {
 		return err
 	}
-	for current.window.GetAttribute(glfw.Focused) == 0 {
+	for u.window.GetAttribute(glfw.Focused) == 0 {
 		time.Sleep(time.Second / 60)
 		if err := u.pollEvents(); err != nil {
 			return err
@@ -160,14 +144,14 @@ func (u *ui) doEvents() error {
 	return nil
 }
 
-func (u *ui) terminate() {
+func (u *userInterface) terminate() {
 	glfw.Terminate()
 }
 
-func (u *ui) isClosed() bool {
+func (u *userInterface) isClosed() bool {
 	return u.window.ShouldClose()
 }
 
-func (u *ui) swapBuffers() {
+func (u *userInterface) swapBuffers() {
 	u.window.SwapBuffers()
 }

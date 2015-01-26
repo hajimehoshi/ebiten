@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 	"image"
 	"image/color"
 	"math"
@@ -53,7 +52,7 @@ func (i *Image) Fill(clr color.Color) (err error) {
 	g := float64(cg) / max
 	b := float64(cb) / max
 	a := float64(ca) / max
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		// TODO: Change to pass color.Color
 		err = i.framebuffer.Fill(c, r, g, b, a)
 	})
@@ -95,7 +94,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	}
 	w, h := image.Size()
 	quads := &textureQuads{parts: parts, width: w, height: h}
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		err = i.framebuffer.DrawTexture(c, image.texture, quads, &options.GeoM, &options.ColorM)
 	})
 	return
@@ -109,7 +108,7 @@ func (i *Image) DrawLine(x0, y0, x1, y1 int, clr color.Color) error {
 // DrawLines draws lines.
 func (i *Image) DrawLines(lines Lines) (err error) {
 	i.pixels = nil
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		err = i.framebuffer.DrawLines(c, lines)
 	})
 	return
@@ -133,7 +132,7 @@ func (i *Image) DrawFilledRect(x, y, width, height int, clr color.Color) error {
 // DrawFilledRects draws filled rectangles on the image.
 func (i *Image) DrawFilledRects(rects Rects) (err error) {
 	i.pixels = nil
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		err = i.framebuffer.DrawFilledRects(c, rects)
 	})
 	return
@@ -155,7 +154,7 @@ func (i *Image) ColorModel() color.Model {
 // This method loads pixels from VRAM to system memory if necessary.
 func (i *Image) At(x, y int) color.Color {
 	if i.pixels == nil {
-		ui.Use(func(c *opengl.Context) {
+		useGLContext(func(c *opengl.Context) {
 			var err error
 			i.pixels, err = i.framebuffer.Pixels(c)
 			if err != nil {
@@ -184,7 +183,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 		return errors.New(fmt.Sprintf("p's length must be %d", l))
 	}
 	var err error
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		err = i.texture.ReplacePixels(c, p)
 	})
 	return err

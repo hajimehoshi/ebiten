@@ -77,7 +77,7 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	var img *Image
 	var err error
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		var texture *graphics.Texture
 		var framebuffer *graphics.Framebuffer
 		texture, err = graphics.NewTexture(c, width, height, glFilter(c, filter))
@@ -108,7 +108,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	var eimg *Image
 	var err error
-	ui.Use(func(c *opengl.Context) {
+	useGLContext(func(c *opengl.Context) {
 		var texture *graphics.Texture
 		var framebuffer *graphics.Framebuffer
 		texture, err = graphics.NewTextureFromImage(c, img, glFilter(c, filter))

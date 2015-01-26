@@ -21,6 +21,10 @@ import (
 	"math"
 )
 
+func UpdateInput(window *glfw.Window, scale int) error {
+	return currentInput.update(window, scale)
+}
+
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
 	glfw.MouseButtonRight:  MouseButtonRight,

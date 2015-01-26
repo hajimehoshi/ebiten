@@ -14,18 +14,23 @@
 
 // +build js
 
-package ui
+package ebiten
 
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/gopherjs/webgl"
 	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 	"strconv"
 )
 
 var canvas js.Object
 var context *opengl.Context
+
+type userInterface struct{}
+
+var currentUI = &userInterface{}
 
 // TODO: This returns true even when the browser is not active.
 // The current behavior causes sound noise...
@@ -33,7 +38,7 @@ func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
 }
 
-func Use(f func(*opengl.Context)) {
+func useGLContext(f func(*opengl.Context)) {
 	f(context)
 }
 
@@ -47,24 +52,24 @@ func vsync() {
 	<-ch
 }
 
-func DoEvents() error {
+func (*userInterface) doEvents() error {
 	vsync()
 	for !shown() {
 		vsync()
 	}
-	currentInput.updateGamepads()
+	ui.CurrentInput().UpdateGamepads()
 	return nil
 }
 
-func Terminate() {
+func (*userInterface) terminate() {
 	// Do nothing.
 }
 
-func IsClosed() bool {
+func (*userInterface) isClosed() bool {
 	return false
 }
 
-func SwapBuffers() {
+func (*userInterface) swapBuffers() {
 	// Do nothing.
 }
 
@@ -127,25 +132,25 @@ func init() {
 	canvas.Call("addEventListener", "keydown", func(e js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
-		currentInput.keyDown(code)
+		ui.CurrentInput().KeyDown(code)
 	})
 	canvas.Call("addEventListener", "keyup", func(e js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
-		currentInput.keyUp(code)
+		ui.CurrentInput().KeyUp(code)
 	})
 
 	// Mouse
 	canvas.Call("addEventListener", "mousedown", func(e js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
-		currentInput.mouseDown(button)
+		ui.CurrentInput().MouseDown(button)
 		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mouseup", func(e js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
-		currentInput.mouseUp(button)
+		ui.CurrentInput().MouseUp(button)
 		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mousemove", func(e js.Object) {
@@ -160,14 +165,14 @@ func init() {
 	// TODO: Need to create indimendent touch functions?
 	canvas.Call("addEventListener", "touchstart", func(e js.Object) {
 		e.Call("preventDefault")
-		currentInput.mouseDown(0)
+		ui.CurrentInput().MouseDown(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
 	})
 	canvas.Call("addEventListener", "touchend", func(e js.Object) {
 		e.Call("preventDefault")
-		currentInput.mouseUp(0)
+		ui.CurrentInput().MouseUp(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
@@ -193,7 +198,7 @@ func setMouseCursorFromEvent(e js.Object) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	currentInput.setMouseCursor(x/scale, y/scale)
+	ui.CurrentInput().SetMouseCursor(x/scale, y/scale)
 }
 
 func devicePixelRatio() int {
@@ -205,7 +210,7 @@ func devicePixelRatio() int {
 	return ratio
 }
 
-func Start(width, height, scale int, title string) (actualScale int, err error) {
+func (*userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	actualScale = scale * devicePixelRatio()
