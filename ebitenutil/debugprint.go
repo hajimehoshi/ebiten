@@ -16,7 +16,7 @@ package ebitenutil
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/assets"
+	"github.com/hajimehoshi/ebiten/ebitenutil/internal/assets"
 	"image/color"
 	"math"
 	"strings"
