@@ -52,25 +52,20 @@ func addNote(freq float64, vol float64) {
 	length := len(pcm) * baseFreq / f
 	l := make([]int16, length)
 	r := make([]int16, length)
-	if baseFreq <= freq {
-		x := 0
-		i := 0
-		for _, p := range pcm {
-			x += baseFreq
-			x %= f
-			if x < baseFreq {
-				l[i] = int16(p * vol * math.MaxInt16)
-				r[i] = l[i]
-				i++
-			}
-		}
-	} else {
-		// Not implemented
+	j := 0
+	jj := 0
+	for i := 0; i < len(l); i++ {
+		p := pcm[j]
+		l[i] = int16(p * vol * math.MaxInt16)
+		r[i] = l[i]
+		jj += f
+		j = jj / baseFreq
 	}
 	audio.Play(-1, l, r)
 }
 
 var keys = []ebiten.Key{
+	ebiten.KeyQ,
 	ebiten.KeyA,
 	ebiten.KeyW,
 	ebiten.KeyS,
@@ -112,7 +107,7 @@ func update(screen *ebiten.Image) error {
 		if keyStates[key] != 1 {
 			continue
 		}
-		addNote(220*math.Exp2(float64(i)/12.0), 1.0)
+		addNote(220*math.Exp2(float64(i-1)/12.0), 1.0)
 	}
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
