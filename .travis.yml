@@ -20,7 +20,7 @@ install:
 
 script:
   - go test -v ./...
-  - gopherjs test -v github.com/hajimehoshi/ebiten github.com/hajimehoshi/ebiten/internal
+  - gopherjs test -v github.com/hajimehoshi/ebiten github.com/hajimehoshi/ebiten/internal/graphics
   - gopherjs build -v github.com/hajimehoshi/ebiten/example/blocks
 
 notifications:

@@ -15,7 +15,6 @@
 package graphics
 
 import (
-	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"image/color"
 )
@@ -90,18 +89,18 @@ func (f *Framebuffer) Dispose(c *opengl.Context) {
 }
 
 func (f *Framebuffer) setAsViewport(c *opengl.Context) error {
-	width := internal.NextPowerOf2Int(f.width)
-	height := internal.NextPowerOf2Int(f.height)
+	width := NextPowerOf2Int(f.width)
+	height := NextPowerOf2Int(f.height)
 	return c.SetViewport(f.native, width, height)
 }
 
 func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
-	width := internal.NextPowerOf2Int(f.width)
-	height := internal.NextPowerOf2Int(f.height)
+	width := NextPowerOf2Int(f.width)
+	height := NextPowerOf2Int(f.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
 	if f.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(f.height) / float64(internal.NextPowerOf2Int(f.height)) * 2
+		m[1][3] += float64(f.height) / float64(NextPowerOf2Int(f.height)) * 2
 	}
 	return m
 }
@@ -139,6 +138,6 @@ func (f *Framebuffer) DrawFilledRects(c *opengl.Context, rects Rects) error {
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
 	w, h := f.Size()
-	w, h = internal.NextPowerOf2Int(w), internal.NextPowerOf2Int(h)
+	w, h = NextPowerOf2Int(w), NextPowerOf2Int(h)
 	return c.FramebufferPixels(f.native, w, h)
 }

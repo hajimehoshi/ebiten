@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"image"
 	"math"
 )
@@ -68,11 +68,11 @@ func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
 }
 
 func u(x int, width int) int {
-	return math.MaxInt16 * x / internal.NextPowerOf2Int(width)
+	return math.MaxInt16 * x / graphics.NextPowerOf2Int(width)
 }
 
 func v(y int, height int) int {
-	return math.MaxInt16 * y / internal.NextPowerOf2Int(height)
+	return math.MaxInt16 * y / graphics.NextPowerOf2Int(height)
 }
 
 type textureQuads struct {

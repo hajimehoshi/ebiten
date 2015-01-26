@@ -17,7 +17,6 @@ package ebiten
 import (
 	"errors"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -48,7 +47,6 @@ func (i *Image) Clear() (err error) {
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
-	//r, g, b, a := internal.RGBA(clr)
 	cr, cg, cb, ca := clr.RGBA()
 	const max = math.MaxUint16
 	r := float64(cr) / max
@@ -166,7 +164,7 @@ func (i *Image) At(x, y int) color.Color {
 		})
 	}
 	w, _ := i.Size()
-	w = internal.NextPowerOf2Int(w)
+	w = graphics.NextPowerOf2Int(w)
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}

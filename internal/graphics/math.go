@@ -12,29 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal_test
+package graphics
 
-import (
-	. "github.com/hajimehoshi/ebiten/internal"
-	"testing"
-)
-
-func TestNextPowerOf2(t *testing.T) {
-	testCases := []struct {
-		expected int
-		arg      int
-	}{
-		{256, 255},
-		{256, 256},
-		{512, 257},
-	}
-
-	for _, testCase := range testCases {
-		got := NextPowerOf2Int(testCase.arg)
-		wanted := testCase.expected
-		if wanted != got {
-			t.Errorf("Clp(%d) = %d, wanted %d", testCase.arg, got, wanted)
-		}
-
-	}
+func NextPowerOf2Int(x int) int {
+	x -= 1
+	x |= (x >> 1)
+	x |= (x >> 2)
+	x |= (x >> 4)
+	x |= (x >> 8)
+	x |= (x >> 16)
+	return x + 1
 }
