@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shader
+package graphics
 
 import (
 	"errors"
 	"fmt"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
-	"image/color"
 )
 
 func glMatrix(m *[4][4]float64) []float32 {
@@ -34,25 +33,19 @@ type Matrix interface {
 	Element(i, j int) float64
 }
 
-type TextureQuads interface {
-	Len() int
-	Vertex(i int) (x0, y0, x1, y1 int)
-	Texture(i int) (u0, v0, u1, v1 int)
-}
-
 var vertices = make([]int16, 0, 4*8*quadsMaxNum)
 
-var initialized = false
+var shadersInitialized = false
 
-func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
+func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
 	// TODO: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 	// Let's use them to compare to len(quads) in the future.
 
-	if !initialized {
+	if !shadersInitialized {
 		if err := initialize(c); err != nil {
 			return err
 		}
-		initialized = true
+		shadersInitialized = true
 	}
 
 	if quads.Len() == 0 {
@@ -89,18 +82,12 @@ func DrawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	return nil
 }
 
-type Lines interface {
-	Len() int
-	Points(i int) (x0, y0, x1, y1 int)
-	Color(i int) color.Color
-}
-
-func DrawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) error {
-	if !initialized {
+func drawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) error {
+	if !shadersInitialized {
 		if err := initialize(c); err != nil {
 			return err
 		}
-		initialized = true
+		shadersInitialized = true
 	}
 
 	if lines.Len() == 0 {
@@ -133,18 +120,12 @@ func DrawLines(c *opengl.Context, projectionMatrix *[4][4]float64, lines Lines) 
 	return nil
 }
 
-type Rects interface {
-	Len() int
-	Rect(i int) (x, y, width, height int)
-	Color(i int) color.Color
-}
-
-func DrawFilledRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
-	if !initialized {
+func drawFilledRects(c *opengl.Context, projectionMatrix *[4][4]float64, rects Rects) error {
+	if !shadersInitialized {
 		if err := initialize(c); err != nil {
 			return err
 		}
-		initialized = true
+		shadersInitialized = true
 	}
 
 	if rects.Len() == 0 {

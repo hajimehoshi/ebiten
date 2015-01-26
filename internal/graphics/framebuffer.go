@@ -17,9 +17,26 @@ package graphics
 import (
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
 	"image/color"
 )
+
+type TextureQuads interface {
+	Len() int
+	Vertex(i int) (x0, y0, x1, y1 int)
+	Texture(i int) (u0, v0, u1, v1 int)
+}
+
+type Lines interface {
+	Len() int
+	Points(i int) (x0, y0, x1, y1 int)
+	Color(i int) color.Color
+}
+
+type Rects interface {
+	Len() int
+	Rect(i int) (x, y, width, height int)
+	Color(i int) color.Color
+}
 
 func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
 	e11 := float64(2) / float64(right-left)
@@ -89,16 +106,6 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	return m
 }
 
-type Matrix interface {
-	Element(i, j int) float64
-}
-
-type TextureQuads interface {
-	Len() int
-	Vertex(i int) (x0, y0, x1, y1 int)
-	Texture(i int) (u0, v0, u1, v1 int)
-}
-
 func (f *Framebuffer) Fill(c *opengl.Context, r, g, b, a float64) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
@@ -111,13 +118,7 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.DrawTexture(c, t.native, p, quads, geo, clr)
-}
-
-type Lines interface {
-	Len() int
-	Points(i int) (x0, y0, x1, y1 int)
-	Color(i int) color.Color
+	return drawTexture(c, t.native, p, quads, geo, clr)
 }
 
 func (f *Framebuffer) DrawLines(c *opengl.Context, lines Lines) error {
@@ -125,13 +126,7 @@ func (f *Framebuffer) DrawLines(c *opengl.Context, lines Lines) error {
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.DrawLines(c, p, lines)
-}
-
-type Rects interface {
-	Len() int
-	Rect(i int) (x, y, width, height int)
-	Color(i int) color.Color
+	return drawLines(c, p, lines)
 }
 
 func (f *Framebuffer) DrawFilledRects(c *opengl.Context, rects Rects) error {
@@ -139,7 +134,7 @@ func (f *Framebuffer) DrawFilledRects(c *opengl.Context, rects Rects) error {
 		return err
 	}
 	p := f.projectionMatrix()
-	return shader.DrawFilledRects(c, p, rects)
+	return drawFilledRects(c, p, rects)
 }
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
