@@ -17,7 +17,7 @@ package blocks
 import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/example/internal"
+	"github.com/hajimehoshi/ebiten/example/common"
 	"image/color"
 	"strings"
 )
@@ -103,7 +103,7 @@ ROTATE RIGHT: %s
 		msg = "OK!"
 	}
 	str := fmt.Sprintf(f, s.buttonStates[0], s.buttonStates[1], s.buttonStates[2], s.buttonStates[3], s.buttonStates[4], msg)
-	if err := internal.ArcadeFont.DrawTextWithShadow(screen, str, 16, 16, 1, color.White); err != nil {
+	if err := common.ArcadeFont.DrawTextWithShadow(screen, str, 16, 16, 1, color.White); err != nil {
 		return err
 	}
 	return nil

@@ -18,8 +18,8 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/example/internal"
-	einternal "github.com/hajimehoshi/ebiten/internal"
+	"github.com/hajimehoshi/ebiten/example/common"
+	"github.com/hajimehoshi/ebiten/internal"
 	"image"
 	"image/color"
 	"image/draw"
@@ -54,7 +54,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	t.DrawLine(x, y+height-4, x+3, y+height-1, c)
 	t.DrawLine(x+width-1, y+height-4, x+width-4, y+height-1, c)
 
-	internal.ArcadeFont.DrawText(t, name, x+4, y+5, 1, color.White)
+	common.ArcadeFont.DrawText(t, name, x+4, y+5, 1, color.White)
 }
 
 func outputKeyboardImage() (map[string]image.Rectangle, error) {
@@ -143,7 +143,7 @@ func KeyRect(name string) (image.Rectangle, bool) {
 }`
 
 func outputKeyRectsGo(k map[string]image.Rectangle) error {
-	license, err := einternal.LicenseComment()
+	license, err := internal.LicenseComment()
 	if err != nil {
 		return err
 	}

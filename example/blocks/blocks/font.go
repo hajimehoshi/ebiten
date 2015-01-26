@@ -16,18 +16,18 @@ package blocks
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/example/internal"
+	"github.com/hajimehoshi/ebiten/example/common"
 	"image/color"
 )
 
 func drawTextWithShadowCenter(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) error {
-	w := internal.ArcadeFont.TextWidth(str) * scale
+	w := common.ArcadeFont.TextWidth(str) * scale
 	x += (width - w) / 2
-	return internal.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
+	return common.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
 }
 
 func drawTextWithShadowRight(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) error {
-	w := internal.ArcadeFont.TextWidth(str) * scale
+	w := common.ArcadeFont.TextWidth(str) * scale
 	x += width - w
-	return internal.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
+	return common.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
 }

@@ -17,7 +17,7 @@ package blocks
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/example/internal"
+	"github.com/hajimehoshi/ebiten/example/common"
 	"image/color"
 )
 
@@ -112,9 +112,9 @@ func (s *TitleScene) Draw(r *ebiten.Image) error {
 	}
 
 	message := "PRESS SPACE TO START"
-	x := (ScreenWidth - internal.ArcadeFont.TextWidth(message)) / 2
+	x := (ScreenWidth - common.ArcadeFont.TextWidth(message)) / 2
 	y := ScreenHeight - 48
-	if err := internal.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff}); err != nil {
+	if err := common.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff}); err != nil {
 		return err
 	}
 	return nil
@@ -129,8 +129,8 @@ func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) error {
 
 func drawLogo(r *ebiten.Image, str string) error {
 	scale := 4
-	textWidth := internal.ArcadeFont.TextWidth(str) * scale
+	textWidth := common.ArcadeFont.TextWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	return internal.ArcadeFont.DrawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
+	return common.ArcadeFont.DrawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
 }
