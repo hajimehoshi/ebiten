@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"image"
 	"image/color"

@@ -20,7 +20,7 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/gopherjs/webgl"
 	"github.com/hajimehoshi/ebiten/internal/audio"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"strconv"
 )
 

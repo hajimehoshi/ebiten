@@ -20,7 +20,7 @@ import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
 	"github.com/hajimehoshi/ebiten/internal/audio"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"runtime"
 	"time"
 )

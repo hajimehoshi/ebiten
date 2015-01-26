@@ -17,7 +17,7 @@ package shader
 import (
 	"errors"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"image/color"
 )
 

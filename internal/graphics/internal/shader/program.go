@@ -15,7 +15,7 @@
 package shader
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"math"
 )
 

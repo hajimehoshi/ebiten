@@ -16,8 +16,8 @@ package graphics
 
 import (
 	"github.com/hajimehoshi/ebiten/internal"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/shader"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"image/color"
 )
 

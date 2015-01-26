@@ -16,7 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 )
 
 func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
