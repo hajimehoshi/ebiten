@@ -15,7 +15,7 @@
 package audio
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/audio"
+	"github.com/hajimehoshi/ebiten/exp/audio/internal"
 )
 
 // SampleRate returns the sampling frequency (e.g. 44100).
