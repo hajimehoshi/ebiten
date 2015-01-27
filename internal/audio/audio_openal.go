@@ -40,6 +40,7 @@ func toBytes(l, r []int16) []byte {
 }
 
 func initialize() {
+	// Creating OpenAL device must be done after initializing UI. I'm not sure the reason.
 	ch := make(chan struct{})
 	go func() {
 		runtime.LockOSThread()

@@ -17,7 +17,14 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
+
+func useGLContext(f func(*opengl.Context)) {
+	ui.ExecOnUIThread(func() {
+		f(glContext)
+	})
+}
 
 func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	f, err := graphics.NewZeroFramebuffer(c, screenWidth*screenScale, screenHeight*screenScale)

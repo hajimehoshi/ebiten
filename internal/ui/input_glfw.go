@@ -21,7 +21,7 @@ import (
 	"math"
 )
 
-func UpdateInput(window *glfw.Window, scale int) error {
+func updateInput(window *glfw.Window, scale int) error {
 	return currentInput.update(window, scale)
 }
 

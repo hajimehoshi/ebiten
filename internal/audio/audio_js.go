@@ -50,6 +50,11 @@ func audioProcess(channel int) func(e js.Object) {
 }
 
 func initialize() {
+	// Do nothing in node.js.
+	if js.Global.Get("require") != js.Undefined {
+		return
+	}
+
 	context = js.Global.Get("AudioContext").New()
 	// TODO: ScriptProcessorNode will be replaced with Audio WebWorker.
 	// https://developer.mozilla.org/ja/docs/Web/API/ScriptProcessorNode

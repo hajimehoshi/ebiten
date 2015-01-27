@@ -14,19 +14,38 @@
 
 // +build js
 
-package ebiten
+package ui
 
 import (
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/gopherjs/webgl"
-	"github.com/hajimehoshi/ebiten/internal/audio"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 	"strconv"
 )
 
+func ExecOnUIThread(f func()) {
+	f()
+}
+
+func Start(width, height, scale int, title string) (actualScale int, err error) {
+	return currentUI.start(width, height, scale, title)
+}
+
+func Terminate() {
+	currentUI.terminate()
+}
+
+func DoEvents() error {
+	return currentUI.doEvents()
+}
+
+func IsClosed() bool {
+	return currentUI.isClosed()
+}
+
+func SwapBuffers() {
+	currentUI.swapBuffers()
+}
+
 var canvas js.Object
-var context *opengl.Context
 
 type userInterface struct{}
 
@@ -36,10 +55,6 @@ var currentUI = &userInterface{}
 // The current behavior causes sound noise...
 func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
-}
-
-func useGLContext(f func(*opengl.Context)) {
-	f(context)
 }
 
 func vsync() {
@@ -57,7 +72,7 @@ func (*userInterface) doEvents() error {
 	for !shown() {
 		vsync()
 	}
-	ui.CurrentInput().UpdateGamepads()
+	currentInput.UpdateGamepads()
 	return nil
 }
 
@@ -73,12 +88,9 @@ func (*userInterface) swapBuffers() {
 	// Do nothing.
 }
 
-func init() {
+func Init() {
+	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		// Use headless-gl for testing.
-		nodeGl := js.Global.Call("require", "gl")
-		webglContext := nodeGl.Call("createContext", 16, 16)
-		context = opengl.NewContext(&webgl.Context{Object: webglContext})
 		return
 	}
 
@@ -115,15 +127,6 @@ func init() {
 	canvasStyle := canvas.Get("style")
 	canvasStyle.Set("position", "absolute")
 
-	webglContext, err := webgl.NewContext(canvas, &webgl.ContextAttributes{
-		Alpha:              true,
-		PremultipliedAlpha: true,
-	})
-	if err != nil {
-		panic(err)
-	}
-	context = opengl.NewContext(webglContext)
-
 	// Make the canvas focusable.
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
@@ -132,25 +135,25 @@ func init() {
 	canvas.Call("addEventListener", "keydown", func(e js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
-		ui.CurrentInput().KeyDown(code)
+		currentInput.KeyDown(code)
 	})
 	canvas.Call("addEventListener", "keyup", func(e js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
-		ui.CurrentInput().KeyUp(code)
+		currentInput.KeyUp(code)
 	})
 
 	// Mouse
 	canvas.Call("addEventListener", "mousedown", func(e js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
-		ui.CurrentInput().MouseDown(button)
+		currentInput.MouseDown(button)
 		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mouseup", func(e js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
-		ui.CurrentInput().MouseUp(button)
+		currentInput.MouseUp(button)
 		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mousemove", func(e js.Object) {
@@ -165,14 +168,14 @@ func init() {
 	// TODO: Need to create indimendent touch functions?
 	canvas.Call("addEventListener", "touchstart", func(e js.Object) {
 		e.Call("preventDefault")
-		ui.CurrentInput().MouseDown(0)
+		currentInput.MouseDown(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
 	})
 	canvas.Call("addEventListener", "touchend", func(e js.Object) {
 		e.Call("preventDefault")
-		ui.CurrentInput().MouseUp(0)
+		currentInput.MouseUp(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
@@ -188,8 +191,6 @@ func init() {
 	window.Call("addEventListener", "gamepadconnected", func(e js.Object) {
 		// Do nothing.
 	})
-
-	audio.Init()
 }
 
 func setMouseCursorFromEvent(e js.Object) {
@@ -198,7 +199,7 @@ func setMouseCursorFromEvent(e js.Object) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	ui.CurrentInput().SetMouseCursor(x/scale, y/scale)
+	currentInput.SetMouseCursor(x/scale, y/scale)
 }
 
 func devicePixelRatio() int {
@@ -228,8 +229,6 @@ func (*userInterface) start(width, height, scale int, title string) (actualScale
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
 
 	canvas.Call("focus")
-
-	audio.Start()
 
 	return actualScale, nil
 }

@@ -66,7 +66,27 @@ type context struct {
 
 var lastFramebuffer Framebuffer
 
-func NewContext(gl *webgl.Context) *Context {
+func NewContext() *Context {
+	var gl *webgl.Context
+
+	if js.Global.Get("require") == js.Undefined {
+		// TODO: Define id?
+		canvas := js.Global.Get("document").Call("querySelector", "canvas")
+		var err error
+		gl, err = webgl.NewContext(canvas, &webgl.ContextAttributes{
+			Alpha:              true,
+			PremultipliedAlpha: true,
+		})
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// Use headless-gl for testing.
+		nodeGl := js.Global.Call("require", "gl")
+		webglContext := nodeGl.Call("createContext", 16, 16)
+		gl = &webgl.Context{Object: webglContext}
+	}
+
 	c := &Context{
 		Nearest:            Filter(gl.NEAREST),
 		Linear:             Filter(gl.LINEAR),

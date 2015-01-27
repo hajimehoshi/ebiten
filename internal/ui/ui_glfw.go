@@ -14,30 +14,18 @@
 
 // +build !js
 
-package ebiten
+package ui
 
 import (
 	"fmt"
 	glfw "github.com/go-gl/glfw3"
-	"github.com/hajimehoshi/ebiten/internal/audio"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 	"runtime"
 	"time"
 )
 
 var currentUI *userInterface
 
-func useGLContext(f func(*opengl.Context)) {
-	ch := make(chan struct{})
-	currentUI.funcs <- func() {
-		defer close(ch)
-		f(currentUI.glContext)
-	}
-	<-ch
-}
-
-func init() {
+func Init() {
 	runtime.LockOSThread()
 
 	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
@@ -61,23 +49,48 @@ func init() {
 	go func() {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
-		u.glContext = opengl.NewContext()
 		glfw.SwapInterval(1)
 		for f := range u.funcs {
 			f()
 		}
 	}()
 
-	audio.Init()
-
 	currentUI = u
 }
 
+func ExecOnUIThread(f func()) {
+	ch := make(chan struct{})
+	currentUI.funcs <- func() {
+		defer close(ch)
+		f()
+	}
+	<-ch
+}
+
+func Start(width, height, scale int, title string) (actualScale int, err error) {
+	return currentUI.start(width, height, scale, title)
+}
+
+func Terminate() {
+	currentUI.terminate()
+}
+
+func DoEvents() error {
+	return currentUI.doEvents()
+}
+
+func IsClosed() bool {
+	return currentUI.isClosed()
+}
+
+func SwapBuffers() {
+	currentUI.swapBuffers()
+}
+
 type userInterface struct {
-	window    *glfw.Window
-	scale     int
-	glContext *opengl.Context
-	funcs     chan func()
+	window *glfw.Window
+	scale  int
+	funcs  chan func()
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
@@ -122,14 +135,12 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	windowWidth, _ := window.GetFramebufferSize()
 	actualScale = windowWidth / width
 
-	audio.Start()
-
 	return actualScale, nil
 }
 
 func (u *userInterface) pollEvents() error {
 	glfw.PollEvents()
-	return ui.UpdateInput(u.window, u.scale)
+	return updateInput(u.window, u.scale)
 }
 
 func (u *userInterface) doEvents() error {
