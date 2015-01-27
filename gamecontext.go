@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/exp/audio/internal"
+	audio "github.com/hajimehoshi/ebiten/exp/audio/internal"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -30,7 +30,6 @@ func init() {
 		glContext = opengl.NewContext()
 	})
 	audio.Init()
-	audio.Start()
 }
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.

@@ -14,7 +14,7 @@
 
 // +build js
 
-package audio
+package internal
 
 import (
 	"github.com/gopherjs/gopherjs/js"

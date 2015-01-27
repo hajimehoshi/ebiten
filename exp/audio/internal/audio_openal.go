@@ -14,7 +14,7 @@
 
 // +build !js
 
-package audio
+package internal
 
 import (
 	"bytes"

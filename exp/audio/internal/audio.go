@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package audio
+package internal
 
 import (
 	"sync"
@@ -46,9 +46,6 @@ func init() {
 
 func Init() {
 	initialize()
-}
-
-func Start() {
 	start()
 }
 

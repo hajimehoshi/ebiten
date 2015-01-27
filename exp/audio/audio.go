@@ -20,11 +20,11 @@ import (
 
 // SampleRate returns the sampling frequency (e.g. 44100).
 func SampleRate() int {
-	return audio.SampleRate
+	return internal.SampleRate
 }
 
 // MaxChannel is a max number of channels.
-var MaxChannel = audio.MaxChannel
+var MaxChannel = internal.MaxChannel
 
 // Play appends the given data to the given channel.
 //
@@ -33,7 +33,7 @@ var MaxChannel = audio.MaxChannel
 //
 // This function is useful to play SE or a note of PCM synthesis immediately.
 func Play(channel int, l []int16, r []int16) bool {
-	return audio.Play(channel, l, r)
+	return internal.Play(channel, l, r)
 }
 
 // Queue queues the given data to the given channel.
@@ -43,10 +43,10 @@ func Play(channel int, l []int16, r []int16) bool {
 //
 // This function is useful to play streaming data.
 func Queue(channel int, l []int16, r []int16) {
-	audio.Queue(channel, l, r)
+	internal.Queue(channel, l, r)
 }
 
 // IsPlaying returns a boolean value which indicates if the channel buffer has data to play.
 func IsPlaying(channel int) bool {
-	return audio.IsPlaying(channel)
+	return internal.IsPlaying(channel)
 }
