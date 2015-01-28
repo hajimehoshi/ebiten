@@ -176,8 +176,8 @@ func useProgramForTexture(c *opengl.Context, projectionMatrix []float32, texture
 	c.EnableVertexAttribArray(program, "vertex")
 	c.EnableVertexAttribArray(program, "tex_coord")
 
-	c.VertexAttribPointer(program, "vertex", true, false, int16Size*4, 2, uintptr(int16Size*0))
-	c.VertexAttribPointer(program, "tex_coord", true, true, int16Size*4, 2, uintptr(int16Size*2))
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*4, 2, int16Size*0)
+	c.VertexAttribPointer(program, "tex_coord", true, true, int16Size*4, 2, int16Size*2)
 
 	return func() {
 		c.DisableVertexAttribArray(program, "tex_coord")
@@ -200,8 +200,8 @@ func useProgramForLines(c *opengl.Context, projectionMatrix []float32) programFi
 	c.EnableVertexAttribArray(program, "color")
 
 	// TODO: Change to floats?
-	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, uintptr(int16Size*0))
-	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, uintptr(int16Size*2))
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, int16Size*0)
+	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, int16Size*2)
 
 	return func() {
 		c.DisableVertexAttribArray(program, "color")
@@ -223,8 +223,8 @@ func useProgramForRects(c *opengl.Context, projectionMatrix []float32) programFi
 	c.EnableVertexAttribArray(program, "vertex")
 	c.EnableVertexAttribArray(program, "color")
 
-	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, uintptr(int16Size*0))
-	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, uintptr(int16Size*2))
+	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, int16Size*0)
+	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, int16Size*2)
 
 	return func() {
 		c.DisableVertexAttribArray(program, "color")

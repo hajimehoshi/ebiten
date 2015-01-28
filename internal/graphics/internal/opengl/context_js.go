@@ -301,14 +301,14 @@ func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
 	return AttribLocation(gl.GetAttribLocation(p.Object, location))
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, signed bool, normalize bool, stride int, size int, v uintptr) {
+func (c *Context) VertexAttribPointer(p Program, location string, signed bool, normalize bool, stride int, size int, v int) {
 	gl := c.gl
 	l := GetAttribLocation(c, p, location)
 	t := gl.SHORT
 	if !signed {
 		t = gl.UNSIGNED_SHORT
 	}
-	gl.VertexAttribPointer(int(l), size, t, normalize, stride, int(v))
+	gl.VertexAttribPointer(int(l), size, t, normalize, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
