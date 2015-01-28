@@ -18,7 +18,9 @@ import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/example/common"
 	"github.com/hajimehoshi/ebiten/exp/audio"
+	"image/color"
 	"log"
 	"math"
 )
@@ -109,6 +111,30 @@ func update(screen *ebiten.Image) error {
 		}
 		addNote(220*math.Exp2(float64(i-1)/12.0), 1.0)
 	}
+
+	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
+
+	whiteKeys := []string{"A", "S", "D", "F", "G", "H", "J", "K", "L"}
+	width := 24
+	y := 48
+	for i, k := range whiteKeys {
+		x := i*width + 36
+		height := 112
+		screen.DrawFilledRect(x, y, width-1, height, color.White)
+		common.ArcadeFont.DrawText(screen, k, x+8, y+height-16, 1, color.Black)
+	}
+
+	blackKeys := []string{"Q", "W", "", "R", "T", "", "U", "I", "O"}
+	for i, k := range blackKeys {
+		if k == "" {
+			continue
+		}
+		x := i*width + 24
+		height := 64
+		screen.DrawFilledRect(x, y, width-1, height, color.Black)
+		common.ArcadeFont.DrawText(screen, k, x+8, y+height-16, 1, color.White)
+	}
+
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
 }
