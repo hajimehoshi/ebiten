@@ -16,7 +16,7 @@
 //
 // You can start the game by calling the function Run.
 //
-//     func update(screen *ebiten.Screen) {
+//     func update(screen *ebiten.Image) error {
 //         // Define your game.
 //     }
 //
