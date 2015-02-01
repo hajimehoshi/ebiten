@@ -43,8 +43,7 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	})
 	req.Call("addEventListener", "error", func() {
 		defer close(ch)
-		// TODO: Add more information.
-		err = errors.New("http error")
+		err = errors.New(fmt.Sprintf("XMLHttpRequest error: %s", req.Get("statusText").String()))
 	})
 	req.Call("send")
 	<-ch
