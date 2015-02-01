@@ -83,7 +83,23 @@ func init() {
 }
 
 func comment(text string) template.HTML {
-	// TODO: text should be escaped
+	// http://www.w3.org/TR/html-markup/syntax.html#comments
+	// The text part of comments has the following restrictions:
+	// * must not start with a ">" character
+	// * must not start with the string "->"
+	// * must not contain the string "--"
+	// * must not end with a "-" character
+
+	for strings.HasPrefix(text, ">") {
+		text = text[1:]
+	}
+	for strings.HasPrefix(text, "->") {
+		text = text[2:]
+	}
+	text = strings.Replace(text, "--", "", -1)
+	for strings.HasSuffix(text, "-") {
+		text = text[:len(text)-1]
+	}
 	return template.HTML("<!--\n" + text + "\n-->")
 }
 
