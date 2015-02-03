@@ -76,9 +76,9 @@ func (g *Game) Update() {
 		g.jumpKeyState = 0
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		g.player.x -= 2 * unit
+		g.player.x -= 1.5 * unit
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		g.player.x += 2 * unit
+		g.player.x += 1.5 * unit
 	}
 	if g.inAir() {
 		g.player.ay = unit
@@ -86,6 +86,7 @@ func (g *Game) Update() {
 			g.player.ay -= int(0.5 * unit)
 		}
 	} else if g.jumpKeyState == 1 {
+		g.player.vy = 0
 		g.player.ay = -10 * unit
 	} else {
 		g.player.vy = 0
