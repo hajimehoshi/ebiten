@@ -21,10 +21,12 @@ import (
 )
 
 const (
-	TileWidth   = 32
-	TileHeight  = 32
-	TileSetXNum = 8
-	TileSetYNum = 16
+	TileLogicWidth  = 16
+	TileLogicHeight = 16
+	TileWidth       = 32
+	TileHeight      = 32
+	TileSetXNum     = 8
+	TileSetYNum     = 16
 )
 
 var tilesBackground *ebiten.Image
@@ -82,7 +84,7 @@ func (t *TileSet) TileAt(x, y int) (int, error) {
 	return x/TileWidth + y/TileHeight*TileSetXNum, nil
 }
 
-func (t *TileSet) Draw(i *ebiten.Image, s int, x, y int) error {
+func (t *TileSet) Draw(i *ebiten.Image, x, y, width, height int) error {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ImageParts = &TilesBackgroundRects{8, 16}
@@ -97,11 +99,11 @@ func (t *TileSet) Draw(i *ebiten.Image, s int, x, y int) error {
 		return err
 	}
 
-	sx := x + s%TileSetXNum*TileWidth
+	/*sx := x + s%TileSetXNum*TileWidth
 	sy := y + s/TileSetXNum*TileHeight
 	i.DrawRect(sx, sy, TileWidth, TileHeight, color.Black)
 	i.DrawRect(sx+1, sy+1, TileWidth-2, TileHeight-2, color.White)
-	i.DrawRect(sx+2, sy+2, TileWidth-4, TileHeight-4, color.Black)
+	i.DrawRect(sx+2, sy+2, TileWidth-4, TileHeight-4, color.Black)*/
 
 	return nil
 }

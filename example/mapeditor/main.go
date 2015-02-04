@@ -35,7 +35,13 @@ func init() {
 		panic(err)
 	}
 	tileSet := mapeditor.NewTileSet(tileSetImg)
-	editor = mapeditor.NewMainEditor(tileSet)
+
+	m := mapeditor.NewMap(20, 15)
+
+	editor, err = mapeditor.NewMainEditor(tileSet, m)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func update(screen *ebiten.Image) error {
@@ -43,7 +49,7 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 
-	backgroundColor := color.RGBA{0x80, 0x80, 0x80, 0xff}
+	backgroundColor := color.RGBA{0xc0, 0xc0, 0xc0, 0xff}
 	screen.Fill(backgroundColor)
 	return editor.Draw(screen)
 }

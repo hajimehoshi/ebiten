@@ -18,37 +18,62 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
+const (
+	tileSetX      = 16
+	tileSetY      = 16
+	tileSetWidth  = TileSetXNum * TileWidth
+	tileSetHeight = TileSetYNum * TileHeight
+	mapViewX      = 16 + TileWidth*TileSetXNum + 16
+	mapViewY      = 16
+	mapViewWidth  = 720
+	mapViewHeight = 720
+)
+
 type MainEditor struct {
-	tileSet      *TileSet
-	tileSetX     int
-	tileSetY     int
-	selectedTile int
+	tileSetView  *TileSetView
+	tileSetPanel *Panel
+	mapView      *MapView
+	mapPanel     *Panel
+	mapCursorX   int
+	mapCursorY   int
 }
 
-func NewMainEditor(tileSet *TileSet) *MainEditor {
-	return &MainEditor{
-		tileSet:  tileSet,
-		tileSetX: 16,
-		tileSetY: 16,
+func NewMainEditor(tileSet *TileSet, m *Map) (*MainEditor, error) {
+	tileSetView := NewTileSetView(tileSet)
+	tileSetPanel, err := NewPanel(tileSetView, tileSetX, tileSetY, tileSetWidth, tileSetHeight)
+	if err != nil {
+		return nil, err
 	}
+	mapView := NewMapView(m)
+	mapPanel, err := NewPanel(mapView, mapViewX, mapViewY, mapViewWidth, mapViewHeight)
+	if err != nil {
+		return nil, err
+	}
+	return &MainEditor{
+		tileSetView:  tileSetView,
+		tileSetPanel: tileSetPanel,
+		mapView:      mapView,
+		mapPanel:     mapPanel,
+	}, nil
 }
 
 func (m *MainEditor) Update() error {
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		x -= m.tileSetX
-		y -= m.tileSetY
-		if 0 <= x && 0 <= y && x < TileWidth*TileSetXNum && y < TileHeight*TileSetYNum {
-			tile, err := m.tileSet.TileAt(x, y)
-			if err != nil {
-				return err
-			}
-			m.selectedTile = tile
-		}
+	if err := m.tileSetView.Update(tileSetX, tileSetY); err != nil {
+		return err
+	}
+	tileSet := m.tileSetView.tileSet
+	if err := m.mapView.Update(mapViewX, mapViewY, mapViewWidth, mapViewHeight, tileSet, m.tileSetView.selectedTile); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (m *MainEditor) Draw(screen *ebiten.Image) error {
-	return m.tileSet.Draw(screen, m.selectedTile, m.tileSetX, m.tileSetY)
+	if err := m.tileSetPanel.Draw(screen); err != nil {
+		return err
+	}
+	if err := m.mapPanel.Draw(screen); err != nil {
+		return err
+	}
+	return nil
 }
