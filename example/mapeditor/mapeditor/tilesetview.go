@@ -22,6 +22,7 @@ import (
 type TileSetView struct {
 	tileSet      *TileSet
 	selectedTile int
+	dragging     bool
 }
 
 func NewTileSetView(tileSet *TileSet) *TileSetView {
@@ -30,18 +31,31 @@ func NewTileSetView(tileSet *TileSet) *TileSetView {
 	}
 }
 
-func (t *TileSetView) Update(ox, oy int) error {
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		x -= ox
-		y -= oy
-		if 0 <= x && 0 <= y && x < TileWidth*TileSetXNum && y < TileHeight*TileSetYNum {
-			tile, err := t.tileSet.TileAt(x, y)
-			if err != nil {
-				return err
-			}
-			t.selectedTile = tile
+func (t *TileSetView) Update(input *Input, ox, oy, width, height int) error {
+	x, y := ebiten.CursorPosition()
+	x -= ox
+	y -= oy
+	if x < 0 || y < 0 || width <= x || height <= y {
+		return nil
+	}
+	if TileWidth*TileSetXNum <= x && TileHeight*TileSetYNum <= y {
+		return nil
+	}
+	if input.MouseButtonState(ebiten.MouseButtonLeft) == 0 {
+		t.dragging = false
+		return nil
+	}
+	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
+		t.dragging = true
+	}
+	// TODO: Implement dragging to select multiple tiles.
+
+	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
+		tile, err := t.tileSet.TileAt(x, y)
+		if err != nil {
+			return err
 		}
+		t.selectedTile = tile
 	}
 	return nil
 }

@@ -20,21 +20,22 @@ import (
 )
 
 type MapView struct {
-	m       *Map
-	tileSet *TileSet
-	cursorX int
-	cursorY int
+	m        *Map
+	tileSet  *TileSet
+	cursorX  int
+	cursorY  int
+	dragging bool
 }
 
 func NewMapView(m *Map) *MapView {
 	return &MapView{
 		m:       m,
-		cursorX: -1,
-		cursorY: -1,
+		cursorX: 0,
+		cursorY: 0,
 	}
 }
 
-func (m *MapView) Update(ox, oy, width, height int, tileSet *TileSet, selectedTile int) error {
+func (m *MapView) Update(input *Input, ox, oy, width, height int, tileSet *TileSet, selectedTile int) error {
 	m.tileSet = tileSet
 
 	x, y := ebiten.CursorPosition()
@@ -48,7 +49,14 @@ func (m *MapView) Update(ox, oy, width, height int, tileSet *TileSet, selectedTi
 	}
 	m.cursorX = x / TileWidth
 	m.cursorY = y / TileHeight
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	if input.MouseButtonState(ebiten.MouseButtonLeft) == 0 {
+		m.dragging = false
+		return nil
+	}
+	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
+		m.dragging = true
+	}
+	if m.dragging && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		m.m.SetTile(m.cursorX, m.cursorY, selectedTile)
 	}
 	return nil

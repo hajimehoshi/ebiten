@@ -30,6 +30,7 @@ const (
 )
 
 type MainEditor struct {
+	input        Input
 	tileSetView  *TileSetView
 	tileSetPanel *Panel
 	mapView      *MapView
@@ -58,11 +59,13 @@ func NewMainEditor(tileSet *TileSet, m *Map) (*MainEditor, error) {
 }
 
 func (m *MainEditor) Update() error {
-	if err := m.tileSetView.Update(tileSetX, tileSetY); err != nil {
+	m.input.Update()
+
+	if err := m.tileSetView.Update(&m.input, tileSetX, tileSetY, TileWidth*TileSetXNum, TileHeight*TileSetYNum); err != nil {
 		return err
 	}
 	tileSet := m.tileSetView.tileSet
-	if err := m.mapView.Update(mapViewX, mapViewY, mapViewWidth, mapViewHeight, tileSet, m.tileSetView.selectedTile); err != nil {
+	if err := m.mapView.Update(&m.input, mapViewX, mapViewY, mapViewWidth, mapViewHeight, tileSet, m.tileSetView.selectedTile); err != nil {
 		return err
 	}
 	return nil
