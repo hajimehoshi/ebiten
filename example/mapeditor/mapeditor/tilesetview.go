@@ -22,7 +22,7 @@ import (
 type TileSetView struct {
 	tileSet      *TileSet
 	selectedTile int
-	dragging     bool
+	focused      bool
 }
 
 func NewTileSetView(tileSet *TileSet) *TileSetView {
@@ -42,13 +42,13 @@ func (t *TileSetView) Update(input *Input, ox, oy, width, height int) error {
 		return nil
 	}
 	if input.MouseButtonState(ebiten.MouseButtonLeft) == 0 {
-		t.dragging = false
+		t.focused = false
 		return nil
 	}
 	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
-		t.dragging = true
+		t.focused = true
 	}
-	// TODO: Implement dragging to select multiple tiles.
+	// TODO: Implement focused to select multiple tiles.
 
 	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
 		tile, err := t.tileSet.TileAt(x, y)

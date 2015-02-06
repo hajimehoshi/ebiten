@@ -21,26 +21,30 @@ import (
 
 type MapView struct {
 	m        *Map
+	mapTools *MapTools
 	tileSet  *TileSet
 	cursorX  int
 	cursorY  int
-	dragging bool
+	focused  bool // TODO: FocusManager is needed?
 }
 
 func NewMapView(m *Map) *MapView {
 	return &MapView{
-		m:       m,
-		cursorX: 0,
-		cursorY: 0,
+		m:        m,
+		mapTools: NewMapTools(),
+		cursorX:  0,
+		cursorY:  0,
 	}
 }
+
+const mapYOffset = 32
 
 func (m *MapView) Update(input *Input, ox, oy, width, height int, tileSet *TileSet, selectedTile int) error {
 	m.tileSet = tileSet
 
 	x, y := ebiten.CursorPosition()
-	x -= ox
-	y -= oy
+	x += -ox
+	y += -oy - mapYOffset
 	if x < 0 || y < 0 || width <= x || height <= y {
 		return nil
 	}
@@ -50,31 +54,33 @@ func (m *MapView) Update(input *Input, ox, oy, width, height int, tileSet *TileS
 	m.cursorX = x / TileWidth
 	m.cursorY = y / TileHeight
 	if input.MouseButtonState(ebiten.MouseButtonLeft) == 0 {
-		m.dragging = false
+		m.focused = false
 		return nil
 	}
 	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
-		m.dragging = true
+		m.focused = true
 	}
-	if m.dragging && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	if m.focused && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		m.m.SetTile(m.cursorX, m.cursorY, selectedTile)
 	}
 	return nil
 }
 
 func (m *MapView) Draw(i *ebiten.Image, x, y, width, height int) error {
-	if err := m.m.Draw(i, m.tileSet.image, x, y); err != nil {
+	mapX, mapY := x, y+mapYOffset
+	if err := m.m.Draw(i, m.tileSet.image, mapX, mapY, width, height-mapYOffset); err != nil {
 		return err
 	}
 
-	if m.cursorX == -1 || m.cursorY == -1 {
-		return nil
+	if m.cursorX != -1 && m.cursorY != -1 {
+		sx := mapX + m.cursorX*TileWidth
+		sy := mapY + m.cursorY*TileHeight
+		i.DrawRect(sx, sy, TileWidth, TileHeight, color.Black)
+		i.DrawRect(sx+1, sy+1, TileWidth-2, TileHeight-2, color.White)
+		i.DrawRect(sx+2, sy+2, TileWidth-4, TileHeight-4, color.Black)
 	}
-	sx := x + m.cursorX*TileWidth
-	sy := y + m.cursorY*TileHeight
-	i.DrawRect(sx, sy, TileWidth, TileHeight, color.Black)
-	i.DrawRect(sx+1, sy+1, TileWidth-2, TileHeight-2, color.White)
-	i.DrawRect(sx+2, sy+2, TileWidth-4, TileHeight-4, color.Black)
+
+	m.mapTools.Draw(i, x, y, width, 32)
 
 	return nil
 }

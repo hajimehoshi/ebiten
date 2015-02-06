@@ -26,7 +26,7 @@ const (
 	mapViewX      = 16 + TileWidth*TileSetXNum + 16
 	mapViewY      = 16
 	mapViewWidth  = 720
-	mapViewHeight = 720
+	mapViewHeight = 736
 )
 
 type MainEditor struct {

@@ -19,6 +19,7 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/example/mapeditor/mapeditor"
 	"image/color"
+	_ "image/png"
 	"log"
 )
 

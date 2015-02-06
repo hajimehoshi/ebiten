@@ -66,8 +66,8 @@ func (t *TileRects) Dst(i int) (x0, y0, x1, y1 int) {
 	return x, y, x + TileLogicWidth, y + TileLogicHeight
 }
 
-func (m *Map) Draw(i *ebiten.Image, tileSetImg *ebiten.Image, x, y int) error {
-	i.Fill(color.RGBA{0x80, 0x80, 0x80, 0xff})
+func (m *Map) Draw(i *ebiten.Image, tileSetImg *ebiten.Image, x, y, width, height int) error {
+	i.DrawFilledRect(x, y, width, height, color.RGBA{0x80, 0x80, 0x80, 0xff})
 
 	op := &ebiten.DrawImageOptions{
 		ImageParts: &TilesBackgroundRects{m.width, m.height},
@@ -80,8 +80,8 @@ func (m *Map) Draw(i *ebiten.Image, tileSetImg *ebiten.Image, x, y int) error {
 	op = &ebiten.DrawImageOptions{
 		ImageParts: &TileRects{m},
 	}
-	op.GeoM.Translate(float64(x), float64(y))
 	op.GeoM.Scale(2, 2)
+	op.GeoM.Translate(float64(x), float64(y))
 	if err := i.DrawImage(tileSetImg, op); err != nil {
 		return err
 	}
