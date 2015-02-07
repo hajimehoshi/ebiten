@@ -60,8 +60,12 @@ func (m *MapView) Update(input *Input, ox, oy, width, height int, tileSet *TileS
 	if input.MouseButtonState(ebiten.MouseButtonLeft) == 1 {
 		m.focused = true
 	}
-	if m.focused && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		m.m.SetTile(m.cursorX, m.cursorY, selectedTile)
+
+	switch m.mapTools.Current() {
+	case MapToolPen:
+		if m.focused && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+			m.m.SetTile(m.cursorX, m.cursorY, selectedTile)
+		}
 	}
 	return nil
 }
@@ -72,7 +76,7 @@ func (m *MapView) Draw(i *ebiten.Image, x, y, width, height int) error {
 		return err
 	}
 
-	if m.cursorX != -1 && m.cursorY != -1 {
+	if m.mapTools.Current() != MapToolScroll && m.cursorX != -1 && m.cursorY != -1 {
 		sx := mapX + m.cursorX*TileWidth
 		sy := mapY + m.cursorY*TileHeight
 		i.DrawRect(sx, sy, TileWidth, TileHeight, color.Black)

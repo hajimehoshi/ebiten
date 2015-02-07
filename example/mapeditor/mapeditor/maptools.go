@@ -17,7 +17,16 @@ package mapeditor
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"image/color"
 	_ "image/png"
+)
+
+type MapTool int
+
+const (
+	MapToolScroll MapTool = iota
+	MapToolPen
+	MapToolFill
 )
 
 var mapToolsImage *ebiten.Image
@@ -32,6 +41,7 @@ func init() {
 
 type MapTools struct {
 	focused bool
+	current MapTool
 }
 
 func NewMapTools() *MapTools {
@@ -41,7 +51,13 @@ func NewMapTools() *MapTools {
 func (m *MapTools) Update() {
 }
 
+func (m *MapTools) Current() MapTool {
+	return m.current
+}
+
 func (m *MapTools) Draw(i *ebiten.Image, x, y, width, height int) error {
+	i.DrawFilledRect(x+int(m.current)*32, y, 32, 32, color.White)
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.GeoM.Scale(2, 2)
