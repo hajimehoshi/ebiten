@@ -33,6 +33,8 @@ type channel struct {
 var MaxChannel = 32
 
 var channels = make([]*channel, MaxChannel)
+
+// NOTE: In GopherJS, sync.Mutex blocks a function and requires gopherjs:blocking comments.
 var channelsLock sync.Mutex
 
 func init() {

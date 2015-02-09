@@ -15,8 +15,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"image/color"
 	_ "image/jpeg"
 	"log"
 )
@@ -24,17 +26,20 @@ import (
 const (
 	initScreenWidth  = 320
 	initScreenHeight = 240
+	initScreenScale  = 2
 )
 
 var (
 	gophersImage *ebiten.Image
 	screenWidth  = initScreenWidth
 	screenHeight = initScreenHeight
+	screenScale  = initScreenScale
 	keyStates    = map[ebiten.Key]int{
 		ebiten.KeyUp:    0,
 		ebiten.KeyDown:  0,
 		ebiten.KeyLeft:  0,
 		ebiten.KeyRight: 0,
+		ebiten.KeyS:     0,
 	}
 )
 
@@ -51,16 +56,25 @@ func update(screen *ebiten.Image) error {
 		screenHeight += 16
 	}
 	if keyStates[ebiten.KeyDown] == 1 {
-		screenHeight -= 16
+		if 16 < screenHeight {
+			screenHeight -= 16
+		}
 	}
 	if keyStates[ebiten.KeyLeft] == 1 {
-		screenWidth -= 16
+		if 16 < screenWidth {
+			screenWidth -= 16
+		}
 	}
 	if keyStates[ebiten.KeyRight] == 1 {
 		screenWidth += 16
 	}
+	if keyStates[ebiten.KeyS] == 1 {
+		screenScale = 3 - screenScale // Swap 1 and 2
+	}
 	ebiten.SetScreenSize(screenWidth, screenHeight)
+	ebiten.SetScreenScale(screenScale)
 
+	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	w, h := gophersImage.Size()
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
@@ -69,7 +83,11 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 
-	ebitenutil.DebugPrint(screen, "Press arrow keys")
+	x, y := ebiten.CursorPosition()
+	msg := fmt.Sprintf(`Press arrow keys to change the window size
+Press S key to change the window scale
+Cursor: (%d, %d)`, x, y)
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
@@ -79,7 +97,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, 2, "Window Size (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

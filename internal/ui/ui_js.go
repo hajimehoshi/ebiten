@@ -52,6 +52,13 @@ func SetScreenSize(width, height int) (bool, int) {
 	return result, actualScale
 }
 
+func SetScreenScale(scale int) (bool, int) {
+	width, height := currentUI.size()
+	result := currentUI.setScreenSize(width, height, scale)
+	actualScale := canvas.Get("dataset").Get("ebitenActualScale").Int()
+	return result, actualScale
+}
+
 var canvas js.Object
 
 type userInterface struct{}
@@ -228,15 +235,21 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	return actualScale, nil
 }
 
-func (*userInterface) setScreenSize(width, height, scale int) bool {
+func (*userInterface) size() (width, height int) {
 	a := canvas.Get("dataset").Get("ebitenActualScale").Int()
-	if a != 0 {
-		w := canvas.Get("width").Int() / a
-		h := canvas.Get("height").Int() / a
-		s := canvas.Get("dataset").Get("ebitenScale").Int()
-		if w == width && h == height && s == scale {
-			return false
-		}
+	if a == 0 {
+		return
+	}
+	width = canvas.Get("width").Int() / a
+	height = canvas.Get("height").Int() / a
+	return
+}
+
+func (u *userInterface) setScreenSize(width, height, scale int) bool {
+	w, h := u.size()
+	s := canvas.Get("dataset").Get("ebitenScale").Int()
+	if w == width && h == height && s == scale {
+		return false
 	}
 
 	actualScale := scale * devicePixelRatio()

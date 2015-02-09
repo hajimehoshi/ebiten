@@ -25,6 +25,7 @@ var runContext = &struct {
 	fps             float64
 	newScreenWidth  int
 	newScreenHeight int
+	newScreenScale  int
 }{}
 
 // CurrentFPS returns the current number of frames per second.
@@ -43,6 +44,9 @@ func CurrentFPS() float64 {
 // If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
 	runContext.running = true
+	defer func() {
+		runContext.running = false
+	}()
 
 	actualScale, err := ui.Start(width, height, scale, title)
 	if err != nil {
@@ -58,8 +62,20 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	frames := 0
 	t := time.Now().UnixNano()
 	for {
-		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight {
-			changed, actualScale := ui.SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
+		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
+			changed := false
+			actualScale := 0
+			if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight {
+				c, a := ui.SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
+				changed = changed || c
+				actualScale = a
+			}
+			if 0 < runContext.newScreenScale {
+				c, a := ui.SetScreenScale(runContext.newScreenScale)
+				changed = changed || c
+				// actualScale of SetScreenState is more reliable than one of SetScreenSize
+				actualScale = a
+			}
 			if changed {
 				w, h := runContext.newScreenWidth, runContext.newScreenHeight
 				if err := graphicsContext.setSize(w, h, actualScale); err != nil {
@@ -69,6 +85,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		}
 		runContext.newScreenWidth = 0
 		runContext.newScreenHeight = 0
+		runContext.newScreenScale = 0
 
 		if err := ui.DoEvents(); err != nil {
 			return err
@@ -110,10 +127,22 @@ func SetScreenSize(width, height int) {
 	if !runContext.running {
 		panic("SetScreenSize must be called during Run")
 	}
+	if width <= 0 || height <= 0 {
+		panic("width and height must be positive")
+	}
 	runContext.newScreenWidth = width
 	runContext.newScreenHeight = height
 }
 
-// TODO: Create SetScreenPosition (for GLFW)
+// SetScreenSize changes the scale of the screen.
+func SetScreenScale(scale int) {
+	if !runContext.running {
+		panic("SetScreenScale must be called during Run")
+	}
+	if scale <= 0 {
+		panic("scale must be positive")
+	}
+	runContext.newScreenScale = scale
+}
 
-// TODO: Create SetScreenScale
+// TODO: Create SetScreenPosition (for GLFW)

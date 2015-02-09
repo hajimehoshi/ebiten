@@ -93,6 +93,11 @@ func SetScreenSize(width, height int) (bool, int) {
 	return result, currentUI.actualScale
 }
 
+func SetScreenScale(scale int) (bool, int) {
+	result := currentUI.setScreenSize(currentUI.width, currentUI.height, scale)
+	return result, currentUI.actualScale
+}
+
 type userInterface struct {
 	window      *glfw.Window
 	width       int
