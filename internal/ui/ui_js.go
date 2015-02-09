@@ -45,6 +45,13 @@ func SwapBuffers() {
 	currentUI.swapBuffers()
 }
 
+func SetScreenSize(width, height int) (bool, int) {
+	scale := canvas.Get("dataset").Get("ebitenScale").Int()
+	result := currentUI.setScreenSize(width, height, scale)
+	actualScale := canvas.Get("dataset").Get("ebitenActualScale").Int()
+	return result, actualScale
+}
+
 var canvas js.Object
 
 type userInterface struct{}
@@ -211,13 +218,32 @@ func devicePixelRatio() int {
 	return ratio
 }
 
-func (*userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
+func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
-	actualScale = scale * devicePixelRatio()
+	u.setScreenSize(width, height, scale)
+	canvas.Call("focus")
+
+	actualScale = canvas.Get("dataset").Get("ebitenActualScale").Int()
+	return actualScale, nil
+}
+
+func (*userInterface) setScreenSize(width, height, scale int) bool {
+	a := canvas.Get("dataset").Get("ebitenActualScale").Int()
+	if a != 0 {
+		w := canvas.Get("width").Int() / a
+		h := canvas.Get("height").Int() / a
+		s := canvas.Get("dataset").Get("ebitenScale").Int()
+		if w == width && h == height && s == scale {
+			return false
+		}
+	}
+
+	actualScale := scale * devicePixelRatio()
 	canvas.Set("width", width*actualScale)
 	canvas.Set("height", height*actualScale)
 	canvas.Get("dataset").Set("ebitenScale", scale)
+	canvas.Get("dataset").Set("ebitenActualScale", actualScale)
 	canvasStyle := canvas.Get("style")
 
 	cssWidth := width * scale
@@ -227,8 +253,5 @@ func (*userInterface) start(width, height, scale int, title string) (actualScale
 	// CSS calc requires space chars.
 	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(cssWidth/2)+"px)")
 	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
-
-	canvas.Call("focus")
-
-	return actualScale, nil
+	return true
 }

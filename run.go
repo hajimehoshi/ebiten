@@ -16,16 +16,20 @@ package ebiten
 
 import (
 	audio "github.com/hajimehoshi/ebiten/exp/audio/internal"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"time"
 )
 
-var fps = 0.0
+var runContext = &struct {
+	running         bool
+	fps             float64
+	newScreenWidth  int
+	newScreenHeight int
+}{}
 
 // CurrentFPS returns the current number of frames per second.
 func CurrentFPS() float64 {
-	return fps
+	return runContext.fps
 }
 
 // Run runs the game.
@@ -38,16 +42,15 @@ func CurrentFPS() float64 {
 // but this is not strictly guaranteed.
 // If you need to care about time, you need to check current time every time f is called.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
+	runContext.running = true
+
 	actualScale, err := ui.Start(width, height, scale, title)
 	if err != nil {
 		return err
 	}
 	defer ui.Terminate()
 
-	var graphicsContext *graphicsContext
-	useGLContext(func(c *opengl.Context) {
-		graphicsContext, err = newGraphicsContext(c, width, height, actualScale)
-	})
+	graphicsContext, err := newGraphicsContext(width, height, actualScale)
 	if err != nil {
 		return err
 	}
@@ -55,6 +58,18 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	frames := 0
 	t := time.Now().UnixNano()
 	for {
+		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight {
+			changed, actualScale := ui.SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
+			if changed {
+				w, h := runContext.newScreenWidth, runContext.newScreenHeight
+				if err := graphicsContext.setSize(w, h, actualScale); err != nil {
+					return err
+				}
+			}
+		}
+		runContext.newScreenWidth = 0
+		runContext.newScreenHeight = 0
+
 		if err := ui.DoEvents(); err != nil {
 			return err
 		}
@@ -81,9 +96,23 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		now := time.Now().UnixNano()
 		frames++
 		if time.Second <= time.Duration(now-t) {
-			fps = float64(frames) * float64(time.Second) / float64(now-t)
+			runContext.fps = float64(frames) * float64(time.Second) / float64(now-t)
 			t = now
 			frames = 0
 		}
 	}
 }
+
+// SetScreenSize changes the (logical) size of the screen.
+// This doesn't affect the current scale of the screen.
+func SetScreenSize(width, height int) {
+	if !runContext.running {
+		panic("SetScreenSize must be called during Run")
+	}
+	runContext.newScreenWidth = width
+	runContext.newScreenHeight = height
+}
+
+// TODO: Create SetScreenPosition (for GLFW)
+
+// TODO: Create SetScreenScale

@@ -169,6 +169,18 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
+func (i *Image) dispose() {
+	useGLContext(func(c *opengl.Context) {
+		if i.framebuffer != nil {
+			i.framebuffer.Dispose(c)
+		}
+		if i.texture != nil {
+			i.texture.Dispose(c)
+		}
+	})
+	i.pixels = nil
+}
+
 // ReplacePixels replaces the pixels of the image with p.
 //
 // The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).

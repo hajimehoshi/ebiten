@@ -85,6 +85,10 @@ func (f *Framebuffer) Size() (width, height int) {
 }
 
 func (f *Framebuffer) Dispose(c *opengl.Context) {
+	// Don't delete the default framebuffer.
+	if f.native == opengl.ZeroFramebuffer {
+		return
+	}
 	c.DeleteFramebuffer(f.native)
 }
 

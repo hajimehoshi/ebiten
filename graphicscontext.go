@@ -26,43 +26,18 @@ func useGLContext(f func(*opengl.Context)) {
 	})
 }
 
-func newGraphicsContext(c *opengl.Context, screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	f, err := graphics.NewZeroFramebuffer(c, screenWidth*screenScale, screenHeight*screenScale)
-	if err != nil {
+func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
+	c := &graphicsContext{}
+	if err := c.setSize(screenWidth, screenHeight, screenScale); err != nil {
 		return nil, err
 	}
-
-	texture, err := graphics.NewTexture(c, screenWidth, screenHeight, c.Nearest)
-	if err != nil {
-		return nil, err
-	}
-	screenF, err := graphics.NewFramebufferFromTexture(c, texture)
-	if err != nil {
-		return nil, err
-	}
-	screen := &Image{framebuffer: screenF, texture: texture}
-	return &graphicsContext{
-		glContext:   c,
-		defaultR:    &Image{framebuffer: f, texture: nil},
-		screen:      screen,
-		screenScale: screenScale,
-	}, nil
+	return c, nil
 }
 
 type graphicsContext struct {
-	glContext   *opengl.Context
 	screen      *Image
 	defaultR    *Image
 	screenScale int
-}
-
-func (c *graphicsContext) dispose() {
-	// NOTE: Now this method is not used anywhere.
-	framebuffer := c.screen.framebuffer
-	texture := c.screen.texture
-
-	framebuffer.Dispose(c.glContext)
-	texture.Dispose(c.glContext)
 }
 
 func (c *graphicsContext) preUpdate() error {
@@ -81,4 +56,35 @@ func (c *graphicsContext) postUpdate() error {
 		return err
 	}
 	return nil
+}
+
+func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) error {
+	if c.defaultR != nil {
+		c.defaultR.dispose()
+	}
+	if c.screen != nil {
+		c.screen.dispose()
+	}
+
+	var err error
+	useGLContext(func(g *opengl.Context) {
+		f, err := graphics.NewZeroFramebuffer(g, screenWidth*screenScale, screenHeight*screenScale)
+		if err != nil {
+			return
+		}
+
+		texture, err := graphics.NewTexture(g, screenWidth, screenHeight, g.Nearest)
+		if err != nil {
+			return
+		}
+		screenF, err := graphics.NewFramebufferFromTexture(g, texture)
+		if err != nil {
+			return
+		}
+		screen := &Image{framebuffer: screenF, texture: texture}
+		c.defaultR = &Image{framebuffer: f, texture: nil}
+		c.screen = screen
+		c.screenScale = screenScale
+	})
+	return err
 }

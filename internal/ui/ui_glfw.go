@@ -37,6 +37,7 @@ func Init() {
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 
+	// As start, create an window with temporary size to create OpenGL context thread.
 	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
 	if err != nil {
 		panic(err)
@@ -87,10 +88,18 @@ func SwapBuffers() {
 	currentUI.swapBuffers()
 }
 
+func SetScreenSize(width, height int) (bool, int) {
+	result := currentUI.setScreenSize(width, height, currentUI.scale)
+	return result, currentUI.actualScale
+}
+
 type userInterface struct {
-	window *glfw.Window
-	scale  int
-	funcs  chan func()
+	window      *glfw.Window
+	width       int
+	height      int
+	scale       int
+	actualScale int
+	funcs       chan func()
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
@@ -105,37 +114,12 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	x := (videoMode.Width - width*scale) / 2
 	y := (videoMode.Height - height*scale) / 3
 
-	ch := make(chan struct{})
-	window := u.window
-	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
-		window.SetFramebufferSizeCallback(nil)
-		close(ch)
-	})
-	window.SetSize(width*scale, height*scale)
-	window.SetTitle(title)
-	window.SetPosition(x, y)
-	window.Show()
+	u.setScreenSize(width, height, scale)
+	u.window.SetTitle(title)
+	u.window.SetPosition(x, y)
+	u.window.Show()
 
-	for {
-		done := false
-		glfw.PollEvents()
-		select {
-		case <-ch:
-			done = true
-		default:
-		}
-		if done {
-			break
-		}
-	}
-
-	u.scale = scale
-
-	// For retina displays, recalculate the scale with the framebuffer size.
-	windowWidth, _ := window.GetFramebufferSize()
-	actualScale = windowWidth / width
-
-	return actualScale, nil
+	return u.actualScale, nil
 }
 
 func (u *userInterface) pollEvents() error {
@@ -166,4 +150,39 @@ func (u *userInterface) isClosed() bool {
 
 func (u *userInterface) swapBuffers() {
 	u.window.SwapBuffers()
+}
+
+func (u *userInterface) setScreenSize(width, height, scale int) bool {
+	if u.width == width && u.height == height && u.scale == scale {
+		return false
+	}
+
+	ch := make(chan struct{})
+	window := u.window
+	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+		window.SetFramebufferSizeCallback(nil)
+		close(ch)
+	})
+	window.SetSize(width*scale, height*scale)
+
+	for {
+		done := false
+		glfw.PollEvents()
+		select {
+		case <-ch:
+			done = true
+		default:
+		}
+		if done {
+			break
+		}
+	}
+	u.width = width
+	u.height = height
+	u.scale = scale
+
+	// For retina displays, recalculate the scale with the framebuffer size.
+	windowWidth, _ := window.GetFramebufferSize()
+	u.actualScale = windowWidth / width
+	return true
 }

@@ -31,6 +31,8 @@ type Framebuffer struct {
 	js.Object
 }
 
+var ZeroFramebuffer Framebuffer
+
 type Shader struct {
 	js.Object
 }
