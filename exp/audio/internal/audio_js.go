@@ -28,24 +28,26 @@ const bufferSize = 1024
 
 func audioProcess(channel int) func(e js.Object) {
 	return func(e js.Object) {
-		defer func() {
-			currentPosition += bufferSize
-		}()
+		go func() {
+			defer func() {
+				currentPosition += bufferSize
+			}()
 
-		l := e.Get("outputBuffer").Call("getChannelData", 0)
-		r := e.Get("outputBuffer").Call("getChannelData", 1)
-		inputL, inputR := loadChannelBuffer(channel, bufferSize)
-		const max = 1 << 15
-		for i := 0; i < bufferSize; i++ {
-			// TODO: Use copyFromChannel?
-			if len(inputL) <= i {
-				l.SetIndex(i, 0)
-				r.SetIndex(i, 0)
-				continue
+			l := e.Get("outputBuffer").Call("getChannelData", 0)
+			r := e.Get("outputBuffer").Call("getChannelData", 1)
+			inputL, inputR := loadChannelBuffer(channel, bufferSize)
+			const max = 1 << 15
+			for i := 0; i < bufferSize; i++ {
+				// TODO: Use copyFromChannel?
+				if len(inputL) <= i {
+					l.SetIndex(i, 0)
+					r.SetIndex(i, 0)
+					continue
+				}
+				l.SetIndex(i, float64(inputL[i])/max)
+				r.SetIndex(i, float64(inputR[i])/max)
 			}
-			l.SetIndex(i, float64(inputL[i])/max)
-			r.SetIndex(i, float64(inputR[i])/max)
-		}
+		}()
 	}
 }
 

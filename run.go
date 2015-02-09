@@ -79,7 +79,8 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if err := graphicsContext.preUpdate(); err != nil {
 			return err
 		}
-		if err := f(graphicsContext.screen); err != nil {
+		err := f(graphicsContext.screen) //gopherjs:blocking
+		if err != nil {
 			return err
 		}
 		if err := graphicsContext.postUpdate(); err != nil {
