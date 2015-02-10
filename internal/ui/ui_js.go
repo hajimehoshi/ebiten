@@ -65,8 +65,7 @@ type userInterface struct{}
 
 var currentUI = &userInterface{}
 
-// TODO: This returns true even when the browser is not active.
-// The current behavior causes sound noise...
+// NOTE: This returns true even when the browser is not active.
 func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
 }
@@ -179,7 +178,7 @@ func Init() {
 	})
 
 	// Touch (emulating mouse events)
-	// TODO: Need to create indimendent touch functions?
+	// TODO: Create indimendent touch functions
 	canvas.Call("addEventListener", "touchstart", func(e js.Object) {
 		e.Call("preventDefault")
 		currentInput.MouseDown(0)
@@ -208,7 +207,7 @@ func Init() {
 }
 
 func setMouseCursorFromEvent(e js.Object) {
-	scale := canvas.Get("dataset").Get("ebitenScale").Int() // TODO: Float?
+	scale := canvas.Get("dataset").Get("ebitenScale").Int()
 	rect := canvas.Call("getBoundingClientRect")
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()

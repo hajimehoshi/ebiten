@@ -103,8 +103,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if err := graphicsContext.postUpdate(); err != nil {
 			return err
 		}
-		// TODO: I'm not sure this is 'Update'. Is 'Tick' better?
-		audio.Update()
+		audio.Tick()
 		ui.SwapBuffers()
 		if err != nil {
 			return err
@@ -144,5 +143,3 @@ func SetScreenScale(scale int) {
 	}
 	runContext.newScreenScale = scale
 }
-
-// TODO: Create SetScreenPosition (for GLFW)

@@ -33,7 +33,7 @@ type ImageParts interface {
 	Src(i int) (x0, y0, x1, y1 int)
 }
 
-// TODO: Remove this in the future.
+// NOTE: Remove this in the future.
 type imageParts []ImagePart
 
 func (p imageParts) Len() int {

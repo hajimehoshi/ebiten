@@ -17,6 +17,7 @@ package graphics
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"image/color"
+	"math"
 )
 
 type TextureQuads interface {
@@ -109,10 +110,16 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	return m
 }
 
-func (f *Framebuffer) Fill(c *opengl.Context, r, g, b, a float64) error {
+func (f *Framebuffer) Fill(c *opengl.Context, clr color.Color) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
+	cr, cg, cb, ca := clr.RGBA()
+	const max = math.MaxUint16
+	r := float64(cr) / max
+	g := float64(cg) / max
+	b := float64(cb) / max
+	a := float64(ca) / max
 	return c.FillFramebuffer(r, g, b, a)
 }
 

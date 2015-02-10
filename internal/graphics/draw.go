@@ -38,7 +38,7 @@ var vertices = make([]int16, 0, 4*8*quadsMaxNum)
 var shadersInitialized = false
 
 func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix) error {
-	// TODO: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
+	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 	// Let's use them to compare to len(quads) in the future.
 
 	if !shadersInitialized {

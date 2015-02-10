@@ -21,7 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
 	"image"
 	"image/color"
-	"math"
 )
 
 // Image represents an image.
@@ -46,15 +45,8 @@ func (i *Image) Clear() (err error) {
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
 	i.pixels = nil
-	cr, cg, cb, ca := clr.RGBA()
-	const max = math.MaxUint16
-	r := float64(cr) / max
-	g := float64(cg) / max
-	b := float64(cb) / max
-	a := float64(ca) / max
 	useGLContext(func(c *opengl.Context) {
-		// TODO: Change to pass color.Color
-		err = i.framebuffer.Fill(c, r, g, b, a)
+		err = i.framebuffer.Fill(c, clr)
 	})
 	return
 }
@@ -187,7 +179,8 @@ func (i *Image) dispose() {
 //
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
 func (i *Image) ReplacePixels(p []uint8) error {
-	// TODO: Can we set p to pixels?
+	// Don't set i.pixels here because i.pixels is used not every time.
+
 	i.pixels = nil
 	w, h := i.Size()
 	l := 4 * w * h

@@ -109,7 +109,7 @@ func Queue(channel int, l []int16, r []int16) {
 	ch.r = append(ch.r, r...)
 }
 
-func Update() {
+func Tick() {
 	for _, ch := range channels {
 		ch.nextInsertionPosition += SampleRate / 60
 	}
