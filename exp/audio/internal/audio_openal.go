@@ -26,13 +26,18 @@ import (
 	"time"
 )
 
-func toBytes(l, r []int16) []byte {
+func toBytesWithPadding(l, r []int16, size int) []byte {
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
 	b := &bytes.Buffer{}
 	for i := 0; i < len(l); i++ {
 		if err := binary.Write(b, binary.LittleEndian, []int16{l[i], r[i]}); err != nil {
+			panic(err)
+		}
+	}
+	if 0 < size-len(l) {
+		if err := binary.Write(b, binary.LittleEndian, make([]int16, (size-len(l))*2)); err != nil {
 			panic(err)
 		}
 	}
@@ -91,7 +96,7 @@ func initialize() {
 				source.UnqueueBuffers(buffers)
 				for _, buffer := range buffers {
 					l, r := loadChannelBuffer(channel, bufferSize)
-					b := toBytes(l, r)
+					b := toBytesWithPadding(l, r, bufferSize)
 					buffer.SetData(openal.FormatStereo16, b, SampleRate)
 					source.QueueBuffer(buffer)
 				}
