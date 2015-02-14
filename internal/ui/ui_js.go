@@ -263,7 +263,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
 	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
 	// CSS calc requires space chars.
-	canvasStyle.Set("left", "calc(50% - "+strconv.Itoa(cssWidth/2)+"px)")
-	canvasStyle.Set("top", "calc(50% - "+strconv.Itoa(cssHeight/2)+"px)")
+	canvasStyle.Set("left", "calc((100% - "+strconv.Itoa(cssWidth)+"px) / 2)")
+	canvasStyle.Set("top", "calc((100% - "+strconv.Itoa(cssHeight)+"px) / 2)")
 	return true
 }
