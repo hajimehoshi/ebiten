@@ -148,8 +148,8 @@ func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
 
 	ch := channels[channel]
 	length := min(len(ch.l), bufferSize)
-	inputL := make([]int16, length)
-	inputR := make([]int16, length)
+	inputL := make([]int16, bufferSize)
+	inputR := make([]int16, bufferSize)
 	copy(inputL, ch.l[:length])
 	copy(inputR, ch.r[:length])
 	ch.l = ch.l[length:]
