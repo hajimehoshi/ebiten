@@ -147,17 +147,13 @@ func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
 	}
 
 	ch := channels[channel]
-	inputL := make([]int16, bufferSize)
-	inputR := make([]int16, bufferSize)
 	length := min(len(ch.l), bufferSize)
-	for i := 0; i < length; i++ {
-		inputL[i] = ch.l[i]
-		inputR[i] = ch.r[i]
-	}
-	usedLen := min(bufferSize, len(ch.l))
-	ch.l = ch.l[usedLen:]
-	ch.r = ch.r[usedLen:]
-
+	inputL := make([]int16, length)
+	inputR := make([]int16, length)
+	copy(inputL, ch.l[:length])
+	copy(inputR, ch.r[:length])
+	ch.l = ch.l[length:]
+	ch.r = ch.r[length:]
 	ch.nextInsertionPosition -= min(bufferSize, ch.nextInsertionPosition)
 	return inputL, inputR
 }
