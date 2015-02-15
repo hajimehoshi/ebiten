@@ -158,6 +158,7 @@ var examples = []example{
 	{Name: "mosaic"},
 	{Name: "paint"},
 	{Name: "perspective"},
+	{Name: "piano"},
 	{Name: "rotate"},
 	{Name: "blocks"},
 }
