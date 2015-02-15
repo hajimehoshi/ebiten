@@ -23,6 +23,10 @@ import (
 	"time"
 )
 
+func Now() int64 {
+	return time.Now().UnixNano()
+}
+
 var currentUI *userInterface
 
 func Init() {

@@ -19,7 +19,13 @@ package ui
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"strconv"
+	"time"
 )
+
+func Now() int64 {
+	// time.Now() is not reliable until GopherJS suports performance.now().
+	return int64(js.Global.Get("performance").Call("now").Float() * float64(time.Millisecond))
+}
 
 func ExecOnUIThread(f func()) {
 	f()

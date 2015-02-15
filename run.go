@@ -60,7 +60,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}
 
 	frames := 0
-	t := time.Now().UnixNano()
+	t := ui.Now()
 	for {
 		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
 			changed := false
@@ -110,7 +110,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		}
 
 		// Calc the current FPS.
-		now := time.Now().UnixNano()
+		now := ui.Now()
 		frames++
 		if time.Second <= time.Duration(now-t) {
 			runContext.fps = float64(frames) * float64(time.Second) / float64(now-t)
