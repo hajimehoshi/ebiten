@@ -20,35 +20,41 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
+func withChannels(f func()) {
+	f()
+}
+
 // Keep this so as not to be destroyed by GC.
-var nodes = []js.Object{}
-var context js.Object
+var (
+	nodes   = []js.Object{}
+	dummies = []js.Object{} // Dummy source nodes for iOS.
+	context js.Object
+)
 
 const bufferSize = 1024
 
 func audioProcess(channel int) func(e js.Object) {
 	return func(e js.Object) {
-		go func() {
-			defer func() {
-				currentPosition += bufferSize
-			}()
-
-			b := e.Get("outputBuffer")
-			l := b.Call("getChannelData", 0)
-			r := b.Call("getChannelData", 1)
-			inputL, inputR := loadChannelBuffer(channel, bufferSize)
-			const max = 1 << 15
-			for i := 0; i < len(inputL); i++ {
-				// TODO: Use copyToChannel?
-				if len(inputL) <= i {
-					l.SetIndex(i, 0)
-					r.SetIndex(i, 0)
-					continue
-				}
-				l.SetIndex(i, float64(inputL[i])/max)
-				r.SetIndex(i, float64(inputR[i])/max)
-			}
+		// Can't use 'go' here. Probably it may cause race conditions.
+		defer func() {
+			currentPosition += bufferSize
 		}()
+
+		b := e.Get("outputBuffer")
+		l := b.Call("getChannelData", 0)
+		r := b.Call("getChannelData", 1)
+		inputL, inputR := loadChannelBuffer(channel, bufferSize)
+		const max = 1 << 15
+		for i := 0; i < bufferSize; i++ {
+			// TODO: Use copyToChannel?
+			if len(inputL) <= i {
+				l.SetIndex(i, 0)
+				r.SetIndex(i, 0)
+				continue
+			}
+			l.SetIndex(i, float64(inputL[i])/max)
+			r.SetIndex(i, float64(inputR[i])/max)
+		}
 	}
 }
 
@@ -65,13 +71,18 @@ func initialize() {
 		node := context.Call("createScriptProcessor", bufferSize, 0, 2)
 		node.Call("addEventListener", "audioprocess", audioProcess(i))
 		nodes = append(nodes, node)
+
+		dummy := context.Call("createBufferSource")
+		dummies = append(dummies, dummy)
 	}
 	audioEnabled = true
 }
 
 func start() {
-	// TODO: For iOS, node should be connected with a buffer node.
-	for _, node := range nodes {
-		node.Call("connect", context.Get("destination"))
+	destination := context.Get("destination")
+	for i, node := range nodes {
+		dummy := dummies[i]
+		dummy.Call("connect", node)
+		node.Call("connect", destination)
 	}
 }

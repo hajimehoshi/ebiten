@@ -23,8 +23,17 @@ import (
 	"github.com/timshannon/go-openal/openal"
 	"log"
 	"runtime"
+	"sync"
 	"time"
 )
+
+var channelsMutex = sync.Mutex{}
+
+func withChannels(f func()) {
+	channelsMutex.Lock()
+	defer channelsMutex.Unlock()
+	f()
+}
 
 func toBytesWithPadding(l, r []int16, size int) []byte {
 	if len(l) != len(r) {

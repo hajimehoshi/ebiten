@@ -14,10 +14,6 @@
 
 package internal
 
-import (
-	"sync"
-)
-
 var audioEnabled = false
 
 const SampleRate = 44100
@@ -33,9 +29,6 @@ type channel struct {
 var MaxChannel = 32
 
 var channels = make([]*channel, MaxChannel)
-
-// NOTE: In GopherJS, sync.Mutex blocks a function and requires gopherjs:blocking comments.
-var channelsLock sync.Mutex
 
 func init() {
 	for i, _ := range channels {
@@ -72,41 +65,42 @@ func channelAt(i int) *channel {
 }
 
 func Play(channel int, l []int16, r []int16) bool {
-	channelsLock.Lock()
-	defer channelsLock.Unlock()
+	result := false
+	withChannels(func() {
+		if !audioEnabled {
+			return
+		}
 
-	if !audioEnabled {
-		return false
-	}
-
-	if len(l) != len(r) {
-		panic("len(l) must equal to len(r)")
-	}
-	ch := channelAt(channel)
-	if ch == nil {
-		return false
-	}
-	ch.l = append(ch.l, make([]int16, ch.nextInsertionPosition-len(ch.l))...)
-	ch.r = append(ch.r, make([]int16, ch.nextInsertionPosition-len(ch.r))...)
-	ch.l = append(ch.l, l...)
-	ch.r = append(ch.r, r...)
-	return true
+		if len(l) != len(r) {
+			panic("len(l) must equal to len(r)")
+		}
+		ch := channelAt(channel)
+		if ch == nil {
+			return
+		}
+		ch.l = append(ch.l, make([]int16, ch.nextInsertionPosition-len(ch.l))...)
+		ch.r = append(ch.r, make([]int16, ch.nextInsertionPosition-len(ch.r))...)
+		ch.l = append(ch.l, l...)
+		ch.r = append(ch.r, r...)
+		result = true
+		return
+	})
+	return result
 }
 
 func Queue(channel int, l []int16, r []int16) {
-	channelsLock.Lock()
-	defer channelsLock.Unlock()
+	withChannels(func() {
+		if !audioEnabled {
+			return
+		}
 
-	if !audioEnabled {
-		return
-	}
-
-	if len(l) != len(r) {
-		panic("len(l) must equal to len(r)")
-	}
-	ch := channels[channel]
-	ch.l = append(ch.l, l...)
-	ch.r = append(ch.r, r...)
+		if len(l) != len(r) {
+			panic("len(l) must equal to len(r)")
+		}
+		ch := channels[channel]
+		ch.l = append(ch.l, l...)
+		ch.r = append(ch.r, r...)
+	})
 }
 
 func Tick() {
@@ -123,48 +117,51 @@ func min(a, b int) int {
 }
 
 func isChannelsEmpty() bool {
-	channelsLock.Lock()
-	defer channelsLock.Unlock()
-
-	if !audioEnabled {
-		return true
-	}
-
-	for _, ch := range channels {
-		if 0 < len(ch.l) {
-			return false
+	result := false
+	withChannels(func() {
+		if !audioEnabled {
+			result = true
+			return
 		}
-	}
-	return true
+
+		for _, ch := range channels {
+			if 0 < len(ch.l) {
+				return
+			}
+		}
+		result = true
+		return
+	})
+	return result
 }
 
 func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
-	channelsLock.Lock()
-	defer channelsLock.Unlock()
+	withChannels(func() {
+		if !audioEnabled {
+			return
+		}
 
-	if !audioEnabled {
-		return nil, nil
-	}
-
-	ch := channels[channel]
-	length := min(len(ch.l), bufferSize)
-	inputL := make([]int16, length)
-	inputR := make([]int16, length)
-	copy(inputL, ch.l[:length])
-	copy(inputR, ch.r[:length])
-	ch.l = ch.l[length:]
-	ch.r = ch.r[length:]
-	ch.nextInsertionPosition -= min(bufferSize, ch.nextInsertionPosition)
-	return inputL, inputR
+		ch := channels[channel]
+		length := min(len(ch.l), bufferSize)
+		inputL := make([]int16, length)
+		inputR := make([]int16, length)
+		copy(inputL, ch.l[:length])
+		copy(inputR, ch.r[:length])
+		ch.l = ch.l[length:]
+		ch.r = ch.r[length:]
+		ch.nextInsertionPosition -= min(bufferSize, ch.nextInsertionPosition)
+		l, r = inputL, inputR
+	})
+	return
 }
 
 func IsPlaying(channel int) bool {
-	channelsLock.Lock()
-	defer channelsLock.Unlock()
-
-	if !audioEnabled {
-		return false
-	}
-
-	return isPlaying(channel)
+	result := false
+	withChannels(func() {
+		if !audioEnabled {
+			return
+		}
+		result = isPlaying(channel)
+	})
+	return result
 }
