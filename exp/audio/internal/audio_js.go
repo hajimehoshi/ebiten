@@ -33,28 +33,21 @@ var (
 
 const bufferSize = 1024
 
-func audioProcess(channel int) func(e js.Object) {
-	return func(e js.Object) {
-		// Can't use 'go' here. Probably it may cause race conditions.
-		defer func() {
-			currentPosition += bufferSize
-		}()
+type audioProcessor struct {
+	channel int
+}
 
-		b := e.Get("outputBuffer")
-		l := b.Call("getChannelData", 0)
-		r := b.Call("getChannelData", 1)
-		inputL, inputR := loadChannelBuffer(channel, bufferSize)
-		const max = 1 << 15
-		for i := 0; i < bufferSize; i++ {
-			// TODO: Use copyToChannel?
-			if len(inputL) <= i {
-				l.SetIndex(i, 0)
-				r.SetIndex(i, 0)
-				continue
-			}
-			l.SetIndex(i, float64(inputL[i])/max)
-			r.SetIndex(i, float64(inputR[i])/max)
-		}
+func (a *audioProcessor) Process(e js.Object) {
+	// Can't use 'go' here. Probably it may cause race conditions.
+	b := e.Get("outputBuffer")
+	l := b.Call("getChannelData", 0)
+	r := b.Call("getChannelData", 1)
+	inputL, inputR := loadChannelBuffer(a.channel, bufferSize)
+	const max = 1 << 15
+	for i := 0; i < len(inputL); i++ {
+		// TODO: Use copyToChannel?
+		l.SetIndex(i, float64(inputL[i])/max)
+		r.SetIndex(i, float64(inputR[i])/max)
 	}
 }
 
@@ -69,7 +62,8 @@ func initialize() {
 	// https://developer.mozilla.org/ja/docs/Web/API/ScriptProcessorNode
 	for i := 0; i < MaxChannel; i++ {
 		node := context.Call("createScriptProcessor", bufferSize, 0, 2)
-		node.Call("addEventListener", "audioprocess", audioProcess(i))
+		processor := &audioProcessor{i}
+		node.Call("addEventListener", "audioprocess", processor.Process)
 		nodes = append(nodes, node)
 
 		dummy := context.Call("createBufferSource")

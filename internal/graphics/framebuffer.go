@@ -53,10 +53,11 @@ func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
 }
 
 type Framebuffer struct {
-	native opengl.Framebuffer
-	width  int
-	height int
-	flipY  bool
+	native    opengl.Framebuffer
+	width     int
+	height    int
+	flipY     bool
+	proMatrix *[4][4]float64
 }
 
 func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, error) {
@@ -100,6 +101,9 @@ func (f *Framebuffer) setAsViewport(c *opengl.Context) error {
 }
 
 func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
+	if f.proMatrix != nil {
+		return f.proMatrix
+	}
 	width := NextPowerOf2Int(f.width)
 	height := NextPowerOf2Int(f.height)
 	m := orthoProjectionMatrix(0, width, 0, height)
@@ -107,7 +111,8 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 		m[1][1] *= -1
 		m[1][3] += float64(f.height) / float64(NextPowerOf2Int(f.height)) * 2
 	}
-	return m
+	f.proMatrix = m
+	return f.proMatrix
 }
 
 func (f *Framebuffer) Fill(c *opengl.Context, clr color.Color) error {

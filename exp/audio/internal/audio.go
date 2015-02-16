@@ -18,8 +18,6 @@ var audioEnabled = false
 
 const SampleRate = 44100
 
-var currentPosition = 0
-
 type channel struct {
 	l                     []int16
 	r                     []int16
@@ -143,10 +141,8 @@ func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
 
 		ch := channels[channel]
 		length := min(len(ch.l), bufferSize)
-		inputL := make([]int16, length)
-		inputR := make([]int16, length)
-		copy(inputL, ch.l[:length])
-		copy(inputR, ch.r[:length])
+		inputL := ch.l[:length]
+		inputR := ch.r[:length]
 		ch.l = ch.l[length:]
 		ch.r = ch.r[length:]
 		ch.nextInsertionPosition -= min(bufferSize, ch.nextInsertionPosition)
