@@ -30,11 +30,16 @@ type Image struct {
 	framebuffer *graphics.Framebuffer
 	texture     *graphics.Texture
 	pixels      []uint8
+	width       int
+	height      int
 }
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.framebuffer.Size()
+	if i.width == 0 {
+		i.width, i.height = i.framebuffer.Size()
+	}
+	return i.width, i.height
 }
 
 // Clear resets the pixels of the image into 0.
