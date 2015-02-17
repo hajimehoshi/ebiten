@@ -49,8 +49,18 @@ func init() {
 	}
 }
 
+var (
+	noteLCache = map[int][]int16{}
+	noteRCache = map[int][]int16{}
+)
+
 func addNote(freq float64, vol float64) {
 	f := int(freq)
+	if l, ok := noteLCache[f]; ok {
+		r := noteRCache[f]
+		audio.Play(-1, l, r)
+		return
+	}
 	length := len(pcm) * baseFreq / f
 	l := make([]int16, length)
 	r := make([]int16, length)
@@ -63,6 +73,8 @@ func addNote(freq float64, vol float64) {
 		jj += f
 		j = jj / baseFreq
 	}
+	noteLCache[f] = l
+	noteRCache[f] = r
 	audio.Play(-1, l, r)
 }
 
