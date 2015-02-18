@@ -35,9 +35,9 @@ func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsCo
 }
 
 type graphicsContext struct {
-	screen      *Image
-	defaultR    *Image
-	screenScale int
+	screen              *Image
+	defaultRenderTarget *Image
+	screenScale         int
 }
 
 func (c *graphicsContext) preUpdate() error {
@@ -45,22 +45,22 @@ func (c *graphicsContext) preUpdate() error {
 }
 
 func (c *graphicsContext) postUpdate() error {
-	if err := c.defaultR.Clear(); err != nil {
+	if err := c.defaultRenderTarget.Clear(); err != nil {
 		return err
 	}
 
 	scale := float64(c.screenScale)
 	options := &DrawImageOptions{}
 	options.GeoM.Scale(scale, scale)
-	if err := c.defaultR.DrawImage(c.screen, options); err != nil {
+	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) error {
-	if c.defaultR != nil {
-		c.defaultR.dispose()
+	if c.defaultRenderTarget != nil {
+		c.defaultRenderTarget.dispose()
 	}
 	if c.screen != nil {
 		c.screen.dispose()
@@ -82,7 +82,7 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 			return
 		}
 		screen := &Image{framebuffer: screenF, texture: texture}
-		c.defaultR = &Image{framebuffer: f, texture: nil}
+		c.defaultRenderTarget = &Image{framebuffer: f, texture: nil}
 		c.screen = screen
 		c.screenScale = screenScale
 	})
