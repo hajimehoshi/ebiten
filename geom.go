@@ -70,6 +70,7 @@ func (g *GeoM) Add(other GeoM) {
 	*g = result
 }
 
+// Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
 	if !g.initialized {
 		g.initialize()
@@ -80,6 +81,7 @@ func (g *GeoM) Scale(x, y float64) {
 	}
 }
 
+// Translate translates the matrix by (x, y).
 func (g *GeoM) Translate(tx, ty float64) {
 	if !g.initialized {
 		g.initialize()
@@ -111,7 +113,7 @@ func ScaleGeo(x, y float64) GeoM {
 	}
 }
 
-// TranslateGeo returns a matrix taht translates a geometry matrix by (tx, ty).
+// TranslateGeo returns a matrix that translates a geometry matrix by (tx, ty).
 func TranslateGeo(tx, ty float64) GeoM {
 	return GeoM{
 		initialized: true,
