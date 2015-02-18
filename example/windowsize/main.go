@@ -51,22 +51,29 @@ func update(screen *ebiten.Image) error {
 		}
 		keyStates[key]++
 	}
+	d := 0
+	switch screenScale {
+	case 1:
+		d = 32
+	case 2:
+		d = 16
+	}
 
 	if keyStates[ebiten.KeyUp] == 1 {
-		screenHeight += 16
+		screenHeight += d
 	}
 	if keyStates[ebiten.KeyDown] == 1 {
 		if 16 < screenHeight {
-			screenHeight -= 16
+			screenHeight -= d
 		}
 	}
 	if keyStates[ebiten.KeyLeft] == 1 {
 		if 16 < screenWidth {
-			screenWidth -= 16
+			screenWidth -= d
 		}
 	}
 	if keyStates[ebiten.KeyRight] == 1 {
-		screenWidth += 16
+		screenWidth += d
 	}
 	if keyStates[ebiten.KeyS] == 1 {
 		screenScale = 3 - screenScale // Swap 1 and 2
@@ -86,7 +93,8 @@ func update(screen *ebiten.Image) error {
 	x, y := ebiten.CursorPosition()
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
-Cursor: (%d, %d)`, x, y)
+Cursor: (%d, %d)
+FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
