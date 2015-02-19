@@ -45,6 +45,7 @@ func (c *graphicsContext) preUpdate() error {
 }
 
 func (c *graphicsContext) postUpdate() error {
+	// TODO: In WebGL, we don't need to clear the image here.
 	if err := c.defaultRenderTarget.Clear(); err != nil {
 		return err
 	}

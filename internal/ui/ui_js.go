@@ -243,6 +243,7 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 func (*userInterface) size() (width, height int) {
 	a := canvas.Get("dataset").Get("ebitenActualScale").Int()
 	if a == 0 {
+		// a == 0 only on the initial state.
 		return
 	}
 	width = canvas.Get("width").Int() / a

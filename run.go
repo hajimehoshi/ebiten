@@ -105,9 +105,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		}
 		audio.Tick()
 		ui.SwapBuffers()
-		if err != nil {
-			return err
-		}
 
 		// Calc the current FPS.
 		now := ui.Now()

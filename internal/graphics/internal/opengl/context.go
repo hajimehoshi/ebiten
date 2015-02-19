@@ -160,7 +160,6 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
 	s := gl.CreateShader(uint32(shaderType))
 	if s == 0 {
-		println(gl.GetError())
 		return 0, errors.New("glCreateShader failed")
 	}
 
