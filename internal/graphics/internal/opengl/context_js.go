@@ -63,10 +63,9 @@ func GetProgramID(p Program) ProgramID {
 }
 
 type context struct {
-	gl *webgl.Context
+	gl              *webgl.Context
+	lastFramebuffer Framebuffer
 }
-
-var lastFramebuffer Framebuffer
 
 func NewContext() *Context {
 	var gl *webgl.Context
@@ -139,12 +138,20 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture{t}, nil
 }
 
+func (c *Context) bindFramebuffer(f Framebuffer) {
+	gl := c.gl
+	// TODO: Fix this after the GopherJS bug was fixed (#159)
+	if c.lastFramebuffer.Object != f.Object {
+		gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
+		c.lastFramebuffer = f
+	}
+}
+
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	gl := c.gl
 	gl.Flush()
 
-	lastFramebuffer = Framebuffer{nil}
-	gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
+	c.bindFramebuffer(f)
 
 	pixels := js.Global.Get("Uint8Array").New(4 * width * height)
 	gl.ReadPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
@@ -175,8 +182,7 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
-	lastFramebuffer = Framebuffer{nil}
-	gl.BindFramebuffer(gl.FRAMEBUFFER, f)
+	c.bindFramebuffer(Framebuffer{f})
 
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.Object, 0)
 	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
@@ -186,19 +192,18 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	return Framebuffer{f}, nil
 }
 
+var lastBindedFramebuffer js.Object
+
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
+	// TODO: Not sure if Flush is needed here.
+	if f.Object == nil {
+		c.bindFramebuffer(f)
+		gl := c.gl
+		gl.Viewport(0, 0, width, height)
+		return nil
+	}
+	c.bindFramebuffer(f)
 	gl := c.gl
-	// TODO: Fix this after the GopherJS bug was fixed (#159)
-	if lastFramebuffer.Object != f.Object {
-		gl.Flush()
-		lastFramebuffer = f
-	}
-	if f.Object != nil {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
-	} else {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, nil)
-	}
-	// gl.CheckFramebufferStatus might cause a performance problem. Don't call this here.
 	gl.Viewport(0, 0, width, height)
 	return nil
 }
@@ -220,7 +225,6 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl := c.gl
 	s := gl.CreateShader(int(shaderType))
 	if s == nil {
-		println(gl.GetError())
 		return Shader{nil}, errors.New("glCreateShader failed")
 	}
 
