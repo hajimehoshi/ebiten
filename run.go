@@ -42,6 +42,7 @@ func CurrentFPS() float64 {
 //
 // The given function f is guaranteed to be called 60 times a second
 // even if a rendering frame is skipped.
+// f is not called when the screen is not shown.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
 	runContext.running = true
 	defer func() {
@@ -95,6 +96,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			return nil
 		}
 		now := ui.Now()
+		// If gameTime is too old, we assume that screen is not shown.
+		if int64(5*time.Second/60) < now-gameTime {
+			gameTime = now
+		}
 		for gameTime < now {
 			gameTime += int64(time.Second / 60)
 
