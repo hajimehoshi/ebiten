@@ -28,7 +28,8 @@ var runContext = &struct {
 	newScreenScale  int
 }{}
 
-// CurrentFPS returns the current number of frames per second.
+// CurrentFPS returns the current number of rendering per second.
+// Be careful this is different from the 'game' FPS (the number of calling your callback (f in Run) per second).
 func CurrentFPS() float64 {
 	return runContext.fps
 }
@@ -39,9 +40,8 @@ func CurrentFPS() float64 {
 //
 // This function must be called from the main thread.
 //
-// The given function f is expected to be called 60 times a second,
-// but this is not strictly guaranteed.
-// If you need to care about time, you need to check current time every time f is called.
+// The given function f is guaranteed to be called 60 times a second
+// even if a rendering frame is skipped.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
 	runContext.running = true
 	defer func() {
@@ -60,7 +60,8 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}
 
 	frames := 0
-	t := ui.Now()
+	gameTime := ui.Now()
+	before := ui.Now()
 	for {
 		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
 			changed := false
@@ -93,25 +94,30 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if ui.IsClosed() {
 			return nil
 		}
-		if err := graphicsContext.preUpdate(); err != nil {
-			return err
-		}
-		err := f(graphicsContext.screen) //gopherjs:blocking
-		if err != nil {
-			return err
+		now := ui.Now()
+		for gameTime < now {
+			gameTime += int64(time.Second / 60)
+
+			if err := graphicsContext.preUpdate(); err != nil {
+				return err
+			}
+			if err := f(graphicsContext.screen); err != nil {
+				return err
+			}
+			audio.Tick()
 		}
 		if err := graphicsContext.postUpdate(); err != nil {
 			return err
 		}
-		audio.Tick()
+
 		ui.SwapBuffers()
 
 		// Calc the current FPS.
-		now := ui.Now()
+		now = ui.Now()
 		frames++
-		if time.Second <= time.Duration(now-t) {
-			runContext.fps = float64(frames) * float64(time.Second) / float64(now-t)
-			t = now
+		if time.Second <= time.Duration(now-before) {
+			runContext.fps = float64(frames) * float64(time.Second) / float64(now-before)
+			before = now
 			frames = 0
 		}
 	}
