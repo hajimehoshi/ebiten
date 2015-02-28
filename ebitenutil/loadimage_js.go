@@ -27,7 +27,7 @@ import (
 
 func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
 	var err error
-	var content js.Object
+	var content *js.Object
 	ch := make(chan struct{})
 	req := js.Global.Get("XMLHttpRequest").New()
 	req.Call("open", "GET", path, true)

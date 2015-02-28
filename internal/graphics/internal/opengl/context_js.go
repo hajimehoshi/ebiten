@@ -24,25 +24,25 @@ import (
 )
 
 type Texture struct {
-	js.Object
+	*js.Object
 }
 
 type Framebuffer struct {
-	js.Object
+	*js.Object
 }
 
 var ZeroFramebuffer Framebuffer
 
 type Shader struct {
-	js.Object
+	*js.Object
 }
 
 type Program struct {
-	js.Object
+	*js.Object
 }
 
 type Buffer struct {
-	js.Object
+	*js.Object
 }
 
 // TODO: Remove this after the GopherJS bug was fixed (#159)
@@ -51,7 +51,7 @@ func (p Program) Equals(other Program) bool {
 }
 
 type UniformLocation struct {
-	js.Object
+	*js.Object
 }
 
 type AttribLocation int
@@ -192,7 +192,7 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	return Framebuffer{f}, nil
 }
 
-var lastBindedFramebuffer js.Object
+var lastBindedFramebuffer *js.Object
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	// TODO: Not sure if Flush is needed here.

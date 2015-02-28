@@ -26,9 +26,9 @@ func withChannels(f func()) {
 
 // Keep this so as not to be destroyed by GC.
 var (
-	nodes   = []js.Object{}
-	dummies = []js.Object{} // Dummy source nodes for iOS.
-	context js.Object
+	nodes   = []*js.Object{}
+	dummies = []*js.Object{} // Dummy source nodes for iOS.
+	context *js.Object
 )
 
 const bufferSize = 1024
@@ -37,7 +37,7 @@ type audioProcessor struct {
 	channel int
 }
 
-func (a *audioProcessor) Process(e js.Object) {
+func (a *audioProcessor) Process(e *js.Object) {
 	// Can't use 'go' here. Probably it may cause race conditions.
 	b := e.Get("outputBuffer")
 	l := b.Call("getChannelData", 0)

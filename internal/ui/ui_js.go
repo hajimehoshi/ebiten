@@ -65,7 +65,7 @@ func SetScreenScale(scale int) (bool, int) {
 	return result, actualScale
 }
 
-var canvas js.Object
+var canvas *js.Object
 
 type userInterface struct{}
 
@@ -161,55 +161,55 @@ func Init() {
 	canvas.Get("style").Set("outline", "none")
 
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", func(e js.Object) {
+	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
 		currentInput.KeyDown(code)
 	})
-	canvas.Call("addEventListener", "keyup", func(e js.Object) {
+	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
 		currentInput.KeyUp(code)
 	})
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", func(e js.Object) {
+	canvas.Call("addEventListener", "mousedown", func(e *js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.MouseDown(button)
 		setMouseCursorFromEvent(e)
 	})
-	canvas.Call("addEventListener", "mouseup", func(e js.Object) {
+	canvas.Call("addEventListener", "mouseup", func(e *js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
 		currentInput.MouseUp(button)
 		setMouseCursorFromEvent(e)
 	})
-	canvas.Call("addEventListener", "mousemove", func(e js.Object) {
+	canvas.Call("addEventListener", "mousemove", func(e *js.Object) {
 		e.Call("preventDefault")
 		setMouseCursorFromEvent(e)
 	})
-	canvas.Call("addEventListener", "contextmenu", func(e js.Object) {
+	canvas.Call("addEventListener", "contextmenu", func(e *js.Object) {
 		e.Call("preventDefault")
 	})
 
 	// Touch (emulating mouse events)
 	// TODO: Create indimendent touch functions
-	canvas.Call("addEventListener", "touchstart", func(e js.Object) {
+	canvas.Call("addEventListener", "touchstart", func(e *js.Object) {
 		e.Call("preventDefault")
 		currentInput.MouseDown(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
 	})
-	canvas.Call("addEventListener", "touchend", func(e js.Object) {
+	canvas.Call("addEventListener", "touchend", func(e *js.Object) {
 		e.Call("preventDefault")
 		currentInput.MouseUp(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
 	})
-	canvas.Call("addEventListener", "touchmove", func(e js.Object) {
+	canvas.Call("addEventListener", "touchmove", func(e *js.Object) {
 		e.Call("preventDefault")
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
@@ -217,12 +217,12 @@ func Init() {
 	})
 
 	// Gamepad
-	window.Call("addEventListener", "gamepadconnected", func(e js.Object) {
+	window.Call("addEventListener", "gamepadconnected", func(e *js.Object) {
 		// Do nothing.
 	})
 }
 
-func setMouseCursorFromEvent(e js.Object) {
+func setMouseCursorFromEvent(e *js.Object) {
 	scale := canvas.Get("dataset").Get("ebitenScale").Int()
 	rect := canvas.Call("getBoundingClientRect")
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
