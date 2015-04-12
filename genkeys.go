@@ -114,7 +114,7 @@ const uiKeysGlfwTmpl = `{{.License}}
 package ui
 
 import (
-	glfw "github.com/go-gl/glfw3"
+	glfw "github.com/go-gl/glfw/v3.0/glfw"
 )
 
 var glfwKeyCodeToKey = map[glfw.Key]Key{

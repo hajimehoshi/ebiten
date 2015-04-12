@@ -18,7 +18,7 @@ package ui
 
 import (
 	"fmt"
-	glfw "github.com/go-gl/glfw3"
+	glfw "github.com/go-gl/glfw/v3.0/glfw"
 	"runtime"
 	"time"
 )
