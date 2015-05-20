@@ -23,7 +23,7 @@ import (
 
 func LicenseComment() (string, error) {
 	_, path, _, _ := runtime.Caller(0)
-	licensePath := filepath.Join(filepath.Dir(path), "..", "license.txt")
+	licensePath := filepath.Join(filepath.Dir(path), "..", "LICENSE")
 	l, err := ioutil.ReadFile(licensePath)
 	if err != nil {
 		return "", err
