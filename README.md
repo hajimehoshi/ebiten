@@ -22,4 +22,4 @@ http://hajimehoshi.github.io/ebiten/
 
 ## License
 
-Ebiten is licensed under Apache license version 2.0. See license.txt.
+Ebiten is licensed under Apache license version 2.0. See LICENSE file.
