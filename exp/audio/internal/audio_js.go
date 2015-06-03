@@ -57,7 +57,14 @@ func initialize() {
 		return
 	}
 
-	context = js.Global.Get("AudioContext").New()
+	class := js.Global.Get("AudioContext")
+	if class == js.Undefined {
+		class = js.Global.Get("webkitAudioContext")
+	}
+	if class == js.Undefined {
+		return
+	}
+	context = class.New()
 	// TODO: ScriptProcessorNode will be replaced with Audio WebWorker.
 	// https://developer.mozilla.org/ja/docs/Web/API/ScriptProcessorNode
 	for i := 0; i < MaxChannel; i++ {
