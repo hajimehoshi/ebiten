@@ -15,6 +15,9 @@
 package audio
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/hajimehoshi/ebiten/exp/audio/internal"
 )
 
@@ -26,13 +29,32 @@ func SampleRate() int {
 // MaxChannel is a max number of channels.
 var MaxChannel = internal.MaxChannel
 
+func toLR(data []byte) ([]int16, []int16) {
+	buf := bytes.NewReader(data)
+	b := make([]int16, len(data)/2)
+	if err := binary.Read(buf, binary.LittleEndian, b); err != nil {
+		panic(err)
+	}
+	l := make([]int16, len(data)/4)
+	r := make([]int16, len(data)/4)
+	for i := 0; i < len(data)/4; i++ {
+		l[i] = b[2*i]
+		r[i] = b[2*i+1]
+	}
+	return l, r
+}
+
 // Play appends the given data to the given channel.
 //
 // channel must be -1 or a channel index. If channel is -1, an empty channel is automatically selected.
 // If the channel is not empty, this function does nothing and returns false. This returns true otherwise.
 //
+// data's format must be linear PCM (44100Hz, stereo, 16bit little endian).
+//
 // This function is useful to play SE or a note of PCM synthesis immediately.
-func Play(channel int, l []int16, r []int16) bool {
+func Play(channel int, data []byte) bool {
+	l, r := toLR(data)
+	// TODO: Pass data directly.
 	return internal.Play(channel, l, r)
 }
 
@@ -41,8 +63,12 @@ func Play(channel int, l []int16, r []int16) bool {
 //
 // channel must be a channel index. You can't give -1 to channel.
 //
+// data's format must be linear PCM (44100Hz, stereo, 16bit little endian).
+//
 // This function is useful to play streaming data.
-func Queue(channel int, l []int16, r []int16) {
+func Queue(channel int, data []byte) {
+	l, r := toLR(data)
+	// TODO: Pass data directly.
 	internal.Queue(channel, l, r)
 }
 

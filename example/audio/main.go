@@ -15,12 +15,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"log"
+	"math"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/exp/audio"
-	"log"
-	"math"
 )
 
 const (
@@ -69,6 +72,19 @@ func square(out []int16, volume float64, freq float64, sequence float64) {
 	}
 }
 
+func toBytes(l, r []int16) []byte {
+	if len(l) != len(r) {
+		panic("len(l) must equal to len(r)")
+	}
+	b := &bytes.Buffer{}
+	for i := 0; i < len(l); i++ {
+		if err := binary.Write(b, binary.LittleEndian, []int16{l[i], r[i]}); err != nil {
+			panic(err)
+		}
+	}
+	return b.Bytes()
+}
+
 func addNote() {
 	size := audio.SampleRate() / 60
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
@@ -97,7 +113,7 @@ func addNote() {
 	vol := 1.0 / 16.0
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
-	audio.Play(0, l, r)
+	audio.Play(0, toBytes(l, r))
 }
 
 func update(screen *ebiten.Image) error {

@@ -15,14 +15,17 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"image/color"
+	"log"
+	"math"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/example/common"
 	"github.com/hajimehoshi/ebiten/exp/audio"
-	"image/color"
-	"log"
-	"math"
 )
 
 const (
@@ -50,15 +53,26 @@ func init() {
 }
 
 var (
-	noteLCache = map[int][]int16{}
-	noteRCache = map[int][]int16{}
+	noteCache = map[int][]byte{}
 )
+
+func toBytes(l, r []int16) []byte {
+	if len(l) != len(r) {
+		panic("len(l) must equal to len(r)")
+	}
+	b := &bytes.Buffer{}
+	for i := 0; i < len(l); i++ {
+		if err := binary.Write(b, binary.LittleEndian, []int16{l[i], r[i]}); err != nil {
+			panic(err)
+		}
+	}
+	return b.Bytes()
+}
 
 func addNote(freq float64, vol float64) {
 	f := int(freq)
-	if l, ok := noteLCache[f]; ok {
-		r := noteRCache[f]
-		audio.Play(-1, l, r)
+	if n, ok := noteCache[f]; ok {
+		audio.Play(-1, n)
 		return
 	}
 	length := len(pcm) * baseFreq / f
@@ -73,9 +87,9 @@ func addNote(freq float64, vol float64) {
 		jj += f
 		j = jj / baseFreq
 	}
-	noteLCache[f] = l
-	noteRCache[f] = r
-	audio.Play(-1, l, r)
+	n := toBytes(l, r)
+	noteCache[f] = n
+	audio.Play(-1, n)
 }
 
 var keys = []ebiten.Key{
