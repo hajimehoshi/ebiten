@@ -48,41 +48,47 @@ func isPlaying(channel int) bool {
 }
 
 func channelAt(i int) *channel {
-	if i == -1 {
-		for i, _ := range channels {
-			if !isPlaying(i) {
-				return channels[i]
+	var ch *channel
+	withChannels(func() {
+		if i == -1 {
+			for i, _ := range channels {
+				if !isPlaying(i) {
+					ch = channels[i]
+					return
+				}
 			}
+			return
 		}
-		return nil
-	}
-	if !isPlaying(i) {
-		return channels[i]
-	}
-	return nil
+		if !isPlaying(i) {
+			ch = channels[i]
+			return
+		}
+		return
+	})
+	return ch
 }
 
 func Play(channel int, l []int16, r []int16) bool {
-	result := false
+	ch := channelAt(channel)
+	if ch == nil {
+		return false
+	}
 	withChannels(func() {
 		if !audioEnabled {
 			return
 		}
-
 		if len(l) != len(r) {
 			panic("len(l) must equal to len(r)")
 		}
-		ch := channelAt(channel)
-		if ch == nil {
-			return
+		d := ch.nextInsertionPosition - len(l)
+		if 0 < d {
+			ch.l = append(ch.l, make([]int16, d)...)
+			ch.r = append(ch.r, make([]int16, d)...)
 		}
-		ch.l = append(ch.l, make([]int16, ch.nextInsertionPosition-len(ch.l))...)
-		ch.r = append(ch.r, make([]int16, ch.nextInsertionPosition-len(ch.r))...)
 		ch.l = append(ch.l, l...)
 		ch.r = append(ch.r, r...)
-		result = true
 	})
-	return result
+	return true
 }
 
 func Queue(channel int, l []int16, r []int16) {
@@ -90,7 +96,6 @@ func Queue(channel int, l []int16, r []int16) {
 		if !audioEnabled {
 			return
 		}
-
 		if len(l) != len(r) {
 			panic("len(l) must equal to len(r)")
 		}
@@ -102,7 +107,11 @@ func Queue(channel int, l []int16, r []int16) {
 
 func Tick() {
 	for _, ch := range channels {
-		ch.nextInsertionPosition += SampleRate / 60
+		if 0 < len(ch.l) {
+			ch.nextInsertionPosition += SampleRate / 60 // FPS
+		} else {
+			ch.nextInsertionPosition = 0
+		}
 	}
 }
 
@@ -142,9 +151,12 @@ func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
 		length := min(len(ch.l), bufferSize)
 		inputL := ch.l[:length]
 		inputR := ch.r[:length]
+		ch.nextInsertionPosition -= length
+		if ch.nextInsertionPosition < 0 {
+			ch.nextInsertionPosition = 0
+		}
 		ch.l = ch.l[length:]
 		ch.r = ch.r[length:]
-		ch.nextInsertionPosition -= min(bufferSize, ch.nextInsertionPosition)
 		l, r = inputL, inputR
 	})
 	return
