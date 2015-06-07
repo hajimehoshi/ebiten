@@ -20,11 +20,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/timshannon/go-openal/openal"
 	"log"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/timshannon/go-openal/openal"
 )
 
 var channelsMutex = sync.Mutex{}
@@ -94,7 +95,7 @@ func initialize() {
 
 		for {
 			oneProcessed := false
-			for channel, source := range sources {
+			for ch, source := range sources {
 				processed := source.BuffersProcessed()
 				if processed == 0 {
 					continue
@@ -104,7 +105,7 @@ func initialize() {
 				buffers := make([]openal.Buffer, processed)
 				source.UnqueueBuffers(buffers)
 				for _, buffer := range buffers {
-					l, r := loadChannelBuffer(channel, bufferSize)
+					l, r := loadChannelBuffer(ch, bufferSize)
 					b := toBytesWithPadding(l, r, bufferSize)
 					buffer.SetData(openal.FormatStereo16, b, SampleRate)
 					source.QueueBuffer(buffer)
@@ -115,7 +116,7 @@ func initialize() {
 				}
 			}
 			if !oneProcessed {
-				time.Sleep(1)
+				time.Sleep(1 * time.Millisecond)
 			}
 		}
 	}()

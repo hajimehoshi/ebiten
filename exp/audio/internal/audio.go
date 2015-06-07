@@ -81,7 +81,6 @@ func Play(channel int, l []int16, r []int16) bool {
 		ch.l = append(ch.l, l...)
 		ch.r = append(ch.r, r...)
 		result = true
-		return
 	})
 	return result
 }
