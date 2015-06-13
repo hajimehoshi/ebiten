@@ -37,12 +37,22 @@ type audioProcessor struct {
 	channel int
 }
 
+func toLR(data []byte) ([]int16, []int16) {
+	l := make([]int16, len(data)/4)
+	r := make([]int16, len(data)/4)
+	for i := 0; i < len(data)/4; i++ {
+		l[i] = int16(data[4*i]) | int16(data[4*i+1])<<8
+		r[i] = int16(data[4*i+2]) | int16(data[4*i+3])<<8
+	}
+	return l, r
+}
+
 func (a *audioProcessor) Process(e *js.Object) {
 	// Can't use 'go' here. Probably it may cause race conditions.
 	b := e.Get("outputBuffer")
 	l := b.Call("getChannelData", 0)
 	r := b.Call("getChannelData", 1)
-	inputL, inputR := loadChannelBuffer(a.channel, bufferSize)
+	inputL, inputR := toLR(loadChannelBuffer(a.channel, bufferSize*4))
 	const max = 1 << 15
 	for i := 0; i < len(inputL); i++ {
 		// TODO: Use copyToChannel?

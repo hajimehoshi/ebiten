@@ -19,8 +19,7 @@ var audioEnabled = false
 const SampleRate = 44100
 
 type channel struct {
-	l                     []int16
-	r                     []int16
+	buffer                []byte
 	nextInsertionPosition int
 }
 
@@ -31,8 +30,7 @@ var channels = make([]*channel, MaxChannel)
 func init() {
 	for i, _ := range channels {
 		channels[i] = &channel{
-			l: []int16{},
-			r: []int16{},
+			buffer: []byte{},
 		}
 	}
 }
@@ -44,7 +42,7 @@ func Init() {
 
 func isPlaying(channel int) bool {
 	ch := channels[channel]
-	return ch.nextInsertionPosition < len(ch.l)
+	return ch.nextInsertionPosition < len(ch.buffer)
 }
 
 func channelAt(i int) *channel {
@@ -68,7 +66,7 @@ func channelAt(i int) *channel {
 	return ch
 }
 
-func Play(channel int, l []int16, r []int16) bool {
+func Play(channel int, data []byte) bool {
 	ch := channelAt(channel)
 	if ch == nil {
 		return false
@@ -77,38 +75,29 @@ func Play(channel int, l []int16, r []int16) bool {
 		if !audioEnabled {
 			return
 		}
-		if len(l) != len(r) {
-			panic("len(l) must equal to len(r)")
-		}
-		d := ch.nextInsertionPosition - len(l)
+		d := ch.nextInsertionPosition - len(data)
 		if 0 < d {
-			ch.l = append(ch.l, make([]int16, d)...)
-			ch.r = append(ch.r, make([]int16, d)...)
+			ch.buffer = append(ch.buffer, make([]byte, d)...)
 		}
-		ch.l = append(ch.l, l...)
-		ch.r = append(ch.r, r...)
+		ch.buffer = append(ch.buffer, data...)
 	})
 	return true
 }
 
-func Queue(channel int, l []int16, r []int16) {
+func Queue(channel int, data []byte) {
 	withChannels(func() {
 		if !audioEnabled {
 			return
 		}
-		if len(l) != len(r) {
-			panic("len(l) must equal to len(r)")
-		}
 		ch := channels[channel]
-		ch.l = append(ch.l, l...)
-		ch.r = append(ch.r, r...)
+		ch.buffer = append(ch.buffer, data...)
 	})
 }
 
 func Tick() {
 	for _, ch := range channels {
-		if 0 < len(ch.l) {
-			ch.nextInsertionPosition += SampleRate / 60 // FPS
+		if 0 < len(ch.buffer) {
+			ch.nextInsertionPosition += SampleRate * 4 / 60
 		} else {
 			ch.nextInsertionPosition = 0
 		}
@@ -131,7 +120,7 @@ func isChannelsEmpty() bool {
 		}
 
 		for _, ch := range channels {
-			if 0 < len(ch.l) {
+			if 0 < len(ch.buffer) {
 				return
 			}
 		}
@@ -141,25 +130,24 @@ func isChannelsEmpty() bool {
 	return result
 }
 
-func loadChannelBuffer(channel int, bufferSize int) (l, r []int16) {
+func loadChannelBuffer(channel int, bufferSize int) []byte {
+	var r []byte
 	withChannels(func() {
 		if !audioEnabled {
 			return
 		}
 
 		ch := channels[channel]
-		length := min(len(ch.l), bufferSize)
-		inputL := ch.l[:length]
-		inputR := ch.r[:length]
+		length := min(len(ch.buffer), bufferSize)
+		input := ch.buffer[:length]
 		ch.nextInsertionPosition -= length
 		if ch.nextInsertionPosition < 0 {
 			ch.nextInsertionPosition = 0
 		}
-		ch.l = ch.l[length:]
-		ch.r = ch.r[length:]
-		l, r = inputL, inputR
+		ch.buffer = ch.buffer[length:]
+		r = input
 	})
-	return
+	return r
 }
 
 func IsPlaying(channel int) bool {

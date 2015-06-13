@@ -17,8 +17,6 @@
 package internal
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"runtime"
@@ -34,24 +32,6 @@ func withChannels(f func()) {
 	channelsMutex.Lock()
 	defer channelsMutex.Unlock()
 	f()
-}
-
-func toBytesWithPadding(l, r []int16, size int) []byte {
-	if len(l) != len(r) {
-		panic("len(l) must equal to len(r)")
-	}
-	b := &bytes.Buffer{}
-	for i := 0; i < len(l); i++ {
-		if err := binary.Write(b, binary.LittleEndian, []int16{l[i], r[i]}); err != nil {
-			panic(err)
-		}
-	}
-	if 0 < size-len(l) {
-		if err := binary.Write(b, binary.LittleEndian, make([]int16, (size-len(l))*2)); err != nil {
-			panic(err)
-		}
-	}
-	return b.Bytes()
 }
 
 func initialize() {
@@ -75,8 +55,8 @@ func initialize() {
 		sources := openal.NewSources(MaxChannel)
 		close(ch)
 
-		const bufferSize = 512
-		emptyBytes := make([]byte, 4*bufferSize)
+		const bufferSize = 2048
+		emptyBytes := make([]byte, bufferSize)
 
 		for _, source := range sources {
 			// 3 is the least number?
@@ -105,8 +85,8 @@ func initialize() {
 				buffers := make([]openal.Buffer, processed)
 				source.UnqueueBuffers(buffers)
 				for _, buffer := range buffers {
-					l, r := loadChannelBuffer(ch, bufferSize)
-					b := toBytesWithPadding(l, r, bufferSize)
+					b := make([]byte, bufferSize)
+					copy(b, loadChannelBuffer(ch, bufferSize))
 					buffer.SetData(openal.FormatStereo16, b, SampleRate)
 					source.QueueBuffer(buffer)
 				}
