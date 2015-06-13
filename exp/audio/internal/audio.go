@@ -96,11 +96,7 @@ func Queue(channel int, data []byte) {
 
 func Tick() {
 	for _, ch := range channels {
-		if 0 < len(ch.buffer) {
-			ch.nextInsertionPosition += SampleRate * 4 / 60
-		} else {
-			ch.nextInsertionPosition = 0
-		}
+		ch.nextInsertionPosition += SampleRate * 4 / 60
 	}
 }
 
@@ -140,11 +136,13 @@ func loadChannelBuffer(channel int, bufferSize int) []byte {
 		ch := channels[channel]
 		length := min(len(ch.buffer), bufferSize)
 		input := ch.buffer[:length]
-		ch.nextInsertionPosition -= length
+		ch.buffer = ch.buffer[length:]
+
+		ch.nextInsertionPosition -= bufferSize
 		if ch.nextInsertionPosition < 0 {
 			ch.nextInsertionPosition = 0
 		}
-		ch.buffer = ch.buffer[length:]
+
 		r = input
 	})
 	return r
