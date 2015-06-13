@@ -28,8 +28,7 @@ var runContext = &struct {
 	newScreenScale  int
 }{}
 
-// CurrentFPS returns the current number of rendering per second.
-// Be careful this is different from the 'game' FPS (the number of calling your callback (f in Run) per second).
+// CurrentFPS returns the current number of frames per second.
 func CurrentFPS() float64 {
 	return runContext.fps
 }
