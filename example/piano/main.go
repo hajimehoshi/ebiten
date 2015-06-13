@@ -15,8 +15,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"image/color"
 	"log"
@@ -60,13 +58,14 @@ func toBytes(l, r []int16) []byte {
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
 	}
-	b := &bytes.Buffer{}
-	for i := 0; i < len(l); i++ {
-		if err := binary.Write(b, binary.LittleEndian, []int16{l[i], r[i]}); err != nil {
-			panic(err)
-		}
+	b := make([]byte, len(l)*4)
+	for i, _ := range l {
+		b[4*i] = byte(l[i])
+		b[4*i+1] = byte(l[i] >> 8)
+		b[4*i+2] = byte(r[i])
+		b[4*i+3] = byte(r[i] >> 8)
 	}
-	return b.Bytes()
+	return b
 }
 
 func addNote(freq float64, vol float64) {
