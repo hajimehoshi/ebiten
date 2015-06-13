@@ -78,9 +78,7 @@ func shown() bool {
 
 func vsync() {
 	ch := make(chan struct{})
-	// As the performance is generally not good with GopehrJS, consume n 'requestAnimationFrame's
-	// each time.
-	n := 2
+	n := 1
 	var l func()
 	l = func() {
 		if 0 < n {
