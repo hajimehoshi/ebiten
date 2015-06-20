@@ -40,13 +40,14 @@ pre {
 
 import (
     &#34;fmt&#34;
+    &#34;image/color&#34;
+    &#34;log&#34;
+    &#34;math&#34;
+
     &#34;github.com/hajimehoshi/ebiten&#34;
     &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
     &#34;github.com/hajimehoshi/ebiten/example/common&#34;
     &#34;github.com/hajimehoshi/ebiten/exp/audio&#34;
-    &#34;image/color&#34;
-    &#34;log&#34;
-    &#34;math&#34;
 )
 
 const (
@@ -73,8 +74,30 @@ func init() {
     }
 }
 
+var (
+    noteCache = map[int][]byte{}
+)
+
+func toBytes(l, r []int16) []byte {
+    if len(l) != len(r) {
+        panic(&#34;len(l) must equal to len(r)&#34;)
+    }
+    b := make([]byte, len(l)*4)
+    for i, _ := range l {
+        b[4*i] = byte(l[i])
+        b[4*i&#43;1] = byte(l[i] &gt;&gt; 8)
+        b[4*i&#43;2] = byte(r[i])
+        b[4*i&#43;3] = byte(r[i] &gt;&gt; 8)
+    }
+    return b
+}
+
 func addNote(freq float64, vol float64) {
     f := int(freq)
+    if n, ok := noteCache[f]; ok {
+        audio.Play(-1, n)
+        return
+    }
     length := len(pcm) * baseFreq / f
     l := make([]int16, length)
     r := make([]int16, length)
@@ -87,7 +110,9 @@ func addNote(freq float64, vol float64) {
         jj &#43;= f
         j = jj / baseFreq
     }
-    audio.Play(-1, l, r)
+    n := toBytes(l, r)
+    noteCache[f] = n
+    audio.Play(-1, n)
 }
 
 var keys = []ebiten.Key{
@@ -127,6 +152,36 @@ func updateInput() {
     }
 }
 
+var pianoImage *ebiten.Image
+
+func init() {
+    var err error
+    pianoImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+    if err != nil {
+        panic(err)
+    }
+    whiteKeys := []string{&#34;A&#34;, &#34;S&#34;, &#34;D&#34;, &#34;F&#34;, &#34;G&#34;, &#34;H&#34;, &#34;J&#34;, &#34;K&#34;, &#34;L&#34;}
+    width := 24
+    y := 48
+    for i, k := range whiteKeys {
+        x := i*width &#43; 36
+        height := 112
+        pianoImage.DrawFilledRect(x, y, width-1, height, color.White)
+        common.ArcadeFont.DrawText(pianoImage, k, x&#43;8, y&#43;height-16, 1, color.Black)
+    }
+
+    blackKeys := []string{&#34;Q&#34;, &#34;W&#34;, &#34;&#34;, &#34;R&#34;, &#34;T&#34;, &#34;&#34;, &#34;U&#34;, &#34;I&#34;, &#34;O&#34;}
+    for i, k := range blackKeys {
+        if k == &#34;&#34; {
+            continue
+        }
+        x := i*width &#43; 24
+        height := 64
+        pianoImage.DrawFilledRect(x, y, width-1, height, color.Black)
+        common.ArcadeFont.DrawText(pianoImage, k, x&#43;8, y&#43;height-16, 1, color.White)
+    }
+}
+
 func update(screen *ebiten.Image) error {
     updateInput()
     for i, key := range keys {
@@ -137,27 +192,7 @@ func update(screen *ebiten.Image) error {
     }
 
     screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
-
-    whiteKeys := []string{&#34;A&#34;, &#34;S&#34;, &#34;D&#34;, &#34;F&#34;, &#34;G&#34;, &#34;H&#34;, &#34;J&#34;, &#34;K&#34;, &#34;L&#34;}
-    width := 24
-    y := 48
-    for i, k := range whiteKeys {
-        x := i*width &#43; 36
-        height := 112
-        screen.DrawFilledRect(x, y, width-1, height, color.White)
-        common.ArcadeFont.DrawText(screen, k, x&#43;8, y&#43;height-16, 1, color.Black)
-    }
-
-    blackKeys := []string{&#34;Q&#34;, &#34;W&#34;, &#34;&#34;, &#34;R&#34;, &#34;T&#34;, &#34;&#34;, &#34;U&#34;, &#34;I&#34;, &#34;O&#34;}
-    for i, k := range blackKeys {
-        if k == &#34;&#34; {
-            continue
-        }
-        x := i*width &#43; 24
-        height := 64
-        screen.DrawFilledRect(x, y, width-1, height, color.Black)
-        common.ArcadeFont.DrawText(screen, k, x&#43;8, y&#43;height-16, 1, color.White)
-    }
+    screen.DrawImage(pianoImage, nil)
 
     ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %0.2f&#34;, ebiten.CurrentFPS()))
     return nil

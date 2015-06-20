@@ -33,7 +33,7 @@ import (
 var license = ""
 
 func init() {
-	b, err := ioutil.ReadFile("../license.txt")
+	b, err := ioutil.ReadFile("../LICENSE")
 	if err != nil {
 		panic(err)
 	}
