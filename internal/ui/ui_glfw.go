@@ -18,9 +18,10 @@ package ui
 
 import (
 	"fmt"
-	glfw "github.com/go-gl/glfw/v3.1/glfw"
 	"runtime"
 	"time"
+
+	glfw "github.com/go-gl/glfw/v3.1/glfw"
 )
 
 func Now() int64 {
