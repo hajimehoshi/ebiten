@@ -18,7 +18,7 @@ package ui
 
 import (
 	"fmt"
-	glfw "github.com/go-gl/glfw/v3.0/glfw"
+	glfw "github.com/go-gl/glfw/v3.1/glfw"
 	"runtime"
 	"time"
 )
@@ -32,11 +32,9 @@ var currentUI *userInterface
 func Init() {
 	runtime.LockOSThread()
 
-	glfw.SetErrorCallback(func(err glfw.ErrorCode, desc string) {
-		panic(fmt.Sprintf("%v: %v\n", err, desc))
-	})
-	if !glfw.Init() {
-		panic("glfw.Init() fails")
+	err := glfw.Init()
+	if err != nil {
+		panic(fmt.Sprintf("glfw.Init() fails: %v", err))
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.Resizable, glfw.False)
@@ -112,20 +110,13 @@ type userInterface struct {
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
-	monitor, err := glfw.GetPrimaryMonitor()
-	if err != nil {
-		return 0, err
-	}
-	videoMode, err := monitor.GetVideoMode()
-	if err != nil {
-		return 0, err
-	}
+	videoMode := glfw.GetPrimaryMonitor().GetVideoMode()
 	x := (videoMode.Width - width*scale) / 2
 	y := (videoMode.Height - height*scale) / 3
 
 	u.setScreenSize(width, height, scale)
 	u.window.SetTitle(title)
-	u.window.SetPosition(x, y)
+	u.window.SetPos(x, y)
 	u.window.Show()
 
 	return u.actualScale, nil
@@ -140,7 +131,7 @@ func (u *userInterface) doEvents() error {
 	if err := u.pollEvents(); err != nil {
 		return err
 	}
-	for u.window.GetAttribute(glfw.Focused) == 0 {
+	for u.window.GetAttrib(glfw.Focused) == 0 {
 		time.Sleep(time.Second / 60)
 		if err := u.pollEvents(); err != nil {
 			return err

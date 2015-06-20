@@ -17,7 +17,7 @@
 package ui
 
 import (
-	glfw "github.com/go-gl/glfw/v3.0/glfw"
+	glfw "github.com/go-gl/glfw/v3.1/glfw"
 	"math"
 )
 
@@ -38,17 +38,14 @@ func (i *input) update(window *glfw.Window, scale int) error {
 	for g, e := range glfwMouseButtonToMouseButton {
 		i.mouseButtonPressed[e] = window.GetMouseButton(g) == glfw.Press
 	}
-	x, y := window.GetCursorPosition()
+	x, y := window.GetCursorPos()
 	i.cursorX = int(math.Floor(x)) / scale
 	i.cursorY = int(math.Floor(y)) / scale
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		if !glfw.JoystickPresent(id) {
 			continue
 		}
-		axes32, err := glfw.GetJoystickAxes(id)
-		if err != nil {
-			return err
-		}
+		axes32 := glfw.GetJoystickAxes(id)
 		i.gamepads[id].axisNum = len(axes32)
 		for a := 0; a < len(i.gamepads[id].axes); a++ {
 			if len(axes32) <= a {
@@ -57,10 +54,7 @@ func (i *input) update(window *glfw.Window, scale int) error {
 			}
 			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
-		buttons, err := glfw.GetJoystickButtons(id)
-		if err != nil {
-			return err
-		}
+		buttons := glfw.GetJoystickButtons(id)
 		i.gamepads[id].buttonNum = len(buttons)
 		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
 			if len(buttons) <= b {
