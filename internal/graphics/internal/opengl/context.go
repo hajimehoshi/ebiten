@@ -102,7 +102,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	pixels := make([]uint8, 4*width*height)
 	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
 	if e := gl.GetError(); e != gl.NO_ERROR {
-		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
+		return nil, errors.New(fmt.Sprintf("glReadPixels: %d", e))
 	}
 	return pixels, nil
 }
@@ -136,10 +136,9 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl.Flush()
 	gl.BindFramebuffer(gl.FRAMEBUFFER, uint32(f))
-	err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
-	if err != gl.FRAMEBUFFER_COMPLETE {
-		if gl.GetError() != 0 {
-			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", gl.GetError()))
+	if err := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); err != gl.FRAMEBUFFER_COMPLETE {
+		if e := gl.GetError(); e != 0 {
+			return errors.New(fmt.Sprintf("glBindFramebuffer failed: %d", e))
 		}
 		return errors.New("glBindFramebuffer failed: the context is different?")
 	}
