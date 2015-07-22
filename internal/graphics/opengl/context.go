@@ -73,6 +73,12 @@ func (c *Context) init() {
 	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 }
 
+func (c *Context) Check() {
+	if e := gl.GetError(); e != gl.NO_ERROR {
+		panic(fmt.Sprintf("check failed: %d", e))
+	}
+}
+
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	var t uint32
 	gl.GenTextures(1, &t)

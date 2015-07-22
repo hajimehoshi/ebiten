@@ -16,7 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 

@@ -64,10 +64,16 @@ func Init() {
 
 func ExecOnUIThread(f func()) {
 	ch := make(chan struct{})
-	currentUI.funcs <- func() {
+	/*currentUI.funcs <- func() {
 		defer close(ch)
 		f()
-	}
+	}*/
+	go func() {
+		defer close(ch)
+		runtime.LockOSThread()
+		currentUI.window.MakeContextCurrent()
+		f()
+	}()
 	<-ch
 }
 

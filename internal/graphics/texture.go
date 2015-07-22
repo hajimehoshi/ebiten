@@ -16,7 +16,7 @@ package graphics
 
 import (
 	"errors"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"image"
 	"image/draw"
 )

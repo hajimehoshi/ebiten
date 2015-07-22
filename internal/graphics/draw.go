@@ -17,7 +17,7 @@ package graphics
 import (
 	"errors"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 func glMatrix(m *[4][4]float64) []float32 {

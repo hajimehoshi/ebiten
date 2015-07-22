@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 // Filter represents the type of filter to be used when an image is maginified or minified.

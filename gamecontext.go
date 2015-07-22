@@ -15,9 +15,9 @@
 package ebiten
 
 import (
-	audio "github.com/hajimehoshi/ebiten/exp/audio/internal"
+	audio "github.com/hajimehoshi/ebiten/exp/audio/inner"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphics/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"image"
 )

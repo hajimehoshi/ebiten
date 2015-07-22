@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	audio "github.com/hajimehoshi/ebiten/exp/audio/internal"
+	audio "github.com/hajimehoshi/ebiten/exp/audio/inner"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"time"
 )
@@ -53,6 +53,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		return err
 	}
 	defer ui.Terminate()
+
+	ui.ExecOnUIThread(func() {
+		glContext.Check()
+	})
 
 	graphicsContext, err := newGraphicsContext(width, height, actualScale)
 	if err != nil {
