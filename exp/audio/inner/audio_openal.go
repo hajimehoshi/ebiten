@@ -44,8 +44,8 @@ func initialize() {
 		context := device.CreateContext()
 		context.Activate()
 
-		if alErr := openal.GetError(); alErr != 0 {
-			log.Printf("OpenAL initialize error: %d", alErr)
+		if err := openal.Err(); err != nil {
+			log.Printf("OpenAL initialize error: %v", err)
 			close(ch)
 			// Graceful ending: Audio is not available on Travis CI.
 			return
@@ -68,8 +68,8 @@ func initialize() {
 				source.QueueBuffer(buffer)
 			}
 			source.Play()
-			if alErr := openal.GetError(); alErr != 0 {
-				panic(fmt.Sprintf("OpenAL error: %d", alErr))
+			if err := openal.Err(); err != nil {
+				panic(fmt.Sprintf("OpenAL error: %v", err))
 			}
 		}
 
