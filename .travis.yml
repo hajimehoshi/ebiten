@@ -9,7 +9,6 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - libglew-dev # required by node-gl.
-      - libglfw3-dev
       - libopenal-dev
       - libalut-dev
       - libxxf86vm-dev
