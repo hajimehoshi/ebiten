@@ -83,7 +83,11 @@ func NewContext() *Context {
 		}
 	} else {
 		// Use headless-gl for testing.
-		webglContext := js.Global.Call("require", "gl").Invoke(16, 16)
+		options := map[string]bool{
+			"alpha":              true,
+			"premultipliedAlpha": true,
+		}
+		webglContext := js.Global.Call("require", "gl").Invoke(16, 16, options)
 		gl = &webgl.Context{Object: webglContext}
 	}
 
