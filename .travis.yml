@@ -3,11 +3,21 @@ language: go
 go:
   - 1.5
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libglew-dev # required by node-gl.
+      - libglfw3-dev
+      - libgl1-mesa-dev
+      - libopenal-dev
+      - libalut-dev
+      - libxxf86vm-dev
+
 before_install:
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libglew-dev libglfw3-dev libopenal-dev libalut-dev libxxf86vm-dev # libglew-dev is required by node-gl.
   - export NODE_PATH=$(npm config get prefix)/lib/node_modules
   - npm install --global gl
 
