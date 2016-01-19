@@ -10,7 +10,6 @@ addons:
     packages:
       - libglew-dev # required by node-gl.
       - libglfw3-dev
-      - libgl1-mesa-dev
       - libopenal-dev
       - libalut-dev
       - libxxf86vm-dev
