@@ -6,8 +6,6 @@ go:
 before_install:
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
-  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ utopic main restricted universe multiverse'
-  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ utopic-updates main restricted universe multiverse'
   - sudo apt-get update -qq
   - sudo apt-get install -qq libglew-dev libglfw3-dev libopenal-dev libalut-dev libxxf86vm-dev # libglew-dev is required by node-gl.
   - export NODE_PATH=$(npm config get prefix)/lib/node_modules
