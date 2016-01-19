@@ -83,8 +83,7 @@ func NewContext() *Context {
 		}
 	} else {
 		// Use headless-gl for testing.
-		nodeGl := js.Global.Call("require", "gl")
-		webglContext := nodeGl.Call("createContext", 16, 16)
+		webglContext := js.Global.Call("require", "gl").Invoke(16, 16)
 		gl = &webgl.Context{Object: webglContext}
 	}
 
