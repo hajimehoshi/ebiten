@@ -195,8 +195,9 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	c.bindFramebuffer(Framebuffer{f})
 
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.Object, 0)
-	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-		return Framebuffer{nil}, errors.New("creating framebuffer failed")
+	s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+	if s != gl.FRAMEBUFFER_COMPLETE {
+		return Framebuffer{nil}, errors.New(fmt.Sprintf("creating framebuffer failed: %d", s))
 	}
 
 	return Framebuffer{f}, nil

@@ -132,8 +132,15 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, f)
 
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
-	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-		return 0, errors.New("creating framebuffer failed")
+	s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+	if s != gl.FRAMEBUFFER_COMPLETE {
+		if s != 0 {
+			return 0, errors.New(fmt.Sprintf("creating framebuffer failed: %d", s))
+		}
+		if e := gl.GetError(); e != gl.NO_ERROR {
+			return 0, errors.New(fmt.Sprintf("creating framebuffer failed: (glGetError) %d", e))
+		}
+		return 0, errors.New(fmt.Sprintf("creating framebuffer failed: unknown error"))
 	}
 
 	return Framebuffer(f), nil
