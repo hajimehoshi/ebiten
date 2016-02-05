@@ -27,7 +27,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var license = ""
@@ -38,20 +37,16 @@ func init() {
 		panic(err)
 	}
 	license = strings.TrimSpace(string(b))
-
-	year, err := strconv.Atoi(regexp.MustCompile(`^Copyright (\d+)`).FindStringSubmatch(license)[1])
-	if err != nil {
-		panic(err)
-	}
-	if year != time.Now().Year() {
-		panic("the license's year is not this year")
-	}
 }
 
 var copyright = ""
 
 func init() {
-	copyright = fmt.Sprintf("© %d Hajime Hoshi", time.Now().Year())
+	year, err := strconv.Atoi(regexp.MustCompile(`^Copyright (\d+)`).FindStringSubmatch(license)[1])
+	if err != nil {
+		panic(err)
+	}
+	copyright = fmt.Sprintf("© %d Hajime Hoshi", year)
 }
 
 var stableVersion = ""
