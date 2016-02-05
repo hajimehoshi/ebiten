@@ -208,3 +208,62 @@ type DrawImageOptions struct {
 	// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
 	Parts []ImagePart
 }
+
+// NewImage returns an empty image.
+//
+// NewImage generates a new texture and a new framebuffer.
+// Be careful that image objects will never be released
+// even though nothing refers the image object and GC works.
+// It is because there is no way to define finalizers for Go objects if you use GopherJS.
+func NewImage(width, height int, filter Filter) (*Image, error) {
+	var img *Image
+	var err error
+	useGLContext(func(c *opengl.Context) {
+		var texture *graphics.Texture
+		var framebuffer *graphics.Framebuffer
+		texture, err = graphics.NewTexture(c, width, height, glFilter(c, filter))
+		if err != nil {
+			return
+		}
+		framebuffer, err = graphics.NewFramebufferFromTexture(c, texture)
+		if err != nil {
+			return
+		}
+		img = &Image{framebuffer: framebuffer, texture: texture}
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := img.Clear(); err != nil {
+		return nil, err
+	}
+	return img, nil
+}
+
+// NewImageFromImage creates a new image with the given image (img).
+//
+// NewImageFromImage generates a new texture and a new framebuffer.
+// Be careful that image objects will never be released
+// even though nothing refers the image object and GC works.
+// It is because there is no way to define finalizers for Go objects if you use GopherJS.
+func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
+	var eimg *Image
+	var err error
+	useGLContext(func(c *opengl.Context) {
+		var texture *graphics.Texture
+		var framebuffer *graphics.Framebuffer
+		texture, err = graphics.NewTextureFromImage(c, img, glFilter(c, filter))
+		if err != nil {
+			return
+		}
+		framebuffer, err = graphics.NewFramebufferFromTexture(c, texture)
+		if err != nil {
+			return
+		}
+		eimg = &Image{framebuffer: framebuffer, texture: texture}
+	})
+	if err != nil {
+		return nil, err
+	}
+	return eimg, nil
+}
