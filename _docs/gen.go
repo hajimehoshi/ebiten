@@ -220,6 +220,12 @@ func outputMain() error {
 	return t.Funcs(funcs).Execute(f, data)
 }
 
+func outputExampleImages() error {
+	// TODO: Using cp command might not be portable.
+	// Use io.Copy instead.
+	return exec.Command("cp", "-R", "../example/images", "public/example/images").Run()
+}
+
 func outputExampleContent(e *example) error {
 	const dir = "public/example"
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -296,6 +302,9 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := outputMain(); err != nil {
+		log.Fatal(err)
+	}
+	if err := outputExampleImages(); err != nil {
 		log.Fatal(err)
 	}
 	for _, e := range examples {
