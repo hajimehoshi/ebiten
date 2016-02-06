@@ -82,6 +82,7 @@ func NewContext() *Context {
 			panic(err)
 		}
 	} else {
+		// TODO: Now Ebiten with headless-gl doesn't work well (#141).
 		// Use headless-gl for testing.
 		options := map[string]bool{
 			"alpha":              true,
