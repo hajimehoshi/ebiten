@@ -125,7 +125,7 @@ func Monochrome() ColorM {
 	}
 }
 
-// ScaleColor returns a color matrix that scales a color matrix by the given color (r, g, b, a).
+// Deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleColor(r, g, b, a float64) ColorM {
 	return ColorM{
 		initialized: true,
@@ -138,7 +138,7 @@ func ScaleColor(r, g, b, a float64) ColorM {
 	}
 }
 
-// TranslateColor returns a color matrix that translates a color matrix by the given color (r, g, b, a).
+// Deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateColor(r, g, b, a float64) ColorM {
 	return ColorM{
 		initialized: true,

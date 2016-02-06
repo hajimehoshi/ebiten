@@ -166,11 +166,11 @@ func (f *Field) Update() error {
 func (f *Field) flushingColor() ebiten.ColorM {
 	clr := ebiten.ColorM{}
 	alpha := (float64(f.flushCount) / maxFlushCount) / 2
-	clr.Concat(ebiten.ScaleColor(1, 1, 1, alpha))
+	clr.Scale(1, 1, 1, alpha)
 	r := (1 - float64(f.flushCount)/maxFlushCount) * 2
 	g := (1 - float64(f.flushCount)/maxFlushCount) / 2
 	b := (1 - float64(f.flushCount)/maxFlushCount) / 2
-	clr.Concat(ebiten.TranslateColor(r, g, b, 0))
+	clr.Translate(r, g, b, 0)
 	return clr
 }
 
