@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	imageEmpty    *ebiten.Image
 	imageGameBG   *ebiten.Image
 	imageWindows  *ebiten.Image
 	imageGameover *ebiten.Image
@@ -67,6 +68,12 @@ func linesTextBoxPosition() (x, y int) {
 
 func init() {
 	var err error
+	// Empty
+	imageEmpty, err = ebiten.NewImage(16, 16, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	imageEmpty.Fill(color.White)
 	// Background
 	imageGameBG, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
@@ -121,7 +128,12 @@ func init() {
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) error {
-	return r.DrawFilledRect(x, y, width, height, color.NRGBA{0, 0, 0, 0xc0})
+	op := &ebiten.DrawImageOptions{}
+	w, h := imageEmpty.Size()
+	op.GeoM.Scale(float64(width)/float64(w), float64(height)/float64(h))
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorM.Scale(0, 0, 0, 0.75)
+	return r.DrawImage(imageEmpty, op)
 }
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}

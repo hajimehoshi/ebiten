@@ -128,11 +128,18 @@ func updateInput() {
 	}
 }
 
-var pianoImage *ebiten.Image
+var (
+	imagePiano *ebiten.Image
+)
 
 func init() {
 	var err error
-	pianoImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	imageEmpty, err := ebiten.NewImage(16, 16, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	imageEmpty.Fill(color.White)
+	imagePiano, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}
@@ -142,8 +149,13 @@ func init() {
 	for i, k := range whiteKeys {
 		x := i*width + 36
 		height := 112
-		pianoImage.DrawFilledRect(x, y, width-1, height, color.White)
-		common.ArcadeFont.DrawText(pianoImage, k, x+8, y+height-16, 1, color.Black)
+		op := &ebiten.DrawImageOptions{}
+		w, h := imageEmpty.Size()
+		op.GeoM.Scale(float64(width-1)/float64(w), float64(height)/float64(h))
+		op.GeoM.Translate(float64(x), float64(y))
+		op.ColorM.Scale(1, 1, 1, 1)
+		imagePiano.DrawImage(imageEmpty, op)
+		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.Black)
 	}
 
 	blackKeys := []string{"Q", "W", "", "R", "T", "", "U", "I", "O"}
@@ -153,8 +165,13 @@ func init() {
 		}
 		x := i*width + 24
 		height := 64
-		pianoImage.DrawFilledRect(x, y, width-1, height, color.Black)
-		common.ArcadeFont.DrawText(pianoImage, k, x+8, y+height-16, 1, color.White)
+		op := &ebiten.DrawImageOptions{}
+		w, h := imageEmpty.Size()
+		op.GeoM.Scale(float64(width-1)/float64(w), float64(height)/float64(h))
+		op.GeoM.Translate(float64(x), float64(y))
+		op.ColorM.Scale(0, 0, 0, 1)
+		imagePiano.DrawImage(imageEmpty, op)
+		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.White)
 	}
 }
 
@@ -168,7 +185,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
-	screen.DrawImage(pianoImage, nil)
+	screen.DrawImage(imagePiano, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
