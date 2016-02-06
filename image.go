@@ -116,11 +116,6 @@ func (i *Image) DrawRect(x, y, width, height int, clr color.Color) error {
 	return i.DrawLines(&rectsAsLines{&rect{x, y, width, height, clr}})
 }
 
-// DrawRect draws rectangles.
-func (i *Image) DrawRects(rects Rects) error {
-	return i.DrawLines(&rectsAsLines{rects})
-}
-
 // DrawFilledRect draws a filled rectangle.
 func (i *Image) DrawFilledRect(x, y, width, height int, clr color.Color) error {
 	return i.DrawFilledRects(&rect{x, y, width, height, clr})
