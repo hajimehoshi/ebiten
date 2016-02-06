@@ -128,16 +128,24 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-func (i *Image) dispose() {
+// Dispose disposes the image data. After disposing, the image becomes invalid.
+// This is useful to save memory.
+func (i *Image) Dispose() {
+	if i.isDisposed() {
+		panic("the image is already disposed")
+	}
 	useGLContext(func(c *opengl.Context) {
-		if i.framebuffer != nil {
-			i.framebuffer.Dispose(c)
-		}
-		if i.texture != nil {
-			i.texture.Dispose(c)
-		}
+		i.framebuffer.Dispose(c)
+		i.framebuffer = nil
+		i.texture.Dispose(c)
+		i.texture = nil
 	})
 	i.pixels = nil
+}
+
+// IsDisposed returns a boolean indicating wheather the image is disposed.
+func (i *Image) IsDisposed() bool {
+	return i.texture == nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.

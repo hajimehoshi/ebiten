@@ -61,10 +61,10 @@ func (c *graphicsContext) postUpdate() error {
 
 func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) error {
 	if c.defaultRenderTarget != nil {
-		c.defaultRenderTarget.dispose()
+		c.defaultRenderTarget.Dispose()
 	}
 	if c.screen != nil {
-		c.screen.dispose()
+		c.screen.Dispose()
 	}
 
 	var err error
