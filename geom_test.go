@@ -50,8 +50,9 @@ func TestGeometryInit(t *testing.T) {
 }
 
 func TestGeometryAssign(t *testing.T) {
-	m := ScaleGeo(1, 1) // Create elements explicitly
-	m2 := m
+	m := &GeoM{}
+	m.Scale(1, 1) // Create elements explicitly
+	m2 := *m
 	m.SetElement(0, 0, 0)
 	got := m2.Element(0, 0)
 	want := 1.0
@@ -61,8 +62,10 @@ func TestGeometryAssign(t *testing.T) {
 }
 
 func TestGeometryConcat(t *testing.T) {
-	matrix1 := ScaleGeo(2, 2)
-	matrix2 := TranslateGeo(1, 1)
+	matrix1 := GeoM{}
+	matrix1.Scale(2, 2)
+	matrix2 := GeoM{}
+	matrix2.Translate(1, 1)
 
 	matrix3 := matrix1
 	matrix3.Concat(matrix2)

@@ -91,7 +91,14 @@ func (g *GeoM) Translate(tx, ty float64) {
 }
 
 func (g *GeoM) Rotate(theta float64) {
-	g.Concat(RotateGeo(theta))
+	sin, cos := math.Sincos(theta)
+	g.Concat(GeoM{
+		initialized: true,
+		es: [2][3]float64{
+			{cos, -sin, 0},
+			{sin, cos, 0},
+		},
+	})
 }
 
 // SetElement sets an element at (i, j).
@@ -102,7 +109,7 @@ func (g *GeoM) SetElement(i, j int, element float64) {
 	g.es[i][j] = element
 }
 
-// ScaleGeo returns a matrix that scales a geometry matrix by (x, y).
+// Deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleGeo(x, y float64) GeoM {
 	return GeoM{
 		initialized: true,
@@ -113,7 +120,7 @@ func ScaleGeo(x, y float64) GeoM {
 	}
 }
 
-// TranslateGeo returns a matrix that translates a geometry matrix by (tx, ty).
+// Deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateGeo(tx, ty float64) GeoM {
 	return GeoM{
 		initialized: true,
@@ -124,7 +131,7 @@ func TranslateGeo(tx, ty float64) GeoM {
 	}
 }
 
-// RotateGeo returns a matrix that rotates a geometry matrix by theta.
+// Deprecated as of 1.2.0-alpha. Use Rotate instead.
 func RotateGeo(theta float64) GeoM {
 	sin, cos := math.Sincos(theta)
 	return GeoM{
