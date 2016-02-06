@@ -111,15 +111,6 @@ func (i *Image) DrawLines(lines Lines) (err error) {
 	return
 }
 
-// DrawFilledRects draws filled rectangles on the image.
-func (i *Image) DrawFilledRects(rects Rects) (err error) {
-	i.pixels = nil
-	useGLContext(func(c *opengl.Context) {
-		err = i.framebuffer.DrawFilledRects(c, rects)
-	})
-	return
-}
-
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
 	w, h := i.Size()
