@@ -97,15 +97,6 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return
 }
 
-// DrawLines draws lines.
-func (i *Image) DrawLines(lines Lines) (err error) {
-	i.pixels = nil
-	useGLContext(func(c *opengl.Context) {
-		err = i.framebuffer.DrawLines(c, lines)
-	})
-	return
-}
-
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
 	w, h := i.Size()
