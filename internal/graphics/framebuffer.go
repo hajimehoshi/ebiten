@@ -136,22 +136,6 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 	return drawTexture(c, t.native, p, quads, geo, clr)
 }
 
-func (f *Framebuffer) DrawLines(c *opengl.Context, lines Lines) error {
-	if err := f.setAsViewport(c); err != nil {
-		return err
-	}
-	p := f.projectionMatrix()
-	return drawLines(c, p, lines)
-}
-
-func (f *Framebuffer) DrawFilledRects(c *opengl.Context, rects Rects) error {
-	if err := f.setAsViewport(c); err != nil {
-		return err
-	}
-	p := f.projectionMatrix()
-	return drawFilledRects(c, p, rects)
-}
-
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
 	w, h := f.Size()
 	w, h = NextPowerOf2Int(w), NextPowerOf2Int(h)

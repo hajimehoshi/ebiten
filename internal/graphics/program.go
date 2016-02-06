@@ -25,9 +25,7 @@ var (
 )
 
 var (
-	programTexture   opengl.Program
-	programSolidRect opengl.Program
-	programSolidLine opengl.Program
+	programTexture opengl.Program
 )
 
 const indicesNum = math.MaxUint16 + 1
@@ -44,49 +42,15 @@ func initialize(c *opengl.Context) error {
 	}
 	defer c.DeleteShader(shaderVertexModelviewNative)
 
-	shaderVertexColorNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColor))
-	if err != nil {
-		return err
-	}
-	defer c.DeleteShader(shaderVertexColorNative)
-
-	shaderVertexColorLineNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexColorLine))
-	if err != nil {
-		return err
-	}
-	defer c.DeleteShader(shaderVertexColorLineNative)
-
 	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
 	if err != nil {
 		return err
 	}
 	defer c.DeleteShader(shaderFragmentTextureNative)
 
-	shaderFragmentSolidNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentSolid))
-	if err != nil {
-		return err
-	}
-	defer c.DeleteShader(shaderFragmentSolidNative)
-
 	programTexture, err = c.NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentTextureNative,
-	})
-	if err != nil {
-		return err
-	}
-
-	programSolidRect, err = c.NewProgram([]opengl.Shader{
-		shaderVertexColorNative,
-		shaderFragmentSolidNative,
-	})
-	if err != nil {
-		return err
-	}
-
-	programSolidLine, err = c.NewProgram([]opengl.Shader{
-		shaderVertexColorLineNative,
-		shaderFragmentSolidNative,
 	})
 	if err != nil {
 		return err
@@ -220,53 +184,6 @@ func useProgramForTexture(c *opengl.Context, projectionMatrix []float32, texture
 
 	return func() {
 		c.DisableVertexAttribArray(program, "tex_coord")
-		c.DisableVertexAttribArray(program, "vertex")
-	}
-}
-
-func useProgramForLines(c *opengl.Context, projectionMatrix []float32) programFinisher {
-	if !lastProgram.Equals(programSolidLine) {
-		c.UseProgram(programSolidLine)
-		lastProgram = programSolidLine
-	}
-	program := programSolidLine
-
-	c.BindElementArrayBuffer(indexBufferLines)
-
-	c.UniformFloats(program, "projection_matrix", projectionMatrix)
-
-	c.EnableVertexAttribArray(program, "vertex")
-	c.EnableVertexAttribArray(program, "color")
-
-	// TODO: Change to floats?
-	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, int16Size*0)
-	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, int16Size*2)
-
-	return func() {
-		c.DisableVertexAttribArray(program, "color")
-		c.DisableVertexAttribArray(program, "vertex")
-	}
-}
-
-func useProgramForRects(c *opengl.Context, projectionMatrix []float32) programFinisher {
-	if !lastProgram.Equals(programSolidRect) {
-		c.UseProgram(programSolidRect)
-		lastProgram = programSolidRect
-	}
-	program := programSolidRect
-
-	c.BindElementArrayBuffer(indexBufferQuads)
-
-	c.UniformFloats(program, "projection_matrix", projectionMatrix)
-
-	c.EnableVertexAttribArray(program, "vertex")
-	c.EnableVertexAttribArray(program, "color")
-
-	c.VertexAttribPointer(program, "vertex", true, false, int16Size*6, 2, int16Size*0)
-	c.VertexAttribPointer(program, "color", false, true, int16Size*6, 4, int16Size*2)
-
-	return func() {
-		c.DisableVertexAttribArray(program, "color")
 		c.DisableVertexAttribArray(program, "vertex")
 	}
 }
