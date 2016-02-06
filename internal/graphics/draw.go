@@ -55,8 +55,16 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
 	}
 
-	f := useProgramForTexture(c, glMatrix(projectionMatrix), texture, geo, color)
-	defer f.FinishProgram()
+	p := programContext{
+		program:          programTexture,
+		context:          c,
+		projectionMatrix: glMatrix(projectionMatrix),
+		texture:          texture,
+		geoM:             geo,
+		colorM:           color,
+	}
+	p.begin()
+	defer p.end()
 
 	vertices := vertices[0:0]
 	num := 0
