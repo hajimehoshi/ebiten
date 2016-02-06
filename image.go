@@ -97,11 +97,6 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return
 }
 
-// DrawLine draws a line.
-func (i *Image) DrawLine(x0, y0, x1, y1 int, clr color.Color) error {
-	return i.DrawLines(&line{x0, y0, x1, y1, clr})
-}
-
 // DrawLines draws lines.
 func (i *Image) DrawLines(lines Lines) (err error) {
 	i.pixels = nil
