@@ -168,7 +168,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 		return
 	}
 	op := &DrawImageOptions{}
-	op.GeoM.Rotate(2 * math.Pi / 2)
+	op.GeoM.Rotate(math.Pi)
 	op.GeoM.Translate(float64(w), float64(h))
 	img1.DrawImage(img0, op)
 
@@ -177,7 +177,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 			c0 := img0.At(i, j).(color.RGBA)
 			c1 := img1.At(w-i-1, h-j-1).(color.RGBA)
 			if c0 != c1 {
-				t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[1]d, %[2]d) but not: %[3]v vs %[4]v", i, j, c0, c1)
+				t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[3]d, %[4]d) but not: %[5]v vs %[6]v", i, j, w-i-1, h-j-1, c0, c1)
 			}
 		}
 	}
