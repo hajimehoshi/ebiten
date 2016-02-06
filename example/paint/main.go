@@ -47,7 +47,7 @@ func update(screen *ebiten.Image) error {
 		op.GeoM.Translate(float64(mx), float64(my))
 		op.ColorM.Scale(1.0, 0.25, 0.25, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
-		op.ColorM.Concat(ebiten.RotateHue(theta))
+		op.ColorM.RotateHue(theta)
 		if err := canvasImage.DrawImage(brushImage, op); err != nil {
 			return err
 		}

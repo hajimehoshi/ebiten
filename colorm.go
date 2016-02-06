@@ -101,6 +101,23 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 	c.es[3][4] += a
 }
 
+// RotateHue rotates the hue.
+func (c *ColorM) RotateHue(theta float64) {
+	sin, cos := math.Sincos(theta)
+	v1 := cos + (1.0-cos)/3.0
+	v2 := (1.0/3.0)*(1.0-cos) - math.Sqrt(1.0/3.0)*sin
+	v3 := (1.0/3.0)*(1.0-cos) + math.Sqrt(1.0/3.0)*sin
+	c.Concat(ColorM{
+		initialized: true,
+		es: [ColorMDim - 1][ColorMDim]float64{
+			{v1, v2, v3, 0, 0},
+			{v3, v1, v2, 0, 0},
+			{v2, v3, v1, 0, 0},
+			{0, 0, 0, 1, 0},
+		},
+	})
+}
+
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
 	if !c.initialized {
@@ -151,7 +168,7 @@ func TranslateColor(r, g, b, a float64) ColorM {
 	}
 }
 
-// RotateHue returns a color matrix to rotate the hue
+// Deprecated as of 1.2.0-alpha. Use RotateHue member function instead.
 func RotateHue(theta float64) ColorM {
 	sin, cos := math.Sincos(theta)
 	v1 := cos + (1.0-cos)/3.0
