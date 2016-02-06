@@ -227,4 +227,15 @@ func TestReplacePixels(t *testing.T) {
 	}
 }
 
+func TestImageDispose(t *testing.T) {
+	img, err := NewImage(16, 16, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img.Dispose(); err != nil {
+		t.Errorf("img.Dipose() returns error: %v", err)
+	}
+}
+
 // TODO: Add more tests (e.g. DrawImage with color matrix)
