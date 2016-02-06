@@ -17,10 +17,12 @@ package ebiten
 import (
 	"errors"
 	"fmt"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"image"
 	"image/color"
+	"runtime"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 // Image represents an image.
@@ -44,11 +46,17 @@ func (i *Image) Size() (width, height int) {
 
 // Clear resets the pixels of the image into 0.
 func (i *Image) Clear() (err error) {
+	if i.isDisposed() {
+		return errors.New("image is already disposed")
+	}
 	return i.Fill(color.Transparent)
 }
 
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
+	if i.isDisposed() {
+		return errors.New("image is already disposed")
+	}
 	i.pixels = nil
 	useGLContext(func(c *opengl.Context) {
 		err = i.framebuffer.Fill(c, clr)
@@ -71,6 +79,9 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // Be careful that this method is potentially slow.
 // It would be better if you could call this method fewer times.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
+	if i.isDisposed() {
+		return errors.New("image is already disposed")
+	}
 	if i == image {
 		return errors.New("Image.DrawImage: image should be different from the receiver")
 	}
@@ -112,6 +123,9 @@ func (i *Image) ColorModel() color.Model {
 //
 // This method loads pixels from VRAM to system memory if necessary.
 func (i *Image) At(x, y int) color.Color {
+	if i.isDisposed() {
+		return color.Transparent
+	}
 	if i.pixels == nil {
 		useGLContext(func(c *opengl.Context) {
 			var err error
@@ -130,9 +144,11 @@ func (i *Image) At(x, y int) color.Color {
 
 // Dispose disposes the image data. After disposing, the image becomes invalid.
 // This is useful to save memory.
-func (i *Image) Dispose() {
+//
+// The behavior of any functions for a disposed image is undefined.
+func (i *Image) Dispose() error {
 	if i.isDisposed() {
-		panic("the image is already disposed")
+		return errors.New("image is already disposed")
 	}
 	useGLContext(func(c *opengl.Context) {
 		i.framebuffer.Dispose(c)
@@ -141,10 +157,11 @@ func (i *Image) Dispose() {
 		i.texture = nil
 	})
 	i.pixels = nil
+	runtime.SetFinalizer(i, nil)
+	return nil
 }
 
-// IsDisposed returns a boolean indicating wheather the image is disposed.
-func (i *Image) IsDisposed() bool {
+func (i *Image) isDisposed() bool {
 	return i.texture == nil
 }
 
@@ -154,8 +171,10 @@ func (i *Image) IsDisposed() bool {
 //
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
 func (i *Image) ReplacePixels(p []uint8) error {
+	if i.isDisposed() {
+		return errors.New("image is already disposed")
+	}
 	// Don't set i.pixels here because i.pixels is used not every time.
-
 	i.pixels = nil
 	w, h := i.Size()
 	l := 4 * w * h
@@ -207,6 +226,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err := img.Clear(); err != nil {
 		return nil, err
 	}
+	runtime.SetFinalizer(img, (*Image).Dispose)
 	return img, nil
 }
 
@@ -235,5 +255,6 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
+	runtime.SetFinalizer(eimg, (*Image).Dispose)
 	return eimg, nil
 }
