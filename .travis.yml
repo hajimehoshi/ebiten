@@ -28,10 +28,14 @@ before_script:
   - sleep 3
 
 script:
-  - go test -v ./...
+  - go build -v ./...
   - gopherjs build -v github.com/hajimehoshi/ebiten/example/blocks
 
-# Looks like testing GL on node on Travis CI seems hard.
+# Give up testing on Travis CI because of X error
+# https://travis-ci.org/hajimehoshi/ebiten/jobs/107404013
+# - go test -v ./...
+
+# Looks like testing GL on node is hard.
 # - gopherjs test -v github.com/hajimehoshi/ebiten github.com/hajimehoshi/ebiten/internal/graphics
 
 notifications:
