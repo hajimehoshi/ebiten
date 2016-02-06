@@ -162,7 +162,10 @@ func (i *Image) Dispose() error {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.texture == nil
+	// i.texture can be nil even when the image is not disposed,
+	// so we need to check if both are nil.
+	// See graphicsContext.setSize function.
+	return i.texture == nil && i.framebuffer == nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.
