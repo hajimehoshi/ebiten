@@ -114,7 +114,7 @@ pre {
     <ul>
       <li>Support for gamepads</li>
       <li>Support for touch events</li>
-      <li>Added new functions for image rendering:
+      <li>Add new functions for image rendering:
         <ul>
           <li>Image.ReplacePixels</li>
         </ul>
@@ -124,6 +124,16 @@ pre {
           <li>exp/audio: Play music and sound</li>
           <li>exp/gamepad: Useful functions to configure gamepads</li>
           <li>These packages are experimental and we don't guarantee backward compatibility.</li>
+        </ul>
+      </li>
+      <li>Deprecate some APIs
+        <ul>
+          <li>TranslateGeo (Use GeoM's Translate instead)</li>
+          <li>ScaleGeo (Use GoeM's Scale instead)</li>
+          <li>RotateGeo (Use GoeM's Rotate instead)</li>
+          <li>TranslateColor (Use ColorM's Translate instead)</li>
+          <li>ScaleColor (Use ColorM's Scale instead)</li>
+          <li>RotateHue (Use ColorM's RotateHue instead)</li>
         </ul>
       </li>
       <li>Some bug fix.</li>
