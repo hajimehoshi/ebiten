@@ -94,7 +94,3 @@ func initialize() {
 	}()
 	<-ch
 }
-
-func start() {
-	// Do nothing
-}

@@ -37,7 +37,6 @@ func init() {
 
 func Init() {
 	initialize()
-	start()
 }
 
 func isPlaying(channel int) bool {

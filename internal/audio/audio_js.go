@@ -87,9 +87,7 @@ func initialize() {
 		dummies = append(dummies, dummy)
 	}
 	audioEnabled = true
-}
 
-func start() {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
 		return

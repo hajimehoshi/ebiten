@@ -19,6 +19,3 @@ func withChannels(f func()) {
 
 func initialize() {
 }
-
-func start() {
-}
