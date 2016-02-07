@@ -57,7 +57,7 @@ func square(out []int16, volume float64, freq float64, sequence float64) {
 		}
 		return
 	}
-	length := int(float64(audio.SampleRate()) / freq)
+	length := int(float64(audio.SampleRate) / freq)
 	if length == 0 {
 		panic("invalid freq")
 	}
@@ -85,7 +85,7 @@ func toBytes(l, r []int16) []byte {
 }
 
 func addNote() {
-	size := audio.SampleRate() / 60
+	size := audio.SampleRate / 60
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 
 	defer func() {

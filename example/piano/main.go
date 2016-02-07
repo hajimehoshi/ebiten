@@ -31,12 +31,12 @@ const (
 	screenHeight = 240
 )
 
-var pcm = make([]float64, 4*audio.SampleRate())
+var pcm = make([]float64, 4*audio.SampleRate)
 
 const baseFreq = 220
 
 func init() {
-	s := float64(audio.SampleRate())
+	s := float64(audio.SampleRate)
 	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
 	x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
 	for i := 0; i < len(pcm); i++ {

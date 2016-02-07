@@ -23,7 +23,7 @@ type channel struct {
 	nextInsertionPosition int
 }
 
-var MaxChannel = 32
+const MaxChannel = 32
 
 var channels = make([]*channel, MaxChannel)
 
