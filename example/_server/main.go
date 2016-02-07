@@ -143,6 +143,6 @@ func main() {
 	http.HandleFunc("/main.js", serveMainJS)
 	http.HandleFunc("/main.js.map", serveMainJSMap)
 	http.Handle("/", http.FileServer(http.Dir(rootPath)))
-	fmt.Printf("http://localhost:%d/\n", *port)
+	fmt.Printf("http://localhost:%d/?blocks\n", *port)
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
 }
