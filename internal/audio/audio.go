@@ -119,12 +119,10 @@ func loadChannelBuffer(channel int, bufferSize int) []byte {
 		if !audioEnabled {
 			return
 		}
-
 		ch := channels[channel]
 		length := min(len(ch.buffer), bufferSize)
 		input := ch.buffer[:length]
 		ch.buffer = ch.buffer[length:]
-
 		r = input
 	})
 	return r

@@ -44,16 +44,21 @@ func toLR(data []byte) ([]int16, []int16) {
 }
 
 func (a *audioProcessor) Process(e *js.Object) {
-	// Can't use 'go' here. Probably it may cause race conditions.
+	// Can't use goroutines here. Probably it may cause race conditions.
 	b := e.Get("outputBuffer")
 	l := b.Call("getChannelData", 0)
 	r := b.Call("getChannelData", 1)
 	inputL, inputR := toLR(loadChannelBuffer(a.channel, bufferSize*4))
 	const max = 1 << 15
-	for i := 0; i < len(inputL); i++ {
+	for i := 0; i < bufferSize; i++ {
 		// TODO: Use copyToChannel?
-		l.SetIndex(i, float64(inputL[i])/max)
-		r.SetIndex(i, float64(inputR[i])/max)
+		if i < len(inputL) {
+			l.SetIndex(i, float64(inputL[i])/max)
+			r.SetIndex(i, float64(inputR[i])/max)
+		} else {
+			l.SetIndex(i, 0)
+			r.SetIndex(i, 0)
+		}
 	}
 }
 
