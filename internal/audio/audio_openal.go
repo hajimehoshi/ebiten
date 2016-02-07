@@ -17,13 +17,12 @@
 package audio
 
 import (
-	"fmt"
 	"log"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/timshannon/go-openal/openal"
+	"golang.org/x/mobile/exp/audio/al"
 )
 
 var channelsMutex = sync.Mutex{}
@@ -40,11 +39,7 @@ func initialize() {
 	go func() {
 		runtime.LockOSThread()
 
-		device := openal.OpenDevice("")
-		context := device.CreateContext()
-		context.Activate()
-
-		if err := openal.Err(); err != nil {
+		if err := al.OpenDevice(); err != nil {
 			log.Printf("OpenAL initialize error: %v", err)
 			close(ch)
 			// Graceful ending: Audio is not available on Travis CI.
@@ -52,7 +47,7 @@ func initialize() {
 		}
 
 		audioEnabled = true
-		sources := openal.NewSources(MaxChannel)
+		sources := al.GenSources(MaxChannel)
 		close(ch)
 
 		const bufferSize = 2048
@@ -62,15 +57,12 @@ func initialize() {
 			// 3 is the least number?
 			// http://stackoverflow.com/questions/14932004/play-sound-with-openalstream
 			const bufferNum = 4
-			buffers := openal.NewBuffers(bufferNum)
+			buffers := al.GenBuffers(bufferNum)
 			for _, buffer := range buffers {
-				buffer.SetData(openal.FormatStereo16, emptyBytes, SampleRate)
-				source.QueueBuffer(buffer)
+				buffer.BufferData(al.FormatStereo16, emptyBytes, SampleRate)
+				source.QueueBuffers(buffer)
 			}
-			source.Play()
-			if err := openal.Err(); err != nil {
-				panic(fmt.Sprintf("OpenAL error: %v", err))
-			}
+			al.PlaySources(source)
 		}
 
 		for {
@@ -82,17 +74,17 @@ func initialize() {
 				}
 
 				oneProcessed = true
-				buffers := make([]openal.Buffer, processed)
-				source.UnqueueBuffers(buffers)
+				buffers := make([]al.Buffer, processed)
+				source.UnqueueBuffers(buffers...)
 				for _, buffer := range buffers {
 					b := make([]byte, bufferSize)
 					copy(b, loadChannelBuffer(ch, bufferSize))
-					buffer.SetData(openal.FormatStereo16, b, SampleRate)
-					source.QueueBuffer(buffer)
+					buffer.BufferData(al.FormatStereo16, b, SampleRate)
+					source.QueueBuffers(buffer)
 				}
-				if source.State() == openal.Stopped {
-					source.Rewind()
-					source.Play()
+				if source.State() == al.Stopped {
+					al.RewindSources(source)
+					al.PlaySources(source)
 				}
 			}
 			if !oneProcessed {
