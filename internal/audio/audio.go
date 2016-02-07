@@ -23,8 +23,7 @@ var audioEnabled = false
 const SampleRate = 44100
 
 type channel struct {
-	buffer                []byte
-	nextInsertionPosition int
+	buffer []byte
 }
 
 const MaxChannel = 32
@@ -53,7 +52,7 @@ func withChannels(f func()) {
 
 func isPlaying(channel int) bool {
 	ch := channels[channel]
-	return ch.nextInsertionPosition < len(ch.buffer)
+	return 0 < len(ch.buffer)
 }
 
 func channelAt(i int) *channel {
@@ -86,12 +85,6 @@ func Queue(channel int, data []byte) bool {
 		ch.buffer = append(ch.buffer, data...)
 	})
 	return result
-}
-
-func Tick() {
-	for _, ch := range channels {
-		ch.nextInsertionPosition += SampleRate * 4 / 60
-	}
 }
 
 func min(a, b int) int {
@@ -131,11 +124,6 @@ func loadChannelBuffer(channel int, bufferSize int) []byte {
 		length := min(len(ch.buffer), bufferSize)
 		input := ch.buffer[:length]
 		ch.buffer = ch.buffer[length:]
-
-		ch.nextInsertionPosition -= bufferSize
-		if ch.nextInsertionPosition < 0 {
-			ch.nextInsertionPosition = 0
-		}
 
 		r = input
 	})

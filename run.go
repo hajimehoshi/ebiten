@@ -15,9 +15,9 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/audio"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 var runContext = &struct {
@@ -112,7 +112,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			if err := f(graphicsContext.screen); err != nil {
 				return err
 			}
-			audio.Tick()
 		}
 		if err := graphicsContext.postUpdate(); err != nil {
 			return err
