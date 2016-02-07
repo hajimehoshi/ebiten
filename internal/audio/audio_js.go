@@ -20,10 +20,6 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-func withChannels(f func()) {
-	f()
-}
-
 // Keep this so as not to be destroyed by GC.
 var (
 	nodes   = []*js.Object{}

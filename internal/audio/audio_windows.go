@@ -14,8 +14,5 @@
 
 package audio
 
-func withChannels(f func()) {
-}
-
 func initialize() {
 }

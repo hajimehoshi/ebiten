@@ -14,6 +14,10 @@
 
 package audio
 
+import (
+	"sync"
+)
+
 var audioEnabled = false
 
 const SampleRate = 44100
@@ -37,6 +41,14 @@ func init() {
 
 func Init() {
 	initialize()
+}
+
+var channelsMutex = sync.Mutex{}
+
+func withChannels(f func()) {
+	channelsMutex.Lock()
+	defer channelsMutex.Unlock()
+	f()
 }
 
 func isPlaying(channel int) bool {

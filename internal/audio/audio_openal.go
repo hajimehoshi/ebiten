@@ -19,19 +19,10 @@ package audio
 import (
 	"log"
 	"runtime"
-	"sync"
 	"time"
 
 	"golang.org/x/mobile/exp/audio/al"
 )
-
-var channelsMutex = sync.Mutex{}
-
-func withChannels(f func()) {
-	channelsMutex.Lock()
-	defer channelsMutex.Unlock()
-	f()
-}
 
 func initialize() {
 	// Creating OpenAL device must be done after initializing UI. I'm not sure the reason.
