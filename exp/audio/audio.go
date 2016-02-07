@@ -15,16 +15,16 @@
 package audio
 
 import (
-	"github.com/hajimehoshi/ebiten/exp/audio/inner"
+	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
 // SampleRate returns the sampling frequency (e.g. 44100).
 func SampleRate() int {
-	return internal.SampleRate
+	return audio.SampleRate
 }
 
 // MaxChannel is a max number of channels.
-var MaxChannel = internal.MaxChannel
+var MaxChannel = audio.MaxChannel
 
 // Play appends the given data to the given channel.
 //
@@ -35,7 +35,7 @@ var MaxChannel = internal.MaxChannel
 //
 // This function is useful to play SE or a note of PCM synthesis immediately.
 func Play(channel int, data []byte) bool {
-	return internal.Play(channel, data)
+	return audio.Play(channel, data)
 }
 
 // Queue queues the given data to the given channel.
@@ -47,12 +47,12 @@ func Play(channel int, data []byte) bool {
 //
 // This function is useful to play streaming data.
 func Queue(channel int, data []byte) {
-	internal.Queue(channel, data)
+	audio.Queue(channel, data)
 }
 
 // IsPlaying returns a boolean value which indicates if the channel buffer has data to play.
 func IsPlaying(channel int) bool {
-	return internal.IsPlaying(channel)
+	return audio.IsPlaying(channel)
 }
 
 // TODO: Add Clear function

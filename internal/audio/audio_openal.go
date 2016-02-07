@@ -14,7 +14,7 @@
 
 // +build !js,!windows
 
-package internal
+package audio
 
 import (
 	"fmt"
