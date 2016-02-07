@@ -46,52 +46,35 @@ func isPlaying(channel int) bool {
 }
 
 func channelAt(i int) *channel {
-	var ch *channel
-	withChannels(func() {
-		if i == -1 {
-			for i, _ := range channels {
-				if !isPlaying(i) {
-					ch = channels[i]
-					return
-				}
+	if i == -1 {
+		for i, _ := range channels {
+			if !isPlaying(i) {
+				return channels[i]
 			}
-			return
 		}
-		if !isPlaying(i) {
-			ch = channels[i]
-			return
-		}
-		return
-	})
-	return ch
-}
-
-func Play(channel int, data []byte) bool {
-	ch := channelAt(channel)
-	if ch == nil {
-		return false
+		return nil
 	}
-	withChannels(func() {
-		if !audioEnabled {
-			return
-		}
-		d := ch.nextInsertionPosition - len(data)
-		if 0 < d {
-			ch.buffer = append(ch.buffer, make([]byte, d)...)
-		}
-		ch.buffer = append(ch.buffer, data...)
-	})
-	return true
+	if !isPlaying(i) {
+		return channels[i]
+	}
+	return nil
 }
 
-func Queue(channel int, data []byte) {
+func Queue(channel int, data []byte) bool {
+	result := true
 	withChannels(func() {
 		if !audioEnabled {
+			result = false
 			return
 		}
-		ch := channels[channel]
+		ch := channelAt(channel)
+		if ch == nil {
+			result = false
+			return
+		}
 		ch.buffer = append(ch.buffer, data...)
 	})
+	return result
 }
 
 func Tick() {
