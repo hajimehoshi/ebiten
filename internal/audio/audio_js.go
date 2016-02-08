@@ -89,11 +89,6 @@ func initialize() {
 	}
 	audioEnabled = true
 
-	// Do nothing in node.js.
-	if js.Global.Get("require") != js.Undefined {
-		return
-	}
-
 	destination := context.Get("destination")
 	for i, node := range nodes {
 		dummy := dummies[i]
