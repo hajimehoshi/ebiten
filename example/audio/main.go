@@ -112,7 +112,7 @@ func addNote() {
 	vol := 1.0 / 16.0
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
-	audio.Queue(0, toBytes(l, r))
+	audio.Queue(-1, toBytes(l, r))
 }
 
 func update(screen *ebiten.Image) error {
