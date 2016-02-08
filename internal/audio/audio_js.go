@@ -22,7 +22,7 @@ import (
 
 // Known issue (#146): We can't change the sample rate of a AudioContext.
 // This means that if AudioContext's sample rate is 48000,
-// there is no way to play 44.1Hz PCM properly without resampling.
+// there is no way to play 44.1 kHz PCM properly without resampling.
 // Let's wait for the new spec and browser implementation:
 // https://github.com/WebAudio/web-audio-api/issues/300
 
