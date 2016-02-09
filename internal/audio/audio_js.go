@@ -20,24 +20,19 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-// Known issue (#146): We can't change the sample rate of a AudioContext.
-// This means that if AudioContext's sample rate is 48000,
-// there is no way to play 44.1 kHz PCM properly without resampling.
-// Let's wait for the new spec and browser implementation:
-// https://github.com/WebAudio/web-audio-api/issues/300
-
-// Keep this so as not to be destroyed by GC.
+// Keep this as global so as not to be destroyed by GC.
 var (
 	nodes   = []*js.Object{}
 	dummies = []*js.Object{} // Dummy source nodes for iOS.
 	context *js.Object
 )
 
-const bufferSize = 1024
-
 type audioProcessor struct {
-	channel int
+	channel  int
+	position float64
 }
+
+var audioProcessors [MaxChannel]*audioProcessor
 
 func toLR(data []byte) ([]int16, []int16) {
 	l := make([]int16, len(data)/4)
@@ -49,22 +44,42 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func (a *audioProcessor) Process(e *js.Object) {
-	// Can't use goroutines here. Probably it may cause race conditions.
-	b := e.Get("outputBuffer")
+func (a *audioProcessor) playChunk(buf []byte, sampleRate int) {
+	if len(buf) == 0 {
+		return
+	}
+	const channelNum = 2
+	const bytesPerSample = channelNum * 16 / 8
+	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, sampleRate)
 	l := b.Call("getChannelData", 0)
 	r := b.Call("getChannelData", 1)
-	inputL, inputR := toLR(loadChannelBuffer(a.channel, bufferSize*4))
+	il, ir := toLR(buf)
 	const max = 1 << 15
-	for i := 0; i < bufferSize; i++ {
-		// TODO: Use copyToChannel?
-		if i < len(inputL) {
-			l.SetIndex(i, float64(inputL[i])/max)
-			r.SetIndex(i, float64(inputR[i])/max)
-		} else {
-			l.SetIndex(i, 0)
-			r.SetIndex(i, 0)
-		}
+	for i := 0; i < len(il); i++ {
+		l.SetIndex(i, float64(il[i])/max)
+		r.SetIndex(i, float64(ir[i])/max)
+	}
+	s := context.Call("createBufferSource")
+	s.Set("buffer", b)
+	s.Call("connect", context.Get("destination"))
+	c := context.Get("currentTime").Float()
+	if a.position < c {
+		a.position = c
+	}
+	s.Call("start", a.position)
+	a.position += float64(len(il)) / float64(sampleRate)
+}
+
+func isPlaying(channel int) bool {
+	c := context.Get("currentTime").Float()
+	return c < audioProcessors[channel].position
+}
+
+func tick() {
+	const bufferSize = 1024
+	const sampleRate = 44100 // TODO: This should be changeable
+	for _, a := range audioProcessors {
+		a.playChunk(loadChannelBuffer(a.channel, bufferSize*4), sampleRate)
 	}
 }
 
@@ -82,23 +97,11 @@ func initialize() {
 		return
 	}
 	context = class.New()
-	// TODO: ScriptProcessorNode will be replaced with Audio WebWorker.
-	// https://developer.mozilla.org/ja/docs/Web/API/ScriptProcessorNode
-	for i := 0; i < MaxChannel; i++ {
-		node := context.Call("createScriptProcessor", bufferSize, 0, 2)
-		processor := &audioProcessor{i}
-		node.Call("addEventListener", "audioprocess", processor.Process)
-		nodes = append(nodes, node)
-
-		dummy := context.Call("createBufferSource")
-		dummies = append(dummies, dummy)
-	}
 	audioEnabled = true
-
-	destination := context.Get("destination")
-	for i, node := range nodes {
-		dummy := dummies[i]
-		dummy.Call("connect", node)
-		node.Call("connect", destination)
+	for i := 0; i < len(audioProcessors); i++ {
+		audioProcessors[i] = &audioProcessor{
+			channel:  i,
+			position: 0,
+		}
 	}
 }

@@ -50,11 +50,6 @@ func withChannels(f func()) {
 	f()
 }
 
-func isPlaying(channel int) bool {
-	ch := channels[channel]
-	return 0 < len(ch.buffer)
-}
-
 func channelAt(i int) *channel {
 	if i == -1 {
 		for i, _ := range channels {
@@ -70,6 +65,11 @@ func channelAt(i int) *channel {
 	return nil
 }
 
+func Tick() {
+	tick()
+}
+
+// TODO: Accept sample rate
 func Queue(channel int, data []byte) bool {
 	result := true
 	withChannels(func() {
