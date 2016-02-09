@@ -71,7 +71,7 @@ func toBytes(l, r []int16) []byte {
 func addNote(freq float64, vol float64) {
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		audio.Queue(-1, n)
+		audio.Queue(n)
 		return
 	}
 	length := len(pcm) * baseFreq / f
@@ -88,7 +88,7 @@ func addNote(freq float64, vol float64) {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	audio.Queue(-1, n)
+	audio.Queue(n)
 }
 
 var keys = []ebiten.Key{

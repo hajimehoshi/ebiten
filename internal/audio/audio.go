@@ -70,14 +70,14 @@ func Tick() {
 }
 
 // TODO: Accept sample rate
-func Queue(channel int, data []byte) bool {
+func Queue(data []byte) bool {
 	result := true
 	withChannels(func() {
 		if !audioEnabled {
 			result = false
 			return
 		}
-		ch := channelAt(channel)
+		ch := channelAt(-1)
 		if ch == nil {
 			result = false
 			return

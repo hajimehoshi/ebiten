@@ -28,16 +28,10 @@ const MaxChannel = audio.MaxChannel
 // The given data is queued to the end of the buffer.
 // This may not be played immediately when data already exists in the buffer.
 //
-// channel must be -1 or a channel index.
-// If channel is -1, an empty channel is automatically selected.
-//
-// If the channel is not empty, this function does nothing and returns false.
-// This returns true otherwise.
-//
 // data's format must be linear PCM (44100Hz, 16bits, 2 channel stereo, little endian)
 // without a header (e.g. RIFF header).
-func Queue(channel int, data []byte) bool {
-	return audio.Queue(channel, data)
+func Queue(data []byte) bool {
+	return audio.Queue(data)
 }
 
 // IsPlaying returns a boolean value which indicates if the channel buffer has data to play.

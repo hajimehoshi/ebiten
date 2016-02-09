@@ -28,8 +28,9 @@ var (
 )
 
 type audioProcessor struct {
-	channel  int
-	position float64
+	channel    int
+	sampleRate int
+	position   float64
 }
 
 var audioProcessors [MaxChannel]*audioProcessor
@@ -44,13 +45,13 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func (a *audioProcessor) playChunk(buf []byte, sampleRate int) {
+func (a *audioProcessor) playChunk(buf []byte) {
 	if len(buf) == 0 {
 		return
 	}
 	const channelNum = 2
 	const bytesPerSample = channelNum * 16 / 8
-	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, sampleRate)
+	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, a.sampleRate)
 	l := b.Call("getChannelData", 0)
 	r := b.Call("getChannelData", 1)
 	il, ir := toLR(buf)
@@ -67,7 +68,7 @@ func (a *audioProcessor) playChunk(buf []byte, sampleRate int) {
 		a.position = c
 	}
 	s.Call("start", a.position)
-	a.position += float64(len(il)) / float64(sampleRate)
+	a.position += float64(len(il)) / float64(a.sampleRate)
 }
 
 func isPlaying(channel int) bool {
@@ -77,9 +78,8 @@ func isPlaying(channel int) bool {
 
 func tick() {
 	const bufferSize = 1024
-	const sampleRate = 44100 // TODO: This should be changeable
 	for _, a := range audioProcessors {
-		a.playChunk(loadChannelBuffer(a.channel, bufferSize*4), sampleRate)
+		a.playChunk(loadChannelBuffer(a.channel, bufferSize*4))
 	}
 }
 
@@ -100,8 +100,9 @@ func initialize() {
 	audioEnabled = true
 	for i := 0; i < len(audioProcessors); i++ {
 		audioProcessors[i] = &audioProcessor{
-			channel:  i,
-			position: 0,
+			channel:    i,
+			sampleRate: 44100, // TODO: Change this for each chunks
+			position:   0,
 		}
 	}
 }
