@@ -98,7 +98,7 @@ func initialize() {
 	}
 	go func() {
 		for {
-			const bufferSize = 1024
+			const bufferSize = 2048
 			c := context.Get("currentTime").Float()
 			for _, a := range audioProcessors {
 				if a.position < c {
