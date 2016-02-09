@@ -18,25 +18,16 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
-// SampleRate returns the sampling frequency (e.g. 44100).
-const SampleRate = audio.SampleRate
-
-// MaxChannel is a max number of channels.
-const MaxChannel = audio.MaxChannel
-
 // Queue queues the given data to the given channel.
 // The given data is queued to the end of the buffer.
 // This may not be played immediately when data already exists in the buffer.
 //
 // data's format must be linear PCM (44100Hz, 16bits, 2 channel stereo, little endian)
 // without a header (e.g. RIFF header).
+//
+// TODO: Pass sample rate and num of channels.
 func Queue(data []byte) bool {
 	return audio.Queue(data)
-}
-
-// IsPlaying returns a boolean value which indicates if the channel buffer has data to play.
-func IsPlaying(channel int) bool {
-	return audio.IsPlaying(channel)
 }
 
 // TODO: Add Clear function

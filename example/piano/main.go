@@ -29,14 +29,15 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
+	sampleRate   = 44100
 )
 
-var pcm = make([]float64, 4*audio.SampleRate)
+var pcm = make([]float64, 4*sampleRate)
 
 const baseFreq = 220
 
 func init() {
-	s := float64(audio.SampleRate)
+	s := float64(sampleRate)
 	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
 	x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
 	for i := 0; i < len(pcm); i++ {
