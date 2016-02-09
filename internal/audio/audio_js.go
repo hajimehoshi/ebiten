@@ -17,6 +17,8 @@
 package audio
 
 import (
+	"time"
+
 	"github.com/gopherjs/gopherjs/js"
 )
 
@@ -73,18 +75,6 @@ func isPlaying(channel int) bool {
 	return c < a.position
 }
 
-func tick() {
-	const bufferSize = 1024
-	c := context.Get("currentTime").Float()
-	for _, a := range audioProcessors {
-		if a.position < c {
-			a.position = c
-		}
-		// TODO: 4 is a magic number
-		a.playChunk(loadChannelBuffer(a.channel, bufferSize*4))
-	}
-}
-
 func initialize() {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
@@ -107,4 +97,18 @@ func initialize() {
 			position:   0,
 		}
 	}
+	go func() {
+		for {
+			const bufferSize = 1024
+			c := context.Get("currentTime").Float()
+			for _, a := range audioProcessors {
+				if a.position < c {
+					a.position = c
+				}
+				// TODO: 4 is a magic number
+				a.playChunk(loadChannelBuffer(a.channel, bufferSize*4))
+			}
+			time.Sleep(0)
+		}
+	}()
 }

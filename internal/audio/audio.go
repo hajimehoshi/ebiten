@@ -59,10 +59,6 @@ func emptyChannel() *channel {
 	return nil
 }
 
-func Tick() {
-	tick()
-}
-
 // TODO: Accept sample rate
 func Queue(data []byte) bool {
 	result := true
@@ -120,15 +116,4 @@ func loadChannelBuffer(channel int, bufferSize int) []byte {
 		r = input
 	})
 	return r
-}
-
-func IsPlaying(channel int) bool {
-	result := false
-	withChannels(func() {
-		if !audioEnabled {
-			return
-		}
-		result = isPlaying(channel)
-	})
-	return result
 }

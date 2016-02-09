@@ -29,9 +29,6 @@ func isPlaying(channel int) bool {
 	return 0 < len(ch.buffer)
 }
 
-func tick() {
-}
-
 func initialize() {
 	// Creating OpenAL device must be done after initializing UI. I'm not sure the reason.
 	ch := make(chan struct{})

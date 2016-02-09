@@ -17,7 +17,6 @@ package ebiten
 import (
 	"time"
 
-	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -92,8 +91,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		runContext.newScreenWidth = 0
 		runContext.newScreenHeight = 0
 		runContext.newScreenScale = 0
-
-		audio.Tick()
 
 		if err := ui.DoEvents(); err != nil {
 			return err
