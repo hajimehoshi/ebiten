@@ -17,20 +17,16 @@
 package audio
 
 import (
-	"time"
-
 	"github.com/gopherjs/gopherjs/js"
 )
 
 var context *js.Object
 
 type audioProcessor struct {
-	channel    int
+	data       []byte
 	sampleRate int
 	position   float64
 }
-
-var audioProcessors [MaxChannel]*audioProcessor
 
 func toLR(data []byte) ([]int16, []int16) {
 	l := make([]int16, len(data)/4)
@@ -64,14 +60,15 @@ func (a *audioProcessor) playChunk(buf []byte) {
 	a.position += b.Get("duration").Float()
 }
 
-func isPlaying(channel int) bool {
-	ch := channels[channel]
-	if 0 < len(ch.buffer) {
-		return true
+// TOOD: Implement IO version
+func playChunk(data []byte, sampleRate int) error {
+	a := &audioProcessor{
+		data:       data,
+		sampleRate: sampleRate,
+		position:   context.Get("currentTime").Float(),
 	}
-	a := audioProcessors[channel]
-	c := context.Get("currentTime").Float()
-	return c < a.position
+	a.playChunk(data)
+	return nil
 }
 
 func initialize() {
@@ -89,25 +86,4 @@ func initialize() {
 	}
 	context = class.New()
 	audioEnabled = true
-	for i := 0; i < len(audioProcessors); i++ {
-		audioProcessors[i] = &audioProcessor{
-			channel:    i,
-			sampleRate: 44100, // TODO: Change this for each chunks
-			position:   0,
-		}
-	}
-	go func() {
-		for {
-			const bufferSize = 2048
-			c := context.Get("currentTime").Float()
-			for _, a := range audioProcessors {
-				if a.position < c {
-					a.position = c
-				}
-				// TODO: 4 is a magic number
-				a.playChunk(loadChannelBuffer(a.channel, bufferSize*4))
-			}
-			time.Sleep(0)
-		}
-	}()
 }

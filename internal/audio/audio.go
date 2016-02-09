@@ -14,106 +14,16 @@
 
 package audio
 
-import (
-	"sync"
-)
-
 var audioEnabled = false
 
-const SampleRate = 44100
-
-type channel struct {
-	buffer []byte
-}
-
-const MaxChannel = 32
-
-var channels = make([]*channel, MaxChannel)
-
-func init() {
-	for i, _ := range channels {
-		channels[i] = &channel{
-			buffer: []byte{},
-		}
-	}
+type chunk struct {
+	buffer     []byte
+	sampleRate int
 }
 
 func Init() {
 	initialize()
 }
-
-var channelsMutex = sync.Mutex{}
-
-func withChannels(f func()) {
-	channelsMutex.Lock()
-	defer channelsMutex.Unlock()
-	f()
-}
-
-func emptyChannel() *channel {
-	for i, _ := range channels {
-		if !isPlaying(i) {
-			return channels[i]
-		}
-	}
-	return nil
-}
-
-// TODO: Accept sample rate
-func Queue(data []byte) bool {
-	result := true
-	withChannels(func() {
-		if !audioEnabled {
-			result = false
-			return
-		}
-		ch := emptyChannel()
-		if ch == nil {
-			result = false
-			return
-		}
-		ch.buffer = append(ch.buffer, data...)
-	})
-	return result
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func isChannelsEmpty() bool {
-	result := false
-	withChannels(func() {
-		if !audioEnabled {
-			result = true
-			return
-		}
-
-		for _, ch := range channels {
-			if 0 < len(ch.buffer) {
-				return
-			}
-		}
-		result = true
-		return
-	})
-	return result
-}
-
-func loadChannelBuffer(channel int, bufferSize int) []byte {
-	var r []byte
-	withChannels(func() {
-		if !audioEnabled {
-			return
-		}
-		ch := channels[channel]
-		length := min(len(ch.buffer), bufferSize)
-		input := ch.buffer[:length]
-		ch.buffer = ch.buffer[length:]
-		r = input
-	})
-	return r
+func Queue(data []byte, sampleRate int) error {
+	return playChunk(data, sampleRate)
 }

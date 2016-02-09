@@ -17,76 +17,47 @@
 package audio
 
 import (
-	"log"
-	"runtime"
+	"bytes"
 	"time"
 
-	"golang.org/x/mobile/exp/audio/al"
+	"golang.org/x/mobile/exp/audio"
 )
 
-func isPlaying(channel int) bool {
-	ch := channels[channel]
-	return 0 < len(ch.buffer)
+type src struct {
+	*bytes.Reader
+}
+
+func (s *src) Close() error {
+	return nil
+}
+
+var players = map[*audio.Player]struct{}{}
+
+func playChunk(data []byte, sampleRate int) error {
+	s := &src{bytes.NewReader(data)}
+	p, err := audio.NewPlayer(s, audio.Stereo16, int64(sampleRate))
+	if err != nil {
+		return err
+	}
+	players[p] = struct{}{}
+	return p.Play()
 }
 
 func initialize() {
-	// Creating OpenAL device must be done after initializing UI. I'm not sure the reason.
-	ch := make(chan struct{})
+	audioEnabled = true
 	go func() {
-		runtime.LockOSThread()
-
-		if err := al.OpenDevice(); err != nil {
-			log.Printf("OpenAL initialize error: %v", err)
-			close(ch)
-			// Graceful ending: Audio is not available on Travis CI.
-			return
-		}
-
-		audioEnabled = true
-		sources := al.GenSources(MaxChannel)
-		close(ch)
-
-		const bufferSize = 2048
-		emptyBytes := make([]byte, bufferSize)
-
-		for _, source := range sources {
-			// 3 is the least number?
-			// http://stackoverflow.com/questions/14932004/play-sound-with-openalstream
-			const bufferNum = 4
-			buffers := al.GenBuffers(bufferNum)
-			for _, buffer := range buffers {
-				buffer.BufferData(al.FormatStereo16, emptyBytes, SampleRate)
-				source.QueueBuffers(buffer)
-			}
-			al.PlaySources(source)
-		}
-
 		for {
-			oneProcessed := false
-			for ch, source := range sources {
-				processed := source.BuffersProcessed()
-				if processed == 0 {
-					continue
-				}
-
-				oneProcessed = true
-				buffers := make([]al.Buffer, processed)
-				source.UnqueueBuffers(buffers...)
-				for _, buffer := range buffers {
-					b := make([]byte, bufferSize)
-					copy(b, loadChannelBuffer(ch, bufferSize))
-					buffer.BufferData(al.FormatStereo16, b, SampleRate)
-					source.QueueBuffers(buffer)
-				}
-				if source.State() == al.Stopped {
-					al.RewindSources(source)
-					al.PlaySources(source)
+			deleted := []*audio.Player{}
+			for p, _ := range players {
+				if p.State() == audio.Stopped {
+					p.Close()
+					deleted = append(deleted, p)
 				}
 			}
-			if !oneProcessed {
-				time.Sleep(1 * time.Millisecond)
+			for _, p := range deleted {
+				delete(players, p)
 			}
+			time.Sleep(1 * time.Millisecond)
 		}
 	}()
-	<-ch
 }

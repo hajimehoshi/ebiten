@@ -22,12 +22,12 @@ import (
 // The given data is queued to the end of the buffer.
 // This may not be played immediately when data already exists in the buffer.
 //
-// data's format must be linear PCM (44100Hz, 16bits, 2 channel stereo, little endian)
+// data's format must be linear PCM (16bits, 2 channel stereo, little endian)
 // without a header (e.g. RIFF header).
 //
 // TODO: Pass sample rate and num of channels.
-func Queue(data []byte) bool {
-	return audio.Queue(data)
+func Queue(data []byte, sampleRate int) error {
+	return audio.Queue(data, sampleRate)
 }
 
 // TODO: Add Clear function
