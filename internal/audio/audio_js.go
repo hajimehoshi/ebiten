@@ -60,9 +60,8 @@ func (a *audioProcessor) playChunk(buf []byte) {
 	s := context.Call("createBufferSource")
 	s.Set("buffer", b)
 	s.Call("connect", context.Get("destination"))
-
 	s.Call("start", a.position)
-	a.position += float64(len(il)) / float64(a.sampleRate)
+	a.position += b.Get("duration").Float()
 }
 
 func isPlaying(channel int) bool {
