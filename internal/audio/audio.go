@@ -50,17 +50,11 @@ func withChannels(f func()) {
 	f()
 }
 
-func channelAt(i int) *channel {
-	if i == -1 {
-		for i, _ := range channels {
-			if !isPlaying(i) {
-				return channels[i]
-			}
+func emptyChannel() *channel {
+	for i, _ := range channels {
+		if !isPlaying(i) {
+			return channels[i]
 		}
-		return nil
-	}
-	if !isPlaying(i) {
-		return channels[i]
 	}
 	return nil
 }
@@ -77,7 +71,7 @@ func Queue(data []byte) bool {
 			result = false
 			return
 		}
-		ch := channelAt(-1)
+		ch := emptyChannel()
 		if ch == nil {
 			result = false
 			return

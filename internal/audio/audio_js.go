@@ -20,12 +20,7 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-// Keep this as global so as not to be destroyed by GC.
-var (
-	nodes   = []*js.Object{}
-	dummies = []*js.Object{} // Dummy source nodes for iOS.
-	context *js.Object
-)
+var context *js.Object
 
 type audioProcessor struct {
 	channel    int
@@ -63,22 +58,29 @@ func (a *audioProcessor) playChunk(buf []byte) {
 	s := context.Call("createBufferSource")
 	s.Set("buffer", b)
 	s.Call("connect", context.Get("destination"))
-	c := context.Get("currentTime").Float()
-	if a.position < c {
-		a.position = c
-	}
+
 	s.Call("start", a.position)
 	a.position += float64(len(il)) / float64(a.sampleRate)
 }
 
 func isPlaying(channel int) bool {
+	ch := channels[channel]
+	if 0 < len(ch.buffer) {
+		return true
+	}
+	a := audioProcessors[channel]
 	c := context.Get("currentTime").Float()
-	return c < audioProcessors[channel].position
+	return c < a.position
 }
 
 func tick() {
 	const bufferSize = 1024
+	c := context.Get("currentTime").Float()
 	for _, a := range audioProcessors {
+		if a.position < c {
+			a.position = c
+		}
+		// TODO: 4 is a magic number
 		a.playChunk(loadChannelBuffer(a.channel, bufferSize*4))
 	}
 }
