@@ -29,6 +29,25 @@ import (
 	"strings"
 )
 
+func execute(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	msg, err := ioutil.ReadAll(stderr)
+	if err != nil {
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("%v: %s", err, string(msg))
+	}
+	return nil
+}
+
 var license = ""
 
 func init() {
@@ -130,10 +149,10 @@ func (e *example) Height() int {
 
 func (e *example) Source() string {
 	if e.Name == "blocks" {
-		return "// Please read example/blocks/main.go and example/blocks/blocks/*.go"
+		return "// Please read examples/blocks/main.go and examples/blocks/blocks/*.go"
 	}
 
-	path := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "hajimehoshi", "ebiten", "example", e.Name, "main.go")
+	path := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "hajimehoshi", "ebiten", "examples", e.Name, "main.go")
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
@@ -175,7 +194,7 @@ func clear() error {
 			return os.Remove(path)
 		}
 		// Remove example resources that are copied.
-		m, err = regexp.MatchString("^public/example/images$", path)
+		m, err = regexp.MatchString("^public/examples/images$", path)
 		if err != nil {
 			return err
 		}
@@ -223,11 +242,15 @@ func outputMain() error {
 func outputExampleImages() error {
 	// TODO: Using cp command might not be portable.
 	// Use io.Copy instead.
-	return exec.Command("cp", "-R", "../example/images", "public/example/images").Run()
+	const dir = "public/examples"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	return execute("cp", "-R", "../examples/images", "public/examples/images")
 }
 
 func outputExampleContent(e *example) error {
-	const dir = "public/example"
+	const dir = "public/examples"
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -259,8 +282,8 @@ func outputExampleContent(e *example) error {
 	}
 
 	out := filepath.Join(dir, e.Name+".js")
-	path := "github.com/hajimehoshi/ebiten/example/" + e.Name
-	if err := exec.Command("gopherjs", "build", "-m", "-o", out, path).Run(); err != nil {
+	path := "github.com/hajimehoshi/ebiten/examples/" + e.Name
+	if err := execute("gopherjs", "build", "-m", "-o", out, path); err != nil {
 		return err
 	}
 
@@ -268,7 +291,7 @@ func outputExampleContent(e *example) error {
 }
 
 func outputExample(e *example) error {
-	const dir = "public/example"
+	const dir = "public/examples"
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}

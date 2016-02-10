@@ -17,7 +17,7 @@ package blocks
 import (
 	"fmt"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/example/common"
+	"github.com/hajimehoshi/ebiten/examples/common"
 	"image/color"
 	"strings"
 )

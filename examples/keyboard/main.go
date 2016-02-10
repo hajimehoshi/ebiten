@@ -17,7 +17,7 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/example/keyboard/keyboard"
+	"github.com/hajimehoshi/ebiten/examples/keyboard/keyboard"
 	"log"
 	"strconv"
 )
