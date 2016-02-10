@@ -39,6 +39,7 @@ pre {
 <pre><code>package main
 
 import (
+    &#34;bytes&#34;
     &#34;fmt&#34;
     &#34;image/color&#34;
     &#34;log&#34;
@@ -46,21 +47,22 @@ import (
 
     &#34;github.com/hajimehoshi/ebiten&#34;
     &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    &#34;github.com/hajimehoshi/ebiten/example/common&#34;
+    &#34;github.com/hajimehoshi/ebiten/examples/common&#34;
     &#34;github.com/hajimehoshi/ebiten/exp/audio&#34;
 )
 
 const (
     screenWidth  = 320
     screenHeight = 240
+    sampleRate   = 44100
 )
 
-var pcm = make([]float64, 4*audio.SampleRate())
+var pcm = make([]float64, 4*sampleRate)
 
 const baseFreq = 220
 
 func init() {
-    s := float64(audio.SampleRate())
+    s := float64(sampleRate)
     amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
     x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
     for i := 0; i &lt; len(pcm); i&#43;&#43; {
@@ -92,10 +94,19 @@ func toBytes(l, r []int16) []byte {
     return b
 }
 
+type stream struct {
+    *bytes.Reader
+}
+
+func (s *stream) Close() error {
+    return nil
+}
+
 func addNote(freq float64, vol float64) {
     f := int(freq)
     if n, ok := noteCache[f]; ok {
-        audio.Play(-1, n)
+        p := audio.NewPlayer(&amp;stream{bytes.NewReader(n)}, sampleRate)
+        p.Play()
         return
     }
     length := len(pcm) * baseFreq / f
@@ -112,7 +123,8 @@ func addNote(freq float64, vol float64) {
     }
     n := toBytes(l, r)
     noteCache[f] = n
-    audio.Play(-1, n)
+    p := audio.NewPlayer(&amp;stream{bytes.NewReader(n)}, sampleRate)
+    p.Play()
 }
 
 var keys = []ebiten.Key{
