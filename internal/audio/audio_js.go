@@ -17,13 +17,15 @@
 package audio
 
 import (
+	"io/ioutil"
+
 	"github.com/gopherjs/gopherjs/js"
 )
 
 var context *js.Object
 
 type audioProcessor struct {
-	data       []byte
+	src        ReadSeekCloser
 	sampleRate int
 	position   float64
 }
@@ -38,9 +40,14 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func (a *audioProcessor) playChunk(buf []byte) {
+func (a *audioProcessor) play() error {
+	// TODO: Reading all data at once is temporary implemntation. Treat this as stream.
+	buf, err := ioutil.ReadAll(a.src)
+	if err != nil {
+		return err
+	}
 	if len(buf) == 0 {
-		return
+		return nil
 	}
 	const channelNum = 2
 	const bytesPerSample = channelNum * 16 / 8
@@ -58,17 +65,16 @@ func (a *audioProcessor) playChunk(buf []byte) {
 	s.Call("connect", context.Get("destination"))
 	s.Call("start", a.position)
 	a.position += b.Get("duration").Float()
+	return nil
 }
 
-// TOOD: Implement IO version
-func playChunk(data []byte, sampleRate int) error {
+func playChunk(src ReadSeekCloser, sampleRate int) error {
 	a := &audioProcessor{
-		data:       data,
+		src:        src,
 		sampleRate: sampleRate,
 		position:   context.Get("currentTime").Float(),
 	}
-	a.playChunk(data)
-	return nil
+	return a.play()
 }
 
 func initialize() {

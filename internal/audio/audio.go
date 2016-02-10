@@ -14,16 +14,26 @@
 
 package audio
 
+import (
+	"io"
+)
+
 var audioEnabled = false
 
+type ReadSeekCloser interface {
+	io.ReadSeeker
+	io.Closer
+}
+
 type chunk struct {
-	buffer     []byte
+	buffer     ReadSeekCloser
 	sampleRate int
 }
 
 func Init() {
 	initialize()
 }
-func Queue(data []byte, sampleRate int) error {
-	return playChunk(data, sampleRate)
+
+func Queue(src ReadSeekCloser, sampleRate int) error {
+	return playChunk(src, sampleRate)
 }

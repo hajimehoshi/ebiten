@@ -17,25 +17,17 @@
 package audio
 
 import (
-	"bytes"
 	"time"
 
 	"golang.org/x/mobile/exp/audio"
 )
 
-type src struct {
-	*bytes.Reader
-}
-
-func (s *src) Close() error {
-	return nil
-}
-
 var players = map[*audio.Player]struct{}{}
 
-func playChunk(data []byte, sampleRate int) error {
-	s := &src{bytes.NewReader(data)}
-	p, err := audio.NewPlayer(s, audio.Stereo16, int64(sampleRate))
+func playChunk(src ReadSeekCloser, sampleRate int) error {
+	// TODO: audio.NewPlayer interprets WAV header, which we don't want.
+	// Use OpenAL or native API instead.
+	p, err := audio.NewPlayer(src, audio.Stereo16, int64(sampleRate))
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image/color"
 	"log"
@@ -69,10 +70,18 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
+type stream struct {
+	*bytes.Reader
+}
+
+func (s *stream) Close() error {
+	return nil
+}
+
 func addNote(freq float64, vol float64) {
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		audio.Queue(n, sampleRate)
+		audio.Queue(&stream{bytes.NewReader(n)}, sampleRate)
 		return
 	}
 	length := len(pcm) * baseFreq / f
@@ -89,7 +98,7 @@ func addNote(freq float64, vol float64) {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	audio.Queue(n, sampleRate)
+	audio.Queue(&stream{bytes.NewReader(n)}, sampleRate)
 }
 
 var keys = []ebiten.Key{

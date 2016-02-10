@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -85,6 +86,13 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
+type stream struct {
+	*bytes.Reader
+}
+
+func (s *stream) Close() error {
+	return nil
+}
 func addNote() {
 	size := sampleRate / 60
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
@@ -113,7 +121,8 @@ func addNote() {
 	vol := 1.0 / 16.0
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
-	audio.Queue(toBytes(l, r), sampleRate)
+	b := toBytes(l, r)
+	audio.Queue(&stream{bytes.NewReader(b)}, sampleRate)
 }
 
 func update(screen *ebiten.Image) error {
