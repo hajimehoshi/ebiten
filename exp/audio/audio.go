@@ -25,7 +25,12 @@ type ReadSeekCloser interface {
 	io.Closer
 }
 
-// Queue queues the given data to the given channel.
+type Player struct {
+	src        ReadSeekCloser
+	sampleRate int
+}
+
+// NewPlayer creates a new player with the given data to the given channel.
 // The given data is queued to the end of the buffer.
 // This may not be played immediately when data already exists in the buffer.
 //
@@ -33,6 +38,13 @@ type ReadSeekCloser interface {
 // without a header (e.g. RIFF header).
 //
 // TODO: Pass sample rate and num of channels.
-func Queue(src ReadSeekCloser, sampleRate int) error {
-	return audio.Queue(src, sampleRate)
+func NewPlayer(src ReadSeekCloser, sampleRate int) *Player {
+	return &Player{
+		src:        src,
+		sampleRate: sampleRate,
+	}
+}
+
+func (p *Player) Play() error {
+	return audio.Play(p.src, p.sampleRate)
 }

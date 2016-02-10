@@ -122,7 +122,8 @@ func addNote() {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 	b := toBytes(l, r)
-	audio.Queue(&stream{bytes.NewReader(b)}, sampleRate)
+	p := audio.NewPlayer(&stream{bytes.NewReader(b)}, sampleRate)
+	p.Play()
 }
 
 func update(screen *ebiten.Image) error {

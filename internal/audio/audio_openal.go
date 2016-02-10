@@ -24,7 +24,7 @@ import (
 
 var players = map[*audio.Player]struct{}{}
 
-func playChunk(src ReadSeekCloser, sampleRate int) error {
+func play(src ReadSeekCloser, sampleRate int) error {
 	// TODO: audio.NewPlayer interprets WAV header, which we don't want.
 	// Use OpenAL or native API instead.
 	p, err := audio.NewPlayer(src, audio.Stereo16, int64(sampleRate))

@@ -68,7 +68,7 @@ func (a *audioProcessor) play() error {
 	return nil
 }
 
-func playChunk(src ReadSeekCloser, sampleRate int) error {
+func play(src ReadSeekCloser, sampleRate int) error {
 	a := &audioProcessor{
 		src:        src,
 		sampleRate: sampleRate,

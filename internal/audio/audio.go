@@ -25,15 +25,10 @@ type ReadSeekCloser interface {
 	io.Closer
 }
 
-type chunk struct {
-	buffer     ReadSeekCloser
-	sampleRate int
-}
-
 func Init() {
 	initialize()
 }
 
-func Queue(src ReadSeekCloser, sampleRate int) error {
-	return playChunk(src, sampleRate)
+func Play(src ReadSeekCloser, sampleRate int) error {
+	return play(src, sampleRate)
 }

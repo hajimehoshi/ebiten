@@ -81,7 +81,8 @@ func (s *stream) Close() error {
 func addNote(freq float64, vol float64) {
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		audio.Queue(&stream{bytes.NewReader(n)}, sampleRate)
+		p := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+		p.Play()
 		return
 	}
 	length := len(pcm) * baseFreq / f
@@ -98,7 +99,8 @@ func addNote(freq float64, vol float64) {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	audio.Queue(&stream{bytes.NewReader(n)}, sampleRate)
+	p := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+	p.Play()
 }
 
 var keys = []ebiten.Key{
