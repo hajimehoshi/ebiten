@@ -18,8 +18,6 @@ import (
 	"io"
 )
 
-var audioEnabled = false
-
 type ReadSeekCloser interface {
 	io.ReadSeeker
 	io.Closer

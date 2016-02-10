@@ -36,7 +36,6 @@ func play(src ReadSeekCloser, sampleRate int) error {
 }
 
 func initialize() {
-	audioEnabled = true
 	go func() {
 		for {
 			deleted := []*audio.Player{}

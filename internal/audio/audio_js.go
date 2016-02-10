@@ -91,5 +91,4 @@ func initialize() {
 		return
 	}
 	context = class.New()
-	audioEnabled = true
 }
