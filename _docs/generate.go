@@ -14,5 +14,7 @@
 
 package docs
 
+// TODO: Remove this file and add copying to gen.go
+
 //go:generate go run gen.go
 //go:generate cp -r ../examples/images ./public/examples/
