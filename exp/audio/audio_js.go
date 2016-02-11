@@ -17,7 +17,6 @@
 package audio
 
 import (
-	"errors"
 	"io"
 	"io/ioutil"
 
@@ -26,10 +25,25 @@ import (
 
 var context *js.Object
 
-type audioProcessor struct {
+type player struct {
 	src        io.ReadSeeker
 	sampleRate int
 	position   float64
+}
+
+func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
+	if context == nil {
+		if !initialize() {
+			panic("audio couldn't be initialized")
+		}
+	}
+
+	p := &player{
+		src:        src,
+		sampleRate: sampleRate,
+		position:   context.Get("currentTime").Float(),
+	}
+	return &Player{p}
 }
 
 func toLR(data []byte) ([]int16, []int16) {
@@ -42,9 +56,9 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func (a *audioProcessor) play() error {
+func (p *player) play() error {
 	// TODO: Reading all data at once is temporary implemntation. Treat this as stream.
-	buf, err := ioutil.ReadAll(a.src)
+	buf, err := ioutil.ReadAll(p.src)
 	if err != nil {
 		return err
 	}
@@ -53,7 +67,7 @@ func (a *audioProcessor) play() error {
 	}
 	const channelNum = 2
 	const bytesPerSample = channelNum * 16 / 8
-	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, a.sampleRate)
+	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, p.sampleRate)
 	l := b.Call("getChannelData", 0)
 	r := b.Call("getChannelData", 1)
 	il, ir := toLR(buf)
@@ -65,23 +79,9 @@ func (a *audioProcessor) play() error {
 	s := context.Call("createBufferSource")
 	s.Set("buffer", b)
 	s.Call("connect", context.Get("destination"))
-	s.Call("start", a.position)
-	a.position += b.Get("duration").Float()
+	s.Call("start", p.position)
+	p.position += b.Get("duration").Float()
 	return nil
-}
-
-func play(src io.ReadSeeker, sampleRate int) error {
-	if context == nil {
-		if !initialize() {
-			return errors.New("audio couldn't be initialized")
-		}
-	}
-	a := &audioProcessor{
-		src:        src,
-		sampleRate: sampleRate,
-		position:   context.Get("currentTime").Float(),
-	}
-	return a.play()
 }
 
 func initialize() bool {

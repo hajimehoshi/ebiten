@@ -30,13 +30,23 @@ func (r *readSeekCloser) Close() error {
 	return nil
 }
 
-func play(src io.ReadSeeker, sampleRate int) error {
-	// TODO: audio.NewPlayer interprets WAV header, which we don't want.
-	// Use OpenAL or native API instead.
+type player struct {
+	*audio.Player
+}
+
+func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
 	p, err := audio.NewPlayer(&readSeekCloser{src}, audio.Stereo16, int64(sampleRate))
 	if err != nil {
-		return err
+		// TODO: Should we return errors for this method?
+		panic(err)
 	}
+	pp := &player{p}
+	return &Player{pp}
+}
+
+func (p *player) play() error {
+	// TODO: audio.NewPlayer interprets WAV header, which we don't want.
+	// Use OpenAL or native API instead.
 	return p.Play()
 }
 

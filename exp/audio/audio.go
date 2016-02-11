@@ -19,8 +19,7 @@ import (
 )
 
 type Player struct {
-	src        io.ReadSeeker
-	sampleRate int
+	*player
 }
 
 // NewPlayer creates a new player with the given data to the given channel.
@@ -32,12 +31,9 @@ type Player struct {
 //
 // TODO: Pass sample rate and num of channels.
 func NewPlayer(src io.ReadSeeker, sampleRate int) *Player {
-	return &Player{
-		src:        src,
-		sampleRate: sampleRate,
-	}
+	return newPlayer(src, sampleRate)
 }
 
 func (p *Player) Play() error {
-	return play(p.src, p.sampleRate)
+	return p.play()
 }
