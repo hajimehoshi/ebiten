@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/audio"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -27,5 +26,4 @@ func init() {
 	ui.ExecOnUIThread(func() {
 		glContext = opengl.NewContext()
 	})
-	audio.Init()
 }

@@ -18,12 +18,9 @@ package audio
 
 import (
 	"io"
-	"time"
 
 	"golang.org/x/mobile/exp/audio"
 )
-
-var players = map[*audio.Player]struct{}{}
 
 type readSeekCloser struct {
 	io.ReadSeeker
@@ -40,24 +37,7 @@ func play(src io.ReadSeeker, sampleRate int) error {
 	if err != nil {
 		return err
 	}
-	players[p] = struct{}{}
 	return p.Play()
 }
 
-func initialize() {
-	go func() {
-		for {
-			deleted := []*audio.Player{}
-			for p, _ := range players {
-				if p.State() == audio.Stopped {
-					p.Close()
-					deleted = append(deleted, p)
-				}
-			}
-			for _, p := range deleted {
-				delete(players, p)
-			}
-			time.Sleep(1 * time.Millisecond)
-		}
-	}()
-}
+// TODO: Implement Close method

@@ -17,6 +17,7 @@
 package audio
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 
@@ -70,6 +71,11 @@ func (a *audioProcessor) play() error {
 }
 
 func play(src io.ReadSeeker, sampleRate int) error {
+	if context == nil {
+		if !initialize() {
+			return errors.New("audio couldn't be initialized")
+		}
+	}
 	a := &audioProcessor{
 		src:        src,
 		sampleRate: sampleRate,
@@ -78,10 +84,10 @@ func play(src io.ReadSeeker, sampleRate int) error {
 	return a.play()
 }
 
-func initialize() {
+func initialize() bool {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		return
+		return false
 	}
 
 	class := js.Global.Get("AudioContext")
@@ -89,7 +95,8 @@ func initialize() {
 		class = js.Global.Get("webkitAudioContext")
 	}
 	if class == js.Undefined {
-		return
+		return false
 	}
 	context = class.New()
+	return true
 }

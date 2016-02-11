@@ -18,10 +18,6 @@ import (
 	"io"
 )
 
-func Init() {
-	initialize()
-}
-
 func Play(src io.ReadSeeker, sampleRate int) error {
 	return play(src, sampleRate)
 }
