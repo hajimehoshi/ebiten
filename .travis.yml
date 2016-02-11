@@ -29,7 +29,7 @@ before_script:
 
 script:
   - go build -v ./...
-  - gopherjs build -v github.com/hajimehoshi/ebiten/example/blocks
+  - gopherjs build -v github.com/hajimehoshi/ebiten/examples/blocks
 
 # Give up testing on Travis CI because of X error
 # https://travis-ci.org/hajimehoshi/ebiten/jobs/107404013
