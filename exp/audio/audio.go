@@ -16,8 +16,6 @@ package audio
 
 import (
 	"io"
-
-	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
 type Player struct {
@@ -41,5 +39,5 @@ func NewPlayer(src io.ReadSeeker, sampleRate int) *Player {
 }
 
 func (p *Player) Play() error {
-	return audio.Play(p.src, p.sampleRate)
+	return play(p.src, p.sampleRate)
 }
