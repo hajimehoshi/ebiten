@@ -26,9 +26,27 @@ import (
 var context *js.Object
 
 type player struct {
-	src        io.ReadSeeker
-	sampleRate int
-	position   float64
+	src          io.ReadSeeker
+	sampleRate   int
+	position     float64
+	bufferSource *js.Object
+}
+
+func initialize() bool {
+	// Do nothing in node.js.
+	if js.Global.Get("require") != js.Undefined {
+		return false
+	}
+
+	class := js.Global.Get("AudioContext")
+	if class == js.Undefined {
+		class = js.Global.Get("webkitAudioContext")
+	}
+	if class == js.Undefined {
+		return false
+	}
+	context = class.New()
+	return true
 }
 
 func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
@@ -39,9 +57,10 @@ func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
 	}
 
 	p := &player{
-		src:        src,
-		sampleRate: sampleRate,
-		position:   context.Get("currentTime").Float(),
+		src:          src,
+		sampleRate:   sampleRate,
+		position:     context.Get("currentTime").Float(),
+		bufferSource: nil,
 	}
 	return &Player{p}
 }
@@ -65,6 +84,11 @@ func (p *player) play() error {
 	if len(buf) == 0 {
 		return nil
 	}
+	// TODO: p.position should be updated
+	if p.bufferSource != nil {
+		p.bufferSource.Call("start", p.position)
+		return nil
+	}
 	const channelNum = 2
 	const bytesPerSample = channelNum * 16 / 8
 	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, p.sampleRate)
@@ -76,27 +100,16 @@ func (p *player) play() error {
 		l.SetIndex(i, float64(il[i])/max)
 		r.SetIndex(i, float64(ir[i])/max)
 	}
-	s := context.Call("createBufferSource")
-	s.Set("buffer", b)
-	s.Call("connect", context.Get("destination"))
-	s.Call("start", p.position)
+	p.bufferSource = context.Call("createBufferSource")
+	p.bufferSource.Set("buffer", b)
+	p.bufferSource.Call("connect", context.Get("destination"))
+	p.bufferSource.Call("start", p.position)
 	p.position += b.Get("duration").Float()
 	return nil
 }
 
-func initialize() bool {
-	// Do nothing in node.js.
-	if js.Global.Get("require") != js.Undefined {
-		return false
-	}
-
-	class := js.Global.Get("AudioContext")
-	if class == js.Undefined {
-		class = js.Global.Get("webkitAudioContext")
-	}
-	if class == js.Undefined {
-		return false
-	}
-	context = class.New()
-	return true
+func (p *player) close() error {
+	p.bufferSource.Call("stop")
+	p.bufferSource.Call("disconnect")
+	return nil
 }

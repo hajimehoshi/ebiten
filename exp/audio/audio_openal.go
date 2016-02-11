@@ -50,4 +50,8 @@ func (p *player) play() error {
 	return p.Play()
 }
 
+func (p *player) close() error {
+	return p.Close()
+}
+
 // TODO: Implement Close method

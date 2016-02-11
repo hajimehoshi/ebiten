@@ -37,3 +37,7 @@ func NewPlayer(src io.ReadSeeker, sampleRate int) *Player {
 func (p *Player) Play() error {
 	return p.play()
 }
+
+func (p *Player) Close() error {
+	return p.close()
+}
