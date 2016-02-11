@@ -20,13 +20,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/audio"
 )
 
-type ReadSeekCloser interface {
-	io.ReadSeeker
-	io.Closer
-}
-
 type Player struct {
-	src        ReadSeekCloser
+	src        io.ReadSeeker
 	sampleRate int
 }
 
@@ -38,7 +33,7 @@ type Player struct {
 // without a header (e.g. RIFF header).
 //
 // TODO: Pass sample rate and num of channels.
-func NewPlayer(src ReadSeekCloser, sampleRate int) *Player {
+func NewPlayer(src io.ReadSeeker, sampleRate int) *Player {
 	return &Player{
 		src:        src,
 		sampleRate: sampleRate,

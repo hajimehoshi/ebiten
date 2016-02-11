@@ -18,15 +18,10 @@ import (
 	"io"
 )
 
-type ReadSeekCloser interface {
-	io.ReadSeeker
-	io.Closer
-}
-
 func Init() {
 	initialize()
 }
 
-func Play(src ReadSeekCloser, sampleRate int) error {
+func Play(src io.ReadSeeker, sampleRate int) error {
 	return play(src, sampleRate)
 }

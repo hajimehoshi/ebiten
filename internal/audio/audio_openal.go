@@ -17,6 +17,7 @@
 package audio
 
 import (
+	"io"
 	"time"
 
 	"golang.org/x/mobile/exp/audio"
@@ -24,10 +25,18 @@ import (
 
 var players = map[*audio.Player]struct{}{}
 
-func play(src ReadSeekCloser, sampleRate int) error {
+type readSeekCloser struct {
+	io.ReadSeeker
+}
+
+func (r *readSeekCloser) Close() error {
+	return nil
+}
+
+func play(src io.ReadSeeker, sampleRate int) error {
 	// TODO: audio.NewPlayer interprets WAV header, which we don't want.
 	// Use OpenAL or native API instead.
-	p, err := audio.NewPlayer(src, audio.Stereo16, int64(sampleRate))
+	p, err := audio.NewPlayer(&readSeekCloser{src}, audio.Stereo16, int64(sampleRate))
 	if err != nil {
 		return err
 	}

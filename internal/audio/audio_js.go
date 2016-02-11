@@ -17,6 +17,7 @@
 package audio
 
 import (
+	"io"
 	"io/ioutil"
 
 	"github.com/gopherjs/gopherjs/js"
@@ -25,7 +26,7 @@ import (
 var context *js.Object
 
 type audioProcessor struct {
-	src        ReadSeekCloser
+	src        io.ReadSeeker
 	sampleRate int
 	position   float64
 }
@@ -68,7 +69,7 @@ func (a *audioProcessor) play() error {
 	return nil
 }
 
-func play(src ReadSeekCloser, sampleRate int) error {
+func play(src io.ReadSeeker, sampleRate int) error {
 	a := &audioProcessor{
 		src:        src,
 		sampleRate: sampleRate,
