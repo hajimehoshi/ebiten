@@ -129,10 +129,11 @@ func (p *player) proceed() error {
 }
 
 func (p *player) play() error {
+	const bufferMaxNum = 8
 	// TODO: What if play is already called?
 	emptyBytes := make([]byte, bufferSize)
 	m.Lock()
-	n := 8 - int(p.alSource.BuffersQueued())
+	n := bufferMaxNum - int(p.alSource.BuffersQueued())
 	if 0 < n {
 		bufs := al.GenBuffers(n)
 		for _, buf := range bufs {
@@ -162,14 +163,23 @@ func (p *player) play() error {
 
 func (p *player) close() error {
 	m.Lock()
+	var bs []al.Buffer
 	if p.alSource != 0 {
 		al.RewindSources(p.alSource)
 		al.StopSources(p.alSource)
+		n := p.alSource.BuffersQueued()
+		if 0 < n {
+			bs = make([]al.Buffer, n)
+			p.alSource.UnqueueBuffers(bs...)
+		}
 		p.alSource = 0
 	}
 	if 0 < len(p.alBuffers) {
 		al.DeleteBuffers(p.alBuffers...)
 		p.alBuffers = []al.Buffer{}
+	}
+	if bs != nil {
+		p.alBuffers = append(p.alBuffers, bs...)
 	}
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: closing error: %d", err))
