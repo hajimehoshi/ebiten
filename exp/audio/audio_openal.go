@@ -132,12 +132,14 @@ func (p *player) play() error {
 	// TODO: What if play is already called?
 	emptyBytes := make([]byte, bufferSize)
 	m.Lock()
-	queued := p.alSource.BuffersQueued()
-	bufs := al.GenBuffers(8 - int(queued))
-	for _, buf := range bufs {
-		// Note that the third argument of only the first buffer is used.
-		buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
-		p.alSource.QueueBuffers(buf)
+	n := 8 - int(p.alSource.BuffersQueued())
+	if 0 < n {
+		bufs := al.GenBuffers(n)
+		for _, buf := range bufs {
+			// Note that the third argument of only the first buffer is used.
+			buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
+			p.alSource.QueueBuffers(buf)
+		}
 	}
 	al.PlaySources(p.alSource)
 	m.Unlock()
