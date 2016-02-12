@@ -29,11 +29,12 @@ import (
 type alSourceCacheEntry struct {
 	source     al.Source
 	sampleRate int
+	isClosed   bool
 }
 
 const maxSourceNum = 32
 
-var alSourceCache = []alSourceCacheEntry{}
+var alSourceCache = []*alSourceCacheEntry{}
 
 type player struct {
 	alSource   al.Source
@@ -49,10 +50,10 @@ func newAlSource(sampleRate int) (al.Source, error) {
 		if e.sampleRate != sampleRate {
 			continue
 		}
-		s := e.source.State()
-		if s != al.Initial && s != al.Stopped {
+		if !e.isClosed {
 			continue
 		}
+		e.isClosed = false
 		return e.source, nil
 	}
 	if maxSourceNum <= len(alSourceCache) {
@@ -62,7 +63,7 @@ func newAlSource(sampleRate int) (al.Source, error) {
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
 	}
-	e := alSourceCacheEntry{
+	e := &alSourceCacheEntry{
 		source:     s[0],
 		sampleRate: sampleRate,
 	}
@@ -167,7 +168,8 @@ func (p *player) play() error {
 func (p *player) close() error {
 	m.Lock()
 	var bs []al.Buffer
-	if p.alSource != 0 {
+	s := p.alSource
+	if p.alSource == 0 {
 		al.RewindSources(p.alSource)
 		al.StopSources(p.alSource)
 		n := p.alSource.BuffersQueued()
@@ -177,6 +179,7 @@ func (p *player) close() error {
 		}
 		p.alSource = 0
 	}
+	// TODO: Is this needed?
 	if 0 < len(p.alBuffers) {
 		al.DeleteBuffers(p.alBuffers...)
 		p.alBuffers = []al.Buffer{}
@@ -187,9 +190,24 @@ func (p *player) close() error {
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: closing error: %d", err))
 	}
+	if s != 0 {
+		found := false
+		for _, e := range alSourceCache {
+			if e.source != s {
+				continue
+			}
+			if e.isClosed {
+				panic("audio: cache state is invalid: source is already closed?")
+			}
+			e.isClosed = true
+			found = true
+			break
+		}
+		if !found {
+			panic("audio: cache state is invalid: source is not cached?")
+		}
+	}
 	m.Unlock()
 	runtime.SetFinalizer(p, nil)
 	return nil
 }
-
-// TODO: Implement Close method
