@@ -26,13 +26,14 @@ import (
 	"golang.org/x/mobile/exp/audio/al"
 )
 
-type readSeekCloser struct {
-	io.ReadSeeker
+type alSourceCacheEntry struct {
+	source     al.Source
+	sampleRate int
 }
 
-func (r *readSeekCloser) Close() error {
-	return nil
-}
+const maxSourceNum = 32
+
+var alSourceCache = []alSourceCacheEntry{}
 
 type player struct {
 	alSource   al.Source
@@ -43,27 +44,52 @@ type player struct {
 
 var m sync.Mutex
 
-var sn = 0
-
-func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
-	m.Lock()
-	if err := al.OpenDevice(); err != nil {
-		panic(fmt.Sprintf("audio: OpenAL initialization failed: %v", err))
+func newAlSource(sampleRate int) (al.Source, error) {
+	for _, e := range alSourceCache {
+		if e.sampleRate != sampleRate {
+			continue
+		}
+		s := e.source.State()
+		if s != al.Initial && s != al.Stopped {
+			continue
+		}
+		return e.source, nil
 	}
-	// TODO: Too many generating sources may cause error. Limit the number of sources.
+	if maxSourceNum <= len(alSourceCache) {
+		return 0, ErrTooManyPlayers
+	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
 	}
+	e := alSourceCacheEntry{
+		source:     s[0],
+		sampleRate: sampleRate,
+	}
+	alSourceCache = append(alSourceCache, e)
+	return s[0], nil
+}
+
+func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
+	m.Lock()
+	if e := al.OpenDevice(); e != nil {
+		m.Unlock()
+		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
+	}
+	s, err := newAlSource(sampleRate)
+	if err != nil {
+		m.Unlock()
+		return nil, err
+	}
 	m.Unlock()
 	p := &player{
-		alSource:   s[0],
+		alSource:   s,
 		alBuffers:  []al.Buffer{},
 		source:     src,
 		sampleRate: sampleRate,
 	}
 	runtime.SetFinalizer(p, (*player).close)
-	return &Player{p}
+	return &Player{p}, nil
 }
 
 const bufferSize = 1024
@@ -106,7 +132,8 @@ func (p *player) play() error {
 	// TODO: What if play is already called?
 	emptyBytes := make([]byte, bufferSize)
 	m.Lock()
-	bufs := al.GenBuffers(8)
+	queued := p.alSource.BuffersQueued()
+	bufs := al.GenBuffers(8 - int(queued))
 	for _, buf := range bufs {
 		// Note that the third argument of only the first buffer is used.
 		buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
@@ -134,7 +161,8 @@ func (p *player) play() error {
 func (p *player) close() error {
 	m.Lock()
 	if p.alSource != 0 {
-		al.DeleteSources(p.alSource)
+		al.RewindSources(p.alSource)
+		al.StopSources(p.alSource)
 		p.alSource = 0
 	}
 	if 0 < len(p.alBuffers) {
@@ -142,7 +170,7 @@ func (p *player) close() error {
 		p.alBuffers = []al.Buffer{}
 	}
 	if err := al.Error(); err != 0 {
-		panic(fmt.Sprintf("audio: close error: %d", err))
+		panic(fmt.Sprintf("audio: closing error: %d", err))
 	}
 	m.Unlock()
 	runtime.SetFinalizer(p, nil)

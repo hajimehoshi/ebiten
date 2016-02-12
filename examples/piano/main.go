@@ -78,12 +78,18 @@ func (s *stream) Close() error {
 	return nil
 }
 
-func addNote(freq float64, vol float64) {
+func addNote(freq float64, vol float64) error {
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		p := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+		p, err := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+		if err == audio.ErrTooManyPlayers {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 		p.Play()
-		return
+		return nil
 	}
 	length := len(pcm) * baseFreq / f
 	l := make([]int16, length)
@@ -99,8 +105,15 @@ func addNote(freq float64, vol float64) {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	p := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+	p, err := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+	if err == audio.ErrTooManyPlayers {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
 	p.Play()
+	return nil
 }
 
 var keys = []ebiten.Key{
@@ -193,7 +206,9 @@ func update(screen *ebiten.Image) error {
 		if keyStates[key] != 1 {
 			continue
 		}
-		addNote(220*math.Exp2(float64(i-1)/12.0), 1.0)
+		if err := addNote(220*math.Exp2(float64(i-1)/12.0), 1.0); err != nil {
+			return err
+		}
 	}
 
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})

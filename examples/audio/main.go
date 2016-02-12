@@ -48,6 +48,7 @@ const (
 	freqGS = 830.6
 )
 
+// Twinkle, Twinkle, Little Star
 const score = `CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`
 
 var scoreIndex = 0
@@ -86,14 +87,7 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-type stream struct {
-	*bytes.Reader
-}
-
-func (s *stream) Close() error {
-	return nil
-}
-func addNote() {
+func addNote() error {
 	size := sampleRate / 60
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 
@@ -122,8 +116,12 @@ func addNote() {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 	b := toBytes(l, r)
-	p := audio.NewPlayer(&stream{bytes.NewReader(b)}, sampleRate)
+	p, err := audio.NewPlayer(bytes.NewReader(b), sampleRate)
+	if err != nil {
+		return err
+	}
 	p.Play()
+	return nil
 }
 
 func update(screen *ebiten.Image) error {
@@ -131,7 +129,9 @@ func update(screen *ebiten.Image) error {
 		frames++
 	}()
 	if frames%30 == 0 {
-		addNote()
+		if err := addNote(); err != nil {
+			return err
+		}
 	}
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil

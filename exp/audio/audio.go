@@ -15,6 +15,7 @@
 package audio
 
 import (
+	"errors"
 	"io"
 )
 
@@ -30,9 +31,11 @@ type Player struct {
 // without a header (e.g. RIFF header).
 //
 // TODO: Pass sample rate and num of channels.
-func NewPlayer(src io.ReadSeeker, sampleRate int) *Player {
+func NewPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
 	return newPlayer(src, sampleRate)
 }
+
+var ErrTooManyPlayers = errors.New("audio: too many players exist")
 
 func (p *Player) Play() error {
 	return p.player.play()
