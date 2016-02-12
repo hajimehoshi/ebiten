@@ -131,16 +131,19 @@ func (p *player) proceed() error {
 func (p *player) play() error {
 	const bufferMaxNum = 8
 	// TODO: What if play is already called?
-	emptyBytes := make([]byte, bufferSize)
 	m.Lock()
-	n := bufferMaxNum - int(p.alSource.BuffersQueued())
+	n := bufferMaxNum - int(p.alSource.BuffersQueued()) - len(p.alBuffers)
 	if 0 < n {
-		bufs := al.GenBuffers(n)
-		for _, buf := range bufs {
+		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
+	}
+	if 0 < len(p.alBuffers) {
+		emptyBytes := make([]byte, bufferSize)
+		for _, buf := range p.alBuffers {
 			// Note that the third argument of only the first buffer is used.
 			buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
 			p.alSource.QueueBuffers(buf)
 		}
+		p.alBuffers = []al.Buffer{}
 	}
 	al.PlaySources(p.alSource)
 	m.Unlock()
