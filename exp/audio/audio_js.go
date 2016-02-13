@@ -18,7 +18,7 @@ package audio
 
 import (
 	"io"
-	"io/ioutil"
+	"time"
 
 	"github.com/gopherjs/gopherjs/js"
 )
@@ -75,41 +75,55 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func (p *player) play() error {
-	// TODO: Reading all data at once is temporary implemntation. Treat this as stream.
-	buf, err := ioutil.ReadAll(p.src)
-	if err != nil {
-		return err
-	}
-	if len(buf) == 0 {
-		return nil
-	}
-	// TODO: p.position should be updated
-	if p.bufferSource != nil {
+func (p *player) proceed() error {
+	buf := make([]byte, 4096)
+	n, err := p.src.Read(buf)
+	if 0 < n {
+		const channelNum = 2
+		const bytesPerSample = channelNum * 16 / 8
+		b := context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
+		l := b.Call("getChannelData", 0)
+		r := b.Call("getChannelData", 1)
+		il, ir := toLR(buf[:n])
+		const max = 1 << 15
+		for i := 0; i < len(il); i++ {
+			l.SetIndex(i, float64(il[i])/max)
+			r.SetIndex(i, float64(ir[i])/max)
+		}
+		p.bufferSource = context.Call("createBufferSource")
+		p.bufferSource.Set("buffer", b)
+		p.bufferSource.Call("connect", context.Get("destination"))
 		p.bufferSource.Call("start", p.position)
-		return nil
+		p.position += b.Get("duration").Float()
 	}
-	const channelNum = 2
-	const bytesPerSample = channelNum * 16 / 8
-	b := context.Call("createBuffer", channelNum, len(buf)/bytesPerSample, p.sampleRate)
-	l := b.Call("getChannelData", 0)
-	r := b.Call("getChannelData", 1)
-	il, ir := toLR(buf)
-	const max = 1 << 15
-	for i := 0; i < len(il); i++ {
-		l.SetIndex(i, float64(il[i])/max)
-		r.SetIndex(i, float64(ir[i])/max)
-	}
-	p.bufferSource = context.Call("createBufferSource")
-	p.bufferSource.Set("buffer", b)
-	p.bufferSource.Call("connect", context.Get("destination"))
-	p.bufferSource.Call("start", p.position)
-	p.position += b.Get("duration").Float()
+	return err
+}
+
+func (p *player) play() error {
+	// TODO: What if play is already called?
+	go func() {
+		defer p.close()
+		for {
+			err := p.proceed()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				// TODO: Record the last error
+				panic(err)
+			}
+			time.Sleep(1)
+		}
+	}()
 	return nil
 }
 
 func (p *player) close() error {
+	if p.bufferSource == nil {
+		return nil
+	}
 	p.bufferSource.Call("stop")
 	p.bufferSource.Call("disconnect")
+	p.bufferSource = nil
 	return nil
 }
