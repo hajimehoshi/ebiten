@@ -49,7 +49,7 @@ func initialize() bool {
 	return true
 }
 
-func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
+func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
 	if context == nil {
 		if !initialize() {
 			panic("audio couldn't be initialized")
@@ -62,7 +62,7 @@ func newPlayer(src io.ReadSeeker, sampleRate int) *Player {
 		position:     context.Get("currentTime").Float(),
 		bufferSource: nil,
 	}
-	return &Player{p}
+	return &Player{p}, nil
 }
 
 func toLR(data []byte) ([]int16, []int16) {
