@@ -26,8 +26,12 @@ import (
 	"golang.org/x/mobile/exp/audio/al"
 )
 
+// alSourceCacheEntry represents a source.
+// In some environments, too many calls of alGenSources and alGenBuffers could cause errors.
+// To avoid this error, al.Source and al.Buffer are reused.
 type alSourceCacheEntry struct {
 	source     al.Source
+	buffers    []al.Buffer
 	sampleRate int
 	isClosed   bool
 }
@@ -45,7 +49,7 @@ type player struct {
 
 var m sync.Mutex
 
-func newAlSource(sampleRate int) (al.Source, error) {
+func newAlSource(sampleRate int) (al.Source, []al.Buffer, error) {
 	for _, e := range alSourceCache {
 		if e.sampleRate != sampleRate {
 			continue
@@ -54,10 +58,10 @@ func newAlSource(sampleRate int) (al.Source, error) {
 			continue
 		}
 		e.isClosed = false
-		return e.source, nil
+		return e.source, e.buffers, nil
 	}
 	if maxSourceNum <= len(alSourceCache) {
-		return 0, ErrTooManyPlayers
+		return 0, nil, ErrTooManyPlayers
 	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
@@ -65,10 +69,11 @@ func newAlSource(sampleRate int) (al.Source, error) {
 	}
 	e := &alSourceCacheEntry{
 		source:     s[0],
+		buffers:    []al.Buffer{},
 		sampleRate: sampleRate,
 	}
 	alSourceCache = append(alSourceCache, e)
-	return s[0], nil
+	return s[0], e.buffers, nil
 }
 
 func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
@@ -77,7 +82,7 @@ func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
 		m.Unlock()
 		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
 	}
-	s, err := newAlSource(sampleRate)
+	s, b, err := newAlSource(sampleRate)
 	if err != nil {
 		m.Unlock()
 		return nil, err
@@ -85,7 +90,7 @@ func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
 	m.Unlock()
 	p := &player{
 		alSource:   s,
-		alBuffers:  []al.Buffer{},
+		alBuffers:  b,
 		source:     src,
 		sampleRate: sampleRate,
 	}
@@ -97,10 +102,16 @@ const bufferSize = 1024
 
 func (p *player) proceed() error {
 	m.Lock()
+	if err := al.Error(); err != 0 {
+		panic(fmt.Sprintf("audio: before proceed: %d", err))
+	}
 	processedNum := p.alSource.BuffersProcessed()
 	if 0 < processedNum {
 		bufs := make([]al.Buffer, processedNum)
 		p.alSource.UnqueueBuffers(bufs...)
+		if err := al.Error(); err != 0 {
+			panic(fmt.Sprintf("audio: Unqueue in process: %d", err))
+		}
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
 	m.Unlock()
@@ -113,6 +124,9 @@ func (p *player) proceed() error {
 			p.alBuffers = p.alBuffers[1:]
 			buf.BufferData(al.FormatStereo16, b[:n], int32(p.sampleRate))
 			p.alSource.QueueBuffers(buf)
+			if err := al.Error(); err != 0 {
+				panic(fmt.Sprintf("audio: Queue in process: %d", err))
+			}
 			m.Unlock()
 		}
 		if err != nil {
@@ -123,6 +137,9 @@ func (p *player) proceed() error {
 	if p.alSource.State() == al.Stopped {
 		al.RewindSources(p.alSource)
 		al.PlaySources(p.alSource)
+		if err := al.Error(); err != 0 {
+			panic(fmt.Sprintf("audio: PlaySource in process: %d", err))
+		}
 	}
 	m.Unlock()
 
@@ -167,25 +184,21 @@ func (p *player) play() error {
 
 func (p *player) close() error {
 	m.Lock()
-	var bs []al.Buffer
+	if err := al.Error(); err != 0 {
+		panic(fmt.Sprintf("audio: error before closing: %d", err))
+	}
 	s := p.alSource
-	if p.alSource == 0 {
+	if p.alSource != 0 {
+		var bs []al.Buffer
 		al.RewindSources(p.alSource)
 		al.StopSources(p.alSource)
 		n := p.alSource.BuffersQueued()
 		if 0 < n {
 			bs = make([]al.Buffer, n)
 			p.alSource.UnqueueBuffers(bs...)
+			p.alBuffers = append(p.alBuffers, bs...)
 		}
 		p.alSource = 0
-	}
-	// TODO: Is this needed?
-	if 0 < len(p.alBuffers) {
-		al.DeleteBuffers(p.alBuffers...)
-		p.alBuffers = []al.Buffer{}
-	}
-	if bs != nil {
-		p.alBuffers = append(p.alBuffers, bs...)
 	}
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: closing error: %d", err))
@@ -199,6 +212,7 @@ func (p *player) close() error {
 			if e.isClosed {
 				panic("audio: cache state is invalid: source is already closed?")
 			}
+			e.buffers = p.alBuffers
 			e.isClosed = true
 			found = true
 			break
