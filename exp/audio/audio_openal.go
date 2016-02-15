@@ -164,6 +164,7 @@ func (p *player) play() error {
 	m.Unlock()
 
 	go func() {
+		// TODO: Is it OK to close asap?
 		defer p.close()
 		for {
 			err := p.proceed()
