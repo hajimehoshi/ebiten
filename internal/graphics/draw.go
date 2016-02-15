@@ -87,9 +87,6 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		vertices[16*i+14] = int16(u1)
 		vertices[16*i+15] = int16(v1)
 	}
-	if len(vertices) == 0 {
-		return nil
-	}
 	c.BufferSubData(c.ArrayBuffer, vertices[:16*quads.Len()])
 	c.DrawElements(c.Triangles, 6*quads.Len())
 	return nil
