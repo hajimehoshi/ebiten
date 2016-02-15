@@ -33,7 +33,7 @@ type Matrix interface {
 	Element(i, j int) float64
 }
 
-var vertices = make([]int16, 0, 4*8*quadsMaxNum)
+var vertices = make([]int16, 16*quadsMaxNum)
 
 var shadersInitialized = false
 
@@ -66,26 +66,30 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	p.begin()
 	defer p.end()
 
-	vertices := vertices[0:0]
-	num := 0
 	for i := 0; i < quads.Len(); i++ {
 		x0, y0, x1, y1 := quads.Vertex(i)
 		u0, v0, u1, v1 := quads.Texture(i)
-		if x0 == x1 || y0 == y1 || u0 == u1 || v0 == v1 {
-			continue
-		}
-		vertices = append(vertices,
-			int16(x0), int16(y0), int16(u0), int16(v0),
-			int16(x1), int16(y0), int16(u1), int16(v0),
-			int16(x0), int16(y1), int16(u0), int16(v1),
-			int16(x1), int16(y1), int16(u1), int16(v1),
-		)
-		num++
+		vertices[16*i] = int16(x0)
+		vertices[16*i+1] = int16(y0)
+		vertices[16*i+2] = int16(u0)
+		vertices[16*i+3] = int16(v0)
+		vertices[16*i+4] = int16(x1)
+		vertices[16*i+5] = int16(y0)
+		vertices[16*i+6] = int16(u1)
+		vertices[16*i+7] = int16(v0)
+		vertices[16*i+8] = int16(x0)
+		vertices[16*i+9] = int16(y1)
+		vertices[16*i+10] = int16(u0)
+		vertices[16*i+11] = int16(v1)
+		vertices[16*i+12] = int16(x1)
+		vertices[16*i+13] = int16(y1)
+		vertices[16*i+14] = int16(u1)
+		vertices[16*i+15] = int16(v1)
 	}
 	if len(vertices) == 0 {
 		return nil
 	}
-	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(c.Triangles, 6*num)
+	c.BufferSubData(c.ArrayBuffer, vertices[:16*quads.Len()])
+	c.DrawElements(c.Triangles, 6*quads.Len())
 	return nil
 }
