@@ -8,4 +8,4 @@
 
 # How to deploy
 
-git subtree push --prefix _docs/public/ origin gh-pages
+`git subtree push --prefix _docs/public/ origin gh-pages`
