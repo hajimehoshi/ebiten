@@ -280,20 +280,16 @@ func (s *GameScene) Update(state *GameState) error {
 		if state.Input.IsRotateRightTrigger() {
 			s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
-		}
-		if state.Input.IsRotateLeftTrigger() {
+		} else if state.Input.IsRotateLeftTrigger() {
 			s.currentPieceAngle = s.field.RotatePieceLeft(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
-		}
-		if l := state.Input.StateForLeft(); l == 1 || (10 <= l && l%2 == 0) {
+		} else if l := state.Input.StateForLeft(); l == 1 || (10 <= l && l%2 == 0) {
 			s.currentPieceX = s.field.MovePieceToLeft(piece, x, y, angle)
 			moved = x != s.currentPieceX
-		}
-		if r := state.Input.StateForRight(); r == 1 || (10 <= r && r%2 == 0) {
+		} else if r := state.Input.StateForRight(); r == 1 || (10 <= r && r%2 == 0) {
 			s.currentPieceX = s.field.MovePieceToRight(piece, x, y, angle)
 			moved = y != s.currentPieceX
-		}
-		if d := state.Input.StateForDown(); (d-1)%2 == 0 {
+		} else if d := state.Input.StateForDown(); (d-1)%2 == 0 {
 			s.currentPieceY = s.field.DropPiece(piece, x, y, angle)
 			moved = y != s.currentPieceY
 			if moved {
