@@ -58,6 +58,7 @@ func (c *ColorM) Element(i, j int) float64 {
 }
 
 // Concat multiplies a color matrix with the other color matrix.
+// This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
 	if !c.initialized {
 		c.initialize()

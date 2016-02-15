@@ -51,6 +51,7 @@ func (g *GeoM) Element(i, j int) float64 {
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
+// This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
 	if !g.initialized {
 		g.initialize()
@@ -90,6 +91,7 @@ func (g *GeoM) Translate(tx, ty float64) {
 	g.es[1][2] += ty
 }
 
+// Rotate rotates the matrix by theta.
 func (g *GeoM) Rotate(theta float64) {
 	sin, cos := math.Sincos(theta)
 	g.Concat(GeoM{
