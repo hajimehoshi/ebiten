@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!--
+Copyright 2014 Hajime Hoshi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - alphablending</title>
+<style>
+body {
+  font-family: sans-serif;
+}
+iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
+}
+</style>
+<nav><a href="..">Ebiten</a></nav>
+
+<h1>Ebiten example - alphablending</h1>
+<iframe src="alphablending.content.html" width="640" height="480"></iframe>
+<pre><code>package main
+
+import (
+    &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+    &#34;image/color&#34;
+    _ &#34;image/png&#34;
+    &#34;log&#34;
+)
+
+const (
+    screenWidth  = 320
+    screenHeight = 240
+)
+
+var (
+    count           int
+    tmpRenderTarget *ebiten.Image
+    ebitenImage     *ebiten.Image
+    saved           bool
+)
+
+func update(screen *ebiten.Image) error {
+    count&#43;&#43;
+    count %= 600
+    diff := float64(count) * 0.2
+    switch {
+    case 480 &lt; count:
+        diff = 0
+    case 240 &lt; count:
+        diff = float64(480-count) * 0.2
+    }
+
+    if err := tmpRenderTarget.Clear(); err != nil {
+        return err
+    }
+    for i := 0; i &lt; 10; i&#43;&#43; {
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(15&#43;float64(i)*diff, 20)
+        op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
+        if err := tmpRenderTarget.DrawImage(ebitenImage, op); err != nil {
+            return err
+        }
+    }
+
+    screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
+    for i := 0; i &lt; 10; i&#43;&#43; {
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(0, float64(i)*diff)
+        if err := screen.DrawImage(tmpRenderTarget, op); err != nil {
+            return err
+        }
+    }
+
+    return nil
+}
+
+func main() {
+    var err error
+    ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;images/ebiten.png&#34;, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    tmpRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    //update := update
+    //f, _ := os.Create(&#34;out.gif&#34;)
+    //update = ebitenutil.RecordScreenAsGIF(update, f, 100)
+    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Alpha Blending (Ebiten Demo)&#34;); err != nil {
+        log.Fatal(err)
+    }
+}
+</code></pre>
+
+
+<footer>© 2014 Hajime Hoshi</footer>

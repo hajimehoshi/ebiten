@@ -167,13 +167,16 @@ func versions() string {
 }
 
 var examples = []example{
+	{Name: "alphablending"},
 	{Name: "hue"},
+	{Name: "gamepad"},
 	{Name: "keyboard"},
 	{Name: "mosaic"},
+	{Name: "noise"},
 	{Name: "paint"},
 	{Name: "perspective"},
-	{Name: "piano"},
 	{Name: "rotate"},
+	{Name: "sprites"},
 	{Name: "blocks"},
 }
 
