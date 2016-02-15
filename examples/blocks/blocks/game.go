@@ -15,8 +15,9 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten"
 	"sync"
+
+	"github.com/hajimehoshi/ebiten"
 )
 
 const ScreenWidth = 256

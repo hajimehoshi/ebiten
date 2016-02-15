@@ -15,11 +15,12 @@
 package main
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/keyboard/keyboard"
-	"log"
-	"strconv"
 )
 
 const (

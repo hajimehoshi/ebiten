@@ -15,9 +15,10 @@
 package blocks
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/common"
-	"image/color"
 )
 
 func drawTextWithShadowCenter(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) error {

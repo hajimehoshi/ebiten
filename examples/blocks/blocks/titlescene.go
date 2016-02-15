@@ -15,10 +15,11 @@
 package blocks
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/common"
-	"image/color"
 )
 
 var imageBackground *ebiten.Image

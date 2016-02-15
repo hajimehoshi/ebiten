@@ -15,14 +15,15 @@
 package blocks
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/common"
 	"image/color"
 	_ "image/jpeg"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 var (

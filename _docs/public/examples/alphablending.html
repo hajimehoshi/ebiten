@@ -39,11 +39,12 @@ pre {
 <pre><code>package main
 
 import (
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
     &#34;image/color&#34;
     _ &#34;image/png&#34;
     &#34;log&#34;
+
+    &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
@@ -103,9 +104,6 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    //update := update
-    //f, _ := os.Create(&#34;out.gif&#34;)
-    //update = ebitenutil.RecordScreenAsGIF(update, f, 100)
     if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Alpha Blending (Ebiten Demo)&#34;); err != nil {
         log.Fatal(err)
     }

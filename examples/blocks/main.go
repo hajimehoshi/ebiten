@@ -16,11 +16,12 @@ package main
 
 import (
 	"flag"
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/blocks/blocks"
 	"log"
 	"os"
 	"runtime/pprof"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/examples/blocks/blocks"
 )
 
 var cpuProfile = flag.String("cpuprofile", "", "write cpu profile to file")

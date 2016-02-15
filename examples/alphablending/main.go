@@ -15,11 +15,12 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image/color"
 	_ "image/png"
 	"log"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
@@ -79,9 +80,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//update := update
-	//f, _ := os.Create("out.gif")
-	//update = ebitenutil.RecordScreenAsGIF(update, f, 100)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Alpha Blending (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
