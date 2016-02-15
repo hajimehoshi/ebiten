@@ -21,10 +21,9 @@ import (
 // Filter represents the type of filter to be used when an image is maginified or minified.
 type Filter int
 
-// Filters
 const (
-	FilterNearest Filter = iota
-	FilterLinear
+	FilterNearest Filter = iota // nearest (crisp-edged) filter
+	FilterLinear                // linear filter
 )
 
 func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
