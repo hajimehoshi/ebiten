@@ -147,9 +147,12 @@ func (e *example) Height() int {
 	return e.ThumbHeight() * 2
 }
 
+const commentForBlocks = `// Please read examples/blocks/main.go and examples/blocks/blocks/*.go
+// NOTE: If Gamepad API is available in your browswer, you can use gamepads. Try it out!`
+
 func (e *example) Source() string {
 	if e.Name == "blocks" {
-		return "// Please read examples/blocks/main.go and examples/blocks/blocks/*.go"
+		return commentForBlocks
 	}
 
 	path := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "hajimehoshi", "ebiten", "examples", e.Name, "main.go")

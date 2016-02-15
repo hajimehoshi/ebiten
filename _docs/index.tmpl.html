@@ -77,8 +77,8 @@ pre {
 
 <h2>Apps created with Ebiten</h2>
 <ul>
-  <li><a href="https://github.com/hajimehoshi/go-inovation5">go-inovation5</a> by Hajime Hoshi</li>
   <li><a href="https://github.com/peterhellberg/plasma">Plasma</a> by Peter Hellberg</li>
+  <li><a href="https://github.com/hajimehoshi/go-inovation5">go-inovation5</a> by Hajime Hoshi</li>
   <li><a href="https://github.com/martinkirsche/wired-logic">Wired Logic</a> by Martin Kirsche</li>
 </ul>
 
@@ -87,21 +87,23 @@ pre {
 <ul>
   <li>v1.2.0-rc1 released.
     <ul>
-      <li>Support for gamepads</li>
-      <li>Support for touch events</li>
-      <li>Add new functions for image rendering:
+      <li>Added support for gamepads on desktops and browsers</li>
+      <li>Added support for touch events on browsers</li>
+      <li>Added new functions for image rendering:
         <ul>
           <li>Image.ReplacePixels</li>
+          <li>GeoM.Rotate</li>
+          <li>ColorM.RotateHue</li>
         </ul>
       </li>
-      <li>Add some experimental packages:
+      <li>Added some experimental packages:
         <ul>
           <li>exp/audio: Play music and sound</li>
           <li>exp/gamepad: Useful functions to configure gamepads</li>
           <li>These packages are experimental and we don't guarantee backward compatibility.</li>
         </ul>
       </li>
-      <li>Deprecate some APIs
+      <li>Deprecated some APIs:
         <ul>
           <li>TranslateGeo (Use GeoM's Translate instead)</li>
           <li>ScaleGeo (Use GoeM's Scale instead)</li>
@@ -111,7 +113,8 @@ pre {
           <li>RotateHue (Use ColorM's RotateHue instead)</li>
         </ul>
       </li>
-      <li>Some bug fix.</li>
+      <li>Fixed some bugs</li>
+      <li>Performance optimization</li>
     </ul>
   </li>
 </ul>
