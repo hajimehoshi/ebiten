@@ -1,10 +1,10 @@
 # How to generate the doc
 
-`go run gen.go`
+`go generate .`
 
 # How to run HTTP server
 
-`go run server.go`
+`go run server/main.go`
 
 # How to deploy
 
