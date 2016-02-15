@@ -5,3 +5,7 @@
 # How to run HTTP server
 
 `go run server.go`
+
+# How to deploy
+
+git subtree push --prefix _docs/public/ origin gh-pages
