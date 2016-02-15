@@ -78,7 +78,7 @@ func (c *ColorM) Add(other ColorM) {
 	*c = result
 }
 
-// Scale scales the matrix by (x, y).
+// Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
 	if !c.initialized {
 		c.initialize()
@@ -91,7 +91,7 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 	}
 }
 
-// Translate translates the matrix by (x, y).
+// Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
 	if !c.initialized {
 		c.initialize()
