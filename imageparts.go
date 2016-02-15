@@ -87,33 +87,41 @@ func (t *textureQuads) Len() int {
 	return t.parts.Len()
 }
 
-func (t *textureQuads) SetVertices(vertices []int16) error {
+func (t *textureQuads) SetVertices(vertices []int16) (int, error) {
 	l := t.Len()
 	if len(vertices) < l*16 {
-		return fmt.Errorf("grphics: vertices size must be greater than %d but %d", l*16, len(vertices))
+		return 0, fmt.Errorf("grphics: vertices size must be greater than %d but %d", l*16, len(vertices))
 	}
 	p := t.parts
 	w, h := t.width, t.height
+	n := 0
 	for i := 0; i < l; i++ {
 		x0, y0, x1, y1 := p.Dst(i)
+		if x0 == x1 || y0 == y1 {
+			continue
+		}
 		sx0, sy0, sx1, sy1 := p.Src(i)
 		u0, v0, u1, v1 := u(sx0, w), v(sy0, h), u(sx1, w), v(sy1, h)
-		vertices[16*i] = int16(x0)
-		vertices[16*i+1] = int16(y0)
-		vertices[16*i+2] = int16(u0)
-		vertices[16*i+3] = int16(v0)
-		vertices[16*i+4] = int16(x1)
-		vertices[16*i+5] = int16(y0)
-		vertices[16*i+6] = int16(u1)
-		vertices[16*i+7] = int16(v0)
-		vertices[16*i+8] = int16(x0)
-		vertices[16*i+9] = int16(y1)
-		vertices[16*i+10] = int16(u0)
-		vertices[16*i+11] = int16(v1)
-		vertices[16*i+12] = int16(x1)
-		vertices[16*i+13] = int16(y1)
-		vertices[16*i+14] = int16(u1)
-		vertices[16*i+15] = int16(v1)
+		if u0 == u1 || v0 == v1 {
+			continue
+		}
+		vertices[16*n] = int16(x0)
+		vertices[16*n+1] = int16(y0)
+		vertices[16*n+2] = int16(u0)
+		vertices[16*n+3] = int16(v0)
+		vertices[16*n+4] = int16(x1)
+		vertices[16*n+5] = int16(y0)
+		vertices[16*n+6] = int16(u1)
+		vertices[16*n+7] = int16(v0)
+		vertices[16*n+8] = int16(x0)
+		vertices[16*n+9] = int16(y1)
+		vertices[16*n+10] = int16(u0)
+		vertices[16*n+11] = int16(v1)
+		vertices[16*n+12] = int16(x1)
+		vertices[16*n+13] = int16(y1)
+		vertices[16*n+14] = int16(u1)
+		vertices[16*n+15] = int16(v1)
+		n++
 	}
-	return nil
+	return n, nil
 }

@@ -65,10 +65,14 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	}
 	p.begin()
 	defer p.end()
-	if err := quads.SetVertices(vertices); err != nil {
+	n, err := quads.SetVertices(vertices)
+	if err != nil {
 		return err
 	}
-	c.BufferSubData(c.ArrayBuffer, vertices[:16*quads.Len()])
-	c.DrawElements(c.Triangles, 6*quads.Len())
+	if n == 0 {
+		return nil
+	}
+	c.BufferSubData(c.ArrayBuffer, vertices[:16*n])
+	c.DrawElements(c.Triangles, 6*n)
 	return nil
 }
