@@ -15,9 +15,11 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"fmt"
 	"image"
 	"math"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 // Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
@@ -85,12 +87,33 @@ func (t *textureQuads) Len() int {
 	return t.parts.Len()
 }
 
-func (t *textureQuads) Vertex(i int) (x0, y0, x1, y1 int) {
-	return t.parts.Dst(i)
-}
-
-func (t *textureQuads) Texture(i int) (u0, v0, u1, v1 int) {
-	x0, y0, x1, y1 := t.parts.Src(i)
+func (t *textureQuads) SetVertices(vertices []int16) error {
+	l := t.Len()
+	if len(vertices) < l*16 {
+		return fmt.Errorf("grphics: vertices size must be greater than %d but %d", l*16, len(vertices))
+	}
+	p := t.parts
 	w, h := t.width, t.height
-	return u(x0, w), v(y0, h), u(x1, w), v(y1, h)
+	for i := 0; i < l; i++ {
+		x0, y0, x1, y1 := p.Dst(i)
+		sx0, sy0, sx1, sy1 := p.Src(i)
+		u0, v0, u1, v1 := u(sx0, w), v(sy0, h), u(sx1, w), v(sy1, h)
+		vertices[16*i] = int16(x0)
+		vertices[16*i+1] = int16(y0)
+		vertices[16*i+2] = int16(u0)
+		vertices[16*i+3] = int16(v0)
+		vertices[16*i+4] = int16(x1)
+		vertices[16*i+5] = int16(y0)
+		vertices[16*i+6] = int16(u1)
+		vertices[16*i+7] = int16(v0)
+		vertices[16*i+8] = int16(x0)
+		vertices[16*i+9] = int16(y1)
+		vertices[16*i+10] = int16(u0)
+		vertices[16*i+11] = int16(v1)
+		vertices[16*i+12] = int16(x1)
+		vertices[16*i+13] = int16(y1)
+		vertices[16*i+14] = int16(u1)
+		vertices[16*i+15] = int16(v1)
+	}
+	return nil
 }

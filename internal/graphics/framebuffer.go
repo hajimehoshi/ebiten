@@ -22,8 +22,7 @@ import (
 
 type TextureQuads interface {
 	Len() int
-	Vertex(i int) (x0, y0, x1, y1 int)
-	Texture(i int) (u0, v0, u1, v1 int)
+	SetVertices(vertices []int16) error
 }
 
 type Lines interface {
