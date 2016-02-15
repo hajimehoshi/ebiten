@@ -163,14 +163,24 @@ func (f *Field) Update() error {
 	return nil
 }
 
+func min(a, b float64) float64 {
+	if a > b {
+		return b
+	}
+	return a
+}
+
 func (f *Field) flushingColor() ebiten.ColorM {
+	c := f.flushCount
+	if c < 0 {
+		c = 0
+	}
+	rate := float64(c) / maxFlushCount
 	clr := ebiten.ColorM{}
-	alpha := (float64(f.flushCount) / maxFlushCount) / 2
+	alpha := min(1, rate*2)
 	clr.Scale(1, 1, 1, alpha)
-	r := (1 - float64(f.flushCount)/maxFlushCount) * 2
-	g := (1 - float64(f.flushCount)/maxFlushCount) / 2
-	b := (1 - float64(f.flushCount)/maxFlushCount) / 2
-	clr.Translate(r, g, b, 0)
+	r := min(1, (1-rate)*2)
+	clr.Translate(r, 0, 0, 0)
 	return clr
 }
 
