@@ -53,7 +53,7 @@ func text_png() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "text.png", size: 2058, mode: os.FileMode(420), modTime: time.Unix(1420820510, 0)}
+	info := bindata_file_info{name: "text.png", size: 2058, mode: os.FileMode(420), modTime: time.Unix(1455503506, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

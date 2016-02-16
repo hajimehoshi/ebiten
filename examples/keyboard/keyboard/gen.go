@@ -34,7 +34,7 @@ import (
 
 func licenseComment() (string, error) {
 	_, path, _, _ := runtime.Caller(0)
-	licensePath := filepath.Join(filepath.Dir(path), "..", "..", "..", "license.txt")
+	licensePath := filepath.Join(filepath.Dir(path), "..", "..", "..", "LICENSE")
 	l, err := ioutil.ReadFile(licensePath)
 	if err != nil {
 		return "", err
@@ -55,21 +55,61 @@ var keyboardKeys = [][]string{
 	{"Left", "Down", "Right"},
 }
 
-func drawKey(t *ebiten.Image, name string, x, y, width int) {
+func drawKey(t *ebiten.Image, name string, x, y, width int) error {
 	const height = 16
 	width--
-	c := color.White
-	t.DrawLine(x, y+3, x, y+height-3, c)
-	t.DrawLine(x+width-1, y+3, x+width-1, y+height-3, c)
-	t.DrawLine(x+3, y, x+width-3, y, c)
-	t.DrawLine(x+3, y+height-1, x+width-3, y+height-1, c)
-
-	t.DrawLine(x, y+3, x+3, y, c)
-	t.DrawLine(x+width-4, y, x+width-1, y+3, c)
-	t.DrawLine(x, y+height-4, x+3, y+height-1, c)
-	t.DrawLine(x+width-1, y+height-4, x+width-4, y+height-1, c)
-
-	common.ArcadeFont.DrawText(t, name, x+4, y+5, 1, color.White)
+	shape, err := ebiten.NewImage(width, height, ebiten.FilterNearest)
+	if err != nil {
+		return err
+	}
+	p := make([]uint8, width*height*4)
+	for j := 0; j < height; j++ {
+		for i := 0; i < width; i++ {
+			x := (i + j*width) * 4
+			switch j {
+			case 0, height - 1:
+				if 3 <= i && i <= width-4 {
+					p[x] = 0xff
+					p[x+1] = 0xff
+					p[x+2] = 0xff
+					p[x+3] = 0xff
+				}
+			case 1, height - 2:
+				if i == 2 || i == width-3 {
+					p[x] = 0xff
+					p[x+1] = 0xff
+					p[x+2] = 0xff
+					p[x+3] = 0xff
+				}
+			case 2, height - 3:
+				if i == 1 || i == width-2 {
+					p[x] = 0xff
+					p[x+1] = 0xff
+					p[x+2] = 0xff
+					p[x+3] = 0xff
+				}
+			default:
+				if i == 0 || i == width-1 {
+					p[x] = 0xff
+					p[x+1] = 0xff
+					p[x+2] = 0xff
+					p[x+3] = 0xff
+				}
+			}
+		}
+	}
+	if err := shape.ReplacePixels(p); err != nil {
+		return err
+	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	if err := t.DrawImage(shape, op); err != nil {
+		return err
+	}
+	if err := common.ArcadeFont.DrawText(t, name, x+4, y+5, 1, color.White); err != nil {
+		return err
+	}
+	return nil
 }
 
 func outputKeyboardImage() (map[string]image.Rectangle, error) {
@@ -109,7 +149,9 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 				width = 16 * 3
 			}
 			if key != "" {
-				drawKey(img, key, x, y, width)
+				if err := drawKey(img, key, x, y, width); err != nil {
+					return nil, err
+				}
 				if key != " " {
 					keyMap[key] = image.Rect(x, y, x+width, y+height)
 				}
