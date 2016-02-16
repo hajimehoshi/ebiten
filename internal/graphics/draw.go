@@ -65,10 +65,7 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	}
 	p.begin()
 	defer p.end()
-	n, err := quads.SetVertices(vertices)
-	if err != nil {
-		return err
-	}
+	n := quads.SetVertices(vertices)
 	if n == 0 {
 		return nil
 	}

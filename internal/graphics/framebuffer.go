@@ -22,7 +22,7 @@ import (
 
 type TextureQuads interface {
 	Len() int
-	SetVertices(vertices []int16) (int, error)
+	SetVertices(vertices []int16) int
 }
 
 type Lines interface {

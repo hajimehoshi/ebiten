@@ -87,10 +87,10 @@ func (t *textureQuads) Len() int {
 	return t.parts.Len()
 }
 
-func (t *textureQuads) SetVertices(vertices []int16) (int, error) {
+func (t *textureQuads) SetVertices(vertices []int16) int {
 	l := t.Len()
 	if len(vertices) < l*16 {
-		return 0, fmt.Errorf("grphics: vertices size must be greater than %d but %d", l*16, len(vertices))
+		panic(fmt.Sprintf("grphics: vertices size must be greater than %d but %d", l*16, len(vertices)))
 	}
 	p := t.parts
 	w, h := t.width, t.height
@@ -123,5 +123,5 @@ func (t *textureQuads) SetVertices(vertices []int16) (int, error) {
 		vertices[16*n+15] = int16(v1)
 		n++
 	}
-	return n, nil
+	return n
 }
