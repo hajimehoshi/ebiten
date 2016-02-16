@@ -48,10 +48,11 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		shadersInitialized = true
 	}
 
-	if quads.Len() == 0 {
+	l := quads.Len()
+	if l == 0 {
 		return nil
 	}
-	if quadsMaxNum < quads.Len() {
+	if quadsMaxNum < l {
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
 	}
 
