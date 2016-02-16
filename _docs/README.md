@@ -21,4 +21,4 @@
   2. Generate the doc
   3. Add tag like v1.2.0-rc1
   4. Deploy JavaScript files to github.com/hajimehoshi/ebiten.pagestorage
-  5. Deploy the doc
+  5. Deploy the doc (You might see confliction. Unfortunately, we might have to use git push -f (See https://gist.github.com/cobyism/4730490#gistcomment-1394421))
