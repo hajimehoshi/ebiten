@@ -257,13 +257,9 @@ func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
 	return a
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, signed bool, normalize bool, stride int, size int, v int) {
+func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, v int) {
 	l := GetAttribLocation(c, p, location)
-	t := gl.SHORT
-	if !signed {
-		t = gl.UNSIGNED_SHORT
-	}
-	gl.VertexAttribPointer(uint32(l), int32(size), uint32(t), normalize, int32(stride), gl.PtrOffset(v))
+	gl.VertexAttribPointer(uint32(l), int32(size), gl.SHORT, normalize, int32(stride), gl.PtrOffset(v))
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {

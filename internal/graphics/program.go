@@ -181,8 +181,8 @@ func (p *programContext) begin() {
 	c.EnableVertexAttribArray(p.program, "vertex")
 	c.EnableVertexAttribArray(p.program, "tex_coord")
 
-	c.VertexAttribPointer(p.program, "vertex", true, false, int16Size*4, 2, int16Size*0)
-	c.VertexAttribPointer(p.program, "tex_coord", true, true, int16Size*4, 2, int16Size*2)
+	c.VertexAttribPointer(p.program, "vertex", false, int16Size*4, 2, int16Size*0)
+	c.VertexAttribPointer(p.program, "tex_coord", true, int16Size*4, 2, int16Size*2)
 }
 
 func (p *programContext) end() {
