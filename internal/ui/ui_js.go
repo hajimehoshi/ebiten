@@ -27,10 +27,6 @@ func Now() int64 {
 	return int64(js.Global.Get("performance").Call("now").Float() * float64(time.Millisecond))
 }
 
-func ExecOnUIThread(f func()) {
-	f()
-}
-
 func Start(width, height, scale int, title string) (actualScale int, err error) {
 	return currentUI.start(width, height, scale, title)
 }

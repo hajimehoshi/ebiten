@@ -16,15 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
-
-func useGLContext(f func(*opengl.Context)) {
-	ui.ExecOnUIThread(func() {
-		f(glContext)
-	})
-}
 
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	c := &graphicsContext{}
@@ -67,25 +59,22 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 		c.screen.Dispose()
 	}
 
-	var err error
-	useGLContext(func(g *opengl.Context) {
-		f, err := graphics.NewZeroFramebuffer(g, screenWidth*screenScale, screenHeight*screenScale)
-		if err != nil {
-			return
-		}
+	f, err := graphics.NewZeroFramebuffer(glContext, screenWidth*screenScale, screenHeight*screenScale)
+	if err != nil {
+		return err
+	}
 
-		texture, err := graphics.NewTexture(g, screenWidth, screenHeight, g.Nearest)
-		if err != nil {
-			return
-		}
-		screenF, err := graphics.NewFramebufferFromTexture(g, texture)
-		if err != nil {
-			return
-		}
-		screen := &Image{framebuffer: screenF, texture: texture}
-		c.defaultRenderTarget = &Image{framebuffer: f, texture: nil}
-		c.screen = screen
-		c.screenScale = screenScale
-	})
-	return err
+	texture, err := graphics.NewTexture(glContext, screenWidth, screenHeight, glContext.Nearest)
+	if err != nil {
+		return err
+	}
+	screenF, err := graphics.NewFramebufferFromTexture(glContext, texture)
+	if err != nil {
+		return err
+	}
+	screen := &Image{framebuffer: screenF, texture: texture}
+	c.defaultRenderTarget = &Image{framebuffer: f, texture: nil}
+	c.screen = screen
+	c.screenScale = screenScale
+	return nil
 }

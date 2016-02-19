@@ -22,7 +22,6 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 // Image represents an image.
@@ -58,10 +57,7 @@ func (i *Image) Fill(clr color.Color) (err error) {
 		return errors.New("image is already disposed")
 	}
 	i.pixels = nil
-	useGLContext(func(c *opengl.Context) {
-		err = i.framebuffer.Fill(c, clr)
-	})
-	return
+	return i.framebuffer.Fill(glContext, clr)
 }
 
 // DrawImage draws the given image on the receiver image.
@@ -102,10 +98,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	}
 	w, h := image.Size()
 	quads := &textureQuads{parts: parts, width: w, height: h}
-	useGLContext(func(c *opengl.Context) {
-		err = i.framebuffer.DrawTexture(c, image.texture, quads, &options.GeoM, &options.ColorM)
-	})
-	return
+	return i.framebuffer.DrawTexture(glContext, image.texture, quads, &options.GeoM, &options.ColorM)
 }
 
 // Bounds returns the bounds of the image.
@@ -127,13 +120,11 @@ func (i *Image) At(x, y int) color.Color {
 		return color.Transparent
 	}
 	if i.pixels == nil {
-		useGLContext(func(c *opengl.Context) {
-			var err error
-			i.pixels, err = i.framebuffer.Pixels(c)
-			if err != nil {
-				panic(err)
-			}
-		})
+		var err error
+		i.pixels, err = i.framebuffer.Pixels(glContext)
+		if err != nil {
+			panic(err)
+		}
 	}
 	w, _ := i.Size()
 	w = graphics.NextPowerOf2Int(w)
@@ -150,12 +141,10 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return errors.New("image is already disposed")
 	}
-	useGLContext(func(c *opengl.Context) {
-		i.framebuffer.Dispose(c)
-		i.framebuffer = nil
-		i.texture.Dispose(c)
-		i.texture = nil
-	})
+	i.framebuffer.Dispose(glContext)
+	i.framebuffer = nil
+	i.texture.Dispose(glContext)
+	i.texture = nil
 	i.pixels = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
@@ -184,11 +173,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	if len(p) != l {
 		return errors.New(fmt.Sprintf("p's length must be %d", l))
 	}
-	var err error
-	useGLContext(func(c *opengl.Context) {
-		err = i.texture.ReplacePixels(c, p)
-	})
-	return err
+	return i.texture.ReplacePixels(glContext, p)
 }
 
 // A DrawImageOptions represents options to render an image on an image.
@@ -208,28 +193,20 @@ type DrawImageOptions struct {
 // even though nothing refers the image object and GC works.
 // It is because there is no way to define finalizers for Go objects if you use GopherJS.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	var img *Image
-	var err error
-	useGLContext(func(c *opengl.Context) {
-		var texture *graphics.Texture
-		var framebuffer *graphics.Framebuffer
-		texture, err = graphics.NewTexture(c, width, height, glFilter(c, filter))
-		if err != nil {
-			return
-		}
-		framebuffer, err = graphics.NewFramebufferFromTexture(c, texture)
-		if err != nil {
-			return
-		}
-		img = &Image{framebuffer: framebuffer, texture: texture}
-	})
+	texture, err := graphics.NewTexture(glContext, width, height, glFilter(glContext, filter))
 	if err != nil {
 		return nil, err
 	}
+	framebuffer, err := graphics.NewFramebufferFromTexture(glContext, texture)
+	if err != nil {
+		// TODO: texture should be removed here?
+		return nil, err
+	}
+	img := &Image{framebuffer: framebuffer, texture: texture}
+	runtime.SetFinalizer(img, (*Image).Dispose)
 	if err := img.Clear(); err != nil {
 		return nil, err
 	}
-	runtime.SetFinalizer(img, (*Image).Dispose)
 	return img, nil
 }
 
@@ -240,24 +217,16 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // even though nothing refers the image object and GC works.
 // It is because there is no way to define finalizers for Go objects if you use GopherJS.
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
-	var eimg *Image
-	var err error
-	useGLContext(func(c *opengl.Context) {
-		var texture *graphics.Texture
-		var framebuffer *graphics.Framebuffer
-		texture, err = graphics.NewTextureFromImage(c, img, glFilter(c, filter))
-		if err != nil {
-			return
-		}
-		framebuffer, err = graphics.NewFramebufferFromTexture(c, texture)
-		if err != nil {
-			return
-		}
-		eimg = &Image{framebuffer: framebuffer, texture: texture}
-	})
+	texture, err := graphics.NewTextureFromImage(glContext, img, glFilter(glContext, filter))
 	if err != nil {
 		return nil, err
 	}
+	framebuffer, err := graphics.NewFramebufferFromTexture(glContext, texture)
+	if err != nil {
+		// TODO: texture should be removed here?
+		return nil, err
+	}
+	eimg := &Image{framebuffer: framebuffer, texture: texture}
 	runtime.SetFinalizer(eimg, (*Image).Dispose)
 	return eimg, nil
 }

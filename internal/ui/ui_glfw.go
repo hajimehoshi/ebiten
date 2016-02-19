@@ -60,10 +60,6 @@ func Init() {
 	currentUI = u
 }
 
-func ExecOnUIThread(f func()) {
-	f()
-}
-
 func Start(width, height, scale int, title string) (actualScale int, err error) {
 	return currentUI.start(width, height, scale, title)
 }

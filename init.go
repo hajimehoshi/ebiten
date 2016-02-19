@@ -23,7 +23,5 @@ var glContext *opengl.Context
 
 func init() {
 	ui.Init()
-	ui.ExecOnUIThread(func() {
-		glContext = opengl.NewContext()
-	})
+	glContext = opengl.NewContext()
 }
