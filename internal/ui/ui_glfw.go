@@ -49,13 +49,7 @@ func Init() {
 
 	u := &userInterface{
 		window: window,
-		funcs:  make(chan func()),
 	}
-	go func() {
-		for f := range u.funcs {
-			f()
-		}
-	}()
 	go func() {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
@@ -67,13 +61,7 @@ func Init() {
 }
 
 func ExecOnUIThread(f func()) {
-	// TODO: Rename this function: f is actually NOT executed on UI threads
-	ch := make(chan struct{})
-	currentUI.funcs <- func() {
-		defer close(ch)
-		f()
-	}
-	<-ch
+	f()
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {
@@ -112,7 +100,6 @@ type userInterface struct {
 	height      int
 	scale       int
 	actualScale int
-	funcs       chan func()
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
