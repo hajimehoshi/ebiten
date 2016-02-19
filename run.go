@@ -57,7 +57,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	ui.ExecOnUIThread(func() {
 		glContext.Check()
 	})
-
 	graphicsContext, err := newGraphicsContext(width, height, actualScale)
 	if err != nil {
 		return err

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	glfw "github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 func Now() int64 {
@@ -51,18 +52,22 @@ func Init() {
 		funcs:  make(chan func()),
 	}
 	go func() {
-		runtime.LockOSThread()
-		u.window.MakeContextCurrent()
-		glfw.SwapInterval(1)
 		for f := range u.funcs {
 			f()
 		}
+	}()
+	go func() {
+		runtime.LockOSThread()
+		u.window.MakeContextCurrent()
+		glfw.SwapInterval(1)
+		opengl.Loop()
 	}()
 
 	currentUI = u
 }
 
 func ExecOnUIThread(f func()) {
+	// TODO: Rename this function: f is actually NOT executed on UI threads
 	ch := make(chan struct{})
 	currentUI.funcs <- func() {
 		defer close(ch)

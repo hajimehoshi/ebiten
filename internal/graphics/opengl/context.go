@@ -67,14 +67,24 @@ func NewContext() *Context {
 }
 
 var (
-	gl     mgl.Context
-	worker mgl.Worker
+	gl            mgl.Context
+	worker        mgl.Worker
+	workerCreated = make(chan struct{})
 )
 
-// TODO: Implement updating Worker
+func Loop() {
+	<-workerCreated
+	for {
+		select {
+		case <-worker.WorkAvailable():
+			worker.DoWork()
+		}
+	}
+}
 
 func (c *Context) init() {
 	gl, worker = mgl.NewContext()
+	close(workerCreated)
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(mgl.BLEND)
 	gl.BlendFunc(mgl.ONE, mgl.ONE_MINUS_SRC_ALPHA)
