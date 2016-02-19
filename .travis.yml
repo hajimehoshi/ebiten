@@ -9,6 +9,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - libglew-dev # required by headless-gl.
+      - libgles2-mesa-dev
       - libopenal-dev
       - libalut-dev
       - libxxf86vm-dev
