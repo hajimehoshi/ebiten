@@ -116,7 +116,7 @@ func (*userInterface) swapBuffers() {
 func Init() *opengl.Context {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		return
+		return nil
 	}
 
 	doc := js.Global.Get("document")
