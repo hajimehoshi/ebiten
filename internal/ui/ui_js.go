@@ -111,7 +111,7 @@ func (*userInterface) swapBuffers() {
 	// Do nothing.
 }
 
-func Init() {
+func Init() *opengl.Context {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
 		return
@@ -143,6 +143,8 @@ func Init() {
 	bodyStyle.Set("height", "100%")
 	bodyStyle.Set("margin", "0")
 	bodyStyle.Set("padding", "0")
+	// TODO: This is OK as long as the game is in an independent iframe.
+	// What if the canvas is embedded in a HTML directly?
 	doc.Get("body").Call("addEventListener", "click", func() {
 		canvas.Call("focus")
 	})
@@ -214,6 +216,8 @@ func Init() {
 	window.Call("addEventListener", "gamepadconnected", func(e *js.Object) {
 		// Do nothing.
 	})
+
+	return opengl.NewContext()
 }
 
 func setMouseCursorFromEvent(e *js.Object) {

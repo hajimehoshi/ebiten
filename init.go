@@ -22,6 +22,5 @@ import (
 var glContext *opengl.Context
 
 func init() {
-	ui.Init()
-	glContext = opengl.NewContext()
+	glContext = ui.Init()
 }

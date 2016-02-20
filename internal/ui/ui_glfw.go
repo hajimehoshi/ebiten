@@ -31,7 +31,8 @@ func Now() int64 {
 
 var currentUI *userInterface
 
-func Init() {
+func Init() *opengl.Context {
+	// TODO: Is this OK to lock OS thread only for UI?
 	runtime.LockOSThread()
 
 	err := glfw.Init()
@@ -58,6 +59,8 @@ func Init() {
 	}()
 
 	currentUI = u
+
+	return opengl.NewContext()
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {
