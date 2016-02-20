@@ -15,4 +15,4 @@
 package docs
 
 //go:generate go run gen.go
-//go:generate cp -r ../examples/images ./public/examples/
+//go:generate cp -r ../examples/_resources ./public/examples/

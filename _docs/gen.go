@@ -200,7 +200,7 @@ func clear() error {
 			return os.Remove(path)
 		}
 		// Remove example resources that are copied.
-		m, err = regexp.MatchString("^public/examples/images$", path)
+		m, err = regexp.MatchString("^public/examples/_resources/images$", path)
 		if err != nil {
 			return err
 		}
@@ -252,7 +252,7 @@ func outputExampleImages() error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	return execute("cp", "-R", "../examples/images", "public/examples/images")
+	return execute("cp", "-R", "../examples/_resources/images", "public/examples/_resources/images")
 }
 
 func outputExampleContent(e *example) error {
