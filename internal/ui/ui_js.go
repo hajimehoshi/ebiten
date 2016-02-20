@@ -17,9 +17,11 @@
 package ui
 
 import (
-	"github.com/gopherjs/gopherjs/js"
 	"strconv"
 	"time"
+
+	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 func Now() int64 {
