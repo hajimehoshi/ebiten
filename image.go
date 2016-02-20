@@ -141,10 +141,14 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return errors.New("image is already disposed")
 	}
-	i.framebuffer.Dispose(glContext)
-	i.framebuffer = nil
-	i.texture.Dispose(glContext)
-	i.texture = nil
+	if i.framebuffer != nil {
+		i.framebuffer.Dispose(glContext)
+		i.framebuffer = nil
+	}
+	if i.texture != nil {
+		i.texture.Dispose(glContext)
+		i.texture = nil
+	}
 	i.pixels = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
