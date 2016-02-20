@@ -32,7 +32,7 @@ var keyboardImage *ebiten.Image
 
 func init() {
 	var err error
-	keyboardImage, _, err = ebitenutil.NewImageFromFile("images/keyboard/keyboard.png", ebiten.FilterNearest)
+	keyboardImage, _, err = ebitenutil.NewImageFromFile("_resources/images/keyboard/keyboard.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

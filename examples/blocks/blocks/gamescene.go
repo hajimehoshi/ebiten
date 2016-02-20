@@ -76,7 +76,7 @@ func init() {
 	}
 	imageEmpty.Fill(color.White)
 	// Background
-	imageGameBG, _, err = ebitenutil.NewImageFromFile("images/gophers.jpg", ebiten.FilterLinear)
+	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
 		panic(err)
 	}

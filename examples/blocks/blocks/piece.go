@@ -23,7 +23,7 @@ var imageBlocks *ebiten.Image
 
 func init() {
 	var err error
-	imageBlocks, _, err = ebitenutil.NewImageFromFile("images/blocks/blocks.png", ebiten.FilterNearest)
+	imageBlocks, _, err = ebitenutil.NewImageFromFile("_resources/images/blocks/blocks.png", ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}

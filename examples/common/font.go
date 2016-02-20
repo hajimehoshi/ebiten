@@ -15,13 +15,14 @@
 package common
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"image/color"
 	"math"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 var (
@@ -49,7 +50,7 @@ func init() {
 		path = filepath.Dir(path)
 		dir = filepath.Join(path, "..")
 	}
-	arcadeFontPath := filepath.Join(dir, "images", "arcadefont.png")
+	arcadeFontPath := filepath.Join(dir, "_resources", "images", "arcadefont.png")
 
 	arcadeFontImage, _, err := ebitenutil.NewImageFromFile(arcadeFontPath, ebiten.FilterNearest)
 	if err != nil {
