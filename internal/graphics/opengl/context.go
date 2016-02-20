@@ -176,8 +176,9 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 		return 0, errors.New("glCreateShader failed")
 	}
 
-	glSource := gl.Str(source + "\x00")
-	gl.ShaderSource(uint32(s), 1, &glSource, nil)
+	cSources, free := gl.Strs(source + "\x00")
+	gl.ShaderSource(uint32(s), 1, cSources, nil)
+	free()
 	gl.CompileShader(s)
 
 	var v int32
