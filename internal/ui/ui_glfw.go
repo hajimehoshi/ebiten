@@ -32,7 +32,6 @@ func Now() int64 {
 var currentUI *userInterface
 
 func Init() *opengl.Context {
-	// TODO: Is this OK to lock OS thread only for UI?
 	runtime.LockOSThread()
 
 	err := glfw.Init()
@@ -53,16 +52,20 @@ func Init() *opengl.Context {
 	u := &userInterface{
 		window: window,
 	}
+	ch := make(chan struct{})
 	go func() {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
 		glfw.SwapInterval(1)
+		close(ch)
 		opengl.Loop()
 	}()
-
 	currentUI = u
+	context := opengl.NewContext()
+	<-ch
+	context.Init()
 
-	return opengl.NewContext()
+	return context
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {

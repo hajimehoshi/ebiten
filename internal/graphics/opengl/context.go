@@ -49,6 +49,12 @@ func GetProgramID(p Program) ProgramID {
 
 type context struct{}
 
+// TODO: These variables can be in the context struct.
+var (
+	gl     mgl.Context
+	worker mgl.Worker
+)
+
 func NewContext() *Context {
 	c := &Context{
 		Nearest:            mgl.NEAREST,
@@ -62,27 +68,21 @@ func NewContext() *Context {
 		Triangles:          mgl.TRIANGLES,
 		Lines:              mgl.LINES,
 	}
-	c.init()
+	gl, worker = mgl.NewContext()
 	return c
 }
 
-var (
-	gl            mgl.Context
-	worker        mgl.Worker
-	workerCreated = make(chan struct{})
-)
-
 func Loop() {
-	<-workerCreated
 	for {
 		<-worker.WorkAvailable()
 		worker.DoWork()
 	}
 }
 
-func (c *Context) init() {
-	gl, worker = mgl.NewContext()
-	close(workerCreated)
+func (c *Context) Init() {
+	// This initialization must be done after Loop is called.
+	// This is why Init is separated from NewContext.
+
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(mgl.BLEND)
 	gl.BlendFunc(mgl.ONE, mgl.ONE_MINUS_SRC_ALPHA)
