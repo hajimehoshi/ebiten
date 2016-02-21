@@ -57,15 +57,15 @@ func Init() *opengl.Context {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
 		glfw.SwapInterval(1)
+		u.context = opengl.NewContext()
 		close(ch)
-		opengl.Loop()
+		u.context.Loop()
 	}()
 	currentUI = u
-	context := opengl.NewContext()
 	<-ch
-	context.Init()
+	u.context.Init()
 
-	return context
+	return u.context
 }
 
 func Start(width, height, scale int, title string) (actualScale int, err error) {
@@ -104,6 +104,7 @@ type userInterface struct {
 	height      int
 	scale       int
 	actualScale int
+	context     *opengl.Context
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
@@ -146,7 +147,9 @@ func (u *userInterface) isClosed() bool {
 }
 
 func (u *userInterface) swapBuffers() {
-	u.window.SwapBuffers()
+	u.context.RunOnContextThread(func() {
+		u.window.SwapBuffers()
+	})
 }
 
 func (u *userInterface) setScreenSize(width, height, scale int) bool {

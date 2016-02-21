@@ -47,12 +47,14 @@ func GetProgramID(p Program) ProgramID {
 	return ProgramID(p.Value)
 }
 
-type context struct{}
-
-// TODO: These variables can be in the context struct.
-var (
-	gl     mgl.Context
+type context struct {
 	worker mgl.Worker
+	funcs  chan func()
+}
+
+// TODO: This variable can be in the context struct.
+var (
+	gl mgl.Context
 )
 
 func NewContext() *Context {
@@ -68,14 +70,19 @@ func NewContext() *Context {
 		Triangles:          mgl.TRIANGLES,
 		Lines:              mgl.LINES,
 	}
-	gl, worker = mgl.NewContext()
+	c.funcs = make(chan func())
+	gl, c.worker = mgl.NewContext()
 	return c
 }
 
-func Loop() {
+func (c *Context) Loop() {
 	for {
-		<-worker.WorkAvailable()
-		worker.DoWork()
+		select {
+		case <-c.worker.WorkAvailable():
+			c.worker.DoWork()
+		case f := <-c.funcs:
+			f()
+		}
 	}
 }
 
@@ -86,6 +93,16 @@ func (c *Context) Init() {
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(mgl.BLEND)
 	gl.BlendFunc(mgl.ONE, mgl.ONE_MINUS_SRC_ALPHA)
+}
+
+func (c *Context) RunOnContextThread(f func()) {
+	ch := make(chan struct{})
+	c.funcs <- func() {
+		f()
+		close(ch)
+	}
+	<-ch
+	return
 }
 
 func (c *Context) Check() {
