@@ -75,10 +75,8 @@ var (
 func Loop() {
 	<-workerCreated
 	for {
-		select {
-		case <-worker.WorkAvailable():
-			worker.DoWork()
-		}
+		<-worker.WorkAvailable()
+		worker.DoWork()
 	}
 }
 
