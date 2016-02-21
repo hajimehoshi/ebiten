@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"time"
 
-	glfw "github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
