@@ -114,8 +114,8 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 
 	u.setScreenSize(width, height, scale)
 	u.window.SetTitle(title)
-	u.window.SetPos(x, y)
 	u.window.Show()
+	u.window.SetPos(x, y)
 
 	return u.actualScale, nil
 }
