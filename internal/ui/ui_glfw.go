@@ -157,6 +157,11 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 		return false
 	}
 
+	// To make sure the current existing framebuffers are rendered,
+	// swap buffers here.
+	u.context.BindZeroFramebuffer()
+	u.swapBuffers()
+
 	ch := make(chan struct{})
 	window := u.window
 	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
