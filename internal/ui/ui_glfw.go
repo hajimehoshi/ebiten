@@ -165,16 +165,13 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	})
 	window.SetSize(width*scale, height*scale)
 
+event:
 	for {
-		done := false
 		glfw.PollEvents()
 		select {
 		case <-ch:
-			done = true
+			break event
 		default:
-		}
-		if done {
-			break
 		}
 	}
 	u.width = width
