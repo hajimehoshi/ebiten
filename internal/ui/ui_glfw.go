@@ -108,13 +108,13 @@ type userInterface struct {
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
-	videoMode := glfw.GetPrimaryMonitor().GetVideoMode()
-	x := (videoMode.Width - width*scale) / 2
-	y := (videoMode.Height - height*scale) / 3
-
 	u.setScreenSize(width, height, scale)
 	u.window.SetTitle(title)
 	u.window.Show()
+
+	videoMode := glfw.GetPrimaryMonitor().GetVideoMode()
+	x := (videoMode.Width - width*adjustScaleForGLFW(scale)) / 2
+	y := (videoMode.Height - height*adjustScaleForGLFW(scale)) / 3
 	u.window.SetPos(x, y)
 
 	return u.actualScale, nil
@@ -158,7 +158,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	}
 
 	// To make sure the current existing framebuffers are rendered,
-	// swap buffers here.
+	// swap buffers here before SetSize is called.
 	u.context.BindZeroFramebuffer()
 	u.swapBuffers()
 
@@ -168,7 +168,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 		window.SetFramebufferSizeCallback(nil)
 		close(ch)
 	})
-	window.SetSize(width*scale, height*scale)
+	window.SetSize(width*adjustScaleForGLFW(scale), height*adjustScaleForGLFW(scale))
 
 event:
 	for {
