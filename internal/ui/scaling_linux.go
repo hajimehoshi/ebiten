@@ -34,15 +34,15 @@ func adjustScaleForGLFW(scale int) int {
 	c := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "scaling-factor")
 	o, err := c.Output()
 	if err != nil {
-		panic(fmt.Sprintf("graphics: executing gsettings error %v", err))
+		panic(fmt.Sprintf("ui: executing gsettings error %v", err))
 	}
 	m := scalingFactorSyntax.FindStringSubmatch(string(o))
 	if m == nil {
-		panic("graphics: gsettings result syntax is not expected")
+		panic("ui: gsettings result syntax is not expected")
 	}
 	s, err := strconv.Atoi(m[1])
 	if err != nil {
-		panic(fmt.Sprintf("graphics: %v", err))
+		panic(fmt.Sprintf("ui: %v", err))
 	}
 	deviceScaleFactor = s
 	return scale * deviceScaleFactor
