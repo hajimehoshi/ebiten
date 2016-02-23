@@ -7,7 +7,7 @@
   * Web browsers (powered by [GopherJS](http://gopherjs.org/))
     * Supported browsers: Chrome, Firefox, Safari on desktops
   * Mac OS X
-  * Linux (maybe)
+  * Linux
 * [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
 ## Features
