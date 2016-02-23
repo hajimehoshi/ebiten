@@ -254,11 +254,11 @@ func (c *Context) GetUniformLocation(p Program, location string) UniformLocation
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
-	gl.Uniform1i(gl.GetUniformLocation(mgl.Program(p), location), v)
+	gl.Uniform1i(mgl.Uniform(GetUniformLocation(c, p, location)), v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
-	l := gl.GetUniformLocation(mgl.Program(p), location)
+	l := mgl.Uniform(GetUniformLocation(c, p, location))
 	switch len(v) {
 	case 4:
 		gl.Uniform4fv(l, v)
@@ -278,17 +278,17 @@ func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, v int) {
-	l := c.GetAttribLocation(p, location)
+	l := GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.SHORT, normalize, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
-	l := c.GetAttribLocation(p, location)
+	l := GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(mgl.Attrib(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
-	l := c.GetAttribLocation(p, location)
+	l := GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 

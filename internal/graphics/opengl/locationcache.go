@@ -23,6 +23,8 @@ type UniformLocationGetter interface {
 	GetUniformLocation(p Program, location string) UniformLocation
 }
 
+// TODO: Rename these functions not to be confusing
+
 func GetUniformLocation(g UniformLocationGetter, p Program, location string) UniformLocation {
 	id := GetProgramID(p)
 	if _, ok := uniformLocationCache[id]; !ok {
