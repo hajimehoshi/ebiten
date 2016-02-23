@@ -17,8 +17,6 @@
 package opengl
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 
@@ -294,24 +292,36 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
+func uint16ToBytes(v []uint16) []byte {
+	b := make([]byte, len(v) * 2)
+	for i, x := range v {
+		b[2*i] = byte(x)
+		b[2*i+1] = byte(x >> 8)
+	}
+	return b
+}
+
+func int16ToBytes(v []int16) []byte {
+	b := make([]byte, len(v) * 2)
+	for i, x := range v {
+		b[2*i] = byte(uint16(x))
+		b[2*i+1] = byte(uint16(x) >> 8)
+	}
+	return b
+}
+
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(bufferType), b)
-	//var bb []byte
 	switch v := v.(type) {
 	case int:
 		gl.BufferInit(mgl.Enum(bufferType), v, mgl.Enum(bufferUsage))
 		return Buffer(b)
 	case []uint16:
-	case []float32:
+		gl.BufferData(mgl.Enum(bufferType), uint16ToBytes(v), mgl.Enum(bufferUsage))
 	default:
 		panic("not reach")
 	}
-	bt := &bytes.Buffer{}
-	if err := binary.Write(bt, binary.LittleEndian, v); err != nil {
-		panic(fmt.Sprintf("opengl: Binary error: %v", err))
-	}
-	gl.BufferData(mgl.Enum(bufferType), bt.Bytes(), mgl.Enum(bufferUsage))
 	return Buffer(b)
 }
 
@@ -320,11 +330,7 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
-	bt := &bytes.Buffer{}
-	if err := binary.Write(bt, binary.LittleEndian, data); err != nil {
-		panic(fmt.Sprintf("opengl: Binary error: %v", err))
-	}
-	gl.BufferSubData(mgl.Enum(bufferType), 0, bt.Bytes())
+	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
 }
 
 func (c *Context) DrawElements(mode Mode, len int) {
