@@ -114,7 +114,7 @@ func (c *Context) Check() {
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	t := gl.CreateTexture()
 	if t.Value < 0 {
-		return Texture{}, errors.New("graphics: glGenTexture failed")
+		return Texture{}, errors.New("opengl: glGenTexture failed")
 	}
 	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
 	gl.BindTexture(mgl.TEXTURE_2D, t)
@@ -139,7 +139,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	pixels := make([]uint8, 4*width*height)
 	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
 	if e := gl.GetError(); e != mgl.NO_ERROR {
-		return nil, errors.New(fmt.Sprintf("graphics: glReadPixels: %d", e))
+		return nil, errors.New(fmt.Sprintf("opengl: glReadPixels: %d", e))
 	}
 	return pixels, nil
 }
@@ -168,12 +168,12 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	s := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER)
 	if s != mgl.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
-			return Framebuffer{}, errors.New(fmt.Sprintf("graphics: creating framebuffer failed: %v", s))
+			return Framebuffer{}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %v", s))
 		}
 		if e := gl.GetError(); e != mgl.NO_ERROR {
-			return Framebuffer{}, errors.New(fmt.Sprintf("graphics: creating framebuffer failed: (glGetError) %d", e))
+			return Framebuffer{}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: (glGetError) %d", e))
 		}
-		return Framebuffer{}, errors.New(fmt.Sprintf("graphics: creating framebuffer failed: unknown error"))
+		return Framebuffer{}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: unknown error"))
 	}
 
 	return Framebuffer(f), nil
@@ -184,9 +184,9 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 	if err := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER); err != mgl.FRAMEBUFFER_COMPLETE {
 		if e := gl.GetError(); e != 0 {
-			return errors.New(fmt.Sprintf("graphics: glBindFramebuffer failed: %d", e))
+			return errors.New(fmt.Sprintf("opengl: glBindFramebuffer failed: %d", e))
 		}
-		return errors.New("graphics: glBindFramebuffer failed: the context is different?")
+		return errors.New("opengl: glBindFramebuffer failed: the context is different?")
 	}
 	gl.Viewport(0, 0, width, height)
 	return nil
@@ -205,7 +205,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
 	s := gl.CreateShader(mgl.Enum(shaderType))
 	if s.Value == 0 {
-		return Shader{}, errors.New("graphics: glCreateShader failed")
+		return Shader{}, errors.New("opengl: glCreateShader failed")
 	}
 	gl.ShaderSource(s, source)
 	gl.CompileShader(s)
@@ -213,7 +213,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	v := gl.GetShaderi(s, mgl.COMPILE_STATUS)
 	if v == mgl.FALSE {
 		log := gl.GetShaderInfoLog(s)
-		return Shader{}, errors.New(fmt.Sprintf("graphics: shader compile failed: %s", log))
+		return Shader{}, errors.New(fmt.Sprintf("opengl: shader compile failed: %s", log))
 	}
 	return Shader(s), nil
 }
@@ -229,7 +229,7 @@ func (c *Context) GlslHighpSupported() bool {
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	p := gl.CreateProgram()
 	if p.Value == 0 {
-		return Program{}, errors.New("graphics: glCreateProgram failed")
+		return Program{}, errors.New("opengl: glCreateProgram failed")
 	}
 
 	for _, shader := range shaders {
@@ -238,7 +238,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl.LinkProgram(p)
 	v := gl.GetProgrami(p, mgl.LINK_STATUS)
 	if v == mgl.FALSE {
-		return Program{}, errors.New("graphics: program error")
+		return Program{}, errors.New("opengl: program error")
 	}
 	return Program(p), nil
 }
@@ -297,6 +297,7 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(bufferType), b)
+	//var bb []byte
 	switch v := v.(type) {
 	case int:
 		gl.BufferInit(mgl.Enum(bufferType), v, mgl.Enum(bufferUsage))
@@ -308,7 +309,7 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage Bu
 	}
 	bt := &bytes.Buffer{}
 	if err := binary.Write(bt, binary.LittleEndian, v); err != nil {
-		panic(fmt.Sprintf("graphics: Binary error: %v", err))
+		panic(fmt.Sprintf("opengl: Binary error: %v", err))
 	}
 	gl.BufferData(mgl.Enum(bufferType), bt.Bytes(), mgl.Enum(bufferUsage))
 	return Buffer(b)
@@ -321,7 +322,7 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	bt := &bytes.Buffer{}
 	if err := binary.Write(bt, binary.LittleEndian, data); err != nil {
-		panic(fmt.Sprintf("graphics: Binary error: %v", err))
+		panic(fmt.Sprintf("opengl: Binary error: %v", err))
 	}
 	gl.BufferSubData(mgl.Enum(bufferType), 0, bt.Bytes())
 }

@@ -119,7 +119,7 @@ func (c *Context) init() {
 func (c *Context) Check() {
 	gl := c.gl
 	if e := gl.GetError(); e != gl.NO_ERROR {
-		panic(fmt.Sprintf("check failed: %d", e))
+		panic(fmt.Sprintf("opengl: check failed: %d", e))
 	}
 }
 
@@ -127,7 +127,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t == nil {
-		return Texture{nil}, errors.New("glGenTexture failed")
+		return Texture{nil}, errors.New("opengl: glGenTexture failed")
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	gl.BindTexture(gl.TEXTURE_2D, t)
@@ -167,7 +167,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	pixels := js.Global.Get("Uint8Array").New(4 * width * height)
 	gl.ReadPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	if e := gl.GetError(); e != gl.NO_ERROR {
-		return nil, errors.New(fmt.Sprintf("gl error: %d", e))
+		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
 	}
 	return pixels.Interface().([]uint8), nil
 }
@@ -198,7 +198,7 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.Object, 0)
 	s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if s != gl.FRAMEBUFFER_COMPLETE {
-		return Framebuffer{nil}, errors.New(fmt.Sprintf("creating framebuffer failed: %d", s))
+		return Framebuffer{nil}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))
 	}
 
 	return Framebuffer{f}, nil
@@ -237,7 +237,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl := c.gl
 	s := gl.CreateShader(int(shaderType))
 	if s == nil {
-		return Shader{nil}, errors.New("glCreateShader failed")
+		return Shader{nil}, errors.New("opengl: glCreateShader failed")
 	}
 
 	gl.ShaderSource(s, source)
@@ -245,7 +245,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 	if !gl.GetShaderParameterb(s, gl.COMPILE_STATUS) {
 		log := gl.GetShaderInfoLog(s)
-		return Shader{nil}, errors.New(fmt.Sprintf("shader compile failed: %s", log))
+		return Shader{nil}, errors.New(fmt.Sprintf("opengl: shader compile failed: %s", log))
 	}
 	return Shader{s}, nil
 }
@@ -270,7 +270,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
 	if p == nil {
-		return Program{nil}, errors.New("glCreateProgram failed")
+		return Program{nil}, errors.New("opengl: glCreateProgram failed")
 	}
 	p.Set("__ebiten_programId", lastProgramID)
 	lastProgramID++
@@ -280,7 +280,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	}
 	gl.LinkProgram(p)
 	if !gl.GetProgramParameterb(p, gl.LINK_STATUS) {
-		return Program{nil}, errors.New("program error")
+		return Program{nil}, errors.New("opengl: program error")
 	}
 	return Program{p}, nil
 }

@@ -64,6 +64,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	gameTime := ui.Now()
 	before := ui.Now()
 	for {
+		// TODO: setSize should be called after swapping buffers?
 		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
 			changed := false
 			actualScale := 0
