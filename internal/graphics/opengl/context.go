@@ -111,7 +111,7 @@ func (c *Context) Check() {
 
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	t := gl.CreateTexture()
-	if !gl.IsTexture(t) {
+	if t.Value <= 0 {
 		return Texture{}, errors.New("opengl: creating texture failed")
 	}
 	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
@@ -160,7 +160,7 @@ func (c *Context) BindZeroFramebuffer() {
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	f := gl.CreateFramebuffer()
-	if !gl.IsFramebuffer(f) {
+	if f.Value <= 0 {
 		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
 	}
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, f)
@@ -296,7 +296,7 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 }
 
 func uint16ToBytes(v []uint16) []byte {
-	b := make([]byte, len(v) * 2)
+	b := make([]byte, len(v)*2)
 	for i, x := range v {
 		b[2*i] = byte(x)
 		b[2*i+1] = byte(x >> 8)
@@ -305,7 +305,7 @@ func uint16ToBytes(v []uint16) []byte {
 }
 
 func int16ToBytes(v []int16) []byte {
-	b := make([]byte, len(v) * 2)
+	b := make([]byte, len(v)*2)
 	for i, x := range v {
 		b[2*i] = byte(uint16(x))
 		b[2*i+1] = byte(uint16(x) >> 8)
