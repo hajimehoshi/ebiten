@@ -137,7 +137,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	pixels := make([]uint8, 4*width*height)
 	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
 	if e := gl.GetError(); e != mgl.NO_ERROR {
-		return nil, errors.New(fmt.Sprintf("opengl: glReadPixels: %d", e))
+		return nil, fmt.Errorf("opengl: glReadPixels: %d", e)
 	}
 	return pixels, nil
 }
@@ -160,18 +160,21 @@ func (c *Context) BindZeroFramebuffer() {
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	f := gl.CreateFramebuffer()
+	if f.Value == 0 {
+		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.CreateFramebuffer must not return 0")
+	}
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, f)
 
 	gl.FramebufferTexture2D(mgl.FRAMEBUFFER, mgl.COLOR_ATTACHMENT0, mgl.TEXTURE_2D, mgl.Texture(texture), 0)
 	s := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER)
 	if s != mgl.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
-			return Framebuffer{}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %v", s))
+			return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
 		}
 		if e := gl.GetError(); e != mgl.NO_ERROR {
-			return Framebuffer{}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: (glGetError) %d", e))
+			return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
 		}
-		return Framebuffer{}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: unknown error"))
+		return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 
 	return Framebuffer(f), nil
@@ -182,7 +185,7 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 	if err := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER); err != mgl.FRAMEBUFFER_COMPLETE {
 		if e := gl.GetError(); e != 0 {
-			return errors.New(fmt.Sprintf("opengl: glBindFramebuffer failed: %d", e))
+			return fmt.Errorf("opengl: glBindFramebuffer failed: %d", e)
 		}
 		return errors.New("opengl: glBindFramebuffer failed: the context is different?")
 	}
@@ -211,7 +214,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	v := gl.GetShaderi(s, mgl.COMPILE_STATUS)
 	if v == mgl.FALSE {
 		log := gl.GetShaderInfoLog(s)
-		return Shader{}, errors.New(fmt.Sprintf("opengl: shader compile failed: %s", log))
+		return Shader{}, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
 	return Shader(s), nil
 }
