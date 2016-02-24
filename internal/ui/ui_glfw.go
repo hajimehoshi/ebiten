@@ -147,6 +147,9 @@ func (u *userInterface) isClosed() bool {
 }
 
 func (u *userInterface) swapBuffers() {
+	// Call glFinish before glfwSwapBuffer to make sure
+	// all OpenGL tasks are executed.
+	u.context.Finish()
 	u.context.RunOnContextThread(func() {
 		u.window.SwapBuffers()
 	})

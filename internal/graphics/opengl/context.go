@@ -336,3 +336,7 @@ func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 func (c *Context) DrawElements(mode Mode, len int) {
 	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, 0)
 }
+
+func (c *Context) Finish() {
+	gl.Finish()
+}
