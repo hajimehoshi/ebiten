@@ -27,7 +27,7 @@ type Texture mgl.Texture
 type Framebuffer mgl.Framebuffer
 type Shader mgl.Shader
 type Program mgl.Program
-type Buffer mgl.Texture
+type Buffer mgl.Buffer
 
 var ZeroFramebuffer Framebuffer
 
