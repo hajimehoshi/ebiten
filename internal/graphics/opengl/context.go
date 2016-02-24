@@ -111,8 +111,8 @@ func (c *Context) Check() {
 
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	t := gl.CreateTexture()
-	if t.Value < 0 {
-		return Texture{}, errors.New("opengl: glGenTexture failed")
+	if !gl.IsTexture(t) {
+		return Texture{}, errors.New("opengl: creating texture failed")
 	}
 	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
 	gl.BindTexture(mgl.TEXTURE_2D, t)
@@ -160,8 +160,8 @@ func (c *Context) BindZeroFramebuffer() {
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	f := gl.CreateFramebuffer()
-	if f.Value == 0 {
-		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.CreateFramebuffer must not return 0")
+	if !gl.IsFramebuffer(f) {
+		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
 	}
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, f)
 
