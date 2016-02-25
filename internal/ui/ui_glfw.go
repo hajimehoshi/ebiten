@@ -125,7 +125,6 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	u.window.Show()
 
 	s := int(float64(scale) * u.deviceScaleFactor)
-	println(s)
 	x := (v.Width - width*s) / 2
 	y := (v.Height - height*s) / 3
 	u.window.SetPos(x, y)
