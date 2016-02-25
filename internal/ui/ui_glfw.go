@@ -109,10 +109,14 @@ type userInterface struct {
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
 	m := glfw.GetPrimaryMonitor()
-	mw, _ := m.GetPhysicalSize()
 	v := m.GetVideoMode()
-	dpi := float64(v.Width) * 25.4 / float64(mw)
-	u.deviceScaleFactor = dpi / 96
+	mw, _ := m.GetPhysicalSize()
+	u.deviceScaleFactor = 1
+	// mw can be 0 on some environment like Linux VM
+	if 0 < mw {
+		dpi := float64(v.Width) * 25.4 / float64(mw)
+		u.deviceScaleFactor = dpi / 96
+	}
 
 	u.setScreenSize(width, height, scale)
 	u.window.SetTitle(title)
