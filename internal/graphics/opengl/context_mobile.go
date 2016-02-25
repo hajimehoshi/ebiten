@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
+// NOTICE: This file is not maintained well.
+
+// +build android ios
 
 package opengl
 
