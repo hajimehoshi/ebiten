@@ -104,6 +104,7 @@ type userInterface struct {
 	height            int
 	scale             int
 	deviceScaleFactor float64
+	framebufferScale  int
 	context           *opengl.Context
 }
 
@@ -112,6 +113,7 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	v := m.GetVideoMode()
 	mw, _ := m.GetPhysicalSize()
 	u.deviceScaleFactor = 1
+	u.framebufferScale = 1
 	// mw can be 0 on some environment like Linux VM
 	if 0 < mw {
 		dpi := float64(v.Width) * 25.4 / float64(mw)
@@ -122,15 +124,17 @@ func (u *userInterface) start(width, height, scale int, title string) (actualSca
 	u.window.SetTitle(title)
 	u.window.Show()
 
-	x := (v.Width - width*u.actualScale()) / 2
-	y := (v.Height - height*u.actualScale()) / 3
+	s := int(float64(scale) * u.deviceScaleFactor)
+	println(s)
+	x := (v.Width - width*s) / 2
+	y := (v.Height - height*s) / 3
 	u.window.SetPos(x, y)
 
 	return u.actualScale(), nil
 }
 
 func (u *userInterface) actualScale() int {
-	return int(float64(u.scale) * u.deviceScaleFactor)
+	return int(float64(u.scale)*u.deviceScaleFactor) * u.framebufferScale
 }
 
 func (u *userInterface) pollEvents() error {
@@ -172,7 +176,6 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	if u.width == width && u.height == height && u.scale == scale {
 		return false
 	}
-	u.scale = scale
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -185,7 +188,8 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 		window.SetFramebufferSizeCallback(nil)
 		close(ch)
 	})
-	window.SetSize(width*u.actualScale(), height*u.actualScale())
+	s := int(float64(scale) * u.deviceScaleFactor)
+	window.SetSize(width*s, height*s)
 
 event:
 	for {
@@ -196,7 +200,11 @@ event:
 		default:
 		}
 	}
+	// This is usually 1, but sometimes more than 1 (e.g. Retina Mac)
+	fw, _ := window.GetFramebufferSize()
+	u.framebufferScale = fw / width / scale
 	u.width = width
 	u.height = height
+	u.scale = scale
 	return true
 }
