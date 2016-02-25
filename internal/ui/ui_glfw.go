@@ -90,34 +90,43 @@ func SwapBuffers() {
 
 func SetScreenSize(width, height int) (bool, int) {
 	result := currentUI.setScreenSize(width, height, currentUI.scale)
-	return result, currentUI.actualScale
+	return result, currentUI.actualScale()
 }
 
 func SetScreenScale(scale int) (bool, int) {
 	result := currentUI.setScreenSize(currentUI.width, currentUI.height, scale)
-	return result, currentUI.actualScale
+	return result, currentUI.actualScale()
 }
 
 type userInterface struct {
-	window      *glfw.Window
-	width       int
-	height      int
-	scale       int
-	actualScale int
-	context     *opengl.Context
+	window            *glfw.Window
+	width             int
+	height            int
+	scale             int
+	deviceScaleFactor float64
+	context           *opengl.Context
 }
 
 func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
+	m := glfw.GetPrimaryMonitor()
+	mw, _ := m.GetPhysicalSize()
+	v := m.GetVideoMode()
+	dpi := float64(v.Width) * 25.4 / float64(mw)
+	u.deviceScaleFactor = dpi / 96
+
 	u.setScreenSize(width, height, scale)
 	u.window.SetTitle(title)
 	u.window.Show()
 
-	videoMode := glfw.GetPrimaryMonitor().GetVideoMode()
-	x := (videoMode.Width - width*adjustScaleForGLFW(scale)) / 2
-	y := (videoMode.Height - height*adjustScaleForGLFW(scale)) / 3
+	x := (v.Width - width*u.actualScale()) / 2
+	y := (v.Height - height*u.actualScale()) / 3
 	u.window.SetPos(x, y)
 
-	return u.actualScale, nil
+	return u.actualScale(), nil
+}
+
+func (u *userInterface) actualScale() int {
+	return int(float64(u.scale) * u.deviceScaleFactor)
 }
 
 func (u *userInterface) pollEvents() error {
@@ -159,6 +168,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	if u.width == width && u.height == height && u.scale == scale {
 		return false
 	}
+	u.scale = scale
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -171,7 +181,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 		window.SetFramebufferSizeCallback(nil)
 		close(ch)
 	})
-	window.SetSize(width*adjustScaleForGLFW(scale), height*adjustScaleForGLFW(scale))
+	window.SetSize(width*u.actualScale(), height*u.actualScale())
 
 event:
 	for {
@@ -184,10 +194,5 @@ event:
 	}
 	u.width = width
 	u.height = height
-	u.scale = scale
-
-	// For retina displays, recalculate the scale with the framebuffer size.
-	windowWidth, _ := window.GetFramebufferSize()
-	u.actualScale = windowWidth / width
 	return true
 }
