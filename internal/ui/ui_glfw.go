@@ -201,7 +201,7 @@ event:
 	}
 	// This is usually 1, but sometimes more than 1 (e.g. Retina Mac)
 	fw, _ := window.GetFramebufferSize()
-	u.framebufferScale = fw / width / scale
+	u.framebufferScale = fw / width / s
 	u.width = width
 	u.height = height
 	u.scale = scale
