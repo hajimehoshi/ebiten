@@ -8,6 +8,7 @@
     * Supported browsers: Chrome, Firefox, Safari on desktops
   * Mac OS X
   * Linux
+  * Windows
 * [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
 ## Features
