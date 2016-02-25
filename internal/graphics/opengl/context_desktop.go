@@ -312,10 +312,7 @@ func (c *Context) UseProgram(p Program) {
 	})
 }
 
-// TODO: This should be unexported method.
-
-func (c *Context) GetUniformLocation(p Program, location string) UniformLocation {
-	// This is called only from Context method.
+func (c *Context) getUniformLocation(p Program, location string) UniformLocation {
 	uniform := UniformLocation(gl.GetUniformLocation(uint32(p), gl.Str(location+"\x00")))
 	if uniform == -1 {
 		panic("opengl: invalid uniform location: " + location)
@@ -344,10 +341,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	})
 }
 
-// TODO: This should be unexported method.
-
-func (c *Context) GetAttribLocation(p Program, location string) AttribLocation {
-	// This is called only from Context method.
+func (c *Context) getAttribLocation(p Program, location string) AttribLocation {
 	attrib := AttribLocation(gl.GetAttribLocation(uint32(p), gl.Str(location+"\x00")))
 	if attrib == -1 {
 		panic("invalid attrib location: " + location)

@@ -20,7 +20,7 @@ var uniformLocationCache = map[ProgramID]map[string]UniformLocation{}
 var attribLocationCache = map[ProgramID]map[string]AttribLocation{}
 
 type UniformLocationGetter interface {
-	GetUniformLocation(p Program, location string) UniformLocation
+	getUniformLocation(p Program, location string) UniformLocation
 }
 
 // TODO: Rename these functions not to be confusing
@@ -32,14 +32,14 @@ func GetUniformLocation(g UniformLocationGetter, p Program, location string) Uni
 	}
 	l, ok := uniformLocationCache[id][location]
 	if !ok {
-		l = g.GetUniformLocation(p, location)
+		l = g.getUniformLocation(p, location)
 		uniformLocationCache[id][location] = l
 	}
 	return l
 }
 
 type AttribLocationGetter interface {
-	GetAttribLocation(p Program, location string) AttribLocation
+	getAttribLocation(p Program, location string) AttribLocation
 }
 
 func GetAttribLocation(g AttribLocationGetter, p Program, location string) AttribLocation {
@@ -49,7 +49,7 @@ func GetAttribLocation(g AttribLocationGetter, p Program, location string) Attri
 	}
 	l, ok := attribLocationCache[id][location]
 	if !ok {
-		l = g.GetAttribLocation(p, location)
+		l = g.getAttribLocation(p, location)
 		attribLocationCache[id][location] = l
 	}
 	return l
