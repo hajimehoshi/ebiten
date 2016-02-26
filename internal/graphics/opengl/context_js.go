@@ -66,6 +66,7 @@ type context struct {
 	gl              *webgl.Context
 	lastFramebuffer Framebuffer
 	locationCache   *locationCache
+	lastProgramID   programID
 }
 
 func NewContext() *Context {
@@ -206,8 +207,6 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	return Framebuffer{f}, nil
 }
 
-var lastBindedFramebuffer *js.Object
-
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	// TODO: Not sure if Flush is needed here.
 	if f.Object == nil {
@@ -266,16 +265,14 @@ func (c *Context) GlslHighpSupported() bool {
 	return gl.Call("getShaderPrecisionFormat", gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).Get("precision").Int() != 0
 }
 
-var lastProgramID programID = 0
-
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
 	if p == nil {
 		return Program{nil}, errors.New("opengl: glCreateProgram failed")
 	}
-	p.Set("__ebiten_programId", lastProgramID)
-	lastProgramID++
+	p.Set("__ebiten_programId", c.lastProgramID)
+	c.lastProgramID++
 
 	for _, shader := range shaders {
 		gl.AttachShader(p, shader.Object)
