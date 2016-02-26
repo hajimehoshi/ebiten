@@ -26,8 +26,8 @@ func adjustImageForTexture(img image.Image) *image.RGBA {
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
 		image.Point{
-			NextPowerOf2Int(width),
-			NextPowerOf2Int(height),
+			int(NextPowerOf2Int32(int32(width))),
+			int(NextPowerOf2Int32(int32(height))),
 		},
 	}
 	if adjustedImage, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
@@ -54,8 +54,8 @@ func (t *Texture) Size() (width, height int) {
 }
 
 func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Texture, error) {
-	w := NextPowerOf2Int(width)
-	h := NextPowerOf2Int(height)
+	w := int(NextPowerOf2Int32(int32(width)))
+	h := int(NextPowerOf2Int32(int32(height)))
 	if w < 4 {
 		return nil, errors.New("width must be equal or more than 4.")
 	}

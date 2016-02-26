@@ -127,7 +127,7 @@ func (i *Image) At(x, y int) color.Color {
 		}
 	}
 	w, _ := i.Size()
-	w = graphics.NextPowerOf2Int(w)
+	w = int(graphics.NextPowerOf2Int32(int32(w)))
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}

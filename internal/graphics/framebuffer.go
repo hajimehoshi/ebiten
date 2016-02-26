@@ -82,8 +82,8 @@ func (f *Framebuffer) Dispose(c *opengl.Context) {
 }
 
 func (f *Framebuffer) setAsViewport(c *opengl.Context) error {
-	width := NextPowerOf2Int(f.width)
-	height := NextPowerOf2Int(f.height)
+	width := int(NextPowerOf2Int32(int32(f.width)))
+	height := int(NextPowerOf2Int32(int32(f.height)))
 	return c.SetViewport(f.native, width, height)
 }
 
@@ -91,12 +91,12 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
-	width := NextPowerOf2Int(f.width)
-	height := NextPowerOf2Int(f.height)
+	width := int(NextPowerOf2Int32(int32(f.width)))
+	height := int(NextPowerOf2Int32(int32(f.height)))
 	m := orthoProjectionMatrix(0, width, 0, height)
 	if f.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(f.height) / float64(NextPowerOf2Int(f.height)) * 2
+		m[1][3] += float64(f.height) / float64(NextPowerOf2Int32(int32(f.height))) * 2
 	}
 	f.proMatrix = m
 	return f.proMatrix
@@ -125,6 +125,6 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQu
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
 	w, h := f.Size()
-	w, h = NextPowerOf2Int(w), NextPowerOf2Int(h)
+	w, h = int(NextPowerOf2Int32(int32(w))), int(NextPowerOf2Int32(int32(h)))
 	return c.FramebufferPixels(f.native, w, h)
 }

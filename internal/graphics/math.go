@@ -14,7 +14,7 @@
 
 package graphics
 
-func NextPowerOf2Int(x int) int {
+func NextPowerOf2Int32(x int32) int32 {
 	x -= 1
 	x |= (x >> 1)
 	x |= (x >> 2)

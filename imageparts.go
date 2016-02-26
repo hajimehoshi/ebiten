@@ -70,11 +70,11 @@ func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
 }
 
 func u(x int, width int) int {
-	return math.MaxInt16 * x / graphics.NextPowerOf2Int(width)
+	return math.MaxInt16 * x / int(graphics.NextPowerOf2Int32(int32(width)))
 }
 
 func v(y int, height int) int {
-	return math.MaxInt16 * y / graphics.NextPowerOf2Int(height)
+	return math.MaxInt16 * y / int(graphics.NextPowerOf2Int32(int32(height)))
 }
 
 type textureQuads struct {
