@@ -68,7 +68,7 @@ func Init() *opengl.Context {
 	return u.context
 }
 
-func Start(width, height, scale int, title string) (framebufferScale int, err error) {
+func Start(width, height, scale int, title string) error {
 	return currentUI.start(width, height, scale, title)
 }
 
@@ -88,14 +88,16 @@ func SwapBuffers() {
 	currentUI.swapBuffers()
 }
 
-func SetScreenSize(width, height int) (bool, int) {
-	result := currentUI.setScreenSize(width, height, currentUI.scale)
-	return result, currentUI.framebufferScale()
+func SetScreenSize(width, height int) bool {
+	return currentUI.setScreenSize(width, height, currentUI.scale)
 }
 
-func SetScreenScale(scale int) (bool, int) {
-	result := currentUI.setScreenSize(currentUI.width, currentUI.height, scale)
-	return result, currentUI.framebufferScale()
+func SetScreenScale(scale int) bool {
+	return currentUI.setScreenSize(currentUI.width, currentUI.height, scale)
+}
+
+func ActualScale() int {
+	return currentUI.actualScale()
 }
 
 type userInterface struct {
@@ -104,16 +106,16 @@ type userInterface struct {
 	height            int
 	scale             int
 	deviceScaleFactor float64
-	framebufferScale_ int
+	framebufferScale  int
 	context           *opengl.Context
 }
 
-func (u *userInterface) start(width, height, scale int, title string) (framebufferScale int, err error) {
+func (u *userInterface) start(width, height, scale int, title string) error {
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	mw, _ := m.GetPhysicalSize()
 	u.deviceScaleFactor = 1
-	u.framebufferScale_ = 1
+	u.framebufferScale = 1
 	// mw can be 0 on some environment like Linux VM
 	if 0 < mw {
 		dpi := float64(v.Width) * 25.4 / float64(mw)
@@ -128,15 +130,15 @@ func (u *userInterface) start(width, height, scale int, title string) (framebuff
 	y := (v.Height - height*u.windowScale()) / 3
 	u.window.SetPos(x, y)
 
-	return u.framebufferScale(), nil
+	return nil
 }
 
 func (u *userInterface) windowScale() int {
 	return int(float64(u.scale) * u.deviceScaleFactor)
 }
 
-func (u *userInterface) framebufferScale() int {
-	return u.windowScale() * u.framebufferScale_
+func (u *userInterface) actualScale() int {
+	return u.windowScale() * u.framebufferScale
 }
 
 func (u *userInterface) pollEvents() error {
@@ -207,6 +209,6 @@ event:
 	}
 	// This is usually 1, but sometimes more than 1 (e.g. Retina Mac)
 	fw, _ := window.GetFramebufferSize()
-	u.framebufferScale_ = fw / width / u.windowScale()
+	u.framebufferScale = fw / width / u.windowScale()
 	return true
 }

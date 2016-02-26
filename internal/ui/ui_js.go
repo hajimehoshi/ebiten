@@ -29,7 +29,7 @@ func Now() int64 {
 	return int64(js.Global.Get("performance").Call("now").Float() * float64(time.Millisecond))
 }
 
-func Start(width, height, scale int, title string) (actualScale int, err error) {
+func Start(width, height, scale int, title string) error {
 	return currentUI.start(width, height, scale, title)
 }
 
@@ -49,18 +49,18 @@ func SwapBuffers() {
 	currentUI.swapBuffers()
 }
 
-func SetScreenSize(width, height int) (bool, int) {
+func SetScreenSize(width, height int) bool {
 	scale := canvas.Get("dataset").Get("ebitenScale").Int()
-	result := currentUI.setScreenSize(width, height, scale)
-	actualScale := canvas.Get("dataset").Get("ebitenActualScale").Int()
-	return result, actualScale
+	return currentUI.setScreenSize(width, height, scale)
 }
 
-func SetScreenScale(scale int) (bool, int) {
+func SetScreenScale(scale int) bool {
 	width, height := currentUI.size()
-	result := currentUI.setScreenSize(width, height, scale)
-	actualScale := canvas.Get("dataset").Get("ebitenActualScale").Int()
-	return result, actualScale
+	return currentUI.setScreenSize(width, height, scale)
+}
+
+func ActualScale() int {
+	return canvas.Get("dataset").Get("ebitenActualScale").Int()
 }
 
 var canvas *js.Object
@@ -240,14 +240,12 @@ func devicePixelRatio() int {
 	return ratio
 }
 
-func (u *userInterface) start(width, height, scale int, title string) (actualScale int, err error) {
+func (u *userInterface) start(width, height, scale int, title string) error {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
 	canvas.Call("focus")
-
-	actualScale = canvas.Get("dataset").Get("ebitenActualScale").Int()
-	return actualScale, nil
+	return nil
 }
 
 func (*userInterface) size() (width, height int) {

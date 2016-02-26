@@ -48,14 +48,13 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		runContext.running = false
 	}()
 
-	actualScale, err := ui.Start(width, height, scale, title)
-	if err != nil {
+	if err := ui.Start(width, height, scale, title); err != nil {
 		return err
 	}
 	defer ui.Terminate()
 
 	glContext.Check()
-	graphicsContext, err := newGraphicsContext(width, height, actualScale)
+	graphicsContext, err := newGraphicsContext(width, height, ui.ActualScale())
 	if err != nil {
 		return err
 	}
@@ -67,21 +66,17 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		// TODO: setSize should be called after swapping buffers?
 		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
 			changed := false
-			actualScale := 0
 			if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight {
-				c, a := ui.SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
+				c := ui.SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
 				changed = changed || c
-				actualScale = a
 			}
 			if 0 < runContext.newScreenScale {
-				c, a := ui.SetScreenScale(runContext.newScreenScale)
+				c := ui.SetScreenScale(runContext.newScreenScale)
 				changed = changed || c
-				// actualScale of SetScreenState is more reliable than one of SetScreenSize
-				actualScale = a
 			}
 			if changed {
 				w, h := runContext.newScreenWidth, runContext.newScreenHeight
-				if err := graphicsContext.setSize(w, h, actualScale); err != nil {
+				if err := graphicsContext.setSize(w, h, ui.ActualScale()); err != nil {
 					return err
 				}
 			}
