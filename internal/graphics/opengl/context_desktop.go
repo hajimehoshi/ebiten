@@ -37,8 +37,8 @@ func (p Program) Equals(other Program) bool {
 	return p == other
 }
 
-type UniformLocation int32
-type AttribLocation int32
+type uniformLocation int32
+type attribLocation int32
 
 type programID uint32
 
@@ -313,8 +313,8 @@ func (c *Context) UseProgram(p Program) {
 	})
 }
 
-func (c *Context) getUniformLocation(p Program, location string) UniformLocation {
-	uniform := UniformLocation(gl.GetUniformLocation(uint32(p), gl.Str(location+"\x00")))
+func (c *Context) getUniformLocation(p Program, location string) uniformLocation {
+	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), gl.Str(location+"\x00")))
 	if uniform == -1 {
 		panic("opengl: invalid uniform location: " + location)
 	}
@@ -342,8 +342,8 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	})
 }
 
-func (c *Context) getAttribLocation(p Program, location string) AttribLocation {
-	attrib := AttribLocation(gl.GetAttribLocation(uint32(p), gl.Str(location+"\x00")))
+func (c *Context) getAttribLocation(p Program, location string) attribLocation {
+	attrib := attribLocation(gl.GetAttribLocation(uint32(p), gl.Str(location+"\x00")))
 	if attrib == -1 {
 		panic("invalid attrib location: " + location)
 	}

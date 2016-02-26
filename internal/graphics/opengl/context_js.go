@@ -50,11 +50,11 @@ func (p Program) Equals(other Program) bool {
 	return p.Object == other.Object
 }
 
-type UniformLocation struct {
+type uniformLocation struct {
 	*js.Object
 }
 
-type AttribLocation int
+type attribLocation int
 
 type programID int
 
@@ -289,9 +289,9 @@ func (c *Context) UseProgram(p Program) {
 	gl.UseProgram(p.Object)
 }
 
-func (c *Context) getUniformLocation(p Program, location string) UniformLocation {
+func (c *Context) getUniformLocation(p Program, location string) uniformLocation {
 	gl := c.gl
-	return UniformLocation{gl.GetUniformLocation(p.Object, location)}
+	return uniformLocation{gl.GetUniformLocation(p.Object, location)}
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
@@ -313,9 +313,9 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	}
 }
 
-func (c *Context) getAttribLocation(p Program, location string) AttribLocation {
+func (c *Context) getAttribLocation(p Program, location string) attribLocation {
 	gl := c.gl
-	return AttribLocation(gl.GetAttribLocation(p.Object, location))
+	return attribLocation(gl.GetAttribLocation(p.Object, location))
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, v int) {

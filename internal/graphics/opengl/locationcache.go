@@ -17,27 +17,27 @@ package opengl
 // Since js.Object (Program) can't be keys of a map, use integers (programID) instead.
 
 type locationCache struct {
-	uniformLocationCache map[programID]map[string]UniformLocation
-	attribLocationCache  map[programID]map[string]AttribLocation
+	uniformLocationCache map[programID]map[string]uniformLocation
+	attribLocationCache  map[programID]map[string]attribLocation
 }
 
 func newLocationCache() *locationCache {
 	return &locationCache{
-		uniformLocationCache: map[programID]map[string]UniformLocation{},
-		attribLocationCache:  map[programID]map[string]AttribLocation{},
+		uniformLocationCache: map[programID]map[string]uniformLocation{},
+		attribLocationCache:  map[programID]map[string]attribLocation{},
 	}
 }
 
 type uniformLocationGetter interface {
-	getUniformLocation(p Program, location string) UniformLocation
+	getUniformLocation(p Program, location string) uniformLocation
 }
 
 // TODO: Rename these functions not to be confusing
 
-func (c *locationCache) GetUniformLocation(g uniformLocationGetter, p Program, location string) UniformLocation {
+func (c *locationCache) GetUniformLocation(g uniformLocationGetter, p Program, location string) uniformLocation {
 	id := p.id()
 	if _, ok := c.uniformLocationCache[id]; !ok {
-		c.uniformLocationCache[id] = map[string]UniformLocation{}
+		c.uniformLocationCache[id] = map[string]uniformLocation{}
 	}
 	l, ok := c.uniformLocationCache[id][location]
 	if !ok {
@@ -48,13 +48,13 @@ func (c *locationCache) GetUniformLocation(g uniformLocationGetter, p Program, l
 }
 
 type attribLocationGetter interface {
-	getAttribLocation(p Program, location string) AttribLocation
+	getAttribLocation(p Program, location string) attribLocation
 }
 
-func (c *locationCache) GetAttribLocation(g attribLocationGetter, p Program, location string) AttribLocation {
+func (c *locationCache) GetAttribLocation(g attribLocationGetter, p Program, location string) attribLocation {
 	id := p.id()
 	if _, ok := c.attribLocationCache[id]; !ok {
-		c.attribLocationCache[id] = map[string]AttribLocation{}
+		c.attribLocationCache[id] = map[string]attribLocation{}
 	}
 	l, ok := c.attribLocationCache[id][location]
 	if !ok {
