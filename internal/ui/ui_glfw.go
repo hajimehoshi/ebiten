@@ -101,27 +101,27 @@ func ActualScale() int {
 }
 
 type userInterface struct {
-	window            *glfw.Window
-	width             int
-	height            int
-	scale             int
-	deviceScaleFactor float64
-	framebufferScale  int
-	context           *opengl.Context
+	window           *glfw.Window
+	width            int
+	height           int
+	scale            int
+	deviceScale      float64
+	framebufferScale int
+	context          *opengl.Context
 }
 
 func (u *userInterface) start(width, height, scale int, title string) error {
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	mw, _ := m.GetPhysicalSize()
-	u.deviceScaleFactor = 1
+	u.deviceScale = 1
 	u.framebufferScale = 1
 	// mw can be 0 on some environment like Linux VM
 	if 0 < mw {
 		dpi := float64(v.Width) * 25.4 / float64(mw)
-		u.deviceScaleFactor = dpi / 96
-		if u.deviceScaleFactor < 1 {
-			u.deviceScaleFactor = 1
+		u.deviceScale = dpi / 96
+		if u.deviceScale < 1 {
+			u.deviceScale = 1
 		}
 	}
 
@@ -137,7 +137,7 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 }
 
 func (u *userInterface) windowScale() int {
-	return u.scale * int(u.deviceScaleFactor)
+	return u.scale * int(u.deviceScale)
 }
 
 func (u *userInterface) actualScale() int {
