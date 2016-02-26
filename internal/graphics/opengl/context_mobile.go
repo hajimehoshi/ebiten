@@ -41,10 +41,10 @@ func (p Program) Equals(other Program) bool {
 type UniformLocation mgl.Uniform
 type AttribLocation mgl.Attrib
 
-type ProgramID uint32
+type programID uint32
 
-func (p Program) ID() ProgramID {
-	return ProgramID(p.Value)
+func (p Program) id() programID {
+	return programID(p.Value)
 }
 
 type context struct {

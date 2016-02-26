@@ -56,10 +56,10 @@ type UniformLocation struct {
 
 type AttribLocation int
 
-type ProgramID int
+type programID int
 
-func (p Program) ID() ProgramID {
-	return ProgramID(p.Get("__ebiten_programId").Int())
+func (p Program) id() programID {
+	return programID(p.Get("__ebiten_programId").Int())
 }
 
 type context struct {
@@ -264,7 +264,7 @@ func (c *Context) GlslHighpSupported() bool {
 	return gl.Call("getShaderPrecisionFormat", gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).Get("precision").Int() != 0
 }
 
-var lastProgramID ProgramID = 0
+var lastProgramID programID = 0
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl

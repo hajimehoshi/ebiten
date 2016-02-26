@@ -14,10 +14,10 @@
 
 package opengl
 
-// Since js.Object (Program) can't be keys of a map, use integers (ProgramID) instead.
+// Since js.Object (Program) can't be keys of a map, use integers (programID) instead.
 
-var uniformLocationCache = map[ProgramID]map[string]UniformLocation{}
-var attribLocationCache = map[ProgramID]map[string]AttribLocation{}
+var uniformLocationCache = map[programID]map[string]UniformLocation{}
+var attribLocationCache = map[programID]map[string]AttribLocation{}
 
 type UniformLocationGetter interface {
 	getUniformLocation(p Program, location string) UniformLocation
@@ -26,7 +26,7 @@ type UniformLocationGetter interface {
 // TODO: Rename these functions not to be confusing
 
 func GetUniformLocation(g UniformLocationGetter, p Program, location string) UniformLocation {
-	id := p.ID()
+	id := p.id()
 	if _, ok := uniformLocationCache[id]; !ok {
 		uniformLocationCache[id] = map[string]UniformLocation{}
 	}
@@ -43,7 +43,7 @@ type AttribLocationGetter interface {
 }
 
 func GetAttribLocation(g AttribLocationGetter, p Program, location string) AttribLocation {
-	id := p.ID()
+	id := p.id()
 	if _, ok := attribLocationCache[id]; !ok {
 		attribLocationCache[id] = map[string]AttribLocation{}
 	}
