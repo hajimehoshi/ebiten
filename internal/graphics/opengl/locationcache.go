@@ -16,8 +16,17 @@ package opengl
 
 // Since js.Object (Program) can't be keys of a map, use integers (programID) instead.
 
-var uniformLocationCache = map[programID]map[string]UniformLocation{}
-var attribLocationCache = map[programID]map[string]AttribLocation{}
+type locationCache struct {
+	uniformLocationCache map[programID]map[string]UniformLocation
+	attribLocationCache  map[programID]map[string]AttribLocation
+}
+
+func newLocationCache() *locationCache {
+	return &locationCache{
+		uniformLocationCache: map[programID]map[string]UniformLocation{},
+		attribLocationCache:  map[programID]map[string]AttribLocation{},
+	}
+}
 
 type uniformLocationGetter interface {
 	getUniformLocation(p Program, location string) UniformLocation
@@ -25,15 +34,15 @@ type uniformLocationGetter interface {
 
 // TODO: Rename these functions not to be confusing
 
-func GetUniformLocation(g uniformLocationGetter, p Program, location string) UniformLocation {
+func (c *locationCache) GetUniformLocation(g uniformLocationGetter, p Program, location string) UniformLocation {
 	id := p.id()
-	if _, ok := uniformLocationCache[id]; !ok {
-		uniformLocationCache[id] = map[string]UniformLocation{}
+	if _, ok := c.uniformLocationCache[id]; !ok {
+		c.uniformLocationCache[id] = map[string]UniformLocation{}
 	}
-	l, ok := uniformLocationCache[id][location]
+	l, ok := c.uniformLocationCache[id][location]
 	if !ok {
 		l = g.getUniformLocation(p, location)
-		uniformLocationCache[id][location] = l
+		c.uniformLocationCache[id][location] = l
 	}
 	return l
 }
@@ -42,15 +51,15 @@ type attribLocationGetter interface {
 	getAttribLocation(p Program, location string) AttribLocation
 }
 
-func GetAttribLocation(g attribLocationGetter, p Program, location string) AttribLocation {
+func (c *locationCache) GetAttribLocation(g attribLocationGetter, p Program, location string) AttribLocation {
 	id := p.id()
-	if _, ok := attribLocationCache[id]; !ok {
-		attribLocationCache[id] = map[string]AttribLocation{}
+	if _, ok := c.attribLocationCache[id]; !ok {
+		c.attribLocationCache[id] = map[string]AttribLocation{}
 	}
-	l, ok := attribLocationCache[id][location]
+	l, ok := c.attribLocationCache[id][location]
 	if !ok {
 		l = g.getAttribLocation(p, location)
-		attribLocationCache[id][location] = l
+		c.attribLocationCache[id][location] = l
 	}
 	return l
 }

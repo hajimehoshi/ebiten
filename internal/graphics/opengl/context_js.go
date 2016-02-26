@@ -65,6 +65,7 @@ func (p Program) id() programID {
 type context struct {
 	gl              *webgl.Context
 	lastFramebuffer Framebuffer
+	locationCache   *locationCache
 }
 
 func NewContext() *Context {
@@ -105,6 +106,7 @@ func NewContext() *Context {
 		Lines:              Mode(gl.LINES),
 	}
 	c.gl = gl
+	c.locationCache = newLocationCache()
 	c.init()
 	return c
 }
@@ -297,13 +299,13 @@ func (c *Context) getUniformLocation(p Program, location string) UniformLocation
 
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
-	l := GetUniformLocation(c, p, location)
+	l := c.locationCache.GetUniformLocation(c, p, location)
 	gl.Uniform1i(l.Object, v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
-	l := GetUniformLocation(c, p, location)
+	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
 	case 4:
 		gl.Call("uniform4fv", l.Object, v)
@@ -321,19 +323,19 @@ func (c *Context) getAttribLocation(p Program, location string) AttribLocation {
 
 func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, v int) {
 	gl := c.gl
-	l := GetAttribLocation(c, p, location)
+	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(int(l), size, gl.SHORT, normalize, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	l := GetAttribLocation(c, p, location)
+	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(int(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl := c.gl
-	l := GetAttribLocation(c, p, location)
+	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(int(l))
 }
 

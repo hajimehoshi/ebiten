@@ -48,8 +48,9 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	worker mgl.Worker
-	funcs  chan func()
+	locationCache *locationCache
+	worker        mgl.Worker
+	funcs         chan func()
 }
 
 // TODO: This variable can be in the context struct.
@@ -70,6 +71,7 @@ func NewContext() *Context {
 		Triangles:          mgl.TRIANGLES,
 		Lines:              mgl.LINES,
 	}
+	c.locationCache = newLocationCache()
 	c.funcs = make(chan func())
 	gl, c.worker = mgl.NewContext()
 	return c
@@ -259,11 +261,11 @@ func (c *Context) getUniformLocation(p Program, location string) UniformLocation
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
-	gl.Uniform1i(mgl.Uniform(GetUniformLocation(c, p, location)), v)
+	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
-	l := mgl.Uniform(GetUniformLocation(c, p, location))
+	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))
 	switch len(v) {
 	case 4:
 		gl.Uniform4fv(l, v)
@@ -283,17 +285,17 @@ func (c *Context) getAttribLocation(p Program, location string) AttribLocation {
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, v int) {
-	l := GetAttribLocation(c, p, location)
+	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.SHORT, normalize, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
-	l := GetAttribLocation(c, p, location)
+	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(mgl.Attrib(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
-	l := GetAttribLocation(c, p, location)
+	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
