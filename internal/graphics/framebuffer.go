@@ -25,18 +25,6 @@ type TextureQuads interface {
 	SetVertices(vertices []int16) int
 }
 
-type Lines interface {
-	Len() int
-	Points(i int) (x0, y0, x1, y1 int)
-	Color(i int) color.Color
-}
-
-type Rects interface {
-	Len() int
-	Rect(i int) (x, y, width, height int)
-	Color(i int) color.Color
-}
-
 func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
 	e11 := float64(2) / float64(right-left)
 	e22 := float64(2) / float64(top-bottom)
