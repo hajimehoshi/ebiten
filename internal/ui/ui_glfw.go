@@ -120,6 +120,9 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 	if 0 < mw {
 		dpi := float64(v.Width) * 25.4 / float64(mw)
 		u.deviceScaleFactor = dpi / 96
+		if u.deviceScaleFactor < 1 {
+			u.deviceScaleFactor = 1
+		}
 	}
 
 	u.setScreenSize(width, height, scale)
@@ -134,7 +137,7 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 }
 
 func (u *userInterface) windowScale() int {
-	return int(float64(u.scale) * u.deviceScaleFactor)
+	return u.scale * int(u.deviceScaleFactor)
 }
 
 func (u *userInterface) actualScale() int {
