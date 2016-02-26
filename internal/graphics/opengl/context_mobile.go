@@ -43,7 +43,7 @@ type AttribLocation mgl.Attrib
 
 type ProgramID uint32
 
-func GetProgramID(p Program) ProgramID {
+func (p Program) ID() ProgramID {
 	return ProgramID(p.Value)
 }
 

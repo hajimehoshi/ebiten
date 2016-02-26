@@ -42,8 +42,7 @@ type AttribLocation int32
 
 type ProgramID uint32
 
-// TODO: This should be a method?
-func GetProgramID(p Program) ProgramID {
+func (p Program) ID() ProgramID {
 	return ProgramID(p)
 }
 

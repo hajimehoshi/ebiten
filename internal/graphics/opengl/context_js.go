@@ -58,7 +58,7 @@ type AttribLocation int
 
 type ProgramID int
 
-func GetProgramID(p Program) ProgramID {
+func (p Program) ID() ProgramID {
 	return ProgramID(p.Get("__ebiten_programId").Int())
 }
 

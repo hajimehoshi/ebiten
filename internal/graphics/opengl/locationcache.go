@@ -26,7 +26,7 @@ type UniformLocationGetter interface {
 // TODO: Rename these functions not to be confusing
 
 func GetUniformLocation(g UniformLocationGetter, p Program, location string) UniformLocation {
-	id := GetProgramID(p)
+	id := p.ID()
 	if _, ok := uniformLocationCache[id]; !ok {
 		uniformLocationCache[id] = map[string]UniformLocation{}
 	}
@@ -43,7 +43,7 @@ type AttribLocationGetter interface {
 }
 
 func GetAttribLocation(g AttribLocationGetter, p Program, location string) AttribLocation {
-	id := GetProgramID(p)
+	id := p.ID()
 	if _, ok := attribLocationCache[id]; !ok {
 		attribLocationCache[id] = map[string]AttribLocation{}
 	}
