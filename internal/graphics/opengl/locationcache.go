@@ -19,13 +19,13 @@ package opengl
 var uniformLocationCache = map[programID]map[string]UniformLocation{}
 var attribLocationCache = map[programID]map[string]AttribLocation{}
 
-type UniformLocationGetter interface {
+type uniformLocationGetter interface {
 	getUniformLocation(p Program, location string) UniformLocation
 }
 
 // TODO: Rename these functions not to be confusing
 
-func GetUniformLocation(g UniformLocationGetter, p Program, location string) UniformLocation {
+func GetUniformLocation(g uniformLocationGetter, p Program, location string) UniformLocation {
 	id := p.id()
 	if _, ok := uniformLocationCache[id]; !ok {
 		uniformLocationCache[id] = map[string]UniformLocation{}
@@ -38,11 +38,11 @@ func GetUniformLocation(g UniformLocationGetter, p Program, location string) Uni
 	return l
 }
 
-type AttribLocationGetter interface {
+type attribLocationGetter interface {
 	getAttribLocation(p Program, location string) AttribLocation
 }
 
-func GetAttribLocation(g AttribLocationGetter, p Program, location string) AttribLocation {
+func GetAttribLocation(g attribLocationGetter, p Program, location string) AttribLocation {
 	id := p.id()
 	if _, ok := attribLocationCache[id]; !ok {
 		attribLocationCache[id] = map[string]AttribLocation{}
