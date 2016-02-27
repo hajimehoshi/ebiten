@@ -98,11 +98,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		}
 		for gameTime < now {
 			gameTime += int64(time.Second / 60)
-
-			if err := graphicsContext.preUpdate(); err != nil {
-				return err
-			}
-			if err := f(graphicsContext.screen); err != nil {
+			if err := graphicsContext.update(f); err != nil {
 				return err
 			}
 		}

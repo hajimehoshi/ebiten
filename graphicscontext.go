@@ -32,8 +32,14 @@ type graphicsContext struct {
 	screenScale         int
 }
 
-func (c *graphicsContext) preUpdate() error {
-	return c.screen.Clear()
+func (c *graphicsContext) update(f func(*Image) error) error {
+	if err := c.screen.Clear(); err != nil {
+		return err
+	}
+	if err := f(c.screen); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *graphicsContext) postUpdate() error {
