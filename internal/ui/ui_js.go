@@ -93,10 +93,6 @@ func vsync() {
 }
 
 func (*userInterface) doEvents() error {
-	vsync()
-	for !shown() {
-		vsync()
-	}
 	currentInput.UpdateGamepads()
 	return nil
 }
@@ -110,7 +106,10 @@ func (*userInterface) isClosed() bool {
 }
 
 func (*userInterface) swapBuffers() {
-	// Do nothing.
+	vsync()
+	for !shown() {
+		vsync()
+	}
 }
 
 func Init() *opengl.Context {

@@ -109,8 +109,12 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			c := float64(now-beforeForUpdate) * 60 / float64(time.Second)
 			runContext.isRunningSlowly = c >= 2.5
 			for i := 0; i < int(c); i++ {
-				// TODO: Input should be updated here,
-				// but JavaScript version of ui.DoEvents does vsync.
+				if err := ui.DoEvents(); err != nil {
+					return err
+				}
+				if ui.IsClosed() {
+					return nil
+				}
 				if err := graphicsContext.update(f); err != nil {
 					return err
 				}
