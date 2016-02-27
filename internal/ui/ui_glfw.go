@@ -171,6 +171,8 @@ func (u *userInterface) isClosed() bool {
 }
 
 func (u *userInterface) swapBuffers() {
+	// The bound framebuffer must be the default one (0) before swapping buffers.
+	u.context.BindZeroFramebuffer()
 	// Call glFinish before glfwSwapBuffer to make sure
 	// all OpenGL tasks are executed.
 	u.context.Finish()
@@ -190,7 +192,6 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
-	u.context.BindZeroFramebuffer()
 	u.swapBuffers()
 
 	ch := make(chan struct{})

@@ -103,8 +103,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			}
 		}
 		gameTime += int64(c) * int64(time.Second/60)
-
-		// Note that the current bound framebuffer must be the default one (0).
 		ui.SwapBuffers()
 
 		// Calc the current FPS.
