@@ -26,11 +26,19 @@ var runContext = &struct {
 	newScreenWidth  int
 	newScreenHeight int
 	newScreenScale  int
+	isRunningSlowly bool
 }{}
 
 // CurrentFPS returns the current number of frames per second.
 func CurrentFPS() float64 {
 	return runContext.fps
+}
+
+// IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS.
+// The game screen is not updated when IsRunningSlowly is true.
+// It is recommended to skip heavy processing, especially drawing, when IsRunningSlowly is true.
+func IsRunningSlowly() bool {
+	return runContext.isRunningSlowly
 }
 
 // Run runs the game.
@@ -94,10 +102,12 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		}
 		now := ui.Now()
 		// If beforeForUpdate is too old, we assume that screen is not shown.
+		runContext.isRunningSlowly = false
 		if int64(5*time.Second/60) < now-beforeForUpdate {
 			beforeForUpdate = now
 		} else {
 			c := int((now - beforeForUpdate) * 60 / int64(time.Second))
+			runContext.isRunningSlowly = c >= 2
 			for i := 0; i < c; i++ {
 				if err := graphicsContext.update(f); err != nil {
 					return err

@@ -46,6 +46,8 @@ func (game *Game) Update(r *ebiten.Image) error {
 		SceneManager: game.sceneManager,
 		Input:        &game.input,
 	})
-	game.sceneManager.Draw(r)
+	if !ebiten.IsRunningSlowly() {
+		game.sceneManager.Draw(r)
+	}
 	return nil
 }

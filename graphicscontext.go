@@ -39,6 +39,9 @@ func (c *graphicsContext) update(f func(*Image) error) error {
 	if err := f(c.screen); err != nil {
 		return err
 	}
+	if IsRunningSlowly() {
+		return nil
+	}
 	// TODO: In WebGL, we don't need to clear the image here.
 	if err := c.defaultRenderTarget.Clear(); err != nil {
 		return err
