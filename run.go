@@ -60,8 +60,9 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}
 
 	frames := 0
-	gameTime := ui.Now()
-	before := ui.Now()
+	now := ui.Now()
+	beforeForUpdate := now
+	beforeForFPS := now
 	for {
 		// TODO: setSize should be called after swapping buffers?
 		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
@@ -92,25 +93,26 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			return nil
 		}
 		now := ui.Now()
-		// If gameTime is too old, we assume that screen is not shown.
-		if int64(5*time.Second/60) < now-gameTime {
-			gameTime = now
-		}
-		c := int((now - gameTime) * 60 / int64(time.Second))
-		for i := 0; i < c; i++ {
-			if err := graphicsContext.update(f); err != nil {
-				return err
+		// If beforeForUpdate is too old, we assume that screen is not shown.
+		if int64(5*time.Second/60) < now-beforeForUpdate {
+			beforeForUpdate = now
+		} else {
+			c := int((now - beforeForUpdate) * 60 / int64(time.Second))
+			for i := 0; i < c; i++ {
+				if err := graphicsContext.update(f); err != nil {
+					return err
+				}
 			}
+			beforeForUpdate += int64(c) * int64(time.Second/60)
+			ui.SwapBuffers()
 		}
-		gameTime += int64(c) * int64(time.Second/60)
-		ui.SwapBuffers()
 
 		// Calc the current FPS.
 		now = ui.Now()
 		frames++
-		if time.Second <= time.Duration(now-before) {
-			runContext.fps = float64(frames) * float64(time.Second) / float64(now-before)
-			before = now
+		if time.Second <= time.Duration(now-beforeForFPS) {
+			runContext.fps = float64(frames) * float64(time.Second) / float64(now-beforeForFPS)
+			beforeForFPS = now
 			frames = 0
 		}
 	}
