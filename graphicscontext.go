@@ -39,15 +39,10 @@ func (c *graphicsContext) update(f func(*Image) error) error {
 	if err := f(c.screen); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (c *graphicsContext) postUpdate() error {
 	// TODO: In WebGL, we don't need to clear the image here.
 	if err := c.defaultRenderTarget.Clear(); err != nil {
 		return err
 	}
-
 	scale := float64(c.screenScale)
 	options := &DrawImageOptions{}
 	options.GeoM.Scale(scale, scale)

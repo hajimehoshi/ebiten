@@ -96,15 +96,13 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if int64(5*time.Second/60) < now-gameTime {
 			gameTime = now
 		}
-		for gameTime < now {
-			gameTime += int64(time.Second / 60)
+		c := int((now - gameTime) * 60 / int64(time.Second))
+		for i := 0; i < c; i++ {
 			if err := graphicsContext.update(f); err != nil {
 				return err
 			}
 		}
-		if err := graphicsContext.postUpdate(); err != nil {
-			return err
-		}
+		gameTime += int64(c) * int64(time.Second/60)
 
 		// Note that the current bound framebuffer must be the default one (0).
 		ui.SwapBuffers()
