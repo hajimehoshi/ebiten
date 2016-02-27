@@ -106,9 +106,9 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if int64(5*time.Second/60) < now-beforeForUpdate {
 			beforeForUpdate = now
 		} else {
-			c := int((now - beforeForUpdate) * 60 / int64(time.Second))
-			runContext.isRunningSlowly = c >= 2
-			for i := 0; i < c; i++ {
+			c := float64(now-beforeForUpdate) * 60 / float64(time.Second)
+			runContext.isRunningSlowly = c >= 2.5
+			for i := 0; i < int(c); i++ {
 				if err := ui.DoEvents(); err != nil {
 					return err
 				}
