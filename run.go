@@ -109,6 +109,12 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			c := int((now - beforeForUpdate) * 60 / int64(time.Second))
 			runContext.isRunningSlowly = c >= 2
 			for i := 0; i < c; i++ {
+				if err := ui.DoEvents(); err != nil {
+					return err
+				}
+				if ui.IsClosed() {
+					return nil
+				}
 				if err := graphicsContext.update(f); err != nil {
 					return err
 				}
