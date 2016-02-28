@@ -49,9 +49,9 @@ pre {
 
 <h2>Example</h2>
 <p>
-  {{range .Examples}}
+  {{range .Examples -}}
   <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="example"></a>
-  {{end}}
+  {{- end}}
 </p>
 
 <h2>Install on Mac OS X or Windows</h2>
