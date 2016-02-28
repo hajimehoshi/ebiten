@@ -15,9 +15,10 @@
 package graphics
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"image/color"
 	"math"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 type TextureQuads interface {
@@ -115,12 +116,12 @@ func (f *Framebuffer) Fill(c *opengl.Context, clr color.Color) error {
 	return c.FillFramebuffer(r, g, b, a)
 }
 
-func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix) error {
+func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix, mode opengl.CompositionMode) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	p := f.projectionMatrix()
-	return drawTexture(c, t.native, p, quads, geo, clr)
+	return drawTexture(c, t.native, p, quads, geo, clr, mode)
 }
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {

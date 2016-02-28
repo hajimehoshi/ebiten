@@ -32,7 +32,6 @@ var (
 	count           int
 	tmpRenderTarget *ebiten.Image
 	ebitenImage     *ebiten.Image
-	saved           bool
 )
 
 func update(screen *ebiten.Image) error {

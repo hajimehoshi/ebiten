@@ -105,6 +105,12 @@ func NewContext() *Context {
 		StaticDraw:         BufferUsage(gl.STATIC_DRAW),
 		Triangles:          Mode(gl.TRIANGLES),
 		Lines:              Mode(gl.LINES),
+		zero:               operation(gl.ZERO),
+		one:                operation(gl.ONE),
+		srcAlpha:           operation(gl.SRC_ALPHA),
+		dstAlpha:           operation(gl.DST_ALPHA),
+		oneMinusSrcAlpha:   operation(gl.ONE_MINUS_SRC_ALPHA),
+		oneMinusDstAlpha:   operation(gl.ONE_MINUS_DST_ALPHA),
 	}
 	c.gl = gl
 	c.locationCache = newLocationCache()
@@ -116,7 +122,15 @@ func (c *Context) init() {
 	gl := c.gl
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+	//gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+	c.BlendFunc(CompositionModeSourceOver)
+}
+
+func (c *Context) BlendFunc(mode CompositionMode) {
+	s, d := c.operations(mode)
+	// TODO: Cache and don't call this often
+	gl := c.gl
+	gl.BlendFunc(int(s), int(d))
 }
 
 func (c *Context) Check() {

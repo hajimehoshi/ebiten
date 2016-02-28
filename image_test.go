@@ -85,6 +85,7 @@ func TestImageComposition(t *testing.T) {
 	img2Color := color.NRGBA{0x24, 0x3f, 0x6a, 0x88}
 	img3Color := color.NRGBA{0x85, 0xa3, 0x08, 0xd3}
 
+	// TODO: Rename this to img0
 	img1, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
@@ -235,6 +236,45 @@ func TestImageDispose(t *testing.T) {
 	}
 	if err := img.Dispose(); err != nil {
 		t.Errorf("img.Dipose() returns error: %v", err)
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func TestImageCompositionModeLighter(t *testing.T) {
+	img0, _, err := openEbitenImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	w, h := img0.Size()
+	img1, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
+	op := &DrawImageOptions{}
+	op.CompositionMode = CompositionModeLighter
+	img1.DrawImage(img0, op)
+	for j := 0; j < img1.Bounds().Size().Y; j++ {
+		for i := 0; i < img1.Bounds().Size().X; i++ {
+			got := img1.At(i, j).(color.RGBA)
+			want := img0.At(i, j).(color.RGBA)
+			want.R = uint8(min(0xff, int(want.R)+1))
+			want.G = uint8(min(0xff, int(want.G)+2))
+			want.B = uint8(min(0xff, int(want.B)+3))
+			want.A = uint8(min(0xff, int(want.A)+4))
+			if got != want {
+				t.Errorf("img1 At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
 	}
 }
 

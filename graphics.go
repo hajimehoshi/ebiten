@@ -35,3 +35,11 @@ func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
 	}
 	panic("not reach")
 }
+
+// CompositionMode represents Porter-Duff composition mode.
+type CompositionMode int
+
+const (
+	CompositionModeSourceOver CompositionMode = CompositionMode(opengl.CompositionModeSourceOver)
+	CompositionModeLighter                    = CompositionMode(opengl.CompositionModeLighter)
+)

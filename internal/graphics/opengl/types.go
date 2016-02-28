@@ -19,6 +19,7 @@ type ShaderType int
 type BufferType int
 type BufferUsage int
 type Mode int
+type operation int
 
 type Context struct {
 	Nearest            Filter
@@ -31,5 +32,62 @@ type Context struct {
 	StaticDraw         BufferUsage
 	Triangles          Mode
 	Lines              Mode
+	zero               operation
+	one                operation
+	srcAlpha           operation
+	dstAlpha           operation
+	oneMinusSrcAlpha   operation
+	oneMinusDstAlpha   operation
 	context
+}
+
+type CompositionMode int
+
+const (
+	CompositionModeSourceOver CompositionMode = iota
+	CompositionModeClear
+	CompositionModeCopy
+	CompositionModeDesination
+	CompositionModeDesinationOver
+	CompositionModeSourceIn
+	CompositionModeDestinationIn
+	CompositionModeSourceOut
+	CompositionModeDestinationOut
+	CompositionModeSourceAtop
+	CompositionModeDestinationAtop
+	CompositionModeXor
+	CompositionModeLighter
+)
+
+func (c *Context) operations(mode CompositionMode) (src operation, dst operation) {
+	switch mode {
+	case CompositionModeSourceOver:
+		return c.one, c.oneMinusSrcAlpha
+	case CompositionModeClear:
+		return c.zero, c.zero
+	case CompositionModeCopy:
+		return c.one, c.zero
+	case CompositionModeDesination:
+		return c.zero, c.one
+	case CompositionModeDesinationOver:
+		return c.one, c.oneMinusDstAlpha
+	case CompositionModeSourceIn:
+		return c.dstAlpha, c.zero
+	case CompositionModeDestinationIn:
+		return c.zero, c.srcAlpha
+	case CompositionModeSourceOut:
+		return c.oneMinusDstAlpha, c.zero
+	case CompositionModeDestinationOut:
+		return c.zero, c.oneMinusSrcAlpha
+	case CompositionModeSourceAtop:
+		return c.dstAlpha, c.oneMinusSrcAlpha
+	case CompositionModeDestinationAtop:
+		return c.oneMinusDstAlpha, c.srcAlpha
+	case CompositionModeXor:
+		return c.oneMinusDstAlpha, c.oneMinusSrcAlpha
+	case CompositionModeLighter:
+		return c.one, c.one
+	default:
+		panic("not reach")
+	}
 }

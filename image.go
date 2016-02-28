@@ -22,6 +22,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 // Image represents an image.
@@ -98,7 +99,8 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	}
 	w, h := image.Size()
 	quads := &textureQuads{parts: parts, width: w, height: h}
-	return i.framebuffer.DrawTexture(glContext, image.texture, quads, &options.GeoM, &options.ColorM)
+	m := opengl.CompositionMode(options.CompositionMode)
+	return i.framebuffer.DrawTexture(glContext, image.texture, quads, &options.GeoM, &options.ColorM, m)
 }
 
 // Bounds returns the bounds of the image.
@@ -182,9 +184,10 @@ func (i *Image) ReplacePixels(p []uint8) error {
 
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
-	ImageParts ImageParts
-	GeoM       GeoM
-	ColorM     ColorM
+	ImageParts      ImageParts
+	GeoM            GeoM
+	ColorM          ColorM
+	CompositionMode CompositionMode
 
 	// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
 	Parts []ImagePart
