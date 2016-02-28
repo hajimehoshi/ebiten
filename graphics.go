@@ -40,6 +40,6 @@ func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
 type CompositionMode int
 
 const (
-	CompositionModeSourceOver CompositionMode = CompositionMode(opengl.CompositionModeSourceOver)
-	CompositionModeLighter                    = CompositionMode(opengl.CompositionModeLighter)
+	CompositionModeSourceOver CompositionMode = CompositionMode(opengl.CompositionModeSourceOver) // regular alpha blending
+	CompositionModeLighter                    = CompositionMode(opengl.CompositionModeLighter)    // sum of source and destination (a.k.a. 'plus' or 'additive')
 )
