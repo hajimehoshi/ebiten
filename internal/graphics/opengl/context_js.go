@@ -63,10 +63,11 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl              *webgl.Context
-	lastFramebuffer Framebuffer
-	locationCache   *locationCache
-	lastProgramID   programID
+	gl                  *webgl.Context
+	lastFramebuffer     Framebuffer
+	locationCache       *locationCache
+	lastProgramID       programID
+	lastCompositionMode CompositionMode
 }
 
 func NewContext() *Context {
@@ -114,6 +115,7 @@ func NewContext() *Context {
 	}
 	c.gl = gl
 	c.locationCache = newLocationCache()
+	c.lastCompositionMode = CompositionModeUnknown
 	c.init()
 	return c
 }
@@ -127,8 +129,11 @@ func (c *Context) init() {
 }
 
 func (c *Context) BlendFunc(mode CompositionMode) {
+	if c.lastCompositionMode == mode {
+		return
+	}
+	c.lastCompositionMode = mode
 	s, d := c.operations(mode)
-	// TODO: Cache and don't call this often
 	gl := c.gl
 	gl.BlendFunc(int(s), int(d))
 }

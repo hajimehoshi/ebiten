@@ -44,7 +44,7 @@ type Context struct {
 type CompositionMode int
 
 const (
-	CompositionModeSourceOver CompositionMode = iota
+	CompositionModeSourceOver CompositionMode = iota // This value must be 0 (= initial value)
 	CompositionModeClear
 	CompositionModeCopy
 	CompositionModeDesination
@@ -57,6 +57,7 @@ const (
 	CompositionModeDestinationAtop
 	CompositionModeXor
 	CompositionModeLighter
+	CompositionModeUnknown
 )
 
 func (c *Context) operations(mode CompositionMode) (src operation, dst operation) {

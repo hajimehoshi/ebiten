@@ -47,8 +47,9 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	locationCache *locationCache
-	funcs         chan func()
+	locationCache       *locationCache
+	funcs               chan func()
+	lastCompositionMode CompositionMode
 }
 
 func NewContext() *Context {
@@ -72,6 +73,7 @@ func NewContext() *Context {
 	}
 	c.locationCache = newLocationCache()
 	c.funcs = make(chan func())
+	c.lastCompositionMode = CompositionModeUnknown
 	return c
 }
 
@@ -110,8 +112,11 @@ func (c *Context) Init() {
 
 func (c *Context) BlendFunc(mode CompositionMode) {
 	c.RunOnContextThread(func() {
+		if c.lastCompositionMode == mode {
+			return
+		}
+		c.lastCompositionMode = mode
 		s, d := c.operations(mode)
-		// TODO: Cache and don't call this often
 		gl.BlendFunc(uint32(s), uint32(d))
 	})
 }
