@@ -47,8 +47,8 @@ const (
 	CompositionModeSourceOver CompositionMode = iota // This value must be 0 (= initial value)
 	CompositionModeClear
 	CompositionModeCopy
-	CompositionModeDesination
-	CompositionModeDesinationOver
+	CompositionModeDestination
+	CompositionModeDestinationOver
 	CompositionModeSourceIn
 	CompositionModeDestinationIn
 	CompositionModeSourceOut
@@ -68,10 +68,10 @@ func (c *Context) operations(mode CompositionMode) (src operation, dst operation
 		return c.zero, c.zero
 	case CompositionModeCopy:
 		return c.one, c.zero
-	case CompositionModeDesination:
+	case CompositionModeDestination:
 		return c.zero, c.one
-	case CompositionModeDesinationOver:
-		return c.one, c.oneMinusDstAlpha
+	case CompositionModeDestinationOver:
+		return c.oneMinusDstAlpha, c.one
 	case CompositionModeSourceIn:
 		return c.dstAlpha, c.zero
 	case CompositionModeDestinationIn:
