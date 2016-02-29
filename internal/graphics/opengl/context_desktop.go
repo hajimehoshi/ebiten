@@ -47,9 +47,9 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	locationCache       *locationCache
-	funcs               chan func()
-	lastCompositionMode CompositionMode
+	locationCache     *locationCache
+	funcs             chan func()
+	lastCompositeMode CompositeMode
 }
 
 func NewContext() *Context {
@@ -73,7 +73,7 @@ func NewContext() *Context {
 	}
 	c.locationCache = newLocationCache()
 	c.funcs = make(chan func())
-	c.lastCompositionMode = CompositionModeUnknown
+	c.lastCompositeMode = CompositeModeUnknown
 	return c
 }
 
@@ -107,15 +107,15 @@ func (c *Context) Init() {
 		// Textures' pixel formats are alpha premultiplied.
 		gl.Enable(gl.BLEND)
 	})
-	c.BlendFunc(CompositionModeSourceOver)
+	c.BlendFunc(CompositeModeSourceOver)
 }
 
-func (c *Context) BlendFunc(mode CompositionMode) {
+func (c *Context) BlendFunc(mode CompositeMode) {
 	c.RunOnContextThread(func() {
-		if c.lastCompositionMode == mode {
+		if c.lastCompositeMode == mode {
 			return
 		}
-		c.lastCompositionMode = mode
+		c.lastCompositeMode = mode
 		s, d := c.operations(mode)
 		gl.BlendFunc(uint32(s), uint32(d))
 	})

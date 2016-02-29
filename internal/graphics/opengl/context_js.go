@@ -63,11 +63,11 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl                  *webgl.Context
-	lastFramebuffer     Framebuffer
-	locationCache       *locationCache
-	lastProgramID       programID
-	lastCompositionMode CompositionMode
+	gl                *webgl.Context
+	lastFramebuffer   Framebuffer
+	locationCache     *locationCache
+	lastProgramID     programID
+	lastCompositeMode CompositeMode
 }
 
 func NewContext() *Context {
@@ -115,7 +115,7 @@ func NewContext() *Context {
 	}
 	c.gl = gl
 	c.locationCache = newLocationCache()
-	c.lastCompositionMode = CompositionModeUnknown
+	c.lastCompositeMode = CompositeModeUnknown
 	c.init()
 	return c
 }
@@ -125,14 +125,14 @@ func (c *Context) init() {
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(gl.BLEND)
 	//gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-	c.BlendFunc(CompositionModeSourceOver)
+	c.BlendFunc(CompositeModeSourceOver)
 }
 
-func (c *Context) BlendFunc(mode CompositionMode) {
-	if c.lastCompositionMode == mode {
+func (c *Context) BlendFunc(mode CompositeMode) {
+	if c.lastCompositeMode == mode {
 		return
 	}
-	c.lastCompositionMode = mode
+	c.lastCompositeMode = mode
 	s, d := c.operations(mode)
 	gl := c.gl
 	gl.BlendFunc(int(s), int(d))

@@ -74,7 +74,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	op = &ebiten.DrawImageOptions{}
-	op.CompositionMode = ebiten.CompositionModeSourceOut
+	op.CompositeMode = ebiten.CompositeModeSourceOut
 	if err := maskImage.DrawImage(fiveyearsImage, op); err != nil {
 		return err
 	}

@@ -99,7 +99,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	}
 	w, h := image.Size()
 	quads := &textureQuads{parts: parts, width: w, height: h}
-	m := opengl.CompositionMode(options.CompositionMode)
+	m := opengl.CompositeMode(options.CompositeMode)
 	return i.framebuffer.DrawTexture(glContext, image.texture, quads, &options.GeoM, &options.ColorM, m)
 }
 
@@ -184,10 +184,10 @@ func (i *Image) ReplacePixels(p []uint8) error {
 
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
-	ImageParts      ImageParts
-	GeoM            GeoM
-	ColorM          ColorM
-	CompositionMode CompositionMode
+	ImageParts    ImageParts
+	GeoM          GeoM
+	ColorM        ColorM
+	CompositeMode CompositeMode
 
 	// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
 	Parts []ImagePart

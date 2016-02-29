@@ -246,7 +246,7 @@ func min(a, b int) int {
 	return b
 }
 
-func TestImageCompositionModeLighter(t *testing.T) {
+func TestImageCompositeModeLighter(t *testing.T) {
 	img0, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
@@ -261,7 +261,7 @@ func TestImageCompositionModeLighter(t *testing.T) {
 	}
 	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
 	op := &DrawImageOptions{}
-	op.CompositionMode = CompositionModeLighter
+	op.CompositeMode = CompositeModeLighter
 	img1.DrawImage(img0, op)
 	for j := 0; j < img1.Bounds().Size().Y; j++ {
 		for i := 0; i < img1.Bounds().Size().X; i++ {

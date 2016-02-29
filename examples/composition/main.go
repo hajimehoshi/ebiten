@@ -43,7 +43,7 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(ebitenImage, op)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ox+float64(w), oy)
-	op.CompositionMode = ebiten.CompositionModeLighter
+	op.CompositeMode = ebiten.CompositeModeLighter
 	screen.DrawImage(ebitenImage, op)
 	return nil
 }
@@ -54,7 +54,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Composition Mode (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Composite Mode (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

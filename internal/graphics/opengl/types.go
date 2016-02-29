@@ -41,52 +41,52 @@ type Context struct {
 	context
 }
 
-type CompositionMode int
+type CompositeMode int
 
 const (
-	CompositionModeSourceOver CompositionMode = iota // This value must be 0 (= initial value)
-	CompositionModeClear
-	CompositionModeCopy
-	CompositionModeDestination
-	CompositionModeDestinationOver
-	CompositionModeSourceIn
-	CompositionModeDestinationIn
-	CompositionModeSourceOut
-	CompositionModeDestinationOut
-	CompositionModeSourceAtop
-	CompositionModeDestinationAtop
-	CompositionModeXor
-	CompositionModeLighter
-	CompositionModeUnknown
+	CompositeModeSourceOver CompositeMode = iota // This value must be 0 (= initial value)
+	CompositeModeClear
+	CompositeModeCopy
+	CompositeModeDestination
+	CompositeModeDestinationOver
+	CompositeModeSourceIn
+	CompositeModeDestinationIn
+	CompositeModeSourceOut
+	CompositeModeDestinationOut
+	CompositeModeSourceAtop
+	CompositeModeDestinationAtop
+	CompositeModeXor
+	CompositeModeLighter
+	CompositeModeUnknown
 )
 
-func (c *Context) operations(mode CompositionMode) (src operation, dst operation) {
+func (c *Context) operations(mode CompositeMode) (src operation, dst operation) {
 	switch mode {
-	case CompositionModeSourceOver:
+	case CompositeModeSourceOver:
 		return c.one, c.oneMinusSrcAlpha
-	case CompositionModeClear:
+	case CompositeModeClear:
 		return c.zero, c.zero
-	case CompositionModeCopy:
+	case CompositeModeCopy:
 		return c.one, c.zero
-	case CompositionModeDestination:
+	case CompositeModeDestination:
 		return c.zero, c.one
-	case CompositionModeDestinationOver:
+	case CompositeModeDestinationOver:
 		return c.oneMinusDstAlpha, c.one
-	case CompositionModeSourceIn:
+	case CompositeModeSourceIn:
 		return c.dstAlpha, c.zero
-	case CompositionModeDestinationIn:
+	case CompositeModeDestinationIn:
 		return c.zero, c.srcAlpha
-	case CompositionModeSourceOut:
+	case CompositeModeSourceOut:
 		return c.oneMinusDstAlpha, c.zero
-	case CompositionModeDestinationOut:
+	case CompositeModeDestinationOut:
 		return c.zero, c.oneMinusSrcAlpha
-	case CompositionModeSourceAtop:
+	case CompositeModeSourceAtop:
 		return c.dstAlpha, c.oneMinusSrcAlpha
-	case CompositionModeDestinationAtop:
+	case CompositeModeDestinationAtop:
 		return c.oneMinusDstAlpha, c.srcAlpha
-	case CompositionModeXor:
+	case CompositeModeXor:
 		return c.oneMinusDstAlpha, c.oneMinusSrcAlpha
-	case CompositionModeLighter:
+	case CompositeModeLighter:
 		return c.one, c.one
 	default:
 		panic("not reach")

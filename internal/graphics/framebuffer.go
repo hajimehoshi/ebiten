@@ -116,7 +116,7 @@ func (f *Framebuffer) Fill(c *opengl.Context, clr color.Color) error {
 	return c.FillFramebuffer(r, g, b, a)
 }
 
-func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix, mode opengl.CompositionMode) error {
+func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix, mode opengl.CompositeMode) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}

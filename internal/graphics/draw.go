@@ -37,7 +37,7 @@ var vertices = make([]int16, 16*quadsMaxNum)
 
 var shadersInitialized = false
 
-func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix, mode opengl.CompositionMode) error {
+func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix, mode opengl.CompositeMode) error {
 	c.BlendFunc(mode)
 
 	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
