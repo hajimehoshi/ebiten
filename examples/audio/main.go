@@ -31,6 +31,12 @@ const (
 	sampleRate   = 44100
 )
 
+var audioContext *audio.Context
+
+func init() {
+	audioContext = audio.NewContext(sampleRate)
+}
+
 var frames = 0
 
 const (
@@ -116,7 +122,7 @@ func addNote() error {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 	b := toBytes(l, r)
-	p, err := audio.NewPlayer(bytes.NewReader(b), sampleRate)
+	p, err := audioContext.NewPlayer(bytes.NewReader(b))
 	if err != nil {
 		return err
 	}

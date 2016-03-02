@@ -32,6 +32,12 @@ const (
 	frequency    = 440
 )
 
+var audioContext *audio.Context
+
+func init() {
+	audioContext = audio.NewContext(sampleRate)
+}
+
 type stream struct {
 	position int64
 }
@@ -75,7 +81,7 @@ var player *audio.Player
 func update(screen *ebiten.Image) error {
 	if player == nil {
 		var err error
-		player, err = audio.NewPlayer(&stream{}, sampleRate)
+		player, err = audioContext.NewPlayer(&stream{})
 		if err != nil {
 			return err
 		}

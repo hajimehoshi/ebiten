@@ -19,6 +19,18 @@ import (
 	"io"
 )
 
+// TODO: Enable to specify the format like Mono8?
+
+type Context struct {
+	sampleRate int
+}
+
+func NewContext(sampleRate int) *Context {
+	return &Context{
+		sampleRate: sampleRate,
+	}
+}
+
 type Player struct {
 	player *player
 }
@@ -31,8 +43,8 @@ type Player struct {
 // without a header (e.g. RIFF header).
 //
 // TODO: Pass sample rate and num of channels.
-func NewPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
-	return newPlayer(src, sampleRate)
+func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
+	return newPlayer(src, c.sampleRate)
 }
 
 var ErrTooManyPlayers = errors.New("audio: too many players exist")

@@ -33,6 +33,12 @@ const (
 	sampleRate   = 44100
 )
 
+var audioContext *audio.Context
+
+func init() {
+	audioContext = audio.NewContext(sampleRate)
+}
+
 var pcm = make([]float64, 4*sampleRate)
 
 const baseFreq = 220
@@ -81,7 +87,7 @@ func (s *stream) Close() error {
 func addNote(freq float64, vol float64) error {
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		p, err := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+		p, err := audioContext.NewPlayer(&stream{bytes.NewReader(n)})
 		if err == audio.ErrTooManyPlayers {
 			return nil
 		}
@@ -105,7 +111,7 @@ func addNote(freq float64, vol float64) error {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	p, err := audio.NewPlayer(&stream{bytes.NewReader(n)}, sampleRate)
+	p, err := audioContext.NewPlayer(&stream{bytes.NewReader(n)})
 	if err == audio.ErrTooManyPlayers {
 		return nil
 	}
