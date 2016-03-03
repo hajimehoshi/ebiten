@@ -26,7 +26,7 @@ import (
 var context *js.Object
 
 type player struct {
-	src          io.ReadSeeker
+	src          io.Reader
 	sampleRate   int
 	position     float64
 	bufferSource *js.Object
@@ -49,7 +49,7 @@ func initialize() bool {
 	return true
 }
 
-func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
+func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	if context == nil {
 		if !initialize() {
 			panic("audio couldn't be initialized")
@@ -62,7 +62,7 @@ func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
 		position:     context.Get("currentTime").Float(),
 		bufferSource: nil,
 	}
-	return &Player{p}, nil
+	return p, nil
 }
 
 func toLR(data []byte) ([]int16, []int16) {

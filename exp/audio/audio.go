@@ -15,24 +15,102 @@
 package audio
 
 import (
-	"errors"
+	"fmt"
 	"io"
+	"sync"
 )
+
+// TODO: In JavaScript, mixing should be done by WebAudio for performance.
+type mixedPlayersStream struct {
+	context *Context
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func (s *mixedPlayersStream) Read(b []byte) (int, error) {
+	s.context.Lock()
+	defer s.context.Unlock()
+
+	l := len(b)
+	if len(s.context.players) == 0 {
+		copy(b, make([]byte, l))
+		return l, nil
+	}
+	closed := []*Player{}
+	for p := range s.context.players {
+		ll := l - len(p.buf)
+		if ll <= 0 {
+			continue
+		}
+		b := make([]byte, ll)
+		n, err := p.src.Read(b)
+		if 0 < n {
+			p.buf = append(p.buf, b[:n]...)
+		}
+		if err == io.EOF {
+			if len(p.buf) < l {
+				p.buf = append(p.buf, make([]byte, l-len(p.buf))...)
+			}
+			closed = append(closed, p)
+		}
+	}
+	resultLen := l
+	for p := range s.context.players {
+		resultLen = min(len(p.buf)/2*2, resultLen)
+	}
+	for i := 0; i < resultLen/2; i++ {
+		x := int16(0)
+		for p := range s.context.players {
+			// TODO: Overflow check to avoid distortion
+			x += int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
+		}
+		b[2*i] = byte(x)
+		b[2*i+1] = byte(x >> 8)
+	}
+	for p := range s.context.players {
+		p.buf = p.buf[resultLen:]
+	}
+	for _, p := range closed {
+		delete(s.context.players, p)
+	}
+	return resultLen, nil
+}
 
 // TODO: Enable to specify the format like Mono8?
 
 type Context struct {
-	sampleRate int
+	sampleRate  int
+	stream      *mixedPlayersStream
+	innerPlayer *player
+	players     map[*Player]struct{}
+	sync.Mutex
 }
 
 func NewContext(sampleRate int) *Context {
-	return &Context{
+	// TODO: Panic if one context exists.
+	c := &Context{
 		sampleRate: sampleRate,
+		players:    map[*Player]struct{}{},
 	}
+	c.stream = &mixedPlayersStream{c}
+	var err error
+	c.innerPlayer, err = newPlayer(c.stream, c.sampleRate)
+	if err != nil {
+		panic(fmt.Sprintf("audio: NewContext error: %v", err))
+	}
+	c.innerPlayer.play()
+	return c
 }
 
 type Player struct {
-	player *player
+	context *Context
+	src     io.ReadSeeker
+	buf     []byte
 }
 
 // NewPlayer creates a new player with the given data to the given channel.
@@ -44,15 +122,31 @@ type Player struct {
 //
 // TODO: Pass sample rate and num of channels.
 func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
-	return newPlayer(src, c.sampleRate)
-}
+	c.Lock()
+	defer c.Unlock()
 
-var ErrTooManyPlayers = errors.New("audio: too many players exist")
+	p := &Player{
+		context: c,
+		src:     src,
+		buf:     []byte{},
+	}
+	return p, nil
+}
 
 func (p *Player) Play() error {
-	return p.player.play()
+	p.context.Lock()
+	defer p.context.Unlock()
+
+	p.context.players[p] = struct{}{}
+	return nil
 }
 
-func (p *Player) Close() error {
-	return p.player.close()
+// TODO: IsPlaying
+
+func (p *Player) Stop() error {
+	p.context.Lock()
+	defer p.context.Unlock()
+
+	delete(p.context.players, p)
+	return nil
 }

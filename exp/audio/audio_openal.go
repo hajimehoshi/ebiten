@@ -27,39 +27,23 @@ import (
 )
 
 const (
-	maxSourceNum = 32
 	maxBufferNum = 8
 )
 
 var totalBufferNum = 0
 
-var playerCache = []*player{}
-
 type player struct {
 	alSource   al.Source
 	alBuffers  []al.Buffer
-	source     io.ReadSeeker
+	source     io.Reader
 	sampleRate int
 	isClosed   bool
 }
 
 var m sync.Mutex
 
-func newPlayerFromCache(src io.ReadSeeker, sampleRate int) (*player, error) {
-	for _, p := range playerCache {
-		if p.sampleRate != sampleRate {
-			continue
-		}
-		if !p.isClosed {
-			continue
-		}
-		p.source = src
-		p.isClosed = false
-		return p, nil
-	}
-	if maxSourceNum <= len(playerCache) {
-		return nil, ErrTooManyPlayers
-	}
+// TODO: Unify this to newPlayer
+func newPlayerFromCache(src io.Reader, sampleRate int) (*player, error) {
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
@@ -71,11 +55,10 @@ func newPlayerFromCache(src io.ReadSeeker, sampleRate int) (*player, error) {
 		sampleRate: sampleRate,
 	}
 	runtime.SetFinalizer(p, (*player).close)
-	playerCache = append(playerCache, p)
 	return p, nil
 }
 
-func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
+func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -87,7 +70,7 @@ func newPlayer(src io.ReadSeeker, sampleRate int) (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Player{p}, nil
+	return p, nil
 }
 
 const bufferSize = 1024
@@ -147,7 +130,7 @@ func (p *player) play() error {
 	if 0 < n {
 		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
 		totalBufferNum += n
-		if maxSourceNum*maxBufferNum < totalBufferNum {
+		if maxBufferNum < totalBufferNum {
 			panic("audio: too many buffers are created")
 		}
 	}
