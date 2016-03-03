@@ -64,10 +64,15 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		resultLen = min(len(p.buf)/2*2, resultLen)
 	}
 	for i := 0; i < resultLen/2; i++ {
-		x := int16(0)
+		x := 0
 		for p := range s.context.players {
-			// TODO: Overflow check to avoid distortion
-			x += int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
+			x += int(int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8))
+		}
+		if x > (1<<15)-1 {
+			x = (1 << 15) - 1
+		}
+		if x < -(1 << 15) {
+			x = -(1 << 15)
 		}
 		b[2*i] = byte(x)
 		b[2*i+1] = byte(x >> 8)
