@@ -104,19 +104,57 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 
 // RotateHue rotates the hue.
 func (c *ColorM) RotateHue(theta float64) {
-	sin, cos := math.Sincos(theta)
-	v1 := cos + (1.0-cos)/3.0
-	v2 := (1.0/3.0)*(1.0-cos) - math.Sqrt(1.0/3.0)*sin
-	v3 := (1.0/3.0)*(1.0-cos) + math.Sqrt(1.0/3.0)*sin
+	c.ChangeHSV(theta, 1, 1)
+}
+
+var (
+	// The YCbCr value ranges are:
+	//   Y:  [ 0   - 1  ]
+	//   Cb: [-0.5 - 0.5]
+	//   Cr: [-0.5 - 0.5]
+
+	rgbToYCbCr = ColorM{
+		initialized: true,
+		es: [ColorMDim - 1][ColorMDim]float64{
+			{0.2990, 0.5870, 0.1140, 0, 0},
+			{-0.1687, -0.3313, 0.5000, 0, 0},
+			{0.5000, -0.4187, -0.0813, 0, 0},
+			{0, 0, 0, 1, 0},
+		},
+	}
+	yCbCrToRgb = ColorM{
+		initialized: true,
+		es: [ColorMDim - 1][ColorMDim]float64{
+			{1, 0, 1.40200, 0, 0},
+			{1, -0.34414, -0.71414, 0, 0},
+			{1, 1.77200, 0, 0, 0},
+			{0, 0, 0, 1, 0},
+		},
+	}
+)
+
+// ChangeHSV changes HSV (Hue-Saturation-Value) values.
+// hueTheta is a radian value to ratate hue.
+// saturationScale is a value to scale saturation.
+// valueScale is a value to scale value (a.k.a. brightness).
+//
+// This conversion uses RGB to/from YCrCb conversion.
+func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
+	sin, cos := math.Sincos(hueTheta)
+	c.Concat(rgbToYCbCr)
 	c.Concat(ColorM{
 		initialized: true,
 		es: [ColorMDim - 1][ColorMDim]float64{
-			{v1, v2, v3, 0, 0},
-			{v3, v1, v2, 0, 0},
-			{v2, v3, v1, 0, 0},
+			{1, 0, 0, 0, 0},
+			{0, cos, -sin, 0, 0},
+			{0, sin, cos, 0, 0},
 			{0, 0, 0, 1, 0},
 		},
 	})
+	s := saturationScale
+	v := valueScale
+	c.Scale(v, s*v, s*v, 1)
+	c.Concat(yCbCrToRgb)
 }
 
 // SetElement sets an element at (i, j).
@@ -127,20 +165,15 @@ func (c *ColorM) SetElement(i, j int, element float64) {
 	c.es[i][j] = element
 }
 
+var monochrome ColorM
+
+func init() {
+	monochrome.ChangeHSV(0, 0, 1)
+}
+
 // Monochrome returns a color matrix to make an image monochrome.
 func Monochrome() ColorM {
-	const r = 6968.0 / 32768.0
-	const g = 23434.0 / 32768.0
-	const b = 2366.0 / 32768.0
-	return ColorM{
-		initialized: true,
-		es: [ColorMDim - 1][ColorMDim]float64{
-			{r, g, b, 0, 0},
-			{r, g, b, 0, 0},
-			{r, g, b, 0, 0},
-			{0, 0, 0, 1, 0},
-		},
-	}
+	return monochrome
 }
 
 // Deprecated as of 1.2.0-alpha. Use Scale instead.
