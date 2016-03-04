@@ -46,7 +46,7 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(mx), float64(my))
-		op.ColorM.Scale(1.0, 0.25, 0.25, 1.0)
+		op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
 		theta := 2.0 * math.Pi * float64(count%60) / 60.0
 		op.ColorM.RotateHue(theta)
 		if err := canvasImage.DrawImage(brushImage, op); err != nil {
