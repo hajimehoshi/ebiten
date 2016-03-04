@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"sync"
 	"time"
 
 	"golang.org/x/mobile/exp/audio/al"
@@ -40,34 +39,35 @@ type player struct {
 	isClosed   bool
 }
 
-var m sync.Mutex
+var currentPlayer *player
 
-func newPlayer(src io.Reader, sampleRate int) (*player, error) {
-	m.Lock()
-	defer m.Unlock()
-
+func startPlaying(src io.Reader, sampleRate int) error {
+	if currentPlayer != nil {
+		panic("audio: currentPlayer already exists")
+	}
 	if e := al.OpenDevice(); e != nil {
-		m.Unlock()
-		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
+		return fmt.Errorf("audio: OpenAL initialization failed: %v", e)
 	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
 	}
-	p := &player{
+	currentPlayer = &player{
 		alSource:   s[0],
 		alBuffers:  []al.Buffer{},
 		source:     src,
 		sampleRate: sampleRate,
 	}
-	runtime.SetFinalizer(p, (*player).close)
-	return p, nil
+	runtime.SetFinalizer(currentPlayer, (*player).close)
+	if err := currentPlayer.start(); err != nil {
+		return err
+	}
+	return nil
 }
 
 const bufferSize = 1024
 
 func (p *player) proceed() error {
-	m.Lock()
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: before proceed: %d", err))
 	}
@@ -80,13 +80,11 @@ func (p *player) proceed() error {
 		}
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
-	m.Unlock()
 
 	for 0 < len(p.alBuffers) {
 		b := make([]byte, bufferSize)
 		n, err := p.source.Read(b)
 		if 0 < n {
-			m.Lock()
 			buf := p.alBuffers[0]
 			p.alBuffers = p.alBuffers[1:]
 			buf.BufferData(al.FormatStereo16, b[:n], int32(p.sampleRate))
@@ -94,14 +92,12 @@ func (p *player) proceed() error {
 			if err := al.Error(); err != 0 {
 				panic(fmt.Sprintf("audio: Queue in process: %d", err))
 			}
-			m.Unlock()
 		}
 		if err != nil {
 			return err
 		}
 	}
 
-	m.Lock()
 	if p.alSource.State() == al.Stopped {
 		al.RewindSources(p.alSource)
 		al.PlaySources(p.alSource)
@@ -109,14 +105,11 @@ func (p *player) proceed() error {
 			panic(fmt.Sprintf("audio: PlaySource in process: %d", err))
 		}
 	}
-	m.Unlock()
 
 	return nil
 }
 
-func (p *player) play() error {
-	// TODO: What if play is already called?
-	m.Lock()
+func (p *player) start() error {
 	n := maxBufferNum - int(p.alSource.BuffersQueued()) - len(p.alBuffers)
 	if 0 < n {
 		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
@@ -135,7 +128,6 @@ func (p *player) play() error {
 		p.alBuffers = []al.Buffer{}
 	}
 	al.PlaySources(p.alSource)
-	m.Unlock()
 
 	go func() {
 		// TODO: Is it OK to close asap?
@@ -155,10 +147,8 @@ func (p *player) play() error {
 	return nil
 }
 
+// TODO: When is this called? Can we remove this?
 func (p *player) close() error {
-	m.Lock()
-	defer m.Unlock()
-
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: error before closing: %d", err))
 	}

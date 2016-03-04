@@ -32,6 +32,8 @@ type player struct {
 	bufferSource *js.Object
 }
 
+var currentPlayer *player
+
 func initialize() bool {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
@@ -49,20 +51,26 @@ func initialize() bool {
 	return true
 }
 
-func newPlayer(src io.Reader, sampleRate int) (*player, error) {
+func startPlaying(src io.Reader, sampleRate int) error {
+	if currentPlayer != nil {
+		panic("audio: currentPlayer already exists")
+	}
 	if context == nil {
 		if !initialize() {
-			panic("audio couldn't be initialized")
+			panic("audio: audio couldn't be initialized")
 		}
 	}
 
-	p := &player{
+	currentPlayer = &player{
 		src:          src,
 		sampleRate:   sampleRate,
 		position:     context.Get("currentTime").Float(),
 		bufferSource: nil,
 	}
-	return p, nil
+	if err := currentPlayer.start(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func toLR(data []byte) ([]int16, []int16) {
@@ -99,7 +107,7 @@ func (p *player) proceed() error {
 	return err
 }
 
-func (p *player) play() error {
+func (p *player) start() error {
 	// TODO: What if play is already called?
 	go func() {
 		defer p.close()
