@@ -42,8 +42,14 @@ type player struct {
 
 var m sync.Mutex
 
-// TODO: Unify this to newPlayer
-func newPlayerFromCache(src io.Reader, sampleRate int) (*player, error) {
+func newPlayer(src io.Reader, sampleRate int) (*player, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	if e := al.OpenDevice(); e != nil {
+		m.Unlock()
+		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
+	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
@@ -55,21 +61,6 @@ func newPlayerFromCache(src io.Reader, sampleRate int) (*player, error) {
 		sampleRate: sampleRate,
 	}
 	runtime.SetFinalizer(p, (*player).close)
-	return p, nil
-}
-
-func newPlayer(src io.Reader, sampleRate int) (*player, error) {
-	m.Lock()
-	defer m.Unlock()
-
-	if e := al.OpenDevice(); e != nil {
-		m.Unlock()
-		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
-	}
-	p, err := newPlayerFromCache(src, sampleRate)
-	if err != nil {
-		return nil, err
-	}
 	return p, nil
 }
 
