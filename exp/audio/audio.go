@@ -147,8 +147,10 @@ func (p *Player) Play() error {
 }
 
 // TODO: IsPlaying
+// TODO: Stop
+// TODO: Seek
 
-func (p *Player) Stop() error {
+func (p *Player) Pause() error {
 	p.context.Lock()
 	defer p.context.Unlock()
 
