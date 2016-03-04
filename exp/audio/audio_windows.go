@@ -14,6 +14,10 @@
 
 package audio
 
+import (
+	"io"
+)
+
 func startPlaying(src io.Reader, sampleRate int) error {
 	return nil
 }
