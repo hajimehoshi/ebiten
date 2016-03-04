@@ -34,32 +34,23 @@ type player struct {
 
 var currentPlayer *player
 
-func initialize() bool {
+func startPlaying(src io.Reader, sampleRate int) error {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		return false
+		return nil
 	}
 
+	if currentPlayer != nil || context != nil {
+		panic("audio: currentPlayer already exists")
+	}
 	class := js.Global.Get("AudioContext")
 	if class == js.Undefined {
 		class = js.Global.Get("webkitAudioContext")
 	}
 	if class == js.Undefined {
-		return false
+		panic("audio: audio couldn't be initialized")
 	}
 	context = class.New()
-	return true
-}
-
-func startPlaying(src io.Reader, sampleRate int) error {
-	if currentPlayer != nil {
-		panic("audio: currentPlayer already exists")
-	}
-	if context == nil {
-		if !initialize() {
-			panic("audio: audio couldn't be initialized")
-		}
-	}
 
 	currentPlayer = &player{
 		src:          src,
