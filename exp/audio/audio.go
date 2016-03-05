@@ -43,11 +43,13 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
+	l := len(b) / 4 * 4
 	if len(s.context.players) == 0 {
-		return 0, nil
+		ll := min(4096, len(b))
+		copy(b, make([]byte, ll))
+		return ll, nil
 	}
 	closed := []*Player{}
-	l := len(b) / 4 * 4
 	bb := make([]byte, l)
 	ll := l
 	for p := range s.context.players {
@@ -57,9 +59,7 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		}
 		if err == io.EOF {
 			closed = append(closed, p)
-			continue
-		}
-		if err != nil {
+		} else if err != nil {
 			return 0, err
 		}
 		ll = min(len(p.buf)/4*4, ll)
