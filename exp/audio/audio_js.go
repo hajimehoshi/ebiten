@@ -23,12 +23,11 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-var context *js.Object
-
 type player struct {
 	src          io.Reader
 	sampleRate   int
 	position     float64
+	context      *js.Object
 	bufferSource *js.Object
 }
 
@@ -40,7 +39,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		return nil
 	}
 
-	if currentPlayer != nil || context != nil {
+	if currentPlayer != nil {
 		panic("audio: currentPlayer already exists")
 	}
 	class := js.Global.Get("AudioContext")
@@ -50,14 +49,13 @@ func startPlaying(src io.Reader, sampleRate int) error {
 	if class == js.Undefined {
 		panic("audio: audio couldn't be initialized")
 	}
-	context = class.New()
-
 	currentPlayer = &player{
 		src:          src,
 		sampleRate:   sampleRate,
-		position:     context.Get("currentTime").Float(),
 		bufferSource: nil,
+		context:      class.New(),
 	}
+	currentPlayer.position = currentPlayer.context.Get("currentTime").Float()
 	if err := currentPlayer.start(); err != nil {
 		return err
 	}
@@ -80,7 +78,7 @@ func (p *player) proceed() error {
 	if 0 < n {
 		const channelNum = 2
 		const bytesPerSample = channelNum * 16 / 8
-		b := context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
+		b := p.context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
 		l := b.Call("getChannelData", 0)
 		r := b.Call("getChannelData", 1)
 		il, ir := toLR(buf[:n])
@@ -89,9 +87,9 @@ func (p *player) proceed() error {
 			l.SetIndex(i, float64(il[i])/max)
 			r.SetIndex(i, float64(ir[i])/max)
 		}
-		p.bufferSource = context.Call("createBufferSource")
+		p.bufferSource = p.context.Call("createBufferSource")
 		p.bufferSource.Set("buffer", b)
-		p.bufferSource.Call("connect", context.Get("destination"))
+		p.bufferSource.Call("connect", p.context.Get("destination"))
 		p.bufferSource.Call("start", p.position)
 		p.position += b.Get("duration").Float()
 	}
