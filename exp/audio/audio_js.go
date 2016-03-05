@@ -72,26 +72,41 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
+func maxF(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (p *player) proceed() error {
-	buf := make([]byte, 4096)
-	n, err := p.src.Read(buf)
+	const bufferSize = 4096
+	c := p.context.Get("currentTime").Float()
+	if c < p.position-bufferSize*0.5/float64(p.sampleRate) {
+		return nil
+	}
+	b := make([]byte, bufferSize)
+	n, err := p.src.Read(b)
 	if 0 < n {
 		const channelNum = 2
 		const bytesPerSample = channelNum * 16 / 8
-		b := p.context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
-		l := b.Call("getChannelData", 0)
-		r := b.Call("getChannelData", 1)
-		il, ir := toLR(buf[:n])
+		buf := p.context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
+		l := buf.Call("getChannelData", 0)
+		r := buf.Call("getChannelData", 1)
+		il, ir := toLR(b[:n])
 		const max = 1 << 15
 		for i := 0; i < len(il); i++ {
 			l.SetIndex(i, float64(il[i])/max)
 			r.SetIndex(i, float64(ir[i])/max)
 		}
 		p.bufferSource = p.context.Call("createBufferSource")
-		p.bufferSource.Set("buffer", b)
+		p.bufferSource.Set("buffer", buf)
 		p.bufferSource.Call("connect", p.context.Get("destination"))
-		p.bufferSource.Call("start", p.position)
-		p.position += b.Get("duration").Float()
+		p.bufferSource.Call("start", maxF(p.position, c))
+		p.position += buf.Get("duration").Float()
+		if p.position < c {
+			p.position = c
+		}
 	}
 	return err
 }
