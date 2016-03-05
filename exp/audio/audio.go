@@ -32,38 +32,45 @@ func min(a, b int) int {
 	return b
 }
 
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
-	l := len(b)
+	l := len(b) / 4 * 4
 	if len(s.context.players) == 0 {
 		copy(b, make([]byte, l))
 		return l, nil
 	}
 	closed := []*Player{}
+	bb := make([]byte, max(1024, l))
+	ll := l
 	for p := range s.context.players {
-		ll := l - len(p.buf)
-		if ll <= 0 {
-			continue
-		}
-		b := make([]byte, ll)
-		n, err := p.src.Read(b)
+		n, err := p.src.Read(bb)
 		if 0 < n {
-			p.buf = append(p.buf, b[:n]...)
+			p.buf = append(p.buf, bb[:n]...)
 		}
 		if err == io.EOF {
-			if len(p.buf) < l {
-				p.buf = append(p.buf, make([]byte, l-len(p.buf))...)
-			}
 			closed = append(closed, p)
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+		ll = min(len(p.buf)/4*4, ll)
+	}
+	for _, p := range closed {
+		if len(p.buf) < ll {
+			p.buf = append(p.buf, make([]byte, ll-len(p.buf))...)
 		}
 	}
-	resultLen := l
-	for p := range s.context.players {
-		resultLen = min(len(p.buf)/2*2, resultLen)
-	}
-	for i := 0; i < resultLen/2; i++ {
+	for i := 0; i < ll/2; i++ {
 		x := 0
 		for p := range s.context.players {
 			x += int(int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8))
@@ -78,12 +85,12 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		b[2*i+1] = byte(x >> 8)
 	}
 	for p := range s.context.players {
-		p.buf = p.buf[resultLen:]
+		p.buf = p.buf[ll:]
 	}
 	for _, p := range closed {
 		delete(s.context.players, p)
 	}
-	return resultLen, nil
+	return ll, nil
 }
 
 // TODO: Enable to specify the format like Mono8?
