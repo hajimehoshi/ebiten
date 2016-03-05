@@ -85,6 +85,9 @@ func (p *player) proceed() error {
 	if c < p.position-bufferSize*0.5/float64(p.sampleRate) {
 		return nil
 	}
+	if p.position < c {
+		p.position = c
+	}
 	b := make([]byte, bufferSize)
 	n, err := p.src.Read(b)
 	if 0 < n {
@@ -104,9 +107,6 @@ func (p *player) proceed() error {
 		p.bufferSource.Call("connect", p.context.Get("destination"))
 		p.bufferSource.Call("start", maxF(p.position, c))
 		p.position += buf.Get("duration").Float()
-		if p.position < c {
-			p.position = c
-		}
 	}
 	return err
 }
