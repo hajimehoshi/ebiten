@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 )
 
 // TODO: In JavaScript, mixing should be done by WebAudio for performance.
@@ -80,6 +81,7 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	}
 	for p := range s.context.players {
 		p.buf = p.buf[ll:]
+		p.pos += int64(ll)
 	}
 	for _, p := range closed {
 		delete(s.context.players, p)
@@ -113,6 +115,7 @@ type Player struct {
 	context *Context
 	src     io.ReadSeeker
 	buf     []byte
+	pos     int64
 }
 
 // NewPlayer creates a new player with the given data to the given channel.
@@ -121,17 +124,20 @@ type Player struct {
 //
 // src's format must be linear PCM (16bits, 2 channel stereo, little endian)
 // without a header (e.g. RIFF header).
-//
-// TODO: Pass sample rate and num of channels.
 func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
 	c.Lock()
 	defer c.Unlock()
-
 	p := &Player{
 		context: c,
 		src:     src,
 		buf:     []byte{},
 	}
+	// Get the current position of the source.
+	pos, err := p.src.Seek(0, 1)
+	if err != nil {
+		return nil, err
+	}
+	p.pos = pos
 	return p, nil
 }
 
@@ -143,9 +149,25 @@ func (p *Player) Play() error {
 	return nil
 }
 
-// TODO: IsPlaying
-// TODO: Stop
-// TODO: Seek
+func (p *Player) IsPlaying() bool {
+	_, ok := p.context.players[p]
+	return ok
+}
+
+func (p *Player) Rewind() error {
+	return p.Seek(0)
+}
+
+func (p *Player) Seek(offset time.Duration) error {
+	p.buf = []byte{}
+	o := int64(offset) * int64(p.context.sampleRate) / int64(time.Second)
+	pos, err := p.src.Seek(o, 0)
+	if err != nil {
+		return err
+	}
+	p.pos = pos
+	return nil
+}
 
 func (p *Player) Pause() error {
 	p.context.Lock()
@@ -154,3 +176,10 @@ func (p *Player) Pause() error {
 	delete(p.context.players, p)
 	return nil
 }
+
+func (p *Player) Current() time.Duration {
+	return time.Duration(p.pos) * time.Second / time.Duration(p.context.sampleRate)
+}
+
+// TODO: Volume / SetVolume?
+// TODO: Panning
