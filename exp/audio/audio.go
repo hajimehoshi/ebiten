@@ -51,24 +51,24 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		return ll, nil
 	}
 	closed := []*Player{}
-	bb := make([]byte, l)
 	ll := l
 	for p := range s.context.players {
-		n, err := p.src.Read(bb)
-		if 0 < n {
-			p.buf = append(p.buf, bb[:n]...)
-		}
+		_, err := p.readToBuffer(l)
 		if err == io.EOF {
 			closed = append(closed, p)
 		} else if err != nil {
 			return 0, err
 		}
-		ll = min(len(p.buf)/4*4, ll)
+		ll = min(p.bufferLength()/4*4, ll)
+	}
+	b16s := [][]int16{}
+	for p := range s.context.players {
+		b16s = append(b16s, p.bufferToInt16(ll))
 	}
 	for i := 0; i < ll/2; i++ {
 		x := 0
-		for p := range s.context.players {
-			x += int(int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8))
+		for _, b16 := range b16s {
+			x += int(b16[i])
 		}
 		if x > (1<<15)-1 {
 			x = (1 << 15) - 1
@@ -80,8 +80,7 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		b[2*i+1] = byte(x >> 8)
 	}
 	for p := range s.context.players {
-		p.buf = p.buf[ll:]
-		p.pos += int64(ll)
+		p.proceed(ll)
 	}
 	for _, p := range closed {
 		delete(s.context.players, p)
@@ -139,6 +138,32 @@ func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
 	}
 	p.pos = pos
 	return p, nil
+}
+
+func (p *Player) readToBuffer(length int) (int, error) {
+	bb := make([]byte, length)
+	n, err := p.src.Read(bb)
+	if 0 < n {
+		p.buf = append(p.buf, bb[:n]...)
+	}
+	return n, err
+}
+
+func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
+	r := make([]int16, lengthInBytes/2)
+	for i := 0; i < lengthInBytes/2; i++ {
+		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
+	}
+	return r
+}
+
+func (p *Player) proceed(length int) {
+	p.buf = p.buf[length:]
+	p.pos += int64(length)
+}
+
+func (p *Player) bufferLength() int {
+	return len(p.buf)
 }
 
 func (p *Player) Play() error {
