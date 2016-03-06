@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
-
 package ebitenutil
 
 import (
-	"github.com/hajimehoshi/ebiten"
 	"image"
-	"os"
+
+	"github.com/hajimehoshi/ebiten"
 )
 
 // NewImageFromFile loads the file path and returns ebiten.Image and image.Image.
@@ -27,7 +25,7 @@ import (
 // The current directory for path depends on your environment. This will vary on your desktop or web browser.
 // It'll be safer to embed your resource, e.g., with github.com/jteeuwen/go-bindata instead of using this function.
 func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
-	file, err := os.Open(path)
+	file, err := OpenFile(path)
 	if err != nil {
 		return nil, nil, err
 	}

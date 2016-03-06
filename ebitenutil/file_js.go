@@ -20,12 +20,20 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/hajimehoshi/ebiten"
-	"image"
 )
 
-func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
+type file struct {
+	*bytes.Reader
+}
+
+func (f *file) Close() error {
+	return nil
+}
+
+func OpenFile(path string) (io.ReadCloser, error) {
 	var err error
 	var content *js.Object
 	ch := make(chan struct{})
@@ -48,18 +56,10 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	req.Call("send")
 	<-ch
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	data := js.Global.Get("Uint8Array").New(content).Interface().([]uint8)
-	b := bytes.NewBuffer(data)
-	img, _, err := image.Decode(b)
-	if err != nil {
-		return nil, nil, err
-	}
-	img2, err := ebiten.NewImageFromImage(img, filter)
-	if err != nil {
-		return nil, nil, err
-	}
-	return img2, img, nil
+	f := &file{bytes.NewReader(data)}
+	return f, nil
 }
