@@ -64,11 +64,6 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		}
 		ll = min(len(p.buf)/4*4, ll)
 	}
-	for _, p := range closed {
-		if len(p.buf) < ll {
-			p.buf = append(p.buf, make([]byte, ll-len(p.buf))...)
-		}
-	}
 	for i := 0; i < ll/2; i++ {
 		x := 0
 		for p := range s.context.players {
