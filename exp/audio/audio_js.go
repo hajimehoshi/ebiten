@@ -31,17 +31,12 @@ type player struct {
 	bufferSource *js.Object
 }
 
-var currentPlayer *player
-
-func startPlaying(src io.Reader, sampleRate int) error {
+func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		return nil
+		return nil, nil
 	}
 
-	if currentPlayer != nil {
-		panic("audio: currentPlayer already exists")
-	}
 	class := js.Global.Get("AudioContext")
 	if class == js.Undefined {
 		class = js.Global.Get("webkitAudioContext")
@@ -49,17 +44,17 @@ func startPlaying(src io.Reader, sampleRate int) error {
 	if class == js.Undefined {
 		panic("audio: audio couldn't be initialized")
 	}
-	currentPlayer = &player{
+	p := &player{
 		src:          src,
 		sampleRate:   sampleRate,
 		bufferSource: nil,
 		context:      class.New(),
 	}
-	currentPlayer.position = currentPlayer.context.Get("currentTime").Float()
-	if err := currentPlayer.start(); err != nil {
-		return err
+	p.position = p.context.Get("currentTime").Float()
+	if err := p.start(); err != nil {
+		return nil, err
 	}
-	return nil
+	return p, nil
 }
 
 func toLR(data []byte) ([]int16, []int16) {

@@ -39,30 +39,25 @@ type player struct {
 	isClosed   bool
 }
 
-var currentPlayer *player
-
-func startPlaying(src io.Reader, sampleRate int) error {
-	if currentPlayer != nil {
-		panic("audio: currentPlayer already exists")
-	}
+func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 	if e := al.OpenDevice(); e != nil {
-		return fmt.Errorf("audio: OpenAL initialization failed: %v", e)
+		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
 	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
 		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
 	}
-	currentPlayer = &player{
+	p := &player{
 		alSource:   s[0],
 		alBuffers:  []al.Buffer{},
 		source:     src,
 		sampleRate: sampleRate,
 	}
-	runtime.SetFinalizer(currentPlayer, (*player).close)
-	if err := currentPlayer.start(); err != nil {
-		return err
+	runtime.SetFinalizer(p, (*player).close)
+	if err := p.start(); err != nil {
+		return nil, err
 	}
-	return nil
+	return p, nil
 }
 
 const bufferSize = 1024
