@@ -85,7 +85,6 @@ func (p *player) proceed() error {
 	}
 	b := make([]byte, bufferSize)
 	for 0 < len(b) {
-		print(len(b))
 		n, err := p.src.Read(b)
 		if 0 < n {
 			const channelNum = 2
