@@ -28,10 +28,25 @@ const (
 	screenHeight = 240
 )
 
-var audioContext *audio.Context
+var (
+	audioContext     *audio.Context
+	audioLoadingDone chan struct{}
+	audioLoaded      bool
+)
 
 func update(screen *ebiten.Image) error {
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+	if !audioLoaded {
+		select {
+		case <-audioLoadingDone:
+			audioLoaded = true
+		default:
+		}
+	}
+	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
+	if !audioLoaded {
+		msg += "\nNow Loading..."
+	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
@@ -43,15 +58,22 @@ func main() {
 	}
 	// TODO: sampleRate should be obtained from the ogg file.
 	audioContext = audio.NewContext(22050)
-	s, err := audioContext.NewVorbisStream(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	p, err := audioContext.NewPlayer(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	p.Play()
+	audioLoadingDone = make(chan struct{})
+	// TODO: This doesn't work synchronously on browsers because of decoding. Fix this.
+	go func() {
+		s, err := audioContext.NewVorbisStream(f)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		p, err := audioContext.NewPlayer(s)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		close(audioLoadingDone)
+		p.Play()
+	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "PCM (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
