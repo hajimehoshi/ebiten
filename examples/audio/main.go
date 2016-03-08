@@ -43,7 +43,7 @@ func main() {
 	}
 	// TODO: sampleRate should be obtained from the ogg file.
 	audioContext = audio.NewContext(22050)
-	s, err := audioContext.NewOggStream(f)
+	s, err := audioContext.NewVorbisStream(f)
 	if err != nil {
 		log.Fatal(err)
 	}

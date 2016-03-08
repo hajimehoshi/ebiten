@@ -26,11 +26,11 @@ import (
 	"github.com/hajimehoshi/go-vorbis"
 )
 
-type OggStream struct {
+type VorbisStream struct {
 	buf *bytes.Reader
 }
 
-func (c *Context) NewOggStream(src io.Reader) (*OggStream, error) {
+func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {
 		return nil, err
@@ -47,16 +47,16 @@ func (c *Context) NewOggStream(src io.Reader) (*OggStream, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &OggStream{
+	s := &VorbisStream{
 		buf: bytes.NewReader(b),
 	}
 	return s, nil
 }
 
-func (s *OggStream) Read(p []byte) (int, error) {
+func (s *VorbisStream) Read(p []byte) (int, error) {
 	return s.buf.Read(p)
 }
 
-func (s *OggStream) Seek(offset int64, whence int) (int64, error) {
+func (s *VorbisStream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }
