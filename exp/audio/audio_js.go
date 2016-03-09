@@ -18,7 +18,7 @@ package audio
 
 import (
 	"io"
-	"time"
+	"runtime"
 
 	"github.com/gopherjs/gopherjs/js"
 )
@@ -108,6 +108,7 @@ func (p *player) proceed() error {
 		if err != nil {
 			return err
 		}
+		runtime.Gosched()
 	}
 	return nil
 }
@@ -125,7 +126,7 @@ func (p *player) start() error {
 				// TODO: Record the last error
 				panic(err)
 			}
-			time.Sleep(1)
+			runtime.Gosched()
 		}
 	}()
 	return nil

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"time"
 
 	"golang.org/x/mobile/exp/audio/al"
 )
@@ -136,7 +135,7 @@ func (p *player) start() error {
 				// TODO: Record the last error
 				panic(err)
 			}
-			time.Sleep(1)
+			runtime.Gosched()
 		}
 	}()
 	return nil

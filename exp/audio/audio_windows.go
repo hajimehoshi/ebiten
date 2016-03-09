@@ -27,6 +27,7 @@ import "C"
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"time"
 	"unsafe"
 )
@@ -43,7 +44,7 @@ func newHeader(waveOut C.HWAVEOUT, bufferSize int) header {
 	h := header{
 		buffer:     buf,
 		bufferSize: bufferSize,
-		waveHdr:    C.WAVEHDR{
+		waveHdr: C.WAVEHDR{
 			lpData:         C.LPSTR(buf),
 			dwBufferLength: C.DWORD(bufferSize),
 		},
@@ -66,6 +67,7 @@ func (h *header) Write(waveOut C.HWAVEOUT, data []byte) {
 }
 
 const numHeader = 8
+
 var sem = make(chan struct{}, numHeader)
 
 //export releaseSemaphore
@@ -117,7 +119,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 				// TODO: Propagate this error?
 				panic(err)
 			}
-			time.Sleep(1)
+			runtime.Gosched()
 		}
 		// TODO: Finalize the wave handler
 	}()
