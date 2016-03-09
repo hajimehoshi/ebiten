@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"time"
 	"unsafe"
 )
 
@@ -75,7 +74,10 @@ func releaseSemaphore() {
 	<-sem
 }
 
-func startPlaying(src io.Reader, sampleRate int) error {
+type player struct {
+}
+
+func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 	const numChannels = 2
 	const bitsPerSample = 16
 	const numBlockAlign = numChannels * bitsPerSample / 8
@@ -123,5 +125,5 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		}
 		// TODO: Finalize the wave handler
 	}()
-	return nil
+	return &player{}, nil
 }
