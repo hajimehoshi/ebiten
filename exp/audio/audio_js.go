@@ -79,11 +79,6 @@ func (p *player) proceed() error {
 	const bytesPerSample = channelNum * 16 / 8
 	bufferSize := p.sampleRate * bytesPerSample / 60
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
-	// Buffer size is relatively big and it is needed to check that c.positionInSample doesn't
-	// proceed too far away (#180).
-	if c+int64(bufferSize) < p.positionInSamples {
-		return nil
-	}
 	if p.positionInSamples < c {
 		p.positionInSamples = c
 	}

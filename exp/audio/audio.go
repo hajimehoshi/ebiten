@@ -23,7 +23,8 @@ import (
 
 // TODO: In JavaScript, mixing should be done by WebAudio for performance.
 type mixedPlayersStream struct {
-	context *Context
+	context      *Context
+	writtenBytes int
 }
 
 func min(a, b int) int {
@@ -37,9 +38,19 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
+	// TODO: 60 (FPS) is a magic number
+	bytesPerFrame := s.context.sampleRate * 4 / 60
+	x := s.context.frames*bytesPerFrame + len(b)
+	if x <= s.writtenBytes {
+		return 0, nil
+	}
+
 	l := len(b) / 4 * 4
 	if len(s.context.players) == 0 {
-		return 0, nil
+		l := min(len(b), x-s.writtenBytes)
+		copy(b, make([]byte, l))
+		s.writtenBytes += l
+		return l, nil
 	}
 	closed := []*Player{}
 	ll := l
@@ -76,6 +87,7 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	for _, p := range closed {
 		delete(s.context.players, p)
 	}
+	s.writtenBytes += ll
 	return ll, nil
 }
 
@@ -86,6 +98,7 @@ type Context struct {
 	stream      *mixedPlayersStream
 	players     map[*Player]struct{}
 	innerPlayer *player
+	frames      int
 	sync.Mutex
 }
 
@@ -95,13 +108,27 @@ func NewContext(sampleRate int) *Context {
 		sampleRate: sampleRate,
 		players:    map[*Player]struct{}{},
 	}
-	c.stream = &mixedPlayersStream{c}
+	c.stream = &mixedPlayersStream{
+		context: c,
+	}
 	p, err := startPlaying(c.stream, c.sampleRate)
 	if err != nil {
 		panic(fmt.Sprintf("audio: NewContext error: %v", err))
 	}
 	c.innerPlayer = p
 	return c
+}
+
+// Update proceeds the inner (logical) time of the context by 1/60 second.
+// This is expected to be called in the game's updating function (sync mode)
+// or an independent goroutine with timers (unsync mode).
+// In sync mode, the game logical time syncs the audio logical time and
+// you will find audio stops when the game stops e.g. when the window is deactivated.
+// In unsync mode, the audio never stops even when the game stops.
+func (c *Context) Update() {
+	c.Lock()
+	defer c.Unlock()
+	c.frames++
 }
 
 type Player struct {

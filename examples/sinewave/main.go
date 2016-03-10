@@ -79,6 +79,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 var player *audio.Player
 
 func update(screen *ebiten.Image) error {
+	audioContext.Update()
 	if player == nil {
 		var err error
 		player, err = audioContext.NewPlayer(&stream{})

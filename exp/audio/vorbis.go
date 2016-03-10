@@ -30,6 +30,8 @@ type VorbisStream struct {
 	buf *bytes.Reader
 }
 
+// TODO: Rename to DecodeVorbis or Decode?
+
 func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {

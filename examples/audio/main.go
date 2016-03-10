@@ -35,6 +35,7 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
+	audioContext.Update()
 	if !audioLoaded {
 		select {
 		case <-audioLoadingDone:
