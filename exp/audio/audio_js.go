@@ -81,33 +81,26 @@ func (p *player) proceed() error {
 		p.positionInSamples = c
 	}
 	b := make([]byte, bufferSize)
-	for 0 < len(b) {
-		n, err := p.src.Read(b)
-		if 0 < n {
-			const channelNum = 2
-			const bytesPerSample = channelNum * 16 / 8
-			buf := p.context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
-			l := buf.Call("getChannelData", 0)
-			r := buf.Call("getChannelData", 1)
-			il, ir := toLR(b[:n])
-			const max = 1 << 15
-			for i := 0; i < len(il); i++ {
-				l.SetIndex(i, float64(il[i])/max)
-				r.SetIndex(i, float64(ir[i])/max)
-			}
-			p.bufferSource = p.context.Call("createBufferSource")
-			p.bufferSource.Set("buffer", buf)
-			p.bufferSource.Call("connect", p.context.Get("destination"))
-			p.bufferSource.Call("start", float64(max64(p.positionInSamples, c))/float64(p.sampleRate))
-			p.positionInSamples += int64(len(il))
-			b = b[n:]
+	n, err := p.src.Read(b)
+	if 0 < n {
+		const channelNum = 2
+		const bytesPerSample = channelNum * 16 / 8
+		buf := p.context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
+		l := buf.Call("getChannelData", 0)
+		r := buf.Call("getChannelData", 1)
+		il, ir := toLR(b[:n])
+		const max = 1 << 15
+		for i := 0; i < len(il); i++ {
+			l.SetIndex(i, float64(il[i])/max)
+			r.SetIndex(i, float64(ir[i])/max)
 		}
-		if err != nil {
-			return err
-		}
-		runtime.Gosched()
+		p.bufferSource = p.context.Call("createBufferSource")
+		p.bufferSource.Set("buffer", buf)
+		p.bufferSource.Call("connect", p.context.Get("destination"))
+		p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
+		p.positionInSamples += int64(len(il))
 	}
-	return nil
+	return err
 }
 
 func (p *player) start() error {
