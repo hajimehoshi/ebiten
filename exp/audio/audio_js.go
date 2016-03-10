@@ -75,7 +75,7 @@ func max64(a, b int64) int64 {
 }
 
 func (p *player) proceed() error {
-	const bufferSize = 4096
+	const bufferSize = 2048
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if p.positionInSamples < c {
 		p.positionInSamples = c
@@ -98,6 +98,8 @@ func (p *player) proceed() error {
 		p.bufferSource.Set("buffer", buf)
 		p.bufferSource.Call("connect", p.context.Get("destination"))
 		p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
+		// Call 'stop' or we'll get noisy sound especially on Chrome.
+		p.bufferSource.Call("stop", float64(p.positionInSamples+int64(len(il)))/float64(p.sampleRate))
 		p.positionInSamples += int64(len(il))
 	}
 	return err
