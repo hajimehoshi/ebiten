@@ -33,22 +33,13 @@ func min(a, b int) int {
 	return b
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
 	l := len(b) / 4 * 4
 	if len(s.context.players) == 0 {
-		ll := min(4096, len(b))
-		copy(b, make([]byte, ll))
-		return ll, nil
+		return 0, nil
 	}
 	closed := []*Player{}
 	ll := l
