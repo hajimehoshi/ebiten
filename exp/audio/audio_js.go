@@ -24,11 +24,11 @@ import (
 )
 
 type player struct {
-	src          io.Reader
-	sampleRate   int
-	position     float64
-	context      *js.Object
-	bufferSource *js.Object
+	src               io.Reader
+	sampleRate        int
+	positionInSamples int64
+	context           *js.Object
+	bufferSource      *js.Object
 }
 
 func startPlaying(src io.Reader, sampleRate int) (*player, error) {
@@ -50,7 +50,7 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 		bufferSource: nil,
 		context:      class.New(),
 	}
-	p.position = p.context.Get("currentTime").Float()
+	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if err := p.start(); err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func maxF(a, b float64) float64 {
+func max64(a, b int64) int64 {
 	if a > b {
 		return a
 	}
@@ -76,12 +76,9 @@ func maxF(a, b float64) float64 {
 
 func (p *player) proceed() error {
 	const bufferSize = 4096
-	c := p.context.Get("currentTime").Float()
-	if c < p.position-bufferSize*0.5/float64(p.sampleRate) {
-		return nil
-	}
-	if p.position < c {
-		p.position = c
+	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
+	if p.positionInSamples < c {
+		p.positionInSamples = c
 	}
 	b := make([]byte, bufferSize)
 	for 0 < len(b) {
@@ -101,8 +98,8 @@ func (p *player) proceed() error {
 			p.bufferSource = p.context.Call("createBufferSource")
 			p.bufferSource.Set("buffer", buf)
 			p.bufferSource.Call("connect", p.context.Get("destination"))
-			p.bufferSource.Call("start", maxF(p.position, c))
-			p.position += buf.Get("duration").Float()
+			p.bufferSource.Call("start", float64(max64(p.positionInSamples, c))/float64(p.sampleRate))
+			p.positionInSamples += int64(len(il))
 			b = b[n:]
 		}
 		if err != nil {
