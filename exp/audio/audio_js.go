@@ -77,6 +77,11 @@ func max64(a, b int64) int64 {
 func (p *player) proceed() error {
 	const bufferSize = 2048
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
+	// Buffer size is relatively big and it is needed to check that c.positionInSample doesn't
+	// proceed too far away (#180).
+	if c+bufferSize < p.positionInSamples {
+		return nil
+	}
 	if p.positionInSamples < c {
 		p.positionInSamples = c
 	}
