@@ -27,11 +27,11 @@ import (
 	"github.com/hajimehoshi/go-vorbis"
 )
 
-type Stream struct {
+type stream struct {
 	buf *bytes.Reader
 }
 
-func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
+func Decode(context *audio.Context, src io.Reader) (io.ReadSeeker, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {
 		return nil, err
@@ -48,16 +48,16 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Stream{
+	s := &stream{
 		buf: bytes.NewReader(b),
 	}
 	return s, nil
 }
 
-func (s *Stream) Read(p []byte) (int, error) {
+func (s *stream) Read(p []byte) (int, error) {
 	return s.buf.Read(p)
 }
 
-func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }
