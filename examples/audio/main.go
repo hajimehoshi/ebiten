@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/exp/audio"
+	"github.com/hajimehoshi/ebiten/exp/audio/vorbis"
 )
 
 const (
@@ -62,7 +63,7 @@ func main() {
 	audioLoadingDone = make(chan struct{})
 	// TODO: This doesn't work synchronously on browsers because of decoding. Fix this.
 	go func() {
-		s, err := audioContext.NewVorbisStream(f)
+		s, err := vorbis.Decode(audioContext, f)
 		if err != nil {
 			log.Fatal(err)
 			return

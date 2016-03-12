@@ -14,7 +14,7 @@
 
 // +build js
 
-package audio
+package vorbis
 
 import (
 	"bytes"
@@ -22,25 +22,26 @@ import (
 	"io/ioutil"
 
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/ebiten/exp/audio"
 )
 
-type VorbisStream struct {
+type Stream struct {
 	buf *bytes.Reader
 }
 
 // TODO: This just uses decodeAudioData can treat audio files other than Ogg/Vorbis.
 // TODO: This doesn't work on iOS which doesn't have Ogg/Vorbis decoder.
 
-func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
+func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err
 	}
-	s := &VorbisStream{}
+	s := &Stream{}
 	ch := make(chan struct{})
 
 	// TODO: 1 is a correct second argument?
-	oc := js.Global.Get("OfflineAudioContext").New(2, 1, c.sampleRate)
+	oc := js.Global.Get("OfflineAudioContext").New(2, 1, context.SampleRate())
 	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
 		defer close(ch)
 		il := buf.Call("getChannelData", 0).Interface().([]float32)
@@ -60,10 +61,10 @@ func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
 	return s, nil
 }
 
-func (s *VorbisStream) Read(p []byte) (int, error) {
+func (s *Stream) Read(p []byte) (int, error) {
 	return s.buf.Read(p)
 }
 
-func (s *VorbisStream) Seek(offset int64, whence int) (int64, error) {
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }

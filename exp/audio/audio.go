@@ -131,6 +131,13 @@ func (c *Context) Update() {
 	c.frames++
 }
 
+// SampleRate returns the sample rate.
+func (c *Context) SampleRate() int {
+	c.Lock()
+	defer c.Unlock()
+	return c.sampleRate
+}
+
 type Player struct {
 	context *Context
 	src     io.ReadSeeker

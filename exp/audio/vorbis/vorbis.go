@@ -14,7 +14,7 @@
 
 // +build !js
 
-package audio
+package vorbis
 
 import (
 	"bytes"
@@ -23,16 +23,15 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/hajimehoshi/ebiten/exp/audio"
 	"github.com/hajimehoshi/go-vorbis"
 )
 
-type VorbisStream struct {
+type Stream struct {
 	buf *bytes.Reader
 }
 
-// TODO: Rename to DecodeVorbis or Decode?
-
-func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
+func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {
 		return nil, err
@@ -40,8 +39,8 @@ func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
 	if channels != 2 {
 		return nil, errors.New("audio: number of channels must be 2")
 	}
-	if sampleRate != c.sampleRate {
-		return nil, fmt.Errorf("audio: sample rate must be %d but %d", c.sampleRate, sampleRate)
+	if sampleRate != context.SampleRate() {
+		return nil, fmt.Errorf("audio: sample rate must be %d but %d", context.SampleRate(), sampleRate)
 	}
 	// TODO: Read all data once so that Seek can be implemented easily.
 	// We should look for a wiser way.
@@ -49,16 +48,16 @@ func (c *Context) NewVorbisStream(src io.Reader) (*VorbisStream, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &VorbisStream{
+	s := &Stream{
 		buf: bytes.NewReader(b),
 	}
 	return s, nil
 }
 
-func (s *VorbisStream) Read(p []byte) (int, error) {
+func (s *Stream) Read(p []byte) (int, error) {
 	return s.buf.Read(p)
 }
 
-func (s *VorbisStream) Seek(offset int64, whence int) (int64, error) {
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }
