@@ -94,7 +94,7 @@ func toBytes(l, r []int16) []byte {
 }
 
 func addNote() error {
-	size := sampleRate / 60
+	size := sampleRate / ebiten.FPS
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 
 	defer func() {

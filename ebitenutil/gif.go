@@ -50,8 +50,7 @@ func init() {
 }
 
 func (r *recorder) delay() int {
-	// Assume that the FPS is 60.
-	delay := 100 * r.skips / 60
+	delay := 100 * r.skips / ebiten.FPS
 	if delay < 2 {
 		return 2
 	}

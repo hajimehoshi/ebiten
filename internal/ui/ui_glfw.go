@@ -154,6 +154,7 @@ func (u *userInterface) doEvents() error {
 		return err
 	}
 	for u.window.GetAttrib(glfw.Focused) == 0 {
+		// Wait for an arbitrary period to avoid busy loop.
 		time.Sleep(time.Second / 60)
 		if err := u.pollEvents(); err != nil {
 			return err

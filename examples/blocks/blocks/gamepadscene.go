@@ -69,7 +69,7 @@ func (s *GamepadScene) Update(state *GameState) error {
 	if state.Input.gamepadConfig.Scan(0, b) {
 		s.currentIndex++
 		if s.currentIndex == len(gamepadStdButtons) {
-			s.countAfterSetting = 60
+			s.countAfterSetting = ebiten.FPS
 		}
 	}
 	return nil

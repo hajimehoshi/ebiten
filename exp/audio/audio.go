@@ -19,6 +19,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/hajimehoshi/ebiten"
 )
 
 type mixedPlayersStream struct {
@@ -43,8 +45,7 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
-	// TODO: 60 (FPS) is a magic number
-	bytesPerFrame := s.context.sampleRate * bytesPerSample * channelNum / 60
+	bytesPerFrame := s.context.sampleRate * bytesPerSample * channelNum / ebiten.FPS
 	x := s.context.frames*bytesPerFrame + len(b)
 	if x <= s.writtenBytes {
 		return 0, nil

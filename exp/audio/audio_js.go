@@ -21,6 +21,7 @@ import (
 	"runtime"
 
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/ebiten"
 )
 
 type player struct {
@@ -75,7 +76,7 @@ func max64(a, b int64) int64 {
 }
 
 func (p *player) proceed() error {
-	bufferSize := p.sampleRate * bytesPerSample * channelNum / 60
+	bufferSize := p.sampleRate * bytesPerSample * channelNum / ebiten.FPS
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if p.positionInSamples < c {
 		p.positionInSamples = c

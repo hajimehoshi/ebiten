@@ -260,7 +260,7 @@ func (s *GameScene) Update(state *GameState) error {
 
 	s.currentFrame++
 
-	const maxLandingCount = 60
+	const maxLandingCount = ebiten.FPS
 	if s.currentPiece == nil {
 		s.initCurrentPiece(s.choosePiece())
 	}
@@ -303,8 +303,9 @@ func (s *GameScene) Update(state *GameState) error {
 		y := s.currentPieceY
 		angle := s.currentPieceAngle
 		s.currentPieceYCarry += 2*s.level() + 1
-		for 60 <= s.currentPieceYCarry {
-			s.currentPieceYCarry -= 60
+		const maxCarry = 60
+		for maxCarry <= s.currentPieceYCarry {
+			s.currentPieceYCarry -= maxCarry
 			s.currentPieceY = s.field.DropPiece(piece, s.currentPieceX, s.currentPieceY, angle)
 			moved = y != s.currentPieceY
 		}
