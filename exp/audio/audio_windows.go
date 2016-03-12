@@ -78,12 +78,10 @@ type player struct {
 }
 
 func startPlaying(src io.Reader, sampleRate int) (*player, error) {
-	const numChannels = 2
-	const bitsPerSample = 16
-	const numBlockAlign = numChannels * bitsPerSample / 8
+	const numBlockAlign = channelNum * bitsPerSample / 8
 	f := C.WAVEFORMATEX{
 		wFormatTag:      C.WAVE_FORMAT_PCM,
-		nChannels:       numChannels,
+		nChannels:       channelNum,
 		nSamplesPerSec:  C.DWORD(sampleRate),
 		nAvgBytesPerSec: C.DWORD(sampleRate) * numBlockAlign,
 		wBitsPerSample:  bitsPerSample,

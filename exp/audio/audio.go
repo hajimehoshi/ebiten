@@ -21,7 +21,6 @@ import (
 	"time"
 )
 
-// TODO: In JavaScript, mixing should be done by WebAudio for performance.
 type mixedPlayersStream struct {
 	context      *Context
 	writtenBytes int
@@ -34,12 +33,18 @@ func min(a, b int) int {
 	return b
 }
 
+const (
+	channelNum     = 2
+	bytesPerSample = 2
+	bitsPerSample  = bytesPerSample * 8
+)
+
 func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
 	// TODO: 60 (FPS) is a magic number
-	bytesPerFrame := s.context.sampleRate * 4 / 60
+	bytesPerFrame := s.context.sampleRate * bytesPerSample * channelNum / 60
 	x := s.context.frames*bytesPerFrame + len(b)
 	if x <= s.writtenBytes {
 		return 0, nil

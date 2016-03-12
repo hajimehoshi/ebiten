@@ -75,9 +75,7 @@ func max64(a, b int64) int64 {
 }
 
 func (p *player) proceed() error {
-	const channelNum = 2
-	const bytesPerSample = channelNum * 16 / 8
-	bufferSize := p.sampleRate * bytesPerSample / 60
+	bufferSize := p.sampleRate * bytesPerSample * channelNum / 60
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if p.positionInSamples < c {
 		p.positionInSamples = c
@@ -85,7 +83,7 @@ func (p *player) proceed() error {
 	b := make([]byte, bufferSize)
 	n, err := p.src.Read(b)
 	if 0 < n {
-		buf := p.context.Call("createBuffer", channelNum, n/bytesPerSample, p.sampleRate)
+		buf := p.context.Call("createBuffer", channelNum, n/bytesPerSample/channelNum, p.sampleRate)
 		l := buf.Call("getChannelData", 0)
 		r := buf.Call("getChannelData", 1)
 		il, ir := toLR(b[:n])
