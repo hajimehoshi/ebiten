@@ -29,6 +29,7 @@ const (
 	maxBufferNum = 8
 )
 
+// TODO: This should be in player
 var totalBufferNum = 0
 
 type player struct {
@@ -60,7 +61,14 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 	return p, nil
 }
 
-const bufferSize = 1024
+const (
+	bufferSize = 1024
+)
+
+var (
+	tmpBuffer    = make([]byte, bufferSize)
+	tmpAlBuffers = make([]al.Buffer, maxBufferNum)
+)
 
 func (p *player) proceed() error {
 	if err := al.Error(); err != 0 {
@@ -68,7 +76,7 @@ func (p *player) proceed() error {
 	}
 	processedNum := p.alSource.BuffersProcessed()
 	if 0 < processedNum {
-		bufs := make([]al.Buffer, processedNum)
+		bufs := tmpAlBuffers[:processedNum]
 		p.alSource.UnqueueBuffers(bufs...)
 		if err := al.Error(); err != 0 {
 			panic(fmt.Sprintf("audio: Unqueue in process: %d", err))
@@ -77,12 +85,11 @@ func (p *player) proceed() error {
 	}
 
 	for 0 < len(p.alBuffers) {
-		b := make([]byte, bufferSize)
-		n, err := p.source.Read(b)
+		n, err := p.source.Read(tmpBuffer)
 		if 0 < n {
 			buf := p.alBuffers[0]
 			p.alBuffers = p.alBuffers[1:]
-			buf.BufferData(al.FormatStereo16, b[:n], int32(p.sampleRate))
+			buf.BufferData(al.FormatStereo16, tmpBuffer[:n], int32(p.sampleRate))
 			p.alSource.QueueBuffers(buf)
 			if err := al.Error(); err != 0 {
 				panic(fmt.Sprintf("audio: Queue in process: %d", err))
