@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"time"
 
 	"golang.org/x/mobile/exp/audio/al"
 )
@@ -89,6 +90,9 @@ func (p *player) proceed() error {
 		}
 		if err != nil {
 			return err
+		}
+		if n == 0 {
+			time.Sleep(1)
 		}
 	}
 
