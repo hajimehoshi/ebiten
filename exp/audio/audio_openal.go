@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
 	"golang.org/x/mobile/exp/audio/al"
 )
 
@@ -100,7 +99,7 @@ func (p *player) proceed() error {
 			return err
 		}
 		if n == 0 {
-			time.Sleep(1)
+			time.Sleep(1 * time.Millisecond)
 		}
 	}
 
@@ -147,7 +146,8 @@ func (p *player) start() error {
 				// TODO: Record the last error
 				panic(err)
 			}
-			time.Sleep(1 * time.Second / ebiten.FPS / 2)
+			//time.Sleep(1 * time.Second / ebiten.FPS / 2)
+			time.Sleep(1 * time.Millisecond)
 		}
 	}()
 	return nil
