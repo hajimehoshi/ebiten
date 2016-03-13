@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/hajimehoshi/ebiten"
 	"golang.org/x/mobile/exp/audio/al"
 )
 
@@ -146,7 +147,7 @@ func (p *player) start() error {
 				// TODO: Record the last error
 				panic(err)
 			}
-			runtime.Gosched()
+			time.Sleep(1 * time.Second / ebiten.FPS / 2)
 		}
 	}()
 	return nil
