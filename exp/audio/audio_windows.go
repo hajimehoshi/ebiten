@@ -27,7 +27,7 @@ import "C"
 import (
 	"fmt"
 	"io"
-	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -119,7 +119,7 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 				// TODO: Propagate this error?
 				panic(err)
 			}
-			runtime.Gosched()
+			time.Sleep(1 * time.Millisecond)
 		}
 		// TODO: Finalize the wave handler
 	}()
