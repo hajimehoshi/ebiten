@@ -159,6 +159,9 @@ func (u *userInterface) doEvents() error {
 		if err := u.pollEvents(); err != nil {
 			return err
 		}
+		if u.isClosed() {
+			return nil
+		}
 	}
 	return nil
 }
