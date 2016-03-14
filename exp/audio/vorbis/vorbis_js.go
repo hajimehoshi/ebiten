@@ -25,14 +25,10 @@ import (
 	"github.com/hajimehoshi/ebiten/exp/audio"
 )
 
-type stream struct {
-	buf *bytes.Reader
-}
-
 // TODO: This just uses decodeAudioData can treat audio files other than Ogg/Vorbis.
 // TODO: This doesn't work on iOS which doesn't have Ogg/Vorbis decoder.
 
-func Decode(context *audio.Context, src io.Reader) (io.ReadSeeker, error) {
+func Decode(context *audio.Context, src io.Reader) (Stream, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err
@@ -59,12 +55,4 @@ func Decode(context *audio.Context, src io.Reader) (io.ReadSeeker, error) {
 	})
 	<-ch
 	return s, nil
-}
-
-func (s *stream) Read(p []byte) (int, error) {
-	return s.buf.Read(p)
-}
-
-func (s *stream) Seek(offset int64, whence int) (int64, error) {
-	return s.buf.Seek(offset, whence)
 }
