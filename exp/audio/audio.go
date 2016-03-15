@@ -51,15 +51,15 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		return 0, nil
 	}
 
-	l := len(b) / 4 * 4
 	if len(s.context.players) == 0 {
 		l := min(len(b), x-s.writtenBytes)
+		l &= ^3
 		copy(b, make([]byte, l))
 		s.writtenBytes += l
 		return l, nil
 	}
 	closed := []*Player{}
-	ll := l
+	l := len(b)
 	for p := range s.context.players {
 		_, err := p.readToBuffer(l)
 		if err == io.EOF {
@@ -67,13 +67,14 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		} else if err != nil {
 			return 0, err
 		}
-		ll = min(p.bufferLength()/4*4, ll)
+		l = min(p.bufferLength()/4*4, l)
 	}
+	l &= ^3
 	b16s := [][]int16{}
 	for p := range s.context.players {
-		b16s = append(b16s, p.bufferToInt16(ll))
+		b16s = append(b16s, p.bufferToInt16(l))
 	}
-	for i := 0; i < ll/2; i++ {
+	for i := 0; i < l/2; i++ {
 		x := 0
 		for _, b16 := range b16s {
 			x += int(b16[i])
@@ -88,13 +89,13 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		b[2*i+1] = byte(x >> 8)
 	}
 	for p := range s.context.players {
-		p.proceed(ll)
+		p.proceed(l)
 	}
 	for _, p := range closed {
 		delete(s.context.players, p)
 	}
-	s.writtenBytes += ll
-	return ll, nil
+	s.writtenBytes += l
+	return l, nil
 }
 
 // TODO: Enable to specify the format like Mono8?
