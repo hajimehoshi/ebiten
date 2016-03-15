@@ -51,9 +51,10 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		return 0, nil
 	}
 
+	const mask = ^(channelNum*bytesPerSample - 1)
 	if len(s.context.players) == 0 {
 		l := min(len(b), x-s.writtenBytes)
-		l &= ^3
+		l &= mask
 		copy(b, make([]byte, l))
 		s.writtenBytes += l
 		return l, nil
@@ -67,9 +68,9 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		} else if err != nil {
 			return 0, err
 		}
-		l = min(p.bufferLength()/4*4, l)
+		l = min(p.bufferLength(), l)
 	}
-	l &= ^3
+	l &= mask
 	b16s := [][]int16{}
 	for p := range s.context.players {
 		b16s = append(b16s, p.bufferToInt16(l))
