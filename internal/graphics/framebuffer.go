@@ -129,3 +129,14 @@ func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
 	w, h = int(NextPowerOf2Int32(int32(w))), int(NextPowerOf2Int32(int32(h)))
 	return c.FramebufferPixels(f.native, w, h)
 }
+
+func (f *Framebuffer) ReplacePixels(c *opengl.Context, t *Texture, p []uint8) error {
+	// Filling with non black or white color is required here for glTexSubImage2D.
+	// Very mysterious but this actually works (Issue #186)
+	if err := f.Fill(c, color.RGBA{0, 0, 0x01, 0xff}); err != nil {
+		return err
+	}
+	c.BindTexture(t.native)
+	c.TexSubImage2D(p, t.width, t.height)
+	return nil
+}

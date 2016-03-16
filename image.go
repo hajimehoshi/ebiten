@@ -179,7 +179,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	if len(p) != l {
 		return errors.New(fmt.Sprintf("p's length must be %d", l))
 	}
-	return i.texture.ReplacePixels(glContext, p)
+	return i.framebuffer.ReplacePixels(glContext, i.texture, p)
 }
 
 // A DrawImageOptions represents options to render an image on an image.
