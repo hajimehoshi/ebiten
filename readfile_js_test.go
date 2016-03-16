@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build js
+
 package ebiten_test
 
 import (
-	"bytes"
 	"encoding/base64"
 	"errors"
-	"github.com/gopherjs/gopherjs/js"
 	"io"
-	"io/ioutil"
 	"strings"
 )
 
@@ -106,19 +105,12 @@ SUVORK5CYII=`,
 }
 
 func readFile(path string) (io.Reader, error) {
-	if js.Global == nil {
-		b, err := ioutil.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewBuffer(b), nil
-	}
 	// According to https://github.com/gopherjs/gopherjs/blob/master/doc/syscalls.md,
 	// syscall can be available on the unstable version of npm.
 	// Let's not use os package here.
 	str, ok := data[path]
 	if !ok {
-		return nil, errors.New("not found")
+		return nil, errors.New("ebiten_test: not found")
 	}
 	return base64.NewDecoder(base64.StdEncoding, strings.NewReader(str)), nil
 }

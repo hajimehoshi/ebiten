@@ -51,6 +51,7 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		return 0, nil
 	}
 
+	// TODO: This assumes that channelNum is a power of 2.
 	const mask = ^(channelNum*bytesPerSample - 1)
 	if len(s.context.players) == 0 {
 		l := min(len(b), x-s.writtenBytes)
