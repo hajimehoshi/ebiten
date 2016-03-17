@@ -40,5 +40,5 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 
 func (s *stream) Len() time.Duration {
 	const bytesPerSample = 4
-	return time.Duration(s.buf.Len() / bytesPerSample / s.sampleRate)
+	return time.Duration(s.buf.Len()/bytesPerSample) * time.Second / time.Duration(s.sampleRate)
 }

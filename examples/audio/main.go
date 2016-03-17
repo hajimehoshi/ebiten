@@ -16,7 +16,9 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"log"
+	"time"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -30,9 +32,31 @@ const (
 )
 
 var (
+	playerBarImage     *ebiten.Image
+	playerCurrentImage *ebiten.Image
+)
+
+func init() {
+	var err error
+	playerBarImage, err = ebiten.NewImage(300, 4, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	playerBarImage.Fill(&color.RGBA{0x80, 0x80, 0x80, 0xff})
+
+	playerCurrentImage, err = ebiten.NewImage(4, 10, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff})
+}
+
+var (
 	audioContext     *audio.Context
 	audioLoadingDone chan struct{}
 	audioLoaded      bool
+	audioPlayer      *audio.Player
+	total            time.Duration
 )
 
 func update(screen *ebiten.Image) error {
@@ -44,6 +68,24 @@ func update(screen *ebiten.Image) error {
 		default:
 		}
 	}
+
+	op := &ebiten.DrawImageOptions{}
+	w, h := playerBarImage.Size()
+	x := float64(screenWidth-w) / 2
+	y := float64(screenHeight - h - 16)
+	op.GeoM.Translate(x, y)
+	screen.DrawImage(playerBarImage, op)
+	if audioLoaded && audioPlayer.IsPlaying() {
+		c := audioPlayer.Current()
+		w, _ := playerBarImage.Size()
+		cw, ch := playerCurrentImage.Size()
+		cx := float64(w)*float64(c)/float64(total) + x - float64(cw)/2
+		cy := y - float64(ch-h)/2
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(cx, cy)
+		screen.DrawImage(playerCurrentImage, op)
+	}
+
 	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
 	if !audioLoaded {
 		msg += "\nNow Loading..."
@@ -63,18 +105,20 @@ func main() {
 	audioLoadingDone = make(chan struct{})
 	// TODO: This doesn't work synchronously on browsers because of decoding. Fix this.
 	go func() {
+		var err error
 		s, err := vorbis.Decode(audioContext, f)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		p, err := audioContext.NewPlayer(s)
+		total = s.Len()
+		audioPlayer, err = audioContext.NewPlayer(s)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 		close(audioLoadingDone)
-		p.Play()
+		audioPlayer.Play()
 	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

@@ -240,7 +240,7 @@ func (p *Player) Pause() error {
 }
 
 func (p *Player) Current() time.Duration {
-	return time.Duration(p.pos) * time.Second / time.Duration(p.context.sampleRate)
+	return time.Duration(p.pos/bytesPerSample/channelNum) * time.Second / time.Duration(p.context.sampleRate)
 }
 
 // TODO: Volume / SetVolume?
