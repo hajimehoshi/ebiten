@@ -69,12 +69,12 @@ func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
 	return 0, 0, w.width, w.height
 }
 
-func u(x int, width int) int {
-	return math.MaxInt16 * x / int(graphics.NextPowerOf2Int32(int32(width)))
+func u(x int, width int) int16 {
+	return int16(math.MaxInt16 * x / int(graphics.NextPowerOf2Int32(int32(width))))
 }
 
-func v(y int, height int) int {
-	return math.MaxInt16 * y / int(graphics.NextPowerOf2Int32(int32(height)))
+func v(y int, height int) int16 {
+	return int16(math.MaxInt16 * y / int(graphics.NextPowerOf2Int32(int32(height))))
 }
 
 type textureQuads struct {
@@ -90,37 +90,38 @@ func (t *textureQuads) Len() int {
 func (t *textureQuads) SetVertices(vertices []int16) int {
 	l := t.Len()
 	if len(vertices) < l*16 {
-		panic(fmt.Sprintf("grphics: vertices size must be greater than %d but %d", l*16, len(vertices)))
+		panic(fmt.Sprintf("graphics: vertices size must be greater than %d but %d", l*16, len(vertices)))
 	}
 	p := t.parts
 	w, h := t.width, t.height
 	n := 0
 	for i := 0; i < l; i++ {
-		x0, y0, x1, y1 := p.Dst(i)
-		if x0 == x1 || y0 == y1 {
+		dx0, dy0, dx1, dy1 := p.Dst(i)
+		if dx0 == dx1 || dy0 == dy1 {
 			continue
 		}
+		x0, y0, x1, y1 := int16(dx0), int16(dy0), int16(dx1), int16(dy1)
 		sx0, sy0, sx1, sy1 := p.Src(i)
-		u0, v0, u1, v1 := u(sx0, w), v(sy0, h), u(sx1, w), v(sy1, h)
-		if u0 == u1 || v0 == v1 {
+		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
-		vertices[16*n] = int16(x0)
-		vertices[16*n+1] = int16(y0)
-		vertices[16*n+2] = int16(u0)
-		vertices[16*n+3] = int16(v0)
-		vertices[16*n+4] = int16(x1)
-		vertices[16*n+5] = int16(y0)
-		vertices[16*n+6] = int16(u1)
-		vertices[16*n+7] = int16(v0)
-		vertices[16*n+8] = int16(x0)
-		vertices[16*n+9] = int16(y1)
-		vertices[16*n+10] = int16(u0)
-		vertices[16*n+11] = int16(v1)
-		vertices[16*n+12] = int16(x1)
-		vertices[16*n+13] = int16(y1)
-		vertices[16*n+14] = int16(u1)
-		vertices[16*n+15] = int16(v1)
+		u0, v0, u1, v1 := u(sx0, w), v(sy0, h), u(sx1, w), v(sy1, h)
+		vertices[16*n] = x0
+		vertices[16*n+1] = y0
+		vertices[16*n+2] = u0
+		vertices[16*n+3] = v0
+		vertices[16*n+4] = x1
+		vertices[16*n+5] = y0
+		vertices[16*n+6] = u1
+		vertices[16*n+7] = v0
+		vertices[16*n+8] = x0
+		vertices[16*n+9] = y1
+		vertices[16*n+10] = u0
+		vertices[16*n+11] = v1
+		vertices[16*n+12] = x1
+		vertices[16*n+13] = y1
+		vertices[16*n+14] = u1
+		vertices[16*n+15] = v1
 		n++
 	}
 	return n
