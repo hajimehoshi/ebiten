@@ -69,12 +69,17 @@ func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
 	return 0, 0, w.width, w.height
 }
 
-func u(x int, width int) int16 {
-	return int16(math.MaxInt16 * x / int(graphics.NextPowerOf2Int32(int32(width))))
+type uv struct {
+	width2p  int
+	height2p int
 }
 
-func v(y int, height int) int16 {
-	return int16(math.MaxInt16 * y / int(graphics.NextPowerOf2Int32(int32(height))))
+func (c uv) u(x int) int16 {
+	return int16(math.MaxInt16 * x / c.width2p)
+}
+
+func (c uv) v(y int) int16 {
+	return int16(math.MaxInt16 * y / c.height2p)
 }
 
 type textureQuads struct {
@@ -95,6 +100,10 @@ func (t *textureQuads) SetVertices(vertices []int16) int {
 	p := t.parts
 	w, h := t.width, t.height
 	n := 0
+	c := uv{
+		width2p:  int(graphics.NextPowerOf2Int32(int32(w))),
+		height2p: int(graphics.NextPowerOf2Int32(int32(h))),
+	}
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := p.Dst(i)
 		if dx0 == dx1 || dy0 == dy1 {
@@ -105,7 +114,7 @@ func (t *textureQuads) SetVertices(vertices []int16) int {
 		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
-		u0, v0, u1, v1 := u(sx0, w), v(sy0, h), u(sx1, w), v(sy1, h)
+		u0, v0, u1, v1 := c.u(sx0), c.v(sy0), c.u(sx1), c.v(sy1)
 		vertices[16*n] = x0
 		vertices[16*n+1] = y0
 		vertices[16*n+2] = u0
