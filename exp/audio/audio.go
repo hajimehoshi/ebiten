@@ -39,6 +39,9 @@ const (
 	channelNum     = 2
 	bytesPerSample = 2
 	bitsPerSample  = bytesPerSample * 8
+
+	// TODO: This assumes that channelNum is a power of 2.
+	mask = ^(channelNum*bytesPerSample - 1)
 )
 
 func (s *mixedPlayersStream) Read(b []byte) (int, error) {
@@ -51,8 +54,6 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 		return 0, nil
 	}
 
-	// TODO: This assumes that channelNum is a power of 2.
-	const mask = ^(channelNum*bytesPerSample - 1)
 	if len(s.context.players) == 0 {
 		l := min(len(b), x-s.writtenBytes)
 		l &= mask
@@ -222,7 +223,8 @@ func (p *Player) Rewind() error {
 
 func (p *Player) Seek(offset time.Duration) error {
 	p.buf = []byte{}
-	o := int64(offset) * int64(p.context.sampleRate) / int64(time.Second)
+	o := int64(offset) * bytesPerSample * channelNum * int64(p.context.sampleRate) / int64(time.Second)
+	o &= mask
 	pos, err := p.src.Seek(o, 0)
 	if err != nil {
 		return err

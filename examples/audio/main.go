@@ -57,7 +57,39 @@ var (
 	audioLoaded      bool
 	audioPlayer      *audio.Player
 	total            time.Duration
+	mouseButtonState = map[ebiten.MouseButton]int{}
 )
+
+func playerBarRect() (x, y, w, h int) {
+	w, h = playerBarImage.Size()
+	x = (screenWidth - w) / 2
+	y = screenHeight - h - 16
+	return
+}
+
+func updatePlayerBar() error {
+	if !audioLoaded {
+		return nil
+	}
+	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		mouseButtonState[ebiten.MouseButtonLeft] = 0
+		return nil
+	}
+	mouseButtonState[ebiten.MouseButtonLeft]++
+	if mouseButtonState[ebiten.MouseButtonLeft] != 1 {
+		return nil
+	}
+	x, y := ebiten.CursorPosition()
+	bx, by, bw, bh := playerBarRect()
+	if y < by || by+bh <= y {
+		return nil
+	}
+	if x < bx || bx+bw <= x {
+		return nil
+	}
+	p := time.Duration(x-bx) * total / time.Duration(bw)
+	return audioPlayer.Seek(p)
+}
 
 func update(screen *ebiten.Image) error {
 	audioContext.Update()
@@ -69,11 +101,13 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 
+	if err := updatePlayerBar(); err != nil {
+		return err
+	}
+
 	op := &ebiten.DrawImageOptions{}
-	w, h := playerBarImage.Size()
-	x := float64(screenWidth-w) / 2
-	y := float64(screenHeight - h - 16)
-	op.GeoM.Translate(x, y)
+	x, y, w, h := playerBarRect()
+	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := ""
 	if audioLoaded && audioPlayer.IsPlaying() {
@@ -85,12 +119,11 @@ func update(screen *ebiten.Image) error {
 		currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
 
 		// Bar
-		w, _ := playerBarImage.Size()
 		cw, ch := playerCurrentImage.Size()
-		cx := float64(w)*float64(c)/float64(total) + x - float64(cw)/2
-		cy := y - float64(ch-h)/2
+		cx := int(time.Duration(w)*c/total) + x - cw/2
+		cy := y - (ch-h)/2
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(cx, cy)
+		op.GeoM.Translate(float64(cx), float64(cy))
 		screen.DrawImage(playerCurrentImage, op)
 	}
 
