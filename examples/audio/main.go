@@ -51,12 +51,15 @@ func init() {
 	playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff})
 }
 
+type Player struct {
+	audioPlayer *audio.Player
+	total       time.Duration
+}
+
 var (
 	audioContext     *audio.Context
-	audioLoadingDone chan struct{}
-	audioLoaded      bool
-	audioPlayer      *audio.Player
-	total            time.Duration
+	player           *Player
+	playerCh         = make(chan *Player)
 	mouseButtonState = map[ebiten.MouseButton]int{}
 )
 
@@ -67,8 +70,8 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
-func updatePlayerBar() error {
-	if !audioLoaded {
+func (p *Player) updateBar() error {
+	if p.audioPlayer == nil {
 		return nil
 	}
 	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
@@ -87,22 +90,22 @@ func updatePlayerBar() error {
 	if x < bx || bx+bw <= x {
 		return nil
 	}
-	p := time.Duration(x-bx) * total / time.Duration(bw)
-	return audioPlayer.Seek(p)
+	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
+	return p.audioPlayer.Seek(pos)
 }
 
 func update(screen *ebiten.Image) error {
 	audioContext.Update()
-	if !audioLoaded {
+	if player == nil {
 		select {
-		case <-audioLoadingDone:
-			audioLoaded = true
+		case player = <-playerCh:
 		default:
 		}
 	}
-
-	if err := updatePlayerBar(); err != nil {
-		return err
+	if player != nil {
+		if err := player.updateBar(); err != nil {
+			return err
+		}
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -110,8 +113,8 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := ""
-	if audioLoaded && audioPlayer.IsPlaying() {
-		c := audioPlayer.Current()
+	if player != nil && player.audioPlayer.IsPlaying() {
+		c := player.audioPlayer.Current()
 
 		// Current Time
 		m := (c / time.Minute) % 100
@@ -120,7 +123,7 @@ func update(screen *ebiten.Image) error {
 
 		// Bar
 		cw, ch := playerCurrentImage.Size()
-		cx := int(time.Duration(w)*c/total) + x - cw/2
+		cx := int(time.Duration(w)*c/player.total) + x - cw/2
 		cy := y - (ch-h)/2
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(cx), float64(cy))
@@ -129,7 +132,7 @@ func update(screen *ebiten.Image) error {
 
 	msg := fmt.Sprintf(`FPS: %0.2f
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-	if !audioLoaded {
+	if player == nil {
 		msg += "\nNow Loading..."
 	}
 	ebitenutil.DebugPrint(screen, msg)
@@ -144,23 +147,24 @@ func main() {
 	}
 	// TODO: sampleRate should be obtained from the ogg file.
 	audioContext = audio.NewContext(22050)
-	audioLoadingDone = make(chan struct{})
 	// TODO: This doesn't work synchronously on browsers because of decoding. Fix this.
 	go func() {
-		var err error
 		s, err := vorbis.Decode(audioContext, f)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		total = s.Len()
-		audioPlayer, err = audioContext.NewPlayer(s)
+		p, err := audioContext.NewPlayer(s)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		close(audioLoadingDone)
-		audioPlayer.Play()
+		playerCh <- &Player{
+			audioPlayer: p,
+			total:       s.Len(),
+		}
+		close(playerCh)
+		p.Play()
 	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
