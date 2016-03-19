@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"runtime"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/exp/audio"
@@ -41,19 +42,24 @@ func Decode(context *audio.Context, src io.Reader) (Stream, error) {
 	// TODO: 1 is a correct second argument?
 	oc := js.Global.Get("OfflineAudioContext").New(2, 1, context.SampleRate())
 	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
-		defer close(ch)
-		il := buf.Call("getChannelData", 0).Interface().([]float32)
-		ir := buf.Call("getChannelData", 1).Interface().([]float32)
-		b := make([]byte, len(il)*4)
-		for i := 0; i < len(il); i++ {
-			l := int16(il[i] * (1 << 15))
-			r := int16(ir[i] * (1 << 15))
-			b[4*i] = uint8(l)
-			b[4*i+1] = uint8(l >> 8)
-			b[4*i+2] = uint8(r)
-			b[4*i+3] = uint8(r >> 8)
-		}
-		s.buf = bytes.NewReader(b)
+		go func() {
+			defer close(ch)
+			il := buf.Call("getChannelData", 0).Interface().([]float32)
+			ir := buf.Call("getChannelData", 1).Interface().([]float32)
+			b := make([]byte, len(il)*4)
+			for i := 0; i < len(il); i++ {
+				l := int16(il[i] * (1 << 15))
+				r := int16(ir[i] * (1 << 15))
+				b[4*i] = uint8(l)
+				b[4*i+1] = uint8(l >> 8)
+				b[4*i+2] = uint8(r)
+				b[4*i+3] = uint8(r >> 8)
+				if i%16384 == 0 {
+					runtime.Gosched()
+				}
+			}
+			s.buf = bytes.NewReader(b)
+		}()
 	})
 	<-ch
 	return s, nil
