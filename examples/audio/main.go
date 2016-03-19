@@ -75,8 +75,16 @@ func update(screen *ebiten.Image) error {
 	y := float64(screenHeight - h - 16)
 	op.GeoM.Translate(x, y)
 	screen.DrawImage(playerBarImage, op)
+	currentTimeStr := ""
 	if audioLoaded && audioPlayer.IsPlaying() {
 		c := audioPlayer.Current()
+
+		// Current Time
+		m := (c / time.Minute) % 100
+		s := (c / time.Second) % 60
+		currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
+
+		// Bar
 		w, _ := playerBarImage.Size()
 		cw, ch := playerCurrentImage.Size()
 		cx := float64(w)*float64(c)/float64(total) + x - float64(cw)/2
@@ -86,7 +94,8 @@ func update(screen *ebiten.Image) error {
 		screen.DrawImage(playerCurrentImage, op)
 	}
 
-	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
+	msg := fmt.Sprintf(`FPS: %0.2f
+%s`, ebiten.CurrentFPS(), currentTimeStr)
 	if !audioLoaded {
 		msg += "\nNow Loading..."
 	}
