@@ -61,6 +61,7 @@ var (
 	player           *Player
 	playerCh         = make(chan *Player)
 	mouseButtonState = map[ebiten.MouseButton]int{}
+	keyState         = map[ebiten.Key]int{}
 )
 
 func playerBarRect() (x, y, w, h int) {
@@ -68,6 +69,24 @@ func playerBarRect() (x, y, w, h int) {
 	x = (screenWidth - w) / 2
 	y = screenHeight - h - 16
 	return
+}
+
+func (p *Player) updatePlayPause() error {
+	if p.audioPlayer == nil {
+		return nil
+	}
+	if !ebiten.IsKeyPressed(ebiten.KeyS) {
+		keyState[ebiten.KeyS] = 0
+		return nil
+	}
+	keyState[ebiten.KeyS]++
+	if keyState[ebiten.KeyS] != 1 {
+		return nil
+	}
+	if p.audioPlayer.IsPlaying() {
+		return p.audioPlayer.Pause()
+	}
+	return p.audioPlayer.Play()
 }
 
 func (p *Player) updateBar() error {
@@ -106,14 +125,17 @@ func update(screen *ebiten.Image) error {
 		if err := player.updateBar(); err != nil {
 			return err
 		}
+		if err := player.updatePlayPause(); err != nil {
+			return err
+		}
 	}
 
 	op := &ebiten.DrawImageOptions{}
 	x, y, w, h := playerBarRect()
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(playerBarImage, op)
-	currentTimeStr := ""
-	if player != nil && player.audioPlayer.IsPlaying() {
+	currentTimeStr := "00:00"
+	if player != nil {
 		c := player.audioPlayer.Current()
 
 		// Current Time
@@ -131,6 +153,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	msg := fmt.Sprintf(`FPS: %0.2f
+Press S to toggle Play/Pause
 %s`, ebiten.CurrentFPS(), currentTimeStr)
 	if player == nil {
 		msg += "\nNow Loading..."
