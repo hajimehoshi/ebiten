@@ -78,6 +78,7 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 	}
 	screen := &Image{framebuffer: screenF, texture: texture}
 	c.defaultRenderTarget = &Image{framebuffer: f, texture: nil}
+	c.defaultRenderTarget.Clear()
 	c.screen = screen
 	c.screenScale = screenScale
 	return nil
