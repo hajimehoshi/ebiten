@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"time"
@@ -125,7 +126,9 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 		}
 	}
 
-	u.setScreenSize(width, height, scale)
+	if !u.setScreenSize(width, height, scale) {
+		return errors.New("ui: Fail to set the screen size")
+	}
 	u.window.SetTitle(title)
 	u.window.Show()
 
@@ -189,10 +192,21 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	if u.width == width && u.height == height && u.scale == scale {
 		return false
 	}
-	// These properties should be set first since this affects windowScale().
+
+	// u.scale should be set first since this affects windowScale().
+	origScale := u.scale
+	u.scale = scale
+
+	// On Windows, giving a too small width doesn't call a callback (#165).
+	// To prevent hanging up, return asap if the width is too small.
+	// 252 is an arbitrary number and I guess this is small enough.
+	const minWindowWidth = 252
+	if width*u.windowScale() < minWindowWidth {
+		u.scale = origScale
+		return false
+	}
 	u.width = width
 	u.height = height
-	u.scale = scale
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -200,7 +214,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 
 	ch := make(chan struct{})
 	window := u.window
-	window.SetFramebufferSizeCallback(func(w *glfw.Window, width, height int) {
+	window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
 		window.SetFramebufferSizeCallback(nil)
 		close(ch)
 	})
