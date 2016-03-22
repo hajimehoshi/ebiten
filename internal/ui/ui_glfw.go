@@ -101,8 +101,8 @@ func ScreenScale() int {
 	return currentUI.scale
 }
 
-func ActualScale() int {
-	return currentUI.actualScale()
+func ActualScreenScale() int {
+	return currentUI.actualScreenScale()
 }
 
 type userInterface struct {
@@ -147,7 +147,7 @@ func (u *userInterface) windowScale() int {
 	return u.scale * int(u.deviceScale)
 }
 
-func (u *userInterface) actualScale() int {
+func (u *userInterface) actualScreenScale() int {
 	return u.windowScale() * u.framebufferScale
 }
 
@@ -205,7 +205,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
 	const minWindowWidth = 252
-	if width*u.actualScale() < minWindowWidth {
+	if width*u.actualScreenScale() < minWindowWidth {
 		u.scale = origScale
 		return false
 	}

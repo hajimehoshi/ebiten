@@ -70,7 +70,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	defer ui.Terminate()
 
 	glContext.Check()
-	graphicsContext, err := newGraphicsContext(width, height, ui.ActualScale())
+	graphicsContext, err := newGraphicsContext(width, height, ui.ActualScreenScale())
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			}
 			if changed {
 				w, h := runContext.newScreenWidth, runContext.newScreenHeight
-				if err := graphicsContext.setSize(w, h, ui.ActualScale()); err != nil {
+				if err := graphicsContext.setSize(w, h, ui.ActualScreenScale()); err != nil {
 					return err
 				}
 			}

@@ -50,7 +50,7 @@ func SwapBuffers() {
 }
 
 func SetScreenSize(width, height int) bool {
-	scale := canvas.Get("dataset").Get("ebitenScale").Int()
+	scale := canvas.Get("dataset").Get("ebitenScreenScale").Int()
 	return currentUI.setScreenSize(width, height, scale)
 }
 
@@ -60,11 +60,11 @@ func SetScreenScale(scale int) bool {
 }
 
 func ScreenScale() int {
-	return canvas.Get("dataset").Get("ebitenScale").Int()
+	return canvas.Get("dataset").Get("ebitenScreenScale").Int()
 }
 
-func ActualScale() int {
-	return canvas.Get("dataset").Get("ebitenActualScale").Int()
+func ActualScreenScale() int {
+	return canvas.Get("dataset").Get("ebitenActualScreenScale").Int()
 }
 
 var canvas *js.Object
@@ -226,7 +226,7 @@ func Init() *opengl.Context {
 }
 
 func setMouseCursorFromEvent(e *js.Object) {
-	scale := canvas.Get("dataset").Get("ebitenScale").Int()
+	scale := canvas.Get("dataset").Get("ebitenScreenScale").Int()
 	rect := canvas.Call("getBoundingClientRect")
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
@@ -252,7 +252,7 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 }
 
 func (*userInterface) size() (width, height int) {
-	a := canvas.Get("dataset").Get("ebitenActualScale").Int()
+	a := canvas.Get("dataset").Get("ebitenActualScreenScale").Int()
 	if a == 0 {
 		// a == 0 only on the initial state.
 		return
@@ -264,16 +264,16 @@ func (*userInterface) size() (width, height int) {
 
 func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	w, h := u.size()
-	s := canvas.Get("dataset").Get("ebitenScale").Int()
+	s := canvas.Get("dataset").Get("ebitenScreenScale").Int()
 	if w == width && h == height && s == scale {
 		return false
 	}
 
-	actualScale := scale * devicePixelRatio()
-	canvas.Set("width", width*actualScale)
-	canvas.Set("height", height*actualScale)
-	canvas.Get("dataset").Set("ebitenScale", scale)
-	canvas.Get("dataset").Set("ebitenActualScale", actualScale)
+	actualScreenScale := scale * devicePixelRatio()
+	canvas.Set("width", width*actualScreenScale)
+	canvas.Set("height", height*actualScreenScale)
+	canvas.Get("dataset").Set("ebitenScreenScale", scale)
+	canvas.Get("dataset").Set("ebitenActualScreenScale", actualScreenScale)
 	canvasStyle := canvas.Get("style")
 
 	cssWidth := width * scale
