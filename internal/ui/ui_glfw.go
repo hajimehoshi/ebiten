@@ -201,7 +201,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
 	const minWindowWidth = 252
-	if width*u.windowScale() < minWindowWidth {
+	if width*u.actualScale() < minWindowWidth {
 		u.scale = origScale
 		return false
 	}
