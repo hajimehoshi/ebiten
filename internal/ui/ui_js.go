@@ -59,6 +59,10 @@ func SetScreenScale(scale int) bool {
 	return currentUI.setScreenSize(width, height, scale)
 }
 
+func ScreenScale() int {
+	return canvas.Get("dataset").Get("ebitenScale").Int()
+}
+
 func ActualScale() int {
 	return canvas.Get("dataset").Get("ebitenActualScale").Int()
 }

@@ -97,6 +97,10 @@ func SetScreenScale(scale int) bool {
 	return currentUI.setScreenSize(currentUI.width, currentUI.height, scale)
 }
 
+func ScreenScale() int {
+	return currentUI.scale
+}
+
 func ActualScale() int {
 	return currentUI.actualScale()
 }

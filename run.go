@@ -165,3 +165,8 @@ func SetScreenScale(scale int) {
 	}
 	runContext.newScreenScale = scale
 }
+
+// ScreenScale returns the current screen scale.
+func ScreenScale() int {
+	return ui.ScreenScale()
+}

@@ -32,7 +32,6 @@ const (
 
 var (
 	gophersImage *ebiten.Image
-	screenScale  = initScreenScale
 	keyStates    = map[ebiten.Key]int{
 		ebiten.KeyUp:    0,
 		ebiten.KeyDown:  0,
@@ -51,6 +50,7 @@ func update(screen *ebiten.Image) error {
 		keyStates[key]++
 	}
 	d := 0
+	screenScale := ebiten.ScreenScale()
 	switch screenScale {
 	case 1:
 		d = 32
