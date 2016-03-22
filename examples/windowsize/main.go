@@ -62,12 +62,12 @@ func update(screen *ebiten.Image) error {
 		screenHeight += d
 	}
 	if keyStates[ebiten.KeyDown] == 1 {
-		if 16 < screenHeight {
+		if 16 < screenHeight && d < screenHeight {
 			screenHeight -= d
 		}
 	}
 	if keyStates[ebiten.KeyLeft] == 1 {
-		if 16 < screenWidth {
+		if 16 < screenWidth && d < screenWidth {
 			screenWidth -= d
 		}
 	}
