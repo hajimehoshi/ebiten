@@ -54,6 +54,7 @@ func IsRunningSlowly() bool {
 // The argument (*Image) is the render target that represents the screen.
 //
 // This function must be called from the main thread.
+// Note that ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
 //
 // The given function f is guaranteed to be called 60 times a second
 // even if a rendering frame is skipped.
@@ -64,13 +65,13 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		runContext.running = false
 	}()
 
-	if err := ui.Start(width, height, scale, title); err != nil {
+	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
 	}
-	defer ui.Terminate()
+	defer ui.CurrentUI().Terminate()
 
 	glContext.Check()
-	graphicsContext, err := newGraphicsContext(width, height, ui.ActualScreenScale())
+	graphicsContext, err := newGraphicsContext(width, height, ui.CurrentUI().ActualScreenScale())
 	if err != nil {
 		return err
 	}
@@ -84,16 +85,16 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight || 0 < runContext.newScreenScale {
 			changed := false
 			if 0 < runContext.newScreenWidth || 0 < runContext.newScreenHeight {
-				c := ui.SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
+				c := ui.CurrentUI().SetScreenSize(runContext.newScreenWidth, runContext.newScreenHeight)
 				changed = changed || c
 			}
 			if 0 < runContext.newScreenScale {
-				c := ui.SetScreenScale(runContext.newScreenScale)
+				c := ui.CurrentUI().SetScreenScale(runContext.newScreenScale)
 				changed = changed || c
 			}
 			if changed {
 				w, h := runContext.newScreenWidth, runContext.newScreenHeight
-				if err := graphicsContext.setSize(w, h, ui.ActualScreenScale()); err != nil {
+				if err := graphicsContext.setSize(w, h, ui.CurrentUI().ActualScreenScale()); err != nil {
 					return err
 				}
 			}
@@ -102,10 +103,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		runContext.newScreenHeight = 0
 		runContext.newScreenScale = 0
 
-		if err := ui.DoEvents(); err != nil {
+		if err := ui.CurrentUI().DoEvents(); err != nil {
 			return err
 		}
-		if ui.IsClosed() {
+		if ui.CurrentUI().IsClosed() {
 			return nil
 		}
 		now := ui.Now()
@@ -117,10 +118,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			c := float64(now-beforeForUpdate) * FPS / float64(time.Second)
 			runContext.isRunningSlowly = c >= 2.5
 			for i := 0; i < int(c); i++ {
-				if err := ui.DoEvents(); err != nil {
+				if err := ui.CurrentUI().DoEvents(); err != nil {
 					return err
 				}
-				if ui.IsClosed() {
+				if ui.CurrentUI().IsClosed() {
 					return nil
 				}
 				if err := graphicsContext.update(f); err != nil {
@@ -128,7 +129,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 				}
 			}
 			beforeForUpdate += int64(c) * int64(time.Second/FPS)
-			ui.SwapBuffers()
+			ui.CurrentUI().SwapBuffers()
 		}
 
 		// Calc the current FPS.
@@ -168,5 +169,5 @@ func SetScreenScale(scale int) {
 
 // ScreenScale returns the current screen scale.
 func ScreenScale() int {
-	return ui.ScreenScale()
+	return ui.CurrentUI().ScreenScale()
 }

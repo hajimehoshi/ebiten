@@ -30,7 +30,21 @@ func Now() int64 {
 	return time.Now().UnixNano()
 }
 
-var currentUI *userInterface
+type UserInterface struct {
+	window           *glfw.Window
+	width            int
+	height           int
+	scale            int
+	deviceScale      float64
+	framebufferScale int
+	context          *opengl.Context
+}
+
+var currentUI *UserInterface
+
+func CurrentUI() *UserInterface {
+	return currentUI
+}
 
 func Init() *opengl.Context {
 	runtime.LockOSThread()
@@ -50,7 +64,7 @@ func Init() *opengl.Context {
 		panic(err)
 	}
 
-	u := &userInterface{
+	u := &UserInterface{
 		window: window,
 	}
 	ch := make(chan struct{})
@@ -69,53 +83,23 @@ func Init() *opengl.Context {
 	return u.context
 }
 
-func Start(width, height, scale int, title string) error {
-	return currentUI.start(width, height, scale, title)
+func (u *UserInterface) SetScreenSize(width, height int) bool {
+	return u.setScreenSize(width, height, currentUI.scale)
 }
 
-func Terminate() {
-	currentUI.terminate()
+func (u *UserInterface) SetScreenScale(scale int) bool {
+	return u.setScreenSize(currentUI.width, currentUI.height, scale)
 }
 
-func DoEvents() error {
-	return currentUI.doEvents()
+func (u *UserInterface) ScreenScale() int {
+	return u.scale
 }
 
-func IsClosed() bool {
-	return currentUI.isClosed()
+func (u *UserInterface) ActualScreenScale() int {
+	return u.actualScreenScale()
 }
 
-func SwapBuffers() {
-	currentUI.swapBuffers()
-}
-
-func SetScreenSize(width, height int) bool {
-	return currentUI.setScreenSize(width, height, currentUI.scale)
-}
-
-func SetScreenScale(scale int) bool {
-	return currentUI.setScreenSize(currentUI.width, currentUI.height, scale)
-}
-
-func ScreenScale() int {
-	return currentUI.scale
-}
-
-func ActualScreenScale() int {
-	return currentUI.actualScreenScale()
-}
-
-type userInterface struct {
-	window           *glfw.Window
-	width            int
-	height           int
-	scale            int
-	deviceScale      float64
-	framebufferScale int
-	context          *opengl.Context
-}
-
-func (u *userInterface) start(width, height, scale int, title string) error {
+func (u *UserInterface) Start(width, height, scale int, title string) error {
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	mw, _ := m.GetPhysicalSize()
@@ -143,20 +127,20 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 	return nil
 }
 
-func (u *userInterface) windowScale() int {
+func (u *UserInterface) windowScale() int {
 	return u.scale * int(u.deviceScale)
 }
 
-func (u *userInterface) actualScreenScale() int {
+func (u *UserInterface) actualScreenScale() int {
 	return u.windowScale() * u.framebufferScale
 }
 
-func (u *userInterface) pollEvents() error {
+func (u *UserInterface) pollEvents() error {
 	glfw.PollEvents()
 	return currentInput.update(u.window, u.windowScale())
 }
 
-func (u *userInterface) doEvents() error {
+func (u *UserInterface) DoEvents() error {
 	if err := u.pollEvents(); err != nil {
 		return err
 	}
@@ -166,22 +150,22 @@ func (u *userInterface) doEvents() error {
 		if err := u.pollEvents(); err != nil {
 			return err
 		}
-		if u.isClosed() {
+		if u.IsClosed() {
 			return nil
 		}
 	}
 	return nil
 }
 
-func (u *userInterface) terminate() {
+func (u *UserInterface) Terminate() {
 	glfw.Terminate()
 }
 
-func (u *userInterface) isClosed() bool {
+func (u *UserInterface) IsClosed() bool {
 	return u.window.ShouldClose()
 }
 
-func (u *userInterface) swapBuffers() {
+func (u *UserInterface) SwapBuffers() {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
 	u.context.BindZeroFramebuffer()
 	// Call glFinish before glfwSwapBuffer to make sure
@@ -192,7 +176,7 @@ func (u *userInterface) swapBuffers() {
 	})
 }
 
-func (u *userInterface) setScreenSize(width, height, scale int) bool {
+func (u *UserInterface) setScreenSize(width, height, scale int) bool {
 	if u.width == width && u.height == height && u.scale == scale {
 		return false
 	}
@@ -214,7 +198,7 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
-	u.swapBuffers()
+	u.SwapBuffers()
 
 	ch := make(chan struct{})
 	window := u.window

@@ -29,49 +29,33 @@ func Now() int64 {
 	return int64(js.Global.Get("performance").Call("now").Float() * float64(time.Millisecond))
 }
 
-func Start(width, height, scale int, title string) error {
-	return currentUI.start(width, height, scale, title)
-}
-
-func Terminate() {
-	currentUI.terminate()
-}
-
-func DoEvents() error {
-	return currentUI.doEvents()
-}
-
-func IsClosed() bool {
-	return currentUI.isClosed()
-}
-
-func SwapBuffers() {
-	currentUI.swapBuffers()
-}
-
-func SetScreenSize(width, height int) bool {
+func (u *UserInterface) SetScreenSize(width, height int) bool {
 	scale := canvas.Get("dataset").Get("ebitenScreenScale").Int()
-	return currentUI.setScreenSize(width, height, scale)
+	return u.setScreenSize(width, height, scale)
 }
 
-func SetScreenScale(scale int) bool {
+func (u *UserInterface) SetScreenScale(scale int) bool {
 	width, height := currentUI.size()
-	return currentUI.setScreenSize(width, height, scale)
+	return u.setScreenSize(width, height, scale)
 }
 
-func ScreenScale() int {
+func (u *UserInterface) ScreenScale() int {
 	return canvas.Get("dataset").Get("ebitenScreenScale").Int()
 }
 
-func ActualScreenScale() int {
+func (u *UserInterface) ActualScreenScale() int {
 	return canvas.Get("dataset").Get("ebitenActualScreenScale").Int()
 }
 
 var canvas *js.Object
 
-type userInterface struct{}
+type UserInterface struct{}
 
-var currentUI = &userInterface{}
+var currentUI = &UserInterface{}
+
+func CurrentUI() *UserInterface {
+	return currentUI
+}
 
 // NOTE: This returns true even when the browser is not active.
 func shown() bool {
@@ -96,20 +80,20 @@ func vsync() {
 	<-ch
 }
 
-func (*userInterface) doEvents() error {
+func (u *UserInterface) DoEvents() error {
 	currentInput.UpdateGamepads()
 	return nil
 }
 
-func (*userInterface) terminate() {
+func (u *UserInterface) Terminate() {
 	// Do nothing.
 }
 
-func (*userInterface) isClosed() bool {
+func (u *UserInterface) IsClosed() bool {
 	return false
 }
 
-func (*userInterface) swapBuffers() {
+func (u *UserInterface) SwapBuffers() {
 	vsync()
 	for !shown() {
 		vsync()
@@ -243,7 +227,7 @@ func devicePixelRatio() int {
 	return ratio
 }
 
-func (u *userInterface) start(width, height, scale int, title string) error {
+func (u *UserInterface) Start(width, height, scale int, title string) error {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
@@ -251,7 +235,7 @@ func (u *userInterface) start(width, height, scale int, title string) error {
 	return nil
 }
 
-func (*userInterface) size() (width, height int) {
+func (*UserInterface) size() (width, height int) {
 	a := canvas.Get("dataset").Get("ebitenActualScreenScale").Int()
 	if a == 0 {
 		// a == 0 only on the initial state.
@@ -262,7 +246,7 @@ func (*userInterface) size() (width, height int) {
 	return
 }
 
-func (u *userInterface) setScreenSize(width, height, scale int) bool {
+func (u *UserInterface) setScreenSize(width, height, scale int) bool {
 	w, h := u.size()
 	s := canvas.Get("dataset").Get("ebitenScreenScale").Int()
 	if w == width && h == height && s == scale {
