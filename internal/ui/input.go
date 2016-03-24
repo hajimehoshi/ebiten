@@ -14,54 +14,19 @@
 
 package ui
 
-func IsKeyPressed(key Key) bool {
-	return currentInput.keyPressed[key]
-}
+import (
+	"sync"
+)
 
-func CursorPosition() (x, y int) {
-	return currentInput.cursorX, currentInput.cursorY
-}
+var currentInput = &Input{}
 
-func IsMouseButtonPressed(button MouseButton) bool {
-	return currentInput.mouseButtonPressed[button]
-}
-
-func GamepadAxisNum(id int) int {
-	if len(currentInput.gamepads) <= id {
-		return 0
-	}
-	return currentInput.gamepads[id].axisNum
-}
-
-func GamepadAxis(id int, axis int) float64 {
-	if len(currentInput.gamepads) <= id {
-		return 0
-	}
-	return currentInput.gamepads[id].axes[axis]
-}
-
-func GamepadButtonNum(id int) int {
-	if len(currentInput.gamepads) <= id {
-		return 0
-	}
-	return currentInput.gamepads[id].buttonNum
-}
-
-func IsGamepadButtonPressed(id int, button GamepadButton) bool {
-	if len(currentInput.gamepads) <= id {
-		return false
-	}
-	return currentInput.gamepads[id].buttonPressed[button]
-}
-
-var currentInput input
-
-type input struct {
+type Input struct {
 	keyPressed         [256]bool
 	mouseButtonPressed [256]bool
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
+	m                  sync.RWMutex
 }
 
 type gamePad struct {
@@ -69,4 +34,62 @@ type gamePad struct {
 	axes          [16]float64
 	buttonNum     int
 	buttonPressed [256]bool
+}
+
+func CurrentInput() *Input {
+	return currentInput
+}
+
+func (i *Input) IsKeyPressed(key Key) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	return i.keyPressed[key]
+}
+
+func (i *Input) CursorPosition() (x, y int) {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	return i.cursorX, currentInput.cursorY
+}
+
+func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	return i.mouseButtonPressed[button]
+}
+
+func (i *Input) GamepadAxisNum(id int) int {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if len(i.gamepads) <= id {
+		return 0
+	}
+	return i.gamepads[id].axisNum
+}
+
+func (i *Input) GamepadAxis(id int, axis int) float64 {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if len(i.gamepads) <= id {
+		return 0
+	}
+	return i.gamepads[id].axes[axis]
+}
+
+func (i *Input) GamepadButtonNum(id int) int {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if len(i.gamepads) <= id {
+		return 0
+	}
+	return i.gamepads[id].buttonNum
+}
+
+func (i *Input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if len(i.gamepads) <= id {
+		return false
+	}
+	return i.gamepads[id].buttonPressed[button]
 }

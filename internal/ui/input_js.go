@@ -20,11 +20,9 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-func CurrentInput() *input {
-	return &currentInput
-}
-
-func (i *input) KeyDown(key int) {
+func (i *Input) KeyDown(key int) {
+	i.m.Lock()
+	defer i.m.Unlock()
 	k, ok := keyCodeToKey[key]
 	if !ok {
 		return
@@ -32,7 +30,9 @@ func (i *input) KeyDown(key int) {
 	i.keyPressed[k] = true
 }
 
-func (i *input) KeyUp(key int) {
+func (i *Input) KeyUp(key int) {
+	i.m.Lock()
+	defer i.m.Unlock()
 	k, ok := keyCodeToKey[key]
 	if !ok {
 		return
@@ -40,7 +40,9 @@ func (i *input) KeyUp(key int) {
 	i.keyPressed[k] = false
 }
 
-func (i *input) MouseDown(button int) {
+func (i *Input) MouseDown(button int) {
+	i.m.Lock()
+	defer i.m.Unlock()
 	p := &i.mouseButtonPressed
 	switch button {
 	case 0:
@@ -52,7 +54,9 @@ func (i *input) MouseDown(button int) {
 	}
 }
 
-func (i *input) MouseUp(button int) {
+func (i *Input) MouseUp(button int) {
+	i.m.Lock()
+	defer i.m.Unlock()
 	p := &i.mouseButtonPressed
 	switch button {
 	case 0:
@@ -64,11 +68,15 @@ func (i *input) MouseUp(button int) {
 	}
 }
 
-func (i *input) SetMouseCursor(x, y int) {
+func (i *Input) SetMouseCursor(x, y int) {
+	i.m.Lock()
+	defer i.m.Unlock()
 	i.cursorX, i.cursorY = x, y
 }
 
-func (i *input) UpdateGamepads() {
+func (i *Input) UpdateGamepads() {
+	i.m.Lock()
+	defer i.m.Unlock()
 	nav := js.Global.Get("navigator")
 	if nav.Get("getGamepads") == js.Undefined {
 		return

@@ -21,17 +21,16 @@ import (
 	"math"
 )
 
-func updateInput(window *glfw.Window, scale int) error {
-	return currentInput.update(window, scale)
-}
-
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
 	glfw.MouseButtonRight:  MouseButtonRight,
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *input) update(window *glfw.Window, scale int) error {
+func (i *Input) update(window *glfw.Window, scale int) error {
+	i.m.Lock()
+	defer i.m.Unlock()
+
 	for g, e := range glfwKeyCodeToKey {
 		i.keyPressed[e] = window.GetKey(g) == glfw.Press
 	}

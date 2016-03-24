@@ -153,7 +153,7 @@ func (u *userInterface) actualScreenScale() int {
 
 func (u *userInterface) pollEvents() error {
 	glfw.PollEvents()
-	return updateInput(u.window, u.windowScale())
+	return currentInput.update(u.window, u.windowScale())
 }
 
 func (u *userInterface) doEvents() error {
