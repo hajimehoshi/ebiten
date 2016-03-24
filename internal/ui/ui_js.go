@@ -30,8 +30,7 @@ func Now() int64 {
 }
 
 func (u *UserInterface) SetScreenSize(width, height int) bool {
-	scale := canvas.Get("dataset").Get("ebitenScreenScale").Int()
-	return u.setScreenSize(width, height, scale)
+	return u.setScreenSize(width, height, u.scale)
 }
 
 func (u *UserInterface) SetScreenScale(scale int) bool {
@@ -40,16 +39,19 @@ func (u *UserInterface) SetScreenScale(scale int) bool {
 }
 
 func (u *UserInterface) ScreenScale() int {
-	return canvas.Get("dataset").Get("ebitenScreenScale").Int()
+	return u.scale
 }
 
 func (u *UserInterface) ActualScreenScale() int {
-	return canvas.Get("dataset").Get("ebitenActualScreenScale").Int()
+	return u.scale * int(u.deviceScale)
 }
 
 var canvas *js.Object
 
-type UserInterface struct{}
+type UserInterface struct {
+	scale       int
+	deviceScale float64
+}
 
 var currentUI = &UserInterface{}
 
@@ -210,7 +212,7 @@ func Init() *opengl.Context {
 }
 
 func setMouseCursorFromEvent(e *js.Object) {
-	scale := canvas.Get("dataset").Get("ebitenScreenScale").Int()
+	scale := currentUI.scale
 	rect := canvas.Call("getBoundingClientRect")
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
@@ -218,9 +220,8 @@ func setMouseCursorFromEvent(e *js.Object) {
 	currentInput.SetMouseCursor(x/scale, y/scale)
 }
 
-func devicePixelRatio() int {
-	// TODO: What if ratio is not an integer but a float?
-	ratio := js.Global.Get("window").Get("devicePixelRatio").Int()
+func devicePixelRatio() float64 {
+	ratio := js.Global.Get("window").Get("devicePixelRatio").Float()
 	if ratio == 0 {
 		ratio = 1
 	}
@@ -235,8 +236,8 @@ func (u *UserInterface) Start(width, height, scale int, title string) error {
 	return nil
 }
 
-func (*UserInterface) size() (width, height int) {
-	a := canvas.Get("dataset").Get("ebitenActualScreenScale").Int()
+func (u *UserInterface) size() (width, height int) {
+	a := int(u.ActualScreenScale())
 	if a == 0 {
 		// a == 0 only on the initial state.
 		return
@@ -248,16 +249,14 @@ func (*UserInterface) size() (width, height int) {
 
 func (u *UserInterface) setScreenSize(width, height, scale int) bool {
 	w, h := u.size()
-	s := canvas.Get("dataset").Get("ebitenScreenScale").Int()
+	s := u.scale
 	if w == width && h == height && s == scale {
 		return false
 	}
-
-	actualScreenScale := scale * devicePixelRatio()
-	canvas.Set("width", width*actualScreenScale)
-	canvas.Set("height", height*actualScreenScale)
-	canvas.Get("dataset").Set("ebitenScreenScale", scale)
-	canvas.Get("dataset").Set("ebitenActualScreenScale", actualScreenScale)
+	u.scale = scale
+	u.deviceScale = devicePixelRatio()
+	canvas.Set("width", width*u.ActualScreenScale())
+	canvas.Set("height", height*u.ActualScreenScale())
 	canvasStyle := canvas.Get("style")
 
 	cssWidth := width * scale

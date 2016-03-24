@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -38,6 +39,7 @@ type UserInterface struct {
 	deviceScale      float64
 	framebufferScale int
 	context          *opengl.Context
+	m                sync.RWMutex
 }
 
 var currentUI *UserInterface
