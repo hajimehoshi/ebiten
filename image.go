@@ -68,10 +68,11 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // After determining parts to draw, this applies the geometry matrix and the color matrix.
 //
 // Here are the default values:
-//     ImageParts: (0, 0) - (source width, source height) to (0, 0) - (source width, source height)
-//                 (i.e. the whole source image)
-//     GeoM:       Identity matrix
-//     ColorM:     Identity matrix (that changes no colors)
+//     ImageParts:    (0, 0) - (source width, source height) to (0, 0) - (source width, source height)
+//                    (i.e. the whole source image)
+//     GeoM:          Identity matrix
+//     ColorM:        Identity matrix (that changes no colors)
+//     CompositeMode: CompositeModeSourceOver (regular alpha blending)
 //
 // Be careful that this method is potentially slow.
 // It would be better if you could call this method fewer times.
