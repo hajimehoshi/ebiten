@@ -86,22 +86,32 @@ func Init() *opengl.Context {
 }
 
 func (u *UserInterface) SetScreenSize(width, height int) bool {
+	u.m.Lock()
+	defer u.m.Unlock()
 	return u.setScreenSize(width, height, u.scale)
 }
 
 func (u *UserInterface) SetScreenScale(scale int) bool {
+	u.m.Lock()
+	defer u.m.Unlock()
 	return u.setScreenSize(u.width, u.height, scale)
 }
 
 func (u *UserInterface) ScreenScale() int {
+	u.m.RLock()
+	defer u.m.RUnlock()
 	return u.scale
 }
 
 func (u *UserInterface) ActualScreenScale() int {
+	u.m.RLock()
+	defer u.m.RUnlock()
 	return u.actualScreenScale()
 }
 
 func (u *UserInterface) Start(width, height, scale int, title string) error {
+	u.m.Lock()
+	defer u.m.Unlock()
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	mw, _ := m.GetPhysicalSize()
@@ -143,6 +153,8 @@ func (u *UserInterface) pollEvents() error {
 }
 
 func (u *UserInterface) DoEvents() error {
+	u.m.Lock()
+	defer u.m.Unlock()
 	if err := u.pollEvents(); err != nil {
 		return err
 	}
@@ -152,7 +164,7 @@ func (u *UserInterface) DoEvents() error {
 		if err := u.pollEvents(); err != nil {
 			return err
 		}
-		if u.IsClosed() {
+		if u.window.ShouldClose() {
 			return nil
 		}
 	}
@@ -160,14 +172,24 @@ func (u *UserInterface) DoEvents() error {
 }
 
 func (u *UserInterface) Terminate() {
+	u.m.Lock()
+	defer u.m.Unlock()
 	glfw.Terminate()
 }
 
 func (u *UserInterface) IsClosed() bool {
+	u.m.RLock()
+	defer u.m.RUnlock()
 	return u.window.ShouldClose()
 }
 
 func (u *UserInterface) SwapBuffers() {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.swapBuffers()
+}
+
+func (u *UserInterface) swapBuffers() {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
 	u.context.BindZeroFramebuffer()
 	// Call glFinish before glfwSwapBuffer to make sure
@@ -200,7 +222,7 @@ func (u *UserInterface) setScreenSize(width, height, scale int) bool {
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
-	u.SwapBuffers()
+	u.swapBuffers()
 
 	ch := make(chan struct{})
 	window := u.window
