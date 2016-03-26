@@ -27,7 +27,7 @@ import (
 	"github.com/hajimehoshi/go-vorbis"
 )
 
-func Decode(context *audio.Context, src io.Reader) (Stream, error) {
+func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func Decode(context *audio.Context, src io.Reader) (Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &stream{
+	s := &Stream{
 		buf:        bytes.NewReader(b),
 		sampleRate: sampleRate,
 	}

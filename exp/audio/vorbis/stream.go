@@ -16,29 +16,23 @@ package vorbis
 
 import (
 	"bytes"
-	"io"
 	"time"
 )
 
-type Stream interface {
-	io.ReadSeeker
-	Len() time.Duration
-}
-
-type stream struct {
+type Stream struct {
 	buf        *bytes.Reader
 	sampleRate int
 }
 
-func (s *stream) Read(p []byte) (int, error) {
+func (s *Stream) Read(p []byte) (int, error) {
 	return s.buf.Read(p)
 }
 
-func (s *stream) Seek(offset int64, whence int) (int64, error) {
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }
 
-func (s *stream) Len() time.Duration {
+func (s *Stream) Len() time.Duration {
 	const bytesPerSample = 4
 	return time.Duration(s.buf.Len()/bytesPerSample) * time.Second / time.Duration(s.sampleRate)
 }
