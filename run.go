@@ -46,6 +46,31 @@ func (c *runContext) IsRunningSlowly() bool {
 	return c.isRunningSlowly
 }
 
+func (c *runContext) updateScreenSize(g *graphicsContext) error {
+	if c.newScreenWidth == 0 && c.newScreenHeight == 0 && c.newScreenScale == 0 {
+		return nil
+	}
+	changed := false
+	if 0 < c.newScreenWidth || 0 < c.newScreenHeight {
+		c := ui.CurrentUI().SetScreenSize(c.newScreenWidth, c.newScreenHeight)
+		changed = changed || c
+	}
+	if 0 < c.newScreenScale {
+		c := ui.CurrentUI().SetScreenScale(c.newScreenScale)
+		changed = changed || c
+	}
+	if changed {
+		w, h := c.newScreenWidth, c.newScreenHeight
+		if err := g.setSize(w, h, ui.CurrentUI().ActualScreenScale()); err != nil {
+			return err
+		}
+	}
+	c.newScreenWidth = 0
+	c.newScreenHeight = 0
+	c.newScreenScale = 0
+	return nil
+}
+
 func (c *runContext) Run(f func(*Image) error, width, height, scale int, title string) error {
 	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
@@ -64,27 +89,9 @@ func (c *runContext) Run(f func(*Image) error, width, height, scale int, title s
 	beforeForFPS := now
 	for {
 		// TODO: setSize should be called after swapping buffers?
-		if 0 < c.newScreenWidth || 0 < c.newScreenHeight || 0 < c.newScreenScale {
-			changed := false
-			if 0 < c.newScreenWidth || 0 < c.newScreenHeight {
-				c := ui.CurrentUI().SetScreenSize(c.newScreenWidth, c.newScreenHeight)
-				changed = changed || c
-			}
-			if 0 < c.newScreenScale {
-				c := ui.CurrentUI().SetScreenScale(c.newScreenScale)
-				changed = changed || c
-			}
-			if changed {
-				w, h := c.newScreenWidth, c.newScreenHeight
-				if err := graphicsContext.setSize(w, h, ui.CurrentUI().ActualScreenScale()); err != nil {
-					return err
-				}
-			}
+		if err := c.updateScreenSize(graphicsContext); err != nil {
+			return err
 		}
-		c.newScreenWidth = 0
-		c.newScreenHeight = 0
-		c.newScreenScale = 0
-
 		if err := ui.CurrentUI().DoEvents(); err != nil {
 			return err
 		}
