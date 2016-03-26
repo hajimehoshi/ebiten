@@ -22,6 +22,7 @@ import (
 )
 
 type runContext struct {
+	isRunning       bool
 	fps             float64
 	newScreenWidth  int
 	newScreenHeight int
@@ -30,15 +31,27 @@ type runContext struct {
 	m               sync.RWMutex
 }
 
-var currentRunContext *runContext
+var currentRunContext runContext
+
+func (c *runContext) startRunning() {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.isRunning = true
+}
+
+func (c *runContext) endRunning() {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.isRunning = false
+}
 
 func (c *runContext) FPS() float64 {
-	if c == nil {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	if !c.isRunning {
 		// TODO: Should panic here?
 		return 0
 	}
-	c.m.RLock()
-	defer c.m.RUnlock()
 	return c.fps
 }
 
@@ -49,12 +62,12 @@ func (c *runContext) updateFPS(fps float64) {
 }
 
 func (c *runContext) IsRunningSlowly() bool {
-	if c == nil {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	if !c.isRunning {
 		// TODO: Should panic here?
 		return false
 	}
-	c.m.RLock()
-	defer c.m.RUnlock()
 	return c.isRunningSlowly
 }
 
@@ -92,11 +105,11 @@ func (c *runContext) updateScreenSize(g *graphicsContext) error {
 }
 
 func (c *runContext) SetScreenSize(width, height int) {
-	if c == nil {
-		panic("ebiten: SetScreenSize must be called during Run")
-	}
 	c.m.Lock()
 	defer c.m.Unlock()
+	if !c.isRunning {
+		panic("ebiten: SetScreenSize must be called during Run")
+	}
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
@@ -105,11 +118,11 @@ func (c *runContext) SetScreenSize(width, height int) {
 }
 
 func (c *runContext) SetScreenScale(scale int) {
-	if c == nil {
-		panic("ebiten: SetScreenScale must be called during Run")
-	}
 	c.m.Lock()
 	defer c.m.Unlock()
+	if !c.isRunning {
+		panic("ebiten: SetScreenScale must be called during Run")
+	}
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
@@ -151,11 +164,8 @@ func IsRunningSlowly() bool {
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
-	// TODO: This assignment does not look goroutine-safe.
-	currentRunContext = &runContext{}
-	defer func() {
-		currentRunContext = nil
-	}()
+	currentRunContext.startRunning()
+	defer currentRunContext.endRunning()
 
 	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
