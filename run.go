@@ -21,7 +21,6 @@ import (
 )
 
 type runContext struct {
-	running         bool
 	fps             float64
 	newScreenWidth  int
 	newScreenHeight int
@@ -32,19 +31,22 @@ type runContext struct {
 var currentRunContext = &runContext{}
 
 func (c *runContext) CurrentFPS() float64 {
+	if c == nil {
+		// TODO: Should panic here?
+		return 0
+	}
 	return c.fps
 }
 
 func (c *runContext) IsRunningSlowly() bool {
+	if c == nil {
+		// TODO: Should panic here?
+		return false
+	}
 	return c.isRunningSlowly
 }
 
 func (c *runContext) Run(f func(*Image) error, width, height, scale int, title string) error {
-	c.running = true
-	defer func() {
-		c.running = false
-	}()
-
 	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
 	}
@@ -124,7 +126,7 @@ func (c *runContext) Run(f func(*Image) error, width, height, scale int, title s
 }
 
 func (c *runContext) SetScreenSize(width, height int) {
-	if !c.running {
+	if c == nil {
 		panic("ebiten: SetScreenSize must be called during Run")
 	}
 	if width <= 0 || height <= 0 {
@@ -135,7 +137,7 @@ func (c *runContext) SetScreenSize(width, height int) {
 }
 
 func (c *runContext) SetScreenScale(scale int) {
-	if !c.running {
+	if c == nil {
 		panic("ebiten: SetScreenScale must be called during Run")
 	}
 	if scale <= 0 {
@@ -175,6 +177,10 @@ func IsRunningSlowly() bool {
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
+	currentRunContext = &runContext{}
+	defer func() {
+		currentRunContext = nil
+	}()
 	return currentRunContext.Run(f, width, height, scale, title)
 }
 
