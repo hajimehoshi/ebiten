@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -26,16 +27,25 @@ type runContext struct {
 	newScreenHeight int
 	newScreenScale  int
 	isRunningSlowly bool
+	m               sync.RWMutex
 }
 
-var currentRunContext = &runContext{}
+var currentRunContext *runContext
 
-func (c *runContext) CurrentFPS() float64 {
+func (c *runContext) FPS() float64 {
 	if c == nil {
 		// TODO: Should panic here?
 		return 0
 	}
+	c.m.RLock()
+	defer c.m.RUnlock()
 	return c.fps
+}
+
+func (c *runContext) updateFPS(fps float64) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.fps = fps
 }
 
 func (c *runContext) IsRunningSlowly() bool {
@@ -43,10 +53,20 @@ func (c *runContext) IsRunningSlowly() bool {
 		// TODO: Should panic here?
 		return false
 	}
+	c.m.RLock()
+	defer c.m.RUnlock()
 	return c.isRunningSlowly
 }
 
+func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.isRunningSlowly = isRunningSlowly
+}
+
 func (c *runContext) updateScreenSize(g *graphicsContext) error {
+	c.m.Lock()
+	defer c.m.Unlock()
 	if c.newScreenWidth == 0 && c.newScreenHeight == 0 && c.newScreenScale == 0 {
 		return nil
 	}
@@ -71,7 +91,72 @@ func (c *runContext) updateScreenSize(g *graphicsContext) error {
 	return nil
 }
 
-func (c *runContext) Run(f func(*Image) error, width, height, scale int, title string) error {
+func (c *runContext) SetScreenSize(width, height int) {
+	if c == nil {
+		panic("ebiten: SetScreenSize must be called during Run")
+	}
+	c.m.Lock()
+	defer c.m.Unlock()
+	if width <= 0 || height <= 0 {
+		panic("ebiten: width and height must be positive")
+	}
+	c.newScreenWidth = width
+	c.newScreenHeight = height
+}
+
+func (c *runContext) SetScreenScale(scale int) {
+	if c == nil {
+		panic("ebiten: SetScreenScale must be called during Run")
+	}
+	c.m.Lock()
+	defer c.m.Unlock()
+	if scale <= 0 {
+		panic("ebiten: scale must be positive")
+	}
+	c.newScreenScale = scale
+}
+
+// FPS represents how many times game updating happens in a second.
+const FPS = 60
+
+// CurrentFPS returns the current number of frames per second of rendering.
+//
+// This function is goroutine-safe.
+//
+// This value represents how many times rendering happens in 1/60 second and
+// NOT how many times logical game updating (a passed function to Run) happens.
+// Note that logical game updating is assured to happen 60 times in a second
+// as long as the screen is active.
+func CurrentFPS() float64 {
+	return currentRunContext.FPS()
+}
+
+// IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS of rendering.
+// The game screen is not updated when IsRunningSlowly is true.
+// It is recommended to skip heavy processing, especially drawing, when IsRunningSlowly is true.
+//
+// This function is goroutine-safe.
+func IsRunningSlowly() bool {
+	return currentRunContext.IsRunningSlowly()
+}
+
+// Run runs the game.
+// f is a function which is called at every frame.
+// The argument (*Image) is the render target that represents the screen.
+//
+// This function must be called from the main thread.
+// Note that ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
+//
+// The given function f is guaranteed to be called 60 times a second
+// even if a rendering frame is skipped.
+// f is not called when the screen is not shown.
+func Run(f func(*Image) error, width, height, scale int, title string) error {
+	// TODO: This assignment does not look goroutine-safe.
+	currentRunContext = &runContext{}
+	defer func() {
+		currentRunContext = nil
+	}()
+
 	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
 	}
@@ -89,7 +174,7 @@ func (c *runContext) Run(f func(*Image) error, width, height, scale int, title s
 	beforeForFPS := now
 	for {
 		// TODO: setSize should be called after swapping buffers?
-		if err := c.updateScreenSize(graphicsContext); err != nil {
+		if err := currentRunContext.updateScreenSize(graphicsContext); err != nil {
 			return err
 		}
 		if err := ui.CurrentUI().DoEvents(); err != nil {
@@ -100,12 +185,12 @@ func (c *runContext) Run(f func(*Image) error, width, height, scale int, title s
 		}
 		now := ui.Now()
 		// If beforeForUpdate is too old, we assume that screen is not shown.
-		c.isRunningSlowly = false
 		if int64(5*time.Second/FPS) < now-beforeForUpdate {
+			currentRunContext.setRunningSlowly(false)
 			beforeForUpdate = now
 		} else {
 			t := float64(now-beforeForUpdate) * FPS / float64(time.Second)
-			c.isRunningSlowly = t >= 2.5
+			currentRunContext.setRunningSlowly(t >= 2.5)
 			for i := 0; i < int(t); i++ {
 				if err := ui.CurrentUI().DoEvents(); err != nil {
 					return err
@@ -125,84 +210,31 @@ func (c *runContext) Run(f func(*Image) error, width, height, scale int, title s
 		now = ui.Now()
 		frames++
 		if time.Second <= time.Duration(now-beforeForFPS) {
-			c.fps = float64(frames) * float64(time.Second) / float64(now-beforeForFPS)
+			currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
 			beforeForFPS = now
 			frames = 0
 		}
 	}
 }
 
-func (c *runContext) SetScreenSize(width, height int) {
-	if c == nil {
-		panic("ebiten: SetScreenSize must be called during Run")
-	}
-	if width <= 0 || height <= 0 {
-		panic("ebiten: width and height must be positive")
-	}
-	c.newScreenWidth = width
-	c.newScreenHeight = height
-}
-
-func (c *runContext) SetScreenScale(scale int) {
-	if c == nil {
-		panic("ebiten: SetScreenScale must be called during Run")
-	}
-	if scale <= 0 {
-		panic("ebiten: scale must be positive")
-	}
-	c.newScreenScale = scale
-}
-
-// FPS represents how many times game updating happens in a second.
-const FPS = 60
-
-// CurrentFPS returns the current number of frames per second of rendering.
-//
-// This value represents how many times rendering happens in 1/60 second and
-// NOT how many times logical game updating (a passed function to Run) happens.
-// Note that logical game updating is assured to happen 60 times in a second
-// as long as the screen is active.
-func CurrentFPS() float64 {
-	return currentRunContext.CurrentFPS()
-}
-
-// IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS of rendering.
-// The game screen is not updated when IsRunningSlowly is true.
-// It is recommended to skip heavy processing, especially drawing, when IsRunningSlowly is true.
-func IsRunningSlowly() bool {
-	return currentRunContext.IsRunningSlowly()
-}
-
-// Run runs the game.
-// f is a function which is called at every frame.
-// The argument (*Image) is the render target that represents the screen.
-//
-// This function must be called from the main thread.
-// Note that ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
-//
-// The given function f is guaranteed to be called 60 times a second
-// even if a rendering frame is skipped.
-// f is not called when the screen is not shown.
-func Run(f func(*Image) error, width, height, scale int, title string) error {
-	currentRunContext = &runContext{}
-	defer func() {
-		currentRunContext = nil
-	}()
-	return currentRunContext.Run(f, width, height, scale, title)
-}
-
 // SetScreenSize changes the (logical) size of the screen.
 // This doesn't affect the current scale of the screen.
+//
+// This function is goroutine-safe.
 func SetScreenSize(width, height int) {
 	currentRunContext.SetScreenSize(width, height)
 }
 
 // SetScreenSize changes the scale of the screen.
+//
+// This function is goroutine-safe.
 func SetScreenScale(scale int) {
 	currentRunContext.SetScreenScale(scale)
 }
 
 // ScreenScale returns the current screen scale.
+//
+// This function is goroutine-safe.
 func ScreenScale() int {
 	return ui.CurrentUI().ScreenScale()
 }
