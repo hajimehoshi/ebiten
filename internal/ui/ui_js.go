@@ -34,7 +34,7 @@ func (u *UserInterface) SetScreenSize(width, height int) bool {
 }
 
 func (u *UserInterface) SetScreenScale(scale int) bool {
-	width, height := currentUI.size()
+	width, height := u.size()
 	return u.setScreenSize(width, height, scale)
 }
 

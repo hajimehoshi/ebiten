@@ -86,11 +86,11 @@ func Init() *opengl.Context {
 }
 
 func (u *UserInterface) SetScreenSize(width, height int) bool {
-	return u.setScreenSize(width, height, currentUI.scale)
+	return u.setScreenSize(width, height, u.scale)
 }
 
 func (u *UserInterface) SetScreenScale(scale int) bool {
-	return u.setScreenSize(currentUI.width, currentUI.height, scale)
+	return u.setScreenSize(u.width, u.height, scale)
 }
 
 func (u *UserInterface) ScreenScale() int {
