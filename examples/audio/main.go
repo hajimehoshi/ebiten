@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
-	"io"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -63,6 +63,7 @@ var (
 	audioContext     *audio.Context
 	musicPlayer      *Player
 	seStream         *wav.Stream
+	seBuffer         []byte
 	musicCh          = make(chan *Player)
 	seCh             = make(chan *wav.Stream)
 	mouseButtonState = map[ebiten.MouseButton]int{}
@@ -88,15 +89,14 @@ func (p *Player) updateSE() error {
 	if keyState[ebiten.KeyP] != 1 {
 		return nil
 	}
-	// Clone the stream
-	b := &bytes.Buffer{}
-	if _, err := seStream.Seek(0, 0); err != nil {
-		return err
+	if seBuffer == nil {
+		b, err := ioutil.ReadAll(seStream)
+		if err != nil {
+			return err
+		}
+		seBuffer = b
 	}
-	if _, err := io.Copy(b, seStream); err != nil {
-		return err
-	}
-	sePlayer, err := audioContext.NewPlayer(bytes.NewReader(b.Bytes()))
+	sePlayer, err := audioContext.NewPlayer(bytes.NewReader(seBuffer))
 	if err != nil {
 		return err
 	}
