@@ -33,10 +33,10 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 		return nil, err
 	}
 	if channels != 2 {
-		return nil, errors.New("audio: number of channels must be 2")
+		return nil, errors.New("vorbis: number of channels must be 2")
 	}
 	if sampleRate != context.SampleRate() {
-		return nil, fmt.Errorf("audio: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
 	}
 	// TODO: Read all data once so that Seek can be implemented easily.
 	// We should look for a wiser way.
