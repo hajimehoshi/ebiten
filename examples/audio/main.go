@@ -89,6 +89,8 @@ func (p *Player) updateSE() error {
 	if keyState[ebiten.KeyP] != 1 {
 		return nil
 	}
+	// Clone the buffer so that we can play the same SE mutiple times.
+	// TODO(hajimehoshi): This consumes memory. Can we avoid this?
 	if seBuffer == nil {
 		b, err := ioutil.ReadAll(seStream)
 		if err != nil {
