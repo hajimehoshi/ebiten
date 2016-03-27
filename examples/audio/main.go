@@ -15,8 +15,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image/color"
+	"io"
 	"log"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/exp/audio"
 	"github.com/hajimehoshi/ebiten/exp/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/exp/audio/wav"
 )
 
 const (
@@ -58,8 +61,10 @@ type Player struct {
 
 var (
 	audioContext     *audio.Context
-	player           *Player
-	playerCh         = make(chan *Player)
+	musicPlayer      *Player
+	seStream         *wav.Stream
+	musicCh          = make(chan *Player)
+	seCh             = make(chan *wav.Stream)
 	mouseButtonState = map[ebiten.MouseButton]int{}
 	keyState         = map[ebiten.Key]int{}
 )
@@ -69,6 +74,33 @@ func playerBarRect() (x, y, w, h int) {
 	x = (screenWidth - w) / 2
 	y = screenHeight - h - 16
 	return
+}
+
+func (p *Player) updateSE() error {
+	if seStream == nil {
+		return nil
+	}
+	if !ebiten.IsKeyPressed(ebiten.KeyP) {
+		keyState[ebiten.KeyP] = 0
+		return nil
+	}
+	keyState[ebiten.KeyP]++
+	if keyState[ebiten.KeyP] != 1 {
+		return nil
+	}
+	// Clone the stream
+	b := &bytes.Buffer{}
+	if _, err := seStream.Seek(0, 0); err != nil {
+		return err
+	}
+	if _, err := io.Copy(b, seStream); err != nil {
+		return err
+	}
+	sePlayer, err := audioContext.NewPlayer(bytes.NewReader(b.Bytes()))
+	if err != nil {
+		return err
+	}
+	return sePlayer.Play()
 }
 
 func (p *Player) updatePlayPause() error {
@@ -115,17 +147,26 @@ func (p *Player) updateBar() error {
 
 func update(screen *ebiten.Image) error {
 	audioContext.Update()
-	if player == nil {
+	if musicPlayer == nil {
 		select {
-		case player = <-playerCh:
+		case musicPlayer = <-musicCh:
 		default:
 		}
 	}
-	if player != nil {
-		if err := player.updateBar(); err != nil {
+	if seStream == nil {
+		select {
+		case seStream = <-seCh:
+		default:
+		}
+	}
+	if musicPlayer != nil {
+		if err := musicPlayer.updateBar(); err != nil {
 			return err
 		}
-		if err := player.updatePlayPause(); err != nil {
+		if err := musicPlayer.updatePlayPause(); err != nil {
+			return err
+		}
+		if err := musicPlayer.updateSE(); err != nil {
 			return err
 		}
 	}
@@ -135,8 +176,8 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := "00:00"
-	if player != nil {
-		c := player.audioPlayer.Current()
+	if musicPlayer != nil {
+		c := musicPlayer.audioPlayer.Current()
 
 		// Current Time
 		m := (c / time.Minute) % 100
@@ -145,7 +186,7 @@ func update(screen *ebiten.Image) error {
 
 		// Bar
 		cw, ch := playerCurrentImage.Size()
-		cx := int(time.Duration(w)*c/player.total) + x - cw/2
+		cx := int(time.Duration(w)*c/musicPlayer.total) + x - cw/2
 		cy := y - (ch-h)/2
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(cx), float64(cy))
@@ -154,8 +195,9 @@ func update(screen *ebiten.Image) error {
 
 	msg := fmt.Sprintf(`FPS: %0.2f
 Press S to toggle Play/Pause
+Press P to play SE
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-	if player == nil {
+	if musicPlayer == nil {
 		msg += "\nNow Loading..."
 	}
 	ebitenutil.DebugPrint(screen, msg)
@@ -163,16 +205,26 @@ Press S to toggle Play/Pause
 }
 
 func main() {
-	// Use a FLAC file so far: I couldn't find any good OGG/Vorbis decoder in pure Go.
-	f, err := ebitenutil.OpenFile("_resources/audio/ragtime.ogg")
+	wavF, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO: sampleRate should be obtained from the ogg file.
+	oggF, err := ebitenutil.OpenFile("_resources/audio/ragtime.ogg")
+	if err != nil {
+		log.Fatal(err)
+	}
 	audioContext = audio.NewContext(22050)
-	// TODO: This doesn't work synchronously on browsers because of decoding. Fix this.
 	go func() {
-		s, err := vorbis.Decode(audioContext, f)
+		s, err := wav.Decode(audioContext, wavF)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		seCh <- s
+		close(seCh)
+	}()
+	go func() {
+		s, err := vorbis.Decode(audioContext, oggF)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -182,11 +234,12 @@ func main() {
 			log.Fatal(err)
 			return
 		}
-		playerCh <- &Player{
+		musicCh <- &Player{
 			audioPlayer: p,
 			total:       s.Len(),
 		}
-		close(playerCh)
+		close(musicCh)
+		// TODO: Is this goroutine-safe?
 		p.Play()
 	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
