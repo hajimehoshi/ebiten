@@ -32,6 +32,7 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Remove this magic number
 	if channels != 2 {
 		return nil, errors.New("vorbis: number of channels must be 2")
 	}
@@ -45,8 +46,7 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 		return nil, err
 	}
 	s := &Stream{
-		buf:        bytes.NewReader(b),
-		sampleRate: sampleRate,
+		buf: bytes.NewReader(b),
 	}
 	return s, nil
 }

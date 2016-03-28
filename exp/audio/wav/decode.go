@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/exp/audio"
 )
@@ -31,8 +30,7 @@ const (
 )
 
 type Stream struct {
-	buf        *bytes.Reader
-	sampleRate int
+	buf *bytes.Reader
 }
 
 func (s *Stream) Read(p []byte) (int, error) {
@@ -48,9 +46,8 @@ func (s *Stream) Close() error {
 	return nil
 }
 
-func (s *Stream) Len() time.Duration {
-	const bytesPerSample = 4
-	return time.Duration(s.buf.Len()/bytesPerSample) * time.Second / time.Duration(s.sampleRate)
+func (s *Stream) Size() int64 {
+	return s.buf.Size()
 }
 
 func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
@@ -69,9 +66,11 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 		return nil, fmt.Errorf("wav: invalid header: WAVE not found")
 	}
 	channels, depth := buf[22], buf[34]
+	// TODO: Remove this magic number
 	if channels != 2 {
 		return nil, fmt.Errorf("wav: invalid header: channel num must be 2")
 	}
+	// TODO: Remove this magic number
 	if depth != 16 {
 		return nil, fmt.Errorf("wav: invalid header: depth must be 16")
 	}
@@ -84,8 +83,7 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 		return nil, err
 	}
 	s := &Stream{
-		buf:        bytes.NewReader(b),
-		sampleRate: sampleRate,
+		buf: bytes.NewReader(b),
 	}
 	return s, nil
 }

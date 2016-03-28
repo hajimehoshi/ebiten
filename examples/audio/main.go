@@ -252,7 +252,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	audioContext = audio.NewContext(22050)
+	const sampleRate = 22050
+	const bytesPerSample = 4 // TODO: This should be defined in audio package
+	audioContext = audio.NewContext(sampleRate)
 	go func() {
 		s, err := wav.Decode(audioContext, wavF)
 		if err != nil {
@@ -275,7 +277,7 @@ func main() {
 		}
 		musicCh <- &Player{
 			audioPlayer: p,
-			total:       s.Len(),
+			total:       time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
 		}
 		close(musicCh)
 		// TODO: Is this goroutine-safe?

@@ -16,12 +16,10 @@ package vorbis
 
 import (
 	"bytes"
-	"time"
 )
 
 type Stream struct {
-	buf        *bytes.Reader
-	sampleRate int
+	buf *bytes.Reader
 }
 
 func (s *Stream) Read(p []byte) (int, error) {
@@ -37,7 +35,6 @@ func (s *Stream) Close() error {
 	return nil
 }
 
-func (s *Stream) Len() time.Duration {
-	const bytesPerSample = 4
-	return time.Duration(s.buf.Len()/bytesPerSample) * time.Second / time.Duration(s.sampleRate)
+func (s *Stream) Size() int64 {
+	return s.buf.Size()
 }
