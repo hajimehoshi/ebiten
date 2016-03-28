@@ -27,6 +27,8 @@ import (
 	"github.com/hajimehoshi/go-vorbis"
 )
 
+// TODO: src should be ReadCloser?
+
 func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {

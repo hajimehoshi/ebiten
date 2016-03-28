@@ -50,6 +50,8 @@ func (s *Stream) Size() int64 {
 	return s.buf.Size()
 }
 
+// TODO: src should be ReadCloser?
+
 func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	buf := make([]byte, headerSize)
 	n, err := io.ReadFull(src, buf)
