@@ -32,6 +32,11 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }
 
+func (s *Stream) Close() error {
+	s.buf = nil
+	return nil
+}
+
 func (s *Stream) Len() time.Duration {
 	const bytesPerSample = 4
 	return time.Duration(s.buf.Len()/bytesPerSample) * time.Second / time.Duration(s.sampleRate)

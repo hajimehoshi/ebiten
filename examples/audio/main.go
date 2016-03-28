@@ -78,6 +78,14 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
+type SEStream struct {
+	*bytes.Reader
+}
+
+func (s *SEStream) Close() error {
+	return nil
+}
+
 func (p *Player) updateSE() error {
 	if seStream == nil {
 		return nil
@@ -99,7 +107,7 @@ func (p *Player) updateSE() error {
 		}
 		seBuffer = b
 	}
-	sePlayer, err := audioContext.NewPlayer(bytes.NewReader(seBuffer))
+	sePlayer, err := audioContext.NewPlayer(&SEStream{bytes.NewReader(seBuffer)})
 	if err != nil {
 		return err
 	}
@@ -166,6 +174,10 @@ func (p *Player) updateBar() error {
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	return p.audioPlayer.Seek(pos)
+}
+
+func (p *Player) close() error {
+	return p.audioPlayer.Close()
 }
 
 func update(screen *ebiten.Image) error {
@@ -271,5 +283,10 @@ func main() {
 	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
+	}
+	if musicPlayer != nil {
+		if err := musicPlayer.close(); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

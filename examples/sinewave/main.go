@@ -76,6 +76,10 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	return s.position, nil
 }
 
+func (s *stream) Close() error {
+	return nil
+}
+
 var player *audio.Player
 
 func update(screen *ebiten.Image) error {

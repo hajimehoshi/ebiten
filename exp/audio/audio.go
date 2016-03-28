@@ -17,6 +17,7 @@ package audio
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 	"time"
 
@@ -148,9 +149,14 @@ func (c *Context) SampleRate() int {
 	return c.sampleRate
 }
 
+type ReadSeekCloser interface {
+	io.ReadSeeker
+	io.Closer
+}
+
 type Player struct {
 	context *Context
-	src     io.ReadSeeker
+	src     ReadSeekCloser
 	buf     []byte
 	pos     int64
 	volume  float64
@@ -162,7 +168,7 @@ type Player struct {
 //
 // src's format must be linear PCM (16bits, 2 channel stereo, little endian)
 // without a header (e.g. RIFF header).
-func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
+func (c *Context) NewPlayer(src ReadSeekCloser) (*Player, error) {
 	c.Lock()
 	defer c.Unlock()
 	p := &Player{
@@ -177,7 +183,13 @@ func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
 		return nil, err
 	}
 	p.pos = pos
+	runtime.SetFinalizer(p, (*Player).Close)
 	return p, nil
+}
+
+func (p *Player) Close() error {
+	runtime.SetFinalizer(p, nil)
+	return p.src.Close()
 }
 
 func (p *Player) readToBuffer(length int) (int, error) {
