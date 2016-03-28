@@ -81,6 +81,7 @@ type stream struct {
 }
 
 func (s *stream) Close() error {
+	s.Reader = nil
 	return nil
 }
 
