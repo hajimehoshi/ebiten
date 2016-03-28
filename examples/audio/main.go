@@ -68,6 +68,7 @@ var (
 	seCh             = make(chan *wav.Stream)
 	mouseButtonState = map[ebiten.MouseButton]int{}
 	keyState         = map[ebiten.Key]int{}
+	volume128        = 128
 )
 
 func playerBarRect() (x, y, w, h int) {
@@ -103,6 +104,26 @@ func (p *Player) updateSE() error {
 		return err
 	}
 	return sePlayer.Play()
+}
+
+func (p *Player) updateVolume() error {
+	if p.audioPlayer == nil {
+		return nil
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyZ) {
+		volume128--
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyX) {
+		volume128++
+	}
+	if volume128 < 0 {
+		volume128 = 0
+	}
+	if 128 < volume128 {
+		volume128 = 128
+	}
+	p.audioPlayer.SetVolume(float64(volume128) / 128)
+	return nil
 }
 
 func (p *Player) updatePlayPause() error {
@@ -171,6 +192,9 @@ func update(screen *ebiten.Image) error {
 		if err := musicPlayer.updateSE(); err != nil {
 			return err
 		}
+		if err := musicPlayer.updateVolume(); err != nil {
+			return err
+		}
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -198,6 +222,7 @@ func update(screen *ebiten.Image) error {
 	msg := fmt.Sprintf(`FPS: %0.2f
 Press S to toggle Play/Pause
 Press P to play SE
+Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
 	if musicPlayer == nil {
 		msg += "\nNow Loading..."

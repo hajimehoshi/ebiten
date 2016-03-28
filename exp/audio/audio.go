@@ -153,6 +153,7 @@ type Player struct {
 	src     io.ReadSeeker
 	buf     []byte
 	pos     int64
+	volume  float64
 }
 
 // NewPlayer creates a new player with the given data to the given channel.
@@ -168,6 +169,7 @@ func (c *Context) NewPlayer(src io.ReadSeeker) (*Player, error) {
 		context: c,
 		src:     src,
 		buf:     []byte{},
+		volume:  1,
 	}
 	// Get the current position of the source.
 	pos, err := p.src.Seek(0, 1)
@@ -191,6 +193,7 @@ func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
 	r := make([]int16, lengthInBytes/2)
 	for i := 0; i < lengthInBytes/2; i++ {
 		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
+		r[i] = int16(float64(r[i]) * p.volume)
 	}
 	return r
 }
@@ -245,5 +248,19 @@ func (p *Player) Current() time.Duration {
 	return time.Duration(p.pos/bytesPerSample/channelNum) * time.Second / time.Duration(p.context.sampleRate)
 }
 
-// TODO: Volume / SetVolume?
+func (p *Player) Volume() float64 {
+	return p.volume
+}
+
+func (p *Player) SetVolume(volume float64) {
+	// TODO: What if volume is NaN?
+	if 1 < volume {
+		panic("audio: volume must <= 1")
+	}
+	if volume < 0 {
+		panic("audio: volume must >= 0")
+	}
+	p.volume = volume
+}
+
 // TODO: Panning
