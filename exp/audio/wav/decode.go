@@ -91,13 +91,19 @@ chunks:
 			if err != nil {
 				return nil, err
 			}
-			// TODO: Remove this magic number
-			if buf[2] != 2 {
-				return nil, fmt.Errorf("wav: invalid header: channel num must be 2")
+			format := int(buf[0]) | int(buf[1])<<8
+			if format != 1 {
+				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
+			channelNum := int(buf[2]) | int(buf[3])<<8
 			// TODO: Remove this magic number
-			if buf[14] != 16 {
-				return nil, fmt.Errorf("wav: invalid header: depth must be 16")
+			if channelNum != 2 {
+				return nil, fmt.Errorf("wav: channel num must be 2")
+			}
+			bitsPerSample := int(buf[14]) | int(buf[15])<<8
+			// TODO: Remove this magic number
+			if bitsPerSample != 16 {
+				return nil, fmt.Errorf("wav: bits per sample must be 16")
 			}
 			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7]<<24)
 			if int64(context.SampleRate()) != sampleRate {
