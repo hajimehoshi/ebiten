@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
-	"io/ioutil"
 	"log"
 	"time"
 
@@ -63,7 +62,7 @@ var (
 	audioContext     *audio.Context
 	musicPlayer      *Player
 	seStream         *wav.Stream
-	seBuffer         []byte
+	sePlayer         *audio.Player
 	musicCh          = make(chan *Player)
 	seCh             = make(chan *wav.Stream)
 	mouseButtonState = map[ebiten.MouseButton]int{}
@@ -98,17 +97,17 @@ func (p *Player) updateSE() error {
 	if keyState[ebiten.KeyP] != 1 {
 		return nil
 	}
-	// Clone the buffer so that we can play the same SE mutiple times.
-	// TODO(hajimehoshi): This consumes memory. Can we avoid this?
-	if seBuffer == nil {
-		b, err := ioutil.ReadAll(seStream)
+	if sePlayer == nil {
+		var err error
+		sePlayer, err = audioContext.NewPlayer(seStream)
 		if err != nil {
 			return err
 		}
-		seBuffer = b
 	}
-	sePlayer, err := audioContext.NewPlayer(&SEStream{bytes.NewReader(seBuffer)})
-	if err != nil {
+	if sePlayer.IsPlaying() {
+		return nil
+	}
+	if err := sePlayer.Rewind(); err != nil {
 		return err
 	}
 	return sePlayer.Play()
