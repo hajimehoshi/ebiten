@@ -34,9 +34,7 @@ func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Stream{
-		sampleRate: context.SampleRate(),
-	}
+	s := &Stream{}
 	ch := make(chan struct{})
 
 	// TODO: 1 is a correct second argument?
