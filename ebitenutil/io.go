@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
-
 package ebitenutil
 
 import (
-	"os"
+	"io"
 )
 
-// OpenFile opens a file and returns a stream for its data.
-//
-// This function is available both on desktops and browsers.
-func OpenFile(path string) (ReadSeekCloser, error) {
-	return os.Open(path)
+type ReadSeekCloser interface {
+	io.ReadSeeker
+	io.Closer
 }

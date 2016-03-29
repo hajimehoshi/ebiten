@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/gopherjs/gopherjs/js"
 )
@@ -33,7 +32,7 @@ func (f *file) Close() error {
 	return nil
 }
 
-func OpenFile(path string) (io.ReadCloser, error) {
+func OpenFile(path string) (ReadSeekCloser, error) {
 	var err error
 	var content *js.Object
 	ch := make(chan struct{})
