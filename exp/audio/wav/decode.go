@@ -18,74 +18,108 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/hajimehoshi/ebiten/exp/audio"
 )
 
-const (
-	headerSize = 44
-	riffHeader = "RIFF"
-	waveHeader = "WAVE"
-)
-
 type Stream struct {
-	buf *bytes.Reader
+	src        audio.ReadSeekCloser
+	headerSize int64
+	dataSize   int64
 }
 
 func (s *Stream) Read(p []byte) (int, error) {
-	return s.buf.Read(p)
+	return s.src.Read(p)
 }
 
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.buf.Seek(offset, whence)
+	return s.src.Seek(offset+s.headerSize, whence)
 }
 
 func (s *Stream) Close() error {
-	s.buf = nil
-	return nil
+	return s.src.Close()
 }
 
 func (s *Stream) Size() int64 {
-	return s.buf.Size()
+	return s.dataSize
 }
 
-// TODO: src should be ReadCloser?
-
-func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
-	buf := make([]byte, headerSize)
+func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
-	if n != headerSize {
+	if n != len(buf) {
 		return nil, fmt.Errorf("wav: invalid header")
 	}
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(buf[0:4], []byte(riffHeader)) {
-		return nil, fmt.Errorf("wav: invalid header: RIFF not found")
+	if !bytes.Equal(buf[0:4], []byte("RIFF")) {
+		return nil, fmt.Errorf("wav: invalid header: 'RIFF' not found")
 	}
-	if !bytes.Equal(buf[8:12], []byte(waveHeader)) {
-		return nil, fmt.Errorf("wav: invalid header: WAVE not found")
+	if !bytes.Equal(buf[8:12], []byte("WAVE")) {
+		return nil, fmt.Errorf("wav: invalid header: 'WAVE' not found")
 	}
-	channels, depth := buf[22], buf[34]
-	// TODO: Remove this magic number
-	if channels != 2 {
-		return nil, fmt.Errorf("wav: invalid header: channel num must be 2")
-	}
-	// TODO: Remove this magic number
-	if depth != 16 {
-		return nil, fmt.Errorf("wav: invalid header: depth must be 16")
-	}
-	sampleRate := int(buf[24]) | int(buf[25])<<8 | int(buf[26])<<16 | int(buf[27]<<24)
-	if context.SampleRate() != sampleRate {
-		return nil, fmt.Errorf("wav: sample rate must be %d but %d", context.SampleRate(), sampleRate)
-	}
-	b, err := ioutil.ReadAll(src)
-	if err != nil {
-		return nil, err
+
+	// Read chunks
+	dataSize := int64(0)
+	headerSize := int64(0)
+chunks:
+	for {
+		buf := make([]byte, 8)
+		n, err := io.ReadFull(src, buf)
+		if n != len(buf) {
+			return nil, fmt.Errorf("wav: invalid header")
+		}
+		if err != nil {
+			return nil, err
+		}
+		headerSize += 8
+		size := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7]<<24)
+		switch {
+		case bytes.Equal(buf[0:4], []byte("fmt ")):
+			if size != 16 {
+				return nil, fmt.Errorf("wav: invalid header: maybe non-PCM file?")
+			}
+			buf := make([]byte, size)
+			n, err := io.ReadFull(src, buf)
+			if n != len(buf) {
+				return nil, fmt.Errorf("wav: invalid header")
+			}
+			if err != nil {
+				return nil, err
+			}
+			// TODO: Remove this magic number
+			if buf[2] != 2 {
+				return nil, fmt.Errorf("wav: invalid header: channel num must be 2")
+			}
+			// TODO: Remove this magic number
+			if buf[14] != 16 {
+				return nil, fmt.Errorf("wav: invalid header: depth must be 16")
+			}
+			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7]<<24)
+			if int64(context.SampleRate()) != sampleRate {
+				return nil, fmt.Errorf("wav: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+			}
+			headerSize += size
+		case bytes.Equal(buf[0:4], []byte("data")):
+			dataSize = size
+			break chunks
+		default:
+			buf := make([]byte, size)
+			n, err := io.ReadFull(src, buf)
+			if n != len(buf) {
+				return nil, fmt.Errorf("wav: invalid header")
+			}
+			if err != nil {
+				return nil, err
+			}
+			headerSize += size
+		}
 	}
 	s := &Stream{
-		buf: bytes.NewReader(b),
+		src:        src,
+		headerSize: headerSize,
+		dataSize:   dataSize,
 	}
 	return s, nil
 }
