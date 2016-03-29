@@ -18,7 +18,6 @@ package vorbis
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"runtime"
 
@@ -29,7 +28,7 @@ import (
 // TODO: This just uses decodeAudioData can treat audio files other than Ogg/Vorbis.
 // TODO: This doesn't work on iOS which doesn't have Ogg/Vorbis decoder.
 
-func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
+func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err

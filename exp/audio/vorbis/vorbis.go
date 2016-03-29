@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 
 	"github.com/hajimehoshi/ebiten/exp/audio"
@@ -29,7 +28,7 @@ import (
 
 // TODO: src should be ReadCloser?
 
-func Decode(context *audio.Context, src io.Reader) (*Stream, error) {
+func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channels, sampleRate, err := vorbis.Decode(src)
 	if err != nil {
 		return nil, err
