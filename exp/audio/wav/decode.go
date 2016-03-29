@@ -33,7 +33,10 @@ func (s *Stream) Read(p []byte) (int, error) {
 }
 
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.src.Seek(offset+s.headerSize, whence)
+	if whence == 0 {
+		offset += s.headerSize
+	}
+	return s.src.Seek(offset, whence)
 }
 
 func (s *Stream) Close() error {
