@@ -5557,14 +5557,11 @@ type decoder struct {
 
 const bufferSize = 4096
 
-// TODO: Move this to ebiten!
-// TODO: Want Seek
-
 func (d *decoder) Read(out []byte) (int, error) {
 	if !d.ineof {
-		tmp := make([]byte, bufferSize)
-		n, err := d.in.Read(tmp)
-		d.inbuf = append(d.inbuf, tmp[:n]...)
+		b := make([]byte, bufferSize)
+		n, err := d.in.Read(b)
+		d.inbuf = append(d.inbuf, b[:n]...)
 		if err == io.EOF {
 			d.ineof = true
 		}
@@ -5622,10 +5619,17 @@ func (d *decoder) Close() error {
 	return nil
 }
 
+func (d *decoder) Channels() int {
+	return int(d.v.channels)
+}
+
+func (d *decoder) SampleRate() int {
+	return int(d.v.sample_rate)
+}
+
 // decode accepts an ogg stream and returns a decorded stream.
-// This returns stream IO object, number of channels, sample rate and error if needed.
 // The decorded format is 1 or 2-channel interleaved littleendian int16 values.
-func decode(in io.Reader) (io.ReadCloser, int, int, error) {
+func decode(in io.Reader) (*decoder, error) {
 	d := &decoder{
 		in:     in,
 		inbuf:  []byte{},
@@ -5633,10 +5637,10 @@ func decode(in io.Reader) (io.ReadCloser, int, int, error) {
 	}
 	runtime.SetFinalizer(d, (*decoder).Close)
 	for {
-		tmp := make([]byte, bufferSize)
-		n, err := in.Read(tmp)
+		b := make([]byte, bufferSize)
+		n, err := in.Read(b)
 		if 0 < n {
-			d.inbuf = append(d.inbuf, tmp[:n]...)
+			d.inbuf = append(d.inbuf, b[:n]...)
 		}
 		if 0 < len(d.inbuf) {
 			used := C.int(0)
@@ -5649,17 +5653,17 @@ func decode(in io.Reader) (io.ReadCloser, int, int, error) {
 			if error == C.VORBIS_need_more_data {
 				continue
 			}
-			return nil, 0, 0, fmt.Errorf("go-vorbis: Error %d", error)
+			return nil, fmt.Errorf("vorbis: decoding error %d", error)
 		}
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, 0, 0, err
+			return nil, err
 		}
 	}
 	if d.v == nil {
-		return nil, 0, 0, errors.New("go-vorbis: initializing failed")
+		return nil, errors.New("vorbis: initializing failed")
 	}
-	return d, int(d.v.channels), int(d.v.sample_rate), nil
+	return d, nil
 }

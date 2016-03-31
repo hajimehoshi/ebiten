@@ -28,16 +28,16 @@ import (
 // TODO: src should be ReadCloser?
 
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
-	decoded, channels, sampleRate, err := decode(src)
+	decoded, err := decode(src)
 	if err != nil {
 		return nil, err
 	}
 	// TODO: Remove this magic number
-	if channels != 2 {
+	if decoded.Channels() != 2 {
 		return nil, errors.New("vorbis: number of channels must be 2")
 	}
-	if sampleRate != context.SampleRate() {
-		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+	if decoded.SampleRate() != context.SampleRate() {
+		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), decoded.SampleRate())
 	}
 	// TODO: Read all data once so that Seek can be implemented easily.
 	// We should look for a wiser way.
