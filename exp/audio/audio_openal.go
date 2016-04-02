@@ -55,7 +55,43 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		sampleRate: sampleRate,
 	}
 	runtime.SetFinalizer(p, (*player).close)
-	return p.start()
+
+	n := maxBufferNum - int(p.alSource.BuffersQueued()) - len(p.alBuffers)
+	if 0 < n {
+		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
+		totalBufferNum += n
+		if maxBufferNum < totalBufferNum {
+			panic("audio: too many buffers are created")
+		}
+	}
+	if 0 < len(p.alBuffers) {
+		emptyBytes := make([]byte, bufferSize)
+		for _, buf := range p.alBuffers {
+			// Note that the third argument of only the first buffer is used.
+			buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
+			p.alSource.QueueBuffers(buf)
+		}
+		p.alBuffers = []al.Buffer{}
+	}
+	al.PlaySources(p.alSource)
+
+	go func() {
+		// TODO: Is it OK to close asap?
+		defer p.close()
+		for {
+			err := p.proceed()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				// TODO: Record the last error
+				panic(err)
+			}
+			//time.Sleep(1 * time.Second / ebiten.FPS / 2)
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
+	return nil
 }
 
 const (
@@ -108,45 +144,6 @@ func (p *player) proceed() error {
 		}
 	}
 
-	return nil
-}
-
-func (p *player) start() error {
-	n := maxBufferNum - int(p.alSource.BuffersQueued()) - len(p.alBuffers)
-	if 0 < n {
-		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
-		totalBufferNum += n
-		if maxBufferNum < totalBufferNum {
-			panic("audio: too many buffers are created")
-		}
-	}
-	if 0 < len(p.alBuffers) {
-		emptyBytes := make([]byte, bufferSize)
-		for _, buf := range p.alBuffers {
-			// Note that the third argument of only the first buffer is used.
-			buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
-			p.alSource.QueueBuffers(buf)
-		}
-		p.alBuffers = []al.Buffer{}
-	}
-	al.PlaySources(p.alSource)
-
-	go func() {
-		// TODO: Is it OK to close asap?
-		defer p.close()
-		for {
-			err := p.proceed()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				// TODO: Record the last error
-				panic(err)
-			}
-			//time.Sleep(1 * time.Second / ebiten.FPS / 2)
-			time.Sleep(1 * time.Millisecond)
-		}
-	}()
 	return nil
 }
 
