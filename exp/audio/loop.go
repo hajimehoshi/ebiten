@@ -21,7 +21,6 @@ import (
 type Loop struct {
 	stream ReadSeekCloser
 	size   int64
-	pos    int64
 }
 
 func NewLoop(stream ReadSeekCloser, size int64) ReadSeekCloser {
@@ -33,8 +32,6 @@ func NewLoop(stream ReadSeekCloser, size int64) ReadSeekCloser {
 
 func (l *Loop) Read(b []byte) (int, error) {
 	n, err := l.stream.Read(b)
-	l.pos += int64(n)
-	l.pos %= l.size
 	if err == io.EOF {
 		if _, err := l.Seek(0, 0); err != nil {
 			return 0, err
@@ -50,7 +47,11 @@ func (l *Loop) Seek(offset int64, whence int) (int64, error) {
 	case 0:
 		next = offset
 	case 1:
-		next = int64(l.pos) + offset
+		current, err := l.stream.Seek(0, 1)
+		if err != nil {
+			return 0, err
+		}
+		next = current + offset
 	case 2:
 		panic("audio: whence must be 0 or 1 for a loop stream")
 	}
@@ -59,8 +60,7 @@ func (l *Loop) Seek(offset int64, whence int) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	l.pos = pos
-	return l.pos, nil
+	return pos, nil
 }
 
 func (l *Loop) Close() error {
