@@ -262,12 +262,9 @@ func (p *Player) Volume() float64 {
 }
 
 func (p *Player) SetVolume(volume float64) {
-	// TODO: What if volume is NaN?
-	if 1 < volume {
-		panic("audio: volume must <= 1")
-	}
-	if volume < 0 {
-		panic("audio: volume must >= 0")
+	// The condition must be true when volume is NaN.
+	if !(0 <= volume && volume <= 1) {
+		panic("audio: volume must be in between 0 and 1")
 	}
 	p.volume = volume
 }
