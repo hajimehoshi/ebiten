@@ -40,13 +40,13 @@ type player struct {
 	isClosed   bool
 }
 
-func startPlaying(src io.Reader, sampleRate int) (*player, error) {
+func startPlaying(src io.Reader, sampleRate int) error {
 	if e := al.OpenDevice(); e != nil {
-		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
+		return fmt.Errorf("audio: OpenAL initialization failed: %v", e)
 	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
-		panic(fmt.Sprintf("audio: al.GenSources error: %d", err))
+		return fmt.Errorf("audio: al.GenSources error: %d", err)
 	}
 	p := &player{
 		alSource:   s[0],
@@ -55,10 +55,7 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 		sampleRate: sampleRate,
 	}
 	runtime.SetFinalizer(p, (*player).close)
-	if err := p.start(); err != nil {
-		return nil, err
-	}
-	return p, nil
+	return p.start()
 }
 
 const (

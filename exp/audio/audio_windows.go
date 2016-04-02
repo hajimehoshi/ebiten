@@ -37,6 +37,8 @@ type header struct {
 	waveHdr    C.WAVEHDR
 }
 
+// TODO: Reduce panics and use errors instead
+
 func newHeader(waveOut C.HWAVEOUT, bufferSize int) header {
 	// NOTE: This is never freed so far.
 	buf := C.malloc(C.size_t(bufferSize))
@@ -74,10 +76,7 @@ func releaseSemaphore() {
 	<-sem
 }
 
-type player struct {
-}
-
-func startPlaying(src io.Reader, sampleRate int) (*player, error) {
+func startPlaying(src io.Reader, sampleRate int) error {
 	const numBlockAlign = channelNum * bitsPerSample / 8
 	f := C.WAVEFORMATEX{
 		wFormatTag:      C.WAVE_FORMAT_PCM,
@@ -89,7 +88,7 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 	}
 	var w C.HWAVEOUT
 	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
-		panic(fmt.Sprintf("audio: waveOutOpen error: %d", err))
+		return fmt.Errorf("audio: waveOutOpen error: %d", err)
 	}
 	go func() {
 		const bufferSize = 1024
@@ -123,5 +122,5 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 		}
 		// TODO: Finalize the wave handler
 	}()
-	return &player{}, nil
+	return nil
 }

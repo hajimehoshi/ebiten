@@ -105,11 +105,10 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 // TODO: Enable to specify the format like Mono8?
 
 type Context struct {
-	sampleRate  int
-	stream      *mixedPlayersStream
-	players     map[*Player]struct{}
-	innerPlayer *player
-	frames      int
+	sampleRate int
+	stream     *mixedPlayersStream
+	players    map[*Player]struct{}
+	frames     int
 	sync.Mutex
 }
 
@@ -122,11 +121,9 @@ func NewContext(sampleRate int) *Context {
 	c.stream = &mixedPlayersStream{
 		context: c,
 	}
-	p, err := startPlaying(c.stream, c.sampleRate)
-	if err != nil {
+	if err := startPlaying(c.stream, c.sampleRate); err != nil {
 		panic(fmt.Sprintf("audio: NewContext error: %v", err))
 	}
-	c.innerPlayer = p
 	return c
 }
 
