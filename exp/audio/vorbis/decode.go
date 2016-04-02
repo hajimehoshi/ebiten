@@ -17,15 +17,34 @@
 package vorbis
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/exp/audio"
 )
 
-// TODO: src should be ReadCloser?
+type Stream struct {
+	decoded *decoded
+}
 
+func (s *Stream) Read(p []byte) (int, error) {
+	return s.decoded.Read(p)
+}
+
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	return s.decoded.Seek(offset, whence)
+}
+
+func (s *Stream) Close() error {
+	return s.decoded.Close()
+}
+
+// TODO: Should be int?
+func (s *Stream) Size() int64 {
+	return s.decoded.Size()
+}
+
+// TODO: src should be ReadCloser?
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {
@@ -39,7 +58,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
 	}
 	s := &Stream{
-		buf: bytes.NewReader(decoded),
+		decoded: decoded,
 	}
 	return s, nil
 }

@@ -21,7 +21,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -5488,7 +5488,9 @@ int stb_vorbis_get_samples_float(stb_vorbis *f, int channels, float **buffer, in
 
 #endif // STB_VORBIS_HEADER_ONLY
 
-static inline short shortPIndex(short* s, int i) { return s[i]; }
+static inline short shortValue(short* data, int i) {
+  return data[i];
+}
 
 */
 import "C"
@@ -5537,18 +5539,63 @@ func go_assert(x C.int, sentence *C.char) {
 	panic(fmt.Sprintf("go-vorbis: assertion error: %s", str))
 }
 
-func cFloatsToSlice(p *C.float, n int) []float32 {
-	s := reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(p)),
-		Len:  n,
-		Cap:  n,
+type decoded struct {
+	data           *C.short
+	sampleNum      int
+	posInBytes     int
+	bytesPerSample int
+}
+
+func (d *decoded) at(offset int) C.short {
+	// return *(*C.short)(unsafe.Pointer(uintptr(unsafe.Pointer(d.data)) + uintptr(offset)))
+	return C.shortValue(d.data, C.int(offset))
+}
+
+func (d *decoded) Read(b []byte) (int, error) {
+	l := d.sampleNum*d.bytesPerSample - d.posInBytes
+	if l > len(b) {
+		l = len(b)
 	}
-	return *(*[]float32)(unsafe.Pointer(&s))
+	// l must be even so that d.posInBytes is always even.
+	l = l / 2 * 2
+	for i := 0; i < l/2; i++ {
+		s := d.at(d.posInBytes/2 + i)
+		b[2*i] = byte(s)
+		b[2*i+1] = byte(s >> 8)
+	}
+	d.posInBytes += l
+	if d.posInBytes == d.sampleNum*d.bytesPerSample {
+		return l, io.EOF
+	}
+	return l, nil
+}
+
+func (d *decoded) Seek(offset int64, whence int) (int64, error) {
+	next := int64(0)
+	switch whence {
+	case 0:
+		next = offset
+	case 1:
+		next = int64(d.posInBytes) + offset
+	case 2:
+		next = int64(d.sampleNum*d.bytesPerSample) + offset
+	}
+	d.posInBytes = int(next)
+	return next, nil
+}
+
+func (d *decoded) Close() error {
+	runtime.SetFinalizer(d, nil)
+	C.free(unsafe.Pointer(d.data))
+	return nil
+}
+
+func (d *decoded) Size() int64 {
+	return int64(d.sampleNum * d.bytesPerSample)
 }
 
 // decode accepts an ogg stream and returns a decorded stream.
-// The decorded format is 1 or 2-channel interleaved littleendian int16 values.
-func decode(in io.ReadCloser) ([]byte, int, int, error) {
+func decode(in io.ReadCloser) (*decoded, int, int, error) {
 	mem, err := ioutil.ReadAll(in)
 	if err != nil {
 		return nil, 0, 0, err
@@ -5560,16 +5607,12 @@ func decode(in io.ReadCloser) ([]byte, int, int, error) {
 	sampleRate := C.int(0)
 	output := (*C.short)(nil)
 	sampleNum := C.stb_vorbis_decode_memory((*C.uchar)(&mem[0]), C.int(len(mem)), &channelNum, &sampleRate, &output)
-	defer C.free(unsafe.Pointer(output))
-	b := make([]byte, sampleNum*4)
-	// What if we don't have to copy to []byte and use C.short directly?
-	for i := 0; i < int(sampleNum); i++ {
-		l := C.shortPIndex(output, C.int(2*i))
-		r := C.shortPIndex(output, C.int(2*i+1))
-		b[4*i] = byte(l)
-		b[4*i+1] = byte(l >> 8)
-		b[4*i+2] = byte(r)
-		b[4*i+3] = byte(r >> 8)
+	d := &decoded{
+		data:           output,
+		sampleNum:      int(sampleNum),
+		posInBytes:     0,
+		bytesPerSample: 4,
 	}
-	return b, int(channelNum), int(sampleRate), nil
+	runtime.SetFinalizer(d, (*decoded).Close)
+	return d, int(channelNum), int(sampleRate), nil
 }
