@@ -74,7 +74,7 @@ static inline void assert_impl(int x, const char* sentence) {
 // Copied from stb_vorbis.c (https://github.com/nothings/stb/blob/79f29bafffdbf33cb566102b1635c144beba0f28/stb_vorbis.c)
 // Fixes:
 // * Replace all 'extern's with 'static'
-// * Replace 'uint8' with 'unsigned char' in stb_vorbis_decode_frame_pushdata
+// * Replace 'uint8' with 'unsigned char' in stb_vorbis_decode_frame_pushdata and stb_vorbis_decode_memory
 
 // Ogg Vorbis audio decoder - v1.07 - public domain
 // http://nothings.org/stb_vorbis/
@@ -5392,7 +5392,7 @@ int stb_vorbis_decode_filename(const char *filename, int *channels, int *sample_
 }
 #endif // NO_STDIO
 
-int stb_vorbis_decode_memory(const uint8 *mem, int len, int *channels, int *sample_rate, short **output)
+int stb_vorbis_decode_memory(const unsigned char *mem, int len, int *channels, int *sample_rate, short **output)
 {
    int data_len, offset, total, limit, error;
    short *data;
