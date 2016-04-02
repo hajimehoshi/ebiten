@@ -5488,10 +5488,6 @@ int stb_vorbis_get_samples_float(stb_vorbis *f, int channels, float **buffer, in
 
 #endif // STB_VORBIS_HEADER_ONLY
 
-static inline short shortValue(short* data, int i) {
-  return data[i];
-}
-
 */
 import "C"
 
@@ -5547,8 +5543,9 @@ type decoded struct {
 }
 
 func (d *decoded) at(offset int) C.short {
-	// return *(*C.short)(unsafe.Pointer(uintptr(unsafe.Pointer(d.data)) + uintptr(offset)))
-	return C.shortValue(d.data, C.int(offset))
+	const sizeOfShort = 2
+	p := uintptr(unsafe.Pointer(d.data))
+	return *(*C.short)(unsafe.Pointer(p + uintptr(offset*sizeOfShort)))
 }
 
 func (d *decoded) Read(b []byte) (int, error) {
