@@ -17,6 +17,7 @@
 package audio
 
 import (
+	"errors"
 	"io"
 	"runtime"
 
@@ -32,10 +33,10 @@ type player struct {
 	bufferSource      *js.Object
 }
 
-func startPlaying(src io.Reader, sampleRate int) (*player, error) {
+func startPlaying(src io.Reader, sampleRate int) error {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		return nil, nil
+		return nil
 	}
 
 	class := js.Global.Get("AudioContext")
@@ -43,7 +44,7 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 		class = js.Global.Get("webkitAudioContext")
 	}
 	if class == js.Undefined {
-		panic("audio: audio couldn't be initialized")
+		return errors.New("audio: audio couldn't be initialized")
 	}
 	p := &player{
 		src:          src,
@@ -52,10 +53,7 @@ func startPlaying(src io.Reader, sampleRate int) (*player, error) {
 		context:      class.New(),
 	}
 	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
-	if err := p.start(); err != nil {
-		return nil, err
-	}
-	return p, nil
+	return p.start()
 }
 
 func toLR(data []byte) ([]int16, []int16) {
