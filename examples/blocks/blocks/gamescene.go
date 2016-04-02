@@ -311,9 +311,7 @@ func (s *GameScene) Update(state *GameState) error {
 		}
 	}
 
-	if moved {
-		s.landingCount = 0
-	} else if !s.field.Flushing() && !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
+	if !s.field.Flushing() && !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
 		if 0 < state.Input.StateForDown() {
 			s.landingCount += 10
 		} else {
