@@ -17,9 +17,8 @@
 package vorbis
 
 import (
-	"bytes"
+	"io"
 	"io/ioutil"
-	"runtime"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/exp/audio"
@@ -28,9 +27,61 @@ import (
 // TODO: This just uses decodeAudioData can treat audio files other than Ogg/Vorbis.
 // TODO: This doesn't work on iOS which doesn't have Ogg/Vorbis decoder.
 
+type Stream struct {
+	leftData   []float32
+	rightData  []float32
+	posInBytes int
+}
+
+func (s *Stream) Read(b []byte) (int, error) {
+	l := len(s.leftData)*4 - s.posInBytes
+	if l > len(b) {
+		l = len(b)
+	}
+	l = l / 4 * 4
+	for i := 0; i < l/4; i++ {
+		il := int16(s.leftData[s.posInBytes/4+i] * (1 << 15))
+		ir := int16(s.rightData[s.posInBytes/4+i] * (1 << 15))
+		b[4*i] = uint8(il)
+		b[4*i+1] = uint8(il >> 8)
+		b[4*i+2] = uint8(ir)
+		b[4*i+3] = uint8(ir >> 8)
+	}
+	s.posInBytes += l
+	if s.posInBytes == len(s.leftData)*4 {
+		return l, io.EOF
+	}
+	return l, nil
+}
+
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	next := int64(0)
+	switch whence {
+	case 0:
+		next = offset
+	case 1:
+		next = int64(s.posInBytes) + offset
+	case 2:
+		next = int64(len(s.leftData)*4) + offset
+	}
+	s.posInBytes = int(next)
+	return next, nil
+}
+
+func (s *Stream) Close() error {
+	return nil
+}
+
+func (s *Stream) Size() int64 {
+	return int64(len(s.leftData) * 4)
+}
+
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
+		return nil, err
+	}
+	if err := src.Close(); err != nil {
 		return nil, err
 	}
 	s := &Stream{}
@@ -39,24 +90,9 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	// TODO: 1 is a correct second argument?
 	oc := js.Global.Get("OfflineAudioContext").New(2, 1, context.SampleRate())
 	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
-		go func() {
-			defer close(ch)
-			il := buf.Call("getChannelData", 0).Interface().([]float32)
-			ir := buf.Call("getChannelData", 1).Interface().([]float32)
-			b := make([]byte, len(il)*4)
-			for i := 0; i < len(il); i++ {
-				l := int16(il[i] * (1 << 15))
-				r := int16(ir[i] * (1 << 15))
-				b[4*i] = uint8(l)
-				b[4*i+1] = uint8(l >> 8)
-				b[4*i+2] = uint8(r)
-				b[4*i+3] = uint8(r >> 8)
-				if i%16384 == 0 {
-					runtime.Gosched()
-				}
-			}
-			s.buf = bytes.NewReader(b)
-		}()
+		s.leftData = buf.Call("getChannelData", 0).Interface().([]float32)
+		s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
+		close(ch)
 	})
 	<-ch
 	return s, nil
