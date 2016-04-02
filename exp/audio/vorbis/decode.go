@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/hajimehoshi/ebiten/exp/audio"
 )
@@ -28,25 +27,19 @@ import (
 // TODO: src should be ReadCloser?
 
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
-	decoded, err := decode(src)
+	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {
 		return nil, err
 	}
 	// TODO: Remove this magic number
-	if decoded.Channels() != 2 {
+	if channelNum != 2 {
 		return nil, errors.New("vorbis: number of channels must be 2")
 	}
-	if decoded.SampleRate() != context.SampleRate() {
-		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), decoded.SampleRate())
-	}
-	// TODO: Read all data once so that Seek can be implemented easily.
-	// We should look for a wiser way.
-	b, err := ioutil.ReadAll(decoded)
-	if err != nil {
-		return nil, err
+	if sampleRate != context.SampleRate() {
+		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
 	}
 	s := &Stream{
-		buf: bytes.NewReader(b),
+		buf: bytes.NewReader(decoded),
 	}
 	return s, nil
 }

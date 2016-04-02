@@ -17,12 +17,11 @@
 package vorbis
 
 import (
-	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"reflect"
-	"runtime"
 	"unsafe"
 )
 
@@ -5489,7 +5488,7 @@ int stb_vorbis_get_samples_float(stb_vorbis *f, int channels, float **buffer, in
 
 #endif // STB_VORBIS_HEADER_ONLY
 
-static inline float* floatPPIndex(float** p, int i) { return p[i]; }
+static inline short shortPIndex(short* s, int i) { return s[i]; }
 
 */
 import "C"
@@ -5547,123 +5546,29 @@ func cFloatsToSlice(p *C.float, n int) []float32 {
 	return *(*[]float32)(unsafe.Pointer(&s))
 }
 
-type decoder struct {
-	v      *C.stb_vorbis
-	in     io.Reader
-	inbuf  []byte
-	outbuf []byte
-	ineof  bool
-}
-
-const bufferSize = 4096
-
-func (d *decoder) Read(out []byte) (int, error) {
-	if !d.ineof {
-		b := make([]byte, bufferSize)
-		n, err := d.in.Read(b)
-		d.inbuf = append(d.inbuf, b[:n]...)
-		if err == io.EOF {
-			d.ineof = true
-		}
-		if err != nil && err != io.EOF {
-			return 0, err
-		}
-	}
-
-	ns := C.int(0)
-	outputs := (**C.float)(nil)
-	numCh := C.int(0)
-	used := C.int(0)
-	if 0 < len(d.inbuf) {
-		used = C.stb_vorbis_decode_frame_pushdata(d.v, (*C.uchar)(&d.inbuf[0]), C.int(len(d.inbuf)), &numCh, &outputs, &ns)
-		d.inbuf = d.inbuf[used:]
-	}
-	if 0 < used {
-		if ns == 0 {
-			// seek/error
-			return 0, nil
-		}
-		left := C.floatPPIndex(outputs, 0)
-		right := C.floatPPIndex(outputs, 0)
-		if numCh > 1 {
-			right = C.floatPPIndex(outputs, 1)
-		}
-		l := cFloatsToSlice(left, int(ns))
-		r := cFloatsToSlice(right, int(ns))
-		out := make([]byte, int(ns)*4)
-		for i := 0; i < int(ns); i++ {
-			l := int16(l[i] * math.MaxInt16)
-			r := int16(r[i] * math.MaxInt16)
-			out[4*i] = uint8(l)
-			out[4*i+1] = uint8(l >> 8)
-			out[4*i+2] = uint8(r)
-			out[4*i+3] = uint8(r >> 8)
-		}
-		d.outbuf = append(d.outbuf, out...)
-	}
-
-	ncopied := copy(out, d.outbuf)
-	d.outbuf = d.outbuf[ncopied:]
-	if !d.ineof {
-		return ncopied, nil
-	}
-	if 0 < len(d.inbuf) || 0 < len(d.outbuf) {
-		return ncopied, nil
-	}
-	return ncopied, io.EOF
-}
-
-func (d *decoder) Close() error {
-	runtime.SetFinalizer(d, nil)
-	C.stb_vorbis_close(d.v)
-	return nil
-}
-
-func (d *decoder) Channels() int {
-	return int(d.v.channels)
-}
-
-func (d *decoder) SampleRate() int {
-	return int(d.v.sample_rate)
-}
-
 // decode accepts an ogg stream and returns a decorded stream.
 // The decorded format is 1 or 2-channel interleaved littleendian int16 values.
-func decode(in io.Reader) (*decoder, error) {
-	d := &decoder{
-		in:     in,
-		inbuf:  []byte{},
-		outbuf: []byte{},
+func decode(in io.Reader) ([]byte, int, int, error) {
+	// TODO: in should be io.ReadCloser
+
+	mem, err := ioutil.ReadAll(in)
+	if err != nil {
+		return nil, 0, 0, err
 	}
-	runtime.SetFinalizer(d, (*decoder).Close)
-	for {
-		b := make([]byte, bufferSize)
-		n, err := in.Read(b)
-		if 0 < n {
-			d.inbuf = append(d.inbuf, b[:n]...)
-		}
-		if 0 < len(d.inbuf) {
-			used := C.int(0)
-			error := C.int(0)
-			d.v = C.stb_vorbis_open_pushdata((*C.uchar)(&d.inbuf[0]), C.int(len(d.inbuf)), &used, &error, nil)
-			d.inbuf = d.inbuf[used:]
-			if d.v != nil {
-				break
-			}
-			if error == C.VORBIS_need_more_data {
-				continue
-			}
-			return nil, fmt.Errorf("vorbis: decoding error %d", error)
-		}
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
+	channelNum := C.int(0)
+	sampleRate := C.int(0)
+	output := (*C.short)(nil)
+	sampleNum := C.stb_vorbis_decode_memory((*C.uchar)(&mem[0]), C.int(len(mem)), &channelNum, &sampleRate, &output)
+	defer C.free(unsafe.Pointer(output))
+	b := make([]byte, sampleNum*4)
+	// What if we don't have to copy to []byte and use C.short directly?
+	for i := 0; i < int(sampleNum); i++ {
+		l := C.shortPIndex(output, C.int(2*i))
+		r := C.shortPIndex(output, C.int(2*i+1))
+		b[4*i] = byte(l)
+		b[4*i+1] = byte(l >> 8)
+		b[4*i+2] = byte(r)
+		b[4*i+3] = byte(r >> 8)
 	}
-	if d.v == nil {
-		return nil, errors.New("vorbis: initializing failed")
-	}
-	return d, nil
+	return b, int(channelNum), int(sampleRate), nil
 }
