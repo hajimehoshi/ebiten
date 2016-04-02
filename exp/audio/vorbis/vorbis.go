@@ -5548,11 +5548,12 @@ func cFloatsToSlice(p *C.float, n int) []float32 {
 
 // decode accepts an ogg stream and returns a decorded stream.
 // The decorded format is 1 or 2-channel interleaved littleendian int16 values.
-func decode(in io.Reader) ([]byte, int, int, error) {
-	// TODO: in should be io.ReadCloser
-
+func decode(in io.ReadCloser) ([]byte, int, int, error) {
 	mem, err := ioutil.ReadAll(in)
 	if err != nil {
+		return nil, 0, 0, err
+	}
+	if err := in.Close(); err != nil {
 		return nil, 0, 0, err
 	}
 	channelNum := C.int(0)
