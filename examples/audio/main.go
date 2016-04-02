@@ -253,7 +253,10 @@ func main() {
 	}
 	const sampleRate = 22050
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
-	audioContext = audio.NewContext(sampleRate)
+	audioContext, err = audio.NewContext(sampleRate)
+	if err != nil {
+		log.Fatal(err)
+	}
 	go func() {
 		s, err := wav.Decode(audioContext, wavF)
 		if err != nil {

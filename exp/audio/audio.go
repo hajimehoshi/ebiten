@@ -112,7 +112,7 @@ type Context struct {
 	sync.Mutex
 }
 
-func NewContext(sampleRate int) *Context {
+func NewContext(sampleRate int) (*Context, error) {
 	// TODO: Panic if one context exists.
 	c := &Context{
 		sampleRate: sampleRate,
@@ -122,9 +122,9 @@ func NewContext(sampleRate int) *Context {
 		context: c,
 	}
 	if err := startPlaying(c.stream, c.sampleRate); err != nil {
-		panic(fmt.Sprintf("audio: NewContext error: %v", err))
+		return nil, fmt.Errorf("audio: NewContext error: %v", err)
 	}
-	return c
+	return c, nil
 }
 
 // Update proceeds the inner (logical) time of the context by 1/60 second.

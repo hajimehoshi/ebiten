@@ -34,7 +34,11 @@ const (
 var audioContext *audio.Context
 
 func init() {
-	audioContext = audio.NewContext(sampleRate)
+	var err error
+	audioContext, err = audio.NewContext(sampleRate)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 var frames = 0
