@@ -25,6 +25,7 @@ package audio
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -37,9 +38,7 @@ type header struct {
 	waveHdr    C.WAVEHDR
 }
 
-// TODO: Reduce panics and use errors instead
-
-func newHeader(waveOut C.HWAVEOUT, bufferSize int) header {
+func newHeader(waveOut C.HWAVEOUT, bufferSize int) (header, error) {
 	// NOTE: This is never freed so far.
 	buf := C.malloc(C.size_t(bufferSize))
 	h := header{
@@ -52,19 +51,20 @@ func newHeader(waveOut C.HWAVEOUT, bufferSize int) header {
 	}
 	// TODO: Need to unprepare to avoid memory leak?
 	if err := C.waveOutPrepareHeader(waveOut, &h.waveHdr, C.sizeOfWavehdr); err != C.MMSYSERR_NOERROR {
-		panic(fmt.Sprintf("audio: waveOutPrepareHeader error %d", err))
+		return header{}, fmt.Errorf("audio: waveOutPrepareHeader error: %d", err)
 	}
-	return h
+	return h, nil
 }
 
-func (h *header) Write(waveOut C.HWAVEOUT, data []byte) {
+func (h *header) Write(waveOut C.HWAVEOUT, data []byte) error {
 	if len(data) != h.bufferSize {
-		panic("audio: len(data) must equal to h.bufferSize")
+		return errors.New("audio: len(data) must equal to h.bufferSize")
 	}
 	C.memcpy(h.buffer, unsafe.Pointer(&data[0]), C.size_t(h.bufferSize))
 	if err := C.waveOutWrite(waveOut, &h.waveHdr, C.sizeOfWavehdr); err != C.MMSYSERR_NOERROR {
-		panic(fmt.Sprintf("audio: waveOutWriter error %d", err))
+		return fmt.Errorf("audio: waveOutWriter error: %d", err)
 	}
+	return nil
 }
 
 const numHeader = 8
@@ -107,7 +107,11 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		headers: make([]header, numHeader),
 	}
 	for i := 0; i < numHeader; i++ {
-		p.headers[i] = newHeader(w, bufferSize)
+		var err error
+		p.headers[i], err = newHeader(w, bufferSize)
+		if err != nil {
+			return err
+		}
 	}
 	go func() {
 		defer p.close()
@@ -133,7 +137,9 @@ func (p *player) proceed() error {
 		p.buffer = append(p.buffer, b[:n]...)
 		for bufferSize <= len(p.buffer) {
 			sem <- struct{}{}
-			p.headers[p.i].Write(p.out, p.buffer[:bufferSize])
+			if err := p.headers[p.i].Write(p.out, p.buffer[:bufferSize]); err != nil {
+				return err
+			}
 			p.buffer = p.buffer[bufferSize:]
 			p.i++
 			p.i %= len(p.headers)
