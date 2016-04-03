@@ -19,7 +19,7 @@ package audio
 import (
 	"errors"
 	"io"
-	"runtime"
+	"time"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten"
@@ -64,7 +64,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 				// TODO: Record the last error
 				panic(err)
 			}
-			runtime.Gosched()
+			time.Sleep(1 * time.Millisecond)
 		}
 	}()
 	return nil
