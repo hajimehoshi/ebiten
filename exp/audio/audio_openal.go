@@ -61,7 +61,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
 		totalBufferNum += n
 		if maxBufferNum < totalBufferNum {
-			panic("audio: too many buffers are created")
+			panic("audio: not reach: too many buffers are created")
 		}
 	}
 	if 0 < len(p.alBuffers) {
@@ -105,14 +105,14 @@ var (
 
 func (p *player) proceed() error {
 	if err := al.Error(); err != 0 {
-		panic(fmt.Sprintf("audio: before proceed: %d", err))
+		return fmt.Errorf("audio: before proceed: %d", err)
 	}
 	processedNum := p.alSource.BuffersProcessed()
 	if 0 < processedNum {
 		bufs := tmpAlBuffers[:processedNum]
 		p.alSource.UnqueueBuffers(bufs...)
 		if err := al.Error(); err != 0 {
-			panic(fmt.Sprintf("audio: Unqueue in process: %d", err))
+			return fmt.Errorf("audio: Unqueue in process: %d", err)
 		}
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
@@ -125,7 +125,7 @@ func (p *player) proceed() error {
 			buf.BufferData(al.FormatStereo16, tmpBuffer[:n], int32(p.sampleRate))
 			p.alSource.QueueBuffers(buf)
 			if err := al.Error(); err != 0 {
-				panic(fmt.Sprintf("audio: Queue in process: %d", err))
+				return fmt.Errorf("audio: Queue in process: %d", err)
 			}
 		}
 		if err != nil {
@@ -140,7 +140,7 @@ func (p *player) proceed() error {
 		al.RewindSources(p.alSource)
 		al.PlaySources(p.alSource)
 		if err := al.Error(); err != 0 {
-			panic(fmt.Sprintf("audio: PlaySource in process: %d", err))
+			return fmt.Errorf("audio: PlaySource in process: %d", err)
 		}
 	}
 
@@ -150,7 +150,7 @@ func (p *player) proceed() error {
 // TODO: When is this called? Can we remove this?
 func (p *player) close() error {
 	if err := al.Error(); err != 0 {
-		panic(fmt.Sprintf("audio: error before closing: %d", err))
+		return fmt.Errorf("audio: error before closing: %d", err)
 	}
 	if p.isClosed {
 		return nil
@@ -166,7 +166,7 @@ func (p *player) close() error {
 	}
 	p.isClosed = true
 	if err := al.Error(); err != 0 {
-		panic(fmt.Sprintf("audio: error after closing: %d", err))
+		return fmt.Errorf("audio: error after closing: %d", err)
 	}
 	runtime.SetFinalizer(p, nil)
 	return nil
