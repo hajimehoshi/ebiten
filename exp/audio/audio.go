@@ -261,6 +261,8 @@ func (p *Player) Volume() float64 {
 	return p.volume
 }
 
+// SetVolume sets the volume.
+// volume must be in between 0 and 1. This function panics otherwise.
 func (p *Player) SetVolume(volume float64) {
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
