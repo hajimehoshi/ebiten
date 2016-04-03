@@ -47,13 +47,27 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		return errors.New("audio: audio couldn't be initialized")
 	}
 	p := &player{
-		src:          src,
-		sampleRate:   sampleRate,
-		bufferSource: nil,
-		context:      class.New(),
+		src:               src,
+		sampleRate:        sampleRate,
+		bufferSource:      nil,
+		context:           class.New(),
+		positionInSamples: int64(p.context.Get("currentTime").Float() * float64(p.sampleRate)),
 	}
-	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
-	return p.start()
+	go func() {
+		defer p.close()
+		for {
+			err := p.proceed()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				// TODO: Record the last error
+				panic(err)
+			}
+			runtime.Gosched()
+		}
+	}()
+	return nil
 }
 
 func toLR(data []byte) ([]int16, []int16) {
@@ -100,25 +114,6 @@ func (p *player) proceed() error {
 		p.positionInSamples += int64(len(il))
 	}
 	return err
-}
-
-func (p *player) start() error {
-	// TODO: What if play is already called?
-	go func() {
-		defer p.close()
-		for {
-			err := p.proceed()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				// TODO: Record the last error
-				panic(err)
-			}
-			runtime.Gosched()
-		}
-	}()
-	return nil
 }
 
 func (p *player) close() error {
