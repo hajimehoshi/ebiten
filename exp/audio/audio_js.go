@@ -47,12 +47,12 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		return errors.New("audio: audio couldn't be initialized")
 	}
 	p := &player{
-		src:               src,
-		sampleRate:        sampleRate,
-		bufferSource:      nil,
-		context:           class.New(),
-		positionInSamples: int64(p.context.Get("currentTime").Float() * float64(p.sampleRate)),
+		src:          src,
+		sampleRate:   sampleRate,
+		bufferSource: nil,
+		context:      class.New(),
 	}
+	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	go func() {
 		defer p.close()
 		for {
