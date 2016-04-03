@@ -76,6 +76,16 @@ func releaseSemaphore() {
 	<-sem
 }
 
+type player struct {
+	src     io.Reader
+	out     C.HWAVEOUT
+	i       int
+	buffer  []byte
+	headers []header
+}
+
+const bufferSize = 1024
+
 func startPlaying(src io.Reader, sampleRate int) error {
 	const numBlockAlign = channelNum * bitsPerSample / 8
 	f := C.WAVEFORMATEX{
@@ -90,27 +100,19 @@ func startPlaying(src io.Reader, sampleRate int) error {
 	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
 		return fmt.Errorf("audio: waveOutOpen error: %d", err)
 	}
+	p := &player{
+		src:     src,
+		out:     w,
+		buffer:  []byte{},
+		headers: make([]header, numHeader),
+	}
+	for i := 0; i < numHeader; i++ {
+		p.headers[i] = newHeader(w, bufferSize)
+	}
 	go func() {
-		const bufferSize = 1024
-		b := []byte{}
-		bb := make([]byte, bufferSize)
-		headers := make([]header, numHeader)
-		for i := 0; i < numHeader; i++ {
-			headers[i] = newHeader(w, bufferSize)
-		}
-		i := 0
+		defer p.close()
 		for {
-			n, err := src.Read(bb)
-			if 0 < n {
-				b = append(b, bb[:n]...)
-				for bufferSize <= len(b) {
-					sem <- struct{}{}
-					headers[i].Write(w, b[:bufferSize])
-					b = b[bufferSize:]
-					i++
-					i %= len(headers)
-				}
-			}
+			err := p.proceed()
 			if err == io.EOF {
 				break
 			}
@@ -120,7 +122,26 @@ func startPlaying(src io.Reader, sampleRate int) error {
 			}
 			time.Sleep(1 * time.Millisecond)
 		}
-		// TODO: Finalize the wave handler
 	}()
 	return nil
+}
+
+func (p *player) proceed() error {
+	b := make([]byte, bufferSize)
+	n, err := p.src.Read(b)
+	if 0 < n {
+		p.buffer = append(p.buffer, b[:n]...)
+		for bufferSize <= len(p.buffer) {
+			sem <- struct{}{}
+			p.headers[p.i].Write(p.out, p.buffer[:bufferSize])
+			p.buffer = p.buffer[bufferSize:]
+			p.i++
+			p.i %= len(p.headers)
+		}
+	}
+	return err
+}
+
+func (p *player) close() {
+	// TODO: Implement this
 }
