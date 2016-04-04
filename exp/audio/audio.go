@@ -28,6 +28,9 @@ type mixingStream struct {
 	writtenBytes int
 	frames       int
 	players      map[*Player]struct{}
+
+	// Note that Read (and other methods) need to be concurrent safe
+	// because Read is called from another groutine (see NewContext).
 	sync.RWMutex
 }
 
@@ -46,6 +49,12 @@ const (
 	// TODO: This assumes that channelNum is a power of 2.
 	mask = ^(channelNum*bytesPerSample - 1)
 )
+
+func (s *mixingStream) SampleRate() int {
+	s.RLock()
+	defer s.RUnlock()
+	return s.sampleRate
+}
 
 func (s *mixingStream) Read(b []byte) (int, error) {
 	s.Lock()
@@ -67,7 +76,7 @@ func (s *mixingStream) Read(b []byte) (int, error) {
 	closed := []*Player{}
 	l := len(b)
 	for p := range s.players {
-		_, err := p.readToBuffer(l)
+		err := p.readToBuffer(l)
 		if err == io.EOF {
 			closed = append(closed, p)
 		} else if err != nil {
@@ -104,10 +113,11 @@ func (s *mixingStream) Read(b []byte) (int, error) {
 	return l, nil
 }
 
-func (s *mixingStream) update() {
+func (s *mixingStream) update() error {
 	s.Lock()
 	defer s.Unlock()
 	s.frames++
+	return nil
 }
 
 func (s *mixingStream) newPlayer(src ReadSeekCloser) (*Player, error) {
@@ -221,14 +231,13 @@ func (c *Context) Update() error {
 		return err
 	default:
 	}
-	c.stream.update()
-	return nil
+	return c.stream.update()
 }
 
 // SampleRate returns the sample rate.
 // All audio source must have the same sample rate.
 func (c *Context) SampleRate() int {
-	return c.stream.sampleRate
+	return c.stream.SampleRate()
 }
 
 // ReadSeekCloser is an io.ReadSeeker and io.Closer.
@@ -260,13 +269,13 @@ func (p *Player) Close() error {
 	return p.stream.closePlayer(p)
 }
 
-func (p *Player) readToBuffer(length int) (int, error) {
+func (p *Player) readToBuffer(length int) error {
 	bb := make([]byte, length)
 	n, err := p.src.Read(bb)
 	if 0 < n {
 		p.buf = append(p.buf, bb[:n]...)
 	}
-	return n, err
+	return err
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
