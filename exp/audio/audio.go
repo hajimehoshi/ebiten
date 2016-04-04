@@ -173,22 +173,21 @@ func (s *mixingStream) playerCurrent(player *Player) time.Duration {
 // TODO: Enable to specify the format like Mono8?
 
 type Context struct {
-	sampleRate int
-	stream     *mixingStream
-	errorCh    chan error
+	stream  *mixingStream
+	errorCh chan error
 }
 
 func NewContext(sampleRate int) (*Context, error) {
 	// TODO: Panic if one context exists.
 	c := &Context{
-		sampleRate: sampleRate,
-		errorCh:    make(chan error),
+		errorCh: make(chan error),
 	}
 	c.stream = &mixingStream{
 		sampleRate: sampleRate,
 		players:    map[*Player]struct{}{},
 	}
-	p, err := newPlayer(c.stream, c.sampleRate)
+	// TODO: Rename this other than player
+	p, err := newPlayer(c.stream, sampleRate)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +228,7 @@ func (c *Context) Update() error {
 // SampleRate returns the sample rate.
 // All audio source must have the same sample rate.
 func (c *Context) SampleRate() int {
-	return c.sampleRate
+	return c.stream.sampleRate
 }
 
 // ReadSeekCloser is an io.ReadSeeker and io.Closer.
