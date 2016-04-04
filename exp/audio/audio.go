@@ -15,7 +15,6 @@
 package audio
 
 import (
-	"fmt"
 	"io"
 	"runtime"
 	"sync"
@@ -121,9 +120,25 @@ func NewContext(sampleRate int) (*Context, error) {
 	c.stream = &mixedPlayersStream{
 		context: c,
 	}
-	if err := startPlaying(c.stream, c.sampleRate); err != nil {
-		return nil, fmt.Errorf("audio: NewContext error: %v", err)
+	p, err := newPlayer(c.stream, c.sampleRate)
+	if err != nil {
+		return nil, err
 	}
+	go func() {
+		// TODO: Is it OK to close asap?
+		defer p.close()
+		for {
+			err := p.proceed()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				// TODO: Record the last error
+				panic(err)
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
 	return c, nil
 }
 

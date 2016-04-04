@@ -19,7 +19,6 @@ package audio
 import (
 	"errors"
 	"io"
-	"time"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten"
@@ -33,18 +32,13 @@ type player struct {
 	bufferSource      *js.Object
 }
 
-func startPlaying(src io.Reader, sampleRate int) error {
-	// Do nothing in node.js.
-	if js.Global.Get("require") != js.Undefined {
-		return nil
-	}
-
+func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	class := js.Global.Get("AudioContext")
 	if class == js.Undefined {
 		class = js.Global.Get("webkitAudioContext")
 	}
 	if class == js.Undefined {
-		return errors.New("audio: audio couldn't be initialized")
+		return nil, errors.New("audio: audio couldn't be initialized")
 	}
 	p := &player{
 		src:          src,
@@ -53,21 +47,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		context:      class.New(),
 	}
 	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
-	go func() {
-		defer p.close()
-		for {
-			err := p.proceed()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				// TODO: Record the last error
-				panic(err)
-			}
-			time.Sleep(1 * time.Millisecond)
-		}
-	}()
-	return nil
+	return p, nil
 }
 
 func toLR(data []byte) ([]int16, []int16) {

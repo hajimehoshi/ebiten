@@ -40,13 +40,13 @@ type player struct {
 	isClosed   bool
 }
 
-func startPlaying(src io.Reader, sampleRate int) error {
+func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	if e := al.OpenDevice(); e != nil {
-		return fmt.Errorf("audio: OpenAL initialization failed: %v", e)
+		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
 	}
 	s := al.GenSources(1)
 	if err := al.Error(); err != 0 {
-		return fmt.Errorf("audio: al.GenSources error: %d", err)
+		return nil, fmt.Errorf("audio: al.GenSources error: %d", err)
 	}
 	p := &player{
 		alSource:   s[0],
@@ -74,24 +74,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		p.alBuffers = []al.Buffer{}
 	}
 	al.PlaySources(p.alSource)
-
-	go func() {
-		// TODO: Is it OK to close asap?
-		defer p.close()
-		for {
-			err := p.proceed()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				// TODO: Record the last error
-				panic(err)
-			}
-			//time.Sleep(1 * time.Second / ebiten.FPS / 2)
-			time.Sleep(1 * time.Millisecond)
-		}
-	}()
-	return nil
+	return p, nil
 }
 
 const (

@@ -28,7 +28,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 	"unsafe"
 )
 
@@ -86,7 +85,7 @@ type player struct {
 
 const bufferSize = 1024
 
-func startPlaying(src io.Reader, sampleRate int) error {
+func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	const numBlockAlign = channelNum * bitsPerSample / 8
 	f := C.WAVEFORMATEX{
 		wFormatTag:      C.WAVE_FORMAT_PCM,
@@ -98,7 +97,7 @@ func startPlaying(src io.Reader, sampleRate int) error {
 	}
 	var w C.HWAVEOUT
 	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
-		return fmt.Errorf("audio: waveOutOpen error: %d", err)
+		return nil, fmt.Errorf("audio: waveOutOpen error: %d", err)
 	}
 	p := &player{
 		src:     src,
@@ -110,24 +109,10 @@ func startPlaying(src io.Reader, sampleRate int) error {
 		var err error
 		p.headers[i], err = newHeader(w, bufferSize)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	go func() {
-		defer p.close()
-		for {
-			err := p.proceed()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				// TODO: Propagate this error?
-				panic(err)
-			}
-			time.Sleep(1 * time.Millisecond)
-		}
-	}()
-	return nil
+	return p, nil
 }
 
 func (p *player) proceed() error {
