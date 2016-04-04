@@ -28,7 +28,7 @@ type mixingStream struct {
 	writtenBytes int
 	frames       int
 	players      map[*Player]struct{}
-	sync.Mutex
+	sync.RWMutex
 }
 
 func min(a, b int) int {
@@ -149,8 +149,8 @@ func (s *mixingStream) removePlayer(player *Player) {
 }
 
 func (s *mixingStream) hasPlayer(player *Player) bool {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	_, ok := s.players[player]
 	return ok
 }
@@ -164,8 +164,8 @@ func (s *mixingStream) seekPlayer(player *Player, offset time.Duration) error {
 }
 
 func (s *mixingStream) playerCurrent(player *Player) time.Duration {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	sample := player.pos / bytesPerSample / channelNum
 	return time.Duration(sample) * time.Second / time.Duration(s.sampleRate)
 }
@@ -232,11 +232,13 @@ func (c *Context) SampleRate() int {
 	return c.sampleRate
 }
 
+// ReadSeekCloser is an io.ReadSeeker and io.Closer.
 type ReadSeekCloser interface {
 	io.ReadSeeker
 	io.Closer
 }
 
+// Player is an audio player which has one stream.
 type Player struct {
 	stream *mixingStream
 	src    ReadSeekCloser
