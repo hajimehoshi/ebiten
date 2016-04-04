@@ -100,7 +100,7 @@ func (p *player) proceed() error {
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
 
-	for 0 < len(p.alBuffers) {
+	if 0 < len(p.alBuffers) {
 		n, err := p.source.Read(tmpBuffer)
 		if 0 < n {
 			buf := p.alBuffers[0]
@@ -130,7 +130,6 @@ func (p *player) proceed() error {
 	return nil
 }
 
-// TODO: When is this called? Can we remove this?
 func (p *player) close() error {
 	if err := al.Error(); err != 0 {
 		return fmt.Errorf("audio: error before closing: %d", err)

@@ -116,6 +116,7 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 }
 
 func (p *player) proceed() error {
+	// TODO: Read should be called only when there are buffers available?
 	b := make([]byte, bufferSize)
 	n, err := p.src.Read(b)
 	if 0 < n {
