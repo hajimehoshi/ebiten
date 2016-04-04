@@ -206,7 +206,9 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
-	audioContext.Update()
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	updateInput()
 	for i, key := range keys {
 		if keyStates[key] != 1 {

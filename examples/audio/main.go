@@ -180,7 +180,9 @@ func (p *Player) close() error {
 }
 
 func update(screen *ebiten.Image) error {
-	audioContext.Update()
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	if musicPlayer == nil {
 		select {
 		case musicPlayer = <-musicCh:

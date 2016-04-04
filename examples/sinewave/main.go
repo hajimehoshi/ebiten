@@ -87,7 +87,9 @@ func (s *stream) Close() error {
 var player *audio.Player
 
 func update(screen *ebiten.Image) error {
-	audioContext.Update()
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	if player == nil {
 		var err error
 		player, err = audioContext.NewPlayer(&stream{})

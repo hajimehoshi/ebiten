@@ -145,7 +145,9 @@ func addNote() error {
 }
 
 func update(screen *ebiten.Image) error {
-	audioContext.Update()
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	defer func() {
 		frames++
 	}()

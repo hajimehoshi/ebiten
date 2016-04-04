@@ -108,6 +108,7 @@ type Context struct {
 	stream     *mixedPlayersStream
 	players    map[*Player]struct{}
 	frames     int
+	errorCh    chan error
 	sync.Mutex
 }
 
@@ -116,6 +117,7 @@ func NewContext(sampleRate int) (*Context, error) {
 	c := &Context{
 		sampleRate: sampleRate,
 		players:    map[*Player]struct{}{},
+		errorCh:    make(chan error),
 	}
 	c.stream = &mixedPlayersStream{
 		context: c,
@@ -133,8 +135,8 @@ func NewContext(sampleRate int) (*Context, error) {
 				break
 			}
 			if err != nil {
-				// TODO: Record the last error
-				panic(err)
+				c.errorCh <- err
+				return
 			}
 			time.Sleep(1 * time.Millisecond)
 		}
@@ -148,10 +150,16 @@ func NewContext(sampleRate int) (*Context, error) {
 // In sync mode, the game logical time syncs the audio logical time and
 // you will find audio stops when the game stops e.g. when the window is deactivated.
 // In unsync mode, the audio never stops even when the game stops.
-func (c *Context) Update() {
+func (c *Context) Update() error {
 	c.Lock()
 	defer c.Unlock()
+	select {
+	case err := <-c.errorCh:
+		return err
+	default:
+	}
 	c.frames++
+	return nil
 }
 
 // SampleRate returns the sample rate.
