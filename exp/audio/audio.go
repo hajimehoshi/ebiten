@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-type mixedPlayersStream struct {
+type mixingStream struct {
 	context      *Context
 	writtenBytes int
 }
@@ -44,7 +44,7 @@ const (
 	mask = ^(channelNum*bytesPerSample - 1)
 )
 
-func (s *mixedPlayersStream) Read(b []byte) (int, error) {
+func (s *mixingStream) Read(b []byte) (int, error) {
 	s.context.Lock()
 	defer s.context.Unlock()
 
@@ -105,7 +105,6 @@ func (s *mixedPlayersStream) Read(b []byte) (int, error) {
 
 type Context struct {
 	sampleRate int
-	stream     *mixedPlayersStream
 	players    map[*Player]struct{}
 	frames     int
 	errorCh    chan error
@@ -119,10 +118,10 @@ func NewContext(sampleRate int) (*Context, error) {
 		players:    map[*Player]struct{}{},
 		errorCh:    make(chan error),
 	}
-	c.stream = &mixedPlayersStream{
+	s := &mixingStream{
 		context: c,
 	}
-	p, err := newPlayer(c.stream, c.sampleRate)
+	p, err := newPlayer(s, c.sampleRate)
 	if err != nil {
 		return nil, err
 	}
