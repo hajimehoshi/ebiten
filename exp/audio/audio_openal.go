@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"time"
 
 	"golang.org/x/mobile/exp/audio/al"
 )
