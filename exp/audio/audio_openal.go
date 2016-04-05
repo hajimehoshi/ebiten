@@ -87,7 +87,7 @@ func (p *player) proceed() error {
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
 
-	for 0 < len(p.alBuffers) {
+	if 0 < len(p.alBuffers) {
 		n, err := p.source.Read(tmpBuffer)
 		if 0 < n {
 			buf := p.alBuffers[0]
@@ -101,12 +101,9 @@ func (p *player) proceed() error {
 		if err != nil {
 			return err
 		}
-		if n == 0 {
-			time.Sleep(1 * time.Millisecond)
-		}
 	}
 
-	if p.alSource.State() == al.Stopped {
+	if p.alSource.State() == al.Stopped || p.alSource.State() == al.Initial {
 		al.RewindSources(p.alSource)
 		al.PlaySources(p.alSource)
 		if err := al.Error(); err != 0 {
