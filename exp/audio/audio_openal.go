@@ -140,8 +140,7 @@ func (p *player) close() error {
 	var bs []al.Buffer
 	al.RewindSources(p.alSource)
 	al.StopSources(p.alSource)
-	n := p.alSource.BuffersQueued()
-	if 0 < n {
+	if n := p.alSource.BuffersQueued(); 0 < n {
 		bs = make([]al.Buffer, n)
 		p.alSource.UnqueueBuffers(bs...)
 		p.alBuffers = append(p.alBuffers, bs...)

@@ -37,10 +37,10 @@ type header struct {
 	waveHdr    C.WAVEHDR
 }
 
-func newHeader(waveOut C.HWAVEOUT, bufferSize int) (header, error) {
+func newHeader(waveOut C.HWAVEOUT, bufferSize int) (*header, error) {
 	// NOTE: This is never freed so far.
 	buf := C.malloc(C.size_t(bufferSize))
-	h := header{
+	h := &header{
 		buffer:     buf,
 		bufferSize: bufferSize,
 		waveHdr: C.WAVEHDR{
@@ -50,7 +50,7 @@ func newHeader(waveOut C.HWAVEOUT, bufferSize int) (header, error) {
 	}
 	// TODO: Need to unprepare to avoid memory leak?
 	if err := C.waveOutPrepareHeader(waveOut, &h.waveHdr, C.sizeOfWavehdr); err != C.MMSYSERR_NOERROR {
-		return header{}, fmt.Errorf("audio: waveOutPrepareHeader error: %d", err)
+		return nil, fmt.Errorf("audio: waveOutPrepareHeader error: %d", err)
 	}
 	return h, nil
 }
@@ -78,9 +78,8 @@ func releaseSemaphore() {
 type player struct {
 	src     io.Reader
 	out     C.HWAVEOUT
-	i       int
 	buffer  []byte
-	headers []header
+	headers []*header
 }
 
 const bufferSize = 1024
@@ -103,7 +102,7 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 		src:     src,
 		out:     w,
 		buffer:  []byte{},
-		headers: make([]header, numHeader),
+		headers: make([]*header, numHeader),
 	}
 	for i := 0; i < numHeader; i++ {
 		var err error
@@ -116,22 +115,35 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 }
 
 func (p *player) proceed() error {
-	// TODO: Read should be called only when there are buffers available?
-	b := make([]byte, bufferSize)
-	n, err := p.src.Read(b)
-	if 0 < n {
-		p.buffer = append(p.buffer, b[:n]...)
-		for bufferSize <= len(p.buffer) {
-			sem <- struct{}{}
-			if err := p.headers[p.i].Write(p.out, p.buffer[:bufferSize]); err != nil {
-				return err
-			}
-			p.buffer = p.buffer[bufferSize:]
-			p.i++
-			p.i %= len(p.headers)
+	if len(p.buffer) < bufferSize {
+		b := make([]byte, bufferSize)
+		n, err := p.src.Read(b)
+		if 0 < n {
+			p.buffer = append(p.buffer, b[:n]...)
+		}
+		if err != nil {
+			return err
 		}
 	}
-	return err
+	if bufferSize <= len(p.buffer) {
+		sem <- struct{}{}
+		headerToWrite := (*header)(nil)
+		for _, h := range p.headers {
+			// TODO: Need to check WHDR_DONE?
+			if h.waveHdr.dwFlags & C.WHDR_INQUEUE == 0 {
+				headerToWrite = h
+				break
+			}
+		}
+		if headerToWrite == nil {
+			return errors.New("audio: no available buffers")
+		}
+		if err := headerToWrite.Write(p.out, p.buffer[:bufferSize]); err != nil {
+			return err
+		}
+		p.buffer = p.buffer[bufferSize:]
+	}
+	return nil
 }
 
 func (p *player) close() {
