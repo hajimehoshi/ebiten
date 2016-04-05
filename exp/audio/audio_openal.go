@@ -29,9 +29,6 @@ const (
 	maxBufferNum = 8
 )
 
-// TODO: This should be in player
-var totalBufferNum = 0
-
 type player struct {
 	alSource   al.Source
 	alBuffers  []al.Buffer
@@ -56,22 +53,12 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	}
 	runtime.SetFinalizer(p, (*player).close)
 
-	n := maxBufferNum - int(p.alSource.BuffersQueued()) - len(p.alBuffers)
-	if 0 < n {
-		p.alBuffers = append(p.alBuffers, al.GenBuffers(n)...)
-		totalBufferNum += n
-		if maxBufferNum < totalBufferNum {
-			panic("audio: not reach: too many buffers are created")
-		}
-	}
-	if 0 < len(p.alBuffers) {
-		emptyBytes := make([]byte, bufferSize)
-		for _, buf := range p.alBuffers {
-			// Note that the third argument of only the first buffer is used.
-			buf.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
-			p.alSource.QueueBuffers(buf)
-		}
-		p.alBuffers = []al.Buffer{}
+	bs := al.GenBuffers(maxBufferNum)
+	emptyBytes := make([]byte, bufferSize)
+	for _, b := range bs {
+		// Note that the third argument of only the first buffer is used.
+		b.BufferData(al.FormatStereo16, emptyBytes, int32(p.sampleRate))
+		p.alSource.QueueBuffers(b)
 	}
 	al.PlaySources(p.alSource)
 	return p, nil
