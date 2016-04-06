@@ -26,7 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-var imageM sync.RWMutex
+var imageM sync.Mutex
 
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
@@ -43,24 +43,30 @@ type Image struct {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	if i.width == 0 {
-		i.width, i.height = i.framebuffer.Size()
-	}
 	return i.width, i.height
 }
 
 // Clear resets the pixels of the image into 0.
 func (i *Image) Clear() (err error) {
-	if i.isDisposed() {
-		return errors.New("image is already disposed")
-	}
-	return i.Fill(color.Transparent)
+	imageM.Lock()
+	defer imageM.Unlock()
+	return i.clear()
+}
+
+func (i *Image) clear() (err error) {
+	return i.fill(color.Transparent)
 }
 
 // Fill fills the image with a solid color.
 func (i *Image) Fill(clr color.Color) (err error) {
+	imageM.Lock()
+	defer imageM.Unlock()
+	return i.fill(clr)
+}
+
+func (i *Image) fill(clr color.Color) (err error) {
 	if i.isDisposed() {
-		return errors.New("image is already disposed")
+		return errors.New("ebiten: image is already disposed")
 	}
 	i.pixels = nil
 	return i.framebuffer.Fill(glContext, clr)
@@ -82,11 +88,13 @@ func (i *Image) Fill(clr color.Color) (err error) {
 // Be careful that this method is potentially slow.
 // It would be better if you could call this method fewer times.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
+	imageM.Lock()
+	defer imageM.Unlock()
 	if i.isDisposed() {
-		return errors.New("image is already disposed")
+		return errors.New("ebiten: image is already disposed")
 	}
 	if i == image {
-		return errors.New("Image.DrawImage: image should be different from the receiver")
+		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
 	i.pixels = nil
 	if options == nil {
@@ -99,20 +107,17 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		if dparts != nil {
 			parts = imageParts(dparts)
 		} else {
-			w, h := image.Size()
-			parts = &wholeImage{w, h}
+			parts = &wholeImage{image.width, image.height}
 		}
 	}
-	w, h := image.Size()
-	quads := &textureQuads{parts: parts, width: w, height: h}
+	quads := &textureQuads{parts: parts, width: image.width, height: image.height}
 	m := opengl.CompositeMode(options.CompositeMode)
 	return i.framebuffer.DrawTexture(glContext, image.texture, quads, &options.GeoM, &options.ColorM, m)
 }
 
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
-	w, h := i.Size()
-	return image.Rect(0, 0, w, h)
+	return image.Rect(0, 0, i.width, i.height)
 }
 
 // ColorModel returns the color model of the image.
@@ -124,6 +129,9 @@ func (i *Image) ColorModel() color.Model {
 //
 // This method loads pixels from VRAM to system memory if necessary.
 func (i *Image) At(x, y int) color.Color {
+	// TODO: What if At is called internaly (like from image parts?)
+	imageM.Lock()
+	defer imageM.Unlock()
 	if i.isDisposed() {
 		return color.Transparent
 	}
@@ -134,8 +142,7 @@ func (i *Image) At(x, y int) color.Color {
 			panic(err)
 		}
 	}
-	w, _ := i.Size()
-	w = int(graphics.NextPowerOf2Int32(int32(w)))
+	w := int(graphics.NextPowerOf2Int32(int32(i.width)))
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}
@@ -146,8 +153,10 @@ func (i *Image) At(x, y int) color.Color {
 //
 // The behavior of any functions for a disposed image is undefined.
 func (i *Image) Dispose() error {
+	imageM.Lock()
+	defer imageM.Unlock()
 	if i.isDisposed() {
-		return errors.New("image is already disposed")
+		return errors.New("ebiten: image is already disposed")
 	}
 	if i.framebuffer != nil {
 		i.framebuffer.Dispose(glContext)
@@ -178,14 +187,13 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	imageM.Lock()
 	defer imageM.Unlock()
 	if i.isDisposed() {
-		return errors.New("image is already disposed")
+		return errors.New("ebiten: image is already disposed")
 	}
 	// Don't set i.pixels here because i.pixels is used not every time.
 	i.pixels = nil
-	w, h := i.Size()
-	l := 4 * w * h
+	l := 4 * i.width * i.height
 	if len(p) != l {
-		return errors.New(fmt.Sprintf("p's length must be %d", l))
+		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
 	return i.framebuffer.ReplacePixels(glContext, i.texture, p)
 }
@@ -222,9 +230,14 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		// TODO: texture should be removed here?
 		return nil, err
 	}
-	img := &Image{framebuffer: framebuffer, texture: texture}
+	img := &Image{
+		framebuffer: framebuffer,
+		texture:     texture,
+		width:       width,
+		height:      height,
+	}
 	runtime.SetFinalizer(img, (*Image).Dispose)
-	if err := img.Clear(); err != nil {
+	if err := img.clear(); err != nil {
 		return nil, err
 	}
 	return img, nil
@@ -251,7 +264,13 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 		// TODO: texture should be removed here?
 		return nil, err
 	}
-	eimg := &Image{framebuffer: framebuffer, texture: texture}
+	w, h := framebuffer.Size()
+	eimg := &Image{
+		framebuffer: framebuffer,
+		texture:     texture,
+		width:       w,
+		height:      h,
+	}
 	runtime.SetFinalizer(eimg, (*Image).Dispose)
 	return eimg, nil
 }
