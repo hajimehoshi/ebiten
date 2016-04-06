@@ -20,14 +20,19 @@ import (
 	"image"
 	"image/color"
 	"runtime"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
+var imageM sync.RWMutex
+
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
+//
+// Note that manipulating an Image is NOT concurrent-safe (so far).
 type Image struct {
 	framebuffer *graphics.Framebuffer
 	texture     *graphics.Texture
@@ -170,6 +175,8 @@ func (i *Image) isDisposed() bool {
 //
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
 func (i *Image) ReplacePixels(p []uint8) error {
+	imageM.Lock()
+	defer imageM.Unlock()
 	if i.isDisposed() {
 		return errors.New("image is already disposed")
 	}
@@ -200,7 +207,12 @@ type DrawImageOptions struct {
 // Be careful that image objects will never be released
 // even though nothing refers the image object and GC works.
 // It is because there is no way to define finalizers for Go objects if you use GopherJS.
+//
+// This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
+	imageM.Lock()
+	defer imageM.Unlock()
+
 	texture, err := graphics.NewTexture(glContext, width, height, glFilter(glContext, filter))
 	if err != nil {
 		return nil, err
@@ -224,7 +236,12 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // Be careful that image objects will never be released
 // even though nothing refers the image object and GC works.
 // It is because there is no way to define finalizers for Go objects if you use GopherJS.
+//
+// This function is concurrent-safe.
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
+	imageM.Lock()
+	defer imageM.Unlock()
+
 	texture, err := graphics.NewTextureFromImage(glContext, img, glFilter(glContext, filter))
 	if err != nil {
 		return nil, err
