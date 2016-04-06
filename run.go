@@ -134,7 +134,7 @@ const FPS = 60
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
-// This function is goroutine-safe.
+// This function is concurrent-safe.
 //
 // This value represents how many times rendering happens in 1/60 second and
 // NOT how many times logical game updating (a passed function to Run) happens.
@@ -148,7 +148,7 @@ func CurrentFPS() float64 {
 // The game screen is not updated when IsRunningSlowly is true.
 // It is recommended to skip heavy processing, especially drawing, when IsRunningSlowly is true.
 //
-// This function is goroutine-safe.
+// This function is concurrent-safe.
 func IsRunningSlowly() bool {
 	return currentRunContext.IsRunningSlowly()
 }
@@ -230,21 +230,21 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 // SetScreenSize changes the (logical) size of the screen.
 // This doesn't affect the current scale of the screen.
 //
-// This function is goroutine-safe.
+// This function is concurrent-safe.
 func SetScreenSize(width, height int) {
 	currentRunContext.SetScreenSize(width, height)
 }
 
 // SetScreenSize changes the scale of the screen.
 //
-// This function is goroutine-safe.
+// This function is concurrent-safe.
 func SetScreenScale(scale int) {
 	currentRunContext.SetScreenScale(scale)
 }
 
 // ScreenScale returns the current screen scale.
 //
-// This function is goroutine-safe.
+// This function is concurrent-safe.
 func ScreenScale() int {
 	return ui.CurrentUI().ScreenScale()
 }
