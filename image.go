@@ -31,8 +31,6 @@ var imageM sync.Mutex
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
-//
-// Note that manipulating an Image is NOT concurrent-safe (so far).
 type Image struct {
 	framebuffer *graphics.Framebuffer
 	texture     *graphics.Texture
