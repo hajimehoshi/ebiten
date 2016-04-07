@@ -74,11 +74,11 @@ type uv struct {
 	height2p int
 }
 
-func (c uv) u(x int) int16 {
+func (c *uv) u(x int) int16 {
 	return int16(math.MaxInt16 * x / c.width2p)
 }
 
-func (c uv) v(y int) int16 {
+func (c *uv) v(y int) int16 {
 	return int16(math.MaxInt16 * y / c.height2p)
 }
 
