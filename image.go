@@ -105,7 +105,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	}
 	quads := &textureQuads{parts: parts, width: image.width, height: image.height}
 	// TODO: Reuse one vertices instead of making here, but this would need locking.
-	vertices := make([]int16, 16*graphics.MaxQuads)
+	vertices := make([]int16, parts.Len()*16)
 	n := quads.vertices(vertices)
 	if n == 0 {
 		return nil
