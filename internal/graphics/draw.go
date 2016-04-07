@@ -33,11 +33,9 @@ type Matrix interface {
 	Element(i, j int) float64
 }
 
-var vertices = make([]int16, 16*quadsMaxNum)
-
 var shadersInitialized = false
 
-func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, quads TextureQuads, geo Matrix, color Matrix, mode opengl.CompositeMode) error {
+func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, vertices []int16, geo Matrix, color Matrix, mode opengl.CompositeMode) error {
 	c.BlendFunc(mode)
 
 	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
@@ -50,12 +48,12 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		shadersInitialized = true
 	}
 
-	l := quads.Len()
-	if l == 0 {
+	n := len(vertices) / 16
+	if n == 0 {
 		return nil
 	}
-	if quadsMaxNum < l {
-		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", quadsMaxNum))
+	if MaxQuads < n/16 {
+		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
 	}
 
 	p := programContext{
@@ -65,10 +63,6 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 		texture:          texture,
 		geoM:             geo,
 		colorM:           color,
-	}
-	n := quads.SetVertices(vertices)
-	if n == 0 {
-		return nil
 	}
 	p.begin()
 	defer p.end()

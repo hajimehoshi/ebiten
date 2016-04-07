@@ -88,12 +88,8 @@ type textureQuads struct {
 	height int
 }
 
-func (t *textureQuads) Len() int {
-	return t.parts.Len()
-}
-
-func (t *textureQuads) SetVertices(vertices []int16) int {
-	l := t.Len()
+func (t *textureQuads) vertices(vertices []int16) int {
+	l := t.parts.Len()
 	if len(vertices) < l*16 {
 		panic(fmt.Sprintf("graphics: vertices size must be greater than %d but %d", l*16, len(vertices)))
 	}

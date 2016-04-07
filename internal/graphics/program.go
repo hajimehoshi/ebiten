@@ -16,7 +16,6 @@ package graphics
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"math"
 )
 
 var (
@@ -28,8 +27,8 @@ var (
 	programTexture opengl.Program
 )
 
-const indicesNum = math.MaxUint16 + 1
-const quadsMaxNum = indicesNum / 6
+const indicesNum = 1 << 16
+const MaxQuads = indicesNum / 6
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
 const int16Size = 2
@@ -56,12 +55,12 @@ func initialize(c *opengl.Context) error {
 		return err
 	}
 
-	// 16 [bytse] is an arbitrary number which seems enough to draw anything. Fix this if necessary.
+	// 16 [bytes] is an arbitrary number which seems enough to draw anything. Fix this if necessary.
 	const stride = 16
-	c.NewBuffer(c.ArrayBuffer, 4*stride*quadsMaxNum, c.DynamicDraw)
+	c.NewBuffer(c.ArrayBuffer, 4*stride*MaxQuads, c.DynamicDraw)
 
-	indices := make([]uint16, 6*quadsMaxNum)
-	for i := uint16(0); i < quadsMaxNum; i++ {
+	indices := make([]uint16, 6*MaxQuads)
+	for i := uint16(0); i < MaxQuads; i++ {
 		indices[6*i+0] = 4*i + 0
 		indices[6*i+1] = 4*i + 1
 		indices[6*i+2] = 4*i + 2

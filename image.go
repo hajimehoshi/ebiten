@@ -88,15 +88,8 @@ func (i *Image) fill(clr color.Color) (err error) {
 // Be careful that this method is potentially slow.
 // It would be better if you could call this method fewer times.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
-	imageM.Lock()
-	defer imageM.Unlock()
-	if i.isDisposed() {
-		return errors.New("ebiten: image is already disposed")
-	}
-	if i == image {
-		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
-	}
-	i.pixels = nil
+	// Calculate vertices before locking because the user can do anything in
+	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
@@ -111,8 +104,24 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		}
 	}
 	quads := &textureQuads{parts: parts, width: image.width, height: image.height}
+	// TODO: Reuse one vertices instead of making here, but this would need locking.
+	vertices := make([]int16, 16*graphics.MaxQuads)
+	n := quads.vertices(vertices)
+	if n == 0 {
+		return nil
+	}
+
+	imageM.Lock()
+	defer imageM.Unlock()
+	if i.isDisposed() {
+		return errors.New("ebiten: image is already disposed")
+	}
+	if i == image {
+		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
+	}
+	i.pixels = nil
 	m := opengl.CompositeMode(options.CompositeMode)
-	return i.framebuffer.DrawTexture(glContext, image.texture, quads, &options.GeoM, &options.ColorM, m)
+	return i.framebuffer.DrawTexture(glContext, image.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
 }
 
 // Bounds returns the bounds of the image.

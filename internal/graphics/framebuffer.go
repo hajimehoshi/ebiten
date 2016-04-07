@@ -21,11 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-type TextureQuads interface {
-	Len() int
-	SetVertices(vertices []int16) int
-}
-
 func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
 	e11 := float64(2) / float64(right-left)
 	e22 := float64(2) / float64(top-bottom)
@@ -116,12 +111,12 @@ func (f *Framebuffer) Fill(c *opengl.Context, clr color.Color) error {
 	return c.FillFramebuffer(r, g, b, a)
 }
 
-func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, quads TextureQuads, geo, clr Matrix, mode opengl.CompositeMode) error {
+func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
 	if err := f.setAsViewport(c); err != nil {
 		return err
 	}
 	p := f.projectionMatrix()
-	return drawTexture(c, t.native, p, quads, geo, clr, mode)
+	return drawTexture(c, t.native, p, vertices, geo, clr, mode)
 }
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
