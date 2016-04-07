@@ -66,7 +66,7 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	}
 	p.begin()
 	defer p.end()
-	c.BufferSubData(c.ArrayBuffer, vertices[:16*n])
+	c.BufferSubData(c.ArrayBuffer, vertices)
 	c.DrawElements(c.Triangles, 6*n)
 	return nil
 }
