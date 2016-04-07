@@ -42,11 +42,15 @@ type Image struct {
 }
 
 // Size returns the size of the image.
+//
+// This function is concurrent-safe.
 func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
 // Clear resets the pixels of the image into 0.
+//
+// This function is concurrent-safe.
 func (i *Image) Clear() (err error) {
 	imageM.Lock()
 	defer imageM.Unlock()
@@ -58,6 +62,8 @@ func (i *Image) clear() (err error) {
 }
 
 // Fill fills the image with a solid color.
+//
+// This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) (err error) {
 	imageM.Lock()
 	defer imageM.Unlock()
@@ -87,6 +93,8 @@ func (i *Image) fill(clr color.Color) (err error) {
 //
 // Be careful that this method is potentially slow.
 // It would be better if you could call this method fewer times.
+//
+// This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -125,11 +133,15 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 }
 
 // Bounds returns the bounds of the image.
+//
+// This function is concurrent-safe.
 func (i *Image) Bounds() image.Rectangle {
 	return image.Rect(0, 0, i.width, i.height)
 }
 
 // ColorModel returns the color model of the image.
+//
+// This function is concurrent-safe.
 func (i *Image) ColorModel() color.Model {
 	return color.RGBAModel
 }
@@ -137,6 +149,8 @@ func (i *Image) ColorModel() color.Model {
 // At returns the color of the image at (x, y).
 //
 // This method loads pixels from VRAM to system memory if necessary.
+//
+// This function is concurrent-safe.
 func (i *Image) At(x, y int) color.Color {
 	// TODO: What if At is called internaly (like from image parts?)
 	imageM.Lock()
@@ -161,6 +175,8 @@ func (i *Image) At(x, y int) color.Color {
 // This is useful to save memory.
 //
 // The behavior of any functions for a disposed image is undefined.
+//
+// This function is concurrent-safe.
 func (i *Image) Dispose() error {
 	imageM.Lock()
 	defer imageM.Unlock()
@@ -192,6 +208,8 @@ func (i *Image) isDisposed() bool {
 // The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
 //
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
+//
+// This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
 	imageM.Lock()
 	defer imageM.Unlock()
