@@ -63,13 +63,6 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-func max64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 const (
 	// 1024 seems not enough (some noise remains after the tab is deactivated).
 	bufferSize = 2048
