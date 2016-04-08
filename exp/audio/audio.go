@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/exp/audio/internal/driver"
 )
 
 type mixingStream struct {
@@ -44,7 +45,6 @@ func min(a, b int) int {
 const (
 	channelNum     = 2
 	bytesPerSample = 2
-	bitsPerSample  = bytesPerSample * 8
 
 	// TODO: This assumes that channelNum is a power of 2.
 	mask = ^(channelNum*bytesPerSample - 1)
@@ -197,15 +197,15 @@ func NewContext(sampleRate int) (*Context, error) {
 		players:    map[*Player]struct{}{},
 	}
 	// TODO: Rename this other than player
-	p, err := newPlayer(c.stream, sampleRate)
+	p, err := driver.NewPlayer(c.stream, sampleRate, channelNum, bytesPerSample)
 	if err != nil {
 		return nil, err
 	}
 	go func() {
 		// TODO: Is it OK to close asap?
-		defer p.close()
+		defer p.Close()
 		for {
-			err := p.proceed()
+			err := p.Proceed()
 			if err == io.EOF {
 				break
 			}

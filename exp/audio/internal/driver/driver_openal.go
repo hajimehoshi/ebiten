@@ -14,7 +14,7 @@
 
 // +build !js,!windows
 
-package audio
+package driver
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ const (
 	maxBufferNum = 8
 )
 
-type player struct {
+type Player struct {
 	alSource   al.Source
 	alBuffers  []al.Buffer
 	source     io.Reader
@@ -36,7 +36,7 @@ type player struct {
 	isClosed   bool
 }
 
-func newPlayer(src io.Reader, sampleRate int) (*player, error) {
+func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	if e := al.OpenDevice(); e != nil {
 		return nil, fmt.Errorf("audio: OpenAL initialization failed: %v", e)
 	}
@@ -44,13 +44,13 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	if err := al.Error(); err != 0 {
 		return nil, fmt.Errorf("audio: al.GenSources error: %d", err)
 	}
-	p := &player{
+	p := &Player{
 		alSource:   s[0],
 		alBuffers:  []al.Buffer{},
 		source:     src,
 		sampleRate: sampleRate,
 	}
-	runtime.SetFinalizer(p, (*player).close)
+	runtime.SetFinalizer(p, (*Player).Close)
 
 	bs := al.GenBuffers(maxBufferNum)
 	emptyBytes := make([]byte, bufferSize)
@@ -72,7 +72,7 @@ var (
 	tmpAlBuffers = make([]al.Buffer, maxBufferNum)
 )
 
-func (p *player) proceed() error {
+func (p *Player) Proceed() error {
 	if err := al.Error(); err != 0 {
 		return fmt.Errorf("audio: before proceed: %d", err)
 	}
@@ -113,7 +113,7 @@ func (p *player) proceed() error {
 	return nil
 }
 
-func (p *player) close() error {
+func (p *Player) Close() error {
 	if err := al.Error(); err != 0 {
 		return fmt.Errorf("audio: error before closing: %d", err)
 	}

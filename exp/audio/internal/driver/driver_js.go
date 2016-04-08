@@ -14,25 +14,26 @@
 
 // +build js
 
-package audio
+package driver
 
 import (
 	"errors"
 	"io"
 
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/hajimehoshi/ebiten"
 )
 
-type player struct {
+type Player struct {
 	src               io.Reader
 	sampleRate        int
+	channelNum        int
+	bytesPerSample    int
 	positionInSamples int64
 	context           *js.Object
 	bufferSource      *js.Object
 }
 
-func newPlayer(src io.Reader, sampleRate int) (*player, error) {
+func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	class := js.Global.Get("AudioContext")
 	if class == js.Undefined {
 		class = js.Global.Get("webkitAudioContext")
@@ -40,11 +41,13 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	if class == js.Undefined {
 		return nil, errors.New("audio: audio couldn't be initialized")
 	}
-	p := &player{
-		src:          src,
-		sampleRate:   sampleRate,
-		bufferSource: nil,
-		context:      class.New(),
+	p := &Player{
+		src:            src,
+		sampleRate:     sampleRate,
+		channelNum:     channelNum,
+		bytesPerSample: bytesPerSample,
+		bufferSource:   nil,
+		context:        class.New(),
 	}
 	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	return p, nil
@@ -67,8 +70,12 @@ func max64(a, b int64) int64 {
 	return b
 }
 
-func (p *player) proceed() error {
-	bufferSize := p.sampleRate * bytesPerSample * channelNum / ebiten.FPS
+const (
+	// 1024 seems not enough (some noise remains after the tab is deactivated).
+	bufferSize = 2048
+)
+
+func (p *Player) Proceed() error {
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if p.positionInSamples < c {
 		p.positionInSamples = c
@@ -76,7 +83,7 @@ func (p *player) proceed() error {
 	b := make([]byte, bufferSize)
 	n, err := p.src.Read(b)
 	if 0 < n {
-		buf := p.context.Call("createBuffer", channelNum, n/bytesPerSample/channelNum, p.sampleRate)
+		buf := p.context.Call("createBuffer", p.channelNum, n/p.bytesPerSample/p.channelNum, p.sampleRate)
 		l := buf.Call("getChannelData", 0)
 		r := buf.Call("getChannelData", 1)
 		il, ir := toLR(b[:n])
@@ -96,7 +103,7 @@ func (p *player) proceed() error {
 	return err
 }
 
-func (p *player) close() error {
+func (p *Player) Close() error {
 	if p.bufferSource == nil {
 		return nil
 	}

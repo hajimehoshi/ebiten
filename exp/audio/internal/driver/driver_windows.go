@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package audio
+package driver
 
 // #cgo LDFLAGS: -lwinmm
 //
@@ -75,7 +75,7 @@ func releaseSemaphore() {
 	<-sem
 }
 
-type player struct {
+type Player struct {
 	src     io.Reader
 	out     C.HWAVEOUT
 	buffer  []byte
@@ -84,21 +84,21 @@ type player struct {
 
 const bufferSize = 1024
 
-func newPlayer(src io.Reader, sampleRate int) (*player, error) {
-	const numBlockAlign = channelNum * bitsPerSample / 8
+func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
+	const numBlockAlign = channelNum * bytesPerSample
 	f := C.WAVEFORMATEX{
 		wFormatTag:      C.WAVE_FORMAT_PCM,
 		nChannels:       channelNum,
 		nSamplesPerSec:  C.DWORD(sampleRate),
 		nAvgBytesPerSec: C.DWORD(sampleRate) * numBlockAlign,
-		wBitsPerSample:  bitsPerSample,
+		wBitsPerSample:  bytesPerSample * 8,
 		nBlockAlign:     numBlockAlign,
 	}
 	var w C.HWAVEOUT
 	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
 		return nil, fmt.Errorf("audio: waveOutOpen error: %d", err)
 	}
-	p := &player{
+	p := &Player{
 		src:     src,
 		out:     w,
 		buffer:  []byte{},
@@ -114,7 +114,7 @@ func newPlayer(src io.Reader, sampleRate int) (*player, error) {
 	return p, nil
 }
 
-func (p *player) proceed() error {
+func (p *Player) Proceed() error {
 	if len(p.buffer) < bufferSize {
 		b := make([]byte, bufferSize)
 		n, err := p.src.Read(b)
@@ -130,7 +130,7 @@ func (p *player) proceed() error {
 		headerToWrite := (*header)(nil)
 		for _, h := range p.headers {
 			// TODO: Need to check WHDR_DONE?
-			if h.waveHdr.dwFlags & C.WHDR_INQUEUE == 0 {
+			if h.waveHdr.dwFlags&C.WHDR_INQUEUE == 0 {
 				headerToWrite = h
 				break
 			}
@@ -146,6 +146,6 @@ func (p *player) proceed() error {
 	return nil
 }
 
-func (p *player) close() {
+func (p *Player) Close() {
 	// TODO: Implement this
 }
