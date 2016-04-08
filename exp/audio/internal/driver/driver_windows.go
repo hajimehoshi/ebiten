@@ -50,18 +50,18 @@ func newHeader(waveOut C.HWAVEOUT, bufferSize int) (*header, error) {
 	}
 	// TODO: Need to unprepare to avoid memory leak?
 	if err := C.waveOutPrepareHeader(waveOut, &h.waveHdr, C.sizeOfWavehdr); err != C.MMSYSERR_NOERROR {
-		return nil, fmt.Errorf("audio: waveOutPrepareHeader error: %d", err)
+		return nil, fmt.Errorf("driver: waveOutPrepareHeader error: %d", err)
 	}
 	return h, nil
 }
 
 func (h *header) Write(waveOut C.HWAVEOUT, data []byte) error {
 	if len(data) != h.bufferSize {
-		return errors.New("audio: len(data) must equal to h.bufferSize")
+		return errors.New("driver: len(data) must equal to h.bufferSize")
 	}
 	C.memcpy(h.buffer, unsafe.Pointer(&data[0]), C.size_t(h.bufferSize))
 	if err := C.waveOutWrite(waveOut, &h.waveHdr, C.sizeOfWavehdr); err != C.MMSYSERR_NOERROR {
-		return fmt.Errorf("audio: waveOutWriter error: %d", err)
+		return fmt.Errorf("driver: waveOutWriter error: %d", err)
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Play
 	}
 	var w C.HWAVEOUT
 	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
-		return nil, fmt.Errorf("audio: waveOutOpen error: %d", err)
+		return nil, fmt.Errorf("driver: waveOutOpen error: %d", err)
 	}
 	p := &Player{
 		src:     src,
@@ -136,7 +136,7 @@ func (p *Player) Proceed() error {
 			}
 		}
 		if headerToWrite == nil {
-			return errors.New("audio: no available buffers")
+			return errors.New("driver: no available buffers")
 		}
 		if err := headerToWrite.Write(p.out, p.buffer[:bufferSize]); err != nil {
 			return err

@@ -39,7 +39,7 @@ func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Play
 		class = js.Global.Get("webkitAudioContext")
 	}
 	if class == js.Undefined {
-		return nil, errors.New("audio: audio couldn't be initialized")
+		return nil, errors.New("driver: audio couldn't be initialized")
 	}
 	p := &Player{
 		src:            src,
