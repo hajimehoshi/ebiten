@@ -214,10 +214,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			}
 			ui.CurrentUI().SwapBuffers()
 			beforeForUpdate += int64(t) * int64(time.Second/FPS)
+			frames++
 		}
 
 		// Calc the current FPS.
-		frames++
 		if time.Second <= time.Duration(now-beforeForFPS) {
 			currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
 			beforeForFPS = now
