@@ -85,14 +85,14 @@ type Player struct {
 const bufferSize = 1024
 
 func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
-	const numBlockAlign = channelNum * bytesPerSample
+	numBlockAlign := channelNum * bytesPerSample
 	f := C.WAVEFORMATEX{
 		wFormatTag:      C.WAVE_FORMAT_PCM,
-		nChannels:       channelNum,
+		nChannels:       C.WORD(channelNum),
 		nSamplesPerSec:  C.DWORD(sampleRate),
-		nAvgBytesPerSec: C.DWORD(sampleRate) * numBlockAlign,
-		wBitsPerSample:  bytesPerSample * 8,
-		nBlockAlign:     numBlockAlign,
+		nAvgBytesPerSec: C.DWORD(sampleRate * numBlockAlign),
+		wBitsPerSample:  C.WORD(bytesPerSample * 8),
+		nBlockAlign:     C.WORD(numBlockAlign),
 	}
 	var w C.HWAVEOUT
 	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
