@@ -426,9 +426,3 @@ func (c *Context) DrawElements(mode Mode, len int) {
 		gl.DrawElements(uint32(mode), int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(0))
 	})
 }
-
-func (c *Context) Finish() {
-	c.RunOnContextThread(func() {
-		gl.Finish()
-	})
-}

@@ -192,9 +192,6 @@ func (u *UserInterface) SwapBuffers() {
 func (u *UserInterface) swapBuffers() {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
 	u.context.BindZeroFramebuffer()
-	// Call glFinish before glfwSwapBuffer to make sure
-	// all OpenGL tasks are executed.
-	u.context.Finish()
 	u.context.RunOnContextThread(func() {
 		u.window.SwapBuffers()
 	})
