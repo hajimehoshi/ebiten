@@ -179,9 +179,9 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}
 
 	frames := 0
-	now := ui.Now()
-	beforeForUpdate := now
-	beforeForFPS := now
+	n := ui.Now()
+	beforeForUpdate := n
+	beforeForFPS := n
 	for {
 		// TODO: setSize should be called after swapping buffers?
 		if err := currentRunContext.updateScreenSize(graphicsContext); err != nil {
@@ -212,12 +212,11 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 					return err
 				}
 			}
-			beforeForUpdate += int64(t) * int64(time.Second/FPS)
 			ui.CurrentUI().SwapBuffers()
+			beforeForUpdate += int64(t) * int64(time.Second/FPS)
 		}
 
 		// Calc the current FPS.
-		now = ui.Now()
 		frames++
 		if time.Second <= time.Duration(now-beforeForFPS) {
 			currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
