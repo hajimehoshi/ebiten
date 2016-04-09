@@ -21,76 +21,72 @@ import (
 	"io"
 	"runtime"
 
-	"golang.org/x/mobile/exp/audio/al"
+	"github.com/hajimehoshi/go-openal/openal"
 )
+
+// As x/mobile/exp/audio/al is broken on Mac OS X (https://github.com/golang/go/issues/15075),
+// let's use timshannon/go-openal.
 
 const (
 	maxBufferNum = 8
 )
 
 type Player struct {
-	alSource   al.Source
-	alBuffers  []al.Buffer
+	alDevice   *openal.Device
+	alSource   openal.Source
+	alBuffers  []openal.Buffer
 	source     io.Reader
 	sampleRate int
 	isClosed   bool
-	alFormat   uint32
+	alFormat   openal.Format
 }
 
-func alFormat(channelNum, bytesPerSample int) uint32 {
+func alFormat(channelNum, bytesPerSample int) openal.Format {
 	switch {
 	case channelNum == 1 && bytesPerSample == 1:
-		return al.FormatMono8
+		return openal.FormatMono8
 	case channelNum == 1 && bytesPerSample == 2:
-		return al.FormatMono16
+		return openal.FormatMono16
 	case channelNum == 2 && bytesPerSample == 1:
-		return al.FormatStereo8
+		return openal.FormatStereo8
 	case channelNum == 2 && bytesPerSample == 2:
-		return al.FormatStereo16
+		return openal.FormatStereo16
 	}
 	panic(fmt.Sprintf("driver: invalid channel num (%d) or bytes per sample (%d)", channelNum, bytesPerSample))
 }
 
 func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
-	var p *Player
-	var err error
-	ch := make(chan struct{})
-	go func() {
-		defer close(ch)
-		// Lock the OS thread to avoid switching the native threads during initialization.
-		// This seems to solve #195, but I'm not sure.
-		runtime.LockOSThread()
-		if e := al.OpenDevice(); e != nil {
-			err = fmt.Errorf("driver: OpenAL initialization failed: %v", e)
-			return
-		}
-		s := al.GenSources(1)
-		if e := al.Error(); e != 0 {
-			err = fmt.Errorf("driver: al.GenSources error: %d", e)
-			return
-		}
-		p = &Player{
-			alSource:   s[0],
-			alBuffers:  []al.Buffer{},
-			source:     src,
-			sampleRate: sampleRate,
-			alFormat:   alFormat(channelNum, bytesPerSample),
-		}
-		runtime.SetFinalizer(p, (*Player).Close)
-
-		bs := al.GenBuffers(maxBufferNum)
-		emptyBytes := make([]byte, bufferSize)
-		for _, b := range bs {
-			// Note that the third argument of only the first buffer is used.
-			b.BufferData(p.alFormat, emptyBytes, int32(p.sampleRate))
-			p.alSource.QueueBuffers(b)
-		}
-		al.PlaySources(p.alSource)
-	}()
-	<-ch
-	if err != nil {
-		return nil, err
+	d := openal.OpenDevice("")
+	if err := openal.Err(); err != nil {
+		return nil, fmt.Errorf("driver: OpenDevice: %v", err)
 	}
+	c := d.CreateContext()
+	if err := openal.Err(); err != nil {
+		return nil, fmt.Errorf("driver: CreateContext: %v", err)
+	}
+	c.Activate()
+	s := openal.NewSource()
+	if err := openal.Err(); err != nil {
+		return nil, fmt.Errorf("driver: NewSource: %v", err)
+	}
+	p := &Player{
+		alDevice:   d,
+		alSource:   s,
+		alBuffers:  []openal.Buffer{},
+		source:     src,
+		sampleRate: sampleRate,
+		alFormat:   alFormat(channelNum, bytesPerSample),
+	}
+	runtime.SetFinalizer(p, (*Player).Close)
+
+	bs := openal.NewBuffers(maxBufferNum)
+	emptyBytes := make([]byte, bufferSize)
+	for _, b := range bs {
+		// Note that the third argument of only the first buffer is used.
+		b.SetData(p.alFormat, emptyBytes, int32(p.sampleRate))
+		p.alSource.QueueBuffer(b)
+	}
+	p.alSource.Play()
 	return p, nil
 }
 
@@ -100,19 +96,19 @@ const (
 
 var (
 	tmpBuffer    = make([]byte, bufferSize)
-	tmpAlBuffers = make([]al.Buffer, maxBufferNum)
+	tmpAlBuffers = make([]openal.Buffer, maxBufferNum)
 )
 
 func (p *Player) Proceed() error {
-	if err := al.Error(); err != 0 {
-		return fmt.Errorf("driver: before proceed: %d", err)
+	if err := openal.Err(); err != nil {
+		return fmt.Errorf("driver: starting Proceed: %v", err)
 	}
 	processedNum := p.alSource.BuffersProcessed()
 	if 0 < processedNum {
 		bufs := tmpAlBuffers[:processedNum]
-		p.alSource.UnqueueBuffers(bufs...)
-		if err := al.Error(); err != 0 {
-			return fmt.Errorf("driver: Unqueue in process: %d", err)
+		p.alSource.UnqueueBuffers(bufs)
+		if err := openal.Err(); err != nil {
+			return fmt.Errorf("driver: UnqueueBuffers: %v", err)
 		}
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
@@ -122,10 +118,10 @@ func (p *Player) Proceed() error {
 		if 0 < n {
 			buf := p.alBuffers[0]
 			p.alBuffers = p.alBuffers[1:]
-			buf.BufferData(p.alFormat, tmpBuffer[:n], int32(p.sampleRate))
-			p.alSource.QueueBuffers(buf)
-			if err := al.Error(); err != 0 {
-				return fmt.Errorf("driver: Queue in process: %d", err)
+			buf.SetData(p.alFormat, tmpBuffer[:n], int32(p.sampleRate))
+			p.alSource.QueueBuffer(buf)
+			if err := openal.Err(); err != nil {
+				return fmt.Errorf("driver: QueueBuffer: %v", err)
 			}
 		}
 		if err != nil {
@@ -133,11 +129,11 @@ func (p *Player) Proceed() error {
 		}
 	}
 
-	if p.alSource.State() == al.Stopped || p.alSource.State() == al.Initial {
-		al.RewindSources(p.alSource)
-		al.PlaySources(p.alSource)
-		if err := al.Error(); err != 0 {
-			return fmt.Errorf("driver: PlaySource in process: %d", err)
+	if p.alSource.State() == openal.Stopped || p.alSource.State() == openal.Initial {
+		p.alSource.Rewind()
+		p.alSource.Play()
+		if err := openal.Err(); err != nil {
+			return fmt.Errorf("driver: Rwind or Play: %v", err)
 		}
 	}
 
@@ -145,23 +141,24 @@ func (p *Player) Proceed() error {
 }
 
 func (p *Player) Close() error {
-	if err := al.Error(); err != 0 {
-		return fmt.Errorf("driver: error before closing: %d", err)
+	if err := openal.Err(); err != nil {
+		return fmt.Errorf("driver: starting Close: %v", err)
 	}
 	if p.isClosed {
 		return nil
 	}
-	var bs []al.Buffer
-	al.RewindSources(p.alSource)
-	al.StopSources(p.alSource)
+	var bs []openal.Buffer
+	p.alSource.Rewind()
+	p.alSource.Play()
 	if n := p.alSource.BuffersQueued(); 0 < n {
-		bs = make([]al.Buffer, n)
-		p.alSource.UnqueueBuffers(bs...)
+		bs = make([]openal.Buffer, n)
+		p.alSource.UnqueueBuffers(bs)
 		p.alBuffers = append(p.alBuffers, bs...)
 	}
+	p.alDevice.CloseDevice()
 	p.isClosed = true
-	if err := al.Error(); err != 0 {
-		return fmt.Errorf("driver: error after closing: %d", err)
+	if err := openal.Err(); err != nil {
+		return fmt.Errorf("driver: CloseDevice: %v", err)
 	}
 	runtime.SetFinalizer(p, nil)
 	return nil
