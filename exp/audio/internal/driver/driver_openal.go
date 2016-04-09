@@ -138,7 +138,7 @@ func (p *Player) Proceed() error {
 		p.alSource.Rewind()
 		p.alSource.Play()
 		if err := openal.Err(); err != nil {
-			return fmt.Errorf("driver: Rwind or Play: %v", err)
+			return fmt.Errorf("driver: Rewind or Play: %v", err)
 		}
 	}
 
