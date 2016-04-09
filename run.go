@@ -199,9 +199,10 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			currentRunContext.setRunningSlowly(false)
 			beforeForUpdate = now
 		} else {
-			t := float64(now-beforeForUpdate) * FPS / float64(time.Second)
-			currentRunContext.setRunningSlowly(t >= 2.5)
-			for i := 0; i < int(t); i++ {
+			t := now - beforeForUpdate
+			currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
+			tt := int(t * FPS / int64(time.Second))
+			for i := 0; i < tt; i++ {
 				if err := ui.CurrentUI().DoEvents(); err != nil {
 					return err
 				}
@@ -213,7 +214,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 				}
 			}
 			ui.CurrentUI().SwapBuffers()
-			beforeForUpdate += int64(t) * int64(time.Second/FPS)
+			beforeForUpdate += int64(tt) * int64(time.Second) / FPS
 			frames++
 		}
 
