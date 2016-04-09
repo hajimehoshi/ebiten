@@ -52,30 +52,45 @@ func alFormat(channelNum, bytesPerSample int) uint32 {
 }
 
 func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
-	if e := al.OpenDevice(); e != nil {
-		return nil, fmt.Errorf("driver: OpenAL initialization failed: %v", e)
-	}
-	s := al.GenSources(1)
-	if err := al.Error(); err != 0 {
-		return nil, fmt.Errorf("driver: al.GenSources error: %d", err)
-	}
-	p := &Player{
-		alSource:   s[0],
-		alBuffers:  []al.Buffer{},
-		source:     src,
-		sampleRate: sampleRate,
-		alFormat:   alFormat(channelNum, bytesPerSample),
-	}
-	runtime.SetFinalizer(p, (*Player).Close)
+	var p *Player
+	var err error
+	ch := make(chan struct{})
+	go func() {
+		defer close(ch)
+		// Lock the OS thread to avoid switching the native threads during initialization.
+		// This seems to solve #195, but I'm not sure.
+		runtime.LockOSThread()
+		if e := al.OpenDevice(); e != nil {
+			err = fmt.Errorf("driver: OpenAL initialization failed: %v", e)
+			return
+		}
+		s := al.GenSources(1)
+		if e := al.Error(); e != 0 {
+			err = fmt.Errorf("driver: al.GenSources error: %d", e)
+			return
+		}
+		p = &Player{
+			alSource:   s[0],
+			alBuffers:  []al.Buffer{},
+			source:     src,
+			sampleRate: sampleRate,
+			alFormat:   alFormat(channelNum, bytesPerSample),
+		}
+		runtime.SetFinalizer(p, (*Player).Close)
 
-	bs := al.GenBuffers(maxBufferNum)
-	emptyBytes := make([]byte, bufferSize)
-	for _, b := range bs {
-		// Note that the third argument of only the first buffer is used.
-		b.BufferData(p.alFormat, emptyBytes, int32(p.sampleRate))
-		p.alSource.QueueBuffers(b)
+		bs := al.GenBuffers(maxBufferNum)
+		emptyBytes := make([]byte, bufferSize)
+		for _, b := range bs {
+			// Note that the third argument of only the first buffer is used.
+			b.BufferData(p.alFormat, emptyBytes, int32(p.sampleRate))
+			p.alSource.QueueBuffers(b)
+		}
+		al.PlaySources(p.alSource)
+	}()
+	<-ch
+	if err != nil {
+		return nil, err
 	}
-	al.PlaySources(p.alSource)
 	return p, nil
 }
 
