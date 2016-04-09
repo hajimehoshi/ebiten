@@ -199,9 +199,16 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			currentRunContext.setRunningSlowly(false)
 			beforeForUpdate = now
 		} else {
+			// Note that generally t is a little more than 1/60[sec].
 			t := now - beforeForUpdate
 			currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
 			tt := int(t * FPS / int64(time.Second))
+			// As t is not accurate 1/60[sec], errors are accumulated
+			// (generally, errors are positive values).
+			// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
+			if tt == 0 && (int64(time.Second)/FPS-int64(10*time.Millisecond)) < t {
+				tt = 1
+			}
 			for i := 0; i < tt; i++ {
 				if err := ui.CurrentUI().DoEvents(); err != nil {
 					return err
@@ -214,7 +221,8 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 				}
 			}
 			ui.CurrentUI().SwapBuffers()
-			beforeForUpdate += int64(tt) * int64(time.Second) / FPS
+			d := int64(tt) * int64(time.Second) / FPS
+			beforeForUpdate += d
 			frames++
 		}
 
