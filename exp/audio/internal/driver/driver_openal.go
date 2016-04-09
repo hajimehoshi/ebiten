@@ -57,14 +57,19 @@ func alFormat(channelNum, bytesPerSample int) openal.Format {
 
 func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	d := openal.OpenDevice("")
-	if err := openal.Err(); err != nil {
-		return nil, fmt.Errorf("driver: OpenDevice: %v", err)
+	if d == nil {
+		return nil, fmt.Errorf("driver: OpenDevice must not return nil")
 	}
 	c := d.CreateContext()
-	if err := openal.Err(); err != nil {
-		return nil, fmt.Errorf("driver: CreateContext: %v", err)
+	if c == nil {
+		return nil, fmt.Errorf("driver: CreateContext must not return nil")
 	}
+	// Don't check openal.Err until making the current context is done.
+	// Linux might fail this check even though it succeeds (#204).
 	c.Activate()
+	if err := openal.Err(); err != nil {
+		return nil, fmt.Errorf("driver: Activate: %v", err)
+	}
 	s := openal.NewSource()
 	if err := openal.Err(); err != nil {
 		return nil, fmt.Errorf("driver: NewSource: %v", err)
