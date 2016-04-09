@@ -206,7 +206,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 			// As t is not accurate 1/60[sec], errors are accumulated
 			// (generally, errors are positive values).
 			// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
-			if tt == 0 && (int64(time.Second)/FPS-int64(10*time.Millisecond)) < t {
+			if tt == 0 && (int64(time.Second)/FPS-int64(5*time.Millisecond)) < t {
 				tt = 1
 			}
 			for i := 0; i < tt; i++ {
@@ -221,8 +221,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 				}
 			}
 			ui.CurrentUI().SwapBuffers()
-			d := int64(tt) * int64(time.Second) / FPS
-			beforeForUpdate += d
+			beforeForUpdate += int64(tt) * int64(time.Second) / FPS
 			frames++
 		}
 
