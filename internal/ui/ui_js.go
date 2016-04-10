@@ -102,7 +102,7 @@ func (u *UserInterface) SwapBuffers() {
 	}
 }
 
-func Init() *opengl.Context {
+func Init() (*opengl.Context, error) {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
 		return opengl.NewContext()

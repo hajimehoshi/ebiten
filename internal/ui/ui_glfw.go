@@ -18,7 +18,6 @@ package ui
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 	"sync"
 	"time"
@@ -48,12 +47,12 @@ func CurrentUI() *UserInterface {
 	return currentUI
 }
 
-func Init() *opengl.Context {
+func Init() (*opengl.Context, error) {
 	runtime.LockOSThread()
 
 	err := glfw.Init()
 	if err != nil {
-		panic(fmt.Sprintf("glfw.Init() fails: %v", err))
+		return nil, err
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.Resizable, glfw.False)
@@ -63,26 +62,34 @@ func Init() *opengl.Context {
 	// As start, create an window with temporary size to create OpenGL context thread.
 	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	u := &UserInterface{
 		window: window,
 	}
-	ch := make(chan struct{})
+	ch := make(chan error)
 	go func() {
 		runtime.LockOSThread()
 		u.window.MakeContextCurrent()
 		glfw.SwapInterval(1)
-		u.context = opengl.NewContext()
+		var err error
+		u.context, err = opengl.NewContext()
+		if err != nil {
+			ch <- err
+		}
 		close(ch)
 		u.context.Loop()
 	}()
 	currentUI = u
-	<-ch
-	u.context.Init()
+	if err := <-ch; err != nil {
+		return nil, err
+	}
+	if err := u.context.Init(); err != nil {
+		return nil, err
+	}
 
-	return u.context
+	return u.context, nil
 }
 
 func (u *UserInterface) SetScreenSize(width, height int) bool {

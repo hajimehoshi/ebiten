@@ -107,12 +107,6 @@ func (c *Context) RunOnContextThread(f func()) {
 	return
 }
 
-func (c *Context) Check() {
-	if e := gl.GetError(); e != mgl.NO_ERROR {
-		panic(fmt.Sprintf("check failed: %d", e))
-	}
-}
-
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	t := gl.CreateTexture()
 	if t.Value <= 0 {

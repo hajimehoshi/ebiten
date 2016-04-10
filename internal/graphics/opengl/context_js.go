@@ -70,7 +70,7 @@ type context struct {
 	lastCompositeMode CompositeMode
 }
 
-func NewContext() *Context {
+func NewContext() (*Context, error) {
 	var gl *webgl.Context
 
 	if js.Global.Get("require") == js.Undefined {
@@ -82,7 +82,7 @@ func NewContext() *Context {
 			PremultipliedAlpha: true,
 		})
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	} else {
 		// TODO: Now Ebiten with headless-gl doesn't work well (#141).
@@ -117,7 +117,7 @@ func NewContext() *Context {
 	c.locationCache = newLocationCache()
 	c.lastCompositeMode = CompositeModeUnknown
 	c.init()
-	return c
+	return c, nil
 }
 
 func (c *Context) init() {
@@ -136,13 +136,6 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	s, d := c.operations(mode)
 	gl := c.gl
 	gl.BlendFunc(int(s), int(d))
-}
-
-func (c *Context) Check() {
-	gl := c.gl
-	if e := gl.GetError(); e != gl.NO_ERROR {
-		panic(fmt.Sprintf("opengl: check failed: %d", e))
-	}
 }
 
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {

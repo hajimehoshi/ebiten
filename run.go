@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -104,29 +105,31 @@ func (c *runContext) updateScreenSize(g *graphicsContext) error {
 	return nil
 }
 
-func (c *runContext) SetScreenSize(width, height int) {
+func (c *runContext) SetScreenSize(width, height int) error {
 	c.m.Lock()
 	defer c.m.Unlock()
 	if !c.isRunning {
-		panic("ebiten: SetScreenSize must be called during Run")
+		return errors.New("ebiten: SetScreenSize must be called during Run")
 	}
 	if width <= 0 || height <= 0 {
-		panic("ebiten: width and height must be positive")
+		return errors.New("ebiten: width and height must be positive")
 	}
 	c.newScreenWidth = width
 	c.newScreenHeight = height
+	return nil
 }
 
-func (c *runContext) SetScreenScale(scale int) {
+func (c *runContext) SetScreenScale(scale int) error {
 	c.m.Lock()
 	defer c.m.Unlock()
 	if !c.isRunning {
-		panic("ebiten: SetScreenScale must be called during Run")
+		return errors.New("ebiten: SetScreenScale must be called during Run")
 	}
 	if scale <= 0 {
-		panic("ebiten: scale must be positive")
+		return errors.New("ebiten: scale must be positive")
 	}
 	c.newScreenScale = scale
+	return nil
 }
 
 // FPS represents how many times game updating happens in a second.
@@ -172,7 +175,6 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	}
 	defer ui.CurrentUI().Terminate()
 
-	glContext.Check()
 	graphicsContext, err := newGraphicsContext(width, height, ui.CurrentUI().ActualScreenScale())
 	if err != nil {
 		return err
@@ -238,14 +240,18 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 //
 // This function is concurrent-safe.
 func SetScreenSize(width, height int) {
-	currentRunContext.SetScreenSize(width, height)
+	if err := currentRunContext.SetScreenSize(width, height); err != nil {
+		panic(err)
+	}
 }
 
 // SetScreenSize changes the scale of the screen.
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale int) {
-	currentRunContext.SetScreenScale(scale)
+	if err := currentRunContext.SetScreenScale(scale); err != nil {
+		panic(err)
+	}
 }
 
 // ScreenScale returns the current screen scale.

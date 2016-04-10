@@ -52,7 +52,7 @@ type context struct {
 	lastCompositeMode CompositeMode
 }
 
-func NewContext() *Context {
+func NewContext() (*Context, error) {
 	c := &Context{
 		Nearest:            gl.NEAREST,
 		Linear:             gl.LINEAR,
@@ -74,7 +74,7 @@ func NewContext() *Context {
 	c.locationCache = newLocationCache()
 	c.funcs = make(chan func())
 	c.lastCompositeMode = CompositeModeUnknown
-	return c
+	return c, nil
 }
 
 func (c *Context) Loop() {
@@ -96,18 +96,24 @@ func (c *Context) RunOnContextThread(f func()) {
 	return
 }
 
-func (c *Context) Init() {
+func (c *Context) Init() error {
+	var err error
 	c.RunOnContextThread(func() {
 		// This initialization must be done after Loop is called.
 		// This is why Init is separated from NewContext.
 
 		if err := gl.Init(); err != nil {
-			panic(fmt.Sprintf("opengl: initializing error %v", err))
+			err = fmt.Errorf("opengl: initializing error %v", err)
+			return
 		}
 		// Textures' pixel formats are alpha premultiplied.
 		gl.Enable(gl.BLEND)
 	})
+	if err != nil {
+		return err
+	}
 	c.BlendFunc(CompositeModeSourceOver)
+	return nil
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {
@@ -118,14 +124,6 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 		c.lastCompositeMode = mode
 		s, d := c.operations(mode)
 		gl.BlendFunc(uint32(s), uint32(d))
-	})
-}
-
-func (c *Context) Check() {
-	c.RunOnContextThread(func() {
-		if e := gl.GetError(); e != gl.NO_ERROR {
-			panic(fmt.Sprintf("check failed: %d", e))
-		}
 	})
 }
 
@@ -364,7 +362,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 func (c *Context) getAttribLocation(p Program, location string) attribLocation {
 	attrib := attribLocation(gl.GetAttribLocation(uint32(p), gl.Str(location+"\x00")))
 	if attrib == -1 {
-		panic("invalid attrib location: " + location)
+		panic("opengl: invalid attrib location: " + location)
 	}
 	return attrib
 }

@@ -22,5 +22,9 @@ import (
 var glContext *opengl.Context
 
 func init() {
-	glContext = ui.Init()
+	var err error
+	glContext, err = ui.Init()
+	if err != nil {
+		panic(err)
+	}
 }
