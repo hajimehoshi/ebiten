@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package audio provides audio players. This can be used with or without ebiten package.
+//
+// The stream format must be 16-bit little endian and 2 channels.
+//
+// An audio context has a sample rate you can set and all streams you want to play must have the same
+// sample rate.
+//
+// An audio context can generate 'players' (instances of audio.Player),
+// and you can play sound by calling Play function of players.
+// When multiple players play, mixing is automatically done.
+// Note that too many players may cause distortion.
 package audio
 
 import (
@@ -182,11 +193,37 @@ func (s *mixingStream) playerCurrent(player *Player) time.Duration {
 
 // TODO: Enable to specify the format like Mono8?
 
+// A Context is a current state of audio.
+//
+// The typical usage with ebiten package is:
+//
+//    var audioContext *audio.Context
+//
+//    func update(screen *ebiten.Image) error {
+//        // Update updates the audio stream by 1/60 [sec].
+//        if err := audioContext.Update(); err != nil {
+//            return err
+//        }
+//        // ...
+//    }
+//
+//    func main() {
+//        audioContext, err = audio.NewContext(sampleRate)
+//        if err != nil {
+//            panic(err)
+//        }
+//        ebiten.Run(run, update, 320, 240, 2, "Audio test")
+//    }
+//
+// This is 'sync mode' in that game's (logical) time and audio time are synchronized.
+// You can also call Update independently from the game loop as 'async mode'.
+// In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
 	stream  *mixingStream
 	errorCh chan error
 }
 
+// NewContext creates a new audio context with the given sample rate (e.g. 44100).
 func NewContext(sampleRate int) (*Context, error) {
 	// TODO: Panic if one context exists.
 	c := &Context{
@@ -220,11 +257,12 @@ func NewContext(sampleRate int) (*Context, error) {
 }
 
 // Update proceeds the inner (logical) time of the context by 1/60 second.
+//
 // This is expected to be called in the game's updating function (sync mode)
-// or an independent goroutine with timers (unsync mode).
+// or an independent goroutine with timers (async mode).
 // In sync mode, the game logical time syncs the audio logical time and
 // you will find audio stops when the game stops e.g. when the window is deactivated.
-// In unsync mode, the audio never stops even when the game stops.
+// In async mode, the audio never stops even when the game stops.
 func (c *Context) Update() error {
 	select {
 	case err := <-c.errorCh:
@@ -255,16 +293,16 @@ type Player struct {
 	volume float64
 }
 
-// NewPlayer creates a new player with the given data to the given channel.
-// The given data is queued to the end of the buffer.
-// This may not be played immediately when data already exists in the buffer.
+// NewPlayer creates a new player with the given stream.
 //
-// src's format must be linear PCM (16bits, 2 channel stereo, little endian)
+// src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
+// The sample rate must be same as that of the audio context.
 func (c *Context) NewPlayer(src ReadSeekCloser) (*Player, error) {
 	return c.stream.newPlayer(src)
 }
 
+// Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
 func (p *Player) Close() error {
 	return p.stream.closePlayer(p)
 }
@@ -296,19 +334,23 @@ func (p *Player) bufferLength() int {
 	return len(p.buf)
 }
 
+// Play plays the stream.
 func (p *Player) Play() error {
 	p.stream.addPlayer(p)
 	return nil
 }
 
+// IsPlaying returns boolean indicating whether the player is playing.
 func (p *Player) IsPlaying() bool {
 	return p.stream.hasPlayer(p)
 }
 
+// Rewind rewinds the current position to the start.
 func (p *Player) Rewind() error {
 	return p.Seek(0)
 }
 
+// Seek seeks the position with the given offset.
 func (p *Player) Seek(offset time.Duration) error {
 	return p.stream.seekPlayer(p, offset)
 }
@@ -323,20 +365,23 @@ func (p *Player) seek(offset int64) error {
 	return nil
 }
 
+// Pause pauses the playing.
 func (p *Player) Pause() error {
 	p.stream.removePlayer(p)
 	return nil
 }
 
+// Current returns the current position.
 func (p *Player) Current() time.Duration {
 	return p.stream.playerCurrent(p)
 }
 
+// Volume returns the current volume of this player [0-1].
 func (p *Player) Volume() float64 {
 	return p.volume
 }
 
-// SetVolume sets the volume.
+// SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. This function panics otherwise.
 func (p *Player) SetVolume(volume float64) {
 	// The condition must be true when volume is NaN.
