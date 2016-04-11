@@ -35,11 +35,11 @@ var (
 	textImage *ebiten.Image
 )
 
-// text is a head part of a Japanese novel 山月記 (Sangetsuki)
-// See http://www.aozora.gr.jp/cards/000119/files/624_14544.html.
 var text = []string{
 	"The quick brown fox jumps over the lazy dog.",
 	"",
+	// A head part of a Japanese novel 山月記 (Sangetsuki)
+	// See http://www.aozora.gr.jp/cards/000119/files/624_14544.html.
 	"隴西の李徴は博学才穎、天宝の末年、",
 	"若くして名を虎榜に連ね、",
 	"ついで江南尉に補せられたが、",
