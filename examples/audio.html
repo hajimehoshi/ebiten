@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<!--
+Copyright 2014 Hajime Hoshi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - audio</title>
+<style>
+body {
+  font-family: sans-serif;
+}
+iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
+}
+</style>
+<nav><a href="..">Ebiten</a></nav>
+
+<h1>Ebiten example - audio</h1>
+<iframe src="audio.content.html" width="640" height="480"></iframe>
+<pre><code>package main
+
+import (
+    &#34;bytes&#34;
+    &#34;fmt&#34;
+    &#34;image/color&#34;
+    &#34;log&#34;
+    &#34;time&#34;
+
+    &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+    &#34;github.com/hajimehoshi/ebiten/exp/audio&#34;
+    &#34;github.com/hajimehoshi/ebiten/exp/audio/vorbis&#34;
+    &#34;github.com/hajimehoshi/ebiten/exp/audio/wav&#34;
+)
+
+const (
+    screenWidth  = 320
+    screenHeight = 240
+)
+
+var (
+    playerBarImage     *ebiten.Image
+    playerCurrentImage *ebiten.Image
+)
+
+func init() {
+    var err error
+    playerBarImage, err = ebiten.NewImage(300, 4, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    playerBarImage.Fill(&amp;color.RGBA{0x80, 0x80, 0x80, 0xff})
+
+    playerCurrentImage, err = ebiten.NewImage(4, 10, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    playerCurrentImage.Fill(&amp;color.RGBA{0xff, 0xff, 0xff, 0xff})
+}
+
+type Player struct {
+    audioPlayer *audio.Player
+    total       time.Duration
+}
+
+var (
+    audioContext     *audio.Context
+    musicPlayer      *Player
+    seStream         *wav.Stream
+    sePlayer         *audio.Player
+    musicCh          = make(chan *Player)
+    seCh             = make(chan *wav.Stream)
+    mouseButtonState = map[ebiten.MouseButton]int{}
+    keyState         = map[ebiten.Key]int{}
+    volume128        = 128
+)
+
+func playerBarRect() (x, y, w, h int) {
+    w, h = playerBarImage.Size()
+    x = (screenWidth - w) / 2
+    y = screenHeight - h - 16
+    return
+}
+
+type SEStream struct {
+    *bytes.Reader
+}
+
+func (s *SEStream) Close() error {
+    return nil
+}
+
+func (p *Player) updateSE() error {
+    if seStream == nil {
+        return nil
+    }
+    if !ebiten.IsKeyPressed(ebiten.KeyP) {
+        keyState[ebiten.KeyP] = 0
+        return nil
+    }
+    keyState[ebiten.KeyP]&#43;&#43;
+    if keyState[ebiten.KeyP] != 1 {
+        return nil
+    }
+    if sePlayer == nil {
+        var err error
+        sePlayer, err = audioContext.NewPlayer(seStream)
+        if err != nil {
+            return err
+        }
+    }
+    if sePlayer.IsPlaying() {
+        return nil
+    }
+    if err := sePlayer.Rewind(); err != nil {
+        return err
+    }
+    return sePlayer.Play()
+}
+
+func (p *Player) updateVolume() error {
+    if p.audioPlayer == nil {
+        return nil
+    }
+    if ebiten.IsKeyPressed(ebiten.KeyZ) {
+        volume128--
+    }
+    if ebiten.IsKeyPressed(ebiten.KeyX) {
+        volume128&#43;&#43;
+    }
+    if volume128 &lt; 0 {
+        volume128 = 0
+    }
+    if 128 &lt; volume128 {
+        volume128 = 128
+    }
+    p.audioPlayer.SetVolume(float64(volume128) / 128)
+    return nil
+}
+
+func (p *Player) updatePlayPause() error {
+    if p.audioPlayer == nil {
+        return nil
+    }
+    if !ebiten.IsKeyPressed(ebiten.KeyS) {
+        keyState[ebiten.KeyS] = 0
+        return nil
+    }
+    keyState[ebiten.KeyS]&#43;&#43;
+    if keyState[ebiten.KeyS] != 1 {
+        return nil
+    }
+    if p.audioPlayer.IsPlaying() {
+        return p.audioPlayer.Pause()
+    }
+    return p.audioPlayer.Play()
+}
+
+func (p *Player) updateBar() error {
+    if p.audioPlayer == nil {
+        return nil
+    }
+    if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+        mouseButtonState[ebiten.MouseButtonLeft] = 0
+        return nil
+    }
+    mouseButtonState[ebiten.MouseButtonLeft]&#43;&#43;
+    if mouseButtonState[ebiten.MouseButtonLeft] != 1 {
+        return nil
+    }
+    x, y := ebiten.CursorPosition()
+    bx, by, bw, bh := playerBarRect()
+    if y &lt; by || by&#43;bh &lt;= y {
+        return nil
+    }
+    if x &lt; bx || bx&#43;bw &lt;= x {
+        return nil
+    }
+    pos := time.Duration(x-bx) * p.total / time.Duration(bw)
+    return p.audioPlayer.Seek(pos)
+}
+
+func (p *Player) close() error {
+    return p.audioPlayer.Close()
+}
+
+func update(screen *ebiten.Image) error {
+    if err := audioContext.Update(); err != nil {
+        return err
+    }
+    if musicPlayer == nil {
+        select {
+        case musicPlayer = &lt;-musicCh:
+        default:
+        }
+    }
+    if seStream == nil {
+        select {
+        case seStream = &lt;-seCh:
+        default:
+        }
+    }
+    if musicPlayer != nil {
+        if err := musicPlayer.updateBar(); err != nil {
+            return err
+        }
+        if err := musicPlayer.updatePlayPause(); err != nil {
+            return err
+        }
+        if err := musicPlayer.updateSE(); err != nil {
+            return err
+        }
+        if err := musicPlayer.updateVolume(); err != nil {
+            return err
+        }
+    }
+
+    op := &amp;ebiten.DrawImageOptions{}
+    x, y, w, h := playerBarRect()
+    op.GeoM.Translate(float64(x), float64(y))
+    screen.DrawImage(playerBarImage, op)
+    currentTimeStr := &#34;00:00&#34;
+    if musicPlayer != nil {
+        c := musicPlayer.audioPlayer.Current()
+
+        // Current Time
+        m := (c / time.Minute) % 100
+        s := (c / time.Second) % 60
+        currentTimeStr = fmt.Sprintf(&#34;%02d:%02d&#34;, m, s)
+
+        // Bar
+        cw, ch := playerCurrentImage.Size()
+        cx := int(time.Duration(w)*c/musicPlayer.total) &#43; x - cw/2
+        cy := y - (ch-h)/2
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(float64(cx), float64(cy))
+        screen.DrawImage(playerCurrentImage, op)
+    }
+
+    msg := fmt.Sprintf(`FPS: %0.2f
+Press S to toggle Play/Pause
+Press P to play SE
+Press Z or X to change volume of the music
+%s`, ebiten.CurrentFPS(), currentTimeStr)
+    if musicPlayer == nil {
+        msg &#43;= &#34;\nNow Loading...&#34;
+    }
+    ebitenutil.DebugPrint(screen, msg)
+    return nil
+}
+
+func main() {
+    wavF, err := ebitenutil.OpenFile(&#34;_resources/audio/jab.wav&#34;)
+    if err != nil {
+        log.Fatal(err)
+    }
+    oggF, err := ebitenutil.OpenFile(&#34;_resources/audio/ragtime.ogg&#34;)
+    if err != nil {
+        log.Fatal(err)
+    }
+    const sampleRate = 22050
+    const bytesPerSample = 4 // TODO: This should be defined in audio package
+    audioContext, err = audio.NewContext(sampleRate)
+    if err != nil {
+        log.Fatal(err)
+    }
+    go func() {
+        s, err := wav.Decode(audioContext, wavF)
+        if err != nil {
+            log.Fatal(err)
+            return
+        }
+        seCh &lt;- s
+        close(seCh)
+    }()
+    go func() {
+        s, err := vorbis.Decode(audioContext, oggF)
+        if err != nil {
+            log.Fatal(err)
+            return
+        }
+        p, err := audioContext.NewPlayer(s)
+        if err != nil {
+            log.Fatal(err)
+            return
+        }
+        musicCh &lt;- &amp;Player{
+            audioPlayer: p,
+            total:       time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
+        }
+        close(musicCh)
+        // TODO: Is this goroutine-safe?
+        p.Play()
+    }()
+    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Audio (Ebiten Demo)&#34;); err != nil {
+        log.Fatal(err)
+    }
+    if musicPlayer != nil {
+        if err := musicPlayer.close(); err != nil {
+            log.Fatal(err)
+        }
+    }
+}
+</code></pre>
+
+
+<footer>© 2014 Hajime Hoshi</footer>

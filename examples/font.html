@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!--
+Copyright 2014 Hajime Hoshi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - font</title>
+<style>
+body {
+  font-family: sans-serif;
+}
+iframe {
+  border-color: #999;
+  border-style: solid;
+  border-width: 1px;
+  overflow: hidden;
+}
+pre {
+  background: #eee;
+  padding: 1em;
+}
+</style>
+<nav><a href="..">Ebiten</a></nav>
+
+<h1>Ebiten example - font</h1>
+<iframe src="font.content.html" width="640" height="480"></iframe>
+<pre><code>package main
+
+import (
+    &#34;image&#34;
+    &#34;io/ioutil&#34;
+    &#34;log&#34;
+
+    &#34;github.com/golang/freetype/truetype&#34;
+    &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+    &#34;golang.org/x/image/font&#34;
+    &#34;golang.org/x/image/math/fixed&#34;
+)
+
+const (
+    screenWidth  = 640
+    screenHeight = 480
+)
+
+var (
+    textImage *ebiten.Image
+)
+
+var text = []string{
+    &#34;The quick brown fox jumps over the lazy dog.&#34;,
+    &#34;&#34;,
+    // A head part of a Japanese novel 山月記 (Sangetsuki)
+    // See http://www.aozora.gr.jp/cards/000119/files/624_14544.html.
+    &#34;隴西の李徴は博学才穎、天宝の末年、&#34;,
+    &#34;若くして名を虎榜に連ね、&#34;,
+    &#34;ついで江南尉に補せられたが、&#34;,
+    &#34;性、狷介、自ら恃むところ頗厚く、&#34;,
+    &#34;賤吏に甘んずるを潔しとしなかった。&#34;,
+}
+
+func parseFont() error {
+    f, err := ebitenutil.OpenFile(&#34;_resources/fonts/mplus-1p-regular.ttf&#34;)
+    if err != nil {
+        return err
+    }
+    defer f.Close()
+    b, err := ioutil.ReadAll(f)
+    if err != nil {
+        return err
+    }
+    tt, err := truetype.Parse(b)
+    if err != nil {
+        return err
+    }
+    w, h := textImage.Size()
+    dst := image.NewRGBA(image.Rect(0, 0, w, h))
+    const size = 24
+    const dpi = 72
+    d := &amp;font.Drawer{
+        Dst: dst,
+        Src: image.White,
+        Face: truetype.NewFace(tt, &amp;truetype.Options{
+            Size:    size,
+            DPI:     dpi,
+            Hinting: font.HintingFull,
+        }),
+    }
+    dy := size * dpi / 72
+    y := dy
+    for _, s := range text {
+        d.Dot = fixed.P(0, y)
+        d.DrawString(s)
+        y &#43;= dy
+    }
+    return textImage.ReplacePixels(dst.Pix)
+}
+
+func update(screen *ebiten.Image) error {
+    if err := screen.DrawImage(textImage, &amp;ebiten.DrawImageOptions{}); err != nil {
+        return err
+    }
+    return nil
+}
+
+func main() {
+    var err error
+    textImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+    if err != nil {
+        log.Fatal(err)
+    }
+    if err := parseFont(); err != nil {
+        log.Fatal(err)
+    }
+    if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Font (Ebiten Demo)&#34;); err != nil {
+        log.Fatal(err)
+    }
+}
+</code></pre>
+
+
+<footer>© 2014 Hajime Hoshi</footer>
