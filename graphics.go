@@ -39,19 +39,46 @@ func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
 // CompositeMode represents Porter-Duff composition mode.
 type CompositeMode int
 
-// Note: This name convention follow CSS compositing: https://drafts.fxtf.org/compositing-2/
-
+// This name convention follows CSS compositing: https://drafts.fxtf.org/compositing-2/.
+//
+// In the above comments,
+// c_src, c_dst and c_out represent alpha-premultiplied RGB values of source, destination and output respectively. α_src and α_dst represent alpha values of source and destination respectively.
 const (
-	CompositeModeSourceOver      CompositeMode = CompositeMode(opengl.CompositeModeSourceOver) // regular alpha blending
-	CompositeModeClear                         = CompositeMode(opengl.CompositeModeClear)
-	CompositeModeCopy                          = CompositeMode(opengl.CompositeModeCopy)
-	CompositeModeDestination                   = CompositeMode(opengl.CompositeModeDestination)
-	CompositeModeSourceIn                      = CompositeMode(opengl.CompositeModeSourceIn)
-	CompositeModeDestinationIn                 = CompositeMode(opengl.CompositeModeDestinationIn)
-	CompositeModeSourceOut                     = CompositeMode(opengl.CompositeModeSourceOut)
-	CompositeModeDestinationOut                = CompositeMode(opengl.CompositeModeDestinationOut)
-	CompositeModeSourceAtop                    = CompositeMode(opengl.CompositeModeSourceAtop)
-	CompositeModeDestinationAtop               = CompositeMode(opengl.CompositeModeDestinationAtop)
-	CompositeModeXor                           = CompositeMode(opengl.CompositeModeXor)
-	CompositeModeLighter                       = CompositeMode(opengl.CompositeModeLighter) // sum of source and destination (a.k.a. 'plus' or 'additive')
+	// Regular alpha blending
+	// c_out = c_src + c_dst × (1 - α_src)
+	CompositeModeSourceOver CompositeMode = CompositeMode(opengl.CompositeModeSourceOver)
+
+	// c_out = 0
+	CompositeModeClear = CompositeMode(opengl.CompositeModeClear)
+
+	// c_out = c_src
+	CompositeModeCopy = CompositeMode(opengl.CompositeModeCopy)
+
+	// c_out = c_dst
+	CompositeModeDestination = CompositeMode(opengl.CompositeModeDestination)
+
+	// c_out = c_src × α_dst
+	CompositeModeSourceIn = CompositeMode(opengl.CompositeModeSourceIn)
+
+	// c_out = c_dst × α_src
+	CompositeModeDestinationIn = CompositeMode(opengl.CompositeModeDestinationIn)
+
+	// c_out = c_src × (1 - α_dst)
+	CompositeModeSourceOut = CompositeMode(opengl.CompositeModeSourceOut)
+
+	// c_out = c_dst × (1 - α_src)
+	CompositeModeDestinationOut = CompositeMode(opengl.CompositeModeDestinationOut)
+
+	// c_out = c_src × α_dst + c_dst × (1 - α_src)
+	CompositeModeSourceAtop = CompositeMode(opengl.CompositeModeSourceAtop)
+
+	// c_out = c_src × (1 - α_dst) + c_dst × α_src
+	CompositeModeDestinationAtop = CompositeMode(opengl.CompositeModeDestinationAtop)
+
+	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
+	CompositeModeXor = CompositeMode(opengl.CompositeModeXor)
+
+	// Sum of source and destination (a.k.a. 'plus' or 'additive')
+	// c_out = c_src + c_dst
+	CompositeModeLighter = CompositeMode(opengl.CompositeModeLighter)
 )
