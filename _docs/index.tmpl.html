@@ -55,6 +55,8 @@ pre {
 </p>
 
 <h2>Install on Mac OS X or Windows</h2>
+<p>Compilation requires a C compiler like GCC to compile third party libaries used by Ebiten. You would need <a href="http://www.mingw.org/">MinGW</a> on Windows, and would need Xcode on Mac OS X.</p>
+<p>Let's get the Ebiten source code and compile it.</p>
 <pre><code>:; go get github.com/hajimehoshi/ebiten</code></pre>
 <p>If you want to run your game on a web browser, execute this:</p>
 <pre><code>:; go get github.com/gopherjs/gopherjs
@@ -90,11 +92,43 @@ pre {
 <h2>Apps created with Ebiten</h2>
 <ul>
   <li><a href="https://github.com/peterhellberg/plasma">Plasma</a> by Peter Hellberg</li>
-  <li><a href="https://github.com/hajimehoshi/go-inovation5">go-inovation5</a> by Hajime Hoshi</li>
+  <li><a href="https://github.com/hajimehoshi/go-inovation">go-inovation</a> by Hajime Hoshi</li>
   <li><a href="https://github.com/martinkirsche/wired-logic">Wired Logic</a> by Martin Kirsche</li>
+  <li><a href="https://github.com/DrJosh9000/awakengine">AwakEngine</a> by Josh Deprez</li>
 </ul>
 
 <h2>Change Log</h2>
+<h3>2016-04-14</h3>
+<ul>
+  <li>v1.3.0-rc1 released.
+    <ul>
+      <li>Added new platforms
+        <ul>
+          <li>Windows</li>
+          <li>Linux</li>
+        </ul>
+      </li>
+      <li>Drawing
+        <ul>
+          <li>Added CompositeMode to change composite mode (e.g. masking or additive drawing)</li>
+        </ul>
+      </li>
+      <li>Audio
+        <ul>
+          <li>Changed APIs (almost fixed)</li>
+          <li>Added exp/audio/vorbis to decode Ogg/Vorbis stream</li>
+          <li>Added exp/audio/wav to decode Wav stream</li>
+        </ul>
+      </li>
+      <li>Others
+        <ul>
+          <li>Made most of functions concurrent-safe</li>
+          <li>Bug fix</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
 <h3>2016-02-28</h3>
 <ul>
   <li>v1.2.0 released.
