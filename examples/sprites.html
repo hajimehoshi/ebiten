@@ -141,6 +141,9 @@ func update(screen *ebiten.Image) error {
     }
     sprites.Update()
 
+    if ebiten.IsRunningSlowly() {
+        return nil
+    }
     op := &amp;ebiten.DrawImageOptions{
         ImageParts: sprites,
     }
