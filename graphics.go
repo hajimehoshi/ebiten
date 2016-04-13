@@ -57,6 +57,9 @@ const (
 	// c_out = c_dst
 	CompositeModeDestination = CompositeMode(opengl.CompositeModeDestination)
 
+	// c_out = c_src × (1 - α_dst) + c_dst
+	CompositeModeDestinationOver = CompositeMode(opengl.CompositeModeDestinationOver)
+
 	// c_out = c_src × α_dst
 	CompositeModeSourceIn = CompositeMode(opengl.CompositeModeSourceIn)
 
