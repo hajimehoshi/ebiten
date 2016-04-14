@@ -27,7 +27,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"io"
 	"unsafe"
 )
 
@@ -76,7 +75,6 @@ func releaseSemaphore() {
 }
 
 type Player struct {
-	src     io.Reader
 	out     C.HWAVEOUT
 	buffer  []byte
 	headers []*header
@@ -84,7 +82,7 @@ type Player struct {
 
 const bufferSize = 1024
 
-func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
+func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	numBlockAlign := channelNum * bytesPerSample
 	f := C.WAVEFORMATEX{
 		wFormatTag:      C.WAVE_FORMAT_PCM,
@@ -99,7 +97,6 @@ func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Play
 		return nil, fmt.Errorf("driver: waveOutOpen error: %d", err)
 	}
 	p := &Player{
-		src:     src,
 		out:     w,
 		buffer:  []byte{},
 		headers: make([]*header, numHeader),
@@ -114,35 +111,27 @@ func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Play
 	return p, nil
 }
 
-func (p *Player) Proceed() error {
-	if len(p.buffer) < bufferSize {
-		b := make([]byte, bufferSize)
-		n, err := p.src.Read(b)
-		if 0 < n {
-			p.buffer = append(p.buffer, b[:n]...)
-		}
-		if err != nil {
-			return err
+func (p *Player) Proceed(data []byte) error {
+	p.buffer = append(p.buffer, data...)
+	if bufferSize > len(p.buffer) {
+		return nil
+	}
+	sem <- struct{}{}
+	headerToWrite := (*header)(nil)
+	for _, h := range p.headers {
+		// TODO: Need to check WHDR_DONE?
+		if h.waveHdr.dwFlags&C.WHDR_INQUEUE == 0 {
+			headerToWrite = h
+			break
 		}
 	}
-	if bufferSize <= len(p.buffer) {
-		sem <- struct{}{}
-		headerToWrite := (*header)(nil)
-		for _, h := range p.headers {
-			// TODO: Need to check WHDR_DONE?
-			if h.waveHdr.dwFlags&C.WHDR_INQUEUE == 0 {
-				headerToWrite = h
-				break
-			}
-		}
-		if headerToWrite == nil {
-			return errors.New("driver: no available buffers")
-		}
-		if err := headerToWrite.Write(p.out, p.buffer[:bufferSize]); err != nil {
-			return err
-		}
-		p.buffer = p.buffer[bufferSize:]
+	if headerToWrite == nil {
+		return errors.New("driver: no available buffers")
 	}
+	if err := headerToWrite.Write(p.out, p.buffer[:bufferSize]); err != nil {
+		return err
+	}
+	p.buffer = p.buffer[bufferSize:]
 	return nil
 }
 

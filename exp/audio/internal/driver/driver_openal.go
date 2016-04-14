@@ -17,8 +17,8 @@
 package driver
 
 import (
+	"errors"
 	"fmt"
-	"io"
 	"runtime"
 
 	"github.com/hajimehoshi/go-openal/openal"
@@ -35,7 +35,6 @@ type Player struct {
 	alDevice   *openal.Device
 	alSource   openal.Source
 	alBuffers  []openal.Buffer
-	source     io.Reader
 	sampleRate int
 	isClosed   bool
 	alFormat   openal.Format
@@ -55,7 +54,7 @@ func alFormat(channelNum, bytesPerSample int) openal.Format {
 	panic(fmt.Sprintf("driver: invalid channel num (%d) or bytes per sample (%d)", channelNum, bytesPerSample))
 }
 
-func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
+func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	d := openal.OpenDevice("")
 	if d == nil {
 		return nil, fmt.Errorf("driver: OpenDevice must not return nil")
@@ -78,39 +77,31 @@ func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Play
 		alDevice:   d,
 		alSource:   s,
 		alBuffers:  []openal.Buffer{},
-		source:     src,
 		sampleRate: sampleRate,
 		alFormat:   alFormat(channelNum, bytesPerSample),
 	}
 	runtime.SetFinalizer(p, (*Player).Close)
 
 	bs := openal.NewBuffers(maxBufferNum)
+	const bufferSize = 1024
 	emptyBytes := make([]byte, bufferSize)
 	for _, b := range bs {
 		// Note that the third argument of only the first buffer is used.
 		b.SetData(p.alFormat, emptyBytes, int32(p.sampleRate))
-		p.alSource.QueueBuffer(b)
+		//p.alSource.QueueBuffer(b)
+		p.alBuffers = append(p.alBuffers, b)
 	}
 	p.alSource.Play()
 	return p, nil
 }
 
-const (
-	bufferSize = 1024
-)
-
-var (
-	tmpBuffer    = make([]byte, bufferSize)
-	tmpAlBuffers = make([]openal.Buffer, maxBufferNum)
-)
-
-func (p *Player) Proceed() error {
+func (p *Player) Proceed(data []byte) error {
 	if err := openal.Err(); err != nil {
 		return fmt.Errorf("driver: starting Proceed: %v", err)
 	}
 	processedNum := p.alSource.BuffersProcessed()
 	if 0 < processedNum {
-		bufs := tmpAlBuffers[:processedNum]
+		bufs := make([]openal.Buffer, processedNum)
 		p.alSource.UnqueueBuffers(bufs)
 		if err := openal.Err(); err != nil {
 			return fmt.Errorf("driver: UnqueueBuffers: %v", err)
@@ -118,20 +109,15 @@ func (p *Player) Proceed() error {
 		p.alBuffers = append(p.alBuffers, bufs...)
 	}
 
-	if 0 < len(p.alBuffers) {
-		n, err := p.source.Read(tmpBuffer)
-		if 0 < n {
-			buf := p.alBuffers[0]
-			p.alBuffers = p.alBuffers[1:]
-			buf.SetData(p.alFormat, tmpBuffer[:n], int32(p.sampleRate))
-			p.alSource.QueueBuffer(buf)
-			if err := openal.Err(); err != nil {
-				return fmt.Errorf("driver: QueueBuffer: %v", err)
-			}
-		}
-		if err != nil {
-			return err
-		}
+	if len(p.alBuffers) == 0 {
+		return errors.New("driver: p.alBuffers must > 0")
+	}
+	buf := p.alBuffers[0]
+	p.alBuffers = p.alBuffers[1:]
+	buf.SetData(p.alFormat, data, int32(p.sampleRate))
+	p.alSource.QueueBuffer(buf)
+	if err := openal.Err(); err != nil {
+		return fmt.Errorf("driver: QueueBuffer: %v", err)
 	}
 
 	if p.alSource.State() == openal.Stopped || p.alSource.State() == openal.Initial {

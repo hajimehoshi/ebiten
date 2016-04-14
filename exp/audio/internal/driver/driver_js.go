@@ -18,13 +18,11 @@ package driver
 
 import (
 	"errors"
-	"io"
 
 	"github.com/gopherjs/gopherjs/js"
 )
 
 type Player struct {
-	src               io.Reader
 	sampleRate        int
 	channelNum        int
 	bytesPerSample    int
@@ -33,7 +31,7 @@ type Player struct {
 	bufferSource      *js.Object
 }
 
-func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Player, error) {
+func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	class := js.Global.Get("AudioContext")
 	if class == js.Undefined {
 		class = js.Global.Get("webkitAudioContext")
@@ -42,7 +40,6 @@ func NewPlayer(src io.Reader, sampleRate, channelNum, bytesPerSample int) (*Play
 		return nil, errors.New("driver: audio couldn't be initialized")
 	}
 	p := &Player{
-		src:            src,
 		sampleRate:     sampleRate,
 		channelNum:     channelNum,
 		bytesPerSample: bytesPerSample,
@@ -63,37 +60,29 @@ func toLR(data []byte) ([]int16, []int16) {
 	return l, r
 }
 
-const (
-	// 1024 seems not enough (some noise remains after the tab is deactivated).
-	bufferSize = 2048
-)
-
-func (p *Player) Proceed() error {
+func (p *Player) Proceed(data []byte) error {
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if p.positionInSamples < c {
 		p.positionInSamples = c
 	}
-	b := make([]byte, bufferSize)
-	n, err := p.src.Read(b)
-	if 0 < n {
-		buf := p.context.Call("createBuffer", p.channelNum, n/p.bytesPerSample/p.channelNum, p.sampleRate)
-		l := buf.Call("getChannelData", 0)
-		r := buf.Call("getChannelData", 1)
-		il, ir := toLR(b[:n])
-		const max = 1 << 15
-		for i := 0; i < len(il); i++ {
-			l.SetIndex(i, float64(il[i])/max)
-			r.SetIndex(i, float64(ir[i])/max)
-		}
-		p.bufferSource = p.context.Call("createBufferSource")
-		p.bufferSource.Set("buffer", buf)
-		p.bufferSource.Call("connect", p.context.Get("destination"))
-		p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
-		// Call 'stop' or we'll get noisy sound especially on Chrome.
-		p.bufferSource.Call("stop", float64(p.positionInSamples+int64(len(il)))/float64(p.sampleRate))
-		p.positionInSamples += int64(len(il))
+	n := len(data)
+	buf := p.context.Call("createBuffer", p.channelNum, n/p.bytesPerSample/p.channelNum, p.sampleRate)
+	l := buf.Call("getChannelData", 0)
+	r := buf.Call("getChannelData", 1)
+	il, ir := toLR(data)
+	const max = 1 << 15
+	for i := 0; i < len(il); i++ {
+		l.SetIndex(i, float64(il[i])/max)
+		r.SetIndex(i, float64(ir[i])/max)
 	}
-	return err
+	p.bufferSource = p.context.Call("createBufferSource")
+	p.bufferSource.Set("buffer", buf)
+	p.bufferSource.Call("connect", p.context.Get("destination"))
+	p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
+	// Call 'stop' or we'll get noisy sound especially on Chrome.
+	p.bufferSource.Call("stop", float64(p.positionInSamples+int64(len(il)))/float64(p.sampleRate))
+	p.positionInSamples += int64(len(il))
+	return nil
 }
 
 func (p *Player) Close() error {

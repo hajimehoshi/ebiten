@@ -36,21 +36,12 @@ import (
 )
 
 type mixingStream struct {
-	sampleRate   int
-	writtenBytes int
-	frames       int
-	players      map[*Player]struct{}
+	sampleRate int
+	players    map[*Player]struct{}
 
 	// Note that Read (and other methods) need to be concurrent safe
 	// because Read is called from another groutine (see NewContext).
 	sync.RWMutex
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 const (
@@ -62,26 +53,24 @@ const (
 )
 
 func (s *mixingStream) SampleRate() int {
-	s.RLock()
-	defer s.RUnlock()
 	return s.sampleRate
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (s *mixingStream) Read(b []byte) (int, error) {
 	s.Lock()
 	defer s.Unlock()
 
-	bytesPerFrame := s.sampleRate * bytesPerSample * channelNum / ebiten.FPS
-	x := s.frames*bytesPerFrame + len(b)
-	if x <= s.writtenBytes {
-		return 0, nil
-	}
-
 	if len(s.players) == 0 {
-		l := min(len(b), x-s.writtenBytes)
+		l := len(b)
 		l &= mask
 		copy(b, make([]byte, l))
-		s.writtenBytes += l
 		return l, nil
 	}
 	closed := []*Player{}
@@ -120,15 +109,7 @@ func (s *mixingStream) Read(b []byte) (int, error) {
 	for _, p := range closed {
 		delete(s.players, p)
 	}
-	s.writtenBytes += l
 	return l, nil
-}
-
-func (s *mixingStream) update() error {
-	s.Lock()
-	defer s.Unlock()
-	s.frames++
-	return nil
 }
 
 func (s *mixingStream) newPlayer(src ReadSeekCloser) (*Player, error) {
@@ -219,40 +200,26 @@ func (s *mixingStream) playerCurrent(player *Player) time.Duration {
 // You can also call Update independently from the game loop as 'async mode'.
 // In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
-	stream  *mixingStream
-	errorCh chan error
+	stream       *mixingStream
+	driver       *driver.Player
+	frames       int
+	writtenBytes int
 }
 
 // NewContext creates a new audio context with the given sample rate (e.g. 44100).
 func NewContext(sampleRate int) (*Context, error) {
 	// TODO: Panic if one context exists.
-	c := &Context{
-		errorCh: make(chan error),
-	}
+	c := &Context{}
 	c.stream = &mixingStream{
 		sampleRate: sampleRate,
 		players:    map[*Player]struct{}{},
 	}
 	// TODO: Rename this other than player
-	p, err := driver.NewPlayer(c.stream, sampleRate, channelNum, bytesPerSample)
+	p, err := driver.NewPlayer(sampleRate, channelNum, bytesPerSample)
+	c.driver = p
 	if err != nil {
 		return nil, err
 	}
-	go func() {
-		// TODO: Is it OK to close asap?
-		defer p.Close()
-		for {
-			err := p.Proceed()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				c.errorCh <- err
-				return
-			}
-			time.Sleep(1 * time.Millisecond)
-		}
-	}()
 	return c, nil
 }
 
@@ -264,12 +231,27 @@ func NewContext(sampleRate int) (*Context, error) {
 // you will find audio stops when the game stops e.g. when the window is deactivated.
 // In async mode, the audio never stops even when the game stops.
 func (c *Context) Update() error {
-	select {
-	case err := <-c.errorCh:
+	c.frames++
+	bytesPerFrame := c.stream.sampleRate * bytesPerSample * channelNum / ebiten.FPS
+	l := (c.frames * bytesPerFrame) - c.writtenBytes
+	l &= mask
+	c.writtenBytes += l
+	buf := make([]byte, l)
+	n, err := io.ReadFull(c.stream, buf)
+	if err != nil {
 		return err
-	default:
 	}
-	return c.stream.update()
+	if n != len(buf) {
+		return c.driver.Close()
+	}
+	err = c.driver.Proceed(buf)
+	if err == io.EOF {
+		return c.driver.Close()
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // SampleRate returns the sample rate.
