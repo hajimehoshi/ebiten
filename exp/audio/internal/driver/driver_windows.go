@@ -20,8 +20,6 @@ package driver
 // #include <mmsystem.h>
 //
 // #define sizeOfWavehdr (sizeof(WAVEHDR))
-//
-// MMRESULT waveOutOpen2(HWAVEOUT* waveOut, WAVEFORMATEX* format);
 import "C"
 
 import (
@@ -67,13 +65,6 @@ func (h *header) Write(waveOut C.HWAVEOUT, data []byte) error {
 
 const numHeader = 8
 
-var sem = make(chan struct{}, numHeader)
-
-//export releaseSemaphore
-func releaseSemaphore() {
-	<-sem
-}
-
 type Player struct {
 	out     C.HWAVEOUT
 	buffer  []byte
@@ -93,7 +84,7 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		nBlockAlign:     C.WORD(numBlockAlign),
 	}
 	var w C.HWAVEOUT
-	if err := C.waveOutOpen2(&w, &f); err != C.MMSYSERR_NOERROR {
+	if err := C.waveOutOpen(&w, C.WAVE_MAPPER, &f, 0, 0, C.CALLBACK_NULL); err != C.MMSYSERR_NOERROR {
 		return nil, fmt.Errorf("driver: waveOutOpen error: %d", err)
 	}
 	p := &Player{
@@ -116,7 +107,6 @@ func (p *Player) Proceed(data []byte) error {
 	if bufferSize > len(p.buffer) {
 		return nil
 	}
-	sem <- struct{}{}
 	headerToWrite := (*header)(nil)
 	for _, h := range p.headers {
 		// TODO: Need to check WHDR_DONE?
