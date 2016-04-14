@@ -80,7 +80,7 @@ type Player struct {
 	headers []*header
 }
 
-const bufferSize = 1024
+const bufferSize = 4096
 
 func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	numBlockAlign := channelNum * bytesPerSample
@@ -135,6 +135,7 @@ func (p *Player) Proceed(data []byte) error {
 	return nil
 }
 
-func (p *Player) Close() {
+func (p *Player) Close() error {
 	// TODO: Implement this
+	return nil
 }
