@@ -35,12 +35,8 @@ import (
 	"github.com/hajimehoshi/ebiten/exp/audio/internal/driver"
 )
 
-type mixingStream struct {
-	sampleRate int
-	players    map[*Player]struct{}
-
-	// Note that Read (and other methods) need to be concurrent safe
-	// because Read is called from another groutine (see NewContext).
+type players struct {
+	players map[*Player]struct{}
 	sync.RWMutex
 }
 
@@ -52,10 +48,6 @@ const (
 	mask = ^(channelNum*bytesPerSample - 1)
 )
 
-func (s *mixingStream) SampleRate() int {
-	return s.sampleRate
-}
-
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -63,11 +55,11 @@ func min(a, b int) int {
 	return b
 }
 
-func (s *mixingStream) Read(b []byte) (int, error) {
-	s.Lock()
-	defer s.Unlock()
+func (p *players) Read(b []byte) (int, error) {
+	p.Lock()
+	defer p.Unlock()
 
-	if len(s.players) == 0 {
+	if len(p.players) == 0 {
 		l := len(b)
 		l &= mask
 		copy(b, make([]byte, l))
@@ -75,7 +67,7 @@ func (s *mixingStream) Read(b []byte) (int, error) {
 	}
 	closed := []*Player{}
 	l := len(b)
-	for p := range s.players {
+	for p := range p.players {
 		err := p.readToBuffer(l)
 		if err == io.EOF {
 			closed = append(closed, p)
@@ -86,7 +78,7 @@ func (s *mixingStream) Read(b []byte) (int, error) {
 	}
 	l &= mask
 	b16s := [][]int16{}
-	for p := range s.players {
+	for p := range p.players {
 		b16s = append(b16s, p.bufferToInt16(l))
 	}
 	for i := 0; i < l/2; i++ {
@@ -103,73 +95,45 @@ func (s *mixingStream) Read(b []byte) (int, error) {
 		b[2*i] = byte(x)
 		b[2*i+1] = byte(x >> 8)
 	}
-	for p := range s.players {
+	for p := range p.players {
 		p.proceed(l)
 	}
-	for _, p := range closed {
-		delete(s.players, p)
+	for _, pl := range closed {
+		delete(p.players, pl)
 	}
 	return l, nil
 }
 
-func (s *mixingStream) newPlayer(src ReadSeekCloser) (*Player, error) {
-	s.Lock()
-	defer s.Unlock()
-	p := &Player{
-		stream: s,
-		src:    src,
-		buf:    []byte{},
-		volume: 1,
-	}
-	// Get the current position of the source.
-	pos, err := p.src.Seek(0, 1)
-	if err != nil {
-		return nil, err
-	}
-	p.pos = pos
-	runtime.SetFinalizer(p, (*Player).Close)
-	return p, nil
+func (p *players) addPlayer(player *Player) {
+	p.Lock()
+	defer p.Unlock()
+	p.players[player] = struct{}{}
 }
 
-func (s *mixingStream) closePlayer(player *Player) error {
-	s.Lock()
-	defer s.Unlock()
-	runtime.SetFinalizer(player, nil)
-	return player.src.Close()
+func (p *players) removePlayer(player *Player) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.players, player)
 }
 
-func (s *mixingStream) addPlayer(player *Player) {
-	s.Lock()
-	defer s.Unlock()
-	s.players[player] = struct{}{}
-}
-
-func (s *mixingStream) removePlayer(player *Player) {
-	s.Lock()
-	defer s.Unlock()
-	delete(s.players, player)
-}
-
-func (s *mixingStream) hasPlayer(player *Player) bool {
-	s.RLock()
-	defer s.RUnlock()
-	_, ok := s.players[player]
+func (p *players) hasPlayer(player *Player) bool {
+	p.RLock()
+	defer p.RUnlock()
+	_, ok := p.players[player]
 	return ok
 }
 
-func (s *mixingStream) seekPlayer(player *Player, offset time.Duration) error {
-	s.Lock()
-	defer s.Unlock()
-	o := int64(offset) * bytesPerSample * channelNum * int64(s.sampleRate) / int64(time.Second)
-	o &= mask
-	return player.seek(o)
+func (p *players) seekPlayer(player *Player, offset int64) error {
+	p.Lock()
+	defer p.Unlock()
+	return player.seek(offset)
 }
 
-func (s *mixingStream) playerCurrent(player *Player) time.Duration {
-	s.RLock()
-	defer s.RUnlock()
+func (p *players) playerCurrent(player *Player, sampleRate int) time.Duration {
+	p.RLock()
+	defer p.RUnlock()
 	sample := player.pos / bytesPerSample / channelNum
-	return time.Duration(sample) * time.Second / time.Duration(s.sampleRate)
+	return time.Duration(sample) * time.Second / time.Duration(sampleRate)
 }
 
 // TODO: Enable to specify the format like Mono8?
@@ -200,8 +164,9 @@ func (s *mixingStream) playerCurrent(player *Player) time.Duration {
 // You can also call Update independently from the game loop as 'async mode'.
 // In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
-	stream       *mixingStream
+	players      *players
 	driver       *driver.Player
+	sampleRate   int
 	frames       int
 	writtenBytes int
 }
@@ -209,10 +174,11 @@ type Context struct {
 // NewContext creates a new audio context with the given sample rate (e.g. 44100).
 func NewContext(sampleRate int) (*Context, error) {
 	// TODO: Panic if one context exists.
-	c := &Context{}
-	c.stream = &mixingStream{
+	c := &Context{
 		sampleRate: sampleRate,
-		players:    map[*Player]struct{}{},
+	}
+	c.players = &players{
+		players: map[*Player]struct{}{},
 	}
 	// TODO: Rename this other than player
 	p, err := driver.NewPlayer(sampleRate, channelNum, bytesPerSample)
@@ -232,12 +198,12 @@ func NewContext(sampleRate int) (*Context, error) {
 // In async mode, the audio never stops even when the game stops.
 func (c *Context) Update() error {
 	c.frames++
-	bytesPerFrame := c.stream.sampleRate * bytesPerSample * channelNum / ebiten.FPS
+	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / ebiten.FPS
 	l := (c.frames * bytesPerFrame) - c.writtenBytes
 	l &= mask
 	c.writtenBytes += l
 	buf := make([]byte, l)
-	n, err := io.ReadFull(c.stream, buf)
+	n, err := io.ReadFull(c.players, buf)
 	if err != nil {
 		return err
 	}
@@ -256,8 +222,10 @@ func (c *Context) Update() error {
 
 // SampleRate returns the sample rate.
 // All audio source must have the same sample rate.
+//
+// This function is concurrent-safe.
 func (c *Context) SampleRate() int {
-	return c.stream.SampleRate()
+	return c.sampleRate
 }
 
 // ReadSeekCloser is an io.ReadSeeker and io.Closer.
@@ -268,11 +236,12 @@ type ReadSeekCloser interface {
 
 // Player is an audio player which has one stream.
 type Player struct {
-	stream *mixingStream
-	src    ReadSeekCloser
-	buf    []byte
-	pos    int64
-	volume float64
+	players    *players
+	src        ReadSeekCloser
+	buf        []byte
+	sampleRate int
+	pos        int64
+	volume     float64
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -280,13 +249,33 @@ type Player struct {
 // src's format must be linear PCM (16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
+//
+// This function is concurrent-safe.
 func (c *Context) NewPlayer(src ReadSeekCloser) (*Player, error) {
-	return c.stream.newPlayer(src)
+	p := &Player{
+		players:    c.players,
+		src:        src,
+		sampleRate: c.sampleRate,
+		buf:        []byte{},
+		volume:     1,
+	}
+	// Get the current position of the source.
+	pos, err := p.src.Seek(0, 1)
+	if err != nil {
+		return nil, err
+	}
+	p.pos = pos
+	runtime.SetFinalizer(p, (*Player).Close)
+	return p, nil
 }
 
 // Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
+//
+// This function is concurrent-safe.
 func (p *Player) Close() error {
-	return p.stream.closePlayer(p)
+	p.players.removePlayer(p)
+	runtime.SetFinalizer(p, nil)
+	return p.src.Close()
 }
 
 func (p *Player) readToBuffer(length int) error {
@@ -317,24 +306,34 @@ func (p *Player) bufferLength() int {
 }
 
 // Play plays the stream.
+//
+// This function is concurrent-safe.
 func (p *Player) Play() error {
-	p.stream.addPlayer(p)
+	p.players.addPlayer(p)
 	return nil
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
+//
+// This function is concurrent-safe.
 func (p *Player) IsPlaying() bool {
-	return p.stream.hasPlayer(p)
+	return p.players.hasPlayer(p)
 }
 
 // Rewind rewinds the current position to the start.
+//
+// This function is concurrent-safe.
 func (p *Player) Rewind() error {
 	return p.Seek(0)
 }
 
 // Seek seeks the position with the given offset.
+//
+// This function is concurrent-safe.
 func (p *Player) Seek(offset time.Duration) error {
-	return p.stream.seekPlayer(p, offset)
+	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
+	o &= mask
+	return p.players.seekPlayer(p, o)
 }
 
 func (p *Player) seek(offset int64) error {
@@ -348,14 +347,18 @@ func (p *Player) seek(offset int64) error {
 }
 
 // Pause pauses the playing.
+//
+// This function is concurrent-safe.
 func (p *Player) Pause() error {
-	p.stream.removePlayer(p)
+	p.players.removePlayer(p)
 	return nil
 }
 
 // Current returns the current position.
+//
+// This function is concurrent-safe.
 func (p *Player) Current() time.Duration {
-	return p.stream.playerCurrent(p)
+	return p.players.playerCurrent(p, p.sampleRate)
 }
 
 // Volume returns the current volume of this player [0-1].
@@ -372,5 +375,3 @@ func (p *Player) SetVolume(volume float64) {
 	}
 	p.volume = volume
 }
-
-// TODO: Panning

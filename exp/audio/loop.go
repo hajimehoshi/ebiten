@@ -23,7 +23,7 @@ type Loop struct {
 	size   int64
 }
 
-func NewLoop(stream ReadSeekCloser, size int64) ReadSeekCloser {
+func NewLoop(stream ReadSeekCloser, size int64) *Loop {
 	return &Loop{
 		stream: stream,
 		size:   size,
