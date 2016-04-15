@@ -15,7 +15,7 @@
 
 * 2D Graphics
 * Input (Mouse, Keyboard, Gamepad)
-* Audio (Very primitive API. experimental)
+* Audio (Ogg/Vorbis, WAV, PCM. experimental)
 
 ## Documentation
 
