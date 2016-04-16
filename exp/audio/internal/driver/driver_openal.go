@@ -17,7 +17,6 @@
 package driver
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
 
