@@ -116,7 +116,8 @@ func (p *Player) Proceed(data []byte) error {
 		}
 	}
 	if headerToWrite == nil {
-		return errors.New("driver: no available buffers")
+		// This can happen (#207)
+		return nil
 	}
 	if err := headerToWrite.Write(p.out, p.buffer[:bufferSize]); err != nil {
 		return err

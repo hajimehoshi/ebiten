@@ -110,7 +110,8 @@ func (p *Player) Proceed(data []byte) error {
 	}
 
 	if len(p.alBuffers) == 0 {
-		return errors.New("driver: p.alBuffers must > 0")
+		// This can happen (#207)
+		return nil
 	}
 	buf := p.alBuffers[0]
 	p.alBuffers = p.alBuffers[1:]
