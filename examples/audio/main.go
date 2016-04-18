@@ -165,7 +165,8 @@ func (p *Player) updateBar() error {
 	}
 	x, y := ebiten.CursorPosition()
 	bx, by, bw, bh := playerBarRect()
-	if y < by || by+bh <= y {
+	const padding = 4
+	if y < by-padding || by+bh+padding <= y {
 		return nil
 	}
 	if x < bx || bx+bw <= x {
