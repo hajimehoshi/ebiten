@@ -21,7 +21,7 @@ import (
 	"io/ioutil"
 
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/hajimehoshi/ebiten/exp/audio"
+	"github.com/hajimehoshi/ebiten/audio"
 )
 
 // TODO: This just uses decodeAudioData can treat audio files other than Ogg/Vorbis.
