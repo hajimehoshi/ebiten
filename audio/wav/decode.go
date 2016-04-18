@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package vorbis provides WAV (RIFF) decoder.
 package wav
 
 import (
@@ -43,10 +44,15 @@ func (s *Stream) Close() error {
 	return s.src.Close()
 }
 
+// Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
 	return s.dataSize
 }
 
+// Decode decodes WAV (RIFF) data to playable stream.
+//
+// The format must be 2 channels, 16bit little endian PCM.
+// The sample rate must be same as that of audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)

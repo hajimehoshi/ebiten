@@ -39,12 +39,14 @@ func (s *Stream) Close() error {
 	return s.decoded.Close()
 }
 
-// TODO: Should be int?
+// Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
 	return s.decoded.Size()
 }
 
-// TODO: src should be ReadCloser?
+// Decode decodes Ogg/Vorbis data to playable stream.
+//
+// The sample rate must be same as that of audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {

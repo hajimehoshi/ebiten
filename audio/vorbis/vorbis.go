@@ -14,6 +14,7 @@
 
 // +build !js
 
+// Package vorbis provides Ogg/Vorbis decoder.
 package vorbis
 
 import (
