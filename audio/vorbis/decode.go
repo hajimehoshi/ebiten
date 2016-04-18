@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/exp/audio"
+	"github.com/hajimehoshi/ebiten/audio"
 )
 
 type Stream struct {

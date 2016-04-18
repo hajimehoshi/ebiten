@@ -32,7 +32,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/exp/audio/internal/driver"
+	"github.com/hajimehoshi/ebiten/audio/internal/driver"
 )
 
 type players struct {
