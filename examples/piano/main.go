@@ -92,7 +92,7 @@ func (s *stream) Close() error {
 func addNote(freq float64, vol float64) error {
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		p, err := audioContext.NewPlayer(&stream{bytes.NewReader(n)})
+		p, err := audio.NewPlayer(audioContext, &stream{bytes.NewReader(n)})
 		if err != nil {
 			return err
 		}
@@ -113,7 +113,7 @@ func addNote(freq float64, vol float64) error {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	p, err := audioContext.NewPlayer(&stream{bytes.NewReader(n)})
+	p, err := audio.NewPlayer(audioContext, &stream{bytes.NewReader(n)})
 	if err != nil {
 		return err
 	}

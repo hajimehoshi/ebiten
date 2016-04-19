@@ -136,7 +136,7 @@ func addNote() error {
 	square(r, vol, freq, 0.25)
 	b := toBytes(l, r)
 	s := &srcStream{bytes.NewReader(b)}
-	p, err := audioContext.NewPlayer(s)
+	p, err := audio.NewPlayer(audioContext, s)
 	if err != nil {
 		return err
 	}

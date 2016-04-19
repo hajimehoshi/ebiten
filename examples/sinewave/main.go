@@ -92,7 +92,7 @@ func update(screen *ebiten.Image) error {
 	}
 	if player == nil {
 		var err error
-		player, err = audioContext.NewPlayer(&stream{})
+		player, err = audio.NewPlayer(audioContext, &stream{})
 		if err != nil {
 			return err
 		}

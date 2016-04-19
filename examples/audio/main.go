@@ -99,7 +99,7 @@ func (p *Player) updateSE() error {
 	}
 	if sePlayer == nil {
 		var err error
-		sePlayer, err = audioContext.NewPlayer(seStream)
+		sePlayer, err = audio.NewPlayer(audioContext, seStream)
 		if err != nil {
 			return err
 		}
@@ -275,7 +275,7 @@ func main() {
 			log.Fatal(err)
 			return
 		}
-		p, err := audioContext.NewPlayer(s)
+		p, err := audio.NewPlayer(audioContext, s)
 		if err != nil {
 			log.Fatal(err)
 			return

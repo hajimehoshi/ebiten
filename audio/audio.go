@@ -251,11 +251,11 @@ type Player struct {
 // The sample rate must be same as that of the audio context.
 //
 // This function is concurrent-safe.
-func (c *Context) NewPlayer(src ReadSeekCloser) (*Player, error) {
+func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	p := &Player{
-		players:    c.players,
+		players:    context.players,
 		src:        src,
-		sampleRate: c.sampleRate,
+		sampleRate: context.sampleRate,
 		buf:        []byte{},
 		volume:     1,
 	}
