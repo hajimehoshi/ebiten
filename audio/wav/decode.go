@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package vorbis provides WAV (RIFF) decoder.
+// Package wav provides WAV (RIFF) decoder.
 package wav
 
 import (
