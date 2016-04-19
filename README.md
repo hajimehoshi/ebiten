@@ -1,6 +1,8 @@
 # Ebiten (海老天)
 
 [![Build Status](https://travis-ci.org/hajimehoshi/ebiten.svg?branch=master)](https://travis-ci.org/hajimehoshi/ebiten)
+[![GoDoc](https://godoc.org/github.com/hajimehoshi/ebiten?status.svg)](http://godoc.org/github.com/hajimehoshi/ebiten)
+
 
 * A simple SNES-like 2D game library in Go
 * Works on
@@ -9,13 +11,12 @@
   * Mac OS X
   * Linux
   * Windows
-* [API Docs](http://godoc.org/github.com/hajimehoshi/ebiten)
 
 ## Features
 
 * 2D Graphics
-* Input (Mouse, Keyboard, Gamepad)
-* Audio (Ogg/Vorbis, WAV, PCM. experimental)
+* Input (Mouse, Keyboard, and Gamepad)
+* Audio (Ogg/Vorbis, WAV, and PCM)
 
 ## Documentation
 
