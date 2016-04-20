@@ -27,6 +27,7 @@ type Player struct {
 	channelNum        int
 	bytesPerSample    int
 	positionInSamples int64
+	bufferedData      []byte
 	context           *js.Object
 	bufferSource      *js.Object
 }
@@ -43,6 +44,7 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		sampleRate:     sampleRate,
 		channelNum:     channelNum,
 		bytesPerSample: bytesPerSample,
+		bufferedData:   []byte{},
 		bufferSource:   nil,
 		context:        class.New(),
 	}
@@ -61,27 +63,36 @@ func toLR(data []byte) ([]int16, []int16) {
 }
 
 func (p *Player) Proceed(data []byte) error {
+	p.bufferedData = append(p.bufferedData, data...)
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	if p.positionInSamples < c {
 		p.positionInSamples = c
 	}
-	n := len(data)
-	buf := p.context.Call("createBuffer", p.channelNum, n/p.bytesPerSample/p.channelNum, p.sampleRate)
-	l := buf.Call("getChannelData", 0)
-	r := buf.Call("getChannelData", 1)
-	il, ir := toLR(data)
-	const max = 1 << 15
-	for i := 0; i < len(il); i++ {
-		l.SetIndex(i, float64(il[i])/max)
-		r.SetIndex(i, float64(ir[i])/max)
+	// Looks like low sample rate (e.g. 22050) requires a quite long buffer (#205).
+	// 4096 is not perfect but it reduce noise to some extent.
+	const dataSize = 4096
+	for dataSize <= len(p.bufferedData) {
+		data := p.bufferedData[:dataSize]
+		size := len(data) / p.bytesPerSample / p.channelNum
+		// TODO: size must be const or you'll get noise (e.g. sample rate is 22050)
+		buf := p.context.Call("createBuffer", p.channelNum, size, p.sampleRate)
+		l := buf.Call("getChannelData", 0)
+		r := buf.Call("getChannelData", 1)
+		il, ir := toLR(data)
+		const max = 1 << 15
+		for i := 0; i < len(il); i++ {
+			l.SetIndex(i, float64(il[i])/max)
+			r.SetIndex(i, float64(ir[i])/max)
+		}
+		p.bufferSource = p.context.Call("createBufferSource")
+		p.bufferSource.Set("buffer", buf)
+		p.bufferSource.Call("connect", p.context.Get("destination"))
+		p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
+		// Call 'stop' or we'll get noisy sound especially on Chrome.
+		//p.bufferSource.Call("stop", float64(p.positionInSamples+int64(len(il)))/float64(p.sampleRate))
+		p.positionInSamples += int64(len(il))
+		p.bufferedData = p.bufferedData[dataSize:]
 	}
-	p.bufferSource = p.context.Call("createBufferSource")
-	p.bufferSource.Set("buffer", buf)
-	p.bufferSource.Call("connect", p.context.Get("destination"))
-	p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
-	// Call 'stop' or we'll get noisy sound especially on Chrome.
-	p.bufferSource.Call("stop", float64(p.positionInSamples+int64(len(il)))/float64(p.sampleRate))
-	p.positionInSamples += int64(len(il))
 	return nil
 }
 
