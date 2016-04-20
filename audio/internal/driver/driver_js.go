@@ -88,8 +88,6 @@ func (p *Player) Proceed(data []byte) error {
 		p.bufferSource.Set("buffer", buf)
 		p.bufferSource.Call("connect", p.context.Get("destination"))
 		p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
-		// Call 'stop' or we'll get noisy sound especially on Chrome.
-		//p.bufferSource.Call("stop", float64(p.positionInSamples+int64(len(il)))/float64(p.sampleRate))
 		p.positionInSamples += int64(len(il))
 		p.bufferedData = p.bufferedData[dataSize:]
 	}
