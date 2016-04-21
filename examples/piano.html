@@ -114,6 +114,9 @@ func (s *stream) Close() error {
 }
 
 func addNote(freq float64, vol float64) error {
+    // TODO: Call Close method of *audio.Player.
+    // However, this works without Close because Close is automatically called when GC
+    // collects a *audio.Player object.
     f := int(freq)
     if n, ok := noteCache[f]; ok {
         p, err := audio.NewPlayer(audioContext, &amp;stream{bytes.NewReader(n)})
