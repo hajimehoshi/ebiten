@@ -8,9 +8,9 @@
 * Works on
   * Web browsers (powered by [GopherJS](http://gopherjs.org/))
     * Supported browsers: Chrome and Firefox on desktops
+  * Windows
   * Mac OS X
   * Linux
-  * Windows
 
 ## Features
 
