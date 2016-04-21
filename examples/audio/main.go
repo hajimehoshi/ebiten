@@ -181,9 +181,6 @@ func (p *Player) close() error {
 }
 
 func update(screen *ebiten.Image) error {
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	if musicPlayer == nil {
 		select {
 		case musicPlayer = <-musicCh:
@@ -242,6 +239,9 @@ Press Z or X to change volume of the music
 		msg += "\nNow Loading..."
 	}
 	ebitenutil.DebugPrint(screen, msg)
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	return nil
 }
 

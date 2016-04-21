@@ -145,9 +145,6 @@ func addNote() error {
 }
 
 func update(screen *ebiten.Image) error {
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	defer func() {
 		frames++
 	}()
@@ -157,6 +154,9 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -206,9 +206,6 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	updateInput()
 	for i, key := range keys {
 		if keyStates[key] != 1 {
@@ -223,6 +220,10 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(imagePiano, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	return nil
 }
 

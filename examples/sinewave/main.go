@@ -87,9 +87,6 @@ func (s *stream) Close() error {
 var player *audio.Player
 
 func update(screen *ebiten.Image) error {
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	if player == nil {
 		var err error
 		player, err = audio.NewPlayer(audioContext, &stream{})
@@ -101,6 +98,9 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	return nil
 }
 
