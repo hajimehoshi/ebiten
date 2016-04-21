@@ -46,10 +46,10 @@ import (
     &#34;time&#34;
 
     &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/audio&#34;
+    &#34;github.com/hajimehoshi/ebiten/audio/vorbis&#34;
+    &#34;github.com/hajimehoshi/ebiten/audio/wav&#34;
     &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    &#34;github.com/hajimehoshi/ebiten/exp/audio&#34;
-    &#34;github.com/hajimehoshi/ebiten/exp/audio/vorbis&#34;
-    &#34;github.com/hajimehoshi/ebiten/exp/audio/wav&#34;
 )
 
 const (
@@ -123,7 +123,7 @@ func (p *Player) updateSE() error {
     }
     if sePlayer == nil {
         var err error
-        sePlayer, err = audioContext.NewPlayer(seStream)
+        sePlayer, err = audio.NewPlayer(audioContext, seStream)
         if err != nil {
             return err
         }
@@ -189,7 +189,8 @@ func (p *Player) updateBar() error {
     }
     x, y := ebiten.CursorPosition()
     bx, by, bw, bh := playerBarRect()
-    if y &lt; by || by&#43;bh &lt;= y {
+    const padding = 4
+    if y &lt; by-padding || by&#43;bh&#43;padding &lt;= y {
         return nil
     }
     if x &lt; bx || bx&#43;bw &lt;= x {
@@ -298,7 +299,7 @@ func main() {
             log.Fatal(err)
             return
         }
-        p, err := audioContext.NewPlayer(s)
+        p, err := audio.NewPlayer(audioContext, s)
         if err != nil {
             log.Fatal(err)
             return
