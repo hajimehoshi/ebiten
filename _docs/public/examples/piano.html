@@ -46,9 +46,9 @@ import (
     &#34;math&#34;
 
     &#34;github.com/hajimehoshi/ebiten&#34;
+    &#34;github.com/hajimehoshi/ebiten/audio&#34;
     &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
     &#34;github.com/hajimehoshi/ebiten/examples/common&#34;
-    &#34;github.com/hajimehoshi/ebiten/exp/audio&#34;
 )
 
 const (
@@ -116,7 +116,7 @@ func (s *stream) Close() error {
 func addNote(freq float64, vol float64) error {
     f := int(freq)
     if n, ok := noteCache[f]; ok {
-        p, err := audioContext.NewPlayer(&amp;stream{bytes.NewReader(n)})
+        p, err := audio.NewPlayer(audioContext, &amp;stream{bytes.NewReader(n)})
         if err != nil {
             return err
         }
@@ -137,7 +137,7 @@ func addNote(freq float64, vol float64) error {
     }
     n := toBytes(l, r)
     noteCache[f] = n
-    p, err := audioContext.NewPlayer(&amp;stream{bytes.NewReader(n)})
+    p, err := audio.NewPlayer(audioContext, &amp;stream{bytes.NewReader(n)})
     if err != nil {
         return err
     }
