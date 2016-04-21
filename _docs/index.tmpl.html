@@ -21,8 +21,9 @@ pre {
   padding: 1em;
 }
 </style>
+<a href="https://github.com/hajimehoshi/ebiten"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
 <h1>Ebiten (海老天)</h1>
-<p>v{{.StableVersion}}</p>
+<p>Stable version: v{{.StableVersion}} / Development version: v{{.DevVersion}}</p>
 <ul>
   <li>A simple SNES-like 2D game library in Go</li>
   <li>Works on
@@ -38,7 +39,6 @@ pre {
     </ul>
   </li>
   <li><a href="http://godoc.org/github.com/hajimehoshi/ebiten"><img src="https://godoc.org/github.com/hajimehoshi/ebiten?status.svg" alt="GoDoc Reference"></a></li>
-  <li><a href="http://github.com/hajimehoshi/ebiten">GitHub project page</a> (Development version: v{{.DevVersion}})</li>
 </ul>
 
 <h2>Features</h2>
@@ -109,16 +109,17 @@ pre {
           <li>Linux</li>
         </ul>
       </li>
-      <li>Drawing
+      <li>Graphics
         <ul>
           <li>Added CompositeMode to change composite mode (e.g. masking or additive drawing)</li>
         </ul>
       </li>
-      <li>Audio
+      <li><a href="https://godoc.org/github.com/hajimehoshi/ebiten/audio">Audio</a>
         <ul>
+          <li>Moved from exp/audio to audio: No more experimental package!</li>
           <li>Changed APIs (almost fixed)</li>
-          <li>Added exp/audio/vorbis to decode Ogg/Vorbis stream</li>
-          <li>Added exp/audio/wav to decode Wav stream</li>
+          <li>Added <a href="https://godoc.org/github.com/hajimehoshi/ebiten/audio/vorbis">exp/audio/vorbis</a> to decode Ogg/Vorbis stream</li>
+          <li>Added <a href="https://godoc.org/github.com/hajimehoshi/ebiten/audio/wav">exp/audio/wav</a> to decode Wav stream</li>
         </ul>
       </li>
       <li>Others
