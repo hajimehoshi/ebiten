@@ -17,6 +17,7 @@
 package vorbis
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 
@@ -87,8 +88,16 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	s := &Stream{}
 	ch := make(chan struct{})
 
+	klass := js.Global.Get("OfflineAudioContext")
+	if klass == js.Undefined {
+		klass = js.Global.Get("webkitOfflineAudioContext")
+	}
+	if klass == js.Undefined {
+		return nil, errors.New("vorbis: OfflineAudioContext is not available")
+	}
 	// TODO: 1 is a correct second argument?
-	oc := js.Global.Get("OfflineAudioContext").New(2, 1, context.SampleRate())
+	// At least, 1 works on Chrome and Firefox but not Safari.
+	oc := klass.New(2, 1, context.SampleRate())
 	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
 		s.leftData = buf.Call("getChannelData", 0).Interface().([]float32)
 		s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
