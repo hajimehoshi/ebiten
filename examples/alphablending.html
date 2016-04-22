@@ -53,10 +53,29 @@ const (
 )
 
 var (
-    count           int
-    tmpRenderTarget *ebiten.Image
-    ebitenImage     *ebiten.Image
+    count       int
+    ebitenImage *ebiten.Image
 )
+
+type imageParts struct {
+    diff float64
+}
+
+func (p *imageParts) Src(i int) (int, int, int, int) {
+    w, h := ebitenImage.Size()
+    return 0, 0, w, h
+}
+
+func (p *imageParts) Dst(i int) (int, int, int, int) {
+    x := int(float64(i%10)*p.diff &#43; 15)
+    y := int(float64(i/10)*p.diff &#43; 20)
+    w, h := ebitenImage.Size()
+    return x, y, x &#43; w, y &#43; h
+}
+
+func (p *imageParts) Len() int {
+    return 10 * 10
+}
 
 func update(screen *ebiten.Image) error {
     count&#43;&#43;
@@ -69,37 +88,21 @@ func update(screen *ebiten.Image) error {
         diff = float64(480-count) * 0.2
     }
 
-    if err := tmpRenderTarget.Clear(); err != nil {
+    screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
+    op := &amp;ebiten.DrawImageOptions{}
+    op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
+    op.ImageParts = &amp;imageParts{
+        diff: diff,
+    }
+    if err := screen.DrawImage(ebitenImage, op); err != nil {
         return err
     }
-    for i := 0; i &lt; 10; i&#43;&#43; {
-        op := &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Translate(15&#43;float64(i)*diff, 20)
-        op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
-        if err := tmpRenderTarget.DrawImage(ebitenImage, op); err != nil {
-            return err
-        }
-    }
-
-    screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
-    for i := 0; i &lt; 10; i&#43;&#43; {
-        op := &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Translate(0, float64(i)*diff)
-        if err := screen.DrawImage(tmpRenderTarget, op); err != nil {
-            return err
-        }
-    }
-
     return nil
 }
 
 func main() {
     var err error
     ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    tmpRenderTarget, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
     if err != nil {
         log.Fatal(err)
     }
