@@ -29,7 +29,6 @@ type Player struct {
 	positionInSamples int64
 	bufferedData      []byte
 	context           *js.Object
-	bufferSource      *js.Object
 }
 
 func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
@@ -45,7 +44,6 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		channelNum:     channelNum,
 		bytesPerSample: bytesPerSample,
 		bufferedData:   []byte{},
-		bufferSource:   nil,
 		context:        class.New(),
 	}
 	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
@@ -84,10 +82,10 @@ func (p *Player) Proceed(data []byte) error {
 			l.SetIndex(i, float64(il[i])/max)
 			r.SetIndex(i, float64(ir[i])/max)
 		}
-		p.bufferSource = p.context.Call("createBufferSource")
-		p.bufferSource.Set("buffer", buf)
-		p.bufferSource.Call("connect", p.context.Get("destination"))
-		p.bufferSource.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
+		s := p.context.Call("createBufferSource")
+		s.Set("buffer", buf)
+		s.Call("connect", p.context.Get("destination"))
+		s.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
 		p.positionInSamples += int64(len(il))
 		p.bufferedData = p.bufferedData[dataSize:]
 	}
@@ -95,11 +93,5 @@ func (p *Player) Proceed(data []byte) error {
 }
 
 func (p *Player) Close() error {
-	if p.bufferSource == nil {
-		return nil
-	}
-	p.bufferSource.Call("stop")
-	p.bufferSource.Call("disconnect")
-	p.bufferSource = nil
 	return nil
 }
