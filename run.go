@@ -254,7 +254,7 @@ func SetScreenSize(width, height int) {
 	}
 }
 
-// SetScreenSize changes the scale of the screen.
+// SetScreenScale changes the scale of the screen.
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale int) {
