@@ -167,6 +167,15 @@ func IsRunningSlowly() bool {
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
 func Run(f func(*Image) error, width, height, scale int, title string) error {
+	ch := make(chan error)
+	go func() {
+		ch <- run(f, width, height, scale, title)
+	}()
+	ui.Main()
+	return <-ch
+}
+
+func run(f func(*Image) error, width, height, scale int, title string) error {
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 

@@ -228,6 +228,11 @@ func devicePixelRatio() float64 {
 	return ratio
 }
 
+func Main() error {
+	// Do nothing
+	return nil
+}
+
 func (u *UserInterface) Start(width, height, scale int, title string) error {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)

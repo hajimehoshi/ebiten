@@ -19,7 +19,6 @@ package ui
 import (
 	"errors"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -38,7 +37,7 @@ type UserInterface struct {
 	deviceScale      float64
 	framebufferScale int
 	context          *opengl.Context
-	m                sync.RWMutex
+	funcs            chan func()
 }
 
 var currentUI *UserInterface
@@ -67,6 +66,7 @@ func Init() (*opengl.Context, error) {
 
 	u := &UserInterface{
 		window: window,
+		funcs:  make(chan func()),
 	}
 	ch := make(chan error)
 	go func() {
@@ -92,57 +92,91 @@ func Init() (*opengl.Context, error) {
 	return u.context, nil
 }
 
+func Main() error {
+	return CurrentUI().main()
+}
+
+func (u *UserInterface) main() error {
+	// TODO: Check this is done on the main thread.
+	for f := range u.funcs {
+		f()
+	}
+	return nil
+}
+
+func (u *UserInterface) runOnMainThread(f func()) {
+	if u.funcs == nil {
+		// already closed
+		return
+	}
+	ch := make(chan struct{})
+	u.funcs <- func() {
+		f()
+		close(ch)
+	}
+	<-ch
+}
+
 func (u *UserInterface) SetScreenSize(width, height int) bool {
-	u.m.Lock()
-	defer u.m.Unlock()
-	return u.setScreenSize(width, height, u.scale)
+	r := false
+	u.runOnMainThread(func() {
+		r = u.setScreenSize(width, height, u.scale)
+	})
+	return r
 }
 
 func (u *UserInterface) SetScreenScale(scale int) bool {
-	u.m.Lock()
-	defer u.m.Unlock()
-	return u.setScreenSize(u.width, u.height, scale)
+	r := false
+	u.runOnMainThread(func() {
+		r = u.setScreenSize(u.width, u.height, scale)
+	})
+	return r
 }
 
 func (u *UserInterface) ScreenScale() int {
-	u.m.RLock()
-	defer u.m.RUnlock()
-	return u.scale
+	s := 0
+	u.runOnMainThread(func() {
+		s = u.scale
+	})
+	return s
 }
 
 func (u *UserInterface) ActualScreenScale() int {
-	u.m.RLock()
-	defer u.m.RUnlock()
-	return u.actualScreenScale()
+	s := 0
+	u.runOnMainThread(func() {
+		s = u.actualScreenScale()
+	})
+	return s
 }
 
 func (u *UserInterface) Start(width, height, scale int, title string) error {
-	u.m.Lock()
-	defer u.m.Unlock()
-	m := glfw.GetPrimaryMonitor()
-	v := m.GetVideoMode()
-	mw, _ := m.GetPhysicalSize()
-	u.deviceScale = 1
-	u.framebufferScale = 1
-	// mw can be 0 on some environment like Linux VM
-	if 0 < mw {
-		dpi := float64(v.Width) * 25.4 / float64(mw)
-		u.deviceScale = dpi / 96
-		if u.deviceScale < 1 {
-			u.deviceScale = 1
+	var ferr error
+	u.runOnMainThread(func() {
+		m := glfw.GetPrimaryMonitor()
+		v := m.GetVideoMode()
+		mw, _ := m.GetPhysicalSize()
+		u.deviceScale = 1
+		u.framebufferScale = 1
+		// mw can be 0 on some environment like Linux VM
+		if 0 < mw {
+			dpi := float64(v.Width) * 25.4 / float64(mw)
+			u.deviceScale = dpi / 96
+			if u.deviceScale < 1 {
+				u.deviceScale = 1
+			}
 		}
-	}
 
-	if !u.setScreenSize(width, height, scale) {
-		return errors.New("ui: Fail to set the screen size")
-	}
-	u.window.SetTitle(title)
-	u.window.Show()
+		if !u.setScreenSize(width, height, scale) {
+			ferr = errors.New("ui: Fail to set the screen size")
+			return
+		}
+		u.window.SetTitle(title)
+		u.window.Show()
 
-	x := (v.Width - width*u.windowScale()) / 2
-	y := (v.Height - height*u.windowScale()) / 3
-	u.window.SetPos(x, y)
-
+		x := (v.Width - width*u.windowScale()) / 2
+		y := (v.Height - height*u.windowScale()) / 3
+		u.window.SetPos(x, y)
+	})
 	return nil
 }
 
@@ -160,40 +194,47 @@ func (u *UserInterface) pollEvents() error {
 }
 
 func (u *UserInterface) DoEvents() error {
-	u.m.Lock()
-	defer u.m.Unlock()
-	if err := u.pollEvents(); err != nil {
-		return err
-	}
-	for u.window.GetAttrib(glfw.Focused) == 0 {
-		// Wait for an arbitrary period to avoid busy loop.
-		time.Sleep(time.Second / 60)
+	var ferr error
+	u.runOnMainThread(func() {
 		if err := u.pollEvents(); err != nil {
-			return err
+			ferr = err
+			return
 		}
-		if u.window.ShouldClose() {
-			return nil
+		for u.window.GetAttrib(glfw.Focused) == 0 {
+			// Wait for an arbitrary period to avoid busy loop.
+			time.Sleep(time.Second / 60)
+			if err := u.pollEvents(); err != nil {
+				ferr = err
+				return
+			}
+			if u.window.ShouldClose() {
+				return
+			}
 		}
-	}
-	return nil
+	})
+	return ferr
 }
 
 func (u *UserInterface) Terminate() {
-	u.m.Lock()
-	defer u.m.Unlock()
-	glfw.Terminate()
+	u.runOnMainThread(func() {
+		glfw.Terminate()
+	})
+	close(u.funcs)
+	u.funcs = nil
 }
 
 func (u *UserInterface) IsClosed() bool {
-	u.m.RLock()
-	defer u.m.RUnlock()
-	return u.window.ShouldClose()
+	r := false
+	u.runOnMainThread(func() {
+		r = u.window.ShouldClose()
+	})
+	return r
 }
 
 func (u *UserInterface) SwapBuffers() {
-	u.m.Lock()
-	defer u.m.Unlock()
-	u.swapBuffers()
+	u.runOnMainThread(func() {
+		u.swapBuffers()
+	})
 }
 
 func (u *UserInterface) swapBuffers() {
