@@ -220,8 +220,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	}
 	// Don't set i.pixels here because i.pixels is used not every time.
 	i.pixels = nil
-	l := 4 * i.width * i.height
-	if len(p) != l {
+	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
 	return i.framebuffer.ReplacePixels(glContext, i.texture, p)
