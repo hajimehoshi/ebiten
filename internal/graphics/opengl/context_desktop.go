@@ -78,11 +78,8 @@ func NewContext() (*Context, error) {
 }
 
 func (c *Context) Loop() {
-	for {
-		select {
-		case f := <-c.funcs:
-			f()
-		}
+	for f := range c.funcs {
+		f()
 	}
 }
 
