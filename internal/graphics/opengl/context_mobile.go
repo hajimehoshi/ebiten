@@ -14,7 +14,7 @@
 
 // NOTICE: This file is not maintained well.
 
-// +build android ios
+// +build android
 
 package opengl
 
@@ -48,15 +48,10 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	locationCache *locationCache
-	worker        mgl.Worker
-	funcs         chan func()
+	gl                mgl.Context
+	locationCache     *locationCache
+	lastCompositeMode CompositeMode
 }
-
-// TODO: This variable can be in the context struct.
-var (
-	gl mgl.Context
-)
 
 func NewContext() *Context {
 	c := &Context{
@@ -72,42 +67,36 @@ func NewContext() *Context {
 		Lines:              mgl.LINES,
 	}
 	c.locationCache = newLocationCache()
-	c.funcs = make(chan func())
-	gl, c.worker = mgl.NewContext()
+	c.lastCompositeMode = CompositeModeUnknown
 	return c
 }
 
-func (c *Context) Loop() {
-	for {
-		select {
-		case <-c.worker.WorkAvailable():
-			c.worker.DoWork()
-		case f := <-c.funcs:
-			f()
-		}
+func (c *Context) SetContext(gl mgl.Context) {
+	c.gl = gl
+	if gl == nil {
+		return
 	}
-}
-
-func (c *Context) Init() {
-	// This initialization must be done after Loop is called.
-	// This is why Init is separated from NewContext.
-
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(mgl.BLEND)
-	gl.BlendFunc(mgl.ONE, mgl.ONE_MINUS_SRC_ALPHA)
+	c.BlendFunc(CompositeModeSourceOver)
 }
 
-func (c *Context) RunOnContextThread(f func()) {
-	ch := make(chan struct{})
-	c.funcs <- func() {
-		f()
-		close(ch)
+func (c *Context) IsGLContextNil() bool {
+	return c.gl == nil
+}
+
+func (c *Context) BlendFunc(mode CompositeMode) {
+	gl := c.gl
+	if c.lastCompositeMode == mode {
+		return
 	}
-	<-ch
-	return
+	c.lastCompositeMode = mode
+	s, d := c.operations(mode)
+	gl.BlendFunc(mgl.Enum(s), mgl.Enum(d))
 }
 
 func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
+	gl := c.gl
 	t := gl.CreateTexture()
 	if t.Value <= 0 {
 		return Texture{}, errors.New("opengl: creating texture failed")
@@ -128,6 +117,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
+	gl := c.gl
 	gl.Flush()
 
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
@@ -141,22 +131,27 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 }
 
 func (c *Context) BindTexture(t Texture) {
+	gl := c.gl
 	gl.BindTexture(mgl.TEXTURE_2D, mgl.Texture(t))
 }
 
 func (c *Context) DeleteTexture(t Texture) {
+	gl := c.gl
 	gl.DeleteTexture(mgl.Texture(t))
 }
 
 func (c *Context) TexSubImage2D(p []uint8, width, height int) {
+	gl := c.gl
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
 func (c *Context) BindZeroFramebuffer() {
+	gl := c.gl
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(ZeroFramebuffer))
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
+	gl := c.gl
 	f := gl.CreateFramebuffer()
 	if f.Value <= 0 {
 		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
@@ -179,6 +174,7 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 }
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
+	gl := c.gl
 	gl.Flush()
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 	if err := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER); err != mgl.FRAMEBUFFER_COMPLETE {
@@ -192,16 +188,19 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 }
 
 func (c *Context) FillFramebuffer(r, g, b, a float64) error {
+	gl := c.gl
 	gl.ClearColor(float32(r), float32(g), float32(b), float32(a))
 	gl.Clear(mgl.COLOR_BUFFER_BIT)
 	return nil
 }
 
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
+	gl := c.gl
 	gl.DeleteFramebuffer(mgl.Framebuffer(f))
 }
 
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
+	gl := c.gl
 	s := gl.CreateShader(mgl.Enum(shaderType))
 	if s.Value == 0 {
 		return Shader{}, errors.New("opengl: glCreateShader failed")
@@ -218,14 +217,17 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 }
 
 func (c *Context) DeleteShader(s Shader) {
+	gl := c.gl
 	gl.DeleteShader(mgl.Shader(s))
 }
 
 func (c *Context) GlslHighpSupported() bool {
+	// TODO: Fix this
 	return false
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
+	gl := c.gl
 	p := gl.CreateProgram()
 	if p.Value == 0 {
 		return Program{}, errors.New("opengl: glCreateProgram failed")
@@ -243,10 +245,12 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 }
 
 func (c *Context) UseProgram(p Program) {
+	gl := c.gl
 	gl.UseProgram(mgl.Program(p))
 }
 
 func (c *Context) getUniformLocation(p Program, location string) uniformLocation {
+	gl := c.gl
 	u := uniformLocation(gl.GetUniformLocation(mgl.Program(p), location))
 	if u.Value == -1 {
 		panic("invalid uniform location: " + location)
@@ -255,10 +259,12 @@ func (c *Context) getUniformLocation(p Program, location string) uniformLocation
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
+	gl := c.gl
 	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
+	gl := c.gl
 	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))
 	switch len(v) {
 	case 4:
@@ -271,6 +277,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 }
 
 func (c *Context) getAttribLocation(p Program, location string) attribLocation {
+	gl := c.gl
 	a := attribLocation(gl.GetAttribLocation(mgl.Program(p), location))
 	if a.Value == ^uint(0) {
 		panic("invalid attrib location: " + location)
@@ -279,16 +286,19 @@ func (c *Context) getAttribLocation(p Program, location string) attribLocation {
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, v int) {
+	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.SHORT, normalize, stride, v)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
+	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(mgl.Attrib(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
+	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
@@ -312,6 +322,7 @@ func int16ToBytes(v []int16) []byte {
 }
 
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
+	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(bufferType), b)
 	switch v := v.(type) {
@@ -327,13 +338,16 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage Bu
 }
 
 func (c *Context) BindElementArrayBuffer(b Buffer) {
+	gl := c.gl
 	gl.BindBuffer(mgl.ELEMENT_ARRAY_BUFFER, mgl.Buffer(b))
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
+	gl := c.gl
 	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
 }
 
 func (c *Context) DrawElements(mode Mode, len int) {
+	gl := c.gl
 	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, 0)
 }
