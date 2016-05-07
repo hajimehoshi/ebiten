@@ -49,8 +49,7 @@ func CurrentUI() *UserInterface {
 func Init() (*opengl.Context, error) {
 	runtime.LockOSThread()
 
-	err := glfw.Init()
-	if err != nil {
+	if err := glfw.Init(); err != nil {
 		return nil, err
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
