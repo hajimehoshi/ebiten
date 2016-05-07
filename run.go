@@ -189,6 +189,10 @@ func run(f func(*Image) error, width, height, scale int, title string) error {
 		return err
 	}
 
+	if err := execBufferedImageCommands(); err != nil {
+		return err
+	}
+
 	frames := 0
 	n := ui.Now()
 	beforeForUpdate := n

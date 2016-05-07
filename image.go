@@ -19,11 +19,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"runtime"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 var imageM sync.Mutex
@@ -69,11 +67,16 @@ func (i *Image) Fill(clr color.Color) (err error) {
 }
 
 func (i *Image) fill(clr color.Color) (err error) {
-	if i.isDisposed() {
-		return errors.New("ebiten: image is already disposed")
+	c := &fillCommand{
+		dst:   i,
+		color: clr,
 	}
-	i.pixels = nil
-	return i.framebuffer.Fill(glContext, clr)
+	if imageCommandQueue != nil {
+		imageCommandQueue = append(imageCommandQueue, c)
+		return
+	}
+	return c.Exec()
+
 }
 
 // DrawImage draws the given image on the receiver image.
@@ -119,15 +122,22 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 
 	imageM.Lock()
 	defer imageM.Unlock()
-	if i.isDisposed() {
-		return errors.New("ebiten: image is already disposed")
-	}
 	if i == image {
 		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
-	i.pixels = nil
-	m := opengl.CompositeMode(options.CompositeMode)
-	return i.framebuffer.DrawTexture(glContext, image.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
+	c := &drawImageCommand{
+		dst:           i,
+		src:           image,
+		vertices:      vertices[:16*n],
+		geoM:          options.GeoM,
+		colorM:        options.ColorM,
+		compositeMode: options.CompositeMode,
+	}
+	if imageCommandQueue != nil {
+		imageCommandQueue = append(imageCommandQueue, c)
+		return nil
+	}
+	return c.Exec()
 }
 
 // Bounds returns the bounds of the image.
@@ -148,11 +158,16 @@ func (i *Image) ColorModel() color.Model {
 //
 // This method loads pixels from VRAM to system memory if necessary.
 //
+// This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
+//
 // This function is concurrent-safe.
 func (i *Image) At(x, y int) color.Color {
 	// TODO: What if At is called internaly (like from image parts?)
 	imageM.Lock()
 	defer imageM.Unlock()
+	if imageCommandQueue != nil {
+		panic("ebiten: At can't be called when the GL context is not initialized")
+	}
 	if i.isDisposed() {
 		return color.Transparent
 	}
@@ -178,26 +193,17 @@ func (i *Image) At(x, y int) color.Color {
 func (i *Image) Dispose() error {
 	imageM.Lock()
 	defer imageM.Unlock()
-	if i.isDisposed() {
-		return errors.New("ebiten: image is already disposed")
+	c := &disposeCommand{
+		image: i,
 	}
-	if i.framebuffer != nil {
-		if err := i.framebuffer.Dispose(glContext); err != nil {
-			return err
-		}
-		i.framebuffer = nil
+	if imageCommandQueue != nil {
+		imageCommandQueue = append(imageCommandQueue, c)
+		return nil
 	}
-	if i.texture != nil {
-		if err := i.texture.Dispose(glContext); err != nil {
-			return err
-		}
-		i.texture = nil
-	}
-	i.pixels = nil
-	runtime.SetFinalizer(i, nil)
-	return nil
+	return c.Exec()
 }
 
+// FIXME: This returns true when image is temporal state!
 func (i *Image) isDisposed() bool {
 	// i.texture can be nil even when the image is not disposed,
 	// so we need to check if both are nil.
@@ -215,15 +221,20 @@ func (i *Image) isDisposed() bool {
 func (i *Image) ReplacePixels(p []uint8) error {
 	imageM.Lock()
 	defer imageM.Unlock()
-	if i.isDisposed() {
-		return errors.New("ebiten: image is already disposed")
-	}
 	// Don't set i.pixels here because i.pixels is used not every time.
 	i.pixels = nil
 	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
-	return i.framebuffer.ReplacePixels(glContext, i.texture, p)
+	c := &replacePixelsCommand{
+		dst:    i,
+		pixels: p,
+	}
+	if imageCommandQueue != nil {
+		imageCommandQueue = append(imageCommandQueue, c)
+		return nil
+	}
+	return c.Exec()
 }
 
 // A DrawImageOptions represents options to render an image on an image.
@@ -248,27 +259,23 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-
-	texture, err := graphics.NewTexture(glContext, width, height, glFilter(glContext, filter))
-	if err != nil {
+	c := &newImageCommand{
+		width:  width,
+		height: height,
+		filter: filter,
+		result: &Image{
+			width:  width,
+			height: height,
+		},
+	}
+	if imageCommandQueue != nil {
+		imageCommandQueue = append(imageCommandQueue, c)
+		return c.result, nil
+	}
+	if err := c.Exec(); err != nil {
 		return nil, err
 	}
-	framebuffer, err := graphics.NewFramebufferFromTexture(glContext, texture)
-	if err != nil {
-		// TODO: texture should be removed here?
-		return nil, err
-	}
-	img := &Image{
-		framebuffer: framebuffer,
-		texture:     texture,
-		width:       width,
-		height:      height,
-	}
-	runtime.SetFinalizer(img, (*Image).Dispose)
-	if err := img.clear(); err != nil {
-		return nil, err
-	}
-	return img, nil
+	return c.result, nil
 }
 
 // NewImageFromImage creates a new image with the given image (img).
@@ -282,23 +289,22 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-
-	texture, err := graphics.NewTextureFromImage(glContext, img, glFilter(glContext, filter))
-	if err != nil {
+	size := img.Bounds().Size()
+	w, h := size.X, size.Y
+	c := &newImageFromImageCommand{
+		image:  img,
+		filter: filter,
+		result: &Image{
+			width:  w,
+			height: h,
+		},
+	}
+	if imageCommandQueue != nil {
+		imageCommandQueue = append(imageCommandQueue, c)
+		return c.result, nil
+	}
+	if err := c.Exec(); err != nil {
 		return nil, err
 	}
-	framebuffer, err := graphics.NewFramebufferFromTexture(glContext, texture)
-	if err != nil {
-		// TODO: texture should be removed here?
-		return nil, err
-	}
-	w, h := framebuffer.Size()
-	eimg := &Image{
-		framebuffer: framebuffer,
-		texture:     texture,
-		width:       w,
-		height:      h,
-	}
-	runtime.SetFinalizer(eimg, (*Image).Dispose)
-	return eimg, nil
+	return c.result, nil
 }
