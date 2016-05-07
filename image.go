@@ -32,6 +32,7 @@ var imageM sync.Mutex
 type Image struct {
 	framebuffer *graphics.Framebuffer
 	texture     *graphics.Texture
+	disposed    bool
 	pixels      []uint8
 	width       int
 	height      int
@@ -203,12 +204,8 @@ func (i *Image) Dispose() error {
 	return c.Exec()
 }
 
-// FIXME: This returns true when image is temporal state!
 func (i *Image) isDisposed() bool {
-	// i.texture can be nil even when the image is not disposed,
-	// so we need to check if both are nil.
-	// See graphicsContext.setSize function.
-	return i.texture == nil && i.framebuffer == nil
+	return i.disposed
 }
 
 // ReplacePixels replaces the pixels of the image with p.

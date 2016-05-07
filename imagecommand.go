@@ -109,6 +109,7 @@ func (c *disposeCommand) Exec() error {
 		}
 		c.image.texture = nil
 	}
+	c.image.disposed = true
 	c.image.pixels = nil
 	runtime.SetFinalizer(c.image, nil)
 	return nil
