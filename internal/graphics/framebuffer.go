@@ -69,12 +69,13 @@ func (f *Framebuffer) Size() (width, height int) {
 	return f.width, f.height
 }
 
-func (f *Framebuffer) Dispose(c *opengl.Context) {
+func (f *Framebuffer) Dispose(c *opengl.Context) error {
 	// Don't delete the default framebuffer.
 	if f.native == opengl.ZeroFramebuffer {
-		return
+		return nil
 	}
 	c.DeleteFramebuffer(f.native)
+	return nil
 }
 
 func (f *Framebuffer) setAsViewport(c *opengl.Context) error {

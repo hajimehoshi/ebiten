@@ -182,11 +182,15 @@ func (i *Image) Dispose() error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	if i.framebuffer != nil {
-		i.framebuffer.Dispose(glContext)
+		if err := i.framebuffer.Dispose(glContext); err != nil {
+			return err
+		}
 		i.framebuffer = nil
 	}
 	if i.texture != nil {
-		i.texture.Dispose(glContext)
+		if err := i.texture.Dispose(glContext); err != nil {
+			return err
+		}
 		i.texture = nil
 	}
 	i.pixels = nil

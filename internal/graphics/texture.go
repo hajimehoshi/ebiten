@@ -86,6 +86,7 @@ func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filte
 	return &Texture{native, origSize.X, origSize.Y}, nil
 }
 
-func (t *Texture) Dispose(c *opengl.Context) {
+func (t *Texture) Dispose(c *opengl.Context) error {
 	c.DeleteTexture(t.native)
+	return nil
 }
