@@ -188,7 +188,7 @@ func (i *Image) At(x, y int) color.Color {
 	imageM.Lock()
 	defer imageM.Unlock()
 	if imageCommandQueue != nil {
-		panic("ebiten: At can't be called when the GL context is not initialized")
+		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
 	if i.isDisposed() {
 		return color.Transparent
