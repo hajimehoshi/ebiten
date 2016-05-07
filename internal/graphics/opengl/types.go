@@ -21,28 +21,6 @@ type BufferUsage int
 type Mode int
 type operation int
 
-type Context struct {
-	Nearest            Filter
-	Linear             Filter
-	VertexShader       ShaderType
-	FragmentShader     ShaderType
-	ArrayBuffer        BufferType
-	ElementArrayBuffer BufferType
-	DynamicDraw        BufferUsage
-	StaticDraw         BufferUsage
-	Triangles          Mode
-	Lines              Mode
-	zero               operation
-	one                operation
-	srcAlpha           operation
-	dstAlpha           operation
-	oneMinusSrcAlpha   operation
-	oneMinusDstAlpha   operation
-	locationCache      *locationCache
-	lastCompositeMode  CompositeMode
-	context
-}
-
 type CompositeMode int
 
 const (
