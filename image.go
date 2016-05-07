@@ -29,18 +29,18 @@ import (
 var imageM sync.Mutex
 
 var (
-	imageCommandQueue = []func() error{}
+	lazyImageProcesses = []func() error{}
 )
 
-func execBufferedImageCommands() error {
+func execDelayedImageProcesses() error {
 	imageM.Lock()
 	defer imageM.Unlock()
-	for _, f := range imageCommandQueue {
+	for _, f := range lazyImageProcesses {
 		if err := f(); err != nil {
 			return err
 		}
 	}
-	imageCommandQueue = nil
+	lazyImageProcesses = nil
 	return nil
 }
 
@@ -93,8 +93,8 @@ func (i *Image) fill(clr color.Color) (err error) {
 		i.pixels = nil
 		return i.framebuffer.Fill(glContext, clr)
 	}
-	if imageCommandQueue != nil {
-		imageCommandQueue = append(imageCommandQueue, f)
+	if lazyImageProcesses != nil {
+		lazyImageProcesses = append(lazyImageProcesses, f)
 		return
 	}
 	return f()
@@ -155,8 +155,8 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		m := opengl.CompositeMode(options.CompositeMode)
 		return i.framebuffer.DrawTexture(glContext, image.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
 	}
-	if imageCommandQueue != nil {
-		imageCommandQueue = append(imageCommandQueue, f)
+	if lazyImageProcesses != nil {
+		lazyImageProcesses = append(lazyImageProcesses, f)
 		return nil
 	}
 	return f()
@@ -187,7 +187,7 @@ func (i *Image) At(x, y int) color.Color {
 	// TODO: What if At is called internaly (like from image parts?)
 	imageM.Lock()
 	defer imageM.Unlock()
-	if imageCommandQueue != nil {
+	if lazyImageProcesses != nil {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
 	if i.isDisposed() {
@@ -236,8 +236,8 @@ func (i *Image) Dispose() error {
 		runtime.SetFinalizer(i, nil)
 		return nil
 	}
-	if imageCommandQueue != nil {
-		imageCommandQueue = append(imageCommandQueue, f)
+	if lazyImageProcesses != nil {
+		lazyImageProcesses = append(lazyImageProcesses, f)
 		return nil
 	}
 	return f()
@@ -268,8 +268,8 @@ func (i *Image) ReplacePixels(p []uint8) error {
 		}
 		return i.framebuffer.ReplacePixels(glContext, i.texture, p)
 	}
-	if imageCommandQueue != nil {
-		imageCommandQueue = append(imageCommandQueue, f)
+	if lazyImageProcesses != nil {
+		lazyImageProcesses = append(lazyImageProcesses, f)
 		return nil
 	}
 	return f()
@@ -319,8 +319,8 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		}
 		return nil
 	}
-	if imageCommandQueue != nil {
-		imageCommandQueue = append(imageCommandQueue, f)
+	if lazyImageProcesses != nil {
+		lazyImageProcesses = append(lazyImageProcesses, f)
 		return image, nil
 	}
 	if err := f(); err != nil {
@@ -361,8 +361,8 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 		runtime.SetFinalizer(image, (*Image).Dispose)
 		return nil
 	}
-	if imageCommandQueue != nil {
-		imageCommandQueue = append(imageCommandQueue, f)
+	if lazyImageProcesses != nil {
+		lazyImageProcesses = append(lazyImageProcesses, f)
 		return image, nil
 	}
 	if err := f(); err != nil {

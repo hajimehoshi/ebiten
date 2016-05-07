@@ -189,7 +189,7 @@ func run(f func(*Image) error, width, height, scale int, title string) error {
 		return err
 	}
 
-	if err := execBufferedImageCommands(); err != nil {
+	if err := execDelayedImageProcesses(); err != nil {
 		return err
 	}
 
