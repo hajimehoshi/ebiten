@@ -48,9 +48,7 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl                mgl.Context
-	locationCache     *locationCache
-	lastCompositeMode CompositeMode
+	gl mgl.Context
 }
 
 func NewContext() *Context {
@@ -65,9 +63,9 @@ func NewContext() *Context {
 		StaticDraw:         mgl.STATIC_DRAW,
 		Triangles:          mgl.TRIANGLES,
 		Lines:              mgl.LINES,
+		locationCache:      newLocationCache(),
+		lastCompositeMode:  CompositeModeUnknown,
 	}
-	c.locationCache = newLocationCache()
-	c.lastCompositeMode = CompositeModeUnknown
 	return c
 }
 

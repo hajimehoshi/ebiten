@@ -47,9 +47,7 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	locationCache     *locationCache
-	funcs             chan func()
-	lastCompositeMode CompositeMode
+	funcs chan func()
 }
 
 func NewContext() (*Context, error) {
@@ -70,10 +68,10 @@ func NewContext() (*Context, error) {
 		dstAlpha:           gl.DST_ALPHA,
 		oneMinusSrcAlpha:   gl.ONE_MINUS_SRC_ALPHA,
 		oneMinusDstAlpha:   gl.ONE_MINUS_DST_ALPHA,
+		locationCache:      newLocationCache(),
+		lastCompositeMode:  CompositeModeUnknown,
 	}
-	c.locationCache = newLocationCache()
 	c.funcs = make(chan func())
-	c.lastCompositeMode = CompositeModeUnknown
 	return c, nil
 }
 

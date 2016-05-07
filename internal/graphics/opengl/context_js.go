@@ -63,11 +63,9 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl                *webgl.Context
-	lastFramebuffer   Framebuffer
-	locationCache     *locationCache
-	lastProgramID     programID
-	lastCompositeMode CompositeMode
+	gl              *webgl.Context
+	lastFramebuffer Framebuffer
+	lastProgramID   programID
 }
 
 func NewContext() (*Context, error) {
@@ -112,10 +110,10 @@ func NewContext() (*Context, error) {
 		dstAlpha:           operation(gl.DST_ALPHA),
 		oneMinusSrcAlpha:   operation(gl.ONE_MINUS_SRC_ALPHA),
 		oneMinusDstAlpha:   operation(gl.ONE_MINUS_DST_ALPHA),
+		locationCache:      newLocationCache(),
+		lastCompositeMode:  CompositeModeUnknown,
 	}
 	c.gl = gl
-	c.locationCache = newLocationCache()
-	c.lastCompositeMode = CompositeModeUnknown
 	c.init()
 	return c, nil
 }

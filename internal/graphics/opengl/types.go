@@ -38,6 +38,8 @@ type Context struct {
 	dstAlpha           operation
 	oneMinusSrcAlpha   operation
 	oneMinusDstAlpha   operation
+	locationCache      *locationCache
+	lastCompositeMode  CompositeMode
 	context
 }
 
