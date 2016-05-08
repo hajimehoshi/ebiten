@@ -15,7 +15,9 @@
 package common
 
 import (
+	"image"
 	"image/color"
+	"image/draw"
 	"math"
 	"path/filepath"
 	"runtime"
@@ -31,6 +33,7 @@ var (
 
 type Font struct {
 	image          *ebiten.Image
+	origImage      image.Image
 	offset         int
 	charNumPerLine int
 	charWidth      int
@@ -52,11 +55,11 @@ func init() {
 	}
 	arcadeFontPath := filepath.Join(dir, "_resources", "images", "arcadefont.png")
 
-	arcadeFontImage, _, err := ebitenutil.NewImageFromFile(arcadeFontPath, ebiten.FilterNearest)
+	arcadeFontImage, origImage, err := ebitenutil.NewImageFromFile(arcadeFontPath, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}
-	ArcadeFont = &Font{arcadeFontImage, 32, 16, 8, 8}
+	ArcadeFont = &Font{arcadeFontImage, origImage, 32, 16, 8, 8}
 }
 
 type fontImageParts struct {
@@ -110,6 +113,16 @@ func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color
 	options.ColorM.Scale(r, g, b, a)
 
 	return rt.DrawImage(f.image, options)
+}
+
+func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) error {
+	parts := &fontImageParts{str, f}
+	for i := 0; i < parts.Len(); i++ {
+		dx0, dy0, dx1, dy1 := parts.Dst(i)
+		sx0, sy0, _, _ := parts.Src(i)
+		draw.Draw(rt, image.Rect(dx0+ox, dy0+oy, dx1+ox, dy1+oy), f.origImage, image.Pt(sx0, sy0), draw.Over)
+	}
+	return nil
 }
 
 func (f *Font) DrawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) error {

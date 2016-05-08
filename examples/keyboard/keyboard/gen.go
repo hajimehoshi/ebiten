@@ -17,8 +17,6 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/common"
 	"image"
 	"image/color"
 	"image/draw"
@@ -30,6 +28,8 @@ import (
 	"runtime"
 	"strings"
 	"text/template"
+
+	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 func licenseComment() (string, error) {
@@ -55,14 +55,11 @@ var keyboardKeys = [][]string{
 	{"Left", "Down", "Right"},
 }
 
-func drawKey(t *ebiten.Image, name string, x, y, width int) error {
+func drawKey(t *image.NRGBA, name string, x, y, width int) error {
 	const height = 16
 	width--
-	shape, err := ebiten.NewImage(width, height, ebiten.FilterNearest)
-	if err != nil {
-		return err
-	}
-	p := make([]uint8, width*height*4)
+	shape := image.NewNRGBA(image.Rect(0, 0, width, height))
+	p := shape.Pix
 	for j := 0; j < height; j++ {
 		for i := 0; i < width; i++ {
 			x := (i + j*width) * 4
@@ -98,15 +95,8 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) error {
 			}
 		}
 	}
-	if err := shape.ReplacePixels(p); err != nil {
-		return err
-	}
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	if err := t.DrawImage(shape, op); err != nil {
-		return err
-	}
-	if err := common.ArcadeFont.DrawText(t, name, x+4, y+5, 1, color.White); err != nil {
+	draw.Draw(t, image.Rect(x, y, x+width, y+height), shape, image.ZP, draw.Over)
+	if err := common.ArcadeFont.DrawTextOnImage(t, name, x+4, y+5); err != nil {
 		return err
 	}
 	return nil
@@ -114,10 +104,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) error {
 
 func outputKeyboardImage() (map[string]image.Rectangle, error) {
 	keyMap := map[string]image.Rectangle{}
-	img, err := ebiten.NewImage(320, 240, ebiten.FilterNearest)
-	if err != nil {
-		return nil, err
-	}
+	img := image.NewNRGBA(image.Rect(0, 0, 320, 240))
 	x, y := 0, 0
 	for j, line := range keyboardKeys {
 		x = 0
@@ -167,7 +154,7 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 	palettedImg := image.NewPaletted(img.Bounds(), palette)
 	draw.Draw(palettedImg, palettedImg.Bounds(), img, image.ZP, draw.Src)
 
-	f, err := os.Create("images/keyboard/keyboard.png")
+	f, err := os.Create("_resources/images/keyboard/keyboard.png")
 	if err != nil {
 		return nil, err
 	}
