@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// NOTICE: This file is not maintained well.
-
 // +build android
 
 package opengl
@@ -63,6 +61,12 @@ func NewContext() *Context {
 		StaticDraw:         mgl.STATIC_DRAW,
 		Triangles:          mgl.TRIANGLES,
 		Lines:              mgl.LINES,
+		zero:               mgl.ZERO,
+		one:                mgl.ONE,
+		srcAlpha:           mgl.SRC_ALPHA,
+		dstAlpha:           mgl.DST_ALPHA,
+		oneMinusSrcAlpha:   mgl.ONE_MINUS_SRC_ALPHA,
+		oneMinusDstAlpha:   mgl.ONE_MINUS_DST_ALPHA,
 		locationCache:      newLocationCache(),
 		lastCompositeMode:  CompositeModeUnknown,
 	}
