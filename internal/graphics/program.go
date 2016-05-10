@@ -15,6 +15,8 @@
 package graphics
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -37,13 +39,13 @@ const float32Size = 4
 func initialize(c *opengl.Context) error {
 	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer c.DeleteShader(shaderVertexModelviewNative)
 
 	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer c.DeleteShader(shaderFragmentTextureNative)
 
