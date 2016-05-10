@@ -62,12 +62,6 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 	if c.screen != nil {
 		c.screen.Dispose()
 	}
-
-	f, err := graphics.NewZeroFramebuffer(glContext, screenWidth*screenScale, screenHeight*screenScale)
-	if err != nil {
-		return err
-	}
-
 	texture, err := graphics.NewTexture(glContext, screenWidth, screenHeight, glContext.Nearest)
 	if err != nil {
 		return err
@@ -82,6 +76,11 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 		texture:     texture,
 		width:       w,
 		height:      h,
+	}
+
+	f, err := graphics.NewZeroFramebuffer(glContext, screenWidth*screenScale, screenHeight*screenScale)
+	if err != nil {
+		return err
 	}
 	w, h = f.Size()
 	c.defaultRenderTarget = &Image{
