@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
@@ -76,7 +75,7 @@ func init() {
 	}
 	imageEmpty.Fill(color.White)
 	// Background
-	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterLinear)
+	imageGameBG, _, err = common.AssetImage("gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
 		panic(err)
 	}

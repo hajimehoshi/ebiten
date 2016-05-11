@@ -22,6 +22,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 const (
@@ -136,7 +137,7 @@ Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.Le
 
 func main() {
 	var err error
-	ebitenImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterNearest)
+	ebitenImage, _, err = common.AssetImage("ebiten.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
