@@ -338,6 +338,11 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // This function is concurrent-safe.
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
+	// Can't call (*ebiten.Image).At here because of the lock.
+	if _, ok := img.(*Image); ok {
+		return nil, errors.New("ebiten: NewImageFromImage can't take *ebiten.Image")
+	}
+
 	imageM.Lock()
 	defer imageM.Unlock()
 	size := img.Bounds().Size()
