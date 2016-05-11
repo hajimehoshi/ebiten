@@ -278,4 +278,15 @@ func TestImageCompositeModeLighter(t *testing.T) {
 	}
 }
 
+func TestNewImageFromEbitenImage(t *testing.T) {
+	img, _, err := openEbitenImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	if _, err := NewImageFromImage(img, FilterNearest); err == nil {
+		t.Errorf("NewImageFromImage with an *ebiten.Image must return an error")
+	}
+}
+
 // TODO: Add more tests (e.g. DrawImage with color matrix)
