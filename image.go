@@ -352,6 +352,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	size := img.Bounds().Size()
 	w, h := size.X, size.Y
+	// TODO: Return error when the image is too big!
 	eimg := &Image{
 		width:  w,
 		height: h,
