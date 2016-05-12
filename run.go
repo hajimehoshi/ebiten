@@ -23,12 +23,12 @@ import (
 )
 
 type runContext struct {
-	isRunning       bool
+	running         bool
 	fps             float64
 	newScreenWidth  int
 	newScreenHeight int
 	newScreenScale  int
-	isRunningSlowly bool
+	runningSlowly   bool
 	m               sync.RWMutex
 }
 
@@ -37,19 +37,25 @@ var currentRunContext runContext
 func (c *runContext) startRunning() {
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.isRunning = true
+	c.running = true
+}
+
+func (c *runContext) isRunning() bool {
+	c.m.Lock()
+	defer c.m.Unlock()
+	return c.running
 }
 
 func (c *runContext) endRunning() {
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.isRunning = false
+	c.running = false
 }
 
 func (c *runContext) FPS() float64 {
 	c.m.RLock()
 	defer c.m.RUnlock()
-	if !c.isRunning {
+	if !c.running {
 		// TODO: Should panic here?
 		return 0
 	}
@@ -65,17 +71,17 @@ func (c *runContext) updateFPS(fps float64) {
 func (c *runContext) IsRunningSlowly() bool {
 	c.m.RLock()
 	defer c.m.RUnlock()
-	if !c.isRunning {
+	if !c.running {
 		// TODO: Should panic here?
 		return false
 	}
-	return c.isRunningSlowly
+	return c.runningSlowly
 }
 
 func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.isRunningSlowly = isRunningSlowly
+	c.runningSlowly = isRunningSlowly
 }
 
 func (c *runContext) updateScreenSize(g *graphicsContext) error {
@@ -108,7 +114,7 @@ func (c *runContext) updateScreenSize(g *graphicsContext) error {
 func (c *runContext) SetScreenSize(width, height int) error {
 	c.m.Lock()
 	defer c.m.Unlock()
-	if !c.isRunning {
+	if !c.running {
 		return errors.New("ebiten: SetScreenSize must be called during Run")
 	}
 	if width <= 0 || height <= 0 {
@@ -122,7 +128,7 @@ func (c *runContext) SetScreenSize(width, height int) error {
 func (c *runContext) SetScreenScale(scale int) error {
 	c.m.Lock()
 	defer c.m.Unlock()
-	if !c.isRunning {
+	if !c.running {
 		return errors.New("ebiten: SetScreenScale must be called during Run")
 	}
 	if scale <= 0 {

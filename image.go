@@ -63,10 +63,6 @@ func (t *delayedImageTasks) exec() error {
 	return nil
 }
 
-func (t *delayedImageTasks) isExecCalled() bool {
-	t.execCalled
-}
-
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
@@ -203,12 +199,11 @@ func (i *Image) ColorModel() color.Model {
 //
 // This function is concurrent-safe.
 func (i *Image) At(x, y int) color.Color {
-	// TODO: What if At is called internaly (like from image parts?)
-	imageM.Lock()
-	defer imageM.Unlock()
-	if !theDelayedImageTasks.isExecCalled() {
+	if !currentRunContext.isRunning() {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
+	imageM.Lock()
+	defer imageM.Unlock()
 	if i.isDisposed() {
 		return color.Transparent
 	}
