@@ -16,12 +16,13 @@ package graphics
 
 import (
 	"errors"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"image"
 	"image/draw"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-func adjustImageForTexture(img image.Image) *image.RGBA {
+func adjustImageForTexture(img *image.RGBA) *image.RGBA {
 	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
@@ -30,8 +31,8 @@ func adjustImageForTexture(img image.Image) *image.RGBA {
 			int(NextPowerOf2Int32(int32(height))),
 		},
 	}
-	if adjustedImage, ok := img.(*image.RGBA); ok && img.Bounds() == adjustedImageBounds {
-		return adjustedImage
+	if img.Bounds() == adjustedImageBounds {
+		return img
 	}
 
 	adjustedImage := image.NewRGBA(adjustedImageBounds)
@@ -39,7 +40,7 @@ func adjustImageForTexture(img image.Image) *image.RGBA {
 		image.ZP,
 		img.Bounds().Size(),
 	}
-	draw.Draw(adjustedImage, dstBounds, img, image.ZP, draw.Src)
+	draw.Draw(adjustedImage, dstBounds, img, img.Bounds().Min, draw.Src)
 	return adjustedImage
 }
 
@@ -69,7 +70,7 @@ func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Te
 	return &Texture{native, width, height}, nil
 }
 
-func NewTextureFromImage(c *opengl.Context, img image.Image, filter opengl.Filter) (*Texture, error) {
+func NewTextureFromImage(c *opengl.Context, img *image.RGBA, filter opengl.Filter) (*Texture, error) {
 	origSize := img.Bounds().Size()
 	if origSize.X < 4 {
 		return nil, errors.New("width must be equal or more than 4.")

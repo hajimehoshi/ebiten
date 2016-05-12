@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"runtime"
 	"sync"
 
@@ -26,22 +27,44 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-var imageM sync.Mutex
-
 var (
-	lazyImageProcesses = []func() error{}
+	imageM sync.Mutex
 )
 
-func execDelayedImageProcesses() error {
-	imageM.Lock()
-	defer imageM.Unlock()
-	for _, f := range lazyImageProcesses {
+type delayedImageTasks struct {
+	tasks      []func() error
+	m          sync.Mutex
+	execCalled bool
+}
+
+var theDelayedImageTasks = &delayedImageTasks{
+	tasks: []func() error{},
+}
+
+func (t *delayedImageTasks) add(f func() error) bool {
+	t.m.Lock()
+	defer t.m.Unlock()
+	if t.execCalled {
+		return false
+	}
+	t.tasks = append(t.tasks, f)
+	return true
+}
+
+func (t *delayedImageTasks) exec() error {
+	t.m.Lock()
+	defer t.m.Unlock()
+	t.execCalled = true
+	for _, f := range t.tasks {
 		if err := f(); err != nil {
 			return err
 		}
 	}
-	lazyImageProcesses = nil
 	return nil
+}
+
+func (t *delayedImageTasks) isExecCalled() bool {
+	t.execCalled
 }
 
 // Image represents an image.
@@ -67,8 +90,6 @@ func (i *Image) Size() (width, height int) {
 //
 // This function is concurrent-safe.
 func (i *Image) Clear() (err error) {
-	imageM.Lock()
-	defer imageM.Unlock()
 	return i.clear()
 }
 
@@ -80,22 +101,21 @@ func (i *Image) clear() (err error) {
 //
 // This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) (err error) {
-	imageM.Lock()
-	defer imageM.Unlock()
 	return i.fill(clr)
 }
 
 func (i *Image) fill(clr color.Color) (err error) {
 	f := func() error {
+		imageM.Lock()
+		defer imageM.Unlock()
 		if i.isDisposed() {
 			return errors.New("ebiten: image is already disposed")
 		}
 		i.pixels = nil
 		return i.framebuffer.Fill(glContext, clr)
 	}
-	if lazyImageProcesses != nil {
-		lazyImageProcesses = append(lazyImageProcesses, f)
-		return
+	if theDelayedImageTasks.add(f) {
+		return nil
 	}
 	return f()
 
@@ -142,12 +162,12 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		return nil
 	}
 
-	imageM.Lock()
-	defer imageM.Unlock()
 	if i == image {
 		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
 	f := func() error {
+		imageM.Lock()
+		defer imageM.Unlock()
 		if i.isDisposed() {
 			return errors.New("ebiten: image is already disposed")
 		}
@@ -155,8 +175,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		m := opengl.CompositeMode(options.CompositeMode)
 		return i.framebuffer.DrawTexture(glContext, image.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
 	}
-	if lazyImageProcesses != nil {
-		lazyImageProcesses = append(lazyImageProcesses, f)
+	if theDelayedImageTasks.add(f) {
 		return nil
 	}
 	return f()
@@ -187,7 +206,7 @@ func (i *Image) At(x, y int) color.Color {
 	// TODO: What if At is called internaly (like from image parts?)
 	imageM.Lock()
 	defer imageM.Unlock()
-	if lazyImageProcesses != nil {
+	if !theDelayedImageTasks.isExecCalled() {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
 	if i.isDisposed() {
@@ -213,9 +232,9 @@ func (i *Image) At(x, y int) color.Color {
 //
 // This function is concurrent-safe.
 func (i *Image) Dispose() error {
-	imageM.Lock()
-	defer imageM.Unlock()
 	f := func() error {
+		imageM.Lock()
+		defer imageM.Unlock()
 		if i.isDisposed() {
 			return errors.New("ebiten: image is already disposed")
 		}
@@ -236,8 +255,8 @@ func (i *Image) Dispose() error {
 		runtime.SetFinalizer(i, nil)
 		return nil
 	}
-	if lazyImageProcesses != nil {
-		lazyImageProcesses = append(lazyImageProcesses, f)
+
+	if theDelayedImageTasks.add(f) {
 		return nil
 	}
 	return f()
@@ -255,12 +274,12 @@ func (i *Image) isDisposed() bool {
 //
 // This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
-	imageM.Lock()
-	defer imageM.Unlock()
 	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
 	f := func() error {
+		imageM.Lock()
+		defer imageM.Unlock()
 		// Don't set i.pixels here because i.pixels is used not every time.
 		i.pixels = nil
 		if i.isDisposed() {
@@ -268,8 +287,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 		}
 		return i.framebuffer.ReplacePixels(glContext, i.texture, p)
 	}
-	if lazyImageProcesses != nil {
-		lazyImageProcesses = append(lazyImageProcesses, f)
+	if theDelayedImageTasks.add(f) {
 		return nil
 	}
 	return f()
@@ -295,13 +313,13 @@ type DrawImageOptions struct {
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	imageM.Lock()
-	defer imageM.Unlock()
 	image := &Image{
 		width:  width,
 		height: height,
 	}
 	f := func() error {
+		imageM.Lock()
+		defer imageM.Unlock()
 		texture, err := graphics.NewTexture(glContext, width, height, glFilter(glContext, filter))
 		if err != nil {
 			return err
@@ -319,8 +337,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		}
 		return nil
 	}
-	if lazyImageProcesses != nil {
-		lazyImageProcesses = append(lazyImageProcesses, f)
+	if theDelayedImageTasks.add(f) {
 		return image, nil
 	}
 	if err := f(); err != nil {
@@ -338,21 +355,24 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // This function is concurrent-safe.
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
-	// Can't call (*ebiten.Image).At here because of the lock.
-	if _, ok := img.(*Image); ok {
-		return nil, errors.New("ebiten: NewImageFromImage can't take *ebiten.Image")
-	}
-
-	imageM.Lock()
-	defer imageM.Unlock()
 	size := img.Bounds().Size()
 	w, h := size.X, size.Y
-	image := &Image{
+	eimg := &Image{
 		width:  w,
 		height: h,
 	}
 	f := func() error {
-		texture, err := graphics.NewTextureFromImage(glContext, img, glFilter(glContext, filter))
+		// Don't lock while manipulating an image.Image interface.
+		rgbaImg, ok := img.(*image.RGBA)
+		if !ok {
+			origImg := img
+			newImg := image.NewRGBA(origImg.Bounds())
+			draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
+			rgbaImg = newImg
+		}
+		imageM.Lock()
+		defer imageM.Unlock()
+		texture, err := graphics.NewTextureFromImage(glContext, rgbaImg, glFilter(glContext, filter))
 		if err != nil {
 			return err
 		}
@@ -361,17 +381,16 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 			// TODO: texture should be removed here?
 			return err
 		}
-		image.framebuffer = framebuffer
-		image.texture = texture
-		runtime.SetFinalizer(image, (*Image).Dispose)
+		eimg.framebuffer = framebuffer
+		eimg.texture = texture
+		runtime.SetFinalizer(eimg, (*Image).Dispose)
 		return nil
 	}
-	if lazyImageProcesses != nil {
-		lazyImageProcesses = append(lazyImageProcesses, f)
-		return image, nil
+	if theDelayedImageTasks.add(f) {
+		return eimg, nil
 	}
 	if err := f(); err != nil {
 		return nil, err
 	}
-	return image, nil
+	return eimg, nil
 }

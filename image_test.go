@@ -71,14 +71,3 @@ func TestImageDispose(t *testing.T) {
 		t.Errorf("img.Dipose() returns error: %v", err)
 	}
 }
-
-func TestNewImageFromEbitenImage(t *testing.T) {
-	img, _, err := openEbitenImage("testdata/ebiten.png")
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	if _, err := NewImageFromImage(img, FilterNearest); err == nil {
-		t.Errorf("NewImageFromImage with an *ebiten.Image must return an error")
-	}
-}
