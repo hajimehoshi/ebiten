@@ -109,7 +109,7 @@ const uiKeysGlfwTmpl = `{{.License}}
 
 // {{.Notice}}
 
-// +build !js
+{{.BuildTag}}
 
 package ui
 
@@ -133,7 +133,7 @@ const uiKeysJSTmpl = `{{.License}}
 
 // {{.Notice}}
 
-// +build js
+{{.BuildTag}}
 
 package ui
 
@@ -258,10 +258,20 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		// The build tag can't be included in the templates because of `go vet`.
+		// Pass the build tag and extract this in the template to make `go vet` happy.
+		buildTag := ""
+		switch path {
+		case "internal/ui/keys_glfw.go":
+			buildTag = "// +build !js"
+		case "internal/ui/keys_js.go":
+			buildTag = "// +build js"
+		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
 		if err := tmpl.Execute(f, map[string]interface{}{
 			"License":             license,
 			"Notice":              notice,
+			"BuildTag":            buildTag,
 			"KeyCodeToName":       keyCodeToName,
 			"Codes":               codes,
 			"KeyNames":            names,
