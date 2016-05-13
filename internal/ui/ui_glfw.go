@@ -239,8 +239,9 @@ func (u *UserInterface) SwapBuffers() {
 func (u *UserInterface) swapBuffers() {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
 	u.context.BindZeroFramebuffer()
-	u.context.RunOnContextThread(func() {
+	u.context.RunOnContextThread(func() error {
 		u.window.SwapBuffers()
+		return nil
 	})
 }
 
