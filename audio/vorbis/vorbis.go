@@ -72,6 +72,10 @@ static inline void assert_impl(int x, const char* sentence) {
 
 #define assert(x) assert_impl(x, #x)
 
+static short short_array_index(short* arr, int index) {
+  return arr[index];
+}
+
 // Copied from stb_vorbis.c (https://github.com/nothings/stb/blob/79f29bafffdbf33cb566102b1635c144beba0f28/stb_vorbis.c)
 // Fixes:
 // * Replace all 'extern's with 'static'
@@ -5543,12 +5547,6 @@ type decoded struct {
 	bytesPerSample int
 }
 
-func (d *decoded) at(offset int) C.short {
-	const sizeOfShort = 2
-	p := uintptr(unsafe.Pointer(d.data))
-	return *(*C.short)(unsafe.Pointer(p + uintptr(offset*sizeOfShort)))
-}
-
 func (d *decoded) Read(b []byte) (int, error) {
 	l := d.sampleNum*d.bytesPerSample - d.posInBytes
 	if l > len(b) {
@@ -5557,7 +5555,7 @@ func (d *decoded) Read(b []byte) (int, error) {
 	// l must be even so that d.posInBytes is always even.
 	l = l / 2 * 2
 	for i := 0; i < l/2; i++ {
-		s := d.at(d.posInBytes/2 + i)
+		s := C.short_array_index(d.data, C.int(d.posInBytes/2+i))
 		b[2*i] = byte(s)
 		b[2*i+1] = byte(s >> 8)
 	}
