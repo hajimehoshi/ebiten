@@ -83,7 +83,7 @@ chunks:
 			return nil, err
 		}
 		headerSize += 8
-		size := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7]<<24)
+		size := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
 		switch {
 		case bytes.Equal(buf[0:4], []byte("fmt ")):
 			if size != 16 {
@@ -111,7 +111,7 @@ chunks:
 			if bitsPerSample != 16 {
 				return nil, fmt.Errorf("wav: bits per sample must be 16")
 			}
-			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7]<<24)
+			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
 			if int64(context.SampleRate()) != sampleRate {
 				return nil, fmt.Errorf("wav: sample rate must be %d but %d", context.SampleRate(), sampleRate)
 			}
