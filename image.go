@@ -302,9 +302,6 @@ type DrawImageOptions struct {
 // NewImage returns an empty image.
 //
 // NewImage generates a new texture and a new framebuffer.
-// Be careful that image objects will never be released
-// even though nothing refers the image object and GC works.
-// It is because there is no way to define finalizers for Go objects if you use GopherJS.
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
@@ -344,9 +341,6 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // NewImageFromImage creates a new image with the given image (img).
 //
 // NewImageFromImage generates a new texture and a new framebuffer.
-// Be careful that image objects will never be released
-// even though nothing refers the image object and GC works.
-// It is because there is no way to define finalizers for Go objects if you use GopherJS.
 //
 // This function is concurrent-safe.
 func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
