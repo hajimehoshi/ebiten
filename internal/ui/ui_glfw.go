@@ -149,7 +149,7 @@ func (u *UserInterface) ActualScreenScale() int {
 }
 
 func (u *UserInterface) Start(width, height, scale int, title string) error {
-	var ferr error
+	var err error
 	u.runOnMainThread(func() {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
@@ -166,7 +166,7 @@ func (u *UserInterface) Start(width, height, scale int, title string) error {
 		}
 
 		if !u.setScreenSize(width, height, scale) {
-			ferr = errors.New("ui: Fail to set the screen size")
+			err = errors.New("ui: Fail to set the screen size")
 			return
 		}
 		u.window.SetTitle(title)
@@ -176,7 +176,7 @@ func (u *UserInterface) Start(width, height, scale int, title string) error {
 		y := (v.Height - height*u.windowScale()) / 3
 		u.window.SetPos(x, y)
 	})
-	return nil
+	return err
 }
 
 func (u *UserInterface) windowScale() int {
