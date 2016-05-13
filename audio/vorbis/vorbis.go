@@ -28,46 +28,46 @@ import (
 
 /*
 
-extern double go_ldexp(double x, int n);
-extern double go_floor(double x);
-extern double go_exp(double x);
-extern double go_log(double x);
-extern double go_pow(double x, double y);
-extern double go_cos(double x);
-extern double go_sin(double x);
-extern void go_assert(int x, char* sentence);
+extern double goLdexp(double x, int n);
+extern double goFloor(double x);
+extern double goExp(double x);
+extern double goLog(double x);
+extern double goPow(double x, double y);
+extern double goCos(double x);
+extern double goSin(double x);
+extern void goAssert(int x, char* sentence);
 
 static inline double ldexp(double x, int n) {
-  return go_ldexp(x, n);
+  return goLdexp(x, n);
 }
 
 static inline double floor(double x) {
-  return go_floor(x);
+  return goFloor(x);
 }
 
 static inline double exp(double x) {
-  return go_exp(x);
+  return goExp(x);
 }
 
 static inline double log(double x) {
-  return go_log(x);
+  return goLog(x);
 }
 
 static inline double pow(double x, double y) {
-  return go_pow(x, y);
+  return goPow(x, y);
 }
 
 static inline double cos(double x) {
-  return go_cos(x);
+  return goCos(x);
 }
 
 static inline double sin(double x) {
-  return go_sin(x);
+  return goSin(x);
 }
 
 static inline void assert_impl(int x, const char* sentence) {
   // const cast
-  go_assert(x, (char*)sentence);
+  goAssert(x, (char*)sentence);
 }
 
 #define assert(x) assert_impl(x, #x)
@@ -5496,43 +5496,43 @@ int stb_vorbis_get_samples_float(stb_vorbis *f, int channels, float **buffer, in
 */
 import "C"
 
-//export go_ldexp
-func go_ldexp(x C.double, n C.int) C.double {
+//export goLdexp
+func goLdexp(x C.double, n C.int) C.double {
 	return C.double(math.Ldexp(float64(x), int(n)))
 }
 
-//export go_floor
-func go_floor(x C.double) C.double {
+//export goFloor
+func goFloor(x C.double) C.double {
 	return C.double(math.Floor(float64(x)))
 }
 
-//export go_exp
-func go_exp(x C.double) C.double {
+//export goExp
+func goExp(x C.double) C.double {
 	return C.double(math.Exp(float64(x)))
 }
 
-//export go_log
-func go_log(x C.double) C.double {
+//export goLog
+func goLog(x C.double) C.double {
 	return C.double(math.Log(float64(x)))
 }
 
-//export go_pow
-func go_pow(x, y C.double) C.double {
+//export goPow
+func goPow(x, y C.double) C.double {
 	return C.double(math.Pow(float64(x), float64(y)))
 }
 
-//export go_cos
-func go_cos(x C.double) C.double {
+//export goCos
+func goCos(x C.double) C.double {
 	return C.double(math.Cos(float64(x)))
 }
 
-//export go_sin
-func go_sin(x C.double) C.double {
+//export goSin
+func goSin(x C.double) C.double {
 	return C.double(math.Sin(float64(x)))
 }
 
-//export go_assert
-func go_assert(x C.int, sentence *C.char) {
+//export goAssert
+func goAssert(x C.int, sentence *C.char) {
 	if x != 0 {
 		return
 	}
