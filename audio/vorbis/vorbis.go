@@ -80,6 +80,7 @@ static short short_array_index(short* arr, int index) {
 // Fixes:
 // * Replace all 'extern's with 'static'
 // * Replace 'uint8' with 'unsigned char' in stb_vorbis_decode_frame_pushdata and stb_vorbis_decode_memory
+// * Replace some misspelled words
 
 // Ogg Vorbis audio decoder - v1.07 - public domain
 // http://nothings.org/stb_vorbis/
@@ -1147,7 +1148,7 @@ static int compute_codewords(Codebook *c, uint8 *len, int n, uint32 *values)
       assert(z >= 0 && z < 32);
       available[z] = 0;
       add_entry(c, bit_reverse(res), i, m++, len[i], values);
-      // propogate availability up the tree
+      // propagate availability up the tree
       if (z != len[i]) {
          assert(len[i] >= 0 && len[i] < 32);
          for (y=len[i]; y > z; --y) {
@@ -2780,7 +2781,7 @@ static void inverse_mdct(float *buffer, int n, vorb *f, int blocktype)
    // once I combined the passes.
 
    // so there's a missing 'times 2' here (for adding X to itself).
-   // this propogates through linearly to the end, where the numbers
+   // this propagates through linearly to the end, where the numbers
    // are 1/2 too small, and need to be compensated for.
 
    {
@@ -4701,7 +4702,7 @@ static int get_seek_page_info(stb_vorbis *f, ProbedPage *z)
    return 1;
 }
 
-// rarely used function to seek back to the preceeding page while finding the
+// rarely used function to seek back to the preceding page while finding the
 // start of a packet
 static int go_to_page_before(stb_vorbis *f, unsigned int limit_offset)
 {
