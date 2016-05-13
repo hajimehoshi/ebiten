@@ -23,7 +23,7 @@ import (
 const FileNameText = "text.png"
 
 //go:generate go-bindata -nocompress -pkg=assets text.png
-//go:generate gofmt -w .
+//go:generate gofmt -s -w .
 
 const (
 	TextImageWidth      = 192

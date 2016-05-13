@@ -15,4 +15,4 @@
 package ebiten
 
 //go:generate go run genkeys.go
-//go:generate gofmt -w .
+//go:generate gofmt -s -w .

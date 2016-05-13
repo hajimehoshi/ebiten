@@ -71,7 +71,7 @@ func toBytes(l, r []int16) []byte {
 		panic("len(l) must equal to len(r)")
 	}
 	b := make([]byte, len(l)*4)
-	for i, _ := range l {
+	for i := range l {
 		b[4*i] = byte(l[i])
 		b[4*i+1] = byte(l[i] >> 8)
 		b[4*i+2] = byte(r[i])

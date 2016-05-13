@@ -142,7 +142,7 @@ func main() {
 		log.Fatal(err)
 	}
 	ebitenImageWidth, ebitenImageHeight = ebitenImage.Size()
-	for i, _ := range sprites.sprites {
+	for i := range sprites.sprites {
 		w, h := ebitenImage.Size()
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
 		vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1

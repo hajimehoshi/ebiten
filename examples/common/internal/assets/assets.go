@@ -18,4 +18,4 @@ package assets
 // Use -ignore as a blacklist instead.
 
 //go:generate go-bindata -nocompress -pkg=assets -ignore=\.md$ images
-//go:generate gofmt -w .
+//go:generate gofmt -s -w .

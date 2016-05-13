@@ -42,7 +42,7 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
-	for key, _ := range keyStates {
+	for key := range keyStates {
 		if !ebiten.IsKeyPressed(key) {
 			keyStates[key] = 0
 			continue

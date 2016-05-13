@@ -197,11 +197,11 @@ type _bintree_t struct {
 }
 
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"images": &_bintree_t{nil, map[string]*_bintree_t{
-		"arcadefont.png": &_bintree_t{images_arcadefont_png, map[string]*_bintree_t{}},
-		"ebiten.png":     &_bintree_t{images_ebiten_png, map[string]*_bintree_t{}},
-		"fiveyears.jpg":  &_bintree_t{images_fiveyears_jpg, map[string]*_bintree_t{}},
-		"gophers.jpg":    &_bintree_t{images_gophers_jpg, map[string]*_bintree_t{}},
+	"images": {nil, map[string]*_bintree_t{
+		"arcadefont.png": {images_arcadefont_png, map[string]*_bintree_t{}},
+		"ebiten.png":     {images_ebiten_png, map[string]*_bintree_t{}},
+		"fiveyears.jpg":  {images_fiveyears_jpg, map[string]*_bintree_t{}},
+		"gophers.jpg":    {images_gophers_jpg, map[string]*_bintree_t{}},
 	}},
 }}
 

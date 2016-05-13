@@ -143,7 +143,7 @@ type _bintree_t struct {
 }
 
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"text.png": &_bintree_t{text_png, map[string]*_bintree_t{}},
+	"text.png": {text_png, map[string]*_bintree_t{}},
 }}
 
 // Restore an asset under the given directory

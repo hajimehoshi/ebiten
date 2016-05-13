@@ -13,6 +13,6 @@
 // limitations under the License.
 
 //go:generate go run keyboard/keyboard/gen.go
-//go:generate gofmt -w .
+//go:generate gofmt -s -w .
 
 package example
