@@ -299,14 +299,12 @@ func (s *GameScene) Update(state *GameState) error {
 
 	// Drop the current piece with gravity.
 	if !s.field.Flushing() {
-		y := s.currentPieceY
 		angle := s.currentPieceAngle
 		s.currentPieceYCarry += 2*s.level() + 1
 		const maxCarry = 60
 		for maxCarry <= s.currentPieceYCarry {
 			s.currentPieceYCarry -= maxCarry
 			s.currentPieceY = s.field.DropPiece(piece, s.currentPieceX, s.currentPieceY, angle)
-			moved = y != s.currentPieceY
 		}
 	}
 
