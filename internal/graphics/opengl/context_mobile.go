@@ -31,11 +31,6 @@ type Buffer mgl.Buffer
 
 var ZeroFramebuffer Framebuffer
 
-// TODO: Remove this after the GopherJS bug was fixed (#159)
-func (p Program) Equals(other Program) bool {
-	return p == other
-}
-
 type uniformLocation mgl.Uniform
 type attribLocation mgl.Attrib
 

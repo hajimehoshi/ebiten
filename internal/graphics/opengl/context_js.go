@@ -45,11 +45,6 @@ type Buffer struct {
 	*js.Object
 }
 
-// TODO: Remove this after the GopherJS bug was fixed (#159)
-func (p Program) Equals(other Program) bool {
-	return p.Object == other.Object
-}
-
 type uniformLocation struct {
 	*js.Object
 }

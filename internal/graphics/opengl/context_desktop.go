@@ -32,11 +32,6 @@ type Buffer uint32
 
 var ZeroFramebuffer Framebuffer
 
-// TODO: Remove this after the GopherJS bug was fixed (#159)
-func (p Program) Equals(other Program) bool {
-	return p == other
-}
-
 type uniformLocation int32
 type attribLocation int32
 

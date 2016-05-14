@@ -112,7 +112,7 @@ type programContext struct {
 
 func (p *programContext) begin() {
 	c := p.context
-	if !p.state.lastProgram.Equals(p.program) {
+	if p.state.lastProgram != p.program {
 		c.UseProgram(p.program)
 		p.state.lastProgram = p.state.programTexture
 		p.state.lastProjectionMatrix = nil
