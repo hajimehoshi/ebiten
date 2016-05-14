@@ -111,7 +111,7 @@ func (g *GeoM) SetElement(i, j int, element float64) {
 	g.es[i][j] = element
 }
 
-// Deprecated as of 1.2.0-alpha. Use Scale instead.
+// ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleGeo(x, y float64) GeoM {
 	return GeoM{
 		initialized: true,
@@ -122,7 +122,7 @@ func ScaleGeo(x, y float64) GeoM {
 	}
 }
 
-// Deprecated as of 1.2.0-alpha. Use Translate instead.
+// TranslateGeo is deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateGeo(tx, ty float64) GeoM {
 	return GeoM{
 		initialized: true,
@@ -133,7 +133,7 @@ func TranslateGeo(tx, ty float64) GeoM {
 	}
 }
 
-// Deprecated as of 1.2.0-alpha. Use Rotate instead.
+// RotateGeo is deprecated as of 1.2.0-alpha. Use Rotate instead.
 func RotateGeo(theta float64) GeoM {
 	sin, cos := math.Sincos(theta)
 	return GeoM{

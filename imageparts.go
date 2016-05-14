@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
+// An ImagePart is deprecated (as of 1.1.0-alpha): Use ImageParts instead.
 type ImagePart struct {
 	Dst image.Rectangle
 	Src image.Rectangle
