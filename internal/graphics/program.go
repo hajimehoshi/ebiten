@@ -21,6 +21,7 @@ import (
 )
 
 type openGLState struct {
+	initialized          bool
 	indexBufferLines     opengl.Buffer
 	indexBufferQuads     opengl.Buffer
 	programTexture       opengl.Program
@@ -43,7 +44,21 @@ const (
 	float32Size = 4
 )
 
-func (s *openGLState) initialize(c *opengl.Context) error {
+func InitializeIfNeeded(c *opengl.Context) error {
+	return theOpenGLState.initializeIfNeeded(c)
+}
+
+func (s *openGLState) initializeIfNeeded(c *opengl.Context) error {
+	if s.initialized {
+		return nil
+	}
+
+	var zeroProgram opengl.Program
+	s.lastProgram = zeroProgram
+	s.lastProjectionMatrix = nil
+	s.lastModelviewMatrix = nil
+	s.lastColorMatrix = nil
+
 	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
@@ -85,6 +100,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	}
 	s.indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
+	s.initialized = true
 	return nil
 }
 

@@ -33,21 +33,11 @@ type Matrix interface {
 	Element(i, j int) float64
 }
 
-var shadersInitialized = false
-
 func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, vertices []int16, geo Matrix, color Matrix, mode opengl.CompositeMode) error {
 	c.BlendFunc(mode)
 
 	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 	// Let's use them to compare to len(quads) in the future.
-
-	if !shadersInitialized {
-		if err := theOpenGLState.initialize(c); err != nil {
-			return err
-		}
-		shadersInitialized = true
-	}
-
 	n := len(vertices) / 16
 	if n == 0 {
 		return nil

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -105,7 +106,14 @@ func (u *UserInterface) SwapBuffers() {
 func Init() (*opengl.Context, error) {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		return opengl.NewContext()
+		c, err := opengl.NewContext()
+		if err != nil {
+			return nil, err
+		}
+		if err := graphics.InitializeIfNeeded(c); err != nil {
+			return nil, err
+		}
+		return c, nil
 	}
 
 	doc := js.Global.Get("document")
@@ -208,7 +216,14 @@ func Init() (*opengl.Context, error) {
 		// Do nothing.
 	})
 
-	return opengl.NewContext()
+	c, err := opengl.NewContext()
+	if err != nil {
+		return nil, err
+	}
+	if err := graphics.InitializeIfNeeded(c); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func setMouseCursorFromEvent(e *js.Object) {

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -85,6 +86,9 @@ func Init() (*opengl.Context, error) {
 		return nil, err
 	}
 	if err := u.context.Init(); err != nil {
+		return nil, err
+	}
+	if err := graphics.InitializeIfNeeded(u.context); err != nil {
 		return nil, err
 	}
 
