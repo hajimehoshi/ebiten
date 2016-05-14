@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Copyright 2014 Hajime Hoshi
+Copyright 2013 Hajime Hoshi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ func toBytes(l, r []int16) []byte {
         panic(&#34;len(l) must equal to len(r)&#34;)
     }
     b := make([]byte, len(l)*4)
-    for i, _ := range l {
+    for i := range l {
         b[4*i] = byte(l[i])
         b[4*i&#43;1] = byte(l[i] &gt;&gt; 8)
         b[4*i&#43;2] = byte(r[i])
@@ -262,4 +262,4 @@ func main() {
 </code></pre>
 
 
-<footer>© 2014 Hajime Hoshi</footer>
+<footer>© 2013 Hajime Hoshi</footer>

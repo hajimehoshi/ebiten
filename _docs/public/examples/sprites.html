@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Copyright 2014 Hajime Hoshi
+Copyright 2013 Hajime Hoshi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import (
 
     &#34;github.com/hajimehoshi/ebiten&#34;
     &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+    &#34;github.com/hajimehoshi/ebiten/examples/common&#34;
 )
 
 const (
@@ -160,12 +161,12 @@ Press &lt;- or -&gt; to change the number of sprites`, ebiten.CurrentFPS(), spri
 
 func main() {
     var err error
-    ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
+    ebitenImage, _, err = common.AssetImage(&#34;ebiten.png&#34;, ebiten.FilterNearest)
     if err != nil {
         log.Fatal(err)
     }
     ebitenImageWidth, ebitenImageHeight = ebitenImage.Size()
-    for i, _ := range sprites.sprites {
+    for i := range sprites.sprites {
         w, h := ebitenImage.Size()
         x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
         vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1
@@ -184,4 +185,4 @@ func main() {
 </code></pre>
 
 
-<footer>© 2014 Hajime Hoshi</footer>
+<footer>© 2013 Hajime Hoshi</footer>
