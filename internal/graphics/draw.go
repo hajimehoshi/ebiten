@@ -42,7 +42,7 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	// Let's use them to compare to len(quads) in the future.
 
 	if !shadersInitialized {
-		if err := initialize(c); err != nil {
+		if err := theOpenGLState.initialize(c); err != nil {
 			return err
 		}
 		shadersInitialized = true
@@ -57,7 +57,8 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	}
 
 	p := programContext{
-		program:          programTexture,
+		state:            &theOpenGLState,
+		program:          theOpenGLState.programTexture,
 		context:          c,
 		projectionMatrix: glMatrix(projectionMatrix),
 		texture:          texture,

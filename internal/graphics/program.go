@@ -20,23 +20,30 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-var (
-	indexBufferLines opengl.Buffer
-	indexBufferQuads opengl.Buffer
-)
+type openGLState struct {
+	indexBufferLines     opengl.Buffer
+	indexBufferQuads     opengl.Buffer
+	programTexture       opengl.Program
+	lastProgram          opengl.Program
+	lastProjectionMatrix []float32
+	lastModelviewMatrix  []float32
+	lastColorMatrix      []float32
+}
 
-var (
-	programTexture opengl.Program
-)
+var theOpenGLState openGLState
 
-const indicesNum = 1 << 16
-const MaxQuads = indicesNum / 6
+const (
+	indicesNum = 1 << 16
+	MaxQuads   = indicesNum / 6
+)
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
-const int16Size = 2
-const float32Size = 4
+const (
+	int16Size   = 2
+	float32Size = 4
+)
 
-func initialize(c *opengl.Context) error {
+func (s *openGLState) initialize(c *opengl.Context) error {
 	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
@@ -49,7 +56,7 @@ func initialize(c *opengl.Context) error {
 	}
 	defer c.DeleteShader(shaderFragmentTextureNative)
 
-	programTexture, err = c.NewProgram([]opengl.Shader{
+	s.programTexture, err = c.NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentTextureNative,
 	})
@@ -70,13 +77,13 @@ func initialize(c *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+	s.indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
 	indices = make([]uint16, indicesNum)
 	for i := 0; i < len(indices); i++ {
 		indices[i] = uint16(i)
 	}
-	indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+	s.indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
 	return nil
 }
@@ -93,14 +100,8 @@ func areSameFloat32Array(a, b []float32) bool {
 	return true
 }
 
-var (
-	lastProgram          opengl.Program
-	lastProjectionMatrix []float32
-	lastModelviewMatrix  []float32
-	lastColorMatrix      []float32
-)
-
 type programContext struct {
+	state            *openGLState
 	program          opengl.Program
 	context          *opengl.Context
 	projectionMatrix []float32
@@ -111,21 +112,21 @@ type programContext struct {
 
 func (p *programContext) begin() {
 	c := p.context
-	if !lastProgram.Equals(p.program) {
+	if !p.state.lastProgram.Equals(p.program) {
 		c.UseProgram(p.program)
-		lastProgram = programTexture
-		lastProjectionMatrix = nil
-		lastModelviewMatrix = nil
-		lastColorMatrix = nil
+		p.state.lastProgram = p.state.programTexture
+		p.state.lastProjectionMatrix = nil
+		p.state.lastModelviewMatrix = nil
+		p.state.lastColorMatrix = nil
 	}
-	c.BindElementArrayBuffer(indexBufferQuads)
+	c.BindElementArrayBuffer(p.state.indexBufferQuads)
 
-	if !areSameFloat32Array(lastProjectionMatrix, p.projectionMatrix) {
+	if !areSameFloat32Array(p.state.lastProjectionMatrix, p.projectionMatrix) {
 		c.UniformFloats(p.program, "projection_matrix", p.projectionMatrix)
-		if lastProjectionMatrix == nil {
-			lastProjectionMatrix = make([]float32, 16)
+		if p.state.lastProjectionMatrix == nil {
+			p.state.lastProjectionMatrix = make([]float32, 16)
 		}
-		copy(lastProjectionMatrix, p.projectionMatrix)
+		copy(p.state.lastProjectionMatrix, p.projectionMatrix)
 	}
 
 	ma := float32(p.geoM.Element(0, 0))
@@ -140,12 +141,12 @@ func (p *programContext) begin() {
 		0, 0, 1, 0,
 		tx, ty, 0, 1,
 	}
-	if !areSameFloat32Array(lastModelviewMatrix, modelviewMatrix) {
+	if !areSameFloat32Array(p.state.lastModelviewMatrix, modelviewMatrix) {
 		c.UniformFloats(p.program, "modelview_matrix", modelviewMatrix)
-		if lastModelviewMatrix == nil {
-			lastModelviewMatrix = make([]float32, 16)
+		if p.state.lastModelviewMatrix == nil {
+			p.state.lastModelviewMatrix = make([]float32, 16)
 		}
-		copy(lastModelviewMatrix, modelviewMatrix)
+		copy(p.state.lastModelviewMatrix, modelviewMatrix)
 	}
 
 	c.UniformInt(p.program, "texture", 0)
@@ -163,12 +164,12 @@ func (p *programContext) begin() {
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	if !areSameFloat32Array(lastColorMatrix, colorMatrix) {
+	if !areSameFloat32Array(p.state.lastColorMatrix, colorMatrix) {
 		c.UniformFloats(p.program, "color_matrix", colorMatrix)
-		if lastColorMatrix == nil {
-			lastColorMatrix = make([]float32, 16)
+		if p.state.lastColorMatrix == nil {
+			p.state.lastColorMatrix = make([]float32, 16)
 		}
-		copy(lastColorMatrix, colorMatrix)
+		copy(p.state.lastColorMatrix, colorMatrix)
 	}
 	colorMatrixTranslation := []float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
