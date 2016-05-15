@@ -384,3 +384,20 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	}
 	return eimg, nil
 }
+
+func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
+	imageM.Lock()
+	defer imageM.Unlock()
+	f, err := graphics.NewZeroFramebuffer(glContext, width, height)
+	if err != nil {
+		return nil, err
+	}
+	img := &Image{
+		framebuffer: f,
+		texture:     nil,
+		width:       width,
+		height:      height,
+	}
+	runtime.SetFinalizer(img, (*Image).Dispose)
+	return img, nil
+}

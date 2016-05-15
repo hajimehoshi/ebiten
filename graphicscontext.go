@@ -14,10 +14,6 @@
 
 package ebiten
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-)
-
 func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
 	c := &graphicsContext{}
 	if err := c.setSize(screenWidth, screenHeight, screenScale); err != nil {
@@ -62,32 +58,13 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 	if c.screen != nil {
 		c.screen.Dispose()
 	}
-	texture, err := graphics.NewTexture(glContext, screenWidth, screenHeight, glContext.Nearest)
+	screen, err := NewImage(screenWidth, screenHeight, FilterNearest)
 	if err != nil {
 		return err
 	}
-	screenF, err := graphics.NewFramebufferFromTexture(glContext, texture)
+	c.defaultRenderTarget, err = newImageWithZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return err
-	}
-	w, h := screenF.Size()
-	screen := &Image{
-		framebuffer: screenF,
-		texture:     texture,
-		width:       w,
-		height:      h,
-	}
-
-	f, err := graphics.NewZeroFramebuffer(glContext, screenWidth*screenScale, screenHeight*screenScale)
-	if err != nil {
-		return err
-	}
-	w, h = f.Size()
-	c.defaultRenderTarget = &Image{
-		framebuffer: f,
-		texture:     nil,
-		width:       w,
-		height:      h,
 	}
 	c.defaultRenderTarget.Clear()
 	c.screen = screen
