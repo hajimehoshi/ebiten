@@ -214,8 +214,7 @@ func (i *Image) At(x, y int) color.Color {
 			panic(err)
 		}
 	}
-	w := int(graphics.NextPowerOf2Int32(int32(i.width)))
-	idx := 4*x + 4*y*w
+	idx := 4*x + 4*y*i.width
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}
 }

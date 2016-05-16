@@ -122,7 +122,6 @@ func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, vertices []int1
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
 	w, h := f.Size()
-	w, h = int(NextPowerOf2Int32(int32(w))), int(NextPowerOf2Int32(int32(h)))
 	return c.FramebufferPixels(f.native, w, h)
 }
 
