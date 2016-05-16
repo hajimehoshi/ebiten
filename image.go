@@ -502,7 +502,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	return eimg, nil
 }
 
-// NewImageFromImage creates a new image with the given image (img).
+// NewImageFromImage creates a new image with the given image (source).
 //
 // NewImageFromImage generates a new texture and a new framebuffer.
 //
