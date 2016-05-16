@@ -63,16 +63,86 @@ func (t *delayedImageTasks) exec() error {
 	return nil
 }
 
+type images struct {
+	// TODO: This must be weak refs. Create a wrapper for *Image.
+	images    map[*Image]struct{}
+	evacuated bool
+	m         sync.Mutex
+}
+
+var theImages = images{
+	images: map[*Image]struct{}{},
+}
+
+func (i *images) add(img *Image) error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.evacuated {
+		return errors.New("ebiten: images must not be evacuated")
+	}
+	i.images[img] = struct{}{}
+	return nil
+}
+
+func (i *images) remove(img *Image) error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.evacuated {
+		return errors.New("ebiten: images must not be evacuated")
+	}
+	delete(i.images, img)
+	return nil
+}
+
+func (i *images) isEvacuated() bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.evacuated
+}
+
+func (i *images) evacuatePixels() error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.evacuated {
+		return errors.New("ebiten: images must not be evacuated")
+	}
+	i.evacuated = true
+	for img := range i.images {
+		if err := img.evacuatePixels(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (i *images) restorePixels() error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if !i.evacuated {
+		return errors.New("ebiten: images must be evacuated")
+	}
+	for img := range i.images {
+		if err := img.restorePixels(); err != nil {
+			return err
+		}
+	}
+	i.evacuated = false
+	return nil
+}
+
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
 type Image struct {
-	framebuffer *graphics.Framebuffer
-	texture     *graphics.Texture
-	disposed    bool
-	pixels      []uint8
-	width       int
-	height      int
+	framebuffer        *graphics.Framebuffer
+	texture            *graphics.Texture
+	defaultFramebuffer bool
+	disposed           bool
+	evacuated          bool
+	pixels             []uint8
+	width              int
+	height             int
+	filter             Filter
 }
 
 // Size returns the size of the image.
@@ -219,6 +289,77 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
+func (i *Image) evacuatePixels() error {
+	imageM.Lock()
+	defer imageM.Unlock()
+	defer func() {
+		i.evacuated = true
+	}()
+	if i.defaultFramebuffer {
+		return nil
+	}
+	if i.evacuated {
+		return errors.New("ebiten: image must not be evacuated")
+	}
+	if i.pixels == nil {
+		var err error
+		i.pixels, err = i.framebuffer.Pixels(glContext)
+		if err != nil {
+			return err
+		}
+	}
+	if i.framebuffer != nil {
+		if err := i.framebuffer.Dispose(glContext); err != nil {
+			return err
+		}
+		i.framebuffer = nil
+	}
+	if i.texture != nil {
+		if err := i.texture.Dispose(glContext); err != nil {
+			return err
+		}
+		i.texture = nil
+	}
+	return nil
+}
+
+func (i *Image) restorePixels() error {
+	imageM.Lock()
+	defer imageM.Unlock()
+	defer func() {
+		i.evacuated = false
+	}()
+	if i.defaultFramebuffer {
+		return nil
+	}
+	if !i.evacuated {
+		return errors.New("ebiten: image must be evacuated")
+	}
+	if i.pixels == nil {
+		return errors.New("ebiten: pixels must not be nil")
+	}
+	if i.texture != nil {
+		return errors.New("ebiten: texture must be nil")
+	}
+	if i.framebuffer != nil {
+		return errors.New("ebiten: framebuffer must be nil")
+	}
+	img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
+	for j := 0; j < i.height; j++ {
+		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
+	}
+	var err error
+	i.texture, err = graphics.NewTextureFromImage(glContext, img, glFilter(glContext, i.filter))
+	if err != nil {
+		return err
+	}
+	i.framebuffer, err = graphics.NewFramebufferFromTexture(glContext, i.texture)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Dispose disposes the image data. After disposing, the image becomes invalid.
 // This is useful to save memory.
 //
@@ -246,6 +387,9 @@ func (i *Image) Dispose() error {
 		}
 		i.disposed = true
 		i.pixels = nil
+		if err := theImages.remove(i); err != nil {
+			return err
+		}
 		runtime.SetFinalizer(i, nil)
 		return nil
 	}
@@ -307,6 +451,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	image := &Image{
 		width:  width,
 		height: height,
+		filter: filter,
+	}
+	if err := theImages.add(image); err != nil {
+		return nil, err
 	}
 	f := func() error {
 		imageM.Lock()
@@ -349,6 +497,10 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 	eimg := &Image{
 		width:  w,
 		height: h,
+		filter: filter,
+	}
+	if err := theImages.add(eimg); err != nil {
+		return nil, err
 	}
 	f := func() error {
 		// Don't lock while manipulating an image.Image interface.
@@ -392,10 +544,14 @@ func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
 		return nil, err
 	}
 	img := &Image{
-		framebuffer: f,
-		texture:     nil,
-		width:       width,
-		height:      height,
+		framebuffer:        f,
+		texture:            nil,
+		width:              width,
+		height:             height,
+		defaultFramebuffer: true,
+	}
+	if err := theImages.add(img); err != nil {
+		return nil, err
 	}
 	runtime.SetFinalizer(img, (*Image).Dispose)
 	return img, nil
