@@ -324,6 +324,9 @@ func (i *imageImpl) evacuatePixels() error {
 	if i.defaultFramebuffer {
 		return nil
 	}
+	if i.disposed {
+		return nil
+	}
 	if i.evacuated {
 		return errors.New("ebiten: image must not be evacuated")
 	}
@@ -356,6 +359,9 @@ func (i *imageImpl) restorePixels() error {
 		i.evacuated = false
 	}()
 	if i.defaultFramebuffer {
+		return nil
+	}
+	if i.disposed {
 		return nil
 	}
 	if !i.evacuated {
