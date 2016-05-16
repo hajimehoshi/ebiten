@@ -21,9 +21,9 @@ import (
 )
 
 type openGLState struct {
-	indexBufferLines     opengl.Buffer
-	indexBufferQuads     opengl.Buffer
-	programTexture       opengl.Program
+	indexBufferQuads opengl.Buffer
+	programTexture   opengl.Program
+
 	lastProgram          opengl.Program
 	lastProjectionMatrix []float32
 	lastModelviewMatrix  []float32
@@ -88,12 +88,6 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 		indices[6*i+5] = 4*i + 3
 	}
 	s.indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
-
-	indices = make([]uint16, indicesNum)
-	for i := 0; i < len(indices); i++ {
-		indices[i] = uint16(i)
-	}
-	s.indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
 	return nil
 }
