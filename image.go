@@ -64,34 +64,33 @@ func (t *delayedImageTasks) exec() error {
 }
 
 type images struct {
-	// TODO: This must be weak refs. Create a wrapper for *Image.
-	images    map[*Image]struct{}
+	images    map[*imageImpl]struct{}
 	evacuated bool
 	m         sync.Mutex
 }
 
 var theImages = images{
-	images: map[*Image]struct{}{},
+	images: map[*imageImpl]struct{}{},
 }
 
-func (i *images) add(img *Image) error {
+func (i *images) add(img *imageImpl) (*Image, error) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.evacuated {
-		return errors.New("ebiten: images must not be evacuated")
+		return nil, errors.New("ebiten: images must not be evacuated")
 	}
 	i.images[img] = struct{}{}
-	return nil
+	eimg := &Image{img}
+	runtime.SetFinalizer(eimg, func(i *Image) {
+		theImages.remove(i)
+	})
+	return eimg, nil
 }
 
-func (i *images) remove(img *Image) error {
+func (i *images) remove(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.evacuated {
-		return errors.New("ebiten: images must not be evacuated")
-	}
-	delete(i.images, img)
-	return nil
+	delete(i.images, img.impl)
 }
 
 func (i *images) isEvacuated() bool {
@@ -134,57 +133,28 @@ func (i *images) restorePixels() error {
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
 type Image struct {
-	framebuffer        *graphics.Framebuffer
-	texture            *graphics.Texture
-	defaultFramebuffer bool
-	disposed           bool
-	evacuated          bool
-	pixels             []uint8
-	width              int
-	height             int
-	filter             Filter
+	impl *imageImpl
 }
 
 // Size returns the size of the image.
 //
 // This function is concurrent-safe.
 func (i *Image) Size() (width, height int) {
-	return i.width, i.height
+	return i.impl.Size()
 }
 
 // Clear resets the pixels of the image into 0.
 //
 // This function is concurrent-safe.
-func (i *Image) Clear() (err error) {
-	return i.clear()
-}
-
-func (i *Image) clear() (err error) {
-	return i.fill(color.Transparent)
+func (i *Image) Clear() error {
+	return i.impl.Clear()
 }
 
 // Fill fills the image with a solid color.
 //
 // This function is concurrent-safe.
-func (i *Image) Fill(clr color.Color) (err error) {
-	return i.fill(clr)
-}
-
-func (i *Image) fill(clr color.Color) (err error) {
-	f := func() error {
-		imageM.Lock()
-		defer imageM.Unlock()
-		if i.isDisposed() {
-			return errors.New("ebiten: image is already disposed")
-		}
-		i.pixels = nil
-		return i.framebuffer.Fill(glContext, clr)
-	}
-	if theDelayedImageTasks.add(f) {
-		return nil
-	}
-	return f()
-
+func (i *Image) Fill(clr color.Color) error {
+	return i.impl.Fill(clr)
 }
 
 // DrawImage draws the given image on the receiver image.
@@ -204,7 +174,102 @@ func (i *Image) fill(clr color.Color) (err error) {
 // It would be better if you could call this method fewer times.
 //
 // This function is concurrent-safe.
-func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
+func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
+	return i.impl.DrawImage(image, options)
+}
+
+// Bounds returns the bounds of the image.
+//
+// This function is concurrent-safe.
+func (i *Image) Bounds() image.Rectangle {
+	return i.impl.Bounds()
+}
+
+// ColorModel returns the color model of the image.
+//
+// This function is concurrent-safe.
+func (i *Image) ColorModel() color.Model {
+	return i.impl.ColorModel()
+}
+
+// At returns the color of the image at (x, y).
+//
+// This method loads pixels from VRAM to system memory if necessary.
+//
+// This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
+//
+// This function is concurrent-safe.
+func (i *Image) At(x, y int) color.Color {
+	return i.impl.At(x, y)
+}
+
+// Dispose disposes the image data. After disposing, the image becomes invalid.
+// This is useful to save memory.
+//
+// The behavior of any functions for a disposed image is undefined.
+//
+// This function is concurrent-safe.
+func (i *Image) Dispose() error {
+	return i.impl.Dispose()
+}
+
+// ReplacePixels replaces the pixels of the image with p.
+//
+// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
+//
+// This function may be slow (as for implementation, this calls glTexSubImage2D).
+//
+// This function is concurrent-safe.
+func (i *Image) ReplacePixels(p []uint8) error {
+	return i.impl.ReplacePixels(p)
+}
+
+type imageImpl struct {
+	framebuffer        *graphics.Framebuffer
+	texture            *graphics.Texture
+	defaultFramebuffer bool
+	disposed           bool
+	evacuated          bool
+	pixels             []uint8
+	width              int
+	height             int
+	filter             Filter
+}
+
+func (i *imageImpl) Size() (width, height int) {
+	return i.width, i.height
+}
+
+func (i *imageImpl) Clear() error {
+	return i.clear()
+}
+
+func (i *imageImpl) clear() error {
+	return i.fill(color.Transparent)
+}
+
+func (i *imageImpl) Fill(clr color.Color) (err error) {
+	return i.fill(clr)
+}
+
+func (i *imageImpl) fill(clr color.Color) (err error) {
+	f := func() error {
+		imageM.Lock()
+		defer imageM.Unlock()
+		if i.isDisposed() {
+			return errors.New("ebiten: image is already disposed")
+		}
+		i.pixels = nil
+		return i.framebuffer.Fill(glContext, clr)
+	}
+	if theDelayedImageTasks.add(f) {
+		return nil
+	}
+	return f()
+
+}
+
+func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
@@ -217,10 +282,10 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		if dparts != nil {
 			parts = imageParts(dparts)
 		} else {
-			parts = &wholeImage{image.width, image.height}
+			parts = &wholeImage{image.impl.width, image.impl.height}
 		}
 	}
-	quads := &textureQuads{parts: parts, width: image.width, height: image.height}
+	quads := &textureQuads{parts: parts, width: image.impl.width, height: image.impl.height}
 	// TODO: Reuse one vertices instead of making here, but this would need locking.
 	vertices := make([]int16, parts.Len()*16)
 	n := quads.vertices(vertices)
@@ -228,7 +293,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		return nil
 	}
 
-	if i == image {
+	if i == image.impl {
 		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
 	f := func() error {
@@ -239,7 +304,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 		}
 		i.pixels = nil
 		m := opengl.CompositeMode(options.CompositeMode)
-		return i.framebuffer.DrawTexture(glContext, image.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
+		return i.framebuffer.DrawTexture(glContext, image.impl.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
@@ -247,28 +312,15 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) (err error) {
 	return f()
 }
 
-// Bounds returns the bounds of the image.
-//
-// This function is concurrent-safe.
-func (i *Image) Bounds() image.Rectangle {
+func (i *imageImpl) Bounds() image.Rectangle {
 	return image.Rect(0, 0, i.width, i.height)
 }
 
-// ColorModel returns the color model of the image.
-//
-// This function is concurrent-safe.
-func (i *Image) ColorModel() color.Model {
+func (i *imageImpl) ColorModel() color.Model {
 	return color.RGBAModel
 }
 
-// At returns the color of the image at (x, y).
-//
-// This method loads pixels from VRAM to system memory if necessary.
-//
-// This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
-//
-// This function is concurrent-safe.
-func (i *Image) At(x, y int) color.Color {
+func (i *imageImpl) At(x, y int) color.Color {
 	if !currentRunContext.isRunning() {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
@@ -289,7 +341,7 @@ func (i *Image) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-func (i *Image) evacuatePixels() error {
+func (i *imageImpl) evacuatePixels() error {
 	imageM.Lock()
 	defer imageM.Unlock()
 	defer func() {
@@ -323,7 +375,7 @@ func (i *Image) evacuatePixels() error {
 	return nil
 }
 
-func (i *Image) restorePixels() error {
+func (i *imageImpl) restorePixels() error {
 	imageM.Lock()
 	defer imageM.Unlock()
 	defer func() {
@@ -360,13 +412,7 @@ func (i *Image) restorePixels() error {
 	return nil
 }
 
-// Dispose disposes the image data. After disposing, the image becomes invalid.
-// This is useful to save memory.
-//
-// The behavior of any functions for a disposed image is undefined.
-//
-// This function is concurrent-safe.
-func (i *Image) Dispose() error {
+func (i *imageImpl) Dispose() error {
 	f := func() error {
 		imageM.Lock()
 		defer imageM.Unlock()
@@ -387,9 +433,6 @@ func (i *Image) Dispose() error {
 		}
 		i.disposed = true
 		i.pixels = nil
-		if err := theImages.remove(i); err != nil {
-			return err
-		}
 		runtime.SetFinalizer(i, nil)
 		return nil
 	}
@@ -400,18 +443,11 @@ func (i *Image) Dispose() error {
 	return f()
 }
 
-func (i *Image) isDisposed() bool {
+func (i *imageImpl) isDisposed() bool {
 	return i.disposed
 }
 
-// ReplacePixels replaces the pixels of the image with p.
-//
-// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
-//
-// This function may be slow (as for implementation, this calls glTexSubImage2D).
-//
-// This function is concurrent-safe.
-func (i *Image) ReplacePixels(p []uint8) error {
+func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
@@ -448,12 +484,13 @@ type DrawImageOptions struct {
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	image := &Image{
+	image := &imageImpl{
 		width:  width,
 		height: height,
 		filter: filter,
 	}
-	if err := theImages.add(image); err != nil {
+	eimg, err := theImages.add(image)
+	if err != nil {
 		return nil, err
 	}
 	f := func() error {
@@ -470,19 +507,19 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		}
 		image.framebuffer = framebuffer
 		image.texture = texture
-		runtime.SetFinalizer(image, (*Image).Dispose)
+		runtime.SetFinalizer(image, (*imageImpl).Dispose)
 		if err := image.framebuffer.Fill(glContext, color.Transparent); err != nil {
 			return err
 		}
 		return nil
 	}
 	if theDelayedImageTasks.add(f) {
-		return image, nil
+		return eimg, nil
 	}
 	if err := f(); err != nil {
 		return nil, err
 	}
-	return image, nil
+	return eimg, nil
 }
 
 // NewImageFromImage creates a new image with the given image (img).
@@ -490,23 +527,24 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // NewImageFromImage generates a new texture and a new framebuffer.
 //
 // This function is concurrent-safe.
-func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
-	size := img.Bounds().Size()
+func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
+	size := source.Bounds().Size()
 	w, h := size.X, size.Y
 	// TODO: Return error when the image is too big!
-	eimg := &Image{
+	img := &imageImpl{
 		width:  w,
 		height: h,
 		filter: filter,
 	}
-	if err := theImages.add(eimg); err != nil {
+	eimg, err := theImages.add(img)
+	if err != nil {
 		return nil, err
 	}
 	f := func() error {
 		// Don't lock while manipulating an image.Image interface.
-		rgbaImg, ok := img.(*image.RGBA)
+		rgbaImg, ok := source.(*image.RGBA)
 		if !ok {
-			origImg := img
+			origImg := source
 			newImg := image.NewRGBA(origImg.Bounds())
 			draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 			rgbaImg = newImg
@@ -522,9 +560,9 @@ func NewImageFromImage(img image.Image, filter Filter) (*Image, error) {
 			// TODO: texture should be removed here?
 			return err
 		}
-		eimg.framebuffer = framebuffer
-		eimg.texture = texture
-		runtime.SetFinalizer(eimg, (*Image).Dispose)
+		img.framebuffer = framebuffer
+		img.texture = texture
+		runtime.SetFinalizer(img, (*imageImpl).Dispose)
 		return nil
 	}
 	if theDelayedImageTasks.add(f) {
@@ -543,16 +581,17 @@ func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	img := &Image{
+	img := &imageImpl{
 		framebuffer:        f,
 		texture:            nil,
 		width:              width,
 		height:             height,
 		defaultFramebuffer: true,
 	}
-	if err := theImages.add(img); err != nil {
+	eimg, err := theImages.add(img)
+	if err != nil {
 		return nil, err
 	}
-	runtime.SetFinalizer(img, (*Image).Dispose)
-	return img, nil
+	runtime.SetFinalizer(img, (*imageImpl).Dispose)
+	return eimg, nil
 }
