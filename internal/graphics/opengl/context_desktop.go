@@ -391,6 +391,13 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	})
 }
 
+func (c *Context) DeleteProgram(p Program) {
+	c.RunOnContextThread(func() error {
+		gl.DeleteProgram(uint32(p))
+		return nil
+	})
+}
+
 func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
 	var buffer Buffer
 	c.RunOnContextThread(func() error {
@@ -421,6 +428,14 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	c.RunOnContextThread(func() error {
 		gl.BufferSubData(uint32(bufferType), 0, 2*len(data), gl.Ptr(data))
+		return nil
+	})
+}
+
+func (c *Context) DeleteBuffer(b Buffer) {
+	c.RunOnContextThread(func() error {
+		bb := uint32(b)
+		gl.DeleteBuffers(1, &bb)
 		return nil
 	})
 }
