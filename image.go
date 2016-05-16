@@ -81,9 +81,7 @@ func (i *images) add(img *imageImpl) (*Image, error) {
 	}
 	i.images[img] = struct{}{}
 	eimg := &Image{img}
-	runtime.SetFinalizer(eimg, func(i *Image) {
-		theImages.remove(i)
-	})
+	runtime.SetFinalizer(eimg, theImages.remove)
 	return eimg, nil
 }
 
@@ -140,14 +138,14 @@ type Image struct {
 //
 // This function is concurrent-safe.
 func (i *Image) Size() (width, height int) {
-	return i.impl.Size()
+	return i.impl.width, i.impl.height
 }
 
 // Clear resets the pixels of the image into 0.
 //
 // This function is concurrent-safe.
 func (i *Image) Clear() error {
-	return i.impl.Clear()
+	return i.impl.Fill(color.Transparent)
 }
 
 // Fill fills the image with a solid color.
@@ -182,14 +180,14 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 //
 // This function is concurrent-safe.
 func (i *Image) Bounds() image.Rectangle {
-	return i.impl.Bounds()
+	return image.Rect(0, 0, i.impl.width, i.impl.height)
 }
 
 // ColorModel returns the color model of the image.
 //
 // This function is concurrent-safe.
 func (i *Image) ColorModel() color.Model {
-	return i.impl.ColorModel()
+	return color.RGBAModel
 }
 
 // At returns the color of the image at (x, y).
@@ -236,23 +234,7 @@ type imageImpl struct {
 	filter             Filter
 }
 
-func (i *imageImpl) Size() (width, height int) {
-	return i.width, i.height
-}
-
-func (i *imageImpl) Clear() error {
-	return i.clear()
-}
-
-func (i *imageImpl) clear() error {
-	return i.fill(color.Transparent)
-}
-
-func (i *imageImpl) Fill(clr color.Color) (err error) {
-	return i.fill(clr)
-}
-
-func (i *imageImpl) fill(clr color.Color) (err error) {
+func (i *imageImpl) Fill(clr color.Color) error {
 	f := func() error {
 		imageM.Lock()
 		defer imageM.Unlock()
@@ -310,14 +292,6 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		return nil
 	}
 	return f()
-}
-
-func (i *imageImpl) Bounds() image.Rectangle {
-	return image.Rect(0, 0, i.width, i.height)
-}
-
-func (i *imageImpl) ColorModel() color.Model {
-	return color.RGBAModel
 }
 
 func (i *imageImpl) At(x, y int) color.Color {
