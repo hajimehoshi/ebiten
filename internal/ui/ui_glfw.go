@@ -88,7 +88,7 @@ func Init() (*opengl.Context, error) {
 	if err := u.context.Init(); err != nil {
 		return nil, err
 	}
-	if err := graphics.InitializeIfNeeded(u.context); err != nil {
+	if err := graphics.Initialize(u.context); err != nil {
 		return nil, err
 	}
 

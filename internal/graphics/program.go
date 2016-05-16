@@ -21,7 +21,6 @@ import (
 )
 
 type openGLState struct {
-	initialized          bool
 	indexBufferLines     opengl.Buffer
 	indexBufferQuads     opengl.Buffer
 	programTexture       opengl.Program
@@ -44,15 +43,11 @@ const (
 	float32Size = 4
 )
 
-func InitializeIfNeeded(c *opengl.Context) error {
-	return theOpenGLState.initializeIfNeeded(c)
+func Initialize(c *opengl.Context) error {
+	return theOpenGLState.initialize(c)
 }
 
-func (s *openGLState) initializeIfNeeded(c *opengl.Context) error {
-	if s.initialized {
-		return nil
-	}
-
+func (s *openGLState) initialize(c *opengl.Context) error {
 	var zeroProgram opengl.Program
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
@@ -100,7 +95,6 @@ func (s *openGLState) initializeIfNeeded(c *opengl.Context) error {
 	}
 	s.indexBufferLines = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
-	s.initialized = true
 	return nil
 }
 

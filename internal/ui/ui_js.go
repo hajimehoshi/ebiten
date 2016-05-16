@@ -110,7 +110,7 @@ func Init() (*opengl.Context, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := graphics.InitializeIfNeeded(c); err != nil {
+		if err := graphics.Initialize(c); err != nil {
 			return nil, err
 		}
 		return c, nil
@@ -220,7 +220,7 @@ func Init() (*opengl.Context, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := graphics.InitializeIfNeeded(c); err != nil {
+	if err := graphics.Initialize(c); err != nil {
 		return nil, err
 	}
 	return c, nil
