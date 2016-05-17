@@ -204,46 +204,50 @@ func run(f func(*Image) error, width, height, scale int, title string) error {
 	beforeForUpdate := n
 	beforeForFPS := n
 	for {
-		// TODO: setSize should be called after swapping buffers?
 		if err := currentRunContext.updateScreenSize(graphicsContext); err != nil {
 			return err
 		}
-		if err := ui.CurrentUI().Update(); err != nil {
+		e, err := ui.CurrentUI().Update()
+		if err != nil {
 			return err
 		}
-		if ui.CurrentUI().IsClosed() {
+		switch e.(type) {
+		case ui.CloseEvent:
 			return nil
-		}
-		now := ui.Now()
-		// If beforeForUpdate is too old, we assume that screen is not shown.
-		if int64(5*time.Second/FPS) < now-beforeForUpdate {
-			currentRunContext.setRunningSlowly(false)
-			beforeForUpdate = now
-		} else {
-			// Note that generally t is a little different from 1/60[sec].
-			t := now - beforeForUpdate
-			currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
-			tt := int(t * FPS / int64(time.Second))
-			// As t is not accurate 1/60[sec], errors are accumulated.
-			// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
-			if tt == 0 && (int64(time.Second)/FPS-int64(5*time.Millisecond)) < t {
-				tt = 1
-			}
-			for i := 0; i < tt; i++ {
-				if err := graphicsContext.update(f); err != nil {
-					return err
+		case ui.RenderEvent:
+			now := ui.Now()
+			// If beforeForUpdate is too old, we assume that screen is not shown.
+			if int64(5*time.Second/FPS) < now-beforeForUpdate {
+				currentRunContext.setRunningSlowly(false)
+				beforeForUpdate = now
+			} else {
+				// Note that generally t is a little different from 1/60[sec].
+				t := now - beforeForUpdate
+				currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
+				tt := int(t * FPS / int64(time.Second))
+				// As t is not accurate 1/60[sec], errors are accumulated.
+				// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
+				if tt == 0 && (int64(time.Second)/FPS-int64(5*time.Millisecond)) < t {
+					tt = 1
 				}
+				for i := 0; i < tt; i++ {
+					if err := graphicsContext.update(f); err != nil {
+						return err
+					}
+				}
+				ui.CurrentUI().SwapBuffers()
+				beforeForUpdate += int64(tt) * int64(time.Second) / FPS
+				frames++
 			}
-			ui.CurrentUI().SwapBuffers()
-			beforeForUpdate += int64(tt) * int64(time.Second) / FPS
-			frames++
-		}
 
-		// Calc the current FPS.
-		if time.Second <= time.Duration(now-beforeForFPS) {
-			currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
-			beforeForFPS = now
-			frames = 0
+			// Calc the current FPS.
+			if time.Second <= time.Duration(now-beforeForFPS) {
+				currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
+				beforeForFPS = now
+				frames = 0
+			}
+		default:
+			panic("not reach")
 		}
 	}
 }

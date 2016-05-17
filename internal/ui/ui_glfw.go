@@ -196,7 +196,14 @@ func (u *UserInterface) pollEvents() error {
 	return currentInput.update(u.window, u.windowScale())
 }
 
-func (u *UserInterface) Update() error {
+func (u *UserInterface) Update() (interface{}, error) {
+	shouldClose := false
+	u.runOnMainThread(func() {
+		shouldClose = u.window.ShouldClose()
+	})
+	if shouldClose {
+		return CloseEvent{}, nil
+	}
 	var ferr error
 	u.runOnMainThread(func() {
 		if err := u.pollEvents(); err != nil {
@@ -215,7 +222,10 @@ func (u *UserInterface) Update() error {
 			}
 		}
 	})
-	return ferr
+	if ferr != nil {
+		return nil, ferr
+	}
+	return RenderEvent{}, nil
 }
 
 func (u *UserInterface) Terminate() {
@@ -224,14 +234,6 @@ func (u *UserInterface) Terminate() {
 	})
 	close(u.funcs)
 	u.funcs = nil
-}
-
-func (u *UserInterface) IsClosed() bool {
-	r := false
-	u.runOnMainThread(func() {
-		r = u.window.ShouldClose()
-	})
-	return r
 }
 
 func (u *UserInterface) SwapBuffers() {

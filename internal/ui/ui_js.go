@@ -83,17 +83,13 @@ func vsync() {
 	<-ch
 }
 
-func (u *UserInterface) Update() error {
+func (u *UserInterface) Update() (interface{}, error) {
 	currentInput.UpdateGamepads()
-	return nil
+	return RenderEvent{}, nil
 }
 
 func (u *UserInterface) Terminate() {
 	// Do nothing.
-}
-
-func (u *UserInterface) IsClosed() bool {
-	return false
 }
 
 func (u *UserInterface) SwapBuffers() {
