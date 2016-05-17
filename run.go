@@ -230,12 +230,6 @@ func run(f func(*Image) error, width, height, scale int, title string) error {
 				tt = 1
 			}
 			for i := 0; i < tt; i++ {
-				if err := ui.CurrentUI().DoEvents(); err != nil {
-					return err
-				}
-				if ui.CurrentUI().IsClosed() {
-					return nil
-				}
 				if err := graphicsContext.update(f); err != nil {
 					return err
 				}
