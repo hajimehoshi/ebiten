@@ -208,7 +208,7 @@ func run(f func(*Image) error, width, height, scale int, title string) error {
 		if err := currentRunContext.updateScreenSize(graphicsContext); err != nil {
 			return err
 		}
-		if err := ui.CurrentUI().DoEvents(); err != nil {
+		if err := ui.CurrentUI().Update(); err != nil {
 			return err
 		}
 		if ui.CurrentUI().IsClosed() {

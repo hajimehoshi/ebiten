@@ -196,7 +196,7 @@ func (u *UserInterface) pollEvents() error {
 	return currentInput.update(u.window, u.windowScale())
 }
 
-func (u *UserInterface) DoEvents() error {
+func (u *UserInterface) Update() error {
 	var ferr error
 	u.runOnMainThread(func() {
 		if err := u.pollEvents(); err != nil {

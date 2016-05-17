@@ -83,7 +83,7 @@ func vsync() {
 	<-ch
 }
 
-func (u *UserInterface) DoEvents() error {
+func (u *UserInterface) Update() error {
 	currentInput.UpdateGamepads()
 	return nil
 }
