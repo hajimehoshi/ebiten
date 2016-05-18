@@ -12,15 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ui
+package loop
 
 import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 const FPS = 60
+
+func Main() {
+	ui.Main()
+}
 
 func CurrentFPS() float64 {
 	return currentRunContext.currentFPS()
@@ -43,7 +49,7 @@ func SetScreenScale(scale int) error {
 }
 
 func ScreenScale() int {
-	return currentUI.ScreenScale()
+	return ui.CurrentUI().ScreenScale()
 }
 
 type runContext struct {
@@ -116,16 +122,16 @@ func (c *runContext) updateScreenSize(g GraphicsContext) error {
 	}
 	changed := false
 	if 0 < c.newScreenWidth || 0 < c.newScreenHeight {
-		c := currentUI.SetScreenSize(c.newScreenWidth, c.newScreenHeight)
+		c := ui.CurrentUI().SetScreenSize(c.newScreenWidth, c.newScreenHeight)
 		changed = changed || c
 	}
 	if 0 < c.newScreenScale {
-		c := currentUI.SetScreenScale(c.newScreenScale)
+		c := ui.CurrentUI().SetScreenScale(c.newScreenScale)
 		changed = changed || c
 	}
 	if changed {
 		w, h := c.newScreenWidth, c.newScreenHeight
-		if err := g.SetSize(w, h, currentUI.ActualScreenScale()); err != nil {
+		if err := g.SetSize(w, h, ui.CurrentUI().ActualScreenScale()); err != nil {
 			return err
 		}
 	}
@@ -171,32 +177,32 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
-	if err := currentUI.Start(width, height, scale, title); err != nil {
+	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
 	}
-	defer currentUI.Terminate()
+	defer ui.CurrentUI().Terminate()
 
-	if err := g.SetSize(width, height, currentUI.ActualScreenScale()); err != nil {
+	if err := g.SetSize(width, height, ui.CurrentUI().ActualScreenScale()); err != nil {
 		return err
 	}
 
 	frames := 0
-	n := Now()
+	n := ui.Now()
 	beforeForUpdate := n
 	beforeForFPS := n
 	for {
 		if err := currentRunContext.updateScreenSize(g); err != nil {
 			return err
 		}
-		e, err := currentUI.Update()
+		e, err := ui.CurrentUI().Update()
 		if err != nil {
 			return err
 		}
 		switch e.(type) {
-		case CloseEvent:
+		case ui.CloseEvent:
 			return nil
-		case RenderEvent:
-			now := Now()
+		case ui.RenderEvent:
+			now := ui.Now()
 			// If beforeForUpdate is too old, we assume that screen is not shown.
 			if int64(5*time.Second/FPS) < now-beforeForUpdate {
 				currentRunContext.setRunningSlowly(false)
@@ -216,7 +222,7 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 						return err
 					}
 				}
-				currentUI.SwapBuffers()
+				ui.CurrentUI().SwapBuffers()
 				beforeForUpdate += int64(tt) * int64(time.Second) / FPS
 				frames++
 			}

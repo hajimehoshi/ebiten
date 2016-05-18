@@ -43,6 +43,10 @@ type UserInterface struct {
 
 var currentUI *UserInterface
 
+func CurrentUI() *UserInterface {
+	return currentUI
+}
+
 func Init() (*opengl.Context, error) {
 	runtime.LockOSThread()
 

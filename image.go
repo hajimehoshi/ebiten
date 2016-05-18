@@ -25,7 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
+	"github.com/hajimehoshi/ebiten/internal/loop"
 )
 
 var (
@@ -296,7 +296,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 }
 
 func (i *imageImpl) At(x, y int) color.Color {
-	if !ui.IsRunning() {
+	if !loop.IsRunning() {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
 	imageM.Lock()
