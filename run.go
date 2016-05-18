@@ -85,5 +85,5 @@ func SetScreenScale(scale int) {
 //
 // This function is concurrent-safe.
 func ScreenScale() int {
-	return ui.CurrentUI().ScreenScale()
+	return ui.ScreenScale()
 }

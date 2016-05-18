@@ -42,6 +42,10 @@ func SetScreenScale(scale int) error {
 	return currentRunContext.setScreenScale(scale)
 }
 
+func ScreenScale() int {
+	return currentUI.ScreenScale()
+}
+
 type runContext struct {
 	running         bool
 	fps             float64
@@ -112,16 +116,16 @@ func (c *runContext) updateScreenSize(g GraphicsContext) error {
 	}
 	changed := false
 	if 0 < c.newScreenWidth || 0 < c.newScreenHeight {
-		c := CurrentUI().SetScreenSize(c.newScreenWidth, c.newScreenHeight)
+		c := currentUI.SetScreenSize(c.newScreenWidth, c.newScreenHeight)
 		changed = changed || c
 	}
 	if 0 < c.newScreenScale {
-		c := CurrentUI().SetScreenScale(c.newScreenScale)
+		c := currentUI.SetScreenScale(c.newScreenScale)
 		changed = changed || c
 	}
 	if changed {
 		w, h := c.newScreenWidth, c.newScreenHeight
-		if err := g.SetSize(w, h, CurrentUI().ActualScreenScale()); err != nil {
+		if err := g.SetSize(w, h, currentUI.ActualScreenScale()); err != nil {
 			return err
 		}
 	}
@@ -167,12 +171,12 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
-	if err := CurrentUI().Start(width, height, scale, title); err != nil {
+	if err := currentUI.Start(width, height, scale, title); err != nil {
 		return err
 	}
-	defer CurrentUI().Terminate()
+	defer currentUI.Terminate()
 
-	if err := g.SetSize(width, height, CurrentUI().ActualScreenScale()); err != nil {
+	if err := g.SetSize(width, height, currentUI.ActualScreenScale()); err != nil {
 		return err
 	}
 
@@ -184,7 +188,7 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 		if err := currentRunContext.updateScreenSize(g); err != nil {
 			return err
 		}
-		e, err := CurrentUI().Update()
+		e, err := currentUI.Update()
 		if err != nil {
 			return err
 		}
@@ -212,7 +216,7 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 						return err
 					}
 				}
-				CurrentUI().SwapBuffers()
+				currentUI.SwapBuffers()
 				beforeForUpdate += int64(tt) * int64(time.Second) / FPS
 				frames++
 			}
