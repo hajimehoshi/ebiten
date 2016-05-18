@@ -47,7 +47,7 @@ func CurrentUI() *UserInterface {
 	return currentUI
 }
 
-func Init() (*opengl.Context, error) {
+func initialize() (*opengl.Context, error) {
 	runtime.LockOSThread()
 
 	if err := glfw.Init(); err != nil {

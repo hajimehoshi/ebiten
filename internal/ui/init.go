@@ -26,7 +26,7 @@ func GLContext() *opengl.Context {
 
 func init() {
 	var err error
-	glContext, err = Init()
+	glContext, err = initialize()
 	if err != nil {
 		panic(err)
 	}
