@@ -557,6 +557,18 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 }
 
 func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
+	img, err := newImageWithZeroFramebufferImpl(width, height)
+	if err != nil {
+		return nil, err
+	}
+	// When this is called, OpenGL context should exist.
+	if err := theDelayedImageTasks.exec(); err != nil {
+		return nil, err
+	}
+	return img, nil
+}
+
+func newImageWithZeroFramebufferImpl(width, height int) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
 	f, err := graphics.NewZeroFramebuffer(ui.GLContext(), width, height)

@@ -25,7 +25,6 @@ type graphicsContext struct {
 	screen              *Image
 	defaultRenderTarget *Image
 	screenScale         int
-	initialized         bool
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) error {
@@ -46,13 +45,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) er
 	c.defaultRenderTarget.Clear()
 	c.screen = screen
 	c.screenScale = screenScale
-	// TODO: This code is a little hacky. Refactor this.
-	if !c.initialized {
-		if err := theDelayedImageTasks.exec(); err != nil {
-			return err
-		}
-		c.initialized = true
-	}
 	return nil
 }
 
