@@ -46,9 +46,12 @@ var canvas *js.Object
 type UserInterface struct {
 	scale       int
 	deviceScale float64
+	sizeChanged bool
 }
 
-var currentUI = &UserInterface{}
+var currentUI = &UserInterface{
+	sizeChanged: true,
+}
 
 func CurrentUI() *UserInterface {
 	return currentUI
@@ -79,6 +82,17 @@ func vsync() {
 
 func (u *UserInterface) Update() (interface{}, error) {
 	currentInput.UpdateGamepads()
+	if u.sizeChanged {
+		u.sizeChanged = false
+		w, h := u.size()
+		e := ScreenSizeEvent{
+			Width:       w,
+			Height:      h,
+			Scale:       u.ScreenScale(),
+			ActualScale: u.ActualScreenScale(),
+		}
+		return e, nil
+	}
 	return RenderEvent{}, nil
 }
 
@@ -276,5 +290,6 @@ func (u *UserInterface) setScreenSize(width, height, scale int) bool {
 	// CSS calc requires space chars.
 	canvasStyle.Set("left", "calc((100% - "+strconv.Itoa(cssWidth)+"px) / 2)")
 	canvasStyle.Set("top", "calc((100% - "+strconv.Itoa(cssHeight)+"px) / 2)")
+	u.sizeChanged = true
 	return true
 }

@@ -35,6 +35,7 @@ type UserInterface struct {
 	framebufferScale int
 	context          *opengl.Context
 	funcs            chan func()
+	sizeChanged      bool
 }
 
 var currentUI *UserInterface
@@ -61,8 +62,9 @@ func initialize() (*opengl.Context, error) {
 	}
 
 	u := &UserInterface{
-		window: window,
-		funcs:  make(chan func()),
+		window:      window,
+		funcs:       make(chan func()),
+		sizeChanged: true,
 	}
 	ch := make(chan error)
 	go func() {
@@ -140,14 +142,6 @@ func (u *UserInterface) ScreenScale() int {
 	return s
 }
 
-func (u *UserInterface) ActualScreenScale() int {
-	s := 0
-	u.runOnMainThread(func() {
-		s = u.actualScreenScale()
-	})
-	return s
-}
-
 func (u *UserInterface) Start(width, height, scale int, title string) error {
 	var err error
 	u.runOnMainThread(func() {
@@ -200,6 +194,24 @@ func (u *UserInterface) Update() (interface{}, error) {
 	if shouldClose {
 		return CloseEvent{}, nil
 	}
+
+	var screenSizeEvent *ScreenSizeEvent
+	u.runOnMainThread(func() {
+		if !u.sizeChanged {
+			return
+		}
+		u.sizeChanged = false
+		screenSizeEvent = &ScreenSizeEvent{
+			Width:       u.width,
+			Height:      u.height,
+			Scale:       u.scale,
+			ActualScale: u.actualScreenScale(),
+		}
+	})
+	if screenSizeEvent != nil {
+		return *screenSizeEvent, nil
+	}
+
 	var ferr error
 	u.runOnMainThread(func() {
 		if err := u.pollEvents(); err != nil {
@@ -291,5 +303,6 @@ event:
 	// This is usually 1, but sometimes more than 1 (e.g. Retina Mac)
 	fw, _ := window.GetFramebufferSize()
 	u.framebufferScale = fw / width / u.windowScale()
+	u.sizeChanged = true
 	return true
 }

@@ -19,3 +19,10 @@ type CloseEvent struct {
 
 type RenderEvent struct {
 }
+
+type ScreenSizeEvent struct {
+	Width       int
+	Height      int
+	Scale       int
+	ActualScale int
+}

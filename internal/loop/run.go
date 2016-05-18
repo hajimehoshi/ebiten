@@ -15,7 +15,6 @@
 package loop
 
 import (
-	"errors"
 	"sync"
 	"time"
 
@@ -23,10 +22,6 @@ import (
 )
 
 const FPS = 60
-
-func Main() {
-	ui.Main()
-}
 
 func CurrentFPS() float64 {
 	return currentRunContext.currentFPS()
@@ -40,26 +35,11 @@ func IsRunningSlowly() bool {
 	return currentRunContext.isRunningSlowly()
 }
 
-func SetScreenSize(width, height int) error {
-	return currentRunContext.setScreenSize(width, height)
-}
-
-func SetScreenScale(scale int) error {
-	return currentRunContext.setScreenScale(scale)
-}
-
-func ScreenScale() int {
-	return ui.CurrentUI().ScreenScale()
-}
-
 type runContext struct {
-	running         bool
-	fps             float64
-	newScreenWidth  int
-	newScreenHeight int
-	newScreenScale  int
-	runningSlowly   bool
-	m               sync.RWMutex
+	running       bool
+	fps           float64
+	runningSlowly bool
+	m             sync.RWMutex
 }
 
 var currentRunContext runContext
@@ -114,60 +94,6 @@ func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
 	c.runningSlowly = isRunningSlowly
 }
 
-func (c *runContext) updateScreenSize(g GraphicsContext) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if c.newScreenWidth == 0 && c.newScreenHeight == 0 && c.newScreenScale == 0 {
-		return nil
-	}
-	changed := false
-	if 0 < c.newScreenWidth || 0 < c.newScreenHeight {
-		c := ui.CurrentUI().SetScreenSize(c.newScreenWidth, c.newScreenHeight)
-		changed = changed || c
-	}
-	if 0 < c.newScreenScale {
-		c := ui.CurrentUI().SetScreenScale(c.newScreenScale)
-		changed = changed || c
-	}
-	if changed {
-		w, h := c.newScreenWidth, c.newScreenHeight
-		if err := g.SetSize(w, h, ui.CurrentUI().ActualScreenScale()); err != nil {
-			return err
-		}
-	}
-	c.newScreenWidth = 0
-	c.newScreenHeight = 0
-	c.newScreenScale = 0
-	return nil
-}
-
-func (c *runContext) setScreenSize(width, height int) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if !c.running {
-		return errors.New("ebiten: SetScreenSize must be called during Run")
-	}
-	if width <= 0 || height <= 0 {
-		return errors.New("ebiten: width and height must be positive")
-	}
-	c.newScreenWidth = width
-	c.newScreenHeight = height
-	return nil
-}
-
-func (c *runContext) setScreenScale(scale int) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if !c.running {
-		return errors.New("ebiten: SetScreenScale must be called during Run")
-	}
-	if scale <= 0 {
-		return errors.New("ebiten: scale must be positive")
-	}
-	c.newScreenScale = scale
-	return nil
-}
-
 type GraphicsContext interface {
 	SetSize(width, height, scale int) error
 	Update() error
@@ -182,23 +108,20 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 	}
 	defer ui.CurrentUI().Terminate()
 
-	if err := g.SetSize(width, height, ui.CurrentUI().ActualScreenScale()); err != nil {
-		return err
-	}
-
 	frames := 0
 	n := now()
 	beforeForUpdate := n
 	beforeForFPS := n
 	for {
-		if err := currentRunContext.updateScreenSize(g); err != nil {
-			return err
-		}
 		e, err := ui.CurrentUI().Update()
 		if err != nil {
 			return err
 		}
-		switch e.(type) {
+		switch e := e.(type) {
+		case ui.ScreenSizeEvent:
+			if err := g.SetSize(e.Width, e.Height, e.ActualScale); err != nil {
+				return err
+			}
 		case ui.CloseEvent:
 			return nil
 		case ui.RenderEvent:

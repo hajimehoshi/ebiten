@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/loop"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 // FPS represents how many times game updating happens in a second.
@@ -58,7 +59,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 		g := newGraphicsContext(f)
 		ch <- loop.Run(g, width, height, scale, title)
 	}()
-	loop.Main()
+	ui.Main()
 	return <-ch
 }
 
@@ -67,23 +68,25 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 //
 // This function is concurrent-safe.
 func SetScreenSize(width, height int) {
-	if err := loop.SetScreenSize(width, height); err != nil {
-		panic(err)
+	if width <= 0 || height <= 0 {
+		panic("ebiten: width and height must be positive")
 	}
+	ui.CurrentUI().SetScreenSize(width, height)
 }
 
 // SetScreenScale changes the scale of the screen.
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale int) {
-	if err := loop.SetScreenScale(scale); err != nil {
-		panic(err)
+	if scale <= 0 {
+		panic("ebiten: scale must be positive")
 	}
+	ui.CurrentUI().SetScreenScale(scale)
 }
 
 // ScreenScale returns the current screen scale.
 //
 // This function is concurrent-safe.
 func ScreenScale() int {
-	return loop.ScreenScale()
+	return ui.CurrentUI().ScreenScale()
 }
