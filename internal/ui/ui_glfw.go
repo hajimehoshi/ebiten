@@ -26,10 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-func Now() int64 {
-	return time.Now().UnixNano()
-}
-
 type UserInterface struct {
 	window           *glfw.Window
 	width            int

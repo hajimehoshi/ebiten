@@ -18,17 +18,11 @@ package ui
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
-
-func Now() int64 {
-	// time.Now() is not reliable until GopherJS supports performance.now().
-	return int64(js.Global.Get("performance").Call("now").Float() * float64(time.Millisecond))
-}
 
 func (u *UserInterface) SetScreenSize(width, height int) bool {
 	return u.setScreenSize(width, height, u.scale)

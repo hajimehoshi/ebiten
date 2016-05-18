@@ -187,7 +187,7 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 	}
 
 	frames := 0
-	n := ui.Now()
+	n := now()
 	beforeForUpdate := n
 	beforeForFPS := n
 	for {
@@ -202,14 +202,14 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 		case ui.CloseEvent:
 			return nil
 		case ui.RenderEvent:
-			now := ui.Now()
+			n2 := now()
 			// If beforeForUpdate is too old, we assume that screen is not shown.
-			if int64(5*time.Second/FPS) < now-beforeForUpdate {
+			if int64(5*time.Second/FPS) < n2-beforeForUpdate {
 				currentRunContext.setRunningSlowly(false)
-				beforeForUpdate = now
+				beforeForUpdate = n2
 			} else {
 				// Note that generally t is a little different from 1/60[sec].
-				t := now - beforeForUpdate
+				t := n2 - beforeForUpdate
 				currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
 				tt := int(t * FPS / int64(time.Second))
 				// As t is not accurate 1/60[sec], errors are accumulated.
@@ -228,9 +228,9 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 			}
 
 			// Calc the current FPS.
-			if time.Second <= time.Duration(now-beforeForFPS) {
-				currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
-				beforeForFPS = now
+			if time.Second <= time.Duration(n2-beforeForFPS) {
+				currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(n2-beforeForFPS))
+				beforeForFPS = n2
 				frames = 0
 			}
 		default:
