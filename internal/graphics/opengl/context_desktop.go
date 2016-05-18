@@ -14,6 +14,7 @@
 
 // +build darwin linux windows
 // +build !js
+// +build !android
 
 package opengl
 

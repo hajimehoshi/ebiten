@@ -15,7 +15,10 @@
 package mobile
 
 import (
+	"runtime"
+
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 var chError <-chan error
@@ -38,13 +41,20 @@ func LastErrorString() string {
 }
 
 func SetScreenSize(width, height int) {
-	// TODO: Implement this
+	ui.CurrentUI().SetScreenSize(width, height)
 }
 
 func SetScreenScale(scale int) {
-	// TODO: Implement this
+	ui.CurrentUI().SetScreenScale(scale)
 }
 
 func Render() {
+	runtime.LockOSThread()
 	// TODO: Implement this
+	/*select {
+	case <-workAvailable:
+		DoWork()
+	case <-done:
+		return
+	}*/
 }

@@ -22,12 +22,13 @@
 package main
 
 import (
-	"github.com/hajimehoshi/ebiten/internal"
 	"log"
 	"os"
 	"sort"
 	"strconv"
 	"text/template"
+
+	"github.com/hajimehoshi/ebiten/internal"
 )
 
 var keyCodeToName map[int]string
@@ -263,7 +264,7 @@ func main() {
 		buildTag := ""
 		switch path {
 		case "internal/ui/keys_glfw.go":
-			buildTag = "// +build !js"
+			buildTag = "// +build !js\n// +build !android"
 		case "internal/ui/keys_js.go":
 			buildTag = "// +build js"
 		}
