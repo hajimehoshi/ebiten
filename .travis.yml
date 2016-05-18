@@ -14,9 +14,11 @@ addons:
       - libalut-dev
       - libxxf86vm-dev
 
-before_install:
-  - export NODE_PATH=$(npm config get prefix)/lib/node_modules
-  - npm install --global gl
+# gl module is not available (2016-05-18)
+#
+# before_install:
+#  - export NODE_PATH=$(npm config get prefix)/lib/node_modules
+#  - npm install --global gl
 
 install:
   - go get -t -v ./...
