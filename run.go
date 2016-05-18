@@ -63,6 +63,23 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	return <-ch
 }
 
+// RunWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
+// Different from Run, this function returns immediately.
+//
+// Typically, Ebiten users don't have to call this directly.
+// Instead, functions in github.com/hajimehoshi/ebiten/mobile module call this.
+func RunWithoutMainLoop(f func(*Image) error, width, height, scale int, title string) <-chan error {
+	ch := make(chan error)
+	go func() {
+		g := newGraphicsContext(f)
+		if err := loop.Run(g, width, height, scale, title, FPS); err != nil {
+			ch <- err
+		}
+		close(ch)
+	}()
+	return nil
+}
+
 // SetScreenSize changes the (logical) size of the screen.
 // This doesn't affect the current scale of the screen.
 //
