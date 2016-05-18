@@ -227,7 +227,7 @@ func TestReplacePixels(t *testing.T) {
 	}
 
 	p := make([]uint8, 4*size.X*size.Y)
-	for i, _ := range p {
+	for i := range p {
 		p[i] = 0x80
 	}
 	img0.ReplacePixels(p)
