@@ -26,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/loop"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 var (
@@ -243,7 +244,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 			return errors.New("ebiten: image is already disposed")
 		}
 		i.pixels = nil
-		return i.framebuffer.Fill(glContext, clr)
+		return i.framebuffer.Fill(ui.GLContext(), clr)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
@@ -287,7 +288,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		}
 		i.pixels = nil
 		m := opengl.CompositeMode(options.CompositeMode)
-		return i.framebuffer.DrawTexture(glContext, image.impl.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
+		return i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
@@ -306,7 +307,7 @@ func (i *imageImpl) At(x, y int) color.Color {
 	}
 	if i.pixels == nil {
 		var err error
-		i.pixels, err = i.framebuffer.Pixels(glContext)
+		i.pixels, err = i.framebuffer.Pixels(ui.GLContext())
 		if err != nil {
 			panic(err)
 		}
@@ -333,19 +334,19 @@ func (i *imageImpl) evacuatePixels() error {
 	}
 	if i.pixels == nil {
 		var err error
-		i.pixels, err = i.framebuffer.Pixels(glContext)
+		i.pixels, err = i.framebuffer.Pixels(ui.GLContext())
 		if err != nil {
 			return err
 		}
 	}
 	if i.framebuffer != nil {
-		if err := i.framebuffer.Dispose(glContext); err != nil {
+		if err := i.framebuffer.Dispose(ui.GLContext()); err != nil {
 			return err
 		}
 		i.framebuffer = nil
 	}
 	if i.texture != nil {
-		if err := i.texture.Dispose(glContext); err != nil {
+		if err := i.texture.Dispose(ui.GLContext()); err != nil {
 			return err
 		}
 		i.texture = nil
@@ -382,11 +383,11 @@ func (i *imageImpl) restorePixels() error {
 		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
 	}
 	var err error
-	i.texture, err = graphics.NewTextureFromImage(glContext, img, glFilter(glContext, i.filter))
+	i.texture, err = graphics.NewTextureFromImage(ui.GLContext(), img, glFilter(ui.GLContext(), i.filter))
 	if err != nil {
 		return err
 	}
-	i.framebuffer, err = graphics.NewFramebufferFromTexture(glContext, i.texture)
+	i.framebuffer, err = graphics.NewFramebufferFromTexture(ui.GLContext(), i.texture)
 	if err != nil {
 		return err
 	}
@@ -401,13 +402,13 @@ func (i *imageImpl) Dispose() error {
 			return errors.New("ebiten: image is already disposed")
 		}
 		if i.framebuffer != nil {
-			if err := i.framebuffer.Dispose(glContext); err != nil {
+			if err := i.framebuffer.Dispose(ui.GLContext()); err != nil {
 				return err
 			}
 			i.framebuffer = nil
 		}
 		if i.texture != nil {
-			if err := i.texture.Dispose(glContext); err != nil {
+			if err := i.texture.Dispose(ui.GLContext()); err != nil {
 				return err
 			}
 			i.texture = nil
@@ -440,7 +441,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 		if i.isDisposed() {
 			return errors.New("ebiten: image is already disposed")
 		}
-		return i.framebuffer.ReplacePixels(glContext, i.texture, p)
+		return i.framebuffer.ReplacePixels(ui.GLContext(), i.texture, p)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
@@ -477,11 +478,11 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	f := func() error {
 		imageM.Lock()
 		defer imageM.Unlock()
-		texture, err := graphics.NewTexture(glContext, width, height, glFilter(glContext, filter))
+		texture, err := graphics.NewTexture(ui.GLContext(), width, height, glFilter(ui.GLContext(), filter))
 		if err != nil {
 			return err
 		}
-		framebuffer, err := graphics.NewFramebufferFromTexture(glContext, texture)
+		framebuffer, err := graphics.NewFramebufferFromTexture(ui.GLContext(), texture)
 		if err != nil {
 			// TODO: texture should be removed here?
 			return err
@@ -489,7 +490,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		image.framebuffer = framebuffer
 		image.texture = texture
 		runtime.SetFinalizer(image, (*imageImpl).Dispose)
-		if err := image.framebuffer.Fill(glContext, color.Transparent); err != nil {
+		if err := image.framebuffer.Fill(ui.GLContext(), color.Transparent); err != nil {
 			return err
 		}
 		return nil
@@ -532,11 +533,11 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		}
 		imageM.Lock()
 		defer imageM.Unlock()
-		texture, err := graphics.NewTextureFromImage(glContext, rgbaImg, glFilter(glContext, filter))
+		texture, err := graphics.NewTextureFromImage(ui.GLContext(), rgbaImg, glFilter(ui.GLContext(), filter))
 		if err != nil {
 			return err
 		}
-		framebuffer, err := graphics.NewFramebufferFromTexture(glContext, texture)
+		framebuffer, err := graphics.NewFramebufferFromTexture(ui.GLContext(), texture)
 		if err != nil {
 			// TODO: texture should be removed here?
 			return err
@@ -558,7 +559,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-	f, err := graphics.NewZeroFramebuffer(glContext, width, height)
+	f, err := graphics.NewZeroFramebuffer(ui.GLContext(), width, height)
 	if err != nil {
 		return nil, err
 	}

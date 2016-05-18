@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2016 Hajime Hoshi
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 var glContext *opengl.Context
 
+func GLContext() *opengl.Context {
+	return glContext
+}
+
 func init() {
 	var err error
-	glContext, err = ui.Init()
+	glContext, err = Init()
 	if err != nil {
 		panic(err)
 	}
