@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+// Package mobile is an example of Ebiten for mobiles (Android).
+// You can `gomobile bind` this package but not `gomobile build`.
+package mobile
 
 import (
 	_ "image/jpeg"
@@ -47,7 +49,7 @@ func update(screen *ebiten.Image) error {
 	return nil
 }
 
-func main() {
+func Start() {
 	var err error
 	gophersImage, _, err = common.AssetImage("gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
