@@ -14,44 +14,21 @@
 
 package ebiten
 
-func newGraphicsContext(screenWidth, screenHeight, screenScale int) (*graphicsContext, error) {
-	c := &graphicsContext{}
-	if err := c.setSize(screenWidth, screenHeight, screenScale); err != nil {
-		return nil, err
+func newGraphicsContext(f func(*Image) error) *graphicsContext {
+	return &graphicsContext{
+		f: f,
 	}
-	return c, nil
 }
 
 type graphicsContext struct {
+	f                   func(*Image) error
 	screen              *Image
 	defaultRenderTarget *Image
 	screenScale         int
+	initialized         bool
 }
 
-func (c *graphicsContext) update(f func(*Image) error) error {
-	if err := c.screen.Clear(); err != nil {
-		return err
-	}
-	if err := f(c.screen); err != nil {
-		return err
-	}
-	if IsRunningSlowly() {
-		return nil
-	}
-	// TODO: In WebGL, we don't need to clear the image here.
-	if err := c.defaultRenderTarget.Clear(); err != nil {
-		return err
-	}
-	scale := float64(c.screenScale)
-	options := &DrawImageOptions{}
-	options.GeoM.Scale(scale, scale)
-	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) error {
+func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) error {
 	if c.defaultRenderTarget != nil {
 		c.defaultRenderTarget.Dispose()
 	}
@@ -69,5 +46,35 @@ func (c *graphicsContext) setSize(screenWidth, screenHeight, screenScale int) er
 	c.defaultRenderTarget.Clear()
 	c.screen = screen
 	c.screenScale = screenScale
+	// TODO: This code is a little hacky. Refactor this.
+	if !c.initialized {
+		if err := theDelayedImageTasks.exec(); err != nil {
+			return err
+		}
+		c.initialized = true
+	}
+	return nil
+}
+
+func (c *graphicsContext) Update() error {
+	if err := c.screen.Clear(); err != nil {
+		return err
+	}
+	if err := c.f(c.screen); err != nil {
+		return err
+	}
+	if IsRunningSlowly() {
+		return nil
+	}
+	// TODO: In WebGL, we don't need to clear the image here.
+	if err := c.defaultRenderTarget.Clear(); err != nil {
+		return err
+	}
+	scale := float64(c.screenScale)
+	options := &DrawImageOptions{}
+	options.GeoM.Scale(scale, scale)
+	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
+		return err
+	}
 	return nil
 }

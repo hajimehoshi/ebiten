@@ -15,131 +15,11 @@
 package ebiten
 
 import (
-	"errors"
-	"sync"
-	"time"
-
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-type runContext struct {
-	running         bool
-	fps             float64
-	newScreenWidth  int
-	newScreenHeight int
-	newScreenScale  int
-	runningSlowly   bool
-	m               sync.RWMutex
-}
-
-var currentRunContext runContext
-
-func (c *runContext) startRunning() {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.running = true
-}
-
-func (c *runContext) isRunning() bool {
-	c.m.Lock()
-	defer c.m.Unlock()
-	return c.running
-}
-
-func (c *runContext) endRunning() {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.running = false
-}
-
-func (c *runContext) FPS() float64 {
-	c.m.RLock()
-	defer c.m.RUnlock()
-	if !c.running {
-		// TODO: Should panic here?
-		return 0
-	}
-	return c.fps
-}
-
-func (c *runContext) updateFPS(fps float64) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.fps = fps
-}
-
-func (c *runContext) IsRunningSlowly() bool {
-	c.m.RLock()
-	defer c.m.RUnlock()
-	if !c.running {
-		// TODO: Should panic here?
-		return false
-	}
-	return c.runningSlowly
-}
-
-func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.runningSlowly = isRunningSlowly
-}
-
-func (c *runContext) updateScreenSize(g *graphicsContext) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if c.newScreenWidth == 0 && c.newScreenHeight == 0 && c.newScreenScale == 0 {
-		return nil
-	}
-	changed := false
-	if 0 < c.newScreenWidth || 0 < c.newScreenHeight {
-		c := ui.CurrentUI().SetScreenSize(c.newScreenWidth, c.newScreenHeight)
-		changed = changed || c
-	}
-	if 0 < c.newScreenScale {
-		c := ui.CurrentUI().SetScreenScale(c.newScreenScale)
-		changed = changed || c
-	}
-	if changed {
-		w, h := c.newScreenWidth, c.newScreenHeight
-		if err := g.setSize(w, h, ui.CurrentUI().ActualScreenScale()); err != nil {
-			return err
-		}
-	}
-	c.newScreenWidth = 0
-	c.newScreenHeight = 0
-	c.newScreenScale = 0
-	return nil
-}
-
-func (c *runContext) SetScreenSize(width, height int) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if !c.running {
-		return errors.New("ebiten: SetScreenSize must be called during Run")
-	}
-	if width <= 0 || height <= 0 {
-		return errors.New("ebiten: width and height must be positive")
-	}
-	c.newScreenWidth = width
-	c.newScreenHeight = height
-	return nil
-}
-
-func (c *runContext) SetScreenScale(scale int) error {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if !c.running {
-		return errors.New("ebiten: SetScreenScale must be called during Run")
-	}
-	if scale <= 0 {
-		return errors.New("ebiten: scale must be positive")
-	}
-	c.newScreenScale = scale
-	return nil
-}
-
 // FPS represents how many times game updating happens in a second.
-const FPS = 60
+const FPS = ui.FPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
@@ -150,7 +30,7 @@ const FPS = 60
 // Note that logical game updating is assured to happen 60 times in a second
 // as long as the screen is active.
 func CurrentFPS() float64 {
-	return currentRunContext.FPS()
+	return ui.CurrentFPS()
 }
 
 // IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS of rendering.
@@ -159,7 +39,7 @@ func CurrentFPS() float64 {
 //
 // This function is concurrent-safe.
 func IsRunningSlowly() bool {
-	return currentRunContext.IsRunningSlowly()
+	return ui.IsRunningSlowly()
 }
 
 // Run runs the game.
@@ -175,81 +55,11 @@ func IsRunningSlowly() bool {
 func Run(f func(*Image) error, width, height, scale int, title string) error {
 	ch := make(chan error)
 	go func() {
-		ch <- run(f, width, height, scale, title)
+		g := newGraphicsContext(f)
+		ch <- ui.Run(g, width, height, scale, title)
 	}()
 	ui.Main()
 	return <-ch
-}
-
-func run(f func(*Image) error, width, height, scale int, title string) error {
-	currentRunContext.startRunning()
-	defer currentRunContext.endRunning()
-
-	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
-		return err
-	}
-	defer ui.CurrentUI().Terminate()
-
-	graphicsContext, err := newGraphicsContext(width, height, ui.CurrentUI().ActualScreenScale())
-	if err != nil {
-		return err
-	}
-
-	if err := theDelayedImageTasks.exec(); err != nil {
-		return err
-	}
-
-	frames := 0
-	n := ui.Now()
-	beforeForUpdate := n
-	beforeForFPS := n
-	for {
-		if err := currentRunContext.updateScreenSize(graphicsContext); err != nil {
-			return err
-		}
-		e, err := ui.CurrentUI().Update()
-		if err != nil {
-			return err
-		}
-		switch e.(type) {
-		case ui.CloseEvent:
-			return nil
-		case ui.RenderEvent:
-			now := ui.Now()
-			// If beforeForUpdate is too old, we assume that screen is not shown.
-			if int64(5*time.Second/FPS) < now-beforeForUpdate {
-				currentRunContext.setRunningSlowly(false)
-				beforeForUpdate = now
-			} else {
-				// Note that generally t is a little different from 1/60[sec].
-				t := now - beforeForUpdate
-				currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
-				tt := int(t * FPS / int64(time.Second))
-				// As t is not accurate 1/60[sec], errors are accumulated.
-				// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
-				if tt == 0 && (int64(time.Second)/FPS-int64(5*time.Millisecond)) < t {
-					tt = 1
-				}
-				for i := 0; i < tt; i++ {
-					if err := graphicsContext.update(f); err != nil {
-						return err
-					}
-				}
-				ui.CurrentUI().SwapBuffers()
-				beforeForUpdate += int64(tt) * int64(time.Second) / FPS
-				frames++
-			}
-
-			// Calc the current FPS.
-			if time.Second <= time.Duration(now-beforeForFPS) {
-				currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(now-beforeForFPS))
-				beforeForFPS = now
-				frames = 0
-			}
-		default:
-			panic("not reach")
-		}
-	}
 }
 
 // SetScreenSize changes the (logical) size of the screen.
@@ -257,7 +67,7 @@ func run(f func(*Image) error, width, height, scale int, title string) error {
 //
 // This function is concurrent-safe.
 func SetScreenSize(width, height int) {
-	if err := currentRunContext.SetScreenSize(width, height); err != nil {
+	if err := ui.SetScreenSize(width, height); err != nil {
 		panic(err)
 	}
 }
@@ -266,7 +76,7 @@ func SetScreenSize(width, height int) {
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale int) {
-	if err := currentRunContext.SetScreenScale(scale); err != nil {
+	if err := ui.SetScreenScale(scale); err != nil {
 		panic(err)
 	}
 }
