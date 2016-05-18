@@ -20,7 +20,7 @@ import (
 )
 
 // FPS represents how many times game updating happens in a second.
-const FPS = loop.FPS
+const FPS = 60
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
@@ -57,7 +57,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 	ch := make(chan error)
 	go func() {
 		g := newGraphicsContext(f)
-		ch <- loop.Run(g, width, height, scale, title)
+		ch <- loop.Run(g, width, height, scale, title, FPS)
 	}()
 	ui.Main()
 	return <-ch

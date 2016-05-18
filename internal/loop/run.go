@@ -21,8 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-const FPS = 60
-
 func CurrentFPS() float64 {
 	return currentRunContext.currentFPS()
 }
@@ -99,7 +97,7 @@ type GraphicsContext interface {
 	Update() error
 }
 
-func Run(g GraphicsContext, width, height, scale int, title string) error {
+func Run(g GraphicsContext, width, height, scale int, title string, fps int) error {
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
@@ -127,17 +125,17 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 		case ui.RenderEvent:
 			n2 := now()
 			// If beforeForUpdate is too old, we assume that screen is not shown.
-			if int64(5*time.Second/FPS) < n2-beforeForUpdate {
+			if 5*int64(time.Second)/int64(fps) < n2-beforeForUpdate {
 				currentRunContext.setRunningSlowly(false)
 				beforeForUpdate = n2
 			} else {
 				// Note that generally t is a little different from 1/60[sec].
 				t := n2 - beforeForUpdate
-				currentRunContext.setRunningSlowly(t*FPS >= int64(time.Second*5/2))
-				tt := int(t * FPS / int64(time.Second))
+				currentRunContext.setRunningSlowly(t*int64(fps) >= int64(time.Second*5/2))
+				tt := int(t * int64(fps) / int64(time.Second))
 				// As t is not accurate 1/60[sec], errors are accumulated.
 				// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
-				if tt == 0 && (int64(time.Second)/FPS-int64(5*time.Millisecond)) < t {
+				if tt == 0 && (int64(time.Second)/int64(fps)-int64(5*time.Millisecond)) < t {
 					tt = 1
 				}
 				for i := 0; i < tt; i++ {
@@ -146,7 +144,7 @@ func Run(g GraphicsContext, width, height, scale int, title string) error {
 					}
 				}
 				ui.CurrentUI().SwapBuffers()
-				beforeForUpdate += int64(tt) * int64(time.Second) / FPS
+				beforeForUpdate += int64(tt) * int64(time.Second) / int64(fps)
 				frames++
 			}
 
