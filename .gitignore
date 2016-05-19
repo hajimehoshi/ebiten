@@ -1,2 +1,4 @@
 .DS_Store
 *~
+*.aar
+*.apk

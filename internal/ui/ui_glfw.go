@@ -27,7 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-type UserInterface struct {
+type userInterface struct {
 	window           *glfw.Window
 	width            int
 	height           int
@@ -39,9 +39,9 @@ type UserInterface struct {
 	sizeChanged      bool
 }
 
-var currentUI *UserInterface
+var currentUI *userInterface
 
-func CurrentUI() *UserInterface {
+func CurrentUI() UserInterface {
 	return currentUI
 }
 
@@ -62,7 +62,7 @@ func initialize() (*opengl.Context, error) {
 		return nil, err
 	}
 
-	u := &UserInterface{
+	u := &userInterface{
 		window:      window,
 		funcs:       make(chan func()),
 		sizeChanged: true,
@@ -98,7 +98,7 @@ func Main() error {
 	return currentUI.main()
 }
 
-func (u *UserInterface) main() error {
+func (u *userInterface) main() error {
 	// TODO: Check this is done on the main thread.
 	for f := range u.funcs {
 		f()
@@ -106,7 +106,7 @@ func (u *UserInterface) main() error {
 	return nil
 }
 
-func (u *UserInterface) runOnMainThread(f func()) {
+func (u *userInterface) runOnMainThread(f func()) {
 	if u.funcs == nil {
 		// already closed
 		return
@@ -119,7 +119,7 @@ func (u *UserInterface) runOnMainThread(f func()) {
 	<-ch
 }
 
-func (u *UserInterface) SetScreenSize(width, height int) bool {
+func (u *userInterface) SetScreenSize(width, height int) bool {
 	r := false
 	u.runOnMainThread(func() {
 		r = u.setScreenSize(width, height, u.scale)
@@ -127,7 +127,7 @@ func (u *UserInterface) SetScreenSize(width, height int) bool {
 	return r
 }
 
-func (u *UserInterface) SetScreenScale(scale int) bool {
+func (u *userInterface) SetScreenScale(scale int) bool {
 	r := false
 	u.runOnMainThread(func() {
 		r = u.setScreenSize(u.width, u.height, scale)
@@ -135,7 +135,7 @@ func (u *UserInterface) SetScreenScale(scale int) bool {
 	return r
 }
 
-func (u *UserInterface) ScreenScale() int {
+func (u *userInterface) ScreenScale() int {
 	s := 0
 	u.runOnMainThread(func() {
 		s = u.scale
@@ -143,7 +143,7 @@ func (u *UserInterface) ScreenScale() int {
 	return s
 }
 
-func (u *UserInterface) Start(width, height, scale int, title string) error {
+func (u *userInterface) Start(width, height, scale int, title string) error {
 	var err error
 	u.runOnMainThread(func() {
 		m := glfw.GetPrimaryMonitor()
@@ -174,20 +174,20 @@ func (u *UserInterface) Start(width, height, scale int, title string) error {
 	return err
 }
 
-func (u *UserInterface) windowScale() int {
+func (u *userInterface) windowScale() int {
 	return u.scale * int(u.deviceScale)
 }
 
-func (u *UserInterface) actualScreenScale() int {
+func (u *userInterface) actualScreenScale() int {
 	return u.windowScale() * u.framebufferScale
 }
 
-func (u *UserInterface) pollEvents() error {
+func (u *userInterface) pollEvents() error {
 	glfw.PollEvents()
 	return currentInput.update(u.window, u.windowScale())
 }
 
-func (u *UserInterface) Update() (interface{}, error) {
+func (u *userInterface) Update() (interface{}, error) {
 	shouldClose := false
 	u.runOnMainThread(func() {
 		shouldClose = u.window.ShouldClose()
@@ -237,21 +237,23 @@ func (u *UserInterface) Update() (interface{}, error) {
 	return RenderEvent{}, nil
 }
 
-func (u *UserInterface) Terminate() {
+func (u *userInterface) Terminate() error {
 	u.runOnMainThread(func() {
 		glfw.Terminate()
 	})
 	close(u.funcs)
 	u.funcs = nil
+	return nil
 }
 
-func (u *UserInterface) SwapBuffers() {
+func (u *userInterface) SwapBuffers() error {
 	u.runOnMainThread(func() {
 		u.swapBuffers()
 	})
+	return nil
 }
 
-func (u *UserInterface) swapBuffers() {
+func (u *userInterface) swapBuffers() {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
 	u.context.BindZeroFramebuffer()
 	u.context.RunOnContextThread(func() error {
@@ -260,7 +262,7 @@ func (u *UserInterface) swapBuffers() {
 	})
 }
 
-func (u *UserInterface) setScreenSize(width, height, scale int) bool {
+func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	if u.width == width && u.height == height && u.scale == scale {
 		return false
 	}

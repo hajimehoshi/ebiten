@@ -104,6 +104,7 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
 		return err
 	}
+	// TODO: Use the error value
 	defer ui.CurrentUI().Terminate()
 
 	frames := 0
@@ -143,7 +144,9 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 						return err
 					}
 				}
-				ui.CurrentUI().SwapBuffers()
+				if err := ui.CurrentUI().SwapBuffers(); err != nil {
+					return err
+				}
 				beforeForUpdate += int64(tt) * int64(time.Second) / int64(fps)
 				frames++
 			}

@@ -29,37 +29,37 @@ func Main() error {
 	return nil
 }
 
-type UserInterface struct {
+type userInterface struct {
 }
 
-func CurrentUI() *UserInterface {
+func CurrentUI() UserInterface {
 	return nil
 }
 
-func (u *UserInterface) Start(width, height, scale int, title string) error {
+func (u *userInterface) Start(width, height, scale int, title string) error {
 	return nil
 }
 
-func (u *UserInterface) Terminate() error {
+func (u *userInterface) Terminate() error {
 	return nil
 }
 
-func (u *UserInterface) Update() (interface{}, error) {
+func (u *userInterface) Update() (interface{}, error) {
 	return nil, nil
 }
 
-func (u *UserInterface) SwapBuffers() error {
+func (u *userInterface) SwapBuffers() error {
 	return nil
 }
 
-func (u *UserInterface) SetScreenSize(width, height int) bool {
+func (u *userInterface) SetScreenSize(width, height int) bool {
 	return false
 }
 
-func (u *UserInterface) SetScreenScale(scale int) bool {
+func (u *userInterface) SetScreenScale(scale int) bool {
 	return false
 }
 
-func (u *UserInterface) ScreenScale() int {
+func (u *userInterface) ScreenScale() int {
 	return 1
 }

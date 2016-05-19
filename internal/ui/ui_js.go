@@ -24,36 +24,19 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-func (u *UserInterface) SetScreenSize(width, height int) bool {
-	return u.setScreenSize(width, height, u.scale)
-}
-
-func (u *UserInterface) SetScreenScale(scale int) bool {
-	width, height := u.size()
-	return u.setScreenSize(width, height, scale)
-}
-
-func (u *UserInterface) ScreenScale() int {
-	return u.scale
-}
-
-func (u *UserInterface) ActualScreenScale() int {
-	return u.scale * int(u.deviceScale)
-}
-
 var canvas *js.Object
 
-type UserInterface struct {
+type userInterface struct {
 	scale       int
 	deviceScale float64
 	sizeChanged bool
 }
 
-var currentUI = &UserInterface{
+var currentUI = &userInterface{
 	sizeChanged: true,
 }
 
-func CurrentUI() *UserInterface {
+func CurrentUI() UserInterface {
 	return currentUI
 }
 
@@ -80,7 +63,24 @@ func vsync() {
 	<-ch
 }
 
-func (u *UserInterface) Update() (interface{}, error) {
+func (u *userInterface) SetScreenSize(width, height int) bool {
+	return u.setScreenSize(width, height, u.scale)
+}
+
+func (u *userInterface) SetScreenScale(scale int) bool {
+	width, height := u.size()
+	return u.setScreenSize(width, height, scale)
+}
+
+func (u *userInterface) ScreenScale() int {
+	return u.scale
+}
+
+func (u *userInterface) ActualScreenScale() int {
+	return u.scale * int(u.deviceScale)
+}
+
+func (u *userInterface) Update() (interface{}, error) {
 	currentInput.UpdateGamepads()
 	if u.sizeChanged {
 		u.sizeChanged = false
@@ -96,15 +96,17 @@ func (u *UserInterface) Update() (interface{}, error) {
 	return RenderEvent{}, nil
 }
 
-func (u *UserInterface) Terminate() {
+func (u *userInterface) Terminate() error {
 	// Do nothing.
+	return nil
 }
 
-func (u *UserInterface) SwapBuffers() {
+func (u *userInterface) SwapBuffers() error {
 	vsync()
 	for !shown() {
 		vsync()
 	}
+	return nil
 }
 
 func initialize() (*opengl.Context, error) {
@@ -252,7 +254,7 @@ func Main() error {
 	return nil
 }
 
-func (u *UserInterface) Start(width, height, scale int, title string) error {
+func (u *userInterface) Start(width, height, scale int, title string) error {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
@@ -260,7 +262,7 @@ func (u *UserInterface) Start(width, height, scale int, title string) error {
 	return nil
 }
 
-func (u *UserInterface) size() (width, height int) {
+func (u *userInterface) size() (width, height int) {
 	a := int(u.ActualScreenScale())
 	if a == 0 {
 		// a == 0 only on the initial state.
@@ -271,7 +273,7 @@ func (u *UserInterface) size() (width, height int) {
 	return
 }
 
-func (u *UserInterface) setScreenSize(width, height, scale int) bool {
+func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	w, h := u.size()
 	s := u.scale
 	if w == width && h == height && s == scale {
