@@ -14,6 +14,11 @@
 
 package ebiten
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/ui"
+)
+
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
 	return &graphicsContext{
 		f: f,
@@ -25,6 +30,7 @@ type graphicsContext struct {
 	screen              *Image
 	defaultRenderTarget *Image
 	screenScale         int
+	imageTasksDone      bool
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) error {
@@ -49,6 +55,17 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) er
 }
 
 func (c *graphicsContext) Update() error {
+	if !c.imageTasksDone {
+		if err := graphics.Initialize(ui.GLContext()); err != nil {
+			return err
+		}
+		// This execution is called here because we can say actual GL function calls
+		// should be done here (especailly on mobiles).
+		if err := theDelayedImageTasks.exec(); err != nil {
+			return err
+		}
+		c.imageTasksDone = true
+	}
 	if err := c.screen.Clear(); err != nil {
 		return err
 	}

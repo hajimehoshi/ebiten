@@ -15,6 +15,7 @@
 package mobile
 
 import (
+	"errors"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten"
@@ -28,16 +29,6 @@ var chError <-chan error
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 func Start(f func(*ebiten.Image) error, width, height, scale int, title string) {
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
-	return
-}
-
-func LastErrorString() string {
-	select {
-	case err := <-chError:
-		return err.Error()
-	default:
-		return ""
-	}
 }
 
 func SetScreenSize(width, height int) {
@@ -48,13 +39,12 @@ func SetScreenScale(scale int) {
 	ui.CurrentUI().SetScreenScale(scale)
 }
 
-func Render() {
+func Render() error {
 	runtime.LockOSThread()
-	// TODO: Implement this
-	/*select {
-	case <-workAvailable:
-		DoWork()
-	case <-done:
-		return
-	}*/
+	defer runtime.UnlockOSThread()
+
+	if chError == nil {
+		return errors.New("mobile: chError must not be nil: Start is not called yet?")
+	}
+	return ui.Render(chError)
 }

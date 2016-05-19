@@ -561,10 +561,6 @@ func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	// When this is called, OpenGL context should exist.
-	if err := theDelayedImageTasks.exec(); err != nil {
-		return nil, err
-	}
 	return img, nil
 }
 

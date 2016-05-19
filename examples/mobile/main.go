@@ -17,8 +17,6 @@
 package mobile
 
 import (
-	_ "image/jpeg"
-	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
@@ -49,11 +47,16 @@ func update(screen *ebiten.Image) error {
 	return nil
 }
 
-func Start() {
+func Start() error {
 	var err error
 	gophersImage, _, err = common.AssetImage("gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	mobile.Start(update, screenWidth, screenHeight, 2, "Mobile (Ebiten Demo)")
+	return nil
+}
+
+func Render() error {
+	return mobile.Render()
 }

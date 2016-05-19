@@ -17,26 +17,68 @@
 package ui
 
 import (
+	"errors"
+
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 func initialize() (*opengl.Context, error) {
-	// TODO: Implement
-	return nil, nil
+	return opengl.NewContext()
 }
 
 func Main() error {
+	return errors.New("ui: don't call this: use RunWithoutMainLoop instead of Run")
+}
+
+func Render(chError <-chan error) error {
+	if chError == nil {
+		return errors.New("ui: chError must not be nil")
+	}
+	// TODO: Check this is called on the rendering thread
+	chRender <- struct{}{}
+	worker := glContext.Worker()
+loop:
+	for {
+		select {
+		case err := <-chError:
+			return err
+		case <-worker.WorkAvailable():
+			worker.DoWork()
+		case <-chRenderEnd:
+			break loop
+		}
+	}
 	return nil
 }
 
 type userInterface struct {
+	width       int
+	height      int
+	scale       int
+	sizeChanged bool
+	render      chan struct{}
+	renderEnd   chan struct{}
 }
 
+var (
+	chRender    = make(chan struct{})
+	chRenderEnd = make(chan struct{})
+	currentUI   = &userInterface{
+		sizeChanged: true,
+		render:      chRender,
+		renderEnd:   chRenderEnd,
+	}
+)
+
 func CurrentUI() UserInterface {
-	return nil
+	return currentUI
 }
 
 func (u *userInterface) Start(width, height, scale int, title string) error {
+	u.width = width
+	u.height = height
+	u.scale = scale
+	// title is ignored?
 	return nil
 }
 
@@ -45,21 +87,46 @@ func (u *userInterface) Terminate() error {
 }
 
 func (u *userInterface) Update() (interface{}, error) {
-	return nil, nil
+	// TODO: Need lock?
+	if u.sizeChanged {
+		u.sizeChanged = false
+		e := ScreenSizeEvent{
+			Width:       u.width,
+			Height:      u.height,
+			Scale:       u.scale,
+			ActualScale: u.actualScreenScale(),
+		}
+		return e, nil
+	}
+	select {
+	case <-u.render:
+		return RenderEvent{}, nil
+	}
 }
 
 func (u *userInterface) SwapBuffers() error {
 	return nil
 }
 
+func (u *userInterface) FinishRendering() error {
+	u.renderEnd <- struct{}{}
+	return nil
+}
+
 func (u *userInterface) SetScreenSize(width, height int) bool {
+	// TODO: Implement
 	return false
 }
 
 func (u *userInterface) SetScreenScale(scale int) bool {
+	// TODO: Implement
 	return false
 }
 
 func (u *userInterface) ScreenScale() int {
-	return 1
+	return u.scale
+}
+
+func (u *userInterface) actualScreenScale() int {
+	return u.scale
 }

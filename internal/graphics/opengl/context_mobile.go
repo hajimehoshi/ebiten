@@ -41,10 +41,12 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl mgl.Context
+	gl          mgl.Context
+	worker      mgl.Worker
+	initialized chan struct{}
 }
 
-func NewContext() *Context {
+func NewContext() (*Context, error) {
 	c := &Context{
 		Nearest:            mgl.NEAREST,
 		Linear:             mgl.LINEAR,
@@ -65,21 +67,28 @@ func NewContext() *Context {
 		locationCache:      newLocationCache(),
 		lastCompositeMode:  CompositeModeUnknown,
 	}
-	return c
+	c.gl, c.worker = mgl.NewContext()
+	c.initialized = make(chan struct{})
+	go func() {
+		// GL calls will just enqueue an task to the worker.
+		// Since the worker is not avaialbe, this enqueuing should be done
+		// in a goroutine.
+
+		// Textures' pixel formats are alpha premultiplied.
+		c.gl.Enable(mgl.BLEND)
+		c.BlendFunc(CompositeModeSourceOver)
+		close(c.initialized)
+	}()
+	return c, nil
 }
 
-func (c *Context) SetContext(gl mgl.Context) {
-	c.gl = gl
-	if gl == nil {
-		return
-	}
-	// Textures' pixel formats are alpha premultiplied.
-	gl.Enable(mgl.BLEND)
-	c.BlendFunc(CompositeModeSourceOver)
+func (c *Context) WaitUntilInitializingDone() {
+	// TODO: Call this function at an approriate place
+	<-c.initialized
 }
 
-func (c *Context) IsGLContextNil() bool {
-	return c.gl == nil
+func (c *Context) Worker() mgl.Worker {
+	return c.worker
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {

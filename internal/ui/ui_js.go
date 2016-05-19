@@ -20,7 +20,6 @@ import (
 	"strconv"
 
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -109,14 +108,15 @@ func (u *userInterface) SwapBuffers() error {
 	return nil
 }
 
+func (u *userInterface) FinishRendering() error {
+	return nil
+}
+
 func initialize() (*opengl.Context, error) {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
 		c, err := opengl.NewContext()
 		if err != nil {
-			return nil, err
-		}
-		if err := graphics.Initialize(c); err != nil {
 			return nil, err
 		}
 		return c, nil
@@ -224,9 +224,6 @@ func initialize() (*opengl.Context, error) {
 
 	c, err := opengl.NewContext()
 	if err != nil {
-		return nil, err
-	}
-	if err := graphics.Initialize(c); err != nil {
 		return nil, err
 	}
 	return c, nil

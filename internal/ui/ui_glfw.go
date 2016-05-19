@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -85,9 +84,6 @@ func initialize() (*opengl.Context, error) {
 		return nil, err
 	}
 	if err := u.context.Init(); err != nil {
-		return nil, err
-	}
-	if err := graphics.Initialize(u.context); err != nil {
 		return nil, err
 	}
 
@@ -260,6 +256,10 @@ func (u *userInterface) swapBuffers() {
 		u.window.SwapBuffers()
 		return nil
 	})
+}
+
+func (u *userInterface) FinishRendering() error {
+	return nil
 }
 
 func (u *userInterface) setScreenSize(width, height, scale int) bool {

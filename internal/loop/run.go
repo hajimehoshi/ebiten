@@ -150,6 +150,9 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 				beforeForUpdate += int64(tt) * int64(time.Second) / int64(fps)
 				frames++
 			}
+			if err := ui.CurrentUI().FinishRendering(); err != nil {
+				return err
+			}
 
 			// Calc the current FPS.
 			if time.Second <= time.Duration(n2-beforeForFPS) {
