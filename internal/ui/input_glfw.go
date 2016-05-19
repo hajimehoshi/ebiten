@@ -28,7 +28,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *Input) update(window *glfw.Window, scale int) error {
+func (i *input) update(window *glfw.Window, scale int) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 

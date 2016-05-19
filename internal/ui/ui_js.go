@@ -81,7 +81,7 @@ func (u *userInterface) ActualScreenScale() int {
 }
 
 func (u *userInterface) Update() (interface{}, error) {
-	currentInput.UpdateGamepads()
+	currentInput.updateGamepads()
 	if u.sizeChanged {
 		u.sizeChanged = false
 		w, h := u.size()
@@ -165,25 +165,25 @@ func initialize() (*opengl.Context, error) {
 	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
-		currentInput.KeyDown(code)
+		currentInput.keyDown(code)
 	})
 	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
 		e.Call("preventDefault")
 		code := e.Get("keyCode").Int()
-		currentInput.KeyUp(code)
+		currentInput.keyUp(code)
 	})
 
 	// Mouse
 	canvas.Call("addEventListener", "mousedown", func(e *js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
-		currentInput.MouseDown(button)
+		currentInput.mouseDown(button)
 		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mouseup", func(e *js.Object) {
 		e.Call("preventDefault")
 		button := e.Get("button").Int()
-		currentInput.MouseUp(button)
+		currentInput.mouseUp(button)
 		setMouseCursorFromEvent(e)
 	})
 	canvas.Call("addEventListener", "mousemove", func(e *js.Object) {
@@ -198,14 +198,14 @@ func initialize() (*opengl.Context, error) {
 	// TODO: Create indimendent touch functions
 	canvas.Call("addEventListener", "touchstart", func(e *js.Object) {
 		e.Call("preventDefault")
-		currentInput.MouseDown(0)
+		currentInput.mouseDown(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
 	})
 	canvas.Call("addEventListener", "touchend", func(e *js.Object) {
 		e.Call("preventDefault")
-		currentInput.MouseUp(0)
+		currentInput.mouseUp(0)
 		touches := e.Get("changedTouches")
 		touch := touches.Index(0)
 		setMouseCursorFromEvent(touch)
@@ -238,7 +238,7 @@ func setMouseCursorFromEvent(e *js.Object) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	currentInput.SetMouseCursor(x/scale, y/scale)
+	currentInput.setMouseCursor(x/scale, y/scale)
 }
 
 func devicePixelRatio() float64 {
