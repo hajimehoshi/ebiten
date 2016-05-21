@@ -12,19 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-
-package main
+package mobile
 
 import (
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/mobile/mobile"
+	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
-func main() {
-	if err := ebiten.Run(mobile.Update, mobile.ScreenWidth, mobile.ScreenHeight, 2, "Mobile (Ebiten Demo)"); err != nil {
+const (
+	ScreenWidth  = 320
+	ScreenHeight = 240
+)
+
+var (
+	count        int
+	gophersImage *ebiten.Image
+)
+
+func init() {
+	var err error
+	gophersImage, _, err = common.AssetImage("gophers.jpg", ebiten.FilterNearest)
+	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func Update(screen *ebiten.Image) error {
+	count++
+	w, h := gophersImage.Size()
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
+	op.GeoM.Translate(ScreenWidth/2, ScreenHeight/2)
+	if err := screen.DrawImage(gophersImage, op); err != nil {
+		return err
+	}
+	return nil
 }
