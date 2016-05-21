@@ -77,7 +77,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height, scale int, title st
 		}
 		close(ch)
 	}()
-	return nil
+	return ch
 }
 
 // SetScreenSize changes the (logical) size of the screen.
