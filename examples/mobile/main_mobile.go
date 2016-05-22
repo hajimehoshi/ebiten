@@ -29,25 +29,10 @@ import (
 	"github.com/hajimehoshi/ebiten/mobile"
 )
 
-func Start() error {
-	mobile.Start(example.Update, example.ScreenWidth, example.ScreenHeight, 2, "Mobile (Ebiten Demo)")
-	return nil
-}
+// EventDispacher must be redeclared and exported so that this is available on the Java/Objective-C side.
 
-func Render() error {
-	return mobile.Render()
-}
+type EventDispatcher mobile.EventDispatcher
 
-// TODO: So many glue codes: Can I reduce those?
-
-func TouchDown(x, y int) {
-	mobile.TouchDown(x, y)
-}
-
-func TouchUp(x, y int) {
-	mobile.TouchUp(x, y)
-}
-
-func TouchMove(x, y int) {
-	mobile.TouchMove(x, y)
+func Start() (EventDispatcher, error) {
+	return mobile.Start(example.Update, example.ScreenWidth, example.ScreenHeight, 2, "Mobile (Ebiten Demo)")
 }

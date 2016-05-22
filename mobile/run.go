@@ -26,22 +26,35 @@ import (
 
 var chError <-chan error
 
+type EventDispatcher interface {
+	SetScreenSize(width, height int)
+	SetScreenScale(scale int)
+	Render() error
+	TouchDown(x, y int)
+	TouchUp(x, y int)
+	TouchMove(x, y int)
+}
+
 // Start starts the game and returns immediately.
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
-func Start(f func(*ebiten.Image) error, width, height, scale int, title string) {
+func Start(f func(*ebiten.Image) error, width, height, scale int, title string) (EventDispatcher, error) {
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
+	return &eventDispatcher{}, nil
 }
 
-func SetScreenSize(width, height int) {
+type eventDispatcher struct {
+}
+
+func (e *eventDispatcher) SetScreenSize(width, height int) {
 	ui.CurrentUI().SetScreenSize(width, height)
 }
 
-func SetScreenScale(scale int) {
+func (e *eventDispatcher) SetScreenScale(scale int) {
 	ui.CurrentUI().SetScreenScale(scale)
 }
 
-func Render() error {
+func (e *eventDispatcher) Render() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -51,14 +64,14 @@ func Render() error {
 	return ui.Render(chError)
 }
 
-func TouchDown(x, y int) {
+func (e *eventDispatcher) TouchDown(x, y int) {
 	ui.TouchDown(x, y)
 }
 
-func TouchUp(x, y int) {
+func (e *eventDispatcher) TouchUp(x, y int) {
 	ui.TouchUp(x, y)
 }
 
-func TouchMove(x, y int) {
+func (e *eventDispatcher) TouchMove(x, y int) {
 	ui.TouchMove(x, y)
 }
