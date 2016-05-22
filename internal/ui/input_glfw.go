@@ -18,8 +18,9 @@
 package ui
 
 import (
-	glfw "github.com/go-gl/glfw/v3.1/glfw"
 	"math"
+
+	glfw "github.com/go-gl/glfw/v3.1/glfw"
 )
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{

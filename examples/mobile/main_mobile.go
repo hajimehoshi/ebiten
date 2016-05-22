@@ -37,3 +37,17 @@ func Start() error {
 func Render() error {
 	return mobile.Render()
 }
+
+// TODO: So many glue codes: Can I reduce those?
+
+func TouchDown(x, y int) {
+	mobile.TouchDown(x, y)
+}
+
+func TouchUp(x, y int) {
+	mobile.TouchUp(x, y)
+}
+
+func TouchMove(x, y int) {
+	mobile.TouchMove(x, y)
+}

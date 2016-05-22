@@ -50,3 +50,15 @@ func Render() error {
 	}
 	return ui.Render(chError)
 }
+
+func TouchDown(x, y int) {
+	ui.TouchDown(x, y)
+}
+
+func TouchUp(x, y int) {
+	ui.TouchUp(x, y)
+}
+
+func TouchMove(x, y int) {
+	ui.TouchMove(x, y)
+}

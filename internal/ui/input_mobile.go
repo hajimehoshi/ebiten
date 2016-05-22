@@ -15,3 +15,23 @@
 // +build android
 
 package ui
+
+func (i *input) touchDown(x, y int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	i.mouseButtonPressed[MouseButtonLeft] = true
+	i.cursorX, i.cursorY = x, y
+}
+
+func (i *input) touchUp(x, y int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	i.mouseButtonPressed[MouseButtonLeft] = false
+	i.cursorX, i.cursorY = x, y
+}
+
+func (i *input) touchMove(x, y int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	i.cursorX, i.cursorY = x, y
+}

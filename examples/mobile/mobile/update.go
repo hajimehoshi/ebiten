@@ -15,10 +15,12 @@
 package mobile
 
 import (
+	"fmt"
 	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
@@ -50,5 +52,11 @@ func Update(screen *ebiten.Image) error {
 	if err := screen.DrawImage(gophersImage, op); err != nil {
 		return err
 	}
+	msg := ""
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		msg = fmt.Sprintf("(%d, %d)", x, y)
+	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

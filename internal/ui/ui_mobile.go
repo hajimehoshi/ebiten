@@ -130,3 +130,18 @@ func (u *userInterface) ScreenScale() int {
 func (u *userInterface) actualScreenScale() int {
 	return u.scale
 }
+
+func TouchDown(x, y int) {
+	s := currentUI.actualScreenScale()
+	currentInput.touchDown(x/s, y/s)
+}
+
+func TouchUp(x, y int) {
+	s := currentUI.actualScreenScale()
+	currentInput.touchUp(x/s, y/s)
+}
+
+func TouchMove(x, y int) {
+	s := currentUI.actualScreenScale()
+	currentInput.touchMove(x/s, y/s)
+}
