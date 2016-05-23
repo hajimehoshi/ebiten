@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js,!windows
+// +build !js,!windows,!android
 
 package driver
 
@@ -87,7 +87,6 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	for _, b := range bs {
 		// Note that the third argument of only the first buffer is used.
 		b.SetData(p.alFormat, emptyBytes, int32(p.sampleRate))
-		//p.alSource.QueueBuffer(b)
 		p.alBuffers = append(p.alBuffers, b)
 	}
 	p.alSource.Play()
