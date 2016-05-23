@@ -17,12 +17,18 @@ package ui
 type CloseEvent struct {
 }
 
-type RenderEvent struct {
-}
-
 type ScreenSizeEvent struct {
 	Width       int
 	Height      int
 	Scale       int
 	ActualScale int
+}
+
+type RenderEvent struct {
+}
+
+type PauseEvent struct {
+}
+
+type ResumeEvent struct {
 }

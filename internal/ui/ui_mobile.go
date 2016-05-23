@@ -56,8 +56,10 @@ type userInterface struct {
 	height      int
 	scale       int
 	sizeChanged bool
-	render      chan struct{}
-	renderEnd   chan struct{}
+	chRender    chan struct{}
+	chRenderEnd chan struct{}
+	chPause     chan struct{}
+	chResume    chan struct{}
 }
 
 var (
@@ -65,8 +67,8 @@ var (
 	chRenderEnd = make(chan struct{})
 	currentUI   = &userInterface{
 		sizeChanged: true,
-		render:      chRender,
-		renderEnd:   chRenderEnd,
+		chRender:    chRender,
+		chRenderEnd: chRenderEnd,
 	}
 )
 
@@ -99,7 +101,11 @@ func (u *userInterface) Update() (interface{}, error) {
 		return e, nil
 	}
 	select {
-	case <-u.render:
+	case <-u.chPause:
+		return PauseEvent{}, nil
+	case <-u.chResume:
+		return ResumeEvent{}, nil
+	case <-u.chRender:
 		return RenderEvent{}, nil
 	}
 }
@@ -109,7 +115,7 @@ func (u *userInterface) SwapBuffers() error {
 }
 
 func (u *userInterface) FinishRendering() error {
-	u.renderEnd <- struct{}{}
+	u.chRenderEnd <- struct{}{}
 	return nil
 }
 
@@ -129,6 +135,18 @@ func (u *userInterface) ScreenScale() int {
 
 func (u *userInterface) actualScreenScale() int {
 	return u.scale
+}
+
+func Pause() {
+	go func() {
+		currentUI.chPause <- struct{}{}
+	}()
+}
+
+func Resume() {
+	go func() {
+		currentUI.chResume <- struct{}{}
+	}()
 }
 
 func TouchDown(x, y int) {

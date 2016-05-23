@@ -29,7 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/mobile"
 )
 
-// EventDispacher must be redeclared and exported so that this is available on the Java/Objective-C side.
+// EventDispacher must be redeclared and exported to be available on the Java/Objective-C side.
 
 type EventDispatcher mobile.EventDispatcher
 

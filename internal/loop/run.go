@@ -95,6 +95,8 @@ func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
 type GraphicsContext interface {
 	SetSize(width, height, scale int) error
 	Update() error
+	Pause() error
+	Resume() error
 }
 
 func Run(g GraphicsContext, width, height, scale int, title string, fps int) error {
@@ -159,6 +161,14 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 				currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(n2-beforeForFPS))
 				beforeForFPS = n2
 				frames = 0
+			}
+		case ui.PauseEvent:
+			if err := g.Pause(); err != nil {
+				return err
+			}
+		case ui.ResumeEvent:
+			if err := g.Resume(); err != nil {
+				return err
 			}
 		default:
 			panic("not reach")

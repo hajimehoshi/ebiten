@@ -87,3 +87,26 @@ func (c *graphicsContext) Update() error {
 	}
 	return nil
 }
+
+func (c *graphicsContext) Pause() error {
+	if err := theImages.evacuatePixels(); err != nil {
+		return err
+	}
+	if err := graphics.Finalize(ui.GLContext()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *graphicsContext) Resume() error {
+	if !c.imageTasksDone {
+		return nil
+	}
+	if err := graphics.Initialize(ui.GLContext()); err != nil {
+		return err
+	}
+	if err := theImages.restorePixels(); err != nil {
+		return err
+	}
+	return nil
+}

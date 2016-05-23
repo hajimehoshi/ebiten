@@ -17,6 +17,7 @@ package graphics
 import (
 	"errors"
 	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
