@@ -180,13 +180,8 @@ func NewContext(sampleRate int) (*Context, error) {
 	c.players = &players{
 		players: map[*Player]struct{}{},
 	}
-	// TODO: Rename this other than player
-	p, err := driver.NewPlayer(sampleRate, channelNum, bytesPerSample)
-	c.driver = p
-	if err != nil {
-		return nil, err
-	}
 	return c, nil
+
 }
 
 // Update proceeds the inner (logical) time of the context by 1/60 second.
@@ -197,6 +192,18 @@ func NewContext(sampleRate int) (*Context, error) {
 // you will find audio stops when the game stops e.g. when the window is deactivated.
 // In async mode, the audio never stops even when the game stops.
 func (c *Context) Update() error {
+	// Initialize c.driver lazily to enable calling NewContext in an 'init' function.
+	// Accessing driver functions requires that the environment is already initialized,
+	// but if Ebiten is used for a shared library, how init functions are called is unexpectable.
+	// e.g. a variable for JVM on Android might not be set.
+	if c.driver == nil {
+		// TODO: Rename this other than player
+		p, err := driver.NewPlayer(c.sampleRate, channelNum, bytesPerSample)
+		c.driver = p
+		if err != nil {
+			return err
+		}
+	}
 	c.frames++
 	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / ebiten.FPS
 	l := (c.frames * bytesPerFrame) - c.writtenBytes
