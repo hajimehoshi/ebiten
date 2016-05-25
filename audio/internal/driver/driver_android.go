@@ -182,7 +182,6 @@ import "C"
 
 import (
 	"errors"
-	"sync"
 	"unsafe"
 )
 
@@ -193,8 +192,8 @@ type Player struct {
 	audioTrack     C.jobject
 	buffer         []byte
 	bufferSize     int
-	m              sync.Mutex
 	chErr          chan error
+	chBuffer       chan []byte
 }
 
 func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
@@ -204,6 +203,7 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		bytesPerSample: bytesPerSample,
 		buffer:         []byte{},
 		chErr:          make(chan error),
+		chBuffer:       make(chan []byte),
 	}
 	if err := runOnJVM(func(vm, env, ctx uintptr) error {
 		audioTrack := C.jobject(nil)
@@ -219,6 +219,38 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	}); err != nil {
 		return nil, err
 	}
+	go func() {
+		for bufInBytes := range p.chBuffer {
+			var bufInShorts []int16
+			if p.bytesPerSample == 2 {
+				bufInShorts = make([]int16, len(bufInBytes)/2)
+				for i := 0; i < len(bufInShorts); i++ {
+					bufInShorts[i] = int16(bufInBytes[2*i]) | (int16(bufInBytes[2*i+1]) << 8)
+				}
+			}
+
+			if err := runOnJVM(func(vm, env, ctx uintptr) error {
+				msg := (*C.char)(nil)
+				switch p.bytesPerSample {
+				case 1:
+					msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+						p.audioTrack, C.int(p.bytesPerSample),
+						unsafe.Pointer(&bufInBytes[0]), C.int(len(bufInBytes)))
+				case 2:
+					msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+						p.audioTrack, C.int(p.bytesPerSample),
+						unsafe.Pointer(&bufInShorts[0]), C.int(len(bufInShorts)))
+				}
+				if msg != nil {
+					return errors.New(C.GoString(msg))
+				}
+				return nil
+			}); err != nil {
+				p.chErr <- err
+				return
+			}
+		}
+	}()
 	return p, nil
 }
 
@@ -232,38 +264,9 @@ func (p *Player) Proceed(data []byte) error {
 	if len(p.buffer) < p.bufferSize {
 		return nil
 	}
-	bufInBytes := p.buffer[:p.bufferSize]
-	var bufInShorts []int16
-	if p.bytesPerSample == 2 {
-		bufInShorts = make([]int16, len(bufInBytes)/2)
-		for i := 0; i < len(bufInShorts); i++ {
-			bufInShorts[i] = int16(bufInBytes[2*i]) | (int16(bufInBytes[2*i+1]) << 8)
-		}
-	}
+	buf := p.buffer[:p.bufferSize]
+	p.chBuffer <- buf
 	p.buffer = p.buffer[p.bufferSize:]
-	go func() {
-		p.m.Lock()
-		defer p.m.Unlock()
-		if err := runOnJVM(func(vm, env, ctx uintptr) error {
-			msg := (*C.char)(nil)
-			switch p.bytesPerSample {
-			case 1:
-				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
-					p.audioTrack, C.int(p.bytesPerSample),
-					unsafe.Pointer(&bufInBytes[0]), C.int(len(bufInBytes)))
-			case 2:
-				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
-					p.audioTrack, C.int(p.bytesPerSample),
-					unsafe.Pointer(&bufInShorts[0]), C.int(len(bufInShorts)))
-			}
-			if msg != nil {
-				return errors.New(C.GoString(msg))
-			}
-			return nil
-		}); err != nil {
-			p.chErr <- err
-		}
-	}()
 	return nil
 }
 
