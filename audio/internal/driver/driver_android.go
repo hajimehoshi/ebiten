@@ -219,39 +219,41 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	}); err != nil {
 		return nil, err
 	}
-	go func() {
-		for bufInBytes := range p.chBuffer {
-			var bufInShorts []int16
-			if p.bytesPerSample == 2 {
-				bufInShorts = make([]int16, len(bufInBytes)/2)
-				for i := 0; i < len(bufInShorts); i++ {
-					bufInShorts[i] = int16(bufInBytes[2*i]) | (int16(bufInBytes[2*i+1]) << 8)
-				}
-			}
+	go p.loop()
+	return p, nil
+}
 
-			if err := runOnJVM(func(vm, env, ctx uintptr) error {
-				msg := (*C.char)(nil)
-				switch p.bytesPerSample {
-				case 1:
-					msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
-						p.audioTrack, C.int(p.bytesPerSample),
-						unsafe.Pointer(&bufInBytes[0]), C.int(len(bufInBytes)))
-				case 2:
-					msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
-						p.audioTrack, C.int(p.bytesPerSample),
-						unsafe.Pointer(&bufInShorts[0]), C.int(len(bufInShorts)))
-				}
-				if msg != nil {
-					return errors.New(C.GoString(msg))
-				}
-				return nil
-			}); err != nil {
-				p.chErr <- err
-				return
+func (p *Player) loop() {
+	for bufInBytes := range p.chBuffer {
+		var bufInShorts []int16
+		if p.bytesPerSample == 2 {
+			bufInShorts = make([]int16, len(bufInBytes)/2)
+			for i := 0; i < len(bufInShorts); i++ {
+				bufInShorts[i] = int16(bufInBytes[2*i]) | (int16(bufInBytes[2*i+1]) << 8)
 			}
 		}
-	}()
-	return p, nil
+
+		if err := runOnJVM(func(vm, env, ctx uintptr) error {
+			msg := (*C.char)(nil)
+			switch p.bytesPerSample {
+			case 1:
+				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+					p.audioTrack, C.int(p.bytesPerSample),
+					unsafe.Pointer(&bufInBytes[0]), C.int(len(bufInBytes)))
+			case 2:
+				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+					p.audioTrack, C.int(p.bytesPerSample),
+					unsafe.Pointer(&bufInShorts[0]), C.int(len(bufInShorts)))
+			}
+			if msg != nil {
+				return errors.New(C.GoString(msg))
+			}
+			return nil
+		}); err != nil {
+			p.chErr <- err
+			return
+		}
+	}
 }
 
 func (p *Player) Proceed(data []byte) error {
