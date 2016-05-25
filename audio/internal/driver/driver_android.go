@@ -255,17 +255,16 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 }
 
 func (p *Player) Proceed(data []byte) error {
-	select {
-	case err := <-p.chErr:
-		return err
-	default:
-	}
 	p.buffer = append(p.buffer, data...)
 	if len(p.buffer) < p.bufferSize {
 		return nil
 	}
 	buf := p.buffer[:p.bufferSize]
-	p.chBuffer <- buf
+	select {
+	case p.chBuffer <- buf:
+	case err := <-p.chErr:
+		return err
+	}
 	p.buffer = p.buffer[p.bufferSize:]
 	return nil
 }
