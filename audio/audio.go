@@ -217,6 +217,7 @@ func (c *Context) Update() error {
 	if n != len(buf) {
 		return c.driver.Close()
 	}
+	// TODO: Rename this to Enqueue
 	err = c.driver.Proceed(buf)
 	if err == io.EOF {
 		return c.driver.Close()
