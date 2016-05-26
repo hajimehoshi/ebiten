@@ -36,29 +36,48 @@ var (
 	canvasImage *ebiten.Image
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		count++
+func paint(screen *ebiten.Image, x, y int) error {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
+	theta := 2.0 * math.Pi * float64(count%60) / ebiten.FPS
+	op.ColorM.RotateHue(theta)
+	if err := canvasImage.DrawImage(brushImage, op); err != nil {
+		return err
 	}
+	return nil
+}
 
+func update(screen *ebiten.Image) error {
+	drawn := false
 	mx, my := ebiten.CursorPosition()
-
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(mx), float64(my))
-		op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
-		theta := 2.0 * math.Pi * float64(count%60) / ebiten.FPS
-		op.ColorM.RotateHue(theta)
-		if err := canvasImage.DrawImage(brushImage, op); err != nil {
+		if err := paint(screen, mx, my); err != nil {
 			return err
 		}
+		drawn = true
+	}
+	for _, t := range ebiten.Touches() {
+		x, y := t.Position()
+		if err := paint(screen, x, y); err != nil {
+			return err
+		}
+		drawn = true
+	}
+	if drawn {
+		count++
 	}
 
 	if err := screen.DrawImage(canvasImage, nil); err != nil {
 		return err
 	}
 
-	if err := ebitenutil.DebugPrint(screen, fmt.Sprintf("(%d, %d)", mx, my)); err != nil {
+	msg := fmt.Sprintf("(%d, %d)", mx, my)
+	for _, t := range ebiten.Touches() {
+		x, y := t.Position()
+		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t.ID())
+	}
+	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
 		return err
 	}
 	return nil
