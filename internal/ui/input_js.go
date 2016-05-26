@@ -112,3 +112,10 @@ func (i *input) updateGamepads() {
 		}
 	}
 }
+
+func (i *input) updateTouches(t []touch) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	i.touches = make([]touch, len(t))
+	copy(i.touches, t)
+}

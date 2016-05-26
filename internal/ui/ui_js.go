@@ -112,6 +112,20 @@ func (u *userInterface) FinishRendering() error {
 	return nil
 }
 
+func touchEventToTouches(e *js.Object) []touch {
+	scale := currentUI.scale
+	j := e.Get("targetTouches")
+	t := make([]touch, j.Get("length").Int())
+	for i := 0; i < len(t); i++ {
+		jj := j.Call("item", i)
+		target := jj.Get("target")
+		t[i].id = jj.Get("identifier").Int()
+		t[i].x = (jj.Get("clientX").Int() - target.Get("left").Int()) / scale
+		t[i].y = (jj.Get("clientY").Int() - target.Get("top").Int()) / scale
+	}
+	return t
+}
+
 func initialize() (*opengl.Context, error) {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
@@ -194,27 +208,18 @@ func initialize() (*opengl.Context, error) {
 		e.Call("preventDefault")
 	})
 
-	// Touch (emulating mouse events)
-	// TODO: Create indimendent touch functions
+	// Touch
 	canvas.Call("addEventListener", "touchstart", func(e *js.Object) {
 		e.Call("preventDefault")
-		currentInput.mouseDown(0)
-		touches := e.Get("changedTouches")
-		touch := touches.Index(0)
-		setMouseCursorFromEvent(touch)
+		currentInput.updateTouches(touchEventToTouches(e))
 	})
 	canvas.Call("addEventListener", "touchend", func(e *js.Object) {
 		e.Call("preventDefault")
-		currentInput.mouseUp(0)
-		touches := e.Get("changedTouches")
-		touch := touches.Index(0)
-		setMouseCursorFromEvent(touch)
+		currentInput.updateTouches(touchEventToTouches(e))
 	})
 	canvas.Call("addEventListener", "touchmove", func(e *js.Object) {
 		e.Call("preventDefault")
-		touches := e.Get("changedTouches")
-		touch := touches.Index(0)
-		setMouseCursorFromEvent(touch)
+		currentInput.updateTouches(touchEventToTouches(e))
 	})
 
 	// Gamepad

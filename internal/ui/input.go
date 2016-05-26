@@ -28,6 +28,12 @@ type Input interface {
 	GamepadAxisNum(id int) int
 	GamepadButtonNum(id int) int
 	IsGamepadButtonPressed(id int, button GamepadButton) bool
+	Touches() []Touch
+}
+
+type Touch interface {
+	ID() int
+	Position() (x, y int)
 }
 
 type input struct {
@@ -36,14 +42,8 @@ type input struct {
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
+	touches            []touch
 	m                  sync.RWMutex
-}
-
-type gamePad struct {
-	axisNum       int
-	axes          [16]float64
-	buttonNum     int
-	buttonPressed [256]bool
 }
 
 func CurrentInput() Input {
@@ -102,4 +102,33 @@ func (i *input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
 		return false
 	}
 	return i.gamepads[id].buttonPressed[button]
+}
+
+func (in *input) Touches() []Touch {
+	t := make([]Touch, len(in.touches))
+	for i := 0; i < len(t); i++ {
+		t[i] = &in.touches[i]
+	}
+	return t
+}
+
+type gamePad struct {
+	axisNum       int
+	axes          [16]float64
+	buttonNum     int
+	buttonPressed [256]bool
+}
+
+type touch struct {
+	id int
+	x  int
+	y  int
+}
+
+func (t *touch) ID() int {
+	return t.id
+}
+
+func (t *touch) Position() (x, y int) {
+	return t.x, t.y
 }

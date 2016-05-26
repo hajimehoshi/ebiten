@@ -35,6 +35,9 @@ func CursorPosition() (x, y int) {
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 //
 // This function is concurrent-safe.
+//
+// Note that touch events not longer affect this function's result as of 1.4.0-alpha.
+// Use Touches instead.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return ui.CurrentInput().IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
@@ -77,4 +80,18 @@ func GamepadButtonNum(id int) int {
 // To use this API, browsers might require rebooting the browser.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return ui.CurrentInput().IsGamepadButtonPressed(id, ui.GamepadButton(button))
+}
+
+type Touch interface {
+	ID() int
+	Position() (x, y int)
+}
+
+func Touches() []Touch {
+	t := ui.CurrentInput().Touches()
+	tt := make([]Touch, len(t))
+	for i := 0; i < len(tt); i++ {
+		tt[i] = t[i]
+	}
+	return tt
 }
