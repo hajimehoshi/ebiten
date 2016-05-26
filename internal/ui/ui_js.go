@@ -115,13 +115,14 @@ func (u *userInterface) FinishRendering() error {
 func touchEventToTouches(e *js.Object) []touch {
 	scale := currentUI.scale
 	j := e.Get("targetTouches")
+	rect := canvas.Call("getBoundingClientRect")
+	left, top := rect.Get("left").Int(), rect.Get("top").Int()
 	t := make([]touch, j.Get("length").Int())
 	for i := 0; i < len(t); i++ {
 		jj := j.Call("item", i)
-		target := jj.Get("target")
 		t[i].id = jj.Get("identifier").Int()
-		t[i].x = (jj.Get("clientX").Int() - target.Get("left").Int()) / scale
-		t[i].y = (jj.Get("clientY").Int() - target.Get("top").Int()) / scale
+		t[i].x = (jj.Get("clientX").Int() - left) / scale
+		t[i].y = (jj.Get("clientY").Int() - top) / scale
 	}
 	return t
 }
