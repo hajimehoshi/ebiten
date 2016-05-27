@@ -40,7 +40,7 @@ type EventDispatcher interface {
 // Start starts the game and returns immediately.
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
-func Start(f func(*ebiten.Image) error, width, height, scale int, title string) (EventDispatcher, error) {
+func Start(f func(*ebiten.Image) error, width, height, scale int, title string, viewID int) (EventDispatcher, error) {
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
 	return &eventDispatcher{}, nil
 }
