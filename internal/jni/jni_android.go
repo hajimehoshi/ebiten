@@ -4,7 +4,7 @@
 // and editted.
 // This file is licensed under the 3-clause BSD license.
 
-package driver
+package jni
 
 /*
 #include <jni.h>
@@ -69,7 +69,7 @@ import (
 	"unsafe"
 )
 
-func runOnJVM(fn func(vm, env, ctx uintptr) error) error {
+func RunOnJVM(fn func(vm, env, ctx uintptr) error) error {
 	errch := make(chan error)
 	go func() {
 		runtime.LockOSThread()

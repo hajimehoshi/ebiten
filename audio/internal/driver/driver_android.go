@@ -183,6 +183,8 @@ import "C"
 import (
 	"errors"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/internal/jni"
 )
 
 type Player struct {
@@ -205,7 +207,7 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		chErr:          make(chan error),
 		chBuffer:       make(chan []byte),
 	}
-	if err := runOnJVM(func(vm, env, ctx uintptr) error {
+	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
 		audioTrack := C.jobject(nil)
 		bufferSize := C.int(0)
 		if msg := C.initAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
@@ -233,7 +235,7 @@ func (p *Player) loop() {
 			}
 		}
 
-		if err := runOnJVM(func(vm, env, ctx uintptr) error {
+		if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
 			msg := (*C.char)(nil)
 			switch p.bytesPerSample {
 			case 1:
