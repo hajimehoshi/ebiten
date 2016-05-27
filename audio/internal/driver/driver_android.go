@@ -24,7 +24,7 @@ package driver
 
 // __android_log_print(ANDROID_LOG_ERROR, "NativeCode", "foo", "bar");
 
-static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env, jobject context,
+static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     int sampleRate, int channelNum, int bytesPerSample, jobject* audioTrack, int* bufferSize) {
   *bufferSize = 0;
   JavaVM* vm = (JavaVM*)java_vm;
@@ -127,7 +127,7 @@ static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env, jobject contex
   return NULL;
 }
 
-static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env, jobject context,
+static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     jobject audioTrack, int bytesPerSample, void* data, int length) {
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;
@@ -210,10 +210,10 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
 		audioTrack := C.jobject(nil)
 		bufferSize := C.int(0)
-		if msg := C.initAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+		if msg := C.initAudioTrack(C.uintptr_t(vm), C.uintptr_t(env),
 			C.int(sampleRate), C.int(channelNum), C.int(bytesPerSample),
 			&audioTrack, &bufferSize); msg != nil {
-			return errors.New(C.GoString(msg))
+			return errors.New("driver: " + C.GoString(msg))
 		}
 		p.audioTrack = audioTrack
 		p.bufferSize = int(bufferSize)
@@ -239,11 +239,11 @@ func (p *Player) loop() {
 			msg := (*C.char)(nil)
 			switch p.bytesPerSample {
 			case 1:
-				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env),
 					p.audioTrack, C.int(p.bytesPerSample),
 					unsafe.Pointer(&bufInBytes[0]), C.int(len(bufInBytes)))
 			case 2:
-				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env), C.jobject(ctx),
+				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env),
 					p.audioTrack, C.int(p.bytesPerSample),
 					unsafe.Pointer(&bufInShorts[0]), C.int(len(bufInShorts)))
 			}
