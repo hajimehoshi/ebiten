@@ -35,7 +35,7 @@ type header struct {
 }
 
 func newHeader(waveOut C.HWAVEOUT, bufferSize int) (*header, error) {
-	// NOTE: This is never freed so far.
+	// NOTE: This is never freed so far, and we don't have to because newHeader is called a certain number of times.
 	buf := C.malloc(C.size_t(bufferSize))
 	h := &header{
 		buffer:     buf,
