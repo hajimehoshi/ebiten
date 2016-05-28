@@ -134,10 +134,10 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
 
   const jclass android_media_AudioTrack =
       (*env)->FindClass(env, "android/media/AudioTrack");
-  const jint android_media_AudioTrack_WRITE_NON_BLOCKING =
+  const jint android_media_AudioTrack_WRITE_BLOCKING =
       (*env)->GetStaticIntField(
           env, android_media_AudioTrack,
-          (*env)->GetStaticFieldID(env, android_media_AudioTrack, "WRITE_NON_BLOCKING", "I"));
+          (*env)->GetStaticFieldID(env, android_media_AudioTrack, "WRITE_BLOCKING", "I"));
 
   jbyteArray arrInBytes;
   jshortArray arrInShorts;
@@ -151,26 +151,23 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     (*env)->SetShortArrayRegion(env, arrInShorts, 0, length, data);
     break;
   }
-  int i = 0;
-  for (i = 0; i < length;) {
-    jint result = 0;
-    switch (bytesPerSample) {
-    case 1:
-      result =
-          (*env)->CallIntMethod(
-              env, audioTrack,
-              (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BIII)I"),
-              arrInBytes, i, length - i, android_media_AudioTrack_WRITE_NON_BLOCKING);
-      break;
-    case 2:
-      result =
-          (*env)->CallIntMethod(
-              env, audioTrack,
-              (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SIII)I"),
-              arrInShorts, i, length - i, android_media_AudioTrack_WRITE_NON_BLOCKING);
-      break;
-    }
-    i += result;
+
+  jint result;
+  switch (bytesPerSample) {
+  case 1:
+    result =
+        (*env)->CallIntMethod(
+            env, audioTrack,
+            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BIII)I"),
+            arrInBytes, 0, length, android_media_AudioTrack_WRITE_BLOCKING);
+    break;
+  case 2:
+    result =
+        (*env)->CallIntMethod(
+            env, audioTrack,
+            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SIII)I"),
+            arrInShorts, 0, length, android_media_AudioTrack_WRITE_BLOCKING);
+    break;
   }
 
   // TODO: Check the result.
