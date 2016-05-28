@@ -15,6 +15,7 @@
 package loop
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -40,7 +41,7 @@ type runContext struct {
 	m             sync.RWMutex
 }
 
-var currentRunContext runContext
+var currentRunContext *runContext
 
 func (c *runContext) startRunning() {
 	c.m.Lock()
@@ -100,6 +101,10 @@ type GraphicsContext interface {
 }
 
 func Run(g GraphicsContext, width, height, scale int, title string, fps int) error {
+	if currentRunContext != nil {
+		return errors.New("loop: The game is already running")
+	}
+	currentRunContext = &runContext{}
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
