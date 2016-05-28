@@ -33,6 +33,6 @@ import (
 
 type EventDispatcher mobile.EventDispatcher
 
-func Start(viewID int) (EventDispatcher, error) {
-	return mobile.Start(example.Update, example.ScreenWidth, example.ScreenHeight, 2, "Mobile (Ebiten Demo)", viewID)
+func Start() (EventDispatcher, error) {
+	return mobile.Start(example.Update, example.ScreenWidth, example.ScreenHeight, 2, "Mobile (Ebiten Demo)")
 }
