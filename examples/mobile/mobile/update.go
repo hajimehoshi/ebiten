@@ -131,9 +131,9 @@ func Update(screen *ebiten.Image) error {
 		return err
 	}
 	msg := ""
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		x, y := ebiten.CursorPosition()
-		msg = fmt.Sprintf("(%d, %d)", x, y)
+	for _, t := range ebiten.Touches() {
+		x, y := t.Position()
+		msg += fmt.Sprintf("ID: %d, (%d, %d)\n", t.ID(), x, y)
 	}
 	ebitenutil.DebugPrint(screen, msg)
 	return nil

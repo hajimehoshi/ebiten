@@ -32,9 +32,9 @@ type EventDispatcher interface {
 	Render() error
 	Pause()
 	Resume()
-	TouchDown(x, y int)
-	TouchUp(x, y int)
-	TouchMove(x, y int)
+	TouchDown(id int, x, y int)
+	TouchMove(id int, x, y int)
+	TouchUp(id int)
 }
 
 // Start starts the game and returns immediately.
@@ -42,10 +42,18 @@ type EventDispatcher interface {
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 func Start(f func(*ebiten.Image) error, width, height, scale int, title string) (EventDispatcher, error) {
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
-	return &eventDispatcher{}, nil
+	return &eventDispatcher{
+		touches: map[int]position{},
+	}, nil
+}
+
+type position struct {
+	x int
+	y int
 }
 
 type eventDispatcher struct {
+	touches map[int]position
 }
 
 func (e *eventDispatcher) SetScreenSize(width, height int) {
@@ -74,14 +82,41 @@ func (e *eventDispatcher) Resume() {
 	ui.Resume()
 }
 
-func (e *eventDispatcher) TouchDown(x, y int) {
-	ui.TouchDown(x, y)
+// touch implements ui.Touch.
+type touch struct {
+	id       int
+	position position
 }
 
-func (e *eventDispatcher) TouchUp(x, y int) {
-	ui.TouchUp(x, y)
+func (t touch) ID() int {
+	return t.id
 }
 
-func (e *eventDispatcher) TouchMove(x, y int) {
-	ui.TouchMove(x, y)
+func (t touch) Position() (int, int) {
+	// TODO: Is this OK to adjust the position here?
+	return t.position.x / ui.CurrentUI().ScreenScale(),
+		t.position.y / ui.CurrentUI().ScreenScale()
+}
+
+func (e *eventDispatcher) TouchDown(id int, x, y int) {
+	e.touches[id] = position{x, y}
+	e.updateTouches()
+}
+
+func (e *eventDispatcher) TouchMove(id int, x, y int) {
+	e.touches[id] = position{x, y}
+	e.updateTouches()
+}
+
+func (e *eventDispatcher) TouchUp(id int) {
+	delete(e.touches, id)
+	e.updateTouches()
+}
+
+func (e *eventDispatcher) updateTouches() {
+	ts := []ui.Touch{}
+	for id, position := range e.touches {
+		ts = append(ts, touch{id, position})
+	}
+	ui.UpdateTouches(ts)
 }

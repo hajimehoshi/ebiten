@@ -149,17 +149,6 @@ func Resume() {
 	}()
 }
 
-func TouchDown(x, y int) {
-	s := currentUI.actualScreenScale()
-	currentInput.touchDown(x/s, y/s)
-}
-
-func TouchUp(x, y int) {
-	s := currentUI.actualScreenScale()
-	currentInput.touchUp(x/s, y/s)
-}
-
-func TouchMove(x, y int) {
-	s := currentUI.actualScreenScale()
-	currentInput.touchMove(x/s, y/s)
+func UpdateTouches(touches []Touch) {
+	currentInput.updateTouches(touches)
 }

@@ -16,22 +16,14 @@
 
 package ui
 
-func (i *input) touchDown(x, y int) {
+func (i *input) updateTouches(touches []Touch) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.mouseButtonPressed[MouseButtonLeft] = true
-	i.cursorX, i.cursorY = x, y
-}
-
-func (i *input) touchUp(x, y int) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	i.mouseButtonPressed[MouseButtonLeft] = false
-	i.cursorX, i.cursorY = x, y
-}
-
-func (i *input) touchMove(x, y int) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	i.cursorX, i.cursorY = x, y
+	ts := make([]touch, len(touches))
+	for i := 0; i < len(ts); i++ {
+		ts[i].id = touches[i].ID()
+		x, y := touches[i].Position()
+		ts[i].x, ts[i].y = x, y
+	}
+	i.touches = ts
 }
