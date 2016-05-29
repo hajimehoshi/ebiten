@@ -135,6 +135,16 @@ func (p *programContext) begin() {
 	c := p.context
 	if p.state.lastProgram != p.program {
 		c.UseProgram(p.program)
+		var zeroProgram opengl.Program
+		if p.state.lastProgram != zeroProgram {
+			c.DisableVertexAttribArray(p.state.lastProgram, "tex_coord")
+			c.DisableVertexAttribArray(p.state.lastProgram, "vertex")
+		}
+		c.EnableVertexAttribArray(p.program, "vertex")
+		c.EnableVertexAttribArray(p.program, "tex_coord")
+		c.VertexAttribPointer(p.program, "vertex", false, int16Size*4, 2, int16Size*0)
+		c.VertexAttribPointer(p.program, "tex_coord", true, int16Size*4, 2, int16Size*2)
+
 		p.state.lastProgram = p.state.programTexture
 		p.state.lastProjectionMatrix = nil
 		p.state.lastModelviewMatrix = nil
@@ -207,16 +217,8 @@ func (p *programContext) begin() {
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
 	c.BindTexture(p.texture)
-
-	c.EnableVertexAttribArray(p.program, "vertex")
-	c.EnableVertexAttribArray(p.program, "tex_coord")
-
-	c.VertexAttribPointer(p.program, "vertex", false, int16Size*4, 2, int16Size*0)
-	c.VertexAttribPointer(p.program, "tex_coord", true, int16Size*4, 2, int16Size*2)
 }
 
 func (p *programContext) end() {
-	c := p.context
-	c.DisableVertexAttribArray(p.program, "tex_coord")
-	c.DisableVertexAttribArray(p.program, "vertex")
+
 }
