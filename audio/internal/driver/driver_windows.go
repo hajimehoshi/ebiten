@@ -45,7 +45,6 @@ func newHeader(waveOut C.HWAVEOUT, bufferSize int) (*header, error) {
 			dwBufferLength: C.DWORD(bufferSize),
 		},
 	}
-	// TODO: Need to unprepare to avoid memory leak?
 	if err := C.waveOutPrepareHeader(waveOut, &h.waveHdr, C.sizeOfWavehdr); err != C.MMSYSERR_NOERROR {
 		return nil, fmt.Errorf("driver: waveOutPrepareHeader error: %d", err)
 	}
