@@ -339,7 +339,6 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage Bu
 	switch v := v.(type) {
 	case int:
 		gl.BufferInit(mgl.Enum(bufferType), v, mgl.Enum(bufferUsage))
-		return Buffer(b)
 	case []uint16:
 		gl.BufferData(mgl.Enum(bufferType), uint16ToBytes(v), mgl.Enum(bufferUsage))
 	default:

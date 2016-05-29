@@ -163,7 +163,8 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 
 			// Calc the current FPS.
 			if time.Second <= time.Duration(n2-beforeForFPS) {
-				currentRunContext.updateFPS(float64(frames) * float64(time.Second) / float64(n2-beforeForFPS))
+				fps := float64(frames) * float64(time.Second) / float64(n2-beforeForFPS)
+				currentRunContext.updateFPS(fps)
 				beforeForFPS = n2
 				frames = 0
 			}

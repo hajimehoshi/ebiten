@@ -78,8 +78,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 		return err
 	}
 
-	// 16 [bytes] is an arbitrary number which seems enough to draw anything. Fix this if necessary.
-	const stride = 16
+	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
 	c.NewBuffer(c.ArrayBuffer, 4*stride*MaxQuads, c.DynamicDraw)
 
 	indices := make([]uint16, 6*MaxQuads)
