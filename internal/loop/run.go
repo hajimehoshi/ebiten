@@ -139,7 +139,6 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 			} else {
 				// Note that generally t is a little different from 1/60[sec].
 				t := n2 - beforeForUpdate
-				currentRunContext.setRunningSlowly(t*int64(fps) >= int64(time.Second*5/2))
 				tt := int(t * int64(fps) / int64(time.Second))
 				// As t is not accurate 1/60[sec], errors are accumulated.
 				// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
@@ -147,6 +146,8 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 					tt = 1
 				}
 				for i := 0; i < tt; i++ {
+					slow := i < tt-1
+					currentRunContext.setRunningSlowly(slow)
 					if err := g.Update(); err != nil {
 						return err
 					}
