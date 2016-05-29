@@ -105,6 +105,8 @@ func (i *input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
 }
 
 func (in *input) Touches() []Touch {
+	i.m.RLock()
+	defer i.m.RUnlock()
 	t := make([]Touch, len(in.touches))
 	for i := 0; i < len(t); i++ {
 		t[i] = &in.touches[i]
