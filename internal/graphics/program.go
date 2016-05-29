@@ -24,10 +24,11 @@ type openGLState struct {
 	indexBufferQuads opengl.Buffer
 	programTexture   opengl.Program
 
-	lastProgram          opengl.Program
-	lastProjectionMatrix []float32
-	lastModelviewMatrix  []float32
-	lastColorMatrix      []float32
+	lastProgram                opengl.Program
+	lastProjectionMatrix       []float32
+	lastModelviewMatrix        []float32
+	lastColorMatrix            []float32
+	lastColorMatrixTranslation []float32
 }
 
 var theOpenGLState openGLState
@@ -57,6 +58,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil
 	s.lastColorMatrix = nil
+	s.lastColorMatrixTranslation = nil
 
 	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
@@ -101,6 +103,7 @@ func (s *openGLState) finalize(c *opengl.Context) error {
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil
 	s.lastColorMatrix = nil
+	s.lastColorMatrixTranslation = nil
 	c.DeleteBuffer(s.indexBufferQuads)
 	c.DeleteProgram(s.programTexture)
 	return nil
@@ -136,6 +139,7 @@ func (p *programContext) begin() {
 		p.state.lastProjectionMatrix = nil
 		p.state.lastModelviewMatrix = nil
 		p.state.lastColorMatrix = nil
+		p.state.lastColorMatrixTranslation = nil
 	}
 	c.BindElementArrayBuffer(p.state.indexBufferQuads)
 
@@ -192,7 +196,13 @@ func (p *programContext) begin() {
 	colorMatrixTranslation := []float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	c.UniformFloats(p.program, "color_matrix_translation", colorMatrixTranslation)
+	if !areSameFloat32Array(p.state.lastColorMatrixTranslation, colorMatrixTranslation) {
+		c.UniformFloats(p.program, "color_matrix_translation", colorMatrixTranslation)
+		if p.state.lastColorMatrixTranslation == nil {
+			p.state.lastColorMatrixTranslation = make([]float32, 4)
+		}
+		copy(p.state.lastColorMatrixTranslation, colorMatrixTranslation)
+	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml

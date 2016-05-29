@@ -276,7 +276,6 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	if n == 0 {
 		return nil
 	}
-
 	if i == image.impl {
 		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
