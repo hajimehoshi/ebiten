@@ -58,7 +58,10 @@ func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4
 	}
 	p.begin()
 	defer p.end()
+	// TODO: We should call glBindBuffer here?
+	// The buffer is already bound at begin() but it is counterintuitive.
 	c.BufferSubData(c.ArrayBuffer, vertices)
 	c.DrawElements(c.Triangles, 6*n)
+
 	return nil
 }
