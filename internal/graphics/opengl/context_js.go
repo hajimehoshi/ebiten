@@ -211,13 +211,6 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 }
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	// TODO: Not sure if Flush is needed here.
-	if f.Object == nil {
-		c.bindFramebuffer(f)
-		gl := c.gl
-		gl.Viewport(0, 0, width, height)
-		return nil
-	}
 	c.bindFramebuffer(f)
 	gl := c.gl
 	gl.Viewport(0, 0, width, height)
