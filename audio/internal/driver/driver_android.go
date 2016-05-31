@@ -202,7 +202,7 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		bytesPerSample: bytesPerSample,
 		buffer:         []byte{},
 		chErr:          make(chan error),
-		chBuffer:       make(chan []byte),
+		chBuffer:       make(chan []byte, 8),
 	}
 	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
 		audioTrack := C.jobject(nil)
