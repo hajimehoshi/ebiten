@@ -45,10 +45,6 @@ static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
       (*env)->GetStaticIntField(
           env, android_media_AudioTrack,
           (*env)->GetStaticFieldID(env, android_media_AudioTrack, "MODE_STREAM", "I"));
-  const jint android_media_AudioTrack_WRITE_BLOCKING =
-      (*env)->GetStaticIntField(
-          env, android_media_AudioTrack,
-          (*env)->GetStaticFieldID(env, android_media_AudioTrack, "WRITE_BLOCKING", "I"));
   const jint android_media_AudioFormat_CHANNEL_OUT_MONO =
       (*env)->GetStaticIntField(
           env, android_media_AudioFormat,
@@ -115,8 +111,8 @@ static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     writtenBytes =
         (*env)->CallIntMethod(
             env, *audioTrack,
-            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BIII)I"),
-            arr, 0, length, android_media_AudioTrack_WRITE_BLOCKING);
+            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BII)I"),
+            arr, 0, length);
   } while (writtenBytes != 0);
   // TODO: Check if writtenBytes < 0
 
@@ -134,10 +130,6 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
 
   const jclass android_media_AudioTrack =
       (*env)->FindClass(env, "android/media/AudioTrack");
-  const jint android_media_AudioTrack_WRITE_BLOCKING =
-      (*env)->GetStaticIntField(
-          env, android_media_AudioTrack,
-          (*env)->GetStaticFieldID(env, android_media_AudioTrack, "WRITE_BLOCKING", "I"));
 
   jbyteArray arrInBytes;
   jshortArray arrInShorts;
@@ -158,15 +150,15 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     result =
         (*env)->CallIntMethod(
             env, audioTrack,
-            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BIII)I"),
-            arrInBytes, 0, length, android_media_AudioTrack_WRITE_BLOCKING);
+            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BII)I"),
+            arrInBytes, 0, length);
     break;
   case 2:
     result =
         (*env)->CallIntMethod(
             env, audioTrack,
-            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SIII)I"),
-            arrInShorts, 0, length, android_media_AudioTrack_WRITE_BLOCKING);
+            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SII)I"),
+            arrInShorts, 0, length);
     break;
   }
 
