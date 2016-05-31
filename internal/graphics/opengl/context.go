@@ -32,6 +32,14 @@ type Context struct {
 	oneMinusSrcAlpha   operation
 	oneMinusDstAlpha   operation
 	locationCache      *locationCache
+	lastFramebuffer    Framebuffer
 	lastCompositeMode  CompositeMode
 	context
+}
+
+func (c *Context) bindFramebuffer(f Framebuffer) {
+	if c.lastFramebuffer != f {
+		c.bindFramebufferImpl(f)
+		c.lastFramebuffer = f
+	}
 }

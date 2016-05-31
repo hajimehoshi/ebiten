@@ -122,11 +122,16 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture(t), nil
 }
 
+func (c *Context) bindFramebufferImpl(f Framebuffer) {
+	gl := c.gl
+	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
+}
+
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	gl := c.gl
 	gl.Flush()
 
-	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
+	c.bindFramebuffer(f)
 
 	pixels := make([]uint8, 4*width*height)
 	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
@@ -152,8 +157,7 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 }
 
 func (c *Context) BindZeroFramebuffer() {
-	gl := c.gl
-	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(ZeroFramebuffer))
+	c.bindFramebuffer(ZeroFramebuffer)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
@@ -162,7 +166,7 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	if f.Value <= 0 {
 		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
 	}
-	gl.BindFramebuffer(mgl.FRAMEBUFFER, f)
+	c.bindFramebuffer(Framebuffer(f))
 
 	gl.FramebufferTexture2D(mgl.FRAMEBUFFER, mgl.COLOR_ATTACHMENT0, mgl.TEXTURE_2D, mgl.Texture(texture), 0)
 	s := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER)
@@ -181,7 +185,7 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	gl := c.gl
-	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
+	c.bindFramebuffer(f)
 	if err := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER); err != mgl.FRAMEBUFFER_COMPLETE {
 		if e := gl.GetError(); e != 0 {
 			return fmt.Errorf("opengl: glBindFramebuffer failed: %d", e)

@@ -58,9 +58,8 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl              *webgl.Context
-	lastFramebuffer Framebuffer
-	lastProgramID   programID
+	gl            *webgl.Context
+	lastProgramID programID
 }
 
 func NewContext() (*Context, error) {
@@ -157,12 +156,9 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture{t}, nil
 }
 
-func (c *Context) bindFramebuffer(f Framebuffer) {
+func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl := c.gl
-	if c.lastFramebuffer != f {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
-		c.lastFramebuffer = f
-	}
+	gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
