@@ -159,8 +159,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 
 func (c *Context) bindFramebuffer(f Framebuffer) {
 	gl := c.gl
-	// TODO: Fix this after the GopherJS bug was fixed (#159)
-	if c.lastFramebuffer.Object != f.Object {
+	if c.lastFramebuffer != f {
 		gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
 		c.lastFramebuffer = f
 	}
