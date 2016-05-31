@@ -226,7 +226,6 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	return c.RunOnContextThread(func() error {
-		gl.Flush()
 		gl.BindFramebuffer(gl.FRAMEBUFFER, uint32(f))
 		if st := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); st != gl.FRAMEBUFFER_COMPLETE {
 			if e := gl.GetError(); e != 0 {

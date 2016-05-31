@@ -168,7 +168,6 @@ func (c *Context) bindFramebuffer(f Framebuffer) {
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	gl := c.gl
-	gl.Flush()
 
 	c.bindFramebuffer(f)
 
