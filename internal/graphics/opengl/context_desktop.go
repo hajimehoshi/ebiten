@@ -231,12 +231,6 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	return c.RunOnContextThread(func() error {
 		c.bindFramebuffer(f)
-		if st := gl.CheckFramebufferStatus(gl.FRAMEBUFFER); st != gl.FRAMEBUFFER_COMPLETE {
-			if e := gl.GetError(); e != 0 {
-				return fmt.Errorf("opengl: glBindFramebuffer failed: %d", e)
-			}
-			return errors.New("opengl: glBindFramebuffer failed: the context is different?")
-		}
 		gl.Viewport(0, 0, int32(width), int32(height))
 		return nil
 	})
