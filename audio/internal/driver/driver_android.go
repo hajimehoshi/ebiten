@@ -102,20 +102,6 @@ static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
   // Note that *audioTrack will never be released.
   *audioTrack = (*env)->NewGlobalRef(env, tmpAudioTrack);
 
-  // Enqueue empty bytes before playing to avoid underrunning.
-  // TODO: Is this really needed? At least, SDL doesn't do the same thing.
-  jint writtenBytes = 0;
-  do {
-    const int length = 1024;
-    jbyteArray arr = (*env)->NewByteArray(env, length);
-    writtenBytes =
-        (*env)->CallIntMethod(
-            env, *audioTrack,
-            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BII)I"),
-            arr, 0, length);
-  } while (writtenBytes != 0);
-  // TODO: Check if writtenBytes < 0
-
   (*env)->CallVoidMethod(
       env, *audioTrack,
       (*env)->GetMethodID(env, android_media_AudioTrack, "play", "()V"));
