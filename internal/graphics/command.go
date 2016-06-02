@@ -37,7 +37,7 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
-func (q *commandQueue) Exec(context *opengl.Context) error {
+func (q *commandQueue) Flush(context *opengl.Context) error {
 	// TODO: Do optimizing before executing
 	for _, c := range q.commands {
 		if err := c.Exec(context); err != nil {

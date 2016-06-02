@@ -43,24 +43,25 @@ type Framebuffer struct {
 }
 
 func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, error) {
-	r := &Framebuffer{
+	f := &Framebuffer{
 		width:  width,
 		height: height,
 		flipY:  true,
 	}
-	return r, nil
+	return f, nil
 }
 
 func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffer, error) {
-	f, err := c.NewFramebuffer(opengl.Texture(texture.native))
+	native, err := c.NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
 		return nil, err
 	}
-	return &Framebuffer{
-		native: f,
+	f := &Framebuffer{
+		native: native,
 		width:  texture.width,
 		height: texture.height,
-	}, nil
+	}
+	return f, nil
 }
 
 func (f *Framebuffer) Dispose(c *opengl.Context) error {
@@ -98,7 +99,8 @@ func (f *Framebuffer) Fill(context *opengl.Context, clr color.Color) error {
 		dst:   f,
 		color: clr,
 	}
-	return c.Exec(context)
+	theCommandQueue.Enqueue(c)
+	return nil
 }
 
 func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
@@ -110,11 +112,21 @@ func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices 
 		color:    clr,
 		mode:     mode,
 	}
-	return c.Exec(context)
+	theCommandQueue.Enqueue(c)
+	// Drawing a texture to the default buffer must be the last command.
+	// TODO(hajimehoshi): This seems a little hacky. Refactor.
+	if f.native == opengl.ZeroFramebuffer {
+		return theCommandQueue.Flush(context)
+	}
+	return nil
 }
 
-func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
-	return c.FramebufferPixels(f.native, f.width, f.height)
+func (f *Framebuffer) Pixels(context *opengl.Context) ([]uint8, error) {
+	// Flush the enqueued commands so that pixels are certainly read.
+	if err := theCommandQueue.Flush(context); err != nil {
+		return nil, err
+	}
+	return context.FramebufferPixels(f.native, f.width, f.height)
 }
 
 func (f *Framebuffer) ReplacePixels(context *opengl.Context, t *Texture, p []uint8) error {
@@ -123,5 +135,6 @@ func (f *Framebuffer) ReplacePixels(context *opengl.Context, t *Texture, p []uin
 		texture: t,
 		pixels:  p,
 	}
-	return c.Exec(context)
+	theCommandQueue.Enqueue(c)
+	return nil
 }
