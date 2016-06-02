@@ -16,7 +16,6 @@ package graphics
 
 import (
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
@@ -99,25 +98,24 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	return f.proMatrix
 }
 
-func (f *Framebuffer) Fill(c *opengl.Context, clr color.Color) error {
-	if err := f.setAsViewport(c); err != nil {
-		return err
+func (f *Framebuffer) Fill(context *opengl.Context, clr color.Color) error {
+	c := &fillCommand{
+		dst:   f,
+		color: clr,
 	}
-	cr, cg, cb, ca := clr.RGBA()
-	const max = math.MaxUint16
-	r := float64(cr) / max
-	g := float64(cg) / max
-	b := float64(cb) / max
-	a := float64(ca) / max
-	return c.FillFramebuffer(r, g, b, a)
+	return c.Exec(context)
 }
 
-func (f *Framebuffer) DrawTexture(c *opengl.Context, t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
-	if err := f.setAsViewport(c); err != nil {
-		return err
+func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
+	c := &drawImageCommand{
+		dst:      f,
+		src:      t,
+		vertices: vertices,
+		geo:      geo,
+		color:    clr,
+		mode:     mode,
 	}
-	p := f.projectionMatrix()
-	return drawTexture(c, t.native, p, vertices, geo, clr, mode)
+	return c.Exec(context)
 }
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
@@ -125,13 +123,11 @@ func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
 	return c.FramebufferPixels(f.native, w, h)
 }
 
-func (f *Framebuffer) ReplacePixels(c *opengl.Context, t *Texture, p []uint8) error {
-	// Filling with non black or white color is required here for glTexSubImage2D.
-	// Very mysterious but this actually works (Issue #186)
-	if err := f.Fill(c, color.RGBA{0, 0, 0x01, 0xff}); err != nil {
-		return err
+func (f *Framebuffer) ReplacePixels(context *opengl.Context, t *Texture, p []uint8) error {
+	c := &replacePixelsCommand{
+		dst:     f,
+		texture: t,
+		pixels:  p,
 	}
-	c.BindTexture(t.native)
-	c.TexSubImage2D(p, t.width, t.height)
-	return nil
+	return c.Exec(context)
 }
