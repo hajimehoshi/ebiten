@@ -64,10 +64,6 @@ func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffe
 	}, nil
 }
 
-func (f *Framebuffer) Size() (width, height int) {
-	return f.width, f.height
-}
-
 func (f *Framebuffer) Dispose(c *opengl.Context) error {
 	// Don't delete the default framebuffer.
 	if f.native == opengl.ZeroFramebuffer {
@@ -119,8 +115,7 @@ func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices 
 }
 
 func (f *Framebuffer) Pixels(c *opengl.Context) ([]uint8, error) {
-	w, h := f.Size()
-	return c.FramebufferPixels(f.native, w, h)
+	return c.FramebufferPixels(f.native, f.width, f.height)
 }
 
 func (f *Framebuffer) ReplacePixels(context *opengl.Context, t *Texture, p []uint8) error {
