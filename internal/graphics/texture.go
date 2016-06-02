@@ -50,10 +50,6 @@ type Texture struct {
 	height int
 }
 
-func (t *Texture) Size() (width, height int) {
-	return t.width, t.height
-}
-
 func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Texture, error) {
 	w := int(NextPowerOf2Int32(int32(width)))
 	h := int(NextPowerOf2Int32(int32(height)))

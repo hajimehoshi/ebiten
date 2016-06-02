@@ -56,11 +56,10 @@ func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffe
 	if err != nil {
 		return nil, err
 	}
-	w, h := texture.Size()
 	return &Framebuffer{
 		native: f,
-		width:  w,
-		height: h,
+		width:  texture.width,
+		height: texture.height,
 	}, nil
 }
 
