@@ -287,7 +287,7 @@ func (c *Context) UseProgram(p Program) {
 	gl.UseProgram(p.Object)
 }
 
-func (c *Context) getUniformLocation(p Program, location string) uniformLocation {
+func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
 	return uniformLocation{gl.GetUniformLocation(p.Object, location)}
 }
@@ -311,7 +311,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	}
 }
 
-func (c *Context) getAttribLocation(p Program, location string) attribLocation {
+func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
 	gl := c.gl
 	return attribLocation(gl.GetAttribLocation(p.Object, location))
 }

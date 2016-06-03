@@ -28,37 +28,27 @@ func newLocationCache() *locationCache {
 	}
 }
 
-type uniformLocationGetter interface {
-	getUniformLocation(p Program, location string) uniformLocation
-}
-
-// TODO: Rename these functions not to be confusing
-
-func (c *locationCache) GetUniformLocation(g uniformLocationGetter, p Program, location string) uniformLocation {
+func (c *locationCache) GetUniformLocation(context *Context, p Program, location string) uniformLocation {
 	id := p.id()
 	if _, ok := c.uniformLocationCache[id]; !ok {
 		c.uniformLocationCache[id] = map[string]uniformLocation{}
 	}
 	l, ok := c.uniformLocationCache[id][location]
 	if !ok {
-		l = g.getUniformLocation(p, location)
+		l = context.getUniformLocationImpl(p, location)
 		c.uniformLocationCache[id][location] = l
 	}
 	return l
 }
 
-type attribLocationGetter interface {
-	getAttribLocation(p Program, location string) attribLocation
-}
-
-func (c *locationCache) GetAttribLocation(g attribLocationGetter, p Program, location string) attribLocation {
+func (c *locationCache) GetAttribLocation(context *Context, p Program, location string) attribLocation {
 	id := p.id()
 	if _, ok := c.attribLocationCache[id]; !ok {
 		c.attribLocationCache[id] = map[string]attribLocation{}
 	}
 	l, ok := c.attribLocationCache[id][location]
 	if !ok {
-		l = g.getAttribLocation(p, location)
+		l = context.getAttribLocationImpl(p, location)
 		c.attribLocationCache[id][location] = l
 	}
 	return l
