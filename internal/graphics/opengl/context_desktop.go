@@ -31,8 +31,6 @@ type Shader uint32
 type Program uint32
 type Buffer uint32
 
-var ZeroFramebuffer Framebuffer
-
 type uniformLocation int32
 type attribLocation int32
 

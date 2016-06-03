@@ -29,8 +29,6 @@ type Shader mgl.Shader
 type Program mgl.Program
 type Buffer mgl.Buffer
 
-var ZeroFramebuffer Framebuffer
-
 type uniformLocation mgl.Uniform
 type attribLocation mgl.Attrib
 

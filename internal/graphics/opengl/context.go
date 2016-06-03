@@ -14,6 +14,8 @@
 
 package opengl
 
+var ZeroFramebuffer Framebuffer
+
 type Context struct {
 	Nearest            Filter
 	Linear             Filter
