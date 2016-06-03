@@ -199,6 +199,12 @@ func (c *Context) FillFramebuffer(r, g, b, a float64) error {
 
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl := c.gl
+	// If a framebuffer to be delted is bound, a newly bound framebuffer
+	// will be a default framebuffer.
+	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
+	if c.lastFramebuffer == f {
+		c.lastFramebuffer = ZeroFramebuffer
+	}
 	gl.DeleteFramebuffer(mgl.Framebuffer(f))
 }
 

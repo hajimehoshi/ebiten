@@ -38,8 +38,8 @@ type Context struct {
 }
 
 func (c *Context) bindFramebuffer(f Framebuffer) {
-	// TODO: This is a temporal hack to pass the tests.
-	// Fix the bug (#227).
-	c.bindFramebufferImpl(f)
-	c.lastFramebuffer = f
+	if c.lastFramebuffer != f {
+		c.bindFramebufferImpl(f)
+		c.lastFramebuffer = f
+	}
 }
