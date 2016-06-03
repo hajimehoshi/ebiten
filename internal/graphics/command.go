@@ -15,6 +15,8 @@
 package graphics
 
 import (
+	"errors"
+	"fmt"
 	"image/color"
 	"math"
 
@@ -26,7 +28,8 @@ type command interface {
 }
 
 type commandQueue struct {
-	commands []command
+	commands           []command
+	indexOffsetInBytes int
 }
 
 var theCommandQueue = &commandQueue{
@@ -38,7 +41,18 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 func (q *commandQueue) Flush(context *opengl.Context) error {
-	// TODO: Do optimizing before executing
+	q.indexOffsetInBytes = 0
+	vertices := []int16{}
+	for _, c := range q.commands {
+		switch c := c.(type) {
+		case *drawImageCommand:
+			vertices = append(vertices, c.vertices...)
+		}
+	}
+	// TODO: Check if len(vertices) is too big
+	if 0 < len(vertices) {
+		context.BufferSubData(context.ArrayBuffer, vertices)
+	}
 	for _, c := range q.commands {
 		if err := c.Exec(context); err != nil {
 			return err
@@ -79,8 +93,34 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 	if err := c.dst.setAsViewport(context); err != nil {
 		return err
 	}
-	p := c.dst.projectionMatrix()
-	return drawTexture(context, c.src.native, p, c.vertices, c.geo, c.color, c.mode)
+	context.BlendFunc(c.mode)
+
+	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
+	// Let's use them to compare to len(quads) in the future.
+	n := len(c.vertices) / 16
+	if n == 0 {
+		return nil
+	}
+	if MaxQuads < n/16 {
+		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
+	}
+
+	p := programContext{
+		state:            &theOpenGLState,
+		program:          theOpenGLState.programTexture,
+		context:          context,
+		projectionMatrix: glMatrix(c.dst.projectionMatrix()),
+		texture:          c.src.native,
+		geoM:             c.geo,
+		colorM:           c.color,
+	}
+	p.begin()
+	defer p.end()
+	// TODO: We should call glBindBuffer here?
+	// The buffer is already bound at begin() but it is counterintuitive.
+	context.DrawElements(context.Triangles, 6*n, theCommandQueue.indexOffsetInBytes)
+	theCommandQueue.indexOffsetInBytes += 6 * n * 2
+	return nil
 }
 
 type replacePixelsCommand struct {

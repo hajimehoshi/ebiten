@@ -14,13 +14,6 @@
 
 package graphics
 
-import (
-	"errors"
-	"fmt"
-
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-)
-
 func glMatrix(m *[4][4]float64) []float32 {
 	return []float32{
 		float32(m[0][0]), float32(m[1][0]), float32(m[2][0]), float32(m[3][0]),
@@ -32,36 +25,4 @@ func glMatrix(m *[4][4]float64) []float32 {
 
 type Matrix interface {
 	Element(i, j int) float64
-}
-
-func drawTexture(c *opengl.Context, texture opengl.Texture, projectionMatrix *[4][4]float64, vertices []int16, geo Matrix, color Matrix, mode opengl.CompositeMode) error {
-	c.BlendFunc(mode)
-
-	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
-	// Let's use them to compare to len(quads) in the future.
-	n := len(vertices) / 16
-	if n == 0 {
-		return nil
-	}
-	if MaxQuads < n/16 {
-		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
-	}
-
-	p := programContext{
-		state:            &theOpenGLState,
-		program:          theOpenGLState.programTexture,
-		context:          c,
-		projectionMatrix: glMatrix(projectionMatrix),
-		texture:          texture,
-		geoM:             geo,
-		colorM:           color,
-	}
-	p.begin()
-	defer p.end()
-	// TODO: We should call glBindBuffer here?
-	// The buffer is already bound at begin() but it is counterintuitive.
-	c.BufferSubData(c.ArrayBuffer, vertices)
-	c.DrawElements(c.Triangles, 6*n)
-
-	return nil
 }

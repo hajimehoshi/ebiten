@@ -438,9 +438,9 @@ func (c *Context) DeleteBuffer(b Buffer) {
 	})
 }
 
-func (c *Context) DrawElements(mode Mode, len int) {
+func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 	c.RunOnContextThread(func() error {
-		gl.DrawElements(uint32(mode), int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(0))
+		gl.DrawElements(uint32(mode), int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(offsetInBytes))
 		return nil
 	})
 }

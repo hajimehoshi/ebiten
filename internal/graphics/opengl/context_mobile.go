@@ -359,7 +359,7 @@ func (c *Context) DeleteBuffer(b Buffer) {
 	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
-func (c *Context) DrawElements(mode Mode, len int) {
+func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 	gl := c.gl
-	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, 0)
+	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, offsetInBytes)
 }
