@@ -49,9 +49,11 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 			vertices = append(vertices, c.vertices...)
 		}
 	}
-	// TODO: Check if len(vertices) is too big
 	if 0 < len(vertices) {
 		context.BufferSubData(context.ArrayBuffer, vertices)
+	}
+	if MaxQuads < len(vertices)/16 {
+		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
 	}
 	for _, c := range q.commands {
 		if err := c.Exec(context); err != nil {
@@ -100,9 +102,6 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 	n := len(c.vertices) / 16
 	if n == 0 {
 		return nil
-	}
-	if MaxQuads < n/16 {
-		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
 	}
 
 	p := programContext{
