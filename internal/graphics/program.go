@@ -150,8 +150,9 @@ func (p *programContext) begin() {
 		p.state.lastModelviewMatrix = nil
 		p.state.lastColorMatrix = nil
 		p.state.lastColorMatrixTranslation = nil
+		c.BindElementArrayBuffer(p.state.indexBufferQuads)
+		c.UniformInt(p.program, "texture", 0)
 	}
-	c.BindElementArrayBuffer(p.state.indexBufferQuads)
 
 	if !areSameFloat32Array(p.state.lastProjectionMatrix, p.projectionMatrix) {
 		c.UniformFloats(p.program, "projection_matrix", p.projectionMatrix)
@@ -180,8 +181,6 @@ func (p *programContext) begin() {
 		}
 		copy(p.state.lastModelviewMatrix, modelviewMatrix)
 	}
-
-	c.UniformInt(p.program, "texture", 0)
 
 	e := [4][5]float32{}
 	for i := 0; i < 4; i++ {
@@ -220,5 +219,4 @@ func (p *programContext) begin() {
 }
 
 func (p *programContext) end() {
-
 }
