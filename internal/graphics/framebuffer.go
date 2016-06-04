@@ -116,7 +116,9 @@ func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices 
 	// Drawing a texture to the default buffer must be the last command.
 	// TODO(hajimehoshi): This seems a little hacky. Refactor.
 	if f.native == opengl.ZeroFramebuffer {
-		return theCommandQueue.Flush(context)
+		if err := theCommandQueue.Flush(context); err != nil {
+			return err
+		}
 	}
 	return nil
 }

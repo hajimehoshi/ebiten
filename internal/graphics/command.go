@@ -52,6 +52,8 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	if 0 < len(vertices) {
 		context.BufferSubData(context.ArrayBuffer, vertices)
 	}
+	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
+	// Let's use them to compare to len(quads) in the future.
 	if MaxQuads < len(vertices)/16 {
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
 	}
@@ -97,8 +99,6 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 	}
 	context.BlendFunc(c.mode)
 
-	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
-	// Let's use them to compare to len(quads) in the future.
 	n := len(c.vertices) / 16
 	if n == 0 {
 		return nil
