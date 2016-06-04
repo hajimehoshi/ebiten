@@ -29,9 +29,14 @@ type openGLState struct {
 	lastModelviewMatrix        []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
+	lastTexture                opengl.Texture
 }
 
 var theOpenGLState openGLState
+var (
+	zeroProgram opengl.Program
+	zeroTexture opengl.Texture
+)
 
 const (
 	indicesNum = 1 << 16
@@ -53,12 +58,12 @@ func Finalize(c *opengl.Context) error {
 }
 
 func (s *openGLState) initialize(c *opengl.Context) error {
-	var zeroProgram opengl.Program
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
+	s.lastTexture = zeroTexture
 
 	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
@@ -98,12 +103,12 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 }
 
 func (s *openGLState) finalize(c *opengl.Context) error {
-	var zeroProgram opengl.Program
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
+	s.lastTexture = zeroTexture
 	c.DeleteBuffer(s.indexBufferQuads)
 	c.DeleteProgram(s.programTexture)
 	return nil
@@ -135,7 +140,6 @@ func (p *programContext) begin() {
 	c := p.context
 	if p.state.lastProgram != p.program {
 		c.UseProgram(p.program)
-		var zeroProgram opengl.Program
 		if p.state.lastProgram != zeroProgram {
 			c.DisableVertexAttribArray(p.state.lastProgram, "tex_coord")
 			c.DisableVertexAttribArray(p.state.lastProgram, "vertex")
@@ -150,6 +154,7 @@ func (p *programContext) begin() {
 		p.state.lastModelviewMatrix = nil
 		p.state.lastColorMatrix = nil
 		p.state.lastColorMatrixTranslation = nil
+		p.state.lastTexture = zeroTexture
 		c.BindElementArrayBuffer(p.state.indexBufferQuads)
 		c.UniformInt(p.program, "texture", 0)
 	}
@@ -215,7 +220,10 @@ func (p *programContext) begin() {
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	c.BindTexture(p.texture)
+	if p.state.lastTexture != p.texture {
+		c.BindTexture(p.texture)
+		p.state.lastTexture = p.texture
+	}
 }
 
 func (p *programContext) end() {
