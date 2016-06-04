@@ -230,6 +230,8 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
 		c.lastFramebuffer = ZeroFramebuffer
+		c.lastViewportWidth = 0
+		c.lastViewportHeight = 0
 	}
 	gl.DeleteFramebuffer(f.Object)
 }
