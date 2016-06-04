@@ -269,6 +269,24 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 			parts = &wholeImage{image.impl.width, image.impl.height}
 		}
 	}
+	geom := &options.GeoM
+	colorm := &options.ColorM
+	dxf := geom.Element(0, 2)
+	dyf := geom.Element(1, 2)
+	// If possible, avoid using a geometry matrix so that we can reduce calls of
+	// glUniformMatrix4fv.
+	if geom.Element(0, 0) == 1 && geom.Element(1, 0) == 0 && geom.Element(0, 1) == 0 && geom.Element(1, 1) == 1 && (dxf != 0 && dyf != 0) {
+		if dxf == float64(int64(dxf)) && dyf == float64(int64(dyf)) {
+			dx := int(dxf)
+			dy := int(dyf)
+			parts = &transitionImageParts{
+				parts: parts,
+				dx:    dx,
+				dy:    dy,
+			}
+			geom = &GeoM{}
+		}
+	}
 	quads := &textureQuads{parts: parts, width: image.impl.width, height: image.impl.height}
 	// TODO: Reuse one vertices instead of making here, but this would need locking.
 	vertices := make([]int16, parts.Len()*16)
@@ -286,8 +304,8 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 			return errors.New("ebiten: image is already disposed")
 		}
 		i.pixels = nil
-		m := opengl.CompositeMode(options.CompositeMode)
-		return i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], &options.GeoM, &options.ColorM, m)
+		mode := opengl.CompositeMode(options.CompositeMode)
+		return i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], geom, colorm, mode)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
