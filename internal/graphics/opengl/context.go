@@ -39,9 +39,11 @@ type Context struct {
 	context
 }
 
-func (c *Context) bindFramebuffer(f Framebuffer) {
+func (c *Context) bindFramebuffer(f Framebuffer) bool {
 	if c.lastFramebuffer != f {
 		c.bindFramebufferImpl(f)
 		c.lastFramebuffer = f
+		return true
 	}
+	return false
 }

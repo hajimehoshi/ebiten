@@ -182,9 +182,10 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 }
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	gl := c.gl
-	c.bindFramebuffer(f)
-	gl.Viewport(0, 0, width, height)
+	if c.bindFramebuffer(f) {
+		gl := c.gl
+		gl.Viewport(0, 0, width, height)
+	}
 	return nil
 }
 

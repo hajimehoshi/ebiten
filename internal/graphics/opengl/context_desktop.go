@@ -228,8 +228,9 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
 	return c.RunOnContextThread(func() error {
-		c.bindFramebuffer(f)
-		gl.Viewport(0, 0, int32(width), int32(height))
+		if c.bindFramebuffer(f) {
+			gl.Viewport(0, 0, int32(width), int32(height))
+		}
 		return nil
 	})
 }
