@@ -250,7 +250,6 @@ func (i *imageImpl) Fill(clr color.Color) error {
 		return nil
 	}
 	return f()
-
 }
 
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
@@ -305,7 +304,10 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		}
 		i.pixels = nil
 		mode := opengl.CompositeMode(options.CompositeMode)
-		return i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], geom, colorm, mode)
+		if err := i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
+			return err
+		}
+		return nil
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
