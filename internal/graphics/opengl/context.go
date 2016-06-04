@@ -35,15 +35,16 @@ type Context struct {
 	oneMinusDstAlpha   operation
 	locationCache      *locationCache
 	lastFramebuffer    Framebuffer
+	lastViewportWidth  int
+	lastViewportHeight int
 	lastCompositeMode  CompositeMode
 	context
 }
 
-func (c *Context) bindFramebuffer(f Framebuffer) bool {
-	if c.lastFramebuffer != f {
-		c.bindFramebufferImpl(f)
-		c.lastFramebuffer = f
-		return true
+func (c *Context) bindFramebuffer(f Framebuffer) {
+	if c.lastFramebuffer == f {
+		return
 	}
-	return false
+	c.bindFramebufferImpl(f)
+	c.lastFramebuffer = f
 }

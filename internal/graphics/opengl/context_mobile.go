@@ -182,9 +182,12 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 }
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	if c.bindFramebuffer(f) {
+	c.bindFramebuffer(f)
+	if c.lastViewportWidth != width || c.lastViewportHeight != height {
 		gl := c.gl
 		gl.Viewport(0, 0, width, height)
+		c.lastViewportWidth = width
+		c.lastViewportHeight = height
 	}
 	return nil
 }
@@ -203,6 +206,8 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
 		c.lastFramebuffer = ZeroFramebuffer
+		c.lastViewportWidth = 0
+		c.lastViewportHeight = 0
 	}
 	gl.DeleteFramebuffer(mgl.Framebuffer(f))
 }
