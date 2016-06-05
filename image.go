@@ -272,28 +272,6 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 			parts = &wholeImage{image.impl.width, image.impl.height}
 		}
 	}
-	geom := &options.GeoM
-	colorm := &options.ColorM
-	scaleX := geom.Element(0, 0)
-	scaleY := geom.Element(1, 1)
-	dx := geom.Element(0, 2)
-	dy := geom.Element(1, 2)
-	// If possible, avoid using a geometry matrix so that we can reduce calls of
-	// glUniformMatrix4fv.
-	if isWholeNumber(scaleX) && geom.Element(1, 0) == 0 &&
-		geom.Element(0, 1) == 0 && isWholeNumber(scaleY) &&
-		isWholeNumber(dx) && isWholeNumber(dy) {
-		if scaleX != 1 || scaleY != 1 || dx != 0 || dy != 0 {
-			parts = &transitionImageParts{
-				parts:  parts,
-				scaleX: int(scaleX),
-				scaleY: int(scaleY),
-				dx:     int(dx),
-				dy:     int(dy),
-			}
-			geom = &GeoM{}
-		}
-	}
 	quads := &textureQuads{parts: parts, width: image.impl.width, height: image.impl.height}
 	// TODO: Reuse one vertices instead of making here, but this would need locking.
 	vertices := make([]int16, parts.Len()*16)
@@ -311,6 +289,8 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 			return errors.New("ebiten: image is already disposed")
 		}
 		i.pixels = nil
+		geom := &options.GeoM
+		colorm := &options.ColorM
 		mode := opengl.CompositeMode(options.CompositeMode)
 		if err := i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
 			return err

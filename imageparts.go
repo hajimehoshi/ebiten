@@ -124,24 +124,3 @@ func (t *textureQuads) vertices(vertices []int16) int {
 	}
 	return n
 }
-
-type transitionImageParts struct {
-	parts  ImageParts
-	scaleX int
-	scaleY int
-	dx     int
-	dy     int
-}
-
-func (t *transitionImageParts) Len() int {
-	return t.parts.Len()
-}
-
-func (t *transitionImageParts) Dst(index int) (int, int, int, int) {
-	x0, y0, x1, y1 := t.parts.Dst(index)
-	return x0*t.scaleX + t.dx, y0*t.scaleY + t.dy, x1*t.scaleX + t.dx, y1*t.scaleY + t.dy
-}
-
-func (t *transitionImageParts) Src(index int) (int, int, int, int) {
-	return t.parts.Src(index)
-}
