@@ -252,6 +252,10 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	return f()
 }
 
+func isWholeNumber(x float64) bool {
+	return x == float64(int64(x))
+}
+
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -270,18 +274,22 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	geom := &options.GeoM
 	colorm := &options.ColorM
-	dxf := geom.Element(0, 2)
-	dyf := geom.Element(1, 2)
+	scaleX := geom.Element(0, 0)
+	scaleY := geom.Element(1, 1)
+	dx := geom.Element(0, 2)
+	dy := geom.Element(1, 2)
 	// If possible, avoid using a geometry matrix so that we can reduce calls of
 	// glUniformMatrix4fv.
-	if geom.Element(0, 0) == 1 && geom.Element(1, 0) == 0 && geom.Element(0, 1) == 0 && geom.Element(1, 1) == 1 && (dxf != 0 && dyf != 0) {
-		if dxf == float64(int64(dxf)) && dyf == float64(int64(dyf)) {
-			dx := int(dxf)
-			dy := int(dyf)
+	if isWholeNumber(scaleX) && geom.Element(1, 0) == 0 &&
+		geom.Element(0, 1) == 0 && isWholeNumber(scaleY) &&
+		isWholeNumber(dx) && isWholeNumber(dy) {
+		if scaleX != 1 || scaleY != 1 || dx != 0 || dy != 0 {
 			parts = &transitionImageParts{
-				parts: parts,
-				dx:    dx,
-				dy:    dy,
+				parts:  parts,
+				scaleX: int(scaleX),
+				scaleY: int(scaleY),
+				dx:     int(dx),
+				dy:     int(dy),
 			}
 			geom = &GeoM{}
 		}
