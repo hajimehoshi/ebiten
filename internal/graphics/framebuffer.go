@@ -73,9 +73,11 @@ func (f *Framebuffer) Dispose(c *opengl.Context) error {
 	return nil
 }
 
+const viewportSize = 4096
+
 func (f *Framebuffer) setAsViewport(c *opengl.Context) error {
-	width := int(NextPowerOf2Int32(int32(f.width)))
-	height := int(NextPowerOf2Int32(int32(f.height)))
+	width := viewportSize
+	height := viewportSize
 	return c.SetViewport(f.native, width, height)
 }
 
@@ -83,12 +85,12 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
-	width := int(NextPowerOf2Int32(int32(f.width)))
-	height := int(NextPowerOf2Int32(int32(f.height)))
+	width := viewportSize
+	height := viewportSize
 	m := orthoProjectionMatrix(0, width, 0, height)
 	if f.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(f.height) / float64(NextPowerOf2Int32(int32(f.height))) * 2
+		m[1][3] += float64(f.height) / float64(height) * 2
 	}
 	f.proMatrix = m
 	return f.proMatrix
