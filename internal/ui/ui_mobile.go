@@ -44,8 +44,12 @@ loop:
 			return err
 		case <-worker.WorkAvailable():
 			worker.DoWork()
-		case <-chRenderEnd:
-			break loop
+		default:
+			select {
+			case <-chRenderEnd:
+				break loop
+			default:
+			}
 		}
 	}
 	return nil

@@ -454,3 +454,10 @@ func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 		return nil
 	})
 }
+
+func (c *Context) Flush() {
+	c.RunOnContextThread(func() error {
+		gl.Flush()
+		return nil
+	})
+}

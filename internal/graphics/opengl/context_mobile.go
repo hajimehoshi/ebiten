@@ -373,3 +373,8 @@ func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 	gl := c.gl
 	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, offsetInBytes)
 }
+
+func (c *Context) Flush() {
+	gl := c.gl
+	gl.Flush()
+}

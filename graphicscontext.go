@@ -75,7 +75,6 @@ func (c *graphicsContext) Update() error {
 	if IsRunningSlowly() {
 		return nil
 	}
-	// TODO: In WebGL, we don't need to clear the image here.
 	if err := c.defaultRenderTarget.Clear(); err != nil {
 		return err
 	}
