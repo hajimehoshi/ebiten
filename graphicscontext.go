@@ -84,6 +84,8 @@ func (c *graphicsContext) Update() error {
 	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
 		return err
 	}
+	// Call glFlush to prevent black flicking (especially on Android (#226)).
+	ui.GLContext().Flush()
 	return nil
 }
 

@@ -62,8 +62,6 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 			return err
 		}
 	}
-	// Call glFlush to prevent black flicking (especially on Android (#226)).
-	context.Flush()
 	q.commands = []command{}
 	return nil
 }
