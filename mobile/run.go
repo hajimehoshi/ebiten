@@ -18,7 +18,6 @@ package mobile
 
 import (
 	"errors"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -65,9 +64,6 @@ func (e *eventDispatcher) SetScreenScale(scale int) {
 }
 
 func (e *eventDispatcher) Render() error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	if chError == nil {
 		return errors.New("mobile: chError must not be nil: Start is not called yet?")
 	}
