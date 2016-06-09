@@ -230,7 +230,9 @@ func (u *userInterface) Update() (interface{}, error) {
 	if ferr != nil {
 		return nil, ferr
 	}
-	return RenderEvent{}, nil
+	// Dummy channel
+	ch := make(chan struct{}, 1)
+	return RenderEvent{ch}, nil
 }
 
 func (u *userInterface) Terminate() error {

@@ -144,16 +144,11 @@ func (u *userInterface) Update() (interface{}, error) {
 		chPauseStart <- struct{}{}
 		return PauseEvent{chPauseEnd}, nil
 	case <-chRender:
-		return RenderEvent{}, nil
+		return RenderEvent{chRenderEnd}, nil
 	}
 }
 
 func (u *userInterface) SwapBuffers() error {
-	return nil
-}
-
-func (u *userInterface) FinishRendering() error {
-	chRenderEnd <- struct{}{}
 	return nil
 }
 

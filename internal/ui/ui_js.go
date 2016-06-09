@@ -92,7 +92,9 @@ func (u *userInterface) Update() (interface{}, error) {
 		}
 		return e, nil
 	}
-	return RenderEvent{}, nil
+	// Dummy channel
+	ch := make(chan struct{}, 1)
+	return RenderEvent{ch}, nil
 }
 
 func (u *userInterface) Terminate() error {

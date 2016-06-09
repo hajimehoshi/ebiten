@@ -25,6 +25,7 @@ type ScreenSizeEvent struct {
 }
 
 type RenderEvent struct {
+	Done chan struct{}
 }
 
 type PauseEvent struct {

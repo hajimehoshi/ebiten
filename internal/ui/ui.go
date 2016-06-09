@@ -18,7 +18,6 @@ type UserInterface interface {
 	Start(width, height, scale int, title string) error
 	Update() (interface{}, error)
 	SwapBuffers() error
-	FinishRendering() error
 	Terminate() error
 	ScreenScale() int
 	SetScreenSize(width, height int) bool
