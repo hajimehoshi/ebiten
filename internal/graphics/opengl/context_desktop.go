@@ -104,6 +104,19 @@ func (c *Context) Init() error {
 	return nil
 }
 
+func (c *Context) Pause() {
+	c.locationCache = newLocationCache()
+	c.lastFramebuffer = ZeroFramebuffer
+	c.lastViewportWidth = 0
+	c.lastViewportHeight = 0
+	c.lastCompositeMode = CompositeModeUnknown
+}
+
+func (c *Context) Resume() {
+	gl.Enable(gl.BLEND)
+	c.BlendFunc(CompositeModeSourceOver)
+}
+
 func (c *Context) BlendFunc(mode CompositeMode) {
 	c.RunOnContextThread(func() error {
 		if c.lastCompositeMode == mode {

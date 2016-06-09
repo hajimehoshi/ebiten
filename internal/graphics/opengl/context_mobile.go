@@ -80,6 +80,19 @@ func NewContext() (*Context, error) {
 	return c, nil
 }
 
+func (c *Context) Pause() {
+	c.locationCache = newLocationCache()
+	c.lastFramebuffer = ZeroFramebuffer
+	c.lastViewportWidth = 0
+	c.lastViewportHeight = 0
+	c.lastCompositeMode = CompositeModeUnknown
+}
+
+func (c *Context) Resume() {
+	c.gl.Enable(mgl.BLEND)
+	c.BlendFunc(CompositeModeSourceOver)
+}
+
 func (c *Context) WaitUntilInitializingDone() {
 	// TODO: Call this function at an approriate place
 	<-c.initialized
