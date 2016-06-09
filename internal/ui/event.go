@@ -28,7 +28,9 @@ type RenderEvent struct {
 }
 
 type PauseEvent struct {
+	Done chan struct{}
 }
 
 type ResumeEvent struct {
+	Done chan struct{}
 }

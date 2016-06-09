@@ -18,6 +18,7 @@ package ui
 
 import (
 	"errors"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
@@ -35,7 +36,28 @@ func Render(chError <-chan error) error {
 		return errors.New("ui: chError must not be nil")
 	}
 	// TODO: Check this is called on the rendering thread
-	chRender <- struct{}{}
+	select {
+	case <-chPauseStart:
+		if err := doGLWorks(chError, chPauseEnd); err != nil {
+			return err
+		}
+		chPauseEnd2 <- struct{}{}
+		return nil
+	case <-chResumeStart:
+		if err := doGLWorks(chError, chResumeEnd); err != nil {
+			return err
+		}
+		return nil
+	case chRender <- struct{}{}:
+		return doGLWorks(chError, chRenderEnd)
+	case <-time.After(500 * time.Millisecond):
+		// This function must not be blocked so we need to break after a while.
+		return nil
+	}
+}
+
+func doGLWorks(chError <-chan error, chDone <-chan struct{}) error {
+	// TODO: Check this is called on the rendering thread
 	worker := glContext.Worker()
 loop:
 	for {
@@ -46,7 +68,7 @@ loop:
 			worker.DoWork()
 		default:
 			select {
-			case <-chRenderEnd:
+			case <-chDone:
 				break loop
 			default:
 			}
@@ -60,19 +82,23 @@ type userInterface struct {
 	height      int
 	scale       int
 	sizeChanged bool
-	chRender    chan struct{}
-	chRenderEnd chan struct{}
-	chPause     chan struct{}
-	chResume    chan struct{}
+	paused      bool
 }
 
 var (
-	chRender    = make(chan struct{})
-	chRenderEnd = make(chan struct{})
-	currentUI   = &userInterface{
+	// TODO: Rename these channels
+	chRender      = make(chan struct{})
+	chRenderEnd   = make(chan struct{})
+	chPause       = make(chan struct{})
+	chPauseStart  = make(chan struct{})
+	chPauseEnd    = make(chan struct{})
+	chPauseEnd2   = make(chan struct{})
+	chResume      = make(chan struct{})
+	chResumeStart = make(chan struct{})
+	chResumeEnd   = make(chan struct{})
+	currentUI     = &userInterface{
 		sizeChanged: true,
-		chRender:    chRender,
-		chRenderEnd: chRenderEnd,
+		paused:      false,
 	}
 )
 
@@ -104,12 +130,20 @@ func (u *userInterface) Update() (interface{}, error) {
 		}
 		return e, nil
 	}
+	if u.paused {
+		select {
+		case <-chResume:
+			u.paused = false
+			chResumeStart <- struct{}{}
+			return ResumeEvent{chResumeEnd}, nil
+		}
+	}
 	select {
-	case <-u.chPause:
-		return PauseEvent{}, nil
-	case <-u.chResume:
-		return ResumeEvent{}, nil
-	case <-u.chRender:
+	case <-chPause:
+		u.paused = true
+		chPauseStart <- struct{}{}
+		return PauseEvent{chPauseEnd}, nil
+	case <-chRender:
 		return RenderEvent{}, nil
 	}
 }
@@ -119,7 +153,7 @@ func (u *userInterface) SwapBuffers() error {
 }
 
 func (u *userInterface) FinishRendering() error {
-	u.chRenderEnd <- struct{}{}
+	chRenderEnd <- struct{}{}
 	return nil
 }
 
@@ -141,16 +175,17 @@ func (u *userInterface) actualScreenScale() int {
 	return u.scale
 }
 
-func Pause() {
-	go func() {
-		currentUI.chPause <- struct{}{}
-	}()
+func Pause() error {
+	// Pause must be done in the current GL context.
+	chPause <- struct{}{}
+	<-chPauseEnd2
+	return nil
 }
 
-func Resume() {
-	go func() {
-		currentUI.chResume <- struct{}{}
-	}()
+func Resume() error {
+	chResume <- struct{}{}
+	// Don't have to wait for resumeing done.
+	return nil
 }
 
 func UpdateTouches(touches []Touch) {

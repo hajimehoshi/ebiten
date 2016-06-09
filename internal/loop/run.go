@@ -173,10 +173,12 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 			if err := g.Pause(); err != nil {
 				return err
 			}
+			e.Done <- struct{}{}
 		case ui.ResumeEvent:
 			if err := g.Resume(); err != nil {
 				return err
 			}
+			e.Done <- struct{}{}
 		default:
 			panic("not reach")
 		}
