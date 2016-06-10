@@ -199,10 +199,10 @@ type imageImpl struct {
 	texture            *graphics.Texture
 	defaultFramebuffer bool
 	disposed           bool
-	pixels             []uint8
 	width              int
 	height             int
 	filter             Filter
+	pixels             []uint8
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
@@ -213,7 +213,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 			return errors.New("ebiten: image is already disposed")
 		}
 		i.pixels = nil
-		return i.framebuffer.Fill(ui.GLContext(), clr)
+		return i.framebuffer.Fill(clr)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
@@ -261,7 +261,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		geom := &options.GeoM
 		colorm := &options.ColorM
 		mode := opengl.CompositeMode(options.CompositeMode)
-		if err := i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
+		if err := i.framebuffer.DrawTexture(image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
 			return err
 		}
 		return nil
@@ -373,12 +373,12 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	f := func() error {
 		imageM.Lock()
 		defer imageM.Unlock()
-		// Don't set i.pixels here because i.pixels is used not every time.
+		// TODO: Copy p?
 		i.pixels = nil
 		if i.isDisposed() {
 			return errors.New("ebiten: image is already disposed")
 		}
-		return i.framebuffer.ReplacePixels(ui.GLContext(), i.texture, p)
+		return i.framebuffer.ReplacePixels(i.texture, p)
 	}
 	if theDelayedImageTasks.add(f) {
 		return nil
@@ -427,7 +427,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		image.framebuffer = framebuffer
 		image.texture = texture
 		runtime.SetFinalizer(image, (*imageImpl).Dispose)
-		if err := image.framebuffer.Fill(ui.GLContext(), color.Transparent); err != nil {
+		if err := image.framebuffer.Fill(color.Transparent); err != nil {
 			return err
 		}
 		return nil

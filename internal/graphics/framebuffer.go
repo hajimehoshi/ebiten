@@ -96,7 +96,7 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	return f.proMatrix
 }
 
-func (f *Framebuffer) Fill(context *opengl.Context, clr color.Color) error {
+func (f *Framebuffer) Fill(clr color.Color) error {
 	c := &fillCommand{
 		dst:   f,
 		color: clr,
@@ -105,7 +105,7 @@ func (f *Framebuffer) Fill(context *opengl.Context, clr color.Color) error {
 	return nil
 }
 
-func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
+func (f *Framebuffer) DrawTexture(t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
 	c := &drawImageCommand{
 		dst:      f,
 		src:      t,
@@ -115,13 +115,6 @@ func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices 
 		mode:     mode,
 	}
 	theCommandQueue.Enqueue(c)
-	// Drawing a texture to the default buffer must be the last command.
-	// TODO(hajimehoshi): This seems a little hacky. Refactor.
-	if f.native == opengl.ZeroFramebuffer {
-		if err := theCommandQueue.Flush(context); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -133,7 +126,7 @@ func (f *Framebuffer) Pixels(context *opengl.Context) ([]uint8, error) {
 	return context.FramebufferPixels(f.native, f.width, f.height)
 }
 
-func (f *Framebuffer) ReplacePixels(context *opengl.Context, t *Texture, p []uint8) error {
+func (f *Framebuffer) ReplacePixels(t *Texture, p []uint8) error {
 	c := &replacePixelsCommand{
 		dst:     f,
 		texture: t,

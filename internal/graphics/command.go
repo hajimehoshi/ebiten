@@ -66,6 +66,10 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	return nil
 }
 
+func FlushCommands(context *opengl.Context) error {
+	return theCommandQueue.Flush(context)
+}
+
 type fillCommand struct {
 	dst   *Framebuffer
 	color color.Color
