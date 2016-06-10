@@ -148,6 +148,10 @@ func (u *userInterface) actualScreenScale() int {
 	return u.scale
 }
 
+// TODO: Remove Resume() and do resuming in Update instead.
+// In Update, we'd be able to detect GL context lost by glIsTexture or something,
+// and we can do resuming when detecting it.
+
 func Resume() error {
 	chResume <- struct{}{}
 	// Don't have to wait for resumeing done.
