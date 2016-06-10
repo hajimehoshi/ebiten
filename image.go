@@ -66,9 +66,8 @@ func (t *delayedImageTasks) exec() error {
 }
 
 type images struct {
-	images    map[*imageImpl]struct{}
-	evacuated bool
-	m         sync.Mutex
+	images map[*imageImpl]struct{}
+	m      sync.Mutex
 }
 
 var theImages = images{
@@ -78,9 +77,6 @@ var theImages = images{
 func (i *images) add(img *imageImpl) (*Image, error) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.evacuated {
-		return nil, errors.New("ebiten: images must not be evacuated")
-	}
 	i.images[img] = struct{}{}
 	eimg := &Image{img}
 	runtime.SetFinalizer(eimg, theImages.remove)
@@ -93,24 +89,14 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img.impl)
 }
 
-func (i *images) isEvacuated() bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-	return i.evacuated
-}
-
 func (i *images) restorePixels() error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if !i.evacuated {
-		return errors.New("ebiten: images must be evacuated")
-	}
 	for img := range i.images {
 		if err := img.restorePixels(); err != nil {
 			return err
 		}
 	}
-	i.evacuated = false
 	return nil
 }
 
@@ -213,7 +199,6 @@ type imageImpl struct {
 	texture            *graphics.Texture
 	defaultFramebuffer bool
 	disposed           bool
-	evacuated          bool
 	pixels             []uint8
 	width              int
 	height             int
@@ -311,17 +296,11 @@ func (i *imageImpl) At(x, y int) color.Color {
 func (i *imageImpl) restorePixels() error {
 	imageM.Lock()
 	defer imageM.Unlock()
-	defer func() {
-		i.evacuated = false
-	}()
 	if i.defaultFramebuffer {
 		return nil
 	}
 	if i.disposed {
 		return nil
-	}
-	if !i.evacuated {
-		return errors.New("ebiten: image must be evacuated")
 	}
 	if i.pixels == nil {
 		return errors.New("ebiten: pixels must not be nil")
