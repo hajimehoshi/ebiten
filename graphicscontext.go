@@ -97,7 +97,7 @@ func (c *graphicsContext) Resume() error {
 	if err := graphics.Initialize(ui.GLContext()); err != nil {
 		return err
 	}
-	if err := theImages.restorePixels(); err != nil {
+	if err := theImages.restorePixels(ui.GLContext()); err != nil {
 		return err
 	}
 	return nil

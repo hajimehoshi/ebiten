@@ -89,11 +89,11 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img.impl)
 }
 
-func (i *images) restorePixels() error {
+func (i *images) restorePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if err := img.restorePixels(); err != nil {
+		if err := img.restorePixels(context); err != nil {
 			return err
 		}
 	}
@@ -293,7 +293,7 @@ func (i *imageImpl) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
-func (i *imageImpl) restorePixels() error {
+func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	imageM.Lock()
 	defer imageM.Unlock()
 	if i.defaultFramebuffer {
@@ -302,15 +302,19 @@ func (i *imageImpl) restorePixels() error {
 	if i.disposed {
 		return nil
 	}
-	if i.pixels == nil {
-		return errors.New("ebiten: pixels must not be nil")
-	}
 	if i.texture != nil {
-		return errors.New("ebiten: texture must be nil")
+		// TODO: As the texture is already disposed, is it correct to delete it here?
+		if err := i.texture.Dispose(context); err != nil {
+			return err
+		}
 	}
 	if i.framebuffer != nil {
-		return errors.New("ebiten: framebuffer must be nil")
+		// TODO: Ditto
+		if err := i.framebuffer.Dispose(context); err != nil {
+			return err
+		}
 	}
+	// TODO: Recalc i.pixels here
 	img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
 	for j := 0; j < i.height; j++ {
 		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
