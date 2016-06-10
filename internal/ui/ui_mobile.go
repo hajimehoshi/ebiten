@@ -37,12 +37,6 @@ func Render(chError <-chan error) error {
 	}
 	// TODO: Check this is called on the rendering thread
 	select {
-	case <-chPauseStart:
-		if err := doGLWorks(chError, chPauseEnd); err != nil {
-			return err
-		}
-		chPauseEnd2 <- struct{}{}
-		return nil
 	case <-chResumeStart:
 		if err := doGLWorks(chError, chResumeEnd); err != nil {
 			return err
@@ -51,7 +45,7 @@ func Render(chError <-chan error) error {
 	case chRender <- struct{}{}:
 		return doGLWorks(chError, chRenderEnd)
 	case <-time.After(500 * time.Millisecond):
-		// This function must not be blocked so we need to break after a while.
+		// This function must not be blocked. We need to break for timeout.
 		return nil
 	}
 }
@@ -82,23 +76,16 @@ type userInterface struct {
 	height      int
 	scale       int
 	sizeChanged bool
-	paused      bool
 }
 
 var (
-	// TODO: Rename these channels
 	chRender      = make(chan struct{})
 	chRenderEnd   = make(chan struct{})
-	chPause       = make(chan struct{})
-	chPauseStart  = make(chan struct{})
-	chPauseEnd    = make(chan struct{})
-	chPauseEnd2   = make(chan struct{})
 	chResume      = make(chan struct{})
 	chResumeStart = make(chan struct{})
 	chResumeEnd   = make(chan struct{})
 	currentUI     = &userInterface{
 		sizeChanged: true,
-		paused:      false,
 	}
 )
 
@@ -130,21 +117,12 @@ func (u *userInterface) Update() (interface{}, error) {
 		}
 		return e, nil
 	}
-	if u.paused {
-		select {
-		case <-chResume:
-			u.paused = false
-			chResumeStart <- struct{}{}
-			return ResumeEvent{chResumeEnd}, nil
-		}
-	}
 	select {
-	case <-chPause:
-		u.paused = true
-		chPauseStart <- struct{}{}
-		return PauseEvent{chPauseEnd}, nil
 	case <-chRender:
 		return RenderEvent{chRenderEnd}, nil
+	case <-chResume:
+		chResumeStart <- struct{}{}
+		return ResumeEvent{chResumeEnd}, nil
 	}
 }
 
@@ -168,13 +146,6 @@ func (u *userInterface) ScreenScale() int {
 
 func (u *userInterface) actualScreenScale() int {
 	return u.scale
-}
-
-func Pause() error {
-	// Pause must be done in the current GL context.
-	chPause <- struct{}{}
-	<-chPauseEnd2
-	return nil
 }
 
 func Resume() error {

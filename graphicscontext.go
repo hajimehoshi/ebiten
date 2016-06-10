@@ -89,17 +89,6 @@ func (c *graphicsContext) Update() error {
 	return nil
 }
 
-func (c *graphicsContext) Pause() error {
-	if err := theImages.evacuatePixels(); err != nil {
-		return err
-	}
-	if err := graphics.Finalize(ui.GLContext()); err != nil {
-		return err
-	}
-	ui.GLContext().Pause()
-	return nil
-}
-
 func (c *graphicsContext) Resume() error {
 	ui.GLContext().Resume()
 	if !c.imageTasksDone {

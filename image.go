@@ -99,21 +99,6 @@ func (i *images) isEvacuated() bool {
 	return i.evacuated
 }
 
-func (i *images) evacuatePixels() error {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i.evacuated {
-		return errors.New("ebiten: images must not be evacuated")
-	}
-	i.evacuated = true
-	for img := range i.images {
-		if err := img.evacuatePixels(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (i *images) restorePixels() error {
 	i.m.Lock()
 	defer i.m.Unlock()
@@ -321,43 +306,6 @@ func (i *imageImpl) At(x, y int) color.Color {
 	idx := 4*x + 4*y*i.width
 	r, g, b, a := i.pixels[idx], i.pixels[idx+1], i.pixels[idx+2], i.pixels[idx+3]
 	return color.RGBA{r, g, b, a}
-}
-
-func (i *imageImpl) evacuatePixels() error {
-	imageM.Lock()
-	defer imageM.Unlock()
-	defer func() {
-		i.evacuated = true
-	}()
-	if i.defaultFramebuffer {
-		return nil
-	}
-	if i.disposed {
-		return nil
-	}
-	if i.evacuated {
-		return errors.New("ebiten: image must not be evacuated")
-	}
-	if i.pixels == nil {
-		var err error
-		i.pixels, err = i.framebuffer.Pixels(ui.GLContext())
-		if err != nil {
-			return err
-		}
-	}
-	if i.framebuffer != nil {
-		if err := i.framebuffer.Dispose(ui.GLContext()); err != nil {
-			return err
-		}
-		i.framebuffer = nil
-	}
-	if i.texture != nil {
-		if err := i.texture.Dispose(ui.GLContext()); err != nil {
-			return err
-		}
-		i.texture = nil
-	}
-	return nil
 }
 
 func (i *imageImpl) restorePixels() error {
