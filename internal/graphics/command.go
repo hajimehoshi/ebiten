@@ -17,6 +17,7 @@ package graphics
 import (
 	"errors"
 	"fmt"
+	"image"
 	"image/color"
 	"math"
 
@@ -156,6 +157,66 @@ func (c *disposeCommand) Exec(context *opengl.Context) error {
 	}
 	if c.texture != nil {
 		context.DeleteTexture(c.texture.native)
+	}
+	return nil
+}
+
+type newImageFromImageCommand struct {
+	texture     *Texture
+	framebuffer *Framebuffer
+	img         *image.RGBA
+	filter      opengl.Filter
+}
+
+func (c *newImageFromImageCommand) Exec(context *opengl.Context) error {
+	origSize := c.img.Bounds().Size()
+	if origSize.X < 4 {
+		return errors.New("graphics: width must be equal or more than 4.")
+	}
+	if origSize.Y < 4 {
+		return errors.New("graphics: height must be equal or more than 4.")
+	}
+	adjustedImage := adjustImageForTexture(c.img)
+	size := adjustedImage.Bounds().Size()
+	native, err := context.NewTexture(size.X, size.Y, adjustedImage.Pix, c.filter)
+	if err != nil {
+		return err
+	}
+	c.texture.native = native
+	c.texture.width = origSize.X
+	c.texture.height = origSize.Y
+	if err := c.framebuffer.initFromTexture(context, c.texture); err != nil {
+		return err
+	}
+	return nil
+}
+
+type newImageCommand struct {
+	texture     *Texture
+	framebuffer *Framebuffer
+	width       int
+	height      int
+	filter      opengl.Filter
+}
+
+func (c *newImageCommand) Exec(context *opengl.Context) error {
+	w := int(NextPowerOf2Int32(int32(c.width)))
+	h := int(NextPowerOf2Int32(int32(c.height)))
+	if w < 4 {
+		return errors.New("graphics: width must be equal or more than 4.")
+	}
+	if h < 4 {
+		return errors.New("graphics: height must be equal or more than 4.")
+	}
+	native, err := context.NewTexture(w, h, nil, c.filter)
+	if err != nil {
+		return err
+	}
+	c.texture.native = native
+	c.texture.width = c.width
+	c.texture.height = c.height
+	if err := c.framebuffer.initFromTexture(context, c.texture); err != nil {
+		return err
 	}
 	return nil
 }

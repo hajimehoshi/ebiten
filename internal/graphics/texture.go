@@ -15,7 +15,6 @@
 package graphics
 
 import (
-	"errors"
 	"image"
 	"image/draw"
 
@@ -50,35 +49,29 @@ type Texture struct {
 	height int
 }
 
-func NewTexture(c *opengl.Context, width, height int, filter opengl.Filter) (*Texture, error) {
-	w := int(NextPowerOf2Int32(int32(width)))
-	h := int(NextPowerOf2Int32(int32(height)))
-	if w < 4 {
-		return nil, errors.New("width must be equal or more than 4.")
+func NewImage(width, height int, filter opengl.Filter) (*Texture, *Framebuffer, error) {
+	texture := &Texture{}
+	framebuffer := &Framebuffer{}
+	c := &newImageCommand{
+		texture:     texture,
+		framebuffer: framebuffer,
+		width:       width,
+		height:      height,
+		filter:      filter,
 	}
-	if h < 4 {
-		return nil, errors.New("height must be equal or more than 4.")
-	}
-	native, err := c.NewTexture(w, h, nil, filter)
-	if err != nil {
-		return nil, err
-	}
-	return &Texture{native, width, height}, nil
+	theCommandQueue.Enqueue(c)
+	return texture, framebuffer, nil
 }
 
-func NewTextureFromImage(c *opengl.Context, img *image.RGBA, filter opengl.Filter) (*Texture, error) {
-	origSize := img.Bounds().Size()
-	if origSize.X < 4 {
-		return nil, errors.New("width must be equal or more than 4.")
+func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Texture, *Framebuffer, error) {
+	texture := &Texture{}
+	framebuffer := &Framebuffer{}
+	c := &newImageFromImageCommand{
+		texture:     texture,
+		framebuffer: framebuffer,
+		img:         img,
+		filter:      filter,
 	}
-	if origSize.Y < 4 {
-		return nil, errors.New("height must be equal or more than 4.")
-	}
-	adjustedImage := adjustImageForTexture(img)
-	size := adjustedImage.Bounds().Size()
-	native, err := c.NewTexture(size.X, size.Y, adjustedImage.Pix, filter)
-	if err != nil {
-		return nil, err
-	}
-	return &Texture{native, origSize.X, origSize.Y}, nil
+	theCommandQueue.Enqueue(c)
+	return texture, framebuffer, nil
 }

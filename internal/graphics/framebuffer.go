@@ -42,7 +42,7 @@ type Framebuffer struct {
 	proMatrix *[4][4]float64
 }
 
-func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, error) {
+func NewZeroFramebuffer(width, height int) (*Framebuffer, error) {
 	f := &Framebuffer{
 		width:  width,
 		height: height,
@@ -51,17 +51,15 @@ func NewZeroFramebuffer(c *opengl.Context, width, height int) (*Framebuffer, err
 	return f, nil
 }
 
-func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffer, error) {
-	native, err := c.NewFramebuffer(opengl.Texture(texture.native))
+func (f *Framebuffer) initFromTexture(context *opengl.Context, texture *Texture) error {
+	native, err := context.NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	f := &Framebuffer{
-		native: native,
-		width:  texture.width,
-		height: texture.height,
-	}
-	return f, nil
+	f.native = native
+	f.width = texture.width
+	f.height = texture.height
+	return nil
 }
 
 func Dispose(texture *Texture, framebuffer *Framebuffer) error {

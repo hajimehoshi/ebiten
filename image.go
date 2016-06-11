@@ -311,15 +311,12 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	for j := 0; j < i.height; j++ {
 		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
 	}
-	var err error
-	i.texture, err = graphics.NewTextureFromImage(ui.GLContext(), img, glFilter(ui.GLContext(), i.filter))
+	texture, framebuffer, err := graphics.NewImageFromImage(img, glFilter(ui.GLContext(), i.filter))
 	if err != nil {
 		return err
 	}
-	i.framebuffer, err = graphics.NewFramebufferFromTexture(ui.GLContext(), i.texture)
-	if err != nil {
-		return err
-	}
+	i.texture = texture
+	i.framebuffer = framebuffer
 	return nil
 }
 
@@ -400,13 +397,8 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	f := func() error {
 		imageM.Lock()
 		defer imageM.Unlock()
-		texture, err := graphics.NewTexture(ui.GLContext(), width, height, glFilter(ui.GLContext(), filter))
+		texture, framebuffer, err := graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
 		if err != nil {
-			return err
-		}
-		framebuffer, err := graphics.NewFramebufferFromTexture(ui.GLContext(), texture)
-		if err != nil {
-			// TODO: texture should be removed here?
 			return err
 		}
 		image.framebuffer = framebuffer
@@ -455,11 +447,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		}
 		imageM.Lock()
 		defer imageM.Unlock()
-		texture, err := graphics.NewTextureFromImage(ui.GLContext(), rgbaImg, glFilter(ui.GLContext(), filter))
-		if err != nil {
-			return err
-		}
-		framebuffer, err := graphics.NewFramebufferFromTexture(ui.GLContext(), texture)
+		texture, framebuffer, err := graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
 		if err != nil {
 			// TODO: texture should be removed here?
 			return err
@@ -489,7 +477,7 @@ func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
 func newImageWithZeroFramebufferImpl(width, height int) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-	f, err := graphics.NewZeroFramebuffer(ui.GLContext(), width, height)
+	f, err := graphics.NewZeroFramebuffer(width, height)
 	if err != nil {
 		return nil, err
 	}
