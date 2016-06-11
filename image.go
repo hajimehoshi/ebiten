@@ -302,17 +302,9 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if i.texture != nil {
-		// TODO: As the texture is already disposed, is it correct to delete it here?
-		if err := i.texture.Dispose(context); err != nil {
-			return err
-		}
-	}
-	if i.framebuffer != nil {
-		// TODO: Ditto
-		if err := i.framebuffer.Dispose(context); err != nil {
-			return err
-		}
+	// TODO: As the texture is already disposed, is it correct to delete it here?
+	if err := graphics.Dispose(i.texture, i.framebuffer); err != nil {
+		return err
 	}
 	// TODO: Recalc i.pixels here
 	img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
@@ -338,18 +330,11 @@ func (i *imageImpl) Dispose() error {
 		if i.isDisposed() {
 			return errors.New("ebiten: image is already disposed")
 		}
-		if i.framebuffer != nil {
-			if err := i.framebuffer.Dispose(ui.GLContext()); err != nil {
-				return err
-			}
-			i.framebuffer = nil
+		if err := graphics.Dispose(i.texture, i.framebuffer); err != nil {
+			return err
 		}
-		if i.texture != nil {
-			if err := i.texture.Dispose(ui.GLContext()); err != nil {
-				return err
-			}
-			i.texture = nil
-		}
+		i.framebuffer = nil
+		i.texture = nil
 		i.disposed = true
 		i.pixels = nil
 		runtime.SetFinalizer(i, nil)

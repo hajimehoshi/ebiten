@@ -144,3 +144,18 @@ func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
 	context.TexSubImage2D(c.pixels, c.texture.width, c.texture.height)
 	return nil
 }
+
+type disposeCommand struct {
+	framebuffer *Framebuffer
+	texture     *Texture
+}
+
+func (c *disposeCommand) Exec(context *opengl.Context) error {
+	if c.framebuffer != nil && c.framebuffer.native != opengl.ZeroFramebuffer {
+		context.DeleteFramebuffer(c.framebuffer.native)
+	}
+	if c.texture != nil {
+		context.DeleteTexture(c.texture.native)
+	}
+	return nil
+}

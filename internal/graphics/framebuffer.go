@@ -64,12 +64,12 @@ func NewFramebufferFromTexture(c *opengl.Context, texture *Texture) (*Framebuffe
 	return f, nil
 }
 
-func (f *Framebuffer) Dispose(c *opengl.Context) error {
-	// Don't delete the default framebuffer.
-	if f.native == opengl.ZeroFramebuffer {
-		return nil
+func Dispose(texture *Texture, framebuffer *Framebuffer) error {
+	c := &disposeCommand{
+		framebuffer: framebuffer,
+		texture:     texture,
 	}
-	c.DeleteFramebuffer(f.native)
+	theCommandQueue.Enqueue(c)
 	return nil
 }
 
