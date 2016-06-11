@@ -33,38 +33,6 @@ var (
 	imageM sync.Mutex
 )
 
-type delayedImageTasks struct {
-	tasks      []func() error
-	m          sync.Mutex
-	execCalled bool
-}
-
-var theDelayedImageTasks = &delayedImageTasks{
-	tasks: []func() error{},
-}
-
-func (t *delayedImageTasks) add(f func() error) bool {
-	t.m.Lock()
-	defer t.m.Unlock()
-	if t.execCalled {
-		return false
-	}
-	t.tasks = append(t.tasks, f)
-	return true
-}
-
-func (t *delayedImageTasks) exec() error {
-	t.m.Lock()
-	defer t.m.Unlock()
-	t.execCalled = true
-	for _, f := range t.tasks {
-		if err := f(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 type images struct {
 	images map[*imageImpl]struct{}
 	m      sync.Mutex
@@ -206,19 +174,13 @@ type imageImpl struct {
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
-	f := func() error {
-		imageM.Lock()
-		defer imageM.Unlock()
-		if i.isDisposed() {
-			return errors.New("ebiten: image is already disposed")
-		}
-		i.pixels = nil
-		return i.framebuffer.Fill(clr)
+	imageM.Lock()
+	defer imageM.Unlock()
+	if i.isDisposed() {
+		return errors.New("ebiten: image is already disposed")
 	}
-	if theDelayedImageTasks.add(f) {
-		return nil
-	}
-	return f()
+	i.pixels = nil
+	return i.framebuffer.Fill(clr)
 }
 
 func isWholeNumber(x float64) bool {
@@ -251,25 +213,19 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	if i == image.impl {
 		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
-	f := func() error {
-		imageM.Lock()
-		defer imageM.Unlock()
-		if i.isDisposed() {
-			return errors.New("ebiten: image is already disposed")
-		}
-		i.pixels = nil
-		geom := &options.GeoM
-		colorm := &options.ColorM
-		mode := opengl.CompositeMode(options.CompositeMode)
-		if err := i.framebuffer.DrawTexture(image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
-			return err
-		}
-		return nil
+	imageM.Lock()
+	defer imageM.Unlock()
+	if i.isDisposed() {
+		return errors.New("ebiten: image is already disposed")
 	}
-	if theDelayedImageTasks.add(f) {
-		return nil
+	i.pixels = nil
+	geom := &options.GeoM
+	colorm := &options.ColorM
+	mode := opengl.CompositeMode(options.CompositeMode)
+	if err := i.framebuffer.DrawTexture(image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
+		return err
 	}
-	return f()
+	return nil
 }
 
 func (i *imageImpl) At(x, y int) color.Color {
@@ -321,27 +277,20 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 }
 
 func (i *imageImpl) Dispose() error {
-	f := func() error {
-		imageM.Lock()
-		defer imageM.Unlock()
-		if i.isDisposed() {
-			return errors.New("ebiten: image is already disposed")
-		}
-		if err := graphics.Dispose(i.texture, i.framebuffer); err != nil {
-			return err
-		}
-		i.framebuffer = nil
-		i.texture = nil
-		i.disposed = true
-		i.pixels = nil
-		runtime.SetFinalizer(i, nil)
-		return nil
+	imageM.Lock()
+	defer imageM.Unlock()
+	if i.isDisposed() {
+		return errors.New("ebiten: image is already disposed")
 	}
-
-	if theDelayedImageTasks.add(f) {
-		return nil
+	if err := graphics.Dispose(i.texture, i.framebuffer); err != nil {
+		return err
 	}
-	return f()
+	i.framebuffer = nil
+	i.texture = nil
+	i.disposed = true
+	i.pixels = nil
+	runtime.SetFinalizer(i, nil)
+	return nil
 }
 
 func (i *imageImpl) isDisposed() bool {
@@ -352,20 +301,14 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
-	f := func() error {
-		imageM.Lock()
-		defer imageM.Unlock()
-		// TODO: Copy p?
-		i.pixels = nil
-		if i.isDisposed() {
-			return errors.New("ebiten: image is already disposed")
-		}
-		return i.framebuffer.ReplacePixels(i.texture, p)
+	imageM.Lock()
+	defer imageM.Unlock()
+	// TODO: Copy p?
+	i.pixels = nil
+	if i.isDisposed() {
+		return errors.New("ebiten: image is already disposed")
 	}
-	if theDelayedImageTasks.add(f) {
-		return nil
-	}
-	return f()
+	return i.framebuffer.ReplacePixels(i.texture, p)
 }
 
 // A DrawImageOptions represents options to render an image on an image.
@@ -394,25 +337,16 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	f := func() error {
-		imageM.Lock()
-		defer imageM.Unlock()
-		texture, framebuffer, err := graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
-		if err != nil {
-			return err
-		}
-		image.framebuffer = framebuffer
-		image.texture = texture
-		runtime.SetFinalizer(image, (*imageImpl).Dispose)
-		if err := image.framebuffer.Fill(color.Transparent); err != nil {
-			return err
-		}
-		return nil
+	imageM.Lock()
+	defer imageM.Unlock()
+	texture, framebuffer, err := graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
+	if err != nil {
+		return nil, err
 	}
-	if theDelayedImageTasks.add(f) {
-		return eimg, nil
-	}
-	if err := f(); err != nil {
+	image.framebuffer = framebuffer
+	image.texture = texture
+	runtime.SetFinalizer(image, (*imageImpl).Dispose)
+	if err := image.framebuffer.Fill(color.Transparent); err != nil {
 		return nil, err
 	}
 	return eimg, nil
@@ -436,33 +370,24 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	f := func() error {
-		// Don't lock while manipulating an image.Image interface.
-		rgbaImg, ok := source.(*image.RGBA)
-		if !ok {
-			origImg := source
-			newImg := image.NewRGBA(origImg.Bounds())
-			draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
-			rgbaImg = newImg
-		}
-		imageM.Lock()
-		defer imageM.Unlock()
-		texture, framebuffer, err := graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
-		if err != nil {
-			// TODO: texture should be removed here?
-			return err
-		}
-		img.framebuffer = framebuffer
-		img.texture = texture
-		runtime.SetFinalizer(img, (*imageImpl).Dispose)
-		return nil
+	// Don't lock while manipulating an image.Image interface.
+	rgbaImg, ok := source.(*image.RGBA)
+	if !ok {
+		origImg := source
+		newImg := image.NewRGBA(origImg.Bounds())
+		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
+		rgbaImg = newImg
 	}
-	if theDelayedImageTasks.add(f) {
-		return eimg, nil
-	}
-	if err := f(); err != nil {
+	imageM.Lock()
+	defer imageM.Unlock()
+	texture, framebuffer, err := graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
+	if err != nil {
+		// TODO: texture should be removed here?
 		return nil, err
 	}
+	img.framebuffer = framebuffer
+	img.texture = texture
+	runtime.SetFinalizer(img, (*imageImpl).Dispose)
 	return eimg, nil
 }
 

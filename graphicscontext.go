@@ -30,7 +30,7 @@ type graphicsContext struct {
 	screen              *Image
 	defaultRenderTarget *Image
 	screenScale         int
-	imageTasksDone      bool
+	initialized         bool
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) error {
@@ -55,16 +55,11 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) er
 }
 
 func (c *graphicsContext) Update() error {
-	if !c.imageTasksDone {
+	if !c.initialized {
 		if err := graphics.Initialize(ui.GLContext()); err != nil {
 			return err
 		}
-		// This execution is called here because we can say actual GL function calls
-		// should be done here (especailly on mobiles).
-		if err := theDelayedImageTasks.exec(); err != nil {
-			return err
-		}
-		c.imageTasksDone = true
+		c.initialized = true
 	}
 	if err := c.screen.Clear(); err != nil {
 		return err
@@ -104,7 +99,7 @@ func (c *graphicsContext) flush() error {
 
 func (c *graphicsContext) Resume() error {
 	ui.GLContext().Resume()
-	if !c.imageTasksDone {
+	if !c.initialized {
 		return nil
 	}
 	if err := graphics.Initialize(ui.GLContext()); err != nil {
