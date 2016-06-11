@@ -267,7 +267,7 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	for j := 0; j < i.height; j++ {
 		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
 	}
-	texture, framebuffer, err := graphics.NewImageFromImage(img, glFilter(ui.GLContext(), i.filter))
+	texture, framebuffer, err := graphics.NewImageFromImage(img, glFilter(context, i.filter))
 	if err != nil {
 		return err
 	}
