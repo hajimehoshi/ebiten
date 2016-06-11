@@ -105,7 +105,7 @@ func (f *Framebuffer) Fill(clr color.Color) error {
 	return nil
 }
 
-func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
+func (f *Framebuffer) DrawTexture(t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
 	c := &drawImageCommand{
 		dst:      f,
 		src:      t,
@@ -115,12 +115,6 @@ func (f *Framebuffer) DrawTexture(context *opengl.Context, t *Texture, vertices 
 		mode:     mode,
 	}
 	theCommandQueue.Enqueue(c)
-	// TODO: Can we move this to graphicscontext.go (again)?
-	if f.native == opengl.ZeroFramebuffer {
-		if err := FlushCommands(context); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

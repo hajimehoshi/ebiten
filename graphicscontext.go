@@ -84,6 +84,19 @@ func (c *graphicsContext) Update() error {
 	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
 		return err
 	}
+	if err := c.flush(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *graphicsContext) flush() error {
+	// TODO: imageM is necessary to call graphics functions. Move this to graphics package.
+	imageM.Lock()
+	defer imageM.Unlock()
+	if err := graphics.FlushCommands(ui.GLContext()); err != nil {
+		return err
+	}
 	// Call glFlush to prevent black flicking (especially on Android (#226)).
 	ui.GLContext().Flush()
 	return nil

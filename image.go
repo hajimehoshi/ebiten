@@ -261,7 +261,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		geom := &options.GeoM
 		colorm := &options.ColorM
 		mode := opengl.CompositeMode(options.CompositeMode)
-		if err := i.framebuffer.DrawTexture(ui.GLContext(), image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
+		if err := i.framebuffer.DrawTexture(image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
 			return err
 		}
 		return nil
