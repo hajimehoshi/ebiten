@@ -42,13 +42,15 @@ type Framebuffer struct {
 	proMatrix *[4][4]float64
 }
 
-func NewZeroFramebuffer(width, height int) (*Framebuffer, error) {
+func NewZeroFramebufferImage(width, height int) (*Image, error) {
 	f := &Framebuffer{
 		width:  width,
 		height: height,
 		flipY:  true,
 	}
-	return f, nil
+	return &Image{
+		framebuffer: f,
+	}, nil
 }
 
 func (f *Framebuffer) initFromTexture(context *opengl.Context, texture *Texture) error {
@@ -62,10 +64,10 @@ func (f *Framebuffer) initFromTexture(context *opengl.Context, texture *Texture)
 	return nil
 }
 
-func Dispose(texture *Texture, framebuffer *Framebuffer) error {
+func (i *Image) Dispose() error {
 	c := &disposeCommand{
-		framebuffer: framebuffer,
-		texture:     texture,
+		framebuffer: i.framebuffer,
+		texture:     i.texture,
 	}
 	theCommandQueue.Enqueue(c)
 	return nil
@@ -94,19 +96,19 @@ func (f *Framebuffer) projectionMatrix() *[4][4]float64 {
 	return f.proMatrix
 }
 
-func (f *Framebuffer) Fill(clr color.Color) error {
+func (i *Image) Fill(clr color.Color) error {
 	c := &fillCommand{
-		dst:   f,
+		dst:   i.framebuffer,
 		color: clr,
 	}
 	theCommandQueue.Enqueue(c)
 	return nil
 }
 
-func (f *Framebuffer) DrawTexture(t *Texture, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
+func (i *Image) DrawImage(src *Image, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
 	c := &drawImageCommand{
-		dst:      f,
-		src:      t,
+		dst:      i.framebuffer,
+		src:      src.texture,
 		vertices: vertices,
 		geo:      geo,
 		color:    clr,
@@ -116,18 +118,19 @@ func (f *Framebuffer) DrawTexture(t *Texture, vertices []int16, geo, clr Matrix,
 	return nil
 }
 
-func (f *Framebuffer) Pixels(context *opengl.Context) ([]uint8, error) {
+func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
 	// Flush the enqueued commands so that pixels are certainly read.
 	if err := theCommandQueue.Flush(context); err != nil {
 		return nil, err
 	}
+	f := i.framebuffer
 	return context.FramebufferPixels(f.native, f.width, f.height)
 }
 
-func (f *Framebuffer) ReplacePixels(t *Texture, p []uint8) error {
+func (i *Image) ReplacePixels(p []uint8) error {
 	c := &replacePixelsCommand{
-		dst:     f,
-		texture: t,
+		dst:     i.framebuffer,
+		texture: i.texture,
 		pixels:  p,
 	}
 	theCommandQueue.Enqueue(c)

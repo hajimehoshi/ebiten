@@ -43,35 +43,44 @@ func adjustImageForTexture(img *image.RGBA) *image.RGBA {
 	return adjustedImage
 }
 
+type Image struct {
+	texture     *Texture
+	framebuffer *Framebuffer
+}
+
 type Texture struct {
 	native opengl.Texture
 	width  int
 	height int
 }
 
-func NewImage(width, height int, filter opengl.Filter) (*Texture, *Framebuffer, error) {
-	texture := &Texture{}
-	framebuffer := &Framebuffer{}
+func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
+	i := &Image{
+		texture:     &Texture{},
+		framebuffer: &Framebuffer{},
+	}
 	c := &newImageCommand{
-		texture:     texture,
-		framebuffer: framebuffer,
+		texture:     i.texture,
+		framebuffer: i.framebuffer,
 		width:       width,
 		height:      height,
 		filter:      filter,
 	}
 	theCommandQueue.Enqueue(c)
-	return texture, framebuffer, nil
+	return i, nil
 }
 
-func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Texture, *Framebuffer, error) {
-	texture := &Texture{}
-	framebuffer := &Framebuffer{}
+func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
+	i := &Image{
+		texture:     &Texture{},
+		framebuffer: &Framebuffer{},
+	}
 	c := &newImageFromImageCommand{
-		texture:     texture,
-		framebuffer: framebuffer,
+		texture:     i.texture,
+		framebuffer: i.framebuffer,
 		img:         img,
 		filter:      filter,
 	}
 	theCommandQueue.Enqueue(c)
-	return texture, framebuffer, nil
+	return i, nil
 }

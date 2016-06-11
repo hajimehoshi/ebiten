@@ -163,8 +163,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 }
 
 type imageImpl struct {
-	framebuffer        *graphics.Framebuffer
-	texture            *graphics.Texture
+	image              *graphics.Image
 	defaultFramebuffer bool
 	disposed           bool
 	width              int
@@ -180,7 +179,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	i.pixels = nil
-	return i.framebuffer.Fill(clr)
+	return i.image.Fill(clr)
 }
 
 func isWholeNumber(x float64) bool {
@@ -222,7 +221,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := &options.GeoM
 	colorm := &options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if err := i.framebuffer.DrawTexture(image.impl.texture, vertices[:16*n], geom, colorm, mode); err != nil {
+	if err := i.image.DrawImage(image.impl.image, vertices[:16*n], geom, colorm, mode); err != nil {
 		return err
 	}
 	return nil
@@ -239,7 +238,7 @@ func (i *imageImpl) At(x, y int) color.Color {
 	}
 	if i.pixels == nil {
 		var err error
-		i.pixels, err = i.framebuffer.Pixels(ui.GLContext())
+		i.pixels, err = i.image.Pixels(ui.GLContext())
 		if err != nil {
 			panic(err)
 		}
@@ -259,7 +258,7 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 		return nil
 	}
 	// TODO: As the texture is already disposed, is it correct to delete it here?
-	if err := graphics.Dispose(i.texture, i.framebuffer); err != nil {
+	if err := i.image.Dispose(); err != nil {
 		return err
 	}
 	// TODO: Recalc i.pixels here
@@ -267,12 +266,11 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	for j := 0; j < i.height; j++ {
 		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
 	}
-	texture, framebuffer, err := graphics.NewImageFromImage(img, glFilter(context, i.filter))
+	var err error
+	i.image, err = graphics.NewImageFromImage(img, glFilter(context, i.filter))
 	if err != nil {
 		return err
 	}
-	i.texture = texture
-	i.framebuffer = framebuffer
 	return nil
 }
 
@@ -282,11 +280,10 @@ func (i *imageImpl) Dispose() error {
 	if i.isDisposed() {
 		return errors.New("ebiten: image is already disposed")
 	}
-	if err := graphics.Dispose(i.texture, i.framebuffer); err != nil {
+	if err := i.image.Dispose(); err != nil {
 		return err
 	}
-	i.framebuffer = nil
-	i.texture = nil
+	i.image = nil
 	i.disposed = true
 	i.pixels = nil
 	runtime.SetFinalizer(i, nil)
@@ -308,7 +305,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if i.isDisposed() {
 		return errors.New("ebiten: image is already disposed")
 	}
-	return i.framebuffer.ReplacePixels(i.texture, p)
+	return i.image.ReplacePixels(p)
 }
 
 // A DrawImageOptions represents options to render an image on an image.
@@ -339,14 +336,12 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	}
 	imageM.Lock()
 	defer imageM.Unlock()
-	texture, framebuffer, err := graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
+	image.image, err = graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		return nil, err
 	}
-	image.framebuffer = framebuffer
-	image.texture = texture
 	runtime.SetFinalizer(image, (*imageImpl).Dispose)
-	if err := image.framebuffer.Fill(color.Transparent); err != nil {
+	if err := image.image.Fill(color.Transparent); err != nil {
 		return nil, err
 	}
 	return eimg, nil
@@ -380,13 +375,11 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	}
 	imageM.Lock()
 	defer imageM.Unlock()
-	texture, framebuffer, err := graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
+	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		// TODO: texture should be removed here?
 		return nil, err
 	}
-	img.framebuffer = framebuffer
-	img.texture = texture
 	runtime.SetFinalizer(img, (*imageImpl).Dispose)
 	return eimg, nil
 }
@@ -402,13 +395,12 @@ func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
 func newImageWithZeroFramebufferImpl(width, height int) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-	f, err := graphics.NewZeroFramebuffer(width, height)
+	i, err := graphics.NewZeroFramebufferImage(width, height)
 	if err != nil {
 		return nil, err
 	}
 	img := &imageImpl{
-		framebuffer:        f,
-		texture:            nil,
+		image:              i,
 		width:              width,
 		height:             height,
 		defaultFramebuffer: true,
