@@ -72,7 +72,7 @@ func FlushCommands(context *opengl.Context) error {
 }
 
 type fillCommand struct {
-	dst   *Framebuffer
+	dst   *framebuffer
 	color color.Color
 }
 
@@ -90,8 +90,8 @@ func (c *fillCommand) Exec(context *opengl.Context) error {
 }
 
 type drawImageCommand struct {
-	dst      *Framebuffer
-	src      *Texture
+	dst      *framebuffer
+	src      *texture
 	vertices []int16
 	geo      Matrix
 	color    Matrix
@@ -127,8 +127,8 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 }
 
 type replacePixelsCommand struct {
-	dst     *Framebuffer
-	texture *Texture
+	dst     *framebuffer
+	texture *texture
 	pixels  []uint8
 }
 
@@ -147,8 +147,8 @@ func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
 }
 
 type disposeCommand struct {
-	framebuffer *Framebuffer
-	texture     *Texture
+	framebuffer *framebuffer
+	texture     *texture
 }
 
 func (c *disposeCommand) Exec(context *opengl.Context) error {
@@ -162,8 +162,8 @@ func (c *disposeCommand) Exec(context *opengl.Context) error {
 }
 
 type newImageFromImageCommand struct {
-	texture     *Texture
-	framebuffer *Framebuffer
+	texture     *texture
+	framebuffer *framebuffer
 	img         *image.RGBA
 	filter      opengl.Filter
 }
@@ -192,8 +192,8 @@ func (c *newImageFromImageCommand) Exec(context *opengl.Context) error {
 }
 
 type newImageCommand struct {
-	texture     *Texture
-	framebuffer *Framebuffer
+	texture     *texture
+	framebuffer *framebuffer
 	width       int
 	height      int
 	filter      opengl.Filter

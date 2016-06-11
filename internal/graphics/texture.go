@@ -44,11 +44,11 @@ func adjustImageForTexture(img *image.RGBA) *image.RGBA {
 }
 
 type Image struct {
-	texture     *Texture
-	framebuffer *Framebuffer
+	texture     *texture
+	framebuffer *framebuffer
 }
 
-type Texture struct {
+type texture struct {
 	native opengl.Texture
 	width  int
 	height int
@@ -56,8 +56,8 @@ type Texture struct {
 
 func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
 	i := &Image{
-		texture:     &Texture{},
-		framebuffer: &Framebuffer{},
+		texture:     &texture{},
+		framebuffer: &framebuffer{},
 	}
 	c := &newImageCommand{
 		texture:     i.texture,
@@ -72,8 +72,8 @@ func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
 
 func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
 	i := &Image{
-		texture:     &Texture{},
-		framebuffer: &Framebuffer{},
+		texture:     &texture{},
+		framebuffer: &framebuffer{},
 	}
 	c := &newImageFromImageCommand{
 		texture:     i.texture,
