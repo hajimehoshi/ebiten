@@ -15,72 +15,11 @@
 package graphics
 
 import (
-	"image"
-	"image/draw"
-
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
-
-func adjustImageForTexture(img *image.RGBA) *image.RGBA {
-	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
-	adjustedImageBounds := image.Rectangle{
-		image.ZP,
-		image.Point{
-			int(NextPowerOf2Int32(int32(width))),
-			int(NextPowerOf2Int32(int32(height))),
-		},
-	}
-	if img.Bounds() == adjustedImageBounds {
-		return img
-	}
-
-	adjustedImage := image.NewRGBA(adjustedImageBounds)
-	dstBounds := image.Rectangle{
-		image.ZP,
-		img.Bounds().Size(),
-	}
-	draw.Draw(adjustedImage, dstBounds, img, img.Bounds().Min, draw.Src)
-	return adjustedImage
-}
-
-type Image struct {
-	texture     *texture
-	framebuffer *framebuffer
-}
 
 type texture struct {
 	native opengl.Texture
 	width  int
 	height int
-}
-
-func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
-	i := &Image{
-		texture:     &texture{},
-		framebuffer: &framebuffer{},
-	}
-	c := &newImageCommand{
-		texture:     i.texture,
-		framebuffer: i.framebuffer,
-		width:       width,
-		height:      height,
-		filter:      filter,
-	}
-	theCommandQueue.Enqueue(c)
-	return i, nil
-}
-
-func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
-	i := &Image{
-		texture:     &texture{},
-		framebuffer: &framebuffer{},
-	}
-	c := &newImageFromImageCommand{
-		texture:     i.texture,
-		framebuffer: i.framebuffer,
-		img:         img,
-		filter:      filter,
-	}
-	theCommandQueue.Enqueue(c)
-	return i, nil
 }

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
@@ -166,6 +167,28 @@ type newImageFromImageCommand struct {
 	framebuffer *framebuffer
 	img         *image.RGBA
 	filter      opengl.Filter
+}
+
+func adjustImageForTexture(img *image.RGBA) *image.RGBA {
+	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
+	adjustedImageBounds := image.Rectangle{
+		image.ZP,
+		image.Point{
+			int(NextPowerOf2Int32(int32(width))),
+			int(NextPowerOf2Int32(int32(height))),
+		},
+	}
+	if img.Bounds() == adjustedImageBounds {
+		return img
+	}
+
+	adjustedImage := image.NewRGBA(adjustedImageBounds)
+	dstBounds := image.Rectangle{
+		image.ZP,
+		img.Bounds().Size(),
+	}
+	draw.Draw(adjustedImage, dstBounds, img, img.Bounds().Min, draw.Src)
+	return adjustedImage
 }
 
 func (c *newImageFromImageCommand) Exec(context *opengl.Context) error {

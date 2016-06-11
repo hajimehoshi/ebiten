@@ -15,8 +15,6 @@
 package graphics
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -42,17 +40,6 @@ type framebuffer struct {
 	proMatrix *[4][4]float64
 }
 
-func NewZeroFramebufferImage(width, height int) (*Image, error) {
-	f := &framebuffer{
-		width:  width,
-		height: height,
-		flipY:  true,
-	}
-	return &Image{
-		framebuffer: f,
-	}, nil
-}
-
 func (f *framebuffer) initFromTexture(context *opengl.Context, texture *texture) error {
 	native, err := context.NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
@@ -61,15 +48,6 @@ func (f *framebuffer) initFromTexture(context *opengl.Context, texture *texture)
 	f.native = native
 	f.width = texture.width
 	f.height = texture.height
-	return nil
-}
-
-func (i *Image) Dispose() error {
-	c := &disposeCommand{
-		framebuffer: i.framebuffer,
-		texture:     i.texture,
-	}
-	theCommandQueue.Enqueue(c)
 	return nil
 }
 
@@ -94,45 +72,4 @@ func (f *framebuffer) projectionMatrix() *[4][4]float64 {
 	}
 	f.proMatrix = m
 	return f.proMatrix
-}
-
-func (i *Image) Fill(clr color.Color) error {
-	c := &fillCommand{
-		dst:   i.framebuffer,
-		color: clr,
-	}
-	theCommandQueue.Enqueue(c)
-	return nil
-}
-
-func (i *Image) DrawImage(src *Image, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
-	c := &drawImageCommand{
-		dst:      i.framebuffer,
-		src:      src.texture,
-		vertices: vertices,
-		geo:      geo,
-		color:    clr,
-		mode:     mode,
-	}
-	theCommandQueue.Enqueue(c)
-	return nil
-}
-
-func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
-	// Flush the enqueued commands so that pixels are certainly read.
-	if err := theCommandQueue.Flush(context); err != nil {
-		return nil, err
-	}
-	f := i.framebuffer
-	return context.FramebufferPixels(f.native, f.width, f.height)
-}
-
-func (i *Image) ReplacePixels(p []uint8) error {
-	c := &replacePixelsCommand{
-		dst:     i.framebuffer,
-		texture: i.texture,
-		pixels:  p,
-	}
-	theCommandQueue.Enqueue(c)
-	return nil
 }
