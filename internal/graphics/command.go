@@ -73,12 +73,12 @@ func FlushCommands(context *opengl.Context) error {
 }
 
 type fillCommand struct {
-	dst   *framebuffer
+	dst   *Image
 	color color.Color
 }
 
 func (c *fillCommand) Exec(context *opengl.Context) error {
-	if err := c.dst.setAsViewport(context); err != nil {
+	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
 	cr, cg, cb, ca := c.color.RGBA()
@@ -91,8 +91,8 @@ func (c *fillCommand) Exec(context *opengl.Context) error {
 }
 
 type drawImageCommand struct {
-	dst      *framebuffer
-	src      *texture
+	dst      *Image
+	src      *Image
 	vertices []int16
 	geo      Matrix
 	color    Matrix
@@ -100,7 +100,7 @@ type drawImageCommand struct {
 }
 
 func (c *drawImageCommand) Exec(context *opengl.Context) error {
-	if err := c.dst.setAsViewport(context); err != nil {
+	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
 	context.BlendFunc(c.mode)
@@ -113,8 +113,8 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 		state:            &theOpenGLState,
 		program:          theOpenGLState.programTexture,
 		context:          context,
-		projectionMatrix: glMatrix(c.dst.projectionMatrix()),
-		texture:          c.src.native,
+		projectionMatrix: glMatrix(c.dst.framebuffer.projectionMatrix()),
+		texture:          c.src.texture.native,
 		geoM:             c.geo,
 		colorM:           c.color,
 	}
@@ -128,45 +128,42 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 }
 
 type replacePixelsCommand struct {
-	dst     *framebuffer
-	texture *texture
-	pixels  []uint8
+	dst    *Image
+	pixels []uint8
 }
 
 func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
 	// Filling with non black or white color is required here for glTexSubImage2D.
 	// Very mysterious but this actually works (Issue #186)
-	if err := c.dst.setAsViewport(context); err != nil {
+	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
 	if err := context.FillFramebuffer(0, 0, 0.5, 1); err != nil {
 		return err
 	}
-	context.BindTexture(c.texture.native)
-	context.TexSubImage2D(c.pixels, c.texture.width, c.texture.height)
+	context.BindTexture(c.dst.texture.native)
+	context.TexSubImage2D(c.pixels, c.dst.texture.width, c.dst.texture.height)
 	return nil
 }
 
 type disposeCommand struct {
-	framebuffer *framebuffer
-	texture     *texture
+	target *Image
 }
 
 func (c *disposeCommand) Exec(context *opengl.Context) error {
-	if c.framebuffer != nil && c.framebuffer.native != opengl.ZeroFramebuffer {
-		context.DeleteFramebuffer(c.framebuffer.native)
+	if c.target.framebuffer != nil && c.target.framebuffer.native != opengl.ZeroFramebuffer {
+		context.DeleteFramebuffer(c.target.framebuffer.native)
 	}
-	if c.texture != nil {
-		context.DeleteTexture(c.texture.native)
+	if c.target.texture != nil {
+		context.DeleteTexture(c.target.texture.native)
 	}
 	return nil
 }
 
 type newImageFromImageCommand struct {
-	texture     *texture
-	framebuffer *framebuffer
-	img         *image.RGBA
-	filter      opengl.Filter
+	result *Image
+	img    *image.RGBA
+	filter opengl.Filter
 }
 
 func adjustImageForTexture(img *image.RGBA) *image.RGBA {
@@ -205,21 +202,23 @@ func (c *newImageFromImageCommand) Exec(context *opengl.Context) error {
 	if err != nil {
 		return err
 	}
-	c.texture.native = native
-	c.texture.width = origSize.X
-	c.texture.height = origSize.Y
-	if err := c.framebuffer.initFromTexture(context, c.texture); err != nil {
+	c.result.texture = &texture{
+		native: native,
+		width:  origSize.X,
+		height: origSize.Y,
+	}
+	c.result.framebuffer, err = newFramebufferFromTexture(context, c.result.texture)
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
 type newImageCommand struct {
-	texture     *texture
-	framebuffer *framebuffer
-	width       int
-	height      int
-	filter      opengl.Filter
+	result *Image
+	width  int
+	height int
+	filter opengl.Filter
 }
 
 func (c *newImageCommand) Exec(context *opengl.Context) error {
@@ -235,10 +234,13 @@ func (c *newImageCommand) Exec(context *opengl.Context) error {
 	if err != nil {
 		return err
 	}
-	c.texture.native = native
-	c.texture.width = c.width
-	c.texture.height = c.height
-	if err := c.framebuffer.initFromTexture(context, c.texture); err != nil {
+	c.result.texture = &texture{
+		native: native,
+		width:  c.width,
+		height: c.height,
+	}
+	c.result.framebuffer, err = newFramebufferFromTexture(context, c.result.texture)
+	if err != nil {
 		return err
 	}
 	return nil

@@ -27,31 +27,23 @@ type Image struct {
 }
 
 func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
-	i := &Image{
-		texture:     &texture{},
-		framebuffer: &framebuffer{},
-	}
+	i := &Image{}
 	c := &newImageCommand{
-		texture:     i.texture,
-		framebuffer: i.framebuffer,
-		width:       width,
-		height:      height,
-		filter:      filter,
+		result: i,
+		width:  width,
+		height: height,
+		filter: filter,
 	}
 	theCommandQueue.Enqueue(c)
 	return i, nil
 }
 
 func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
-	i := &Image{
-		texture:     &texture{},
-		framebuffer: &framebuffer{},
-	}
+	i := &Image{}
 	c := &newImageFromImageCommand{
-		texture:     i.texture,
-		framebuffer: i.framebuffer,
-		img:         img,
-		filter:      filter,
+		result: i,
+		img:    img,
+		filter: filter,
 	}
 	theCommandQueue.Enqueue(c)
 	return i, nil
@@ -70,8 +62,7 @@ func NewZeroFramebufferImage(width, height int) (*Image, error) {
 
 func (i *Image) Dispose() error {
 	c := &disposeCommand{
-		framebuffer: i.framebuffer,
-		texture:     i.texture,
+		target: i,
 	}
 	theCommandQueue.Enqueue(c)
 	return nil
@@ -79,7 +70,7 @@ func (i *Image) Dispose() error {
 
 func (i *Image) Fill(clr color.Color) error {
 	c := &fillCommand{
-		dst:   i.framebuffer,
+		dst:   i,
 		color: clr,
 	}
 	theCommandQueue.Enqueue(c)
@@ -88,8 +79,8 @@ func (i *Image) Fill(clr color.Color) error {
 
 func (i *Image) DrawImage(src *Image, vertices []int16, geo, clr Matrix, mode opengl.CompositeMode) error {
 	c := &drawImageCommand{
-		dst:      i.framebuffer,
-		src:      src.texture,
+		dst:      i,
+		src:      src,
 		vertices: vertices,
 		geo:      geo,
 		color:    clr,
@@ -110,9 +101,8 @@ func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
 
 func (i *Image) ReplacePixels(p []uint8) error {
 	c := &replacePixelsCommand{
-		dst:     i.framebuffer,
-		texture: i.texture,
-		pixels:  p,
+		dst:    i,
+		pixels: p,
 	}
 	theCommandQueue.Enqueue(c)
 	return nil

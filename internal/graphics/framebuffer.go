@@ -40,15 +40,16 @@ type framebuffer struct {
 	proMatrix *[4][4]float64
 }
 
-func (f *framebuffer) initFromTexture(context *opengl.Context, texture *texture) error {
+func newFramebufferFromTexture(context *opengl.Context, texture *texture) (*framebuffer, error) {
 	native, err := context.NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.native = native
-	f.width = texture.width
-	f.height = texture.height
-	return nil
+	return &framebuffer{
+		native: native,
+		width:  texture.width,
+		height: texture.height,
+	}, nil
 }
 
 const viewportSize = 4096
