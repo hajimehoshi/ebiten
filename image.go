@@ -434,14 +434,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 }
 
 func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
-	img, err := newImageWithZeroFramebufferImpl(width, height)
-	if err != nil {
-		return nil, err
-	}
-	return img, nil
-}
-
-func newImageWithZeroFramebufferImpl(width, height int) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
 	i, err := graphics.NewZeroFramebufferImage(width, height)
