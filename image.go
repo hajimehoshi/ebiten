@@ -407,13 +407,17 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 		rgbaImg = newImg
 	}
-	// TODO: Set pixels here?
+	pixels := make([]uint8, 4*w*h)
+	for j := 0; j < h; j++ {
+		copy(pixels[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
+	}
 	imageM.Lock()
 	defer imageM.Unlock()
 	img := &imageImpl{
 		width:  w,
 		height: h,
 		filter: filter,
+		pixels: pixels,
 	}
 	var err error
 	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
