@@ -291,10 +291,6 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	// TODO: As the texture is already disposed, is it correct to delete it here?
-	if err := i.image.Dispose(); err != nil {
-		return err
-	}
 	if i.pixels != nil {
 		img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
 		for j := 0; j < i.height; j++ {
