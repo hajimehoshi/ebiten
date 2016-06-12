@@ -106,9 +106,6 @@ func (c *graphicsContext) flush() error {
 
 func (c *graphicsContext) Resume() error {
 	ui.GLContext().Resume()
-	if !c.initialized {
-		return nil
-	}
 	if err := graphics.Initialize(ui.GLContext()); err != nil {
 		return err
 	}

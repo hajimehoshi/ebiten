@@ -80,15 +80,12 @@ func NewContext() (*Context, error) {
 	return c, nil
 }
 
-func (c *Context) Pause() {
+func (c *Context) Resume() {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = ZeroFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
-}
-
-func (c *Context) Resume() {
 	c.gl.Enable(mgl.BLEND)
 	c.BlendFunc(CompositeModeSourceOver)
 }

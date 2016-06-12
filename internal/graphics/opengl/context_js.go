@@ -118,15 +118,12 @@ func (c *Context) init() {
 	c.BlendFunc(CompositeModeSourceOver)
 }
 
-func (c *Context) Pause() {
+func (c *Context) Resume() {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = ZeroFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
-}
-
-func (c *Context) Resume() {
 	gl := c.gl
 	gl.Enable(gl.BLEND)
 	c.BlendFunc(CompositeModeSourceOver)
