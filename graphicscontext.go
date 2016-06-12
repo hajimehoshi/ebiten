@@ -105,6 +105,8 @@ func (c *graphicsContext) flush() error {
 }
 
 func (c *graphicsContext) Resume() error {
+	imageM.Lock()
+	defer imageM.Unlock()
 	ui.GLContext().Resume()
 	if err := graphics.Initialize(ui.GLContext()); err != nil {
 		return err

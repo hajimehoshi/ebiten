@@ -78,6 +78,17 @@ func (i *images) restorePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
+		if img.defaultFramebuffer {
+			continue
+		}
+		if img.isDisposed() {
+			continue
+		}
+		if err := img.image.Dispose(); err != nil {
+			return err
+		}
+	}
+	for img := range i.images {
 		if err := img.restorePixels(context); err != nil {
 			return err
 		}
@@ -274,8 +285,6 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 }
 
 func (i *imageImpl) restorePixels(context *opengl.Context) error {
-	imageM.Lock()
-	defer imageM.Unlock()
 	if i.defaultFramebuffer {
 		return nil
 	}
@@ -332,7 +341,6 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	imageM.Lock()
 	defer imageM.Unlock()
-	// TODO: Copy p?
 	if i.pixels == nil {
 		i.pixels = make([]uint8, len(p))
 	}
@@ -410,6 +418,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 		rgbaImg = newImg
 	}
+	// TODO: Set pixels here?
 	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		// TODO: texture should be removed here?
