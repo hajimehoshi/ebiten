@@ -29,7 +29,6 @@ type EventDispatcher interface {
 	SetScreenSize(width, height int)
 	SetScreenScale(scale int)
 	Render() error
-	Resume()
 	TouchDown(id int, x, y int)
 	TouchMove(id int, x, y int)
 	TouchUp(id int)
@@ -67,10 +66,6 @@ func (e *eventDispatcher) Render() error {
 		return errors.New("mobile: chError must not be nil: Start is not called yet?")
 	}
 	return ui.Render(chError)
-}
-
-func (e *eventDispatcher) Resume() {
-	ui.Resume()
 }
 
 // touch implements ui.Touch.

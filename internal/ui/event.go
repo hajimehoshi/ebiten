@@ -27,11 +27,3 @@ type ScreenSizeEvent struct {
 type RenderEvent struct {
 	Done chan struct{}
 }
-
-type PauseEvent struct {
-	Done chan struct{}
-}
-
-type ResumeEvent struct {
-	Done chan struct{}
-}

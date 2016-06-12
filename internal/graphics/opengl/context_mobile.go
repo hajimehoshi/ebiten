@@ -162,6 +162,11 @@ func (c *Context) DeleteTexture(t Texture) {
 	gl.DeleteTexture(mgl.Texture(t))
 }
 
+func (c *Context) IsTexture(t Texture) bool {
+	gl := c.gl
+	return gl.IsTexture(mgl.Texture(t))
+}
+
 func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	gl := c.gl
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)

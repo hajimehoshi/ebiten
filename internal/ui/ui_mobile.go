@@ -37,11 +37,6 @@ func Render(chError <-chan error) error {
 	}
 	// TODO: Check this is called on the rendering thread
 	select {
-	case <-chResumeStart:
-		if err := doGLWorks(chError, chResumeEnd); err != nil {
-			return err
-		}
-		return nil
 	case chRender <- struct{}{}:
 		return doGLWorks(chError, chRenderEnd)
 	case <-time.After(500 * time.Millisecond):
@@ -79,12 +74,9 @@ type userInterface struct {
 }
 
 var (
-	chRender      = make(chan struct{})
-	chRenderEnd   = make(chan struct{})
-	chResume      = make(chan struct{})
-	chResumeStart = make(chan struct{})
-	chResumeEnd   = make(chan struct{})
-	currentUI     = &userInterface{
+	chRender    = make(chan struct{})
+	chRenderEnd = make(chan struct{})
+	currentUI   = &userInterface{
 		sizeChanged: true,
 	}
 )
@@ -117,13 +109,8 @@ func (u *userInterface) Update() (interface{}, error) {
 		}
 		return e, nil
 	}
-	select {
-	case <-chRender:
-		return RenderEvent{chRenderEnd}, nil
-	case <-chResume:
-		chResumeStart <- struct{}{}
-		return ResumeEvent{chResumeEnd}, nil
-	}
+	<-chRender
+	return RenderEvent{chRenderEnd}, nil
 }
 
 func (u *userInterface) SwapBuffers() error {
@@ -146,16 +133,6 @@ func (u *userInterface) ScreenScale() int {
 
 func (u *userInterface) actualScreenScale() int {
 	return u.scale
-}
-
-// TODO: Remove Resume() and do resuming in Update instead.
-// In Update, we'd be able to detect GL context lost by glIsTexture or something,
-// and we can do resuming when detecting it.
-
-func Resume() error {
-	chResume <- struct{}{}
-	// Don't have to wait for resumeing done.
-	return nil
 }
 
 func UpdateTouches(touches []Touch) {

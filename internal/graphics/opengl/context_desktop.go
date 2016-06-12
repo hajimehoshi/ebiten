@@ -195,6 +195,15 @@ func (c *Context) DeleteTexture(t Texture) {
 	})
 }
 
+func (c *Context) IsTexture(t Texture) bool {
+	r := false
+	c.RunOnContextThread(func() error {
+		r = gl.IsTexture(uint32(t))
+		return nil
+	})
+	return r
+}
+
 func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	c.RunOnContextThread(func() error {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))

@@ -96,7 +96,6 @@ func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
 type GraphicsContext interface {
 	SetSize(width, height, scale int) error
 	Update() error
-	Resume() error
 }
 
 func Run(g GraphicsContext, width, height, scale int, title string, fps int) error {
@@ -163,11 +162,6 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 				currentRunContext.updateFPS(fps)
 				beforeForFPS = n2
 				frames = 0
-			}
-			e.Done <- struct{}{}
-		case ui.ResumeEvent:
-			if err := g.Resume(); err != nil {
-				return err
 			}
 			e.Done <- struct{}{}
 		default:

@@ -107,3 +107,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	theCommandQueue.Enqueue(c)
 	return nil
 }
+
+func (i *Image) IsInvalidated(context *opengl.Context) bool {
+	return !context.IsTexture(i.texture.native)
+}

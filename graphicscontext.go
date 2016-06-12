@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -54,12 +55,31 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) er
 	return nil
 }
 
+func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) {
+	imageM.Lock()
+	defer imageM.Unlock()
+	// FlushCommands is required because c.screen.impl might not have an actual texture.
+	if err := graphics.FlushCommands(ui.GLContext()); err != nil {
+		return false, err
+	}
+	return c.screen.impl.isInvalidated(context), nil
+}
+
 func (c *graphicsContext) Update() error {
 	if !c.initialized {
 		if err := graphics.Initialize(ui.GLContext()); err != nil {
 			return err
 		}
 		c.initialized = true
+	}
+	r, err := c.needsRestoring(ui.GLContext())
+	if err != nil {
+		return err
+	}
+	if r {
+		if err := c.restore(); err != nil {
+			return err
+		}
 	}
 	if err := c.screen.Clear(); err != nil {
 		return err
@@ -104,7 +124,7 @@ func (c *graphicsContext) flush() error {
 	return nil
 }
 
-func (c *graphicsContext) Resume() error {
+func (c *graphicsContext) restore() error {
 	imageM.Lock()
 	defer imageM.Unlock()
 	ui.GLContext().Resume()

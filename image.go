@@ -347,6 +347,10 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	return i.image.ReplacePixels(p)
 }
 
+func (i *imageImpl) isInvalidated(context *opengl.Context) bool {
+	return i.image.IsInvalidated(context)
+}
+
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
 	ImageParts    ImageParts
