@@ -399,32 +399,33 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	w, h := size.X, size.Y
 	// TODO: Return error when the image is too big!
-	img := &imageImpl{
-		width:  w,
-		height: h,
-		filter: filter,
-	}
-	imageM.Lock()
-	defer imageM.Unlock()
-	eimg, err := theImages.add(img)
-	if err != nil {
-		return nil, err
-	}
 	// Don't lock while manipulating an image.Image interface.
 	rgbaImg, ok := source.(*image.RGBA)
-	if !ok {
+	if !ok || source.Bounds().Min != image.ZP {
 		origImg := source
 		newImg := image.NewRGBA(origImg.Bounds())
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 		rgbaImg = newImg
 	}
 	// TODO: Set pixels here?
+	imageM.Lock()
+	defer imageM.Unlock()
+	img := &imageImpl{
+		width:  w,
+		height: h,
+		filter: filter,
+	}
+	var err error
 	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		// TODO: texture should be removed here?
 		return nil, err
 	}
 	runtime.SetFinalizer(img, (*imageImpl).Dispose)
+	eimg, err := theImages.add(img)
+	if err != nil {
+		return nil, err
+	}
 	return eimg, nil
 }
 
