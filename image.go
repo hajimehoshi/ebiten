@@ -64,6 +64,9 @@ func (i *images) savePixels(context *opengl.Context, exceptions map[*imageImpl]s
 		if _, ok := exceptions[img]; ok {
 			continue
 		}
+		if img.isDisposed() {
+			continue
+		}
 		if err := img.savePixels(context); err != nil {
 			return err
 		}
@@ -194,10 +197,6 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	}
 	i.pixels = nil
 	return i.image.Fill(clr)
-}
-
-func isWholeNumber(x float64) bool {
-	return x == float64(int64(x))
 }
 
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
@@ -366,12 +365,12 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		height: height,
 		filter: filter,
 	}
+	imageM.Lock()
+	defer imageM.Unlock()
 	eimg, err := theImages.add(image)
 	if err != nil {
 		return nil, err
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
 	image.image, err = graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		return nil, err
@@ -397,6 +396,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		height: h,
 		filter: filter,
 	}
+	imageM.Lock()
+	defer imageM.Unlock()
 	eimg, err := theImages.add(img)
 	if err != nil {
 		return nil, err
@@ -409,8 +410,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 		rgbaImg = newImg
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
 	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		// TODO: texture should be removed here?
