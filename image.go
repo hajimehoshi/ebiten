@@ -57,6 +57,20 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img.impl)
 }
 
+func (i *images) savePixels(context *opengl.Context, exceptions map[*imageImpl]struct{}) error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	for img := range i.images {
+		if _, ok := exceptions[img]; ok {
+			continue
+		}
+		if err := img.savePixels(context); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (i *images) restorePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
@@ -248,6 +262,18 @@ func (i *imageImpl) At(x, y int) color.Color {
 	return color.RGBA{r, g, b, a}
 }
 
+func (i *imageImpl) savePixels(context *opengl.Context) error {
+	if i.pixels != nil {
+		return nil
+	}
+	var err error
+	i.pixels, err = i.image.Pixels(context)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	imageM.Lock()
 	defer imageM.Unlock()
@@ -261,13 +287,20 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 	if err := i.image.Dispose(); err != nil {
 		return err
 	}
-	// TODO: Recalc i.pixels here
-	img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
-	for j := 0; j < i.height; j++ {
-		copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
+	if i.pixels != nil {
+		img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
+		for j := 0; j < i.height; j++ {
+			copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
+		}
+		var err error
+		i.image, err = graphics.NewImageFromImage(img, glFilter(context, i.filter))
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 	var err error
-	i.image, err = graphics.NewImageFromImage(img, glFilter(context, i.filter))
+	i.image, err = graphics.NewImage(i.width, i.height, glFilter(context, i.filter))
 	if err != nil {
 		return err
 	}
@@ -301,7 +334,10 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	imageM.Lock()
 	defer imageM.Unlock()
 	// TODO: Copy p?
-	i.pixels = nil
+	if i.pixels == nil {
+		i.pixels = make([]uint8, len(p))
+	}
+	copy(i.pixels, p)
 	if i.isDisposed() {
 		return errors.New("ebiten: image is already disposed")
 	}

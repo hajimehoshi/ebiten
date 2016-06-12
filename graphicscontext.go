@@ -82,6 +82,13 @@ func (c *graphicsContext) Update() error {
 	if err := c.flush(); err != nil {
 		return err
 	}
+	exceptions := map[*imageImpl]struct{}{
+		c.screen.impl:              {},
+		c.defaultRenderTarget.impl: {},
+	}
+	if err := theImages.savePixels(ui.GLContext(), exceptions); err != nil {
+		return err
+	}
 	return nil
 }
 
