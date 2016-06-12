@@ -187,6 +187,9 @@ func (c *Context) BindTexture(t Texture) {
 func (c *Context) DeleteTexture(t Texture) {
 	c.RunOnContextThread(func() error {
 		tt := uint32(t)
+		if !gl.IsTexture(tt) {
+			return nil
+		}
 		gl.DeleteTextures(1, &tt)
 		return nil
 	})
@@ -259,6 +262,9 @@ func (c *Context) FillFramebuffer(r, g, b, a float64) error {
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	c.RunOnContextThread(func() error {
 		ff := uint32(f)
+		if !gl.IsFramebuffer(ff) {
+			return nil
+		}
 		// If a framebuffer to be delted is bound, a newly bound framebuffer
 		// will be a default framebuffer.
 		// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
