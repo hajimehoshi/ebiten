@@ -65,7 +65,7 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 	return c.screen.impl.isInvalidated(context), nil
 }
 
-func (c *graphicsContext) UpdateAndDraw() error {
+func (c *graphicsContext) initializeIfNeeded() error {
 	if !c.initialized {
 		if err := graphics.Initialize(ui.GLContext()); err != nil {
 			return err
@@ -80,6 +80,13 @@ func (c *graphicsContext) UpdateAndDraw() error {
 		if err := c.restore(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (c *graphicsContext) UpdateAndDraw() error {
+	if err := c.initializeIfNeeded(); err != nil {
+		return err
 	}
 	if err := c.screen.Clear(); err != nil {
 		return err
@@ -113,6 +120,9 @@ func (c *graphicsContext) UpdateAndDraw() error {
 }
 
 func (c *graphicsContext) Draw() error {
+	if err := c.initializeIfNeeded(); err != nil {
+		return err
+	}
 	if err := c.defaultRenderTarget.Clear(); err != nil {
 		return err
 	}
