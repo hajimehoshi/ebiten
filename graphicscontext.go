@@ -84,6 +84,22 @@ func (c *graphicsContext) initializeIfNeeded() error {
 	return nil
 }
 
+func (c *graphicsContext) drawToDefaultRenderTarget() error {
+	if err := c.defaultRenderTarget.Clear(); err != nil {
+		return err
+	}
+	scale := float64(c.screenScale)
+	options := &DrawImageOptions{}
+	options.GeoM.Scale(scale, scale)
+	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
+		return err
+	}
+	if err := c.flush(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *graphicsContext) UpdateAndDraw() error {
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
@@ -97,16 +113,7 @@ func (c *graphicsContext) UpdateAndDraw() error {
 	if IsRunningSlowly() {
 		return nil
 	}
-	if err := c.defaultRenderTarget.Clear(); err != nil {
-		return err
-	}
-	scale := float64(c.screenScale)
-	options := &DrawImageOptions{}
-	options.GeoM.Scale(scale, scale)
-	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
-		return err
-	}
-	if err := c.flush(); err != nil {
+	if err := c.drawToDefaultRenderTarget(); err != nil {
 		return err
 	}
 	exceptions := map[*imageImpl]struct{}{
@@ -123,16 +130,7 @@ func (c *graphicsContext) Draw() error {
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
-	if err := c.defaultRenderTarget.Clear(); err != nil {
-		return err
-	}
-	scale := float64(c.screenScale)
-	options := &DrawImageOptions{}
-	options.GeoM.Scale(scale, scale)
-	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
-		return err
-	}
-	if err := c.flush(); err != nil {
+	if err := c.drawToDefaultRenderTarget(); err != nil {
 		return err
 	}
 	return nil
