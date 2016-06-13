@@ -95,7 +95,8 @@ func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
 
 type GraphicsContext interface {
 	SetSize(width, height, scale int) error
-	Update() error
+	UpdateAndDraw() error
+	Draw() error
 }
 
 func Run(g GraphicsContext, width, height, scale int, title string, fps int) error {
@@ -143,10 +144,16 @@ func Run(g GraphicsContext, width, height, scale int, title string, fps int) err
 				if tt == 0 && (int64(time.Second)/int64(fps)-int64(5*time.Millisecond)) < t {
 					tt = 1
 				}
-				for i := 0; i < tt; i++ {
-					slow := i < tt-1
-					currentRunContext.setRunningSlowly(slow)
-					if err := g.Update(); err != nil {
+				if 1 <= tt {
+					for i := 0; i < tt; i++ {
+						slow := i < tt-1
+						currentRunContext.setRunningSlowly(slow)
+						if err := g.UpdateAndDraw(); err != nil {
+							return err
+						}
+					}
+				} else {
+					if err := g.Draw(); err != nil {
 						return err
 					}
 				}

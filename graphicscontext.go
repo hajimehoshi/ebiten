@@ -65,7 +65,7 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 	return c.screen.impl.isInvalidated(context), nil
 }
 
-func (c *graphicsContext) Update() error {
+func (c *graphicsContext) UpdateAndDraw() error {
 	if !c.initialized {
 		if err := graphics.Initialize(ui.GLContext()); err != nil {
 			return err
@@ -107,6 +107,22 @@ func (c *graphicsContext) Update() error {
 		c.defaultRenderTarget.impl: {},
 	}
 	if err := theImages.savePixels(ui.GLContext(), exceptions); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *graphicsContext) Draw() error {
+	if err := c.defaultRenderTarget.Clear(); err != nil {
+		return err
+	}
+	scale := float64(c.screenScale)
+	options := &DrawImageOptions{}
+	options.GeoM.Scale(scale, scale)
+	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
+		return err
+	}
+	if err := c.flush(); err != nil {
 		return err
 	}
 	return nil
