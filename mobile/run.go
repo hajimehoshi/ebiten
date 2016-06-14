@@ -29,9 +29,7 @@ type EventDispatcher interface {
 	SetScreenSize(width, height int)
 	SetScreenScale(scale int)
 	Render() error
-	TouchDown(id int, x, y int)
-	TouchMove(id int, x, y int)
-	TouchUp(id int)
+	UpdateTouchesOnAndroid(action int, id int, x, y int)
 }
 
 // Start starts the game and returns immediately.
@@ -84,19 +82,29 @@ func (t touch) Position() (int, int) {
 		t.position.y / ui.CurrentUI().ScreenScale()
 }
 
-func (e *eventDispatcher) TouchDown(id int, x, y int) {
-	e.touches[id] = position{x, y}
-	e.updateTouches()
-}
-
-func (e *eventDispatcher) TouchMove(id int, x, y int) {
-	e.touches[id] = position{x, y}
-	e.updateTouches()
-}
-
-func (e *eventDispatcher) TouchUp(id int) {
-	delete(e.touches, id)
-	e.updateTouches()
+// UpdateTouchesOnAndroid updates the touch state on Android.
+//
+// This should be called with onTouchEvent of GLSurfaceView like this:
+//
+//     @Override
+//     public boolean onTouchEvent(MotionEvent e) {
+//         for (int i = 0; i < e.getPointerCount(); i++) {
+//             int id = e.getPointerId(i);
+//             int x = (int)e.getX(i);
+//             int y = (int)e.getY(i);
+//             YourGame.CurrentEventDispatcher().UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
+//         }
+//         return true;
+//     }
+func (e *eventDispatcher) UpdateTouchesOnAndroid(action int, id int, x, y int) {
+	switch action {
+	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
+		e.touches[id] = position{x, y}
+		e.updateTouches()
+	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
+		delete(e.touches, id)
+		e.updateTouches()
+	}
 }
 
 func (e *eventDispatcher) updateTouches() {
