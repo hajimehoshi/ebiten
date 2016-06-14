@@ -19,6 +19,7 @@ package opengl
 import (
 	"errors"
 	"fmt"
+
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/gopherjs/webgl"
 )
