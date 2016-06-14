@@ -264,7 +264,9 @@ func main() {
 		buildTag := ""
 		switch path {
 		case "internal/ui/keys_glfw.go":
-			buildTag = "// +build !js\n// +build !android"
+			buildTag = `// +build darwin,!arm,!arm64 linux windows
+// +build !js
+// +build !android`
 		case "internal/ui/keys_js.go":
 			buildTag = "// +build js"
 		}

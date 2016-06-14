@@ -53,7 +53,7 @@ func images_arcadefont_png() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "images/arcadefont.png", size: 1008, mode: os.FileMode(420), modTime: time.Unix(1460059047, 0)}
+	info := bindata_file_info{name: "images/arcadefont.png", size: 1008, mode: os.FileMode(420), modTime: time.Unix(1463226773, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -70,7 +70,7 @@ func images_ebiten_png() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "images/ebiten.png", size: 3383, mode: os.FileMode(420), modTime: time.Unix(1460059047, 0)}
+	info := bindata_file_info{name: "images/ebiten.png", size: 3383, mode: os.FileMode(420), modTime: time.Unix(1463226773, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -87,7 +87,7 @@ func images_fiveyears_jpg() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "images/fiveyears.jpg", size: 31543, mode: os.FileMode(420), modTime: time.Unix(1460086497, 0)}
+	info := bindata_file_info{name: "images/fiveyears.jpg", size: 31543, mode: os.FileMode(420), modTime: time.Unix(1463226773, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -104,7 +104,7 @@ func images_gophers_jpg() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "images/gophers.jpg", size: 16645, mode: os.FileMode(420), modTime: time.Unix(1460059047, 0)}
+	info := bindata_file_info{name: "images/gophers.jpg", size: 16645, mode: os.FileMode(420), modTime: time.Unix(1463226773, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

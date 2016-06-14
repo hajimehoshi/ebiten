@@ -16,6 +16,7 @@
 
 // +build !js
 // +build !android
+// +build darwin,!arm darwin,!arm64
 
 package ui
 
