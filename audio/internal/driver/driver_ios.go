@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This is not used anywhere so far. I plan to use this for iOS.
-// +build ignore
+// +build ios darwin,arm darwin,arm64
 
 package driver
 

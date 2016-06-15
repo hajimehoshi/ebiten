@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js,!windows,!android
+// +build darwin,!arm,!arm64 linux
+// +build !js
+// +build !android
+// +build !ios
 
 package driver
 

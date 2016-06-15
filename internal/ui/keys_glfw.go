@@ -17,6 +17,7 @@
 // +build darwin,!arm,!arm64 linux windows
 // +build !js
 // +build !android
+// +build !ios
 
 package ui
 

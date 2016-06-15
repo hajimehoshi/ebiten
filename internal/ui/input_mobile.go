@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android darwin,arm darwin,arm64
+// +build android ios darwin,arm darwin,arm64
 
 package ui
 

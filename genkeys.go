@@ -266,7 +266,8 @@ func main() {
 		case "internal/ui/keys_glfw.go":
 			buildTag = `// +build darwin,!arm,!arm64 linux windows
 // +build !js
-// +build !android`
+// +build !android
+// +build !ios`
 		case "internal/ui/keys_js.go":
 			buildTag = "// +build js"
 		}
