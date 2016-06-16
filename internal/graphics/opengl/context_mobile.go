@@ -256,8 +256,9 @@ func (c *Context) DeleteShader(s Shader) {
 }
 
 func (c *Context) GlslHighpSupported() bool {
-	// TODO: Fix this
-	return false
+	gl := c.gl
+	_, _, precision := gl.GetShaderPrecisionFormat(mgl.FRAGMENT_SHADER, mgl.HIGH_FLOAT)
+	return precision != 0
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
