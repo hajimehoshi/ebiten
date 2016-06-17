@@ -84,7 +84,7 @@ func NewContext() (*Context, error) {
 	return c, nil
 }
 
-func (c *Context) Resume() {
+func (c *Context) Resume() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
@@ -94,6 +94,7 @@ func (c *Context) Resume() {
 	c.BlendFunc(CompositeModeSourceOver)
 	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
+	return nil
 }
 
 func (c *Context) WaitUntilInitializingDone() {

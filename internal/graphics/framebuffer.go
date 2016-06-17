@@ -54,10 +54,10 @@ func newFramebufferFromTexture(context *opengl.Context, texture *texture) (*fram
 
 const viewportSize = 4096
 
-func (f *framebuffer) setAsViewport(c *opengl.Context) error {
+func (f *framebuffer) setAsViewport(context *opengl.Context) error {
 	width := viewportSize
 	height := viewportSize
-	return c.SetViewport(f.native, width, height)
+	return context.SetViewport(f.native, width, height)
 }
 
 func (f *framebuffer) projectionMatrix() *[4][4]float64 {

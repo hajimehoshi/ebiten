@@ -51,3 +51,8 @@ func (c *Context) bindFramebuffer(f Framebuffer) {
 func (c *Context) ScreenFramebuffer() Framebuffer {
 	return c.screenFramebuffer
 }
+
+func (c *Context) ResetViewportSize() {
+	c.lastViewportWidth = 0
+	c.lastViewportHeight = 0
+}

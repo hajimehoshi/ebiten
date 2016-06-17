@@ -122,7 +122,7 @@ func (c *Context) init() {
 	c.screenFramebuffer = Framebuffer{f}
 }
 
-func (c *Context) Resume() {
+func (c *Context) Resume() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
@@ -133,6 +133,7 @@ func (c *Context) Resume() {
 	c.BlendFunc(CompositeModeSourceOver)
 	f := gl.GetParameter(gl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = Framebuffer{f}
+	return nil
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {

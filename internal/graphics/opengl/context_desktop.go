@@ -104,23 +104,39 @@ func (c *Context) Init() error {
 		return err
 	}
 	c.BlendFunc(CompositeModeSourceOver)
-	f := int32(0)
-	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
-	c.screenFramebuffer = Framebuffer(f)
+	if err := c.RunOnContextThread(func() error {
+		f := int32(0)
+		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
+		c.screenFramebuffer = Framebuffer(f)
+		return nil
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (c *Context) Resume() {
+func (c *Context) Resume() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
-	gl.Enable(gl.BLEND)
+	if err := c.RunOnContextThread(func() error {
+		gl.Enable(gl.BLEND)
+		return nil
+	}); err != nil {
+		return err
+	}
 	c.BlendFunc(CompositeModeSourceOver)
-	f := int32(0)
-	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
-	c.screenFramebuffer = Framebuffer(f)
+	if err := c.RunOnContextThread(func() error {
+		f := int32(0)
+		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
+		c.screenFramebuffer = Framebuffer(f)
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {
