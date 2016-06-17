@@ -52,6 +52,8 @@ type attribLocation int
 
 type programID int
 
+var invalidFramebuffer = Framebuffer{nil}
+
 func (p Program) id() programID {
 	return programID(p.Get("__ebiten_programId").Int())
 }
@@ -115,19 +117,22 @@ func (c *Context) init() {
 	gl := c.gl
 	// Textures' pixel formats are alpha premultiplied.
 	gl.Enable(gl.BLEND)
-	//gl.BlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 	c.BlendFunc(CompositeModeSourceOver)
+	f := gl.GetParameter(gl.FRAMEBUFFER_BINDING)
+	c.screenFramebuffer = Framebuffer{f}
 }
 
 func (c *Context) Resume() {
 	c.locationCache = newLocationCache()
-	c.lastFramebuffer = ZeroFramebuffer
+	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
 	gl := c.gl
 	gl.Enable(gl.BLEND)
 	c.BlendFunc(CompositeModeSourceOver)
+	f := gl.GetParameter(gl.FRAMEBUFFER_BINDING)
+	c.screenFramebuffer = Framebuffer{f}
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {
@@ -252,7 +257,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
-		c.lastFramebuffer = ZeroFramebuffer
+		c.lastFramebuffer = invalidFramebuffer
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}

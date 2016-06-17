@@ -49,15 +49,15 @@ func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
 	return i, nil
 }
 
-func NewZeroFramebufferImage(width, height int) (*Image, error) {
-	f := &framebuffer{
+func NewScreenFramebufferImage(width, height int) (*Image, error) {
+	i := &Image{}
+	c := &newScreenFramebufferImageCommand{
+		result: i,
 		width:  width,
 		height: height,
-		flipY:  true,
 	}
-	return &Image{
-		framebuffer: f,
-	}, nil
+	theCommandQueue.Enqueue(c)
+	return i, nil
 }
 
 func (i *Image) Dispose() error {

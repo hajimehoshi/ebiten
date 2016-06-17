@@ -78,7 +78,7 @@ func (i *images) restorePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if img.defaultFramebuffer {
+		if img.screen {
 			continue
 		}
 		if img.isDisposed() {
@@ -191,13 +191,13 @@ func (i *Image) ReplacePixels(p []uint8) error {
 }
 
 type imageImpl struct {
-	image              *graphics.Image
-	defaultFramebuffer bool
-	disposed           bool
-	width              int
-	height             int
-	filter             Filter
-	pixels             []uint8
+	image    *graphics.Image
+	screen   bool
+	disposed bool
+	width    int
+	height   int
+	filter   Filter
+	pixels   []uint8
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
@@ -285,7 +285,7 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 }
 
 func (i *imageImpl) restorePixels(context *opengl.Context) error {
-	if i.defaultFramebuffer {
+	if i.screen {
 		return nil
 	}
 	if i.disposed {
@@ -433,18 +433,18 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	return eimg, nil
 }
 
-func newImageWithZeroFramebuffer(width, height int) (*Image, error) {
+func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-	i, err := graphics.NewZeroFramebufferImage(width, height)
+	i, err := graphics.NewScreenFramebufferImage(width, height)
 	if err != nil {
 		return nil, err
 	}
 	img := &imageImpl{
-		image:              i,
-		width:              width,
-		height:             height,
-		defaultFramebuffer: true,
+		image:  i,
+		width:  width,
+		height: height,
+		screen: true,
 	}
 	eimg, err := theImages.add(img)
 	if err != nil {

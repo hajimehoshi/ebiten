@@ -14,8 +14,6 @@
 
 package opengl
 
-var ZeroFramebuffer Framebuffer
-
 type Context struct {
 	Nearest            Filter
 	Linear             Filter
@@ -34,6 +32,7 @@ type Context struct {
 	oneMinusSrcAlpha   operation
 	oneMinusDstAlpha   operation
 	locationCache      *locationCache
+	screenFramebuffer  Framebuffer // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    Framebuffer
 	lastViewportWidth  int
 	lastViewportHeight int
@@ -47,4 +46,8 @@ func (c *Context) bindFramebuffer(f Framebuffer) {
 	}
 	c.bindFramebufferImpl(f)
 	c.lastFramebuffer = f
+}
+
+func (c *Context) ScreenFramebuffer() Framebuffer {
+	return c.screenFramebuffer
 }

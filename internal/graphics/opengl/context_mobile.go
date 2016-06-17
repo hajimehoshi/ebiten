@@ -34,6 +34,8 @@ type attribLocation mgl.Attrib
 
 type programID uint32
 
+var invalidFramebuffer = Framebuffer(mgl.Framebuffer{(1 << 32) - 1})
+
 func (p Program) id() programID {
 	return programID(p.Value)
 }
@@ -75,6 +77,8 @@ func NewContext() (*Context, error) {
 		// Textures' pixel formats are alpha premultiplied.
 		c.gl.Enable(mgl.BLEND)
 		c.BlendFunc(CompositeModeSourceOver)
+		f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
+		c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
 		close(c.initialized)
 	}()
 	return c, nil
@@ -82,12 +86,14 @@ func NewContext() (*Context, error) {
 
 func (c *Context) Resume() {
 	c.locationCache = newLocationCache()
-	c.lastFramebuffer = ZeroFramebuffer
+	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
 	c.gl.Enable(mgl.BLEND)
 	c.BlendFunc(CompositeModeSourceOver)
+	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
+	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
 }
 
 func (c *Context) WaitUntilInitializingDone() {
@@ -172,8 +178,8 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) BindZeroFramebuffer() {
-	c.bindFramebuffer(ZeroFramebuffer)
+func (c *Context) BindScreenFramebuffer() {
+	c.bindFramebuffer(c.screenFramebuffer)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
@@ -226,7 +232,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
-		c.lastFramebuffer = ZeroFramebuffer
+		c.lastFramebuffer = invalidFramebuffer
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}

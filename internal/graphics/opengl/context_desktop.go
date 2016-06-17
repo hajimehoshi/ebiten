@@ -37,6 +37,8 @@ type attribLocation int32
 
 type programID uint32
 
+const invalidFramebuffer = (1 << 32) - 1
+
 func (p Program) id() programID {
 	return programID(p)
 }
@@ -102,17 +104,23 @@ func (c *Context) Init() error {
 		return err
 	}
 	c.BlendFunc(CompositeModeSourceOver)
+	f := int32(0)
+	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
+	c.screenFramebuffer = Framebuffer(f)
 	return nil
 }
 
 func (c *Context) Resume() {
 	c.locationCache = newLocationCache()
-	c.lastFramebuffer = ZeroFramebuffer
+	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
 	gl.Enable(gl.BLEND)
 	c.BlendFunc(CompositeModeSourceOver)
+	f := int32(0)
+	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
+	c.screenFramebuffer = Framebuffer(f)
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {
@@ -212,9 +220,9 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	})
 }
 
-func (c *Context) BindZeroFramebuffer() {
+func (c *Context) BindScreenFramebuffer() {
 	c.RunOnContextThread(func() error {
-		c.bindFramebuffer(ZeroFramebuffer)
+		c.bindFramebuffer(c.screenFramebuffer)
 		return nil
 	})
 }
@@ -275,11 +283,8 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 		if !gl.IsFramebuffer(ff) {
 			return nil
 		}
-		// If a framebuffer to be delted is bound, a newly bound framebuffer
-		// will be a default framebuffer.
-		// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 		if c.lastFramebuffer == f {
-			c.lastFramebuffer = ZeroFramebuffer
+			c.lastFramebuffer = invalidFramebuffer
 			c.lastViewportWidth = 0
 			c.lastViewportHeight = 0
 		}

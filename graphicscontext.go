@@ -27,30 +27,30 @@ func newGraphicsContext(f func(*Image) error) *graphicsContext {
 }
 
 type graphicsContext struct {
-	f                   func(*Image) error
-	screen              *Image
-	defaultRenderTarget *Image
-	screenScale         int
-	initialized         bool
+	f           func(*Image) error
+	offscreen   *Image
+	screen      *Image
+	screenScale int
+	initialized bool
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) error {
-	if c.defaultRenderTarget != nil {
-		c.defaultRenderTarget.Dispose()
-	}
 	if c.screen != nil {
 		c.screen.Dispose()
 	}
-	screen, err := NewImage(screenWidth, screenHeight, FilterNearest)
+	if c.offscreen != nil {
+		c.offscreen.Dispose()
+	}
+	offscreen, err := NewImage(screenWidth, screenHeight, FilterNearest)
 	if err != nil {
 		return err
 	}
-	c.defaultRenderTarget, err = newImageWithZeroFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
+	c.screen, err = newImageWithScreenFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
 	if err != nil {
 		return err
 	}
-	c.defaultRenderTarget.Clear()
-	c.screen = screen
+	c.screen.Clear()
+	c.offscreen = offscreen
 	c.screenScale = screenScale
 	return nil
 }
@@ -58,11 +58,11 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) er
 func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
-	// FlushCommands is required because c.screen.impl might not have an actual texture.
+	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	if err := graphics.FlushCommands(ui.GLContext()); err != nil {
 		return false, err
 	}
-	return c.screen.impl.isInvalidated(context), nil
+	return c.offscreen.impl.isInvalidated(context), nil
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {
@@ -85,13 +85,13 @@ func (c *graphicsContext) initializeIfNeeded() error {
 }
 
 func (c *graphicsContext) drawToDefaultRenderTarget() error {
-	if err := c.defaultRenderTarget.Clear(); err != nil {
+	if err := c.screen.Clear(); err != nil {
 		return err
 	}
 	scale := float64(c.screenScale)
 	options := &DrawImageOptions{}
 	options.GeoM.Scale(scale, scale)
-	if err := c.defaultRenderTarget.DrawImage(c.screen, options); err != nil {
+	if err := c.screen.DrawImage(c.offscreen, options); err != nil {
 		return err
 	}
 	if err := c.flush(); err != nil {
@@ -104,10 +104,10 @@ func (c *graphicsContext) UpdateAndDraw() error {
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
-	if err := c.screen.Clear(); err != nil {
+	if err := c.offscreen.Clear(); err != nil {
 		return err
 	}
-	if err := c.f(c.screen); err != nil {
+	if err := c.f(c.offscreen); err != nil {
 		return err
 	}
 	if IsRunningSlowly() {
@@ -117,8 +117,8 @@ func (c *graphicsContext) UpdateAndDraw() error {
 		return err
 	}
 	exceptions := map[*imageImpl]struct{}{
-		c.screen.impl:              {},
-		c.defaultRenderTarget.impl: {},
+		c.offscreen.impl: {},
+		c.screen.impl:    {},
 	}
 	if err := theImages.savePixels(ui.GLContext(), exceptions); err != nil {
 		return err

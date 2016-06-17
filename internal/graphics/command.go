@@ -151,7 +151,7 @@ type disposeCommand struct {
 }
 
 func (c *disposeCommand) Exec(context *opengl.Context) error {
-	if c.target.framebuffer != nil && c.target.framebuffer.native != opengl.ZeroFramebuffer {
+	if c.target.framebuffer != nil && c.target.framebuffer.native != context.ScreenFramebuffer() {
 		context.DeleteFramebuffer(c.target.framebuffer.native)
 	}
 	if c.target.texture != nil {
@@ -243,5 +243,28 @@ func (c *newImageCommand) Exec(context *opengl.Context) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+type newScreenFramebufferImageCommand struct {
+	result *Image
+	width  int
+	height int
+}
+
+func (c *newScreenFramebufferImageCommand) Exec(context *opengl.Context) error {
+	if c.width < 4 {
+		return errors.New("graphics: width must be equal or more than 4.")
+	}
+	if c.height < 4 {
+		return errors.New("graphics: height must be equal or more than 4.")
+	}
+	f := &framebuffer{
+		native: context.ScreenFramebuffer(),
+		width:  c.width,
+		height: c.height,
+		flipY:  true,
+	}
+	c.result.framebuffer = f
 	return nil
 }
