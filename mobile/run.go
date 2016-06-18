@@ -29,7 +29,7 @@ var chError <-chan error
 
 type EventDispatcher interface {
 	SetScreenSize(width, height int)
-	SetScreenScale(scale int)
+	SetScreenScale(scale float64)
 	Render() error
 	UpdateTouchesOnAndroid(action int, id int, x, y int)
 	UpdateTouchesOnIOS(phase int, ptr int, x, y int)
@@ -38,7 +38,7 @@ type EventDispatcher interface {
 // Start starts the game and returns immediately.
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
-func Start(f func(*ebiten.Image) error, width, height, scale int, title string) (EventDispatcher, error) {
+func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) (EventDispatcher, error) {
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
 	return &eventDispatcher{
 		touches: map[int]position{},
@@ -58,7 +58,7 @@ func (e *eventDispatcher) SetScreenSize(width, height int) {
 	ui.CurrentUI().SetScreenSize(width, height)
 }
 
-func (e *eventDispatcher) SetScreenScale(scale int) {
+func (e *eventDispatcher) SetScreenScale(scale float64) {
 	ui.CurrentUI().SetScreenScale(scale)
 }
 
@@ -81,8 +81,8 @@ func (t touch) ID() int {
 
 func (t touch) Position() (int, int) {
 	// TODO: Is this OK to adjust the position here?
-	return t.position.x / ui.CurrentUI().ScreenScale(),
-		t.position.y / ui.CurrentUI().ScreenScale()
+	return int(float64(t.position.x) / ui.CurrentUI().ScreenScale()),
+		int(float64(t.position.y) / ui.CurrentUI().ScreenScale())
 }
 
 // UpdateTouchesOnAndroid updates the touch state on Android.

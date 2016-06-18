@@ -15,11 +15,11 @@
 package ui
 
 type UserInterface interface {
-	Start(width, height, scale int, title string) error
+	Start(width, height int, scale float64, title string) error
 	Update() (interface{}, error)
 	SwapBuffers() error
 	Terminate() error
-	ScreenScale() int
+	ScreenScale() float64
 	SetScreenSize(width, height int) bool
-	SetScreenScale(scale int) bool
+	SetScreenScale(scale float64) bool
 }

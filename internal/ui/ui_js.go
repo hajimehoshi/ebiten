@@ -26,7 +26,7 @@ import (
 var canvas *js.Object
 
 type userInterface struct {
-	scale       int
+	scale       float64
 	deviceScale float64
 	sizeChanged bool
 }
@@ -66,17 +66,17 @@ func (u *userInterface) SetScreenSize(width, height int) bool {
 	return u.setScreenSize(width, height, u.scale)
 }
 
-func (u *userInterface) SetScreenScale(scale int) bool {
+func (u *userInterface) SetScreenScale(scale float64) bool {
 	width, height := u.size()
 	return u.setScreenSize(width, height, scale)
 }
 
-func (u *userInterface) ScreenScale() int {
+func (u *userInterface) ScreenScale() float64 {
 	return u.scale
 }
 
-func (u *userInterface) ActualScreenScale() int {
-	return u.scale * int(u.deviceScale)
+func (u *userInterface) ActualScreenScale() float64 {
+	return u.scale * u.deviceScale
 }
 
 func (u *userInterface) Update() (interface{}, error) {
@@ -122,8 +122,8 @@ func touchEventToTouches(e *js.Object) []touch {
 	for i := 0; i < len(t); i++ {
 		jj := j.Call("item", i)
 		t[i].id = jj.Get("identifier").Int()
-		t[i].x = (jj.Get("clientX").Int() - left) / scale
-		t[i].y = (jj.Get("clientY").Int() - top) / scale
+		t[i].x = int(float64(jj.Get("clientX").Int()-left) / scale)
+		t[i].y = int(float64(jj.Get("clientY").Int()-top) / scale)
 	}
 	return t
 }
@@ -242,7 +242,7 @@ func setMouseCursorFromEvent(e *js.Object) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	currentInput.setMouseCursor(x/scale, y/scale)
+	currentInput.setMouseCursor(int(float64(x)/scale), int(float64(y)/scale))
 }
 
 func devicePixelRatio() float64 {
@@ -258,7 +258,7 @@ func Main() error {
 	return nil
 }
 
-func (u *userInterface) Start(width, height, scale int, title string) error {
+func (u *userInterface) Start(width, height int, scale float64, title string) error {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
@@ -277,7 +277,7 @@ func (u *userInterface) size() (width, height int) {
 	return
 }
 
-func (u *userInterface) setScreenSize(width, height, scale int) bool {
+func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	w, h := u.size()
 	s := u.scale
 	if w == width && h == height && s == scale {
@@ -285,12 +285,12 @@ func (u *userInterface) setScreenSize(width, height, scale int) bool {
 	}
 	u.scale = scale
 	u.deviceScale = devicePixelRatio()
-	canvas.Set("width", width*u.ActualScreenScale())
-	canvas.Set("height", height*u.ActualScreenScale())
+	canvas.Set("width", int(float64(width)*u.ActualScreenScale()))
+	canvas.Set("height", int(float64(height)*u.ActualScreenScale()))
 	canvasStyle := canvas.Get("style")
 
-	cssWidth := width * scale
-	cssHeight := height * scale
+	cssWidth := int(float64(width) * scale)
+	cssHeight := int(float64(height) * scale)
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
 	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
 	// CSS calc requires space chars.

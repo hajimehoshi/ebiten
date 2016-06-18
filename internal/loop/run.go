@@ -98,12 +98,12 @@ func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
 }
 
 type GraphicsContext interface {
-	SetSize(width, height, scale int) error
+	SetSize(width, height int, scale float64) error
 	UpdateAndDraw() error
 	Draw() error
 }
 
-func Run(g GraphicsContext, width, height, scale int, title string, fps int) error {
+func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) error {
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}

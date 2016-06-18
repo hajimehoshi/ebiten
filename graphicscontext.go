@@ -30,11 +30,11 @@ type graphicsContext struct {
 	f           func(*Image) error
 	offscreen   *Image
 	screen      *Image
-	screenScale int
+	screenScale float64
 	initialized bool
 }
 
-func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) error {
+func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) error {
 	if c.screen != nil {
 		c.screen.Dispose()
 	}
@@ -45,7 +45,9 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight, screenScale int) er
 	if err != nil {
 		return err
 	}
-	c.screen, err = newImageWithScreenFramebuffer(screenWidth*screenScale, screenHeight*screenScale)
+	w := int(float64(screenWidth) * screenScale)
+	h := int(float64(screenHeight) * screenScale)
+	c.screen, err = newImageWithScreenFramebuffer(w, h)
 	if err != nil {
 		return err
 	}

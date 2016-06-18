@@ -107,7 +107,7 @@ func main() {
 	}
 	canvasImage.Fill(color.White)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1.5, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -20,7 +20,7 @@ type CloseEvent struct {
 type ScreenSizeEvent struct {
 	Width       int
 	Height      int
-	ActualScale int
+	ActualScale float64
 }
 
 type RenderEvent struct {

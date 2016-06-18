@@ -53,7 +53,7 @@ func IsRunningSlowly() bool {
 // The given function f is guaranteed to be called 60 times a second
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
-func Run(f func(*Image) error, width, height, scale int, title string) error {
+func Run(f func(*Image) error, width, height int, scale float64, title string) error {
 	ch := make(chan error)
 	go func() {
 		g := newGraphicsContext(f)
@@ -68,7 +68,7 @@ func Run(f func(*Image) error, width, height, scale int, title string) error {
 //
 // Typically, Ebiten users don't have to call this directly.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile module call this.
-func RunWithoutMainLoop(f func(*Image) error, width, height, scale int, title string) <-chan error {
+func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	ch := make(chan error)
 	go func() {
 		g := newGraphicsContext(f)
@@ -94,7 +94,7 @@ func SetScreenSize(width, height int) {
 // SetScreenScale changes the scale of the screen.
 //
 // This function is concurrent-safe.
-func SetScreenScale(scale int) {
+func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
@@ -104,6 +104,6 @@ func SetScreenScale(scale int) {
 // ScreenScale returns the current screen scale.
 //
 // This function is concurrent-safe.
-func ScreenScale() int {
+func ScreenScale() float64 {
 	return ui.CurrentUI().ScreenScale()
 }

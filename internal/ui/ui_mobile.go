@@ -76,7 +76,7 @@ loop:
 type userInterface struct {
 	width       int
 	height      int
-	scale       int
+	scale       float64
 	sizeChanged bool
 }
 
@@ -94,7 +94,7 @@ func CurrentUI() UserInterface {
 	return currentUI
 }
 
-func (u *userInterface) Start(width, height, scale int, title string) error {
+func (u *userInterface) Start(width, height int, scale float64, title string) error {
 	u.width = width
 	u.height = height
 	u.scale = scale
@@ -135,17 +135,17 @@ func (u *userInterface) SetScreenSize(width, height int) bool {
 	return false
 }
 
-func (u *userInterface) SetScreenScale(scale int) bool {
+func (u *userInterface) SetScreenScale(scale float64) bool {
 	// TODO: Implement
 	return false
 }
 
-func (u *userInterface) ScreenScale() int {
+func (u *userInterface) ScreenScale() float64 {
 	return u.scale
 }
 
-func (u *userInterface) actualScreenScale() int {
-	return u.scale * int(deviceScale())
+func (u *userInterface) actualScreenScale() float64 {
+	return u.scale * deviceScale()
 }
 
 func UpdateTouches(touches []Touch) {

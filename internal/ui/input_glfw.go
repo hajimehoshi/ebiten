@@ -20,8 +20,6 @@
 package ui
 
 import (
-	"math"
-
 	glfw "github.com/go-gl/glfw/v3.1/glfw"
 )
 
@@ -31,7 +29,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *input) update(window *glfw.Window, scale int) error {
+func (i *input) update(window *glfw.Window, scale float64) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 
@@ -42,8 +40,8 @@ func (i *input) update(window *glfw.Window, scale int) error {
 		i.mouseButtonPressed[e] = window.GetMouseButton(g) == glfw.Press
 	}
 	x, y := window.GetCursorPos()
-	i.cursorX = int(math.Floor(x)) / scale
-	i.cursorY = int(math.Floor(y)) / scale
+	i.cursorX = int(x / scale)
+	i.cursorY = int(y / scale)
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		if !glfw.JoystickPresent(id) {
 			continue
