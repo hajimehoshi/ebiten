@@ -41,9 +41,11 @@ func (p Program) id() programID {
 }
 
 type context struct {
-	gl          mgl.Context
-	worker      mgl.Worker
-	initialized chan struct{}
+	gl                      mgl.Context
+	worker                  mgl.Worker
+	initialized             chan struct{}
+	screenFramebufferWidth  int
+	screenFramebufferHeight int
 }
 
 func NewContext() (*Context, error) {
@@ -79,9 +81,20 @@ func NewContext() (*Context, error) {
 		c.BlendFunc(CompositeModeSourceOver)
 		f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
 		c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
+		// It is invalid to get the size of the deafult framebuffer.
+		if c.screenFramebuffer.Value != 0 {
+			width := c.gl.GetRenderbufferParameteri(mgl.RENDERBUFFER, mgl.RENDERBUFFER_WIDTH)
+			height := c.gl.GetRenderbufferParameteri(mgl.RENDERBUFFER, mgl.RENDERBUFFER_HEIGHT)
+			c.screenFramebufferWidth = width
+			c.screenFramebufferHeight = height
+		}
 		close(c.initialized)
 	}()
 	return c, nil
+}
+
+func (c *Context) ScreenFramebufferSize() (int, int) {
+	return c.screenFramebufferWidth, c.screenFramebufferHeight
 }
 
 func (c *Context) Resume() error {
@@ -94,12 +107,12 @@ func (c *Context) Resume() error {
 	c.BlendFunc(CompositeModeSourceOver)
 	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
+	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
 
-func (c *Context) WaitUntilInitializingDone() {
-	// TODO: Call this function at an approriate place
-	<-c.initialized
+func (c *Context) InitializedCh() <-chan struct{} {
+	return c.initialized
 }
 
 func (c *Context) Worker() mgl.Worker {

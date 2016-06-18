@@ -36,6 +36,13 @@ func Render(chError <-chan error) error {
 		return errors.New("ui: chError must not be nil")
 	}
 	// TODO: Check this is called on the rendering thread
+	if chGLInitialized != nil {
+		if err := doGLWorks(chError, glContext.InitializedCh()); err != nil {
+			return err
+		}
+		close(chGLInitialized)
+		<-chGLInitializedEnd
+	}
 	select {
 	case chRender <- struct{}{}:
 		return doGLWorks(chError, chRenderEnd)
@@ -67,16 +74,19 @@ loop:
 }
 
 type userInterface struct {
-	width       int
-	height      int
-	scale       int
-	sizeChanged bool
+	width            int
+	height           int
+	scale            int
+	framebufferScale int
+	sizeChanged      bool
 }
 
 var (
-	chRender    = make(chan struct{})
-	chRenderEnd = make(chan struct{})
-	currentUI   = &userInterface{
+	chRender           = make(chan struct{})
+	chRenderEnd        = make(chan struct{})
+	chGLInitialized    = make(chan struct{})
+	chGLInitializedEnd = make(chan struct{})
+	currentUI          = &userInterface{
 		sizeChanged: true,
 	}
 )
@@ -99,6 +109,11 @@ func (u *userInterface) Terminate() error {
 
 func (u *userInterface) Update() (interface{}, error) {
 	// TODO: Need lock?
+	if chGLInitialized != nil {
+		<-chGLInitialized
+		chGLInitialized = nil
+		close(chGLInitializedEnd)
+	}
 	if u.sizeChanged {
 		u.sizeChanged = false
 		e := ScreenSizeEvent{
@@ -132,7 +147,17 @@ func (u *userInterface) ScreenScale() int {
 }
 
 func (u *userInterface) actualScreenScale() int {
-	return u.scale
+	if u.framebufferScale == 0 {
+		width, _ := glContext.ScreenFramebufferSize()
+		if width == 0 {
+			// Android
+			u.framebufferScale = 1
+		} else {
+			// iOS
+			u.framebufferScale = width / u.width
+		}
+	}
+	return u.scale * u.framebufferScale
 }
 
 func UpdateTouches(touches []Touch) {
