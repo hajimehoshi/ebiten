@@ -147,16 +147,8 @@ func (u *userInterface) Start(width, height, scale int, title string) error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
 		mw, _ := m.GetPhysicalSize()
-		u.deviceScale = 1
+		u.deviceScale = deviceScale()
 		u.framebufferScale = 1
-		// mw can be 0 on some environment like Linux VM
-		if 0 < mw {
-			dpi := float64(v.Width) * 25.4 / float64(mw)
-			u.deviceScale = dpi / 96
-			if u.deviceScale < 1 {
-				u.deviceScale = 1
-			}
-		}
 
 		if !u.setScreenSize(width, height, scale) {
 			err = errors.New("ui: Fail to set the screen size")
