@@ -180,15 +180,26 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return texture, nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) {
-	gl.BindFramebuffer(gl.FRAMEBUFFER, uint32(f))
+func (c *Context) bindFramebufferImpl(f Framebuffer) error {
+	if err := c.RunOnContextThread(func() error {
+		gl.BindFramebuffer(gl.FRAMEBUFFER, uint32(f))
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
 	var pixels []uint8
 	if err := c.RunOnContextThread(func() error {
 		gl.Flush()
-		c.bindFramebuffer(f)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	c.bindFramebuffer(f)
+	if err := c.RunOnContextThread(func() error {
 		pixels = make([]uint8, 4*width*height)
 		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
 		if e := gl.GetError(); e != gl.NO_ERROR {
@@ -236,24 +247,25 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	})
 }
 
-func (c *Context) BindScreenFramebuffer() {
-	c.RunOnContextThread(func() error {
-		c.bindFramebuffer(c.screenFramebuffer)
-		return nil
-	})
+func (c *Context) BindScreenFramebuffer() error {
+	return c.bindFramebuffer(c.screenFramebuffer)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	var framebuffer Framebuffer
+	var f uint32
 	if err := c.RunOnContextThread(func() error {
-		var f uint32
 		gl.GenFramebuffers(1, &f)
 		// TODO: Use gl.IsFramebuffer
 		if f <= 0 {
 			return errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
 		}
-		c.bindFramebuffer(Framebuffer(f))
-
+		return nil
+	}); err != nil {
+		return 0, err
+	}
+	c.bindFramebuffer(Framebuffer(f))
+	if err := c.RunOnContextThread(func() error {
 		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
 		s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 		if s != gl.FRAMEBUFFER_COMPLETE {
@@ -273,14 +285,9 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	return framebuffer, nil
 }
 
-func (c *Context) SetViewport(f Framebuffer, width, height int) error {
+func (c *Context) setViewportImpl(width, height int) error {
 	return c.RunOnContextThread(func() error {
-		c.bindFramebuffer(f)
-		if c.lastViewportWidth != width || c.lastViewportHeight != height {
-			gl.Viewport(0, 0, int32(width), int32(height))
-			c.lastViewportWidth = width
-			c.lastViewportHeight = height
-		}
+		gl.Viewport(0, 0, int32(width), int32(height))
 		return nil
 	})
 }

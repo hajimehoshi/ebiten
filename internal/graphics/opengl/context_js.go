@@ -172,9 +172,10 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture{t}, nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) {
+func (c *Context) bindFramebufferImpl(f Framebuffer) error {
 	gl := c.gl
 	gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
+	return nil
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
@@ -230,14 +231,9 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	return Framebuffer{f}, nil
 }
 
-func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	c.bindFramebuffer(f)
-	if c.lastViewportWidth != width || c.lastViewportHeight != height {
-		gl := c.gl
-		gl.Viewport(0, 0, width, height)
-		c.lastViewportWidth = width
-		c.lastViewportHeight = height
-	}
+func (c *Context) setViewportImpl(width, height int) error {
+	gl := c.gl
+	gl.Viewport(0, 0, width, height)
 	return nil
 }
 

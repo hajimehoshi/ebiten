@@ -40,12 +40,28 @@ type Context struct {
 	context
 }
 
-func (c *Context) bindFramebuffer(f Framebuffer) {
+func (c *Context) bindFramebuffer(f Framebuffer) error {
 	if c.lastFramebuffer == f {
-		return
+		return nil
 	}
-	c.bindFramebufferImpl(f)
+	if err := c.bindFramebufferImpl(f); err != nil {
+		return err
+	}
 	c.lastFramebuffer = f
+	return nil
+}
+
+func (c *Context) SetViewport(f Framebuffer, width, height int) error {
+	lf := c.lastFramebuffer
+	c.bindFramebuffer(f)
+	if lf != f || c.lastViewportWidth != width || c.lastViewportHeight != height {
+		if err := c.setViewportImpl(width, height); err != nil {
+			return nil
+		}
+		c.lastViewportWidth = width
+		c.lastViewportHeight = height
+	}
+	return nil
 }
 
 func (c *Context) ScreenFramebuffer() Framebuffer {

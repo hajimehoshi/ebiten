@@ -247,19 +247,23 @@ func (u *userInterface) Terminate() error {
 }
 
 func (u *userInterface) SwapBuffers() error {
+	var err error
 	u.runOnMainThread(func() {
-		u.swapBuffers()
+		err = u.swapBuffers()
 	})
-	return nil
+	return err
 }
 
-func (u *userInterface) swapBuffers() {
+func (u *userInterface) swapBuffers() error {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
-	u.context.BindScreenFramebuffer()
+	if err := u.context.BindScreenFramebuffer(); err != nil {
+		return err
+	}
 	u.context.RunOnContextThread(func() error {
 		u.window.SwapBuffers()
 		return nil
 	})
+	return nil
 }
 
 func (u *userInterface) FinishRendering() error {

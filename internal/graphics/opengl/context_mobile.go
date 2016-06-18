@@ -192,8 +192,8 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) BindScreenFramebuffer() {
-	c.bindFramebuffer(c.screenFramebuffer)
+func (c *Context) BindScreenFramebuffer() error {
+	return c.bindFramebuffer(c.screenFramebuffer)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
@@ -215,18 +215,12 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 		}
 		return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
-
 	return Framebuffer(f), nil
 }
 
-func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	c.bindFramebuffer(f)
-	if c.lastViewportWidth != width || c.lastViewportHeight != height {
-		gl := c.gl
-		gl.Viewport(0, 0, width, height)
-		c.lastViewportWidth = width
-		c.lastViewportHeight = height
-	}
+func (c *Context) setViewportImpl(width, height int) error {
+	gl := c.gl
+	gl.Viewport(0, 0, width, height)
 	return nil
 }
 
