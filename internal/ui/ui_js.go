@@ -87,7 +87,6 @@ func (u *userInterface) Update() (interface{}, error) {
 		e := ScreenSizeEvent{
 			Width:       w,
 			Height:      h,
-			Scale:       u.ScreenScale(),
 			ActualScale: u.ActualScreenScale(),
 		}
 		return e, nil
