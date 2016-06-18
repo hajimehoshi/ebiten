@@ -150,9 +150,10 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return Texture(t), nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) {
+func (c *Context) bindFramebufferImpl(f Framebuffer) error {
 	gl := c.gl
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
+	return nil
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
