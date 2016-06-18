@@ -26,6 +26,6 @@ package ui
 // }
 import "C"
 
-func deviceScale() int {
-	return int(C.devicePixelRatio())
+func deviceScale() float64 {
+	return float64(C.devicePixelRatio())
 }

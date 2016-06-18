@@ -145,7 +145,7 @@ func (u *userInterface) ScreenScale() int {
 }
 
 func (u *userInterface) actualScreenScale() int {
-	return u.scale * deviceScale()
+	return u.scale * int(deviceScale())
 }
 
 func UpdateTouches(touches []Touch) {

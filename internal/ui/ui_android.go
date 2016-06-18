@@ -14,6 +14,6 @@
 
 package ui
 
-func deviceScale() int {
+func deviceScale() float64 {
 	return 1
 }
