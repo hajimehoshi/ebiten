@@ -146,7 +146,6 @@ func (u *userInterface) Start(width, height, scale int, title string) error {
 	u.runOnMainThread(func() {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		mw, _ := m.GetPhysicalSize()
 		u.deviceScale = deviceScale()
 		u.framebufferScale = 1
 
