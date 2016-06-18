@@ -74,11 +74,10 @@ loop:
 }
 
 type userInterface struct {
-	width            int
-	height           int
-	scale            int
-	framebufferScale int
-	sizeChanged      bool
+	width       int
+	height      int
+	scale       int
+	sizeChanged bool
 }
 
 var (
@@ -147,17 +146,7 @@ func (u *userInterface) ScreenScale() int {
 }
 
 func (u *userInterface) actualScreenScale() int {
-	if u.framebufferScale == 0 {
-		width, _ := glContext.ScreenFramebufferSize()
-		if width == 0 {
-			// Android
-			u.framebufferScale = 1
-		} else {
-			// iOS
-			u.framebufferScale = width / u.width
-		}
-	}
-	return u.scale * u.framebufferScale
+	return u.scale * deviceScale()
 }
 
 func UpdateTouches(touches []Touch) {
