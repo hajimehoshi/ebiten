@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO: Fix build tags to show comment docs on any platforms
+
+// +build android ios darwin,arm darwin,arm64
+
 package mobile
 
 import (
