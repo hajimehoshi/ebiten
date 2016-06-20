@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios darwin,arm darwin,arm64
-
 package mobile
 
 import (
@@ -30,6 +28,7 @@ type EventDispatcher interface {
 	SetScreenScale(scale int)
 	Render() error
 	UpdateTouchesOnAndroid(action int, id int, x, y int)
+	UpdateTouchesOnIOS(phase int, ptr int, x, y int)
 }
 
 // Start starts the game and returns immediately.
@@ -105,6 +104,10 @@ func (e *eventDispatcher) UpdateTouchesOnAndroid(action int, id int, x, y int) {
 		delete(e.touches, id)
 		e.updateTouches()
 	}
+}
+
+func (e *eventDispatcher) UpdateTouchesOnIOS(phase int, ptr int, x, y int) {
+	e.updateTouchesOnIOSImpl(phase, ptr, x, y)
 }
 
 func (e *eventDispatcher) updateTouches() {
