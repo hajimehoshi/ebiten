@@ -67,6 +67,8 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {
+	// glViewport must be called at every frame on iOS
+	ui.GLContext().ResetViewportSize()
 	if !c.initialized {
 		if err := graphics.Initialize(ui.GLContext()); err != nil {
 			return err
