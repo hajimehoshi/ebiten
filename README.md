@@ -12,6 +12,8 @@
   * Windows
   * Mac OS X
   * Linux
+  * Android (WIP)
+  * iOS (WIP)
 
 ## Features
 

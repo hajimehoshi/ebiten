@@ -15,8 +15,9 @@
 package graphics
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
 type shaderId int
