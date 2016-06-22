@@ -58,15 +58,13 @@ varying highp vec2 vertex_out_tex_coord;
 void main(void) {
   lowp vec4 color = texture2D(texture, vertex_out_tex_coord);
 
-  if (color_matrix != mat4(1.0) || color_matrix_translation != vec4(0.0)) {
-    // Un-premultiply alpha
-    color.rgb /= color.a;
-    // Apply the color matrix
-    color = (color_matrix * color) + color_matrix_translation;
-    color = clamp(color, 0.0, 1.0);
-    // Premultiply alpha
-    color.rgb *= color.a;
-  }
+  // Un-premultiply alpha
+  color.rgb /= color.a;
+  // Apply the color matrix
+  color = (color_matrix * color) + color_matrix_translation;
+  color = clamp(color, 0.0, 1.0);
+  // Premultiply alpha
+  color.rgb *= color.a;
 
   gl_FragColor = color;
 }
