@@ -146,7 +146,7 @@ func (c *graphicsContext) flush() error {
 	if err := graphics.FlushCommands(ui.GLContext()); err != nil {
 		return err
 	}
-	// Call glFlush to prevent black flicking (especially on Android (#226)).
+	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	ui.GLContext().Flush()
 	return nil
 }
