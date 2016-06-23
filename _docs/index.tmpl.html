@@ -90,6 +90,33 @@ pre {
 &lt;script src="yourgame.js"&gt;&lt;/script&gt;</code></pre>
 <p>NOTE: <code>file://</code> URL may not work with Ebiten. Execute your game on a HTTP server.</p>
 
+<h2>Getting Started</h2>
+
+<p>Let's build a simple "Hello world!" game to get started with Ebiten.
+First create a new directory (<code>mkdir hello_world</code>), and change
+into it (<code>cd hello_world</code>). Type the following code into
+the <code>main.go</code> file:</p>
+
+<pre><code>package main
+
+import (
+    "github.com/hajimehoshi/ebiten"
+    "github.com/hajimehoshi/ebiten/ebitenutil"
+)
+
+func update(screen *ebiten.Image) error {
+    ebitenutil.DebugPrint(screen, "Hello world!")
+    return nil
+}
+
+func main() {
+    ebiten.Run(update, 320, 240, 2, "Hello world!")
+}
+</code></pre>
+
+<p>Run the <code>go run</code> command to start the
+game. There you have it, your first Ebiten game!</p>
+
 <h2>Apps created with Ebiten</h2>
 <ul>
   <li><a href="https://github.com/peterhellberg/plasma">Plasma</a> by Peter Hellberg</li>
