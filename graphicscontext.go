@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -29,6 +31,7 @@ func newGraphicsContext(f func(*Image) error) *graphicsContext {
 type graphicsContext struct {
 	f           func(*Image) error
 	offscreen   *Image
+	offscreen2  *Image // TODO: better name
 	screen      *Image
 	screenScale float64
 	initialized bool
@@ -45,14 +48,22 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
-	w := int(float64(screenWidth) * screenScale)
-	h := int(float64(screenHeight) * screenScale)
+	intScreenScale := int(math.Floor(screenScale))
+	w := screenWidth * intScreenScale
+	h := screenHeight * intScreenScale
+	offscreen2, err := NewImage(w, h, FilterLinear)
+	if err != nil {
+		return err
+	}
+	w = int(float64(screenWidth) * screenScale)
+	h = int(float64(screenHeight) * screenScale)
 	c.screen, err = newImageWithScreenFramebuffer(w, h)
 	if err != nil {
 		return err
 	}
 	c.screen.Clear()
 	c.offscreen = offscreen
+	c.offscreen2 = offscreen2
 	c.screenScale = screenScale
 	ui.GLContext().ResetViewportSize()
 	return nil
@@ -89,14 +100,24 @@ func (c *graphicsContext) initializeIfNeeded() error {
 	return nil
 }
 
+func drawWithFittingScale(dst *Image, src *Image) error {
+	wd, hd := dst.Size()
+	ws, hs := src.Size()
+	sw := float64(wd) / float64(ws)
+	sh := float64(hd) / float64(hs)
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(sw, sh)
+	if err := dst.DrawImage(src, op); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *graphicsContext) drawToDefaultRenderTarget() error {
 	if err := c.screen.Clear(); err != nil {
 		return err
 	}
-	scale := float64(c.screenScale)
-	options := &DrawImageOptions{}
-	options.GeoM.Scale(scale, scale)
-	if err := c.screen.DrawImage(c.offscreen, options); err != nil {
+	if err := drawWithFittingScale(c.screen, c.offscreen2); err != nil {
 		return err
 	}
 	if err := c.flush(); err != nil {
@@ -118,12 +139,19 @@ func (c *graphicsContext) UpdateAndDraw() error {
 	if IsRunningSlowly() {
 		return nil
 	}
+	if err := c.offscreen2.Clear(); err != nil {
+		return err
+	}
+	if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
+		return err
+	}
 	if err := c.drawToDefaultRenderTarget(); err != nil {
 		return err
 	}
 	exceptions := map[*imageImpl]struct{}{
-		c.offscreen.impl: {},
-		c.screen.impl:    {},
+		c.offscreen.impl:  {},
+		c.offscreen2.impl: {},
+		c.screen.impl:     {},
 	}
 	if err := theImages.savePixels(ui.GLContext(), exceptions); err != nil {
 		return err
