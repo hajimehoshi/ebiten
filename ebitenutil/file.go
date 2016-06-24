@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build darwin linux windows
 // +build !js
+// +build !android
+// +build !ios
 
 package ebitenutil
 
@@ -23,6 +26,7 @@ import (
 // OpenFile opens a file and returns a stream for its data.
 //
 // This function is available both on desktops and browsers.
+// Note that this doesn't work on mobiles.
 func OpenFile(path string) (ReadSeekCloser, error) {
 	return os.Open(path)
 }
