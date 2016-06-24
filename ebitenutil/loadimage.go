@@ -27,7 +27,7 @@ import (
 // NewImageFromFile loads the file path and returns ebiten.Image and image.Image.
 //
 // The current directory for path depends on your environment. This will vary on your desktop or web browser.
-// Note that this doesn't work on browsers.
+// Note that this doesn't work on mobiles.
 // It'll be safer to embed your resource, e.g., with github.com/jteeuwen/go-bindata instead of using this function.
 func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
