@@ -23,6 +23,21 @@ type EventDispatcher interface {
 	SetScreenSize(width, height int)
 	SetScreenScale(scale float64)
 	Render() error
+
+	// UpdateTouchesOnAndroid updates the touch state on Android.
+	//
+	// This should be called with onTouchEvent of GLSurfaceView like this:
+	//
+	//     @Override
+	//     public boolean onTouchEvent(MotionEvent e) {
+	//         for (int i = 0; i < e.getPointerCount(); i++) {
+	//             int id = e.getPointerId(i);
+	//             int x = (int)e.getX(i);
+	//             int y = (int)e.getY(i);
+	//             YourGame.CurrentEventDispatcher().UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
+	//         }
+	//         return true;
+	//     }
 	UpdateTouchesOnAndroid(action int, id int, x, y int)
 	UpdateTouchesOnIOS(phase int, ptr int, x, y int)
 }
@@ -71,20 +86,6 @@ func (t touch) Position() (int, int) {
 		int(float64(t.position.y) / ui.CurrentUI().ScreenScale())
 }
 
-// UpdateTouchesOnAndroid updates the touch state on Android.
-//
-// This should be called with onTouchEvent of GLSurfaceView like this:
-//
-//     @Override
-//     public boolean onTouchEvent(MotionEvent e) {
-//         for (int i = 0; i < e.getPointerCount(); i++) {
-//             int id = e.getPointerId(i);
-//             int x = (int)e.getX(i);
-//             int y = (int)e.getY(i);
-//             YourGame.CurrentEventDispatcher().UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
-//         }
-//         return true;
-//     }
 func (e *eventDispatcher) UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
