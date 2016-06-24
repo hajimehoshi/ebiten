@@ -48,7 +48,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
-	intScreenScale := int(math.Floor(screenScale))
+	intScreenScale := int(math.Ceil(screenScale))
 	w := screenWidth * intScreenScale
 	h := screenHeight * intScreenScale
 	offscreen2, err := NewImage(w, h, FilterLinear)
