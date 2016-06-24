@@ -49,14 +49,9 @@ func update(screen *ebiten.Image) error {
 		}
 		keyStates[key]++
 	}
-	d := 0
 	screenScale := ebiten.ScreenScale()
-	switch screenScale {
-	case 1:
-		d = 32
-	case 2:
-		d = 16
-	}
+	d := int(32 / screenScale)
+
 	screenWidth, screenHeight := screen.Size()
 	if keyStates[ebiten.KeyUp] == 1 {
 		screenHeight += d
@@ -75,7 +70,16 @@ func update(screen *ebiten.Image) error {
 		screenWidth += d
 	}
 	if keyStates[ebiten.KeyS] == 1 {
-		screenScale = 3 - screenScale // Swap 1 and 2
+		switch screenScale {
+		case 1:
+			screenScale = 1.5
+		case 1.5:
+			screenScale = 2
+		case 2:
+			screenScale = 1
+		default:
+			panic("not reach")
+		}
 	}
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
