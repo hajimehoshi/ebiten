@@ -22,12 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-func setScreenSize(width, height int) {
-}
-
-func setScreenScale(scale float64) {
-}
-
 func render() error {
 	return nil
 }

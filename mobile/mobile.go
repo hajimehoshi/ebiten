@@ -20,8 +20,6 @@ import (
 )
 
 type EventDispatcher interface {
-	SetScreenSize(width, height int)
-	SetScreenScale(scale float64)
 	Render() error
 
 	// UpdateTouchesOnAndroid updates the touch state on Android.
@@ -56,14 +54,6 @@ type position struct {
 
 type eventDispatcher struct {
 	touches map[int]position
-}
-
-func (e *eventDispatcher) SetScreenSize(width, height int) {
-	setScreenSize(width, height)
-}
-
-func (e *eventDispatcher) SetScreenScale(scale float64) {
-	setScreenScale(scale)
 }
 
 func (e *eventDispatcher) Render() error {

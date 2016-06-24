@@ -25,14 +25,6 @@ import (
 
 var chError <-chan error
 
-func setScreenSize(width, height int) {
-	ui.CurrentUI().SetScreenSize(width, height)
-}
-
-func setScreenScale(scale float64) {
-	ui.CurrentUI().SetScreenScale(scale)
-}
-
 func render() error {
 	if chError == nil {
 		return errors.New("mobile: chError must not be nil: Start is not called yet?")
