@@ -12,20 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Fix build tags to show comment docs on any platforms
-
-// +build android ios darwin,arm darwin,arm64
-
 package mobile
 
 import (
-	"errors"
-
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
-
-var chError <-chan error
 
 type EventDispatcher interface {
 	SetScreenSize(width, height int)
@@ -39,10 +31,7 @@ type EventDispatcher interface {
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) (EventDispatcher, error) {
-	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
-	return &eventDispatcher{
-		touches: map[int]position{},
-	}, nil
+	return start(f, width, height, scale, title)
 }
 
 type position struct {
@@ -55,18 +44,15 @@ type eventDispatcher struct {
 }
 
 func (e *eventDispatcher) SetScreenSize(width, height int) {
-	ui.CurrentUI().SetScreenSize(width, height)
+	setScreenSize(width, height)
 }
 
 func (e *eventDispatcher) SetScreenScale(scale float64) {
-	ui.CurrentUI().SetScreenScale(scale)
+	setScreenScale(scale)
 }
 
 func (e *eventDispatcher) Render() error {
-	if chError == nil {
-		return errors.New("mobile: chError must not be nil: Start is not called yet?")
-	}
-	return ui.Render(chError)
+	return render()
 }
 
 // touch implements ui.Touch.
@@ -112,12 +98,4 @@ func (e *eventDispatcher) UpdateTouchesOnAndroid(action int, id int, x, y int) {
 
 func (e *eventDispatcher) UpdateTouchesOnIOS(phase int, ptr int, x, y int) {
 	e.updateTouchesOnIOSImpl(phase, ptr, x, y)
-}
-
-func (e *eventDispatcher) updateTouches() {
-	ts := []ui.Touch{}
-	for id, position := range e.touches {
-		ts = append(ts, touch{id, position})
-	}
-	ui.UpdateTouches(ts)
 }
