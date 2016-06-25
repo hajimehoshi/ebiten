@@ -32,9 +32,7 @@ func render() error {
 	return ui.Render(chError)
 }
 
-func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) (EventDispatcher, error) {
+func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
-	return &eventDispatcher{
-		touches: map[int]position{},
-	}, nil
+	return nil
 }

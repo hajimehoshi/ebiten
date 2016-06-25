@@ -26,6 +26,6 @@ func render() error {
 	return nil
 }
 
-func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) (EventDispatcher, error) {
-	return nil, nil
+func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
+	return nil
 }

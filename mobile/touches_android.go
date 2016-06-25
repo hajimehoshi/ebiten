@@ -14,6 +14,17 @@
 
 package mobile
 
-func (e *eventDispatcher) updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
+func updateTouchesOnAndroid(action int, id int, x, y int) {
+	switch action {
+	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
+		touches[id] = position{x, y}
+		updateTouches()
+	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
+		delete(touches, id)
+		updateTouches()
+	}
+}
+
+func updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
 	panic("not reach")
 }

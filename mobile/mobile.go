@@ -16,75 +16,44 @@ package mobile
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
-
-type EventDispatcher interface {
-	// UpdateTouchesOnAndroid updates the touch state on Android.
-	//
-	// This should be called with onTouchEvent of GLSurfaceView like this:
-	//
-	//     @Override
-	//     public boolean onTouchEvent(MotionEvent e) {
-	//         for (int i = 0; i < e.getPointerCount(); i++) {
-	//             int id = e.getPointerId(i);
-	//             int x = (int)e.getX(i);
-	//             int y = (int)e.getY(i);
-	//             YourGame.CurrentEventDispatcher().UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
-	//         }
-	//         return true;
-	//     }
-	UpdateTouchesOnAndroid(action int, id int, x, y int)
-	UpdateTouchesOnIOS(phase int, ptr int, x, y int)
-}
 
 // Start starts the game and returns immediately.
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
-func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) (EventDispatcher, error) {
+func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
 	return start(f, width, height, scale, title)
 }
 
+// Render updates and renders the game.
+//
+// This should be called on every frame.
+//
+// On Android, this should be called at onDrawFrame of Renderer (used by GLSurfaceView).
+//
+// On iOS, this should be called at glkView:drawInRect: of GLKViewDelegate.
 func Render() error {
 	return render()
 }
 
-type position struct {
-	x int
-	y int
+// UpdateTouchesOnAndroid updates the touch state on Android.
+//
+// This should be called with onTouchEvent of GLSurfaceView like this:
+//
+//     @Override
+//     public boolean onTouchEvent(MotionEvent e) {
+//         for (int i = 0; i < e.getPointerCount(); i++) {
+//             int id = e.getPointerId(i);
+//             int x = (int)e.getX(i);
+//             int y = (int)e.getY(i);
+//             YourGame.CurrentEventDispatcher().UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
+//         }
+//         return true;
+//     }
+func UpdateTouchesOnAndroid(action int, id int, x, y int) {
+	updateTouchesOnAndroid(action, id, x, y)
 }
 
-type eventDispatcher struct {
-	touches map[int]position
-}
-
-// touch implements ui.Touch.
-type touch struct {
-	id       int
-	position position
-}
-
-func (t touch) ID() int {
-	return t.id
-}
-
-func (t touch) Position() (int, int) {
-	// TODO: Is this OK to adjust the position here?
-	return int(float64(t.position.x) / ui.CurrentUI().ScreenScale()),
-		int(float64(t.position.y) / ui.CurrentUI().ScreenScale())
-}
-
-func (e *eventDispatcher) UpdateTouchesOnAndroid(action int, id int, x, y int) {
-	switch action {
-	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
-		e.touches[id] = position{x, y}
-		e.updateTouches()
-	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
-		delete(e.touches, id)
-		e.updateTouches()
-	}
-}
-
-func (e *eventDispatcher) UpdateTouchesOnIOS(phase int, ptr int, x, y int) {
-	e.updateTouchesOnIOSImpl(phase, ptr, x, y)
+func UpdateTouchesOnIOS(phase int, ptr int, x, y int) {
+	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }

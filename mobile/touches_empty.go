@@ -18,8 +18,8 @@
 
 package mobile
 
-func (e *eventDispatcher) updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
+func updateTouchesOnAndroid(action int, id int, x, y int) {
 }
 
-func (e *eventDispatcher) updateTouches() {
+func updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
 }

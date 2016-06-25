@@ -20,9 +20,34 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-func (e *eventDispatcher) updateTouches() {
+type position struct {
+	x int
+	y int
+}
+
+var (
+	touches = map[int]position{}
+)
+
+// touch implements ui.Touch.
+type touch struct {
+	id       int
+	position position
+}
+
+func (t touch) ID() int {
+	return t.id
+}
+
+func (t touch) Position() (int, int) {
+	// TODO: Is this OK to adjust the position here?
+	return int(float64(t.position.x) / ui.CurrentUI().ScreenScale()),
+		int(float64(t.position.y) / ui.CurrentUI().ScreenScale())
+}
+
+func updateTouches() {
 	ts := []ui.Touch{}
-	for id, position := range e.touches {
+	for id, position := range touches {
 		ts = append(ts, touch{id, position})
 	}
 	ui.UpdateTouches(ts)

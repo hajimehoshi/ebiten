@@ -22,14 +22,18 @@ package mobile
 // #import <UIKit/UIKit.h>
 import "C"
 
-func (e *eventDispatcher) updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
+func updateTouchesOnAndroid(action int, id int, x, y int) {
+	panic("not reach")
+}
+
+func updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
-		e.touches[ptr] = position{x, y}
-		e.updateTouches()
+		touches[ptr] = position{x, y}
+		updateTouches()
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
-		delete(e.touches, ptr)
-		e.updateTouches()
+		delete(touches, ptr)
+		updateTouches()
 	default:
 		panic("not reach")
 	}
