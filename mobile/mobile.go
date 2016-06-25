@@ -46,7 +46,7 @@ func Render() error {
 //             int id = e.getPointerId(i);
 //             int x = (int)e.getX(i);
 //             int y = (int)e.getY(i);
-//             YourGame.CurrentEventDispatcher().UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
+//             YourGame.UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
 //         }
 //         return true;
 //     }
