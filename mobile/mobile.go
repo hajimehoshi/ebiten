@@ -20,8 +20,6 @@ import (
 )
 
 type EventDispatcher interface {
-	Render() error
-
 	// UpdateTouchesOnAndroid updates the touch state on Android.
 	//
 	// This should be called with onTouchEvent of GLSurfaceView like this:
@@ -47,6 +45,10 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 	return start(f, width, height, scale, title)
 }
 
+func Render() error {
+	return render()
+}
+
 type position struct {
 	x int
 	y int
@@ -54,10 +56,6 @@ type position struct {
 
 type eventDispatcher struct {
 	touches map[int]position
-}
-
-func (e *eventDispatcher) Render() error {
-	return render()
 }
 
 // touch implements ui.Touch.
