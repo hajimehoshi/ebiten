@@ -59,7 +59,9 @@ void main(void) {
   lowp vec4 color = texture2D(texture, vertex_out_tex_coord);
 
   // Un-premultiply alpha
-  color.rgb /= color.a;
+  if (0.0 < color.a) {
+    color.rgb /= color.a;
+  }
   // Apply the color matrix
   color = (color_matrix * color) + color_matrix_translation;
   color = clamp(color, 0.0, 1.0);
