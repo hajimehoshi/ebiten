@@ -25,6 +25,6 @@ func updateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
-func updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
+func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
 	panic("not reach")
 }

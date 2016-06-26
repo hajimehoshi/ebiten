@@ -54,6 +54,6 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	updateTouchesOnAndroid(action, id, x, y)
 }
 
-func UpdateTouchesOnIOS(phase int, ptr int, x, y int) {
+func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }

@@ -22,17 +22,37 @@ package mobile
 // #import <UIKit/UIKit.h>
 import "C"
 
+var ptrToID = map[int64]int{}
+
+func getIDFromPtr(ptr int64) int {
+	if id, ok := ptrToID[ptr]; ok {
+		return id
+	}
+	maxID := 0
+	for _, id := range ptrToID {
+		if maxID > id {
+			maxID = id
+		}
+	}
+	id := maxID + 1
+	ptrToID[ptr] = id
+	return id
+}
+
 func updateTouchesOnAndroid(action int, id int, x, y int) {
 	panic("not reach")
 }
 
-func updateTouchesOnIOSImpl(phase int, ptr int, x, y int) {
+func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
-		touches[ptr] = position{x, y}
+		id := getIDFromPtr(ptr)
+		touches[id] = position{x, y}
 		updateTouches()
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
-		delete(touches, ptr)
+		id := getIDFromPtr(ptr)
+		delete(ptrToID, ptr)
+		delete(touches, id)
 		updateTouches()
 	default:
 		panic("not reach")
