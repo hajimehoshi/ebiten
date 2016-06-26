@@ -30,7 +30,7 @@ func getIDFromPtr(ptr int64) int {
 	}
 	maxID := 0
 	for _, id := range ptrToID {
-		if maxID > id {
+		if maxID < id {
 			maxID = id
 		}
 	}
