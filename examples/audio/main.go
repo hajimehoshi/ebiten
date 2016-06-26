@@ -15,9 +15,9 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"image/color"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -61,10 +61,9 @@ type Player struct {
 var (
 	audioContext     *audio.Context
 	musicPlayer      *Player
-	seStream         *wav.Stream
-	sePlayer         *audio.Player
+	seBytes          []byte
 	musicCh          = make(chan *Player)
-	seCh             = make(chan *wav.Stream)
+	seCh             = make(chan []byte)
 	mouseButtonState = map[ebiten.MouseButton]int{}
 	keyState         = map[ebiten.Key]int{}
 	volume128        = 128
@@ -77,16 +76,8 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
-type SEStream struct {
-	*bytes.Reader
-}
-
-func (s *SEStream) Close() error {
-	return nil
-}
-
 func (p *Player) updateSE() error {
-	if seStream == nil {
+	if seBytes == nil {
 		return nil
 	}
 	if !ebiten.IsKeyPressed(ebiten.KeyP) {
@@ -97,17 +88,8 @@ func (p *Player) updateSE() error {
 	if keyState[ebiten.KeyP] != 1 {
 		return nil
 	}
-	if sePlayer == nil {
-		var err error
-		sePlayer, err = audio.NewPlayer(audioContext, seStream)
-		if err != nil {
-			return err
-		}
-	}
-	if sePlayer.IsPlaying() {
-		return nil
-	}
-	if err := sePlayer.Rewind(); err != nil {
+	sePlayer, err := audio.NewPlayerFromBytes(audioContext, seBytes)
+	if err != nil {
 		return err
 	}
 	return sePlayer.Play()
@@ -187,9 +169,9 @@ func update(screen *ebiten.Image) error {
 		default:
 		}
 	}
-	if seStream == nil {
+	if seBytes == nil {
 		select {
-		case seStream = <-seCh:
+		case seBytes = <-seCh:
 		default:
 		}
 	}
@@ -266,7 +248,12 @@ func main() {
 			log.Fatal(err)
 			return
 		}
-		seCh <- s
+		b, err := ioutil.ReadAll(s)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		seCh <- b
 		close(seCh)
 	}()
 	go func() {
