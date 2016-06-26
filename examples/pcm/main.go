@@ -15,7 +15,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -97,15 +96,6 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-type srcStream struct {
-	*bytes.Reader
-}
-
-func (s *srcStream) Close() error {
-	s.Reader = nil
-	return nil
-}
-
 func addNote() error {
 	size := sampleRate / ebiten.FPS
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
@@ -135,8 +125,7 @@ func addNote() error {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 	b := toBytes(l, r)
-	s := &srcStream{bytes.NewReader(b)}
-	p, err := audio.NewPlayer(audioContext, s)
+	p, err := audio.NewPlayerFromBytes(audioContext, b)
 	if err != nil {
 		return err
 	}

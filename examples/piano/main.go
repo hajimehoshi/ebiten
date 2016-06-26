@@ -15,7 +15,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"image/color"
 	"log"
@@ -80,22 +79,13 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-type stream struct {
-	*bytes.Reader
-}
-
-func (s *stream) Close() error {
-	s.Reader = nil
-	return nil
-}
-
 func addNote(freq float64, vol float64) error {
 	// TODO: Call Close method of *audio.Player.
 	// However, this works without Close because Close is automatically called when GC
 	// collects a *audio.Player object.
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		p, err := audio.NewPlayer(audioContext, &stream{bytes.NewReader(n)})
+		p, err := audio.NewPlayerFromBytes(audioContext, n)
 		if err != nil {
 			return err
 		}
@@ -116,7 +106,7 @@ func addNote(freq float64, vol float64) error {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	p, err := audio.NewPlayer(audioContext, &stream{bytes.NewReader(n)})
+	p, err := audio.NewPlayerFromBytes(audioContext, n)
 	if err != nil {
 		return err
 	}

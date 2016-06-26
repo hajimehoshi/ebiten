@@ -26,6 +26,7 @@
 package audio
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"runtime"
@@ -293,6 +294,27 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	p.pos = pos
 	runtime.SetFinalizer(p, (*Player).Close)
 	return p, nil
+}
+
+type bytesReadSeekCloser struct {
+	*bytes.Reader
+}
+
+func (b *bytesReadSeekCloser) Close() error {
+	return nil
+}
+
+// NewPlayerFromBytes creates a new player with the given bytes.
+//
+// As opposed to NewPlayer, you don't have to care if src is already used by another player or not.
+// src can be shared by multiple players.
+//
+// The format of src should be same as noted at NewPlayer.
+//
+// This function is concurrent-safe.
+func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
+	b := &bytesReadSeekCloser{bytes.NewReader(src)}
+	return NewPlayer(context, b)
 }
 
 // Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
