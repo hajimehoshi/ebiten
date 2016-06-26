@@ -26,6 +26,7 @@
 package audio
 
 import (
+	"errors"
 	"io"
 	"runtime"
 	"sync"
@@ -134,6 +135,17 @@ func (p *players) playerCurrent(player *Player, sampleRate int) time.Duration {
 	defer p.RUnlock()
 	sample := player.pos / bytesPerSample / channelNum
 	return time.Duration(sample) * time.Second / time.Duration(sampleRate)
+}
+
+func (p *players) hasSource(src ReadSeekCloser) bool {
+	p.RLock()
+	defer p.RUnlock()
+	for player := range p.players {
+		if player.src == src {
+			return true
+		}
+	}
+	return false
 }
 
 // TODO: Enable to specify the format like Mono8?
@@ -259,8 +271,13 @@ type Player struct {
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
+// Note that the given src can't be shared with other Players.
+//
 // This function is concurrent-safe.
 func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
+	if context.players.hasSource(src) {
+		return nil, errors.New("audio: src cannot be shared with another Player")
+	}
 	p := &Player{
 		players:    context.players,
 		src:        src,
@@ -279,6 +296,8 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 }
 
 // Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
+//
+// After closing, the stream owned by the player will be usable to a new player again.
 //
 // This function is concurrent-safe.
 func (p *Player) Close() error {
