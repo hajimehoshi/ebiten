@@ -135,6 +135,8 @@ type replacePixelsCommand struct {
 func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
 	// Filling with non black or white color is required here for glTexSubImage2D.
 	// Very mysterious but this actually works (Issue #186)
+	// TODO: As shader bug was fixed at f537378f2a6a8ef56e1acf1c03034967b77c7b51,
+	// can we remove this?
 	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
