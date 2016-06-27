@@ -156,7 +156,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	if err := c.RunOnContextThread(func() error {
 		var t uint32
 		gl.GenTextures(1, &t)
-		// TOOD: Use gl.IsTexture
+		// TODO: Use gl.IsTexture
 		if t <= 0 {
 			return errors.New("opengl: creating texture failed")
 		}
