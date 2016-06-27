@@ -319,7 +319,7 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 
 // Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
 //
-// After closing, the stream owned by the player will also be closed by calling its Close.
+// When closing, the stream owned by the player will also be closed by calling its Close.
 //
 // This function is concurrent-safe.
 func (p *Player) Close() error {
