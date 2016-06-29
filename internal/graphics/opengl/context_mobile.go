@@ -340,11 +340,6 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
-func (c *Context) DeleteProgram(p Program) {
-	gl := c.gl
-	gl.DeleteProgram(mgl.Program(p))
-}
-
 func uint16ToBytes(v []uint16) []byte {
 	b := make([]byte, len(v)*2)
 	for i, x := range v {
@@ -386,11 +381,6 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl := c.gl
 	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
-}
-
-func (c *Context) DeleteBuffer(b Buffer) {
-	gl := c.gl
-	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {

@@ -53,10 +53,6 @@ func Initialize(c *opengl.Context) error {
 	return theOpenGLState.initialize(c)
 }
 
-func Finalize(c *opengl.Context) error {
-	return theOpenGLState.finalize(c)
-}
-
 func (s *openGLState) initialize(c *opengl.Context) error {
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
@@ -99,18 +95,6 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	}
 	s.indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
 
-	return nil
-}
-
-func (s *openGLState) finalize(c *opengl.Context) error {
-	s.lastProgram = zeroProgram
-	s.lastProjectionMatrix = nil
-	s.lastModelviewMatrix = nil
-	s.lastColorMatrix = nil
-	s.lastColorMatrixTranslation = nil
-	s.lastTexture = zeroTexture
-	c.DeleteBuffer(s.indexBufferQuads)
-	c.DeleteProgram(s.programTexture)
 	return nil
 }
 
