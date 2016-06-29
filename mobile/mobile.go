@@ -25,15 +25,15 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 	return start(f, width, height, scale, title)
 }
 
-// Render updates and renders the game.
+// Update updates and renders the game.
 //
 // This should be called on every frame.
 //
 // On Android, this should be called at onDrawFrame of Renderer (used by GLSurfaceView).
 //
 // On iOS, this should be called at glkView:drawInRect: of GLKViewDelegate.
-func Render() error {
-	return render()
+func Update() error {
+	return update()
 }
 
 // UpdateTouchesOnAndroid updates the touch state on Android.

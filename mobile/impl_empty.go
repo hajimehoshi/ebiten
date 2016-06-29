@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-func render() error {
+func update() error {
 	return nil
 }
 

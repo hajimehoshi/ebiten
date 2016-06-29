@@ -25,7 +25,7 @@ import (
 
 var chError <-chan error
 
-func render() error {
+func update() error {
 	if chError == nil {
 		return errors.New("mobile: chError must not be nil: Start is not called yet?")
 	}
