@@ -30,6 +30,7 @@ type userInterface struct {
 	deviceScale     float64
 	sizeChanged     bool
 	contextRestored chan struct{}
+	windowFocus     chan struct{}
 }
 
 var currentUI = &userInterface{
@@ -81,6 +82,9 @@ func (u *userInterface) ActualScreenScale() float64 {
 }
 
 func (u *userInterface) Update() (interface{}, error) {
+	if u.windowFocus != nil {
+		<-u.windowFocus
+	}
 	if u.contextRestored != nil {
 		<-u.contextRestored
 	}
@@ -151,6 +155,16 @@ func initialize() (*opengl.Context, error) {
 		})
 		<-ch
 	}
+	window.Call("addEventListener", "focus", func() {
+		if currentUI.windowFocus == nil {
+			return
+		}
+		close(currentUI.windowFocus)
+		currentUI.windowFocus = nil
+	})
+	window.Call("addEventListener", "blur", func() {
+		currentUI.windowFocus = make(chan struct{})
+	})
 
 	canvas = doc.Call("createElement", "canvas")
 	canvas.Set("width", 16)
