@@ -26,9 +26,10 @@ import (
 var canvas *js.Object
 
 type userInterface struct {
-	scale       float64
-	deviceScale float64
-	sizeChanged bool
+	scale           float64
+	deviceScale     float64
+	sizeChanged     bool
+	contextRestored chan struct{}
 }
 
 var currentUI = &userInterface{
@@ -80,6 +81,9 @@ func (u *userInterface) ActualScreenScale() float64 {
 }
 
 func (u *userInterface) Update() (interface{}, error) {
+	if u.contextRestored != nil {
+		<-u.contextRestored
+	}
 	currentInput.updateGamepads()
 	if u.sizeChanged {
 		u.sizeChanged = false
@@ -227,6 +231,15 @@ func initialize() (*opengl.Context, error) {
 	// Gamepad
 	window.Call("addEventListener", "gamepadconnected", func(e *js.Object) {
 		// Do nothing.
+	})
+
+	canvas.Call("addEventListener", "webglcontextlost", func(e *js.Object) {
+		e.Call("preventDefault")
+		currentUI.contextRestored = make(chan struct{})
+	})
+	canvas.Call("addEventListener", "webglcontextrestored", func(e *js.Object) {
+		close(currentUI.contextRestored)
+		currentUI.contextRestored = nil
 	})
 
 	c, err := opengl.NewContext()
