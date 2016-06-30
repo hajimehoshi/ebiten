@@ -18,6 +18,7 @@ package ui
 
 import (
 	"errors"
+	"runtime"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
@@ -32,6 +33,9 @@ func Main() error {
 }
 
 func Render(chError <-chan error) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if chError == nil {
 		return errors.New("ui: chError must not be nil")
 	}
