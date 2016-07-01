@@ -186,6 +186,8 @@ func (i *Image) Dispose() error {
 // This function may be slow (as for implementation, this calls glTexSubImage2D).
 //
 // This function is concurrent-safe.
+//
+// BUG(hajimehoshi) This might not work on Android (#211).
 func (i *Image) ReplacePixels(p []uint8) error {
 	return i.impl.ReplacePixels(p)
 }
