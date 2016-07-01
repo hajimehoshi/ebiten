@@ -148,7 +148,17 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     break;
   }
 
-  // TODO: Check the result.
+  switch (result) {
+  case -3: // ERROR_INVALID_OPERATION
+    return "invalid operation";
+  case -2: // ERROR_BAD_VALUE
+    return "bad value";
+  case -1: // ERROR
+    return "error";
+  }
+  if (result < 0) {
+    return "unknown error";
+  }
   return NULL;
 }
 
@@ -221,6 +231,8 @@ func (p *Player) loop() {
 				msg = C.writeToAudioTrack(C.uintptr_t(vm), C.uintptr_t(env),
 					p.audioTrack, C.int(p.bytesPerSample),
 					unsafe.Pointer(&bufInShorts[0]), C.int(len(bufInShorts)))
+			default:
+				panic("not reach")
 			}
 			if msg != nil {
 				return errors.New(C.GoString(msg))
