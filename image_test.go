@@ -302,3 +302,35 @@ func TestNewImageFromEbitenImage(t *testing.T) {
 		t.Errorf("NewImageFromImage returns error: %v", err)
 	}
 }
+
+func TestNewImageFromSubImage(t *testing.T) {
+	img, err := openImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	w, h := img.Bounds().Dx(), img.Bounds().Dy()
+	subImg := img.(*image.NRGBA).SubImage(image.Rect(1, 1, w-1, h-1))
+	eimg, err := NewImageFromImage(subImg, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	sw, sh := subImg.Bounds().Dx(), subImg.Bounds().Dy()
+	w2, h2 := eimg.Size()
+	if w2 != sw {
+		t.Errorf("eimg Width: got %#v; want %#v", w2, sw)
+	}
+	if h2 != sh {
+		t.Errorf("eimg Width: got %#v; want %#v", h2, sh)
+	}
+	for j := 0; j < h2; j++ {
+		for i := 0; i < w2; i++ {
+			got := eimg.At(i, j)
+			want := color.RGBAModel.Convert(img.At(i+1, j+1))
+			if got != want {
+				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
+}

@@ -405,7 +405,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	rgbaImg, ok := source.(*image.RGBA)
 	if !ok || source.Bounds().Min != image.ZP {
 		origImg := source
-		newImg := image.NewRGBA(origImg.Bounds())
+		newImg := image.NewRGBA(image.Rect(0, 0, w, h))
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 		rgbaImg = newImg
 	}
