@@ -22,9 +22,7 @@ import (
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 //
-// On Android, width/height is in pixels (px).
-//
-// On iOS, width/height is in points.
+// The unit of width/height is device-independent pixel (dp on Android and pointer on iOS).
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
 	return start(f, width, height, scale, title)
 }
@@ -54,6 +52,8 @@ func Update() error {
 //         }
 //         return true;
 //     }
+//
+// The coodinate x/y is in dp.
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	updateTouchesOnAndroid(action, id, x, y)
 }
