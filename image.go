@@ -71,6 +71,9 @@ func (i *images) savePixels(context *opengl.Context) error {
 func (i *images) restorePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
+	// Dispose all images first because framebuffer/texture numbers can be reused.
+	// If framebuffers/textures are not disposed here, a newly created framebuffer/texture
+	// number can be a same number as existing one.
 	for img := range i.images {
 		if img.screen {
 			continue
