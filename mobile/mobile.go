@@ -21,6 +21,10 @@ import (
 // Start starts the game and returns immediately.
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
+//
+// On Android, width/height is in pixels (px).
+//
+// On iOS, width/height is in points.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
 	return start(f, width, height, scale, title)
 }
