@@ -57,16 +57,10 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img.impl)
 }
 
-func (i *images) savePixels(context *opengl.Context, exceptions map[*imageImpl]struct{}) error {
+func (i *images) savePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if _, ok := exceptions[img]; ok {
-			continue
-		}
-		if img.isDisposed() {
-			continue
-		}
 		if err := img.savePixels(context); err != nil {
 			return err
 		}
@@ -200,6 +194,7 @@ type imageImpl struct {
 	height   int
 	filter   Filter
 	pixels   []uint8
+	noSave   bool
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
@@ -275,6 +270,12 @@ func (i *imageImpl) At(x, y int) color.Color {
 }
 
 func (i *imageImpl) savePixels(context *opengl.Context) error {
+	if i.noSave {
+		return nil
+	}
+	if i.disposed {
+		return nil
+	}
 	if i.pixels != nil {
 		return nil
 	}

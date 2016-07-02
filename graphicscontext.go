@@ -48,6 +48,8 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
+	offscreen.impl.noSave = true
+
 	intScreenScale := int(math.Ceil(screenScale))
 	w := screenWidth * intScreenScale
 	h := screenHeight * intScreenScale
@@ -55,13 +57,17 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
+	offscreen2.impl.noSave = true
+
 	w = int(float64(screenWidth) * screenScale)
 	h = int(float64(screenHeight) * screenScale)
 	c.screen, err = newImageWithScreenFramebuffer(w, h)
 	if err != nil {
 		return err
 	}
+	c.screen.impl.noSave = true
 	c.screen.Clear()
+
 	c.offscreen = offscreen
 	c.offscreen2 = offscreen2
 	c.screenScale = screenScale
@@ -148,12 +154,7 @@ func (c *graphicsContext) UpdateAndDraw() error {
 	if err := c.drawToDefaultRenderTarget(); err != nil {
 		return err
 	}
-	exceptions := map[*imageImpl]struct{}{
-		c.offscreen.impl:  {},
-		c.offscreen2.impl: {},
-		c.screen.impl:     {},
-	}
-	if err := theImages.savePixels(ui.GLContext(), exceptions); err != nil {
+	if err := theImages.savePixels(ui.GLContext()); err != nil {
 		return err
 	}
 	return nil
