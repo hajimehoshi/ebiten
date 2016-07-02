@@ -379,12 +379,12 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		height: height,
 		filter: filter,
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
 	eimg, err := theImages.add(image)
 	if err != nil {
 		return nil, err
 	}
+	imageM.Lock()
+	defer imageM.Unlock()
 	image.image, err = graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
 	if err != nil {
 		return nil, err
@@ -417,14 +417,14 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	for j := 0; j < h; j++ {
 		copy(pixels[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
 	img := &imageImpl{
 		width:  w,
 		height: h,
 		filter: filter,
 		pixels: pixels,
 	}
+	imageM.Lock()
+	defer imageM.Unlock()
 	var err error
 	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
 	if err != nil {
