@@ -53,6 +53,8 @@ func IsRunningSlowly() bool {
 // The given function f is guaranteed to be called 60 times a second
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
+//
+// The size unit is device-independent pixel.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
 	ch := make(chan error)
 	go func() {
@@ -68,6 +70,8 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 //
 // Typically, Ebiten users don't have to call this directly.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile module call this.
+//
+// The size unit is device-independent pixel.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	ch := make(chan error)
 	go func() {
@@ -82,6 +86,8 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 
 // SetScreenSize changes the (logical) size of the screen.
 // This doesn't affect the current scale of the screen.
+//
+// Unit is device-independent pixel.
 //
 // This function is concurrent-safe.
 func SetScreenSize(width, height int) {
