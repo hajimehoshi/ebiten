@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -79,8 +80,8 @@ func (c *runContext) updateFPS(fps float64) {
 
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64) error
-	UpdateAndDraw(updateCount int) error
-	Draw() error
+	UpdateAndDraw(context *opengl.Context, updateCount int) error
+	Draw(context *opengl.Context) error
 }
 
 func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) error {
@@ -155,11 +156,11 @@ func (c *runContext) render(g GraphicsContext) error {
 		tt = 1
 	}
 	if 1 <= tt {
-		if err := g.UpdateAndDraw(tt); err != nil {
+		if err := g.UpdateAndDraw(ui.GLContext(), tt); err != nil {
 			return err
 		}
 	} else {
-		if err := g.Draw(); err != nil {
+		if err := g.Draw(ui.GLContext()); err != nil {
 			return err
 		}
 	}

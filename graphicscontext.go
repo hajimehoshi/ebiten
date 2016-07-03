@@ -19,7 +19,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
@@ -131,8 +130,8 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 	return nil
 }
 
-func (c *graphicsContext) UpdateAndDraw(updateCount int) error {
-	if err := c.initializeIfNeeded(ui.GLContext()); err != nil {
+func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int) error {
+	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
@@ -150,20 +149,20 @@ func (c *graphicsContext) UpdateAndDraw(updateCount int) error {
 	if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
 		return err
 	}
-	if err := c.drawToDefaultRenderTarget(ui.GLContext()); err != nil {
+	if err := c.drawToDefaultRenderTarget(context); err != nil {
 		return err
 	}
-	if err := theImages.savePixels(ui.GLContext()); err != nil {
+	if err := theImages.savePixels(context); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *graphicsContext) Draw() error {
-	if err := c.initializeIfNeeded(ui.GLContext()); err != nil {
+func (c *graphicsContext) Draw(context *opengl.Context) error {
+	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
-	if err := c.drawToDefaultRenderTarget(ui.GLContext()); err != nil {
+	if err := c.drawToDefaultRenderTarget(context); err != nil {
 		return err
 	}
 	return nil
