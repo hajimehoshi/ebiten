@@ -295,6 +295,11 @@ func (c *Context) UseProgram(p Program) {
 	gl.UseProgram(mgl.Program(p))
 }
 
+func (c *Context) DeleteProgram(p Program) {
+	gl := c.gl
+	gl.DeleteProgram(mgl.Program(p))
+}
+
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
 	u := uniformLocation(gl.GetUniformLocation(mgl.Program(p), location))
@@ -390,6 +395,11 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl := c.gl
 	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
+}
+
+func (c *Context) DeleteBuffer(b Buffer) {
+	gl := c.gl
+	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {

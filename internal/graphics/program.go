@@ -21,6 +21,7 @@ import (
 )
 
 type openGLState struct {
+	arrayBuffer      opengl.Buffer
 	indexBufferQuads opengl.Buffer
 	programTexture   opengl.Program
 
@@ -32,8 +33,10 @@ type openGLState struct {
 	lastTexture                opengl.Texture
 }
 
-var theOpenGLState openGLState
 var (
+	theOpenGLState openGLState
+
+	zeroBuffer  opengl.Buffer
 	zeroProgram opengl.Program
 	zeroTexture opengl.Texture
 )
@@ -63,7 +66,15 @@ func (s *openGLState) initialize(context *opengl.Context) error {
 	s.lastColorMatrixTranslation = nil
 	s.lastTexture = zeroTexture
 
-	// TODO: Remove the old programs when resuming?
+	if s.arrayBuffer != zeroBuffer {
+		context.DeleteBuffer(s.arrayBuffer)
+	}
+	if s.indexBufferQuads != zeroBuffer {
+		context.DeleteBuffer(s.indexBufferQuads)
+	}
+	if s.programTexture != zeroProgram {
+		context.DeleteProgram(s.programTexture)
+	}
 
 	shaderVertexModelviewNative, err := context.NewShader(opengl.VertexShader, shader(context, shaderVertexModelview))
 	if err != nil {
@@ -85,10 +96,8 @@ func (s *openGLState) initialize(context *opengl.Context) error {
 		return err
 	}
 
-	// TODO: Remove the old buffers when resuming?
-
 	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
-	context.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)
+	s.arrayBuffer = context.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)
 
 	indices := make([]uint16, 6*MaxQuads)
 	for i := uint16(0); i < MaxQuads; i++ {
