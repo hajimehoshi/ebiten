@@ -65,13 +65,11 @@ func init() {
 
 type context struct {
 	funcs chan func()
+	init  bool
 }
 
 func NewContext() (*Context, error) {
-	c := &Context{
-		locationCache:     newLocationCache(),
-		lastCompositeMode: CompositeModeUnknown,
-	}
+	c := &Context{}
 	c.funcs = make(chan func())
 	return c, nil
 }
@@ -93,33 +91,20 @@ func (c *Context) RunOnContextThread(f func() error) error {
 	return err
 }
 
-func (c *Context) Init() error {
+func (c *Context) Reset() error {
 	if err := c.RunOnContextThread(func() error {
-		// This initialization must be done after Loop is called.
-		// This is why Init is separated from NewContext.
-
+		if c.init {
+			return nil
+		}
+		// Note that this initialization must be done after Loop is called.
 		if err := gl.Init(); err != nil {
 			return fmt.Errorf("opengl: initializing error %v", err)
 		}
-		// Textures' pixel formats are alpha premultiplied.
-		gl.Enable(gl.BLEND)
+		c.init = true
 		return nil
 	}); err != nil {
-		return err
-	}
-	c.BlendFunc(CompositeModeSourceOver)
-	if err := c.RunOnContextThread(func() error {
-		f := int32(0)
-		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
-		c.screenFramebuffer = Framebuffer(f)
 		return nil
-	}); err != nil {
-		return err
 	}
-	return nil
-}
-
-func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
