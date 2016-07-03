@@ -83,7 +83,7 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 
 func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 	if !c.initialized {
-		if err := graphics.Initialize(context); err != nil {
+		if err := graphics.Reset(context); err != nil {
 			return err
 		}
 		c.initialized = true
@@ -159,7 +159,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 }
 
 func (c *graphicsContext) restore(context *opengl.Context) error {
-	if err := graphics.Initialize(context); err != nil {
+	if err := graphics.Reset(context); err != nil {
 		return err
 	}
 	if err := theImages.restorePixels(context); err != nil {

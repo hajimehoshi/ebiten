@@ -127,7 +127,7 @@ func (c *Context) init() {
 	c.screenFramebuffer = Framebuffer{f}
 }
 
-func (c *Context) Resume() error {
+func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0

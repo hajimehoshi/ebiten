@@ -52,13 +52,12 @@ const (
 	float32Size = 4
 )
 
-func Initialize(context *opengl.Context) error {
-	return theOpenGLState.initialize(context)
+func Reset(context *opengl.Context) error {
+	return theOpenGLState.reset(context)
 }
 
-func (s *openGLState) initialize(context *opengl.Context) error {
-	// TODO: Rename
-	context.Resume()
+func (s *openGLState) reset(context *opengl.Context) error {
+	context.Reset()
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil

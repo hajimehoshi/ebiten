@@ -88,7 +88,7 @@ func NewContext() (*Context, error) {
 	return c, nil
 }
 
-func (c *Context) Resume() error {
+func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0

@@ -119,7 +119,7 @@ func (c *Context) Init() error {
 	return nil
 }
 
-func (c *Context) Resume() error {
+func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
