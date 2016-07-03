@@ -49,11 +49,13 @@ const (
 	float32Size = 4
 )
 
-func Initialize(c *opengl.Context) error {
-	return theOpenGLState.initialize(c)
+func Initialize(context *opengl.Context) error {
+	return theOpenGLState.initialize(context)
 }
 
-func (s *openGLState) initialize(c *opengl.Context) error {
+func (s *openGLState) initialize(context *opengl.Context) error {
+	// TODO: Rename
+	context.Resume()
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil
@@ -61,19 +63,19 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	s.lastColorMatrixTranslation = nil
 	s.lastTexture = zeroTexture
 
-	shaderVertexModelviewNative, err := c.NewShader(opengl.VertexShader, shader(c, shaderVertexModelview))
+	shaderVertexModelviewNative, err := context.NewShader(opengl.VertexShader, shader(context, shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer c.DeleteShader(shaderVertexModelviewNative)
+	defer context.DeleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentTextureNative, err := c.NewShader(opengl.FragmentShader, shader(c, shaderFragmentTexture))
+	shaderFragmentTextureNative, err := context.NewShader(opengl.FragmentShader, shader(context, shaderFragmentTexture))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer c.DeleteShader(shaderFragmentTextureNative)
+	defer context.DeleteShader(shaderFragmentTextureNative)
 
-	s.programTexture, err = c.NewProgram([]opengl.Shader{
+	s.programTexture, err = context.NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentTextureNative,
 	})
@@ -82,7 +84,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	}
 
 	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
-	c.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)
+	context.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)
 
 	indices := make([]uint16, 6*MaxQuads)
 	for i := uint16(0); i < MaxQuads; i++ {
@@ -93,7 +95,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	s.indexBufferQuads = c.NewBuffer(opengl.ElementArrayBuffer, indices, opengl.StaticDraw)
+	s.indexBufferQuads = context.NewBuffer(opengl.ElementArrayBuffer, indices, opengl.StaticDraw)
 
 	return nil
 }

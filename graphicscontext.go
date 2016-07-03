@@ -84,8 +84,6 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 }
 
 func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
-	// glViewport must be called at every frame on iOS
-	context.ResetViewportSize()
 	if !c.initialized {
 		if err := graphics.Initialize(context); err != nil {
 			return err
@@ -136,6 +134,8 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 }
 
 func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int) error {
+	// glViewport must be called at every frame on iOS
+	context.ResetViewportSize()
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
@@ -170,7 +170,6 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 func (c *graphicsContext) restore(context *opengl.Context) error {
 	imageM.Lock()
 	defer imageM.Unlock()
-	context.Resume()
 	if err := graphics.Initialize(context); err != nil {
 		return err
 	}
