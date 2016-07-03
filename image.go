@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 type images struct {
@@ -79,7 +78,7 @@ func (i *images) restorePixels(context *opengl.Context) error {
 		}
 	}
 	for img := range i.images {
-		if err := img.restorePixels(context); err != nil {
+		if err := img.restorePixels(); err != nil {
 			return err
 		}
 	}
@@ -210,7 +209,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	}
 	imageM.Lock()
 	defer imageM.Unlock()
-	image.image, err = graphics.NewImage(width, height, glFilter(ui.GLContext(), filter))
+	image.image, err = graphics.NewImage(width, height, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +250,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	imageM.Lock()
 	defer imageM.Unlock()
 	var err error
-	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(ui.GLContext(), filter))
+	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(filter))
 	if err != nil {
 		// TODO: texture should be removed here?
 		return nil, err

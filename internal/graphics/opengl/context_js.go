@@ -58,6 +58,27 @@ func (p Program) id() programID {
 	return programID(p.Get("__ebiten_programId").Int())
 }
 
+func init() {
+	c := js.Global.Get("WebGLRenderingContext")
+	Nearest = Filter(c.Get("NEAREST").Int())
+	Linear = Filter(c.Get("LINEAR").Int())
+	VertexShader = ShaderType(c.Get("VERTEX_SHADER").Int())
+	FragmentShader = ShaderType(c.Get("FRAGMENT_SHADER").Int())
+	ArrayBuffer = BufferType(c.Get("ARRAY_BUFFER").Int())
+	ElementArrayBuffer = BufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
+	DynamicDraw = BufferUsage(c.Get("DYNAMIC_DRAW").Int())
+	StaticDraw = BufferUsage(c.Get("STATIC_DRAW").Int())
+	Triangles = Mode(c.Get("TRIANGLES").Int())
+	Lines = Mode(c.Get("LINES").Int())
+
+	zero = operation(c.Get("ZERO").Int())
+	one = operation(c.Get("ONE").Int())
+	srcAlpha = operation(c.Get("SRC_ALPHA").Int())
+	dstAlpha = operation(c.Get("DST_ALPHA").Int())
+	oneMinusSrcAlpha = operation(c.Get("ONE_MINUS_SRC_ALPHA").Int())
+	oneMinusDstAlpha = operation(c.Get("ONE_MINUS_DST_ALPHA").Int())
+}
+
 type context struct {
 	gl            *webgl.Context
 	lastProgramID programID
@@ -89,24 +110,8 @@ func NewContext() (*Context, error) {
 	}
 
 	c := &Context{
-		Nearest:            Filter(gl.NEAREST),
-		Linear:             Filter(gl.LINEAR),
-		VertexShader:       ShaderType(gl.VERTEX_SHADER),
-		FragmentShader:     ShaderType(gl.FRAGMENT_SHADER),
-		ArrayBuffer:        BufferType(gl.ARRAY_BUFFER),
-		ElementArrayBuffer: BufferType(gl.ELEMENT_ARRAY_BUFFER),
-		DynamicDraw:        BufferUsage(gl.DYNAMIC_DRAW),
-		StaticDraw:         BufferUsage(gl.STATIC_DRAW),
-		Triangles:          Mode(gl.TRIANGLES),
-		Lines:              Mode(gl.LINES),
-		zero:               operation(gl.ZERO),
-		one:                operation(gl.ONE),
-		srcAlpha:           operation(gl.SRC_ALPHA),
-		dstAlpha:           operation(gl.DST_ALPHA),
-		oneMinusSrcAlpha:   operation(gl.ONE_MINUS_SRC_ALPHA),
-		oneMinusDstAlpha:   operation(gl.ONE_MINUS_DST_ALPHA),
-		locationCache:      newLocationCache(),
-		lastCompositeMode:  CompositeModeUnknown,
+		locationCache:     newLocationCache(),
+		lastCompositeMode: CompositeModeUnknown,
 	}
 	c.gl = gl
 	c.init()
@@ -141,7 +146,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 		return
 	}
 	c.lastCompositeMode = mode
-	s, d := c.operations(mode)
+	s, d := operations(mode)
 	gl := c.gl
 	gl.BlendFunc(int(s), int(d))
 }

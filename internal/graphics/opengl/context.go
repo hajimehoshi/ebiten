@@ -14,7 +14,7 @@
 
 package opengl
 
-type Context struct {
+var (
 	Nearest            Filter
 	Linear             Filter
 	VertexShader       ShaderType
@@ -25,12 +25,16 @@ type Context struct {
 	StaticDraw         BufferUsage
 	Triangles          Mode
 	Lines              Mode
-	zero               operation
-	one                operation
-	srcAlpha           operation
-	dstAlpha           operation
-	oneMinusSrcAlpha   operation
-	oneMinusDstAlpha   operation
+
+	zero             operation
+	one              operation
+	srcAlpha         operation
+	dstAlpha         operation
+	oneMinusSrcAlpha operation
+	oneMinusDstAlpha operation
+)
+
+type Context struct {
 	locationCache      *locationCache
 	screenFramebuffer  Framebuffer // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    Framebuffer

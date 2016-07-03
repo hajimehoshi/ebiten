@@ -133,7 +133,7 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 	return nil
 }
 
-func (i *imageImpl) restorePixels(context *opengl.Context) error {
+func (i *imageImpl) restorePixels() error {
 	if i.screen {
 		return nil
 	}
@@ -146,14 +146,14 @@ func (i *imageImpl) restorePixels(context *opengl.Context) error {
 			copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
 		}
 		var err error
-		i.image, err = graphics.NewImageFromImage(img, glFilter(context, i.filter))
+		i.image, err = graphics.NewImageFromImage(img, glFilter(i.filter))
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 	var err error
-	i.image, err = graphics.NewImage(i.width, i.height, glFilter(context, i.filter))
+	i.image, err = graphics.NewImage(i.width, i.height, glFilter(i.filter))
 	if err != nil {
 		return err
 	}

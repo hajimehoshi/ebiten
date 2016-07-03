@@ -61,13 +61,13 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	s.lastColorMatrixTranslation = nil
 	s.lastTexture = zeroTexture
 
-	shaderVertexModelviewNative, err := c.NewShader(c.VertexShader, shader(c, shaderVertexModelview))
+	shaderVertexModelviewNative, err := c.NewShader(opengl.VertexShader, shader(c, shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer c.DeleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentTextureNative, err := c.NewShader(c.FragmentShader, shader(c, shaderFragmentTexture))
+	shaderFragmentTextureNative, err := c.NewShader(opengl.FragmentShader, shader(c, shaderFragmentTexture))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
@@ -82,7 +82,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 	}
 
 	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
-	c.NewBuffer(c.ArrayBuffer, 4*stride*MaxQuads, c.DynamicDraw)
+	c.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)
 
 	indices := make([]uint16, 6*MaxQuads)
 	for i := uint16(0); i < MaxQuads; i++ {
@@ -93,7 +93,7 @@ func (s *openGLState) initialize(c *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	s.indexBufferQuads = c.NewBuffer(c.ElementArrayBuffer, indices, c.StaticDraw)
+	s.indexBufferQuads = c.NewBuffer(opengl.ElementArrayBuffer, indices, opengl.StaticDraw)
 
 	return nil
 }

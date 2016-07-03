@@ -40,6 +40,26 @@ func (p Program) id() programID {
 	return programID(p.Value)
 }
 
+func init() {
+	Nearest = mgl.NEAREST
+	Linear = mgl.LINEAR
+	VertexShader = mgl.VERTEX_SHADER
+	FragmentShader = mgl.FRAGMENT_SHADER
+	ArrayBuffer = mgl.ARRAY_BUFFER
+	ElementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
+	DynamicDraw = mgl.DYNAMIC_DRAW
+	StaticDraw = mgl.STATIC_DRAW
+	Triangles = mgl.TRIANGLES
+	Lines = mgl.LINES
+
+	zero = mgl.ZERO
+	one = mgl.ONE
+	srcAlpha = mgl.SRC_ALPHA
+	dstAlpha = mgl.DST_ALPHA
+	oneMinusSrcAlpha = mgl.ONE_MINUS_SRC_ALPHA
+	oneMinusDstAlpha = mgl.ONE_MINUS_DST_ALPHA
+}
+
 type context struct {
 	gl          mgl.Context
 	worker      mgl.Worker
@@ -48,24 +68,8 @@ type context struct {
 
 func NewContext() (*Context, error) {
 	c := &Context{
-		Nearest:            mgl.NEAREST,
-		Linear:             mgl.LINEAR,
-		VertexShader:       mgl.VERTEX_SHADER,
-		FragmentShader:     mgl.FRAGMENT_SHADER,
-		ArrayBuffer:        mgl.ARRAY_BUFFER,
-		ElementArrayBuffer: mgl.ELEMENT_ARRAY_BUFFER,
-		DynamicDraw:        mgl.DYNAMIC_DRAW,
-		StaticDraw:         mgl.STATIC_DRAW,
-		Triangles:          mgl.TRIANGLES,
-		Lines:              mgl.LINES,
-		zero:               mgl.ZERO,
-		one:                mgl.ONE,
-		srcAlpha:           mgl.SRC_ALPHA,
-		dstAlpha:           mgl.DST_ALPHA,
-		oneMinusSrcAlpha:   mgl.ONE_MINUS_SRC_ALPHA,
-		oneMinusDstAlpha:   mgl.ONE_MINUS_DST_ALPHA,
-		locationCache:      newLocationCache(),
-		lastCompositeMode:  CompositeModeUnknown,
+		locationCache:     newLocationCache(),
+		lastCompositeMode: CompositeModeUnknown,
 	}
 	c.gl, c.worker = mgl.NewContext()
 	c.initialized = make(chan struct{})
@@ -112,7 +116,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 		return
 	}
 	c.lastCompositeMode = mode
-	s, d := c.operations(mode)
+	s, d := operations(mode)
 	gl.BlendFunc(mgl.Enum(s), mgl.Enum(d))
 }
 

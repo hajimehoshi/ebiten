@@ -26,12 +26,12 @@ const (
 	FilterLinear                // linear filter
 )
 
-func glFilter(c *opengl.Context, filter Filter) opengl.Filter {
+func glFilter(filter Filter) opengl.Filter {
 	switch filter {
 	case FilterNearest:
-		return c.Nearest
+		return opengl.Nearest
 	case FilterLinear:
-		return c.Linear
+		return opengl.Linear
 	}
 	panic("not reach")
 }

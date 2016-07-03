@@ -40,34 +40,34 @@ const (
 	CompositeModeUnknown
 )
 
-func (c *Context) operations(mode CompositeMode) (src operation, dst operation) {
+func operations(mode CompositeMode) (src operation, dst operation) {
 	switch mode {
 	case CompositeModeSourceOver:
-		return c.one, c.oneMinusSrcAlpha
+		return one, oneMinusSrcAlpha
 	case CompositeModeClear:
-		return c.zero, c.zero
+		return zero, zero
 	case CompositeModeCopy:
-		return c.one, c.zero
+		return one, zero
 	case CompositeModeDestination:
-		return c.zero, c.one
+		return zero, one
 	case CompositeModeDestinationOver:
-		return c.oneMinusDstAlpha, c.one
+		return oneMinusDstAlpha, one
 	case CompositeModeSourceIn:
-		return c.dstAlpha, c.zero
+		return dstAlpha, zero
 	case CompositeModeDestinationIn:
-		return c.zero, c.srcAlpha
+		return zero, srcAlpha
 	case CompositeModeSourceOut:
-		return c.oneMinusDstAlpha, c.zero
+		return oneMinusDstAlpha, zero
 	case CompositeModeDestinationOut:
-		return c.zero, c.oneMinusSrcAlpha
+		return zero, oneMinusSrcAlpha
 	case CompositeModeSourceAtop:
-		return c.dstAlpha, c.oneMinusSrcAlpha
+		return dstAlpha, oneMinusSrcAlpha
 	case CompositeModeDestinationAtop:
-		return c.oneMinusDstAlpha, c.srcAlpha
+		return oneMinusDstAlpha, srcAlpha
 	case CompositeModeXor:
-		return c.oneMinusDstAlpha, c.oneMinusSrcAlpha
+		return oneMinusDstAlpha, oneMinusSrcAlpha
 	case CompositeModeLighter:
-		return c.one, c.one
+		return one, one
 	default:
 		panic("not reach")
 	}

@@ -43,30 +43,34 @@ func (p Program) id() programID {
 	return programID(p)
 }
 
+func init() {
+	Nearest = gl.NEAREST
+	Linear = gl.LINEAR
+	VertexShader = gl.VERTEX_SHADER
+	FragmentShader = gl.FRAGMENT_SHADER
+	ArrayBuffer = gl.ARRAY_BUFFER
+	ElementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
+	DynamicDraw = gl.DYNAMIC_DRAW
+	StaticDraw = gl.STATIC_DRAW
+	Triangles = gl.TRIANGLES
+	Lines = gl.LINES
+
+	zero = gl.ZERO
+	one = gl.ONE
+	srcAlpha = gl.SRC_ALPHA
+	dstAlpha = gl.DST_ALPHA
+	oneMinusSrcAlpha = gl.ONE_MINUS_SRC_ALPHA
+	oneMinusDstAlpha = gl.ONE_MINUS_DST_ALPHA
+}
+
 type context struct {
 	funcs chan func()
 }
 
 func NewContext() (*Context, error) {
 	c := &Context{
-		Nearest:            gl.NEAREST,
-		Linear:             gl.LINEAR,
-		VertexShader:       gl.VERTEX_SHADER,
-		FragmentShader:     gl.FRAGMENT_SHADER,
-		ArrayBuffer:        gl.ARRAY_BUFFER,
-		ElementArrayBuffer: gl.ELEMENT_ARRAY_BUFFER,
-		DynamicDraw:        gl.DYNAMIC_DRAW,
-		StaticDraw:         gl.STATIC_DRAW,
-		Triangles:          gl.TRIANGLES,
-		Lines:              gl.LINES,
-		zero:               gl.ZERO,
-		one:                gl.ONE,
-		srcAlpha:           gl.SRC_ALPHA,
-		dstAlpha:           gl.DST_ALPHA,
-		oneMinusSrcAlpha:   gl.ONE_MINUS_SRC_ALPHA,
-		oneMinusDstAlpha:   gl.ONE_MINUS_DST_ALPHA,
-		locationCache:      newLocationCache(),
-		lastCompositeMode:  CompositeModeUnknown,
+		locationCache:     newLocationCache(),
+		lastCompositeMode: CompositeModeUnknown,
 	}
 	c.funcs = make(chan func())
 	return c, nil
@@ -145,7 +149,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 			return nil
 		}
 		c.lastCompositeMode = mode
-		s, d := c.operations(mode)
+		s, d := operations(mode)
 		gl.BlendFunc(uint32(s), uint32(d))
 		return nil
 	})

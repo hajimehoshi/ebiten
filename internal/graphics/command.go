@@ -52,7 +52,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 		}
 	}
 	if 0 < len(vertices) {
-		context.BufferSubData(context.ArrayBuffer, vertices)
+		context.BufferSubData(opengl.ArrayBuffer, vertices)
 	}
 	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 	// Let's use them to compare to len(quads) in the future.
@@ -122,7 +122,7 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 	defer p.end()
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
-	context.DrawElements(context.Triangles, 6*n, theCommandQueue.indexOffsetInBytes)
+	context.DrawElements(opengl.Triangles, 6*n, theCommandQueue.indexOffsetInBytes)
 	theCommandQueue.indexOffsetInBytes += 6 * n * 2
 	return nil
 }
