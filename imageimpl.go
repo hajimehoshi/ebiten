@@ -43,7 +43,7 @@ type imageImpl struct {
 func (i *imageImpl) Fill(clr color.Color) error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.isDisposed() {
+	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
 	i.pixels = nil
@@ -78,7 +78,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.isDisposed() {
+	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
 	i.pixels = nil
@@ -97,7 +97,7 @@ func (i *imageImpl) At(x, y int) color.Color {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.isDisposed() {
+	if i.disposed {
 		return color.Transparent
 	}
 	if i.pixels == nil {
@@ -113,6 +113,8 @@ func (i *imageImpl) At(x, y int) color.Color {
 }
 
 func (i *imageImpl) savePixels(context *opengl.Context) error {
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.noSave {
 		return nil
 	}
@@ -131,6 +133,8 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 }
 
 func (i *imageImpl) restorePixels() error {
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.screen {
 		return nil
 	}
@@ -160,7 +164,7 @@ func (i *imageImpl) restorePixels() error {
 func (i *imageImpl) Dispose() error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.isDisposed() {
+	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
 	if err := i.image.Dispose(); err != nil {
@@ -173,10 +177,6 @@ func (i *imageImpl) Dispose() error {
 	return nil
 }
 
-func (i *imageImpl) isDisposed() bool {
-	return i.disposed
-}
-
 func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
@@ -187,12 +187,20 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 		i.pixels = make([]uint8, len(p))
 	}
 	copy(i.pixels, p)
-	if i.isDisposed() {
+	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
 	return i.image.ReplacePixels(p)
 }
 
+func (i *imageImpl) isDisposed() bool {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.disposed
+}
+
 func (i *imageImpl) isInvalidated(context *opengl.Context) bool {
+	i.m.Lock()
+	defer i.m.Unlock()
 	return i.image.IsInvalidated(context)
 }
