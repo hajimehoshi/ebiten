@@ -61,30 +61,13 @@ func init() {
 }
 
 type context struct {
-	gl          mgl.Context
-	worker      mgl.Worker
-	initialized chan struct{}
+	gl     mgl.Context
+	worker mgl.Worker
 }
 
 func NewContext() (*Context, error) {
-	c := &Context{
-		locationCache:     newLocationCache(),
-		lastCompositeMode: CompositeModeUnknown,
-	}
+	c := &Context{}
 	c.gl, c.worker = mgl.NewContext()
-	c.initialized = make(chan struct{})
-	go func() {
-		// GL calls will just enqueue an task to the worker.
-		// Since the worker is not available, this enqueuing should be done
-		// in a goroutine.
-
-		// Textures' pixel formats are alpha premultiplied.
-		c.gl.Enable(mgl.BLEND)
-		c.BlendFunc(CompositeModeSourceOver)
-		f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
-		c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
-		close(c.initialized)
-	}()
 	return c, nil
 }
 
@@ -100,10 +83,6 @@ func (c *Context) Reset() error {
 	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
-}
-
-func (c *Context) InitializedCh() <-chan struct{} {
-	return c.initialized
 }
 
 func (c *Context) Worker() mgl.Worker {

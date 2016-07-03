@@ -40,13 +40,6 @@ func Render(chError <-chan error) error {
 		return errors.New("ui: chError must not be nil")
 	}
 	// TODO: Check this is called on the rendering thread
-	if chGLInitialized != nil {
-		if err := doGLWorks(chError, glContext.InitializedCh()); err != nil {
-			return err
-		}
-		close(chGLInitialized)
-		<-chGLInitializedEnd
-	}
 	select {
 	case chRender <- struct{}{}:
 		return doGLWorks(chError, chRenderEnd)
@@ -85,11 +78,9 @@ type userInterface struct {
 }
 
 var (
-	chRender           = make(chan struct{})
-	chRenderEnd        = make(chan struct{})
-	chGLInitialized    = make(chan struct{})
-	chGLInitializedEnd = make(chan struct{})
-	currentUI          = &userInterface{
+	chRender    = make(chan struct{})
+	chRenderEnd = make(chan struct{})
+	currentUI   = &userInterface{
 		sizeChanged: true,
 	}
 )
@@ -111,12 +102,6 @@ func (u *userInterface) Terminate() error {
 }
 
 func (u *userInterface) Update() (interface{}, error) {
-	// TODO: Need lock?
-	if chGLInitialized != nil {
-		<-chGLInitialized
-		chGLInitialized = nil
-		close(chGLInitializedEnd)
-	}
 	if u.sizeChanged {
 		u.sizeChanged = false
 		e := ScreenSizeEvent{
