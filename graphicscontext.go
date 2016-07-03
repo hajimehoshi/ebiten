@@ -71,7 +71,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	c.offscreen = offscreen
 	c.offscreen2 = offscreen2
 	c.screenScale = screenScale
-	ui.GLContext().ResetViewportSize()
 	return nil
 }
 
