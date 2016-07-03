@@ -79,27 +79,27 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 	imageM.Lock()
 	defer imageM.Unlock()
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphics.FlushCommands(ui.GLContext()); err != nil {
+	if err := graphics.FlushCommands(context); err != nil {
 		return false, err
 	}
 	return c.offscreen.impl.isInvalidated(context), nil
 }
 
-func (c *graphicsContext) initializeIfNeeded() error {
+func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 	// glViewport must be called at every frame on iOS
-	ui.GLContext().ResetViewportSize()
+	context.ResetViewportSize()
 	if !c.initialized {
-		if err := graphics.Initialize(ui.GLContext()); err != nil {
+		if err := graphics.Initialize(context); err != nil {
 			return err
 		}
 		c.initialized = true
 	}
-	r, err := c.needsRestoring(ui.GLContext())
+	r, err := c.needsRestoring(context)
 	if err != nil {
 		return err
 	}
 	if r {
-		if err := c.restore(); err != nil {
+		if err := c.restore(context); err != nil {
 			return err
 		}
 	}
@@ -119,21 +119,21 @@ func drawWithFittingScale(dst *Image, src *Image) error {
 	return nil
 }
 
-func (c *graphicsContext) drawToDefaultRenderTarget() error {
+func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) error {
 	if err := c.screen.Clear(); err != nil {
 		return err
 	}
 	if err := drawWithFittingScale(c.screen, c.offscreen2); err != nil {
 		return err
 	}
-	if err := c.flush(); err != nil {
+	if err := c.flush(context); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (c *graphicsContext) UpdateAndDraw() error {
-	if err := c.initializeIfNeeded(); err != nil {
+	if err := c.initializeIfNeeded(ui.GLContext()); err != nil {
 		return err
 	}
 	if err := c.offscreen.Clear(); err != nil {
@@ -151,7 +151,7 @@ func (c *graphicsContext) UpdateAndDraw() error {
 	if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
 		return err
 	}
-	if err := c.drawToDefaultRenderTarget(); err != nil {
+	if err := c.drawToDefaultRenderTarget(ui.GLContext()); err != nil {
 		return err
 	}
 	if err := theImages.savePixels(ui.GLContext()); err != nil {
@@ -161,35 +161,35 @@ func (c *graphicsContext) UpdateAndDraw() error {
 }
 
 func (c *graphicsContext) Draw() error {
-	if err := c.initializeIfNeeded(); err != nil {
+	if err := c.initializeIfNeeded(ui.GLContext()); err != nil {
 		return err
 	}
-	if err := c.drawToDefaultRenderTarget(); err != nil {
+	if err := c.drawToDefaultRenderTarget(ui.GLContext()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *graphicsContext) flush() error {
+func (c *graphicsContext) flush(context *opengl.Context) error {
 	// TODO: imageM is necessary to call graphics functions. Move this to graphics package.
 	imageM.Lock()
 	defer imageM.Unlock()
-	if err := graphics.FlushCommands(ui.GLContext()); err != nil {
+	if err := graphics.FlushCommands(context); err != nil {
 		return err
 	}
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-	ui.GLContext().Flush()
+	context.Flush()
 	return nil
 }
 
-func (c *graphicsContext) restore() error {
+func (c *graphicsContext) restore(context *opengl.Context) error {
 	imageM.Lock()
 	defer imageM.Unlock()
-	ui.GLContext().Resume()
-	if err := graphics.Initialize(ui.GLContext()); err != nil {
+	context.Resume()
+	if err := graphics.Initialize(context); err != nil {
 		return err
 	}
-	if err := theImages.restorePixels(ui.GLContext()); err != nil {
+	if err := theImages.restorePixels(context); err != nil {
 		return err
 	}
 	return nil
