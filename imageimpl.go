@@ -28,10 +28,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-var (
-	imageM sync.Mutex
-)
-
 type imageImpl struct {
 	image    *graphics.Image
 	screen   bool
@@ -99,8 +95,8 @@ func (i *imageImpl) At(x, y int) color.Color {
 	if !loop.IsRunning() {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.isDisposed() {
 		return color.Transparent
 	}

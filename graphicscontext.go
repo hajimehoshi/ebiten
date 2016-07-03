@@ -74,8 +74,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 }
 
 func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) {
-	imageM.Lock()
-	defer imageM.Unlock()
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	if err := graphics.FlushCommands(context); err != nil {
 		return false, err
@@ -122,9 +120,6 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 	if err := drawWithFittingScale(c.screen, c.offscreen2); err != nil {
 		return err
 	}
-	// TODO: imageM is necessary to call graphics functions. Move this to graphics package.
-	imageM.Lock()
-	defer imageM.Unlock()
 	if err := graphics.FlushCommands(context); err != nil {
 		return err
 	}
@@ -164,8 +159,6 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 }
 
 func (c *graphicsContext) restore(context *opengl.Context) error {
-	imageM.Lock()
-	defer imageM.Unlock()
 	if err := graphics.Initialize(context); err != nil {
 		return err
 	}
