@@ -132,18 +132,18 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 	return nil
 }
 
-func (c *graphicsContext) UpdateAndDraw() error {
+func (c *graphicsContext) UpdateAndDraw(updateCount int) error {
 	if err := c.initializeIfNeeded(ui.GLContext()); err != nil {
 		return err
 	}
-	if err := c.offscreen.Clear(); err != nil {
-		return err
-	}
-	if err := c.f(c.offscreen); err != nil {
-		return err
-	}
-	if IsRunningSlowly() {
-		return nil
+	for i := 0; i < updateCount; i++ {
+		if err := c.offscreen.Clear(); err != nil {
+			return err
+		}
+		setRunningSlowly(i < updateCount-1)
+		if err := c.f(c.offscreen); err != nil {
+			return err
+		}
 	}
 	if err := c.offscreen2.Clear(); err != nil {
 		return err

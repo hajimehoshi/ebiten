@@ -30,10 +30,6 @@ func IsRunning() bool {
 	return currentRunContext.isRunning()
 }
 
-func IsRunningSlowly() bool {
-	return currentRunContext.isRunningSlowly()
-}
-
 type runContext struct {
 	running        bool
 	fps            int
@@ -81,25 +77,9 @@ func (c *runContext) updateFPS(fps float64) {
 	c.currentFPS = fps
 }
 
-func (c *runContext) isRunningSlowly() bool {
-	c.m.RLock()
-	defer c.m.RUnlock()
-	if !c.running {
-		// TODO: Should panic here?
-		return false
-	}
-	return c.runningSlowly
-}
-
-func (c *runContext) setRunningSlowly(isRunningSlowly bool) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.runningSlowly = isRunningSlowly
-}
-
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64) error
-	UpdateAndDraw() error
+	UpdateAndDraw(updateCount int) error
 	Draw() error
 }
 
@@ -161,7 +141,6 @@ func (c *runContext) render(g GraphicsContext) error {
 
 	// If lastUpdated is too old, we assume that screen is not shown.
 	if 5*int64(time.Second)/int64(fps) < n-c.lastUpdated {
-		c.setRunningSlowly(false)
 		c.lastUpdated = n
 		return nil
 	}
@@ -176,12 +155,8 @@ func (c *runContext) render(g GraphicsContext) error {
 		tt = 1
 	}
 	if 1 <= tt {
-		for i := 0; i < tt; i++ {
-			slow := i < tt-1
-			c.setRunningSlowly(slow)
-			if err := g.UpdateAndDraw(); err != nil {
-				return err
-			}
+		if err := g.UpdateAndDraw(tt); err != nil {
+			return err
 		}
 	} else {
 		if err := g.Draw(); err != nil {

@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"sync/atomic"
+
 	"github.com/hajimehoshi/ebiten/internal/loop"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -34,13 +36,25 @@ func CurrentFPS() float64 {
 	return loop.CurrentFPS()
 }
 
+var (
+	isRunningSlowly = int32(0)
+)
+
+func setRunningSlowly(slow bool) {
+	v := int32(0)
+	if slow {
+		v = 1
+	}
+	atomic.StoreInt32(&isRunningSlowly, v)
+}
+
 // IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS of rendering.
 // The game screen is not updated when IsRunningSlowly is true.
 // It is recommended to skip heavy processing, especially drawing, when IsRunningSlowly is true.
 //
 // This function is concurrent-safe.
 func IsRunningSlowly() bool {
-	return loop.IsRunningSlowly()
+	return atomic.LoadInt32(&isRunningSlowly) != 0
 }
 
 // Run runs the game.
