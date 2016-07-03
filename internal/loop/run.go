@@ -81,7 +81,6 @@ func (c *runContext) updateFPS(fps float64) {
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64) error
 	UpdateAndDraw(context *opengl.Context, updateCount int) error
-	Draw(context *opengl.Context) error
 }
 
 func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) error {
@@ -155,14 +154,8 @@ func (c *runContext) render(g GraphicsContext) error {
 	if tt == 0 && (int64(time.Second)/int64(fps)-int64(5*time.Millisecond)) < t {
 		tt = 1
 	}
-	if 1 <= tt {
-		if err := g.UpdateAndDraw(ui.GLContext(), tt); err != nil {
-			return err
-		}
-	} else {
-		if err := g.Draw(ui.GLContext()); err != nil {
-			return err
-		}
+	if err := g.UpdateAndDraw(ui.GLContext(), tt); err != nil {
+		return err
 	}
 	if err := ui.CurrentUI().SwapBuffers(); err != nil {
 		return err

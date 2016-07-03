@@ -124,9 +124,14 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 	if err := drawWithFittingScale(c.screen, c.offscreen2); err != nil {
 		return err
 	}
-	if err := c.flush(context); err != nil {
+	// TODO: imageM is necessary to call graphics functions. Move this to graphics package.
+	imageM.Lock()
+	defer imageM.Unlock()
+	if err := graphics.FlushCommands(context); err != nil {
 		return err
 	}
+	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
+	context.Flush()
 	return nil
 }
 
@@ -143,40 +148,22 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 			return err
 		}
 	}
-	if err := c.offscreen2.Clear(); err != nil {
-		return err
-	}
-	if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
-		return err
-	}
-	if err := c.drawToDefaultRenderTarget(context); err != nil {
-		return err
-	}
-	if err := theImages.savePixels(context); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *graphicsContext) Draw(context *opengl.Context) error {
-	if err := c.initializeIfNeeded(context); err != nil {
-		return err
+	if 0 < updateCount {
+		if err := c.offscreen2.Clear(); err != nil {
+			return err
+		}
+		if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
+			return err
+		}
 	}
 	if err := c.drawToDefaultRenderTarget(context); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (c *graphicsContext) flush(context *opengl.Context) error {
-	// TODO: imageM is necessary to call graphics functions. Move this to graphics package.
-	imageM.Lock()
-	defer imageM.Unlock()
-	if err := graphics.FlushCommands(context); err != nil {
-		return err
+	if 0 < updateCount {
+		if err := theImages.savePixels(context); err != nil {
+			return err
+		}
 	}
-	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-	context.Flush()
 	return nil
 }
 
