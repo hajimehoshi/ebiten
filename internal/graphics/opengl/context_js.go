@@ -108,23 +108,9 @@ func NewContext() (*Context, error) {
 		webglContext := js.Global.Call("require", "gl").Invoke(16, 16, options)
 		gl = &webgl.Context{Object: webglContext}
 	}
-
-	c := &Context{
-		locationCache:     newLocationCache(),
-		lastCompositeMode: CompositeModeUnknown,
-	}
+	c := &Context{}
 	c.gl = gl
-	c.init()
 	return c, nil
-}
-
-func (c *Context) init() {
-	gl := c.gl
-	// Textures' pixel formats are alpha premultiplied.
-	gl.Enable(gl.BLEND)
-	c.BlendFunc(CompositeModeSourceOver)
-	f := gl.GetParameter(gl.FRAMEBUFFER_BINDING)
-	c.screenFramebuffer = Framebuffer{f}
 }
 
 func (c *Context) Reset() error {
