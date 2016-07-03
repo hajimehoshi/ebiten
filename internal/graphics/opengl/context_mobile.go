@@ -71,6 +71,26 @@ func NewContext() (*Context, error) {
 	return c, nil
 }
 
+func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {
+	// TODO: Check this is called on the rendering thread
+loop:
+	for {
+		select {
+		case err := <-chError:
+			return err
+		case <-c.worker.WorkAvailable():
+			c.worker.DoWork()
+		default:
+			select {
+			case <-chDone:
+				break loop
+			default:
+			}
+		}
+	}
+	return nil
+}
+
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
 	c.lastFramebuffer = invalidFramebuffer
@@ -83,10 +103,6 @@ func (c *Context) Reset() error {
 	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
-}
-
-func (c *Context) Worker() mgl.Worker {
-	return c.worker
 }
 
 func (c *Context) BlendFunc(mode CompositeMode) {

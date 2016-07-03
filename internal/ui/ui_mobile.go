@@ -42,32 +42,11 @@ func Render(chError <-chan error) error {
 	// TODO: Check this is called on the rendering thread
 	select {
 	case chRender <- struct{}{}:
-		return doGLWorks(chError, chRenderEnd)
+		return glContext.DoWork(chError, chRenderEnd)
 	case <-time.After(500 * time.Millisecond):
 		// This function must not be blocked. We need to break for timeout.
 		return nil
 	}
-}
-
-func doGLWorks(chError <-chan error, chDone <-chan struct{}) error {
-	// TODO: Check this is called on the rendering thread
-	worker := glContext.Worker()
-loop:
-	for {
-		select {
-		case err := <-chError:
-			return err
-		case <-worker.WorkAvailable():
-			worker.DoWork()
-		default:
-			select {
-			case <-chDone:
-				break loop
-			default:
-			}
-		}
-	}
-	return nil
 }
 
 type userInterface struct {
