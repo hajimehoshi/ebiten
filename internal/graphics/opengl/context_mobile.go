@@ -75,7 +75,7 @@ func NewContext() (*Context, error) {
 	c.initialized = make(chan struct{})
 	go func() {
 		// GL calls will just enqueue an task to the worker.
-		// Since the worker is not avaialbe, this enqueuing should be done
+		// Since the worker is not available, this enqueuing should be done
 		// in a goroutine.
 
 		// Textures' pixel formats are alpha premultiplied.
