@@ -43,6 +43,8 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 func (q *commandQueue) Flush(context *opengl.Context) error {
+	// glViewport must be called at least at every frame on iOS.
+	context.ResetViewportSize()
 	q.indexOffsetInBytes = 0
 	vertices := []int16{}
 	for _, c := range q.commands {
@@ -59,12 +61,17 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	if MaxQuads < len(vertices)/16 {
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", MaxQuads))
 	}
+	numc := len(q.commands)
 	for _, c := range q.commands {
 		if err := c.Exec(context); err != nil {
 			return err
 		}
 	}
 	q.commands = []command{}
+	if 0 < numc {
+		// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
+		context.Flush()
+	}
 	return nil
 }
 

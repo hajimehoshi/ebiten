@@ -128,14 +128,10 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 	if err := graphics.FlushCommands(context); err != nil {
 		return err
 	}
-	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-	context.Flush()
 	return nil
 }
 
 func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int) error {
-	// glViewport must be called at every frame on iOS
-	context.ResetViewportSize()
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
