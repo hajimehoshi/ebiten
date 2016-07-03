@@ -21,6 +21,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
@@ -32,6 +33,7 @@ type command interface {
 type commandQueue struct {
 	commands           []command
 	indexOffsetInBytes int
+	m                  sync.Mutex
 }
 
 var theCommandQueue = &commandQueue{
@@ -39,10 +41,14 @@ var theCommandQueue = &commandQueue{
 }
 
 func (q *commandQueue) Enqueue(command command) {
+	q.m.Lock()
+	defer q.m.Unlock()
 	q.commands = append(q.commands, command)
 }
 
 func (q *commandQueue) Flush(context *opengl.Context) error {
+	q.m.Lock()
+	defer q.m.Unlock()
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
 	q.indexOffsetInBytes = 0

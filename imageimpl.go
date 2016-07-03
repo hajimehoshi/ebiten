@@ -41,11 +41,12 @@ type imageImpl struct {
 	filter   Filter
 	pixels   []uint8
 	noSave   bool
+	m        sync.Mutex
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
-	imageM.Lock()
-	defer imageM.Unlock()
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.isDisposed() {
 		return errors.New("ebiten: image is already disposed")
 	}
@@ -79,8 +80,8 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	if i == image.impl {
 		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.isDisposed() {
 		return errors.New("ebiten: image is already disposed")
 	}
@@ -161,8 +162,8 @@ func (i *imageImpl) restorePixels() error {
 }
 
 func (i *imageImpl) Dispose() error {
-	imageM.Lock()
-	defer imageM.Unlock()
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.isDisposed() {
 		return errors.New("ebiten: image is already disposed")
 	}
@@ -184,8 +185,8 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if l := 4 * i.width * i.height; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
+	i.m.Lock()
+	defer i.m.Unlock()
 	if i.pixels == nil {
 		i.pixels = make([]uint8, len(p))
 	}

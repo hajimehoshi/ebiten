@@ -63,6 +63,8 @@ func (s *openGLState) initialize(context *opengl.Context) error {
 	s.lastColorMatrixTranslation = nil
 	s.lastTexture = zeroTexture
 
+	// TODO: Remove the old programs when resuming?
+
 	shaderVertexModelviewNative, err := context.NewShader(opengl.VertexShader, shader(context, shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
@@ -82,6 +84,8 @@ func (s *openGLState) initialize(context *opengl.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO: Remove the old buffers when resuming?
 
 	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
 	context.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)

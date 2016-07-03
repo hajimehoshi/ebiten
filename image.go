@@ -207,8 +207,6 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
 	image.image, err = graphics.NewImage(width, height, glFilter(filter))
 	if err != nil {
 		return nil, err
@@ -247,8 +245,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		filter: filter,
 		pixels: pixels,
 	}
-	imageM.Lock()
-	defer imageM.Unlock()
 	var err error
 	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(filter))
 	if err != nil {
@@ -264,8 +260,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 }
 
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
-	imageM.Lock()
-	defer imageM.Unlock()
 	i, err := graphics.NewScreenFramebufferImage(width, height)
 	if err != nil {
 		return nil, err
