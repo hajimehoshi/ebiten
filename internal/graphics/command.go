@@ -158,7 +158,7 @@ func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
 		return err
 	}
 	context.BindTexture(c.dst.texture.native)
-	context.TexSubImage2D(c.pixels, c.dst.texture.width, c.dst.texture.height)
+	context.TexSubImage2D(c.pixels, c.dst.width, c.dst.height)
 	return nil
 }
 
@@ -220,8 +220,6 @@ func (c *newImageFromImageCommand) Exec(context *opengl.Context) error {
 	}
 	c.result.texture = &texture{
 		native: native,
-		width:  origSize.X,
-		height: origSize.Y,
 	}
 	c.result.framebuffer, err = newFramebufferFromTexture(context, c.result.texture)
 	if err != nil {
@@ -252,8 +250,6 @@ func (c *newImageCommand) Exec(context *opengl.Context) error {
 	}
 	c.result.texture = &texture{
 		native: native,
-		width:  c.width,
-		height: c.height,
 	}
 	c.result.framebuffer, err = newFramebufferFromTexture(context, c.result.texture)
 	if err != nil {

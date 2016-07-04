@@ -20,6 +20,4 @@ import (
 
 type texture struct {
 	native opengl.Texture
-	width  int
-	height int
 }
