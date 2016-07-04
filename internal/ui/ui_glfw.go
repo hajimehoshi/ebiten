@@ -29,15 +29,13 @@ import (
 )
 
 type userInterface struct {
-	window           *glfw.Window
-	width            int
-	height           int
-	scale            float64
-	deviceScale      float64
-	framebufferScale float64
-	context          *opengl.Context
-	funcs            chan func()
-	sizeChanged      bool
+	window      *glfw.Window
+	width       int
+	height      int
+	scale       float64
+	context     *opengl.Context
+	funcs       chan func()
+	sizeChanged bool
 }
 
 var currentUI *userInterface
@@ -143,8 +141,6 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	u.runOnMainThread(func() {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		u.deviceScale = deviceScale()
-		u.framebufferScale = 1
 		if !u.setScreenSize(width, height, scale) {
 			err = errors.New("ui: Fail to set the screen size")
 			return
@@ -152,24 +148,25 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		x := (v.Width - int(float64(width)*u.windowScale())) / 2
-		y := (v.Height - int(float64(height)*u.windowScale())) / 3
+		w, h := u.glfwSize()
+		x := (v.Width - w) / 2
+		y := (v.Height - h) / 3
 		u.window.SetPos(x, y)
 	})
 	return err
 }
 
-func (u *userInterface) windowScale() float64 {
-	return u.scale * u.deviceScale
+func (u *userInterface) glfwSize() (int, int) {
+	return int(float64(u.width) * u.scale * glfwScale()), int(float64(u.height) * u.scale * glfwScale())
 }
 
 func (u *userInterface) actualScreenScale() float64 {
-	return u.windowScale() * u.framebufferScale
+	return u.scale * deviceScale()
 }
 
 func (u *userInterface) pollEvents() error {
 	glfw.PollEvents()
-	return currentInput.update(u.window, u.windowScale())
+	return currentInput.update(u.window, u.scale*glfwScale())
 }
 
 func (u *userInterface) Update() (interface{}, error) {
@@ -261,7 +258,6 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 		return false
 	}
 
-	// u.scale should be set first since this affects windowScale().
 	origScale := u.scale
 	u.scale = scale
 
@@ -286,7 +282,8 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 		window.SetFramebufferSizeCallback(nil)
 		close(ch)
 	})
-	window.SetSize(int(float64(width)*u.windowScale()), int(float64(height)*u.windowScale()))
+	w, h := u.glfwSize()
+	window.SetSize(w, h)
 
 event:
 	for {
@@ -297,9 +294,6 @@ event:
 		default:
 		}
 	}
-	// This is usually 1, but sometimes more than 1 (e.g. Retina Mac)
-	fw, _ := window.GetFramebufferSize()
-	u.framebufferScale = float64(fw) / float64(width) / u.windowScale()
 	u.sizeChanged = true
 	return true
 }

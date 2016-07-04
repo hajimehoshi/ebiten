@@ -21,3 +21,7 @@ func deviceScale() float64 {
 	// TODO: Implement this
 	return 1
 }
+
+func glfwScale() float64 {
+	return deviceScale()
+}

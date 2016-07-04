@@ -30,3 +30,7 @@ func deviceScale() float64 {
 	dpi := int(C.getDPI())
 	return float64(dpi) / 96
 }
+
+func glfwScale() float64 {
+	return deviceScale()
+}
