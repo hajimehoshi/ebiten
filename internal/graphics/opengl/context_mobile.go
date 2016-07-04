@@ -179,10 +179,6 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) BindScreenFramebuffer() error {
-	return c.bindFramebuffer(c.screenFramebuffer)
-}
-
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
