@@ -203,16 +203,17 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		height: height,
 		filter: filter,
 	}
-	eimg, err := theImages.add(image)
-	if err != nil {
-		return nil, err
-	}
+	var err error
 	image.image, err = graphics.NewImage(width, height, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
 	runtime.SetFinalizer(image, (*imageImpl).Dispose)
 	if err := image.image.Fill(color.Transparent); err != nil {
+		return nil, err
+	}
+	eimg, err := theImages.add(image)
+	if err != nil {
 		return nil, err
 	}
 	return eimg, nil
@@ -270,10 +271,10 @@ func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 		height: height,
 		screen: true,
 	}
+	runtime.SetFinalizer(img, (*imageImpl).Dispose)
 	eimg, err := theImages.add(img)
 	if err != nil {
 		return nil, err
 	}
-	runtime.SetFinalizer(img, (*imageImpl).Dispose)
 	return eimg, nil
 }
