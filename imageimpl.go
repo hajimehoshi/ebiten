@@ -41,16 +41,17 @@ type imageImpl struct {
 	m        sync.Mutex
 }
 
-func newImageImpl(width, height int, filter Filter) (*imageImpl, error) {
+func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
 	img, err := graphics.NewImage(width, height, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
 	i := &imageImpl{
-		image:  img,
-		width:  width,
-		height: height,
-		filter: filter,
+		image:    img,
+		width:    width,
+		height:   height,
+		filter:   filter,
+		volatile: volatile,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil

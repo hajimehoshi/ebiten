@@ -194,7 +194,34 @@ type DrawImageOptions struct {
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	img, err := newImageImpl(width, height, filter)
+	img, err := newImageImpl(width, height, filter, false)
+	if err != nil {
+		return nil, err
+	}
+	if err := img.Fill(color.Transparent); err != nil {
+		return nil, err
+	}
+	eimg, err := theImagesForRestoring.add(img)
+	if err != nil {
+		return nil, err
+	}
+	return eimg, nil
+}
+
+// NewVolatileImage returns an empty 'volatile' image.
+// A volatile image is an image that pixels might be lost at the next frame.
+//
+// This is suitable for offscreen images that pixels are changed every frame.
+//
+// Pixels in regular non-volatile images are saved at each end of a frame if necessary
+// and restored automatically on GL context lost.
+// On the other hand, pixels in volatile images are not saved and can be lost
+// on GL context lost.
+// Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
+//
+// This function is concurrent-safe.
+func NewVolatileImage(width, height int, filter Filter) (*Image, error) {
+	img, err := newImageImpl(width, height, filter, true)
 	if err != nil {
 		return nil, err
 	}

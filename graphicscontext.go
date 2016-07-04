@@ -43,20 +43,18 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if c.offscreen != nil {
 		c.offscreen.Dispose()
 	}
-	offscreen, err := NewImage(screenWidth, screenHeight, FilterNearest)
+	offscreen, err := NewVolatileImage(screenWidth, screenHeight, FilterNearest)
 	if err != nil {
 		return err
 	}
-	offscreen.impl.volatile = true
 
 	intScreenScale := int(math.Ceil(screenScale))
 	w := screenWidth * intScreenScale
 	h := screenHeight * intScreenScale
-	offscreen2, err := NewImage(w, h, FilterLinear)
+	offscreen2, err := NewVolatileImage(w, h, FilterLinear)
 	if err != nil {
 		return err
 	}
-	offscreen2.impl.volatile = true
 
 	w = int(float64(screenWidth) * screenScale)
 	h = int(float64(screenHeight) * screenScale)
