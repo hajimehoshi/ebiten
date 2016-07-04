@@ -41,12 +41,15 @@ type imageImpl struct {
 	m        sync.Mutex
 }
 
-func newImageImpl(image *graphics.Image, filter Filter) (*imageImpl, error) {
-	w, h := image.Size()
+func newImageImpl(width, height int, filter Filter) (*imageImpl, error) {
+	img, err := graphics.NewImage(width, height, glFilter(filter))
+	if err != nil {
+		return nil, err
+	}
 	i := &imageImpl{
-		image:  image,
-		width:  w,
-		height: h,
+		image:  img,
+		width:  width,
+		height: height,
 		filter: filter,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
@@ -86,16 +89,18 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 }
 
 func newScreenImageImpl(width, height int) (*imageImpl, error) {
-	i, err := graphics.NewScreenFramebufferImage(width, height)
+	img, err := graphics.NewScreenFramebufferImage(width, height)
 	if err != nil {
 		return nil, err
 	}
-	img, err := newImageImpl(i, FilterNearest)
-	if err != nil {
-		return nil, err
+	i := &imageImpl{
+		image:  img,
+		width:  width,
+		height: height,
+		screen: true,
 	}
-	img.screen = true
-	return img, nil
+	runtime.SetFinalizer(i, (*imageImpl).Dispose)
+	return i, nil
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {

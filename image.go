@@ -20,7 +20,6 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -195,11 +194,7 @@ type DrawImageOptions struct {
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	i, err := graphics.NewImage(width, height, glFilter(filter))
-	if err != nil {
-		return nil, err
-	}
-	img, err := newImageImpl(i, filter)
+	img, err := newImageImpl(width, height, filter)
 	if err != nil {
 		return nil, err
 	}
