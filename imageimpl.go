@@ -40,6 +40,18 @@ type imageImpl struct {
 	m        sync.Mutex
 }
 
+func newImageImpl(image *graphics.Image, filter Filter) (*imageImpl, error) {
+	w, h := image.Size()
+	i := &imageImpl{
+		image:  image,
+		width:  w,
+		height: h,
+		filter: filter,
+	}
+	runtime.SetFinalizer(i, (*imageImpl).Dispose)
+	return i, nil
+}
+
 func (i *imageImpl) Fill(clr color.Color) error {
 	i.m.Lock()
 	defer i.m.Unlock()

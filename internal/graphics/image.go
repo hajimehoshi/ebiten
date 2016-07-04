@@ -24,10 +24,15 @@ import (
 type Image struct {
 	texture     *texture
 	framebuffer *framebuffer
+	width       int
+	height      int
 }
 
 func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
-	i := &Image{}
+	i := &Image{
+		width:  width,
+		height: height,
+	}
 	c := &newImageCommand{
 		result: i,
 		width:  width,
@@ -39,7 +44,11 @@ func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
 }
 
 func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
-	i := &Image{}
+	s := img.Bounds().Size()
+	i := &Image{
+		width:  s.X,
+		height: s.Y,
+	}
 	c := &newImageFromImageCommand{
 		result: i,
 		img:    img,
@@ -50,7 +59,10 @@ func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
 }
 
 func NewScreenFramebufferImage(width, height int) (*Image, error) {
-	i := &Image{}
+	i := &Image{
+		width:  width,
+		height: height,
+	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
 		width:  width,
@@ -66,6 +78,10 @@ func (i *Image) Dispose() error {
 	}
 	theCommandQueue.Enqueue(c)
 	return nil
+}
+
+func (i *Image) Size() (int, int) {
+	return i.width, i.height
 }
 
 func (i *Image) Fill(clr color.Color) error {

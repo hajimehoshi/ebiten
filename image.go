@@ -198,21 +198,18 @@ type DrawImageOptions struct {
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	image := &imageImpl{
-		width:  width,
-		height: height,
-		filter: filter,
-	}
-	var err error
-	image.image, err = graphics.NewImage(width, height, glFilter(filter))
+	i, err := graphics.NewImage(width, height, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
-	runtime.SetFinalizer(image, (*imageImpl).Dispose)
-	if err := image.image.Fill(color.Transparent); err != nil {
+	img, err := newImageImpl(i, filter)
+	if err != nil {
 		return nil, err
 	}
-	eimg, err := theImages.add(image)
+	if err := img.image.Fill(color.Transparent); err != nil {
+		return nil, err
+	}
+	eimg, err := theImages.add(img)
 	if err != nil {
 		return nil, err
 	}
@@ -240,19 +237,13 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	for j := 0; j < h; j++ {
 		copy(pixels[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
-	img := &imageImpl{
-		width:  w,
-		height: h,
-		filter: filter,
-		pixels: pixels,
-	}
-	var err error
-	img.image, err = graphics.NewImageFromImage(rgbaImg, glFilter(filter))
+	i, err := graphics.NewImageFromImage(rgbaImg, glFilter(filter))
 	if err != nil {
 		// TODO: texture should be removed here?
 		return nil, err
 	}
-	runtime.SetFinalizer(img, (*imageImpl).Dispose)
+	img, err := newImageImpl(i, filter)
+	img.pixels = pixels
 	eimg, err := theImages.add(img)
 	if err != nil {
 		return nil, err
@@ -265,13 +256,11 @@ func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	img := &imageImpl{
-		image:  i,
-		width:  width,
-		height: height,
-		screen: true,
+	img, err := newImageImpl(i, FilterNearest)
+	if err != nil {
+		return nil, err
 	}
-	runtime.SetFinalizer(img, (*imageImpl).Dispose)
+	img.screen = true
 	eimg, err := theImages.add(img)
 	if err != nil {
 		return nil, err
