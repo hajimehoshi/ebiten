@@ -151,7 +151,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		return err
 	}
 	if 0 < updateCount {
-		if err := theImages.savePixels(context); err != nil {
+		if err := theImagesForRestoring.savePixels(context); err != nil {
 			return err
 		}
 	}
@@ -162,7 +162,7 @@ func (c *graphicsContext) restore(context *opengl.Context) error {
 	if err := graphics.Reset(context); err != nil {
 		return err
 	}
-	if err := theImages.restorePixels(context); err != nil {
+	if err := theImagesForRestoring.restorePixels(context); err != nil {
 		return err
 	}
 	return nil

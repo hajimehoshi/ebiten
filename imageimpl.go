@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"runtime"
 	"sync"
 
@@ -46,6 +47,38 @@ func newImageImpl(image *graphics.Image, filter Filter) (*imageImpl, error) {
 		width:  w,
 		height: h,
 		filter: filter,
+	}
+	runtime.SetFinalizer(i, (*imageImpl).Dispose)
+	return i, nil
+}
+
+func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error) {
+	size := source.Bounds().Size()
+	w, h := size.X, size.Y
+	// TODO: Return error when the image is too big!
+	// Don't lock while manipulating an image.Image interface.
+	rgbaImg, ok := source.(*image.RGBA)
+	if !ok || source.Bounds().Min != image.ZP {
+		origImg := source
+		newImg := image.NewRGBA(image.Rect(0, 0, w, h))
+		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
+		rgbaImg = newImg
+	}
+	pixels := make([]uint8, 4*w*h)
+	for j := 0; j < h; j++ {
+		copy(pixels[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
+	}
+	img, err := graphics.NewImageFromImage(rgbaImg, glFilter(filter))
+	if err != nil {
+		// TODO: texture should be removed here?
+		return nil, err
+	}
+	i := &imageImpl{
+		image:  img,
+		width:  w,
+		height: h,
+		filter: filter,
+		pixels: pixels,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil

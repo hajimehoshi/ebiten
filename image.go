@@ -17,7 +17,6 @@ package ebiten
 import (
 	"image"
 	"image/color"
-	"image/draw"
 	"runtime"
 	"sync"
 
@@ -30,7 +29,7 @@ type images struct {
 	m      sync.Mutex
 }
 
-var theImages = images{
+var theImagesForRestoring = images{
 	images: map[*imageImpl]struct{}{},
 }
 
@@ -39,7 +38,7 @@ func (i *images) add(img *imageImpl) (*Image, error) {
 	defer i.m.Unlock()
 	i.images[img] = struct{}{}
 	eimg := &Image{img}
-	runtime.SetFinalizer(eimg, theImages.remove)
+	runtime.SetFinalizer(eimg, theImagesForRestoring.remove)
 	return eimg, nil
 }
 
@@ -206,7 +205,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err := img.Fill(color.Transparent); err != nil {
 		return nil, err
 	}
-	eimg, err := theImages.add(img)
+	eimg, err := theImagesForRestoring.add(img)
 	if err != nil {
 		return nil, err
 	}
@@ -219,29 +218,11 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // This function is concurrent-safe.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
-	size := source.Bounds().Size()
-	w, h := size.X, size.Y
-	// TODO: Return error when the image is too big!
-	// Don't lock while manipulating an image.Image interface.
-	rgbaImg, ok := source.(*image.RGBA)
-	if !ok || source.Bounds().Min != image.ZP {
-		origImg := source
-		newImg := image.NewRGBA(image.Rect(0, 0, w, h))
-		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
-		rgbaImg = newImg
-	}
-	pixels := make([]uint8, 4*w*h)
-	for j := 0; j < h; j++ {
-		copy(pixels[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
-	}
-	i, err := graphics.NewImageFromImage(rgbaImg, glFilter(filter))
+	img, err := newImageImplFromImage(source, filter)
 	if err != nil {
-		// TODO: texture should be removed here?
 		return nil, err
 	}
-	img, err := newImageImpl(i, filter)
-	img.pixels = pixels
-	eimg, err := theImages.add(img)
+	eimg, err := theImagesForRestoring.add(img)
 	if err != nil {
 		return nil, err
 	}
