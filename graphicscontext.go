@@ -162,7 +162,7 @@ func (c *graphicsContext) restore(context *opengl.Context) error {
 	if err := graphics.Reset(context); err != nil {
 		return err
 	}
-	if err := theImagesForRestoring.restorePixels(context); err != nil {
+	if err := theImagesForRestoring.restore(context); err != nil {
 		return err
 	}
 	return nil

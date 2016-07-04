@@ -60,7 +60,7 @@ func (i *images) savePixels(context *opengl.Context) error {
 	return nil
 }
 
-func (i *images) restorePixels(context *opengl.Context) error {
+func (i *images) restore(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	// Dispose all images first because framebuffer/texture numbers can be reused.
@@ -75,7 +75,7 @@ func (i *images) restorePixels(context *opengl.Context) error {
 		}
 	}
 	for img := range i.images {
-		if err := img.restorePixels(); err != nil {
+		if err := img.restore(); err != nil {
 			return err
 		}
 	}

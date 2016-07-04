@@ -193,7 +193,7 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 	return nil
 }
 
-func (i *imageImpl) restorePixels() error {
+func (i *imageImpl) restore() error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
