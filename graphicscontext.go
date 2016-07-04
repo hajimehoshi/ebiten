@@ -47,7 +47,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
-	offscreen.impl.noSave = true
+	offscreen.impl.volatile = true
 
 	intScreenScale := int(math.Ceil(screenScale))
 	w := screenWidth * intScreenScale
@@ -56,7 +56,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
-	offscreen2.impl.noSave = true
+	offscreen2.impl.volatile = true
 
 	w = int(float64(screenWidth) * screenScale)
 	h = int(float64(screenHeight) * screenScale)
@@ -64,7 +64,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
-	c.screen.impl.noSave = true
 	c.screen.Clear()
 
 	c.offscreen = offscreen

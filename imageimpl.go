@@ -36,7 +36,7 @@ type imageImpl struct {
 	height   int
 	filter   Filter
 	pixels   []uint8
-	noSave   bool
+	volatile bool
 	screen   bool
 	m        sync.Mutex
 }
@@ -94,10 +94,11 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		return nil, err
 	}
 	i := &imageImpl{
-		image:  img,
-		width:  width,
-		height: height,
-		screen: true,
+		image:    img,
+		width:    width,
+		height:   height,
+		volatile: true,
+		screen:   true,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -181,7 +182,7 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 	if i.screen {
 		return nil
 	}
-	if i.noSave {
+	if i.volatile {
 		return nil
 	}
 	if i.disposed {
