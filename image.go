@@ -231,13 +231,13 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 }
 
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
-	i, err := graphics.NewScreenFramebufferImage(width, height)
+	img, err := newScreenImageImpl(width, height)
 	if err != nil {
 		return nil, err
 	}
-	img, err := newImageImpl(i, FilterNearest)
+	eimg, err := theImagesForRestoring.add(img)
 	if err != nil {
 		return nil, err
 	}
-	return &Image{img}, nil
+	return eimg, nil
 }

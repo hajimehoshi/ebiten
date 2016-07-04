@@ -37,6 +37,7 @@ type imageImpl struct {
 	filter   Filter
 	pixels   []uint8
 	noSave   bool
+	screen   bool
 	m        sync.Mutex
 }
 
@@ -82,6 +83,19 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
+}
+
+func newScreenImageImpl(width, height int) (*imageImpl, error) {
+	i, err := graphics.NewScreenFramebufferImage(width, height)
+	if err != nil {
+		return nil, err
+	}
+	img, err := newImageImpl(i, FilterNearest)
+	if err != nil {
+		return nil, err
+	}
+	img.screen = true
+	return img, nil
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
@@ -159,6 +173,9 @@ func (i *imageImpl) At(x, y int) color.Color {
 func (i *imageImpl) savePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
+	if i.screen {
+		return nil
+	}
 	if i.noSave {
 		return nil
 	}
@@ -180,6 +197,16 @@ func (i *imageImpl) restorePixels() error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
+		return nil
+	}
+	if i.screen {
+		// The screen image should also be recreated because framebuffer might
+		// be changed.
+		var err error
+		i.image, err = graphics.NewScreenFramebufferImage(i.width, i.height)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 	if i.pixels != nil {
@@ -208,8 +235,10 @@ func (i *imageImpl) Dispose() error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	if err := i.image.Dispose(); err != nil {
-		return err
+	if !i.screen {
+		if err := i.image.Dispose(); err != nil {
+			return err
+		}
 	}
 	i.image = nil
 	i.disposed = true

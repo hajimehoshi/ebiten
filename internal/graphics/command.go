@@ -167,7 +167,7 @@ type disposeCommand struct {
 }
 
 func (c *disposeCommand) Exec(context *opengl.Context) error {
-	if c.target.framebuffer != nil && c.target.framebuffer.native != context.ScreenFramebuffer() {
+	if c.target.framebuffer != nil {
 		context.DeleteFramebuffer(c.target.framebuffer.native)
 	}
 	if c.target.texture != nil {
