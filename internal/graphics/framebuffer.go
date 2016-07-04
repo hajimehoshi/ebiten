@@ -34,8 +34,6 @@ func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
 
 type framebuffer struct {
 	native    opengl.Framebuffer
-	width     int
-	height    int
 	flipY     bool
 	proMatrix *[4][4]float64
 }
@@ -47,8 +45,6 @@ func newFramebufferFromTexture(context *opengl.Context, texture *texture) (*fram
 	}
 	return &framebuffer{
 		native: native,
-		width:  texture.width,
-		height: texture.height,
 	}, nil
 }
 
@@ -60,16 +56,14 @@ func (f *framebuffer) setAsViewport(context *opengl.Context) error {
 	return context.SetViewport(f.native, width, height)
 }
 
-func (f *framebuffer) projectionMatrix() *[4][4]float64 {
+func (f *framebuffer) projectionMatrix(height int) *[4][4]float64 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
-	width := viewportSize
-	height := viewportSize
-	m := orthoProjectionMatrix(0, width, 0, height)
+	m := orthoProjectionMatrix(0, viewportSize, 0, viewportSize)
 	if f.flipY {
 		m[1][1] *= -1
-		m[1][3] += float64(f.height) / float64(height) * 2
+		m[1][3] += float64(height) / float64(viewportSize) * 2
 	}
 	f.proMatrix = m
 	return f.proMatrix

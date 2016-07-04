@@ -112,7 +112,7 @@ func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
 		return nil, err
 	}
 	f := i.framebuffer
-	return context.FramebufferPixels(f.native, f.width, f.height)
+	return context.FramebufferPixels(f.native, i.width, i.height)
 }
 
 func (i *Image) ReplacePixels(p []uint8) error {

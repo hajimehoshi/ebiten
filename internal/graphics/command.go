@@ -122,11 +122,13 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 	if n == 0 {
 		return nil
 	}
+	_, h := c.dst.Size()
+	proj := glMatrix(c.dst.framebuffer.projectionMatrix(h))
 	p := programContext{
 		state:            &theOpenGLState,
 		program:          theOpenGLState.programTexture,
 		context:          context,
-		projectionMatrix: glMatrix(c.dst.framebuffer.projectionMatrix()),
+		projectionMatrix: proj,
 		texture:          c.src.texture.native,
 		geoM:             c.geo,
 		colorM:           c.color,
@@ -275,8 +277,6 @@ func (c *newScreenFramebufferImageCommand) Exec(context *opengl.Context) error {
 	}
 	f := &framebuffer{
 		native: context.ScreenFramebuffer(),
-		width:  c.width,
-		height: c.height,
 		flipY:  true,
 	}
 	c.result.framebuffer = f
