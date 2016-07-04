@@ -67,9 +67,6 @@ func (i *images) restorePixels(context *opengl.Context) error {
 	// If framebuffers/textures are not disposed here, a newly created framebuffer/texture
 	// number can be a same number as existing one.
 	for img := range i.images {
-		if img.screen {
-			continue
-		}
 		if img.isDisposed() {
 			continue
 		}
@@ -206,7 +203,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := img.image.Fill(color.Transparent); err != nil {
+	if err := img.Fill(color.Transparent); err != nil {
 		return nil, err
 	}
 	eimg, err := theImages.add(img)
@@ -260,10 +257,5 @@ func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	img.screen = true
-	eimg, err := theImages.add(img)
-	if err != nil {
-		return nil, err
-	}
-	return eimg, nil
+	return &Image{img}, nil
 }

@@ -30,7 +30,6 @@ import (
 
 type imageImpl struct {
 	image    *graphics.Image
-	screen   bool
 	disposed bool
 	width    int
 	height   int
@@ -147,9 +146,6 @@ func (i *imageImpl) savePixels(context *opengl.Context) error {
 func (i *imageImpl) restorePixels() error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.screen {
-		return nil
-	}
 	if i.disposed {
 		return nil
 	}
