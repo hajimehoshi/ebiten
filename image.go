@@ -172,7 +172,7 @@ func (i *Image) Dispose() error {
 //
 // This function is concurrent-safe.
 //
-// BUG(hajimehoshi) This might not work on Android (#211).
+// BUG(hajimehoshi) ReplacePixels might not work on Android (#211).
 func (i *Image) ReplacePixels(p []uint8) error {
 	return i.impl.ReplacePixels(p)
 }
@@ -209,12 +209,12 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 }
 
 // NewVolatileImage returns an empty 'volatile' image.
-// A volatile image is an image that pixels might be lost at the next frame.
+// A volatile image is an image that pixels might be lost at another frame.
 //
-// This is suitable for offscreen images that pixels are changed every frame.
+// This is suitable for offscreen images that pixels are changed often.
 //
-// Pixels in regular non-volatile images are saved at each end of a frame if necessary
-// and restored automatically on GL context lost.
+// Pixels in regular non-volatile images are saved at each end of a frame if the image
+// is changed, and restored automatically from the saved pixels on GL context lost.
 // On the other hand, pixels in volatile images are not saved and can be lost
 // on GL context lost.
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
