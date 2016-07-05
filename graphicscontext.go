@@ -128,7 +128,8 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		if err := c.offscreen.Clear(); err != nil {
+		// TODO: This clears images not needed to be cleared (e.g. c.screen).
+		if err := theImagesForRestoring.clearVolatileImages(); err != nil {
 			return err
 		}
 		setRunningSlowly(i < updateCount-1)

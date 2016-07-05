@@ -115,6 +115,19 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	return i.image.Fill(clr)
 }
 
+func (i *imageImpl) clearIfVolatile() error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.disposed {
+		return nil
+	}
+	if !i.volatile {
+		return nil
+	}
+	i.pixels = nil
+	return i.image.Fill(color.Transparent)
+}
+
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).

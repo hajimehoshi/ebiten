@@ -81,6 +81,17 @@ func (i *images) restore(context *opengl.Context) error {
 	return nil
 }
 
+func (i *images) clearVolatileImages() error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	for img := range i.images {
+		if err := img.clearIfVolatile(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
@@ -209,14 +220,13 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 }
 
 // NewVolatileImage returns an empty 'volatile' image.
-// A volatile image is an image that pixels might be lost at another frame.
+// A volatile image is always cleared at the start of a frame.
 //
 // This is suitable for offscreen images that pixels are changed often.
 //
 // Pixels in regular non-volatile images are saved at each end of a frame if the image
 // is changed, and restored automatically from the saved pixels on GL context lost.
-// On the other hand, pixels in volatile images are not saved and can be lost
-// on GL context lost.
+// On the other hand, pixels in volatile images are not saved.
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
 //
 // This function is concurrent-safe.
