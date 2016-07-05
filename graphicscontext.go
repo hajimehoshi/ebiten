@@ -128,7 +128,6 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		// TODO: This clears images not needed to be cleared (e.g. c.screen).
 		if err := theImagesForRestoring.clearVolatileImages(); err != nil {
 			return err
 		}
@@ -138,9 +137,6 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		}
 	}
 	if 0 < updateCount {
-		if err := c.offscreen2.Clear(); err != nil {
-			return err
-		}
 		if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
 			return err
 		}
