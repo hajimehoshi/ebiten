@@ -219,7 +219,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	if !gl.IsFramebuffer(mgl.Framebuffer(f)) {
 		return
 	}
-	// If a framebuffer to be delted is bound, a newly bound framebuffer
+	// If a framebuffer to be deleted is bound, a newly bound framebuffer
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
