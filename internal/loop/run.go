@@ -28,6 +28,9 @@ func CurrentFPS() float64 {
 }
 
 func IsRunning() bool {
+	if currentRunContext == nil {
+		return false
+	}
 	return currentRunContext.isRunning()
 }
 
