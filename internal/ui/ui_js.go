@@ -294,13 +294,13 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 }
 
 func (u *userInterface) size() (width, height int) {
-	a := int(u.ActualScreenScale())
+	a := u.ActualScreenScale()
 	if a == 0 {
 		// a == 0 only on the initial state.
 		return
 	}
-	width = canvas.Get("width").Int() / a
-	height = canvas.Get("height").Int() / a
+	width = int(canvas.Get("width").Float() / a)
+	height = int(canvas.Get("height").Float() / a)
 	return
 }
 
