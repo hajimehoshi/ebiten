@@ -144,7 +144,9 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 		return Texture{nil}, errors.New("opengl: glGenTexture failed")
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
-	gl.BindTexture(gl.TEXTURE_2D, t)
+	if err := c.BindTexture(Texture{t}); err != nil {
+		return Texture{}, err
+	}
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
@@ -182,9 +184,10 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	return pixels.Interface().([]uint8), nil
 }
 
-func (c *Context) BindTexture(t Texture) {
+func (c *Context) bindTextureImpl(t Texture) error {
 	gl := c.gl
 	gl.BindTexture(gl.TEXTURE_2D, t.Object)
+	return nil
 }
 
 func (c *Context) DeleteTexture(t Texture) {

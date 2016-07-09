@@ -38,10 +38,22 @@ type Context struct {
 	locationCache      *locationCache
 	screenFramebuffer  Framebuffer // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    Framebuffer
+	lastTexture        Texture
 	lastViewportWidth  int
 	lastViewportHeight int
 	lastCompositeMode  CompositeMode
 	context
+}
+
+func (c *Context) BindTexture(t Texture) error {
+	if c.lastTexture == t {
+		return nil
+	}
+	if err := c.bindTextureImpl(t); err != nil {
+		return err
+	}
+	c.lastTexture = t
+	return nil
 }
 
 func (c *Context) bindFramebuffer(f Framebuffer) error {

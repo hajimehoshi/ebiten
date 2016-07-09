@@ -150,8 +150,15 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 			return errors.New("opengl: creating texture failed")
 		}
 		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
-		gl.BindTexture(gl.TEXTURE_2D, t)
-
+		texture = Texture(t)
+		return nil
+	}); err != nil {
+		return 0, err
+	}
+	if err := c.BindTexture(texture); err != nil {
+		return 0, err
+	}
+	if err := c.RunOnContextThread(func() error {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int32(filter))
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int32(filter))
 
@@ -160,8 +167,6 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 			p = pixels
 		}
 		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
-
-		texture = Texture(t)
 		return nil
 	}); err != nil {
 		return 0, err
@@ -202,11 +207,12 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	return pixels, nil
 }
 
-func (c *Context) BindTexture(t Texture) {
+func (c *Context) bindTextureImpl(t Texture) error {
 	c.RunOnContextThread(func() error {
 		gl.BindTexture(gl.TEXTURE_2D, uint32(t))
 		return nil
 	})
+	return nil
 }
 
 func (c *Context) DeleteTexture(t Texture) {

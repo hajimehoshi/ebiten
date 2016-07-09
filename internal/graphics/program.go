@@ -30,7 +30,6 @@ type openGLState struct {
 	lastModelviewMatrix        []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
-	lastTexture                opengl.Texture
 }
 
 var (
@@ -63,7 +62,6 @@ func (s *openGLState) reset(context *opengl.Context) error {
 	s.lastModelviewMatrix = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
-	s.lastTexture = zeroTexture
 
 	if s.arrayBuffer != zeroBuffer {
 		context.DeleteBuffer(s.arrayBuffer)
@@ -152,7 +150,6 @@ func (p *programContext) begin() {
 		p.state.lastModelviewMatrix = nil
 		p.state.lastColorMatrix = nil
 		p.state.lastColorMatrixTranslation = nil
-		p.state.lastTexture = zeroTexture
 		c.BindElementArrayBuffer(p.state.indexBufferQuads)
 		c.UniformInt(p.program, "texture", 0)
 	}
@@ -218,10 +215,7 @@ func (p *programContext) begin() {
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	if p.state.lastTexture != p.texture {
-		c.BindTexture(p.texture)
-		p.state.lastTexture = p.texture
-	}
+	c.BindTexture(p.texture)
 }
 
 func (p *programContext) end() {
