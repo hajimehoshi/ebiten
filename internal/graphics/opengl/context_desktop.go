@@ -37,7 +37,10 @@ type attribLocation int32
 
 type programID uint32
 
-const invalidFramebuffer = (1 << 32) - 1
+const (
+	invalidTexture     = 0
+	invalidFramebuffer = (1 << 32) - 1
+)
 
 func (p Program) id() programID {
 	return programID(p)
@@ -106,6 +109,7 @@ func (c *Context) Reset() error {
 		return nil
 	}
 	c.locationCache = newLocationCache()
+	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0

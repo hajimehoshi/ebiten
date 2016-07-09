@@ -52,7 +52,10 @@ type attribLocation int
 
 type programID int
 
-var invalidFramebuffer = Framebuffer{nil}
+var (
+	invalidTexture     = Texture{}
+	invalidFramebuffer = Framebuffer{}
+)
 
 func (p Program) id() programID {
 	return programID(p.Get("__ebiten_programId").Int())
@@ -115,6 +118,7 @@ func NewContext() (*Context, error) {
 
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
+	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0

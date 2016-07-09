@@ -34,7 +34,10 @@ type attribLocation mgl.Attrib
 
 type programID uint32
 
-var invalidFramebuffer = Framebuffer(mgl.Framebuffer{(1 << 32) - 1})
+var (
+	invalidTexture     = Texture(mgl.Texture{})
+	invalidFramebuffer = Framebuffer(mgl.Framebuffer{(1 << 32) - 1})
+)
 
 func (p Program) id() programID {
 	return programID(p.Value)
@@ -93,6 +96,7 @@ loop:
 
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
+	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
