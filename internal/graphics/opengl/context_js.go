@@ -199,6 +199,9 @@ func (c *Context) DeleteTexture(t Texture) {
 	if !gl.IsTexture(t.Object) {
 		return
 	}
+	if c.lastTexture == t {
+		c.lastTexture = invalidTexture
+	}
 	gl.DeleteTexture(t.Object)
 }
 
