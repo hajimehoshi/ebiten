@@ -159,6 +159,7 @@ func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
 	}
 	// This is necessary on Android. We can't call glClear just before glTexSubImage2D without
 	// glFlush. glTexSubImage2D didn't work without this hack at least on Nexus 5x (#211).
+	// This also happens when a fillCommand precedes a replacePixelsCommand.
 	// TODO: Can we have a better way like optimizing commands?
 	context.Flush()
 	context.BindTexture(c.dst.texture.native)
