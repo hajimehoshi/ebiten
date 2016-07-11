@@ -217,7 +217,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	return eimg, nil
 }
 
-// NewVolatileImage returns an empty 'volatile' image.
+// newVolatileImage returns an empty 'volatile' image.
 // A volatile image is always cleared at the start of a frame.
 //
 // This is suitable for offscreen images that pixels are changed often.
@@ -228,7 +228,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
 //
 // This function is concurrent-safe.
-func NewVolatileImage(width, height int, filter Filter) (*Image, error) {
+func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 	img, err := newImageImpl(width, height, filter, true)
 	if err != nil {
 		return nil, err
