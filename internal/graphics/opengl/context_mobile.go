@@ -298,6 +298,9 @@ func (c *Context) UseProgram(p Program) {
 
 func (c *Context) DeleteProgram(p Program) {
 	gl := c.gl
+	if !gl.IsProgram(mgl.Program(p)) {
+		return
+	}
 	gl.DeleteProgram(mgl.Program(p))
 }
 

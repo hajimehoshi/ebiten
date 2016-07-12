@@ -89,11 +89,13 @@ func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 	if err != nil {
 		return err
 	}
-	if r {
-		if err := c.restore(context); err != nil {
-			return err
-		}
+	if !r {
+		return nil
 	}
+	if err := c.restore(context); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -143,11 +145,6 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	}
 	if err := c.drawToDefaultRenderTarget(context); err != nil {
 		return err
-	}
-	if 0 < updateCount {
-		if err := theImagesForRestoring.savePixels(context); err != nil {
-			return err
-		}
 	}
 	return nil
 }

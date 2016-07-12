@@ -319,6 +319,9 @@ func (c *Context) UseProgram(p Program) {
 
 func (c *Context) DeleteProgram(p Program) {
 	gl := c.gl
+	if !gl.IsProgram(p.Object) {
+		return
+	}
 	gl.DeleteProgram(p.Object)
 }
 

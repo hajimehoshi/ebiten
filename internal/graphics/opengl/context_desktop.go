@@ -394,6 +394,9 @@ func (c *Context) UseProgram(p Program) {
 
 func (c *Context) DeleteProgram(p Program) {
 	c.RunOnContextThread(func() error {
+		if !gl.IsProgram(uint32(p)) {
+			return nil
+		}
 		gl.DeleteProgram(uint32(p))
 		return nil
 	})
