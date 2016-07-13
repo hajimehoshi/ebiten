@@ -267,50 +267,50 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		}
 		return nil
 	}
-	if !i.volatile {
-		img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
-		if i.pixels != nil {
-			for j := 0; j < i.height; j++ {
-				copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
-			}
-		} else if i.baseColor != nil {
-			r32, g32, b32, a32 := i.baseColor.RGBA()
-			r, g, b, a := uint8(r32), uint8(g32), uint8(b32), uint8(a32)
-			for idx := 0; idx < len(img.Pix)/4; idx++ {
-				img.Pix[4*idx] = r
-				img.Pix[4*idx+1] = g
-				img.Pix[4*idx+2] = b
-				img.Pix[4*idx+3] = a
-			}
-		}
+	if i.volatile {
 		var err error
-		i.image, err = graphics.NewImageFromImage(img, glFilter(i.filter))
+		i.image, err = graphics.NewImage(i.width, i.height, glFilter(i.filter))
 		if err != nil {
 			return err
 		}
-		for _, c := range i.drawImageHistory {
-			if c.image.impl.hasHistory() {
-				panic("not reach")
-			}
-			if err := i.image.DrawImage(c.image.impl.image, c.vertices, &c.geom, &c.colorm, c.mode); err != nil {
-				return err
-			}
-		}
-		if 0 < len(i.drawImageHistory) {
-			i.pixels, err = i.image.Pixels(context)
-			if err != nil {
-				return err
-			}
-		}
-		i.baseColor = nil
-		i.drawImageHistory = nil
 		return nil
 	}
+	img := image.NewRGBA(image.Rect(0, 0, i.width, i.height))
+	if i.pixels != nil {
+		for j := 0; j < i.height; j++ {
+			copy(img.Pix[j*img.Stride:], i.pixels[j*i.width*4:(j+1)*i.width*4])
+		}
+	} else if i.baseColor != nil {
+		r32, g32, b32, a32 := i.baseColor.RGBA()
+		r, g, b, a := uint8(r32), uint8(g32), uint8(b32), uint8(a32)
+		for idx := 0; idx < len(img.Pix)/4; idx++ {
+			img.Pix[4*idx] = r
+			img.Pix[4*idx+1] = g
+			img.Pix[4*idx+2] = b
+			img.Pix[4*idx+3] = a
+		}
+	}
 	var err error
-	i.image, err = graphics.NewImage(i.width, i.height, glFilter(i.filter))
+	i.image, err = graphics.NewImageFromImage(img, glFilter(i.filter))
 	if err != nil {
 		return err
 	}
+	for _, c := range i.drawImageHistory {
+		if c.image.impl.hasHistory() {
+			panic("not reach")
+		}
+		if err := i.image.DrawImage(c.image.impl.image, c.vertices, &c.geom, &c.colorm, c.mode); err != nil {
+			return err
+		}
+	}
+	if 0 < len(i.drawImageHistory) {
+		i.pixels, err = i.image.Pixels(context)
+		if err != nil {
+			return err
+		}
+	}
+	i.baseColor = nil
+	i.drawImageHistory = nil
 	return nil
 }
 
