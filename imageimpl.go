@@ -29,15 +29,15 @@ import (
 )
 
 type imageImpl struct {
-	image         *graphics.Image
-	disposed      bool
-	width         int
-	height        int
-	filter        Filter
-	restoringInfo imageRestoringInfo
-	volatile      bool
-	screen        bool
-	m             sync.Mutex
+	image    *graphics.Image
+	disposed bool
+	width    int
+	height   int
+	filter   Filter
+	pixels   pixels
+	volatile bool
+	screen   bool
+	m        sync.Mutex
 }
 
 func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
@@ -52,8 +52,8 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		filter:   filter,
 		volatile: volatile,
 	}
-	i.restoringInfo.imageImpl = i
-	i.restoringInfo.resetWithPixels(make([]uint8, width*height*4))
+	i.pixels.imageImpl = i
+	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -85,8 +85,8 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		height: h,
 		filter: filter,
 	}
-	i.restoringInfo.imageImpl = i
-	i.restoringInfo.resetWithPixels(pixels)
+	i.pixels.imageImpl = i
+	i.pixels.resetWithPixels(pixels)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -103,8 +103,8 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		volatile: true,
 		screen:   true,
 	}
-	i.restoringInfo.imageImpl = i
-	i.restoringInfo.resetWithPixels(make([]uint8, width*height*4))
+	i.pixels.imageImpl = i
+	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -115,7 +115,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	i.restoringInfo.fill(clr)
+	i.pixels.fill(clr)
 	return i.image.Fill(clr)
 }
 
@@ -128,7 +128,7 @@ func (i *imageImpl) clearIfVolatile() error {
 	if !i.volatile {
 		return nil
 	}
-	i.restoringInfo.clear()
+	i.pixels.clear()
 	return i.image.Fill(color.Transparent)
 }
 
@@ -170,7 +170,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		colorm:   options.ColorM,
 		mode:     opengl.CompositeMode(options.CompositeMode),
 	}
-	i.restoringInfo.appendDrawImageHistory(c)
+	i.pixels.appendDrawImageHistory(c)
 	geom := &options.GeoM
 	colorm := &options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
@@ -189,7 +189,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	if i.disposed {
 		return color.Transparent
 	}
-	clr, err := i.restoringInfo.at(x, y, context)
+	clr, err := i.pixels.at(x, y, context)
 	if err != nil {
 		panic(err)
 	}
@@ -202,7 +202,7 @@ func (i *imageImpl) resetHistoryIfNeeded(target *Image, context *opengl.Context)
 	if i.disposed {
 		return nil
 	}
-	if err := i.restoringInfo.resetHistoryIfNeeded(target, context); err != nil {
+	if err := i.pixels.resetHistoryIfNeeded(target, context); err != nil {
 		return err
 	}
 	return nil
@@ -211,7 +211,7 @@ func (i *imageImpl) resetHistoryIfNeeded(target *Image, context *opengl.Context)
 func (i *imageImpl) hasHistory() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.restoringInfo.hasHistory()
+	return i.pixels.hasHistory()
 }
 
 func (i *imageImpl) restore(context *opengl.Context) error {
@@ -239,7 +239,7 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	var err error
-	i.image, err = i.restoringInfo.restore(context)
+	i.image, err = i.pixels.restore(context)
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (i *imageImpl) Dispose() error {
 	}
 	i.image = nil
 	i.disposed = true
-	i.restoringInfo.clear()
+	i.pixels.clear()
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -270,7 +270,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.restoringInfo.resetWithPixels(p)
+	i.pixels.resetWithPixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
