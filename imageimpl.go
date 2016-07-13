@@ -26,7 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/loop"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 type drawImageHistoryItem struct {
@@ -192,7 +191,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	return nil
 }
 
-func (i *imageImpl) At(x, y int) color.Color {
+func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	if !loop.IsRunning() {
 		panic("ebiten: At can't be called when the GL context is not initialized (this panic happens as of version 1.4.0-alpha)")
 	}
@@ -203,7 +202,7 @@ func (i *imageImpl) At(x, y int) color.Color {
 	}
 	if i.pixels == nil || i.drawImageHistory != nil {
 		var err error
-		i.pixels, err = i.image.Pixels(ui.GLContext())
+		i.pixels, err = i.image.Pixels(context)
 		if err != nil {
 			panic(err)
 		}
@@ -223,7 +222,7 @@ func (i *imageImpl) hasHistoryWith(target *Image) bool {
 	return false
 }
 
-func (i *imageImpl) resetHistoryIfNeeded(target *Image) error {
+func (i *imageImpl) resetHistoryIfNeeded(target *Image, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
@@ -236,7 +235,7 @@ func (i *imageImpl) resetHistoryIfNeeded(target *Image) error {
 		return nil
 	}
 	var err error
-	i.pixels, err = i.image.Pixels(ui.GLContext())
+	i.pixels, err = i.image.Pixels(context)
 	if err != nil {
 		return nil
 	}
