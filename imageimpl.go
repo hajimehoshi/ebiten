@@ -52,7 +52,6 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		filter:   filter,
 		volatile: volatile,
 	}
-	i.pixels.imageImpl = i
 	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -85,7 +84,6 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		height: h,
 		filter: filter,
 	}
-	i.pixels.imageImpl = i
 	i.pixels.resetWithPixels(pixels)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -103,7 +101,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		volatile: true,
 		screen:   true,
 	}
-	i.pixels.imageImpl = i
 	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -189,7 +186,8 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	if i.disposed {
 		return color.Transparent
 	}
-	clr, err := i.pixels.at(x, y, context)
+	idx := 4*x + 4*y*i.width
+	clr, err := i.pixels.at(i.image, idx, context)
 	if err != nil {
 		panic(err)
 	}
@@ -202,7 +200,7 @@ func (i *imageImpl) resetHistoryIfNeeded(target *Image, context *opengl.Context)
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.resetHistoryIfNeeded(target, context); err != nil {
+	if err := i.pixels.resetHistoryIfNeeded(i.image, target, context); err != nil {
 		return err
 	}
 	return nil
@@ -239,7 +237,7 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	var err error
-	i.image, err = i.pixels.restore(context)
+	i.image, err = i.pixels.restore(context, i.width, i.height, i.filter)
 	if err != nil {
 		return err
 	}

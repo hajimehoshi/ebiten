@@ -31,7 +31,6 @@ type drawImageHistoryItem struct {
 }
 
 type pixels struct {
-	imageImpl        *imageImpl
 	pixels           []uint8
 	baseColor        color.Color
 	drawImageHistory []*drawImageHistoryItem
@@ -62,17 +61,16 @@ func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
 	p.drawImageHistory = append(p.drawImageHistory, item)
 }
 
-func (p *pixels) at(x, y int, context *opengl.Context) (color.Color, error) {
+func (p *pixels) at(image *graphics.Image, idx int, context *opengl.Context) (color.Color, error) {
 	if p.pixels == nil || p.drawImageHistory != nil {
 		var err error
-		p.pixels, err = p.imageImpl.image.Pixels(context)
+		p.pixels, err = image.Pixels(context)
 		if err != nil {
 			return nil, err
 		}
 		p.baseColor = nil
 		p.drawImageHistory = nil
 	}
-	idx := 4*x + 4*y*p.imageImpl.width
 	r, g, b, a := p.pixels[idx], p.pixels[idx+1], p.pixels[idx+2], p.pixels[idx+3]
 	return color.RGBA{r, g, b, a}, nil
 }
@@ -86,7 +84,7 @@ func (p *pixels) hasHistoryWith(target *Image) bool {
 	return false
 }
 
-func (p *pixels) resetHistoryIfNeeded(target *Image, context *opengl.Context) error {
+func (p *pixels) resetHistoryIfNeeded(image *graphics.Image, target *Image, context *opengl.Context) error {
 	if p.drawImageHistory == nil {
 		return nil
 	}
@@ -94,7 +92,7 @@ func (p *pixels) resetHistoryIfNeeded(target *Image, context *opengl.Context) er
 		return nil
 	}
 	var err error
-	p.pixels, err = p.imageImpl.image.Pixels(context)
+	p.pixels, err = image.Pixels(context)
 	if err != nil {
 		return err
 	}
@@ -107,12 +105,11 @@ func (p *pixels) hasHistory() bool {
 	return p.drawImageHistory != nil
 }
 
-func (p *pixels) restore(context *opengl.Context) (*graphics.Image, error) {
-	w, h := p.imageImpl.width, p.imageImpl.height
-	img := image.NewRGBA(image.Rect(0, 0, w, h))
+func (p *pixels) restore(context *opengl.Context, width, height int, filter Filter) (*graphics.Image, error) {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	if p.pixels != nil {
-		for j := 0; j < h; j++ {
-			copy(img.Pix[j*img.Stride:], p.pixels[j*w*4:(j+1)*w*4])
+		for j := 0; j < height; j++ {
+			copy(img.Pix[j*img.Stride:], p.pixels[j*width*4:(j+1)*width*4])
 		}
 	} else if p.baseColor != nil {
 		r32, g32, b32, a32 := p.baseColor.RGBA()
@@ -124,7 +121,7 @@ func (p *pixels) restore(context *opengl.Context) (*graphics.Image, error) {
 			img.Pix[4*idx+3] = a
 		}
 	}
-	gimg, err := graphics.NewImageFromImage(img, glFilter(p.imageImpl.filter))
+	gimg, err := graphics.NewImageFromImage(img, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
