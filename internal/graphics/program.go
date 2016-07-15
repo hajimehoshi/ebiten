@@ -42,7 +42,7 @@ var (
 
 const (
 	indicesNum = 1 << 16
-	MaxQuads   = indicesNum / 6
+	maxQuads   = indicesNum / 6
 )
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
@@ -94,10 +94,10 @@ func (s *openGLState) reset(context *opengl.Context) error {
 	}
 
 	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
-	s.arrayBuffer = context.NewBuffer(opengl.ArrayBuffer, 4*stride*MaxQuads, opengl.DynamicDraw)
+	s.arrayBuffer = context.NewBuffer(opengl.ArrayBuffer, 4*stride*maxQuads, opengl.DynamicDraw)
 
-	indices := make([]uint16, 6*MaxQuads)
-	for i := uint16(0); i < MaxQuads; i++ {
+	indices := make([]uint16, 6*maxQuads)
+	for i := uint16(0); i < maxQuads; i++ {
 		indices[6*i+0] = 4*i + 0
 		indices[6*i+1] = 4*i + 1
 		indices[6*i+2] = 4*i + 2
