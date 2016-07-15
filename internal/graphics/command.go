@@ -26,6 +26,19 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
+func glMatrix(m *[4][4]float64) []float32 {
+	return []float32{
+		float32(m[0][0]), float32(m[1][0]), float32(m[2][0]), float32(m[3][0]),
+		float32(m[0][1]), float32(m[1][1]), float32(m[2][1]), float32(m[3][1]),
+		float32(m[0][2]), float32(m[1][2]), float32(m[2][2]), float32(m[3][2]),
+		float32(m[0][3]), float32(m[1][3]), float32(m[2][3]), float32(m[3][3]),
+	}
+}
+
+type Matrix interface {
+	Element(i, j int) float64
+}
+
 type command interface {
 	Exec(context *opengl.Context) error
 }
