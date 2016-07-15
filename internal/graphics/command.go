@@ -40,13 +40,12 @@ type Matrix interface {
 }
 
 type command interface {
-	Exec(context *opengl.Context) error
+	Exec(context *opengl.Context, indexOffsetInBytes int) error
 }
 
 type commandQueue struct {
-	commands           []command
-	indexOffsetInBytes int
-	m                  sync.Mutex
+	commands []command
+	m        sync.Mutex
 }
 
 var theCommandQueue = &commandQueue{
@@ -64,7 +63,6 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	defer q.m.Unlock()
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
-	q.indexOffsetInBytes = 0
 	vertices := []int16{}
 	for _, c := range q.commands {
 		switch c := c.(type) {
@@ -81,9 +79,13 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", maxQuads))
 	}
 	numc := len(q.commands)
+	indexOffsetInBytes := 0
 	for _, c := range q.commands {
-		if err := c.Exec(context); err != nil {
+		if err := c.Exec(context, indexOffsetInBytes); err != nil {
 			return err
+		}
+		if c, ok := c.(*drawImageCommand); ok {
+			indexOffsetInBytes += 6 * len(c.vertices) / 16 * 2
 		}
 	}
 	q.commands = []command{}
@@ -103,7 +105,7 @@ type fillCommand struct {
 	color color.Color
 }
 
-func (c *fillCommand) Exec(context *opengl.Context) error {
+func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ type drawImageCommand struct {
 	mode     opengl.CompositeMode
 }
 
-func (c *drawImageCommand) Exec(context *opengl.Context) error {
+func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
@@ -150,8 +152,7 @@ func (c *drawImageCommand) Exec(context *opengl.Context) error {
 	defer p.end()
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
-	context.DrawElements(opengl.Triangles, 6*n, theCommandQueue.indexOffsetInBytes)
-	theCommandQueue.indexOffsetInBytes += 6 * n * 2
+	context.DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
 	return nil
 }
 
@@ -160,7 +161,7 @@ type replacePixelsCommand struct {
 	pixels []uint8
 }
 
-func (c *replacePixelsCommand) Exec(context *opengl.Context) error {
+func (c *replacePixelsCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
@@ -184,7 +185,7 @@ type disposeCommand struct {
 	target *Image
 }
 
-func (c *disposeCommand) Exec(context *opengl.Context) error {
+func (c *disposeCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	if c.target.framebuffer != nil {
 		context.DeleteFramebuffer(c.target.framebuffer.native)
 	}
@@ -222,7 +223,7 @@ func adjustImageForTexture(img *image.RGBA) *image.RGBA {
 	return adjustedImage
 }
 
-func (c *newImageFromImageCommand) Exec(context *opengl.Context) error {
+func (c *newImageFromImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	origSize := c.img.Bounds().Size()
 	if origSize.X < 4 {
 		return errors.New("graphics: width must be equal or more than 4.")
@@ -253,7 +254,7 @@ type newImageCommand struct {
 	filter opengl.Filter
 }
 
-func (c *newImageCommand) Exec(context *opengl.Context) error {
+func (c *newImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	w := int(NextPowerOf2Int32(int32(c.width)))
 	h := int(NextPowerOf2Int32(int32(c.height)))
 	if w < 4 {
@@ -282,7 +283,7 @@ type newScreenFramebufferImageCommand struct {
 	height int
 }
 
-func (c *newScreenFramebufferImageCommand) Exec(context *opengl.Context) error {
+func (c *newScreenFramebufferImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	if c.width < 4 {
 		return errors.New("graphics: width must be equal or more than 4.")
 	}
