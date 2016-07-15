@@ -30,6 +30,8 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
+// basePixels and baseColor are exclusive.
+
 type pixels struct {
 	basePixels       []uint8
 	baseColor        color.Color
@@ -59,6 +61,7 @@ func (p *pixels) fill(clr color.Color) {
 
 func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
 	p.drawImageHistory = append(p.drawImageHistory, item)
+	// TODO: Consider the number of the vertices, which should not exceed the max number (#245).
 }
 
 func (p *pixels) at(image *graphics.Image, idx int, context *opengl.Context) (color.Color, error) {
@@ -114,19 +117,18 @@ func (p *pixels) restore(context *opengl.Context, width, height int, filter Filt
 		for j := 0; j < height; j++ {
 			copy(img.Pix[j*img.Stride:], p.basePixels[j*width*4:(j+1)*width*4])
 		}
-	} else if p.baseColor != nil {
-		r32, g32, b32, a32 := p.baseColor.RGBA()
-		r, g, b, a := uint8(r32), uint8(g32), uint8(b32), uint8(a32)
-		for idx := 0; idx < len(img.Pix)/4; idx++ {
-			img.Pix[4*idx] = r
-			img.Pix[4*idx+1] = g
-			img.Pix[4*idx+2] = b
-			img.Pix[4*idx+3] = a
-		}
 	}
 	gimg, err := graphics.NewImageFromImage(img, glFilter(filter))
 	if err != nil {
 		return nil, err
+	}
+	if p.baseColor != nil {
+		if p.basePixels != nil {
+			panic("not reach")
+		}
+		if err := gimg.Fill(p.baseColor); err != nil {
+			return nil, err
+		}
 	}
 	for _, c := range p.drawImageHistory {
 		// c.image.impl must be already restored.
