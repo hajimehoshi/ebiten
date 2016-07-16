@@ -33,8 +33,12 @@ const (
 )
 
 var (
-	skyColor     = color.RGBA{0x66, 0xcc, 0xff, 0xff}
-	thePlayer    = &player{}
+	skyColor  = color.RGBA{0x66, 0xcc, 0xff, 0xff}
+	thePlayer = &player{
+		x16:   16 * 100,
+		y16:   16 * 200,
+		angle: maxAngle * 3 / 4,
+	}
 	gophersImage *ebiten.Image
 	groundImage  *ebiten.Image
 )
@@ -111,9 +115,6 @@ func (p *player) Angle() int {
 }
 
 func updateGroundImage(ground *ebiten.Image) error {
-	if err := ground.Clear(); err != nil {
-		return nil
-	}
 	x16, y16 := thePlayer.Position()
 	a := thePlayer.Angle()
 	gw, gh := ground.Size()
@@ -144,13 +145,15 @@ func (g *groundParts) Len() int {
 
 func (g *groundParts) Src(i int) (int, int, int, int) {
 	w, _ := g.image.Size()
-	r := 60 - (i+10)/4
-	return w/2 - r, i, w/2 + r, i + 1
+	return 0, i, w, i + 1
 }
 
 func (g *groundParts) Dst(i int) (int, int, int, int) {
 	w, _ := g.image.Size()
-	return 0, i, w, i + 1
+	r := 30 + i*2
+	// TODO: If the last value is i + 1, there would be unexpected spots on the screen.
+	// i + 1 should work.
+	return -r, i, w + r, i + 2
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
