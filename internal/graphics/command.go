@@ -58,6 +58,9 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
+// commandGroups separates q.commands into some groups.
+// The number of quads of drawImageCommand in one groups must be equal to or less than
+// its limit (maxQuads).
 func (q *commandQueue) commandGroups() [][]command {
 	cs := make([]command, len(q.commands))
 	copy(cs, q.commands)
