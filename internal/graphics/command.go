@@ -58,41 +58,72 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
+func (q *commandQueue) commandGroups() [][]command {
+	cs := make([]command, len(q.commands))
+	copy(cs, q.commands)
+	gs := [][]command{}
+	quads := 0
+	for 0 < len(cs) {
+		if len(gs) == 0 {
+			gs = append(gs, []command{})
+		}
+		c := cs[0]
+		switch c := c.(type) {
+		case *drawImageCommand:
+			if maxQuads >= quads+c.quadsNum() {
+				quads += c.quadsNum()
+				break
+			}
+			cc := c.split(maxQuads - quads)
+			gs[len(gs)-1] = append(gs[len(gs)-1], cc[0])
+			cs[0] = cc[1]
+			quads = 0
+			gs = append(gs, []command{})
+			continue
+		}
+		gs[len(gs)-1] = append(gs[len(gs)-1], c)
+		cs = cs[1:]
+	}
+	return gs
+}
+
 func (q *commandQueue) Flush(context *opengl.Context) error {
 	q.m.Lock()
 	defer q.m.Unlock()
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
-	vertices := []int16{}
-	for _, c := range q.commands {
-		switch c := c.(type) {
-		case *drawImageCommand:
-			vertices = append(vertices, c.vertices...)
+	for _, g := range q.commandGroups() {
+		vertices := []int16{}
+		for _, c := range g {
+			switch c := c.(type) {
+			case *drawImageCommand:
+				vertices = append(vertices, c.vertices...)
+			}
 		}
-	}
-	if 0 < len(vertices) {
-		context.BufferSubData(opengl.ArrayBuffer, vertices)
-	}
-	// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
-	// Let's use them to compare to len(quads) in the future.
-	if maxQuads < len(vertices)/16 {
-		return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", maxQuads))
-	}
-	numc := len(q.commands)
-	indexOffsetInBytes := 0
-	for _, c := range q.commands {
-		if err := c.Exec(context, indexOffsetInBytes); err != nil {
-			return err
+		if 0 < len(vertices) {
+			context.BufferSubData(opengl.ArrayBuffer, vertices)
 		}
-		if c, ok := c.(*drawImageCommand); ok {
-			indexOffsetInBytes += 6 * len(c.vertices) / 16 * 2
+		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
+		// Let's use them to compare to len(quads) in the future.
+		if maxQuads < len(vertices)/16 {
+			return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", maxQuads))
+		}
+		numc := len(g)
+		indexOffsetInBytes := 0
+		for _, c := range g {
+			if err := c.Exec(context, indexOffsetInBytes); err != nil {
+				return err
+			}
+			if c, ok := c.(*drawImageCommand); ok {
+				indexOffsetInBytes += 6 * len(c.vertices) / 16 * 2
+			}
+		}
+		if 0 < numc {
+			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
+			context.Flush()
 		}
 	}
 	q.commands = []command{}
-	if 0 < numc {
-		// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-		context.Flush()
-	}
 	return nil
 }
 
@@ -133,7 +164,7 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 	}
 	context.BlendFunc(c.mode)
 
-	n := len(c.vertices) / 16
+	n := c.quadsNum()
 	if n == 0 {
 		return nil
 	}
@@ -154,6 +185,18 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 	// The buffer is already bound at begin() but it is counterintuitive.
 	context.DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
 	return nil
+}
+
+func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
+	c1 := *c
+	c2 := *c
+	c1.vertices = c.vertices[:quadsNum*16]
+	c2.vertices = c.vertices[quadsNum*16:]
+	return [2]*drawImageCommand{&c1, &c2}
+}
+
+func (c *drawImageCommand) quadsNum() int {
+	return len(c.vertices) / 16
 }
 
 type replacePixelsCommand struct {

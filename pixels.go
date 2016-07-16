@@ -61,7 +61,6 @@ func (p *pixels) fill(clr color.Color) {
 
 func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
 	p.drawImageHistory = append(p.drawImageHistory, item)
-	// TODO: Consider the number of the vertices, which should not exceed the max number (#245).
 }
 
 func (p *pixels) at(image *graphics.Image, idx int, context *opengl.Context) (color.Color, error) {

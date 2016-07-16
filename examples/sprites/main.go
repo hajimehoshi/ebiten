@@ -98,20 +98,20 @@ func (s Sprites) Src(i int) (x0, y0, x1, y1 int) {
 
 const (
 	MinSprites = 0
-	MaxSprites = 10000
+	MaxSprites = 50000
 )
 
 var sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
 
 func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		sprites.num -= 20
+		sprites.num -= 100
 		if sprites.num < MinSprites {
 			sprites.num = MinSprites
 		}
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		sprites.num += 20
+		sprites.num += 100
 		if MaxSprites < sprites.num {
 			sprites.num = MaxSprites
 		}
