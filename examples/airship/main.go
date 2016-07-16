@@ -150,10 +150,12 @@ func (g *groundParts) Src(i int) (int, int, int, int) {
 
 func (g *groundParts) Dst(i int) (int, int, int, int) {
 	w, _ := g.image.Size()
-	r := 30 + i*2
-	// TODO: If the last value is i + 1, there would be unexpected spots on the screen.
-	// i + 1 should work.
-	return -r, i, w + r, i + 2
+	r := 20 + i*16
+	j := 0.0
+	for idx := 0; idx < i; idx++ {
+		j += float64(idx) / 8
+	}
+	return -r, int(j), w + r, int(float64(j)+float64(i)/8) + 1
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
