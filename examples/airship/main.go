@@ -59,8 +59,8 @@ func (p *player) MoveForward() {
 	mx := w * 16
 	my := h * 16
 	s, c := math.Sincos(float64(p.angle) * 2 * math.Pi / maxAngle)
-	p.x16 += int(round(16 * c))
-	p.y16 += int(round(16 * s))
+	p.x16 += int(round(16*c) * 2)
+	p.y16 += int(round(16*s) * 2)
 	for mx <= p.x16 {
 		p.x16 -= mx
 	}
@@ -115,17 +115,20 @@ func (p *player) Angle() int {
 }
 
 func updateGroundImage(ground *ebiten.Image) error {
+	if err := ground.Clear(); err != nil {
+		return err
+	}
 	x16, y16 := thePlayer.Position()
 	a := thePlayer.Angle()
 	gw, gh := ground.Size()
 	w, h := gophersImage.Size()
-	for j := -1; j <= 1; j++ {
-		for i := -1; i <= 1; i++ {
+	for j := -2; j <= 2; j++ {
+		for i := -2; i <= 2; i++ {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
 			op.GeoM.Translate(float64(w*i), float64(h*j))
 			op.GeoM.Rotate(float64(-a)*2*math.Pi/maxAngle + math.Pi*3.0/2.0)
-			op.GeoM.Translate(float64(gw)/2, float64(gh))
+			op.GeoM.Translate(float64(gw)/2, float64(gh)-32)
 			if err := ground.DrawImage(gophersImage, op); err != nil {
 				return err
 			}
@@ -148,14 +151,18 @@ func (g *groundParts) Src(i int) (int, int, int, int) {
 	return 0, i, w, i + 1
 }
 
+func (g *groundParts) scaleForLine(x float64) float64 {
+	_, h := g.image.Size()
+	x = float64(h) - x
+	return 200*((-x+50)/(x+50)+1) - 200*((-float64(h)+50)/(float64(h)+50)+1)
+}
+
 func (g *groundParts) Dst(i int) (int, int, int, int) {
 	w, _ := g.image.Size()
-	r := i * 2
-	j := 1.0
-	for idx := 0; idx < i; idx++ {
-		j += float64(idx) / 40
-	}
-	return -r, int(j), w + r, int(float64(j)+float64(i)/40) + 1
+	r := g.scaleForLine(float64(i))
+	j1 := g.scaleForLine(float64(i))
+	j2 := g.scaleForLine(float64(i + 1))
+	return -int(r), int(j1), w + int(r), int(math.Ceil(j2))
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
