@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math"
@@ -41,6 +42,7 @@ var (
 	}
 	gophersImage *ebiten.Image
 	groundImage  *ebiten.Image
+	fogImage     *ebiten.Image
 )
 
 type player struct {
@@ -176,6 +178,14 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
 	if err := screen.DrawImage(ground, op); err != nil {
 		return err
 	}
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(-float64(w)/2, 0)
+	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
+	op.GeoM.Translate(float64(w)/2, 0)
+	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
+	if err := screen.DrawImage(fogImage, op); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -220,7 +230,28 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	groundImage, err = ebiten.NewImage(screenWidth+70, screenHeight*2/3+50, ebiten.FilterNearest)
+	groundWidth := screenWidth + 70
+	groundImage, err = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	const fogHeight = 8
+	fogRGBA := image.NewRGBA(image.Rect(0, 0, groundWidth, fogHeight))
+	for j := 0; j < fogHeight; j++ {
+		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
+		clr := skyColor
+		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
+		println(r, g, b, oa)
+		clr.R = uint8(r * a / oa)
+		clr.G = uint8(g * a / oa)
+		clr.B = uint8(b * a / oa)
+		clr.A = uint8(a)
+		fmt.Println(clr)
+		for i := 0; i < groundWidth; i++ {
+			fogRGBA.SetRGBA(i, j, clr)
+		}
+	}
+	fogImage, err = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
