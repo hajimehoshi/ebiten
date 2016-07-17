@@ -241,12 +241,10 @@ func main() {
 		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
 		clr := skyColor
 		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
-		println(r, g, b, oa)
 		clr.R = uint8(r * a / oa)
 		clr.G = uint8(g * a / oa)
 		clr.B = uint8(b * a / oa)
 		clr.A = uint8(a)
-		fmt.Println(clr)
 		for i := 0; i < groundWidth; i++ {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
