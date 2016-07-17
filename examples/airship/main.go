@@ -150,12 +150,12 @@ func (g *groundParts) Src(i int) (int, int, int, int) {
 
 func (g *groundParts) Dst(i int) (int, int, int, int) {
 	w, _ := g.image.Size()
-	r := 20 + i*16
-	j := 0.0
+	r := i * 2
+	j := 1.0
 	for idx := 0; idx < i; idx++ {
-		j += float64(idx) / 8
+		j += float64(idx) / 40
 	}
-	return -r, int(j), w + r, int(float64(j)+float64(i)/8) + 1
+	return -r, int(j), w + r, int(float64(j)+float64(i)/40) + 1
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
@@ -164,7 +164,7 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
 	op.GeoM.Translate(-float64(w)/2, 0)
 	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
 	op.GeoM.Translate(float64(w)/2, 0)
-	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/2)
+	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
 	op.ImageParts = &groundParts{ground}
 	if err := screen.DrawImage(ground, op); err != nil {
 		return err
@@ -213,7 +213,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	groundImage, err = ebiten.NewImage(screenWidth+70, screenHeight/2+50, ebiten.FilterNearest)
+	groundImage, err = ebiten.NewImage(screenWidth+70, screenHeight*2/3+50, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
