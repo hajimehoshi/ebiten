@@ -40,9 +40,10 @@ var (
 		y16:   16 * 200,
 		angle: maxAngle * 3 / 4,
 	}
-	gophersImage *ebiten.Image
-	groundImage  *ebiten.Image
-	fogImage     *ebiten.Image
+	gophersImage         *ebiten.Image
+	repeatedGophersImage *ebiten.Image
+	groundImage          *ebiten.Image
+	fogImage             *ebiten.Image
 )
 
 type player struct {
@@ -124,17 +125,13 @@ func updateGroundImage(ground *ebiten.Image) error {
 	a := thePlayer.Angle()
 	gw, gh := ground.Size()
 	w, h := gophersImage.Size()
-	for j := -2; j <= 2; j++ {
-		for i := -2; i <= 2; i++ {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
-			op.GeoM.Translate(float64(w*i), float64(h*j))
-			op.GeoM.Rotate(float64(-a)*2*math.Pi/maxAngle + math.Pi*3.0/2.0)
-			op.GeoM.Translate(float64(gw)/2, float64(gh)-32)
-			if err := ground.DrawImage(gophersImage, op); err != nil {
-				return err
-			}
-		}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
+	op.GeoM.Translate(float64(-w*2), float64(-h*2))
+	op.GeoM.Rotate(float64(-a)*2*math.Pi/maxAngle + math.Pi*3.0/2.0)
+	op.GeoM.Translate(float64(gw)/2, float64(gh)-32)
+	if err := ground.DrawImage(repeatedGophersImage, op); err != nil {
+		return err
 	}
 	return nil
 }
@@ -229,6 +226,21 @@ func main() {
 	gophersImage, _, err = common.AssetImage("gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
+	}
+	w, h := gophersImage.Size()
+	const repeat = 5
+	repeatedGophersImage, err = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for j := 0; j < repeat; j++ {
+		for i := 0; i < repeat; i++ {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64(w*i), float64(h*j))
+			if err := repeatedGophersImage.DrawImage(gophersImage, op); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 	groundWidth := screenWidth + 70
 	groundImage, err = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
