@@ -43,6 +43,9 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if c.offscreen != nil {
 		c.offscreen.Dispose()
 	}
+	if c.offscreen2 != nil {
+		c.offscreen2.Dispose()
+	}
 	offscreen, err := newVolatileImage(screenWidth, screenHeight, FilterNearest)
 	if err != nil {
 		return err
