@@ -53,6 +53,10 @@ func (p *pixels) clear() {
 	p.drawImageHistory = nil
 }
 
+func (p *pixels) isCleared() bool {
+	return p.basePixels == nil && p.baseColor == nil && p.drawImageHistory == nil
+}
+
 func (p *pixels) fill(clr color.Color) {
 	p.basePixels = nil
 	p.baseColor = clr

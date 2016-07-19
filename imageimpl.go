@@ -112,6 +112,9 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
+	if clr == color.Transparent && i.pixels.isCleared() {
+		return nil
+	}
 	i.pixels.fill(clr)
 	return i.image.Fill(clr)
 }
@@ -123,6 +126,9 @@ func (i *imageImpl) clearIfVolatile() error {
 		return nil
 	}
 	if !i.volatile {
+		return nil
+	}
+	if i.pixels.isCleared() {
 		return nil
 	}
 	i.pixels.clear()
