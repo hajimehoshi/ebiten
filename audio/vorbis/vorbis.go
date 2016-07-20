@@ -5494,6 +5494,10 @@ int stb_vorbis_get_samples_float(stb_vorbis *f, int channels, float **buffer, in
 
 #endif // STB_VORBIS_HEADER_ONLY
 
+static short* shortPtrOffset(short* value, int index) {
+  return value + index;
+}
+
 */
 import "C"
 
@@ -5539,6 +5543,49 @@ func goAssert(x C.int, sentence *C.char) {
 	}
 	str := C.GoString(sentence)
 	panic(fmt.Sprintf("go-vorbis: assertion error: %s", str))
+}
+
+func stb_vorbis_decode_memory(mem *C.uchar, len C.int, channels *C.int, sample_rate *C.int, output **C.short) C.int {
+	error := C.int(0)
+	data := (*C.short)(nil)
+	v := C.stb_vorbis_open_memory(mem, len, &error, nil)
+	if v == nil {
+		return -1
+	}
+	limit := v.channels * 4096
+	*channels = v.channels
+	if sample_rate != nil {
+		*sample_rate = C.int(v.sample_rate)
+	}
+	offset := C.int(0)
+	data_len := C.int(0)
+	total := limit
+	data = (*C.short)(C.malloc(C.size_t(total * C.sizeof_short)))
+	if data == nil {
+		C.stb_vorbis_close(v)
+		return -2
+	}
+	for {
+		n := C.stb_vorbis_get_frame_short_interleaved(v, v.channels, C.shortPtrOffset(data, offset), total-offset)
+		if n == 0 {
+			break
+		}
+		data_len += n
+		offset += n * v.channels
+		if offset+limit > total {
+			total *= 2
+			data2 := (*C.short)(C.realloc(unsafe.Pointer(data), C.size_t(total*C.sizeof_short)))
+			if data2 == nil {
+				C.free(data)
+				C.stb_vorbis_close(v)
+				return -2
+			}
+			data = data2
+		}
+	}
+	*output = data
+	C.stb_vorbis_close(v)
+	return data_len
 }
 
 type decoded struct {
@@ -5603,7 +5650,7 @@ func decode(in io.ReadCloser) (*decoded, int, int, error) {
 	channelNum := C.int(0)
 	sampleRate := C.int(0)
 	output := (*C.short)(nil)
-	sampleNum := C.stb_vorbis_decode_memory((*C.uchar)(&mem[0]), C.int(len(mem)), &channelNum, &sampleRate, &output)
+	sampleNum := stb_vorbis_decode_memory((*C.uchar)(&mem[0]), C.int(len(mem)), &channelNum, &sampleRate, &output)
 	d := &decoded{
 		data:           output,
 		sampleNum:      int(sampleNum),
