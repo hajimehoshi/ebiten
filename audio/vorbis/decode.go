@@ -17,50 +17,85 @@
 package vorbis
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/jfreymuth/go-vorbis/ogg/vorbis"
 )
 
 type Stream struct {
-	decoded *decoded
+	buf *bytes.Reader
+}
+
+func newStream(v *vorbis.Vorbis) (*Stream, error) {
+	data := []byte{}
+	// TODO: We can delay decoding.
+	for {
+		out, err := v.DecodePacket()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		const channelNum = 2
+		b := make([]byte, len(out[0])*2*channelNum)
+		for i := 0; i < len(out[0]); i++ {
+			vv := int16(out[0][i] * math.MaxInt16)
+			b[4*i] = byte(vv)
+			b[4*i+1] = byte(vv >> 8)
+			vv = int16(out[1][i] * math.MaxInt16)
+			b[4*i+2] = byte(vv)
+			b[4*i+3] = byte(vv >> 8)
+		}
+		data = append(data, b...)
+	}
+	s := &Stream{
+		buf: bytes.NewReader(data),
+	}
+	return s, nil
 }
 
 func (s *Stream) Read(p []byte) (int, error) {
-	return s.decoded.Read(p)
+	return s.buf.Read(p)
 }
 
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.decoded.Seek(offset, whence)
+	return s.buf.Seek(offset, whence)
 }
 
 func (s *Stream) Close() error {
-	return s.decoded.Close()
+	s.buf = nil
+	return nil
 }
 
 // Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
-	return s.decoded.Size()
+	return s.buf.Size()
 }
 
 // Decode decodes Ogg/Vorbis data to playable stream.
 //
 // The sample rate must be same as that of audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
-	decoded, channelNum, sampleRate, err := decode(src)
+	v, err := vorbis.Open(src)
 	if err != nil {
 		return nil, err
 	}
 	// TODO: Remove this magic number
-	if channelNum != 2 {
+	if v.Channels() != 2 {
 		return nil, errors.New("vorbis: number of channels must be 2")
 	}
-	if sampleRate != context.SampleRate() {
-		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+	if v.SampleRate() != context.SampleRate() {
+		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), v.SampleRate())
 	}
-	s := &Stream{
-		decoded: decoded,
+	s, err := newStream(v)
+	if err != nil {
+		return nil, err
 	}
 	return s, nil
 }
