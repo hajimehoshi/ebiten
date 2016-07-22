@@ -83,12 +83,8 @@ loop:
 			return err
 		case <-c.worker.WorkAvailable():
 			c.worker.DoWork()
-		default:
-			select {
-			case <-chDone:
-				break loop
-			default:
-			}
+		case <-chDone:
+			break loop
 		}
 	}
 	return nil
