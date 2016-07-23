@@ -51,6 +51,7 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		filter:   filter,
 		volatile: volatile,
 	}
+	i.pixels.image = i.image
 	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -83,6 +84,7 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		height: h,
 		filter: filter,
 	}
+	i.pixels.image = i.image
 	i.pixels.resetWithPixels(pixels)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -100,6 +102,7 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		volatile: true,
 		screen:   true,
 	}
+	i.pixels.image = i.image
 	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -192,7 +195,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		return color.Transparent
 	}
 	idx := 4*x + 4*y*i.width
-	clr, err := i.pixels.at(i.image, idx, context)
+	clr, err := i.pixels.at(idx, context)
 	if err != nil {
 		panic(err)
 	}
@@ -205,7 +208,7 @@ func (i *imageImpl) flushPixelsIfInconsistent(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.flushIfInconsistent(i.image, context); err != nil {
+	if err := i.pixels.flushIfInconsistent(context); err != nil {
 		return err
 	}
 	return nil
@@ -217,7 +220,7 @@ func (i *imageImpl) flushPixelsIfNeeded(target *Image, context *opengl.Context) 
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.flushIfNeeded(i.image, target, context); err != nil {
+	if err := i.pixels.flushIfNeeded(target, context); err != nil {
 		return err
 	}
 	return nil

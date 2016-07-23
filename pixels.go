@@ -30,9 +30,14 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
+type imageForPixels interface {
+	Pixels(context *opengl.Context) ([]uint8, error)
+}
+
 // basePixels and baseColor are exclusive.
 
 type pixels struct {
+	image            imageForPixels
 	inconsistent     bool
 	basePixels       []uint8
 	baseColor        color.Color
@@ -80,11 +85,11 @@ func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
 	p.drawImageHistory = append(p.drawImageHistory, item)
 }
 
-func (p *pixels) at(image *graphics.Image, idx int, context *opengl.Context) (color.Color, error) {
+func (p *pixels) at(idx int, context *opengl.Context) (color.Color, error) {
 	if p.inconsistent || p.basePixels == nil || p.drawImageHistory != nil {
 		p.inconsistent = false
 		var err error
-		p.basePixels, err = image.Pixels(context)
+		p.basePixels, err = p.image.Pixels(context)
 		if err != nil {
 			return nil, err
 		}
@@ -104,13 +109,13 @@ func (p *pixels) hasHistoryWith(target *Image) bool {
 	return false
 }
 
-func (p *pixels) flushIfInconsistent(image *graphics.Image, context *opengl.Context) error {
+func (p *pixels) flushIfInconsistent(context *opengl.Context) error {
 	if !p.inconsistent {
 		return nil
 	}
 	p.inconsistent = false
 	var err error
-	p.basePixels, err = image.Pixels(context)
+	p.basePixels, err = p.image.Pixels(context)
 	if err != nil {
 		return err
 	}
@@ -119,7 +124,7 @@ func (p *pixels) flushIfInconsistent(image *graphics.Image, context *opengl.Cont
 	return nil
 }
 
-func (p *pixels) flushIfNeeded(image *graphics.Image, target *Image, context *opengl.Context) error {
+func (p *pixels) flushIfNeeded(target *Image, context *opengl.Context) error {
 	if p.drawImageHistory == nil {
 		return nil
 	}
@@ -132,7 +137,7 @@ func (p *pixels) flushIfNeeded(image *graphics.Image, target *Image, context *op
 	}
 	p.inconsistent = false
 	var err error
-	p.basePixels, err = image.Pixels(context)
+	p.basePixels, err = p.image.Pixels(context)
 	if err != nil {
 		return err
 	}
