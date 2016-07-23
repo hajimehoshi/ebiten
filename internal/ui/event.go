@@ -21,6 +21,7 @@ type ScreenSizeEvent struct {
 	Width       int
 	Height      int
 	ActualScale float64
+	Done        chan struct{}
 }
 
 type RenderEvent struct {

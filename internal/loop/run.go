@@ -115,6 +115,7 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 			if err := g.SetSize(e.Width, e.Height, e.ActualScale); err != nil {
 				return err
 			}
+			e.Done <- struct{}{}
 		case ui.CloseEvent:
 			return nil
 		case ui.RenderEvent:

@@ -83,11 +83,14 @@ func (u *userInterface) Terminate() error {
 
 func (u *userInterface) Update() (interface{}, error) {
 	if u.sizeChanged {
+		// Sizing also calls GL functions
+		<-chRender
 		u.sizeChanged = false
 		e := ScreenSizeEvent{
 			Width:       u.width,
 			Height:      u.height,
 			ActualScale: u.actualScreenScale(),
+			Done:        chRenderEnd,
 		}
 		return e, nil
 	}

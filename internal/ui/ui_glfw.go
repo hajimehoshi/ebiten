@@ -191,6 +191,7 @@ func (u *userInterface) Update() (interface{}, error) {
 			Width:       u.width,
 			Height:      u.height,
 			ActualScale: u.actualScreenScale(),
+			Done:        make(chan struct{}, 1),
 		}
 		return nil
 	})
