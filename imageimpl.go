@@ -33,7 +33,7 @@ type imageImpl struct {
 	width    int
 	height   int
 	filter   Filter
-	pixels   pixels
+	pixels   *pixels
 	volatile bool
 	screen   bool
 	m        sync.Mutex
@@ -50,8 +50,10 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		height:   height,
 		filter:   filter,
 		volatile: volatile,
+		pixels: &pixels{
+			image: img,
+		},
 	}
-	i.pixels.image = i.image
 	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -69,9 +71,9 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 		rgbaImg = newImg
 	}
-	pixels := make([]uint8, 4*w*h)
+	p := make([]uint8, 4*w*h)
 	for j := 0; j < h; j++ {
-		copy(pixels[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
+		copy(p[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
 	img, err := graphics.NewImageFromImage(rgbaImg, glFilter(filter))
 	if err != nil {
@@ -83,9 +85,11 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		width:  w,
 		height: h,
 		filter: filter,
+		pixels: &pixels{
+			image: img,
+		},
 	}
-	i.pixels.image = i.image
-	i.pixels.resetWithPixels(pixels)
+	i.pixels.resetWithPixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -101,8 +105,10 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		height:   height,
 		volatile: true,
 		screen:   true,
+		pixels: &pixels{
+			image: img,
+		},
 	}
-	i.pixels.image = i.image
 	i.pixels.resetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -277,7 +283,7 @@ func (i *imageImpl) Dispose() error {
 	}
 	i.image = nil
 	i.disposed = true
-	i.pixels.clear()
+	i.pixels = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
