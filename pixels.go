@@ -75,9 +75,16 @@ func (p *pixels) fill(clr color.Color) {
 	p.drawImageHistory = nil
 }
 
+func (p *pixels) makeInconsistent() {
+	p.inconsistent = true
+	p.basePixels = nil
+	p.baseColor = nil
+	p.drawImageHistory = nil
+}
+
 func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
 	if item.image.impl.pixels.inconsistent {
-		p.inconsistent = true
+		p.makeInconsistent()
 	}
 	if p.inconsistent {
 		return
@@ -132,7 +139,7 @@ func (p *pixels) flushIfNeeded(target *Image, context *opengl.Context) error {
 		return nil
 	}
 	if context == nil {
-		p.inconsistent = true
+		p.makeInconsistent()
 		return nil
 	}
 	p.inconsistent = false
