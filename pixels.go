@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"errors"
 	"image"
 	"image/color"
 
@@ -91,7 +92,9 @@ func (p *pixels) hasHistoryWith(target *Image) bool {
 }
 
 func (p *pixels) resetHistoryIfNeeded(image *graphics.Image, target *Image, context *opengl.Context) error {
-	// TODO: Return error when the main loop is not running yet.
+	if context == nil {
+		return errors.New("ebiten: OpenGL context is missing: before running the main loop, it is forbidden to manipulate images that is used as a drawing source once.")
+	}
 	if p.drawImageHistory == nil {
 		return nil
 	}
