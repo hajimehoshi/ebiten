@@ -73,7 +73,10 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	ch := make(chan error)
 	go func() {
 		g := newGraphicsContext(f)
-		ch <- loop.Run(g, width, height, scale, title, FPS)
+		if err := loop.Run(g, width, height, scale, title, FPS); err != nil {
+			ch <- err
+		}
+		close(ch)
 	}()
 	ui.Main()
 	return <-ch
