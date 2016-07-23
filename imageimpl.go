@@ -175,11 +175,14 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	c := &drawImageHistoryItem{
-		image:    image,
+		image:    image.impl.image,
 		vertices: vertices,
 		geom:     options.GeoM,
 		colorm:   options.ColorM,
 		mode:     opengl.CompositeMode(options.CompositeMode),
+	}
+	if image.impl.pixels.inconsistent {
+		i.pixels.makeInconsistent()
 	}
 	i.pixels.appendDrawImageHistory(c)
 	geom := &options.GeoM
@@ -220,13 +223,19 @@ func (i *imageImpl) flushPixelsIfInconsistent(context *opengl.Context) error {
 	return nil
 }
 
-func (i *imageImpl) flushPixelsIfNeeded(target *Image, context *opengl.Context) error {
+func (i *imageImpl) flushPixelsIfNeeded(target *imageImpl, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
+	if i == target {
+		return nil
+	}
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.flushIfNeeded(target, context); err != nil {
+	if target.isDisposed() {
+		return errors.New("ebiten: target is already disposed")
+	}
+	if err := i.pixels.flushIfNeeded(target.image, context); err != nil {
 		return err
 	}
 	return nil

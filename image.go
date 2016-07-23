@@ -78,7 +78,7 @@ func (i *images) flushPixelsIfNeeded(target *Image, context *opengl.Context) err
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if err := img.flushPixelsIfNeeded(target, context); err != nil {
+		if err := img.flushPixelsIfNeeded(target.impl, context); err != nil {
 			return err
 		}
 	}

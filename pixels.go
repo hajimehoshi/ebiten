@@ -23,7 +23,7 @@ import (
 )
 
 type drawImageHistoryItem struct {
-	image    *Image
+	image    *graphics.Image
 	vertices []int16
 	geom     GeoM
 	colorm   ColorM
@@ -83,9 +83,6 @@ func (p *pixels) makeInconsistent() {
 }
 
 func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
-	if item.image.impl.pixels.inconsistent {
-		p.makeInconsistent()
-	}
 	if p.inconsistent {
 		return
 	}
@@ -107,7 +104,7 @@ func (p *pixels) at(idx int, context *opengl.Context) (color.Color, error) {
 	return color.RGBA{r, g, b, a}, nil
 }
 
-func (p *pixels) hasHistoryWith(target *Image) bool {
+func (p *pixels) hasHistoryWith(target *graphics.Image) bool {
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
 			return true
@@ -131,7 +128,7 @@ func (p *pixels) flushIfInconsistent(context *opengl.Context) error {
 	return nil
 }
 
-func (p *pixels) flushIfNeeded(target *Image, context *opengl.Context) error {
+func (p *pixels) flushIfNeeded(target *graphics.Image, context *opengl.Context) error {
 	if p.drawImageHistory == nil {
 		return nil
 	}
@@ -181,10 +178,10 @@ func (p *pixels) restore(context *opengl.Context, width, height int, filter Filt
 	}
 	for _, c := range p.drawImageHistory {
 		// c.image.impl must be already restored.
-		if c.image.impl.hasHistory() {
+		/*if c.image.impl.hasHistory() {
 			panic("not reach")
-		}
-		if err := gimg.DrawImage(c.image.impl.image, c.vertices, &c.geom, &c.colorm, c.mode); err != nil {
+		}*/
+		if err := gimg.DrawImage(c.image, c.vertices, &c.geom, &c.colorm, c.mode); err != nil {
 			return nil, err
 		}
 	}
