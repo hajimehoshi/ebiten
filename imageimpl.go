@@ -199,6 +199,18 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	return clr
 }
 
+func (i *imageImpl) flushPixelsIfInconsistent(context *opengl.Context) error {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.disposed {
+		return nil
+	}
+	if err := i.pixels.flushIfInconsistent(i.image, context); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (i *imageImpl) flushPixelsIfNeeded(target *Image, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()

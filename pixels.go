@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"errors"
 	"image"
 	"image/color"
 
@@ -34,6 +33,7 @@ type drawImageHistoryItem struct {
 // basePixels and baseColor are exclusive.
 
 type pixels struct {
+	inconsistent     bool
 	basePixels       []uint8
 	baseColor        color.Color
 	drawImageHistory []*drawImageHistoryItem
@@ -44,32 +44,45 @@ func (p *pixels) resetWithPixels(pixels []uint8) {
 		p.basePixels = make([]uint8, len(pixels))
 	}
 	copy(p.basePixels, pixels)
+	p.inconsistent = false
 	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 
 func (p *pixels) clear() {
+	p.inconsistent = false
 	p.basePixels = nil
 	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 
 func (p *pixels) isCleared() bool {
+	if p.inconsistent {
+		return false
+	}
 	return p.basePixels == nil && p.baseColor == nil && p.drawImageHistory == nil
 }
 
 func (p *pixels) fill(clr color.Color) {
+	p.inconsistent = false
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
 }
 
 func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
+	if item.image.impl.pixels.inconsistent {
+		p.inconsistent = true
+	}
+	if p.inconsistent {
+		return
+	}
 	p.drawImageHistory = append(p.drawImageHistory, item)
 }
 
 func (p *pixels) at(image *graphics.Image, idx int, context *opengl.Context) (color.Color, error) {
-	if p.basePixels == nil || p.drawImageHistory != nil {
+	if p.inconsistent || p.basePixels == nil || p.drawImageHistory != nil {
+		p.inconsistent = false
 		var err error
 		p.basePixels, err = image.Pixels(context)
 		if err != nil {
@@ -91,6 +104,21 @@ func (p *pixels) hasHistoryWith(target *Image) bool {
 	return false
 }
 
+func (p *pixels) flushIfInconsistent(image *graphics.Image, context *opengl.Context) error {
+	if !p.inconsistent {
+		return nil
+	}
+	p.inconsistent = false
+	var err error
+	p.basePixels, err = image.Pixels(context)
+	if err != nil {
+		return err
+	}
+	p.baseColor = nil
+	p.drawImageHistory = nil
+	return nil
+}
+
 func (p *pixels) flushIfNeeded(image *graphics.Image, target *Image, context *opengl.Context) error {
 	if p.drawImageHistory == nil {
 		return nil
@@ -99,8 +127,10 @@ func (p *pixels) flushIfNeeded(image *graphics.Image, target *Image, context *op
 		return nil
 	}
 	if context == nil {
-		return errors.New("ebiten: OpenGL context is missing: before running the main loop, it is forbidden to manipulate an image that is used as a drawing source once.")
+		p.inconsistent = true
+		return nil
 	}
+	p.inconsistent = false
 	var err error
 	p.basePixels, err = image.Pixels(context)
 	if err != nil {
@@ -146,6 +176,7 @@ func (p *pixels) restore(context *opengl.Context, width, height int, filter Filt
 			return nil, err
 		}
 	}
+	p.inconsistent = false
 	p.basePixels, err = gimg.Pixels(context)
 	if err != nil {
 		return nil, err

@@ -132,6 +132,9 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
+	if err := theImagesForRestoring.flushPixelsIfInconsistent(context); err != nil {
+		return err
+	}
 	for i := 0; i < updateCount; i++ {
 		if err := theImagesForRestoring.clearVolatileImages(); err != nil {
 			return err
