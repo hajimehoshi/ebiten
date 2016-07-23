@@ -46,14 +46,6 @@ func CurrentUI() UserInterface {
 var glContext *opengl.Context
 
 func GLContext() *opengl.Context {
-	if glContext != nil {
-		return glContext
-	}
-	var err error
-	glContext, err = opengl.NewContext(currentUI.runOnMainThread)
-	if err != nil {
-		panic(err)
-	}
 	return glContext
 }
 
@@ -145,6 +137,13 @@ func (u *userInterface) ScreenScale() float64 {
 }
 
 func (u *userInterface) Start(width, height int, scale float64, title string) error {
+	// GLContext must be created before setting the screen size, which requres
+	// swapping buffers.
+	var err error
+	glContext, err = opengl.NewContext(currentUI.runOnMainThread)
+	if err != nil {
+		return err
+	}
 	if err := u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()

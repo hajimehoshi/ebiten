@@ -27,14 +27,6 @@ import (
 var glContext *opengl.Context
 
 func GLContext() *opengl.Context {
-	if glContext != nil {
-		return glContext
-	}
-	var err error
-	glContext, err = opengl.NewContext()
-	if err != nil {
-		panic(err)
-	}
 	return glContext
 }
 
@@ -83,6 +75,11 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	u.height = height
 	u.scale = scale
 	// title is ignored?
+	var err error
+	glContext, err = opengl.NewContext()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

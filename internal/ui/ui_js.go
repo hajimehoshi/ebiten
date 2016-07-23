@@ -139,14 +139,6 @@ func touchEventToTouches(e *js.Object) []touch {
 var glContext *opengl.Context
 
 func GLContext() *opengl.Context {
-	if glContext != nil {
-		return glContext
-	}
-	var err error
-	glContext, err = opengl.NewContext()
-	if err != nil {
-		panic(err)
-	}
 	return glContext
 }
 
@@ -301,6 +293,11 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
 	canvas.Call("focus")
+	var err error
+	glContext, err = opengl.NewContext()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
