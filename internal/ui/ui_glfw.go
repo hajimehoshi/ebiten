@@ -33,7 +33,6 @@ type userInterface struct {
 	width       int
 	height      int
 	scale       float64
-	context     *opengl.Context
 	funcs       chan func()
 	sizeChanged bool
 }
@@ -44,8 +43,18 @@ func CurrentUI() UserInterface {
 	return currentUI
 }
 
+var glContext *opengl.Context
+
 func GLContext() *opengl.Context {
-	return currentUI.context
+	if glContext != nil {
+		return glContext
+	}
+	var err error
+	glContext, err = opengl.NewContext(currentUI.runOnMainThread)
+	if err != nil {
+		panic(err)
+	}
+	return glContext
 }
 
 func init() {
@@ -77,10 +86,6 @@ func initialize() error {
 	}
 	u.window.MakeContextCurrent()
 	glfw.SwapInterval(1)
-	u.context, err = opengl.NewContext(u.runOnMainThread)
-	if err != nil {
-		return err
-	}
 	currentUI = u
 	return nil
 }
@@ -244,7 +249,7 @@ func (u *userInterface) SwapBuffers() error {
 
 func (u *userInterface) swapBuffers() error {
 	// The bound framebuffer must be the default one (0) before swapping buffers.
-	if err := u.context.BindScreenFramebuffer(); err != nil {
+	if err := glContext.BindScreenFramebuffer(); err != nil {
 		return err
 	}
 	u.window.SwapBuffers()
