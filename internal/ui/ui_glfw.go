@@ -43,12 +43,6 @@ func CurrentUI() UserInterface {
 	return currentUI
 }
 
-var glContext *opengl.Context
-
-func GLContext() *opengl.Context {
-	return glContext
-}
-
 func init() {
 	if err := initialize(); err != nil {
 		panic(err)

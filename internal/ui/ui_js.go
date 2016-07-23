@@ -136,12 +136,6 @@ func touchEventToTouches(e *js.Object) []touch {
 	return t
 }
 
-var glContext *opengl.Context
-
-func GLContext() *opengl.Context {
-	return glContext
-}
-
 func init() {
 	if err := initialize(); err != nil {
 		panic(err)

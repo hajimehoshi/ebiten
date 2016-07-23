@@ -24,12 +24,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-var glContext *opengl.Context
-
-func GLContext() *opengl.Context {
-	return glContext
-}
-
 func Main() error {
 	return errors.New("ui: don't call this: use RunWithoutMainLoop instead of Run")
 }
