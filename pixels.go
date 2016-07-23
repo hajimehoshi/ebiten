@@ -91,6 +91,7 @@ func (p *pixels) hasHistoryWith(target *Image) bool {
 }
 
 func (p *pixels) resetHistoryIfNeeded(image *graphics.Image, target *Image, context *opengl.Context) error {
+	// TODO: Return error when the main loop is not running yet.
 	if p.drawImageHistory == nil {
 		return nil
 	}

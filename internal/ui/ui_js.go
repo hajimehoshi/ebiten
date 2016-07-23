@@ -136,14 +136,30 @@ func touchEventToTouches(e *js.Object) []touch {
 	return t
 }
 
-func initialize() (*opengl.Context, error) {
+var glContext *opengl.Context
+
+func GLContext() *opengl.Context {
+	if glContext != nil {
+		return glContext
+	}
+	var err error
+	glContext, err = opengl.NewContext()
+	if err != nil {
+		panic(err)
+	}
+	return glContext
+}
+
+func init() {
+	if err := initialize(); err != nil {
+		panic(err)
+	}
+}
+
+func initialize() error {
 	// Do nothing in node.js.
 	if js.Global.Get("require") != js.Undefined {
-		c, err := opengl.NewContext()
-		if err != nil {
-			return nil, err
-		}
-		return c, nil
+		return nil
 	}
 
 	doc := js.Global.Get("document")
@@ -255,12 +271,7 @@ func initialize() (*opengl.Context, error) {
 		close(currentUI.contextRestored)
 		currentUI.contextRestored = nil
 	})
-
-	c, err := opengl.NewContext()
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
+	return nil
 }
 
 func setMouseCursorFromEvent(e *js.Object) {

@@ -24,8 +24,18 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-func initialize() (*opengl.Context, error) {
-	return opengl.NewContext()
+var glContext *opengl.Context
+
+func GLContext() *opengl.Context {
+	if glContext != nil {
+		return glContext
+	}
+	var err error
+	glContext, err = opengl.NewContext()
+	if err != nil {
+		panic(err)
+	}
+	return glContext
 }
 
 func Main() error {

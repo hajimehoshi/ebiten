@@ -44,11 +44,21 @@ func CurrentUI() UserInterface {
 	return currentUI
 }
 
-func initialize() (*opengl.Context, error) {
+func GLContext() *opengl.Context {
+	return currentUI.context
+}
+
+func init() {
+	if err := initialize(); err != nil {
+		panic(err)
+	}
+}
+
+func initialize() error {
 	runtime.LockOSThread()
 
 	if err := glfw.Init(); err != nil {
-		return nil, err
+		return err
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.Resizable, glfw.False)
@@ -58,7 +68,7 @@ func initialize() (*opengl.Context, error) {
 	// As start, create an window with temporary size to create OpenGL context thread.
 	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	u := &userInterface{
@@ -81,10 +91,9 @@ func initialize() (*opengl.Context, error) {
 	}()
 	currentUI = u
 	if err := <-ch; err != nil {
-		return nil, err
+		return err
 	}
-
-	return u.context, nil
+	return nil
 }
 
 func Main() error {
