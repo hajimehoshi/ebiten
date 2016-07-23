@@ -16,9 +16,11 @@ package ebiten
 
 import (
 	"math"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
@@ -33,7 +35,14 @@ type graphicsContext struct {
 	offscreen2  *Image // TODO: better name
 	screen      *Image
 	screenScale float64
-	initialized bool
+	initialized int32
+}
+
+func (c *graphicsContext) GLContext() *opengl.Context {
+	if atomic.LoadInt32(&c.initialized) == 0 {
+		return nil
+	}
+	return ui.GLContext()
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) error {
@@ -82,11 +91,11 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 }
 
 func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
-	if !c.initialized {
+	if atomic.LoadInt32(&c.initialized) == 0 {
 		if err := graphics.Reset(context); err != nil {
 			return err
 		}
-		c.initialized = true
+		atomic.StoreInt32(&c.initialized, 1)
 	}
 	r, err := c.needsRestoring(context)
 	if err != nil {

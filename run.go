@@ -57,6 +57,8 @@ func IsRunningSlowly() bool {
 	return atomic.LoadInt32(&isRunningSlowly) != 0
 }
 
+var theGraphicsContext atomic.Value
+
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -73,6 +75,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	ch := make(chan error)
 	go func() {
 		g := newGraphicsContext(f)
+		theGraphicsContext.Store(g)
 		if err := loop.Run(g, width, height, scale, title, FPS); err != nil {
 			ch <- err
 		}
@@ -93,6 +96,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	ch := make(chan error)
 	go func() {
 		g := newGraphicsContext(f)
+		theGraphicsContext.Store(g)
 		if err := loop.Run(g, width, height, scale, title, FPS); err != nil {
 			ch <- err
 		}

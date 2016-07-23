@@ -21,8 +21,19 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
+
+func glContext() *opengl.Context {
+	// This is called from finalizers even when the context or the program is not set.
+	g, ok := theGraphicsContext.Load().(*graphicsContext)
+	if !ok {
+		return nil
+	}
+	if g == nil {
+		return nil
+	}
+	return g.GLContext()
+}
 
 type images struct {
 	images map[*imageImpl]struct{}
@@ -141,7 +152,7 @@ func (i *Image) Size() (width, height int) {
 //
 // This function is concurrent-safe.
 func (i *Image) Clear() error {
-	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, glContext()); err != nil {
 		return err
 	}
 	return i.impl.Fill(color.Transparent)
@@ -151,7 +162,7 @@ func (i *Image) Clear() error {
 //
 // This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) error {
-	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, glContext()); err != nil {
 		return err
 	}
 	return i.impl.Fill(clr)
@@ -174,7 +185,7 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
-	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, glContext()); err != nil {
 		return err
 	}
 	return i.impl.DrawImage(image, options)
@@ -202,7 +213,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // This function is concurrent-safe.
 func (i *Image) At(x, y int) color.Color {
-	return i.impl.At(x, y, ui.GLContext())
+	return i.impl.At(x, y, glContext())
 }
 
 // Dispose disposes the image data. After disposing, the image becomes invalid.
@@ -212,7 +223,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // This function is concurrent-safe.
 func (i *Image) Dispose() error {
-	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, glContext()); err != nil {
 		return err
 	}
 	if i.impl.isDisposed() {
@@ -229,7 +240,7 @@ func (i *Image) Dispose() error {
 //
 // This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
-	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, glContext()); err != nil {
 		return err
 	}
 	return i.impl.ReplacePixels(p)
