@@ -199,13 +199,13 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	return clr
 }
 
-func (i *imageImpl) resetHistoryIfNeeded(target *Image, context *opengl.Context) error {
+func (i *imageImpl) flushPixelsIfNeeded(target *Image, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.resetHistoryIfNeeded(i.image, target, context); err != nil {
+	if err := i.pixels.flushIfNeeded(i.image, target, context); err != nil {
 		return err
 	}
 	return nil

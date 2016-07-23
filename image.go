@@ -52,11 +52,11 @@ func (i *images) remove(img *Image) {
 	runtime.SetFinalizer(img, nil)
 }
 
-func (i *images) resetHistoryIfNeeded(target *Image, context *opengl.Context) error {
+func (i *images) flushPixelsIfNeeded(target *Image, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if err := img.resetHistoryIfNeeded(target, context); err != nil {
+		if err := img.flushPixelsIfNeeded(target, context); err != nil {
 			return err
 		}
 	}
@@ -130,7 +130,7 @@ func (i *Image) Size() (width, height int) {
 //
 // This function is concurrent-safe.
 func (i *Image) Clear() error {
-	if err := theImagesForRestoring.resetHistoryIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
 		return err
 	}
 	return i.impl.Fill(color.Transparent)
@@ -140,7 +140,7 @@ func (i *Image) Clear() error {
 //
 // This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) error {
-	if err := theImagesForRestoring.resetHistoryIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
 		return err
 	}
 	return i.impl.Fill(clr)
@@ -163,7 +163,7 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
-	if err := theImagesForRestoring.resetHistoryIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
 		return err
 	}
 	return i.impl.DrawImage(image, options)
@@ -201,7 +201,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // This function is concurrent-safe.
 func (i *Image) Dispose() error {
-	if err := theImagesForRestoring.resetHistoryIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
 		return err
 	}
 	if i.impl.isDisposed() {
@@ -218,7 +218,7 @@ func (i *Image) Dispose() error {
 //
 // This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
-	if err := theImagesForRestoring.resetHistoryIfNeeded(i, ui.GLContext()); err != nil {
+	if err := theImagesForRestoring.flushPixelsIfNeeded(i, ui.GLContext()); err != nil {
 		return err
 	}
 	return i.impl.ReplacePixels(p)
