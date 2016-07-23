@@ -108,51 +108,54 @@ func (u *userInterface) main() error {
 	return nil
 }
 
-func (u *userInterface) runOnMainThread(f func()) {
+func (u *userInterface) runOnMainThread(f func() error) error {
 	if u.funcs == nil {
 		// already closed
-		return
+		return nil
 	}
 	ch := make(chan struct{})
+	var err error
 	u.funcs <- func() {
-		f()
+		err = f()
 		close(ch)
 	}
 	<-ch
+	return err
 }
 
 func (u *userInterface) SetScreenSize(width, height int) bool {
 	r := false
-	u.runOnMainThread(func() {
+	u.runOnMainThread(func() error {
 		r = u.setScreenSize(width, height, u.scale)
+		return nil
 	})
 	return r
 }
 
 func (u *userInterface) SetScreenScale(scale float64) bool {
 	r := false
-	u.runOnMainThread(func() {
+	u.runOnMainThread(func() error {
 		r = u.setScreenSize(u.width, u.height, scale)
+		return nil
 	})
 	return r
 }
 
 func (u *userInterface) ScreenScale() float64 {
 	s := 0.0
-	u.runOnMainThread(func() {
+	u.runOnMainThread(func() error {
 		s = u.scale
+		return nil
 	})
 	return s
 }
 
 func (u *userInterface) Start(width, height int, scale float64, title string) error {
-	var err error
-	u.runOnMainThread(func() {
+	if err := u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
 		if !u.setScreenSize(width, height, scale) {
-			err = errors.New("ui: Fail to set the screen size")
-			return
+			return errors.New("ui: Fail to set the screen size")
 		}
 		u.window.SetTitle(title)
 		u.window.Show()
@@ -161,8 +164,11 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 		x := (v.Width - w) / 2
 		y := (v.Height - h) / 3
 		u.window.SetPos(x, y)
-	})
-	return err
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *userInterface) glfwSize() (int, int) {
@@ -180,17 +186,18 @@ func (u *userInterface) pollEvents() error {
 
 func (u *userInterface) Update() (interface{}, error) {
 	shouldClose := false
-	u.runOnMainThread(func() {
+	u.runOnMainThread(func() error {
 		shouldClose = u.window.ShouldClose()
+		return nil
 	})
 	if shouldClose {
 		return CloseEvent{}, nil
 	}
 
 	var screenSizeEvent *ScreenSizeEvent
-	u.runOnMainThread(func() {
+	u.runOnMainThread(func() error {
 		if !u.sizeChanged {
-			return
+			return nil
 		}
 		u.sizeChanged = false
 		screenSizeEvent = &ScreenSizeEvent{
@@ -198,31 +205,29 @@ func (u *userInterface) Update() (interface{}, error) {
 			Height:      u.height,
 			ActualScale: u.actualScreenScale(),
 		}
+		return nil
 	})
 	if screenSizeEvent != nil {
 		return *screenSizeEvent, nil
 	}
 
-	var ferr error
-	u.runOnMainThread(func() {
+	if err := u.runOnMainThread(func() error {
 		if err := u.pollEvents(); err != nil {
-			ferr = err
-			return
+			return err
 		}
 		for u.window.GetAttrib(glfw.Focused) == 0 {
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
 			if err := u.pollEvents(); err != nil {
-				ferr = err
-				return
+				return err
 			}
 			if u.window.ShouldClose() {
-				return
+				return nil
 			}
 		}
-	})
-	if ferr != nil {
-		return nil, ferr
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 	// Dummy channel
 	ch := make(chan struct{}, 1)
@@ -230,8 +235,9 @@ func (u *userInterface) Update() (interface{}, error) {
 }
 
 func (u *userInterface) Terminate() error {
-	u.runOnMainThread(func() {
+	u.runOnMainThread(func() error {
 		glfw.Terminate()
+		return nil
 	})
 	close(u.funcs)
 	u.funcs = nil
@@ -239,11 +245,12 @@ func (u *userInterface) Terminate() error {
 }
 
 func (u *userInterface) SwapBuffers() error {
-	var err error
-	u.runOnMainThread(func() {
-		err = u.swapBuffers()
-	})
-	return err
+	if err := u.runOnMainThread(func() error {
+		return u.swapBuffers()
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *userInterface) swapBuffers() error {
