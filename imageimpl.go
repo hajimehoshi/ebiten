@@ -174,21 +174,21 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
+	geom := options.GeoM
+	colorm := options.ColorM
 	c := &drawImageHistoryItem{
 		image:    image.impl.image,
 		vertices: vertices,
-		geom:     options.GeoM,
-		colorm:   options.ColorM,
+		geom:     &geom,
+		colorm:   &colorm,
 		mode:     opengl.CompositeMode(options.CompositeMode),
 	}
 	if image.impl.pixels.inconsistent {
 		i.pixels.makeInconsistent()
 	}
 	i.pixels.appendDrawImageHistory(c)
-	geom := &options.GeoM
-	colorm := &options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if err := i.image.DrawImage(image.impl.image, vertices, geom, colorm, mode); err != nil {
+	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
 		return err
 	}
 	return nil

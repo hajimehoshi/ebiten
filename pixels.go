@@ -25,8 +25,8 @@ import (
 type drawImageHistoryItem struct {
 	image    *graphics.Image
 	vertices []int16
-	geom     GeoM
-	colorm   ColorM
+	geom     graphics.Matrix
+	colorm   graphics.Matrix
 	mode     opengl.CompositeMode
 }
 
@@ -181,7 +181,7 @@ func (p *pixels) restore(context *opengl.Context, width, height int, filter Filt
 		/*if c.image.impl.hasHistory() {
 			panic("not reach")
 		}*/
-		if err := gimg.DrawImage(c.image, c.vertices, &c.geom, &c.colorm, c.mode); err != nil {
+		if err := gimg.DrawImage(c.image, c.vertices, c.geom, c.colorm, c.mode); err != nil {
 			return nil, err
 		}
 	}
