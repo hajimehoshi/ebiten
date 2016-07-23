@@ -99,7 +99,7 @@ func (p *pixels) resetHistoryIfNeeded(image *graphics.Image, target *Image, cont
 		return nil
 	}
 	if context == nil {
-		return errors.New("ebiten: OpenGL context is missing: before running the main loop, it is forbidden to manipulate images that is used as a drawing source once.")
+		return errors.New("ebiten: OpenGL context is missing: before running the main loop, it is forbidden to manipulate an image that is used as a drawing source once.")
 	}
 	var err error
 	p.basePixels, err = image.Pixels(context)
