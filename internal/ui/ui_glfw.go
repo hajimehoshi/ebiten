@@ -131,7 +131,7 @@ func (u *userInterface) ScreenScale() float64 {
 }
 
 func (u *userInterface) Start(width, height int, scale float64, title string) error {
-	// GLContext must be created before setting the screen size, which requres
+	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
 	var err error
 	glContext, err = opengl.NewContext(currentUI.runOnMainThread)
@@ -232,6 +232,10 @@ func (u *userInterface) Terminate() error {
 }
 
 func (u *userInterface) SwapBuffers() error {
+	// The bound framebuffer must be the default one (0) before swapping buffers.
+	if err := glContext.BindScreenFramebuffer(); err != nil {
+		return err
+	}
 	if err := u.runOnMainThread(func() error {
 		return u.swapBuffers()
 	}); err != nil {
@@ -241,10 +245,6 @@ func (u *userInterface) SwapBuffers() error {
 }
 
 func (u *userInterface) swapBuffers() error {
-	// The bound framebuffer must be the default one (0) before swapping buffers.
-	if err := glContext.BindScreenFramebuffer(); err != nil {
-		return err
-	}
 	u.window.SwapBuffers()
 	return nil
 }
