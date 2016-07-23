@@ -67,31 +67,18 @@ func init() {
 }
 
 type context struct {
-	funcs chan func()
-	init  bool
+	init            bool
+	runOnMainThread func(func() error) error
 }
 
-func NewContext() (*Context, error) {
+func NewContext(runOnMainThread func(func() error) error) (*Context, error) {
 	c := &Context{}
-	c.funcs = make(chan func())
+	c.runOnMainThread = runOnMainThread
 	return c, nil
 }
 
-func (c *Context) Loop() {
-	for f := range c.funcs {
-		f()
-	}
-}
-
 func (c *Context) RunOnContextThread(f func() error) error {
-	ch := make(chan struct{})
-	var err error
-	c.funcs <- func() {
-		err = f()
-		close(ch)
-	}
-	<-ch
-	return err
+	return c.runOnMainThread(f)
 }
 
 func (c *Context) Reset() error {

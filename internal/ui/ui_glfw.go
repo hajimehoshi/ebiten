@@ -70,29 +70,18 @@ func initialize() error {
 	if err != nil {
 		return err
 	}
-
 	u := &userInterface{
 		window:      window,
 		funcs:       make(chan func()),
 		sizeChanged: true,
 	}
-	ch := make(chan error)
-	go func() {
-		runtime.LockOSThread()
-		u.window.MakeContextCurrent()
-		glfw.SwapInterval(1)
-		var err error
-		u.context, err = opengl.NewContext()
-		if err != nil {
-			ch <- err
-		}
-		close(ch)
-		u.context.Loop()
-	}()
-	currentUI = u
-	if err := <-ch; err != nil {
+	u.window.MakeContextCurrent()
+	glfw.SwapInterval(1)
+	u.context, err = opengl.NewContext(u.runOnMainThread)
+	if err != nil {
 		return err
 	}
+	currentUI = u
 	return nil
 }
 
@@ -258,10 +247,7 @@ func (u *userInterface) swapBuffers() error {
 	if err := u.context.BindScreenFramebuffer(); err != nil {
 		return err
 	}
-	u.context.RunOnContextThread(func() error {
-		u.window.SwapBuffers()
-		return nil
-	})
+	u.window.SwapBuffers()
 	return nil
 }
 
