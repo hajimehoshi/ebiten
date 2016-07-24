@@ -30,14 +30,10 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
-type imageForPixels interface {
-	Pixels(context *opengl.Context) ([]uint8, error)
-}
-
 // basePixels and baseColor are exclusive.
 
 type pixels struct {
-	image            imageForPixels
+	image            *graphics.Image
 	inconsistent     bool
 	basePixels       []uint8
 	baseColor        color.Color
@@ -136,6 +132,7 @@ func (p *pixels) flushIfNeeded(target *graphics.Image, context *opengl.Context) 
 		return nil
 	}
 	if context == nil {
+		// context is null when this is not initialized yet.
 		p.makeInconsistent()
 		return nil
 	}
