@@ -223,6 +223,11 @@ func (i *imageImpl) flushPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	if target.isDisposed() {
 		return errors.New("ebiten: target is already disposed")
 	}
+	if context == nil {
+		// context is null when this is not initialized yet.
+		i.pixels.MakeInconsistent()
+		return nil
+	}
 	if err := i.pixels.FlushIfNeeded(target.image, context); err != nil {
 		return err
 	}

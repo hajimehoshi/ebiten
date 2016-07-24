@@ -148,11 +148,6 @@ func (p *Pixels) FlushIfNeeded(target *graphics.Image, context *opengl.Context) 
 	if !p.hasHistoryWith(target) {
 		return nil
 	}
-	if context == nil {
-		// context is null when this is not initialized yet.
-		p.MakeInconsistent()
-		return nil
-	}
 	p.inconsistent = false
 	var err error
 	p.basePixels, err = p.image.Pixels(context)
