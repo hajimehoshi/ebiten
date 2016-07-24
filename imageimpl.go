@@ -25,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/pixels"
 )
 
 type imageImpl struct {
@@ -33,7 +34,7 @@ type imageImpl struct {
 	width    int
 	height   int
 	filter   Filter
-	pixels   *pixels
+	pixels   *pixels.Pixels
 	volatile bool
 	screen   bool
 	m        sync.Mutex
@@ -50,11 +51,9 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		height:   height,
 		filter:   filter,
 		volatile: volatile,
-		pixels: &pixels{
-			image: img,
-		},
+		pixels:   pixels.NewPixels(img),
 	}
-	i.pixels.resetWithPixels(make([]uint8, width*height*4))
+	i.pixels.ResetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -85,11 +84,9 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		width:  w,
 		height: h,
 		filter: filter,
-		pixels: &pixels{
-			image: img,
-		},
+		pixels: pixels.NewPixels(img),
 	}
-	i.pixels.resetWithPixels(p)
+	i.pixels.ResetWithPixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -105,11 +102,9 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		height:   height,
 		volatile: true,
 		screen:   true,
-		pixels: &pixels{
-			image: img,
-		},
+		pixels:   pixels.NewPixels(img),
 	}
-	i.pixels.resetWithPixels(make([]uint8, width*height*4))
+	i.pixels.ResetWithPixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -120,10 +115,10 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	if clr == color.Transparent && i.pixels.isCleared() {
+	if clr == color.Transparent && i.pixels.IsCleared() {
 		return nil
 	}
-	i.pixels.fill(clr)
+	i.pixels.Fill(clr)
 	return i.image.Fill(clr)
 }
 
@@ -136,10 +131,10 @@ func (i *imageImpl) clearIfVolatile() error {
 	if !i.volatile {
 		return nil
 	}
-	if i.pixels.isCleared() {
+	if i.pixels.IsCleared() {
 		return nil
 	}
-	i.pixels.clear()
+	i.pixels.Clear()
 	return i.image.Fill(color.Transparent)
 }
 
@@ -176,17 +171,10 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	geom := options.GeoM
 	colorm := options.ColorM
-	c := &drawImageHistoryItem{
-		image:    image.impl.image,
-		vertices: vertices,
-		geom:     &geom,
-		colorm:   &colorm,
-		mode:     opengl.CompositeMode(options.CompositeMode),
+	if image.impl.pixels.IsInconsistent() {
+		i.pixels.MakeInconsistent()
 	}
-	if image.impl.pixels.inconsistent {
-		i.pixels.makeInconsistent()
-	}
-	i.pixels.appendDrawImageHistory(c)
+	i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, opengl.CompositeMode(options.CompositeMode))
 	mode := opengl.CompositeMode(options.CompositeMode)
 	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
 		return err
@@ -204,7 +192,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		return color.Transparent
 	}
 	idx := 4*x + 4*y*i.width
-	clr, err := i.pixels.at(idx, context)
+	clr, err := i.pixels.At(idx, context)
 	if err != nil {
 		panic(err)
 	}
@@ -217,7 +205,7 @@ func (i *imageImpl) flushPixelsIfInconsistent(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.flushIfInconsistent(context); err != nil {
+	if err := i.pixels.FlushIfInconsistent(context); err != nil {
 		return err
 	}
 	return nil
@@ -235,7 +223,7 @@ func (i *imageImpl) flushPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	if target.isDisposed() {
 		return errors.New("ebiten: target is already disposed")
 	}
-	if err := i.pixels.flushIfNeeded(target.image, context); err != nil {
+	if err := i.pixels.FlushIfNeeded(target.image, context); err != nil {
 		return err
 	}
 	return nil
@@ -244,7 +232,7 @@ func (i *imageImpl) flushPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 func (i *imageImpl) hasHistory() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.pixels.hasHistory()
+	return i.pixels.HasHistory()
 }
 
 func (i *imageImpl) restore(context *opengl.Context) error {
@@ -272,7 +260,7 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	var err error
-	i.image, err = i.pixels.restore(context, i.width, i.height, i.filter)
+	i.image, err = i.pixels.Restore(context, i.width, i.height, glFilter(i.filter))
 	if err != nil {
 		return err
 	}
@@ -303,7 +291,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.pixels.resetWithPixels(p)
+	i.pixels.ResetWithPixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}

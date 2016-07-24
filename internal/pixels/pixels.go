@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package pixels
 
 import (
 	"image"
@@ -32,7 +32,7 @@ type drawImageHistoryItem struct {
 
 // basePixels and baseColor are exclusive.
 
-type pixels struct {
+type Pixels struct {
 	image            *graphics.Image
 	inconsistent     bool
 	basePixels       []uint8
@@ -40,7 +40,13 @@ type pixels struct {
 	drawImageHistory []*drawImageHistoryItem
 }
 
-func (p *pixels) resetWithPixels(pixels []uint8) {
+func NewPixels(image *graphics.Image) *Pixels {
+	return &Pixels{
+		image: image,
+	}
+}
+
+func (p *Pixels) ResetWithPixels(pixels []uint8) {
 	if p.basePixels == nil {
 		p.basePixels = make([]uint8, len(pixels))
 	}
@@ -50,42 +56,53 @@ func (p *pixels) resetWithPixels(pixels []uint8) {
 	p.drawImageHistory = nil
 }
 
-func (p *pixels) clear() {
+func (p *Pixels) Clear() {
 	p.inconsistent = false
 	p.basePixels = nil
 	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 
-func (p *pixels) isCleared() bool {
+func (p *Pixels) IsCleared() bool {
 	if p.inconsistent {
 		return false
 	}
 	return p.basePixels == nil && p.baseColor == nil && p.drawImageHistory == nil
 }
 
-func (p *pixels) fill(clr color.Color) {
+func (p *Pixels) Fill(clr color.Color) {
 	p.inconsistent = false
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
 }
 
-func (p *pixels) makeInconsistent() {
+func (p *Pixels) IsInconsistent() bool {
+	return p.inconsistent
+}
+
+func (p *Pixels) MakeInconsistent() {
 	p.inconsistent = true
 	p.basePixels = nil
 	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 
-func (p *pixels) appendDrawImageHistory(item *drawImageHistoryItem) {
+func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
 	if p.inconsistent {
 		return
+	}
+	item := &drawImageHistoryItem{
+		image:    image,
+		vertices: vertices,
+		geom:     geom,
+		colorm:   colorm,
+		mode:     mode,
 	}
 	p.drawImageHistory = append(p.drawImageHistory, item)
 }
 
-func (p *pixels) at(idx int, context *opengl.Context) (color.Color, error) {
+func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
 	if p.inconsistent || p.basePixels == nil || p.drawImageHistory != nil {
 		p.inconsistent = false
 		var err error
@@ -100,7 +117,7 @@ func (p *pixels) at(idx int, context *opengl.Context) (color.Color, error) {
 	return color.RGBA{r, g, b, a}, nil
 }
 
-func (p *pixels) hasHistoryWith(target *graphics.Image) bool {
+func (p *Pixels) hasHistoryWith(target *graphics.Image) bool {
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
 			return true
@@ -109,7 +126,7 @@ func (p *pixels) hasHistoryWith(target *graphics.Image) bool {
 	return false
 }
 
-func (p *pixels) flushIfInconsistent(context *opengl.Context) error {
+func (p *Pixels) FlushIfInconsistent(context *opengl.Context) error {
 	if !p.inconsistent {
 		return nil
 	}
@@ -124,7 +141,7 @@ func (p *pixels) flushIfInconsistent(context *opengl.Context) error {
 	return nil
 }
 
-func (p *pixels) flushIfNeeded(target *graphics.Image, context *opengl.Context) error {
+func (p *Pixels) FlushIfNeeded(target *graphics.Image, context *opengl.Context) error {
 	if p.drawImageHistory == nil {
 		return nil
 	}
@@ -133,7 +150,7 @@ func (p *pixels) flushIfNeeded(target *graphics.Image, context *opengl.Context) 
 	}
 	if context == nil {
 		// context is null when this is not initialized yet.
-		p.makeInconsistent()
+		p.MakeInconsistent()
 		return nil
 	}
 	p.inconsistent = false
@@ -147,21 +164,21 @@ func (p *pixels) flushIfNeeded(target *graphics.Image, context *opengl.Context) 
 	return nil
 }
 
-func (p *pixels) hasHistory() bool {
+func (p *Pixels) HasHistory() bool {
 	return p.drawImageHistory != nil
 }
 
 // restore restores the pixels using its history.
 //
 // restore is the only function that the pixel data is not present on GPU when this is called.
-func (p *pixels) restore(context *opengl.Context, width, height int, filter Filter) (*graphics.Image, error) {
+func (p *Pixels) Restore(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	if p.basePixels != nil {
 		for j := 0; j < height; j++ {
 			copy(img.Pix[j*img.Stride:], p.basePixels[j*width*4:(j+1)*width*4])
 		}
 	}
-	gimg, err := graphics.NewImageFromImage(img, glFilter(filter))
+	gimg, err := graphics.NewImageFromImage(img, filter)
 	if err != nil {
 		return nil, err
 	}
