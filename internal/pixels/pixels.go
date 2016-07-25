@@ -34,7 +34,6 @@ type drawImageHistoryItem struct {
 
 type Pixels struct {
 	image            *graphics.Image
-	inconsistent     bool
 	basePixels       []uint8
 	baseColor        color.Color
 	drawImageHistory []*drawImageHistoryItem
@@ -51,47 +50,27 @@ func (p *Pixels) ResetWithPixels(pixels []uint8) {
 		p.basePixels = make([]uint8, len(pixels))
 	}
 	copy(p.basePixels, pixels)
-	p.inconsistent = false
 	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 
 func (p *Pixels) Clear() {
-	p.inconsistent = false
 	p.basePixels = nil
 	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 
 func (p *Pixels) IsCleared() bool {
-	if p.inconsistent {
-		return false
-	}
 	return p.basePixels == nil && p.baseColor == nil && p.drawImageHistory == nil
 }
 
 func (p *Pixels) Fill(clr color.Color) {
-	p.inconsistent = false
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
 }
 
-func (p *Pixels) IsInconsistent() bool {
-	return p.inconsistent
-}
-
-func (p *Pixels) MakeInconsistent() {
-	p.inconsistent = true
-	p.basePixels = nil
-	p.baseColor = nil
-	p.drawImageHistory = nil
-}
-
 func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
-	if p.inconsistent {
-		return
-	}
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
@@ -103,8 +82,7 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 }
 
 func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
-	if p.inconsistent || p.basePixels == nil || p.drawImageHistory != nil {
-		p.inconsistent = false
+	if p.basePixels == nil || p.drawImageHistory != nil {
 		var err error
 		p.basePixels, err = p.image.Pixels(context)
 		if err != nil {
@@ -126,11 +104,7 @@ func (p *Pixels) hasHistoryWith(target *graphics.Image) bool {
 	return false
 }
 
-func (p *Pixels) FlushIfInconsistent(context *opengl.Context) error {
-	if !p.inconsistent {
-		return nil
-	}
-	p.inconsistent = false
+func (p *Pixels) Flush(context *opengl.Context) error {
 	var err error
 	p.basePixels, err = p.image.Pixels(context)
 	if err != nil {
@@ -148,7 +122,6 @@ func (p *Pixels) FlushIfNeeded(target *graphics.Image, context *opengl.Context) 
 	if !p.hasHistoryWith(target) {
 		return nil
 	}
-	p.inconsistent = false
 	var err error
 	p.basePixels, err = p.image.Pixels(context)
 	if err != nil {
@@ -194,7 +167,6 @@ func (p *Pixels) Restore(context *opengl.Context, width, height int, filter open
 			return nil, err
 		}
 	}
-	p.inconsistent = false
 	p.basePixels, err = gimg.Pixels(context)
 	if err != nil {
 		return nil, err

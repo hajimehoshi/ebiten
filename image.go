@@ -63,11 +63,11 @@ func (i *images) remove(img *Image) {
 	runtime.SetFinalizer(img, nil)
 }
 
-func (i *images) flushPixelsIfInconsistent(context *opengl.Context) error {
+func (i *images) flushPixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if err := img.flushPixelsIfInconsistent(context); err != nil {
+		if err := img.flushPixels(context); err != nil {
 			return err
 		}
 	}

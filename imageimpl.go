@@ -171,9 +171,6 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	geom := options.GeoM
 	colorm := options.ColorM
-	if image.impl.pixels.IsInconsistent() {
-		i.pixels.MakeInconsistent()
-	}
 	i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, opengl.CompositeMode(options.CompositeMode))
 	mode := opengl.CompositeMode(options.CompositeMode)
 	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
@@ -199,13 +196,13 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	return clr
 }
 
-func (i *imageImpl) flushPixelsIfInconsistent(context *opengl.Context) error {
+func (i *imageImpl) flushPixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.FlushIfInconsistent(context); err != nil {
+	if err := i.pixels.Flush(context); err != nil {
 		return err
 	}
 	return nil
@@ -225,7 +222,7 @@ func (i *imageImpl) flushPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	}
 	if context == nil {
 		// context is null when this is not initialized yet.
-		i.pixels.MakeInconsistent()
+		// In this case, pixels is inconsistent with the image.
 		return nil
 	}
 	if err := i.pixels.FlushIfNeeded(target.image, context); err != nil {
