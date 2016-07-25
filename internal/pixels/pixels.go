@@ -104,7 +104,7 @@ func (p *Pixels) hasHistoryWith(target *graphics.Image) bool {
 	return false
 }
 
-func (p *Pixels) Flush(context *opengl.Context) error {
+func (p *Pixels) Reset(context *opengl.Context) error {
 	var err error
 	p.basePixels, err = p.image.Pixels(context)
 	if err != nil {
@@ -115,7 +115,7 @@ func (p *Pixels) Flush(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Pixels) FlushIfNeeded(target *graphics.Image, context *opengl.Context) error {
+func (p *Pixels) ResetIfNeeded(target *graphics.Image, context *opengl.Context) error {
 	if p.drawImageHistory == nil {
 		return nil
 	}

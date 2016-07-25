@@ -95,7 +95,7 @@ func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 		if err := graphics.Reset(context); err != nil {
 			return err
 		}
-		if err := theImagesForRestoring.flushPixels(context); err != nil {
+		if err := theImagesForRestoring.resetPixels(context); err != nil {
 			return err
 		}
 		atomic.StoreInt32(&c.initialized, 1)
