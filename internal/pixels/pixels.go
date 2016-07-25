@@ -30,10 +30,15 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
-// basePixels and baseColor are exclusive.
-
+// Pixels represents pixels of an image for restoring when GL context is lost.
+//
+// Until GL context is available,
+// Pixels member states might not match with actual pixels in GPU so
+// there is few function to retrieve the current state.
 type Pixels struct {
-	image            *graphics.Image
+	image *graphics.Image
+
+	// basePixels and baseColor are exclusive.
 	basePixels       []uint8
 	baseColor        color.Color
 	drawImageHistory []*drawImageHistoryItem
@@ -77,6 +82,10 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 	p.drawImageHistory = append(p.drawImageHistory, item)
 }
 
+// At returns a color value at idx.
+//
+// Note that this must not be called until context is available.
+// This means Pixels members must match with acutal state in GPU.
 func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil {
 		var err error
@@ -132,7 +141,7 @@ func (p *Pixels) HasHistory() bool {
 	return p.drawImageHistory != nil
 }
 
-// restore restores the pixels using its history.
+// Restore restores the pixels using its history.
 //
 // restore is the only function that the pixel data is not present on GPU when this is called.
 func (p *Pixels) Restore(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
