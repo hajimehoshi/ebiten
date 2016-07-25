@@ -60,10 +60,6 @@ func (p *Pixels) Clear() {
 	p.drawImageHistory = nil
 }
 
-func (p *Pixels) IsCleared() bool {
-	return p.basePixels == nil && p.baseColor == nil && p.drawImageHistory == nil
-}
-
 func (p *Pixels) Fill(clr color.Color) {
 	p.basePixels = nil
 	p.baseColor = clr
