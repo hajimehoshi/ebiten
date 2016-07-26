@@ -194,7 +194,7 @@ func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if err := i.pixels.ResetIfStale(context); err != nil {
+	if err := i.pixels.ReadPixelsFromVRAMIfStale(context); err != nil {
 		return err
 	}
 	return nil
@@ -222,7 +222,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 		i.pixels.MakeStale()
 		return nil
 	}
-	if err := i.pixels.Reset(context); err != nil {
+	if err := i.pixels.ReadPixelsFromVRAM(context); err != nil {
 		return err
 	}
 	return nil
@@ -259,7 +259,7 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	var err error
-	i.image, err = i.pixels.Restore(context, i.width, i.height, glFilter(i.filter))
+	i.image, err = i.pixels.CreateImage(context, i.width, i.height, glFilter(i.filter))
 	if err != nil {
 		return err
 	}

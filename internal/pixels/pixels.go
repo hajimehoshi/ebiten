@@ -96,10 +96,10 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 // At returns a color value at idx.
 //
 // Note that this must not be called until context is available.
-// This means Pixels members must match with acutal state in GPU.
+// This means Pixels members must match with acutal state in VRAM.
 func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.Reset(context); err != nil {
+		if err := p.ReadPixelsFromVRAM(context); err != nil {
 			return nil, err
 		}
 	}
@@ -119,7 +119,7 @@ func (p *Pixels) DependsOn(target *graphics.Image) bool {
 	return false
 }
 
-func (p *Pixels) Reset(context *opengl.Context) error {
+func (p *Pixels) ReadPixelsFromVRAM(context *opengl.Context) error {
 	var err error
 	p.basePixels, err = p.image.Pixels(context)
 	if err != nil {
@@ -131,11 +131,11 @@ func (p *Pixels) Reset(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Pixels) ResetIfStale(context *opengl.Context) error {
+func (p *Pixels) ReadPixelsFromVRAMIfStale(context *opengl.Context) error {
 	if !p.stale {
 		return nil
 	}
-	return p.Reset(context)
+	return p.ReadPixelsFromVRAM(context)
 }
 
 func (p *Pixels) HasDependency() bool {
@@ -145,10 +145,8 @@ func (p *Pixels) HasDependency() bool {
 	return p.drawImageHistory != nil
 }
 
-// Restore restores the pixels using its history.
-//
-// Restore is the only function that the pixel data is not present on GPU when this is called.
-func (p *Pixels) Restore(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
+// CreateImage restores *graphics.Image from the pixels using its state.
+func (p *Pixels) CreateImage(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
 	if p.stale {
 		return nil, errors.New("pixels: pixels must not be stale when restoring")
 	}
