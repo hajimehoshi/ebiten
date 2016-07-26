@@ -46,15 +46,6 @@ func NewPixels(image *graphics.Image) *Pixels {
 	}
 }
 
-func (p *Pixels) ResetWithPixels(pixels []uint8) {
-	if p.basePixels == nil {
-		p.basePixels = make([]uint8, len(pixels))
-	}
-	copy(p.basePixels, pixels)
-	p.baseColor = nil
-	p.drawImageHistory = nil
-}
-
 func (p *Pixels) Clear() {
 	p.basePixels = nil
 	p.baseColor = nil
@@ -64,6 +55,15 @@ func (p *Pixels) Clear() {
 func (p *Pixels) Fill(clr color.Color) {
 	p.basePixels = nil
 	p.baseColor = clr
+	p.drawImageHistory = nil
+}
+
+func (p *Pixels) ReplacePixels(pixels []uint8) {
+	if p.basePixels == nil {
+		p.basePixels = make([]uint8, len(pixels))
+	}
+	copy(p.basePixels, pixels)
+	p.baseColor = nil
 	p.drawImageHistory = nil
 }
 

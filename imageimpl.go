@@ -53,7 +53,7 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		volatile: volatile,
 		pixels:   pixels.NewPixels(img),
 	}
-	i.pixels.ResetWithPixels(make([]uint8, width*height*4))
+	i.pixels.ReplacePixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -86,7 +86,7 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		filter: filter,
 		pixels: pixels.NewPixels(img),
 	}
-	i.pixels.ResetWithPixels(p)
+	i.pixels.ReplacePixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -104,7 +104,7 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		screen:   true,
 		pixels:   pixels.NewPixels(img),
 	}
-	i.pixels.ResetWithPixels(make([]uint8, width*height*4))
+	i.pixels.ReplacePixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -198,7 +198,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	return clr
 }
 
-func (i *imageImpl) resetPixels(context *opengl.Context) error {
+func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
@@ -305,7 +305,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if i.pixels == nil {
 		i.pixels = pixels.NewPixels(i.image)
 	}
-	i.pixels.ResetWithPixels(p)
+	i.pixels.ReplacePixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}

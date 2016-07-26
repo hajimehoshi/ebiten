@@ -140,7 +140,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
-	if err := theImagesForRestoring.resetPixels(context); err != nil {
+	if err := theImagesForRestoring.ensurePixels(context); err != nil {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
