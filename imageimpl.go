@@ -229,11 +229,13 @@ func (i *imageImpl) resetPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	if i.pixels == nil {
 		return nil
 	}
+	// target is an image begin tried to mutate.
+	// If pixels object is related to that image, the pixels must be reset.
 	if !i.pixels.NeedsReset(target.image) {
 		return nil
 	}
 	if context == nil {
-		// context is null when this is not initialized yet.
+		// context is nil when this is not initialized yet.
 		i.pixels = nil
 		return nil
 	}
