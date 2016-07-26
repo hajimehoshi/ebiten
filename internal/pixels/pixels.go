@@ -15,6 +15,7 @@
 package pixels
 
 import (
+	"errors"
 	"image"
 	"image/color"
 
@@ -148,6 +149,9 @@ func (p *Pixels) HasDependency() bool {
 //
 // Restore is the only function that the pixel data is not present on GPU when this is called.
 func (p *Pixels) Restore(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
+	if p.stale {
+		return nil, errors.New("pixels: pixels must not be stale when restoring")
+	}
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	if p.basePixels != nil {
 		for j := 0; j < height; j++ {
