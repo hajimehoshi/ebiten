@@ -84,13 +84,9 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 // This means Pixels members must match with acutal state in GPU.
 func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil {
-		var err error
-		p.basePixels, err = p.image.Pixels(context)
-		if err != nil {
+		if err := p.Reset(context); err != nil {
 			return nil, err
 		}
-		p.baseColor = nil
-		p.drawImageHistory = nil
 	}
 	r, g, b, a := p.basePixels[idx], p.basePixels[idx+1], p.basePixels[idx+2], p.basePixels[idx+3]
 	return color.RGBA{r, g, b, a}, nil
@@ -122,7 +118,7 @@ func (p *Pixels) HasDependency() bool {
 
 // Restore restores the pixels using its history.
 //
-// restore is the only function that the pixel data is not present on GPU when this is called.
+// Restore is the only function that the pixel data is not present on GPU when this is called.
 func (p *Pixels) Restore(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	if p.basePixels != nil {
