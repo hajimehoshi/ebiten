@@ -47,10 +47,6 @@ func NewPixels(image *graphics.Image) *Pixels {
 	}
 }
 
-func (p *Pixels) IsStale() bool {
-	return p.stale
-}
-
 func (p *Pixels) MakeStale() {
 	p.basePixels = nil
 	p.baseColor = nil
@@ -132,6 +128,13 @@ func (p *Pixels) Reset(context *opengl.Context) error {
 	p.drawImageHistory = nil
 	p.stale = false
 	return nil
+}
+
+func (p *Pixels) ResetIfStale(context *opengl.Context) error {
+	if !p.stale {
+		return nil
+	}
+	return p.Reset(context)
 }
 
 func (p *Pixels) HasDependency() bool {

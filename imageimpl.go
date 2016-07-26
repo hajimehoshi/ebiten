@@ -194,10 +194,7 @@ func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if !i.pixels.IsStale() {
-		return nil
-	}
-	if err := i.pixels.Reset(context); err != nil {
+	if err := i.pixels.ResetIfStale(context); err != nil {
 		return err
 	}
 	return nil
