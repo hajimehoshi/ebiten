@@ -53,7 +53,6 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		volatile: volatile,
 		pixels:   pixels.NewPixels(img),
 	}
-	i.pixels.ReplacePixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -104,7 +103,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		screen:   true,
 		pixels:   pixels.NewPixels(img),
 	}
-	i.pixels.ReplacePixels(make([]uint8, width*height*4))
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
