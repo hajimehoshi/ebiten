@@ -116,21 +116,14 @@ func (p *Pixels) Reset(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Pixels) ResetIfNeeded(target *graphics.Image, context *opengl.Context) error {
+func (p *Pixels) NeedsReset(target *graphics.Image) bool {
 	if p.drawImageHistory == nil {
-		return nil
+		return false
 	}
 	if !p.hasHistoryWith(target) {
-		return nil
+		return false
 	}
-	var err error
-	p.basePixels, err = p.image.Pixels(context)
-	if err != nil {
-		return err
-	}
-	p.baseColor = nil
-	p.drawImageHistory = nil
-	return nil
+	return true
 }
 
 func (p *Pixels) HasHistory() bool {

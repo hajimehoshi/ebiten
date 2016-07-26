@@ -226,12 +226,18 @@ func (i *imageImpl) resetPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	if target.isDisposed() {
 		return errors.New("ebiten: target is already disposed")
 	}
+	if i.pixels == nil {
+		return nil
+	}
+	if !i.pixels.NeedsReset(target.image) {
+		return nil
+	}
 	if context == nil {
 		// context is null when this is not initialized yet.
 		i.pixels = nil
 		return nil
 	}
-	if err := i.pixels.ResetIfNeeded(target.image, context); err != nil {
+	if err := i.pixels.Reset(context); err != nil {
 		return err
 	}
 	return nil
