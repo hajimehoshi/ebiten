@@ -96,7 +96,7 @@ func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
 	return color.RGBA{r, g, b, a}, nil
 }
 
-func (p *Pixels) hasHistoryWith(target *graphics.Image) bool {
+func (p *Pixels) DependsOn(target *graphics.Image) bool {
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
 			return true
@@ -114,16 +114,6 @@ func (p *Pixels) Reset(context *opengl.Context) error {
 	p.baseColor = nil
 	p.drawImageHistory = nil
 	return nil
-}
-
-func (p *Pixels) NeedsReset(target *graphics.Image) bool {
-	if p.drawImageHistory == nil {
-		return false
-	}
-	if !p.hasHistoryWith(target) {
-		return false
-	}
-	return true
 }
 
 func (p *Pixels) HasHistory() bool {

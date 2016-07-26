@@ -214,7 +214,7 @@ func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	return nil
 }
 
-func (i *imageImpl) resetPixelsIfNeeded(target *imageImpl, context *opengl.Context) error {
+func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i == target {
@@ -231,7 +231,7 @@ func (i *imageImpl) resetPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	}
 	// target is an image begin tried to mutate.
 	// If pixels object is related to that image, the pixels must be reset.
-	if !i.pixels.NeedsReset(target.image) {
+	if !i.pixels.DependsOn(target.image) {
 		return nil
 	}
 	if context == nil {
