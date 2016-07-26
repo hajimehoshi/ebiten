@@ -243,13 +243,13 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	return nil
 }
 
-func (i *imageImpl) hasHistory() bool {
+func (i *imageImpl) hasDependency() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.pixels == nil {
 		return false
 	}
-	return i.pixels.HasHistory()
+	return i.pixels.HasDependency()
 }
 
 func (i *imageImpl) restore(context *opengl.Context) error {

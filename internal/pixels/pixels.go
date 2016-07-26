@@ -116,7 +116,7 @@ func (p *Pixels) Reset(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Pixels) HasHistory() bool {
+func (p *Pixels) HasDependency() bool {
 	return p.drawImageHistory != nil
 }
 

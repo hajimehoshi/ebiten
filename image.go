@@ -99,23 +99,22 @@ func (i *images) restore(context *opengl.Context) error {
 			return err
 		}
 	}
-	imagesWithoutHistory := []*imageImpl{}
-	imagesWithHistory := []*imageImpl{}
+	imagesWithoutDependency := []*imageImpl{}
+	imagesWithDependency := []*imageImpl{}
 	for img := range i.images {
-		if img.hasHistory() {
-			imagesWithHistory = append(imagesWithHistory, img)
+		if img.hasDependency() {
+			imagesWithDependency = append(imagesWithDependency, img)
 		} else {
-			imagesWithoutHistory = append(imagesWithoutHistory, img)
+			imagesWithoutDependency = append(imagesWithoutDependency, img)
 		}
 	}
-	// Images with history can depend on other images. Let's process images without history
-	// first.
-	for _, img := range imagesWithoutHistory {
+	// Images depending on other images should be processed first.
+	for _, img := range imagesWithoutDependency {
 		if err := img.restore(context); err != nil {
 			return err
 		}
 	}
-	for _, img := range imagesWithHistory {
+	for _, img := range imagesWithDependency {
 		if err := img.restore(context); err != nil {
 			return err
 		}
