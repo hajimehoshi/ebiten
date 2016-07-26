@@ -38,6 +38,7 @@ type Pixels struct {
 	basePixels       []uint8
 	baseColor        color.Color
 	drawImageHistory []*drawImageHistoryItem
+	stale            bool
 }
 
 func NewPixels(image *graphics.Image) *Pixels {
@@ -46,16 +47,29 @@ func NewPixels(image *graphics.Image) *Pixels {
 	}
 }
 
+func (p *Pixels) IsStale() bool {
+	return p.stale
+}
+
+func (p *Pixels) MakeStale() {
+	p.basePixels = nil
+	p.baseColor = nil
+	p.drawImageHistory = nil
+	p.stale = true
+}
+
 func (p *Pixels) Clear() {
 	p.basePixels = nil
 	p.baseColor = nil
 	p.drawImageHistory = nil
+	p.stale = false
 }
 
 func (p *Pixels) Fill(clr color.Color) {
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
+	p.stale = false
 }
 
 func (p *Pixels) ReplacePixels(pixels []uint8) {
@@ -65,9 +79,13 @@ func (p *Pixels) ReplacePixels(pixels []uint8) {
 	copy(p.basePixels, pixels)
 	p.baseColor = nil
 	p.drawImageHistory = nil
+	p.stale = false
 }
 
 func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
+	if p.stale {
+		return
+	}
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
@@ -83,7 +101,7 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in GPU.
 func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
-	if p.basePixels == nil || p.drawImageHistory != nil {
+	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.Reset(context); err != nil {
 			return nil, err
 		}
@@ -93,6 +111,9 @@ func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
 }
 
 func (p *Pixels) DependsOn(target *graphics.Image) bool {
+	if p.stale {
+		return false
+	}
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
 			return true
@@ -109,10 +130,14 @@ func (p *Pixels) Reset(context *opengl.Context) error {
 	}
 	p.baseColor = nil
 	p.drawImageHistory = nil
+	p.stale = false
 	return nil
 }
 
 func (p *Pixels) HasDependency() bool {
+	if p.stale {
+		return false
+	}
 	return p.drawImageHistory != nil
 }
 
@@ -153,5 +178,6 @@ func (p *Pixels) Restore(context *opengl.Context, width, height int, filter open
 	}
 	p.baseColor = nil
 	p.drawImageHistory = nil
+	p.stale = false
 	return gimg, nil
 }

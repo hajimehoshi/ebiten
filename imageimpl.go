@@ -113,9 +113,6 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	if i.pixels == nil {
-		i.pixels = pixels.NewPixels(i.image)
-	}
 	i.pixels.Fill(clr)
 	return i.image.Fill(clr)
 }
@@ -128,9 +125,6 @@ func (i *imageImpl) clearIfVolatile() error {
 	}
 	if !i.volatile {
 		return nil
-	}
-	if i.pixels == nil {
-		i.pixels = pixels.NewPixels(i.image)
 	}
 	i.pixels.Clear()
 	return i.image.Fill(color.Transparent)
@@ -170,9 +164,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if i.pixels != nil {
-		i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
-	}
+	i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
 	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
 		return err
 	}
@@ -202,10 +194,9 @@ func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if i.pixels != nil {
+	if !i.pixels.IsStale() {
 		return nil
 	}
-	i.pixels = pixels.NewPixels(i.image)
 	if err := i.pixels.Reset(context); err != nil {
 		return err
 	}
@@ -224,9 +215,6 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	if target.isDisposed() {
 		return errors.New("ebiten: target is already disposed")
 	}
-	if i.pixels == nil {
-		return nil
-	}
 	// target is an image begin tried to mutate.
 	// If pixels object is related to that image, the pixels must be reset.
 	if !i.pixels.DependsOn(target.image) {
@@ -234,7 +222,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	}
 	if context == nil {
 		// context is nil when this is not initialized yet.
-		i.pixels = nil
+		i.pixels.MakeStale()
 		return nil
 	}
 	if err := i.pixels.Reset(context); err != nil {
@@ -246,9 +234,6 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 func (i *imageImpl) hasDependency() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.pixels == nil {
-		return false
-	}
 	return i.pixels.HasDependency()
 }
 
@@ -308,9 +293,6 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.pixels == nil {
-		i.pixels = pixels.NewPixels(i.image)
-	}
 	i.pixels.ReplacePixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
