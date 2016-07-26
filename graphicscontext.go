@@ -95,9 +95,6 @@ func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 		if err := graphics.Reset(context); err != nil {
 			return err
 		}
-		if err := theImagesForRestoring.resetPixels(context); err != nil {
-			return err
-		}
 		atomic.StoreInt32(&c.initialized, 1)
 	}
 	r, err := c.needsRestoring(context)
@@ -110,7 +107,6 @@ func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 	if err := c.restore(context); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -142,6 +138,9 @@ func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) err
 
 func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int) error {
 	if err := c.initializeIfNeeded(context); err != nil {
+		return err
+	}
+	if err := theImagesForRestoring.resetPixels(context); err != nil {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {

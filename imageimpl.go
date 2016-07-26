@@ -115,6 +115,9 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
+	if i.pixels == nil {
+		i.pixels = pixels.NewPixels(i.image)
+	}
 	i.pixels.Fill(clr)
 	return i.image.Fill(clr)
 }
@@ -127,6 +130,9 @@ func (i *imageImpl) clearIfVolatile() error {
 	}
 	if !i.volatile {
 		return nil
+	}
+	if i.pixels == nil {
+		i.pixels = pixels.NewPixels(i.image)
 	}
 	i.pixels.Clear()
 	return i.image.Fill(color.Transparent)
@@ -165,8 +171,10 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	geom := options.GeoM
 	colorm := options.ColorM
-	i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, opengl.CompositeMode(options.CompositeMode))
 	mode := opengl.CompositeMode(options.CompositeMode)
+	if i.pixels != nil {
+		i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
+	}
 	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
 		return err
 	}
@@ -196,6 +204,10 @@ func (i *imageImpl) resetPixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
+	if i.pixels != nil {
+		return nil
+	}
+	i.pixels = pixels.NewPixels(i.image)
 	if err := i.pixels.Reset(context); err != nil {
 		return err
 	}
@@ -216,7 +228,7 @@ func (i *imageImpl) resetPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 	}
 	if context == nil {
 		// context is null when this is not initialized yet.
-		// In this case, pixels is inconsistent with the image.
+		i.pixels = nil
 		return nil
 	}
 	if err := i.pixels.ResetIfNeeded(target.image, context); err != nil {
@@ -228,6 +240,9 @@ func (i *imageImpl) resetPixelsIfNeeded(target *imageImpl, context *opengl.Conte
 func (i *imageImpl) hasHistory() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
+	if i.pixels == nil {
+		return false
+	}
 	return i.pixels.HasHistory()
 }
 
@@ -287,6 +302,9 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
+	if i.pixels == nil {
+		i.pixels = pixels.NewPixels(i.image)
+	}
 	i.pixels.ResetWithPixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")

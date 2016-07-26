@@ -31,10 +31,6 @@ type drawImageHistoryItem struct {
 }
 
 // Pixels represents pixels of an image for restoring when GL context is lost.
-//
-// Until GL context is available,
-// Pixels member states might not match with actual pixels in GPU so
-// there is few function to retrieve the current state.
 type Pixels struct {
 	image *graphics.Image
 
