@@ -194,6 +194,9 @@ func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
+	if i.volatile {
+		return nil
+	}
 	if err := i.pixels.ReadPixelsFromVRAMIfStale(context); err != nil {
 		return err
 	}
@@ -217,7 +220,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	if !i.pixels.DependsOn(target.image) {
 		return nil
 	}
-	if context == nil {
+	if context == nil || i.volatile {
 		// context is nil when this is not initialized yet.
 		i.pixels.MakeStale()
 		return nil
