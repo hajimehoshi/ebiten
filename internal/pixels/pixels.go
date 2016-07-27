@@ -177,6 +177,7 @@ func (p *Pixels) CreateImage(context *opengl.Context, width, height int, filter 
 			return nil, err
 		}
 	}
+	p.image = gimg
 	p.basePixels, err = gimg.Pixels(context)
 	if err != nil {
 		return nil, err
