@@ -222,11 +222,11 @@ func (i *Image) At(x, y int) color.Color {
 //
 // This function is concurrent-safe.
 func (i *Image) Dispose() error {
-	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
-		return err
-	}
 	if i.impl.isDisposed() {
 		return nil
+	}
+	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
+		return err
 	}
 	return i.impl.Dispose()
 }
