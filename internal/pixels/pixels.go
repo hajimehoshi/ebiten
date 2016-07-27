@@ -33,19 +33,11 @@ type drawImageHistoryItem struct {
 
 // Pixels represents pixels of an image for restoring when GL context is lost.
 type Pixels struct {
-	image *graphics.Image
-
 	// basePixels and baseColor are exclusive.
 	basePixels       []uint8
 	baseColor        color.Color
 	drawImageHistory []*drawImageHistoryItem
 	stale            bool
-}
-
-func NewPixels(image *graphics.Image) *Pixels {
-	return &Pixels{
-		image: image,
-	}
 }
 
 func (p *Pixels) MakeStale() {
@@ -97,9 +89,9 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 //
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
-func (p *Pixels) At(idx int, context *opengl.Context) (color.Color, error) {
+func (p *Pixels) At(idx int, image *graphics.Image, context *opengl.Context) (color.Color, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.ReadPixelsFromVRAM(context); err != nil {
+		if err := p.ReadPixelsFromVRAM(image, context); err != nil {
 			return nil, err
 		}
 	}
@@ -119,9 +111,9 @@ func (p *Pixels) DependsOn(target *graphics.Image) bool {
 	return false
 }
 
-func (p *Pixels) ReadPixelsFromVRAM(context *opengl.Context) error {
+func (p *Pixels) ReadPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
 	var err error
-	p.basePixels, err = p.image.Pixels(context)
+	p.basePixels, err = image.Pixels(context)
 	if err != nil {
 		return err
 	}
@@ -131,11 +123,11 @@ func (p *Pixels) ReadPixelsFromVRAM(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Pixels) ReadPixelsFromVRAMIfStale(context *opengl.Context) error {
+func (p *Pixels) ReadPixelsFromVRAMIfStale(image *graphics.Image, context *opengl.Context) error {
 	if !p.stale {
 		return nil
 	}
-	return p.ReadPixelsFromVRAM(context)
+	return p.ReadPixelsFromVRAM(image, context)
 }
 
 func (p *Pixels) HasDependency() bool {
@@ -177,7 +169,6 @@ func (p *Pixels) CreateImage(context *opengl.Context, width, height int, filter 
 			return nil, err
 		}
 	}
-	p.image = gimg
 	p.basePixels, err = gimg.Pixels(context)
 	if err != nil {
 		return nil, err

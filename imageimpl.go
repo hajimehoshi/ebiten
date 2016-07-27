@@ -34,7 +34,7 @@ type imageImpl struct {
 	width    int
 	height   int
 	filter   Filter
-	pixels   *pixels.Pixels
+	pixels   pixels.Pixels
 	volatile bool
 	screen   bool
 	m        sync.Mutex
@@ -51,7 +51,6 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		height:   height,
 		filter:   filter,
 		volatile: volatile,
-		pixels:   pixels.NewPixels(img),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -83,7 +82,6 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		width:  w,
 		height: h,
 		filter: filter,
-		pixels: pixels.NewPixels(img),
 	}
 	i.pixels.ReplacePixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
@@ -101,7 +99,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		height:   height,
 		volatile: true,
 		screen:   true,
-		pixels:   pixels.NewPixels(img),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -181,7 +178,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		return color.Transparent
 	}
 	idx := 4*x + 4*y*i.width
-	clr, err := i.pixels.At(idx, context)
+	clr, err := i.pixels.At(idx, i.image, context)
 	if err != nil {
 		panic(err)
 	}
@@ -197,7 +194,7 @@ func (i *imageImpl) ensurePixels(context *opengl.Context) error {
 	if i.volatile {
 		return nil
 	}
-	if err := i.pixels.ReadPixelsFromVRAMIfStale(context); err != nil {
+	if err := i.pixels.ReadPixelsFromVRAMIfStale(i.image, context); err != nil {
 		return err
 	}
 	return nil
@@ -225,7 +222,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 		i.pixels.MakeStale()
 		return nil
 	}
-	if err := i.pixels.ReadPixelsFromVRAM(context); err != nil {
+	if err := i.pixels.ReadPixelsFromVRAM(i.image, context); err != nil {
 		return err
 	}
 	return nil
@@ -282,7 +279,7 @@ func (i *imageImpl) Dispose() error {
 	}
 	i.image = nil
 	i.disposed = true
-	i.pixels = nil
+	i.pixels.Clear()
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
