@@ -19,9 +19,12 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 var (
@@ -43,7 +46,15 @@ func (f *Font) TextWidth(str string) int {
 }
 
 func init() {
-	arcadeFontImage, img, err := AssetImage("arcadefont.png", ebiten.FilterNearest)
+	dir := ""
+	if runtime.GOARCH != "js" {
+		// Get the path of this file (font.go).
+		_, path, _, _ := runtime.Caller(0)
+		path = filepath.Dir(path)
+		dir = filepath.Join(path, "..")
+	}
+	arcadeFontPath := filepath.Join(dir, "_resources", "images", "arcadefont.png")
+	arcadeFontImage, img, err := ebitenutil.NewImageFromFile(arcadeFontPath, ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}

@@ -22,7 +22,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/common"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
@@ -108,11 +108,11 @@ func min(a, b int) int {
 
 func main() {
 	var err error
-	gophersImage, _, err = common.AssetImage("gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fiveyearsImage, _, err = common.AssetImage("fiveyears.jpg", ebiten.FilterNearest)
+	fiveyearsImage, _, err = ebitenutil.NewImageFromFile("_resources/images/fiveyears.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

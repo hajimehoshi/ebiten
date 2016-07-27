@@ -17,11 +17,11 @@ package main
 import (
 	"fmt"
 	"image/color"
+	_ "image/jpeg"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 const (
@@ -104,7 +104,7 @@ FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 
 func main() {
 	var err error
-	gophersImage, _, err = common.AssetImage("gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
