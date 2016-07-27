@@ -63,11 +63,11 @@ func (i *images) remove(img *Image) {
 	runtime.SetFinalizer(img, nil)
 }
 
-func (i *images) ensurePixels(context *opengl.Context) error {
+func (i *images) resolveStalePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if err := img.ensurePixels(context); err != nil {
+		if err := img.resolveStalePixels(context); err != nil {
 			return err
 		}
 	}

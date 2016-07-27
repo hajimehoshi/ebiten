@@ -185,7 +185,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	return clr
 }
 
-func (i *imageImpl) ensurePixels(context *opengl.Context) error {
+func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
