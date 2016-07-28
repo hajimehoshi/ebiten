@@ -45,6 +45,11 @@ func (f *Font) TextWidth(str string) int {
 	return f.charWidth * len(str)
 }
 
+func (f *Font) TextHeight(str string) int {
+	// TODO: Take care about '\n'
+	return f.charHeight
+}
+
 func init() {
 	dir := ""
 	if runtime.GOARCH != "js" {

@@ -18,8 +18,10 @@ import (
 	"image/color"
 	"math/rand"
 	"sort"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 type Board struct {
@@ -144,8 +146,8 @@ func (b *Board) Move(dir Dir) {
 }
 
 const (
-	tileSize   = 80
-	tileMargin = 4
+	tileSize   = 40
+	tileMargin = 2
 )
 
 var (
@@ -170,9 +172,11 @@ func colorToScale(clr color.Color) (float64, float64, float64, float64) {
 	bf := float64(b) / 0xffff
 	af := float64(a) / 0xffff
 	// Convert to non-premultiplied alpha components.
-	rf /= af
-	gf /= af
-	bf /= af
+	if 0 < af {
+		rf /= af
+		gf /= af
+		bf /= af
+	}
 	return rf, gf, bf, af
 }
 
@@ -201,6 +205,18 @@ func (b *Board) Draw(screen *ebiten.Image) error {
 			op.ColorM.Scale(r, g, b, a)
 			if err := screen.DrawImage(tileImage, op); err != nil {
 				return err
+			}
+			if t != nil {
+				str := strconv.Itoa(t.value)
+				scale := 2
+				if 2 < len(str) {
+					scale = 1
+				}
+				w := common.ArcadeFont.TextWidth(str) * scale
+				h := common.ArcadeFont.TextHeight(str) * scale
+				x := x + (tileSize-w)/2
+				y := y + (tileSize-h)/2
+				common.ArcadeFont.DrawText(screen, str, x, y, scale, tileColor(t.value))
 			}
 		}
 	}
