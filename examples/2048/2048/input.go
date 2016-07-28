@@ -27,6 +27,20 @@ const (
 	DirLeft
 )
 
+func (d Dir) String() string {
+	switch d {
+	case DirUp:
+		return "Up"
+	case DirRight:
+		return "Right"
+	case DirDown:
+		return "Down"
+	case DirLeft:
+		return "Left"
+	}
+	panic("not reach")
+}
+
 func (d Dir) Vector() (x, y int) {
 	switch d {
 	case DirUp:

@@ -80,11 +80,11 @@ func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
 }
 
-func (b *Board) Move(dir Dir) {
+func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) map[*Tile]struct{} {
 	vx, vy := dir.Vector()
 	tx := []int{}
 	ty := []int{}
-	for i := 0; i < b.size; i++ {
+	for i := 0; i < size; i++ {
 		tx = append(tx, i)
 		ty = append(ty, i)
 	}
@@ -94,11 +94,12 @@ func (b *Board) Move(dir Dir) {
 	if vy > 0 {
 		sort.Sort(sort.Reverse(sort.IntSlice(ty)))
 	}
+
 	nextTiles := map[*Tile]struct{}{}
 	merged := map[*Tile]bool{}
 	for _, j := range ty {
 		for _, i := range tx {
-			t := b.tileAt(i, j)
+			t := tileAt(tiles, i, j)
 			if t == nil {
 				continue
 			}
@@ -107,7 +108,7 @@ func (b *Board) Move(dir Dir) {
 			for {
 				ni := ii + vx
 				nj := jj + vy
-				if ni < 0 || ni >= b.size || nj < 0 || nj >= b.size {
+				if ni < 0 || ni >= size || nj < 0 || nj >= size {
 					break
 				}
 				tt := tileAt(nextTiles, ni, nj)
@@ -125,7 +126,7 @@ func (b *Board) Move(dir Dir) {
 				}
 				break
 			}
-			if tt := b.tileAt(ii, jj); tt != t && tt != nil {
+			if tt := tileAt(tiles, ii, jj); tt != t && tt != nil {
 				t.value += tt.value
 				merged[t] = true
 				delete(nextTiles, tt)
@@ -135,7 +136,11 @@ func (b *Board) Move(dir Dir) {
 			nextTiles[t] = struct{}{}
 		}
 	}
-	b.tiles = nextTiles
+	return nextTiles
+}
+
+func (b *Board) Move(dir Dir) {
+	b.tiles = MoveTiles(b.tiles, b.size, dir)
 	b.addRandomTile()
 }
 

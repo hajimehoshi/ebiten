@@ -27,3 +27,11 @@ func NewTile(value int, x, y int) *Tile {
 		y:     y,
 	}
 }
+
+func (t *Tile) Value() int {
+	return t.value
+}
+
+func (t *Tile) Pos() (int, int) {
+	return t.x, t.y
+}
