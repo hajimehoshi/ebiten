@@ -110,14 +110,16 @@ func (b *Board) Move(dir Dir) {
 				if ni < 0 || ni >= b.size || nj < 0 || nj >= b.size {
 					break
 				}
-				tt := b.tileAt(ni, nj)
+				tt := tileAt(nextTiles, ni, nj)
 				if tt == nil {
 					ii = ni
 					jj = nj
 					continue
 				}
-				nt := tileAt(nextTiles, ni, nj)
-				if t.value == tt.value && (nt == nil || !merged[nt]) {
+				if t.value != tt.value {
+					break
+				}
+				if !merged[tt] {
 					ii = ni
 					jj = nj
 				}
