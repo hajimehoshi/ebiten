@@ -81,7 +81,7 @@ func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
 }
 
-func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) map[*Tile]struct{} {
+func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{}, bool) {
 	vx, vy := dir.Vector()
 	tx := []int{}
 	ty := []int{}
@@ -98,6 +98,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) map[*Tile]struct{} {
 
 	nextTiles := map[*Tile]struct{}{}
 	merged := map[*Tile]bool{}
+	moved := false
 	for _, j := range ty {
 		for _, i := range tx {
 			t := tileAt(tiles, i, j)
@@ -116,6 +117,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) map[*Tile]struct{} {
 				if tt == nil {
 					ii = ni
 					jj = nj
+					moved = true
 					continue
 				}
 				if t.value != tt.value {
@@ -124,6 +126,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) map[*Tile]struct{} {
 				if !merged[tt] {
 					ii = ni
 					jj = nj
+					moved = true
 				}
 				break
 			}
@@ -137,11 +140,15 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) map[*Tile]struct{} {
 			nextTiles[t] = struct{}{}
 		}
 	}
-	return nextTiles
+	return nextTiles, moved
 }
 
 func (b *Board) Move(dir Dir) {
-	b.tiles = MoveTiles(b.tiles, b.size, dir)
+	moved := false
+	b.tiles, moved = MoveTiles(b.tiles, b.size, dir)
+	if !moved {
+		return
+	}
 	b.addRandomTile()
 }
 

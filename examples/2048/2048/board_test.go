@@ -191,7 +191,8 @@ func TestMoveTiles(t *testing.T) {
 	for _, test := range testCases {
 		tiles := cellsToTiles(test.Input, size)
 		want := tilesToCells(cellsToTiles(test.Want, size), size)
-		got := tilesToCells(MoveTiles(tiles, size, test.Dir), size)
+		gotTiles, _ := MoveTiles(tiles, size, test.Dir)
+		got := tilesToCells(gotTiles, size)
 		if fmt.Sprint(got) != fmt.Sprint(want) {
 			t.Errorf("dir: %s, input: %v, got %v; want %v", test.Dir.String(), test.Input, got, want)
 		}
