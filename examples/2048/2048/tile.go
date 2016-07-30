@@ -167,6 +167,12 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			t.animationCount = maxAnimationCount
 		}
 	}
+	if !moved {
+		for t := range tiles {
+			t.next = TileData{}
+			t.animationCount = 0
+		}
+	}
 	return moved
 }
 

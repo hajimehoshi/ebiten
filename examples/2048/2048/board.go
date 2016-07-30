@@ -61,11 +61,6 @@ func (b *Board) Update(input *Input) error {
 		}
 		return nil
 	}
-	for t := range b.tiles {
-		if t.IsAnimating() {
-			return nil
-		}
-	}
 	if dir, ok := input.Dir(); ok {
 		if err := b.Move(dir); err != nil {
 			return err
