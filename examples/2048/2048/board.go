@@ -46,13 +46,24 @@ func (b *Board) Update(input *Input) error {
 			return err
 		}
 	}
+	for t := range b.tiles {
+		if err := t.Update(); err != nil {
+			return err
+		}
+	}
+	nextTiles := map[*Tile]struct{}{}
+	for t := range b.tiles {
+		if t.current.value == 0 {
+			continue
+		}
+		nextTiles[t] = struct{}{}
+	}
+	b.tiles = nextTiles
 	return nil
 }
 
 func (b *Board) Move(dir Dir) error {
-	moved := false
-	b.tiles, moved = MoveTiles(b.tiles, b.size, dir)
-	if !moved {
+	if moved := MoveTiles(b.tiles, b.size, dir); !moved {
 		return nil
 	}
 	if err := addRandomTile(b.tiles, b.size); err != nil {

@@ -34,6 +34,7 @@ type TileData struct {
 type Tile struct {
 	current TileData
 	next    TileData
+	moving  bool
 }
 
 func NewTile(value int, x, y int) *Tile {
@@ -54,16 +55,43 @@ func (t *Tile) Pos() (int, int) {
 	return t.current.x, t.current.y
 }
 
-func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
-	for t := range tiles {
-		if t.current.x == x && t.current.y == y {
-			return t
-		}
-	}
-	return nil
+func (t *Tile) NextValue() int {
+	return t.next.value
 }
 
-func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{}, bool) {
+func (t *Tile) NextPos() (int, int) {
+	return t.next.x, t.next.y
+}
+
+func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
+	var result *Tile
+	for t := range tiles {
+		if t.current.x != x || t.current.y != y {
+			continue
+		}
+		if result != nil {
+			panic("not reach")
+		}
+		result = t
+	}
+	return result
+}
+
+func nextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
+	var result *Tile
+	for t := range tiles {
+		if t.next.x != x || t.next.y != y || t.next.value == 0 {
+			continue
+		}
+		if result != nil {
+			panic("not reach")
+		}
+		result = t
+	}
+	return result
+}
+
+func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 	vx, vy := dir.Vector()
 	tx := []int{}
 	ty := []int{}
@@ -78,8 +106,6 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{},
 		sort.Sort(sort.Reverse(sort.IntSlice(ty)))
 	}
 
-	nextTiles := map[*Tile]struct{}{}
-	merged := map[*Tile]bool{}
 	moved := false
 	for _, j := range ty {
 		for _, i := range tx {
@@ -95,40 +121,48 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{},
 				if ni < 0 || ni >= size || nj < 0 || nj >= size {
 					break
 				}
-				tt := tileAt(nextTiles, ni, nj)
+				tt := nextTileAt(tiles, ni, nj)
 				if tt == nil {
 					ii = ni
 					jj = nj
 					moved = true
 					continue
 				}
-				if t.current.value != tt.current.value {
+				if t.current.value != tt.next.value {
 					break
 				}
-				if !merged[tt] {
-					ii = ni
-					jj = nj
-					moved = true
+				if tt.current.value != tt.next.value {
+					// already merged
+					break
 				}
+				ii = ni
+				jj = nj
+				moved = true
 				break
 			}
-			if tt := tileAt(tiles, ii, jj); tt != t && tt != nil {
-				t.current.value += tt.current.value
-				merged[t] = true
-				delete(nextTiles, tt)
+			if tt := nextTileAt(tiles, ii, jj); tt != t && tt != nil {
+				t.next.value = t.current.value + tt.next.value
+				tt.next = TileData{}
+			} else {
+				t.next.value = t.current.value
 			}
-			t.current.x = ii
-			t.current.y = jj
-			nextTiles[t] = struct{}{}
+			t.next.x = ii
+			t.next.y = jj
+			t.moving = true
 		}
 	}
-	return nextTiles, moved
+	return moved
 }
 
 func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
-		i := t.current.x + t.current.y*size
+		i := 0
+		if t.moving {
+			i = t.next.x + t.next.y*size
+		} else {
+			i = t.current.x + t.current.y*size
+		}
 		cells[i] = true
 	}
 	availableCells := []int{}
@@ -153,6 +187,16 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	return nil
 }
 
+func (t *Tile) Update() error {
+	if !t.moving {
+		return nil
+	}
+	t.current = t.next
+	t.next = TileData{}
+	t.moving = false
+	return nil
+}
+
 func colorToScale(clr color.Color) (float64, float64, float64, float64) {
 	r, g, b, a := clr.RGBA()
 	rf := float64(r) / 0xffff
@@ -170,10 +214,10 @@ func colorToScale(clr color.Color) (float64, float64, float64, float64) {
 
 func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	i, j := t.current.x, t.current.y
+	v := t.current.value
 	op := &ebiten.DrawImageOptions{}
 	x := i*tileSize + (i+1)*tileMargin
 	y := j*tileSize + (j+1)*tileMargin
-	v := t.current.value
 	op.GeoM.Translate(float64(x), float64(y))
 	r, g, b, a := colorToScale(tileBackgroundColor(v))
 	op.ColorM.Scale(r, g, b, a)

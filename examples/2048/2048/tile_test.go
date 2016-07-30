@@ -36,13 +36,19 @@ func cellsToTiles(cells []int, size int) map[*Tile]struct{} {
 	return tiles
 }
 
-func tilesToCells(tiles map[*Tile]struct{}, size int) []int {
+func tilesToCells(tiles map[*Tile]struct{}, size int) ([]int, []int) {
 	cells := make([]int, size*size)
+	nextCells := make([]int, size*size)
 	for t := range tiles {
 		x, y := t.Pos()
 		cells[x+y*size] = t.Value()
+		if t.NextValue() == 0 {
+			continue
+		}
+		nx, ny := t.NextPos()
+		nextCells[nx+ny*size] = t.NextValue()
 	}
-	return cells
+	return cells, nextCells
 }
 
 func TestMoveTiles(t *testing.T) {
@@ -80,6 +86,21 @@ func TestMoveTiles(t *testing.T) {
 				0, 0, 0, 2,
 				0, 0, 0, 2,
 				0, 0, 0, 2,
+			},
+		},
+		{
+			Dir: DirUp,
+			Input: []int{
+				2, 0, 0, 0,
+				0, 2, 0, 0,
+				0, 0, 2, 0,
+				0, 0, 0, 2,
+			},
+			Want: []int{
+				2, 2, 2, 2,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
 			},
 		},
 		{
@@ -189,10 +210,10 @@ func TestMoveTiles(t *testing.T) {
 		},
 	}
 	for _, test := range testCases {
+		want, _ := tilesToCells(cellsToTiles(test.Want, size), size)
 		tiles := cellsToTiles(test.Input, size)
-		want := tilesToCells(cellsToTiles(test.Want, size), size)
-		gotTiles, _ := MoveTiles(tiles, size, test.Dir)
-		got := tilesToCells(gotTiles, size)
+		MoveTiles(tiles, size, test.Dir)
+		_, got := tilesToCells(tiles, size)
 		if fmt.Sprint(got) != fmt.Sprint(want) {
 			t.Errorf("dir: %s, input: %v, got %v; want %v", test.Dir.String(), test.Input, got, want)
 		}
