@@ -104,6 +104,21 @@ func TestMoveTiles(t *testing.T) {
 			},
 		},
 		{
+			Dir: DirLeft,
+			Input: []int{
+				0, 2, 2, 2,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+			},
+			Want: []int{
+				4, 2, 0, 0,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+			},
+		},
+		{
 			Dir: DirRight,
 			Input: []int{
 				0, 0, 0, 2,

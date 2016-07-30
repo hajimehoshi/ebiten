@@ -32,9 +32,9 @@ type TileData struct {
 }
 
 type Tile struct {
-	current TileData
-	next    TileData
-	moving  bool
+	current        TileData
+	next           TileData
+	animationCount int
 }
 
 func NewTile(value int, x, y int) *Tile {
@@ -61,6 +61,10 @@ func (t *Tile) NextValue() int {
 
 func (t *Tile) NextPos() (int, int) {
 	return t.next.x, t.next.y
+}
+
+func (t *Tile) isAnimating() bool {
+	return 0 < t.animationCount
 }
 
 func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
@@ -91,6 +95,10 @@ func nextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 	return result
 }
 
+const (
+	maxAnimationCount = 10
+)
+
 func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 	vx, vy := dir.Vector()
 	tx := []int{}
@@ -112,6 +120,9 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			t := tileAt(tiles, i, j)
 			if t == nil {
 				continue
+			}
+			if t.animationCount != 0 {
+				panic("not reach")
 			}
 			ii := i
 			jj := j
@@ -140,15 +151,17 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				moved = true
 				break
 			}
+			next := TileData{}
+			next.value = t.current.value
 			if tt := nextTileAt(tiles, ii, jj); tt != t && tt != nil {
-				t.next.value = t.current.value + tt.next.value
+				next.value = t.current.value + tt.next.value
 				tt.next = TileData{}
-			} else {
-				t.next.value = t.current.value
+				tt.animationCount = 1
 			}
-			t.next.x = ii
-			t.next.y = jj
-			t.moving = true
+			next.x = ii
+			next.y = jj
+			t.next = next
+			t.animationCount = maxAnimationCount
 		}
 	}
 	return moved
@@ -157,12 +170,10 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
-		i := 0
-		if t.moving {
-			i = t.next.x + t.next.y*size
-		} else {
-			i = t.current.x + t.current.y*size
+		if t.isAnimating() {
+			panic("not reach")
 		}
+		i := t.current.x + t.current.y*size
 		cells[i] = true
 	}
 	availableCells := []int{}
@@ -188,12 +199,17 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 }
 
 func (t *Tile) Update() error {
-	if !t.moving {
+	if t.animationCount == 0 {
+		if t.next.value != 0 {
+			panic("not reach")
+		}
 		return nil
 	}
-	t.current = t.next
-	t.next = TileData{}
-	t.moving = false
+	t.animationCount--
+	if t.animationCount == 0 {
+		t.current = t.next
+		t.next = TileData{}
+	}
 	return nil
 }
 
@@ -212,12 +228,47 @@ func colorToScale(clr color.Color) (float64, float64, float64, float64) {
 	return rf, gf, bf, af
 }
 
+func mean(a, b int, rate float64) int {
+	return int(float64(a)*rate + float64(b)*(1-rate))
+}
+
+const (
+	tileSize   = 40
+	tileMargin = 2
+)
+
+var (
+	tileImage *ebiten.Image
+)
+
+func init() {
+	var err error
+	tileImage, err = ebiten.NewImage(tileSize, tileSize, ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	if err := tileImage.Fill(color.White); err != nil {
+		panic(err)
+	}
+}
+
 func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	i, j := t.current.x, t.current.y
+	ni, nj := t.next.x, t.next.y
 	v := t.current.value
+	if v == 0 {
+		return nil
+	}
 	op := &ebiten.DrawImageOptions{}
 	x := i*tileSize + (i+1)*tileMargin
 	y := j*tileSize + (j+1)*tileMargin
+	nx := ni*tileSize + (ni+1)*tileMargin
+	ny := nj*tileSize + (nj+1)*tileMargin
+	if 0 < t.animationCount && t.next.value != 0 {
+		rate := float64(t.animationCount) / maxAnimationCount
+		x = mean(x, nx, rate)
+		y = mean(y, ny, rate)
+	}
 	op.GeoM.Translate(float64(x), float64(y))
 	r, g, b, a := colorToScale(tileBackgroundColor(v))
 	op.ColorM.Scale(r, g, b, a)

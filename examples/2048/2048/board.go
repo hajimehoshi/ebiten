@@ -15,14 +15,19 @@
 package twenty48
 
 import (
-	"image/color"
+	"errors"
 
 	"github.com/hajimehoshi/ebiten"
 )
 
+var taskTerminated = errors.New("twenty48: task terminated")
+
+type task func() error
+
 type Board struct {
 	size  int
 	tiles map[*Tile]struct{}
+	tasks []task
 }
 
 func NewBoard(size int) *Board {
@@ -40,56 +45,69 @@ func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
 }
 
+func (b *Board) isAnimating() bool {
+	for t := range b.tiles {
+		if t.isAnimating() {
+			return true
+		}
+	}
+	return false
+}
+
 func (b *Board) Update(input *Input) error {
+	if 0 < len(b.tasks) {
+		t := b.tasks[0]
+		err := t()
+		if err == taskTerminated {
+			b.tasks = b.tasks[1:]
+		} else if err != nil {
+			return err
+		}
+		return nil
+	}
 	if dir, ok := input.Dir(); ok {
 		if err := b.Move(dir); err != nil {
 			return err
 		}
 	}
-	for t := range b.tiles {
-		if err := t.Update(); err != nil {
-			return err
-		}
-	}
-	nextTiles := map[*Tile]struct{}{}
-	for t := range b.tiles {
-		if t.current.value == 0 {
-			continue
-		}
-		nextTiles[t] = struct{}{}
-	}
-	b.tiles = nextTiles
 	return nil
 }
 
 func (b *Board) Move(dir Dir) error {
-	if moved := MoveTiles(b.tiles, b.size, dir); !moved {
+	if !MoveTiles(b.tiles, b.size, dir) {
 		return nil
 	}
-	if err := addRandomTile(b.tiles, b.size); err != nil {
-		return err
-	}
+	b.tasks = append(b.tasks, func() error {
+		for t := range b.tiles {
+			if err := t.Update(); err != nil {
+				return err
+			}
+		}
+		for t := range b.tiles {
+			if t.isAnimating() {
+				return nil
+			}
+		}
+		return taskTerminated
+	})
+	b.tasks = append(b.tasks, func() error {
+		nextTiles := map[*Tile]struct{}{}
+		for t := range b.tiles {
+			if t.next.value != 0 {
+				panic("not reach")
+			}
+			if t.current.value == 0 {
+				continue
+			}
+			nextTiles[t] = struct{}{}
+		}
+		b.tiles = nextTiles
+		if err := addRandomTile(b.tiles, b.size); err != nil {
+			return err
+		}
+		return taskTerminated
+	})
 	return nil
-}
-
-const (
-	tileSize   = 40
-	tileMargin = 2
-)
-
-var (
-	tileImage *ebiten.Image
-)
-
-func init() {
-	var err error
-	tileImage, err = ebiten.NewImage(tileSize, tileSize, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	if err := tileImage.Fill(color.White); err != nil {
-		panic(err)
-	}
 }
 
 func (b *Board) Size() (int, int) {
@@ -98,8 +116,8 @@ func (b *Board) Size() (int, int) {
 	return x, y
 }
 
-func (b *Board) Draw(screen *ebiten.Image) error {
-	if err := screen.Fill(frameColor); err != nil {
+func (b *Board) Draw(boardImage *ebiten.Image) error {
+	if err := boardImage.Fill(frameColor); err != nil {
 		return err
 	}
 	for j := 0; j < b.size; j++ {
@@ -111,13 +129,27 @@ func (b *Board) Draw(screen *ebiten.Image) error {
 			op.GeoM.Translate(float64(x), float64(y))
 			r, g, b, a := colorToScale(tileBackgroundColor(v))
 			op.ColorM.Scale(r, g, b, a)
-			if err := screen.DrawImage(tileImage, op); err != nil {
+			if err := boardImage.DrawImage(tileImage, op); err != nil {
 				return err
 			}
 		}
 	}
+	animatingTiles := map[*Tile]struct{}{}
+	nonAnimatingTiles := map[*Tile]struct{}{}
 	for t := range b.tiles {
-		if err := t.Draw(screen); err != nil {
+		if t.isAnimating() {
+			animatingTiles[t] = struct{}{}
+		} else {
+			nonAnimatingTiles[t] = struct{}{}
+		}
+	}
+	for t := range nonAnimatingTiles {
+		if err := t.Draw(boardImage); err != nil {
+			return err
+		}
+	}
+	for t := range animatingTiles {
+		if err := t.Draw(boardImage); err != nil {
 			return err
 		}
 	}
