@@ -16,8 +16,6 @@ package twenty48
 
 import (
 	"image/color"
-	"math/rand"
-	"sort"
 	"strconv"
 
 	"github.com/hajimehoshi/ebiten"
@@ -35,121 +33,25 @@ func NewBoard(size int) *Board {
 		tiles: map[*Tile]struct{}{},
 	}
 	for i := 0; i < 2; i++ {
-		b.addRandomTile()
+		addRandomTile(b.tiles, b.size)
 	}
 	return b
-}
-
-func (b *Board) addRandomTile() bool {
-	cells := make([]bool, b.size*b.size)
-	for t := range b.tiles {
-		i := t.x + t.y*b.size
-		cells[i] = true
-	}
-	availableCells := []int{}
-	for i, b := range cells {
-		if b {
-			continue
-		}
-		availableCells = append(availableCells, i)
-	}
-	if len(availableCells) == 0 {
-		return false
-	}
-	c := availableCells[rand.Intn(len(availableCells))]
-	v := 2
-	if rand.Intn(10) == 0 {
-		v = 4
-	}
-	x := c % b.size
-	y := c / b.size
-	t := NewTile(v, x, y)
-	b.tiles[t] = struct{}{}
-	return true
-}
-
-func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
-	for t := range tiles {
-		if t.x == x && t.y == y {
-			return t
-		}
-	}
-	return nil
 }
 
 func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
 }
 
-func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{}, bool) {
-	vx, vy := dir.Vector()
-	tx := []int{}
-	ty := []int{}
-	for i := 0; i < size; i++ {
-		tx = append(tx, i)
-		ty = append(ty, i)
-	}
-	if vx > 0 {
-		sort.Sort(sort.Reverse(sort.IntSlice(tx)))
-	}
-	if vy > 0 {
-		sort.Sort(sort.Reverse(sort.IntSlice(ty)))
-	}
-
-	nextTiles := map[*Tile]struct{}{}
-	merged := map[*Tile]bool{}
-	moved := false
-	for _, j := range ty {
-		for _, i := range tx {
-			t := tileAt(tiles, i, j)
-			if t == nil {
-				continue
-			}
-			ii := i
-			jj := j
-			for {
-				ni := ii + vx
-				nj := jj + vy
-				if ni < 0 || ni >= size || nj < 0 || nj >= size {
-					break
-				}
-				tt := tileAt(nextTiles, ni, nj)
-				if tt == nil {
-					ii = ni
-					jj = nj
-					moved = true
-					continue
-				}
-				if t.value != tt.value {
-					break
-				}
-				if !merged[tt] {
-					ii = ni
-					jj = nj
-					moved = true
-				}
-				break
-			}
-			if tt := tileAt(tiles, ii, jj); tt != t && tt != nil {
-				t.value += tt.value
-				merged[t] = true
-				delete(nextTiles, tt)
-			}
-			t.x = ii
-			t.y = jj
-			nextTiles[t] = struct{}{}
-		}
-	}
-	return nextTiles, moved
-}
-
-func (b *Board) Move(dir Dir) {
+func (b *Board) Move(dir Dir) error {
 	moved := false
 	b.tiles, moved = MoveTiles(b.tiles, b.size, dir)
 	if !moved {
-		return
+		return nil
 	}
-	b.addRandomTile()
+	if err := addRandomTile(b.tiles, b.size); err != nil {
+		return err
+	}
+	return nil
 }
 
 const (
