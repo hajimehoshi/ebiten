@@ -63,7 +63,7 @@ func (t *Tile) NextPos() (int, int) {
 	return t.next.x, t.next.y
 }
 
-func (t *Tile) isAnimating() bool {
+func (t *Tile) IsAnimating() bool {
 	return 0 < t.animationCount
 }
 
@@ -121,7 +121,10 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			if t == nil {
 				continue
 			}
-			if t.animationCount != 0 {
+			if t.next != (TileData{}) {
+				panic("not reach")
+			}
+			if t.IsAnimating() {
 				panic("not reach")
 			}
 			ii := i
@@ -155,8 +158,8 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			next.value = t.current.value
 			if tt := nextTileAt(tiles, ii, jj); tt != t && tt != nil {
 				next.value = t.current.value + tt.next.value
-				tt.next = TileData{}
-				tt.animationCount = 1
+				tt.next.value = 0
+				tt.animationCount = maxAnimationCount
 			}
 			next.x = ii
 			next.y = jj
@@ -170,7 +173,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
-		if t.isAnimating() {
+		if t.IsAnimating() {
 			panic("not reach")
 		}
 		i := t.current.x + t.current.y*size
@@ -200,7 +203,7 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 
 func (t *Tile) Update() error {
 	if t.animationCount == 0 {
-		if t.next.value != 0 {
+		if t.next != (TileData{}) {
 			panic("not reach")
 		}
 		return nil
@@ -264,7 +267,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	y := j*tileSize + (j+1)*tileMargin
 	nx := ni*tileSize + (ni+1)*tileMargin
 	ny := nj*tileSize + (nj+1)*tileMargin
-	if 0 < t.animationCount && t.next.value != 0 {
+	if 0 < t.animationCount {
 		rate := float64(t.animationCount) / maxAnimationCount
 		x = mean(x, nx, rate)
 		y = mean(y, ny, rate)

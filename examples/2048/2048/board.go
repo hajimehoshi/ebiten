@@ -45,16 +45,12 @@ func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
 }
 
-func (b *Board) isAnimating() bool {
+func (b *Board) Update(input *Input) error {
 	for t := range b.tiles {
-		if t.isAnimating() {
-			return true
+		if err := t.Update(); err != nil {
+			return err
 		}
 	}
-	return false
-}
-
-func (b *Board) Update(input *Input) error {
 	if 0 < len(b.tasks) {
 		t := b.tasks[0]
 		err := t()
@@ -64,6 +60,11 @@ func (b *Board) Update(input *Input) error {
 			return err
 		}
 		return nil
+	}
+	for t := range b.tiles {
+		if t.IsAnimating() {
+			return nil
+		}
 	}
 	if dir, ok := input.Dir(); ok {
 		if err := b.Move(dir); err != nil {
@@ -79,12 +80,7 @@ func (b *Board) Move(dir Dir) error {
 	}
 	b.tasks = append(b.tasks, func() error {
 		for t := range b.tiles {
-			if err := t.Update(); err != nil {
-				return err
-			}
-		}
-		for t := range b.tiles {
-			if t.isAnimating() {
+			if t.IsAnimating() {
 				return nil
 			}
 		}
@@ -93,6 +89,9 @@ func (b *Board) Move(dir Dir) error {
 	b.tasks = append(b.tasks, func() error {
 		nextTiles := map[*Tile]struct{}{}
 		for t := range b.tiles {
+			if t.IsAnimating() {
+				panic("not reach")
+			}
 			if t.next.value != 0 {
 				panic("not reach")
 			}
@@ -137,7 +136,7 @@ func (b *Board) Draw(boardImage *ebiten.Image) error {
 	animatingTiles := map[*Tile]struct{}{}
 	nonAnimatingTiles := map[*Tile]struct{}{}
 	for t := range b.tiles {
-		if t.isAnimating() {
+		if t.IsAnimating() {
 			animatingTiles[t] = struct{}{}
 		} else {
 			nonAnimatingTiles[t] = struct{}{}
