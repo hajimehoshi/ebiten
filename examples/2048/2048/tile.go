@@ -16,35 +16,47 @@ package twenty48
 
 import (
 	"errors"
+	"image/color"
 	"math/rand"
 	"sort"
+	"strconv"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
-type Tile struct {
+type TileData struct {
 	value int
 	x     int
 	y     int
 }
 
+type Tile struct {
+	current TileData
+	next    TileData
+}
+
 func NewTile(value int, x, y int) *Tile {
 	return &Tile{
-		value: value,
-		x:     x,
-		y:     y,
+		current: TileData{
+			value: value,
+			x:     x,
+			y:     y,
+		},
 	}
 }
 
 func (t *Tile) Value() int {
-	return t.value
+	return t.current.value
 }
 
 func (t *Tile) Pos() (int, int) {
-	return t.x, t.y
+	return t.current.x, t.current.y
 }
 
 func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 	for t := range tiles {
-		if t.x == x && t.y == y {
+		if t.current.x == x && t.current.y == y {
 			return t
 		}
 	}
@@ -90,7 +102,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{},
 					moved = true
 					continue
 				}
-				if t.value != tt.value {
+				if t.current.value != tt.current.value {
 					break
 				}
 				if !merged[tt] {
@@ -101,12 +113,12 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{},
 				break
 			}
 			if tt := tileAt(tiles, ii, jj); tt != t && tt != nil {
-				t.value += tt.value
+				t.current.value += tt.current.value
 				merged[t] = true
 				delete(nextTiles, tt)
 			}
-			t.x = ii
-			t.y = jj
+			t.current.x = ii
+			t.current.y = jj
 			nextTiles[t] = struct{}{}
 		}
 	}
@@ -116,7 +128,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) (map[*Tile]struct{},
 func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
-		i := t.x + t.y*size
+		i := t.current.x + t.current.y*size
 		cells[i] = true
 	}
 	availableCells := []int{}
@@ -138,5 +150,45 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	y := c / size
 	t := NewTile(v, x, y)
 	tiles[t] = struct{}{}
+	return nil
+}
+
+func colorToScale(clr color.Color) (float64, float64, float64, float64) {
+	r, g, b, a := clr.RGBA()
+	rf := float64(r) / 0xffff
+	gf := float64(g) / 0xffff
+	bf := float64(b) / 0xffff
+	af := float64(a) / 0xffff
+	// Convert to non-premultiplied alpha components.
+	if 0 < af {
+		rf /= af
+		gf /= af
+		bf /= af
+	}
+	return rf, gf, bf, af
+}
+
+func (t *Tile) Draw(boardImage *ebiten.Image) error {
+	i, j := t.current.x, t.current.y
+	op := &ebiten.DrawImageOptions{}
+	x := i*tileSize + (i+1)*tileMargin
+	y := j*tileSize + (j+1)*tileMargin
+	v := t.current.value
+	op.GeoM.Translate(float64(x), float64(y))
+	r, g, b, a := colorToScale(tileBackgroundColor(v))
+	op.ColorM.Scale(r, g, b, a)
+	if err := boardImage.DrawImage(tileImage, op); err != nil {
+		return err
+	}
+	str := strconv.Itoa(v)
+	scale := 2
+	if 2 < len(str) {
+		scale = 1
+	}
+	w := common.ArcadeFont.TextWidth(str) * scale
+	h := common.ArcadeFont.TextHeight(str) * scale
+	x = x + (tileSize-w)/2
+	y = y + (tileSize-h)/2
+	common.ArcadeFont.DrawText(boardImage, str, x, y, scale, tileColor(v))
 	return nil
 }

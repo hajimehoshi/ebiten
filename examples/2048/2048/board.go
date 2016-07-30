@@ -16,10 +16,8 @@ package twenty48
 
 import (
 	"image/color"
-	"strconv"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 type Board struct {
@@ -40,6 +38,15 @@ func NewBoard(size int) *Board {
 
 func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
+}
+
+func (b *Board) Update(input *Input) error {
+	if dir, ok := input.Dir(); ok {
+		if err := b.Move(dir); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *Board) Move(dir Dir) error {
@@ -74,21 +81,6 @@ func init() {
 	}
 }
 
-func colorToScale(clr color.Color) (float64, float64, float64, float64) {
-	r, g, b, a := clr.RGBA()
-	rf := float64(r) / 0xffff
-	gf := float64(g) / 0xffff
-	bf := float64(b) / 0xffff
-	af := float64(a) / 0xffff
-	// Convert to non-premultiplied alpha components.
-	if 0 < af {
-		rf /= af
-		gf /= af
-		bf /= af
-	}
-	return rf, gf, bf, af
-}
-
 func (b *Board) Size() (int, int) {
 	x := b.size*tileSize + (b.size+1)*tileMargin
 	y := x
@@ -101,11 +93,7 @@ func (b *Board) Draw(screen *ebiten.Image) error {
 	}
 	for j := 0; j < b.size; j++ {
 		for i := 0; i < b.size; i++ {
-			t := b.tileAt(i, j)
 			v := 0
-			if t != nil {
-				v = t.value
-			}
 			op := &ebiten.DrawImageOptions{}
 			x := i*tileSize + (i+1)*tileMargin
 			y := j*tileSize + (j+1)*tileMargin
@@ -115,18 +103,11 @@ func (b *Board) Draw(screen *ebiten.Image) error {
 			if err := screen.DrawImage(tileImage, op); err != nil {
 				return err
 			}
-			if t != nil {
-				str := strconv.Itoa(t.value)
-				scale := 2
-				if 2 < len(str) {
-					scale = 1
-				}
-				w := common.ArcadeFont.TextWidth(str) * scale
-				h := common.ArcadeFont.TextHeight(str) * scale
-				x := x + (tileSize-w)/2
-				y := y + (tileSize-h)/2
-				common.ArcadeFont.DrawText(screen, str, x, y, scale, tileColor(t.value))
-			}
+		}
+	}
+	for t := range b.tiles {
+		if err := t.Draw(screen); err != nil {
+			return err
 		}
 	}
 	return nil

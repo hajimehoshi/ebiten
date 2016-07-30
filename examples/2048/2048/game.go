@@ -48,10 +48,8 @@ func (g *Game) Update() error {
 	if err := g.input.Update(); err != nil {
 		return err
 	}
-	if dir, ok := g.input.Dir(); ok {
-		if err := g.board.Move(dir); err != nil {
-			return err
-		}
+	if err := g.board.Update(g.input); err != nil {
+		return err
 	}
 	return nil
 }
