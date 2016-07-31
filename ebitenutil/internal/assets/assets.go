@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate go-bindata -nocompress -pkg=assets text.png
+//go:generate gofmt -s -w .
+
 package assets
 
 import (
@@ -19,11 +22,6 @@ import (
 	"image"
 	_ "image/png"
 )
-
-const FileNameText = "text.png"
-
-//go:generate go-bindata -nocompress -pkg=assets text.png
-//go:generate gofmt -s -w .
 
 const (
 	TextImageWidth      = 192
