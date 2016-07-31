@@ -42,11 +42,15 @@ func tilesToCells(tiles map[*Tile]struct{}, size int) ([]int, []int) {
 	for t := range tiles {
 		x, y := t.Pos()
 		cells[x+y*size] = t.Value()
-		if t.NextValue() == 0 {
-			continue
+		if t.IsAnimating() {
+			if t.NextValue() == 0 {
+				continue
+			}
+			nx, ny := t.NextPos()
+			nextCells[nx+ny*size] = t.NextValue()
+		} else {
+			nextCells[x+y*size] = t.Value()
 		}
-		nx, ny := t.NextPos()
-		nextCells[nx+ny*size] = t.NextValue()
 	}
 	return cells, nextCells
 }

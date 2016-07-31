@@ -84,8 +84,14 @@ func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 func nextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 	var result *Tile
 	for t := range tiles {
-		if t.next.x != x || t.next.y != y || t.next.value == 0 {
-			continue
+		if 0 < t.animationCount {
+			if t.next.x != x || t.next.y != y || t.next.value == 0 {
+				continue
+			}
+		} else {
+			if t.current.x != x || t.current.y != y {
+				continue
+			}
 		}
 		if result != nil {
 			panic("not reach")
@@ -142,10 +148,10 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 					moved = true
 					continue
 				}
-				if t.current.value != tt.next.value {
+				if t.current.value != tt.current.value {
 					break
 				}
-				if tt.current.value != tt.next.value {
+				if 0 < tt.animationCount && tt.current.value != tt.next.value {
 					// already merged
 					break
 				}
@@ -157,14 +163,18 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			next := TileData{}
 			next.value = t.current.value
 			if tt := nextTileAt(tiles, ii, jj); tt != t && tt != nil {
-				next.value = t.current.value + tt.next.value
+				next.value = t.current.value + tt.current.value
 				tt.next.value = 0
+				tt.next.x = ii
+				tt.next.y = jj
 				tt.animationCount = maxAnimationCount
 			}
 			next.x = ii
 			next.y = jj
-			t.next = next
-			t.animationCount = maxAnimationCount
+			if t.current != next {
+				t.next = next
+				t.animationCount = maxAnimationCount
+			}
 		}
 	}
 	if !moved {
