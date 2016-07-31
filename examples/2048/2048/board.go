@@ -53,8 +53,7 @@ func (b *Board) Update(input *Input) error {
 	}
 	if 0 < len(b.tasks) {
 		t := b.tasks[0]
-		err := t()
-		if err == taskTerminated {
+		if err := t(); err == taskTerminated {
 			b.tasks = b.tasks[1:]
 		} else if err != nil {
 			return err
@@ -103,7 +102,7 @@ func (b *Board) Move(dir Dir) error {
 	})
 	b.tasks = append(b.tasks, func() error {
 		for t := range b.tiles {
-			if t.isPopping() {
+			if t.isAnimating() {
 				return nil
 			}
 		}

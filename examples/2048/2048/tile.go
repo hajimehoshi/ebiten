@@ -70,8 +70,8 @@ func (t *Tile) IsMoving() bool {
 	return 0 < t.movingCount
 }
 
-func (t *Tile) isPopping() bool {
-	return 0 < t.poppingCount
+func (t *Tile) isAnimating() bool {
+	return 0 < t.movingCount || 0 < t.startPoppingCount || 0 < t.poppingCount
 }
 
 func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
