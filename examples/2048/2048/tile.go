@@ -71,6 +71,10 @@ func (t *Tile) IsMoving() bool {
 }
 
 func (t *Tile) stopAnimation() {
+	if 0 < t.movingCount {
+		t.current = t.next
+		t.next = TileData{}
+	}
 	t.movingCount = 0
 	t.startPoppingCount = 0
 	t.poppingCount = 0
