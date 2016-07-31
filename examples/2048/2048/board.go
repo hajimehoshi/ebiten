@@ -69,6 +69,9 @@ func (b *Board) Update(input *Input) error {
 }
 
 func (b *Board) Move(dir Dir) error {
+	for t := range b.tiles {
+		t.stopAnimation()
+	}
 	if !MoveTiles(b.tiles, b.size, dir) {
 		return nil
 	}
@@ -97,14 +100,6 @@ func (b *Board) Move(dir Dir) error {
 		b.tiles = nextTiles
 		if err := addRandomTile(b.tiles, b.size); err != nil {
 			return err
-		}
-		return taskTerminated
-	})
-	b.tasks = append(b.tasks, func() error {
-		for t := range b.tiles {
-			if t.isAnimating() {
-				return nil
-			}
 		}
 		return taskTerminated
 	})
