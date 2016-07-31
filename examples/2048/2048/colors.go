@@ -27,7 +27,7 @@ func tileColor(value int) color.Color {
 	switch value {
 	case 2, 4:
 		return color.RGBA{0x77, 0x6e, 0x65, 0xff}
-	case 8, 16, 32, 64, 128, 256, 512, 1024, 2048:
+	case 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536:
 		return color.RGBA{0xf9, 0xf6, 0xf2, 0xff}
 	}
 	panic("not reach")
@@ -59,6 +59,16 @@ func tileBackgroundColor(value int) color.Color {
 		return color.RGBA{0xed, 0xc5, 0x3f, 0xff}
 	case 2048:
 		return color.RGBA{0xed, 0xc2, 0x2e, 0xff}
+	case 4096:
+		return color.NRGBA{0xa3, 0x49, 0xa4, 0x7f}
+	case 8192:
+		return color.NRGBA{0xa3, 0x49, 0xa4, 0xb2}
+	case 16384:
+		return color.NRGBA{0xa3, 0x49, 0xa4, 0xcc}
+	case 32768:
+		return color.NRGBA{0xa3, 0x49, 0xa4, 0xe5}
+	case 65536:
+		return color.NRGBA{0xa3, 0x49, 0xa4, 0xff}
 	}
 	panic("not reach")
 }
