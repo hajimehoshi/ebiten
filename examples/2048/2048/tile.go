@@ -32,9 +32,10 @@ type TileData struct {
 }
 
 type Tile struct {
-	current        TileData
-	next           TileData
-	animationCount int
+	current   TileData
+	next      TileData
+	moveCount int
+	popCount  int
 }
 
 func NewTile(value int, x, y int) *Tile {
@@ -63,8 +64,12 @@ func (t *Tile) NextPos() (int, int) {
 	return t.next.x, t.next.y
 }
 
-func (t *Tile) IsAnimating() bool {
-	return 0 < t.animationCount
+func (t *Tile) IsMoving() bool {
+	return 0 < t.moveCount
+}
+
+func (t *Tile) isPopping() bool {
+	return 0 < t.popCount
 }
 
 func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
@@ -84,7 +89,7 @@ func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 func nextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 	var result *Tile
 	for t := range tiles {
-		if 0 < t.animationCount {
+		if 0 < t.moveCount {
 			if t.next.x != x || t.next.y != y || t.next.value == 0 {
 				continue
 			}
@@ -102,7 +107,8 @@ func nextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 }
 
 const (
-	maxAnimationCount = 10
+	maxMovingCount  = 5
+	maxPoppingCount = 6
 )
 
 func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
@@ -130,7 +136,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			if t.next != (TileData{}) {
 				panic("not reach")
 			}
-			if t.IsAnimating() {
+			if t.IsMoving() {
 				panic("not reach")
 			}
 			ii := i
@@ -151,7 +157,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				if t.current.value != tt.current.value {
 					break
 				}
-				if 0 < tt.animationCount && tt.current.value != tt.next.value {
+				if 0 < tt.moveCount && tt.current.value != tt.next.value {
 					// already merged
 					break
 				}
@@ -167,20 +173,20 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				tt.next.value = 0
 				tt.next.x = ii
 				tt.next.y = jj
-				tt.animationCount = maxAnimationCount
+				tt.moveCount = maxMovingCount
 			}
 			next.x = ii
 			next.y = jj
 			if t.current != next {
 				t.next = next
-				t.animationCount = maxAnimationCount
+				t.moveCount = maxMovingCount
 			}
 		}
 	}
 	if !moved {
 		for t := range tiles {
 			t.next = TileData{}
-			t.animationCount = 0
+			t.moveCount = 0
 		}
 	}
 	return moved
@@ -189,7 +195,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
-		if t.IsAnimating() {
+		if t.IsMoving() {
 			panic("not reach")
 		}
 		i := t.current.x + t.current.y*size
@@ -218,16 +224,18 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 }
 
 func (t *Tile) Update() error {
-	if t.animationCount == 0 {
-		if t.next != (TileData{}) {
-			panic("not reach")
+	switch {
+	case 0 < t.moveCount:
+		t.moveCount--
+		if t.moveCount == 0 {
+			if t.current.value != t.next.value && 0 < t.next.value {
+				t.popCount = maxPoppingCount
+			}
+			t.current = t.next
+			t.next = TileData{}
 		}
-		return nil
-	}
-	t.animationCount--
-	if t.animationCount == 0 {
-		t.current = t.next
-		t.next = TileData{}
+	case 0 < t.popCount:
+		t.popCount--
 	}
 	return nil
 }
@@ -248,7 +256,11 @@ func colorToScale(clr color.Color) (float64, float64, float64, float64) {
 }
 
 func mean(a, b int, rate float64) int {
-	return int(float64(a)*rate + float64(b)*(1-rate))
+	return int(float64(a)*(1-rate) + float64(b)*rate)
+}
+
+func meanF(a, b float64, rate float64) float64 {
+	return a*(1-rate) + b*rate
 }
 
 const (
@@ -283,10 +295,25 @@ func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	y := j*tileSize + (j+1)*tileMargin
 	nx := ni*tileSize + (ni+1)*tileMargin
 	ny := nj*tileSize + (nj+1)*tileMargin
-	if 0 < t.animationCount {
-		rate := float64(t.animationCount) / maxAnimationCount
+	if 0 < t.moveCount {
+		rate := 1 - float64(t.moveCount)/maxMovingCount
 		x = mean(x, nx, rate)
 		y = mean(y, ny, rate)
+	}
+	if 0 < t.popCount {
+		const maxScale = 1.2
+		rate := 0.0
+		if maxPoppingCount*2/3 <= t.popCount {
+			// 0 to 1
+			rate = 1 - float64(t.popCount-2*maxPoppingCount/3)/float64(maxPoppingCount/3)
+		} else {
+			// 1 to 0
+			rate = float64(t.popCount) / float64(maxPoppingCount*2/3)
+		}
+		scale := meanF(1.0, maxScale, rate)
+		op.GeoM.Translate(float64(-tileSize/2), float64(-tileSize/2))
+		op.GeoM.Scale(scale, scale)
+		op.GeoM.Translate(float64(tileSize/2), float64(tileSize/2))
 	}
 	op.GeoM.Translate(float64(x), float64(y))
 	r, g, b, a := colorToScale(tileBackgroundColor(v))

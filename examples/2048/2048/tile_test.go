@@ -42,7 +42,7 @@ func tilesToCells(tiles map[*Tile]struct{}, size int) ([]int, []int) {
 	for t := range tiles {
 		x, y := t.Pos()
 		cells[x+y*size] = t.Value()
-		if t.IsAnimating() {
+		if t.IsMoving() {
 			if t.NextValue() == 0 {
 				continue
 			}

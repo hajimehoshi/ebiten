@@ -75,7 +75,7 @@ func (b *Board) Move(dir Dir) error {
 	}
 	b.tasks = append(b.tasks, func() error {
 		for t := range b.tiles {
-			if t.IsAnimating() {
+			if t.IsMoving() {
 				return nil
 			}
 		}
@@ -84,7 +84,7 @@ func (b *Board) Move(dir Dir) error {
 	b.tasks = append(b.tasks, func() error {
 		nextTiles := map[*Tile]struct{}{}
 		for t := range b.tiles {
-			if t.IsAnimating() {
+			if t.IsMoving() {
 				panic("not reach")
 			}
 			if t.next.value != 0 {
@@ -98,6 +98,14 @@ func (b *Board) Move(dir Dir) error {
 		b.tiles = nextTiles
 		if err := addRandomTile(b.tiles, b.size); err != nil {
 			return err
+		}
+		return taskTerminated
+	})
+	b.tasks = append(b.tasks, func() error {
+		for t := range b.tiles {
+			if t.isPopping() {
+				return nil
+			}
 		}
 		return taskTerminated
 	})
@@ -131,7 +139,7 @@ func (b *Board) Draw(boardImage *ebiten.Image) error {
 	animatingTiles := map[*Tile]struct{}{}
 	nonAnimatingTiles := map[*Tile]struct{}{}
 	for t := range b.tiles {
-		if t.IsAnimating() {
+		if t.IsMoving() {
 			animatingTiles[t] = struct{}{}
 		} else {
 			nonAnimatingTiles[t] = struct{}{}
