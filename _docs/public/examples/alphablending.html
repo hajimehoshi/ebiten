@@ -44,7 +44,7 @@ import (
     &#34;log&#34;
 
     &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/examples/common&#34;
+    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
@@ -102,7 +102,7 @@ func update(screen *ebiten.Image) error {
 
 func main() {
     var err error
-    ebitenImage, _, err = common.AssetImage(&#34;ebiten.png&#34;, ebiten.FilterNearest)
+    ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
     if err != nil {
         log.Fatal(err)
     }

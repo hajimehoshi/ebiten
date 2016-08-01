@@ -46,7 +46,6 @@ import (
 
     &#34;github.com/hajimehoshi/ebiten&#34;
     &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    &#34;github.com/hajimehoshi/ebiten/examples/common&#34;
 )
 
 const (
@@ -122,7 +121,7 @@ func (s Sprites) Src(i int) (x0, y0, x1, y1 int) {
 
 const (
     MinSprites = 0
-    MaxSprites = 10000
+    MaxSprites = 50000
 )
 
 var sprites = &amp;Sprites{make([]*Sprite, MaxSprites), 500}
@@ -155,13 +154,15 @@ func update(screen *ebiten.Image) error {
     msg := fmt.Sprintf(`FPS: %0.2f
 Num of sprites: %d
 Press &lt;- or -&gt; to change the number of sprites`, ebiten.CurrentFPS(), sprites.Len())
-    ebitenutil.DebugPrint(screen, msg)
+    if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+        return err
+    }
     return nil
 }
 
 func main() {
     var err error
-    ebitenImage, _, err = common.AssetImage(&#34;ebiten.png&#34;, ebiten.FilterNearest)
+    ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
     if err != nil {
         log.Fatal(err)
     }
