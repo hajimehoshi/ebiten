@@ -28,16 +28,16 @@ pre {
   <li>A simple SNES-like 2D game library in Go</li>
   <li>Works on
     <ul>
-      <li>Web browsers (powered by <a href="http://gopherjs.org/">GopherJS</a>)
+      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers">Web browsers</a> (powered by <a href="http://gopherjs.org/">GopherJS</a>)
         <ul>
           <li>Supported browsers: Chrome and Firefox on desktops</li>
         </ul>
       </li>
-      <li>Windows</li>
-      <li>Mac OS X</li>
-      <li>Linux</li>
-      <li>Android (WIP)</li>
-      <li>iOS (WIP)</li>
+      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Windows">Windows</a></li>
+      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X">Mac OS X</a></li>
+      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Linux">Linux</a></li>
+      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Android">Android</a></li>
+      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/iOS">iOS</a></li>
     </ul>
   </li>
   <li><a href="http://godoc.org/github.com/hajimehoshi/ebiten"><img src="https://godoc.org/github.com/hajimehoshi/ebiten?status.svg" alt="GoDoc Reference"></a></li>
@@ -58,40 +58,10 @@ pre {
   {{- end}}
 </p>
 
-<h2>Install on Mac OS X or Windows</h2>
-<p>Compilation requires a C compiler like GCC to compile third party libaries used by Ebiten. You would need <a href="http://www.mingw.org/">MinGW</a> on Windows, and would need Xcode on Mac OS X.</p>
-<p>Let's get the Ebiten source code and compile it.</p>
-<pre><code>:; go get github.com/hajimehoshi/ebiten</code></pre>
-<p>If you want to run your game on a web browser, execute this:</p>
-<pre><code>:; go get github.com/gopherjs/gopherjs
-:; go get github.com/gopherjs/webgl</code></pre>
-
-<h2>Install on Linux</h2>
-<p>Before installing Ebiten, you might need these libraries:</p>
-<ul>
-  <li>libglu1-mesa-dev</li>
-  <li>libgles2-mesa-dev</li>
-  <li>libxrandr-dev</li>
-  <li>libxcursor-dev</li>
-  <li>libxinerama-dev</li>
-  <li>libxi-dev</li>
-</ul>
-<p>Ebiten is tested on Ubuntu Linux x64.</p>
-
 <h2>Execute the example</h2>
-<pre><code>:; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
+<pre><code>:; go get github.com/hajimehoshi/ebiten
+:; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
 :; go run rotate/main.go</code></pre>
-
-<h2>Run your game on a desktop</h2>
-<p>Just execute your Go program. That's it!</p>
-
-<h2>Run your game on a web browser</h2>
-<p>Compile your game with <a href="http://gopherjs.org/">GopherJS</a>:</p>
-<pre><code>:; gopherjs build -o yourgame.js path/to/yourgame</code></pre>
-<p>Then, open the below HTML on your HTTP server:</p>
-<pre><code>&lt;!DOCTYPE html&gt;
-&lt;script src="yourgame.js"&gt;&lt;/script&gt;</code></pre>
-<p>NOTE: <code>file://</code> URL may not work with Ebiten. Execute your game on a HTTP server.</p>
 
 <h2>Getting Started</h2>
 
