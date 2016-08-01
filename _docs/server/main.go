@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
+	"runtime"
 	"strconv"
 )
 
@@ -28,8 +30,15 @@ func init() {
 	flag.Parse()
 }
 
+var rootPath = ""
+
+func init() {
+	_, path, _, _ := runtime.Caller(0)
+	rootPath = filepath.Join(filepath.Dir(path), "..", "public")
+}
+
 func main() {
-	http.Handle("/", http.FileServer(http.Dir("public")))
+	http.Handle("/", http.FileServer(http.Dir(rootPath)))
 	fmt.Printf("http://localhost:%d/\n", *port)
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
 }
