@@ -24,7 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-func Main() error {
+func Main(ch <-chan error) error {
 	return errors.New("ui: don't call this: use RunWithoutMainLoop instead of Run")
 }
 

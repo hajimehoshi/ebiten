@@ -278,9 +278,8 @@ func devicePixelRatio() float64 {
 	return ratio
 }
 
-func Main() error {
-	// Do nothing
-	return nil
+func Main(ch <-chan error) error {
+	return <-ch
 }
 
 func (u *userInterface) Start(width, height int, scale float64, title string) error {

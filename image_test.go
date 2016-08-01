@@ -30,11 +30,14 @@ import (
 func TestMain(m *testing.M) {
 	code := 0
 	// Run an Ebiten process so that (*Image).At is available.
+	regularTermination := errors.New("regular termination")
 	f := func(screen *Image) error {
 		code = m.Run()
-		return errors.New("regular termination")
+		return regularTermination
 	}
-	Run(f, 320, 240, 1, "Test")
+	if err := Run(f, 320, 240, 1, "Test"); err != nil && err != regularTermination {
+		panic(err)
+	}
 	os.Exit(code)
 }
 

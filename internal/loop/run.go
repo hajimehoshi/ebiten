@@ -86,7 +86,7 @@ type GraphicsContext interface {
 	UpdateAndDraw(context *opengl.Context, updateCount int) error
 }
 
-func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) error {
+func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) (err error) {
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}
@@ -100,7 +100,12 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 		return err
 	}
 	// TODO: Use the error value
-	defer ui.CurrentUI().Terminate()
+	defer func() {
+		if err != nil {
+			return
+		}
+		err = ui.CurrentUI().Terminate()
+	}()
 
 	n := now()
 	currentRunContext.lastUpdated = n

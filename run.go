@@ -81,10 +81,11 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 		}
 		close(ch)
 	}()
-	if err := ui.Main(); err != nil {
+	// TODO: Use context in Go 1.7?
+	if err := ui.Main(ch); err != nil {
 		return err
 	}
-	return <-ch
+	return nil
 }
 
 // RunWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.

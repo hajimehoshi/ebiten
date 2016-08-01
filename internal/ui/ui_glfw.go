@@ -76,14 +76,19 @@ func initialize() error {
 	return nil
 }
 
-func Main() error {
-	return currentUI.main()
+func Main(ch <-chan error) error {
+	return currentUI.main(ch)
 }
 
-func (u *userInterface) main() error {
+func (u *userInterface) main(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
-	for f := range u.funcs {
-		f()
+	for {
+		select {
+		case f := <-u.funcs:
+			f()
+		case err := <-ch:
+			return err
+		}
 	}
 	return nil
 }
