@@ -81,7 +81,9 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 		}
 		close(ch)
 	}()
-	ui.Main()
+	if err := ui.Main(); err != nil {
+		return err
+	}
 	return <-ch
 }
 

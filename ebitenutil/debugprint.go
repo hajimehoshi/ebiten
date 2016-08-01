@@ -64,7 +64,7 @@ func DebugPrint(image *ebiten.Image, str string) error {
 	return defaultDebugPrintState.DebugPrint(image, str)
 }
 
-func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
+func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) error {
 	ur, ug, ub, ua := c.RGBA()
 	const max = math.MaxUint16
 	r := float64(ur) / max
@@ -81,7 +81,10 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	}
 	op.GeoM.Translate(float64(x+1), float64(y))
 	op.ColorM.Scale(r, g, b, a)
-	rt.DrawImage(d.textImage, op)
+	if err := rt.DrawImage(d.textImage, op); err != nil {
+		return err
+	}
+	return nil
 }
 
 // DebugPrint prints the given text str on the given image r.
@@ -104,7 +107,11 @@ func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) error {
 			return err
 		}
 	}
-	d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
-	d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})
+	if err := d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80}); err != nil {
+		return err
+	}
+	if err := d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff}); err != nil {
+		return err
+	}
 	return nil
 }

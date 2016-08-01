@@ -182,7 +182,9 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 		geoM:             c.geo,
 		colorM:           c.color,
 	}
-	p.begin()
+	if err := p.begin(); err != nil {
+		return err
+	}
 	defer p.end()
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.

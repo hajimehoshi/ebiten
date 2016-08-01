@@ -56,7 +56,9 @@ func Reset(context *opengl.Context) error {
 }
 
 func (s *openGLState) reset(context *opengl.Context) error {
-	context.Reset()
+	if err := context.Reset(); err != nil {
+		return err
+	}
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
 	s.lastModelviewMatrix = nil
@@ -132,7 +134,7 @@ type programContext struct {
 	colorM           Matrix
 }
 
-func (p *programContext) begin() {
+func (p *programContext) begin() error {
 	c := p.context
 	if p.state.lastProgram != p.program {
 		c.UseProgram(p.program)
@@ -215,7 +217,10 @@ func (p *programContext) begin() {
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	c.BindTexture(p.texture)
+	if err := c.BindTexture(p.texture); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *programContext) end() {

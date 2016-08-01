@@ -47,13 +47,19 @@ func (c *graphicsContext) GLContext() *opengl.Context {
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) error {
 	if c.screen != nil {
-		c.screen.Dispose()
+		if err := c.screen.Dispose(); err != nil {
+			return err
+		}
 	}
 	if c.offscreen != nil {
-		c.offscreen.Dispose()
+		if err := c.offscreen.Dispose(); err != nil {
+			return err
+		}
 	}
 	if c.offscreen2 != nil {
-		c.offscreen2.Dispose()
+		if err := c.offscreen2.Dispose(); err != nil {
+			return err
+		}
 	}
 	offscreen, err := newVolatileImage(screenWidth, screenHeight, FilterNearest)
 	if err != nil {
@@ -74,7 +80,9 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if err != nil {
 		return err
 	}
-	c.screen.Clear()
+	if err := c.screen.Clear(); err != nil {
+		return err
+	}
 
 	c.offscreen = offscreen
 	c.offscreen2 = offscreen2
