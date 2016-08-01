@@ -12,8 +12,8 @@
   * Windows
   * Mac OS X
   * Linux
-  * Android
-  * iOS
+  * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
+  * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
 
 ## Features
 
