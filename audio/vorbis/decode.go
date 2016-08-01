@@ -27,6 +27,7 @@ import (
 	"github.com/jfreymuth/go-vorbis/ogg/vorbis"
 )
 
+// Stream is a decoded audio stream.
 type Stream struct {
 	buf *bytes.Reader
 }
@@ -60,14 +61,17 @@ func newStream(v *vorbis.Vorbis) (*Stream, error) {
 	return s, nil
 }
 
+// Read is implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.buf.Read(p)
 }
 
+// Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.buf.Seek(offset, whence)
 }
 
+// Read is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
 	s.buf = nil
 	return nil

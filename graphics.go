@@ -22,8 +22,11 @@ import (
 type Filter int
 
 const (
-	FilterNearest Filter = iota // nearest (crisp-edged) filter
-	FilterLinear                // linear filter
+	// FilterNearest represents nearest (crisp-edged) filter
+	FilterNearest Filter = iota
+
+	// FilterLinear represents linear filter
+	FilterLinear
 )
 
 func glFilter(filter Filter) opengl.Filter {

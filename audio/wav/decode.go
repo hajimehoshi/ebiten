@@ -23,16 +23,19 @@ import (
 	"github.com/hajimehoshi/ebiten/audio"
 )
 
+// Stream is a decoded audio stream.
 type Stream struct {
 	src        audio.ReadSeekCloser
 	headerSize int64
 	dataSize   int64
 }
 
+// Read is implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.src.Read(p)
 }
 
+// Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if whence == 0 {
 		offset += s.headerSize
@@ -40,6 +43,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.src.Seek(offset, whence)
 }
 
+// Read is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
 	return s.src.Close()
 }
