@@ -84,8 +84,12 @@ func (u *userInterface) main(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
 	for {
 		select {
-		case f := <-u.funcs:
-			f()
+		case f, ok := <-u.funcs:
+			if ok {
+				f()
+			} else {
+				u.funcs = nil
+			}
 		case err := <-ch:
 			return err
 		}
@@ -232,7 +236,6 @@ func (u *userInterface) Terminate() error {
 		return nil
 	})
 	close(u.funcs)
-	u.funcs = nil
 	return nil
 }
 
