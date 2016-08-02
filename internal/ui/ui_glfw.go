@@ -90,7 +90,6 @@ func (u *userInterface) main(ch <-chan error) error {
 			return err
 		}
 	}
-	return nil
 }
 
 func (u *userInterface) runOnMainThread(f func() error) error {

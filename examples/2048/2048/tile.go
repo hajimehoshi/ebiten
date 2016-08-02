@@ -346,6 +346,8 @@ func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	h := common.ArcadeFont.TextHeight(str) * scale
 	x = x + (tileSize-w)/2
 	y = y + (tileSize-h)/2
-	common.ArcadeFont.DrawText(boardImage, str, x, y, scale, tileColor(v))
+	if err := common.ArcadeFont.DrawText(boardImage, str, x, y, scale, tileColor(v)); err != nil {
+		return err
+	}
 	return nil
 }

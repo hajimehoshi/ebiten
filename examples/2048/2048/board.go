@@ -30,15 +30,17 @@ type Board struct {
 	tasks []task
 }
 
-func NewBoard(size int) *Board {
+func NewBoard(size int) (*Board, error) {
 	b := &Board{
 		size:  size,
 		tiles: map[*Tile]struct{}{},
 	}
 	for i := 0; i < 2; i++ {
-		addRandomTile(b.tiles, b.size)
+		if err := addRandomTile(b.tiles, b.size); err != nil {
+			return nil, err
+		}
 	}
-	return b
+	return b, nil
 }
 
 func (b *Board) tileAt(x, y int) *Tile {

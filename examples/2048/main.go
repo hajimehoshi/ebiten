@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	game = twenty48.NewGame()
+	game *twenty48.Game
 )
 
 func update(screen *ebiten.Image) error {
@@ -39,6 +39,11 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
+	var err error
+	game, err = twenty48.NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := ebiten.Run(update, twenty48.ScreenWidth, twenty48.ScreenHeight, 2, "2048 (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

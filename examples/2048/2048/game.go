@@ -37,11 +37,16 @@ type Game struct {
 	boardImage *ebiten.Image
 }
 
-func NewGame() *Game {
-	return &Game{
+func NewGame() (*Game, error) {
+	g := &Game{
 		input: NewInput(),
-		board: NewBoard(boardSize),
 	}
+	var err error
+	g.board, err = NewBoard(boardSize)
+	if err != nil {
+		return nil, err
+	}
+	return g, nil
 }
 
 func (g *Game) Update() error {

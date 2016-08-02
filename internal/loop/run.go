@@ -101,10 +101,7 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	}
 	// TODO: Use the error value
 	defer func() {
-		if err != nil {
-			return
-		}
-		err = ui.CurrentUI().Terminate()
+		_ = ui.CurrentUI().Terminate()
 	}()
 
 	n := now()
