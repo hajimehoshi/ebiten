@@ -44,13 +44,17 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	playerBarImage.Fill(&color.RGBA{0x80, 0x80, 0x80, 0xff})
+	if err := playerBarImage.Fill(&color.RGBA{0x80, 0x80, 0x80, 0xff}); err != nil {
+		log.Fatal(err)
+	}
 
 	playerCurrentImage, err = ebiten.NewImage(4, 10, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff})
+	if err := playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff}); err != nil {
+		log.Fatal(err)
+	}
 }
 
 type Player struct {
@@ -193,7 +197,9 @@ func update(screen *ebiten.Image) error {
 	op := &ebiten.DrawImageOptions{}
 	x, y, w, h := playerBarRect()
 	op.GeoM.Translate(float64(x), float64(y))
-	screen.DrawImage(playerBarImage, op)
+	if err := screen.DrawImage(playerBarImage, op); err != nil {
+		return err
+	}
 	currentTimeStr := "00:00"
 	if musicPlayer != nil {
 		c := musicPlayer.audioPlayer.Current()
@@ -209,7 +215,9 @@ func update(screen *ebiten.Image) error {
 		cy := y - (ch-h)/2
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(cx), float64(cy))
-		screen.DrawImage(playerCurrentImage, op)
+		if err := screen.DrawImage(playerCurrentImage, op); err != nil {
+			return err
+		}
 	}
 
 	msg := fmt.Sprintf(`FPS: %0.2f
@@ -220,7 +228,9 @@ Press Z or X to change volume of the music
 	if musicPlayer == nil {
 		msg += "\nNow Loading..."
 	}
-	ebitenutil.DebugPrint(screen, msg)
+	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+		return err
+	}
 	if err := audioContext.Update(); err != nil {
 		return err
 	}
@@ -273,7 +283,10 @@ func main() {
 		}
 		close(musicCh)
 		// TODO: Is this goroutine-safe?
-		p.Play()
+		if err := p.Play(); err != nil {
+			log.Fatal(err)
+			return
+		}
 	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

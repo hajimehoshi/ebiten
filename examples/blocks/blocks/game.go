@@ -42,12 +42,16 @@ func NewGame() *Game {
 
 func (game *Game) Update(r *ebiten.Image) error {
 	game.input.Update()
-	game.sceneManager.Update(&GameState{
+	if err := game.sceneManager.Update(&GameState{
 		SceneManager: game.sceneManager,
 		Input:        &game.input,
-	})
+	}); err != nil {
+		return err
+	}
 	if !ebiten.IsRunningSlowly() {
-		game.sceneManager.Draw(r)
+		if err := game.sceneManager.Draw(r); err != nil {
+			return err
+		}
 	}
 	return nil
 }

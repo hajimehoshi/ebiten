@@ -76,7 +76,9 @@ func (s *GamepadScene) Update(state *GameState) error {
 }
 
 func (s *GamepadScene) Draw(screen *ebiten.Image) error {
-	screen.Fill(color.Black)
+	if err := screen.Fill(color.Black); err != nil {
+		return err
+	}
 
 	if s.buttonStates == nil {
 		return nil

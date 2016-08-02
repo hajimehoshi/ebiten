@@ -74,7 +74,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	imageEmpty.Fill(color.White)
+	if err := imageEmpty.Fill(color.White); err != nil {
+		panic(err)
+	}
 	// Background
 	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
@@ -121,7 +123,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	if err := imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80}); err != nil {
+		panic(err)
+	}
 	y = (ScreenHeight - blockHeight) / 2
 	if err := drawTextWithShadowCenter(imageGameover, "GAME OVER", 0, y, 1, color.White, ScreenWidth); err != nil {
 		panic(err)
@@ -248,7 +252,9 @@ func (s *GameScene) addScore(lines int) {
 }
 
 func (s *GameScene) Update(state *GameState) error {
-	s.field.Update()
+	if err := s.field.Update(); err != nil {
+		return err
+	}
 
 	if s.gameover {
 		// TODO: Gamepad key?
@@ -392,7 +398,9 @@ func (s *GameScene) Draw(r *ebiten.Image) error {
 	}
 
 	if s.gameover {
-		r.DrawImage(imageGameover, nil)
+		if err := r.DrawImage(imageGameover, nil); err != nil {
+			return err
+		}
 	}
 
 	return nil

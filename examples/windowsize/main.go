@@ -84,7 +84,9 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 
-	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
+	if err := screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff}); err != nil {
+		return err
+	}
 	w, h := gophersImage.Size()
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
@@ -98,7 +100,9 @@ func update(screen *ebiten.Image) error {
 Press S key to change the window scale
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
-	ebitenutil.DebugPrint(screen, msg)
+	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+		return err
+	}
 	return nil
 }
 

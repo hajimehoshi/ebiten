@@ -72,12 +72,16 @@ func (s *SceneManager) Draw(r *ebiten.Image) error {
 	if s.transitionCount == -1 {
 		return s.current.Draw(r)
 	}
-	transitionFrom.Clear()
+	if err := transitionFrom.Clear(); err != nil {
+		return err
+	}
 	if err := s.current.Draw(transitionFrom); err != nil {
 		return err
 	}
 
-	transitionTo.Clear()
+	if err := transitionTo.Clear(); err != nil {
+		return err
+	}
 	if err := s.next.Draw(transitionTo); err != nil {
 		return err
 	}

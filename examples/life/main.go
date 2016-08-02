@@ -179,7 +179,9 @@ var (
 func update(screen *ebiten.Image) error {
 	world.Progress()
 	world.DrawImage(noiseImage)
-	screen.ReplacePixels(noiseImage.Pix)
+	if err := screen.ReplacePixels(noiseImage.Pix); err != nil {
+		return err
+	}
 	return nil
 }
 
