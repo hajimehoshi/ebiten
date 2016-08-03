@@ -123,27 +123,57 @@ func TestImageComposition(t *testing.T) {
 		return
 	}
 
-	img2.Fill(img2Color)
-	img3.Fill(img3Color)
+	if err := img2.Fill(img2Color); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img3.Fill(img3Color); err != nil {
+		t.Fatal(err)
+		return
+	}
 	img_12_3, err := NewImage(w, h, FilterNearest)
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	img2.DrawImage(img1, nil)
-	img3.DrawImage(img2, nil)
-	img_12_3.DrawImage(img3, nil)
+	if err := img2.DrawImage(img1, nil); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img3.DrawImage(img2, nil); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img_12_3.DrawImage(img3, nil); err != nil {
+		t.Fatal(err)
+		return
+	}
 
-	img2.Fill(img2Color)
-	img3.Fill(img3Color)
+	if err := img2.Fill(img2Color); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img3.Fill(img3Color); err != nil {
+		t.Fatal(err)
+		return
+	}
 	img_1_23, err := NewImage(w, h, FilterNearest)
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	img3.DrawImage(img2, nil)
-	img3.DrawImage(img1, nil)
-	img_1_23.DrawImage(img3, nil)
+	if err := img3.DrawImage(img2, nil); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img3.DrawImage(img1, nil); err != nil {
+		t.Fatal(err)
+		return
+	}
+	if err := img_1_23.DrawImage(img3, nil); err != nil {
+		t.Fatal(err)
+		return
+	}
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -188,7 +218,10 @@ func TestImageDotByDotInversion(t *testing.T) {
 	op := &DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi)
 	op.GeoM.Translate(float64(w), float64(h))
-	img1.DrawImage(img0, op)
+	if err := img1.DrawImage(img0, op); err != nil {
+		t.Fatal(err)
+		return
+	}
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -218,7 +251,10 @@ func TestReplacePixels(t *testing.T) {
 		return
 	}
 
-	img0.ReplacePixels(img.Pix)
+	if err := img0.ReplacePixels(img.Pix); err != nil {
+		t.Fatal(err)
+		return
+	}
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
 		for i := 0; i < img0.Bounds().Size().X; i++ {
 			got := img0.At(i, j)
@@ -233,7 +269,10 @@ func TestReplacePixels(t *testing.T) {
 	for i := range p {
 		p[i] = 0x80
 	}
-	img0.ReplacePixels(p)
+	if err := img0.ReplacePixels(p); err != nil {
+		t.Fatal(err)
+		return
+	}
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
 		for i := 0; i < img0.Bounds().Size().X; i++ {
 			got := img0.At(i, j)
@@ -276,10 +315,16 @@ func TestImageCompositeModeLighter(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04})
+	if err := img1.Fill(color.RGBA{0x01, 0x02, 0x03, 0x04}); err != nil {
+		t.Fatal(err)
+		return
+	}
 	op := &DrawImageOptions{}
 	op.CompositeMode = CompositeModeLighter
-	img1.DrawImage(img0, op)
+	if err := img1.DrawImage(img0, op); err != nil {
+		t.Fatal(err)
+		return
+	}
 	for j := 0; j < img1.Bounds().Size().Y; j++ {
 		for i := 0; i < img1.Bounds().Size().X; i++ {
 			got := img1.At(i, j).(color.RGBA)

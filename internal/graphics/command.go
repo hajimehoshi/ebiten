@@ -224,7 +224,9 @@ func (c *replacePixelsCommand) Exec(context *opengl.Context, indexOffsetInBytes 
 	// This also happens when a fillCommand precedes a replacePixelsCommand.
 	// TODO: Can we have a better way like optimizing commands?
 	context.Flush()
-	context.BindTexture(c.dst.texture.native)
+	if err := context.BindTexture(c.dst.texture.native); err != nil {
+		return err
+	}
 	context.TexSubImage2D(c.pixels, c.dst.width, c.dst.height)
 	return nil
 }
