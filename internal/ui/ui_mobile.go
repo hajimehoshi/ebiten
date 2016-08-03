@@ -102,14 +102,14 @@ func (u *userInterface) SwapBuffers() error {
 	return nil
 }
 
-func (u *userInterface) SetScreenSize(width, height int) bool {
+func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
 	// TODO: Implement
-	return false
+	return false, nil
 }
 
-func (u *userInterface) SetScreenScale(scale float64) bool {
+func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
 	// TODO: Implement
-	return false
+	return false, nil
 }
 
 func (u *userInterface) ScreenScale() float64 {

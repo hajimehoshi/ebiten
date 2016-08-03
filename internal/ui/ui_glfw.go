@@ -111,27 +111,39 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 	return err
 }
 
-func (u *userInterface) SetScreenSize(width, height int) bool {
+func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
 	r := false
-	u.runOnMainThread(func() error {
-		r = u.setScreenSize(width, height, u.scale)
+	if err := u.runOnMainThread(func() error {
+		var err error
+		r, err = u.setScreenSize(width, height, u.scale)
+		if err != nil {
+			return err
+		}
 		return nil
-	})
-	return r
+	}); err != nil {
+		return false, err
+	}
+	return r, nil
 }
 
-func (u *userInterface) SetScreenScale(scale float64) bool {
+func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
 	r := false
-	u.runOnMainThread(func() error {
-		r = u.setScreenSize(u.width, u.height, scale)
+	if err := u.runOnMainThread(func() error {
+		var err error
+		r, err = u.setScreenSize(u.width, u.height, scale)
+		if err != nil {
+			return err
+		}
 		return nil
-	})
-	return r
+	}); err != nil {
+		return false, err
+	}
+	return r, nil
 }
 
 func (u *userInterface) ScreenScale() float64 {
 	s := 0.0
-	u.runOnMainThread(func() error {
+	_ = u.runOnMainThread(func() error {
 		s = u.scale
 		return nil
 	})
@@ -149,7 +161,11 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	if err := u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		if !u.setScreenSize(width, height, scale) {
+		r, err := u.setScreenSize(width, height, scale)
+		if err != nil {
+			return err
+		}
+		if !r {
 			return errors.New("ui: Fail to set the screen size")
 		}
 		u.window.SetTitle(title)
@@ -181,7 +197,7 @@ func (u *userInterface) pollEvents() error {
 
 func (u *userInterface) Update() (interface{}, error) {
 	shouldClose := false
-	u.runOnMainThread(func() error {
+	_ = u.runOnMainThread(func() error {
 		shouldClose = u.window.ShouldClose()
 		return nil
 	})
@@ -190,7 +206,7 @@ func (u *userInterface) Update() (interface{}, error) {
 	}
 
 	var screenSizeEvent *ScreenSizeEvent
-	u.runOnMainThread(func() error {
+	_ = u.runOnMainThread(func() error {
 		if !u.sizeChanged {
 			return nil
 		}
@@ -231,7 +247,7 @@ func (u *userInterface) Update() (interface{}, error) {
 }
 
 func (u *userInterface) Terminate() error {
-	u.runOnMainThread(func() error {
+	_ = u.runOnMainThread(func() error {
 		glfw.Terminate()
 		return nil
 	})
@@ -261,9 +277,9 @@ func (u *userInterface) FinishRendering() error {
 	return nil
 }
 
-func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
+func (u *userInterface) setScreenSize(width, height int, scale float64) (bool, error) {
 	if u.width == width && u.height == height && u.scale == scale {
-		return false
+		return false, nil
 	}
 
 	origScale := u.scale
@@ -275,14 +291,16 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	const minWindowWidth = 252
 	if int(float64(width)*u.actualScreenScale()) < minWindowWidth {
 		u.scale = origScale
-		return false
+		return false, nil
 	}
 	u.width = width
 	u.height = height
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
-	u.swapBuffers()
+	if err := u.swapBuffers(); err != nil {
+		return false, err
+	}
 
 	ch := make(chan struct{})
 	window := u.window
@@ -303,5 +321,5 @@ event:
 		}
 	}
 	u.sizeChanged = true
-	return true
+	return true, nil
 }

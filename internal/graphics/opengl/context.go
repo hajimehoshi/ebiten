@@ -68,7 +68,9 @@ func (c *Context) bindFramebuffer(f Framebuffer) error {
 }
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	c.bindFramebuffer(f)
+	if err := c.bindFramebuffer(f); err != nil {
+		return err
+	}
 	if c.lastViewportWidth != width || c.lastViewportHeight != height {
 		if err := c.setViewportImpl(width, height); err != nil {
 			return nil

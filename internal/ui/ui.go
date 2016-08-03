@@ -20,6 +20,6 @@ type UserInterface interface {
 	SwapBuffers() error
 	Terminate() error
 	ScreenScale() float64
-	SetScreenSize(width, height int) bool
-	SetScreenScale(scale float64) bool
+	SetScreenSize(width, height int) (bool, error)
+	SetScreenScale(scale float64) (bool, error)
 }

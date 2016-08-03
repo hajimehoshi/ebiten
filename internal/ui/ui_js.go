@@ -64,13 +64,13 @@ func vsync() {
 	<-ch
 }
 
-func (u *userInterface) SetScreenSize(width, height int) bool {
-	return u.setScreenSize(width, height, u.scale)
+func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
+	return u.setScreenSize(width, height, u.scale), nil
 }
 
-func (u *userInterface) SetScreenScale(scale float64) bool {
+func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
 	width, height := u.size()
-	return u.setScreenSize(width, height, scale)
+	return u.setScreenSize(width, height, scale), nil
 }
 
 func (u *userInterface) ScreenScale() float64 {
