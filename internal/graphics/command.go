@@ -275,11 +275,11 @@ func adjustImageForTexture(img *image.RGBA) *image.RGBA {
 
 func (c *newImageFromImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	origSize := c.img.Bounds().Size()
-	if origSize.X < 4 {
-		return errors.New("graphics: width must be equal or more than 4.")
+	if origSize.X < 1 {
+		return errors.New("graphics: width must be equal or more than 1.")
 	}
-	if origSize.Y < 4 {
-		return errors.New("graphics: height must be equal or more than 4.")
+	if origSize.Y < 1 {
+		return errors.New("graphics: height must be equal or more than 1.")
 	}
 	adjustedImage := adjustImageForTexture(c.img)
 	size := adjustedImage.Bounds().Size()
@@ -307,11 +307,11 @@ type newImageCommand struct {
 func (c *newImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	w := int(NextPowerOf2Int32(int32(c.width)))
 	h := int(NextPowerOf2Int32(int32(c.height)))
-	if w < 4 {
-		return errors.New("graphics: width must be equal or more than 4.")
+	if w < 1 {
+		return errors.New("graphics: width must be equal or more than 1.")
 	}
-	if h < 4 {
-		return errors.New("graphics: height must be equal or more than 4.")
+	if h < 1 {
+		return errors.New("graphics: height must be equal or more than 1.")
 	}
 	native, err := context.NewTexture(w, h, nil, c.filter)
 	if err != nil {
@@ -334,11 +334,11 @@ type newScreenFramebufferImageCommand struct {
 }
 
 func (c *newScreenFramebufferImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
-	if c.width < 4 {
-		return errors.New("graphics: width must be equal or more than 4.")
+	if c.width < 1 {
+		return errors.New("graphics: width must be equal or more than 1.")
 	}
-	if c.height < 4 {
-		return errors.New("graphics: height must be equal or more than 4.")
+	if c.height < 1 {
+		return errors.New("graphics: height must be equal or more than 1.")
 	}
 	f := &framebuffer{
 		native: context.ScreenFramebuffer(),
