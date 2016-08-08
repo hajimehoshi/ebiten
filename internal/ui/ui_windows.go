@@ -20,16 +20,21 @@ package ui
 //
 // #include <windows.h>
 //
-// static int getDPI() {
+// static char* getDPI(int* dpi) {
 //   HDC dc = GetWindowDC(0);
-//   int dpi = GetDeviceCaps(dc, LOGPIXELSX);
-//   ReleaseDC(0, dc);
-//   return dpi;
+//   *dpi = GetDeviceCaps(dc, LOGPIXELSX);
+//   if (!ReleaseDC(0, dc)) {
+//     return "ReleaseDC failed";
+//   }
+//   return "";
 // }
 import "C"
 
 func deviceScale() float64 {
-	dpi := int(C.getDPI())
+	dpi := C.int(0)
+	if errmsg := C.GoString(C.getDPI(&dpi)); errmsg != "" {
+		panic(errmsg)
+	}
 	return float64(dpi) / 96
 }
 
