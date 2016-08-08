@@ -22,7 +22,9 @@ package ui
 //
 // static int getDPI() {
 //   HDC dc = GetWindowDC(0);
-//   return GetDeviceCaps(dc, LOGPIXELSX);
+//   int dpi = GetDeviceCaps(dc, LOGPIXELSX);
+//   ReleaseDC(0, dc);
+//   return dpi;
 // }
 import "C"
 
