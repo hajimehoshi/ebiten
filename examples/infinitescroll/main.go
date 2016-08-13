@@ -46,7 +46,6 @@ func round(x float64) float64 {
 }
 
 func (p *viewport) Move() {
-
 	w, h := bgImage.Size()
 	mx := w * 16
 	my := h * 16
@@ -73,11 +72,9 @@ func (p *viewport) Position() (int, int) {
 }
 
 func updateGroundImage(ground *ebiten.Image) error {
-
 	if err := ground.Clear(); err != nil {
 		return err
 	}
-
 	x16, y16 := theViewport.Position()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
@@ -88,7 +85,6 @@ func updateGroundImage(ground *ebiten.Image) error {
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
-
 	op := &ebiten.DrawImageOptions{}
 	if err := screen.DrawImage(ground, op); err != nil {
 		return err
@@ -97,7 +93,6 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
 }
 
 func update(screen *ebiten.Image) error {
-
 	theViewport.Move()
 
 	if err := updateGroundImage(groundImage); err != nil {
@@ -115,7 +110,6 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-
 	var err error
 	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/tile.png", ebiten.FilterNearest)
 	if err != nil {
