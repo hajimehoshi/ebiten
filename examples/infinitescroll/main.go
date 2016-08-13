@@ -117,7 +117,7 @@ func update(screen *ebiten.Image) error {
 func main() {
 
 	var err error
-	bgImage, _, err = ebitenutil.NewImageFromFile("tile.png", ebiten.FilterNearest)
+	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/tile.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
