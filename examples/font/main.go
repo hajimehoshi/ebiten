@@ -76,12 +76,11 @@ func parseFont() error {
 			Hinting: font.HintingFull,
 		}),
 	}
-	dy := size * dpi / 72
-	y := dy
+	y := size
 	for _, s := range text {
 		d.Dot = fixed.P(0, y)
 		d.DrawString(s)
-		y += dy
+		y += size
 	}
 	return textImage.ReplacePixels(dst.Pix)
 }
