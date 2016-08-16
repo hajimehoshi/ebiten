@@ -1,7 +1,8 @@
 language: go
 
 go:
-  - 1.6
+  - release
+  - tip
 
 addons:
   apt:
