@@ -84,13 +84,10 @@ func (u *userInterface) main(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
 	for {
 		select {
-		case f, ok := <-u.funcs:
-			if ok {
-				f()
-			} else {
-				u.funcs = nil
-			}
+		case f := <-u.funcs:
+			f()
 		case err := <-ch:
+			// ch returns a value not only when an error occur but also it is closed.
 			return err
 		}
 	}
@@ -251,7 +248,6 @@ func (u *userInterface) Terminate() error {
 		glfw.Terminate()
 		return nil
 	})
-	close(u.funcs)
 	return nil
 }
 
