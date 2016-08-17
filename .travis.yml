@@ -31,8 +31,8 @@ before_script:
   - sleep 3
 
 script:
-  - go build -tags example -v ./...
-  - gopherjs build -tags example -v github.com/hajimehoshi/ebiten/examples/blocks
+  - go build -v ./...
+  - gopherjs build -v github.com/hajimehoshi/ebiten/examples/blocks
 
 # Give up testing on Travis CI because of X error
 # https://travis-ci.org/hajimehoshi/ebiten/jobs/107404013
