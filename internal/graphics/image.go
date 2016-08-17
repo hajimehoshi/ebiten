@@ -116,9 +116,11 @@ func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
 }
 
 func (i *Image) ReplacePixels(p []uint8) error {
+	pixels := make([]uint8, len(p))
+	copy(pixels, p)
 	c := &replacePixelsCommand{
 		dst:    i,
-		pixels: p,
+		pixels: pixels,
 	}
 	theCommandQueue.Enqueue(c)
 	return nil
