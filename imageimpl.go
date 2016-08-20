@@ -61,13 +61,14 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	w, h := size.X, size.Y
 	// TODO: Return error when the image is too big!
 	// Don't lock while manipulating an image.Image interface.
-	rgbaImg, ok := source.(*image.RGBA)
-	if !ok || source.Bounds().Min != image.ZP {
-		origImg := source
-		newImg := image.NewRGBA(image.Rect(0, 0, w, h))
-		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
-		rgbaImg = newImg
-	}
+
+	// It is necessary to copy the source image since the actual construction of
+	// an image is delayed and we can't expect the source image is not modified
+	// until the construction.
+	origImg := source
+	newImg := image.NewRGBA(image.Rect(0, 0, w, h))
+	draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
+	rgbaImg := newImg
 	p := make([]uint8, 4*w*h)
 	for j := 0; j < h; j++ {
 		copy(p[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
@@ -218,6 +219,9 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 		return nil
 	}
 	i.pixels.MakeStale()
+	/*if !i.volatile {
+		return errors.New("test")
+	}*/
 	return nil
 }
 
