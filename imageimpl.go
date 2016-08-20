@@ -106,6 +106,7 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
+	// TODO: Need to clone clr value
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
@@ -219,9 +220,6 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 		return nil
 	}
 	i.pixels.MakeStale()
-	/*if !i.volatile {
-		return errors.New("test")
-	}*/
 	return nil
 }
 
