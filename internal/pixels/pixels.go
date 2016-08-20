@@ -91,7 +91,7 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 // This means Pixels members must match with acutal state in VRAM.
 func (p *Pixels) At(idx int, image *graphics.Image, context *opengl.Context) (color.Color, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.ReadPixelsFromVRAM(image, context); err != nil {
+		if err := p.readPixelsFromVRAM(image, context); err != nil {
 			return nil, err
 		}
 	}
@@ -111,7 +111,7 @@ func (p *Pixels) DependsOn(target *graphics.Image) bool {
 	return false
 }
 
-func (p *Pixels) ReadPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
+func (p *Pixels) readPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
 	var err error
 	p.basePixels, err = image.Pixels(context)
 	if err != nil {
@@ -127,7 +127,7 @@ func (p *Pixels) ReadPixelsFromVRAMIfStale(image *graphics.Image, context *openg
 	if !p.stale {
 		return nil
 	}
-	return p.ReadPixelsFromVRAM(image, context)
+	return p.readPixelsFromVRAM(image, context)
 }
 
 func (p *Pixels) HasDependency() bool {

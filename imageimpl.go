@@ -212,19 +212,12 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	if target.isDisposed() {
 		return errors.New("ebiten: target is already disposed")
 	}
-	// target is an image begin tried to mutate.
+	// target is an image that is about to be tried mutating.
 	// If pixels object is related to that image, the pixels must be reset.
 	if !i.pixels.DependsOn(target.image) {
 		return nil
 	}
-	if context == nil || i.volatile {
-		// context is nil when this is not initialized yet.
-		i.pixels.MakeStale()
-		return nil
-	}
-	if err := i.pixels.ReadPixelsFromVRAM(i.image, context); err != nil {
-		return err
-	}
+	i.pixels.MakeStale()
 	return nil
 }
 
