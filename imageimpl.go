@@ -106,7 +106,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 }
 
 func (i *imageImpl) Fill(clr color.Color) error {
-	// TODO: Need to clone clr value
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.disposed {
@@ -163,7 +162,11 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
+	if image.impl.pixels.IsStale() {
+		i.pixels.MakeStale()
+	} else {
+		i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
+	}
 	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
 		return err
 	}

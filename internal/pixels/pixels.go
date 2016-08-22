@@ -40,6 +40,10 @@ type Pixels struct {
 	stale            bool
 }
 
+func (p *Pixels) IsStale() bool {
+	return p.stale
+}
+
 func (p *Pixels) MakeStale() {
 	p.basePixels = nil
 	p.baseColor = nil
