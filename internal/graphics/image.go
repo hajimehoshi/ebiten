@@ -85,6 +85,7 @@ func (i *Image) Size() (int, int) {
 }
 
 func (i *Image) Fill(clr color.Color) error {
+	// TODO: Need to clone clr value
 	c := &fillCommand{
 		dst:   i,
 		color: clr,

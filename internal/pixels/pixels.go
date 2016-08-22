@@ -79,6 +79,8 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 	if p.stale {
 		return
 	}
+	// All images must be resolved and not stale each after frame.
+	// So we don't have to care if image is stale or not here.
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
@@ -107,6 +109,7 @@ func (p *Pixels) DependsOn(target *graphics.Image) bool {
 	if p.stale {
 		return false
 	}
+	// TODO: Performance is bad when drawImageHistory is too many.
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
 			return true
