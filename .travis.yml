@@ -24,6 +24,7 @@ install:
   - go get -t -v ./...
   - go get github.com/gopherjs/gopherjs
   - go get github.com/gopherjs/webgl
+  - go get -tags example ./examples/...
 
 before_script:
   - export DISPLAY=:99.0
