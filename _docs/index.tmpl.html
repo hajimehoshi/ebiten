@@ -58,10 +58,12 @@ pre {
   {{- end}}
 </p>
 
-<h2>Execute the example</h2>
+<h2>Execute the examples</h2>
 <pre><code>:; go get github.com/hajimehoshi/ebiten
 :; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
-:; go run rotate/main.go</code></pre>
+:; go run -tags example rotate/main.go</code></pre>
+
+<p>Note that you need to specify <code>example</code> tag.</p>
 
 <h2>Getting Started</h2>
 
