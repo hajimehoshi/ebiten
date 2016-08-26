@@ -1,10 +1,11 @@
 @import 'https://fonts.googleapis.com/css?family=Roboto:400,500,700,900';
 
 body {
+  background-color: #f5f5f5;
   font-family: 'Roboto', sans-serif;
 }
 
-h1 small {
+header h1 small {
   position: relative;
   top: -0.1em;
 }

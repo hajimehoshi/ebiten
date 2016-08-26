@@ -7,8 +7,7 @@
 
 * A simple SNES-like 2D game library in Go
 * Works on
-  * [Web browsers](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
-    * Supported browsers: Chrome and Firefox on desktops
+  * [Web browsers (Chrome and Firefox on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
   * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
   * [Mac OS X](https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X)
   * [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
