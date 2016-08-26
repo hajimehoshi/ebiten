@@ -1,8 +1,12 @@
-@import 'https://fonts.googleapis.com/css?family=Roboto:400,500,700,900';
+@import 'https://fonts.googleapis.com/css?family=Play:400,700';
 
 body {
   background-color: #f5f5f5;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Play', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
 }
 
 header h1 small {
