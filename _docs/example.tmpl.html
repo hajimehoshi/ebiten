@@ -1,28 +1,27 @@
 <!DOCTYPE html>
-{{comment .License}}
 <link rel="shortcut icon" href="../favicon.png" type="image/png" >
 <link rel="icon" href="../favicon.png" type="image/png" >
 <title>Ebiten example - {{.Example.Name}}</title>
-<style>
-body {
-  font-family: sans-serif;
-}
-iframe {
-  border-color: #999;
-  border-style: solid;
-  border-width: 1px;
-  overflow: hidden;
-}
-pre {
-  background: #eee;
-  padding: 1em;
-}
-</style>
-<nav><a href="..">Ebiten</a></nav>
-{{with .Example}}
-<h1>Ebiten example - {{.Name}}</h1>
-<iframe src="{{.Name}}.content.html" width="{{.Width}}" height="{{.Height}}"></iframe>
-<pre><code>{{.Source}}</code></pre>
-{{end}}
+<link rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="/stylesheets/ebiten.css">
 
-<footer>{{.Copyright}}</footer>
+<header class="navbar"><div class="container">
+  <div class="navbar-header">
+    <a class="navbar-brand" href="/">Ebiten</a>
+  </div>
+</header>
+
+<main><div class="container">
+{{with .Example}}
+  <h1>Ebiten example - {{.Name}}</h1>
+  <iframe src="{{.Name}}.content.html" width="{{.Width}}" height="{{.Height}}"></iframe>
+  <pre><code>{{.Source}}</code></pre>
+{{end}}
+</div></main>
+
+<footer><div class="container">
+  <p>{{.Copyright}}</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+

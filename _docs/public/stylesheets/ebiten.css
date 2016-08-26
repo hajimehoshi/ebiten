@@ -1,0 +1,18 @@
+img.example {
+  background-color: #000;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+header {
+  background-color: #eeeeee;
+}
+
+footer {
+  background-color: #666666;
+  color: #fff;
+}
+
+footer a {
+  color: #fff !important;
+}

@@ -1,62 +1,80 @@
 <!DOCTYPE html>
-{{comment .License}}
 <meta name="description" content="Ebiten - A simple SNES-like 2D game library in Go">
 <link rel="shortcut icon" href="./favicon.png" type="image/png">
 <link rel="icon" href="./favicon.png" type="image/png">
 <title>Ebiten - A simple SNES-like 2D game library in Go</title>
-<link rel="stylesheet" href="./style.css">
-<a href="https://github.com/hajimehoshi/ebiten"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
-<h1>Ebiten (海老天)</h1>
-<p>Stable version: v{{.StableVersion}} / Development version: v{{.DevVersion}}</p>
-<ul>
-  <li>A simple SNES-like 2D game library in Go</li>
-  <li>Works on
-    <ul>
-      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers">Web browsers</a> (powered by <a href="http://gopherjs.org/">GopherJS</a>)
-        <ul>
-          <li>Supported browsers: Chrome and Firefox on desktops</li>
-        </ul>
-      </li>
-      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Windows">Windows</a></li>
-      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X">Mac OS X</a></li>
-      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Linux">Linux</a></li>
-      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Android">Android</a></li>
-      <li><a href="https://github.com/hajimehoshi/ebiten/wiki/iOS">iOS</a></li>
-    </ul>
-  </li>
-  <li><a href="http://godoc.org/github.com/hajimehoshi/ebiten"><img src="https://godoc.org/github.com/hajimehoshi/ebiten?status.svg" alt="GoDoc Reference"></a></li>
-  <li><a href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-</ul>
+<link rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="/stylesheets/ebiten.css">
 
-<h2>Features</h2>
-<ul>
-<li>2D Graphics</li>
-<li>Input (Mouse, Keyboard, Gamepad)</li>
-<li>Audio (Ogg/Vorbis, WAV, and PCM)</li>
-</ul>
+<header class="navbar"><div class="container">
+  <div class="navbar-header">
+    <a class="navbar-brand" href="/">Ebiten</a>
+  </div>
+  <nav class="collapse navbar-collapse">
+   <ul class="nav navbar-nav">
+     <li><a href="#features">Features</a></li>
+     <li><a href="#examples">Examples</a></li>
+     <li><a href="#getting-started">Getting Started</a></li>
+   </ul>
+   <ul class="nav navbar-nav navbar-right">
+     <li><a href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+     <li><a href="http://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+    <li><a href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+   </ul>
+  </nav>
+</div></header>
 
-<h2>Example</h2>
-<p>
+<main><div class="container">
+  <h1>Ebiten <small>(海老天)</small></h1>
+  <p class="lead">A simple SNES-like 2D game library in Go</p>
+  <p>Stable version: v{{.StableVersion}} / Development version: v{{.DevVersion}}</p>
+  <ul>
+    <li>Works on
+      <ul>
+        <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers">Web browsers</a> (powered by <a href="http://gopherjs.org/">GopherJS</a>)
+          <ul>
+            <li>Supported browsers: Chrome and Firefox on desktops</li>
+          </ul>
+        </li>
+        <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Windows">Windows</a></li>
+        <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X">Mac OS X</a></li>
+        <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Linux">Linux</a></li>
+        <li><a href="https://github.com/hajimehoshi/ebiten/wiki/Android">Android</a></li>
+        <li><a href="https://github.com/hajimehoshi/ebiten/wiki/iOS">iOS</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2 id="features">Features</h2>
+  <ul>
+    <li>2D Graphics</li>
+    <li>Input (Mouse, Keyboard, Gamepad)</li>
+    <li>Audio (Ogg/Vorbis, WAV, and PCM)</li>
+  </ul>
+
+  <h2 id="examples">Examples</h2>
+  <div class="row">
   {{range .Examples -}}
-  <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="example"></a>
+    <div class="col-md-4">
+      <a class="thumbnail" href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="example"></a>
+    </div>
   {{- end}}
-</p>
+  </div>
 
-<h2>Execute the examples</h2>
-<pre><code>:; go get github.com/hajimehoshi/ebiten
+  <h3>Execute the examples</h2>
+  <pre><code>:; go get github.com/hajimehoshi/ebiten
 :; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
 :; go run -tags example rotate/main.go</code></pre>
+  <p>Note that you need to specify <code>example</code> tag.</p>
 
-<p>Note that you need to specify <code>example</code> tag.</p>
+  <h2 id="getting-started">Getting Started</h2>
 
-<h2>Getting Started</h2>
-
-<p>Let's build a simple "Hello world!" game to get started with Ebiten.
+  <p>Let's build a simple "Hello world!" game to get started with Ebiten.
 First create a new directory (<code>mkdir hello_world</code>), and change
 into it (<code>cd hello_world</code>). Type the following code into
 the <code>main.go</code> file:</p>
 
-<pre><code>package main
+  <pre><code>package main
 
 import (
     "github.com/hajimehoshi/ebiten"
@@ -73,16 +91,14 @@ func main() {
 }
 </code></pre>
 
-<p>Run the <code>go run</code> command to start the
+  <p>Run the <code>go run</code> command to start the
 game. There you have it, your first Ebiten game!</p>
 
-<h2>Change Log</h2>
-<p>See <a href="https://github.com/hajimehoshi/ebiten/releases">GitHub releases page</a>.</p>
+</div></main>
 
-<h2>License</h2>
-<h3>Ebiten</h3>
-<pre>{{.License}}</pre>
-<h3>Go Gopher photograph</h3>
-<p><a href="http://blog.golang.org/go-programming-language-turns-two">The original photograph of Go gophers by Chris Nokleberg</a> is licensed under the Creative Commons 3.0 Attributions license.</p>
-
-<footer>{{.Copyright}}</footer>
+<footer><div class="container">
+  <p>{{.Copyright}}</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">Apache License 2.0</a>.</p>
+  <p><a href="http://blog.golang.org/go-programming-language-turns-two">The Gopher photographs by Chris Nokleberg</a> are licensed under <a href="https://creativecommons.org/licenses/by/3.0/">the Creative Commons 3.0 Attributions License</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
