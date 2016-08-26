@@ -1,11 +1,9 @@
 img.example {
   background-color: #000;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
 }
 
 header {
-  background-color: #eeeeee;
+  background-color: #dddddd;
 }
 
 footer {
