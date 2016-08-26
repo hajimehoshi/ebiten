@@ -68,15 +68,39 @@ func init() {
 	copyright = fmt.Sprintf("© %d Hajime Hoshi", year)
 }
 
-var stableVersion = ""
-var devVersion = ""
+var (
+	stableVersion = ""
+	devVersion    = ""
+)
 
 func init() {
-	b, err := ioutil.ReadFile("../version.txt")
+	b, err := exec.Command("git", "tag").Output()
 	if err != nil {
 		panic(err)
 	}
-	stableVersion = strings.TrimSpace(string(b))
+	lastStableVersion := ""
+	lastCommitTime := 0
+	for _, tag := range strings.Split(string(b), "\n") {
+		m := regexp.MustCompile(`^v(\d.+)$`).FindStringSubmatch(tag)
+		if m == nil {
+			continue
+		}
+		t, err := exec.Command("git", "log", tag, "-1", "--format=%ct").Output()
+		if err != nil {
+			panic(err)
+		}
+		tt, err := strconv.Atoi(strings.TrimSpace(string(t)))
+		if err != nil {
+			panic(err)
+		}
+		if lastCommitTime >= tt {
+			continue
+		}
+		lastCommitTime = tt
+		lastStableVersion = m[1]
+	}
+	// See the HEAD commit time
+	stableVersion = lastStableVersion
 }
 
 func currentBranch() string {
