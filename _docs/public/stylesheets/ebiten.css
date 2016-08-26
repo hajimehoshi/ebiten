@@ -1,3 +1,9 @@
+@import 'https://fonts.googleapis.com/css?family=Roboto:400,500,700,900';
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
 img.example {
   background-color: #000;
 }
@@ -6,9 +12,14 @@ header {
   background-color: #dddddd;
 }
 
+header a {
+  color: #666 !important;
+}
+
 footer {
   background-color: #666666;
   color: #fff;
+  padding-top: 1em;
 }
 
 footer a {
