@@ -18,23 +18,7 @@ limitations under the License.
 <link rel="shortcut icon" href="./favicon.png" type="image/png">
 <link rel="icon" href="./favicon.png" type="image/png">
 <title>Ebiten - A simple SNES-like 2D game library in Go</title>
-<style>
-body {
-  font-family: sans-serif;
-}
-img.example {
-  background-color: #000;
-  border-color: #999;
-  border-style: solid;
-  border-width: 1px;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
-}
-pre {
-  background: #eee;
-  padding: 1em;
-}
-</style>
+<link rel="stylesheet" href="./style.css">
 <a href="https://github.com/hajimehoshi/ebiten"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
 <h1>Ebiten (海老天)</h1>
 <p>Stable version: v1.4.0-alpha / Development version: v1.4.0-alpha</p>
@@ -70,10 +54,12 @@ pre {
   <a href="examples/alphablending.html"><img src="images/examples/alphablending.png" width="320" height="240" alt="Ebiten example: alphablending" class="example"></a><a href="examples/audio.html"><img src="images/examples/audio.png" width="320" height="240" alt="Ebiten example: audio" class="example"></a><a href="examples/font.html"><img src="images/examples/font.png" width="320" height="240" alt="Ebiten example: font" class="example"></a><a href="examples/hsv.html"><img src="images/examples/hsv.png" width="320" height="240" alt="Ebiten example: hsv" class="example"></a><a href="examples/hue.html"><img src="images/examples/hue.png" width="320" height="240" alt="Ebiten example: hue" class="example"></a><a href="examples/gamepad.html"><img src="images/examples/gamepad.png" width="320" height="240" alt="Ebiten example: gamepad" class="example"></a><a href="examples/keyboard.html"><img src="images/examples/keyboard.png" width="320" height="240" alt="Ebiten example: keyboard" class="example"></a><a href="examples/masking.html"><img src="images/examples/masking.png" width="320" height="240" alt="Ebiten example: masking" class="example"></a><a href="examples/mosaic.html"><img src="images/examples/mosaic.png" width="320" height="240" alt="Ebiten example: mosaic" class="example"></a><a href="examples/noise.html"><img src="images/examples/noise.png" width="320" height="240" alt="Ebiten example: noise" class="example"></a><a href="examples/paint.html"><img src="images/examples/paint.png" width="320" height="240" alt="Ebiten example: paint" class="example"></a><a href="examples/perspective.html"><img src="images/examples/perspective.png" width="320" height="240" alt="Ebiten example: perspective" class="example"></a><a href="examples/piano.html"><img src="images/examples/piano.png" width="320" height="240" alt="Ebiten example: piano" class="example"></a><a href="examples/rotate.html"><img src="images/examples/rotate.png" width="320" height="240" alt="Ebiten example: rotate" class="example"></a><a href="examples/sprites.html"><img src="images/examples/sprites.png" width="320" height="240" alt="Ebiten example: sprites" class="example"></a><a href="examples/blocks.html"><img src="images/examples/blocks.png" width="256" height="240" alt="Ebiten example: blocks" class="example"></a>
 </p>
 
-<h2>Execute the example</h2>
+<h2>Execute the examples</h2>
 <pre><code>:; go get github.com/hajimehoshi/ebiten
 :; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
-:; go run rotate/main.go</code></pre>
+:; go run -tags example rotate/main.go</code></pre>
+
+<p>Note that you need to specify <code>example</code> tag.</p>
 
 <h2>Getting Started</h2>
 

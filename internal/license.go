@@ -21,6 +21,7 @@ import (
 	"strings"
 )
 
+// LicenseComment returns the license string in Go comment style.
 func LicenseComment() (string, error) {
 	_, path, _, _ := runtime.Caller(0)
 	licensePath := filepath.Join(filepath.Dir(path), "..", "LICENSE")

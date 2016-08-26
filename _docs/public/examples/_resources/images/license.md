@@ -23,6 +23,14 @@ Photograph by Chris Nokleberg
 the Creative Commons Attribution 3.0 License
 ```
 
+## tile.png
+
+```
+http://opengameart.org/node/8016
+
+CC0 1.0
+```
+
 ## Other image files
 
 ```

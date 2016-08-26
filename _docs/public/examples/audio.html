@@ -36,7 +36,9 @@ pre {
 
 <h1>Ebiten example - audio</h1>
 <iframe src="audio.content.html" width="640" height="480"></iframe>
-<pre><code>package main
+<pre><code>// &#43;build example
+
+package main
 
 import (
     &#34;fmt&#34;
@@ -68,13 +70,17 @@ func init() {
     if err != nil {
         log.Fatal(err)
     }
-    playerBarImage.Fill(&amp;color.RGBA{0x80, 0x80, 0x80, 0xff})
+    if err := playerBarImage.Fill(&amp;color.RGBA{0x80, 0x80, 0x80, 0xff}); err != nil {
+        log.Fatal(err)
+    }
 
     playerCurrentImage, err = ebiten.NewImage(4, 10, ebiten.FilterNearest)
     if err != nil {
         log.Fatal(err)
     }
-    playerCurrentImage.Fill(&amp;color.RGBA{0xff, 0xff, 0xff, 0xff})
+    if err := playerCurrentImage.Fill(&amp;color.RGBA{0xff, 0xff, 0xff, 0xff}); err != nil {
+        log.Fatal(err)
+    }
 }
 
 type Player struct {
@@ -217,7 +223,9 @@ func update(screen *ebiten.Image) error {
     op := &amp;ebiten.DrawImageOptions{}
     x, y, w, h := playerBarRect()
     op.GeoM.Translate(float64(x), float64(y))
-    screen.DrawImage(playerBarImage, op)
+    if err := screen.DrawImage(playerBarImage, op); err != nil {
+        return err
+    }
     currentTimeStr := &#34;00:00&#34;
     if musicPlayer != nil {
         c := musicPlayer.audioPlayer.Current()
@@ -233,7 +241,9 @@ func update(screen *ebiten.Image) error {
         cy := y - (ch-h)/2
         op := &amp;ebiten.DrawImageOptions{}
         op.GeoM.Translate(float64(cx), float64(cy))
-        screen.DrawImage(playerCurrentImage, op)
+        if err := screen.DrawImage(playerCurrentImage, op); err != nil {
+            return err
+        }
     }
 
     msg := fmt.Sprintf(`FPS: %0.2f
@@ -244,7 +254,9 @@ Press Z or X to change volume of the music
     if musicPlayer == nil {
         msg &#43;= &#34;\nNow Loading...&#34;
     }
-    ebitenutil.DebugPrint(screen, msg)
+    if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+        return err
+    }
     if err := audioContext.Update(); err != nil {
         return err
     }
@@ -297,7 +309,10 @@ func main() {
         }
         close(musicCh)
         // TODO: Is this goroutine-safe?
-        p.Play()
+        if err := p.Play(); err != nil {
+            log.Fatal(err)
+            return
+        }
     }()
     if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Audio (Ebiten Demo)&#34;); err != nil {
         log.Fatal(err)

@@ -36,7 +36,9 @@ pre {
 
 <h1>Ebiten example - perspective</h1>
 <iframe src="perspective.content.html" width="640" height="480"></iframe>
-<pre><code>package main
+<pre><code>// &#43;build example
+
+package main
 
 import (
     _ &#34;image/jpeg&#34;
@@ -84,7 +86,9 @@ func update(screen *ebiten.Image) error {
     maxWidth := float64(w) &#43; float64(h)*0.75
     op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
     op.GeoM.Translate(screenWidth/2, screenHeight/2)
-    screen.DrawImage(gophersImage, op)
+    if err := screen.DrawImage(gophersImage, op); err != nil {
+        return err
+    }
     return nil
 }
 

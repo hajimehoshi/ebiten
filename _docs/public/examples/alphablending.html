@@ -36,7 +36,9 @@ pre {
 
 <h1>Ebiten example - alphablending</h1>
 <iframe src="alphablending.content.html" width="640" height="480"></iframe>
-<pre><code>package main
+<pre><code>// &#43;build example
+
+package main
 
 import (
     &#34;image/color&#34;
@@ -88,7 +90,9 @@ func update(screen *ebiten.Image) error {
         diff = float64(480-count) * 0.2
     }
 
-    screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
+    if err := screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
+        return err
+    }
     op := &amp;ebiten.DrawImageOptions{}
     op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
     op.ImageParts = &amp;imageParts{

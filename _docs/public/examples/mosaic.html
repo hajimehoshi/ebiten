@@ -36,7 +36,9 @@ pre {
 
 <h1>Ebiten example - mosaic</h1>
 <iframe src="mosaic.content.html" width="640" height="480"></iframe>
-<pre><code>package main
+<pre><code>// &#43;build example
+
+package main
 
 import (
     _ &#34;image/jpeg&#34;
@@ -61,10 +63,14 @@ var (
 func update(screen *ebiten.Image) error {
     op := &amp;ebiten.DrawImageOptions{}
     op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
-    gophersRenderTarget.DrawImage(gophersImage, op)
+    if err := gophersRenderTarget.DrawImage(gophersImage, op); err != nil {
+        return err
+    }
     op = &amp;ebiten.DrawImageOptions{}
     op.GeoM.Scale(mosaicRatio, mosaicRatio)
-    screen.DrawImage(gophersRenderTarget, op)
+    if err := screen.DrawImage(gophersRenderTarget, op); err != nil {
+        return err
+    }
     return nil
 }
 
