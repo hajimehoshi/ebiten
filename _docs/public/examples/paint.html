@@ -27,103 +27,103 @@
 package main
 
 import (
-    &#34;fmt&#34;
-    &#34;image&#34;
-    &#34;image/color&#34;
-    &#34;log&#34;
-    &#34;math&#34;
+        &#34;fmt&#34;
+        &#34;image&#34;
+        &#34;image/color&#34;
+        &#34;log&#34;
+        &#34;math&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 var (
-    count       int
-    brushImage  *ebiten.Image
-    canvasImage *ebiten.Image
+        count       int
+        brushImage  *ebiten.Image
+        canvasImage *ebiten.Image
 )
 
 func paint(screen *ebiten.Image, x, y int) error {
-    op := &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Translate(float64(x), float64(y))
-    op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
-    theta := 2.0 * math.Pi * float64(count%60) / ebiten.FPS
-    op.ColorM.RotateHue(theta)
-    if err := canvasImage.DrawImage(brushImage, op); err != nil {
-        return err
-    }
-    return nil
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(float64(x), float64(y))
+        op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
+        theta := 2.0 * math.Pi * float64(count%60) / ebiten.FPS
+        op.ColorM.RotateHue(theta)
+        if err := canvasImage.DrawImage(brushImage, op); err != nil {
+                return err
+        }
+        return nil
 }
 
 func update(screen *ebiten.Image) error {
-    drawn := false
-    mx, my := ebiten.CursorPosition()
-    if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-        if err := paint(screen, mx, my); err != nil {
-            return err
+        drawn := false
+        mx, my := ebiten.CursorPosition()
+        if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+                if err := paint(screen, mx, my); err != nil {
+                        return err
+                }
+                drawn = true
         }
-        drawn = true
-    }
-    for _, t := range ebiten.Touches() {
-        x, y := t.Position()
-        if err := paint(screen, x, y); err != nil {
-            return err
+        for _, t := range ebiten.Touches() {
+                x, y := t.Position()
+                if err := paint(screen, x, y); err != nil {
+                        return err
+                }
+                drawn = true
         }
-        drawn = true
-    }
-    if drawn {
-        count&#43;&#43;
-    }
+        if drawn {
+                count&#43;&#43;
+        }
 
-    if err := screen.DrawImage(canvasImage, nil); err != nil {
-        return err
-    }
+        if err := screen.DrawImage(canvasImage, nil); err != nil {
+                return err
+        }
 
-    msg := fmt.Sprintf(&#34;(%d, %d)&#34;, mx, my)
-    for _, t := range ebiten.Touches() {
-        x, y := t.Position()
-        msg &#43;= fmt.Sprintf(&#34;\n(%d, %d) touch %d&#34;, x, y, t.ID())
-    }
-    if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-        return err
-    }
-    return nil
+        msg := fmt.Sprintf(&#34;(%d, %d)&#34;, mx, my)
+        for _, t := range ebiten.Touches() {
+                x, y := t.Position()
+                msg &#43;= fmt.Sprintf(&#34;\n(%d, %d) touch %d&#34;, x, y, t.ID())
+        }
+        if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+                return err
+        }
+        return nil
 }
 
 func main() {
-    var err error
-    const a0, a1, a2 = 0x40, 0xc0, 0xff
-    pixels := []uint8{
-        a0, a1, a1, a0,
-        a1, a2, a2, a1,
-        a1, a2, a2, a1,
-        a0, a1, a1, a0,
-    }
-    brushImage, err = ebiten.NewImageFromImage(&amp;image.Alpha{
-        Pix:    pixels,
-        Stride: 4,
-        Rect:   image.Rect(0, 0, 4, 4),
-    }, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
+        var err error
+        const a0, a1, a2 = 0x40, 0xc0, 0xff
+        pixels := []uint8{
+                a0, a1, a1, a0,
+                a1, a2, a2, a1,
+                a1, a2, a2, a1,
+                a0, a1, a1, a0,
+        }
+        brushImage, err = ebiten.NewImageFromImage(&amp;image.Alpha{
+                Pix:    pixels,
+                Stride: 4,
+                Rect:   image.Rect(0, 0, 4, 4),
+        }, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
 
-    canvasImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := canvasImage.Fill(color.White); err != nil {
-        log.Fatal(err)
-    }
+        canvasImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        if err := canvasImage.Fill(color.White); err != nil {
+                log.Fatal(err)
+        }
 
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Paint (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Paint (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 

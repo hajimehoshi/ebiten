@@ -27,55 +27,55 @@
 package main
 
 import (
-    &#34;fmt&#34;
-    &#34;log&#34;
-    &#34;strconv&#34;
-    &#34;strings&#34;
+        &#34;fmt&#34;
+        &#34;log&#34;
+        &#34;strconv&#34;
+        &#34;strings&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 func update(screen *ebiten.Image) error {
-    // TODO: API to get the available, lowest ID
-    const gamepadID = 0
-    axes := []string{}
-    pressedButtons := []string{}
+        // TODO: API to get the available, lowest ID
+        const gamepadID = 0
+        axes := []string{}
+        pressedButtons := []string{}
 
-    maxAxis := ebiten.GamepadAxisNum(gamepadID)
-    for a := 0; a &lt; maxAxis; a&#43;&#43; {
-        v := ebiten.GamepadAxis(gamepadID, a)
-        axes = append(axes, fmt.Sprintf(&#34;%d: %0.6f&#34;, a, v))
-    }
-
-    maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(gamepadID))
-    for b := ebiten.GamepadButton(gamepadID); b &lt; maxButton; b&#43;&#43; {
-        if ebiten.IsGamepadButtonPressed(gamepadID, b) {
-            pressedButtons = append(pressedButtons, strconv.Itoa(int(b)))
+        maxAxis := ebiten.GamepadAxisNum(gamepadID)
+        for a := 0; a &lt; maxAxis; a&#43;&#43; {
+                v := ebiten.GamepadAxis(gamepadID, a)
+                axes = append(axes, fmt.Sprintf(&#34;%d: %0.6f&#34;, a, v))
         }
-    }
 
-    str := `Gamepad
+        maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(gamepadID))
+        for b := ebiten.GamepadButton(gamepadID); b &lt; maxButton; b&#43;&#43; {
+                if ebiten.IsGamepadButtonPressed(gamepadID, b) {
+                        pressedButtons = append(pressedButtons, strconv.Itoa(int(b)))
+                }
+        }
+
+        str := `Gamepad
   Axes:
     {{.Axes}}
   Pressed Buttons: {{.Buttons}}`
-    str = strings.Replace(str, &#34;{{.Axes}}&#34;, strings.Join(axes, &#34;\n    &#34;), -1)
-    str = strings.Replace(str, &#34;{{.Buttons}}&#34;, strings.Join(pressedButtons, &#34;, &#34;), -1)
-    if err := ebitenutil.DebugPrint(screen, str); err != nil {
-        return err
-    }
-    return nil
+        str = strings.Replace(str, &#34;{{.Axes}}&#34;, strings.Join(axes, &#34;\n    &#34;), -1)
+        str = strings.Replace(str, &#34;{{.Buttons}}&#34;, strings.Join(pressedButtons, &#34;, &#34;), -1)
+        if err := ebitenutil.DebugPrint(screen, str); err != nil {
+                return err
+        }
+        return nil
 }
 
 func main() {
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Gamepad (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Gamepad (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 

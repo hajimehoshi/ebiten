@@ -27,78 +27,78 @@
 package main
 
 import (
-    &#34;image/color&#34;
-    _ &#34;image/png&#34;
-    &#34;log&#34;
+        &#34;image/color&#34;
+        _ &#34;image/png&#34;
+        &#34;log&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 var (
-    count       int
-    ebitenImage *ebiten.Image
+        count       int
+        ebitenImage *ebiten.Image
 )
 
 type imageParts struct {
-    diff float64
+        diff float64
 }
 
 func (p *imageParts) Src(i int) (int, int, int, int) {
-    w, h := ebitenImage.Size()
-    return 0, 0, w, h
+        w, h := ebitenImage.Size()
+        return 0, 0, w, h
 }
 
 func (p *imageParts) Dst(i int) (int, int, int, int) {
-    x := int(float64(i%10)*p.diff &#43; 15)
-    y := int(float64(i/10)*p.diff &#43; 20)
-    w, h := ebitenImage.Size()
-    return x, y, x &#43; w, y &#43; h
+        x := int(float64(i%10)*p.diff &#43; 15)
+        y := int(float64(i/10)*p.diff &#43; 20)
+        w, h := ebitenImage.Size()
+        return x, y, x &#43; w, y &#43; h
 }
 
 func (p *imageParts) Len() int {
-    return 10 * 10
+        return 10 * 10
 }
 
 func update(screen *ebiten.Image) error {
-    count&#43;&#43;
-    count %= ebiten.FPS * 10
-    diff := float64(count) * 0.2
-    switch {
-    case 480 &lt; count:
-        diff = 0
-    case 240 &lt; count:
-        diff = float64(480-count) * 0.2
-    }
+        count&#43;&#43;
+        count %= ebiten.FPS * 10
+        diff := float64(count) * 0.2
+        switch {
+        case 480 &lt; count:
+                diff = 0
+        case 240 &lt; count:
+                diff = float64(480-count) * 0.2
+        }
 
-    if err := screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
-        return err
-    }
-    op := &amp;ebiten.DrawImageOptions{}
-    op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
-    op.ImageParts = &amp;imageParts{
-        diff: diff,
-    }
-    if err := screen.DrawImage(ebitenImage, op); err != nil {
-        return err
-    }
-    return nil
+        if err := screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
+                return err
+        }
+        op := &amp;ebiten.DrawImageOptions{}
+        op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
+        op.ImageParts = &amp;imageParts{
+                diff: diff,
+        }
+        if err := screen.DrawImage(ebitenImage, op); err != nil {
+                return err
+        }
+        return nil
 }
 
 func main() {
-    var err error
-    ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Alpha Blending (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        var err error
+        ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Alpha Blending (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 

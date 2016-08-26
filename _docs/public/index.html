@@ -98,17 +98,17 @@ the <code>main.go</code> file:</p>
   <pre><code>package main
 
 import (
-    "github.com/hajimehoshi/ebiten"
-    "github.com/hajimehoshi/ebiten/ebitenutil"
+        "github.com/hajimehoshi/ebiten"
+        "github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 func update(screen *ebiten.Image) error {
-    ebitenutil.DebugPrint(screen, "Hello world!")
-    return nil
+        ebitenutil.DebugPrint(screen, "Hello world!")
+        return nil
 }
 
 func main() {
-    ebiten.Run(update, 320, 240, 2, "Hello world!")
+        ebiten.Run(update, 320, 240, 2, "Hello world!")
 }
 </code></pre>
 

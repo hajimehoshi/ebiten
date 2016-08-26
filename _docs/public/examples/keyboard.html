@@ -27,116 +27,116 @@
 package main
 
 import (
-    &#34;log&#34;
-    &#34;strconv&#34;
+        &#34;log&#34;
+        &#34;strconv&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-    &#34;github.com/hajimehoshi/ebiten/examples/keyboard/keyboard&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten/examples/keyboard/keyboard&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 var keyboardImage *ebiten.Image
 
 func init() {
-    var err error
-    keyboardImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/keyboard/keyboard.png&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
+        var err error
+        keyboardImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/keyboard/keyboard.png&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
 }
 
 var keyNames = map[ebiten.Key]string{
-    ebiten.KeyBackspace: &#34;BS&#34;,
-    ebiten.KeyComma:     &#34;,&#34;,
-    ebiten.KeyDelete:    &#34;Del&#34;,
-    ebiten.KeyEnter:     &#34;Enter&#34;,
-    ebiten.KeyEscape:    &#34;Esc&#34;,
-    ebiten.KeyPeriod:    &#34;.&#34;,
-    ebiten.KeySpace:     &#34;Space&#34;,
-    ebiten.KeyTab:       &#34;Tab&#34;,
+        ebiten.KeyBackspace: &#34;BS&#34;,
+        ebiten.KeyComma:     &#34;,&#34;,
+        ebiten.KeyDelete:    &#34;Del&#34;,
+        ebiten.KeyEnter:     &#34;Enter&#34;,
+        ebiten.KeyEscape:    &#34;Esc&#34;,
+        ebiten.KeyPeriod:    &#34;.&#34;,
+        ebiten.KeySpace:     &#34;Space&#34;,
+        ebiten.KeyTab:       &#34;Tab&#34;,
 
-    // Arrows
-    ebiten.KeyDown:  &#34;Down&#34;,
-    ebiten.KeyLeft:  &#34;Left&#34;,
-    ebiten.KeyRight: &#34;Right&#34;,
-    ebiten.KeyUp:    &#34;Up&#34;,
+        // Arrows
+        ebiten.KeyDown:  &#34;Down&#34;,
+        ebiten.KeyLeft:  &#34;Left&#34;,
+        ebiten.KeyRight: &#34;Right&#34;,
+        ebiten.KeyUp:    &#34;Up&#34;,
 
-    // Mods
-    ebiten.KeyShift:   &#34;Shift&#34;,
-    ebiten.KeyControl: &#34;Ctrl&#34;,
-    ebiten.KeyAlt:     &#34;Alt&#34;,
+        // Mods
+        ebiten.KeyShift:   &#34;Shift&#34;,
+        ebiten.KeyControl: &#34;Ctrl&#34;,
+        ebiten.KeyAlt:     &#34;Alt&#34;,
 }
 
 type pressedKeysParts []string
 
 func (p pressedKeysParts) Len() int {
-    return len(p)
+        return len(p)
 }
 
 func (p pressedKeysParts) Dst(i int) (x0, y0, x1, y1 int) {
-    k := p[i]
-    r, ok := keyboard.KeyRect(k)
-    if !ok {
-        return 0, 0, 0, 0
-    }
-    return r.Min.X, r.Min.Y, r.Max.X, r.Max.Y
+        k := p[i]
+        r, ok := keyboard.KeyRect(k)
+        if !ok {
+                return 0, 0, 0, 0
+        }
+        return r.Min.X, r.Min.Y, r.Max.X, r.Max.Y
 }
 
 func (p pressedKeysParts) Src(i int) (x0, y0, x1, y1 int) {
-    return p.Dst(i)
+        return p.Dst(i)
 }
 
 func update(screen *ebiten.Image) error {
-    const offsetX, offsetY = 24, 40
-    op := &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Translate(offsetX, offsetY)
-    op.ColorM.Scale(0.5, 0.5, 0.5, 1)
-    if err := screen.DrawImage(keyboardImage, op); err != nil {
-        return err
-    }
+        const offsetX, offsetY = 24, 40
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(offsetX, offsetY)
+        op.ColorM.Scale(0.5, 0.5, 0.5, 1)
+        if err := screen.DrawImage(keyboardImage, op); err != nil {
+                return err
+        }
 
-    pressed := []string{}
-    for i := 0; i &lt;= 9; i&#43;&#43; {
-        if ebiten.IsKeyPressed(ebiten.Key(i) &#43; ebiten.Key0) {
-            pressed = append(pressed, string(i&#43;&#39;0&#39;))
+        pressed := []string{}
+        for i := 0; i &lt;= 9; i&#43;&#43; {
+                if ebiten.IsKeyPressed(ebiten.Key(i) &#43; ebiten.Key0) {
+                        pressed = append(pressed, string(i&#43;&#39;0&#39;))
+                }
         }
-    }
-    for c := &#39;A&#39;; c &lt;= &#39;Z&#39;; c&#43;&#43; {
-        if ebiten.IsKeyPressed(ebiten.Key(c) - &#39;A&#39; &#43; ebiten.KeyA) {
-            pressed = append(pressed, string(c))
+        for c := &#39;A&#39;; c &lt;= &#39;Z&#39;; c&#43;&#43; {
+                if ebiten.IsKeyPressed(ebiten.Key(c) - &#39;A&#39; &#43; ebiten.KeyA) {
+                        pressed = append(pressed, string(c))
+                }
         }
-    }
-    for i := 1; i &lt;= 12; i&#43;&#43; {
-        if ebiten.IsKeyPressed(ebiten.Key(i) &#43; ebiten.KeyF1 - 1) {
-            pressed = append(pressed, &#34;F&#34;&#43;strconv.Itoa(i))
+        for i := 1; i &lt;= 12; i&#43;&#43; {
+                if ebiten.IsKeyPressed(ebiten.Key(i) &#43; ebiten.KeyF1 - 1) {
+                        pressed = append(pressed, &#34;F&#34;&#43;strconv.Itoa(i))
+                }
         }
-    }
-    for key, name := range keyNames {
-        if ebiten.IsKeyPressed(key) {
-            pressed = append(pressed, name)
+        for key, name := range keyNames {
+                if ebiten.IsKeyPressed(key) {
+                        pressed = append(pressed, name)
+                }
         }
-    }
 
-    op = &amp;ebiten.DrawImageOptions{
-        ImageParts: pressedKeysParts(pressed),
-    }
-    op.GeoM.Translate(offsetX, offsetY)
-    if err := screen.DrawImage(keyboardImage, op); err != nil {
-        return err
-    }
+        op = &amp;ebiten.DrawImageOptions{
+                ImageParts: pressedKeysParts(pressed),
+        }
+        op.GeoM.Translate(offsetX, offsetY)
+        if err := screen.DrawImage(keyboardImage, op); err != nil {
+                return err
+        }
 
-    return nil
+        return nil
 }
 
 func main() {
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Keyboard (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Keyboard (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 

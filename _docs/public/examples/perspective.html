@@ -27,66 +27,66 @@
 package main
 
 import (
-    _ &#34;image/jpeg&#34;
-    &#34;log&#34;
+        _ &#34;image/jpeg&#34;
+        &#34;log&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 var (
-    gophersImage *ebiten.Image
+        gophersImage *ebiten.Image
 )
 
 type parts struct {
-    image *ebiten.Image
+        image *ebiten.Image
 }
 
 func (p parts) Len() int {
-    _, h := p.image.Size()
-    return h
+        _, h := p.image.Size()
+        return h
 }
 
 func (p parts) Dst(i int) (x0, y0, x1, y1 int) {
-    w, h := p.image.Size()
-    width := w &#43; i*3/4
-    x := ((h - i) * 3 / 4) / 2
-    return x, i, x &#43; width, i &#43; 1
+        w, h := p.image.Size()
+        width := w &#43; i*3/4
+        x := ((h - i) * 3 / 4) / 2
+        return x, i, x &#43; width, i &#43; 1
 }
 
 func (p parts) Src(i int) (x0, y0, x1, y1 int) {
-    w, _ := p.image.Size()
-    return 0, i, w, i &#43; 1
+        w, _ := p.image.Size()
+        return 0, i, w, i &#43; 1
 }
 
 func update(screen *ebiten.Image) error {
-    op := &amp;ebiten.DrawImageOptions{
-        ImageParts: &amp;parts{gophersImage},
-    }
-    w, h := gophersImage.Size()
-    maxWidth := float64(w) &#43; float64(h)*0.75
-    op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
-    op.GeoM.Translate(screenWidth/2, screenHeight/2)
-    if err := screen.DrawImage(gophersImage, op); err != nil {
-        return err
-    }
-    return nil
+        op := &amp;ebiten.DrawImageOptions{
+                ImageParts: &amp;parts{gophersImage},
+        }
+        w, h := gophersImage.Size()
+        maxWidth := float64(w) &#43; float64(h)*0.75
+        op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
+        op.GeoM.Translate(screenWidth/2, screenHeight/2)
+        if err := screen.DrawImage(gophersImage, op); err != nil {
+                return err
+        }
+        return nil
 }
 
 func main() {
-    var err error
-    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Perspective (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        var err error
+        gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Perspective (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 

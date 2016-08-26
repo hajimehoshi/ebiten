@@ -27,61 +27,61 @@
 package main
 
 import (
-    &#34;fmt&#34;
-    &#34;image&#34;
-    &#34;log&#34;
+        &#34;fmt&#34;
+        &#34;image&#34;
+        &#34;log&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 var (
-    noiseImage *image.RGBA
+        noiseImage *image.RGBA
 )
 
 type rand struct {
-    x, y, z, w uint32
+        x, y, z, w uint32
 }
 
 func (r *rand) next() uint32 {
-    // math/rand is too slow to keep 60 FPS on web browsers.
-    // Use Xorshift instead: http://en.wikipedia.org/wiki/Xorshift
-    t := r.x ^ (r.x &lt;&lt; 11)
-    r.x, r.y, r.z = r.y, r.z, r.w
-    r.w = (r.w ^ (r.w &gt;&gt; 19)) ^ (t ^ (t &gt;&gt; 8))
-    return r.w
+        // math/rand is too slow to keep 60 FPS on web browsers.
+        // Use Xorshift instead: http://en.wikipedia.org/wiki/Xorshift
+        t := r.x ^ (r.x &lt;&lt; 11)
+        r.x, r.y, r.z = r.y, r.z, r.w
+        r.w = (r.w ^ (r.w &gt;&gt; 19)) ^ (t ^ (t &gt;&gt; 8))
+        return r.w
 }
 
 var randInstance = &amp;rand{12345678, 4185243, 776511, 45411}
 
 func update(screen *ebiten.Image) error {
-    const l = screenWidth * screenHeight
-    for i := 0; i &lt; l; i&#43;&#43; {
-        x := randInstance.next()
-        noiseImage.Pix[4*i] = uint8(x &gt;&gt; 24)
-        noiseImage.Pix[4*i&#43;1] = uint8(x &gt;&gt; 16)
-        noiseImage.Pix[4*i&#43;2] = uint8(x &gt;&gt; 8)
-        noiseImage.Pix[4*i&#43;3] = 0xff
-    }
-    if err := screen.ReplacePixels(noiseImage.Pix); err != nil {
-        return err
-    }
-    if err := ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %f&#34;, ebiten.CurrentFPS())); err != nil {
-        return err
-    }
-    return nil
+        const l = screenWidth * screenHeight
+        for i := 0; i &lt; l; i&#43;&#43; {
+                x := randInstance.next()
+                noiseImage.Pix[4*i] = uint8(x &gt;&gt; 24)
+                noiseImage.Pix[4*i&#43;1] = uint8(x &gt;&gt; 16)
+                noiseImage.Pix[4*i&#43;2] = uint8(x &gt;&gt; 8)
+                noiseImage.Pix[4*i&#43;3] = 0xff
+        }
+        if err := screen.ReplacePixels(noiseImage.Pix); err != nil {
+                return err
+        }
+        if err := ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %f&#34;, ebiten.CurrentFPS())); err != nil {
+                return err
+        }
+        return nil
 }
 
 func main() {
-    noiseImage = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Noise (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        noiseImage = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Noise (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 

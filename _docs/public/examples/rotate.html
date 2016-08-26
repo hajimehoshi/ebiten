@@ -27,46 +27,46 @@
 package main
 
 import (
-    _ &#34;image/jpeg&#34;
-    &#34;log&#34;
-    &#34;math&#34;
+        _ &#34;image/jpeg&#34;
+        &#34;log&#34;
+        &#34;math&#34;
 
-    &#34;github.com/hajimehoshi/ebiten&#34;
-    &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
 
 const (
-    screenWidth  = 320
-    screenHeight = 240
+        screenWidth  = 320
+        screenHeight = 240
 )
 
 var (
-    count        int
-    gophersImage *ebiten.Image
+        count        int
+        gophersImage *ebiten.Image
 )
 
 func update(screen *ebiten.Image) error {
-    count&#43;&#43;
-    w, h := gophersImage.Size()
-    op := &amp;ebiten.DrawImageOptions{}
-    op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-    op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
-    op.GeoM.Translate(screenWidth/2, screenHeight/2)
-    if err := screen.DrawImage(gophersImage, op); err != nil {
-        return err
-    }
-    return nil
+        count&#43;&#43;
+        w, h := gophersImage.Size()
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+        op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
+        op.GeoM.Translate(screenWidth/2, screenHeight/2)
+        if err := screen.DrawImage(gophersImage, op); err != nil {
+                return err
+        }
+        return nil
 }
 
 func main() {
-    var err error
-    gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Rotate (Ebiten Demo)&#34;); err != nil {
-        log.Fatal(err)
-    }
+        var err error
+        gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Rotate (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
 }
 </code></pre>
 
