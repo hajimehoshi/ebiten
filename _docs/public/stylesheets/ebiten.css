@@ -4,6 +4,11 @@ body {
   font-family: 'Roboto', sans-serif;
 }
 
+h1 small {
+  position: relative;
+  top: -0.1em;
+}
+
 img.example {
   background-color: #000;
 }
@@ -24,4 +29,9 @@ footer {
 
 footer a {
   color: #fff !important;
+}
+
+iframe {
+  border-width: 0;
+  box-sizing: content-box;
 }
