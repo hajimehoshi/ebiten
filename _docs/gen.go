@@ -294,7 +294,7 @@ func outputExampleContent(e *example) error {
 
 	out := filepath.Join(dir, e.Name+".js")
 	path := "github.com/hajimehoshi/ebiten/examples/" + e.Name
-	if err := execute("gopherjs", "build", "-m", "-o", out, path); err != nil {
+	if err := execute("gopherjs", "build", "-tags", "example", "-m", "-o", out, path); err != nil {
 		return err
 	}
 
