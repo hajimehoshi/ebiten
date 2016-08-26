@@ -9,11 +9,6 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-header h1 small {
-  position: relative;
-  top: -0.1em;
-}
-
 img.example {
   background-color: #000;
 }
