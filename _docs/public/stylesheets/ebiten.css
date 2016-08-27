@@ -35,3 +35,7 @@ iframe {
   border-width: 0;
   box-sizing: content-box;
 }
+
+.hljs {
+  background: transparent;
+}
