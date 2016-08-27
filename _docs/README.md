@@ -6,19 +6,6 @@
 
 `go run server/main.go`
 
-# How to deploy
-
-`git subtree push --prefix _docs/public/ origin gh-pages`
-
-## If the above doesn't work, try this:
-
-```
-# https://gist.github.com/cobyism/4730490#gistcomment-1394421
-git subtree split --prefix _docs/public -b gh-pages
-git push -f origin gh-pages:gh-pages
-git branch -D gh-pages
-```
-
 # How to update the version
 
 1. Fix the release date in the HTML
@@ -30,4 +17,4 @@ git branch -D gh-pages
   2. Generate the doc
   3. Add tag like v1.2.0-rc1
   4. Deploy JavaScript files to github.com/hajimehoshi/ebiten.pagestorage
-  5. Deploy the doc
+  5. Deploy the doc with `go generate`
