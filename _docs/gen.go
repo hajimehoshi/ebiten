@@ -97,15 +97,6 @@ func init() {
 	stableVersion = lastStableVersion
 }
 
-func currentBranch() string {
-	r, err := ioutil.ReadFile("../.git/HEAD")
-	if err != nil {
-		panic(err)
-	}
-	rr := strings.TrimSpace(string(r))
-	return regexp.MustCompile(`^ref: refs/heads/(.+)$`).FindStringSubmatch(rr)[1]
-}
-
 func init() {
 	b, err := exec.Command("git", "show", "master:version.txt").Output()
 	if err != nil {
@@ -300,9 +291,8 @@ func outputExampleContent(e *example) error {
 	}
 
 	data := map[string]interface{}{
-		"Copyright":     copyright,
-		"CurrentBranch": currentBranch(),
-		"Example":       e,
+		"Copyright": copyright,
+		"Example":   e,
 	}
 	if err := t.Funcs(funcs).Execute(f, data); err != nil {
 		return err
