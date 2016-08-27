@@ -4,7 +4,6 @@
 [![GoDoc](https://godoc.org/github.com/hajimehoshi/ebiten?status.svg)](http://godoc.org/github.com/hajimehoshi/ebiten)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hajimehoshi/ebiten)](https://goreportcard.com/report/github.com/hajimehoshi/ebiten)
 
-
 A simple SNES-like 2D game library in Go
 
 * [Web browsers (Chrome and Firefox on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
@@ -20,9 +19,9 @@ A simple SNES-like 2D game library in Go
 * Input (Mouse, Keyboard, and Gamepad)
 * Audio (Ogg/Vorbis, WAV, and PCM)
 
-## Documentation
+## Web Site
 
-http://hajimehoshi.github.io/ebiten/
+https://hajimehoshi.github.io/ebiten/
 
 ## License
 
