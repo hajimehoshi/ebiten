@@ -4,6 +4,7 @@
 <link rel="icon" href="./favicon.png" type="image/png">
 <title>Ebiten - A simple SNES-like 2D game library in Go</title>
 <link rel="stylesheet" href="/stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="/stylesheets/highlight-default.css">
 <link rel="stylesheet" href="/stylesheets/ebiten.css">
 
 <header class="navbar"><div class="container">
@@ -83,7 +84,7 @@
   <p><a href="http://blog.golang.org/go-programming-language-turns-two">The Gopher photographs by Chris Nokleberg</a> are licensed under <a href="https://creativecommons.org/licenses/by/3.0/">the Creative Commons 3.0 Attributions License</a>.</p>
 
   <h3>Execute the examples</h2>
-  <pre><code>:; go get github.com/hajimehoshi/ebiten
+  <pre><code class="language-bash">:; go get github.com/hajimehoshi/ebiten
 :; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
 :; go run -tags example rotate/main.go</code></pre>
   <p>Note that you need to specify <code>example</code> tag.</p>
@@ -95,7 +96,7 @@ First create a new directory (<code>mkdir hello_world</code>), and change
 into it (<code>cd hello_world</code>). Type the following code into
 the <code>main.go</code> file:</p>
 
-  <pre><code>package main
+  <pre><code class="language-go">package main
 
 import (
         "github.com/hajimehoshi/ebiten"
@@ -122,3 +123,6 @@ game. There you have it, your first Ebiten game!</p>
   <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">Apache License 2.0</a>.</p>
   <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
 </div></footer>
+
+<script src="/scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
