@@ -17,23 +17,23 @@ limitations under the License.
 <script>
 'use strict';
 window.addEventListener('load', function() {
-  function isProduction() {
-    var l = window.top.location;
-    if (l.hash === '#_production') {
-      return true;
+    function isProduction() {
+        var l = window.top.location;
+        if (l.hash === '#_production') {
+            return true;
+        }
+        if (l.hostname === 'localhost' || l.hostname === '127.0.0.1') {
+            return false;
+        }
+        return true;
     }
-    if (l.hostname === 'localhost' || l.hostname === '127.0.0.1') {
-      return false;
-    }
-    return true;
-  }
 
-  var s = document.createElement('script');
-  var src = 'mosaic.js';
-  if (isProduction()) {
-    src = '//hajimehoshi.github.io/ebiten.pagestorage/master/' + src;
-  }
-  s.src = src;
-  document.body.appendChild(s);
+    var s = document.createElement('script');
+    var src = 'mosaic.js';
+    if (isProduction()) {
+        src = '//hajimehoshi.github.io/ebiten.pagestorage/master/' + src;
+    }
+    s.src = src;
+    document.body.appendChild(s);
 });
 </script>
