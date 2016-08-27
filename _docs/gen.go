@@ -48,30 +48,24 @@ func execute(command string, args ...string) error {
 	return nil
 }
 
-var license = ""
+var (
+	copyright     = ""
+	stableVersion = ""
+	devVersion    = ""
+)
 
 func init() {
 	b, err := ioutil.ReadFile("../LICENSE")
 	if err != nil {
 		panic(err)
 	}
-	license = strings.TrimSpace(string(b))
-}
-
-var copyright = ""
-
-func init() {
+	license := strings.TrimSpace(string(b))
 	year, err := strconv.Atoi(regexp.MustCompile(`^Copyright (\d+)`).FindStringSubmatch(license)[1])
 	if err != nil {
 		panic(err)
 	}
 	copyright = fmt.Sprintf("© %d Hajime Hoshi", year)
 }
-
-var (
-	stableVersion = ""
-	devVersion    = ""
-)
 
 func init() {
 	b, err := exec.Command("git", "tag").Output()
@@ -265,7 +259,6 @@ func outputMain() error {
 	}
 
 	data := map[string]interface{}{
-		"License":       license,
 		"Copyright":     copyright,
 		"StableVersion": stableVersion,
 		"DevVersion":    devVersion,
@@ -307,7 +300,6 @@ func outputExampleContent(e *example) error {
 	}
 
 	data := map[string]interface{}{
-		"License":       license,
 		"Copyright":     copyright,
 		"CurrentBranch": currentBranch(),
 		"Example":       e,
@@ -348,7 +340,6 @@ func outputExample(e *example) error {
 	}
 
 	data := map[string]interface{}{
-		"License":   license,
 		"Copyright": copyright,
 		"Example":   e,
 	}
