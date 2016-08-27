@@ -15,9 +15,9 @@ A simple SNES-like 2D game library in Go
 
 ## Features
 
-* 2D Graphics
-* Input (Mouse, Keyboard, and Gamepad)
-* Audio (Ogg/Vorbis, WAV, and PCM)
+* 2D Graphics (Geometry/Color matrix transformation, Various composition modes, Offscreen rendering)
+* Input (Mouse, Keyboard, Gamepads, Touches)
+* Audio (Ogg/Vorbis, WAV, PCM)
 
 ## Web Site
 
