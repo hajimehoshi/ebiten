@@ -5,14 +5,14 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/hajimehoshi/ebiten)](https://goreportcard.com/report/github.com/hajimehoshi/ebiten)
 
 
-* A simple SNES-like 2D game library in Go
-* Works on
-  * [Web browsers (Chrome and Firefox on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
-  * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
-  * [Mac OS X](https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X)
-  * [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
-  * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
-  * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
+A simple SNES-like 2D game library in Go
+
+* [Web browsers (Chrome and Firefox on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
+* [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
+* [Mac OS X](https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X)
+* [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
+* [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
+* [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
 
 ## Features
 
