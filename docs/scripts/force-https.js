@@ -10,5 +10,10 @@
         return;
     }
     var url = 'https:' + window.location.href.substring(protocol.length);
+    // Pass the referrer info to the new URL for Google Analytics.
+    if (document.referrer) {
+        var referrerPart = 'referrer=' + encodeURIComponent(document.referrer);
+        url += (location.search ? '&' : '?') + referrerPart;
+    }
     window.location.href = url;
 })();
