@@ -48,19 +48,11 @@ func shown() bool {
 
 func vsync() {
 	ch := make(chan struct{})
-	n := 1
-	var l func()
-	l = func() {
-		if 0 < n {
-			n--
-			// TODO: In iOS8, this is called at every 1/30[sec] frame.
-			// Can we use DOMHighResTimeStamp?
-			js.Global.Get("window").Call("requestAnimationFrame", l)
-			return
-		}
+	js.Global.Get("window").Call("requestAnimationFrame", func() {
+		// TODO: In iOS8, this is called at every 1/30[sec] frame.
+		// Can we use DOMHighResTimeStamp?
 		close(ch)
-	}
-	l()
+	})
 	<-ch
 }
 
