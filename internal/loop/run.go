@@ -146,7 +146,7 @@ func (c *runContext) render(g GraphicsContext) error {
 	}()
 
 	// If lastUpdated is too old, we assume that screen is not shown.
-	if 5*int64(time.Second)/int64(fps) < n-c.lastUpdated {
+	if 10*int64(time.Second)/int64(fps) < n-c.lastUpdated {
 		c.lastUpdated = n
 		return nil
 	}
