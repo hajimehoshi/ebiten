@@ -337,9 +337,10 @@ func outputExample(e *example) error {
 }
 
 func main() {
-	if err := clear(); err != nil {
+	// Do not call temporarily.
+	/*if err := clear(); err != nil {
 		log.Fatal(err)
-	}
+	}*/
 	if err := outputMain(); err != nil {
 		log.Fatal(err)
 	}
