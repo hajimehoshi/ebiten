@@ -1,11 +1,16 @@
 @import 'https://fonts.googleapis.com/css?family=Play:400,700';
+@import 'https://fonts.googleapis.com/css?family=Roboto:400,700';
 
 body {
   background-color: #f5f5f5;
+  font-family: 'Roboto', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .navbar, .lead {
   font-family: 'Play', sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1, h2, h3, h4, h5, h6, .navbar-brand {
   font-weight: 700;
 }
 
