@@ -338,6 +338,8 @@ func outputExample(e *example) error {
 
 func main() {
 	// Do not call temporarily.
+	// TODO: Uncomment this out after 1.4 stable is released.
+	// docs/examples/_resource/images/arcade.png should also be remove.
 	/*if err := clear(); err != nil {
 		log.Fatal(err)
 	}*/
