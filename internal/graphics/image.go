@@ -84,7 +84,7 @@ func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-func (i *Image) Fill(clr color.Color) error {
+func (i *Image) Fill(clr color.RGBA) error {
 	// TODO: Need to clone clr value
 	c := &fillCommand{
 		dst:   i,

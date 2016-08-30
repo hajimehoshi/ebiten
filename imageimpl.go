@@ -111,8 +111,9 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	i.pixels.Fill(clr)
-	return i.image.Fill(clr)
+	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
+	i.pixels.Fill(rgba)
+	return i.image.Fill(rgba)
 }
 
 func (i *imageImpl) clearIfVolatile() error {
@@ -125,7 +126,7 @@ func (i *imageImpl) clearIfVolatile() error {
 		return nil
 	}
 	i.pixels.Clear()
-	return i.image.Fill(color.Transparent)
+	return i.image.Fill(color.RGBA{})
 }
 
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {

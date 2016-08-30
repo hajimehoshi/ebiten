@@ -136,15 +136,15 @@ func FlushCommands(context *opengl.Context) error {
 
 type fillCommand struct {
 	dst   *Image
-	color color.Color
+	color color.RGBA
 }
 
 func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
 		return err
 	}
-	cr, cg, cb, ca := c.color.RGBA()
-	const max = math.MaxUint16
+	cr, cg, cb, ca := c.color.R, c.color.G, c.color.B, c.color.A
+	const max = math.MaxUint8
 	r := float64(cr) / max
 	g := float64(cg) / max
 	b := float64(cb) / max

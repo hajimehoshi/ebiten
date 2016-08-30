@@ -35,7 +35,7 @@ type drawImageHistoryItem struct {
 type Pixels struct {
 	// basePixels and baseColor are exclusive.
 	basePixels       []uint8
-	baseColor        color.Color
+	baseColor        color.RGBA
 	drawImageHistory []*drawImageHistoryItem
 	stale            bool
 }
@@ -46,19 +46,19 @@ func (p *Pixels) IsStale() bool {
 
 func (p *Pixels) MakeStale() {
 	p.basePixels = nil
-	p.baseColor = nil
+	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = true
 }
 
 func (p *Pixels) Clear() {
 	p.basePixels = nil
-	p.baseColor = nil
+	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
 }
 
-func (p *Pixels) Fill(clr color.Color) {
+func (p *Pixels) Fill(clr color.RGBA) {
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
@@ -70,7 +70,7 @@ func (p *Pixels) ReplacePixels(pixels []uint8) {
 		p.basePixels = make([]uint8, len(pixels))
 	}
 	copy(p.basePixels, pixels)
-	p.baseColor = nil
+	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
 }
@@ -95,10 +95,10 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 //
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
-func (p *Pixels) At(idx int, image *graphics.Image, context *opengl.Context) (color.Color, error) {
+func (p *Pixels) At(idx int, image *graphics.Image, context *opengl.Context) (color.RGBA, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.readPixelsFromVRAM(image, context); err != nil {
-			return nil, err
+			return color.RGBA{}, err
 		}
 	}
 	r, g, b, a := p.basePixels[idx], p.basePixels[idx+1], p.basePixels[idx+2], p.basePixels[idx+3]
@@ -124,7 +124,7 @@ func (p *Pixels) readPixelsFromVRAM(image *graphics.Image, context *opengl.Conte
 	if err != nil {
 		return err
 	}
-	p.baseColor = nil
+	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
 	return nil
@@ -159,7 +159,7 @@ func (p *Pixels) CreateImage(context *opengl.Context, width, height int, filter 
 	if err != nil {
 		return nil, err
 	}
-	if p.baseColor != nil {
+	if p.baseColor != (color.RGBA{}) {
 		if p.basePixels != nil {
 			panic("not reach")
 		}
@@ -180,7 +180,7 @@ func (p *Pixels) CreateImage(context *opengl.Context, width, height int, filter 
 	if err != nil {
 		return nil, err
 	}
-	p.baseColor = nil
+	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
 	return gimg, nil

@@ -387,3 +387,35 @@ func TestNewImageFromSubImage(t *testing.T) {
 		}
 	}
 }
+
+type mutableRGBA struct {
+	r, g, b, a uint8
+}
+
+func (c *mutableRGBA) RGBA() (r, g, b, a uint32) {
+	return uint32(c.r) * 0x101, uint32(c.g) * 0x101, uint32(c.b) * 0x101, uint32(c.a) * 0x101
+}
+
+func TestImageFill(t *testing.T) {
+	w, h := 10, 10
+	img, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	clr := &mutableRGBA{0x80, 0x80, 0x80, 0x80}
+	if err := img.Fill(clr); err != nil {
+		t.Fatal(err)
+		return
+	}
+	clr.r = 0
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
+			if got != want {
+				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
+}
