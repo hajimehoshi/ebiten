@@ -54,8 +54,8 @@ func (c *runContext) startRunning() {
 }
 
 func (c *runContext) isRunning() bool {
-	c.m.Lock()
-	defer c.m.Unlock()
+	c.m.RLock()
+	defer c.m.RUnlock()
 	return c.running
 }
 
