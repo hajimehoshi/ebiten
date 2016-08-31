@@ -17,8 +17,8 @@ package ui
 type UserInterface interface {
 	Start(width, height int, scale float64, title string) error
 	Update() (interface{}, error)
-	SwapBuffers() error
 	Terminate() error
+	AnimationFrameLoop(f func() error) error
 	ScreenScale() float64
 	SetScreenSize(width, height int) (bool, error)
 	SetScreenScale(scale float64) (bool, error)

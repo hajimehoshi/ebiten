@@ -98,8 +98,12 @@ func (u *userInterface) Update() (interface{}, error) {
 	return RenderEvent{chRenderEnd}, nil
 }
 
-func (u *userInterface) SwapBuffers() error {
-	return nil
+func (u *userInterface) AnimationFrameLoop(f func() error) error {
+	for {
+		if err := f(); err != nil {
+			return err
+		}
+	}
 }
 
 func (u *userInterface) SetScreenSize(width, height int) (bool, error) {

@@ -29,12 +29,14 @@ type userInterface struct {
 	scale           float64
 	deviceScale     float64
 	sizeChanged     bool
-	contextRestored chan struct{}
-	windowFocus     chan struct{}
+	contextRestored bool
+	windowFocus     bool
 }
 
 var currentUI = &userInterface{
-	sizeChanged: true,
+	sizeChanged:     true,
+	contextRestored: true,
+	windowFocus:     true,
 }
 
 func CurrentUI() UserInterface {
@@ -44,16 +46,6 @@ func CurrentUI() UserInterface {
 // NOTE: This returns true even when the browser is not active.
 func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
-}
-
-func vsync() {
-	ch := make(chan struct{})
-	js.Global.Get("window").Call("requestAnimationFrame", func() {
-		// TODO: In iOS8, this is called at every 1/30[sec] frame.
-		// Can we use DOMHighResTimeStamp?
-		close(ch)
-	})
-	<-ch
 }
 
 func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
@@ -74,11 +66,11 @@ func (u *userInterface) ActualScreenScale() float64 {
 }
 
 func (u *userInterface) Update() (interface{}, error) {
-	if u.windowFocus != nil {
-		<-u.windowFocus
+	if !u.windowFocus {
+		return NopEvent{}, nil
 	}
-	if u.contextRestored != nil {
-		<-u.contextRestored
+	if !u.contextRestored {
+		return NopEvent{}, nil
 	}
 	currentInput.updateGamepads()
 	if u.sizeChanged {
@@ -102,12 +94,19 @@ func (u *userInterface) Terminate() error {
 	return nil
 }
 
-func (u *userInterface) SwapBuffers() error {
-	vsync()
-	for !shown() {
-		vsync()
+func (u *userInterface) AnimationFrameLoop(f func() error) error {
+	ch := make(chan error)
+	var ff func()
+	ff = func() {
+		if err := f(); err != nil {
+			ch <- err
+			close(ch)
+			return
+		}
+		js.Global.Get("window").Call("requestAnimationFrame", ff)
 	}
-	return nil
+	ff()
+	return <-ch
 }
 
 func (u *userInterface) FinishRendering() error {
@@ -151,14 +150,10 @@ func initialize() error {
 		<-ch
 	}
 	window.Call("addEventListener", "focus", func() {
-		if currentUI.windowFocus == nil {
-			return
-		}
-		close(currentUI.windowFocus)
-		currentUI.windowFocus = nil
+		currentUI.windowFocus = true
 	})
 	window.Call("addEventListener", "blur", func() {
-		currentUI.windowFocus = make(chan struct{})
+		currentUI.windowFocus = false
 	})
 
 	canvas = doc.Call("createElement", "canvas")
@@ -244,11 +239,11 @@ func initialize() error {
 
 	canvas.Call("addEventListener", "webglcontextlost", func(e *js.Object) {
 		e.Call("preventDefault")
-		currentUI.contextRestored = make(chan struct{})
+		currentUI.contextRestored = false
 	})
 	canvas.Call("addEventListener", "webglcontextrestored", func(e *js.Object) {
-		close(currentUI.contextRestored)
-		currentUI.contextRestored = nil
+		// TODO: Call preventDefault?
+		currentUI.contextRestored = true
 	})
 	return nil
 }

@@ -14,6 +14,9 @@
 
 package ui
 
+type NopEvent struct {
+}
+
 type CloseEvent struct {
 }
 

@@ -251,17 +251,21 @@ func (u *userInterface) Terminate() error {
 	return nil
 }
 
-func (u *userInterface) SwapBuffers() error {
-	// The bound framebuffer must be the default one (0) before swapping buffers.
-	if err := glContext.BindScreenFramebuffer(); err != nil {
-		return err
+func (u *userInterface) AnimationFrameLoop(f func() error) error {
+	for {
+		if err := f(); err != nil {
+			return err
+		}
+		// The bound framebuffer must be the default one (0) before swapping buffers.
+		if err := glContext.BindScreenFramebuffer(); err != nil {
+			return err
+		}
+		if err := u.runOnMainThread(func() error {
+			return u.swapBuffers()
+		}); err != nil {
+			return err
+		}
 	}
-	if err := u.runOnMainThread(func() error {
-		return u.swapBuffers()
-	}); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (u *userInterface) swapBuffers() error {

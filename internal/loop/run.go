@@ -86,6 +86,12 @@ type GraphicsContext interface {
 	UpdateAndDraw(context *opengl.Context, updateCount int) error
 }
 
+type regularTermination struct{}
+
+func (e regularTermination) Error() string {
+	return "regular termination"
+}
+
 func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) (err error) {
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
@@ -107,24 +113,41 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	n := now()
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
+
+	if err := ui.CurrentUI().AnimationFrameLoop(func() error {
+		return currentRunContext.update(g)
+	}); err != nil {
+		if err == (regularTermination{}) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (c *runContext) update(g GraphicsContext) error {
 	for {
 		e, err := ui.CurrentUI().Update()
 		if err != nil {
 			return err
 		}
 		switch e := e.(type) {
+		case ui.NopEvent:
+			return nil
 		case ui.ScreenSizeEvent:
 			if err := g.SetSize(e.Width, e.Height, e.ActualScale); err != nil {
 				return err
 			}
 			e.Done <- struct{}{}
+			continue
 		case ui.CloseEvent:
-			return nil
+			return regularTermination{}
 		case ui.RenderEvent:
 			if err := currentRunContext.render(g); err != nil {
 				return err
 			}
 			e.Done <- struct{}{}
+			return nil
 		default:
 			panic("not reach")
 		}
@@ -163,9 +186,9 @@ func (c *runContext) render(g GraphicsContext) error {
 	if err := g.UpdateAndDraw(ui.GLContext(), tt); err != nil {
 		return err
 	}
-	if err := ui.CurrentUI().SwapBuffers(); err != nil {
+	/*if err := ui.CurrentUI().SwapBuffers(); err != nil {
 		return err
-	}
+	}*/
 	c.lastUpdated += int64(tt) * int64(time.Second) / int64(fps)
 	c.frames++
 	return nil
