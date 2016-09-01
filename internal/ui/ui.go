@@ -14,12 +14,23 @@
 
 package ui
 
+type GraphicsContext interface {
+	SetSize(width, height int, scale float64) error
+	Update() error
+}
+
 type UserInterface interface {
 	Start(width, height int, scale float64, title string) error
-	Update() (interface{}, error)
 	Terminate() error
-	AnimationFrameLoop(f func() error) error
+	AnimationFrameLoop(g GraphicsContext) error
 	ScreenScale() float64
 	SetScreenSize(width, height int) (bool, error)
 	SetScreenScale(scale float64) (bool, error)
+}
+
+type RegularTermination struct {
+}
+
+func (*RegularTermination) Error() string {
+	return "regular termination"
 }

@@ -86,10 +86,17 @@ type GraphicsContext interface {
 	UpdateAndDraw(context *opengl.Context, updateCount int) error
 }
 
-type regularTermination struct{}
+type loopGraphicsContext struct {
+	runContext      *runContext
+	graphicsContext GraphicsContext
+}
 
-func (e regularTermination) Error() string {
-	return "regular termination"
+func (g *loopGraphicsContext) SetSize(width, height int, scale float64) error {
+	return g.graphicsContext.SetSize(width, height, scale)
+}
+
+func (g *loopGraphicsContext) Update() error {
+	return g.runContext.render(g.graphicsContext)
 }
 
 func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) (err error) {
@@ -114,38 +121,11 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
 
-	if err := ui.CurrentUI().AnimationFrameLoop(func() error {
-		return currentRunContext.update(g)
-	}); err != nil {
-		if err == (regularTermination{}) {
+	if err := ui.CurrentUI().AnimationFrameLoop(&loopGraphicsContext{currentRunContext, g}); err != nil {
+		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}
 		return err
-	}
-	return nil
-}
-
-func (c *runContext) update(g GraphicsContext) error {
-	e, err := ui.CurrentUI().Update()
-	if err != nil {
-		return err
-	}
-	switch e := e.(type) {
-	case ui.NopEvent:
-	case ui.ScreenSizeEvent:
-		if err := g.SetSize(e.Width, e.Height, e.ActualScale); err != nil {
-			return err
-		}
-		e.Done <- struct{}{}
-	case ui.CloseEvent:
-		return regularTermination{}
-	case ui.RenderEvent:
-		if err := currentRunContext.render(g); err != nil {
-			return err
-		}
-		e.Done <- struct{}{}
-	default:
-		panic("not reach")
 	}
 	return nil
 }

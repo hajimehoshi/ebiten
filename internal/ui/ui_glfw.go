@@ -192,32 +192,29 @@ func (u *userInterface) pollEvents() error {
 	return currentInput.update(u.window, u.scale*glfwScale())
 }
 
-func (u *userInterface) Update() (interface{}, error) {
+func (u *userInterface) update(g GraphicsContext) error {
 	shouldClose := false
 	_ = u.runOnMainThread(func() error {
 		shouldClose = u.window.ShouldClose()
 		return nil
 	})
 	if shouldClose {
-		return CloseEvent{}, nil
+		return &RegularTermination{}
 	}
 
-	var screenSizeEvent *ScreenSizeEvent
+	actualScale := 0.0
 	_ = u.runOnMainThread(func() error {
 		if !u.sizeChanged {
 			return nil
 		}
 		u.sizeChanged = false
-		screenSizeEvent = &ScreenSizeEvent{
-			Width:       u.width,
-			Height:      u.height,
-			ActualScale: u.actualScreenScale(),
-			Done:        make(chan struct{}, 1),
-		}
+		actualScale = u.actualScreenScale()
 		return nil
 	})
-	if screenSizeEvent != nil {
-		return *screenSizeEvent, nil
+	if 0 < actualScale {
+		if err := g.SetSize(u.width, u.height, actualScale); err != nil {
+			return err
+		}
 	}
 
 	if err := u.runOnMainThread(func() error {
@@ -236,11 +233,12 @@ func (u *userInterface) Update() (interface{}, error) {
 		}
 		return nil
 	}); err != nil {
-		return nil, err
+		return err
 	}
-	// Dummy channel
-	ch := make(chan struct{}, 1)
-	return RenderEvent{ch}, nil
+	if err := g.Update(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *userInterface) Terminate() error {
@@ -251,9 +249,9 @@ func (u *userInterface) Terminate() error {
 	return nil
 }
 
-func (u *userInterface) AnimationFrameLoop(f func() error) error {
+func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	for {
-		if err := f(); err != nil {
+		if err := u.update(g); err != nil {
 			return err
 		}
 		// The bound framebuffer must be the default one (0) before swapping buffers.

@@ -81,28 +81,23 @@ func (u *userInterface) Terminate() error {
 	return nil
 }
 
-func (u *userInterface) Update() (interface{}, error) {
-	if u.sizeChanged {
-		// Sizing also calls GL functions
-		<-chRender
-		u.sizeChanged = false
-		e := ScreenSizeEvent{
-			Width:       u.width,
-			Height:      u.height,
-			ActualScale: u.actualScreenScale(),
-			Done:        chRenderEnd,
-		}
-		return e, nil
-	}
-	<-chRender
-	return RenderEvent{chRenderEnd}, nil
-}
-
-func (u *userInterface) AnimationFrameLoop(f func() error) error {
+func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	for {
-		if err := f(); err != nil {
+		if u.sizeChanged {
+			// Sizing also calls GL functions
+			<-chRender
+			u.sizeChanged = false
+			if err := g.SetSize(u.width, u.height, u.actualScreenScale()); err != nil {
+				return err
+			}
+			chRenderEnd <- struct{}{}
+			continue
+		}
+		<-chRender
+		if err := g.Update(); err != nil {
 			return err
 		}
+		chRenderEnd <- struct{}{}
 	}
 }
 

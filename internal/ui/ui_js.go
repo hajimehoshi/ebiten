@@ -65,28 +65,26 @@ func (u *userInterface) ActualScreenScale() float64 {
 	return u.scale * u.deviceScale
 }
 
-func (u *userInterface) Update() (interface{}, error) {
+func (u *userInterface) update(g GraphicsContext) error {
 	if !u.windowFocus {
-		return NopEvent{}, nil
+		return nil
 	}
 	if !u.contextRestored {
-		return NopEvent{}, nil
+		return nil
 	}
 	currentInput.updateGamepads()
 	if u.sizeChanged {
 		u.sizeChanged = false
 		w, h := u.size()
-		e := ScreenSizeEvent{
-			Width:       w,
-			Height:      h,
-			ActualScale: u.ActualScreenScale(),
-			Done:        make(chan struct{}, 1),
+		if err := g.SetSize(w, h, u.ActualScreenScale()); err != nil {
+			return err
 		}
-		return e, nil
+		return nil
 	}
-	// Dummy channel
-	ch := make(chan struct{}, 1)
-	return RenderEvent{ch}, nil
+	if err := g.Update(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *userInterface) Terminate() error {
@@ -94,18 +92,18 @@ func (u *userInterface) Terminate() error {
 	return nil
 }
 
-func (u *userInterface) AnimationFrameLoop(f func() error) error {
+func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	ch := make(chan error)
-	var ff func()
-	ff = func() {
-		if err := f(); err != nil {
+	var f func()
+	f = func() {
+		if err := u.update(g); err != nil {
 			ch <- err
 			close(ch)
 			return
 		}
-		js.Global.Get("window").Call("requestAnimationFrame", ff)
+		js.Global.Get("window").Call("requestAnimationFrame", f)
 	}
-	ff()
+	f()
 	return <-ch
 }
 
