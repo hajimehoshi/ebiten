@@ -77,10 +77,6 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	return nil
 }
 
-func (u *userInterface) Terminate() error {
-	return nil
-}
-
 func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	for {
 		if u.sizeChanged {

@@ -241,15 +241,13 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) Terminate() error {
-	_ = u.runOnMainThread(func() error {
-		glfw.Terminate()
-		return nil
-	})
-	return nil
-}
-
 func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
+	defer func() {
+		_ = u.runOnMainThread(func() error {
+			glfw.Terminate()
+			return nil
+		})
+	}()
 	for {
 		if err := u.update(g); err != nil {
 			return err

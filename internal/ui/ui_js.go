@@ -87,11 +87,6 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) Terminate() error {
-	// Do nothing.
-	return nil
-}
-
 func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	ch := make(chan error)
 	var f func()
