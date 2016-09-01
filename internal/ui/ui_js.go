@@ -258,7 +258,7 @@ func devicePixelRatio() float64 {
 	return ratio
 }
 
-func Main(ch <-chan error) error {
+func Run(ch <-chan error) error {
 	return <-ch
 }
 

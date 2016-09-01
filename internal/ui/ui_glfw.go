@@ -76,11 +76,11 @@ func initialize() error {
 	return nil
 }
 
-func Main(ch <-chan error) error {
-	return currentUI.main(ch)
+func Run(ch <-chan error) error {
+	return currentUI.run(ch)
 }
 
-func (u *userInterface) main(ch <-chan error) error {
+func (u *userInterface) run(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
 	for {
 		select {
