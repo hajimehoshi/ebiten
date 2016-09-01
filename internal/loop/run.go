@@ -186,9 +186,6 @@ func (c *runContext) render(g GraphicsContext) error {
 	if err := g.UpdateAndDraw(ui.GLContext(), tt); err != nil {
 		return err
 	}
-	/*if err := ui.CurrentUI().SwapBuffers(); err != nil {
-		return err
-	}*/
 	c.lastUpdated += int64(tt) * int64(time.Second) / int64(fps)
 	c.frames++
 	return nil
