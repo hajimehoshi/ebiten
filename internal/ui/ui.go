@@ -20,8 +20,7 @@ type GraphicsContext interface {
 }
 
 type UserInterface interface {
-	Start(width, height int, scale float64, title string) error
-	AnimationFrameLoop(g GraphicsContext) error
+	Run(width, height int, scale float64, title string, g GraphicsContext) error
 	ScreenScale() float64
 	SetScreenSize(width, height int) (bool, error)
 	SetScreenScale(scale float64) (bool, error)

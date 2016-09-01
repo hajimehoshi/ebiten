@@ -64,7 +64,7 @@ func CurrentUI() UserInterface {
 	return currentUI
 }
 
-func (u *userInterface) Start(width, height int, scale float64, title string) error {
+func (u *userInterface) Run(width, height int, scale float64, title string, g GraphicsContext) error {
 	u.width = width
 	u.height = height
 	u.scale = scale
@@ -74,10 +74,6 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	for {
 		if err := u.update(g); err != nil {
 			return err

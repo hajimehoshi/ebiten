@@ -87,7 +87,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
+func (u *userInterface) loop(g GraphicsContext) error {
 	ch := make(chan error)
 	var f func()
 	f = func() {
@@ -262,7 +262,7 @@ func Main(ch <-chan error) error {
 	return <-ch
 }
 
-func (u *userInterface) Start(width, height int, scale float64, title string) error {
+func (u *userInterface) Run(width, height int, scale float64, title string, g GraphicsContext) error {
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
@@ -272,7 +272,7 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	if err != nil {
 		return err
 	}
-	return nil
+	return u.loop(g)
 }
 
 func (u *userInterface) size() (width, height int) {

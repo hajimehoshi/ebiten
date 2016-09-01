@@ -109,15 +109,12 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
-	if err := ui.CurrentUI().Start(width, height, scale, title); err != nil {
-		return err
-	}
-
 	n := now()
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
 
-	if err := ui.CurrentUI().AnimationFrameLoop(&loopGraphicsContext{currentRunContext, g}); err != nil {
+	lg := &loopGraphicsContext{currentRunContext, g}
+	if err := ui.CurrentUI().Run(width, height, scale, title, lg); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}

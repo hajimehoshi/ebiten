@@ -147,7 +147,7 @@ func (u *userInterface) ScreenScale() float64 {
 	return s
 }
 
-func (u *userInterface) Start(width, height int, scale float64, title string) error {
+func (u *userInterface) Run(width, height int, scale float64, title string, g GraphicsContext) error {
 	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
 	var err error
@@ -176,7 +176,7 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 	}); err != nil {
 		return err
 	}
-	return nil
+	return u.loop(g)
 }
 
 func (u *userInterface) glfwSize() (int, int) {
@@ -241,7 +241,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
+func (u *userInterface) loop(g GraphicsContext) error {
 	defer func() {
 		_ = u.runOnMainThread(func() error {
 			glfw.Terminate()
