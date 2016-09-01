@@ -126,32 +126,28 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 }
 
 func (c *runContext) update(g GraphicsContext) error {
-	for {
-		e, err := ui.CurrentUI().Update()
-		if err != nil {
+	e, err := ui.CurrentUI().Update()
+	if err != nil {
+		return err
+	}
+	switch e := e.(type) {
+	case ui.NopEvent:
+	case ui.ScreenSizeEvent:
+		if err := g.SetSize(e.Width, e.Height, e.ActualScale); err != nil {
 			return err
 		}
-		switch e := e.(type) {
-		case ui.NopEvent:
-			return nil
-		case ui.ScreenSizeEvent:
-			if err := g.SetSize(e.Width, e.Height, e.ActualScale); err != nil {
-				return err
-			}
-			e.Done <- struct{}{}
-			continue
-		case ui.CloseEvent:
-			return regularTermination{}
-		case ui.RenderEvent:
-			if err := currentRunContext.render(g); err != nil {
-				return err
-			}
-			e.Done <- struct{}{}
-			return nil
-		default:
-			panic("not reach")
+		e.Done <- struct{}{}
+	case ui.CloseEvent:
+		return regularTermination{}
+	case ui.RenderEvent:
+		if err := currentRunContext.render(g); err != nil {
+			return err
 		}
+		e.Done <- struct{}{}
+	default:
+		panic("not reach")
 	}
+	return nil
 }
 
 func (c *runContext) render(g GraphicsContext) error {
