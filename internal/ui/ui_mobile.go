@@ -79,22 +79,30 @@ func (u *userInterface) Start(width, height int, scale float64, title string) er
 
 func (u *userInterface) AnimationFrameLoop(g GraphicsContext) error {
 	for {
-		if u.sizeChanged {
-			// Sizing also calls GL functions
-			<-chRender
-			u.sizeChanged = false
-			if err := g.SetSize(u.width, u.height, u.actualScreenScale()); err != nil {
-				return err
-			}
-			chRenderEnd <- struct{}{}
-			continue
-		}
-		<-chRender
-		if err := g.Update(); err != nil {
+		if err := u.update(g); err != nil {
 			return err
 		}
-		chRenderEnd <- struct{}{}
 	}
+}
+
+func (u *userInterface) update(g GraphicsContext) error {
+	<-chRender
+	defer func() {
+		chRenderEnd <- struct{}{}
+	}()
+
+	if u.sizeChanged {
+		// Sizing also calls GL functions
+		u.sizeChanged = false
+		if err := g.SetSize(u.width, u.height, u.actualScreenScale()); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := g.Update(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
