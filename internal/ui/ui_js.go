@@ -57,7 +57,7 @@ func ScreenScale() float64 {
 	return currentUI.scale
 }
 
-func (u *userInterface) ActualScreenScale() float64 {
+func (u *userInterface) actualScreenScale() float64 {
 	return u.scale * u.deviceScale
 }
 
@@ -72,7 +72,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if u.sizeChanged {
 		u.sizeChanged = false
 		w, h := u.size()
-		if err := g.SetSize(w, h, u.ActualScreenScale()); err != nil {
+		if err := g.SetSize(w, h, u.actualScreenScale()); err != nil {
 			return err
 		}
 		return nil
@@ -96,10 +96,6 @@ func (u *userInterface) loop(g GraphicsContext) error {
 	}
 	f()
 	return <-ch
-}
-
-func (u *userInterface) FinishRendering() error {
-	return nil
 }
 
 func touchEventToTouches(e *js.Object) []touch {
@@ -273,7 +269,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 }
 
 func (u *userInterface) size() (width, height int) {
-	a := u.ActualScreenScale()
+	a := u.actualScreenScale()
 	if a == 0 {
 		// a == 0 only on the initial state.
 		return
@@ -291,8 +287,8 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	}
 	u.scale = scale
 	u.deviceScale = devicePixelRatio()
-	canvas.Set("width", int(float64(width)*u.ActualScreenScale()))
-	canvas.Set("height", int(float64(height)*u.ActualScreenScale()))
+	canvas.Set("width", int(float64(width)*u.actualScreenScale()))
+	canvas.Set("height", int(float64(height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")
 
 	cssWidth := int(float64(width) * scale)
