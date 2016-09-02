@@ -21,9 +21,6 @@ type GraphicsContext interface {
 
 type UserInterface interface {
 	Run(width, height int, scale float64, title string, g GraphicsContext) error
-	ScreenScale() float64
-	SetScreenSize(width, height int) (bool, error)
-	SetScreenScale(scale float64) (bool, error)
 }
 
 type RegularTermination struct {

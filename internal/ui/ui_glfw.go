@@ -77,14 +77,10 @@ func initialize() error {
 }
 
 func Run(ch <-chan error) error {
-	return currentUI.run(ch)
-}
-
-func (u *userInterface) run(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
 	for {
 		select {
-		case f := <-u.funcs:
+		case f := <-currentUI.funcs:
 			f()
 		case err := <-ch:
 			// ch returns a value not only when an error occur but also it is closed.
@@ -108,7 +104,8 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 	return err
 }
 
-func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
+func SetScreenSize(width, height int) (bool, error) {
+	u := currentUI
 	r := false
 	if err := u.runOnMainThread(func() error {
 		var err error
@@ -123,7 +120,8 @@ func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
 	return r, nil
 }
 
-func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
+func SetScreenScale(scale float64) (bool, error) {
+	u := currentUI
 	r := false
 	if err := u.runOnMainThread(func() error {
 		var err error
@@ -138,7 +136,8 @@ func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
 	return r, nil
 }
 
-func (u *userInterface) ScreenScale() float64 {
+func ScreenScale() float64 {
+	u := currentUI
 	s := 0.0
 	_ = u.runOnMainThread(func() error {
 		s = u.scale

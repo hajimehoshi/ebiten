@@ -41,8 +41,8 @@ func (t touch) ID() int {
 
 func (t touch) Position() (int, int) {
 	// TODO: Is this OK to adjust the position here?
-	return int(float64(t.position.x) / ui.CurrentUI().ScreenScale()),
-		int(float64(t.position.y) / ui.CurrentUI().ScreenScale())
+	return int(float64(t.position.x) / ui.ScreenScale()),
+		int(float64(t.position.y) / ui.ScreenScale())
 }
 
 func updateTouches() {

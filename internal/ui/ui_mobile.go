@@ -101,18 +101,18 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
+func SetScreenSize(width, height int) (bool, error) {
 	// TODO: Implement
 	return false, nil
 }
 
-func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
+func SetScreenScale(scale float64) (bool, error) {
 	// TODO: Implement
 	return false, nil
 }
 
-func (u *userInterface) ScreenScale() float64 {
-	return u.scale
+func ScreenScale() float64 {
+	return currentUI.scale
 }
 
 func (u *userInterface) actualScreenScale() float64 {

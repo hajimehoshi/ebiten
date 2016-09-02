@@ -48,17 +48,17 @@ func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
 }
 
-func (u *userInterface) SetScreenSize(width, height int) (bool, error) {
-	return u.setScreenSize(width, height, u.scale), nil
+func SetScreenSize(width, height int) (bool, error) {
+	return currentUI.setScreenSize(width, height, currentUI.scale), nil
 }
 
-func (u *userInterface) SetScreenScale(scale float64) (bool, error) {
-	width, height := u.size()
-	return u.setScreenSize(width, height, scale), nil
+func SetScreenScale(scale float64) (bool, error) {
+	width, height := currentUI.size()
+	return currentUI.setScreenSize(width, height, scale), nil
 }
 
-func (u *userInterface) ScreenScale() float64 {
-	return u.scale
+func ScreenScale() float64 {
+	return currentUI.scale
 }
 
 func (u *userInterface) ActualScreenScale() float64 {
