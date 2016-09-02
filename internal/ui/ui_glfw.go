@@ -76,7 +76,7 @@ func initialize() error {
 	return nil
 }
 
-func Run(ch <-chan error) error {
+func RunMainThreadLoop(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
 	for {
 		select {
