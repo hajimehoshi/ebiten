@@ -8,11 +8,10 @@
 
 # How to update the version
 
-1. Fix the release date in the HTML
-2. Create a new branch from master branch with a version name like 1.2
-3. In master branch:
+1. Create a new branch from master branch with a version name like 1.2
+2. In master branch:
   1. Update version.txt in the master branch like 1.3.0-alpha
-4. In the new branch:
+3. In the new branch:
   1. Update version.txt like 1.2.0-rc1
   2. Generate the doc
   3. Add tag like v1.2.0-rc1
