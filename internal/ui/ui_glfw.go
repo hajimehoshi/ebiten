@@ -39,10 +39,6 @@ type userInterface struct {
 
 var currentUI *userInterface
 
-func CurrentUI() UserInterface {
-	return currentUI
-}
-
 func init() {
 	if err := initialize(); err != nil {
 		panic(err)
@@ -146,7 +142,8 @@ func ScreenScale() float64 {
 	return s
 }
 
-func (u *userInterface) Run(width, height int, scale float64, title string, g GraphicsContext) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+	u := currentUI
 	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
 	var err error

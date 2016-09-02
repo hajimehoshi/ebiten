@@ -60,11 +60,8 @@ var (
 	}
 )
 
-func CurrentUI() UserInterface {
-	return currentUI
-}
-
-func (u *userInterface) Run(width, height int, scale float64, title string, g GraphicsContext) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+	u := currentUI
 	u.width = width
 	u.height = height
 	u.scale = scale

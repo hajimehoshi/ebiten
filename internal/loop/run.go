@@ -114,7 +114,7 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	currentRunContext.lastFPSUpdated = n
 
 	lg := &loopGraphicsContext{currentRunContext, g}
-	if err := ui.CurrentUI().Run(width, height, scale, title, lg); err != nil {
+	if err := ui.Run(width, height, scale, title, lg); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}

@@ -19,10 +19,6 @@ type GraphicsContext interface {
 	Update() error
 }
 
-type UserInterface interface {
-	Run(width, height int, scale float64, title string, g GraphicsContext) error
-}
-
 type RegularTermination struct {
 }
 

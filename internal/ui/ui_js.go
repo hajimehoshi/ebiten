@@ -39,10 +39,6 @@ var currentUI = &userInterface{
 	windowFocus:     true,
 }
 
-func CurrentUI() UserInterface {
-	return currentUI
-}
-
 // NOTE: This returns true even when the browser is not active.
 func shown() bool {
 	return !js.Global.Get("document").Get("hidden").Bool()
@@ -262,7 +258,8 @@ func RunMainThreadLoop(ch <-chan error) error {
 	return <-ch
 }
 
-func (u *userInterface) Run(width, height int, scale float64, title string, g GraphicsContext) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+	u := currentUI
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
