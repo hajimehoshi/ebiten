@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<script src="../scripts/force-https.js"></script>
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - infinitescroll</title>
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<header class="navbar"><div class="container">
+  <div class="navbar-header">
+    <a class="navbar-brand" href="..">Ebiten</a>
+  </div>
+  <nav class="collapse navbar-collapse">
+    <ul class="nav navbar-nav navbar-right">
+      <li><a href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li><a href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+     <li><a href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+    </ul>
+  </nav>
+</header>
+
+<main><div class="container">
+
+  <h2>Ebiten example - infinitescroll</h2>
+  <iframe src="infinitescroll.content.html" width="640" height="480"></iframe>
+  <pre><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;fmt&#34;
+        _ &#34;image/png&#34;
+        &#34;log&#34;
+        &#34;math&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+const (
+        screenWidth  = 320
+        screenHeight = 240
+)
+
+var (
+        theViewport     = &amp;viewport{}
+        bgImage         *ebiten.Image
+        repeatedBgImage *ebiten.Image
+        groundImage     *ebiten.Image
+)
+
+type viewport struct {
+        x16 int
+        y16 int
+}
+
+func round(x float64) float64 {
+        return math.Floor(x &#43; 0.5)
+}
+
+func (p *viewport) Move() {
+        w, h := bgImage.Size()
+        mx := w * 16
+        my := h * 16
+
+        p.x16 &#43;= w / 32
+        p.y16 &#43;= h / 32
+
+        for mx &lt;= p.x16 {
+                p.x16 -= mx
+        }
+        for my &lt;= p.y16 {
+                p.y16 -= my
+        }
+        for p.x16 &lt; 0 {
+                p.x16 &#43;= mx
+        }
+        for p.y16 &lt; 0 {
+                p.y16 &#43;= my
+        }
+}
+
+func (p *viewport) Position() (int, int) {
+        return p.x16, p.y16
+}
+
+func updateGroundImage(ground *ebiten.Image) error {
+        if err := ground.Clear(); err != nil {
+                return err
+        }
+        x16, y16 := theViewport.Position()
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
+        if err := ground.DrawImage(repeatedBgImage, op); err != nil {
+                return err
+        }
+        return nil
+}
+
+func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
+        op := &amp;ebiten.DrawImageOptions{}
+        if err := screen.DrawImage(ground, op); err != nil {
+                return err
+        }
+        return nil
+}
+
+func update(screen *ebiten.Image) error {
+        theViewport.Move()
+
+        if err := updateGroundImage(groundImage); err != nil {
+                return err
+        }
+        if err := drawGroundImage(screen, groundImage); err != nil {
+                return err
+        }
+
+        msg := fmt.Sprintf(&#34;FPS: %0.2f&#34;, ebiten.CurrentFPS())
+        if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+                return err
+        }
+        return nil
+}
+
+func main() {
+        var err error
+        bgImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/tile.png&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        w, h := bgImage.Size()
+        const repeat = 5
+        repeatedBgImage, err = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        for j := 0; j &lt; repeat; j&#43;&#43; {
+                for i := 0; i &lt; repeat; i&#43;&#43; {
+                        op := &amp;ebiten.DrawImageOptions{}
+                        op.GeoM.Translate(float64(w*i), float64(h*j))
+                        if err := repeatedBgImage.DrawImage(bgImage, op); err != nil {
+                                log.Fatal(err)
+                        }
+                }
+        }
+        groundImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;infinite scroll&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>

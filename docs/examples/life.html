@@ -36,9 +36,6 @@ import (
         &#34;time&#34;
 
         &#34;github.com/hajimehoshi/ebiten&#34;
-
-        &#34;os&#34;
-        &#34;image/png&#34;
 )
 
 var (
@@ -190,17 +187,6 @@ func update(screen *ebiten.Image) error {
         world.DrawImage(noiseImage)
         if err := screen.ReplacePixels(noiseImage.Pix); err != nil {
                 return err
-        }
-        if ebiten.IsKeyPressed(ebiten.KeyQ) {
-                f, err := os.Create(&#34;screenshot.png&#34;)
-                if err != nil {
-                        return err
-                }
-                defer f.Close()
-                if err := png.Encode(f, screen); err != nil {
-                        return err
-                }
-                os.Exit(0)
         }
         return nil
 }

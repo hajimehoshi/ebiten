@@ -173,6 +173,7 @@ var examples = []example{
 	{"hsv", 320, 240},
 	{"hue", 320, 240},
 	{"gamepad", 320, 240},
+	{"infinitescroll", 320, 240},
 	{"keyboard", 320, 240},
 	{"life", 320, 240},
 	{"masking", 320, 240},
