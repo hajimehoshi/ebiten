@@ -174,6 +174,7 @@ var examples = []example{
 	{"hue", 320, 240},
 	{"gamepad", 320, 240},
 	{"keyboard", 320, 240},
+	{"life", 320, 240},
 	{"masking", 320, 240},
 	{"mosaic", 320, 240},
 	{"noise", 320, 240},
