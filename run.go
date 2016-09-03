@@ -153,3 +153,10 @@ func ScreenScale() float64 {
 	}
 	return ui.ScreenScale()
 }
+
+// SetCursorVisibility changes the state of cursor visiblity.
+//
+// This function is concurrent-safe.
+func SetCursorVisibility(visible bool) {
+	ui.SetCursorVisibility(visible)
+}

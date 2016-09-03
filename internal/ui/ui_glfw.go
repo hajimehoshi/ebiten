@@ -142,6 +142,20 @@ func ScreenScale() float64 {
 	return s
 }
 
+func SetCursorVisibility(visible bool) {
+	// This can be called before Run: change the state asyncly.
+	go func() {
+		_ = currentUI.runOnMainThread(func() error {
+			c := glfw.CursorNormal
+			if !visible {
+				c = glfw.CursorHidden
+			}
+			currentUI.window.SetInputMode(glfw.CursorMode, c)
+			return nil
+		})
+	}()
+}
+
 func Run(width, height int, scale float64, title string, g GraphicsContext) error {
 	u := currentUI
 	// GLContext must be created before setting the screen size, which requires

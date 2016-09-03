@@ -112,6 +112,10 @@ func ScreenScale() float64 {
 	return currentUI.scale
 }
 
+func SetCursorVisibility(visibility bool) {
+	// Do nothing
+}
+
 func (u *userInterface) actualScreenScale() float64 {
 	return u.scale * deviceScale()
 }

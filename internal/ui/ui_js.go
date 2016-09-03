@@ -57,6 +57,14 @@ func ScreenScale() float64 {
 	return currentUI.scale
 }
 
+func SetCursorVisibility(visibility bool) {
+	if visibility {
+		canvas.Get("style").Set("cursor", "auto")
+	} else {
+		canvas.Get("style").Set("cursor", "none")
+	}
+}
+
 func (u *userInterface) actualScreenScale() float64 {
 	return u.scale * u.deviceScale
 }
