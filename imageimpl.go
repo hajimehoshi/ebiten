@@ -180,7 +180,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		return color.Transparent
 	}
 	idx := 4*x + 4*y*i.width
-	clr, err := i.restorable.At(idx, i.restorable.Image(), context)
+	clr, err := i.restorable.At(idx, context)
 	if err != nil {
 		panic(err)
 	}
@@ -196,7 +196,7 @@ func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	if i.volatile {
 		return nil
 	}
-	if err := i.restorable.ReadPixelsFromVRAMIfStale(i.restorable.Image(), context); err != nil {
+	if err := i.restorable.ReadPixelsFromVRAMIfStale(context); err != nil {
 		return err
 	}
 	return nil
@@ -216,10 +216,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	}
 	// target is an image that is about to be tried mutating.
 	// If pixels object is related to that image, the pixels must be reset.
-	if !i.restorable.DependsOn(target.restorable.Image()) {
-		return nil
-	}
-	i.restorable.MakeStale()
+	i.restorable.MakeStaleIfDependingOn(target.restorable)
 	return nil
 }
 

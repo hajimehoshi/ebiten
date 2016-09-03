@@ -73,7 +73,7 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 	}, nil
 }
 
-func (p *Image) MakeStale() {
+func (p *Image) makeStale() {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
@@ -117,7 +117,7 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 
 func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
 	if img.stale {
-		p.MakeStale()
+		p.makeStale()
 	} else {
 		p.appendDrawImageHistory(img.image, vertices, geom, colorm, mode)
 	}
@@ -152,9 +152,9 @@ func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []int16, 
 //
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
-func (p *Image) At(idx int, image *graphics.Image, context *opengl.Context) (color.RGBA, error) {
+func (p *Image) At(idx int, context *opengl.Context) (color.RGBA, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.readPixelsFromVRAM(image, context); err != nil {
+		if err := p.readPixelsFromVRAM(p.image, context); err != nil {
 			return color.RGBA{}, err
 		}
 	}
@@ -162,17 +162,18 @@ func (p *Image) At(idx int, image *graphics.Image, context *opengl.Context) (col
 	return color.RGBA{r, g, b, a}, nil
 }
 
-func (p *Image) DependsOn(target *graphics.Image) bool {
+func (p *Image) MakeStaleIfDependingOn(target *Image) {
 	if p.stale {
-		return false
+		return
 	}
 	// TODO: Performance is bad when drawImageHistory is too many.
 	for _, c := range p.drawImageHistory {
-		if c.image == target {
-			return true
+		if c.image == target.image {
+			p.makeStale()
+			return
 		}
 	}
-	return false
+	return
 }
 
 func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
@@ -187,11 +188,11 @@ func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Contex
 	return nil
 }
 
-func (p *Image) ReadPixelsFromVRAMIfStale(image *graphics.Image, context *opengl.Context) error {
+func (p *Image) ReadPixelsFromVRAMIfStale(context *opengl.Context) error {
 	if !p.stale {
 		return nil
 	}
-	return p.readPixelsFromVRAM(image, context)
+	return p.readPixelsFromVRAM(p.image, context)
 }
 
 func (p *Image) HasDependency() bool {
