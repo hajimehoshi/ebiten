@@ -28,6 +28,7 @@ func CurrentFPS() float64 {
 }
 
 func IsRunning() bool {
+	// TODO: Need lock?
 	if currentRunContext == nil {
 		return false
 	}
