@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"math"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/loop"
@@ -143,7 +144,12 @@ func SetScreenScale(scale float64) {
 
 // ScreenScale returns the current screen scale.
 //
+// If Run is not called, this returns NaN.
+//
 // This function is concurrent-safe.
 func ScreenScale() float64 {
+	if !loop.IsRunning() {
+		return math.NaN()
+	}
 	return ui.ScreenScale()
 }
