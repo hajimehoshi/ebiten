@@ -269,7 +269,6 @@ func (i *imageImpl) Dispose() error {
 		return err
 	}
 	i.disposed = true
-	i.restorable.Clear()
 	runtime.SetFinalizer(i, nil)
 	return nil
 }

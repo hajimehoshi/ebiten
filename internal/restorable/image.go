@@ -249,6 +249,13 @@ func (p *Image) Recreate(width, height int, filter opengl.Filter) error {
 }
 
 func (p *Image) Dispose() error {
+	if err := p.image.Dispose(); err != nil {
+		return err
+	}
 	p.image = nil
+	p.basePixels = nil
+	p.baseColor = color.RGBA{}
+	p.drawImageHistory = nil
+	p.stale = false
 	return nil
 }
