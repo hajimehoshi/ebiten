@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package gamepad offers abstract gamepad buttons and configuration.
-package gamepad
+package blocks
 
 import (
 	"fmt"
+
 	"github.com/hajimehoshi/ebiten"
 )
 
