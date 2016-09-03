@@ -73,10 +73,6 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 	}, nil
 }
 
-func (p *Image) IsStale() bool {
-	return p.stale
-}
-
 func (p *Image) MakeStale() {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
@@ -84,18 +80,29 @@ func (p *Image) MakeStale() {
 	p.stale = true
 }
 
-func (p *Image) Clear() {
+func (p *Image) Clear() error {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
+	if p.image == nil {
+		panic("not reach")
+	}
+	if err := p.image.Fill(color.RGBA{}); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (p *Image) Fill(clr color.RGBA) {
+func (p *Image) Fill(clr color.RGBA) error {
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
 	p.stale = false
+	if err := p.image.Fill(clr); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Image) ReplacePixels(pixels []uint8) {
@@ -108,12 +115,24 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 	p.stale = false
 }
 
+func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
+	if img.stale {
+		p.MakeStale()
+	} else {
+		p.appendDrawImageHistory(img.image, vertices, geom, colorm, mode)
+	}
+	if err := p.image.DrawImage(img.image, vertices, geom, colorm, mode); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *Image) Image() *graphics.Image {
 	// TODO: This function is temporary. Remove this.
 	return p.image
 }
 
-func (p *Image) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
+func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}

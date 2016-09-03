@@ -109,8 +109,10 @@ func (i *imageImpl) Fill(clr color.Color) error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
-	i.restorable.Fill(rgba)
-	return i.restorable.Image().Fill(rgba)
+	if err := i.restorable.Fill(rgba); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (i *imageImpl) clearIfVolatile() error {
@@ -122,8 +124,10 @@ func (i *imageImpl) clearIfVolatile() error {
 	if !i.volatile {
 		return nil
 	}
-	i.restorable.Clear()
-	return i.restorable.Image().Fill(color.RGBA{})
+	if err := i.restorable.Clear(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
@@ -160,12 +164,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if image.impl.restorable.IsStale() {
-		i.restorable.MakeStale()
-	} else {
-		i.restorable.AppendDrawImageHistory(image.impl.restorable.Image(), vertices, &geom, &colorm, mode)
-	}
-	if err := i.restorable.Image().DrawImage(image.impl.restorable.Image(), vertices, &geom, &colorm, mode); err != nil {
+	if err := i.restorable.DrawImage(image.impl.restorable, vertices, &geom, &colorm, mode); err != nil {
 		return err
 	}
 	return nil
