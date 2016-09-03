@@ -144,7 +144,7 @@ func (p *Image) ReplacePixels(pixels []uint8) error {
 }
 
 func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
-	if img.stale {
+	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
 		p.appendDrawImageHistory(img.image, vertices, geom, colorm, mode)
