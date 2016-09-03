@@ -88,7 +88,7 @@ type Key int
 // Keys
 const (
 {{range $index, $name := .KeyNames}}Key{{$name}} = Key(ui.Key{{$name}})
-{{end}}
+{{end}}	KeyMax = Key{{.LastKeyName}}
 )
 `
 
@@ -279,6 +279,7 @@ func main() {
 			"KeyCodeToName":       keyCodeToName,
 			"Codes":               codes,
 			"KeyNames":            names,
+			"LastKeyName":         names[len(names)-1],
 			"KeyNamesWithoutMods": namesWithoutMods,
 		}); err != nil {
 			log.Fatal(err)

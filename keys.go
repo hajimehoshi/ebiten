@@ -94,4 +94,5 @@ const (
 	KeySpace     = Key(ui.KeySpace)
 	KeyTab       = Key(ui.KeyTab)
 	KeyUp        = Key(ui.KeyUp)
+	KeyMax       = KeyUp
 )
