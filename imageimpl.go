@@ -31,7 +31,6 @@ type imageImpl struct {
 	disposed   bool
 	width      int
 	height     int
-	filter     Filter
 	restorable *restorable.Image
 	volatile   bool
 	screen     bool
@@ -46,7 +45,6 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 	i := &imageImpl{
 		width:      width,
 		height:     height,
-		filter:     filter,
 		restorable: img,
 		volatile:   volatile,
 	}
@@ -78,7 +76,6 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	i := &imageImpl{
 		width:      w,
 		height:     h,
-		filter:     filter,
 		restorable: img,
 	}
 	i.restorable.ReplacePixels(p)
