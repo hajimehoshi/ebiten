@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pixels
+package restorable
 
 import (
 	"errors"
@@ -31,41 +31,41 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
-// Pixels represents pixels of an image for restoring when GL context is lost.
-type Pixels struct {
-	// basePixels and baseColor are exclusive.
+// Image represents an image of an image for restoring when GL context is lost.
+type Image struct {
+	// baseImage and baseColor are exclusive.
 	basePixels       []uint8
 	baseColor        color.RGBA
 	drawImageHistory []*drawImageHistoryItem
 	stale            bool
 }
 
-func (p *Pixels) IsStale() bool {
+func (p *Image) IsStale() bool {
 	return p.stale
 }
 
-func (p *Pixels) MakeStale() {
+func (p *Image) MakeStale() {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = true
 }
 
-func (p *Pixels) Clear() {
+func (p *Image) Clear() {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
 }
 
-func (p *Pixels) Fill(clr color.RGBA) {
+func (p *Image) Fill(clr color.RGBA) {
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
 	p.stale = false
 }
 
-func (p *Pixels) ReplacePixels(pixels []uint8) {
+func (p *Image) ReplacePixels(pixels []uint8) {
 	if p.basePixels == nil {
 		p.basePixels = make([]uint8, len(pixels))
 	}
@@ -75,7 +75,7 @@ func (p *Pixels) ReplacePixels(pixels []uint8) {
 	p.stale = false
 }
 
-func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
+func (p *Image) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}
@@ -95,7 +95,7 @@ func (p *Pixels) AppendDrawImageHistory(image *graphics.Image, vertices []int16,
 //
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
-func (p *Pixels) At(idx int, image *graphics.Image, context *opengl.Context) (color.RGBA, error) {
+func (p *Image) At(idx int, image *graphics.Image, context *opengl.Context) (color.RGBA, error) {
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.readPixelsFromVRAM(image, context); err != nil {
 			return color.RGBA{}, err
@@ -105,7 +105,7 @@ func (p *Pixels) At(idx int, image *graphics.Image, context *opengl.Context) (co
 	return color.RGBA{r, g, b, a}, nil
 }
 
-func (p *Pixels) DependsOn(target *graphics.Image) bool {
+func (p *Image) DependsOn(target *graphics.Image) bool {
 	if p.stale {
 		return false
 	}
@@ -118,7 +118,7 @@ func (p *Pixels) DependsOn(target *graphics.Image) bool {
 	return false
 }
 
-func (p *Pixels) readPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
+func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
 	var err error
 	p.basePixels, err = image.Pixels(context)
 	if err != nil {
@@ -130,14 +130,14 @@ func (p *Pixels) readPixelsFromVRAM(image *graphics.Image, context *opengl.Conte
 	return nil
 }
 
-func (p *Pixels) ReadPixelsFromVRAMIfStale(image *graphics.Image, context *opengl.Context) error {
+func (p *Image) ReadPixelsFromVRAMIfStale(image *graphics.Image, context *opengl.Context) error {
 	if !p.stale {
 		return nil
 	}
 	return p.readPixelsFromVRAM(image, context)
 }
 
-func (p *Pixels) HasDependency() bool {
+func (p *Image) HasDependency() bool {
 	if p.stale {
 		return false
 	}
@@ -145,7 +145,7 @@ func (p *Pixels) HasDependency() bool {
 }
 
 // CreateImage restores *graphics.Image from the pixels using its state.
-func (p *Pixels) CreateImage(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
+func (p *Image) CreateImage(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
 	if p.stale {
 		return nil, errors.New("pixels: pixels must not be stale when restoring")
 	}

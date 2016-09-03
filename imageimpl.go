@@ -25,19 +25,19 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
-	"github.com/hajimehoshi/ebiten/internal/pixels"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
 type imageImpl struct {
-	image    *graphics.Image
-	disposed bool
-	width    int
-	height   int
-	filter   Filter
-	pixels   pixels.Pixels
-	volatile bool
-	screen   bool
-	m        sync.Mutex
+	image      *graphics.Image
+	disposed   bool
+	width      int
+	height     int
+	filter     Filter
+	restorable restorable.Image
+	volatile   bool
+	screen     bool
+	m          sync.Mutex
 }
 
 func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
@@ -84,7 +84,7 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		height: h,
 		filter: filter,
 	}
-	i.pixels.ReplacePixels(p)
+	i.restorable.ReplacePixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
@@ -112,7 +112,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
-	i.pixels.Fill(rgba)
+	i.restorable.Fill(rgba)
 	return i.image.Fill(rgba)
 }
 
@@ -125,7 +125,7 @@ func (i *imageImpl) clearIfVolatile() error {
 	if !i.volatile {
 		return nil
 	}
-	i.pixels.Clear()
+	i.restorable.Clear()
 	return i.image.Fill(color.RGBA{})
 }
 
@@ -163,10 +163,10 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if image.impl.pixels.IsStale() {
-		i.pixels.MakeStale()
+	if image.impl.restorable.IsStale() {
+		i.restorable.MakeStale()
 	} else {
-		i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
+		i.restorable.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
 	}
 	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
 		return err
@@ -184,7 +184,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		return color.Transparent
 	}
 	idx := 4*x + 4*y*i.width
-	clr, err := i.pixels.At(idx, i.image, context)
+	clr, err := i.restorable.At(idx, i.image, context)
 	if err != nil {
 		panic(err)
 	}
@@ -200,7 +200,7 @@ func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	if i.volatile {
 		return nil
 	}
-	if err := i.pixels.ReadPixelsFromVRAMIfStale(i.image, context); err != nil {
+	if err := i.restorable.ReadPixelsFromVRAMIfStale(i.image, context); err != nil {
 		return err
 	}
 	return nil
@@ -220,17 +220,17 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	}
 	// target is an image that is about to be tried mutating.
 	// If pixels object is related to that image, the pixels must be reset.
-	if !i.pixels.DependsOn(target.image) {
+	if !i.restorable.DependsOn(target.image) {
 		return nil
 	}
-	i.pixels.MakeStale()
+	i.restorable.MakeStale()
 	return nil
 }
 
 func (i *imageImpl) hasDependency() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.pixels.HasDependency()
+	return i.restorable.HasDependency()
 }
 
 func (i *imageImpl) restore(context *opengl.Context) error {
@@ -258,7 +258,7 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	var err error
-	i.image, err = i.pixels.CreateImage(context, i.width, i.height, glFilter(i.filter))
+	i.image, err = i.restorable.CreateImage(context, i.width, i.height, glFilter(i.filter))
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func (i *imageImpl) Dispose() error {
 	}
 	i.image = nil
 	i.disposed = true
-	i.pixels.Clear()
+	i.restorable.Clear()
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -289,7 +289,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.pixels.ReplacePixels(p)
+	i.restorable.ReplacePixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
