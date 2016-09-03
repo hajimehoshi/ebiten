@@ -33,7 +33,10 @@ type drawImageHistoryItem struct {
 
 // Image represents an image of an image for restoring when GL context is lost.
 type Image struct {
-	image *graphics.Image
+	image  *graphics.Image
+	width  int
+	height int
+	filter opengl.Filter
 
 	// baseImage and baseColor are exclusive.
 	basePixels       []uint8
@@ -48,7 +51,10 @@ func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
 		return nil, err
 	}
 	return &Image{
-		image: img,
+		image:  img,
+		width:  width,
+		height: height,
+		filter: filter,
 	}, nil
 }
 
@@ -58,8 +64,13 @@ func NewImageFromImage(source *image.RGBA, filter opengl.Filter) (*Image, error)
 		// TODO: texture should be removed here?
 		return nil, err
 	}
+	size := source.Bounds().Size()
+	width, height := size.X, size.Y
 	return &Image{
-		image: img,
+		image:  img,
+		width:  width,
+		height: height,
+		filter: filter,
 	}, nil
 }
 
@@ -69,7 +80,9 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 		return nil, err
 	}
 	return &Image{
-		image: img,
+		image:  img,
+		width:  width,
+		height: height,
 	}, nil
 }
 
@@ -202,17 +215,17 @@ func (p *Image) HasDependency() bool {
 }
 
 // RestoreImage restores *graphics.Image from the pixels using its state.
-func (p *Image) RestoreImage(context *opengl.Context, width, height int, filter opengl.Filter) error {
+func (p *Image) RestoreImage(context *opengl.Context) error {
 	if p.stale {
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	img := image.NewRGBA(image.Rect(0, 0, p.width, p.height))
 	if p.basePixels != nil {
-		for j := 0; j < height; j++ {
-			copy(img.Pix[j*img.Stride:], p.basePixels[j*width*4:(j+1)*width*4])
+		for j := 0; j < p.height; j++ {
+			copy(img.Pix[j*img.Stride:], p.basePixels[j*p.width*4:(j+1)*p.width*4])
 		}
 	}
-	gimg, err := graphics.NewImageFromImage(img, filter)
+	gimg, err := graphics.NewImageFromImage(img, p.filter)
 	if err != nil {
 		return err
 	}
@@ -245,11 +258,11 @@ func (p *Image) RestoreImage(context *opengl.Context, width, height int, filter 
 	return nil
 }
 
-func (p *Image) RestoreAsScreen(width, height int) error {
+func (p *Image) RestoreAsScreen() error {
 	// The screen image should also be recreated because framebuffer might
 	// be changed.
 	var err error
-	p.image, err = graphics.NewScreenFramebufferImage(width, height)
+	p.image, err = graphics.NewScreenFramebufferImage(p.width, p.height)
 	if err != nil {
 		return err
 	}
@@ -257,9 +270,9 @@ func (p *Image) RestoreAsScreen(width, height int) error {
 	return nil
 }
 
-func (p *Image) Recreate(width, height int, filter opengl.Filter) error {
+func (p *Image) Recreate() error {
 	var err error
-	p.image, err = graphics.NewImage(width, height, filter)
+	p.image, err = graphics.NewImage(p.width, p.height, p.filter)
 	if err != nil {
 		return err
 	}

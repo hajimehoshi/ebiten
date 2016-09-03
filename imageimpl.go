@@ -233,18 +233,18 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	if i.screen {
-		if err := i.restorable.RestoreAsScreen(i.width, i.height); err != nil {
+		if err := i.restorable.RestoreAsScreen(); err != nil {
 			return err
 		}
 		return nil
 	}
 	if i.volatile {
-		if err := i.restorable.Recreate(i.width, i.height, glFilter(i.filter)); err != nil {
+		if err := i.restorable.Recreate(); err != nil {
 			return err
 		}
 		return nil
 	}
-	if err := i.restorable.RestoreImage(context, i.width, i.height, glFilter(i.filter)); err != nil {
+	if err := i.restorable.RestoreImage(context); err != nil {
 		return err
 	}
 	return nil
