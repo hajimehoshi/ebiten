@@ -95,7 +95,7 @@ func (i *images) restore(context *opengl.Context) error {
 		if img.isDisposed() {
 			continue
 		}
-		if err := img.image.Dispose(); err != nil {
+		if err := img.restorable.Image().Dispose(); err != nil {
 			return err
 		}
 	}

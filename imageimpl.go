@@ -23,13 +23,11 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
 type imageImpl struct {
-	image      *graphics.Image
 	disposed   bool
 	width      int
 	height     int
@@ -41,16 +39,15 @@ type imageImpl struct {
 }
 
 func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
-	img, err := graphics.NewImage(width, height, glFilter(filter))
+	img, err := restorable.NewImage(width, height, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
 	i := &imageImpl{
-		image:      img,
 		width:      width,
 		height:     height,
 		filter:     filter,
-		restorable: restorable.NewImage(),
+		restorable: img,
 		volatile:   volatile,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
@@ -74,17 +71,15 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	for j := 0; j < h; j++ {
 		copy(p[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
-	img, err := graphics.NewImageFromImage(rgbaImg, glFilter(filter))
+	img, err := restorable.NewImageFromImage(rgbaImg, glFilter(filter))
 	if err != nil {
-		// TODO: texture should be removed here?
 		return nil, err
 	}
 	i := &imageImpl{
-		image:      img,
 		width:      w,
 		height:     h,
 		filter:     filter,
-		restorable: restorable.NewImage(),
+		restorable: img,
 	}
 	i.restorable.ReplacePixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
@@ -92,15 +87,14 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 }
 
 func newScreenImageImpl(width, height int) (*imageImpl, error) {
-	img, err := graphics.NewScreenFramebufferImage(width, height)
+	img, err := restorable.NewScreenFramebufferImage(width, height)
 	if err != nil {
 		return nil, err
 	}
 	i := &imageImpl{
-		image:      img,
 		width:      width,
 		height:     height,
-		restorable: restorable.NewImage(),
+		restorable: img,
 		volatile:   true,
 		screen:     true,
 	}
@@ -116,7 +110,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 	}
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
 	i.restorable.Fill(rgba)
-	return i.image.Fill(rgba)
+	return i.restorable.Image().Fill(rgba)
 }
 
 func (i *imageImpl) clearIfVolatile() error {
@@ -129,7 +123,7 @@ func (i *imageImpl) clearIfVolatile() error {
 		return nil
 	}
 	i.restorable.Clear()
-	return i.image.Fill(color.RGBA{})
+	return i.restorable.Image().Fill(color.RGBA{})
 }
 
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
@@ -169,9 +163,9 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	if image.impl.restorable.IsStale() {
 		i.restorable.MakeStale()
 	} else {
-		i.restorable.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
+		i.restorable.AppendDrawImageHistory(image.impl.restorable.Image(), vertices, &geom, &colorm, mode)
 	}
-	if err := i.image.DrawImage(image.impl.image, vertices, &geom, &colorm, mode); err != nil {
+	if err := i.restorable.Image().DrawImage(image.impl.restorable.Image(), vertices, &geom, &colorm, mode); err != nil {
 		return err
 	}
 	return nil
@@ -187,7 +181,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		return color.Transparent
 	}
 	idx := 4*x + 4*y*i.width
-	clr, err := i.restorable.At(idx, i.image, context)
+	clr, err := i.restorable.At(idx, i.restorable.Image(), context)
 	if err != nil {
 		panic(err)
 	}
@@ -203,7 +197,7 @@ func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	if i.volatile {
 		return nil
 	}
-	if err := i.restorable.ReadPixelsFromVRAMIfStale(i.image, context); err != nil {
+	if err := i.restorable.ReadPixelsFromVRAMIfStale(i.restorable.Image(), context); err != nil {
 		return err
 	}
 	return nil
@@ -223,7 +217,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	}
 	// target is an image that is about to be tried mutating.
 	// If pixels object is related to that image, the pixels must be reset.
-	if !i.restorable.DependsOn(target.image) {
+	if !i.restorable.DependsOn(target.restorable.Image()) {
 		return nil
 	}
 	i.restorable.MakeStale()
@@ -243,26 +237,18 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 		return nil
 	}
 	if i.screen {
-		// The screen image should also be recreated because framebuffer might
-		// be changed.
-		var err error
-		i.image, err = graphics.NewScreenFramebufferImage(i.width, i.height)
-		if err != nil {
+		if err := i.restorable.RestoreAsScreen(i.width, i.height); err != nil {
 			return err
 		}
 		return nil
 	}
 	if i.volatile {
-		var err error
-		i.image, err = graphics.NewImage(i.width, i.height, glFilter(i.filter))
-		if err != nil {
+		if err := i.restorable.Recreate(i.width, i.height, glFilter(i.filter)); err != nil {
 			return err
 		}
 		return nil
 	}
-	var err error
-	i.image, err = i.restorable.CreateImage(context, i.width, i.height, glFilter(i.filter))
-	if err != nil {
+	if err := i.restorable.RestoreImage(context, i.width, i.height, glFilter(i.filter)); err != nil {
 		return err
 	}
 	return nil
@@ -275,11 +261,13 @@ func (i *imageImpl) Dispose() error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	if !i.screen {
-		if err := i.image.Dispose(); err != nil {
+		if err := i.restorable.Image().Dispose(); err != nil {
 			return err
 		}
 	}
-	i.image = nil
+	if err := i.restorable.Dispose(); err != nil {
+		return err
+	}
 	i.disposed = true
 	i.restorable.Clear()
 	runtime.SetFinalizer(i, nil)
@@ -296,7 +284,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	return i.image.ReplacePixels(p)
+	return i.restorable.Image().ReplacePixels(p)
 }
 
 func (i *imageImpl) isDisposed() bool {
@@ -308,5 +296,5 @@ func (i *imageImpl) isDisposed() bool {
 func (i *imageImpl) isInvalidated(context *opengl.Context) bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.image.IsInvalidated(context)
+	return i.restorable.Image().IsInvalidated(context)
 }

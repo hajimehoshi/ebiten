@@ -33,6 +33,8 @@ type drawImageHistoryItem struct {
 
 // Image represents an image of an image for restoring when GL context is lost.
 type Image struct {
+	image *graphics.Image
+
 	// baseImage and baseColor are exclusive.
 	basePixels       []uint8
 	baseColor        color.RGBA
@@ -40,8 +42,35 @@ type Image struct {
 	stale            bool
 }
 
-func NewImage() *Image {
-	return &Image{}
+func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
+	img, err := graphics.NewImage(width, height, filter)
+	if err != nil {
+		return nil, err
+	}
+	return &Image{
+		image: img,
+	}, nil
+}
+
+func NewImageFromImage(source *image.RGBA, filter opengl.Filter) (*Image, error) {
+	img, err := graphics.NewImageFromImage(source, filter)
+	if err != nil {
+		// TODO: texture should be removed here?
+		return nil, err
+	}
+	return &Image{
+		image: img,
+	}, nil
+}
+
+func NewScreenFramebufferImage(width, height int) (*Image, error) {
+	img, err := graphics.NewScreenFramebufferImage(width, height)
+	if err != nil {
+		return nil, err
+	}
+	return &Image{
+		image: img,
+	}, nil
 }
 
 func (p *Image) IsStale() bool {
@@ -77,6 +106,11 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
+}
+
+func (p *Image) Image() *graphics.Image {
+	// TODO: This function is temporary. Remove this.
+	return p.image
 }
 
 func (p *Image) AppendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
@@ -148,10 +182,10 @@ func (p *Image) HasDependency() bool {
 	return p.drawImageHistory != nil
 }
 
-// CreateImage restores *graphics.Image from the pixels using its state.
-func (p *Image) CreateImage(context *opengl.Context, width, height int, filter opengl.Filter) (*graphics.Image, error) {
+// RestoreImage restores *graphics.Image from the pixels using its state.
+func (p *Image) RestoreImage(context *opengl.Context, width, height int, filter opengl.Filter) error {
 	if p.stale {
-		return nil, errors.New("pixels: pixels must not be stale when restoring")
+		return errors.New("restorable: pixels must not be stale when restoring")
 	}
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	if p.basePixels != nil {
@@ -161,14 +195,14 @@ func (p *Image) CreateImage(context *opengl.Context, width, height int, filter o
 	}
 	gimg, err := graphics.NewImageFromImage(img, filter)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if p.baseColor != (color.RGBA{}) {
 		if p.basePixels != nil {
 			panic("not reach")
 		}
 		if err := gimg.Fill(p.baseColor); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	for _, c := range p.drawImageHistory {
@@ -177,15 +211,44 @@ func (p *Image) CreateImage(context *opengl.Context, width, height int, filter o
 			panic("not reach")
 		}*/
 		if err := gimg.DrawImage(c.image, c.vertices, c.geom, c.colorm, c.mode); err != nil {
-			return nil, err
+			return err
 		}
 	}
+	p.image = gimg
+
 	p.basePixels, err = gimg.Pixels(context)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
-	return gimg, nil
+	return nil
+}
+
+func (p *Image) RestoreAsScreen(width, height int) error {
+	// The screen image should also be recreated because framebuffer might
+	// be changed.
+	var err error
+	p.image, err = graphics.NewScreenFramebufferImage(width, height)
+	if err != nil {
+		return err
+	}
+	// TODO: Reset other values?
+	return nil
+}
+
+func (p *Image) Recreate(width, height int, filter opengl.Filter) error {
+	var err error
+	p.image, err = graphics.NewImage(width, height, filter)
+	if err != nil {
+		return err
+	}
+	// TODO: Reset other values?
+	return nil
+}
+
+func (p *Image) Dispose() error {
+	p.image = nil
+	return nil
 }
