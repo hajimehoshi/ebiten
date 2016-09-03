@@ -8,6 +8,7 @@
 
 # How to update the version
 
+0. Check all example work on all platforms
 1. Create a new branch from master branch with a version name like 1.2
 2. In the new branch:
   1. Update version.txt like 1.2.0-rc1
