@@ -45,6 +45,7 @@ type Image struct {
 	stale            bool
 
 	volatile bool
+	screen   bool
 }
 
 func NewImage(width, height int, filter opengl.Filter, volatile bool) (*Image, error) {
@@ -87,6 +88,7 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 		width:    width,
 		height:   height,
 		volatile: true,
+		screen:   true,
 	}, nil
 }
 
@@ -229,7 +231,21 @@ func (p *Image) HasDependency() bool {
 }
 
 // RestoreImage restores *graphics.Image from the pixels using its state.
-func (p *Image) RestoreImage(context *opengl.Context) error {
+func (p *Image) Restore(context *opengl.Context) error {
+	if p.screen {
+		// The screen image should also be recreated because framebuffer might
+		// be changed.
+		var err error
+		p.image, err = graphics.NewScreenFramebufferImage(p.width, p.height)
+		if err != nil {
+			return err
+		}
+		p.basePixels = nil
+		p.baseColor = color.RGBA{}
+		p.drawImageHistory = nil
+		p.stale = false
+		return nil
+	}
 	if p.volatile {
 		var err error
 		p.image, err = graphics.NewImage(p.width, p.height, p.filter)
@@ -281,18 +297,6 @@ func (p *Image) RestoreImage(context *opengl.Context) error {
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
-	return nil
-}
-
-func (p *Image) RestoreAsScreen() error {
-	// The screen image should also be recreated because framebuffer might
-	// be changed.
-	var err error
-	p.image, err = graphics.NewScreenFramebufferImage(p.width, p.height)
-	if err != nil {
-		return err
-	}
-	// TODO: Reset other values?
 	return nil
 }
 

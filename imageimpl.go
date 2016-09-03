@@ -30,7 +30,6 @@ import (
 type imageImpl struct {
 	disposed   bool
 	restorable *restorable.Image
-	screen     bool
 	m          sync.Mutex
 }
 
@@ -82,7 +81,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 	}
 	i := &imageImpl{
 		restorable: img,
-		screen:     true,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -215,13 +213,7 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if i.screen {
-		if err := i.restorable.RestoreAsScreen(); err != nil {
-			return err
-		}
-		return nil
-	}
-	if err := i.restorable.RestoreImage(context); err != nil {
+	if err := i.restorable.Restore(context); err != nil {
 		return err
 	}
 	return nil
