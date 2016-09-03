@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"math"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/loop"
@@ -116,9 +115,6 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 //
 // This function is concurrent-safe.
 func SetScreenSize(width, height int) {
-	if !loop.IsRunning() {
-		panic("ebiten: Run is not called yet")
-	}
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
@@ -131,9 +127,6 @@ func SetScreenSize(width, height int) {
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale float64) {
-	if !loop.IsRunning() {
-		panic("ebiten: Run is not called yet")
-	}
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
@@ -144,13 +137,10 @@ func SetScreenScale(scale float64) {
 
 // ScreenScale returns the current screen scale.
 //
-// If Run is not called, this returns NaN.
+// If Run is not called, this returns 0.
 //
 // This function is concurrent-safe.
 func ScreenScale() float64 {
-	if !loop.IsRunning() {
-		return math.NaN()
-	}
 	return ui.ScreenScale()
 }
 

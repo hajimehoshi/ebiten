@@ -22,6 +22,7 @@ package ui
 import (
 	"errors"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -34,7 +35,9 @@ type userInterface struct {
 	height      int
 	scale       float64
 	funcs       chan func()
+	running     bool
 	sizeChanged bool
+	m           sync.Mutex
 }
 
 var currentUI *userInterface
@@ -74,6 +77,10 @@ func initialize() error {
 
 func RunMainThreadLoop(ch <-chan error) error {
 	// TODO: Check this is done on the main thread.
+	currentUI.setRunning(true)
+	defer func() {
+		currentUI.setRunning(false)
+	}()
 	for {
 		select {
 		case f := <-currentUI.funcs:
@@ -83,6 +90,18 @@ func RunMainThreadLoop(ch <-chan error) error {
 			return err
 		}
 	}
+}
+
+func (u *userInterface) isRunning() bool {
+	u.m.Lock()
+	defer u.m.Unlock()
+	return u.running
+}
+
+func (u *userInterface) setRunning(running bool) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.running = running
 }
 
 func (u *userInterface) runOnMainThread(f func() error) error {
@@ -102,6 +121,9 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 
 func SetScreenSize(width, height int) (bool, error) {
 	u := currentUI
+	if !u.isRunning() {
+		return false, errors.New("ui: Run is not called yet")
+	}
 	r := false
 	if err := u.runOnMainThread(func() error {
 		var err error
@@ -118,6 +140,9 @@ func SetScreenSize(width, height int) (bool, error) {
 
 func SetScreenScale(scale float64) (bool, error) {
 	u := currentUI
+	if !u.isRunning() {
+		return false, errors.New("ui: Run is not called yet")
+	}
 	r := false
 	if err := u.runOnMainThread(func() error {
 		var err error
@@ -134,6 +159,9 @@ func SetScreenScale(scale float64) (bool, error) {
 
 func ScreenScale() float64 {
 	u := currentUI
+	if !u.isRunning() {
+		return 0
+	}
 	s := 0.0
 	_ = u.runOnMainThread(func() error {
 		s = u.scale

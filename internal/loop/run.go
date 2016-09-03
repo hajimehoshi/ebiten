@@ -27,14 +27,6 @@ func CurrentFPS() float64 {
 	return currentRunContext.getCurrentFPS()
 }
 
-func IsRunning() bool {
-	// TODO: Need lock?
-	if currentRunContext == nil {
-		return false
-	}
-	return currentRunContext.isRunning()
-}
-
 type runContext struct {
 	running        bool
 	fps            int
