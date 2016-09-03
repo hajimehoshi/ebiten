@@ -163,7 +163,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if image.impl.pixels.IsStale() {
+	if image.impl.pixels.IsStale() || image.impl.volatile {
 		i.pixels.MakeStale()
 	} else {
 		i.pixels.AppendDrawImageHistory(image.impl.image, vertices, &geom, &colorm, mode)
