@@ -115,6 +115,9 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 //
 // This function is concurrent-safe.
 func SetScreenSize(width, height int) {
+	if !loop.IsRunning() {
+		panic("ebiten: Run is not called yet")
+	}
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
@@ -127,6 +130,9 @@ func SetScreenSize(width, height int) {
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale float64) {
+	if !loop.IsRunning() {
+		panic("ebiten: Run is not called yet")
+	}
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
