@@ -28,7 +28,7 @@ var gamepadAbstractButtons = []abstractButton{
 
 type Input struct {
 	keyStates                   [256]int
-	gamepadButtonStates         [256]int
+	gamepadButtonStates         map[ebiten.GamepadButton]int
 	gamepadAbstractButtonStates map[abstractButton]int
 	gamepadConfig               gamepadConfig
 }
@@ -38,6 +38,9 @@ func (i *Input) StateForKey(key ebiten.Key) int {
 }
 
 func (i *Input) StateForGamepadButton(b ebiten.GamepadButton) int {
+	if i.gamepadButtonStates == nil {
+		return 0
+	}
 	return i.gamepadButtonStates[b]
 }
 
@@ -58,8 +61,11 @@ func (i *Input) Update() {
 	}
 
 	const gamepadID = 0
-	for b := range i.gamepadButtonStates {
-		if !ebiten.IsGamepadButtonPressed(gamepadID, ebiten.GamepadButton(b)) {
+	if i.gamepadButtonStates == nil {
+		i.gamepadButtonStates = map[ebiten.GamepadButton]int{}
+	}
+	for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
+		if !ebiten.IsGamepadButtonPressed(gamepadID, b) {
 			i.gamepadButtonStates[b] = 0
 			continue
 		}
