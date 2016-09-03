@@ -68,8 +68,8 @@ func NewTitleScene() *TitleScene {
 	}
 }
 
-func anyGamepadStdButtonPressed(i *Input) bool {
-	for _, b := range gamepadStdButtons {
+func anyGamepadAbstractButtonPressed(i *Input) bool {
+	for _, b := range gamepadAbstractButtons {
 		if i.gamepadConfig.IsButtonPressed(0, b) {
 			return true
 		}
@@ -93,7 +93,7 @@ func (s *TitleScene) Update(state *GameState) error {
 		state.SceneManager.GoTo(NewGameScene())
 		return nil
 	}
-	if anyGamepadStdButtonPressed(state.Input) {
+	if anyGamepadAbstractButtonPressed(state.Input) {
 		state.SceneManager.GoTo(NewGameScene())
 		return nil
 	}

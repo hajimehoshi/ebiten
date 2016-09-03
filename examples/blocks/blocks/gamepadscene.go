@@ -43,9 +43,9 @@ func (s *GamepadScene) Update(state *GameState) error {
 	}
 
 	if s.buttonStates == nil {
-		s.buttonStates = make([]string, len(gamepadStdButtons))
+		s.buttonStates = make([]string, len(gamepadAbstractButtons))
 	}
-	for i, b := range gamepadStdButtons {
+	for i, b := range gamepadAbstractButtons {
 		if i < s.currentIndex {
 			s.buttonStates[i] = strings.ToUpper(state.Input.gamepadConfig.Name(b))
 			continue
@@ -65,10 +65,10 @@ func (s *GamepadScene) Update(state *GameState) error {
 		return nil
 	}
 
-	b := gamepadStdButtons[s.currentIndex]
+	b := gamepadAbstractButtons[s.currentIndex]
 	if state.Input.gamepadConfig.Scan(0, b) {
 		s.currentIndex++
-		if s.currentIndex == len(gamepadStdButtons) {
+		if s.currentIndex == len(gamepadAbstractButtons) {
 			s.countAfterSetting = ebiten.FPS
 		}
 	}
@@ -102,7 +102,7 @@ ROTATE RIGHT: %s
 
 %s`
 	msg := ""
-	if s.currentIndex == len(gamepadStdButtons) {
+	if s.currentIndex == len(gamepadAbstractButtons) {
 		msg = "OK!"
 	}
 	str := fmt.Sprintf(f, s.buttonStates[0], s.buttonStates[1], s.buttonStates[2], s.buttonStates[3], s.buttonStates[4], msg)
