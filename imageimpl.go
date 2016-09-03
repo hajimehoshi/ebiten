@@ -28,7 +28,6 @@ import (
 )
 
 type imageImpl struct {
-	disposed   bool
 	restorable *restorable.Image
 	m          sync.Mutex
 }
@@ -89,7 +88,7 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 func (i *imageImpl) Fill(clr color.Color) error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return errors.New("ebiten: image is already disposed")
 	}
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
@@ -102,7 +101,7 @@ func (i *imageImpl) Fill(clr color.Color) error {
 func (i *imageImpl) clearIfVolatile() error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return nil
 	}
 	if err := i.restorable.ClearIfVolatile(); err != nil {
@@ -141,7 +140,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return errors.New("ebiten: image is already disposed")
 	}
 	geom := options.GeoM
@@ -159,7 +158,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return color.Transparent
 	}
 	w, _ := i.restorable.Size()
@@ -174,7 +173,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return nil
 	}
 	if err := i.restorable.ReadPixelsFromVRAMIfStale(context); err != nil {
@@ -189,7 +188,7 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 	if i == target {
 		return nil
 	}
-	if i.disposed {
+	if i.restorable == nil {
 		return nil
 	}
 	if target.isDisposed() {
@@ -210,7 +209,7 @@ func (i *imageImpl) hasDependency() bool {
 func (i *imageImpl) restore(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return nil
 	}
 	if err := i.restorable.Restore(context); err != nil {
@@ -222,13 +221,13 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 func (i *imageImpl) Dispose() error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return errors.New("ebiten: image is already disposed")
 	}
 	if err := i.restorable.Dispose(); err != nil {
 		return err
 	}
-	i.disposed = true
+	i.restorable = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -240,7 +239,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.disposed {
+	if i.restorable == nil {
 		return errors.New("ebiten: image is already disposed")
 	}
 	if err := i.restorable.ReplacePixels(p); err != nil {
@@ -252,7 +251,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 func (i *imageImpl) isDisposed() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.disposed
+	return i.restorable == nil
 }
 
 func (i *imageImpl) isInvalidated(context *opengl.Context) bool {
