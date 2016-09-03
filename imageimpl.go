@@ -29,8 +29,6 @@ import (
 
 type imageImpl struct {
 	disposed   bool
-	width      int
-	height     int
 	restorable *restorable.Image
 	volatile   bool
 	screen     bool
@@ -43,8 +41,6 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		return nil, err
 	}
 	i := &imageImpl{
-		width:      width,
-		height:     height,
 		restorable: img,
 		volatile:   volatile,
 	}
@@ -74,8 +70,6 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		return nil, err
 	}
 	i := &imageImpl{
-		width:      w,
-		height:     h,
 		restorable: img,
 	}
 	i.restorable.ReplacePixels(p)
@@ -89,8 +83,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		return nil, err
 	}
 	i := &imageImpl{
-		width:      width,
-		height:     height,
 		restorable: img,
 		volatile:   true,
 		screen:     true,
@@ -140,10 +132,12 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		if dparts != nil {
 			parts = imageParts(dparts)
 		} else {
-			parts = &wholeImage{image.impl.width, image.impl.height}
+			w, h := image.impl.restorable.Size()
+			parts = &wholeImage{w, h}
 		}
 	}
-	quads := &textureQuads{parts: parts, width: image.impl.width, height: image.impl.height}
+	w, h := image.impl.restorable.Size()
+	quads := &textureQuads{parts: parts, width: w, height: h}
 	// TODO: Reuse one vertices instead of making here, but this would need locking.
 	vertices := make([]int16, parts.Len()*16)
 	n := quads.vertices(vertices)
@@ -176,7 +170,8 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	if i.disposed {
 		return color.Transparent
 	}
-	idx := 4*x + 4*y*i.width
+	w, _ := i.restorable.Size()
+	idx := 4*x + 4*y*w
 	clr, err := i.restorable.At(idx, context)
 	if err != nil {
 		panic(err)
@@ -262,7 +257,8 @@ func (i *imageImpl) Dispose() error {
 }
 
 func (i *imageImpl) ReplacePixels(p []uint8) error {
-	if l := 4 * i.width * i.height; len(p) != l {
+	w, h := i.restorable.Size()
+	if l := 4 * w * h; len(p) != l {
 		return fmt.Errorf("ebiten: p's length must be %d", l)
 	}
 	i.m.Lock()

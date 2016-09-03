@@ -144,7 +144,7 @@ type Image struct {
 //
 // This function is concurrent-safe.
 func (i *Image) Size() (width, height int) {
-	return i.impl.width, i.impl.height
+	return i.impl.restorable.Size()
 }
 
 // Clear resets the pixels of the image into 0.
@@ -194,7 +194,8 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 //
 // This function is concurrent-safe.
 func (i *Image) Bounds() image.Rectangle {
-	return image.Rect(0, 0, i.impl.width, i.impl.height)
+	w, h := i.impl.restorable.Size()
+	return image.Rect(0, 0, w, h)
 }
 
 // ColorModel returns the color model of the image.

@@ -86,6 +86,10 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 	}, nil
 }
 
+func (p *Image) Size() (int, int) {
+	return p.width, p.height
+}
+
 func (p *Image) makeStale() {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
