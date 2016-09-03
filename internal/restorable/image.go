@@ -236,7 +236,10 @@ func (p *Image) RestoreImage(context *opengl.Context) error {
 		if err != nil {
 			return err
 		}
-		// TODO: Reset other values?
+		p.basePixels = nil
+		p.baseColor = color.RGBA{}
+		p.drawImageHistory = nil
+		p.stale = false
 		return nil
 	}
 	if p.stale {
