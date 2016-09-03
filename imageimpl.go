@@ -34,7 +34,7 @@ type imageImpl struct {
 	width      int
 	height     int
 	filter     Filter
-	restorable restorable.Image
+	restorable *restorable.Image
 	volatile   bool
 	screen     bool
 	m          sync.Mutex
@@ -46,11 +46,12 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 		return nil, err
 	}
 	i := &imageImpl{
-		image:    img,
-		width:    width,
-		height:   height,
-		filter:   filter,
-		volatile: volatile,
+		image:      img,
+		width:      width,
+		height:     height,
+		filter:     filter,
+		restorable: restorable.NewImage(),
+		volatile:   volatile,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -79,10 +80,11 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		return nil, err
 	}
 	i := &imageImpl{
-		image:  img,
-		width:  w,
-		height: h,
-		filter: filter,
+		image:      img,
+		width:      w,
+		height:     h,
+		filter:     filter,
+		restorable: restorable.NewImage(),
 	}
 	i.restorable.ReplacePixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
@@ -95,11 +97,12 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 		return nil, err
 	}
 	i := &imageImpl{
-		image:    img,
-		width:    width,
-		height:   height,
-		volatile: true,
-		screen:   true,
+		image:      img,
+		width:      width,
+		height:     height,
+		restorable: restorable.NewImage(),
+		volatile:   true,
+		screen:     true,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil

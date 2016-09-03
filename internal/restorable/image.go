@@ -40,6 +40,10 @@ type Image struct {
 	stale            bool
 }
 
+func NewImage() *Image {
+	return &Image{}
+}
+
 func (p *Image) IsStale() bool {
 	return p.stale
 }
