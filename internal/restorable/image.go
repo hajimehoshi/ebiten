@@ -43,18 +43,21 @@ type Image struct {
 	baseColor        color.RGBA
 	drawImageHistory []*drawImageHistoryItem
 	stale            bool
+
+	volatile bool
 }
 
-func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
+func NewImage(width, height int, filter opengl.Filter, volatile bool) (*Image, error) {
 	img, err := graphics.NewImage(width, height, filter)
 	if err != nil {
 		return nil, err
 	}
 	return &Image{
-		image:  img,
-		width:  width,
-		height: height,
-		filter: filter,
+		image:    img,
+		width:    width,
+		height:   height,
+		filter:   filter,
+		volatile: volatile,
 	}, nil
 }
 
@@ -80,9 +83,10 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 		return nil, err
 	}
 	return &Image{
-		image:  img,
-		width:  width,
-		height: height,
+		image:    img,
+		width:    width,
+		height:   height,
+		volatile: true,
 	}, nil
 }
 
@@ -97,7 +101,10 @@ func (p *Image) makeStale() {
 	p.stale = true
 }
 
-func (p *Image) Clear() error {
+func (p *Image) ClearIfVolatile() error {
+	if !p.volatile {
+		return nil
+	}
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
@@ -205,6 +212,9 @@ func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Contex
 }
 
 func (p *Image) ReadPixelsFromVRAMIfStale(context *opengl.Context) error {
+	if p.volatile {
+		return nil
+	}
 	if !p.stale {
 		return nil
 	}
@@ -220,6 +230,15 @@ func (p *Image) HasDependency() bool {
 
 // RestoreImage restores *graphics.Image from the pixels using its state.
 func (p *Image) RestoreImage(context *opengl.Context) error {
+	if p.volatile {
+		var err error
+		p.image, err = graphics.NewImage(p.width, p.height, p.filter)
+		if err != nil {
+			return err
+		}
+		// TODO: Reset other values?
+		return nil
+	}
 	if p.stale {
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
@@ -267,16 +286,6 @@ func (p *Image) RestoreAsScreen() error {
 	// be changed.
 	var err error
 	p.image, err = graphics.NewScreenFramebufferImage(p.width, p.height)
-	if err != nil {
-		return err
-	}
-	// TODO: Reset other values?
-	return nil
-}
-
-func (p *Image) Recreate() error {
-	var err error
-	p.image, err = graphics.NewImage(p.width, p.height, p.filter)
 	if err != nil {
 		return err
 	}

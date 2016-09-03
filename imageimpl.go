@@ -30,19 +30,17 @@ import (
 type imageImpl struct {
 	disposed   bool
 	restorable *restorable.Image
-	volatile   bool
 	screen     bool
 	m          sync.Mutex
 }
 
 func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
-	img, err := restorable.NewImage(width, height, glFilter(filter))
+	img, err := restorable.NewImage(width, height, glFilter(filter), volatile)
 	if err != nil {
 		return nil, err
 	}
 	i := &imageImpl{
 		restorable: img,
-		volatile:   volatile,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -84,7 +82,6 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 	}
 	i := &imageImpl{
 		restorable: img,
-		volatile:   true,
 		screen:     true,
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
@@ -110,10 +107,7 @@ func (i *imageImpl) clearIfVolatile() error {
 	if i.disposed {
 		return nil
 	}
-	if !i.volatile {
-		return nil
-	}
-	if err := i.restorable.Clear(); err != nil {
+	if err := i.restorable.ClearIfVolatile(); err != nil {
 		return err
 	}
 	return nil
@@ -185,9 +179,6 @@ func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	if i.disposed {
 		return nil
 	}
-	if i.volatile {
-		return nil
-	}
 	if err := i.restorable.ReadPixelsFromVRAMIfStale(context); err != nil {
 		return err
 	}
@@ -226,12 +217,6 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 	}
 	if i.screen {
 		if err := i.restorable.RestoreAsScreen(); err != nil {
-			return err
-		}
-		return nil
-	}
-	if i.volatile {
-		if err := i.restorable.Recreate(); err != nil {
 			return err
 		}
 		return nil
