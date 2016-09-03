@@ -256,11 +256,6 @@ func (i *imageImpl) Dispose() error {
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	if !i.screen {
-		if err := i.restorable.Image().Dispose(); err != nil {
-			return err
-		}
-	}
 	if err := i.restorable.Dispose(); err != nil {
 		return err
 	}
@@ -275,11 +270,13 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.restorable.ReplacePixels(p)
 	if i.disposed {
 		return errors.New("ebiten: image is already disposed")
 	}
-	return i.restorable.Image().ReplacePixels(p)
+	if err := i.restorable.ReplacePixels(p); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (i *imageImpl) isDisposed() bool {
@@ -291,5 +288,5 @@ func (i *imageImpl) isDisposed() bool {
 func (i *imageImpl) isInvalidated(context *opengl.Context) bool {
 	i.m.Lock()
 	defer i.m.Unlock()
-	return i.restorable.Image().IsInvalidated(context)
+	return i.restorable.IsInvalidated(context)
 }

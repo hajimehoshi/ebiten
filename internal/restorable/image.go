@@ -105,7 +105,10 @@ func (p *Image) Fill(clr color.RGBA) error {
 	return nil
 }
 
-func (p *Image) ReplacePixels(pixels []uint8) {
+func (p *Image) ReplacePixels(pixels []uint8) error {
+	if err := p.image.ReplacePixels(pixels); err != nil {
+		return err
+	}
 	if p.basePixels == nil {
 		p.basePixels = make([]uint8, len(pixels))
 	}
@@ -113,6 +116,7 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
+	return nil
 }
 
 func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
@@ -125,11 +129,6 @@ func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, co
 		return err
 	}
 	return nil
-}
-
-func (p *Image) Image() *graphics.Image {
-	// TODO: This function is temporary. Remove this.
-	return p.image
 }
 
 func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
@@ -278,4 +277,15 @@ func (p *Image) Dispose() error {
 	p.drawImageHistory = nil
 	p.stale = false
 	return nil
+}
+
+func (p *Image) DisposeOnlyImage() error {
+	if err := p.image.Dispose(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Image) IsInvalidated(context *opengl.Context) bool {
+	return p.image.IsInvalidated(context)
 }
