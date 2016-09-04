@@ -13,6 +13,7 @@ addons:
       - libopenal-dev
       - libalut-dev
       - libxxf86vm-dev
+      - libxrandr-dev
 
 # gl module is not available (2016-05-18)
 #
@@ -33,11 +34,8 @@ before_script:
 
 script:
   - go build -tags example -v ./...
+  - go test -v ./...
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
-
-# Give up testing on Travis CI because of X error
-# https://travis-ci.org/hajimehoshi/ebiten/jobs/107404013
-# - go test -v ./...
 
 # Looks like testing GL on node is hard.
 # - gopherjs test -v github.com/hajimehoshi/ebiten github.com/hajimehoshi/ebiten/internal/graphics
