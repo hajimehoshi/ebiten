@@ -31,7 +31,7 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
-// Image represents an image of an image for restoring when GL context is lost.
+// Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image  *graphics.Image
 	width  int
