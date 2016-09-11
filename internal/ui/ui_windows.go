@@ -16,6 +16,8 @@
 
 package ui
 
+// TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
+
 // #cgo LDFLAGS: -lgdi32
 //
 // #include <windows.h>

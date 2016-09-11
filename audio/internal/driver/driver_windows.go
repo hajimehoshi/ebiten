@@ -14,6 +14,8 @@
 
 package driver
 
+// TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
+
 // #cgo LDFLAGS: -lwinmm
 //
 // #include <windows.h>
