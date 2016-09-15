@@ -294,7 +294,12 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 		return false
 	}
 	u.scale = scale
-	u.deviceScale = devicePixelRatio()
+	// When the scale is an integer, let's rely on CSS crisp-edge/pixelated effect.
+	if scale == float64(int64(scale)) {
+		u.deviceScale = 1
+	} else {
+		u.deviceScale = devicePixelRatio()
+	}
 	canvas.Set("width", int(float64(width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")
@@ -306,6 +311,9 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	// CSS calc requires space chars.
 	canvasStyle.Set("left", "calc((100% - "+strconv.Itoa(cssWidth)+"px) / 2)")
 	canvasStyle.Set("top", "calc((100% - "+strconv.Itoa(cssHeight)+"px) / 2)")
+	canvasStyle.Set("imageRendering", "-moz-crisp-edges")
+	canvasStyle.Set("imageRendering", "pixelated")
+	// TODO: Set `-ms-interpolation-mode: nearest-neighbor;` for IE.
 	u.sizeChanged = true
 	return true
 }
