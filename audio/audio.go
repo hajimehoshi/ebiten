@@ -70,8 +70,7 @@ func (p *players) Read(b []byte) (int, error) {
 	closed := []*Player{}
 	l := len(b)
 	for p := range p.players {
-		err := p.readToBuffer(l)
-		if err == io.EOF {
+		if err := p.readToBuffer(l); err == io.EOF {
 			closed = append(closed, p)
 		} else if err != nil {
 			return 0, err
