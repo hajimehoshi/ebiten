@@ -28,19 +28,30 @@ type Stream struct {
 	src        audio.ReadSeekCloser
 	headerSize int64
 	dataSize   int64
+	remaining  int64
 }
 
 // Read is implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
-	return s.src.Read(p)
+	if s.remaining <= 0 {
+		return 0, io.EOF
+	}
+	if s.remaining < int64(len(p)) {
+		p = p[0:s.remaining]
+	}
+	n, err := s.src.Read(p)
+	s.remaining -= int64(n)
+	return n, err
 }
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	if whence == 0 {
+	if whence == io.SeekStart {
 		offset += s.headerSize
 	}
-	return s.src.Seek(offset, whence)
+	n, err := s.src.Seek(offset, whence)
+	s.remaining = s.dataSize - (n - s.headerSize)
+	return n, err
 }
 
 // Read is implementation of io.Closer's Close.
@@ -139,6 +150,7 @@ chunks:
 		src:        src,
 		headerSize: headerSize,
 		dataSize:   dataSize,
+		remaining:  dataSize,
 	}
 	return s, nil
 }
