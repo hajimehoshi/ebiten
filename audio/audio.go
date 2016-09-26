@@ -153,6 +153,9 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 
 // A Context is a current state of audio.
 //
+// There should be at most one Context object.
+// This means only one constant sample rate is valid in your one application.
+//
 // The typical usage with ebiten package is:
 //
 //    var audioContext *audio.Context
