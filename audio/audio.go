@@ -186,12 +186,22 @@ type Context struct {
 	writtenBytes int
 }
 
+var (
+	theContext     *Context
+	theContextLock sync.Mutex
+)
+
 // NewContext creates a new audio context with the given sample rate (e.g. 44100).
 func NewContext(sampleRate int) (*Context, error) {
-	// TODO: Panic if one context exists.
+	theContextLock.Lock()
+	defer theContextLock.Unlock()
+	if theContext != nil {
+		return nil, errors.New("audio: context is already created")
+	}
 	c := &Context{
 		sampleRate: sampleRate,
 	}
+	theContext = c
 	c.players = &players{
 		players: map[*Player]struct{}{},
 	}
