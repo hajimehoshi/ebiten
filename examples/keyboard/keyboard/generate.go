@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go run keyboard/keyboard/gen.go
+// +build example
+
+//go:generate go run -tags=example gen.go
 //go:generate gofmt -s -w .
 
-package example
+package keyboard
