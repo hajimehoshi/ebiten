@@ -47,8 +47,7 @@ const (
 
 // unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
 const (
-	int16Size   = 2
-	float32Size = 4
+	int16Size = 2
 )
 
 func Reset(context *opengl.Context) error {
