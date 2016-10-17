@@ -20,41 +20,72 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
+type arrayBufferLayoutPart struct {
+	name      string
+	unit      int // e.g. int16 is 2 [bytes]
+	num       int
+	normalize bool
+}
+
 type arrayBufferLayout struct {
+	parts []arrayBufferLayoutPart
+}
+
+func (a *arrayBufferLayout) newArrayBuffer(c *opengl.Context) opengl.Buffer {
+	total := 0
+	for _, p := range a.parts {
+		total += p.unit * p.num
+	}
+	return c.NewBuffer(opengl.ArrayBuffer, total*4*maxQuads, opengl.DynamicDraw)
 }
 
 func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
-	c.EnableVertexAttribArray(program, "vertex")
-	c.EnableVertexAttribArray(program, "tex_coord")
-	// TODO: Argument order doesn't match with glVertexAttribPointer: Fix them.
-	c.VertexAttribPointer(program, "vertex", false, a.totalBytes(), a.vertexNum(), 0)
-	c.VertexAttribPointer(program, "tex_coord", true, a.totalBytes(), a.texCoordNum(), a.vertexBytes())
+	for _, p := range a.parts {
+		c.EnableVertexAttribArray(program, p.name)
+	}
+	total := 0
+	for _, p := range a.parts {
+		total += p.unit * p.num
+	}
+	offset := 0
+	for _, p := range a.parts {
+		b := p.unit * p.num
+		// TODO: Argument order doesn't match with glVertexAttribPointer: Fix them.
+		c.VertexAttribPointer(program, p.name, p.normalize, total, b, offset)
+		offset += b
+	}
 }
 
 func (a *arrayBufferLayout) disable(c *opengl.Context, program opengl.Program) {
-	c.DisableVertexAttribArray(program, "tex_coord")
-	c.DisableVertexAttribArray(program, "vertex")
+	// TODO: Disabling should be done in reversed order?
+	for _, p := range a.parts {
+		c.DisableVertexAttribArray(program, p.name)
+	}
 }
 
-func (a *arrayBufferLayout) vertexNum() int {
-	return 2
-}
+// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
+const (
+	int16Size = 2
+)
 
-func (a *arrayBufferLayout) vertexBytes() int {
-	return int16Size * a.vertexNum()
-}
-
-func (a *arrayBufferLayout) texCoordNum() int {
-	return 2
-}
-
-func (a *arrayBufferLayout) texCoordBytes() int {
-	return int16Size * a.texCoordNum()
-}
-
-func (a *arrayBufferLayout) totalBytes() int {
-	return a.vertexBytes() + a.texCoordBytes()
-}
+var (
+	theArrayBufferLayout = arrayBufferLayout{
+		parts: []arrayBufferLayoutPart{
+			{
+				name:      "vertex",
+				unit:      int16Size,
+				num:       2,
+				normalize: false,
+			},
+			{
+				name:      "tex_coord",
+				unit:      int16Size,
+				num:       2,
+				normalize: true,
+			},
+		},
+	}
+)
 
 type openGLState struct {
 	arrayBuffer      opengl.Buffer
@@ -69,8 +100,7 @@ type openGLState struct {
 }
 
 var (
-	theOpenGLState       openGLState
-	theArrayBufferLayout = arrayBufferLayout{}
+	theOpenGLState openGLState
 
 	zeroBuffer  opengl.Buffer
 	zeroProgram opengl.Program
@@ -80,11 +110,6 @@ var (
 const (
 	indicesNum = 1 << 16
 	maxQuads   = indicesNum / 6
-)
-
-// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
-const (
-	int16Size = 2
 )
 
 func Reset(context *opengl.Context) error {
@@ -131,8 +156,7 @@ func (s *openGLState) reset(context *opengl.Context) error {
 		return err
 	}
 
-	stride := theArrayBufferLayout.totalBytes()
-	s.arrayBuffer = context.NewBuffer(opengl.ArrayBuffer, stride*4*maxQuads, opengl.DynamicDraw)
+	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
 
 	indices := make([]uint16, 6*maxQuads)
 	for i := uint16(0); i < maxQuads; i++ {
