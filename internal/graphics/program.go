@@ -20,6 +20,42 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
+type arrayBufferLayout struct {
+}
+
+func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
+	c.EnableVertexAttribArray(program, "vertex")
+	c.EnableVertexAttribArray(program, "tex_coord")
+	// TODO: Argument order doesn't match with glVertexAttribPointer: Fix them.
+	c.VertexAttribPointer(program, "vertex", false, a.totalBytes(), a.vertexNum(), 0)
+	c.VertexAttribPointer(program, "tex_coord", true, a.totalBytes(), a.texCoordNum(), a.vertexBytes())
+}
+
+func (a *arrayBufferLayout) disable(c *opengl.Context, program opengl.Program) {
+	c.DisableVertexAttribArray(program, "tex_coord")
+	c.DisableVertexAttribArray(program, "vertex")
+}
+
+func (a *arrayBufferLayout) vertexNum() int {
+	return 2
+}
+
+func (a *arrayBufferLayout) vertexBytes() int {
+	return int16Size * a.vertexNum()
+}
+
+func (a *arrayBufferLayout) texCoordNum() int {
+	return 2
+}
+
+func (a *arrayBufferLayout) texCoordBytes() int {
+	return int16Size * a.texCoordNum()
+}
+
+func (a *arrayBufferLayout) totalBytes() int {
+	return a.vertexBytes() + a.texCoordBytes()
+}
+
 type openGLState struct {
 	arrayBuffer      opengl.Buffer
 	indexBufferQuads opengl.Buffer
@@ -33,7 +69,8 @@ type openGLState struct {
 }
 
 var (
-	theOpenGLState openGLState
+	theOpenGLState       openGLState
+	theArrayBufferLayout = arrayBufferLayout{}
 
 	zeroBuffer  opengl.Buffer
 	zeroProgram opengl.Program
@@ -94,8 +131,8 @@ func (s *openGLState) reset(context *opengl.Context) error {
 		return err
 	}
 
-	const stride = 8 // (2 [vertices] + 2 [texels]) * 2 [sizeof(int16)/bytes]
-	s.arrayBuffer = context.NewBuffer(opengl.ArrayBuffer, 4*stride*maxQuads, opengl.DynamicDraw)
+	stride := theArrayBufferLayout.totalBytes()
+	s.arrayBuffer = context.NewBuffer(opengl.ArrayBuffer, stride*4*maxQuads, opengl.DynamicDraw)
 
 	indices := make([]uint16, 6*maxQuads)
 	for i := uint16(0); i < maxQuads; i++ {
@@ -138,13 +175,9 @@ func (p *programContext) begin() error {
 	if p.state.lastProgram != p.program {
 		c.UseProgram(p.program)
 		if p.state.lastProgram != zeroProgram {
-			c.DisableVertexAttribArray(p.state.lastProgram, "tex_coord")
-			c.DisableVertexAttribArray(p.state.lastProgram, "vertex")
+			theArrayBufferLayout.disable(c, p.state.lastProgram)
 		}
-		c.EnableVertexAttribArray(p.program, "vertex")
-		c.EnableVertexAttribArray(p.program, "tex_coord")
-		c.VertexAttribPointer(p.program, "vertex", false, int16Size*4, 2, int16Size*0)
-		c.VertexAttribPointer(p.program, "tex_coord", true, int16Size*4, 2, int16Size*2)
+		theArrayBufferLayout.enable(c, p.program)
 
 		p.state.lastProgram = p.state.programTexture
 		p.state.lastProjectionMatrix = nil
