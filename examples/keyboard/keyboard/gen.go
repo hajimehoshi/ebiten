@@ -21,28 +21,13 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
-	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
 	"text/template"
 
 	"github.com/hajimehoshi/ebiten/examples/common"
+	"github.com/hajimehoshi/ebiten/internal"
 )
-
-func licenseComment() (string, error) {
-	_, path, _, _ := runtime.Caller(0)
-	licensePath := filepath.Join(filepath.Dir(path), "..", "..", "..", "LICENSE")
-	l, err := ioutil.ReadFile(licensePath)
-	if err != nil {
-		return "", err
-	}
-	lines := strings.Split(string(l), "\n")
-	license := "// " + strings.Join(lines[:len(lines)-1], "\n// ")
-	return license, nil
-}
 
 var keyboardKeys = [][]string{
 	{"Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", " ", " ", " ", "Del"},
@@ -189,7 +174,7 @@ func KeyRect(name string) (image.Rectangle, bool) {
 }`
 
 func outputKeyRectsGo(k map[string]image.Rectangle) error {
-	license, err := licenseComment()
+	license, err := internal.LicenseComment()
 	if err != nil {
 		return err
 	}
