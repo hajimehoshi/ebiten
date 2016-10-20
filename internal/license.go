@@ -17,7 +17,9 @@ package internal
 import (
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -32,4 +34,16 @@ func LicenseComment() (string, error) {
 	lines := strings.Split(string(l), "\n")
 	license := "// " + strings.Join(lines[:len(lines)-1], "\n// ")
 	return license, nil
+}
+
+func LicenseYear() (int, error) {
+	license, err := LicenseComment()
+	if err != nil {
+		return 0, err
+	}
+	year, err := strconv.Atoi(regexp.MustCompile(`^// Copyright (\d+)`).FindStringSubmatch(license)[1])
+	if err != nil {
+		return 0, err
+	}
+	return year, nil
 }

@@ -27,6 +27,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/internal"
 )
 
 func execute(command string, args ...string) error {
@@ -55,12 +57,7 @@ var (
 )
 
 func init() {
-	b, err := ioutil.ReadFile("../LICENSE")
-	if err != nil {
-		panic(err)
-	}
-	license := strings.TrimSpace(string(b))
-	year, err := strconv.Atoi(regexp.MustCompile(`^Copyright (\d+)`).FindStringSubmatch(license)[1])
+	year, err := internal.LicenseYear()
 	if err != nil {
 		panic(err)
 	}
