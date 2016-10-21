@@ -392,9 +392,14 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl.BindBuffer(mgl.ELEMENT_ARRAY_BUFFER, mgl.Buffer(b))
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
+func (c *Context) BufferSubData(bufferType BufferType, data interface{}) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
+	switch data := data.(type) {
+	case []int16:
+		gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
+	default:
+		panic("not reach")
+	}
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {
