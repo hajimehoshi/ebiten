@@ -432,7 +432,7 @@ func (c *Context) getAttribLocationImpl(p Program, location string) attribLocati
 	return attrib
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, normalize bool, stride int, size int, offset int) {
+func (c *Context) VertexAttribPointer(p Program, location string, size int, normalize bool, stride int, offset int) {
 	_ = c.runOnContextThread(func() error {
 		l := c.locationCache.GetAttribLocation(c, p, location)
 		gl.VertexAttribPointer(uint32(l), int32(size), gl.SHORT, normalize, int32(stride), gl.PtrOffset(offset))

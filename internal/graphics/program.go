@@ -49,10 +49,9 @@ func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
 	}
 	offset := 0
 	for _, p := range a.parts {
-		b := p.unit * p.num
-		// TODO: Argument order doesn't match with glVertexAttribPointer: Fix them.
-		c.VertexAttribPointer(program, p.name, p.normalize, total, b, offset)
-		offset += b
+		size := p.unit * p.num
+		c.VertexAttribPointer(program, p.name, size, p.normalize, total, offset)
+		offset += size
 	}
 }
 
