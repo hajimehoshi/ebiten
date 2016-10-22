@@ -89,8 +89,8 @@ func (t *textureQuads) vertices() []uint8 {
 	vertices := make([]uint8, l*size)
 	p := t.parts
 	w, h := t.width, t.height
-	width2p := int(graphics.NextPowerOf2Int32(int32(w)))
-	height2p := int(graphics.NextPowerOf2Int32(int32(h)))
+	width2p := graphics.NextPowerOf2Int(w)
+	height2p := graphics.NextPowerOf2Int(h)
 	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := p.Dst(i)

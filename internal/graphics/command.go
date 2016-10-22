@@ -260,8 +260,8 @@ func adjustImageForTexture(img *image.RGBA) *image.RGBA {
 	adjustedImageBounds := image.Rectangle{
 		image.ZP,
 		image.Point{
-			int(NextPowerOf2Int32(int32(width))),
-			int(NextPowerOf2Int32(int32(height))),
+			NextPowerOf2Int(width),
+			NextPowerOf2Int(height),
 		},
 	}
 	if img.Bounds() == adjustedImageBounds {
@@ -309,8 +309,8 @@ type newImageCommand struct {
 }
 
 func (c *newImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
-	w := int(NextPowerOf2Int32(int32(c.width)))
-	h := int(NextPowerOf2Int32(int32(c.height)))
+	w := NextPowerOf2Int(c.width)
+	h := NextPowerOf2Int(c.height)
 	if w < 1 {
 		return errors.New("graphics: width must be equal or more than 1.")
 	}

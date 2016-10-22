@@ -14,12 +14,13 @@
 
 package graphics
 
-func NextPowerOf2Int32(x int32) int32 {
-	x -= 1
-	x |= (x >> 1)
-	x |= (x >> 2)
-	x |= (x >> 4)
-	x |= (x >> 8)
-	x |= (x >> 16)
-	return x + 1
+func NextPowerOf2Int(x int) int {
+	if x <= 0 {
+		panic("x must be positive")
+	}
+	r := 1
+	for r < x {
+		r <<= 1
+	}
+	return r
 }
