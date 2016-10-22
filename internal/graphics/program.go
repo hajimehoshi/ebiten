@@ -22,7 +22,7 @@ import (
 
 type arrayBufferLayoutPart struct {
 	name      string
-	unit      int // e.g. int16 is 2 [bytes]
+	dataType  opengl.DataType
 	num       int
 	normalize bool
 }
@@ -34,7 +34,7 @@ type arrayBufferLayout struct {
 func (a *arrayBufferLayout) newArrayBuffer(c *opengl.Context) opengl.Buffer {
 	total := 0
 	for _, p := range a.parts {
-		total += p.unit * p.num
+		total += p.dataType.SizeInBytes() * p.num
 	}
 	return c.NewBuffer(opengl.ArrayBuffer, total*4*maxQuads, opengl.DynamicDraw)
 }
@@ -45,12 +45,12 @@ func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
 	}
 	total := 0
 	for _, p := range a.parts {
-		total += p.unit * p.num
+		total += p.dataType.SizeInBytes() * p.num
 	}
 	offset := 0
 	for _, p := range a.parts {
-		size := p.unit * p.num
-		c.VertexAttribPointer(program, p.name, size, opengl.Short, p.normalize, total, offset)
+		size := p.dataType.SizeInBytes() * p.num
+		c.VertexAttribPointer(program, p.name, size, p.dataType, p.normalize, total, offset)
 		offset += size
 	}
 }
@@ -62,23 +62,18 @@ func (a *arrayBufferLayout) disable(c *opengl.Context, program opengl.Program) {
 	}
 }
 
-// unsafe.SizeOf can't be used because unsafe doesn't work with GopherJS.
-const (
-	int16Size = 2
-)
-
 var (
 	theArrayBufferLayout = arrayBufferLayout{
 		parts: []arrayBufferLayoutPart{
 			{
 				name:      "vertex",
-				unit:      int16Size,
+				dataType:  opengl.Short,
 				num:       2,
 				normalize: false,
 			},
 			{
 				name:      "tex_coord",
-				unit:      int16Size,
+				dataType:  opengl.Short,
 				num:       2,
 				normalize: true,
 			},

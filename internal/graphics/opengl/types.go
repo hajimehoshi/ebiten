@@ -22,7 +22,6 @@ type Mode int
 type operation int
 
 type CompositeMode int
-type DataType int
 
 const (
 	CompositeModeSourceOver CompositeMode = iota // This value must be 0 (= initial value)
@@ -69,6 +68,19 @@ func operations(mode CompositeMode) (src operation, dst operation) {
 		return oneMinusDstAlpha, oneMinusSrcAlpha
 	case CompositeModeLighter:
 		return one, one
+	default:
+		panic("not reach")
+	}
+}
+
+type DataType int
+
+func (d DataType) SizeInBytes() int {
+	switch d {
+	case Short:
+		return 2
+	case Float:
+		return 4
 	default:
 		panic("not reach")
 	}
