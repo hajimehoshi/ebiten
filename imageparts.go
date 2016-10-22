@@ -92,6 +92,7 @@ func (t *textureQuads) vertices() []uint8 {
 	width2p := graphics.NextPowerOf2Int(w)
 	height2p := graphics.NextPowerOf2Int(h)
 	n := 0
+	vs := make([]int16, 16)
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := p.Dst(i)
 		if dx0 == dx1 || dy0 == dy1 {
@@ -103,73 +104,33 @@ func (t *textureQuads) vertices() []uint8 {
 			continue
 		}
 		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
+		vs[0] = x0
+		vs[1] = y0
+		vs[2] = u0
+		vs[3] = v0
+		vs[4] = x1
+		vs[5] = y0
+		vs[6] = u1
+		vs[7] = v0
+		vs[8] = x0
+		vs[9] = y1
+		vs[10] = u0
+		vs[11] = v1
+		vs[12] = x1
+		vs[13] = y1
+		vs[14] = u1
+		vs[15] = v1
 		// Use direct assign here. `append` function might be slow on browsers.
 		if endian.IsLittle() {
-			vertices[size*n] = uint8(x0)
-			vertices[size*n+1] = uint8(x0 >> 8)
-			vertices[size*n+2] = uint8(y0)
-			vertices[size*n+3] = uint8(y0 >> 8)
-			vertices[size*n+4] = uint8(u0)
-			vertices[size*n+5] = uint8(u0 >> 8)
-			vertices[size*n+6] = uint8(v0)
-			vertices[size*n+7] = uint8(v0 >> 8)
-			vertices[size*n+8] = uint8(x1)
-			vertices[size*n+9] = uint8(x1 >> 8)
-			vertices[size*n+10] = uint8(y0)
-			vertices[size*n+11] = uint8(y0 >> 8)
-			vertices[size*n+12] = uint8(u1)
-			vertices[size*n+13] = uint8(u1 >> 8)
-			vertices[size*n+14] = uint8(v0)
-			vertices[size*n+15] = uint8(v0 >> 8)
-			vertices[size*n+16] = uint8(x0)
-			vertices[size*n+17] = uint8(x0 >> 8)
-			vertices[size*n+18] = uint8(y1)
-			vertices[size*n+19] = uint8(y1 >> 8)
-			vertices[size*n+20] = uint8(u0)
-			vertices[size*n+21] = uint8(u0 >> 8)
-			vertices[size*n+22] = uint8(v1)
-			vertices[size*n+23] = uint8(v1 >> 8)
-			vertices[size*n+24] = uint8(x1)
-			vertices[size*n+25] = uint8(x1 >> 8)
-			vertices[size*n+26] = uint8(y1)
-			vertices[size*n+27] = uint8(y1 >> 8)
-			vertices[size*n+28] = uint8(u1)
-			vertices[size*n+29] = uint8(u1 >> 8)
-			vertices[size*n+30] = uint8(v1)
-			vertices[size*n+31] = uint8(v1 >> 8)
+			for i, v := range vs {
+				vertices[size*n+2*i] = uint8(v)
+				vertices[size*n+2*i+1] = uint8(v >> 8)
+			}
 		} else {
-			vertices[size*n] = uint8(x0 >> 8)
-			vertices[size*n+1] = uint8(x0)
-			vertices[size*n+2] = uint8(y0 >> 8)
-			vertices[size*n+3] = uint8(y0)
-			vertices[size*n+4] = uint8(u0 >> 8)
-			vertices[size*n+5] = uint8(u0)
-			vertices[size*n+6] = uint8(v0 >> 8)
-			vertices[size*n+7] = uint8(v0)
-			vertices[size*n+8] = uint8(x1 >> 8)
-			vertices[size*n+9] = uint8(x1)
-			vertices[size*n+10] = uint8(y0 >> 8)
-			vertices[size*n+11] = uint8(y0)
-			vertices[size*n+12] = uint8(u1 >> 8)
-			vertices[size*n+13] = uint8(u1)
-			vertices[size*n+14] = uint8(v0 >> 8)
-			vertices[size*n+15] = uint8(v0)
-			vertices[size*n+16] = uint8(x0 >> 8)
-			vertices[size*n+17] = uint8(x0)
-			vertices[size*n+18] = uint8(y1 >> 8)
-			vertices[size*n+19] = uint8(y1)
-			vertices[size*n+20] = uint8(u0 >> 8)
-			vertices[size*n+21] = uint8(u0)
-			vertices[size*n+22] = uint8(v1 >> 8)
-			vertices[size*n+23] = uint8(v1)
-			vertices[size*n+24] = uint8(x1 >> 8)
-			vertices[size*n+25] = uint8(x1)
-			vertices[size*n+26] = uint8(y1 >> 8)
-			vertices[size*n+27] = uint8(y1)
-			vertices[size*n+28] = uint8(u1 >> 8)
-			vertices[size*n+29] = uint8(u1)
-			vertices[size*n+30] = uint8(v1 >> 8)
-			vertices[size*n+31] = uint8(v1)
+			for i, v := range vs {
+				vertices[size*n+2*i] = uint8(v >> 8)
+				vertices[size*n+2*i+1] = uint8(v)
+			}
 		}
 		n++
 	}
