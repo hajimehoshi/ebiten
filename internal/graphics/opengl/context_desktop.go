@@ -468,6 +468,7 @@ func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage Bu
 		case int:
 			gl.BufferData(uint32(bufferType), v, nil, uint32(bufferUsage))
 		case []uint16:
+			// TODO: What about the endianness?
 			gl.BufferData(uint32(bufferType), 2*len(v), gl.Ptr(v), uint32(bufferUsage))
 		default:
 			panic("not reach")
@@ -485,14 +486,9 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	})
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data interface{}) {
+func (c *Context) BufferSubData(bufferType BufferType, data []uint8) {
 	_ = c.runOnContextThread(func() error {
-		switch data := data.(type) {
-		case []int16:
-			gl.BufferSubData(uint32(bufferType), 0, 2*len(data), gl.Ptr(data))
-		default:
-			panic("not reach")
-		}
+		gl.BufferSubData(uint32(bufferType), 0, len(data), gl.Ptr(data))
 		return nil
 	})
 }

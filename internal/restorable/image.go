@@ -25,7 +25,7 @@ import (
 
 type drawImageHistoryItem struct {
 	image    *graphics.Image
-	vertices []int16
+	vertices []uint8
 	geom     graphics.Matrix
 	colorm   graphics.Matrix
 	mode     opengl.CompositeMode
@@ -145,7 +145,7 @@ func (p *Image) ReplacePixels(pixels []uint8) error {
 	return nil
 }
 
-func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
+func (p *Image) DrawImage(img *Image, vertices []uint8, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
 	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
@@ -157,7 +157,7 @@ func (p *Image) DrawImage(img *Image, vertices []int16, geom graphics.Matrix, co
 	return nil
 }
 
-func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []int16, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
+func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []uint8, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}

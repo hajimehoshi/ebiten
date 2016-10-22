@@ -96,7 +96,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
 	for _, g := range q.commandGroups() {
-		vertices := []int16{}
+		vertices := []uint8{}
 		for _, c := range g {
 			switch c := c.(type) {
 			case *drawImageCommand:
@@ -155,14 +155,14 @@ func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) erro
 type drawImageCommand struct {
 	dst      *Image
 	src      *Image
-	vertices []int16
+	vertices []uint8
 	geo      Matrix
 	color    Matrix
 	mode     opengl.CompositeMode
 }
 
 const (
-	quadVertexNum = 16 // 4 * 2 [vertices] * 2 [tex_coords]
+	quadVertexNum = 32 // 4 * 2 [vertices] * 2 [tex_coords] * 2[bytes]
 )
 
 func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {

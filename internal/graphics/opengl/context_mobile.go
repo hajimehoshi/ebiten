@@ -357,19 +357,11 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 }
 
 func uint16ToBytes(v []uint16) []uint8 {
+	// TODO: Consider endian?
 	b := make([]uint8, len(v)*2)
 	for i, x := range v {
 		b[2*i] = uint8(x)
 		b[2*i+1] = uint8(x >> 8)
-	}
-	return b
-}
-
-func int16ToBytes(v []int16) []uint8 {
-	b := make([]uint8, len(v)*2)
-	for i, x := range v {
-		b[2*i] = uint8(uint16(x))
-		b[2*i+1] = uint8(uint16(x) >> 8)
 	}
 	return b
 }
@@ -394,14 +386,9 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl.BindBuffer(mgl.ELEMENT_ARRAY_BUFFER, mgl.Buffer(b))
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data interface{}) {
+func (c *Context) BufferSubData(bufferType BufferType, data []uint8) {
 	gl := c.gl
-	switch data := data.(type) {
-	case []int16:
-		gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
-	default:
-		panic("not reach")
-	}
+	gl.BufferSubData(mgl.Enum(bufferType), 0, data)
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {

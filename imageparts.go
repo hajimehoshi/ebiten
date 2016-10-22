@@ -18,6 +18,7 @@ import (
 	"image"
 	"math"
 
+	"github.com/hajimehoshi/ebiten/internal/endian"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
@@ -82,9 +83,9 @@ type textureQuads struct {
 	height int
 }
 
-func (t *textureQuads) vertices() []int16 {
+func (t *textureQuads) vertices() []uint8 {
 	l := t.parts.Len()
-	vertices := make([]int16, 0, l*16)
+	vertices := make([]uint8, 0, l*32)
 	p := t.parts
 	w, h := t.width, t.height
 	width2p := int(graphics.NextPowerOf2Int32(int32(w)))
@@ -100,11 +101,27 @@ func (t *textureQuads) vertices() []int16 {
 			continue
 		}
 		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
-		vertices = append(vertices,
-			x0, y0, u0, v0,
-			x1, y0, u1, v0,
-			x0, y1, u0, v1,
-			x1, y1, u1, v1)
+		if endian.IsLittle() {
+			vertices = append(vertices,
+				uint8(x0), uint8(x0>>8), uint8(y0), uint8(y0>>8),
+				uint8(u0), uint8(u0>>8), uint8(v0), uint8(v0>>8),
+				uint8(x1), uint8(x1>>8), uint8(y0), uint8(y0>>8),
+				uint8(u1), uint8(u1>>8), uint8(v0), uint8(v0>>8),
+				uint8(x0), uint8(x0>>8), uint8(y1), uint8(y1>>8),
+				uint8(u0), uint8(u0>>8), uint8(v1), uint8(v1>>8),
+				uint8(x1), uint8(x1>>8), uint8(y1), uint8(y1>>8),
+				uint8(u1), uint8(u1>>8), uint8(v1), uint8(v1>>8))
+		} else {
+			vertices = append(vertices,
+				uint8(x0>>8), uint8(x0), uint8(y0>>8), uint8(y0),
+				uint8(u0>>8), uint8(u0), uint8(v0>>8), uint8(v0),
+				uint8(x1>>8), uint8(x1), uint8(y0>>8), uint8(y0),
+				uint8(u1>>8), uint8(u1), uint8(v0>>8), uint8(v0),
+				uint8(x0>>8), uint8(x0), uint8(y1>>8), uint8(y1),
+				uint8(u0>>8), uint8(u0), uint8(v1>>8), uint8(v1),
+				uint8(x1>>8), uint8(x1), uint8(y1>>8), uint8(y1),
+				uint8(u1>>8), uint8(u1), uint8(v1>>8), uint8(v1))
+		}
 	}
 	return vertices
 }
