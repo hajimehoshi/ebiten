@@ -84,7 +84,7 @@ type textureQuads struct {
 }
 
 func (t *textureQuads) vertices() []uint8 {
-	const size = graphics.QuadVertexNum
+	size := graphics.QuadVertexSizeInBytes()
 	l := t.parts.Len()
 	vertices := make([]uint8, l*size)
 	p := t.parts
