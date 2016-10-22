@@ -50,7 +50,7 @@ func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
 	offset := 0
 	for _, p := range a.parts {
 		size := p.unit * p.num
-		c.VertexAttribPointer(program, p.name, size, p.normalize, total, offset)
+		c.VertexAttribPointer(program, p.name, size, opengl.Short, p.normalize, total, offset)
 		offset += size
 	}
 }

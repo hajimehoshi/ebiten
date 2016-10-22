@@ -57,6 +57,8 @@ func init() {
 	StaticDraw = gl.STATIC_DRAW
 	Triangles = gl.TRIANGLES
 	Lines = gl.LINES
+	Short = gl.SHORT
+	Float = gl.FLOAT
 
 	zero = gl.ZERO
 	one = gl.ONE
@@ -432,10 +434,10 @@ func (c *Context) getAttribLocationImpl(p Program, location string) attribLocati
 	return attrib
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, size int, normalize bool, stride int, offset int) {
+func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, normalize bool, stride int, offset int) {
 	_ = c.runOnContextThread(func() error {
 		l := c.locationCache.GetAttribLocation(c, p, location)
-		gl.VertexAttribPointer(uint32(l), int32(size), gl.SHORT, normalize, int32(stride), gl.PtrOffset(offset))
+		gl.VertexAttribPointer(uint32(l), int32(size), uint32(dataType), normalize, int32(stride), gl.PtrOffset(offset))
 		return nil
 	})
 }

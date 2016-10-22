@@ -22,6 +22,7 @@ type Mode int
 type operation int
 
 type CompositeMode int
+type DataType int
 
 const (
 	CompositeModeSourceOver CompositeMode = iota // This value must be 0 (= initial value)

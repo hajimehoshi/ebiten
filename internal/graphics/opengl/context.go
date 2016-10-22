@@ -25,6 +25,8 @@ var (
 	StaticDraw         BufferUsage
 	Triangles          Mode
 	Lines              Mode
+	Short              DataType
+	Float              DataType
 
 	zero             operation
 	one              operation
