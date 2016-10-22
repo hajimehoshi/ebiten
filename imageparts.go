@@ -85,11 +85,12 @@ type textureQuads struct {
 
 func (t *textureQuads) vertices() []uint8 {
 	l := t.parts.Len()
-	vertices := make([]uint8, 0, l*32)
+	vertices := make([]uint8, l*32)
 	p := t.parts
 	w, h := t.width, t.height
 	width2p := int(graphics.NextPowerOf2Int32(int32(w)))
 	height2p := int(graphics.NextPowerOf2Int32(int32(h)))
+	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := p.Dst(i)
 		if dx0 == dx1 || dy0 == dy1 {
@@ -101,27 +102,75 @@ func (t *textureQuads) vertices() []uint8 {
 			continue
 		}
 		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
+		// Use direct assign here. `append` function might be slow on browsers.
 		if endian.IsLittle() {
-			vertices = append(vertices,
-				uint8(x0), uint8(x0>>8), uint8(y0), uint8(y0>>8),
-				uint8(u0), uint8(u0>>8), uint8(v0), uint8(v0>>8),
-				uint8(x1), uint8(x1>>8), uint8(y0), uint8(y0>>8),
-				uint8(u1), uint8(u1>>8), uint8(v0), uint8(v0>>8),
-				uint8(x0), uint8(x0>>8), uint8(y1), uint8(y1>>8),
-				uint8(u0), uint8(u0>>8), uint8(v1), uint8(v1>>8),
-				uint8(x1), uint8(x1>>8), uint8(y1), uint8(y1>>8),
-				uint8(u1), uint8(u1>>8), uint8(v1), uint8(v1>>8))
+			vertices[32*n] = uint8(x0)
+			vertices[32*n+1] = uint8(x0 >> 8)
+			vertices[32*n+2] = uint8(y0)
+			vertices[32*n+3] = uint8(y0 >> 8)
+			vertices[32*n+4] = uint8(u0)
+			vertices[32*n+5] = uint8(u0 >> 8)
+			vertices[32*n+6] = uint8(v0)
+			vertices[32*n+7] = uint8(v0 >> 8)
+			vertices[32*n+8] = uint8(x1)
+			vertices[32*n+9] = uint8(x1 >> 8)
+			vertices[32*n+10] = uint8(y0)
+			vertices[32*n+11] = uint8(y0 >> 8)
+			vertices[32*n+12] = uint8(u1)
+			vertices[32*n+13] = uint8(u1 >> 8)
+			vertices[32*n+14] = uint8(v0)
+			vertices[32*n+15] = uint8(v0 >> 8)
+			vertices[32*n+16] = uint8(x0)
+			vertices[32*n+17] = uint8(x0 >> 8)
+			vertices[32*n+18] = uint8(y1)
+			vertices[32*n+19] = uint8(y1 >> 8)
+			vertices[32*n+20] = uint8(u0)
+			vertices[32*n+21] = uint8(u0 >> 8)
+			vertices[32*n+22] = uint8(v1)
+			vertices[32*n+23] = uint8(v1 >> 8)
+			vertices[32*n+24] = uint8(x1)
+			vertices[32*n+25] = uint8(x1 >> 8)
+			vertices[32*n+26] = uint8(y1)
+			vertices[32*n+27] = uint8(y1 >> 8)
+			vertices[32*n+28] = uint8(u1)
+			vertices[32*n+29] = uint8(u1 >> 8)
+			vertices[32*n+30] = uint8(v1)
+			vertices[32*n+31] = uint8(v1 >> 8)
 		} else {
-			vertices = append(vertices,
-				uint8(x0>>8), uint8(x0), uint8(y0>>8), uint8(y0),
-				uint8(u0>>8), uint8(u0), uint8(v0>>8), uint8(v0),
-				uint8(x1>>8), uint8(x1), uint8(y0>>8), uint8(y0),
-				uint8(u1>>8), uint8(u1), uint8(v0>>8), uint8(v0),
-				uint8(x0>>8), uint8(x0), uint8(y1>>8), uint8(y1),
-				uint8(u0>>8), uint8(u0), uint8(v1>>8), uint8(v1),
-				uint8(x1>>8), uint8(x1), uint8(y1>>8), uint8(y1),
-				uint8(u1>>8), uint8(u1), uint8(v1>>8), uint8(v1))
+			vertices[32*n] = uint8(x0 >> 8)
+			vertices[32*n+1] = uint8(x0)
+			vertices[32*n+2] = uint8(y0 >> 8)
+			vertices[32*n+3] = uint8(y0)
+			vertices[32*n+4] = uint8(u0 >> 8)
+			vertices[32*n+5] = uint8(u0)
+			vertices[32*n+6] = uint8(v0 >> 8)
+			vertices[32*n+7] = uint8(v0)
+			vertices[32*n+8] = uint8(x1 >> 8)
+			vertices[32*n+9] = uint8(x1)
+			vertices[32*n+10] = uint8(y0 >> 8)
+			vertices[32*n+11] = uint8(y0)
+			vertices[32*n+12] = uint8(u1 >> 8)
+			vertices[32*n+13] = uint8(u1)
+			vertices[32*n+14] = uint8(v0 >> 8)
+			vertices[32*n+15] = uint8(v0)
+			vertices[32*n+16] = uint8(x0 >> 8)
+			vertices[32*n+17] = uint8(x0)
+			vertices[32*n+18] = uint8(y1 >> 8)
+			vertices[32*n+19] = uint8(y1)
+			vertices[32*n+20] = uint8(u0 >> 8)
+			vertices[32*n+21] = uint8(u0)
+			vertices[32*n+22] = uint8(v1 >> 8)
+			vertices[32*n+23] = uint8(v1)
+			vertices[32*n+24] = uint8(x1 >> 8)
+			vertices[32*n+25] = uint8(x1)
+			vertices[32*n+26] = uint8(y1 >> 8)
+			vertices[32*n+27] = uint8(y1)
+			vertices[32*n+28] = uint8(u1 >> 8)
+			vertices[32*n+29] = uint8(u1)
+			vertices[32*n+30] = uint8(v1 >> 8)
+			vertices[32*n+31] = uint8(v1)
 		}
+		n++
 	}
-	return vertices
+	return vertices[:n*32]
 }
