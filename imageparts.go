@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"fmt"
 	"image"
 	"math"
 
@@ -83,14 +82,11 @@ type textureQuads struct {
 	height int
 }
 
-func (t *textureQuads) vertices(vertices []int16) int {
+func (t *textureQuads) vertices() []int16 {
 	l := t.parts.Len()
-	if len(vertices) < l*16 {
-		panic(fmt.Sprintf("ebiten: vertices size must be greater than %d but %d", l*16, len(vertices)))
-	}
+	vertices := make([]int16, 0, l*16)
 	p := t.parts
 	w, h := t.width, t.height
-	n := 0
 	width2p := int(graphics.NextPowerOf2Int32(int32(w)))
 	height2p := int(graphics.NextPowerOf2Int32(int32(h)))
 	for i := 0; i < l; i++ {
@@ -104,23 +100,11 @@ func (t *textureQuads) vertices(vertices []int16) int {
 			continue
 		}
 		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
-		vertices[16*n] = x0
-		vertices[16*n+1] = y0
-		vertices[16*n+2] = u0
-		vertices[16*n+3] = v0
-		vertices[16*n+4] = x1
-		vertices[16*n+5] = y0
-		vertices[16*n+6] = u1
-		vertices[16*n+7] = v0
-		vertices[16*n+8] = x0
-		vertices[16*n+9] = y1
-		vertices[16*n+10] = u0
-		vertices[16*n+11] = v1
-		vertices[16*n+12] = x1
-		vertices[16*n+13] = y1
-		vertices[16*n+14] = u1
-		vertices[16*n+15] = v1
-		n++
+		vertices = append(vertices,
+			x0, y0, u0, v0,
+			x1, y0, u1, v0,
+			x0, y1, u0, v1,
+			x1, y1, u1, v1)
 	}
-	return n
+	return vertices
 }

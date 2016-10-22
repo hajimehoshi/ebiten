@@ -129,10 +129,8 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	w, h := image.impl.restorable.Size()
 	quads := &textureQuads{parts: parts, width: w, height: h}
-	// TODO: Reuse one vertices instead of making here, but this would need locking.
-	vertices := make([]int16, parts.Len()*16)
-	n := quads.vertices(vertices)
-	if n == 0 {
+	vertices := quads.vertices()
+	if len(vertices) == 0 {
 		return nil
 	}
 	if i == image.impl {
