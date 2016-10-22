@@ -356,20 +356,20 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
-func uint16ToBytes(v []uint16) []byte {
-	b := make([]byte, len(v)*2)
+func uint16ToBytes(v []uint16) []uint8 {
+	b := make([]uint8, len(v)*2)
 	for i, x := range v {
-		b[2*i] = byte(x)
-		b[2*i+1] = byte(x >> 8)
+		b[2*i] = uint8(x)
+		b[2*i+1] = uint8(x >> 8)
 	}
 	return b
 }
 
-func int16ToBytes(v []int16) []byte {
-	b := make([]byte, len(v)*2)
+func int16ToBytes(v []int16) []uint8 {
+	b := make([]uint8, len(v)*2)
 	for i, x := range v {
-		b[2*i] = byte(uint16(x))
-		b[2*i+1] = byte(uint16(x) >> 8)
+		b[2*i] = uint8(uint16(x))
+		b[2*i+1] = uint8(uint16(x) >> 8)
 	}
 	return b
 }
