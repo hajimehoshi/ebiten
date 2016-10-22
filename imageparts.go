@@ -84,9 +84,10 @@ type textureQuads struct {
 }
 
 func (t *textureQuads) vertices() []uint8 {
-	size := graphics.QuadVertexSizeInBytes()
+	totalSize := graphics.QuadVertexSizeInBytes()
+	oneSize := totalSize / 4
 	l := t.parts.Len()
-	vertices := make([]uint8, l*size)
+	vertices := make([]uint8, l*totalSize)
 	p := t.parts
 	w, h := t.width, t.height
 	width2p := graphics.NextPowerOf2Int(w)
@@ -123,16 +124,16 @@ func (t *textureQuads) vertices() []uint8 {
 		// Use direct assign here. `append` function might be slow on browsers.
 		if endian.IsLittle() {
 			for i, v := range vs {
-				vertices[size*n+2*i] = uint8(v)
-				vertices[size*n+2*i+1] = uint8(v >> 8)
+				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)] = uint8(v)
+				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)+1] = uint8(v >> 8)
 			}
 		} else {
 			for i, v := range vs {
-				vertices[size*n+2*i] = uint8(v >> 8)
-				vertices[size*n+2*i+1] = uint8(v)
+				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)] = uint8(v >> 8)
+				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)+1] = uint8(v)
 			}
 		}
 		n++
 	}
-	return vertices[:n*size]
+	return vertices[:n*totalSize]
 }
