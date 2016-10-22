@@ -108,8 +108,8 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 		}
 		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 		// Let's use them to compare to len(quads) in the future.
-		if maxQuads < len(vertices)/quadVertexNum {
-			return errors.New(fmt.Sprintf("len(quads) must be equal to or less than %d", maxQuads))
+		if maxQuads < len(vertices)/QuadVertexNum {
+			return fmt.Errorf("len(quads) must be equal to or less than %d", maxQuads)
 		}
 		numc := len(g)
 		indexOffsetInBytes := 0
@@ -118,7 +118,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 				return err
 			}
 			if c, ok := c.(*drawImageCommand); ok {
-				indexOffsetInBytes += 6 * len(c.vertices) / quadVertexNum * 2
+				indexOffsetInBytes += 6 * len(c.vertices) / QuadVertexNum * 2
 			}
 		}
 		if 0 < numc {
@@ -162,7 +162,7 @@ type drawImageCommand struct {
 }
 
 const (
-	quadVertexNum = 32 // 4 * 2 [vertices] * 2 [tex_coords] * 2[bytes]
+	QuadVertexNum = 32 // 4 * 2 [vertices] * 2 [tex_coords] * 2[bytes]
 )
 
 func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
@@ -199,13 +199,13 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c1 := *c
 	c2 := *c
-	c1.vertices = c.vertices[:quadsNum*quadVertexNum]
-	c2.vertices = c.vertices[quadsNum*quadVertexNum:]
+	c1.vertices = c.vertices[:quadsNum*QuadVertexNum]
+	c2.vertices = c.vertices[quadsNum*QuadVertexNum:]
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
 func (c *drawImageCommand) quadsNum() int {
-	return len(c.vertices) / quadVertexNum
+	return len(c.vertices) / QuadVertexNum
 }
 
 type replacePixelsCommand struct {
