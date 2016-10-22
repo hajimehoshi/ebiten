@@ -21,6 +21,7 @@ import (
 )
 
 type arrayBufferLayoutPart struct {
+	// TODO: This struct should belong to a program and know it.
 	name      string
 	dataType  opengl.DataType
 	num       int
