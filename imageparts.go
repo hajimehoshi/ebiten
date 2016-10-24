@@ -124,12 +124,16 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []uint8 {
 		for j := 0; j < 4; j++ {
 			offset := totalSize*n + oneSize*j
 			if endian.IsLittle() {
-				for k, v := range vs[4*j : 4*j+4] {
+				// Subslicing like vs[4*j:4*j+4] is slow on browsers.
+				// Don't do this.
+				for k := 0; k < 4; k++ {
+					v := vs[4*j+k]
 					vertices[offset+2*k] = uint8(v)
 					vertices[offset+2*k+1] = uint8(v >> 8)
 				}
 			} else {
-				for k, v := range vs[4*j : 4*j+4] {
+				for k := 0; k < 4; k++ {
+					v := vs[4*j+k]
 					vertices[offset+2*k] = uint8(v >> 8)
 					vertices[offset+2*k+1] = uint8(v)
 				}
