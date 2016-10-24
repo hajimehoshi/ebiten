@@ -65,6 +65,7 @@ func (a *arrayBufferLayout) disable(c *opengl.Context, program opengl.Program) {
 
 var (
 	theArrayBufferLayout = arrayBufferLayout{
+		// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
 		parts: []arrayBufferLayoutPart{
 			{
 				name:      "vertex",
@@ -77,6 +78,18 @@ var (
 				dataType:  opengl.Short,
 				num:       2,
 				normalize: true,
+			},
+			{
+				name:      "geo_matrix",
+				dataType:  opengl.Float,
+				num:       4,
+				normalize: false,
+			},
+			{
+				name:      "geo_matrix_translation",
+				dataType:  opengl.Float,
+				num:       2,
+				normalize: false,
 			},
 		},
 	}

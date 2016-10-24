@@ -128,7 +128,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		}
 	}
 	w, h := image.impl.restorable.Size()
-	vs := vertices(parts, w, h)
+	vs := vertices(parts, w, h, &options.GeoM)
 	if len(vs) == 0 {
 		return nil
 	}

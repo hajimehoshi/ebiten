@@ -77,7 +77,8 @@ func v(y, height2p int) int16 {
 	return int16(math.MaxInt16 * y / height2p)
 }
 
-func vertices(parts ImageParts, width, height int) []uint8 {
+func vertices(parts ImageParts, width, height int, geo *GeoM) []uint8 {
+	// TODO: This function should be in graphics package?
 	totalSize := graphics.QuadVertexSizeInBytes()
 	oneSize := totalSize / 4
 	l := parts.Len()
@@ -86,6 +87,12 @@ func vertices(parts ImageParts, width, height int) []uint8 {
 	height2p := graphics.NextPowerOf2Int(height)
 	n := 0
 	vs := make([]int16, 16)
+	geoBytes := floatBytes(geo.Element(0, 0),
+		geo.Element(0, 1),
+		geo.Element(1, 0),
+		geo.Element(1, 1),
+		geo.Element(0, 2),
+		geo.Element(1, 2))
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
 		if dx0 == dx1 || dy0 == dy1 {
@@ -114,15 +121,21 @@ func vertices(parts ImageParts, width, height int) []uint8 {
 		vs[14] = u1
 		vs[15] = v1
 		// Use direct assign here. `append` function might be slow on browsers.
-		if endian.IsLittle() {
-			for i, v := range vs {
-				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)] = uint8(v)
-				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)+1] = uint8(v >> 8)
+		for j := 0; j < 4; j++ {
+			offset := totalSize*n + oneSize*j
+			if endian.IsLittle() {
+				for k, v := range vs[4*j : 4*j+4] {
+					vertices[offset+2*k] = uint8(v)
+					vertices[offset+2*k+1] = uint8(v >> 8)
+				}
+			} else {
+				for k, v := range vs[4*j : 4*j+4] {
+					vertices[offset+2*k] = uint8(v >> 8)
+					vertices[offset+2*k+1] = uint8(v)
+				}
 			}
-		} else {
-			for i, v := range vs {
-				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)] = uint8(v >> 8)
-				vertices[totalSize*n+oneSize*(i/4)+2*(i%4)+1] = uint8(v)
+			for k, g := range geoBytes {
+				vertices[offset+8+k] = g
 			}
 		}
 		n++
