@@ -80,7 +80,7 @@ var (
 				normalize: true,
 			},
 			{
-				name:      "geo_matrix",
+				name:      "geo_matrix_body",
 				dataType:  opengl.Float,
 				num:       4,
 				normalize: false,
