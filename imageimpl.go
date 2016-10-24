@@ -128,9 +128,8 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		}
 	}
 	w, h := image.impl.restorable.Size()
-	quads := &textureQuads{parts: parts, width: w, height: h}
-	vertices := quads.vertices()
-	if len(vertices) == 0 {
+	vs := vertices(parts, w, h)
+	if len(vs) == 0 {
 		return nil
 	}
 	if i == image.impl {
@@ -144,7 +143,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if err := i.restorable.DrawImage(image.impl.restorable, vertices, &geom, &colorm, mode); err != nil {
+	if err := i.restorable.DrawImage(image.impl.restorable, vs, &geom, &colorm, mode); err != nil {
 		return err
 	}
 	return nil

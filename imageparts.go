@@ -77,30 +77,22 @@ func v(y, height2p int) int16 {
 	return int16(math.MaxInt16 * y / height2p)
 }
 
-type textureQuads struct {
-	parts  ImageParts
-	width  int
-	height int
-}
-
-func (t *textureQuads) vertices() []uint8 {
+func vertices(parts ImageParts, width, height int) []uint8 {
 	totalSize := graphics.QuadVertexSizeInBytes()
 	oneSize := totalSize / 4
-	l := t.parts.Len()
+	l := parts.Len()
 	vertices := make([]uint8, l*totalSize)
-	p := t.parts
-	w, h := t.width, t.height
-	width2p := graphics.NextPowerOf2Int(w)
-	height2p := graphics.NextPowerOf2Int(h)
+	width2p := graphics.NextPowerOf2Int(width)
+	height2p := graphics.NextPowerOf2Int(height)
 	n := 0
 	vs := make([]int16, 16)
 	for i := 0; i < l; i++ {
-		dx0, dy0, dx1, dy1 := p.Dst(i)
+		dx0, dy0, dx1, dy1 := parts.Dst(i)
 		if dx0 == dx1 || dy0 == dy1 {
 			continue
 		}
 		x0, y0, x1, y1 := int16(dx0), int16(dy0), int16(dx1), int16(dy1)
-		sx0, sy0, sx1, sy1 := p.Src(i)
+		sx0, sy0, sx1, sy1 := parts.Src(i)
 		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
