@@ -241,7 +241,6 @@ func (p *programContext) begin() error {
 		tx, ty, 0, 1,
 	}
 	if !areSameFloat32Array(p.state.lastModelviewMatrix, modelviewMatrix) {
-		c.UniformFloats(p.program, "modelview_matrix", modelviewMatrix)
 		if p.state.lastModelviewMatrix == nil {
 			p.state.lastModelviewMatrix = make([]float32, 16)
 		}

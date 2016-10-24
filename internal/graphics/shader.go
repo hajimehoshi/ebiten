@@ -39,7 +39,6 @@ func shader(c *opengl.Context, id shaderId) string {
 var shaders = map[shaderId]string{
 	shaderVertexModelview: `
 uniform highp mat4 projection_matrix;
-uniform highp mat4 modelview_matrix; // TODO: Remove this
 attribute highp vec2 vertex;
 attribute highp vec2 tex_coord;
 attribute highp vec4 geo_matrix_body;
@@ -48,7 +47,6 @@ varying highp vec2 vertex_out_tex_coord;
 
 void main(void) {
   vertex_out_tex_coord = tex_coord;
-  mat4 x = modelview_matrix; // temporary hack not to omit modelview_matrix
   mat4 geo_matrix = mat4(
     vec4(geo_matrix_body[0], geo_matrix_body[2], 0, 0),
     vec4(geo_matrix_body[1], geo_matrix_body[3], 0, 0),
