@@ -102,7 +102,6 @@ type openGLState struct {
 
 	lastProgram                opengl.Program
 	lastProjectionMatrix       []float32
-	lastModelviewMatrix        []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
 }
@@ -130,7 +129,6 @@ func (s *openGLState) reset(context *opengl.Context) error {
 	}
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
-	s.lastModelviewMatrix = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
 
@@ -198,7 +196,6 @@ type programContext struct {
 	context          *opengl.Context
 	projectionMatrix []float32
 	texture          opengl.Texture
-	geoM             Matrix
 	colorM           Matrix
 }
 
@@ -213,7 +210,6 @@ func (p *programContext) begin() error {
 
 		p.state.lastProgram = p.state.programTexture
 		p.state.lastProjectionMatrix = nil
-		p.state.lastModelviewMatrix = nil
 		p.state.lastColorMatrix = nil
 		p.state.lastColorMatrixTranslation = nil
 		c.BindElementArrayBuffer(p.state.indexBufferQuads)
@@ -226,25 +222,6 @@ func (p *programContext) begin() error {
 			p.state.lastProjectionMatrix = make([]float32, 16)
 		}
 		copy(p.state.lastProjectionMatrix, p.projectionMatrix)
-	}
-
-	ma := float32(p.geoM.Element(0, 0))
-	mb := float32(p.geoM.Element(0, 1))
-	mc := float32(p.geoM.Element(1, 0))
-	md := float32(p.geoM.Element(1, 1))
-	tx := float32(p.geoM.Element(0, 2))
-	ty := float32(p.geoM.Element(1, 2))
-	modelviewMatrix := []float32{
-		ma, mc, 0, 0,
-		mb, md, 0, 0,
-		0, 0, 1, 0,
-		tx, ty, 0, 1,
-	}
-	if !areSameFloat32Array(p.state.lastModelviewMatrix, modelviewMatrix) {
-		if p.state.lastModelviewMatrix == nil {
-			p.state.lastModelviewMatrix = make([]float32, 16)
-		}
-		copy(p.state.lastModelviewMatrix, modelviewMatrix)
 	}
 
 	e := [4][5]float32{}

@@ -156,7 +156,6 @@ type drawImageCommand struct {
 	dst      *Image
 	src      *Image
 	vertices []uint8
-	geo      Matrix
 	color    Matrix
 	mode     opengl.CompositeMode
 }
@@ -183,7 +182,6 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 		context:          context,
 		projectionMatrix: proj,
 		texture:          c.src.texture.native,
-		geoM:             c.geo,
 		colorM:           c.color,
 	}
 	if err := p.begin(); err != nil {

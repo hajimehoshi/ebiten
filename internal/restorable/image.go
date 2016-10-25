@@ -26,7 +26,6 @@ import (
 type drawImageHistoryItem struct {
 	image    *graphics.Image
 	vertices []uint8
-	geom     graphics.Matrix
 	colorm   graphics.Matrix
 	mode     opengl.CompositeMode
 }
@@ -145,19 +144,19 @@ func (p *Image) ReplacePixels(pixels []uint8) error {
 	return nil
 }
 
-func (p *Image) DrawImage(img *Image, vertices []uint8, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) error {
+func (p *Image) DrawImage(img *Image, vertices []uint8, colorm graphics.Matrix, mode opengl.CompositeMode) error {
 	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
-		p.appendDrawImageHistory(img.image, vertices, geom, colorm, mode)
+		p.appendDrawImageHistory(img.image, vertices, colorm, mode)
 	}
-	if err := p.image.DrawImage(img.image, vertices, geom, colorm, mode); err != nil {
+	if err := p.image.DrawImage(img.image, vertices, colorm, mode); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []uint8, geom graphics.Matrix, colorm graphics.Matrix, mode opengl.CompositeMode) {
+func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []uint8, colorm graphics.Matrix, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}
@@ -166,7 +165,6 @@ func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []uint8, 
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
-		geom:     geom,
 		colorm:   colorm,
 		mode:     mode,
 	}
@@ -284,7 +282,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 		/*if c.image.impl.hasHistory() {
 			panic("not reach")
 		}*/
-		if err := gimg.DrawImage(c.image, c.vertices, c.geom, c.colorm, c.mode); err != nil {
+		if err := gimg.DrawImage(c.image, c.vertices, c.colorm, c.mode); err != nil {
 			return err
 		}
 	}

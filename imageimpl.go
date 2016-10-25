@@ -140,10 +140,9 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	if i.restorable == nil {
 		return errors.New("ebiten: image is already disposed")
 	}
-	geom := options.GeoM
 	colorm := options.ColorM
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if err := i.restorable.DrawImage(image.impl.restorable, vs, &geom, &colorm, mode); err != nil {
+	if err := i.restorable.DrawImage(image.impl.restorable, vs, &colorm, mode); err != nil {
 		return err
 	}
 	return nil
