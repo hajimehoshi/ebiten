@@ -20,12 +20,12 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-func floatBytes(xs ...float64) []uint8 {
+func floatsToInt16s(xs ...float64) []int16 {
 	a := js.Global.Get("ArrayBuffer").New(4 * len(xs))
 	af32 := js.Global.Get("Float32Array").New(a)
-	a8 := js.Global.Get("Uint8Array").New(a)
+	a16 := js.Global.Get("Int16Array").New(a)
 	for i, x := range xs {
 		af32.SetIndex(i, x)
 	}
-	return a8.Interface().([]uint8)
+	return a16.Interface().([]int16)
 }

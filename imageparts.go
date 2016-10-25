@@ -18,7 +18,6 @@ import (
 	"image"
 	"math"
 
-	"github.com/hajimehoshi/ebiten/internal/endian"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
@@ -77,17 +76,16 @@ func v(y, height2p int) int16 {
 	return int16(math.MaxInt16 * y / height2p)
 }
 
-func vertices(parts ImageParts, width, height int, geo *GeoM) []uint8 {
+func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	// TODO: This function should be in graphics package?
-	totalSize := graphics.QuadVertexSizeInBytes()
+	totalSize := graphics.QuadVertexSizeInBytes() / 2
 	oneSize := totalSize / 4
 	l := parts.Len()
-	vertices := make([]uint8, l*totalSize)
+	vs := make([]int16, l*totalSize)
 	width2p := graphics.NextPowerOf2Int(width)
 	height2p := graphics.NextPowerOf2Int(height)
 	n := 0
-	vs := make([]int16, 16)
-	geoBytes := floatBytes(geo.Element(0, 0),
+	geo16 := floatsToInt16s(geo.Element(0, 0),
 		geo.Element(0, 1),
 		geo.Element(1, 0),
 		geo.Element(1, 1),
@@ -104,45 +102,36 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []uint8 {
 			continue
 		}
 		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
-		vs[0] = x0
-		vs[1] = y0
-		vs[2] = u0
-		vs[3] = v0
-		vs[4] = x1
-		vs[5] = y0
-		vs[6] = u1
-		vs[7] = v0
-		vs[8] = x0
-		vs[9] = y1
-		vs[10] = u0
-		vs[11] = v1
-		vs[12] = x1
-		vs[13] = y1
-		vs[14] = u1
-		vs[15] = v1
-		// Use direct assign here. `append` function might be slow on browsers.
-		for j := 0; j < 4; j++ {
-			offset := totalSize*n + oneSize*j
-			if endian.IsLittle() {
-				// Subslicing like vs[4*j:4*j+4] is slow on browsers.
-				// Don't do this.
-				for k := 0; k < 4; k++ {
-					v := vs[4*j+k]
-					vertices[offset+2*k] = uint8(v)
-					vertices[offset+2*k+1] = uint8(v >> 8)
-				}
-			} else {
-				for k := 0; k < 4; k++ {
-					v := vs[4*j+k]
-					vertices[offset+2*k] = uint8(v >> 8)
-					vertices[offset+2*k+1] = uint8(v)
-				}
-			}
-			for k, g := range geoBytes {
-				vertices[offset+8+k] = g
-			}
+		offset := n * totalSize
+		vs[offset] = x0
+		vs[offset+1] = y0
+		vs[offset+2] = u0
+		vs[offset+3] = v0
+		for j, g := range geo16 {
+			vs[offset+4+j] = g
+		}
+		vs[offset+oneSize] = x1
+		vs[offset+oneSize+1] = y0
+		vs[offset+oneSize+2] = u1
+		vs[offset+oneSize+3] = v0
+		for j, g := range geo16 {
+			vs[offset+oneSize+4+j] = g
+		}
+		vs[offset+2*oneSize] = x0
+		vs[offset+2*oneSize+1] = y1
+		vs[offset+2*oneSize+2] = u0
+		vs[offset+2*oneSize+3] = v1
+		for j, g := range geo16 {
+			vs[offset+2*oneSize+4+j] = g
+		}
+		vs[offset+3*oneSize] = x1
+		vs[offset+3*oneSize+1] = y1
+		vs[offset+3*oneSize+2] = u1
+		vs[offset+3*oneSize+3] = v1
+		for j, g := range geo16 {
+			vs[offset+3*oneSize+4+j] = g
 		}
 		n++
 	}
-	return vertices[:n*totalSize]
+	return vs[:n*totalSize]
 }

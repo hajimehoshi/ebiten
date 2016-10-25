@@ -126,7 +126,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
 	for _, g := range q.commandGroups() {
-		vertices := []uint8{}
+		vertices := []int16{}
 		for _, c := range g {
 			switch c := c.(type) {
 			case *drawImageCommand:
@@ -148,7 +148,8 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 				return err
 			}
 			if c, ok := c.(*drawImageCommand); ok {
-				indexOffsetInBytes += 6 * len(c.vertices) / QuadVertexSizeInBytes() * 2
+				n := len(c.vertices) * 2 / QuadVertexSizeInBytes()
+				indexOffsetInBytes += 6 * n * 2
 			}
 		}
 		if 0 < numc {
@@ -185,7 +186,7 @@ func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) erro
 type drawImageCommand struct {
 	dst      *Image
 	src      *Image
-	vertices []uint8
+	vertices []int16
 	color    Matrix
 	mode     opengl.CompositeMode
 }
@@ -227,8 +228,8 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c1 := *c
 	c2 := *c
-	c1.vertices = c.vertices[:quadsNum*QuadVertexSizeInBytes()]
-	c2.vertices = c.vertices[quadsNum*QuadVertexSizeInBytes():]
+	c1.vertices = c.vertices[:quadsNum*QuadVertexSizeInBytes()/2]
+	c2.vertices = c.vertices[quadsNum*QuadVertexSizeInBytes()/2:]
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
@@ -254,14 +255,14 @@ func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
 
 func (c *drawImageCommand) merge(other *drawImageCommand) *drawImageCommand {
 	newC := *c
-	newC.vertices = make([]uint8, 0, len(c.vertices)+len(other.vertices))
+	newC.vertices = make([]int16, 0, len(c.vertices)+len(other.vertices))
 	newC.vertices = append(newC.vertices, c.vertices...)
 	newC.vertices = append(newC.vertices, other.vertices...)
 	return &newC
 }
 
 func (c *drawImageCommand) quadsNum() int {
-	return len(c.vertices) / QuadVertexSizeInBytes()
+	return len(c.vertices) * 2 / QuadVertexSizeInBytes()
 }
 
 type replacePixelsCommand struct {

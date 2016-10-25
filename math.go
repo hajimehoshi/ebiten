@@ -22,24 +22,16 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/endian"
 )
 
-func floatBytes(xs ...float64) []uint8 {
-	bits := make([]uint8, 0, len(xs)*4)
+func floatsToInt16s(xs ...float64) []int16 {
+	r := make([]int16, 0, len(xs)*2)
 	for _, x := range xs {
 		x32 := float32(x)
 		n := *(*uint32)(unsafe.Pointer(&x32))
 		if endian.IsLittle() {
-			bits = append(bits,
-				uint8(n),
-				uint8(n>>8),
-				uint8(n>>16),
-				uint8(n>>24))
+			r = append(r, int16(n), int16(n>>16))
 		} else {
-			bits = append(bits,
-				uint8(n>>24),
-				uint8(n>>16),
-				uint8(n>>8),
-				uint8(n))
+			r = append(r, int16(n>>16), int16(n))
 		}
 	}
-	return bits
+	return r
 }

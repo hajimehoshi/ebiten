@@ -387,7 +387,7 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.Object)
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []uint8) {
+func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl := c.gl
 	gl.BufferSubData(int(bufferType), 0, data)
 }

@@ -386,9 +386,18 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl.BindBuffer(mgl.ELEMENT_ARRAY_BUFFER, mgl.Buffer(b))
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []uint8) {
+func int16ToBytes(v []int16) []byte {
+	b := make([]byte, len(v)*2)
+	for i, x := range v {
+		b[2*i] = uint8(uint16(x))
+		b[2*i+1] = uint8(uint16(x) >> 8)
+	}
+	return b
+}
+
+func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(bufferType), 0, data)
+	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {
