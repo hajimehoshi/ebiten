@@ -58,12 +58,42 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
+func mergeCommands(commands []command) []command {
+	// TODO: This logic is relatively complicated. Add tests.
+	cs := make([]command, 0, len(commands))
+	var prev *drawImageCommand
+	for _, c := range commands {
+		switch c := c.(type) {
+		case *drawImageCommand:
+			if prev == nil {
+				prev = c
+				continue
+			}
+			if prev.isMergeable(c) {
+				prev = prev.merge(c)
+				continue
+			}
+			cs = append(cs, prev)
+			prev = c
+			continue
+		}
+		if prev != nil {
+			cs = append(cs, prev)
+			prev = nil
+		}
+		cs = append(cs, c)
+	}
+	if prev != nil {
+		cs = append(cs, prev)
+	}
+	return cs
+}
+
 // commandGroups separates q.commands into some groups.
 // The number of quads of drawImageCommand in one groups must be equal to or less than
 // its limit (maxQuads).
 func (q *commandQueue) commandGroups() [][]command {
-	cs := make([]command, len(q.commands))
-	copy(cs, q.commands)
+	cs := mergeCommands(q.commands)
 	gs := [][]command{}
 	quads := 0
 	for 0 < len(cs) {
@@ -200,6 +230,34 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c1.vertices = c.vertices[:quadsNum*QuadVertexSizeInBytes()]
 	c2.vertices = c.vertices[quadsNum*QuadVertexSizeInBytes():]
 	return [2]*drawImageCommand{&c1, &c2}
+}
+
+func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
+	if c.dst != other.dst {
+		return false
+	}
+	if c.src != other.src {
+		return false
+	}
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 5; j++ {
+			if c.color.Element(i, j) != other.color.Element(i, j) {
+				return false
+			}
+		}
+	}
+	if c.mode != other.mode {
+		return false
+	}
+	return true
+}
+
+func (c *drawImageCommand) merge(other *drawImageCommand) *drawImageCommand {
+	newC := *c
+	newC.vertices = make([]uint8, 0, len(c.vertices)+len(other.vertices))
+	newC.vertices = append(newC.vertices, c.vertices...)
+	newC.vertices = append(newC.vertices, other.vertices...)
+	return &newC
 }
 
 func (c *drawImageCommand) quadsNum() int {
