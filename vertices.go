@@ -37,6 +37,14 @@ func floatsToInt16s(xs ...float64) []int16 {
 	return r
 }
 
+func u(x, width2p int) int16 {
+	return int16(math.MaxInt16 * x / width2p)
+}
+
+func v(y, height2p int) int16 {
+	return int16(math.MaxInt16 * y / height2p)
+}
+
 func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	// TODO: This function should be in graphics package?
 	totalSize := graphics.QuadVertexSizeInBytes() / 2
@@ -45,13 +53,13 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	vs := make([]int16, l*totalSize)
 	width2p := graphics.NextPowerOf2Int(width)
 	height2p := graphics.NextPowerOf2Int(height)
-	n := 0
 	geo16 := floatsToInt16s(geo.Element(0, 0),
 		geo.Element(0, 1),
 		geo.Element(1, 0),
 		geo.Element(1, 1),
 		geo.Element(0, 2),
 		geo.Element(1, 2))
+	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
 		if dx0 == dx1 || dy0 == dy1 {

@@ -17,6 +17,8 @@
 package ebiten
 
 import (
+	"math"
+
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
@@ -29,8 +31,8 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	a := js.Global.Get("ArrayBuffer").New(l * totalSize * 2)
 	af32 := js.Global.Get("Float32Array").New(a)
 	a16 := js.Global.Get("Int16Array").New(a)
-	width2p := graphics.NextPowerOf2Int(width)
-	height2p := graphics.NextPowerOf2Int(height)
+	w2p := graphics.NextPowerOf2Int(width)
+	h2p := graphics.NextPowerOf2Int(height)
 	gs := []float64{geo.Element(0, 0),
 		geo.Element(0, 1),
 		geo.Element(1, 0),
@@ -43,36 +45,38 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 		if dx0 == dx1 || dy0 == dy1 {
 			continue
 		}
-		x0, y0, x1, y1 := int16(dx0), int16(dy0), int16(dx1), int16(dy1)
 		sx0, sy0, sx1, sy1 := parts.Src(i)
 		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
-		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
+		u0 := math.MaxInt16 * sx0 / w2p
+		v0 := math.MaxInt16 * sy0 / h2p
+		u1 := math.MaxInt16 * sx1 / w2p
+		v1 := math.MaxInt16 * sy1 / h2p
 		offset := n * totalSize
-		a16.SetIndex(offset, x0)
-		a16.SetIndex(offset+1, y0)
+		a16.SetIndex(offset, dx0)
+		a16.SetIndex(offset+1, dy0)
 		a16.SetIndex(offset+2, u0)
 		a16.SetIndex(offset+3, v0)
 		for j, g := range gs {
 			af32.SetIndex((offset+4)/2+j, g)
 		}
-		a16.SetIndex(offset+oneSize, x1)
-		a16.SetIndex(offset+oneSize+1, y0)
+		a16.SetIndex(offset+oneSize, dx1)
+		a16.SetIndex(offset+oneSize+1, dy0)
 		a16.SetIndex(offset+oneSize+2, u1)
 		a16.SetIndex(offset+oneSize+3, v0)
 		for j, g := range gs {
 			af32.SetIndex((offset+oneSize+4)/2+j, g)
 		}
-		a16.SetIndex(offset+2*oneSize, x0)
-		a16.SetIndex(offset+2*oneSize+1, y1)
+		a16.SetIndex(offset+2*oneSize, dx0)
+		a16.SetIndex(offset+2*oneSize+1, dy1)
 		a16.SetIndex(offset+2*oneSize+2, u0)
 		a16.SetIndex(offset+2*oneSize+3, v1)
 		for j, g := range gs {
 			af32.SetIndex((offset+2*oneSize+4)/2+j, g)
 		}
-		a16.SetIndex(offset+3*oneSize, x1)
-		a16.SetIndex(offset+3*oneSize+1, y1)
+		a16.SetIndex(offset+3*oneSize, dx1)
+		a16.SetIndex(offset+3*oneSize+1, dy1)
 		a16.SetIndex(offset+3*oneSize+2, u1)
 		a16.SetIndex(offset+3*oneSize+3, v1)
 		for j, g := range gs {

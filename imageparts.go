@@ -16,7 +16,6 @@ package ebiten
 
 import (
 	"image"
-	"math"
 )
 
 // An ImagePart is deprecated (as of 1.1.0-alpha): Use ImageParts instead.
@@ -64,12 +63,4 @@ func (w *wholeImage) Dst(i int) (x0, y0, x1, y1 int) {
 
 func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
 	return 0, 0, w.width, w.height
-}
-
-func u(x, width2p int) int16 {
-	return int16(math.MaxInt16 * x / width2p)
-}
-
-func v(y, height2p int) int16 {
-	return int16(math.MaxInt16 * y / height2p)
 }
