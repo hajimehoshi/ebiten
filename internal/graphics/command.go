@@ -126,7 +126,14 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
 	for _, g := range q.commandGroups() {
-		vertices := []int16{}
+		n := 0
+		for _, c := range g {
+			switch c := c.(type) {
+			case *drawImageCommand:
+				n += len(c.vertices)
+			}
+		}
+		vertices := make([]int16, 0, n)
 		for _, c := range g {
 			switch c := c.(type) {
 			case *drawImageCommand:
