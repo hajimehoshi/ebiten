@@ -17,6 +17,7 @@
 package ebiten
 
 import (
+	"math"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/endian"
