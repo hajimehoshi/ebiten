@@ -72,17 +72,17 @@ type Sprites struct {
 	num     int
 }
 
-func (s Sprites) Update() {
+func (s *Sprites) Update() {
 	for _, sprite := range s.sprites {
 		sprite.Update()
 	}
 }
 
-func (s Sprites) Len() int {
+func (s *Sprites) Len() int {
 	return s.num
 }
 
-func (s Sprites) Dst(i int) (x0, y0, x1, y1 int) {
+func (s *Sprites) Dst(i int) (x0, y0, x1, y1 int) {
 	if s.num <= i {
 		return 0, 0, 0, 0
 	}
@@ -90,7 +90,7 @@ func (s Sprites) Dst(i int) (x0, y0, x1, y1 int) {
 	return ss.x, ss.y, ss.x + ebitenImageWidth, ss.y + ebitenImageHeight
 }
 
-func (s Sprites) Src(i int) (x0, y0, x1, y1 int) {
+func (s *Sprites) Src(i int) (x0, y0, x1, y1 int) {
 	if s.num <= i {
 		return 0, 0, 0, 0
 	}
