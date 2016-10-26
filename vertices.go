@@ -89,26 +89,29 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 		for j, g := range geo16 {
 			vs[offset+4+j] = g
 		}
-		vs[offset+oneSize] = x1
-		vs[offset+oneSize+1] = y0
-		vs[offset+oneSize+2] = u1
-		vs[offset+oneSize+3] = v0
+		offset += oneSize
+		vs[offset] = x1
+		vs[offset+1] = y0
+		vs[offset+2] = u1
+		vs[offset+3] = v0
 		for j, g := range geo16 {
-			vs[offset+oneSize+4+j] = g
+			vs[offset+4+j] = g
 		}
-		vs[offset+2*oneSize] = x0
-		vs[offset+2*oneSize+1] = y1
-		vs[offset+2*oneSize+2] = u0
-		vs[offset+2*oneSize+3] = v1
+		offset += oneSize
+		vs[offset] = x0
+		vs[offset+1] = y1
+		vs[offset+2] = u0
+		vs[offset+3] = v1
 		for j, g := range geo16 {
-			vs[offset+2*oneSize+4+j] = g
+			vs[offset+4+j] = g
 		}
-		vs[offset+3*oneSize] = x1
-		vs[offset+3*oneSize+1] = y1
-		vs[offset+3*oneSize+2] = u1
-		vs[offset+3*oneSize+3] = v1
+		offset += oneSize
+		vs[offset] = x1
+		vs[offset+1] = y1
+		vs[offset+2] = u1
+		vs[offset+3] = v1
 		for j, g := range geo16 {
-			vs[offset+3*oneSize+4+j] = g
+			vs[offset+4+j] = g
 		}
 		n++
 	}

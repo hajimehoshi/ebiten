@@ -67,26 +67,29 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 		for j, g := range gs {
 			af32.SetIndex((offset+4)/2+j, g)
 		}
-		a16.SetIndex(offset+oneSize, dx1)
-		a16.SetIndex(offset+oneSize+1, dy0)
-		a16.SetIndex(offset+oneSize+2, u1)
-		a16.SetIndex(offset+oneSize+3, v0)
+		offset += oneSize
+		a16.SetIndex(offset, dx1)
+		a16.SetIndex(offset+1, dy0)
+		a16.SetIndex(offset+2, u1)
+		a16.SetIndex(offset+3, v0)
 		for j, g := range gs {
-			af32.SetIndex((offset+oneSize+4)/2+j, g)
+			af32.SetIndex((offset+4)/2+j, g)
 		}
-		a16.SetIndex(offset+2*oneSize, dx0)
-		a16.SetIndex(offset+2*oneSize+1, dy1)
-		a16.SetIndex(offset+2*oneSize+2, u0)
-		a16.SetIndex(offset+2*oneSize+3, v1)
+		offset += oneSize
+		a16.SetIndex(offset, dx0)
+		a16.SetIndex(offset+1, dy1)
+		a16.SetIndex(offset+2, u0)
+		a16.SetIndex(offset+3, v1)
 		for j, g := range gs {
-			af32.SetIndex((offset+2*oneSize+4)/2+j, g)
+			af32.SetIndex((offset+4)/2+j, g)
 		}
-		a16.SetIndex(offset+3*oneSize, dx1)
-		a16.SetIndex(offset+3*oneSize+1, dy1)
-		a16.SetIndex(offset+3*oneSize+2, u1)
-		a16.SetIndex(offset+3*oneSize+3, v1)
+		offset += oneSize
+		a16.SetIndex(offset, dx1)
+		a16.SetIndex(offset+1, dy1)
+		a16.SetIndex(offset+2, u1)
+		a16.SetIndex(offset+3, v1)
 		for j, g := range gs {
-			af32.SetIndex((offset+3*oneSize+4)/2+j, g)
+			af32.SetIndex((offset+4)/2+j, g)
 		}
 		n++
 	}
