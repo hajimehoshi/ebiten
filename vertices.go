@@ -52,8 +52,14 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	oneSize := totalSize / 4
 	l := parts.Len()
 	vs := make([]int16, l*totalSize)
-	width2p := graphics.NextPowerOf2Int(width)
-	height2p := graphics.NextPowerOf2Int(height)
+	w := uint(0)
+	h := uint(0)
+	for (1 << w) < width {
+		w++
+	}
+	for (1 << h) < height {
+		h++
+	}
 	geo16 := floatsToInt16s(geo.Element(0, 0),
 		geo.Element(0, 1),
 		geo.Element(1, 0),
@@ -71,7 +77,10 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
-		u0, v0, u1, v1 := u(sx0, width2p), v(sy0, height2p), u(sx1, width2p), v(sy1, height2p)
+		u0 := int16((math.MaxInt16 * sx0) >> w)
+		v0 := int16((math.MaxInt16 * sy0) >> h)
+		u1 := int16((math.MaxInt16 * sx1) >> w)
+		v1 := int16((math.MaxInt16 * sy1) >> h)
 		offset := n * totalSize
 		vs[offset] = x0
 		vs[offset+1] = y0

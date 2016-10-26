@@ -31,8 +31,14 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	a := js.Global.Get("ArrayBuffer").New(l * totalSize * 2)
 	af32 := js.Global.Get("Float32Array").New(a)
 	a16 := js.Global.Get("Int16Array").New(a)
-	w2p := graphics.NextPowerOf2Int(width)
-	h2p := graphics.NextPowerOf2Int(height)
+	w := uint(0)
+	h := uint(0)
+	for (1 << w) < width {
+		w++
+	}
+	for (1 << h) < height {
+		h++
+	}
 	gs := []float64{geo.Element(0, 0),
 		geo.Element(0, 1),
 		geo.Element(1, 0),
@@ -49,10 +55,10 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
-		u0 := math.MaxInt16 * sx0 / w2p
-		v0 := math.MaxInt16 * sy0 / h2p
-		u1 := math.MaxInt16 * sx1 / w2p
-		v1 := math.MaxInt16 * sy1 / h2p
+		u0 := (math.MaxInt16 * sx0) >> w
+		v0 := (math.MaxInt16 * sy0) >> h
+		u1 := (math.MaxInt16 * sx1) >> w
+		v1 := (math.MaxInt16 * sy1) >> h
 		offset := n * totalSize
 		a16.SetIndex(offset, dx0)
 		a16.SetIndex(offset+1, dy0)
