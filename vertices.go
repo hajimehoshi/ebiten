@@ -38,14 +38,6 @@ func floatsToInt16s(xs ...float64) []int16 {
 	return r
 }
 
-func u(x, width2p int) int16 {
-	return int16(math.MaxInt16 * x / width2p)
-}
-
-func v(y, height2p int) int16 {
-	return int16(math.MaxInt16 * y / height2p)
-}
-
 func vertices(parts ImageParts, width, height int, geo *GeoM) []int16 {
 	// TODO: This function should be in graphics package?
 	totalSize := graphics.QuadVertexSizeInBytes() / 2
