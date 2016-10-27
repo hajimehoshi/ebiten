@@ -38,11 +38,12 @@ var (
 )
 
 type Sprite struct {
-	image *ebiten.Image
-	x     int
-	y     int
-	vx    int
-	vy    int
+	imageWidth  int
+	imageHeight int
+	x           int
+	y           int
+	vx          int
+	vy          int
 }
 
 func (s *Sprite) Update() {
@@ -51,18 +52,15 @@ func (s *Sprite) Update() {
 	if s.x < 0 {
 		s.x = -s.x
 		s.vx = -s.vx
+	} else if screenWidth <= s.x+s.imageWidth {
+		s.x = 2*(screenWidth-s.imageWidth) - s.x
+		s.vx = -s.vx
 	}
 	if s.y < 0 {
 		s.y = -s.y
 		s.vy = -s.vy
-	}
-	w, h := s.image.Size()
-	if screenWidth <= s.x+w {
-		s.x = 2*(screenWidth-w) - s.x
-		s.vx = -s.vx
-	}
-	if screenHeight <= s.y+h {
-		s.y = 2*(screenHeight-h) - s.y
+	} else if screenHeight <= s.y+s.imageHeight {
+		s.y = 2*(screenHeight-s.imageHeight) - s.y
 		s.vy = -s.vy
 	}
 }
@@ -150,11 +148,12 @@ func main() {
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
 		vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1
 		sprites.sprites[i] = &Sprite{
-			image: ebitenImage,
-			x:     x,
-			y:     y,
-			vx:    vx,
-			vy:    vy,
+			imageWidth:  w,
+			imageHeight: h,
+			x:           x,
+			y:           y,
+			vx:          vx,
+			vy:          vy,
 		}
 	}
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Sprites (Ebiten Demo)"); err != nil {
