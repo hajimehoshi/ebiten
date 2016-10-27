@@ -36,8 +36,9 @@ func glContext() *opengl.Context {
 }
 
 type images struct {
-	images map[*imageImpl]struct{}
-	m      sync.Mutex
+	images      map[*imageImpl]struct{}
+	m           sync.Mutex
+	lastChecked *imageImpl
 }
 
 var theImagesForRestoring = images{
@@ -66,6 +67,7 @@ func (i *images) remove(img *Image) {
 func (i *images) resolveStalePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
+	i.lastChecked = nil
 	for img := range i.images {
 		if err := img.resolveStalePixels(context); err != nil {
 			return err
@@ -77,6 +79,10 @@ func (i *images) resolveStalePixels(context *opengl.Context) error {
 func (i *images) resetPixelsIfDependingOn(target *Image, context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
+	if i.lastChecked == target.impl {
+		return nil
+	}
+	i.lastChecked = target.impl
 	for img := range i.images {
 		if err := img.resetPixelsIfDependingOn(target.impl, context); err != nil {
 			return err
