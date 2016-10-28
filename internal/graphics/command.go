@@ -199,7 +199,7 @@ type drawImageCommand struct {
 }
 
 func QuadVertexSizeInBytes() int {
-	return 4 * theArrayBufferLayout.total()
+	return 4 * theArrayBufferLayout.totalBytes()
 }
 
 func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {

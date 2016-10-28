@@ -30,25 +30,30 @@ type arrayBufferLayoutPart struct {
 
 type arrayBufferLayout struct {
 	parts []arrayBufferLayoutPart
+	total int
 }
 
-func (a *arrayBufferLayout) total() int {
+func (a *arrayBufferLayout) totalBytes() int {
+	if a.total != 0 {
+		return a.total
+	}
 	t := 0
 	for _, p := range a.parts {
 		t += p.dataType.SizeInBytes() * p.num
 	}
-	return t
+	a.total = t
+	return a.total
 }
 
 func (a *arrayBufferLayout) newArrayBuffer(c *opengl.Context) opengl.Buffer {
-	return c.NewBuffer(opengl.ArrayBuffer, a.total()*4*maxQuads, opengl.DynamicDraw)
+	return c.NewBuffer(opengl.ArrayBuffer, a.totalBytes()*4*maxQuads, opengl.DynamicDraw)
 }
 
 func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
 	for _, p := range a.parts {
 		c.EnableVertexAttribArray(program, p.name)
 	}
-	total := a.total()
+	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
 		c.VertexAttribPointer(program, p.name, p.num, p.dataType, p.normalize, total, offset)
