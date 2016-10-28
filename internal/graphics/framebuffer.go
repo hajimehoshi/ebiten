@@ -18,24 +18,24 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
-func orthoProjectionMatrix(left, right, bottom, top int) *[4][4]float64 {
-	e11 := float64(2) / float64(right-left)
-	e22 := float64(2) / float64(top-bottom)
-	e14 := -1 * float64(right+left) / float64(right-left)
-	e24 := -1 * float64(top+bottom) / float64(top-bottom)
+func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
+	e11 := 2 / float32(right-left)
+	e22 := 2 / float32(top-bottom)
+	e14 := -1 * float32(right+left) / float32(right-left)
+	e24 := -1 * float32(top+bottom) / float32(top-bottom)
 
-	return &[4][4]float64{
-		{e11, 0, 0, e14},
-		{0, e22, 0, e24},
-		{0, 0, 1, 0},
-		{0, 0, 0, 1},
+	return []float32{
+		e11, 0, 0, 0,
+		0, e22, 0, 0,
+		0, 0, 1, 0,
+		e14, e24, 0, 1,
 	}
 }
 
 type framebuffer struct {
 	native    opengl.Framebuffer
 	flipY     bool
-	proMatrix *[4][4]float64
+	proMatrix []float32
 }
 
 func newFramebufferFromTexture(context *opengl.Context, texture *texture) (*framebuffer, error) {
@@ -56,14 +56,14 @@ func (f *framebuffer) setAsViewport(context *opengl.Context) error {
 	return context.SetViewport(f.native, width, height)
 }
 
-func (f *framebuffer) projectionMatrix(height int) *[4][4]float64 {
+func (f *framebuffer) projectionMatrix(height int) []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
 	m := orthoProjectionMatrix(0, viewportSize, 0, viewportSize)
 	if f.flipY {
-		m[1][1] *= -1
-		m[1][3] += float64(height) / float64(viewportSize) * 2
+		m[4*1+1] *= -1
+		m[4*3+1] += float32(height) / float32(viewportSize) * 2
 	}
 	f.proMatrix = m
 	return f.proMatrix
