@@ -76,6 +76,10 @@ func GamepadButtonNum(id int) int {
 //
 // This function is concurrent-safe.
 //
+// The key states vary depending on environments.
+// There can be differences even between Chrome and Firefox.
+// Don't assume that states of a keys are always same when same buttons are pressed.
+//
 // NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
 // To use this API, browsers might require rebooting the browser.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
