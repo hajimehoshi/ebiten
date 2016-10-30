@@ -50,9 +50,9 @@ func TestGeometryInit(t *testing.T) {
 }
 
 func TestGeometryAssign(t *testing.T) {
-	m := &GeoM{}
-	m.Scale(1, 1) // Create elements explicitly
-	m2 := *m
+	m := GeoM{}
+	m.SetElement(0, 0, 1)
+	m2 := m
 	m.SetElement(0, 0, 0)
 	got := m2.Element(0, 0)
 	want := 1.0

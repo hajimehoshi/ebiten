@@ -51,7 +51,7 @@ func TestColorInit(t *testing.T) {
 
 func TestColorAssign(t *testing.T) {
 	m := ColorM{}
-	m.Scale(1, 1, 1, 1) // Create elements explicitly
+	m.SetElement(0, 0, 1)
 	m2 := m
 	m.SetElement(0, 0, 0)
 	got := m2.Element(0, 0)
