@@ -17,6 +17,7 @@ package graphics
 import (
 	"fmt"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
 
@@ -201,7 +202,7 @@ type programContext struct {
 	context          *opengl.Context
 	projectionMatrix []float32
 	texture          opengl.Texture
-	colorM           Matrix
+	colorM           affine.ColorM
 }
 
 func (p *programContext) begin() error {

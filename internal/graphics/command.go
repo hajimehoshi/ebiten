@@ -23,12 +23,9 @@ import (
 	"math"
 	"sync"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
-
-type Matrix interface {
-	Element(i, j int) float64
-}
 
 type command interface {
 	Exec(context *opengl.Context, indexOffsetInBytes int) error
@@ -185,7 +182,7 @@ type drawImageCommand struct {
 	dst      *Image
 	src      *Image
 	vertices []int16
-	color    Matrix
+	color    affine.ColorM
 	mode     opengl.CompositeMode
 }
 

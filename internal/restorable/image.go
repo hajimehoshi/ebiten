@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
 )
@@ -26,7 +27,7 @@ import (
 type drawImageHistoryItem struct {
 	image    *graphics.Image
 	vertices []int16
-	colorm   graphics.Matrix
+	colorm   affine.ColorM
 	mode     opengl.CompositeMode
 }
 
@@ -144,7 +145,7 @@ func (p *Image) ReplacePixels(pixels []uint8) error {
 	return nil
 }
 
-func (p *Image) DrawImage(img *Image, vertices []int16, colorm graphics.Matrix, mode opengl.CompositeMode) error {
+func (p *Image) DrawImage(img *Image, vertices []int16, colorm affine.ColorM, mode opengl.CompositeMode) error {
 	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
@@ -156,7 +157,7 @@ func (p *Image) DrawImage(img *Image, vertices []int16, colorm graphics.Matrix, 
 	return nil
 }
 
-func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []int16, colorm graphics.Matrix, mode opengl.CompositeMode) {
+func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []int16, colorm affine.ColorM, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}
