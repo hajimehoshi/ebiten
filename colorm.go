@@ -15,48 +15,11 @@
 package ebiten
 
 import (
-	"math"
-
-	"github.com/hajimehoshi/ebiten/internal/endian"
+	"github.com/hajimehoshi/ebiten/internal/affine"
 )
 
 // ColorMDim is a dimension of a ColorM.
-const ColorMDim = 5
-
-func uint64ToBytes(value uint64) []uint8 {
-	result := make([]uint8, 8)
-	if endian.IsLittle() {
-		for i := 0; i < 8; i++ {
-			result[i] = uint8(value)
-			value >>= 8
-		}
-	} else {
-		for i := 7; 0 <= i; i-- {
-			result[i] = uint8(value)
-			value >>= 8
-		}
-	}
-	return result
-}
-
-func colorMValueString(values [ColorMDim - 1][ColorMDim]float64) string {
-	b := make([]uint8, 0, (ColorMDim-1)*(ColorMDim)*8)
-	for i := 0; i < ColorMDim-1; i++ {
-		for j := 0; j < ColorMDim; j++ {
-			b = append(b, uint64ToBytes(math.Float64bits(values[i][j]))...)
-		}
-	}
-	return string(b)
-}
-
-var (
-	colorMIdentityValue = colorMValueString([ColorMDim - 1][ColorMDim]float64{
-		{1, 0, 0, 0, 0},
-		{0, 1, 0, 0, 0},
-		{0, 0, 1, 0, 0},
-		{0, 0, 0, 1, 0},
-	})
-)
+const ColorMDim = affine.ColorMDim
 
 // A ColorM represents a matrix to transform coloring when rendering an image.
 //
@@ -67,75 +30,34 @@ var (
 //
 // The initial value is identity.
 type ColorM struct {
-	// when values is empty, this matrix is identity.
-	values string
-}
-
-func (c *ColorM) dim() int {
-	return ColorMDim
+	impl affine.ColorM
 }
 
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
-	result := ColorM{}
-	mul(&other, c, &result)
-	*c = result
+	c.impl.Concat(other.impl)
 }
 
 // Add adds a color matrix with the other color matrix.
 func (c *ColorM) Add(other ColorM) {
-	result := ColorM{}
-	add(&other, c, &result)
-	*c = result
+	c.impl.Add(other.impl)
 }
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
-	for i := 0; i < ColorMDim-1; i++ {
-		c.SetElement(0, i, c.Element(0, i)*r)
-		c.SetElement(1, i, c.Element(1, i)*g)
-		c.SetElement(2, i, c.Element(2, i)*b)
-		c.SetElement(3, i, c.Element(3, i)*a)
-	}
+	c.impl.Scale(r, g, b, a)
 }
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
-	c.SetElement(0, 4, c.Element(0, 4)+r)
-	c.SetElement(1, 4, c.Element(1, 4)+g)
-	c.SetElement(2, 4, c.Element(2, 4)+b)
-	c.SetElement(3, 4, c.Element(3, 4)+a)
+	c.impl.Translate(r, g, b, a)
 }
 
 // RotateHue rotates the hue.
 func (c *ColorM) RotateHue(theta float64) {
-	c.ChangeHSV(theta, 1, 1)
+	c.impl.RotateHue(theta)
 }
-
-var (
-	// The YCbCr value ranges are:
-	//   Y:  [ 0   - 1  ]
-	//   Cb: [-0.5 - 0.5]
-	//   Cr: [-0.5 - 0.5]
-
-	rgbToYCbCr = ColorM{
-		values: colorMValueString([ColorMDim - 1][ColorMDim]float64{
-			{0.2990, 0.5870, 0.1140, 0, 0},
-			{-0.1687, -0.3313, 0.5000, 0, 0},
-			{0.5000, -0.4187, -0.0813, 0, 0},
-			{0, 0, 0, 1, 0},
-		}),
-	}
-	yCbCrToRgb = ColorM{
-		values: colorMValueString([ColorMDim - 1][ColorMDim]float64{
-			{1, 0, 1.40200, 0, 0},
-			{1, -0.34414, -0.71414, 0, 0},
-			{1, 1.77200, 0, 0, 0},
-			{0, 0, 0, 1, 0},
-		}),
-	}
-)
 
 // ChangeHSV changes HSV (Hue-Saturation-Value) values.
 // hueTheta is a radian value to ratate hue.
@@ -144,60 +66,35 @@ var (
 //
 // This conversion uses RGB to/from YCrCb conversion.
 func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
-	sin, cos := math.Sincos(hueTheta)
-	c.Concat(rgbToYCbCr)
-	c.Concat(ColorM{
-		values: colorMValueString([ColorMDim - 1][ColorMDim]float64{
-			{1, 0, 0, 0, 0},
-			{0, cos, -sin, 0, 0},
-			{0, sin, cos, 0, 0},
-			{0, 0, 0, 1, 0},
-		}),
-	})
-	s := saturationScale
-	v := valueScale
-	c.Scale(v, s*v, s*v, 1)
-	c.Concat(yCbCrToRgb)
+	c.impl.ChangeHSV(hueTheta, saturationScale, valueScale)
 }
 
-var monochrome ColorM
+// Element returns a value of a matrix at (i, j).
+func (c *ColorM) Element(i, j int) float64 {
+	return c.impl.Element(i, j)
+}
 
-func init() {
-	monochrome.ChangeHSV(0, 0, 1)
+// SetElement sets an element at (i, j).
+func (c *ColorM) SetElement(i, j int, value float64) {
+	c.impl.SetElement(i, j, value)
 }
 
 // Monochrome returns a color matrix to make an image monochrome.
 func Monochrome() ColorM {
-	return monochrome
+	return ColorM{affine.Monochrome()}
 }
 
 // ScaleColor is deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleColor(r, g, b, a float64) ColorM {
-	return ColorM{
-		values: colorMValueString([ColorMDim - 1][ColorMDim]float64{
-			{r, 0, 0, 0, 0},
-			{0, g, 0, 0, 0},
-			{0, 0, b, 0, 0},
-			{0, 0, 0, a, 0},
-		}),
-	}
+	return ColorM{affine.ScaleColor(r, g, b, a)}
 }
 
 // TranslateColor is deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateColor(r, g, b, a float64) ColorM {
-	return ColorM{
-		values: colorMValueString([ColorMDim - 1][ColorMDim]float64{
-			{1, 0, 0, 0, r},
-			{0, 1, 0, 0, g},
-			{0, 0, 1, 0, b},
-			{0, 0, 0, 1, a},
-		}),
-	}
+	return ColorM{affine.TranslateColor(r, g, b, a)}
 }
 
 // RotateHue is deprecated as of 1.2.0-alpha. Use RotateHue member function instead.
 func RotateHue(theta float64) ColorM {
-	c := ColorM{}
-	c.RotateHue(theta)
-	return c
+	return ColorM{affine.RotateHue(theta)}
 }

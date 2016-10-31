@@ -14,7 +14,7 @@
 
 // +build !js
 
-package ebiten
+package affine
 
 import (
 	"math"

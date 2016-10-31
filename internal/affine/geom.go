@@ -12,69 +12,135 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package affine
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/affine"
+	"math"
 )
 
 // GeoMDim is a dimension of a GeoM.
-const GeoMDim = affine.GeoMDim
+const GeoMDim = 3
 
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
 // The initial value is identity.
 type GeoM struct {
-	impl affine.GeoM
+	initialized bool
+	es          [GeoMDim - 1][GeoMDim]float64
+}
+
+func (g *GeoM) dim() int {
+	return GeoMDim
+}
+
+func (g *GeoM) initialize() {
+	g.initialized = true
+	g.es[0][0] = 1
+	g.es[1][1] = 1
 }
 
 // Element returns a value of a matrix at (i, j).
 func (g *GeoM) Element(i, j int) float64 {
-	return g.impl.Element(i, j)
+	if !g.initialized {
+		if i == j {
+			return 1
+		}
+		return 0
+	}
+	return g.es[i][j]
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
 // This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
-	g.impl.Concat(other.impl)
+	if !g.initialized {
+		g.initialize()
+	}
+	result := GeoM{}
+	mul(&other, g, &result)
+	*g = result
 }
 
 // Add adds a geometry matrix with the other geometry matrix.
 func (g *GeoM) Add(other GeoM) {
-	g.impl.Add(other.impl)
+	if !g.initialized {
+		g.initialize()
+	}
+	result := GeoM{}
+	add(&other, g, &result)
+	*g = result
 }
 
 // Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
-	g.impl.Scale(x, y)
+	if !g.initialized {
+		g.initialize()
+	}
+	for i := 0; i < GeoMDim; i++ {
+		g.es[0][i] *= x
+		g.es[1][i] *= y
+	}
 }
 
 // Translate translates the matrix by (x, y).
 func (g *GeoM) Translate(tx, ty float64) {
-	g.impl.Translate(tx, ty)
+	if !g.initialized {
+		g.initialize()
+	}
+	g.es[0][2] += tx
+	g.es[1][2] += ty
 }
 
 // Rotate rotates the matrix by theta.
 func (g *GeoM) Rotate(theta float64) {
-	g.impl.Rotate(theta)
+	sin, cos := math.Sincos(theta)
+	g.Concat(GeoM{
+		initialized: true,
+		es: [2][3]float64{
+			{cos, -sin, 0},
+			{sin, cos, 0},
+		},
+	})
 }
 
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
-	g.impl.SetElement(i, j, element)
+	if !g.initialized {
+		g.initialize()
+	}
+	g.es[i][j] = element
 }
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleGeo(x, y float64) GeoM {
-	return GeoM{affine.ScaleGeo(x, y)}
+	return GeoM{
+		initialized: true,
+		es: [2][3]float64{
+			{x, 0, 0},
+			{0, y, 0},
+		},
+	}
 }
 
 // TranslateGeo is deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateGeo(tx, ty float64) GeoM {
-	return GeoM{affine.TranslateGeo(tx, ty)}
+	return GeoM{
+		initialized: true,
+		es: [2][3]float64{
+			{1, 0, tx},
+			{0, 1, ty},
+		},
+	}
 }
 
 // RotateGeo is deprecated as of 1.2.0-alpha. Use Rotate instead.
 func RotateGeo(theta float64) GeoM {
-	return GeoM{affine.RotateGeo(theta)}
+	sin, cos := math.Sincos(theta)
+	return GeoM{
+		initialized: true,
+		es: [2][3]float64{
+			{cos, -sin, 0},
+			{sin, cos, 0},
+		},
+	}
 }

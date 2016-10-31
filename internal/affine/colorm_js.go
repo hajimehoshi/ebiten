@@ -14,7 +14,7 @@
 
 // +build js
 
-package ebiten
+package affine
 
 import (
 	"github.com/gopherjs/gopherjs/js"
