@@ -75,6 +75,16 @@ func (c *ColorM) dim() int {
 	return ColorMDim
 }
 
+func (c *ColorM) Equals(other *ColorM) bool {
+	if c.values == "" {
+		c.values = colorMIdentityValue
+	}
+	if other.values == "" {
+		other.values = colorMIdentityValue
+	}
+	return c.values == other.values
+}
+
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {

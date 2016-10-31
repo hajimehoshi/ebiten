@@ -235,12 +235,8 @@ func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
 	if c.src != other.src {
 		return false
 	}
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
-			if c.color.Element(i, j) != other.color.Element(i, j) {
-				return false
-			}
-		}
+	if !c.color.Equals(&other.color) {
+		return false
 	}
 	if c.mode != other.mode {
 		return false
