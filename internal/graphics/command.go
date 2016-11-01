@@ -133,7 +133,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 		}
 		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 		// Let's use them to compare to len(quads) in the future.
-		if maxQuads < len(vertices)/QuadVertexSizeInBytes() {
+		if maxQuads < len(vertices)*2/QuadVertexSizeInBytes() {
 			return fmt.Errorf("len(quads) must be equal to or less than %d", maxQuads)
 		}
 		numc := len(g)
