@@ -122,21 +122,7 @@ window.onload = function() {
 }
 
 func serveMainJSMap(w http.ResponseWriter, r *http.Request) {
-	name, err := appName(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	out, err := createJSIfNeeded(name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	out += ".map"
-	if err := serveFile(w, out, "application/octet-stream"); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	http.NotFound(w, r)
 }
 
 func main() {
