@@ -26,7 +26,7 @@ const GeoMDim = 3
 // The initial value is identity.
 type GeoM struct {
 	initialized bool
-	es          [GeoMDim - 1][GeoMDim]float64
+	es          [(GeoMDim - 1) * GeoMDim]float64
 }
 
 func (g *GeoM) dim() int {
@@ -35,8 +35,9 @@ func (g *GeoM) dim() int {
 
 func (g *GeoM) initialize() {
 	g.initialized = true
-	g.es[0][0] = 1
-	g.es[1][1] = 1
+	for i := 0; i < GeoMDim-1; i++ {
+		g.es[i*GeoMDim+i] = 1
+	}
 }
 
 // Element returns a value of a matrix at (i, j).
@@ -47,7 +48,7 @@ func (g *GeoM) Element(i, j int) float64 {
 		}
 		return 0
 	}
-	return g.es[i][j]
+	return g.es[i*GeoMDim+j]
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
@@ -77,8 +78,8 @@ func (g *GeoM) Scale(x, y float64) {
 		g.initialize()
 	}
 	for i := 0; i < GeoMDim; i++ {
-		g.es[0][i] *= x
-		g.es[1][i] *= y
+		g.es[i] *= x
+		g.es[GeoMDim+i] *= y
 	}
 }
 
@@ -87,8 +88,8 @@ func (g *GeoM) Translate(tx, ty float64) {
 	if !g.initialized {
 		g.initialize()
 	}
-	g.es[0][2] += tx
-	g.es[1][2] += ty
+	g.es[2] += tx
+	g.es[GeoMDim+2] += ty
 }
 
 // Rotate rotates the matrix by theta.
@@ -96,9 +97,9 @@ func (g *GeoM) Rotate(theta float64) {
 	sin, cos := math.Sincos(theta)
 	g.Concat(GeoM{
 		initialized: true,
-		es: [2][3]float64{
-			{cos, -sin, 0},
-			{sin, cos, 0},
+		es: [...]float64{
+			cos, -sin, 0,
+			sin, cos, 0,
 		},
 	})
 }
@@ -108,16 +109,16 @@ func (g *GeoM) SetElement(i, j int, element float64) {
 	if !g.initialized {
 		g.initialize()
 	}
-	g.es[i][j] = element
+	g.es[i*GeoMDim+j] = element
 }
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleGeo(x, y float64) GeoM {
 	return GeoM{
 		initialized: true,
-		es: [2][3]float64{
-			{x, 0, 0},
-			{0, y, 0},
+		es: [...]float64{
+			x, 0, 0,
+			0, y, 0,
 		},
 	}
 }
@@ -126,9 +127,9 @@ func ScaleGeo(x, y float64) GeoM {
 func TranslateGeo(tx, ty float64) GeoM {
 	return GeoM{
 		initialized: true,
-		es: [2][3]float64{
-			{1, 0, tx},
-			{0, 1, ty},
+		es: [...]float64{
+			1, 0, tx,
+			0, 1, ty,
 		},
 	}
 }
@@ -138,9 +139,9 @@ func RotateGeo(theta float64) GeoM {
 	sin, cos := math.Sincos(theta)
 	return GeoM{
 		initialized: true,
-		es: [2][3]float64{
-			{cos, -sin, 0},
-			{sin, cos, 0},
+		es: [...]float64{
+			cos, -sin, 0,
+			sin, cos, 0,
 		},
 	}
 }
