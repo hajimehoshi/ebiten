@@ -486,9 +486,9 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	})
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
+func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
 	_ = c.runOnContextThread(func() error {
-		gl.BufferSubData(uint32(bufferType), 0, len(data)*2, gl.Ptr(data))
+		gl.BufferSubData(uint32(bufferType), 0, len(data)*4, gl.Ptr(data))
 		return nil
 	})
 }

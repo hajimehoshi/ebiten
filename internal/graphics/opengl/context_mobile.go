@@ -19,7 +19,9 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"math"
 
+	"github.com/hajimehoshi/ebiten/internal/endian"
 	mgl "golang.org/x/mobile/gl"
 )
 
@@ -386,18 +388,32 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl.BindBuffer(mgl.ELEMENT_ARRAY_BUFFER, mgl.Buffer(b))
 }
 
-func int16ToBytes(v []int16) []byte {
-	b := make([]byte, len(v)*2)
-	for i, x := range v {
-		b[2*i] = uint8(uint16(x))
-		b[2*i+1] = uint8(uint16(x) >> 8)
+func float32ToBytes(v []float32) []byte {
+	b := make([]byte, len(v)*4)
+	if endian.IsLittle() {
+		for i, x := range v {
+			bits := math.Float32bits(x)
+			b[4*i] = uint8(bits)
+			b[4*i+1] = uint8(bits >> 8)
+			b[4*i+2] = uint8(bits >> 16)
+			b[4*i+3] = uint8(bits >> 24)
+		}
+	} else {
+		// TODO: Test this
+		for i, x := range v {
+			bits := math.Float32bits(x)
+			b[4*i] = uint8(bits >> 24)
+			b[4*i+1] = uint8(bits >> 16)
+			b[4*i+2] = uint8(bits >> 8)
+			b[4*i+3] = uint8(bits)
+		}
 	}
 	return b
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []int16) {
+func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(bufferType), 0, int16ToBytes(data))
+	gl.BufferSubData(mgl.Enum(bufferType), 0, float32ToBytes(data))
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {

@@ -121,7 +121,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 				n += len(c.vertices)
 			}
 		}
-		vertices := make([]int16, 0, n)
+		vertices := make([]float32, 0, n)
 		for _, c := range g {
 			switch c := c.(type) {
 			case *drawImageCommand:
@@ -133,7 +133,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 		}
 		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 		// Let's use them to compare to len(quads) in the future.
-		if maxQuads < len(vertices)*2/QuadVertexSizeInBytes() {
+		if maxQuads < len(vertices)*opengl.Float.SizeInBytes()/QuadVertexSizeInBytes() {
 			return fmt.Errorf("len(quads) must be equal to or less than %d", maxQuads)
 		}
 		numc := len(g)
@@ -143,7 +143,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 				return err
 			}
 			if c, ok := c.(*drawImageCommand); ok {
-				n := len(c.vertices) * 2 / QuadVertexSizeInBytes()
+				n := len(c.vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 				indexOffsetInBytes += 6 * n * 2
 			}
 		}
@@ -181,7 +181,7 @@ func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) erro
 type drawImageCommand struct {
 	dst      *Image
 	src      *Image
-	vertices []int16
+	vertices []float32
 	color    affine.ColorM
 	mode     opengl.CompositeMode
 }
@@ -223,8 +223,9 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c1 := *c
 	c2 := *c
-	c1.vertices = c.vertices[:quadsNum*QuadVertexSizeInBytes()/2]
-	c2.vertices = c.vertices[quadsNum*QuadVertexSizeInBytes()/2:]
+	s := opengl.Float.SizeInBytes()
+	c1.vertices = c.vertices[:quadsNum*QuadVertexSizeInBytes()/s]
+	c2.vertices = c.vertices[quadsNum*QuadVertexSizeInBytes()/s:]
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
@@ -246,14 +247,14 @@ func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
 
 func (c *drawImageCommand) merge(other *drawImageCommand) *drawImageCommand {
 	newC := *c
-	newC.vertices = make([]int16, 0, len(c.vertices)+len(other.vertices))
+	newC.vertices = make([]float32, 0, len(c.vertices)+len(other.vertices))
 	newC.vertices = append(newC.vertices, c.vertices...)
 	newC.vertices = append(newC.vertices, other.vertices...)
 	return &newC
 }
 
 func (c *drawImageCommand) quadsNum() int {
-	return len(c.vertices) * 2 / QuadVertexSizeInBytes()
+	return len(c.vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 }
 
 type replacePixelsCommand struct {

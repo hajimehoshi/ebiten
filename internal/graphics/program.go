@@ -75,15 +75,15 @@ var (
 		parts: []arrayBufferLayoutPart{
 			{
 				name:      "vertex",
-				dataType:  opengl.Short,
+				dataType:  opengl.Float,
 				num:       2,
 				normalize: false,
 			},
 			{
 				name:      "tex_coord",
-				dataType:  opengl.Short,
+				dataType:  opengl.Float,
 				num:       2,
-				normalize: true,
+				normalize: false,
 			},
 			{
 				name:      "geo_matrix_body",
