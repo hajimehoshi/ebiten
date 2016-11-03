@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func RunMainThreadLoop(ch <-chan error) error {

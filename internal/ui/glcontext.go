@@ -15,7 +15,7 @@
 package ui
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 var glContext *opengl.Context

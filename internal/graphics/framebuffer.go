@@ -15,7 +15,7 @@
 package graphics
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) []float32 {

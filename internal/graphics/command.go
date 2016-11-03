@@ -24,7 +24,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 type command interface {

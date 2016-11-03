@@ -20,7 +20,7 @@ import (
 	"strconv"
 
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 var canvas *js.Object

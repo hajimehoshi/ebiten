@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 

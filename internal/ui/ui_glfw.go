@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
-	"github.com/hajimehoshi/ebiten/internal/graphics/opengl"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 type userInterface struct {
