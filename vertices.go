@@ -31,7 +31,6 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []float32 {
 		float32(geo.Element(1, 1)),
 		float32(geo.Element(0, 2)),
 		float32(geo.Element(1, 2))}
-	n := 0
 	w := float32(1)
 	h := float32(1)
 	for w < float32(width) {
@@ -42,16 +41,10 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []float32 {
 	}
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
-		if dx0 == dx1 || dy0 == dy1 {
-			continue
-		}
 		x0, y0, x1, y1 := float32(dx0), float32(dy0), float32(dx1), float32(dy1)
 		sx0, sy0, sx1, sy1 := parts.Src(i)
-		if sx0 == sx1 || sy0 == sy1 {
-			continue
-		}
 		u0, v0, u1, v1 := float32(sx0)/w, float32(sy0)/h, float32(sx1)/w, float32(sy1)/h
-		offset := n * totalSize
+		offset := i * totalSize
 		vs[offset] = x0
 		vs[offset+1] = y0
 		vs[offset+2] = u0
@@ -83,7 +76,6 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []float32 {
 		for j, g := range geos {
 			vs[offset+4+j] = g
 		}
-		n++
 	}
-	return vs[:n*totalSize]
+	return vs
 }
