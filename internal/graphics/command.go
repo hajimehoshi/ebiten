@@ -43,45 +43,24 @@ var theCommandQueue = &commandQueue{
 func (q *commandQueue) Enqueue(command command) {
 	q.m.Lock()
 	defer q.m.Unlock()
+	if 0 < len(q.commands) {
+		if c1, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
+			if c2, ok := command.(*drawImageCommand); ok {
+				if c1.isMergeable(c2) {
+					c1.vertices = append(c1.vertices, c2.vertices...)
+					return
+				}
+			}
+		}
+	}
 	q.commands = append(q.commands, command)
-}
-
-func mergeCommands(commands []command) []command {
-	// TODO: This logic is relatively complicated. Add tests.
-	cs := make([]command, 0, len(commands))
-	var prev *drawImageCommand
-	for _, c := range commands {
-		switch c := c.(type) {
-		case *drawImageCommand:
-			if prev == nil {
-				prev = c
-				continue
-			}
-			if prev.isMergeable(c) {
-				prev = prev.merge(c)
-				continue
-			}
-			cs = append(cs, prev)
-			prev = c
-			continue
-		}
-		if prev != nil {
-			cs = append(cs, prev)
-			prev = nil
-		}
-		cs = append(cs, c)
-	}
-	if prev != nil {
-		cs = append(cs, prev)
-	}
-	return cs
 }
 
 // commandGroups separates q.commands into some groups.
 // The number of quads of drawImageCommand in one groups must be equal to or less than
 // its limit (maxQuads).
 func (q *commandQueue) commandGroups() [][]command {
-	cs := mergeCommands(q.commands)
+	cs := q.commands
 	gs := [][]command{}
 	quads := 0
 	for 0 < len(cs) {
@@ -243,14 +222,6 @@ func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
 		return false
 	}
 	return true
-}
-
-func (c *drawImageCommand) merge(other *drawImageCommand) *drawImageCommand {
-	newC := *c
-	newC.vertices = make([]float32, 0, len(c.vertices)+len(other.vertices))
-	newC.vertices = append(newC.vertices, c.vertices...)
-	newC.vertices = append(newC.vertices, other.vertices...)
-	return &newC
 }
 
 func (c *drawImageCommand) quadsNum() int {
