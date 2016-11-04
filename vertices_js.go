@@ -43,7 +43,13 @@ func vertices(parts ImageParts, width, height int, geo *GeoM) []float32 {
 	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
+		if dx0 == dx1 || dy0 == dy1 {
+			continue
+		}
 		sx0, sy0, sx1, sy1 := parts.Src(i)
+		if sx0 == sx1 || sy0 == sy1 {
+			continue
+		}
 		u0, v0, u1, v1 := float64(sx0)/w, float64(sy0)/h, float64(sx1)/w, float64(sy1)/h
 		vs.SetIndex(n, dx0)
 		vs.SetIndex(n+1, dy0)
