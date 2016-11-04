@@ -419,3 +419,80 @@ func TestImageFill(t *testing.T) {
 		}
 	}
 }
+
+func TestImageSize(t *testing.T) {
+	sizes := []struct {
+		width  int
+		height int
+		error  bool
+	}{
+		{
+			width:  -1,
+			height: -1,
+			error:  true,
+		},
+		{
+			width:  -1,
+			height: 1,
+			error:  true,
+		},
+		{
+			width:  1,
+			height: -1,
+			error:  true,
+		},
+		{
+			width:  0,
+			height: 0,
+			error:  true,
+		},
+		{
+			width:  0,
+			height: 1,
+			error:  true,
+		},
+		{
+			width:  1,
+			height: 0,
+			error:  true,
+		},
+		{
+			width:  1,
+			height: 1,
+			error:  false,
+		},
+		{
+			width:  4096,
+			height: 4096,
+			error:  false,
+		},
+		{
+			width:  4096,
+			height: 4097,
+			error:  true,
+		},
+		{
+			width:  4097,
+			height: 4096,
+			error:  true,
+		},
+		{
+			width:  4097,
+			height: 4097,
+			error:  true,
+		},
+	}
+	for _, size := range sizes {
+		_, err := NewImage(size.width, size.height, FilterNearest)
+		if err == nil {
+			if size.error {
+				t.Errorf("NewImage(%d, %d, ...) must cause error but not", size.width, size.height)
+			}
+			return
+		} else {
+			if !size.error {
+				t.Errorf("NewImage(%d, %d, ...) must not cause error but did: %s", size.width, size.height, err)
+			}
+		}
+	}
+}

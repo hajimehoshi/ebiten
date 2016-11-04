@@ -23,6 +23,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
@@ -32,7 +33,27 @@ type imageImpl struct {
 	m          sync.Mutex
 }
 
+func checkSize(width, height int) error {
+	if width <= 0 {
+		return fmt.Errorf("ebiten: width must be more than 0")
+	}
+	if height <= 0 {
+		return fmt.Errorf("ebiten: height must be more than 0")
+	}
+	if width > graphics.ImageMaxSize {
+		return fmt.Errorf("ebiten: width must be less than or equal to %d", graphics.ImageMaxSize)
+	}
+	if height > graphics.ImageMaxSize {
+		return fmt.Errorf("ebiten: height must be less than or equal to %d", graphics.ImageMaxSize)
+	}
+	return nil
+}
+
 func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
+	if err := checkSize(width, height); err != nil {
+		return nil, err
+	}
+
 	img, err := restorable.NewImage(width, height, glFilter(filter), volatile)
 	if err != nil {
 		return nil, err
@@ -47,7 +68,10 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error) {
 	size := source.Bounds().Size()
 	w, h := size.X, size.Y
-	// TODO: Return error when the image is too big!
+	if err := checkSize(w, h); err != nil {
+		return nil, err
+	}
+
 	// Don't lock while manipulating an image.Image interface.
 
 	// It is necessary to copy the source image since the actual construction of
@@ -74,6 +98,10 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 }
 
 func newScreenImageImpl(width, height int) (*imageImpl, error) {
+	if err := checkSize(width, height); err != nil {
+		return nil, err
+	}
+
 	img, err := restorable.NewScreenFramebufferImage(width, height)
 	if err != nil {
 		return nil, err
