@@ -86,7 +86,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, err
 	}
 	s := &Stream{}
-	ch := make(chan struct{})
+	ch := make(chan error)
 
 	klass := js.Global.Get("OfflineAudioContext")
 	if klass == js.Undefined {
@@ -102,7 +102,12 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		s.leftData = buf.Call("getChannelData", 0).Interface().([]float32)
 		s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
 		close(ch)
+	}, func() {
+		ch <- errors.New("vorbis: decodeAudioData failed (Safari might not be able to decode Ogg/Vorbis).")
+		close(ch)
 	})
-	<-ch
+	if err := <-ch; err != nil {
+		return nil, err
+	}
 	return s, nil
 }
