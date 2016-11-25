@@ -316,7 +316,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	if err := c.runOnContextThread(func() error {
 		s := gl.CreateShader(uint32(shaderType))
 		if s == 0 {
-			return errors.New("opengl: glCreateShader failed")
+			return fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 		}
 		cSources, free := gl.Strs(source + "\x00")
 		gl.ShaderSource(uint32(s), 1, cSources, nil)

@@ -244,7 +244,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl := c.gl
 	s := gl.CreateShader(mgl.Enum(shaderType))
 	if s.Value == 0 {
-		return Shader{}, errors.New("opengl: glCreateShader failed")
+		return Shader{}, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 	gl.ShaderSource(s, source)
 	gl.CompileShader(s)

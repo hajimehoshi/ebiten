@@ -268,7 +268,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl := c.gl
 	s := gl.CreateShader(int(shaderType))
 	if s == nil {
-		return Shader{nil}, errors.New("opengl: glCreateShader failed")
+		return Shader{nil}, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
 	gl.ShaderSource(s, source)
@@ -276,7 +276,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 	if !gl.GetShaderParameterb(s, gl.COMPILE_STATUS) {
 		log := gl.GetShaderInfoLog(s)
-		return Shader{nil}, errors.New(fmt.Sprintf("opengl: shader compile failed: %s", log))
+		return Shader{nil}, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
 	return Shader{s}, nil
 }
