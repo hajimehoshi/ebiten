@@ -244,11 +244,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	oggF, err := ebitenutil.OpenFile("_resources/audio/ragtime.ogg")
+	oggF, err := ebitenutil.OpenFile("_resources/audio/game.ogg")
 	if err != nil {
 		log.Fatal(err)
 	}
-	const sampleRate = 22050
+	const sampleRate = 44100
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
 	audioContext, err = audio.NewContext(sampleRate)
 	if err != nil {
