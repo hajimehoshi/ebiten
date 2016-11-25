@@ -322,6 +322,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) (bool, e
 	// On Windows, giving a too small width doesn't call a callback (#165).
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
+	// TODO: The same check should be in ui_js.go
 	const minWindowWidth = 252
 	if int(float64(width)*u.actualScreenScale()) < minWindowWidth {
 		u.scale = origScale
