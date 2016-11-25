@@ -62,7 +62,8 @@ func (p Program) id() programID {
 }
 
 func init() {
-	c := js.Global.Get("WebGLRenderingContext")
+	// Accessing the prototype is rquired on Safari.
+	c := js.Global.Get("WebGLRenderingContext").Get("prototype")
 	Nearest = Filter(c.Get("NEAREST").Int())
 	Linear = Filter(c.Get("LINEAR").Int())
 	VertexShader = ShaderType(c.Get("VERTEX_SHADER").Int())
