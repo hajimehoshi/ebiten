@@ -18,6 +18,7 @@ package ui
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -287,6 +288,17 @@ func (u *userInterface) size() (width, height int) {
 	return
 }
 
+func isSafari() bool {
+	ua := js.Global.Get("navigator").Get("userAgent").String()
+	if !strings.Contains(ua, "Safari") {
+		return false
+	}
+	if strings.Contains(ua, "Chrome") {
+		return false
+	}
+	return true
+}
+
 func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	w, h := u.size()
 	s := u.scale
@@ -295,7 +307,8 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	}
 	u.scale = scale
 	// When the scale is an integer, let's rely on CSS crisp-edge/pixelated effect.
-	if scale == float64(int64(scale)) {
+	// Note that pixelated effect doesn't work for canvas on Safari.
+	if scale == float64(int64(scale)) && !isSafari() {
 		u.deviceScale = 1
 	} else {
 		u.deviceScale = devicePixelRatio()
