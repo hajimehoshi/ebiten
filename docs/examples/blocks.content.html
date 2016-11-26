@@ -19,6 +19,11 @@ window.addEventListener('load', function() {
         src = 'https://dl.dropboxusercontent.com/u/3692507/ebiten.examples/' + src;
     }
     s.src = src;
+    s.onload = function() {
+        var notice = document.getElementById('notice');
+        notice.parentNode.removeChild(notice);
+    };
     document.body.appendChild(s);
 });
 </script>
+<p id="notice" style="color: white;">Now Loading...</p>
