@@ -51,6 +51,8 @@ func (s *Stream) Size() int64 {
 // Decode decodes Ogg/Vorbis data to playable stream.
 //
 // The sample rate must be same as that of audio context.
+//
+// This function returns error on Safari.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {

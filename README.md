@@ -6,12 +6,14 @@
 
 A simple SNES-like 2D game library in Go
 
-* [Web browsers (Chrome and Firefox on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
+* [Web browsers (Chrome, Firefox and Safari on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
 * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
 * [Mac OS X](https://github.com/hajimehoshi/ebiten/wiki/Mac-OS-X)
 * [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
 * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
 * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
+
+Note: Decoding Ogg/Vorbis and gamepads aren't available on Safari.
 
 ## Features
 
