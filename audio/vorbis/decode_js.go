@@ -41,8 +41,22 @@ func (s *Stream) Read(b []byte) (int, error) {
 	}
 	l = l / 4 * 4
 	for i := 0; i < l/4; i++ {
-		il := int16(s.leftData[s.posInBytes/4+i] * (1 << 15))
-		ir := int16(s.rightData[s.posInBytes/4+i] * (1 << 15))
+		l := s.leftData[s.posInBytes/4+i]
+		r := s.rightData[s.posInBytes/4+i]
+		if 1 < l {
+			l = 1
+		}
+		if l < -1 {
+			l = -1
+		}
+		if 1 < r {
+			r = 1
+		}
+		if r < -1 {
+			r = -1
+		}
+		il := int16(l * ((1 << 15) - 1))
+		ir := int16(r * ((1 << 15) - 1))
 		b[4*i] = uint8(il)
 		b[4*i+1] = uint8(il >> 8)
 		b[4*i+2] = uint8(ir)
