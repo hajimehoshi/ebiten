@@ -91,7 +91,7 @@ func (c *ColorM) Add(other ColorM) {
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
-	for i := 0; i < ColorMDim-1; i++ {
+	for i := 0; i < ColorMDim; i++ {
 		c.SetElement(0, i, c.Element(0, i)*r)
 		c.SetElement(1, i, c.Element(1, i)*g)
 		c.SetElement(2, i, c.Element(2, i)*b)
