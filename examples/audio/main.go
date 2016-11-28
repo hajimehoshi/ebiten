@@ -62,6 +62,7 @@ func init() {
 type Player struct {
 	audioPlayer *audio.Player
 	total       time.Duration
+	seekedCh    chan error
 }
 
 var (
@@ -143,6 +144,9 @@ func (p *Player) updateBar() error {
 	if p.audioPlayer == nil {
 		return nil
 	}
+	if p.seekedCh != nil {
+		return nil
+	}
 	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		mouseButtonState[ebiten.MouseButtonLeft] = 0
 		return nil
@@ -161,7 +165,12 @@ func (p *Player) updateBar() error {
 		return nil
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
-	return p.audioPlayer.Seek(pos)
+	p.seekedCh = make(chan error, 1)
+	go func() {
+		// This can't be done parallely! !?!?
+		p.seekedCh <- p.audioPlayer.Seek(pos)
+	}()
+	return nil
 }
 
 func (p *Player) close() error {
@@ -229,6 +238,17 @@ Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
 	if musicPlayer == nil {
 		msg += "\nNow Loading..."
+	} else if musicPlayer.seekedCh != nil {
+		select {
+		case err := <-musicPlayer.seekedCh:
+			if err != nil {
+				return err
+			}
+			close(musicPlayer.seekedCh)
+			musicPlayer.seekedCh = nil
+		default:
+			msg += "\nSeeking..."
+		}
 	}
 	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
 		return err
