@@ -38,7 +38,8 @@ import (
 )
 
 type players struct {
-	players map[*Player]struct{}
+	players  map[*Player]struct{}
+	seekings map[*Player]struct{}
 	sync.RWMutex
 }
 
@@ -69,18 +70,24 @@ func (p *players) Read(b []byte) (int, error) {
 	}
 	closed := []*Player{}
 	l := len(b)
-	for p := range p.players {
-		if err := p.readToBuffer(l); err == io.EOF {
-			closed = append(closed, p)
+	for player := range p.players {
+		if _, ok := p.seekings[player]; ok {
+			continue
+		}
+		if err := player.readToBuffer(l); err == io.EOF {
+			closed = append(closed, player)
 		} else if err != nil {
 			return 0, err
 		}
-		l = min(p.bufferLength(), l)
+		l = min(player.bufferLength(), l)
 	}
 	l &= mask
 	b16s := [][]int16{}
-	for p := range p.players {
-		b16s = append(b16s, p.bufferToInt16(l))
+	for player := range p.players {
+		if _, ok := p.seekings[player]; ok {
+			continue
+		}
+		b16s = append(b16s, player.bufferToInt16(l))
 	}
 	for i := 0; i < l/2; i++ {
 		x := 0
@@ -96,8 +103,11 @@ func (p *players) Read(b []byte) (int, error) {
 		b[2*i] = byte(x)
 		b[2*i+1] = byte(x >> 8)
 	}
-	for p := range p.players {
-		p.proceed(l)
+	for player := range p.players {
+		if _, ok := p.seekings[player]; ok {
+			continue
+		}
+		player.proceed(l)
 	}
 	for _, pl := range closed {
 		delete(p.players, pl)
@@ -115,6 +125,18 @@ func (p *players) removePlayer(player *Player) {
 	p.Lock()
 	defer p.Unlock()
 	delete(p.players, player)
+}
+
+func (p *players) addSeeking(player *Player) {
+	p.Lock()
+	defer p.Unlock()
+	p.seekings[player] = struct{}{}
+}
+
+func (p *players) removeSeeking(player *Player) {
+	p.Lock()
+	defer p.Unlock()
+	delete(p.seekings, player)
 }
 
 func (p *players) hasPlayer(player *Player) bool {
@@ -190,7 +212,8 @@ func NewContext(sampleRate int) (*Context, error) {
 	}
 	theContext = c
 	c.players = &players{
-		players: map[*Player]struct{}{},
+		players:  map[*Player]struct{}{},
+		seekings: map[*Player]struct{}{},
 	}
 	return c, nil
 
@@ -286,7 +309,7 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		volume:     1,
 	}
 	// Get the current position of the source.
-	pos, err := p.src.Seek(0, 1)
+	pos, err := p.src.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return nil, err
 	}
@@ -380,6 +403,8 @@ func (p *Player) Rewind() error {
 //
 // This function is concurrent-safe.
 func (p *Player) Seek(offset time.Duration) error {
+	p.players.addSeeking(p)
+	defer p.players.removeSeeking(p)
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
 	p.buf = []byte{}
