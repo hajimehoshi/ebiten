@@ -96,12 +96,14 @@ func (u *userInterface) loop(g GraphicsContext) error {
 	ch := make(chan error)
 	var f func()
 	f = func() {
-		if err := u.update(g); err != nil {
-			ch <- err
-			close(ch)
-			return
-		}
-		js.Global.Get("window").Call("requestAnimationFrame", f)
+		go func() {
+			if err := u.update(g); err != nil {
+				ch <- err
+				close(ch)
+				return
+			}
+			js.Global.Get("window").Call("requestAnimationFrame", f)
+		}()
 	}
 	f()
 	return <-ch
