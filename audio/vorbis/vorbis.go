@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
-
 // Package vorbis provides Ogg/Vorbis decoder.
 package vorbis
 
@@ -21,22 +19,46 @@ import (
 	"io"
 	"runtime"
 
+	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/jfreymuth/oggvorbis"
 )
 
 type decoded struct {
 	data       []float32
+	totalBytes int
 	posInBytes int
+	source     io.Closer
+	decoder    *oggvorbis.Reader
 }
 
 func (d *decoded) Read(b []byte) (int, error) {
-	total := len(d.data) * 2
+	total := d.totalBytes
 	l := total - d.posInBytes
 	if l > len(b) {
 		l = len(b)
 	}
+	if l < 0 {
+		return 0, io.EOF
+	}
 	// l must be even so that d.posInBytes is always even.
 	l = l / 2 * 2
+	for len(d.data) < (d.posInBytes+l)/2 {
+		// TODO: What if the channel is closed?
+		buffer := make([]float32, 4096)
+		n, err := d.decoder.Read(buffer)
+		if n > 0 {
+			d.data = append(d.data, buffer[:n]...)
+		}
+		if err == io.EOF {
+			if err := d.source.Close(); err != nil {
+				return 0, err
+			}
+			break
+		}
+		if err != nil {
+			return 0, err
+		}
+	}
 	for i := 0; i < l/2; i++ {
 		f := d.data[d.posInBytes/2+i]
 		s := int16(f * (1<<15 - 1))
@@ -58,7 +80,7 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		next = int64(d.posInBytes) + offset
 	case io.SeekEnd:
-		next = int64(len(d.data)*2) + offset
+		next = int64(d.totalBytes) + offset
 	}
 	d.posInBytes = int(next)
 	return next, nil
@@ -70,22 +92,23 @@ func (d *decoded) Close() error {
 }
 
 func (d *decoded) Size() int64 {
-	return int64(len(d.data) * 2)
+	return int64(d.totalBytes)
 }
 
 // decode accepts an ogg stream and returns a decorded stream.
-func decode(in io.ReadCloser) (*decoded, int, int, error) {
-	data, format, err := oggvorbis.ReadAll(in)
+func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
+	// TODO: Lazy evaluation
+	r, err := oggvorbis.NewReader(in)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	if err := in.Close(); err != nil {
-		return nil, 0, 0, err
-	}
 	d := &decoded{
-		data:       data,
+		data:       []float32{},
+		totalBytes: int(r.Length()) * 4, // TODO: What if length is 0?
 		posInBytes: 0,
+		source:     in,
+		decoder:    r,
 	}
 	runtime.SetFinalizer(d, (*decoded).Close)
-	return d, format.Channels, format.SampleRate, nil
+	return d, r.Channels(), r.SampleRate(), nil
 }
