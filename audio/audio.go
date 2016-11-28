@@ -124,19 +124,6 @@ func (p *players) hasPlayer(player *Player) bool {
 	return ok
 }
 
-func (p *players) seekPlayer(player *Player, offset int64) error {
-	p.Lock()
-	defer p.Unlock()
-	return player.seek(offset)
-}
-
-func (p *players) playerCurrent(player *Player, sampleRate int) time.Duration {
-	p.RLock()
-	defer p.RUnlock()
-	sample := player.pos / bytesPerSample / channelNum
-	return time.Duration(sample) * time.Second / time.Duration(sampleRate)
-}
-
 func (p *players) hasSource(src ReadSeekCloser) bool {
 	p.RLock()
 	defer p.RUnlock()
@@ -395,12 +382,8 @@ func (p *Player) Rewind() error {
 func (p *Player) Seek(offset time.Duration) error {
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
-	return p.players.seekPlayer(p, o)
-}
-
-func (p *Player) seek(offset int64) error {
 	p.buf = []byte{}
-	pos, err := p.src.Seek(offset, 0)
+	pos, err := p.src.Seek(o, io.SeekStart)
 	if err != nil {
 		return err
 	}
@@ -420,7 +403,8 @@ func (p *Player) Pause() error {
 //
 // This function is concurrent-safe.
 func (p *Player) Current() time.Duration {
-	return p.players.playerCurrent(p, p.sampleRate)
+	sample := p.pos / bytesPerSample / channelNum
+	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
 
 // Volume returns the current volume of this player [0-1].
