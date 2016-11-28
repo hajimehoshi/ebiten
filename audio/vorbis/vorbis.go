@@ -31,6 +31,32 @@ type decoded struct {
 	decoder    *oggvorbis.Reader
 }
 
+func (d *decoded) readUntil(posInBytes int) error {
+	c := 0
+	for len(d.data) < posInBytes/2 {
+		// TODO: What if the channel is closed?
+		buffer := make([]float32, 4096)
+		n, err := d.decoder.Read(buffer)
+		if n > 0 {
+			d.data = append(d.data, buffer[:n]...)
+		}
+		if err == io.EOF {
+			if err := d.source.Close(); err != nil {
+				return err
+			}
+			break
+		}
+		if err != nil {
+			return err
+		}
+		c++
+		if c%4 == 0 {
+			runtime.Gosched()
+		}
+	}
+	return nil
+}
+
 func (d *decoded) Read(b []byte) (int, error) {
 	total := d.totalBytes
 	l := total - d.posInBytes
@@ -42,22 +68,8 @@ func (d *decoded) Read(b []byte) (int, error) {
 	}
 	// l must be even so that d.posInBytes is always even.
 	l = l / 2 * 2
-	for len(d.data) < (d.posInBytes+l)/2 {
-		// TODO: What if the channel is closed?
-		buffer := make([]float32, 4096)
-		n, err := d.decoder.Read(buffer)
-		if n > 0 {
-			d.data = append(d.data, buffer[:n]...)
-		}
-		if err == io.EOF {
-			if err := d.source.Close(); err != nil {
-				return 0, err
-			}
-			break
-		}
-		if err != nil {
-			return 0, err
-		}
+	if err := d.readUntil(d.posInBytes + l); err != nil {
+		return 0, err
 	}
 	for i := 0; i < l/2; i++ {
 		f := d.data[d.posInBytes/2+i]
@@ -82,7 +94,12 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		next = int64(d.totalBytes) + offset
 	}
+	// pos should be always even
+	next = next / 2 * 2
 	d.posInBytes = int(next)
+	if err := d.readUntil(d.posInBytes); err != nil {
+		return 0, err
+	}
 	return next, nil
 }
 
