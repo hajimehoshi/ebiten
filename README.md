@@ -13,7 +13,7 @@ A simple SNES-like 2D game library in Go
 * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
 * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
 
-Note: Decoding Ogg/Vorbis and gamepads aren't available on Safari.
+Note: Gamepads is not available on Safari/Android/iOS. Keyboard is not available on Android/iOS.
 
 ## Features
 
