@@ -32,6 +32,8 @@ func (s *Stream) Read(p []byte) (int, error) {
 }
 
 // Seek is implementation of io.Seeker's Seek.
+//
+// Note that Seek can take long since decoding is a relatively heavy task.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.decoded.Seek(offset, whence)
 }
