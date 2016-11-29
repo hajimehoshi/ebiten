@@ -18,6 +18,7 @@ package driver
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gopherjs/gopherjs/js"
 )
@@ -29,6 +30,14 @@ type Player struct {
 	positionInSamples int64
 	bufferedData      []byte
 	context           *js.Object
+}
+
+func isIOS() bool {
+	ua := js.Global.Get("navigator").Get("userAgent").String()
+	if !strings.Contains(ua, "iPhone") {
+		return false
+	}
+	return true
 }
 
 func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
@@ -45,6 +54,13 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		bytesPerSample: bytesPerSample,
 		bufferedData:   []byte{},
 		context:        class.New(),
+	}
+	// iOS requires touch event to use AudioContext.
+	if isIOS() {
+		js.Global.Get("document").Call("addEventListener", "touchend", func() {
+			p.context.Call("createBufferSource").Call("start", 0)
+			p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
+		})
 	}
 	p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 	return p, nil
