@@ -34,8 +34,7 @@ type decoded struct {
 func (d *decoded) readUntil(posInBytes int) error {
 	c := 0
 	for len(d.data) < posInBytes/2 {
-		// TODO: What if the channel is closed?
-		buffer := make([]float32, 4096)
+		buffer := make([]float32, 8192)
 		n, err := d.decoder.Read(buffer)
 		if n > 0 {
 			d.data = append(d.data, buffer[:n]...)
