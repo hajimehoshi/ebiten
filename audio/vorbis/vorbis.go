@@ -33,8 +33,8 @@ type decoded struct {
 
 func (d *decoded) readUntil(posInBytes int) error {
 	c := 0
+	buffer := make([]float32, 8192)
 	for len(d.data) < posInBytes/2 {
-		buffer := make([]float32, 8192)
 		n, err := d.decoder.Read(buffer)
 		if n > 0 {
 			d.data = append(d.data, buffer[:n]...)
@@ -56,7 +56,7 @@ func (d *decoded) readUntil(posInBytes int) error {
 	return nil
 }
 
-func (d *decoded) Read(b []byte) (int, error) {
+func (d *decoded) Read(b []uint8) (int, error) {
 	total := d.totalBytes
 	l := total - d.posInBytes
 	if l > len(b) {
@@ -119,12 +119,18 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		return nil, 0, 0, err
 	}
 	d := &decoded{
-		data:       []float32{},
+		data:       make([]float32, 0, r.Length()),
 		totalBytes: int(r.Length()) * 4, // TODO: What if length is 0?
 		posInBytes: 0,
 		source:     in,
 		decoder:    r,
 	}
 	runtime.SetFinalizer(d, (*decoded).Close)
+	if _, err := d.Read(make([]uint8, 65536)); err != nil {
+		return nil, 0, 0, err
+	}
+	if _, err := d.Seek(0, io.SeekStart); err != nil {
+		return nil, 0, 0, err
+	}
 	return d, r.Channels(), r.SampleRate(), nil
 }
