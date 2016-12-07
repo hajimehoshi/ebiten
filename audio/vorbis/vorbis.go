@@ -26,6 +26,7 @@ import (
 type decoded struct {
 	data       []float32
 	totalBytes int
+	readBytes  int
 	posInBytes int
 	source     io.Closer
 	decoder    *oggvorbis.Reader
@@ -34,10 +35,18 @@ type decoded struct {
 func (d *decoded) readUntil(posInBytes int) error {
 	c := 0
 	buffer := make([]float32, 8192)
-	for len(d.data) < posInBytes/2 {
+	for d.readBytes < posInBytes {
 		n, err := d.decoder.Read(buffer)
 		if n > 0 {
-			d.data = append(d.data, buffer[:n]...)
+			// Actual read bytes might exceed the total bytes.
+			if d.readBytes+n*2 > d.totalBytes {
+				n = (d.totalBytes - d.readBytes) / 2
+			}
+			p := d.readBytes / 2
+			for i := 0; i < n; i++ {
+				d.data[p+i] = buffer[i]
+			}
+			d.readBytes += n * 2
 		}
 		if err == io.EOF {
 			if err := d.source.Close(); err != nil {
@@ -57,8 +66,7 @@ func (d *decoded) readUntil(posInBytes int) error {
 }
 
 func (d *decoded) Read(b []uint8) (int, error) {
-	total := d.totalBytes
-	l := total - d.posInBytes
+	l := d.totalBytes - d.posInBytes
 	if l > len(b) {
 		l = len(b)
 	}
@@ -77,7 +85,7 @@ func (d *decoded) Read(b []uint8) (int, error) {
 		b[2*i+1] = uint8(s >> 8)
 	}
 	d.posInBytes += l
-	if d.posInBytes == total {
+	if d.posInBytes == d.totalBytes {
 		return l, io.EOF
 	}
 	return l, nil
@@ -119,7 +127,7 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		return nil, 0, 0, err
 	}
 	d := &decoded{
-		data:       make([]float32, 0, r.Length()),
+		data:       make([]float32, r.Length()*2),
 		totalBytes: int(r.Length()) * 4, // TODO: What if length is 0?
 		posInBytes: 0,
 		source:     in,
