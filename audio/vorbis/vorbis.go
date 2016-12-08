@@ -58,7 +58,7 @@ func (d *decoded) readUntil(posInBytes int) error {
 			return err
 		}
 		c++
-		if c%4 == 0 {
+		if c%2 == 0 {
 			runtime.Gosched()
 		}
 	}
