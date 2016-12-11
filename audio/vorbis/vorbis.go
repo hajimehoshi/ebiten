@@ -16,12 +16,40 @@
 package vorbis
 
 import (
+	"fmt"
 	"io"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/jfreymuth/oggvorbis"
 )
+
+// Stream is a decoded audio stream.
+type Stream struct {
+	decoded *decoded
+}
+
+// Read is implementation of io.Reader's Read.
+func (s *Stream) Read(p []byte) (int, error) {
+	return s.decoded.Read(p)
+}
+
+// Seek is implementation of io.Seeker's Seek.
+//
+// Note that Seek can take long since decoding is a relatively heavy task.
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	return s.decoded.Seek(offset, whence)
+}
+
+// Read is implementation of io.Closer's Close.
+func (s *Stream) Close() error {
+	return s.decoded.Close()
+}
+
+// Size returns the size of decoded stream in bytes.
+func (s *Stream) Size() int64 {
+	return s.decoded.Size()
+}
 
 type decoded struct {
 	data       []float32
@@ -141,4 +169,25 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		return nil, 0, 0, err
 	}
 	return d, r.Channels(), r.SampleRate(), nil
+}
+
+// Decode decodes Ogg/Vorbis data to playable stream.
+//
+// The sample rate must be same as that of audio context.
+func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+	decoded, channelNum, sampleRate, err := decode(src)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Remove this magic number
+	if channelNum != 2 {
+		return nil, fmt.Errorf("vorbis: number of channels must be 2")
+	}
+	if sampleRate != context.SampleRate() {
+		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+	}
+	s := &Stream{
+		decoded: decoded,
+	}
+	return s, nil
 }
