@@ -149,7 +149,6 @@ func (d *decoded) Size() int64 {
 
 // decode accepts an ogg stream and returns a decorded stream.
 func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
-	// TODO: Lazy evaluation
 	r, err := oggvorbis.NewReader(in)
 	if err != nil {
 		return nil, 0, 0, err
