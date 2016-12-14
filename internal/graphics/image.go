@@ -114,7 +114,10 @@ func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
 	if err := theCommandQueue.Flush(context); err != nil {
 		return nil, err
 	}
-	f := i.framebuffer
+	f, err := i.createFramebufferIfNeeded(context)
+	if err != nil {
+		return nil, err
+	}
 	return context.FramebufferPixels(f.native, i.width, i.height)
 }
 
@@ -131,4 +134,16 @@ func (i *Image) ReplacePixels(p []uint8) error {
 
 func (i *Image) IsInvalidated(context *opengl.Context) bool {
 	return !context.IsTexture(i.texture.native)
+}
+
+func (i *Image) createFramebufferIfNeeded(context *opengl.Context) (*framebuffer, error) {
+	if i.framebuffer != nil {
+		return i.framebuffer, nil
+	}
+	f, err := newFramebufferFromTexture(context, i.texture)
+	if err != nil {
+		return nil, err
+	}
+	i.framebuffer = f
+	return i.framebuffer, nil
 }

@@ -145,7 +145,11 @@ type fillCommand struct {
 }
 
 func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
-	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
+	f, err := c.dst.createFramebufferIfNeeded(context)
+	if err != nil {
+		return err
+	}
+	if err := f.setAsViewport(context); err != nil {
 		return err
 	}
 	cr, cg, cb, ca := c.color.R, c.color.G, c.color.B, c.color.A
@@ -170,7 +174,11 @@ func QuadVertexSizeInBytes() int {
 }
 
 func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
-	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
+	f, err := c.dst.createFramebufferIfNeeded(context)
+	if err != nil {
+		return err
+	}
+	if err := f.setAsViewport(context); err != nil {
 		return err
 	}
 	context.BlendFunc(c.mode)
@@ -180,7 +188,7 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 		return nil
 	}
 	_, h := c.dst.Size()
-	proj := c.dst.framebuffer.projectionMatrix(h)
+	proj := f.projectionMatrix(h)
 	p := programContext{
 		state:            &theOpenGLState,
 		program:          theOpenGLState.programTexture,
@@ -234,7 +242,11 @@ type replacePixelsCommand struct {
 }
 
 func (c *replacePixelsCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
-	if err := c.dst.framebuffer.setAsViewport(context); err != nil {
+	f, err := c.dst.createFramebufferIfNeeded(context)
+	if err != nil {
+		return err
+	}
+	if err := f.setAsViewport(context); err != nil {
 		return err
 	}
 	// Filling with non black or white color is required here for glTexSubImage2D.
@@ -314,10 +326,6 @@ func (c *newImageFromImageCommand) Exec(context *opengl.Context, indexOffsetInBy
 	c.result.texture = &texture{
 		native: native,
 	}
-	c.result.framebuffer, err = newFramebufferFromTexture(context, c.result.texture)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -343,10 +351,6 @@ func (c *newImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) 
 	}
 	c.result.texture = &texture{
 		native: native,
-	}
-	c.result.framebuffer, err = newFramebufferFromTexture(context, c.result.texture)
-	if err != nil {
-		return err
 	}
 	return nil
 }
