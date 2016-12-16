@@ -2,5 +2,5 @@
 
 ```sh
 :; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
-:; go run rotate/main.go
+:; go run -tags=example rotate/main.go
 ```
