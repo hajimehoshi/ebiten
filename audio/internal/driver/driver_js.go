@@ -40,6 +40,17 @@ func isIOS() bool {
 	return true
 }
 
+func isAndroidChrome() bool {
+	ua := js.Global.Get("navigator").Get("userAgent").String()
+	if !strings.Contains(ua, "Android") {
+		return false
+	}
+	if !strings.Contains(ua, "Chrome") {
+		return false
+	}
+	return true
+}
+
 func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 	class := js.Global.Get("AudioContext")
 	if class == js.Undefined {
@@ -55,9 +66,12 @@ func NewPlayer(sampleRate, channelNum, bytesPerSample int) (*Player, error) {
 		bufferedData:   []byte{},
 		context:        class.New(),
 	}
-	// iOS requires touch event to use AudioContext.
-	if isIOS() {
+	// iOS and Android Chrome requires touch event to use AudioContext.
+	if isIOS() || isAndroidChrome() {
 		js.Global.Get("document").Call("addEventListener", "touchend", func() {
+			// Resuming is necessary as of Chrome 55+ in some cases like different
+			// domain page in an iframe.
+			p.context.Call("resume")
 			p.context.Call("createBufferSource").Call("start", 0)
 			p.positionInSamples = int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
 		})
