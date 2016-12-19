@@ -39,7 +39,8 @@ func (g *GeoM) Concat(other GeoM) {
 	g.impl.Concat(other.impl)
 }
 
-// Add adds a geometry matrix with the other geometry matrix.
+// Add is deprecated as of 1.5.0-alpha.
+// Note that this doesn't make sense in terms of additions two affine matrices.
 func (g *GeoM) Add(other GeoM) {
 	g.impl.Add(other.impl)
 }

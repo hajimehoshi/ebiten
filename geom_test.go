@@ -33,20 +33,6 @@ func TestGeometryInit(t *testing.T) {
 			}
 		}
 	}
-
-	m.Add(m)
-	for i := 0; i < GeoMDim-1; i++ {
-		for j := 0; j < GeoMDim; j++ {
-			got := m.Element(i, j)
-			want := 0.0
-			if i == j {
-				want = 2
-			}
-			if want != got {
-				t.Errorf("m.Element(%d, %d) = %f, want %f", i, j, got, want)
-			}
-		}
-	}
 }
 
 func TestGeometryAssign(t *testing.T) {
