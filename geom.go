@@ -40,7 +40,7 @@ func (g *GeoM) Concat(other GeoM) {
 }
 
 // Add is deprecated as of 1.5.0-alpha.
-// Note that this doesn't make sense in terms of additions two affine matrices.
+// Note that this doesn't make sense as an operation for affine matrices.
 func (g *GeoM) Add(other GeoM) {
 	g.impl.Add(other.impl)
 }

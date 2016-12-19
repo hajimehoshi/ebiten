@@ -40,7 +40,7 @@ func (c *ColorM) Concat(other ColorM) {
 }
 
 // Add is deprecated as of 1.5.0-alpha.
-// Note that this doesn't make sense in terms of additions two affine matrices.
+// Note that this doesn't make sense as an operation for affine matrices.
 func (c *ColorM) Add(other ColorM) {
 	c.impl.Add(other.impl)
 }
