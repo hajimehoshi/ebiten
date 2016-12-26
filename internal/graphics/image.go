@@ -18,6 +18,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -46,9 +47,10 @@ func CopyImage(origImg image.Image) *image.RGBA {
 		index1 := 0
 		d0 := origImg.Stride - (x1 - x0)
 		d1 := newImg.Stride - (x1-x0)*4
+		pix := origImg.Pix
 		for j := 0; j < y1-y0; j++ {
 			for i := 0; i < x1-x0; i++ {
-				p := origImg.Pix[index0]
+				p := pix[index0]
 				newImg.Pix[index1] = palette[4*p]
 				newImg.Pix[index1+1] = palette[4*p+1]
 				newImg.Pix[index1+2] = palette[4*p+2]
@@ -62,6 +64,7 @@ func CopyImage(origImg image.Image) *image.RGBA {
 	default:
 		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
 	}
+	runtime.Gosched()
 	return newImg
 }
 
