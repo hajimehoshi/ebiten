@@ -34,9 +34,13 @@ func CopyImage(origImg image.Image) *image.RGBA {
 		y0 := b.Min.Y
 		x1 := b.Max.X
 		y1 := b.Max.Y
-		palette := make([]color.RGBA, len(origImg.Palette))
+		palette := make([]uint8, len(origImg.Palette)*4)
 		for i, c := range origImg.Palette {
-			palette[i] = color.RGBAModel.Convert(c).(color.RGBA)
+			rgba := color.RGBAModel.Convert(c).(color.RGBA)
+			palette[4*i] = rgba.R
+			palette[4*i+1] = rgba.G
+			palette[4*i+2] = rgba.B
+			palette[4*i+3] = rgba.A
 		}
 		index0 := y0*origImg.Stride + x0
 		index1 := 0
@@ -45,11 +49,10 @@ func CopyImage(origImg image.Image) *image.RGBA {
 		for j := 0; j < y1-y0; j++ {
 			for i := 0; i < x1-x0; i++ {
 				p := origImg.Pix[index0]
-				c := palette[p]
-				newImg.Pix[index1] = c.R
-				newImg.Pix[index1+1] = c.G
-				newImg.Pix[index1+2] = c.B
-				newImg.Pix[index1+3] = c.A
+				newImg.Pix[index1] = palette[4*p]
+				newImg.Pix[index1+1] = palette[4*p+1]
+				newImg.Pix[index1+2] = palette[4*p+2]
+				newImg.Pix[index1+3] = palette[4*p+3]
 				index0++
 				index1 += 4
 			}
