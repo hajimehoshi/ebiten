@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"math"
 	"sync"
 
@@ -287,28 +286,6 @@ type newImageFromImageCommand struct {
 	filter opengl.Filter
 }
 
-func adjustImageForTexture(img *image.RGBA) *image.RGBA {
-	width, height := img.Bounds().Size().X, img.Bounds().Size().Y
-	adjustedImageBounds := image.Rectangle{
-		image.ZP,
-		image.Point{
-			NextPowerOf2Int(width),
-			NextPowerOf2Int(height),
-		},
-	}
-	if img.Bounds() == adjustedImageBounds {
-		return img
-	}
-
-	adjustedImage := image.NewRGBA(adjustedImageBounds)
-	dstBounds := image.Rectangle{
-		image.ZP,
-		img.Bounds().Size(),
-	}
-	draw.Draw(adjustedImage, dstBounds, img, img.Bounds().Min, draw.Src)
-	return adjustedImage
-}
-
 func (c *newImageFromImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int) error {
 	origSize := c.img.Bounds().Size()
 	if origSize.X < 1 {
@@ -317,9 +294,11 @@ func (c *newImageFromImageCommand) Exec(context *opengl.Context, indexOffsetInBy
 	if origSize.Y < 1 {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
-	adjustedImage := adjustImageForTexture(c.img)
-	size := adjustedImage.Bounds().Size()
-	native, err := context.NewTexture(size.X, size.Y, adjustedImage.Pix, c.filter)
+	w, h := c.img.Bounds().Size().X, c.img.Bounds().Size().Y
+	if c.img.Bounds() != image.Rect(0, 0, NextPowerOf2Int(w), NextPowerOf2Int(h)) {
+		panic(fmt.Sprintf("graphics: invalid image bounds: %v", c.img.Bounds()))
+	}
+	native, err := context.NewTexture(w, h, c.img.Pix, c.filter)
 	if err != nil {
 		return err
 	}

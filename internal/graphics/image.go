@@ -27,7 +27,7 @@ import (
 func CopyImage(origImg image.Image) *image.RGBA {
 	size := origImg.Bounds().Size()
 	w, h := size.X, size.Y
-	newImg := image.NewRGBA(image.Rect(0, 0, w, h))
+	newImg := image.NewRGBA(image.Rect(0, 0, NextPowerOf2Int(w), NextPowerOf2Int(h)))
 	switch origImg := origImg.(type) {
 	case *image.Paletted:
 		b := origImg.Bounds()
@@ -63,7 +63,7 @@ func CopyImage(origImg image.Image) *image.RGBA {
 			index1 += d1
 		}
 	default:
-		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
+		draw.Draw(newImg, image.Rect(0, 0, w, h), origImg, origImg.Bounds().Min, draw.Src)
 	}
 	runtime.Gosched()
 	return newImg
@@ -93,11 +93,10 @@ func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
 	return i, nil
 }
 
-func NewImageFromImage(img *image.RGBA, filter opengl.Filter) (*Image, error) {
-	s := img.Bounds().Size()
+func NewImageFromImage(img *image.RGBA, width, height int, filter opengl.Filter) (*Image, error) {
 	i := &Image{
-		width:  s.X,
-		height: s.Y,
+		width:  width,
+		height: height,
 	}
 	c := &newImageFromImageCommand{
 		result: i,

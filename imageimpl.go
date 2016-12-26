@@ -81,7 +81,7 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	for j := 0; j < h; j++ {
 		copy(p[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
-	img, err := restorable.NewImageFromImage(rgbaImg, glFilter(filter))
+	img, err := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
 	if err != nil {
 		return nil, err
 	}
@@ -180,9 +180,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	if i.restorable == nil {
 		return color.Transparent
 	}
-	w, _ := i.restorable.Size()
-	idx := 4*x + 4*y*w
-	clr, err := i.restorable.At(idx, context)
+	clr, err := i.restorable.At(x, y, context)
 	if err != nil {
 		panic(err)
 	}

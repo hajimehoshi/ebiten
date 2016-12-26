@@ -62,14 +62,12 @@ func NewImage(width, height int, filter opengl.Filter, volatile bool) (*Image, e
 	}, nil
 }
 
-func NewImageFromImage(source *image.RGBA, filter opengl.Filter) (*Image, error) {
-	img, err := graphics.NewImageFromImage(source, filter)
+func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) (*Image, error) {
+	img, err := graphics.NewImageFromImage(source, width, height, filter)
 	if err != nil {
 		// TODO: texture should be removed here?
 		return nil, err
 	}
-	size := source.Bounds().Size()
-	width, height := size.X, size.Y
 	return &Image{
 		image:  img,
 		width:  width,
@@ -172,11 +170,12 @@ func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []float32
 	p.drawImageHistory = append(p.drawImageHistory, item)
 }
 
-// At returns a color value at idx.
+// At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
-func (p *Image) At(idx int, context *opengl.Context) (color.RGBA, error) {
+func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
+	idx := 4*x + 4*y*p.width
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.readPixelsFromVRAM(p.image, context); err != nil {
 			return color.RGBA{}, err
@@ -260,13 +259,13 @@ func (p *Image) Restore(context *opengl.Context) error {
 	if p.stale {
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	img := image.NewRGBA(image.Rect(0, 0, p.width, p.height))
+	img := image.NewRGBA(image.Rect(0, 0, graphics.NextPowerOf2Int(p.width), graphics.NextPowerOf2Int(p.height)))
 	if p.basePixels != nil {
 		for j := 0; j < p.height; j++ {
 			copy(img.Pix[j*img.Stride:], p.basePixels[j*p.width*4:(j+1)*p.width*4])
 		}
 	}
-	gimg, err := graphics.NewImageFromImage(img, p.filter)
+	gimg, err := graphics.NewImageFromImage(img, p.width, p.height, p.filter)
 	if err != nil {
 		return err
 	}

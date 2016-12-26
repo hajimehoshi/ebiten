@@ -84,7 +84,7 @@ func TestImagePixels(t *testing.T) {
 	}
 
 	if got := img0.Bounds().Size(); got != img.Bounds().Size() {
-		t.Errorf("img size: got %d; want %d", got, img.Bounds().Size())
+		t.Fatalf("img size: got %d; want %d", got, img.Bounds().Size())
 	}
 
 	for j := 0; j < img0.Bounds().Size().Y; j++ {
