@@ -83,6 +83,14 @@ func BenchmarkCopyImageRGBA(b *testing.B) {
 	}
 }
 
+func BenchmarkCopyImageNRGBA(b *testing.B) {
+	img := image.NewNRGBA(image.Rect(0, 0, 4096, 4096))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		CopyImage(img)
+	}
+}
+
 func BenchmarkCopyImagePaletted(b *testing.B) {
 	img := image.NewPaletted(image.Rect(0, 0, 4096, 4096), palette.Plan9)
 	b.ResetTimer()
