@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"runtime"
 	"sync"
 
@@ -77,10 +76,7 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	// It is necessary to copy the source image since the actual construction of
 	// an image is delayed and we can't expect the source image is not modified
 	// until the construction.
-	origImg := source
-	newImg := image.NewRGBA(image.Rect(0, 0, w, h))
-	draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
-	rgbaImg := newImg
+	rgbaImg := graphics.CopyImage(source)
 	p := make([]uint8, 4*w*h)
 	for j := 0; j < h; j++ {
 		copy(p[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])

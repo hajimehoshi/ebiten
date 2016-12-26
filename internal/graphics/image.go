@@ -17,10 +17,50 @@ package graphics
 import (
 	"image"
 	"image/color"
+	"image/draw"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
+
+func CopyImage(origImg image.Image) *image.RGBA {
+	size := origImg.Bounds().Size()
+	w, h := size.X, size.Y
+	newImg := image.NewRGBA(image.Rect(0, 0, w, h))
+	switch origImg := origImg.(type) {
+	case *image.Paletted:
+		b := origImg.Bounds()
+		x0 := b.Min.X
+		y0 := b.Min.Y
+		x1 := b.Max.X
+		y1 := b.Max.Y
+		palette := make([]color.RGBA, len(origImg.Palette))
+		for i, c := range origImg.Palette {
+			palette[i] = color.RGBAModel.Convert(c).(color.RGBA)
+		}
+		index0 := y0*origImg.Stride + x0
+		index1 := 0
+		d0 := origImg.Stride - (x1 - x0)
+		d1 := newImg.Stride - (x1-x0)*4
+		for j := 0; j < y1-y0; j++ {
+			for i := 0; i < x1-x0; i++ {
+				p := origImg.Pix[index0]
+				c := palette[p]
+				newImg.Pix[index1] = c.R
+				newImg.Pix[index1+1] = c.G
+				newImg.Pix[index1+2] = c.B
+				newImg.Pix[index1+3] = c.A
+				index0++
+				index1 += 4
+			}
+			index0 += d0
+			index1 += d1
+		}
+	default:
+		draw.Draw(newImg, newImg.Bounds(), origImg, origImg.Bounds().Min, draw.Src)
+	}
+	return newImg
+}
 
 type Image struct {
 	texture     *texture
