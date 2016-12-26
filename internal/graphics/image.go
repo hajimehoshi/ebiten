@@ -47,14 +47,15 @@ func CopyImage(origImg image.Image) *image.RGBA {
 		index1 := 0
 		d0 := origImg.Stride - (x1 - x0)
 		d1 := newImg.Stride - (x1-x0)*4
-		pix := origImg.Pix
+		pix0 := origImg.Pix
+		pix1 := newImg.Pix
 		for j := 0; j < y1-y0; j++ {
 			for i := 0; i < x1-x0; i++ {
-				p := pix[index0]
-				newImg.Pix[index1] = palette[4*p]
-				newImg.Pix[index1+1] = palette[4*p+1]
-				newImg.Pix[index1+2] = palette[4*p+2]
-				newImg.Pix[index1+3] = palette[4*p+3]
+				p := pix0[index0]
+				pix1[index1] = palette[4*p]
+				pix1[index1+1] = palette[4*p+1]
+				pix1[index1+2] = palette[4*p+2]
+				pix1[index1+3] = palette[4*p+3]
 				index0++
 				index1 += 4
 			}
