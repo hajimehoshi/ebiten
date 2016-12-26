@@ -4,7 +4,7 @@
 [![GoDoc](https://godoc.org/github.com/hajimehoshi/ebiten?status.svg)](http://godoc.org/github.com/hajimehoshi/ebiten)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hajimehoshi/ebiten)](https://goreportcard.com/report/github.com/hajimehoshi/ebiten)
 
-A simple SNES-like 2D game library in Go
+A simple SNES-style 2D game library in Go
 
 * [Web browsers (Chrome, Firefox and Safari on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
 * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
