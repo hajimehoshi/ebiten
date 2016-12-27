@@ -34,8 +34,6 @@ type drawImageHistoryItem struct {
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image  *graphics.Image
-	width  int
-	height int
 	filter opengl.Filter
 
 	// baseImage and baseColor are exclusive.
@@ -55,8 +53,6 @@ func NewImage(width, height int, filter opengl.Filter, volatile bool) (*Image, e
 	}
 	return &Image{
 		image:    img,
-		width:    width,
-		height:   height,
 		filter:   filter,
 		volatile: volatile,
 	}, nil
@@ -70,8 +66,6 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 	}
 	return &Image{
 		image:  img,
-		width:  width,
-		height: height,
 		filter: filter,
 	}, nil
 }
@@ -83,15 +77,13 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 	}
 	return &Image{
 		image:    img,
-		width:    width,
-		height:   height,
 		volatile: true,
 		screen:   true,
 	}, nil
 }
 
 func (p *Image) Size() (int, int) {
-	return p.width, p.height
+	return p.image.Size()
 }
 
 func (p *Image) makeStale() {
@@ -175,7 +167,8 @@ func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []float32
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
 func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
-	idx := 4*x + 4*y*p.width
+	w, _ := p.image.Size()
+	idx := 4*x + 4*y*w
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.readPixelsFromVRAM(p.image, context); err != nil {
 			return color.RGBA{}, err
@@ -230,11 +223,12 @@ func (p *Image) HasDependency() bool {
 
 // RestoreImage restores *graphics.Image from the pixels using its state.
 func (p *Image) Restore(context *opengl.Context) error {
+	w, h := p.image.Size()
 	if p.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
 		var err error
-		p.image, err = graphics.NewScreenFramebufferImage(p.width, p.height)
+		p.image, err = graphics.NewScreenFramebufferImage(w, h)
 		if err != nil {
 			return err
 		}
@@ -246,7 +240,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 	}
 	if p.volatile {
 		var err error
-		p.image, err = graphics.NewImage(p.width, p.height, p.filter)
+		p.image, err = graphics.NewImage(w, h, p.filter)
 		if err != nil {
 			return err
 		}
@@ -259,13 +253,13 @@ func (p *Image) Restore(context *opengl.Context) error {
 	if p.stale {
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	img := image.NewRGBA(image.Rect(0, 0, graphics.NextPowerOf2Int(p.width), graphics.NextPowerOf2Int(p.height)))
+	img := image.NewRGBA(image.Rect(0, 0, graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)))
 	if p.basePixels != nil {
-		for j := 0; j < p.height; j++ {
-			copy(img.Pix[j*img.Stride:], p.basePixels[j*p.width*4:(j+1)*p.width*4])
+		for j := 0; j < h; j++ {
+			copy(img.Pix[j*img.Stride:], p.basePixels[j*w*4:(j+1)*w*4])
 		}
 	}
-	gimg, err := graphics.NewImageFromImage(img, p.width, p.height, p.filter)
+	gimg, err := graphics.NewImageFromImage(img, w, h, p.filter)
 	if err != nil {
 		return err
 	}
