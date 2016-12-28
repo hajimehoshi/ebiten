@@ -188,7 +188,7 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 	}
 	_, h := c.dst.Size()
 	proj := f.projectionMatrix(h)
-	p := programContext{
+	p := &programContext{
 		state:            &theOpenGLState,
 		program:          theOpenGLState.programTexture,
 		context:          context,
@@ -199,7 +199,6 @@ func (c *drawImageCommand) Exec(context *opengl.Context, indexOffsetInBytes int)
 	if err := p.begin(); err != nil {
 		return err
 	}
-	defer p.end()
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
 	context.DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)

@@ -268,6 +268,3 @@ func (p *programContext) begin() error {
 	}
 	return nil
 }
-
-func (p *programContext) end() {
-}
