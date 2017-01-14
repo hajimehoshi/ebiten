@@ -268,7 +268,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	const sampleRate = 44100
+	// This sample rate doesn't match with wav/ogg's sample rate,
+	// but decoders adjust them.
+	const sampleRate = 48000
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
 	audioContext, err = audio.NewContext(sampleRate)
 	if err != nil {

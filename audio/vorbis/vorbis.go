@@ -21,12 +21,18 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/audio/internal/resampling"
 	"github.com/jfreymuth/oggvorbis"
 )
 
+type readSeekCloseSizer interface {
+	audio.ReadSeekCloser
+	Size() int64
+}
+
 // Stream is a decoded audio stream.
 type Stream struct {
-	decoded *decoded
+	decoded readSeekCloseSizer
 }
 
 // Read is implementation of io.Reader's Read.
@@ -172,7 +178,7 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 
 // Decode decodes Ogg/Vorbis data to playable stream.
 //
-// The sample rate must be same as that of audio context.
+// Sample rate is automatically adjusted to fit with the audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {
@@ -183,10 +189,8 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, fmt.Errorf("vorbis: number of channels must be 2")
 	}
 	if sampleRate != context.SampleRate() {
-		return nil, fmt.Errorf("vorbis: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+		s := resampling.NewStream(decoded, decoded.Size(), sampleRate, context.SampleRate())
+		return &Stream{s}, nil
 	}
-	s := &Stream{
-		decoded: decoded,
-	}
-	return s, nil
+	return &Stream{decoded}, nil
 }

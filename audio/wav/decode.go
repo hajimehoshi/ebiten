@@ -21,10 +21,42 @@ import (
 	"io"
 
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/audio/internal/resampling"
 )
+
+type readSeekCloseSizer interface {
+	audio.ReadSeekCloser
+	Size() int64
+}
 
 // Stream is a decoded audio stream.
 type Stream struct {
+	inner readSeekCloseSizer
+}
+
+// Read is implementation of io.Reader's Read.
+func (s *Stream) Read(p []byte) (int, error) {
+	return s.inner.Read(p)
+}
+
+// Seek is implementation of io.Seeker's Seek.
+//
+// Note that Seek can take long since decoding is a relatively heavy task.
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	return s.inner.Seek(offset, whence)
+}
+
+// Read is implementation of io.Closer's Close.
+func (s *Stream) Close() error {
+	return s.inner.Close()
+}
+
+// Size returns the size of decoded stream in bytes.
+func (s *Stream) Size() int64 {
+	return s.inner.Size()
+}
+
+type stream struct {
 	src        audio.ReadSeekCloser
 	headerSize int64
 	dataSize   int64
@@ -32,7 +64,7 @@ type Stream struct {
 }
 
 // Read is implementation of io.Reader's Read.
-func (s *Stream) Read(p []byte) (int, error) {
+func (s *stream) Read(p []byte) (int, error) {
 	if s.remaining <= 0 {
 		return 0, io.EOF
 	}
@@ -45,7 +77,7 @@ func (s *Stream) Read(p []byte) (int, error) {
 }
 
 // Seek is implementation of io.Seeker's Seek.
-func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	if whence == io.SeekStart {
 		offset += s.headerSize
 	}
@@ -66,19 +98,20 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Read is implementation of io.Closer's Close.
-func (s *Stream) Close() error {
+func (s *stream) Close() error {
 	return s.src.Close()
 }
 
 // Size returns the size of decoded stream in bytes.
-func (s *Stream) Size() int64 {
+func (s *stream) Size() int64 {
 	return s.dataSize
 }
 
 // Decode decodes WAV (RIFF) data to playable stream.
 //
 // The format must be 2 channels, 16bit little endian PCM.
-// The sample rate must be same as that of audio context.
+//
+// Sample rate is automatically adjusted to fit with the audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
@@ -98,6 +131,8 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	// Read chunks
 	dataSize := int64(0)
 	headerSize := int64(0)
+	sampleRateFrom := 0
+	sampleRateTo := 0
 chunks:
 	for {
 		buf := make([]byte, 8)
@@ -139,7 +174,8 @@ chunks:
 			}
 			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
 			if int64(context.SampleRate()) != sampleRate {
-				return nil, fmt.Errorf("wav: sample rate must be %d but %d", context.SampleRate(), sampleRate)
+				sampleRateFrom = int(sampleRate)
+				sampleRateTo = context.SampleRate()
 			}
 			headerSize += size
 		case bytes.Equal(buf[0:4], []byte("data")):
@@ -157,11 +193,15 @@ chunks:
 			headerSize += size
 		}
 	}
-	s := &Stream{
+	s := &stream{
 		src:        src,
 		headerSize: headerSize,
 		dataSize:   dataSize,
 		remaining:  dataSize,
 	}
-	return s, nil
+	if sampleRateFrom != sampleRateTo {
+		fixed := resampling.NewStream(s, s.dataSize, sampleRateFrom, sampleRateTo)
+		return &Stream{fixed}, nil
+	}
+	return &Stream{s}, nil
 }
