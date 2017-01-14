@@ -57,7 +57,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("wav: invalid offset")
 	}
 	s.remaining = s.dataSize - (n - s.headerSize)
-	return n, nil
+	return n - s.headerSize, nil
 }
 
 // Read is implementation of io.Closer's Close.
