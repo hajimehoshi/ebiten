@@ -57,6 +57,11 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("wav: invalid offset")
 	}
 	s.remaining = s.dataSize - (n - s.headerSize)
+	// There could be a tail in wav file.
+	if s.remaining < 0 {
+		s.remaining = 0
+		return s.dataSize, nil
+	}
 	return n - s.headerSize, nil
 }
 
