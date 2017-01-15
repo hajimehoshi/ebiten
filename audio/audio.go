@@ -17,7 +17,8 @@
 // The stream format must be 16-bit little endian and 2 channels.
 //
 // An audio context has a sample rate you can set and all streams you want to play must have the same
-// sample rate.
+// sample rate. However, decoders like audio/vorbis and audio/wav adjust sample rate,
+// and you don't have to care about it as long as you use those decoders.
 //
 // An audio context can generate 'players' (instances of audio.Player),
 // and you can play sound by calling Play function of players.
