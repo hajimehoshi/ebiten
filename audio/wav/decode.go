@@ -147,7 +147,8 @@ chunks:
 		size := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
 		switch {
 		case bytes.Equal(buf[0:4], []byte("fmt ")):
-			if size != 16 {
+			// Size of 'fmt' header is usually 16, but can be more than 16.
+			if size < 16 {
 				return nil, fmt.Errorf("wav: invalid header: maybe non-PCM file?")
 			}
 			buf := make([]byte, size)
