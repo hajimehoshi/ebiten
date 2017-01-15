@@ -279,6 +279,20 @@ type ReadSeekCloser interface {
 	io.Closer
 }
 
+type nopCloser struct {
+	io.ReadSeeker
+}
+
+func (*nopCloser) Close() error {
+	return nil
+}
+
+// NopCloser creates ReadSeekCloser from io.ReadSeeker.
+// The added Close function is empty and does nothing.
+func NopCloser(r io.ReadSeeker) ReadSeekCloser {
+	return &nopCloser{r}
+}
+
 // Player is an audio player which has one stream.
 type Player struct {
 	players    *players
