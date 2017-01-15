@@ -21,17 +21,13 @@ import (
 	"io"
 
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/internal/resampling"
+	"github.com/hajimehoshi/ebiten/audio/internal/convert"
 )
-
-type readSeekCloseSizer interface {
-	audio.ReadSeekCloser
-	Size() int64
-}
 
 // Stream is a decoded audio stream.
 type Stream struct {
-	inner readSeekCloseSizer
+	inner audio.ReadSeekCloser
+	size  int64
 }
 
 // Read is implementation of io.Reader's Read.
@@ -53,7 +49,7 @@ func (s *Stream) Close() error {
 
 // Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
-	return s.inner.Size()
+	return s.size
 }
 
 type stream struct {
@@ -194,15 +190,15 @@ chunks:
 			headerSize += size
 		}
 	}
-	s := &stream{
+	var s audio.ReadSeekCloser
+	s = &stream{
 		src:        src,
 		headerSize: headerSize,
 		dataSize:   dataSize,
 		remaining:  dataSize,
 	}
 	if sampleRateFrom != sampleRateTo {
-		fixed := resampling.NewStream(s, s.dataSize, sampleRateFrom, sampleRateTo)
-		return &Stream{fixed}, nil
+		s = convert.NewResampling(s, dataSize, sampleRateFrom, sampleRateTo)
 	}
-	return &Stream{s}, nil
+	return &Stream{s, dataSize}, nil
 }

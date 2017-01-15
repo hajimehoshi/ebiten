@@ -21,7 +21,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/internal/resampling"
+	"github.com/hajimehoshi/ebiten/audio/internal/convert"
 	"github.com/jfreymuth/oggvorbis"
 )
 
@@ -189,7 +189,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, fmt.Errorf("vorbis: number of channels must be 2")
 	}
 	if sampleRate != context.SampleRate() {
-		s := resampling.NewStream(decoded, decoded.Size(), sampleRate, context.SampleRate())
+		s := convert.NewResampling(decoded, decoded.Size(), sampleRate, context.SampleRate())
 		return &Stream{s}, nil
 	}
 	return &Stream{decoded}, nil

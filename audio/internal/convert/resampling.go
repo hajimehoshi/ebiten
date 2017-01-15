@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package resampling
+package convert
 
 import (
 	"io"
@@ -28,7 +28,7 @@ func sinc(x float64) float64 {
 	return math.Sin(x) / x
 }
 
-type Stream struct {
+type Resampling struct {
 	source    audio.ReadSeekCloser
 	size      int64
 	from      int
@@ -39,35 +39,35 @@ type Stream struct {
 	srcCacheR []float64
 }
 
-func NewStream(source audio.ReadSeekCloser, size int64, from, to int) *Stream {
-	s := &Stream{
+func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resampling {
+	r := &Resampling{
 		source: source,
 		size:   size,
 		from:   from,
 		to:     to,
 	}
-	s.srcCacheL = make([]float64, s.size/4)
-	s.srcCacheR = make([]float64, s.size/4)
-	return s
+	r.srcCacheL = make([]float64, r.size/4)
+	r.srcCacheR = make([]float64, r.size/4)
+	return r
 }
 
-func (s *Stream) Size() int64 {
-	return int64(float64(s.size) * float64(s.to) / float64(s.from))
+func (r *Resampling) Size() int64 {
+	return int64(float64(r.size) * float64(r.to) / float64(r.from))
 }
 
-func (s *Stream) src(i int) (float64, float64, error) {
+func (r *Resampling) src(i int) (float64, float64, error) {
 	// Use int here since int64 is very slow on browsers.
 	// TODO: Resampling is too heavy on browsers. How about using OfflineAudioContext?
 	if i < 0 {
 		return 0, 0, nil
 	}
-	if len(s.srcCacheL) <= i {
+	if len(r.srcCacheL) <= i {
 		return 0, 0, nil
 	}
-	pos := int(s.srcPos) / 4
+	pos := int(r.srcPos) / 4
 	if pos <= i {
 		buf := make([]uint8, 4096)
-		n, err := s.source.Read(buf)
+		n, err := r.source.Read(buf)
 		if err != nil && err != io.EOF {
 			return 0, 0, err
 		}
@@ -76,65 +76,65 @@ func (s *Stream) src(i int) (float64, float64, error) {
 		for i := 0; i < len(buf)/4; i++ {
 			srcL := float64(int16(buf[4*i])|(int16(buf[4*i+1])<<8)) / (1<<15 - 1)
 			srcR := float64(int16(buf[4*i+2])|(int16(buf[4*i+3])<<8)) / (1<<15 - 1)
-			s.srcCacheL[pos+i] = srcL
-			s.srcCacheR[pos+i] = srcR
+			r.srcCacheL[pos+i] = srcL
+			r.srcCacheR[pos+i] = srcR
 		}
-		s.srcPos += int64(n)
+		r.srcPos += int64(n)
 	}
-	return s.srcCacheL[i], s.srcCacheR[i], nil
+	return r.srcCacheL[i], r.srcCacheR[i], nil
 }
 
-func (s *Stream) at(t int64) (float64, float64, error) {
+func (r *Resampling) at(t int64) (float64, float64, error) {
 	const windowSize = 8
-	tInSrc := float64(t) * float64(s.from) / float64(s.to)
+	tInSrc := float64(t) * float64(r.from) / float64(r.to)
 	startN := int64(tInSrc) - windowSize
 	if startN < 0 {
 		startN = 0
 	}
-	if s.size/4 < startN {
-		startN = s.size / 4
+	if r.size/4 < startN {
+		startN = r.size / 4
 	}
 	endN := int64(tInSrc) + windowSize + 1
-	if s.size/4 < endN {
-		endN = s.size / 4
+	if r.size/4 < endN {
+		endN = r.size / 4
 	}
-	l := 0.0
-	r := 0.0
+	lv := 0.0
+	rv := 0.0
 	for n := startN; n < endN; n++ {
-		srcL, srcR, err := s.src(int(n))
+		srcL, srcR, err := r.src(int(n))
 		if err != nil {
 			return 0, 0, err
 		}
 		w := 0.5 + 0.5*math.Cos(2*math.Pi*(tInSrc-float64(n))/(windowSize*2+1))
 		s := sinc(math.Pi*(tInSrc-float64(n))) * w
-		l += srcL * s
-		r += srcR * s
+		lv += srcL * s
+		rv += srcR * s
 	}
-	if l < -1 {
-		l = -1
+	if lv < -1 {
+		lv = -1
 	}
-	if l > 1 {
-		l = 1
+	if lv > 1 {
+		lv = 1
 	}
-	if r < -1 {
-		r = -1
+	if rv < -1 {
+		rv = -1
 	}
-	if r > 1 {
-		r = 1
+	if rv > 1 {
+		rv = 1
 	}
-	return l, r, nil
+	return lv, rv, nil
 }
 
-func (s *Stream) Read(b []uint8) (int, error) {
-	if s.pos == s.Size() {
+func (r *Resampling) Read(b []uint8) (int, error) {
+	if r.pos == r.Size() {
 		return 0, io.EOF
 	}
 	n := len(b) / 4 * 4
-	if s.Size()-s.pos <= int64(n) {
-		n = int(s.Size() - s.pos)
+	if r.Size()-r.pos <= int64(n) {
+		n = int(r.Size() - r.pos)
 	}
 	for i := 0; i < n/4; i++ {
-		l, r, err := s.at(s.pos/4 + int64(i))
+		l, r, err := r.at(r.pos/4 + int64(i))
 		if err != nil {
 			return 0, err
 		}
@@ -145,28 +145,28 @@ func (s *Stream) Read(b []uint8) (int, error) {
 		b[4*i+2] = uint8(r16)
 		b[4*i+3] = uint8(r16 >> 8)
 	}
-	s.pos += int64(n)
+	r.pos += int64(n)
 	return n, nil
 }
 
-func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
-		s.pos = offset
+		r.pos = offset
 	case io.SeekCurrent:
-		s.pos += offset
+		r.pos += offset
 	case io.SeekEnd:
-		s.pos += s.Size() + offset
+		r.pos += r.Size() + offset
 	}
-	if s.pos < 0 {
-		s.pos = 0
+	if r.pos < 0 {
+		r.pos = 0
 	}
-	if s.Size() <= s.pos {
-		s.pos = s.Size()
+	if r.Size() <= r.pos {
+		r.pos = r.Size()
 	}
-	return s.pos, nil
+	return r.pos, nil
 }
 
-func (s *Stream) Close() error {
-	return s.source.Close()
+func (r *Resampling) Close() error {
+	return r.source.Close()
 }
