@@ -105,7 +105,8 @@ func (s *stream) Size() int64 {
 
 // Decode decodes WAV (RIFF) data to playable stream.
 //
-// The format must be 2 channels, 16bit little endian PCM.
+// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format is converted into 2 channels and 16bit.
 //
 // Sample rate is automatically adjusted to fit with the audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
@@ -129,6 +130,8 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	headerSize := int64(0)
 	sampleRateFrom := 0
 	sampleRateTo := 0
+	mono := false
+	bitsPerSample := 0
 chunks:
 	for {
 		buf := make([]byte, 8)
@@ -160,14 +163,17 @@ chunks:
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
 			channelNum := int(buf[2]) | int(buf[3])<<8
-			// TODO: Remove this magic number
-			if channelNum != 2 {
-				return nil, fmt.Errorf("wav: channel num must be 2")
+			switch channelNum {
+			case 1:
+				mono = true
+			case 2:
+				mono = false
+			default:
+				return nil, fmt.Errorf("wav: channel num must be 1 or 2 but was %d", channelNum)
 			}
-			bitsPerSample := int(buf[14]) | int(buf[15])<<8
-			// TODO: Remove this magic number
-			if bitsPerSample != 16 {
-				return nil, fmt.Errorf("wav: bits per sample must be 16")
+			bitsPerSample = int(buf[14]) | int(buf[15])<<8
+			if bitsPerSample != 8 && bitsPerSample != 16 {
+				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
 			sampleRate := int64(buf[4]) | int64(buf[5])<<8 | int64(buf[6])<<16 | int64(buf[7])<<24
 			if int64(context.SampleRate()) != sampleRate {
@@ -190,12 +196,20 @@ chunks:
 			headerSize += size
 		}
 	}
-	var s audio.ReadSeekCloser
-	s = &stream{
+	var s audio.ReadSeekCloser = &stream{
 		src:        src,
 		headerSize: headerSize,
 		dataSize:   dataSize,
 		remaining:  dataSize,
+	}
+	if mono || bitsPerSample != 16 {
+		s = convert.NewStereo16(s, mono, bitsPerSample != 16)
+		if mono {
+			dataSize *= 2
+		}
+		if bitsPerSample != 16 {
+			dataSize *= 2
+		}
 	}
 	if sampleRateFrom != sampleRateTo {
 		s = convert.NewResampling(s, dataSize, sampleRateFrom, sampleRateTo)

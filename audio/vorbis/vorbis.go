@@ -25,14 +25,10 @@ import (
 	"github.com/jfreymuth/oggvorbis"
 )
 
-type readSeekCloseSizer interface {
-	audio.ReadSeekCloser
-	Size() int64
-}
-
 // Stream is a decoded audio stream.
 type Stream struct {
-	decoded readSeekCloseSizer
+	decoded audio.ReadSeekCloser
+	size    int64
 }
 
 // Read is implementation of io.Reader's Read.
@@ -54,7 +50,7 @@ func (s *Stream) Close() error {
 
 // Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
-	return s.decoded.Size()
+	return s.size
 }
 
 type decoded struct {
@@ -184,13 +180,17 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Remove this magic number
-	if channelNum != 2 {
-		return nil, fmt.Errorf("vorbis: number of channels must be 2")
+	if channelNum != 1 && channelNum != 2 {
+		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelNum)
+	}
+	var s audio.ReadSeekCloser = decoded
+	size := decoded.Size()
+	if channelNum == 1 {
+		s = convert.NewStereo16(s, true, false)
+		size *= 2
 	}
 	if sampleRate != context.SampleRate() {
-		s := convert.NewResampling(decoded, decoded.Size(), sampleRate, context.SampleRate())
-		return &Stream{s}, nil
+		s = convert.NewResampling(s, size, sampleRate, context.SampleRate())
 	}
-	return &Stream{decoded}, nil
+	return &Stream{s, size}, nil
 }
