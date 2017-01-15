@@ -279,18 +279,26 @@ type ReadSeekCloser interface {
 	io.Closer
 }
 
-type nopCloser struct {
-	io.ReadSeeker
+type bytesReadSeekCloser struct {
+	reader *bytes.Reader
 }
 
-func (*nopCloser) Close() error {
+func (b *bytesReadSeekCloser) Read(buf []uint8) (int, error) {
+	return b.reader.Read(buf)
+}
+
+func (b *bytesReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
+	return b.reader.Seek(offset, whence)
+}
+
+func (b *bytesReadSeekCloser) Close() error {
+	b.reader = nil
 	return nil
 }
 
-// NopCloser creates ReadSeekCloser from io.ReadSeeker.
-// The added Close function is empty and does nothing.
-func NopCloser(r io.ReadSeeker) ReadSeekCloser {
-	return &nopCloser{r}
+// BytesReadSeekCloser creates ReadSeekCloser from bytes.
+func BytesReadSeekCloser(b []uint8) ReadSeekCloser {
+	return &bytesReadSeekCloser{bytes.NewReader(b)}
 }
 
 // Player is an audio player which has one stream.
@@ -333,14 +341,6 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	return p, nil
 }
 
-type bytesReadSeekCloser struct {
-	*bytes.Reader
-}
-
-func (b *bytesReadSeekCloser) Close() error {
-	return nil
-}
-
 // NewPlayerFromBytes creates a new player with the given bytes.
 //
 // As opposed to NewPlayer, you don't have to care if src is already used by another player or not.
@@ -350,7 +350,7 @@ func (b *bytesReadSeekCloser) Close() error {
 //
 // This function is concurrent-safe.
 func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
-	b := &bytesReadSeekCloser{bytes.NewReader(src)}
+	b := BytesReadSeekCloser(src)
 	return NewPlayer(context, b)
 }
 
