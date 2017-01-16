@@ -132,7 +132,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 
 	// Read chunks
 	dataSize := int64(0)
-	headerSize := int64(0)
+	headerSize := int64(len(buf))
 	sampleRateFrom := 0
 	sampleRateTo := 0
 	mono := false
