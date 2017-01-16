@@ -96,9 +96,8 @@ func (p *Player) Proceed(data []byte) error {
 	if p.positionInSamples < c {
 		p.positionInSamples = c
 	}
-	// Looks like low sample rate (e.g. 22050) requires a quite long buffer (#205).
-	// 4096 is not perfect but it reduce noise to some extent.
-	const dataSize = 4096
+	// Heuristic data size which doesn't cause too much noise and too much delay (#299)
+	dataSize := int(float64(p.sampleRate)/13.5) / 4 * 4
 	for dataSize <= len(p.bufferedData) {
 		data := p.bufferedData[:dataSize]
 		size := len(data) / p.bytesPerSample / p.channelNum
