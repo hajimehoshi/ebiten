@@ -37,7 +37,7 @@ func NewInfiniteLoop(stream ReadSeekCloser, size int64) *InfiniteLoop {
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	n, err := i.stream.Read(b)
 	if err == io.EOF {
-		if _, err := i.Seek(0, 0); err != nil {
+		if _, err := i.Seek(0, io.SeekStart); err != nil {
 			return 0, err
 		}
 		err = nil
@@ -61,7 +61,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("audio: whence must be 0 or 1 for InfiniteLoop")
 	}
 	next %= i.size
-	pos, err := i.stream.Seek(next, 0)
+	pos, err := i.stream.Seek(next, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
