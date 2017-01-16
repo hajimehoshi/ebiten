@@ -74,8 +74,13 @@ func (s *stream) Read(p []byte) (int, error) {
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *stream) Seek(offset int64, whence int) (int64, error) {
-	if whence == io.SeekStart {
-		offset += s.headerSize
+	switch whence {
+	case io.SeekStart:
+		offset = offset + s.headerSize
+	case io.SeekCurrent:
+	case io.SeekEnd:
+		offset = s.headerSize + s.dataSize + offset
+		whence = io.SeekStart
 	}
 	n, err := s.src.Seek(offset, whence)
 	if err != nil {
