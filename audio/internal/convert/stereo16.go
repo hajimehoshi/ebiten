@@ -50,7 +50,7 @@ func (s *Stereo16) Read(b []uint8) (int, error) {
 	switch {
 	case s.mono && s.eight:
 		for i := 0; i < n; i++ {
-			v := (int16(buf[i]) - 128) << 8
+			v := int16(int(buf[i])*0x101 - (1 << 15))
 			b[4*i] = uint8(v)
 			b[4*i+1] = uint8(v >> 8)
 			b[4*i+2] = uint8(v)
@@ -65,8 +65,8 @@ func (s *Stereo16) Read(b []uint8) (int, error) {
 		}
 	case !s.mono && s.eight:
 		for i := 0; i < n/2; i++ {
-			v0 := (int16(buf[2*i]) - 128) << 8
-			v1 := (int16(buf[2*i+1]) - 128) << 8
+			v0 := int16(int(buf[2*i])*0x101 - (1 << 15))
+			v1 := int16(int(buf[2*i+1])*0x101 - (1 << 15))
 			b[4*i] = uint8(v0)
 			b[4*i+1] = uint8(v0 >> 8)
 			b[4*i+2] = uint8(v1)
