@@ -213,6 +213,7 @@ chunks:
 	}
 	if sampleRateFrom != sampleRateTo {
 		s = convert.NewResampling(s, dataSize, sampleRateFrom, sampleRateTo)
+		dataSize = dataSize * int64(sampleRateTo) / int64(sampleRateFrom)
 	}
 	return &Stream{s, dataSize}, nil
 }

@@ -191,6 +191,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	}
 	if sampleRate != context.SampleRate() {
 		s = convert.NewResampling(s, size, sampleRate, context.SampleRate())
+		size = size * int64(context.SampleRate()) / int64(sampleRate)
 	}
 	return &Stream{s, size}, nil
 }
