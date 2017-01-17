@@ -18,13 +18,13 @@ import (
 	"image"
 )
 
-// An ImagePart is deprecated (as of 1.1.0-alpha): Use ImageParts instead.
+// An ImagePart is deprecated (as of 1.1.0-alpha): Use SourceRect instead.
 type ImagePart struct {
 	Dst image.Rectangle
 	Src image.Rectangle
 }
 
-// An ImageParts represents the parts of the destination image and the parts of the source image.
+// An ImageParts is deprecated (as of 1.5.0-alpha): Use SourceRect instead.
 type ImageParts interface {
 	Len() int
 	Dst(i int) (x0, y0, x1, y1 int)
@@ -46,21 +46,4 @@ func (p imageParts) Dst(i int) (x0, y0, x1, y1 int) {
 func (p imageParts) Src(i int) (x0, y0, x1, y1 int) {
 	src := &p[i].Src
 	return src.Min.X, src.Min.Y, src.Max.X, src.Max.Y
-}
-
-type wholeImage struct {
-	width  int
-	height int
-}
-
-func (w *wholeImage) Len() int {
-	return 1
-}
-
-func (w *wholeImage) Dst(i int) (x0, y0, x1, y1 int) {
-	return 0, 0, w.width, w.height
-}
-
-func (w *wholeImage) Src(i int) (x0, y0, x1, y1 int) {
-	return 0, 0, w.width, w.height
 }

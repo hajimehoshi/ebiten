@@ -27,10 +27,12 @@ const texelAdjustment = 256
 
 var quadFloat32Num = graphics.QuadVertexSizeInBytes() / 4
 
-func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
+func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []float32 {
+	if sx0 == sx1 || sy0 == sy1 {
+		return nil
+	}
 	// TODO: This function should be in graphics package?
-	l := parts.Len()
-	vs := make([]float32, l*quadFloat32Num)
+	vs := make([]float32, quadFloat32Num)
 	a, b, c, d, tx, ty := geo.Elements()
 	g0 := float32(a)
 	g1 := float32(b)
@@ -48,66 +50,54 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	}
 	wf := float32(w)
 	hf := float32(h)
-	n := 0
-	for i := 0; i < l; i++ {
-		dx0, dy0, dx1, dy1 := parts.Dst(i)
-		if dx0 == dx1 || dy0 == dy1 {
-			continue
-		}
-		x0, y0, x1, y1 := float32(dx0), float32(dy0), float32(dx1), float32(dy1)
-		sx0, sy0, sx1, sy1 := parts.Src(i)
-		if sx0 == sx1 || sy0 == sy1 {
-			continue
-		}
-		u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-		// Adjust texels to fix a problem that outside texels are used (#317).
-		u1 -= 1.0 / wf / texelAdjustment
-		v1 -= 1.0 / hf / texelAdjustment
-		vs[n] = x0
-		vs[n+1] = y0
-		vs[n+2] = u0
-		vs[n+3] = v0
-		vs[n+4] = g0
-		vs[n+5] = g1
-		vs[n+6] = g2
-		vs[n+7] = g3
-		vs[n+8] = g4
-		vs[n+9] = g5
+	x0, y0, x1, y1 := float32(0), float32(0), float32(sx1-sx0), float32(sy1-sy0)
+	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
+	// Adjust texels to fix a problem that outside texels are used (#317).
+	u1 -= 1.0 / wf / texelAdjustment
+	v1 -= 1.0 / hf / texelAdjustment
+	vs[0] = x0
+	vs[1] = y0
+	vs[2] = u0
+	vs[3] = v0
+	vs[4] = g0
+	vs[5] = g1
+	vs[6] = g2
+	vs[7] = g3
+	vs[8] = g4
+	vs[9] = g5
 
-		vs[n+10] = x1
-		vs[n+11] = y0
-		vs[n+12] = u1
-		vs[n+13] = v0
-		vs[n+14] = g0
-		vs[n+15] = g1
-		vs[n+16] = g2
-		vs[n+17] = g3
-		vs[n+18] = g4
-		vs[n+19] = g5
+	vs[10] = x1
+	vs[11] = y0
+	vs[12] = u1
+	vs[13] = v0
+	vs[14] = g0
+	vs[15] = g1
+	vs[16] = g2
+	vs[17] = g3
+	vs[18] = g4
+	vs[19] = g5
 
-		vs[n+20] = x0
-		vs[n+21] = y1
-		vs[n+22] = u0
-		vs[n+23] = v1
-		vs[n+24] = g0
-		vs[n+25] = g1
-		vs[n+26] = g2
-		vs[n+27] = g3
-		vs[n+28] = g4
-		vs[n+29] = g5
+	vs[20] = x0
+	vs[21] = y1
+	vs[22] = u0
+	vs[23] = v1
+	vs[24] = g0
+	vs[25] = g1
+	vs[26] = g2
+	vs[27] = g3
+	vs[28] = g4
+	vs[29] = g5
 
-		vs[n+30] = x1
-		vs[n+31] = y1
-		vs[n+32] = u1
-		vs[n+33] = v1
-		vs[n+34] = g0
-		vs[n+35] = g1
-		vs[n+36] = g2
-		vs[n+37] = g3
-		vs[n+38] = g4
-		vs[n+39] = g5
+	vs[30] = x1
+	vs[31] = y1
+	vs[32] = u1
+	vs[33] = v1
+	vs[34] = g0
+	vs[35] = g1
+	vs[36] = g2
+	vs[37] = g3
+	vs[38] = g4
+	vs[39] = g5
 
-		n += quadFloat32Num
-	}
 	return vs
 }

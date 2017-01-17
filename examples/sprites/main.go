@@ -76,31 +76,19 @@ func (s *Sprites) Update() {
 	}
 }
 
-func (s *Sprites) Len() int {
-	return s.num
-}
-
-func (s *Sprites) Dst(i int) (x0, y0, x1, y1 int) {
-	if s.num <= i {
-		return 0, 0, 0, 0
-	}
-	ss := s.sprites[i]
-	return ss.x, ss.y, ss.x + ebitenImageWidth, ss.y + ebitenImageHeight
-}
-
-func (s *Sprites) Src(i int) (x0, y0, x1, y1 int) {
-	if s.num <= i {
-		return 0, 0, 0, 0
-	}
-	return 0, 0, ebitenImageWidth, ebitenImageHeight
-}
-
 const (
 	MinSprites = 0
 	MaxSprites = 50000
 )
 
 var sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
+
+var op *ebiten.DrawImageOptions
+
+func init() {
+	op = &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
+}
 
 func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
@@ -120,15 +108,18 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	op := &ebiten.DrawImageOptions{
-		ImageParts: sprites,
+	for i := 0; i < sprites.num; i++ {
+		s := sprites.sprites[i]
+		op.GeoM = ebiten.GeoM{}
+		op.GeoM.Translate(float64(s.x), float64(s.y))
+		screen.DrawImage(ebitenImage, op)
 	}
-	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
-	screen.DrawImage(ebitenImage, op)
 	msg := fmt.Sprintf(`FPS: %0.2f
 Num of sprites: %d
-Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.Len())
-	ebitenutil.DebugPrint(screen, msg)
+Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.num)
+	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
+		return err
+	}
 	return nil
 }
 

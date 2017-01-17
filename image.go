@@ -79,8 +79,7 @@ func (i *Image) Fill(clr color.Color) error {
 // After determining parts to draw, this applies the geometry matrix and the color matrix.
 //
 // Here are the default values:
-//     ImageParts:    (0, 0) - (source width, source height) to (0, 0) - (source width, source height)
-//                    (i.e. the whole source image)
+//     SourceRect:    nil. When SourceRect is nil, the whole source image is used.
 //     GeoM:          Identity matrix
 //     ColorM:        Identity matrix (that changes no colors)
 //     CompositeMode: CompositeModeSourceOver (regular alpha blending)
@@ -94,7 +93,7 @@ func (i *Image) Fill(clr color.Color) error {
 // When image is as same as i, DrawImage panics.
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
-func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
+func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if i.restorable == nil {
 		return nil
 	}
@@ -104,26 +103,45 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 		options = &DrawImageOptions{}
 	}
 	parts := options.ImageParts
-	if parts == nil {
-		// Check options.Parts for backward-compatibility.
-		dparts := options.Parts
-		if dparts != nil {
-			parts = imageParts(dparts)
-		} else {
-			w, h := image.restorable.Size()
-			parts = &wholeImage{w, h}
-		}
+	// Parts is deprecated. This implementations is for backward compatibility.
+	if parts == nil && options.Parts != nil {
+		parts = imageParts(options.Parts)
 	}
-	w, h := image.restorable.Size()
-	vs := vertices(parts, w, h, &options.GeoM.impl)
-	if len(vs) == 0 {
+	// ImageParts is deprecated. This implementations is for backward compatibility.
+	if parts != nil {
+		l := parts.Len()
+		for idx := 0; idx < l; idx++ {
+			sx0, sy0, sx1, sy1 := parts.Src(idx)
+			dx0, dy0, dx1, dy1 := parts.Dst(idx)
+			op := &DrawImageOptions{
+				ColorM:        options.ColorM,
+				CompositeMode: options.CompositeMode,
+			}
+			r := image.Rect(sx0, sy0, sx1, sy1)
+			op.SourceRect = &r
+			op.GeoM.Scale(
+				float64(dx1-dx0)/float64(sx1-sx0),
+				float64(dy1-dy0)/float64(sy1-sy0))
+			op.GeoM.Translate(float64(dx0), float64(dy0))
+			op.GeoM.Concat(options.GeoM)
+			i.DrawImage(img, op)
+		}
 		return nil
 	}
-	if i == image {
-		panic("ebiten: Image.DrawImage: image must be different from the receiver")
+	w, h := img.restorable.Size()
+	sx0, sy0, sx1, sy1 := 0, 0, w, h
+	if r := options.SourceRect; r != nil {
+		sx0 = r.Min.X
+		sy0 = r.Min.Y
+		sx1 = r.Max.X
+		sy1 = r.Max.Y
+	}
+	vs := vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
+	if i == img {
+		panic("ebiten: Image.DrawImage: img must be different from the receiver")
 	}
 	mode := opengl.CompositeMode(options.CompositeMode)
-	i.restorable.DrawImage(image.restorable, vs, &options.ColorM.impl, mode)
+	i.restorable.DrawImage(img.restorable, vs, &options.ColorM.impl, mode)
 	return nil
 }
 
@@ -203,12 +221,15 @@ func (i *Image) ReplacePixels(p []uint8) error {
 
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
-	ImageParts    ImageParts
+	SourceRect    *image.Rectangle
 	GeoM          GeoM
 	ColorM        ColorM
 	CompositeMode CompositeMode
 
-	// Deprecated (as of 1.1.0-alpha): Use ImageParts instead.
+	// Deprecated (as of 1.5.0-alpha): Use Part instead.
+	ImageParts ImageParts
+
+	// Deprecated (as of 1.1.0-alpha): Use Part instead.
 	Parts []ImagePart
 }
 
