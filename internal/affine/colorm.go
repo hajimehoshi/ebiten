@@ -16,28 +16,10 @@ package affine
 
 import (
 	"math"
-
-	"github.com/hajimehoshi/ebiten/internal/endian"
 )
 
 // ColorMDim is a dimension of a ColorM.
 const ColorMDim = 5
-
-func uint64ToBytes(value uint64) []uint8 {
-	result := make([]uint8, 8)
-	if endian.IsLittle() {
-		for i := 0; i < 8; i++ {
-			result[i] = uint8(value)
-			value >>= 8
-		}
-	} else {
-		for i := 7; 0 <= i; i-- {
-			result[i] = uint8(value)
-			value >>= 8
-		}
-	}
-	return result
-}
 
 func colorMValueString(values [ColorMDim - 1][ColorMDim]float64) string {
 	b := make([]uint8, 0, (ColorMDim-1)*(ColorMDim)*8)
@@ -48,15 +30,6 @@ func colorMValueString(values [ColorMDim - 1][ColorMDim]float64) string {
 	}
 	return string(b)
 }
-
-var (
-	colorMIdentityValue = colorMValueString([ColorMDim - 1][ColorMDim]float64{
-		{1, 0, 0, 0, 0},
-		{0, 1, 0, 0, 0},
-		{0, 0, 1, 0, 0},
-		{0, 0, 0, 1, 0},
-	})
-)
 
 // A ColorM represents a matrix to transform coloring when rendering an image.
 //
@@ -75,12 +48,22 @@ func (c *ColorM) dim() int {
 	return ColorMDim
 }
 
+// Element returns a value of a matrix at (i, j).
+func (c *ColorM) Element(i, j int) float64 {
+	return element(c.values, ColorMDim, i, j)
+}
+
+// SetElement sets an element at (i, j).
+func (c *ColorM) SetElement(i, j int, element float64) {
+	c.values = setElement(c.values, ColorMDim, i, j, element)
+}
+
 func (c *ColorM) Equals(other *ColorM) bool {
 	if c.values == "" {
-		c.values = colorMIdentityValue
+		c.values = identityValues[ColorMDim]
 	}
 	if other.values == "" {
-		other.values = colorMIdentityValue
+		other.values = identityValues[ColorMDim]
 	}
 	return c.values == other.values
 }
@@ -93,7 +76,7 @@ func (c *ColorM) Concat(other ColorM) {
 	*c = result
 }
 
-// Add adds a color matrix with the other color matrix.
+// Add is deprecated.
 func (c *ColorM) Add(other ColorM) {
 	result := ColorM{}
 	add(&other, c, &result)

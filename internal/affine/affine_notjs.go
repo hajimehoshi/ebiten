@@ -12,35 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
+// +build !js
 
 package affine
 
 import (
-	"github.com/gopherjs/gopherjs/js"
+	"math"
+
+	"github.com/hajimehoshi/ebiten/internal/endian"
 )
 
-// Element returns a value of a matrix at (i, j).
-func (c *ColorM) Element(i, j int) float64 {
-	if c.values == "" {
+func element(values string, dim int, i, j int) float64 {
+	if values == "" {
 		if i == j {
 			return 1
 		}
 		return 0
 	}
-	a := js.NewArrayBuffer([]uint8(c.values))
-	af64 := js.Global.Get("Float64Array").New(a)
-	return af64.Index(i*ColorMDim + j).Float()
+	offset := 8 * (i*dim + j)
+	v := uint64(0)
+	if endian.IsLittle() {
+		for k := 7; 0 <= k; k-- {
+			v <<= 8
+			v += uint64(values[offset+k])
+		}
+	} else {
+		for k := 0; k < 8; k++ {
+			v <<= 8
+			v += uint64(values[offset+k])
+		}
+	}
+	return math.Float64frombits(v)
 }
 
-// SetElement sets an element at (i, j).
-func (c *ColorM) SetElement(i, j int, value float64) {
-	if c.values == "" {
-		c.values = colorMIdentityValue
+func setElement(values string, dim int, i, j int, value float64) string {
+	if values == "" {
+		values = identityValues[dim]
 	}
-	a := js.NewArrayBuffer([]uint8(c.values))
-	a8 := js.Global.Get("Uint8Array").New(a)
-	af64 := js.Global.Get("Float64Array").New(a)
-	af64.SetIndex(i*ColorMDim+j, value)
-	c.values = string(a8.Interface().([]uint8))
+	b := uint64ToBytes(math.Float64bits(value))
+	offset := 8 * (i*dim + j)
+	return values[:offset] + string(b) + values[offset+8:]
 }

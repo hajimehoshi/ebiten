@@ -14,27 +14,46 @@
 
 package affine
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/endian"
+)
+
+var identityValues = map[int]string{
+	ColorMDim: colorMValueString([ColorMDim - 1][ColorMDim]float64{
+		{1, 0, 0, 0, 0},
+		{0, 1, 0, 0, 0},
+		{0, 0, 1, 0, 0},
+		{0, 0, 0, 1, 0},
+	}),
+	GeoMDim: geoMValueString([GeoMDim - 1][GeoMDim]float64{
+		{1, 0, 0},
+		{0, 1, 0},
+	}),
+}
+
+func uint64ToBytes(value uint64) []uint8 {
+	result := make([]uint8, 8)
+	if endian.IsLittle() {
+		for i := 0; i < 8; i++ {
+			result[i] = uint8(value)
+			value >>= 8
+		}
+	} else {
+		for i := 7; 0 <= i; i-- {
+			result[i] = uint8(value)
+			value >>= 8
+		}
+	}
+	return result
+}
+
 type affine interface {
 	dim() int
 	Element(i, j int) float64
 	SetElement(i, j int, element float64)
 }
 
-func isIdentity(ebiten affine) bool {
-	dim := ebiten.dim()
-	for i := 0; i < dim-1; i++ {
-		for j := 0; j < dim; j++ {
-			element := ebiten.Element(i, j)
-			if i == j && element != 1 {
-				return false
-			} else if i != j && element != 0 {
-				return false
-			}
-		}
-	}
-	return true
-}
-
+// add is deprecated
 func add(lhs, rhs, result affine) {
 	dim := lhs.dim()
 	if dim != rhs.dim() {
