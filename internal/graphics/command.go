@@ -31,12 +31,26 @@ type command interface {
 }
 
 type commandQueue struct {
-	commands []command
-	m        sync.Mutex
+	commands    []command
+	vertices    []float32
+	verticesNum int
+	m           sync.Mutex
 }
 
 var theCommandQueue = &commandQueue{
 	commands: []command{},
+	vertices: []float32{},
+}
+
+func (q *commandQueue) AppendVertices(vertices []float32) {
+	q.m.Lock()
+	defer q.m.Unlock()
+	if len(q.vertices) < q.verticesNum+len(vertices) {
+		n := q.verticesNum + len(vertices) - len(q.vertices)
+		q.vertices = append(q.vertices, make([]float32, n)...)
+	}
+	copy(q.vertices[q.verticesNum:q.verticesNum+len(vertices)], vertices)
+	q.verticesNum += len(vertices)
 }
 
 func (q *commandQueue) Enqueue(command command) {
@@ -46,7 +60,7 @@ func (q *commandQueue) Enqueue(command command) {
 		if c1, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
 			if c2, ok := command.(*drawImageCommand); ok {
 				if c1.isMergeable(c2) {
-					c1.vertices = append(c1.vertices, c2.vertices...)
+					c1.verticesNum += c2.verticesNum
 					return
 				}
 			}
@@ -91,27 +105,21 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 	defer q.m.Unlock()
 	// glViewport must be called at least at every frame on iOS.
 	context.ResetViewportSize()
+	n := 0
+	lastN := 0
 	for _, g := range q.commandGroups() {
-		n := 0
 		for _, c := range g {
 			switch c := c.(type) {
 			case *drawImageCommand:
-				n += len(c.vertices)
+				n += c.verticesNum
 			}
 		}
-		vertices := make([]float32, 0, n)
-		for _, c := range g {
-			switch c := c.(type) {
-			case *drawImageCommand:
-				vertices = append(vertices, c.vertices...)
-			}
-		}
-		if 0 < len(vertices) {
-			context.BufferSubData(opengl.ArrayBuffer, vertices)
+		if 0 < n-lastN {
+			context.BufferSubData(opengl.ArrayBuffer, q.vertices[lastN:n])
 		}
 		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
 		// Let's use them to compare to len(quads) in the future.
-		if maxQuads < len(vertices)*opengl.Float.SizeInBytes()/QuadVertexSizeInBytes() {
+		if maxQuads < (n-lastN)*opengl.Float.SizeInBytes()/QuadVertexSizeInBytes() {
 			return fmt.Errorf("len(quads) must be equal to or less than %d", maxQuads)
 		}
 		numc := len(g)
@@ -121,7 +129,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 				return err
 			}
 			if c, ok := c.(*drawImageCommand); ok {
-				n := len(c.vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+				n := c.verticesNum * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 				indexOffsetInBytes += 6 * n * 2
 			}
 		}
@@ -129,8 +137,10 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 			context.Flush()
 		}
+		lastN = n
 	}
 	q.commands = []command{}
+	q.verticesNum = 0
 	return nil
 }
 
@@ -161,11 +171,11 @@ func (c *fillCommand) Exec(context *opengl.Context, indexOffsetInBytes int) erro
 }
 
 type drawImageCommand struct {
-	dst      *Image
-	src      *Image
-	vertices []float32
-	color    affine.ColorM
-	mode     opengl.CompositeMode
+	dst         *Image
+	src         *Image
+	verticesNum int
+	color       affine.ColorM
+	mode        opengl.CompositeMode
 }
 
 func QuadVertexSizeInBytes() int {
@@ -209,8 +219,9 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c1 := *c
 	c2 := *c
 	s := opengl.Float.SizeInBytes()
-	c1.vertices = c.vertices[:quadsNum*QuadVertexSizeInBytes()/s]
-	c2.vertices = c.vertices[quadsNum*QuadVertexSizeInBytes()/s:]
+	n := quadsNum * QuadVertexSizeInBytes() / s
+	c1.verticesNum = n
+	c2.verticesNum -= n
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
@@ -231,7 +242,7 @@ func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
 }
 
 func (c *drawImageCommand) quadsNum() int {
-	return len(c.vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+	return c.verticesNum * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 }
 
 type replacePixelsCommand struct {
