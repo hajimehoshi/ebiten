@@ -24,6 +24,10 @@ import (
 )
 
 func TestCopyImage(t *testing.T) {
+	pal := make(color.Palette, 256)
+	for i := range pal {
+		pal[i] = color.White
+	}
 	cases := []struct {
 		In  image.Image
 		Out *image.RGBA
@@ -39,6 +43,14 @@ func TestCopyImage(t *testing.T) {
 			},
 			Out: &image.RGBA{
 				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+				Stride: 8,
+				Rect:   image.Rect(0, 0, 2, 2),
+			},
+		},
+		{
+			In: image.NewPaletted(image.Rect(0, 0, 240, 160), pal).SubImage(image.Rect(238, 158, 240, 160)),
+			Out: &image.RGBA{
+				Pix:    []uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 				Stride: 8,
 				Rect:   image.Rect(0, 0, 2, 2),
 			},

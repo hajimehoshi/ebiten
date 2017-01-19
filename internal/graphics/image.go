@@ -43,7 +43,7 @@ func CopyImage(origImg image.Image) *image.RGBA {
 			palette[4*i+2] = rgba.B
 			palette[4*i+3] = rgba.A
 		}
-		index0 := y0*origImg.Stride + x0
+		index0 := 0
 		index1 := 0
 		d0 := origImg.Stride - (x1 - x0)
 		d1 := newImg.Stride - (x1-x0)*4
