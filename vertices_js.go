@@ -35,14 +35,16 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	g3 := g[4]
 	g4 := g[2]
 	g5 := g[5]
-	w := 1.0
-	h := 1.0
-	for w < float64(width) {
+	w := 1
+	h := 1
+	for w < width {
 		w *= 2
 	}
-	for h < float64(height) {
+	for h < height {
 		h *= 2
 	}
+	wf := float64(w)
+	hf := float64(h)
 	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
@@ -53,7 +55,7 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 		if sx0 == sx1 || sy0 == sy1 {
 			continue
 		}
-		u0, v0, u1, v1 := float64(sx0)/w, float64(sy0)/h, float64(sx1)/w, float64(sy1)/h
+		u0, v0, u1, v1 := float64(sx0)/wf, float64(sy0)/hf, float64(sx1)/wf, float64(sy1)/hf
 		vs.SetIndex(n, dx0)
 		vs.SetIndex(n+1, dy0)
 		vs.SetIndex(n+2, u0)
