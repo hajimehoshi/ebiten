@@ -106,7 +106,13 @@ func (c *ColorM) Add(other ColorM) {
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
 	if c.elements == nil {
-		c.elements = colorMIdentityElements
+		c.elements = []float64{
+			r, 0, 0, 0, 0,
+			0, g, 0, 0, 0,
+			0, 0, b, 0, 0,
+			0, 0, 0, a, 0,
+		}
+		return
 	}
 	es := make([]float64, len(c.elements))
 	copy(es, c.elements)
@@ -122,7 +128,13 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
 	if c.elements == nil {
-		c.elements = colorMIdentityElements
+		c.elements = []float64{
+			1, 0, 0, 0, r,
+			0, 1, 0, 0, g,
+			0, 0, 1, 0, b,
+			0, 0, 0, 1, a,
+		}
+		return
 	}
 	es := make([]float64, len(c.elements))
 	copy(es, c.elements)

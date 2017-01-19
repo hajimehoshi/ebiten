@@ -81,7 +81,11 @@ func (g *GeoM) Add(other GeoM) {
 // Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
 	if g.elements == nil {
-		g.elements = geoMIdentityElements
+		g.elements = []float64{
+			x, 0, 0,
+			0, y, 0,
+		}
+		return
 	}
 	es := make([]float64, len(g.elements))
 	copy(es, g.elements)
@@ -95,7 +99,11 @@ func (g *GeoM) Scale(x, y float64) {
 // Translate translates the matrix by (x, y).
 func (g *GeoM) Translate(tx, ty float64) {
 	if g.elements == nil {
-		g.elements = geoMIdentityElements
+		g.elements = []float64{
+			1, 0, tx,
+			0, 1, ty,
+		}
+		return
 	}
 	es := make([]float64, len(g.elements))
 	copy(es, g.elements)
