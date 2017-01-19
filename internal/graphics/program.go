@@ -231,9 +231,10 @@ func (p *programContext) begin() error {
 	}
 
 	e := [4][5]float32{}
+	es := p.colorM.Elements()
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
-			e[i][j] = float32(p.colorM.Element(i, j))
+			e[i][j] = float32(es[i*affine.ColorMDim+j])
 		}
 	}
 

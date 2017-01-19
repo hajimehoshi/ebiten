@@ -22,27 +22,42 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/endian"
 )
 
-func element(values string, dim int, i, j int) float64 {
+func elements(values string, dim int) []float64 {
+	result := make([]float64, dim*(dim-1))
 	if values == "" {
-		if i == j {
-			return 1
+		for i := 0; i < dim-1; i++ {
+			result[i*dim+i] = 1
 		}
-		return 0
+		return result
 	}
-	offset := 8 * (i*dim + j)
-	v := uint64(0)
 	if endian.IsLittle() {
-		for k := 7; 0 <= k; k-- {
-			v <<= 8
-			v += uint64(values[offset+k])
+		for i := 0; i < len(values)/8; i++ {
+			v := uint64(0)
+			for k := 7; 0 <= k; k-- {
+				v <<= 8
+				v += uint64(values[i*8+k])
+			}
+			result[i] = math.Float64frombits(v)
 		}
 	} else {
-		for k := 0; k < 8; k++ {
-			v <<= 8
-			v += uint64(values[offset+k])
+		for i := 0; i < len(values)/8; i++ {
+			v := uint64(0)
+			for k := 0; k < 8; k++ {
+				v <<= 8
+				v += uint64(values[i*8+k])
+			}
+			result[i] = math.Float64frombits(v)
 		}
 	}
-	return math.Float64frombits(v)
+	return result
+}
+
+func setElements(values []float64, dim int) string {
+	result := make([]uint8, len(values)*8)
+	for i, v := range values {
+		copy(result[i*8:(i+1)*8], uint64ToBytes(math.Float64bits(v)))
+	}
+	return string(result)
 }
 
 func setElement(values string, dim int, i, j int, value float64) string {

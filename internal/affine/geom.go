@@ -43,9 +43,12 @@ func (g *GeoM) dim() int {
 	return GeoMDim
 }
 
-// Element returns a value of a matrix at (i, j).
-func (g *GeoM) Element(i, j int) float64 {
-	return element(g.values, GeoMDim, i, j)
+func (g *GeoM) Elements() []float64 {
+	return elements(g.values, GeoMDim)
+}
+
+func (g *GeoM) element(i, j int) float64 {
+	return g.Elements()[i*GeoMDim+j]
 }
 
 // SetElement sets an element at (i, j).
@@ -70,16 +73,20 @@ func (g *GeoM) Add(other GeoM) {
 
 // Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
+	v := elements(g.values, GeoMDim)
 	for i := 0; i < GeoMDim; i++ {
-		g.SetElement(0, i, g.Element(0, i)*x)
-		g.SetElement(1, i, g.Element(1, i)*y)
+		v[i] *= x
+		v[i+GeoMDim] *= y
 	}
+	g.values = setElements(v, GeoMDim)
 }
 
 // Translate translates the matrix by (x, y).
 func (g *GeoM) Translate(tx, ty float64) {
-	g.SetElement(0, 2, g.Element(0, 2)+tx)
-	g.SetElement(1, 2, g.Element(1, 2)+ty)
+	v := elements(g.values, GeoMDim)
+	v[2] += tx
+	v[2+GeoMDim] += ty
+	g.values = setElements(v, GeoMDim)
 }
 
 // Rotate rotates the matrix by theta.

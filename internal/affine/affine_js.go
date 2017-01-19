@@ -20,16 +20,26 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-func element(values string, dim int, i, j int) float64 {
+func elements(values string, dim int) []float64 {
 	if values == "" {
-		if i == j {
-			return 1
+		result := make([]float64, dim*(dim-1))
+		for i := 0; i < dim-1; i++ {
+			result[i*dim+i] = 1
 		}
-		return 0
+		return result
 	}
 	a := js.NewArrayBuffer([]uint8(values))
+	return js.Global.Get("Float64Array").New(a).Interface().([]float64)
+}
+
+func setElements(values []float64, dim int) string {
+	a := js.NewArrayBuffer(make([]uint8, len(values)*8))
+	a8 := js.Global.Get("Uint8Array").New(a)
 	af64 := js.Global.Get("Float64Array").New(a)
-	return af64.Index(i*dim + j).Float()
+	for i, v := range values {
+		af64.SetIndex(i, v)
+	}
+	return string(a8.Interface().([]uint8))
 }
 
 func setElement(values string, dim int, i, j int, value float64) string {

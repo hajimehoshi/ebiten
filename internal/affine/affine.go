@@ -49,7 +49,7 @@ func uint64ToBytes(value uint64) []uint8 {
 
 type affine interface {
 	dim() int
-	Element(i, j int) float64
+	element(i, j int) float64
 	SetElement(i, j int, element float64)
 }
 
@@ -62,7 +62,7 @@ func add(lhs, rhs, result affine) {
 
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
-			v := lhs.Element(i, j) + rhs.Element(i, j)
+			v := lhs.element(i, j) + rhs.element(i, j)
 			result.SetElement(i, j, v)
 		}
 	}
@@ -78,11 +78,11 @@ func mul(lhs, rhs, result affine) {
 		for j := 0; j < dim; j++ {
 			element := float64(0)
 			for k := 0; k < dim-1; k++ {
-				element += lhs.Element(i, k) *
-					rhs.Element(k, j)
+				element += lhs.element(i, k) *
+					rhs.element(k, j)
 			}
 			if j == dim-1 {
-				element += lhs.Element(i, j)
+				element += lhs.element(i, j)
 			}
 			result.SetElement(i, j, element)
 		}

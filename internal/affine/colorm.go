@@ -48,9 +48,12 @@ func (c *ColorM) dim() int {
 	return ColorMDim
 }
 
-// Element returns a value of a matrix at (i, j).
-func (c *ColorM) Element(i, j int) float64 {
-	return element(c.values, ColorMDim, i, j)
+func (c *ColorM) Elements() []float64 {
+	return elements(c.values, ColorMDim)
+}
+
+func (c *ColorM) element(i, j int) float64 {
+	return c.Elements()[i*ColorMDim+j]
 }
 
 // SetElement sets an element at (i, j).
@@ -85,20 +88,24 @@ func (c *ColorM) Add(other ColorM) {
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
+	v := elements(c.values, ColorMDim)
 	for i := 0; i < ColorMDim; i++ {
-		c.SetElement(0, i, c.Element(0, i)*r)
-		c.SetElement(1, i, c.Element(1, i)*g)
-		c.SetElement(2, i, c.Element(2, i)*b)
-		c.SetElement(3, i, c.Element(3, i)*a)
+		v[i] *= r
+		v[i+ColorMDim] *= g
+		v[i+ColorMDim*2] *= b
+		v[i+ColorMDim*3] *= a
 	}
+	c.values = setElements(v, ColorMDim)
 }
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
-	c.SetElement(0, 4, c.Element(0, 4)+r)
-	c.SetElement(1, 4, c.Element(1, 4)+g)
-	c.SetElement(2, 4, c.Element(2, 4)+b)
-	c.SetElement(3, 4, c.Element(3, 4)+a)
+	v := elements(c.values, ColorMDim)
+	v[4] += r
+	v[4+ColorMDim] += g
+	v[4+ColorMDim*2] += b
+	v[4+ColorMDim*3] += a
+	c.values = setElements(v, ColorMDim)
 }
 
 // RotateHue rotates the hue.
