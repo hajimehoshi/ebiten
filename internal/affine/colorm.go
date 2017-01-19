@@ -44,22 +44,11 @@ type ColorM struct {
 	elements []float64
 }
 
-func (c *ColorM) dim() int {
-	return ColorMDim
-}
-
 func (c *ColorM) UnsafeElements() []float64 {
 	if c.elements == nil {
 		c.elements = colorMIdentityElements
 	}
 	return c.elements
-}
-
-func (c *ColorM) element(i, j int) float64 {
-	if c.elements == nil {
-		c.elements = colorMIdentityElements
-	}
-	return c.elements[i*ColorMDim+j]
 }
 
 // SetElement sets an element at (i, j).
@@ -94,16 +83,24 @@ func (c *ColorM) Equals(other *ColorM) bool {
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
-	result := ColorM{}
-	mul(&other, c, &result)
-	*c = result
+	if c.elements == nil {
+		c.elements = colorMIdentityElements
+	}
+	if other.elements == nil {
+		other.elements = colorMIdentityElements
+	}
+	c.elements = mul(other.elements, c.elements, ColorMDim)
 }
 
 // Add is deprecated.
 func (c *ColorM) Add(other ColorM) {
-	result := ColorM{}
-	add(&other, c, &result)
-	*c = result
+	if c.elements == nil {
+		c.elements = colorMIdentityElements
+	}
+	if other.elements == nil {
+		other.elements = colorMIdentityElements
+	}
+	c.elements = add(other.elements, c.elements, ColorMDim)
 }
 
 // Scale scales the matrix by (r, g, b, a).

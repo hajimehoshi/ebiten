@@ -37,22 +37,11 @@ type GeoM struct {
 	elements []float64
 }
 
-func (g *GeoM) dim() int {
-	return GeoMDim
-}
-
 func (g *GeoM) UnsafeElements() []float64 {
 	if g.elements == nil {
 		g.elements = geoMIdentityElements
 	}
 	return g.elements
-}
-
-func (g *GeoM) element(i, j int) float64 {
-	if g.elements == nil {
-		g.elements = geoMIdentityElements
-	}
-	return g.elements[i*GeoMDim+j]
 }
 
 // SetElement sets an element at (i, j).
@@ -69,16 +58,24 @@ func (g *GeoM) SetElement(i, j int, element float64) {
 // Concat multiplies a geometry matrix with the other geometry matrix.
 // This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
-	result := GeoM{}
-	mul(&other, g, &result)
-	*g = result
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
+	}
+	if other.elements == nil {
+		other.elements = geoMIdentityElements
+	}
+	g.elements = mul(other.elements, g.elements, GeoMDim)
 }
 
 // Add is deprecated.
 func (g *GeoM) Add(other GeoM) {
-	result := GeoM{}
-	add(&other, g, &result)
-	*g = result
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
+	}
+	if other.elements == nil {
+		other.elements = geoMIdentityElements
+	}
+	g.elements = add(other.elements, g.elements, GeoMDim)
 }
 
 // Scale scales the matrix by (x, y).

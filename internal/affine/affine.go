@@ -14,44 +14,30 @@
 
 package affine
 
-type affine interface {
-	dim() int
-	element(i, j int) float64
-	SetElement(i, j int, element float64)
-}
-
 // add is deprecated
-func add(lhs, rhs, result affine) {
-	dim := lhs.dim()
-	if dim != rhs.dim() {
-		panic("ebiten: different-sized matrices can't be multiplied")
-	}
-
+func add(lhs, rhs []float64, dim int) []float64 {
+	result := make([]float64, len(lhs))
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
-			v := lhs.element(i, j) + rhs.element(i, j)
-			result.SetElement(i, j, v)
+			result[i*dim+j] = lhs[i*dim+j] + rhs[i*dim+j]
 		}
 	}
+	return result
 }
 
-func mul(lhs, rhs, result affine) {
-	dim := lhs.dim()
-	if dim != rhs.dim() {
-		panic("ebiten: different-sized matrices can't be multiplied")
-	}
-
+func mul(lhs, rhs []float64, dim int) []float64 {
+	result := make([]float64, len(lhs))
 	for i := 0; i < dim-1; i++ {
 		for j := 0; j < dim; j++ {
-			element := float64(0)
+			e := 0.0
 			for k := 0; k < dim-1; k++ {
-				element += lhs.element(i, k) *
-					rhs.element(k, j)
+				e += lhs[i*dim+k] * rhs[k*dim+j]
 			}
 			if j == dim-1 {
-				element += lhs.element(i, j)
+				e += lhs[i*dim+j]
 			}
-			result.SetElement(i, j, element)
+			result[i*dim+j] = e
 		}
 	}
+	return result
 }
