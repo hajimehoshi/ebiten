@@ -26,7 +26,7 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	totalSize := graphics.QuadVertexSizeInBytes() / 4
 	l := parts.Len()
 	vs := make([]float32, l*totalSize)
-	g := geo.Elements()
+	g := geo.UnsafeElements()
 	g0 := float32(g[0])
 	g1 := float32(g[1])
 	g2 := float32(g[3])

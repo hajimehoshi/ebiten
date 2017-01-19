@@ -30,7 +30,7 @@ type GeoM struct {
 
 // Element returns a value of a matrix at (i, j).
 func (g *GeoM) Element(i, j int) float64 {
-	return g.impl.Elements()[i*affine.GeoMDim+j]
+	return g.impl.UnsafeElements()[i*affine.GeoMDim+j]
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.

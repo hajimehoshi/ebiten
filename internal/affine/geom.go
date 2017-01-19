@@ -21,39 +21,49 @@ import (
 // GeoMDim is a dimension of a GeoM.
 const GeoMDim = 3
 
-func geoMValueString(values [GeoMDim - 1][GeoMDim]float64) string {
-	b := make([]uint8, 0, (GeoMDim-1)*(GeoMDim)*8)
-	for i := 0; i < GeoMDim-1; i++ {
-		for j := 0; j < GeoMDim; j++ {
-			b = append(b, uint64ToBytes(math.Float64bits(values[i][j]))...)
-		}
+var (
+	geoMIdentityElements = []float64{
+		1, 0, 0,
+		0, 1, 0,
 	}
-	return string(b)
-}
+)
 
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
 // The initial value is identity.
 type GeoM struct {
-	// When values is empty, this matrix is identity.
-	values string
+	// When elements is empty, this matrix is identity.
+	// elements is immutable and a new array must be created when updating.
+	elements []float64
 }
 
 func (g *GeoM) dim() int {
 	return GeoMDim
 }
 
-func (g *GeoM) Elements() []float64 {
-	return elements(g.values, GeoMDim)
+func (g *GeoM) UnsafeElements() []float64 {
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
+	}
+	return g.elements
 }
 
 func (g *GeoM) element(i, j int) float64 {
-	return g.Elements()[i*GeoMDim+j]
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
+	}
+	return g.elements[i*GeoMDim+j]
 }
 
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
-	g.values = setElement(g.values, GeoMDim, i, j, element)
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
+	}
+	es := make([]float64, len(g.elements))
+	copy(es, g.elements)
+	es[i*GeoMDim+j] = element
+	g.elements = es
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
@@ -73,60 +83,58 @@ func (g *GeoM) Add(other GeoM) {
 
 // Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
-	v := elements(g.values, GeoMDim)
-	for i := 0; i < GeoMDim; i++ {
-		v[i] *= x
-		v[i+GeoMDim] *= y
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
 	}
-	g.values = setElements(v, GeoMDim)
+	es := make([]float64, len(g.elements))
+	copy(es, g.elements)
+	for i := 0; i < GeoMDim; i++ {
+		es[i] *= x
+		es[i+GeoMDim] *= y
+	}
+	g.elements = es
 }
 
 // Translate translates the matrix by (x, y).
 func (g *GeoM) Translate(tx, ty float64) {
-	v := elements(g.values, GeoMDim)
-	v[2] += tx
-	v[2+GeoMDim] += ty
-	g.values = setElements(v, GeoMDim)
+	if g.elements == nil {
+		g.elements = geoMIdentityElements
+	}
+	es := make([]float64, len(g.elements))
+	copy(es, g.elements)
+	es[2] += tx
+	es[2+GeoMDim] += ty
+	g.elements = es
 }
 
 // Rotate rotates the matrix by theta.
 func (g *GeoM) Rotate(theta float64) {
 	sin, cos := math.Sincos(theta)
 	g.Concat(GeoM{
-		values: geoMValueString([GeoMDim - 1][GeoMDim]float64{
-			{cos, -sin, 0},
-			{sin, cos, 0},
-		}),
+		elements: []float64{
+			cos, -sin, 0,
+			sin, cos, 0,
+		},
 	})
 }
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleGeo(x, y float64) GeoM {
-	return GeoM{
-		values: geoMValueString([GeoMDim - 1][GeoMDim]float64{
-			{x, 0, 0},
-			{0, y, 0},
-		}),
-	}
+	g := GeoM{}
+	g.Scale(x, y)
+	return g
 }
 
 // TranslateGeo is deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateGeo(tx, ty float64) GeoM {
-	return GeoM{
-		values: geoMValueString([GeoMDim - 1][GeoMDim]float64{
-			{1, 0, tx},
-			{0, 1, ty},
-		}),
-	}
+	g := GeoM{}
+	g.Translate(tx, ty)
+	return g
 }
 
 // RotateGeo is deprecated as of 1.2.0-alpha. Use Rotate instead.
 func RotateGeo(theta float64) GeoM {
-	sin, cos := math.Sincos(theta)
-	return GeoM{
-		values: geoMValueString([GeoMDim - 1][GeoMDim]float64{
-			{cos, -sin, 0},
-			{sin, cos, 0},
-		}),
-	}
+	g := GeoM{}
+	g.Rotate(theta)
+	return g
 }
