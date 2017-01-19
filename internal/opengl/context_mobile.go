@@ -430,3 +430,7 @@ func (c *Context) Flush() {
 	gl := c.gl
 	gl.Flush()
 }
+
+func (c *Context) IsContextLost(t Texture) bool {
+	return !c.IsTexture(t)
+}
