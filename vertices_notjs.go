@@ -17,20 +17,22 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-func vertices(parts ImageParts, width, height int, geo *GeoM) []float32 {
+func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	// TODO: This function should be in graphics package?
 	totalSize := graphics.QuadVertexSizeInBytes() / 4
 	l := parts.Len()
 	vs := make([]float32, l*totalSize)
-	g0 := float32(geo.Element(0, 0))
-	g1 := float32(geo.Element(0, 1))
-	g2 := float32(geo.Element(1, 0))
-	g3 := float32(geo.Element(1, 1))
-	g4 := float32(geo.Element(0, 2))
-	g5 := float32(geo.Element(1, 2))
+	g := geo.Elements()
+	g0 := float32(g[0])
+	g1 := float32(g[1])
+	g2 := float32(g[3])
+	g3 := float32(g[4])
+	g4 := float32(g[2])
+	g5 := float32(g[5])
 	w := float32(1)
 	h := float32(1)
 	for w < float32(width) {

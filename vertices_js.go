@@ -18,20 +18,23 @@ package ebiten
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-func vertices(parts ImageParts, width, height int, geo *GeoM) []float32 {
+func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	// TODO: This function should be in graphics package?
 	totalSize := graphics.QuadVertexSizeInBytes() / 4
 	l := parts.Len()
 	vs := js.Global.Get("Float32Array").New(l * totalSize)
-	g0 := geo.Element(0, 0)
-	g1 := geo.Element(0, 1)
-	g2 := geo.Element(1, 0)
-	g3 := geo.Element(1, 1)
-	g4 := geo.Element(0, 2)
-	g5 := geo.Element(1, 2)
+	g := geo.Elements()
+	g0 := g[0]
+	g1 := g[1]
+	g2 := g[3]
+	g3 := g[4]
+	g4 := g[2]
+	g5 := g[5]
 	w := 1.0
 	h := 1.0
 	for w < float64(width) {
