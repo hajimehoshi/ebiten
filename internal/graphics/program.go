@@ -138,16 +138,6 @@ func (s *openGLState) reset(context *opengl.Context) error {
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
 
-	if s.arrayBuffer != zeroBuffer {
-		context.DeleteBuffer(s.arrayBuffer)
-	}
-	if s.indexBufferQuads != zeroBuffer {
-		context.DeleteBuffer(s.indexBufferQuads)
-	}
-	if s.programTexture != zeroProgram {
-		context.DeleteProgram(s.programTexture)
-	}
-
 	shaderVertexModelviewNative, err := context.NewShader(opengl.VertexShader, shader(context, shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
