@@ -25,7 +25,7 @@ import (
 )
 
 type drawImageHistoryItem struct {
-	image    *graphics.Image
+	image    *Image
 	vertices []float32
 	colorm   affine.ColorM
 	mode     opengl.CompositeMode
@@ -139,7 +139,7 @@ func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, 
 	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
-		p.appendDrawImageHistory(img.image, vertices, colorm, mode)
+		p.appendDrawImageHistory(img, vertices, colorm, mode)
 	}
 	if err := p.image.DrawImage(img.image, vertices, colorm, mode); err != nil {
 		return err
@@ -147,7 +147,7 @@ func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, 
 	return nil
 }
 
-func (p *Image) appendDrawImageHistory(image *graphics.Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
+func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}
@@ -184,7 +184,7 @@ func (p *Image) MakeStaleIfDependingOn(target *Image) {
 	}
 	// TODO: Performance is bad when drawImageHistory is too many.
 	for _, c := range p.drawImageHistory {
-		if c.image == target.image {
+		if c.image == target {
 			p.makeStale()
 			return
 		}
@@ -272,11 +272,11 @@ func (p *Image) Restore(context *opengl.Context) error {
 		}
 	}
 	for _, c := range p.drawImageHistory {
-		// c.image.impl must be already restored.
-		/*if c.image.impl.hasHistory() {
+		// c.image.image must be already restored.
+		if c.image.HasDependency() {
 			panic("not reach")
-		}*/
-		if err := gimg.DrawImage(c.image, c.vertices, c.colorm, c.mode); err != nil {
+		}
+		if err := gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode); err != nil {
 			return err
 		}
 	}
