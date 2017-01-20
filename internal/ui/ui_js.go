@@ -27,17 +27,15 @@ import (
 var canvas *js.Object
 
 type userInterface struct {
-	scale           float64
-	deviceScale     float64
-	sizeChanged     bool
-	contextRestored bool
-	windowFocus     bool
+	scale       float64
+	deviceScale float64
+	sizeChanged bool
+	windowFocus bool
 }
 
 var currentUI = &userInterface{
-	sizeChanged:     true,
-	contextRestored: true,
-	windowFocus:     true,
+	sizeChanged: true,
+	windowFocus: true,
 }
 
 // NOTE: This returns true even when the browser is not active.
@@ -74,8 +72,8 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if !u.windowFocus {
 		return nil
 	}
-	if !u.contextRestored {
-		return nil
+	if glContext.IsContextLost() {
+		glContext.RestoreContext()
 	}
 	currentInput.updateGamepads()
 	if u.sizeChanged {
@@ -235,12 +233,11 @@ func initialize() error {
 
 	canvas.Call("addEventListener", "webglcontextlost", func(e *js.Object) {
 		e.Call("preventDefault")
-		currentUI.contextRestored = false
 	})
 	canvas.Call("addEventListener", "webglcontextrestored", func(e *js.Object) {
-		// TODO: Call preventDefault?
-		currentUI.contextRestored = true
+		// Do nothing.
 	})
+
 	return nil
 }
 

@@ -180,7 +180,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 }
 
 func (i *Image) IsInvalidated(context *opengl.Context) bool {
-	return context.IsContextLost(i.texture.native)
+	return !context.IsTexture(i.texture.native)
 }
 
 func (i *Image) createFramebufferIfNeeded(context *opengl.Context) (*framebuffer, error) {

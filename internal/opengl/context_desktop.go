@@ -514,7 +514,3 @@ func (c *Context) Flush() {
 		return nil
 	})
 }
-
-func (c *Context) IsContextLost(t Texture) bool {
-	return !c.IsTexture(t)
-}

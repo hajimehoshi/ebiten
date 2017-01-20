@@ -87,6 +87,7 @@ func init() {
 
 type context struct {
 	gl            *webgl.Context
+	loseContext   *js.Object
 	lastProgramID programID
 }
 
@@ -116,6 +117,15 @@ func NewContext() (*Context, error) {
 	}
 	c := &Context{}
 	c.gl = gl
+	// Getting an extension might fail after the context is lost, so
+	// it is required to get the extension here.
+	c.loseContext = gl.GetExtension("WEBGL_lose_context")
+	if c.loseContext != nil {
+		// This testing function name is temporary.
+		js.Global.Set("_ebiten_loseContextForTesting", func() {
+			c.loseContext.Call("loseContext")
+		})
+	}
 	return c, nil
 }
 
@@ -408,7 +418,13 @@ func (c *Context) Flush() {
 	gl.Flush()
 }
 
-func (c *Context) IsContextLost(t Texture) bool {
+func (c *Context) IsContextLost() bool {
 	gl := c.gl
 	return gl.IsContextLost()
+}
+
+func (c *Context) RestoreContext() {
+	if c.loseContext != nil {
+		c.loseContext.Call("restoreContext")
+	}
 }
