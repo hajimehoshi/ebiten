@@ -220,6 +220,9 @@ func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.
 func (i *imageImpl) hasDependency() bool {
 	i.m.Lock()
 	defer i.m.Unlock()
+	if i.restorable == nil {
+		return false
+	}
 	return i.restorable.HasDependency()
 }
 
