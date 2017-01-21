@@ -74,6 +74,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 	if glContext.IsContextLost() {
 		glContext.RestoreContext()
+		g.Invalidate()
 	}
 	currentInput.updateGamepads()
 	if u.sizeChanged {

@@ -94,17 +94,8 @@ func (i *images) resetPixelsIfDependingOn(target *Image, context *opengl.Context
 func (i *images) restore(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	// Dispose all images first because framebuffer/texture numbers can be reused.
-	// If framebuffers/textures are not disposed here, a newly created framebuffer/texture
-	// number can be a same number as existing one.
-	for img := range i.images {
-		if img.isDisposed() {
-			continue
-		}
-		if err := img.restorable.DisposeOnlyImage(); err != nil {
-			return err
-		}
-	}
+	// Framebuffers/textures cannot be disposed since framebuffers/textures that
+	// don't belong to the current context.
 	imagesWithoutDependency := []*imageImpl{}
 	imagesWithDependency := []*imageImpl{}
 	for img := range i.images {

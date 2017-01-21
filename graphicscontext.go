@@ -36,6 +36,7 @@ type graphicsContext struct {
 	screen      *Image
 	screenScale float64
 	initialized int32
+	invalidated bool
 }
 
 func (c *graphicsContext) GLContext() *opengl.Context {
@@ -43,6 +44,14 @@ func (c *graphicsContext) GLContext() *opengl.Context {
 		return nil
 	}
 	return ui.GLContext()
+}
+
+func (c *graphicsContext) Invalidate() {
+	// Note that this is called only on browsers so far.
+	// TODO: On mobiles, this function is not called and instead IsTexture is called
+	// to detect if the context is lost. This is simple but might not work on some platforms.
+	// Should Invalidate be called explicitly?
+	c.invalidated = true
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) error {
@@ -91,6 +100,9 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 }
 
 func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) {
+	if c.invalidated {
+		return true, nil
+	}
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	if err := graphics.FlushCommands(context); err != nil {
 		return false, err
@@ -178,5 +190,6 @@ func (c *graphicsContext) restore(context *opengl.Context) error {
 	if err := theImagesForRestoring.restore(context); err != nil {
 		return err
 	}
+	c.invalidated = false
 	return nil
 }

@@ -220,7 +220,8 @@ func (c *Context) DeleteTexture(t Texture) {
 
 func (c *Context) IsTexture(t Texture) bool {
 	gl := c.gl
-	return gl.IsTexture(t.Object)
+	b := gl.IsTexture(t.Object)
+	return b
 }
 
 func (c *Context) TexSubImage2D(p []uint8, width, height int) {

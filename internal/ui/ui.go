@@ -17,6 +17,7 @@ package ui
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64) error
 	Update() error
+	Invalidate()
 }
 
 type RegularTermination struct {

@@ -304,13 +304,6 @@ func (p *Image) Dispose() error {
 	return nil
 }
 
-func (p *Image) DisposeOnlyImage() error {
-	if err := p.image.Dispose(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (p *Image) IsInvalidated(context *opengl.Context) bool {
 	return p.image.IsInvalidated(context)
 }
