@@ -91,9 +91,13 @@ func toLR(data []byte) ([]int16, []int16) {
 }
 
 func (p *Player) Proceed(data []byte) error {
+	// delay is buffer in sample numbers for p.positionInSamples.
+	// Without this, adjusting p.positionInSamples with the context's currenTime
+	// much more often especially on Safari, which is the cause of noise (#307).
+	const delay = 256
 	p.bufferedData = append(p.bufferedData, data...)
 	c := int64(p.context.Get("currentTime").Float() * float64(p.sampleRate))
-	if p.positionInSamples < c {
+	if p.positionInSamples+delay < c {
 		p.positionInSamples = c
 	}
 	// Heuristic data size which doesn't cause too much noise and too much delay (#299)
@@ -114,7 +118,7 @@ func (p *Player) Proceed(data []byte) error {
 		s := p.context.Call("createBufferSource")
 		s.Set("buffer", buf)
 		s.Call("connect", p.context.Get("destination"))
-		s.Call("start", float64(p.positionInSamples)/float64(p.sampleRate))
+		s.Call("start", float64(p.positionInSamples+delay)/float64(p.sampleRate))
 		p.positionInSamples += int64(len(il))
 		p.bufferedData = p.bufferedData[dataSize:]
 	}
