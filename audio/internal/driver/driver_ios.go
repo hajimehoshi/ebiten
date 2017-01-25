@@ -14,7 +14,7 @@
 
 // TODO: Can we unify this into driver_openal.go?
 
-// +build ios darwin,arm darwin,arm64
+// +build ios
 
 package driver
 

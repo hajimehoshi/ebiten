@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build ios darwin,arm darwin,arm64
+// +build ios
 
 package ui
 

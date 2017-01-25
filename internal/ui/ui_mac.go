@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin,!arm,!arm64
+// +build darwin
 // +build !js
 // +build !ios
 
