@@ -203,6 +203,37 @@ func TestImageSelf(t *testing.T) {
 	}
 }
 
+func TestImage90DegreeRotate(t *testing.T) {
+	img0, _, err := openEbitenImage("testdata/ebiten.png")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	w, h := img0.Size()
+	img1, err := NewImage(h, w, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	op := &DrawImageOptions{}
+	op.GeoM.Rotate(math.Pi / 2)
+	op.GeoM.Translate(float64(h), 0)
+	if err := img1.DrawImage(img0, op); err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			c0 := img0.At(i, j).(color.RGBA)
+			c1 := img1.At(h-j-1, i).(color.RGBA)
+			if c0 != c1 {
+				t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[3]d, %[4]d) but not: %[5]v vs %[6]v", i, j, h-j-1, i, c0, c1)
+			}
+		}
+	}
+}
+
 func TestImageDotByDotInversion(t *testing.T) {
 	img0, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
