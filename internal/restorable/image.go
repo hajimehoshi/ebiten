@@ -170,13 +170,17 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // Note that this must not be called until context is available.
 // This means Pixels members must match with acutal state in VRAM.
 func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
-	w, _ := p.image.Size()
+	w, h := p.image.Size()
+	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	if x < 0 || y < 0 || w2 <= x || h2 <= y {
+		return color.RGBA{}, nil
+	}
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.readPixelsFromVRAM(p.image, context); err != nil {
 			return color.RGBA{}, err
 		}
 	}
-	idx := 4*x + 4*y*graphics.NextPowerOf2Int(w)
+	idx := 4*x + 4*y*w2
 	r, g, b, a := p.basePixels[idx], p.basePixels[idx+1], p.basePixels[idx+2], p.basePixels[idx+3]
 	return color.RGBA{r, g, b, a}, nil
 }

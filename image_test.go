@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 func TestMain(m *testing.M) {
@@ -87,8 +88,11 @@ func TestImagePixels(t *testing.T) {
 		t.Fatalf("img size: got %d; want %d", got, img.Bounds().Size())
 	}
 
-	for j := 0; j < img0.Bounds().Size().Y; j++ {
-		for i := 0; i < img0.Bounds().Size().X; i++ {
+	w, h := img0.Bounds().Size().X, img0.Bounds().Size().Y
+	// Check out of range part
+	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	for j := -100; j < h2+100; j++ {
+		for i := -100; i < w2+100; i++ {
 			got := img0.At(i, j)
 			want := color.RGBAModel.Convert(img.At(i, j))
 			if got != want {
