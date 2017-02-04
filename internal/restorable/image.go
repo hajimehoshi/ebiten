@@ -64,9 +64,14 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 		// TODO: texture should be removed here?
 		return nil, err
 	}
+	p := make([]uint8, 4*width*height)
+	for j := 0; j < height; j++ {
+		copy(p[j*width*4:(j+1)*width*4], source.Pix[j*source.Stride:])
+	}
 	return &Image{
-		image:  img,
-		filter: filter,
+		image:      img,
+		basePixels: p,
+		filter:     filter,
 	}, nil
 }
 

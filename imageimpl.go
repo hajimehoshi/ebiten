@@ -77,10 +77,6 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	// an image is delayed and we can't expect the source image is not modified
 	// until the construction.
 	rgbaImg := graphics.CopyImage(source)
-	p := make([]uint8, 4*w*h)
-	for j := 0; j < h; j++ {
-		copy(p[j*w*4:(j+1)*w*4], rgbaImg.Pix[j*rgbaImg.Stride:])
-	}
 	img, err := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
 	if err != nil {
 		return nil, err
@@ -88,7 +84,6 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	i := &imageImpl{
 		restorable: img,
 	}
-	i.restorable.ReplacePixels(p)
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
 }
