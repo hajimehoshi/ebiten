@@ -64,9 +64,10 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 		// TODO: texture should be removed here?
 		return nil, err
 	}
-	p := make([]uint8, 4*width*height)
+	w2, h2 := graphics.NextPowerOf2Int(width), graphics.NextPowerOf2Int(height)
+	p := make([]uint8, 4*w2*h2)
 	for j := 0; j < height; j++ {
-		copy(p[j*width*4:(j+1)*width*4], source.Pix[j*source.Stride:])
+		copy(p[j*w2*4:(j+1)*w2*4], source.Pix[j*source.Stride:])
 	}
 	return &Image{
 		image:      img,
@@ -130,10 +131,7 @@ func (p *Image) ReplacePixels(pixels []uint8) error {
 	if err := p.image.ReplacePixels(pixels); err != nil {
 		return err
 	}
-	if p.basePixels == nil {
-		p.basePixels = make([]uint8, len(pixels))
-	}
-	copy(p.basePixels, pixels)
+	p.basePixels = pixels
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
@@ -173,12 +171,12 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // This means Pixels members must match with acutal state in VRAM.
 func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
 	w, _ := p.image.Size()
-	idx := 4*x + 4*y*w
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
 		if err := p.readPixelsFromVRAM(p.image, context); err != nil {
 			return color.RGBA{}, err
 		}
 	}
+	idx := 4*x + 4*y*graphics.NextPowerOf2Int(w)
 	r, g, b, a := p.basePixels[idx], p.basePixels[idx+1], p.basePixels[idx+2], p.basePixels[idx+3]
 	return color.RGBA{r, g, b, a}, nil
 }
@@ -258,10 +256,11 @@ func (p *Image) Restore(context *opengl.Context) error {
 	if p.stale {
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	img := image.NewRGBA(image.Rect(0, 0, graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)))
+	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	img := image.NewRGBA(image.Rect(0, 0, w2, h2))
 	if p.basePixels != nil {
 		for j := 0; j < h; j++ {
-			copy(img.Pix[j*img.Stride:], p.basePixels[j*w*4:(j+1)*w*4])
+			copy(img.Pix[j*img.Stride:], p.basePixels[j*w2*4:(j+1)*w2*4])
 		}
 	}
 	gimg, err := graphics.NewImageFromImage(img, w, h, p.filter)

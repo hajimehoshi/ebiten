@@ -272,7 +272,7 @@ func (c *replacePixelsCommand) Exec(context *opengl.Context, indexOffsetInBytes 
 	if err := context.BindTexture(c.dst.texture.native); err != nil {
 		return err
 	}
-	context.TexSubImage2D(c.pixels, c.dst.width, c.dst.height)
+	context.TexSubImage2D(c.pixels, NextPowerOf2Int(c.dst.width), NextPowerOf2Int(c.dst.height))
 	return nil
 }
 

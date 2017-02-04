@@ -257,7 +257,12 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	if i.restorable == nil {
 		return errors.New("ebiten: image is already disposed")
 	}
-	if err := i.restorable.ReplacePixels(p); err != nil {
+	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	pix := make([]uint8, 4*w2*h2)
+	for j := 0; j < h; j++ {
+		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
+	}
+	if err := i.restorable.ReplacePixels(pix); err != nil {
 		return err
 	}
 	return nil
