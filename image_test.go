@@ -208,30 +208,32 @@ func TestImageSelf(t *testing.T) {
 }
 
 func TestImageScale(t *testing.T) {
-	img0, _, err := openEbitenImage("testdata/ebiten.png")
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	w, h := img0.Size()
-	img1, err := NewImage(w*2, h*2, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-		return
-	}
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(2, 2)
-	if err := img1.DrawImage(img0, op); err != nil {
-		t.Fatal(err)
-		return
-	}
+	for _, scale := range []int{2, 3, 4} {
+		img0, _, err := openEbitenImage("testdata/ebiten.png")
+		if err != nil {
+			t.Fatal(err)
+			return
+		}
+		w, h := img0.Size()
+		img1, err := NewImage(w*scale, h*scale, FilterNearest)
+		if err != nil {
+			t.Fatal(err)
+			return
+		}
+		op := &DrawImageOptions{}
+		op.GeoM.Scale(float64(scale), float64(scale))
+		if err := img1.DrawImage(img0, op); err != nil {
+			t.Fatal(err)
+			return
+		}
 
-	for j := 0; j < h*2; j++ {
-		for i := 0; i < w*2; i++ {
-			c0 := img0.At(i/2, j/2).(color.RGBA)
-			c1 := img1.At(i, j).(color.RGBA)
-			if c0 != c1 {
-				t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[3]d, %[4]d) but not: %[5]v vs %[6]v", i/2, j/2, i, j, c0, c1)
+		for j := 0; j < h*2; j++ {
+			for i := 0; i < w*2; i++ {
+				c0 := img0.At(i/scale, j/scale).(color.RGBA)
+				c1 := img1.At(i, j).(color.RGBA)
+				if c0 != c1 {
+					t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[3]d, %[4]d) (with scale %[5]d) but not: %[6]v vs %[7]v", i/2, j/2, i, j, scale, c0, c1)
+				}
 			}
 		}
 	}
