@@ -38,9 +38,27 @@ var (
 	angle            = 0
 )
 
+type parts struct {
+	image *ebiten.Image
+}
+
+func (p *parts) Len() int {
+	return 1
+}
+
+func (p *parts) Src(index int) (int, int, int, int) {
+	w, h := p.image.Size()
+	return 0, 0, w, h / 2
+}
+
+func (p *parts) Dst(index int) (int, int, int, int) {
+	w, h := p.image.Size()
+	return 0, 0, w, h / 2
+}
+
 func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		angle--
+		angle += 359
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		angle++
@@ -50,6 +68,7 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 	op := &ebiten.DrawImageOptions{}
+	op.ImageParts = &parts{colorImage}
 	op.GeoM.Translate(-float64(colorImageWidth)/2, -float64(colorImageHeight)/2)
 	op.GeoM.Rotate(float64(angle) * math.Pi / 180)
 	op.GeoM.Scale(4, 4)
