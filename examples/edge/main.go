@@ -17,11 +17,13 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
@@ -37,7 +39,12 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
-	angle++
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		angle--
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		angle++
+	}
 	angle %= 360
 	if err := screen.Fill(color.White); err != nil {
 		return err
@@ -45,8 +52,12 @@ func update(screen *ebiten.Image) error {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(colorImageWidth)/2, -float64(colorImageHeight)/2)
 	op.GeoM.Rotate(float64(angle) * math.Pi / 180)
+	op.GeoM.Scale(4, 4)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	if err := screen.DrawImage(colorImage, op); err != nil {
+		return err
+	}
+	if err := ebitenutil.DebugPrint(screen, fmt.Sprintf("Angle: %d [deg]", angle)); err != nil {
 		return err
 	}
 	return nil
@@ -54,7 +65,7 @@ func update(screen *ebiten.Image) error {
 
 func main() {
 	var err error
-	colorImage, err = ebiten.NewImage(colorImageWidth, colorImageHeight, ebiten.FilterLinear)
+	colorImage, err = ebiten.NewImage(colorImageWidth, colorImageHeight, ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
