@@ -56,6 +56,9 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 			continue
 		}
 		u0, v0, u1, v1 := float64(sx0)/wf, float64(sy0)/hf, float64(sx1)/wf, float64(sy1)/hf
+		// Adjust texels to fix a problem that outside texels are used (#317).
+		u1 -= 1.0 / 16384.0
+		v1 -= 1.0 / 16384.0
 		vs.SetIndex(n, dx0)
 		vs.SetIndex(n+1, dy0)
 		vs.SetIndex(n+2, u0)
