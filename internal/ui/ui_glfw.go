@@ -64,6 +64,7 @@ func initialize() error {
 	if err != nil {
 		return err
 	}
+	hideConsoleWindowOnWindows(window)
 	u := &userInterface{
 		window:      window,
 		funcs:       make(chan func()),
