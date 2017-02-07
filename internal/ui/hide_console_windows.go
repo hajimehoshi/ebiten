@@ -14,17 +14,95 @@
 
 package ui
 
-import "syscall"
-
-var (
-	kernel32         = syscall.NewLazyDLL("kernel32.dll")
-	user32           = syscall.NewLazyDLL("user32.dll")
-	getConsoleWindow = kernel32.NewProc("GetConsoleWindow")
-	showWindowAsync  = user32.NewProc("ShowWindowAsync")
+import (
+	"syscall"
+	"unsafe"
 )
 
+// hideConsoleWindowOnWindows will hide the console window that is showing when
+// compiling on Windows without specifying the '-ldflags "-Hwindowsgui"' flag.
+//
+// The hiding is done if the console window exists for less than 1 second
+// because during development you will want to run from the command line and it
+// is not supposed to be hidden whenever you 'go run' or 'go test' the program.
+// That is why the work-around is to assume that the developer console is always
+// open for >= 1 sec begore running the program. The end user will double-click
+// the executable, it will pop up a console window and then call this function
+// right away so the time between creating the console and running this function
+// should never surpass 1 second. In that case the console is then hidden.
 func hideConsoleWindowOnWindows() {
-	windowHandle, _, _ := getConsoleWindow.Call()
-	const SW_HIDE = 0
-	showWindowAsync.Call(windowHandle, SW_HIDE)
+	consoleWindow, _, _ := getConsoleWindow.Call()
+	if consoleWindow == 0 {
+		return // no console attached
+	}
+
+	var consoleProcessID uint32
+	getWindowThreadProcessId.Call(
+		consoleWindow,
+		uintptr(unsafe.Pointer(&consoleProcessID)),
+	)
+	if consoleProcessID == 0 {
+		return // error retrieving the console process ID
+	}
+
+	const (
+		PROCESS_QUERY_INFORMATION = 0x0400
+		FALSE                     = 0
+	)
+	consoleProcess, _, _ := openProcess.Call(
+		PROCESS_QUERY_INFORMATION,
+		FALSE,
+		uintptr(consoleProcessID),
+	)
+	if consoleProcess == 0 {
+		return // error retrieving the console process handle
+	}
+
+	var creationTime, ignore filetime
+	ok, _, _ := getProcessTimes.Call(
+		uintptr(consoleProcess),
+		uintptr(unsafe.Pointer(&creationTime)),
+		uintptr(unsafe.Pointer(&ignore)),
+		uintptr(unsafe.Pointer(&ignore)),
+		uintptr(unsafe.Pointer(&ignore)),
+	)
+	if ok == 0 {
+		return // error retrieving the process creation time
+	}
+
+	var now filetime
+	getSystemTimeAsFileTime.Call(uintptr(unsafe.Pointer(&now)))
+
+	dt := now.in100ns() - creationTime.in100ns()
+	const ms = 1000 // to convert dt to milliseconds
+	if dt < 1000*ms {
+		// Heuristic: if the console was active for a short period of time, it
+		// was probably popped up with the window after double clicking the
+		// executable and not the developer typing "go run ..." from the command
+		// line.
+		// In this case, hide the console as this is a user playing our game.
+		const SW_HIDE = 0
+		showWindowAsync.Call(consoleWindow, SW_HIDE)
+	}
+}
+
+var (
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+	user32   = syscall.NewLazyDLL("user32.dll")
+
+	getConsoleWindow         = kernel32.NewProc("GetConsoleWindow")
+	getWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
+	openProcess              = kernel32.NewProc("OpenProcess")
+	getProcessTimes          = kernel32.NewProc("GetProcessTimes")
+	getSystemTimeAsFileTime  = kernel32.NewProc("GetSystemTimeAsFileTime")
+	showWindowAsync          = user32.NewProc("ShowWindowAsync")
+)
+
+type filetime struct {
+	lowDateTime  uint32
+	highDateTime uint32
+}
+
+func (t filetime) in100ns() uint64 {
+	return uint64(t.highDateTime)<<32 | uint64(t.lowDateTime)
 }

@@ -16,4 +16,5 @@
 
 package ui
 
+// hideConsoleWindowOnWindows does nothing on non-Windows systems.
 func hideConsoleWindowOnWindows() {}
