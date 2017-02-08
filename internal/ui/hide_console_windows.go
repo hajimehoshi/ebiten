@@ -18,7 +18,6 @@ package ui
 
 import (
 	"fmt"
-	"path/filepath"
 	"syscall"
 	"unsafe"
 
@@ -34,8 +33,8 @@ var (
 	user32   = windows.NewLazySystemDLL("user32.dll")
 
 	getCurrentProcessIdProc       = kernel32.NewProc("GetCurrentProcessId")
-	queryFullProcessImageNameProc = kernel32.NewProc("QueryFullProcessImageNameW")
 	getConsoleWindowProc          = kernel32.NewProc("GetConsoleWindow")
+	getWindowThreadProcessIdProc  = user32.NewProc("GetWindowThreadProcessId")
 	showWindowAsyncProc           = user32.NewProc("ShowWindowAsync")
 )
 
@@ -47,17 +46,13 @@ func getCurrentProcessId() (uint32, error) {
 	return uint32(r), nil
 }
 
-func queryFullProcessImageName(h windows.Handle) (string, error) {
-	const maxSize = 4096
-	str := make([]uint16, maxSize)
-	size := len(str)
-	r, _, e := syscall.Syscall6(queryFullProcessImageNameProc.Addr(), 4,
-		uintptr(h), 0, uintptr(unsafe.Pointer(&str[0])), uintptr(unsafe.Pointer(&size)),
-		0, 0)
+func getWindowThreadProcessId(hwnd uintptr) (uint32, error) {
+	pid := uint32(0)
+	r, _, e := syscall.Syscall(getWindowThreadProcessIdProc.Addr(), 2, hwnd, uintptr(unsafe.Pointer(&pid)), 0)
 	if r == 0 {
-		return "", fmt.Errorf("ui: QueryFullProcessImageName failed: %d", e)
+		return 0, fmt.Errorf("ui: GetWindowThreadProcessId failed: %d", e)
 	}
-	return syscall.UTF16ToString(str[0:size]), nil
+	return pid, nil
 }
 
 func getConsoleWindow() (uintptr, error) {
@@ -76,59 +71,14 @@ func showWindowAsync(hwnd uintptr, show int) error {
 	return nil
 }
 
-func getParentProcessId() (uint32, error) {
-	pid, err := getCurrentProcessId()
-	if err != nil {
-		return 0, err
-	}
-	pe := windows.ProcessEntry32{}
-	pe.Size = uint32(unsafe.Sizeof(pe))
-	h, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
-	if err != nil {
-		return 0, err
-	}
-	defer windows.CloseHandle(h)
-	if err := windows.Process32First(h, &pe); err != nil {
-		return 0, err
-	}
-	for {
-		if pe.ProcessID == pid {
-			return pe.ParentProcessID, nil
-		}
-		if err := windows.Process32Next(h, &pe); err != nil {
-			return 0, err
-		}
-	}
-	panic("not reach")
-}
-
-func getProcessName(pid uint32) (string, error) {
-	h, err := windows.OpenProcess(processQueryLimitedInformation, false, pid)
-	if err != nil {
-		return "", err
-	}
-	defer windows.CloseHandle(h)
-	return queryFullProcessImageName(h)
-}
-
 // hideConsoleWindowOnWindows will hide the console window that is showing when
 // compiling on Windows without specifying the '-ldflags "-Hwindowsgui"' flag.
 func hideConsoleWindowOnWindows() {
-	ppid, err := getParentProcessId()
+	pid, err := getCurrentProcessId()
 	if err != nil {
 		// Ignore errors because:
 		// 1. It is not critical if the console can't be hid.
 		// 2. There is nothing to do when errors happen.
-		return
-	}
-	name, err := getProcessName(ppid)
-	if err != nil {
-		// Ignore errors
-		return
-	}
-	if filepath.Base(name) != "explorer.exe" {
-		// Probably the parent process is console. The name might be
-		// cmd.exe, go.exe or other terminal tools.
 		return
 	}
 	w, err := getConsoleWindow()
@@ -136,5 +86,14 @@ func hideConsoleWindowOnWindows() {
 		// Ignore errors
 		return
 	}
-	showWindowAsync(w, windows.SW_HIDE)
+	// Get the process ID of the console's creater.
+	cpid, err := getWindowThreadProcessId(w)
+	if err != nil {
+		// Ignore errors
+		return
+	}
+	if pid == cpid {
+		// The current process created its own console. Hide this.
+		showWindowAsync(w, windows.SW_HIDE)
+	}
 }
