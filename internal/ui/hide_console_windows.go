@@ -15,94 +15,124 @@
 package ui
 
 import (
+	"fmt"
+	"path/filepath"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
+
+const (
+	processQueryLimitedInformation = 0x1000
+)
+
+var (
+	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
+	user32   = windows.NewLazySystemDLL("user32.dll")
+
+	getCurrentProcessIdProc       = kernel32.NewProc("GetCurrentProcessId")
+	queryFullProcessImageNameProc = kernel32.NewProc("QueryFullProcessImageNameW")
+	getConsoleWindowProc          = kernel32.NewProc("GetConsoleWindow")
+	showWindowAsyncProc           = user32.NewProc("ShowWindowAsync")
+)
+
+func getCurrentProcessId() (uint32, error) {
+	r, _, e := syscall.Syscall(getCurrentProcessIdProc.Addr(), 0, 0, 0, 0)
+	if e != 0 {
+		return 0, fmt.Errorf("ui: GetCurrentProcessId failed: %d", e)
+	}
+	return uint32(r), nil
+}
+
+func queryFullProcessImageName(h windows.Handle) (string, error) {
+	const maxSize = 4096
+	str := make([]uint16, maxSize)
+	size := len(str)
+	r, _, e := syscall.Syscall6(queryFullProcessImageNameProc.Addr(), 4,
+		uintptr(h), 0, uintptr(unsafe.Pointer(&str[0])), uintptr(unsafe.Pointer(&size)),
+		0, 0)
+	if r == 0 {
+		return "", fmt.Errorf("ui: QueryFullProcessImageName failed: %d", e)
+	}
+	return syscall.UTF16ToString(str[0:size]), nil
+}
+
+func getConsoleWindow() (uintptr, error) {
+	r, _, e := syscall.Syscall(getConsoleWindowProc.Addr(), 0, 0, 0, 0)
+	if e != 0 {
+		return 0, fmt.Errorf("ui: GetConsoleWindow failed: %d", e)
+	}
+	return r, nil
+}
+
+func showWindowAsync(hwnd uintptr, show int) error {
+	_, _, e := syscall.Syscall(showWindowAsyncProc.Addr(), 2, hwnd, uintptr(show), 0)
+	if e != 0 {
+		return fmt.Errorf("ui: ShowWindowAsync failed: %d", e)
+	}
+	return nil
+}
+
+func getParentProcessId() (uint32, error) {
+	pid, err := getCurrentProcessId()
+	if err != nil {
+		return 0, err
+	}
+	pe := windows.ProcessEntry32{}
+	pe.Size = uint32(unsafe.Sizeof(pe))
+	h, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return 0, err
+	}
+	defer windows.CloseHandle(h)
+	if err := windows.Process32First(h, &pe); err != nil {
+		return 0, err
+	}
+	for {
+		if pe.ProcessID == pid {
+			return pe.ParentProcessID, nil
+		}
+		if err := windows.Process32Next(h, &pe); err != nil {
+			return 0, err
+		}
+	}
+	panic("not reach")
+}
+
+func getProcessName(pid uint32) (string, error) {
+	h, err := windows.OpenProcess(processQueryLimitedInformation, false, pid)
+	if err != nil {
+		return "", err
+	}
+	defer windows.CloseHandle(h)
+	return queryFullProcessImageName(h)
+}
 
 // hideConsoleWindowOnWindows will hide the console window that is showing when
 // compiling on Windows without specifying the '-ldflags "-Hwindowsgui"' flag.
-//
-// The hiding is done if the console window exists for less than 1 second
-// because during development you will want to run from the command line and it
-// is not supposed to be hidden whenever you 'go run' or 'go test' the program.
-// That is why the work-around is to assume that the developer console is always
-// open for >= 1 sec begore running the program. The end user will double-click
-// the executable, it will pop up a console window and then call this function
-// right away so the time between creating the console and running this function
-// should never surpass 1 second. In that case the console is then hidden.
 func hideConsoleWindowOnWindows() {
-	consoleWindow, _, _ := getConsoleWindow.Call()
-	if consoleWindow == 0 {
-		return // no console attached
+	ppid, err := getParentProcessId()
+	if err != nil {
+		// Ignore errors because:
+		// 1. It is not critical if the console can't be hid.
+		// 2. There is nothing to do when errors happen.
+		return
 	}
-
-	var consoleProcessID uint32
-	getWindowThreadProcessId.Call(
-		consoleWindow,
-		uintptr(unsafe.Pointer(&consoleProcessID)),
-	)
-	if consoleProcessID == 0 {
-		return // error retrieving the console process ID
+	name, err := getProcessName(ppid)
+	if err != nil {
+		// Ignore errors
+		return
 	}
-
-	const (
-		PROCESS_QUERY_INFORMATION = 0x0400
-		FALSE                     = 0
-	)
-	consoleProcess, _, _ := openProcess.Call(
-		PROCESS_QUERY_INFORMATION,
-		FALSE,
-		uintptr(consoleProcessID),
-	)
-	if consoleProcess == 0 {
-		return // error retrieving the console process handle
+	if filepath.Base(name) != "explorer.exe" {
+		// Probably the parent process is console. The name might be
+		// cmd.exe, go.exe or other terminal tools.
+		return
 	}
-
-	var creationTime, ignore filetime
-	ok, _, _ := getProcessTimes.Call(
-		uintptr(consoleProcess),
-		uintptr(unsafe.Pointer(&creationTime)),
-		uintptr(unsafe.Pointer(&ignore)),
-		uintptr(unsafe.Pointer(&ignore)),
-		uintptr(unsafe.Pointer(&ignore)),
-	)
-	if ok == 0 {
-		return // error retrieving the process creation time
+	w, err := getConsoleWindow()
+	if err != nil {
+		// Ignore errors
+		return
 	}
-
-	var now filetime
-	getSystemTimeAsFileTime.Call(uintptr(unsafe.Pointer(&now)))
-
-	dt := now.in100ns() - creationTime.in100ns()
-	const ms = 1000 // to convert dt to milliseconds
-	if dt < 1000*ms {
-		// Heuristic: if the console was active for a short period of time, it
-		// was probably popped up with the window after double clicking the
-		// executable and not the developer typing "go run ..." from the command
-		// line.
-		// In this case, hide the console as this is a user playing our game.
-		const SW_HIDE = 0
-		showWindowAsync.Call(consoleWindow, SW_HIDE)
-	}
-}
-
-var (
-	kernel32 = syscall.NewLazyDLL("kernel32.dll")
-	user32   = syscall.NewLazyDLL("user32.dll")
-
-	getConsoleWindow         = kernel32.NewProc("GetConsoleWindow")
-	getWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
-	openProcess              = kernel32.NewProc("OpenProcess")
-	getProcessTimes          = kernel32.NewProc("GetProcessTimes")
-	getSystemTimeAsFileTime  = kernel32.NewProc("GetSystemTimeAsFileTime")
-	showWindowAsync          = user32.NewProc("ShowWindowAsync")
-)
-
-type filetime struct {
-	lowDateTime  uint32
-	highDateTime uint32
-}
-
-func (t filetime) in100ns() uint64 {
-	return uint64(t.highDateTime)<<32 | uint64(t.lowDateTime)
+	showWindowAsync(w, windows.SW_HIDE)
 }
