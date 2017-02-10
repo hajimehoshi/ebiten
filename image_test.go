@@ -563,3 +563,87 @@ func TestImageSize(t *testing.T) {
 		}
 	}
 }
+
+type halfImagePart struct {
+	image *Image
+}
+
+func (p *halfImagePart) Len() int {
+	return 1
+}
+
+func (p *halfImagePart) Src(index int) (int, int, int, int) {
+	w, h := p.image.Size()
+	return 0, 0, w, h / 2
+}
+
+func (p *halfImagePart) Dst(index int) (int, int, int, int) {
+	w, h := p.image.Size()
+	return 0, 0, w, h / 2
+}
+
+// Issue 317
+func TestImageEdge(t *testing.T) {
+	const (
+		img0Width  = 16
+		img0Height = 16
+		img1Width  = 32
+		img1Height = 32
+	)
+	img0, err := NewImage(img0Width, img0Height, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pixels := make([]uint8, 4*img0Width*img0Height)
+	for j := 0; j < img0Height; j++ {
+		for i := 0; i < img0Width; i++ {
+			idx := 4 * (i + j*img0Width)
+			switch {
+			case j < img0Height/2:
+				pixels[idx] = 0xff
+				pixels[idx+1] = 0
+				pixels[idx+2] = 0
+				pixels[idx+3] = 0xff
+			default:
+				pixels[idx] = 0
+				pixels[idx+1] = 0xff
+				pixels[idx+2] = 0
+				pixels[idx+3] = 0xff
+			}
+		}
+	}
+	if err := img0.ReplacePixels(pixels); err != nil {
+		t.Fatal(err)
+	}
+	img1, err := NewImage(img1Width, img1Height, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	red := color.RGBA{0xff, 0, 0, 0xff}
+	transparent := color.RGBA{0, 0, 0, 0}
+	for a := 0; a < 360; a++ {
+		if err := img1.Clear(); err != nil {
+			t.Fatal(err)
+		}
+		op := &DrawImageOptions{}
+		op.ImageParts = &halfImagePart{img0}
+		op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
+		op.GeoM.Rotate(float64(a) * math.Pi / 180)
+		op.GeoM.Translate(img1Width/2, img1Height/2)
+		if err := img1.DrawImage(img0, op); err != nil {
+			t.Fatal(err)
+		}
+		for j := 0; j < img1Height; j++ {
+			for i := 0; i < img1Width; i++ {
+				c := img1.At(i, j)
+				if c == red {
+					continue
+				}
+				if c == transparent {
+					continue
+				}
+				t.Errorf("img1.At(%d, %d) want: red or transparent, got: %v", i, j, c)
+			}
+		}
+	}
+}
