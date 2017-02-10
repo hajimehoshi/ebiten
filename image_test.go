@@ -642,7 +642,7 @@ func TestImageEdge(t *testing.T) {
 				if c == transparent {
 					continue
 				}
-				t.Errorf("img1.At(%d, %d) want: red or transparent, got: %v", i, j, c)
+				t.Errorf("img1.At(%d, %d) (angle: %d) want: red or transparent, got: %v", i, j, a, c)
 			}
 		}
 	}
