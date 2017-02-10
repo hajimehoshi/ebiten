@@ -18,4 +18,4 @@ package ebiten
 // Texels are adjusted by amount propotional to inverse of texelAdjustment.
 // This is necessary not to use unexpected pixels outside of texels.
 // See #317.
-const texelAdjustment = 4
+const texelAdjustment = 256
