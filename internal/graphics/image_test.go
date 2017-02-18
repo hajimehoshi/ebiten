@@ -28,6 +28,15 @@ func TestCopyImage(t *testing.T) {
 	for i := range pal {
 		pal[i] = color.White
 	}
+	p := make([]color.Color, 255)
+	for i := range p {
+		if i == 64 {
+			p[i] = color.White
+		} else {
+			p[i] = color.Transparent
+		}
+	}
+	bigPalette := color.Palette(p)
 	cases := []struct {
 		In  image.Image
 		Out *image.RGBA
@@ -63,6 +72,19 @@ func TestCopyImage(t *testing.T) {
 			},
 			Out: &image.RGBA{
 				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+				Stride: 8,
+				Rect:   image.Rect(0, 0, 2, 2),
+			},
+		},
+		{
+			In: &image.Paletted{
+				Pix:     []uint8{0, 64, 0, 0},
+				Stride:  2,
+				Rect:    image.Rect(0, 0, 2, 2),
+				Palette: bigPalette,
+			},
+			Out: &image.RGBA{
+				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0},
 				Stride: 8,
 				Rect:   image.Rect(0, 0, 2, 2),
 			},
