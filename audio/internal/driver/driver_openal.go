@@ -27,7 +27,7 @@ import (
 )
 
 // As x/mobile/exp/audio/al is broken on Mac OS X (https://github.com/golang/go/issues/15075),
-// let's use github.com/timshannon/go-openal instead.
+// let's use github.com/hajimehoshi/go-openal instead.
 
 const (
 	maxBufferNum = 8
