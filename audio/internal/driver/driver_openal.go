@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/timshannon/go-openal/openal"
+	"github.com/hajimehoshi/go-openal/openal"
 )
 
 // As x/mobile/exp/audio/al is broken on Mac OS X (https://github.com/golang/go/issues/15075),
