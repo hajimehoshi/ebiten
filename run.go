@@ -69,6 +69,7 @@ var theGraphicsContext atomic.Value
 // The given function f is guaranteed to be called 60 times a second
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
+// If f returns error, this function returns the same error.
 //
 // The size unit is device-independent pixel.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
