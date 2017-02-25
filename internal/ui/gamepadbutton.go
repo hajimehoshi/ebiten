@@ -33,4 +33,20 @@ const (
 	GamepadButton13
 	GamepadButton14
 	GamepadButton15
+	GamepadButton16
+	GamepadButton17
+	GamepadButton18
+	GamepadButton19
+	GamepadButton20
+	GamepadButton21
+	GamepadButton22
+	GamepadButton23
+	GamepadButton24
+	GamepadButton25
+	GamepadButton26
+	GamepadButton27
+	GamepadButton28
+	GamepadButton29
+	GamepadButton30
+	GamepadButton31
 )
