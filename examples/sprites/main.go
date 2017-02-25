@@ -100,7 +100,10 @@ const (
 	MaxSprites = 50000
 )
 
-var sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
+var (
+	sprites *Sprites
+	op      *ebiten.DrawImageOptions
+)
 
 func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
@@ -120,10 +123,6 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	op := &ebiten.DrawImageOptions{
-		ImageParts: sprites,
-	}
-	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
 	if err := screen.DrawImage(ebitenImage, op); err != nil {
 		return err
 	}
@@ -137,6 +136,11 @@ Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.Le
 }
 
 func main() {
+	sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
+	op = &ebiten.DrawImageOptions{
+		ImageParts: sprites,
+	}
+	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
 	var err error
 	ebitenImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterNearest)
 	if err != nil {
