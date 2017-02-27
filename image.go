@@ -177,7 +177,9 @@ func (i *Image) Fill(clr color.Color) error {
 //     ColorM:        Identity matrix (that changes no colors)
 //     CompositeMode: CompositeModeSourceOver (regular alpha blending)
 //
-// Note that this function returns immediately and actual drawing is done lazily.
+// For drawing, the pixels of the argument image at the time of this call is adopted.
+// Even if the argument image is mutated after this call,
+// the drawing result is never affected.
 //
 // This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
