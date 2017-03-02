@@ -308,10 +308,6 @@ func (u *userInterface) swapBuffers() error {
 	return nil
 }
 
-func (u *userInterface) FinishRendering() error {
-	return nil
-}
-
 func (u *userInterface) setScreenSize(width, height int, scale float64) (bool, error) {
 	if u.width == width && u.height == height && u.scale == scale {
 		return false, nil
