@@ -197,14 +197,17 @@ func TestImageComposition(t *testing.T) {
 }
 
 func TestImageSelf(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawImage must panic but not")
+		}
+	}()
 	img, _, err := openEbitenImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	if err := img.DrawImage(img, nil); err == nil {
-		t.Fatalf("img.DrawImage(img, nil) doesn't return error; an error should be returned")
-	}
+	img.DrawImage(img, nil)
 }
 
 func TestImageScale(t *testing.T) {
