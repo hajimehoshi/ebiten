@@ -76,19 +76,19 @@ func (i *images) resolveStalePixels(context *opengl.Context) error {
 	return nil
 }
 
-func (i *images) resetPixelsIfDependingOn(target *Image, context *opengl.Context) error {
+func (i *images) resetPixelsIfDependingOn(target *Image, context *opengl.Context) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.lastChecked == target.impl {
-		return nil
+		return
 	}
 	i.lastChecked = target.impl
-	for img := range i.images {
-		if err := img.resetPixelsIfDependingOn(target.impl, context); err != nil {
-			return err
-		}
+	if target.impl.isDisposed() {
+		return
 	}
-	return nil
+	for img := range i.images {
+		img.resetPixelsIfDependingOn(target.impl, context)
+	}
 }
 
 func (i *images) restore(context *opengl.Context) error {
@@ -146,9 +146,7 @@ func (i *Image) Size() (width, height int) {
 //
 // This function is concurrent-safe.
 func (i *Image) Clear() error {
-	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
-		return err
-	}
+	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	return i.impl.Fill(color.Transparent)
 }
 
@@ -156,9 +154,7 @@ func (i *Image) Clear() error {
 //
 // This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) error {
-	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
-		return err
-	}
+	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	return i.impl.Fill(clr)
 }
 
@@ -181,9 +177,7 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
-	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
-		return err
-	}
+	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	return i.impl.DrawImage(image, options)
 }
 
@@ -223,9 +217,7 @@ func (i *Image) Dispose() error {
 	if i.impl.isDisposed() {
 		return nil
 	}
-	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
-		return err
-	}
+	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	return i.impl.Dispose()
 }
 
@@ -237,9 +229,7 @@ func (i *Image) Dispose() error {
 //
 // This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
-	if err := theImagesForRestoring.resetPixelsIfDependingOn(i, glContext()); err != nil {
-		return err
-	}
+	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	return i.impl.ReplacePixels(p)
 }
 

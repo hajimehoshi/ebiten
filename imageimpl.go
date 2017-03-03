@@ -173,22 +173,21 @@ func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
 	return nil
 }
 
-func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.Context) error {
+func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.Context) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i == target {
-		return nil
+		return
 	}
 	if i.restorable == nil {
-		return nil
+		return
 	}
 	if target.isDisposed() {
-		return errors.New("ebiten: target is already disposed")
+		panic("ebiten: target must not be disposed")
 	}
 	// target is an image that is about to be tried mutating.
 	// If pixels object is related to that image, the pixels must be reset.
 	i.restorable.MakeStaleIfDependingOn(target.restorable)
-	return nil
 }
 
 func (i *imageImpl) hasDependency() bool {
