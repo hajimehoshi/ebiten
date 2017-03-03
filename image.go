@@ -45,13 +45,13 @@ var theImagesForRestoring = images{
 	images: map[*imageImpl]struct{}{},
 }
 
-func (i *images) add(img *imageImpl) (*Image, error) {
+func (i *images) add(img *imageImpl) *Image {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.images[img] = struct{}{}
 	eimg := &Image{img}
 	runtime.SetFinalizer(eimg, theImagesForRestoring.remove)
-	return eimg, nil
+	return eimg
 }
 
 func (i *images) remove(img *Image) {
@@ -265,11 +265,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		return nil, err
 	}
 	img.Fill(color.Transparent)
-	eimg, err := theImagesForRestoring.add(img)
-	if err != nil {
-		return nil, err
-	}
-	return eimg, nil
+	return theImagesForRestoring.add(img), nil
 }
 
 // newVolatileImage returns an empty 'volatile' image.
@@ -289,11 +285,7 @@ func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 		return nil, err
 	}
 	img.Fill(color.Transparent)
-	eimg, err := theImagesForRestoring.add(img)
-	if err != nil {
-		return nil, err
-	}
-	return eimg, nil
+	return theImagesForRestoring.add(img), nil
 }
 
 // NewImageFromImage creates a new image with the given image (source).
@@ -306,11 +298,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	eimg, err := theImagesForRestoring.add(img)
-	if err != nil {
-		return nil, err
-	}
-	return eimg, nil
+	return theImagesForRestoring.add(img), nil
 }
 
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
@@ -318,9 +306,5 @@ func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	eimg, err := theImagesForRestoring.add(img)
-	if err != nil {
-		return nil, err
-	}
-	return eimg, nil
+	return theImagesForRestoring.add(img), nil
 }
