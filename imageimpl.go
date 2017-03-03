@@ -126,6 +126,7 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 	if i.restorable == nil {
 		return color.Transparent
 	}
+	// TODO: Error should be delayed until flushing. Do not panic here.
 	clr, err := i.restorable.At(x, y, context)
 	if err != nil {
 		panic(err)
