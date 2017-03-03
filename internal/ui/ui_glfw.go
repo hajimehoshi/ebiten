@@ -120,30 +120,30 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 	return err
 }
 
-func SetScreenSize(width, height int) (bool, error) {
+func SetScreenSize(width, height int) bool {
 	u := currentUI
 	if !u.isRunning() {
-		return false, errors.New("ui: Run is not called yet")
+		panic("ui: Run is not called yet")
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
 		u.setScreenSize(width, height, u.scale)
 		return nil
 	})
-	return r, nil
+	return r
 }
 
-func SetScreenScale(scale float64) (bool, error) {
+func SetScreenScale(scale float64) bool {
 	u := currentUI
 	if !u.isRunning() {
-		return false, errors.New("ui: Run is not called yet")
+		panic("ui: Run is not called yet")
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
 		u.setScreenSize(u.width, u.height, scale)
 		return nil
 	})
-	return r, nil
+	return r
 }
 
 func ScreenScale() float64 {

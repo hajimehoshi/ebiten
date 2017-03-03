@@ -119,9 +119,7 @@ func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	if _, err := ui.SetScreenSize(width, height); err != nil {
-		panic(err)
-	}
+	ui.SetScreenSize(width, height)
 }
 
 // SetScreenScale changes the scale of the screen.
@@ -131,9 +129,7 @@ func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
-	if _, err := ui.SetScreenScale(scale); err != nil {
-		panic(err)
-	}
+	ui.SetScreenScale(scale)
 }
 
 // ScreenScale returns the current screen scale.
