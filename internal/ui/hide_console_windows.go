@@ -32,10 +32,10 @@ var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 	user32   = windows.NewLazySystemDLL("user32.dll")
 
-	getCurrentProcessIdProc       = kernel32.NewProc("GetCurrentProcessId")
-	getConsoleWindowProc          = kernel32.NewProc("GetConsoleWindow")
-	getWindowThreadProcessIdProc  = user32.NewProc("GetWindowThreadProcessId")
-	showWindowAsyncProc           = user32.NewProc("ShowWindowAsync")
+	getCurrentProcessIdProc      = kernel32.NewProc("GetCurrentProcessId")
+	getConsoleWindowProc         = kernel32.NewProc("GetConsoleWindow")
+	getWindowThreadProcessIdProc = user32.NewProc("GetWindowThreadProcessId")
+	showWindowAsyncProc          = user32.NewProc("ShowWindowAsync")
 )
 
 func getCurrentProcessId() (uint32, error) {
