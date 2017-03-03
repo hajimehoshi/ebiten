@@ -261,14 +261,13 @@ func (p *Image) Restore(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Image) Dispose() error {
+func (p *Image) Dispose() {
 	p.image.Dispose()
 	p.image = nil
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
-	return nil
 }
 
 func (p *Image) IsInvalidated(context *opengl.Context) bool {

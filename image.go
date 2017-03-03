@@ -230,13 +230,18 @@ func (i *Image) At(x, y int) color.Color {
 //
 // The behavior of any functions for a disposed image is undefined.
 //
+// When the image is disposed, Dipose does nothing.
+//
+// Dipose always return nil as of 1.5.0-alpha.
+//
 // This function is concurrent-safe.
 func (i *Image) Dispose() error {
 	if i.impl.isDisposed() {
 		return nil
 	}
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
-	return i.impl.Dispose()
+	i.impl.Dispose()
+	return nil
 }
 
 // ReplacePixels replaces the pixels of the image with p.
@@ -245,10 +250,17 @@ func (i *Image) Dispose() error {
 //
 // ReplacePixels may be slow (as for implementation, this calls glTexSubImage2D).
 //
+// When len(p) is not 4 * (width) * (height), ReplacePixels panics.
+//
+// When the image is disposed, ReplacePixels does nothing.
+//
+// ReplacePixels always returns nil as of 1.5.0-alpha.
+//
 // This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
-	return i.impl.ReplacePixels(p)
+	i.impl.ReplacePixels(p)
+	return nil
 }
 
 // A DrawImageOptions represents options to render an image on an image.

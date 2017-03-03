@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -184,29 +183,26 @@ func (i *imageImpl) restore(context *opengl.Context) error {
 	return nil
 }
 
-func (i *imageImpl) Dispose() error {
+func (i *imageImpl) Dispose() {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.restorable == nil {
-		return errors.New("ebiten: image is already disposed")
+		return
 	}
-	if err := i.restorable.Dispose(); err != nil {
-		return err
-	}
+	i.restorable.Dispose()
 	i.restorable = nil
 	runtime.SetFinalizer(i, nil)
-	return nil
 }
 
-func (i *imageImpl) ReplacePixels(p []uint8) error {
+func (i *imageImpl) ReplacePixels(p []uint8) {
 	w, h := i.restorable.Size()
 	if l := 4 * w * h; len(p) != l {
-		return fmt.Errorf("ebiten: p's length must be %d", l)
+		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.restorable == nil {
-		return errors.New("ebiten: image is already disposed")
+		return
 	}
 	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
 	pix := make([]uint8, 4*w2*h2)
@@ -214,7 +210,6 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
 	}
 	i.restorable.ReplacePixels(pix)
-	return nil
 }
 
 func (i *imageImpl) isDisposed() bool {
