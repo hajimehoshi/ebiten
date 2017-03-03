@@ -121,13 +121,12 @@ func (i *images) restore(context *opengl.Context) error {
 	return nil
 }
 
-func (i *images) clearVolatileImages() error {
+func (i *images) clearVolatileImages() {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
 		img.clearIfVolatile()
 	}
-	return nil
 }
 
 // Image represents an image.
@@ -187,10 +186,17 @@ func (i *Image) Fill(clr color.Color) error {
 // Even if the argument image is mutated after this call,
 // the drawing result is never affected.
 //
+// When the image is disposed, DrawImage does nothing.
+//
+// When image is as same as i, DrawImage panics.
+//
+// DrawImage always returns nil as of 1.5.0-alpha.
+//
 // This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
-	return i.impl.DrawImage(image, options)
+	i.impl.DrawImage(image, options)
+	return nil
 }
 
 // Bounds returns the bounds of the image.

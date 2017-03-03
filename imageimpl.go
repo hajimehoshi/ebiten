@@ -84,7 +84,7 @@ func (i *imageImpl) clearIfVolatile() {
 	i.restorable.ClearIfVolatile()
 }
 
-func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
+func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) {
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
@@ -104,19 +104,18 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 	w, h := image.impl.restorable.Size()
 	vs := vertices(parts, w, h, &options.GeoM.impl)
 	if len(vs) == 0 {
-		return nil
+		return
 	}
 	if i == image.impl {
-		return errors.New("ebiten: Image.DrawImage: image should be different from the receiver")
+		panic("ebiten: Image.DrawImage: image must be different from the receiver")
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.restorable == nil {
-		return errors.New("ebiten: image is already disposed")
+		return
 	}
 	mode := opengl.CompositeMode(options.CompositeMode)
 	i.restorable.DrawImage(image.impl.restorable, vs, options.ColorM.impl, mode)
-	return nil
 }
 
 func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {

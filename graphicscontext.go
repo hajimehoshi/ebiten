@@ -164,9 +164,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		if err := theImagesForRestoring.clearVolatileImages(); err != nil {
-			return err
-		}
+		theImagesForRestoring.clearVolatileImages()
 		setRunningSlowly(i < updateCount-1)
 		if err := c.f(c.offscreen); err != nil {
 			return err
