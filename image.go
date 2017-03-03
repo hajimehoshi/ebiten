@@ -144,18 +144,28 @@ func (i *Image) Size() (width, height int) {
 
 // Clear resets the pixels of the image into 0.
 //
+// When the image is disposed, this function does nothing.
+//
+// This function always returns nil as of 1.5.0-alpha.
+//
 // This function is concurrent-safe.
 func (i *Image) Clear() error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
-	return i.impl.Fill(color.Transparent)
+	i.impl.Fill(color.Transparent)
+	return nil
 }
 
 // Fill fills the image with a solid color.
 //
+// When the image is disposed, this function does nothing.
+//
+// This function always returns nil as of 1.5.0-alpha.
+//
 // This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
-	return i.impl.Fill(clr)
+	i.impl.Fill(clr)
+	return nil
 }
 
 // DrawImage draws the given image on the receiver image.
@@ -254,9 +264,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := img.Fill(color.Transparent); err != nil {
-		return nil, err
-	}
+	img.Fill(color.Transparent)
 	eimg, err := theImagesForRestoring.add(img)
 	if err != nil {
 		return nil, err
@@ -280,9 +288,7 @@ func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := img.Fill(color.Transparent); err != nil {
-		return nil, err
-	}
+	img.Fill(color.Transparent)
 	eimg, err := theImagesForRestoring.add(img)
 	if err != nil {
 		return nil, err

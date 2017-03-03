@@ -90,15 +90,14 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 	return i, nil
 }
 
-func (i *imageImpl) Fill(clr color.Color) error {
+func (i *imageImpl) Fill(clr color.Color) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.restorable == nil {
-		return errors.New("ebiten: image is already disposed")
+		return
 	}
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
 	i.restorable.Fill(rgba)
-	return nil
 }
 
 func (i *imageImpl) clearIfVolatile() {
