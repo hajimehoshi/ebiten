@@ -46,46 +46,33 @@ type Image struct {
 	screen   bool
 }
 
-func NewImage(width, height int, filter opengl.Filter, volatile bool) (*Image, error) {
-	img, err := graphics.NewImage(width, height, filter)
-	if err != nil {
-		return nil, err
-	}
+func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 	return &Image{
-		image:    img,
+		image:    graphics.NewImage(width, height, filter),
 		filter:   filter,
 		volatile: volatile,
-	}, nil
+	}
 }
 
-func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) (*Image, error) {
-	img, err := graphics.NewImageFromImage(source, width, height, filter)
-	if err != nil {
-		// TODO: texture should be removed here?
-		return nil, err
-	}
+func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) *Image {
 	w2, h2 := graphics.NextPowerOf2Int(width), graphics.NextPowerOf2Int(height)
 	p := make([]uint8, 4*w2*h2)
 	for j := 0; j < height; j++ {
 		copy(p[j*w2*4:(j+1)*w2*4], source.Pix[j*source.Stride:])
 	}
 	return &Image{
-		image:      img,
+		image:      graphics.NewImageFromImage(source, width, height, filter),
 		basePixels: p,
 		filter:     filter,
-	}, nil
+	}
 }
 
-func NewScreenFramebufferImage(width, height int) (*Image, error) {
-	img, err := graphics.NewScreenFramebufferImage(width, height)
-	if err != nil {
-		return nil, err
-	}
+func NewScreenFramebufferImage(width, height int) *Image {
 	return &Image{
-		image:    img,
+		image:    graphics.NewScreenFramebufferImage(width, height),
 		volatile: true,
 		screen:   true,
-	}, nil
+	}
 }
 
 func (p *Image) Size() (int, int) {
@@ -99,9 +86,9 @@ func (p *Image) makeStale() {
 	p.stale = true
 }
 
-func (p *Image) ClearIfVolatile() error {
+func (p *Image) ClearIfVolatile() {
 	if !p.volatile {
-		return nil
+		return
 	}
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
@@ -110,44 +97,32 @@ func (p *Image) ClearIfVolatile() error {
 	if p.image == nil {
 		panic("not reach")
 	}
-	if err := p.image.Fill(color.RGBA{}); err != nil {
-		return err
-	}
-	return nil
+	p.image.Fill(color.RGBA{})
 }
 
-func (p *Image) Fill(clr color.RGBA) error {
+func (p *Image) Fill(clr color.RGBA) {
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
 	p.stale = false
-	if err := p.image.Fill(clr); err != nil {
-		return err
-	}
-	return nil
+	p.image.Fill(clr)
 }
 
-func (p *Image) ReplacePixels(pixels []uint8) error {
-	if err := p.image.ReplacePixels(pixels); err != nil {
-		return err
-	}
+func (p *Image) ReplacePixels(pixels []uint8) {
+	p.image.ReplacePixels(pixels)
 	p.basePixels = pixels
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
-	return nil
 }
 
-func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) error {
+func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
 	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
 		p.appendDrawImageHistory(img, vertices, colorm, mode)
 	}
-	if err := p.image.DrawImage(img.image, vertices, colorm, mode); err != nil {
-		return err
-	}
-	return nil
+	p.image.DrawImage(img.image, vertices, colorm, mode)
 }
 
 func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
@@ -196,7 +171,6 @@ func (p *Image) MakeStaleIfDependingOn(target *Image) {
 			return
 		}
 	}
-	return
 }
 
 func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
@@ -234,11 +208,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 	if p.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		var err error
-		p.image, err = graphics.NewScreenFramebufferImage(w, h)
-		if err != nil {
-			return err
-		}
+		p.image = graphics.NewScreenFramebufferImage(w, h)
 		p.basePixels = nil
 		p.baseColor = color.RGBA{}
 		p.drawImageHistory = nil
@@ -246,11 +216,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 		return nil
 	}
 	if p.volatile {
-		var err error
-		p.image, err = graphics.NewImage(w, h, p.filter)
-		if err != nil {
-			return err
-		}
+		p.image = graphics.NewImage(w, h, p.filter)
 		p.basePixels = nil
 		p.baseColor = color.RGBA{}
 		p.drawImageHistory = nil
@@ -258,6 +224,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 		return nil
 	}
 	if p.stale {
+		// TODO: panic here?
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
 	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
@@ -267,29 +234,23 @@ func (p *Image) Restore(context *opengl.Context) error {
 			copy(img.Pix[j*img.Stride:], p.basePixels[j*w2*4:(j+1)*w2*4])
 		}
 	}
-	gimg, err := graphics.NewImageFromImage(img, w, h, p.filter)
-	if err != nil {
-		return err
-	}
+	gimg := graphics.NewImageFromImage(img, w, h, p.filter)
 	if p.baseColor != (color.RGBA{}) {
 		if p.basePixels != nil {
 			panic("not reach")
 		}
-		if err := gimg.Fill(p.baseColor); err != nil {
-			return err
-		}
+		gimg.Fill(p.baseColor)
 	}
 	for _, c := range p.drawImageHistory {
 		// c.image.image must be already restored.
 		if c.image.HasDependency() {
 			panic("not reach")
 		}
-		if err := gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode); err != nil {
-			return err
-		}
+		gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode)
 	}
 	p.image = gimg
 
+	var err error
 	p.basePixels, err = gimg.Pixels(context)
 	if err != nil {
 		return err
@@ -301,9 +262,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 }
 
 func (p *Image) Dispose() error {
-	if err := p.image.Dispose(); err != nil {
-		return err
-	}
+	p.image.Dispose()
 	p.image = nil
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}

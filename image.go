@@ -123,9 +123,7 @@ func (i *images) clearVolatileImages() error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		if err := img.clearIfVolatile(); err != nil {
-			return err
-		}
+		img.clearIfVolatile()
 	}
 	return nil
 }

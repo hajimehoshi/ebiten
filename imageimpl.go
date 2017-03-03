@@ -52,13 +52,8 @@ func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, 
 	if err := checkSize(width, height); err != nil {
 		return nil, err
 	}
-
-	img, err := restorable.NewImage(width, height, glFilter(filter), volatile)
-	if err != nil {
-		return nil, err
-	}
 	i := &imageImpl{
-		restorable: img,
+		restorable: restorable.NewImage(width, height, glFilter(filter), volatile),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -77,12 +72,8 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 	// an image is delayed and we can't expect the source image is not modified
 	// until the construction.
 	rgbaImg := graphics.CopyImage(source)
-	img, err := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
-	if err != nil {
-		return nil, err
-	}
 	i := &imageImpl{
-		restorable: img,
+		restorable: restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter)),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -92,13 +83,8 @@ func newScreenImageImpl(width, height int) (*imageImpl, error) {
 	if err := checkSize(width, height); err != nil {
 		return nil, err
 	}
-
-	img, err := restorable.NewScreenFramebufferImage(width, height)
-	if err != nil {
-		return nil, err
-	}
 	i := &imageImpl{
-		restorable: img,
+		restorable: restorable.NewScreenFramebufferImage(width, height),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
 	return i, nil
@@ -111,22 +97,17 @@ func (i *imageImpl) Fill(clr color.Color) error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
-	if err := i.restorable.Fill(rgba); err != nil {
-		return err
-	}
+	i.restorable.Fill(rgba)
 	return nil
 }
 
-func (i *imageImpl) clearIfVolatile() error {
+func (i *imageImpl) clearIfVolatile() {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.restorable == nil {
-		return nil
+		return
 	}
-	if err := i.restorable.ClearIfVolatile(); err != nil {
-		return err
-	}
-	return nil
+	i.restorable.ClearIfVolatile()
 }
 
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
@@ -160,9 +141,7 @@ func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) error {
 		return errors.New("ebiten: image is already disposed")
 	}
 	mode := opengl.CompositeMode(options.CompositeMode)
-	if err := i.restorable.DrawImage(image.impl.restorable, vs, options.ColorM.impl, mode); err != nil {
-		return err
-	}
+	i.restorable.DrawImage(image.impl.restorable, vs, options.ColorM.impl, mode)
 	return nil
 }
 
@@ -262,9 +241,7 @@ func (i *imageImpl) ReplacePixels(p []uint8) error {
 	for j := 0; j < h; j++ {
 		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
 	}
-	if err := i.restorable.ReplacePixels(pix); err != nil {
-		return err
-	}
+	i.restorable.ReplacePixels(pix)
 	return nil
 }
 

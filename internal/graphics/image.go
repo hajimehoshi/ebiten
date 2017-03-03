@@ -78,7 +78,7 @@ type Image struct {
 
 const ImageMaxSize = viewportSize
 
-func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
+func NewImage(width, height int, filter opengl.Filter) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
@@ -90,10 +90,10 @@ func NewImage(width, height int, filter opengl.Filter) (*Image, error) {
 		filter: filter,
 	}
 	theCommandQueue.Enqueue(c)
-	return i, nil
+	return i
 }
 
-func NewImageFromImage(img *image.RGBA, width, height int, filter opengl.Filter) (*Image, error) {
+func NewImageFromImage(img *image.RGBA, width, height int, filter opengl.Filter) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
@@ -104,10 +104,10 @@ func NewImageFromImage(img *image.RGBA, width, height int, filter opengl.Filter)
 		filter: filter,
 	}
 	theCommandQueue.Enqueue(c)
-	return i, nil
+	return i
 }
 
-func NewScreenFramebufferImage(width, height int) (*Image, error) {
+func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
@@ -118,32 +118,30 @@ func NewScreenFramebufferImage(width, height int) (*Image, error) {
 		height: height,
 	}
 	theCommandQueue.Enqueue(c)
-	return i, nil
+	return i
 }
 
-func (i *Image) Dispose() error {
+func (i *Image) Dispose() {
 	c := &disposeCommand{
 		target: i,
 	}
 	theCommandQueue.Enqueue(c)
-	return nil
 }
 
 func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-func (i *Image) Fill(clr color.RGBA) error {
+func (i *Image) Fill(clr color.RGBA) {
 	// TODO: Need to clone clr value
 	c := &fillCommand{
 		dst:   i,
 		color: clr,
 	}
 	theCommandQueue.Enqueue(c)
-	return nil
 }
 
-func (i *Image) DrawImage(src *Image, vertices []float32, clr affine.ColorM, mode opengl.CompositeMode) error {
+func (i *Image) DrawImage(src *Image, vertices []float32, clr affine.ColorM, mode opengl.CompositeMode) {
 	c := &drawImageCommand{
 		dst:         i,
 		src:         src,
@@ -153,7 +151,6 @@ func (i *Image) DrawImage(src *Image, vertices []float32, clr affine.ColorM, mod
 	}
 	theCommandQueue.AppendVertices(vertices)
 	theCommandQueue.Enqueue(c)
-	return nil
 }
 
 func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
@@ -168,7 +165,7 @@ func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
 	return context.FramebufferPixels(f.native, NextPowerOf2Int(i.width), NextPowerOf2Int(i.height))
 }
 
-func (i *Image) ReplacePixels(p []uint8) error {
+func (i *Image) ReplacePixels(p []uint8) {
 	pixels := make([]uint8, len(p))
 	copy(pixels, p)
 	c := &replacePixelsCommand{
@@ -176,7 +173,6 @@ func (i *Image) ReplacePixels(p []uint8) error {
 		pixels: pixels,
 	}
 	theCommandQueue.Enqueue(c)
-	return nil
 }
 
 func (i *Image) IsInvalidated(context *opengl.Context) bool {
