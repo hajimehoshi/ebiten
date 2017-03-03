@@ -132,6 +132,8 @@ func (i *images) clearVolatileImages() {
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
+//
+// Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
 type Image struct {
 	impl *imageImpl
 }
