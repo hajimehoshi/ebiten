@@ -29,7 +29,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *input) update(window *glfw.Window, scale float64) error {
+func (i *input) update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
@@ -65,5 +65,4 @@ func (i *input) update(window *glfw.Window, scale float64) error {
 			i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
 		}
 	}
-	return nil
 }

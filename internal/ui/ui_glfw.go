@@ -210,9 +210,9 @@ func (u *userInterface) actualScreenScale() float64 {
 	return u.scale * deviceScale()
 }
 
-func (u *userInterface) pollEvents() error {
+func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
-	return currentInput.update(u.window, u.scale*glfwScale())
+	currentInput.update(u.window, u.scale*glfwScale())
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -240,24 +240,18 @@ func (u *userInterface) update(g GraphicsContext) error {
 		}
 	}
 
-	if err := u.runOnMainThread(func() error {
-		if err := u.pollEvents(); err != nil {
-			return err
-		}
+	_ = u.runOnMainThread(func() error {
+		u.pollEvents()
 		for u.window.GetAttrib(glfw.Focused) == 0 {
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
-			if err := u.pollEvents(); err != nil {
-				return err
-			}
+			u.pollEvents()
 			if u.window.ShouldClose() {
 				return nil
 			}
 		}
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 	if err := g.Update(); err != nil {
 		return err
 	}
