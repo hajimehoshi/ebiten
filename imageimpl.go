@@ -32,39 +32,17 @@ type imageImpl struct {
 	m          sync.Mutex
 }
 
-func checkSize(width, height int) error {
-	if width <= 0 {
-		return fmt.Errorf("ebiten: width must be more than 0")
-	}
-	if height <= 0 {
-		return fmt.Errorf("ebiten: height must be more than 0")
-	}
-	if width > graphics.ImageMaxSize {
-		return fmt.Errorf("ebiten: width must be less than or equal to %d", graphics.ImageMaxSize)
-	}
-	if height > graphics.ImageMaxSize {
-		return fmt.Errorf("ebiten: height must be less than or equal to %d", graphics.ImageMaxSize)
-	}
-	return nil
-}
-
-func newImageImpl(width, height int, filter Filter, volatile bool) (*imageImpl, error) {
-	if err := checkSize(width, height); err != nil {
-		return nil, err
-	}
+func newImageImpl(width, height int, filter Filter, volatile bool) *imageImpl {
 	i := &imageImpl{
 		restorable: restorable.NewImage(width, height, glFilter(filter), volatile),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
-	return i, nil
+	return i
 }
 
-func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error) {
+func newImageImplFromImage(source image.Image, filter Filter) *imageImpl {
 	size := source.Bounds().Size()
 	w, h := size.X, size.Y
-	if err := checkSize(w, h); err != nil {
-		return nil, err
-	}
 
 	// Don't lock while manipulating an image.Image interface.
 
@@ -76,18 +54,15 @@ func newImageImplFromImage(source image.Image, filter Filter) (*imageImpl, error
 		restorable: restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter)),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
-	return i, nil
+	return i
 }
 
-func newScreenImageImpl(width, height int) (*imageImpl, error) {
-	if err := checkSize(width, height); err != nil {
-		return nil, err
-	}
+func newScreenImageImpl(width, height int) *imageImpl {
 	i := &imageImpl{
 		restorable: restorable.NewScreenFramebufferImage(width, height),
 	}
 	runtime.SetFinalizer(i, (*imageImpl).Dispose)
-	return i, nil
+	return i
 }
 
 func (i *imageImpl) Fill(clr color.Color) {

@@ -15,11 +15,13 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"runtime"
 	"sync"
 
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -144,9 +146,9 @@ func (i *Image) Size() (width, height int) {
 
 // Clear resets the pixels of the image into 0.
 //
-// When the image is disposed, this function does nothing.
+// When the image is disposed, Clear does nothing.
 //
-// This function always returns nil as of 1.5.0-alpha.
+// Clear always returns nil as of 1.5.0-alpha.
 //
 // This function is concurrent-safe.
 func (i *Image) Clear() error {
@@ -157,9 +159,9 @@ func (i *Image) Clear() error {
 
 // Fill fills the image with a solid color.
 //
-// When the image is disposed, this function does nothing.
+// When the image is disposed, Fill does nothing.
 //
-// This function always returns nil as of 1.5.0-alpha.
+// Fill always returns nil as of 1.5.0-alpha.
 //
 // This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) error {
@@ -235,7 +237,7 @@ func (i *Image) Dispose() error {
 //
 // The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
 //
-// This function may be slow (as for implementation, this calls glTexSubImage2D).
+// ReplacePixels may be slow (as for implementation, this calls glTexSubImage2D).
 //
 // This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
@@ -256,14 +258,14 @@ type DrawImageOptions struct {
 
 // NewImage returns an empty image.
 //
-// NewImage generates a new texture and a new framebuffer.
+// If width or height is less than 1 or more than MaxImageSize, NewImage panics.
+//
+// Error returned by NewImage is always nil as of 1.5.0-alpha.
 //
 // This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	img, err := newImageImpl(width, height, filter, false)
-	if err != nil {
-		return nil, err
-	}
+	checkSize(width, height)
+	img := newImageImpl(width, height, filter, false)
 	img.Fill(color.Transparent)
 	return theImagesForRestoring.add(img), nil
 }
@@ -278,33 +280,51 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // On the other hand, pixels in volatile images are not saved.
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
 //
+// If width or height is less than 1 or more than MaxImageSize, newVolatileImage panics.
+//
+// Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
+//
 // This function is concurrent-safe.
 func newVolatileImage(width, height int, filter Filter) (*Image, error) {
-	img, err := newImageImpl(width, height, filter, true)
-	if err != nil {
-		return nil, err
-	}
+	checkSize(width, height)
+	img := newImageImpl(width, height, filter, true)
 	img.Fill(color.Transparent)
 	return theImagesForRestoring.add(img), nil
 }
 
 // NewImageFromImage creates a new image with the given image (source).
 //
-// NewImageFromImage generates a new texture and a new framebuffer.
+// If source's width or height is less than 1 or more than MaxImageSize, NewImageFromImage panics.
+//
+// Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
 //
 // This function is concurrent-safe.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
-	img, err := newImageImplFromImage(source, filter)
-	if err != nil {
-		return nil, err
-	}
+	size := source.Bounds().Size()
+	checkSize(size.X, size.Y)
+	img := newImageImplFromImage(source, filter)
 	return theImagesForRestoring.add(img), nil
 }
 
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
-	img, err := newScreenImageImpl(width, height)
-	if err != nil {
-		return nil, err
-	}
+	checkSize(width, height)
+	img := newScreenImageImpl(width, height)
 	return theImagesForRestoring.add(img), nil
+}
+
+const MaxImageSize = graphics.MaxImageSize
+
+func checkSize(width, height int) {
+	if width <= 0 {
+		panic("ebiten: width must be more than 0")
+	}
+	if height <= 0 {
+		panic("ebiten: height must be more than 0")
+	}
+	if width > MaxImageSize {
+		panic(fmt.Sprintf("ebiten: width must be less than or equal to %d", MaxImageSize))
+	}
+	if height > MaxImageSize {
+		panic(fmt.Sprintf("ebiten: height must be less than or equal to %d", MaxImageSize))
+	}
 }

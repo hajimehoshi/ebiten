@@ -76,7 +76,7 @@ type Image struct {
 	height      int
 }
 
-const ImageMaxSize = viewportSize
+const MaxImageSize = viewportSize
 
 func NewImage(width, height int, filter opengl.Filter) *Image {
 	i := &Image{
