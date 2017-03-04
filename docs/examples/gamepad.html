@@ -69,9 +69,7 @@ func update(screen *ebiten.Image) error {
   Pressed Buttons: {{.Buttons}}`
         str = strings.Replace(str, &#34;{{.Axes}}&#34;, strings.Join(axes, &#34;\n    &#34;), -1)
         str = strings.Replace(str, &#34;{{.Buttons}}&#34;, strings.Join(pressedButtons, &#34;, &#34;), -1)
-        if err := ebitenutil.DebugPrint(screen, str); err != nil {
-                return err
-        }
+        ebitenutil.DebugPrint(screen, str)
         return nil
 }
 
