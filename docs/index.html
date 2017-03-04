@@ -117,9 +117,7 @@ import (
 )
 
 func update(screen *ebiten.Image) error {
-        if err := ebitenutil.DebugPrint(screen, "Hello world!"); err != nil {
-                return err
-        }
+        ebitenutil.DebugPrint(screen, "Hello world!")
         return nil
 }
 
