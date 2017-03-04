@@ -66,17 +66,13 @@ func update(screen *ebiten.Image) error {
 		diff = float64(480-count) * 0.2
 	}
 
-	if err := screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
-		return err
-	}
+	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
 	op.ImageParts = &imageParts{
 		diff: diff,
 	}
-	if err := screen.DrawImage(ebitenImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(ebitenImage, op)
 	return nil
 }
 

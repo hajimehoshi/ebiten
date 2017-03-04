@@ -73,41 +73,27 @@ func (p *viewport) Position() (int, int) {
 	return p.x16, p.y16
 }
 
-func updateGroundImage(ground *ebiten.Image) error {
-	if err := ground.Clear(); err != nil {
-		return err
-	}
+func updateGroundImage(ground *ebiten.Image) {
+	ground.Clear()
 	x16, y16 := theViewport.Position()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
-	if err := ground.DrawImage(repeatedBgImage, op); err != nil {
-		return err
-	}
-	return nil
+	ground.DrawImage(repeatedBgImage, op)
 }
 
-func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
+func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	if err := screen.DrawImage(ground, op); err != nil {
-		return err
-	}
-	return nil
+	screen.DrawImage(ground, op)
 }
 
 func update(screen *ebiten.Image) error {
 	theViewport.Move()
 
-	if err := updateGroundImage(groundImage); err != nil {
-		return err
-	}
-	if err := drawGroundImage(screen, groundImage); err != nil {
-		return err
-	}
+	updateGroundImage(groundImage)
+	drawGroundImage(screen, groundImage)
 
 	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
@@ -119,23 +105,15 @@ func main() {
 	}
 	w, h := bgImage.Size()
 	const repeat = 5
-	repeatedBgImage, err = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	repeatedBgImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
 	for j := 0; j < repeat; j++ {
 		for i := 0; i < repeat; i++ {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(w*i), float64(h*j))
-			if err := repeatedBgImage.DrawImage(bgImage, op); err != nil {
-				log.Fatal(err)
-			}
+			repeatedBgImage.DrawImage(bgImage, op)
 		}
 	}
-	groundImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	groundImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "infinite scroll"); err != nil {
 		log.Fatal(err)

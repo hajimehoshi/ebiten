@@ -152,7 +152,7 @@ func (f *Field) flushLine(j int) bool {
 	return true
 }
 
-func (f *Field) Update() error {
+func (f *Field) Update() {
 	if 0 <= f.flushCount {
 		f.flushCount--
 		if f.flushCount == 0 {
@@ -162,7 +162,6 @@ func (f *Field) Update() error {
 			}
 		}
 	}
-	return nil
 }
 
 func min(a, b float64) float64 {
@@ -186,7 +185,7 @@ func (f *Field) flushingColor() ebiten.ColorM {
 	return clr
 }
 
-func (f *Field) Draw(r *ebiten.Image, x, y int) error {
+func (f *Field) Draw(r *ebiten.Image, x, y int) {
 	blocks := make([][]BlockType, len(f.blocks))
 	flushingBlocks := make([][]BlockType, len(f.blocks))
 	for i := 0; i < fieldBlockNumX; i++ {
@@ -204,11 +203,6 @@ func (f *Field) Draw(r *ebiten.Image, x, y int) error {
 			}
 		}
 	}
-	if err := drawBlocks(r, blocks, x, y, ebiten.ColorM{}); err != nil {
-		return err
-	}
-	if err := drawBlocks(r, flushingBlocks, x, y, f.flushingColor()); err != nil {
-		return err
-	}
-	return nil
+	drawBlocks(r, blocks, x, y, ebiten.ColorM{})
+	drawBlocks(r, flushingBlocks, x, y, f.flushingColor())
 }

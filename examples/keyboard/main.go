@@ -86,9 +86,7 @@ func update(screen *ebiten.Image) error {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(offsetX, offsetY)
 	op.ColorM.Scale(0.5, 0.5, 0.5, 1)
-	if err := screen.DrawImage(keyboardImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(keyboardImage, op)
 
 	pressed := []string{}
 	for i := 0; i <= 9; i++ {
@@ -116,9 +114,7 @@ func update(screen *ebiten.Image) error {
 		ImageParts: pressedKeysParts(pressed),
 	}
 	op.GeoM.Translate(offsetX, offsetY)
-	if err := screen.DrawImage(keyboardImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(keyboardImage, op)
 
 	return nil
 }

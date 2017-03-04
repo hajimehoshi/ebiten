@@ -295,12 +295,12 @@ func init() {
 	}
 }
 
-func (t *Tile) Draw(boardImage *ebiten.Image) error {
+func (t *Tile) Draw(boardImage *ebiten.Image) {
 	i, j := t.current.x, t.current.y
 	ni, nj := t.next.x, t.next.y
 	v := t.current.value
 	if v == 0 {
-		return nil
+		return
 	}
 	op := &ebiten.DrawImageOptions{}
 	x := i*tileSize + (i+1)*tileMargin
@@ -336,9 +336,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	op.GeoM.Translate(float64(x), float64(y))
 	r, g, b, a := colorToScale(tileBackgroundColor(v))
 	op.ColorM.Scale(r, g, b, a)
-	if err := boardImage.DrawImage(tileImage, op); err != nil {
-		return err
-	}
+	boardImage.DrawImage(tileImage, op)
 	str := strconv.Itoa(v)
 	scale := 2
 	if 2 < len(str) {
@@ -348,8 +346,5 @@ func (t *Tile) Draw(boardImage *ebiten.Image) error {
 	h := common.ArcadeFont.TextHeight(str) * scale
 	x = x + (tileSize-w)/2
 	y = y + (tileSize-h)/2
-	if err := common.ArcadeFont.DrawText(boardImage, str, x, y, scale, tileColor(v)); err != nil {
-		return err
-	}
-	return nil
+	common.ArcadeFont.DrawText(boardImage, str, x, y, scale, tileColor(v))
 }

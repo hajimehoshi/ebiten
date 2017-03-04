@@ -124,15 +124,11 @@ func update(screen *ebiten.Image) error {
 		ImageParts: sprites,
 	}
 	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
-	if err := screen.DrawImage(ebitenImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(ebitenImage, op)
 	msg := fmt.Sprintf(`FPS: %0.2f
 Num of sprites: %d
 Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.Len())
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 

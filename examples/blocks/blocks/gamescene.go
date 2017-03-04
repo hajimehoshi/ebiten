@@ -70,98 +70,64 @@ func linesTextBoxPosition() (x, y int) {
 }
 
 func init() {
-	var err error
 	// Empty
-	imageEmpty, err = ebiten.NewImage(16, 16, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	if err := imageEmpty.Fill(color.White); err != nil {
-		panic(err)
-	}
+	imageEmpty, _ = ebiten.NewImage(16, 16, ebiten.FilterNearest)
+	imageEmpty.Fill(color.White)
+
 	// Background
+	var err error
 	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterLinear)
 	if err != nil {
 		panic(err)
 	}
 
 	// Windows
-	imageWindows, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
+	imageWindows, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
 	// Windows: Field
 	x, y := fieldWindowPosition()
-	if err := drawWindow(imageWindows, x, y, fieldWidth, fieldHeight); err != nil {
-		panic(err)
-	}
+	drawWindow(imageWindows, x, y, fieldWidth, fieldHeight)
 	// Windows: Next
 	x, y = nextWindowLabelPosition()
-	if err := common.ArcadeFont.DrawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor); err != nil {
-		panic(err)
-	}
+	common.ArcadeFont.DrawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor)
 	x, y = nextWindowPosition()
-	if err := drawWindow(imageWindows, x, y, 5*blockWidth, 5*blockHeight); err != nil {
-		panic(err)
-	}
+	drawWindow(imageWindows, x, y, 5*blockWidth, 5*blockHeight)
 	// Windows: Score
 	x, y = scoreTextBoxPosition()
-	if err := drawTextBox(imageWindows, "SCORE", x, y, textBoxWidth()); err != nil {
-		panic(err)
-	}
+	drawTextBox(imageWindows, "SCORE", x, y, textBoxWidth())
 	// Windows: Level
 	x, y = levelTextBoxPosition()
-	if err := drawTextBox(imageWindows, "LEVEL", x, y, textBoxWidth()); err != nil {
-		panic(err)
-	}
+	drawTextBox(imageWindows, "LEVEL", x, y, textBoxWidth())
 	// Windows: Lines
 	x, y = linesTextBoxPosition()
-	if err := drawTextBox(imageWindows, "LINES", x, y, textBoxWidth()); err != nil {
-		panic(err)
-	}
+	drawTextBox(imageWindows, "LINES", x, y, textBoxWidth())
 
 	// Gameover
-	imageGameover, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	if err := imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80}); err != nil {
-		panic(err)
-	}
+	imageGameover, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
 	y = (ScreenHeight - blockHeight) / 2
-	if err := drawTextWithShadowCenter(imageGameover, "GAME OVER", 0, y, 1, color.White, ScreenWidth); err != nil {
-		panic(err)
-	}
+	drawTextWithShadowCenter(imageGameover, "GAME OVER", 0, y, 1, color.White, ScreenWidth)
 }
 
-func drawWindow(r *ebiten.Image, x, y, width, height int) error {
+func drawWindow(r *ebiten.Image, x, y, width, height int) {
 	op := &ebiten.DrawImageOptions{}
 	w, h := imageEmpty.Size()
 	op.GeoM.Scale(float64(width)/float64(w), float64(height)/float64(h))
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorM.Scale(0, 0, 0, 0.75)
-	return r.DrawImage(imageEmpty, op)
+	r.DrawImage(imageEmpty, op)
 }
 
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
 
-func drawTextBox(r *ebiten.Image, label string, x, y, width int) error {
-	if err := common.ArcadeFont.DrawTextWithShadow(r, label, x, y, 1, fontColor); err != nil {
-		return err
-	}
+func drawTextBox(r *ebiten.Image, label string, x, y, width int) {
+	common.ArcadeFont.DrawTextWithShadow(r, label, x, y, 1, fontColor)
 	y += blockWidth
-	if err := drawWindow(r, x, y, width, 2*blockHeight); err != nil {
-		return err
-	}
-	return nil
+	drawWindow(r, x, y, width, 2*blockHeight)
 }
 
-func drawTextBoxContent(r *ebiten.Image, content string, x, y, width int) error {
+func drawTextBoxContent(r *ebiten.Image, content string, x, y, width int) {
 	y += blockWidth
-	if err := drawTextWithShadowRight(r, content, x, y+blockHeight*3/4, 1, color.White, width-blockWidth/2); err != nil {
-		return err
-	}
-	return nil
+	drawTextWithShadowRight(r, content, x, y+blockHeight*3/4, 1, color.White, width-blockWidth/2)
 }
 
 type GameScene struct {
@@ -187,10 +153,8 @@ func NewGameScene() *GameScene {
 	}
 }
 
-func (s *GameScene) drawBackground(r *ebiten.Image) error {
-	if err := r.Fill(color.White); err != nil {
-		return err
-	}
+func (s *GameScene) drawBackground(r *ebiten.Image) {
+	r.Fill(color.White)
 
 	w, h := imageGameBG.Size()
 	scaleW := ScreenWidth / float64(w)
@@ -211,7 +175,7 @@ func (s *GameScene) drawBackground(r *ebiten.Image) error {
 	op.ColorM.Scale(1-a, 1-a, 1-a, 1-a)
 	op.ColorM.Add(m)
 	op.ColorM.Translate(0.3, 0.3, 0.3, 0)
-	return r.DrawImage(imageGameBG, op)
+	r.DrawImage(imageGameBG, op)
 }
 
 const fieldWidth = blockWidth * fieldBlockNumX
@@ -254,9 +218,7 @@ func (s *GameScene) addScore(lines int) {
 }
 
 func (s *GameScene) Update(state *GameState) error {
-	if err := s.field.Update(); err != nil {
-		return err
-	}
+	s.field.Update()
 
 	if s.gameover {
 		// TODO: Gamepad key?
@@ -351,59 +313,39 @@ func (s *GameScene) goNextPiece() {
 	}
 }
 
-func (s *GameScene) Draw(r *ebiten.Image) error {
-	if err := s.drawBackground(r); err != nil {
-		return err
-	}
+func (s *GameScene) Draw(r *ebiten.Image) {
+	s.drawBackground(r)
 
-	if err := r.DrawImage(imageWindows, nil); err != nil {
-		return err
-	}
+	r.DrawImage(imageWindows, nil)
 
 	// Draw score
 	x, y := scoreTextBoxPosition()
-	if err := drawTextBoxContent(r, strconv.Itoa(s.score), x, y, textBoxWidth()); err != nil {
-		return err
-	}
+	drawTextBoxContent(r, strconv.Itoa(s.score), x, y, textBoxWidth())
 
 	// Draw level
 	x, y = levelTextBoxPosition()
-	if err := drawTextBoxContent(r, strconv.Itoa(s.level()), x, y, textBoxWidth()); err != nil {
-		return err
-	}
+	drawTextBoxContent(r, strconv.Itoa(s.level()), x, y, textBoxWidth())
 
 	// Draw lines
 	x, y = linesTextBoxPosition()
-	if err := drawTextBoxContent(r, strconv.Itoa(s.lines), x, y, textBoxWidth()); err != nil {
-		return err
-	}
+	drawTextBoxContent(r, strconv.Itoa(s.lines), x, y, textBoxWidth())
 
 	// Draw blocks
 	fieldX, fieldY := fieldWindowPosition()
-	if err := s.field.Draw(r, fieldX, fieldY); err != nil {
-		return err
-	}
+	s.field.Draw(r, fieldX, fieldY)
 	if s.currentPiece != nil && !s.field.Flushing() {
 		x := fieldX + s.currentPieceX*blockWidth
 		y := fieldY + s.currentPieceY*blockHeight
-		if err := s.currentPiece.Draw(r, x, y, s.currentPieceAngle); err != nil {
-			return err
-		}
+		s.currentPiece.Draw(r, x, y, s.currentPieceAngle)
 	}
 	if s.nextPiece != nil {
 		// TODO: Make functions to get these values.
 		x := fieldX + fieldWidth + blockWidth*2
 		y := fieldY + blockHeight
-		if err := s.nextPiece.DrawAtCenter(r, x, y, blockWidth*5, blockHeight*5, 0); err != nil {
-			return err
-		}
+		s.nextPiece.DrawAtCenter(r, x, y, blockWidth*5, blockHeight*5, 0)
 	}
 
 	if s.gameover {
-		if err := r.DrawImage(imageGameover, nil); err != nil {
-			return err
-		}
+		r.DrawImage(imageGameover, nil)
 	}
-
-	return nil
 }

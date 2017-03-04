@@ -86,25 +86,19 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 
-	if err := screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff}); err != nil {
-		return err
-	}
+	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	w, h := gophersImage.Size()
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
-	if err := screen.DrawImage(gophersImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(gophersImage, op)
 
 	x, y := ebiten.CursorPosition()
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 

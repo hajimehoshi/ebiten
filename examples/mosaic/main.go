@@ -39,14 +39,10 @@ var (
 func update(screen *ebiten.Image) error {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
-	if err := gophersRenderTarget.DrawImage(gophersImage, op); err != nil {
-		return err
-	}
+	gophersRenderTarget.DrawImage(gophersImage, op)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(mosaicRatio, mosaicRatio)
-	if err := screen.DrawImage(gophersRenderTarget, op); err != nil {
-		return err
-	}
+	screen.DrawImage(gophersRenderTarget, op)
 	return nil
 }
 
@@ -57,10 +53,7 @@ func main() {
 		log.Fatal(err)
 	}
 	w, h := gophersImage.Size()
-	gophersRenderTarget, err = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Mosaic (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

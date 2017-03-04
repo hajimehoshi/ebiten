@@ -51,14 +51,8 @@ func (f *Font) TextHeight(str string) int {
 }
 
 func init() {
-	img, err := assets.ArcadeFontImage()
-	if err != nil {
-		panic(err)
-	}
-	eimg, err := ebiten.NewImageFromImage(img, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
+	img := assets.ArcadeFontImage()
+	eimg, _ := ebiten.NewImageFromImage(img, ebiten.FilterNearest)
 	ArcadeFont = &Font{eimg, img, 32, 16, 8, 8}
 }
 
@@ -92,7 +86,7 @@ func (f *fontImageParts) Src(i int) (x0, y0, x1, y1 int) {
 	return x, y, x + f.font.charWidth, y + f.font.charHeight
 }
 
-func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) error {
+func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) {
 	options := &ebiten.DrawImageOptions{
 		ImageParts: &fontImageParts{str, f},
 	}
@@ -111,26 +105,19 @@ func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color
 		b /= a
 	}
 	options.ColorM.Scale(r, g, b, a)
-
-	return rt.DrawImage(f.image, options)
+	rt.DrawImage(f.image, options)
 }
 
-func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) error {
+func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) {
 	parts := &fontImageParts{str, f}
 	for i := 0; i < parts.Len(); i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
 		sx0, sy0, _, _ := parts.Src(i)
 		draw.Draw(rt, image.Rect(dx0+ox, dy0+oy, dx1+ox, dy1+oy), f.origImage, image.Pt(sx0, sy0), draw.Over)
 	}
-	return nil
 }
 
-func (f *Font) DrawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) error {
-	if err := f.DrawText(rt, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80}); err != nil {
-		return err
-	}
-	if err := f.DrawText(rt, str, x, y, scale, clr); err != nil {
-		return err
-	}
-	return nil
+func (f *Font) DrawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) {
+	f.DrawText(rt, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80})
+	f.DrawText(rt, str, x, y, scale, clr)
 }

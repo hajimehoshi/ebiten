@@ -146,9 +146,7 @@ func update(screen *ebiten.Image) error {
 			return err
 		}
 	}
-	if err := ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	if err := audioContext.Update(); err != nil {
 		return err
 	}

@@ -34,9 +34,7 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	if err := game.Draw(screen); err != nil {
-		return err
-	}
+	game.Draw(screen)
 	return nil
 }
 

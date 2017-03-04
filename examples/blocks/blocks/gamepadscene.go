@@ -77,13 +77,11 @@ func (s *GamepadScene) Update(state *GameState) error {
 	return nil
 }
 
-func (s *GamepadScene) Draw(screen *ebiten.Image) error {
-	if err := screen.Fill(color.Black); err != nil {
-		return err
-	}
+func (s *GamepadScene) Draw(screen *ebiten.Image) {
+	screen.Fill(color.Black)
 
 	if s.buttonStates == nil {
-		return nil
+		return
 	}
 
 	f := `GAMEPAD CONFIGURATION
@@ -108,8 +106,5 @@ ROTATE RIGHT: %s
 		msg = "OK!"
 	}
 	str := fmt.Sprintf(f, s.buttonStates[0], s.buttonStates[1], s.buttonStates[2], s.buttonStates[3], s.buttonStates[4], msg)
-	if err := common.ArcadeFont.DrawTextWithShadow(screen, str, 16, 16, 1, color.White); err != nil {
-		return err
-	}
-	return nil
+	common.ArcadeFont.DrawTextWithShadow(screen, str, 16, 16, 1, color.White)
 }

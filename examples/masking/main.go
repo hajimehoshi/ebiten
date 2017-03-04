@@ -65,31 +65,19 @@ func update(screen *ebiten.Image) error {
 		spotLightVY = -spotLightVY
 	}
 
-	if err := maskImage.Clear(); err != nil {
-		return err
-	}
+	maskImage.Clear()
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(spotLightX), float64(spotLightY))
-	if err := maskImage.DrawImage(spotLightImage, op); err != nil {
-		return err
-	}
+	maskImage.DrawImage(spotLightImage, op)
 
 	op = &ebiten.DrawImageOptions{}
 	op.CompositeMode = ebiten.CompositeModeSourceOut
-	if err := maskImage.DrawImage(fiveyearsImage, op); err != nil {
-		return err
-	}
+	maskImage.DrawImage(fiveyearsImage, op)
 
-	if err := screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff}); err != nil {
-		return err
-	}
-	if err := screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{}); err != nil {
-		return err
-	}
-	if err := screen.DrawImage(maskImage, &ebiten.DrawImageOptions{}); err != nil {
-		return err
-	}
+	screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
+	screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{})
+	screen.DrawImage(maskImage, &ebiten.DrawImageOptions{})
 
 	return nil
 }
@@ -118,10 +106,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	maskImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	maskImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 
 	as := image.Point{128, 128}
 	a := image.NewAlpha(image.Rectangle{image.ZP, as})
@@ -133,10 +118,7 @@ func main() {
 			a.SetAlpha(i, j, color.Alpha{b})
 		}
 	}
-	spotLightImage, err = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Masking (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

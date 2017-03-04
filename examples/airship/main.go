@@ -119,10 +119,8 @@ func (p *player) Angle() int {
 	return p.angle
 }
 
-func updateGroundImage(ground *ebiten.Image) error {
-	if err := ground.Clear(); err != nil {
-		return err
-	}
+func updateGroundImage(ground *ebiten.Image) {
+	ground.Clear()
 	x16, y16 := thePlayer.Position()
 	a := thePlayer.Angle()
 	gw, gh := ground.Size()
@@ -132,10 +130,7 @@ func updateGroundImage(ground *ebiten.Image) error {
 	op.GeoM.Translate(float64(-w*2), float64(-h*2))
 	op.GeoM.Rotate(float64(-a)*2*math.Pi/maxAngle + math.Pi*3.0/2.0)
 	op.GeoM.Translate(float64(gw)/2, float64(gh)-32)
-	if err := ground.DrawImage(repeatedGophersImage, op); err != nil {
-		return err
-	}
-	return nil
+	ground.DrawImage(repeatedGophersImage, op)
 }
 
 type groundParts struct {
@@ -166,7 +161,7 @@ func (g *groundParts) Dst(i int) (int, int, int, int) {
 	return -int(r), int(j1), w + int(r), int(math.Ceil(j2))
 }
 
-func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
+func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	w, _ := ground.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(w)/2, 0)
@@ -174,18 +169,13 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) error {
 	op.GeoM.Translate(float64(w)/2, 0)
 	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
 	op.ImageParts = &groundParts{ground}
-	if err := screen.DrawImage(ground, op); err != nil {
-		return err
-	}
+	screen.DrawImage(ground, op)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(w)/2, 0)
 	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
 	op.GeoM.Translate(float64(w)/2, 0)
 	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
-	if err := screen.DrawImage(fogImage, op); err != nil {
-		return err
-	}
-	return nil
+	screen.DrawImage(fogImage, op)
 }
 
 func update(screen *ebiten.Image) error {
@@ -205,21 +195,13 @@ func update(screen *ebiten.Image) error {
 		thePlayer.Stabilize()
 	}
 
-	if err := screen.Fill(skyColor); err != nil {
-		return err
-	}
-	if err := updateGroundImage(groundImage); err != nil {
-		return err
-	}
-	if err := drawGroundImage(screen, groundImage); err != nil {
-		return err
-	}
+	screen.Fill(skyColor)
+	updateGroundImage(groundImage)
+	drawGroundImage(screen, groundImage)
 
 	tutrial := "Space: Move forward\nLeft/Right: Rotate"
 	msg := fmt.Sprintf("FPS: %0.2f\n%s", ebiten.CurrentFPS(), tutrial)
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 

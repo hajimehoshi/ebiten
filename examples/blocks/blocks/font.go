@@ -23,14 +23,14 @@ import (
 	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
-func drawTextWithShadowCenter(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) error {
+func drawTextWithShadowCenter(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) {
 	w := common.ArcadeFont.TextWidth(str) * scale
 	x += (width - w) / 2
-	return common.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
+	common.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
 }
 
-func drawTextWithShadowRight(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) error {
+func drawTextWithShadowRight(rt *ebiten.Image, str string, x, y, scale int, clr color.Color, width int) {
 	w := common.ArcadeFont.TextWidth(str) * scale
 	x += width - w
-	return common.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
+	common.ArcadeFont.DrawTextWithShadow(rt, str, x, y, scale, clr)
 }

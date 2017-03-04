@@ -174,13 +174,13 @@ func (b blocksImageParts) Src(i int) (x0, y0, x1, y1 int) {
 	return x, 0, x + blockWidth, blockHeight
 }
 
-func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) error {
+func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) {
 	op := &ebiten.DrawImageOptions{
 		ImageParts: blocksImageParts(blocks),
 		ColorM:     clr,
 	}
 	op.GeoM.Translate(float64(x), float64(y))
-	return r.DrawImage(imageBlocks, op)
+	r.DrawImage(imageBlocks, op)
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -244,13 +244,13 @@ func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
 	}
 }
 
-func (p *Piece) DrawAtCenter(r *ebiten.Image, x, y, width, height int, angle Angle) error {
+func (p *Piece) DrawAtCenter(r *ebiten.Image, x, y, width, height int, angle Angle) {
 	x += (width - len(p.blocks[0])*blockWidth) / 2
 	y += (height - len(p.blocks)*blockHeight) / 2
-	return p.Draw(r, x, y, angle)
+	p.Draw(r, x, y, angle)
 }
 
-func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) error {
+func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) {
 	size := len(p.blocks)
 	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
@@ -261,5 +261,5 @@ func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) error {
 			}
 		}
 	}
-	return drawBlocks(r, blocks, x, y, ebiten.ColorM{})
+	drawBlocks(r, blocks, x, y, ebiten.ColorM{})
 }

@@ -62,9 +62,7 @@ func update(screen *ebiten.Image) error {
 	maxWidth := float64(w) + float64(h)*0.75
 	op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
-	if err := screen.DrawImage(gophersImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(gophersImage, op)
 	return nil
 }
 

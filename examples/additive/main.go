@@ -44,15 +44,11 @@ func update(screen *ebiten.Image) error {
 	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ox, oy)
-	if err := screen.DrawImage(ebitenImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(ebitenImage, op)
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ox+float64(w), oy)
 	op.CompositeMode = ebiten.CompositeModeLighter
-	if err := screen.DrawImage(ebitenImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(ebitenImage, op)
 	return nil
 }
 

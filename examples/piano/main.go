@@ -162,18 +162,9 @@ var (
 )
 
 func init() {
-	var err error
-	imageEmpty, err := ebiten.NewImage(16, 16, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	if err := imageEmpty.Fill(color.White); err != nil {
-		panic(err)
-	}
-	imagePiano, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
+	imageEmpty, _ := ebiten.NewImage(16, 16, ebiten.FilterNearest)
+	imageEmpty.Fill(color.White)
+	imagePiano, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	whiteKeys := []string{"A", "S", "D", "F", "G", "H", "J", "K", "L"}
 	width := 24
 	y := 48
@@ -185,12 +176,8 @@ func init() {
 		op.GeoM.Scale(float64(width-1)/float64(w), float64(height)/float64(h))
 		op.GeoM.Translate(float64(x), float64(y))
 		op.ColorM.Scale(1, 1, 1, 1)
-		if err := imagePiano.DrawImage(imageEmpty, op); err != nil {
-			panic(err)
-		}
-		if err := common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.Black); err != nil {
-			panic(err)
-		}
+		imagePiano.DrawImage(imageEmpty, op)
+		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.Black)
 	}
 
 	blackKeys := []string{"Q", "W", "", "R", "T", "", "U", "I", "O"}
@@ -205,12 +192,8 @@ func init() {
 		op.GeoM.Scale(float64(width-1)/float64(w), float64(height)/float64(h))
 		op.GeoM.Translate(float64(x), float64(y))
 		op.ColorM.Scale(0, 0, 0, 1)
-		if err := imagePiano.DrawImage(imageEmpty, op); err != nil {
-			panic(err)
-		}
-		if err := common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.White); err != nil {
-			panic(err)
-		}
+		imagePiano.DrawImage(imageEmpty, op)
+		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.White)
 	}
 }
 
@@ -225,16 +208,10 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 
-	if err := screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff}); err != nil {
-		return err
-	}
-	if err := screen.DrawImage(imagePiano, nil); err != nil {
-		return err
-	}
+	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
+	screen.DrawImage(imagePiano, nil)
 
-	if err := ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 
 	if err := audioContext.Update(); err != nil {
 		return err

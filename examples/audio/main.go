@@ -102,9 +102,9 @@ func (p *Player) updateSE() error {
 	return sePlayer.Play()
 }
 
-func (p *Player) updateVolume() error {
+func (p *Player) updateVolume() {
 	if p.audioPlayer == nil {
-		return nil
+		return
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
 		volume128--
@@ -119,7 +119,6 @@ func (p *Player) updateVolume() error {
 		volume128 = 128
 	}
 	p.audioPlayer.SetVolume(float64(volume128) / 128)
-	return nil
 }
 
 func (p *Player) updatePlayPause() error {
@@ -140,29 +139,29 @@ func (p *Player) updatePlayPause() error {
 	return p.audioPlayer.Play()
 }
 
-func (p *Player) updateBar() error {
+func (p *Player) updateBar() {
 	if p.audioPlayer == nil {
-		return nil
+		return
 	}
 	if p.seekedCh != nil {
-		return nil
+		return
 	}
 	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		mouseButtonState[ebiten.MouseButtonLeft] = 0
-		return nil
+		return
 	}
 	mouseButtonState[ebiten.MouseButtonLeft]++
 	if mouseButtonState[ebiten.MouseButtonLeft] != 1 {
-		return nil
+		return
 	}
 	x, y := ebiten.CursorPosition()
 	bx, by, bw, bh := playerBarRect()
 	const padding = 4
 	if y < by-padding || by+bh+padding <= y {
-		return nil
+		return
 	}
 	if x < bx || bx+bw <= x {
-		return nil
+		return
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.seekedCh = make(chan error, 1)
@@ -170,7 +169,6 @@ func (p *Player) updateBar() error {
 		// This can't be done parallely! !?!?
 		p.seekedCh <- p.audioPlayer.Seek(pos)
 	}()
-	return nil
 }
 
 func (p *Player) close() error {
@@ -191,26 +189,20 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 	if musicPlayer != nil {
-		if err := musicPlayer.updateBar(); err != nil {
-			return err
-		}
+		musicPlayer.updateBar()
 		if err := musicPlayer.updatePlayPause(); err != nil {
 			return err
 		}
 		if err := musicPlayer.updateSE(); err != nil {
 			return err
 		}
-		if err := musicPlayer.updateVolume(); err != nil {
-			return err
-		}
+		musicPlayer.updateVolume()
 	}
 
 	op := &ebiten.DrawImageOptions{}
 	x, y, w, h := playerBarRect()
 	op.GeoM.Translate(float64(x), float64(y))
-	if err := screen.DrawImage(playerBarImage, op); err != nil {
-		return err
-	}
+	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := "00:00"
 	if musicPlayer != nil {
 		c := musicPlayer.audioPlayer.Current()
@@ -226,9 +218,7 @@ func update(screen *ebiten.Image) error {
 		cy := y - (ch-h)/2
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(cx), float64(cy))
-		if err := screen.DrawImage(playerCurrentImage, op); err != nil {
-			return err
-		}
+		screen.DrawImage(playerCurrentImage, op)
 	}
 
 	msg := fmt.Sprintf(`FPS: %0.2f
@@ -250,9 +240,7 @@ Press Z or X to change volume of the music
 			msg += "\nSeeking..."
 		}
 	}
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	if err := audioContext.Update(); err != nil {
 		return err
 	}

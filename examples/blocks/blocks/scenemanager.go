@@ -26,20 +26,13 @@ var (
 )
 
 func init() {
-	var err error
-	transitionFrom, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	transitionTo, err = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
+	transitionFrom, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	transitionTo, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
 }
 
 type Scene interface {
 	Update(state *GameState) error
-	Draw(screen *ebiten.Image) error
+	Draw(screen *ebiten.Image)
 }
 
 const transitionMaxCount = 20
@@ -70,32 +63,23 @@ func (s *SceneManager) Update(state *GameState) error {
 	return nil
 }
 
-func (s *SceneManager) Draw(r *ebiten.Image) error {
+func (s *SceneManager) Draw(r *ebiten.Image) {
 	if s.transitionCount == -1 {
-		return s.current.Draw(r)
+		s.current.Draw(r)
+		return
 	}
-	if err := transitionFrom.Clear(); err != nil {
-		return err
-	}
-	if err := s.current.Draw(transitionFrom); err != nil {
-		return err
-	}
+	transitionFrom.Clear()
+	s.current.Draw(transitionFrom)
 
-	if err := transitionTo.Clear(); err != nil {
-		return err
-	}
-	if err := s.next.Draw(transitionTo); err != nil {
-		return err
-	}
+	transitionTo.Clear()
+	s.next.Draw(transitionTo)
 
-	if err := r.DrawImage(transitionFrom, nil); err != nil {
-		return err
-	}
+	r.DrawImage(transitionFrom, nil)
 
 	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, alpha)
-	return r.DrawImage(transitionTo, op)
+	r.DrawImage(transitionTo, op)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {

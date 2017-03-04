@@ -76,7 +76,7 @@ var (
 	}
 )
 
-func (i *Input) Update() error {
+func (i *Input) Update() {
 	for k := range dirKeys {
 		if ebiten.IsKeyPressed(k) {
 			i.keyState[k]++
@@ -84,7 +84,6 @@ func (i *Input) Update() error {
 			i.keyState[k] = 0
 		}
 	}
-	return nil
 }
 
 func (i *Input) Dir() (Dir, bool) {

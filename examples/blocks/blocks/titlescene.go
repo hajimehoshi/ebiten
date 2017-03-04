@@ -106,34 +106,27 @@ func (s *TitleScene) Update(state *GameState) error {
 	return nil
 }
 
-func (s *TitleScene) Draw(r *ebiten.Image) error {
-	if err := s.drawTitleBackground(r, s.count); err != nil {
-		return err
-	}
-	if err := drawLogo(r, "BLOCKS"); err != nil {
-		return err
-	}
+func (s *TitleScene) Draw(r *ebiten.Image) {
+	s.drawTitleBackground(r, s.count)
+	drawLogo(r, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
 	x := (ScreenWidth - common.ArcadeFont.TextWidth(message)) / 2
 	y := ScreenHeight - 48
-	if err := common.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff}); err != nil {
-		return err
-	}
-	return nil
+	common.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
 }
 
-func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) error {
+func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
 	s.parts.count = c
-	return r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
+	r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
 		ImageParts: s.parts,
 	})
 }
 
-func drawLogo(r *ebiten.Image, str string) error {
+func drawLogo(r *ebiten.Image, str string) {
 	scale := 4
 	textWidth := common.ArcadeFont.TextWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32
-	return common.ArcadeFont.DrawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
+	common.ArcadeFont.DrawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
 }

@@ -40,7 +40,7 @@ var keyboardKeys = [][]string{
 	{"Left", "Down", "Right"},
 }
 
-func drawKey(t *image.NRGBA, name string, x, y, width int) error {
+func drawKey(t *image.NRGBA, name string, x, y, width int) {
 	const height = 16
 	width--
 	shape := image.NewNRGBA(image.Rect(0, 0, width, height))
@@ -81,10 +81,7 @@ func drawKey(t *image.NRGBA, name string, x, y, width int) error {
 		}
 	}
 	draw.Draw(t, image.Rect(x, y, x+width, y+height), shape, image.ZP, draw.Over)
-	if err := common.ArcadeFont.DrawTextOnImage(t, name, x+4, y+5); err != nil {
-		return err
-	}
-	return nil
+	common.ArcadeFont.DrawTextOnImage(t, name, x+4, y+5)
 }
 
 func outputKeyboardImage() (map[string]image.Rectangle, error) {

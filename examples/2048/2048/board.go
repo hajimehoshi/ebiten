@@ -116,10 +116,8 @@ func (b *Board) Size() (int, int) {
 	return x, y
 }
 
-func (b *Board) Draw(boardImage *ebiten.Image) error {
-	if err := boardImage.Fill(frameColor); err != nil {
-		return err
-	}
+func (b *Board) Draw(boardImage *ebiten.Image) {
+	boardImage.Fill(frameColor)
 	for j := 0; j < b.size; j++ {
 		for i := 0; i < b.size; i++ {
 			v := 0
@@ -129,9 +127,7 @@ func (b *Board) Draw(boardImage *ebiten.Image) error {
 			op.GeoM.Translate(float64(x), float64(y))
 			r, g, b, a := colorToScale(tileBackgroundColor(v))
 			op.ColorM.Scale(r, g, b, a)
-			if err := boardImage.DrawImage(tileImage, op); err != nil {
-				return err
-			}
+			boardImage.DrawImage(tileImage, op)
 		}
 	}
 	animatingTiles := map[*Tile]struct{}{}
@@ -144,14 +140,9 @@ func (b *Board) Draw(boardImage *ebiten.Image) error {
 		}
 	}
 	for t := range nonAnimatingTiles {
-		if err := t.Draw(boardImage); err != nil {
-			return err
-		}
+		t.Draw(boardImage)
 	}
 	for t := range animatingTiles {
-		if err := t.Draw(boardImage); err != nil {
-			return err
-		}
+		t.Draw(boardImage)
 	}
-	return nil
 }

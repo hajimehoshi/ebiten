@@ -52,38 +52,25 @@ func NewGame() (*Game, error) {
 }
 
 func (g *Game) Update() error {
-	if err := g.input.Update(); err != nil {
-		return err
-	}
+	g.input.Update()
 	if err := g.board.Update(g.input); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) error {
+func (g *Game) Draw(screen *ebiten.Image) {
 	if g.boardImage == nil {
-		var err error
 		w, h := g.board.Size()
-		g.boardImage, err = ebiten.NewImage(w, h, ebiten.FilterNearest)
-		if err != nil {
-			return err
-		}
+		g.boardImage, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
 	}
-	if err := screen.Fill(backgroundColor); err != nil {
-		return err
-	}
-	if err := g.board.Draw(g.boardImage); err != nil {
-		return err
-	}
+	screen.Fill(backgroundColor)
+	g.board.Draw(g.boardImage)
 	op := &ebiten.DrawImageOptions{}
 	sw, sh := screen.Size()
 	bw, bh := g.boardImage.Size()
 	x := (sw - bw) / 2
 	y := (sh - bh) / 2
 	op.GeoM.Translate(float64(x), float64(y))
-	if err := screen.DrawImage(g.boardImage, op); err != nil {
-		return err
-	}
-	return nil
+	screen.DrawImage(g.boardImage, op)
 }

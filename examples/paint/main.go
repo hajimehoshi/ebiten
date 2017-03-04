@@ -38,55 +38,43 @@ var (
 	canvasImage *ebiten.Image
 )
 
-func paint(screen *ebiten.Image, x, y int) error {
+func paint(screen *ebiten.Image, x, y int) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
 	theta := 2.0 * math.Pi * float64(count%60) / ebiten.FPS
 	op.ColorM.RotateHue(theta)
-	if err := canvasImage.DrawImage(brushImage, op); err != nil {
-		return err
-	}
-	return nil
+	canvasImage.DrawImage(brushImage, op)
 }
 
 func update(screen *ebiten.Image) error {
 	drawn := false
 	mx, my := ebiten.CursorPosition()
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		if err := paint(screen, mx, my); err != nil {
-			return err
-		}
+		paint(screen, mx, my)
 		drawn = true
 	}
 	for _, t := range ebiten.Touches() {
 		x, y := t.Position()
-		if err := paint(screen, x, y); err != nil {
-			return err
-		}
+		paint(screen, x, y)
 		drawn = true
 	}
 	if drawn {
 		count++
 	}
 
-	if err := screen.DrawImage(canvasImage, nil); err != nil {
-		return err
-	}
+	screen.DrawImage(canvasImage, nil)
 
 	msg := fmt.Sprintf("(%d, %d)", mx, my)
 	for _, t := range ebiten.Touches() {
 		x, y := t.Position()
 		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t.ID())
 	}
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
 func main() {
-	var err error
 	const a0, a1, a2 = 0x40, 0xc0, 0xff
 	pixels := []uint8{
 		a0, a1, a1, a0,
@@ -94,22 +82,14 @@ func main() {
 		a1, a2, a2, a1,
 		a0, a1, a1, a0,
 	}
-	brushImage, err = ebiten.NewImageFromImage(&image.Alpha{
+	brushImage, _ = ebiten.NewImageFromImage(&image.Alpha{
 		Pix:    pixels,
 		Stride: 4,
 		Rect:   image.Rect(0, 0, 4, 4),
 	}, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	canvasImage, err = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := canvasImage.Fill(color.White); err != nil {
-		log.Fatal(err)
-	}
+	canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	canvasImage.Fill(color.White)
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
