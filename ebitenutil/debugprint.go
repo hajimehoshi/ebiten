@@ -60,11 +60,14 @@ type debugPrintState struct {
 var defaultDebugPrintState = &debugPrintState{}
 
 // DebugPrint draws the string str on the image.
+//
+// DebugPrint always returns nil as of 1.5.0-alpha.
 func DebugPrint(image *ebiten.Image, str string) error {
-	return defaultDebugPrintState.DebugPrint(image, str)
+	defaultDebugPrintState.DebugPrint(image, str)
+	return nil
 }
 
-func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) error {
+func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
 	ur, ug, ub, ua := c.RGBA()
 	const max = math.MaxUint16
 	r := float64(ur) / max
@@ -81,37 +84,19 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 	}
 	op.GeoM.Translate(float64(x+1), float64(y))
 	op.ColorM.Scale(r, g, b, a)
-	if err := rt.DrawImage(d.textImage, op); err != nil {
-		return err
-	}
-	return nil
+	_ = rt.DrawImage(d.textImage, op)
 }
 
 // DebugPrint prints the given text str on the given image r.
-func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) error {
+func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
 	if d.textImage == nil {
-		img, err := assets.TextImage()
-		if err != nil {
-			return err
-		}
-		d.textImage, err = ebiten.NewImageFromImage(img, ebiten.FilterNearest)
-		if err != nil {
-			return err
-		}
+		img := assets.TextImage()
+		d.textImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterNearest)
 	}
 	if d.debugPrintRenderTarget == nil {
 		width, height := 256, 256
-		var err error
-		d.debugPrintRenderTarget, err = ebiten.NewImage(width, height, ebiten.FilterNearest)
-		if err != nil {
-			return err
-		}
+		d.debugPrintRenderTarget, _ = ebiten.NewImage(width, height, ebiten.FilterNearest)
 	}
-	if err := d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80}); err != nil {
-		return err
-	}
-	if err := d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff}); err != nil {
-		return err
-	}
-	return nil
+	d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})
 }

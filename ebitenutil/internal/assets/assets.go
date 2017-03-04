@@ -19,6 +19,7 @@ package assets
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	_ "image/png"
 )
@@ -30,14 +31,11 @@ const (
 	TextImageCharHeight = TextImageHeight / 8
 )
 
-func TextImage() (image.Image, error) {
-	b, err := Asset("text.png")
-	if err != nil {
-		return nil, err
-	}
+func TextImage() image.Image {
+	b := MustAsset("text.png")
 	img, _, err := image.Decode(bytes.NewBuffer(b))
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("assets: image.Decode failed, %v", err))
 	}
-	return img, nil
+	return img
 }
