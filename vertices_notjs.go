@@ -69,6 +69,9 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 		vs[n+8] = g4
 		vs[n+9] = g5
 
+		// nop is required to avoid an ARM 32bit issue (#329).
+		nop()
+
 		vs[n+10] = x1
 		vs[n+11] = y0
 		vs[n+12] = u1
@@ -105,4 +108,8 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 		n += totalSize
 	}
 	return vs
+}
+
+//go:noinline
+func nop() {
 }
