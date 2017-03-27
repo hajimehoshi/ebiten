@@ -158,8 +158,6 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 	return false
 }
 
-// TODO: Enable to specify the format like Mono8?
-
 // A Context is a current state of audio.
 //
 // There should be at most one Context object.
