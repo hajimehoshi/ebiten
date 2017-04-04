@@ -200,11 +200,15 @@ var (
 )
 
 // NewContext creates a new audio context with the given sample rate (e.g. 44100).
+//
+// Error returned by NewContext is always nil as of 1.5.0-alpha.
+//
+// NewContext panics when an audio context is already created.
 func NewContext(sampleRate int) (*Context, error) {
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
 	if theContext != nil {
-		return nil, errors.New("audio: context is already created")
+		panic("audio: context is already created")
 	}
 	c := &Context{
 		sampleRate: sampleRate,
@@ -225,6 +229,8 @@ func NewContext(sampleRate int) (*Context, error) {
 // In sync mode, the game logical time syncs the audio logical time and
 // you will find audio stops when the game stops e.g. when the window is deactivated.
 // In async mode, the audio never stops even when the game stops.
+//
+// Update returns error when IO error occurs.
 func (c *Context) Update() error {
 	// Initialize c.driver lazily to enable calling NewContext in an 'init' function.
 	// Accessing driver functions requires the environment to be already initialized,
@@ -356,6 +362,8 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 //
 // When closing, the stream owned by the player will also be closed by calling its Close.
 //
+// Close returns error when closing the source returns error.
+//
 // This function is concurrent-safe.
 func (p *Player) Close() error {
 	p.players.removePlayer(p)
@@ -392,6 +400,8 @@ func (p *Player) bufferLength() int {
 
 // Play plays the stream.
 //
+// Play always returns nil.
+//
 // This function is concurrent-safe.
 func (p *Player) Play() error {
 	p.players.addPlayer(p)
@@ -407,12 +417,16 @@ func (p *Player) IsPlaying() bool {
 
 // Rewind rewinds the current position to the start.
 //
+// Rewind returns error when seeking the source returns error.
+//
 // This function is concurrent-safe.
 func (p *Player) Rewind() error {
 	return p.Seek(0)
 }
 
 // Seek seeks the position with the given offset.
+//
+// Seek returns error when seeking the source returns error.
 //
 // This function is concurrent-safe.
 func (p *Player) Seek(offset time.Duration) error {
@@ -430,6 +444,8 @@ func (p *Player) Seek(offset time.Duration) error {
 }
 
 // Pause pauses the playing.
+//
+// Pause always returns nil.
 //
 // This function is concurrent-safe.
 func (p *Player) Pause() error {
