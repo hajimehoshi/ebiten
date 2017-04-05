@@ -96,6 +96,7 @@ static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
           android_media_AudioTrack_MODE_STREAM);
   // Note that *audioTrack will never be released.
   *audioTrack = (*env)->NewGlobalRef(env, tmpAudioTrack);
+  (*env)->DeleteLocalRef(env, tmpAudioTrack);
 
   (*env)->CallVoidMethod(
       env, *audioTrack,
@@ -133,6 +134,7 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
             env, audioTrack,
             (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BII)I"),
             arrInBytes, 0, length);
+    (*env)->DeleteLocalRef(env, arrInBytes);
     break;
   case 2:
     result =
@@ -140,6 +142,7 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
             env, audioTrack,
             (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SII)I"),
             arrInShorts, 0, length);
+    (*env)->DeleteLocalRef(env, arrInShorts);
     break;
   }
 
