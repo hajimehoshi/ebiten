@@ -190,8 +190,8 @@ type Context struct {
 	players      *players
 	driver       *driver.Player
 	sampleRate   int
-	frames       int
-	writtenBytes int
+	frames       int64
+	writtenBytes int64
 }
 
 var (
@@ -247,7 +247,7 @@ func (c *Context) Update() error {
 	}
 	c.frames++
 	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / ebiten.FPS
-	l := (c.frames * bytesPerFrame) - c.writtenBytes
+	l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 	l &= mask
 	c.writtenBytes += l
 	buf := make([]byte, l)

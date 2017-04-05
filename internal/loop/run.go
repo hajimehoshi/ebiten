@@ -32,7 +32,7 @@ type runContext struct {
 	fps            int
 	currentFPS     float64
 	runningSlowly  bool
-	frames         int
+	frames         int64
 	lastUpdated    int64
 	lastFPSUpdated int64
 	m              sync.RWMutex
