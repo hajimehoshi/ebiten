@@ -19,18 +19,27 @@ package driver
 #include <jni.h>
 #include <stdlib.h>
 
+static jclass android_media_AudioFormat;
+static jclass android_media_AudioManager;
+static jclass android_media_AudioTrack;
+
 static char* initAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     int sampleRate, int channelNum, int bytesPerSample, jobject* audioTrack, int* bufferSize) {
   *bufferSize = 0;
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;
 
-  const jclass android_media_AudioFormat =
-      (*env)->FindClass(env, "android/media/AudioFormat");
-  const jclass android_media_AudioManager =
-      (*env)->FindClass(env, "android/media/AudioManager");
-  const jclass android_media_AudioTrack =
-      (*env)->FindClass(env, "android/media/AudioTrack");
+  jclass local = (*env)->FindClass(env, "android/media/AudioFormat");
+  android_media_AudioFormat = (*env)->NewGlobalRef(env, local);
+  (*env)->DeleteLocalRef(env, local);
+
+  local = (*env)->FindClass(env, "android/media/AudioManager");
+  android_media_AudioManager = (*env)->NewGlobalRef(env, local);
+  (*env)->DeleteLocalRef(env, local);
+
+  local = (*env)->FindClass(env, "android/media/AudioTrack");
+  android_media_AudioTrack = (*env)->NewGlobalRef(env, local);
+  (*env)->DeleteLocalRef(env, local);
 
   const jint android_media_AudioManager_STREAM_MUSIC =
       (*env)->GetStaticIntField(
@@ -110,9 +119,6 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;
 
-  const jclass android_media_AudioTrack =
-      (*env)->FindClass(env, "android/media/AudioTrack");
-
   jbyteArray arrInBytes;
   jshortArray arrInShorts;
   switch (bytesPerSample) {
@@ -145,7 +151,6 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     (*env)->DeleteLocalRef(env, arrInShorts);
     break;
   }
-  (*env)->DeleteLocalRef(env, android_media_AudioTrack);
 
   switch (result) {
   case -3: // ERROR_INVALID_OPERATION
