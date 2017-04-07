@@ -145,6 +145,7 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
     (*env)->DeleteLocalRef(env, arrInShorts);
     break;
   }
+  (*env)->DeleteLocalRef(env, android_media_AudioTrack);
 
   switch (result) {
   case -3: // ERROR_INVALID_OPERATION
