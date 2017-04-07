@@ -133,21 +133,21 @@ static char* writeToAudioTrack(uintptr_t java_vm, uintptr_t jni_env,
   }
 
   jint result;
+  static jmethodID write1 = NULL;
+  static jmethodID write2 = NULL;
+  if (!write1) {
+    write1 = (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BII)I");
+  }
+  if (!write2) {
+    write2 = (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SII)I");
+  }
   switch (bytesPerSample) {
   case 1:
-    result =
-        (*env)->CallIntMethod(
-            env, audioTrack,
-            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([BII)I"),
-            arrInBytes, 0, length);
+    result = (*env)->CallIntMethod(env, audioTrack, write1, arrInBytes, 0, length);
     (*env)->DeleteLocalRef(env, arrInBytes);
     break;
   case 2:
-    result =
-        (*env)->CallIntMethod(
-            env, audioTrack,
-            (*env)->GetMethodID(env, android_media_AudioTrack, "write", "([SII)I"),
-            arrInShorts, 0, length);
+    result = (*env)->CallIntMethod(env, audioTrack, write2, arrInShorts, 0, length);
     (*env)->DeleteLocalRef(env, arrInShorts);
     break;
   }
