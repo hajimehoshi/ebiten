@@ -20,20 +20,20 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-func (i *input) keyDown(code string) {
+func (i *input) keyDown(key int) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	k, ok := keyCodeToKey[code]
+	k, ok := keyCodeToKey[key]
 	if !ok {
 		return
 	}
 	i.keyPressed[k] = true
 }
 
-func (i *input) keyUp(code string) {
+func (i *input) keyUp(key int) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	k, ok := keyCodeToKey[code]
+	k, ok := keyCodeToKey[key]
 	if !ok {
 		return
 	}

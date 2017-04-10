@@ -183,12 +183,12 @@ func initialize() error {
 	// Keyboard
 	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
 		e.Call("preventDefault")
-		code := e.Get("code").String()
+		code := e.Get("keyCode").Int()
 		currentInput.keyDown(code)
 	})
 	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
 		e.Call("preventDefault")
-		code := e.Get("code").String()
+		code := e.Get("keyCode").Int()
 		currentInput.keyUp(code)
 	})
 
