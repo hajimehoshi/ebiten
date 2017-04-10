@@ -25,8 +25,11 @@ import (
 var keyboardKeyRects = map[string]image.Rectangle{}
 
 func init() {
+	keyboardKeyRects["'"] = image.Rect(208, 36, 224, 54)
 	keyboardKeyRects[","] = image.Rect(168, 54, 184, 72)
+	keyboardKeyRects["-"] = image.Rect(192, 0, 208, 18)
 	keyboardKeyRects["."] = image.Rect(184, 54, 200, 72)
+	keyboardKeyRects["/"] = image.Rect(200, 54, 216, 72)
 	keyboardKeyRects["0"] = image.Rect(176, 0, 192, 18)
 	keyboardKeyRects["1"] = image.Rect(32, 0, 48, 18)
 	keyboardKeyRects["2"] = image.Rect(48, 0, 64, 18)
@@ -37,6 +40,8 @@ func init() {
 	keyboardKeyRects["7"] = image.Rect(128, 0, 144, 18)
 	keyboardKeyRects["8"] = image.Rect(144, 0, 160, 18)
 	keyboardKeyRects["9"] = image.Rect(160, 0, 176, 18)
+	keyboardKeyRects[";"] = image.Rect(192, 36, 208, 54)
+	keyboardKeyRects["="] = image.Rect(208, 0, 224, 18)
 	keyboardKeyRects["A"] = image.Rect(48, 36, 64, 54)
 	keyboardKeyRects["Alt"] = image.Rect(64, 72, 96, 90)
 	keyboardKeyRects["B"] = image.Rect(120, 54, 136, 72)
@@ -76,6 +81,9 @@ func init() {
 	keyboardKeyRects["X"] = image.Rect(72, 54, 88, 72)
 	keyboardKeyRects["Y"] = image.Rect(120, 18, 136, 36)
 	keyboardKeyRects["Z"] = image.Rect(56, 54, 72, 72)
+	keyboardKeyRects["["] = image.Rect(200, 18, 216, 36)
+	keyboardKeyRects["]"] = image.Rect(216, 18, 232, 36)
+	keyboardKeyRects["`"] = image.Rect(224, 0, 240, 18)
 }
 
 func KeyRect(name string) (image.Rectangle, bool) {

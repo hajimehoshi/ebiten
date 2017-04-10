@@ -30,10 +30,10 @@ import (
 )
 
 var keyboardKeys = [][]string{
-	{"Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", " ", " ", " ", "Del"},
-	{"Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", " ", " ", "BS"},
-	{"Ctrl", "A", "S", "D", "F", "G", "H", "J", "K", "L", " ", " ", "Enter"},
-	{"Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", " ", " "},
+	{"Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "`", "Del"},
+	{"Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "BS"},
+	{"Ctrl", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "Enter"},
+	{"Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", " "},
 	{" ", "Alt", "Space", " ", " "},
 	{},
 	{"", "Up", ""},
@@ -118,9 +118,7 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 				width = 16 * 3
 			}
 			if key != "" {
-				if err := drawKey(img, key, x, y, width); err != nil {
-					return nil, err
-				}
+				drawKey(img, key, x, y, width)
 				if key != " " {
 					keyMap[key] = image.Rect(x, y, x+width, y+height)
 				}

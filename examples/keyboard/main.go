@@ -41,14 +41,22 @@ func init() {
 }
 
 var keyNames = map[ebiten.Key]string{
-	ebiten.KeyBackspace: "BS",
-	ebiten.KeyComma:     ",",
-	ebiten.KeyDelete:    "Del",
-	ebiten.KeyEnter:     "Enter",
-	ebiten.KeyEscape:    "Esc",
-	ebiten.KeyPeriod:    ".",
-	ebiten.KeySpace:     "Space",
-	ebiten.KeyTab:       "Tab",
+	ebiten.KeyBackspace:    "BS",
+	ebiten.KeyComma:        ",",
+	ebiten.KeyDelete:       "Del",
+	ebiten.KeyEnter:        "Enter",
+	ebiten.KeyEscape:       "Esc",
+	ebiten.KeyPeriod:       ".",
+	ebiten.KeySpace:        "Space",
+	ebiten.KeyTab:          "Tab",
+	ebiten.KeyMinus:        "-",
+	ebiten.KeyEqual:        "=",
+	ebiten.KeyGraveAccent:  "`",
+	ebiten.KeyLeftBracket:  "[",
+	ebiten.KeyRightBracket: "]",
+	ebiten.KeySemicolon:    ";",
+	ebiten.KeyApostrophe:   "'",
+	ebiten.KeySlash:        "/",
 
 	// Arrows
 	ebiten.KeyDown:  "Down",
