@@ -78,7 +78,6 @@ func (i *input) keyDown(code int) {
 	if i.keyPressed == nil {
 		i.keyPressed = map[int]bool{}
 	}
-	println(code)
 	i.keyPressed[code] = true
 }
 
