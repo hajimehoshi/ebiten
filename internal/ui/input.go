@@ -14,10 +14,6 @@
 
 package ui
 
-import (
-	"sync"
-)
-
 var currentInput = &input{}
 
 type Input interface {
@@ -36,36 +32,14 @@ type Touch interface {
 	Position() (x, y int)
 }
 
-type input struct {
-	keyPressed         [256]bool
-	mouseButtonPressed [256]bool
-	cursorX            int
-	cursorY            int
-	gamepads           [16]gamePad
-	touches            []touch
-	m                  sync.RWMutex
-}
-
 func CurrentInput() Input {
 	return currentInput
-}
-
-func (i *input) IsKeyPressed(key Key) bool {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	return i.keyPressed[key]
 }
 
 func (i *input) CursorPosition() (x, y int) {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	return i.cursorX, i.cursorY
-}
-
-func (i *input) IsMouseButtonPressed(button MouseButton) bool {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	return i.mouseButtonPressed[button]
 }
 
 func (i *input) GamepadAxisNum(id int) int {

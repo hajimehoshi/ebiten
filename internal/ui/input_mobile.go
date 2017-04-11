@@ -16,6 +16,26 @@
 
 package ui
 
+import (
+	"sync"
+)
+
+type input struct {
+	cursorX  int
+	cursorY  int
+	gamepads [16]gamePad
+	touches  []touch
+	m        sync.RWMutex
+}
+
+func (i *input) IsKeyPressed(key Key) bool {
+	return false
+}
+
+func (i *input) IsMouseButtonPressed(key MouseButton) bool {
+	return false
+}
+
 func (i *input) updateTouches(touches []Touch) {
 	i.m.Lock()
 	defer i.m.Unlock()

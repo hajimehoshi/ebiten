@@ -17,55 +17,96 @@
 package ui
 
 import (
+	"sync"
+
 	"github.com/gopherjs/gopherjs/js"
 )
 
-func (i *input) keyDown(key int) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	k, ok := keyCodeToKey[key]
-	if !ok {
-		return
-	}
-	i.keyPressed[k] = true
+type input struct {
+	keyPressed         map[int]bool
+	mouseButtonPressed map[int]bool
+	cursorX            int
+	cursorY            int
+	gamepads           [16]gamePad
+	touches            []touch
+	m                  sync.RWMutex
 }
 
-func (i *input) keyUp(key int) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	k, ok := keyCodeToKey[key]
-	if !ok {
-		return
+func (i *input) IsKeyPressed(key Key) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if i.keyPressed == nil {
+		i.keyPressed = map[int]bool{}
 	}
-	i.keyPressed[k] = false
+	for c, k := range keyCodeToKey {
+		if k != key {
+			continue
+		}
+		if i.keyPressed[c] {
+			return true
+		}
+	}
+	return false
 }
 
-func (i *input) mouseDown(button int) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	p := &i.mouseButtonPressed
-	switch button {
-	case 0:
-		p[MouseButtonLeft] = true
-	case 1:
-		p[MouseButtonMiddle] = true
-	case 2:
-		p[MouseButtonRight] = true
-	}
+var codeToMouseButton = map[int]MouseButton{
+	0: MouseButtonLeft,
+	1: MouseButtonMiddle,
+	2: MouseButtonRight,
 }
 
-func (i *input) mouseUp(button int) {
+func (i *input) IsMouseButtonPressed(button MouseButton) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if i.mouseButtonPressed == nil {
+		i.mouseButtonPressed = map[int]bool{}
+	}
+	for c, b := range codeToMouseButton {
+		if b != button {
+			continue
+		}
+		if i.mouseButtonPressed[c] {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *input) keyDown(code int) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	p := &i.mouseButtonPressed
-	switch button {
-	case 0:
-		p[MouseButtonLeft] = false
-	case 1:
-		p[MouseButtonMiddle] = false
-	case 2:
-		p[MouseButtonRight] = false
+	if i.keyPressed == nil {
+		i.keyPressed = map[int]bool{}
 	}
+	println(code)
+	i.keyPressed[code] = true
+}
+
+func (i *input) keyUp(code int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.keyPressed == nil {
+		i.keyPressed = map[int]bool{}
+	}
+	i.keyPressed[code] = false
+}
+
+func (i *input) mouseDown(code int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.mouseButtonPressed == nil {
+		i.mouseButtonPressed = map[int]bool{}
+	}
+	i.mouseButtonPressed[code] = true
+}
+
+func (i *input) mouseUp(code int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.mouseButtonPressed == nil {
+		i.mouseButtonPressed = map[int]bool{}
+	}
+	i.mouseButtonPressed[code] = false
 }
 
 func (i *input) setMouseCursor(x, y int) {

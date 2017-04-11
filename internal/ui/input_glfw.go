@@ -20,8 +20,54 @@
 package ui
 
 import (
+	"sync"
+
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
 )
+
+type input struct {
+	keyPressed         map[glfw.Key]bool
+	mouseButtonPressed map[glfw.MouseButton]bool
+	cursorX            int
+	cursorY            int
+	gamepads           [16]gamePad
+	touches            []touch
+	m                  sync.RWMutex
+}
+
+func (i *input) IsKeyPressed(key Key) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if i.keyPressed == nil {
+		i.keyPressed = map[glfw.Key]bool{}
+	}
+	for gk, k := range glfwKeyCodeToKey {
+		if k != key {
+			continue
+		}
+		if i.keyPressed[gk] {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *input) IsMouseButtonPressed(button MouseButton) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if i.mouseButtonPressed == nil {
+		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
+	}
+	for gb, b := range glfwMouseButtonToMouseButton {
+		if b != button {
+			continue
+		}
+		if i.mouseButtonPressed[gb] {
+			return true
+		}
+	}
+	return false
+}
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
@@ -33,11 +79,17 @@ func (i *input) update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
-	for g, e := range glfwKeyCodeToKey {
-		i.keyPressed[e] = window.GetKey(g) == glfw.Press
+	if i.keyPressed == nil {
+		i.keyPressed = map[glfw.Key]bool{}
 	}
-	for g, e := range glfwMouseButtonToMouseButton {
-		i.mouseButtonPressed[e] = window.GetMouseButton(g) == glfw.Press
+	for gk := range glfwKeyCodeToKey {
+		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
+	}
+	if i.mouseButtonPressed == nil {
+		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
+	}
+	for gb := range glfwMouseButtonToMouseButton {
+		i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
 	}
 	x, y := window.GetCursorPos()
 	i.cursorX = int(x / scale)
