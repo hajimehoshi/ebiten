@@ -56,6 +56,8 @@ const (
 	KeyY
 	KeyZ
 	KeyAlt
+	KeyApostrophe
+	KeyBackslash
 	KeyBackspace
 	KeyCapsLock
 	KeyComma
@@ -64,6 +66,7 @@ const (
 	KeyDown
 	KeyEnd
 	KeyEnter
+	KeyEqual
 	KeyEscape
 	KeyF1
 	KeyF2
@@ -77,14 +80,20 @@ const (
 	KeyF10
 	KeyF11
 	KeyF12
+	KeyGraveAccent
 	KeyHome
 	KeyInsert
 	KeyLeft
+	KeyLeftBracket
+	KeyMinus
 	KeyPageDown
 	KeyPageUp
 	KeyPeriod
 	KeyRight
+	KeyRightBracket
+	KeySemicolon
 	KeyShift
+	KeySlash
 	KeySpace
 	KeyTab
 	KeyUp

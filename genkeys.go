@@ -62,6 +62,15 @@ func init() {
 		"ArrowUp":      "Up",
 		"Escape":       "Escape",
 		"Backspace":    "Backspace",
+		"Quote":        "Apostrophe",
+		"Minus":        "Minus",
+		"Slash":        "Slash",
+		"Semicolon":    "Semicolon",
+		"Equal":        "Equal",
+		"BracketLeft":  "LeftBracket",
+		"Backslash":    "Backslash",
+		"BracketRight": "RightBracket",
+		"Backquote":    "GraveAccent",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
@@ -79,8 +88,8 @@ func init() {
 
 func init() {
 	keyCodeToNameSafari = map[int]string{
-		0xBC: "Comma",
-		0xBE: "Period",
+		0xbc: "Comma",
+		0xbe: "Period",
 		0x12: "Alt",
 		0x14: "CapsLock",
 		0x11: "Control",
@@ -99,7 +108,15 @@ func init() {
 		0x27: "Right",
 		0x26: "Up",
 		0x1B: "Escape",
-		// The keys not listed in the Mozilla site:
+		0xde: "Apostrophe",
+		0xbd: "Minus",
+		0xbf: "Slash",
+		0xba: "Semicolon",
+		0xbb: "Equal",
+		0xdb: "LeftBracket",
+		0xdc: "Backslash",
+		0xdd: "RightBracket",
+		0xc0: "GraveAccent",
 		0x08: "Backspace",
 	}
 	// ASCII: 0 - 9
