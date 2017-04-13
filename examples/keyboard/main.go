@@ -43,7 +43,6 @@ func init() {
 var keyNames = map[ebiten.Key]string{
 	ebiten.KeyBackspace:    "BS",
 	ebiten.KeyComma:        ",",
-	ebiten.KeyDelete:       "Del",
 	ebiten.KeyEnter:        "Enter",
 	ebiten.KeyEscape:       "Esc",
 	ebiten.KeyPeriod:       ".",
@@ -51,6 +50,7 @@ var keyNames = map[ebiten.Key]string{
 	ebiten.KeyTab:          "Tab",
 	ebiten.KeyMinus:        "-",
 	ebiten.KeyEqual:        "=",
+	ebiten.KeyBackslash:    "\\",
 	ebiten.KeyGraveAccent:  "`",
 	ebiten.KeyLeftBracket:  "[",
 	ebiten.KeyRightBracket: "]",
