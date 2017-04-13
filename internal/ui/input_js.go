@@ -23,7 +23,8 @@ import (
 )
 
 type input struct {
-	keyPressed         map[int]bool
+	keyPressed         map[string]bool
+	keyPressedSafari   map[int]bool
 	mouseButtonPressed map[int]bool
 	cursorX            int
 	cursorY            int
@@ -35,15 +36,24 @@ type input struct {
 func (i *input) IsKeyPressed(key Key) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
-	if i.keyPressed == nil {
-		i.keyPressed = map[int]bool{}
-	}
-	for c, k := range keyCodeToKey {
-		if k != key {
-			continue
+	if i.keyPressed != nil {
+		for c, k := range codeToKey {
+			if k != key {
+				continue
+			}
+			if i.keyPressed[c] {
+				return true
+			}
 		}
-		if i.keyPressed[c] {
-			return true
+	}
+	if i.keyPressedSafari != nil {
+		for c, k := range keyCodeToKeySafari {
+			if k != key {
+				continue
+			}
+			if i.keyPressedSafari[c] {
+				return true
+			}
 		}
 	}
 	return false
@@ -72,22 +82,40 @@ func (i *input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
-func (i *input) keyDown(code int) {
+func (i *input) keyDown(code string) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.keyPressed == nil {
-		i.keyPressed = map[int]bool{}
+		i.keyPressed = map[string]bool{}
 	}
 	i.keyPressed[code] = true
 }
 
-func (i *input) keyUp(code int) {
+func (i *input) keyUp(code string) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.keyPressed == nil {
-		i.keyPressed = map[int]bool{}
+		i.keyPressed = map[string]bool{}
 	}
 	i.keyPressed[code] = false
+}
+
+func (i *input) keyDownSafari(code int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.keyPressedSafari == nil {
+		i.keyPressedSafari = map[int]bool{}
+	}
+	i.keyPressedSafari[code] = true
+}
+
+func (i *input) keyUpSafari(code int) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	if i.keyPressedSafari == nil {
+		i.keyPressedSafari = map[int]bool{}
+	}
+	i.keyPressedSafari[code] = false
 }
 
 func (i *input) mouseDown(code int) {

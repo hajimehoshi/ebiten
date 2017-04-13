@@ -183,12 +183,23 @@ func initialize() error {
 	// Keyboard
 	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
 		e.Call("preventDefault")
-		code := e.Get("keyCode").Int()
+		if e.Get("code") == js.Undefined {
+			// Assume that UA is Safari.
+			code := e.Get("keyCode").Int()
+			currentInput.keyDownSafari(code)
+			return
+		}
+		code := e.Get("code").String()
 		currentInput.keyDown(code)
 	})
 	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
 		e.Call("preventDefault")
-		code := e.Get("keyCode").Int()
+		if e.Get("code") == js.Undefined {
+			// Assume that UA is Safari.
+			code := e.Get("keyCode").Int()
+			currentInput.keyUpSafari(code)
+		}
+		code := e.Get("code").String()
 		currentInput.keyUp(code)
 	})
 
