@@ -26,6 +26,5 @@ func update() error {
 	return nil
 }
 
-func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
-	return nil
+func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
 }

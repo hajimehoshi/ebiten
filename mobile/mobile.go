@@ -23,8 +23,11 @@ import (
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 //
 // The unit of width/height is device-independent pixel (dp on Android and point on iOS).
+//
+// Start always returns nil as of 1.5.0-alpha.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
-	return start(f, width, height, scale, title)
+	start(f, width, height, scale, title)
+	return nil
 }
 
 // Update updates and renders the game.
