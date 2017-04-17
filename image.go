@@ -139,8 +139,6 @@ type Image struct {
 }
 
 // Size returns the size of the image.
-//
-// This function is concurrent-safe.
 func (i *Image) Size() (width, height int) {
 	return i.impl.restorable.Size()
 }
@@ -150,8 +148,6 @@ func (i *Image) Size() (width, height int) {
 // When the image is disposed, Clear does nothing.
 //
 // Clear always returns nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func (i *Image) Clear() error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	i.impl.Fill(color.Transparent)
@@ -163,8 +159,6 @@ func (i *Image) Clear() error {
 // When the image is disposed, Fill does nothing.
 //
 // Fill always returns nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func (i *Image) Fill(clr color.Color) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	i.impl.Fill(clr)
@@ -193,8 +187,6 @@ func (i *Image) Fill(clr color.Color) error {
 // When image is as same as i, DrawImage panics.
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	i.impl.DrawImage(image, options)
@@ -202,16 +194,12 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 }
 
 // Bounds returns the bounds of the image.
-//
-// This function is concurrent-safe.
 func (i *Image) Bounds() image.Rectangle {
 	w, h := i.impl.restorable.Size()
 	return image.Rect(0, 0, w, h)
 }
 
 // ColorModel returns the color model of the image.
-//
-// This function is concurrent-safe.
 func (i *Image) ColorModel() color.Model {
 	return color.RGBAModel
 }
@@ -221,8 +209,6 @@ func (i *Image) ColorModel() color.Model {
 // This method loads pixels from VRAM to system memory if necessary.
 //
 // This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
-//
-// This function is concurrent-safe.
 func (i *Image) At(x, y int) color.Color {
 	return i.impl.At(x, y, glContext())
 }
@@ -235,8 +221,6 @@ func (i *Image) At(x, y int) color.Color {
 // When the image is disposed, Dipose does nothing.
 //
 // Dipose always return nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func (i *Image) Dispose() error {
 	if i.impl.isDisposed() {
 		return nil
@@ -257,8 +241,6 @@ func (i *Image) Dispose() error {
 // When the image is disposed, ReplacePixels does nothing.
 //
 // ReplacePixels always returns nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func (i *Image) ReplacePixels(p []uint8) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
 	i.impl.ReplacePixels(p)
@@ -281,8 +263,6 @@ type DrawImageOptions struct {
 // If width or height is less than 1 or more than MaxImageSize, NewImage panics.
 //
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	img := newImageImpl(width, height, filter, false)
@@ -303,8 +283,6 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // If width or height is less than 1 or more than MaxImageSize, newVolatileImage panics.
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	img := newImageImpl(width, height, filter, true)
@@ -317,8 +295,6 @@ func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 // If source's width or height is less than 1 or more than MaxImageSize, NewImageFromImage panics.
 //
 // Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
-//
-// This function is concurrent-safe.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	checkSize(size.X, size.Y)

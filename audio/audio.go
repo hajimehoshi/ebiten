@@ -271,8 +271,6 @@ func (c *Context) Update() error {
 
 // SampleRate returns the sample rate.
 // All audio source must have the same sample rate.
-//
-// This function is concurrent-safe.
 func (c *Context) SampleRate() int {
 	return c.sampleRate
 }
@@ -325,8 +323,6 @@ type Player struct {
 //
 // NewPlayer tries to rewind src by calling Seek to get the current position.
 // NewPlayer returns error when the Seek returns error.
-//
-// This function is concurrent-safe.
 func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	if context.players.hasSource(src) {
 		return nil, errors.New("audio: src cannot be shared with another Player")
@@ -356,8 +352,6 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 // The format of src should be same as noted at NewPlayer.
 //
 // NewPlayerFromBytes returns error in the same situation of NewPlayer.
-//
-// This function is concurrent-safe.
 func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 	b := BytesReadSeekCloser(src)
 	return NewPlayer(context, b)
@@ -368,8 +362,6 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 // When closing, the stream owned by the player will also be closed by calling its Close.
 //
 // Close returns error when closing the source returns error.
-//
-// This function is concurrent-safe.
 func (p *Player) Close() error {
 	p.players.removePlayer(p)
 	runtime.SetFinalizer(p, nil)
@@ -406,16 +398,12 @@ func (p *Player) bufferLength() int {
 // Play plays the stream.
 //
 // Play always returns nil.
-//
-// This function is concurrent-safe.
 func (p *Player) Play() error {
 	p.players.addPlayer(p)
 	return nil
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
-//
-// This function is concurrent-safe.
 func (p *Player) IsPlaying() bool {
 	return p.players.hasPlayer(p)
 }
@@ -423,8 +411,6 @@ func (p *Player) IsPlaying() bool {
 // Rewind rewinds the current position to the start.
 //
 // Rewind returns error when seeking the source returns error.
-//
-// This function is concurrent-safe.
 func (p *Player) Rewind() error {
 	return p.Seek(0)
 }
@@ -432,8 +418,6 @@ func (p *Player) Rewind() error {
 // Seek seeks the position with the given offset.
 //
 // Seek returns error when seeking the source returns error.
-//
-// This function is concurrent-safe.
 func (p *Player) Seek(offset time.Duration) error {
 	p.players.addSeeking(p)
 	defer p.players.removeSeeking(p)
@@ -451,16 +435,12 @@ func (p *Player) Seek(offset time.Duration) error {
 // Pause pauses the playing.
 //
 // Pause always returns nil.
-//
-// This function is concurrent-safe.
 func (p *Player) Pause() error {
 	p.players.removePlayer(p)
 	return nil
 }
 
 // Current returns the current position.
-//
-// This function is concurrent-safe.
 func (p *Player) Current() time.Duration {
 	sample := p.pos / bytesPerSample / channelNum
 	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
