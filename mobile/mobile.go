@@ -22,7 +22,7 @@ import (
 //
 // Different from ebiten.Run, this invokes only the game loop and not the main (UI) loop.
 //
-// The unit of width/height is device-independent pixel (dp on Android and pointer on iOS).
+// The unit of width/height is device-independent pixel (dp on Android and point on iOS).
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
 	return start(f, width, height, scale, title)
 }
@@ -54,10 +54,45 @@ func Update() error {
 //     }
 //
 // The coodinate x/y is in dp.
+//
+// For more details, see https://github.com/hajimehoshi/ebiten/wiki/Android.
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	updateTouchesOnAndroid(action, id, x, y)
 }
 
+// UpdateTouchesOnIOS updates the touch state on iOS.
+//
+// This should be called with touch handlers of UIViewController like this:
+//
+//     - (GLKView*)glkView {
+//         return (GLKView*)[self.view viewWithTag:100];
+//     }
+//     - (void)updateTouches:(NSSet*)touches {
+//         for (UITouch* touch in touches) {
+//             if (touch.view != [self glkView]) {
+//                 continue;
+//             }
+//             CGPoint location = [touch locationInView: [self glkView]];
+//             // Exported function for UpdateTouchesOnIOS
+//             YourGameUpdateTouchesOnIOS(touch.phase, (int64_t)touch, location.x, location.y);
+//         }
+//     }
+//     - (void)touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event {
+//         [self updateTouches:touches];
+//     }
+//     - (void)touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event {
+//         [self updateTouches:touches];
+//     }
+//     - (void)touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event {
+//         [self updateTouches:touches];
+//     }
+//     - (void)touchesCancelled:(NSSet*)touches withEvent:(UIEvent*)event {
+//         [self updateTouches:touches];
+//     }
+//
+// The coodinate x/y is in points.
+//
+// For more details, see https://github.com/hajimehoshi/ebiten/wiki/iOS.
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }
