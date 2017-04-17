@@ -230,7 +230,7 @@ func NewContext(sampleRate int) (*Context, error) {
 // you will find audio stops when the game stops e.g. when the window is deactivated.
 // In async mode, the audio never stops even when the game stops.
 //
-// Update returns error when IO error occurs.
+// Update returns error when IO error occurs in the underlying IO object.
 func (c *Context) Update() error {
 	// Initialize c.driver lazily to enable calling NewContext in an 'init' function.
 	// Accessing driver functions requires the environment to be already initialized,
@@ -323,6 +323,9 @@ type Player struct {
 //
 // Note that the given src can't be shared with other Players.
 //
+// NewPlayer tries to rewind src by calling Seek to get the current position.
+// NewPlayer returns error when the Seek returns error.
+//
 // This function is concurrent-safe.
 func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	if context.players.hasSource(src) {
@@ -351,6 +354,8 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 // src can be shared by multiple players.
 //
 // The format of src should be same as noted at NewPlayer.
+//
+// NewPlayerFromBytes returns error in the same situation of NewPlayer.
 //
 // This function is concurrent-safe.
 func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
