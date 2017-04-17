@@ -113,6 +113,8 @@ func (s *stream) Size() int64 {
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
+// Decode returns error when the source format is wrong.
+//
 // Sample rate is automatically adjusted to fit with the audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	buf := make([]byte, 12)

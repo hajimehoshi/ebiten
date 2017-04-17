@@ -174,6 +174,8 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 
 // Decode decodes Ogg/Vorbis data to playable stream.
 //
+// Decode returns error when the source format is wrong.
+//
 // Sample rate is automatically adjusted to fit with the audio context.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
