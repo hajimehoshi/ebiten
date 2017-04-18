@@ -194,6 +194,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 		w, h := u.glfwSize()
 		x := (v.Width - w) / 2
 		y := (v.Height - h) / 3
+		x, y = adjustWindowPosition(x, y)
 		u.window.SetPos(x, y)
 		return nil
 	}); err != nil {

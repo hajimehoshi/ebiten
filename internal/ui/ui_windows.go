@@ -30,6 +30,11 @@ package ui
 //   }
 //   return "";
 // }
+//
+// static int getCaptionHeight() {
+//   return GetSystemMetrics(SM_CYCAPTION);
+// }
+//
 import "C"
 
 func deviceScale() float64 {
@@ -42,4 +47,17 @@ func deviceScale() float64 {
 
 func glfwScale() float64 {
 	return deviceScale()
+}
+
+func adjustWindowPosition(x, y int) (int, int) {
+	// As the video width/height might be wrong,
+	// adjust x/y at least to enable to handle the window (#328)
+	if x < 0 {
+		x = 0
+	}
+	t := int(C.getCaptionHeight())
+	if y < t {
+		y = t
+	}
+	return x, y
 }

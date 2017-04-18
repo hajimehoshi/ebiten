@@ -25,3 +25,7 @@ func deviceScale() float64 {
 func glfwScale() float64 {
 	return deviceScale()
 }
+
+func adjustWindowPosition(x, y int) (int, int) {
+	return x, y
+}
