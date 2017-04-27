@@ -18,88 +18,241 @@
 
 package ui
 
-var codeToKey = map[string]Key{
-	"AltLeft":      KeyAlt,
-	"AltRight":     KeyAlt,
-	"ArrowDown":    KeyDown,
-	"ArrowLeft":    KeyLeft,
-	"ArrowRight":   KeyRight,
-	"ArrowUp":      KeyUp,
-	"Backquote":    KeyGraveAccent,
-	"Backslash":    KeyBackslash,
-	"Backspace":    KeyBackspace,
-	"BracketLeft":  KeyLeftBracket,
-	"BracketRight": KeyRightBracket,
-	"CapsLock":     KeyCapsLock,
-	"Comma":        KeyComma,
-	"ControlLeft":  KeyControl,
-	"ControlRight": KeyControl,
-	"Delete":       KeyDelete,
-	"Digit0":       Key0,
-	"Digit1":       Key1,
-	"Digit2":       Key2,
-	"Digit3":       Key3,
-	"Digit4":       Key4,
-	"Digit5":       Key5,
-	"Digit6":       Key6,
-	"Digit7":       Key7,
-	"Digit8":       Key8,
-	"Digit9":       Key9,
-	"End":          KeyEnd,
-	"Enter":        KeyEnter,
-	"Equal":        KeyEqual,
-	"Escape":       KeyEscape,
-	"F1":           KeyF1,
-	"F10":          KeyF10,
-	"F11":          KeyF11,
-	"F12":          KeyF12,
-	"F2":           KeyF2,
-	"F3":           KeyF3,
-	"F4":           KeyF4,
-	"F5":           KeyF5,
-	"F6":           KeyF6,
-	"F7":           KeyF7,
-	"F8":           KeyF8,
-	"F9":           KeyF9,
-	"Home":         KeyHome,
-	"Insert":       KeyInsert,
-	"KeyA":         KeyA,
-	"KeyB":         KeyB,
-	"KeyC":         KeyC,
-	"KeyD":         KeyD,
-	"KeyE":         KeyE,
-	"KeyF":         KeyF,
-	"KeyG":         KeyG,
-	"KeyH":         KeyH,
-	"KeyI":         KeyI,
-	"KeyJ":         KeyJ,
-	"KeyK":         KeyK,
-	"KeyL":         KeyL,
-	"KeyM":         KeyM,
-	"KeyN":         KeyN,
-	"KeyO":         KeyO,
-	"KeyP":         KeyP,
-	"KeyQ":         KeyQ,
-	"KeyR":         KeyR,
-	"KeyS":         KeyS,
-	"KeyT":         KeyT,
-	"KeyU":         KeyU,
-	"KeyV":         KeyV,
-	"KeyW":         KeyW,
-	"KeyX":         KeyX,
-	"KeyY":         KeyY,
-	"KeyZ":         KeyZ,
-	"Minus":        KeyMinus,
-	"PageDown":     KeyPageDown,
-	"PageUp":       KeyPageUp,
-	"Period":       KeyPeriod,
-	"Quote":        KeyApostrophe,
-	"Semicolon":    KeySemicolon,
-	"ShiftLeft":    KeyShift,
-	"ShiftRight":   KeyShift,
-	"Slash":        KeySlash,
-	"Space":        KeySpace,
-	"Tab":          KeyTab,
+var keyToCodes = map[Key][]string{
+	Key0: {
+		"Digit0",
+	},
+	Key1: {
+		"Digit1",
+	},
+	Key2: {
+		"Digit2",
+	},
+	Key3: {
+		"Digit3",
+	},
+	Key4: {
+		"Digit4",
+	},
+	Key5: {
+		"Digit5",
+	},
+	Key6: {
+		"Digit6",
+	},
+	Key7: {
+		"Digit7",
+	},
+	Key8: {
+		"Digit8",
+	},
+	Key9: {
+		"Digit9",
+	},
+	KeyA: {
+		"KeyA",
+	},
+	KeyAlt: {
+		"AltLeft", "AltRight",
+	},
+	KeyApostrophe: {
+		"Quote",
+	},
+	KeyB: {
+		"KeyB",
+	},
+	KeyBackslash: {
+		"Backslash",
+	},
+	KeyBackspace: {
+		"Backspace",
+	},
+	KeyC: {
+		"KeyC",
+	},
+	KeyCapsLock: {
+		"CapsLock",
+	},
+	KeyComma: {
+		"Comma",
+	},
+	KeyControl: {
+		"ControlLeft", "ControlRight",
+	},
+	KeyD: {
+		"KeyD",
+	},
+	KeyDelete: {
+		"Delete",
+	},
+	KeyDown: {
+		"ArrowDown",
+	},
+	KeyE: {
+		"KeyE",
+	},
+	KeyEnd: {
+		"End",
+	},
+	KeyEnter: {
+		"Enter",
+	},
+	KeyEqual: {
+		"Equal",
+	},
+	KeyEscape: {
+		"Escape",
+	},
+	KeyF: {
+		"KeyF",
+	},
+	KeyF1: {
+		"F1",
+	},
+	KeyF10: {
+		"F10",
+	},
+	KeyF11: {
+		"F11",
+	},
+	KeyF12: {
+		"F12",
+	},
+	KeyF2: {
+		"F2",
+	},
+	KeyF3: {
+		"F3",
+	},
+	KeyF4: {
+		"F4",
+	},
+	KeyF5: {
+		"F5",
+	},
+	KeyF6: {
+		"F6",
+	},
+	KeyF7: {
+		"F7",
+	},
+	KeyF8: {
+		"F8",
+	},
+	KeyF9: {
+		"F9",
+	},
+	KeyG: {
+		"KeyG",
+	},
+	KeyGraveAccent: {
+		"Backquote",
+	},
+	KeyH: {
+		"KeyH",
+	},
+	KeyHome: {
+		"Home",
+	},
+	KeyI: {
+		"KeyI",
+	},
+	KeyInsert: {
+		"Insert",
+	},
+	KeyJ: {
+		"KeyJ",
+	},
+	KeyK: {
+		"KeyK",
+	},
+	KeyL: {
+		"KeyL",
+	},
+	KeyLeft: {
+		"ArrowLeft",
+	},
+	KeyLeftBracket: {
+		"BracketLeft",
+	},
+	KeyM: {
+		"KeyM",
+	},
+	KeyMinus: {
+		"Minus",
+	},
+	KeyN: {
+		"KeyN",
+	},
+	KeyO: {
+		"KeyO",
+	},
+	KeyP: {
+		"KeyP",
+	},
+	KeyPageDown: {
+		"PageDown",
+	},
+	KeyPageUp: {
+		"PageUp",
+	},
+	KeyPeriod: {
+		"Period",
+	},
+	KeyQ: {
+		"KeyQ",
+	},
+	KeyR: {
+		"KeyR",
+	},
+	KeyRight: {
+		"ArrowRight",
+	},
+	KeyRightBracket: {
+		"BracketRight",
+	},
+	KeyS: {
+		"KeyS",
+	},
+	KeySemicolon: {
+		"Semicolon",
+	},
+	KeyShift: {
+		"ShiftLeft", "ShiftRight",
+	},
+	KeySlash: {
+		"Slash",
+	},
+	KeySpace: {
+		"Space",
+	},
+	KeyT: {
+		"KeyT",
+	},
+	KeyTab: {
+		"Tab",
+	},
+	KeyU: {
+		"KeyU",
+	},
+	KeyUp: {
+		"ArrowUp",
+	},
+	KeyV: {
+		"KeyV",
+	},
+	KeyW: {
+		"KeyW",
+	},
+	KeyX: {
+		"KeyX",
+	},
+	KeyY: {
+		"KeyY",
+	},
+	KeyZ: {
+		"KeyZ",
+	},
 }
 
 var keyCodeToKeySafari = map[int]Key{

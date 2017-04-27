@@ -32,57 +32,54 @@ import (
 )
 
 var (
-	codeToName          map[string]string
+	nameToCodes         map[string][]string
 	keyCodeToNameSafari map[int]string
 )
 
 func init() {
-	codeToName = map[string]string{
-		"Comma":        "Comma",
-		"Period":       "Period",
-		"AltLeft":      "Alt",
-		"AltRight":     "Alt",
-		"CapsLock":     "CapsLock",
-		"ControlLeft":  "Control",
-		"ControlRight": "Control",
-		"ShiftLeft":    "Shift",
-		"ShiftRight":   "Shift",
-		"Enter":        "Enter",
-		"Space":        "Space",
-		"Tab":          "Tab",
-		"Delete":       "Delete",
-		"End":          "End",
-		"Home":         "Home",
-		"Insert":       "Insert",
-		"PageDown":     "PageDown",
-		"PageUp":       "PageUp",
-		"ArrowDown":    "Down",
-		"ArrowLeft":    "Left",
-		"ArrowRight":   "Right",
-		"ArrowUp":      "Up",
-		"Escape":       "Escape",
-		"Backspace":    "Backspace",
-		"Quote":        "Apostrophe",
-		"Minus":        "Minus",
-		"Slash":        "Slash",
-		"Semicolon":    "Semicolon",
-		"Equal":        "Equal",
-		"BracketLeft":  "LeftBracket",
-		"Backslash":    "Backslash",
-		"BracketRight": "RightBracket",
-		"Backquote":    "GraveAccent",
+	nameToCodes = map[string][]string{
+		"Comma":        {"Comma"},
+		"Period":       {"Period"},
+		"Alt":          {"AltLeft", "AltRight"},
+		"CapsLock":     {"CapsLock"},
+		"Control":      {"ControlLeft", "ControlRight"},
+		"Shift":        {"ShiftLeft", "ShiftRight"},
+		"Enter":        {"Enter"},
+		"Space":        {"Space"},
+		"Tab":          {"Tab"},
+		"Delete":       {"Delete"},
+		"End":          {"End"},
+		"Home":         {"Home"},
+		"Insert":       {"Insert"},
+		"PageDown":     {"PageDown"},
+		"PageUp":       {"PageUp"},
+		"Down":         {"ArrowDown"},
+		"Left":         {"ArrowLeft"},
+		"Right":        {"ArrowRight"},
+		"Up":           {"ArrowUp"},
+		"Escape":       {"Escape"},
+		"Backspace":    {"Backspace"},
+		"Apostrophe":   {"Quote"},
+		"Minus":        {"Minus"},
+		"Slash":        {"Slash"},
+		"Semicolon":    {"Semicolon"},
+		"Equal":        {"Equal"},
+		"LeftBracket":  {"BracketLeft"},
+		"Backslash":    {"Backslash"},
+		"RightBracket": {"BracketRight"},
+		"GraveAccent":  {"Backquote"},
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		codeToName["Digit"+string(c)] = string(c)
+		nameToCodes[string(c)] = []string{"Digit" + string(c)}
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		codeToName["Key"+string(c)] = string(c)
+		nameToCodes[string(c)] = []string{"Key" + string(c)}
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
-		codeToName["F"+strconv.Itoa(i)] = "F" + strconv.Itoa(i)
+		nameToCodes["F"+strconv.Itoa(i)] = []string{"F" + strconv.Itoa(i)}
 	}
 }
 
@@ -201,8 +198,10 @@ const uiKeysJSTmpl = `{{.License}}
 
 package ui
 
-var codeToKey = map[string]Key{
-{{range $code, $name := .CodeToName}}"{{$code}}": Key{{$name}},
+var keyToCodes = map[Key][]string{
+{{range $name, $codes := .NameToCodes}}Key{{$name}}: []string{
+{{range $code := $codes}}"{{$code}}",{{end}}
+},
 {{end}}
 }
 
@@ -301,9 +300,9 @@ func main() {
 	namesSet := map[string]struct{}{}
 	namesWithoutModsSet := map[string]struct{}{}
 	codes := []string{}
-	for code, name := range codeToName {
+	for name, cs := range nameToCodes {
 		namesSet[name] = struct{}{}
-		codes = append(codes, code)
+		codes = append(codes, cs...)
 		if name != "Alt" && name != "Control" && name != "Shift" {
 			namesWithoutModsSet[name] = struct{}{}
 		}
@@ -353,7 +352,7 @@ func main() {
 			"License":             license,
 			"Notice":              notice,
 			"BuildTag":            buildTag,
-			"CodeToName":          codeToName,
+			"NameToCodes":         nameToCodes,
 			"KeyCodeToNameSafari": keyCodeToNameSafari,
 			"Codes":               codes,
 			"KeyNames":            names,

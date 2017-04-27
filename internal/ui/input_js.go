@@ -37,10 +37,7 @@ func (i *input) IsKeyPressed(key Key) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if i.keyPressed != nil {
-		for c, k := range codeToKey {
-			if k != key {
-				continue
-			}
+		for _, c := range keyToCodes[key] {
 			if i.keyPressed[c] {
 				return true
 			}
