@@ -14,35 +14,24 @@
 
 package ui
 
-var currentInput = &input{}
-
-type Input interface {
-	IsKeyPressed(key Key) bool
-	IsMouseButtonPressed(button MouseButton) bool
-	CursorPosition() (x, y int)
-	GamepadAxis(id int, axis int) float64
-	GamepadAxisNum(id int) int
-	GamepadButtonNum(id int) int
-	IsGamepadButtonPressed(id int, button GamepadButton) bool
-	Touches() []Touch
-}
+var currentInput = &Input{}
 
 type Touch interface {
 	ID() int
 	Position() (x, y int)
 }
 
-func CurrentInput() Input {
+func CurrentInput() *Input {
 	return currentInput
 }
 
-func (i *input) CursorPosition() (x, y int) {
+func (i *Input) CursorPosition() (x, y int) {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	return i.cursorX, i.cursorY
 }
 
-func (i *input) GamepadAxisNum(id int) int {
+func (i *Input) GamepadAxisNum(id int) int {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
@@ -51,7 +40,7 @@ func (i *input) GamepadAxisNum(id int) int {
 	return i.gamepads[id].axisNum
 }
 
-func (i *input) GamepadAxis(id int, axis int) float64 {
+func (i *Input) GamepadAxis(id int, axis int) float64 {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
@@ -60,7 +49,7 @@ func (i *input) GamepadAxis(id int, axis int) float64 {
 	return i.gamepads[id].axes[axis]
 }
 
-func (i *input) GamepadButtonNum(id int) int {
+func (i *Input) GamepadButtonNum(id int) int {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
@@ -69,7 +58,7 @@ func (i *input) GamepadButtonNum(id int) int {
 	return i.gamepads[id].buttonNum
 }
 
-func (i *input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
+func (i *Input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
@@ -78,7 +67,7 @@ func (i *input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return i.gamepads[id].buttonPressed[button]
 }
 
-func (in *input) Touches() []Touch {
+func (in *Input) Touches() []Touch {
 	in.m.RLock()
 	defer in.m.RUnlock()
 	t := make([]Touch, len(in.touches))

@@ -20,7 +20,7 @@ import (
 	"sync"
 )
 
-type input struct {
+type Input struct {
 	cursorX  int
 	cursorY  int
 	gamepads [16]gamePad
@@ -28,15 +28,15 @@ type input struct {
 	m        sync.RWMutex
 }
 
-func (i *input) IsKeyPressed(key Key) bool {
+func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 
-func (i *input) IsMouseButtonPressed(key MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 	return false
 }
 
-func (i *input) updateTouches(touches []Touch) {
+func (i *Input) updateTouches(touches []Touch) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	ts := make([]touch, len(touches))

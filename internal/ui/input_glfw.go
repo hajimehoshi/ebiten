@@ -25,7 +25,7 @@ import (
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
 )
 
-type input struct {
+type Input struct {
 	keyPressed         map[glfw.Key]bool
 	mouseButtonPressed map[glfw.MouseButton]bool
 	cursorX            int
@@ -35,7 +35,7 @@ type input struct {
 	m                  sync.RWMutex
 }
 
-func (i *input) IsKeyPressed(key Key) bool {
+func (i *Input) IsKeyPressed(key Key) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if i.keyPressed == nil {
@@ -52,7 +52,7 @@ func (i *input) IsKeyPressed(key Key) bool {
 	return false
 }
 
-func (i *input) IsMouseButtonPressed(button MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if i.mouseButtonPressed == nil {
@@ -75,7 +75,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *input) update(window *glfw.Window, scale float64) {
+func (i *Input) update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
