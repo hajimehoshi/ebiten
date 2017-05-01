@@ -14,8 +14,14 @@
 
 package ebiten
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
+)
+
 // texelAdjustment represents a number to be used to adjust texel.
 // Texels are adjusted by amount propotional to inverse of texelAdjustment.
 // This is necessary not to use unexpected pixels outside of texels.
 // See #317.
 const texelAdjustment = 256
+
+var quadFloat32Num = graphics.QuadVertexSizeInBytes() / 4

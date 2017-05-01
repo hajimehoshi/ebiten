@@ -18,14 +18,12 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	// TODO: This function should be in graphics package?
-	totalSize := graphics.QuadVertexSizeInBytes() / 4
 	l := parts.Len()
-	vs := make([]float32, l*totalSize)
+	vs := make([]float32, l*quadFloat32Num)
 	g := geo.UnsafeElements()
 	g0 := float32(g[0])
 	g1 := float32(g[1])
@@ -102,7 +100,7 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 		vs[n+38] = g4
 		vs[n+39] = g5
 
-		n += totalSize
+		n += quadFloat32Num
 	}
 	return vs
 }

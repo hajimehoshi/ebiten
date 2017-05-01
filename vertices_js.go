@@ -20,14 +20,12 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	// TODO: This function should be in graphics package?
-	totalSize := graphics.QuadVertexSizeInBytes() / 4
 	l := parts.Len()
-	vs := js.Global.Get("Float32Array").New(l * totalSize)
+	vs := js.Global.Get("Float32Array").New(l * quadFloat32Num)
 	g := geo.UnsafeElements()
 	g0 := g[0]
 	g1 := g[1]
@@ -103,7 +101,7 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 		vs.SetIndex(n+38, g4)
 		vs.SetIndex(n+39, g5)
 
-		n += totalSize
+		n += quadFloat32Num
 	}
 	return vs.Interface().([]float32)
 }
