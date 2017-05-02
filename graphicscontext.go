@@ -107,7 +107,7 @@ func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) 
 	if err := graphics.FlushCommands(context); err != nil {
 		return false, err
 	}
-	return c.offscreen.impl.isInvalidated(context), nil
+	return c.offscreen.restorable.IsInvalidated(context), nil
 }
 
 func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {

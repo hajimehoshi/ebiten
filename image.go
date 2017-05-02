@@ -41,17 +41,17 @@ func glContext() *opengl.Context {
 type images struct {
 	images      map[*restorable.Image]struct{}
 	m           sync.Mutex
-	lastChecked *imageImpl
+	lastChecked *restorable.Image
 }
 
 var theImagesForRestoring = images{
 	images: map[*restorable.Image]struct{}{},
 }
 
-func (i *images) add(img *imageImpl) *Image {
+func (i *images) add(img *restorable.Image) *Image {
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.images[img.restorable] = struct{}{}
+	i.images[img] = struct{}{}
 	eimg := &Image{img}
 	runtime.SetFinalizer(eimg, theImagesForRestoring.remove)
 	return eimg
@@ -63,7 +63,7 @@ func (i *images) remove(img *Image) {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	delete(i.images, img.impl.restorable)
+	delete(i.images, img.restorable)
 	runtime.SetFinalizer(img, nil)
 }
 
@@ -82,15 +82,16 @@ func (i *images) resolveStalePixels(context *opengl.Context) error {
 func (i *images) resetPixelsIfDependingOn(target *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.lastChecked == target.impl {
+	if i.lastChecked == target.restorable {
 		return
 	}
-	i.lastChecked = target.impl
-	if target.impl.isDisposed() {
+	i.lastChecked = target.restorable
+	if target.restorable == nil {
+		// disposed
 		return
 	}
 	for img := range i.images {
-		img.MakeStaleIfDependingOn(target.impl.restorable)
+		img.MakeStaleIfDependingOn(target.restorable)
 	}
 }
 
@@ -136,12 +137,12 @@ func (i *images) clearVolatileImages() {
 //
 // Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
 type Image struct {
-	impl *imageImpl
+	restorable *restorable.Image
 }
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.impl.restorable.Size()
+	return i.restorable.Size()
 }
 
 // Clear resets the pixels of the image into 0.
@@ -151,7 +152,7 @@ func (i *Image) Size() (width, height int) {
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
-	i.impl.Fill(color.Transparent)
+	i.restorable.Fill(color.RGBA{})
 	return nil
 }
 
@@ -162,7 +163,8 @@ func (i *Image) Clear() error {
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
-	i.impl.Fill(clr)
+	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
+	i.restorable.Fill(rgba)
 	return nil
 }
 
@@ -190,13 +192,41 @@ func (i *Image) Fill(clr color.Color) error {
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
-	i.impl.DrawImage(image, options)
+	// Calculate vertices before locking because the user can do anything in
+	// options.ImageParts interface without deadlock (e.g. Call Image functions).
+	if options == nil {
+		options = &DrawImageOptions{}
+	}
+	parts := options.ImageParts
+	if parts == nil {
+		// Check options.Parts for backward-compatibility.
+		dparts := options.Parts
+		if dparts != nil {
+			parts = imageParts(dparts)
+		} else {
+			w, h := image.restorable.Size()
+			parts = &wholeImage{w, h}
+		}
+	}
+	w, h := image.restorable.Size()
+	vs := vertices(parts, w, h, &options.GeoM.impl)
+	if len(vs) == 0 {
+		return nil
+	}
+	if i == image {
+		panic("ebiten: Image.DrawImage: image must be different from the receiver")
+	}
+	if i.restorable == nil {
+		return nil
+	}
+	mode := opengl.CompositeMode(options.CompositeMode)
+	i.restorable.DrawImage(image.restorable, vs, options.ColorM.impl, mode)
 	return nil
 }
 
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
-	w, h := i.impl.restorable.Size()
+	w, h := i.restorable.Size()
 	return image.Rect(0, 0, w, h)
 }
 
@@ -211,7 +241,15 @@ func (i *Image) ColorModel() color.Model {
 //
 // This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
-	return i.impl.At(x, y, glContext())
+	if i.restorable == nil {
+		return color.Transparent
+	}
+	// TODO: Error should be delayed until flushing. Do not panic here.
+	clr, err := i.restorable.At(x, y, glContext())
+	if err != nil {
+		panic(err)
+	}
+	return clr
 }
 
 // Dispose disposes the image data. After disposing, the image becomes invalid.
@@ -223,11 +261,13 @@ func (i *Image) At(x, y int) color.Color {
 //
 // Dipose always return nil as of 1.5.0-alpha.
 func (i *Image) Dispose() error {
-	if i.impl.isDisposed() {
+	if i.restorable == nil {
 		return nil
 	}
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
-	i.impl.Dispose()
+	i.restorable.Dispose()
+	i.restorable = nil
+	runtime.SetFinalizer(i, nil)
 	return nil
 }
 
@@ -244,7 +284,19 @@ func (i *Image) Dispose() error {
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []uint8) error {
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
-	i.impl.ReplacePixels(p)
+	w, h := i.restorable.Size()
+	if l := 4 * w * h; len(p) != l {
+		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
+	}
+	if i.restorable == nil {
+		return nil
+	}
+	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	pix := make([]uint8, 4*w2*h2)
+	for j := 0; j < h; j++ {
+		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
+	}
+	i.restorable.ReplacePixels(pix)
 	return nil
 }
 
@@ -266,9 +318,9 @@ type DrawImageOptions struct {
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
-	img := newImageImpl(width, height, filter, false)
-	img.Fill(color.Transparent)
-	return theImagesForRestoring.add(img), nil
+	r := restorable.NewImage(width, height, glFilter(filter), false)
+	r.Fill(color.RGBA{})
+	return theImagesForRestoring.add(r), nil
 }
 
 // newVolatileImage returns an empty 'volatile' image.
@@ -286,9 +338,9 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
-	img := newImageImpl(width, height, filter, true)
-	img.Fill(color.Transparent)
-	return theImagesForRestoring.add(img), nil
+	r := restorable.NewImage(width, height, glFilter(filter), true)
+	r.Fill(color.RGBA{})
+	return theImagesForRestoring.add(r), nil
 }
 
 // NewImageFromImage creates a new image with the given image (source).
@@ -298,15 +350,17 @@ func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 // Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
-	checkSize(size.X, size.Y)
-	img := newImageImplFromImage(source, filter)
-	return theImagesForRestoring.add(img), nil
+	w, h := size.X, size.Y
+	checkSize(w, h)
+	rgbaImg := graphics.CopyImage(source)
+	r := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
+	return theImagesForRestoring.add(r), nil
 }
 
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	checkSize(width, height)
-	img := newScreenImageImpl(width, height)
-	return theImagesForRestoring.add(img), nil
+	r := restorable.NewScreenFramebufferImage(width, height)
+	return theImagesForRestoring.add(r), nil
 }
 
 const MaxImageSize = graphics.MaxImageSize
