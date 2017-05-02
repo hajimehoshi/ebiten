@@ -46,7 +46,13 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
+		if dx0 == dx1 || dy0 == dy1 {
+			continue
+		}
 		sx0, sy0, sx1, sy1 := parts.Src(i)
+		if sx0 == sx1 || sy0 == sy1 {
+			continue
+		}
 		u0, v0, u1, v1 := float64(sx0)/wf, float64(sy0)/hf, float64(sx1)/wf, float64(sy1)/hf
 		// Adjust texels to fix a problem that outside texels are used (#317).
 		u1 -= 1.0 / wf / texelAdjustment
