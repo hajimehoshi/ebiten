@@ -58,12 +58,13 @@ func (i *images) add(img *restorable.Image) *Image {
 }
 
 func (i *images) remove(img *Image) {
+	r := img.restorable
 	if err := img.Dispose(); err != nil {
 		panic(err)
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	delete(i.images, img.restorable)
+	delete(i.images, r)
 	runtime.SetFinalizer(img, nil)
 }
 
