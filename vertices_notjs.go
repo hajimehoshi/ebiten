@@ -44,6 +44,7 @@ func vertices(parts ImageParts, width, height int, geo *affine.GeoM) []float32 {
 	n := 0
 	for i := 0; i < l; i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
+		// This is necessary to avoid wrong drawing. See #348.
 		if dx0 == dx1 || dy0 == dy1 {
 			continue
 		}
