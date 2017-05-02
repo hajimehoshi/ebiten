@@ -74,15 +74,6 @@ func (i *imageImpl) Fill(clr color.Color) {
 	i.restorable.Fill(rgba)
 }
 
-func (i *imageImpl) clearIfVolatile() {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i.restorable == nil {
-		return
-	}
-	i.restorable.ClearIfVolatile()
-}
-
 func (i *imageImpl) DrawImage(image *Image, options *DrawImageOptions) {
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -132,56 +123,6 @@ func (i *imageImpl) At(x, y int, context *opengl.Context) color.Color {
 		panic(err)
 	}
 	return clr
-}
-
-func (i *imageImpl) resolveStalePixels(context *opengl.Context) error {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i.restorable == nil {
-		return nil
-	}
-	if err := i.restorable.ReadPixelsFromVRAMIfStale(context); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *imageImpl) resetPixelsIfDependingOn(target *imageImpl, context *opengl.Context) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i == target {
-		return
-	}
-	if i.restorable == nil {
-		return
-	}
-	if target.isDisposed() {
-		panic("ebiten: target must not be disposed")
-	}
-	// target is an image that is about to be tried mutating.
-	// If pixels object is related to that image, the pixels must be reset.
-	i.restorable.MakeStaleIfDependingOn(target.restorable)
-}
-
-func (i *imageImpl) hasDependency() bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i.restorable == nil {
-		return false
-	}
-	return i.restorable.HasDependency()
-}
-
-func (i *imageImpl) restore(context *opengl.Context) error {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i.restorable == nil {
-		return nil
-	}
-	if err := i.restorable.Restore(context); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (i *imageImpl) Dispose() {

@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
 func glContext() *opengl.Context {
@@ -38,19 +39,19 @@ func glContext() *opengl.Context {
 }
 
 type images struct {
-	images      map[*imageImpl]struct{}
+	images      map[*restorable.Image]struct{}
 	m           sync.Mutex
 	lastChecked *imageImpl
 }
 
 var theImagesForRestoring = images{
-	images: map[*imageImpl]struct{}{},
+	images: map[*restorable.Image]struct{}{},
 }
 
 func (i *images) add(img *imageImpl) *Image {
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.images[img] = struct{}{}
+	i.images[img.restorable] = struct{}{}
 	eimg := &Image{img}
 	runtime.SetFinalizer(eimg, theImagesForRestoring.remove)
 	return eimg
@@ -62,7 +63,7 @@ func (i *images) remove(img *Image) {
 	}
 	i.m.Lock()
 	defer i.m.Unlock()
-	delete(i.images, img.impl)
+	delete(i.images, img.impl.restorable)
 	runtime.SetFinalizer(img, nil)
 }
 
@@ -71,14 +72,14 @@ func (i *images) resolveStalePixels(context *opengl.Context) error {
 	defer i.m.Unlock()
 	i.lastChecked = nil
 	for img := range i.images {
-		if err := img.resolveStalePixels(context); err != nil {
+		if err := img.ReadPixelsFromVRAMIfStale(context); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (i *images) resetPixelsIfDependingOn(target *Image, context *opengl.Context) {
+func (i *images) resetPixelsIfDependingOn(target *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.lastChecked == target.impl {
@@ -89,7 +90,7 @@ func (i *images) resetPixelsIfDependingOn(target *Image, context *opengl.Context
 		return
 	}
 	for img := range i.images {
-		img.resetPixelsIfDependingOn(target.impl, context)
+		img.MakeStaleIfDependingOn(target.impl.restorable)
 	}
 }
 
@@ -98,10 +99,10 @@ func (i *images) restore(context *opengl.Context) error {
 	defer i.m.Unlock()
 	// Framebuffers/textures cannot be disposed since framebuffers/textures that
 	// don't belong to the current context.
-	imagesWithoutDependency := []*imageImpl{}
-	imagesWithDependency := []*imageImpl{}
+	imagesWithoutDependency := []*restorable.Image{}
+	imagesWithDependency := []*restorable.Image{}
 	for img := range i.images {
-		if img.hasDependency() {
+		if img.HasDependency() {
 			imagesWithDependency = append(imagesWithDependency, img)
 		} else {
 			imagesWithoutDependency = append(imagesWithoutDependency, img)
@@ -109,12 +110,12 @@ func (i *images) restore(context *opengl.Context) error {
 	}
 	// Images depending on other images should be processed first.
 	for _, img := range imagesWithoutDependency {
-		if err := img.restore(context); err != nil {
+		if err := img.Restore(context); err != nil {
 			return err
 		}
 	}
 	for _, img := range imagesWithDependency {
-		if err := img.restore(context); err != nil {
+		if err := img.Restore(context); err != nil {
 			return err
 		}
 	}
@@ -125,7 +126,7 @@ func (i *images) clearVolatileImages() {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		img.clearIfVolatile()
+		img.ClearIfVolatile()
 	}
 }
 
@@ -149,7 +150,7 @@ func (i *Image) Size() (width, height int) {
 //
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
-	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
+	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	i.impl.Fill(color.Transparent)
 	return nil
 }
@@ -160,7 +161,7 @@ func (i *Image) Clear() error {
 //
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
-	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
+	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	i.impl.Fill(clr)
 	return nil
 }
@@ -188,7 +189,7 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
-	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
+	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	i.impl.DrawImage(image, options)
 	return nil
 }
@@ -225,7 +226,7 @@ func (i *Image) Dispose() error {
 	if i.impl.isDisposed() {
 		return nil
 	}
-	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
+	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	i.impl.Dispose()
 	return nil
 }
@@ -242,7 +243,7 @@ func (i *Image) Dispose() error {
 //
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []uint8) error {
-	theImagesForRestoring.resetPixelsIfDependingOn(i, glContext())
+	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	i.impl.ReplacePixels(p)
 	return nil
 }
