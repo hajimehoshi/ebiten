@@ -142,15 +142,7 @@ func (i *Image) Fill(clr color.RGBA) {
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, clr affine.ColorM, mode opengl.CompositeMode) {
-	c := &drawImageCommand{
-		dst:         i,
-		src:         src,
-		verticesNum: len(vertices),
-		color:       clr,
-		mode:        mode,
-	}
-	theCommandQueue.AppendVertices(vertices)
-	theCommandQueue.Enqueue(c)
+	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode)
 }
 
 func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {

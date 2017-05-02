@@ -42,9 +42,7 @@ var theCommandQueue = &commandQueue{
 	vertices: []float32{},
 }
 
-func (q *commandQueue) AppendVertices(vertices []float32) {
-	q.m.Lock()
-	defer q.m.Unlock()
+func (q *commandQueue) appendVertices(vertices []float32) {
 	if len(q.vertices) < q.verticesNum+len(vertices) {
 		n := q.verticesNum + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
@@ -53,19 +51,31 @@ func (q *commandQueue) AppendVertices(vertices []float32) {
 	q.verticesNum += len(vertices)
 }
 
-func (q *commandQueue) Enqueue(command command) {
+func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr affine.ColorM, mode opengl.CompositeMode) {
 	q.m.Lock()
 	defer q.m.Unlock()
+	q.appendVertices(vertices)
 	if 0 < len(q.commands) {
-		if c1, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
-			if c2, ok := command.(*drawImageCommand); ok {
-				if c1.isMergeable(c2) {
-					c1.verticesNum += c2.verticesNum
-					return
-				}
+		if c, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
+			if c.isMergeable(dst, src, clr, mode) {
+				c.verticesNum += len(vertices)
+				return
 			}
 		}
 	}
+	c := &drawImageCommand{
+		dst:         dst,
+		src:         src,
+		verticesNum: len(vertices),
+		color:       clr,
+		mode:        mode,
+	}
+	q.commands = append(q.commands, c)
+}
+
+func (q *commandQueue) Enqueue(command command) {
+	q.m.Lock()
+	defer q.m.Unlock()
 	q.commands = append(q.commands, command)
 }
 
@@ -225,17 +235,17 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
-func (c *drawImageCommand) isMergeable(other *drawImageCommand) bool {
-	if c.dst != other.dst {
+func (c *drawImageCommand) isMergeable(dst, src *Image, clr affine.ColorM, mode opengl.CompositeMode) bool {
+	if c.dst != dst {
 		return false
 	}
-	if c.src != other.src {
+	if c.src != src {
 		return false
 	}
-	if !c.color.Equals(&other.color) {
+	if !c.color.Equals(&clr) {
 		return false
 	}
-	if c.mode != other.mode {
+	if c.mode != mode {
 		return false
 	}
 	return true
