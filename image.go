@@ -65,7 +65,6 @@ func (i *images) remove(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	delete(i.images, r)
-	runtime.SetFinalizer(img, nil)
 }
 
 func (i *images) resolveStalePixels(context *opengl.Context) error {
