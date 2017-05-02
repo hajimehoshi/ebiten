@@ -191,6 +191,9 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
+	if i.restorable == nil {
+		return nil
+	}
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -215,9 +218,6 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 	}
 	if i == image {
 		panic("ebiten: Image.DrawImage: image must be different from the receiver")
-	}
-	if i.restorable == nil {
-		return nil
 	}
 	mode := opengl.CompositeMode(options.CompositeMode)
 	i.restorable.DrawImage(image.restorable, vs, options.ColorM.impl, mode)
@@ -283,13 +283,13 @@ func (i *Image) Dispose() error {
 //
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []uint8) error {
+	if i.restorable == nil {
+		return nil
+	}
 	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	w, h := i.restorable.Size()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
-	}
-	if i.restorable == nil {
-		return nil
 	}
 	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
 	pix := make([]uint8, 4*w2*h2)
