@@ -44,7 +44,7 @@ type CompositeMode int
 
 // This name convention follows CSS compositing: https://drafts.fxtf.org/compositing-2/.
 //
-// In the above comments,
+// In the comments,
 // c_src, c_dst and c_out represent alpha-premultiplied RGB values of source, destination and output respectively. α_src and α_dst represent alpha values of source and destination respectively.
 const (
 	// Regular alpha blending

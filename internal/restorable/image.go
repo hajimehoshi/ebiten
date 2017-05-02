@@ -202,7 +202,7 @@ func (p *Image) HasDependency() bool {
 	return p.drawImageHistory != nil
 }
 
-// RestoreImage restores *graphics.Image from the pixels using its state.
+// Restore restores *graphics.Image from the pixels using its state.
 func (p *Image) Restore(context *opengl.Context) error {
 	w, h := p.image.Size()
 	if p.screen {
