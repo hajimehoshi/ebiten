@@ -221,7 +221,6 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), false)
 	r.Fill(color.RGBA{})
-	restorable.Images().Add(r)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
@@ -244,7 +243,6 @@ func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), true)
 	r.Fill(color.RGBA{})
-	restorable.Images().Add(r)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
@@ -261,7 +259,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	checkSize(w, h)
 	rgbaImg := graphics.CopyImage(source)
 	r := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
-	restorable.Images().Add(r)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
@@ -270,7 +267,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewScreenFramebufferImage(width, height)
-	restorable.Images().Add(r)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil

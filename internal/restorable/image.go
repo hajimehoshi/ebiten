@@ -49,11 +49,13 @@ type Image struct {
 }
 
 func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
-	return &Image{
+	i := &Image{
 		image:    graphics.NewImage(width, height, filter),
 		filter:   filter,
 		volatile: volatile,
 	}
+	theImages.add(i)
+	return i
 }
 
 func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) *Image {
@@ -62,19 +64,23 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 	for j := 0; j < height; j++ {
 		copy(p[j*w2*4:(j+1)*w2*4], source.Pix[j*source.Stride:])
 	}
-	return &Image{
+	i := &Image{
 		image:      graphics.NewImageFromImage(source, width, height, filter),
 		basePixels: p,
 		filter:     filter,
 	}
+	theImages.add(i)
+	return i
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
-	return &Image{
+	i := &Image{
 		image:    graphics.NewScreenFramebufferImage(width, height),
 		volatile: true,
 		screen:   true,
 	}
+	theImages.add(i)
+	return i
 }
 
 func (p *Image) Size() (int, int) {

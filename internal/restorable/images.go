@@ -35,7 +35,7 @@ func Images() *images {
 	return theImages
 }
 
-func (i *images) Add(img *Image) {
+func (i *images) add(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.images[img] = struct{}{}
