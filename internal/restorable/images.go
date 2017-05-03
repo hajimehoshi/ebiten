@@ -30,8 +30,16 @@ var theImages = &images{
 	images: map[*Image]struct{}{},
 }
 
-func Images() *images {
-	return theImages
+func ResolveStalePixels(context *opengl.Context) error {
+	return theImages.resolveStalePixels(context)
+}
+
+func Restore(context *opengl.Context) error {
+	return theImages.restore(context)
+}
+
+func ClearVolatileImages() {
+	theImages.clearVolatileImages()
 }
 
 func (i *images) add(img *Image) {
@@ -46,7 +54,7 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img)
 }
 
-func (i *images) ResolveStalePixels(context *opengl.Context) error {
+func (i *images) resolveStalePixels(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.lastChecked = nil
@@ -74,7 +82,7 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 	}
 }
 
-func (i *images) Restore(context *opengl.Context) error {
+func (i *images) restore(context *opengl.Context) error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	// Framebuffers/textures cannot be disposed since framebuffers/textures that
@@ -102,7 +110,7 @@ func (i *images) Restore(context *opengl.Context) error {
 	return nil
 }
 
-func (i *images) ClearVolatileImages() {
+func (i *images) clearVolatileImages() {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
