@@ -72,7 +72,7 @@ func (i *images) resolveStalePixels(context *opengl.Context) error {
 	defer i.m.Unlock()
 	i.lastChecked = nil
 	for img := range i.images {
-		if err := img.ReadPixelsFromVRAMIfStale(context); err != nil {
+		if err := img.ResolveStalePixels(context); err != nil {
 			return err
 		}
 	}

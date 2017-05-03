@@ -24,6 +24,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
+const drawImageHistoryMax = 100
+
 type drawImageHistoryItem struct {
 	image    *Image
 	vertices []float32
@@ -129,6 +131,10 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	if p.stale {
 		return
 	}
+	if len(p.drawImageHistory)+1 > drawImageHistoryMax {
+		p.makeStale()
+		return
+	}
 	// All images must be resolved and not stale each after frame.
 	// So we don't have to care if image is stale or not here.
 	item := &drawImageHistoryItem{
@@ -164,7 +170,6 @@ func (p *Image) MakeStaleIfDependingOn(target *Image) {
 	if p.stale {
 		return
 	}
-	// TODO: Performance is bad when drawImageHistory is too many.
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
 			p.makeStale()
@@ -185,7 +190,7 @@ func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Contex
 	return nil
 }
 
-func (p *Image) ReadPixelsFromVRAMIfStale(context *opengl.Context) error {
+func (p *Image) ResolveStalePixels(context *opengl.Context) error {
 	if p.volatile {
 		return nil
 	}
@@ -199,7 +204,7 @@ func (p *Image) HasDependency() bool {
 	if p.stale {
 		return false
 	}
-	return p.drawImageHistory != nil
+	return len(p.drawImageHistory) > 0
 }
 
 // Restore restores *graphics.Image from the pixels using its state.
