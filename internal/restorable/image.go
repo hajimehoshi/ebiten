@@ -103,6 +103,7 @@ func (p *Image) ClearIfVolatile() {
 }
 
 func (p *Image) Fill(clr color.RGBA) {
+	theImages.resetPixelsIfDependingOn(p)
 	p.basePixels = nil
 	p.baseColor = clr
 	p.drawImageHistory = nil
@@ -111,6 +112,7 @@ func (p *Image) Fill(clr color.RGBA) {
 }
 
 func (p *Image) ReplacePixels(pixels []uint8) {
+	theImages.resetPixelsIfDependingOn(p)
 	p.image.ReplacePixels(pixels)
 	p.basePixels = pixels
 	p.baseColor = color.RGBA{}
@@ -119,6 +121,7 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 }
 
 func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
+	theImages.resetPixelsIfDependingOn(p)
 	if img.stale || img.volatile {
 		p.makeStale()
 	} else {
@@ -190,7 +193,7 @@ func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Contex
 	return nil
 }
 
-func (p *Image) ResolveStalePixels(context *opengl.Context) error {
+func (p *Image) resolveStalePixels(context *opengl.Context) error {
 	if p.volatile {
 		return nil
 	}
@@ -200,7 +203,7 @@ func (p *Image) ResolveStalePixels(context *opengl.Context) error {
 	return p.readPixelsFromVRAM(p.image, context)
 }
 
-func (p *Image) HasDependency() bool {
+func (p *Image) hasDependency() bool {
 	if p.stale {
 		return false
 	}
@@ -248,7 +251,7 @@ func (p *Image) Restore(context *opengl.Context) error {
 	}
 	for _, c := range p.drawImageHistory {
 		// c.image.image must be already restored.
-		if c.image.HasDependency() {
+		if c.image.hasDependency() {
 			panic("not reach")
 		}
 		gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode)
@@ -266,7 +269,8 @@ func (p *Image) Restore(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Image) Dispose() {
+func (p *Image) dispose() {
+	theImages.resetPixelsIfDependingOn(p)
 	p.image.Dispose()
 	p.image = nil
 	p.basePixels = nil

@@ -19,7 +19,6 @@ import (
 	"image"
 	"image/color"
 	"runtime"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -36,99 +35,6 @@ func glContext() *opengl.Context {
 		return nil
 	}
 	return g.GLContext()
-}
-
-type images struct {
-	images      map[*restorable.Image]struct{}
-	m           sync.Mutex
-	lastChecked *restorable.Image
-}
-
-var theImagesForRestoring = images{
-	images: map[*restorable.Image]struct{}{},
-}
-
-func (i *images) add(img *restorable.Image) *Image {
-	i.m.Lock()
-	defer i.m.Unlock()
-	i.images[img] = struct{}{}
-	eimg := &Image{img}
-	runtime.SetFinalizer(eimg, theImagesForRestoring.remove)
-	return eimg
-}
-
-func (i *images) remove(img *Image) {
-	r := img.restorable
-	if err := img.Dispose(); err != nil {
-		panic(err)
-	}
-	i.m.Lock()
-	defer i.m.Unlock()
-	delete(i.images, r)
-}
-
-func (i *images) resolveStalePixels(context *opengl.Context) error {
-	i.m.Lock()
-	defer i.m.Unlock()
-	i.lastChecked = nil
-	for img := range i.images {
-		if err := img.ResolveStalePixels(context); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *images) resetPixelsIfDependingOn(target *Image) {
-	i.m.Lock()
-	defer i.m.Unlock()
-	if i.lastChecked == target.restorable {
-		return
-	}
-	i.lastChecked = target.restorable
-	if target.restorable == nil {
-		// disposed
-		return
-	}
-	for img := range i.images {
-		img.MakeStaleIfDependingOn(target.restorable)
-	}
-}
-
-func (i *images) restore(context *opengl.Context) error {
-	i.m.Lock()
-	defer i.m.Unlock()
-	// Framebuffers/textures cannot be disposed since framebuffers/textures that
-	// don't belong to the current context.
-	imagesWithoutDependency := []*restorable.Image{}
-	imagesWithDependency := []*restorable.Image{}
-	for img := range i.images {
-		if img.HasDependency() {
-			imagesWithDependency = append(imagesWithDependency, img)
-		} else {
-			imagesWithoutDependency = append(imagesWithoutDependency, img)
-		}
-	}
-	// Images depending on other images should be processed first.
-	for _, img := range imagesWithoutDependency {
-		if err := img.Restore(context); err != nil {
-			return err
-		}
-	}
-	for _, img := range imagesWithDependency {
-		if err := img.Restore(context); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (i *images) clearVolatileImages() {
-	i.m.Lock()
-	defer i.m.Unlock()
-	for img := range i.images {
-		img.ClearIfVolatile()
-	}
 }
 
 // Image represents an image.
@@ -151,7 +57,6 @@ func (i *Image) Size() (width, height int) {
 //
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
-	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	i.restorable.Fill(color.RGBA{})
 	return nil
 }
@@ -162,7 +67,6 @@ func (i *Image) Clear() error {
 //
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
-	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
 	i.restorable.Fill(rgba)
 	return nil
@@ -194,7 +98,6 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 	if i.restorable == nil {
 		return nil
 	}
-	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
@@ -264,10 +167,8 @@ func (i *Image) Dispose() error {
 	if i.restorable == nil {
 		return nil
 	}
-	theImagesForRestoring.resetPixelsIfDependingOn(i)
-	i.restorable.Dispose()
+	restorable.Images().Remove(i.restorable)
 	i.restorable = nil
-	runtime.SetFinalizer(i, nil)
 	return nil
 }
 
@@ -286,7 +187,6 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	if i.restorable == nil {
 		return nil
 	}
-	theImagesForRestoring.resetPixelsIfDependingOn(i)
 	w, h := i.restorable.Size()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
@@ -320,7 +220,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), false)
 	r.Fill(color.RGBA{})
-	return theImagesForRestoring.add(r), nil
+	restorable.Images().Add(r)
+	i := &Image{r}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i, nil
 }
 
 // newVolatileImage returns an empty 'volatile' image.
@@ -340,7 +243,10 @@ func newVolatileImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), true)
 	r.Fill(color.RGBA{})
-	return theImagesForRestoring.add(r), nil
+	restorable.Images().Add(r)
+	i := &Image{r}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i, nil
 }
 
 // NewImageFromImage creates a new image with the given image (source).
@@ -354,13 +260,19 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	checkSize(w, h)
 	rgbaImg := graphics.CopyImage(source)
 	r := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
-	return theImagesForRestoring.add(r), nil
+	restorable.Images().Add(r)
+	i := &Image{r}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i, nil
 }
 
 func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewScreenFramebufferImage(width, height)
-	return theImagesForRestoring.add(r), nil
+	restorable.Images().Add(r)
+	i := &Image{r}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i, nil
 }
 
 const MaxImageSize = graphics.MaxImageSize

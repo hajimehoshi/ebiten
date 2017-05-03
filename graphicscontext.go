@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -160,11 +161,11 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
-	if err := theImagesForRestoring.resolveStalePixels(context); err != nil {
+	if err := restorable.Images().ResolveStalePixels(context); err != nil {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		theImagesForRestoring.clearVolatileImages()
+		restorable.Images().ClearVolatileImages()
 		setRunningSlowly(i < updateCount-1)
 		if err := c.f(c.offscreen); err != nil {
 			return err
@@ -185,7 +186,7 @@ func (c *graphicsContext) restore(context *opengl.Context) error {
 	if err := graphics.Reset(context); err != nil {
 		return err
 	}
-	if err := theImagesForRestoring.restore(context); err != nil {
+	if err := restorable.Images().Restore(context); err != nil {
 		return err
 	}
 	c.invalidated = false
