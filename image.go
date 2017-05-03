@@ -169,6 +169,7 @@ func (i *Image) Dispose() error {
 	}
 	restorable.Images().Remove(i.restorable)
 	i.restorable = nil
+	runtime.SetFinalizer(i, nil)
 	return nil
 }
 
