@@ -18,6 +18,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -55,6 +56,7 @@ func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 		volatile: volatile,
 	}
 	theImages.add(i)
+	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
 
@@ -70,6 +72,7 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 		filter:     filter,
 	}
 	theImages.add(i)
+	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
 
@@ -80,6 +83,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		screen:   true,
 	}
 	theImages.add(i)
+	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
 
@@ -275,7 +279,7 @@ func (p *Image) restore(context *opengl.Context) error {
 	return nil
 }
 
-func (p *Image) dispose() {
+func (p *Image) Dispose() {
 	theImages.resetPixelsIfDependingOn(p)
 	p.image.Dispose()
 	p.image = nil
@@ -283,6 +287,8 @@ func (p *Image) dispose() {
 	p.baseColor = color.RGBA{}
 	p.drawImageHistory = nil
 	p.stale = false
+	theImages.remove(p)
+	runtime.SetFinalizer(p, nil)
 }
 
 func (p *Image) IsInvalidated(context *opengl.Context) bool {

@@ -167,7 +167,7 @@ func (i *Image) Dispose() error {
 	if i.restorable == nil {
 		return nil
 	}
-	restorable.Images().Remove(i.restorable)
+	i.restorable.Dispose()
 	i.restorable = nil
 	runtime.SetFinalizer(i, nil)
 	return nil

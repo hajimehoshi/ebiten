@@ -15,7 +15,6 @@
 package restorable
 
 import (
-	"runtime"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -39,15 +38,12 @@ func (i *images) add(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.images[img] = struct{}{}
-	runtime.SetFinalizer(img, theImages.Remove)
 }
 
-func (i *images) Remove(img *Image) {
-	img.dispose()
+func (i *images) remove(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	delete(i.images, img)
-	runtime.SetFinalizer(img, nil)
 }
 
 func (i *images) ResolveStalePixels(context *opengl.Context) error {
