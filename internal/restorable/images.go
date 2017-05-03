@@ -74,7 +74,7 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 	}
 	i.lastChecked = target
 	for img := range i.images {
-		img.MakeStaleIfDependingOn(target)
+		img.makeStaleIfDependingOn(target)
 	}
 }
 
@@ -94,12 +94,12 @@ func (i *images) Restore(context *opengl.Context) error {
 	}
 	// Images depending on other images should be processed first.
 	for _, img := range imagesWithoutDependency {
-		if err := img.Restore(context); err != nil {
+		if err := img.restore(context); err != nil {
 			return err
 		}
 	}
 	for _, img := range imagesWithDependency {
-		if err := img.Restore(context); err != nil {
+		if err := img.restore(context); err != nil {
 			return err
 		}
 	}
@@ -110,6 +110,6 @@ func (i *images) ClearVolatileImages() {
 	i.m.Lock()
 	defer i.m.Unlock()
 	for img := range i.images {
-		img.ClearIfVolatile()
+		img.clearIfVolatile()
 	}
 }

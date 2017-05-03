@@ -94,7 +94,7 @@ func (p *Image) makeStale() {
 	p.stale = true
 }
 
-func (p *Image) ClearIfVolatile() {
+func (p *Image) clearIfVolatile() {
 	if !p.volatile {
 		return
 	}
@@ -175,7 +175,7 @@ func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
 	return color.RGBA{r, g, b, a}, nil
 }
 
-func (p *Image) MakeStaleIfDependingOn(target *Image) {
+func (p *Image) makeStaleIfDependingOn(target *Image) {
 	if p.stale {
 		return
 	}
@@ -217,7 +217,7 @@ func (p *Image) hasDependency() bool {
 }
 
 // Restore restores *graphics.Image from the pixels using its state.
-func (p *Image) Restore(context *opengl.Context) error {
+func (p *Image) restore(context *opengl.Context) error {
 	w, h := p.image.Size()
 	if p.screen {
 		// The screen image should also be recreated because framebuffer might
