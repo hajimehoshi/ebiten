@@ -35,7 +35,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/audio/internal/driver"
+	"github.com/hajimehoshi/oto"
 )
 
 type players struct {
@@ -188,7 +188,7 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 // In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
 	players      *players
-	driver       *driver.Player
+	driver       *oto.Player
 	sampleRate   int
 	frames       int64
 	writtenBytes int64
@@ -239,7 +239,7 @@ func (c *Context) Update() error {
 	// e.g. a variable for JVM on Android might not be set.
 	if c.driver == nil {
 		// TODO: Rename this other than player
-		p, err := driver.NewPlayer(c.sampleRate, channelNum, bytesPerSample)
+		p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample)
 		c.driver = p
 		if err != nil {
 			return err
