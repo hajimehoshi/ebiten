@@ -340,7 +340,7 @@ func main() {
 		buildTag := ""
 		switch path {
 		case "internal/ui/keys_glfw.go":
-			buildTag = "// +build darwin linux windows" +
+			buildTag = "// +build darwin freebsd linux windows" +
 				"\n// +build !js" +
 				"\n// +build !android" +
 				"\n// +build !ios"
