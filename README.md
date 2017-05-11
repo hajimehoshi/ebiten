@@ -9,6 +9,7 @@ A simple 2D game library in Go
 * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
 * [macOS](https://github.com/hajimehoshi/ebiten/wiki/macOS)
 * [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
+* [FreeBSD](https://github.com/hajimehoshi/ebiten/wiki/FreeBSD)
 * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
 * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
 * [Web browsers (Chrome, Firefox and Safari on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
