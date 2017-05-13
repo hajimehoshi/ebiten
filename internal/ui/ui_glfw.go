@@ -34,6 +34,7 @@ type userInterface struct {
 	width       int
 	height      int
 	scale       float64
+	deviceScale float64
 	funcs       chan func()
 	running     bool
 	sizeChanged bool
@@ -208,7 +209,10 @@ func (u *userInterface) glfwSize() (int, int) {
 }
 
 func (u *userInterface) actualScreenScale() float64 {
-	return u.scale * deviceScale()
+	if u.deviceScale == 0 {
+		u.deviceScale = deviceScale()
+	}
+	return u.scale * u.deviceScale
 }
 
 func (u *userInterface) pollEvents() {

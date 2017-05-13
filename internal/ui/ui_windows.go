@@ -34,7 +34,6 @@ package ui
 // static int getCaptionHeight() {
 //   return GetSystemMetrics(SM_CYCAPTION);
 // }
-//
 import "C"
 
 func deviceScale() float64 {
