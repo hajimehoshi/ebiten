@@ -37,6 +37,9 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
 	gophersRenderTarget.DrawImage(gophersImage, op)

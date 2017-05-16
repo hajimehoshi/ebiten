@@ -70,6 +70,9 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
 		valueInt++
 	}
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	hueInt = clamp(hueInt, -256, 256)
 	saturationInt = clamp(saturationInt, 0, 256)
 	valueInt = clamp(valueInt, 0, 256)

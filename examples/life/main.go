@@ -180,6 +180,9 @@ var (
 
 func update(screen *ebiten.Image) error {
 	world.Progress()
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	world.DrawImage(noiseImage)
 	screen.ReplacePixels(noiseImage.Pix)
 	return nil

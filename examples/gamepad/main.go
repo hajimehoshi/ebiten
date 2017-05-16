@@ -49,6 +49,9 @@ func update(screen *ebiten.Image) error {
 			pressedButtons = append(pressedButtons, strconv.Itoa(int(b)))
 		}
 	}
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 
 	str := `Gamepad
   Axes:

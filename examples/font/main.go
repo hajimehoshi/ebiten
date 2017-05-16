@@ -89,6 +89,9 @@ func parseFont() error {
 }
 
 func update(screen *ebiten.Image) error {
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	screen.DrawImage(textImage, &ebiten.DrawImageOptions{})
 	return nil
 }

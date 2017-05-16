@@ -55,6 +55,9 @@ func (p parts) Src(i int) (x0, y0, x1, y1 int) {
 }
 
 func update(screen *ebiten.Image) error {
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	op := &ebiten.DrawImageOptions{
 		ImageParts: &parts{gophersImage},
 	}

@@ -198,7 +198,9 @@ func update(screen *ebiten.Image) error {
 		}
 		musicPlayer.updateVolume()
 	}
-
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	op := &ebiten.DrawImageOptions{}
 	x, y, w, h := playerBarRect()
 	op.GeoM.Translate(float64(x), float64(y))

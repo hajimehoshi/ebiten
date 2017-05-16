@@ -207,7 +207,9 @@ func update(screen *ebiten.Image) error {
 			return err
 		}
 	}
-
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	screen.DrawImage(imagePiano, nil)
 

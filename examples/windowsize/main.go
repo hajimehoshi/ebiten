@@ -86,6 +86,10 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	w, h := gophersImage.Size()
 	w2, h2 := screen.Size()

@@ -64,7 +64,9 @@ func update(screen *ebiten.Image) error {
 		spotLightY = -spotLightY + 2*maxY
 		spotLightVY = -spotLightVY
 	}
-
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	maskImage.Clear()
 
 	op := &ebiten.DrawImageOptions{}

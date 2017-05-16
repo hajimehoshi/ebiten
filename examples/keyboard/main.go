@@ -90,6 +90,9 @@ func (p pressedKeysParts) Src(i int) (x0, y0, x1, y1 int) {
 }
 
 func update(screen *ebiten.Image) error {
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	const offsetX, offsetY = 24, 40
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(offsetX, offsetY)

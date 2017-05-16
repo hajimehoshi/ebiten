@@ -194,11 +194,12 @@ func update(screen *ebiten.Image) error {
 	if !rotated {
 		thePlayer.Stabilize()
 	}
-
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	screen.Fill(skyColor)
 	updateGroundImage(groundImage)
 	drawGroundImage(screen, groundImage)
-
 	tutrial := "Space: Move forward\nLeft/Right: Rotate"
 	msg := fmt.Sprintf("FPS: %0.2f\n%s", ebiten.CurrentFPS(), tutrial)
 	ebitenutil.DebugPrint(screen, msg)
@@ -213,24 +214,16 @@ func main() {
 	}
 	w, h := gophersImage.Size()
 	const repeat = 5
-	repeatedGophersImage, err = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
 	for j := 0; j < repeat; j++ {
 		for i := 0; i < repeat; i++ {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(w*i), float64(h*j))
-			if err := repeatedGophersImage.DrawImage(gophersImage, op); err != nil {
-				log.Fatal(err)
-			}
+			repeatedGophersImage.DrawImage(gophersImage, op)
 		}
 	}
 	groundWidth := screenWidth + 70
-	groundImage, err = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	groundImage, _ = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
 	const fogHeight = 8
 	fogRGBA := image.NewRGBA(image.Rect(0, 0, groundWidth, fogHeight))
 	for j := 0; j < fogHeight; j++ {
@@ -245,10 +238,7 @@ func main() {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}
-	fogImage, err = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterNearest)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Air Ship (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

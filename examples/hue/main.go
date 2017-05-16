@@ -37,6 +37,9 @@ var (
 
 func update(screen *ebiten.Image) error {
 	count++
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
