@@ -75,7 +75,9 @@ func update(screen *ebiten.Image) error {
         if drawn {
                 count&#43;&#43;
         }
-
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
         screen.DrawImage(canvasImage, nil)
 
         msg := fmt.Sprintf(&#34;(%d, %d)&#34;, mx, my)

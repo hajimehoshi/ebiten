@@ -71,6 +71,9 @@ func update(screen *ebiten.Image) error {
                 noiseImage.Pix[4*i&#43;2] = uint8(x &gt;&gt; 8)
                 noiseImage.Pix[4*i&#43;3] = 0xff
         }
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
         screen.ReplacePixels(noiseImage.Pix)
         ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %f&#34;, ebiten.CurrentFPS()))
         return nil

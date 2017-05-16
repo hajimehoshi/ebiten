@@ -101,7 +101,9 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 
 func update(screen *ebiten.Image) error {
         theViewport.Move()
-
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
         updateGroundImage(groundImage)
         drawGroundImage(screen, groundImage)
 
