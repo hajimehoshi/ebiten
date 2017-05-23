@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/freetype/truetype"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 )
@@ -50,14 +49,7 @@ var text = []string{
 }
 
 func parseFont() error {
-	f, err := ebitenutil.OpenFile("_resources/fonts/mplus-1p-regular.ttf")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-	b, err := ioutil.ReadAll(f)
+	b, err := ioutil.ReadFile("_resources/fonts/mplus-1p-regular.ttf")
 	if err != nil {
 		return err
 	}
