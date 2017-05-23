@@ -36,7 +36,7 @@ type ColorM struct {
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
-	c.impl.Concat(other.impl)
+	c.impl.Concat(&other.impl)
 }
 
 // Add is deprecated as of 1.5.0-alpha.

@@ -30,13 +30,29 @@ type GeoM struct {
 
 // Element returns a value of a matrix at (i, j).
 func (g *GeoM) Element(i, j int) float64 {
-	return g.impl.UnsafeElements()[i*affine.GeoMDim+j]
+	a, b, c, d, tx, ty := g.impl.Elements()
+	switch {
+	case i == 0 && j == 0:
+		return a
+	case i == 0 && j == 1:
+		return b
+	case i == 0 && j == 2:
+		return tx
+	case i == 1 && j == 0:
+		return c
+	case i == 1 && j == 1:
+		return d
+	case i == 1 && j == 2:
+		return ty
+	default:
+		panic("ebiten: i or j is out of index")
+	}
 }
 
 // Concat multiplies a geometry matrix with the other geometry matrix.
 // This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
-	g.impl.Concat(other.impl)
+	g.impl.Concat(&other.impl)
 }
 
 // Add is deprecated as of 1.5.0-alpha.

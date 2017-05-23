@@ -82,7 +82,7 @@ func (c *ColorM) Equals(other *ColorM) bool {
 
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
-func (c *ColorM) Concat(other ColorM) {
+func (c *ColorM) Concat(other *ColorM) {
 	if c.elements == nil {
 		c.elements = colorMIdentityElements
 	}
@@ -182,8 +182,8 @@ var (
 // This conversion uses RGB to/from YCrCb conversion.
 func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
 	sin, cos := math.Sincos(hueTheta)
-	c.Concat(rgbToYCbCr)
-	c.Concat(ColorM{
+	c.Concat(&rgbToYCbCr)
+	c.Concat(&ColorM{
 		elements: []float64{
 			1, 0, 0, 0, 0,
 			0, cos, -sin, 0, 0,
@@ -194,7 +194,7 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 	s := saturationScale
 	v := valueScale
 	c.Scale(v, s*v, s*v, 1)
-	c.Concat(yCbCrToRgb)
+	c.Concat(&yCbCrToRgb)
 }
 
 var monochrome ColorM
