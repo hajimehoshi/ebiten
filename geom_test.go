@@ -15,8 +15,10 @@
 package ebiten_test
 
 import (
-	. "github.com/hajimehoshi/ebiten"
+	"math"
 	"testing"
+
+	. "github.com/hajimehoshi/ebiten"
 )
 
 func TestGeometryInit(t *testing.T) {
@@ -86,5 +88,15 @@ func TestGeometryConcat(t *testing.T) {
 					i, j, got, want)
 			}
 		}
+	}
+}
+
+func BenchmarkGeoM(b *testing.B) {
+	var m GeoM
+	for i := 0; i < b.N; i++ {
+		m = GeoM{}
+		m.Translate(10, 20)
+		m.Scale(2, 3)
+		m.Rotate(math.Pi / 2)
 	}
 }
