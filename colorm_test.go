@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-func TestColorInit(t *testing.T) {
+func TestColorMInit(t *testing.T) {
 	var m ColorM
 	for i := 0; i < ColorMDim-1; i++ {
 		for j := 0; j < ColorMDim; j++ {
@@ -49,7 +49,7 @@ func TestColorInit(t *testing.T) {
 	}
 }
 
-func TestColorAssign(t *testing.T) {
+func TestColorMAssign(t *testing.T) {
 	m := ColorM{}
 	m.SetElement(0, 0, 1)
 	m2 := m
@@ -61,7 +61,7 @@ func TestColorAssign(t *testing.T) {
 	}
 }
 
-func TestColorTranslate(t *testing.T) {
+func TestColorMTranslate(t *testing.T) {
 	expected := [4][5]float64{
 		{1, 0, 0, 0, 0.5},
 		{0, 1, 0, 0, 1.5},
@@ -81,7 +81,7 @@ func TestColorTranslate(t *testing.T) {
 	}
 }
 
-func TestColorScale(t *testing.T) {
+func TestColorMScale(t *testing.T) {
 	expected := [4][5]float64{
 		{0.5, 0, 0, 0, 0},
 		{0, 1.5, 0, 0, 0},
@@ -101,7 +101,7 @@ func TestColorScale(t *testing.T) {
 	}
 }
 
-func TestColorTranslateAndScale(t *testing.T) {
+func TestColorMTranslateAndScale(t *testing.T) {
 	expected := [4][5]float64{
 		{1, 0, 0, 0, 0},
 		{0, 1, 0, 0, 0},
@@ -122,7 +122,7 @@ func TestColorTranslateAndScale(t *testing.T) {
 	}
 }
 
-func TestColorMonochrome(t *testing.T) {
+func TestColorMMonochrome(t *testing.T) {
 	expected := [4][5]float64{
 		{0.2990, 0.5870, 0.1140, 0, 0},
 		{0.2990, 0.5870, 0.1140, 0, 0},
@@ -130,6 +130,32 @@ func TestColorMonochrome(t *testing.T) {
 		{0, 0, 0, 1, 0},
 	}
 	m := Monochrome()
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 5; j++ {
+			got := m.Element(i, j)
+			want := expected[i][j]
+			if want != got {
+				t.Errorf("m.Element(%d, %d) = %f, want %f", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestColorMConcatSelf(t *testing.T) {
+	expected := [4][5]float64{
+		{30, 40, 30, 25, 30},
+		{40, 54, 43, 37, 37},
+		{30, 43, 51, 39, 34},
+		{25, 37, 39, 46, 36},
+	}
+	m := ColorM{}
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 5; j++ {
+			println(i, j, float64((i+j)%5+1))
+			m.SetElement(i, j, float64((i+j)%5+1))
+		}
+	}
+	m.Concat(m)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
 			got := m.Element(i, j)

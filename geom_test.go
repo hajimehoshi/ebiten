@@ -21,7 +21,7 @@ import (
 	. "github.com/hajimehoshi/ebiten"
 )
 
-func TestGeometryInit(t *testing.T) {
+func TestGeoMInit(t *testing.T) {
 	var m GeoM
 	for i := 0; i < GeoMDim-1; i++ {
 		for j := 0; j < GeoMDim; j++ {
@@ -37,7 +37,7 @@ func TestGeometryInit(t *testing.T) {
 	}
 }
 
-func TestGeometryAssign(t *testing.T) {
+func TestGeoMAssign(t *testing.T) {
 	m := GeoM{}
 	m.SetElement(0, 0, 1)
 	m2 := m
@@ -49,7 +49,7 @@ func TestGeometryAssign(t *testing.T) {
 	}
 }
 
-func TestGeometryConcat(t *testing.T) {
+func TestGeoMConcat(t *testing.T) {
 	matrix1 := GeoM{}
 	matrix1.Scale(2, 2)
 	matrix2 := GeoM{}
@@ -85,6 +85,31 @@ func TestGeometryConcat(t *testing.T) {
 			want := expected[i][j]
 			if want != got {
 				t.Errorf("matrix4.Element(%d, %d) = %f, want %f",
+					i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestGeoMConcatSelf(t *testing.T) {
+	m := GeoM{}
+	m.SetElement(0, 0, 1)
+	m.SetElement(0, 1, 2)
+	m.SetElement(0, 2, 3)
+	m.SetElement(1, 0, 4)
+	m.SetElement(1, 1, 5)
+	m.SetElement(1, 2, 6)
+	m.Concat(m)
+	expected := [][]float64{
+		{9, 12, 18},
+		{24, 33, 48},
+	}
+	for i := 0; i < 2; i++ {
+		for j := 0; j < 3; j++ {
+			got := m.Element(i, j)
+			want := expected[i][j]
+			if want != got {
+				t.Errorf("m.Element(%d, %d) = %f, want %f",
 					i, j, got, want)
 			}
 		}
