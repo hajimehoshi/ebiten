@@ -110,7 +110,7 @@ func update(screen *ebiten.Image) error {
 	}
 	for i := 0; i < sprites.num; i++ {
 		s := sprites.sprites[i]
-		op.GeoM = ebiten.GeoM{}
+		op.GeoM.Reset()
 		op.GeoM.Translate(float64(s.x), float64(s.y))
 		screen.DrawImage(ebitenImage, op)
 	}

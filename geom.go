@@ -28,6 +28,11 @@ type GeoM struct {
 	impl affine.GeoM
 }
 
+// Reset resets the GeoM as identity.
+func (g *GeoM) Reset() {
+	g.impl.Reset()
+}
+
 // Element returns a value of a matrix at (i, j).
 func (g *GeoM) Element(i, j int) float64 {
 	a, b, c, d, tx, ty := g.impl.Elements()

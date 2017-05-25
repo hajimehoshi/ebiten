@@ -44,6 +44,10 @@ type ColorM struct {
 	elements []float64
 }
 
+func (c *ColorM) Reset() {
+	c.elements = nil
+}
+
 func (c *ColorM) UnsafeElements() []float64 {
 	if c.elements == nil {
 		c.elements = colorMIdentityElements

@@ -34,6 +34,10 @@ type GeoM struct {
 	inited bool
 }
 
+func (g *GeoM) Reset() {
+	g.inited = false
+}
+
 func (g *GeoM) Elements() (a, b, c, d, tx, ty float64) {
 	if !g.inited {
 		return 1, 0, 0, 1, 0, 0

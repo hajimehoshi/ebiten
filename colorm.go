@@ -33,6 +33,11 @@ type ColorM struct {
 	impl affine.ColorM
 }
 
+// Reset resets the ColorM as identity.
+func (c *ColorM) Reset() {
+	c.impl.Reset()
+}
+
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
