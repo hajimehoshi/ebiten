@@ -20,10 +20,10 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 type command interface {

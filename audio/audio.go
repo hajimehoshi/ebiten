@@ -31,10 +31,10 @@ import (
 	"errors"
 	"io"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/oto"
 )
 

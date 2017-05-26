@@ -15,9 +15,8 @@
 package restorable
 
 import (
-	"sync"
-
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 type images struct {

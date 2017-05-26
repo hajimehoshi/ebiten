@@ -16,10 +16,10 @@ package loop
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
