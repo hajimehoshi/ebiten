@@ -37,10 +37,7 @@ type commandQueue struct {
 	m           sync.Mutex
 }
 
-var theCommandQueue = &commandQueue{
-	commands: []command{},
-	vertices: []float32{},
-}
+var theCommandQueue = &commandQueue{}
 
 func (q *commandQueue) appendVertices(vertices []float32) {
 	if len(q.vertices) < q.verticesNum+len(vertices) {
@@ -84,7 +81,7 @@ func (q *commandQueue) Enqueue(command command) {
 // its limit (maxQuads).
 func (q *commandQueue) commandGroups() [][]command {
 	cs := q.commands
-	gs := [][]command{}
+	var gs [][]command
 	quads := 0
 	for 0 < len(cs) {
 		if len(gs) == 0 {
@@ -149,7 +146,7 @@ func (q *commandQueue) Flush(context *opengl.Context) error {
 		}
 		lastN = n
 	}
-	q.commands = []command{}
+	q.commands = nil
 	q.verticesNum = 0
 	return nil
 }
