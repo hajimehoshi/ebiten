@@ -49,13 +49,14 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 }
 
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode) {
+	// Avoid defer for performance
 	q.m.Lock()
-	defer q.m.Unlock()
 	q.appendVertices(vertices)
 	if 0 < len(q.commands) {
 		if c, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
 			if c.isMergeable(dst, src, clr, mode) {
 				c.verticesNum += len(vertices)
+				q.m.Unlock()
 				return
 			}
 		}
@@ -68,12 +69,13 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		mode:        mode,
 	}
 	q.commands = append(q.commands, c)
+	q.m.Unlock()
 }
 
 func (q *commandQueue) Enqueue(command command) {
 	q.m.Lock()
-	defer q.m.Unlock()
 	q.commands = append(q.commands, command)
+	q.m.Unlock()
 }
 
 // commandGroups separates q.commands into some groups.

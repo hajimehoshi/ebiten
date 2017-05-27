@@ -66,19 +66,22 @@ func (i *images) resolveStalePixels(context *opengl.Context) error {
 }
 
 func (i *images) resetPixelsIfDependingOn(target *Image) {
+	// Avoid defer for performance
 	i.m.Lock()
-	defer i.m.Unlock()
 	if target == nil {
 		// disposed
+		i.m.Unlock()
 		return
 	}
 	if i.lastChecked == target {
+		i.m.Unlock()
 		return
 	}
 	i.lastChecked = target
 	for img := range i.images {
 		img.makeStaleIfDependingOn(target)
 	}
+	i.m.Unlock()
 }
 
 func (i *images) restore(context *opengl.Context) error {
