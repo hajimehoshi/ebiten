@@ -44,7 +44,11 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 		n := q.verticesNum + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
 	}
-	copy(q.vertices[q.verticesNum:q.verticesNum+len(vertices)], vertices)
+	// for-loop might be faster than copy:
+	// On GopherJS, copy might cause subarray calls.
+	for i := 0; i < len(vertices); i++ {
+		q.vertices[q.verticesNum+i] = vertices[i]
+	}
 	q.verticesNum += len(vertices)
 }
 
