@@ -151,7 +151,6 @@ func TestColorMConcatSelf(t *testing.T) {
 	m := ColorM{}
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
-			println(i, j, float64((i+j)%5+1))
 			m.SetElement(i, j, float64((i+j)%5+1))
 		}
 	}

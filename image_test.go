@@ -230,12 +230,12 @@ func TestImageScale(t *testing.T) {
 			return
 		}
 
-		for j := 0; j < h*2; j++ {
-			for i := 0; i < w*2; i++ {
+		for j := 0; j < h*scale; j++ {
+			for i := 0; i < w*scale; i++ {
 				c0 := img0.At(i/scale, j/scale).(color.RGBA)
 				c1 := img1.At(i, j).(color.RGBA)
 				if c0 != c1 {
-					t.Errorf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[3]d, %[4]d) (with scale %[5]d) but not: %[6]v vs %[7]v", i/2, j/2, i, j, scale, c0, c1)
+					t.Fatalf("img0.At(%[1]d, %[2]d) should equal to img1.At(%[3]d, %[4]d) (with scale %[5]d) but not: %[6]v vs %[7]v", i/2, j/2, i, j, scale, c0, c1)
 				}
 			}
 		}
