@@ -151,13 +151,23 @@ func (g *GeoM) Translate(tx, ty float64) {
 // Rotate rotates the matrix by theta.
 func (g *GeoM) Rotate(theta float64) {
 	sin, cos := math.Sincos(theta)
-	g.Concat(&GeoM{
-		a:      cos,
-		b:      -sin,
-		c:      sin,
-		d:      cos,
-		inited: true,
-	})
+	if !g.inited {
+		g.a = cos
+		g.b = -sin
+		g.c = sin
+		g.d = cos
+		g.tx = 0
+		g.ty = 0
+		g.inited = true
+		return
+	}
+	a, b, c, d, tx, ty := g.a, g.b, g.c, g.d, g.tx, g.ty
+	g.a = cos*a - sin*c
+	g.b = cos*b - sin*d
+	g.tx = cos*tx - sin*ty
+	g.c = sin*a + cos*c
+	g.d = sin*b + cos*d
+	g.ty = sin*tx + cos*ty
 }
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
