@@ -19,9 +19,8 @@ package common
 import (
 	"image"
 	"image/color"
-	"image/draw"
+	//"image/draw"
 	"math"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/common/internal/assets"
@@ -92,14 +91,13 @@ func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color
 	}
 }
 
-func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) {
-	parts := &fontImageParts{str, f}
+/*func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) {
 	for i := 0; i < parts.Len(); i++ {
 		dx0, dy0, dx1, dy1 := parts.Dst(i)
 		sx0, sy0, _, _ := parts.Src(i)
 		draw.Draw(rt, image.Rect(dx0+ox, dy0+oy, dx1+ox, dy1+oy), f.origImage, image.Pt(sx0, sy0), draw.Over)
 	}
-}
+}*/
 
 func (f *Font) DrawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) {
 	f.DrawText(rt, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80})
