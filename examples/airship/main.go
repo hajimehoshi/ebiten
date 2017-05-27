@@ -158,8 +158,8 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 		op.GeoM.Translate(float64(w)/2, 0)
 		op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
 
-		p := image.Rect(0, i, w, i+1)
-		op.SourceRect = &p
+		src := image.Rect(0, i, w, i+1)
+		op.SourceRect = &src
 		screen.DrawImage(ground, op)
 	}
 	op = &ebiten.DrawImageOptions{}

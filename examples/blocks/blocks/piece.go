@@ -166,8 +166,8 @@ func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.Colo
 				continue
 			}
 			x := (int(block) - 1) * blockWidth
-			p := image.Rect(x, 0, x+blockWidth, blockHeight)
-			op.SourceRect = &p
+			src := image.Rect(x, 0, x+blockWidth, blockHeight)
+			op.SourceRect = &src
 			r.DrawImage(imageBlocks, op)
 		}
 	}

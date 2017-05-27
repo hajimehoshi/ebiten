@@ -56,43 +56,8 @@ func init() {
 	ArcadeFont = &Font{eimg, img, 32, 16, 8, 8}
 }
 
-type fontImageParts struct {
-	str  string
-	font *Font
-}
-
-func (f *fontImageParts) Len() int {
-	return len(f.str)
-}
-
-func (f *fontImageParts) Dst(i int) (x0, y0, x1, y1 int) {
-	x := i - strings.LastIndex(f.str[:i], "\n") - 1
-	y := strings.Count(f.str[:i], "\n")
-	x *= f.font.charWidth
-	y *= f.font.charHeight
-	if x < 0 {
-		return 0, 0, 0, 0
-	}
-	return x, y, x + f.font.charWidth, y + f.font.charHeight
-}
-
-func (f *fontImageParts) Src(i int) (x0, y0, x1, y1 int) {
-	code := int(f.str[i])
-	if code == '\n' {
-		return 0, 0, 0, 0
-	}
-	x := (code % f.font.charNumPerLine) * f.font.charWidth
-	y := ((code - f.font.offset) / f.font.charNumPerLine) * f.font.charHeight
-	return x, y, x + f.font.charWidth, y + f.font.charHeight
-}
-
 func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) {
-	options := &ebiten.DrawImageOptions{
-		ImageParts: &fontImageParts{str, f},
-	}
-	options.GeoM.Scale(float64(scale), float64(scale))
-	options.GeoM.Translate(float64(ox), float64(oy))
-
+	op := &ebiten.DrawImageOptions{}
 	ur, ug, ub, ua := c.RGBA()
 	const max = math.MaxUint16
 	r := float64(ur) / max
@@ -104,8 +69,27 @@ func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color
 		g /= a
 		b /= a
 	}
-	options.ColorM.Scale(r, g, b, a)
-	rt.DrawImage(f.image, options)
+	op.ColorM.Scale(r, g, b, a)
+
+	x := 0
+	y := 0
+	for _, c := range str {
+		if c == '\n' {
+			x = 0
+			y += f.charHeight
+			continue
+		}
+		sx := (int(c) % f.charNumPerLine) * f.charWidth
+		sy := ((int(c) - f.offset) / f.charNumPerLine) * f.charHeight
+		r := image.Rect(sx, sy, sx+f.charWidth, sy+f.charHeight)
+		op.SourceRect = &r
+		op.GeoM.Reset()
+		op.GeoM.Translate(float64(x), float64(y))
+		op.GeoM.Scale(float64(scale), float64(scale))
+		op.GeoM.Translate(float64(ox), float64(oy))
+		rt.DrawImage(f.image, op)
+		x += f.charWidth
+	}
 }
 
 func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) {
