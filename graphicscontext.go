@@ -37,7 +37,7 @@ type graphicsContext struct {
 	screen      *Image
 	screenScale float64
 	initialized int32
-	invalidated bool
+	invalidated bool // browser only
 }
 
 func (c *graphicsContext) GLContext() *opengl.Context {
@@ -98,17 +98,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	c.offscreen2 = offscreen2
 	c.screenScale = screenScale
 	return nil
-}
-
-func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) {
-	if c.invalidated {
-		return true, nil
-	}
-	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphics.FlushCommands(context); err != nil {
-		return false, err
-	}
-	return c.offscreen.restorable.IsInvalidated(context), nil
 }
 
 func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
