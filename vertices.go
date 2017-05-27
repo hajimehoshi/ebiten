@@ -25,14 +25,36 @@ import (
 // See #317.
 const texelAdjustment = 256
 
-var quadFloat32Num = graphics.QuadVertexSizeInBytes() / 4
+var (
+	quadFloat32Num     = graphics.QuadVertexSizeInBytes() / 4
+	theVerticesBackend = &verticesBackend{}
+)
+
+type verticesBackend struct {
+	backend []float32
+	head    int
+}
+
+func (v *verticesBackend) get() []float32 {
+	const num = 256
+	if v.backend == nil {
+		v.backend = make([]float32, quadFloat32Num*num)
+	}
+	s := v.backend[v.head : v.head+quadFloat32Num]
+	v.head += quadFloat32Num
+	if v.head+quadFloat32Num > len(v.backend) {
+		v.backend = nil
+		v.head = 0
+	}
+	return s
+}
 
 func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []float32 {
 	if sx0 == sx1 || sy0 == sy1 {
 		return nil
 	}
 	// TODO: This function should be in graphics package?
-	vs := make([]float32, quadFloat32Num)
+	vs := theVerticesBackend.get()
 	a, b, c, d, tx, ty := geo.Elements()
 	g0 := float32(a)
 	g1 := float32(b)
