@@ -18,41 +18,10 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil/internal/assets"
 )
-
-type debugPrintImageParts string
-
-func (f debugPrintImageParts) Len() int {
-	return len(f)
-}
-
-func (f debugPrintImageParts) Dst(i int) (x0, y0, x1, y1 int) {
-	cw, ch := assets.TextImageCharWidth, assets.TextImageCharHeight
-	x := i - strings.LastIndex(string(f)[:i], "\n") - 1
-	y := strings.Count(string(f)[:i], "\n")
-	x *= cw
-	y *= ch
-	if x < 0 {
-		return 0, 0, 0, 0
-	}
-	return x, y, x + cw, y + ch
-}
-
-func (f debugPrintImageParts) Src(i int) (x0, y0, x1, y1 int) {
-	cw, ch := assets.TextImageCharWidth, assets.TextImageCharHeight
-	const n = assets.TextImageWidth / assets.TextImageCharWidth
-	code := int(f[i])
-	if code == '\n' {
-		return 0, 0, 0, 0
-	}
-	x := (code % n) * cw
-	y := (code / n) * ch
-	return x, y, x + cw, y + ch
-}
 
 type debugPrintState struct {
 	textImage              *ebiten.Image
