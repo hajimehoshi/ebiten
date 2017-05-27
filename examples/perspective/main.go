@@ -17,6 +17,7 @@
 package main
 
 import (
+	"image"
 	_ "image/jpeg"
 	"log"
 
@@ -33,39 +34,25 @@ var (
 	gophersImage *ebiten.Image
 )
 
-type parts struct {
-	image *ebiten.Image
-}
-
-func (p parts) Len() int {
-	_, h := p.image.Size()
-	return h
-}
-
-func (p parts) Dst(i int) (x0, y0, x1, y1 int) {
-	w, h := p.image.Size()
-	width := w + i*3/4
-	x := ((h - i) * 3 / 4) / 2
-	return x, i, x + width, i + 1
-}
-
-func (p parts) Src(i int) (x0, y0, x1, y1 int) {
-	w, _ := p.image.Size()
-	return 0, i, w, i + 1
-}
-
 func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	op := &ebiten.DrawImageOptions{
-		ImageParts: &parts{gophersImage},
-	}
+	op := &ebiten.DrawImageOptions{}
 	w, h := gophersImage.Size()
-	maxWidth := float64(w) + float64(h)*0.75
-	op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
-	op.GeoM.Translate(screenWidth/2, screenHeight/2)
-	screen.DrawImage(gophersImage, op)
+	for i := 0; i < h; i++ {
+		op.GeoM.Reset()
+		width := w + i*3/4
+		x := ((h - i) * 3 / 4) / 2
+		op.GeoM.Scale(float64(width)/float64(w), 1)
+		op.GeoM.Translate(float64(x), float64(i))
+		maxWidth := float64(w) + float64(h)*3/4
+		op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
+		op.GeoM.Translate(screenWidth/2, screenHeight/2)
+		p := image.Rect(0, i, w, i+1)
+		op.SourceRect = &p
+		screen.DrawImage(gophersImage, op)
+	}
 	return nil
 }
 

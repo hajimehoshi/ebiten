@@ -34,40 +34,12 @@ func init() {
 	}
 }
 
-type titleImageParts struct {
-	image *ebiten.Image
-	count int
-}
-
-func (t *titleImageParts) Len() int {
-	w, h := t.image.Size()
-	return (ScreenWidth/w + 1) * (ScreenHeight/h + 2)
-}
-
-func (t *titleImageParts) Dst(i int) (x0, y0, x1, y1 int) {
-	w, h := t.image.Size()
-	i, j := i%(ScreenWidth/w+1), i/(ScreenWidth/w+1)-1
-	dx := (-t.count / 4) % w
-	dy := (t.count / 4) % h
-	dstX := i*w + dx
-	dstY := j*h + dy
-	return dstX, dstY, dstX + w, dstY + h
-}
-
-func (t *titleImageParts) Src(i int) (x0, y0, x1, y1 int) {
-	w, h := t.image.Size()
-	return 0, 0, w, h
-}
-
 type TitleScene struct {
 	count int
-	parts *titleImageParts
 }
 
 func NewTitleScene() *TitleScene {
-	return &TitleScene{
-		parts: &titleImageParts{imageBackground, 0},
-	}
+	return &TitleScene{}
 }
 
 func anyGamepadAbstractButtonPressed(i *Input) bool {
@@ -117,10 +89,17 @@ func (s *TitleScene) Draw(r *ebiten.Image) {
 }
 
 func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
-	s.parts.count = c
-	r.DrawImage(imageBackground, &ebiten.DrawImageOptions{
-		ImageParts: s.parts,
-	})
+	w, h := imageBackground.Size()
+	op := &ebiten.DrawImageOptions{}
+	for i := 0; i < (ScreenWidth/w+1)*(ScreenHeight/h+2); i++ {
+		op.GeoM.Reset()
+		dx := (-c / 4) % w
+		dy := (c / 4) % h
+		dstX := (i%(ScreenWidth/w+1))*w + dx
+		dstY := (i/(ScreenWidth/w+1)-1)*h + dy
+		op.GeoM.Translate(float64(dstX), float64(dstY))
+		r.DrawImage(imageBackground, op)
+	}
 }
 
 func drawLogo(r *ebiten.Image, str string) {

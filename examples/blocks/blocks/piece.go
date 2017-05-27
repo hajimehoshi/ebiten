@@ -17,6 +17,8 @@
 package blocks
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
@@ -146,41 +148,29 @@ var Pieces = map[BlockType]*Piece{
 	},
 }
 
-const blockWidth = 10
-const blockHeight = 10
-const fieldBlockNumX = 10
-const fieldBlockNumY = 20
-
-type blocksImageParts [][]BlockType
-
-func (b blocksImageParts) Len() int {
-	return len(b) * len(b[0])
-}
-
-func (b blocksImageParts) Dst(i int) (x0, y0, x1, y1 int) {
-	i, j := i%len(b), i/len(b)
-	x := i * blockWidth
-	y := j * blockHeight
-	return x, y, x + blockWidth, y + blockHeight
-}
-
-func (b blocksImageParts) Src(i int) (x0, y0, x1, y1 int) {
-	i, j := i%len(b), i/len(b)
-	block := b[i][j]
-	if block == BlockTypeNone {
-		return 0, 0, 0, 0
-	}
-	x := (int(block) - 1) * blockWidth
-	return x, 0, x + blockWidth, blockHeight
-}
+const (
+	blockWidth     = 10
+	blockHeight    = 10
+	fieldBlockNumX = 10
+	fieldBlockNumY = 20
+)
 
 func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) {
-	op := &ebiten.DrawImageOptions{
-		ImageParts: blocksImageParts(blocks),
-		ColorM:     clr,
+	op := &ebiten.DrawImageOptions{}
+	for j := 0; j < len(blocks[0]); j++ {
+		for i := 0; i < len(blocks); i++ {
+			op.GeoM.Reset()
+			op.GeoM.Translate(float64(i*blockWidth+x), float64(j*blockHeight+y))
+			block := blocks[i][j]
+			if block == BlockTypeNone {
+				continue
+			}
+			x := (int(block) - 1) * blockWidth
+			p := image.Rect(x, 0, x+blockWidth, blockHeight)
+			op.SourceRect = &p
+			r.DrawImage(imageBlocks, op)
+		}
 	}
-	op.GeoM.Translate(float64(x), float64(y))
-	r.DrawImage(imageBlocks, op)
 }
 
 func (p *Piece) InitialPosition() (int, int) {

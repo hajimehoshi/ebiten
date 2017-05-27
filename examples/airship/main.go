@@ -133,43 +133,35 @@ func updateGroundImage(ground *ebiten.Image) {
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
-type groundParts struct {
-	image *ebiten.Image
-}
-
-func (g *groundParts) Len() int {
-	_, h := g.image.Size()
-	return h
-}
-
-func (g *groundParts) Src(i int) (int, int, int, int) {
-	w, _ := g.image.Size()
-	return 0, i, w, i + 1
-}
-
-func (g *groundParts) scaleForLine(x float64) float64 {
-	_, h := g.image.Size()
-	x = float64(h) - x
-	return 200*((-x+50)/(x+50)+1) - 200*((-float64(h)+50)/(float64(h)+50)+1)
-}
-
-func (g *groundParts) Dst(i int) (int, int, int, int) {
-	w, _ := g.image.Size()
-	r := g.scaleForLine(float64(i))
-	j1 := g.scaleForLine(float64(i))
-	j2 := g.scaleForLine(float64(i + 1))
-	return -int(r), int(j1), w + int(r), int(math.Ceil(j2))
+func scaleForLine(h int, x int) float64 {
+	x = h - x
+	return 200*((-float64(x)+50)/(float64(x)+50)+1) - 200*((-float64(h)+50)/(float64(h)+50)+1)
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
-	w, _ := ground.Size()
+	w, h := ground.Size()
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(-float64(w)/2, 0)
-	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
-	op.GeoM.Translate(float64(w)/2, 0)
-	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
-	op.ImageParts = &groundParts{ground}
-	screen.DrawImage(ground, op)
+	for i := 0; i < h; i++ {
+		op.GeoM.Reset()
+		// TODO: Refactoring
+		r := scaleForLine(h, i)
+		j1 := scaleForLine(h, i)
+		j2 := scaleForLine(h, i+1)
+		dx0, dy0, dx1, dy1 := -int(r), int(j1), w+int(r), int(math.Ceil(j2))
+		sw := float64(dx1-dx0) / float64(w)
+		sh := float64(dy1 - dy0)
+		op.GeoM.Scale(sw, sh)
+		op.GeoM.Translate(float64(dx0), float64(dy0))
+
+		op.GeoM.Translate(-float64(w)/2, 0)
+		op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
+		op.GeoM.Translate(float64(w)/2, 0)
+		op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
+
+		p := image.Rect(0, i, w, i+1)
+		op.SourceRect = &p
+		screen.DrawImage(ground, op)
+	}
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-float64(w)/2, 0)
 	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)

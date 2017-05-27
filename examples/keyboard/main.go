@@ -70,25 +70,6 @@ var keyNames = map[ebiten.Key]string{
 	ebiten.KeyAlt:     "Alt",
 }
 
-type pressedKeysParts []string
-
-func (p pressedKeysParts) Len() int {
-	return len(p)
-}
-
-func (p pressedKeysParts) Dst(i int) (x0, y0, x1, y1 int) {
-	k := p[i]
-	r, ok := keyboard.KeyRect(k)
-	if !ok {
-		return 0, 0, 0, 0
-	}
-	return r.Min.X, r.Min.Y, r.Max.X, r.Max.Y
-}
-
-func (p pressedKeysParts) Src(i int) (x0, y0, x1, y1 int) {
-	return p.Dst(i)
-}
-
 func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
@@ -121,11 +102,18 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 
-	op = &ebiten.DrawImageOptions{
-		ImageParts: pressedKeysParts(pressed),
+	op = &ebiten.DrawImageOptions{}
+	for _, p := range pressed {
+		op.GeoM.Reset()
+		r, ok := keyboard.KeyRect(p)
+		if !ok {
+			continue
+		}
+		op.GeoM.Translate(float64(r.Min.X), float64(r.Min.Y))
+		op.GeoM.Translate(offsetX, offsetY)
+		op.SourceRect = &r
+		screen.DrawImage(keyboardImage, op)
 	}
-	op.GeoM.Translate(offsetX, offsetY)
-	screen.DrawImage(keyboardImage, op)
 
 	return nil
 }
