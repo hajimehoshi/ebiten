@@ -32,9 +32,7 @@ const (
 )
 
 var (
-	ebitenImage       *ebiten.Image
-	ebitenImageWidth  = 0
-	ebitenImageHeight = 0
+	ebitenImage *ebiten.Image
 )
 
 type Sprite struct {
@@ -81,14 +79,10 @@ const (
 	MaxSprites = 50000
 )
 
-var sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
-
-var op *ebiten.DrawImageOptions
-
-func init() {
-	op = &ebiten.DrawImageOptions{}
-	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
-}
+var (
+	sprites = &Sprites{make([]*Sprite, MaxSprites), 500}
+	op      = &ebiten.DrawImageOptions{}
+)
 
 func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
@@ -125,11 +119,15 @@ Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.nu
 
 func main() {
 	var err error
-	ebitenImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterNearest)
+	img, _, err := ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ebitenImageWidth, ebitenImageHeight = ebitenImage.Size()
+	w, h := img.Size()
+	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
+	op := &ebiten.DrawImageOptions{}
+	op.ColorM.Scale(1, 1, 1, 0.5)
+	ebitenImage.DrawImage(img, op)
 	for i := range sprites.sprites {
 		w, h := ebitenImage.Size()
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
