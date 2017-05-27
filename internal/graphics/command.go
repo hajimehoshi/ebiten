@@ -48,7 +48,7 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 	q.verticesNum += len(vertices)
 }
 
-func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr affine.ColorM, mode opengl.CompositeMode) {
+func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode) {
 	q.m.Lock()
 	defer q.m.Unlock()
 	q.appendVertices(vertices)
@@ -64,7 +64,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		dst:         dst,
 		src:         src,
 		verticesNum: len(vertices),
-		color:       clr,
+		color:       *clr,
 		mode:        mode,
 	}
 	q.commands = append(q.commands, c)
@@ -232,14 +232,14 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
-func (c *drawImageCommand) isMergeable(dst, src *Image, clr affine.ColorM, mode opengl.CompositeMode) bool {
+func (c *drawImageCommand) isMergeable(dst, src *Image, clr *affine.ColorM, mode opengl.CompositeMode) bool {
 	if c.dst != dst {
 		return false
 	}
 	if c.src != src {
 		return false
 	}
-	if !c.color.Equals(&clr) {
+	if !c.color.Equals(clr) {
 		return false
 	}
 	if c.mode != mode {

@@ -141,7 +141,7 @@ func (i *Image) Fill(clr color.RGBA) {
 	theCommandQueue.Enqueue(c)
 }
 
-func (i *Image) DrawImage(src *Image, vertices []float32, clr affine.ColorM, mode opengl.CompositeMode) {
+func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode) {
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode)
 }
 

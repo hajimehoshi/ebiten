@@ -123,7 +123,7 @@ func (i *Image) DrawImage(image *Image, options *DrawImageOptions) error {
 		panic("ebiten: Image.DrawImage: image must be different from the receiver")
 	}
 	mode := opengl.CompositeMode(options.CompositeMode)
-	i.restorable.DrawImage(image.restorable, vs, options.ColorM.impl, mode)
+	i.restorable.DrawImage(image.restorable, vs, &options.ColorM.impl, mode)
 	return nil
 }
 

@@ -130,7 +130,7 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 	p.stale = false
 }
 
-func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
+func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
 	theImages.resetPixelsIfDependingOn(p)
 	if img.stale || img.volatile {
 		p.makeStale()
@@ -140,7 +140,7 @@ func (p *Image) DrawImage(img *Image, vertices []float32, colorm affine.ColorM, 
 	p.image.DrawImage(img.image, vertices, colorm, mode)
 }
 
-func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm affine.ColorM, mode opengl.CompositeMode) {
+func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
 	if p.stale {
 		return
 	}
@@ -153,7 +153,7 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
-		colorm:   colorm,
+		colorm:   *colorm,
 		mode:     mode,
 	}
 	p.drawImageHistory = append(p.drawImageHistory, item)
@@ -264,7 +264,7 @@ func (p *Image) restore(context *opengl.Context) error {
 		if c.image.hasDependency() {
 			panic("not reach")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode)
+		gimg.DrawImage(c.image.image, c.vertices, &c.colorm, c.mode)
 	}
 	p.image = gimg
 
