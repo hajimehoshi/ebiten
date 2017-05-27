@@ -20,6 +20,7 @@ import (
 	"fmt"
 	_ "image/png"
 	"log"
+	"math"
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten"
@@ -29,6 +30,7 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
+	maxAngle     = 256
 )
 
 var (
@@ -42,6 +44,7 @@ type Sprite struct {
 	y           int
 	vx          int
 	vy          int
+	angle       int
 }
 
 func (s *Sprite) Update() {
@@ -61,6 +64,8 @@ func (s *Sprite) Update() {
 		s.y = 2*(screenHeight-s.imageHeight) - s.y
 		s.vy = -s.vy
 	}
+	s.angle++
+	s.angle %= maxAngle
 }
 
 type Sprites struct {
@@ -102,9 +107,13 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+	w, h := ebitenImage.Size()
 	for i := 0; i < sprites.num; i++ {
 		s := sprites.sprites[i]
 		op.GeoM.Reset()
+		op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+		op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
+		op.GeoM.Translate(float64(w)/2, float64(h)/2)
 		op.GeoM.Translate(float64(s.x), float64(s.y))
 		screen.DrawImage(ebitenImage, op)
 	}
@@ -132,6 +141,7 @@ func main() {
 		w, h := ebitenImage.Size()
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)
 		vx, vy := 2*rand.Intn(2)-1, 2*rand.Intn(2)-1
+		a := rand.Intn(maxAngle)
 		sprites.sprites[i] = &Sprite{
 			imageWidth:  w,
 			imageHeight: h,
@@ -139,6 +149,7 @@ func main() {
 			y:           y,
 			vx:          vx,
 			vy:          vy,
+			angle:       a,
 		}
 	}
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Sprites (Ebiten Demo)"); err != nil {
