@@ -15,11 +15,13 @@
 package ebitenutil
 
 import (
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil/internal/assets"
+	"image"
 	"image/color"
 	"math"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil/internal/assets"
 )
 
 type debugPrintImageParts string
@@ -67,7 +69,8 @@ func DebugPrint(image *ebiten.Image, str string) error {
 	return nil
 }
 
-func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c color.Color) {
+func (d *debugPrintState) drawText(rt *ebiten.Image, str string, ox, oy int, c color.Color) {
+	op := &ebiten.DrawImageOptions{}
 	ur, ug, ub, ua := c.RGBA()
 	const max = math.MaxUint16
 	r := float64(ur) / max
@@ -79,12 +82,28 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, x, y int, c col
 		g /= a
 		b /= a
 	}
-	op := &ebiten.DrawImageOptions{
-		ImageParts: debugPrintImageParts(str),
-	}
-	op.GeoM.Translate(float64(x+1), float64(y))
 	op.ColorM.Scale(r, g, b, a)
-	_ = rt.DrawImage(d.textImage, op)
+	x := 0
+	y := 0
+	for _, c := range str {
+		const cw = assets.TextImageCharWidth
+		const ch = assets.TextImageCharHeight
+		if c == '\n' {
+			x = 0
+			y += ch
+			continue
+		}
+		const n = assets.TextImageWidth / cw
+		sx := (int(c) % n) * cw
+		sy := (int(c) / n) * ch
+		r := image.Rect(sx, sy, sx+cw, sy+ch)
+		op.SourceRect = &r
+		op.GeoM.Reset()
+		op.GeoM.Translate(float64(x), float64(y))
+		op.GeoM.Translate(float64(ox+1), float64(oy))
+		_ = rt.DrawImage(d.textImage, op)
+		x += cw
+	}
 }
 
 // DebugPrint prints the given text str on the given image r.
