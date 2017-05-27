@@ -576,3 +576,12 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkDrawImage(b *testing.B) {
+	img0, _ := NewImage(16, 16, FilterNearest)
+	img1, _ := NewImage(16, 16, FilterNearest)
+	op := &DrawImageOptions{}
+	for i := 0; i < b.N; i++ {
+		img0.DrawImage(img1, op)
+	}
+}
