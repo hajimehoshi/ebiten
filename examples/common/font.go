@@ -19,7 +19,7 @@ package common
 import (
 	"image"
 	"image/color"
-	//"image/draw"
+	"image/draw"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
@@ -55,6 +55,32 @@ func init() {
 	ArcadeFont = &Font{eimg, img, 32, 16, 8, 8}
 }
 
+type part struct {
+	sx, sy, dx0, dy0, dx1, dy1 int
+}
+
+func (f *Font) parts(str string) []part {
+	ps := []part{}
+	x := 0
+	y := 0
+	for _, c := range str {
+		if c == '\n' {
+			x = 0
+			y += f.charHeight
+			continue
+		}
+		sx := (int(c) % f.charNumPerLine) * f.charWidth
+		sy := ((int(c) - f.offset) / f.charNumPerLine) * f.charHeight
+		dx0 := x
+		dy0 := y
+		dx1 := dx0 + f.charWidth
+		dy1 := dy0 + f.charHeight
+		ps = append(ps, part{sx, sy, dx0, dy0, dx1, dy1})
+		x += f.charWidth
+	}
+	return ps
+}
+
 func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color.Color) {
 	op := &ebiten.DrawImageOptions{}
 	ur, ug, ub, ua := c.RGBA()
@@ -70,6 +96,7 @@ func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color
 	}
 	op.ColorM.Scale(r, g, b, a)
 
+	// TODO: There is same logic in parts. Refactor this.
 	x := 0
 	y := 0
 	for _, c := range str {
@@ -91,13 +118,15 @@ func (f *Font) DrawText(rt *ebiten.Image, str string, ox, oy, scale int, c color
 	}
 }
 
-/*func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) {
-	for i := 0; i < parts.Len(); i++ {
-		dx0, dy0, dx1, dy1 := parts.Dst(i)
-		sx0, sy0, _, _ := parts.Src(i)
-		draw.Draw(rt, image.Rect(dx0+ox, dy0+oy, dx1+ox, dy1+oy), f.origImage, image.Pt(sx0, sy0), draw.Over)
+func (f *Font) DrawTextOnImage(rt draw.Image, str string, ox, oy int) {
+	// TODO: This function is needed only by examples/keyboard/keyboard.
+	// This is executed without Ebiten, so ebiten.Image can't be used.
+	// When ebiten.Image can be used without ebiten.Run, this function can be removed.
+	for _, p := range f.parts(str) {
+		draw.Draw(rt, image.Rect(p.dx0+ox, p.dy0+oy, p.dx1+ox, p.dy1+oy),
+			f.origImage, image.Pt(p.sx, p.sy), draw.Over)
 	}
-}*/
+}
 
 func (f *Font) DrawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color.Color) {
 	f.DrawText(rt, str, x+1, y+1, scale, color.NRGBA{0, 0, 0, 0x80})
