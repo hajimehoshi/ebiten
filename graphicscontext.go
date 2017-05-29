@@ -120,26 +120,19 @@ func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
 	return nil
 }
 
-func drawWithFittingScale(dst *Image, src *Image) error {
+func drawWithFittingScale(dst *Image, src *Image) {
 	wd, hd := dst.Size()
 	ws, hs := src.Size()
 	sw := float64(wd) / float64(ws)
 	sh := float64(hd) / float64(hs)
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(sw, sh)
-	if err := dst.DrawImage(src, op); err != nil {
-		return err
-	}
-	return nil
+	_ = dst.DrawImage(src, op)
 }
 
 func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) error {
-	if err := c.screen.Clear(); err != nil {
-		return err
-	}
-	if err := drawWithFittingScale(c.screen, c.offscreen2); err != nil {
-		return err
-	}
+	_ = c.screen.Clear()
+	drawWithFittingScale(c.screen, c.offscreen2)
 	if err := graphics.FlushCommands(context); err != nil {
 		return err
 	}
@@ -150,6 +143,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
+	// TODO: Is it OK to restore images here? The images can be in 'stale' state after c.f().
 	if err := restorable.ResolveStalePixels(context); err != nil {
 		return err
 	}
@@ -161,9 +155,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		}
 	}
 	if 0 < updateCount {
-		if err := drawWithFittingScale(c.offscreen2, c.offscreen); err != nil {
-			return err
-		}
+		drawWithFittingScale(c.offscreen2, c.offscreen)
 	}
 	if err := c.drawToDefaultRenderTarget(context); err != nil {
 		return err
