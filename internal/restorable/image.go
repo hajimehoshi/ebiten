@@ -45,8 +45,11 @@ type Image struct {
 	drawImageHistory []*drawImageHistoryItem
 	stale            bool
 
+	// volatile indicates whether the image is cleared at every frame.
 	volatile bool
-	screen   bool
+
+	// screen indicates whether the image is used as an actual screen.
+	screen bool
 }
 
 func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
@@ -162,7 +165,6 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-// This means Pixels members must match with acutal state in GPU.
 func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
 	w, h := p.image.Size()
 	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
