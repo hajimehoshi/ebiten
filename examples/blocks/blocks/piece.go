@@ -157,6 +157,7 @@ const (
 
 func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) {
 	op := &ebiten.DrawImageOptions{}
+	op.ColorM = clr
 	for j := 0; j < len(blocks[0]); j++ {
 		for i := 0; i < len(blocks); i++ {
 			op.GeoM.Reset()
