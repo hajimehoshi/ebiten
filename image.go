@@ -90,10 +90,13 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // When the image is disposed, DrawImage does nothing.
 //
-// When image is as same as i, DrawImage panics.
+// When the given image is as same as i, DrawImage panics.
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
+	if i == img {
+		panic("ebiten: Image.DrawImage: img must be different from the receiver")
+	}
 	if i.restorable == nil {
 		return nil
 	}
@@ -137,9 +140,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		sy1 = r.Max.Y
 	}
 	vs := vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
-	if i == img {
-		panic("ebiten: Image.DrawImage: img must be different from the receiver")
-	}
 	mode := opengl.CompositeMode(options.CompositeMode)
 	i.restorable.DrawImage(img.restorable, vs, &options.ColorM.impl, mode)
 	return nil
