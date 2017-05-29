@@ -162,7 +162,7 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-// This means Pixels members must match with acutal state in VRAM.
+// This means Pixels members must match with acutal state in GPU.
 func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
 	w, h := p.image.Size()
 	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
@@ -170,7 +170,7 @@ func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
 		return color.RGBA{}, nil
 	}
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.readPixelsFromVRAM(p.image, context); err != nil {
+		if err := p.readPixelsFromGPU(p.image, context); err != nil {
 			return color.RGBA{}, err
 		}
 	}
@@ -191,7 +191,7 @@ func (p *Image) makeStaleIfDependingOn(target *Image) {
 	}
 }
 
-func (p *Image) readPixelsFromVRAM(image *graphics.Image, context *opengl.Context) error {
+func (p *Image) readPixelsFromGPU(image *graphics.Image, context *opengl.Context) error {
 	var err error
 	p.basePixels, err = image.Pixels(context)
 	if err != nil {
@@ -210,7 +210,7 @@ func (p *Image) resolveStalePixels(context *opengl.Context) error {
 	if !p.stale {
 		return nil
 	}
-	return p.readPixelsFromVRAM(p.image, context)
+	return p.readPixelsFromGPU(p.image, context)
 }
 
 func (p *Image) hasDependency() bool {
