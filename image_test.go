@@ -490,24 +490,6 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
-type halfImagePart struct {
-	image *Image
-}
-
-func (p *halfImagePart) Len() int {
-	return 1
-}
-
-func (p *halfImagePart) Src(index int) (int, int, int, int) {
-	w, h := p.image.Size()
-	return 0, 0, w, h / 2
-}
-
-func (p *halfImagePart) Dst(index int) (int, int, int, int) {
-	w, h := p.image.Size()
-	return 0, 0, w, h / 2
-}
-
 // Issue 317
 func TestImageEdge(t *testing.T) {
 	const (
@@ -555,7 +537,9 @@ func TestImageEdge(t *testing.T) {
 			t.Fatal(err)
 		}
 		op := &DrawImageOptions{}
-		op.ImageParts = &halfImagePart{img0}
+		w, h := img0.Size()
+		r := image.Rect(0, 0, w, h/2)
+		op.SourceRect = &r
 		op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
 		op.GeoM.Rotate(float64(a) * math.Pi / 180)
 		op.GeoM.Translate(img1Width/2, img1Height/2)
