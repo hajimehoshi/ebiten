@@ -54,14 +54,22 @@ func init() {
 }
 
 var keyNames = map[ebiten.Key]string{
-        ebiten.KeyBackspace: &#34;BS&#34;,
-        ebiten.KeyComma:     &#34;,&#34;,
-        ebiten.KeyDelete:    &#34;Del&#34;,
-        ebiten.KeyEnter:     &#34;Enter&#34;,
-        ebiten.KeyEscape:    &#34;Esc&#34;,
-        ebiten.KeyPeriod:    &#34;.&#34;,
-        ebiten.KeySpace:     &#34;Space&#34;,
-        ebiten.KeyTab:       &#34;Tab&#34;,
+        ebiten.KeyBackspace:    &#34;BS&#34;,
+        ebiten.KeyComma:        &#34;,&#34;,
+        ebiten.KeyEnter:        &#34;Enter&#34;,
+        ebiten.KeyEscape:       &#34;Esc&#34;,
+        ebiten.KeyPeriod:       &#34;.&#34;,
+        ebiten.KeySpace:        &#34;Space&#34;,
+        ebiten.KeyTab:          &#34;Tab&#34;,
+        ebiten.KeyMinus:        &#34;-&#34;,
+        ebiten.KeyEqual:        &#34;=&#34;,
+        ebiten.KeyBackslash:    &#34;\\&#34;,
+        ebiten.KeyGraveAccent:  &#34;`&#34;,
+        ebiten.KeyLeftBracket:  &#34;[&#34;,
+        ebiten.KeyRightBracket: &#34;]&#34;,
+        ebiten.KeySemicolon:    &#34;;&#34;,
+        ebiten.KeyApostrophe:   &#34;&#39;&#34;,
+        ebiten.KeySlash:        &#34;/&#34;,
 
         // Arrows
         ebiten.KeyDown:  &#34;Down&#34;,
@@ -75,26 +83,10 @@ var keyNames = map[ebiten.Key]string{
         ebiten.KeyAlt:     &#34;Alt&#34;,
 }
 
-type pressedKeysParts []string
-
-func (p pressedKeysParts) Len() int {
-        return len(p)
-}
-
-func (p pressedKeysParts) Dst(i int) (x0, y0, x1, y1 int) {
-        k := p[i]
-        r, ok := keyboard.KeyRect(k)
-        if !ok {
-                return 0, 0, 0, 0
-        }
-        return r.Min.X, r.Min.Y, r.Max.X, r.Max.Y
-}
-
-func (p pressedKeysParts) Src(i int) (x0, y0, x1, y1 int) {
-        return p.Dst(i)
-}
-
 func update(screen *ebiten.Image) error {
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
         const offsetX, offsetY = 24, 40
         op := &amp;ebiten.DrawImageOptions{}
         op.GeoM.Translate(offsetX, offsetY)
@@ -123,11 +115,18 @@ func update(screen *ebiten.Image) error {
                 }
         }
 
-        op = &amp;ebiten.DrawImageOptions{
-                ImageParts: pressedKeysParts(pressed),
+        op = &amp;ebiten.DrawImageOptions{}
+        for _, p := range pressed {
+                op.GeoM.Reset()
+                r, ok := keyboard.KeyRect(p)
+                if !ok {
+                        continue
+                }
+                op.GeoM.Translate(float64(r.Min.X), float64(r.Min.Y))
+                op.GeoM.Translate(offsetX, offsetY)
+                op.SourceRect = &amp;r
+                screen.DrawImage(keyboardImage, op)
         }
-        op.GeoM.Translate(offsetX, offsetY)
-        screen.DrawImage(keyboardImage, op)
 
         return nil
 }
