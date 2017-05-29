@@ -120,9 +120,7 @@ func update(screen *ebiten.Image) error {
 	msg := fmt.Sprintf(`FPS: %0.2f
 Num of sprites: %d
 Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.num)
-	if err := ebitenutil.DebugPrint(screen, msg); err != nil {
-		return err
-	}
+	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
