@@ -144,6 +144,7 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		return err
 	}
 	// TODO: Is it OK to restore images here? The images can be in 'stale' state after c.f().
+	// (#357)
 	if err := restorable.ResolveStalePixels(context); err != nil {
 		return err
 	}

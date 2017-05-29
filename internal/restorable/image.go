@@ -43,9 +43,11 @@ type Image struct {
 	basePixels       []uint8
 	baseColor        color.RGBA
 	drawImageHistory []*drawImageHistoryItem
-	stale            bool
 
-	// volatile indicates whether the image is cleared at every frame.
+	// stale indicates whether the image needs to be synced with GPU as soon as possible.
+	stale bool
+
+	// volatile indicates whether the image is cleared whenever a frame starts.
 	volatile bool
 
 	// screen indicates whether the image is used as an actual screen.

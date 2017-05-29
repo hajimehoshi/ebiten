@@ -79,6 +79,8 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 	}
 	i.lastChecked = target
 	for img := range i.images {
+		// TODO: This seems not enough: What if img becomes stale but what about
+		// other images depend on img? (#357)
 		img.makeStaleIfDependingOn(target)
 	}
 	i.m.Unlock()

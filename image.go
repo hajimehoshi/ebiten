@@ -257,6 +257,8 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // On the other hand, pixels in volatile images are not saved.
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
 //
+// Note that volatile images are internal only and will never be source of drawing.
+//
 // If width or height is less than 1 or more than MaxImageSize, newVolatileImage panics.
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
