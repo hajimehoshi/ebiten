@@ -95,7 +95,7 @@ func (c *Context) Reset() error {
 		c.init = true
 		return nil
 	}); err != nil {
-		return nil
+		return err
 	}
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
@@ -103,21 +103,17 @@ func (c *Context) Reset() error {
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
-	if err := c.runOnContextThread(func() error {
+	_ = c.runOnContextThread(func() error {
 		gl.Enable(gl.BLEND)
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 	c.BlendFunc(CompositeModeSourceOver)
-	if err := c.runOnContextThread(func() error {
+	_ = c.runOnContextThread(func() error {
 		f := int32(0)
 		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
 		c.screenFramebuffer = Framebuffer(f)
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 	return nil
 }
 
