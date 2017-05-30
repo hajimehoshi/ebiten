@@ -143,11 +143,6 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	if err := c.initializeIfNeeded(context); err != nil {
 		return err
 	}
-	// TODO: Is it OK to restore images here? The images can be in 'stale' state after c.f().
-	// (#357)
-	if err := restorable.ResolveStalePixels(context); err != nil {
-		return err
-	}
 	for i := 0; i < updateCount; i++ {
 		restorable.ClearVolatileImages()
 		setRunningSlowly(i < updateCount-1)
@@ -159,6 +154,10 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 		drawWithFittingScale(c.offscreen2, c.offscreen)
 	}
 	if err := c.drawToDefaultRenderTarget(context); err != nil {
+		return err
+	}
+	// TODO: Add tests to check if this behavior is correct (#357)
+	if err := restorable.ResolveStalePixels(context); err != nil {
 		return err
 	}
 	return nil
