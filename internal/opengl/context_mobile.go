@@ -72,10 +72,10 @@ type context struct {
 	worker mgl.Worker
 }
 
-func NewContext() (*Context, error) {
+func Init() {
 	c := &Context{}
 	c.gl, c.worker = mgl.NewContext()
-	return c, nil
+	theContext = c
 }
 
 func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {

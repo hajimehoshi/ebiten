@@ -15,7 +15,6 @@
 package restorable
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
@@ -29,12 +28,12 @@ var theImages = &images{
 	images: map[*Image]struct{}{},
 }
 
-func ResolveStalePixels(context *opengl.Context) error {
-	return theImages.resolveStalePixels(context)
+func ResolveStalePixels() error {
+	return theImages.resolveStalePixels()
 }
 
-func Restore(context *opengl.Context) error {
-	return theImages.restore(context)
+func Restore() error {
+	return theImages.restore()
 }
 
 func ClearVolatileImages() {
@@ -53,12 +52,12 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img)
 }
 
-func (i *images) resolveStalePixels(context *opengl.Context) error {
+func (i *images) resolveStalePixels() error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.lastChecked = nil
 	for img := range i.images {
-		if err := img.resolveStalePixels(context); err != nil {
+		if err := img.resolveStalePixels(); err != nil {
 			return err
 		}
 	}
@@ -86,7 +85,7 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 	i.m.Unlock()
 }
 
-func (i *images) restore(context *opengl.Context) error {
+func (i *images) restore() error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	// Framebuffers/textures cannot be disposed since framebuffers/textures that
@@ -102,12 +101,12 @@ func (i *images) restore(context *opengl.Context) error {
 	}
 	// Images depending on other images should be processed first.
 	for _, img := range imagesWithoutDependency {
-		if err := img.restore(context); err != nil {
+		if err := img.restore(); err != nil {
 			return err
 		}
 	}
 	for _, img := range imagesWithDependency {
-		if err := img.restore(context); err != nil {
+		if err := img.restore(); err != nil {
 			return err
 		}
 	}

@@ -38,8 +38,8 @@ type framebuffer struct {
 	proMatrix []float32
 }
 
-func newFramebufferFromTexture(context *opengl.Context, texture *texture) (*framebuffer, error) {
-	native, err := context.NewFramebuffer(opengl.Texture(texture.native))
+func newFramebufferFromTexture(texture *texture) (*framebuffer, error) {
+	native, err := opengl.GetContext().NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
 		return nil, err
 	}
@@ -50,10 +50,10 @@ func newFramebufferFromTexture(context *opengl.Context, texture *texture) (*fram
 
 const viewportSize = 4096
 
-func (f *framebuffer) setAsViewport(context *opengl.Context) error {
+func (f *framebuffer) setAsViewport() error {
 	width := viewportSize
 	height := viewportSize
-	return context.SetViewport(f.native, width, height)
+	return opengl.GetContext().SetViewport(f.native, width, height)
 }
 
 func (f *framebuffer) projectionMatrix(height int) []float32 {

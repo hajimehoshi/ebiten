@@ -145,16 +145,16 @@ func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mo
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode)
 }
 
-func (i *Image) Pixels(context *opengl.Context) ([]uint8, error) {
+func (i *Image) Pixels() ([]uint8, error) {
 	// Flush the enqueued commands so that pixels are certainly read.
-	if err := theCommandQueue.Flush(context); err != nil {
+	if err := theCommandQueue.Flush(); err != nil {
 		return nil, err
 	}
-	f, err := i.createFramebufferIfNeeded(context)
+	f, err := i.createFramebufferIfNeeded()
 	if err != nil {
 		return nil, err
 	}
-	return context.FramebufferPixels(f.native, NextPowerOf2Int(i.width), NextPowerOf2Int(i.height))
+	return opengl.GetContext().FramebufferPixels(f.native, NextPowerOf2Int(i.width), NextPowerOf2Int(i.height))
 }
 
 func (i *Image) ReplacePixels(p []uint8) {
@@ -167,15 +167,15 @@ func (i *Image) ReplacePixels(p []uint8) {
 	theCommandQueue.Enqueue(c)
 }
 
-func (i *Image) IsInvalidated(context *opengl.Context) bool {
-	return !context.IsTexture(i.texture.native)
+func (i *Image) IsInvalidated() bool {
+	return !opengl.GetContext().IsTexture(i.texture.native)
 }
 
-func (i *Image) createFramebufferIfNeeded(context *opengl.Context) (*framebuffer, error) {
+func (i *Image) createFramebufferIfNeeded() (*framebuffer, error) {
 	if i.framebuffer != nil {
 		return i.framebuffer, nil
 	}
-	f, err := newFramebufferFromTexture(context, i.texture)
+	f, err := newFramebufferFromTexture(i.texture)
 	if err != nil {
 		return nil, err
 	}

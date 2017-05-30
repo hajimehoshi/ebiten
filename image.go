@@ -25,18 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
-func glContext() *opengl.Context {
-	// This is called from finalizers even when the context or the program is not set.
-	g, ok := theGraphicsContext.Load().(*graphicsContext)
-	if !ok {
-		return nil
-	}
-	if g == nil {
-		return nil
-	}
-	return g.GLContext()
-}
-
 // Image represents an image.
 // The pixel format is alpha-premultiplied.
 // Image implements image.Image.
@@ -166,7 +154,7 @@ func (i *Image) At(x, y int) color.Color {
 		return color.Transparent
 	}
 	// TODO: Error should be delayed until flushing. Do not panic here.
-	clr, err := i.restorable.At(x, y, glContext())
+	clr, err := i.restorable.At(x, y)
 	if err != nil {
 		panic(err)
 	}

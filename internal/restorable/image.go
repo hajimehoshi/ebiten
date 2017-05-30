@@ -167,14 +167,14 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-func (p *Image) At(x, y int, context *opengl.Context) (color.RGBA, error) {
+func (p *Image) At(x, y int) (color.RGBA, error) {
 	w, h := p.image.Size()
 	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
 	if x < 0 || y < 0 || w2 <= x || h2 <= y {
 		return color.RGBA{}, nil
 	}
 	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.readPixelsFromGPU(p.image, context); err != nil {
+		if err := p.readPixelsFromGPU(p.image); err != nil {
 			return color.RGBA{}, err
 		}
 	}
@@ -195,9 +195,9 @@ func (p *Image) makeStaleIfDependingOn(target *Image) {
 	}
 }
 
-func (p *Image) readPixelsFromGPU(image *graphics.Image, context *opengl.Context) error {
+func (p *Image) readPixelsFromGPU(image *graphics.Image) error {
 	var err error
-	p.basePixels, err = image.Pixels(context)
+	p.basePixels, err = image.Pixels()
 	if err != nil {
 		return err
 	}
@@ -207,14 +207,14 @@ func (p *Image) readPixelsFromGPU(image *graphics.Image, context *opengl.Context
 	return nil
 }
 
-func (p *Image) resolveStalePixels(context *opengl.Context) error {
+func (p *Image) resolveStalePixels() error {
 	if p.volatile {
 		return nil
 	}
 	if !p.stale {
 		return nil
 	}
-	return p.readPixelsFromGPU(p.image, context)
+	return p.readPixelsFromGPU(p.image)
 }
 
 func (p *Image) hasDependency() bool {
@@ -225,7 +225,7 @@ func (p *Image) hasDependency() bool {
 }
 
 // Restore restores *graphics.Image from the pixels using its state.
-func (p *Image) restore(context *opengl.Context) error {
+func (p *Image) restore() error {
 	w, h := p.image.Size()
 	if p.screen {
 		// The screen image should also be recreated because framebuffer might
@@ -273,7 +273,7 @@ func (p *Image) restore(context *opengl.Context) error {
 	p.image = gimg
 
 	var err error
-	p.basePixels, err = gimg.Pixels(context)
+	p.basePixels, err = gimg.Pixels()
 	if err != nil {
 		return err
 	}
@@ -295,6 +295,6 @@ func (p *Image) Dispose() {
 	runtime.SetFinalizer(p, nil)
 }
 
-func (p *Image) IsInvalidated(context *opengl.Context) bool {
-	return p.image.IsInvalidated(context)
+func (p *Image) IsInvalidated() bool {
+	return p.image.IsInvalidated()
 }

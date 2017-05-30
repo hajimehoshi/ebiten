@@ -46,26 +46,26 @@ func (a *arrayBufferLayout) totalBytes() int {
 	return a.total
 }
 
-func (a *arrayBufferLayout) newArrayBuffer(c *opengl.Context) opengl.Buffer {
-	return c.NewBuffer(opengl.ArrayBuffer, a.totalBytes()*4*maxQuads, opengl.DynamicDraw)
+func (a *arrayBufferLayout) newArrayBuffer() opengl.Buffer {
+	return opengl.GetContext().NewBuffer(opengl.ArrayBuffer, a.totalBytes()*4*maxQuads, opengl.DynamicDraw)
 }
 
-func (a *arrayBufferLayout) enable(c *opengl.Context, program opengl.Program) {
+func (a *arrayBufferLayout) enable(program opengl.Program) {
 	for _, p := range a.parts {
-		c.EnableVertexAttribArray(program, p.name)
+		opengl.GetContext().EnableVertexAttribArray(program, p.name)
 	}
 	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
-		c.VertexAttribPointer(program, p.name, p.num, p.dataType, p.normalize, total, offset)
+		opengl.GetContext().VertexAttribPointer(program, p.name, p.num, p.dataType, p.normalize, total, offset)
 		offset += p.dataType.SizeInBytes() * p.num
 	}
 }
 
-func (a *arrayBufferLayout) disable(c *opengl.Context, program opengl.Program) {
+func (a *arrayBufferLayout) disable(program opengl.Program) {
 	// TODO: Disabling should be done in reversed order?
 	for _, p := range a.parts {
-		c.DisableVertexAttribArray(program, p.name)
+		opengl.GetContext().DisableVertexAttribArray(program, p.name)
 	}
 }
 
@@ -125,12 +125,12 @@ const (
 	maxQuads   = indicesNum / 6
 )
 
-func Reset(context *opengl.Context) error {
-	return theOpenGLState.reset(context)
+func Reset() error {
+	return theOpenGLState.reset()
 }
 
-func (s *openGLState) reset(context *opengl.Context) error {
-	if err := context.Reset(); err != nil {
+func (s *openGLState) reset() error {
+	if err := opengl.GetContext().Reset(); err != nil {
 		return err
 	}
 	s.lastProgram = zeroProgram
@@ -138,19 +138,19 @@ func (s *openGLState) reset(context *opengl.Context) error {
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
 
-	shaderVertexModelviewNative, err := context.NewShader(opengl.VertexShader, shader(context, shaderVertexModelview))
+	shaderVertexModelviewNative, err := opengl.GetContext().NewShader(opengl.VertexShader, shader(shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer context.DeleteShader(shaderVertexModelviewNative)
+	defer opengl.GetContext().DeleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentTextureNative, err := context.NewShader(opengl.FragmentShader, shader(context, shaderFragmentTexture))
+	shaderFragmentTextureNative, err := opengl.GetContext().NewShader(opengl.FragmentShader, shader(shaderFragmentTexture))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer context.DeleteShader(shaderFragmentTextureNative)
+	defer opengl.GetContext().DeleteShader(shaderFragmentTextureNative)
 
-	s.programTexture, err = context.NewProgram([]opengl.Shader{
+	s.programTexture, err = opengl.GetContext().NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentTextureNative,
 	})
@@ -158,7 +158,7 @@ func (s *openGLState) reset(context *opengl.Context) error {
 		return err
 	}
 
-	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
+	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer()
 
 	indices := make([]uint16, 6*maxQuads)
 	for i := uint16(0); i < maxQuads; i++ {
@@ -169,7 +169,7 @@ func (s *openGLState) reset(context *opengl.Context) error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	s.indexBufferQuads = context.NewBuffer(opengl.ElementArrayBuffer, indices, opengl.StaticDraw)
+	s.indexBufferQuads = opengl.GetContext().NewBuffer(opengl.ElementArrayBuffer, indices, opengl.StaticDraw)
 
 	return nil
 }
@@ -189,20 +189,19 @@ func areSameFloat32Array(a, b []float32) bool {
 type programContext struct {
 	state            *openGLState
 	program          opengl.Program
-	context          *opengl.Context
 	projectionMatrix []float32
 	texture          opengl.Texture
 	colorM           affine.ColorM
 }
 
 func (p *programContext) begin() error {
-	c := p.context
+	c := opengl.GetContext()
 	if p.state.lastProgram != p.program {
 		c.UseProgram(p.program)
 		if p.state.lastProgram != zeroProgram {
-			theArrayBufferLayout.disable(c, p.state.lastProgram)
+			theArrayBufferLayout.disable(p.state.lastProgram)
 		}
-		theArrayBufferLayout.enable(c, p.program)
+		theArrayBufferLayout.enable(p.program)
 
 		p.state.lastProgram = p.state.programTexture
 		p.state.lastProjectionMatrix = nil

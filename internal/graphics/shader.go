@@ -27,9 +27,9 @@ const (
 	shaderFragmentTexture
 )
 
-func shader(c *opengl.Context, id shaderId) string {
+func shader(id shaderId) string {
 	str := shaders[id]
-	if !c.GlslHighpSupported() {
+	if !opengl.GetContext().GlslHighpSupported() {
 		str = strings.Replace(str, "highp ", "", -1)
 		str = strings.Replace(str, "lowp ", "", -1)
 	}

@@ -38,7 +38,7 @@ func Render(chError <-chan error) error {
 	// TODO: Check this is called on the rendering thread
 	select {
 	case chRender <- struct{}{}:
-		return glContext.DoWork(chError, chRenderEnd)
+		return opengl.GetContext().DoWork(chError, chRenderEnd)
 	case <-time.After(500 * time.Millisecond):
 		// This function must not be blocked. We need to break for timeout.
 		return nil
@@ -66,11 +66,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	u.height = height
 	u.scale = scale
 	// title is ignored?
-	var err error
-	glContext, err = opengl.NewContext()
-	if err != nil {
-		return err
-	}
+	opengl.Init()
 	for {
 		if err := u.update(g); err != nil {
 			return err

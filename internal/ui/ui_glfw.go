@@ -178,11 +178,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	u := currentUI
 	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
-	var err error
-	glContext, err = opengl.NewContext(currentUI.runOnMainThread)
-	if err != nil {
-		return err
-	}
+	opengl.Init(currentUI.runOnMainThread)
 	if err := u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
@@ -275,7 +271,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			return err
 		}
 		// The bound framebuffer must be the default one (0) before swapping buffers.
-		if err := glContext.BindScreenFramebuffer(); err != nil {
+		if err := opengl.GetContext().BindScreenFramebuffer(); err != nil {
 			return err
 		}
 		_ = u.runOnMainThread(func() error {

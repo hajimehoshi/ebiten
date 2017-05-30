@@ -91,7 +91,7 @@ type context struct {
 	lastProgramID programID
 }
 
-func NewContext() (*Context, error) {
+func Init() error {
 	var gl *webgl.Context
 
 	if js.Global.Get("require") == js.Undefined {
@@ -103,7 +103,7 @@ func NewContext() (*Context, error) {
 			PremultipliedAlpha: true,
 		})
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		// TODO: Now Ebiten with headless-gl doesn't work well (#141).
@@ -126,7 +126,8 @@ func NewContext() (*Context, error) {
 			c.loseContext.Call("loseContext")
 		})
 	}
-	return c, nil
+	theContext = c
+	return nil
 }
 
 func (c *Context) Reset() error {

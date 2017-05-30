@@ -16,10 +16,6 @@
 
 package ebiten
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/opengl"
-)
-
-func (c *graphicsContext) needsRestoring(context *opengl.Context) (bool, error) {
+func (c *graphicsContext) needsRestoring() (bool, error) {
 	return c.invalidated, nil
 }

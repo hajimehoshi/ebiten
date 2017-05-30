@@ -73,10 +73,10 @@ type context struct {
 	runOnMainThread func(func() error) error
 }
 
-func NewContext(runOnMainThread func(func() error) error) (*Context, error) {
+func Init(runOnMainThread func(func() error) error) {
 	c := &Context{}
 	c.runOnMainThread = runOnMainThread
-	return c, nil
+	theContext = c
 }
 
 func (c *Context) runOnContextThread(f func() error) error {

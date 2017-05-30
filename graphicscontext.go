@@ -16,12 +16,9 @@ package ebiten
 
 import (
 	"math"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
@@ -36,15 +33,8 @@ type graphicsContext struct {
 	offscreen2  *Image // TODO: better name
 	screen      *Image
 	screenScale float64
-	initialized int32
+	initialized bool
 	invalidated bool // browser only
-}
-
-func (c *graphicsContext) GLContext() *opengl.Context {
-	if atomic.LoadInt32(&c.initialized) == 0 {
-		return nil
-	}
-	return ui.GLContext()
 }
 
 func (c *graphicsContext) Invalidate() {
@@ -100,21 +90,21 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	return nil
 }
 
-func (c *graphicsContext) initializeIfNeeded(context *opengl.Context) error {
-	if atomic.LoadInt32(&c.initialized) == 0 {
-		if err := graphics.Reset(context); err != nil {
+func (c *graphicsContext) initializeIfNeeded() error {
+	if !c.initialized {
+		if err := graphics.Reset(); err != nil {
 			return err
 		}
-		atomic.StoreInt32(&c.initialized, 1)
+		c.initialized = true
 	}
-	r, err := c.needsRestoring(context)
+	r, err := c.needsRestoring()
 	if err != nil {
 		return err
 	}
 	if !r {
 		return nil
 	}
-	if err := c.restore(context); err != nil {
+	if err := c.restore(); err != nil {
 		return err
 	}
 	return nil
@@ -130,17 +120,17 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	_ = dst.DrawImage(src, op)
 }
 
-func (c *graphicsContext) drawToDefaultRenderTarget(context *opengl.Context) error {
+func (c *graphicsContext) drawToDefaultRenderTarget() error {
 	_ = c.screen.Clear()
 	drawWithFittingScale(c.screen, c.offscreen2)
-	if err := graphics.FlushCommands(context); err != nil {
+	if err := graphics.FlushCommands(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int) error {
-	if err := c.initializeIfNeeded(context); err != nil {
+func (c *graphicsContext) UpdateAndDraw(updateCount int) error {
+	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
@@ -153,21 +143,21 @@ func (c *graphicsContext) UpdateAndDraw(context *opengl.Context, updateCount int
 	if 0 < updateCount {
 		drawWithFittingScale(c.offscreen2, c.offscreen)
 	}
-	if err := c.drawToDefaultRenderTarget(context); err != nil {
+	if err := c.drawToDefaultRenderTarget(); err != nil {
 		return err
 	}
 	// TODO: Add tests to check if this behavior is correct (#357)
-	if err := restorable.ResolveStalePixels(context); err != nil {
+	if err := restorable.ResolveStalePixels(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *graphicsContext) restore(context *opengl.Context) error {
-	if err := graphics.Reset(context); err != nil {
+func (c *graphicsContext) restore() error {
+	if err := graphics.Reset(); err != nil {
 		return err
 	}
-	if err := restorable.Restore(context); err != nil {
+	if err := restorable.Restore(); err != nil {
 		return err
 	}
 	c.invalidated = false

@@ -47,6 +47,12 @@ type Context struct {
 	context
 }
 
+var theContext *Context
+
+func GetContext() *Context {
+	return theContext
+}
+
 func (c *Context) BindTexture(t Texture) error {
 	if c.lastTexture == t {
 		return nil

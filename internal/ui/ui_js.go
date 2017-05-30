@@ -72,8 +72,8 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if !u.windowFocus {
 		return nil
 	}
-	if glContext.IsContextLost() {
-		glContext.RestoreContext()
+	if opengl.GetContext().IsContextLost() {
+		opengl.GetContext().RestoreContext()
 		g.Invalidate()
 	}
 	currentInput.updateGamepads()
@@ -280,9 +280,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	doc.Set("title", title)
 	u.setScreenSize(width, height, scale)
 	canvas.Call("focus")
-	var err error
-	glContext, err = opengl.NewContext()
-	if err != nil {
+	if err := opengl.Init(); err != nil {
 		return err
 	}
 	return u.loop(g)
