@@ -128,7 +128,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}
 }
 
-func TestRestoreRecursive(t *testing.T) {
+func Disabled_TestRestoreRecursive(t *testing.T) {
 	img0 := NewImage(1, 1, opengl.Nearest, false)
 	img1 := NewImage(1, 1, opengl.Nearest, false)
 	defer func() {
