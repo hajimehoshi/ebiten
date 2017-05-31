@@ -92,6 +92,10 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
+func (p *Image) BasePixelsForTesting() []uint8 {
+	return p.basePixels
+}
+
 func (p *Image) Size() (int, int) {
 	return p.image.Size()
 }
@@ -112,7 +116,7 @@ func (p *Image) clearIfVolatile() {
 	p.drawImageHistory = nil
 	p.stale = false
 	if p.image == nil {
-		panic("not reach")
+		panic("not reached")
 	}
 	p.image.Fill(color.RGBA{})
 }
@@ -259,14 +263,14 @@ func (p *Image) restore() error {
 	gimg := graphics.NewImageFromImage(img, w, h, p.filter)
 	if p.baseColor != (color.RGBA{}) {
 		if p.basePixels != nil {
-			panic("not reach")
+			panic("not reached")
 		}
 		gimg.Fill(p.baseColor)
 	}
 	for _, c := range p.drawImageHistory {
 		// c.image.image must be already restored.
 		if c.image.hasDependency() {
-			panic("not reach")
+			panic("not reached")
 		}
 		gimg.DrawImage(c.image.image, c.vertices, &c.colorm, c.mode)
 	}

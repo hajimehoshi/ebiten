@@ -20,8 +20,8 @@ import (
 
 type images struct {
 	images      map[*Image]struct{}
-	m           sync.Mutex
 	lastChecked *Image
+	m           sync.Mutex
 }
 
 var theImages = &images{
