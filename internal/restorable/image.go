@@ -142,6 +142,7 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
 	theImages.resetPixelsIfDependingOn(p)
 	if img.stale || img.volatile {
+		// TODO: What will happen if there are images depending on p?
 		p.makeStale()
 	} else {
 		p.appendDrawImageHistory(img, vertices, colorm, mode)
