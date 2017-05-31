@@ -45,49 +45,31 @@ func (c *graphicsContext) Invalidate() {
 	c.invalidated = true
 }
 
-func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) error {
+func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) {
 	if c.screen != nil {
-		if err := c.screen.Dispose(); err != nil {
-			return err
-		}
+		_ = c.screen.Dispose()
 	}
 	if c.offscreen != nil {
-		if err := c.offscreen.Dispose(); err != nil {
-			return err
-		}
+		_ = c.offscreen.Dispose()
 	}
 	if c.offscreen2 != nil {
-		if err := c.offscreen2.Dispose(); err != nil {
-			return err
-		}
+		_ = c.offscreen2.Dispose()
 	}
-	offscreen, err := newVolatileImage(screenWidth, screenHeight, FilterNearest)
-	if err != nil {
-		return err
-	}
+	offscreen := newVolatileImage(screenWidth, screenHeight, FilterNearest)
 
 	intScreenScale := int(math.Ceil(screenScale))
 	w := screenWidth * intScreenScale
 	h := screenHeight * intScreenScale
-	offscreen2, err := newVolatileImage(w, h, FilterLinear)
-	if err != nil {
-		return err
-	}
+	offscreen2 := newVolatileImage(w, h, FilterLinear)
 
 	w = int(float64(screenWidth) * screenScale)
 	h = int(float64(screenHeight) * screenScale)
-	c.screen, err = newImageWithScreenFramebuffer(w, h)
-	if err != nil {
-		return err
-	}
-	if err := c.screen.Clear(); err != nil {
-		return err
-	}
+	c.screen = newImageWithScreenFramebuffer(w, h)
+	_ = c.screen.Clear()
 
 	c.offscreen = offscreen
 	c.offscreen2 = offscreen2
 	c.screenScale = screenScale
-	return nil
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {

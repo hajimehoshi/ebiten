@@ -250,13 +250,13 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // If width or height is less than 1 or more than MaxImageSize, newVolatileImage panics.
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
-func newVolatileImage(width, height int, filter Filter) (*Image, error) {
+func newVolatileImage(width, height int, filter Filter) *Image {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), true)
 	r.Fill(color.RGBA{})
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
-	return i, nil
+	return i
 }
 
 // NewImageFromImage creates a new image with the given image (source).
@@ -275,12 +275,12 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	return i, nil
 }
 
-func newImageWithScreenFramebuffer(width, height int) (*Image, error) {
+func newImageWithScreenFramebuffer(width, height int) *Image {
 	checkSize(width, height)
 	r := restorable.NewScreenFramebufferImage(width, height)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
-	return i, nil
+	return i
 }
 
 const MaxImageSize = graphics.MaxImageSize

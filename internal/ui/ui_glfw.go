@@ -236,9 +236,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return nil
 	})
 	if 0 < actualScale {
-		if err := g.SetSize(u.width, u.height, actualScale); err != nil {
-			return err
-		}
+		g.SetSize(u.width, u.height, actualScale)
 	}
 
 	_ = u.runOnMainThread(func() error {

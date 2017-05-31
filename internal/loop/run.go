@@ -74,7 +74,7 @@ func (c *runContext) updateFPS(fps float64) {
 }
 
 type GraphicsContext interface {
-	SetSize(width, height int, scale float64) error
+	SetSize(width, height int, scale float64)
 	UpdateAndDraw(updateCount int) error
 	Invalidate()
 }
@@ -84,8 +84,8 @@ type loopGraphicsContext struct {
 	graphicsContext GraphicsContext
 }
 
-func (g *loopGraphicsContext) SetSize(width, height int, scale float64) error {
-	return g.graphicsContext.SetSize(width, height, scale)
+func (g *loopGraphicsContext) SetSize(width, height int, scale float64) {
+	g.graphicsContext.SetSize(width, height, scale)
 }
 
 func (g *loopGraphicsContext) Update() error {
