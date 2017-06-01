@@ -90,22 +90,40 @@ func (i *images) restore() error {
 	defer i.m.Unlock()
 	// Framebuffers/textures cannot be disposed since framebuffers/textures that
 	// don't belong to the current context.
-	imagesWithoutDependency := []*Image{}
-	imagesWithDependency := []*Image{}
+
+	// Let's do topological sort based on dependencies of drawing history.
+	// There should not be a loop since cyclic drawing makes images stale.
+	current := map[*Image]struct{}{}
+	toBeDetermined := map[*Image]struct{}{}
+	sorted := []*Image{}
 	for img := range i.images {
 		if img.hasDependency() {
-			imagesWithDependency = append(imagesWithDependency, img)
-		} else {
-			imagesWithoutDependency = append(imagesWithoutDependency, img)
+			toBeDetermined[img] = struct{}{}
+			continue
 		}
+		current[img] = struct{}{}
+		sorted = append(sorted, img)
 	}
-	// Images depending on other images should be processed first.
-	for _, img := range imagesWithoutDependency {
-		if err := img.restore(); err != nil {
-			return err
+	// TODO: How to confirm that there is no loop?
+	for len(current) > 0 {
+		next := map[*Image]struct{}{}
+		for source := range current {
+			for target := range toBeDetermined {
+				if target.dependsOn(source) {
+					next[target] = struct{}{}
+				}
+			}
 		}
+		for img := range next {
+			sorted = append(sorted, img)
+			delete(toBeDetermined, img)
+		}
+		current = next
 	}
-	for _, img := range imagesWithDependency {
+	if len(toBeDetermined) > 0 {
+		panic("not reached")
+	}
+	for _, img := range sorted {
 		if err := img.restore(); err != nil {
 			return err
 		}

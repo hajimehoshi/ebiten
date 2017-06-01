@@ -192,11 +192,8 @@ func (p *Image) makeStaleIfDependingOn(target *Image) {
 	if p.stale {
 		return
 	}
-	for _, c := range p.drawImageHistory {
-		if c.image == target {
-			p.makeStale()
-			return
-		}
+	if p.dependsOn(target) {
+		p.makeStale()
 	}
 }
 
@@ -220,6 +217,15 @@ func (p *Image) resolveStalePixels() error {
 		return nil
 	}
 	return p.readPixelsFromGPU(p.image)
+}
+
+func (p *Image) dependsOn(target *Image) bool {
+	for _, c := range p.drawImageHistory {
+		if c.image == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *Image) hasDependency() bool {

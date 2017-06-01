@@ -71,6 +71,37 @@ func vertices() []float32 {
 	}
 }
 
+func TestRestoreChain(t *testing.T) {
+	const num = 10
+	imgs := []*Image{}
+	for i := 0; i < num; i++ {
+		imgs = append(imgs, NewImage(1, 1, opengl.Nearest, false))
+	}
+	defer func() {
+		for _, img := range imgs {
+			img.Dispose()
+		}
+	}()
+	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
+	imgs[0].Fill(clr)
+	for i := 0; i < num-1; i++ {
+		imgs[i+1].DrawImage(imgs[i], vertices(), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	}
+	if err := ResolveStalePixels(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	want := clr
+	for i, img := range imgs {
+		got := uint8SliceToColor(img.BasePixelsForTesting())
+		if got != want {
+			t.Errorf("%d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
 func TestRestoreOverrideSource(t *testing.T) {
 	img0 := NewImage(1, 1, opengl.Nearest, false)
 	img1 := NewImage(1, 1, opengl.Nearest, false)
