@@ -107,6 +107,8 @@ func (i *images) restore() error {
 	// TODO: How to confirm that there is no loop?
 	for len(current) > 0 {
 		next := map[*Image]struct{}{}
+		// TODO: This is inefficient. Get all edges from the source first.
+		// (*Image).childImages?
 		for source := range current {
 			for target := range toBeDetermined {
 				if target.dependsOn(source) {

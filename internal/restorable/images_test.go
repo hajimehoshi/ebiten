@@ -16,6 +16,7 @@ package restorable_test
 
 import (
 	"errors"
+	"image"
 	"image/color"
 	"os"
 	"testing"
@@ -39,13 +40,19 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func uint8SliceToColor(b []uint8) color.RGBA {
-	return color.RGBA{b[0], b[1], b[2], b[3]}
+func uint8SliceToColor(b []uint8, index int) color.RGBA {
+	i := index * 4
+	return color.RGBA{b[i], b[i+1], b[i+2], b[i+3]}
 }
 
 func TestRestore(t *testing.T) {
 	img0 := NewImage(1, 1, opengl.Nearest, false)
-	defer img0.Dispose()
+	// Clear images explicitly.
+	// In this 'restorable' layer, reused texture might not be cleared.
+	img0.Fill(color.RGBA{0, 0, 0, 0})
+	defer func() {
+		img0.Dispose()
+	}()
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	img0.Fill(clr0)
 	if err := ResolveStalePixels(); err != nil {
@@ -55,19 +62,23 @@ func TestRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := clr0
-	got := uint8SliceToColor(img0.BasePixelsForTesting())
+	got := uint8SliceToColor(img0.BasePixelsForTesting(), 0)
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
-func vertices() []float32 {
-	const a, b, c, d, tx, ty = 1, 0, 0, 1, 0, 0
+func vertices(sw, sh int, x, y int) []float32 {
+	const a, b, c, d = 1, 0, 0, 1
+	swf := float32(sw)
+	shf := float32(sh)
+	tx := float32(x)
+	ty := float32(y)
 	return []float32{
 		0, 0, 0, 0, a, b, c, d, tx, ty,
-		0, 1, 0, 1, a, b, c, d, tx, ty,
-		1, 0, 1, 0, a, b, c, d, tx, ty,
-		1, 1, 1, 1, a, b, c, d, tx, ty,
+		0, shf, 0, 1, a, b, c, d, tx, ty,
+		swf, 0, 1, 0, a, b, c, d, tx, ty,
+		swf, shf, 1, 1, a, b, c, d, tx, ty,
 	}
 }
 
@@ -75,7 +86,9 @@ func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		imgs = append(imgs, NewImage(1, 1, opengl.Nearest, false))
+		img := NewImage(1, 1, opengl.Nearest, false)
+		img.Fill(color.RGBA{0, 0, 0, 0})
+		imgs = append(imgs, img)
 	}
 	defer func() {
 		for _, img := range imgs {
@@ -85,7 +98,7 @@ func TestRestoreChain(t *testing.T) {
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	imgs[0].Fill(clr)
 	for i := 0; i < num-1; i++ {
-		imgs[i+1].DrawImage(imgs[i], vertices(), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+		imgs[i+1].DrawImage(imgs[i], vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	}
 	if err := ResolveStalePixels(); err != nil {
 		t.Fatal(err)
@@ -95,7 +108,7 @@ func TestRestoreChain(t *testing.T) {
 	}
 	want := clr
 	for i, img := range imgs {
-		got := uint8SliceToColor(img.BasePixelsForTesting())
+		got := uint8SliceToColor(img.BasePixelsForTesting(), 0)
 		if got != want {
 			t.Errorf("%d: got %v, want %v", i, got, want)
 		}
@@ -104,9 +117,13 @@ func TestRestoreChain(t *testing.T) {
 
 func TestRestoreOverrideSource(t *testing.T) {
 	img0 := NewImage(1, 1, opengl.Nearest, false)
+	img0.Fill(color.RGBA{0, 0, 0, 0})
 	img1 := NewImage(1, 1, opengl.Nearest, false)
+	img1.Fill(color.RGBA{0, 0, 0, 0})
 	img2 := NewImage(1, 1, opengl.Nearest, false)
+	img2.Fill(color.RGBA{0, 0, 0, 0})
 	img3 := NewImage(1, 1, opengl.Nearest, false)
+	img3.Fill(color.RGBA{0, 0, 0, 0})
 	defer func() {
 		img3.Dispose()
 		img2.Dispose()
@@ -116,10 +133,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
 	img1.Fill(clr0)
-	img2.DrawImage(img1, vertices(), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img3.DrawImage(img2, vertices(), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img2.DrawImage(img1, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img3.DrawImage(img2, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	img0.Fill(clr1)
-	img1.DrawImage(img0, vertices(), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img1.DrawImage(img0, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	if err := ResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
@@ -134,22 +151,22 @@ func TestRestoreOverrideSource(t *testing.T) {
 		{
 			"0",
 			clr1,
-			uint8SliceToColor(img0.BasePixelsForTesting()),
+			uint8SliceToColor(img0.BasePixelsForTesting(), 0),
 		},
 		{
 			"1",
 			clr1,
-			uint8SliceToColor(img1.BasePixelsForTesting()),
+			uint8SliceToColor(img1.BasePixelsForTesting(), 0),
 		},
 		{
 			"2",
 			clr0,
-			uint8SliceToColor(img2.BasePixelsForTesting()),
+			uint8SliceToColor(img2.BasePixelsForTesting(), 0),
 		},
 		{
 			"3",
 			clr0,
-			uint8SliceToColor(img3.BasePixelsForTesting()),
+			uint8SliceToColor(img3.BasePixelsForTesting(), 0),
 		},
 	}
 	for _, c := range testCases {
@@ -159,19 +176,21 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}
 }
 
-func Disabled_TestRestoreRecursive(t *testing.T) {
-	img0 := NewImage(1, 1, opengl.Nearest, false)
-	img1 := NewImage(1, 1, opengl.Nearest, false)
+func TestRestoreRecursive(t *testing.T) {
+	base := image.NewRGBA(image.Rect(0, 0, 4, 1))
+	base.Pix[0] = 0xff
+	base.Pix[1] = 0xff
+	base.Pix[2] = 0xff
+	base.Pix[3] = 0xff
+	img0 := NewImageFromImage(base, 4, 1, opengl.Nearest)
+	img1 := NewImage(4, 1, opengl.Nearest, false)
+	img1.Fill(color.RGBA{0, 0, 0, 0})
 	defer func() {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	clr0 := color.RGBA{0x00, 0x00, 0x01, 0xff}
-	clr1 := color.RGBA{0x00, 0x00, 0x02, 0xff}
-	img0.Fill(clr0)
-	img1.Fill(clr1)
-	img1.DrawImage(img0, vertices(), &affine.ColorM{}, opengl.CompositeModeLighter)
-	img0.DrawImage(img1, vertices(), &affine.ColorM{}, opengl.CompositeModeLighter)
+	img1.DrawImage(img0, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img0.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	if err := ResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
@@ -184,14 +203,44 @@ func Disabled_TestRestoreRecursive(t *testing.T) {
 		got  color.RGBA
 	}{
 		{
-			"0",
-			color.RGBA{0x00, 0x00, 0x04, 0xff},
-			uint8SliceToColor(img0.BasePixelsForTesting()),
+			"0, 0",
+			color.RGBA{0xff, 0xff, 0xff, 0xff},
+			uint8SliceToColor(img0.BasePixelsForTesting(), 0),
 		},
 		{
-			"1",
-			color.RGBA{0x00, 0x00, 0x03, 0xff},
-			uint8SliceToColor(img1.BasePixelsForTesting()),
+			"0, 1",
+			color.RGBA{0x00, 0x00, 0x00, 0x00},
+			uint8SliceToColor(img0.BasePixelsForTesting(), 1),
+		},
+		{
+			"0, 1",
+			color.RGBA{0xff, 0xff, 0xff, 0xff},
+			uint8SliceToColor(img0.BasePixelsForTesting(), 2),
+		},
+		{
+			"0, 1",
+			color.RGBA{0x00, 0x00, 0x00, 0x00},
+			uint8SliceToColor(img0.BasePixelsForTesting(), 3),
+		},
+		{
+			"1, 0",
+			color.RGBA{0x00, 0x00, 0x00, 0x00},
+			uint8SliceToColor(img1.BasePixelsForTesting(), 0),
+		},
+		{
+			"1, 1",
+			color.RGBA{0xff, 0xff, 0xff, 0xff},
+			uint8SliceToColor(img1.BasePixelsForTesting(), 1),
+		},
+		{
+			"1, 2",
+			color.RGBA{0x00, 0x00, 0x00, 0x00},
+			uint8SliceToColor(img1.BasePixelsForTesting(), 2),
+		},
+		{
+			"1, 3",
+			color.RGBA{0x00, 0x00, 0x00, 0x00},
+			uint8SliceToColor(img1.BasePixelsForTesting(), 3),
 		},
 	}
 	for _, c := range testCases {
