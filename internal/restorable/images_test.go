@@ -176,6 +176,119 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}
 }
 
+func TestRestoreComplexGraph(t *testing.T) {
+	// 0 -> 3
+	// 1 -> 3
+	// 1 -> 4
+	// 2 -> 4
+	// 2 -> 7
+	// 3 -> 5
+	// 3 -> 6
+	// 3 -> 7
+	// 4 -> 6
+	base := image.NewRGBA(image.Rect(0, 0, 4, 1))
+	base.Pix[0] = 0xff
+	base.Pix[1] = 0xff
+	base.Pix[2] = 0xff
+	base.Pix[3] = 0xff
+	img0 := NewImageFromImage(base, 4, 1, opengl.Nearest)
+	img1 := NewImageFromImage(base, 4, 1, opengl.Nearest)
+	img2 := NewImageFromImage(base, 4, 1, opengl.Nearest)
+	img3 := NewImage(4, 1, opengl.Nearest, false)
+	img3.Fill(color.RGBA{0, 0, 0, 0})
+	img4 := NewImage(4, 1, opengl.Nearest, false)
+	img4.Fill(color.RGBA{0, 0, 0, 0})
+	img5 := NewImage(4, 1, opengl.Nearest, false)
+	img5.Fill(color.RGBA{0, 0, 0, 0})
+	img6 := NewImage(4, 1, opengl.Nearest, false)
+	img6.Fill(color.RGBA{0, 0, 0, 0})
+	img7 := NewImage(4, 1, opengl.Nearest, false)
+	img7.Fill(color.RGBA{0, 0, 0, 0})
+	defer func() {
+		img7.Dispose()
+		img6.Dispose()
+		img5.Dispose()
+		img4.Dispose()
+		img3.Dispose()
+		img2.Dispose()
+		img1.Dispose()
+		img0.Dispose()
+	}()
+	img3.DrawImage(img0, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img3.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img4.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img4.DrawImage(img2, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img5.DrawImage(img3, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img6.DrawImage(img3, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img6.DrawImage(img4, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img7.DrawImage(img2, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img7.DrawImage(img3, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	if err := ResolveStalePixels(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	testCases := []struct {
+		name  string
+		out   string
+		image *Image
+	}{
+		{
+			"0",
+			"*---",
+			img0,
+		},
+		{
+			"1",
+			"*---",
+			img1,
+		},
+		{
+			"1",
+			"*---",
+			img2,
+		},
+		{
+			"3",
+			"**--",
+			img3,
+		},
+		{
+			"4",
+			"-**-",
+			img4,
+		},
+		{
+			"5",
+			"**--",
+			img5,
+		},
+		{
+			"6",
+			"****",
+			img6,
+		},
+		{
+			"7",
+			"*-**",
+			img7,
+		},
+	}
+	for _, c := range testCases {
+		for i := 0; i < 4; i++ {
+			want := color.RGBA{}
+			if c.out[i] == '*' {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			got := uint8SliceToColor(c.image.BasePixelsForTesting(), i)
+			if got != want {
+				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
+			}
+		}
+	}
+}
+
 func TestRestoreRecursive(t *testing.T) {
 	base := image.NewRGBA(image.Rect(0, 0, 4, 1))
 	base.Pix[0] = 0xff
@@ -198,54 +311,31 @@ func TestRestoreRecursive(t *testing.T) {
 		t.Fatal(err)
 	}
 	testCases := []struct {
-		name string
-		want color.RGBA
-		got  color.RGBA
+		name  string
+		out   string
+		image *Image
 	}{
 		{
-			"0, 0",
-			color.RGBA{0xff, 0xff, 0xff, 0xff},
-			uint8SliceToColor(img0.BasePixelsForTesting(), 0),
+			"0",
+			"*-*-",
+			img0,
 		},
 		{
-			"0, 1",
-			color.RGBA{0x00, 0x00, 0x00, 0x00},
-			uint8SliceToColor(img0.BasePixelsForTesting(), 1),
-		},
-		{
-			"0, 1",
-			color.RGBA{0xff, 0xff, 0xff, 0xff},
-			uint8SliceToColor(img0.BasePixelsForTesting(), 2),
-		},
-		{
-			"0, 1",
-			color.RGBA{0x00, 0x00, 0x00, 0x00},
-			uint8SliceToColor(img0.BasePixelsForTesting(), 3),
-		},
-		{
-			"1, 0",
-			color.RGBA{0x00, 0x00, 0x00, 0x00},
-			uint8SliceToColor(img1.BasePixelsForTesting(), 0),
-		},
-		{
-			"1, 1",
-			color.RGBA{0xff, 0xff, 0xff, 0xff},
-			uint8SliceToColor(img1.BasePixelsForTesting(), 1),
-		},
-		{
-			"1, 2",
-			color.RGBA{0x00, 0x00, 0x00, 0x00},
-			uint8SliceToColor(img1.BasePixelsForTesting(), 2),
-		},
-		{
-			"1, 3",
-			color.RGBA{0x00, 0x00, 0x00, 0x00},
-			uint8SliceToColor(img1.BasePixelsForTesting(), 3),
+			"1",
+			"-*--",
+			img1,
 		},
 	}
 	for _, c := range testCases {
-		if c.got != c.want {
-			t.Errorf("%s: got %v, want %v", c.name, c.got, c.want)
+		for i := 0; i < 4; i++ {
+			want := color.RGBA{}
+			if c.out[i] == '*' {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			got := uint8SliceToColor(c.image.BasePixelsForTesting(), i)
+			if got != want {
+				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
+			}
 		}
 	}
 }
