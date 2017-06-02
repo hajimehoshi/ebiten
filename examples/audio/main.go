@@ -72,21 +72,20 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
-func (p *Player) updateSE() error {
+func (p *Player) updateSE() {
 	if seBytes == nil {
-		return nil
+		return
 	}
 	if !ebiten.IsKeyPressed(ebiten.KeyP) {
 		keyState[ebiten.KeyP] = 0
-		return nil
+		return
 	}
 	keyState[ebiten.KeyP]++
 	if keyState[ebiten.KeyP] != 1 {
-		return nil
+		return
 	}
 	sePlayer, _ := audio.NewPlayerFromBytes(audioContext, seBytes)
 	sePlayer.Play()
-	return nil
 }
 
 func (p *Player) updateVolume() {
@@ -108,23 +107,24 @@ func (p *Player) updateVolume() {
 	p.audioPlayer.SetVolume(float64(volume128) / 128)
 }
 
-func (p *Player) updatePlayPause() error {
+func (p *Player) updatePlayPause() {
 	if p.audioPlayer == nil {
-		return nil
+		return
 	}
 	if !ebiten.IsKeyPressed(ebiten.KeyS) {
 		keyState[ebiten.KeyS] = 0
-		return nil
+		return
 	}
 	keyState[ebiten.KeyS]++
 	if keyState[ebiten.KeyS] != 1 {
-		return nil
+		return
 	}
 	if p.audioPlayer.IsPlaying() {
-		return p.audioPlayer.Pause()
+		p.audioPlayer.Pause()
+		return
 	}
 	p.audioPlayer.Play()
-	return nil
+	return
 }
 
 func (p *Player) updateBar() {
@@ -178,12 +178,8 @@ func update(screen *ebiten.Image) error {
 	}
 	if musicPlayer != nil {
 		musicPlayer.updateBar()
-		if err := musicPlayer.updatePlayPause(); err != nil {
-			return err
-		}
-		if err := musicPlayer.updateSE(); err != nil {
-			return err
-		}
+		musicPlayer.updatePlayPause()
+		musicPlayer.updateSE()
 		musicPlayer.updateVolume()
 	}
 	if ebiten.IsRunningSlowly() {
