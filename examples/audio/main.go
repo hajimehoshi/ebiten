@@ -41,22 +41,11 @@ var (
 )
 
 func init() {
-	var err error
-	playerBarImage, err = ebiten.NewImage(300, 4, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := playerBarImage.Fill(&color.RGBA{0x80, 0x80, 0x80, 0xff}); err != nil {
-		log.Fatal(err)
-	}
+	playerBarImage, _ = ebiten.NewImage(300, 4, ebiten.FilterNearest)
+	playerBarImage.Fill(&color.RGBA{0x80, 0x80, 0x80, 0xff})
 
-	playerCurrentImage, err = ebiten.NewImage(4, 10, ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff}); err != nil {
-		log.Fatal(err)
-	}
+	playerCurrentImage, _ = ebiten.NewImage(4, 10, ebiten.FilterNearest)
+	playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff})
 }
 
 type Player struct {

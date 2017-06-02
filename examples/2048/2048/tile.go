@@ -285,14 +285,8 @@ var (
 )
 
 func init() {
-	var err error
-	tileImage, err = ebiten.NewImage(tileSize, tileSize, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	if err := tileImage.Fill(color.White); err != nil {
-		panic(err)
-	}
+	tileImage, _ = ebiten.NewImage(tileSize, tileSize, ebiten.FilterNearest)
+	tileImage.Fill(color.White)
 }
 
 func (t *Tile) Draw(boardImage *ebiten.Image) {
