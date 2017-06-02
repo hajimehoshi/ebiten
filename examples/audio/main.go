@@ -88,7 +88,8 @@ func (p *Player) updateSE() error {
 	if err != nil {
 		return err
 	}
-	return sePlayer.Play()
+	sePlayer.Play()
+	return nil
 }
 
 func (p *Player) updateVolume() {

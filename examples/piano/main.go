@@ -87,10 +87,7 @@ func addNote(freq float64, vol float64) error {
 	// collects a *audio.Player object.
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
-		p, err := audio.NewPlayerFromBytes(audioContext, n)
-		if err != nil {
-			return err
-		}
+		p, _ := audio.NewPlayerFromBytes(audioContext, n)
 		if err := p.Play(); err != nil {
 			return err
 		}
@@ -110,10 +107,7 @@ func addNote(freq float64, vol float64) error {
 	}
 	n := toBytes(l, r)
 	noteCache[f] = n
-	p, err := audio.NewPlayerFromBytes(audioContext, n)
-	if err != nil {
-		return err
-	}
+	p, _ := audio.NewPlayerFromBytes(audioContext, n)
 	if err := p.Play(); err != nil {
 		return err
 	}

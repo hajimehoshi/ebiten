@@ -350,10 +350,15 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 //
 // The format of src should be same as noted at NewPlayer.
 //
-// NewPlayerFromBytes returns error in the same situation of NewPlayer.
+// NewPlayerFromBytes's error is always nil as of 1.5.0-alpha.
 func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 	b := BytesReadSeekCloser(src)
-	return NewPlayer(context, b)
+	p, err := NewPlayer(context, b)
+	if err != nil {
+		// Errors should never happen.
+		panic(err)
+	}
+	return p, nil
 }
 
 // Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
