@@ -228,6 +228,14 @@ func (p *Image) dependsOn(target *Image) bool {
 	return false
 }
 
+func (p *Image) dependingImages() map[*Image]struct{} {
+	r := map[*Image]struct{}{}
+	for _, c := range p.drawImageHistory {
+		r[c.image] = struct{}{}
+	}
+	return r
+}
+
 func (p *Image) hasDependency() bool {
 	if p.stale {
 		return false
@@ -275,7 +283,7 @@ func (p *Image) restore() error {
 		gimg.Fill(p.baseColor)
 	}
 	for _, c := range p.drawImageHistory {
-		// c.image.image must be already restored.
+		// All dependencies must be already resolved.
 		if c.image.hasDependency() {
 			panic("not reached")
 		}

@@ -93,37 +93,45 @@ func (i *images) restore() error {
 
 	// Let's do topological sort based on dependencies of drawing history.
 	// There should not be a loop since cyclic drawing makes images stale.
-	current := map[*Image]struct{}{}
-	toBeDetermined := map[*Image]struct{}{}
-	sorted := []*Image{}
-	for img := range i.images {
-		if img.hasDependency() {
-			toBeDetermined[img] = struct{}{}
-			continue
-		}
-		current[img] = struct{}{}
-		sorted = append(sorted, img)
+	type edge struct {
+		source *Image
+		target *Image
 	}
-	// TODO: How to confirm that there is no loop?
-	for len(current) > 0 {
-		next := map[*Image]struct{}{}
-		// TODO: This is inefficient. Get all edges from the source first.
-		// (*Image).childImages?
-		for source := range current {
-			for target := range toBeDetermined {
-				if target.dependsOn(source) {
-					next[target] = struct{}{}
-				}
+	images := map[*Image]struct{}{}
+	for i := range i.images {
+		images[i] = struct{}{}
+	}
+	edges := map[edge]struct{}{}
+	for t := range images {
+		for s := range t.dependingImages() {
+			edges[edge{source: s, target: t}] = struct{}{}
+		}
+	}
+	sorted := []*Image{}
+	for len(images) > 0 {
+		// current repesents images that have no incoming edges.
+		current := map[*Image]struct{}{}
+		for i := range images {
+			current[i] = struct{}{}
+		}
+		for e := range edges {
+			if _, ok := current[e.target]; ok {
+				delete(current, e.target)
 			}
 		}
-		for img := range next {
-			sorted = append(sorted, img)
-			delete(toBeDetermined, img)
+		for i := range current {
+			delete(images, i)
+			sorted = append(sorted, i)
 		}
-		current = next
-	}
-	if len(toBeDetermined) > 0 {
-		panic("not reached")
+		removed := []edge{}
+		for e := range edges {
+			if _, ok := current[e.source]; ok {
+				removed = append(removed, e)
+			}
+		}
+		for _, e := range removed {
+			delete(edges, e)
+		}
 	}
 	for _, img := range sorted {
 		if err := img.restore(); err != nil {
