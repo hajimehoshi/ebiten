@@ -84,10 +84,7 @@ func (p *Player) updateSE() error {
 	if keyState[ebiten.KeyP] != 1 {
 		return nil
 	}
-	sePlayer, err := audio.NewPlayerFromBytes(audioContext, seBytes)
-	if err != nil {
-		return err
-	}
+	sePlayer, _ := audio.NewPlayerFromBytes(audioContext, seBytes)
 	sePlayer.Play()
 	return nil
 }
@@ -126,7 +123,8 @@ func (p *Player) updatePlayPause() error {
 	if p.audioPlayer.IsPlaying() {
 		return p.audioPlayer.Pause()
 	}
-	return p.audioPlayer.Play()
+	p.audioPlayer.Play()
+	return nil
 }
 
 func (p *Player) updateBar() {
@@ -287,10 +285,7 @@ func main() {
 		}
 		close(musicCh)
 		// TODO: Is this goroutine-safe?
-		if err := p.Play(); err != nil {
-			log.Fatal(err)
-			return
-		}
+		p.Play()
 	}()
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

@@ -95,9 +95,7 @@ func update(screen *ebiten.Image) error {
 		if err != nil {
 			return err
 		}
-		if err := player.Play(); err != nil {
-			return err
-		}
+		player.Play()
 	}
 	if ebiten.IsRunningSlowly() {
 		return nil

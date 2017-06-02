@@ -81,17 +81,15 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-func addNote(freq float64, vol float64) error {
+func addNote(freq float64, vol float64) {
 	// TODO: Call Close method of *audio.Player.
 	// However, this works without Close because Close is automatically called when GC
 	// collects a *audio.Player object.
 	f := int(freq)
 	if n, ok := noteCache[f]; ok {
 		p, _ := audio.NewPlayerFromBytes(audioContext, n)
-		if err := p.Play(); err != nil {
-			return err
-		}
-		return nil
+		p.Play()
+		return
 	}
 	length := len(pcm) * baseFreq / f
 	l := make([]int16, length)
@@ -108,10 +106,8 @@ func addNote(freq float64, vol float64) error {
 	n := toBytes(l, r)
 	noteCache[f] = n
 	p, _ := audio.NewPlayerFromBytes(audioContext, n)
-	if err := p.Play(); err != nil {
-		return err
-	}
-	return nil
+	p.Play()
+	return
 }
 
 var keys = []ebiten.Key{
@@ -197,9 +193,7 @@ func update(screen *ebiten.Image) error {
 		if keyStates[key] != 1 {
 			continue
 		}
-		if err := addNote(220*math.Exp2(float64(i-1)/12.0), 1.0); err != nil {
-			return err
-		}
+		addNote(220*math.Exp2(float64(i-1)/12.0), 1.0)
 	}
 	if ebiten.IsRunningSlowly() {
 		return nil

@@ -97,7 +97,7 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-func addNote() (rune, error) {
+func addNote() rune {
 	size := sampleRate / ebiten.FPS
 	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 
@@ -126,25 +126,16 @@ func addNote() (rune, error) {
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
 	b := toBytes(l, r)
-	p, err := audio.NewPlayerFromBytes(audioContext, b)
-	if err != nil {
-		return 0, err
-	}
-	if err := p.Play(); err != nil {
-		return 0, err
-	}
-	return rune(note), nil
+	p, _ := audio.NewPlayerFromBytes(audioContext, b)
+	p.Play()
+	return rune(note)
 }
 
 var currentNote rune
 
 func update(screen *ebiten.Image) error {
 	if frames%30 == 0 {
-		n, err := addNote()
-		if err != nil {
-			return err
-		}
-		currentNote = n
+		currentNote = addNote()
 	}
 	frames++
 	if err := audioContext.Update(); err != nil {
