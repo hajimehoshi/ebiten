@@ -245,7 +245,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 			img1,
 		},
 		{
-			"1",
+			"2",
 			"*---",
 			img2,
 		},
