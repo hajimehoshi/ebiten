@@ -97,14 +97,14 @@ func update(screen *ebiten.Image) error {
 		}
 		player.Play()
 	}
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
 	msg := fmt.Sprintf("FPS: %0.2f\nThis is an example using infinite audio stream.", ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	return nil
 }
 

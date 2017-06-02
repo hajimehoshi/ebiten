@@ -195,6 +195,9 @@ func update(screen *ebiten.Image) error {
 		}
 		addNote(220*math.Exp2(float64(i-1)/12.0), 1.0)
 	}
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
@@ -202,10 +205,6 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(imagePiano, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
-
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -182,6 +182,9 @@ func update(screen *ebiten.Image) error {
 		musicPlayer.updateSE()
 		musicPlayer.updateVolume()
 	}
+	if err := audioContext.Update(); err != nil {
+		return err
+	}
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
@@ -227,9 +230,6 @@ Press Z or X to change volume of the music
 		}
 	}
 	ebitenutil.DebugPrint(screen, msg)
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	return nil
 }
 
