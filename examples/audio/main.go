@@ -52,14 +52,45 @@ func init() {
 	playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff})
 }
 
+type Input struct {
+	mouseButtonStates map[ebiten.MouseButton]int
+	keyStates         map[ebiten.Key]int
+}
+
+func (i *Input) update() {
+	for _, key := range []ebiten.Key{ebiten.KeyP, ebiten.KeyS, ebiten.KeyX, ebiten.KeyZ} {
+		if !ebiten.IsKeyPressed(key) {
+			i.keyStates[key] = 0
+		} else {
+			i.keyStates[key]++
+		}
+	}
+	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		i.mouseButtonStates[ebiten.MouseButtonLeft] = 0
+	} else {
+		i.mouseButtonStates[ebiten.MouseButtonLeft]++
+	}
+}
+
+func (i *Input) isKeyTriggered(key ebiten.Key) bool {
+	return i.keyStates[key] == 1
+}
+
+func (i *Input) isKeyPressed(key ebiten.Key) bool {
+	return i.keyStates[key] > 0
+}
+
+func (i *Input) isMouseButtonTriggered(mouseButton ebiten.MouseButton) bool {
+	return i.mouseButtonStates[mouseButton] == 1
+}
+
 type Player struct {
-	audioContext     *audio.Context
-	audioPlayer      *audio.Player
-	total            time.Duration
-	seekedCh         chan error
-	mouseButtonState map[ebiten.MouseButton]int
-	keyState         map[ebiten.Key]int
-	volume128        int
+	input        *Input
+	audioContext *audio.Context
+	audioPlayer  *audio.Player
+	total        time.Duration
+	seekedCh     chan error
+	volume128    int
 }
 
 var (
@@ -90,18 +121,21 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		return nil, err
 	}
 	player := &Player{
-		audioContext:     audioContext,
-		audioPlayer:      p,
-		total:            time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
-		mouseButtonState: map[ebiten.MouseButton]int{},
-		keyState:         map[ebiten.Key]int{},
-		volume128:        128,
+		input: &Input{
+			mouseButtonStates: map[ebiten.MouseButton]int{},
+			keyStates:         map[ebiten.Key]int{},
+		},
+		audioContext: audioContext,
+		audioPlayer:  p,
+		total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
+		volume128:    128,
 	}
 	player.audioPlayer.Play()
 	return player, nil
 }
 
 func (p *Player) update() error {
+	p.input.update()
 	p.updateBar()
 	p.updatePlayPause()
 	p.updateSE()
@@ -125,12 +159,7 @@ func (p *Player) updateSE() {
 	if seBytes == nil {
 		return
 	}
-	if !ebiten.IsKeyPressed(ebiten.KeyP) {
-		p.keyState[ebiten.KeyP] = 0
-		return
-	}
-	p.keyState[ebiten.KeyP]++
-	if p.keyState[ebiten.KeyP] != 1 {
+	if !p.input.isKeyTriggered(ebiten.KeyP) {
 		return
 	}
 	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, seBytes)
@@ -138,10 +167,10 @@ func (p *Player) updateSE() {
 }
 
 func (p *Player) updateVolume() {
-	if ebiten.IsKeyPressed(ebiten.KeyZ) {
+	if p.input.isKeyPressed(ebiten.KeyZ) {
 		p.volume128--
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyX) {
+	if p.input.isKeyPressed(ebiten.KeyX) {
 		p.volume128++
 	}
 	if p.volume128 < 0 {
@@ -154,12 +183,7 @@ func (p *Player) updateVolume() {
 }
 
 func (p *Player) updatePlayPause() {
-	if !ebiten.IsKeyPressed(ebiten.KeyS) {
-		p.keyState[ebiten.KeyS] = 0
-		return
-	}
-	p.keyState[ebiten.KeyS]++
-	if p.keyState[ebiten.KeyS] != 1 {
+	if !p.input.isKeyTriggered(ebiten.KeyS) {
 		return
 	}
 	if p.audioPlayer.IsPlaying() {
@@ -173,12 +197,7 @@ func (p *Player) updateBar() {
 	if p.seekedCh != nil {
 		return
 	}
-	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		p.mouseButtonState[ebiten.MouseButtonLeft] = 0
-		return
-	}
-	p.mouseButtonState[ebiten.MouseButtonLeft]++
-	if p.mouseButtonState[ebiten.MouseButtonLeft] != 1 {
+	if !p.input.isMouseButtonTriggered(ebiten.MouseButtonLeft) {
 		return
 	}
 	x, y := ebiten.CursorPosition()
@@ -193,7 +212,6 @@ func (p *Player) updateBar() {
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
 	p.seekedCh = make(chan error, 1)
 	go func() {
-		// This can't be done parallely! !?!?
 		p.seekedCh <- p.audioPlayer.Seek(pos)
 	}()
 }
