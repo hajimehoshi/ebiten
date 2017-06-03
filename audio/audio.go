@@ -63,7 +63,14 @@ func (p *players) Read(b []byte) (int, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	if len(p.players) == 0 {
+	players := []*Player{}
+	for player := range p.players {
+		if _, ok := p.seekings[player]; ok {
+			continue
+		}
+		players = append(players, player)
+	}
+	if len(players) == 0 {
 		l := len(b)
 		l &= mask
 		copy(b, make([]byte, l))
@@ -71,10 +78,7 @@ func (p *players) Read(b []byte) (int, error) {
 	}
 	closed := []*Player{}
 	l := len(b)
-	for player := range p.players {
-		if _, ok := p.seekings[player]; ok {
-			continue
-		}
+	for _, player := range players {
 		if err := player.readToBuffer(l); err == io.EOF {
 			closed = append(closed, player)
 		} else if err != nil {
@@ -84,10 +88,7 @@ func (p *players) Read(b []byte) (int, error) {
 	}
 	l &= mask
 	b16s := [][]int16{}
-	for player := range p.players {
-		if _, ok := p.seekings[player]; ok {
-			continue
-		}
+	for _, player := range players {
 		b16s = append(b16s, player.bufferToInt16(l))
 	}
 	for i := 0; i < l/2; i++ {
@@ -104,10 +105,7 @@ func (p *players) Read(b []byte) (int, error) {
 		b[2*i] = byte(x)
 		b[2*i+1] = byte(x >> 8)
 	}
-	for player := range p.players {
-		if _, ok := p.seekings[player]; ok {
-			continue
-		}
+	for _, player := range players {
 		player.proceed(l)
 	}
 	for _, pl := range closed {
@@ -457,6 +455,7 @@ func (p *Player) Seek(offset time.Duration) error {
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
 	p.srcM.Lock()
+	// TODO: Seek finishes soon but after that, Read takes long time and players.Read can block.
 	pos, err := p.src.Seek(o, io.SeekStart)
 	p.srcM.Unlock()
 	if err != nil {
