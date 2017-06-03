@@ -33,6 +33,10 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
+
+	// This sample rate doesn't match with wav/ogg's sample rate,
+	// but decoders adjust them.
+	sampleRate = 48000
 )
 
 var (
@@ -49,16 +53,15 @@ func init() {
 }
 
 type Player struct {
-	audioPlayer *audio.Player
-	total       time.Duration
-	seekedCh    chan error
+	audioContext *audio.Context
+	audioPlayer  *audio.Player
+	total        time.Duration
+	seekedCh     chan error
 }
 
 var (
-	audioContext     *audio.Context
 	musicPlayer      *Player
 	seBytes          []byte
-	musicCh          = make(chan *Player)
 	seCh             = make(chan []byte)
 	mouseButtonState = map[ebiten.MouseButton]int{}
 	keyState         = map[ebiten.Key]int{}
@@ -70,6 +73,49 @@ func playerBarRect() (x, y, w, h int) {
 	x = (screenWidth - w) / 2
 	y = screenHeight - h - 16
 	return
+}
+
+func NewPlayer(audioContext *audio.Context) (*Player, error) {
+	const bytesPerSample = 4 // TODO: This should be defined in audio package
+	oggF, err := ebitenutil.OpenFile("_resources/audio/game.ogg")
+	if err != nil {
+		return nil, err
+	}
+	s, err := vorbis.Decode(audioContext, oggF)
+	if err != nil {
+		return nil, err
+	}
+	p, err := audio.NewPlayer(audioContext, s)
+	if err != nil {
+		return nil, err
+	}
+	player := &Player{
+		audioContext: audioContext,
+		audioPlayer:  p,
+		total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
+	}
+	player.audioPlayer.Play()
+	return player, nil
+}
+
+func (p *Player) update() error {
+	p.updateBar()
+	p.updatePlayPause()
+	p.updateSE()
+	p.updateVolume()
+	if err := p.audioContext.Update(); err != nil {
+		return err
+	}
+	select {
+	case err := <-p.seekedCh:
+		if err != nil {
+			return err
+		}
+		close(p.seekedCh)
+		p.seekedCh = nil
+	default:
+	}
+	return nil
 }
 
 func (p *Player) updateSE() {
@@ -84,14 +130,11 @@ func (p *Player) updateSE() {
 	if keyState[ebiten.KeyP] != 1 {
 		return
 	}
-	sePlayer, _ := audio.NewPlayerFromBytes(audioContext, seBytes)
+	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, seBytes)
 	sePlayer.Play()
 }
 
 func (p *Player) updateVolume() {
-	if p.audioPlayer == nil {
-		return
-	}
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
 		volume128--
 	}
@@ -108,9 +151,6 @@ func (p *Player) updateVolume() {
 }
 
 func (p *Player) updatePlayPause() {
-	if p.audioPlayer == nil {
-		return
-	}
 	if !ebiten.IsKeyPressed(ebiten.KeyS) {
 		keyState[ebiten.KeyS] = 0
 		return
@@ -124,13 +164,9 @@ func (p *Player) updatePlayPause() {
 		return
 	}
 	p.audioPlayer.Play()
-	return
 }
 
 func (p *Player) updateBar() {
-	if p.audioPlayer == nil {
-		return
-	}
 	if p.seekedCh != nil {
 		return
 	}
@@ -163,73 +199,52 @@ func (p *Player) close() error {
 	return p.audioPlayer.Close()
 }
 
-func update(screen *ebiten.Image) error {
-	if musicPlayer == nil {
-		select {
-		case musicPlayer = <-musicCh:
-		default:
-		}
-	}
-	if seBytes == nil {
-		select {
-		case seBytes = <-seCh:
-		default:
-		}
-	}
-	if musicPlayer != nil {
-		musicPlayer.updateBar()
-		musicPlayer.updatePlayPause()
-		musicPlayer.updateSE()
-		musicPlayer.updateVolume()
-	}
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
-	if ebiten.IsRunningSlowly() {
-		return nil
-	}
+func (p *Player) draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	x, y, w, h := playerBarRect()
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := "00:00"
-	if musicPlayer != nil {
-		c := musicPlayer.audioPlayer.Current()
+	c := p.audioPlayer.Current()
 
-		// Current Time
-		m := (c / time.Minute) % 100
-		s := (c / time.Second) % 60
-		currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
+	// Current Time
+	m := (c / time.Minute) % 100
+	s := (c / time.Second) % 60
+	currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
 
-		// Bar
-		cw, ch := playerCurrentImage.Size()
-		cx := int(time.Duration(w)*c/musicPlayer.total) + x - cw/2
-		cy := y - (ch-h)/2
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(cx), float64(cy))
-		screen.DrawImage(playerCurrentImage, op)
-	}
+	// Bar
+	cw, ch := playerCurrentImage.Size()
+	cx := int(time.Duration(w)*c/p.total) + x - cw/2
+	cy := y - (ch-h)/2
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(cx), float64(cy))
+	screen.DrawImage(playerCurrentImage, op)
 
 	msg := fmt.Sprintf(`FPS: %0.2f
 Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-	if musicPlayer == nil {
-		msg += "\nNow Loading..."
-	} else if musicPlayer.seekedCh != nil {
-		select {
-		case err := <-musicPlayer.seekedCh:
-			if err != nil {
-				return err
-			}
-			close(musicPlayer.seekedCh)
-			musicPlayer.seekedCh = nil
-		default:
-			msg += "\nSeeking..."
-		}
+	if p.seekedCh != nil {
+		msg += "\nSeeking..."
 	}
 	ebitenutil.DebugPrint(screen, msg)
+}
+
+func update(screen *ebiten.Image) error {
+	if seBytes == nil {
+		select {
+		case seBytes = <-seCh:
+		default:
+		}
+	}
+	if err := musicPlayer.update(); err != nil {
+		return err
+	}
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+	musicPlayer.draw(screen)
 	return nil
 }
 
@@ -238,15 +253,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	oggF, err := ebitenutil.OpenFile("_resources/audio/game.ogg")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// This sample rate doesn't match with wav/ogg's sample rate,
-	// but decoders adjust them.
-	const sampleRate = 48000
-	const bytesPerSample = 4 // TODO: This should be defined in audio package
-	audioContext, err = audio.NewContext(sampleRate)
+	audioContext, err := audio.NewContext(sampleRate)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -264,25 +271,10 @@ func main() {
 		seCh <- b
 		close(seCh)
 	}()
-	go func() {
-		s, err := vorbis.Decode(audioContext, oggF)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		p, err := audio.NewPlayer(audioContext, s)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		musicCh <- &Player{
-			audioPlayer: p,
-			total:       time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
-		}
-		close(musicCh)
-		// TODO: Is this goroutine-safe?
-		p.Play()
-	}()
+	musicPlayer, err = NewPlayer(audioContext)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
