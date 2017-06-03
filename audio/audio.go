@@ -381,21 +381,21 @@ func (p *Player) Close() error {
 }
 
 func (p *Player) readToBuffer(length int) error {
-	p.srcM.Lock()
-	p.m.Lock()
 	bb := make([]byte, length)
+	p.srcM.Lock()
 	n, err := p.src.Read(bb)
-	if 0 < n {
-		p.buf = append(p.buf, bb[:n]...)
-	}
-	p.m.Unlock()
 	p.srcM.Unlock()
+	if 0 < n {
+		p.m.Lock()
+		p.buf = append(p.buf, bb[:n]...)
+		p.m.Unlock()
+	}
 	return err
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
-	p.m.RLock()
 	r := make([]int16, lengthInBytes/2)
+	p.m.RLock()
 	for i := 0; i < lengthInBytes/2; i++ {
 		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
 		r[i] = int16(float64(r[i]) * p.volume)
