@@ -120,8 +120,6 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Decoded stream s is concurrent safe so that p will be concurrent safe.
-	// Read the documentation about audio package and its Player struct.
 	p, err := audio.NewPlayer(audioContext, s)
 	if err != nil {
 		return nil, err

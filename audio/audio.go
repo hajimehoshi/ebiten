@@ -269,7 +269,6 @@ func (c *Context) Update() error {
 }
 
 // SampleRate returns the sample rate.
-// All audio source must have the same sample rate.
 func (c *Context) SampleRate() int {
 	return c.sampleRate
 }
@@ -282,24 +281,17 @@ type ReadSeekCloser interface {
 
 type bytesReadSeekCloser struct {
 	reader *bytes.Reader
-	sync.Mutex
 }
 
 func (b *bytesReadSeekCloser) Read(buf []uint8) (int, error) {
-	b.Lock()
-	defer b.Unlock()
 	return b.reader.Read(buf)
 }
 
 func (b *bytesReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
-	b.Lock()
-	defer b.Unlock()
 	return b.reader.Seek(offset, whence)
 }
 
 func (b *bytesReadSeekCloser) Close() error {
-	b.Lock()
-	defer b.Unlock()
 	b.reader = nil
 	return nil
 }
@@ -312,10 +304,6 @@ func BytesReadSeekCloser(b []uint8) ReadSeekCloser {
 }
 
 // Player is an audio player which has one stream.
-//
-// Player's functions are concurrent safe only if the underlying source is concurrent safe.
-// For example, if you want to call Read and Seek in different goroutines,
-// the underlying source given at NewPlayer must be conccurent safe.
 type Player struct {
 	players    *players
 	src        ReadSeekCloser
@@ -381,11 +369,16 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 //
 // When closing, the stream owned by the player will also be closed by calling its Close.
 //
+// Close is concurrent safe.
+//
 // Close returns error when closing the source returns error.
 func (p *Player) Close() error {
 	p.players.removePlayer(p)
 	runtime.SetFinalizer(p, nil)
-	return p.src.Close()
+	p.Lock()
+	err := p.src.Close()
+	p.Unlock()
+	return err
 }
 
 func (p *Player) readToBuffer(length int) error {
@@ -427,17 +420,23 @@ func (p *Player) bufferLength() int {
 // Play plays the stream.
 //
 // Play always returns nil.
+//
+// Play is concurrent safe.
 func (p *Player) Play() error {
 	p.players.addPlayer(p)
 	return nil
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
+//
+// IsPlaying is concurrent safe.
 func (p *Player) IsPlaying() bool {
 	return p.players.hasPlayer(p)
 }
 
 // Rewind rewinds the current position to the start.
+//
+// Rewind is concurrent safe.
 //
 // Rewind returns error when seeking the source returns error.
 func (p *Player) Rewind() error {
@@ -445,6 +444,8 @@ func (p *Player) Rewind() error {
 }
 
 // Seek seeks the position with the given offset.
+//
+// Seek is concurrent safe.
 //
 // Seek returns error when seeking the source returns error.
 func (p *Player) Seek(offset time.Duration) error {
@@ -465,6 +466,8 @@ func (p *Player) Seek(offset time.Duration) error {
 
 // Pause pauses the playing.
 //
+// Pause is concurrent safe.
+//
 // Pause always returns nil.
 func (p *Player) Pause() error {
 	p.players.removePlayer(p)
@@ -472,6 +475,8 @@ func (p *Player) Pause() error {
 }
 
 // Current returns the current position.
+//
+// Current is concurrent safe.
 func (p *Player) Current() time.Duration {
 	p.RLock()
 	defer p.RUnlock()
@@ -480,6 +485,8 @@ func (p *Player) Current() time.Duration {
 }
 
 // Volume returns the current volume of this player [0-1].
+//
+// Volume is concurrent safe.
 func (p *Player) Volume() float64 {
 	p.RLock()
 	defer p.RUnlock()
@@ -488,6 +495,8 @@ func (p *Player) Volume() float64 {
 
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. This function panics otherwise.
+//
+// SetVolume is concurrent safe.
 func (p *Player) SetVolume(volume float64) {
 	p.Lock()
 	defer p.Unlock()
