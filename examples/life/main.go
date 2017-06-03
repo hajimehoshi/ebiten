@@ -26,7 +26,6 @@
 package main
 
 import (
-	"image"
 	"log"
 	"math/rand"
 	"time"
@@ -34,20 +33,18 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-var (
-	randSource = rand.NewSource(time.Now().UnixNano())
-	rnd        = rand.New(randSource)
-)
-
 // World represents the game state
 type World struct {
 	area [][]bool
+	rnd  *rand.Rand
 }
 
 // NewWorld creates a new world
 func NewWorld(width, height int) *World {
-	world := World{}
-	world.area = makeArea(width, height)
+	world := World{
+		area: makeArea(width, height),
+		rnd:  rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 	return &world
 }
 
@@ -55,10 +52,9 @@ func NewWorld(width, height int) *World {
 func (w *World) RandomSeed(limit int) {
 	height := len(w.area)
 	width := len(w.area[0])
-
 	for i := 0; i < limit; i++ {
-		x := rnd.Intn(width)
-		y := rnd.Intn(height)
+		x := w.rnd.Intn(width)
+		y := w.rnd.Intn(height)
 		w.area[y][x] = true
 	}
 }
@@ -67,9 +63,7 @@ func (w *World) RandomSeed(limit int) {
 func (w *World) Progress() {
 	height := len(w.area)
 	width := len(w.area[0])
-
 	next := makeArea(width, height)
-
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 
@@ -101,23 +95,22 @@ func (w *World) Progress() {
 }
 
 // DrawImage paints current game state
-func (w *World) DrawImage(img *image.RGBA) {
+func (w *World) DrawImage(pix []uint8) {
 	height := len(w.area)
 	width := len(w.area[0])
-
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			pos := 4*y*width + 4*x
 			if w.area[y][x] {
-				img.Pix[pos] = 0xff
-				img.Pix[pos+1] = 0xff
-				img.Pix[pos+2] = 0xff
-				img.Pix[pos+3] = 0xff
+				pix[pos] = 0xff
+				pix[pos+1] = 0xff
+				pix[pos+2] = 0xff
+				pix[pos+3] = 0xff
 			} else {
-				img.Pix[pos] = 0
-				img.Pix[pos+1] = 0
-				img.Pix[pos+2] = 0
-				img.Pix[pos+3] = 0
+				pix[pos] = 0
+				pix[pos+1] = 0
+				pix[pos+2] = 0
+				pix[pos+3] = 0
 			}
 		}
 	}
@@ -127,27 +120,22 @@ func (w *World) DrawImage(img *image.RGBA) {
 func neighbourCount(a [][]bool, x, y int) int {
 	height := len(a)
 	width := len(a[0])
-
 	lowX := 0
 	if x > 0 {
 		lowX = x - 1
 	}
-
 	lowY := 0
 	if y > 0 {
 		lowY = y - 1
 	}
-
 	highX := width - 1
 	if x < width-1 {
 		highX = x + 1
 	}
-
 	highY := height - 1
 	if y < height-1 {
 		highY = y + 1
 	}
-
 	near := 0
 	for pY := lowY; pY <= highY; pY++ {
 		for pX := lowX; pX <= highX; pX++ {
@@ -174,8 +162,8 @@ const (
 )
 
 var (
-	world      *World
-	noiseImage *image.RGBA
+	world  = NewWorld(screenWidth, screenHeight)
+	pixels = make([]uint8, screenWidth*screenHeight*4)
 )
 
 func update(screen *ebiten.Image) error {
@@ -183,20 +171,14 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	world.DrawImage(noiseImage)
-	screen.ReplacePixels(noiseImage.Pix)
+	world.DrawImage(pixels)
+	screen.ReplacePixels(pixels)
 	return nil
 }
 
 func main() {
-	population := int((screenWidth * screenHeight) / 10)
-	scale := 2.0
-
-	world = NewWorld(screenWidth, screenHeight)
-	world.RandomSeed(population)
-
-	noiseImage = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-	if err := ebiten.Run(update, screenWidth, screenHeight, scale, "Game of Life (Ebiten Demo)"); err != nil {
+	world.RandomSeed(int((screenWidth * screenHeight) / 10))
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2.0, "Game of Life (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
