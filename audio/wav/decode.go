@@ -22,16 +22,22 @@ import (
 
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 // Stream is a decoded audio stream.
+//
+// All Stream's functions are concurrent safe.
 type Stream struct {
 	inner audio.ReadSeekCloser
 	size  int64
+	sync.Mutex
 }
 
 // Read is implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
+	s.Lock()
+	defer s.Unlock()
 	return s.inner.Read(p)
 }
 
@@ -39,11 +45,15 @@ func (s *Stream) Read(p []byte) (int, error) {
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	s.Lock()
+	defer s.Unlock()
 	return s.inner.Seek(offset, whence)
 }
 
 // Read is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
+	s.Lock()
+	defer s.Unlock()
 	return s.inner.Close()
 }
 
@@ -222,5 +232,5 @@ chunks:
 		s = convert.NewResampling(s, dataSize, sampleRateFrom, sampleRateTo)
 		dataSize = dataSize * int64(sampleRateTo) / int64(sampleRateFrom)
 	}
-	return &Stream{s, dataSize}, nil
+	return &Stream{inner: s, size: dataSize}, nil
 }

@@ -282,27 +282,40 @@ type ReadSeekCloser interface {
 
 type bytesReadSeekCloser struct {
 	reader *bytes.Reader
+	sync.Mutex
 }
 
 func (b *bytesReadSeekCloser) Read(buf []uint8) (int, error) {
+	b.Lock()
+	defer b.Unlock()
 	return b.reader.Read(buf)
 }
 
 func (b *bytesReadSeekCloser) Seek(offset int64, whence int) (int64, error) {
+	b.Lock()
+	defer b.Unlock()
 	return b.reader.Seek(offset, whence)
 }
 
 func (b *bytesReadSeekCloser) Close() error {
+	b.Lock()
+	defer b.Unlock()
 	b.reader = nil
 	return nil
 }
 
 // BytesReadSeekCloser creates ReadSeekCloser from bytes.
+//
+// A returned stream is concurrent safe.
 func BytesReadSeekCloser(b []uint8) ReadSeekCloser {
-	return &bytesReadSeekCloser{bytes.NewReader(b)}
+	return &bytesReadSeekCloser{reader: bytes.NewReader(b)}
 }
 
 // Player is an audio player which has one stream.
+//
+// Player's functions are concurrent safe only if the underlying source is concurrent safe.
+// For example, if you want to call Read and Seek in different goroutines,
+// the underlying source given at NewPlayer must be conccurent safe.
 type Player struct {
 	players    *players
 	src        ReadSeekCloser

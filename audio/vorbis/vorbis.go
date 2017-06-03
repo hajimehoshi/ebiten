@@ -22,17 +22,23 @@ import (
 
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/jfreymuth/oggvorbis"
 )
 
 // Stream is a decoded audio stream.
+//
+// All Stream's functions are concurrent safe.
 type Stream struct {
 	decoded audio.ReadSeekCloser
 	size    int64
+	sync.Mutex
 }
 
 // Read is implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
+	s.Lock()
+	defer s.Unlock()
 	return s.decoded.Read(p)
 }
 
@@ -40,11 +46,15 @@ func (s *Stream) Read(p []byte) (int, error) {
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	s.Lock()
+	defer s.Unlock()
 	return s.decoded.Seek(offset, whence)
 }
 
 // Read is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
+	s.Lock()
+	defer s.Unlock()
 	return s.decoded.Close()
 }
 
@@ -195,5 +205,5 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		s = convert.NewResampling(s, size, sampleRate, context.SampleRate())
 		size = size * int64(context.SampleRate()) / int64(sampleRate)
 	}
-	return &Stream{s, size}, nil
+	return &Stream{decoded: s, size: size}, nil
 }
