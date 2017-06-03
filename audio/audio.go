@@ -313,7 +313,8 @@ type Player struct {
 	pos    int64
 	volume float64
 
-	sync.RWMutex
+	srcM sync.Mutex
+	m    sync.RWMutex
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -375,45 +376,47 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 func (p *Player) Close() error {
 	p.players.removePlayer(p)
 	runtime.SetFinalizer(p, nil)
-	p.Lock()
+	p.srcM.Lock()
 	err := p.src.Close()
-	p.Unlock()
+	p.srcM.Unlock()
 	return err
 }
 
 func (p *Player) readToBuffer(length int) error {
-	p.Lock()
+	p.srcM.Lock()
+	p.m.Lock()
 	bb := make([]byte, length)
 	n, err := p.src.Read(bb)
 	if 0 < n {
 		p.buf = append(p.buf, bb[:n]...)
 	}
-	p.Unlock()
+	p.m.Unlock()
+	p.srcM.Unlock()
 	return err
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
-	p.RLock()
+	p.m.RLock()
 	r := make([]int16, lengthInBytes/2)
 	for i := 0; i < lengthInBytes/2; i++ {
 		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
 		r[i] = int16(float64(r[i]) * p.volume)
 	}
-	p.RUnlock()
+	p.m.RUnlock()
 	return r
 }
 
 func (p *Player) proceed(length int) {
-	p.Lock()
+	p.m.Lock()
 	p.buf = p.buf[length:]
 	p.pos += int64(length)
-	p.Unlock()
+	p.m.Unlock()
 }
 
 func (p *Player) bufferLength() int {
-	p.RLock()
+	p.m.RLock()
 	l := len(p.buf)
-	p.RUnlock()
+	p.m.RUnlock()
 	return l
 }
 
@@ -453,14 +456,16 @@ func (p *Player) Seek(offset time.Duration) error {
 	defer p.players.removeSeeking(p)
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
-	p.Lock()
-	defer p.Unlock()
-	p.buf = []byte{}
+	p.srcM.Lock()
 	pos, err := p.src.Seek(o, io.SeekStart)
+	p.srcM.Unlock()
 	if err != nil {
 		return err
 	}
+	p.m.Lock()
+	p.buf = []byte{}
 	p.pos = pos
+	p.m.Unlock()
 	return nil
 }
 
@@ -478,19 +483,21 @@ func (p *Player) Pause() error {
 //
 // Current is concurrent safe.
 func (p *Player) Current() time.Duration {
-	p.RLock()
-	defer p.RUnlock()
+	p.m.RLock()
 	sample := p.pos / bytesPerSample / channelNum
-	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
+	t := time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
+	p.m.RUnlock()
+	return t
 }
 
 // Volume returns the current volume of this player [0-1].
 //
 // Volume is concurrent safe.
 func (p *Player) Volume() float64 {
-	p.RLock()
-	defer p.RUnlock()
-	return p.volume
+	p.m.RLock()
+	v := p.volume
+	p.m.RUnlock()
+	return v
 }
 
 // SetVolume sets the volume of this player.
@@ -498,8 +505,8 @@ func (p *Player) Volume() float64 {
 //
 // SetVolume is concurrent safe.
 func (p *Player) SetVolume(volume float64) {
-	p.Lock()
-	defer p.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
 		panic("audio: volume must be in between 0 and 1")
