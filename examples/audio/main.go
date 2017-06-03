@@ -90,13 +90,13 @@ type Player struct {
 	audioPlayer  *audio.Player
 	total        time.Duration
 	seekedCh     chan error
+	seBytes      []uint8
+	seCh         chan []uint8
 	volume128    int
 }
 
 var (
 	musicPlayer *Player
-	seBytes     []byte
-	seCh        = make(chan []byte)
 )
 
 func playerBarRect() (x, y, w, h int) {
@@ -108,6 +108,10 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
+	wavF, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
+	if err != nil {
+		return nil, err
+	}
 	oggF, err := ebitenutil.OpenFile("_resources/audio/game.ogg")
 	if err != nil {
 		return nil, err
@@ -131,21 +135,31 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		audioPlayer:  p,
 		total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
 		volume128:    128,
+		seCh:         make(chan []uint8),
 	}
 	player.audioPlayer.Play()
+	go func() {
+		s, err := wav.Decode(audioContext, wavF)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		b, err := ioutil.ReadAll(s)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		player.seCh <- b
+	}()
 	return player, nil
 }
 
 func (p *Player) update() error {
 	p.input.update()
-	p.updateBar()
-	p.updatePlayPause()
-	p.updateSE()
-	p.updateVolume()
-	if err := p.audioContext.Update(); err != nil {
-		return err
-	}
 	select {
+	case p.seBytes = <-p.seCh:
+		close(p.seCh)
+		p.seCh = nil
 	case err := <-p.seekedCh:
 		if err != nil {
 			return err
@@ -154,17 +168,24 @@ func (p *Player) update() error {
 		p.seekedCh = nil
 	default:
 	}
+	p.updateBar()
+	p.updatePlayPause()
+	p.updateSE()
+	p.updateVolume()
+	if err := p.audioContext.Update(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (p *Player) updateSE() {
-	if seBytes == nil {
+	if p.seBytes == nil {
 		return
 	}
 	if !p.input.isKeyTriggered(ebiten.KeyP) {
 		return
 	}
-	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, seBytes)
+	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
 	sePlayer.Play()
 }
 
@@ -202,6 +223,7 @@ func (p *Player) updateBar() {
 	if !p.input.isMouseButtonTriggered(ebiten.MouseButtonLeft) {
 		return
 	}
+	// Start seeking.
 	x, y := ebiten.CursorPosition()
 	bx, by, bw, bh := playerBarRect()
 	const padding = 4
@@ -255,12 +277,6 @@ Press Z or X to change volume of the music
 }
 
 func update(screen *ebiten.Image) error {
-	if seBytes == nil {
-		select {
-		case seBytes = <-seCh:
-		default:
-		}
-	}
 	if err := musicPlayer.update(); err != nil {
 		return err
 	}
@@ -272,28 +288,10 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	wavF, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
-	if err != nil {
-		log.Fatal(err)
-	}
 	audioContext, err := audio.NewContext(sampleRate)
 	if err != nil {
 		log.Fatal(err)
 	}
-	go func() {
-		s, err := wav.Decode(audioContext, wavF)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		b, err := ioutil.ReadAll(s)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		seCh <- b
-		close(seCh)
-	}()
 	musicPlayer, err = NewPlayer(audioContext)
 	if err != nil {
 		log.Fatal(err)
