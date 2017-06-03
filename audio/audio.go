@@ -31,10 +31,10 @@ import (
 	"errors"
 	"io"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/oto"
 )
 
@@ -118,32 +118,32 @@ func (p *players) Read(b []byte) (int, error) {
 
 func (p *players) addPlayer(player *Player) {
 	p.Lock()
-	defer p.Unlock()
 	p.players[player] = struct{}{}
+	p.Unlock()
 }
 
 func (p *players) removePlayer(player *Player) {
 	p.Lock()
-	defer p.Unlock()
 	delete(p.players, player)
+	p.Unlock()
 }
 
 func (p *players) addSeeking(player *Player) {
 	p.Lock()
-	defer p.Unlock()
 	p.seekings[player] = struct{}{}
+	p.Unlock()
 }
 
 func (p *players) removeSeeking(player *Player) {
 	p.Lock()
-	defer p.Unlock()
 	delete(p.seekings, player)
+	p.Unlock()
 }
 
 func (p *players) hasPlayer(player *Player) bool {
 	p.RLock()
-	defer p.RUnlock()
 	_, ok := p.players[player]
+	p.RUnlock()
 	return ok
 }
 
