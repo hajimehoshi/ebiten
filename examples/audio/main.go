@@ -53,19 +53,19 @@ func init() {
 }
 
 type Player struct {
-	audioContext *audio.Context
-	audioPlayer  *audio.Player
-	total        time.Duration
-	seekedCh     chan error
+	audioContext     *audio.Context
+	audioPlayer      *audio.Player
+	total            time.Duration
+	seekedCh         chan error
+	mouseButtonState map[ebiten.MouseButton]int
+	keyState         map[ebiten.Key]int
+	volume128        int
 }
 
 var (
-	musicPlayer      *Player
-	seBytes          []byte
-	seCh             = make(chan []byte)
-	mouseButtonState = map[ebiten.MouseButton]int{}
-	keyState         = map[ebiten.Key]int{}
-	volume128        = 128
+	musicPlayer *Player
+	seBytes     []byte
+	seCh        = make(chan []byte)
 )
 
 func playerBarRect() (x, y, w, h int) {
@@ -90,9 +90,12 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		return nil, err
 	}
 	player := &Player{
-		audioContext: audioContext,
-		audioPlayer:  p,
-		total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
+		audioContext:     audioContext,
+		audioPlayer:      p,
+		total:            time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
+		mouseButtonState: map[ebiten.MouseButton]int{},
+		keyState:         map[ebiten.Key]int{},
+		volume128:        128,
 	}
 	player.audioPlayer.Play()
 	return player, nil
@@ -123,11 +126,11 @@ func (p *Player) updateSE() {
 		return
 	}
 	if !ebiten.IsKeyPressed(ebiten.KeyP) {
-		keyState[ebiten.KeyP] = 0
+		p.keyState[ebiten.KeyP] = 0
 		return
 	}
-	keyState[ebiten.KeyP]++
-	if keyState[ebiten.KeyP] != 1 {
+	p.keyState[ebiten.KeyP]++
+	if p.keyState[ebiten.KeyP] != 1 {
 		return
 	}
 	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, seBytes)
@@ -136,27 +139,27 @@ func (p *Player) updateSE() {
 
 func (p *Player) updateVolume() {
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		volume128--
+		p.volume128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
-		volume128++
+		p.volume128++
 	}
-	if volume128 < 0 {
-		volume128 = 0
+	if p.volume128 < 0 {
+		p.volume128 = 0
 	}
-	if 128 < volume128 {
-		volume128 = 128
+	if 128 < p.volume128 {
+		p.volume128 = 128
 	}
-	p.audioPlayer.SetVolume(float64(volume128) / 128)
+	p.audioPlayer.SetVolume(float64(p.volume128) / 128)
 }
 
 func (p *Player) updatePlayPause() {
 	if !ebiten.IsKeyPressed(ebiten.KeyS) {
-		keyState[ebiten.KeyS] = 0
+		p.keyState[ebiten.KeyS] = 0
 		return
 	}
-	keyState[ebiten.KeyS]++
-	if keyState[ebiten.KeyS] != 1 {
+	p.keyState[ebiten.KeyS]++
+	if p.keyState[ebiten.KeyS] != 1 {
 		return
 	}
 	if p.audioPlayer.IsPlaying() {
@@ -171,11 +174,11 @@ func (p *Player) updateBar() {
 		return
 	}
 	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		mouseButtonState[ebiten.MouseButtonLeft] = 0
+		p.mouseButtonState[ebiten.MouseButtonLeft] = 0
 		return
 	}
-	mouseButtonState[ebiten.MouseButtonLeft]++
-	if mouseButtonState[ebiten.MouseButtonLeft] != 1 {
+	p.mouseButtonState[ebiten.MouseButtonLeft]++
+	if p.mouseButtonState[ebiten.MouseButtonLeft] != 1 {
 		return
 	}
 	x, y := ebiten.CursorPosition()
