@@ -319,10 +319,13 @@ func BytesReadSeekCloser(b []uint8) ReadSeekCloser {
 type Player struct {
 	players    *players
 	src        ReadSeekCloser
-	buf        []byte
 	sampleRate int
-	pos        int64
-	volume     float64
+
+	buf    []byte
+	pos    int64
+	volume float64
+
+	sync.RWMutex
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -386,30 +389,39 @@ func (p *Player) Close() error {
 }
 
 func (p *Player) readToBuffer(length int) error {
+	p.Lock()
 	bb := make([]byte, length)
 	n, err := p.src.Read(bb)
 	if 0 < n {
 		p.buf = append(p.buf, bb[:n]...)
 	}
+	p.Unlock()
 	return err
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
+	p.RLock()
 	r := make([]int16, lengthInBytes/2)
 	for i := 0; i < lengthInBytes/2; i++ {
 		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
 		r[i] = int16(float64(r[i]) * p.volume)
 	}
+	p.RUnlock()
 	return r
 }
 
 func (p *Player) proceed(length int) {
+	p.Lock()
 	p.buf = p.buf[length:]
 	p.pos += int64(length)
+	p.Unlock()
 }
 
 func (p *Player) bufferLength() int {
-	return len(p.buf)
+	p.RLock()
+	l := len(p.buf)
+	p.RUnlock()
+	return l
 }
 
 // Play plays the stream.
@@ -440,6 +452,8 @@ func (p *Player) Seek(offset time.Duration) error {
 	defer p.players.removeSeeking(p)
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
+	p.Lock()
+	defer p.Unlock()
 	p.buf = []byte{}
 	pos, err := p.src.Seek(o, io.SeekStart)
 	if err != nil {
@@ -459,18 +473,24 @@ func (p *Player) Pause() error {
 
 // Current returns the current position.
 func (p *Player) Current() time.Duration {
+	p.RLock()
+	defer p.RUnlock()
 	sample := p.pos / bytesPerSample / channelNum
 	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
 
 // Volume returns the current volume of this player [0-1].
 func (p *Player) Volume() float64 {
+	p.RLock()
+	defer p.RUnlock()
 	return p.volume
 }
 
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. This function panics otherwise.
 func (p *Player) SetVolume(volume float64) {
+	p.Lock()
+	defer p.Unlock()
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
 		panic("audio: volume must be in between 0 and 1")
