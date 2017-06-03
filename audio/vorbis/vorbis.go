@@ -63,7 +63,6 @@ type decoded struct {
 }
 
 func (d *decoded) readUntil(posInBytes int) error {
-	c := 0
 	buffer := make([]float32, 8192)
 	for d.readBytes < posInBytes {
 		n, err := d.decoder.Read(buffer)
@@ -87,10 +86,7 @@ func (d *decoded) readUntil(posInBytes int) error {
 		if err != nil {
 			return err
 		}
-		c++
-		if c%2 == 0 {
-			runtime.Gosched()
-		}
+		runtime.Gosched()
 	}
 	return nil
 }
