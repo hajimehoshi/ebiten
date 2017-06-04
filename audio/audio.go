@@ -59,7 +59,7 @@ func min(a, b int) int {
 	return b
 }
 
-func (p *players) Read(b []byte) (int, error) {
+func (p *players) Read(b []uint8) (int, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -73,7 +73,7 @@ func (p *players) Read(b []byte) (int, error) {
 	if len(players) == 0 {
 		l := len(b)
 		l &= mask
-		copy(b, make([]byte, l))
+		copy(b, make([]uint8, l))
 		return l, nil
 	}
 	closed := []*Player{}
@@ -248,7 +248,7 @@ func (c *Context) Update() error {
 	l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 	l &= mask
 	c.writtenBytes += l
-	buf := make([]byte, l)
+	buf := make([]uint8, l)
 	n, err := io.ReadFull(c.players, buf)
 	if err != nil {
 		return err
@@ -307,7 +307,7 @@ type Player struct {
 	src        ReadSeekCloser
 	sampleRate int
 
-	buf    []byte
+	buf    []uint8
 	pos    int64
 	volume float64
 
@@ -333,7 +333,7 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		players:    context.players,
 		src:        src,
 		sampleRate: context.sampleRate,
-		buf:        []byte{},
+		buf:        []uint8{},
 		volume:     1,
 	}
 	// Get the current position of the source.
@@ -354,7 +354,7 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 // The format of src should be same as noted at NewPlayer.
 //
 // NewPlayerFromBytes's error is always nil as of 1.5.0-alpha.
-func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
+func NewPlayerFromBytes(context *Context, src []uint8) (*Player, error) {
 	b := BytesReadSeekCloser(src)
 	p, err := NewPlayer(context, b)
 	if err != nil {
@@ -381,7 +381,7 @@ func (p *Player) Close() error {
 }
 
 func (p *Player) readToBuffer(length int) error {
-	bb := make([]byte, length)
+	bb := make([]uint8, length)
 	p.srcM.Lock()
 	n, err := p.src.Read(bb)
 	p.srcM.Unlock()
@@ -462,7 +462,7 @@ func (p *Player) Seek(offset time.Duration) error {
 		return err
 	}
 	p.m.Lock()
-	p.buf = []byte{}
+	p.buf = []uint8{}
 	p.pos = pos
 	p.m.Unlock()
 	return nil
