@@ -18,7 +18,6 @@ package twenty48
 
 import (
 	"errors"
-	"fmt"
 	"image/color"
 	"math/rand"
 	"sort"
