@@ -36,8 +36,12 @@ type TileData struct {
 
 // Tile represents a tile infomation including TileData and animation states.
 type Tile struct {
-	current           TileData
-	next              TileData
+	current TileData
+
+	// next represents a next tile information after moving.
+	// next is empty when the tile is not about to move.
+	next TileData
+
 	movingCount       int
 	startPoppingCount int
 	poppingCount      int
@@ -104,7 +108,7 @@ func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 	return result
 }
 
-func nextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
+func currentOrNextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 	var result *Tile
 	for t := range tiles {
 		if 0 < t.movingCount {
@@ -131,6 +135,8 @@ const (
 
 // MoveTiles moves tiles in the given tiles map if possible.
 // MoveTiles returns true if there are tiles that are to move, otherwise false.
+//
+// When MoveTiles is called, all tiles must not be about to move.
 func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 	vx, vy := dir.Vector()
 	tx := []int{}
@@ -159,6 +165,9 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 			if t.IsMoving() {
 				panic("not reach")
 			}
+			// (ii, jj) is the next position for tile t.
+			// (ii, jj) is updated until a mergeable tile is found or
+			// the tile t can't be moved any more.
 			ii := i
 			jj := j
 			for {
@@ -167,7 +176,7 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				if ni < 0 || ni >= size || nj < 0 || nj >= size {
 					break
 				}
-				tt := nextTileAt(tiles, ni, nj)
+				tt := currentOrNextTileAt(tiles, ni, nj)
 				if tt == nil {
 					ii = ni
 					jj = nj
@@ -178,7 +187,8 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 					break
 				}
 				if 0 < tt.movingCount && tt.current.value != tt.next.value {
-					// already merged
+					// tt is already being merged with another tile.
+					// Break here without updating (ii, jj).
 					break
 				}
 				ii = ni
@@ -186,9 +196,12 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				moved = true
 				break
 			}
+			// next is the next state of the tile t.
 			next := TileData{}
 			next.value = t.current.value
-			if tt := nextTileAt(tiles, ii, jj); tt != t && tt != nil {
+			// If there is a tile at the next position (ii, jj), this should be
+			// mergeable. Let's merge.
+			if tt := currentOrNextTileAt(tiles, ii, jj); tt != t && tt != nil {
 				next.value = t.current.value + tt.current.value
 				tt.next.value = 0
 				tt.next.x = ii
