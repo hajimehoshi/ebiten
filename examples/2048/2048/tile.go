@@ -18,6 +18,7 @@ package twenty48
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 	"math/rand"
 	"sort"
@@ -27,12 +28,14 @@ import (
 	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
+// TileData represents a tile information like a value and a position.
 type TileData struct {
 	value int
 	x     int
 	y     int
 }
 
+// Tile represents a tile infomation including TileData and animation states.
 type Tile struct {
 	current           TileData
 	next              TileData
@@ -41,6 +44,7 @@ type Tile struct {
 	poppingCount      int
 }
 
+// NewTile creates a new Tile object.
 func NewTile(value int, x, y int) *Tile {
 	return &Tile{
 		current: TileData{
@@ -52,22 +56,27 @@ func NewTile(value int, x, y int) *Tile {
 	}
 }
 
+// Value returns the current value.
 func (t *Tile) Value() int {
 	return t.current.value
 }
 
+// Pos returns the current position.
 func (t *Tile) Pos() (int, int) {
 	return t.current.x, t.current.y
 }
 
+// NextValue returns the next value.
 func (t *Tile) NextValue() int {
 	return t.next.value
 }
 
+// NextPos returns the next position.
 func (t *Tile) NextPos() (int, int) {
 	return t.next.x, t.next.y
 }
 
+// IsMoving returns a boolean value indicating if the tile is animating.
 func (t *Tile) IsMoving() bool {
 	return 0 < t.movingCount
 }
@@ -121,6 +130,8 @@ const (
 	maxPoppingCount = 6
 )
 
+// MoveTiles moves tiles in the given tiles map if possible.
+// MoveTiles returns true if there are movable tiles, otherwise false.
 func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 	vx, vy := dir.Vector()
 	tx := []int{}
@@ -289,6 +300,7 @@ func init() {
 	tileImage.Fill(color.White)
 }
 
+// Draw draws the current tile to the given boardImage.
 func (t *Tile) Draw(boardImage *ebiten.Image) {
 	i, j := t.current.x, t.current.y
 	ni, nj := t.next.x, t.next.y
