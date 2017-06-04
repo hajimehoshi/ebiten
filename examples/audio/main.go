@@ -93,6 +93,7 @@ type Player struct {
 	seBytes      []uint8
 	seCh         chan []uint8
 	volume128    int
+	previousPos  time.Duration
 }
 
 var (
@@ -249,6 +250,8 @@ func (p *Player) draw(screen *ebiten.Image) {
 	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := "00:00"
 	c := p.audioPlayer.Current()
+	prev := p.previousPos
+	p.previousPos = c
 
 	// Current Time
 	m := (c / time.Minute) % 100
@@ -268,8 +271,8 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-	if p.seekedCh != nil {
-		msg += "\nSeeking..."
+	if p.audioPlayer.IsPlaying() && prev == c {
+		msg += "\nLoading..."
 	}
 	ebitenutil.DebugPrint(screen, msg)
 }
