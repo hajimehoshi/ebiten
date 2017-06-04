@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
+// Dir represents a direction.
 type Dir int
 
 const (
@@ -29,6 +30,7 @@ const (
 	DirLeft
 )
 
+// String returns a string representing the direction.
 func (d Dir) String() string {
 	switch d {
 	case DirUp:
@@ -43,6 +45,7 @@ func (d Dir) String() string {
 	panic("not reach")
 }
 
+// Vector returns a [-1, 1] value for each axis.
 func (d Dir) Vector() (x, y int) {
 	switch d {
 	case DirUp:
@@ -57,10 +60,12 @@ func (d Dir) Vector() (x, y int) {
 	panic("not reach")
 }
 
+// Input represents the current key states.
 type Input struct {
 	keyState map[ebiten.Key]int
 }
 
+// NewInput generates a new Input object.
 func NewInput() *Input {
 	return &Input{
 		keyState: map[ebiten.Key]int{},
@@ -76,6 +81,7 @@ var (
 	}
 )
 
+// Update updates the current input states.
 func (i *Input) Update() {
 	for k := range dirKeys {
 		if ebiten.IsKeyPressed(k) {
@@ -86,6 +92,8 @@ func (i *Input) Update() {
 	}
 }
 
+// Dir returns a currenly pressed direction.
+// Dir returns false if no direction key is pressed.
 func (i *Input) Dir() (Dir, bool) {
 	for k, d := range dirKeys {
 		if i.keyState[k] == 1 {

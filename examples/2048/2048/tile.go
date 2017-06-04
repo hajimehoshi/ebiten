@@ -131,7 +131,7 @@ const (
 )
 
 // MoveTiles moves tiles in the given tiles map if possible.
-// MoveTiles returns true if there are movable tiles, otherwise false.
+// MoveTiles returns true if there are tiles that are to move, otherwise false.
 func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 	vx, vy := dir.Vector()
 	tx := []int{}
@@ -244,6 +244,7 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	return nil
 }
 
+// Update updates the tile's animation states.
 func (t *Tile) Update() error {
 	switch {
 	case 0 < t.movingCount:

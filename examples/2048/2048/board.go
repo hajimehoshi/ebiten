@@ -26,12 +26,14 @@ var taskTerminated = errors.New("twenty48: task terminated")
 
 type task func() error
 
+// Board represents the game board.
 type Board struct {
 	size  int
 	tiles map[*Tile]struct{}
 	tasks []task
 }
 
+// NewBoard generates a new Board with giving a size.
 func NewBoard(size int) (*Board, error) {
 	b := &Board{
 		size:  size,
@@ -49,6 +51,7 @@ func (b *Board) tileAt(x, y int) *Tile {
 	return tileAt(b.tiles, x, y)
 }
 
+// Update updates the board state.
 func (b *Board) Update(input *Input) error {
 	for t := range b.tiles {
 		if err := t.Update(); err != nil {
@@ -72,6 +75,7 @@ func (b *Board) Update(input *Input) error {
 	return nil
 }
 
+// Move enqueues tile moving tasks.
 func (b *Board) Move(dir Dir) error {
 	for t := range b.tiles {
 		t.stopAnimation()
@@ -110,12 +114,14 @@ func (b *Board) Move(dir Dir) error {
 	return nil
 }
 
+// Size returns the board size.
 func (b *Board) Size() (int, int) {
 	x := b.size*tileSize + (b.size+1)*tileMargin
 	y := x
 	return x, y
 }
 
+// Draw draws the board to the given boardImage.
 func (b *Board) Draw(boardImage *ebiten.Image) {
 	boardImage.Fill(frameColor)
 	for j := 0; j < b.size; j++ {

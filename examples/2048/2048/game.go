@@ -33,12 +33,14 @@ const (
 	boardSize    = 4
 )
 
+// Game represents a game state.
 type Game struct {
 	input      *Input
 	board      *Board
 	boardImage *ebiten.Image
 }
 
+// NewGame generates a new Game object.
 func NewGame() (*Game, error) {
 	g := &Game{
 		input: NewInput(),
@@ -51,6 +53,7 @@ func NewGame() (*Game, error) {
 	return g, nil
 }
 
+// Update updates the current game state.
 func (g *Game) Update() error {
 	g.input.Update()
 	if err := g.board.Update(g.input); err != nil {
@@ -59,6 +62,7 @@ func (g *Game) Update() error {
 	return nil
 }
 
+// Draw draws the current game to the given screen.
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.boardImage == nil {
 		w, h := g.board.Size()
