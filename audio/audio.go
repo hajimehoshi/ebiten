@@ -220,8 +220,9 @@ func (c *Context) Update() error {
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
 	if c.driver == nil {
-		// TODO: Rename this other than player
-		p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample)
+		// The buffer size is 1/20 sec.
+		s := c.sampleRate * channelNum * bytesPerSample / 20
+		p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
 		c.driver = p
 		if err != nil {
 			return err
