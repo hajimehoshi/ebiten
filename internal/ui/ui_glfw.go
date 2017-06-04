@@ -35,6 +35,7 @@ type userInterface struct {
 	height      int
 	scale       float64
 	deviceScale float64
+	glfwScale   float64
 	funcs       chan func()
 	running     bool
 	sizeChanged bool
@@ -201,7 +202,10 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 }
 
 func (u *userInterface) glfwSize() (int, int) {
-	return int(float64(u.width) * u.scale * glfwScale()), int(float64(u.height) * u.scale * glfwScale())
+	if u.glfwScale == 0 {
+		u.glfwScale = glfwScale()
+	}
+	return int(float64(u.width) * u.scale * u.glfwScale), int(float64(u.height) * u.scale * u.glfwScale)
 }
 
 func (u *userInterface) actualScreenScale() float64 {
@@ -213,7 +217,10 @@ func (u *userInterface) actualScreenScale() float64 {
 
 func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
-	currentInput.update(u.window, u.scale*glfwScale())
+	if u.glfwScale == 0 {
+		u.glfwScale = glfwScale()
+	}
+	currentInput.update(u.window, u.scale*u.glfwScale)
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
