@@ -113,7 +113,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	oggF, err := ebitenutil.OpenFile("_resources/audio/game.ogg")
+	oggF, err := ebitenutil.OpenFile("_resources/audio/ragtime.ogg")
 	if err != nil {
 		return nil, err
 	}
