@@ -31,6 +31,7 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
+	groundWidth  = screenWidth + 70
 	maxAngle     = 256
 	maxLean      = 16
 )
@@ -47,6 +48,43 @@ var (
 	groundImage          *ebiten.Image
 	fogImage             *ebiten.Image
 )
+
+func init() {
+	var err error
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	groundImage, _ = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
+	const repeat = 5
+	w, h := gophersImage.Size()
+	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
+	for j := 0; j < repeat; j++ {
+		for i := 0; i < repeat; i++ {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64(w*i), float64(h*j))
+			repeatedGophersImage.DrawImage(gophersImage, op)
+		}
+	}
+}
+
+func init() {
+	const fogHeight = 8
+	fogRGBA := image.NewRGBA(image.Rect(0, 0, groundWidth, fogHeight))
+	for j := 0; j < fogHeight; j++ {
+		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
+		clr := skyColor
+		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
+		clr.R = uint8(r * a / oa)
+		clr.G = uint8(g * a / oa)
+		clr.B = uint8(b * a / oa)
+		clr.A = uint8(a)
+		for i := 0; i < groundWidth; i++ {
+			fogRGBA.SetRGBA(i, j, clr)
+		}
+	}
+	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterNearest)
+}
 
 type player struct {
 	x16   int
@@ -140,10 +178,14 @@ func scaleForLine(h int, x int) float64 {
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	w, h := ground.Size()
+	g := ebiten.GeoM{}
+	g.Translate(-float64(w)/2, 0)
+	g.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
+	g.Translate(float64(w)/2, 0)
+	g.Translate(float64(screenWidth-w)/2, screenHeight/3)
 	op := &ebiten.DrawImageOptions{}
 	for i := 0; i < h; i++ {
 		op.GeoM.Reset()
-		// TODO: Refactoring
 		r := scaleForLine(h, i)
 		j1 := scaleForLine(h, i)
 		j2 := scaleForLine(h, i+1)
@@ -152,21 +194,14 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 		sh := float64(dy1 - dy0)
 		op.GeoM.Scale(sw, sh)
 		op.GeoM.Translate(float64(dx0), float64(dy0))
-
-		op.GeoM.Translate(-float64(w)/2, 0)
-		op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
-		op.GeoM.Translate(float64(w)/2, 0)
-		op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
+		op.GeoM.Concat(g)
 
 		src := image.Rect(0, i, w, i+1)
 		op.SourceRect = &src
 		screen.DrawImage(ground, op)
 	}
 	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(-float64(w)/2, 0)
-	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
-	op.GeoM.Translate(float64(w)/2, 0)
-	op.GeoM.Translate(float64(screenWidth-w)/2, screenHeight/3)
+	op.GeoM = g
 	screen.DrawImage(fogImage, op)
 }
 
@@ -199,38 +234,6 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	w, h := gophersImage.Size()
-	const repeat = 5
-	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
-	for j := 0; j < repeat; j++ {
-		for i := 0; i < repeat; i++ {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(w*i), float64(h*j))
-			repeatedGophersImage.DrawImage(gophersImage, op)
-		}
-	}
-	groundWidth := screenWidth + 70
-	groundImage, _ = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
-	const fogHeight = 8
-	fogRGBA := image.NewRGBA(image.Rect(0, 0, groundWidth, fogHeight))
-	for j := 0; j < fogHeight; j++ {
-		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
-		clr := skyColor
-		r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
-		clr.R = uint8(r * a / oa)
-		clr.G = uint8(g * a / oa)
-		clr.B = uint8(b * a / oa)
-		clr.A = uint8(a)
-		for i := 0; i < groundWidth; i++ {
-			fogRGBA.SetRGBA(i, j, clr)
-		}
-	}
-	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterNearest)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Air Ship (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
