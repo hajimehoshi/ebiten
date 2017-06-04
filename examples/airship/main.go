@@ -171,9 +171,9 @@ func updateGroundImage(ground *ebiten.Image) {
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
-func scaleForLine(h int, x int) float64 {
-	x = h - x
-	return 200*((-float64(x)+50)/(float64(x)+50)+1) - 200*((-float64(h)+50)/(float64(h)+50)+1)
+func scaleForLine(x int) float64 {
+	// This is an very rough approximate calculation.
+	return math.Pow(float64(x), 1.2)
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
@@ -186,10 +186,9 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	for i := 0; i < h; i++ {
 		op.GeoM.Reset()
-		r := scaleForLine(h, i)
-		j1 := scaleForLine(h, i)
-		j2 := scaleForLine(h, i+1)
-		dx0, dy0, dx1, dy1 := -int(r), int(j1), w+int(r), int(math.Ceil(j2))
+		x := scaleForLine(i)
+		j := scaleForLine(i)
+		dx0, dy0, dx1, dy1 := -x, j, float64(w)+x, j+4
 		sw := float64(dx1-dx0) / float64(w)
 		sh := float64(dy1 - dy0)
 		op.GeoM.Scale(sw, sh)
