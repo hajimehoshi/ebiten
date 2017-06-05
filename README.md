@@ -26,6 +26,12 @@ Note: Gamepad is not available on Safari/Android/iOS. Keyboard is not available 
 
 https://hajimehoshi.github.io/ebiten/
 
+## Community
+
+### Slack
+
+`#ebiten` channel in [Gophers Slack](https://blog.gopheracademy.com/gophers-slack-community/)
+
 ## License
 
 Ebiten is licensed under Apache license version 2.0. See LICENSE file.
