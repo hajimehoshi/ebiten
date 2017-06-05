@@ -146,7 +146,7 @@ func (i *Image) ColorModel() color.Model {
 
 // At returns the color of the image at (x, y).
 //
-// This method loads pixels from VRAM to system memory if necessary.
+// This method loads pixels from GPU to system memory if necessary.
 //
 // This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
