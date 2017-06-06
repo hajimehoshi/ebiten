@@ -117,7 +117,7 @@ func main() {
 	}
 	groundImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "infinite scroll"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Infinite Scroll (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
