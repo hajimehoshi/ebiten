@@ -173,7 +173,7 @@ func updateGroundImage(ground *ebiten.Image) {
 
 func scaleForLine(x int) float64 {
 	// This is an very rough approximate calculation.
-	return math.Pow(float64(x), 1.2)
+	return math.Pow(float64(x)/2.5, 1.2)
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
@@ -188,7 +188,7 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 		op.GeoM.Reset()
 		x := scaleForLine(i)
 		j := scaleForLine(i)
-		dx0, dy0, dx1, dy1 := -x, j, float64(w)+x, j+4
+		dx0, dy0, dx1, dy1 := -x, j, float64(w)+x, j+6
 		sw := float64(dx1-dx0) / float64(w)
 		sh := float64(dy1 - dy0)
 		op.GeoM.Scale(sw, sh)
