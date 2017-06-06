@@ -90,15 +90,19 @@ func (c *gamepadConfig) Scan(index int, b abstractButton) bool {
 	an := ebiten.GamepadAxisNum(index)
 	for a := 0; a < an; a++ {
 		v := ebiten.GamepadAxis(index, a)
-		// Check v <= 1.0 because there is a bug that a button returns an axis value wrongly and the value may be over 1.
-		if threshold <= v && v <= 1.0 {
+		// Check |v| < 1.0 because
+		// 1) there is a bug that a button returns an axis value wrongly
+		// and the value may be over 1.
+		// 2) just 1.0 or -1.0 values are ignored since PS4's L2/R2 keys take
+		// -1.0 by default.
+		if threshold <= v && v < 1.0 {
 			if _, ok := c.assignedAxes[axis{a, true}]; !ok {
 				c.axes[b] = axis{a, true}
 				c.assignedAxes[axis{a, true}] = struct{}{}
 				return true
 			}
 		}
-		if -1.0 <= v && v <= -threshold {
+		if -1.0 < v && v <= -threshold {
 			if _, ok := c.assignedAxes[axis{a, false}]; !ok {
 				c.axes[b] = axis{a, false}
 				c.assignedAxes[axis{a, false}] = struct{}{}
