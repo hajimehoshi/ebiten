@@ -86,22 +86,54 @@ func serveFile(w http.ResponseWriter, path, mime string) error {
 	return nil
 }
 
-func appName(r *http.Request) (string, error) {
-	u, err := url.Parse(r.Referer())
+func serveFileHandle(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.ServeFile(w, r, filepath.Join(rootPath, r.URL.Path[1:]))
+		return
+	}
+	if r.URL.RawQuery != "" {
+		if err := serveFile(w, filepath.Join(rootPath, "index.html"), "text/html"); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+	apps := []string{}
+	fs, err := ioutil.ReadDir(rootPath)
 	if err != nil {
-		return "", err
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	q := u.RawQuery
-	if q == "" {
-		q = "blocks"
+	for _, f := range fs {
+		if !f.IsDir() {
+			continue
+		}
+		n := f.Name()
+		if n[0] == '_' {
+			continue
+		}
+		if n == "common" {
+			continue
+		}
+		apps = append(apps, n)
 	}
-	return q, nil
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, "<ul>")
+	for _, n := range apps {
+		fmt.Fprintf(w, `<li><a href="/?%[1]s">%[1]s</a></li>`, template.HTMLEscapeString(n))
+	}
+	fmt.Fprintf(w, "</ul>")
 }
 
 func serveMainJS(w http.ResponseWriter, r *http.Request) {
-	name, err := appName(r)
+	u, err := url.Parse(r.Referer())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	name := u.RawQuery
+	if name == "" {
+		http.NotFound(w, r)
 		return
 	}
 	out, err := createJSIfNeeded(name)
@@ -109,7 +141,7 @@ func serveMainJS(w http.ResponseWriter, r *http.Request) {
 		t := template.JSEscapeString(template.HTMLEscapeString(err.Error()))
 		js := `
 window.onload = function() {
-    document.body.innerHTML="<pre style='white-space: pre-wrap;'><code>` + t + `</code></pre>";
+  document.body.innerHTML="<pre style='white-space: pre-wrap;'><code>` + t + `</code></pre>";
 }`
 		w.Header().Set("Content-Type", "text/javascript")
 		fmt.Fprintf(w, js)
@@ -128,7 +160,7 @@ func serveMainJSMap(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/main.js", serveMainJS)
 	http.HandleFunc("/main.js.map", serveMainJSMap)
-	http.Handle("/", http.FileServer(http.Dir(rootPath)))
-	fmt.Printf("http://localhost:%d/?blocks\n", *port)
+	http.HandleFunc("/", serveFileHandle)
+	fmt.Printf("http://localhost:%d/\n", *port)
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
 }
