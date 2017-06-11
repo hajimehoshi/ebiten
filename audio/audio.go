@@ -287,12 +287,18 @@ func BytesReadSeekCloser(b []uint8) ReadSeekCloser {
 	return &bytesReadSeekCloser{reader: bytes.NewReader(b)}
 }
 
+type readingResult struct {
+	data []uint8
+	err  error
+}
+
 // Player is an audio player which has one stream.
 type Player struct {
 	players    *players
 	src        ReadSeekCloser
 	sampleRate int
-	readingCh  chan error
+	readingCh  chan readingResult
+	seekCh     chan int64
 
 	buf    []uint8
 	pos    int64
@@ -320,6 +326,7 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		players:    context.players,
 		src:        src,
 		sampleRate: context.sampleRate,
+		seekCh:     make(chan int64, 1),
 		buf:        []uint8{},
 		volume:     1,
 	}
@@ -369,28 +376,38 @@ func (p *Player) Close() error {
 
 func (p *Player) readToBuffer(length int) (int, error) {
 	if p.readingCh == nil {
-		p.readingCh = make(chan error)
+		p.readingCh = make(chan readingResult)
 		go func() {
 			defer close(p.readingCh)
-			bb := make([]uint8, length)
+			b := make([]uint8, length)
 			p.srcM.Lock()
-			n, err := p.src.Read(bb)
+			n, err := p.src.Read(b)
 			p.srcM.Unlock()
 			if err != nil {
-				p.readingCh <- err
+				p.readingCh <- readingResult{
+					err: err,
+				}
 				return
 			}
-			if 0 < n {
-				p.m.Lock()
-				p.buf = append(p.buf, bb[:n]...)
-				p.m.Unlock()
+			p.readingCh <- readingResult{
+				data: b[:n],
 			}
 		}()
 	}
 	select {
-	case err := <-p.readingCh:
+	case pos := <-p.seekCh:
+		p.buf = []uint8{}
+		p.pos = pos
+		return 0, nil
+	case r := <-p.readingCh:
+		if r.err != nil {
+			return 0, r.err
+		}
+		if len(r.data) > 0 {
+			p.buf = append(p.buf, r.data...)
+		}
 		p.readingCh = nil
-		return len(p.buf), err
+		return len(p.buf), nil
 	case <-time.After(15 * time.Millisecond):
 		return length, nil
 	}
@@ -416,10 +433,8 @@ func (p *Player) proceed(length int) {
 	if p.readingCh != nil {
 		return
 	}
-	p.m.Lock()
 	p.buf = p.buf[length:]
 	p.pos += int64(length)
-	p.m.Unlock()
 }
 
 // Play plays the stream.
@@ -462,10 +477,7 @@ func (p *Player) Seek(offset time.Duration) error {
 	if err != nil {
 		return err
 	}
-	p.m.Lock()
-	p.buf = []uint8{}
-	p.pos = pos
-	p.m.Unlock()
+	p.seekCh <- pos
 	return nil
 }
 
