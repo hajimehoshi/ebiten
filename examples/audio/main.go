@@ -25,7 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/audio/mp3"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
@@ -36,7 +36,7 @@ const (
 
 	// This sample rate doesn't match with wav/ogg's sample rate,
 	// but decoders adjust them.
-	sampleRate = 48000
+	sampleRate = 44100
 )
 
 var (
@@ -113,11 +113,11 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	oggF, err := ebitenutil.OpenFile("_resources/audio/ragtime.ogg")
+	mp3F, err := ebitenutil.OpenFile("_resources/audio/game2.mp3")
 	if err != nil {
 		return nil, err
 	}
-	s, err := vorbis.Decode(audioContext, oggF)
+	s, err := mp3.Decode(audioContext, mp3F)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +135,9 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
 		volume128:    128,
 		seCh:         make(chan []uint8),
+	}
+	if player.total == 0 {
+		player.total = 1
 	}
 	player.audioPlayer.Play()
 	go func() {
