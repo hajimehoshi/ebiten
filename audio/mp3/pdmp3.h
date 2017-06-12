@@ -21,8 +21,14 @@ int Decode_L3(void);
 int Read_Frame(void);
 size_t writeToWriter(void* data, int size);
 
+int Get_Main_Data(unsigned main_data_size,unsigned main_data_begin);
 unsigned Get_Main_Bit(void);
 unsigned Get_Main_Bits(unsigned number_of_bits);
+unsigned Get_Main_Pos(void);
+int Set_Main_Pos(unsigned bit_pos);
+unsigned Get_Main_Bit(void);
+unsigned Get_Main_Bits(unsigned number_of_bits);
+
 void Get_Sideinfo(unsigned sideinfo_size);
 unsigned Get_Side_Bits(unsigned number_of_bits);
 

@@ -60,19 +60,6 @@ func Get_Byte() C.unsigned {
 	return C.unsigned(b)
 }
 
-//export Get_Bytes
-func Get_Bytes(num C.unsigned, data *C.unsigned) C.unsigned {
-	s := C.unsigned(0)
-	for i := 0; i < int(num); i++ {
-		v := Get_Byte()
-		if v == eof {
-			return eof
-		}
-		*(*C.unsigned)(unsafe.Pointer(uintptr(unsafe.Pointer(data)) + uintptr(i)*unsafe.Sizeof(s))) = v
-	}
-	return C.OK
-}
-
 func getBytes(num int) ([]int, error) {
 	r := make([]int, num)
 	for i := 0; i < num; i++ {

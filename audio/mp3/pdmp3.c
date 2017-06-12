@@ -109,14 +109,10 @@ static void dmp_samples(t_mpeg1_main_data *md,int gr,int ch,int type);
 #define dmp_samples(...) do{}while(0)
 #endif
 
-static int Get_Main_Data(unsigned main_data_size,unsigned main_data_begin);
 static int Read_Audio_L3(void);
 static int Read_CRC(void);
 static int Read_Header(void) ;
 static int Read_Main_L3(void);
-static int Set_Main_Pos(unsigned bit_pos);
-
-static unsigned Get_Main_Pos(void);
 
 static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate);
 static void audio_write_raw(unsigned *samples,unsigned nsamples);
@@ -456,12 +452,7 @@ static const float ci[8]={-0.6,-0.535,-0.33,-0.185,-0.095,-0.041,-0.0142,-0.0037
 };
 
 
-static unsigned hsynth_init = 1,synth_init = 1,
-  /* Bit reservoir for main data */
-  g_main_data_vec[2*1024],/* Large static data */
-  *g_main_data_ptr,/* Pointer into the reservoir */
-  g_main_data_idx,/* Index into the current byte(0-7) */
-  g_main_data_top = 0;/* Number of bytes in reservoir(0-1024) */
+static unsigned hsynth_init = 1,synth_init = 1;
 
 /* Scale factor band indices
  *
@@ -657,43 +648,6 @@ int Decode_L3(void){
                  g_sampling_frequency[g_frame_header.sampling_frequency]);
   } /* end for(gr... */
   return(OK);   /* Done */
-}
-
-/** Description: This function assembles the main data buffer with data from
-*              this frame and the previous two frames into a local buffer
-*              used by the Get_Main_Bits function.
-* Parameters: main_data_begin indicates how many bytes from previous
-*             frames that should be used. main_data_size indicates the number
-*             of data bytes in this frame.
-* Return value: Status
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static int Get_Main_Data(unsigned main_data_size,unsigned main_data_begin){
-  int i,start_pos;
-
-  if(main_data_size > 1500) ERR("main_data_size = %d\n",main_data_size);
-  /* Check that there's data available from previous frames if needed */
-  if(main_data_begin > g_main_data_top) {
-    /* No,there is not,so we skip decoding this frame,but we have to
-     * read the main_data bits from the bitstream in case they are needed
-     * for decoding the next frame. */
-   (void) Get_Bytes(main_data_size,&(g_main_data_vec[g_main_data_top]));
-    /* Set up pointers */
-    g_main_data_ptr = &(g_main_data_vec[0]);
-    g_main_data_idx = 0;
-    g_main_data_top += main_data_size;
-    return(ERROR);    /* This frame cannot be decoded! */
-  }
-  for(i = 0; i < main_data_begin; i++) {  /* Copy data from previous frames */
-    g_main_data_vec[i] = g_main_data_vec[g_main_data_top - main_data_begin + i];
-  }
-  start_pos = Get_Filepos();
-  /* Read the main_data from file */
- (void) Get_Bytes(main_data_size,&(g_main_data_vec[main_data_begin]));
-  /* Set up pointers */
-  g_main_data_ptr = &(g_main_data_vec[0]);
-  g_main_data_idx = 0;
-  g_main_data_top = main_data_begin + main_data_size;
-  return(OK);  /* Done */
 }
 
 /**Description: Reads audio and main data from bitstream into a buffer. main
@@ -1013,77 +967,6 @@ static int Read_Main_L3(void){
   return(OK);  /* Done */
 }
 
-/**Description: sets position of next bit to be read from main data bitstream.
-* Parameters: Bit position. 0 = start,8 = start of byte 1,etc.
-* Return value: OK or ERROR if bit_pos is past end of main data for this frame.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static int Set_Main_Pos(unsigned bit_pos){
-
-  g_main_data_ptr = &(g_main_data_vec[bit_pos >> 3]);
-  g_main_data_idx = bit_pos & 0x7;
-
-  return(OK);
-
-}
-
-/**Description: gets one bit from the local buffer which contains main_data.
-* Parameters: None
-* Return value: The bit is returned in the LSB of the return value.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-unsigned Get_Main_Bit(void){
-  unsigned tmp;
-
-  tmp = g_main_data_ptr[0] >>(7 - g_main_data_idx);
-  tmp &= 0x01;
-  g_main_data_ptr +=(g_main_data_idx + 1) >> 3;
-  g_main_data_idx =(g_main_data_idx + 1) & 0x07;
-  return(tmp);  /* Done */
-}
-
-/**Description: reads 'number_of_bits' from local buffer containing main_data.
-* Parameters: number_of_bits to read(max 24)
-* Return value: The bits are returned in the LSB of the return value.
-*
-******************************************************************************/
-unsigned Get_Main_Bits(unsigned number_of_bits){
-  unsigned tmp;
-
-
-  if(number_of_bits == 0) return(0);
-
-  /* Form a word of the next four bytes */
-  tmp =(g_main_data_ptr[0] << 24) |(g_main_data_ptr[1] << 16) |
-       (g_main_data_ptr[2] <<  8) |(g_main_data_ptr[3] <<  0);
-
-  /* Remove bits already used */
-  tmp = tmp << g_main_data_idx;
-
-  /* Remove bits after the desired bits */
-  tmp = tmp >>(32 - number_of_bits);
-
-  /* Update pointers */
-  g_main_data_ptr +=(g_main_data_idx + number_of_bits) >> 3;
-  g_main_data_idx =(g_main_data_idx + number_of_bits) & 0x07;
-
-  /* Done */
-  return(tmp);
-
-}
-
-/**Description: returns pos. of next bit to be read from main data bitstream.
-* Parameters: None
-* Return value: Bit position.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static unsigned Get_Main_Pos(void){
-  unsigned pos;
-  
-  pos =((size_t) g_main_data_ptr) -((size_t) &(g_main_data_vec[0]));
-  pos /= 4; /* Divide by four to get number of bytes */
-  pos *= 8;    /* Multiply by 8 to get number of bits */
-  pos += g_main_data_idx;  /* Add current bit index */
-  return(pos);
-}
-
 /**Description: TBD
 * Parameters: TBD
 * Return value: TBD
@@ -1099,7 +982,7 @@ static void Error(const char *s,int e){
 * Author: Krister Lagerström(krister@kmlager.com) **/
 static void Decode_L3_Init_Song(void){
   hsynth_init = synth_init = 1;
-  g_main_data_top = 0; /* Clear bit reservoir */
+  //g_main_data_top = 0; /* Clear bit reservoir */
 }
 
 /**Description: Does inverse modified DCT and windowing.
