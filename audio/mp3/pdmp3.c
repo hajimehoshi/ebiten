@@ -117,13 +117,11 @@ static int Read_Main_L3(void);
 static int Set_Main_Pos(unsigned bit_pos);
 
 static unsigned Get_Main_Pos(void);
-static unsigned Get_Side_Bits(unsigned number_of_bits);
 
 static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate);
 static void audio_write_raw(unsigned *samples,unsigned nsamples);
 static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
-static void Get_Sideinfo(unsigned sideinfo_size);
 static void IMDCT_Win(float in[18],float out[36],unsigned block_type);
 static void L3_Antialias(unsigned gr,unsigned ch);
 static void L3_Frequency_Inversion(unsigned gr,unsigned ch);
@@ -463,11 +461,7 @@ static unsigned hsynth_init = 1,synth_init = 1,
   g_main_data_vec[2*1024],/* Large static data */
   *g_main_data_ptr,/* Pointer into the reservoir */
   g_main_data_idx,/* Index into the current byte(0-7) */
-  g_main_data_top = 0,/* Number of bytes in reservoir(0-1024) */
-  /* Bit reservoir for side info */
-  side_info_vec[32+4],
-  *side_info_ptr,  /* Pointer into the reservoir */
-  side_info_idx;  /* Index into the current byte(0-7) */
+  g_main_data_top = 0;/* Number of bytes in reservoir(0-1024) */
 
 /* Scale factor band indices
  *
@@ -1090,26 +1084,6 @@ static unsigned Get_Main_Pos(void){
   return(pos);
 }
 
-/**Description: reads 'number_of_bits' from buffer which contains side_info.
-* Parameters: number_of_bits to read(max 16)
-* Return value: The bits are returned in the LSB of the return value.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static unsigned Get_Side_Bits(unsigned number_of_bits){
-  unsigned tmp;
-
-  /* Form a word of the next four bytes */                   //TODO endianness?
-  tmp =(side_info_ptr[0] << 24) |(side_info_ptr[1] << 16) |
-       (side_info_ptr[2] <<  8) |(side_info_ptr[3] <<  0);
-  /* Remove bits already used */
-  tmp = tmp << side_info_idx;
-  /* Remove bits after the desired bits */
-  tmp = tmp >>(32 - number_of_bits);
-  /* Update pointers */
-  side_info_ptr +=(side_info_idx + number_of_bits) >> 3;
-  side_info_idx =(side_info_idx + number_of_bits) & 0x07;
-  return(tmp);
-}
-
 /**Description: TBD
 * Parameters: TBD
 * Return value: TBD
@@ -1117,22 +1091,6 @@ static unsigned Get_Side_Bits(unsigned number_of_bits){
 static void Error(const char *s,int e){
   (void) fwrite(s,1,strlen(s),stderr);
   exit(e);
-}
-
-/**Description: Reads sideinfo from bitstream into buffer for Get_Side_Bits.
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void Get_Sideinfo(unsigned sideinfo_size){
-  if(Get_Bytes(sideinfo_size,side_info_vec) != OK) {
-    ERR("\nCouldn't read sideinfo %d bytes at pos %d\n",
-   sideinfo_size,Get_Filepos());
-    return;
-  }
-
-  side_info_ptr = &(side_info_vec[0]);
-  side_info_idx = 0;
-
 }
 
 /**Description: reinit decoder before playing new song,or seeking current song.

@@ -73,6 +73,18 @@ func Get_Bytes(num C.unsigned, data *C.unsigned) C.unsigned {
 	return C.OK
 }
 
+func getBytes(num int) ([]int, error) {
+	r := make([]int, num)
+	for i := 0; i < num; i++ {
+		v := Get_Byte()
+		if v == eof {
+			return r, io.EOF
+		}
+		r[i] = int(v)
+	}
+	return r, nil
+}
+
 //export Get_Filepos
 func Get_Filepos() C.unsigned {
 	if len(readerCache) == 0 && readerEOF {

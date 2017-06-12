@@ -23,6 +23,8 @@ size_t writeToWriter(void* data, int size);
 
 unsigned Get_Main_Bit(void);
 unsigned Get_Main_Bits(unsigned number_of_bits);
+void Get_Sideinfo(unsigned sideinfo_size);
+unsigned Get_Side_Bits(unsigned number_of_bits);
 
 int Huffman_Decode(unsigned table_num, int32_t* x, int32_t*y, int32_t* v, int32_t* w);
 
