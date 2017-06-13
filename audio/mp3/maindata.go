@@ -23,8 +23,7 @@ import (
 	"fmt"
 )
 
-/* Bit reservoir for main data */
-type mainData struct {
+type mainDataBytes struct {
 	// Large static data
 	vec [2 * 1024]int
 	// Pointer into the reservoir
@@ -37,7 +36,7 @@ type mainData struct {
 	pos int
 }
 
-var theMainData mainData
+var theMainDataBytes mainDataBytes
 
 //export Get_Main_Data
 func Get_Main_Data(size C.unsigned, begin C.unsigned) C.int {
@@ -45,7 +44,7 @@ func Get_Main_Data(size C.unsigned, begin C.unsigned) C.int {
 		g_error = fmt.Errorf("size = %d", size)
 	}
 	/* Check that there's data available from previous frames if needed */
-	if int(begin) > theMainData.top {
+	if int(begin) > theMainDataBytes.top {
 		// No,there is not,so we skip decoding this frame,but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
@@ -54,17 +53,17 @@ func Get_Main_Data(size C.unsigned, begin C.unsigned) C.int {
 			g_error = err
 			return C.ERROR
 		}
-		copy(theMainData.vec[theMainData.top:], b)
+		copy(theMainDataBytes.vec[theMainDataBytes.top:], b)
 		/* Set up pointers */
-		theMainData.ptr = theMainData.vec[0:]
-		theMainData.pos = 0
-		theMainData.idx = 0
-		theMainData.top += int(size)
+		theMainDataBytes.ptr = theMainDataBytes.vec[0:]
+		theMainDataBytes.pos = 0
+		theMainDataBytes.idx = 0
+		theMainDataBytes.top += int(size)
 		return C.ERROR
 	}
 	/* Copy data from previous frames */
 	for i := 0; i < int(begin); i++ {
-		theMainData.vec[i] = theMainData.vec[theMainData.top-int(begin)+i]
+		theMainDataBytes.vec[i] = theMainDataBytes.vec[theMainDataBytes.top-int(begin)+i]
 	}
 	/* Read the main_data from file */
 	b, err := getBytes(int(size))
@@ -72,22 +71,22 @@ func Get_Main_Data(size C.unsigned, begin C.unsigned) C.int {
 		g_error = err
 		return C.ERROR
 	}
-	copy(theMainData.vec[begin:], b)
+	copy(theMainDataBytes.vec[begin:], b)
 	/* Set up pointers */
-	theMainData.ptr = theMainData.vec[0:]
-	theMainData.pos = 0
-	theMainData.idx = 0
-	theMainData.top = int(begin) + int(size)
+	theMainDataBytes.ptr = theMainDataBytes.vec[0:]
+	theMainDataBytes.pos = 0
+	theMainDataBytes.idx = 0
+	theMainDataBytes.top = int(begin) + int(size)
 	return C.OK
 }
 
 //export Get_Main_Bit
 func Get_Main_Bit() C.unsigned {
-	tmp := uint(theMainData.ptr[0]) >> (7 - uint(theMainData.idx))
+	tmp := uint(theMainDataBytes.ptr[0]) >> (7 - uint(theMainDataBytes.idx))
 	tmp &= 0x01
-	theMainData.ptr = theMainData.ptr[(theMainData.idx+1)>>3:]
-	theMainData.pos += (theMainData.idx + 1) >> 3
-	theMainData.idx = (theMainData.idx + 1) & 0x07
+	theMainDataBytes.ptr = theMainDataBytes.ptr[(theMainDataBytes.idx+1)>>3:]
+	theMainDataBytes.pos += (theMainDataBytes.idx + 1) >> 3
+	theMainDataBytes.idx = (theMainDataBytes.idx + 1) & 0x07
 	return C.unsigned(tmp)
 }
 
@@ -99,22 +98,22 @@ func Get_Main_Bits(num C.unsigned) C.unsigned {
 	/* Form a word of the next four bytes */
 	b := make([]int, 4)
 	for i := range b {
-		if len(theMainData.ptr) > i {
-			b[i] = theMainData.ptr[i]
+		if len(theMainDataBytes.ptr) > i {
+			b[i] = theMainDataBytes.ptr[i]
 		}
 	}
 	tmp := (uint32(b[0]) << 24) | (uint32(b[1]) << 16) | (uint32(b[2]) << 8) | (uint32(b[3]) << 0)
 
 	/* Remove bits already used */
-	tmp = tmp << uint(theMainData.idx)
+	tmp = tmp << uint(theMainDataBytes.idx)
 
 	/* Remove bits after the desired bits */
 	tmp = tmp >> (32 - num)
 
 	/* Update pointers */
-	theMainData.ptr = theMainData.ptr[(theMainData.idx+int(num))>>3:]
-	theMainData.pos += (theMainData.idx + int(num)) >> 3
-	theMainData.idx = (theMainData.idx + int(num)) & 0x07
+	theMainDataBytes.ptr = theMainDataBytes.ptr[(theMainDataBytes.idx+int(num))>>3:]
+	theMainDataBytes.pos += (theMainDataBytes.idx + int(num)) >> 3
+	theMainDataBytes.idx = (theMainDataBytes.idx + int(num)) & 0x07
 
 	/* Done */
 	return C.unsigned(tmp)
@@ -122,16 +121,16 @@ func Get_Main_Bits(num C.unsigned) C.unsigned {
 
 //export Get_Main_Pos
 func Get_Main_Pos() C.unsigned {
-	pos := theMainData.pos
-	pos *= 8               /* Multiply by 8 to get number of bits */
-	pos += theMainData.idx /* Add current bit index */
+	pos := theMainDataBytes.pos
+	pos *= 8                    /* Multiply by 8 to get number of bits */
+	pos += theMainDataBytes.idx /* Add current bit index */
 	return C.unsigned(pos)
 }
 
 //export Set_Main_Pos
 func Set_Main_Pos(bit_pos C.unsigned) C.int {
-	theMainData.ptr = theMainData.vec[bit_pos>>3:]
-	theMainData.pos = int(bit_pos) >> 3
-	theMainData.idx = int(bit_pos) & 0x7
+	theMainDataBytes.ptr = theMainDataBytes.vec[bit_pos>>3:]
+	theMainDataBytes.pos = int(bit_pos) >> 3
+	theMainDataBytes.idx = int(bit_pos) & 0x7
 	return C.OK
 }

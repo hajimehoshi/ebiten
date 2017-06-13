@@ -11,73 +11,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-/* Types used in the frame header */
-typedef enum { /* Layer number */
-  mpeg1_layer_reserved = 0,
-  mpeg1_layer_3        = 1,
-  mpeg1_layer_2        = 2,
-  mpeg1_layer_1        = 3
-}
-t_mpeg1_layer;
-typedef enum { /* Modes */
-  mpeg1_mode_stereo = 0,
-  mpeg1_mode_joint_stereo,
-  mpeg1_mode_dual_channel,
-  mpeg1_mode_single_channel
-}
-t_mpeg1_mode;
-typedef struct { /* MPEG1 Layer 1-3 frame header */
-  unsigned id;                 /* 1 bit */
-  t_mpeg1_layer layer;         /* 2 bits */
-  unsigned protection_bit;     /* 1 bit */
-  unsigned bitrate_index;      /* 4 bits */
-  unsigned sampling_frequency; /* 2 bits */
-  unsigned padding_bit;        /* 1 bit */
-  unsigned private_bit;        /* 1 bit */
-  t_mpeg1_mode mode;           /* 2 bits */
-  unsigned mode_extension;     /* 2 bits */
-  unsigned copyright;          /* 1 bit */
-  unsigned original_or_copy;   /* 1 bit */
-  unsigned emphasis;           /* 2 bits */
-}
-t_mpeg1_header;
-typedef struct {  /* MPEG1 Layer 3 Side Information : [2][2] means [gr][ch] */
-  unsigned main_data_begin;         /* 9 bits */
-  unsigned private_bits;            /* 3 bits in mono,5 in stereo */
-  unsigned scfsi[2][4];             /* 1 bit */
-  unsigned part2_3_length[2][2];    /* 12 bits */
-  unsigned big_values[2][2];        /* 9 bits */
-  unsigned global_gain[2][2];       /* 8 bits */
-  unsigned scalefac_compress[2][2]; /* 4 bits */
-  unsigned win_switch_flag[2][2];   /* 1 bit */
-  /* if(win_switch_flag[][]) */ //use a union dammit
-  unsigned block_type[2][2];        /* 2 bits */
-  unsigned mixed_block_flag[2][2];  /* 1 bit */
-  unsigned table_select[2][2][3];   /* 5 bits */
-  unsigned subblock_gain[2][2][3];  /* 3 bits */
-  /* else */
-  /* table_select[][][] */
-  unsigned region0_count[2][2];     /* 4 bits */
-  unsigned region1_count[2][2];     /* 3 bits */
-  /* end */
-  unsigned preflag[2][2];           /* 1 bit */
-  unsigned scalefac_scale[2][2];    /* 1 bit */
-  unsigned count1table_select[2][2];/* 1 bit */
-  unsigned count1[2][2];            /* Not in file,calc. by huff.dec.! */
-}
-t_mpeg1_side_info;
-typedef struct { /* MPEG1 Layer 3 Main Data */
-  unsigned  scalefac_l[2][2][21];    /* 0-4 bits */
-  unsigned  scalefac_s[2][2][12][3]; /* 0-4 bits */
-  float is[2][2][576];               /* Huffman coded freq. lines */
-}
-t_mpeg1_main_data;
-typedef struct { /* Scale factor band indices,for long and short windows */
-  unsigned l[23];
-  unsigned s[14];
-}
-t_sf_band_indices;
-
 #define C_SYNC             0xffe00000
 #define C_EOF              0xffffffff
 #define C_PI                   3.14159265358979323846
@@ -106,10 +39,6 @@ static void dmp_samples(t_mpeg1_main_data *md,int gr,int ch,int type);
 #define dmp_huff(...) do{}while(0)
 #define dmp_samples(...) do{}while(0)
 #endif
-
-static int Read_Audio_L3(void);
-static int Read_Header(void) ;
-static int Read_Main_L3(void);
 
 static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate);
 static void audio_write_raw(unsigned *samples,unsigned nsamples);
@@ -316,9 +245,9 @@ static const t_sf_band_indices g_sf_band_indices[3 /* Sampling freq. */] = {
     }
   };
 
-static t_mpeg1_header    g_frame_header;
-static t_mpeg1_side_info g_side_info;  /* < 100 words */
-static t_mpeg1_main_data g_main_data;  /* Large static data(~2500 words) */
+t_mpeg1_header    g_frame_header;
+t_mpeg1_side_info g_side_info;  /* < 100 words */
+t_mpeg1_main_data g_main_data;  /* Large static data(~2500 words) */
 
 #ifdef DEBUG
 static void dmp_fr(t_mpeg1_header *hdr){
@@ -489,84 +418,6 @@ int Decode_L3(void){
                  g_sampling_frequency[g_frame_header.sampling_frequency]);
   } /* end for(gr... */
   return(OK);   /* Done */
-}
-
-/**Description: Reads audio and main data from bitstream into a buffer. main
-*  data is taken from this frame and up to 2 previous frames.
-* Parameters: None
-* Return value: OK or ERROR if data could not be read,or contains errors.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static int Read_Audio_L3(void){
-  unsigned framesize,sideinfo_size,main_data_size,nch,ch,gr,scfsi_band,region,window;
-
-  /* Number of channels(1 for mono and 2 for stereo) */
-  nch =(g_frame_header.mode == mpeg1_mode_single_channel ? 1 : 2);
-  /* Calculate header audio data size */
-  framesize = (144 *
-    g_mpeg1_bitrates[g_frame_header.layer-1][g_frame_header.bitrate_index]) /
-    g_sampling_frequency[g_frame_header.sampling_frequency] +
-    g_frame_header.padding_bit;
-  if(framesize > 2000) {
-    ERR("framesize = %d\n",framesize);
-    return(ERROR);
-  }
-  /* Sideinfo is 17 bytes for one channel and 32 bytes for two */
-  sideinfo_size =(nch == 1 ? 17 : 32);
-  /* Main data size is the rest of the frame,including ancillary data */
-  main_data_size = framesize - sideinfo_size - 4 /* sync+header */;
-  /* CRC is 2 bytes */
-  if(g_frame_header.protection_bit == 0) main_data_size -= 2;
-  /* DBG("framesize      =   %d\n",framesize); */
-  /* DBG("sideinfo_size  =   %d\n",sideinfo_size); */
-  /* DBG("main_data_size =   %d\n",main_data_size); */
-  /* Read sideinfo from bitstream into buffer used by Get_Side_Bits() */
-  Get_Sideinfo(sideinfo_size);
-  if(Get_Filepos() == C_EOF) return(ERROR);
-  /* Parse audio data */
-  /* Pointer to where we should start reading main data */
-  g_side_info.main_data_begin = Get_Side_Bits(9);
-  /* Get private bits. Not used for anything. */
-  if(g_frame_header.mode == mpeg1_mode_single_channel)
-    g_side_info.private_bits = Get_Side_Bits(5);
-  else g_side_info.private_bits = Get_Side_Bits(3);
-  /* Get scale factor selection information */
-  for(ch = 0; ch < nch; ch++)
-    for(scfsi_band = 0; scfsi_band < 4; scfsi_band++)
-      g_side_info.scfsi[ch][scfsi_band] = Get_Side_Bits(1);
-  /* Get the rest of the side information */
-  for(gr = 0; gr < 2; gr++) {
-    for(ch = 0; ch < nch; ch++) {
-      g_side_info.part2_3_length[gr][ch]    = Get_Side_Bits(12);
-      g_side_info.big_values[gr][ch]        = Get_Side_Bits(9);
-      g_side_info.global_gain[gr][ch]       = Get_Side_Bits(8);
-      g_side_info.scalefac_compress[gr][ch] = Get_Side_Bits(4);
-      g_side_info.win_switch_flag[gr][ch]   = Get_Side_Bits(1);
-      if(g_side_info.win_switch_flag[gr][ch] == 1) {
-        g_side_info.block_type[gr][ch]       = Get_Side_Bits(2);
-        g_side_info.mixed_block_flag[gr][ch] = Get_Side_Bits(1);
-        for(region = 0; region < 2; region++)
-          g_side_info.table_select[gr][ch][region] = Get_Side_Bits(5);
-        for(window = 0; window < 3; window++)
-          g_side_info.subblock_gain[gr][ch][window] = Get_Side_Bits(3);
-        if((g_side_info.block_type[gr][ch]==2)&&(g_side_info.mixed_block_flag[gr][ch]==0))
-          g_side_info.region0_count[gr][ch] = 8; /* Implicit */
-        else g_side_info.region0_count[gr][ch] = 7; /* Implicit */
-        /* The standard is wrong on this!!! */   /* Implicit */
-        g_side_info.region1_count[gr][ch] = 20 - g_side_info.region0_count[gr][ch];
-     }else{
-       for(region = 0; region < 3; region++)
-         g_side_info.table_select[gr][ch][region] = Get_Side_Bits(5);
-       g_side_info.region0_count[gr][ch] = Get_Side_Bits(4);
-       g_side_info.region1_count[gr][ch] = Get_Side_Bits(3);
-       g_side_info.block_type[gr][ch] = 0;  /* Implicit */
-      }  /* end if ... */
-      g_side_info.preflag[gr][ch]            = Get_Side_Bits(1);
-      g_side_info.scalefac_scale[gr][ch]     = Get_Side_Bits(1);
-      g_side_info.count1table_select[gr][ch] = Get_Side_Bits(1);
-    } /* end for(channel... */
-  } /* end for(granule... */
-  return(OK);/* Done */
-
 }
 
 /**Description: Search for next frame and read it into  buffer. Main data in
@@ -813,7 +664,6 @@ static void Error(const char *s,int e){
 * Author: Krister Lagerström(krister@kmlager.com) **/
 static void Decode_L3_Init_Song(void){
   hsynth_init = synth_init = 1;
-  //g_main_data_top = 0; /* Clear bit reservoir */
 }
 
 /**Description: TBD
