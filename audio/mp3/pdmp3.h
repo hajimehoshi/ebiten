@@ -13,6 +13,8 @@
 
 #define OK    0
 #define ERROR -1
+#define TRUE       1
+#define FALSE      0
 
 unsigned Get_Byte(void);
 unsigned Get_Bytes(unsigned num, unsigned* data_vec);
@@ -31,6 +33,8 @@ unsigned Get_Main_Bits(unsigned number_of_bits);
 
 void Get_Sideinfo(unsigned sideinfo_size);
 unsigned Get_Side_Bits(unsigned number_of_bits);
+
+int Read_CRC(void);
 
 int Huffman_Decode(unsigned table_num, int32_t* x, int32_t*y, int32_t* v, int32_t* w);
 

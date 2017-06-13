@@ -37,6 +37,14 @@ var (
 	writer      io.Writer
 )
 
+//export Read_CRC
+func Read_CRC() C.int {
+	if Get_Byte() == eof || Get_Byte() == eof {
+		return C.FALSE
+	}
+	return C.OK
+}
+
 //export Get_Byte
 func Get_Byte() C.unsigned {
 	for len(readerCache) == 0 && !readerEOF {

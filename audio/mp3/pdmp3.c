@@ -78,8 +78,6 @@ typedef struct { /* Scale factor band indices,for long and short windows */
 }
 t_sf_band_indices;
 
-#define TRUE       1
-#define FALSE      0
 #define C_SYNC             0xffe00000
 #define C_EOF              0xffffffff
 #define C_PI                   3.14159265358979323846
@@ -110,7 +108,6 @@ static void dmp_samples(t_mpeg1_main_data *md,int gr,int ch,int type);
 #endif
 
 static int Read_Audio_L3(void);
-static int Read_CRC(void);
 static int Read_Header(void) ;
 static int Read_Main_L3(void);
 
@@ -726,16 +723,6 @@ static int Read_Audio_L3(void){
   } /* end for(granule... */
   return(OK);/* Done */
 
-}
-
-/**Description: Reads 16 CRC bits
-* Parameters: None
-* Return value: OK or ERROR if CRC could not be read.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static int Read_CRC(void){
-  /* Get next two bytes from bitstream, If we got an End Of File we're done */
-  if((Get_Byte()==C_EOF)||(Get_Byte()==C_EOF)) return(FALSE);
-  return(OK);  /* Done */
 }
 
 /**Description: Search for next frame and read it into  buffer. Main data in
