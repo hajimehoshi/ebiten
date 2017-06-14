@@ -17,17 +17,9 @@
 package mp3
 
 // #include "pdmp3.h"
-//
-// static float getFloatFromArray(float* arr, int index) {
-//   return arr[index];
-// }
-//
-// static void setFloatToArray(float* arr, int index, float value) {
-//   arr[index] = value;
-// }
 import "C"
 
-var imdctWin = [4][36]float32{
+var imdctWinData = [4][36]float32{
 	{
 		0.043619, 0.130526, 0.216440, 0.300706, 0.382683, 0.461749,
 		0.537300, 0.608761, 0.675590, 0.737277, 0.793353, 0.843391,
@@ -236,32 +228,28 @@ var cos_N36 = [18][36]float32{
 	},
 }
 
-//export IMDCT_Win
-func IMDCT_Win(in *C.float, out *C.float, blockType C.unsigned) {
-	for i := 0; i < 36; i++ {
-		C.setFloatToArray(out, C.int(i), 0)
-	}
+func imdctWin(in []float32, blockType int) []float32 {
+	out := make([]float32, 36)
 	if blockType == 2 {
 		N := 12
 		for i := 0; i < 3; i++ {
 			for p := 0; p < N; p++ {
 				sum := float32(0.0)
 				for m := 0; m < N/2; m++ {
-					sum += float32(C.getFloatFromArray(in, C.int(i+3*m))) * cos_N12[m][p]
+					sum += in[i+3*m] * cos_N12[m][p]
 				}
-				v := float32(C.getFloatFromArray(out, C.int(6*i+p+6)))
-				v += sum * imdctWin[blockType][p]
-				C.setFloatToArray(out, C.int(6*i+p+6), C.float(v))
+				out[6*i+p+6] += sum * imdctWinData[blockType][p]
 			}
 		}
-		return
+		return out
 	}
 	N := 36
 	for p := 0; p < N; p++ {
 		sum := float32(0.0)
 		for m := 0; m < N/2; m++ {
-			sum += float32(C.getFloatFromArray(in, C.int(m))) * cos_N36[m][p]
+			sum += in[m] * cos_N36[m][p]
 		}
-		C.setFloatToArray(out, C.int(p), C.float(sum*imdctWin[blockType][p]))
+		out[p] = sum * imdctWinData[blockType][p]
 	}
+	return out
 }

@@ -46,7 +46,6 @@ static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
 static void L3_Antialias(unsigned gr,unsigned ch);
 static void L3_Frequency_Inversion(unsigned gr,unsigned ch);
-static void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
 static void L3_Requantize(unsigned gr,unsigned ch);
 static void L3_Reorder(unsigned gr,unsigned ch);
 static void L3_Stereo(unsigned gr);
@@ -216,8 +215,7 @@ static const float powtab34[32] = {
 //},g_synth_n_win[64][32]={
 };
 
-
-static unsigned hsynth_init = 1,synth_init = 1;
+unsigned synth_init = 1;
 
 /* Scale factor band indices
  *
@@ -557,7 +555,7 @@ static void Error(const char *s,int e){
 * Return value: None
 * Author: Krister Lagerström(krister@kmlager.com) **/
 static void Decode_L3_Init_Song(void){
-  hsynth_init = synth_init = 1;
+  synth_init = 1;
 }
 
 /**Description: TBD
@@ -603,40 +601,6 @@ static void L3_Frequency_Inversion(unsigned gr,unsigned ch){
     for(i = 1; i < 18; i += 2)
       g_main_data.is[gr][ch][sb*18 + i] = -g_main_data.is[gr][ch][sb*18 + i];
   }
-  return; /* Done */
-}
-
-/**Description: TBD
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void L3_Hybrid_Synthesis(unsigned gr,unsigned ch){
-  unsigned sb,i,j,bt;
-  float rawout[36];
-  static float store[2][32][18];
-
-  if(hsynth_init) { /* Clear stored samples vector. OPT? use memset */
-    for(j = 0; j < 2; j++) {
-      for(sb = 0; sb < 32; sb++) {
-        for(i = 0; i < 18; i++) {
-          store[j][sb][i] = 0.0;
-        }
-      }
-    }
-    hsynth_init = 0;
-  } /* end if(hsynth_init) */
-  for(sb = 0; sb < 32; sb++) { /* Loop through all 32 subbands */
-    /* Determine blocktype for this subband */
-    bt =((g_side_info.win_switch_flag[gr][ch] == 1) &&
-     (g_side_info.mixed_block_flag[gr][ch] == 1) &&(sb < 2))
-      ? 0 : g_side_info.block_type[gr][ch];
-    /* Do the inverse modified DCT and windowing */
-    IMDCT_Win(&(g_main_data.is[gr][ch][sb*18]),rawout,bt);
-    for(i = 0; i < 18; i++) { /* Overlapp add with stored vector into main_data vector */
-      g_main_data.is[gr][ch][sb*18 + i] = rawout[i] + store[ch][sb][i];
-      store[ch][sb][i] = rawout[i + 18];
-    } /* end for(i... */
-  } /* end for(sb... */
   return; /* Done */
 }
 

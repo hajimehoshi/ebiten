@@ -99,7 +99,7 @@ int Read_Audio_L3(void);
 static int Read_Header(void);
 void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch);
 
-void IMDCT_Win(float* in, float* out,unsigned block_type);
+void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
 
 int Read_CRC(void);
 
