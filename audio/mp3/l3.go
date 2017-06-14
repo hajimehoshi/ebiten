@@ -174,6 +174,39 @@ func L3_Stereo(gr C.unsigned) {
 	}
 }
 
+var (
+	cs = [8]float32{0.857493, 0.881742, 0.949629, 0.983315, 0.995518, 0.999161, 0.999899, 0.999993}
+	ca = [8]float32{-0.514496, -0.471732, -0.313377, -0.181913, -0.094574, -0.040966, -0.014199, -0.003700}
+)
+
+//export L3_Antialias
+func L3_Antialias(gr C.unsigned, ch C.unsigned) {
+	/* No antialiasing is done for short blocks */
+	if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
+		(C.g_side_info.block_type[gr][ch] == 2) &&
+		(C.g_side_info.mixed_block_flag[gr][ch]) == 0 {
+		return
+	}
+	/* Setup the limit for how many subbands to transform */
+	sblim := 32
+	if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
+		(C.g_side_info.block_type[gr][ch] == 2) &&
+		(C.g_side_info.mixed_block_flag[gr][ch] == 1) {
+		sblim = 2
+	}
+	/* Do the actual antialiasing */
+	for sb := 1; sb < sblim; sb++ {
+		for i := 0; i < 8; i++ {
+			li := 18*sb - 1 - i
+			ui := 18*sb + i
+			lb := C.g_main_data.is[gr][ch][li]*C.float(cs[i]) - C.g_main_data.is[gr][ch][ui]*C.float(ca[i])
+			ub := C.g_main_data.is[gr][ch][ui]*C.float(cs[i]) + C.g_main_data.is[gr][ch][li]*C.float(ca[i])
+			C.g_main_data.is[gr][ch][li] = lb
+			C.g_main_data.is[gr][ch][ui] = ub
+		}
+	}
+}
+
 var store = [2][32][18]float32{}
 
 //export L3_Hybrid_Synthesis

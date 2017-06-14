@@ -44,7 +44,6 @@ static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate);
 static void audio_write_raw(unsigned *samples,unsigned nsamples);
 static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
-static void L3_Antialias(unsigned gr,unsigned ch);
 static void L3_Requantize(unsigned gr,unsigned ch);
 static void L3_Reorder(unsigned gr,unsigned ch);
 static void Read_Ancillary(void);
@@ -65,9 +64,6 @@ static const unsigned g_mpeg1_bitrates[3 /* layer 1-3 */][15 /* header bitrate_i
 },
 g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 
-static const float //ci[8]={-0.6,-0.535,-0.33,-0.185,-0.095,-0.041,-0.0142,-0.0037},
-  cs[8]={0.857493,0.881742,0.949629,0.983315,0.995518,0.999161,0.999899,0.999993},
-  ca[8]={-0.514496,-0.471732,-0.313377,-0.181913,-0.094574,-0.040966,-0.014199,-0.003700};
 #ifdef POW34_ITERATE
 static const float powtab34[32] = {
   0.000000f,1.000000f,2.519842f,4.326749f,6.349605f,8.549880f,10.902724f,
@@ -420,38 +416,6 @@ static void Error(const char *s,int e){
 * Author: Krister Lagerström(krister@kmlager.com) **/
 static void Decode_L3_Init_Song(void){
   synth_init = 1;
-}
-
-/**Description: TBD
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void L3_Antialias(unsigned gr,unsigned ch){
-  unsigned sb /* subband of 18 samples */,i,sblim,ui,li;
-  float ub,lb;
-
-  /* No antialiasing is done for short blocks */
-  if((g_side_info.win_switch_flag[gr][ch] == 1) &&
-     (g_side_info.block_type[gr][ch] == 2) &&
-     (g_side_info.mixed_block_flag[gr][ch]) == 0) {
-    return; /* Done */
-  }
-  /* Setup the limit for how many subbands to transform */
-  sblim =((g_side_info.win_switch_flag[gr][ch] == 1) &&
-    (g_side_info.block_type[gr][ch] == 2) &&
-    (g_side_info.mixed_block_flag[gr][ch] == 1))?2:32;
-  /* Do the actual antialiasing */
-  for(sb = 1; sb < sblim; sb++) {
-    for(i = 0; i < 8; i++) {
-      li = 18*sb-1-i;
-      ui = 18*sb+i;
-      lb = g_main_data.is[gr][ch][li]*cs[i] - g_main_data.is[gr][ch][ui]*ca[i];
-      ub = g_main_data.is[gr][ch][ui]*cs[i] + g_main_data.is[gr][ch][li]*ca[i];
-      g_main_data.is[gr][ch][li] = lb;
-      g_main_data.is[gr][ch][ui] = ub;
-    }
-  }
-  return; /* Done */
 }
 
 /**Description: TBD
