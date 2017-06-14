@@ -371,7 +371,7 @@ func Huffman_Decode(table_num C.unsigned, x, y, v, w *C.int32_t) C.int {
 			*y = C.int32_t(htptr[point] & 0xf)
 			break
 		}
-		if C.Get_Main_Bit() != 0 { /* Go right in tree */
+		if getMainBit() != 0 { /* Go right in tree */
 			for (htptr[point] & 0xff) >= 250 {
 				point += int(htptr[point]) & 0xff
 			}
@@ -399,29 +399,29 @@ func Huffman_Decode(table_num C.unsigned, x, y, v, w *C.int32_t) C.int {
 		*w = (*y >> 2) & 1
 		*x = (*y >> 1) & 1
 		*y = *y & 1
-		if (*v > 0) && (C.Get_Main_Bit() == 1) {
+		if (*v > 0) && (getMainBit() == 1) {
 			*v = -*v
 		}
-		if (*w > 0) && (C.Get_Main_Bit() == 1) {
+		if (*w > 0) && (getMainBit() == 1) {
 			*w = -*w
 		}
-		if (*x > 0) && (C.Get_Main_Bit() == 1) {
+		if (*x > 0) && (getMainBit() == 1) {
 			*x = -*x
 		}
-		if (*y > 0) && (C.Get_Main_Bit() == 1) {
+		if (*y > 0) && (getMainBit() == 1) {
 			*y = -*y
 		}
 	} else {
 		if (linbits > 0) && (*x == 15) {
-			*x += C.int32_t(C.Get_Main_Bits(C.unsigned(linbits))) /* Get linbits */
+			*x += C.int32_t(getMainBits(linbits)) /* Get linbits */
 		}
-		if (*x > 0) && (C.Get_Main_Bit() == 1) {
+		if (*x > 0) && (getMainBit() == 1) {
 			*x = -*x /* Get sign bit */
 		}
 		if (linbits > 0) && (*y == 15) {
-			*y += C.int32_t(C.Get_Main_Bits(C.unsigned(linbits))) /* Get linbits */
+			*y += C.int32_t(getMainBits(linbits)) /* Get linbits */
 		}
-		if (*y > 0) && (C.Get_Main_Bit() == 1) {
+		if (*y > 0) && (getMainBit() == 1) {
 			*y = -*y /* Get sign bit */
 		}
 	}

@@ -52,7 +52,6 @@ static void L3_Reorder(unsigned gr,unsigned ch);
 static void L3_Stereo(unsigned gr);
 static void L3_Subband_Synthesis(unsigned gr,unsigned ch,unsigned outdata[576]);
 static void Read_Ancillary(void);
-static void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch);
 static void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
 static void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win);
 static void Stereo_Process_Intensity_Long(unsigned gr,unsigned sfb);
@@ -70,11 +69,7 @@ static const unsigned g_mpeg1_bitrates[3 /* layer 1-3 */][15 /* header bitrate_i
     112000,128000,160000,192000,224000,256000,320000
   }
 },
-g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz },
-mpeg1_scalefac_sizes[16][2 /* slen1,slen2 */] = {
-  {0,0},{0,1},{0,2},{0,3},{3,0},{1,1},{1,2},{1,3},
-  {2,1},{2,2},{2,3},{3,1},{3,2},{3,3},{4,2},{4,3}
-};
+g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 
 static const float //ci[8]={-0.6,-0.535,-0.33,-0.185,-0.095,-0.041,-0.0142,-0.0037},
   cs[8]={0.857493,0.881742,0.949629,0.983315,0.995518,0.999161,0.999899,0.999993},
@@ -548,107 +543,6 @@ static int Read_Header(void) {
   return(OK);  /* Done */
 }
 
-/**Description: reads main data for layer 3 from main_data bit reservoir.
-* Parameters: None
-* Return value: OK or ERROR if the data contains errors.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static int Read_Main_L3(void){
-  unsigned framesize,sideinfo_size,main_data_size,gr,ch,nch,sfb,win,slen1,slen2,nbits,part_2_start;
-
-  /* Number of channels(1 for mono and 2 for stereo) */
-  nch =(g_frame_header.mode == mpeg1_mode_single_channel ? 1 : 2);
-
-  /* Calculate header audio data size */
-  framesize = (144 *
-    g_mpeg1_bitrates[g_frame_header.layer-1][g_frame_header.bitrate_index]) /
-    g_sampling_frequency[g_frame_header.sampling_frequency] +
-    g_frame_header.padding_bit;
-
-  if(framesize > 2000) {
-    ERR("framesize = %d\n",framesize);
-    return(ERROR);
-  }
-  /* Sideinfo is 17 bytes for one channel and 32 bytes for two */
-  sideinfo_size =(nch == 1 ? 17 : 32);
-  /* Main data size is the rest of the frame,including ancillary data */
-  main_data_size = framesize - sideinfo_size - 4 /* sync+header */;
-  /* CRC is 2 bytes */
-  if(g_frame_header.protection_bit == 0) main_data_size -= 2;
-  /* Assemble main data buffer with data from this frame and the previous
-   * two frames. main_data_begin indicates how many bytes from previous
-   * frames that should be used. This buffer is later accessed by the
-   * Get_Main_Bits function in the same way as the side info is.
-   */
-  if(Get_Main_Data(main_data_size,g_side_info.main_data_begin) != OK)
-    return(ERROR); /* This could be due to not enough data in reservoir */
-  for(gr = 0; gr < 2; gr++) {
-    for(ch = 0; ch < nch; ch++) {
-      part_2_start = Get_Main_Pos();
-      /* Number of bits in the bitstream for the bands */
-      slen1 = mpeg1_scalefac_sizes[g_side_info.scalefac_compress[gr][ch]][0];
-      slen2 = mpeg1_scalefac_sizes[g_side_info.scalefac_compress[gr][ch]][1];
-      if((g_side_info.win_switch_flag[gr][ch] != 0)&&(g_side_info.block_type[gr][ch] == 2)) {
-        if(g_side_info.mixed_block_flag[gr][ch] != 0) {
-          for(sfb = 0; sfb < 8; sfb++)
-            g_main_data.scalefac_l[gr][ch][sfb] = Get_Main_Bits(slen1);
-          for(sfb = 3; sfb < 12; sfb++) {
-            nbits = (sfb < 6)?slen1:slen2;/*slen1 for band 3-5,slen2 for 6-11*/
-            for(win = 0; win < 3; win++)
-              g_main_data.scalefac_s[gr][ch][sfb][win]=Get_Main_Bits(nbits);
-          }
-        }else{
-          for(sfb = 0; sfb < 12; sfb++){
-            nbits = (sfb < 6)?slen1:slen2;/*slen1 for band 3-5,slen2 for 6-11*/
-            for(win = 0; win < 3; win++)
-              g_main_data.scalefac_s[gr][ch][sfb][win]=Get_Main_Bits(nbits);
-          }
-        }
-      }else{ /* block_type == 0 if winswitch == 0 */
-        /* Scale factor bands 0-5 */
-        if((g_side_info.scfsi[ch][0] == 0) ||(gr == 0)) {
-          for(sfb = 0; sfb < 6; sfb++)
-            g_main_data.scalefac_l[gr][ch][sfb] = Get_Main_Bits(slen1);
-        }else if((g_side_info.scfsi[ch][0] == 1) &&(gr == 1)) {
-          /* Copy scalefactors from granule 0 to granule 1 */
-          for(sfb = 0; sfb < 6; sfb++)
-            g_main_data.scalefac_l[1][ch][sfb]=g_main_data.scalefac_l[0][ch][sfb];
-        }
-        /* Scale factor bands 6-10 */
-        if((g_side_info.scfsi[ch][1] == 0) ||(gr == 0)) {
-          for(sfb = 6; sfb < 11; sfb++)
-            g_main_data.scalefac_l[gr][ch][sfb] = Get_Main_Bits(slen1);
-        }else if((g_side_info.scfsi[ch][1] == 1) &&(gr == 1)) {
-          /* Copy scalefactors from granule 0 to granule 1 */
-          for(sfb = 6; sfb < 11; sfb++)
-            g_main_data.scalefac_l[1][ch][sfb]=g_main_data.scalefac_l[0][ch][sfb];
-        }
-        /* Scale factor bands 11-15 */
-        if((g_side_info.scfsi[ch][2] == 0) ||(gr == 0)) {
-          for(sfb = 11; sfb < 16; sfb++)
-            g_main_data.scalefac_l[gr][ch][sfb] = Get_Main_Bits(slen2);
-        } else if((g_side_info.scfsi[ch][2] == 1) &&(gr == 1)) {
-          /* Copy scalefactors from granule 0 to granule 1 */
-          for(sfb = 11; sfb < 16; sfb++)
-            g_main_data.scalefac_l[1][ch][sfb]=g_main_data.scalefac_l[0][ch][sfb];
-        }
-        /* Scale factor bands 16-20 */
-        if((g_side_info.scfsi[ch][3] == 0) ||(gr == 0)) {
-          for(sfb = 16; sfb < 21; sfb++)
-            g_main_data.scalefac_l[gr][ch][sfb] = Get_Main_Bits(slen2);
-        }else if((g_side_info.scfsi[ch][3] == 1) &&(gr == 1)) {
-          /* Copy scalefactors from granule 0 to granule 1 */
-          for(sfb = 16; sfb < 21; sfb++)
-            g_main_data.scalefac_l[1][ch][sfb]=g_main_data.scalefac_l[0][ch][sfb];
-        }
-      }
-      /* Read Huffman coded data. Skip stuffing bits. */
-      Read_Huffman(part_2_start,gr,ch);
-    } /* end for(gr... */
-  } /* end for(ch... */
-  /* The ancillary data is stored here,but we ignore it. */
-  return(OK);  /* Done */
-}
-
 /**Description: TBD
 * Parameters: TBD
 * Return value: TBD
@@ -1015,7 +909,7 @@ static void L3_Subband_Synthesis(unsigned gr,unsigned ch,unsigned outdata[576]){
 * Parameters: None
 * Return value: None. The data is stored in g_main_data.is[ch][gr][freqline].
 * Author: Krister Lagerström(krister@kmlager.com) **/
-static void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch){
+void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch){
   int32_t x,y,v,w;
   unsigned table_num,is_pos,bit_pos_end,sfreq;
   unsigned region_1_start,region_2_start; /* region_0_start = 0 */

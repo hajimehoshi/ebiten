@@ -91,17 +91,13 @@ int Decode_L3(void);
 int Read_Frame(void);
 size_t writeToWriter(void* data, int size);
 
-int Get_Main_Data(unsigned main_data_size,unsigned main_data_begin);
-unsigned Get_Main_Bit(void);
-unsigned Get_Main_Bits(unsigned number_of_bits);
 unsigned Get_Main_Pos(void);
 int Set_Main_Pos(unsigned bit_pos);
-unsigned Get_Main_Bit(void);
-unsigned Get_Main_Bits(unsigned number_of_bits);
 
+int Read_Main_L3(void);
 int Read_Audio_L3(void);
-static int Read_Header(void) ;
-static int Read_Main_L3(void);
+static int Read_Header(void);
+void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch);
 
 void IMDCT_Win(float* in, float* out,unsigned block_type);
 

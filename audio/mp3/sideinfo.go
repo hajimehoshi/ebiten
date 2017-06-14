@@ -20,7 +20,6 @@ package mp3
 //
 // extern t_mpeg1_header    g_frame_header;
 // extern t_mpeg1_side_info g_side_info;
-// extern t_mpeg1_main_data g_main_data;
 import "C"
 
 import (
