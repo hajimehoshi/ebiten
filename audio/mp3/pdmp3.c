@@ -45,7 +45,6 @@ static void audio_write_raw(unsigned *samples,unsigned nsamples);
 static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
 static void L3_Antialias(unsigned gr,unsigned ch);
-static void L3_Frequency_Inversion(unsigned gr,unsigned ch);
 static void L3_Requantize(unsigned gr,unsigned ch);
 static void L3_Reorder(unsigned gr,unsigned ch);
 static void L3_Stereo(unsigned gr);
@@ -455,20 +454,6 @@ static void L3_Antialias(unsigned gr,unsigned ch){
       g_main_data.is[gr][ch][li] = lb;
       g_main_data.is[gr][ch][ui] = ub;
     }
-  }
-  return; /* Done */
-}
-
-/**Description: TBD
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void L3_Frequency_Inversion(unsigned gr,unsigned ch){
-  unsigned sb,i;
-
-  for(sb = 1; sb < 32; sb += 2) { //OPT? : for(sb = 18; sb < 576; sb += 36)
-    for(i = 1; i < 18; i += 2)
-      g_main_data.is[gr][ch][sb*18 + i] = -g_main_data.is[gr][ch][sb*18 + i];
   }
   return; /* Done */
 }

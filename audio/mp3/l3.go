@@ -52,6 +52,15 @@ func L3_Hybrid_Synthesis(gr C.unsigned, ch C.unsigned) {
 	}
 }
 
+//export L3_Frequency_Inversion
+func L3_Frequency_Inversion(gr C.unsigned, ch C.unsigned) {
+	for sb := 1; sb < 32; sb += 2 { //OPT? : for(sb = 18; sb < 576; sb += 36)
+		for i := 1; i < 18; i += 2 {
+			C.g_main_data.is[gr][ch][sb*18+i] = -C.g_main_data.is[gr][ch][sb*18+i]
+		}
+	}
+}
+
 var (
 	g_synth_n_win = [64][32]float32{}
 	v_vec         = [2][1024]float32{}
