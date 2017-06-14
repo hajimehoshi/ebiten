@@ -47,12 +47,9 @@ static void Error(const char *s,int e);
 static void L3_Antialias(unsigned gr,unsigned ch);
 static void L3_Requantize(unsigned gr,unsigned ch);
 static void L3_Reorder(unsigned gr,unsigned ch);
-static void L3_Stereo(unsigned gr);
 static void Read_Ancillary(void);
 static void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
 static void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win);
-static void Stereo_Process_Intensity_Long(unsigned gr,unsigned sfb);
-static void Stereo_Process_Intensity_Short(unsigned gr,unsigned sfb);
 
 static const unsigned g_mpeg1_bitrates[3 /* layer 1-3 */][15 /* header bitrate_index */] = {
   {    /* Layer 1 */
@@ -70,8 +67,7 @@ g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 
 static const float //ci[8]={-0.6,-0.535,-0.33,-0.185,-0.095,-0.041,-0.0142,-0.0037},
   cs[8]={0.857493,0.881742,0.949629,0.983315,0.995518,0.999161,0.999899,0.999993},
-  ca[8]={-0.514496,-0.471732,-0.313377,-0.181913,-0.094574,-0.040966,-0.014199,-0.003700},
-  is_ratios[6] = {0.000000f,0.267949f,0.577350f,1.000000f,1.732051f,3.732051f};
+  ca[8]={-0.514496,-0.471732,-0.313377,-0.181913,-0.094574,-0.040966,-0.014199,-0.003700};
 #ifdef POW34_ITERATE
 static const float powtab34[32] = {
   0.000000f,1.000000f,2.519842f,4.326749f,6.349605f,8.549880f,10.902724f,
@@ -583,73 +579,6 @@ static void L3_Requantize(unsigned gr,unsigned ch){
   return; /* Done */
 }
 
-/**Description: TBD
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void L3_Stereo(unsigned gr){
-  unsigned max_pos,i,sfreq,sfb /* scalefac band index */;
-  float left,right;
-
-  /* Do nothing if joint stereo is not enabled */
-  if((g_frame_header.mode != 1)||(g_frame_header.mode_extension == 0)) return;
-  /* Do Middle/Side("normal") stereo processing */
-  if(g_frame_header.mode_extension & 0x2) {
-    /* Determine how many frequency lines to transform */
-    max_pos = g_side_info.count1[gr][!!(g_side_info.count1[gr][0] > g_side_info.count1[gr][1])];
-    /* Do the actual processing */
-    for(i = 0; i < max_pos; i++) {
-      left =(g_main_data.is[gr][0][i] + g_main_data.is[gr][1][i])
-        *(C_INV_SQRT_2);
-      right =(g_main_data.is[gr][0][i] - g_main_data.is[gr][1][i])
-        *(C_INV_SQRT_2);
-      g_main_data.is[gr][0][i] = left;
-      g_main_data.is[gr][1][i] = right;
-    } /* end for(i... */
-  } /* end if(ms_stereo... */
-  /* Do intensity stereo processing */
-  if(g_frame_header.mode_extension & 0x1) {
-    /* Setup sampling frequency index */
-    sfreq = g_frame_header.sampling_frequency;
-    /* First band that is intensity stereo encoded is first band scale factor
-     * band on or above count1 frequency line. N.B.: Intensity stereo coding is
-     * only done for higher subbands, but logic is here for lower subbands. */
-    /* Determine type of block to process */
-    if((g_side_info.win_switch_flag[gr][0] == 1) &&
-       (g_side_info.block_type[gr][0] == 2)) { /* Short blocks */
-      /* Check if the first two subbands
-       *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-      if(g_side_info.mixed_block_flag[gr][0] != 0) { /* 2 longbl. sb  first */
-        for(sfb = 0; sfb < 8; sfb++) {/* First process 8 sfb's at start */
-          /* Is this scale factor band above count1 for the right channel? */
-          if(g_sf_band_indices[sfreq].l[sfb] >= g_side_info.count1[gr][1])
-            Stereo_Process_Intensity_Long(gr,sfb);
-        } /* end if(sfb... */
-        /* And next the remaining bands which uses short blocks */
-        for(sfb = 3; sfb < 12; sfb++) {
-          /* Is this scale factor band above count1 for the right channel? */
-          if(g_sf_band_indices[sfreq].s[sfb]*3 >= g_side_info.count1[gr][1])
-            Stereo_Process_Intensity_Short(gr,sfb); /* intensity stereo processing */
-        }
-      }else{ /* Only short blocks */
-        for(sfb = 0; sfb < 12; sfb++) {
-          /* Is this scale factor band above count1 for the right channel? */
-          if(g_sf_band_indices[sfreq].s[sfb]*3 >= g_side_info.count1[gr][1])
-            Stereo_Process_Intensity_Short(gr,sfb); /* intensity stereo processing */
-        }
-      } /* end else(only short blocks) */
-    }else{                        /* Only long blocks */
-      for(sfb = 0; sfb < 21; sfb++) {
-        /* Is this scale factor band above count1 for the right channel? */
-        if(g_sf_band_indices[sfreq].l[sfb] >= g_side_info.count1[gr][1]) {
-          /* Perform the intensity stereo processing */
-          Stereo_Process_Intensity_Long(gr,sfb);
-        }
-      }
-    } /* end else(only long blocks) */
-  } /* end if(intensity_stereo processing) */
-}
-
 /**Description: called by Read_Main_L3 to read Huffman coded data from bitstream.
 * Parameters: None
 * Return value: None. The data is stored in g_main_data.is[ch][gr][freqline].
@@ -756,74 +685,6 @@ static void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,uns
   res = g_main_data.is[gr][ch][is_pos] = tmp1 * tmp2 * tmp3;
   return; /* Done */
 }
-
-/**Description: intensity stereo processing for entire subband with long blocks.
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void Stereo_Process_Intensity_Long(unsigned gr,unsigned sfb){
-  unsigned i,sfreq,sfb_start,sfb_stop,is_pos;
-  float is_ratio_l,is_ratio_r,left,right;
-
-  /* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
-  if((is_pos = g_main_data.scalefac_l[gr][0][sfb]) != 7) {
-    sfreq = g_frame_header.sampling_frequency; /* Setup sampling freq index */
-    sfb_start = g_sf_band_indices[sfreq].l[sfb];
-    sfb_stop = g_sf_band_indices[sfreq].l[sfb+1];
-    if(is_pos == 6) { /* tan((6*PI)/12 = PI/2) needs special treatment! */
-      is_ratio_l = 1.0f;
-      is_ratio_r = 0.0f;
-    }else{
-      is_ratio_l = is_ratios[is_pos] /(1.0f + is_ratios[is_pos]);
-      is_ratio_r = 1.0f /(1.0f + is_ratios[is_pos]);
-    }
-    /* Now decode all samples in this scale factor band */
-    for(i = sfb_start; i < sfb_stop; i++) {
-      left = is_ratio_l * g_main_data.is[gr][0][i];
-      right = is_ratio_r * g_main_data.is[gr][0][i];
-      g_main_data.is[gr][0][i] = left;
-      g_main_data.is[gr][1][i] = right;
-    }
-  }
-  return; /* Done */
-} /* end Stereo_Process_Intensity_Long() */
-
-/**Description: This function is used to perform intensity stereo processing
-*              for an entire subband that uses short blocks.
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void Stereo_Process_Intensity_Short(unsigned gr,unsigned sfb){
-  unsigned sfb_start,sfb_stop,is_pos,is_ratio_l,is_ratio_r,i,sfreq,win,win_len;
-  float left,right;
-
-  sfreq = g_frame_header.sampling_frequency;   /* Setup sampling freq index */
-  /* The window length */
-  win_len = g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb];
-  /* The three windows within the band has different scalefactors */
-  for(win = 0; win < 3; win++) {
-    /* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
-    if((is_pos = g_main_data.scalefac_s[gr][0][sfb][win]) != 7) {
-      sfb_start = g_sf_band_indices[sfreq].s[sfb]*3 + win_len*win;
-      sfb_stop = sfb_start + win_len;
-      if(is_pos == 6) { /* tan((6*PI)/12 = PI/2) needs special treatment! */
-        is_ratio_l = 1.0;
-        is_ratio_r = 0.0;
-      }else{
-        is_ratio_l = is_ratios[is_pos] /(1.0 + is_ratios[is_pos]);
-        is_ratio_r = 1.0 /(1.0 + is_ratios[is_pos]);
-      }
-      /* Now decode all samples in this scale factor band */
-      for(i = sfb_start; i < sfb_stop; i++) {
-        left = is_ratio_l = g_main_data.is[gr][0][i];
-        right = is_ratio_r = g_main_data.is[gr][0][i];
-        g_main_data.is[gr][0][i] = left;
-        g_main_data.is[gr][1][i] = right;
-      }
-    } /* end if(not illegal is_pos) */
-  } /* end for(win... */
-  return; /* Done */
-} /* end Stereo_Process_Intensity_Short() */
 
 /**Description: output audio data
 * Parameters: Pointers to the samples,the number of samples

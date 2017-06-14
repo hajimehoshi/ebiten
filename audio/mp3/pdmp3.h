@@ -99,6 +99,7 @@ int Read_Audio_L3(void);
 static int Read_Header(void);
 void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch);
 
+void L3_Stereo(unsigned gr);
 void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
 void L3_Frequency_Inversion(unsigned gr,unsigned ch);
 void L3_Subband_Synthesis(unsigned gr,unsigned ch, unsigned* outdata);

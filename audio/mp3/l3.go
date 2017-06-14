@@ -28,6 +28,152 @@ import (
 	"unsafe"
 )
 
+type sfBandIndices struct {
+	l [23]int
+	s [14]int
+}
+
+var (
+	is_ratios         = [6]float32{0.000000, 0.267949, 0.577350, 1.000000, 1.732051, 3.732051}
+	g_sf_band_indices = [3]sfBandIndices{
+		{
+			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 52, 62, 74, 90, 110, 134, 162, 196, 238, 288, 342, 418, 576},
+			s: [...]int{0, 4, 8, 12, 16, 22, 30, 40, 52, 66, 84, 106, 136, 192},
+		},
+		{
+			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 42, 50, 60, 72, 88, 106, 128, 156, 190, 230, 276, 330, 384, 576},
+			s: [...]int{0, 4, 8, 12, 16, 22, 28, 38, 50, 64, 80, 100, 126, 192},
+		},
+		{
+			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 54, 66, 82, 102, 126, 156, 194, 240, 296, 364, 448, 550, 576},
+			s: [...]int{0, 4, 8, 12, 16, 22, 30, 42, 58, 78, 104, 138, 180, 192},
+		},
+	}
+)
+
+func stereoProcessIntensityLong(gr int, sfb int) {
+	is_ratio_l := float32(0)
+	is_ratio_r := float32(0)
+	/* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
+	is_pos := C.g_main_data.scalefac_l[gr][0][sfb]
+	if is_pos != 7 {
+		sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
+		sfb_start := g_sf_band_indices[sfreq].l[sfb]
+		sfb_stop := g_sf_band_indices[sfreq].l[sfb+1]
+		if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
+			is_ratio_l = 1.0
+			is_ratio_r = 0.0
+		} else {
+			is_ratio_l = is_ratios[is_pos] / (1.0 + is_ratios[is_pos])
+			is_ratio_r = 1.0 / (1.0 + is_ratios[is_pos])
+		}
+		/* Now decode all samples in this scale factor band */
+		for i := sfb_start; i < sfb_stop; i++ {
+			C.g_main_data.is[gr][0][i] *= C.float(is_ratio_l)
+			C.g_main_data.is[gr][1][i] *= C.float(is_ratio_r)
+		}
+	}
+}
+
+func stereoProcessIntensityShort(gr int, sfb int) {
+	is_ratio_l := float32(0)
+	is_ratio_r := float32(0)
+	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
+	/* The window length */
+	win_len := g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb]
+	/* The three windows within the band has different scalefactors */
+	for win := 0; win < 3; win++ {
+		/* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
+		is_pos := C.g_main_data.scalefac_s[gr][0][sfb][win]
+		if is_pos != 7 {
+			sfb_start := g_sf_band_indices[sfreq].s[sfb]*3 + win_len*win
+			sfb_stop := sfb_start + win_len
+			if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
+				is_ratio_l = 1.0
+				is_ratio_r = 0.0
+			} else {
+				is_ratio_l = is_ratios[is_pos] / (1.0 + is_ratios[is_pos])
+				is_ratio_r = 1.0 / (1.0 + is_ratios[is_pos])
+			}
+			/* Now decode all samples in this scale factor band */
+			for i := sfb_start; i < sfb_stop; i++ {
+				// https://github.com/technosaurus/PDMP3/issues/3
+				C.g_main_data.is[gr][0][i] *= C.float(is_ratio_l)
+				C.g_main_data.is[gr][1][i] *= C.float(is_ratio_r)
+			}
+		}
+	}
+}
+
+//export L3_Stereo
+func L3_Stereo(gr C.unsigned) {
+	/* Do nothing if joint stereo is not enabled */
+	if (C.g_frame_header.mode != 1) || (C.g_frame_header.mode_extension == 0) {
+		return
+	}
+	/* Do Middle/Side("normal") stereo processing */
+	if (C.g_frame_header.mode_extension & 0x2) != 0 {
+		/* Determine how many frequency lines to transform */
+		i := 0
+		if C.g_side_info.count1[gr][0] > C.g_side_info.count1[gr][1] {
+			i = 1
+		}
+		max_pos := int(C.g_side_info.count1[gr][i])
+		/* Do the actual processing */
+		const invSqrt2 = math.Sqrt2 / 2
+		for i := 0; i < max_pos; i++ {
+			left := (C.g_main_data.is[gr][0][i] + C.g_main_data.is[gr][1][i]) * invSqrt2
+			right := (C.g_main_data.is[gr][0][i] - C.g_main_data.is[gr][1][i]) * invSqrt2
+			C.g_main_data.is[gr][0][i] = left
+			C.g_main_data.is[gr][1][i] = right
+		}
+	}
+	/* Do intensity stereo processing */
+	if (C.g_frame_header.mode_extension & 0x1) != 0 {
+		/* Setup sampling frequency index */
+		sfreq := C.g_frame_header.sampling_frequency
+		/* First band that is intensity stereo encoded is first band scale factor
+		 * band on or above count1 frequency line. N.B.: Intensity stereo coding is
+		 * only done for higher subbands, but logic is here for lower subbands. */
+		/* Determine type of block to process */
+		if (C.g_side_info.win_switch_flag[gr][0] == 1) &&
+			(C.g_side_info.block_type[gr][0] == 2) { /* Short blocks */
+			/* Check if the first two subbands
+			 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
+			if C.g_side_info.mixed_block_flag[gr][0] != 0 { /* 2 longbl. sb  first */
+				for sfb := 0; sfb < 8; sfb++ { /* First process 8 sfb's at start */
+					/* Is this scale factor band above count1 for the right channel? */
+					if C.unsigned(g_sf_band_indices[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
+						stereoProcessIntensityLong(int(gr), int(sfb))
+					}
+				}
+				/* And next the remaining bands which uses short blocks */
+				for sfb := 3; sfb < 12; sfb++ {
+					/* Is this scale factor band above count1 for the right channel? */
+					if C.unsigned(g_sf_band_indices[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
+						stereoProcessIntensityShort(int(gr), int(sfb)) /* intensity stereo processing */
+					}
+				}
+			} else { /* Only short blocks */
+				for sfb := 0; sfb < 12; sfb++ {
+					/* Is this scale factor band above count1 for the right channel? */
+					if C.unsigned(g_sf_band_indices[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
+						stereoProcessIntensityShort(int(gr), int(sfb)) /* intensity stereo processing */
+					}
+				}
+			}
+		} else { /* Only long blocks */
+			for sfb := 0; sfb < 21; sfb++ {
+				/* Is this scale factor band above count1 for the right channel? */
+				if C.unsigned(g_sf_band_indices[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
+					/* Perform the intensity stereo processing */
+					stereoProcessIntensityLong(int(gr), int(sfb))
+				}
+			}
+		}
+	}
+}
+
 var store = [2][32][18]float32{}
 
 //export L3_Hybrid_Synthesis
