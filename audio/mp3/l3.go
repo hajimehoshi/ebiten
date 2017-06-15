@@ -28,13 +28,7 @@ import (
 	"unsafe"
 )
 
-type sfBandIndices struct {
-	l [23]int
-	s [14]int
-}
-
 var (
-	is_ratios         = [6]float32{0.000000, 0.267949, 0.577350, 1.000000, 1.732051, 3.732051}
 	g_sf_band_indices = [3]sfBandIndices{
 		{
 			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 52, 62, 74, 90, 110, 134, 162, 196, 238, 288, 342, 418, 576},
@@ -49,6 +43,64 @@ var (
 			s: [...]int{0, 4, 8, 12, 16, 22, 30, 42, 58, 78, 104, 138, 180, 192},
 		},
 	}
+)
+
+//export L3_Reorder
+func L3_Reorder(gr C.unsigned, ch C.unsigned) {
+	re := make([]float32, 576)
+
+	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
+	/* Only reorder short blocks */
+	if (C.g_side_info.win_switch_flag[gr][ch] == 1) && (C.g_side_info.block_type[gr][ch] == 2) { /* Short blocks */
+		/* Check if the first two subbands
+		 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
+		sfb := 0
+		/* 2 longbl. sb  first */
+		if C.g_side_info.mixed_block_flag[gr][ch] != 0 {
+			sfb = 3
+		}
+		next_sfb := g_sf_band_indices[sfreq].s[sfb+1] * 3
+		win_len := g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb]
+		i := 36
+		if sfb == 0 {
+			i = 0
+		}
+		for i < 576 {
+			/* Check if we're into the next scalefac band */
+			if i == next_sfb {
+				/* Copy reordered data back to the original vector */
+				for j := 0; j < 3*win_len; j++ {
+					C.g_main_data.is[gr][ch][3*g_sf_band_indices[sfreq].s[sfb]+j] = C.float(re[j])
+				}
+				/* Check if this band is above the rzero region,if so we're done */
+				if C.uint(i) >= C.g_side_info.count1[gr][ch] {
+					return
+				}
+				sfb++
+				next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3
+				win_len = g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb]
+			}
+			for win := 0; win < 3; win++ { /* Do the actual reordering */
+				for j := 0; j < win_len; j++ {
+					re[j*3+win] = float32(C.g_main_data.is[gr][ch][i])
+					i++
+				}
+			}
+		}
+		/* Copy reordered data of last band back to original vector */
+		for j := 0; j < 3*win_len; j++ {
+			C.g_main_data.is[gr][ch][3*g_sf_band_indices[sfreq].s[12]+j] = C.float(re[j])
+		}
+	}
+}
+
+type sfBandIndices struct {
+	l [23]int
+	s [14]int
+}
+
+var (
+	is_ratios = [6]float32{0.000000, 0.267949, 0.577350, 1.000000, 1.732051, 3.732051}
 )
 
 func stereoProcessIntensityLong(gr int, sfb int) {

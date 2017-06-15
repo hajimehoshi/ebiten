@@ -45,7 +45,6 @@ static void audio_write_raw(unsigned *samples,unsigned nsamples);
 static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
 static void L3_Requantize(unsigned gr,unsigned ch);
-static void L3_Reorder(unsigned gr,unsigned ch);
 static void Read_Ancillary(void);
 static void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
 static void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win);
@@ -416,49 +415,6 @@ static void Error(const char *s,int e){
 * Author: Krister Lagerström(krister@kmlager.com) **/
 static void Decode_L3_Init_Song(void){
   synth_init = 1;
-}
-
-/**Description: TBD
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void L3_Reorder(unsigned gr,unsigned ch){
-  unsigned sfreq,i,j,next_sfb,sfb,win_len,win;
-  float re[576];
-
-  sfreq = g_frame_header.sampling_frequency; /* Setup sampling freq index */
-  /* Only reorder short blocks */
-  if((g_side_info.win_switch_flag[gr][ch] == 1) &&
-     (g_side_info.block_type[gr][ch] == 2)) { /* Short blocks */
-    /* Check if the first two subbands
-     *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-    sfb = (g_side_info.mixed_block_flag[gr][ch] != 0)?3:0; /* 2 longbl. sb  first */
-    next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3;
-    win_len = g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb];
-    for(i =((sfb == 0) ? 0 : 36); i < 576; /* i++ done below! */) {
-      /* Check if we're into the next scalefac band */
-      if(i == next_sfb) {        /* Yes */
-        /* Copy reordered data back to the original vector */
-        for(j = 0; j < 3*win_len; j++)
-          g_main_data.is[gr][ch][3*g_sf_band_indices[sfreq].s[sfb] + j] = re[j];
-        /* Check if this band is above the rzero region,if so we're done */
-        if(i >= g_side_info.count1[gr][ch]) return; /* Done */
-        sfb++;
-        next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3;
-        win_len = g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb];
-      } /* end if(next_sfb) */
-      for(win = 0; win < 3; win++) { /* Do the actual reordering */
-        for(j = 0; j < win_len; j++) {
-          re[j*3 + win] = g_main_data.is[gr][ch][i];
-          i++;
-        } /* end for(j... */
-      } /* end for(win... */
-    } /* end for(i... */
-    /* Copy reordered data of last band back to original vector */
-    for(j = 0; j < 3*win_len; j++)
-      g_main_data.is[gr][ch][3 * g_sf_band_indices[sfreq].s[12] + j] = re[j];
-  } /* end else(only long blocks) */
-  return; /* Done */
 }
 
 /**Description: TBD
