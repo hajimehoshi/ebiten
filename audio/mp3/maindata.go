@@ -71,7 +71,7 @@ func readMainL3() error {
 	}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			part_2_start := int(Get_Main_Pos())
+			part_2_start := getMainPos()
 			/* Number of bits in the bitstream for the bands */
 			slen1 := mpeg1_scalefac_sizes[C.g_side_info.scalefac_compress[gr][ch]][0]
 			slen2 := mpeg1_scalefac_sizes[C.g_side_info.scalefac_compress[gr][ch]][1]
@@ -270,18 +270,15 @@ func getMainBits(num int) int {
 	return int(tmp)
 }
 
-//export Get_Main_Pos
-func Get_Main_Pos() C.unsigned {
+func getMainPos() int {
 	pos := theMainDataBytes.pos
 	pos *= 8                    /* Multiply by 8 to get number of bits */
 	pos += theMainDataBytes.idx /* Add current bit index */
-	return C.unsigned(pos)
+	return pos
 }
 
-//export Set_Main_Pos
-func Set_Main_Pos(bit_pos C.unsigned) C.int {
+func setMainPos(bit_pos int) {
 	theMainDataBytes.ptr = theMainDataBytes.vec[bit_pos>>3:]
 	theMainDataBytes.pos = int(bit_pos) >> 3
 	theMainDataBytes.idx = int(bit_pos) & 0x7
-	return C.OK
 }

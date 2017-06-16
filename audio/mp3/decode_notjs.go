@@ -124,19 +124,18 @@ func getBytes(buf []int) (int, error) {
 	return len(buf), nil
 }
 
-//export Get_Filepos
-func Get_Filepos() C.unsigned {
+func getFilepos() int {
 	if len(readerCache) == 0 && readerEOF {
 		return eof
 	}
-	return C.unsigned(readerPos)
+	return readerPos
 }
 
 func decode(r io.Reader, w io.Writer) error {
 	// TODO: Decoder should know number of channels
 	reader = r
 	writer = w
-	for Get_Filepos() != eof {
+	for getFilepos() != eof {
 		err := readFrame()
 		if err == nil {
 			if err := decodeL3(); err != nil {
@@ -144,7 +143,7 @@ func decode(r io.Reader, w io.Writer) error {
 			}
 			continue
 		}
-		if Get_Filepos() == eof {
+		if getFilepos() == eof {
 			break
 		}
 		return err

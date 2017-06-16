@@ -149,7 +149,7 @@ func getSideinfo(size int) error {
 			return fmt.Errorf("mp3: unexpected EOF at getSideinfo")
 		}
 		return fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
-			size, Get_Filepos(), err)
+			size, getFilepos(), err)
 	}
 	theSideInfo.vec = buf[:n]
 	theSideInfo.idx = 0

@@ -148,23 +148,23 @@ func readHeader() error {
 	/* Check for invalid values and impossible combinations */
 	if C.g_frame_header.id != 3 {
 		return fmt.Errorf("mp3: ID must be 3\nHeader word is 0x%08x at file pos %d",
-			header, C.Get_Filepos())
+			header, getFilepos())
 	}
 	if C.g_frame_header.bitrate_index == 0 {
 		return fmt.Errorf("mp3: Free bitrate format NIY!\nHeader word is 0x%08x at file pos %d",
-			header, Get_Filepos())
+			header, getFilepos())
 	}
 	if C.g_frame_header.bitrate_index == 15 {
 		return fmt.Errorf("mp3: bitrate_index = 15 is invalid!\nHeader word is 0x%08x at file pos %d",
-			header, Get_Filepos())
+			header, getFilepos())
 	}
 	if C.g_frame_header.sampling_frequency == 3 {
 		return fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
-			header, Get_Filepos())
+			header, getFilepos())
 	}
 	if C.g_frame_header.layer == 0 {
 		return fmt.Errorf("mp3: layer = 0 is invalid! Header word is 0x%08x at file pos %d",
-			header, Get_Filepos())
+			header, getFilepos())
 	}
 	C.g_frame_header.layer = 4 - C.g_frame_header.layer
 	return nil
@@ -217,7 +217,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 	/* Read small values until is_pos = 576 or we run out of huffman data */
 	table_num := int(C.g_side_info.count1table_select[gr][ch]) + 32
 	is_pos := int(C.g_side_info.big_values[gr][ch]) * 2
-	for ; (is_pos <= 572) && (int(Get_Main_Pos()) <= bit_pos_end); is_pos++ {
+	for ; (is_pos <= 572) && (getMainPos() <= bit_pos_end); is_pos++ {
 		/* Get next Huffman coded words */
 		x, y, v, w, err := huffmanDecode(table_num)
 		if err != nil {
@@ -241,7 +241,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 		C.g_main_data.is[gr][ch][is_pos] = C.float(y)
 	}
 	/* Check that we didn't read past the end of this section */
-	if int(C.Get_Main_Pos()) > (bit_pos_end + 1) {
+	if getMainPos() > (bit_pos_end + 1) {
 		/* Remove last words read */
 		is_pos -= 4
 	}
@@ -252,6 +252,6 @@ func readHuffman(part_2_start, gr, ch int) error {
 		C.g_main_data.is[gr][ch][is_pos] = 0.0
 	}
 	/* Set the bitpos to point to the next part to read */
-	C.Set_Main_Pos(C.unsigned(bit_pos_end) + 1)
+	setMainPos(bit_pos_end + 1)
 	return nil
 }

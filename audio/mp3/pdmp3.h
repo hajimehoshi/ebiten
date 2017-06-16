@@ -84,9 +84,4 @@ typedef struct { /* Scale factor band indices,for long and short windows */
 }
 t_sf_band_indices;
 
-unsigned Get_Filepos(void);
-
-unsigned Get_Main_Pos(void);
-int Set_Main_Pos(unsigned bit_pos);
-
 #endif
