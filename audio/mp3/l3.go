@@ -28,19 +28,24 @@ import (
 	"unsafe"
 )
 
+type sfBandIndices struct {
+	l []int
+	s []int
+}
+
 var (
-	g_sf_band_indices = [3]sfBandIndices{
+	sfBandIndicesSet = []sfBandIndices{
 		{
-			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 52, 62, 74, 90, 110, 134, 162, 196, 238, 288, 342, 418, 576},
-			s: [...]int{0, 4, 8, 12, 16, 22, 30, 40, 52, 66, 84, 106, 136, 192},
+			l: []int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 52, 62, 74, 90, 110, 134, 162, 196, 238, 288, 342, 418, 576},
+			s: []int{0, 4, 8, 12, 16, 22, 30, 40, 52, 66, 84, 106, 136, 192},
 		},
 		{
-			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 42, 50, 60, 72, 88, 106, 128, 156, 190, 230, 276, 330, 384, 576},
-			s: [...]int{0, 4, 8, 12, 16, 22, 28, 38, 50, 64, 80, 100, 126, 192},
+			l: []int{0, 4, 8, 12, 16, 20, 24, 30, 36, 42, 50, 60, 72, 88, 106, 128, 156, 190, 230, 276, 330, 384, 576},
+			s: []int{0, 4, 8, 12, 16, 22, 28, 38, 50, 64, 80, 100, 126, 192},
 		},
 		{
-			l: [...]int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 54, 66, 82, 102, 126, 156, 194, 240, 296, 364, 448, 550, 576},
-			s: [...]int{0, 4, 8, 12, 16, 22, 30, 42, 58, 78, 104, 138, 180, 192},
+			l: []int{0, 4, 8, 12, 16, 20, 24, 30, 36, 44, 54, 66, 82, 102, 126, 156, 194, 240, 296, 364, 448, 550, 576},
+			s: []int{0, 4, 8, 12, 16, 22, 30, 42, 58, 78, 104, 138, 180, 192},
 		},
 	}
 )
@@ -59,8 +64,8 @@ func L3_Reorder(gr C.unsigned, ch C.unsigned) {
 		if C.g_side_info.mixed_block_flag[gr][ch] != 0 {
 			sfb = 3
 		}
-		next_sfb := g_sf_band_indices[sfreq].s[sfb+1] * 3
-		win_len := g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb]
+		next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
+		win_len := sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
 		i := 36
 		if sfb == 0 {
 			i = 0
@@ -70,15 +75,15 @@ func L3_Reorder(gr C.unsigned, ch C.unsigned) {
 			if i == next_sfb {
 				/* Copy reordered data back to the original vector */
 				for j := 0; j < 3*win_len; j++ {
-					C.g_main_data.is[gr][ch][3*g_sf_band_indices[sfreq].s[sfb]+j] = C.float(re[j])
+					C.g_main_data.is[gr][ch][3*sfBandIndicesSet[sfreq].s[sfb]+j] = C.float(re[j])
 				}
 				/* Check if this band is above the rzero region,if so we're done */
 				if C.uint(i) >= C.g_side_info.count1[gr][ch] {
 					return
 				}
 				sfb++
-				next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3
-				win_len = g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb]
+				next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
+				win_len = sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
 			}
 			for win := 0; win < 3; win++ { /* Do the actual reordering */
 				for j := 0; j < win_len; j++ {
@@ -89,14 +94,9 @@ func L3_Reorder(gr C.unsigned, ch C.unsigned) {
 		}
 		/* Copy reordered data of last band back to original vector */
 		for j := 0; j < 3*win_len; j++ {
-			C.g_main_data.is[gr][ch][3*g_sf_band_indices[sfreq].s[12]+j] = C.float(re[j])
+			C.g_main_data.is[gr][ch][3*sfBandIndicesSet[sfreq].s[12]+j] = C.float(re[j])
 		}
 	}
-}
-
-type sfBandIndices struct {
-	l [23]int
-	s [14]int
 }
 
 var (
@@ -110,8 +110,8 @@ func stereoProcessIntensityLong(gr int, sfb int) {
 	is_pos := C.g_main_data.scalefac_l[gr][0][sfb]
 	if is_pos != 7 {
 		sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
-		sfb_start := g_sf_band_indices[sfreq].l[sfb]
-		sfb_stop := g_sf_band_indices[sfreq].l[sfb+1]
+		sfb_start := sfBandIndicesSet[sfreq].l[sfb]
+		sfb_stop := sfBandIndicesSet[sfreq].l[sfb+1]
 		if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
 			is_ratio_l = 1.0
 			is_ratio_r = 0.0
@@ -132,13 +132,13 @@ func stereoProcessIntensityShort(gr int, sfb int) {
 	is_ratio_r := float32(0)
 	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
 	/* The window length */
-	win_len := g_sf_band_indices[sfreq].s[sfb+1] - g_sf_band_indices[sfreq].s[sfb]
+	win_len := sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
 	/* The three windows within the band has different scalefactors */
 	for win := 0; win < 3; win++ {
 		/* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
 		is_pos := C.g_main_data.scalefac_s[gr][0][sfb][win]
 		if is_pos != 7 {
-			sfb_start := g_sf_band_indices[sfreq].s[sfb]*3 + win_len*win
+			sfb_start := sfBandIndicesSet[sfreq].s[sfb]*3 + win_len*win
 			sfb_stop := sfb_start + win_len
 			if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
 				is_ratio_l = 1.0
@@ -195,21 +195,21 @@ func L3_Stereo(gr C.unsigned) {
 			if C.g_side_info.mixed_block_flag[gr][0] != 0 { /* 2 longbl. sb  first */
 				for sfb := 0; sfb < 8; sfb++ { /* First process 8 sfb's at start */
 					/* Is this scale factor band above count1 for the right channel? */
-					if C.unsigned(g_sf_band_indices[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
+					if C.unsigned(sfBandIndicesSet[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
 						stereoProcessIntensityLong(int(gr), int(sfb))
 					}
 				}
 				/* And next the remaining bands which uses short blocks */
 				for sfb := 3; sfb < 12; sfb++ {
 					/* Is this scale factor band above count1 for the right channel? */
-					if C.unsigned(g_sf_band_indices[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
+					if C.unsigned(sfBandIndicesSet[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
 						stereoProcessIntensityShort(int(gr), int(sfb)) /* intensity stereo processing */
 					}
 				}
 			} else { /* Only short blocks */
 				for sfb := 0; sfb < 12; sfb++ {
 					/* Is this scale factor band above count1 for the right channel? */
-					if C.unsigned(g_sf_band_indices[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
+					if C.unsigned(sfBandIndicesSet[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
 						stereoProcessIntensityShort(int(gr), int(sfb)) /* intensity stereo processing */
 					}
 				}
@@ -217,7 +217,7 @@ func L3_Stereo(gr C.unsigned) {
 		} else { /* Only long blocks */
 			for sfb := 0; sfb < 21; sfb++ {
 				/* Is this scale factor band above count1 for the right channel? */
-				if C.unsigned(g_sf_band_indices[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
+				if C.unsigned(sfBandIndicesSet[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
 					/* Perform the intensity stereo processing */
 					stereoProcessIntensityLong(int(gr), int(sfb))
 				}
