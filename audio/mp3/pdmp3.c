@@ -204,43 +204,6 @@ int Decode_L3(void){
   return(OK);   /* Done */
 }
 
-/**Description: Search for next frame and read it into  buffer. Main data in
-   this frame is saved for two frames since it might be needed by them.
-* Parameters: None
-* Return value: OK if a frame is successfully read,ERROR otherwise.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-int Read_Frame(void){
-  unsigned first = 0;
-
-  if(Get_Filepos() == 0) Decode_L3_Init_Song();
-  /* Try to find the next frame in the bitstream and decode it */
-  if(Read_Header() != OK) return(ERROR);
-#ifdef DEBUG
-  { static int framenum = 0;
-    printf("\nFrame %d\n",framenum++);
-    dmp_fr(&g_frame_header);
-  }
-    DBG("Starting decode,Layer: %d,Rate: %6d,Sfreq: %05d",
-         g_frame_header.layer,
-         g_mpeg1_bitrates[g_frame_header.layer - 1][g_frame_header.bitrate_index],
-         g_sampling_frequency[g_frame_header.sampling_frequency]);
-#endif
-  /* Get CRC word if present */
-  if((g_frame_header.protection_bit==0)&&(Read_CRC()!=OK)) return(ERROR);
-  if(g_frame_header.layer == 3) {  /* Get audio data */
-    Read_Audio_L3();  /* Get side info */
-    dmp_si(&g_frame_header,&g_side_info); /* DEBUG */
-    /* If there's not enough main data in the bit reservoir,
-     * signal to calling function so that decoding isn't done! */
-    /* Get main data(scalefactors and Huffman coded frequency data) */
-    if(Read_Main_L3() != OK) return(ERROR);
-  }else{
-    ERR("Only layer 3(!= %d) is supported!\n",g_frame_header.layer);
-    return(ERROR);
-  }
-  return(OK);
-}
-
 /**Description: TBD
 * Parameters: TBD
 * Return value: TBD
@@ -248,14 +211,6 @@ int Read_Frame(void){
 static void Error(const char *s,int e){
   (void) fwrite(s,1,strlen(s),stderr);
   exit(e);
-}
-
-/**Description: reinit decoder before playing new song,or seeking current song.
-* Parameters: None
-* Return value: None
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void Decode_L3_Init_Song(void){
-  synth_init = 1;
 }
 
 /**Description: output audio data

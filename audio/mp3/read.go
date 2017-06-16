@@ -28,6 +28,52 @@ import (
 	"io"
 )
 
+func readCRC() error {
+	buf := make([]int, 2)
+	n := 0
+	var err error
+	for n < 2 && err == nil {
+		nn, err2 := getBytes(buf[n:])
+		n += nn
+		err = err2
+	}
+	if err == io.EOF {
+		if n < 2 {
+			return fmt.Errorf("mp3: unexpected EOF at readCRC")
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func readFrame() error {
+	if err := readHeader(); err != nil {
+		return err
+	}
+	/* Get CRC word if present */
+	if C.g_frame_header.protection_bit == 0 {
+		if err := readCRC(); err != nil {
+			return err
+		}
+	}
+	if C.g_frame_header.layer == 3 { /* Get audio data */
+		Read_Audio_L3() /* Get side info */
+		/* If there's not enough main data in the bit reservoir,
+		 * signal to calling function so that decoding isn't done! */
+		/* Get main data(scalefactors and Huffman coded frequency data) */
+		if Read_Main_L3() != C.OK {
+			// TODO: Fix this
+			return fmt.Errorf("mp3: Read_Main_L3")
+		}
+	} else {
+		return fmt.Errorf("mp3: Only layer 3(!= %d) is supported!", C.g_frame_header.layer)
+	}
+	return nil
+}
+
 func isHeader(header uint32) bool {
 	const C_SYNC = 0xffe00000
 	if (header & C_SYNC) != C_SYNC {
@@ -44,8 +90,7 @@ func isHeader(header uint32) bool {
 	return true
 }
 
-//export Read_Header
-func Read_Header() C.int {
+func readHeader() error {
 	/* Get the next four bytes from the bitstream */
 	buf := make([]int, 4)
 	n := 0
@@ -56,10 +101,10 @@ func Read_Header() C.int {
 		err = err2
 	}
 	if n < 4 {
-		if err != io.EOF {
-			g_error = err
+		if err == io.EOF {
+			return fmt.Errorf("mp3: unexpected EOF at readHeader")
 		}
-		return C.ERROR
+		return err
 	}
 	b1 := uint32(buf[0])
 	b2 := uint32(buf[1])
@@ -75,10 +120,10 @@ func Read_Header() C.int {
 		/* Get one new byte from the bitstream */
 		b, err := getByte()
 		if err != nil {
-			if err != io.EOF {
-				g_error = err
+			if err == io.EOF {
+				return fmt.Errorf("mp3: unexpected EOF at readHeader")
 			}
-			return C.ERROR
+			return err
 		}
 		b4 = uint32(b)
 		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
@@ -100,33 +145,27 @@ func Read_Header() C.int {
 	C.g_frame_header.emphasis = C.uint((header & 0x00000003) >> 0)
 	/* Check for invalid values and impossible combinations */
 	if C.g_frame_header.id != 3 {
-		g_error = fmt.Errorf("mp3: ID must be 3\nHeader word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: ID must be 3\nHeader word is 0x%08x at file pos %d",
 			header, C.Get_Filepos())
-		return C.ERROR
 	}
 	if C.g_frame_header.bitrate_index == 0 {
-		g_error = fmt.Errorf("mp3: Free bitrate format NIY!\nHeader word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: Free bitrate format NIY!\nHeader word is 0x%08x at file pos %d",
 			header, Get_Filepos())
-		return C.ERROR
-		//exit(1);
 	}
 	if C.g_frame_header.bitrate_index == 15 {
-		g_error = fmt.Errorf("mp3: bitrate_index = 15 is invalid!\nHeader word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: bitrate_index = 15 is invalid!\nHeader word is 0x%08x at file pos %d",
 			header, Get_Filepos())
-		return C.ERROR
 	}
 	if C.g_frame_header.sampling_frequency == 3 {
-		g_error = fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
 			header, Get_Filepos())
-		return C.ERROR
 	}
 	if C.g_frame_header.layer == 0 {
-		g_error = fmt.Errorf("mp3: layer = 0 is invalid! Header word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: layer = 0 is invalid! Header word is 0x%08x at file pos %d",
 			header, Get_Filepos())
-		return C.ERROR
 	}
 	C.g_frame_header.layer = 4 - C.g_frame_header.layer
-	return C.OK
+	return nil
 }
 
 func readHuffman(part_2_start, gr, ch int) error {

@@ -86,7 +86,6 @@ t_sf_band_indices;
 
 unsigned Get_Filepos(void);
 int Decode_L3(void);
-int Read_Frame(void);
 size_t writeToWriter(void* data, int size);
 
 unsigned Get_Main_Pos(void);

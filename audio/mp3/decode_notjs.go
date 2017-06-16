@@ -37,29 +37,6 @@ var (
 	writer      io.Writer
 )
 
-//export Read_CRC
-func Read_CRC() C.int {
-	buf := make([]int, 2)
-	n := 0
-	var err error
-	for n < 2 && err == nil {
-		nn, err2 := getBytes(buf[n:])
-		n += nn
-		err = err2
-	}
-	if err == io.EOF {
-		if n < 2 {
-			return C.ERROR
-		}
-		return C.OK
-	}
-	if err != nil {
-		g_error = err
-		return C.ERROR
-	}
-	return C.OK
-}
-
 func getByte() (uint8, error) {
 	for len(readerCache) == 0 && !readerEOF {
 		buf := make([]uint8, 4096)
@@ -117,12 +94,16 @@ func decode(r io.Reader, w io.Writer) error {
 	reader = r
 	writer = w
 	for Get_Filepos() != eof {
-		if C.Read_Frame() == C.OK {
+		err := readFrame()
+		if err == nil {
 			C.Decode_L3()
 			continue
 		}
 		if Get_Filepos() == eof {
 			break
+		}
+		if err != nil {
+			return err
 		}
 		return errors.New("mp3: not enough maindata to decode frame")
 	}
