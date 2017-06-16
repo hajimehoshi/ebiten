@@ -20,7 +20,6 @@ package mp3
 import "C"
 
 import (
-	"errors"
 	"io"
 	"unsafe"
 )
@@ -88,8 +87,6 @@ func writeToWriter(data unsafe.Pointer, size C.int) C.size_t {
 	return C.size_t(n)
 }
 
-var g_error error
-
 func decode(r io.Reader, w io.Writer) error {
 	reader = r
 	writer = w
@@ -102,10 +99,7 @@ func decode(r io.Reader, w io.Writer) error {
 		if Get_Filepos() == eof {
 			break
 		}
-		if err != nil {
-			return err
-		}
-		return errors.New("mp3: not enough maindata to decode frame")
+		return err
 	}
-	return g_error
+	return nil
 }

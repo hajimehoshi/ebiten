@@ -175,7 +175,7 @@ var theMainDataBytes mainDataBytes
 
 func getMainData(size int, begin int) error {
 	if size > 1500 {
-		g_error = fmt.Errorf("size = %d", size)
+		return fmt.Errorf("mp3: size = %d", size)
 	}
 	// Check that there's data available from previous frames if needed
 	if int(begin) > theMainDataBytes.top {
@@ -202,7 +202,8 @@ func getMainData(size int, begin int) error {
 		theMainDataBytes.pos = 0
 		theMainDataBytes.idx = 0
 		theMainDataBytes.top += size
-		return fmt.Errorf("mp3: not enought frame data; read next frame?")
+		// TODO: Define a special error and enable to continue the next frame.
+		return fmt.Errorf("mp3: frame can't be decoded")
 	}
 	/* Copy data from previous frames */
 	for i := 0; i < begin; i++ {

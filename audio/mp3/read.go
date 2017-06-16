@@ -53,22 +53,25 @@ func readFrame() error {
 	if err := readHeader(); err != nil {
 		return err
 	}
-	/* Get CRC word if present */
+	// Get CRC word if present
 	if C.g_frame_header.protection_bit == 0 {
 		if err := readCRC(); err != nil {
 			return err
 		}
 	}
-	if C.g_frame_header.layer == 3 { /* Get audio data */
-		Read_Audio_L3() /* Get side info */
-		/* If there's not enough main data in the bit reservoir,
-		 * signal to calling function so that decoding isn't done! */
-		/* Get main data(scalefactors and Huffman coded frequency data) */
-		if err := readMainL3(); err != nil {
-			return err
-		}
-	} else {
+
+	if C.g_frame_header.layer != 3 {
 		return fmt.Errorf("mp3: Only layer 3(!= %d) is supported!", C.g_frame_header.layer)
+	}
+	// Get side info
+	if err := readAudioL3(); err != nil {
+		return err
+	}
+	// If there's not enough main data in the bit reservoir,
+	// signal to calling function so that decoding isn't done!
+	// Get main data(scalefactors and Huffman coded frequency data)
+	if err := readMainL3(); err != nil {
+		return err
 	}
 	return nil
 }

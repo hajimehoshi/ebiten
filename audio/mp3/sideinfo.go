@@ -44,8 +44,7 @@ var g_mpeg1_bitrates = [3][15]int{
 
 var g_sampling_frequency = [3]int{44100, 48000, 32000}
 
-//export Read_Audio_L3
-func Read_Audio_L3() C.int {
+func readAudioL3() error {
 	nch := 2
 	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
 		nch = 1
@@ -56,8 +55,7 @@ func Read_Audio_L3() C.int {
 		g_sampling_frequency[C.g_frame_header.sampling_frequency] +
 		int(C.g_frame_header.padding_bit)
 	if framesize > 2000 {
-		g_error = fmt.Errorf("mp3: framesize = %d\n", framesize)
-		return C.ERROR
+		return fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
 	/* Sideinfo is 17 bytes for one channel and 32 bytes for two */
 	sideinfo_size := 32
@@ -71,9 +69,8 @@ func Read_Audio_L3() C.int {
 		main_data_size -= 2
 	}
 	/* Read sideinfo from bitstream into buffer used by getSideBits() */
-	getSideinfo(sideinfo_size)
-	if Get_Filepos() == eof {
-		return C.ERROR
+	if err := getSideinfo(sideinfo_size); err != nil {
+		return err
 	}
 	/* Parse audio data */
 	/* Pointer to where we should start reading main data */
@@ -127,7 +124,7 @@ func Read_Audio_L3() C.int {
 			C.g_side_info.count1table_select[gr][ch] = C.uint(getSideBits(1))
 		}
 	}
-	return C.OK
+	return nil
 }
 
 // A sideInfo is a bit reservoir for side info
@@ -138,16 +135,25 @@ type sideInfo struct {
 
 var theSideInfo sideInfo
 
-func getSideinfo(size int) {
+func getSideinfo(size int) error {
 	buf := make([]int, size)
-	n, err := getBytes(buf)
-	if err != nil && err != io.EOF {
-		g_error = fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
+	n := 0
+	var err error
+	for n < size && err == nil {
+		nn, err2 := getBytes(buf[n:])
+		n += nn
+		err = err2
+	}
+	if n < size {
+		if err == io.EOF {
+			return fmt.Errorf("mp3: unexpected EOF at getSideinfo")
+		}
+		return fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
 			size, Get_Filepos(), err)
-		return
 	}
 	theSideInfo.vec = buf[:n]
 	theSideInfo.idx = 0
+	return nil
 }
 
 func getSideBits(num int) int {
