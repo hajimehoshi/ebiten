@@ -558,7 +558,7 @@ var g_synth_dtbl = [512]float32{
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
 
-func l3SubbandSynthesis(gr int, ch int, out []int) {
+func l3SubbandSynthesis(gr int, ch int, out []uint32) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
@@ -604,15 +604,16 @@ func l3SubbandSynthesis(gr int, ch int, out []int) {
 				samp = -32767
 			}
 			samp &= 0xffff
+			s := uint32(samp)
 			if ch == 0 { /* This function must be called for channel 0 first */
 				/* We always run in stereo mode,& duplicate channels here for mono */
 				if nch == 1 {
-					out[32*ss+i] = (samp << 16) | (samp)
+					out[32*ss+i] = (s << 16) | (s)
 				} else {
-					out[32*ss+i] = samp << 16
+					out[32*ss+i] = s << 16
 				}
 			} else {
-				out[32*ss+i] |= samp
+				out[32*ss+i] |= s
 			}
 		}
 	}

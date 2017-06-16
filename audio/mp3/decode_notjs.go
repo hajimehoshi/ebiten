@@ -40,7 +40,7 @@ var (
 )
 
 func decodeL3() error {
-	out := make([]int, 576)
+	out := make([]uint32, 576)
 	// Number of channels(1 for mono and 2 for stereo)
 	nch := 2
 	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
@@ -68,7 +68,7 @@ func decodeL3() error {
 	return nil
 }
 
-func audioWriteRaw(samples []int) error {
+func audioWriteRaw(samples []uint32) error {
 	nch := 2
 	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
 		nch = 1
