@@ -50,6 +50,7 @@ func Get_Byte() C.unsigned {
 	for len(readerCache) == 0 && !readerEOF {
 		buf := make([]uint8, 4096)
 		n, err := reader.Read(buf)
+		readerCache = append(readerCache, buf[:n]...)
 		if err != nil {
 			if err == io.EOF {
 				readerEOF = true
@@ -57,7 +58,6 @@ func Get_Byte() C.unsigned {
 				panic(err)
 			}
 		}
-		readerCache = buf[:n]
 	}
 	if len(readerCache) == 0 {
 		return eof
