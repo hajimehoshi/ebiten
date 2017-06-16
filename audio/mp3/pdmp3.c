@@ -60,17 +60,6 @@ static const unsigned g_mpeg1_bitrates[3 /* layer 1-3 */][15 /* header bitrate_i
 },
 g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 
-#ifdef POW34_ITERATE
-static const float powtab34[32] = {
-  0.000000f,1.000000f,2.519842f,4.326749f,6.349605f,8.549880f,10.902724f,
-  13.390519f,16.000001f,18.720756f,21.544349f,24.463783f,27.473145f,30.567354f,
-  33.741995f,36.993185f,40.317478f,43.711792f,47.173351f,50.699637f,54.288359f,
-  57.937415f,61.644873f,65.408949f,69.227988f,73.100453f,77.024908f,81.000011f,
-  85.024502f,89.097200f,93.216988f,97.382814f
-}
-#endif
-  ;
-
 unsigned synth_init = 1;
 
 /* Scale factor band indices
@@ -170,59 +159,6 @@ static void dmp_samples(t_mpeg1_main_data *md,int gr,int ch,int type){
   }
 }
 #endif
-
-/**Description: calculates y=x^(4/3) when requantizing samples.
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static inline float Requantize_Pow_43(unsigned is_pos){
-#ifdef POW34_TABLE
-  static float powtab34[8207];
-  static int init = 0;
-  int i;
-
-  if(init == 0) {   /* First time initialization */
-    for(i = 0; i < 8207; i++)
-      powtab34[i] = pow((float) i,4.0 / 3.0);
-    init = 1;
-  }
-#ifdef DEBUG
-  if(is_pos > 8206) {
-    ERR("is_pos = %d larger than 8206!",is_pos);
-    is_pos = 8206;
-  }
-#endif /* DEBUG */
-  return(powtab34[is_pos]);  /* Done */
-#elif defined POW34_ITERATE
-  float a4,a2,x,x2,x3,x_next,is_f1,is_f2,is_f3;
-  unsigned i;
-//static unsigned init = 0;
-//static float powtab34[32];
-  static float coeff[3] = {-1.030797119e+02,6.319399834e+00,2.395095071e-03};
-//if(init == 0) { /* First time initialization */
-//  for(i = 0; i < 32; i++) powtab34[i] = pow((float) i,4.0 / 3.0);
-//  init = 1;
-//}
-  /* We use a table for 0<is_pos<32 since they are so common */
-  if(is_pos < 32) return(powtab34[is_pos]);
-  a2 = is_pos * is_pos;
-  a4 = a2 * a2;
-  is_f1 =(float) is_pos;
-  is_f2 = is_f1 * is_f1;
-  is_f3 = is_f1 * is_f2;
-  /*  x = coeff[0] + coeff[1]*is_f1 + coeff[2]*is_f2 + coeff[3]*is_f3; */
-  x = coeff[0] + coeff[1]*is_f1 + coeff[2]*is_f2;
-  for(i = 0; i < 3; i++) {
-    x2 = x*x;
-    x3 = x*x2;
-    x_next =(2*x3 + a4) /(3*x2);
-    x = x_next;
-  }
-  return(x);
-#else /* no optimization */
-return powf((float)is_pos,4.0f / 3.0f);
-#endif /* POW34_TABLE || POW34_ITERATE */
-}
 
 /**Description: decodes a layer 3 bitstream into audio samples.
 * Parameters: Outdata vector.
@@ -482,29 +418,6 @@ void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch){
   /* Set the bitpos to point to the next part to read */
  (void) Set_Main_Pos(bit_pos_end+1);
   return;  /* Done */
-}
-
-/**Description: requantize sample in subband that uses long blocks.
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb){
-  float res,tmp1,tmp2,tmp3,sf_mult,pf_x_pt;
-  static float pretab[21] = { 0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2,2,3,3,3,2 };
-
-  sf_mult = g_side_info.scalefac_scale[gr][ch] ? 1.0 : 0.5;
-  pf_x_pt = g_side_info.preflag[gr][ch] * pretab[sfb];
-  if (sfb >= 21) {
-    tmp1 = 1.0;
-  } else {
-    tmp1 = pow(2.0,-(sf_mult *(g_main_data.scalefac_l[gr][ch][sfb] + pf_x_pt)));
-  }
-  tmp2 = pow(2.0,0.25 *((int32_t) g_side_info.global_gain[gr][ch] - 210));
-  if(g_main_data.is[gr][ch][is_pos] < 0.0)
-    tmp3 = -Requantize_Pow_43(-g_main_data.is[gr][ch][is_pos]);
-  else tmp3 = Requantize_Pow_43(g_main_data.is[gr][ch][is_pos]);
-  res = g_main_data.is[gr][ch][is_pos] = tmp1 * tmp2 * tmp3;
-  return; /* Done */
 }
 
 /**Description: output audio data

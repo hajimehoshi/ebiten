@@ -107,8 +107,6 @@ void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
 void L3_Frequency_Inversion(unsigned gr,unsigned ch);
 void L3_Subband_Synthesis(unsigned gr,unsigned ch, unsigned* outdata);
 
-void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
-
 int Read_CRC(void);
 
 int Huffman_Decode(unsigned table_num, int32_t* x, int32_t*y, int32_t* v, int32_t* w);

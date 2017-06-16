@@ -28,12 +28,36 @@ import (
 	"unsafe"
 )
 
-var powtab34 = make([]float64, 8207)
+var (
+	powtab34 = make([]float64, 8207)
+	pretab   = []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2}
+)
 
 func init() {
 	for i := range powtab34 {
 		powtab34[i] = math.Pow(float64(i), 4.0/3.0)
 	}
+}
+
+func requantizeProcessLong(gr, ch, is_pos, sfb int) {
+	sf_mult := 0.5
+	if C.g_side_info.scalefac_scale[gr][ch] != 0 {
+		sf_mult = 1.0
+	}
+	tmp1 := 1.0
+	// https://github.com/technosaurus/PDMP3/issues/4
+	if sfb < 21 {
+		pf_x_pt := float64(C.g_side_info.preflag[gr][ch]) * pretab[sfb]
+		tmp1 = math.Pow(2.0, -(sf_mult * (float64(C.g_main_data.scalefac_l[gr][ch][sfb]) + pf_x_pt)))
+	}
+	tmp2 := math.Pow(2.0, 0.25*(float64(C.g_side_info.global_gain[gr][ch])-210))
+	tmp3 := 0.0
+	if C.g_main_data.is[gr][ch][is_pos] < 0.0 {
+		tmp3 = -powtab34[int(-C.g_main_data.is[gr][ch][is_pos])]
+	} else {
+		tmp3 = powtab34[int(C.g_main_data.is[gr][ch][is_pos])]
+	}
+	C.g_main_data.is[gr][ch][is_pos] = C.float(tmp1 * tmp2 * tmp3)
 }
 
 func requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
@@ -42,6 +66,7 @@ func requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 		sf_mult = 1.0
 	}
 	tmp1 := 1.0
+	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 12 {
 		tmp1 = math.Pow(2.0, -(sf_mult * float64(C.g_main_data.scalefac_s[gr][ch][sfb][win])))
 	}
@@ -94,8 +119,8 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 				if i == next_sfb {
 					sfb++
 					next_sfb = sfBandIndicesSet[sfreq].l[sfb+1]
-				} /* end if */
-				C.Requantize_Process_Long(gr, ch, C.unsigned(i), C.unsigned(sfb))
+				}
+				requantizeProcessLong(int(gr), int(ch), i, sfb)
 			}
 			/* And next the remaining,non-zero,bands which uses short blocks */
 			sfb = 3
@@ -126,7 +151,7 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 				sfBandIndicesSet[sfreq].s[sfb]
 			for i := 0; i < int(C.g_side_info.count1[gr][ch]); /* i++ done below! */ {
 				/* Check if we're into the next scalefac band */
-				if i == next_sfb { /* Yes */
+				if i == next_sfb {
 					sfb++
 					next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
 					win_len = sfBandIndicesSet[sfreq].s[sfb+1] -
@@ -136,7 +161,7 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 					for j := 0; j < win_len; j++ {
 						requantizeProcessShort(int(gr), int(ch), i, sfb, win)
 						i++
-					} /* end for(j... */
+					}
 				}
 			}
 		}
@@ -147,8 +172,8 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 			if i == next_sfb {
 				sfb++
 				next_sfb = sfBandIndicesSet[sfreq].l[sfb+1]
-			} /* end if */
-			C.Requantize_Process_Long(gr, ch, C.unsigned(i), C.unsigned(sfb))
+			}
+			requantizeProcessLong(int(gr), int(ch), i, sfb)
 		}
 	}
 }
