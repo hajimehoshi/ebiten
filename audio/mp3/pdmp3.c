@@ -44,10 +44,7 @@ static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate);
 static void audio_write_raw(unsigned *samples,unsigned nsamples);
 static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
-static void L3_Requantize(unsigned gr,unsigned ch);
 static void Read_Ancillary(void);
-static void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
-static void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win);
 
 static const unsigned g_mpeg1_bitrates[3 /* layer 1-3 */][15 /* header bitrate_index */] = {
   {    /* Layer 1 */
@@ -417,88 +414,6 @@ static void Decode_L3_Init_Song(void){
   synth_init = 1;
 }
 
-/**Description: TBD
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void L3_Requantize(unsigned gr,unsigned ch){
-  unsigned sfb /* scalefac band index */,next_sfb /* frequency of next sfb */,
-    sfreq,i,j,win,win_len;
-
-  /* Setup sampling frequency index */
-  sfreq = g_frame_header.sampling_frequency;
-  /* Determine type of block to process */
-  if((g_side_info.win_switch_flag[gr][ch] == 1) && (g_side_info.block_type[gr][ch] == 2)) { /* Short blocks */
-    /* Check if the first two subbands
-     *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-    if(g_side_info.mixed_block_flag[gr][ch] != 0) { /* 2 longbl. sb  first */
-      /* First process the 2 long block subbands at the start */
-      sfb = 0;
-      next_sfb = g_sf_band_indices[sfreq].l[sfb+1];
-      for(i = 0; i < 36; i++) {
-        if(i == next_sfb) {
-          sfb++;
-          next_sfb = g_sf_band_indices[sfreq].l[sfb+1];
-        } /* end if */
-        Requantize_Process_Long(gr,ch,i,sfb);
-      }
-      /* And next the remaining,non-zero,bands which uses short blocks */
-      sfb = 3;
-      next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3;
-      win_len = g_sf_band_indices[sfreq].s[sfb+1] -
-        g_sf_band_indices[sfreq].s[sfb];
-
-      for(i = 36; i < g_side_info.count1[gr][ch]; /* i++ done below! */) {
-        /* Check if we're into the next scalefac band */
-        if(i == next_sfb) {        /* Yes */
-          sfb++;
-          next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3;
-          win_len = g_sf_band_indices[sfreq].s[sfb+1] -
-            g_sf_band_indices[sfreq].s[sfb];
-        } /* end if(next_sfb) */
-        for(win = 0; win < 3; win++) {
-          for(j = 0; j < win_len; j++) {
-            Requantize_Process_Short(gr,ch,i,sfb,win);
-            i++;
-          } /* end for(j... */
-        } /* end for(win... */
-
-      } /* end for(i... */
-    }else{ /* Only short blocks */
-      sfb = 0;
-      next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3;
-      win_len = g_sf_band_indices[sfreq].s[sfb+1] -
-        g_sf_band_indices[sfreq].s[sfb];
-      for(i = 0; i < g_side_info.count1[gr][ch]; /* i++ done below! */) {
-        /* Check if we're into the next scalefac band */
-        if(i == next_sfb) {        /* Yes */
-          sfb++;
-          next_sfb = g_sf_band_indices[sfreq].s[sfb+1] * 3;
-          win_len = g_sf_band_indices[sfreq].s[sfb+1] -
-            g_sf_band_indices[sfreq].s[sfb];
-        } /* end if(next_sfb) */
-        for(win = 0; win < 3; win++) {
-          for(j = 0; j < win_len; j++) {
-            Requantize_Process_Short(gr,ch,i,sfb,win);
-            i++;
-          } /* end for(j... */
-        } /* end for(win... */
-      } /* end for(i... */
-    } /* end else(only short blocks) */
-  }else{ /* Only long blocks */
-    sfb = 0;
-    next_sfb = g_sf_band_indices[sfreq].l[sfb+1];
-    for(i = 0; i < g_side_info.count1[gr][ch]; i++) {
-      if(i == next_sfb) {
-        sfb++;
-        next_sfb = g_sf_band_indices[sfreq].l[sfb+1];
-      } /* end if */
-      Requantize_Process_Long(gr,ch,i,sfb);
-    }
-  } /* end else(only long blocks) */
-  return; /* Done */
-}
-
 /**Description: called by Read_Main_L3 to read Huffman coded data from bitstream.
 * Parameters: None
 * Return value: None. The data is stored in g_main_data.is[ch][gr][freqline].
@@ -573,7 +488,7 @@ void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch){
 * Parameters: TBD
 * Return value: TBD
 * Author: Krister Lagerström(krister@kmlager.com) **/
-static void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb){
+void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb){
   float res,tmp1,tmp2,tmp3,sf_mult,pf_x_pt;
   static float pretab[21] = { 0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2,2,3,3,3,2 };
 
@@ -592,7 +507,7 @@ static void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsi
 * Parameters: TBD
 * Return value: TBD
 * Author: Krister Lagerström(krister@kmlager.com) **/
-static void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win){
+void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win){
   float res,tmp1,tmp2,tmp3,sf_mult;
 
   sf_mult = g_side_info.scalefac_scale[gr][ch] ? 1.0f : 0.5f;

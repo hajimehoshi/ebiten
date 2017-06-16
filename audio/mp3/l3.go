@@ -50,6 +50,81 @@ var (
 	}
 )
 
+//export L3_Requantize
+func L3_Requantize(gr C.unsigned, ch C.unsigned) {
+	/* Setup sampling frequency index */
+	sfreq := C.g_frame_header.sampling_frequency
+	/* Determine type of block to process */
+	if (C.g_side_info.win_switch_flag[gr][ch] == 1) && (C.g_side_info.block_type[gr][ch] == 2) { /* Short blocks */
+		/* Check if the first two subbands
+		 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
+		if C.g_side_info.mixed_block_flag[gr][ch] != 0 { /* 2 longbl. sb  first */
+			/* First process the 2 long block subbands at the start */
+			sfb := 0
+			next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
+			for i := 0; i < 36; i++ {
+				if i == next_sfb {
+					sfb++
+					next_sfb = sfBandIndicesSet[sfreq].l[sfb+1]
+				} /* end if */
+				C.Requantize_Process_Long(gr, ch, C.unsigned(i), C.unsigned(sfb))
+			}
+			/* And next the remaining,non-zero,bands which uses short blocks */
+			sfb = 3
+			next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
+			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
+				sfBandIndicesSet[sfreq].s[sfb]
+
+			for i := 36; i < int(C.g_side_info.count1[gr][ch]); /* i++ done below! */ {
+				/* Check if we're into the next scalefac band */
+				if i == next_sfb { /* Yes */
+					sfb++
+					next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
+					win_len = sfBandIndicesSet[sfreq].s[sfb+1] -
+						sfBandIndicesSet[sfreq].s[sfb]
+				}
+				for win := 0; win < 3; win++ {
+					for j := 0; j < win_len; j++ {
+						C.Requantize_Process_Short(gr, ch, C.unsigned(i), C.unsigned(sfb), C.unsigned(win))
+						i++
+					}
+				}
+
+			}
+		} else { /* Only short blocks */
+			sfb := 0
+			next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
+			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
+				sfBandIndicesSet[sfreq].s[sfb]
+			for i := 0; i < int(C.g_side_info.count1[gr][ch]); /* i++ done below! */ {
+				/* Check if we're into the next scalefac band */
+				if i == next_sfb { /* Yes */
+					sfb++
+					next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
+					win_len = sfBandIndicesSet[sfreq].s[sfb+1] -
+						sfBandIndicesSet[sfreq].s[sfb]
+				}
+				for win := 0; win < 3; win++ {
+					for j := 0; j < win_len; j++ {
+						C.Requantize_Process_Short(gr, ch, C.unsigned(i), C.unsigned(sfb), C.unsigned(win))
+						i++
+					} /* end for(j... */
+				}
+			}
+		}
+	} else { /* Only long blocks */
+		sfb := 0
+		next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
+		for i := 0; i < int(C.g_side_info.count1[gr][ch]); i++ {
+			if i == next_sfb {
+				sfb++
+				next_sfb = sfBandIndicesSet[sfreq].l[sfb+1]
+			} /* end if */
+			C.Requantize_Process_Long(gr, ch, C.unsigned(i), C.unsigned(sfb))
+		}
+	}
+}
+
 //export L3_Reorder
 func L3_Reorder(gr C.unsigned, ch C.unsigned) {
 	re := make([]float32, 576)

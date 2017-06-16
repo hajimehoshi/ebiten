@@ -99,12 +99,16 @@ int Read_Audio_L3(void);
 static int Read_Header(void);
 void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch);
 
+void L3_Requantize(unsigned gr,unsigned ch);
 void L3_Reorder(unsigned gr,unsigned ch);
 void L3_Stereo(unsigned gr);
 void L3_Antialias(unsigned gr,unsigned ch);
 void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
 void L3_Frequency_Inversion(unsigned gr,unsigned ch);
 void L3_Subband_Synthesis(unsigned gr,unsigned ch, unsigned* outdata);
+
+void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
+void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win);
 
 int Read_CRC(void);
 
