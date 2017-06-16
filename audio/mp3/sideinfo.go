@@ -24,6 +24,7 @@ import "C"
 
 import (
 	"fmt"
+	"io"
 )
 
 var g_mpeg1_bitrates = [3][15]int{
@@ -138,13 +139,14 @@ type sideInfo struct {
 var theSideInfo sideInfo
 
 func getSideinfo(size int) {
-	var err error
-	theSideInfo.vec, err = getBytes(int(size))
-	if err != nil {
+	buf := make([]int, size)
+	n, err := getBytes(buf)
+	if err != nil && err != io.EOF {
 		g_error = fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
 			size, Get_Filepos(), err)
 		return
 	}
+	theSideInfo.vec = buf[:n]
 	theSideInfo.idx = 0
 }
 

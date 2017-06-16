@@ -25,6 +25,7 @@ import "C"
 
 import (
 	"fmt"
+	"io"
 )
 
 var mpeg1_scalefac_sizes = [16][2]int{
@@ -183,12 +184,13 @@ func getMainData(size int, begin int) int {
 		// No,there is not,so we skip decoding this frame,but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
-		b, err := getBytes(size)
-		if err != nil {
+		buf := make([]int, size)
+		n, err := getBytes(buf)
+		if err != nil && err != io.EOF {
 			g_error = err
 			return C.ERROR
 		}
-		copy(theMainDataBytes.vec[theMainDataBytes.top:], b)
+		copy(theMainDataBytes.vec[theMainDataBytes.top:], buf[:n])
 		/* Set up pointers */
 		theMainDataBytes.ptr = theMainDataBytes.vec[0:]
 		theMainDataBytes.pos = 0
@@ -201,12 +203,13 @@ func getMainData(size int, begin int) int {
 		theMainDataBytes.vec[i] = theMainDataBytes.vec[theMainDataBytes.top-begin+i]
 	}
 	/* Read the main_data from file */
-	b, err := getBytes(int(size))
-	if err != nil {
+	buf := make([]int, size)
+	n, err := getBytes(buf)
+	if err != nil && err != io.EOF {
 		g_error = err
 		return C.ERROR
 	}
-	copy(theMainDataBytes.vec[begin:], b)
+	copy(theMainDataBytes.vec[begin:], buf[:n])
 	/* Set up pointers */
 	theMainDataBytes.ptr = theMainDataBytes.vec[0:]
 	theMainDataBytes.pos = 0

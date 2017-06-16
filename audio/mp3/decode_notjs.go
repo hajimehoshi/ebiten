@@ -59,7 +59,7 @@ func Get_Byte() C.unsigned {
 		}
 		readerCache = buf[:n]
 	}
-	if readerEOF {
+	if len(readerCache) == 0 {
 		return eof
 	}
 	b := readerCache[0]
@@ -68,16 +68,15 @@ func Get_Byte() C.unsigned {
 	return C.unsigned(b)
 }
 
-func getBytes(num int) ([]int, error) {
-	r := make([]int, num)
-	for i := 0; i < num; i++ {
+func getBytes(buf []int) (int, error) {
+	for i := range buf {
 		v := Get_Byte()
 		if v == eof {
-			return r, io.EOF
+			return i, io.EOF
 		}
-		r[i] = int(v)
+		buf[i] = int(v)
 	}
-	return r, nil
+	return len(buf), nil
 }
 
 //export Get_Filepos
