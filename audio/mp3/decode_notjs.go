@@ -17,11 +17,14 @@
 package mp3
 
 // #include "pdmp3.h"
+//
+// //extern t_mpeg1_main_data g_main_data;
+// extern t_mpeg1_header    g_frame_header;
+// //extern t_mpeg1_side_info g_side_info;
 import "C"
 
 import (
 	"io"
-	"unsafe"
 )
 
 const (
@@ -35,6 +38,57 @@ var (
 	readerEOF   bool
 	writer      io.Writer
 )
+
+func decodeL3() error {
+	out := make([]int, 576)
+	/* Number of channels(1 for mono and 2 for stereo) */
+	nch := 2
+	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
+		nch = 1
+	}
+	for gr := 0; gr < 2; gr++ {
+		for ch := 0; ch < nch; ch++ {
+			L3_Requantize(C.uint(gr), C.uint(ch)) /* Requantize samples */
+			L3_Reorder(C.uint(gr), C.uint(ch))    /* Reorder short blocks */
+		}
+		L3_Stereo(C.uint(gr)) /* Stereo processing */
+		for ch := 0; ch < nch; ch++ {
+			L3_Antialias(C.uint(gr), C.uint(ch))
+			// (IMDCT,windowing,overlapp add)
+			L3_Hybrid_Synthesis(C.uint(gr), C.uint(ch))
+			L3_Frequency_Inversion(C.uint(gr), C.uint(ch))
+			// Polyphase subband synthesis
+			l3SubbandSynthesis(gr, ch, out)
+		}
+		if err := audioWriteRaw(out); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func audioWriteRaw(samples []int) error {
+	nch := 2
+	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
+		nch = 1
+	}
+	s := make([]uint8, len(samples)*2*nch)
+	for i, v := range samples {
+		if nch == 1 {
+			s[2*i] = uint8(v)
+			s[2*i+1] = uint8(v >> 8)
+		} else {
+			s[4*i] = uint8(v)
+			s[4*i+1] = uint8(v >> 8)
+			s[4*i+2] = uint8(v >> 16)
+			s[4*i+3] = uint8(v >> 24)
+		}
+	}
+	if _, err := writer.Write(s); err != nil {
+		return err
+	}
+	return nil
+}
 
 func getByte() (uint8, error) {
 	for len(readerCache) == 0 && !readerEOF {
@@ -77,23 +131,16 @@ func Get_Filepos() C.unsigned {
 	return C.unsigned(readerPos)
 }
 
-//export writeToWriter
-func writeToWriter(data unsafe.Pointer, size C.int) C.size_t {
-	buf := C.GoBytes(data, size)
-	n, err := writer.Write(buf)
-	if err != nil {
-		panic(err)
-	}
-	return C.size_t(n)
-}
-
 func decode(r io.Reader, w io.Writer) error {
+	// TODO: Decoder should know number of channels
 	reader = r
 	writer = w
 	for Get_Filepos() != eof {
 		err := readFrame()
 		if err == nil {
-			C.Decode_L3()
+			if err := decodeL3(); err != nil {
+				return err
+			}
 			continue
 		}
 		if Get_Filepos() == eof {

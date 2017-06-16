@@ -41,9 +41,7 @@ static void dmp_samples(t_mpeg1_main_data *md,int gr,int ch,int type);
 
 static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate);
 static void audio_write_raw(unsigned *samples,unsigned nsamples);
-static void Decode_L3_Init_Song(void);
 static void Error(const char *s,int e);
-static void Read_Ancillary(void);
 
 static const unsigned g_mpeg1_bitrates[3 /* layer 1-3 */][15 /* header bitrate_index */] = {
   {    /* Layer 1 */
@@ -159,51 +157,6 @@ static void dmp_samples(t_mpeg1_main_data *md,int gr,int ch,int type){
 }
 #endif
 
-/**Description: decodes a layer 3 bitstream into audio samples.
-* Parameters: Outdata vector.
-* Return value: OK or ERROR if the frame contains errors.
-* Author: Krister Lagerström(krister@kmlager.com) **/
-int Decode_L3(void){
-  unsigned gr,ch,nch,out[576];
-
-  /* Number of channels(1 for mono and 2 for stereo) */
-  nch =(g_frame_header.mode == mpeg1_mode_single_channel ? 1 : 2);
-  for(gr = 0; gr < 2; gr++) {
-    for(ch = 0; ch < nch; ch++) {
-      dmp_scf(&g_side_info,&g_main_data,gr,ch); //noop unless debug
-      dmp_huff(&g_main_data,gr,ch); //noop unless debug
-      L3_Requantize(gr,ch); /* Requantize samples */
-      dmp_samples(&g_main_data,gr,ch,0); //noop unless debug
-      L3_Reorder(gr,ch); /* Reorder short blocks */
-    } /* end for(ch... */
-    L3_Stereo(gr); /* Stereo processing */
-    dmp_samples(&g_main_data,gr,0,1); //noop unless debug
-    dmp_samples(&g_main_data,gr,1,1); //noop unless debug
-    for(ch = 0; ch < nch; ch++) {
-      L3_Antialias(gr,ch); /* Antialias */
-      dmp_samples(&g_main_data,gr,ch,2); //noop unless debug
-      L3_Hybrid_Synthesis(gr,ch); /*(IMDCT,windowing,overlapp add) */
-      L3_Frequency_Inversion(gr,ch); /* Frequency inversion */
-     dmp_samples(&g_main_data,gr,ch,3); //noop unless debug
-      L3_Subband_Synthesis(gr,ch,out); /* Polyphase subband synthesis */
-    } /* end for(ch... */
-#ifdef DEBUG
-    {
-      int i,ctr = 0;
-      printf("PCM:\n");
-      for(i = 0; i < 576; i++) {
-        printf("%d: %d\n",ctr++,(out[i] >> 16) & 0xffff);
-        if(nch == 2) printf("%d: %d\n",ctr++,out[i] & 0xffff);
-      }
-    }
-#endif /* DEBUG */
-     /*FIXME - replace with simple interface stream*/
-    audio_write((unsigned *) out,576,
-                 g_sampling_frequency[g_frame_header.sampling_frequency]);
-  } /* end for(gr... */
-  return(OK);   /* Done */
-}
-
 /**Description: TBD
 * Parameters: TBD
 * Return value: TBD
@@ -212,52 +165,3 @@ static void Error(const char *s,int e){
   (void) fwrite(s,1,strlen(s),stderr);
   exit(e);
 }
-
-/**Description: output audio data
-* Parameters: Pointers to the samples,the number of samples
-* Return value: None
-* Author: Krister Lagerström(krister@kmlager.com) **/
-static void audio_write(unsigned *samples,unsigned nsamples,int sample_rate){
-  static int init = 0,audio,curr_sample_rate = 0;
-  int tmp,dsp_speed = 44100,dsp_stereo = 2;
-
-#ifdef OUTPUT_RAW
-  audio_write_raw(samples,nsamples);
-#endif /* OUTPUT_RAW */
-  return;
-} /* audio_write() */
-
-/******************************************************************************
-*
-* Name: audio_write_raw
-* Author: Krister Lagerström(krister@unidata.se)
-* Description: This function is used to output raw data
-* Parameters: Pointers to the samples,the number of samples
-* Return value: None
-* Revision History:
-* Author   Date    Change
-* krister  010101  Initial revision
-*
-******************************************************************************/
-static void audio_write_raw(unsigned *samples,unsigned nsamples){
-  char fname[1024];
-  unsigned lo,hi;
-  int i,nch;
-  unsigned short s[576*2];
-
-  nch =(g_frame_header.mode == mpeg1_mode_single_channel ? 1 : 2);
-  for(i = 0; i < nsamples; i++) {
-    if(nch == 1) {
-      lo = samples[i] & 0xffff;
-      s[i] = lo;
-    }else{
-      lo = samples[i] & 0xffff;
-      hi =(samples[i] & 0xffff0000) >> 16;
-      s[2*i] = hi;
-      s[2*i+1] = lo;
-    }
-  }
-  if(writeToWriter((char *) s,nsamples * 2 * nch) != nsamples * 2 * nch)
-    Error("Unable to write raw data\n",-1);
-  return;
-} /* audio_write_raw() */

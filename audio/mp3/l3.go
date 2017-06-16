@@ -25,7 +25,6 @@ import "C"
 
 import (
 	"math"
-	"unsafe"
 )
 
 var (
@@ -565,13 +564,7 @@ var g_synth_dtbl = [512]float32{
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
 
-//export L3_Subband_Synthesis
-func L3_Subband_Synthesis(gr C.unsigned, ch C.unsigned, outdata *C.unsigned) {
-	out := make([]C.unsigned, 576)
-	for i := range out {
-		out[i] = *(*C.unsigned)(unsafe.Pointer(uintptr(unsafe.Pointer(outdata)) + uintptr(i)*unsafe.Sizeof(*outdata)))
-	}
-
+func l3SubbandSynthesis(gr int, ch int, out []int) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
@@ -620,16 +613,13 @@ func L3_Subband_Synthesis(gr C.unsigned, ch C.unsigned, outdata *C.unsigned) {
 			if ch == 0 { /* This function must be called for channel 0 first */
 				/* We always run in stereo mode,& duplicate channels here for mono */
 				if nch == 1 {
-					out[32*ss+i] = C.unsigned((samp << 16) | (samp))
+					out[32*ss+i] = (samp << 16) | (samp)
 				} else {
-					out[32*ss+i] = C.unsigned(samp << 16)
+					out[32*ss+i] = samp << 16
 				}
 			} else {
-				out[32*ss+i] |= C.unsigned(samp)
+				out[32*ss+i] |= samp
 			}
 		}
-	}
-	for i := range out {
-		*(*C.unsigned)(unsafe.Pointer(uintptr(unsafe.Pointer(outdata)) + uintptr(i)*unsafe.Sizeof(*outdata))) = out[i]
 	}
 }

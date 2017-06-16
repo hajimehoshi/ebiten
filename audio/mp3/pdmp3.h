@@ -85,13 +85,9 @@ typedef struct { /* Scale factor band indices,for long and short windows */
 t_sf_band_indices;
 
 unsigned Get_Filepos(void);
-int Decode_L3(void);
-size_t writeToWriter(void* data, int size);
 
 unsigned Get_Main_Pos(void);
 int Set_Main_Pos(unsigned bit_pos);
-
-int Read_Audio_L3(void);
 
 void L3_Requantize(unsigned gr,unsigned ch);
 void L3_Reorder(unsigned gr,unsigned ch);
@@ -99,7 +95,6 @@ void L3_Stereo(unsigned gr);
 void L3_Antialias(unsigned gr,unsigned ch);
 void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
 void L3_Frequency_Inversion(unsigned gr,unsigned ch);
-void L3_Subband_Synthesis(unsigned gr,unsigned ch, unsigned* outdata);
 
 int Read_CRC(void);
 
