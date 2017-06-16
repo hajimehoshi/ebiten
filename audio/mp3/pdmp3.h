@@ -89,13 +89,4 @@ unsigned Get_Filepos(void);
 unsigned Get_Main_Pos(void);
 int Set_Main_Pos(unsigned bit_pos);
 
-void L3_Requantize(unsigned gr,unsigned ch);
-void L3_Reorder(unsigned gr,unsigned ch);
-void L3_Stereo(unsigned gr);
-void L3_Antialias(unsigned gr,unsigned ch);
-void L3_Hybrid_Synthesis(unsigned gr,unsigned ch);
-void L3_Frequency_Inversion(unsigned gr,unsigned ch);
-
-int Read_CRC(void);
-
 #endif

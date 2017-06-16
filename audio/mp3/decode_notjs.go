@@ -41,22 +41,23 @@ var (
 
 func decodeL3() error {
 	out := make([]int, 576)
-	/* Number of channels(1 for mono and 2 for stereo) */
+	// Number of channels(1 for mono and 2 for stereo)
 	nch := 2
 	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
 		nch = 1
 	}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			L3_Requantize(C.uint(gr), C.uint(ch)) /* Requantize samples */
-			L3_Reorder(C.uint(gr), C.uint(ch))    /* Reorder short blocks */
+			l3Requantize(gr, ch)
+			// Reorder short blocks
+			l3Reorder(gr, ch)
 		}
-		L3_Stereo(C.uint(gr)) /* Stereo processing */
+		l3Stereo(gr)
 		for ch := 0; ch < nch; ch++ {
-			L3_Antialias(C.uint(gr), C.uint(ch))
+			l3Antialias(gr, ch)
 			// (IMDCT,windowing,overlapp add)
-			L3_Hybrid_Synthesis(C.uint(gr), C.uint(ch))
-			L3_Frequency_Inversion(C.uint(gr), C.uint(ch))
+			l3HybridSynthesis(gr, ch)
+			l3FrequencyInversion(gr, ch)
 			// Polyphase subband synthesis
 			l3SubbandSynthesis(gr, ch, out)
 		}

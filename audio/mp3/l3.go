@@ -102,8 +102,7 @@ var (
 	}
 )
 
-//export L3_Requantize
-func L3_Requantize(gr C.unsigned, ch C.unsigned) {
+func l3Requantize(gr int, ch int) {
 	/* Setup sampling frequency index */
 	sfreq := C.g_frame_header.sampling_frequency
 	/* Determine type of block to process */
@@ -177,8 +176,7 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 	}
 }
 
-//export L3_Reorder
-func L3_Reorder(gr C.unsigned, ch C.unsigned) {
+func l3Reorder(gr int, ch int) {
 	re := make([]float32, 576)
 
 	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
@@ -284,8 +282,7 @@ func stereoProcessIntensityShort(gr int, sfb int) {
 	}
 }
 
-//export L3_Stereo
-func L3_Stereo(gr C.unsigned) {
+func l3Stereo(gr int) {
 	/* Do nothing if joint stereo is not enabled */
 	if (C.g_frame_header.mode != 1) || (C.g_frame_header.mode_extension == 0) {
 		return
@@ -358,8 +355,7 @@ var (
 	ca = [8]float32{-0.514496, -0.471732, -0.313377, -0.181913, -0.094574, -0.040966, -0.014199, -0.003700}
 )
 
-//export L3_Antialias
-func L3_Antialias(gr C.unsigned, ch C.unsigned) {
+func l3Antialias(gr int, ch int) {
 	/* No antialiasing is done for short blocks */
 	if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
 		(C.g_side_info.block_type[gr][ch] == 2) &&
@@ -388,8 +384,7 @@ func L3_Antialias(gr C.unsigned, ch C.unsigned) {
 
 var store = [2][32][18]float32{}
 
-//export L3_Hybrid_Synthesis
-func L3_Hybrid_Synthesis(gr C.unsigned, ch C.unsigned) {
+func l3HybridSynthesis(gr int, ch int) {
 	for sb := 0; sb < 32; sb++ { /* Loop through all 32 subbands */
 		/* Determine blocktype for this subband */
 		bt := int(C.g_side_info.block_type[gr][ch])
@@ -410,8 +405,7 @@ func L3_Hybrid_Synthesis(gr C.unsigned, ch C.unsigned) {
 	}
 }
 
-//export L3_Frequency_Inversion
-func L3_Frequency_Inversion(gr C.unsigned, ch C.unsigned) {
+func l3FrequencyInversion(gr int, ch int) {
 	for sb := 1; sb < 32; sb += 2 { //OPT? : for(sb = 18; sb < 576; sb += 36)
 		for i := 1; i < 18; i += 2 {
 			C.g_main_data.is[gr][ch][sb*18+i] = -C.g_main_data.is[gr][ch][sb*18+i]
