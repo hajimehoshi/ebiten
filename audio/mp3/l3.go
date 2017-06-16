@@ -28,6 +28,34 @@ import (
 	"unsafe"
 )
 
+var powtab34 = make([]float64, 8207)
+
+func init() {
+	for i := range powtab34 {
+		powtab34[i] = math.Pow(float64(i), 4.0/3.0)
+	}
+}
+
+func requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
+	sf_mult := 0.5
+	if C.g_side_info.scalefac_scale[gr][ch] != 0 {
+		sf_mult = 1.0
+	}
+	tmp1 := 1.0
+	if sfb < 12 {
+		tmp1 = math.Pow(2.0, -(sf_mult * float64(C.g_main_data.scalefac_s[gr][ch][sfb][win])))
+	}
+	tmp2 := math.Pow(2.0, 0.25*(float64(C.g_side_info.global_gain[gr][ch])-210.0-
+		8.0*float64(C.g_side_info.subblock_gain[gr][ch][win])))
+	tmp3 := 0.0
+	if C.g_main_data.is[gr][ch][is_pos] < 0 {
+		tmp3 = -powtab34[int(-C.g_main_data.is[gr][ch][is_pos])]
+	} else {
+		tmp3 = powtab34[int(C.g_main_data.is[gr][ch][is_pos])]
+	}
+	C.g_main_data.is[gr][ch][is_pos] = C.float(tmp1 * tmp2 * tmp3)
+}
+
 type sfBandIndices struct {
 	l []int
 	s []int
@@ -85,7 +113,7 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 				}
 				for win := 0; win < 3; win++ {
 					for j := 0; j < win_len; j++ {
-						C.Requantize_Process_Short(gr, ch, C.unsigned(i), C.unsigned(sfb), C.unsigned(win))
+						requantizeProcessShort(int(gr), int(ch), i, sfb, win)
 						i++
 					}
 				}
@@ -106,7 +134,7 @@ func L3_Requantize(gr C.unsigned, ch C.unsigned) {
 				}
 				for win := 0; win < 3; win++ {
 					for j := 0; j < win_len; j++ {
-						C.Requantize_Process_Short(gr, ch, C.unsigned(i), C.unsigned(sfb), C.unsigned(win))
+						requantizeProcessShort(int(gr), int(ch), i, sfb, win)
 						i++
 					} /* end for(j... */
 				}

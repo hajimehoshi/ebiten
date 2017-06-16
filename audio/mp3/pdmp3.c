@@ -494,29 +494,15 @@ void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sf
 
   sf_mult = g_side_info.scalefac_scale[gr][ch] ? 1.0 : 0.5;
   pf_x_pt = g_side_info.preflag[gr][ch] * pretab[sfb];
-  tmp1 = pow(2.0,-(sf_mult *(g_main_data.scalefac_l[gr][ch][sfb] + pf_x_pt)));
+  if (sfb >= 21) {
+    tmp1 = 1.0;
+  } else {
+    tmp1 = pow(2.0,-(sf_mult *(g_main_data.scalefac_l[gr][ch][sfb] + pf_x_pt)));
+  }
   tmp2 = pow(2.0,0.25 *((int32_t) g_side_info.global_gain[gr][ch] - 210));
   if(g_main_data.is[gr][ch][is_pos] < 0.0)
     tmp3 = -Requantize_Pow_43(-g_main_data.is[gr][ch][is_pos]);
   else tmp3 = Requantize_Pow_43(g_main_data.is[gr][ch][is_pos]);
-  res = g_main_data.is[gr][ch][is_pos] = tmp1 * tmp2 * tmp3;
-  return; /* Done */
-}
-
-/**Description: requantize sample in subband that uses short blocks.
-* Parameters: TBD
-* Return value: TBD
-* Author: Krister Lagerström(krister@kmlager.com) **/
-void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win){
-  float res,tmp1,tmp2,tmp3,sf_mult;
-
-  sf_mult = g_side_info.scalefac_scale[gr][ch] ? 1.0f : 0.5f;
-  tmp1 = pow(2.0f,-(sf_mult * g_main_data.scalefac_s[gr][ch][sfb][win]));
-  tmp2 = pow(2.0f,0.25f *((float) g_side_info.global_gain[gr][ch] - 210.0f -
-              8.0f *(float) g_side_info.subblock_gain[gr][ch][win]));
-  tmp3 =(g_main_data.is[gr][ch][is_pos] < 0.0)
-    ? -Requantize_Pow_43(-g_main_data.is[gr][ch][is_pos])
-    : Requantize_Pow_43(g_main_data.is[gr][ch][is_pos]);
   res = g_main_data.is[gr][ch][is_pos] = tmp1 * tmp2 * tmp3;
   return; /* Done */
 }

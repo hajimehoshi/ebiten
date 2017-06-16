@@ -108,7 +108,6 @@ void L3_Frequency_Inversion(unsigned gr,unsigned ch);
 void L3_Subband_Synthesis(unsigned gr,unsigned ch, unsigned* outdata);
 
 void Requantize_Process_Long(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb);
-void Requantize_Process_Short(unsigned gr,unsigned ch,unsigned is_pos,unsigned sfb,unsigned win);
 
 int Read_CRC(void);
 
