@@ -39,14 +39,28 @@ var (
 
 //export Read_CRC
 func Read_CRC() C.int {
-	if Get_Byte() == eof || Get_Byte() == eof {
-		return C.FALSE
+	buf := make([]int, 2)
+	n := 0
+	var err error
+	for n < 2 && err == nil {
+		nn, err2 := getBytes(buf[n:])
+		n += nn
+		err = err2
+	}
+	if err == io.EOF {
+		if n < 2 {
+			return C.ERROR
+		}
+		return C.OK
+	}
+	if err != nil {
+		g_error = err
+		return C.ERROR
 	}
 	return C.OK
 }
 
-//export Get_Byte
-func Get_Byte() C.unsigned {
+func getByte() (uint8, error) {
 	for len(readerCache) == 0 && !readerEOF {
 		buf := make([]uint8, 4096)
 		n, err := reader.Read(buf)
@@ -55,26 +69,26 @@ func Get_Byte() C.unsigned {
 			if err == io.EOF {
 				readerEOF = true
 			} else {
-				panic(err)
+				return 0, err
 			}
 		}
 	}
 	if len(readerCache) == 0 {
-		return eof
+		return 0, io.EOF
 	}
 	b := readerCache[0]
 	readerCache = readerCache[1:]
 	readerPos++
-	return C.unsigned(b)
+	return b, nil
 }
 
 func getBytes(buf []int) (int, error) {
 	for i := range buf {
-		v := Get_Byte()
-		if v == eof {
+		v, err := getByte()
+		buf[i] = int(v)
+		if err == io.EOF {
 			return i, io.EOF
 		}
-		buf[i] = int(v)
 	}
 	return len(buf), nil
 }

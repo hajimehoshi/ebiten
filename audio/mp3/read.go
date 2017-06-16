@@ -25,6 +25,7 @@ import "C"
 
 import (
 	"fmt"
+	"io"
 )
 
 func isHeader(header uint32) bool {
@@ -46,14 +47,24 @@ func isHeader(header uint32) bool {
 //export Read_Header
 func Read_Header() C.int {
 	/* Get the next four bytes from the bitstream */
-	b1 := uint32(Get_Byte())
-	b2 := uint32(Get_Byte())
-	b3 := uint32(Get_Byte())
-	b4 := uint32(Get_Byte())
-	/* If we got an End Of File condition we're done */
-	if (b1 == eof) || (b2 == eof) || (b3 == eof) || (b4 == eof) {
+	buf := make([]int, 4)
+	n := 0
+	var err error
+	for n < 4 && err == nil {
+		nn, err2 := getBytes(buf[n:])
+		n += nn
+		err = err2
+	}
+	if n < 4 {
+		if err != io.EOF {
+			g_error = err
+		}
 		return C.ERROR
 	}
+	b1 := uint32(buf[0])
+	b2 := uint32(buf[1])
+	b3 := uint32(buf[2])
+	b4 := uint32(buf[3])
 	header := (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 	for !isHeader(uint32(header)) {
 		/* No,so scan the bitstream one byte at a time until we find it or EOF */
@@ -62,12 +73,14 @@ func Read_Header() C.int {
 		b2 = b3
 		b3 = b4
 		/* Get one new byte from the bitstream */
-		b4 = uint32(Get_Byte())
-		/* If we got an End Of File condition we're done */
-		if b4 == eof {
+		b, err := getByte()
+		if err != nil {
+			if err != io.EOF {
+				g_error = err
+			}
 			return C.ERROR
 		}
-		/* Make up the new header */
+		b4 = uint32(b)
 		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 	} /* while... */
 	/* If we get here we've found the sync word,and can decode the header
