@@ -23,6 +23,99 @@ package mp3
 // extern t_mpeg1_header    g_frame_header;
 import "C"
 
+import (
+	"fmt"
+)
+
+func isHeader(header uint32) bool {
+	const C_SYNC = 0xffe00000
+	if (header & C_SYNC) != C_SYNC {
+		return false
+	}
+	// Bitrate must not be 15.
+	if (header & (0xf << 12)) == 0xf<<12 {
+		return false
+	}
+	// Sample Frequency must not be 3.
+	if (header & (3 << 10)) == 3<<10 {
+		return false
+	}
+	return true
+}
+
+//export Read_Header
+func Read_Header() C.int {
+	/* Get the next four bytes from the bitstream */
+	b1 := uint32(Get_Byte())
+	b2 := uint32(Get_Byte())
+	b3 := uint32(Get_Byte())
+	b4 := uint32(Get_Byte())
+	/* If we got an End Of File condition we're done */
+	if (b1 == eof) || (b2 == eof) || (b3 == eof) || (b4 == eof) {
+		return C.ERROR
+	}
+	header := (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
+	for !isHeader(uint32(header)) {
+		/* No,so scan the bitstream one byte at a time until we find it or EOF */
+		/* Shift the values one byte to the left */
+		b1 = b2
+		b2 = b3
+		b3 = b4
+		/* Get one new byte from the bitstream */
+		b4 = uint32(Get_Byte())
+		/* If we got an End Of File condition we're done */
+		if b4 == eof {
+			return C.ERROR
+		}
+		/* Make up the new header */
+		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
+	} /* while... */
+	/* If we get here we've found the sync word,and can decode the header
+	 * which is in the low 20 bits of the 32-bit sync+header word. */
+	/* Decode the header */
+	C.g_frame_header.id = C.uint((header & 0x00180000) >> 19)
+	C.g_frame_header.layer = C.t_mpeg1_layer((header & 0x00060000) >> 17)
+	C.g_frame_header.protection_bit = C.uint((header & 0x00010000) >> 16)
+	C.g_frame_header.bitrate_index = C.uint((header & 0x0000f000) >> 12)
+	C.g_frame_header.sampling_frequency = C.uint((header & 0x00000c00) >> 10)
+	C.g_frame_header.padding_bit = C.uint((header & 0x00000200) >> 9)
+	C.g_frame_header.private_bit = C.uint((header & 0x00000100) >> 8)
+	C.g_frame_header.mode = C.t_mpeg1_mode((header & 0x000000c0) >> 6)
+	C.g_frame_header.mode_extension = C.uint((header & 0x00000030) >> 4)
+	C.g_frame_header.copyright = C.uint((header & 0x00000008) >> 3)
+	C.g_frame_header.original_or_copy = C.uint((header & 0x00000004) >> 2)
+	C.g_frame_header.emphasis = C.uint((header & 0x00000003) >> 0)
+	/* Check for invalid values and impossible combinations */
+	if C.g_frame_header.id != 3 {
+		g_error = fmt.Errorf("mp3: ID must be 3\nHeader word is 0x%08x at file pos %d",
+			header, C.Get_Filepos())
+		return C.ERROR
+	}
+	if C.g_frame_header.bitrate_index == 0 {
+		g_error = fmt.Errorf("mp3: Free bitrate format NIY!\nHeader word is 0x%08x at file pos %d",
+			header, Get_Filepos())
+		return C.ERROR
+		//exit(1);
+	}
+	if C.g_frame_header.bitrate_index == 15 {
+		g_error = fmt.Errorf("mp3: bitrate_index = 15 is invalid!\nHeader word is 0x%08x at file pos %d",
+			header, Get_Filepos())
+		return C.ERROR
+	}
+	if C.g_frame_header.sampling_frequency == 3 {
+		g_error = fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
+			header, Get_Filepos())
+		return C.ERROR
+	}
+	if C.g_frame_header.layer == 0 {
+		g_error = fmt.Errorf("mp3: layer = 0 is invalid! Header word is 0x%08x at file pos %d",
+			header, Get_Filepos())
+		return C.ERROR
+	}
+	C.g_frame_header.layer = 4 - C.g_frame_header.layer
+	return C.OK
+}
+
 func readHuffman(part_2_start, gr, ch int) error {
 	/* Check that there is any data to decode. If not,zero the array. */
 	if C.g_side_info.part2_3_length[gr][ch] == 0 {
