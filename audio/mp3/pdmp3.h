@@ -97,7 +97,6 @@ int Set_Main_Pos(unsigned bit_pos);
 int Read_Main_L3(void);
 int Read_Audio_L3(void);
 static int Read_Header(void);
-void Read_Huffman(unsigned part_2_start,unsigned gr,unsigned ch);
 
 void L3_Requantize(unsigned gr,unsigned ch);
 void L3_Reorder(unsigned gr,unsigned ch);
@@ -108,7 +107,5 @@ void L3_Frequency_Inversion(unsigned gr,unsigned ch);
 void L3_Subband_Synthesis(unsigned gr,unsigned ch, unsigned* outdata);
 
 int Read_CRC(void);
-
-int Huffman_Decode(unsigned table_num, int32_t* x, int32_t*y, int32_t* v, int32_t* w);
 
 #endif

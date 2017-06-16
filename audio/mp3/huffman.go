@@ -348,27 +348,22 @@ var huffmanMain = [...]huffTables{
 	{huffmanTable[2261:], 31, 0},   /* Table 33 */
 }
 
-//export Huffman_Decode
-func Huffman_Decode(table_num C.unsigned, x, y, v, w *C.int32_t) C.int {
+func huffmanDecode(table_num int) (x, y, v, w int, err error) {
 	point := 0
 	error := 1
 	bitsleft := 32
 	treelen := huffmanMain[table_num].treelen
 	linbits := huffmanMain[table_num].linbits
 	if treelen == 0 { /* Check for empty tables */
-		*x = 0
-		*y = 0
-		*v = 0
-		*w = 0
-		return C.OK
+		return 0, 0, 0, 0, nil
 	}
 	htptr := huffmanMain[table_num].hufftable
 	for { /* Start reading the Huffman code word,bit by bit */
 		/* Check if we've matched a code word */
 		if (htptr[point] & 0xff00) == 0 {
 			error = 0
-			*x = C.int32_t((htptr[point] >> 4) & 0xf)
-			*y = C.int32_t(htptr[point] & 0xf)
+			x = int((htptr[point] >> 4) & 0xf)
+			y = int(htptr[point] & 0xf)
 			break
 		}
 		if getMainBit() != 0 { /* Go right in tree */
@@ -390,43 +385,38 @@ func Huffman_Decode(table_num C.unsigned, x, y, v, w *C.int32_t) C.int {
 	if error != 0 { /* Check for error. */
 		err := fmt.Errorf("mp3: illegal Huff code in data. bleft = %d, point = %d. tab = %d.",
 			bitsleft, point, table_num)
-		*x = 0
-		*y = 0
-		g_error = err
+		return 0, 0, 0, 0, err
 	}
 	if table_num > 31 { /* Process sign encodings for quadruples tables. */
-		*v = (*y >> 3) & 1
-		*w = (*y >> 2) & 1
-		*x = (*y >> 1) & 1
-		*y = *y & 1
-		if (*v > 0) && (getMainBit() == 1) {
-			*v = -*v
+		v = (y >> 3) & 1
+		w = (y >> 2) & 1
+		x = (y >> 1) & 1
+		y = y & 1
+		if (v > 0) && (getMainBit() == 1) {
+			v = -v
 		}
-		if (*w > 0) && (getMainBit() == 1) {
-			*w = -*w
+		if (w > 0) && (getMainBit() == 1) {
+			w = -w
 		}
-		if (*x > 0) && (getMainBit() == 1) {
-			*x = -*x
+		if (x > 0) && (getMainBit() == 1) {
+			x = -x
 		}
-		if (*y > 0) && (getMainBit() == 1) {
-			*y = -*y
+		if (y > 0) && (getMainBit() == 1) {
+			y = -y
 		}
 	} else {
-		if (linbits > 0) && (*x == 15) {
-			*x += C.int32_t(getMainBits(linbits)) /* Get linbits */
+		if (linbits > 0) && (x == 15) {
+			x += getMainBits(linbits) /* Get linbits */
 		}
-		if (*x > 0) && (getMainBit() == 1) {
-			*x = -*x /* Get sign bit */
+		if (x > 0) && (getMainBit() == 1) {
+			x = -x /* Get sign bit */
 		}
-		if (linbits > 0) && (*y == 15) {
-			*y += C.int32_t(getMainBits(linbits)) /* Get linbits */
+		if (linbits > 0) && (y == 15) {
+			y += getMainBits(linbits) /* Get linbits */
 		}
-		if (*y > 0) && (getMainBit() == 1) {
-			*y = -*y /* Get sign bit */
+		if (y > 0) && (getMainBit() == 1) {
+			y = -y /* Get sign bit */
 		}
 	}
-	if error != 0 {
-		return C.ERROR
-	}
-	return C.OK
+	return x, y, v, w, nil
 }

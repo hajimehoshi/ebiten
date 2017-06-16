@@ -71,7 +71,7 @@ func Read_Main_L3() C.int {
 	}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			part_2_start := Get_Main_Pos()
+			part_2_start := int(Get_Main_Pos())
 			/* Number of bits in the bitstream for the bands */
 			slen1 := mpeg1_scalefac_sizes[C.g_side_info.scalefac_compress[gr][ch]][0]
 			slen2 := mpeg1_scalefac_sizes[C.g_side_info.scalefac_compress[gr][ch]][1]
@@ -149,7 +149,10 @@ func Read_Main_L3() C.int {
 				}
 			}
 			/* Read Huffman coded data. Skip stuffing bits. */
-			C.Read_Huffman(part_2_start, C.uint(gr), C.uint(ch))
+			if err := readHuffman(part_2_start, gr, ch); err != nil {
+				g_error = err
+				return C.ERROR
+			}
 		}
 	}
 	/* The ancillary data is stored here,but we ignore it. */
