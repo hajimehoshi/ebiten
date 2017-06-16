@@ -91,9 +91,7 @@ size_t writeToWriter(void* data, int size);
 unsigned Get_Main_Pos(void);
 int Set_Main_Pos(unsigned bit_pos);
 
-int Read_Main_L3(void);
 int Read_Audio_L3(void);
-int Read_Header(void);
 
 void L3_Requantize(unsigned gr,unsigned ch);
 void L3_Reorder(unsigned gr,unsigned ch);

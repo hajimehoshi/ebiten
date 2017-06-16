@@ -33,8 +33,7 @@ var mpeg1_scalefac_sizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-//export Read_Main_L3
-func Read_Main_L3() C.int {
+func readMainL3() error {
 	/* Number of channels(1 for mono and 2 for stereo) */
 	nch := 2
 	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
@@ -48,8 +47,7 @@ func Read_Main_L3() C.int {
 		int(C.g_frame_header.padding_bit)
 
 	if framesize > 2000 {
-		g_error = fmt.Errorf("mp3: framesize = %d", framesize)
-		return C.ERROR
+		return fmt.Errorf("mp3: framesize = %d", framesize)
 	}
 	/* Sideinfo is 17 bytes for one channel and 32 bytes for two */
 	sideinfo_size := 32
@@ -67,8 +65,9 @@ func Read_Main_L3() C.int {
 	 * frames that should be used. This buffer is later accessed by the
 	 * getMainBits function in the same way as the side info is.
 	 */
-	if getMainData(main_data_size, int(C.g_side_info.main_data_begin)) != C.OK {
-		return C.ERROR /* This could be due to not enough data in reservoir */
+	if err := getMainData(main_data_size, int(C.g_side_info.main_data_begin)); err != nil {
+		/* This could be due to not enough data in reservoir */
+		return err
 	}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
@@ -151,13 +150,12 @@ func Read_Main_L3() C.int {
 			}
 			/* Read Huffman coded data. Skip stuffing bits. */
 			if err := readHuffman(part_2_start, gr, ch); err != nil {
-				g_error = err
-				return C.ERROR
+				return err
 			}
 		}
 	}
 	/* The ancillary data is stored here,but we ignore it. */
-	return C.OK
+	return nil
 }
 
 type mainDataBytes struct {
@@ -175,20 +173,28 @@ type mainDataBytes struct {
 
 var theMainDataBytes mainDataBytes
 
-func getMainData(size int, begin int) int {
+func getMainData(size int, begin int) error {
 	if size > 1500 {
 		g_error = fmt.Errorf("size = %d", size)
 	}
-	/* Check that there's data available from previous frames if needed */
+	// Check that there's data available from previous frames if needed
 	if int(begin) > theMainDataBytes.top {
-		// No,there is not,so we skip decoding this frame,but we have to
+		// No,there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
 		buf := make([]int, size)
-		n, err := getBytes(buf)
-		if err != nil && err != io.EOF {
-			g_error = err
-			return C.ERROR
+		n := 0
+		var err error
+		for n < size && err == nil {
+			nn, err2 := getBytes(buf)
+			n += nn
+			err = err2
+		}
+		if n < size {
+			if err == io.EOF {
+				return fmt.Errorf("mp3: unexpected EOF at getMainData")
+			}
+			return err
 		}
 		copy(theMainDataBytes.vec[theMainDataBytes.top:], buf[:n])
 		/* Set up pointers */
@@ -196,7 +202,7 @@ func getMainData(size int, begin int) int {
 		theMainDataBytes.pos = 0
 		theMainDataBytes.idx = 0
 		theMainDataBytes.top += size
-		return C.ERROR
+		return fmt.Errorf("mp3: not enought frame data; read next frame?")
 	}
 	/* Copy data from previous frames */
 	for i := 0; i < begin; i++ {
@@ -204,10 +210,18 @@ func getMainData(size int, begin int) int {
 	}
 	/* Read the main_data from file */
 	buf := make([]int, size)
-	n, err := getBytes(buf)
-	if err != nil && err != io.EOF {
-		g_error = err
-		return C.ERROR
+	n := 0
+	var err error
+	for n < size && err == nil {
+		nn, err2 := getBytes(buf)
+		n += nn
+		err = err2
+	}
+	if n < size {
+		if err == io.EOF {
+			return fmt.Errorf("mp3: unexpected EOF at getMainData")
+		}
+		return err
 	}
 	copy(theMainDataBytes.vec[begin:], buf[:n])
 	/* Set up pointers */
@@ -215,7 +229,7 @@ func getMainData(size int, begin int) int {
 	theMainDataBytes.pos = 0
 	theMainDataBytes.idx = 0
 	theMainDataBytes.top = begin + size
-	return C.OK
+	return nil
 }
 
 func getMainBit() int {

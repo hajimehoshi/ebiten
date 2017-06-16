@@ -64,9 +64,8 @@ func readFrame() error {
 		/* If there's not enough main data in the bit reservoir,
 		 * signal to calling function so that decoding isn't done! */
 		/* Get main data(scalefactors and Huffman coded frequency data) */
-		if Read_Main_L3() != C.OK {
-			// TODO: Fix this
-			return fmt.Errorf("mp3: Read_Main_L3")
+		if err := readMainL3(); err != nil {
+			return err
 		}
 	} else {
 		return fmt.Errorf("mp3: Only layer 3(!= %d) is supported!", C.g_frame_header.layer)
