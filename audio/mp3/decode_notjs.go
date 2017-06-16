@@ -18,17 +18,11 @@ package mp3
 
 // #include "pdmp3.h"
 //
-// //extern t_mpeg1_main_data g_main_data;
-// extern t_mpeg1_header    g_frame_header;
-// //extern t_mpeg1_side_info g_side_info;
+// extern t_mpeg1_header g_frame_header;
 import "C"
 
 import (
 	"io"
-)
-
-const (
-	eof = 0xffffffff
 )
 
 var (
@@ -124,10 +118,14 @@ func getBytes(buf []int) (int, error) {
 	return len(buf), nil
 }
 
-func getFilepos() int {
+func isEOF() bool {
 	if len(readerCache) == 0 && readerEOF {
-		return eof
+		return true
 	}
+	return false
+}
+
+func getFilepos() int {
 	return readerPos
 }
 
@@ -135,7 +133,7 @@ func decode(r io.Reader, w io.Writer) error {
 	// TODO: Decoder should know number of channels
 	reader = r
 	writer = w
-	for getFilepos() != eof {
+	for !isEOF() {
 		err := readFrame()
 		if err == nil {
 			if err := decodeL3(); err != nil {
@@ -143,7 +141,7 @@ func decode(r io.Reader, w io.Writer) error {
 			}
 			continue
 		}
-		if getFilepos() == eof {
+		if isEOF() {
 			break
 		}
 		return err
