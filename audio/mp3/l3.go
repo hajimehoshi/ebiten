@@ -340,10 +340,10 @@ var store = [2][32][18]float32{}
 func L3_Hybrid_Synthesis(gr C.unsigned, ch C.unsigned) {
 	for sb := 0; sb < 32; sb++ { /* Loop through all 32 subbands */
 		/* Determine blocktype for this subband */
-		bt := 0
+		bt := int(C.g_side_info.block_type[gr][ch])
 		if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
 			(C.g_side_info.mixed_block_flag[gr][ch] == 1) && (sb < 2) {
-			bt = int(C.g_side_info.block_type[gr][ch])
+			bt = 0
 		}
 		/* Do the inverse modified DCT and windowing */
 		in := make([]float32, 18)
