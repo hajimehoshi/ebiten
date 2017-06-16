@@ -18,7 +18,6 @@ package mp3
 
 // #include "pdmp3.h"
 //
-// extern t_mpeg1_side_info g_side_info;
 // extern t_mpeg1_header    g_frame_header;
 import "C"
 
@@ -171,37 +170,37 @@ func readHeader() error {
 
 func readHuffman(part_2_start, gr, ch int) error {
 	/* Check that there is any data to decode. If not,zero the array. */
-	if C.g_side_info.part2_3_length[gr][ch] == 0 {
+	if theMPEG1SideInfo.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < 576; is_pos++ {
 			theMPEG1MainData.is[gr][ch][is_pos] = 0.0
 		}
 		return nil
 	}
 	/* Calculate bit_pos_end which is the index of the last bit for this part. */
-	bit_pos_end := part_2_start + int(C.g_side_info.part2_3_length[gr][ch]) - 1
+	bit_pos_end := part_2_start + int(theMPEG1SideInfo.part2_3_length[gr][ch]) - 1
 	/* Determine region boundaries */
 	region_1_start := 0
 	region_2_start := 0
-	if (C.g_side_info.win_switch_flag[gr][ch] == 1) && (C.g_side_info.block_type[gr][ch] == 2) {
+	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) && (theMPEG1SideInfo.block_type[gr][ch] == 2) {
 		region_1_start = 36  /* sfb[9/3]*3=36 */
 		region_2_start = 576 /* No Region2 for short block case. */
 	} else {
 		sfreq := C.g_frame_header.sampling_frequency
 		region_1_start =
-			sfBandIndicesSet[sfreq].l[C.g_side_info.region0_count[gr][ch]+1]
+			sfBandIndicesSet[sfreq].l[theMPEG1SideInfo.region0_count[gr][ch]+1]
 		region_2_start =
-			sfBandIndicesSet[sfreq].l[C.g_side_info.region0_count[gr][ch]+
-				C.g_side_info.region1_count[gr][ch]+2]
+			sfBandIndicesSet[sfreq].l[theMPEG1SideInfo.region0_count[gr][ch]+
+				theMPEG1SideInfo.region1_count[gr][ch]+2]
 	}
 	/* Read big_values using tables according to region_x_start */
-	for is_pos := 0; is_pos < int(C.g_side_info.big_values[gr][ch])*2; is_pos++ {
+	for is_pos := 0; is_pos < int(theMPEG1SideInfo.big_values[gr][ch])*2; is_pos++ {
 		table_num := 0
 		if is_pos < region_1_start {
-			table_num = int(C.g_side_info.table_select[gr][ch][0])
+			table_num = int(theMPEG1SideInfo.table_select[gr][ch][0])
 		} else if is_pos < region_2_start {
-			table_num = int(C.g_side_info.table_select[gr][ch][1])
+			table_num = int(theMPEG1SideInfo.table_select[gr][ch][1])
 		} else {
-			table_num = int(C.g_side_info.table_select[gr][ch][2])
+			table_num = int(theMPEG1SideInfo.table_select[gr][ch][2])
 		}
 		/* Get next Huffman coded words */
 		x, y, _, _, err := huffmanDecode(table_num)
@@ -214,8 +213,8 @@ func readHuffman(part_2_start, gr, ch int) error {
 		theMPEG1MainData.is[gr][ch][is_pos] = float32(y)
 	}
 	/* Read small values until is_pos = 576 or we run out of huffman data */
-	table_num := int(C.g_side_info.count1table_select[gr][ch]) + 32
-	is_pos := int(C.g_side_info.big_values[gr][ch]) * 2
+	table_num := int(theMPEG1SideInfo.count1table_select[gr][ch]) + 32
+	is_pos := int(theMPEG1SideInfo.big_values[gr][ch]) * 2
 	for ; (is_pos <= 572) && (getMainPos() <= bit_pos_end); is_pos++ {
 		/* Get next Huffman coded words */
 		x, y, v, w, err := huffmanDecode(table_num)
@@ -245,7 +244,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 		is_pos -= 4
 	}
 	/* Setup count1 which is the index of the first sample in the rzero reg. */
-	C.g_side_info.count1[gr][ch] = C.unsigned(is_pos)
+	theMPEG1SideInfo.count1[gr][ch] = is_pos
 	/* Zero out the last part if necessary */
 	for ; /* is_pos comes from last for-loop */ is_pos < 576; is_pos++ {
 		theMPEG1MainData.is[gr][ch][is_pos] = 0.0

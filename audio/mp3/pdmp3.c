@@ -60,7 +60,6 @@ g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 unsigned synth_init = 1;
 
 t_mpeg1_header    g_frame_header;
-t_mpeg1_side_info g_side_info;  /* < 100 words */
 
 #ifdef DEBUG
 static void dmp_fr(t_mpeg1_header *hdr){

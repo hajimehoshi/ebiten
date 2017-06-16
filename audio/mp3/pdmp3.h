@@ -47,30 +47,5 @@ typedef struct { /* MPEG1 Layer 1-3 frame header */
   unsigned emphasis;           /* 2 bits */
 }
 t_mpeg1_header;
-typedef struct {  /* MPEG1 Layer 3 Side Information : [2][2] means [gr][ch] */
-  unsigned main_data_begin;         /* 9 bits */
-  unsigned private_bits;            /* 3 bits in mono,5 in stereo */
-  unsigned scfsi[2][4];             /* 1 bit */
-  unsigned part2_3_length[2][2];    /* 12 bits */
-  unsigned big_values[2][2];        /* 9 bits */
-  unsigned global_gain[2][2];       /* 8 bits */
-  unsigned scalefac_compress[2][2]; /* 4 bits */
-  unsigned win_switch_flag[2][2];   /* 1 bit */
-  /* if(win_switch_flag[][]) */ //use a union dammit
-  unsigned block_type[2][2];        /* 2 bits */
-  unsigned mixed_block_flag[2][2];  /* 1 bit */
-  unsigned table_select[2][2][3];   /* 5 bits */
-  unsigned subblock_gain[2][2][3];  /* 3 bits */
-  /* else */
-  /* table_select[][][] */
-  unsigned region0_count[2][2];     /* 4 bits */
-  unsigned region1_count[2][2];     /* 3 bits */
-  /* end */
-  unsigned preflag[2][2];           /* 1 bit */
-  unsigned scalefac_scale[2][2];    /* 1 bit */
-  unsigned count1table_select[2][2];/* 1 bit */
-  unsigned count1[2][2];            /* Not in file,calc. by huff.dec.! */
-}
-t_mpeg1_side_info;
 
 #endif

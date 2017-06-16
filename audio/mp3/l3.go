@@ -18,7 +18,6 @@ package mp3
 
 // #include "pdmp3.h"
 //
-// extern t_mpeg1_side_info g_side_info;
 // extern t_mpeg1_header    g_frame_header;
 import "C"
 
@@ -39,16 +38,16 @@ func init() {
 
 func requantizeProcessLong(gr, ch, is_pos, sfb int) {
 	sf_mult := 0.5
-	if C.g_side_info.scalefac_scale[gr][ch] != 0 {
+	if theMPEG1SideInfo.scalefac_scale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
 	tmp1 := 1.0
 	// https://github.com/technosaurus/PDMP3/issues/4
 	if sfb < 21 {
-		pf_x_pt := float64(C.g_side_info.preflag[gr][ch]) * pretab[sfb]
+		pf_x_pt := float64(theMPEG1SideInfo.preflag[gr][ch]) * pretab[sfb]
 		tmp1 = math.Pow(2.0, -(sf_mult * (float64(theMPEG1MainData.scalefac_l[gr][ch][sfb]) + pf_x_pt)))
 	}
-	tmp2 := math.Pow(2.0, 0.25*(float64(C.g_side_info.global_gain[gr][ch])-210))
+	tmp2 := math.Pow(2.0, 0.25*(float64(theMPEG1SideInfo.global_gain[gr][ch])-210))
 	tmp3 := 0.0
 	if theMPEG1MainData.is[gr][ch][is_pos] < 0.0 {
 		tmp3 = -powtab34[int(-theMPEG1MainData.is[gr][ch][is_pos])]
@@ -60,7 +59,7 @@ func requantizeProcessLong(gr, ch, is_pos, sfb int) {
 
 func requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	sf_mult := 0.5
-	if C.g_side_info.scalefac_scale[gr][ch] != 0 {
+	if theMPEG1SideInfo.scalefac_scale[gr][ch] != 0 {
 		sf_mult = 1.0
 	}
 	tmp1 := 1.0
@@ -68,8 +67,8 @@ func requantizeProcessShort(gr, ch, is_pos, sfb, win int) {
 	if sfb < 12 {
 		tmp1 = math.Pow(2.0, -(sf_mult * float64(theMPEG1MainData.scalefac_s[gr][ch][sfb][win])))
 	}
-	tmp2 := math.Pow(2.0, 0.25*(float64(C.g_side_info.global_gain[gr][ch])-210.0-
-		8.0*float64(C.g_side_info.subblock_gain[gr][ch][win])))
+	tmp2 := math.Pow(2.0, 0.25*(float64(theMPEG1SideInfo.global_gain[gr][ch])-210.0-
+		8.0*float64(theMPEG1SideInfo.subblock_gain[gr][ch][win])))
 	tmp3 := 0.0
 	if theMPEG1MainData.is[gr][ch][is_pos] < 0 {
 		tmp3 = -powtab34[int(-theMPEG1MainData.is[gr][ch][is_pos])]
@@ -105,10 +104,10 @@ func l3Requantize(gr int, ch int) {
 	/* Setup sampling frequency index */
 	sfreq := C.g_frame_header.sampling_frequency
 	/* Determine type of block to process */
-	if (C.g_side_info.win_switch_flag[gr][ch] == 1) && (C.g_side_info.block_type[gr][ch] == 2) { /* Short blocks */
+	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) && (theMPEG1SideInfo.block_type[gr][ch] == 2) { /* Short blocks */
 		/* Check if the first two subbands
 		 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-		if C.g_side_info.mixed_block_flag[gr][ch] != 0 { /* 2 longbl. sb  first */
+		if theMPEG1SideInfo.mixed_block_flag[gr][ch] != 0 { /* 2 longbl. sb  first */
 			/* First process the 2 long block subbands at the start */
 			sfb := 0
 			next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
@@ -125,7 +124,7 @@ func l3Requantize(gr int, ch int) {
 			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
 				sfBandIndicesSet[sfreq].s[sfb]
 
-			for i := 36; i < int(C.g_side_info.count1[gr][ch]); /* i++ done below! */ {
+			for i := 36; i < int(theMPEG1SideInfo.count1[gr][ch]); /* i++ done below! */ {
 				/* Check if we're into the next scalefac band */
 				if i == next_sfb { /* Yes */
 					sfb++
@@ -146,7 +145,7 @@ func l3Requantize(gr int, ch int) {
 			next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
 			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
 				sfBandIndicesSet[sfreq].s[sfb]
-			for i := 0; i < int(C.g_side_info.count1[gr][ch]); /* i++ done below! */ {
+			for i := 0; i < int(theMPEG1SideInfo.count1[gr][ch]); /* i++ done below! */ {
 				/* Check if we're into the next scalefac band */
 				if i == next_sfb {
 					sfb++
@@ -165,7 +164,7 @@ func l3Requantize(gr int, ch int) {
 	} else { /* Only long blocks */
 		sfb := 0
 		next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
-		for i := 0; i < int(C.g_side_info.count1[gr][ch]); i++ {
+		for i := 0; i < int(theMPEG1SideInfo.count1[gr][ch]); i++ {
 			if i == next_sfb {
 				sfb++
 				next_sfb = sfBandIndicesSet[sfreq].l[sfb+1]
@@ -180,12 +179,12 @@ func l3Reorder(gr int, ch int) {
 
 	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
 	/* Only reorder short blocks */
-	if (C.g_side_info.win_switch_flag[gr][ch] == 1) && (C.g_side_info.block_type[gr][ch] == 2) { /* Short blocks */
+	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) && (theMPEG1SideInfo.block_type[gr][ch] == 2) { /* Short blocks */
 		/* Check if the first two subbands
 		 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
 		sfb := 0
 		/* 2 longbl. sb  first */
-		if C.g_side_info.mixed_block_flag[gr][ch] != 0 {
+		if theMPEG1SideInfo.mixed_block_flag[gr][ch] != 0 {
 			sfb = 3
 		}
 		next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
@@ -202,7 +201,7 @@ func l3Reorder(gr int, ch int) {
 					theMPEG1MainData.is[gr][ch][3*sfBandIndicesSet[sfreq].s[sfb]+j] = re[j]
 				}
 				/* Check if this band is above the rzero region,if so we're done */
-				if C.uint(i) >= C.g_side_info.count1[gr][ch] {
+				if i >= theMPEG1SideInfo.count1[gr][ch] {
 					return
 				}
 				sfb++
@@ -290,10 +289,10 @@ func l3Stereo(gr int) {
 	if (C.g_frame_header.mode_extension & 0x2) != 0 {
 		/* Determine how many frequency lines to transform */
 		i := 0
-		if C.g_side_info.count1[gr][0] > C.g_side_info.count1[gr][1] {
+		if theMPEG1SideInfo.count1[gr][0] > theMPEG1SideInfo.count1[gr][1] {
 			i = 1
 		}
-		max_pos := int(C.g_side_info.count1[gr][i])
+		max_pos := int(theMPEG1SideInfo.count1[gr][i])
 		/* Do the actual processing */
 		const invSqrt2 = math.Sqrt2 / 2
 		for i := 0; i < max_pos; i++ {
@@ -311,28 +310,28 @@ func l3Stereo(gr int) {
 		 * band on or above count1 frequency line. N.B.: Intensity stereo coding is
 		 * only done for higher subbands, but logic is here for lower subbands. */
 		/* Determine type of block to process */
-		if (C.g_side_info.win_switch_flag[gr][0] == 1) &&
-			(C.g_side_info.block_type[gr][0] == 2) { /* Short blocks */
+		if (theMPEG1SideInfo.win_switch_flag[gr][0] == 1) &&
+			(theMPEG1SideInfo.block_type[gr][0] == 2) { /* Short blocks */
 			/* Check if the first two subbands
 			 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-			if C.g_side_info.mixed_block_flag[gr][0] != 0 { /* 2 longbl. sb  first */
+			if theMPEG1SideInfo.mixed_block_flag[gr][0] != 0 { /* 2 longbl. sb  first */
 				for sfb := 0; sfb < 8; sfb++ { /* First process 8 sfb's at start */
 					/* Is this scale factor band above count1 for the right channel? */
-					if C.unsigned(sfBandIndicesSet[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
+					if sfBandIndicesSet[sfreq].l[sfb] >= theMPEG1SideInfo.count1[gr][1] {
 						stereoProcessIntensityLong(int(gr), int(sfb))
 					}
 				}
 				/* And next the remaining bands which uses short blocks */
 				for sfb := 3; sfb < 12; sfb++ {
 					/* Is this scale factor band above count1 for the right channel? */
-					if C.unsigned(sfBandIndicesSet[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
+					if sfBandIndicesSet[sfreq].s[sfb]*3 >= theMPEG1SideInfo.count1[gr][1] {
 						stereoProcessIntensityShort(int(gr), int(sfb)) /* intensity stereo processing */
 					}
 				}
 			} else { /* Only short blocks */
 				for sfb := 0; sfb < 12; sfb++ {
 					/* Is this scale factor band above count1 for the right channel? */
-					if C.unsigned(sfBandIndicesSet[sfreq].s[sfb])*3 >= C.g_side_info.count1[gr][1] {
+					if sfBandIndicesSet[sfreq].s[sfb]*3 >= theMPEG1SideInfo.count1[gr][1] {
 						stereoProcessIntensityShort(int(gr), int(sfb)) /* intensity stereo processing */
 					}
 				}
@@ -340,7 +339,7 @@ func l3Stereo(gr int) {
 		} else { /* Only long blocks */
 			for sfb := 0; sfb < 21; sfb++ {
 				/* Is this scale factor band above count1 for the right channel? */
-				if C.unsigned(sfBandIndicesSet[sfreq].l[sfb]) >= C.g_side_info.count1[gr][1] {
+				if sfBandIndicesSet[sfreq].l[sfb] >= theMPEG1SideInfo.count1[gr][1] {
 					/* Perform the intensity stereo processing */
 					stereoProcessIntensityLong(int(gr), int(sfb))
 				}
@@ -356,16 +355,16 @@ var (
 
 func l3Antialias(gr int, ch int) {
 	/* No antialiasing is done for short blocks */
-	if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
-		(C.g_side_info.block_type[gr][ch] == 2) &&
-		(C.g_side_info.mixed_block_flag[gr][ch]) == 0 {
+	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) &&
+		(theMPEG1SideInfo.block_type[gr][ch] == 2) &&
+		(theMPEG1SideInfo.mixed_block_flag[gr][ch]) == 0 {
 		return
 	}
 	/* Setup the limit for how many subbands to transform */
 	sblim := 32
-	if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
-		(C.g_side_info.block_type[gr][ch] == 2) &&
-		(C.g_side_info.mixed_block_flag[gr][ch] == 1) {
+	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) &&
+		(theMPEG1SideInfo.block_type[gr][ch] == 2) &&
+		(theMPEG1SideInfo.mixed_block_flag[gr][ch] == 1) {
 		sblim = 2
 	}
 	/* Do the actual antialiasing */
@@ -386,9 +385,9 @@ var store = [2][32][18]float32{}
 func l3HybridSynthesis(gr int, ch int) {
 	for sb := 0; sb < 32; sb++ { /* Loop through all 32 subbands */
 		/* Determine blocktype for this subband */
-		bt := int(C.g_side_info.block_type[gr][ch])
-		if (C.g_side_info.win_switch_flag[gr][ch] == 1) &&
-			(C.g_side_info.mixed_block_flag[gr][ch] == 1) && (sb < 2) {
+		bt := int(theMPEG1SideInfo.block_type[gr][ch])
+		if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) &&
+			(theMPEG1SideInfo.mixed_block_flag[gr][ch] == 1) && (sb < 2) {
 			bt = 0
 		}
 		/* Do the inverse modified DCT and windowing */
