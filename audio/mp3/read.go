@@ -18,7 +18,6 @@ package mp3
 
 // #include "pdmp3.h"
 //
-// extern t_mpeg1_main_data g_main_data;
 // extern t_mpeg1_side_info g_side_info;
 // extern t_mpeg1_header    g_frame_header;
 import "C"
@@ -174,7 +173,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 	/* Check that there is any data to decode. If not,zero the array. */
 	if C.g_side_info.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < 576; is_pos++ {
-			C.g_main_data.is[gr][ch][is_pos] = 0.0
+			theMPEG1MainData.is[gr][ch][is_pos] = 0.0
 		}
 		return nil
 	}
@@ -210,9 +209,9 @@ func readHuffman(part_2_start, gr, ch int) error {
 			return err
 		}
 		/* In the big_values area there are two freq lines per Huffman word */
-		C.g_main_data.is[gr][ch][is_pos] = C.float(x)
+		theMPEG1MainData.is[gr][ch][is_pos] = float32(x)
 		is_pos++
-		C.g_main_data.is[gr][ch][is_pos] = C.float(y)
+		theMPEG1MainData.is[gr][ch][is_pos] = float32(y)
 	}
 	/* Read small values until is_pos = 576 or we run out of huffman data */
 	table_num := int(C.g_side_info.count1table_select[gr][ch]) + 32
@@ -223,22 +222,22 @@ func readHuffman(part_2_start, gr, ch int) error {
 		if err != nil {
 			return err
 		}
-		C.g_main_data.is[gr][ch][is_pos] = C.float(v)
+		theMPEG1MainData.is[gr][ch][is_pos] = float32(v)
 		is_pos++
 		if is_pos >= 576 {
 			break
 		}
-		C.g_main_data.is[gr][ch][is_pos] = C.float(w)
+		theMPEG1MainData.is[gr][ch][is_pos] = float32(w)
 		is_pos++
 		if is_pos >= 576 {
 			break
 		}
-		C.g_main_data.is[gr][ch][is_pos] = C.float(x)
+		theMPEG1MainData.is[gr][ch][is_pos] = float32(x)
 		is_pos++
 		if is_pos >= 576 {
 			break
 		}
-		C.g_main_data.is[gr][ch][is_pos] = C.float(y)
+		theMPEG1MainData.is[gr][ch][is_pos] = float32(y)
 	}
 	/* Check that we didn't read past the end of this section */
 	if getMainPos() > (bit_pos_end + 1) {
@@ -249,7 +248,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 	C.g_side_info.count1[gr][ch] = C.unsigned(is_pos)
 	/* Zero out the last part if necessary */
 	for ; /* is_pos comes from last for-loop */ is_pos < 576; is_pos++ {
-		C.g_main_data.is[gr][ch][is_pos] = 0.0
+		theMPEG1MainData.is[gr][ch][is_pos] = 0.0
 	}
 	/* Set the bitpos to point to the next part to read */
 	setMainPos(bit_pos_end + 1)

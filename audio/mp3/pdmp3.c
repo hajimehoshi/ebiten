@@ -59,30 +59,8 @@ g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 
 unsigned synth_init = 1;
 
-/* Scale factor band indices
- *
- * One table per sample rate. Each table contains the frequency indices
- * for the 12 short and 21 long scalefactor bands. The short indices
- * must be multiplied by 3 to get the actual index.
- */
-static const t_sf_band_indices g_sf_band_indices[3 /* Sampling freq. */] = {
-    {
-      {0,4,8,12,16,20,24,30,36,44,52,62,74,90,110,134,162,196,238,288,342,418,576},
-      {0,4,8,12,16,22,30,40,52,66,84,106,136,192}
-    },
-    {
-      {0,4,8,12,16,20,24,30,36,42,50,60,72,88,106,128,156,190,230,276,330,384,576},
-      {0,4,8,12,16,22,28,38,50,64,80,100,126,192}
-    },
-    {
-      {0,4,8,12,16,20,24,30,36,44,54,66,82,102,126,156,194,240,296,364,448,550,576},
-      {0,4,8,12,16,22,30,42,58,78,104,138,180,192}
-    }
-  };
-
 t_mpeg1_header    g_frame_header;
 t_mpeg1_side_info g_side_info;  /* < 100 words */
-t_mpeg1_main_data g_main_data;  /* Large static data(~2500 words) */
 
 #ifdef DEBUG
 static void dmp_fr(t_mpeg1_header *hdr){

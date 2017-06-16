@@ -72,16 +72,5 @@ typedef struct {  /* MPEG1 Layer 3 Side Information : [2][2] means [gr][ch] */
   unsigned count1[2][2];            /* Not in file,calc. by huff.dec.! */
 }
 t_mpeg1_side_info;
-typedef struct { /* MPEG1 Layer 3 Main Data */
-  unsigned  scalefac_l[2][2][21];    /* 0-4 bits */
-  unsigned  scalefac_s[2][2][12][3]; /* 0-4 bits */
-  float is[2][2][576];               /* Huffman coded freq. lines */
-}
-t_mpeg1_main_data;
-typedef struct { /* Scale factor band indices,for long and short windows */
-  unsigned l[23];
-  unsigned s[14];
-}
-t_sf_band_indices;
 
 #endif
