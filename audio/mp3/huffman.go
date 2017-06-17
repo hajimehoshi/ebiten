@@ -16,9 +16,6 @@
 
 package mp3
 
-// #include "pdmp3.h"
-import "C"
-
 import (
 	"fmt"
 )

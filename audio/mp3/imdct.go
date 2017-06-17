@@ -16,9 +16,6 @@
 
 package mp3
 
-// #include "pdmp3.h"
-import "C"
-
 var imdctWinData = [4][36]float32{
 	{
 		0.043619, 0.130526, 0.216440, 0.300706, 0.382683, 0.461749,
