@@ -60,40 +60,41 @@ func (f *frame) readAudioL3() error {
 		main_data_size -= 2
 	}
 	/* Read sideinfo from bitstream into buffer used by getSideBits() */
-	if err := getSideinfo(sideinfo_size); err != nil {
+	s, err := getSideinfo(sideinfo_size)
+	if err != nil {
 		return err
 	}
 	/* Parse audio data */
 	/* Pointer to where we should start reading main data */
-	f.sideInfo.main_data_begin = getSideBits(9)
+	f.sideInfo.main_data_begin = s.getSideBits(9)
 	/* Get private bits. Not used for anything. */
 	if f.header.mode == mpeg1ModeSingleChannel {
-		f.sideInfo.private_bits = getSideBits(5)
+		f.sideInfo.private_bits = s.getSideBits(5)
 	} else {
-		f.sideInfo.private_bits = getSideBits(3)
+		f.sideInfo.private_bits = s.getSideBits(3)
 	}
 	/* Get scale factor selection information */
 	for ch := 0; ch < nch; ch++ {
 		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
-			f.sideInfo.scfsi[ch][scfsi_band] = getSideBits(1)
+			f.sideInfo.scfsi[ch][scfsi_band] = s.getSideBits(1)
 		}
 	}
 	/* Get the rest of the side information */
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			f.sideInfo.part2_3_length[gr][ch] = getSideBits(12)
-			f.sideInfo.big_values[gr][ch] = getSideBits(9)
-			f.sideInfo.global_gain[gr][ch] = getSideBits(8)
-			f.sideInfo.scalefac_compress[gr][ch] = getSideBits(4)
-			f.sideInfo.win_switch_flag[gr][ch] = getSideBits(1)
+			f.sideInfo.part2_3_length[gr][ch] = s.getSideBits(12)
+			f.sideInfo.big_values[gr][ch] = s.getSideBits(9)
+			f.sideInfo.global_gain[gr][ch] = s.getSideBits(8)
+			f.sideInfo.scalefac_compress[gr][ch] = s.getSideBits(4)
+			f.sideInfo.win_switch_flag[gr][ch] = s.getSideBits(1)
 			if f.sideInfo.win_switch_flag[gr][ch] == 1 {
-				f.sideInfo.block_type[gr][ch] = getSideBits(2)
-				f.sideInfo.mixed_block_flag[gr][ch] = getSideBits(1)
+				f.sideInfo.block_type[gr][ch] = s.getSideBits(2)
+				f.sideInfo.mixed_block_flag[gr][ch] = s.getSideBits(1)
 				for region := 0; region < 2; region++ {
-					f.sideInfo.table_select[gr][ch][region] = getSideBits(5)
+					f.sideInfo.table_select[gr][ch][region] = s.getSideBits(5)
 				}
 				for window := 0; window < 3; window++ {
-					f.sideInfo.subblock_gain[gr][ch][window] = getSideBits(3)
+					f.sideInfo.subblock_gain[gr][ch][window] = s.getSideBits(3)
 				}
 				if (f.sideInfo.block_type[gr][ch] == 2) && (f.sideInfo.mixed_block_flag[gr][ch] == 0) {
 					f.sideInfo.region0_count[gr][ch] = 8 /* Implicit */
@@ -104,15 +105,15 @@ func (f *frame) readAudioL3() error {
 				f.sideInfo.region1_count[gr][ch] = 20 - f.sideInfo.region0_count[gr][ch]
 			} else {
 				for region := 0; region < 3; region++ {
-					f.sideInfo.table_select[gr][ch][region] = getSideBits(5)
+					f.sideInfo.table_select[gr][ch][region] = s.getSideBits(5)
 				}
-				f.sideInfo.region0_count[gr][ch] = getSideBits(4)
-				f.sideInfo.region1_count[gr][ch] = getSideBits(3)
+				f.sideInfo.region0_count[gr][ch] = s.getSideBits(4)
+				f.sideInfo.region1_count[gr][ch] = s.getSideBits(3)
 				f.sideInfo.block_type[gr][ch] = 0 /* Implicit */
 			}
-			f.sideInfo.preflag[gr][ch] = getSideBits(1)
-			f.sideInfo.scalefac_scale[gr][ch] = getSideBits(1)
-			f.sideInfo.count1table_select[gr][ch] = getSideBits(1)
+			f.sideInfo.preflag[gr][ch] = s.getSideBits(1)
+			f.sideInfo.scalefac_scale[gr][ch] = s.getSideBits(1)
+			f.sideInfo.count1table_select[gr][ch] = s.getSideBits(1)
 		}
 	}
 	return nil
@@ -124,9 +125,7 @@ type sideInfo struct {
 	idx int // Index into the current byte(0-7)
 }
 
-var theSideInfo sideInfo
-
-func getSideinfo(size int) error {
+func getSideinfo(size int) (*sideInfo, error) {
 	buf := make([]int, size)
 	n := 0
 	var err error
@@ -137,32 +136,33 @@ func getSideinfo(size int) error {
 	}
 	if n < size {
 		if err == io.EOF {
-			return fmt.Errorf("mp3: unexpected EOF at getSideinfo")
+			return nil, fmt.Errorf("mp3: unexpected EOF at getSideinfo")
 		}
-		return fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
+		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
 			size, getFilepos(), err)
 	}
-	theSideInfo.vec = buf[:n]
-	theSideInfo.idx = 0
-	return nil
+	s := &sideInfo{
+		vec: buf[:n],
+	}
+	return s, nil
 }
 
-func getSideBits(num int) int {
+func (s *sideInfo) getSideBits(num int) int {
 	// Form a word of the next four bytes
 	// TODO: endianness?
 	b := make([]int, 4)
 	for i := range b {
-		if len(theSideInfo.vec) > i {
-			b[i] = theSideInfo.vec[i]
+		if len(s.vec) > i {
+			b[i] = s.vec[i]
 		}
 	}
 	tmp := (uint32(b[0]) << 24) | (uint32(b[1]) << 16) | (uint32(b[2]) << 8) | (uint32(b[3]) << 0)
 	// Remove bits already used
-	tmp = tmp << uint(theSideInfo.idx)
+	tmp = tmp << uint(s.idx)
 	// Remove bits after the desired bits
 	tmp = tmp >> (32 - uint(num))
 	// Update pointers
-	theSideInfo.vec = theSideInfo.vec[(theSideInfo.idx+int(num))>>3:]
-	theSideInfo.idx = (theSideInfo.idx + int(num)) & 0x07
+	s.vec = s.vec[(s.idx+int(num))>>3:]
+	s.idx = (s.idx + int(num)) & 0x07
 	return int(tmp)
 }
