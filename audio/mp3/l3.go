@@ -599,15 +599,18 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint32) {
 			}
 			samp &= 0xffff
 			s := uint32(samp)
-			if ch == 0 { /* This function must be called for channel 0 first */
-				/* We always run in stereo mode,& duplicate channels here for mono */
+			// This function must be called for channel 0 first.
+			if ch == 0 {
+				// We always run in stereo mode,& duplicate channels here for mono.
 				if nch == 1 {
 					out[32*ss+i] = (s << 16) | (s)
 				} else {
-					out[32*ss+i] = s << 16
+					// Note that this is different from original PDMP3.
+					// Samples are set in little endian order here.
+					out[32*ss+i] = s
 				}
 			} else {
-				out[32*ss+i] |= s
+				out[32*ss+i] |= (s << 16)
 			}
 		}
 	}
