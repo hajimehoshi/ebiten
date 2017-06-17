@@ -21,16 +21,16 @@ import (
 	"io"
 )
 
-var g_mpeg1_bitrates = [3][15]int{
-	{ /* Layer 1 */
+var g_mpeg1_bitrates = map[mpeg1Layer][15]int{
+	mpeg1Layer1: {
 		0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
 		256000, 288000, 320000, 352000, 384000, 416000, 448000,
 	},
-	{ /* Layer 2 */
+	mpeg1Layer2: {
 		0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
 		128000, 160000, 192000, 224000, 256000, 320000, 384000,
 	},
-	{ /* Layer 3 */
+	mpeg1Layer3: {
 		0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
 		112000, 128000, 160000, 192000, 224000, 256000, 320000,
 	},
@@ -45,7 +45,7 @@ func readAudioL3() error {
 	}
 	/* Calculate header audio data size */
 	framesize := (144*
-		g_mpeg1_bitrates[theMPEG1FrameHeader.layer-1][theMPEG1FrameHeader.bitrate_index])/
+		g_mpeg1_bitrates[theMPEG1FrameHeader.layer][theMPEG1FrameHeader.bitrate_index])/
 		g_sampling_frequency[theMPEG1FrameHeader.sampling_frequency] +
 		int(theMPEG1FrameHeader.padding_bit)
 	if framesize > 2000 {

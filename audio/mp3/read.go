@@ -52,9 +52,8 @@ func readFrame() error {
 			return err
 		}
 	}
-
-	if theMPEG1FrameHeader.layer != 3 {
-		return fmt.Errorf("mp3: Only layer 3(!= %d) is supported!", theMPEG1FrameHeader.layer)
+	if theMPEG1FrameHeader.layer != mpeg1Layer3 {
+		return fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, theMPEG1FrameHeader.layer)
 	}
 	// Get side info
 	if err := readAudioL3(); err != nil {
@@ -140,26 +139,25 @@ func readHeader() error {
 	theMPEG1FrameHeader.emphasis = int((header & 0x00000003) >> 0)
 	/* Check for invalid values and impossible combinations */
 	if theMPEG1FrameHeader.id != 3 {
-		return fmt.Errorf("mp3: ID must be 3\nHeader word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: ID must be 3. Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
 	if theMPEG1FrameHeader.bitrate_index == 0 {
-		return fmt.Errorf("mp3: Free bitrate format NIY!\nHeader word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
 	if theMPEG1FrameHeader.bitrate_index == 15 {
-		return fmt.Errorf("mp3: bitrate_index = 15 is invalid!\nHeader word is 0x%08x at file pos %d",
+		return fmt.Errorf("mp3: bitrate_index = 15 is invalid! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
 	if theMPEG1FrameHeader.sampling_frequency == 3 {
 		return fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if theMPEG1FrameHeader.layer == 0 {
-		return fmt.Errorf("mp3: layer = 0 is invalid! Header word is 0x%08x at file pos %d",
-			header, getFilepos())
+	if theMPEG1FrameHeader.layer == mpeg1LayerReserved {
+		return fmt.Errorf("mp3: layer = %d is invalid! Header word is 0x%08x at file pos %d",
+			mpeg1LayerReserved, header, getFilepos())
 	}
-	theMPEG1FrameHeader.layer = 4 - theMPEG1FrameHeader.layer
 	return nil
 }
 

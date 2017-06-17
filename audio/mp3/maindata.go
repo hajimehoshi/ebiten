@@ -35,7 +35,7 @@ func readMainL3() error {
 
 	/* Calculate header audio data size */
 	framesize := (144*
-		g_mpeg1_bitrates[theMPEG1FrameHeader.layer-1][theMPEG1FrameHeader.bitrate_index])/
+		g_mpeg1_bitrates[theMPEG1FrameHeader.layer][theMPEG1FrameHeader.bitrate_index])/
 		g_sampling_frequency[theMPEG1FrameHeader.sampling_frequency] +
 		int(theMPEG1FrameHeader.padding_bit)
 
