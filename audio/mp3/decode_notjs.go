@@ -26,7 +26,6 @@ var (
 	readerCache []uint8
 	readerPos   int
 	readerEOF   bool
-	writer      io.Writer
 )
 
 func (f *frame) numberOfChannels() int {
@@ -36,7 +35,8 @@ func (f *frame) numberOfChannels() int {
 	return 2
 }
 
-func (f *frame) decodeL3() error {
+func (f *frame) decodeL3() []uint8 {
+	out := make([]uint8, 576*4*2)
 	nch := f.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
@@ -45,20 +45,16 @@ func (f *frame) decodeL3() error {
 			f.l3Reorder(gr, ch)
 		}
 		f.l3Stereo(gr)
-		out := make([]uint8, 576*4)
 		for ch := 0; ch < nch; ch++ {
 			f.l3Antialias(gr, ch)
 			// (IMDCT,windowing,overlapp add)
 			f.l3HybridSynthesis(gr, ch)
 			f.l3FrequencyInversion(gr, ch)
 			// Polyphase subband synthesis
-			f.l3SubbandSynthesis(gr, ch, out)
-		}
-		if _, err := writer.Write(out); err != nil {
-			return err
+			f.l3SubbandSynthesis(gr, ch, out[576*4*gr:])
 		}
 	}
-	return nil
+	return out
 }
 
 func getByte() (uint8, error) {
@@ -102,11 +98,11 @@ var eof = errors.New("mp3: expected EOF")
 
 func decode(r io.Reader, w io.Writer) error {
 	reader = r
-	writer = w
 	for {
 		f, err := readFrame()
 		if err == nil {
-			if err := f.decodeL3(); err != nil {
+			out := f.decodeL3()
+			if _, err := w.Write(out); err != nil {
 				return err
 			}
 			continue
