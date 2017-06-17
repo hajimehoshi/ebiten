@@ -17,6 +17,7 @@
 package mp3
 
 import (
+	"errors"
 	"io"
 )
 
@@ -113,22 +114,17 @@ func getBytes(buf []int) (int, error) {
 	return len(buf), nil
 }
 
-func isEOF() bool {
-	if len(readerCache) == 0 && readerEOF {
-		return true
-	}
-	return false
-}
-
 func getFilepos() int {
 	return readerPos
 }
+
+var eof = errors.New("mp3: expected EOF")
 
 func decode(r io.Reader, w io.Writer) error {
 	// TODO: Decoder should know number of channels
 	reader = r
 	writer = w
-	for !isEOF() {
+	for {
 		f, err := readFrame()
 		if err == nil {
 			if err := f.decodeL3(); err != nil {
@@ -136,7 +132,7 @@ func decode(r io.Reader, w io.Writer) error {
 			}
 			continue
 		}
-		if isEOF() {
+		if err == eof {
 			break
 		}
 		return err

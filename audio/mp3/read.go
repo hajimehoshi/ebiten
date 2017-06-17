@@ -97,6 +97,9 @@ func (f *frame) readHeader() error {
 	}
 	if n < 4 {
 		if err == io.EOF {
+			if n == 0 {
+				return eof
+			}
 			return fmt.Errorf("mp3: unexpected EOF at readHeader")
 		}
 		return err

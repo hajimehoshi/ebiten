@@ -378,20 +378,22 @@ func (f *frame) l3Antialias(gr int, ch int) {
 var store = [2][32][18]float32{}
 
 func (f *frame) l3HybridSynthesis(gr int, ch int) {
-	for sb := 0; sb < 32; sb++ { /* Loop through all 32 subbands */
-		/* Determine blocktype for this subband */
+	// Loop through all 32 subbands
+	for sb := 0; sb < 32; sb++ {
+		// Determine blocktype for this subband
 		bt := int(f.sideInfo.block_type[gr][ch])
 		if (f.sideInfo.win_switch_flag[gr][ch] == 1) &&
 			(f.sideInfo.mixed_block_flag[gr][ch] == 1) && (sb < 2) {
 			bt = 0
 		}
-		/* Do the inverse modified DCT and windowing */
+		// Do the inverse modified DCT and windowing
 		in := make([]float32, 18)
 		for i := range in {
 			in[i] = f.mainData.is[gr][ch][sb*18+i]
 		}
 		rawout := imdctWin(in, bt)
-		for i := 0; i < 18; i++ { /* Overlapp add with stored vector into main_data vector */
+		// Overlapp add with stored vector into main_data vector
+		for i := 0; i < 18; i++ {
 			f.mainData.is[gr][ch][sb*18+i] = rawout[i] + store[ch][sb][i]
 			store[ch][sb][i] = rawout[i+18]
 		}
@@ -406,10 +408,7 @@ func (f *frame) l3FrequencyInversion(gr int, ch int) {
 	}
 }
 
-var (
-	g_synth_n_win = [64][32]float32{}
-	v_vec         = [2][1024]float32{}
-)
+var g_synth_n_win = [64][32]float32{}
 
 func init() {
 	for i := 0; i < 64; i++ {
@@ -550,6 +549,8 @@ var g_synth_dtbl = [512]float32{
 	0.000030518, 0.000030518, 0.000015259, 0.000015259,
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
+
+var v_vec = [2][1024]float32{}
 
 func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint32) {
 	u_vec := make([]float32, 512)
