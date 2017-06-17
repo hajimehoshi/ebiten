@@ -37,7 +37,6 @@ func (f *frame) numberOfChannels() int {
 }
 
 func (f *frame) decodeL3() error {
-	out := make([]uint32, 576)
 	nch := f.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
@@ -46,6 +45,7 @@ func (f *frame) decodeL3() error {
 			f.l3Reorder(gr, ch)
 		}
 		f.l3Stereo(gr)
+		out := make([]uint8, 576*4)
 		for ch := 0; ch < nch; ch++ {
 			f.l3Antialias(gr, ch)
 			// (IMDCT,windowing,overlapp add)
@@ -54,29 +54,9 @@ func (f *frame) decodeL3() error {
 			// Polyphase subband synthesis
 			f.l3SubbandSynthesis(gr, ch, out)
 		}
-		if err := f.audioWriteRaw(out); err != nil {
+		if _, err := writer.Write(out); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (f *frame) audioWriteRaw(samples []uint32) error {
-	nch := f.numberOfChannels()
-	s := make([]uint8, len(samples)*2*nch)
-	for i, v := range samples {
-		if nch == 1 {
-			s[2*i] = uint8(v)
-			s[2*i+1] = uint8(v >> 8)
-		} else {
-			s[4*i] = uint8(v)
-			s[4*i+1] = uint8(v >> 8)
-			s[4*i+2] = uint8(v >> 16)
-			s[4*i+3] = uint8(v >> 24)
-		}
-	}
-	if _, err := writer.Write(s); err != nil {
-		return err
 	}
 	return nil
 }

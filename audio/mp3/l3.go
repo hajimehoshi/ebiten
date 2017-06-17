@@ -552,7 +552,7 @@ var g_synth_dtbl = [512]float32{
 
 var v_vec = [2][1024]float32{}
 
-func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint32) {
+func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
@@ -595,18 +595,20 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint32) {
 			}
 			samp &= 0xffff
 			s := uint32(samp)
-			// This function must be called for channel 0 first.
+			if nch == 1 {
+				// We always run in stereo mode and duplicate channels here for mono.
+				out[4*(32*ss+i)] = uint8(s)
+				out[4*(32*ss+i)+1] = uint8(s >> 8)
+				out[4*(32*ss+i)+2] = uint8(s)
+				out[4*(32*ss+i)+3] = uint8(s >> 8)
+				continue
+			}
 			if ch == 0 {
-				// We always run in stereo mode,& duplicate channels here for mono.
-				if nch == 1 {
-					out[32*ss+i] = (s << 16) | (s)
-				} else {
-					// Note that this is different from original PDMP3.
-					// Samples are set in little endian order here.
-					out[32*ss+i] = s
-				}
+				out[4*(32*ss+i)] = uint8(s)
+				out[4*(32*ss+i)+1] = uint8(s >> 8)
 			} else {
-				out[32*ss+i] |= (s << 16)
+				out[4*(32*ss+i)+2] = uint8(s)
+				out[4*(32*ss+i)+3] = uint8(s >> 8)
 			}
 		}
 	}
