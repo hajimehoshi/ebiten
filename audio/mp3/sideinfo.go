@@ -39,10 +39,7 @@ var g_mpeg1_bitrates = map[mpeg1Layer][15]int{
 var g_sampling_frequency = [3]int{44100, 48000, 32000}
 
 func (f *frame) readAudioL3() error {
-	nch := 2
-	if f.header.mode == mpeg1ModeSingleChannel {
-		nch = 1
-	}
+	nch := f.numberOfChannels()
 	/* Calculate header audio data size */
 	framesize := (144*
 		g_mpeg1_bitrates[f.header.layer][f.header.bitrate_index])/

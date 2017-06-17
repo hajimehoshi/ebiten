@@ -556,11 +556,7 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint32) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
-	/* Number of channels(1 for mono and 2 for stereo) */
-	nch := 2
-	if f.header.mode == mpeg1ModeSingleChannel {
-		nch = 1
-	}
+	nch := f.numberOfChannels()
 	/* Setup the n_win windowing vector and the v_vec intermediate vector */
 	for ss := 0; ss < 18; ss++ { /* Loop through 18 samples in 32 subbands */
 		for i := 1023; i > 63; i-- { /* Shift up the V vector */

@@ -27,12 +27,7 @@ var mpeg1_scalefac_sizes = [16][2]int{
 }
 
 func (f *frame) readMainL3() error {
-	/* Number of channels(1 for mono and 2 for stereo) */
-	nch := 2
-	if f.header.mode == mpeg1ModeSingleChannel {
-		nch = 1
-	}
-
+	nch := f.numberOfChannels()
 	/* Calculate header audio data size */
 	framesize := (144*
 		g_mpeg1_bitrates[f.header.layer][f.header.bitrate_index])/

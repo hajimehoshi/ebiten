@@ -29,13 +29,16 @@ var (
 	writer      io.Writer
 )
 
+func (f *frame) numberOfChannels() int {
+	if f.header.mode == mpeg1ModeSingleChannel {
+		return 1
+	}
+	return 2
+}
+
 func (f *frame) decodeL3() error {
 	out := make([]uint32, 576)
-	// Number of channels(1 for mono and 2 for stereo)
-	nch := 2
-	if f.header.mode == mpeg1ModeSingleChannel {
-		nch = 1
-	}
+	nch := f.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			f.l3Requantize(gr, ch)
@@ -59,10 +62,7 @@ func (f *frame) decodeL3() error {
 }
 
 func (f *frame) audioWriteRaw(samples []uint32) error {
-	nch := 2
-	if f.header.mode == mpeg1ModeSingleChannel {
-		nch = 1
-	}
+	nch := f.numberOfChannels()
 	s := make([]uint8, len(samples)*2*nch)
 	for i, v := range samples {
 		if nch == 1 {
@@ -121,7 +121,6 @@ func getFilepos() int {
 var eof = errors.New("mp3: expected EOF")
 
 func decode(r io.Reader, w io.Writer) error {
-	// TODO: Decoder should know number of channels
 	reader = r
 	writer = w
 	for {
