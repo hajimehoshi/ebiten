@@ -17,8 +17,6 @@
 package mp3
 
 // #include "pdmp3.h"
-//
-// extern t_mpeg1_header    g_frame_header;
 import "C"
 
 import (
@@ -34,15 +32,15 @@ var mpeg1_scalefac_sizes = [16][2]int{
 func readMainL3() error {
 	/* Number of channels(1 for mono and 2 for stereo) */
 	nch := 2
-	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
+	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 
 	/* Calculate header audio data size */
 	framesize := (144*
-		g_mpeg1_bitrates[C.g_frame_header.layer-1][C.g_frame_header.bitrate_index])/
-		g_sampling_frequency[C.g_frame_header.sampling_frequency] +
-		int(C.g_frame_header.padding_bit)
+		g_mpeg1_bitrates[theMPEG1FrameHeader.layer-1][theMPEG1FrameHeader.bitrate_index])/
+		g_sampling_frequency[theMPEG1FrameHeader.sampling_frequency] +
+		int(theMPEG1FrameHeader.padding_bit)
 
 	if framesize > 2000 {
 		return fmt.Errorf("mp3: framesize = %d", framesize)
@@ -55,7 +53,7 @@ func readMainL3() error {
 	/* Main data size is the rest of the frame,including ancillary data */
 	main_data_size := framesize - sideinfo_size - 4 /* sync+header */
 	/* CRC is 2 bytes */
-	if C.g_frame_header.protection_bit == 0 {
+	if theMPEG1FrameHeader.protection_bit == 0 {
 		main_data_size -= 2
 	}
 	/* Assemble main data buffer with data from this frame and the previous

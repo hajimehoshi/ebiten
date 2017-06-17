@@ -59,8 +59,6 @@ g_sampling_frequency[3] = { 44100 * Hz,48000 * Hz,32000 * Hz };
 
 unsigned synth_init = 1;
 
-t_mpeg1_header    g_frame_header;
-
 #ifdef DEBUG
 static void dmp_fr(t_mpeg1_header *hdr){
   printf("rate %d,sfreq %d,pad %d,mod %d,modext %d,emph %d\n",

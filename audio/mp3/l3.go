@@ -17,8 +17,6 @@
 package mp3
 
 // #include "pdmp3.h"
-//
-// extern t_mpeg1_header    g_frame_header;
 import "C"
 
 import (
@@ -102,7 +100,7 @@ var (
 
 func l3Requantize(gr int, ch int) {
 	/* Setup sampling frequency index */
-	sfreq := C.g_frame_header.sampling_frequency
+	sfreq := theMPEG1FrameHeader.sampling_frequency
 	/* Determine type of block to process */
 	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) && (theMPEG1SideInfo.block_type[gr][ch] == 2) { /* Short blocks */
 		/* Check if the first two subbands
@@ -177,7 +175,7 @@ func l3Requantize(gr int, ch int) {
 func l3Reorder(gr int, ch int) {
 	re := make([]float32, 576)
 
-	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
+	sfreq := theMPEG1FrameHeader.sampling_frequency /* Setup sampling freq index */
 	/* Only reorder short blocks */
 	if (theMPEG1SideInfo.win_switch_flag[gr][ch] == 1) && (theMPEG1SideInfo.block_type[gr][ch] == 2) { /* Short blocks */
 		/* Check if the first two subbands
@@ -232,7 +230,7 @@ func stereoProcessIntensityLong(gr int, sfb int) {
 	/* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
 	is_pos := theMPEG1MainData.scalefac_l[gr][0][sfb]
 	if is_pos != 7 {
-		sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
+		sfreq := theMPEG1FrameHeader.sampling_frequency /* Setup sampling freq index */
 		sfb_start := sfBandIndicesSet[sfreq].l[sfb]
 		sfb_stop := sfBandIndicesSet[sfreq].l[sfb+1]
 		if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
@@ -253,7 +251,7 @@ func stereoProcessIntensityLong(gr int, sfb int) {
 func stereoProcessIntensityShort(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
-	sfreq := C.g_frame_header.sampling_frequency /* Setup sampling freq index */
+	sfreq := theMPEG1FrameHeader.sampling_frequency /* Setup sampling freq index */
 	/* The window length */
 	win_len := sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
 	/* The three windows within the band has different scalefactors */
@@ -282,11 +280,11 @@ func stereoProcessIntensityShort(gr int, sfb int) {
 
 func l3Stereo(gr int) {
 	/* Do nothing if joint stereo is not enabled */
-	if (C.g_frame_header.mode != 1) || (C.g_frame_header.mode_extension == 0) {
+	if (theMPEG1FrameHeader.mode != 1) || (theMPEG1FrameHeader.mode_extension == 0) {
 		return
 	}
 	/* Do Middle/Side("normal") stereo processing */
-	if (C.g_frame_header.mode_extension & 0x2) != 0 {
+	if (theMPEG1FrameHeader.mode_extension & 0x2) != 0 {
 		/* Determine how many frequency lines to transform */
 		i := 0
 		if theMPEG1SideInfo.count1[gr][0] > theMPEG1SideInfo.count1[gr][1] {
@@ -303,9 +301,9 @@ func l3Stereo(gr int) {
 		}
 	}
 	/* Do intensity stereo processing */
-	if (C.g_frame_header.mode_extension & 0x1) != 0 {
+	if (theMPEG1FrameHeader.mode_extension & 0x1) != 0 {
 		/* Setup sampling frequency index */
-		sfreq := C.g_frame_header.sampling_frequency
+		sfreq := theMPEG1FrameHeader.sampling_frequency
 		/* First band that is intensity stereo encoded is first band scale factor
 		 * band on or above count1 frequency line. N.B.: Intensity stereo coding is
 		 * only done for higher subbands, but logic is here for lower subbands. */
@@ -562,7 +560,7 @@ func l3SubbandSynthesis(gr int, ch int, out []uint32) {
 
 	/* Number of channels(1 for mono and 2 for stereo) */
 	nch := 2
-	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
+	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 	/* Setup the n_win windowing vector and the v_vec intermediate vector */

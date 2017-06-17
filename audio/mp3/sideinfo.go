@@ -17,8 +17,6 @@
 package mp3
 
 // #include "pdmp3.h"
-//
-// extern t_mpeg1_header    g_frame_header;
 import "C"
 
 import (
@@ -45,14 +43,14 @@ var g_sampling_frequency = [3]int{44100, 48000, 32000}
 
 func readAudioL3() error {
 	nch := 2
-	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
+	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 	/* Calculate header audio data size */
 	framesize := (144*
-		g_mpeg1_bitrates[C.g_frame_header.layer-1][C.g_frame_header.bitrate_index])/
-		g_sampling_frequency[C.g_frame_header.sampling_frequency] +
-		int(C.g_frame_header.padding_bit)
+		g_mpeg1_bitrates[theMPEG1FrameHeader.layer-1][theMPEG1FrameHeader.bitrate_index])/
+		g_sampling_frequency[theMPEG1FrameHeader.sampling_frequency] +
+		int(theMPEG1FrameHeader.padding_bit)
 	if framesize > 2000 {
 		return fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
@@ -64,7 +62,7 @@ func readAudioL3() error {
 	/* Main data size is the rest of the frame,including ancillary data */
 	main_data_size := framesize - sideinfo_size - 4 /* sync+header */
 	/* CRC is 2 bytes */
-	if C.g_frame_header.protection_bit == 0 {
+	if theMPEG1FrameHeader.protection_bit == 0 {
 		main_data_size -= 2
 	}
 	/* Read sideinfo from bitstream into buffer used by getSideBits() */
@@ -75,7 +73,7 @@ func readAudioL3() error {
 	/* Pointer to where we should start reading main data */
 	theMPEG1SideInfo.main_data_begin = getSideBits(9)
 	/* Get private bits. Not used for anything. */
-	if C.g_frame_header.mode == C.mpeg1_mode_single_channel {
+	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
 		theMPEG1SideInfo.private_bits = getSideBits(5)
 	} else {
 		theMPEG1SideInfo.private_bits = getSideBits(3)

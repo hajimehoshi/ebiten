@@ -17,8 +17,6 @@
 package mp3
 
 // #include "pdmp3.h"
-//
-// extern t_mpeg1_header    g_frame_header;
 import "C"
 
 import (
@@ -52,14 +50,14 @@ func readFrame() error {
 		return err
 	}
 	// Get CRC word if present
-	if C.g_frame_header.protection_bit == 0 {
+	if theMPEG1FrameHeader.protection_bit == 0 {
 		if err := readCRC(); err != nil {
 			return err
 		}
 	}
 
-	if C.g_frame_header.layer != 3 {
-		return fmt.Errorf("mp3: Only layer 3(!= %d) is supported!", C.g_frame_header.layer)
+	if theMPEG1FrameHeader.layer != 3 {
+		return fmt.Errorf("mp3: Only layer 3(!= %d) is supported!", theMPEG1FrameHeader.layer)
 	}
 	// Get side info
 	if err := readAudioL3(); err != nil {
@@ -131,40 +129,40 @@ func readHeader() error {
 	/* If we get here we've found the sync word,and can decode the header
 	 * which is in the low 20 bits of the 32-bit sync+header word. */
 	/* Decode the header */
-	C.g_frame_header.id = C.uint((header & 0x00180000) >> 19)
-	C.g_frame_header.layer = C.t_mpeg1_layer((header & 0x00060000) >> 17)
-	C.g_frame_header.protection_bit = C.uint((header & 0x00010000) >> 16)
-	C.g_frame_header.bitrate_index = C.uint((header & 0x0000f000) >> 12)
-	C.g_frame_header.sampling_frequency = C.uint((header & 0x00000c00) >> 10)
-	C.g_frame_header.padding_bit = C.uint((header & 0x00000200) >> 9)
-	C.g_frame_header.private_bit = C.uint((header & 0x00000100) >> 8)
-	C.g_frame_header.mode = C.t_mpeg1_mode((header & 0x000000c0) >> 6)
-	C.g_frame_header.mode_extension = C.uint((header & 0x00000030) >> 4)
-	C.g_frame_header.copyright = C.uint((header & 0x00000008) >> 3)
-	C.g_frame_header.original_or_copy = C.uint((header & 0x00000004) >> 2)
-	C.g_frame_header.emphasis = C.uint((header & 0x00000003) >> 0)
+	theMPEG1FrameHeader.id = int((header & 0x00180000) >> 19)
+	theMPEG1FrameHeader.layer = mpeg1Layer((header & 0x00060000) >> 17)
+	theMPEG1FrameHeader.protection_bit = int((header & 0x00010000) >> 16)
+	theMPEG1FrameHeader.bitrate_index = int((header & 0x0000f000) >> 12)
+	theMPEG1FrameHeader.sampling_frequency = int((header & 0x00000c00) >> 10)
+	theMPEG1FrameHeader.padding_bit = int((header & 0x00000200) >> 9)
+	theMPEG1FrameHeader.private_bit = int((header & 0x00000100) >> 8)
+	theMPEG1FrameHeader.mode = mpeg1Mode((header & 0x000000c0) >> 6)
+	theMPEG1FrameHeader.mode_extension = int((header & 0x00000030) >> 4)
+	theMPEG1FrameHeader.copyright = int((header & 0x00000008) >> 3)
+	theMPEG1FrameHeader.original_or_copy = int((header & 0x00000004) >> 2)
+	theMPEG1FrameHeader.emphasis = int((header & 0x00000003) >> 0)
 	/* Check for invalid values and impossible combinations */
-	if C.g_frame_header.id != 3 {
+	if theMPEG1FrameHeader.id != 3 {
 		return fmt.Errorf("mp3: ID must be 3\nHeader word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if C.g_frame_header.bitrate_index == 0 {
+	if theMPEG1FrameHeader.bitrate_index == 0 {
 		return fmt.Errorf("mp3: Free bitrate format NIY!\nHeader word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if C.g_frame_header.bitrate_index == 15 {
+	if theMPEG1FrameHeader.bitrate_index == 15 {
 		return fmt.Errorf("mp3: bitrate_index = 15 is invalid!\nHeader word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if C.g_frame_header.sampling_frequency == 3 {
+	if theMPEG1FrameHeader.sampling_frequency == 3 {
 		return fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if C.g_frame_header.layer == 0 {
+	if theMPEG1FrameHeader.layer == 0 {
 		return fmt.Errorf("mp3: layer = 0 is invalid! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	C.g_frame_header.layer = 4 - C.g_frame_header.layer
+	theMPEG1FrameHeader.layer = 4 - theMPEG1FrameHeader.layer
 	return nil
 }
 
@@ -185,7 +183,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 		region_1_start = 36  /* sfb[9/3]*3=36 */
 		region_2_start = 576 /* No Region2 for short block case. */
 	} else {
-		sfreq := C.g_frame_header.sampling_frequency
+		sfreq := theMPEG1FrameHeader.sampling_frequency
 		region_1_start =
 			sfBandIndicesSet[sfreq].l[theMPEG1SideInfo.region0_count[gr][ch]+1]
 		region_2_start =
@@ -193,7 +191,7 @@ func readHuffman(part_2_start, gr, ch int) error {
 				theMPEG1SideInfo.region1_count[gr][ch]+2]
 	}
 	/* Read big_values using tables according to region_x_start */
-	for is_pos := 0; is_pos < int(theMPEG1SideInfo.big_values[gr][ch])*2; is_pos++ {
+	for is_pos := 0; is_pos < theMPEG1SideInfo.big_values[gr][ch]*2; is_pos++ {
 		table_num := 0
 		if is_pos < region_1_start {
 			table_num = int(theMPEG1SideInfo.table_select[gr][ch][0])
