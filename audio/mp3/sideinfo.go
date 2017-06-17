@@ -38,16 +38,16 @@ var g_mpeg1_bitrates = map[mpeg1Layer][15]int{
 
 var g_sampling_frequency = [3]int{44100, 48000, 32000}
 
-func readAudioL3() error {
+func (f *frame) readAudioL3() error {
 	nch := 2
-	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
+	if f.header.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 	/* Calculate header audio data size */
 	framesize := (144*
-		g_mpeg1_bitrates[theMPEG1FrameHeader.layer][theMPEG1FrameHeader.bitrate_index])/
-		g_sampling_frequency[theMPEG1FrameHeader.sampling_frequency] +
-		int(theMPEG1FrameHeader.padding_bit)
+		g_mpeg1_bitrates[f.header.layer][f.header.bitrate_index])/
+		g_sampling_frequency[f.header.sampling_frequency] +
+		int(f.header.padding_bit)
 	if framesize > 2000 {
 		return fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
@@ -59,7 +59,7 @@ func readAudioL3() error {
 	/* Main data size is the rest of the frame,including ancillary data */
 	main_data_size := framesize - sideinfo_size - 4 /* sync+header */
 	/* CRC is 2 bytes */
-	if theMPEG1FrameHeader.protection_bit == 0 {
+	if f.header.protection_bit == 0 {
 		main_data_size -= 2
 	}
 	/* Read sideinfo from bitstream into buffer used by getSideBits() */
@@ -68,54 +68,54 @@ func readAudioL3() error {
 	}
 	/* Parse audio data */
 	/* Pointer to where we should start reading main data */
-	theMPEG1SideInfo.main_data_begin = getSideBits(9)
+	f.sideInfo.main_data_begin = getSideBits(9)
 	/* Get private bits. Not used for anything. */
-	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
-		theMPEG1SideInfo.private_bits = getSideBits(5)
+	if f.header.mode == mpeg1ModeSingleChannel {
+		f.sideInfo.private_bits = getSideBits(5)
 	} else {
-		theMPEG1SideInfo.private_bits = getSideBits(3)
+		f.sideInfo.private_bits = getSideBits(3)
 	}
 	/* Get scale factor selection information */
 	for ch := 0; ch < nch; ch++ {
 		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
-			theMPEG1SideInfo.scfsi[ch][scfsi_band] = getSideBits(1)
+			f.sideInfo.scfsi[ch][scfsi_band] = getSideBits(1)
 		}
 	}
 	/* Get the rest of the side information */
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			theMPEG1SideInfo.part2_3_length[gr][ch] = getSideBits(12)
-			theMPEG1SideInfo.big_values[gr][ch] = getSideBits(9)
-			theMPEG1SideInfo.global_gain[gr][ch] = getSideBits(8)
-			theMPEG1SideInfo.scalefac_compress[gr][ch] = getSideBits(4)
-			theMPEG1SideInfo.win_switch_flag[gr][ch] = getSideBits(1)
-			if theMPEG1SideInfo.win_switch_flag[gr][ch] == 1 {
-				theMPEG1SideInfo.block_type[gr][ch] = getSideBits(2)
-				theMPEG1SideInfo.mixed_block_flag[gr][ch] = getSideBits(1)
+			f.sideInfo.part2_3_length[gr][ch] = getSideBits(12)
+			f.sideInfo.big_values[gr][ch] = getSideBits(9)
+			f.sideInfo.global_gain[gr][ch] = getSideBits(8)
+			f.sideInfo.scalefac_compress[gr][ch] = getSideBits(4)
+			f.sideInfo.win_switch_flag[gr][ch] = getSideBits(1)
+			if f.sideInfo.win_switch_flag[gr][ch] == 1 {
+				f.sideInfo.block_type[gr][ch] = getSideBits(2)
+				f.sideInfo.mixed_block_flag[gr][ch] = getSideBits(1)
 				for region := 0; region < 2; region++ {
-					theMPEG1SideInfo.table_select[gr][ch][region] = getSideBits(5)
+					f.sideInfo.table_select[gr][ch][region] = getSideBits(5)
 				}
 				for window := 0; window < 3; window++ {
-					theMPEG1SideInfo.subblock_gain[gr][ch][window] = getSideBits(3)
+					f.sideInfo.subblock_gain[gr][ch][window] = getSideBits(3)
 				}
-				if (theMPEG1SideInfo.block_type[gr][ch] == 2) && (theMPEG1SideInfo.mixed_block_flag[gr][ch] == 0) {
-					theMPEG1SideInfo.region0_count[gr][ch] = 8 /* Implicit */
+				if (f.sideInfo.block_type[gr][ch] == 2) && (f.sideInfo.mixed_block_flag[gr][ch] == 0) {
+					f.sideInfo.region0_count[gr][ch] = 8 /* Implicit */
 				} else {
-					theMPEG1SideInfo.region0_count[gr][ch] = 7 /* Implicit */
+					f.sideInfo.region0_count[gr][ch] = 7 /* Implicit */
 				}
 				/* The standard is wrong on this!!! */ /* Implicit */
-				theMPEG1SideInfo.region1_count[gr][ch] = 20 - theMPEG1SideInfo.region0_count[gr][ch]
+				f.sideInfo.region1_count[gr][ch] = 20 - f.sideInfo.region0_count[gr][ch]
 			} else {
 				for region := 0; region < 3; region++ {
-					theMPEG1SideInfo.table_select[gr][ch][region] = getSideBits(5)
+					f.sideInfo.table_select[gr][ch][region] = getSideBits(5)
 				}
-				theMPEG1SideInfo.region0_count[gr][ch] = getSideBits(4)
-				theMPEG1SideInfo.region1_count[gr][ch] = getSideBits(3)
-				theMPEG1SideInfo.block_type[gr][ch] = 0 /* Implicit */
+				f.sideInfo.region0_count[gr][ch] = getSideBits(4)
+				f.sideInfo.region1_count[gr][ch] = getSideBits(3)
+				f.sideInfo.block_type[gr][ch] = 0 /* Implicit */
 			}
-			theMPEG1SideInfo.preflag[gr][ch] = getSideBits(1)
-			theMPEG1SideInfo.scalefac_scale[gr][ch] = getSideBits(1)
-			theMPEG1SideInfo.count1table_select[gr][ch] = getSideBits(1)
+			f.sideInfo.preflag[gr][ch] = getSideBits(1)
+			f.sideInfo.scalefac_scale[gr][ch] = getSideBits(1)
+			f.sideInfo.count1table_select[gr][ch] = getSideBits(1)
 		}
 	}
 	return nil

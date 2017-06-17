@@ -28,38 +28,38 @@ var (
 	writer      io.Writer
 )
 
-func decodeL3() error {
+func (f *frame) decodeL3() error {
 	out := make([]uint32, 576)
 	// Number of channels(1 for mono and 2 for stereo)
 	nch := 2
-	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
+	if f.header.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			l3Requantize(gr, ch)
+			f.l3Requantize(gr, ch)
 			// Reorder short blocks
-			l3Reorder(gr, ch)
+			f.l3Reorder(gr, ch)
 		}
-		l3Stereo(gr)
+		f.l3Stereo(gr)
 		for ch := 0; ch < nch; ch++ {
-			l3Antialias(gr, ch)
+			f.l3Antialias(gr, ch)
 			// (IMDCT,windowing,overlapp add)
-			l3HybridSynthesis(gr, ch)
-			l3FrequencyInversion(gr, ch)
+			f.l3HybridSynthesis(gr, ch)
+			f.l3FrequencyInversion(gr, ch)
 			// Polyphase subband synthesis
-			l3SubbandSynthesis(gr, ch, out)
+			f.l3SubbandSynthesis(gr, ch, out)
 		}
-		if err := audioWriteRaw(out); err != nil {
+		if err := f.audioWriteRaw(out); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func audioWriteRaw(samples []uint32) error {
+func (f *frame) audioWriteRaw(samples []uint32) error {
 	nch := 2
-	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
+	if f.header.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 	s := make([]uint8, len(samples)*2*nch)
@@ -129,9 +129,9 @@ func decode(r io.Reader, w io.Writer) error {
 	reader = r
 	writer = w
 	for !isEOF() {
-		err := readFrame()
+		f, err := readFrame()
 		if err == nil {
-			if err := decodeL3(); err != nil {
+			if err := f.decodeL3(); err != nil {
 				return err
 			}
 			continue

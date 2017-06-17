@@ -50,8 +50,6 @@ type mpeg1FrameHeader struct {
 	emphasis           int        // 2 bits
 }
 
-var theMPEG1FrameHeader mpeg1FrameHeader
-
 // A mpeg1SideInfo is  MPEG1 Layer 3 Side Information.
 // [2][2] means [gr][ch].
 type mpeg1SideInfo struct {
@@ -78,8 +76,6 @@ type mpeg1SideInfo struct {
 	count1             [2][2]int // Not in file,calc. by huff.dec.!
 }
 
-var theMPEG1SideInfo mpeg1SideInfo
-
 // A mpeg1MainData is MPEG1 Layer 3 Main Data.
 type mpeg1MainData struct {
 	scalefac_l [2][2][21]int      // 0-4 bits
@@ -87,4 +83,8 @@ type mpeg1MainData struct {
 	is         [2][2][576]float32 // Huffman coded freq. lines
 }
 
-var theMPEG1MainData mpeg1MainData
+type frame struct {
+	header   mpeg1FrameHeader
+	sideInfo mpeg1SideInfo
+	mainData mpeg1MainData
+}

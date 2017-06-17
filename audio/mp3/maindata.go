@@ -26,18 +26,18 @@ var mpeg1_scalefac_sizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-func readMainL3() error {
+func (f *frame) readMainL3() error {
 	/* Number of channels(1 for mono and 2 for stereo) */
 	nch := 2
-	if theMPEG1FrameHeader.mode == mpeg1ModeSingleChannel {
+	if f.header.mode == mpeg1ModeSingleChannel {
 		nch = 1
 	}
 
 	/* Calculate header audio data size */
 	framesize := (144*
-		g_mpeg1_bitrates[theMPEG1FrameHeader.layer][theMPEG1FrameHeader.bitrate_index])/
-		g_sampling_frequency[theMPEG1FrameHeader.sampling_frequency] +
-		int(theMPEG1FrameHeader.padding_bit)
+		g_mpeg1_bitrates[f.header.layer][f.header.bitrate_index])/
+		g_sampling_frequency[f.header.sampling_frequency] +
+		int(f.header.padding_bit)
 
 	if framesize > 2000 {
 		return fmt.Errorf("mp3: framesize = %d", framesize)
@@ -50,7 +50,7 @@ func readMainL3() error {
 	/* Main data size is the rest of the frame,including ancillary data */
 	main_data_size := framesize - sideinfo_size - 4 /* sync+header */
 	/* CRC is 2 bytes */
-	if theMPEG1FrameHeader.protection_bit == 0 {
+	if f.header.protection_bit == 0 {
 		main_data_size -= 2
 	}
 	/* Assemble main data buffer with data from this frame and the previous
@@ -58,7 +58,7 @@ func readMainL3() error {
 	 * frames that should be used. This buffer is later accessed by the
 	 * getMainBits function in the same way as the side info is.
 	 */
-	if err := getMainData(main_data_size, int(theMPEG1SideInfo.main_data_begin)); err != nil {
+	if err := getMainData(main_data_size, int(f.sideInfo.main_data_begin)); err != nil {
 		/* This could be due to not enough data in reservoir */
 		return err
 	}
@@ -66,12 +66,12 @@ func readMainL3() error {
 		for ch := 0; ch < nch; ch++ {
 			part_2_start := getMainPos()
 			/* Number of bits in the bitstream for the bands */
-			slen1 := mpeg1_scalefac_sizes[theMPEG1SideInfo.scalefac_compress[gr][ch]][0]
-			slen2 := mpeg1_scalefac_sizes[theMPEG1SideInfo.scalefac_compress[gr][ch]][1]
-			if (theMPEG1SideInfo.win_switch_flag[gr][ch] != 0) && (theMPEG1SideInfo.block_type[gr][ch] == 2) {
-				if theMPEG1SideInfo.mixed_block_flag[gr][ch] != 0 {
+			slen1 := mpeg1_scalefac_sizes[f.sideInfo.scalefac_compress[gr][ch]][0]
+			slen2 := mpeg1_scalefac_sizes[f.sideInfo.scalefac_compress[gr][ch]][1]
+			if (f.sideInfo.win_switch_flag[gr][ch] != 0) && (f.sideInfo.block_type[gr][ch] == 2) {
+				if f.sideInfo.mixed_block_flag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {
-						theMPEG1MainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
+						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
 					}
 					for sfb := 3; sfb < 12; sfb++ {
 						/*slen1 for band 3-5,slen2 for 6-11*/
@@ -80,7 +80,7 @@ func readMainL3() error {
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							theMPEG1MainData.scalefac_s[gr][ch][sfb][win] = getMainBits(nbits)
+							f.mainData.scalefac_s[gr][ch][sfb][win] = getMainBits(nbits)
 						}
 					}
 				} else {
@@ -91,58 +91,58 @@ func readMainL3() error {
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							theMPEG1MainData.scalefac_s[gr][ch][sfb][win] = getMainBits(nbits)
+							f.mainData.scalefac_s[gr][ch][sfb][win] = getMainBits(nbits)
 						}
 					}
 				}
 			} else { /* block_type == 0 if winswitch == 0 */
 				/* Scale factor bands 0-5 */
-				if (theMPEG1SideInfo.scfsi[ch][0] == 0) || (gr == 0) {
+				if (f.sideInfo.scfsi[ch][0] == 0) || (gr == 0) {
 					for sfb := 0; sfb < 6; sfb++ {
-						theMPEG1MainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
+						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
 					}
-				} else if (theMPEG1SideInfo.scfsi[ch][0] == 1) && (gr == 1) {
+				} else if (f.sideInfo.scfsi[ch][0] == 1) && (gr == 1) {
 					/* Copy scalefactors from granule 0 to granule 1 */
 					for sfb := 0; sfb < 6; sfb++ {
-						theMPEG1MainData.scalefac_l[1][ch][sfb] = theMPEG1MainData.scalefac_l[0][ch][sfb]
+						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
 					}
 				}
 				/* Scale factor bands 6-10 */
-				if (theMPEG1SideInfo.scfsi[ch][1] == 0) || (gr == 0) {
+				if (f.sideInfo.scfsi[ch][1] == 0) || (gr == 0) {
 					for sfb := 6; sfb < 11; sfb++ {
-						theMPEG1MainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
+						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
 					}
-				} else if (theMPEG1SideInfo.scfsi[ch][1] == 1) && (gr == 1) {
+				} else if (f.sideInfo.scfsi[ch][1] == 1) && (gr == 1) {
 					/* Copy scalefactors from granule 0 to granule 1 */
 					for sfb := 6; sfb < 11; sfb++ {
-						theMPEG1MainData.scalefac_l[1][ch][sfb] = theMPEG1MainData.scalefac_l[0][ch][sfb]
+						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
 					}
 				}
 				/* Scale factor bands 11-15 */
-				if (theMPEG1SideInfo.scfsi[ch][2] == 0) || (gr == 0) {
+				if (f.sideInfo.scfsi[ch][2] == 0) || (gr == 0) {
 					for sfb := 11; sfb < 16; sfb++ {
-						theMPEG1MainData.scalefac_l[gr][ch][sfb] = getMainBits(slen2)
+						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen2)
 					}
-				} else if (theMPEG1SideInfo.scfsi[ch][2] == 1) && (gr == 1) {
+				} else if (f.sideInfo.scfsi[ch][2] == 1) && (gr == 1) {
 					/* Copy scalefactors from granule 0 to granule 1 */
 					for sfb := 11; sfb < 16; sfb++ {
-						theMPEG1MainData.scalefac_l[1][ch][sfb] = theMPEG1MainData.scalefac_l[0][ch][sfb]
+						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
 					}
 				}
 				/* Scale factor bands 16-20 */
-				if (theMPEG1SideInfo.scfsi[ch][3] == 0) || (gr == 0) {
+				if (f.sideInfo.scfsi[ch][3] == 0) || (gr == 0) {
 					for sfb := 16; sfb < 21; sfb++ {
-						theMPEG1MainData.scalefac_l[gr][ch][sfb] = getMainBits(slen2)
+						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen2)
 					}
-				} else if (theMPEG1SideInfo.scfsi[ch][3] == 1) && (gr == 1) {
+				} else if (f.sideInfo.scfsi[ch][3] == 1) && (gr == 1) {
 					/* Copy scalefactors from granule 0 to granule 1 */
 					for sfb := 16; sfb < 21; sfb++ {
-						theMPEG1MainData.scalefac_l[1][ch][sfb] = theMPEG1MainData.scalefac_l[0][ch][sfb]
+						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
 					}
 				}
 			}
 			/* Read Huffman coded data. Skip stuffing bits. */
-			if err := readHuffman(part_2_start, gr, ch); err != nil {
+			if err := f.readHuffman(part_2_start, gr, ch); err != nil {
 				return err
 			}
 		}
