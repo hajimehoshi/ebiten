@@ -15,8 +15,6 @@
 // +build !js
 
 // Package mp3 provides MP3 decoder.
-//
-// This package is very experimental.
 package mp3
 
 import (
