@@ -218,7 +218,7 @@ func (f *frame) l3Reorder(gr int, ch int) {
 }
 
 var (
-	is_ratios = [6]float32{0.000000, 0.267949, 0.577350, 1.000000, 1.732051, 3.732051}
+	isRatios = []float32{0.000000, 0.267949, 0.577350, 1.000000, 1.732051, 3.732051}
 )
 
 func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
@@ -234,8 +234,8 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 			is_ratio_l = 1.0
 			is_ratio_r = 0.0
 		} else {
-			is_ratio_l = is_ratios[is_pos] / (1.0 + is_ratios[is_pos])
-			is_ratio_r = 1.0 / (1.0 + is_ratios[is_pos])
+			is_ratio_l = isRatios[is_pos] / (1.0 + isRatios[is_pos])
+			is_ratio_r = 1.0 / (1.0 + isRatios[is_pos])
 		}
 		/* Now decode all samples in this scale factor band */
 		for i := sfb_start; i < sfb_stop; i++ {
@@ -262,8 +262,8 @@ func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 				is_ratio_l = 1.0
 				is_ratio_r = 0.0
 			} else {
-				is_ratio_l = is_ratios[is_pos] / (1.0 + is_ratios[is_pos])
-				is_ratio_r = 1.0 / (1.0 + is_ratios[is_pos])
+				is_ratio_l = isRatios[is_pos] / (1.0 + isRatios[is_pos])
+				is_ratio_r = 1.0 / (1.0 + isRatios[is_pos])
 			}
 			/* Now decode all samples in this scale factor band */
 			for i := sfb_start; i < sfb_stop; i++ {
@@ -344,8 +344,8 @@ func (f *frame) l3Stereo(gr int) {
 }
 
 var (
-	cs = [8]float32{0.857493, 0.881742, 0.949629, 0.983315, 0.995518, 0.999161, 0.999899, 0.999993}
-	ca = [8]float32{-0.514496, -0.471732, -0.313377, -0.181913, -0.094574, -0.040966, -0.014199, -0.003700}
+	cs = []float32{0.857493, 0.881742, 0.949629, 0.983315, 0.995518, 0.999161, 0.999899, 0.999993}
+	ca = []float32{-0.514496, -0.471732, -0.313377, -0.181913, -0.094574, -0.040966, -0.014199, -0.003700}
 )
 
 func (f *frame) l3Antialias(gr int, ch int) {
@@ -406,18 +406,18 @@ func (f *frame) l3FrequencyInversion(gr int, ch int) {
 	}
 }
 
-var g_synth_n_win = [64][32]float32{}
+var synthNWin = [64][32]float32{}
 
 func init() {
 	for i := 0; i < 64; i++ {
 		for j := 0; j < 32; j++ {
-			g_synth_n_win[i][j] =
+			synthNWin[i][j] =
 				float32(math.Cos(float64((16+i)*(2*j+1)) * (math.Pi / 64.0)))
 		}
 	}
 }
 
-var g_synth_dtbl = [512]float32{
+var synthDtbl = [512]float32{
 	0.000000000, -0.000015259, -0.000015259, -0.000015259,
 	-0.000015259, -0.000015259, -0.000015259, -0.000030518,
 	-0.000030518, -0.000030518, -0.000030518, -0.000045776,
@@ -564,7 +564,7 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 		for i := 0; i < 64; i++ { /* Matrix multiply input with n_win[][] matrix */
 			sum := float32(0)
 			for j := 0; j < 32; j++ {
-				sum += g_synth_n_win[i][j] * s_vec[j]
+				sum += synthNWin[i][j] * s_vec[j]
 			}
 			f.v_vec[ch][i] = sum
 		}
@@ -574,8 +574,8 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 				u_vec[(i<<6)+j+32] = f.v_vec[ch][(i<<7)+j+96]
 			}
 		}
-		for i := 0; i < 512; i++ { /* Window by u_vec[i] with g_synth_dtbl[i] */
-			u_vec[i] *= g_synth_dtbl[i]
+		for i := 0; i < 512; i++ { /* Window by u_vec[i] with synthDtbl[i] */
+			u_vec[i] *= synthDtbl[i]
 		}
 		for i := 0; i < 32; i++ { /* Calc 32 samples,store in outdata vector */
 			sum := float32(0)

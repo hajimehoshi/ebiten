@@ -51,7 +51,7 @@ var imdctWinData = [4][36]float32{
 	},
 }
 
-var cos_N12 = [6][12]float32{
+var cosN12 = [6][12]float32{
 	{
 		0.608761, 0.382683, 0.130526, -0.130526, -0.382683, -0.608761,
 		-0.793353, -0.923880, -0.991445, -0.991445, -0.923879, -0.793353,
@@ -78,7 +78,7 @@ var cos_N12 = [6][12]float32{
 	},
 }
 
-var cos_N36 = [18][36]float32{
+var cosN36 = [18][36]float32{
 	{
 		0.675590, 0.608761, 0.537300, 0.461749, 0.382683, 0.300706,
 		0.216440, 0.130526, 0.043619, -0.043619, -0.130526, -0.216440,
@@ -233,7 +233,7 @@ func imdctWin(in []float32, blockType int) []float32 {
 			for p := 0; p < N; p++ {
 				sum := float32(0.0)
 				for m := 0; m < N/2; m++ {
-					sum += in[i+3*m] * cos_N12[m][p]
+					sum += in[i+3*m] * cosN12[m][p]
 				}
 				out[6*i+p+6] += sum * imdctWinData[blockType][p]
 			}
@@ -244,7 +244,7 @@ func imdctWin(in []float32, blockType int) []float32 {
 	for p := 0; p < N; p++ {
 		sum := float32(0.0)
 		for m := 0; m < N/2; m++ {
-			sum += in[m] * cos_N36[m][p]
+			sum += in[m] * cosN36[m][p]
 		}
 		out[p] = sum * imdctWinData[blockType][p]
 	}

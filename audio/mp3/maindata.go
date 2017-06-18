@@ -29,11 +29,7 @@ var mpeg1_scalefac_sizes = [16][2]int{
 func (f *frame) readMainL3() error {
 	nch := f.numberOfChannels()
 	// Calculate header audio data size
-	framesize := (144*
-		g_mpeg1_bitrates[f.header.layer][f.header.bitrate_index])/
-		g_sampling_frequency[f.header.sampling_frequency] +
-		f.header.padding_bit
-
+	framesize := f.size()
 	if framesize > 2000 {
 		return fmt.Errorf("mp3: framesize = %d", framesize)
 	}

@@ -21,7 +21,7 @@ import (
 	"io"
 )
 
-var g_mpeg1_bitrates = map[mpeg1Layer][15]int{
+var mpeg1Bitrates = map[mpeg1Layer][15]int{
 	mpeg1Layer1: {
 		0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
 		256000, 288000, 320000, 352000, 384000, 416000, 448000,
@@ -36,15 +36,18 @@ var g_mpeg1_bitrates = map[mpeg1Layer][15]int{
 	},
 }
 
-var g_sampling_frequency = [3]int{44100, 48000, 32000}
+var samplingFrequency = [3]int{44100, 48000, 32000}
+
+func (f *frame) size() int {
+	return (144*mpeg1Bitrates[f.header.layer][f.header.bitrate_index])/
+		samplingFrequency[f.header.sampling_frequency] +
+		int(f.header.padding_bit)
+}
 
 func (f *frame) readAudioL3() error {
 	nch := f.numberOfChannels()
 	/* Calculate header audio data size */
-	framesize := (144*
-		g_mpeg1_bitrates[f.header.layer][f.header.bitrate_index])/
-		g_sampling_frequency[f.header.sampling_frequency] +
-		int(f.header.padding_bit)
+	framesize := f.size()
 	if framesize > 2000 {
 		return fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
