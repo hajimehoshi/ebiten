@@ -552,7 +552,7 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
 
-	nch := f.numberOfChannels()
+	nch := f.header.numberOfChannels()
 	/* Setup the n_win windowing vector and the v_vec intermediate vector */
 	for ss := 0; ss < 18; ss++ { /* Loop through 18 samples in 32 subbands */
 		for i := 1023; i > 63; i-- { /* Shift up the V vector */

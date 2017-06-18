@@ -21,35 +21,12 @@ import (
 	"io"
 )
 
-var mpeg1Bitrates = map[mpeg1Layer][15]int{
-	mpeg1Layer1: {
-		0, 32000, 64000, 96000, 128000, 160000, 192000, 224000,
-		256000, 288000, 320000, 352000, 384000, 416000, 448000,
-	},
-	mpeg1Layer2: {
-		0, 32000, 48000, 56000, 64000, 80000, 96000, 112000,
-		128000, 160000, 192000, 224000, 256000, 320000, 384000,
-	},
-	mpeg1Layer3: {
-		0, 32000, 40000, 48000, 56000, 64000, 80000, 96000,
-		112000, 128000, 160000, 192000, 224000, 256000, 320000,
-	},
-}
-
-var samplingFrequency = [3]int{44100, 48000, 32000}
-
-func (f *frame) size() int {
-	return (144*mpeg1Bitrates[f.header.layer][f.header.bitrate_index])/
-		samplingFrequency[f.header.sampling_frequency] +
-		int(f.header.padding_bit)
-}
-
-func (f *frame) readAudioL3() error {
-	nch := f.numberOfChannels()
+func readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
+	nch := header.numberOfChannels()
 	/* Calculate header audio data size */
-	framesize := f.size()
+	framesize := header.frameSize()
 	if framesize > 2000 {
-		return fmt.Errorf("mp3: framesize = %d\n", framesize)
+		return nil, fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
 	/* Sideinfo is 17 bytes for one channel and 32 bytes for two */
 	sideinfo_size := 32
@@ -59,67 +36,68 @@ func (f *frame) readAudioL3() error {
 	/* Main data size is the rest of the frame,including ancillary data */
 	main_data_size := framesize - sideinfo_size - 4 /* sync+header */
 	/* CRC is 2 bytes */
-	if f.header.protection_bit == 0 {
+	if header.protection_bit == 0 {
 		main_data_size -= 2
 	}
 	/* Read sideinfo from bitstream into buffer used by getSideBits() */
 	s, err := getSideinfo(sideinfo_size)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	/* Parse audio data */
 	/* Pointer to where we should start reading main data */
-	f.sideInfo.main_data_begin = s.getSideBits(9)
+	si := &mpeg1SideInfo{}
+	si.main_data_begin = s.getSideBits(9)
 	/* Get private bits. Not used for anything. */
-	if f.header.mode == mpeg1ModeSingleChannel {
-		f.sideInfo.private_bits = s.getSideBits(5)
+	if header.mode == mpeg1ModeSingleChannel {
+		si.private_bits = s.getSideBits(5)
 	} else {
-		f.sideInfo.private_bits = s.getSideBits(3)
+		si.private_bits = s.getSideBits(3)
 	}
 	/* Get scale factor selection information */
 	for ch := 0; ch < nch; ch++ {
 		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
-			f.sideInfo.scfsi[ch][scfsi_band] = s.getSideBits(1)
+			si.scfsi[ch][scfsi_band] = s.getSideBits(1)
 		}
 	}
 	/* Get the rest of the side information */
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			f.sideInfo.part2_3_length[gr][ch] = s.getSideBits(12)
-			f.sideInfo.big_values[gr][ch] = s.getSideBits(9)
-			f.sideInfo.global_gain[gr][ch] = s.getSideBits(8)
-			f.sideInfo.scalefac_compress[gr][ch] = s.getSideBits(4)
-			f.sideInfo.win_switch_flag[gr][ch] = s.getSideBits(1)
-			if f.sideInfo.win_switch_flag[gr][ch] == 1 {
-				f.sideInfo.block_type[gr][ch] = s.getSideBits(2)
-				f.sideInfo.mixed_block_flag[gr][ch] = s.getSideBits(1)
+			si.part2_3_length[gr][ch] = s.getSideBits(12)
+			si.big_values[gr][ch] = s.getSideBits(9)
+			si.global_gain[gr][ch] = s.getSideBits(8)
+			si.scalefac_compress[gr][ch] = s.getSideBits(4)
+			si.win_switch_flag[gr][ch] = s.getSideBits(1)
+			if si.win_switch_flag[gr][ch] == 1 {
+				si.block_type[gr][ch] = s.getSideBits(2)
+				si.mixed_block_flag[gr][ch] = s.getSideBits(1)
 				for region := 0; region < 2; region++ {
-					f.sideInfo.table_select[gr][ch][region] = s.getSideBits(5)
+					si.table_select[gr][ch][region] = s.getSideBits(5)
 				}
 				for window := 0; window < 3; window++ {
-					f.sideInfo.subblock_gain[gr][ch][window] = s.getSideBits(3)
+					si.subblock_gain[gr][ch][window] = s.getSideBits(3)
 				}
-				if (f.sideInfo.block_type[gr][ch] == 2) && (f.sideInfo.mixed_block_flag[gr][ch] == 0) {
-					f.sideInfo.region0_count[gr][ch] = 8 /* Implicit */
+				if (si.block_type[gr][ch] == 2) && (si.mixed_block_flag[gr][ch] == 0) {
+					si.region0_count[gr][ch] = 8 /* Implicit */
 				} else {
-					f.sideInfo.region0_count[gr][ch] = 7 /* Implicit */
+					si.region0_count[gr][ch] = 7 /* Implicit */
 				}
 				/* The standard is wrong on this!!! */ /* Implicit */
-				f.sideInfo.region1_count[gr][ch] = 20 - f.sideInfo.region0_count[gr][ch]
+				si.region1_count[gr][ch] = 20 - si.region0_count[gr][ch]
 			} else {
 				for region := 0; region < 3; region++ {
-					f.sideInfo.table_select[gr][ch][region] = s.getSideBits(5)
+					si.table_select[gr][ch][region] = s.getSideBits(5)
 				}
-				f.sideInfo.region0_count[gr][ch] = s.getSideBits(4)
-				f.sideInfo.region1_count[gr][ch] = s.getSideBits(3)
-				f.sideInfo.block_type[gr][ch] = 0 /* Implicit */
+				si.region0_count[gr][ch] = s.getSideBits(4)
+				si.region1_count[gr][ch] = s.getSideBits(3)
+				si.block_type[gr][ch] = 0 /* Implicit */
 			}
-			f.sideInfo.preflag[gr][ch] = s.getSideBits(1)
-			f.sideInfo.scalefac_scale[gr][ch] = s.getSideBits(1)
-			f.sideInfo.count1table_select[gr][ch] = s.getSideBits(1)
+			si.preflag[gr][ch] = s.getSideBits(1)
+			si.scalefac_scale[gr][ch] = s.getSideBits(1)
+			si.count1table_select[gr][ch] = s.getSideBits(1)
 		}
 	}
-	return nil
+	return si, nil
 }
 
 // A sideInfoBytes is a bit reservoir for side info

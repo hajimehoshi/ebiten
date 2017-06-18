@@ -63,9 +63,11 @@ func (f *frame) readNextFrame() (*frame, error) {
 		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, nf.header.layer)
 	}
 	// Get side info
-	if err := nf.readAudioL3(); err != nil {
+	s, err := readSideInfo(&nf.header)
+	if err != nil {
 		return nil, err
 	}
+	nf.sideInfo = s
 	// If there's not enough main data in the bit reservoir,
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)

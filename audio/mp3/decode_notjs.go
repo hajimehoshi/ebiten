@@ -28,16 +28,9 @@ var (
 	readerEOF   bool
 )
 
-func (f *frame) numberOfChannels() int {
-	if f.header.mode == mpeg1ModeSingleChannel {
-		return 1
-	}
-	return 2
-}
-
 func (f *frame) decodeL3() []uint8 {
 	out := make([]uint8, 576*4*2)
-	nch := f.numberOfChannels()
+	nch := f.header.numberOfChannels()
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			f.l3Requantize(gr, ch)
