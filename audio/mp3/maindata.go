@@ -21,17 +21,17 @@ import (
 	"io"
 )
 
-var mpeg1_scalefac_sizes = [16][2]int{
+var mpeg1ScalefacSizes = [16][2]int{
 	{0, 0}, {0, 1}, {0, 2}, {0, 3}, {3, 0}, {1, 1}, {1, 2}, {1, 3},
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-func (f *frame) readMainL3() error {
-	nch := f.header.numberOfChannels()
+func readMainL3(prev *mainDataBytes, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *mainDataBytes, error) {
+	nch := header.numberOfChannels()
 	// Calculate header audio data size
-	framesize := f.header.frameSize()
+	framesize := header.frameSize()
 	if framesize > 2000 {
-		return fmt.Errorf("mp3: framesize = %d", framesize)
+		return nil, nil, fmt.Errorf("mp3: framesize = %d", framesize)
 	}
 	// Sideinfo is 17 bytes for one channel and 32 bytes for two
 	sideinfo_size := 32
@@ -41,29 +41,29 @@ func (f *frame) readMainL3() error {
 	// Main data size is the rest of the frame,including ancillary data
 	main_data_size := framesize - sideinfo_size - 4 // sync+header
 	// CRC is 2 bytes
-	if f.header.protection_bit == 0 {
+	if header.protection_bit == 0 {
 		main_data_size -= 2
 	}
 	// Assemble main data buffer with data from this frame and the previous
 	// two frames. main_data_begin indicates how many bytes from previous
 	// frames that should be used. This buffer is later accessed by the
 	// getMainBits function in the same way as the side info is.
-	m, err := getMainData(f.prev, main_data_size, f.sideInfo.main_data_begin)
+	m, err := getMainData(prev, main_data_size, sideInfo.main_data_begin)
 	if err != nil {
 		// This could be due to not enough data in reservoir
-		return err
+		return nil, nil, err
 	}
-	f.mainDataBytes = m
+	md := &mpeg1MainData{}
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			part_2_start := m.getMainPos()
 			// Number of bits in the bitstream for the bands
-			slen1 := mpeg1_scalefac_sizes[f.sideInfo.scalefac_compress[gr][ch]][0]
-			slen2 := mpeg1_scalefac_sizes[f.sideInfo.scalefac_compress[gr][ch]][1]
-			if (f.sideInfo.win_switch_flag[gr][ch] != 0) && (f.sideInfo.block_type[gr][ch] == 2) {
-				if f.sideInfo.mixed_block_flag[gr][ch] != 0 {
+			slen1 := mpeg1ScalefacSizes[sideInfo.scalefac_compress[gr][ch]][0]
+			slen2 := mpeg1ScalefacSizes[sideInfo.scalefac_compress[gr][ch]][1]
+			if (sideInfo.win_switch_flag[gr][ch] != 0) && (sideInfo.block_type[gr][ch] == 2) {
+				if sideInfo.mixed_block_flag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
+						md.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
 					}
 					for sfb := 3; sfb < 12; sfb++ {
 						//slen1 for band 3-5,slen2 for 6-11
@@ -72,7 +72,7 @@ func (f *frame) readMainL3() error {
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							f.mainData.scalefac_s[gr][ch][sfb][win] = m.getMainBits(nbits)
+							md.scalefac_s[gr][ch][sfb][win] = m.getMainBits(nbits)
 						}
 					}
 				} else {
@@ -83,64 +83,64 @@ func (f *frame) readMainL3() error {
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							f.mainData.scalefac_s[gr][ch][sfb][win] = m.getMainBits(nbits)
+							md.scalefac_s[gr][ch][sfb][win] = m.getMainBits(nbits)
 						}
 					}
 				}
 			} else { // block_type == 0 if winswitch == 0
 				// Scale factor bands 0-5
-				if (f.sideInfo.scfsi[ch][0] == 0) || (gr == 0) {
+				if (sideInfo.scfsi[ch][0] == 0) || (gr == 0) {
 					for sfb := 0; sfb < 6; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
+						md.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
 					}
-				} else if (f.sideInfo.scfsi[ch][0] == 1) && (gr == 1) {
+				} else if (sideInfo.scfsi[ch][0] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 0; sfb < 6; sfb++ {
-						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
+						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 6-10
-				if (f.sideInfo.scfsi[ch][1] == 0) || (gr == 0) {
+				if (sideInfo.scfsi[ch][1] == 0) || (gr == 0) {
 					for sfb := 6; sfb < 11; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
+						md.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
 					}
-				} else if (f.sideInfo.scfsi[ch][1] == 1) && (gr == 1) {
+				} else if (sideInfo.scfsi[ch][1] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 6; sfb < 11; sfb++ {
-						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
+						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 11-15
-				if (f.sideInfo.scfsi[ch][2] == 0) || (gr == 0) {
+				if (sideInfo.scfsi[ch][2] == 0) || (gr == 0) {
 					for sfb := 11; sfb < 16; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen2)
+						md.scalefac_l[gr][ch][sfb] = m.getMainBits(slen2)
 					}
-				} else if (f.sideInfo.scfsi[ch][2] == 1) && (gr == 1) {
+				} else if (sideInfo.scfsi[ch][2] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 11; sfb < 16; sfb++ {
-						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
+						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
 					}
 				}
 				// Scale factor bands 16-20
-				if (f.sideInfo.scfsi[ch][3] == 0) || (gr == 0) {
+				if (sideInfo.scfsi[ch][3] == 0) || (gr == 0) {
 					for sfb := 16; sfb < 21; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen2)
+						md.scalefac_l[gr][ch][sfb] = m.getMainBits(slen2)
 					}
-				} else if (f.sideInfo.scfsi[ch][3] == 1) && (gr == 1) {
+				} else if (sideInfo.scfsi[ch][3] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
 					for sfb := 16; sfb < 21; sfb++ {
-						f.mainData.scalefac_l[1][ch][sfb] = f.mainData.scalefac_l[0][ch][sfb]
+						md.scalefac_l[1][ch][sfb] = md.scalefac_l[0][ch][sfb]
 					}
 				}
 			}
 			// Read Huffman coded data. Skip stuffing bits.
-			if err := f.readHuffman(part_2_start, gr, ch); err != nil {
-				return err
+			if err := m.readHuffman(header, sideInfo, md, part_2_start, gr, ch); err != nil {
+				return nil, nil, err
 			}
 		}
 	}
 	// The ancillary data is stored here,but we ignore it.
-	return nil
+	return md, m, nil
 }
 
 type mainDataBytes struct {
@@ -151,12 +151,12 @@ type mainDataBytes struct {
 	pos int
 }
 
-func getMainData(prevFrame *frame, size int, offset int) (*mainDataBytes, error) {
+func getMainData(prev *mainDataBytes, size int, offset int) (*mainDataBytes, error) {
 	if size > 1500 {
 		return nil, fmt.Errorf("mp3: size = %d", size)
 	}
 	// Check that there's data available from previous frames if needed
-	if prevFrame != nil && offset > len(prevFrame.mainDataBytes.vec) {
+	if prev != nil && offset > len(prev.vec) {
 		// No,there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
@@ -174,17 +174,16 @@ func getMainData(prevFrame *frame, size int, offset int) (*mainDataBytes, error)
 			}
 			return nil, err
 		}
-		m := &mainDataBytes{}
-		if prevFrame != nil {
-			m.vec = append(prevFrame.mainDataBytes.vec, buf...)
+		m := &mainDataBytes{
+			vec: append(prev.vec, buf...),
 		}
 		// TODO: Define a special error and enable to continue the next frame.
 		return m, fmt.Errorf("mp3: frame can't be decoded")
 	}
 	// Copy data from previous frames
 	vec := []int{}
-	if prevFrame != nil {
-		v := prevFrame.mainDataBytes.vec
+	if prev != nil {
+		v := prev.vec
 		vec = v[len(v)-offset:]
 	}
 	// Read the main_data from file

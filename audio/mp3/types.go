@@ -88,7 +88,7 @@ type frame struct {
 
 	header   *mpeg1FrameHeader
 	sideInfo *mpeg1SideInfo
-	mainData mpeg1MainData
+	mainData *mpeg1MainData
 
 	mainDataBytes *mainDataBytes
 	store         [2][32][18]float32

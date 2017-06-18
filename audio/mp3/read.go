@@ -73,9 +73,16 @@ func (f *frame) readNextFrame() (*frame, error) {
 	// If there's not enough main data in the bit reservoir,
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)
-	if err := nf.readMainL3(); err != nil {
+	var prevM *mainDataBytes
+	if f != nil {
+		prevM = f.mainDataBytes
+	}
+	md, mdb, err := readMainL3(prevM, h, s)
+	if err != nil {
 		return nil, err
 	}
+	nf.mainData = md
+	nf.mainDataBytes = mdb
 	return nf, nil
 }
 
@@ -176,90 +183,90 @@ func readHeader() (*mpeg1FrameHeader, error) {
 	return h, nil
 }
 
-func (f *frame) readHuffman(part_2_start, gr, ch int) error {
+func (m *mainDataBytes) readHuffman(header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo, mainData *mpeg1MainData, part_2_start, gr, ch int) error {
 	// Check that there is any data to decode. If not,zero the array.
-	if f.sideInfo.part2_3_length[gr][ch] == 0 {
+	if sideInfo.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < 576; is_pos++ {
-			f.mainData.is[gr][ch][is_pos] = 0.0
+			mainData.is[gr][ch][is_pos] = 0.0
 		}
 		return nil
 	}
 	// Calculate bit_pos_end which is the index of the last bit for this part.
-	bit_pos_end := part_2_start + f.sideInfo.part2_3_length[gr][ch] - 1
+	bit_pos_end := part_2_start + sideInfo.part2_3_length[gr][ch] - 1
 	// Determine region boundaries
 	region_1_start := 0
 	region_2_start := 0
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) {
+	if (sideInfo.win_switch_flag[gr][ch] == 1) && (sideInfo.block_type[gr][ch] == 2) {
 		region_1_start = 36  // sfb[9/3]*3=36
 		region_2_start = 576 // No Region2 for short block case.
 	} else {
-		sfreq := f.header.sampling_frequency
+		sfreq := header.sampling_frequency
 		region_1_start =
-			sfBandIndicesSet[sfreq].l[f.sideInfo.region0_count[gr][ch]+1]
+			sfBandIndicesSet[sfreq].l[sideInfo.region0_count[gr][ch]+1]
 		region_2_start =
-			sfBandIndicesSet[sfreq].l[f.sideInfo.region0_count[gr][ch]+
-				f.sideInfo.region1_count[gr][ch]+2]
+			sfBandIndicesSet[sfreq].l[sideInfo.region0_count[gr][ch]+
+				sideInfo.region1_count[gr][ch]+2]
 	}
 	// Read big_values using tables according to region_x_start
-	for is_pos := 0; is_pos < f.sideInfo.big_values[gr][ch]*2; is_pos++ {
+	for is_pos := 0; is_pos < sideInfo.big_values[gr][ch]*2; is_pos++ {
 		table_num := 0
 		if is_pos < region_1_start {
-			table_num = f.sideInfo.table_select[gr][ch][0]
+			table_num = sideInfo.table_select[gr][ch][0]
 		} else if is_pos < region_2_start {
-			table_num = f.sideInfo.table_select[gr][ch][1]
+			table_num = sideInfo.table_select[gr][ch][1]
 		} else {
-			table_num = f.sideInfo.table_select[gr][ch][2]
+			table_num = sideInfo.table_select[gr][ch][2]
 		}
 		// Get next Huffman coded words
-		x, y, _, _, err := huffmanDecode(f.mainDataBytes, table_num)
+		x, y, _, _, err := huffmanDecode(m, table_num)
 		if err != nil {
 			return err
 		}
 		// In the big_values area there are two freq lines per Huffman word
-		f.mainData.is[gr][ch][is_pos] = float32(x)
+		mainData.is[gr][ch][is_pos] = float32(x)
 		is_pos++
-		f.mainData.is[gr][ch][is_pos] = float32(y)
+		mainData.is[gr][ch][is_pos] = float32(y)
 	}
 	// Read small values until is_pos = 576 or we run out of huffman data
-	table_num := f.sideInfo.count1table_select[gr][ch] + 32
-	is_pos := f.sideInfo.big_values[gr][ch] * 2
-	for (is_pos <= 572) && (f.mainDataBytes.getMainPos() <= bit_pos_end) {
+	table_num := sideInfo.count1table_select[gr][ch] + 32
+	is_pos := sideInfo.big_values[gr][ch] * 2
+	for (is_pos <= 572) && (m.getMainPos() <= bit_pos_end) {
 		// Get next Huffman coded words
-		x, y, v, w, err := huffmanDecode(f.mainDataBytes, table_num)
+		x, y, v, w, err := huffmanDecode(m, table_num)
 		if err != nil {
 			return err
 		}
-		f.mainData.is[gr][ch][is_pos] = float32(v)
+		mainData.is[gr][ch][is_pos] = float32(v)
 		is_pos++
 		if is_pos >= 576 {
 			break
 		}
-		f.mainData.is[gr][ch][is_pos] = float32(w)
+		mainData.is[gr][ch][is_pos] = float32(w)
 		is_pos++
 		if is_pos >= 576 {
 			break
 		}
-		f.mainData.is[gr][ch][is_pos] = float32(x)
+		mainData.is[gr][ch][is_pos] = float32(x)
 		is_pos++
 		if is_pos >= 576 {
 			break
 		}
-		f.mainData.is[gr][ch][is_pos] = float32(y)
+		mainData.is[gr][ch][is_pos] = float32(y)
 		is_pos++
 	}
 	// Check that we didn't read past the end of this section
-	if f.mainDataBytes.getMainPos() > (bit_pos_end + 1) {
+	if m.getMainPos() > (bit_pos_end + 1) {
 		// Remove last words read
 		is_pos -= 4
 	}
 	// Setup count1 which is the index of the first sample in the rzero reg.
-	f.sideInfo.count1[gr][ch] = is_pos
+	sideInfo.count1[gr][ch] = is_pos
 	// Zero out the last part if necessary
 	for is_pos < 576 {
-		f.mainData.is[gr][ch][is_pos] = 0.0
+		mainData.is[gr][ch][is_pos] = 0.0
 		is_pos++
 	}
 	// Set the bitpos to point to the next part to read
-	f.mainDataBytes.setMainPos(bit_pos_end + 1)
+	m.setMainPos(bit_pos_end + 1)
 	return nil
 }
