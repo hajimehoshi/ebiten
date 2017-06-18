@@ -96,14 +96,14 @@ var (
 )
 
 func (f *frame) l3Requantize(gr int, ch int) {
-	/* Setup sampling frequency index */
+	// Setup sampling frequency index
 	sfreq := f.header.sampling_frequency
-	/* Determine type of block to process */
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { /* Short blocks */
-		/* Check if the first two subbands
-		 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-		if f.sideInfo.mixed_block_flag[gr][ch] != 0 { /* 2 longbl. sb  first */
-			/* First process the 2 long block subbands at the start */
+	// Determine type of block to process
+	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { // Short blocks
+		// Check if the first two subbands
+		// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
+		if f.sideInfo.mixed_block_flag[gr][ch] != 0 { // 2 longbl. sb  first
+			// First process the 2 long block subbands at the start
 			sfb := 0
 			next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
 			for i := 0; i < 36; i++ {
@@ -113,15 +113,15 @@ func (f *frame) l3Requantize(gr int, ch int) {
 				}
 				f.requantizeProcessLong(gr, ch, i, sfb)
 			}
-			/* And next the remaining,non-zero,bands which uses short blocks */
+			// And next the remaining,non-zero,bands which uses short blocks
 			sfb = 3
 			next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
 			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
 				sfBandIndicesSet[sfreq].s[sfb]
 
 			for i := 36; i < int(f.sideInfo.count1[gr][ch]); /* i++ done below! */ {
-				/* Check if we're into the next scalefac band */
-				if i == next_sfb { /* Yes */
+				// Check if we're into the next scalefac band
+				if i == next_sfb {
 					sfb++
 					next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
 					win_len = sfBandIndicesSet[sfreq].s[sfb+1] -
@@ -135,13 +135,13 @@ func (f *frame) l3Requantize(gr int, ch int) {
 				}
 
 			}
-		} else { /* Only short blocks */
+		} else { // Only short blocks
 			sfb := 0
 			next_sfb := sfBandIndicesSet[sfreq].s[sfb+1] * 3
 			win_len := sfBandIndicesSet[sfreq].s[sfb+1] -
 				sfBandIndicesSet[sfreq].s[sfb]
 			for i := 0; i < int(f.sideInfo.count1[gr][ch]); /* i++ done below! */ {
-				/* Check if we're into the next scalefac band */
+				// Check if we're into the next scalefac band
 				if i == next_sfb {
 					sfb++
 					next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
@@ -156,7 +156,7 @@ func (f *frame) l3Requantize(gr int, ch int) {
 				}
 			}
 		}
-	} else { /* Only long blocks */
+	} else { // Only long blocks
 		sfb := 0
 		next_sfb := sfBandIndicesSet[sfreq].l[sfb+1]
 		for i := 0; i < int(f.sideInfo.count1[gr][ch]); i++ {
@@ -172,13 +172,13 @@ func (f *frame) l3Requantize(gr int, ch int) {
 func (f *frame) l3Reorder(gr int, ch int) {
 	re := make([]float32, 576)
 
-	sfreq := f.header.sampling_frequency /* Setup sampling freq index */
-	/* Only reorder short blocks */
-	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { /* Short blocks */
-		/* Check if the first two subbands
-		 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
+	sfreq := f.header.sampling_frequency // Setup sampling freq index
+	// Only reorder short blocks
+	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) { // Short blocks
+		// Check if the first two subbands
+		// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
 		sfb := 0
-		/* 2 longbl. sb  first */
+		// 2 longbl. sb  first
 		if f.sideInfo.mixed_block_flag[gr][ch] != 0 {
 			sfb = 3
 		}
@@ -189,13 +189,13 @@ func (f *frame) l3Reorder(gr int, ch int) {
 			i = 0
 		}
 		for i < 576 {
-			/* Check if we're into the next scalefac band */
+			// Check if we're into the next scalefac band
 			if i == next_sfb {
-				/* Copy reordered data back to the original vector */
+				// Copy reordered data back to the original vector
 				for j := 0; j < 3*win_len; j++ {
 					f.mainData.is[gr][ch][3*sfBandIndicesSet[sfreq].s[sfb]+j] = re[j]
 				}
-				/* Check if this band is above the rzero region,if so we're done */
+				// Check if this band is above the rzero region,if so we're done
 				if i >= f.sideInfo.count1[gr][ch] {
 					return
 				}
@@ -203,14 +203,14 @@ func (f *frame) l3Reorder(gr int, ch int) {
 				next_sfb = sfBandIndicesSet[sfreq].s[sfb+1] * 3
 				win_len = sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
 			}
-			for win := 0; win < 3; win++ { /* Do the actual reordering */
+			for win := 0; win < 3; win++ { // Do the actual reordering
 				for j := 0; j < win_len; j++ {
 					re[j*3+win] = f.mainData.is[gr][ch][i]
 					i++
 				}
 			}
 		}
-		/* Copy reordered data of last band back to original vector */
+		// Copy reordered data of last band back to original vector
 		for j := 0; j < 3*win_len; j++ {
 			f.mainData.is[gr][ch][3*sfBandIndicesSet[sfreq].s[12]+j] = re[j]
 		}
@@ -224,20 +224,20 @@ var (
 func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
-	/* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
+	// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
 	is_pos := f.mainData.scalefac_l[gr][0][sfb]
 	if is_pos != 7 {
-		sfreq := f.header.sampling_frequency /* Setup sampling freq index */
+		sfreq := f.header.sampling_frequency // Setup sampling freq index
 		sfb_start := sfBandIndicesSet[sfreq].l[sfb]
 		sfb_stop := sfBandIndicesSet[sfreq].l[sfb+1]
-		if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
+		if is_pos == 6 { // tan((6*PI)/12 = PI/2) needs special treatment!
 			is_ratio_l = 1.0
 			is_ratio_r = 0.0
 		} else {
 			is_ratio_l = isRatios[is_pos] / (1.0 + isRatios[is_pos])
 			is_ratio_r = 1.0 / (1.0 + isRatios[is_pos])
 		}
-		/* Now decode all samples in this scale factor band */
+		// Now decode all samples in this scale factor band
 		for i := sfb_start; i < sfb_stop; i++ {
 			f.mainData.is[gr][0][i] *= is_ratio_l
 			f.mainData.is[gr][1][i] *= is_ratio_r
@@ -248,24 +248,24 @@ func (f *frame) stereoProcessIntensityLong(gr int, sfb int) {
 func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 	is_ratio_l := float32(0)
 	is_ratio_r := float32(0)
-	sfreq := f.header.sampling_frequency /* Setup sampling freq index */
-	/* The window length */
+	sfreq := f.header.sampling_frequency // Setup sampling freq index
+	// The window length
 	win_len := sfBandIndicesSet[sfreq].s[sfb+1] - sfBandIndicesSet[sfreq].s[sfb]
-	/* The three windows within the band has different scalefactors */
+	// The three windows within the band has different scalefactors
 	for win := 0; win < 3; win++ {
-		/* Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo */
+		// Check that((is_pos[sfb]=scalefac) != 7) => no intensity stereo
 		is_pos := f.mainData.scalefac_s[gr][0][sfb][win]
 		if is_pos != 7 {
 			sfb_start := sfBandIndicesSet[sfreq].s[sfb]*3 + win_len*win
 			sfb_stop := sfb_start + win_len
-			if is_pos == 6 { /* tan((6*PI)/12 = PI/2) needs special treatment! */
+			if is_pos == 6 { // tan((6*PI)/12 = PI/2) needs special treatment!
 				is_ratio_l = 1.0
 				is_ratio_r = 0.0
 			} else {
 				is_ratio_l = isRatios[is_pos] / (1.0 + isRatios[is_pos])
 				is_ratio_r = 1.0 / (1.0 + isRatios[is_pos])
 			}
-			/* Now decode all samples in this scale factor band */
+			// Now decode all samples in this scale factor band
 			for i := sfb_start; i < sfb_stop; i++ {
 				// https://github.com/technosaurus/PDMP3/issues/3
 				f.mainData.is[gr][0][i] *= is_ratio_l
@@ -276,19 +276,19 @@ func (f *frame) stereoProcessIntensityShort(gr int, sfb int) {
 }
 
 func (f *frame) l3Stereo(gr int) {
-	/* Do nothing if joint stereo is not enabled */
+	// Do nothing if joint stereo is not enabled
 	if (f.header.mode != 1) || (f.header.mode_extension == 0) {
 		return
 	}
-	/* Do Middle/Side("normal") stereo processing */
+	// Do Middle/Side("normal") stereo processing
 	if (f.header.mode_extension & 0x2) != 0 {
-		/* Determine how many frequency lines to transform */
+		// Determine how many frequency lines to transform
 		i := 0
 		if f.sideInfo.count1[gr][0] > f.sideInfo.count1[gr][1] {
 			i = 1
 		}
 		max_pos := int(f.sideInfo.count1[gr][i])
-		/* Do the actual processing */
+		// Do the actual processing
 		const invSqrt2 = math.Sqrt2 / 2
 		for i := 0; i < max_pos; i++ {
 			left := (f.mainData.is[gr][0][i] + f.mainData.is[gr][1][i]) * invSqrt2
@@ -297,45 +297,45 @@ func (f *frame) l3Stereo(gr int) {
 			f.mainData.is[gr][1][i] = right
 		}
 	}
-	/* Do intensity stereo processing */
+	// Do intensity stereo processing
 	if (f.header.mode_extension & 0x1) != 0 {
-		/* Setup sampling frequency index */
+		// Setup sampling frequency index
 		sfreq := f.header.sampling_frequency
-		/* First band that is intensity stereo encoded is first band scale factor
-		 * band on or above count1 frequency line. N.B.: Intensity stereo coding is
-		 * only done for higher subbands, but logic is here for lower subbands. */
-		/* Determine type of block to process */
+		// First band that is intensity stereo encoded is first band scale factor
+		// band on or above count1 frequency line. N.B.: Intensity stereo coding is
+		// only done for higher subbands, but logic is here for lower subbands.
+		// Determine type of block to process
 		if (f.sideInfo.win_switch_flag[gr][0] == 1) &&
-			(f.sideInfo.block_type[gr][0] == 2) { /* Short blocks */
-			/* Check if the first two subbands
-			 *(=2*18 samples = 8 long or 3 short sfb's) uses long blocks */
-			if f.sideInfo.mixed_block_flag[gr][0] != 0 { /* 2 longbl. sb  first */
-				for sfb := 0; sfb < 8; sfb++ { /* First process 8 sfb's at start */
-					/* Is this scale factor band above count1 for the right channel? */
+			(f.sideInfo.block_type[gr][0] == 2) { // Short blocks
+			// Check if the first two subbands
+			// (=2*18 samples = 8 long or 3 short sfb's) uses long blocks
+			if f.sideInfo.mixed_block_flag[gr][0] != 0 { // 2 longbl. sb  first
+				for sfb := 0; sfb < 8; sfb++ { // First process 8 sfb's at start
+					// Is this scale factor band above count1 for the right channel?
 					if sfBandIndicesSet[sfreq].l[sfb] >= f.sideInfo.count1[gr][1] {
 						f.stereoProcessIntensityLong(gr, sfb)
 					}
 				}
-				/* And next the remaining bands which uses short blocks */
+				// And next the remaining bands which uses short blocks
 				for sfb := 3; sfb < 12; sfb++ {
-					/* Is this scale factor band above count1 for the right channel? */
+					// Is this scale factor band above count1 for the right channel?
 					if sfBandIndicesSet[sfreq].s[sfb]*3 >= f.sideInfo.count1[gr][1] {
-						f.stereoProcessIntensityShort(gr, sfb) /* intensity stereo processing */
+						f.stereoProcessIntensityShort(gr, sfb) // intensity stereo processing
 					}
 				}
-			} else { /* Only short blocks */
+			} else { // Only short blocks
 				for sfb := 0; sfb < 12; sfb++ {
-					/* Is this scale factor band above count1 for the right channel? */
+					// Is this scale factor band above count1 for the right channel?
 					if sfBandIndicesSet[sfreq].s[sfb]*3 >= f.sideInfo.count1[gr][1] {
-						f.stereoProcessIntensityShort(gr, sfb) /* intensity stereo processing */
+						f.stereoProcessIntensityShort(gr, sfb) // intensity stereo processing
 					}
 				}
 			}
-		} else { /* Only long blocks */
+		} else { // Only long blocks
 			for sfb := 0; sfb < 21; sfb++ {
-				/* Is this scale factor band above count1 for the right channel? */
+				// Is this scale factor band above count1 for the right channel?
 				if sfBandIndicesSet[sfreq].l[sfb] >= f.sideInfo.count1[gr][1] {
-					/* Perform the intensity stereo processing */
+					// Perform the intensity stereo processing
 					f.stereoProcessIntensityLong(gr, sfb)
 				}
 			}
@@ -349,20 +349,20 @@ var (
 )
 
 func (f *frame) l3Antialias(gr int, ch int) {
-	/* No antialiasing is done for short blocks */
+	// No antialiasing is done for short blocks
 	if (f.sideInfo.win_switch_flag[gr][ch] == 1) &&
 		(f.sideInfo.block_type[gr][ch] == 2) &&
 		(f.sideInfo.mixed_block_flag[gr][ch]) == 0 {
 		return
 	}
-	/* Setup the limit for how many subbands to transform */
+	// Setup the limit for how many subbands to transform
 	sblim := 32
 	if (f.sideInfo.win_switch_flag[gr][ch] == 1) &&
 		(f.sideInfo.block_type[gr][ch] == 2) &&
 		(f.sideInfo.mixed_block_flag[gr][ch] == 1) {
 		sblim = 2
 	}
-	/* Do the actual antialiasing */
+	// Do the actual antialiasing
 	for sb := 1; sb < sblim; sb++ {
 		for i := 0; i < 8; i++ {
 			li := 18*sb - 1 - i
@@ -553,36 +553,36 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 	s_vec := make([]float32, 32)
 
 	nch := f.header.numberOfChannels()
-	/* Setup the n_win windowing vector and the v_vec intermediate vector */
-	for ss := 0; ss < 18; ss++ { /* Loop through 18 samples in 32 subbands */
-		for i := 1023; i > 63; i-- { /* Shift up the V vector */
+	// Setup the n_win windowing vector and the v_vec intermediate vector
+	for ss := 0; ss < 18; ss++ { // Loop through 18 samples in 32 subbands
+		for i := 1023; i > 63; i-- { // Shift up the V vector
 			f.v_vec[ch][i] = f.v_vec[ch][i-64]
 		}
-		for i := 0; i < 32; i++ { /* Copy next 32 time samples to a temp vector */
+		for i := 0; i < 32; i++ { // Copy next 32 time samples to a temp vector
 			s_vec[i] = f.mainData.is[gr][ch][i*18+ss]
 		}
-		for i := 0; i < 64; i++ { /* Matrix multiply input with n_win[][] matrix */
+		for i := 0; i < 64; i++ { // Matrix multiply input with n_win[][] matrix
 			sum := float32(0)
 			for j := 0; j < 32; j++ {
 				sum += synthNWin[i][j] * s_vec[j]
 			}
 			f.v_vec[ch][i] = sum
 		}
-		for i := 0; i < 8; i++ { /* Build the U vector */
-			for j := 0; j < 32; j++ { /* <<7 == *128 */
+		for i := 0; i < 8; i++ { // Build the U vector
+			for j := 0; j < 32; j++ { // <<7 == *128
 				u_vec[(i<<6)+j] = f.v_vec[ch][(i<<7)+j]
 				u_vec[(i<<6)+j+32] = f.v_vec[ch][(i<<7)+j+96]
 			}
 		}
-		for i := 0; i < 512; i++ { /* Window by u_vec[i] with synthDtbl[i] */
+		for i := 0; i < 512; i++ { // Window by u_vec[i] with synthDtbl[i]
 			u_vec[i] *= synthDtbl[i]
 		}
-		for i := 0; i < 32; i++ { /* Calc 32 samples,store in outdata vector */
+		for i := 0; i < 32; i++ { // Calc 32 samples,store in outdata vector
 			sum := float32(0)
-			for j := 0; j < 16; j++ { /* sum += u_vec[j*32 + i]; */
+			for j := 0; j < 16; j++ { // sum += u_vec[j*32 + i];
 				sum += u_vec[(j<<5)+i]
 			}
-			/* sum now contains time sample 32*ss+i. Convert to 16-bit signed int */
+			// sum now contains time sample 32*ss+i. Convert to 16-bit signed int
 			samp := int(sum * 32767)
 			if samp > 32767 {
 				samp = 32767
