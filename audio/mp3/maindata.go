@@ -147,25 +147,23 @@ func (f *frame) readMainL3() error {
 
 type mainDataBytes struct {
 	// Large static data
-	vec [2 * 1024]int
+	vec []int
 	// Pointer into the reservoir
 	ptr []int
 	// Index into the current byte(0-7)
 	idx int
-	// Number of bytes in reservoir(0-1024)
-	top int
 
 	pos int
 }
 
 var theMainDataBytes mainDataBytes
 
-func getMainData(size int, begin int) error {
+func getMainData(size int, offset int) error {
 	if size > 1500 {
 		return fmt.Errorf("mp3: size = %d", size)
 	}
 	// Check that there's data available from previous frames if needed
-	if begin > theMainDataBytes.top {
+	if offset > len(theMainDataBytes.vec) {
 		// No,there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
@@ -183,17 +181,16 @@ func getMainData(size int, begin int) error {
 			}
 			return err
 		}
-		copy(theMainDataBytes.vec[theMainDataBytes.top:], buf[:n])
+		theMainDataBytes.vec = append(theMainDataBytes.vec, buf...)
 		// Set up pointers
-		theMainDataBytes.ptr = theMainDataBytes.vec[0:]
+		theMainDataBytes.ptr = theMainDataBytes.vec
 		theMainDataBytes.pos = 0
 		theMainDataBytes.idx = 0
-		theMainDataBytes.top += size
 		// TODO: Define a special error and enable to continue the next frame.
 		return fmt.Errorf("mp3: frame can't be decoded")
 	}
 	// Copy data from previous frames
-	copy(theMainDataBytes.vec[:begin], theMainDataBytes.vec[theMainDataBytes.top-begin:theMainDataBytes.top])
+	theMainDataBytes.vec = theMainDataBytes.vec[len(theMainDataBytes.vec)-offset:]
 	// Read the main_data from file
 	buf := make([]int, size)
 	n := 0
@@ -209,12 +206,11 @@ func getMainData(size int, begin int) error {
 		}
 		return err
 	}
-	copy(theMainDataBytes.vec[begin:], buf[:n])
+	theMainDataBytes.vec = append(theMainDataBytes.vec, buf...)
 	// Set up pointers
-	theMainDataBytes.ptr = theMainDataBytes.vec[0:]
+	theMainDataBytes.ptr = theMainDataBytes.vec
 	theMainDataBytes.pos = 0
 	theMainDataBytes.idx = 0
-	theMainDataBytes.top = begin + size
 	return nil
 }
 
