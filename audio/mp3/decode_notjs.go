@@ -43,10 +43,14 @@ func (f *frame) decodeL3() []uint8 {
 }
 
 type source struct {
-	reader      io.Reader
+	reader      io.ReadCloser
 	readerCache []uint8
 	readerPos   int
 	readerEOF   bool
+}
+
+func (s *source) Close() error {
+	return s.reader.Close()
 }
 
 func (s *source) rewind() error {
@@ -134,6 +138,11 @@ func (d *Decoder) Read(buf []uint8) (int, error) {
 	return n, nil
 }
 
+// Close is io.Closer's Close.
+func (d *Decoder) Close() error {
+	return d.source.Close()
+}
+
 // SampleRate returns the sample rate like 44100.
 //
 // Note that the sample rate is retrieved from the first frame.
@@ -149,7 +158,7 @@ func (d *Decoder) Length() int64 {
 	return d.length
 }
 
-func decode(r io.Reader) (*Decoder, error) {
+func decode(r io.ReadCloser) (*Decoder, error) {
 	s := &source{
 		reader: r,
 	}

@@ -36,7 +36,7 @@ const (
 
 	// This sample rate doesn't match with wav/ogg's sample rate,
 	// but decoders adjust them.
-	sampleRate = 44100
+	sampleRate = 48000
 )
 
 var (
