@@ -21,12 +21,12 @@ import (
 	"io"
 )
 
-func readCRC() error {
+func (s *source) readCRC() error {
 	buf := make([]int, 2)
 	n := 0
 	var err error
 	for n < 2 && err == nil {
-		nn, err2 := getBytes(buf[n:])
+		nn, err2 := s.getBytes(buf[n:])
 		n += nn
 		err = err2
 	}
@@ -42,14 +42,14 @@ func readCRC() error {
 	return nil
 }
 
-func (f *frame) readNextFrame() (*frame, error) {
-	h, err := readHeader()
+func (s *source) readNextFrame(prev *frame) (*frame, error) {
+	h, err := s.readHeader()
 	if err != nil {
 		return nil, err
 	}
 	// Get CRC word if present
 	if h.protection_bit == 0 {
-		if err := readCRC(); err != nil {
+		if err := s.readCRC(); err != nil {
 			return nil, err
 		}
 	}
@@ -57,7 +57,7 @@ func (f *frame) readNextFrame() (*frame, error) {
 		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, h.layer)
 	}
 	// Get side info
-	s, err := readSideInfo(h)
+	si, err := s.readSideInfo(h)
 	if err != nil {
 		return nil, err
 	}
@@ -65,17 +65,17 @@ func (f *frame) readNextFrame() (*frame, error) {
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)
 	var prevM *mainDataBytes
-	if f != nil {
-		prevM = f.mainDataBytes
+	if prev != nil {
+		prevM = prev.mainDataBytes
 	}
-	md, mdb, err := readMainL3(prevM, h, s)
+	md, mdb, err := s.readMainL3(prevM, h, si)
 	if err != nil {
 		return nil, err
 	}
 	nf := &frame{
-		prev:          f,
+		prev:          prev,
 		header:        h,
-		sideInfo:      s,
+		sideInfo:      si,
 		mainData:      md,
 		mainDataBytes: mdb,
 	}
@@ -102,13 +102,13 @@ func isHeader(header uint32) bool {
 	return true
 }
 
-func readHeader() (*mpeg1FrameHeader, error) {
+func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 	// Get the next four bytes from the bitstream
 	buf := make([]int, 4)
 	n := 0
 	var err error
 	for n < 4 && err == nil {
-		nn, err2 := getBytes(buf[n:])
+		nn, err2 := s.getBytes(buf[n:])
 		n += nn
 		err = err2
 	}
@@ -133,7 +133,7 @@ func readHeader() (*mpeg1FrameHeader, error) {
 		b2 = b3
 		b3 = b4
 		// Get one new byte from the bitstream
-		b, err := getByte()
+		b, err := s.getByte()
 		if err != nil {
 			if err == io.EOF {
 				return nil, fmt.Errorf("mp3: unexpected EOF at readHeader")
@@ -162,23 +162,23 @@ func readHeader() (*mpeg1FrameHeader, error) {
 	// Check for invalid values and impossible combinations
 	if h.id != 3 {
 		return nil, fmt.Errorf("mp3: ID must be 3. Header word is 0x%08x at file pos %d",
-			header, getFilepos())
+			header, s.getFilepos())
 	}
 	if h.bitrate_index == 0 {
 		return nil, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
-			header, getFilepos())
+			header, s.getFilepos())
 	}
 	if h.bitrate_index == 15 {
 		return nil, fmt.Errorf("mp3: bitrate_index = 15 is invalid! Header word is 0x%08x at file pos %d",
-			header, getFilepos())
+			header, s.getFilepos())
 	}
 	if h.sampling_frequency == 3 {
 		return nil, fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
-			header, getFilepos())
+			header, s.getFilepos())
 	}
 	if h.layer == mpeg1LayerReserved {
 		return nil, fmt.Errorf("mp3: layer = %d is invalid! Header word is 0x%08x at file pos %d",
-			mpeg1LayerReserved, header, getFilepos())
+			mpeg1LayerReserved, header, s.getFilepos())
 	}
 	return h, nil
 }

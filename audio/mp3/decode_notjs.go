@@ -21,13 +21,6 @@ import (
 	"io"
 )
 
-var (
-	reader      io.Reader
-	readerCache []uint8
-	readerPos   int
-	readerEOF   bool
-)
-
 func (f *frame) decodeL3() []uint8 {
 	out := make([]uint8, 576*4*2)
 	nch := f.header.numberOfChannels()
@@ -50,31 +43,38 @@ func (f *frame) decodeL3() []uint8 {
 	return out
 }
 
-func getByte() (uint8, error) {
-	for len(readerCache) == 0 && !readerEOF {
+type source struct {
+	reader      io.Reader
+	readerCache []uint8
+	readerPos   int
+	readerEOF   bool
+}
+
+func (s *source) getByte() (uint8, error) {
+	for len(s.readerCache) == 0 && !s.readerEOF {
 		buf := make([]uint8, 4096)
-		n, err := reader.Read(buf)
-		readerCache = append(readerCache, buf[:n]...)
+		n, err := s.reader.Read(buf)
+		s.readerCache = append(s.readerCache, buf[:n]...)
 		if err != nil {
 			if err == io.EOF {
-				readerEOF = true
+				s.readerEOF = true
 			} else {
 				return 0, err
 			}
 		}
 	}
-	if len(readerCache) == 0 {
+	if len(s.readerCache) == 0 {
 		return 0, io.EOF
 	}
-	b := readerCache[0]
-	readerCache = readerCache[1:]
-	readerPos++
+	b := s.readerCache[0]
+	s.readerCache = s.readerCache[1:]
+	s.readerPos++
 	return b, nil
 }
 
-func getBytes(buf []int) (int, error) {
+func (s *source) getBytes(buf []int) (int, error) {
 	for i := range buf {
-		v, err := getByte()
+		v, err := s.getByte()
 		buf[i] = int(v)
 		if err == io.EOF {
 			return i, io.EOF
@@ -83,18 +83,20 @@ func getBytes(buf []int) (int, error) {
 	return len(buf), nil
 }
 
-func getFilepos() int {
-	return readerPos
+func (s *source) getFilepos() int {
+	return s.readerPos
 }
 
 var eof = errors.New("mp3: expected EOF")
 
 func decode(r io.Reader, w io.Writer) error {
-	reader = r
+	s := &source{
+		reader: r,
+	}
 	var f *frame
 	for {
 		var err error
-		f, err = f.readNextFrame()
+		f, err = s.readNextFrame(f)
 		if err == nil {
 			out := f.decodeL3()
 			if _, err := w.Write(out); err != nil {

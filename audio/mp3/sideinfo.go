@@ -21,7 +21,7 @@ import (
 	"io"
 )
 
-func readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
+func (src *source) readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
 	nch := header.numberOfChannels()
 	// Calculate header audio data size
 	framesize := header.frameSize()
@@ -40,7 +40,7 @@ func readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
 		main_data_size -= 2
 	}
 	// Read sideinfo from bitstream into buffer used by getSideBits()
-	s, err := getSideinfo(sideinfo_size)
+	s, err := src.getSideinfo(sideinfo_size)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +107,12 @@ type sideInfoBytes struct {
 	idx int // Index into the current byte(0-7)
 }
 
-func getSideinfo(size int) (*sideInfoBytes, error) {
+func (src *source) getSideinfo(size int) (*sideInfoBytes, error) {
 	buf := make([]int, size)
 	n := 0
 	var err error
 	for n < size && err == nil {
-		nn, err2 := getBytes(buf[n:])
+		nn, err2 := src.getBytes(buf[n:])
 		n += nn
 		err = err2
 	}
@@ -121,7 +121,7 @@ func getSideinfo(size int) (*sideInfoBytes, error) {
 			return nil, fmt.Errorf("mp3: unexpected EOF at getSideinfo")
 		}
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
-			size, getFilepos(), err)
+			size, src.getFilepos(), err)
 	}
 	s := &sideInfoBytes{
 		vec: buf[:n],

@@ -26,7 +26,7 @@ var mpeg1ScalefacSizes = [16][2]int{
 	{2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3},
 }
 
-func readMainL3(prev *mainDataBytes, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *mainDataBytes, error) {
+func (s *source) readMainL3(prev *mainDataBytes, header *mpeg1FrameHeader, sideInfo *mpeg1SideInfo) (*mpeg1MainData, *mainDataBytes, error) {
 	nch := header.numberOfChannels()
 	// Calculate header audio data size
 	framesize := header.frameSize()
@@ -48,7 +48,7 @@ func readMainL3(prev *mainDataBytes, header *mpeg1FrameHeader, sideInfo *mpeg1Si
 	// two frames. main_data_begin indicates how many bytes from previous
 	// frames that should be used. This buffer is later accessed by the
 	// getMainBits function in the same way as the side info is.
-	m, err := getMainData(prev, main_data_size, sideInfo.main_data_begin)
+	m, err := s.getMainData(prev, main_data_size, sideInfo.main_data_begin)
 	if err != nil {
 		// This could be due to not enough data in reservoir
 		return nil, nil, err
@@ -151,7 +151,7 @@ type mainDataBytes struct {
 	pos int
 }
 
-func getMainData(prev *mainDataBytes, size int, offset int) (*mainDataBytes, error) {
+func (s *source) getMainData(prev *mainDataBytes, size int, offset int) (*mainDataBytes, error) {
 	if size > 1500 {
 		return nil, fmt.Errorf("mp3: size = %d", size)
 	}
@@ -164,7 +164,7 @@ func getMainData(prev *mainDataBytes, size int, offset int) (*mainDataBytes, err
 		n := 0
 		var err error
 		for n < size && err == nil {
-			nn, err2 := getBytes(buf)
+			nn, err2 := s.getBytes(buf)
 			n += nn
 			err = err2
 		}
@@ -191,7 +191,7 @@ func getMainData(prev *mainDataBytes, size int, offset int) (*mainDataBytes, err
 	n := 0
 	var err error
 	for n < size && err == nil {
-		nn, err2 := getBytes(buf)
+		nn, err2 := s.getBytes(buf)
 		n += nn
 		err = err2
 	}
