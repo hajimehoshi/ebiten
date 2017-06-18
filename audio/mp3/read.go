@@ -88,7 +88,7 @@ func isHeader(header uint32) bool {
 }
 
 func (f *frame) readHeader() error {
-	/* Get the next four bytes from the bitstream */
+	// Get the next four bytes from the bitstream
 	buf := make([]int, 4)
 	n := 0
 	var err error
@@ -112,12 +112,12 @@ func (f *frame) readHeader() error {
 	b4 := uint32(buf[3])
 	header := (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
 	for !isHeader(uint32(header)) {
-		/* No,so scan the bitstream one byte at a time until we find it or EOF */
-		/* Shift the values one byte to the left */
+		// No,so scan the bitstream one byte at a time until we find it or EOF
+		// Shift the values one byte to the left
 		b1 = b2
 		b2 = b3
 		b3 = b4
-		/* Get one new byte from the bitstream */
+		// Get one new byte from the bitstream
 		b, err := getByte()
 		if err != nil {
 			if err == io.EOF {
@@ -127,10 +127,10 @@ func (f *frame) readHeader() error {
 		}
 		b4 = uint32(b)
 		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
-	} /* while... */
-	/* If we get here we've found the sync word,and can decode the header
-	 * which is in the low 20 bits of the 32-bit sync+header word. */
-	/* Decode the header */
+	}
+	// If we get here we've found the sync word,and can decode the header
+	// which is in the low 20 bits of the 32-bit sync+header word.
+	// Decode the header
 	f.header.id = int((header & 0x00180000) >> 19)
 	f.header.layer = mpeg1Layer((header & 0x00060000) >> 17)
 	f.header.protection_bit = int((header & 0x00010000) >> 16)
@@ -143,7 +143,7 @@ func (f *frame) readHeader() error {
 	f.header.copyright = int((header & 0x00000008) >> 3)
 	f.header.original_or_copy = int((header & 0x00000004) >> 2)
 	f.header.emphasis = int((header & 0x00000003) >> 0)
-	/* Check for invalid values and impossible combinations */
+	// Check for invalid values and impossible combinations
 	if f.header.id != 3 {
 		return fmt.Errorf("mp3: ID must be 3. Header word is 0x%08x at file pos %d",
 			header, getFilepos())
@@ -168,21 +168,21 @@ func (f *frame) readHeader() error {
 }
 
 func (f *frame) readHuffman(part_2_start, gr, ch int) error {
-	/* Check that there is any data to decode. If not,zero the array. */
+	// Check that there is any data to decode. If not,zero the array.
 	if f.sideInfo.part2_3_length[gr][ch] == 0 {
 		for is_pos := 0; is_pos < 576; is_pos++ {
 			f.mainData.is[gr][ch][is_pos] = 0.0
 		}
 		return nil
 	}
-	/* Calculate bit_pos_end which is the index of the last bit for this part. */
+	// Calculate bit_pos_end which is the index of the last bit for this part.
 	bit_pos_end := part_2_start + f.sideInfo.part2_3_length[gr][ch] - 1
-	/* Determine region boundaries */
+	// Determine region boundaries
 	region_1_start := 0
 	region_2_start := 0
 	if (f.sideInfo.win_switch_flag[gr][ch] == 1) && (f.sideInfo.block_type[gr][ch] == 2) {
-		region_1_start = 36  /* sfb[9/3]*3=36 */
-		region_2_start = 576 /* No Region2 for short block case. */
+		region_1_start = 36  // sfb[9/3]*3=36
+		region_2_start = 576 // No Region2 for short block case.
 	} else {
 		sfreq := f.header.sampling_frequency
 		region_1_start =
@@ -191,7 +191,7 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 			sfBandIndicesSet[sfreq].l[f.sideInfo.region0_count[gr][ch]+
 				f.sideInfo.region1_count[gr][ch]+2]
 	}
-	/* Read big_values using tables according to region_x_start */
+	// Read big_values using tables according to region_x_start
 	for is_pos := 0; is_pos < f.sideInfo.big_values[gr][ch]*2; is_pos++ {
 		table_num := 0
 		if is_pos < region_1_start {
@@ -201,21 +201,21 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 		} else {
 			table_num = f.sideInfo.table_select[gr][ch][2]
 		}
-		/* Get next Huffman coded words */
+		// Get next Huffman coded words
 		x, y, _, _, err := huffmanDecode(f.mainDataBytes, table_num)
 		if err != nil {
 			return err
 		}
-		/* In the big_values area there are two freq lines per Huffman word */
+		// In the big_values area there are two freq lines per Huffman word
 		f.mainData.is[gr][ch][is_pos] = float32(x)
 		is_pos++
 		f.mainData.is[gr][ch][is_pos] = float32(y)
 	}
-	/* Read small values until is_pos = 576 or we run out of huffman data */
+	// Read small values until is_pos = 576 or we run out of huffman data
 	table_num := f.sideInfo.count1table_select[gr][ch] + 32
 	is_pos := f.sideInfo.big_values[gr][ch] * 2
-	for ; (is_pos <= 572) && (f.mainDataBytes.getMainPos() <= bit_pos_end); is_pos++ {
-		/* Get next Huffman coded words */
+	for (is_pos <= 572) && (f.mainDataBytes.getMainPos() <= bit_pos_end) {
+		// Get next Huffman coded words
 		x, y, v, w, err := huffmanDecode(f.mainDataBytes, table_num)
 		if err != nil {
 			return err
@@ -236,19 +236,21 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 			break
 		}
 		f.mainData.is[gr][ch][is_pos] = float32(y)
+		is_pos++
 	}
-	/* Check that we didn't read past the end of this section */
+	// Check that we didn't read past the end of this section
 	if f.mainDataBytes.getMainPos() > (bit_pos_end + 1) {
-		/* Remove last words read */
+		// Remove last words read
 		is_pos -= 4
 	}
-	/* Setup count1 which is the index of the first sample in the rzero reg. */
+	// Setup count1 which is the index of the first sample in the rzero reg.
 	f.sideInfo.count1[gr][ch] = is_pos
-	/* Zero out the last part if necessary */
-	for ; /* is_pos comes from last for-loop */ is_pos < 576; is_pos++ {
+	// Zero out the last part if necessary
+	for is_pos < 576 {
 		f.mainData.is[gr][ch][is_pos] = 0.0
+		is_pos++
 	}
-	/* Set the bitpos to point to the next part to read */
+	// Set the bitpos to point to the next part to read
 	f.mainDataBytes.setMainPos(bit_pos_end + 1)
 	return nil
 }
