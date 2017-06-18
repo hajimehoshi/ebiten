@@ -148,8 +148,6 @@ func (f *frame) readMainL3() error {
 type mainDataBytes struct {
 	// Large static data
 	vec []int
-	// Pointer into the reservoir
-	ptr []int
 	// Index into the current byte(0-7)
 	idx int
 
@@ -183,7 +181,6 @@ func getMainData(size int, offset int) error {
 		}
 		theMainDataBytes.vec = append(theMainDataBytes.vec, buf...)
 		// Set up pointers
-		theMainDataBytes.ptr = theMainDataBytes.vec
 		theMainDataBytes.pos = 0
 		theMainDataBytes.idx = 0
 		// TODO: Define a special error and enable to continue the next frame.
@@ -208,16 +205,14 @@ func getMainData(size int, offset int) error {
 	}
 	theMainDataBytes.vec = append(theMainDataBytes.vec, buf...)
 	// Set up pointers
-	theMainDataBytes.ptr = theMainDataBytes.vec
 	theMainDataBytes.pos = 0
 	theMainDataBytes.idx = 0
 	return nil
 }
 
 func getMainBit() int {
-	tmp := uint(theMainDataBytes.ptr[0]) >> (7 - uint(theMainDataBytes.idx))
+	tmp := uint(theMainDataBytes.vec[theMainDataBytes.pos]) >> (7 - uint(theMainDataBytes.idx))
 	tmp &= 0x01
-	theMainDataBytes.ptr = theMainDataBytes.ptr[(theMainDataBytes.idx+1)>>3:]
 	theMainDataBytes.pos += (theMainDataBytes.idx + 1) >> 3
 	theMainDataBytes.idx = (theMainDataBytes.idx + 1) & 0x07
 	return int(tmp)
@@ -229,11 +224,7 @@ func getMainBits(num int) int {
 	}
 	// Form a word of the next four bytes
 	b := make([]int, 4)
-	for i := range b {
-		if len(theMainDataBytes.ptr) > i {
-			b[i] = theMainDataBytes.ptr[i]
-		}
-	}
+	copy(b, theMainDataBytes.vec[theMainDataBytes.pos:])
 	tmp := (uint32(b[0]) << 24) | (uint32(b[1]) << 16) | (uint32(b[2]) << 8) | (uint32(b[3]) << 0)
 
 	// Remove bits already used
@@ -243,7 +234,6 @@ func getMainBits(num int) int {
 	tmp = tmp >> (32 - uint(num))
 
 	// Update pointers
-	theMainDataBytes.ptr = theMainDataBytes.ptr[(theMainDataBytes.idx+num)>>3:]
 	theMainDataBytes.pos += (theMainDataBytes.idx + num) >> 3
 	theMainDataBytes.idx = (theMainDataBytes.idx + num) & 0x07
 	return int(tmp)
@@ -257,7 +247,6 @@ func getMainPos() int {
 }
 
 func setMainPos(bit_pos int) {
-	theMainDataBytes.ptr = theMainDataBytes.vec[bit_pos>>3:]
 	theMainDataBytes.pos = bit_pos >> 3
 	theMainDataBytes.idx = bit_pos & 0x7
 }
