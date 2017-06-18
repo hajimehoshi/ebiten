@@ -20,7 +20,7 @@ Note: Gamepad is not available on Safari/Android/iOS. Keyboard is not available 
 
 * 2D Graphics (Geometry/Color matrix transformation, Various composition modes, Offscreen rendering)
 * Input (Mouse, Keyboard, Gamepads, Touches)
-* Audio (Ogg/Vorbis, WAV, PCM)
+* Audio (MP3, Ogg/Vorbis, WAV, PCM)
 
 ## Web Site
 
