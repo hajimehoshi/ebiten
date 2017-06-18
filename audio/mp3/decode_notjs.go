@@ -12,14 +12,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build !js
+
+// Package mp3 provides MP3 decoder.
+//
+// This package is very experimental.
 package mp3
 
 import (
 	"github.com/hajimehoshi/go-mp3"
 
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/audio/internal/convert"
 )
 
-func decode(src audio.ReadSeekCloser) (*mp3.Decoded, error) {
-	return mp3.Decode(src)
+type Stream struct {
+	inner audio.ReadSeekCloser
+	size  int64
+}
+
+// Read is implementation of io.Reader's Read.
+func (s *Stream) Read(buf []byte) (int, error) {
+	return s.inner.Read(buf)
+}
+
+// Seek is implementation of io.Seeker's Seek.
+func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	return s.inner.Seek(offset, whence)
+}
+
+// Read is implementation of io.Closer's Close.
+func (s *Stream) Close() error {
+	return s.inner.Close()
+}
+
+// Size returns the size of decoded stream in bytes.
+func (s *Stream) Size() int64 {
+	return s.size
+}
+
+func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
+	d, err := mp3.Decode(src)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Resampling
+	var s audio.ReadSeekCloser = convert.NewSeeker(d)
+	size := d.Length()
+	if d.SampleRate() != context.SampleRate() {
+		s = convert.NewResampling(s, d.Length(), d.SampleRate(), context.SampleRate())
+		size = size * int64(context.SampleRate()) / int64(d.SampleRate())
+	}
+	return &Stream{
+		inner: s,
+		size:  size,
+	}, nil
 }
