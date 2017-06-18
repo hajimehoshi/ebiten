@@ -42,31 +42,33 @@ func readCRC() error {
 	return nil
 }
 
-func readFrame() (*frame, error) {
-	f := &frame{}
-	if err := f.readHeader(); err != nil {
+func (f *frame) readNextFrame() (*frame, error) {
+	nf := &frame{
+		prev: f,
+	}
+	if err := nf.readHeader(); err != nil {
 		return nil, err
 	}
 	// Get CRC word if present
-	if f.header.protection_bit == 0 {
+	if nf.header.protection_bit == 0 {
 		if err := readCRC(); err != nil {
 			return nil, err
 		}
 	}
-	if f.header.layer != mpeg1Layer3 {
-		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, f.header.layer)
+	if nf.header.layer != mpeg1Layer3 {
+		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, nf.header.layer)
 	}
 	// Get side info
-	if err := f.readAudioL3(); err != nil {
+	if err := nf.readAudioL3(); err != nil {
 		return nil, err
 	}
 	// If there's not enough main data in the bit reservoir,
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)
-	if err := f.readMainL3(); err != nil {
+	if err := nf.readMainL3(); err != nil {
 		return nil, err
 	}
-	return f, nil
+	return nf, nil
 }
 
 func isHeader(header uint32) bool {
@@ -200,7 +202,7 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 			table_num = f.sideInfo.table_select[gr][ch][2]
 		}
 		/* Get next Huffman coded words */
-		x, y, _, _, err := huffmanDecode(table_num)
+		x, y, _, _, err := huffmanDecode(f.mainDataBytes, table_num)
 		if err != nil {
 			return err
 		}
@@ -212,9 +214,9 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 	/* Read small values until is_pos = 576 or we run out of huffman data */
 	table_num := f.sideInfo.count1table_select[gr][ch] + 32
 	is_pos := f.sideInfo.big_values[gr][ch] * 2
-	for ; (is_pos <= 572) && (getMainPos() <= bit_pos_end); is_pos++ {
+	for ; (is_pos <= 572) && (f.mainDataBytes.getMainPos() <= bit_pos_end); is_pos++ {
 		/* Get next Huffman coded words */
-		x, y, v, w, err := huffmanDecode(table_num)
+		x, y, v, w, err := huffmanDecode(f.mainDataBytes, table_num)
 		if err != nil {
 			return err
 		}
@@ -236,7 +238,7 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 		f.mainData.is[gr][ch][is_pos] = float32(y)
 	}
 	/* Check that we didn't read past the end of this section */
-	if getMainPos() > (bit_pos_end + 1) {
+	if f.mainDataBytes.getMainPos() > (bit_pos_end + 1) {
 		/* Remove last words read */
 		is_pos -= 4
 	}
@@ -247,6 +249,6 @@ func (f *frame) readHuffman(part_2_start, gr, ch int) error {
 		f.mainData.is[gr][ch][is_pos] = 0.0
 	}
 	/* Set the bitpos to point to the next part to read */
-	setMainPos(bit_pos_end + 1)
+	f.mainDataBytes.setMainPos(bit_pos_end + 1)
 	return nil
 }

@@ -98,8 +98,10 @@ var eof = errors.New("mp3: expected EOF")
 
 func decode(r io.Reader, w io.Writer) error {
 	reader = r
+	var f *frame
 	for {
-		f, err := readFrame()
+		var err error
+		f, err = f.readNextFrame()
 		if err == nil {
 			out := f.decodeL3()
 			if _, err := w.Write(out); err != nil {

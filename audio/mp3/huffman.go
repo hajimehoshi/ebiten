@@ -345,7 +345,7 @@ var huffmanMain = [...]huffTables{
 	{huffmanTable[2261:], 31, 0},   /* Table 33 */
 }
 
-func huffmanDecode(table_num int) (x, y, v, w int, err error) {
+func huffmanDecode(m *mainDataBytes, table_num int) (x, y, v, w int, err error) {
 	point := 0
 	error := 1
 	bitsleft := 32
@@ -363,7 +363,7 @@ func huffmanDecode(table_num int) (x, y, v, w int, err error) {
 			y = int(htptr[point] & 0xf)
 			break
 		}
-		if getMainBit() != 0 { /* Go right in tree */
+		if m.getMainBit() != 0 { /* Go right in tree */
 			for (htptr[point] & 0xff) >= 250 {
 				point += int(htptr[point]) & 0xff
 			}
@@ -389,29 +389,29 @@ func huffmanDecode(table_num int) (x, y, v, w int, err error) {
 		w = (y >> 2) & 1
 		x = (y >> 1) & 1
 		y = y & 1
-		if (v > 0) && (getMainBit() == 1) {
+		if (v > 0) && (m.getMainBit() == 1) {
 			v = -v
 		}
-		if (w > 0) && (getMainBit() == 1) {
+		if (w > 0) && (m.getMainBit() == 1) {
 			w = -w
 		}
-		if (x > 0) && (getMainBit() == 1) {
+		if (x > 0) && (m.getMainBit() == 1) {
 			x = -x
 		}
-		if (y > 0) && (getMainBit() == 1) {
+		if (y > 0) && (m.getMainBit() == 1) {
 			y = -y
 		}
 	} else {
 		if (linbits > 0) && (x == 15) {
-			x += getMainBits(linbits) /* Get linbits */
+			x += m.getMainBits(linbits) /* Get linbits */
 		}
-		if (x > 0) && (getMainBit() == 1) {
+		if (x > 0) && (m.getMainBit() == 1) {
 			x = -x /* Get sign bit */
 		}
 		if (linbits > 0) && (y == 15) {
-			y += getMainBits(linbits) /* Get linbits */
+			y += m.getMainBits(linbits) /* Get linbits */
 		}
-		if (y > 0) && (getMainBit() == 1) {
+		if (y > 0) && (m.getMainBit() == 1) {
 			y = -y /* Get sign bit */
 		}
 	}

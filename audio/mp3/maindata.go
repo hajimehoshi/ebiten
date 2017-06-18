@@ -52,20 +52,22 @@ func (f *frame) readMainL3() error {
 	// two frames. main_data_begin indicates how many bytes from previous
 	// frames that should be used. This buffer is later accessed by the
 	// getMainBits function in the same way as the side info is.
-	if err := getMainData(main_data_size, f.sideInfo.main_data_begin); err != nil {
+	m, err := getMainData(f.prev, main_data_size, f.sideInfo.main_data_begin)
+	if err != nil {
 		// This could be due to not enough data in reservoir
 		return err
 	}
+	f.mainDataBytes = m
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
-			part_2_start := getMainPos()
+			part_2_start := m.getMainPos()
 			// Number of bits in the bitstream for the bands
 			slen1 := mpeg1_scalefac_sizes[f.sideInfo.scalefac_compress[gr][ch]][0]
 			slen2 := mpeg1_scalefac_sizes[f.sideInfo.scalefac_compress[gr][ch]][1]
 			if (f.sideInfo.win_switch_flag[gr][ch] != 0) && (f.sideInfo.block_type[gr][ch] == 2) {
 				if f.sideInfo.mixed_block_flag[gr][ch] != 0 {
 					for sfb := 0; sfb < 8; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
+						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
 					}
 					for sfb := 3; sfb < 12; sfb++ {
 						//slen1 for band 3-5,slen2 for 6-11
@@ -74,7 +76,7 @@ func (f *frame) readMainL3() error {
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							f.mainData.scalefac_s[gr][ch][sfb][win] = getMainBits(nbits)
+							f.mainData.scalefac_s[gr][ch][sfb][win] = m.getMainBits(nbits)
 						}
 					}
 				} else {
@@ -85,7 +87,7 @@ func (f *frame) readMainL3() error {
 							nbits = slen1
 						}
 						for win := 0; win < 3; win++ {
-							f.mainData.scalefac_s[gr][ch][sfb][win] = getMainBits(nbits)
+							f.mainData.scalefac_s[gr][ch][sfb][win] = m.getMainBits(nbits)
 						}
 					}
 				}
@@ -93,7 +95,7 @@ func (f *frame) readMainL3() error {
 				// Scale factor bands 0-5
 				if (f.sideInfo.scfsi[ch][0] == 0) || (gr == 0) {
 					for sfb := 0; sfb < 6; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
+						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
 					}
 				} else if (f.sideInfo.scfsi[ch][0] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
@@ -104,7 +106,7 @@ func (f *frame) readMainL3() error {
 				// Scale factor bands 6-10
 				if (f.sideInfo.scfsi[ch][1] == 0) || (gr == 0) {
 					for sfb := 6; sfb < 11; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen1)
+						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen1)
 					}
 				} else if (f.sideInfo.scfsi[ch][1] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
@@ -115,7 +117,7 @@ func (f *frame) readMainL3() error {
 				// Scale factor bands 11-15
 				if (f.sideInfo.scfsi[ch][2] == 0) || (gr == 0) {
 					for sfb := 11; sfb < 16; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen2)
+						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen2)
 					}
 				} else if (f.sideInfo.scfsi[ch][2] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
@@ -126,7 +128,7 @@ func (f *frame) readMainL3() error {
 				// Scale factor bands 16-20
 				if (f.sideInfo.scfsi[ch][3] == 0) || (gr == 0) {
 					for sfb := 16; sfb < 21; sfb++ {
-						f.mainData.scalefac_l[gr][ch][sfb] = getMainBits(slen2)
+						f.mainData.scalefac_l[gr][ch][sfb] = m.getMainBits(slen2)
 					}
 				} else if (f.sideInfo.scfsi[ch][3] == 1) && (gr == 1) {
 					// Copy scalefactors from granule 0 to granule 1
@@ -150,18 +152,15 @@ type mainDataBytes struct {
 	vec []int
 	// Index into the current byte(0-7)
 	idx int
-
 	pos int
 }
 
-var theMainDataBytes mainDataBytes
-
-func getMainData(size int, offset int) error {
+func getMainData(prevFrame *frame, size int, offset int) (*mainDataBytes, error) {
 	if size > 1500 {
-		return fmt.Errorf("mp3: size = %d", size)
+		return nil, fmt.Errorf("mp3: size = %d", size)
 	}
 	// Check that there's data available from previous frames if needed
-	if offset > len(theMainDataBytes.vec) {
+	if prevFrame != nil && offset > len(prevFrame.mainDataBytes.vec) {
 		// No,there is not, so we skip decoding this frame, but we have to
 		// read the main_data bits from the bitstream in case they are needed
 		// for decoding the next frame.
@@ -175,19 +174,23 @@ func getMainData(size int, offset int) error {
 		}
 		if n < size {
 			if err == io.EOF {
-				return fmt.Errorf("mp3: unexpected EOF at getMainData")
+				return nil, fmt.Errorf("mp3: unexpected EOF at getMainData")
 			}
-			return err
+			return nil, err
 		}
-		theMainDataBytes.vec = append(theMainDataBytes.vec, buf...)
-		// Set up pointers
-		theMainDataBytes.pos = 0
-		theMainDataBytes.idx = 0
+		m := &mainDataBytes{}
+		if prevFrame != nil {
+			m.vec = append(prevFrame.mainDataBytes.vec, buf...)
+		}
 		// TODO: Define a special error and enable to continue the next frame.
-		return fmt.Errorf("mp3: frame can't be decoded")
+		return m, fmt.Errorf("mp3: frame can't be decoded")
 	}
 	// Copy data from previous frames
-	theMainDataBytes.vec = theMainDataBytes.vec[len(theMainDataBytes.vec)-offset:]
+	vec := []int{}
+	if prevFrame != nil {
+		v := prevFrame.mainDataBytes.vec
+		vec = v[len(v)-offset:]
+	}
 	// Read the main_data from file
 	buf := make([]int, size)
 	n := 0
@@ -199,54 +202,53 @@ func getMainData(size int, offset int) error {
 	}
 	if n < size {
 		if err == io.EOF {
-			return fmt.Errorf("mp3: unexpected EOF at getMainData")
+			return nil, fmt.Errorf("mp3: unexpected EOF at getMainData")
 		}
-		return err
+		return nil, err
 	}
-	theMainDataBytes.vec = append(theMainDataBytes.vec, buf...)
-	// Set up pointers
-	theMainDataBytes.pos = 0
-	theMainDataBytes.idx = 0
-	return nil
+	m := &mainDataBytes{
+		vec: append(vec, buf...),
+	}
+	return m, nil
 }
 
-func getMainBit() int {
-	tmp := uint(theMainDataBytes.vec[theMainDataBytes.pos]) >> (7 - uint(theMainDataBytes.idx))
+func (m *mainDataBytes) getMainBit() int {
+	tmp := uint(m.vec[m.pos]) >> (7 - uint(m.idx))
 	tmp &= 0x01
-	theMainDataBytes.pos += (theMainDataBytes.idx + 1) >> 3
-	theMainDataBytes.idx = (theMainDataBytes.idx + 1) & 0x07
+	m.pos += (m.idx + 1) >> 3
+	m.idx = (m.idx + 1) & 0x07
 	return int(tmp)
 }
 
-func getMainBits(num int) int {
+func (m *mainDataBytes) getMainBits(num int) int {
 	if num == 0 {
 		return 0
 	}
 	// Form a word of the next four bytes
 	b := make([]int, 4)
-	copy(b, theMainDataBytes.vec[theMainDataBytes.pos:])
+	copy(b, m.vec[m.pos:])
 	tmp := (uint32(b[0]) << 24) | (uint32(b[1]) << 16) | (uint32(b[2]) << 8) | (uint32(b[3]) << 0)
 
 	// Remove bits already used
-	tmp = tmp << uint(theMainDataBytes.idx)
+	tmp = tmp << uint(m.idx)
 
 	// Remove bits after the desired bits
 	tmp = tmp >> (32 - uint(num))
 
 	// Update pointers
-	theMainDataBytes.pos += (theMainDataBytes.idx + num) >> 3
-	theMainDataBytes.idx = (theMainDataBytes.idx + num) & 0x07
+	m.pos += (m.idx + num) >> 3
+	m.idx = (m.idx + num) & 0x07
 	return int(tmp)
 }
 
-func getMainPos() int {
-	pos := theMainDataBytes.pos
+func (m *mainDataBytes) getMainPos() int {
+	pos := m.pos
 	pos *= 8 // Multiply by 8 to get number of bits
-	pos += theMainDataBytes.idx
+	pos += m.idx
 	return pos
 }
 
-func setMainPos(bit_pos int) {
-	theMainDataBytes.pos = bit_pos >> 3
-	theMainDataBytes.idx = bit_pos & 0x7
+func (m *mainDataBytes) setMainPos(bit_pos int) {
+	m.pos = bit_pos >> 3
+	m.idx = bit_pos & 0x7
 }

@@ -84,7 +84,11 @@ type mpeg1MainData struct {
 }
 
 type frame struct {
+	prev *frame
+
 	header   mpeg1FrameHeader
 	sideInfo mpeg1SideInfo
 	mainData mpeg1MainData
+
+	mainDataBytes *mainDataBytes
 }
