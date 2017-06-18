@@ -115,7 +115,8 @@ func (s *source) readHeader() (*mpeg1FrameHeader, error) {
 	if n < 4 {
 		if err == io.EOF {
 			if n == 0 {
-				return nil, eof
+				// Expected EOF
+				return nil, io.EOF
 			}
 			return nil, fmt.Errorf("mp3: unexpected EOF at readHeader")
 		}

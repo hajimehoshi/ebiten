@@ -18,23 +18,51 @@
 package mp3
 
 import (
-	"bytes"
+	"io"
 
 	"github.com/hajimehoshi/ebiten/audio"
 )
 
 type Stream struct {
-	inner *bytes.Reader
+	inner *Decoder
+	data  []uint8
+	pos   int64
+	eof   bool
 }
 
 // Read is implementation of io.Reader's Read.
-func (s *Stream) Read(p []byte) (int, error) {
-	return s.inner.Read(p)
+func (s *Stream) Read(buf []byte) (int, error) {
+	for int64(len(s.data)) <= s.pos && !s.eof {
+		buf := make([]uint8, 4096)
+		n, err := s.inner.Read(buf)
+		s.data = append(s.data, buf[:n]...)
+		if err != nil {
+			if err == io.EOF {
+				s.eof = true
+				break
+			}
+			return 0, err
+		}
+	}
+	if int64(len(s.data)) <= s.pos && s.eof {
+		return 0, io.EOF
+	}
+	n := copy(buf, s.data[s.pos:])
+	s.pos += int64(n)
+	return n, nil
 }
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.inner.Seek(offset, whence)
+	switch whence {
+	case io.SeekStart:
+		s.pos = offset
+	case io.SeekCurrent:
+		s.pos += offset
+	case io.SeekEnd:
+		panic("not implemented")
+	}
+	return s.pos, nil
 }
 
 // Read is implementation of io.Closer's Close.
@@ -44,16 +72,16 @@ func (s *Stream) Close() error {
 
 // Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
-	return int64(s.inner.Len())
+	return int64(s.inner.Length())
 }
 
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
-	var buf bytes.Buffer
-	if err := decode(src, &buf); err != nil {
+	d, err := decode(src)
+	if err != nil {
 		return nil, err
 	}
 	s := &Stream{
-		inner: bytes.NewReader(buf.Bytes()),
+		inner: d,
 	}
 	// TODO: Resampling
 	return s, nil

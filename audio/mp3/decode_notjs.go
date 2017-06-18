@@ -17,7 +17,6 @@
 package mp3
 
 import (
-	"errors"
 	"io"
 )
 
@@ -50,6 +49,17 @@ type source struct {
 	readerEOF   bool
 }
 
+func (s *source) rewind() error {
+	seeker := s.reader.(io.Seeker)
+	if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	s.readerCache = nil
+	s.readerPos = 0
+	s.readerEOF = false
+	return nil
+}
+
 func (s *source) getByte() (uint8, error) {
 	for len(s.readerCache) == 0 && !s.readerEOF {
 		buf := make([]uint8, 4096)
@@ -58,9 +68,9 @@ func (s *source) getByte() (uint8, error) {
 		if err != nil {
 			if err == io.EOF {
 				s.readerEOF = true
-			} else {
-				return 0, err
+				break
 			}
+			return 0, err
 		}
 	}
 	if len(s.readerCache) == 0 {
@@ -87,27 +97,68 @@ func (s *source) getFilepos() int {
 	return s.readerPos
 }
 
-var eof = errors.New("mp3: expected EOF")
+type Decoder struct {
+	source *source
+	length int64
+	buf    []uint8
+	frame  *frame
+	eof    bool
+}
 
-func decode(r io.Reader, w io.Writer) error {
+func (d *Decoder) Read(buf []uint8) (int, error) {
+	for len(d.buf) == 0 && !d.eof {
+		var err error
+		d.frame, err = d.source.readNextFrame(d.frame)
+		if err != nil {
+			if err == io.EOF {
+				d.eof = true
+			}
+			return 0, err
+		}
+		d.buf = append(d.buf, d.frame.decodeL3()...)
+	}
+	if d.eof {
+		return 0, io.EOF
+	}
+	n := copy(buf, d.buf)
+	d.buf = d.buf[n:]
+	return n, nil
+}
+
+// Length returns the total size in bytes.
+//
+// Length returns -1 when the total size is not available
+// e.g. when the given source is not io.Seeker.
+func (d *Decoder) Length() int64 {
+	return d.length
+}
+
+func decode(r io.Reader) (*Decoder, error) {
 	s := &source{
 		reader: r,
 	}
-	var f *frame
-	for {
-		var err error
-		f, err = s.readNextFrame(f)
-		if err == nil {
-			out := f.decodeL3()
-			if _, err := w.Write(out); err != nil {
-				return err
-			}
-			continue
-		}
-		if err == eof {
-			break
-		}
-		return err
+	d := &Decoder{
+		source: s,
+		length: -1,
 	}
-	return nil
+	if _, ok := r.(io.Seeker); ok {
+		l := int64(0)
+		var f *frame
+		for {
+			var err error
+			f, err = s.readNextFrame(f)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return nil, err
+			}
+			l += 576 * 4 * 2
+		}
+		if err := s.rewind(); err != nil {
+			return nil, err
+		}
+		d.length = l
+	}
+	return d, nil
 }
