@@ -43,33 +43,24 @@ func readCRC() error {
 }
 
 func (f *frame) readNextFrame() (*frame, error) {
-	nf := &frame{
-		prev: f,
-	}
-	if nf.prev != nil {
-		nf.store = nf.prev.store
-		nf.v_vec = nf.prev.v_vec
-	}
 	h, err := readHeader()
 	if err != nil {
 		return nil, err
 	}
-	nf.header = h
 	// Get CRC word if present
-	if nf.header.protection_bit == 0 {
+	if h.protection_bit == 0 {
 		if err := readCRC(); err != nil {
 			return nil, err
 		}
 	}
-	if nf.header.layer != mpeg1Layer3 {
-		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, nf.header.layer)
+	if h.layer != mpeg1Layer3 {
+		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, h.layer)
 	}
 	// Get side info
-	s, err := readSideInfo(nf.header)
+	s, err := readSideInfo(h)
 	if err != nil {
 		return nil, err
 	}
-	nf.sideInfo = s
 	// If there's not enough main data in the bit reservoir,
 	// signal to calling function so that decoding isn't done!
 	// Get main data(scalefactors and Huffman coded frequency data)
@@ -81,8 +72,17 @@ func (f *frame) readNextFrame() (*frame, error) {
 	if err != nil {
 		return nil, err
 	}
-	nf.mainData = md
-	nf.mainDataBytes = mdb
+	nf := &frame{
+		prev:          f,
+		header:        h,
+		sideInfo:      s,
+		mainData:      md,
+		mainDataBytes: mdb,
+	}
+	if nf.prev != nil {
+		nf.store = nf.prev.store
+		nf.v_vec = nf.prev.v_vec
+	}
 	return nf, nil
 }
 
