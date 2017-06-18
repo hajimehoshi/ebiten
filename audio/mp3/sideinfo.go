@@ -23,44 +23,44 @@ import (
 
 func readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
 	nch := header.numberOfChannels()
-	/* Calculate header audio data size */
+	// Calculate header audio data size
 	framesize := header.frameSize()
 	if framesize > 2000 {
 		return nil, fmt.Errorf("mp3: framesize = %d\n", framesize)
 	}
-	/* Sideinfo is 17 bytes for one channel and 32 bytes for two */
+	// Sideinfo is 17 bytes for one channel and 32 bytes for two
 	sideinfo_size := 32
 	if nch == 1 {
 		sideinfo_size = 17
 	}
-	/* Main data size is the rest of the frame,including ancillary data */
-	main_data_size := framesize - sideinfo_size - 4 /* sync+header */
-	/* CRC is 2 bytes */
+	// Main data size is the rest of the frame,including ancillary data
+	main_data_size := framesize - sideinfo_size - 4 // sync+header
+	// CRC is 2 bytes
 	if header.protection_bit == 0 {
 		main_data_size -= 2
 	}
-	/* Read sideinfo from bitstream into buffer used by getSideBits() */
+	// Read sideinfo from bitstream into buffer used by getSideBits()
 	s, err := getSideinfo(sideinfo_size)
 	if err != nil {
 		return nil, err
 	}
-	/* Parse audio data */
-	/* Pointer to where we should start reading main data */
+	// Parse audio data
+	// Pointer to where we should start reading main data
 	si := &mpeg1SideInfo{}
 	si.main_data_begin = s.getSideBits(9)
-	/* Get private bits. Not used for anything. */
+	// Get private bits. Not used for anything.
 	if header.mode == mpeg1ModeSingleChannel {
 		si.private_bits = s.getSideBits(5)
 	} else {
 		si.private_bits = s.getSideBits(3)
 	}
-	/* Get scale factor selection information */
+	// Get scale factor selection information
 	for ch := 0; ch < nch; ch++ {
 		for scfsi_band := 0; scfsi_band < 4; scfsi_band++ {
 			si.scfsi[ch][scfsi_band] = s.getSideBits(1)
 		}
 	}
-	/* Get the rest of the side information */
+	// Get the rest of the side information
 	for gr := 0; gr < 2; gr++ {
 		for ch := 0; ch < nch; ch++ {
 			si.part2_3_length[gr][ch] = s.getSideBits(12)
@@ -78,11 +78,12 @@ func readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
 					si.subblock_gain[gr][ch][window] = s.getSideBits(3)
 				}
 				if (si.block_type[gr][ch] == 2) && (si.mixed_block_flag[gr][ch] == 0) {
-					si.region0_count[gr][ch] = 8 /* Implicit */
+					si.region0_count[gr][ch] = 8 // Implicit
 				} else {
-					si.region0_count[gr][ch] = 7 /* Implicit */
+					si.region0_count[gr][ch] = 7 // Implicit
 				}
-				/* The standard is wrong on this!!! */ /* Implicit */
+				// The standard is wrong on this!!!
+				// Implicit
 				si.region1_count[gr][ch] = 20 - si.region0_count[gr][ch]
 			} else {
 				for region := 0; region < 3; region++ {
@@ -90,7 +91,7 @@ func readSideInfo(header *mpeg1FrameHeader) (*mpeg1SideInfo, error) {
 				}
 				si.region0_count[gr][ch] = s.getSideBits(4)
 				si.region1_count[gr][ch] = s.getSideBits(3)
-				si.block_type[gr][ch] = 0 /* Implicit */
+				si.block_type[gr][ch] = 0 // Implicit
 			}
 			si.preflag[gr][ch] = s.getSideBits(1)
 			si.scalefac_scale[gr][ch] = s.getSideBits(1)
