@@ -91,4 +91,6 @@ type frame struct {
 	mainData mpeg1MainData
 
 	mainDataBytes *mainDataBytes
+	store         [2][32][18]float32
+	v_vec         [2][1024]float32
 }

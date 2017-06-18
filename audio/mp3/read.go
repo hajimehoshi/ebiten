@@ -46,6 +46,10 @@ func (f *frame) readNextFrame() (*frame, error) {
 	nf := &frame{
 		prev: f,
 	}
+	if nf.prev != nil {
+		nf.store = nf.prev.store
+		nf.v_vec = nf.prev.v_vec
+	}
 	if err := nf.readHeader(); err != nil {
 		return nil, err
 	}

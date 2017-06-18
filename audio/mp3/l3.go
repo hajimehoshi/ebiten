@@ -375,8 +375,6 @@ func (f *frame) l3Antialias(gr int, ch int) {
 	}
 }
 
-var store = [2][32][18]float32{}
-
 func (f *frame) l3HybridSynthesis(gr int, ch int) {
 	// Loop through all 32 subbands
 	for sb := 0; sb < 32; sb++ {
@@ -394,8 +392,8 @@ func (f *frame) l3HybridSynthesis(gr int, ch int) {
 		rawout := imdctWin(in, bt)
 		// Overlapp add with stored vector into main_data vector
 		for i := 0; i < 18; i++ {
-			f.mainData.is[gr][ch][sb*18+i] = rawout[i] + store[ch][sb][i]
-			store[ch][sb][i] = rawout[i+18]
+			f.mainData.is[gr][ch][sb*18+i] = rawout[i] + f.store[ch][sb][i]
+			f.store[ch][sb][i] = rawout[i+18]
 		}
 	}
 }
@@ -550,8 +548,6 @@ var g_synth_dtbl = [512]float32{
 	0.000015259, 0.000015259, 0.000015259, 0.000015259,
 }
 
-var v_vec = [2][1024]float32{}
-
 func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 	u_vec := make([]float32, 512)
 	s_vec := make([]float32, 32)
@@ -560,7 +556,7 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 	/* Setup the n_win windowing vector and the v_vec intermediate vector */
 	for ss := 0; ss < 18; ss++ { /* Loop through 18 samples in 32 subbands */
 		for i := 1023; i > 63; i-- { /* Shift up the V vector */
-			v_vec[ch][i] = v_vec[ch][i-64]
+			f.v_vec[ch][i] = f.v_vec[ch][i-64]
 		}
 		for i := 0; i < 32; i++ { /* Copy next 32 time samples to a temp vector */
 			s_vec[i] = f.mainData.is[gr][ch][i*18+ss]
@@ -570,12 +566,12 @@ func (f *frame) l3SubbandSynthesis(gr int, ch int, out []uint8) {
 			for j := 0; j < 32; j++ {
 				sum += g_synth_n_win[i][j] * s_vec[j]
 			}
-			v_vec[ch][i] = sum
+			f.v_vec[ch][i] = sum
 		}
 		for i := 0; i < 8; i++ { /* Build the U vector */
 			for j := 0; j < 32; j++ { /* <<7 == *128 */
-				u_vec[(i<<6)+j] = v_vec[ch][(i<<7)+j]
-				u_vec[(i<<6)+j+32] = v_vec[ch][(i<<7)+j+96]
+				u_vec[(i<<6)+j] = f.v_vec[ch][(i<<7)+j]
+				u_vec[(i<<6)+j+32] = f.v_vec[ch][(i<<7)+j+96]
 			}
 		}
 		for i := 0; i < 512; i++ { /* Window by u_vec[i] with g_synth_dtbl[i] */
