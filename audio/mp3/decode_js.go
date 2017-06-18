@@ -39,9 +39,22 @@ func (s *Stream) Read(b []byte) (int, error) {
 		l = len(b)
 	}
 	l = l / 4 * 4
+	const max = 1<<15 - 1
 	for i := 0; i < l/4; i++ {
-		il := int16(s.leftData[s.posInBytes/4+i] * (1 << 15))
-		ir := int16(s.rightData[s.posInBytes/4+i] * (1 << 15))
+		il := int32(s.leftData[s.posInBytes/4+i] * max)
+		if il > max {
+			il = max
+		}
+		if il < -max {
+			il = -max
+		}
+		ir := int32(s.rightData[s.posInBytes/4+i] * max)
+		if ir > max {
+			ir = max
+		}
+		if ir < -max {
+			ir = -max
+		}
 		b[4*i] = uint8(il)
 		b[4*i+1] = uint8(il >> 8)
 		b[4*i+2] = uint8(ir)
@@ -62,7 +75,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	case 1:
 		next = int64(s.posInBytes) + offset
 	case 2:
-		next = int64(len(s.leftData)*4) + offset
+		next = s.Size() + offset
 	}
 	s.posInBytes = int(next)
 	return next, nil
