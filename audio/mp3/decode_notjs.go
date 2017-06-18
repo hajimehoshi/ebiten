@@ -98,24 +98,33 @@ func (s *source) getFilepos() int {
 }
 
 type Decoder struct {
-	source *source
-	length int64
-	buf    []uint8
-	frame  *frame
-	eof    bool
+	source     *source
+	sampleRate int
+	length     int64
+	buf        []uint8
+	frame      *frame
+	eof        bool
 }
 
+func (d *Decoder) read() error {
+	var err error
+	d.frame, err = d.source.readNextFrame(d.frame)
+	if err != nil {
+		if err == io.EOF {
+			d.eof = true
+		}
+		return err
+	}
+	d.buf = append(d.buf, d.frame.decodeL3()...)
+	return nil
+}
+
+// Read is io.Reader's Read.
 func (d *Decoder) Read(buf []uint8) (int, error) {
 	for len(d.buf) == 0 && !d.eof {
-		var err error
-		d.frame, err = d.source.readNextFrame(d.frame)
-		if err != nil {
-			if err == io.EOF {
-				d.eof = true
-			}
+		if err := d.read(); err != nil {
 			return 0, err
 		}
-		d.buf = append(d.buf, d.frame.decodeL3()...)
 	}
 	if d.eof {
 		return 0, io.EOF
@@ -123,6 +132,13 @@ func (d *Decoder) Read(buf []uint8) (int, error) {
 	n := copy(buf, d.buf)
 	d.buf = d.buf[n:]
 	return n, nil
+}
+
+// SampleRate returns the sample rate like 44100.
+//
+// Note that the sample rate is retrieved from the first frame.
+func (d *Decoder) SampleRate() int {
+	return d.sampleRate
 }
 
 // Length returns the total size in bytes.
@@ -160,5 +176,9 @@ func decode(r io.Reader) (*Decoder, error) {
 		}
 		d.length = l
 	}
+	if err := d.read(); err != nil {
+		return nil, err
+	}
+	d.sampleRate = samplingFrequency[d.frame.header.sampling_frequency]
 	return d, nil
 }

@@ -110,7 +110,7 @@ var mpeg1Bitrates = map[mpeg1Layer][15]int{
 	},
 }
 
-var samplingFrequency = [3]int{44100, 48000, 32000}
+var samplingFrequency = []int{44100, 48000, 32000}
 
 func (h *mpeg1FrameHeader) frameSize() int {
 	return (144*mpeg1Bitrates[h.layer][h.bitrate_index])/
