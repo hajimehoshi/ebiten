@@ -50,9 +50,11 @@ func (f *frame) readNextFrame() (*frame, error) {
 		nf.store = nf.prev.store
 		nf.v_vec = nf.prev.v_vec
 	}
-	if err := nf.readHeader(); err != nil {
+	h, err := readHeader()
+	if err != nil {
 		return nil, err
 	}
+	nf.header = h
 	// Get CRC word if present
 	if nf.header.protection_bit == 0 {
 		if err := readCRC(); err != nil {
@@ -63,7 +65,7 @@ func (f *frame) readNextFrame() (*frame, error) {
 		return nil, fmt.Errorf("mp3: only layer3 (want %d; got %d) is supported!", mpeg1Layer3, nf.header.layer)
 	}
 	// Get side info
-	s, err := readSideInfo(&nf.header)
+	s, err := readSideInfo(nf.header)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +95,7 @@ func isHeader(header uint32) bool {
 	return true
 }
 
-func (f *frame) readHeader() error {
+func readHeader() (*mpeg1FrameHeader, error) {
 	// Get the next four bytes from the bitstream
 	buf := make([]int, 4)
 	n := 0
@@ -106,11 +108,11 @@ func (f *frame) readHeader() error {
 	if n < 4 {
 		if err == io.EOF {
 			if n == 0 {
-				return eof
+				return nil, eof
 			}
-			return fmt.Errorf("mp3: unexpected EOF at readHeader")
+			return nil, fmt.Errorf("mp3: unexpected EOF at readHeader")
 		}
-		return err
+		return nil, err
 	}
 	b1 := uint32(buf[0])
 	b2 := uint32(buf[1])
@@ -127,9 +129,9 @@ func (f *frame) readHeader() error {
 		b, err := getByte()
 		if err != nil {
 			if err == io.EOF {
-				return fmt.Errorf("mp3: unexpected EOF at readHeader")
+				return nil, fmt.Errorf("mp3: unexpected EOF at readHeader")
 			}
-			return err
+			return nil, err
 		}
 		b4 = uint32(b)
 		header = (b1 << 24) | (b2 << 16) | (b3 << 8) | (b4 << 0)
@@ -137,40 +139,41 @@ func (f *frame) readHeader() error {
 	// If we get here we've found the sync word,and can decode the header
 	// which is in the low 20 bits of the 32-bit sync+header word.
 	// Decode the header
-	f.header.id = int((header & 0x00180000) >> 19)
-	f.header.layer = mpeg1Layer((header & 0x00060000) >> 17)
-	f.header.protection_bit = int((header & 0x00010000) >> 16)
-	f.header.bitrate_index = int((header & 0x0000f000) >> 12)
-	f.header.sampling_frequency = int((header & 0x00000c00) >> 10)
-	f.header.padding_bit = int((header & 0x00000200) >> 9)
-	f.header.private_bit = int((header & 0x00000100) >> 8)
-	f.header.mode = mpeg1Mode((header & 0x000000c0) >> 6)
-	f.header.mode_extension = int((header & 0x00000030) >> 4)
-	f.header.copyright = int((header & 0x00000008) >> 3)
-	f.header.original_or_copy = int((header & 0x00000004) >> 2)
-	f.header.emphasis = int((header & 0x00000003) >> 0)
+	h := &mpeg1FrameHeader{}
+	h.id = int((header & 0x00180000) >> 19)
+	h.layer = mpeg1Layer((header & 0x00060000) >> 17)
+	h.protection_bit = int((header & 0x00010000) >> 16)
+	h.bitrate_index = int((header & 0x0000f000) >> 12)
+	h.sampling_frequency = int((header & 0x00000c00) >> 10)
+	h.padding_bit = int((header & 0x00000200) >> 9)
+	h.private_bit = int((header & 0x00000100) >> 8)
+	h.mode = mpeg1Mode((header & 0x000000c0) >> 6)
+	h.mode_extension = int((header & 0x00000030) >> 4)
+	h.copyright = int((header & 0x00000008) >> 3)
+	h.original_or_copy = int((header & 0x00000004) >> 2)
+	h.emphasis = int((header & 0x00000003) >> 0)
 	// Check for invalid values and impossible combinations
-	if f.header.id != 3 {
-		return fmt.Errorf("mp3: ID must be 3. Header word is 0x%08x at file pos %d",
+	if h.id != 3 {
+		return nil, fmt.Errorf("mp3: ID must be 3. Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if f.header.bitrate_index == 0 {
-		return fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
+	if h.bitrate_index == 0 {
+		return nil, fmt.Errorf("mp3: Free bitrate format NIY! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if f.header.bitrate_index == 15 {
-		return fmt.Errorf("mp3: bitrate_index = 15 is invalid! Header word is 0x%08x at file pos %d",
+	if h.bitrate_index == 15 {
+		return nil, fmt.Errorf("mp3: bitrate_index = 15 is invalid! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if f.header.sampling_frequency == 3 {
-		return fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
+	if h.sampling_frequency == 3 {
+		return nil, fmt.Errorf("mp3: sampling_frequency = 3 is invalid! Header word is 0x%08x at file pos %d",
 			header, getFilepos())
 	}
-	if f.header.layer == mpeg1LayerReserved {
-		return fmt.Errorf("mp3: layer = %d is invalid! Header word is 0x%08x at file pos %d",
+	if h.layer == mpeg1LayerReserved {
+		return nil, fmt.Errorf("mp3: layer = %d is invalid! Header word is 0x%08x at file pos %d",
 			mpeg1LayerReserved, header, getFilepos())
 	}
-	return nil
+	return h, nil
 }
 
 func (f *frame) readHuffman(part_2_start, gr, ch int) error {
