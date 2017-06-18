@@ -122,13 +122,13 @@ func (f *frame) readAudioL3() error {
 	return nil
 }
 
-// A sideInfo is a bit reservoir for side info
-type sideInfo struct {
+// A sideInfoBytes is a bit reservoir for side info
+type sideInfoBytes struct {
 	vec []int
 	idx int // Index into the current byte(0-7)
 }
 
-func getSideinfo(size int) (*sideInfo, error) {
+func getSideinfo(size int) (*sideInfoBytes, error) {
 	buf := make([]int, size)
 	n := 0
 	var err error
@@ -144,13 +144,13 @@ func getSideinfo(size int) (*sideInfo, error) {
 		return nil, fmt.Errorf("mp3: couldn't read sideinfo %d bytes at pos %d: %v",
 			size, getFilepos(), err)
 	}
-	s := &sideInfo{
+	s := &sideInfoBytes{
 		vec: buf[:n],
 	}
 	return s, nil
 }
 
-func (s *sideInfo) getSideBits(num int) int {
+func (s *sideInfoBytes) getSideBits(num int) int {
 	// Form a word of the next four bytes
 	// TODO: endianness?
 	b := make([]int, 4)
