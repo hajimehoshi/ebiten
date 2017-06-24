@@ -17,6 +17,14 @@ http://mart.kitunebi.com/music_act.html
 Harpie's Feather (ハルピュイアの羽) by Napi
 ```
 
+## game2.mp3
+
+```
+http://mart.kitunebi.com/music_act.html
+
+ノアの羽舟 by Napi
+```
+
 ## ragtime.ogg
 
 ```

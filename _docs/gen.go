@@ -141,10 +141,15 @@ func (e *example) Height() int {
 	return e.ThumbHeight * 2
 }
 
-const commentForBlocks = `// Please read examples/blocks/main.go and examples/blocks/blocks/*.go
-// NOTE: If Gamepad API is available in your browswer, you can use gamepads. Try it out!`
-
 func (e *example) Source() string {
+	const (
+		commentFor2048   = `// Please read examples/2048/main.go and examples/2048/2048/*.go`
+		commentForBlocks = `// Please read examples/blocks/main.go and examples/blocks/blocks/*.go
+// NOTE: If Gamepad API is available in your browswer, you can use gamepads. Try it out!`
+	)
+	if e.Name == "2048" {
+		return commentFor2048
+	}
 	if e.Name == "blocks" {
 		return commentForBlocks
 	}
@@ -181,6 +186,7 @@ var examples = []example{
 	{"piano", 320, 240},
 	{"rotate", 320, 240},
 	{"sprites", 320, 240},
+	{"2048", 210, 300},
 	{"blocks", 256, 240},
 }
 
@@ -324,12 +330,9 @@ func outputExample(e *example) error {
 }
 
 func main() {
-	// Do not call temporarily.
-	// TODO: Uncomment this out after 1.4 stable is released.
-	// docs/examples/_resource/images/arcade.png should also be remove.
-	/*if err := clear(); err != nil {
+	if err := clear(); err != nil {
 		log.Fatal(err)
-	}*/
+	}
 	if err := outputMain(); err != nil {
 		log.Fatal(err)
 	}
