@@ -88,8 +88,8 @@ type Player struct {
 	input        *Input
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
+	current      time.Duration
 	total        time.Duration
-	seekedCh     chan error
 	seBytes      []uint8
 	seCh         chan []uint8
 	volume128    int
@@ -162,13 +162,10 @@ func (p *Player) update() error {
 	case p.seBytes = <-p.seCh:
 		close(p.seCh)
 		p.seCh = nil
-	case err := <-p.seekedCh:
-		if err != nil {
-			return err
-		}
-		close(p.seekedCh)
-		p.seekedCh = nil
 	default:
+	}
+	if p.audioPlayer.IsPlaying() {
+		p.current = p.audioPlayer.Current()
 	}
 	p.updateBar()
 	p.updatePlayPause()
@@ -219,9 +216,6 @@ func (p *Player) updatePlayPause() {
 }
 
 func (p *Player) updateBar() {
-	if p.seekedCh != nil {
-		return
-	}
 	if !p.input.isMouseButtonTriggered(ebiten.MouseButtonLeft) {
 		return
 	}
@@ -236,10 +230,8 @@ func (p *Player) updateBar() {
 		return
 	}
 	pos := time.Duration(x-bx) * p.total / time.Duration(bw)
-	p.seekedCh = make(chan error, 1)
-	go func() {
-		p.seekedCh <- p.audioPlayer.Seek(pos)
-	}()
+	p.current = pos
+	p.audioPlayer.Seek(pos)
 }
 
 func (p *Player) close() error {
@@ -252,11 +244,9 @@ func (p *Player) draw(screen *ebiten.Image) {
 	op.GeoM.Translate(float64(x), float64(y))
 	screen.DrawImage(playerBarImage, op)
 	currentTimeStr := "00:00"
-	c := p.audioPlayer.Current()
-	prev := p.previousPos
-	p.previousPos = c
 
 	// Current Time
+	c := p.current
 	m := (c / time.Minute) % 100
 	s := (c / time.Second) % 60
 	currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
@@ -274,7 +264,10 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-	if p.audioPlayer.IsPlaying() && prev == c {
+	current := p.audioPlayer.Current()
+	prev := p.previousPos
+	p.previousPos = p.audioPlayer.Current()
+	if p.audioPlayer.IsPlaying() && prev == current {
 		msg += "\nLoading..."
 	}
 	ebitenutil.DebugPrint(screen, msg)

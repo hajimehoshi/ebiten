@@ -477,6 +477,15 @@ func (p *Player) Seek(offset time.Duration) error {
 	if err != nil {
 		return err
 	}
+	// When the player p is not playing, as readToBuffer is never called,
+	// seekCh will never solved.
+	// Solve the current seeking here if necessary.
+	select {
+	case pos := <-p.seekCh:
+		p.buf = []uint8{}
+		p.pos = pos
+	default:
+	}
 	p.seekCh <- pos
 	return nil
 }
