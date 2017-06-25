@@ -34,7 +34,7 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 
-	// This sample rate doesn't match with wav/ogg's sample rate,
+	// This sample rate doesn't match with wav/mp3's sample rate,
 	// but decoders adjust them.
 	sampleRate = 48000
 )

@@ -55,7 +55,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, err
 	}
 	// TODO: Resampling
-	var s audio.ReadSeekCloser = convert.NewSeeker(d)
+	var s audio.ReadSeekCloser = d
 	size := d.Length()
 	if d.SampleRate() != context.SampleRate() {
 		s = convert.NewResampling(s, d.Length(), d.SampleRate(), context.SampleRate())
