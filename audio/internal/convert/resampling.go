@@ -29,25 +29,29 @@ func sinc(x float64) float64 {
 }
 
 type Resampling struct {
-	source    audio.ReadSeekCloser
-	size      int64
-	from      int
-	to        int
-	pos       int64
-	srcPos    int64
-	srcCacheL []float64
-	srcCacheR []float64
+	source   audio.ReadSeekCloser
+	size     int64
+	from     int
+	to       int
+	pos      int64
+	srcBlock int64
+	srcBufL  map[int64][]float64
+	srcBufR  map[int64][]float64
+	lruBlock []int64
 }
+
+const resamplingBufferSize = 4096
 
 func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resampling {
 	r := &Resampling{
-		source: source,
-		size:   size,
-		from:   from,
-		to:     to,
+		source:   source,
+		size:     size,
+		from:     from,
+		to:       to,
+		srcBlock: -1,
+		srcBufL:  map[int64][]float64{},
+		srcBufR:  map[int64][]float64{},
 	}
-	r.srcCacheL = make([]float64, r.size/4)
-	r.srcCacheR = make([]float64, r.size/4)
 	return r
 }
 
@@ -61,27 +65,63 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 	if i < 0 {
 		return 0, 0, nil
 	}
-	if len(r.srcCacheL) <= i {
+	if r.Size()/4 <= int64(i) {
 		return 0, 0, nil
 	}
-	pos := int(r.srcPos) / 4
-	if pos <= i {
-		buf := make([]uint8, 4096)
-		n, err := r.source.Read(buf)
-		if err != nil && err != io.EOF {
-			return 0, 0, err
+	nextPos := int64(i) / resamplingBufferSize
+	if _, ok := r.srcBufL[nextPos]; !ok {
+		if r.srcBlock+1 != nextPos {
+			if _, err := r.source.Seek(nextPos*resamplingBufferSize*4, io.SeekStart); err != nil {
+				return 0, 0, err
+			}
 		}
-		n = n / 4 * 4
-		buf = buf[:n]
+		buf := make([]uint8, resamplingBufferSize*4)
+		c := 0
+		for c < len(buf) {
+			n, err := r.source.Read(buf[c:])
+			c += n
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return 0, 0, err
+			}
+		}
+		buf = buf[:c]
+		sl := make([]float64, resamplingBufferSize)
+		sr := make([]float64, resamplingBufferSize)
 		for i := 0; i < len(buf)/4; i++ {
-			srcL := float64(int16(buf[4*i])|(int16(buf[4*i+1])<<8)) / (1<<15 - 1)
-			srcR := float64(int16(buf[4*i+2])|(int16(buf[4*i+3])<<8)) / (1<<15 - 1)
-			r.srcCacheL[pos+i] = srcL
-			r.srcCacheR[pos+i] = srcR
+			sl[i] = float64(int16(buf[4*i])|(int16(buf[4*i+1])<<8)) / (1<<15 - 1)
+			sr[i] = float64(int16(buf[4*i+2])|(int16(buf[4*i+3])<<8)) / (1<<15 - 1)
 		}
-		r.srcPos += int64(n)
+		r.srcBlock = nextPos
+		r.srcBufL[r.srcBlock] = sl
+		r.srcBufR[r.srcBlock] = sr
+		// To keep srcBufL/R not too big, let's remove the least used buffers.
+		if len(r.lruBlock) >= 4 {
+			p := r.lruBlock[0]
+			delete(r.srcBufL, p)
+			delete(r.srcBufR, p)
+			r.lruBlock = r.lruBlock[1:]
+		}
+		r.lruBlock = append(r.lruBlock, r.srcBlock)
+	} else {
+		r.srcBlock = nextPos
+		idx := -1
+		for i, p := range r.lruBlock {
+			if p == r.srcBlock {
+				idx = i
+				break
+			}
+		}
+		if idx == -1 {
+			panic("not reach")
+		}
+		r.lruBlock = append(r.lruBlock[:idx], r.lruBlock[idx+1:]...)
+		r.lruBlock = append(r.lruBlock, r.srcBlock)
 	}
-	return r.srcCacheL[i], r.srcCacheR[i], nil
+	ii := i % resamplingBufferSize
+	return r.srcBufL[r.srcBlock][ii], r.srcBufR[r.srcBlock][ii], nil
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
