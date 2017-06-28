@@ -170,11 +170,13 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 // You can also call Update independently from the game loop as 'async mode'.
 // In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
-	players      *players
-	driver       *oto.Player
-	sampleRate   int
-	frames       int64
-	writtenBytes int64
+	players       *players
+	playerWriteCh chan []uint8
+	playerErrCh   chan error
+	playerCloseCh chan struct{}
+	sampleRate    int
+	frames        int64
+	writtenBytes  int64
 }
 
 var (
@@ -214,20 +216,47 @@ func NewContext(sampleRate int) (*Context, error) {
 //
 // Update returns error when IO error occurs in the underlying IO object.
 func (c *Context) Update() error {
-	// Initialize c.driver lazily to enable calling NewContext in an 'init' function.
-	// Accessing driver functions requires the environment to be already initialized,
+	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
+	// Accessing oto.Player functions requires the environment to be already initialized,
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
-	if c.driver == nil {
-		// The buffer size is 1/15 sec.
-		// It looks like 1/20 sec is too short for Android.
-		s := c.sampleRate * channelNum * bytesPerSample / 15
-		p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
-		c.driver = p
-		if err != nil {
+	if c.playerWriteCh == nil {
+		init := make(chan error)
+		c.playerWriteCh = make(chan []uint8)
+		c.playerErrCh = make(chan error, 1)
+		c.playerCloseCh = make(chan struct{})
+		go func() {
+			// The buffer size is 1/15 sec.
+			// It looks like 1/20 sec is too short for Android.
+			s := c.sampleRate * channelNum * bytesPerSample / 15
+			p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
+			if err != nil {
+				init <- err
+				return
+			}
+			defer p.Close()
+			close(init)
+			for {
+				select {
+				case buf := <-c.playerWriteCh:
+					if _, err = p.Write(buf); err != nil {
+						c.playerErrCh <- err
+					}
+				case <-c.playerCloseCh:
+					return
+				}
+			}
+		}()
+		if err := <-init; err != nil {
 			return err
 		}
+	}
+	select {
+	case err := <-c.playerErrCh:
+		close(c.playerCloseCh)
+		return err
+	default:
 	}
 	c.frames++
 	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / ebiten.FPS
@@ -235,19 +264,14 @@ func (c *Context) Update() error {
 	l &= mask
 	c.writtenBytes += l
 	buf := make([]uint8, l)
-	n, err := io.ReadFull(c.players, buf)
-	if err != nil {
+	if _, err := io.ReadFull(c.players, buf); err != nil {
+		close(c.playerCloseCh)
 		return err
 	}
-	if n != len(buf) {
-		return c.driver.Close()
-	}
-	_, err = c.driver.Write(buf)
-	if err == io.EOF {
-		return c.driver.Close()
-	}
-	if err != nil {
-		return err
+	select {
+	case c.playerWriteCh <- buf:
+		// Writing can block. Don't wait for the result here.
+	default:
 	}
 	return nil
 }
