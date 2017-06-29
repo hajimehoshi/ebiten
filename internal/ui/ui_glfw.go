@@ -240,25 +240,29 @@ func (u *userInterface) glfwSize() (int, int) {
 	return int(float64(u.width) * u.scale * u.glfwScale), int(float64(u.height) * u.scale * u.glfwScale)
 }
 
+func (u *userInterface) getScale() float64 {
+	if !u.fullscreen {
+		return u.scale
+	}
+	if u.fullscreenScale == 0 {
+		m := glfw.GetPrimaryMonitor()
+		v := m.GetVideoMode()
+		sw := float64(v.Width) / float64(u.width)
+		sh := float64(v.Height) / float64(u.height)
+		s := sw
+		if s > sh {
+			s = sh
+		}
+		u.fullscreenScale = s
+	}
+	return u.fullscreenScale
+}
+
 func (u *userInterface) actualScreenScale() float64 {
 	if u.deviceScale == 0 {
 		u.deviceScale = deviceScale()
 	}
-	if u.fullscreen {
-		if u.fullscreenScale == 0 {
-			m := glfw.GetPrimaryMonitor()
-			v := m.GetVideoMode()
-			sw := float64(v.Width) / float64(u.width)
-			sh := float64(v.Height) / float64(u.height)
-			s := sw
-			if s > sh {
-				s = sh
-			}
-			u.fullscreenScale = s
-		}
-		return u.fullscreenScale * u.deviceScale
-	}
-	return u.scale * u.deviceScale
+	return u.getScale() * u.deviceScale
 }
 
 func (u *userInterface) pollEvents() {
@@ -266,7 +270,7 @@ func (u *userInterface) pollEvents() {
 	if u.glfwScale == 0 {
 		u.glfwScale = glfwScale()
 	}
-	currentInput.update(u.window, u.scale*u.glfwScale)
+	currentInput.update(u.window, u.getScale()*u.glfwScale)
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
