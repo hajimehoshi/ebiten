@@ -129,7 +129,7 @@ func SetScreenSize(width, height int) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		u.setScreenSize(width, height, u.scale)
+		r = u.setScreenSize(width, height, u.scale)
 		return nil
 	})
 	return r
@@ -142,7 +142,7 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		u.setScreenSize(u.width, u.height, scale)
+		r = u.setScreenSize(u.width, u.height, scale)
 		return nil
 	})
 	return r
