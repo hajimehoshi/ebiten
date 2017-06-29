@@ -30,6 +30,7 @@ import (
 )
 
 type userInterface struct {
+	title           string
 	window          *glfw.Window
 	width           int
 	height          int
@@ -218,6 +219,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 		if !u.setScreenSize(width, height, scale, false) {
 			return errors.New("ui: Fail to set the screen size")
 		}
+		u.title = title
 		u.window.SetTitle(title)
 		u.window.Show()
 
@@ -402,6 +404,8 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 			default:
 			}
 		}
+		// Window title might lost on macOS after coming back from fullscreen.
+		u.window.SetTitle(u.title)
 	}
 	// TODO: Rename this variable?
 	u.sizeChanged = true
