@@ -377,6 +377,13 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
 		x, y := window.GetPos()
+		// Reverted from fullscreen
+		if u.origPosX >= 0 && u.origPosY >= 0 {
+			x = u.origPosX
+			y = u.origPosY
+			u.origPosX = -1
+			u.origPosY = -1
+		}
 		// TODO: y must be mirroed on macOS?
 		window.SetMonitor(nil, x, y, 16, 16, v.RefreshRate)
 		ch := make(chan struct{})
@@ -394,10 +401,6 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 				break event
 			default:
 			}
-		}
-		// Reverted from fullscreen
-		if u.origPosX >= 0 && u.origPosY >= 0 {
-			window.SetPos(u.origPosX, u.origPosY)
 		}
 	}
 	// TODO: Rename this variable?
