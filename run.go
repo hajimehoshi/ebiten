@@ -149,3 +149,11 @@ func ScreenScale() float64 {
 func SetCursorVisibility(visible bool) {
 	ui.SetCursorVisibility(visible)
 }
+
+func IsFullscreen() bool {
+	return ui.IsFullscreen()
+}
+
+func SetFullscreen(fullscreen bool) {
+	ui.SetFullscreen(fullscreen)
+}

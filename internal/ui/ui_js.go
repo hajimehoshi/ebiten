@@ -56,6 +56,16 @@ func ScreenScale() float64 {
 	return currentUI.scale
 }
 
+func SetFullscreen(fullscreen bool) bool {
+	// TODO: Implement
+	return false
+}
+
+func IsFullscreen() bool {
+	// TODO: Implement
+	return false
+}
+
 func SetCursorVisibility(visibility bool) {
 	if visibility {
 		canvas.Get("style").Set("cursor", "auto")

@@ -36,6 +36,7 @@ type userInterface struct {
 	scale       float64
 	deviceScale float64
 	glfwScale   float64
+	fullscreen  bool
 	funcs       chan func()
 	running     bool
 	sizeChanged bool
@@ -129,7 +130,7 @@ func SetScreenSize(width, height int) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(width, height, u.scale)
+		r = u.setScreenSize(width, height, u.scale, u.fullscreen)
 		return nil
 	})
 	return r
@@ -142,7 +143,20 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(u.width, u.height, scale)
+		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen)
+		return nil
+	})
+	return r
+}
+
+func SetFullscreen(fullscreen bool) bool {
+	u := currentUI
+	if !u.isRunning() {
+		panic("ui: Run is not called yet")
+	}
+	r := false
+	_ = u.runOnMainThread(func() error {
+		r = u.setScreenSize(u.width, u.height, u.scale, fullscreen)
 		return nil
 	})
 	return r
@@ -159,6 +173,19 @@ func ScreenScale() float64 {
 		return nil
 	})
 	return s
+}
+
+func IsFullscreen() bool {
+	u := currentUI
+	if !u.isRunning() {
+		return false
+	}
+	f := false
+	_ = u.runOnMainThread(func() error {
+		f = u.fullscreen
+		return nil
+	})
+	return f
 }
 
 func SetCursorVisibility(visible bool) {
@@ -183,7 +210,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	if err := u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		if !u.setScreenSize(width, height, scale) {
+		if !u.setScreenSize(width, height, scale, false) {
 			return errors.New("ui: Fail to set the screen size")
 		}
 		u.window.SetTitle(title)
@@ -290,8 +317,8 @@ func (u *userInterface) swapBuffers() {
 	u.window.SwapBuffers()
 }
 
-func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
-	if u.width == width && u.height == height && u.scale == scale {
+func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
+	if u.width == width && u.height == height && u.scale == scale && u.fullscreen == fullscreen {
 		return false
 	}
 
@@ -314,24 +341,33 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	// swap buffers here before SetSize is called.
 	u.swapBuffers()
 
-	ch := make(chan struct{})
-	window := u.window
-	window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
-		window.SetFramebufferSizeCallback(nil)
-		close(ch)
-	})
-	w, h := u.glfwSize()
-	window.SetSize(w, h)
+	u.fullscreen = fullscreen
 
-event:
-	for {
-		glfw.PollEvents()
-		select {
-		case <-ch:
-			break event
-		default:
+	window := u.window
+	m := glfw.GetPrimaryMonitor()
+	v := m.GetVideoMode()
+	if u.fullscreen {
+		window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
+	} else {
+		window.SetMonitor(nil, 0, 0, 16, 16, v.RefreshRate)
+		ch := make(chan struct{})
+		window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
+			window.SetFramebufferSizeCallback(nil)
+			close(ch)
+		})
+		w, h := u.glfwSize()
+		window.SetSize(w, h)
+	event:
+		for {
+			glfw.PollEvents()
+			select {
+			case <-ch:
+				break event
+			default:
+			}
 		}
 	}
+	// TODO: Rename this variable?
 	u.sizeChanged = true
 	return true
 }

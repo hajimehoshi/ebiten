@@ -40,6 +40,7 @@ var (
 		ebiten.KeyLeft:  0,
 		ebiten.KeyRight: 0,
 		ebiten.KeyS:     0,
+		ebiten.KeyF:     0,
 	}
 )
 
@@ -53,8 +54,9 @@ func update(screen *ebiten.Image) error {
 	}
 	screenScale := ebiten.ScreenScale()
 	d := int(32 / screenScale)
-
 	screenWidth, screenHeight := screen.Size()
+	fullscreen := ebiten.IsFullscreen()
+
 	if keyStates[ebiten.KeyUp] == 1 {
 		screenHeight += d
 	}
@@ -83,8 +85,12 @@ func update(screen *ebiten.Image) error {
 			panic("not reach")
 		}
 	}
+	if keyStates[ebiten.KeyF] == 1 {
+		fullscreen = !fullscreen
+	}
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
+	ebiten.SetFullscreen(fullscreen)
 
 	if ebiten.IsRunningSlowly() {
 		return nil
@@ -100,6 +106,7 @@ func update(screen *ebiten.Image) error {
 	x, y := ebiten.CursorPosition()
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
+Press F key to change the fullscreen state
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)

@@ -110,6 +110,16 @@ func SetCursorVisibility(visibility bool) {
 	// Do nothing
 }
 
+func SetFullscreen(fullscreen bool) bool {
+	// Do nothing
+	return false
+}
+
+func IsFullscreen() bool {
+	// Do nothing
+	return false
+}
+
 func (u *userInterface) actualScreenScale() float64 {
 	return u.scale * deviceScale()
 }
