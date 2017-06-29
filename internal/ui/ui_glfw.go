@@ -40,6 +40,8 @@ type userInterface struct {
 	funcs       chan func()
 	running     bool
 	sizeChanged bool
+	origPosX    int
+	origPosY    int
 	m           sync.Mutex
 }
 
@@ -72,6 +74,8 @@ func initialize() error {
 		window:      window,
 		funcs:       make(chan func()),
 		sizeChanged: true,
+		origPosX:    -1,
+		origPosY:    -1,
 	}
 	u.window.MakeContextCurrent()
 	glfw.SwapInterval(1)
@@ -347,6 +351,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	if u.fullscreen {
+		u.origPosX, u.origPosY = window.GetPos()
 		window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
 		window.SetMonitor(nil, 0, 0, 16, 16, v.RefreshRate)
@@ -365,6 +370,10 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 				break event
 			default:
 			}
+		}
+		// Reverted from fullscreen
+		if u.origPosX >= 0 && u.origPosY >= 0 {
+			window.SetPos(u.origPosX, u.origPosY)
 		}
 	}
 	// TODO: Rename this variable?
