@@ -30,19 +30,20 @@ import (
 )
 
 type userInterface struct {
-	window      *glfw.Window
-	width       int
-	height      int
-	scale       float64
-	deviceScale float64
-	glfwScale   float64
-	fullscreen  bool
-	funcs       chan func()
-	running     bool
-	sizeChanged bool
-	origPosX    int
-	origPosY    int
-	m           sync.Mutex
+	window          *glfw.Window
+	width           int
+	height          int
+	scale           float64
+	deviceScale     float64
+	glfwScale       float64
+	fullscreen      bool
+	fullscreenScale float64
+	funcs           chan func()
+	running         bool
+	sizeChanged     bool
+	origPosX        int
+	origPosY        int
+	m               sync.Mutex
 }
 
 var currentUI *userInterface
@@ -242,6 +243,20 @@ func (u *userInterface) glfwSize() (int, int) {
 func (u *userInterface) actualScreenScale() float64 {
 	if u.deviceScale == 0 {
 		u.deviceScale = deviceScale()
+	}
+	if u.fullscreen {
+		if u.fullscreenScale == 0 {
+			m := glfw.GetPrimaryMonitor()
+			v := m.GetVideoMode()
+			sw := float64(v.Width) / float64(u.width)
+			sh := float64(v.Height) / float64(u.height)
+			s := sw
+			if s > sh {
+				s = sh
+			}
+			u.fullscreenScale = s
+		}
+		return u.fullscreenScale * u.deviceScale
 	}
 	return u.scale * u.deviceScale
 }
