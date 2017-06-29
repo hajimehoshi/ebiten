@@ -293,9 +293,9 @@ func checkSize(width, height int) {
 		panic("ebiten: height must be more than 0")
 	}
 	if width > MaxImageSize {
-		panic(fmt.Sprintf("ebiten: width must be less than or equal to %d", MaxImageSize))
+		panic(fmt.Sprintf("ebiten: width (%d) must be less than or equal to %d", width, MaxImageSize))
 	}
 	if height > MaxImageSize {
-		panic(fmt.Sprintf("ebiten: height must be less than or equal to %d", MaxImageSize))
+		panic(fmt.Sprintf("ebiten: height (%d) must be less than or equal to %d", height, MaxImageSize))
 	}
 }

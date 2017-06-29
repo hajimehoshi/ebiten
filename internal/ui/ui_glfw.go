@@ -245,10 +245,13 @@ func (u *userInterface) getScale() float64 {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
+		if u.glfwScale == 0 {
+			u.glfwScale = glfwScale()
+		}
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		sw := float64(v.Width) / float64(u.width)
-		sh := float64(v.Height) / float64(u.height)
+		sw := float64(v.Width) / u.glfwScale / float64(u.width)
+		sh := float64(v.Height) / u.glfwScale / float64(u.height)
 		s := sw
 		if s > sh {
 			s = sh
