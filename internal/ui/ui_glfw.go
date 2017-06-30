@@ -378,16 +378,14 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		u.origPosX, u.origPosY = window.GetPos()
 		window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
-		x, y := window.GetPos()
-		// Reverted from fullscreen
 		if u.origPosX >= 0 && u.origPosY >= 0 {
-			x = u.origPosX
-			y = u.origPosY
+			x := u.origPosX
+			y := u.origPosY
+			window.SetMonitor(nil, x, y, 16, 16, v.RefreshRate)
 			u.origPosX = -1
 			u.origPosY = -1
+			u.fullscreenScale = 0
 		}
-		// TODO: y must be mirroed on macOS?
-		window.SetMonitor(nil, x, y, 16, 16, v.RefreshRate)
 		ch := make(chan struct{})
 		window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
 			window.SetFramebufferSizeCallback(nil)
