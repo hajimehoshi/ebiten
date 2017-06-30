@@ -107,15 +107,17 @@ func NewImageFromImage(img *image.RGBA, width, height int, filter opengl.Filter)
 	return i
 }
 
-func NewScreenFramebufferImage(width, height int) *Image {
+func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
 	}
 	c := &newScreenFramebufferImageCommand{
-		result: i,
-		width:  width,
-		height: height,
+		result:  i,
+		width:   width,
+		height:  height,
+		offsetX: offsetX,
+		offsetY: offsetY,
 	}
 	theCommandQueue.Enqueue(c)
 	return i

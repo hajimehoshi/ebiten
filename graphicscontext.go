@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
@@ -64,7 +65,8 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 	w = int(float64(screenWidth) * screenScale)
 	h = int(float64(screenHeight) * screenScale)
-	c.screen = newImageWithScreenFramebuffer(w, h)
+	ox, oy := ui.ScreenOffset()
+	c.screen = newImageWithScreenFramebuffer(w, h, ox, oy)
 	_ = c.screen.Clear()
 
 	c.offscreen = offscreen

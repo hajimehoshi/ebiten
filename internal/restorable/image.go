@@ -52,6 +52,9 @@ type Image struct {
 
 	// screen indicates whether the image is used as an actual screen.
 	screen bool
+
+	offsetX float64
+	offsetY float64
 }
 
 func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
@@ -81,11 +84,13 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 	return i
 }
 
-func NewScreenFramebufferImage(width, height int) *Image {
+func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Image {
 	i := &Image{
-		image:    graphics.NewScreenFramebufferImage(width, height),
+		image:    graphics.NewScreenFramebufferImage(width, height, offsetX, offsetY),
 		volatile: true,
 		screen:   true,
+		offsetX:  offsetX,
+		offsetY:  offsetY,
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -249,7 +254,7 @@ func (p *Image) restore() error {
 	if p.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		p.image = graphics.NewScreenFramebufferImage(w, h)
+		p.image = graphics.NewScreenFramebufferImage(w, h, p.offsetX, p.offsetY)
 		p.basePixels = nil
 		p.baseColor = color.RGBA{}
 		p.drawImageHistory = nil

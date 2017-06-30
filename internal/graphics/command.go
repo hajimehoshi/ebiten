@@ -357,9 +357,11 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 }
 
 type newScreenFramebufferImageCommand struct {
-	result *Image
-	width  int
-	height int
+	result  *Image
+	width   int
+	height  int
+	offsetX float64
+	offsetY float64
 }
 
 func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
@@ -370,8 +372,10 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
 	f := &framebuffer{
-		native: opengl.GetContext().ScreenFramebuffer(),
-		flipY:  true,
+		native:  opengl.GetContext().ScreenFramebuffer(),
+		flipY:   true,
+		offsetX: c.offsetX,
+		offsetY: c.offsetY,
 	}
 	c.result.framebuffer = f
 	return nil

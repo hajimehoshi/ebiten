@@ -194,6 +194,26 @@ func IsFullscreen() bool {
 	return f
 }
 
+func ScreenOffset() (float64, float64) {
+	u := currentUI
+	if !u.isRunning() {
+		return 0, 0
+	}
+	if !IsFullscreen() {
+		return 0, 0
+	}
+	ox := 0.0
+	oy := 0.0
+	m := glfw.GetPrimaryMonitor()
+	v := m.GetVideoMode()
+	_ = u.runOnMainThread(func() error {
+		ox = (float64(v.Width)*u.deviceScale/u.glfwScale - float64(u.width)*u.actualScreenScale()) / 2
+		oy = (float64(v.Height)*u.deviceScale/u.glfwScale - float64(u.height)*u.actualScreenScale()) / 2
+		return nil
+	})
+	return ox, oy
+}
+
 func SetCursorVisibility(visible bool) {
 	// This can be called before Run: change the state asyncly.
 	go func() {

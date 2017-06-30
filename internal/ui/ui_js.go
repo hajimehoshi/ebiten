@@ -66,6 +66,10 @@ func IsFullscreen() bool {
 	return false
 }
 
+func ScreenOffset() (float64, float64) {
+	return 0, 0
+}
+
 func SetCursorVisibility(visibility bool) {
 	if visibility {
 		canvas.Get("style").Set("cursor", "auto")

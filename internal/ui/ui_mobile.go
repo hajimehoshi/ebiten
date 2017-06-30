@@ -106,6 +106,10 @@ func ScreenScale() float64 {
 	return currentUI.scale
 }
 
+func ScreenOffset() (float64, float64) {
+	return 0, 0
+}
+
 func SetCursorVisibility(visibility bool) {
 	// Do nothing
 }

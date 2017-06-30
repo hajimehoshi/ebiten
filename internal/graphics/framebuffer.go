@@ -36,6 +36,8 @@ type framebuffer struct {
 	native    opengl.Framebuffer
 	flipY     bool
 	proMatrix []float32
+	offsetX   float64
+	offsetY   float64
 }
 
 func newFramebufferFromTexture(texture *texture) (*framebuffer, error) {
@@ -65,6 +67,8 @@ func (f *framebuffer) projectionMatrix(height int) []float32 {
 		m[4*1+1] *= -1
 		m[4*3+1] += float32(height) / float32(viewportSize) * 2
 	}
+	m[4*3+0] += float32(f.offsetX) / float32(viewportSize) * 2
+	m[4*3+1] += float32(f.offsetY) / float32(viewportSize) * 2
 	f.proMatrix = m
 	return f.proMatrix
 }

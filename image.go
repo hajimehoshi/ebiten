@@ -275,9 +275,9 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	return i, nil
 }
 
-func newImageWithScreenFramebuffer(width, height int) *Image {
+func newImageWithScreenFramebuffer(width, height int, offsetX, offsetY float64) *Image {
 	checkSize(width, height)
-	r := restorable.NewScreenFramebufferImage(width, height)
+	r := restorable.NewScreenFramebufferImage(width, height, offsetX, offsetY)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
