@@ -28,7 +28,7 @@ func CurrentInput() *Input {
 func (i *Input) CursorPosition() (x, y int) {
 	i.m.RLock()
 	defer i.m.RUnlock()
-	return i.cursorX, i.cursorY
+	return adjustCursorPosition(i.cursorX, i.cursorY)
 }
 
 func (i *Input) GamepadAxisNum(id int) int {

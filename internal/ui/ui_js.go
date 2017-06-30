@@ -70,6 +70,10 @@ func ScreenOffset() (float64, float64) {
 	return 0, 0
 }
 
+func adjustCursorPosition(x, y int) (int, int) {
+	return x, y
+}
+
 func SetCursorVisibility(visibility bool) {
 	if visibility {
 		canvas.Get("style").Set("cursor", "auto")

@@ -214,6 +214,20 @@ func ScreenOffset() (float64, float64) {
 	return ox, oy
 }
 
+func adjustCursorPosition(x, y int) (int, int) {
+	u := currentUI
+	if !u.isRunning() {
+		return x, y
+	}
+	ox, oy := ScreenOffset()
+	s := 0.0
+	_ = currentUI.runOnMainThread(func() error {
+		s = currentUI.actualScreenScale()
+		return nil
+	})
+	return x - int(ox/s), y - int(oy/s)
+}
+
 func SetCursorVisibility(visible bool) {
 	// This can be called before Run: change the state asyncly.
 	go func() {
