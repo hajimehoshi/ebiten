@@ -375,7 +375,9 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	if u.fullscreen {
-		u.origPosX, u.origPosY = window.GetPos()
+		if u.origPosX < 0 && u.origPosY < 0 {
+			u.origPosX, u.origPosY = window.GetPos()
+		}
 		window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
 		if u.origPosX >= 0 && u.origPosY >= 0 {
