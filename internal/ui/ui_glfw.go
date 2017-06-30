@@ -289,15 +289,17 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 
 	actualScale := 0.0
+	sizeChanged := false
 	_ = u.runOnMainThread(func() error {
 		if !u.sizeChanged {
 			return nil
 		}
 		u.sizeChanged = false
 		actualScale = u.actualScreenScale()
+		sizeChanged = true
 		return nil
 	})
-	if 0 < actualScale {
+	if sizeChanged {
 		g.SetSize(u.width, u.height, actualScale)
 	}
 
