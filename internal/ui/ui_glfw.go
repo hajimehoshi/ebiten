@@ -362,8 +362,11 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		u.scale = origScale
 		return false
 	}
-	u.width = width
-	u.height = height
+	if u.width != width || u.height != height {
+		u.width = width
+		u.height = height
+		u.fullscreenScale = 0
+	}
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -386,7 +389,6 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 			window.SetMonitor(nil, x, y, 16, 16, v.RefreshRate)
 			u.origPosX = -1
 			u.origPosY = -1
-			u.fullscreenScale = 0
 		}
 		ch := make(chan struct{})
 		window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
