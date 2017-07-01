@@ -172,7 +172,7 @@ func initialize() error {
 	meta := doc.Call("createElement", "meta")
 	meta.Set("name", "viewport")
 	meta.Set("content", "width=device-width, initial-scale=1")
-	doc.Get("body").Call("appendChild", meta)
+	doc.Get("head").Call("appendChild", meta)
 
 	canvas = doc.Call("createElement", "canvas")
 	canvas.Set("width", 16)
