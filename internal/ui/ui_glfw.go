@@ -409,29 +409,28 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 
 	u.fullscreen = fullscreen
 
-	window := u.window
 	if u.fullscreen {
 		if u.origPosX < 0 && u.origPosY < 0 {
-			u.origPosX, u.origPosY = window.GetPos()
+			u.origPosX, u.origPosY = u.window.GetPos()
 		}
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
+		u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
 		if u.origPosX >= 0 && u.origPosY >= 0 {
 			x := u.origPosX
 			y := u.origPosY
-			window.SetMonitor(nil, x, y, 16, 16, 0)
+			u.window.SetMonitor(nil, x, y, 16, 16, 0)
 			u.origPosX = -1
 			u.origPosY = -1
 		}
 		ch := make(chan struct{})
-		window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
-			window.SetFramebufferSizeCallback(nil)
+		u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
+			u.window.SetFramebufferSizeCallback(nil)
 			close(ch)
 		})
 		w, h := u.glfwSize()
-		window.SetSize(w, h)
+		u.window.SetSize(w, h)
 	event:
 		for {
 			glfw.PollEvents()
@@ -446,7 +445,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	}
 	// SwapInterval is affected by the current monitor of the window.
 	// This needs to be called at least after SetMonitor.
-	// Without SwapInterval after SetMonitor, vsynch doesn't work (#357).
+	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
 	glfw.SwapInterval(1)
 	// TODO: Rename this variable?
 	u.sizeChanged = true
