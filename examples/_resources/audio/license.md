@@ -1,5 +1,14 @@
 # License
 
+## classic.mp3
+
+```
+https://musopen.org/music/466/johann-sebastian-bach/air-on-the-g-string-from-orchestral-suite-no-3-bwv-1068/
+
+Air on the G String (from Orchestral Suite no. 3, BWV 1068)
+Public Domain
+```
+
 ## jab.wav
 
 ```
@@ -17,13 +26,6 @@ http://mart.kitunebi.com/music_act.html
 Harpie's Feather (ハルピュイアの羽) by Napi
 ```
 
-## game2.mp3
-
-```
-http://mart.kitunebi.com/music_act.html
-
-ノアの羽舟 by Napi
-```
 
 ## ragtime.ogg
 
