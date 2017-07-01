@@ -167,6 +167,13 @@ func initialize() error {
 		currentUI.windowFocus = false
 	})
 
+	// Adjust the initial scale to 1.
+	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
+	meta := doc.Call("createElement", "meta")
+	meta.Set("name", "viewport")
+	meta.Set("content", "width=device-width, initial-scale=1")
+	doc.Get("body").Call("appendChild", meta)
+
 	canvas = doc.Call("createElement", "canvas")
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
