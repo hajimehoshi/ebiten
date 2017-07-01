@@ -70,6 +70,8 @@ var theGraphicsContext atomic.Value
 // even if a rendering frame is skipped.
 // f is not called when the screen is not shown.
 //
+// The given scale is ignored on fullscreen mode.
+//
 // Run returns error when 1) OpenGL error happens, or 2) f returns error.
 // In the case of 2), Run returns the same error.
 //
@@ -150,10 +152,23 @@ func SetCursorVisibility(visible bool) {
 	ui.SetCursorVisibility(visible)
 }
 
+// IsScreen returns a boolean value indicating whether
+// the current mode is fullscreen or not.
+//
+// This function is concurrent-safe.
 func IsFullscreen() bool {
 	return ui.IsFullscreen()
 }
 
+// SetFullscreen changes the current mode to fullscreen or not.
+//
+// On fullscreen mode, the game screen is automatically enlarged
+// to fit with the monitor. The current scale value is ignored.
+//
+// Ebiten uses 'windowed' fullscreen mode, which doesn't change
+// your monitor's resolution.
+//
+// This function is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
 	ui.SetFullscreen(fullscreen)
 }
