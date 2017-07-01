@@ -25,8 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-const drawImageHistoryMax = 100
-
 type drawImageHistoryItem struct {
 	image    *Image
 	vertices []float32
@@ -159,7 +157,8 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	if p.stale {
 		return
 	}
-	if len(p.drawImageHistory)+1 > drawImageHistoryMax {
+	const maxDrawImageHistoryNum = 100
+	if len(p.drawImageHistory)+1 > maxDrawImageHistoryNum {
 		p.makeStale()
 		return
 	}
