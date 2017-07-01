@@ -80,7 +80,6 @@ func initialize() error {
 		origPosY:    -1,
 	}
 	u.window.MakeContextCurrent()
-	glfw.SwapInterval(1)
 	currentUI = u
 	return nil
 }
@@ -445,6 +444,10 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		// Window title might lost on macOS after coming back from fullscreen.
 		u.window.SetTitle(u.title)
 	}
+	// SwapInterval is affected by the current monitor of the window.
+	// This needs to be called at least after SetMonitor.
+	// Without SwapInterval after SetMonitor, vsynch doesn't work (#357).
+	glfw.SwapInterval(1)
 	// TODO: Rename this variable?
 	u.sizeChanged = true
 	return true
