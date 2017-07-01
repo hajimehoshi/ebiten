@@ -38,7 +38,7 @@ import (
 
         &#34;github.com/hajimehoshi/ebiten&#34;
         &#34;github.com/hajimehoshi/ebiten/audio&#34;
-        &#34;github.com/hajimehoshi/ebiten/audio/vorbis&#34;
+        &#34;github.com/hajimehoshi/ebiten/audio/mp3&#34;
         &#34;github.com/hajimehoshi/ebiten/audio/wav&#34;
         &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
 )
@@ -47,7 +47,7 @@ const (
         screenWidth  = 320
         screenHeight = 240
 
-        // This sample rate doesn&#39;t match with wav/ogg&#39;s sample rate,
+        // This sample rate doesn&#39;t match with wav/mp3&#39;s sample rate,
         // but decoders adjust them.
         sampleRate = 48000
 )
@@ -101,8 +101,8 @@ type Player struct {
         input        *Input
         audioContext *audio.Context
         audioPlayer  *audio.Player
+        current      time.Duration
         total        time.Duration
-        seekedCh     chan error
         seBytes      []uint8
         seCh         chan []uint8
         volume128    int
@@ -126,11 +126,11 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
         if err != nil {
                 return nil, err
         }
-        oggF, err := ebitenutil.OpenFile(&#34;_resources/audio/ragtime.ogg&#34;)
+        mp3F, err := ebitenutil.OpenFile(&#34;_resources/audio/classic.mp3&#34;)
         if err != nil {
                 return nil, err
         }
-        s, err := vorbis.Decode(audioContext, oggF)
+        s, err := mp3.Decode(audioContext, mp3F)
         if err != nil {
                 return nil, err
         }
@@ -148,6 +148,9 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
                 total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
                 volume128:    128,
                 seCh:         make(chan []uint8),
+        }
+        if player.total == 0 {
+                player.total = 1
         }
         player.audioPlayer.Play()
         go func() {
@@ -172,13 +175,10 @@ func (p *Player) update() error {
         case p.seBytes = &lt;-p.seCh:
                 close(p.seCh)
                 p.seCh = nil
-        case err := &lt;-p.seekedCh:
-                if err != nil {
-                        return err
-                }
-                close(p.seekedCh)
-                p.seekedCh = nil
         default:
+        }
+        if p.audioPlayer.IsPlaying() {
+                p.current = p.audioPlayer.Current()
         }
         p.updateBar()
         p.updatePlayPause()
@@ -229,9 +229,6 @@ func (p *Player) updatePlayPause() {
 }
 
 func (p *Player) updateBar() {
-        if p.seekedCh != nil {
-                return
-        }
         if !p.input.isMouseButtonTriggered(ebiten.MouseButtonLeft) {
                 return
         }
@@ -246,10 +243,8 @@ func (p *Player) updateBar() {
                 return
         }
         pos := time.Duration(x-bx) * p.total / time.Duration(bw)
-        p.seekedCh = make(chan error, 1)
-        go func() {
-                p.seekedCh &lt;- p.audioPlayer.Seek(pos)
-        }()
+        p.current = pos
+        p.audioPlayer.Seek(pos)
 }
 
 func (p *Player) close() error {
@@ -262,11 +257,9 @@ func (p *Player) draw(screen *ebiten.Image) {
         op.GeoM.Translate(float64(x), float64(y))
         screen.DrawImage(playerBarImage, op)
         currentTimeStr := &#34;00:00&#34;
-        c := p.audioPlayer.Current()
-        prev := p.previousPos
-        p.previousPos = c
 
         // Current Time
+        c := p.current
         m := (c / time.Minute) % 100
         s := (c / time.Second) % 60
         currentTimeStr = fmt.Sprintf(&#34;%02d:%02d&#34;, m, s)
@@ -284,7 +277,10 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-        if p.audioPlayer.IsPlaying() &amp;&amp; prev == c {
+        current := p.audioPlayer.Current()
+        prev := p.previousPos
+        p.previousPos = p.audioPlayer.Current()
+        if p.audioPlayer.IsPlaying() &amp;&amp; prev == current {
                 msg &#43;= &#34;\nLoading...&#34;
         }
         ebitenutil.DebugPrint(screen, msg)
