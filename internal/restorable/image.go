@@ -32,6 +32,19 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
+func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mode opengl.CompositeMode) bool {
+	if d.image != image {
+		return false
+	}
+	if !d.colorm.Equals(colorm) {
+		return false
+	}
+	if d.mode != mode {
+		return false
+	}
+	return true
+}
+
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image  *graphics.Image
@@ -154,8 +167,15 @@ func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM,
 }
 
 func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
-	if p.stale {
+	if p.stale || p.volatile {
 		return
+	}
+	if len(p.drawImageHistory) > 0 {
+		last := p.drawImageHistory[len(p.drawImageHistory)-1]
+		if last.canMerge(image, colorm, mode) {
+			last.vertices = append(last.vertices, vertices...)
+			return
+		}
 	}
 	const maxDrawImageHistoryNum = 100
 	if len(p.drawImageHistory)+1 > maxDrawImageHistoryNum {
