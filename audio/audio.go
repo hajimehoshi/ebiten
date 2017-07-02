@@ -430,7 +430,7 @@ func (p *Player) readToBuffer(length int) (int, error) {
 		if len(r.data) > 0 {
 			p.buf = append(p.buf, r.data...)
 		}
-	case <-time.After(15 * time.Millisecond):
+	case <-timeoutIfPossible(15 * time.Millisecond):
 		if l := length - len(p.buf); l > 0 {
 			empty := make([]uint8, l)
 			p.buf = append(p.buf, empty...)
