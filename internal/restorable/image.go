@@ -134,16 +134,16 @@ func (p *Image) clearIfVolatile() {
 	if p.image == nil {
 		panic("not reached")
 	}
-	p.image.Fill(color.RGBA{})
+	p.image.Fill(0, 0, 0, 0)
 }
 
-func (p *Image) Fill(clr color.RGBA) {
+func (p *Image) Fill(r, g, b, a uint8) {
 	theImages.resetPixelsIfDependingOn(p)
 	p.basePixels = nil
-	p.baseColor = clr
+	p.baseColor = color.RGBA{r, g, b, a}
 	p.drawImageHistory = nil
 	p.stale = false
-	p.image.Fill(clr)
+	p.image.Fill(r, g, b, a)
 }
 
 func (p *Image) ReplacePixels(pixels []uint8) {
@@ -306,7 +306,7 @@ func (p *Image) restore() error {
 		if p.basePixels != nil {
 			panic("not reached")
 		}
-		gimg.Fill(p.baseColor)
+		gimg.Fill(p.baseColor.R, p.baseColor.G, p.baseColor.B, p.baseColor.A)
 	}
 	for _, c := range p.drawImageHistory {
 		// All dependencies must be already resolved.

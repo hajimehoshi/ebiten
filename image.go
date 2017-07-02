@@ -45,7 +45,7 @@ func (i *Image) Size() (width, height int) {
 //
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
-	i.restorable.Fill(color.RGBA{})
+	i.restorable.Fill(0, 0, 0, 0)
 	return nil
 }
 
@@ -55,8 +55,8 @@ func (i *Image) Clear() error {
 //
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
-	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
-	i.restorable.Fill(rgba)
+	r, g, b, a := clr.RGBA()
+	i.restorable.Fill(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
 	return nil
 }
 
@@ -229,7 +229,7 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), false)
-	r.Fill(color.RGBA{})
+	r.Fill(0, 0, 0, 0)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
@@ -253,7 +253,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 func newVolatileImage(width, height int, filter Filter) *Image {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, glFilter(filter), true)
-	r.Fill(color.RGBA{})
+	r.Fill(0, 0, 0, 0)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i

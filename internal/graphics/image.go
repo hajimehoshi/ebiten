@@ -134,12 +134,14 @@ func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-func (i *Image) Fill(clr color.RGBA) {
-	// TODO: Need to clone clr value
+func (i *Image) Fill(r, g, b, a uint8) {
 	c := &fillCommand{
-		dst:   i,
-		color: clr,
+		dst: i,
 	}
+	c.color.R = r
+	c.color.G = g
+	c.color.B = b
+	c.color.A = a
 	theCommandQueue.Enqueue(c)
 }
 
