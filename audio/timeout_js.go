@@ -22,6 +22,6 @@ import (
 
 func timeoutIfPossible(t time.Duration) <-chan time.Time {
 	// time.After uses setTimeout and causes performance problems.
-	// This function returns null and actually blocks forever.
+	// This function returns nil and blocks forever.
 	return nil
 }
