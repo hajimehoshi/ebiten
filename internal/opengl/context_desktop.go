@@ -32,6 +32,14 @@ type Shader uint32
 type Program uint32
 type Buffer uint32
 
+func (t Texture) equals(other Texture) bool {
+	return t == other
+}
+
+func (f Framebuffer) equals(other Framebuffer) bool {
+	return f == other
+}
+
 type uniformLocation int32
 type attribLocation int32
 

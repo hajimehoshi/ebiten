@@ -24,6 +24,9 @@ import (
 	"github.com/gopherjs/webgl"
 )
 
+// Note that `type Texture *js.Object` doesn't work.
+// There is no way to get the internal object in that case.
+
 type Texture struct {
 	*js.Object
 }
@@ -42,6 +45,14 @@ type Program struct {
 
 type Buffer struct {
 	*js.Object
+}
+
+func (t Texture) equals(other Texture) bool {
+	return t.Object == other.Object
+}
+
+func (f Framebuffer) equals(other Framebuffer) bool {
+	return f.Object == other.Object
 }
 
 type uniformLocation struct {

@@ -31,6 +31,14 @@ type Shader mgl.Shader
 type Program mgl.Program
 type Buffer mgl.Buffer
 
+func (t Texture) equals(other Texture) bool {
+	return t == other
+}
+
+func (f Framebuffer) equals(other Framebuffer) bool {
+	return f == other
+}
+
 type uniformLocation mgl.Uniform
 type attribLocation mgl.Attrib
 
