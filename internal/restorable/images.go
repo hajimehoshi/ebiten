@@ -18,6 +18,19 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
+// restoringEnabled indicates if restoring happens or not.
+var restoringEnabled = true // This value is overridden at enabled_*.go.
+
+func IsRestoringEnabled() bool {
+	// This value is updated only at init or EnableRestoringForTesting.
+	// No need to lock here.
+	return restoringEnabled
+}
+
+func EnableRestoringForTesting() {
+	restoringEnabled = true
+}
+
 type images struct {
 	images      map[*Image]struct{}
 	lastChecked *Image
@@ -88,6 +101,9 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 func (i *images) restore() error {
 	i.m.Lock()
 	defer i.m.Unlock()
+	if !IsRestoringEnabled() {
+		panic("not reached")
+	}
 	// Framebuffers/textures cannot be disposed since framebuffers/textures that
 	// don't belong to the current context.
 

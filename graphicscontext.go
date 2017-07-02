@@ -81,14 +81,7 @@ func (c *graphicsContext) initializeIfNeeded() error {
 		}
 		c.initialized = true
 	}
-	r, err := c.needsRestoring()
-	if err != nil {
-		return err
-	}
-	if !r {
-		return nil
-	}
-	if err := c.restore(); err != nil {
+	if err := c.restoreIfNeeded(); err != nil {
 		return err
 	}
 	return nil
@@ -137,7 +130,17 @@ func (c *graphicsContext) UpdateAndDraw(updateCount int) error {
 	return nil
 }
 
-func (c *graphicsContext) restore() error {
+func (c *graphicsContext) restoreIfNeeded() error {
+	if !restorable.IsRestoringEnabled() {
+		return nil
+	}
+	r, err := c.needsRestoring()
+	if err != nil {
+		return err
+	}
+	if !r {
+		return nil
+	}
 	if err := graphics.Reset(); err != nil {
 		return err
 	}

@@ -28,6 +28,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	EnableRestoringForTesting()
 	code := 0
 	regularTermination := errors.New("regular termination")
 	f := func(screen *ebiten.Image) error {

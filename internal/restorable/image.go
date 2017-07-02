@@ -157,8 +157,7 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 
 func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
 	theImages.resetPixelsIfDependingOn(p)
-	if img.stale || img.volatile {
-		// TODO: What will happen if there are images depending on p?
+	if img.stale || img.volatile || !IsRestoringEnabled() {
 		p.makeStale()
 	} else {
 		p.appendDrawImageHistory(img, vertices, colorm, mode)
@@ -234,6 +233,9 @@ func (p *Image) readPixelsFromGPU(image *graphics.Image) error {
 }
 
 func (p *Image) resolveStalePixels() error {
+	if !IsRestoringEnabled() {
+		return nil
+	}
 	if p.volatile {
 		return nil
 	}
@@ -339,5 +341,8 @@ func (p *Image) Dispose() {
 }
 
 func (p *Image) IsInvalidated() bool {
+	if !IsRestoringEnabled() {
+		return false
+	}
 	return p.image.IsInvalidated()
 }
