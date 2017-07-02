@@ -402,7 +402,6 @@ func (p *Player) readToBuffer(length int) (int, error) {
 	if p.readingCh == nil {
 		p.readingCh = make(chan readingResult)
 		go func() {
-			defer close(p.readingCh)
 			b := make([]uint8, length)
 			p.srcM.Lock()
 			n, err := p.src.Read(b)
@@ -422,19 +421,22 @@ func (p *Player) readToBuffer(length int) (int, error) {
 	case pos := <-p.seekCh:
 		p.buf = []uint8{}
 		p.pos = pos
-		return 0, nil
 	case r := <-p.readingCh:
+		close(p.readingCh)
+		p.readingCh = nil
 		if r.err != nil {
 			return 0, r.err
 		}
 		if len(r.data) > 0 {
 			p.buf = append(p.buf, r.data...)
 		}
-		p.readingCh = nil
-		return len(p.buf), nil
 	case <-time.After(15 * time.Millisecond):
-		return length, nil
+		if l := length - len(p.buf); l > 0 {
+			empty := make([]uint8, l)
+			p.buf = append(p.buf, empty...)
+		}
 	}
+	return len(p.buf), nil
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
