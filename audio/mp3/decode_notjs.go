@@ -50,7 +50,7 @@ func (s *Stream) Size() int64 {
 }
 
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
-	d, err := mp3.Decode(src)
+	d, err := mp3.NewDecoder(src)
 	if err != nil {
 		return nil, err
 	}
