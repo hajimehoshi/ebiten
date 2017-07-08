@@ -223,7 +223,8 @@ func (c *Context) Update() error {
 	// e.g. a variable for JVM on Android might not be set.
 	if c.playerWriteCh == nil {
 		init := make(chan error)
-		c.playerWriteCh = make(chan []uint8)
+		// 4 is (buffer size) / (bytes for 1 frame).
+		c.playerWriteCh = make(chan []uint8, 4)
 		c.playerErrCh = make(chan error, 1)
 		c.playerCloseCh = make(chan struct{})
 		go func() {
@@ -430,7 +431,7 @@ func (p *Player) readToBuffer(length int) (int, error) {
 		if len(r.data) > 0 {
 			p.buf = append(p.buf, r.data...)
 		}
-	case <-timeoutIfPossible(15 * time.Millisecond):
+	case <-timeoutIfPossible(10 * time.Millisecond):
 		if l := length - len(p.buf); l > 0 {
 			empty := make([]uint8, l)
 			p.buf = append(p.buf, empty...)
