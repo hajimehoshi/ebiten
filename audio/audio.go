@@ -170,14 +170,14 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 // You can also call Update independently from the game loop as 'async mode'.
 // In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
-	players        *players
-	playerWriteCh  chan []uint8
-	playerErrCh    chan error
-	playerCloseCh  chan struct{}
-	sampleRate     int
-	frames         int64
-	writtenBytes   int64
-	unwrittenCount int
+	players         *players
+	playerWriteCh   chan []uint8
+	playerErrCh     chan error
+	playerCloseCh   chan struct{}
+	sampleRate      int
+	frames          int64
+	writtenBytes    int64
+	discardingCount int
 }
 
 var (
@@ -270,8 +270,8 @@ func (c *Context) Update() error {
 		return err
 	}
 	// Discard when the buffer queue seems full.
-	if c.unwrittenCount > 0 {
-		c.unwrittenCount--
+	if c.discardingCount > 0 {
+		c.discardingCount--
 		return nil
 	}
 	select {
@@ -280,7 +280,7 @@ func (c *Context) Update() error {
 	default:
 		// The current buffer size is 1/15 [sec] = 4 [frames].
 		// Wait for 5 [frames] which is more than 4.
-		c.unwrittenCount = 5
+		c.discardingCount = 5
 	}
 	return nil
 }
