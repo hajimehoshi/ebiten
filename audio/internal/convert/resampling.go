@@ -65,7 +65,7 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 	if i < 0 {
 		return 0, 0, nil
 	}
-	if r.Size()/4 <= int64(i) {
+	if r.size/4 <= int64(i) {
 		return 0, 0, nil
 	}
 	nextPos := int64(i) / resamplingBufferSize
