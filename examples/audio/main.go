@@ -113,7 +113,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	mp3F, err := ebitenutil.OpenFile("_resources/audio/piece.mp3")
+	mp3F, err := ebitenutil.OpenFile("_resources/audio/classic.mp3")
 	if err != nil {
 		return nil, err
 	}
