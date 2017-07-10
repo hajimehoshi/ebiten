@@ -167,10 +167,14 @@ func (c *runContext) render(g GraphicsContext) error {
 
 	// Note that generally t is a little different from 1/60[sec].
 	t := n - c.lastUpdated
+	if t < 0 {
+		return nil
+	}
 	tt := int(t * int64(fps) / int64(time.Second))
 
 	// As t is not accurate 1/60[sec], errors are accumulated.
 	// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
+	// TODO: Better stabilizing way for FPS
 	if tt == 0 && (int64(time.Second)/int64(fps)-int64(5*time.Millisecond)) < t {
 		tt = 1
 	}
