@@ -34,9 +34,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/oto"
 )
+
+const FPS = 60
 
 type players struct {
 	players map[*Player]struct{}
@@ -170,14 +171,14 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 // You can also call Update independently from the game loop as 'async mode'.
 // In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
-	players         *players
-	playerWriteCh   chan []uint8
-	playerErrCh     chan error
-	playerCloseCh   chan struct{}
-	sampleRate      int
-	frames          int64
-	writtenBytes    int64
-	discardingCount int
+	players        *players
+	errCh          chan error
+	pingCh         chan struct{}
+	sampleRate     int
+	frames         int64
+	framesReadOnly int64
+	writtenBytes   int64
+	m              sync.Mutex
 }
 
 var (
@@ -198,89 +199,86 @@ func NewContext(sampleRate int) (*Context, error) {
 	}
 	c := &Context{
 		sampleRate: sampleRate,
+		errCh:      make(chan error, 1),
+		pingCh:     make(chan struct{}),
 	}
 	theContext = c
 	c.players = &players{
 		players: map[*Player]struct{}{},
 	}
-	return c, nil
 
+	go c.loop()
+
+	return c, nil
 }
 
-// Update proceeds the inner (logical) time of the context by 1/60 second.
-//
-// This is expected to be called in the game's updating function (sync mode)
-// or an independent goroutine with timers (async mode).
-// In sync mode, the game logical time syncs the audio logical time and
-// you will find audio stops when the game stops e.g. when the window is deactivated.
-// In async mode, the audio never stops even when the game stops.
-//
-// Update returns error when IO error occurs in the underlying IO object.
-func (c *Context) Update() error {
+func CurrentContext() *Context {
+	theContextLock.Lock()
+	c := theContext
+	theContextLock.Unlock()
+	return c
+}
+
+// Internal Only?
+func (c *Context) Frame() int64 {
+	c.m.Lock()
+	n := c.framesReadOnly
+	c.m.Unlock()
+	return n
+}
+
+// Internal Only?
+func (c *Context) Ping() {
+	select {
+	case c.pingCh <- struct{}{}:
+	default:
+	}
+}
+
+func (c *Context) loop() {
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
 	// Accessing oto.Player functions requires the environment to be already initialized,
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
-	if c.playerWriteCh == nil {
-		init := make(chan error)
-		c.playerWriteCh = make(chan []uint8)
-		c.playerErrCh = make(chan error, 1)
-		c.playerCloseCh = make(chan struct{})
-		go func() {
-			// The buffer size is 1/15 sec.
-			// It looks like 1/20 sec is too short for Android.
-			s := c.sampleRate * channelNum * bytesPerSample / 15
-			p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
-			if err != nil {
-				init <- err
-				return
-			}
-			defer p.Close()
-			close(init)
-			for {
-				select {
-				case buf := <-c.playerWriteCh:
-					if _, err = p.Write(buf); err != nil {
-						c.playerErrCh <- err
-					}
-				case <-c.playerCloseCh:
-					return
-				}
-			}
-		}()
-		if err := <-init; err != nil {
-			return err
+
+	// The buffer size is 1/15 sec.
+	// It looks like 1/20 sec is too short for Android.
+	s := c.sampleRate * channelNum * bytesPerSample / 15
+	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
+	if err != nil {
+		c.errCh <- err
+	}
+	defer p.Close()
+
+	for {
+		c.m.Lock()
+		c.framesReadOnly = c.frames
+		c.m.Unlock()
+		if c.frames%10 == 0 {
+			<-c.pingCh
+		}
+		c.frames++
+		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / FPS
+		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
+		l &= mask
+		c.writtenBytes += l
+		buf := make([]uint8, l)
+		if _, err := io.ReadFull(c.players, buf); err != nil {
+			c.errCh <- err
+		}
+		if _, err = p.Write(buf); err != nil {
+			c.errCh <- err
 		}
 	}
+}
+
+// Update returns an error if some errors happen.
+func (c *Context) Update() error {
 	select {
-	case err := <-c.playerErrCh:
-		close(c.playerCloseCh)
+	case err := <-c.errCh:
 		return err
 	default:
-	}
-	c.frames++
-	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / ebiten.FPS
-	l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
-	l &= mask
-	c.writtenBytes += l
-	buf := make([]uint8, l)
-	if _, err := io.ReadFull(c.players, buf); err != nil {
-		close(c.playerCloseCh)
-		return err
-	}
-	// Discard when the buffer queue seems full.
-	if c.discardingCount > 0 {
-		c.discardingCount--
-		return nil
-	}
-	select {
-	case c.playerWriteCh <- buf:
-		// Writing can block. Don't wait for the result here.
-	default:
-		// The current buffer size is 1/15 [sec] = 4 [frames].
-		// Wait for 5 [frames] which is more than 4.
-		c.discardingCount = 5
 	}
 	return nil
 }

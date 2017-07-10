@@ -18,6 +18,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -35,6 +36,10 @@ type runContext struct {
 	lastUpdated    int64
 	lastFPSUpdated int64
 	m              sync.RWMutex
+
+	lastAudioFrame     int64
+	lastAudioFrameTime int64
+	deltaTime          int64
 }
 
 var currentRunContext *runContext
@@ -106,7 +111,7 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
-	n := now()
+	n := currentRunContext.adjustedNowWithAudio()
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
 
@@ -120,9 +125,26 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	return nil
 }
 
+func (c *runContext) adjustedNowWithAudio() int64 {
+	n := now()
+	if audio.CurrentContext() == nil {
+		return n
+	}
+	if c.lastAudioFrameTime == 0 {
+		c.lastAudioFrameTime = n
+	}
+	if f := audio.CurrentContext().Frame(); c.lastAudioFrame != f {
+		an := c.lastAudioFrameTime + (f-c.lastAudioFrame)*int64(time.Second)/audio.FPS
+		c.deltaTime += an - n
+		c.lastAudioFrame = f
+		c.lastAudioFrameTime = n
+	}
+	return n + c.deltaTime
+}
+
 func (c *runContext) render(g GraphicsContext) error {
 	fps := c.fps
-	n := now()
+	n := c.adjustedNowWithAudio()
 	defer func() {
 		// Calc the current FPS.
 		if time.Second > time.Duration(n-c.lastFPSUpdated) {
@@ -138,6 +160,9 @@ func (c *runContext) render(g GraphicsContext) error {
 	if 10*int64(time.Second)/int64(fps) < n-c.lastUpdated {
 		c.lastUpdated = n
 		return nil
+	}
+	if audio.CurrentContext() != nil {
+		audio.CurrentContext().Ping()
 	}
 
 	// Note that generally t is a little different from 1/60[sec].
