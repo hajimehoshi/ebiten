@@ -173,7 +173,7 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 type Context struct {
 	players        *players
 	errCh          chan error
-	pingCh         chan struct{}
+	pingCount      int
 	sampleRate     int
 	frames         int64
 	framesReadOnly int64
@@ -200,7 +200,6 @@ func NewContext(sampleRate int) (*Context, error) {
 	c := &Context{
 		sampleRate: sampleRate,
 		errCh:      make(chan error, 1),
-		pingCh:     make(chan struct{}),
 	}
 	theContext = c
 	c.players = &players{
@@ -229,10 +228,9 @@ func (c *Context) Frame() int64 {
 
 // Internal Only?
 func (c *Context) Ping() {
-	select {
-	case c.pingCh <- struct{}{}:
-	default:
-	}
+	c.m.Lock()
+	c.pingCount = 5
+	c.m.Unlock()
 }
 
 func (c *Context) loop() {
@@ -254,10 +252,13 @@ func (c *Context) loop() {
 	for {
 		c.m.Lock()
 		c.framesReadOnly = c.frames
-		c.m.Unlock()
-		if c.frames%10 == 0 {
-			<-c.pingCh
+		if c.pingCount == 0 {
+			c.m.Unlock()
+			time.Sleep(10 * time.Millisecond)
+			continue
 		}
+		c.pingCount--
+		c.m.Unlock()
 		c.frames++
 		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / FPS
 		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
