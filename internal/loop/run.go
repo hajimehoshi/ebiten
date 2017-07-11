@@ -40,6 +40,7 @@ type runContext struct {
 	lastAudioFrame     int64
 	lastAudioFrameTime int64
 	deltaTime          int64
+	targetDeltaTime    int64
 }
 
 var currentRunContext *runContext
@@ -134,10 +135,21 @@ func (c *runContext) adjustedNowWithAudio() int64 {
 		c.lastAudioFrameTime = n
 	}
 	if f := audio.CurrentContext().Frame(); c.lastAudioFrame != f {
-		an := c.lastAudioFrameTime + (f-c.lastAudioFrame)*int64(time.Second)/audio.FPS
-		c.deltaTime += an - n
+		c.targetDeltaTime += (f-c.lastAudioFrame)*int64(time.Second)/audio.FPS - (n - c.lastAudioFrameTime)
 		c.lastAudioFrame = f
 		c.lastAudioFrameTime = n
+	}
+	switch {
+	case c.deltaTime > c.targetDeltaTime:
+		c.deltaTime -= int64(time.Millisecond)
+		if c.deltaTime < c.targetDeltaTime {
+			c.deltaTime = c.targetDeltaTime
+		}
+	case c.deltaTime < c.targetDeltaTime:
+		c.deltaTime += int64(time.Millisecond)
+		if c.deltaTime > c.targetDeltaTime {
+			c.deltaTime = c.targetDeltaTime
+		}
 	}
 	return n + c.deltaTime
 }
@@ -174,7 +186,6 @@ func (c *runContext) render(g GraphicsContext) error {
 
 	// As t is not accurate 1/60[sec], errors are accumulated.
 	// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
-	// TODO: Better stabilizing way for FPS
 	if tt == 0 && (int64(time.Second)/int64(fps)-int64(5*time.Millisecond)) < t {
 		tt = 1
 	}
