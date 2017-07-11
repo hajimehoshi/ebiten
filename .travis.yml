@@ -8,9 +8,9 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
+      - libasound2-dev
       - libglew-dev # required by headless-gl.
       - libgles2-mesa-dev
-      - libopenal-dev
       - libalut-dev
       - libxxf86vm-dev
       - libxrandr-dev
