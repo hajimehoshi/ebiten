@@ -14,14 +14,16 @@
 
 // +build js
 
-package restorable
+package audio
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
-func init() {
+func (c *Context) bufferSize() int {
+	n := 30
 	if web.IsMobileBrowser() {
-		restoringEnabled = false
+		n = 10
 	}
+	return c.sampleRate * channelNum * bytesPerSample / n
 }

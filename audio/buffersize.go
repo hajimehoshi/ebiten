@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js
+// +build !js
+// +build !ios
 
-package restorable
+package audio
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/web"
-)
-
-func init() {
-	if web.IsMobileBrowser() {
-		restoringEnabled = false
-	}
+func (c *Context) bufferSize() int {
+	return c.sampleRate * channelNum * bytesPerSample / 30
 }

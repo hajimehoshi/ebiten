@@ -250,10 +250,7 @@ func (c *Context) loop() {
 	// e.g. a variable for JVM on Android might not be set.
 	<-c.initCh
 
-	// The buffer size is 1/15 sec.
-	// It looks like 1/20 sec is too short for Android.
-	s := c.sampleRate * channelNum * bytesPerSample / 15
-	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
+	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, c.bufferSize())
 	if err != nil {
 		c.errCh <- err
 		return

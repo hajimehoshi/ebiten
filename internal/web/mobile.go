@@ -14,14 +14,33 @@
 
 // +build js
 
-package restorable
+package web
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/web"
+	"strings"
+
+	"github.com/gopherjs/gopherjs/js"
 )
 
-func init() {
-	if web.IsMobileBrowser() {
-		restoringEnabled = false
+func isIOS() bool {
+	ua := js.Global.Get("navigator").Get("userAgent").String()
+	if !strings.Contains(ua, "iPhone") {
+		return false
 	}
+	return true
+}
+
+func isAndroidChrome() bool {
+	ua := js.Global.Get("navigator").Get("userAgent").String()
+	if !strings.Contains(ua, "Android") {
+		return false
+	}
+	if !strings.Contains(ua, "Chrome") {
+		return false
+	}
+	return true
+}
+
+func IsMobileBrowser() bool {
+	return isIOS() || isAndroidChrome()
 }
