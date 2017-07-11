@@ -52,7 +52,8 @@ func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resam
 }
 
 func (r *Resampling) Size() int64 {
-	return int64(float64(r.size) * float64(r.to) / float64(r.from))
+	s := int64(float64(r.size) * float64(r.to) / float64(r.from))
+	return s / 4 * 4
 }
 
 func (r *Resampling) src(i int) (float64, float64, error) {
