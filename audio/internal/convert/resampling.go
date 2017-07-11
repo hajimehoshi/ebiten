@@ -131,12 +131,12 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 	if startN < 0 {
 		startN = 0
 	}
-	if r.size/4 < startN {
-		startN = r.size / 4
+	if r.size/4 <= startN {
+		startN = r.size/4 - 1
 	}
 	endN := int64(tInSrc) + windowSize + 1
-	if r.size/4 < endN {
-		endN = r.size / 4
+	if r.size/4 <= endN {
+		endN = r.size/4 - 1
 	}
 	lv := 0.0
 	rv := 0.0
