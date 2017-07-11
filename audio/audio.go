@@ -173,6 +173,8 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 type Context struct {
 	players        *players
 	errCh          chan error
+	initCh         chan struct{}
+	initedCh       chan struct{}
 	pingCount      int
 	sampleRate     int
 	frames         int64
@@ -200,6 +202,8 @@ func NewContext(sampleRate int) (*Context, error) {
 	c := &Context{
 		sampleRate: sampleRate,
 		errCh:      make(chan error, 1),
+		initCh:     make(chan struct{}),
+		initedCh:   make(chan struct{}),
 	}
 	theContext = c
 	c.players = &players{
@@ -228,6 +232,11 @@ func (c *Context) Frame() int64 {
 
 // Internal Only?
 func (c *Context) Ping() {
+	if c.initCh != nil {
+		close(c.initCh)
+		c.initCh = nil
+		<-c.initedCh
+	}
 	c.m.Lock()
 	c.pingCount = 5
 	c.m.Unlock()
@@ -239,6 +248,7 @@ func (c *Context) loop() {
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
+	<-c.initCh
 
 	// The buffer size is 1/15 sec.
 	// It looks like 1/20 sec is too short for Android.
@@ -246,8 +256,12 @@ func (c *Context) loop() {
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, s)
 	if err != nil {
 		c.errCh <- err
+		return
 	}
 	defer p.Close()
+
+	close(c.initedCh)
+	c.initedCh = nil
 
 	for {
 		c.m.Lock()
