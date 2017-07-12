@@ -156,15 +156,16 @@ func (c *runContext) adjustedNowWithAudio() int64 {
 
 func (c *runContext) render(g GraphicsContext) error {
 	fps := c.fps
+	clockN := now()
 	n := c.adjustedNowWithAudio()
 	defer func() {
 		// Calc the current FPS.
-		if time.Second > time.Duration(n-c.lastFPSUpdated) {
+		if time.Second > time.Duration(clockN-c.lastFPSUpdated) {
 			return
 		}
-		currentFPS := float64(c.frames) * float64(time.Second) / float64(n-c.lastFPSUpdated)
+		currentFPS := float64(c.frames) * float64(time.Second) / float64(clockN-c.lastFPSUpdated)
 		c.updateFPS(currentFPS)
-		c.lastFPSUpdated = n
+		c.lastFPSUpdated = clockN
 		c.frames = 0
 	}()
 
