@@ -33,14 +33,11 @@ type runContext struct {
 	currentFPS     float64
 	runningSlowly  bool
 	frames         int64
+	framesForFPS   int64
 	lastUpdated    int64
 	lastFPSUpdated int64
+	lastAudioFrame int64
 	m              sync.RWMutex
-
-	lastAudioFrame     int64
-	lastAudioFrameTime int64
-	deltaTime          int64
-	targetDeltaTime    int64
 }
 
 var currentRunContext *runContext
@@ -112,7 +109,7 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
-	n := currentRunContext.adjustedNowWithAudio()
+	n := now()
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
 
@@ -126,74 +123,69 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	return nil
 }
 
-func (c *runContext) adjustedNowWithAudio() int64 {
-	n := now()
-	if audio.CurrentContext() == nil {
-		return n
+func (c *runContext) updateCount(now int64) int {
+	count := 0
+	sync := false
+
+	t := now - c.lastUpdated
+	if t < 0 {
+		return 0
 	}
-	if c.lastAudioFrameTime == 0 {
-		c.lastAudioFrameTime = n
-	}
-	if f := audio.CurrentContext().Frame(); c.lastAudioFrame != f {
-		c.targetDeltaTime += (f-c.lastAudioFrame)*int64(time.Second)/audio.FPS - (n - c.lastAudioFrameTime)
+
+	if audio.CurrentContext() != nil && c.lastAudioFrame != audio.CurrentContext().Frame() {
+		sync = true
+		f := audio.CurrentContext().Frame()
+		if c.frames < f {
+			count = int(f - c.frames)
+		}
 		c.lastAudioFrame = f
-		c.lastAudioFrameTime = n
+	} else {
+		count = int(t * int64(c.fps) / int64(time.Second))
 	}
-	switch {
-	case c.deltaTime > c.targetDeltaTime:
-		c.deltaTime -= int64(time.Millisecond)
-		if c.deltaTime < c.targetDeltaTime {
-			c.deltaTime = c.targetDeltaTime
-		}
-	case c.deltaTime < c.targetDeltaTime:
-		c.deltaTime += int64(time.Millisecond)
-		if c.deltaTime > c.targetDeltaTime {
-			c.deltaTime = c.targetDeltaTime
-		}
+
+	// Stabilize FPS.
+	if count == 0 && (int64(time.Second)/int64(c.fps)/2) < t {
+		count = 1
 	}
-	return n + c.deltaTime
+	if count == 2 && (int64(time.Second)/int64(c.fps)*3/2) > t {
+		count = 1
+	}
+
+	if count > 3 {
+		count = 3
+	}
+
+	if sync {
+		c.lastUpdated = now
+	} else {
+		c.lastUpdated += int64(count) * int64(time.Second) / int64(c.fps)
+	}
+
+	c.frames += int64(count)
+	return count
 }
 
 func (c *runContext) render(g GraphicsContext) error {
-	fps := c.fps
-	clockN := now()
-	n := c.adjustedNowWithAudio()
-	defer func() {
-		// Calc the current FPS.
-		if time.Second > time.Duration(clockN-c.lastFPSUpdated) {
-			return
-		}
-		currentFPS := float64(c.frames) * float64(time.Second) / float64(clockN-c.lastFPSUpdated)
-		c.updateFPS(currentFPS)
-		c.lastFPSUpdated = clockN
-		c.frames = 0
-	}()
+	n := now()
 
-	// If lastUpdated is too old, we assume that screen is not shown.
-	if 10*int64(time.Second)/int64(fps) < n-c.lastUpdated {
-		c.lastUpdated = n
-		return nil
-	}
 	if audio.CurrentContext() != nil {
 		audio.CurrentContext().Ping()
 	}
 
-	// Note that generally t is a little different from 1/60[sec].
-	t := n - c.lastUpdated
-	if t < 0 {
-		return nil
-	}
-	tt := int(t * int64(fps) / int64(time.Second))
-
-	// As t is not accurate 1/60[sec], errors are accumulated.
-	// To make the FPS stable, set tt 1 if t is a little less than 1/60[sec].
-	if tt == 0 && (int64(time.Second)/int64(fps)-int64(5*time.Millisecond)) < t {
-		tt = 1
-	}
-	if err := g.UpdateAndDraw(tt); err != nil {
+	count := c.updateCount(n)
+	if err := g.UpdateAndDraw(count); err != nil {
 		return err
 	}
-	c.lastUpdated += int64(tt) * int64(time.Second) / int64(fps)
-	c.frames++
+	c.framesForFPS++
+
+	// Calc the current FPS.
+	if time.Second > time.Duration(n-c.lastFPSUpdated) {
+		return nil
+	}
+	currentFPS := float64(c.framesForFPS) * float64(time.Second) / float64(n-c.lastFPSUpdated)
+	c.updateFPS(currentFPS)
+	c.lastFPSUpdated = n
+	c.framesForFPS = 0
+
 	return nil
 }
