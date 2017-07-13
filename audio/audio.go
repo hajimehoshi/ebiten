@@ -24,6 +24,8 @@
 // and you can play sound by calling Play function of players.
 // When multiple players play, mixing is automatically done.
 // Note that too many players may cause distortion.
+//
+// Ebiten's game progress always synchronizes with audio progress.
 package audio
 
 import (
