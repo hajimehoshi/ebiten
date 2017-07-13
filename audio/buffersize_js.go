@@ -21,7 +21,7 @@ import (
 )
 
 func (c *Context) bufferSize() int {
-	n := 30
+	n := 20
 	if web.IsMobileBrowser() {
 		n = 10
 	}
