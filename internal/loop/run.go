@@ -18,7 +18,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -38,10 +37,14 @@ type runContext struct {
 	lastUpdated    int64
 	lastFPSUpdated int64
 	lastClockFrame int64
+	ping           func()
 	m              sync.RWMutex
 }
 
-var currentRunContext *runContext
+var (
+	currentRunContext *runContext
+	contextInitCh     = make(chan struct{})
+)
 
 func (c *runContext) startRunning() {
 	c.m.Lock()
@@ -114,6 +117,8 @@ func Run(g GraphicsContext, width, height int, scale float64, title string, fps 
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
 
+	close(contextInitCh)
+
 	lg := &loopGraphicsContext{currentRunContext, g}
 	if err := ui.Run(width, height, scale, title, lg); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
@@ -166,12 +171,25 @@ func (c *runContext) updateCount(now int64) int {
 	return count
 }
 
+func RegisterPing(ping func()) {
+	<-contextInitCh
+	currentRunContext.registerPing(ping)
+}
+
+func (c *runContext) registerPing(ping func()) {
+	c.m.Lock()
+	c.ping = ping
+	c.m.Unlock()
+}
+
 func (c *runContext) render(g GraphicsContext) error {
 	n := now()
 
-	if audio.CurrentContext() != nil {
-		audio.CurrentContext().Ping()
+	c.m.Lock()
+	if c.ping != nil {
+		c.ping()
 	}
+	c.m.Unlock()
 
 	count := c.updateCount(n)
 	if err := g.UpdateAndDraw(count); err != nil {

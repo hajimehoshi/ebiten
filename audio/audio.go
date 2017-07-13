@@ -37,6 +37,7 @@ import (
 	"github.com/hajimehoshi/oto"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/loop"
 )
 
 const FPS = 60
@@ -224,8 +225,7 @@ func CurrentContext() *Context {
 	return c
 }
 
-// Internal Only?
-func (c *Context) Ping() {
+func (c *Context) ping() {
 	if c.initCh != nil {
 		close(c.initCh)
 		c.initCh = nil
@@ -237,6 +237,8 @@ func (c *Context) Ping() {
 }
 
 func (c *Context) loop() {
+	loop.RegisterPing(c.ping)
+
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
 	// Accessing oto.Player functions requires the environment to be already initialized,
 	// but if Ebiten is used for a shared library, the timing when init functions are called
