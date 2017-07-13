@@ -169,10 +169,6 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 //        }
 //        ebiten.Run(run, update, 320, 240, 2, "Audio test")
 //    }
-//
-// This is 'sync mode' in that game's (logical) time and audio time are synchronized.
-// You can also call Update independently from the game loop as 'async mode'.
-// In this case, audio goes on even when the game stops e.g. by diactivating the screen.
 type Context struct {
 	players        *players
 	errCh          chan error
@@ -282,6 +278,11 @@ func (c *Context) loop() {
 }
 
 // Update returns an error if some errors happen.
+//
+// As of 1.6.0-alpha, this just returns the error if an error happens internally,
+// and do nothing related to updating the state.
+// Then, the audio is available without Update,
+// but it is recommended to call Update every frame.
 func (c *Context) Update() error {
 	select {
 	case err := <-c.errCh:
