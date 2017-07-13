@@ -35,6 +35,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/oto"
+
+	"github.com/hajimehoshi/ebiten/internal/clock"
 )
 
 const FPS = 60
@@ -223,14 +225,6 @@ func CurrentContext() *Context {
 }
 
 // Internal Only?
-func (c *Context) Frame() int64 {
-	c.m.Lock()
-	n := c.framesReadOnly
-	c.m.Unlock()
-	return n
-}
-
-// Internal Only?
 func (c *Context) Ping() {
 	if c.initCh != nil {
 		close(c.initCh)
@@ -262,7 +256,6 @@ func (c *Context) loop() {
 
 	for {
 		c.m.Lock()
-		c.framesReadOnly = c.frames
 		if c.pingCount == 0 {
 			c.m.Unlock()
 			time.Sleep(10 * time.Millisecond)
@@ -271,6 +264,7 @@ func (c *Context) loop() {
 		c.pingCount--
 		c.m.Unlock()
 		c.frames++
+		clock.Inc()
 		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / FPS
 		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 		l &= mask

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -36,7 +37,7 @@ type runContext struct {
 	framesForFPS   int64
 	lastUpdated    int64
 	lastFPSUpdated int64
-	lastAudioFrame int64
+	lastClockFrame int64
 	m              sync.RWMutex
 }
 
@@ -132,13 +133,13 @@ func (c *runContext) updateCount(now int64) int {
 		return 0
 	}
 
-	if audio.CurrentContext() != nil && c.lastAudioFrame != audio.CurrentContext().Frame() {
+	if clock.IsValid() && c.lastClockFrame != clock.Frame() {
 		sync = true
-		f := audio.CurrentContext().Frame()
+		f := clock.Frame()
 		if c.frames < f {
 			count = int(f - c.frames)
 		}
-		c.lastAudioFrame = f
+		c.lastClockFrame = f
 	} else {
 		count = int(t * int64(c.fps) / int64(time.Second))
 	}
