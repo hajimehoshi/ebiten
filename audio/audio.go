@@ -42,8 +42,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/loop"
 )
 
-const FPS = 60
-
 type players struct {
 	players map[*Player]struct{}
 	sync.RWMutex
@@ -265,7 +263,7 @@ func (c *Context) loop() {
 		c.m.Unlock()
 		c.frames++
 		clock.Inc()
-		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / FPS
+		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
 		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 		l &= mask
 		c.writtenBytes += l

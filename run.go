@@ -17,12 +17,13 @@ package ebiten
 import (
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/loop"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-// FPS represents how many times game updating happens in a second.
-const FPS = 60
+// FPS represents how many times game updating happens in a second (60).
+const FPS = clock.FPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
@@ -81,7 +82,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	go func() {
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := loop.Run(g, width, height, scale, title, FPS); err != nil {
+		if err := loop.Run(g, width, height, scale, title); err != nil {
 			ch <- err
 		}
 		close(ch)
@@ -105,7 +106,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	go func() {
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := loop.Run(g, width, height, scale, title, FPS); err != nil {
+		if err := loop.Run(g, width, height, scale, title); err != nil {
 			ch <- err
 		}
 		close(ch)

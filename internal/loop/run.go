@@ -29,7 +29,6 @@ func CurrentFPS() float64 {
 
 type runContext struct {
 	running        bool
-	fps            int
 	currentFPS     float64
 	runningSlowly  bool
 	frames         int64
@@ -103,13 +102,11 @@ func (g *loopGraphicsContext) Invalidate() {
 	g.graphicsContext.Invalidate()
 }
 
-func Run(g GraphicsContext, width, height int, scale float64, title string, fps int) (err error) {
+func Run(g GraphicsContext, width, height int, scale float64, title string) (err error) {
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}
-	currentRunContext = &runContext{
-		fps: fps,
-	}
+	currentRunContext = &runContext{}
 	currentRunContext.startRunning()
 	defer currentRunContext.endRunning()
 
@@ -146,14 +143,14 @@ func (c *runContext) updateCount(now int64) int {
 		}
 		c.lastClockFrame = f
 	} else {
-		count = int(t * int64(c.fps) / int64(time.Second))
+		count = int(t * int64(clock.FPS) / int64(time.Second))
 	}
 
 	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/int64(c.fps)/2) < t {
+	if count == 0 && (int64(time.Second)/int64(clock.FPS)/2) < t {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/int64(c.fps)*3/2) > t {
+	if count == 2 && (int64(time.Second)/int64(clock.FPS)*3/2) > t {
 		count = 1
 	}
 
@@ -164,7 +161,7 @@ func (c *runContext) updateCount(now int64) int {
 	if sync {
 		c.lastUpdated = now
 	} else {
-		c.lastUpdated += int64(count) * int64(time.Second) / int64(c.fps)
+		c.lastUpdated += int64(count) * int64(time.Second) / int64(clock.FPS)
 	}
 
 	c.frames += int64(count)
