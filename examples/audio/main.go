@@ -93,7 +93,6 @@ type Player struct {
 	seBytes      []uint8
 	seCh         chan []uint8
 	volume128    int
-	previousPos  time.Duration
 }
 
 var (
@@ -264,12 +263,6 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 %s`, ebiten.CurrentFPS(), currentTimeStr)
-	current := p.audioPlayer.Current()
-	prev := p.previousPos
-	p.previousPos = p.audioPlayer.Current()
-	if p.audioPlayer.IsPlaying() && prev == current {
-		msg += "\nLoading..."
-	}
 	ebitenutil.DebugPrint(screen, msg)
 }
 
