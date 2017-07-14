@@ -21,6 +21,8 @@ import (
 )
 
 func (c *Context) bufferSize() int {
+	// TODO: examples/audio doesn't work well with 1/30[s],
+	// the other examples work though. Fix this.
 	n := 20
 	if web.IsMobileBrowser() {
 		n = 10

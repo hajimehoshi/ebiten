@@ -337,8 +337,6 @@ type Player struct {
 	players    *players
 	src        ReadSeekCloser
 	sampleRate int
-	readingCh  chan readingResult
-	seekCh     chan int64
 
 	buf    []uint8
 	pos    int64
@@ -366,7 +364,6 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		players:    context.players,
 		src:        src,
 		sampleRate: context.sampleRate,
-		seekCh:     make(chan int64, 1),
 		buf:        []uint8{},
 		volume:     1,
 	}
@@ -415,52 +412,21 @@ func (p *Player) Close() error {
 }
 
 func (p *Player) readToBuffer(length int) (int, error) {
-	if p.readingCh == nil {
-		p.readingCh = make(chan readingResult)
-		go func() {
-			b := make([]uint8, length)
-			p.srcM.Lock()
-			n, err := p.src.Read(b)
-			p.srcM.Unlock()
-			if err != nil {
-				p.readingCh <- readingResult{
-					err: err,
-				}
-				return
-			}
-			p.readingCh <- readingResult{
-				data: b[:n],
-			}
-		}()
+	b := make([]uint8, length)
+	p.srcM.Lock()
+	n, err := p.src.Read(b)
+	p.srcM.Unlock()
+	if err != nil {
+		return 0, err
 	}
-	select {
-	case pos := <-p.seekCh:
-		p.buf = []uint8{}
-		p.pos = pos
-	case r := <-p.readingCh:
-		close(p.readingCh)
-		p.readingCh = nil
-		if r.err != nil {
-			return 0, r.err
-		}
-		if len(r.data) > 0 {
-			p.buf = append(p.buf, r.data...)
-		}
-	case <-timeoutIfPossible(10 * time.Millisecond):
-		if l := length - len(p.buf); l > 0 {
-			empty := make([]uint8, l)
-			p.buf = append(p.buf, empty...)
-		}
-	}
+	p.buf = append(p.buf, b[:n]...)
+	b = b[:n]
 	return len(p.buf), nil
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
 	r := make([]int16, lengthInBytes/2)
 	// This function must be called on the same goruotine of readToBuffer.
-	if p.readingCh != nil {
-		return r
-	}
 	p.m.RLock()
 	for i := 0; i < lengthInBytes/2; i++ {
 		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
@@ -472,9 +438,6 @@ func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
 
 func (p *Player) proceed(length int) {
 	// This function must be called on the same goruotine of readToBuffer.
-	if p.readingCh != nil {
-		return
-	}
 	p.buf = p.buf[length:]
 	p.pos += int64(length)
 }
@@ -519,16 +482,8 @@ func (p *Player) Seek(offset time.Duration) error {
 	if err != nil {
 		return err
 	}
-	// When the player p is not playing, as readToBuffer is never called,
-	// seekCh will never solved.
-	// Solve the current seeking here if necessary.
-	select {
-	case pos := <-p.seekCh:
-		p.buf = []uint8{}
-		p.pos = pos
-	default:
-	}
-	p.seekCh <- pos
+	p.buf = []uint8{}
+	p.pos = pos
 	return nil
 }
 
