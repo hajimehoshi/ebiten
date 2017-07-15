@@ -21,8 +21,8 @@ import (
 )
 
 func (c *Context) bufferSize() int {
-	// TODO: examples/audio doesn't work well with 1/30[s],
-	// the other examples work though. Fix this.
+	// TODO: On Chrome and Firefox, 1/30[s] doesn't work with 24000 or 48000 [Hz]
+	// at least on macOS.
 	n := 20
 	if web.IsMobileBrowser() {
 		n = 10
