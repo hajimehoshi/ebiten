@@ -44,6 +44,7 @@ type userInterface struct {
 	sizeChanged     bool
 	origPosX        int
 	origPosY        int
+	initFullscreen  bool
 	m               sync.Mutex
 }
 
@@ -155,14 +156,16 @@ func SetScreenScale(scale float64) bool {
 }
 
 func SetFullscreen(fullscreen bool) {
-	// This can be called before Run: change the state asyncly.
-	go func() {
-		_ = currentUI.runOnMainThread(func() error {
-			u := currentUI
-			u.setScreenSize(u.width, u.height, u.scale, fullscreen)
-			return nil
-		})
-	}()
+	u := currentUI
+	if !u.isRunning() {
+		u.initFullscreen = fullscreen
+		return
+	}
+	_ = u.runOnMainThread(func() error {
+		u := currentUI
+		u.setScreenSize(u.width, u.height, u.scale, fullscreen)
+		return nil
+	})
 }
 
 func ScreenScale() float64 {
@@ -247,6 +250,9 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	if err := u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
+
+		// The game is in window mode (not fullscreen mode) at the first state.
+		// Don't refer u.initFullscreen here to avoid some GLFW problems.
 		if !u.setScreenSize(width, height, scale, false) {
 			return errors.New("ui: Fail to set the screen size")
 		}
@@ -318,6 +324,15 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if shouldClose {
 		return &RegularTermination{}
 	}
+
+	_ = u.runOnMainThread(func() error {
+		if u.initFullscreen {
+			u := currentUI
+			u.setScreenSize(u.width, u.height, u.scale, true)
+			u.initFullscreen = false
+		}
+		return nil
+	})
 
 	actualScale := 0.0
 	sizeChanged := false
