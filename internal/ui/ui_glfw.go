@@ -154,17 +154,15 @@ func SetScreenScale(scale float64) bool {
 	return r
 }
 
-func SetFullscreen(fullscreen bool) bool {
-	u := currentUI
-	if !u.isRunning() {
-		panic("ui: Run is not called yet")
-	}
-	r := false
-	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(u.width, u.height, u.scale, fullscreen)
-		return nil
-	})
-	return r
+func SetFullscreen(fullscreen bool) {
+	// This can be called before Run: change the state asyncly.
+	go func() {
+		_ = currentUI.runOnMainThread(func() error {
+			u := currentUI
+			u.setScreenSize(u.width, u.height, u.scale, fullscreen)
+			return nil
+		})
+	}()
 }
 
 func ScreenScale() float64 {
