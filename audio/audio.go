@@ -420,7 +420,6 @@ func (p *Player) readToBuffer(length int) (int, error) {
 		return 0, err
 	}
 	p.buf = append(p.buf, b[:n]...)
-	b = b[:n]
 	return len(p.buf), nil
 }
 
