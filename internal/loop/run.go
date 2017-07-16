@@ -143,7 +143,13 @@ func (c *runContext) updateCount(now int64) int {
 		}
 		c.lastClockFrame = f
 	} else {
-		count = int(t * int64(clock.FPS) / int64(time.Second))
+		if t > 5*int64(time.Second)/int64(clock.FPS) {
+			// The previous time is too old. Let's assume that the window was unfocused.
+			count = 0
+			c.lastUpdated = now
+		} else {
+			count = int(t * int64(clock.FPS) / int64(time.Second))
+		}
 	}
 
 	// Stabilize FPS.
