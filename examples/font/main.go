@@ -42,7 +42,7 @@ var (
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
 	counter         = 0
-	kanjiCode       = rune(0)
+	kanjiText       = []rune{}
 )
 
 var jaKanjis = []rune{}
@@ -134,10 +134,15 @@ func codeToColor(c rune) color.RGBA {
 
 func update(screen *ebiten.Image) error {
 	if counter%ebiten.FPS == 0 {
-		kanjiCode = jaKanjis[rand.Intn(len(jaKanjis))]
+		kanjiText = []rune{}
+		for j := 0; j < 4; j++ {
+			for i := 0; i < 8; i++ {
+				kanjiText = append(kanjiText, jaKanjis[rand.Intn(len(jaKanjis))])
+			}
+			kanjiText = append(kanjiText, '\n')
+		}
 	}
 	counter++
-	kanjiText := fmt.Sprintf("%s: U+%04x", string(kanjiCode), kanjiCode)
 
 	if ebiten.IsRunningSlowly() {
 		return nil
@@ -147,7 +152,7 @@ func update(screen *ebiten.Image) error {
 	const x = 20
 	text.Draw(screen, mplusNormalFont, msg, x, 40, 30, color.White)
 	text.Draw(screen, mplusNormalFont, sampleText, x, 80, 30, color.White)
-	text.Draw(screen, mplusBigFont, kanjiText, x, 160, 30, codeToColor(kanjiCode))
+	text.Draw(screen, mplusBigFont, string(kanjiText), x, 160, 54, codeToColor(kanjiText[0]))
 	return nil
 }
 
