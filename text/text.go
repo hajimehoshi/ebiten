@@ -256,35 +256,24 @@ var textM sync.Mutex
 //
 // face is the font for text rendering.
 // (x, y) represents a 'dot' position. Be careful that this doesn't represent left-upper corner position.
-// lineHeight is the Y offset for line spacing.
 // clr is the color for text rendering.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
 // It is OK to call this function with a same text and a same face at every frame.
 //
 // This function is concurrent-safe.
-func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, lineHeight int, clr color.Color) {
+func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, clr color.Color) {
 	textM.Lock()
 
 	n := now()
 	fx := fixed.I(x)
-	ofx := fx
 	prevC := rune(-1)
 
 	runes := []rune(text)
 	for _, c := range runes {
-		// TODO: What if c is '\r'?
-		if c == '\n' {
-			fx = ofx
-			y += lineHeight
-			prevC = rune(-1)
-			continue
-		}
-
 		if prevC >= 0 {
 			fx += face.Kern(prevC, c)
 		}
-
 		if g := getGlyphFromCache(face, c, n); g != nil {
 			if !g.empty() {
 				g.draw(dst, fx.Ceil(), y, clr)
