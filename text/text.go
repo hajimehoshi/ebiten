@@ -13,6 +13,8 @@
 // limitations under the License.
 
 // Package text offers functions to draw texts on an Ebiten's image.
+//
+// Note: This package is experimental and API might be changed.
 package text
 
 import (
