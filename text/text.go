@@ -257,7 +257,7 @@ var textM sync.Mutex
 // lineHeight is the Y offset for line spacing.
 // clr is the color for text rendering.
 //
-// Glyphs used to render are cached in least-recently-used way.
+// Glyphs used for rendering are cached in least-recently-used way.
 // It is OK to call this function with a same text and a same face at every frame.
 //
 // This function is concurrent-safe.
