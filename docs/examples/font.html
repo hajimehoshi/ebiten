@@ -35,14 +35,15 @@ import (
         &#34;io/ioutil&#34;
         &#34;log&#34;
         &#34;math/rand&#34;
+        &#34;strings&#34;
         &#34;time&#34;
+
+        &#34;github.com/golang/freetype/truetype&#34;
+        &#34;golang.org/x/image/font&#34;
 
         &#34;github.com/hajimehoshi/ebiten&#34;
         &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
         &#34;github.com/hajimehoshi/ebiten/text&#34;
-
-        &#34;github.com/golang/freetype/truetype&#34;
-        &#34;golang.org/x/image/font&#34;
 )
 
 const (
@@ -163,9 +164,11 @@ func update(screen *ebiten.Image) error {
 
         msg := fmt.Sprintf(&#34;FPS: %0.2f&#34;, ebiten.CurrentFPS())
         const x = 20
-        text.Draw(screen, mplusNormalFont, msg, x, 40, 30, color.White)
-        text.Draw(screen, mplusNormalFont, sampleText, x, 80, 30, color.White)
-        text.Draw(screen, mplusBigFont, string(kanjiText), x, 160, 54, codeToColor(kanjiText[0]))
+        text.Draw(screen, mplusNormalFont, msg, x, 40, color.White)
+        text.Draw(screen, mplusNormalFont, sampleText, x, 80, color.White)
+        for i, line := range strings.Split(string(kanjiText), &#34;\n&#34;) {
+                text.Draw(screen, mplusBigFont, line, x, 160&#43;54*i, codeToColor(kanjiText[0]))
+        }
         return nil
 }
 
