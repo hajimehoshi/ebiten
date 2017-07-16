@@ -50,9 +50,6 @@ type glyph struct {
 }
 
 func (g *glyph) size() (int, int) {
-	if g.bounds.Empty() {
-		g.bounds, _ = font.BoundString(g.char.face, string(g.char.rune))
-	}
 	p := g.bounds.Max.Sub(g.bounds.Min)
 	return p.X.Ceil(), p.Y.Ceil()
 }
@@ -110,11 +107,21 @@ var (
 )
 
 type atlas struct {
-	image    *ebiten.Image
+	// image is the back-end image to hold glyph cache.
+	image *ebiten.Image
+
+	// tmpImage is the temporary image as a renderer source for glyph.
 	tmpImage *ebiten.Image
-	size     int
-	glyphs   []*glyph
-	count    int
+
+	// size is the size of one glyph in the cache.
+	// This value is always power of 2.
+	size int
+
+	// glyphs is the set of glyph information.
+	glyphs []*glyph
+
+	// num is the number of glyphs the atlas holds.
+	num int
 }
 
 func (a *atlas) at(glyph *glyph) (int, int) {
@@ -128,7 +135,7 @@ func (a *atlas) at(glyph *glyph) (int, int) {
 }
 
 func (a *atlas) append(glyph *glyph) {
-	if a.count == len(a.glyphs) {
+	if a.num == len(a.glyphs) {
 		idx := -1
 		t := int64(math.MaxInt64)
 		for i, g := range a.glyphs {
@@ -158,7 +165,7 @@ func (a *atlas) append(glyph *glyph) {
 	if idx < 0 {
 		panic("not reached")
 	}
-	a.count++
+	a.num++
 	glyph.index = idx
 	a.glyphs[idx] = glyph
 	a.draw(glyph)
@@ -198,9 +205,14 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		return g
 	}
 
+	b, _, ok := face.GlyphBounds(r)
+	if !ok {
+		return nil
+	}
 	g = &glyph{
-		char:  ch,
-		atime: now,
+		char:   ch,
+		bounds: b,
+		atime:  now,
 	}
 	if g.empty() {
 		return g
@@ -259,6 +271,7 @@ func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, lineHeight i
 
 	runes := []rune(text)
 	for _, c := range runes {
+		// TODO: What if c is '\r'?
 		if c == '\n' {
 			fx = ofx
 			y += lineHeight
@@ -270,13 +283,13 @@ func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, lineHeight i
 			fx += face.Kern(prevC, c)
 		}
 
-		g := getGlyphFromCache(face, c, n)
-		if !g.empty() {
-			g.draw(dst, fx.Ceil(), y, clr)
+		if g := getGlyphFromCache(face, c, n); g != nil {
+			if !g.empty() {
+				g.draw(dst, fx.Ceil(), y, clr)
+			}
+			a, _ := face.GlyphAdvance(c)
+			fx += a
 		}
-
-		a, _ := face.GlyphAdvance(c)
-		fx += a
 		prevC = c
 	}
 
