@@ -253,12 +253,12 @@ var textM sync.Mutex
 // Draw draws a given text on a give destination image dst.
 //
 // face is the font for text rendering.
-//
 // (x, y) represents a 'dot' position. Be careful that this doesn't represent left-upper corner position.
-//
 // lineHeight is the Y offset for line spacing.
-//
 // clr is the color for text rendering.
+//
+// Glyphs used to render are cached in least-recently-used way.
+// It is OK to call this function with a same text and a same face at every frame.
 //
 // This function is concurrent-safe.
 func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, lineHeight int, clr color.Color) {
