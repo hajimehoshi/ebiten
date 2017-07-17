@@ -51,18 +51,18 @@ type glyph struct {
 	atime  int64
 }
 
-func (g *glyph) size() (int, int) {
-	p := g.bounds.Max.Sub(g.bounds.Min)
-	return p.X.Ceil(), p.Y.Ceil()
+func (g *glyph) size() fixed.Point26_6 {
+	return g.bounds.Max.Sub(g.bounds.Min)
 }
 
 func (g *glyph) empty() bool {
-	w, h := g.size()
-	return w == 0 || h == 0
+	s := g.size()
+	return s.X == 0 || s.Y == 0
 }
 
 func (g *glyph) atlasGroup() int {
-	w, h := g.size()
+	s := g.size()
+	w, h := s.X.Ceil(), s.Y.Ceil()
 	t := w
 	if t < h {
 		t = h
@@ -76,20 +76,19 @@ func (g *glyph) atlasGroup() int {
 	return graphics.NextPowerOf2Int(t)
 }
 
-func (g *glyph) draw(dst *ebiten.Image, x, y int, clr color.Color) {
+func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
+	return float64(x) / (1 << 6)
+}
+
+func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	if ca == 0 {
 		return
 	}
 
-	a := atlases[g.atlasGroup()]
-	sx, sy := a.at(g)
-	ox := g.bounds.Min.X.Ceil()
-	oy := g.bounds.Min.Y.Ceil()
-
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	op.GeoM.Translate(float64(ox), float64(oy))
+	op.GeoM.Translate(fixed26_6ToFloat64(x), fixed26_6ToFloat64(y))
+	op.GeoM.Translate(fixed26_6ToFloat64(g.bounds.Min.X), fixed26_6ToFloat64(g.bounds.Min.Y))
 
 	rf := float64(cr) / float64(ca)
 	gf := float64(cg) / float64(ca)
@@ -97,6 +96,8 @@ func (g *glyph) draw(dst *ebiten.Image, x, y int, clr color.Color) {
 	af := float64(ca) / 0xffff
 	op.ColorM.Scale(rf, gf, bf, af)
 
+	a := atlases[g.atlasGroup()]
+	sx, sy := a.at(g)
 	r := image.Rect(sx, sy, sx+a.size, sy+a.size)
 	op.SourceRect = &r
 
@@ -184,9 +185,7 @@ func (a *atlas) draw(glyph *glyph) {
 		Src:  image.White,
 		Face: glyph.char.face,
 	}
-	ox := -glyph.bounds.Min.X.Ceil()
-	oy := -glyph.bounds.Min.Y.Ceil()
-	d.Dot = fixed.P(ox, oy)
+	d.Dot = fixed.Point26_6{-glyph.bounds.Min.X, -glyph.bounds.Min.Y}
 	d.DrawString(string(glyph.char.rune))
 	a.tmpImage.ReplacePixels(dst.Pix)
 
@@ -276,7 +275,7 @@ func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, clr color.Co
 		}
 		if g := getGlyphFromCache(face, c, n); g != nil {
 			if !g.empty() {
-				g.draw(dst, fx.Ceil(), y, clr)
+				g.draw(dst, fx, fixed.I(y), clr)
 			}
 			a, _ := face.GlyphAdvance(c)
 			fx += a
