@@ -252,7 +252,7 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 
 var textM sync.Mutex
 
-// Draw draws a given text on a give destination image dst.
+// Draw draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
 // (x, y) represents a 'dot' position. Be careful that this doesn't represent left-upper corner position.
