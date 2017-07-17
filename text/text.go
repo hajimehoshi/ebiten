@@ -39,29 +39,36 @@ func now() int64 {
 	return monotonicClock
 }
 
+var (
+	charBounds = map[char]fixed.Rectangle26_6{}
+)
+
 type char struct {
 	face font.Face
 	rune rune
 }
 
-type glyph struct {
-	char   char
-	index  int
-	bounds fixed.Rectangle26_6
-	atime  int64
+func (c *char) bounds() fixed.Rectangle26_6 {
+	if b, ok := charBounds[*c]; ok {
+		return b
+	}
+	b, _, _ := c.face.GlyphBounds(c.rune)
+	charBounds[*c] = b
+	return b
 }
 
-func (g *glyph) size() fixed.Point26_6 {
-	return g.bounds.Max.Sub(g.bounds.Min)
+func (c *char) size() fixed.Point26_6 {
+	b := c.bounds()
+	return b.Max.Sub(b.Min)
 }
 
-func (g *glyph) empty() bool {
-	s := g.size()
+func (c *char) empty() bool {
+	s := c.size()
 	return s.X == 0 || s.Y == 0
 }
 
-func (g *glyph) atlasGroup() int {
-	s := g.size()
+func (c *char) atlasGroup() int {
+	s := c.size()
 	w, h := s.X.Ceil(), s.Y.Ceil()
 	t := w
 	if t < h {
@@ -76,6 +83,12 @@ func (g *glyph) atlasGroup() int {
 	return graphics.NextPowerOf2Int(t)
 }
 
+type glyph struct {
+	char  char
+	index int
+	atime int64
+}
+
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x) / (1 << 6)
 }
@@ -86,9 +99,10 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 		return
 	}
 
+	b := g.char.bounds()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(fixed26_6ToFloat64(x), fixed26_6ToFloat64(y))
-	op.GeoM.Translate(fixed26_6ToFloat64(g.bounds.Min.X), fixed26_6ToFloat64(g.bounds.Min.Y))
+	op.GeoM.Translate(fixed26_6ToFloat64(b.Min.X), fixed26_6ToFloat64(b.Min.Y))
 
 	rf := float64(cr) / float64(ca)
 	gf := float64(cg) / float64(ca)
@@ -96,7 +110,7 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	af := float64(ca) / 0xffff
 	op.ColorM.Scale(rf, gf, bf, af)
 
-	a := atlases[g.atlasGroup()]
+	a := atlases[g.char.atlasGroup()]
 	sx, sy := a.at(g)
 	r := image.Rect(sx, sy, sx+a.size, sy+a.size)
 	op.SourceRect = &r
@@ -128,7 +142,7 @@ type atlas struct {
 }
 
 func (a *atlas) at(glyph *glyph) (int, int) {
-	if a.size != glyph.atlasGroup() {
+	if a.size != glyph.char.atlasGroup() {
 		panic("not reached")
 	}
 	w, _ := a.image.Size()
@@ -185,7 +199,8 @@ func (a *atlas) draw(glyph *glyph) {
 		Src:  image.White,
 		Face: glyph.char.face,
 	}
-	d.Dot = fixed.Point26_6{-glyph.bounds.Min.X, -glyph.bounds.Min.Y}
+	b := glyph.char.bounds()
+	d.Dot = fixed.Point26_6{-b.Min.X, -b.Min.Y}
 	d.DrawString(string(glyph.char.rune))
 	a.tmpImage.ReplacePixels(dst.Pix)
 
@@ -206,20 +221,15 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		return g
 	}
 
-	b, _, ok := face.GlyphBounds(r)
-	if !ok {
-		return nil
-	}
 	g = &glyph{
-		char:   ch,
-		bounds: b,
-		atime:  now,
+		char:  ch,
+		atime: now,
 	}
-	if g.empty() {
+	if ch.empty() {
 		return g
 	}
 
-	a, ok := atlases[g.atlasGroup()]
+	a, ok := atlases[g.char.atlasGroup()]
 	if !ok {
 		// Don't use ebiten.MaxImageSize here.
 		// It's because the back-end image pixels will be restored from GPU
@@ -235,13 +245,13 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		i, _ := ebiten.NewImage(size, size, ebiten.FilterNearest)
 		a = &atlas{
 			image: i,
-			size:  g.atlasGroup(),
+			size:  g.char.atlasGroup(),
 		}
 		w, h := a.image.Size()
 		xnum := w / a.size
 		ynum := h / a.size
 		a.glyphs = make([]*glyph, xnum*ynum)
-		atlases[g.atlasGroup()] = a
+		atlases[g.char.atlasGroup()] = a
 	}
 
 	a.append(g)
@@ -274,7 +284,7 @@ func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, clr color.Co
 			fx += face.Kern(prevC, c)
 		}
 		if g := getGlyphFromCache(face, c, n); g != nil {
-			if !g.empty() {
+			if !g.char.empty() {
 				g.draw(dst, fx, fixed.I(y), clr)
 			}
 			a, _ := face.GlyphAdvance(c)
