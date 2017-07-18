@@ -153,7 +153,11 @@ func (a *atlas) maxGlyphNum() int {
 	return xnum * ynum
 }
 
-func (a *atlas) append(g *glyph) {
+func (a *atlas) appendGlyph(face font.Face, rune rune, now int64) *glyph {
+	g := &glyph{
+		char:  char{face, rune},
+		atime: now,
+	}
 	if len(a.charToGlyph) == a.maxGlyphNum() {
 		var oldest *glyph
 		t := int64(math.MaxInt64)
@@ -175,6 +179,7 @@ func (a *atlas) append(g *glyph) {
 	}
 	a.charToGlyph[g.char] = g
 	a.draw(g)
+	return g
 }
 
 func (a *atlas) draw(glyph *glyph) {
@@ -213,12 +218,8 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		}
 	}
 
-	g := &glyph{
-		char:  ch,
-		atime: now,
-	}
 	if ch.empty() {
-		return g
+		return nil
 	}
 
 	if !ok {
@@ -236,14 +237,13 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		i, _ := ebiten.NewImage(size, size, ebiten.FilterNearest)
 		a = &atlas{
 			image:       i,
-			glyphSize:   g.char.atlasGroup(),
+			glyphSize:   ch.atlasGroup(),
 			charToGlyph: map[char]*glyph{},
 		}
-		atlases[g.char.atlasGroup()] = a
+		atlases[ch.atlasGroup()] = a
 	}
 
-	a.append(g)
-	return g
+	return a.appendGlyph(ch.face, ch.rune, now)
 }
 
 var textM sync.Mutex
