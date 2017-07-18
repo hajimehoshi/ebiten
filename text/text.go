@@ -134,12 +134,6 @@ type atlas struct {
 	size int
 
 	charToGlyph map[char]*glyph
-
-	// glyphs is the set of glyph information.
-	glyphs []*glyph
-
-	// num is the number of glyphs the atlas holds.
-	num int
 }
 
 func (a *atlas) at(glyph *glyph) (int, int) {
@@ -152,43 +146,35 @@ func (a *atlas) at(glyph *glyph) (int, int) {
 	return x * a.size, y * a.size
 }
 
-func (a *atlas) append(glyph *glyph) {
-	if a.num == len(a.glyphs) {
-		idx := -1
+func (a *atlas) maxGlyphNum() int {
+	w, h := a.image.Size()
+	xnum := w / a.size
+	ynum := h / a.size
+	return xnum * ynum
+}
+
+func (a *atlas) append(g *glyph) {
+	if len(a.charToGlyph) == a.maxGlyphNum() {
+		var oldest *glyph
 		t := int64(math.MaxInt64)
-		for i, g := range a.glyphs {
+		for _, g := range a.charToGlyph {
 			if g.atime < t {
 				t = g.atime
-				idx = i
+				oldest = g
 			}
 		}
-		if idx < 0 {
+		if oldest == nil {
 			panic("not reached")
 		}
-		oldest := a.glyphs[idx]
+		idx := oldest.index
 		delete(a.charToGlyph, oldest.char)
 
-		glyph.index = idx
-		a.glyphs[idx] = glyph
-		a.charToGlyph[glyph.char] = glyph
-		a.draw(glyph)
-		return
+		g.index = idx
+	} else {
+		g.index = len(a.charToGlyph)
 	}
-	idx := -1
-	for i, g := range a.glyphs {
-		if g == nil {
-			idx = i
-			break
-		}
-	}
-	if idx < 0 {
-		panic("not reached")
-	}
-	a.num++
-	glyph.index = idx
-	a.glyphs[idx] = glyph
-	a.charToGlyph[glyph.char] = glyph
-	a.draw(glyph)
+	a.charToGlyph[g.char] = g
+	a.draw(g)
 }
 
 func (a *atlas) draw(glyph *glyph) {
@@ -253,10 +239,6 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 			size:        g.char.atlasGroup(),
 			charToGlyph: map[char]*glyph{},
 		}
-		w, h := a.image.Size()
-		xnum := w / a.size
-		ynum := h / a.size
-		a.glyphs = make([]*glyph, xnum*ynum)
 		atlases[g.char.atlasGroup()] = a
 	}
 
