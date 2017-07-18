@@ -119,7 +119,6 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 }
 
 var (
-	glyphs  = map[char]*glyph{}
 	atlases = map[int]*atlas{}
 )
 
@@ -133,6 +132,8 @@ type atlas struct {
 	// size is the size of one glyph in the cache.
 	// This value is always power of 2.
 	size int
+
+	charToGlyph map[char]*glyph
 
 	// glyphs is the set of glyph information.
 	glyphs []*glyph
@@ -165,10 +166,11 @@ func (a *atlas) append(glyph *glyph) {
 			panic("not reached")
 		}
 		oldest := a.glyphs[idx]
-		delete(glyphs, oldest.char)
+		delete(a.charToGlyph, oldest.char)
 
 		glyph.index = idx
 		a.glyphs[idx] = glyph
+		a.charToGlyph[glyph.char] = glyph
 		a.draw(glyph)
 		return
 	}
@@ -185,6 +187,7 @@ func (a *atlas) append(glyph *glyph) {
 	a.num++
 	glyph.index = idx
 	a.glyphs[idx] = glyph
+	a.charToGlyph[glyph.char] = glyph
 	a.draw(glyph)
 }
 
@@ -215,13 +218,16 @@ func (a *atlas) draw(glyph *glyph) {
 
 func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 	ch := char{face, r}
-	g, ok := glyphs[ch]
+	a, ok := atlases[ch.atlasGroup()]
 	if ok {
-		g.atime = now
-		return g
+		g, ok := a.charToGlyph[ch]
+		if ok {
+			g.atime = now
+			return g
+		}
 	}
 
-	g = &glyph{
+	g := &glyph{
 		char:  ch,
 		atime: now,
 	}
@@ -229,7 +235,6 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		return g
 	}
 
-	a, ok := atlases[g.char.atlasGroup()]
 	if !ok {
 		// Don't use ebiten.MaxImageSize here.
 		// It's because the back-end image pixels will be restored from GPU
@@ -244,8 +249,9 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		const size = 1024
 		i, _ := ebiten.NewImage(size, size, ebiten.FilterNearest)
 		a = &atlas{
-			image: i,
-			size:  g.char.atlasGroup(),
+			image:       i,
+			size:        g.char.atlasGroup(),
+			charToGlyph: map[char]*glyph{},
 		}
 		w, h := a.image.Size()
 		xnum := w / a.size
@@ -255,7 +261,6 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 	}
 
 	a.append(g)
-	glyphs[g.char] = g
 	return g
 }
 
