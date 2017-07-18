@@ -112,7 +112,7 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 
 	a := atlases[g.char.atlasGroup()]
 	sx, sy := a.at(g)
-	r := image.Rect(sx, sy, sx+a.size, sy+a.size)
+	r := image.Rect(sx, sy, sx+a.glyphSize, sy+a.glyphSize)
 	op.SourceRect = &r
 
 	dst.DrawImage(a.image, op)
@@ -129,27 +129,27 @@ type atlas struct {
 	// tmpImage is the temporary image as a renderer source for glyph.
 	tmpImage *ebiten.Image
 
-	// size is the size of one glyph in the cache.
+	// glyphSize is the size of one glyph in the cache.
 	// This value is always power of 2.
-	size int
+	glyphSize int
 
 	charToGlyph map[char]*glyph
 }
 
 func (a *atlas) at(glyph *glyph) (int, int) {
-	if a.size != glyph.char.atlasGroup() {
+	if a.glyphSize != glyph.char.atlasGroup() {
 		panic("not reached")
 	}
 	w, _ := a.image.Size()
-	xnum := w / a.size
+	xnum := w / a.glyphSize
 	x, y := glyph.index%xnum, glyph.index/xnum
-	return x * a.size, y * a.size
+	return x * a.glyphSize, y * a.glyphSize
 }
 
 func (a *atlas) maxGlyphNum() int {
 	w, h := a.image.Size()
-	xnum := w / a.size
-	ynum := h / a.size
+	xnum := w / a.glyphSize
+	ynum := h / a.glyphSize
 	return xnum * ynum
 }
 
@@ -179,10 +179,10 @@ func (a *atlas) append(g *glyph) {
 
 func (a *atlas) draw(glyph *glyph) {
 	if a.tmpImage == nil {
-		a.tmpImage, _ = ebiten.NewImage(a.size, a.size, ebiten.FilterNearest)
+		a.tmpImage, _ = ebiten.NewImage(a.glyphSize, a.glyphSize, ebiten.FilterNearest)
 	}
 
-	dst := image.NewRGBA(image.Rect(0, 0, a.size, a.size))
+	dst := image.NewRGBA(image.Rect(0, 0, a.glyphSize, a.glyphSize))
 	d := font.Drawer{
 		Dst:  dst,
 		Src:  image.White,
@@ -236,7 +236,7 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		i, _ := ebiten.NewImage(size, size, ebiten.FilterNearest)
 		a = &atlas{
 			image:       i,
-			size:        g.char.atlasGroup(),
+			glyphSize:   g.char.atlasGroup(),
 			charToGlyph: map[char]*glyph{},
 		}
 		atlases[g.char.atlasGroup()] = a
