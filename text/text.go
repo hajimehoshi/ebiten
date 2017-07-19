@@ -258,7 +258,7 @@ var textM sync.Mutex
 // It is OK to call this function with a same text and a same face at every frame.
 //
 // This function is concurrent-safe.
-func Draw(dst *ebiten.Image, face font.Face, text string, x, y int, clr color.Color) {
+func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	textM.Lock()
 
 	n := now()

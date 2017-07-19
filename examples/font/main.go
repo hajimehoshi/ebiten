@@ -151,10 +151,10 @@ func update(screen *ebiten.Image) error {
 
 	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
 	const x = 20
-	text.Draw(screen, mplusNormalFont, msg, x, 40, color.White)
-	text.Draw(screen, mplusNormalFont, sampleText, x, 80, color.White)
+	text.Draw(screen, msg, mplusNormalFont, x, 40, color.White)
+	text.Draw(screen, sampleText, mplusNormalFont, x, 80, color.White)
 	for i, line := range strings.Split(string(kanjiText), "\n") {
-		text.Draw(screen, mplusBigFont, line, x, 160+54*i, codeToColor(kanjiText[0]))
+		text.Draw(screen, line, mplusBigFont, x, 160+54*i, codeToColor(kanjiText[0]))
 	}
 	return nil
 }
