@@ -44,6 +44,7 @@ var (
 	mplusBigFont    font.Face
 	counter         = 0
 	kanjiText       = []rune{}
+	kanjiTextColor  color.RGBA
 )
 
 var jaKanjis = []rune{}
@@ -126,13 +127,6 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func codeToColor(c rune) color.RGBA {
-	r := 0x80 + ((uint8(c) & 0x0f) << 3)
-	g := 0x80 + ((uint8(c>>4) & 0x0f) << 3)
-	b := 0x80 + ((uint8(c>>8) & 0x0f) << 3)
-	return color.RGBA{r, g, b, 0xff}
-}
-
 func update(screen *ebiten.Image) error {
 	if counter%ebiten.FPS == 0 {
 		kanjiText = []rune{}
@@ -142,6 +136,11 @@ func update(screen *ebiten.Image) error {
 			}
 			kanjiText = append(kanjiText, '\n')
 		}
+
+		kanjiTextColor.R = 0x80 + uint8(rand.Intn(0x7f))
+		kanjiTextColor.G = 0x80 + uint8(rand.Intn(0x7f))
+		kanjiTextColor.B = 0x80 + uint8(rand.Intn(0x7f))
+		kanjiTextColor.A = 0xff
 	}
 	counter++
 
@@ -154,7 +153,7 @@ func update(screen *ebiten.Image) error {
 	text.Draw(screen, msg, mplusNormalFont, x, 40, color.White)
 	text.Draw(screen, sampleText, mplusNormalFont, x, 80, color.White)
 	for i, line := range strings.Split(string(kanjiText), "\n") {
-		text.Draw(screen, line, mplusBigFont, x, 160+54*i, codeToColor(kanjiText[0]))
+		text.Draw(screen, line, mplusBigFont, x, 160+54*i, kanjiTextColor)
 	}
 	return nil
 }
