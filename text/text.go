@@ -219,7 +219,12 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 	}
 
 	if ch.empty() {
-		return nil
+		// The glyph doesn't have its size but might have valid 'advance' parameter
+		// when ch is e.g. space (U+0020).
+		return &glyph{
+			char:  ch,
+			atime: now,
+		}
 	}
 
 	if !ok {
