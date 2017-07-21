@@ -182,6 +182,9 @@ func initialize() error {
 	window.Call("addEventListener", "blur", func() {
 		currentUI.windowFocus = false
 	})
+	window.Call("addEventListener", "resize", func() {
+		currentUI.updateScreenSize()
+	})
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
@@ -345,7 +348,11 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	u.height = height
 	u.scale = scale
 	u.fullscreen = fullscreen
+	u.updateScreenSize()
+	return true
+}
 
+func (u *userInterface) updateScreenSize() {
 	// CSS imageRendering seems useful to enlarge the screen,
 	// but doesn't work in some cases (#306):
 	// * Chrome just after restoring the lost context
@@ -353,13 +360,13 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// Let's use the pixel ratio as it is here.
 	u.deviceScale = devicePixelRatio()
 
-	canvas.Set("width", int(float64(width)*u.actualScreenScale()))
-	canvas.Set("height", int(float64(height)*u.actualScreenScale()))
+	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
+	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")
 
-	scale = u.getScale()
-	cssWidth := int(float64(width) * scale)
-	cssHeight := int(float64(height) * scale)
+	s := u.getScale()
+	cssWidth := int(float64(u.width) * s)
+	cssHeight := int(float64(u.height) * s)
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
 	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
 	// CSS calc requires space chars.
@@ -367,5 +374,4 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	canvasStyle.Set("top", "calc((100% - "+strconv.Itoa(cssHeight)+"px) / 2)")
 
 	u.sizeChanged = true
-	return true
 }
