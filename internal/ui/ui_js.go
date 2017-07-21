@@ -27,7 +27,11 @@ import (
 var canvas *js.Object
 
 type userInterface struct {
-	scale       float64
+	width      int
+	height     int
+	scale      float64
+	fullscreen bool
+
 	deviceScale float64
 	sizeChanged bool
 	windowFocus bool
@@ -44,26 +48,23 @@ func shown() bool {
 }
 
 func SetScreenSize(width, height int) bool {
-	return currentUI.setScreenSize(width, height, currentUI.scale)
+	return currentUI.setScreenSize(currentUI.width, currentUI.height, currentUI.scale, currentUI.fullscreen)
 }
 
 func SetScreenScale(scale float64) bool {
-	width, height := currentUI.size()
-	return currentUI.setScreenSize(width, height, scale)
+	return currentUI.setScreenSize(currentUI.width, currentUI.height, scale, currentUI.fullscreen)
 }
 
 func ScreenScale() float64 {
 	return currentUI.scale
 }
 
-func SetFullscreen(fullscreen bool) bool {
-	// TODO: Implement
-	return false
+func SetFullscreen(fullscreen bool) {
+	currentUI.setScreenSize(currentUI.width, currentUI.height, currentUI.scale, fullscreen)
 }
 
 func IsFullscreen() bool {
-	// TODO: Implement
-	return false
+	return currentUI.fullscreen
 }
 
 func ScreenOffset() (float64, float64) {
@@ -82,8 +83,24 @@ func SetCursorVisibility(visibility bool) {
 	}
 }
 
+func (u *userInterface) getScale() float64 {
+	if !u.fullscreen {
+		return u.scale
+	}
+	doc := js.Global.Get("document")
+	body := doc.Get("body")
+	bw := body.Get("clientWidth").Float()
+	bh := body.Get("clientHeight").Float()
+	sw := bw / float64(u.width)
+	sh := bh / float64(u.height)
+	if sw > sh {
+		return sh
+	}
+	return sw
+}
+
 func (u *userInterface) actualScreenScale() float64 {
-	return u.scale * u.deviceScale
+	return u.getScale() * u.deviceScale
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -97,8 +114,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	currentInput.updateGamepads()
 	if u.sizeChanged {
 		u.sizeChanged = false
-		w, h := u.size()
-		g.SetSize(w, h, u.actualScreenScale())
+		g.SetSize(u.width, u.height, u.actualScreenScale())
 		return nil
 	}
 	if err := g.Update(); err != nil {
@@ -125,7 +141,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 }
 
 func touchEventToTouches(e *js.Object) []touch {
-	scale := currentUI.scale
+	scale := currentUI.getScale()
 	j := e.Get("targetTouches")
 	rect := canvas.Call("getBoundingClientRect")
 	left, top := rect.Get("left").Int(), rect.Get("top").Int()
@@ -277,7 +293,7 @@ func initialize() error {
 }
 
 func setMouseCursorFromEvent(e *js.Object) {
-	scale := currentUI.scale
+	scale := currentUI.getScale()
 	rect := canvas.Call("getBoundingClientRect")
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	x -= rect.Get("left").Int()
@@ -301,23 +317,12 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	u := currentUI
 	doc := js.Global.Get("document")
 	doc.Set("title", title)
-	u.setScreenSize(width, height, scale)
+	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
 	if err := opengl.Init(); err != nil {
 		return err
 	}
 	return u.loop(g)
-}
-
-func (u *userInterface) size() (width, height int) {
-	a := u.actualScreenScale()
-	if a == 0 {
-		// a == 0 only on the initial state.
-		return
-	}
-	width = int(canvas.Get("width").Float() / a)
-	height = int(canvas.Get("height").Float() / a)
-	return
 }
 
 func isSafari() bool {
@@ -331,23 +336,28 @@ func isSafari() bool {
 	return true
 }
 
-func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
-	w, h := u.size()
-	s := u.scale
-	if w == width && h == height && s == scale {
+func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
+	if u.width == width && u.height == height &&
+		u.scale == scale && fullscreen == u.fullscreen {
 		return false
 	}
+	u.width = width
+	u.height = height
 	u.scale = scale
+	u.fullscreen = fullscreen
+
 	// CSS imageRendering seems useful to enlarge the screen,
 	// but doesn't work in some cases (#306):
 	// * Chrome just after restoring the lost context
 	// * Safari
 	// Let's use the pixel ratio as it is here.
 	u.deviceScale = devicePixelRatio()
+
 	canvas.Set("width", int(float64(width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")
 
+	scale = u.getScale()
 	cssWidth := int(float64(width) * scale)
 	cssHeight := int(float64(height) * scale)
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
@@ -355,6 +365,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64) bool {
 	// CSS calc requires space chars.
 	canvasStyle.Set("left", "calc((100% - "+strconv.Itoa(cssWidth)+"px) / 2)")
 	canvasStyle.Set("top", "calc((100% - "+strconv.Itoa(cssHeight)+"px) / 2)")
+
 	u.sizeChanged = true
 	return true
 }
