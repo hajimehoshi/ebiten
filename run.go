@@ -166,8 +166,13 @@ func IsFullscreen() bool {
 // On fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
 //
-// Ebiten uses 'windowed' fullscreen mode, which doesn't change
+// On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
+//
+// On browsers, the game screen is resized to fit with the body element (client) size.
+// Additionally, the game screen is automatically resized when the body element is resized.
+//
+// SetFullscreen doesn't work on mobiles.
 //
 // This function is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
