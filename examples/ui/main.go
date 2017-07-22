@@ -482,7 +482,7 @@ var (
 		X:      16,
 		Y:      96,
 		Width:  608,
-		Height: 160,
+		Height: 368,
 	}
 )
 
