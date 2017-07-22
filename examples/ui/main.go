@@ -168,11 +168,8 @@ func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.R
 }
 
 type Button struct {
-	X      int
-	Y      int
-	Width  int
-	Height int
-	Text   string
+	Rect image.Rectangle
+	Text string
 
 	mouseDown bool
 	pressed   bool
@@ -182,7 +179,7 @@ func (b *Button) Update() {
 	b.pressed = false
 	if theInput.IsMouseButtonPressed() {
 		x, y := ebiten.CursorPosition()
-		if b.X <= x && x < (b.X+b.Width) && b.Y <= y && y < (b.Y+b.Height) {
+		if b.Rect.Min.X <= x && x < b.Rect.Max.X && b.Rect.Min.Y <= y && y < b.Rect.Max.Y {
 			b.mouseDown = true
 		} else {
 			b.mouseDown = false
@@ -200,13 +197,12 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	if b.mouseDown {
 		t = imageTypeButtonPressed
 	}
-	r := image.Rect(b.X, b.Y, b.X+b.Width, b.Y+b.Height)
-	drawNinePatches(dst, r, imageSrcRects[t])
+	drawNinePatches(dst, b.Rect, imageSrcRects[t])
 
 	bounds, _ := font.BoundString(uiFont, b.Text)
 	w := (bounds.Max.X - bounds.Min.X).Ceil()
-	x := b.X + (b.Width-w)/2
-	y := (b.Y + b.Height) - (b.Height-uiFontMHeight)/2
+	x := b.Rect.Min.X + (b.Rect.Dx()-w)/2
+	y := b.Rect.Max.Y - (b.Rect.Dy()-uiFontMHeight)/2
 	text.Draw(dst, b.Text, uiFont, x, y, color.Black)
 }
 
@@ -307,11 +303,8 @@ const (
 )
 
 type TextBox struct {
-	X      int
-	Y      int
-	Width  int
-	Height int
-	Text   string
+	Rect image.Rectangle
+	Text string
 
 	contentBuf *ebiten.Image
 	vScrollBar *VScrollBar
@@ -331,9 +324,9 @@ func (t *TextBox) Update() {
 	if t.vScrollBar == nil {
 		t.vScrollBar = &VScrollBar{}
 	}
-	t.vScrollBar.X = t.X + t.Width - VScrollBarWidth
-	t.vScrollBar.Y = t.Y
-	t.vScrollBar.Height = t.Height
+	t.vScrollBar.X = t.Rect.Max.X - VScrollBarWidth
+	t.vScrollBar.Y = t.Rect.Min.Y
+	t.vScrollBar.Height = t.Rect.Dy()
 
 	_, h := t.contentSize()
 	t.vScrollBar.Update(h)
@@ -344,11 +337,11 @@ func (t *TextBox) Update() {
 
 func (t *TextBox) contentSize() (int, int) {
 	h := len(strings.Split(t.Text, "\n")) * lineHeight
-	return t.Width, h
+	return t.Rect.Dx(), h
 }
 
 func (t *TextBox) viewSize() (int, int) {
-	return t.Width - VScrollBarWidth - textBoxPaddingLeft, t.Height
+	return t.Rect.Dx() - VScrollBarWidth - textBoxPaddingLeft, t.Rect.Dy()
 }
 
 func (t *TextBox) contentOffset() (int, int) {
@@ -356,8 +349,7 @@ func (t *TextBox) contentOffset() (int, int) {
 }
 
 func (t *TextBox) Draw(dst *ebiten.Image) {
-	r := image.Rect(t.X, t.Y, t.X+t.Width, t.Y+t.Height)
-	drawNinePatches(dst, r, imageSrcRects[imageTypeTextBox])
+	drawNinePatches(dst, t.Rect, imageSrcRects[imageTypeTextBox])
 
 	if t.contentBuf != nil {
 		vw, vh := t.viewSize()
@@ -386,7 +378,7 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 		text.Draw(t.contentBuf, line, uiFont, x, y, color.Black)
 	}
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(t.X), float64(t.Y))
+	op.GeoM.Translate(float64(t.Rect.Min.X), float64(t.Rect.Min.Y))
 	dst.DrawImage(t.contentBuf, op)
 
 	t.vScrollBar.Draw(dst)
@@ -460,18 +452,12 @@ func (c *CheckBox) CheckChanged() bool {
 
 var (
 	button1 = &Button{
-		X:      16,
-		Y:      16,
-		Width:  128,
-		Height: 32,
-		Text:   "Button 1",
+		Rect: image.Rect(16, 16, 144, 48),
+		Text: "Button 1",
 	}
 	button2 = &Button{
-		X:      160,
-		Y:      16,
-		Width:  128,
-		Height: 32,
-		Text:   "Button 2",
+		Rect: image.Rect(160, 16, 288, 48),
+		Text: "Button 2",
 	}
 	checkBox = &CheckBox{
 		X:    16,
@@ -479,10 +465,7 @@ var (
 		Text: "Check Box!",
 	}
 	textBoxLog = &TextBox{
-		X:      16,
-		Y:      96,
-		Width:  608,
-		Height: 368,
+		Rect: image.Rect(16, 96, 624, 464),
 	}
 )
 
