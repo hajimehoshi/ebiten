@@ -25,8 +25,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
-// Image represents an image.
-// The pixel format is alpha-premultiplied.
+// Image represents a rectangle set of pixels.
+// The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image.
 //
 // Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
