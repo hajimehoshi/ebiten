@@ -86,7 +86,7 @@ func hideConsoleWindowOnWindows() {
 		// Ignore errors
 		return
 	}
-	// Get the process ID of the console's creater.
+	// Get the process ID of the console's creator.
 	cpid, err := getWindowThreadProcessId(w)
 	if err != nil {
 		// Ignore errors

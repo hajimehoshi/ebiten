@@ -34,7 +34,7 @@ type TileData struct {
 	y     int
 }
 
-// Tile represents a tile infomation including TileData and animation states.
+// Tile represents a tile information including TileData and animation states.
 type Tile struct {
 	current TileData
 

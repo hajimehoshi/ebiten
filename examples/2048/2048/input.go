@@ -216,7 +216,7 @@ func (i *Input) Update() {
 	}
 }
 
-// Dir returns a currenly pressed direction.
+// Dir returns a currently pressed direction.
 // Dir returns false if no direction key is pressed.
 func (i *Input) Dir() (Dir, bool) {
 	for k, d := range dirKeys {
