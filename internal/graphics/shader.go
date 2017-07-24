@@ -38,6 +38,10 @@ func shader(id shaderId) string {
 
 var shaders = map[shaderId]string{
 	shaderVertexModelview: `
+#ifdef GL_ES
+precision highp float;
+#endif
+
 uniform highp mat4 projection_matrix;
 attribute highp vec2 vertex;
 attribute highp vec2 tex_coord;
@@ -57,6 +61,10 @@ void main(void) {
 }
 `,
 	shaderFragmentTexture: `
+#ifdef GL_ES
+precision mediump float;
+#endif
+
 uniform lowp sampler2D texture;
 uniform lowp mat4 color_matrix;
 uniform lowp vec4 color_matrix_translation;
