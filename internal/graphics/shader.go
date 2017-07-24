@@ -14,12 +14,6 @@
 
 package graphics
 
-import (
-	"strings"
-
-	"github.com/hajimehoshi/ebiten/internal/opengl"
-)
-
 type shaderId int
 
 const (
@@ -28,18 +22,17 @@ const (
 )
 
 func shader(id shaderId) string {
-	str := shaders[id]
-	if !opengl.GetContext().GlslHighpSupported() {
-		str = strings.Replace(str, "highp ", "", -1)
-		str = strings.Replace(str, "lowp ", "", -1)
-	}
-	return str
+	return shaders[id]
 }
 
 var shaders = map[shaderId]string{
 	shaderVertexModelview: `
-#ifdef GL_ES
+#if defined(GL_ES)
 precision highp float;
+#else
+#define lowp
+#define mediump
+#define highp
 #endif
 
 uniform highp mat4 projection_matrix;
@@ -47,7 +40,7 @@ attribute highp vec2 vertex;
 attribute highp vec2 tex_coord;
 attribute highp vec4 geo_matrix_body;
 attribute highp vec2 geo_matrix_translation;
-varying highp vec2 vertex_out_tex_coord;
+varying vec2 vertex_out_tex_coord;
 
 void main(void) {
   vertex_out_tex_coord = tex_coord;
@@ -61,14 +54,22 @@ void main(void) {
 }
 `,
 	shaderFragmentTexture: `
-#ifdef GL_ES
+#if defined(GL_ES)
 precision mediump float;
+#else
+#define lowp
+#define mediump
+#define highp
 #endif
 
 uniform lowp sampler2D texture;
 uniform lowp mat4 color_matrix;
 uniform lowp vec4 color_matrix_translation;
+#if defined(GL_ES) && defined(GL_FRAGMENT_PRECISION_HIGH)
 varying highp vec2 vertex_out_tex_coord;
+#else
+varying vec2 vertex_out_tex_coord;
+#endif
 
 void main(void) {
   lowp vec4 color = texture2D(texture, vertex_out_tex_coord);

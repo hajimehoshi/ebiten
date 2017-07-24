@@ -355,10 +355,6 @@ func (c *Context) DeleteShader(s Shader) {
 	})
 }
 
-func (c *Context) GlslHighpSupported() bool {
-	return false
-}
-
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	var program Program
 	if err := c.runOnContextThread(func() error {

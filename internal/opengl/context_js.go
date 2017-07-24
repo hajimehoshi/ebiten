@@ -310,15 +310,6 @@ func (c *Context) DeleteShader(s Shader) {
 	gl.DeleteShader(s.Object)
 }
 
-func (c *Context) GlslHighpSupported() bool {
-	gl := c.gl
-	// headless-gl library may not define getShaderPrecisionFormat.
-	if gl.Get("getShaderPrecisionFormat") == js.Undefined {
-		return false
-	}
-	return gl.Call("getShaderPrecisionFormat", gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).Get("precision").Int() != 0
-}
-
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()

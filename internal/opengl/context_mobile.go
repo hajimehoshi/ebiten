@@ -270,17 +270,6 @@ func (c *Context) DeleteShader(s Shader) {
 	gl.DeleteShader(mgl.Shader(s))
 }
 
-func (c *Context) GlslHighpSupported() bool {
-	gl := c.gl
-	_, _, precision := gl.GetShaderPrecisionFormat(mgl.FRAGMENT_SHADER, mgl.HIGH_FLOAT)
-	// On Android emulators, precision might be a wrong value (#239).
-	// TODO: If possible, check if this is running on an emulator.
-	if 64 <= precision {
-		return false
-	}
-	return precision != 0
-}
-
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
