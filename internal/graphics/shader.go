@@ -27,19 +27,11 @@ func shader(id shaderId) string {
 
 var shaders = map[shaderId]string{
 	shaderVertexModelview: `
-#if defined(GL_ES)
-precision highp float;
-#else
-#define lowp
-#define mediump
-#define highp
-#endif
-
-uniform highp mat4 projection_matrix;
-attribute highp vec2 vertex;
-attribute highp vec2 tex_coord;
-attribute highp vec4 geo_matrix_body;
-attribute highp vec2 geo_matrix_translation;
+uniform mat4 projection_matrix;
+attribute vec2 vertex;
+attribute vec2 tex_coord;
+attribute vec4 geo_matrix_body;
+attribute vec2 geo_matrix_translation;
 varying vec2 vertex_out_tex_coord;
 
 void main(void) {
