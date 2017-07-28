@@ -54,17 +54,13 @@ precision mediump float;
 #define highp
 #endif
 
-uniform lowp sampler2D texture;
-uniform lowp mat4 color_matrix;
-uniform lowp vec4 color_matrix_translation;
-#if defined(GL_ES) && defined(GL_FRAGMENT_PRECISION_HIGH)
-varying highp vec2 vertex_out_tex_coord;
-#else
+uniform sampler2D texture;
+uniform mat4 color_matrix;
+uniform vec4 color_matrix_translation;
 varying vec2 vertex_out_tex_coord;
-#endif
 
 void main(void) {
-  lowp vec4 color = texture2D(texture, vertex_out_tex_coord);
+  vec4 color = texture2D(texture, vertex_out_tex_coord);
 
   // Un-premultiply alpha
   if (0.0 < color.a) {
