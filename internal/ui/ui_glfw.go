@@ -48,17 +48,20 @@ type userInterface struct {
 	m               sync.Mutex
 }
 
-var currentUI *userInterface
+var (
+	currentUI = &userInterface{
+		sizeChanged: true,
+		origPosX:    -1,
+		origPosY:    -1,
+	}
+	currentUIInitialized = make(chan struct{})
+)
 
 func init() {
-	if err := initialize(); err != nil {
-		panic(err)
-	}
+	runtime.LockOSThread()
 }
 
 func initialize() error {
-	runtime.LockOSThread()
-
 	if err := glfw.Init(); err != nil {
 		return err
 	}
@@ -73,19 +76,21 @@ func initialize() error {
 		return err
 	}
 	hideConsoleWindowOnWindows()
-	u := &userInterface{
-		window:      window,
-		funcs:       make(chan func()),
-		sizeChanged: true,
-		origPosX:    -1,
-		origPosY:    -1,
-	}
-	u.window.MakeContextCurrent()
-	currentUI = u
+	currentUI.window = window
+	currentUI.funcs = make(chan func())
+
+	currentUI.window.MakeContextCurrent()
 	return nil
 }
 
 func RunMainThreadLoop(ch <-chan error) error {
+	// This must be called on the main thread.
+
+	if err := initialize(); err != nil {
+		return err
+	}
+	close(currentUIInitialized)
+
 	// TODO: Check this is done on the main thread.
 	currentUI.setRunning(true)
 	defer func() {
@@ -243,6 +248,8 @@ func SetCursorVisibility(visible bool) {
 }
 
 func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+	<-currentUIInitialized
+
 	u := currentUI
 	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
