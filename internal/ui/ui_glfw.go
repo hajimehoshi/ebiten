@@ -163,7 +163,9 @@ func SetScreenScale(scale float64) bool {
 func SetFullscreen(fullscreen bool) {
 	u := currentUI
 	if !u.isRunning() {
+		u.m.Lock()
 		u.initFullscreen = fullscreen
+		u.m.Unlock()
 		return
 	}
 	_ = u.runOnMainThread(func() error {
@@ -189,7 +191,10 @@ func ScreenScale() float64 {
 func IsFullscreen() bool {
 	u := currentUI
 	if !u.isRunning() {
-		return false
+		u.m.Lock()
+		v := u.initFullscreen
+		u.m.Unlock()
+		return v
 	}
 	f := false
 	_ = u.runOnMainThread(func() error {
