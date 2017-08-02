@@ -58,7 +58,7 @@ type Input struct {
 }
 
 func (i *Input) update() {
-	for _, key := range []ebiten.Key{ebiten.KeyP, ebiten.KeyS, ebiten.KeyX, ebiten.KeyZ} {
+	for _, key := range []ebiten.Key{ebiten.KeyP, ebiten.KeyS, ebiten.KeyX, ebiten.KeyZ, ebiten.KeyB} {
 		if !ebiten.IsKeyPressed(key) {
 			i.keyStates[key] = 0
 		} else {
@@ -170,6 +170,10 @@ func (p *Player) update() error {
 	p.updatePlayPause()
 	p.updateSE()
 	p.updateVolume()
+	if p.input.isKeyTriggered(ebiten.KeyB) {
+		b := ebiten.IsRunnableInBackground()
+		ebiten.SetRunnableInBackground(!b)
+	}
 	if err := p.audioContext.Update(); err != nil {
 		return err
 	}
@@ -262,6 +266,7 @@ func (p *Player) draw(screen *ebiten.Image) {
 Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
+Press B to switch the run-in-background state
 %s`, ebiten.CurrentFPS(), currentTimeStr)
 	ebitenutil.DebugPrint(screen, msg)
 }

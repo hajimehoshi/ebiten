@@ -21,6 +21,7 @@ import (
 	"image/color"
 	_ "image/jpeg"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -41,7 +42,9 @@ var (
 		ebiten.KeyRight: 0,
 		ebiten.KeyS:     0,
 		ebiten.KeyF:     0,
+		ebiten.KeyB:     0,
 	}
+	count = 0
 )
 
 func update(screen *ebiten.Image) error {
@@ -56,6 +59,7 @@ func update(screen *ebiten.Image) error {
 	d := int(32 / screenScale)
 	screenWidth, screenHeight := screen.Size()
 	fullscreen := ebiten.IsFullscreen()
+	runnableInBackground := ebiten.IsRunnableInBackground()
 
 	if keyStates[ebiten.KeyUp] == 1 {
 		screenHeight += d
@@ -88,9 +92,15 @@ func update(screen *ebiten.Image) error {
 	if keyStates[ebiten.KeyF] == 1 {
 		fullscreen = !fullscreen
 	}
+	if keyStates[ebiten.KeyB] == 1 {
+		runnableInBackground = !runnableInBackground
+	}
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
+	ebiten.SetRunnableInBackground(runnableInBackground)
+
+	count++
 
 	if ebiten.IsRunningSlowly() {
 		return nil
@@ -101,12 +111,16 @@ func update(screen *ebiten.Image) error {
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(-w+w2)/2, float64(-h+h2)/2)
+	dx := math.Cos(2*math.Pi*float64(count)/360) * 10
+	dy := math.Sin(2*math.Pi*float64(count)/360) * 10
+	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 
 	x, y := ebiten.CursorPosition()
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
 Press F key to change the fullscreen state
+Press B key to change the run-in-background state
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)

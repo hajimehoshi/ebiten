@@ -27,10 +27,11 @@ import (
 var canvas *js.Object
 
 type userInterface struct {
-	width      int
-	height     int
-	scale      float64
-	fullscreen bool
+	width                int
+	height               int
+	scale                float64
+	fullscreen           bool
+	runnableInBackground bool
 
 	deviceScale float64
 	sizeChanged bool
@@ -65,6 +66,14 @@ func SetFullscreen(fullscreen bool) {
 
 func IsFullscreen() bool {
 	return currentUI.fullscreen
+}
+
+func SetRunnableInBackground(runnableInBackground bool) {
+	currentUI.runnableInBackground = runnableInBackground
+}
+
+func IsRunnableInBackground() bool {
+	return currentUI.runnableInBackground
 }
 
 func ScreenOffset() (float64, float64) {
@@ -104,7 +113,7 @@ func (u *userInterface) actualScreenScale() float64 {
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
-	if !u.windowFocus {
+	if !u.runnableInBackground && !u.windowFocus {
 		return nil
 	}
 	if opengl.GetContext().IsContextLost() {

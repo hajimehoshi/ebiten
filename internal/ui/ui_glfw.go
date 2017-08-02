@@ -30,22 +30,23 @@ import (
 )
 
 type userInterface struct {
-	title           string
-	window          *glfw.Window
-	width           int
-	height          int
-	scale           float64
-	deviceScale     float64
-	glfwScale       float64
-	fullscreen      bool
-	fullscreenScale float64
-	funcs           chan func()
-	running         bool
-	sizeChanged     bool
-	origPosX        int
-	origPosY        int
-	initFullscreen  bool
-	m               sync.Mutex
+	title                string
+	window               *glfw.Window
+	width                int
+	height               int
+	scale                float64
+	deviceScale          float64
+	glfwScale            float64
+	fullscreen           bool
+	fullscreenScale      float64
+	funcs                chan func()
+	running              bool
+	sizeChanged          bool
+	origPosX             int
+	origPosY             int
+	initFullscreen       bool
+	runnableInBackground bool
+	m                    sync.Mutex
 }
 
 var (
@@ -133,6 +134,19 @@ func (u *userInterface) setInitFullscreen(initFullscreen bool) {
 	u.m.Unlock()
 }
 
+func (u *userInterface) isRunnableInBackground() bool {
+	u.m.Lock()
+	v := u.runnableInBackground
+	u.m.Unlock()
+	return v
+}
+
+func (u *userInterface) setRunnableInBackground(runnableInBackground bool) {
+	u.m.Lock()
+	u.runnableInBackground = runnableInBackground
+	u.m.Unlock()
+}
+
 func (u *userInterface) runOnMainThread(f func() error) error {
 	if u.funcs == nil {
 		// already closed
@@ -211,6 +225,14 @@ func SetFullscreen(fullscreen bool) {
 		u.setScreenSize(u.width, u.height, u.scale, fullscreen)
 		return nil
 	})
+}
+
+func SetRunnableInBackground(runnableInBackground bool) {
+	currentUI.setRunnableInBackground(runnableInBackground)
+}
+
+func IsRunnableInBackground() bool {
+	return currentUI.isRunnableInBackground()
 }
 
 func ScreenOffset() (float64, float64) {
@@ -372,7 +394,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 
 	_ = u.runOnMainThread(func() error {
 		u.pollEvents()
-		for u.window.GetAttrib(glfw.Focused) == 0 {
+		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
 			u.pollEvents()

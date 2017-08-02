@@ -178,3 +178,25 @@ func IsFullscreen() bool {
 func SetFullscreen(fullscreen bool) {
 	ui.SetFullscreen(fullscreen)
 }
+
+// IsRunnableInBackground returns a boolean value indicating whether the game runs even in background.
+//
+// This function is concurrent-safe.
+func IsRunnableInBackground() bool {
+	return ui.IsRunnableInBackground()
+}
+
+// SetRunnableInBackground sets the state if the game runs even in background.
+//
+// If the given value is true, the game runs in background e.g. when losing focus.
+// The initial state is false.
+//
+// Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
+// This is because browsers throttles background tabs not to often update.
+//
+// SetRunnableInBackground doesn't work on mobiles so far.
+//
+// This function is concurrent-safe.
+func SetRunnableInBackground(runnableInBackground bool) {
+	ui.SetRunnableInBackground(runnableInBackground)
+}

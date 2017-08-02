@@ -118,12 +118,20 @@ func SetCursorVisibility(visibility bool) {
 	// Do nothing
 }
 
-func SetFullscreen(fullscreen bool) bool {
+func SetFullscreen(fullscreen bool) {
+	// Do nothing
+}
+
+func IsFullscreen() bool {
 	// Do nothing
 	return false
 }
 
-func IsFullscreen() bool {
+func SetRunnableInBackground(runnableInBackground bool) {
+	// Do nothing
+}
+
+func IsRunnableInBackground() bool {
 	// Do nothing
 	return false
 }
