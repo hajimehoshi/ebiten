@@ -109,14 +109,28 @@ func RunMainThreadLoop(ch <-chan error) error {
 
 func (u *userInterface) isRunning() bool {
 	u.m.Lock()
-	defer u.m.Unlock()
-	return u.running
+	v := u.running
+	u.m.Unlock()
+	return v
 }
 
 func (u *userInterface) setRunning(running bool) {
 	u.m.Lock()
-	defer u.m.Unlock()
 	u.running = running
+	u.m.Unlock()
+}
+
+func (u *userInterface) isInitFullscreen() bool {
+	u.m.Lock()
+	v := u.initFullscreen
+	u.m.Unlock()
+	return v
+}
+
+func (u *userInterface) setInitFullscreen(initFullscreen bool) {
+	u.m.Lock()
+	u.initFullscreen = initFullscreen
+	u.m.Unlock()
 }
 
 func (u *userInterface) runOnMainThread(f func() error) error {
@@ -163,9 +177,7 @@ func SetScreenScale(scale float64) bool {
 func SetFullscreen(fullscreen bool) {
 	u := currentUI
 	if !u.isRunning() {
-		u.m.Lock()
-		u.initFullscreen = fullscreen
-		u.m.Unlock()
+		u.setInitFullscreen(fullscreen)
 		return
 	}
 	_ = u.runOnMainThread(func() error {
@@ -191,10 +203,7 @@ func ScreenScale() float64 {
 func IsFullscreen() bool {
 	u := currentUI
 	if !u.isRunning() {
-		u.m.Lock()
-		v := u.initFullscreen
-		u.m.Unlock()
-		return v
+		return u.isInitFullscreen()
 	}
 	f := false
 	_ = u.runOnMainThread(func() error {
@@ -338,10 +347,10 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 
 	_ = u.runOnMainThread(func() error {
-		if u.initFullscreen {
+		if u.isInitFullscreen() {
 			u := currentUI
 			u.setScreenSize(u.width, u.height, u.scale, true)
-			u.initFullscreen = false
+			u.setInitFullscreen(false)
 		}
 		return nil
 	})
