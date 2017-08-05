@@ -80,25 +80,24 @@ func (c *runContext) updateFPS(fps float64) {
 	c.m.Unlock()
 }
 
-type Runner interface {
-	Run(width, height int, scale float64, title string) error
-}
-
-func Run(runner Runner, width, height int, scale float64, title string) (err error) {
+func Start() error {
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}
 	currentRunContext = &runContext{}
 	currentRunContext.startRunning()
-	defer currentRunContext.endRunning()
 
 	n := now()
 	currentRunContext.lastUpdated = n
 	currentRunContext.lastFPSUpdated = n
 
 	close(contextInitCh)
+	return nil
+}
 
-	return runner.Run(width, height, scale, title)
+func End() {
+	currentRunContext.endRunning()
+	currentRunContext = nil
 }
 
 func (c *runContext) updateCount(now int64) int {

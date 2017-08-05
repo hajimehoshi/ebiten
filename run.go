@@ -60,12 +60,8 @@ func IsRunningSlowly() bool {
 
 var theGraphicsContext atomic.Value
 
-type runner struct {
-	g *graphicsContext
-}
-
-func (r *runner) Run(width, height int, scale float64, title string) error {
-	if err := ui.Run(width, height, scale, title, &updater{r.g}); err != nil {
+func run(width, height int, scale float64, title string, g *graphicsContext) error {
+	if err := ui.Run(width, height, scale, title, &updater{g}); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}
@@ -110,13 +106,19 @@ func (u *updater) Invalidate() {
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
 	ch := make(chan error)
 	go func() {
+		defer close(ch)
+
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		r := &runner{g}
-		if err := loop.Run(r, width, height, scale, title); err != nil {
+		if err := loop.Start(); err != nil {
 			ch <- err
+			return
 		}
-		close(ch)
+		if err := run(width, height, scale, title, g); err != nil {
+			ch <- err
+			return
+		}
+		loop.End()
 	}()
 	// TODO: Use context in Go 1.7?
 	if err := ui.RunMainThreadLoop(ch); err != nil {
@@ -135,13 +137,19 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	ch := make(chan error)
 	go func() {
+		defer close(ch)
+
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		r := &runner{g}
-		if err := loop.Run(r, width, height, scale, title); err != nil {
+		if err := loop.Start(); err != nil {
 			ch <- err
+			return
 		}
-		close(ch)
+		if err := run(width, height, scale, title, g); err != nil {
+			ch <- err
+			return
+		}
+		loop.End()
 	}()
 	return ch
 }
