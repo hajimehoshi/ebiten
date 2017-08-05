@@ -18,12 +18,11 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/loop"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 // FPS represents how many times game updating happens in a second (60).
-const FPS = loop.FPS
+const FPS = clock.FPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
@@ -34,7 +33,7 @@ const FPS = loop.FPS
 // Note that logical game updating is assured to happen 60 times in a second
 // as long as the screen is active.
 func CurrentFPS() float64 {
-	return loop.CurrentFPS()
+	return clock.CurrentFPS()
 }
 
 var (
@@ -114,15 +113,10 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := loop.Start(); err != nil {
-			ch <- err
-			return
-		}
 		if err := run(width, height, scale, title, g); err != nil {
 			ch <- err
 			return
 		}
-		loop.End()
 	}()
 	// TODO: Use context in Go 1.7?
 	if err := ui.RunMainThreadLoop(ch); err != nil {
@@ -145,15 +139,10 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := loop.Start(); err != nil {
-			ch <- err
-			return
-		}
 		if err := run(width, height, scale, title, g); err != nil {
 			ch <- err
 			return
 		}
-		loop.End()
 	}()
 	return ch
 }
