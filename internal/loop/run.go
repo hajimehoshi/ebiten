@@ -102,7 +102,7 @@ func (c *runContext) updateCount(now int64) int {
 		if t > 5*int64(time.Second)/int64(FPS) {
 			// The previous time is too old. Let's assume that the window was unfocused.
 			count = 0
-			c.lastUpdated = now
+			sync = true
 		} else {
 			count = int(t * int64(FPS) / int64(time.Second))
 		}
