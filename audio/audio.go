@@ -39,7 +39,6 @@ import (
 	"github.com/hajimehoshi/oto"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/loop"
 )
 
 type players struct {
@@ -233,7 +232,7 @@ func (c *Context) ping() {
 }
 
 func (c *Context) loop() {
-	loop.RegisterPing(c.ping)
+	clock.RegisterPing(c.ping)
 
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
 	// Accessing oto.Player functions requires the environment to be already initialized,
@@ -263,7 +262,7 @@ func (c *Context) loop() {
 		c.m.Unlock()
 		c.frames++
 		clock.ProceedPrimaryTimer()
-		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / loop.FPS
+		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
 		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 		l &= mask
 		c.writtenBytes += l

@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
-const FPS = 60
+const FPS = clock.FPS
 
 func CurrentFPS() float64 {
 	if theRunContext == nil {
@@ -76,17 +76,6 @@ func End() {
 	theRunContext = nil
 }
 
-func RegisterPing(ping func()) {
-	<-contextInitCh
-	theRunContext.registerPing(ping)
-}
-
-func (c *runContext) registerPing(ping func()) {
-	c.m.Lock()
-	c.ping = ping
-	c.m.Unlock()
-}
-
 type Updater interface {
 	Update(updateCount int) error
 }
@@ -99,13 +88,7 @@ func Update(u Updater) error {
 func (c *runContext) update(u Updater) error {
 	n := now()
 
-	c.m.Lock()
-	if c.ping != nil {
-		c.ping()
-	}
-	c.m.Unlock()
-
-	count := clock.Frames(n, FPS)
+	count := clock.Update(n)
 	if err := u.Update(count); err != nil {
 		return err
 	}

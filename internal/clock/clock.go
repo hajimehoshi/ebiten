@@ -20,13 +20,22 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
+const FPS = 60
+
 var (
 	m               sync.Mutex
 	primaryTime     int64
 	lastPrimaryTime int64
 	frames          int64
 	logicalTime     int64
+	ping            func()
 )
+
+func RegisterPing(pingFunc func()) {
+	m.Lock()
+	ping = pingFunc
+	m.Unlock()
+}
 
 // ProceedPrimaryTimer increments the primary time by a frame.
 func ProceedPrimaryTimer() {
@@ -35,12 +44,15 @@ func ProceedPrimaryTimer() {
 	m.Unlock()
 }
 
-// Frames returns an integer value indicating how many logical frames the game should update.
-//
-// Frames also updates the inner timer states.
-func Frames(now int64, fps int) int {
+// Update updates the inner clock state and returns an integer value
+// indicating how many logical frames the game should update.
+func Update(now int64) int {
 	m.Lock()
 	defer m.Unlock()
+
+	if ping != nil {
+		ping()
+	}
 
 	// Initialize logicalTime if needed.
 	if logicalTime == 0 {
@@ -74,20 +86,20 @@ func Frames(now int64, fps int) int {
 		// As the primary time can be updated discountinuously,
 		// the system clock is still needed.
 
-		if t > 5*int64(time.Second)/int64(fps) {
+		if t > 5*int64(time.Second)/FPS {
 			// The previous time is too old.
 			// Let's force to sync the logical time with the OS clock.
 			sync = true
 		} else {
-			count = int(t * int64(fps) / int64(time.Second))
+			count = int(t * FPS / int64(time.Second))
 		}
 	}
 
 	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/int64(fps)/2) < t {
+	if count == 0 && (int64(time.Second)/FPS/2) < t {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/int64(fps)*3/2) > t {
+	if count == 2 && (int64(time.Second)/FPS*3/2) > t {
 		count = 1
 	}
 	if count > 3 {
@@ -98,7 +110,7 @@ func Frames(now int64, fps int) int {
 	if sync {
 		logicalTime = now
 	} else {
-		logicalTime += int64(count) * int64(time.Second) / int64(fps)
+		logicalTime += int64(count) * int64(time.Second) / FPS
 	}
 	return count
 }
