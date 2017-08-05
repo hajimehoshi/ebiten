@@ -22,7 +22,6 @@ import (
 
 var (
 	m        sync.Mutex
-	valid    bool
 	tick     int64
 	lastTick int64
 	frames   int64
@@ -30,7 +29,6 @@ var (
 
 func Inc() {
 	m.Lock()
-	valid = true
 	tick++
 	m.Unlock()
 }
@@ -42,7 +40,7 @@ func Frames(timeDuration time.Duration, fps int) (int, bool) {
 	count := 0
 
 	sync := false
-	if valid && lastTick != tick {
+	if tick > 0 && lastTick != tick {
 		if frames < tick {
 			count = int(tick - frames)
 		}
