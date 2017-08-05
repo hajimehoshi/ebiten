@@ -106,7 +106,7 @@ func (c *graphicsContext) drawToDefaultRenderTarget() error {
 	return nil
 }
 
-func (c *graphicsContext) UpdateAndDraw(updateCount int) error {
+func (c *graphicsContext) Update(updateCount int) error {
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}

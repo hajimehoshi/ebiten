@@ -81,7 +81,7 @@ func (c *runContext) updateFPS(fps float64) {
 
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64)
-	UpdateAndDraw(updateCount int) error
+	Update(updateCount int) error
 	Invalidate()
 }
 
@@ -195,7 +195,7 @@ func (c *runContext) render(g GraphicsContext) error {
 	c.m.Unlock()
 
 	count := c.updateCount(n)
-	if err := g.UpdateAndDraw(count); err != nil {
+	if err := g.Update(count); err != nil {
 		return err
 	}
 	c.framesForFPS++
