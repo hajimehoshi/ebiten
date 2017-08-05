@@ -262,7 +262,7 @@ func (c *Context) loop() {
 		c.pingCount--
 		c.m.Unlock()
 		c.frames++
-		clock.Tick()
+		clock.Inc()
 		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / loop.FPS
 		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 		l &= mask

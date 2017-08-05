@@ -15,32 +15,63 @@
 package clock
 
 import (
+	"time"
+
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 var (
-	m     sync.Mutex
-	valid bool
-	now   int64
+	m        sync.Mutex
+	valid    bool
+	tick     int64
+	lastTick int64
+	frames   int64
 )
 
-func IsValid() bool {
-	m.Lock()
-	v := valid
-	m.Unlock()
-	return v
-}
-
-func Tick() {
+func Inc() {
 	m.Lock()
 	valid = true
-	now++
+	tick++
 	m.Unlock()
 }
 
-func Now() int64 {
+func Frames(timeDuration time.Duration, fps int) (int, bool) {
 	m.Lock()
-	n := now
-	m.Unlock()
-	return n
+	defer m.Unlock()
+
+	count := 0
+
+	sync := false
+	if valid && lastTick != tick {
+		if frames < tick {
+			count = int(tick - frames)
+		}
+		lastTick = tick
+		sync = true
+	} else {
+		// Use system clock when
+		// 1) Inc() is not called, or
+		// 2) tick is not updated yet.
+		// As tick can be updated discountinuously, use system clock supplementarily.
+
+		if int64(timeDuration) > 5*int64(time.Second)/int64(fps) {
+			// The previous time is too old. Let's assume that the window was unfocused.
+			return 0, true
+		}
+		count = int(int64(timeDuration) * int64(fps) / int64(time.Second))
+	}
+
+	// Stabilize FPS.
+	if count == 0 && (int64(time.Second)/int64(fps)/2) < int64(timeDuration) {
+		count = 1
+	}
+	if count == 2 && (int64(time.Second)/int64(fps)*3/2) > int64(timeDuration) {
+		count = 1
+	}
+	if count > 3 {
+		count = 3
+	}
+
+	frames += int64(count)
+	return count, sync
 }

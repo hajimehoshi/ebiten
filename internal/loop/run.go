@@ -34,11 +34,9 @@ func CurrentFPS() float64 {
 type runContext struct {
 	currentFPS     float64
 	runningSlowly  bool
-	frames         int64
 	framesForFPS   int64
 	lastUpdated    int64
 	lastFPSUpdated int64
-	lastClockFrame int64
 	ping           func()
 	m              sync.RWMutex
 }
@@ -81,42 +79,12 @@ func End() {
 }
 
 func (c *runContext) updateCount(now int64) int {
-	count := 0
-	sync := false
-
 	t := now - c.lastUpdated
 	if t < 0 {
 		return 0
 	}
 
-	if clock.IsValid() && c.lastClockFrame != clock.Now() {
-		sync = true
-		f := clock.Now()
-		if c.frames < f {
-			count = int(f - c.frames)
-		}
-		c.lastClockFrame = f
-	} else {
-		if t > 5*int64(time.Second)/int64(FPS) {
-			// The previous time is too old. Let's assume that the window was unfocused.
-			count = 0
-			sync = true
-		} else {
-			count = int(t * int64(FPS) / int64(time.Second))
-		}
-	}
-
-	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/int64(FPS)/2) < t {
-		count = 1
-	}
-	if count == 2 && (int64(time.Second)/int64(FPS)*3/2) > t {
-		count = 1
-	}
-
-	if count > 3 {
-		count = 3
-	}
+	count, sync := clock.Frames(time.Duration(t), FPS)
 
 	if sync {
 		c.lastUpdated = now
@@ -124,7 +92,6 @@ func (c *runContext) updateCount(now int64) int {
 		c.lastUpdated += int64(count) * int64(time.Second) / int64(FPS)
 	}
 
-	c.frames += int64(count)
 	return count
 }
 
