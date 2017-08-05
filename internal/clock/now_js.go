@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
+// +build js
 
-package loop
+package clock
 
 import (
 	"time"
+
+	"github.com/gopherjs/gopherjs/js"
 )
 
 func now() int64 {
-	return time.Now().UnixNano()
+	// time.Now() is not reliable until GopherJS supports performance.now().
+	return int64(js.Global.Get("performance").Call("now").Float() * float64(time.Millisecond))
 }

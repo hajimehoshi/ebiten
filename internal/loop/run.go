@@ -57,9 +57,7 @@ func Update(u Updater) error {
 }
 
 func (c *runContext) update(u Updater) error {
-	n := now()
-
-	count := clock.Update(n)
+	count := clock.Update()
 	if err := u.Update(count); err != nil {
 		return err
 	}

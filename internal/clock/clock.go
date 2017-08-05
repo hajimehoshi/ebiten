@@ -72,9 +72,11 @@ func updateFPS(now int64) {
 
 // Update updates the inner clock state and returns an integer value
 // indicating how many logical frames the game should update.
-func Update(now int64) int {
+func Update() int {
 	m.Lock()
 	defer m.Unlock()
+
+	n := now()
 
 	if ping != nil {
 		ping()
@@ -82,10 +84,10 @@ func Update(now int64) int {
 
 	// Initialize logicalTime if needed.
 	if logicalTime == 0 {
-		logicalTime = now
+		logicalTime = n
 	}
 
-	t := now - logicalTime
+	t := n - logicalTime
 	if t < 0 {
 		return 0
 	}
@@ -134,12 +136,12 @@ func Update(now int64) int {
 
 	frames += int64(count)
 	if sync {
-		logicalTime = now
+		logicalTime = n
 	} else {
 		logicalTime += int64(count) * int64(time.Second) / FPS
 	}
 
-	updateFPS(now)
+	updateFPS(n)
 
 	return count
 }
