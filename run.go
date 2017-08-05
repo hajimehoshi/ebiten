@@ -60,6 +60,32 @@ func IsRunningSlowly() bool {
 
 var theGraphicsContext atomic.Value
 
+type runner struct {
+	g *graphicsContext
+}
+
+func (r *runner) Run(width, height int, scale float64, title string) error {
+	if err := ui.Run(width, height, scale, title, r); err != nil {
+		if _, ok := err.(*ui.RegularTermination); ok {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *runner) SetSize(width, height int, scale float64) {
+	r.g.SetSize(width, height, scale)
+}
+
+func (r *runner) Update() error {
+	return loop.Update(r.g)
+}
+
+func (r *runner) Invalidate() {
+	r.g.Invalidate()
+}
+
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -82,7 +108,8 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	go func() {
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := loop.Run(g, width, height, scale, title); err != nil {
+		r := &runner{g}
+		if err := loop.Run(r, width, height, scale, title); err != nil {
 			ch <- err
 		}
 		close(ch)
@@ -106,7 +133,8 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	go func() {
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := loop.Run(g, width, height, scale, title); err != nil {
+		r := &runner{g}
+		if err := loop.Run(r, width, height, scale, title); err != nil {
 			ch <- err
 		}
 		close(ch)

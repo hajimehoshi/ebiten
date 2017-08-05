@@ -20,7 +20,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/sync"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 func CurrentFPS() float64 {
@@ -81,30 +80,11 @@ func (c *runContext) updateFPS(fps float64) {
 	c.m.Unlock()
 }
 
-type GraphicsContext interface {
-	SetSize(width, height int, scale float64)
-	Update(updateCount int) error
-	Invalidate()
+type Runner interface {
+	Run(width, height int, scale float64, title string) error
 }
 
-type loopGraphicsContext struct {
-	runContext      *runContext
-	graphicsContext GraphicsContext
-}
-
-func (g *loopGraphicsContext) SetSize(width, height int, scale float64) {
-	g.graphicsContext.SetSize(width, height, scale)
-}
-
-func (g *loopGraphicsContext) Update() error {
-	return g.runContext.render(g.graphicsContext)
-}
-
-func (g *loopGraphicsContext) Invalidate() {
-	g.graphicsContext.Invalidate()
-}
-
-func Run(g GraphicsContext, width, height int, scale float64, title string) (err error) {
+func Run(runner Runner, width, height int, scale float64, title string) (err error) {
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}
@@ -118,14 +98,7 @@ func Run(g GraphicsContext, width, height int, scale float64, title string) (err
 
 	close(contextInitCh)
 
-	lg := &loopGraphicsContext{currentRunContext, g}
-	if err := ui.Run(width, height, scale, title, lg); err != nil {
-		if _, ok := err.(*ui.RegularTermination); ok {
-			return nil
-		}
-		return err
-	}
-	return nil
+	return runner.Run(width, height, scale, title)
 }
 
 func (c *runContext) updateCount(now int64) int {
@@ -187,7 +160,16 @@ func (c *runContext) registerPing(ping func()) {
 	c.m.Unlock()
 }
 
-func (c *runContext) render(g GraphicsContext) error {
+type Updater interface {
+	Update(updateCount int) error
+}
+
+func Update(u Updater) error {
+	<-contextInitCh
+	return currentRunContext.update(u)
+}
+
+func (c *runContext) update(u Updater) error {
 	n := now()
 
 	c.m.Lock()
@@ -197,7 +179,7 @@ func (c *runContext) render(g GraphicsContext) error {
 	c.m.Unlock()
 
 	count := c.updateCount(n)
-	if err := g.Update(count); err != nil {
+	if err := u.Update(count); err != nil {
 		return err
 	}
 	c.framesForFPS++
