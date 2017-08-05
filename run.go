@@ -65,7 +65,7 @@ type runner struct {
 }
 
 func (r *runner) Run(width, height int, scale float64, title string) error {
-	if err := ui.Run(width, height, scale, title, r); err != nil {
+	if err := ui.Run(width, height, scale, title, &updater{r.g}); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}
@@ -74,16 +74,20 @@ func (r *runner) Run(width, height int, scale float64, title string) error {
 	return nil
 }
 
-func (r *runner) SetSize(width, height int, scale float64) {
-	r.g.SetSize(width, height, scale)
+type updater struct {
+	g *graphicsContext
 }
 
-func (r *runner) Update() error {
-	return loop.Update(r.g)
+func (u *updater) SetSize(width, height int, scale float64) {
+	u.g.SetSize(width, height, scale)
 }
 
-func (r *runner) Invalidate() {
-	r.g.Invalidate()
+func (u *updater) Update() error {
+	return loop.Update(u.g)
+}
+
+func (u *updater) Invalidate() {
+	u.g.Invalidate()
 }
 
 // Run runs the game.
