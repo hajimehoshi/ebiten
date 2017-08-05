@@ -89,13 +89,15 @@ func (c *runContext) updateCount(now int64) int {
 		return 0
 	}
 
-	if clock.IsValid() && c.lastClockFrame != clock.Now() {
-		sync = true
-		f := clock.Now()
-		if c.frames < f {
-			count = int(f - c.frames)
+	if clock.IsValid() {
+		if c.lastClockFrame != clock.Now() {
+			sync = true
+			f := clock.Now()
+			if c.frames < f {
+				count = int(f - c.frames)
+			}
+			c.lastClockFrame = f
 		}
-		c.lastClockFrame = f
 	} else {
 		if t > 5*int64(time.Second)/int64(FPS) {
 			// The previous time is too old. Let's assume that the window was unfocused.
