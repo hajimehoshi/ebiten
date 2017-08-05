@@ -47,26 +47,28 @@ var (
 
 func (c *runContext) startRunning() {
 	c.m.Lock()
-	defer c.m.Unlock()
 	c.running = true
+	c.m.Unlock()
 }
 
 func (c *runContext) isRunning() bool {
 	c.m.RLock()
-	defer c.m.RUnlock()
-	return c.running
+	v := c.running
+	c.m.RUnlock()
+	return v
 }
 
 func (c *runContext) endRunning() {
 	c.m.Lock()
-	defer c.m.Unlock()
 	c.running = false
+	c.m.Unlock()
 }
 
 func (c *runContext) getCurrentFPS() float64 {
 	c.m.RLock()
-	defer c.m.RUnlock()
-	if !c.running {
+	v := c.running
+	c.m.RUnlock()
+	if !v {
 		// TODO: Should panic here?
 		return 0
 	}
@@ -75,8 +77,8 @@ func (c *runContext) getCurrentFPS() float64 {
 
 func (c *runContext) updateFPS(fps float64) {
 	c.m.Lock()
-	defer c.m.Unlock()
 	c.currentFPS = fps
+	c.m.Unlock()
 }
 
 type GraphicsContext interface {
