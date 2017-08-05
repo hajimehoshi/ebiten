@@ -23,13 +23,26 @@ import (
 const FPS = 60
 
 var (
-	m               sync.Mutex
 	primaryTime     int64
 	lastPrimaryTime int64
 	frames          int64
 	logicalTime     int64
-	ping            func()
+
+	currentFPS     float64
+	lastFPSUpdated int64
+	framesForFPS   int64
+
+	ping func()
+
+	m sync.Mutex
 )
+
+func CurrentFPS() float64 {
+	m.Lock()
+	v := currentFPS
+	m.Unlock()
+	return v
+}
 
 func RegisterPing(pingFunc func()) {
 	m.Lock()
@@ -42,6 +55,19 @@ func ProceedPrimaryTimer() {
 	m.Lock()
 	primaryTime++
 	m.Unlock()
+}
+
+func updateFPS(now int64) {
+	if lastFPSUpdated == 0 {
+		lastFPSUpdated = now
+	}
+	framesForFPS++
+	if time.Second > time.Duration(now-lastFPSUpdated) {
+		return
+	}
+	currentFPS = float64(framesForFPS) * float64(time.Second) / float64(now-lastFPSUpdated)
+	lastFPSUpdated = now
+	framesForFPS = 0
 }
 
 // Update updates the inner clock state and returns an integer value
@@ -112,5 +138,8 @@ func Update(now int64) int {
 	} else {
 		logicalTime += int64(count) * int64(time.Second) / FPS
 	}
+
+	updateFPS(now)
+
 	return count
 }

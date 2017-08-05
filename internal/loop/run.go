@@ -16,45 +16,22 @@ package loop
 
 import (
 	"errors"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 const FPS = clock.FPS
 
 func CurrentFPS() float64 {
-	if theRunContext == nil {
-		return 0
-	}
-	return theRunContext.getCurrentFPS()
+	return clock.CurrentFPS()
 }
 
-type runContext struct {
-	currentFPS     float64
-	framesForFPS   int64
-	lastFPSUpdated int64
-	m              sync.RWMutex
-}
+type runContext struct{}
 
 var (
 	theRunContext *runContext
 	contextInitCh = make(chan struct{})
 )
-
-func (c *runContext) getCurrentFPS() float64 {
-	c.m.RLock()
-	v := c.currentFPS
-	c.m.RUnlock()
-	return v
-}
-
-func (c *runContext) updateFPS(fps float64) {
-	c.m.Lock()
-	c.currentFPS = fps
-	c.m.Unlock()
-}
 
 func Start() error {
 	// TODO: Need lock here?
@@ -62,10 +39,6 @@ func Start() error {
 		return errors.New("loop: The game is already running")
 	}
 	theRunContext = &runContext{}
-
-	n := now()
-	theRunContext.lastFPSUpdated = n
-
 	close(contextInitCh)
 	return nil
 }
@@ -90,16 +63,5 @@ func (c *runContext) update(u Updater) error {
 	if err := u.Update(count); err != nil {
 		return err
 	}
-	c.framesForFPS++
-
-	// Calc the current FPS.
-	if time.Second > time.Duration(n-c.lastFPSUpdated) {
-		return nil
-	}
-	currentFPS := float64(c.framesForFPS) * float64(time.Second) / float64(n-c.lastFPSUpdated)
-	c.updateFPS(currentFPS)
-	c.lastFPSUpdated = n
-	c.framesForFPS = 0
-
 	return nil
 }
