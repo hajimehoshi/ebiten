@@ -17,6 +17,7 @@ package ebiten
 import (
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/loop"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -78,7 +79,11 @@ func (u *updater) SetSize(width, height int, scale float64) {
 }
 
 func (u *updater) Update() error {
-	return loop.Update(u.g)
+	n := clock.Update()
+	if err := u.g.Update(n); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *updater) Invalidate() {

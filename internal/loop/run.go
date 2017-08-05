@@ -46,20 +46,3 @@ func Start() error {
 func End() {
 	theRunContext = nil
 }
-
-type Updater interface {
-	Update(updateCount int) error
-}
-
-func Update(u Updater) error {
-	<-contextInitCh
-	return theRunContext.update(u)
-}
-
-func (c *runContext) update(u Updater) error {
-	count := clock.Update()
-	if err := u.Update(count); err != nil {
-		return err
-	}
-	return nil
-}
