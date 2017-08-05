@@ -35,7 +35,6 @@ type runContext struct {
 	currentFPS     float64
 	runningSlowly  bool
 	framesForFPS   int64
-	lastUpdated    int64
 	lastFPSUpdated int64
 	ping           func()
 	m              sync.RWMutex
@@ -67,7 +66,6 @@ func Start() error {
 	theRunContext = &runContext{}
 
 	n := now()
-	theRunContext.lastUpdated = n
 	theRunContext.lastFPSUpdated = n
 
 	close(contextInitCh)
@@ -76,23 +74,6 @@ func Start() error {
 
 func End() {
 	theRunContext = nil
-}
-
-func (c *runContext) updateCount(now int64) int {
-	t := now - c.lastUpdated
-	if t < 0 {
-		return 0
-	}
-
-	count, sync := clock.Frames(time.Duration(t), FPS)
-
-	if sync {
-		c.lastUpdated = now
-	} else {
-		c.lastUpdated += int64(count) * int64(time.Second) / int64(FPS)
-	}
-
-	return count
 }
 
 func RegisterPing(ping func()) {
@@ -124,7 +105,7 @@ func (c *runContext) update(u Updater) error {
 	}
 	c.m.Unlock()
 
-	count := c.updateCount(n)
+	count := clock.Frames(n, FPS)
 	if err := u.Update(count); err != nil {
 		return err
 	}

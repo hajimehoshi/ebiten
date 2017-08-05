@@ -21,50 +21,73 @@ import (
 )
 
 var (
-	m        sync.Mutex
-	tick     int64
-	lastTick int64
-	frames   int64
+	m               sync.Mutex
+	primaryTime     int64
+	lastPrimaryTime int64
+	frames          int64
+	logicalTime     int64
 )
 
-func Inc() {
+// ProceedPrimaryTimer increments the primary time by a frame.
+func ProceedPrimaryTimer() {
 	m.Lock()
-	tick++
+	primaryTime++
 	m.Unlock()
 }
 
-func Frames(timeDuration time.Duration, fps int) (int, bool) {
+// Frames returns an integer value indicating how many logical frames the game should update.
+//
+// Frames also updates the inner timer states.
+func Frames(now int64, fps int) int {
 	m.Lock()
 	defer m.Unlock()
 
+	// Initialize logicalTime if needed.
+	if logicalTime == 0 {
+		logicalTime = now
+	}
+
+	t := now - logicalTime
+	if t < 0 {
+		return 0
+	}
+
 	count := 0
 
+	// There are two time lines: one is the logical time and the other is the system clock.
+	//
+	// Usually logical time is updated based on the number of frames, but
+	// when sync is true, the logical time is forced to sync with the system clock.
 	sync := false
-	if tick > 0 && lastTick != tick {
-		if frames < tick {
-			count = int(tick - frames)
+
+	if primaryTime > 0 && lastPrimaryTime != primaryTime {
+		// If the primary time is updated, use this.
+		if frames < primaryTime {
+			count = int(primaryTime - frames)
 		}
-		lastTick = tick
+		lastPrimaryTime = primaryTime
 		sync = true
 	} else {
 		// Use system clock when
 		// 1) Inc() is not called, or
-		// 2) tick is not updated yet.
-		// As tick can be updated discountinuously, use system clock supplementarily.
+		// 2) the primary time is not updated yet.
+		// As the primary time can be updated discountinuously,
+		// the system clock is still needed.
 
-		if int64(timeDuration) > 5*int64(time.Second)/int64(fps) {
+		if t > 5*int64(time.Second)/int64(fps) {
 			// The previous time is too old.
-			// Let's force to sync the logical frame with the OS clock (or tick).
-			return 0, true
+			// Let's force to sync the logical time with the OS clock.
+			sync = true
+		} else {
+			count = int(t * int64(fps) / int64(time.Second))
 		}
-		count = int(int64(timeDuration) * int64(fps) / int64(time.Second))
 	}
 
 	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/int64(fps)/2) < int64(timeDuration) {
+	if count == 0 && (int64(time.Second)/int64(fps)/2) < t {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/int64(fps)*3/2) > int64(timeDuration) {
+	if count == 2 && (int64(time.Second)/int64(fps)*3/2) > t {
 		count = 1
 	}
 	if count > 3 {
@@ -72,5 +95,10 @@ func Frames(timeDuration time.Duration, fps int) (int, bool) {
 	}
 
 	frames += int64(count)
-	return count, sync
+	if sync {
+		logicalTime = now
+	} else {
+		logicalTime += int64(count) * int64(time.Second) / int64(fps)
+	}
+	return count
 }
