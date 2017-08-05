@@ -55,7 +55,8 @@ func Frames(timeDuration time.Duration, fps int) (int, bool) {
 		// As tick can be updated discountinuously, use system clock supplementarily.
 
 		if int64(timeDuration) > 5*int64(time.Second)/int64(fps) {
-			// The previous time is too old. Let's assume that the window was unfocused.
+			// The previous time is too old.
+			// Let's force to sync the logical frame with the OS clock (or tick).
 			return 0, true
 		}
 		count = int(int64(timeDuration) * int64(fps) / int64(time.Second))
