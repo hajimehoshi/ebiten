@@ -33,10 +33,8 @@ func CurrentFPS() float64 {
 
 type runContext struct {
 	currentFPS     float64
-	runningSlowly  bool
 	framesForFPS   int64
 	lastFPSUpdated int64
-	ping           func()
 	m              sync.RWMutex
 }
 
