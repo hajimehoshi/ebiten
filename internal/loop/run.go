@@ -23,11 +23,13 @@ import (
 )
 
 func CurrentFPS() float64 {
+	if currentRunContext == nil {
+		return 0
+	}
 	return currentRunContext.getCurrentFPS()
 }
 
 type runContext struct {
-	running        bool
 	currentFPS     float64
 	runningSlowly  bool
 	frames         int64
@@ -44,34 +46,11 @@ var (
 	contextInitCh     = make(chan struct{})
 )
 
-func (c *runContext) startRunning() {
-	c.m.Lock()
-	c.running = true
-	c.m.Unlock()
-}
-
-func (c *runContext) isRunning() bool {
-	c.m.RLock()
-	v := c.running
-	c.m.RUnlock()
-	return v
-}
-
-func (c *runContext) endRunning() {
-	c.m.Lock()
-	c.running = false
-	c.m.Unlock()
-}
-
 func (c *runContext) getCurrentFPS() float64 {
 	c.m.RLock()
-	v := c.running
+	v := c.currentFPS
 	c.m.RUnlock()
-	if !v {
-		// TODO: Should panic here?
-		return 0
-	}
-	return c.currentFPS
+	return v
 }
 
 func (c *runContext) updateFPS(fps float64) {
@@ -81,11 +60,11 @@ func (c *runContext) updateFPS(fps float64) {
 }
 
 func Start() error {
+	// TODO: Need lock here?
 	if currentRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}
 	currentRunContext = &runContext{}
-	currentRunContext.startRunning()
 
 	n := now()
 	currentRunContext.lastUpdated = n
@@ -96,7 +75,6 @@ func Start() error {
 }
 
 func End() {
-	currentRunContext.endRunning()
 	currentRunContext = nil
 }
 
