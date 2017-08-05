@@ -25,10 +25,10 @@ import (
 const FPS = 60
 
 func CurrentFPS() float64 {
-	if currentRunContext == nil {
+	if theRunContext == nil {
 		return 0
 	}
-	return currentRunContext.getCurrentFPS()
+	return theRunContext.getCurrentFPS()
 }
 
 type runContext struct {
@@ -44,8 +44,8 @@ type runContext struct {
 }
 
 var (
-	currentRunContext *runContext
-	contextInitCh     = make(chan struct{})
+	theRunContext *runContext
+	contextInitCh = make(chan struct{})
 )
 
 func (c *runContext) getCurrentFPS() float64 {
@@ -63,21 +63,21 @@ func (c *runContext) updateFPS(fps float64) {
 
 func Start() error {
 	// TODO: Need lock here?
-	if currentRunContext != nil {
+	if theRunContext != nil {
 		return errors.New("loop: The game is already running")
 	}
-	currentRunContext = &runContext{}
+	theRunContext = &runContext{}
 
 	n := now()
-	currentRunContext.lastUpdated = n
-	currentRunContext.lastFPSUpdated = n
+	theRunContext.lastUpdated = n
+	theRunContext.lastFPSUpdated = n
 
 	close(contextInitCh)
 	return nil
 }
 
 func End() {
-	currentRunContext = nil
+	theRunContext = nil
 }
 
 func (c *runContext) updateCount(now int64) int {
@@ -89,9 +89,9 @@ func (c *runContext) updateCount(now int64) int {
 		return 0
 	}
 
-	if clock.IsValid() && c.lastClockFrame != clock.Frame() {
+	if clock.IsValid() && c.lastClockFrame != clock.Now() {
 		sync = true
-		f := clock.Frame()
+		f := clock.Now()
 		if c.frames < f {
 			count = int(f - c.frames)
 		}
@@ -130,7 +130,7 @@ func (c *runContext) updateCount(now int64) int {
 
 func RegisterPing(ping func()) {
 	<-contextInitCh
-	currentRunContext.registerPing(ping)
+	theRunContext.registerPing(ping)
 }
 
 func (c *runContext) registerPing(ping func()) {
@@ -145,7 +145,7 @@ type Updater interface {
 
 func Update(u Updater) error {
 	<-contextInitCh
-	return currentRunContext.update(u)
+	return theRunContext.update(u)
 }
 
 func (c *runContext) update(u Updater) error {

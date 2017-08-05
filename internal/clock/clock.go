@@ -21,7 +21,7 @@ import (
 var (
 	m     sync.Mutex
 	valid bool
-	frame int64
+	now   int64
 )
 
 func IsValid() bool {
@@ -31,16 +31,16 @@ func IsValid() bool {
 	return v
 }
 
-func Inc() {
+func Tick() {
 	m.Lock()
 	valid = true
-	frame++
+	now++
 	m.Unlock()
 }
 
-func Frame() int64 {
+func Now() int64 {
 	m.Lock()
-	n := frame
+	n := now
 	m.Unlock()
 	return n
 }
