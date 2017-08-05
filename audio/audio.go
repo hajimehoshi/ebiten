@@ -263,7 +263,7 @@ func (c *Context) loop() {
 		c.m.Unlock()
 		c.frames++
 		clock.Inc()
-		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
+		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / loop.FPS
 		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
 		l &= mask
 		c.writtenBytes += l

@@ -18,8 +18,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
-const FPS = 60
-
 var (
 	m     sync.Mutex
 	valid bool

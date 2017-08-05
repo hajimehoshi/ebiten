@@ -17,13 +17,12 @@ package ebiten
 import (
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/loop"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 // FPS represents how many times game updating happens in a second (60).
-const FPS = clock.FPS
+const FPS = loop.FPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //

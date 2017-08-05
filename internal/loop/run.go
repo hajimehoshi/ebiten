@@ -22,6 +22,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
+const FPS = 60
+
 func CurrentFPS() float64 {
 	if currentRunContext == nil {
 		return 0
@@ -95,20 +97,20 @@ func (c *runContext) updateCount(now int64) int {
 		}
 		c.lastClockFrame = f
 	} else {
-		if t > 5*int64(time.Second)/int64(clock.FPS) {
+		if t > 5*int64(time.Second)/int64(FPS) {
 			// The previous time is too old. Let's assume that the window was unfocused.
 			count = 0
 			c.lastUpdated = now
 		} else {
-			count = int(t * int64(clock.FPS) / int64(time.Second))
+			count = int(t * int64(FPS) / int64(time.Second))
 		}
 	}
 
 	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/int64(clock.FPS)/2) < t {
+	if count == 0 && (int64(time.Second)/int64(FPS)/2) < t {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/int64(clock.FPS)*3/2) > t {
+	if count == 2 && (int64(time.Second)/int64(FPS)*3/2) > t {
 		count = 1
 	}
 
@@ -119,7 +121,7 @@ func (c *runContext) updateCount(now int64) int {
 	if sync {
 		c.lastUpdated = now
 	} else {
-		c.lastUpdated += int64(count) * int64(time.Second) / int64(clock.FPS)
+		c.lastUpdated += int64(count) * int64(time.Second) / int64(FPS)
 	}
 
 	c.frames += int64(count)
