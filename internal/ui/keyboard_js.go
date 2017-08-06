@@ -26,3 +26,14 @@ func init() {
 		kp.Call("push", push)
 	}
 }
+
+func Keyboard() []rune {
+	if runebuffer == nil {
+		runebuffer = make([]rune, 0, 1024)
+	}
+	rblock.Lock()
+	rb := runebuffer
+	runebuffer = runebuffer[:0]
+	rblock.Unlock()
+	return rb
+}
