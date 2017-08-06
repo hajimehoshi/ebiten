@@ -16,7 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
 // texelAdjustment represents a number to be used to adjust texel.
@@ -26,7 +26,7 @@ import (
 const texelAdjustment = 256
 
 var (
-	quadFloat32Num     = graphics.QuadVertexSizeInBytes() / 4
+	quadFloat32Num     = restorable.QuadVertexSizeInBytes() / 4
 	theVerticesBackend = &verticesBackend{}
 )
 

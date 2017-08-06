@@ -26,6 +26,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
+const MaxImageSize = graphics.MaxImageSize
+
+func QuadVertexSizeInBytes() int {
+	return graphics.QuadVertexSizeInBytes()
+}
+
 type drawImageHistoryItem struct {
 	image    *Image
 	vertices []float32

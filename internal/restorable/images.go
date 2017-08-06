@@ -15,6 +15,7 @@
 package restorable
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
@@ -163,4 +164,12 @@ func (i *images) clearVolatileImages() {
 	for img := range i.images {
 		img.clearIfVolatile()
 	}
+}
+
+func Reset() error {
+	return graphics.Reset()
+}
+
+func FlushCommands() error {
+	return graphics.FlushCommands()
 }

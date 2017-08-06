@@ -20,7 +20,6 @@ import (
 	"image/color"
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
@@ -284,7 +283,7 @@ func newImageWithScreenFramebuffer(width, height int, offsetX, offsetY float64) 
 	return i
 }
 
-const MaxImageSize = graphics.MaxImageSize
+const MaxImageSize = restorable.MaxImageSize
 
 func checkSize(width, height int) {
 	if width <= 0 {

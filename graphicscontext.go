@@ -17,7 +17,6 @@ package ebiten
 import (
 	"math"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -76,7 +75,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 func (c *graphicsContext) initializeIfNeeded() error {
 	if !c.initialized {
-		if err := graphics.Reset(); err != nil {
+		if err := restorable.Reset(); err != nil {
 			return err
 		}
 		c.initialized = true
@@ -100,7 +99,7 @@ func drawWithFittingScale(dst *Image, src *Image) {
 func (c *graphicsContext) drawToDefaultRenderTarget() error {
 	_ = c.screen.Clear()
 	drawWithFittingScale(c.screen, c.offscreen2)
-	if err := graphics.FlushCommands(); err != nil {
+	if err := restorable.FlushCommands(); err != nil {
 		return err
 	}
 	return nil
@@ -141,7 +140,7 @@ func (c *graphicsContext) restoreIfNeeded() error {
 	if !r {
 		return nil
 	}
-	if err := graphics.Reset(); err != nil {
+	if err := restorable.Reset(); err != nil {
 		return err
 	}
 	if err := restorable.Restore(); err != nil {
