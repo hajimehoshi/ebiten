@@ -18,6 +18,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
+func InputChars() []rune {
+	return ui.CurrentInput().RuneBuffer()
+}
+
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 //
 // This function is concurrent-safe.

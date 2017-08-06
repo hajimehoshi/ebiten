@@ -21,6 +21,7 @@ package ui
 
 import (
 	"sync"
+	"unicode"
 
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
 )
@@ -32,7 +33,15 @@ type Input struct {
 	cursorY            int
 	gamepads           [16]gamePad
 	touches            []touch
+	runebuffer         []rune
 	m                  sync.RWMutex
+}
+
+func (i *Input) RuneBuffer() (runes []rune) {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	runes = i.runebuffer
+	return
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -78,7 +87,18 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 func (i *Input) update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
-
+	if i.runebuffer == nil {
+		i.runebuffer = make([]rune, 0, 1024)
+		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+			if unicode.IsPrint(char) {
+				go func() {
+					i.m.Lock()
+					i.runebuffer = append(i.runebuffer, char)
+					i.m.Unlock()
+				}()
+			}
+		})
+	}
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}

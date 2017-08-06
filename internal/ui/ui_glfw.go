@@ -407,6 +407,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if err := g.Update(); err != nil {
 		return err
 	}
+	currentInput.runebuffer = currentInput.runebuffer[:0]
 	return nil
 }
 
