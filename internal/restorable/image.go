@@ -347,9 +347,14 @@ func (p *Image) Dispose() {
 	runtime.SetFinalizer(p, nil)
 }
 
-func (p *Image) IsInvalidated() bool {
-	if !IsRestoringEnabled() {
-		return false
+func (p *Image) IsInvalidated() (bool, error) {
+	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
+	if err := graphics.FlushCommands(); err != nil {
+		return false, err
 	}
-	return p.image.IsInvalidated()
+
+	if !IsRestoringEnabled() {
+		return false, nil
+	}
+	return p.image.IsInvalidated(), nil
 }

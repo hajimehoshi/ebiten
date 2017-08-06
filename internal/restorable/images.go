@@ -42,11 +42,17 @@ var theImages = &images{
 	images: map[*Image]struct{}{},
 }
 
-func ResolveStalePixels() error {
+func FlushAndResolveStalePixels() error {
+	if err := graphics.FlushCommands(); err != nil {
+		return err
+	}
 	return theImages.resolveStalePixels()
 }
 
 func Restore() error {
+	if err := graphics.ResetGLState(); err != nil {
+		return err
+	}
 	return theImages.restore()
 }
 
@@ -166,10 +172,6 @@ func (i *images) clearVolatileImages() {
 	}
 }
 
-func Reset() error {
-	return graphics.Reset()
-}
-
-func FlushCommands() error {
-	return graphics.FlushCommands()
+func ResetGLState() error {
+	return graphics.ResetGLState()
 }

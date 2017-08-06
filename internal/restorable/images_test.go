@@ -56,7 +56,7 @@ func TestRestore(t *testing.T) {
 	}()
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	img0.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
-	if err := ResolveStalePixels(); err != nil {
+	if err := FlushAndResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
 	if err := Restore(); err != nil {
@@ -101,7 +101,7 @@ func TestRestoreChain(t *testing.T) {
 	for i := 0; i < num-1; i++ {
 		imgs[i+1].DrawImage(imgs[i], vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	}
-	if err := ResolveStalePixels(); err != nil {
+	if err := FlushAndResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
 	if err := Restore(); err != nil {
@@ -138,7 +138,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	img3.DrawImage(img2, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	img0.Fill(clr1.R, clr1.G, clr1.B, clr1.A)
 	img1.DrawImage(img0, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	if err := ResolveStalePixels(); err != nil {
+	if err := FlushAndResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
 	if err := Restore(); err != nil {
@@ -224,7 +224,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img6.DrawImage(img4, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	img7.DrawImage(img2, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	img7.DrawImage(img3, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	if err := ResolveStalePixels(); err != nil {
+	if err := FlushAndResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
 	if err := Restore(); err != nil {
@@ -305,7 +305,7 @@ func TestRestoreRecursive(t *testing.T) {
 	}()
 	img1.DrawImage(img0, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
 	img0.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	if err := ResolveStalePixels(); err != nil {
+	if err := FlushAndResolveStalePixels(); err != nil {
 		t.Fatal(err)
 	}
 	if err := Restore(); err != nil {

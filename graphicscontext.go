@@ -75,7 +75,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 func (c *graphicsContext) initializeIfNeeded() error {
 	if !c.initialized {
-		if err := restorable.Reset(); err != nil {
+		if err := restorable.ResetGLState(); err != nil {
 			return err
 		}
 		c.initialized = true
@@ -96,15 +96,6 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	_ = dst.DrawImage(src, op)
 }
 
-func (c *graphicsContext) drawToDefaultRenderTarget() error {
-	_ = c.screen.Clear()
-	drawWithFittingScale(c.screen, c.offscreen2)
-	if err := restorable.FlushCommands(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *graphicsContext) Update(updateCount int) error {
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
@@ -119,11 +110,10 @@ func (c *graphicsContext) Update(updateCount int) error {
 	if 0 < updateCount {
 		drawWithFittingScale(c.offscreen2, c.offscreen)
 	}
-	if err := c.drawToDefaultRenderTarget(); err != nil {
-		return err
-	}
-	// TODO: Add tests to check if this behavior is correct (#357)
-	if err := restorable.ResolveStalePixels(); err != nil {
+	_ = c.screen.Clear()
+	drawWithFittingScale(c.screen, c.offscreen2)
+
+	if err := restorable.FlushAndResolveStalePixels(); err != nil {
 		return err
 	}
 	return nil
@@ -139,9 +129,6 @@ func (c *graphicsContext) restoreIfNeeded() error {
 	}
 	if !r {
 		return nil
-	}
-	if err := restorable.Reset(); err != nil {
-		return err
 	}
 	if err := restorable.Restore(); err != nil {
 		return err
