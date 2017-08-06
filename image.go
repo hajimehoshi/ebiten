@@ -269,7 +269,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	w, h := size.X, size.Y
 	checkSize(w, h)
-	rgbaImg := graphics.CopyImage(source)
+	rgbaImg := restorable.CopyImage(source)
 	r := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
