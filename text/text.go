@@ -26,7 +26,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/graphics" // TODO: Move NextPowerOf2Int to a new different package
+	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
@@ -80,7 +80,7 @@ func (c *char) atlasGroup() int {
 	if t < 32 {
 		return 32
 	}
-	return graphics.NextPowerOf2Int(t)
+	return emath.NextPowerOf2Int(t)
 }
 
 type glyph struct {

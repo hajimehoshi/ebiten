@@ -22,6 +22,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
@@ -284,7 +285,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	if err := opengl.GetContext().BindTexture(c.dst.texture.native); err != nil {
 		return err
 	}
-	opengl.GetContext().TexSubImage2D(c.pixels, NextPowerOf2Int(c.dst.width), NextPowerOf2Int(c.dst.height))
+	opengl.GetContext().TexSubImage2D(c.pixels, emath.NextPowerOf2Int(c.dst.width), emath.NextPowerOf2Int(c.dst.height))
 	return nil
 }
 
@@ -317,7 +318,7 @@ func (c *newImageFromImageCommand) Exec(indexOffsetInBytes int) error {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
 	w, h := c.img.Bounds().Size().X, c.img.Bounds().Size().Y
-	if c.img.Bounds() != image.Rect(0, 0, NextPowerOf2Int(w), NextPowerOf2Int(h)) {
+	if c.img.Bounds() != image.Rect(0, 0, emath.NextPowerOf2Int(w), emath.NextPowerOf2Int(h)) {
 		panic(fmt.Sprintf("graphics: invalid image bounds: %v", c.img.Bounds()))
 	}
 	native, err := opengl.GetContext().NewTexture(w, h, c.img.Pix, c.filter)
@@ -338,8 +339,8 @@ type newImageCommand struct {
 }
 
 func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
-	w := NextPowerOf2Int(c.width)
-	h := NextPowerOf2Int(c.height)
+	w := emath.NextPowerOf2Int(c.width)
+	h := emath.NextPowerOf2Int(c.height)
 	if w < 1 {
 		return errors.New("graphics: width must be equal or more than 1.")
 	}

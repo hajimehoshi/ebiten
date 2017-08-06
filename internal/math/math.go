@@ -12,29 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphics_test
+package math
 
-import (
-	. "github.com/hajimehoshi/ebiten/internal/graphics"
-	"testing"
-)
-
-func TestNextPowerOf2(t *testing.T) {
-	testCases := []struct {
-		expected int
-		arg      int
-	}{
-		{256, 255},
-		{256, 256},
-		{512, 257},
+func NextPowerOf2Int(x int) int {
+	if x <= 0 {
+		panic("x must be positive")
 	}
-
-	for _, testCase := range testCases {
-		got := NextPowerOf2Int(testCase.arg)
-		wanted := testCase.expected
-		if wanted != got {
-			t.Errorf("Clp(%d) = %d, wanted %d", testCase.arg, got, wanted)
-		}
-
+	r := 1
+	for r < x {
+		r <<= 1
 	}
+	return r
 }

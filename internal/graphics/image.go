@@ -21,13 +21,14 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 func CopyImage(origImg image.Image) *image.RGBA {
 	size := origImg.Bounds().Size()
 	w, h := size.X, size.Y
-	newImg := image.NewRGBA(image.Rect(0, 0, NextPowerOf2Int(w), NextPowerOf2Int(h)))
+	newImg := image.NewRGBA(image.Rect(0, 0, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)))
 	switch origImg := origImg.(type) {
 	case *image.Paletted:
 		b := origImg.Bounds()
@@ -158,7 +159,7 @@ func (i *Image) Pixels() ([]uint8, error) {
 	if err != nil {
 		return nil, err
 	}
-	return opengl.GetContext().FramebufferPixels(f.native, NextPowerOf2Int(i.width), NextPowerOf2Int(i.height))
+	return opengl.GetContext().FramebufferPixels(f.native, math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height))
 }
 
 func (i *Image) ReplacePixels(p []uint8) {

@@ -21,6 +21,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
@@ -198,7 +199,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
 	pix := make([]uint8, 4*w2*h2)
 	for j := 0; j < h; j++ {
 		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
