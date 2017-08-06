@@ -16,14 +16,6 @@
 
 package ebiten
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-)
-
 func (c *graphicsContext) needsRestoring() (bool, error) {
-	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphics.FlushCommands(); err != nil {
-		return false, err
-	}
-	return c.offscreen.restorable.IsInvalidated(), nil
+	return c.offscreen.restorable.IsInvalidated()
 }

@@ -22,8 +22,15 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
+
+const MaxImageSize = graphics.MaxImageSize
+
+func QuadVertexSizeInBytes() int {
+	return graphics.QuadVertexSizeInBytes()
+}
 
 type drawImageHistoryItem struct {
 	image    *Image
@@ -80,7 +87,7 @@ func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 }
 
 func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) *Image {
-	w2, h2 := graphics.NextPowerOf2Int(width), graphics.NextPowerOf2Int(height)
+	w2, h2 := math.NextPowerOf2Int(width), math.NextPowerOf2Int(height)
 	p := make([]uint8, 4*w2*h2)
 	for j := 0; j < height; j++ {
 		copy(p[j*w2*4:(j+1)*w2*4], source.Pix[j*source.Stride:])
@@ -197,7 +204,7 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // Note that this must not be called until context is available.
 func (p *Image) At(x, y int) (color.RGBA, error) {
 	w, h := p.image.Size()
-	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
 	if x < 0 || y < 0 || w2 <= x || h2 <= y {
 		return color.RGBA{}, nil
 	}
@@ -294,7 +301,7 @@ func (p *Image) restore() error {
 		// TODO: panic here?
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
 	img := image.NewRGBA(image.Rect(0, 0, w2, h2))
 	if p.basePixels != nil {
 		for j := 0; j < h; j++ {
@@ -340,9 +347,14 @@ func (p *Image) Dispose() {
 	runtime.SetFinalizer(p, nil)
 }
 
-func (p *Image) IsInvalidated() bool {
-	if !IsRestoringEnabled() {
-		return false
+func (p *Image) IsInvalidated() (bool, error) {
+	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
+	if err := graphics.FlushCommands(); err != nil {
+		return false, err
 	}
-	return p.image.IsInvalidated()
+
+	if !IsRestoringEnabled() {
+		return false, nil
+	}
+	return p.image.IsInvalidated(), nil
 }

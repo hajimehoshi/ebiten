@@ -15,6 +15,7 @@
 package restorable
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
@@ -41,11 +42,17 @@ var theImages = &images{
 	images: map[*Image]struct{}{},
 }
 
-func ResolveStalePixels() error {
+func FlushAndResolveStalePixels() error {
+	if err := graphics.FlushCommands(); err != nil {
+		return err
+	}
 	return theImages.resolveStalePixels()
 }
 
 func Restore() error {
+	if err := graphics.ResetGLState(); err != nil {
+		return err
+	}
 	return theImages.restore()
 }
 
@@ -163,4 +170,8 @@ func (i *images) clearVolatileImages() {
 	for img := range i.images {
 		img.clearIfVolatile()
 	}
+}
+
+func ResetGLState() error {
+	return graphics.ResetGLState()
 }

@@ -125,7 +125,7 @@ const (
 	maxQuads   = indicesNum / 6
 )
 
-func Reset() error {
+func ResetGLState() error {
 	return theOpenGLState.reset()
 }
 

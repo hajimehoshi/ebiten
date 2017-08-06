@@ -20,7 +20,7 @@ import (
 	"image/color"
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
@@ -198,7 +198,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
 	pix := make([]uint8, 4*w2*h2)
 	for j := 0; j < h; j++ {
 		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
@@ -268,7 +268,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	w, h := size.X, size.Y
 	checkSize(w, h)
-	rgbaImg := graphics.CopyImage(source)
+	rgbaImg := restorable.CopyImage(source)
 	r := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -283,7 +283,7 @@ func newImageWithScreenFramebuffer(width, height int, offsetX, offsetY float64) 
 	return i
 }
 
-const MaxImageSize = graphics.MaxImageSize
+const MaxImageSize = restorable.MaxImageSize
 
 func checkSize(width, height int) {
 	if width <= 0 {

@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	emath "github.com/hajimehoshi/ebiten/internal/math"
 )
 
 func TestMain(m *testing.M) {
@@ -90,7 +90,7 @@ func TestImagePixels(t *testing.T) {
 
 	w, h := img0.Bounds().Size().X, img0.Bounds().Size().Y
 	// Check out of range part
-	w2, h2 := graphics.NextPowerOf2Int(w), graphics.NextPowerOf2Int(h)
+	w2, h2 := emath.NextPowerOf2Int(w), emath.NextPowerOf2Int(h)
 	for j := -100; j < h2+100; j++ {
 		for i := -100; i < w2+100; i++ {
 			got := img0.At(i, j)
