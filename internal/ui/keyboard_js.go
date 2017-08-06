@@ -2,28 +2,17 @@
 
 package ui
 
-import "github.com/gopherjs/gopherjs/js"
+import (
+	"unicode"
 
-var doc = js.Global.Get("document")
+	"github.com/gopherjs/gopherjs/js"
+)
 
-func push(char rune) {
-	go func() {
-		rblock.Lock()
-		runebuffer = append(runebuffer, char)
-		rblock.Unlock()
-	}()
-}
-
-func init() {
-	if doc == nil {
-		return
-	}
-	kp := doc.Get("onkeypress")
-	switch kp.Length() {
-	case 0:
-		doc.Set("onkeypress", push)
-	default:
-		kp.Call("push", push)
+func keypress(e *js.Object) {
+	if runebuffer != nil {
+		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
+			runebuffer = append(runebuffer, r)
+		}
 	}
 }
 
@@ -31,9 +20,7 @@ func Keyboard() []rune {
 	if runebuffer == nil {
 		runebuffer = make([]rune, 0, 1024)
 	}
-	rblock.Lock()
 	rb := runebuffer
 	runebuffer = runebuffer[:0]
-	rblock.Unlock()
 	return rb
 }

@@ -231,9 +231,10 @@ func initialize() error {
 	canvas.Call("setAttribute", "tabindex", 1)
 	canvas.Get("style").Set("outline", "none")
 
+	canvas.Call("addEventListener", "keypress", keypress)
+
 	// Keyboard
 	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
-		e.Call("preventDefault")
 		if e.Get("code") == js.Undefined {
 			// Assume that UA is Safari.
 			code := e.Get("keyCode").Int()

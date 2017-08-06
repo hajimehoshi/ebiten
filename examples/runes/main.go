@@ -12,10 +12,8 @@ var runes = []rune("Type some stuff on your keyboard:\n")
 func update(screen *ebiten.Image) error {
 	runes = append(runes, ebiten.Keyboard()...)
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
-		if l := len(runes); l > 0 {
-			if runes[l-1] != '\n' {
-				runes = append(runes, '\n')
-			}
+		if len(runes) > 0 && runes[len(runes)-1] != '\n' {
+			runes = append(runes, '\n')
 		}
 	}
 	return ebitenutil.DebugPrint(screen, string(runes))

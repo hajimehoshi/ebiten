@@ -5,7 +5,11 @@
 
 package ui
 
-import "github.com/go-gl/glfw/v3.2/glfw"
+import (
+	"unicode"
+
+	"github.com/go-gl/glfw/v3.2/glfw"
+)
 
 var window *glfw.Window
 
@@ -16,11 +20,13 @@ func Keyboard() []rune {
 	if runebuffer == nil {
 		runebuffer = make([]rune, 0, 1024)
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
-			go func() {
-				rblock.Lock()
-				runebuffer = append(runebuffer, char)
-				rblock.Unlock()
-			}()
+			if unicode.IsPrint(char) {
+				go func() {
+					rblock.Lock()
+					runebuffer = append(runebuffer, char)
+					rblock.Unlock()
+				}()
+			}
 		})
 	}
 	rblock.Lock()
