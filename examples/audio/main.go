@@ -14,6 +14,9 @@
 
 // +build example
 
+// This example offers an audio player.
+// See examples/wav for a simpler example to play a sound file.
+
 package main
 
 import (
