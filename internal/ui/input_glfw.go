@@ -91,11 +91,9 @@ func (i *Input) update(window *glfw.Window, scale float64) {
 		i.runebuffer = make([]rune, 0, 1024)
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 			if unicode.IsPrint(char) {
-				go func() {
-					i.m.Lock()
-					i.runebuffer = append(i.runebuffer, char)
-					i.m.Unlock()
-				}()
+				i.m.Lock()
+				i.runebuffer = append(i.runebuffer, char)
+				i.m.Unlock()
 			}
 		})
 	}

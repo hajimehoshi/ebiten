@@ -18,6 +18,9 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
+// InputChars returns a slice of Unicode "printable" runes read from the keyboard.
+//
+// This function is concurrent-safe.
 func InputChars() []rune {
 	return ui.CurrentInput().RuneBuffer()
 }
