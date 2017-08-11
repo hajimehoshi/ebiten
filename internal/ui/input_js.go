@@ -35,13 +35,12 @@ type Input struct {
 	cursorY            int
 	gamepads           [16]gamePad
 	touches            []touch
-	runebuffer         []rune
+	runeBuffer         []rune
 	m                  mockRWLock
 }
 
-func (i *Input) RuneBuffer() (runes []rune) {
-	runes = i.runebuffer
-	return
+func (i *Input) RuneBuffer() []rune {
+	return i.runeBuffer
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {

@@ -33,15 +33,14 @@ type Input struct {
 	cursorY            int
 	gamepads           [16]gamePad
 	touches            []touch
-	runebuffer         []rune
+	runeBuffer         []rune
 	m                  sync.RWMutex
 }
 
-func (i *Input) RuneBuffer() (runes []rune) {
+func (i *Input) RuneBuffer() []rune {
 	i.m.RLock()
 	defer i.m.RUnlock()
-	runes = i.runebuffer
-	return
+	return i.runeBuffer
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -87,12 +86,12 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 func (i *Input) update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.runebuffer == nil {
-		i.runebuffer = make([]rune, 0, 1024)
+	if i.runeBuffer == nil {
+		i.runeBuffer = make([]rune, 0, 1024)
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 			if unicode.IsPrint(char) {
 				i.m.Lock()
-				i.runebuffer = append(i.runebuffer, char)
+				i.runeBuffer = append(i.runeBuffer, char)
 				i.m.Unlock()
 			}
 		})

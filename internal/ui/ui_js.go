@@ -130,7 +130,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if err := g.Update(); err != nil {
 		return err
 	}
-	currentInput.runebuffer = currentInput.runebuffer[:0]
+	currentInput.runeBuffer = nil
 	return nil
 }
 
@@ -246,11 +246,8 @@ func initialize() error {
 	})
 	canvas.Call("addEventListener", "keypress", func(e *js.Object) {
 		e.Call("preventDefault")
-		if currentInput.runebuffer == nil {
-			currentInput.runebuffer = make([]rune, 0, 1024)
-		}
 		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
-			currentInput.runebuffer = append(currentInput.runebuffer, r)
+			currentInput.runeBuffer = append(currentInput.runeBuffer, r)
 		}
 	})
 	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
