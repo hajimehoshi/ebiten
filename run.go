@@ -186,7 +186,7 @@ func SetCursorVisibility(visible bool) {
 	ui.SetCursorVisibility(visible)
 }
 
-// IsScreen returns a boolean value indicating whether
+// IsFullscreen returns a boolean value indicating whether
 // the current mode is fullscreen or not.
 //
 // This function is concurrent-safe.
