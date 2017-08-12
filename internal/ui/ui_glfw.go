@@ -37,7 +37,6 @@ type userInterface struct {
 	scale                float64
 	deviceScale          float64
 	glfwScale            float64
-	fullscreen           bool
 	fullscreenScale      float64
 	funcs                chan func()
 	running              bool
@@ -190,7 +189,7 @@ func SetScreenSize(width, height int) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(width, height, u.scale, u.fullscreen)
+		r = u.setScreenSize(width, height, u.scale, u.fullscreen())
 		return nil
 	})
 	return r
@@ -203,7 +202,7 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen)
+		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen())
 		return nil
 	})
 	return r
@@ -222,17 +221,19 @@ func ScreenScale() float64 {
 	return s
 }
 
+func (u *userInterface) fullscreen() bool {
+	if !u.isRunning() {
+		panic("not reached")
+	}
+	return u.window.GetMonitor() != nil
+}
+
 func IsFullscreen() bool {
 	u := currentUI
 	if !u.isRunning() {
 		return u.isInitFullscreen()
 	}
-	f := false
-	_ = u.runOnMainThread(func() error {
-		f = u.fullscreen
-		return nil
-	})
-	return f
+	return u.fullscreen()
 }
 
 func SetFullscreen(fullscreen bool) {
@@ -359,7 +360,7 @@ func (u *userInterface) glfwSize() (int, int) {
 }
 
 func (u *userInterface) getScale() float64 {
-	if !u.fullscreen {
+	if !u.fullscreen() {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
@@ -473,7 +474,7 @@ func (u *userInterface) swapBuffers() {
 }
 
 func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
-	if u.width == width && u.height == height && u.scale == scale && u.fullscreen == fullscreen {
+	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen {
 		return false
 	}
 
@@ -499,9 +500,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// swap buffers here before SetSize is called.
 	u.swapBuffers()
 
-	u.fullscreen = fullscreen
-
-	if u.fullscreen {
+	if fullscreen {
 		if u.origPosX < 0 && u.origPosY < 0 {
 			u.origPosX, u.origPosY = u.window.GetPos()
 		}
