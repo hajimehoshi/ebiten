@@ -114,6 +114,10 @@ func adjustCursorPosition(x, y int) (int, int) {
 	return x, y
 }
 
+func IsCursorVisible() bool {
+	return false
+}
+
 func SetCursorVisibility(visibility bool) {
 	// Do nothing
 }

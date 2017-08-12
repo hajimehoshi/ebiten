@@ -179,14 +179,26 @@ func ScreenScale() float64 {
 	return ui.ScreenScale()
 }
 
+// IsCursorVisible returns a boolean value indicating whether
+// the cursor is visible or not.
+//
+// IsCursorVisible always returns false on mobiles.
+//
+// This function is concurrent-safe.
+func IsCursorVisible() bool {
+	return ui.IsCursorVisible()
+}
+
 // SetCursorVisibility changes the state of cursor visiblity.
+//
+// SetCursorVisibility does nothing on mobiles.
 //
 // This function is concurrent-safe.
 func SetCursorVisibility(visible bool) {
 	ui.SetCursorVisibility(visible)
 }
 
-// IsScreen returns a boolean value indicating whether
+// IsFullscreen returns a boolean value indicating whether
 // the current mode is fullscreen or not.
 //
 // This function is concurrent-safe.
@@ -205,7 +217,7 @@ func IsFullscreen() bool {
 // On browsers, the game screen is resized to fit with the body element (client) size.
 // Additionally, the game screen is automatically resized when the body element is resized.
 //
-// SetFullscreen doesn't work on mobiles.
+// SetFullscreen does nothing on mobiles.
 //
 // This function is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
@@ -227,7 +239,7 @@ func IsRunnableInBackground() bool {
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
 // This is because browsers throttles background tabs not to often update.
 //
-// SetRunnableInBackground doesn't work on mobiles so far.
+// SetRunnableInBackground does nothing on mobiles so far.
 //
 // This function is concurrent-safe.
 func SetRunnableInBackground(runnableInBackground bool) {

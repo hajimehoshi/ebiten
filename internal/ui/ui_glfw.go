@@ -37,7 +37,6 @@ type userInterface struct {
 	scale                float64
 	deviceScale          float64
 	glfwScale            float64
-	fullscreen           bool
 	fullscreenScale      float64
 	funcs                chan func()
 	running              bool
@@ -45,15 +44,17 @@ type userInterface struct {
 	origPosX             int
 	origPosY             int
 	initFullscreen       bool
+	initCursorVisible    bool
 	runnableInBackground bool
 	m                    sync.Mutex
 }
 
 var (
 	currentUI = &userInterface{
-		sizeChanged: true,
-		origPosX:    -1,
-		origPosY:    -1,
+		sizeChanged:       true,
+		origPosX:          -1,
+		origPosY:          -1,
+		initCursorVisible: true,
 	}
 	currentUIInitialized = make(chan struct{})
 )
@@ -81,6 +82,13 @@ func initialize() error {
 	currentUI.funcs = make(chan func())
 
 	currentUI.window.MakeContextCurrent()
+
+	mode := glfw.CursorNormal
+	if !currentUI.isInitCursorVisible() {
+		mode = glfw.CursorHidden
+	}
+	currentUI.window.SetInputMode(glfw.CursorMode, mode)
+
 	return nil
 }
 
@@ -134,6 +142,19 @@ func (u *userInterface) setInitFullscreen(initFullscreen bool) {
 	u.m.Unlock()
 }
 
+func (u *userInterface) isInitCursorVisible() bool {
+	u.m.Lock()
+	v := u.initCursorVisible
+	u.m.Unlock()
+	return v
+}
+
+func (u *userInterface) setInitCursorVisible(visible bool) {
+	u.m.Lock()
+	u.initCursorVisible = visible
+	u.m.Unlock()
+}
+
 func (u *userInterface) isRunnableInBackground() bool {
 	u.m.Lock()
 	v := u.runnableInBackground
@@ -169,7 +190,7 @@ func SetScreenSize(width, height int) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(width, height, u.scale, u.fullscreen)
+		r = u.setScreenSize(width, height, u.scale, u.fullscreen())
 		return nil
 	})
 	return r
@@ -182,7 +203,7 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen)
+		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen())
 		return nil
 	})
 	return r
@@ -201,17 +222,19 @@ func ScreenScale() float64 {
 	return s
 }
 
+func (u *userInterface) fullscreen() bool {
+	if !u.isRunning() {
+		panic("not reached")
+	}
+	return u.window.GetMonitor() != nil
+}
+
 func IsFullscreen() bool {
 	u := currentUI
 	if !u.isRunning() {
 		return u.isInitFullscreen()
 	}
-	f := false
-	_ = u.runOnMainThread(func() error {
-		f = u.fullscreen
-		return nil
-	})
-	return f
+	return u.fullscreen()
 }
 
 func SetFullscreen(fullscreen bool) {
@@ -269,18 +292,33 @@ func adjustCursorPosition(x, y int) (int, int) {
 	return x - int(ox/s), y - int(oy/s)
 }
 
+func IsCursorVisible() bool {
+	u := currentUI
+	if !u.isRunning() {
+		return u.isInitCursorVisible()
+	}
+	v := false
+	_ = currentUI.runOnMainThread(func() error {
+		v = currentUI.window.GetInputMode(glfw.CursorMode) == glfw.CursorNormal
+		return nil
+	})
+	return v
+}
+
 func SetCursorVisibility(visible bool) {
-	// This can be called before Run: change the state asyncly.
-	go func() {
-		_ = currentUI.runOnMainThread(func() error {
-			c := glfw.CursorNormal
-			if !visible {
-				c = glfw.CursorHidden
-			}
-			currentUI.window.SetInputMode(glfw.CursorMode, c)
-			return nil
-		})
-	}()
+	u := currentUI
+	if !u.isRunning() {
+		u.setInitCursorVisible(visible)
+		return
+	}
+	_ = currentUI.runOnMainThread(func() error {
+		c := glfw.CursorNormal
+		if !visible {
+			c = glfw.CursorHidden
+		}
+		currentUI.window.SetInputMode(glfw.CursorMode, c)
+		return nil
+	})
 }
 
 func Run(width, height int, scale float64, title string, g GraphicsContext) error {
@@ -323,7 +361,7 @@ func (u *userInterface) glfwSize() (int, int) {
 }
 
 func (u *userInterface) getScale() float64 {
-	if !u.fullscreen {
+	if !u.fullscreen() {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
@@ -438,7 +476,7 @@ func (u *userInterface) swapBuffers() {
 }
 
 func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
-	if u.width == width && u.height == height && u.scale == scale && u.fullscreen == fullscreen {
+	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen {
 		return false
 	}
 
@@ -464,9 +502,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// swap buffers here before SetSize is called.
 	u.swapBuffers()
 
-	u.fullscreen = fullscreen
-
-	if u.fullscreen {
+	if fullscreen {
 		if u.origPosX < 0 && u.origPosY < 0 {
 			u.origPosX, u.origPosY = u.window.GetPos()
 		}
@@ -503,7 +539,12 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// SwapInterval is affected by the current monitor of the window.
 	// This needs to be called at least after SetMonitor.
 	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
+	//
+	// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
+	// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
+	// buffering, what will happen?
 	glfw.SwapInterval(1)
+
 	// TODO: Rename this variable?
 	u.sizeChanged = true
 	return true

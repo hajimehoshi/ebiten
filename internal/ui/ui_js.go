@@ -85,6 +85,11 @@ func adjustCursorPosition(x, y int) (int, int) {
 	return x, y
 }
 
+func IsCursorVisible() bool {
+	// The initial value is an empty string, so don't compare with "auto" here.
+	return canvas.Get("style").Get("cursor").String() != "none"
+}
+
 func SetCursorVisibility(visibility bool) {
 	if visibility {
 		canvas.Get("style").Set("cursor", "auto")
