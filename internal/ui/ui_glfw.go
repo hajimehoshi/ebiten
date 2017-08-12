@@ -45,6 +45,7 @@ type userInterface struct {
 	origPosX             int
 	origPosY             int
 	initFullscreen       bool
+	initCursorVisible    bool
 	runnableInBackground bool
 	m                    sync.Mutex
 }
@@ -81,6 +82,13 @@ func initialize() error {
 	currentUI.funcs = make(chan func())
 
 	currentUI.window.MakeContextCurrent()
+
+	mode := glfw.CursorNormal
+	if !currentUI.isInitCursorVisible() {
+		mode = glfw.CursorHidden
+	}
+	currentUI.window.SetInputMode(glfw.CursorMode, mode)
+
 	return nil
 }
 
@@ -131,6 +139,19 @@ func (u *userInterface) isInitFullscreen() bool {
 func (u *userInterface) setInitFullscreen(initFullscreen bool) {
 	u.m.Lock()
 	u.initFullscreen = initFullscreen
+	u.m.Unlock()
+}
+
+func (u *userInterface) isInitCursorVisible() bool {
+	u.m.Lock()
+	v := u.initCursorVisible
+	u.m.Unlock()
+	return v
+}
+
+func (u *userInterface) setInitCursorVisible(visible bool) {
+	u.m.Lock()
+	u.initCursorVisible = visible
 	u.m.Unlock()
 }
 
@@ -269,18 +290,33 @@ func adjustCursorPosition(x, y int) (int, int) {
 	return x - int(ox/s), y - int(oy/s)
 }
 
+func IsCursorVisible() bool {
+	u := currentUI
+	if !u.isRunning() {
+		return u.isInitCursorVisible()
+	}
+	v := false
+	_ = currentUI.runOnMainThread(func() error {
+		v = currentUI.window.GetInputMode(glfw.CursorMode) == glfw.CursorNormal
+		return nil
+	})
+	return v
+}
+
 func SetCursorVisibility(visible bool) {
-	// This can be called before Run: change the state asyncly.
-	go func() {
-		_ = currentUI.runOnMainThread(func() error {
-			c := glfw.CursorNormal
-			if !visible {
-				c = glfw.CursorHidden
-			}
-			currentUI.window.SetInputMode(glfw.CursorMode, c)
-			return nil
-		})
-	}()
+	u := currentUI
+	if !u.isRunning() {
+		u.setInitCursorVisible(visible)
+		return
+	}
+	_ = currentUI.runOnMainThread(func() error {
+		c := glfw.CursorNormal
+		if !visible {
+			c = glfw.CursorHidden
+		}
+		currentUI.window.SetInputMode(glfw.CursorMode, c)
+		return nil
+	})
 }
 
 func Run(width, height int, scale float64, title string, g GraphicsContext) error {
@@ -502,7 +538,12 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// SwapInterval is affected by the current monitor of the window.
 	// This needs to be called at least after SetMonitor.
 	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
+	//
+	// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
+	// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
+	// buffering, what will happen?
 	glfw.SwapInterval(1)
+
 	// TODO: Rename this variable?
 	u.sizeChanged = true
 	return true

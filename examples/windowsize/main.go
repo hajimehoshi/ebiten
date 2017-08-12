@@ -43,6 +43,7 @@ var (
 		ebiten.KeyS:     0,
 		ebiten.KeyF:     0,
 		ebiten.KeyB:     0,
+		ebiten.KeyC:     0,
 	}
 	count = 0
 )
@@ -60,6 +61,7 @@ func update(screen *ebiten.Image) error {
 	screenWidth, screenHeight := screen.Size()
 	fullscreen := ebiten.IsFullscreen()
 	runnableInBackground := ebiten.IsRunnableInBackground()
+	cursorVisible := ebiten.IsCursorVisible()
 
 	if keyStates[ebiten.KeyUp] == 1 {
 		screenHeight += d
@@ -86,7 +88,7 @@ func update(screen *ebiten.Image) error {
 		case 2:
 			screenScale = 1
 		default:
-			panic("not reach")
+			panic("not reached")
 		}
 	}
 	if keyStates[ebiten.KeyF] == 1 {
@@ -95,10 +97,14 @@ func update(screen *ebiten.Image) error {
 	if keyStates[ebiten.KeyB] == 1 {
 		runnableInBackground = !runnableInBackground
 	}
+	if keyStates[ebiten.KeyC] == 1 {
+		cursorVisible = !cursorVisible
+	}
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)
+	ebiten.SetCursorVisibility(cursorVisible)
 
 	count++
 
@@ -119,8 +125,9 @@ func update(screen *ebiten.Image) error {
 	x, y := ebiten.CursorPosition()
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
-Press F key to change the fullscreen state
-Press B key to change the run-in-background state
+Press F key to switch the fullscreen state
+Press B key to switch the run-in-background state
+Press C key to switch the cursor visibility
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)
