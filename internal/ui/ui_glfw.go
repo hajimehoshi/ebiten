@@ -51,9 +51,10 @@ type userInterface struct {
 
 var (
 	currentUI = &userInterface{
-		sizeChanged: true,
-		origPosX:    -1,
-		origPosY:    -1,
+		sizeChanged:       true,
+		origPosX:          -1,
+		origPosY:          -1,
+		initCursorVisible: true,
 	}
 	currentUIInitialized = make(chan struct{})
 )
