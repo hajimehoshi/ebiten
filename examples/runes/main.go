@@ -1,5 +1,3 @@
-// +build example
-
 // Copyright 2017 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,39 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build example
+
 package main
 
 import (
+	"log"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"io"
 )
 
-var runes = append(make([]rune, 0, 1024), []rune("Type on your keyboard, Control-D to exit:\n")...)
+var runes = append(make([]rune, 0, 1024), []rune("Type on the keyboard:\n")...)
 
 var buf = make([]rune, 1024)
 
 var counter int
 
 func update(screen *ebiten.Image) error {
-	n := ebiten.ReadInput(buf)
+	n := ebiten.CopyChars(buf)
 	runes = append(runes, buf[:n]...)
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
 		if len(runes) > 0 && runes[len(runes)-1] != '\n' {
 			runes = append(runes, '\n')
 		}
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyD) {
-		return io.EOF
-	}
 	counter++
-	switch counter%60 < 30 {
-	case true:
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+	if counter%60 < 30 {
 		return ebitenutil.DebugPrint(screen, string(append(runes, '_')))
 	}
 	return ebitenutil.DebugPrint(screen, string(runes))
 }
 
 func main() {
-	ebiten.Run(update, 320, 240, 2.0, "Runes (Ebiten Demo)") // ebiterm?
+	log.Fatal(ebiten.Run(update, 320, 240, 2.0, "Runes (Ebiten Demo)")) // ebiterm?
 }
