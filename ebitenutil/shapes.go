@@ -43,7 +43,7 @@ func colorScale(clr color.Color) (rf, gf, bf, af float64) {
 
 // DrawLine draws a line on the given destination dst.
 //
-// DrawLine is intented to be used mainly for debugging or prototyping purpose.
+// DrawLine is intended to be used mainly for debugging or prototyping purpose.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	ew, eh := emptyImage.Size()
 	length := math.Hypot(x2-x1, y2-y1)
@@ -58,7 +58,7 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 
 // DrawRect draws a rectangle on the given destination dst.
 //
-// DrawRect is intented to be used mainly for debugging or prototyping purpose.
+// DrawRect is intended to be used mainly for debugging or prototyping purpose.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	ew, eh := emptyImage.Size()
 
