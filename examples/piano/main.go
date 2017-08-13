@@ -152,8 +152,6 @@ var (
 )
 
 func init() {
-	imageEmpty, _ := ebiten.NewImage(16, 16, ebiten.FilterNearest)
-	imageEmpty.Fill(color.White)
 	imagePiano, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	whiteKeys := []string{"A", "S", "D", "F", "G", "H", "J", "K", "L"}
 	width := 24
@@ -161,12 +159,7 @@ func init() {
 	for i, k := range whiteKeys {
 		x := i*width + 36
 		height := 112
-		op := &ebiten.DrawImageOptions{}
-		w, h := imageEmpty.Size()
-		op.GeoM.Scale(float64(width-1)/float64(w), float64(height)/float64(h))
-		op.GeoM.Translate(float64(x), float64(y))
-		op.ColorM.Scale(1, 1, 1, 1)
-		imagePiano.DrawImage(imageEmpty, op)
+		ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.White)
 		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.Black)
 	}
 
@@ -177,12 +170,7 @@ func init() {
 		}
 		x := i*width + 24
 		height := 64
-		op := &ebiten.DrawImageOptions{}
-		w, h := imageEmpty.Size()
-		op.GeoM.Scale(float64(width-1)/float64(w), float64(height)/float64(h))
-		op.GeoM.Translate(float64(x), float64(y))
-		op.ColorM.Scale(0, 0, 0, 1)
-		imagePiano.DrawImage(imageEmpty, op)
+		ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.Black)
 		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.White)
 	}
 }
