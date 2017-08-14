@@ -19,6 +19,7 @@ package ui
 import (
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -134,6 +135,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if err := g.Update(); err != nil {
 		return err
 	}
+	currentInput.runeBuffer = nil
 	return nil
 }
 
@@ -238,7 +240,6 @@ func initialize() error {
 
 	// Keyboard
 	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
-		e.Call("preventDefault")
 		if e.Get("code") == js.Undefined {
 			// Assume that UA is Safari.
 			code := e.Get("keyCode").Int()
@@ -247,6 +248,12 @@ func initialize() error {
 		}
 		code := e.Get("code").String()
 		currentInput.keyDown(code)
+	})
+	canvas.Call("addEventListener", "keypress", func(e *js.Object) {
+		e.Call("preventDefault")
+		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
+			currentInput.runeBuffer = append(currentInput.runeBuffer, r)
+		}
 	})
 	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
 		e.Call("preventDefault")

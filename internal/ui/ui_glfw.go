@@ -445,6 +445,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if err := g.Update(); err != nil {
 		return err
 	}
+	currentInput.runeBuffer = currentInput.runeBuffer[:0]
 	return nil
 }
 

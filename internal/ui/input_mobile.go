@@ -28,6 +28,10 @@ type Input struct {
 	m        sync.RWMutex
 }
 
+func (i *Input) RuneBuffer() []rune {
+	return nil
+}
+
 func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
