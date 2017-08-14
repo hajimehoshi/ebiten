@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-// InputChars copies "printable" runes read from the keyboard each update to buf.
+// InputChars return "printable" runes read from the keyboard at the time update is called.
 //
 // InputChars represents the environment's locale-dependent translation of keyboard
 // input to Unicode characters.
@@ -27,8 +27,9 @@ import (
 // "Control" and modifier keys should be handled with IsKeyPressed.
 //
 // This function is concurrent-safe.
-func InputChars(buf []rune) int {
-	return copy(buf, ui.CurrentInput().RuneBuffer())
+func InputChars() []rune {
+	rb := ui.CurrentInput().RuneBuffer()
+	return append(make([]rune, 0, len(rb)), rb...)
 }
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
