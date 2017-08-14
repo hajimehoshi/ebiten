@@ -30,7 +30,7 @@ var buf = make([]rune, 1024)
 var counter int
 
 func update(screen *ebiten.Image) error {
-	n := ebiten.CopyChars(buf)
+	n := ebiten.InputChars(buf)
 	runes = append(runes, buf[:n]...)
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
 		if len(runes) > 0 && runes[len(runes)-1] != '\n' {
