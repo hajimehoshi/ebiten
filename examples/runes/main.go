@@ -23,11 +23,10 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
-var runes = append(make([]rune, 0, 1024), []rune("Type on the keyboard:\n")...)
-
-var buf = make([]rune, 1024)
-
-var counter int
+var (
+	runes   = append(make([]rune, 0, 1024), []rune("Type on the keyboard:\n")...)
+	counter = 0
+)
 
 func update(screen *ebiten.Image) error {
 	runes = append(runes, ebiten.InputChars()...)
@@ -37,9 +36,11 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 	counter++
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	if counter%60 < 30 {
 		return ebitenutil.DebugPrint(screen, string(append(runes, '_')))
 	}
@@ -47,5 +48,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	log.Fatal(ebiten.Run(update, 320, 240, 2.0, "Runes (Ebiten Demo)")) // ebiterm?
+	if err := ebiten.Run(update, 320, 240, 2.0, "Runes (Ebiten Demo)"); err != nil {
+		log.Fatal(err)
+	}
 }
