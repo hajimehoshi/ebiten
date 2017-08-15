@@ -31,9 +31,14 @@ var (
 
 func update(screen *ebiten.Image) error {
 	text += string(ebiten.InputChars())
+	ss := strings.Split(text, "\n")
+	if len(ss) > 10 {
+		text = strings.Join(ss[len(ss)-10:], "\n")
+	}
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) && !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}
+
 	counter++
 
 	if ebiten.IsRunningSlowly() {
