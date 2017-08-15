@@ -18,22 +18,21 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 var (
-	runes   = append(make([]rune, 0, 1024), []rune("Type on the keyboard:\n")...)
+	text    = "Type on the keyboard:\n"
 	counter = 0
 )
 
 func update(screen *ebiten.Image) error {
-	runes = append(runes, ebiten.InputChars()...)
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) {
-		if len(runes) > 0 && runes[len(runes)-1] != '\n' {
-			runes = append(runes, '\n')
-		}
+	text += string(ebiten.InputChars())
+	if ebiten.IsKeyPressed(ebiten.KeyEnter) && !strings.HasSuffix(text, "\n") {
+		text += "\n"
 	}
 	counter++
 
@@ -41,10 +40,12 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	t := text
 	if counter%60 < 30 {
-		return ebitenutil.DebugPrint(screen, string(append(runes, '_')))
+		t += "_"
 	}
-	return ebitenutil.DebugPrint(screen, string(runes))
+	ebitenutil.DebugPrint(screen, t)
+	return nil
 }
 
 func main() {
