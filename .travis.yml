@@ -13,6 +13,7 @@ addons:
       - libgles2-mesa-dev
       - libalut-dev
       - libxcursor-dev
+      - libxi-dev
       - libxinerama-dev
       - libxrandr-dev
       - libxxf86vm-dev
