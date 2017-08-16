@@ -12,8 +12,9 @@ addons:
       - libglew-dev # required by headless-gl.
       - libgles2-mesa-dev
       - libalut-dev
-      - libxxf86vm-dev
+      - libxcursor-dev
       - libxrandr-dev
+      - libxxf86vm-dev
 
 # gl module is not available (2016-05-18)
 #
