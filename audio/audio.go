@@ -451,8 +451,10 @@ func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
 
 func (p *Player) proceed(length int) {
 	// This function must be called on the same goruotine of readToBuffer.
+	p.m.Lock()
 	p.buf = p.buf[length:]
 	p.pos += int64(length)
+	p.m.Unlock()
 }
 
 // Play plays the stream.
