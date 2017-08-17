@@ -9,23 +9,23 @@
 <script src="../scripts/googleanalytics.js"></script>
 
 <header class="navbar"><div class="container">
-  <div class="navbar-header">
-    <a class="navbar-brand" href="..">Ebiten</a>
-  </div>
-  <nav class="collapse navbar-collapse">
-    <ul class="nav navbar-nav navbar-right">
-      <li><a href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
-      <li><a href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
-     <li><a href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="mr-auto">
+      <a class="navbar-brand" href="../">Ebiten</a>
+    </div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
     </ul>
   </nav>
-</header>
+</div></header>
 
 <main><div class="container">
 
   <h2>Ebiten example - rotate</h2>
   <iframe src="rotate.content.html" width="640" height="480"></iframe>
-  <pre><code class="language-go">// &#43;build example
+  <pre class="card"><div class="card-body"><code class="language-go">// &#43;build example
 
 package main
 
@@ -72,7 +72,7 @@ func main() {
                 log.Fatal(err)
         }
 }
-</code></pre>
+</code></div></pre>
 
 </div></main>
 

@@ -6,6 +6,10 @@ body {
   font-family: 'Roboto', sans-serif;
 }
 
+h1, h2 {
+  margin-top: 1rem;
+}
+
 h1, h2, h3, h4, h5, h6, .navbar, .lead {
   font-family: 'Play', sans-serif;
 }
@@ -16,6 +20,11 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
 
 img.example {
   background-color: #000;
+  border-color: #666;
+  border-style: solid;
+  border-width: 1px;
+  margin-bottom: 1rem;
+  padding: 0;
 }
 
 header {
@@ -29,8 +38,9 @@ header a {
 footer {
   background-color: #666;
   color: #fff;
-  margin-top: 1.42857143em;
-  padding-top: 1em;
+  margin-top: 1.42857143rem;
+  padding-top: 1rem;
+  padding-bottom: 1px;
 }
 
 footer a {
