@@ -162,5 +162,5 @@ func main() {
 	http.HandleFunc("/main.js.map", serveMainJSMap)
 	http.HandleFunc("/", serveFileHandle)
 	fmt.Printf("http://localhost:%d/\n", *port)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
+	log.Fatal(http.ListenAndServe("localhost:"+strconv.Itoa(*port), nil))
 }

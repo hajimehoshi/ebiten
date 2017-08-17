@@ -40,5 +40,5 @@ func init() {
 func main() {
 	http.Handle("/", http.FileServer(http.Dir(rootPath)))
 	fmt.Printf("http://localhost:%d/\n", *port)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
+	log.Fatal(http.ListenAndServe("localhost:"+strconv.Itoa(*port), nil))
 }
