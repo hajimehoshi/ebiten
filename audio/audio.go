@@ -208,7 +208,7 @@ func NewContext(sampleRate int) (*Context, error) {
 		players: map[*Player]struct{}{},
 	}
 
-	go c.loop()
+	go c.loop(c.initCh)
 
 	return c, nil
 }
@@ -224,14 +224,15 @@ func (c *Context) ping() {
 	if c.initCh != nil {
 		close(c.initCh)
 		c.initCh = nil
-		<-c.initedCh
 	}
+	<-c.initedCh
+
 	c.m.Lock()
 	c.pingCount = 5
 	c.m.Unlock()
 }
 
-func (c *Context) loop() {
+func (c *Context) loop(initCh <-chan struct{}) {
 	clock.RegisterPing(c.ping)
 
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
@@ -239,7 +240,7 @@ func (c *Context) loop() {
 	// but if Ebiten is used for a shared library, the timing when init functions are called
 	// is unexpectable.
 	// e.g. a variable for JVM on Android might not be set.
-	<-c.initCh
+	<-initCh
 
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, c.bufferSize())
 	if err != nil {
@@ -249,7 +250,6 @@ func (c *Context) loop() {
 	defer p.Close()
 
 	close(c.initedCh)
-	c.initedCh = nil
 
 	for {
 		c.m.Lock()
