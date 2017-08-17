@@ -34,7 +34,7 @@ var rootPath = ""
 
 func init() {
 	_, path, _, _ := runtime.Caller(0)
-	rootPath = filepath.Join(filepath.Dir(path), "..", "public")
+	rootPath = filepath.Join(filepath.Dir(path), "..", "..", "docs")
 }
 
 func main() {
