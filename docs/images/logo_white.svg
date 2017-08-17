@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="160px" height="160px" viewBox="0 0 160 160" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 46.2 (44496) - http://www.bohemiancoding.com/sketch -->
+    <title>White</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linejoin="round">
+        <g id="White" stroke="#FFFFFF" stroke-width="5" fill="#FFFFFF">
+            <g id="Tempura" transform="translate(20.000000, 20.000000)">
+                <polygon id="Red" points="80 0 80 40 120 40 120 20 100 20 100 0"></polygon>
+                <rect id="Yellow1" x="40" y="40" width="40" height="40"></rect>
+                <rect id="Yellow2" x="20" y="60" width="40" height="40"></rect>
+                <rect id="Yellow3" x="0" y="80" width="40" height="40"></rect>
+            </g>
+        </g>
+    </g>
+</svg>

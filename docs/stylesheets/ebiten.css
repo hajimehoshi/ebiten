@@ -1,42 +1,61 @@
-@import 'https://fonts.googleapis.com/css?family=Play:400,700';
-@import 'https://fonts.googleapis.com/css?family=Roboto:400,700';
-
 body {
-  background-color: #f5f5f5;
-  font-family: 'Roboto', sans-serif;
+  background-color: #fff;
+  color: #657378; /* 5010-B */
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-h1, h2 {
-  margin-top: 1rem;
+h2 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
 }
 
-h1, h2, h3, h4, h5, h6, .navbar, .lead {
-  font-family: 'Play', sans-serif;
+h2, h3, h4, h5, h6, .navbar, .lead {
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 300;
 }
 
-h1, h2, h3, h4, h5, h6, .navbar-brand {
-  font-weight: 700;
+dt {
+  color: #4c595e; /* 6010-B */
+  font-weight: normal;
 }
 
 img.example {
   background-color: #000;
-  border-color: #666;
+  border-color: #657378;
   border-style: solid;
   border-width: 1px;
   margin-bottom: 1rem;
   padding: 0;
 }
 
-header {
-  background-color: #ddd;
+nav {
+  background-color: #657378;
+  color: #fff;
 }
 
-header a {
-  color: #666 !important;
+nav a {
+  color: #fff !important;
+}
+
+.nav {
+  height: 40px;
+}
+
+.navbar-brand {
+  padding: 0;
+}
+
+.navbar-brand img {
+  width: 40px;
+  height: 40px;
+}
+
+.jumbotron {
+  background-color: #fff;
 }
 
 footer {
-  background-color: #666;
+  background-color: #657378;
   color: #fff;
   margin-top: 1.42857143rem;
   padding-top: 1rem;

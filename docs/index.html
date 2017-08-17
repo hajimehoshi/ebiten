@@ -9,12 +9,10 @@
 <link rel="stylesheet" href="./stylesheets/ebiten.css">
 <script src="./scripts/googleanalytics.js"></script>
 
-<header class="navbar"><div class="container">
-  <nav class="d-flex flex-row" style="width: 100%;">
-    <div>
-      <a class="navbar-brand" href="./">Ebiten</a>
-    </div>
-    <ul class="nav mr-auto">
+<nav class="navbar"><div class="container">
+  <div class="d-flex flex-row" style="width: 100%;">
+    <div class="nav"><a class="navbar-brand" href="./"><img src="images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav mr-auto align-middle">
       <li class="nav-item"><a class="nav-link" href="#platforms">Platforms</a></li>
       <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
       <li class="nav-item"><a class="nav-link" href="#examples">Examples</a></li>
@@ -25,12 +23,15 @@
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
     </ul>
-  </nav>
+  </div>
+</div></nav>
+
+<header class="jumbotron jumbotron-fluid"><div class="container text-center">
+  <h1><img src="images/logo.svg" alt="EBITEN" style="width: 220px; height: 242px;"></h1>
+  <p class="lead">A simple 2D game library in Go</p>
 </div></header>
 
 <main><div class="container">
-  <h1>Ebiten</h1>
-  <p class="lead">A simple 2D game library in Go</p>
   <p>Stable version: v1.5.1 / Development version: v1.6.0-alpha</p>
 
   <h2 id="platforms">Platforms</h2>
