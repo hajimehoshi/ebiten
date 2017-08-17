@@ -200,15 +200,13 @@ func NewContext(sampleRate int) (*Context, error) {
 	c := &Context{
 		sampleRate: sampleRate,
 		errCh:      make(chan error, 1),
-		initCh:     make(chan struct{}),
-		initedCh:   make(chan struct{}),
 	}
 	theContext = c
 	c.players = &players{
 		players: map[*Player]struct{}{},
 	}
 
-	go c.loop(c.initCh)
+	go c.loop()
 
 	return c, nil
 }
@@ -232,7 +230,13 @@ func (c *Context) ping() {
 	c.m.Unlock()
 }
 
-func (c *Context) loop(initCh <-chan struct{}) {
+func (c *Context) loop() {
+	c.initCh = make(chan struct{})
+	c.initedCh = make(chan struct{})
+
+	// Copy the channel since c.initCh can be set as nil after clock.RegisterPing.
+	initCh := c.initCh
+
 	clock.RegisterPing(c.ping)
 
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
