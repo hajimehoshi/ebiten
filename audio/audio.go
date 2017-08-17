@@ -76,6 +76,11 @@ func (p *players) Read(b []uint8) (int, error) {
 		return l, nil
 	}
 	closed := []*Player{}
+
+	for _, player := range players {
+		player.resetBufferIfSeeking()
+	}
+
 	l := len(b)
 	for _, player := range players {
 		n, err := player.readToBuffer(l)
@@ -87,6 +92,7 @@ func (p *players) Read(b []uint8) (int, error) {
 		l = min(n, l)
 	}
 	l &= mask
+
 	b16s := [][]int16{}
 	for _, player := range players {
 		b16s = append(b16s, player.bufferToInt16(l))
@@ -105,9 +111,11 @@ func (p *players) Read(b []uint8) (int, error) {
 		b[2*i] = byte(x)
 		b[2*i+1] = byte(x >> 8)
 	}
+
 	for _, player := range players {
 		player.proceed(l)
 	}
+
 	for _, pl := range closed {
 		delete(p.players, pl)
 	}
@@ -345,6 +353,9 @@ type Player struct {
 	pos    int64
 	volume float64
 
+	seeking bool
+	nextPos int64
+
 	srcM sync.Mutex
 	m    sync.RWMutex
 }
@@ -484,9 +495,22 @@ func (p *Player) Seek(offset time.Duration) error {
 	if err != nil {
 		return err
 	}
-	p.buf = []uint8{}
-	p.pos = pos
+	p.m.Lock()
+	p.seeking = true
+	p.nextPos = pos
+	p.m.Unlock()
 	return nil
+}
+
+func (p *Player) resetBufferIfSeeking() {
+	// This function must be called on the same goruotine of readToBuffer.
+	p.m.Lock()
+	if p.seeking {
+		p.buf = []uint8{}
+		p.pos = p.nextPos
+		p.seeking = false
+	}
+	p.m.Unlock()
 }
 
 // Pause pauses the playing.
@@ -526,10 +550,10 @@ func (p *Player) Volume() float64 {
 // SetVolume is concurrent safe.
 func (p *Player) SetVolume(volume float64) {
 	p.m.Lock()
-	defer p.m.Unlock()
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
 		panic("audio: volume must be in between 0 and 1")
 	}
 	p.volume = volume
+	p.m.Unlock()
 }
