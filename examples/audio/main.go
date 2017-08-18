@@ -43,17 +43,9 @@ const (
 )
 
 var (
-	playerBarImage     *ebiten.Image
-	playerCurrentImage *ebiten.Image
+	playerBarColor     = color.RGBA{0x80, 0x80, 0x80, 0xff}
+	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
-
-func init() {
-	playerBarImage, _ = ebiten.NewImage(300, 4, ebiten.FilterNearest)
-	playerBarImage.Fill(&color.RGBA{0x80, 0x80, 0x80, 0xff})
-
-	playerCurrentImage, _ = ebiten.NewImage(4, 10, ebiten.FilterNearest)
-	playerCurrentImage.Fill(&color.RGBA{0xff, 0xff, 0xff, 0xff})
-}
 
 type Input struct {
 	mouseButtonStates map[ebiten.MouseButton]int
@@ -103,7 +95,7 @@ var (
 )
 
 func playerBarRect() (x, y, w, h int) {
-	w, h = playerBarImage.Size()
+	w, h = 300, 4
 	x = (screenWidth - w) / 2
 	y = screenHeight - h - 16
 	return
@@ -245,10 +237,10 @@ func (p *Player) close() error {
 }
 
 func (p *Player) draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
+	// Bar
 	x, y, w, h := playerBarRect()
-	op.GeoM.Translate(float64(x), float64(y))
-	screen.DrawImage(playerBarImage, op)
+	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), playerBarColor)
+
 	currentTimeStr := "00:00"
 
 	// Current Time
@@ -257,13 +249,11 @@ func (p *Player) draw(screen *ebiten.Image) {
 	s := (c / time.Second) % 60
 	currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
 
-	// Bar
-	cw, ch := playerCurrentImage.Size()
+	// Cursor
+	cw, ch := 4, 10
 	cx := int(time.Duration(w)*c/p.total) + x - cw/2
 	cy := y - (ch-h)/2
-	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(cx), float64(cy))
-	screen.DrawImage(playerCurrentImage, op)
+	ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
 
 	msg := fmt.Sprintf(`FPS: %0.2f
 Press S to toggle Play/Pause
