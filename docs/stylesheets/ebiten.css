@@ -28,6 +28,10 @@ img.example {
   padding: 0;
 }
 
+pre.card-body {
+  margin-bottom: 0;
+}
+
 nav {
   background-color: #657378;
   color: #fff;

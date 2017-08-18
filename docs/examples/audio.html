@@ -1,8 +1,10 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
 <script src="../scripts/force-https.js"></script>
 <link rel="shortcut icon" href="../favicon.png" type="image/png" >
 <link rel="icon" href="../favicon.png" type="image/png" >
 <title>Ebiten example - audio</title>
+
 <link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
 <link rel="stylesheet" href="../stylesheets/highlight-github.css">
 <link rel="stylesheet" href="../stylesheets/ebiten.css">
@@ -23,7 +25,7 @@
 
   <h2>Ebiten example - audio</h2>
   <iframe src="audio.content.html" width="640" height="480"></iframe>
-  <pre class="card"><div class="card-body"><code class="language-go">// &#43;build example
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
 
 // This is an example to implement an audio player.
 // See examples/wav for a simpler example to play a sound file.
@@ -54,17 +56,9 @@ const (
 )
 
 var (
-        playerBarImage     *ebiten.Image
-        playerCurrentImage *ebiten.Image
+        playerBarColor     = color.RGBA{0x80, 0x80, 0x80, 0xff}
+        playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
-
-func init() {
-        playerBarImage, _ = ebiten.NewImage(300, 4, ebiten.FilterNearest)
-        playerBarImage.Fill(&amp;color.RGBA{0x80, 0x80, 0x80, 0xff})
-
-        playerCurrentImage, _ = ebiten.NewImage(4, 10, ebiten.FilterNearest)
-        playerCurrentImage.Fill(&amp;color.RGBA{0xff, 0xff, 0xff, 0xff})
-}
 
 type Input struct {
         mouseButtonStates map[ebiten.MouseButton]int
@@ -114,7 +108,7 @@ var (
 )
 
 func playerBarRect() (x, y, w, h int) {
-        w, h = playerBarImage.Size()
+        w, h = 300, 4
         x = (screenWidth - w) / 2
         y = screenHeight - h - 16
         return
@@ -256,10 +250,10 @@ func (p *Player) close() error {
 }
 
 func (p *Player) draw(screen *ebiten.Image) {
-        op := &amp;ebiten.DrawImageOptions{}
+        // Bar
         x, y, w, h := playerBarRect()
-        op.GeoM.Translate(float64(x), float64(y))
-        screen.DrawImage(playerBarImage, op)
+        ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), playerBarColor)
+
         currentTimeStr := &#34;00:00&#34;
 
         // Current Time
@@ -268,13 +262,11 @@ func (p *Player) draw(screen *ebiten.Image) {
         s := (c / time.Second) % 60
         currentTimeStr = fmt.Sprintf(&#34;%02d:%02d&#34;, m, s)
 
-        // Bar
-        cw, ch := playerCurrentImage.Size()
+        // Cursor
+        cw, ch := 4, 10
         cx := int(time.Duration(w)*c/p.total) &#43; x - cw/2
         cy := y - (ch-h)/2
-        op = &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Translate(float64(cx), float64(cy))
-        screen.DrawImage(playerCurrentImage, op)
+        ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
 
         msg := fmt.Sprintf(`FPS: %0.2f
 Press S to toggle Play/Pause
@@ -315,7 +307,7 @@ func main() {
                 }
         }
 }
-</code></div></pre>
+</code></pre></div>
 
 </div></main>
 

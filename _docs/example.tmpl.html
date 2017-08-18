@@ -1,8 +1,10 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
 <script src="../scripts/force-https.js"></script>
 <link rel="shortcut icon" href="../favicon.png" type="image/png" >
 <link rel="icon" href="../favicon.png" type="image/png" >
 <title>Ebiten example - {{.Example.Name}}</title>
+
 <link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
 <link rel="stylesheet" href="../stylesheets/highlight-github.css">
 <link rel="stylesheet" href="../stylesheets/ebiten.css">
@@ -23,7 +25,7 @@
 {{with .Example}}
   <h2>Ebiten example - {{.Name}}</h2>
   <iframe src="{{.Name}}.content.html" width="{{.Width}}" height="{{.Height}}"></iframe>
-  <pre class="card"><div class="card-body"><code class="language-go">{{.Source}}</code></div></pre>
+  <div class="card"><pre class="card-body"><code class="language-go">{{.Source}}</code></pre></div>
 {{end}}
 </div></main>
 
