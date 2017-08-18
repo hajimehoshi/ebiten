@@ -31,6 +31,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal"
 )
 
+const (
+	url = "https://hajimehoshi.github.io/ebiten/"
+)
+
 func execute(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 	stderr, err := cmd.StderrPipe()
@@ -243,6 +247,7 @@ func outputMain() error {
 	}
 
 	data := map[string]interface{}{
+		"URL":           url,
 		"Copyright":     copyright,
 		"StableVersion": stableVersion,
 		"DevVersion":    devVersion,
@@ -323,6 +328,7 @@ func outputExample(e *example) error {
 	}
 
 	data := map[string]interface{}{
+		"URL":       url,
 		"Copyright": copyright,
 		"Example":   e,
 	}
