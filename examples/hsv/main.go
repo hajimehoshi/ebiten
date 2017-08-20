@@ -35,7 +35,10 @@ var (
 	hueInt        = 0
 	saturationInt = 128
 	valueInt      = 128
-	gophersImage  *ebiten.Image
+	inverted      = false
+
+	prevPressedI = false
+	gophersImage *ebiten.Image
 )
 
 func clamp(v, min, max int) int {
@@ -70,6 +73,13 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
 		valueInt++
 	}
+
+	pressedI := ebiten.IsKeyPressed(ebiten.KeyI)
+	if pressedI && !prevPressedI {
+		inverted = !inverted
+	}
+	prevPressedI = pressedI
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
@@ -80,15 +90,26 @@ func update(screen *ebiten.Image) error {
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
+
 	hue := float64(hueInt) * 2 * math.Pi / 128
 	saturation := float64(saturationInt) / 128
 	value := float64(valueInt) / 128
 	op.ColorM.ChangeHSV(hue, saturation, value)
+	if inverted {
+		op.ColorM.Scale(-1, -1, -1, 1)
+		op.ColorM.Translate(1, 1, 1, 0)
+	}
+
 	screen.DrawImage(gophersImage, op)
 
+	msgInverted := "false"
+	if inverted {
+		msgInverted = "true"
+	}
 	msg := fmt.Sprintf(`Hue:        %0.2f [Q][W]
 Saturation: %0.2f [A][S]
-Value:      %0.2f [Z][X]`, hue, saturation, value)
+Value:      %0.2f [Z][X]
+Inverted:   %s [I]`, hue, saturation, value, msgInverted)
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
