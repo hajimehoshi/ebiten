@@ -32,7 +32,7 @@ type Input struct {
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
-	touches            []touch
+	touches            []touch // This is not updated until GLFW 3.3 is available (#417)
 	runeBuffer         []rune
 	m                  sync.RWMutex
 }

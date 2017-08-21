@@ -107,6 +107,8 @@ type Touch interface {
 }
 
 // Touches returns the current touch states.
+//
+// Touches always returns nil on desktops.
 func Touches() []Touch {
 	t := ui.CurrentInput().Touches()
 	tt := make([]Touch, len(t))
