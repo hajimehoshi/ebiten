@@ -490,7 +490,7 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
-// Issue 317
+// Issue #317
 func TestImageEdge(t *testing.T) {
 	const (
 		img0Width  = 16
@@ -557,6 +557,28 @@ func TestImageEdge(t *testing.T) {
 				}
 				t.Errorf("img1.At(%d, %d) (angle: %d) want: red or transparent, got: %v", i, j, a, c)
 			}
+		}
+	}
+}
+
+// Issue #419
+func TestImageTooManyFill(t *testing.T) {
+	const width = 256
+
+	src, _ := NewImage(1, 1, FilterNearest)
+	dst, _ := NewImage(width, 1, FilterNearest)
+	for i := 0; i < width; i++ {
+		src.Fill(color.RGBA{uint8(i), uint8(i), uint8(i), 0xff})
+		op := &DrawImageOptions{}
+		op.GeoM.Translate(float64(i), 0)
+		dst.DrawImage(src, op)
+	}
+
+	for i := 0; i < width; i++ {
+		got := color.RGBAModel.Convert(dst.At(i, 0))
+		want := color.RGBA{uint8(i), uint8(i), uint8(i), 0xff}
+		if got != want {
+			t.Errorf("src At(%d, %d): got %#v, want: %#v", i, 0, got, want)
 		}
 	}
 }

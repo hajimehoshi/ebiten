@@ -181,7 +181,13 @@ func (c *fillCommand) Exec(indexOffsetInBytes int) error {
 	g := float64(cg) / max
 	b := float64(cb) / max
 	a := float64(ca) / max
-	return opengl.GetContext().FillFramebuffer(r, g, b, a)
+	if err := opengl.GetContext().FillFramebuffer(r, g, b, a); err != nil {
+		return err
+	}
+
+	// Flush is needed after filling (#419)
+	opengl.GetContext().Flush()
+	return nil
 }
 
 type drawImageCommand struct {
