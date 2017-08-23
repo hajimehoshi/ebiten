@@ -94,14 +94,22 @@ func Update() int {
 
 	count := 0
 
-	// There are two time lines: one is the logical time and the other is the system clock.
+	// Logical clock:
+	//   A clock that updated based on the number of frames.
 	//
-	// Usually logical time is updated based on the number of frames, but
-	// when sync is true, the logical time is forced to sync with the system clock.
+	// System clock:
+	//   A clock that offered by the OS.
+	//
+	// Primary clock:
+	//   A clock that is used in the higher priority over the system clock.
+	//   Primary time is usually an audio time.
+	//   Primary time might not exist when e.g. audio is not used.
+
+	// When sync is true, the logical time is forced to sync with the system clock.
 	sync := false
 
 	if primaryTime > 0 && lastPrimaryTime != primaryTime {
-		// If the primary time is updated, use this.
+		// If the primary clock is updated, use this.
 		if frames < primaryTime {
 			count = int(primaryTime - frames)
 		}
@@ -110,9 +118,8 @@ func Update() int {
 	} else {
 		// Use system clock when
 		// 1) Inc() is not called, or
-		// 2) the primary time is not updated yet.
-		// As the primary time can be updated discountinuously,
-		// the system clock is still needed.
+		// 2) the primary clock is not updated yet.
+		// As the primary clock can be updated discountinuously, the system clock is still needed.
 
 		if t > 5*int64(time.Second)/FPS {
 			// The previous time is too old.
