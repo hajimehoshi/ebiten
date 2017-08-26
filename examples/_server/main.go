@@ -65,7 +65,11 @@ func createJSIfNeeded(name string) (string, error) {
 		target := "github.com/hajimehoshi/ebiten/examples/" + name
 		out, err := exec.Command("gopherjs", "build", "--tags", "example", "-o", out, target).CombinedOutput()
 		if err != nil {
-			log.Print(string(out))
+			if string(out) == "" {
+				log.Print("gopherjs command execution failed: gopherjs not command?")
+			} else {
+				log.Printf("gopherjs command execution failed: %s", string(out))
+			}
 			return "", errors.New(string(out))
 		}
 	}
