@@ -18,7 +18,6 @@ package ui
 
 import (
 	"strconv"
-	"strings"
 	"unicode"
 
 	"github.com/gopherjs/gopherjs/js"
@@ -347,17 +346,6 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 		return err
 	}
 	return u.loop(g)
-}
-
-func isSafari() bool {
-	ua := js.Global.Get("navigator").Get("userAgent").String()
-	if !strings.Contains(ua, "Safari") {
-		return false
-	}
-	if strings.Contains(ua, "Chrome") {
-		return false
-	}
-	return true
 }
 
 func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
