@@ -18,6 +18,7 @@ package mp3
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -98,22 +99,31 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, err
 	}
 	s := &Stream{}
-	ch := make(chan struct{})
+	ch := make(chan error)
 
 	klass := js.Global.Get("OfflineAudioContext")
 	if klass == js.Undefined {
 		klass = js.Global.Get("webkitOfflineAudioContext")
 	}
 	if klass == js.Undefined {
-		return nil, errors.New("vorbis: OfflineAudioContext is not available")
+		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
 	}
 	// TODO: 1 is a correct second argument?
 	oc := klass.New(2, 1, context.SampleRate())
 	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
 		s.leftData = buf.Call("getChannelData", 0).Interface().([]float32)
-		s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
+		switch n := buf.Get("numberOfChannels").Int(); n {
+		case 1:
+			s.rightData = s.leftData
+		case 2:
+			s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
+		default:
+			ch <- fmt.Errorf("audio/mp3: Number of channels must be 1 or 2 but %d", n)
+		}
 		close(ch)
 	})
-	<-ch
+	if err := <-ch; err != nil {
+		return nil, err
+	}
 	return s, nil
 }
