@@ -131,6 +131,14 @@ func (u *userInterface) update(g GraphicsContext) error {
 		g.SetSize(u.width, u.height, u.actualScreenScale())
 		return nil
 	}
+	if currentInput.mouseButtonPressed != nil {
+		if currentInput.mouseButtonTag == nil {
+			currentInput.mouseButtonTag = map[int]bool{}
+		}
+		for k, v := range currentInput.mouseButtonPressed {
+			currentInput.mouseButtonTag[k] = v
+		}
+	}
 	if err := g.Update(); err != nil {
 		return err
 	}

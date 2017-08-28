@@ -31,6 +31,7 @@ type Input struct {
 	keyPressed         map[string]bool
 	keyPressedSafari   map[int]bool
 	mouseButtonPressed map[int]bool
+	mouseButtonTag     map[int]bool
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
@@ -117,14 +118,24 @@ func (i *Input) mouseDown(code int) {
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[int]bool{}
 	}
-	i.mouseButtonPressed[code] = true
+	if i.mouseButtonTag == nil {
+		i.mouseButtonTag = map[int]bool{}
+	}
+	if !i.mouseButtonTag[code] {
+		i.mouseButtonPressed[code] = true
+	}
 }
 
 func (i *Input) mouseUp(code int) {
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[int]bool{}
 	}
-	i.mouseButtonPressed[code] = false
+	if i.mouseButtonTag == nil {
+		i.mouseButtonTag = map[int]bool{}
+	}
+	if i.mouseButtonTag[code] {
+		i.mouseButtonPressed[code] = false
+	}
 }
 
 func (i *Input) setMouseCursor(x, y int) {
