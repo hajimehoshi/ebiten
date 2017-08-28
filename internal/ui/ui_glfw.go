@@ -88,7 +88,8 @@ func initialize() error {
 		mode = glfw.CursorHidden
 	}
 	currentUI.window.SetInputMode(glfw.CursorMode, mode)
-
+	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
+	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	return nil
 }
 
