@@ -365,18 +365,19 @@ func uint16ToBytes(v []uint16) []uint8 {
 	return b
 }
 
-func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
+func (c *Context) NewArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
-	gl.BindBuffer(mgl.Enum(bufferType), b)
-	switch v := v.(type) {
-	case int:
-		gl.BufferInit(mgl.Enum(bufferType), v, mgl.Enum(bufferUsage))
-	case []uint16:
-		gl.BufferData(mgl.Enum(bufferType), uint16ToBytes(v), mgl.Enum(bufferUsage))
-	default:
-		panic("not reach")
-	}
+	gl.BindBuffer(mgl.Enum(ArrayBuffer), b)
+	gl.BufferInit(mgl.Enum(ArrayBuffer), size, mgl.Enum(DynamicDraw))
+	return Buffer(b)
+}
+
+func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
+	gl := c.gl
+	b := gl.CreateBuffer()
+	gl.BindBuffer(mgl.Enum(ElementArrayBuffer), b)
+	gl.BufferData(mgl.Enum(ElementArrayBuffer), uint16ToBytes(indices), mgl.Enum(StaticDraw))
 	return Buffer(b)
 }
 

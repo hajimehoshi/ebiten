@@ -460,21 +460,26 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	})
 }
 
-func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
+func (c *Context) NewArrayBuffer(size int) Buffer {
 	var buffer Buffer
 	_ = c.runOnContextThread(func() error {
 		var b uint32
 		gl.GenBuffers(1, &b)
-		gl.BindBuffer(uint32(bufferType), b)
-		switch v := v.(type) {
-		case int:
-			gl.BufferData(uint32(bufferType), v, nil, uint32(bufferUsage))
-		case []uint16:
-			// TODO: What about the endianness?
-			gl.BufferData(uint32(bufferType), 2*len(v), gl.Ptr(v), uint32(bufferUsage))
-		default:
-			panic("not reach")
-		}
+		gl.BindBuffer(uint32(ArrayBuffer), b)
+		gl.BufferData(uint32(ArrayBuffer), size, nil, uint32(DynamicDraw))
+		buffer = Buffer(b)
+		return nil
+	})
+	return buffer
+}
+
+func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
+	var buffer Buffer
+	_ = c.runOnContextThread(func() error {
+		var b uint32
+		gl.GenBuffers(1, &b)
+		gl.BindBuffer(uint32(ElementArrayBuffer), b)
+		gl.BufferData(uint32(ElementArrayBuffer), 2*len(indices), gl.Ptr(indices), uint32(StaticDraw))
 		buffer = Buffer(b)
 		return nil
 	})

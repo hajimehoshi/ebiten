@@ -47,7 +47,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 }
 
 func (a *arrayBufferLayout) newArrayBuffer() opengl.Buffer {
-	return opengl.GetContext().NewBuffer(opengl.ArrayBuffer, a.totalBytes()*4*maxQuads, opengl.DynamicDraw)
+	return opengl.GetContext().NewArrayBuffer(a.totalBytes() * 4 * maxQuads)
 }
 
 func (a *arrayBufferLayout) enable(program opengl.Program) {
@@ -169,7 +169,7 @@ func (s *openGLState) reset() error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	s.indexBufferQuads = opengl.GetContext().NewBuffer(opengl.ElementArrayBuffer, indices, opengl.StaticDraw)
+	s.indexBufferQuads = opengl.GetContext().NewElementArrayBuffer(indices)
 
 	return nil
 }

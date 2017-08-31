@@ -389,11 +389,19 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(int(l))
 }
 
-func (c *Context) NewBuffer(bufferType BufferType, v interface{}, bufferUsage BufferUsage) Buffer {
+func (c *Context) NewArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
-	gl.BindBuffer(int(bufferType), b)
-	gl.BufferData(int(bufferType), v, int(bufferUsage))
+	gl.BindBuffer(int(ArrayBuffer), b)
+	gl.BufferData(int(ArrayBuffer), size, int(DynamicDraw))
+	return Buffer{b}
+}
+
+func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
+	gl := c.gl
+	b := gl.CreateBuffer()
+	gl.BindBuffer(int(ElementArrayBuffer), b)
+	gl.BufferData(int(ElementArrayBuffer), indices, int(StaticDraw))
 	return Buffer{b}
 }
 
