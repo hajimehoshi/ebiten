@@ -44,3 +44,8 @@ func isAndroidChrome() bool {
 func IsMobileBrowser() bool {
 	return isIOS() || isAndroidChrome()
 }
+
+func IsEdgeBrowser() bool {
+	ua := js.Global.Get("navigator").Get("userAgent").String()
+	return strings.Contains(ua, "Edge")
+}
