@@ -381,6 +381,8 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	f := &framebuffer{
 		native:  opengl.GetContext().ScreenFramebuffer(),
 		flipY:   true,
+		width:   c.width,
+		height:  c.height,
 		offsetX: c.offsetX,
 		offsetY: c.offsetY,
 	}

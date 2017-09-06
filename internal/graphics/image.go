@@ -29,7 +29,7 @@ type Image struct {
 	height      int
 }
 
-const MaxImageSize = viewportSize
+const MaxImageSize = defaultViewportSize
 
 func NewImage(width, height int, filter opengl.Filter) *Image {
 	i := &Image{
@@ -132,7 +132,7 @@ func (i *Image) createFramebufferIfNeeded() (*framebuffer, error) {
 	if i.framebuffer != nil {
 		return i.framebuffer, nil
 	}
-	f, err := newFramebufferFromTexture(i.texture)
+	f, err := newFramebufferFromTexture(i.texture, math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height))
 	if err != nil {
 		return nil, err
 	}

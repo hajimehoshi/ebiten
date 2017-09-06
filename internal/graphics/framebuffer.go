@@ -16,6 +16,7 @@ package graphics
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
@@ -36,39 +37,50 @@ type framebuffer struct {
 	native    opengl.Framebuffer
 	flipY     bool
 	proMatrix []float32
+	width     int
+	height    int
 	offsetX   float64
 	offsetY   float64
 }
 
-func newFramebufferFromTexture(texture *texture) (*framebuffer, error) {
+func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffer, error) {
 	native, err := opengl.GetContext().NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
 		return nil, err
 	}
 	return &framebuffer{
 		native: native,
+		width:  width,
+		height: height,
 	}, nil
 }
 
-const viewportSize = 4096
+const defaultViewportSize = 4096
+
+func (f *framebuffer) viewportSize() (int, int) {
+	if web.IsEdgeBrowser() {
+		return f.width, f.height
+	}
+	return defaultViewportSize, defaultViewportSize
+}
 
 func (f *framebuffer) setAsViewport() error {
-	width := viewportSize
-	height := viewportSize
-	return opengl.GetContext().SetViewport(f.native, width, height)
+	w, h := f.viewportSize()
+	return opengl.GetContext().SetViewport(f.native, w, h)
 }
 
 func (f *framebuffer) projectionMatrix(height int) []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
-	m := orthoProjectionMatrix(0, viewportSize, 0, viewportSize)
+	w, h := f.viewportSize()
+	m := orthoProjectionMatrix(0, w, 0, h)
 	if f.flipY {
 		m[4*1+1] *= -1
-		m[4*3+1] += float32(height) / float32(viewportSize) * 2
+		m[4*3+1] += float32(height) / float32(h) * 2
 	}
-	m[4*3+0] += float32(f.offsetX) / float32(viewportSize) * 2
-	m[4*3+1] += float32(f.offsetY) / float32(viewportSize) * 2
+	m[4*3+0] += float32(f.offsetX) / float32(w) * 2
+	m[4*3+1] += float32(f.offsetY) / float32(h) * 2
 	f.proMatrix = m
 	return f.proMatrix
 }
