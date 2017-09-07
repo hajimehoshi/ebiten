@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
@@ -46,7 +47,7 @@ var player *audio.Player
 
 func update(screen *ebiten.Image) error {
 	if player == nil {
-		wavF, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
+		wavF, err := ebitenutil.OpenFile(filepath.Join("_resources", "audio", "jab.wav"))
 		if err != nil {
 			return err
 		}
