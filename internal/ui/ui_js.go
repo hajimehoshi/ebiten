@@ -49,7 +49,7 @@ func shown() bool {
 }
 
 func SetScreenSize(width, height int) bool {
-	return currentUI.setScreenSize(currentUI.width, currentUI.height, currentUI.scale, currentUI.fullscreen)
+	return currentUI.setScreenSize(width, height, currentUI.scale, currentUI.fullscreen)
 }
 
 func SetScreenScale(scale float64) bool {
