@@ -19,7 +19,7 @@ dt {
   font-weight: normal;
 }
 
-img.example {
+.img-thumbnail {
   background-color: #000;
   border-color: #657378;
   border-style: solid;

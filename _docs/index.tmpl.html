@@ -18,6 +18,7 @@
       <li class="nav-item"><a class="nav-link" href="#platforms">Platforms</a></li>
       <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
       <li class="nav-item"><a class="nav-link" href="#examples">Examples</a></li>
+      <li class="nav-item"><a class="nav-link" href="#projects-with-ebiten">Projects with Ebiten</a></li>
       <li class="nav-item"><a class="nav-link" href="#getting-started">Getting Started</a></li>
     </ul>
     <ul class="nav">
@@ -61,7 +62,7 @@
   <div class="row">
   {{range .Examples -}}
     <div class="col-3">
-      <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail example"></a>
+      <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
     </div>
   {{- end}}
   </div>
@@ -72,6 +73,13 @@
 cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
 go run -tags=example rotate/main.go</code></pre></div>
   <p>Note that you need to add <code>-tags=example</code> to run examples.</p>
+
+  <h2 id="projects-with-ebiten">Projects with Ebiten</h2>
+  <div class="row">
+    <div class="col-3">
+      <a href="http://blockbros.net/tsugunai/"><img src="images/projects/clock_of_atonement.png" width="400" height="400" alt="Clock of Atonement" class="img-thumbnail"></a>
+    </div>
+  </div>
 
   <h2 id="getting-started">Getting Started</h2>
 
