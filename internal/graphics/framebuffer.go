@@ -58,9 +58,13 @@ func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffe
 const defaultViewportSize = 4096
 
 func (f *framebuffer) viewportSize() (int, int) {
-	if web.IsEdgeBrowser() {
+	// On some browsers, viewport size must be within the framebuffer size.
+	// e.g. Edge (#71), Chrome on GPD Pocket (#420)
+	if web.IsBrowser() {
 		return f.width, f.height
 	}
+
+	// If possible, always use the same viewport size to reduce draw calls.
 	return defaultViewportSize, defaultViewportSize
 }
 

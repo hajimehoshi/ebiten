@@ -22,6 +22,10 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
+func IsBrowser() bool {
+	return true
+}
+
 func isIOS() bool {
 	ua := js.Global.Get("navigator").Get("userAgent").String()
 	if !strings.Contains(ua, "iPhone") {
@@ -43,9 +47,4 @@ func isAndroidChrome() bool {
 
 func IsMobileBrowser() bool {
 	return isIOS() || isAndroidChrome()
-}
-
-func IsEdgeBrowser() bool {
-	ua := js.Global.Get("navigator").Get("userAgent").String()
-	return strings.Contains(ua, "Edge")
 }

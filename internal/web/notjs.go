@@ -16,10 +16,10 @@
 
 package web
 
-func IsMobileBrowser() bool {
+func IsBrowser() bool {
 	return false
 }
 
-func IsEdgeBrowser() bool {
+func IsMobileBrowser() bool {
 	return false
 }
