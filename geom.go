@@ -71,7 +71,7 @@ func (g *GeoM) Scale(x, y float64) {
 	g.impl.Scale(x, y)
 }
 
-// Translate translates the matrix by (x, y).
+// Translate translates the matrix by (tx, ty).
 func (g *GeoM) Translate(tx, ty float64) {
 	g.impl.Translate(tx, ty)
 }
