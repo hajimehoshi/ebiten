@@ -24,7 +24,10 @@ import (
 	"strconv"
 )
 
-var port = flag.Int("port", 8000, "port number")
+var (
+	host = flag.String("host", "", "host name")
+	port = flag.Int("port", 8000, "port number")
+)
 
 func init() {
 	flag.Parse()
@@ -39,6 +42,10 @@ func init() {
 
 func main() {
 	http.Handle("/", http.FileServer(http.Dir(rootPath)))
-	fmt.Printf("http://localhost:%d/\n", *port)
-	log.Fatal(http.ListenAndServe("localhost:"+strconv.Itoa(*port), nil))
+	if *host == "" {
+		fmt.Printf("http://127.0.0.1:%d/\n", *port)
+	} else {
+		fmt.Printf("http://%s:%d/\n", *host, *port)
+	}
+	log.Fatal(http.ListenAndServe(*host+":"+strconv.Itoa(*port), nil))
 }
