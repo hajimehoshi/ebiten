@@ -27,6 +27,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
+// command represents a drawing command.
+//
+// A command for drawing that is created when Image functions are called like DrawImage,
+// or Fill.
+// A command is not immediately executed after created. Instaed, it is queued after created,
+// and executed only when necessary.
 type command interface {
 	Exec(indexOffsetInBytes int) error
 }

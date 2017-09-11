@@ -22,16 +22,20 @@ import (
 // restoringEnabled indicates if restoring happens or not.
 var restoringEnabled = true // This value is overridden at enabled_*.go.
 
+// IsRestoringEnabled returns a boolean value indicating whether
+// restoring process works or not.
 func IsRestoringEnabled() bool {
 	// This value is updated only at init or EnableRestoringForTesting.
 	// No need to lock here.
 	return restoringEnabled
 }
 
+// EnableRestoringForTesting forces to enable restoring for testing.
 func EnableRestoringForTesting() {
 	restoringEnabled = true
 }
 
+// images is a set of Image objects.
 type images struct {
 	images      map[*Image]struct{}
 	lastChecked *Image
@@ -42,6 +46,8 @@ var theImages = &images{
 	images: map[*Image]struct{}{},
 }
 
+// FlushAndResolveStalePixels flushes the queued draw commands and resolves
+// all stale images.
 func FlushAndResolveStalePixels() error {
 	if err := graphics.FlushCommands(); err != nil {
 		return err

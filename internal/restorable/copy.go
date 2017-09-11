@@ -23,6 +23,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/math"
 )
 
+// CopyImage copies origImg to a new RGBA image.
+//
+// Basically CopyImage just calls draw.Draw.
+// If origImg is a paletted image, an optimized copying method is used.
+//
+// CopyImage is used only from ebiten package but defined in restorable package,
+// because this function needs to be tested but cannot be exposed to Ebiten users.
 func CopyImage(origImg image.Image) *image.RGBA {
 	size := origImg.Bounds().Size()
 	w, h := size.X, size.Y
