@@ -48,9 +48,10 @@ type userInterface struct {
 	origPosY             int
 	runnableInBackground bool
 
-	initFullscreen    bool
-	initCursorVisible bool
-	initIconImages    []image.Image
+	initFullscreen      bool
+	initCursorVisible   bool
+	initWindowDecorated bool
+	initIconImages      []image.Image
 
 	funcs chan func()
 
@@ -59,10 +60,10 @@ type userInterface struct {
 
 var (
 	currentUI = &userInterface{
-		toChangeSize:      true,
-		origPosX:          -1,
-		origPosY:          -1,
-		initCursorVisible: true,
+		origPosX:            -1,
+		origPosY:            -1,
+		initCursorVisible:   true,
+		initWindowDecorated: true,
 	}
 	currentUIInitialized = make(chan struct{})
 )
@@ -79,6 +80,12 @@ func initialize() error {
 	glfw.WindowHint(glfw.Resizable, glfw.False)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+
+	decorated := glfw.False
+	if currentUI.isInitWindowDecorated() {
+		decorated = glfw.True
+	}
+	glfw.WindowHint(glfw.Decorated, decorated)
 
 	// As start, create an window with temporary size to create OpenGL context thread.
 	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
@@ -99,6 +106,7 @@ func initialize() error {
 		currentUI.window.SetIcon(i)
 	}
 	currentUI.window.SetInputMode(glfw.CursorMode, mode)
+
 	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	return nil
@@ -164,6 +172,19 @@ func (u *userInterface) isInitCursorVisible() bool {
 func (u *userInterface) setInitCursorVisible(visible bool) {
 	u.m.Lock()
 	u.initCursorVisible = visible
+	u.m.Unlock()
+}
+
+func (u *userInterface) isInitWindowDecorated() bool {
+	u.m.Lock()
+	v := u.initWindowDecorated
+	u.m.Unlock()
+	return v
+}
+
+func (u *userInterface) setInitWindowDecorated(decorated bool) {
+	u.m.Lock()
+	u.initWindowDecorated = decorated
 	u.m.Unlock()
 }
 
@@ -367,6 +388,40 @@ func SetCursorVisible(visible bool) {
 		currentUI.window.SetInputMode(glfw.CursorMode, c)
 		return nil
 	})
+}
+
+func IsWindowDecorated() bool {
+	u := currentUI
+	if !u.isRunning() {
+		return u.isInitWindowDecorated()
+	}
+	v := false
+	_ = currentUI.runOnMainThread(func() error {
+		v = currentUI.window.GetAttrib(glfw.Decorated) == glfw.True
+		return nil
+	})
+	return v
+}
+
+func SetWindowDecorated(decorated bool) {
+	u := currentUI
+	if !u.isRunning() {
+		u.setInitWindowDecorated(decorated)
+		return
+	}
+
+	panic("ui: SetWindowDecorated can't be called after Run so far.")
+
+	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later.
+	// If SetAttrib exists, the implementation would be:
+	//
+	//     _ = currentUI.runOnMainThread(func() error {
+	//         v := glfw.False
+	//         if decorated {
+	//             v = glfw.True
+	//         }
+	//     currentUI.window.SetAttrib(glfw.Decorated, v)
+	//     return nil
 }
 
 func Run(width, height int, scale float64, title string, g GraphicsContext) error {

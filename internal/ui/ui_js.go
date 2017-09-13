@@ -98,6 +98,14 @@ func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }
 
+func IsWindowDecorated() bool {
+	return false
+}
+
+func SetWindowDecorated(decorated bool) {
+	// Do nothing
+}
+
 func (u *userInterface) getScale() float64 {
 	if !u.fullscreen {
 		return u.scale

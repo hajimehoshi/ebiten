@@ -246,11 +246,32 @@ func SetFullscreen(fullscreen bool) {
 	ui.SetFullscreen(fullscreen)
 }
 
-// IsRunnableInBackground returns a boolean value indicating whether the game runs even in background.
+// IsRunnableInBackground returns a boolean value indicating whether
+// the game runs even in background.
 //
 // This function is concurrent-safe.
 func IsRunnableInBackground() bool {
 	return ui.IsRunnableInBackground()
+}
+
+// SetWindowDecorated sets the state if the window is decorated.
+//
+// SetWindowDecorated works only on desktops.
+// SetWindowDecorated does nothing on other platforms.
+//
+// SetWindowDecorated panics if SetWindowDecorated is called after Run.
+//
+// This function is concurrent-safe.
+func SetWindowDecorated(decorated bool) {
+	ui.SetWindowDecorated(decorated)
+}
+
+// IsWindowDecorated returns a boolean value indicating whether
+// the window is decorated.
+//
+// This function is concurrent-safe.
+func IsWindowDecorated() bool {
+	return ui.IsWindowDecorated()
 }
 
 // SetRunnableInBackground sets the state if the game runs even in background.

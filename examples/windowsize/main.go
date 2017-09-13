@@ -18,6 +18,8 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -31,6 +33,10 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
+)
+
+var (
+	windowDecorated = flag.Bool("windowdecorated", true, "whether the window is decorated")
 )
 
 func init() {
@@ -67,7 +73,13 @@ func createRandomIconImage() image.Image {
 	return img
 }
 
+var terminated = errors.New("terminated")
+
 func update(screen *ebiten.Image) error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+		return terminated
+	}
+
 	screenScale := ebiten.ScreenScale()
 	d := int(32 / screenScale)
 	screenWidth, screenHeight := screen.Size()
@@ -145,6 +157,7 @@ Press F key to switch the fullscreen state
 Press B key to switch the run-in-background state
 Press C key to switch the cursor visibility
 Press I key to change the window icon
+Press Q key to quit
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)
@@ -152,6 +165,8 @@ FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 }
 
 func main() {
+	flag.Parse()
+
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
 
 	// Decode image from a byte slice instead of a file so that
@@ -171,7 +186,9 @@ func main() {
 
 	ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 
-	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
+	ebiten.SetWindowDecorated(*windowDecorated)
+
+	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil && err != terminated {
 		log.Fatal(err)
 	}
 }

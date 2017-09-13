@@ -172,12 +172,15 @@ func SetCursorVisible(visible bool) {
 	// Do nothing
 }
 
+func IsFullscreen() bool {
+	return false
+}
+
 func SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
-func IsFullscreen() bool {
-	// Do nothing
+func IsRunnableInBackground() bool {
 	return false
 }
 
@@ -185,12 +188,15 @@ func SetRunnableInBackground(runnableInBackground bool) {
 	// Do nothing
 }
 
-func IsRunnableInBackground() bool {
+func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
+}
+
+func IsWindowDecorated() bool {
 	return false
 }
 
-func SetWindowIcon(iconImages []image.Image) {
+func SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
