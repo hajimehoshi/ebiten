@@ -26,12 +26,15 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
+// MaxImageSize represents the maximum width/height of an image.
 const MaxImageSize = graphics.MaxImageSize
 
+// QuadVertexSizeInBytes returns the byte size of vertices for a quadrilateral.
 func QuadVertexSizeInBytes() int {
 	return graphics.QuadVertexSizeInBytes()
 }
 
+// drawImageHistoryItem is an item for history of draw-image commands.
 type drawImageHistoryItem struct {
 	image    *Image
 	vertices []float32
@@ -39,6 +42,8 @@ type drawImageHistoryItem struct {
 	mode     opengl.CompositeMode
 }
 
+// canMerge returns a boolean value indicating whether the drawImageHistoryItem d
+// can be merged with the given conditions.
 func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mode opengl.CompositeMode) bool {
 	if d.image != image {
 		return false
@@ -75,6 +80,7 @@ type Image struct {
 	offsetY float64
 }
 
+// NewImage creates an empty image with the given size and filter.
 func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 	i := &Image{
 		image:    graphics.NewImage(width, height, filter),
@@ -86,6 +92,7 @@ func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 	return i
 }
 
+// NewImageFromImage creates an image with source image.
 func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) *Image {
 	w2, h2 := math.NextPowerOf2Int(width), math.NextPowerOf2Int(height)
 	p := make([]uint8, 4*w2*h2)
@@ -102,6 +109,7 @@ func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filt
 	return i
 }
 
+// NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
 func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Image {
 	i := &Image{
 		image:    graphics.NewScreenFramebufferImage(width, height, offsetX, offsetY),
@@ -115,14 +123,17 @@ func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Ima
 	return i
 }
 
+// BasePixelsForTesting returns the image's basePixels for testing.
 func (p *Image) BasePixelsForTesting() []uint8 {
 	return p.basePixels
 }
 
+// Size returns the image's size.
 func (p *Image) Size() (int, int) {
 	return p.image.Size()
 }
 
+// makeStale makes the image stale.
 func (p *Image) makeStale() {
 	p.basePixels = nil
 	p.baseColor = color.RGBA{}
@@ -130,6 +141,7 @@ func (p *Image) makeStale() {
 	p.stale = true
 }
 
+// clearIfVolatile clears the image if the image is volatile.
 func (p *Image) clearIfVolatile() {
 	if !p.volatile {
 		return
@@ -144,8 +156,9 @@ func (p *Image) clearIfVolatile() {
 	p.image.Fill(0, 0, 0, 0)
 }
 
+// Fill fills the image with the given color.
 func (p *Image) Fill(r, g, b, a uint8) {
-	theImages.resetPixelsIfDependingOn(p)
+	theImages.makeStaleIfDependingOn(p)
 	p.basePixels = nil
 	p.baseColor = color.RGBA{r, g, b, a}
 	p.drawImageHistory = nil
@@ -153,8 +166,9 @@ func (p *Image) Fill(r, g, b, a uint8) {
 	p.image.Fill(r, g, b, a)
 }
 
+// ReplacePixels replaces the image pixels with the given pixels slice.
 func (p *Image) ReplacePixels(pixels []uint8) {
-	theImages.resetPixelsIfDependingOn(p)
+	theImages.makeStaleIfDependingOn(p)
 	p.image.ReplacePixels(pixels)
 	p.basePixels = pixels
 	p.baseColor = color.RGBA{}
@@ -162,8 +176,9 @@ func (p *Image) ReplacePixels(pixels []uint8) {
 	p.stale = false
 }
 
+// DrawImage draws a given image img to the image.
 func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
-	theImages.resetPixelsIfDependingOn(p)
+	theImages.makeStaleIfDependingOn(p)
 	if img.stale || img.volatile || !IsRestoringEnabled() {
 		p.makeStale()
 	} else {
@@ -172,6 +187,7 @@ func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM,
 	p.image.DrawImage(img.image, vertices, colorm, mode)
 }
 
+// appendDrawImageHistory appends a draw-image history item to the image.
 func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
 	if p.stale || p.volatile {
 		return
@@ -218,6 +234,7 @@ func (p *Image) At(x, y int) (color.RGBA, error) {
 	return color.RGBA{r, g, b, a}, nil
 }
 
+// makeStaleIfDependingOn makes the image stale if the image depends on target.
 func (p *Image) makeStaleIfDependingOn(target *Image) {
 	if p.stale {
 		return
@@ -227,6 +244,7 @@ func (p *Image) makeStaleIfDependingOn(target *Image) {
 	}
 }
 
+// readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (p *Image) readPixelsFromGPU(image *graphics.Image) error {
 	var err error
 	p.basePixels, err = image.Pixels()
@@ -239,7 +257,8 @@ func (p *Image) readPixelsFromGPU(image *graphics.Image) error {
 	return nil
 }
 
-func (p *Image) resolveStalePixels() error {
+// resolveStale resolves the image's 'stale' state.
+func (p *Image) resolveStale() error {
 	if !IsRestoringEnabled() {
 		return nil
 	}
@@ -252,6 +271,7 @@ func (p *Image) resolveStalePixels() error {
 	return p.readPixelsFromGPU(p.image)
 }
 
+// dependsOn returns a boolean value indicating whether the image depends on target.
 func (p *Image) dependsOn(target *Image) bool {
 	for _, c := range p.drawImageHistory {
 		if c.image == target {
@@ -261,6 +281,7 @@ func (p *Image) dependsOn(target *Image) bool {
 	return false
 }
 
+// dependingImages returns all images that is depended by the image.
 func (p *Image) dependingImages() map[*Image]struct{} {
 	r := map[*Image]struct{}{}
 	for _, c := range p.drawImageHistory {
@@ -269,6 +290,7 @@ func (p *Image) dependingImages() map[*Image]struct{} {
 	return r
 }
 
+// hasDependency returns a boolean value indicating whether the image depends on another image.
 func (p *Image) hasDependency() bool {
 	if p.stale {
 		return false
@@ -335,8 +357,11 @@ func (p *Image) restore() error {
 	return nil
 }
 
+// Dispose disposes the image.
+//
+// After disposing, calling the funciton of the image causes unexpected results.
 func (p *Image) Dispose() {
-	theImages.resetPixelsIfDependingOn(p)
+	theImages.makeStaleIfDependingOn(p)
 	p.image.Dispose()
 	p.image = nil
 	p.basePixels = nil
@@ -347,6 +372,9 @@ func (p *Image) Dispose() {
 	runtime.SetFinalizer(p, nil)
 }
 
+// IsInvalidated returns a boolean value indicating whether the image is invalidated.
+//
+// If an image is invalidated, GL context is lost and all the images should be restored asap.
 func (p *Image) IsInvalidated() (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	if err := graphics.FlushCommands(); err != nil {

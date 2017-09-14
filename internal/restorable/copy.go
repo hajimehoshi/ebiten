@@ -28,7 +28,7 @@ import (
 // Basically CopyImage just calls draw.Draw.
 // If origImg is a paletted image, an optimized copying method is used.
 //
-// CopyImage is used only from ebiten package but defined in restorable package,
+// CopyImage is used only from ebiten package but defined in restorable package
 // because this function needs to be tested but cannot be exposed to Ebiten users.
 func CopyImage(origImg image.Image) *image.RGBA {
 	size := origImg.Bounds().Size()

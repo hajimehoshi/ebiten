@@ -20,7 +20,9 @@ import (
 )
 
 // restoringEnabled indicates if restoring happens or not.
-var restoringEnabled = true // This value is overridden at enabled_*.go.
+//
+// This value is overridden at enabled_*.go.
+var restoringEnabled = true
 
 // IsRestoringEnabled returns a boolean value indicating whether
 // restoring process works or not.
@@ -37,24 +39,30 @@ func EnableRestoringForTesting() {
 
 // images is a set of Image objects.
 type images struct {
-	images      map[*Image]struct{}
-	lastChecked *Image
-	m           sync.Mutex
+	images     map[*Image]struct{}
+	lastTarget *Image
+	m          sync.Mutex
 }
 
+// theImages represents the images for the current process.
 var theImages = &images{
 	images: map[*Image]struct{}{},
 }
 
-// FlushAndResolveStalePixels flushes the queued draw commands and resolves
+// ResolveStaleImages flushes the queued draw commands and resolves
 // all stale images.
-func FlushAndResolveStalePixels() error {
+//
+// ResolveStaleImages is intended to be called at the end of a frame.
+func ResolveStaleImages() error {
 	if err := graphics.FlushCommands(); err != nil {
 		return err
 	}
-	return theImages.resolveStalePixels()
+	return theImages.resolveStaleImages()
 }
 
+// Restore restores the images.
+//
+// Restoring means to make all *graphics.Image objects have their textures and framebuffers.
 func Restore() error {
 	if err := graphics.ResetGLState(); err != nil {
 		return err
@@ -62,35 +70,45 @@ func Restore() error {
 	return theImages.restore()
 }
 
+// ClearVolatileImages clears volatile images.
+//
+// ClearVolatileImages is intended to be called at the start of a frame.
 func ClearVolatileImages() {
 	theImages.clearVolatileImages()
 }
 
+// add adds img to the images.
 func (i *images) add(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.images[img] = struct{}{}
 }
 
+// remove removes img from the images.
 func (i *images) remove(img *Image) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	delete(i.images, img)
 }
 
-func (i *images) resolveStalePixels() error {
+// resolveStaleImages resolves stale images.
+func (i *images) resolveStaleImages() error {
 	i.m.Lock()
 	defer i.m.Unlock()
-	i.lastChecked = nil
+	i.lastTarget = nil
 	for img := range i.images {
-		if err := img.resolveStalePixels(); err != nil {
+		if err := img.resolveStale(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (i *images) resetPixelsIfDependingOn(target *Image) {
+// makeStaleIfDependingOn makes all the images stale that depend on target.
+//
+// When target is changed, all images depending on target can't be restored with target.
+// makeStaleIfDependingOn is called in such situation.
+func (i *images) makeStaleIfDependingOn(target *Image) {
 	// Avoid defer for performance
 	i.m.Lock()
 	if target == nil {
@@ -98,11 +116,11 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 		i.m.Unlock()
 		return
 	}
-	if i.lastChecked == target {
+	if i.lastTarget == target {
 		i.m.Unlock()
 		return
 	}
-	i.lastChecked = target
+	i.lastTarget = target
 	for img := range i.images {
 		// TODO: This seems not enough: What if img becomes stale but what about
 		// other images depend on img? (#357)
@@ -111,17 +129,21 @@ func (i *images) resetPixelsIfDependingOn(target *Image) {
 	i.m.Unlock()
 }
 
+// restore restores the images.
+//
+// Restoring means to make all *graphics.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if !IsRestoringEnabled() {
 		panic("not reached")
 	}
+
 	// Framebuffers/textures cannot be disposed since framebuffers/textures that
 	// don't belong to the current context.
 
 	// Let's do topological sort based on dependencies of drawing history.
-	// There should not be a loop since cyclic drawing makes images stale.
+	// It is assured that there are not loops since cyclic drawing makes images stale.
 	type edge struct {
 		source *Image
 		target *Image
@@ -170,6 +192,7 @@ func (i *images) restore() error {
 	return nil
 }
 
+// clearVolatileImages clears the volatile images.
 func (i *images) clearVolatileImages() {
 	i.m.Lock()
 	defer i.m.Unlock()
@@ -178,6 +201,7 @@ func (i *images) clearVolatileImages() {
 	}
 }
 
-func ResetGLState() error {
+// InitializeGLState initializes the GL state.
+func InitializeGLState() error {
 	return graphics.ResetGLState()
 }

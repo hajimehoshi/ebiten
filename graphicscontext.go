@@ -75,7 +75,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 func (c *graphicsContext) initializeIfNeeded() error {
 	if !c.initialized {
-		if err := restorable.ResetGLState(); err != nil {
+		if err := restorable.InitializeGLState(); err != nil {
 			return err
 		}
 		c.initialized = true
@@ -113,7 +113,7 @@ func (c *graphicsContext) Update(updateCount int) error {
 	_ = c.screen.Clear()
 	drawWithFittingScale(c.screen, c.offscreen2)
 
-	if err := restorable.FlushAndResolveStalePixels(); err != nil {
+	if err := restorable.ResolveStaleImages(); err != nil {
 		return err
 	}
 	return nil
