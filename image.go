@@ -266,10 +266,8 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 // Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
-	w, h := size.X, size.Y
-	checkSize(w, h)
-	rgbaImg := restorable.CopyImage(source)
-	r := restorable.NewImageFromImage(rgbaImg, w, h, glFilter(filter))
+	checkSize(size.X, size.Y)
+	r := restorable.NewImageFromImage(source, glFilter(filter))
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil

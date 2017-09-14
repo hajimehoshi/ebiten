@@ -192,9 +192,9 @@ func TestRestoreComplexGraph(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base, 4, 1, opengl.Nearest)
-	img1 := NewImageFromImage(base, 4, 1, opengl.Nearest)
-	img2 := NewImageFromImage(base, 4, 1, opengl.Nearest)
+	img0 := NewImageFromImage(base, opengl.Nearest)
+	img1 := NewImageFromImage(base, opengl.Nearest)
+	img2 := NewImageFromImage(base, opengl.Nearest)
 	img3 := NewImage(4, 1, opengl.Nearest, false)
 	img3.Fill(0, 0, 0, 0)
 	img4 := NewImage(4, 1, opengl.Nearest, false)
@@ -296,7 +296,7 @@ func TestRestoreRecursive(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base, 4, 1, opengl.Nearest)
+	img0 := NewImageFromImage(base, opengl.Nearest)
 	img1 := NewImage(4, 1, opengl.Nearest, false)
 	img1.Fill(0, 0, 0, 0)
 	defer func() {

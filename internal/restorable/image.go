@@ -93,16 +93,17 @@ func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 }
 
 // NewImageFromImage creates an image with source image.
-//
-// width/height might be different from source's size.
-func NewImageFromImage(source *image.RGBA, width, height int, filter opengl.Filter) *Image {
+func NewImageFromImage(source image.Image, filter opengl.Filter) *Image {
+	size := source.Bounds().Size()
+	width, height := size.X, size.Y
+	rgbaImg := CopyImage(source)
 	w2, h2 := math.NextPowerOf2Int(width), math.NextPowerOf2Int(height)
 	p := make([]uint8, 4*w2*h2)
 	for j := 0; j < height; j++ {
-		copy(p[j*w2*4:(j+1)*w2*4], source.Pix[j*source.Stride:])
+		copy(p[j*w2*4:(j+1)*w2*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
 	i := &Image{
-		image:      graphics.NewImageFromImage(source, width, height, filter),
+		image:      graphics.NewImageFromImage(rgbaImg, width, height, filter),
 		basePixels: p,
 		filter:     filter,
 	}
