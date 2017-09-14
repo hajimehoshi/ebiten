@@ -127,84 +127,84 @@ func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Ima
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
-func (p *Image) BasePixelsForTesting() []uint8 {
-	return p.basePixels
+func (i *Image) BasePixelsForTesting() []uint8 {
+	return i.basePixels
 }
 
 // Size returns the image's size.
-func (p *Image) Size() (int, int) {
-	return p.image.Size()
+func (i *Image) Size() (int, int) {
+	return i.image.Size()
 }
 
 // makeStale makes the image stale.
-func (p *Image) makeStale() {
-	p.basePixels = nil
-	p.baseColor = color.RGBA{}
-	p.drawImageHistory = nil
-	p.stale = true
+func (i *Image) makeStale() {
+	i.basePixels = nil
+	i.baseColor = color.RGBA{}
+	i.drawImageHistory = nil
+	i.stale = true
 }
 
 // clearIfVolatile clears the image if the image is volatile.
-func (p *Image) clearIfVolatile() {
-	if !p.volatile {
+func (i *Image) clearIfVolatile() {
+	if !i.volatile {
 		return
 	}
-	p.basePixels = nil
-	p.baseColor = color.RGBA{}
-	p.drawImageHistory = nil
-	p.stale = false
-	if p.image == nil {
+	i.basePixels = nil
+	i.baseColor = color.RGBA{}
+	i.drawImageHistory = nil
+	i.stale = false
+	if i.image == nil {
 		panic("not reached")
 	}
-	p.image.Fill(0, 0, 0, 0)
+	i.image.Fill(0, 0, 0, 0)
 }
 
 // Fill fills the image with the given color.
-func (p *Image) Fill(r, g, b, a uint8) {
-	theImages.makeStaleIfDependingOn(p)
-	p.basePixels = nil
-	p.baseColor = color.RGBA{r, g, b, a}
-	p.drawImageHistory = nil
-	p.stale = false
-	p.image.Fill(r, g, b, a)
+func (i *Image) Fill(r, g, b, a uint8) {
+	theImages.makeStaleIfDependingOn(i)
+	i.basePixels = nil
+	i.baseColor = color.RGBA{r, g, b, a}
+	i.drawImageHistory = nil
+	i.stale = false
+	i.image.Fill(r, g, b, a)
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
-func (p *Image) ReplacePixels(pixels []uint8) {
-	theImages.makeStaleIfDependingOn(p)
-	p.image.ReplacePixels(pixels)
-	p.basePixels = pixels
-	p.baseColor = color.RGBA{}
-	p.drawImageHistory = nil
-	p.stale = false
+func (i *Image) ReplacePixels(pixels []uint8) {
+	theImages.makeStaleIfDependingOn(i)
+	i.image.ReplacePixels(pixels)
+	i.basePixels = pixels
+	i.baseColor = color.RGBA{}
+	i.drawImageHistory = nil
+	i.stale = false
 }
 
 // DrawImage draws a given image img to the image.
-func (p *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
-	theImages.makeStaleIfDependingOn(p)
+func (i *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
+	theImages.makeStaleIfDependingOn(i)
 	if img.stale || img.volatile || !IsRestoringEnabled() {
-		p.makeStale()
+		i.makeStale()
 	} else {
-		p.appendDrawImageHistory(img, vertices, colorm, mode)
+		i.appendDrawImageHistory(img, vertices, colorm, mode)
 	}
-	p.image.DrawImage(img.image, vertices, colorm, mode)
+	i.image.DrawImage(img.image, vertices, colorm, mode)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
-	if p.stale || p.volatile {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
+	if i.stale || i.volatile {
 		return
 	}
-	if len(p.drawImageHistory) > 0 {
-		last := p.drawImageHistory[len(p.drawImageHistory)-1]
+	if len(i.drawImageHistory) > 0 {
+		last := i.drawImageHistory[len(i.drawImageHistory)-1]
 		if last.canMerge(image, colorm, mode) {
 			last.vertices = append(last.vertices, vertices...)
 			return
 		}
 	}
 	const maxDrawImageHistoryNum = 100
-	if len(p.drawImageHistory)+1 > maxDrawImageHistoryNum {
-		p.makeStale()
+	if len(i.drawImageHistory)+1 > maxDrawImageHistoryNum {
+		i.makeStale()
 		return
 	}
 	// All images must be resolved and not stale each after frame.
@@ -215,68 +215,68 @@ func (p *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 		colorm:   *colorm,
 		mode:     mode,
 	}
-	p.drawImageHistory = append(p.drawImageHistory, item)
+	i.drawImageHistory = append(i.drawImageHistory, item)
 }
 
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-func (p *Image) At(x, y int) (color.RGBA, error) {
-	w, h := p.image.Size()
+func (i *Image) At(x, y int) (color.RGBA, error) {
+	w, h := i.image.Size()
 	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
 	if x < 0 || y < 0 || w2 <= x || h2 <= y {
 		return color.RGBA{}, nil
 	}
-	if p.basePixels == nil || p.drawImageHistory != nil || p.stale {
-		if err := p.readPixelsFromGPU(p.image); err != nil {
+	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
+		if err := i.readPixelsFromGPU(i.image); err != nil {
 			return color.RGBA{}, err
 		}
 	}
 	idx := 4*x + 4*y*w2
-	r, g, b, a := p.basePixels[idx], p.basePixels[idx+1], p.basePixels[idx+2], p.basePixels[idx+3]
+	r, g, b, a := i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
 	return color.RGBA{r, g, b, a}, nil
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.
-func (p *Image) makeStaleIfDependingOn(target *Image) {
-	if p.stale {
+func (i *Image) makeStaleIfDependingOn(target *Image) {
+	if i.stale {
 		return
 	}
-	if p.dependsOn(target) {
-		p.makeStale()
+	if i.dependsOn(target) {
+		i.makeStale()
 	}
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
-func (p *Image) readPixelsFromGPU(image *graphics.Image) error {
+func (i *Image) readPixelsFromGPU(image *graphics.Image) error {
 	var err error
-	p.basePixels, err = image.Pixels()
+	i.basePixels, err = image.Pixels()
 	if err != nil {
 		return err
 	}
-	p.baseColor = color.RGBA{}
-	p.drawImageHistory = nil
-	p.stale = false
+	i.baseColor = color.RGBA{}
+	i.drawImageHistory = nil
+	i.stale = false
 	return nil
 }
 
 // resolveStale resolves the image's 'stale' state.
-func (p *Image) resolveStale() error {
+func (i *Image) resolveStale() error {
 	if !IsRestoringEnabled() {
 		return nil
 	}
-	if p.volatile {
+	if i.volatile {
 		return nil
 	}
-	if !p.stale {
+	if !i.stale {
 		return nil
 	}
-	return p.readPixelsFromGPU(p.image)
+	return i.readPixelsFromGPU(i.image)
 }
 
 // dependsOn returns a boolean value indicating whether the image depends on target.
-func (p *Image) dependsOn(target *Image) bool {
-	for _, c := range p.drawImageHistory {
+func (i *Image) dependsOn(target *Image) bool {
+	for _, c := range i.drawImageHistory {
 		if c.image == target {
 			return true
 		}
@@ -285,100 +285,100 @@ func (p *Image) dependsOn(target *Image) bool {
 }
 
 // dependingImages returns all images that is depended by the image.
-func (p *Image) dependingImages() map[*Image]struct{} {
+func (i *Image) dependingImages() map[*Image]struct{} {
 	r := map[*Image]struct{}{}
-	for _, c := range p.drawImageHistory {
+	for _, c := range i.drawImageHistory {
 		r[c.image] = struct{}{}
 	}
 	return r
 }
 
 // hasDependency returns a boolean value indicating whether the image depends on another image.
-func (p *Image) hasDependency() bool {
-	if p.stale {
+func (i *Image) hasDependency() bool {
+	if i.stale {
 		return false
 	}
-	return len(p.drawImageHistory) > 0
+	return len(i.drawImageHistory) > 0
 }
 
 // Restore restores *graphics.Image from the pixels using its state.
-func (p *Image) restore() error {
-	w, h := p.image.Size()
-	if p.screen {
+func (i *Image) restore() error {
+	w, h := i.image.Size()
+	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		p.image = graphics.NewScreenFramebufferImage(w, h, p.offsetX, p.offsetY)
-		p.basePixels = nil
-		p.baseColor = color.RGBA{}
-		p.drawImageHistory = nil
-		p.stale = false
+		i.image = graphics.NewScreenFramebufferImage(w, h, i.offsetX, i.offsetY)
+		i.basePixels = nil
+		i.baseColor = color.RGBA{}
+		i.drawImageHistory = nil
+		i.stale = false
 		return nil
 	}
-	if p.volatile {
-		p.image = graphics.NewImage(w, h, p.filter)
-		p.basePixels = nil
-		p.baseColor = color.RGBA{}
-		p.drawImageHistory = nil
-		p.stale = false
+	if i.volatile {
+		i.image = graphics.NewImage(w, h, i.filter)
+		i.basePixels = nil
+		i.baseColor = color.RGBA{}
+		i.drawImageHistory = nil
+		i.stale = false
 		return nil
 	}
-	if p.stale {
+	if i.stale {
 		// TODO: panic here?
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
 	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
 	img := image.NewRGBA(image.Rect(0, 0, w2, h2))
-	if p.basePixels != nil {
+	if i.basePixels != nil {
 		for j := 0; j < h; j++ {
-			copy(img.Pix[j*img.Stride:], p.basePixels[j*w2*4:(j+1)*w2*4])
+			copy(img.Pix[j*img.Stride:], i.basePixels[j*w2*4:(j+1)*w2*4])
 		}
 	}
-	gimg := graphics.NewImageFromImage(img, w, h, p.filter)
-	if p.baseColor != (color.RGBA{}) {
-		if p.basePixels != nil {
+	gimg := graphics.NewImageFromImage(img, w, h, i.filter)
+	if i.baseColor != (color.RGBA{}) {
+		if i.basePixels != nil {
 			panic("not reached")
 		}
-		gimg.Fill(p.baseColor.R, p.baseColor.G, p.baseColor.B, p.baseColor.A)
+		gimg.Fill(i.baseColor.R, i.baseColor.G, i.baseColor.B, i.baseColor.A)
 	}
-	for _, c := range p.drawImageHistory {
+	for _, c := range i.drawImageHistory {
 		// All dependencies must be already resolved.
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
 		gimg.DrawImage(c.image.image, c.vertices, &c.colorm, c.mode)
 	}
-	p.image = gimg
+	i.image = gimg
 
 	var err error
-	p.basePixels, err = gimg.Pixels()
+	i.basePixels, err = gimg.Pixels()
 	if err != nil {
 		return err
 	}
-	p.baseColor = color.RGBA{}
-	p.drawImageHistory = nil
-	p.stale = false
+	i.baseColor = color.RGBA{}
+	i.drawImageHistory = nil
+	i.stale = false
 	return nil
 }
 
 // Dispose disposes the image.
 //
 // After disposing, calling the funciton of the image causes unexpected results.
-func (p *Image) Dispose() {
-	theImages.makeStaleIfDependingOn(p)
-	p.image.Dispose()
-	p.image = nil
-	p.basePixels = nil
-	p.baseColor = color.RGBA{}
-	p.drawImageHistory = nil
-	p.stale = false
-	theImages.remove(p)
-	runtime.SetFinalizer(p, nil)
+func (i *Image) Dispose() {
+	theImages.makeStaleIfDependingOn(i)
+	i.image.Dispose()
+	i.image = nil
+	i.basePixels = nil
+	i.baseColor = color.RGBA{}
+	i.drawImageHistory = nil
+	i.stale = false
+	theImages.remove(i)
+	runtime.SetFinalizer(i, nil)
 }
 
 // IsInvalidated returns a boolean value indicating whether the image is invalidated.
 //
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
-func (p *Image) IsInvalidated() (bool, error) {
+func (i *Image) IsInvalidated() (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	if err := graphics.FlushCommands(); err != nil {
 		return false, err
@@ -387,5 +387,5 @@ func (p *Image) IsInvalidated() (bool, error) {
 	if !IsRestoringEnabled() {
 		return false, nil
 	}
-	return p.image.IsInvalidated(), nil
+	return i.image.IsInvalidated(), nil
 }
