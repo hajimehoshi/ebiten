@@ -362,7 +362,7 @@ func (i *Image) restore() error {
 
 // Dispose disposes the image.
 //
-// After disposing, calling the funciton of the image causes unexpected results.
+// After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
 	theImages.makeStaleIfDependingOn(i)
 	i.image.Dispose()
