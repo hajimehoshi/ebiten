@@ -33,8 +33,9 @@ func (g *GeoM) Reset() {
 	g.impl.Reset()
 }
 
-// Apply pre-multiplies a vector (x, y) by the matrix.
-// In other words, Apply calculates GeoM * (x, y).
+// Apply pre-multiplies a vector (x, y, 1) by the matrix.
+// In other words, Apply calculates GeoM * (x, y, 1).
+// The return value is x and y values of the result vector.
 func (g *GeoM) Apply(x, y float64) (x2, y2 float64) {
 	return g.impl.Apply(x, y)
 }
