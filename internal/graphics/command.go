@@ -37,6 +37,7 @@ type command interface {
 	Exec(indexOffsetInBytes int) error
 }
 
+// commandQueue is a command queue for drawing commands.
 type commandQueue struct {
 	commands    []command
 	vertices    []float32
@@ -44,6 +45,7 @@ type commandQueue struct {
 	m           sync.Mutex
 }
 
+// theCommandQueue is the command queue for the current process.
 var theCommandQueue = &commandQueue{}
 
 func (q *commandQueue) appendVertices(vertices []float32) {
