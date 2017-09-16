@@ -88,15 +88,21 @@ func (g *GeoM) SetElement(i, j int, element float64) {
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
 func ScaleGeo(x, y float64) GeoM {
-	return GeoM{affine.ScaleGeo(x, y)}
+	g := GeoM{}
+	g.Scale(x, y)
+	return g
 }
 
 // TranslateGeo is deprecated as of 1.2.0-alpha. Use Translate instead.
 func TranslateGeo(tx, ty float64) GeoM {
-	return GeoM{affine.TranslateGeo(tx, ty)}
+	g := GeoM{}
+	g.Translate(tx, ty)
+	return g
 }
 
 // RotateGeo is deprecated as of 1.2.0-alpha. Use Rotate instead.
 func RotateGeo(theta float64) GeoM {
-	return GeoM{affine.RotateGeo(theta)}
+	g := GeoM{}
+	g.Rotate(theta)
+	return g
 }

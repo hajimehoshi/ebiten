@@ -169,24 +169,3 @@ func (g *GeoM) Rotate(theta float64) {
 	g.d = sin*b + cos*d
 	g.ty = sin*tx + cos*ty
 }
-
-// ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
-func ScaleGeo(x, y float64) GeoM {
-	g := GeoM{}
-	g.Scale(x, y)
-	return g
-}
-
-// TranslateGeo is deprecated as of 1.2.0-alpha. Use Translate instead.
-func TranslateGeo(tx, ty float64) GeoM {
-	g := GeoM{}
-	g.Translate(tx, ty)
-	return g
-}
-
-// RotateGeo is deprecated as of 1.2.0-alpha. Use Rotate instead.
-func RotateGeo(theta float64) GeoM {
-	g := GeoM{}
-	g.Rotate(theta)
-	return g
-}

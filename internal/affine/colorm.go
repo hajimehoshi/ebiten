@@ -211,24 +211,3 @@ func init() {
 func Monochrome() ColorM {
 	return monochrome
 }
-
-// ScaleColor is deprecated as of 1.2.0-alpha. Use Scale instead.
-func ScaleColor(r, g, b, a float64) ColorM {
-	c := ColorM{}
-	c.Scale(r, g, b, a)
-	return c
-}
-
-// TranslateColor is deprecated as of 1.2.0-alpha. Use Translate instead.
-func TranslateColor(r, g, b, a float64) ColorM {
-	c := ColorM{}
-	c.Translate(r, g, b, a)
-	return c
-}
-
-// RotateHue is deprecated as of 1.2.0-alpha. Use RotateHue member function instead.
-func RotateHue(theta float64) ColorM {
-	c := ColorM{}
-	c.RotateHue(theta)
-	return c
-}
