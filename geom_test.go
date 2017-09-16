@@ -116,6 +116,67 @@ func TestGeoMConcatSelf(t *testing.T) {
 	}
 }
 
+func TestGeoMApply(t *testing.T) {
+	trans := GeoM{}
+	trans.Translate(1, 2)
+
+	scale := GeoM{}
+	scale.Scale(1.5, 2.5)
+
+	cpx := GeoM{}
+	cpx.Rotate(math.Pi)
+	cpx.Scale(1.5, 2.5)
+	cpx.Translate(-2, -3)
+
+	cases := []struct {
+		GeoM  GeoM
+		InX   float64
+		InY   float64
+		OutX  float64
+		OutY  float64
+		Delta float64
+	}{
+		{
+			GeoM:  GeoM{},
+			InX:   3.14159,
+			InY:   2.81828,
+			OutX:  3.14159,
+			OutY:  2.81828,
+			Delta: 0.00001,
+		},
+		{
+			GeoM:  trans,
+			InX:   3.14159,
+			InY:   2.81828,
+			OutX:  4.14159,
+			OutY:  4.81828,
+			Delta: 0.00001,
+		},
+		{
+			GeoM:  scale,
+			InX:   3.14159,
+			InY:   2.81828,
+			OutX:  4.71239,
+			OutY:  7.04570,
+			Delta: 0.00001,
+		},
+		{
+			GeoM:  cpx,
+			InX:   3.14159,
+			InY:   2.81828,
+			OutX:  -6.71239,
+			OutY:  -10.04570,
+			Delta: 0.00001,
+		},
+	}
+	for _, c := range cases {
+		rx, ry := c.GeoM.Apply(c.InX, c.InY)
+		if math.Abs(rx-c.OutX) > c.Delta || math.Abs(ry-c.OutY) > c.Delta {
+			t.Errorf("%v.Apply(%v, %v) = (%v, %v), want (%v, %v)", c.GeoM, c.InX, c.InY, rx, ry, c.OutX, c.OutY)
+		}
+	}
+}
+
 func BenchmarkGeoM(b *testing.B) {
 	var m GeoM
 	for i := 0; i < b.N; i++ {

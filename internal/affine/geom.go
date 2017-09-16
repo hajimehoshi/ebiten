@@ -38,6 +38,13 @@ func (g *GeoM) Reset() {
 	g.inited = false
 }
 
+func (g *GeoM) Apply(x, y float64) (x2, y2 float64) {
+	if !g.inited {
+		return x, y
+	}
+	return g.a*x + g.b*y + g.tx, g.c*x + g.d*y + g.ty
+}
+
 func (g *GeoM) Elements() (a, b, c, d, tx, ty float64) {
 	if !g.inited {
 		return 1, 0, 0, 1, 0, 0
