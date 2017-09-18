@@ -39,15 +39,24 @@ type command interface {
 
 // commandQueue is a command queue for drawing commands.
 type commandQueue struct {
-	commands    []command
-	vertices    []float32
+	// commands is a queue of drawing commands.
+	commands []command
+
+	// vertices represents a vertices data in OpenGL's array buffer.
+	vertices []float32
+
+	// verticesNum represents the current length of vertices.
+	// verticesNum must <= len(vertices).
+	// vertices is never shrunk since re-extending a vertices buffer is heavy.
 	verticesNum int
-	m           sync.Mutex
+
+	m sync.Mutex
 }
 
 // theCommandQueue is the command queue for the current process.
 var theCommandQueue = &commandQueue{}
 
+// appendVertices appends vertices to the queue.
 func (q *commandQueue) appendVertices(vertices []float32) {
 	if len(q.vertices) < q.verticesNum+len(vertices) {
 		n := q.verticesNum + len(vertices) - len(q.vertices)
@@ -61,6 +70,7 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 	q.verticesNum += len(vertices)
 }
 
+// EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode) {
 	// Avoid defer for performance
 	q.m.Lock()
