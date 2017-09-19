@@ -63,8 +63,11 @@ type Image struct {
 	filter opengl.Filter
 
 	// baseImage and baseColor are exclusive.
-	basePixels       []uint8
-	baseColor        color.RGBA
+	basePixels []uint8
+	baseColor  color.RGBA
+
+	// drawImageHistory is a set of draw-image commands.
+	// TODO: This should be merged with the similar command queue in package grpahics (#433).
 	drawImageHistory []*drawImageHistoryItem
 
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.

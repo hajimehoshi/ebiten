@@ -77,7 +77,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	q.appendVertices(vertices)
 	if 0 < len(q.commands) {
 		if c, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
-			if c.isMergeable(dst, src, clr, mode) {
+			if c.canMerge(dst, src, clr, mode) {
 				c.verticesNum += len(vertices)
 				q.m.Unlock()
 				return
@@ -95,6 +95,9 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	q.m.Unlock()
 }
 
+// Enqueue enqueues a drawing command other than a draw-image command.
+//
+// For a draw-image commmand, use EnqueueDrawImageCommand.
 func (q *commandQueue) Enqueue(command command) {
 	q.m.Lock()
 	q.commands = append(q.commands, command)
@@ -132,6 +135,7 @@ func (q *commandQueue) commandGroups() [][]command {
 	return gs
 }
 
+// Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
 	q.m.Lock()
 	defer q.m.Unlock()
@@ -176,15 +180,18 @@ func (q *commandQueue) Flush() error {
 	return nil
 }
 
+// FlushCommands flushes the command queue.
 func FlushCommands() error {
 	return theCommandQueue.Flush()
 }
 
+// fillCommand represents a drawing command to fill an image with a solid color.
 type fillCommand struct {
 	dst   *Image
 	color color.RGBA
 }
 
+// Exec executes the fillCommand.
 func (c *fillCommand) Exec(indexOffsetInBytes int) error {
 	f, err := c.dst.createFramebufferIfNeeded()
 	if err != nil {
@@ -208,6 +215,7 @@ func (c *fillCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+// drawImageCommand represents a drawing command to draw an image on another image.
 type drawImageCommand struct {
 	dst         *Image
 	src         *Image
@@ -216,10 +224,12 @@ type drawImageCommand struct {
 	mode        opengl.CompositeMode
 }
 
+// QuadVertexSizeInBytes returns the size in bytes of vertices for a quadrangle.
 func QuadVertexSizeInBytes() int {
 	return 4 * theArrayBufferLayout.totalBytes()
 }
 
+// Exec executes the drawImageCommand.
 func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	f, err := c.dst.createFramebufferIfNeeded()
 	if err != nil {
@@ -252,6 +262,10 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+// split splits the drawImageCommand c into two drawImageCommands.
+//
+// split is called when the number of vertices reaches of the maximum and
+// a command is needed to be executed as another draw call.
 func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c1 := *c
 	c2 := *c
@@ -262,7 +276,9 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
-func (c *drawImageCommand) isMergeable(dst, src *Image, clr *affine.ColorM, mode opengl.CompositeMode) bool {
+// canMerge returns a boolean value indicating whether the other drawImageCommand can be merged
+// with the drawImageCommand c.
+func (c *drawImageCommand) canMerge(dst, src *Image, clr *affine.ColorM, mode opengl.CompositeMode) bool {
 	if c.dst != dst {
 		return false
 	}
@@ -278,15 +294,18 @@ func (c *drawImageCommand) isMergeable(dst, src *Image, clr *affine.ColorM, mode
 	return true
 }
 
+// quadsNum returns the number of quadrangles.
 func (c *drawImageCommand) quadsNum() int {
 	return c.verticesNum * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 }
 
+// replacePixelsCommand represents a command to replace pixels of an image.
 type replacePixelsCommand struct {
 	dst    *Image
 	pixels []uint8
 }
 
+// Exec executes the replacePixelsCommand.
 func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	f, err := c.dst.createFramebufferIfNeeded()
 	if err != nil {
@@ -313,10 +332,12 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+// disposeCommand represents a command to dispose an image.
 type disposeCommand struct {
 	target *Image
 }
 
+// Exec executes the disposeCommand.
 func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 	if c.target.framebuffer != nil {
 		opengl.GetContext().DeleteFramebuffer(c.target.framebuffer.native)
@@ -327,12 +348,14 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+// newImageFromImageCommand represents a command to create an image from an image.RGBA.
 type newImageFromImageCommand struct {
 	result *Image
 	img    *image.RGBA
 	filter opengl.Filter
 }
 
+// Exec executes the newImageFromImageCommand.
 func (c *newImageFromImageCommand) Exec(indexOffsetInBytes int) error {
 	origSize := c.img.Bounds().Size()
 	if origSize.X < 1 {
@@ -355,6 +378,7 @@ func (c *newImageFromImageCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+// newImageCommand represents a command to create an empty image with given width and height.
 type newImageCommand struct {
 	result *Image
 	width  int
@@ -362,6 +386,7 @@ type newImageCommand struct {
 	filter opengl.Filter
 }
 
+// Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	w := emath.NextPowerOf2Int(c.width)
 	h := emath.NextPowerOf2Int(c.height)
@@ -381,6 +406,7 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+// newScreenFramebufferImageCommand is a command to create a special image for the screen.
 type newScreenFramebufferImageCommand struct {
 	result  *Image
 	width   int
@@ -389,6 +415,7 @@ type newScreenFramebufferImageCommand struct {
 	offsetY float64
 }
 
+// Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	if c.width < 1 {
 		return errors.New("graphics: width must be equal or more than 1.")
