@@ -67,7 +67,7 @@ type Image struct {
 	baseColor  color.RGBA
 
 	// drawImageHistory is a set of draw-image commands.
-	// TODO: This should be merged with the similar command queue in package grpahics (#433).
+	// TODO: This should be merged with the similar command queue in package graphics (#433).
 	drawImageHistory []*drawImageHistoryItem
 
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.

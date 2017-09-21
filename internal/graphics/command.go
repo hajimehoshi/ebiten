@@ -97,7 +97,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 
 // Enqueue enqueues a drawing command other than a draw-image command.
 //
-// For a draw-image commmand, use EnqueueDrawImageCommand.
+// For a draw-image command, use EnqueueDrawImageCommand.
 func (q *commandQueue) Enqueue(command command) {
 	q.m.Lock()
 	q.commands = append(q.commands, command)
