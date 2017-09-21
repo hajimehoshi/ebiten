@@ -423,14 +423,6 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	if c.height < 1 {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
-	f := &framebuffer{
-		native:  opengl.GetContext().ScreenFramebuffer(),
-		flipY:   true,
-		width:   c.width,
-		height:  c.height,
-		offsetX: c.offsetX,
-		offsetY: c.offsetY,
-	}
-	c.result.framebuffer = f
+	c.result.framebuffer = newScreenFramebuffer(c.width, c.height, c.offsetX, c.offsetY)
 	return nil
 }

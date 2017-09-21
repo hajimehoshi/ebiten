@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
+// Image represents an image that is implemented with OpenGL.
 type Image struct {
 	texture     *texture
 	framebuffer *framebuffer
@@ -29,6 +30,7 @@ type Image struct {
 	height      int
 }
 
+// MaxImageSize is the maximum of width/height of an image.
 const MaxImageSize = defaultViewportSize
 
 func NewImage(width, height int, filter opengl.Filter) *Image {

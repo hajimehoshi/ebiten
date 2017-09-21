@@ -19,6 +19,9 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
+// orthoProjectionMatrix returns an orthogonal projection matrix for OpenGL.
+//
+// The matrix converts the coodinates (left, bottom) - (right, top) to the normalized device coodinates (-1, -1) - (1, 1).
 func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
 	e11 := 2 / float32(right-left)
 	e22 := 2 / float32(top-bottom)
@@ -33,16 +36,21 @@ func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
 	}
 }
 
+// framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
 	native    opengl.Framebuffer
 	flipY     bool
 	proMatrix []float32
 	width     int
 	height    int
-	offsetX   float64
-	offsetY   float64
+
+	// offsetX and offsetY are translation part of the projection matrix.
+	// offsetX and offsetY are used for the fullscreen mode.
+	offsetX float64
+	offsetY float64
 }
 
+// newFramebufferFromTexture creates a framebuffer from the given texture.
 func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffer, error) {
 	native, err := opengl.GetContext().NewFramebuffer(opengl.Texture(texture.native))
 	if err != nil {
@@ -55,8 +63,24 @@ func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffe
 	}, nil
 }
 
+// newScreenFramebuffer creates a framebuffer for the screen.
+func newScreenFramebuffer(width, height int, offsetX, offsetY float64) *framebuffer {
+	return &framebuffer{
+		native:  opengl.GetContext().ScreenFramebuffer(),
+		flipY:   true,
+		width:   width,
+		height:  height,
+		offsetX: offsetX,
+		offsetY: offsetY,
+	}
+}
+
+// defaultViewportSize is the default size (width or height) of viewport.
+//
+// defaultViewportSize also represents the maximum size of a framebuffer.
 const defaultViewportSize = 4096
 
+// viewportSize returns the viewport size of the framebuffer.
 func (f *framebuffer) viewportSize() (int, int) {
 	// On some browsers, viewport size must be within the framebuffer size.
 	// e.g. Edge (#71), Chrome on GPD Pocket (#420)
@@ -68,11 +92,17 @@ func (f *framebuffer) viewportSize() (int, int) {
 	return defaultViewportSize, defaultViewportSize
 }
 
+// setAsViewport sets the framebuffer as the current viewport.
 func (f *framebuffer) setAsViewport() error {
 	w, h := f.viewportSize()
 	return opengl.GetContext().SetViewport(f.native, w, h)
 }
 
+// projectionMatrix returns a projection matrix of the framebuffer.
+//
+// A projection matrix converts the coodinates on the framebuffer
+// (0, 0) - (viewport width, viewport height)
+// to the normalized device coodinates (-1, -1) - (1, 1) with adjustment.
 func (f *framebuffer) projectionMatrix(height int) []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
