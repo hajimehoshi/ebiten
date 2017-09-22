@@ -18,6 +18,7 @@ package ui
 
 import (
 	"errors"
+	"image"
 	"runtime"
 	"time"
 
@@ -138,6 +139,10 @@ func SetRunnableInBackground(runnableInBackground bool) {
 func IsRunnableInBackground() bool {
 	// Do nothing
 	return false
+}
+
+func SetIcon(iconImages []image.Image) {
+	// Do nothing
 }
 
 func (u *userInterface) actualScreenScale() float64 {

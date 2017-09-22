@@ -21,6 +21,7 @@ package ui
 
 import (
 	"errors"
+	"image"
 	"runtime"
 	"sync"
 	"time"
@@ -45,6 +46,7 @@ type userInterface struct {
 	origPosY             int
 	initFullscreen       bool
 	initCursorVisible    bool
+	initIconImages       []image.Image
 	runnableInBackground bool
 	m                    sync.Mutex
 }
@@ -86,6 +88,9 @@ func initialize() error {
 	mode := glfw.CursorNormal
 	if !currentUI.isInitCursorVisible() {
 		mode = glfw.CursorHidden
+	}
+	if i := currentUI.getInitIconImages(); i != nil {
+		currentUI.window.SetIcon(i)
 	}
 	currentUI.window.SetInputMode(glfw.CursorMode, mode)
 	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
@@ -166,6 +171,19 @@ func (u *userInterface) isRunnableInBackground() bool {
 func (u *userInterface) setRunnableInBackground(runnableInBackground bool) {
 	u.m.Lock()
 	u.runnableInBackground = runnableInBackground
+	u.m.Unlock()
+}
+
+func (u *userInterface) getInitIconImages() []image.Image {
+	u.m.Lock()
+	i := u.initIconImages
+	u.m.Unlock()
+	return i
+}
+
+func (u *userInterface) setInitIconImages(iconImages []image.Image) {
+	u.m.Lock()
+	u.initIconImages = iconImages
 	u.m.Unlock()
 }
 
@@ -257,6 +275,17 @@ func SetRunnableInBackground(runnableInBackground bool) {
 
 func IsRunnableInBackground() bool {
 	return currentUI.isRunnableInBackground()
+}
+
+func SetIcon(iconImages []image.Image) {
+	if !currentUI.isRunning() {
+		currentUI.setInitIconImages(iconImages)
+		return
+	}
+	_ = currentUI.runOnMainThread(func() error {
+		currentUI.window.SetIcon(iconImages)
+		return nil
+	})
 }
 
 func ScreenOffset() (float64, float64) {

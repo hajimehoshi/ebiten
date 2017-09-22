@@ -18,14 +18,21 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	_ "image/jpeg"
 	"log"
 	"math"
+	"math/rand"
+	"time"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 const (
 	initScreenWidth  = 320
@@ -44,9 +51,29 @@ var (
 		ebiten.KeyF:     0,
 		ebiten.KeyB:     0,
 		ebiten.KeyC:     0,
+		ebiten.KeyI:     0,
 	}
 	count = 0
 )
+
+func createRandomIconImage() image.Image {
+	const size = 32
+
+	r := uint8(rand.Intn(0x100))
+	g := uint8(rand.Intn(0x100))
+	b := uint8(rand.Intn(0x100))
+	img := image.NewNRGBA(image.Rect(0, 0, size, size))
+	for j := 0; j < size; j++ {
+		for i := 0; i < size; i++ {
+			img.Pix[j*img.Stride+4*i] = r
+			img.Pix[j*img.Stride+4*i+1] = g
+			img.Pix[j*img.Stride+4*i+2] = b
+			img.Pix[j*img.Stride+4*i+3] = uint8(float64(i+j) / float64(2*size) * 0xff)
+		}
+	}
+
+	return img
+}
 
 func update(screen *ebiten.Image) error {
 	for key := range keyStates {
@@ -106,6 +133,10 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisibility(cursorVisible)
 
+	if keyStates[ebiten.KeyI] == 1 {
+		ebiten.SetIcon([]image.Image{createRandomIconImage()})
+	}
+
 	count++
 
 	if ebiten.IsRunningSlowly() {
@@ -128,6 +159,7 @@ Press S key to change the window scale
 Press F key to switch the fullscreen state
 Press B key to switch the run-in-background state
 Press C key to switch the cursor visibility
+Press I key to change the window icon
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)
@@ -140,6 +172,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ebiten.SetIcon([]image.Image{createRandomIconImage()})
+
 	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

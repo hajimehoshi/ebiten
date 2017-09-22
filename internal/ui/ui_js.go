@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"image"
 	"strconv"
 	"unicode"
 
@@ -95,6 +96,10 @@ func SetCursorVisibility(visibility bool) {
 	} else {
 		canvas.Get("style").Set("cursor", "none")
 	}
+}
+
+func SetIcon(iconImages []image.Image) {
+	// Do nothing
 }
 
 func (u *userInterface) getScale() float64 {
