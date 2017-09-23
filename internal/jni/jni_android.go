@@ -11,7 +11,7 @@ package jni
 #include <stdlib.h>
 
 // These definitions are duplicated with those in ctx_android.go of golang.org/x/mobile/internal/mobileinit package.
-// To be exact, this might cause undefined behavior, but some compilers including GCC work as a common extension.
+// To be exact, this might cause undefined behavior, but some compilers including GCC and Clang work as a common extension.
 // (J.5.11 Multiple external definitions)
 JavaVM* current_vm;
 jobject current_ctx;
@@ -72,6 +72,9 @@ import (
 	"unsafe"
 )
 
+// RunOnJVM executes fn on the current VM context.
+//
+// RunOnJVM should not be called on init function since the current VM might not be initialized yet.
 func RunOnJVM(fn func(vm, env, ctx uintptr) error) error {
 	errch := make(chan error)
 	go func() {
