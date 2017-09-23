@@ -98,7 +98,7 @@ func SetCursorVisibility(visibility bool) {
 	}
 }
 
-func SetIcon(iconImages []image.Image) {
+func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }
 

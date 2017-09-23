@@ -247,9 +247,9 @@ func SetRunnableInBackground(runnableInBackground bool) {
 	ui.SetRunnableInBackground(runnableInBackground)
 }
 
-// SetIcon sets the icon of the game window.
+// SetWindowIcon sets the icon of the game window.
 //
-// If len(iconImages) is 0, SetIcon reverts the icon to the default one.
+// If len(iconImages) is 0, SetWindowIcon reverts the icon to the default one.
 //
 // For desktops, see the document of glfwSetWindowIcon of GLFW 3.2:
 //
@@ -259,13 +259,14 @@ func SetRunnableInBackground(runnableInBackground bool) {
 //     If no images are specified, the window reverts to its default icon.
 //
 //     The desired image sizes varies depending on platform and system settings.
-//     The selected images will be rescaled as needed. Good sizes include 16x16, 32x32 and 48x48.
+//     The selected images will be rescaled as needed.
+//     Good sizes include 16x16, 32x32 and 48x48.
 //
-// As macOS windows don't have icons, SetIcon doesn't work on macOS.
+// As macOS windows don't have icons, SetWindowIcon doesn't work on macOS.
 //
-// SetIcon doesn't work on browsers or mobiles.
+// SetWindowIcon doesn't work on browsers or mobiles.
 //
 // This function is concurrent-safe.
-func SetIcon(iconImages []image.Image) {
-	ui.SetIcon(iconImages)
+func SetWindowIcon(iconImages []image.Image) {
+	ui.SetWindowIcon(iconImages)
 }

@@ -134,7 +134,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetCursorVisibility(cursorVisible)
 
 	if keyStates[ebiten.KeyI] == 1 {
-		ebiten.SetIcon([]image.Image{createRandomIconImage()})
+		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
 
 	count++
@@ -173,7 +173,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ebiten.SetIcon([]image.Image{createRandomIconImage()})
+	ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 
 	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

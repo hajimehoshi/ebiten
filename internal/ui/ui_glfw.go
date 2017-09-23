@@ -277,7 +277,7 @@ func IsRunnableInBackground() bool {
 	return currentUI.isRunnableInBackground()
 }
 
-func SetIcon(iconImages []image.Image) {
+func SetWindowIcon(iconImages []image.Image) {
 	if !currentUI.isRunning() {
 		currentUI.setInitIconImages(iconImages)
 		return

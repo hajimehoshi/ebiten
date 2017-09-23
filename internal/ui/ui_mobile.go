@@ -141,7 +141,7 @@ func IsRunnableInBackground() bool {
 	return false
 }
 
-func SetIcon(iconImages []image.Image) {
+func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }
 
