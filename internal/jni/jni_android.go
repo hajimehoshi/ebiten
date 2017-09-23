@@ -10,6 +10,9 @@ package jni
 #include <jni.h>
 #include <stdlib.h>
 
+// These definitions are duplicated with those in ctx_android.go of golang.org/x/mobile/internal/mobileinit package.
+// To be exact, this might cause undefined behavior, but some compilers including GCC work as a common extension.
+// (J.5.11 Multiple external definitions)
 JavaVM* current_vm;
 jobject current_ctx;
 
