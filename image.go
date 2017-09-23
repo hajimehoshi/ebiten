@@ -80,6 +80,16 @@ func (i *Image) Fill(clr color.Color) error {
 //
 // When the given image is as same as i, DrawImage panics.
 //
+// DrawImage works more efficiently as batches
+// when the successive calls of DrawImages satisfies the below conditions:
+//
+//   * All render targets are same (A in A.DrawImage(B, op))
+//   * All render sources are same (B in A.DrawImage(B, op))
+//   * All ColorM values are same
+//   * All CompositeMode values are same
+//
+// For more performance tips, see https://github.com/hajimehoshi/ebiten/wiki/Performance-Tips.
+//
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if i == img {
