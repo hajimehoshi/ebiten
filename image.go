@@ -214,10 +214,10 @@ type DrawImageOptions struct {
 	ColorM        ColorM
 	CompositeMode CompositeMode
 
-	// Deprecated (as of 1.5.0-alpha): Use Part instead.
+	// Deprecated (as of 1.5.0-alpha): Use SourceRect instead.
 	ImageParts ImageParts
 
-	// Deprecated (as of 1.1.0-alpha): Use Part instead.
+	// Deprecated (as of 1.1.0-alpha): Use SourceRect instead.
 	Parts []ImagePart
 }
 
