@@ -26,7 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/audio"
 )
 
-// TODO: This just uses decodeAudioData can treat audio files other than MP3.
+// TODO: This just uses decodeAudioData, that can treat audio files other than MP3.
 
 type Stream struct {
 	leftData   []float32
