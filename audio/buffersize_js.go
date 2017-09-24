@@ -23,15 +23,14 @@ import (
 func (c *Context) bufferSize() int {
 	n := 10
 	if !web.IsMobileBrowser() {
-		// TODO: On Chrome and Firefox, 1/30[s] doesn't work with 24000 or 48000 [Hz]
-		// at least on macOS.
+		// TODO: More general calculation
 		switch c.sampleRate {
 		case 44100, 88200:
 			n = 30
 		case 22050:
 			// #434
 			n = 15
-		case 24000, 48000:
+		case 24000, 32000, 48000:
 			n = 20
 		default:
 			n = 15
