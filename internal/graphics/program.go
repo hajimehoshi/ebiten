@@ -156,6 +156,19 @@ func (s *openGLState) reset() error {
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
 
+	// When context lost happens, deleting programs or buffers is not necessary.
+	// However, it is not assumed that reset is called only when context lost happens.
+	// Let's delete them explicitly.
+	if s.programTexture != zeroProgram {
+		opengl.GetContext().DeleteProgram(s.programTexture)
+	}
+	if s.arrayBuffer != zeroBuffer {
+		opengl.GetContext().DeleteBuffer(s.arrayBuffer)
+	}
+	if s.elementArrayBuffer != zeroBuffer {
+		opengl.GetContext().DeleteBuffer(s.elementArrayBuffer)
+	}
+
 	shaderVertexModelviewNative, err := opengl.GetContext().NewShader(opengl.VertexShader, shader(shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
@@ -176,14 +189,8 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	if s.arrayBuffer != zeroBuffer {
-		opengl.GetContext().DeleteBuffer(s.arrayBuffer)
-	}
 	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer()
 
-	if s.elementArrayBuffer != zeroBuffer {
-		opengl.GetContext().DeleteBuffer(s.elementArrayBuffer)
-	}
 	indices := make([]uint16, 6*maxQuads)
 	for i := uint16(0); i < maxQuads; i++ {
 		indices[6*i+0] = 4*i + 0
