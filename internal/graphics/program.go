@@ -132,6 +132,7 @@ var (
 	// theOpenGLState is the OpenGL state in the current process.
 	theOpenGLState openGLState
 
+	zeroBuffer  opengl.Buffer
 	zeroProgram opengl.Program
 )
 
@@ -175,10 +176,14 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	// TODO: Delete the array buffer and the element array buffer when needed?
-
+	if s.arrayBuffer != zeroBuffer {
+		opengl.GetContext().DeleteBuffer(s.arrayBuffer)
+	}
 	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer()
 
+	if s.elementArrayBuffer != zeroBuffer {
+		opengl.GetContext().DeleteBuffer(s.elementArrayBuffer)
+	}
 	indices := make([]uint16, 6*maxQuads)
 	for i := uint16(0); i < maxQuads; i++ {
 		indices[6*i+0] = 4*i + 0
