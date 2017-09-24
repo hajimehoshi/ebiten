@@ -21,6 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
+// arrayBufferLayoutPart is a part of an array buffer layout.
 type arrayBufferLayoutPart struct {
 	// TODO: This struct should belong to a program and know it.
 	name      string
@@ -29,11 +30,16 @@ type arrayBufferLayoutPart struct {
 	normalize bool
 }
 
+// arrayBufferLayout is an array buffer layout.
+//
+// An array buffer in OpenGL is a buffer representing vertices and
+// is passed to a vertex shader.
 type arrayBufferLayout struct {
 	parts []arrayBufferLayoutPart
 	total int
 }
 
+// totalBytes returns the size in bytes for one element of the array buffer.
 func (a *arrayBufferLayout) totalBytes() int {
 	if a.total != 0 {
 		return a.total
@@ -46,10 +52,12 @@ func (a *arrayBufferLayout) totalBytes() int {
 	return a.total
 }
 
+// newArrayBuffer creates OpenGL's buffer object for the array buffer.
 func (a *arrayBufferLayout) newArrayBuffer() opengl.Buffer {
 	return opengl.GetContext().NewArrayBuffer(a.totalBytes() * 4 * maxQuads)
 }
 
+// enable binds the array buffer the given program to use the array buffer.
 func (a *arrayBufferLayout) enable(program opengl.Program) {
 	for _, p := range a.parts {
 		opengl.GetContext().EnableVertexAttribArray(program, p.name)
@@ -62,6 +70,7 @@ func (a *arrayBufferLayout) enable(program opengl.Program) {
 	}
 }
 
+// disable stops using the array buffer.
 func (a *arrayBufferLayout) disable(program opengl.Program) {
 	// TODO: Disabling should be done in reversed order?
 	for _, p := range a.parts {
@@ -70,6 +79,7 @@ func (a *arrayBufferLayout) disable(program opengl.Program) {
 }
 
 var (
+	// theArrayBufferLayout is the array buffer layout for Ebiten.
 	theArrayBufferLayout = arrayBufferLayout{
 		// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
 		parts: []arrayBufferLayoutPart{
@@ -101,10 +111,16 @@ var (
 	}
 )
 
+// openGLState is a state for OpenGL.
 type openGLState struct {
-	arrayBuffer      opengl.Buffer
-	indexBufferQuads opengl.Buffer
-	programTexture   opengl.Program
+	// arrayBuffer is OpenGL's array buffer (vertices data).
+	arrayBuffer opengl.Buffer
+
+	// elementArrayBuffer is OpenGL's element array buffer (indices data).
+	elementArrayBuffer opengl.Buffer
+
+	// programTexture is OpenGL's program for rendering a texture.
+	programTexture opengl.Program
 
 	lastProgram                opengl.Program
 	lastProjectionMatrix       []float32
@@ -113,11 +129,10 @@ type openGLState struct {
 }
 
 var (
+	// theOpenGLState is the OpenGL state in the current process.
 	theOpenGLState openGLState
 
-	zeroBuffer  opengl.Buffer
 	zeroProgram opengl.Program
-	zeroTexture opengl.Texture
 )
 
 const (
@@ -125,10 +140,12 @@ const (
 	maxQuads   = indicesNum / 6
 )
 
+// ResetGLState resets or initializes the current OpenGL state.
 func ResetGLState() error {
 	return theOpenGLState.reset()
 }
 
+// reset resets or initializes the OpenGL state.
 func (s *openGLState) reset() error {
 	if err := opengl.GetContext().Reset(); err != nil {
 		return err
@@ -158,6 +175,8 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
+	// TODO: Delete the array buffer and the element array buffer when needed?
+
 	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer()
 
 	indices := make([]uint16, 6*maxQuads)
@@ -169,7 +188,7 @@ func (s *openGLState) reset() error {
 		indices[6*i+4] = 4*i + 2
 		indices[6*i+5] = 4*i + 3
 	}
-	s.indexBufferQuads = opengl.GetContext().NewElementArrayBuffer(indices)
+	s.elementArrayBuffer = opengl.GetContext().NewElementArrayBuffer(indices)
 
 	return nil
 }
@@ -207,7 +226,7 @@ func (p *programContext) begin() error {
 		p.state.lastProjectionMatrix = nil
 		p.state.lastColorMatrix = nil
 		p.state.lastColorMatrixTranslation = nil
-		c.BindElementArrayBuffer(p.state.indexBufferQuads)
+		c.BindElementArrayBuffer(p.state.elementArrayBuffer)
 		c.UniformInt(p.program, "texture", 0)
 	}
 
