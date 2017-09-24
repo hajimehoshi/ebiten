@@ -246,9 +246,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	}
 	_, h := c.dst.Size()
 	proj := f.projectionMatrix(h)
-	if err := theOpenGLState.useProgram(proj, c.src.texture.native, c.color); err != nil {
-		return err
-	}
+	theOpenGLState.useProgram(proj, c.src.texture.native, c.color)
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
 	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
@@ -318,9 +316,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// This also happens when a fillCommand precedes a replacePixelsCommand.
 	// TODO: Can we have a better way like optimizing commands?
 	opengl.GetContext().Flush()
-	if err := opengl.GetContext().BindTexture(c.dst.texture.native); err != nil {
-		return err
-	}
+	opengl.GetContext().BindTexture(c.dst.texture.native)
 	opengl.GetContext().TexSubImage2D(c.pixels, emath.NextPowerOf2Int(c.dst.width), emath.NextPowerOf2Int(c.dst.height))
 	return nil
 }

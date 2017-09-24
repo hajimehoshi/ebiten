@@ -53,15 +53,12 @@ func GetContext() *Context {
 	return theContext
 }
 
-func (c *Context) BindTexture(t Texture) error {
+func (c *Context) BindTexture(t Texture) {
 	if c.lastTexture.equals(t) {
-		return nil
+		return
 	}
-	if err := c.bindTextureImpl(t); err != nil {
-		return err
-	}
+	c.bindTextureImpl(t)
 	c.lastTexture = t
-	return nil
 }
 
 func (c *Context) bindFramebuffer(f Framebuffer) error {
