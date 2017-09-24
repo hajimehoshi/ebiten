@@ -21,11 +21,21 @@ import (
 )
 
 func (c *Context) bufferSize() int {
-	// TODO: On Chrome and Firefox, 1/30[s] doesn't work with 24000 or 48000 [Hz]
-	// at least on macOS.
-	n := 20
-	if web.IsMobileBrowser() {
-		n = 10
+	n := 10
+	if !web.IsMobileBrowser() {
+		// TODO: On Chrome and Firefox, 1/30[s] doesn't work with 24000 or 48000 [Hz]
+		// at least on macOS.
+		switch c.sampleRate {
+		case 44100, 88200:
+			n = 30
+		case 22050:
+			// #434
+			n = 15
+		case 24000, 48000:
+			n = 20
+		default:
+			n = 15
+		}
 	}
 	return c.sampleRate * channelNum * bytesPerSample / n
 }
