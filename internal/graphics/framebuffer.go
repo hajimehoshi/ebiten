@@ -93,9 +93,9 @@ func (f *framebuffer) viewportSize() (int, int) {
 }
 
 // setAsViewport sets the framebuffer as the current viewport.
-func (f *framebuffer) setAsViewport() error {
+func (f *framebuffer) setAsViewport() {
 	w, h := f.viewportSize()
-	return opengl.GetContext().SetViewport(f.native, w, h)
+	opengl.GetContext().SetViewport(f.native, w, h)
 }
 
 // projectionMatrix returns a projection matrix of the framebuffer.

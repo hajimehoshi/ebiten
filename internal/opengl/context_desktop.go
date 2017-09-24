@@ -274,8 +274,8 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	return framebuffer, nil
 }
 
-func (c *Context) setViewportImpl(width, height int) error {
-	return c.runOnContextThread(func() error {
+func (c *Context) setViewportImpl(width, height int) {
+	_ = c.runOnContextThread(func() error {
 		gl.Viewport(0, 0, int32(width), int32(height))
 		return nil
 	})

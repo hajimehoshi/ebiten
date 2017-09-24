@@ -197,9 +197,8 @@ func (c *fillCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	if err := f.setAsViewport(); err != nil {
-		return err
-	}
+	f.setAsViewport()
+
 	cr, cg, cb, ca := c.color.R, c.color.G, c.color.B, c.color.A
 	const max = math.MaxUint8
 	r := float64(cr) / max
@@ -235,9 +234,8 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	if err := f.setAsViewport(); err != nil {
-		return err
-	}
+	f.setAsViewport()
+
 	opengl.GetContext().BlendFunc(c.mode)
 
 	n := c.quadsNum()
@@ -302,9 +300,8 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	if err := f.setAsViewport(); err != nil {
-		return err
-	}
+	f.setAsViewport()
+
 	// Filling with non black or white color is required here for glTexSubImage2D.
 	// Very mysterious but this actually works (Issue #186).
 	// This is needed even after fixing a shader bug at f537378f2a6a8ef56e1acf1c03034967b77c7b51.

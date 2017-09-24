@@ -215,10 +215,9 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	return Framebuffer(f), nil
 }
 
-func (c *Context) setViewportImpl(width, height int) error {
+func (c *Context) setViewportImpl(width, height int) {
 	gl := c.gl
 	gl.Viewport(0, 0, width, height)
-	return nil
 }
 
 func (c *Context) FillFramebuffer(r, g, b, a float64) error {

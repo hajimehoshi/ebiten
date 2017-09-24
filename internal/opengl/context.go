@@ -69,16 +69,13 @@ func (c *Context) bindFramebuffer(f Framebuffer) {
 	c.lastFramebuffer = f
 }
 
-func (c *Context) SetViewport(f Framebuffer, width, height int) error {
+func (c *Context) SetViewport(f Framebuffer, width, height int) {
 	c.bindFramebuffer(f)
 	if c.lastViewportWidth != width || c.lastViewportHeight != height {
-		if err := c.setViewportImpl(width, height); err != nil {
-			return nil
-		}
+		c.setViewportImpl(width, height)
 		c.lastViewportWidth = width
 		c.lastViewportHeight = height
 	}
-	return nil
 }
 
 func (c *Context) ScreenFramebuffer() Framebuffer {
