@@ -169,14 +169,11 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	return texture, nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) error {
-	if err := c.runOnContextThread(func() error {
+func (c *Context) bindFramebufferImpl(f Framebuffer) {
+	_ = c.runOnContextThread(func() error {
 		gl.BindFramebuffer(gl.FRAMEBUFFER, uint32(f))
 		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
@@ -187,9 +184,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	}); err != nil {
 		return nil, err
 	}
-	if err := c.bindFramebuffer(f); err != nil {
-		return nil, err
-	}
+	c.bindFramebuffer(f)
 	if err := c.runOnContextThread(func() error {
 		pixels = make([]uint8, 4*width*height)
 		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
@@ -241,8 +236,8 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 	})
 }
 
-func (c *Context) BindScreenFramebuffer() error {
-	return c.bindFramebuffer(c.screenFramebuffer)
+func (c *Context) BindScreenFramebuffer() {
+	c.bindFramebuffer(c.screenFramebuffer)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
@@ -258,9 +253,7 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	}); err != nil {
 		return 0, err
 	}
-	if err := c.bindFramebuffer(Framebuffer(f)); err != nil {
-		return 0, err
-	}
+	c.bindFramebuffer(Framebuffer(f))
 	if err := c.runOnContextThread(func() error {
 		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
 		s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)

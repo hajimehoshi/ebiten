@@ -61,21 +61,16 @@ func (c *Context) BindTexture(t Texture) {
 	c.lastTexture = t
 }
 
-func (c *Context) bindFramebuffer(f Framebuffer) error {
+func (c *Context) bindFramebuffer(f Framebuffer) {
 	if c.lastFramebuffer.equals(f) {
-		return nil
+		return
 	}
-	if err := c.bindFramebufferImpl(f); err != nil {
-		return err
-	}
+	c.bindFramebufferImpl(f)
 	c.lastFramebuffer = f
-	return nil
 }
 
 func (c *Context) SetViewport(f Framebuffer, width, height int) error {
-	if err := c.bindFramebuffer(f); err != nil {
-		return err
-	}
+	c.bindFramebuffer(f)
 	if c.lastViewportWidth != width || c.lastViewportHeight != height {
 		if err := c.setViewportImpl(width, height); err != nil {
 			return nil

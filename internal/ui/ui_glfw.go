@@ -491,9 +491,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			return err
 		}
 		// The bound framebuffer must be the default one (0) before swapping buffers.
-		if err := opengl.GetContext().BindScreenFramebuffer(); err != nil {
-			return err
-		}
+		opengl.GetContext().BindScreenFramebuffer()
 		_ = u.runOnMainThread(func() error {
 			u.swapBuffers()
 			return nil
