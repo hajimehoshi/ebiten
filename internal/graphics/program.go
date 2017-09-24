@@ -205,6 +205,7 @@ func (s *openGLState) reset() error {
 	return nil
 }
 
+// areSameFloat32Array returns a boolean indicating if a and b are deeply equal.
 func areSameFloat32Array(a, b []float32) bool {
 	if len(a) != len(b) {
 		return false
@@ -217,41 +218,36 @@ func areSameFloat32Array(a, b []float32) bool {
 	return true
 }
 
-type programContext struct {
-	state            *openGLState
-	program          opengl.Program
-	projectionMatrix []float32
-	texture          opengl.Texture
-	colorM           affine.ColorM
-}
-
-func (p *programContext) begin() error {
+// useProgram uses the program (programTexture).
+func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, colorM affine.ColorM) error {
 	c := opengl.GetContext()
-	if p.state.lastProgram != p.program {
-		c.UseProgram(p.program)
-		if p.state.lastProgram != zeroProgram {
-			theArrayBufferLayout.disable(p.state.lastProgram)
-		}
-		theArrayBufferLayout.enable(p.program)
+	program := s.programTexture
 
-		p.state.lastProgram = p.state.programTexture
-		p.state.lastProjectionMatrix = nil
-		p.state.lastColorMatrix = nil
-		p.state.lastColorMatrixTranslation = nil
-		c.BindElementArrayBuffer(p.state.elementArrayBuffer)
-		c.UniformInt(p.program, "texture", 0)
+	if s.lastProgram != program {
+		c.UseProgram(program)
+		if s.lastProgram != zeroProgram {
+			theArrayBufferLayout.disable(s.lastProgram)
+		}
+		theArrayBufferLayout.enable(program)
+
+		s.lastProgram = s.programTexture
+		s.lastProjectionMatrix = nil
+		s.lastColorMatrix = nil
+		s.lastColorMatrixTranslation = nil
+		c.BindElementArrayBuffer(s.elementArrayBuffer)
+		c.UniformInt(program, "texture", 0)
 	}
 
-	if !areSameFloat32Array(p.state.lastProjectionMatrix, p.projectionMatrix) {
-		c.UniformFloats(p.program, "projection_matrix", p.projectionMatrix)
-		if p.state.lastProjectionMatrix == nil {
-			p.state.lastProjectionMatrix = make([]float32, 16)
+	if !areSameFloat32Array(s.lastProjectionMatrix, proj) {
+		c.UniformFloats(program, "projection_matrix", proj)
+		if s.lastProjectionMatrix == nil {
+			s.lastProjectionMatrix = make([]float32, 16)
 		}
-		copy(p.state.lastProjectionMatrix, p.projectionMatrix)
+		copy(s.lastProjectionMatrix, proj)
 	}
 
 	e := [4][5]float32{}
-	es := p.colorM.UnsafeElements()
+	es := colorM.UnsafeElements()
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
 			e[i][j] = float32(es[i*affine.ColorMDim+j])
@@ -264,27 +260,27 @@ func (p *programContext) begin() error {
 		e[0][2], e[1][2], e[2][2], e[3][2],
 		e[0][3], e[1][3], e[2][3], e[3][3],
 	}
-	if !areSameFloat32Array(p.state.lastColorMatrix, colorMatrix) {
-		c.UniformFloats(p.program, "color_matrix", colorMatrix)
-		if p.state.lastColorMatrix == nil {
-			p.state.lastColorMatrix = make([]float32, 16)
+	if !areSameFloat32Array(s.lastColorMatrix, colorMatrix) {
+		c.UniformFloats(program, "color_matrix", colorMatrix)
+		if s.lastColorMatrix == nil {
+			s.lastColorMatrix = make([]float32, 16)
 		}
-		copy(p.state.lastColorMatrix, colorMatrix)
+		copy(s.lastColorMatrix, colorMatrix)
 	}
 	colorMatrixTranslation := []float32{
 		e[0][4], e[1][4], e[2][4], e[3][4],
 	}
-	if !areSameFloat32Array(p.state.lastColorMatrixTranslation, colorMatrixTranslation) {
-		c.UniformFloats(p.program, "color_matrix_translation", colorMatrixTranslation)
-		if p.state.lastColorMatrixTranslation == nil {
-			p.state.lastColorMatrixTranslation = make([]float32, 4)
+	if !areSameFloat32Array(s.lastColorMatrixTranslation, colorMatrixTranslation) {
+		c.UniformFloats(program, "color_matrix_translation", colorMatrixTranslation)
+		if s.lastColorMatrixTranslation == nil {
+			s.lastColorMatrixTranslation = make([]float32, 4)
 		}
-		copy(p.state.lastColorMatrixTranslation, colorMatrixTranslation)
+		copy(s.lastColorMatrixTranslation, colorMatrixTranslation)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	if err := c.BindTexture(p.texture); err != nil {
+	if err := c.BindTexture(texture); err != nil {
 		return err
 	}
 	return nil
