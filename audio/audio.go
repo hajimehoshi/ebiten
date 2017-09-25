@@ -194,7 +194,13 @@ var (
 	theContextLock sync.Mutex
 )
 
-// NewContext creates a new audio context with the given sample rate (e.g. 44100).
+// NewContext creates a new audio context with the given sample rate.
+//
+// The sample rate is also used for decoding MP3 or other formats as the target sample rate.
+//
+// sampleRate should be 44100 or 48000.
+// Other values might not work.
+// For example, 22050 causes error on Safari when decoding MP3.
 //
 // Error returned by NewContext is always nil as of 1.5.0-alpha.
 //

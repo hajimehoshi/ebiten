@@ -108,6 +108,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if klass == js.Undefined {
 		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
 	}
+	// This might causes 'Syntax' error when the sample rate is not so usual like 22050 on Safari.
 	// TODO: 1 is a correct second argument?
 	oc := klass.New(2, 1, context.SampleRate())
 	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
