@@ -34,6 +34,8 @@ type Stream struct {
 	posInBytes int
 }
 
+var errTryAgain = errors.New("audio/mp3: try again")
+
 func (s *Stream) Read(b []byte) (int, error) {
 	l := len(s.leftData)*4 - s.posInBytes
 	if l > len(b) {
@@ -90,6 +92,30 @@ func (s *Stream) Size() int64 {
 	return int64(len(s.leftData) * 4)
 }
 
+// seekNextFrame seeks the next frame and returns the new buffer with the new position.
+// seekNextFrame also returns true when seeking is successful, or false otherwise.
+//
+// Seeking is necessary when decoding fails. Safari's MP3 decoder can't treat IDs well (#438).
+func seekNextFrame(buf []uint8) ([]uint8, bool) {
+	// TODO: Need to skip tags explicitly? (hajimehoshi/go-mp3#9)
+
+	if len(buf) < 1 {
+		return nil, false
+	}
+	buf = buf[1:]
+
+	for {
+		if buf[0] == 0xff && buf[1]&0xfe == 0xfe {
+			break
+		}
+		buf = buf[1:]
+		if len(buf) < 2 {
+			return nil, false
+		}
+	}
+	return buf, true
+}
+
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	b, err := ioutil.ReadAll(src)
 	if err != nil {
@@ -98,20 +124,53 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if err := src.Close(); err != nil {
 		return nil, err
 	}
+	var s *Stream
+	for {
+		s, err = decode(context, b)
+		if err == errTryAgain {
+			buf, ok := seekNextFrame(b)
+			if !ok {
+				return nil, fmt.Errorf("audio/mp3: Decode failed: invalid format?")
+			}
+			b = buf
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		break
+	}
+	return s, nil
+}
+
+var offlineAudioContextClass *js.Object
+
+func init() {
+	if klass := js.Global.Get("OfflineAudioContext"); klass != js.Undefined {
+		offlineAudioContextClass = klass
+		return
+	}
+	if klass := js.Global.Get("webkitOfflineAudioContext"); klass != js.Undefined {
+		offlineAudioContextClass = klass
+		return
+	}
+}
+
+func decode(context *audio.Context, buf []uint8) (*Stream, error) {
+	if offlineAudioContextClass == nil {
+		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
+	}
+
 	s := &Stream{}
 	ch := make(chan error)
 
-	klass := js.Global.Get("OfflineAudioContext")
-	if klass == js.Undefined {
-		klass = js.Global.Get("webkitOfflineAudioContext")
-	}
-	if klass == js.Undefined {
-		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
-	}
-	// This might causes 'Syntax' error when the sample rate is not so usual like 22050 on Safari.
+	// TODO: webkitOfflineAudioContext's constructor might causes 'Syntax' error
+	// when the sample rate is not so usual like 22050 on Safari.
+	// Should this be handled before calling this?
+
 	// TODO: 1 is a correct second argument?
-	oc := klass.New(2, 1, context.SampleRate())
-	oc.Call("decodeAudioData", js.NewArrayBuffer(b), func(buf *js.Object) {
+	oc := offlineAudioContextClass.New(2, 1, context.SampleRate())
+	oc.Call("decodeAudioData", js.NewArrayBuffer(buf), func(buf *js.Object) {
 		s.leftData = buf.Call("getChannelData", 0).Interface().([]float32)
 		switch n := buf.Get("numberOfChannels").Int(); n {
 		case 1:
@@ -122,8 +181,8 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
 		}
 		close(ch)
-	}, func(err *js.Object) {
-		ch <- fmt.Errorf("audio/mp3: decoding failed: %s", err.String())
+	}, func() {
+		ch <- errTryAgain
 		close(ch)
 	})
 	if err := <-ch; err != nil {
