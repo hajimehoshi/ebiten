@@ -119,8 +119,11 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		case 2:
 			s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
 		default:
-			ch <- fmt.Errorf("audio/mp3: Number of channels must be 1 or 2 but %d", n)
+			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
 		}
+		close(ch)
+	}, func(err *js.Object) {
+		ch <- fmt.Errorf("audio/mp3: decoding failed: %s", err.String())
 		close(ch)
 	})
 	if err := <-ch; err != nil {
