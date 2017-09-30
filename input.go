@@ -23,7 +23,7 @@ import (
 // InputChars represents the environment's locale-dependent translation of keyboard
 // input to Unicode characters.
 //
-// IsKeyPressed is based on a mapping of device codes to input device keys.
+// IsKeyPressed is based on a mapping of device (US keyboard) codes to input device keys.
 // "Control" and modifier keys should be handled with IsKeyPressed.
 //
 // This function is concurrent-safe.
@@ -56,46 +56,42 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return ui.CurrentInput().IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
 
-// GamepadAxisNum returns the number of axes of the gamepad.
+// GamepadAxisNum returns the number of axes of the gamepad (id).
 //
 // This function is concurrent-safe.
 //
 // NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
-// To use this API, browsers might require rebooting the browser.
 func GamepadAxisNum(id int) int {
 	return ui.CurrentInput().GamepadAxisNum(id)
 }
 
-// GamepadAxis returns the float value [-1.0 - 1.0] of the axis.
+// GamepadAxis returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
 // This function is concurrent-safe.
 //
 // NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
-// To use this API, browsers might require rebooting the browser.
 func GamepadAxis(id int, axis int) float64 {
 	return ui.CurrentInput().GamepadAxis(id, axis)
 }
 
-// GamepadButtonNum returns the number of the buttons of the gamepad.
+// GamepadButtonNum returns the number of the buttons of the given gamepad (id).
 //
 // This function is concurrent-safe.
 //
 // NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
-// To use this API, browsers might require rebooting the browser.
 func GamepadButtonNum(id int) int {
 	return ui.CurrentInput().GamepadButtonNum(id)
 }
 
-// IsGamepadButtonPressed returns the boolean indicating the buttons is pressed or not.
+// IsGamepadButtonPressed returns the boolean indicating the given button of the gamepad (id) is pressed or not.
 //
 // This function is concurrent-safe.
 //
-// The key states vary depending on environments.
+// The button states vary depending on environments.
 // There can be differences even between Chrome and Firefox.
-// Don't assume that states of a keys are always same when same buttons are pressed.
+// Don't assume that returned values are always same when same buttons are pressed.
 //
 // NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
-// To use this API, browsers might require rebooting the browser.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return ui.CurrentInput().IsGamepadButtonPressed(id, ui.GamepadButton(button))
 }

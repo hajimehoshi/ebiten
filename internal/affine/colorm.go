@@ -149,11 +149,6 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 	c.elements = es
 }
 
-// RotateHue rotates the hue.
-func (c *ColorM) RotateHue(theta float64) {
-	c.ChangeHSV(theta, 1, 1)
-}
-
 var (
 	// The YCbCr value ranges are:
 	//   Y:  [ 0   - 1  ]
@@ -199,15 +194,4 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 	v := valueScale
 	c.Scale(v, s*v, s*v, 1)
 	c.Concat(&yCbCrToRgb)
-}
-
-var monochrome ColorM
-
-func init() {
-	monochrome.ChangeHSV(0, 0, 1)
-}
-
-// Monochrome returns a color matrix to make an image monochrome.
-func Monochrome() ColorM {
-	return monochrome
 }

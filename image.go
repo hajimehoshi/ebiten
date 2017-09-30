@@ -60,17 +60,11 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
-// DrawImage draws the given image on the receiver image.
+// DrawImage draws the given image on the image i.
 //
-// This method accepts the options.
-// The parts of the given image at the parts of the destination.
-// After determining parts to draw, this applies the geometry matrix and the color matrix.
+// DrawImage accepts the options. For details, see the document of DrawImageOptions.
 //
-// Here are the default values:
-//     SourceRect:    nil. When SourceRect is nil, the whole source image is used.
-//     GeoM:          Identity matrix
-//     ColorM:        Identity matrix (that changes no colors)
-//     CompositeMode: CompositeModeSourceOver (regular alpha blending)
+// DrawImage determinines the part to draw, then DrawImage applies the geometry matrix and the color matrix.
 //
 // For drawing, the pixels of the argument image at the time of this call is adopted.
 // Even if the argument image is mutated after this call,
@@ -156,9 +150,11 @@ func (i *Image) ColorModel() color.Model {
 
 // At returns the color of the image at (x, y).
 //
-// This method loads pixels from GPU to system memory if necessary.
+// At loads pixels from GPU to system memory if necessary, which means that At can be slow.
 //
-// This method can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
+// At always returns color.Transparend if the image is disposed.
+//
+// At can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
 	if i.restorable == nil {
 		return color.Transparent
@@ -171,10 +167,9 @@ func (i *Image) At(x, y int) color.Color {
 	return clr
 }
 
-// Dispose disposes the image data. After disposing, the image becomes invalid.
-// This is useful to save memory.
+// Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
 //
-// The behavior of any functions for a disposed image is undefined.
+// Dispose is useful to save memory.
 //
 // When the image is disposed, Dipose does nothing.
 //
@@ -219,9 +214,20 @@ func (i *Image) ReplacePixels(p []uint8) error {
 
 // A DrawImageOptions represents options to render an image on an image.
 type DrawImageOptions struct {
-	SourceRect    *image.Rectangle
-	GeoM          GeoM
-	ColorM        ColorM
+	// SourceRect is the region of the source image to draw.
+	// If SourceRect is nil, whole image is used.
+	SourceRect *image.Rectangle
+
+	// GeoM is a geometry matrix to draw.
+	// The default (zero) value is identify, which draws the image at (0, 0).
+	GeoM GeoM
+
+	// ColorM is a color matrix to draw.
+	// The default (zero) value is identity, which doesn't change any color.
+	ColorM ColorM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
 	CompositeMode CompositeMode
 
 	// Deprecated (as of 1.5.0-alpha): Use SourceRect instead.

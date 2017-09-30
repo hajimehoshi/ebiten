@@ -27,12 +27,11 @@ const FPS = clock.FPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
-// This function is concurrent-safe.
-//
-// This value represents how many times rendering happens in a second and
+// The returned value represents how many times rendering happens in a second and
 // NOT how many times logical game updating (a passed function to Run) happens.
-// Note that logical game updating is assured to happen 60 times in a second
-// as long as the screen is active.
+// Note that logical game updating is assured to happen 60 times in a second.
+//
+// This function is concurrent-safe.
 func CurrentFPS() float64 {
 	return clock.CurrentFPS()
 }
@@ -93,13 +92,18 @@ func (u *updater) Invalidate() {
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
+// The screen size is based on the given values (width and height).
 //
-// Run must be called from the main thread.
-// Note that ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
+// A window size is based on the given values (width, height and scale).
+// scale is used to enlarge the screen.
+//
+// Run must be called from the OS main thread.
+// Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
 //
 // The given function f is guaranteed to be called 60 times a second
 // even if a rendering frame is skipped.
-// f is not called when the screen is not shown.
+// f is not called when the window is in background by default.
+// This setting is configurable with SetRunnableInBackground.
 //
 // The given scale is ignored on fullscreen mode.
 //
@@ -107,6 +111,8 @@ func (u *updater) Invalidate() {
 // In the case of 2), Run returns the same error.
 //
 // The size unit is device-independent pixel.
+//
+// Don't call Run twice or more in one process.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
 	ch := make(chan error)
 	go func() {
@@ -131,8 +137,6 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 //
 // Typically, Ebiten users don't have to call this directly.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile module call this.
-//
-// The size unit is device-independent pixel.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	ch := make(chan error)
 	go func() {
@@ -201,6 +205,8 @@ func SetCursorVisibility(visible bool) {
 
 // IsFullscreen returns a boolean value indicating whether
 // the current mode is fullscreen or not.
+//
+// IsFullscreen always returns false on mobiles.
 //
 // This function is concurrent-safe.
 func IsFullscreen() bool {

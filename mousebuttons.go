@@ -23,7 +23,7 @@ type MouseButton int
 
 // MouseButtons
 const (
-	MouseButtonLeft   = MouseButton(ui.MouseButtonLeft)
-	MouseButtonRight  = MouseButton(ui.MouseButtonRight)
-	MouseButtonMiddle = MouseButton(ui.MouseButtonMiddle)
+	MouseButtonLeft   MouseButton = MouseButton(ui.MouseButtonLeft)
+	MouseButtonRight  MouseButton = MouseButton(ui.MouseButtonRight)
+	MouseButtonMiddle MouseButton = MouseButton(ui.MouseButtonMiddle)
 )

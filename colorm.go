@@ -23,7 +23,7 @@ const ColorMDim = affine.ColorMDim
 
 // A ColorM represents a matrix to transform coloring when rendering an image.
 //
-// A ColorM is applied to the source alpha color
+// A ColorM is applied to the straight alpha color
 // while an Image's pixels' format is alpha premultiplied.
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
@@ -61,8 +61,9 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 }
 
 // RotateHue rotates the hue.
+// theta represents rotating angle in radian.
 func (c *ColorM) RotateHue(theta float64) {
-	c.impl.RotateHue(theta)
+	c.ChangeHSV(theta, 1, 1)
 }
 
 // ChangeHSV changes HSV (Hue-Saturation-Value) values.
@@ -81,13 +82,15 @@ func (c *ColorM) Element(i, j int) float64 {
 }
 
 // SetElement sets an element at (i, j).
-func (c *ColorM) SetElement(i, j int, value float64) {
-	c.impl.SetElement(i, j, value)
+func (c *ColorM) SetElement(i, j int, element float64) {
+	c.impl.SetElement(i, j, element)
 }
 
-// Monochrome returns a color matrix to make an image monochrome.
+// Monochrome is deprecated as of 1.6.0-alpha. Use ChangeHSV(0, 0, 1) instead.
 func Monochrome() ColorM {
-	return ColorM{affine.Monochrome()}
+	c := ColorM{}
+	c.ChangeHSV(0, 0, 1)
+	return c
 }
 
 // ScaleColor is deprecated as of 1.2.0-alpha. Use Scale instead.

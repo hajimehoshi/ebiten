@@ -147,8 +147,8 @@ type Key int
 
 // Keys
 const (
-{{range $index, $name := .KeyNames}}Key{{$name}} = Key(ui.Key{{$name}})
-{{end}}	KeyMax = Key{{.LastKeyName}}
+{{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(ui.Key{{$name}})
+{{end}}	KeyMax Key = Key{{.LastKeyName}}
 )
 `
 

@@ -34,7 +34,7 @@ func (g *GeoM) Reset() {
 }
 
 // Apply pre-multiplies a vector (x, y, 1) by the matrix.
-// In other words, Apply calculates GeoM * (x, y, 1).
+// In other words, Apply calculates GeoM * (x, y, 1)^T.
 // The return value is x and y values of the result vector.
 func (g *GeoM) Apply(x, y float64) (x2, y2 float64) {
 	return g.impl.Apply(x, y)
@@ -84,6 +84,7 @@ func (g *GeoM) Translate(tx, ty float64) {
 }
 
 // Rotate rotates the matrix by theta.
+// The unit is radian.
 func (g *GeoM) Rotate(theta float64) {
 	g.impl.Rotate(theta)
 }
