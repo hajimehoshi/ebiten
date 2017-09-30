@@ -29,7 +29,7 @@ const FPS = clock.FPS
 //
 // This function is concurrent-safe.
 //
-// This value represents how many times rendering happens in 1/60 second and
+// This value represents how many times rendering happens in a second and
 // NOT how many times logical game updating (a passed function to Run) happens.
 // Note that logical game updating is assured to happen 60 times in a second
 // as long as the screen is active.
