@@ -43,7 +43,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.decoded.Seek(offset, whence)
 }
 
-// Read is implementation of io.Closer's Close.
+// Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
 	return s.decoded.Close()
 }
@@ -170,9 +170,9 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 
 // Decode decodes Ogg/Vorbis data to playable stream.
 //
-// Decode returns error when the source format is wrong.
+// Decode returns error when decoding fails or IO error happens.
 //
-// Sample rate is automatically adjusted to fit with the audio context.
+// Decode automatically resamples the stream to fit with the audio context if necessary.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	decoded, channelNum, sampleRate, err := decode(src)
 	if err != nil {

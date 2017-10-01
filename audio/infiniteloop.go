@@ -33,7 +33,7 @@ func NewInfiniteLoop(stream ReadSeekCloser, size int64) *InfiniteLoop {
 	}
 }
 
-// Read is implementation of ReadSeekCloser.
+// Read is implementation of ReadSeekCloser's Read.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	n, err := i.stream.Read(b)
 	if err == io.EOF {
@@ -45,7 +45,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	return n, err
 }
 
-// Seek is implementation of ReadSeekCloser.
+// Seek is implementation of ReadSeekCloser's Seek.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	next := int64(0)
 	switch whence {
@@ -68,7 +68,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	return pos, nil
 }
 
-// Close is implementation of ReadSeekCloser.
+// Close is implementation of ReadSeekCloser's Close.
 func (l *InfiniteLoop) Close() error {
 	return l.stream.Close()
 }

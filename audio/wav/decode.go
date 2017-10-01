@@ -98,7 +98,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	return n - s.headerSize, nil
 }
 
-// Read is implementation of io.Closer's Close.
+// Close is implementation of io.Closer's Close.
 func (s *stream) Close() error {
 	return s.src.Close()
 }
@@ -113,9 +113,9 @@ func (s *stream) Size() int64 {
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
-// Decode returns error when the source format is wrong.
+// Decode returns error when decoding fails or IO error happens.
 //
-// Sample rate is automatically adjusted to fit with the audio context.
+// Decode automatically resamples the stream to fit with the audio context if necessary.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)

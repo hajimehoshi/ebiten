@@ -15,6 +15,9 @@
 // +build !js
 
 // Package mp3 provides MP3 decoder.
+//
+// On desktops and mobiles, a pure Go decoder is used.
+// On browsers, a native decoder on the browser is used.
 package mp3
 
 import (
@@ -24,6 +27,7 @@ import (
 	"github.com/hajimehoshi/ebiten/audio/internal/convert"
 )
 
+// Stream is a decoded stream.
 type Stream struct {
 	inner audio.ReadSeekCloser
 	size  int64
@@ -39,7 +43,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
 
-// Read is implementation of io.Closer's Close.
+// Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
 	return s.inner.Close()
 }
@@ -49,6 +53,11 @@ func (s *Stream) Size() int64 {
 	return s.size
 }
 
+// Decode decodes MP3 source and returns a decoded stream.
+//
+// Decode returns error when decoding fails or IO error happens.
+//
+// Decode automatically resamples the stream to fit with the audio context if necessary.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
