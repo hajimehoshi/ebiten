@@ -70,7 +70,7 @@ func (i *Image) Fill(clr color.Color) error {
 // Even if the argument image is mutated after this call,
 // the drawing result is never affected.
 //
-// When the image is disposed, DrawImage does nothing.
+// When the i is disposed, DrawImage does nothing.
 //
 // When the given image is as same as i, DrawImage panics.
 //
@@ -190,7 +190,7 @@ func (i *Image) Dispose() error {
 //
 // ReplacePixels may be slow (as for implementation, this calls glTexSubImage2D).
 //
-// When len(p) is not 4 * (width) * (height), ReplacePixels panics.
+// When len(p) is not appropriate, ReplacePixels panics.
 //
 // When the image is disposed, ReplacePixels does nothing.
 //

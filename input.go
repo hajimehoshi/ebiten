@@ -96,9 +96,12 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return ui.CurrentInput().IsGamepadButtonPressed(id, ui.GamepadButton(button))
 }
 
-// Touch represents a pointer state.
+// Touch represents a touch state.
 type Touch interface {
+	// ID returns an identifier for one stroke.
 	ID() int
+
+	// Position returns the position of the touch.
 	Position() (x, y int)
 }
 

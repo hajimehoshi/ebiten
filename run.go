@@ -50,7 +50,8 @@ func setRunningSlowly(slow bool) {
 
 // IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS of rendering.
 // The game screen is not updated when IsRunningSlowly is true.
-// It is recommended to skip heavy processing, especially drawing, when IsRunningSlowly is true.
+// It is recommended to skip heavy processing, especially drawing screen,
+// when IsRunningSlowly is true.
 //
 // This function is concurrent-safe.
 func IsRunningSlowly() bool {

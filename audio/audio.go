@@ -12,20 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package audio provides audio players. This can be used with or without ebiten package.
+// Package audio provides audio players.
 //
-// The stream format must be 16-bit little endian and 2 channels.
+// The stream format must be 16-bit little endian and 2 channels. The format is as follows:
+//   [data]      = [sample 1] [sample 2] [sample 3] ...
+//   [sample *]  = [channel 1] ...
+//   [channel *] = [byte 1] [byte 2] ...
 //
-// An audio context has a sample rate you can set and all streams you want to play must have the same
-// sample rate. However, decoders like audio/vorbis and audio/wav adjust sample rate,
+// An audio context (audio.Context object) has a sample rate you can specify and all streams you want to play must have the same
+// sample rate. However, decoders in e.g. audio/mp3 package adjust sample rate automatically,
 // and you don't have to care about it as long as you use those decoders.
 //
-// An audio context can generate 'players' (instances of audio.Player),
+// An audio context can generate 'players' (audio.Player objects),
 // and you can play sound by calling Play function of players.
 // When multiple players play, mixing is automatically done.
 // Note that too many players may cause distortion.
 //
 // Ebiten's game progress always synchronizes with audio progress.
+//
+// For the simplest example to play sound, see wav package in the examples.
 package audio
 
 import (
@@ -152,9 +157,9 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 	return false
 }
 
-// A Context is a current state of audio.
+// A Context represents a current state of audio.
 //
-// There should be at most one Context object.
+// At most one Context object can exist in one process.
 // This means only one constant sample rate is valid in your one application.
 //
 // The typical usage with ebiten package is:
@@ -162,7 +167,7 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 //    var audioContext *audio.Context
 //
 //    func update(screen *ebiten.Image) error {
-//        // Update updates the audio stream by 1/60 [sec].
+//        // Update just checks the current audio error.
 //        if err := audioContext.Update(); err != nil {
 //            return err
 //        }
@@ -174,7 +179,9 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 //        if err != nil {
 //            panic(err)
 //        }
-//        ebiten.Run(run, update, 320, 240, 2, "Audio test")
+//        if err := ebiten.Run(run, update, 320, 240, 2, "Audio test"); err != nil {
+//            panic(err)
+//        }
 //    }
 type Context struct {
 	players        *players
@@ -196,7 +203,8 @@ var (
 
 // NewContext creates a new audio context with the given sample rate.
 //
-// The sample rate is also used for decoding MP3 or other formats as the target sample rate.
+// The sample rate is also used for decoding MP3 with audio/mp3 package
+// or other formats as the target sample rate.
 //
 // sampleRate should be 44100 or 48000.
 // Other values might not work.
@@ -225,6 +233,7 @@ func NewContext(sampleRate int) (*Context, error) {
 	return c, nil
 }
 
+// CurrentContext returns the current context or nil if there is no context.
 func CurrentContext() *Context {
 	theContextLock.Lock()
 	c := theContext
@@ -294,12 +303,12 @@ func (c *Context) loop() {
 	}
 }
 
-// Update returns an error if some errors happen.
+// Update returns an error if some errors happen, or nil if there is no error.
 //
-// As of 1.6.0-alpha, this just returns the error if an error happens internally,
+// As of 1.6.0-alpha, Update just returns the error if an error happens internally,
 // and do nothing related to updating the state.
 // Then, the audio is available without Update,
-// but it is recommended to call Update every frame.
+// but it is recommended to call Update every frame to check errors.
 func (c *Context) Update() error {
 	select {
 	case err := <-c.errCh:
@@ -338,8 +347,6 @@ func (b *bytesReadSeekCloser) Close() error {
 }
 
 // BytesReadSeekCloser creates ReadSeekCloser from bytes.
-//
-// A returned stream is concurrent safe.
 func BytesReadSeekCloser(b []uint8) ReadSeekCloser {
 	return &bytesReadSeekCloser{reader: bytes.NewReader(b)}
 }
@@ -372,9 +379,9 @@ type Player struct {
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
-// Note that the given src can't be shared with other Players.
+// Note that the given src can't be shared with other Player objects.
 //
-// NewPlayer tries to rewind src by calling Seek to get the current position.
+// NewPlayer tries to call Seek of src to get the current position.
 // NewPlayer returns error when the Seek returns error.
 func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	if context.players.hasSource(src) {
@@ -415,11 +422,10 @@ func NewPlayerFromBytes(context *Context, src []uint8) (*Player, error) {
 	return p, nil
 }
 
-// Close closes the stream. Ths source stream passed by NewPlayer will also be closed.
+// Close closes the stream.
 //
 // When closing, the stream owned by the player will also be closed by calling its Close.
-//
-// Close is concurrent safe.
+// This means that the source stream passed via NewPlayer will also be closed.
 //
 // Close returns error when closing the source returns error.
 func (p *Player) Close() error {
@@ -466,34 +472,26 @@ func (p *Player) proceed(length int) {
 // Play plays the stream.
 //
 // Play always returns nil.
-//
-// Play is concurrent safe.
 func (p *Player) Play() error {
 	p.players.addPlayer(p)
 	return nil
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
-//
-// IsPlaying is concurrent safe.
 func (p *Player) IsPlaying() bool {
 	return p.players.hasPlayer(p)
 }
 
 // Rewind rewinds the current position to the start.
 //
-// Rewind is concurrent safe.
-//
-// Rewind returns error when seeking the source returns error.
+// Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
 	return p.Seek(0)
 }
 
 // Seek seeks the position with the given offset.
 //
-// Seek is concurrent safe.
-//
-// Seek returns error when seeking the source returns error.
+// Seek returns error when seeking the source stream returns error.
 func (p *Player) Seek(offset time.Duration) error {
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
@@ -523,8 +521,6 @@ func (p *Player) resetBufferIfSeeking() {
 
 // Pause pauses the playing.
 //
-// Pause is concurrent safe.
-//
 // Pause always returns nil.
 func (p *Player) Pause() error {
 	p.players.removePlayer(p)
@@ -532,8 +528,6 @@ func (p *Player) Pause() error {
 }
 
 // Current returns the current position.
-//
-// Current is concurrent safe.
 func (p *Player) Current() time.Duration {
 	p.m.RLock()
 	sample := p.pos / bytesPerSample / channelNum
@@ -543,8 +537,6 @@ func (p *Player) Current() time.Duration {
 }
 
 // Volume returns the current volume of this player [0-1].
-//
-// Volume is concurrent safe.
 func (p *Player) Volume() float64 {
 	p.m.RLock()
 	v := p.volume
@@ -554,8 +546,6 @@ func (p *Player) Volume() float64 {
 
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. This function panics otherwise.
-//
-// SetVolume is concurrent safe.
 func (p *Player) SetVolume(volume float64) {
 	p.m.Lock()
 	// The condition must be true when volume is NaN.
