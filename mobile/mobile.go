@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package mobile provides functions for mobile platforms (Android and iOS).
+//
+// For usage, see https://github.com/hajimehoshi/ebiten/wiki/Mobile, https://github.com/hajimehoshi/ebiten/wiki/Android and https://github.com/hajimehoshi/ebiten/wiki/iOS.
 package mobile
 
 import (
@@ -31,7 +34,6 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 }
 
 // Update updates and renders the game.
-//
 // This should be called on every frame.
 //
 // On Android, this should be called at onDrawFrame of Renderer (used by GLSurfaceView).
@@ -45,13 +47,24 @@ func Update() error {
 //
 // This should be called with onTouchEvent of GLSurfaceView like this:
 //
+//     private double mDeviceScale = 0.0;
+//
+//     // pxToDp converts an value in pixels to dp.
+//     private double pxToDp(double x) {
+//         if (mDeviceScale == 0.0) {
+//             mDeviceScale = getResources().getDisplayMetrics().density;
+//         }
+//         return x / mDeviceScale;
+//     }
+//
 //     @Override
 //     public boolean onTouchEvent(MotionEvent e) {
 //         for (int i = 0; i < e.getPointerCount(); i++) {
 //             int id = e.getPointerId(i);
 //             int x = (int)e.getX(i);
 //             int y = (int)e.getY(i);
-//             YourGame.UpdateTouchesOnAndroid(e.getActionMasked(), id, x, y);
+//             // Exported function for UpdateTouchesOnAndroid
+//             YourGame.UpdateTouchesOnAndroid(e.getActionMasked(), id, (int)pxToDp(x), (int)pxToDp(y));
 //         }
 //         return true;
 //     }
@@ -93,7 +106,7 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 //         [self updateTouches:touches];
 //     }
 //
-// The coodinate x/y is in points.
+// The coodinate x/y is in point.
 //
 // For more details, see https://github.com/hajimehoshi/ebiten/wiki/iOS.
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {

@@ -256,11 +256,12 @@ var textM sync.Mutex
 // Draw draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
-// (x, y) represents a 'dot' position. Be careful that this doesn't represent left-upper corner position.
+// (x, y) represents a 'dot' (period) position.
+// Be careful that this doesn't represent left-upper corner position.
 // clr is the color for text rendering.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
-// It is OK to call this function with a same text and a same face at every frame.
+// It is OK to call this function with a same text and a same face at every frame in terms of performance.
 //
 // This function is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {

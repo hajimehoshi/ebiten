@@ -104,6 +104,8 @@ func (r *recorder) update(screen *ebiten.Image) error {
 	return nil
 }
 
+// RecordScreenAsGIF is deprecated as of version 1.6.0-alpha.
+//
 // RecordScreenAsGIF returns updating function with recording the screen as an animation GIF image.
 //
 // This encodes each screen at each frame and may slows the application.

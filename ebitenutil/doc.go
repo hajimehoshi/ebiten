@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2017 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,21 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin freebsd linux windows
-// +build !js
-// +build !android
-// +build !ios
-
+// Package ebitenutil provides utility functions for Ebiten.
 package ebitenutil
-
-import (
-	"os"
-)
-
-// OpenFile opens a file and returns a stream for its data.
-//
-// How to solve path depends on your environment. This varies on your desktop or web browser.
-// Note that this doesn't work on mobiles.
-func OpenFile(path string) (ReadSeekCloser, error) {
-	return os.Open(path)
-}

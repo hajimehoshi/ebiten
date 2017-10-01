@@ -24,11 +24,12 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-// NewImageFromFile loads the file path and returns ebiten.Image and image.Image.
+// NewImageFromFile loads the file with path and returns ebiten.Image and image.Image.
 //
-// The current directory for path depends on your environment. This will vary on your desktop or web browser.
+// How to solve path depends on your environment. This varies on your desktop or web browser.
 // Note that this doesn't work on mobiles.
-// It'll be safer to embed your resource, e.g., with github.com/jteeuwen/go-bindata instead of using this function.
+//
+// Instead of using this function, it is safer to embed your resources, e.g., with github.com/jteeuwen/go-bindata .
 func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
 	if err != nil {
