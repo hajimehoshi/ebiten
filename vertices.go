@@ -17,13 +17,21 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 // texelAdjustment represents a number to be used to adjust texel.
 // Texels are adjusted by amount propotional to inverse of texelAdjustment.
 // This is necessary not to use unexpected pixels outside of texels.
 // See #317.
-const texelAdjustment = 256
+var texelAdjustment float32 = 256
+
+func init() {
+	if web.IsIOSSafari() {
+		// Texel adjustment causes glitches on iOS Safari.
+		texelAdjustment = 0
+	}
+}
 
 var (
 	quadFloat32Num     = restorable.QuadVertexSizeInBytes() / 4
@@ -75,8 +83,10 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 	x0, y0, x1, y1 := float32(0), float32(0), float32(sx1-sx0), float32(sy1-sy0)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
 	// Adjust texels to fix a problem that outside texels are used (#317).
-	u1 -= 1.0 / wf / texelAdjustment
-	v1 -= 1.0 / hf / texelAdjustment
+	if texelAdjustment > 0 {
+		u1 -= 1.0 / wf / texelAdjustment
+		v1 -= 1.0 / hf / texelAdjustment
+	}
 	vs[0] = x0
 	vs[1] = y0
 	vs[2] = u0

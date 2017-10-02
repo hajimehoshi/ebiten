@@ -20,6 +20,10 @@ func IsBrowser() bool {
 	return false
 }
 
+func IsIOSSafari() bool {
+	return false
+}
+
 func IsMobileBrowser() bool {
 	return false
 }
