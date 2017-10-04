@@ -19,6 +19,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
@@ -117,6 +118,13 @@ func (c *graphicsContext) Update(updateCount int) error {
 		return err
 	}
 	return nil
+}
+
+func (c *graphicsContext) needsRestoring() (bool, error) {
+	if web.IsBrowser() {
+		return c.invalidated, nil
+	}
+	return c.offscreen.restorable.IsInvalidated()
 }
 
 func (c *graphicsContext) restoreIfNeeded() error {
