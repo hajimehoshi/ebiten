@@ -41,7 +41,7 @@ func colorScale(clr color.Color) (rf, gf, bf, af float64) {
 	return
 }
 
-// DrawLine draws a line on the given destination dst.
+// DrawLine draws a line segment on the given destination dst.
 //
 // DrawLine is intended to be used mainly for debugging or prototyping purpose.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {

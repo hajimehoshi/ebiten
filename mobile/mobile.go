@@ -39,6 +39,8 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 // On Android, this should be called at onDrawFrame of Renderer (used by GLSurfaceView).
 //
 // On iOS, this should be called at glkView:drawInRect: of GLKViewDelegate.
+//
+// Update returns error when 1) OpenGL error happens, or 2) f in Start returns error samely as ebiten.Run.
 func Update() error {
 	return update()
 }
