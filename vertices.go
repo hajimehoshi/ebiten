@@ -17,7 +17,6 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 // texelAdjustment represents a number to be used to adjust texel.
@@ -25,13 +24,6 @@ import (
 // This is necessary not to use unexpected pixels outside of texels.
 // See #317.
 var texelAdjustment float32 = 256
-
-func init() {
-	if web.IsIOSSafari() {
-		// Texel adjustment causes glitches on iOS Safari.
-		texelAdjustment = 0
-	}
-}
 
 var (
 	quadFloat32Num     = restorable.QuadVertexSizeInBytes() / 4
