@@ -59,13 +59,6 @@ const (
 	mask = ^(channelNum*bytesPerSample - 1)
 )
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (p *players) Read(b []uint8) (int, error) {
 	p.Lock()
 	defer p.Unlock()
@@ -94,7 +87,9 @@ func (p *players) Read(b []uint8) (int, error) {
 		} else if err != nil {
 			return 0, err
 		}
-		l = min(n, l)
+		if n < l {
+			l = n
+		}
 	}
 	l &= mask
 
