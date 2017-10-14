@@ -41,7 +41,7 @@ func (c *ColorM) Reset() {
 }
 
 // Apply pre-multiplies a vector (r, g, b, a, 1) by the matrix
-// where r, g, b, and a are clr's values after un-multiplied alpha.
+// where r, g, b, and a are clr's values in straight-alpha format.
 // In other words, Apply calculates ColorM * (r, g, b, a, 1)^T.
 func (c *ColorM) Apply(clr color.Color) color.Color {
 	return c.impl.Apply(clr)
