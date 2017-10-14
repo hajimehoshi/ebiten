@@ -15,8 +15,10 @@
 package ebiten_test
 
 import (
-	. "github.com/hajimehoshi/ebiten"
+	"image/color"
 	"testing"
+
+	. "github.com/hajimehoshi/ebiten"
 )
 
 func TestColorMInit(t *testing.T) {
@@ -162,6 +164,63 @@ func TestColorMConcatSelf(t *testing.T) {
 			if want != got {
 				t.Errorf("m.Element(%d, %d) = %f, want %f", i, j, got, want)
 			}
+		}
+	}
+}
+
+func abs(x uint32) uint32 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func TestColorMApply(t *testing.T) {
+	mono := ColorM{}
+	mono.ChangeHSV(0, 0, 1)
+
+	shiny := ColorM{}
+	shiny.Translate(1, 1, 1, 0)
+
+	cases := []struct {
+		ColorM ColorM
+		In     color.Color
+		Out    color.Color
+		Delta  uint32
+	}{
+		{
+			ColorM: ColorM{},
+			In:     color.RGBA{1, 2, 3, 4},
+			Out:    color.RGBA{1, 2, 3, 4},
+			Delta:  0x101,
+		},
+		{
+			ColorM: mono,
+			In:     color.NRGBA{0xff, 0xff, 0xff, 0},
+			Out:    color.Transparent,
+			Delta:  0x101,
+		},
+		{
+			ColorM: mono,
+			In:     color.RGBA{0xff, 0, 0, 0xff},
+			Out:    color.RGBA{0x4c, 0x4c, 0x4c, 0xff},
+			Delta:  0x101,
+		},
+		{
+			ColorM: shiny,
+			In:     color.RGBA{0x80, 0x90, 0xa0, 0xb0},
+			Out:    color.RGBA{0xb0, 0xb0, 0xb0, 0xb0},
+			Delta:  1,
+		},
+	}
+	for _, c := range cases {
+		out := c.ColorM.Apply(c.In)
+		r0, g0, b0, a0 := out.RGBA()
+		r1, g1, b1, a1 := c.Out.RGBA()
+		if abs(r0-r1) > c.Delta || abs(g0-g1) > c.Delta ||
+			abs(b0-b1) > c.Delta || abs(a0-a1) > c.Delta {
+			println(r0, r1)
+			t.Errorf("%v.Apply(%v) = %v, want %v", c.ColorM, c.In, out, c.Out)
 		}
 	}
 }

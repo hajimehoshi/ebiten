@@ -15,6 +15,7 @@
 package affine
 
 import (
+	"image/color"
 	"math"
 )
 
@@ -46,6 +47,45 @@ type ColorM struct {
 
 func (c *ColorM) Reset() {
 	c.elements = nil
+}
+
+func clamp(x float64) float64 {
+	if x > 1 {
+		return 1
+	}
+	if x < 0 {
+		return 0
+	}
+	return x
+}
+
+func (c *ColorM) Apply(clr color.Color) color.Color {
+	if c.elements == nil {
+		return clr
+	}
+	r, g, b, a := clr.RGBA()
+	if a == 0 {
+		return color.Transparent
+	}
+	rf := float64(r) / float64(a)
+	gf := float64(g) / float64(a)
+	bf := float64(b) / float64(a)
+	af := float64(a) / 0xffff
+	e := c.elements
+	rf2 := e[0]*rf + e[1]*gf + e[2]*bf + e[3]*af + e[4]
+	gf2 := e[5]*rf + e[6]*gf + e[7]*bf + e[8]*af + e[9]
+	bf2 := e[10]*rf + e[11]*gf + e[12]*bf + e[13]*af + e[14]
+	af2 := e[15]*rf + e[16]*gf + e[17]*bf + e[18]*af + e[19]
+	rf2 = clamp(rf2)
+	gf2 = clamp(gf2)
+	bf2 = clamp(bf2)
+	af2 = clamp(af2)
+	return color.NRGBA64{
+		R: uint16(rf2 * 0xffff),
+		G: uint16(gf2 * 0xffff),
+		B: uint16(bf2 * 0xffff),
+		A: uint16(af2 * 0xffff),
+	}
 }
 
 func (c *ColorM) UnsafeElements() []float64 {

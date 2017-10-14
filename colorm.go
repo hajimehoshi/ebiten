@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/internal/affine"
 )
 
@@ -36,6 +38,13 @@ type ColorM struct {
 // Reset resets the ColorM as identity.
 func (c *ColorM) Reset() {
 	c.impl.Reset()
+}
+
+// Apply pre-multiplies a vector (r, g, b, a, 1) by the matrix
+// where r, g, b, and a are clr's values after un-multiplied alpha.
+// In other words, Apply calculates ColorM * (r, g, b, a, 1)^T.
+func (c *ColorM) Apply(clr color.Color) color.Color {
+	return c.impl.Apply(clr)
 }
 
 // Concat multiplies a color matrix with the other color matrix.
