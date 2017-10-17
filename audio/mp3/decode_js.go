@@ -181,8 +181,14 @@ func decode(context *audio.Context, buf []uint8) (*Stream, error) {
 			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
 		}
 		close(ch)
-	}, func() {
-		ch <- errTryAgain
+	}, func(err *js.Object) {
+		if err != nil {
+			ch <- fmt.Errorf("audio/mp3: decodeAudioData failed: %v", err)
+		} else {
+			// On Safari, error value might be null and it is needed to retry decoding
+			// from the next frame (#438).
+			ch <- errTryAgain
+		}
 		close(ch)
 	})
 	if err := <-ch; err != nil {
