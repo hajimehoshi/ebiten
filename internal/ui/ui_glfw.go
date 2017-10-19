@@ -36,8 +36,8 @@ type userInterface struct {
 	width                int
 	height               int
 	scale                float64
-	deviceScale          float64
-	glfwScale            float64
+	cachedDeviceScale    float64
+	cachedGLFWScale      float64
 	fullscreenScale      float64
 	funcs                chan func()
 	running              bool
@@ -301,8 +301,8 @@ func ScreenOffset() (float64, float64) {
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	_ = u.runOnMainThread(func() error {
-		ox = (float64(v.Width)*u.deviceScale/u.glfwScale - float64(u.width)*u.actualScreenScale()) / 2
-		oy = (float64(v.Height)*u.deviceScale/u.glfwScale - float64(u.height)*u.actualScreenScale()) / 2
+		ox = (float64(v.Width)*u.deviceScale()/u.glfwScale() - float64(u.width)*u.actualScreenScale()) / 2
+		oy = (float64(v.Height)*u.deviceScale()/u.glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
 		return nil
 	})
 	return ox, oy
@@ -383,11 +383,24 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	return u.loop(g)
 }
 
-func (u *userInterface) glfwSize() (int, int) {
-	if u.glfwScale == 0 {
-		u.glfwScale = glfwScale()
+func (u *userInterface) glfwScale() float64 {
+	if u.cachedGLFWScale == 0 {
+		u.cachedGLFWScale = glfwScale()
 	}
-	return int(float64(u.width) * u.scale * u.glfwScale), int(float64(u.height) * u.scale * u.glfwScale)
+	return u.cachedGLFWScale
+}
+
+func (u *userInterface) deviceScale() float64 {
+	if u.cachedDeviceScale == 0 {
+		u.cachedDeviceScale = deviceScale()
+	}
+	return u.cachedDeviceScale
+}
+
+func (u *userInterface) glfwSize() (int, int) {
+	w := int(float64(u.width) * u.getScale() * u.glfwScale())
+	h := int(float64(u.height) * u.getScale() * u.glfwScale())
+	return w, h
 }
 
 func (u *userInterface) getScale() float64 {
@@ -395,13 +408,10 @@ func (u *userInterface) getScale() float64 {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
-		if u.glfwScale == 0 {
-			u.glfwScale = glfwScale()
-		}
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		sw := float64(v.Width) / u.glfwScale / float64(u.width)
-		sh := float64(v.Height) / u.glfwScale / float64(u.height)
+		sw := float64(v.Width) / u.glfwScale() / float64(u.width)
+		sh := float64(v.Height) / u.glfwScale() / float64(u.height)
 		s := sw
 		if s > sh {
 			s = sh
@@ -412,18 +422,12 @@ func (u *userInterface) getScale() float64 {
 }
 
 func (u *userInterface) actualScreenScale() float64 {
-	if u.deviceScale == 0 {
-		u.deviceScale = deviceScale()
-	}
-	return u.getScale() * u.deviceScale
+	return u.getScale() * u.deviceScale()
 }
 
 func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
-	if u.glfwScale == 0 {
-		u.glfwScale = glfwScale()
-	}
-	currentInput.update(u.window, u.getScale()*u.glfwScale)
+	currentInput.update(u.window, u.getScale()*u.glfwScale())
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -508,6 +512,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		return false
 	}
 
+	// actualScreenScale() depends on u.scale, so set the scale here and keep the original scale.
 	origScale := u.scale
 	u.scale = scale
 
@@ -550,8 +555,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 			u.window.SetFramebufferSizeCallback(nil)
 			close(ch)
 		})
-		w, h := u.glfwSize()
-		u.window.SetSize(w, h)
+		u.window.SetSize(u.glfwSize())
 	event:
 		for {
 			glfw.PollEvents()
@@ -561,7 +565,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 			default:
 			}
 		}
-		// Window title might lost on macOS after coming back from fullscreen.
+		// Window title might be lost on macOS after coming back from fullscreen.
 		u.window.SetTitle(u.title)
 	}
 	// SwapInterval is affected by the current monitor of the window.
