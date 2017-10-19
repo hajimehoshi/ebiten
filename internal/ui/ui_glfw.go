@@ -20,8 +20,8 @@
 package ui
 
 import (
-	"errors"
 	"image"
+	"math"
 	"runtime"
 	"sync"
 	"time"
@@ -34,6 +34,7 @@ type userInterface struct {
 	title                string
 	window               *glfw.Window
 	width                int
+	windowWidth          int
 	height               int
 	scale                float64
 	cachedDeviceScale    float64
@@ -294,7 +295,10 @@ func ScreenOffset() (float64, float64) {
 		return 0, 0
 	}
 	if !IsFullscreen() {
-		return 0, 0
+		if u.width == u.windowWidth {
+			return 0, 0
+		}
+		return (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2, 0
 	}
 	ox := 0.0
 	oy := 0.0
@@ -358,15 +362,13 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
-	if err := u.runOnMainThread(func() error {
+	_ = u.runOnMainThread(func() error {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
 
 		// The game is in window mode (not fullscreen mode) at the first state.
 		// Don't refer u.initFullscreen here to avoid some GLFW problems.
-		if !u.setScreenSize(width, height, scale, false) {
-			return errors.New("ui: Fail to set the screen size")
-		}
+		u.setScreenSize(width, height, scale, false)
 		u.title = title
 		u.window.SetTitle(title)
 		u.window.Show()
@@ -377,9 +379,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 		x, y = adjustWindowPosition(x, y)
 		u.window.SetPos(x, y)
 		return nil
-	}); err != nil {
-		return err
-	}
+	})
 	return u.loop(g)
 }
 
@@ -398,7 +398,7 @@ func (u *userInterface) deviceScale() float64 {
 }
 
 func (u *userInterface) glfwSize() (int, int) {
-	w := int(float64(u.width) * u.getScale() * u.glfwScale())
+	w := int(float64(u.windowWidth) * u.getScale() * u.glfwScale())
 	h := int(float64(u.height) * u.getScale() * u.glfwScale())
 	return w, h
 }
@@ -512,24 +512,20 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		return false
 	}
 
-	// actualScreenScale() depends on u.scale, so set the scale here and keep the original scale.
-	origScale := u.scale
-	u.scale = scale
-
 	// On Windows, giving a too small width doesn't call a callback (#165).
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
-	// TODO: The same check should be in ui_js.go
 	const minWindowWidth = 252
-	if int(float64(width)*u.actualScreenScale()) < minWindowWidth {
-		u.scale = origScale
-		return false
+
+	u.width = width
+	u.windowWidth = width
+	s := scale * u.deviceScale()
+	if int(float64(width)*s) < minWindowWidth {
+		u.windowWidth = int(math.Ceil(minWindowWidth / s))
 	}
-	if u.width != width || u.height != height {
-		u.width = width
-		u.height = height
-		u.fullscreenScale = 0
-	}
+	u.height = height
+	u.scale = scale
+	u.fullscreenScale = 0
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -550,19 +546,24 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 			u.origPosX = -1
 			u.origPosY = -1
 		}
-		ch := make(chan struct{})
-		u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, width, height int) {
-			u.window.SetFramebufferSizeCallback(nil)
-			close(ch)
-		})
-		u.window.SetSize(u.glfwSize())
-	event:
-		for {
-			glfw.PollEvents()
-			select {
-			case <-ch:
-				break event
-			default:
+
+		oldW, oldH := u.window.GetSize()
+		newW, newH := u.glfwSize()
+		if oldW != newW || oldH != newH {
+			ch := make(chan struct{})
+			u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
+				u.window.SetFramebufferSizeCallback(nil)
+				close(ch)
+			})
+			u.window.SetSize(u.glfwSize())
+		event:
+			for {
+				glfw.PollEvents()
+				select {
+				case <-ch:
+					break event
+				default:
+				}
 			}
 		}
 		// Window title might be lost on macOS after coming back from fullscreen.
