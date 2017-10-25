@@ -62,16 +62,7 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	ids := []string{}
-	for i, p := range presences {
-		if p {
-			ids = append(ids, strconv.Itoa(i))
-		}
-	}
-
-	str := fmt.Sprintf("Gamepad (%s)\n", strings.Join(ids, ","))
-	str += "\n"
-
+	str := ""
 	for i, p := range presences {
 		if !p {
 			continue
