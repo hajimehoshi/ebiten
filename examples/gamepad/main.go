@@ -32,10 +32,14 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
-	// TODO: API to get the available, lowest ID
 	const gamepadID = 0
+	presences := [4]bool{}
 	axes := []string{}
 	pressedButtons := []string{}
+
+	for i := range presences {
+		presences[i] = ebiten.IsGamepadPresent(i)
+	}
 
 	maxAxis := ebiten.GamepadAxisNum(gamepadID)
 	for a := 0; a < maxAxis; a++ {
@@ -53,10 +57,21 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	str := `Gamepad
+	ids := []string{}
+	for i, p := range presences {
+		if p {
+			ids = append(ids, strconv.Itoa(i))
+		}
+	}
+
+	str := `Gamepad ({{.GamepadIDs}})
+
+Gamepad (ID: {{.GamepadID}}) status:
   Axes:
     {{.Axes}}
   Pressed Buttons: {{.Buttons}}`
+	str = strings.Replace(str, "{{.GamepadIDs}}", strings.Join(ids, ","), -1)
+	str = strings.Replace(str, "{{.GamepadID}}", strconv.Itoa(gamepadID), -1)
 	str = strings.Replace(str, "{{.Axes}}", strings.Join(axes, "\n    "), -1)
 	str = strings.Replace(str, "{{.Buttons}}", strings.Join(pressedButtons, ", "), -1)
 	ebitenutil.DebugPrint(screen, str)

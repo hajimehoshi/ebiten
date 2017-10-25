@@ -31,6 +31,15 @@ func (i *Input) CursorPosition() (x, y int) {
 	return adjustCursorPosition(i.cursorX, i.cursorY)
 }
 
+func (i *Input) IsGamepadPresent(id int) bool {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	if len(i.gamepads) <= id {
+		return false
+	}
+	return i.gamepads[id].valid
+}
+
 func (i *Input) GamepadAxisNum(id int) int {
 	i.m.RLock()
 	defer i.m.RUnlock()
@@ -78,6 +87,7 @@ func (in *Input) Touches() []Touch {
 }
 
 type gamePad struct {
+	valid         bool
 	axisNum       int
 	axes          [16]float64
 	buttonNum     int

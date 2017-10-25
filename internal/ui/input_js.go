@@ -139,10 +139,12 @@ func (i *Input) updateGamepads() {
 	gamepads := nav.Call("getGamepads")
 	l := gamepads.Get("length").Int()
 	for id := 0; id < l; id++ {
+		i.gamepads[id].valid = false
 		gamepad := gamepads.Index(id)
 		if gamepad == js.Undefined || gamepad == nil {
 			continue
 		}
+		i.gamepads[id].valid = true
 
 		axes := gamepad.Get("axes")
 		axesNum := axes.Get("length").Int()

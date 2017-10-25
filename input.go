@@ -56,6 +56,15 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return ui.CurrentInput().IsMouseButtonPressed(ui.MouseButton(mouseButton))
 }
 
+// IsGamepadPresent returns a boolean value indicating whether the gamepad for the given id exists.
+//
+// This function is concurrent-safe.
+//
+// NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
+func IsGamepadPresent(id int) bool {
+	return ui.CurrentInput().IsGamepadPresent(id)
+}
+
 // GamepadAxisNum returns the number of axes of the gamepad (id).
 //
 // This function is concurrent-safe.
