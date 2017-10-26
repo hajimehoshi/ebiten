@@ -32,28 +32,20 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
-	const maxGamepadNum = 4
-	presences := [maxGamepadNum]bool{}
-	axes := [maxGamepadNum][]string{}
-	pressedButtons := [maxGamepadNum][]string{}
+	ids := ebiten.GamepadIDs()
+	axes := map[int][]string{}
+	pressedButtons := map[int][]string{}
 
-	for i := range presences {
-		presences[i] = ebiten.IsGamepadPresent(i)
-	}
-
-	for i := range axes {
-		maxAxis := ebiten.GamepadAxisNum(i)
+	for _, id := range ids {
+		maxAxis := ebiten.GamepadAxisNum(id)
 		for a := 0; a < maxAxis; a++ {
-			v := ebiten.GamepadAxis(i, a)
-			axes[i] = append(axes[i], fmt.Sprintf("%d:%0.2f", a, v))
+			v := ebiten.GamepadAxis(id, a)
+			axes[id] = append(axes[id], fmt.Sprintf("%d:%0.2f", a, v))
 		}
-	}
-
-	for i := range pressedButtons {
-		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(i))
-		for b := ebiten.GamepadButton(i); b < maxButton; b++ {
-			if ebiten.IsGamepadButtonPressed(i, b) {
-				pressedButtons[i] = append(pressedButtons[i], strconv.Itoa(int(b)))
+		maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(id))
+		for b := ebiten.GamepadButton(id); b < maxButton; b++ {
+			if ebiten.IsGamepadButtonPressed(id, b) {
+				pressedButtons[id] = append(pressedButtons[id], strconv.Itoa(int(b)))
 			}
 		}
 	}
@@ -63,14 +55,15 @@ func update(screen *ebiten.Image) error {
 	}
 
 	str := ""
-	for i, p := range presences {
-		if !p {
-			continue
+	if len(ids) > 0 {
+		for _, id := range ids {
+			str += fmt.Sprintf("Gamepad (ID: %d):\n", id)
+			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(axes[id], ", "))
+			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(pressedButtons[id], ", "))
+			str += "\n"
 		}
-		str += fmt.Sprintf("Gamepad (ID: %d):\n", i)
-		str += fmt.Sprintf("  Axes:    %s\n", strings.Join(axes[i], ", "))
-		str += fmt.Sprintf("  Buttons: %s\n", strings.Join(pressedButtons[i], ", "))
-		str += "\n"
+	} else {
+		str = "Please connect your gamepad."
 	}
 	ebitenutil.DebugPrint(screen, str)
 	return nil

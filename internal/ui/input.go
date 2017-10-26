@@ -31,13 +31,16 @@ func (i *Input) CursorPosition() (x, y int) {
 	return adjustCursorPosition(i.cursorX, i.cursorY)
 }
 
-func (i *Input) IsGamepadPresent(id int) bool {
+func (i *Input) GamepadIDs() []int {
 	i.m.RLock()
 	defer i.m.RUnlock()
-	if len(i.gamepads) <= id {
-		return false
+	r := []int{}
+	for id, g := range i.gamepads {
+		if g.valid {
+			r = append(r, id)
+		}
 	}
-	return i.gamepads[id].valid
+	return r
 }
 
 func (i *Input) GamepadAxisNum(id int) int {
