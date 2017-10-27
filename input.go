@@ -60,7 +60,7 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 //
 // This function is concurrent-safe.
 //
-// NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
+// This function always returns an empty slice on mobiles.
 func GamepadIDs() []int {
 	return ui.CurrentInput().GamepadIDs()
 }
@@ -69,7 +69,7 @@ func GamepadIDs() []int {
 //
 // This function is concurrent-safe.
 //
-// NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
+// This function always returns 0 on mobiles.
 func GamepadAxisNum(id int) int {
 	return ui.CurrentInput().GamepadAxisNum(id)
 }
@@ -78,7 +78,7 @@ func GamepadAxisNum(id int) int {
 //
 // This function is concurrent-safe.
 //
-// NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
+// This function always returns 0 on mobiles.
 func GamepadAxis(id int, axis int) float64 {
 	return ui.CurrentInput().GamepadAxis(id, axis)
 }
@@ -87,7 +87,7 @@ func GamepadAxis(id int, axis int) float64 {
 //
 // This function is concurrent-safe.
 //
-// NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
+// This function always returns 0 on mobiles.
 func GamepadButtonNum(id int) int {
 	return ui.CurrentInput().GamepadButtonNum(id)
 }
@@ -100,7 +100,7 @@ func GamepadButtonNum(id int) int {
 // There can be differences even between Chrome and Firefox.
 // Don't assume that returned values are always same when same buttons are pressed.
 //
-// NOTE: Gamepad API is available only on desktops, Chrome and Firefox.
+// This function always returns false on mobiles.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return ui.CurrentInput().IsGamepadButtonPressed(id, ui.GamepadButton(button))
 }
