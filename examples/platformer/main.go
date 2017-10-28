@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
@@ -36,63 +37,52 @@ var (
 	rightSprite     *ebiten.Image
 	idleSprite      *ebiten.Image
 	backgroundImage *ebiten.Image
-	err             error
 
-	isFirstFrame bool = true
-
-	backgroundOptions = &ebiten.DrawImageOptions{}
-	charSpriteOptions = &ebiten.DrawImageOptions{}
+	charX = 50
+	charY = 380
 )
 
 func update(screen *ebiten.Image) error {
-	// Draws Background Image
-	screen.DrawImage(backgroundImage, backgroundOptions)
-
-	// Resets
-	charX := 0.0
-	charY := 0.0
-
-	if isFirstFrame == true {
-		charY += 380
-		charX += 50
-		isFirstFrame = false
-	}
-
 	// Controls
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
 		// Selects preloaded sprite
 		loadedSprite = leftSprite
 		// Moves character 3px right
-		charX -= 3.0
+		charX -= 3
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
 		// Selects preloaded sprite
 		loadedSprite = rightSprite
 		// Moves character 3px left
-		charX += +3.0
+		charX += 3
 	} else {
 		loadedSprite = idleSprite
 	}
 
-	// Change gopher's position
-	charSpriteOptions.GeoM.Translate(charX, charY)
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
+	// Draws Background Image
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(0.5, 0.5)
+	screen.DrawImage(backgroundImage, op)
+
+	// Draws selected sprite image
+	op = &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(0.5, 0.5)
+	op.GeoM.Translate(float64(charX), float64(charY))
+	screen.DrawImage(loadedSprite, op)
 
 	// FPS counter
 	fps := fmt.Sprintf("FPS: %f", ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, fps)
 
-	// Draws selected sprite image
-	screen.DrawImage(loadedSprite, charSpriteOptions)
-
 	return nil
 }
 
 func main() {
-	// Settings for images
-	backgroundOptions.GeoM.Scale(0.5, 0.5)
-	backgroundOptions.GeoM.Translate(0, 0)
-	charSpriteOptions.GeoM.Scale(0.5, 0.5)
-
 	// Preload images
+	var err error
 	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
