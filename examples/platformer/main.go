@@ -93,7 +93,6 @@ func main() {
 	charSpriteOptions.GeoM.Scale(0.5, 0.5)
 
 	// Preload images
-	// Credit goes to Renee French for the gopher pictures
 	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
@@ -106,7 +105,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// Background by CorvusSG
 	backgroundImage, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/background.png", ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
@@ -116,5 +114,7 @@ func main() {
 	ebiten.SetFullscreen(fullscreen)
 
 	// Starts the program
-	ebiten.Run(update, width, height, 1, "Platformer")
+	if err := ebiten.Run(update, width, height, 1, "Platformer (Ebiten Demo)"); err != nil {
+		panic(err)
+	}
 }
