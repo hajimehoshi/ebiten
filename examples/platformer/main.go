@@ -53,8 +53,8 @@ func update(screen *ebiten.Image) error {
 	charY := 0.0
 
 	if isFirstFrame == true {
-		charY = charY + 380
-		charX = charX + 50
+		charY += 380
+		charX += 50
 		isFirstFrame = false
 	}
 
@@ -63,12 +63,12 @@ func update(screen *ebiten.Image) error {
 		// Selects preloaded sprite
 		loadedSprite = leftSprite
 		// Moves character 3px right
-		charX = charX - 3.0
+		charX -= 3.0
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
 		// Selects preloaded sprite
 		loadedSprite = rightSprite
 		// Moves character 3px left
-		charX = charX + 3.0
+		charX += +3.0
 	} else {
 		loadedSprite = idleSprite
 	}
