@@ -44,12 +44,12 @@ var (
 
 func update(screen *ebiten.Image) error {
 	// Controls
-	if ebiten.IsKeyPressed(ebiten.KeyA) {
+	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
 		// Selects preloaded sprite
 		loadedSprite = leftSprite
 		// Moves character 3px right
 		charX -= 3
-	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
+	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
 		// Selects preloaded sprite
 		loadedSprite = rightSprite
 		// Moves character 3px left
