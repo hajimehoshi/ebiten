@@ -25,10 +25,8 @@ import (
 
 const (
 	// Settings
-	width           = 1024
-	height          = 512
-	fullscreen      = false
-	runinbackground = true
+	width  = 1024
+	height = 512
 )
 
 var (
@@ -99,9 +97,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	ebiten.SetRunnableInBackground(runinbackground)
-	ebiten.SetFullscreen(fullscreen)
 
 	// Starts the program
 	if err := ebiten.Run(update, width, height, 1, "Platformer (Ebiten Demo)"); err != nil {
