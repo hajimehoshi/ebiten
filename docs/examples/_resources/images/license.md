@@ -31,6 +31,20 @@ http://opengameart.org/node/8016
 CC0 1.0
 ```
 
+## platformer/right.png platformer/left.png platformer/mainchar.png
+
+```
+The Go gopher was designed by Renee French. (http://reneefrench.blogspot.com/)
+The design is licensed under the Creative Commons 3.0 Attributions license.
+Read this article for more details: https://blog.golang.org/gopher
+```
+
+## platformer/background.png
+
+```
+https://corvussg.itch.io/2d-game-backgrounds
+```
+
 ## Other image files
 
 ```
