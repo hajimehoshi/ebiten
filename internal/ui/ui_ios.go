@@ -21,8 +21,8 @@ package ui
 //
 // #import <UIKit/UIKit.h>
 //
-// static int devicePixelRatio() {
-//   return [[UIScreen mainScreen] scale];
+// static double devicePixelRatio() {
+//   return [[UIScreen mainScreen] nativeScale];
 // }
 import "C"
 
