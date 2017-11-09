@@ -190,6 +190,7 @@ var examples = []example{
 	{"piano", 320, 240},
 	{"rotate", 320, 240},
 	{"sprites", 320, 240},
+	{"typewriter", 320, 240},
 	{"2048", 210, 300},
 	{"blocks", 256, 240},
 }
