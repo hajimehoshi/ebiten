@@ -250,7 +250,9 @@ func initialize() error {
 			if keyCodeToKeyEdge[code] == KeyUp ||
 				keyCodeToKeyEdge[code] == KeyDown ||
 				keyCodeToKeyEdge[code] == KeyLeft ||
-				keyCodeToKeyEdge[code] == KeyRight {
+				keyCodeToKeyEdge[code] == KeyRight ||
+				keyCodeToKeyEdge[code] == KeyBackspace ||
+				keyCodeToKeyEdge[code] == KeyTab {
 				e.Call("preventDefault")
 			}
 			currentInput.keyDownEdge(code)
@@ -260,7 +262,9 @@ func initialize() error {
 		if cs == keyToCodes[KeyUp][0] ||
 			cs == keyToCodes[KeyDown][0] ||
 			cs == keyToCodes[KeyLeft][0] ||
-			cs == keyToCodes[KeyRight][0] {
+			cs == keyToCodes[KeyRight][0] ||
+			cs == keyToCodes[KeyBackspace][0] ||
+			cs == keyToCodes[KeyTab][0] {
 			e.Call("preventDefault")
 		}
 		currentInput.keyDown(cs)
