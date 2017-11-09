@@ -54,7 +54,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	if err := ebiten.Run(update, 320, 240, 2.0, "Input Chars (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, 320, 240, 2.0, "Typewriter (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
