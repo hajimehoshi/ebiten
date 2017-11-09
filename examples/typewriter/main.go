@@ -25,8 +25,9 @@ import (
 )
 
 var (
-	text    = "Type on the keyboard:\n"
-	counter = 0
+	text          = "Type on the keyboard:\n"
+	counter       = 0
+	bsPrevPressed = false
 )
 
 func update(screen *ebiten.Image) error {
@@ -38,6 +39,13 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) && !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}
+	bsPressed := ebiten.IsKeyPressed(ebiten.KeyBackspace)
+	if !bsPrevPressed && bsPressed {
+		if len(text) >= 1 {
+			text = text[:len(text)-1]
+		}
+	}
+	bsPrevPressed = bsPressed
 
 	counter++
 
