@@ -255,7 +255,7 @@ var keyToCodes = map[Key][]string{
 	},
 }
 
-var keyCodeToKeySafari = map[int]Key{
+var keyCodeToKeyEdge = map[int]Key{
 	8:   KeyBackspace,
 	9:   KeyTab,
 	13:  KeyEnter,

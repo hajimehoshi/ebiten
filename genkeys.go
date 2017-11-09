@@ -32,8 +32,8 @@ import (
 )
 
 var (
-	nameToCodes         map[string][]string
-	keyCodeToNameSafari map[int]string
+	nameToCodes       map[string][]string
+	keyCodeToNameEdge map[int]string
 )
 
 func init() {
@@ -84,7 +84,7 @@ func init() {
 }
 
 func init() {
-	keyCodeToNameSafari = map[int]string{
+	keyCodeToNameEdge = map[int]string{
 		0xbc: "Comma",
 		0xbe: "Period",
 		0x12: "Alt",
@@ -118,15 +118,15 @@ func init() {
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		keyCodeToNameSafari[int(c)] = string(c)
+		keyCodeToNameEdge[int(c)] = string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		keyCodeToNameSafari[int(c)] = string(c)
+		keyCodeToNameEdge[int(c)] = string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
-		keyCodeToNameSafari[0x70+i-1] = "F" + strconv.Itoa(i)
+		keyCodeToNameEdge[0x70+i-1] = "F" + strconv.Itoa(i)
 	}
 }
 
@@ -205,8 +205,8 @@ var keyToCodes = map[Key][]string{
 {{end}}
 }
 
-var keyCodeToKeySafari = map[int]Key{
-{{range $code, $name := .KeyCodeToNameSafari}}{{$code}}: Key{{$name}},
+var keyCodeToKeyEdge = map[int]Key{
+{{range $code, $name := .KeyCodeToNameEdge}}{{$code}}: Key{{$name}},
 {{end}}
 }
 `
@@ -353,7 +353,7 @@ func main() {
 			"Notice":              notice,
 			"BuildTag":            buildTag,
 			"NameToCodes":         nameToCodes,
-			"KeyCodeToNameSafari": keyCodeToNameSafari,
+			"KeyCodeToNameEdge":   keyCodeToNameEdge,
 			"Codes":               codes,
 			"KeyNames":            names,
 			"LastKeyName":         names[len(names)-1],

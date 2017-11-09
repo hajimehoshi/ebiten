@@ -29,7 +29,7 @@ func (m mockRWLock) RUnlock() {}
 
 type Input struct {
 	keyPressed         map[string]bool
-	keyPressedSafari   map[int]bool
+	keyPressedEdge     map[int]bool
 	mouseButtonPressed map[int]bool
 	cursorX            int
 	cursorY            int
@@ -51,12 +51,12 @@ func (i *Input) IsKeyPressed(key Key) bool {
 			}
 		}
 	}
-	if i.keyPressedSafari != nil {
-		for c, k := range keyCodeToKeySafari {
+	if i.keyPressedEdge != nil {
+		for c, k := range keyCodeToKeyEdge {
 			if k != key {
 				continue
 			}
-			if i.keyPressedSafari[c] {
+			if i.keyPressedEdge[c] {
 				return true
 			}
 		}
@@ -99,18 +99,18 @@ func (i *Input) keyUp(code string) {
 	i.keyPressed[code] = false
 }
 
-func (i *Input) keyDownSafari(code int) {
-	if i.keyPressedSafari == nil {
-		i.keyPressedSafari = map[int]bool{}
+func (i *Input) keyDownEdge(code int) {
+	if i.keyPressedEdge == nil {
+		i.keyPressedEdge = map[int]bool{}
 	}
-	i.keyPressedSafari[code] = true
+	i.keyPressedEdge[code] = true
 }
 
-func (i *Input) keyUpSafari(code int) {
-	if i.keyPressedSafari == nil {
-		i.keyPressedSafari = map[int]bool{}
+func (i *Input) keyUpEdge(code int) {
+	if i.keyPressedEdge == nil {
+		i.keyPressedEdge = map[int]bool{}
 	}
-	i.keyPressedSafari[code] = false
+	i.keyPressedEdge[code] = false
 }
 
 func (i *Input) mouseDown(code int) {
