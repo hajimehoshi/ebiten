@@ -251,8 +251,9 @@ func initialize() error {
 				keyCodeToKeyEdge[code] == KeyDown ||
 				keyCodeToKeyEdge[code] == KeyLeft ||
 				keyCodeToKeyEdge[code] == KeyRight {
-				currentInput.keyDownEdge(code)
+				e.Call("preventDefault")
 			}
+			currentInput.keyDownEdge(code)
 			return
 		}
 		cs := c.String()
