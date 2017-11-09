@@ -41,44 +41,50 @@ import (
 )
 
 const (
-        screenWidth  = 320
-        screenHeight = 240
+        screenWidth  = 640
+        screenHeight = 480
 )
 
 func update(screen *ebiten.Image) error {
-        // TODO: API to get the available, lowest ID
-        const gamepadID = 0
-        axes := []string{}
-        pressedButtons := []string{}
+        ids := ebiten.GamepadIDs()
+        axes := map[int][]string{}
+        pressedButtons := map[int][]string{}
 
-        maxAxis := ebiten.GamepadAxisNum(gamepadID)
-        for a := 0; a &lt; maxAxis; a&#43;&#43; {
-                v := ebiten.GamepadAxis(gamepadID, a)
-                axes = append(axes, fmt.Sprintf(&#34;%d: %0.6f&#34;, a, v))
-        }
-
-        maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(gamepadID))
-        for b := ebiten.GamepadButton(gamepadID); b &lt; maxButton; b&#43;&#43; {
-                if ebiten.IsGamepadButtonPressed(gamepadID, b) {
-                        pressedButtons = append(pressedButtons, strconv.Itoa(int(b)))
+        for _, id := range ids {
+                maxAxis := ebiten.GamepadAxisNum(id)
+                for a := 0; a &lt; maxAxis; a&#43;&#43; {
+                        v := ebiten.GamepadAxis(id, a)
+                        axes[id] = append(axes[id], fmt.Sprintf(&#34;%d:%0.2f&#34;, a, v))
+                }
+                maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(id))
+                for b := ebiten.GamepadButton(id); b &lt; maxButton; b&#43;&#43; {
+                        if ebiten.IsGamepadButtonPressed(id, b) {
+                                pressedButtons[id] = append(pressedButtons[id], strconv.Itoa(int(b)))
+                        }
                 }
         }
+
         if ebiten.IsRunningSlowly() {
                 return nil
         }
 
-        str := `Gamepad
-  Axes:
-    {{.Axes}}
-  Pressed Buttons: {{.Buttons}}`
-        str = strings.Replace(str, &#34;{{.Axes}}&#34;, strings.Join(axes, &#34;\n    &#34;), -1)
-        str = strings.Replace(str, &#34;{{.Buttons}}&#34;, strings.Join(pressedButtons, &#34;, &#34;), -1)
+        str := &#34;&#34;
+        if len(ids) &gt; 0 {
+                for _, id := range ids {
+                        str &#43;= fmt.Sprintf(&#34;Gamepad (ID: %d):\n&#34;, id)
+                        str &#43;= fmt.Sprintf(&#34;  Axes:    %s\n&#34;, strings.Join(axes[id], &#34;, &#34;))
+                        str &#43;= fmt.Sprintf(&#34;  Buttons: %s\n&#34;, strings.Join(pressedButtons[id], &#34;, &#34;))
+                        str &#43;= &#34;\n&#34;
+                }
+        } else {
+                str = &#34;Please connect your gamepad.&#34;
+        }
         ebitenutil.DebugPrint(screen, str)
         return nil
 }
 
 func main() {
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Gamepad (Ebiten Demo)&#34;); err != nil {
+        if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Gamepad (Ebiten Demo)&#34;); err != nil {
                 log.Fatal(err)
         }
 }
