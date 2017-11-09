@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/typewriter.png">
+<meta name="description" content="Ebiten example - typewriter">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - typewriter</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - typewriter</h2>
+  <iframe src="typewriter.content.html" width="640" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;log&#34;
+        &#34;strings&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+var (
+        text          = &#34;Type on the keyboard:\n&#34;
+        counter       = 0
+        bsPrevPressed = false
+)
+
+func update(screen *ebiten.Image) error {
+        text &#43;= string(ebiten.InputChars())
+        ss := strings.Split(text, &#34;\n&#34;)
+        if len(ss) &gt; 10 {
+                text = strings.Join(ss[len(ss)-10:], &#34;\n&#34;)
+        }
+        if ebiten.IsKeyPressed(ebiten.KeyEnter) &amp;&amp; !strings.HasSuffix(text, &#34;\n&#34;) {
+                text &#43;= &#34;\n&#34;
+        }
+        bsPressed := ebiten.IsKeyPressed(ebiten.KeyBackspace)
+        if !bsPrevPressed &amp;&amp; bsPressed {
+                if len(text) &gt;= 1 {
+                        text = text[:len(text)-1]
+                }
+        }
+        bsPrevPressed = bsPressed
+
+        counter&#43;&#43;
+
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+
+        t := text
+        if counter%60 &lt; 30 {
+                t &#43;= &#34;_&#34;
+        }
+        ebitenutil.DebugPrint(screen, t)
+        return nil
+}
+
+func main() {
+        if err := ebiten.Run(update, 320, 240, 2.0, &#34;Typewriter (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
