@@ -244,14 +244,26 @@ func initialize() error {
 
 	// Keyboard
 	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
-		if e.Get("code") == js.Undefined {
-			// Assume that UA is Safari.
+		c := e.Get("code")
+		if c == js.Undefined {
+			// TODO: Now this is used for Edge, not Safari. Rename functions.
 			code := e.Get("keyCode").Int()
-			currentInput.keyDownSafari(code)
+			if keyCodeToKeySafari[code] == KeyUp ||
+				keyCodeToKeySafari[code] == KeyDown ||
+				keyCodeToKeySafari[code] == KeyLeft ||
+				keyCodeToKeySafari[code] == KeyRight {
+				currentInput.keyDownSafari(code)
+			}
 			return
 		}
-		code := e.Get("code").String()
-		currentInput.keyDown(code)
+		cs := c.String()
+		if cs == keyToCodes[KeyUp][0] ||
+			cs == keyToCodes[KeyDown][0] ||
+			cs == keyToCodes[KeyLeft][0] ||
+			cs == keyToCodes[KeyRight][0] {
+			e.Call("preventDefault")
+		}
+		currentInput.keyDown(cs)
 	})
 	canvas.Call("addEventListener", "keypress", func(e *js.Object) {
 		e.Call("preventDefault")
