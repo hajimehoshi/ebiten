@@ -97,7 +97,7 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	_ = dst.DrawImage(src, op)
 }
 
-func (c *graphicsContext) Update(updateCount int) error {
+func (c *graphicsContext) Update(updateCount int, afterFrameUpdate func()) error {
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
@@ -107,6 +107,7 @@ func (c *graphicsContext) Update(updateCount int) error {
 		if err := c.f(c.offscreen); err != nil {
 			return err
 		}
+		afterFrameUpdate()
 	}
 	if 0 < updateCount {
 		drawWithFittingScale(c.offscreen2, c.offscreen)

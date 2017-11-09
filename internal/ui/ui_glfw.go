@@ -476,10 +476,11 @@ func (u *userInterface) update(g GraphicsContext) error {
 		}
 		return nil
 	})
-	if err := g.Update(); err != nil {
+	if err := g.Update(func() {
+		currentInput.runeBuffer = currentInput.runeBuffer[:0]
+	}); err != nil {
 		return err
 	}
-	currentInput.runeBuffer = currentInput.runeBuffer[:0]
 	return nil
 }
 

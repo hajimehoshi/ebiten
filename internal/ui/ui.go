@@ -16,7 +16,7 @@ package ui
 
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64)
-	Update() error
+	Update(afterFrameUpdate func()) error
 	Invalidate()
 }
 

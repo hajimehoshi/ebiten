@@ -78,9 +78,9 @@ func (u *updater) SetSize(width, height int, scale float64) {
 	u.g.SetSize(width, height, scale)
 }
 
-func (u *updater) Update() error {
+func (u *updater) Update(afterFrameUpdate func()) error {
 	n := clock.Update()
-	if err := u.g.Update(n); err != nil {
+	if err := u.g.Update(n, afterFrameUpdate); err != nil {
 		return err
 	}
 	return nil
