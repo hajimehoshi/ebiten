@@ -44,6 +44,13 @@ static float deviceScale(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
       (*env)->GetFloatField(
           env, displayMetrics,
           (*env)->GetFieldID(env, android_util_DisplayMetrics, "density", "F"));
+
+  (*env)->DeleteLocalRef(env, android_content_ContextWrapper);
+  (*env)->DeleteLocalRef(env, android_content_res_Resources);
+  (*env)->DeleteLocalRef(env, android_util_DisplayMetrics);
+  (*env)->DeleteLocalRef(env, resources);
+  (*env)->DeleteLocalRef(env, displayMetrics);
+
   return density;
 }
 
