@@ -18,5 +18,5 @@
 package audio
 
 func (c *Context) bufferSize() int {
-	return c.sampleRate * channelNum * bytesPerSample / 30
+	return c.sampleRate * channelNum * bytesPerSample / 20
 }
