@@ -138,9 +138,6 @@ func update(screen *ebiten.Image) error {
 		currentNote = addNote()
 	}
 	frames++
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}

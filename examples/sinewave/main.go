@@ -97,9 +97,6 @@ func update(screen *ebiten.Image) error {
 		}
 		player.Play()
 	}
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}

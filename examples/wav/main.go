@@ -64,9 +64,6 @@ func update(screen *ebiten.Image) error {
 		audioPlayer.Rewind()
 		audioPlayer.Play()
 	}
-	if err := audioContext.Update(); err != nil {
-		return err
-	}
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}

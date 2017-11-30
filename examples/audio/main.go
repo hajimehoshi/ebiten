@@ -169,9 +169,6 @@ func (p *Player) update() error {
 		b := ebiten.IsRunnableInBackground()
 		ebiten.SetRunnableInBackground(!b)
 	}
-	if err := p.audioContext.Update(); err != nil {
-		return err
-	}
 	return nil
 }
 
