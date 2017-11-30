@@ -158,27 +158,7 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 // At most one Context object can exist in one process.
 // This means only one constant sample rate is valid in your one application.
 //
-// The typical usage with ebiten package is:
-//
-//    var audioContext *audio.Context
-//
-//    func update(screen *ebiten.Image) error {
-//        // Update just checks the current audio error.
-//        if err := audioContext.Update(); err != nil {
-//            return err
-//        }
-//        // ...
-//    }
-//
-//    func main() {
-//        audioContext, err = audio.NewContext(sampleRate)
-//        if err != nil {
-//            panic(err)
-//        }
-//        if err := ebiten.Run(run, update, 320, 240, 2, "Audio test"); err != nil {
-//            panic(err)
-//        }
-//    }
+// For a typical usage example, see examples/wav/main.go.
 type Context struct {
 	players        *players
 	initCh         chan struct{}
