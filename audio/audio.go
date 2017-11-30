@@ -43,6 +43,7 @@ import (
 
 	"github.com/hajimehoshi/oto"
 
+	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
 )
 
@@ -180,7 +181,6 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 //    }
 type Context struct {
 	players        *players
-	errCh          chan error
 	initCh         chan struct{}
 	initedCh       chan struct{}
 	pingCount      int
@@ -216,7 +216,6 @@ func NewContext(sampleRate int) (*Context, error) {
 	}
 	c := &Context{
 		sampleRate: sampleRate,
-		errCh:      make(chan error, 1),
 	}
 	theContext = c
 	c.players = &players{
@@ -266,7 +265,7 @@ func (c *Context) loop() {
 
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, c.bufferSize())
 	if err != nil {
-		c.errCh <- err
+		audiobinding.SetError(err)
 		return
 	}
 	defer p.Close()
@@ -290,26 +289,21 @@ func (c *Context) loop() {
 		c.writtenBytes += l
 		buf := make([]uint8, l)
 		if _, err := io.ReadFull(c.players, buf); err != nil {
-			c.errCh <- err
+			audiobinding.SetError(err)
+			return
 		}
 		if _, err = p.Write(buf); err != nil {
-			c.errCh <- err
+			audiobinding.SetError(err)
+			return
 		}
 	}
 }
 
-// Update returns an error if some errors happen, or nil if there is no error.
+// Update is deprecated as of 1.6.0-alpha.
 //
-// As of 1.6.0-alpha, Update just returns the error if an error happens internally,
-// and do nothing related to updating the state.
-// Then, the audio is available without Update,
-// but it is recommended to call Update every frame to check errors.
+// As of 1.6.0-alpha, Update always returns nil and does nothing related to updating the state.
+// The internal audio error is returned at ebiten.Run instead.
 func (c *Context) Update() error {
-	select {
-	case err := <-c.errCh:
-		return err
-	default:
-	}
 	return nil
 }
 

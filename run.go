@@ -18,6 +18,7 @@ import (
 	"image"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -79,6 +80,11 @@ func (u *updater) SetSize(width, height int, scale float64) {
 }
 
 func (u *updater) Update(afterFrameUpdate func()) error {
+	select {
+	case err := <-audiobinding.Error():
+		return err
+	default:
+	}
 	n := clock.Update()
 	if err := u.g.Update(n, afterFrameUpdate); err != nil {
 		return err
@@ -108,8 +114,8 @@ func (u *updater) Invalidate() {
 //
 // The given scale is ignored on fullscreen mode.
 //
-// Run returns error when 1) OpenGL error happens, or 2) f returns error.
-// In the case of 2), Run returns the same error.
+// Run returns error when 1) OpenGL error happens, 2) audio error happens or 3) f returns error.
+// In the case of 3), Run returns the same error.
 //
 // The size unit is device-independent pixel.
 //
