@@ -563,7 +563,7 @@ func TestImageEdge(t *testing.T) {
 
 // Issue #419
 func TestImageTooManyFill(t *testing.T) {
-	const width = 256
+	const width = 1024
 
 	src, _ := NewImage(1, 1, FilterNearest)
 	dst, _ := NewImage(width, 1, FilterNearest)

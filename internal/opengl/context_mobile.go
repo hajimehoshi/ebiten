@@ -220,9 +220,9 @@ func (c *Context) setViewportImpl(width, height int) {
 	gl.Viewport(0, 0, width, height)
 }
 
-func (c *Context) FillFramebuffer(r, g, b, a float64) error {
+func (c *Context) FillFramebuffer(r, g, b, a float32) error {
 	gl := c.gl
-	gl.ClearColor(float32(r), float32(g), float32(b), float32(a))
+	gl.ClearColor(r, g, b, a)
 	gl.Clear(mgl.COLOR_BUFFER_BIT)
 	return nil
 }
