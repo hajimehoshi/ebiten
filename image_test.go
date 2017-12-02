@@ -529,10 +529,8 @@ func TestImageEdge(t *testing.T) {
 	}
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
-	// Unfortunately, TravisCI couldn't pass this test for some angles.
-	// https://travis-ci.org/hajimehoshi/ebiten/builds/200454658
-	// Let's use 'decent' angles here.
-	for _, a := range []int{0, 45, 90, 135, 180, 225, 270, 315, 360} {
+
+	for a := 0; a < 360; a += 5 {
 		if err := img1.Clear(); err != nil {
 			t.Fatal(err)
 		}

@@ -19,12 +19,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
-// texelAdjustment represents a number to be used to adjust texel.
-// Texels are adjusted by amount propotional to inverse of texelAdjustment.
-// This is necessary not to use unexpected pixels outside of texels.
-// See #317.
-var texelAdjustment float32 = 256
-
 var (
 	quadFloat32Num     = restorable.QuadVertexSizeInBytes() / 4
 	theVerticesBackend = &verticesBackend{}
@@ -74,54 +68,65 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 	hf := float32(h)
 	x0, y0, x1, y1 := float32(0), float32(0), float32(sx1-sx0), float32(sy1-sy0)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	// Adjust texels to fix a problem that outside texels are used (#317).
-	if texelAdjustment > 0 {
-		u1 -= 1.0 / wf / texelAdjustment
-		v1 -= 1.0 / hf / texelAdjustment
-	}
+
+	// Vertex coordinates
 	vs[0] = x0
 	vs[1] = y0
+
+	// Texture coordinates: first 2 values indicates the actual coodinate, and
+	// the second indicates diagonally opposite coodinates.
+	// The second is needed to calculate source rectangle size in shader programs.
 	vs[2] = u0
 	vs[3] = v0
-	vs[4] = g0
-	vs[5] = g1
-	vs[6] = g2
-	vs[7] = g3
-	vs[8] = g4
-	vs[9] = g5
+	vs[4] = u1
+	vs[5] = v1
 
-	vs[10] = x1
-	vs[11] = y0
-	vs[12] = u1
-	vs[13] = v0
-	vs[14] = g0
-	vs[15] = g1
-	vs[16] = g2
-	vs[17] = g3
-	vs[18] = g4
-	vs[19] = g5
+	// Geometry matrix
+	vs[6] = g0
+	vs[7] = g1
+	vs[8] = g2
+	vs[9] = g3
+	vs[10] = g4
+	vs[11] = g5
 
-	vs[20] = x0
-	vs[21] = y1
-	vs[22] = u0
-	vs[23] = v1
-	vs[24] = g0
-	vs[25] = g1
-	vs[26] = g2
-	vs[27] = g3
-	vs[28] = g4
-	vs[29] = g5
+	vs[12] = x1
+	vs[13] = y0
+	vs[14] = u1
+	vs[15] = v0
+	vs[16] = u0
+	vs[17] = v1
+	vs[18] = g0
+	vs[19] = g1
+	vs[20] = g2
+	vs[21] = g3
+	vs[22] = g4
+	vs[23] = g5
 
-	vs[30] = x1
-	vs[31] = y1
-	vs[32] = u1
-	vs[33] = v1
-	vs[34] = g0
-	vs[35] = g1
-	vs[36] = g2
-	vs[37] = g3
-	vs[38] = g4
-	vs[39] = g5
+	vs[24] = x0
+	vs[25] = y1
+	vs[26] = u0
+	vs[27] = v1
+	vs[28] = u1
+	vs[29] = v0
+	vs[30] = g0
+	vs[31] = g1
+	vs[32] = g2
+	vs[33] = g3
+	vs[34] = g4
+	vs[35] = g5
+
+	vs[36] = x1
+	vs[37] = y1
+	vs[38] = u1
+	vs[39] = v1
+	vs[40] = u0
+	vs[41] = v0
+	vs[42] = g0
+	vs[43] = g1
+	vs[44] = g2
+	vs[45] = g3
+	vs[46] = g4
+	vs[47] = g5
 
 	return vs
 }

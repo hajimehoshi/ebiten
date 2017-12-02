@@ -92,7 +92,7 @@ var (
 			{
 				name:      "tex_coord",
 				dataType:  opengl.Float,
-				num:       2,
+				num:       4,
 				normalize: false,
 			},
 			{
