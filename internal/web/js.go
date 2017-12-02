@@ -22,8 +22,12 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
+func IsNodeJS() bool {
+	return js.Global.Get("require") != js.Undefined
+}
+
 func IsBrowser() bool {
-	return true
+	return !IsNodeJS()
 }
 
 func IsIOSSafari() bool {

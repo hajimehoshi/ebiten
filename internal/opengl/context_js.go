@@ -22,6 +22,8 @@ import (
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/gopherjs/webgl"
+
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 // Note that `type Texture *js.Object` doesn't work.
@@ -103,31 +105,22 @@ type context struct {
 }
 
 func Init() error {
-	var gl *webgl.Context
+	if web.IsNodeJS() {
+		return fmt.Errorf("opengl: Node.js is not supported")
+	}
 
-	if js.Global.Get("require") == js.Undefined {
-		// TODO: Define id?
-		canvas := js.Global.Get("document").Call("querySelector", "canvas")
-		var err error
-		gl, err = webgl.NewContext(canvas, &webgl.ContextAttributes{
-			Alpha:              true,
-			PremultipliedAlpha: true,
-		})
-		if err != nil {
-			return err
-		}
-	} else {
-		// TODO: Now Ebiten with headless-gl doesn't work well (#141).
-		// Use headless-gl for testing.
-		options := map[string]bool{
-			"alpha":              true,
-			"premultipliedAlpha": true,
-		}
-		webglContext := js.Global.Call("require", "gl").Invoke(16, 16, options)
-		gl = &webgl.Context{Object: webglContext}
+	// TODO: Define id?
+	canvas := js.Global.Get("document").Call("querySelector", "canvas")
+	gl, err := webgl.NewContext(canvas, &webgl.ContextAttributes{
+		Alpha:              true,
+		PremultipliedAlpha: true,
+	})
+	if err != nil {
+		return err
 	}
 	c := &Context{}
 	c.gl = gl
+
 	// Getting an extension might fail after the context is lost, so
 	// it is required to get the extension here.
 	c.loseContext = gl.GetExtension("WEBGL_lose_context")
