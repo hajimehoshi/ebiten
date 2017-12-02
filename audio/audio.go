@@ -282,6 +282,7 @@ func (c *Context) loop() {
 // Update is deprecated as of 1.6.0-alpha.
 //
 // As of 1.6.0-alpha, Update always returns nil and does nothing related to updating the state.
+// You don't have to call this function any longer.
 // The internal audio error is returned at ebiten.Run instead.
 func (c *Context) Update() error {
 	return nil
