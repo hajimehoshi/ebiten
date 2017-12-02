@@ -205,28 +205,6 @@ func (c *fillCommand) Exec(indexOffsetInBytes int) error {
 	g := float32(cg) / max
 	b := float32(cb) / max
 	a := float32(ca) / max
-
-	// On some machines like MacBook Pro, exact 0 and exact 1 might cause problems
-	// at glClear() (#452).
-	if r == 0 {
-		r = math.Nextafter32(r, 1)
-	}
-	if g == 0 {
-		g = math.Nextafter32(g, 1)
-	}
-	if b == 0 {
-		b = math.Nextafter32(b, 1)
-	}
-	if r == 1 {
-		r = math.Nextafter32(r, 0)
-	}
-	if g == 1 {
-		g = math.Nextafter32(g, 0)
-	}
-	if b == 1 {
-		b = math.Nextafter32(b, 0)
-	}
-
 	if err := opengl.GetContext().FillFramebuffer(r, g, b, a); err != nil {
 		return err
 	}

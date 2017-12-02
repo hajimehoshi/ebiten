@@ -14,6 +14,7 @@
 
 package math
 
+// NextPowerOf2Int returns a nearest power of 2 to x.
 func NextPowerOf2Int(x int) int {
 	if x <= 0 {
 		panic("x must be positive")

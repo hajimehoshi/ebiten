@@ -14,6 +14,34 @@
 
 package opengl
 
+import (
+	"math"
+)
+
+var (
+	zeroPlus float32
+	oneMinus float32
+)
+
+func init() {
+	zeroPlus = math.Nextafter32(0, 1)
+	oneMinus = math.Nextafter32(1, 0)
+}
+
+// adjustForClearColor adjust the value x for glClearColor function.
+//
+// On some machines like MacBook Pro, exact 0 and exact 1 might cause problems
+// at glClear() (#452).
+func adjustForClearColor(x float32) float32 {
+	if x <= 0 {
+		return zeroPlus
+	}
+	if x >= 1 {
+		return oneMinus
+	}
+	return x
+}
+
 var (
 	Nearest            Filter
 	Linear             Filter

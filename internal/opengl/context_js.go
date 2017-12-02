@@ -255,7 +255,10 @@ func (c *Context) setViewportImpl(width, height int) {
 func (c *Context) FillFramebuffer(r, g, b, a float32) error {
 	// TODO: Use f?
 	gl := c.gl
-	gl.ClearColor(r, g, b, a)
+	gl.ClearColor(adjustForClearColor(r),
+		adjustForClearColor(g),
+		adjustForClearColor(b),
+		adjustForClearColor(a))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	return nil
 }
