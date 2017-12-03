@@ -14,12 +14,14 @@
 
 package opengl
 
-type Filter int
-type ShaderType int
-type BufferType int
-type BufferUsage int
-type Mode int
-type operation int
+type (
+	Filter      int
+	ShaderType  int
+	BufferType  int
+	BufferUsage int
+	Mode        int
+	operation   int
+)
 
 type CompositeMode int
 
@@ -69,7 +71,7 @@ func operations(mode CompositeMode) (src operation, dst operation) {
 	case CompositeModeLighter:
 		return one, one
 	default:
-		panic("not reach")
+		panic("not reached")
 	}
 }
 
@@ -82,6 +84,6 @@ func (d DataType) SizeInBytes() int {
 	case Float:
 		return 4
 	default:
-		panic("not reach")
+		panic("not reached")
 	}
 }

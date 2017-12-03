@@ -335,10 +335,10 @@ func (c *Context) getAttribLocationImpl(p Program, location string) attribLocati
 	return a
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, normalize bool, stride int, offset int) {
+func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.Enum(dataType), normalize, stride, offset)
+	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.Enum(dataType), false, stride, offset)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {

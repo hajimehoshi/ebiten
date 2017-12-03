@@ -24,10 +24,9 @@ import (
 // arrayBufferLayoutPart is a part of an array buffer layout.
 type arrayBufferLayoutPart struct {
 	// TODO: This struct should belong to a program and know it.
-	name      string
-	dataType  opengl.DataType
-	num       int
-	normalize bool
+	name     string
+	dataType opengl.DataType
+	num      int
 }
 
 // arrayBufferLayout is an array buffer layout.
@@ -65,7 +64,7 @@ func (a *arrayBufferLayout) enable(program opengl.Program) {
 	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
-		opengl.GetContext().VertexAttribPointer(program, p.name, p.num, p.dataType, p.normalize, total, offset)
+		opengl.GetContext().VertexAttribPointer(program, p.name, p.num, p.dataType, total, offset)
 		offset += p.dataType.SizeInBytes() * p.num
 	}
 }
@@ -84,28 +83,24 @@ var (
 		// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
 		parts: []arrayBufferLayoutPart{
 			{
-				name:      "vertex",
-				dataType:  opengl.Float,
-				num:       2,
-				normalize: false,
+				name:     "vertex",
+				dataType: opengl.Float,
+				num:      2,
 			},
 			{
-				name:      "tex_coord",
-				dataType:  opengl.Float,
-				num:       4,
-				normalize: false,
+				name:     "tex_coord",
+				dataType: opengl.Float,
+				num:      4,
 			},
 			{
-				name:      "geo_matrix_body",
-				dataType:  opengl.Float,
-				num:       4,
-				normalize: false,
+				name:     "geo_matrix_body",
+				dataType: opengl.Float,
+				num:      4,
 			},
 			{
-				name:      "geo_matrix_translation",
-				dataType:  opengl.Float,
-				num:       2,
-				normalize: false,
+				name:     "geo_matrix_translation",
+				dataType: opengl.Float,
+				num:      2,
 			},
 		},
 	}
