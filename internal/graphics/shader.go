@@ -63,17 +63,50 @@ precision mediump float;
 uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
+uniform int filter_type;
+uniform vec2 source_size;
+
 varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
 
+vec2 roundTexel(vec2 p) {
+  // Many devices can't use highp in fragment shaders, so use only mediump here.
+  // According to the spec, mediump value range is -2**14 to 2**14 (16384).
+  // Some machines have higher precisions, but a very slight value difference causes
+  // a different result of getColorAt. This function avoids such flakines by rounding values.
+  float max_mediump = 16384.0;
+  return floor(p * max_mediump + 0.5) / max_mediump;
+}
+
+vec4 getColorAt(vec2 pos) {
+  if (pos.x < varying_tex_coord_min.x ||
+      pos.y < varying_tex_coord_min.y ||
+      varying_tex_coord_max.x <= pos.x ||
+      varying_tex_coord_max.y <= pos.y) {
+    return vec4(0, 0, 0, 0);
+  }
+  return texture2D(texture, pos);
+}
+
 void main(void) {
   vec4 color = vec4(0, 0, 0, 0);
-  if (varying_tex_coord_min.x <= varying_tex_coord.x &&
-      varying_tex_coord_min.y <= varying_tex_coord.y &&
-      varying_tex_coord.x < varying_tex_coord_max.x &&
-      varying_tex_coord.y < varying_tex_coord_max.y) {
-    color = texture2D(texture, varying_tex_coord);
+
+  vec2 pos = roundTexel(varying_tex_coord);
+  if (filter_type == 1) {
+    // Nearest neighbor
+    color = getColorAt(pos);
+  } else if (filter_type == 2) {
+    // Bi-linear
+    vec2 texel_size = 1.0 / source_size;
+    pos -= texel_size * 0.5;
+    vec4 c0 = getColorAt(pos);
+    vec4 c1 = getColorAt(pos + vec2(texel_size.x, 0));
+    vec4 c2 = getColorAt(pos + vec2(0, texel_size.y));
+    vec4 c3 = getColorAt(pos + texel_size);
+    float rateX = fract(pos.x * source_size.x);
+    float rateY = fract(pos.y * source_size.y);
+    color = mix(mix(c0, c1, rateX), mix(c2, c3, rateX), rateY);
   }
 
   // Un-premultiply alpha

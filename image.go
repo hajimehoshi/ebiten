@@ -20,6 +20,7 @@ import (
 	"image/color"
 	"runtime"
 
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
@@ -244,7 +245,7 @@ type DrawImageOptions struct {
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
-	r := restorable.NewImage(width, height, glFilter(filter), false)
+	r := restorable.NewImage(width, height, graphics.Filter(filter), false)
 	r.Fill(0, 0, 0, 0)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -268,7 +269,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) *Image {
 	checkSize(width, height)
-	r := restorable.NewImage(width, height, glFilter(filter), true)
+	r := restorable.NewImage(width, height, graphics.Filter(filter), true)
 	r.Fill(0, 0, 0, 0)
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -283,7 +284,7 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	checkSize(size.X, size.Y)
-	r := restorable.NewImageFromImage(source, glFilter(filter))
+	r := restorable.NewImageFromImage(source, graphics.Filter(filter))
 	i := &Image{r}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
