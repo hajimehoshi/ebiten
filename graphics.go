@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -23,21 +24,11 @@ type Filter int
 
 const (
 	// FilterNearest represents nearest (crisp-edged) filter
-	FilterNearest Filter = iota
+	FilterNearest Filter = Filter(graphics.FilterNearest)
 
 	// FilterLinear represents linear filter
-	FilterLinear
+	FilterLinear Filter = Filter(graphics.FilterLinear)
 )
-
-func glFilter(filter Filter) opengl.Filter {
-	switch filter {
-	case FilterNearest:
-		return opengl.Nearest
-	case FilterLinear:
-		return opengl.Linear
-	}
-	panic("not reach")
-}
 
 // CompositeMode represents Porter-Duff composition mode.
 type CompositeMode int

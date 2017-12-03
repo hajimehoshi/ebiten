@@ -25,11 +25,13 @@ import (
 	mgl "golang.org/x/mobile/gl"
 )
 
-type Texture mgl.Texture
-type Framebuffer mgl.Framebuffer
-type Shader mgl.Shader
-type Program mgl.Program
-type Buffer mgl.Buffer
+type (
+	Texture     mgl.Texture
+	Framebuffer mgl.Framebuffer
+	Shader      mgl.Shader
+	Program     mgl.Program
+	Buffer      mgl.Buffer
+)
 
 func (t Texture) equals(other Texture) bool {
 	return t == other
@@ -39,8 +41,10 @@ func (f Framebuffer) equals(other Framebuffer) bool {
 	return f == other
 }
 
-type uniformLocation mgl.Uniform
-type attribLocation mgl.Attrib
+type (
+	uniformLocation mgl.Uniform
+	attribLocation  mgl.Attrib
+)
 
 type programID uint32
 
@@ -54,8 +58,6 @@ func (p Program) id() programID {
 }
 
 func init() {
-	Nearest = mgl.NEAREST
-	Linear = mgl.LINEAR
 	VertexShader = mgl.VERTEX_SHADER
 	FragmentShader = mgl.FRAGMENT_SHADER
 	ArrayBuffer = mgl.ARRAY_BUFFER
@@ -127,7 +129,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	gl.BlendFunc(mgl.Enum(s), mgl.Enum(d))
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t.Value <= 0 {
@@ -136,8 +138,8 @@ func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (
 	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
 	c.BindTexture(Texture(t))
 
-	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MAG_FILTER, int(filter))
-	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, int(filter))
+	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MAG_FILTER, mgl.NEAREST)
+	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, mgl.NEAREST)
 
 	var p []uint8
 	if pixels != nil {

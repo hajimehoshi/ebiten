@@ -121,6 +121,9 @@ type openGLState struct {
 	lastProjectionMatrix       []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
+	lastFilterType             Filter
+	lastSourceWidth            int
+	lastSourceHeight           int
 }
 
 var (
@@ -150,6 +153,9 @@ func (s *openGLState) reset() error {
 	s.lastProjectionMatrix = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
+	s.lastFilterType = FilterNone
+	s.lastSourceWidth = 0
+	s.lastSourceHeight = 0
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
@@ -214,7 +220,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, colorM affine.ColorM) {
+func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceWidth, sourceHeight int, colorM affine.ColorM, filter Filter) {
 	c := opengl.GetContext()
 	program := s.programTexture
 
@@ -271,6 +277,20 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, colorM 
 			s.lastColorMatrixTranslation = make([]float32, 4)
 		}
 		copy(s.lastColorMatrixTranslation, colorMatrixTranslation)
+	}
+
+	if s.lastFilterType != filter {
+		c.UniformInt(program, "filter_type", int(filter))
+		s.lastFilterType = filter
+	}
+
+	if s.lastSourceWidth != sourceWidth {
+		c.UniformInt(program, "source_width", sourceWidth)
+		s.lastSourceWidth = sourceWidth
+	}
+	if s.lastSourceHeight != sourceHeight {
+		c.UniformInt(program, "source_height", sourceHeight)
+		s.lastSourceHeight = sourceHeight
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture

@@ -38,8 +38,6 @@ func adjustForClearColor(x float32) float32 {
 }
 
 var (
-	Nearest            Filter
-	Linear             Filter
 	VertexShader       ShaderType
 	FragmentShader     ShaderType
 	ArrayBuffer        BufferType

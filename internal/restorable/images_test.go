@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	. "github.com/hajimehoshi/ebiten/internal/restorable"
 )
@@ -47,7 +48,7 @@ func uint8SliceToColor(b []uint8, index int) color.RGBA {
 }
 
 func TestRestore(t *testing.T) {
-	img0 := NewImage(1, 1, opengl.Nearest, false)
+	img0 := NewImage(1, 1, graphics.FilterNearest, false)
 	// Clear images explicitly.
 	// In this 'restorable' layer, reused texture might not be cleared.
 	img0.Fill(0, 0, 0, 0)
@@ -89,7 +90,7 @@ func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(1, 1, opengl.Nearest, false)
+		img := NewImage(1, 1, graphics.FilterNearest, false)
 		img.Fill(0, 0, 0, 0)
 		imgs = append(imgs, img)
 	}
@@ -119,13 +120,13 @@ func TestRestoreChain(t *testing.T) {
 }
 
 func TestRestoreOverrideSource(t *testing.T) {
-	img0 := NewImage(1, 1, opengl.Nearest, false)
+	img0 := NewImage(1, 1, graphics.FilterNearest, false)
 	img0.Fill(0, 0, 0, 0)
-	img1 := NewImage(1, 1, opengl.Nearest, false)
+	img1 := NewImage(1, 1, graphics.FilterNearest, false)
 	img1.Fill(0, 0, 0, 0)
-	img2 := NewImage(1, 1, opengl.Nearest, false)
+	img2 := NewImage(1, 1, graphics.FilterNearest, false)
 	img2.Fill(0, 0, 0, 0)
-	img3 := NewImage(1, 1, opengl.Nearest, false)
+	img3 := NewImage(1, 1, graphics.FilterNearest, false)
 	img3.Fill(0, 0, 0, 0)
 	defer func() {
 		img3.Dispose()
@@ -194,18 +195,18 @@ func TestRestoreComplexGraph(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base, opengl.Nearest)
-	img1 := NewImageFromImage(base, opengl.Nearest)
-	img2 := NewImageFromImage(base, opengl.Nearest)
-	img3 := NewImage(4, 1, opengl.Nearest, false)
+	img0 := NewImageFromImage(base, graphics.FilterNearest)
+	img1 := NewImageFromImage(base, graphics.FilterNearest)
+	img2 := NewImageFromImage(base, graphics.FilterNearest)
+	img3 := NewImage(4, 1, graphics.FilterNearest, false)
 	img3.Fill(0, 0, 0, 0)
-	img4 := NewImage(4, 1, opengl.Nearest, false)
+	img4 := NewImage(4, 1, graphics.FilterNearest, false)
 	img4.Fill(0, 0, 0, 0)
-	img5 := NewImage(4, 1, opengl.Nearest, false)
+	img5 := NewImage(4, 1, graphics.FilterNearest, false)
 	img5.Fill(0, 0, 0, 0)
-	img6 := NewImage(4, 1, opengl.Nearest, false)
+	img6 := NewImage(4, 1, graphics.FilterNearest, false)
 	img6.Fill(0, 0, 0, 0)
-	img7 := NewImage(4, 1, opengl.Nearest, false)
+	img7 := NewImage(4, 1, graphics.FilterNearest, false)
 	img7.Fill(0, 0, 0, 0)
 	defer func() {
 		img7.Dispose()
@@ -298,8 +299,8 @@ func TestRestoreRecursive(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base, opengl.Nearest)
-	img1 := NewImage(4, 1, opengl.Nearest, false)
+	img0 := NewImageFromImage(base, graphics.FilterNearest)
+	img1 := NewImage(4, 1, graphics.FilterNearest, false)
 	img1.Fill(0, 0, 0, 0)
 	defer func() {
 		img1.Dispose()
