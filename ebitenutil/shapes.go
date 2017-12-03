@@ -24,7 +24,7 @@ import (
 var emptyImage *ebiten.Image
 
 func init() {
-	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterLinear)
+	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterNearest)
 	_ = emptyImage.Fill(color.White)
 }
 
