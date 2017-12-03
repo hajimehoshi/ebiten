@@ -22,15 +22,14 @@ import (
 )
 
 var (
-	emptyNearestImage *ebiten.Image
-	emptyLinearImage  *ebiten.Image
+	emptyImage *ebiten.Image
 )
 
 func init() {
-	emptyNearestImage, _ = ebiten.NewImage(16, 16, ebiten.FilterNearest)
-	_ = emptyNearestImage.Fill(color.White)
-	emptyLinearImage, _ = ebiten.NewImage(16, 16, ebiten.FilterLinear)
-	_ = emptyLinearImage.Fill(color.White)
+	// Filter must be 'nearest' filter.
+	// Linear filtering would make edges blurred.
+	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterNearest)
+	_ = emptyImage.Fill(color.White)
 }
 
 func colorScale(clr color.Color) (rf, gf, bf, af float64) {
@@ -50,7 +49,7 @@ func colorScale(clr color.Color) (rf, gf, bf, af float64) {
 //
 // DrawLine is intended to be used mainly for debugging or prototyping purpose.
 func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
-	ew, eh := emptyLinearImage.Size()
+	ew, eh := emptyImage.Size()
 	length := math.Hypot(x2-x1, y2-y1)
 
 	op := &ebiten.DrawImageOptions{}
@@ -58,18 +57,18 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
 	op.GeoM.Translate(x1, y1)
 	op.ColorM.Scale(colorScale(clr))
-	_ = dst.DrawImage(emptyLinearImage, op)
+	_ = dst.DrawImage(emptyImage, op)
 }
 
 // DrawRect draws a rectangle on the given destination dst.
 //
 // DrawRect is intended to be used mainly for debugging or prototyping purpose.
 func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
-	ew, eh := emptyNearestImage.Size()
+	ew, eh := emptyImage.Size()
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(width/float64(ew), height/float64(eh))
 	op.GeoM.Translate(x, y)
 	op.ColorM.Scale(colorScale(clr))
-	_ = dst.DrawImage(emptyNearestImage, op)
+	_ = dst.DrawImage(emptyImage, op)
 }
