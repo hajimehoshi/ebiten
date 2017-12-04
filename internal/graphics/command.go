@@ -409,6 +409,8 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	if c.height < 1 {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
-	c.result.framebuffer = newScreenFramebuffer(c.width, c.height, c.offsetX, c.offsetY)
+	w := emath.NextPowerOf2Int(c.width)
+	h := emath.NextPowerOf2Int(c.height)
+	c.result.framebuffer = newScreenFramebuffer(w, h, c.offsetX, c.offsetY)
 	return nil
 }
