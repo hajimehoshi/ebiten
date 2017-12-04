@@ -409,8 +409,9 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	if c.height < 1 {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
-	w := emath.NextPowerOf2Int(c.width)
-	h := emath.NextPowerOf2Int(c.height)
-	c.result.framebuffer = newScreenFramebuffer(w, h, c.offsetX, c.offsetY)
+	// The (default) framebuffer size can't be converted to a power of 2.
+	// On browsers, c.width and c.height are used as viewport size and
+	// Edge can't treat a bigger viewport than the drawing area (#71).
+	c.result.framebuffer = newScreenFramebuffer(c.width, c.height, c.offsetX, c.offsetY)
 	return nil
 }
