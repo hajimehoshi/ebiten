@@ -71,12 +71,14 @@ varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
 
 vec2 roundTexel(vec2 p) {
-  // Many devices can't use highp in fragment shaders, so use only mediump here.
-  // According to the spec, mediump value range is -2**14 to 2**14 (16384).
-  // Some machines have higher precisions, but a very slight value difference causes
-  // a different result of getColorAt. This function avoids such flakines by rounding values.
-  float max_mediump = 16384.0;
-  return floor(p * max_mediump + 0.5) / max_mediump;
+  vec2 factor = 1.0 / (source_size * 256.0);
+  if (factor.x > 0.0) {
+    p.x -= mod(p.x + factor.x * 0.5, factor.x) - factor.x * 0.5;
+  }
+  if (factor.y > 0.0) {
+    p.y -= mod(p.y + factor.y * 0.5, factor.y) - factor.y * 0.5;
+  }
+  return p;
 }
 
 vec4 getColorAt(vec2 pos) {
