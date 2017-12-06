@@ -559,6 +559,10 @@ func TestImageEdge(t *testing.T) {
 	}
 }
 
+func indexToColor(index int) uint8 {
+	return uint8((17 * index) % 256)
+}
+
 // Issue #419
 func TestImageTooManyFill(t *testing.T) {
 	const width = 1024
@@ -566,15 +570,17 @@ func TestImageTooManyFill(t *testing.T) {
 	src, _ := NewImage(1, 1, FilterNearest)
 	dst, _ := NewImage(width, 1, FilterNearest)
 	for i := 0; i < width; i++ {
-		src.Fill(color.RGBA{uint8(i), uint8(i), uint8(i), 0xff})
+		c := indexToColor(i)
+		src.Fill(color.RGBA{c, c, c, 0xff})
 		op := &DrawImageOptions{}
 		op.GeoM.Translate(float64(i), 0)
 		dst.DrawImage(src, op)
 	}
 
 	for i := 0; i < width; i++ {
+		c := indexToColor(i)
 		got := color.RGBAModel.Convert(dst.At(i, 0))
-		want := color.RGBA{uint8(i), uint8(i), uint8(i), 0xff}
+		want := color.RGBA{c, c, c, 0xff}
 		if got != want {
 			t.Errorf("src At(%d, %d): got %#v, want: %#v", i, 0, got, want)
 		}
