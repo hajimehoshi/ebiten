@@ -60,7 +60,7 @@ func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mod
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
 	image  *graphics.Image
-	filter graphics.Filter
+	filter opengl.Filter
 
 	// baseImage and baseColor are exclusive.
 	basePixels []uint8
@@ -84,7 +84,7 @@ type Image struct {
 }
 
 // NewImage creates an empty image with the given size and filter.
-func NewImage(width, height int, filter graphics.Filter, volatile bool) *Image {
+func NewImage(width, height int, filter opengl.Filter, volatile bool) *Image {
 	i := &Image{
 		image:    graphics.NewImage(width, height, filter),
 		filter:   filter,
@@ -96,7 +96,7 @@ func NewImage(width, height int, filter graphics.Filter, volatile bool) *Image {
 }
 
 // NewImageFromImage creates an image with source image.
-func NewImageFromImage(source image.Image, filter graphics.Filter) *Image {
+func NewImageFromImage(source image.Image, filter opengl.Filter) *Image {
 	size := source.Bounds().Size()
 	width, height := size.X, size.Y
 	rgbaImg := CopyImage(source)

@@ -63,50 +63,17 @@ precision mediump float;
 uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
-uniform int filter_type;
-uniform int source_width;
-uniform int source_height;
-
 varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
 
-vec2 texel_size = vec2(1.0 / float(source_width), 1.0 / float(source_height));
-
-vec2 roundTexel(vec2 p) {
-  float unit = 256.0;
-  float x = floor(p.x * float(source_width) * unit + 0.5) / float(source_width) / unit;
-  float y = floor(p.y * float(source_height) * unit + 0.5) / float(source_height) / unit;
-  return vec2(x, y);
-}
-
-vec4 getColorAt(vec2 pos) {
-  if (pos.x < varying_tex_coord_min.x ||
-      pos.y < varying_tex_coord_min.y ||
-      varying_tex_coord_max.x <= pos.x ||
-      varying_tex_coord_max.y <= pos.y) {
-    return vec4(0, 0, 0, 0);
-  }
-  return texture2D(texture, pos);
-}
-
 void main(void) {
   vec4 color = vec4(0, 0, 0, 0);
-
-  vec2 pos = roundTexel(varying_tex_coord);
-  if (filter_type == 1) {
-    // Nearest neighbor
-    color = getColorAt(pos);
-  } else if (filter_type == 2) {
-    // Bi-linear
-    pos -= texel_size * 0.5;
-    vec4 c0 = getColorAt(pos);
-    vec4 c1 = getColorAt(pos + vec2(texel_size.x, 0));
-    vec4 c2 = getColorAt(pos + vec2(0, texel_size.y));
-    vec4 c3 = getColorAt(pos + texel_size);
-    float rateX = fract(pos.x * float(source_width));
-    float rateY = fract(pos.y * float(source_height));
-    color = mix(mix(c0, c1, rateX), mix(c2, c3, rateX), rateY);
+  if (varying_tex_coord_min.x <= varying_tex_coord.x &&
+      varying_tex_coord_min.y <= varying_tex_coord.y &&
+      varying_tex_coord.x < varying_tex_coord_max.x &&
+      varying_tex_coord.y < varying_tex_coord_max.y) {
+    color = texture2D(texture, varying_tex_coord);
   }
 
   // Un-premultiply alpha

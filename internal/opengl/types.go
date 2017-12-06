@@ -15,6 +15,7 @@
 package opengl
 
 type (
+	Filter      int
 	ShaderType  int
 	BufferType  int
 	BufferUsage int

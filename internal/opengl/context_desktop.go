@@ -26,13 +26,11 @@ import (
 	"github.com/go-gl/gl/v2.1/gl"
 )
 
-type (
-	Texture     uint32
-	Framebuffer uint32
-	Shader      uint32
-	Program     uint32
-	Buffer      uint32
-)
+type Texture uint32
+type Framebuffer uint32
+type Shader uint32
+type Program uint32
+type Buffer uint32
 
 func (t Texture) equals(other Texture) bool {
 	return t == other
@@ -42,10 +40,8 @@ func (f Framebuffer) equals(other Framebuffer) bool {
 	return f == other
 }
 
-type (
-	uniformLocation int32
-	attribLocation  int32
-)
+type uniformLocation int32
+type attribLocation int32
 
 type programID uint32
 
@@ -59,6 +55,8 @@ func (p Program) id() programID {
 }
 
 func init() {
+	Nearest = gl.NEAREST
+	Linear = gl.LINEAR
 	VertexShader = gl.VERTEX_SHADER
 	FragmentShader = gl.FRAGMENT_SHADER
 	ArrayBuffer = gl.ARRAY_BUFFER
@@ -139,7 +137,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	})
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	var texture Texture
 	if err := c.runOnContextThread(func() error {
 		var t uint32
@@ -156,8 +154,10 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 	}
 	c.BindTexture(texture)
 	_ = c.runOnContextThread(func() error {
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int32(filter))
+		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int32(filter))
+		//gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP)
+		//gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP)
 
 		var p interface{}
 		if pixels != nil {

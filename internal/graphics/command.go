@@ -242,18 +242,12 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if n == 0 {
 		return nil
 	}
-	sw, sh := c.src.Size()
-	sw = emath.NextPowerOf2Int(sw)
-	sh = emath.NextPowerOf2Int(sh)
-	_, dh := c.dst.Size()
-	proj := f.projectionMatrix(dh)
-	theOpenGLState.useProgram(proj, c.src.texture.native, sw, sh, c.color, c.src.texture.filter)
+	_, h := c.dst.Size()
+	proj := f.projectionMatrix(h)
+	theOpenGLState.useProgram(proj, c.src.texture.native, c.color)
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
 	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
-
-	// This is necessary at least on MacBook Pro (a smilar problem at #419)
-	opengl.GetContext().Flush()
 	return nil
 }
 
@@ -344,7 +338,7 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 type newImageFromImageCommand struct {
 	result *Image
 	img    *image.RGBA
-	filter Filter
+	filter opengl.Filter
 }
 
 // Exec executes the newImageFromImageCommand.
@@ -360,13 +354,12 @@ func (c *newImageFromImageCommand) Exec(indexOffsetInBytes int) error {
 	if c.img.Bounds() != image.Rect(0, 0, emath.NextPowerOf2Int(w), emath.NextPowerOf2Int(h)) {
 		panic(fmt.Sprintf("graphics: invalid image bounds: %v", c.img.Bounds()))
 	}
-	native, err := opengl.GetContext().NewTexture(w, h, c.img.Pix)
+	native, err := opengl.GetContext().NewTexture(w, h, c.img.Pix, c.filter)
 	if err != nil {
 		return err
 	}
 	c.result.texture = &texture{
 		native: native,
-		filter: c.filter,
 	}
 	return nil
 }
@@ -376,7 +369,7 @@ type newImageCommand struct {
 	result *Image
 	width  int
 	height int
-	filter Filter
+	filter opengl.Filter
 }
 
 // Exec executes a newImageCommand.
@@ -389,13 +382,12 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	if h < 1 {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
-	native, err := opengl.GetContext().NewTexture(w, h, nil)
+	native, err := opengl.GetContext().NewTexture(w, h, nil, c.filter)
 	if err != nil {
 		return err
 	}
 	c.result.texture = &texture{
 		native: native,
-		filter: c.filter,
 	}
 	return nil
 }
