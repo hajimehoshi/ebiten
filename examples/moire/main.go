@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	initScreenWidth  = 320
-	initScreenHeight = 240
-	initScreenScale  = 2
+	initScreenWidth  = 640
+	initScreenHeight = 480
+	initScreenScale  = 1
 )
 
 var (
