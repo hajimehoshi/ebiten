@@ -18,7 +18,16 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
+type Filter int
+
+const (
+	FilterNone Filter = iota
+	FilterNearest
+	FilterLinear
+)
+
 // texture represents OpenGL's texture.
 type texture struct {
 	native opengl.Texture
+	filter Filter
 }
