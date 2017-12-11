@@ -33,7 +33,7 @@ type Image struct {
 // MaxImageSize is the maximum of width/height of an image.
 const MaxImageSize = defaultViewportSize
 
-func NewImage(width, height int, filter Filter) *Image {
+func NewImage(width, height int, filter opengl.Filter) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
@@ -48,7 +48,7 @@ func NewImage(width, height int, filter Filter) *Image {
 	return i
 }
 
-func NewImageFromImage(img *image.RGBA, width, height int, filter Filter) *Image {
+func NewImageFromImage(img *image.RGBA, width, height int, filter opengl.Filter) *Image {
 	i := &Image{
 		width:  width,
 		height: height,

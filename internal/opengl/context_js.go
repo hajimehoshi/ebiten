@@ -77,6 +77,8 @@ func (p Program) id() programID {
 func init() {
 	// Accessing the prototype is rquired on Safari.
 	c := js.Global.Get("WebGLRenderingContext").Get("prototype")
+	Nearest = Filter(c.Get("NEAREST").Int())
+	Linear = Filter(c.Get("LINEAR").Int())
 	VertexShader = ShaderType(c.Get("VERTEX_SHADER").Int())
 	FragmentShader = ShaderType(c.Get("FRAGMENT_SHADER").Int())
 	ArrayBuffer = BufferType(c.Get("ARRAY_BUFFER").Int())
@@ -157,7 +159,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	gl.BlendFunc(int(s), int(d))
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error) {
+func (c *Context) NewTexture(width, height int, pixels []uint8, filter Filter) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t == nil {
@@ -166,8 +168,8 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	c.BindTexture(Texture{t})
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, int(filter))
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, int(filter))
 
 	// TODO: Can we use glTexSubImage2D with linear filtering?
 
@@ -346,14 +348,12 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
-	case 2:
-		gl.Call("uniform2fv", l.Object, v)
 	case 4:
 		gl.Call("uniform4fv", l.Object, v)
 	case 16:
 		gl.UniformMatrix4fv(l.Object, false, v)
 	default:
-		panic("not reached")
+		panic("not reach")
 	}
 }
 
