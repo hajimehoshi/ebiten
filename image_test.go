@@ -621,3 +621,42 @@ func TestImageLinear(t *testing.T) {
 		}
 	}
 }
+
+func TestImageOutside(t *testing.T) {
+	src, _ := NewImage(5, 10, FilterNearest) // internal texture size is 16x16.
+	dst, _ := NewImage(4, 4, FilterNearest)
+	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	cases := []struct {
+		X, Y int
+	}{
+		{-4, -4},
+		{5, 0},
+		{0, 10},
+		{5, 10},
+		{16, 0},
+		{0, 16},
+		{16, 16},
+		{16, -4},
+		{-4, 16},
+	}
+	for _, c := range cases {
+		dst.Clear()
+
+		op := &DrawImageOptions{}
+		op.GeoM.Translate(0, 0)
+		r := image.Rect(c.X, c.Y, c.X+4, c.Y+4)
+		op.SourceRect = &r
+		dst.DrawImage(src, op)
+
+		for j := 0; j < 4; j++ {
+			for i := 0; i < 4; i++ {
+				got := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
+				want := color.RGBA{0, 0, 0, 0}
+				if got != want {
+					t.Errorf("src(%d, %d), dst At(%d, %d): got %#v, want: %#v", c.X, c.Y, i, j, got, want)
+				}
+			}
+		}
+	}
+}

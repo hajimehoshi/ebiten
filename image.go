@@ -98,11 +98,13 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if options == nil {
 		options = &DrawImageOptions{}
 	}
+
 	parts := options.ImageParts
 	// Parts is deprecated. This implementations is for backward compatibility.
 	if parts == nil && options.Parts != nil {
 		parts = imageParts(options.Parts)
 	}
+
 	// ImageParts is deprecated. This implementations is for backward compatibility.
 	if parts != nil {
 		l := parts.Len()
@@ -124,13 +126,18 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		}
 		return nil
 	}
+
 	w, h := img.restorable.Size()
 	sx0, sy0, sx1, sy1 := 0, 0, w, h
 	if r := options.SourceRect; r != nil {
 		sx0 = r.Min.X
 		sy0 = r.Min.Y
-		sx1 = r.Max.X
-		sy1 = r.Max.Y
+		if sx1 > r.Max.X {
+			sx1 = r.Max.X
+		}
+		if sy1 > r.Max.Y {
+			sy1 = r.Max.Y
+		}
 	}
 	vs := vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
 	mode := opengl.CompositeMode(options.CompositeMode)

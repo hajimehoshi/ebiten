@@ -83,6 +83,9 @@ highp vec2 roundTexel(highp vec2 p) {
 }
 
 vec4 getColorAt(highp vec2 pos) {
+  if (pos.x < 0.0 || pos.y < 0.0) {
+    return vec4(0, 0, 0, 0);
+  }
   if (pos.x < varying_tex_coord_min.x ||
       pos.y < varying_tex_coord_min.y ||
       varying_tex_coord_max.x <= pos.x ||
