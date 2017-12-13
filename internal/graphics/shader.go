@@ -14,33 +14,19 @@
 
 package graphics
 
-import (
-	"strings"
-
-	"github.com/hajimehoshi/ebiten/internal/web"
-)
-
-type shaderId int
+type shaderID int
 
 const (
-	shaderVertexModelview shaderId = iota
+	shaderVertexModelview shaderID = iota
 	shaderFragmentTexture
 )
 
-func shader(id shaderId) string {
-	s := shaders[id]
-	defs := []string{}
-	if web.IsMobileBrowser() {
-		defs = append(defs, "#define IS_MOBILE_BROWSER")
-	}
-	s = strings.Replace(s, "{{Definitions}}", strings.Join(defs, "\n"), -1)
-	return s
+func shader(id shaderID) string {
+	return shaders[id]
 }
 
-var shaders = map[shaderId]string{
+var shaders = map[shaderID]string{
 	shaderVertexModelview: `
-{{Definitions}}
-
 uniform mat4 projection_matrix;
 attribute vec2 vertex;
 attribute vec4 tex_coord;
@@ -74,40 +60,29 @@ precision mediump float;
 #define highp
 #endif
 
-{{Definitions}}
-
 uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
 uniform vec2 source_size;
 uniform int filter_type;
 
-varying vec2 varying_tex_coord;
-varying vec2 varying_tex_coord_min;
-varying vec2 varying_tex_coord_max;
+varying highp vec2 varying_tex_coord;
+varying highp vec2 varying_tex_coord_min;
+varying highp vec2 varying_tex_coord_max;
 
-vec2 roundTexel(vec2 p) {
-#if defined(IS_MOBILE_BROWSER)
-  // This is a temporary hack: on mobile browsers like Android Chrome,
-  // the code to round a float might cause unexpected behavior.
-  // This is confirmed with rendering a relatively large (e.g. 4096x512) image
-  // with specifying a source rectangle near its edges.
-  // TODO: examples/moire doesn't work anyway.
-  // TODO: Does this function work on an Android native app?
-  return p;
-#else
-  vec2 factor = 1.0 / (source_size * 256.0);
-  if (factor.x > 0.0) {
+highp vec2 roundTexel(highp vec2 p) {
+  // highp (relative) precision is 2^(-16) in the spec.
+  // As the maximum source size is 4096, the minimum value for a denominator is
+  // 65536 (= 4096 * 16).
+  highp vec2 factor = 1.0 / (source_size * 16.0);
+  if (factor.x * 0.5 > 0.0 && factor.y * 0.5 > 0.0) {
     p.x -= mod(p.x + factor.x * 0.5, factor.x) - factor.x * 0.5;
-  }
-  if (factor.y > 0.0) {
     p.y -= mod(p.y + factor.y * 0.5, factor.y) - factor.y * 0.5;
   }
   return p;
-#endif
 }
 
-vec4 getColorAt(vec2 pos) {
+vec4 getColorAt(highp vec2 pos) {
   if (pos.x < varying_tex_coord_min.x ||
       pos.y < varying_tex_coord_min.y ||
       varying_tex_coord_max.x <= pos.x ||
@@ -126,7 +101,7 @@ void main(void) {
     color = getColorAt(pos);
   } else if (filter_type == 2) {
     // Bi-linear
-    vec2 texel_size = 1.0 / source_size;
+    highp vec2 texel_size = 1.0 / source_size;
     pos -= texel_size * 0.5;
     vec4 c0 = getColorAt(pos);
     vec4 c1 = getColorAt(pos + vec2(texel_size.x, 0));
