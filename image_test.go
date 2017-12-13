@@ -623,7 +623,7 @@ func TestImageLinear(t *testing.T) {
 }
 
 func TestImageOutside(t *testing.T) {
-	src, _ := NewImage(5, 10, FilterNearest) // internal texture size is 16x16.
+	src, _ := NewImage(5, 10, FilterNearest) // internal texture size is 8x16.
 	dst, _ := NewImage(4, 4, FilterNearest)
 	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
@@ -634,10 +634,10 @@ func TestImageOutside(t *testing.T) {
 		{5, 0},
 		{0, 10},
 		{5, 10},
-		{16, 0},
+		{8, 0},
 		{0, 16},
-		{16, 16},
-		{16, -4},
+		{8, 16},
+		{8, -4},
 		{-4, 16},
 	}
 	for _, c := range cases {
