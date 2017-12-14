@@ -44,7 +44,7 @@ func (v *verticesBackend) get() []float32 {
 }
 
 func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []float32 {
-	if sx0 == sx1 || sy0 == sy1 {
+	if sx0 >= sx1 || sy0 >= sy1 {
 		return nil
 	}
 	// TODO: This function should be in graphics package?

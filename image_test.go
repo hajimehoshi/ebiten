@@ -628,25 +628,29 @@ func TestImageOutside(t *testing.T) {
 	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
 
 	cases := []struct {
-		X, Y int
+		X, Y, Width, Height int
 	}{
-		{-4, -4},
-		{5, 0},
-		{0, 10},
-		{5, 10},
-		{8, 0},
-		{0, 16},
-		{8, 16},
-		{8, -4},
-		{-4, 16},
+		{-4, -4, 4, 4},
+		{5, 0, 4, 4},
+		{0, 10, 4, 4},
+		{5, 10, 4, 4},
+		{8, 0, 4, 4},
+		{0, 16, 4, 4},
+		{8, 16, 4, 4},
+		{8, -4, 4, 4},
+		{-4, 16, 4, 4},
+		{5, 10, 0, 0},
+		{5, 10, -2, -2}, // non-well-formed rectangle
 	}
 	for _, c := range cases {
 		dst.Clear()
 
 		op := &DrawImageOptions{}
 		op.GeoM.Translate(0, 0)
-		r := image.Rect(c.X, c.Y, c.X+4, c.Y+4)
-		op.SourceRect = &r
+		op.SourceRect = &image.Rectangle{
+			Min: image.Pt(c.X, c.Y),
+			Max: image.Pt(c.X+c.Width, c.Y+c.Height),
+		}
 		dst.DrawImage(src, op)
 
 		for j := 0; j < 4; j++ {
@@ -654,7 +658,7 @@ func TestImageOutside(t *testing.T) {
 				got := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
 				want := color.RGBA{0, 0, 0, 0}
 				if got != want {
-					t.Errorf("src(%d, %d), dst At(%d, %d): got %#v, want: %#v", c.X, c.Y, i, j, got, want)
+					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %#v, want: %#v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
 				}
 			}
 		}
