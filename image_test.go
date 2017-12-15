@@ -664,3 +664,31 @@ func TestImageOutside(t *testing.T) {
 		}
 	}
 }
+
+func TestImageOutsideUpperLeft(t *testing.T) {
+	src, _ := NewImage(4, 4, FilterNearest)
+	dst1, _ := NewImage(16, 16, FilterNearest)
+	dst2, _ := NewImage(16, 16, FilterNearest)
+	src.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	op := &DrawImageOptions{}
+	op.GeoM.Rotate(math.Pi / 4)
+	r := image.Rect(-4, -4, 8, 8)
+	op.SourceRect = &r
+	dst1.DrawImage(src, op)
+
+	op = &DrawImageOptions{}
+	op.GeoM.Translate(4, 4)
+	op.GeoM.Rotate(math.Pi / 4)
+	dst2.DrawImage(src, op)
+
+	for j := 0; j < 16; j++ {
+		for i := 0; i < 16; i++ {
+			got := color.RGBAModel.Convert(dst1.At(i, j)).(color.RGBA)
+			want := color.RGBAModel.Convert(dst2.At(i, j)).(color.RGBA)
+			if got != want {
+				t.Errorf("got: dst1.At(%d, %d): %#v, want: dst2.At(%d, %d): %#v", i, j, got, i, j, want)
+			}
+		}
+	}
+}
