@@ -100,14 +100,37 @@ void main(void) {
     // Bi-linear
     highp vec2 texel_size = 1.0 / source_size;
     pos -= texel_size * 0.5;
-    vec4 c0 = getColorAt(pos);
-    vec4 c1 = getColorAt(pos + vec2(texel_size.x, 0));
-    vec4 c2 = getColorAt(pos + vec2(0, texel_size.y));
-    vec4 c3 = getColorAt(pos + texel_size);
+
+    highp float x0 = pos.x;
+    highp float y0 = pos.y;
+    highp float x1 = pos.x + texel_size.x;
+    highp float y1 = pos.y + texel_size.y;
+    vec4 c0 = texture2D(texture, vec2(x0, y0));
+    vec4 c1 = texture2D(texture, vec2(x1, y0));
+    vec4 c2 = texture2D(texture, vec2(x0, y1));
+    vec4 c3 = texture2D(texture, vec2(x1, y1));
+    if (x0 < varying_tex_coord_min.x) {
+      c0 = vec4(0, 0, 0, 0);
+      c2 = vec4(0, 0, 0, 0);
+    }
+    if (y0 < varying_tex_coord_min.y) {
+      c0 = vec4(0, 0, 0, 0);
+      c1 = vec4(0, 0, 0, 0);
+    }
+    if (varying_tex_coord_max.x <= x1) {
+      c1 = vec4(0, 0, 0, 0);
+      c3 = vec4(0, 0, 0, 0);
+    }
+    if (varying_tex_coord_max.y <= y1) {
+      c2 = vec4(0, 0, 0, 0);
+      c3 = vec4(0, 0, 0, 0);
+    }
+
     float rateX = fract(pos.x * source_size.x);
     float rateY = fract(pos.y * source_size.y);
     color = mix(mix(c0, c1, rateX), mix(c2, c3, rateX), rateY);
   } else {
+    // Error
     color = vec4(1, 0, 0, 1);
   }
 
