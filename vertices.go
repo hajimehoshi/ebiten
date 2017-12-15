@@ -47,8 +47,30 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 	if sx0 >= sx1 || sy0 >= sy1 {
 		return nil
 	}
+	if sx1 <= 0 || sy1 <= 0 {
+		return nil
+	}
+
 	// TODO: This function should be in graphics package?
 	vs := theVerticesBackend.get()
+
+	if sx0 < 0 || sy0 < 0 {
+		dx := 0.0
+		dy := 0.0
+		if sx0 < 0 {
+			dx = -float64(sx0)
+			sx0 = 0
+		}
+		if sy0 < 0 {
+			dy = -float64(sy0)
+			sy0 = 0
+		}
+		g := affine.GeoM{}
+		g.Translate(dx, dy)
+		g.Concat(geo)
+		geo = &g
+	}
+
 	a, b, c, d, tx, ty := geo.Elements()
 	g0 := float32(a)
 	g1 := float32(b)

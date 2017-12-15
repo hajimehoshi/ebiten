@@ -140,6 +140,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		}
 	}
 	vs := vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
+	if vs == nil {
+		return nil
+	}
 	mode := opengl.CompositeMode(options.CompositeMode)
 	i.restorable.DrawImage(img.restorable, vs, &options.ColorM.impl, mode)
 	return nil
