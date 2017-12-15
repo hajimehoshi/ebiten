@@ -63,7 +63,7 @@ precision mediump float;
 uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
-uniform vec2 source_size;
+uniform highp vec2 source_size;
 uniform int filter_type;
 
 varying highp vec2 varying_tex_coord;
@@ -92,7 +92,7 @@ vec4 getColorAt(highp vec2 pos) {
 void main(void) {
   vec4 color = vec4(0, 0, 0, 0);
 
-  vec2 pos = roundTexel(varying_tex_coord);
+  highp vec2 pos = roundTexel(varying_tex_coord);
   if (filter_type == 1) {
     // Nearest neighbor
     color = getColorAt(pos);
