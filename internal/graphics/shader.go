@@ -72,13 +72,10 @@ varying highp vec2 varying_tex_coord_max;
 
 highp vec2 roundTexel(highp vec2 p) {
   // highp (relative) precision is 2^(-16) in the spec.
-  // As the maximum source size is 4096, the minimum value for a denominator is
-  // 65536 (= 4096 * 16).
-  highp vec2 factor = 1.0 / (source_size * 16.0);
-  if (factor.x * 0.5 > 0.0 && factor.y * 0.5 > 0.0) {
-    p.x -= mod(p.x + factor.x * 0.5, factor.x) - factor.x * 0.5;
-    p.y -= mod(p.y + factor.y * 0.5, factor.y) - factor.y * 0.5;
-  }
+  // The minimum value for a denominator is half of 65536.
+  highp float factor = 1.0 / 32768.0;
+  p.x -= mod(p.x + factor * 0.5, factor) - factor * 0.5;
+  p.y -= mod(p.y + factor * 0.5, factor) - factor * 0.5;
   return p;
 }
 
