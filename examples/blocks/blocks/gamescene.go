@@ -71,7 +71,7 @@ func linesTextBoxPosition() (x, y int) {
 func init() {
 	// Background
 	var err error
-	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterLinear)
+	imageGameBG, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterLinear)
 	if err != nil {
 		panic(err)
 	}

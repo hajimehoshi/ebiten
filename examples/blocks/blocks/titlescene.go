@@ -28,7 +28,7 @@ var imageBackground *ebiten.Image
 
 func init() {
 	var err error
-	imageBackground, _, err = ebitenutil.NewImageFromFile("_resources/images/blocks/background.png", ebiten.FilterNearest)
+	imageBackground, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "blocks", "background.png"), ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}

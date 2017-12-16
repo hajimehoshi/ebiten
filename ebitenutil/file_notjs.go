@@ -21,6 +21,7 @@ package ebitenutil
 
 import (
 	"os"
+	"path/filepath"
 )
 
 // OpenFile opens a file and returns a stream for its data.
@@ -29,4 +30,13 @@ import (
 // Note that this doesn't work on mobiles.
 func OpenFile(path string) (ReadSeekCloser, error) {
 	return os.Open(path)
+}
+
+// JoinFilePath joins any number of path elements into a single path,
+// adding a Separator if necessary.
+//
+// This is basically same as filepath.Join, but the behavior is different on JavaScript.
+// For browsers, path.Join is called instead of filepath.Join.
+func JoinStringsIntoFilePath(elems ...string) string {
+	return filepath.Join(elems...)
 }

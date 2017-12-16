@@ -103,11 +103,11 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
-	wavF, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
+	wavF, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath("_resources", "audio", "jab.wav"))
 	if err != nil {
 		return nil, err
 	}
-	mp3F, err := ebitenutil.OpenFile("_resources/audio/classic.mp3")
+	mp3F, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath("_resources", "audio", "classic.mp3"))
 	if err != nil {
 		return nil, err
 	}

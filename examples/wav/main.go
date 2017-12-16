@@ -43,7 +43,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	f, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
+	f, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath("_resources", "audio", "jab.wav"))
 	if err != nil {
 		log.Fatal(err)
 	}
