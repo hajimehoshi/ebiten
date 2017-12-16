@@ -45,6 +45,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 type players struct {
@@ -245,9 +246,14 @@ func (c *Context) loop() {
 
 	// This is a heuristic decision of audio buffer size.
 	// On most desktops, 1/30[s] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
-	// On browsers, this depends on the sample rate, but 1/15[s] should work with any sample rate.
+	// On desktop browsers, 1/15[s] should work with any sample rate except for mobile browsers.
 	// On mobiles, we don't have enough data. For iOS, 1/30[s] is too short and 1/20[s] seems fine. 1/15[s] is safer.
 	bufferSize := c.sampleRate * channelNum * bytesPerSample / 15
+	if web.IsAndroidChrome() {
+		// On Android Chrome, it looks like 9600 * 4 is a sweet spot of the buffer size
+		// regardless of the sample rate. This is about 1/5[s] for 48000[Hz].
+		bufferSize = 9600 * channelNum * bytesPerSample
+	}
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize)
 	if err != nil {
 		audiobinding.SetError(err)
