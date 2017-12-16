@@ -79,23 +79,18 @@ highp vec2 roundTexel(highp vec2 p) {
   return p;
 }
 
-vec4 getColorAt(highp vec2 pos) {
-  if (pos.x < varying_tex_coord_min.x ||
-      pos.y < varying_tex_coord_min.y ||
-      varying_tex_coord_max.x <= pos.x ||
-      varying_tex_coord_max.y <= pos.y) {
-    return vec4(0, 0, 0, 0);
-  }
-  return texture2D(texture, pos);
-}
-
 void main(void) {
   vec4 color = vec4(0, 0, 0, 0);
 
   highp vec2 pos = roundTexel(varying_tex_coord);
   if (filter_type == 1) {
     // Nearest neighbor
-    color = getColorAt(pos);
+    if (varying_tex_coord_min.x <= pos.x &&
+      varying_tex_coord_min.y <= pos.y &&
+      pos.x < varying_tex_coord_max.x &&
+      pos.y < varying_tex_coord_max.y) {
+      color = texture2D(texture, pos);
+    }
   } else if (filter_type == 2) {
     // Bi-linear
     highp vec2 texel_size = 1.0 / source_size;
