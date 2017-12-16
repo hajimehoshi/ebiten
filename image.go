@@ -227,6 +227,8 @@ func (i *Image) ReplacePixels(p []uint8) error {
 type DrawImageOptions struct {
 	// SourceRect is the region of the source image to draw.
 	// If SourceRect is nil, whole image is used.
+	//
+	// It is assured that texels out of the SourceRect are never used.
 	SourceRect *image.Rectangle
 
 	// GeoM is a geometry matrix to draw.
