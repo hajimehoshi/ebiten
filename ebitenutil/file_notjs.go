@@ -32,7 +32,7 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	return os.Open(path)
 }
 
-// JoinFilePath joins any number of path elements into a single path,
+// JoinStringsIntoFilePath joins any number of path elements into a single path,
 // adding a Separator if necessary.
 //
 // This is basically same as filepath.Join, but the behavior is different on JavaScript.
