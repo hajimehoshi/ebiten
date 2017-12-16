@@ -17,12 +17,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
@@ -91,7 +89,6 @@ func update(screen *ebiten.Image) error {
 	}
 
 	screen.DrawImage(offscreen, nil)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
 }
 
