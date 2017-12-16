@@ -246,7 +246,7 @@ func (c *Context) loop() {
 
 	// This is a heuristic decision of audio buffer size.
 	// On most desktops, 1/30[s] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
-	// On desktop browsers, 1/15[s] should work with any sample rate except for mobile browsers.
+	// On browsers, 1/15[s] should work with any sample rate except for Android Chrome.
 	// On mobiles, we don't have enough data. For iOS, 1/30[s] is too short and 1/20[s] seems fine. 1/15[s] is safer.
 	bufferSize := c.sampleRate * channelNum * bytesPerSample / 15
 	if web.IsAndroidChrome() {
