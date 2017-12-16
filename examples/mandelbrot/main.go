@@ -58,14 +58,13 @@ func updateOffscreen(centerX, centerY, size float64) {
 			x := float64(i)*size/screenWidth - size/2 + centerX
 			y := (screenHeight-float64(j))*size/screenHeight - size/2 + centerY
 			c := complex(x, y)
-			z := c
+			z := complex(0, 0)
 			it := 0
 			for ; it < maxIt; it++ {
-				nz := z*z + c
-				if real(nz)*real(nz)+imag(nz)*imag(nz) > 4 {
+				z = z*z + c
+				if real(z)*real(z)+imag(z)*imag(z) > 4 {
 					break
 				}
-				z = nz
 			}
 			r, g, b := color(it)
 			p := 4 * (i + j*screenWidth)
