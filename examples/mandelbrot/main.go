@@ -48,7 +48,7 @@ func init() {
 
 func color(it int) (r, g, b byte) {
 	if it == maxIt {
-		return 0, 0, 0
+		return 0xff, 0xff, 0xff
 	}
 	c := palette[it]
 	return c, c, c
