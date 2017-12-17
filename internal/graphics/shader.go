@@ -96,34 +96,31 @@ void main(void) {
     highp vec2 texel_size = 1.0 / source_size;
     pos -= texel_size * 0.5;
 
-    highp float x0 = pos.x;
-    highp float y0 = pos.y;
-    highp float x1 = pos.x + texel_size.x;
-    highp float y1 = pos.y + texel_size.y;
-    vec4 c0 = texture2D(texture, vec2(x0, y0));
-    vec4 c1 = texture2D(texture, vec2(x1, y0));
-    vec4 c2 = texture2D(texture, vec2(x0, y1));
-    vec4 c3 = texture2D(texture, vec2(x1, y1));
-    if (x0 < varying_tex_coord_min.x) {
+    highp vec2 p0 = pos;
+    highp vec2 p1 = pos + texel_size;
+    vec4 c0 = texture2D(texture, p0);
+    vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
+    vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
+    vec4 c3 = texture2D(texture, p1);
+    if (p0.x < varying_tex_coord_min.x) {
       c0 = vec4(0, 0, 0, 0);
       c2 = vec4(0, 0, 0, 0);
     }
-    if (y0 < varying_tex_coord_min.y) {
+    if (p0.y < varying_tex_coord_min.y) {
       c0 = vec4(0, 0, 0, 0);
       c1 = vec4(0, 0, 0, 0);
     }
-    if (varying_tex_coord_max.x <= x1) {
+    if (varying_tex_coord_max.x <= p1.x) {
       c1 = vec4(0, 0, 0, 0);
       c3 = vec4(0, 0, 0, 0);
     }
-    if (varying_tex_coord_max.y <= y1) {
+    if (varying_tex_coord_max.y <= p1.y) {
       c2 = vec4(0, 0, 0, 0);
       c3 = vec4(0, 0, 0, 0);
     }
 
-    float rateX = fract(pos.x * source_size.x);
-    float rateY = fract(pos.y * source_size.y);
-    color = mix(mix(c0, c1, rateX), mix(c2, c3, rateX), rateY);
+    vec2 rate = fract(pos * source_size);
+    color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
   } else {
     // Error
     color = vec4(1, 0, 0, 1);
