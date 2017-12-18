@@ -39,8 +39,7 @@ func init() {
 	offscreen, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	offscreenPix = make([]byte, screenWidth*screenHeight*4)
 	for i := range palette {
-		c := byte(math.Sqrt(float64(i)/float64(len(palette))) * 0xff)
-		palette[i] = c
+		palette[i] = byte(math.Sqrt(float64(i)/float64(len(palette))) * 0x80)
 	}
 }
 
