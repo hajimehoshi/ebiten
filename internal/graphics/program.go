@@ -114,14 +114,16 @@ type openGLState struct {
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
 	elementArrayBuffer opengl.Buffer
 
-	// programTexture is OpenGL's program for rendering a texture.
-	programTexture opengl.Program
+	// programNearest is OpenGL's program for rendering a texture with nearest filter.
+	programNearest opengl.Program
+
+	// programLinear is OpenGL's program for rendering a texture with linear filter.
+	programLinear opengl.Program
 
 	lastProgram                opengl.Program
 	lastProjectionMatrix       []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
-	lastFilterType             Filter
 	lastSourceWidth            int
 	lastSourceHeight           int
 }
@@ -153,15 +155,17 @@ func (s *openGLState) reset() error {
 	s.lastProjectionMatrix = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
-	s.lastFilterType = FilterNone
 	s.lastSourceWidth = 0
 	s.lastSourceHeight = 0
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
 	// Let's delete them explicitly.
-	if s.programTexture != zeroProgram {
-		opengl.GetContext().DeleteProgram(s.programTexture)
+	if s.programNearest != zeroProgram {
+		opengl.GetContext().DeleteProgram(s.programNearest)
+	}
+	if s.programLinear != zeroProgram {
+		opengl.GetContext().DeleteProgram(s.programLinear)
 	}
 	if s.arrayBuffer != zeroBuffer {
 		opengl.GetContext().DeleteBuffer(s.arrayBuffer)
@@ -176,15 +180,29 @@ func (s *openGLState) reset() error {
 	}
 	defer opengl.GetContext().DeleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentTextureNative, err := opengl.GetContext().NewShader(opengl.FragmentShader, shader(shaderFragmentTexture))
+	shaderFragmentNearestNative, err := opengl.GetContext().NewShader(opengl.FragmentShader, shader(shaderFragmentNearest))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer opengl.GetContext().DeleteShader(shaderFragmentTextureNative)
+	defer opengl.GetContext().DeleteShader(shaderFragmentNearestNative)
 
-	s.programTexture, err = opengl.GetContext().NewProgram([]opengl.Shader{
+	shaderFragmentLinearNative, err := opengl.GetContext().NewShader(opengl.FragmentShader, shader(shaderFragmentLinear))
+	if err != nil {
+		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
+	}
+	defer opengl.GetContext().DeleteShader(shaderFragmentLinearNative)
+
+	s.programNearest, err = opengl.GetContext().NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
-		shaderFragmentTextureNative,
+		shaderFragmentNearestNative,
+	})
+	if err != nil {
+		return err
+	}
+
+	s.programLinear, err = opengl.GetContext().NewProgram([]opengl.Shader{
+		shaderVertexModelviewNative,
+		shaderFragmentLinearNative,
 	})
 	if err != nil {
 		return err
@@ -222,7 +240,16 @@ func areSameFloat32Array(a, b []float32) bool {
 // useProgram uses the program (programTexture).
 func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceWidth, sourceHeight int, colorM affine.ColorM, filter Filter) {
 	c := opengl.GetContext()
-	program := s.programTexture
+
+	var program opengl.Program
+	switch filter {
+	case FilterNearest:
+		program = s.programNearest
+	case FilterLinear:
+		program = s.programLinear
+	default:
+		panic("not reached")
+	}
 
 	if s.lastProgram != program {
 		c.UseProgram(program)
@@ -231,7 +258,7 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		}
 		theArrayBufferLayout.enable(program)
 
-		s.lastProgram = s.programTexture
+		s.lastProgram = program
 		s.lastProjectionMatrix = nil
 		s.lastColorMatrix = nil
 		s.lastColorMatrixTranslation = nil
@@ -279,16 +306,13 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		copy(s.lastColorMatrixTranslation, colorMatrixTranslation)
 	}
 
-	if s.lastFilterType != filter {
-		c.UniformInt(program, "filter_type", int(filter))
-		s.lastFilterType = filter
-	}
-
-	if s.lastSourceWidth != sourceWidth || s.lastSourceHeight != sourceHeight {
-		c.UniformFloats(program, "source_size",
-			[]float32{float32(sourceWidth), float32(sourceHeight)})
-		s.lastSourceWidth = sourceWidth
-		s.lastSourceHeight = sourceHeight
+	if program == s.programLinear {
+		if s.lastSourceWidth != sourceWidth || s.lastSourceHeight != sourceHeight {
+			c.UniformFloats(program, "source_size",
+				[]float32{float32(sourceWidth), float32(sourceHeight)})
+			s.lastSourceWidth = sourceWidth
+			s.lastSourceHeight = sourceHeight
+		}
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
