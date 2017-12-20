@@ -252,8 +252,10 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	// The buffer is already bound at begin() but it is counterintuitive.
 	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
 
-	// This is necessary at least on MacBook Pro (a smilar problem at #419)
-	opengl.GetContext().Flush()
+	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
+	// but basically this pass the tests (esp. TestImageTooManyFill).
+	// As glFlush() causes performance problems, this should be avoided as much as possible.
+	// Let's wait and see, and file a new issue when this problem is newly found.
 	return nil
 }
 
