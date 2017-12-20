@@ -99,7 +99,7 @@ highp vec2 roundTexel(highp vec2 p) {
 }
 
 void main(void) {
-  highp vec2 pos = roundTexel(varying_tex_coord);
+  highp vec2 pos = varying_tex_coord;
 
 #if defined(FILTER_NEAREST)
   vec4 color = texture2D(texture, pos);
@@ -112,6 +112,7 @@ void main(void) {
 #endif
 
 #if defined(FILTER_LINEAR)
+  pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
   pos -= texel_size * 0.5;
 
