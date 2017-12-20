@@ -36,6 +36,8 @@ func shader(id shaderID) string {
 		defs = append(defs, "#define FILTER_NEAREST")
 	case shaderFragmentLinear:
 		defs = append(defs, "#define FILTER_LINEAR")
+	default:
+		panic("not reached")
 	}
 	return strings.Replace(shaderStrFragment, "{{Definitions}}", strings.Join(defs, "\n"), -1)
 }
