@@ -29,28 +29,40 @@ import (
 
 // Stream is a decoded stream.
 type Stream struct {
-	inner audio.ReadSeekCloser
-	size  int64
+	orig       *mp3.Decoder
+	resampling *convert.Resampling
 }
 
 // Read is implementation of io.Reader's Read.
 func (s *Stream) Read(buf []byte) (int, error) {
-	return s.inner.Read(buf)
+	if s.resampling != nil {
+		return s.resampling.Read(buf)
+	}
+	return s.orig.Read(buf)
 }
 
 // Seek is implementation of io.Seeker's Seek.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.inner.Seek(offset, whence)
+	if s.resampling != nil {
+		return s.resampling.Seek(offset, whence)
+	}
+	return s.orig.Seek(offset, whence)
 }
 
 // Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
-	return s.inner.Close()
+	if s.resampling != nil {
+		return s.resampling.Close()
+	}
+	return s.orig.Close()
 }
 
 // Size returns the size of decoded stream in bytes.
 func (s *Stream) Size() int64 {
-	return s.size
+	if s.resampling != nil {
+		return s.resampling.Size()
+	}
+	return s.orig.Length()
 }
 
 // Decode decodes MP3 source and returns a decoded stream.
@@ -63,16 +75,12 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Resampling
-	var s audio.ReadSeekCloser = d
-	size := d.Length()
+	var r *convert.Resampling
 	if d.SampleRate() != context.SampleRate() {
-		r := convert.NewResampling(s, d.Length(), d.SampleRate(), context.SampleRate())
-		s = r
-		size = r.Size()
+		r = convert.NewResampling(d, d.Length(), d.SampleRate(), context.SampleRate())
 	}
 	return &Stream{
-		inner: s,
-		size:  size,
+		orig:       d,
+		resampling: r,
 	}, nil
 }
