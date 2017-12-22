@@ -418,11 +418,14 @@ func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
 
 	p.m.Lock()
 	l := lengthInBytes
-	if len(p.buf) < lengthInBytes {
-		if !p.srcEOF {
-			p.m.Unlock()
-			return r
-		}
+
+	// Buffer size needs to be much more than the actual required length
+	// so that noise due to empty buffer can be avoided.
+	if len(p.buf) < lengthInBytes*4 && !p.srcEOF {
+		p.m.Unlock()
+		return r
+	}
+	if l > len(p.buf) {
 		l = len(p.buf)
 	}
 	for i := 0; i < l/2; i++ {
