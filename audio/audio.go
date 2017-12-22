@@ -65,11 +65,7 @@ func (p *players) Read(b []byte) (int, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	players := []*Player{}
-	for player := range p.players {
-		players = append(players, player)
-	}
-	if len(players) == 0 {
+	if len(p.players) == 0 {
 		l := len(b)
 		l &= mask
 		copy(b, make([]byte, l))
@@ -77,7 +73,7 @@ func (p *players) Read(b []byte) (int, error) {
 	}
 
 	l := len(b)
-	for _, player := range players {
+	for player := range p.players {
 		select {
 		case err := <-player.readCh:
 			if err != nil {
@@ -89,7 +85,7 @@ func (p *players) Read(b []byte) (int, error) {
 	l &= mask
 
 	b16s := [][]int16{}
-	for _, player := range players {
+	for player := range p.players {
 		b16s = append(b16s, player.bufferToInt16(l))
 	}
 	for i := 0; i < l/2; i++ {
@@ -107,10 +103,14 @@ func (p *players) Read(b []byte) (int, error) {
 		b[2*i+1] = byte(x >> 8)
 	}
 
-	for _, player := range players {
+	closed := []*Player{}
+	for player := range p.players {
 		if player.eof() {
-			delete(p.players, player)
+			closed = append(closed, player)
 		}
+	}
+	for _, player := range closed {
+		delete(p.players, player)
 	}
 
 	return l, nil
