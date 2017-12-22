@@ -320,11 +320,6 @@ func BytesReadSeekCloser(b []byte) ReadSeekCloser {
 	return &bytesReadSeekCloser{reader: bytes.NewReader(b)}
 }
 
-type readingResult struct {
-	data []byte
-	err  error
-}
-
 // Player is an audio player which has one stream.
 type Player struct {
 	players    *players
@@ -467,7 +462,7 @@ func (p *Player) startRead() {
 }
 
 func (p *Player) readLoop() {
-	t := time.Tick(1 * time.Millisecond)
+	t := time.Tick(time.Millisecond)
 	for {
 		select {
 		case <-p.closeCh:
