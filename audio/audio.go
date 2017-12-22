@@ -74,12 +74,8 @@ func (p *players) Read(b []byte) (int, error) {
 
 	l := len(b)
 	for player := range p.players {
-		select {
-		case err := <-player.readCh:
-			if err != nil {
-				return 0, err
-			}
-		default:
+		if err := player.getReadErr(); err != nil {
+			return 0, err
 		}
 	}
 	l &= mask
@@ -335,12 +331,13 @@ type Player struct {
 	src        ReadSeekCloser
 	srcEOF     bool
 	sampleRate int
+	reading    bool
+	readErr    error
 
 	buf    []byte
 	pos    int64
 	volume float64
 
-	readCh   chan error
 	closeCh  chan struct{}
 	closedCh chan struct{}
 
@@ -450,17 +447,15 @@ func (p *Player) Play() error {
 
 func (p *Player) startRead() {
 	p.m.Lock()
-	if p.readCh == nil {
-		p.readCh = make(chan error)
+	if !p.reading && p.readErr == nil {
+		p.reading = true
 		p.closeCh = make(chan struct{})
 		p.closedCh = make(chan struct{})
 		p.srcEOF = false
 		go func() {
-			if err := p.readLoop(); err != nil {
-				p.readCh <- err
-			}
+			p.readLoop()
 			p.m.Lock()
-			p.readCh = nil
+			p.reading = false
 			p.m.Unlock()
 			close(p.closedCh)
 		}()
@@ -468,13 +463,13 @@ func (p *Player) startRead() {
 	p.m.Unlock()
 }
 
-func (p *Player) readLoop() error {
+func (p *Player) readLoop() {
 	t := time.Tick(1 * time.Millisecond)
 	for {
 		select {
 		case <-p.closeCh:
 			p.closeCh = nil
-			return nil
+			return
 		case <-t:
 			p.m.Lock()
 			if len(p.buf) < 4096*16 && !p.srcEOF {
@@ -486,11 +481,12 @@ func (p *Player) readLoop() error {
 				}
 				if p.srcEOF && len(p.buf) == 0 {
 					p.m.Unlock()
-					return nil
+					return
 				}
 				if err != nil && err != io.EOF {
+					p.readErr = err
 					p.m.Unlock()
-					return err
+					return
 				}
 			}
 			p.m.Unlock()
@@ -499,10 +495,17 @@ func (p *Player) readLoop() error {
 }
 
 func (p *Player) eof() bool {
-	p.m.Lock()
+	p.m.RLock()
 	r := p.srcEOF && len(p.buf) == 0
-	p.m.Unlock()
+	p.m.RUnlock()
 	return r
+}
+
+func (p *Player) getReadErr() error {
+	p.m.RLock()
+	e := p.readErr
+	p.m.RUnlock()
+	return e
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
