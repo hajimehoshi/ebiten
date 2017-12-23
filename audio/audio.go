@@ -28,7 +28,8 @@
 // When multiple players play, mixing is automatically done.
 // Note that too many players may cause distortion.
 //
-// Ebiten's game progress always synchronizes with audio progress.
+// Ebiten's game progress tries to synchronizes with audio progress, but
+// delay can happen if, e.g., decoding an audio source takes long.
 //
 // For the simplest example to play sound, see wav package in the examples.
 package audio
