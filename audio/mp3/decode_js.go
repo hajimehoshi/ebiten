@@ -176,12 +176,13 @@ func decode(context *audio.Context, buf []byte) (*Stream, error) {
 		switch n := buf.Get("numberOfChannels").Int(); n {
 		case 1:
 			s.rightData = s.leftData
+			close(ch)
 		case 2:
 			s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
+			close(ch)
 		default:
 			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
 		}
-		close(ch)
 	}, func(err *js.Object) {
 		if err != nil {
 			ch <- fmt.Errorf("audio/mp3: decodeAudioData failed: %v", err)
@@ -190,7 +191,6 @@ func decode(context *audio.Context, buf []byte) (*Stream, error) {
 			// from the next frame (#438).
 			ch <- errTryAgain
 		}
-		close(ch)
 	})
 
 	// GopherJS's bug? Without Gosched(), receiving might block forever.
