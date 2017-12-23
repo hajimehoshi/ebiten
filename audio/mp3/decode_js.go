@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"runtime"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/audio"
@@ -96,7 +97,7 @@ func (s *Stream) Size() int64 {
 // seekNextFrame also returns true when seeking is successful, or false otherwise.
 //
 // Seeking is necessary when decoding fails. Safari's MP3 decoder can't treat IDs well (#438).
-func seekNextFrame(buf []uint8) ([]uint8, bool) {
+func seekNextFrame(buf []byte) ([]byte, bool) {
 	// TODO: Need to skip tags explicitly? (hajimehoshi/go-mp3#9)
 
 	if len(buf) < 1 {
@@ -156,7 +157,7 @@ func init() {
 	}
 }
 
-func decode(context *audio.Context, buf []uint8) (*Stream, error) {
+func decode(context *audio.Context, buf []byte) (*Stream, error) {
 	if offlineAudioContextClass == nil {
 		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
 	}
@@ -191,6 +192,10 @@ func decode(context *audio.Context, buf []uint8) (*Stream, error) {
 		}
 		close(ch)
 	})
+
+	// GopherJS's bug? Without Gosched(), receiving might block forever.
+	runtime.Gosched()
+
 	if err := <-ch; err != nil {
 		return nil, err
 	}
