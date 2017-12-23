@@ -36,6 +36,7 @@ package audio
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"runtime"
 	"sync"
@@ -330,12 +331,13 @@ type Player struct {
 	pos    int64
 	volume float64
 
-	closeCh     chan struct{}
-	closedCh    chan error
-	seekCh      chan seekArgs
-	seekedCh    chan error
-	proceedCh   chan []int16
-	proceededCh chan proceededValues
+	closeCh         chan struct{}
+	closedCh        chan struct{}
+	readLoopEndedCh chan struct{}
+	seekCh          chan seekArgs
+	seekedCh        chan error
+	proceedCh       chan []int16
+	proceededCh     chan proceededValues
 
 	m sync.RWMutex
 }
@@ -365,17 +367,18 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		return nil, errors.New("audio: src cannot be shared with another Player")
 	}
 	p := &Player{
-		players:     context.players,
-		src:         src,
-		sampleRate:  context.sampleRate,
-		buf:         []byte{},
-		volume:      1,
-		closeCh:     make(chan struct{}),
-		closedCh:    make(chan error),
-		seekCh:      make(chan seekArgs),
-		seekedCh:    make(chan error),
-		proceedCh:   make(chan []int16),
-		proceededCh: make(chan proceededValues),
+		players:         context.players,
+		src:             src,
+		sampleRate:      context.sampleRate,
+		buf:             []byte{},
+		volume:          1,
+		closeCh:         make(chan struct{}),
+		closedCh:        make(chan struct{}),
+		readLoopEndedCh: make(chan struct{}),
+		seekCh:          make(chan seekArgs),
+		seekedCh:        make(chan error),
+		proceedCh:       make(chan []int16),
+		proceededCh:     make(chan proceededValues),
 	}
 	// Get the current position of the source.
 	pos, err := p.src.Seek(0, io.SeekCurrent)
@@ -419,14 +422,23 @@ func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
 	p.players.removePlayer(p)
 
-	p.closeCh <- struct{}{}
-	return <-p.closedCh
+	select {
+	case p.closeCh <- struct{}{}:
+		<-p.closedCh
+		return nil
+	case <-p.readLoopEndedCh:
+		return fmt.Errorf("audio: the player is already closed")
+	}
 }
 
 func (p *Player) bufferToInt16(lengthInBytes int) ([]int16, error) {
-	p.proceedCh <- make([]int16, lengthInBytes/2)
-	r := <-p.proceededCh
-	return r.buf, r.err
+	select {
+	case p.proceedCh <- make([]int16, lengthInBytes/2):
+		r := <-p.proceededCh
+		return r.buf, r.err
+	case <-p.readLoopEndedCh:
+		return nil, fmt.Errorf("audio: the player is already closed")
+	}
 }
 
 // Play plays the stream.
@@ -438,12 +450,18 @@ func (p *Player) Play() error {
 }
 
 func (p *Player) readLoop() {
+	defer func() {
+		// Note: the error is ignored
+		p.src.Close()
+		close(p.readLoopEndedCh)
+	}()
+
 	t := time.After(0)
 	var readErr error
 	for {
 		select {
 		case <-p.closeCh:
-			p.closedCh <- p.src.Close()
+			p.closedCh <- struct{}{}
 			return
 
 		case s := <-p.seekCh:
@@ -549,8 +567,12 @@ func (p *Player) Rewind() error {
 func (p *Player) Seek(offset time.Duration) error {
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
-	p.seekCh <- seekArgs{o, io.SeekStart}
-	return <-p.seekedCh
+	select {
+	case p.seekCh <- seekArgs{o, io.SeekStart}:
+		return <-p.seekedCh
+	case <-p.readLoopEndedCh:
+		return fmt.Errorf("audio: the player is already closed")
+	}
 }
 
 // Pause pauses the playing.
