@@ -235,7 +235,7 @@ func (c *Context) loop() {
 	// On browsers, 8192 [bytes] should work with any sample rate except for Android Chrome.
 	bufferSize := 8192
 	if web.IsAndroidChrome() {
-		bufferSize *= 2
+		bufferSize = 12000
 	}
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize)
 	if err != nil {
