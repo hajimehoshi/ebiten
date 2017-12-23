@@ -476,12 +476,14 @@ func (p *Player) readLoop() {
 			break
 
 		case <-t:
-			if len(p.buf) >= 4096*16 {
-				t = time.After(10 * time.Millisecond)
+			if len(p.buf) >= p.sampleRate*4 {
+				t = time.After(100 * time.Millisecond)
 				break
 			}
 
-			buf := make([]byte, 4096)
+			l := p.sampleRate * 4 / 60
+			l &= mask
+			buf := make([]byte, l)
 			n, err := p.src.Read(buf)
 
 			p.buf = append(p.buf, buf[:n]...)
