@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"runtime"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/audio"
@@ -192,9 +191,6 @@ func decode(context *audio.Context, buf []byte) (*Stream, error) {
 			ch <- errTryAgain
 		}
 	})
-
-	// GopherJS's bug? Without Gosched(), receiving might block forever.
-	runtime.Gosched()
 
 	if err := <-ch; err != nil {
 		return nil, err
