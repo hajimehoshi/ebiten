@@ -231,14 +231,11 @@ func (c *Context) loop() {
 	<-initCh
 
 	// This is a heuristic decision of audio buffer size.
-	// On most desktops, 1/30[s] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
-	// On browsers, 1/15[s] should work with any sample rate except for Android Chrome.
-	// On mobiles, we don't have enough data. For iOS, 1/30[s] is too short and 1/20[s] seems fine. 1/15[s] is safer.
-	bufferSize := c.sampleRate * channelNum * bytesPerSample / 15
+	// On most desktops and mobiles, 4096 [bytes] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
+	// On browsers, 8192 [bytes] should work with any sample rate except for Android Chrome.
+	bufferSize := 8192
 	if web.IsAndroidChrome() {
-		// On Android Chrome, it looks like 9600 * 4 is a sweet spot of the buffer size
-		// regardless of the sample rate. This is about 1/5[s] for 48000[Hz].
-		bufferSize = 9600 * channelNum * bytesPerSample
+		bufferSize *= 2
 	}
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize)
 	if err != nil {
@@ -489,7 +486,13 @@ func (p *Player) readLoop() {
 			}
 
 			// Try to read the buffer for 1/60[s].
-			l := p.sampleRate * bytesPerSample * channelNum / 60
+			s := 60
+			if web.IsAndroidChrome() {
+				s = 10
+			} else if web.IsBrowser() {
+				s = 20
+			}
+			l := p.sampleRate * bytesPerSample * channelNum / s
 			l &= mask
 			buf := make([]byte, l)
 			n, err := p.src.Read(buf)
@@ -507,7 +510,11 @@ func (p *Player) readLoop() {
 				t = nil
 				break
 			}
-			t = time.After(time.Millisecond)
+			if web.IsBrowser() {
+				t = time.After(10 * time.Millisecond)
+			} else {
+				t = time.After(time.Millisecond)
+			}
 
 		case buf := <-p.proceedCh:
 			if readErr != nil {
