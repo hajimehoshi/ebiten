@@ -150,15 +150,12 @@ func (p *players) hasSource(src ReadSeekCloser) bool {
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	players        *players
-	initCh         chan struct{}
-	initedCh       chan struct{}
-	pingCount      int
-	sampleRate     int
-	frames         int64
-	framesReadOnly int64
-	writtenBytes   int64
-	m              sync.Mutex
+	players    *players
+	initCh     chan struct{}
+	initedCh   chan struct{}
+	pingCount  int
+	sampleRate int
+	m          sync.Mutex
 }
 
 var (
@@ -252,6 +249,9 @@ func (c *Context) loop() {
 
 	close(c.initedCh)
 
+	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
+	written := int64(0)
+	prevWritten := int64(0)
 	for {
 		c.m.Lock()
 		if c.pingCount == 0 {
@@ -261,21 +261,26 @@ func (c *Context) loop() {
 		}
 		c.pingCount--
 		c.m.Unlock()
-		c.frames++
-		clock.ProceedPrimaryTimer()
-		bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
-		l := (c.frames * int64(bytesPerFrame)) - c.writtenBytes
-		l &= mask
-		c.writtenBytes += l
-		buf := make([]byte, l)
-		if _, err := io.ReadFull(c.players, buf); err != nil {
+
+		buf := make([]byte, 4096)
+		n, err := c.players.Read(buf)
+		if err != nil {
 			audiobinding.SetError(err)
 			return
 		}
-		if _, err = p.Write(buf); err != nil {
+
+		if _, err = p.Write(buf[:n]); err != nil {
 			audiobinding.SetError(err)
 			return
 		}
+
+		written += int64(n)
+		fs := written/int64(bytesPerFrame) - prevWritten/int64(bytesPerFrame)
+		for fs > 0 {
+			clock.ProceedPrimaryTimer()
+			fs--
+		}
+		prevWritten = written
 	}
 }
 
@@ -478,13 +483,13 @@ func (p *Player) readLoop() {
 
 		case <-t:
 			// If the buffer has 1 second, that's enough.
-			if len(p.buf) >= p.sampleRate*4 {
+			if len(p.buf) >= p.sampleRate*bytesPerSample*channelNum {
 				t = time.After(100 * time.Millisecond)
 				break
 			}
 
 			// Try to read the buffer for 1/15[s].
-			l := p.sampleRate * 4 / 15
+			l := p.sampleRate * bytesPerSample * channelNum / 15
 			l &= mask
 			buf := make([]byte, l)
 			n, err := p.src.Read(buf)
@@ -515,7 +520,7 @@ func (p *Player) readLoop() {
 
 			// Buffer size needs to be much more than the actual required length
 			// so that noise caused by empty buffer can be avoided.
-			if len(p.buf) < lengthInBytes*15 && !p.srcEOF {
+			if len(p.buf) < lengthInBytes*8 && !p.srcEOF {
 				p.proceededCh <- proceededValues{buf, nil}
 				break
 			}
