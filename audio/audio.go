@@ -73,16 +73,15 @@ func (p *players) Read(b []byte) (int, error) {
 	}
 
 	l := len(b)
-	for player := range p.players {
-		if err := player.getReadErr(); err != nil {
-			return 0, err
-		}
-	}
 	l &= mask
 
 	b16s := [][]int16{}
 	for player := range p.players {
-		b16s = append(b16s, player.bufferToInt16(l))
+		buf, err := player.bufferToInt16(l)
+		if err != nil {
+			return 0, err
+		}
+		b16s = append(b16s, buf)
 	}
 	for i := 0; i < l/2; i++ {
 		x := 0
@@ -326,17 +325,29 @@ type Player struct {
 	src        ReadSeekCloser
 	srcEOF     bool
 	sampleRate int
-	reading    bool
-	readErr    error
 
 	buf    []byte
 	pos    int64
 	volume float64
 
-	closeCh  chan struct{}
-	closedCh chan struct{}
+	closeCh     chan struct{}
+	closedCh    chan error
+	seekCh      chan seekArgs
+	seekedCh    chan error
+	proceedCh   chan []int16
+	proceededCh chan proceededValues
 
 	m sync.RWMutex
+}
+
+type seekArgs struct {
+	offset int64
+	whence int
+}
+
+type proceededValues struct {
+	buf []int16
+	err error
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -354,11 +365,17 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		return nil, errors.New("audio: src cannot be shared with another Player")
 	}
 	p := &Player{
-		players:    context.players,
-		src:        src,
-		sampleRate: context.sampleRate,
-		buf:        []byte{},
-		volume:     1,
+		players:     context.players,
+		src:         src,
+		sampleRate:  context.sampleRate,
+		buf:         []byte{},
+		volume:      1,
+		closeCh:     make(chan struct{}),
+		closedCh:    make(chan error),
+		seekCh:      make(chan seekArgs),
+		seekedCh:    make(chan error),
+		proceedCh:   make(chan []int16),
+		proceededCh: make(chan proceededValues),
 	}
 	// Get the current position of the source.
 	pos, err := p.src.Seek(0, io.SeekCurrent)
@@ -367,6 +384,10 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 	}
 	p.pos = pos
 	runtime.SetFinalizer(p, (*Player).Close)
+
+	go func() {
+		p.readLoop()
+	}()
 	return p, nil
 }
 
@@ -398,40 +419,14 @@ func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
 	p.players.removePlayer(p)
 
-	p.m.Lock()
-	err := p.src.Close()
-	p.m.Unlock()
-
-	close(p.closeCh)
-	<-p.closedCh
-
-	return err
+	p.closeCh <- struct{}{}
+	return <-p.closedCh
 }
 
-func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
-	r := make([]int16, lengthInBytes/2)
-
-	p.m.Lock()
-	l := lengthInBytes
-
-	// Buffer size needs to be much more than the actual required length
-	// so that noise due to empty buffer can be avoided.
-	if len(p.buf) < lengthInBytes*4 && !p.srcEOF {
-		p.m.Unlock()
-		return r
-	}
-	if l > len(p.buf) {
-		l = len(p.buf)
-	}
-	for i := 0; i < l/2; i++ {
-		r[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
-		r[i] = int16(float64(r[i]) * p.volume)
-	}
-
-	p.pos += int64(l)
-	p.buf = p.buf[l:]
-	p.m.Unlock()
-	return r
+func (p *Player) bufferToInt16(lengthInBytes int) ([]int16, error) {
+	p.proceedCh <- make([]int16, lengthInBytes/2)
+	r := <-p.proceededCh
+	return r.buf, r.err
 }
 
 // Play plays the stream.
@@ -439,35 +434,31 @@ func (p *Player) bufferToInt16(lengthInBytes int) []int16 {
 // Play always returns nil.
 func (p *Player) Play() error {
 	p.players.addPlayer(p)
-	p.startRead()
 	return nil
-}
-
-func (p *Player) startRead() {
-	p.m.Lock()
-	if !p.reading && p.readErr == nil {
-		p.closeCh = make(chan struct{})
-		p.closedCh = make(chan struct{})
-		p.reading = true
-		p.srcEOF = false
-		go func() {
-			p.readLoop()
-			p.m.Lock()
-			p.reading = false
-			p.m.Unlock()
-			// TODO: How about rewinding?
-			close(p.closedCh)
-		}()
-	}
-	p.m.Unlock()
 }
 
 func (p *Player) readLoop() {
 	t := time.After(0)
+	var readErr error
 	for {
 		select {
 		case <-p.closeCh:
+			p.closedCh <- p.src.Close()
 			return
+
+		case s := <-p.seekCh:
+			pos, err := p.src.Seek(s.offset, s.whence)
+
+			p.m.Lock()
+			p.buf = nil
+			p.pos = pos
+			p.srcEOF = false
+			p.m.Unlock()
+
+			p.seekedCh <- err
+			t = time.After(time.Millisecond)
+			break
+
 		case <-t:
 			p.m.Lock()
 			if len(p.buf) >= 4096*16 {
@@ -475,8 +466,12 @@ func (p *Player) readLoop() {
 				p.m.Unlock()
 				break
 			}
+			p.m.Unlock()
+
 			buf := make([]byte, 4096)
 			n, err := p.src.Read(buf)
+
+			p.m.Lock()
 			p.buf = append(p.buf, buf[:n]...)
 			if err == io.EOF {
 				p.srcEOF = true
@@ -484,16 +479,47 @@ func (p *Player) readLoop() {
 			if p.srcEOF && len(p.buf) == 0 {
 				t = nil
 				p.m.Unlock()
-				return
+				break
 			}
 			if err != nil && err != io.EOF {
-				p.readErr = err
+				readErr = err
 				t = nil
 				p.m.Unlock()
-				return
+				break
 			}
 			t = time.After(time.Millisecond)
 			p.m.Unlock()
+
+		case buf := <-p.proceedCh:
+			if readErr != nil {
+				p.proceededCh <- proceededValues{buf, readErr}
+				return
+			}
+
+			lengthInBytes := len(buf) * 2
+			l := lengthInBytes
+
+			p.m.Lock()
+
+			// Buffer size needs to be much more than the actual required length
+			// so that noise caused by empty buffer can be avoided.
+			if len(p.buf) < lengthInBytes*4 && !p.srcEOF {
+				p.m.Unlock()
+				p.proceededCh <- proceededValues{buf, nil}
+				break
+			}
+			if l > len(p.buf) {
+				l = len(p.buf)
+			}
+			for i := 0; i < l/2; i++ {
+				buf[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
+				buf[i] = int16(float64(buf[i]) * p.volume)
+			}
+			p.pos += int64(l)
+			p.buf = p.buf[l:]
+
+			p.m.Unlock()
+			p.proceededCh <- proceededValues{buf, nil}
 		}
 	}
 }
@@ -503,13 +529,6 @@ func (p *Player) eof() bool {
 	r := p.srcEOF && len(p.buf) == 0
 	p.m.RUnlock()
 	return r
-}
-
-func (p *Player) getReadErr() error {
-	p.m.RLock()
-	e := p.readErr
-	p.m.RUnlock()
-	return e
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
@@ -530,19 +549,8 @@ func (p *Player) Rewind() error {
 func (p *Player) Seek(offset time.Duration) error {
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
-
-	p.m.Lock()
-	pos, err := p.src.Seek(o, io.SeekStart)
-	if err != nil {
-		p.m.Unlock()
-		return err
-	}
-	p.buf = nil
-	p.pos = pos
-	p.srcEOF = false
-	p.m.Unlock()
-
-	return nil
+	p.seekCh <- seekArgs{o, io.SeekStart}
+	return <-p.seekedCh
 }
 
 // Pause pauses the playing.
