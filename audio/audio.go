@@ -446,15 +446,16 @@ func (p *Player) Play() error {
 func (p *Player) startRead() {
 	p.m.Lock()
 	if !p.reading && p.readErr == nil {
-		p.reading = true
 		p.closeCh = make(chan struct{})
 		p.closedCh = make(chan struct{})
+		p.reading = true
 		p.srcEOF = false
 		go func() {
 			p.readLoop()
 			p.m.Lock()
 			p.reading = false
 			p.m.Unlock()
+			// TODO: How about rewinding?
 			close(p.closedCh)
 		}()
 	}
@@ -462,31 +463,36 @@ func (p *Player) startRead() {
 }
 
 func (p *Player) readLoop() {
-	t := time.Tick(time.Millisecond)
+	t := time.After(0)
 	for {
 		select {
 		case <-p.closeCh:
-			p.closeCh = nil
 			return
 		case <-t:
 			p.m.Lock()
-			if len(p.buf) < 4096*16 && !p.srcEOF {
-				buf := make([]byte, 4096)
-				n, err := p.src.Read(buf)
-				p.buf = append(p.buf, buf[:n]...)
-				if err == io.EOF {
-					p.srcEOF = true
-				}
-				if p.srcEOF && len(p.buf) == 0 {
-					p.m.Unlock()
-					return
-				}
-				if err != nil && err != io.EOF {
-					p.readErr = err
-					p.m.Unlock()
-					return
-				}
+			if len(p.buf) >= 4096*16 {
+				t = time.After(10 * time.Millisecond)
+				p.m.Unlock()
+				break
 			}
+			buf := make([]byte, 4096)
+			n, err := p.src.Read(buf)
+			p.buf = append(p.buf, buf[:n]...)
+			if err == io.EOF {
+				p.srcEOF = true
+			}
+			if p.srcEOF && len(p.buf) == 0 {
+				t = nil
+				p.m.Unlock()
+				return
+			}
+			if err != nil && err != io.EOF {
+				p.readErr = err
+				t = nil
+				p.m.Unlock()
+				return
+			}
+			t = time.After(time.Millisecond)
 			p.m.Unlock()
 		}
 	}
