@@ -587,9 +587,9 @@ func (p *Player) Pause() error {
 func (p *Player) Current() time.Duration {
 	p.m.RLock()
 	sample := p.pos / bytesPerSample / channelNum
-	t := time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 	p.m.RUnlock()
-	return t
+
+	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
 
 // Volume returns the current volume of this player [0-1].
@@ -603,11 +603,12 @@ func (p *Player) Volume() float64 {
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. This function panics otherwise.
 func (p *Player) SetVolume(volume float64) {
-	p.m.Lock()
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
 		panic("audio: volume must be in between 0 and 1")
 	}
+
+	p.m.Lock()
 	p.volume = volume
 	p.m.Unlock()
 }
