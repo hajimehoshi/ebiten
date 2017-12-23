@@ -477,12 +477,14 @@ func (p *Player) readLoop() {
 			break
 
 		case <-t:
+			// If the buffer has 1 second, that's enough.
 			if len(p.buf) >= p.sampleRate*4 {
 				t = time.After(100 * time.Millisecond)
 				break
 			}
 
-			l := p.sampleRate * 4 / 60
+			// Try to read the buffer for 1/15[s].
+			l := p.sampleRate * 4 / 15
 			l &= mask
 			buf := make([]byte, l)
 			n, err := p.src.Read(buf)
@@ -500,7 +502,7 @@ func (p *Player) readLoop() {
 				t = nil
 				break
 			}
-			t = time.After(time.Millisecond)
+			t = time.After(10 * time.Millisecond)
 
 		case buf := <-p.proceedCh:
 			if readErr != nil {
@@ -513,7 +515,7 @@ func (p *Player) readLoop() {
 
 			// Buffer size needs to be much more than the actual required length
 			// so that noise caused by empty buffer can be avoided.
-			if len(p.buf) < lengthInBytes*4 && !p.srcEOF {
+			if len(p.buf) < lengthInBytes*15 && !p.srcEOF {
 				p.proceededCh <- proceededValues{buf, nil}
 				break
 			}
