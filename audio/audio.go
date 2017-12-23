@@ -338,8 +338,7 @@ type Player struct {
 	seekedCh        chan error
 	proceedCh       chan []int16
 	proceededCh     chan proceededValues
-
-	m sync.RWMutex
+	syncCh          chan func()
 }
 
 type seekArgs struct {
@@ -379,6 +378,7 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		seekedCh:        make(chan error),
 		proceedCh:       make(chan []int16),
 		proceededCh:     make(chan proceededValues),
+		syncCh:          make(chan func()),
 	}
 	// Get the current position of the source.
 	pos, err := p.src.Seek(0, io.SeekCurrent)
@@ -453,6 +453,8 @@ func (p *Player) readLoop() {
 	defer func() {
 		// Note: the error is ignored
 		p.src.Close()
+		// Receiving from a closed channel returns quickly
+		// i.e. `case <-p.readLoopEndedCh:` can check if this loops is ended.
 		close(p.readLoopEndedCh)
 	}()
 
@@ -466,47 +468,36 @@ func (p *Player) readLoop() {
 
 		case s := <-p.seekCh:
 			pos, err := p.src.Seek(s.offset, s.whence)
-
-			p.m.Lock()
 			p.buf = nil
 			p.pos = pos
 			p.srcEOF = false
-			p.m.Unlock()
-
 			p.seekedCh <- err
 			t = time.After(time.Millisecond)
 			break
 
 		case <-t:
-			p.m.Lock()
 			if len(p.buf) >= 4096*16 {
 				t = time.After(10 * time.Millisecond)
-				p.m.Unlock()
 				break
 			}
-			p.m.Unlock()
 
 			buf := make([]byte, 4096)
 			n, err := p.src.Read(buf)
 
-			p.m.Lock()
 			p.buf = append(p.buf, buf[:n]...)
 			if err == io.EOF {
 				p.srcEOF = true
 			}
 			if p.srcEOF && len(p.buf) == 0 {
 				t = nil
-				p.m.Unlock()
 				break
 			}
 			if err != nil && err != io.EOF {
 				readErr = err
 				t = nil
-				p.m.Unlock()
 				break
 			}
 			t = time.After(time.Millisecond)
-			p.m.Unlock()
 
 		case buf := <-p.proceedCh:
 			if readErr != nil {
@@ -517,12 +508,9 @@ func (p *Player) readLoop() {
 			lengthInBytes := len(buf) * 2
 			l := lengthInBytes
 
-			p.m.Lock()
-
 			// Buffer size needs to be much more than the actual required length
 			// so that noise caused by empty buffer can be avoided.
 			if len(p.buf) < lengthInBytes*4 && !p.srcEOF {
-				p.m.Unlock()
 				p.proceededCh <- proceededValues{buf, nil}
 				break
 			}
@@ -536,16 +524,34 @@ func (p *Player) readLoop() {
 			p.pos += int64(l)
 			p.buf = p.buf[l:]
 
-			p.m.Unlock()
 			p.proceededCh <- proceededValues{buf, nil}
+
+		case f := <-p.syncCh:
+			f()
 		}
 	}
 }
 
+func (p *Player) sync(f func()) bool {
+	ch := make(chan struct{})
+	ff := func() {
+		f()
+		close(ch)
+	}
+	select {
+	case p.syncCh <- ff:
+		<-ch
+		return true
+	case <-p.readLoopEndedCh:
+		return false
+	}
+}
+
 func (p *Player) eof() bool {
-	p.m.RLock()
-	r := p.srcEOF && len(p.buf) == 0
-	p.m.RUnlock()
+	r := false
+	p.sync(func() {
+		r = p.srcEOF && len(p.buf) == 0
+	})
 	return r
 }
 
@@ -585,18 +591,19 @@ func (p *Player) Pause() error {
 
 // Current returns the current position.
 func (p *Player) Current() time.Duration {
-	p.m.RLock()
-	sample := p.pos / bytesPerSample / channelNum
-	p.m.RUnlock()
-
+	sample := int64(0)
+	p.sync(func() {
+		sample = p.pos / bytesPerSample / channelNum
+	})
 	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
 
 // Volume returns the current volume of this player [0-1].
 func (p *Player) Volume() float64 {
-	p.m.RLock()
-	v := p.volume
-	p.m.RUnlock()
+	v := 0.0
+	p.sync(func() {
+		v = p.volume
+	})
 	return v
 }
 
@@ -608,7 +615,7 @@ func (p *Player) SetVolume(volume float64) {
 		panic("audio: volume must be in between 0 and 1")
 	}
 
-	p.m.Lock()
-	p.volume = volume
-	p.m.Unlock()
+	p.sync(func() {
+		p.volume = volume
+	})
 }
