@@ -259,14 +259,8 @@ func (c *Context) loop() {
 		c.pingCount--
 		c.m.Unlock()
 
-		buf := make([]byte, 4096)
-		n, err := c.players.Read(buf)
-		if err != nil {
-			audiobinding.SetError(err)
-			return
-		}
-
-		if _, err = p.Write(buf[:n]); err != nil {
+		const n = 4096
+		if _, err = io.CopyN(p, c.players, n); err != nil {
 			audiobinding.SetError(err)
 			return
 		}
