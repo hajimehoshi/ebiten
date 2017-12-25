@@ -77,11 +77,11 @@ func (s *Stream) Read(b []byte) (int, error) {
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	next := int64(0)
 	switch whence {
-	case 0:
+	case io.SeekStart:
 		next = offset
-	case 1:
+	case io.SeekCurrent:
 		next = int64(s.posInBytes) + offset
-	case 2:
+	case io.SeekEnd:
 		next = s.Size() + offset
 	}
 	s.posInBytes = int(next)
