@@ -205,7 +205,7 @@ func decode(context *audio.Context, buf []byte) (*Stream, error) {
 		if err != nil {
 			return nil, err
 		}
-	case <-time.After(time.Second):
+	case <-time.After(10 * time.Second):
 		// Sometimes decode fails without calling the callbacks (#464).
 		// Let's just try again in this case.
 		return nil, errTimeout
