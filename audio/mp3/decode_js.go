@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/audio"
@@ -34,7 +35,10 @@ type Stream struct {
 	posInBytes int
 }
 
-var errTryAgain = errors.New("audio/mp3: try again")
+var (
+	errTryAgain = errors.New("audio/mp3: try again")
+	errTimeout  = errors.New("audio/mp3: timeout")
+)
 
 func (s *Stream) Read(b []byte) (int, error) {
 	l := len(s.leftData)*4 - s.posInBytes
@@ -127,16 +131,20 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	var s *Stream
 	for {
 		s, err = decode(context, b)
-		if err == errTryAgain {
+		switch err {
+		case errTryAgain:
 			buf, ok := seekNextFrame(b)
 			if !ok {
 				return nil, fmt.Errorf("audio/mp3: Decode failed: invalid format?")
 			}
 			b = buf
 			continue
-		}
-		if err != nil {
-			return nil, err
+		case errTimeout:
+			continue
+		default:
+			if err != nil {
+				return nil, err
+			}
 		}
 		break
 	}
@@ -192,8 +200,15 @@ func decode(context *audio.Context, buf []byte) (*Stream, error) {
 		}
 	})
 
-	if err := <-ch; err != nil {
-		return nil, err
+	select {
+	case err := <-ch:
+		if err != nil {
+			return nil, err
+		}
+	case <-time.After(time.Second):
+		// Sometimes decode fails without calling the callbacks (#464).
+		// Let's just try again in this case.
+		return nil, errTimeout
 	}
 	return s, nil
 }
