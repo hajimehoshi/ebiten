@@ -62,10 +62,10 @@ func (s *Stream) Read(b []byte) (int, error) {
 		if ir < -max {
 			ir = -max
 		}
-		b[4*i] = uint8(il)
-		b[4*i+1] = uint8(il >> 8)
-		b[4*i+2] = uint8(ir)
-		b[4*i+3] = uint8(ir >> 8)
+		b[4*i] = byte(il)
+		b[4*i+1] = byte(il >> 8)
+		b[4*i+2] = byte(ir)
+		b[4*i+3] = byte(ir >> 8)
 	}
 	s.posInBytes += l
 	if s.posInBytes == len(s.leftData)*4 {
