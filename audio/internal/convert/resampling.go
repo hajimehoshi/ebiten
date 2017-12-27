@@ -30,15 +30,15 @@ func sinc(x float64) float64 {
 }
 
 type Resampling struct {
-	source   audio.ReadSeekCloser
-	size     int64
-	from     int
-	to       int
-	pos      int64
-	srcBlock int64
-	srcBufL  map[int64][]float64
-	srcBufR  map[int64][]float64
-	lruBlock []int64
+	source       audio.ReadSeekCloser
+	size         int64
+	from         int
+	to           int
+	pos          int64
+	srcBlock     int64
+	srcBufL      map[int64][]float64
+	srcBufR      map[int64][]float64
+	lruSrcBlocks []int64
 }
 
 const resamplingBufferSize = 4096
@@ -100,17 +100,17 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 		r.srcBufL[r.srcBlock] = sl
 		r.srcBufR[r.srcBlock] = sr
 		// To keep srcBufL/R not too big, let's remove the least used buffers.
-		if len(r.lruBlock) >= 4 {
-			p := r.lruBlock[0]
+		if len(r.lruSrcBlocks) >= 4 {
+			p := r.lruSrcBlocks[0]
 			delete(r.srcBufL, p)
 			delete(r.srcBufR, p)
-			r.lruBlock = r.lruBlock[1:]
+			r.lruSrcBlocks = r.lruSrcBlocks[1:]
 		}
-		r.lruBlock = append(r.lruBlock, r.srcBlock)
+		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)
 	} else {
 		r.srcBlock = nextPos
 		idx := -1
-		for i, p := range r.lruBlock {
+		for i, p := range r.lruSrcBlocks {
 			if p == r.srcBlock {
 				idx = i
 				break
@@ -119,8 +119,8 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 		if idx == -1 {
 			panic("not reach")
 		}
-		r.lruBlock = append(r.lruBlock[:idx], r.lruBlock[idx+1:]...)
-		r.lruBlock = append(r.lruBlock, r.srcBlock)
+		r.lruSrcBlocks = append(r.lruSrcBlocks[:idx], r.lruSrcBlocks[idx+1:]...)
+		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)
 	}
 	ii := i % resamplingBufferSize
 	return r.srcBufL[r.srcBlock][ii], r.srcBufR[r.srcBlock][ii], nil
