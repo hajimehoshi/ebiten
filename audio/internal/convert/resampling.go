@@ -127,21 +127,21 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 8
+	windowSize := 8.0
 	if web.IsBrowser() {
-		windowSize = 4
+		windowSize = 4.0
 	}
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
-	startN := int64(tInSrc) - int64(windowSize)
+	startN := tInSrc - windowSize
 	if startN < 0 {
 		startN = 0
 	}
-	if r.size/4 <= startN {
-		startN = r.size/4 - 1
+	if float64(r.size/4) <= startN {
+		startN = float64(r.size/4) - 1
 	}
-	endN := int64(tInSrc) + int64(windowSize) + 1
-	if r.size/4 <= endN {
-		endN = r.size/4 - 1
+	endN := tInSrc + windowSize + 1
+	if float64(r.size/4) <= endN {
+		endN = float64(r.size/4) - 1
 	}
 	lv := 0.0
 	rv := 0.0
@@ -150,8 +150,8 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		w := 0.5 + 0.5*math.Cos(2*math.Pi*(tInSrc-float64(n))/(float64(windowSize)*2+1))
-		s := sinc(math.Pi*(tInSrc-float64(n))) * w
+		w := 0.5 + 0.5*math.Cos(2*math.Pi*(tInSrc-n)/(windowSize*2+1))
+		s := sinc(math.Pi*(tInSrc-n)) * w
 		lv += srcL * s
 		rv += srcR * s
 	}
