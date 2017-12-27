@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"time"
 
 	"github.com/gopherjs/gopherjs/js"
@@ -129,8 +130,9 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, err
 	}
 	var s *Stream
+	try := 0
 	for {
-		s, err = decode(context, b)
+		s, err = decode(context, b, try)
 		switch err {
 		case errTryAgain:
 			buf, ok := seekNextFrame(b)
@@ -140,6 +142,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 			b = buf
 			continue
 		case errTimeout:
+			try++
 			continue
 		default:
 			if err != nil {
@@ -164,7 +167,7 @@ func init() {
 	}
 }
 
-func decode(context *audio.Context, buf []byte) (*Stream, error) {
+func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	if offlineAudioContextClass == nil {
 		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
 	}
@@ -200,12 +203,14 @@ func decode(context *audio.Context, buf []byte) (*Stream, error) {
 		}
 	})
 
+	timeout := time.Duration(math.Pow(2, float64(try))) * time.Second
+
 	select {
 	case err := <-ch:
 		if err != nil {
 			return nil, err
 		}
-	case <-time.After(3 * time.Second):
+	case <-time.After(timeout):
 		// Sometimes decode fails without calling the callbacks (#464).
 		// Let's just try again in this case.
 		return nil, errTimeout
