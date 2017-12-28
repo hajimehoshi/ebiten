@@ -231,13 +231,8 @@ func (c *Context) loop() {
 	<-initCh
 
 	// This is a heuristic decision of audio buffer size.
-	// On most desktops and mobiles, 4096 [bytes] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
-	// On browsers, samples for 12800 [bytes] should work with any sample rate.
-	// This is misterious but e.g. 8192 [bytes], 12000 [bytes] or 16384 [bytes] doesn't work on Chrome well...
+	// On most environments, 4096 [bytes] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
 	bufferSize := 8192
-	if web.IsBrowser() {
-		bufferSize = 12800
-	}
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize)
 	if err != nil {
 		audiobinding.SetError(err)
