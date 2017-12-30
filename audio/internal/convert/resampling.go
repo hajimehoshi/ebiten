@@ -127,10 +127,7 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 8.0
-	if web.IsBrowser() {
-		windowSize = 4.0
-	}
+	windowSize := 4.0
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
 	startN := tInSrc - windowSize
 	if startN < 0 {
