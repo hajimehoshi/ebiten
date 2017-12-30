@@ -19,7 +19,6 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 func sinc(x float64) float64 {
