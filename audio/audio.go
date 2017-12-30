@@ -230,10 +230,7 @@ func (c *Context) loop() {
 	// e.g. a variable for JVM on Android might not be set.
 	<-initCh
 
-	// This is a heuristic decision of audio buffer size.
-	// On most environments, 4096 [bytes] is enough but there are some known environment that is too short (e.g. Windows on Parallels).
-	bufferSize := 8192
-	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize)
+	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize())
 	if err != nil {
 		audiobinding.SetError(err)
 		return
