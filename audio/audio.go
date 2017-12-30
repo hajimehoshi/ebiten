@@ -256,7 +256,7 @@ func (c *Context) loop() {
 		c.m.Unlock()
 
 		const n = 4096
-		if _, err = io.CopyN(p, c.players, n); err != nil {
+		if _, err := io.CopyN(p, c.players, n); err != nil {
 			audiobinding.SetError(err)
 			return
 		}
