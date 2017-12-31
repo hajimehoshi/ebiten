@@ -85,7 +85,6 @@ func (u *userInterface) update(g GraphicsContext) error {
 		// Sizing also calls GL functions
 		u.sizeChanged = false
 		g.SetSize(u.width, u.height, u.actualScreenScale())
-		return nil
 	}
 	if err := g.Update(func() {}); err != nil {
 		return err
