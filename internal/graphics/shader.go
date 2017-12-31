@@ -48,13 +48,17 @@ uniform mat4 projection_matrix;
 attribute vec2 vertex;
 attribute vec4 tex_coord;
 attribute vec4 geo_matrix_body;
+attribute vec4 color;
 attribute vec2 geo_matrix_translation;
 varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
+varying vec4 varying_color;
 
 void main(void) {
   varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
+  varying_color = color;
+
   varying_tex_coord_min =
     vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
   varying_tex_coord_max =
@@ -90,6 +94,7 @@ uniform highp vec2 source_size;
 varying highp vec2 varying_tex_coord;
 varying highp vec2 varying_tex_coord_min;
 varying highp vec2 varying_tex_coord_max;
+varying vec4 varying_color;
 
 highp vec2 roundTexel(highp vec2 p) {
   // highp (relative) precision is 2^(-16) in the spec.
@@ -104,7 +109,7 @@ void main(void) {
   highp vec2 pos = varying_tex_coord;
 
 #if defined(FILTER_NEAREST)
-  vec4 color = texture2D(texture, pos);
+  vec4 color = texture2D(texture, pos) * varying_color;
   if (pos.x < varying_tex_coord_min.x ||
     pos.y < varying_tex_coord_min.y ||
     varying_tex_coord_max.x <= pos.x ||
@@ -142,7 +147,7 @@ void main(void) {
   }
 
   vec2 rate = fract(pos * source_size);
-  vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+  vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y) * varying_color;
 #endif
 
   // Un-premultiply alpha

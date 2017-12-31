@@ -66,6 +66,9 @@ type Image struct {
 	basePixels []uint8
 	baseColor  color.RGBA
 
+	// colors provides per-vertex color overrides
+	colors []color.RGBA
+
 	// drawImageHistory is a set of draw-image commands.
 	// TODO: This should be merged with the similar command queue in package graphics (#433).
 	drawImageHistory []*drawImageHistoryItem
@@ -170,6 +173,27 @@ func (i *Image) Fill(r, g, b, a uint8) {
 	i.drawImageHistory = nil
 	i.stale = false
 	i.image.Fill(r, g, b, a)
+}
+
+// Colors returns the vertex colors, if any.
+func (p *Image) Colors() []color.RGBA {
+	return p.colors
+}
+
+// SetColor sets a vertex color for one corner of the image.
+// If only some corners are set, others default to opaque
+// white, or no modification.
+func (p *Image) SetColor(index int, clr color.RGBA) {
+	if index < 0 || index > 3 {
+		return
+	}
+	if p.colors == nil {
+		p.colors = make([]color.RGBA, 4)
+		for i := 0; i < 4; i++ {
+			p.colors[i] = color.RGBA{255, 255, 255, 255}
+		}
+	}
+	p.colors[index] = clr
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
@@ -372,6 +396,7 @@ func (i *Image) Dispose() {
 	i.image = nil
 	i.basePixels = nil
 	i.baseColor = color.RGBA{}
+	i.colors = nil
 	i.drawImageHistory = nil
 	i.stale = false
 	theImages.remove(i)
