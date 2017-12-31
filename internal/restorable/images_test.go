@@ -79,10 +79,10 @@ func vertices(sw, sh int, x, y int) []float32 {
 
 	// For the rule of values, see vertices.go.
 	return []float32{
-		0, 0, 0, 0, 1, 1, a, b, c, d, tx, ty,
-		0, shf, 0, 1, 1, 0, a, b, c, d, tx, ty,
-		swf, 0, 1, 0, 0, 1, a, b, c, d, tx, ty,
-		swf, shf, 1, 1, 0, 0, a, b, c, d, tx, ty,
+		0, 0, 0, 0, 1, 1, a, b, c, d, tx, ty, 1, 1, 1, 1,
+		0, shf, 0, 1, 1, 0, a, b, c, d, tx, ty, 1, 1, 1, 1,
+		swf, 0, 1, 0, 0, 1, a, b, c, d, tx, ty, 1, 1, 1, 1,
+		swf, shf, 1, 1, 0, 0, a, b, c, d, tx, ty, 1, 1, 1, 1,
 	}
 }
 
