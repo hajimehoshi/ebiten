@@ -20,6 +20,7 @@ import (
 	"errors"
 	"image"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -51,21 +52,26 @@ type userInterface struct {
 	height      int
 	scale       float64
 	sizeChanged bool
+
+	m sync.RWMutex
 }
 
 var (
 	chRender    = make(chan struct{})
 	chRenderEnd = make(chan struct{})
-	currentUI   = &userInterface{
-		sizeChanged: true,
-	}
+	currentUI   = &userInterface{}
 )
 
 func Run(width, height int, scale float64, title string, g GraphicsContext) error {
 	u := currentUI
+
+	u.m.Lock()
 	u.width = width
 	u.height = height
 	u.scale = scale
+	u.sizeChanged = true
+	u.m.Unlock()
+
 	// title is ignored?
 	opengl.Init()
 	for {
@@ -81,11 +87,25 @@ func (u *userInterface) update(g GraphicsContext) error {
 		chRenderEnd <- struct{}{}
 	}()
 
-	if u.sizeChanged {
-		// Sizing also calls GL functions
-		u.sizeChanged = false
-		g.SetSize(u.width, u.height, u.actualScreenScale())
+	sizeChanged := false
+	width, height := 0, 0
+	actualScale := 0.0
+
+	u.m.Lock()
+	sizeChanged = u.sizeChanged
+	if sizeChanged {
+		width = u.width
+		height = u.height
+		actualScale = u.scale * deviceScale()
 	}
+	u.sizeChanged = false
+	u.m.Unlock()
+
+	if sizeChanged {
+		// Sizing also calls GL functions
+		g.SetSize(width, height, actualScale)
+	}
+
 	if err := g.Update(func() {}); err != nil {
 		return err
 	}
@@ -93,17 +113,40 @@ func (u *userInterface) update(g GraphicsContext) error {
 }
 
 func SetScreenSize(width, height int) bool {
-	// TODO: Implement
-	return false
+	currentUI.setScreenSize(width, height)
+	return true
+}
+
+func (u *userInterface) setScreenSize(width, height int) {
+	u.m.Lock()
+	if u.width != width || u.height != height {
+		u.width = width
+		u.height = height
+		u.sizeChanged = true
+	}
+	u.m.Unlock()
 }
 
 func SetScreenScale(scale float64) bool {
-	// TODO: Implement
+	currentUI.setScreenScale(scale)
 	return false
 }
 
+func (u *userInterface) setScreenScale(scale float64) {
+	u.m.Lock()
+	if u.scale != scale {
+		u.scale = scale
+		u.sizeChanged = true
+	}
+	u.m.Unlock()
+}
+
 func ScreenScale() float64 {
-	return currentUI.scale
+	u := currentUI
+	u.m.RLock()
+	s := u.scale
+	u.m.RUnlock()
+	return s
 }
 
 func ScreenOffset() (float64, float64) {
@@ -142,10 +185,6 @@ func IsRunnableInBackground() bool {
 
 func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
-}
-
-func (u *userInterface) actualScreenScale() float64 {
-	return u.scale * deviceScale()
 }
 
 func UpdateTouches(touches []Touch) {
