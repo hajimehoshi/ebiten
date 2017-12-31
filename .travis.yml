@@ -40,9 +40,7 @@ script:
   - go test -v github.com/hajimehoshi/ebiten
   - go test -v github.com/hajimehoshi/ebiten/internal/math
   - go test -v github.com/hajimehoshi/ebiten/internal/restorable
-
-# Suspend building with GopherJS temporarily (#422)
-# - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
+  - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
 
 # Looks like testing GL on node is hard.
 # - gopherjs test -v github.com/hajimehoshi/ebiten github.com/hajimehoshi/ebiten/internal/graphics
