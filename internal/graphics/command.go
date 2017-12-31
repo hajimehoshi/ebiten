@@ -333,7 +333,8 @@ type disposeCommand struct {
 
 // Exec executes the disposeCommand.
 func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
-	if c.target.framebuffer != nil {
+	if c.target.framebuffer != nil &&
+		c.target.framebuffer.native != opengl.GetContext().ScreenFramebuffer() {
 		opengl.GetContext().DeleteFramebuffer(c.target.framebuffer.native)
 	}
 	if c.target.texture != nil {
