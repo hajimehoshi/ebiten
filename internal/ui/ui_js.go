@@ -22,6 +22,8 @@ import (
 	"unicode"
 
 	"github.com/gopherjs/gopherjs/js"
+
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -346,14 +348,6 @@ func setMouseCursorFromEvent(e *js.Object) {
 	currentInput.setMouseCursor(int(float64(x)/scale), int(float64(y)/scale))
 }
 
-func devicePixelRatio() float64 {
-	ratio := js.Global.Get("window").Get("devicePixelRatio").Float()
-	if ratio == 0 {
-		ratio = 1
-	}
-	return ratio
-}
-
 func RunMainThreadLoop(ch <-chan error) error {
 	return <-ch
 }
@@ -389,7 +383,7 @@ func (u *userInterface) updateScreenSize() {
 	// * Chrome just after restoring the lost context
 	// * Safari
 	// Let's use the pixel ratio as it is here.
-	u.deviceScale = devicePixelRatio()
+	u.deviceScale = devicescale.DeviceScale()
 
 	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))

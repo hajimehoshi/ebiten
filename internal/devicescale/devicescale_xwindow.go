@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,16 +16,9 @@
 // +build !js
 // +build !android
 
-package ui
+package devicescale
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
-)
-
-func glfwScale() float64 {
-	return devicescale.DeviceScale()
-}
-
-func adjustWindowPosition(x, y int) (int, int) {
-	return x, y
+func impl() float64 {
+	// TODO: Implement this
+	return 1
 }

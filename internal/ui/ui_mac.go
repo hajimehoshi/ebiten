@@ -18,21 +18,6 @@
 
 package ui
 
-// #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework AppKit
-//
-// #import <AppKit/AppKit.h>
-//
-// static float scale() {
-//   NSScreen* primary = [[NSScreen screens] firstObject];
-//   return [primary backingScaleFactor];
-// }
-import "C"
-
-func deviceScale() float64 {
-	return float64(C.scale())
-}
-
 func glfwScale() float64 {
 	return 1
 }

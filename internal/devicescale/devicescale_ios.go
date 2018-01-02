@@ -12,38 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !js
+// +build ios
 
-package ui
+package devicescale
 
-// TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
-
-// #cgo LDFLAGS: -lgdi32
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework Foundation -framework UIKit
 //
-// #include <windows.h>
+// #import <UIKit/UIKit.h>
 //
-// static int getCaptionHeight() {
-//   return GetSystemMetrics(SM_CYCAPTION);
+// static double devicePixelRatio() {
+//   return [[UIScreen mainScreen] nativeScale];
 // }
 import "C"
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
-)
-
-func glfwScale() float64 {
-	return devicescale.DeviceScale()
-}
-
-func adjustWindowPosition(x, y int) (int, int) {
-	// As the video width/height might be wrong,
-	// adjust x/y at least to enable to handle the window (#328)
-	if x < 0 {
-		x = 0
-	}
-	t := int(C.getCaptionHeight())
-	if y < t {
-		y = t
-	}
-	return x, y
+func impl() float64 {
+	return float64(C.devicePixelRatio())
 }

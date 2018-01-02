@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 // +build !js
 
-package ui
+package devicescale
 
 // TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
 
@@ -22,28 +22,20 @@ package ui
 //
 // #include <windows.h>
 //
-// static int getCaptionHeight() {
-//   return GetSystemMetrics(SM_CYCAPTION);
+// static char* getDPI(int* dpi) {
+//   HDC dc = GetWindowDC(0);
+//   *dpi = GetDeviceCaps(dc, LOGPIXELSX);
+//   if (!ReleaseDC(0, dc)) {
+//     return "ReleaseDC failed";
+//   }
+//   return "";
 // }
 import "C"
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
-)
-
-func glfwScale() float64 {
-	return devicescale.DeviceScale()
-}
-
-func adjustWindowPosition(x, y int) (int, int) {
-	// As the video width/height might be wrong,
-	// adjust x/y at least to enable to handle the window (#328)
-	if x < 0 {
-		x = 0
+func impl() float64 {
+	dpi := C.int(0)
+	if errmsg := C.GoString(C.getDPI(&dpi)); errmsg != "" {
+		panic(errmsg)
 	}
-	t := int(C.getCaptionHeight())
-	if y < t {
-		y = t
-	}
-	return x, y
+	return float64(dpi) / 96
 }

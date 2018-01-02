@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build ios
+// +build darwin
+// +build !js
+// +build !ios
 
-package ui
+package devicescale
 
 // #cgo CFLAGS: -x objective-c
-// #cgo LDFLAGS: -framework Foundation -framework UIKit
+// #cgo LDFLAGS: -framework AppKit
 //
-// #import <UIKit/UIKit.h>
+// #import <AppKit/AppKit.h>
 //
-// static double devicePixelRatio() {
-//   return [[UIScreen mainScreen] nativeScale];
+// static float scale() {
+//   NSScreen* primary = [[NSScreen screens] firstObject];
+//   return [primary backingScaleFactor];
 // }
 import "C"
 
-func deviceScale() float64 {
-	return float64(C.devicePixelRatio())
+func impl() float64 {
+	return float64(C.scale())
 }
