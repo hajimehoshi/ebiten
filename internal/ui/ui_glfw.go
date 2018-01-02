@@ -31,25 +31,30 @@ import (
 )
 
 type userInterface struct {
-	title                string
-	window               *glfw.Window
-	width                int
-	windowWidth          int
-	height               int
-	scale                float64
-	cachedDeviceScale    float64
-	cachedGLFWScale      float64
-	fullscreenScale      float64
-	funcs                chan func()
+	title       string
+	window      *glfw.Window
+	width       int
+	windowWidth int
+	height      int
+
+	scale             float64
+	cachedDeviceScale float64
+	cachedGLFWScale   float64
+	fullscreenScale   float64
+
 	running              bool
 	sizeChanged          bool
 	origPosX             int
 	origPosY             int
-	initFullscreen       bool
-	initCursorVisible    bool
-	initIconImages       []image.Image
 	runnableInBackground bool
-	m                    sync.Mutex
+
+	initFullscreen    bool
+	initCursorVisible bool
+	initIconImages    []image.Image
+
+	funcs chan func()
+
+	m sync.Mutex
 }
 
 var (
