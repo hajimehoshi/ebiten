@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -282,4 +283,8 @@ func SetRunnableInBackground(runnableInBackground bool) {
 // This function is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
+}
+
+func DeviceScale() float64 {
+	return devicescale.DeviceScale()
 }

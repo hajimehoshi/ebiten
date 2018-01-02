@@ -167,6 +167,8 @@ FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 }
 
 func main() {
+	fmt.Printf("Device scale: %0.2f\n", ebiten.DeviceScale())
+
 	var err error
 	gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterNearest)
 	if err != nil {
