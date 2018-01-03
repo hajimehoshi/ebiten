@@ -26,23 +26,23 @@ import (
 	"strings"
 )
 
-type windowManager int
+type desktop int
 
 const (
-	windowManagerUnknown windowManager = iota
-	windowManagerGnome
-	windowManagerCinnamon
+	desktopUnknown desktop = iota
+	desktopGnome
+	desktopCinnamon
 )
 
-func currentWindowManager() windowManager {
+func currentDesktop() desktop {
 	tokens := strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
 	switch tokens[len(tokens)-1] {
 	case "GNOME":
-		return windowManagerGnome
+		return desktopGnome
 	case "X-Cinnamon":
-		return windowManagerCinnamon
+		return desktopCinnamon
 	default:
-		return windowManagerUnknown
+		return desktopUnknown
 	}
 }
 
@@ -87,14 +87,14 @@ func cinnamonScale() float64 {
 }
 
 func impl() float64 {
-	switch currentWindowManager() {
-	case windowManagerGnome:
+	switch currentDesktop() {
+	case desktopGnome:
 		s := gnomeScale()
 		if s <= 0 {
 			return 1
 		}
 		return s
-	case windowManagerCinnamon:
+	case desktopCinnamon:
 		s := cinnamonScale()
 		if s <= 0 {
 			return 1
