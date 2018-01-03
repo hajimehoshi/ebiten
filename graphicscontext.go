@@ -33,7 +33,6 @@ type graphicsContext struct {
 	offscreen   *Image
 	offscreen2  *Image // TODO: better name
 	screen      *Image
-	screenScale float64
 	initialized bool
 	invalidated bool // browser only
 }
@@ -71,7 +70,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 	c.offscreen = offscreen
 	c.offscreen2 = offscreen2
-	c.screenScale = screenScale
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {
