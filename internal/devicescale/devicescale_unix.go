@@ -65,11 +65,15 @@ func cinnamonScale() float64 {
 }
 
 func impl() float64 {
-	if s := gnomeScale(); s != 0 {
-		return s
+	scale := 0.0
+	if s := gnomeScale(); s > scale {
+		scale = s
 	}
-	if s := cinnamonScale(); s != 0 {
-		return s
+	if s := cinnamonScale(); s > scale {
+		scale = s
 	}
-	return 1
+	if scale == 0 {
+		return 1
+	}
+	return scale
 }
