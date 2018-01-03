@@ -104,6 +104,11 @@ func (u *updater) Invalidate() {
 //
 // A window size is based on the given values (width, height and scale).
 // scale is used to enlarge the screen.
+// Note that the actual screen is multiplied not only by the given scale but also
+// by the device scale on high-DPI display.
+// If you pass inverse of the device scale,
+// you can disable this automatical device scaling as a result.
+// You can get the device scale by DeviceScale function.
 //
 // Run must be called from the OS main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
@@ -174,6 +179,12 @@ func SetScreenSize(width, height int) {
 }
 
 // SetScreenScale changes the scale of the screen.
+//
+// Note that the actual screen is multiplied not only by the given scale but also
+// by the device scale on high-DPI display.
+// If you pass inverse of the device scale,
+// you can disable this automatical device scaling as a result.
+// You can get the device scale by DeviceScale function.
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale float64) {
@@ -285,6 +296,11 @@ func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
 }
 
+// DeviceScale returns a device scale value.
+//
+// This returns a meaningful value on high-DPI display environment.
+//
+// This function is concurrent-safe.
 func DeviceScale() float64 {
 	return devicescale.DeviceScale()
 }
