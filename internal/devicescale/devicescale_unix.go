@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type windowManager int
@@ -34,7 +35,8 @@ const (
 )
 
 func currentWindowManager() windowManager {
-	switch os.Getenv("XDG_CURRENT_DESKTOP") {
+	tokens := strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
+	switch tokens[len(tokens)-1] {
 	case "GNOME":
 		return windowManagerGnome
 	case "X-Cinnamon":
