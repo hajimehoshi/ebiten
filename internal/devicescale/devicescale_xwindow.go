@@ -18,7 +18,58 @@
 
 package devicescale
 
+import (
+	"os/exec"
+	"regexp"
+	"strconv"
+)
+
+var gsettingsRe = regexp.MustCompile(`\Auint32 (\d+)\s*\z`)
+
+func gnomeScale() float64 {
+	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "scaling-factor").Output()
+	if err != nil {
+		if err == exec.ErrNotFound {
+			return 0
+		}
+		if _, ok := err.(*exec.ExitError); ok {
+			return 0
+		}
+		panic(err)
+	}
+	m := gsettingsRe.FindStringSubmatch(string(out))
+	s, err := strconv.Atoi(m[1])
+	if err != nil {
+		return 0
+	}
+	return float64(s)
+}
+
+func cinnamonScale() float64 {
+	out, err := exec.Command("gsettings", "get", "org.cinnamon.desktop.interface", "scaling-factor").Output()
+	if err != nil {
+		if err == exec.ErrNotFound {
+			return 0
+		}
+		if _, ok := err.(*exec.ExitError); ok {
+			return 0
+		}
+		panic(err)
+	}
+	m := gsettingsRe.FindStringSubmatch(string(out))
+	s, err := strconv.Atoi(m[1])
+	if err != nil {
+		return 0
+	}
+	return float64(s)
+}
+
 func impl() float64 {
-	// TODO: Implement this
+	if s := gnomeScale(); s != 0 {
+		return s
+	}
+	if s := cinnamonScale(); s != 0 {
+		return s
+	}
 	return 1
 }
