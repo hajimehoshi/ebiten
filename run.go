@@ -108,7 +108,7 @@ func (u *updater) Invalidate() {
 // by the device scale on high-DPI display.
 // If you pass inverse of the device scale,
 // you can disable this automatical device scaling as a result.
-// You can get the device scale by DeviceScale function.
+// You can get the device scale by DeviceScaleFactor function.
 //
 // Run must be called from the OS main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
@@ -184,7 +184,7 @@ func SetScreenSize(width, height int) {
 // by the device scale on high-DPI display.
 // If you pass inverse of the device scale,
 // you can disable this automatical device scaling as a result.
-// You can get the device scale by DeviceScale function.
+// You can get the device scale by DeviceScaleFactor function.
 //
 // This function is concurrent-safe.
 func SetScreenScale(scale float64) {
@@ -296,12 +296,12 @@ func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
 }
 
-// DeviceScale returns a device scale value.
+// DeviceScaleFactor returns a device scale value.
 //
-// DeviceScale returns a meaningful value on high-DPI display environment,
-// otherwise DeviceScale returns 1.
+// DeviceScaleFactor returns a meaningful value on high-DPI display environment,
+// otherwise DeviceScaleFactor returns 1.
 //
 // This function is concurrent-safe.
-func DeviceScale() float64 {
+func DeviceScaleFactor() float64 {
 	return devicescale.DeviceScale()
 }
