@@ -40,7 +40,6 @@ type userInterface struct {
 	height      int
 
 	scale           float64
-	cachedGLFWScale float64
 	fullscreenScale float64
 
 	running              bool
@@ -312,8 +311,8 @@ func ScreenOffset() (float64, float64) {
 	v := m.GetVideoMode()
 	d := devicescale.DeviceScale()
 	_ = u.runOnMainThread(func() error {
-		ox = (float64(v.Width)*d/u.glfwScale() - float64(u.width)*u.actualScreenScale()) / 2
-		oy = (float64(v.Height)*d/u.glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
+		ox = (float64(v.Width)*d/glfwScale() - float64(u.width)*u.actualScreenScale()) / 2
+		oy = (float64(v.Height)*d/glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
 		return nil
 	})
 	return ox, oy
@@ -390,16 +389,9 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	return u.loop(g)
 }
 
-func (u *userInterface) glfwScale() float64 {
-	if u.cachedGLFWScale == 0 {
-		u.cachedGLFWScale = glfwScale()
-	}
-	return u.cachedGLFWScale
-}
-
 func (u *userInterface) glfwSize() (int, int) {
-	w := int(float64(u.windowWidth) * u.getScale() * u.glfwScale())
-	h := int(float64(u.height) * u.getScale() * u.glfwScale())
+	w := int(float64(u.windowWidth) * u.getScale() * glfwScale())
+	h := int(float64(u.height) * u.getScale() * glfwScale())
 	return w, h
 }
 
@@ -410,8 +402,8 @@ func (u *userInterface) getScale() float64 {
 	if u.fullscreenScale == 0 {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		sw := float64(v.Width) / u.glfwScale() / float64(u.width)
-		sh := float64(v.Height) / u.glfwScale() / float64(u.height)
+		sw := float64(v.Width) / glfwScale() / float64(u.width)
+		sh := float64(v.Height) / glfwScale() / float64(u.height)
 		s := sw
 		if s > sh {
 			s = sh
@@ -427,7 +419,7 @@ func (u *userInterface) actualScreenScale() float64 {
 
 func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
-	currentInput.update(u.window, u.getScale()*u.glfwScale())
+	currentInput.update(u.window, u.getScale()*glfwScale())
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
