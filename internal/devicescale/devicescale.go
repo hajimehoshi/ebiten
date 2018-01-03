@@ -14,12 +14,22 @@
 
 package devicescale
 
-var scale = 0.0
+import (
+	"sync"
+)
+
+var (
+	scale = 0.0
+	m     sync.Mutex
+)
 
 func DeviceScale() float64 {
-	if scale != 0.0 {
-		return scale
+	s := 0.0
+	m.Lock()
+	if scale == 0.0 {
+		scale = impl()
 	}
-	scale = impl()
-	return scale
+	s = scale
+	m.Unlock()
+	return s
 }
