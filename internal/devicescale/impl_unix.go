@@ -32,6 +32,9 @@ const (
 	desktopUnknown desktop = iota
 	desktopGnome
 	desktopCinnamon
+	desktopUnity
+	desktopKDE
+	desktopXFCE
 )
 
 func currentDesktop() desktop {
@@ -41,6 +44,12 @@ func currentDesktop() desktop {
 		return desktopGnome
 	case "X-Cinnamon":
 		return desktopCinnamon
+	case "Unity":
+		return desktopUnity
+	case "KDE":
+		return desktopKDE
+	case "XFCE":
+		return desktopXFCE
 	default:
 		return desktopUnknown
 	}
@@ -100,6 +109,15 @@ func impl() float64 {
 			return 1
 		}
 		return s
+	case desktopUnity:
+		// TODO: Implement
+		return 1
+	case desktopKDE:
+		// TODO: Implement
+		return 1
+	case desktopXFCE:
+		// TODO: Implement
+		return 1
 	}
 	return 1
 }
