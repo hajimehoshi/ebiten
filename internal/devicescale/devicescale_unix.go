@@ -19,10 +19,30 @@
 package devicescale
 
 import (
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 )
+
+type windowManager int
+
+const (
+	windowManagerUnknown windowManager = iota
+	windowManagerGnome
+	windowManagerCinnamon
+)
+
+func currentWindowManager() windowManager {
+	switch os.Getenv("XDG_CURRENT_DESKTOP") {
+	case "GNOME":
+		return windowManagerGnome
+	case "X-Cinnamon":
+		return windowManagerCinnamon
+	default:
+		return windowManagerUnknown
+	}
+}
 
 var gsettingsRe = regexp.MustCompile(`\Auint32 (\d+)\s*\z`)
 
@@ -65,15 +85,19 @@ func cinnamonScale() float64 {
 }
 
 func impl() float64 {
-	scale := 0.0
-	if s := gnomeScale(); s > scale {
-		scale = s
+	switch currentWindowManager() {
+	case windowManagerGnome:
+		s := gnomeScale()
+		if s <= 0 {
+			return 1
+		}
+		return s
+	case windowManagerCinnamon:
+		s := cinnamonScale()
+		if s <= 0 {
+			return 1
+		}
+		return s
 	}
-	if s := cinnamonScale(); s > scale {
-		scale = s
-	}
-	if scale == 0 {
-		return 1
-	}
-	return scale
+	return 1
 }
