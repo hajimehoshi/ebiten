@@ -16,33 +16,23 @@
 
 package devicescale
 
-// TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
-
-// #cgo LDFLAGS: -lgdi32
-//
-// #include <windows.h>
-//
-// static char* getDPI(int* dpi) {
-//   HDC dc = GetWindowDC(0);
-//   *dpi = GetDeviceCaps(dc, LOGPIXELSX);
-//   if (!ReleaseDC(0, dc)) {
-//     return "ReleaseDC failed";
-//   }
-//   return "";
-// }
-import "C"
-
 import (
 	"fmt"
 	"syscall"
 )
 
+const logPixelSx = 88
+
 var (
 	user32 = syscall.NewLazyDLL("user32")
+	gdi32  = syscall.NewLazyDLL("gdi32")
 )
 
 var (
 	procSetProcessDPIAware = user32.NewProc("SetProcessDPIAware")
+	procGetWindowDC        = user32.NewProc("GetWindowDC")
+	procReleaseDC          = user32.NewProc("ReleaseDC")
+	procGetDeviceCaps      = gdi32.NewProc("GetDeviceCaps")
 )
 
 func setProcessDPIAware() error {
@@ -56,13 +46,52 @@ func setProcessDPIAware() error {
 	return nil
 }
 
+func getWindowDC(hwnd uintptr) (uintptr, error) {
+	r, _, e := syscall.Syscall(procGetWindowDC.Addr(), 1, hwnd, 0, 0)
+	if e != 0 {
+		return 0, fmt.Errorf("devicescale: GetWindowDC failed: error code: %d", e)
+	}
+	if r == 0 {
+		return 0, fmt.Errorf("devicescale: GetWindowDC failed: returned value: %d", r)
+	}
+	return r, nil
+}
+
+func releaseDC(hwnd, hdc uintptr) error {
+	r, _, e := syscall.Syscall(procReleaseDC.Addr(), 2, hwnd, hdc, 0)
+	if e != 0 {
+		return fmt.Errorf("devicescale: ReleaseDC failed: error code: %d", e)
+	}
+	if r == 0 {
+		return fmt.Errorf("devicescale: ReleaseDC failed: returned value: %d", r)
+	}
+	return nil
+}
+
+func getDeviceCaps(hdc uintptr, nindex int) (int, error) {
+	r, _, e := syscall.Syscall(procGetDeviceCaps.Addr(), 2, hdc, uintptr(nindex), 0)
+	if e != 0 {
+		return 0, fmt.Errorf("devicescale: GetDeviceCaps failed: error code: %d", e)
+	}
+	return int(r), nil
+}
+
 func impl() float64 {
 	if err := setProcessDPIAware(); err != nil {
 		panic(err)
 	}
-	dpi := C.int(0)
-	if errmsg := C.GoString(C.getDPI(&dpi)); errmsg != "" {
-		panic(errmsg)
+
+	dc, err := getWindowDC(0)
+	if err != nil {
+		panic(err)
 	}
+	dpi, err := getDeviceCaps(dc, logPixelSx)
+	if err != nil {
+		panic(err)
+	}
+	if err := releaseDC(0, dc); err != nil {
+		panic(err)
+	}
+
 	return float64(dpi) / 96
 }
