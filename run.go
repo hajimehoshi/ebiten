@@ -298,7 +298,8 @@ func SetWindowIcon(iconImages []image.Image) {
 
 // DeviceScale returns a device scale value.
 //
-// This returns a meaningful value on high-DPI display environment.
+// DeviceScale returns a meaningful value on high-DPI display environment,
+// otherwise DeviceScale returns 1.
 //
 // This function is concurrent-safe.
 func DeviceScale() float64 {
