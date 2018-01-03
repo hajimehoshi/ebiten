@@ -32,7 +32,34 @@ package devicescale
 // }
 import "C"
 
+import (
+	"fmt"
+	"syscall"
+)
+
+var (
+	user32 = syscall.NewLazyDLL("user32")
+)
+
+var (
+	procSetProcessDPIAware = user32.NewProc("SetProcessDPIAware")
+)
+
+func setProcessDPIAware() error {
+	r, _, e := syscall.Syscall(procSetProcessDPIAware.Addr(), 0, 0, 0, 0)
+	if e != 0 {
+		return fmt.Errorf("devicescale: SetProcessDPIAware failed: error code: %d", e)
+	}
+	if r == 0 {
+		return fmt.Errorf("devicescale: SetProcessDPIAware failed: returned value: %d", r)
+	}
+	return nil
+}
+
 func impl() float64 {
+	if err := setProcessDPIAware(); err != nil {
+		panic(err)
+	}
 	dpi := C.int(0)
 	if errmsg := C.GoString(C.getDPI(&dpi)); errmsg != "" {
 		panic(errmsg)
