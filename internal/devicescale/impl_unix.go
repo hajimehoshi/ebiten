@@ -34,7 +34,7 @@ const (
 	desktopCinnamon
 	desktopUnity
 	desktopKDE
-	desktopXFCE
+	desktopXfce
 )
 
 func currentDesktop() desktop {
@@ -49,7 +49,7 @@ func currentDesktop() desktop {
 	case "KDE":
 		return desktopKDE
 	case "XFCE":
-		return desktopXFCE
+		return desktopXfce
 	default:
 		return desktopUnknown
 	}
@@ -115,7 +115,7 @@ func impl() float64 {
 	case desktopKDE:
 		// TODO: Implement
 		return 1
-	case desktopXFCE:
+	case desktopXfce:
 		// TODO: Implement
 		return 1
 	}

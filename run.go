@@ -296,7 +296,7 @@ func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
 }
 
-// DeviceScaleFactor returns a device scale value.
+// DeviceScaleFactor returns a device scale factor value.
 //
 // DeviceScaleFactor returns a meaningful value on high-DPI display environment,
 // otherwise DeviceScaleFactor returns 1.
