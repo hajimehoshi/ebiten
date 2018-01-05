@@ -35,6 +35,10 @@ const (
 	url = "https://hajimehoshi.github.io/ebiten/"
 )
 
+var (
+	examplesDir = filepath.Join("public", "examples")
+)
+
 func execute(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 	stderr, err := cmd.StderrPipe()
@@ -257,22 +261,27 @@ func outputMain() error {
 	return t.Funcs(funcs).Execute(f, data)
 }
 
-func outputExampleImages() error {
-	// TODO: Using cp command might not be portable.
-	// Use io.Copy instead.
-	const dir = "public/examples"
-	if err := os.MkdirAll(dir, 0755); err != nil {
+func createExamplesDir() error {
+	if err := os.RemoveAll(examplesDir); err != nil {
 		return err
 	}
-	return execute("cp", "-R", "../examples/_resources/images", "public/examples/_resources/images")
+	if err := os.MkdirAll(examplesDir, 0755); err != nil {
+		return err
+	}
+	return nil
+}
+
+func outputExampleResources() error {
+	// TODO: Using cp command might not be portable.
+	// Use io.Copy instead.
+	if err := execute("cp", "-R", filepath.Join("..", "examples", "_resources"), filepath.Join(examplesDir, "_resources")); err != nil {
+		return err
+	}
+	return nil
 }
 
 func outputExampleContent(e *example) error {
-	const dir = "public/examples"
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-	f, err := os.Create(filepath.Join(dir, e.Name+".content.html"))
+	f, err := os.Create(filepath.Join(examplesDir, e.Name+".content.html"))
 	if err != nil {
 		return err
 	}
@@ -297,7 +306,7 @@ func outputExampleContent(e *example) error {
 		return err
 	}
 
-	out := filepath.Join(dir, e.Name+".js")
+	out := filepath.Join(examplesDir, e.Name+".js")
 	path := "github.com/hajimehoshi/ebiten/examples/" + e.Name
 	if err := execute("gopherjs", "build", "--tags", "example", "-m", "-o", out, path); err != nil {
 		return err
@@ -307,11 +316,7 @@ func outputExampleContent(e *example) error {
 }
 
 func outputExample(e *example) error {
-	const dir = "public/examples"
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-	f, err := os.Create(filepath.Join(dir, e.Name+".html"))
+	f, err := os.Create(filepath.Join(examplesDir, e.Name+".html"))
 	if err != nil {
 		return err
 	}
@@ -343,7 +348,10 @@ func main() {
 	if err := outputMain(); err != nil {
 		log.Fatal(err)
 	}
-	if err := outputExampleImages(); err != nil {
+	if err := createExamplesDir(); err != nil {
+		log.Fatal(err)
+	}
+	if err := outputExampleResources(); err != nil {
 		log.Fatal(err)
 	}
 	for _, e := range examples {
