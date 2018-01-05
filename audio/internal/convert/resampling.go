@@ -97,11 +97,9 @@ func (r *Resampling) Size() int64 {
 	return s / 4 * 4
 }
 
-func (r *Resampling) src(i int) (float64, float64, error) {
+func (r *Resampling) src(i int64) (float64, float64, error) {
 	const resamplingBufferSize = 65536
 
-	// Use int here since int64 is very slow on browsers.
-	// TODO: Resampling is too heavy on browsers. How about using OfflineAudioContext?
 	if i < 0 {
 		return 0, 0, nil
 	}
@@ -181,7 +179,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 	lv := 0.0
 	rv := 0.0
 	for n := startN; n <= endN; n++ {
-		srcL, srcR, err := r.src(int(n))
+		srcL, srcR, err := r.src(n)
 		if err != nil {
 			return 0, 0, err
 		}
