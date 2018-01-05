@@ -22,7 +22,7 @@ import (
 )
 
 func sinc(x float64) float64 {
-	if x == 0 {
+	if math.Abs(x) < 1e-8 {
 		return 1
 	}
 	return math.Sin(x) / x
@@ -128,26 +128,27 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 func (r *Resampling) at(t int64) (float64, float64, error) {
 	windowSize := 4.0
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
-	startN := tInSrc - windowSize
+	startN := int64(tInSrc - windowSize)
 	if startN < 0 {
 		startN = 0
 	}
-	if float64(r.size/4) <= startN {
-		startN = float64(r.size/4) - 1
+	if r.size/4 <= startN {
+		startN = r.size/4 - 1
 	}
-	endN := tInSrc + windowSize + 1
-	if float64(r.size/4) <= endN {
-		endN = float64(r.size/4) - 1
+	endN := int64(tInSrc + windowSize)
+	if r.size/4 <= endN {
+		endN = r.size/4 - 1
 	}
 	lv := 0.0
 	rv := 0.0
-	for n := startN; n < endN; n++ {
+	for n := startN; n <= endN; n++ {
 		srcL, srcR, err := r.src(int(n))
 		if err != nil {
 			return 0, 0, err
 		}
-		w := 0.5 + 0.5*math.Cos(2*math.Pi*(tInSrc-n)/(windowSize*2+1))
-		s := sinc(math.Pi*(tInSrc-n)) * w
+		d := tInSrc - float64(n)
+		w := 0.5 + 0.5*math.Cos(2*math.Pi*d/(windowSize*2+1))
+		s := sinc(math.Pi*d) * w
 		lv += srcL * s
 		rv += srcR * s
 	}
