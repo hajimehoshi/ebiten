@@ -21,11 +21,50 @@ import (
 	"github.com/hajimehoshi/ebiten/audio"
 )
 
+var cosTable = [65536]float64{}
+
+func init() {
+	for i := range cosTable {
+		cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
+	}
+}
+
+func fastCos(x float64) float64 {
+	if x < 0 {
+		x = -x
+	}
+	x /= 2 * math.Pi
+	if 1 < x {
+		_, x = math.Modf(x)
+	}
+	sign := 1
+	switch {
+	case x < 0.25:
+	case x < 0.5:
+		x = 0.5 - x
+		sign = -1
+	case x < 0.75:
+		x -= 0.5
+		sign = -1
+	default:
+		x = 1 - x
+	}
+	idx := int(4 * x * float64(len(cosTable)))
+	if idx == len(cosTable) {
+		return 0
+	}
+	return float64(sign) * cosTable[idx]
+}
+
+func fastSin(x float64) float64 {
+	return fastCos(x - math.Pi/2)
+}
+
 func sinc(x float64) float64 {
 	if math.Abs(x) < 1e-8 {
 		return 1
 	}
-	return math.Sin(x) / x
+	return fastSin(x) / x
 }
 
 type Resampling struct {
@@ -39,8 +78,6 @@ type Resampling struct {
 	srcBufR      map[int64][]float64
 	lruSrcBlocks []int64
 }
-
-const resamplingBufferSize = 4096
 
 func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resampling {
 	r := &Resampling{
@@ -61,6 +98,8 @@ func (r *Resampling) Size() int64 {
 }
 
 func (r *Resampling) src(i int) (float64, float64, error) {
+	const resamplingBufferSize = 65536
+
 	// Use int here since int64 is very slow on browsers.
 	// TODO: Resampling is too heavy on browsers. How about using OfflineAudioContext?
 	if i < 0 {
@@ -126,7 +165,7 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 4.0
+	windowSize := 8.0
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
 	startN := int64(tInSrc - windowSize)
 	if startN < 0 {
@@ -147,7 +186,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 			return 0, 0, err
 		}
 		d := tInSrc - float64(n)
-		w := 0.5 + 0.5*math.Cos(2*math.Pi*d/(windowSize*2+1))
+		w := 0.5 + 0.5*fastCos(2*math.Pi*d/(windowSize*2+1))
 		s := sinc(math.Pi*d) * w
 		lv += srcL * s
 		rv += srcR * s
