@@ -162,7 +162,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 4.0
+	windowSize := 8.0
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
 	startN := int64(tInSrc - windowSize)
 	if startN < 0 {
