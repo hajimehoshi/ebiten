@@ -97,7 +97,7 @@ func (r *Resampling) Size() int64 {
 }
 
 func (r *Resampling) src(i int64) (float64, float64, error) {
-	const resamplingBufferSize = 65536
+	const resamplingBufferSize = 4096
 
 	if i < 0 {
 		return 0, 0, nil
