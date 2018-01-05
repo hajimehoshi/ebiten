@@ -29,42 +29,41 @@ func init() {
 	}
 }
 
-func fastCos(x float64) float64 {
+func fastCos01(x float64) float64 {
 	if x < 0 {
 		x = -x
 	}
-	x /= 2 * math.Pi
-	if 1 < x {
-		_, x = math.Modf(x)
+	i := int(4 * float64(len(cosTable)) * x)
+	if 4*len(cosTable) < i {
+		i %= 4 * len(cosTable)
 	}
 	sign := 1
 	switch {
-	case x < 0.25:
-	case x < 0.5:
-		x = 0.5 - x
+	case i < len(cosTable):
+	case i < len(cosTable)*2:
+		i = len(cosTable)*2 - i
 		sign = -1
-	case x < 0.75:
-		x -= 0.5
+	case i < len(cosTable)*3:
+		i -= len(cosTable) * 2
 		sign = -1
 	default:
-		x = 1 - x
+		i = len(cosTable)*4 - i
 	}
-	idx := int(4 * x * float64(len(cosTable)))
-	if idx == len(cosTable) {
+	if i == len(cosTable) {
 		return 0
 	}
-	return float64(sign) * cosTable[idx]
+	return float64(sign) * cosTable[i]
 }
 
-func fastSin(x float64) float64 {
-	return fastCos(x - math.Pi/2)
+func fastSin01(x float64) float64 {
+	return fastCos01(x - 0.25)
 }
 
-func sinc(x float64) float64 {
+func sinc01(x float64) float64 {
 	if math.Abs(x) < 1e-8 {
 		return 1
 	}
-	return fastSin(x) / x
+	return fastSin01(x) / (x * 2 * math.Pi)
 }
 
 type Resampling struct {
@@ -163,7 +162,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 8.0
+	windowSize := 4.0
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
 	startN := int64(tInSrc - windowSize)
 	if startN < 0 {
@@ -184,8 +183,8 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 			return 0, 0, err
 		}
 		d := tInSrc - float64(n)
-		w := 0.5 + 0.5*fastCos(2*math.Pi*d/(windowSize*2+1))
-		s := sinc(math.Pi*d) * w
+		w := 0.5 + 0.5*fastCos01(d/(windowSize*2+1))
+		s := sinc01(d/2) * w
 		lv += srcL * s
 		rv += srcR * s
 	}
