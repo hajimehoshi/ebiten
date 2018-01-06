@@ -18,7 +18,6 @@ import (
 	"image"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -63,38 +62,13 @@ func IsRunningSlowly() bool {
 var theGraphicsContext atomic.Value
 
 func run(width, height int, scale float64, title string, g *graphicsContext) error {
-	if err := ui.Run(width, height, scale, title, &updater{g}); err != nil {
+	if err := ui.Run(width, height, scale, title, g); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}
 		return err
 	}
 	return nil
-}
-
-type updater struct {
-	g *graphicsContext
-}
-
-func (u *updater) SetSize(width, height int, scale float64) {
-	u.g.SetSize(width, height, scale)
-}
-
-func (u *updater) Update(afterFrameUpdate func()) error {
-	select {
-	case err := <-audiobinding.Error():
-		return err
-	default:
-	}
-	n := clock.Update()
-	if err := u.g.Update(n, afterFrameUpdate); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (u *updater) Invalidate() {
-	u.g.Invalidate()
 }
 
 // Run runs the game.

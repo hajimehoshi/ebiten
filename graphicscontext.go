@@ -17,6 +17,8 @@ package ebiten
 import (
 	"math"
 
+	"github.com/hajimehoshi/ebiten/internal/audiobinding"
+	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -95,7 +97,14 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	_ = dst.DrawImage(src, op)
 }
 
-func (c *graphicsContext) Update(updateCount int, afterFrameUpdate func()) error {
+func (c *graphicsContext) Update(afterFrameUpdate func()) error {
+	select {
+	case err := <-audiobinding.Error():
+		return err
+	default:
+	}
+	updateCount := clock.Update()
+
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
