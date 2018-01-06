@@ -118,9 +118,9 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	}
 	if 0 < updateCount {
 		drawWithFittingScale(c.offscreen2, c.offscreen)
+		_ = c.screen.Clear()
+		drawWithFittingScale(c.screen, c.offscreen2)
 	}
-	_ = c.screen.Clear()
-	drawWithFittingScale(c.screen, c.offscreen2)
 
 	if err := restorable.ResolveStaleImages(); err != nil {
 		return err
