@@ -46,11 +46,6 @@ var currentUI = &userInterface{
 	windowFocus: true,
 }
 
-// NOTE: This returns true even when the browser is not active.
-func shown() bool {
-	return !js.Global.Get("document").Get("hidden").Bool()
-}
-
 func SetScreenSize(width, height int) bool {
 	return currentUI.setScreenSize(width, height, currentUI.scale, currentUI.fullscreen)
 }
