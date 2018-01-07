@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-Copyright 2018 The Ebiten Authors
+Copyright 2015 Hajime Hoshi
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,15 +14,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<title></title>
-<p><a href="..">Index</a></p>
-<h1></h1>
-<iframe id="example" width="640" height="480"></iframe>
 <script>
-window.addEventListener('load', () => {
-  let name = location.search.substring(1);
-  document.getElementById('example').src = `example.html?${name}`;
-  document.getElementsByTagName('title')[0].textContent = `Ebiten Example - ${name}`;
-  document.getElementsByTagName('h1')[0].textContent = `Ebiten Example - ${name}`;
-});
+var msg = 'If an inconsistent behavior is found, please try to clear $GOPATH/pkg/*_js directory.' +
+  ' See also https://github.com/gopherjs/gopherjs/issues/440.';
+console.warn(msg);
 </script>
+<script src="main.js"></script>
