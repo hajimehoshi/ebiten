@@ -36,7 +36,6 @@ type userInterface struct {
 	fullscreen           bool
 	runnableInBackground bool
 
-	deviceScale float64
 	sizeChanged bool
 	windowFocus bool
 }
@@ -116,7 +115,12 @@ func (u *userInterface) getScale() float64 {
 }
 
 func (u *userInterface) actualScreenScale() float64 {
-	return u.getScale() * u.deviceScale
+	// CSS imageRendering property seems useful to enlarge the screen,
+	// but doesn't work in some cases (#306):
+	// * Chrome just after restoring the lost context
+	// * Safari
+	// Let's use the devicePixelRatio as it is here.
+	return u.getScale() * devicescale.DeviceScale()
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -373,13 +377,6 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 }
 
 func (u *userInterface) updateScreenSize() {
-	// CSS imageRendering seems useful to enlarge the screen,
-	// but doesn't work in some cases (#306):
-	// * Chrome just after restoring the lost context
-	// * Safari
-	// Let's use the pixel ratio as it is here.
-	u.deviceScale = devicescale.DeviceScale()
-
 	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")
