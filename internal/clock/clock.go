@@ -66,10 +66,10 @@ func RegisterPing(pingFunc func()) {
 	m.Unlock()
 }
 
-// ProceedAudioTimer increments the audio time by a frame.
-func ProceedAudioTimer() {
+// ProceedAudioTimer increments the audio time by the given number of frames.
+func ProceedAudioTimer(num int64) {
 	m.Lock()
-	audioTimeInFrames++
+	audioTimeInFrames += num
 	m.Unlock()
 }
 
