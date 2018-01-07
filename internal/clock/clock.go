@@ -14,7 +14,7 @@
 
 // Package clock manages game timers.
 //
-// There are three types of clocks internally:
+// There are two types of clocks internally:
 //
 // System clock:
 //   A clock offered by the OS.
@@ -22,11 +22,6 @@
 // Audio clock:
 //   An audio clock that is used in the higher priority over the system clock.
 //   An audio clock might not exist when the audio is not used.
-//
-// Game clock:
-//   A clock representing the actual game progress.
-//   A game clock is basically updated based on the number of frames.
-//   A game clock is adjusted by the audio clock when needed.
 package clock
 
 import (
@@ -38,11 +33,12 @@ import (
 const FPS = 60
 
 var (
+	frames                int64
 	audioTimeInFrames     int64
 	lastAudioTimeInFrames int64
 
-	frames   int64
-	gameTime int64
+	// lastSystemTime is the last system time in the previous Update.
+	lastSystemTime int64
 
 	currentFPS     float64
 	lastFPSUpdated int64
@@ -98,12 +94,12 @@ func Update() int {
 		ping()
 	}
 
-	// Initialize gameTime if needed.
-	if gameTime == 0 {
-		gameTime = n
+	// Initialize lastSystemTime if needed.
+	if lastSystemTime == 0 {
+		lastSystemTime = n
 	}
 
-	t := n - gameTime
+	t := n - lastSystemTime
 	if t < 0 {
 		return 0
 	}
@@ -118,6 +114,9 @@ func Update() int {
 			count = int(audioTimeInFrames - frames)
 		}
 		lastAudioTimeInFrames = audioTimeInFrames
+
+		// Now the current lastSystemTime value is not meaningful,
+		// force to sync lastSystemTime with the system timer.
 		syncWithSystemClock = true
 	} else {
 		// Use system clock when the audio clock is not updated yet.
@@ -139,15 +138,12 @@ func Update() int {
 	if count == 2 && (int64(time.Second)/FPS*3/2) > t {
 		count = 1
 	}
-	if count > 3 {
-		count = 3
-	}
 
 	frames += int64(count)
 	if syncWithSystemClock {
-		gameTime = n
+		lastSystemTime = n
 	} else {
-		gameTime += int64(count) * int64(time.Second) / FPS
+		lastSystemTime += int64(count) * int64(time.Second) / FPS
 	}
 
 	updateFPS(n)
