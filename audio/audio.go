@@ -261,7 +261,7 @@ func (c *Context) loop() {
 		written += int64(n)
 		fs := written/int64(bytesPerFrame) - prevWritten/int64(bytesPerFrame)
 		for fs > 0 {
-			clock.ProceedPrimaryTimer()
+			clock.ProceedAudioTimer()
 			fs--
 		}
 		prevWritten = written
