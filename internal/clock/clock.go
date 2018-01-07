@@ -99,13 +99,12 @@ func Update() int {
 		lastSystemTime = n
 	}
 
-	t := n - lastSystemTime
-	if t < 0 {
+	diff := n - lastSystemTime
+	if diff < 0 {
 		return 0
 	}
 
 	count := 0
-
 	syncWithSystemClock := false
 
 	if audioTimeInFrames > 0 && lastAudioTimeInFrames != audioTimeInFrames {
@@ -120,22 +119,24 @@ func Update() int {
 		syncWithSystemClock = true
 	} else {
 		// Use system clock when the audio clock is not updated yet.
-		// As the audio clock can be updated discountinuously, the system clock is still needed.
+		// As the audio clock can be updated discountinuously,
+		// the system clock is still needed.
 
-		if t > 5*int64(time.Second)/FPS {
+		if diff > 5*int64(time.Second)/FPS {
 			// The previous time is too old.
 			// Let's force to sync the game time with the system clock.
 			syncWithSystemClock = true
 		} else {
-			count = int(t * FPS / int64(time.Second))
+			count = int(diff * FPS / int64(time.Second))
 		}
 	}
 
 	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/FPS/2) < t {
+	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
+	if count == 0 && (int64(time.Second)/FPS/2) < diff {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/FPS*3/2) > t {
+	if count == 2 && (int64(time.Second)/FPS*3/2) > diff {
 		count = 1
 	}
 
