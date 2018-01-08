@@ -131,7 +131,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)
-	ebiten.SetCursorVisibility(cursorVisible)
+	ebiten.SetCursorVisible(cursorVisible)
 
 	if keyStates[ebiten.KeyI] == 1 {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})

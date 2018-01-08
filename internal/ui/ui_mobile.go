@@ -162,7 +162,7 @@ func IsCursorVisible() bool {
 	return false
 }
 
-func SetCursorVisibility(visibility bool) {
+func SetCursorVisible(visible bool) {
 	// Do nothing
 }
 

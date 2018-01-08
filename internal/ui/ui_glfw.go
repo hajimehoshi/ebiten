@@ -345,7 +345,7 @@ func IsCursorVisible() bool {
 	return v
 }
 
-func SetCursorVisibility(visible bool) {
+func SetCursorVisible(visible bool) {
 	u := currentUI
 	if !u.isRunning() {
 		u.setInitCursorVisible(visible)

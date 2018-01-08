@@ -86,8 +86,8 @@ func IsCursorVisible() bool {
 	return canvas.Get("style").Get("cursor").String() != "none"
 }
 
-func SetCursorVisibility(visibility bool) {
-	if visibility {
+func SetCursorVisible(visible bool) {
+	if visible {
 		canvas.Get("style").Set("cursor", "auto")
 	} else {
 		canvas.Get("style").Set("cursor", "none")

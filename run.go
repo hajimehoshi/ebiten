@@ -187,13 +187,18 @@ func IsCursorVisible() bool {
 	return ui.IsCursorVisible()
 }
 
-// SetCursorVisibility changes the state of cursor visiblity.
+// SetCursorVisible changes the state of cursor visiblity.
 //
-// SetCursorVisibility does nothing on mobiles.
+// SetCursorVisible does nothing on mobiles.
 //
 // This function is concurrent-safe.
+func SetCursorVisible(visible bool) {
+	ui.SetCursorVisible(visible)
+}
+
+// SetCursorVisibility is deprecated as of 1.6.0-alpha. Use SetCursorVisible instead.
 func SetCursorVisibility(visible bool) {
-	ui.SetCursorVisibility(visible)
+	SetCursorVisible(visible)
 }
 
 // IsFullscreen returns a boolean value indicating whether
