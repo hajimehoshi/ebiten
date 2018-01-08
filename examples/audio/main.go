@@ -126,7 +126,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		},
 		audioContext: audioContext,
 		audioPlayer:  p,
-		total:        time.Second * time.Duration(s.Size()) / bytesPerSample / sampleRate,
+		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
 		volume128:    128,
 		seCh:         make(chan []uint8),
 	}

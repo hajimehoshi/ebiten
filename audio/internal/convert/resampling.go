@@ -91,7 +91,7 @@ func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resam
 	return r
 }
 
-func (r *Resampling) Size() int64 {
+func (r *Resampling) Length() int64 {
 	s := int64(float64(r.size) * float64(r.to) / float64(r.from))
 	return s / 4 * 4
 }
@@ -204,12 +204,12 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 }
 
 func (r *Resampling) Read(b []uint8) (int, error) {
-	if r.pos == r.Size() {
+	if r.pos == r.Length() {
 		return 0, io.EOF
 	}
 	n := len(b) / 4 * 4
-	if r.Size()-r.pos <= int64(n) {
-		n = int(r.Size() - r.pos)
+	if r.Length()-r.pos <= int64(n) {
+		n = int(r.Length() - r.pos)
 	}
 	for i := 0; i < n/4; i++ {
 		l, r, err := r.at(r.pos/4 + int64(i))
@@ -234,13 +234,13 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		r.pos += offset
 	case io.SeekEnd:
-		r.pos += r.Size() + offset
+		r.pos += r.Length() + offset
 	}
 	if r.pos < 0 {
 		r.pos = 0
 	}
-	if r.Size() <= r.pos {
-		r.pos = r.Size()
+	if r.Length() <= r.pos {
+		r.pos = r.Length()
 	}
 	return r.pos, nil
 }
