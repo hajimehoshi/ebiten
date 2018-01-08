@@ -49,12 +49,13 @@ var pcm = make([]float64, 4*sampleRate)
 const baseFreq = 220
 
 func init() {
+	const twoPiF = 2.0 * math.Pi * baseFreq
+
 	s := float64(sampleRate)
 	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
 	x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
 	for i := 0; i < len(pcm); i++ {
 		v := 0.0
-		twoPiF := 2.0 * math.Pi * baseFreq
 		for j := 0; j < len(amp); j++ {
 			a := amp[j] * math.Exp(-5*float64(i)/(x[j]*s))
 			v += a * math.Sin(float64(i)*twoPiF*float64(j+1)/s)
