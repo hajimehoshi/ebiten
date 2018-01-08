@@ -53,13 +53,6 @@ func newSoundBytes(sampleRate int) []byte {
 	return b
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 func TestResampling(t *testing.T) {
 	cases := []struct {
 		In  int
