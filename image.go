@@ -61,6 +61,12 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
+func (i *Image) SetColor(index int, clr color.Color) error {
+	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
+	i.restorable.SetColor(index, rgba)
+	return nil
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -139,7 +145,18 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
-	vs := vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
+	var colors []color.RGBA
+	if options.Colors != nil {
+		colors = options.Colors
+	} else {
+		colors = img.restorable.Colors()
+	}
+	var vs []float32
+	if colors != nil {
+		vs = verticesColor(sx0, sy0, sx1, sy1, w, h, colors[0], colors[1], colors[2], colors[3], &options.GeoM.impl)
+	} else {
+		vs = vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
+	}
 	if vs == nil {
 		return nil
 	}
@@ -238,6 +255,10 @@ type DrawImageOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
 	ColorM ColorM
+
+	// Colors provides colors for the four corners of the image to
+	// be interpolated by GL.
+	Colors []color.RGBA
 
 	// CompositeMode is a composite mode to draw.
 	// The default (zero) value is regular alpha blending.

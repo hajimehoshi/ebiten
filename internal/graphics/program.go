@@ -102,6 +102,11 @@ var (
 				dataType: opengl.Float,
 				num:      2,
 			},
+			{
+				name:     "color",
+				dataType: opengl.Float,
+				num:      4,
+			},
 		},
 	}
 )
