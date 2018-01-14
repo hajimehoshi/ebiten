@@ -70,18 +70,18 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 		g.Concat(geo)
 		geo = &g
 	}
-	x0, y0 := float64(0), float64(0)
-	x1, y1 := float64(sx1 - sx0), float64(sy1 - sy0)
+	x0, y0 := 0.0, 0.0
+	x1, y1 := float64(sx1-sx0), float64(sy1-sy0)
 
 	// it really feels like we should be able to cache this computation
 	// but it may not matter.
 	w := 1
 	h := 1
 	for w < width {
-	        w *= 2
+		w *= 2
 	}
 	for h < height {
-	        h *= 2
+		h *= 2
 	}
 	wf := float32(w)
 	hf := float32(h)
