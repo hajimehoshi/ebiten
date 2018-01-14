@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
-// +build !js
-// +build !ios
+package devicescale
 
-package ui
+import (
+	"sync"
+)
 
-func glfwScale() float64 {
-	return 1
-}
+var (
+	scale = 0.0
+	m     sync.Mutex
+)
 
-func adjustWindowPosition(x, y int) (int, int) {
-	return x, y
+func DeviceScale() float64 {
+	s := 0.0
+	m.Lock()
+	if scale == 0.0 {
+		scale = impl()
+	}
+	s = scale
+	m.Unlock()
+	return s
 }

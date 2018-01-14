@@ -21,11 +21,49 @@ import (
 	"github.com/hajimehoshi/ebiten/audio"
 )
 
-func sinc(x float64) float64 {
-	if x == 0 {
+var cosTable = [65536]float64{}
+
+func init() {
+	for i := range cosTable {
+		cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
+	}
+}
+
+func fastCos01(x float64) float64 {
+	if x < 0 {
+		x = -x
+	}
+	i := int(4 * float64(len(cosTable)) * x)
+	if 4*len(cosTable) < i {
+		i %= 4 * len(cosTable)
+	}
+	sign := 1
+	switch {
+	case i < len(cosTable):
+	case i < len(cosTable)*2:
+		i = len(cosTable)*2 - i
+		sign = -1
+	case i < len(cosTable)*3:
+		i -= len(cosTable) * 2
+		sign = -1
+	default:
+		i = len(cosTable)*4 - i
+	}
+	if i == len(cosTable) {
+		return 0
+	}
+	return float64(sign) * cosTable[i]
+}
+
+func fastSin01(x float64) float64 {
+	return fastCos01(x - 0.25)
+}
+
+func sinc01(x float64) float64 {
+	if math.Abs(x) < 1e-8 {
 		return 1
 	}
-	return math.Sin(x) / x
+	return fastSin01(x) / (x * 2 * math.Pi)
 }
 
 type Resampling struct {
@@ -40,8 +78,6 @@ type Resampling struct {
 	lruSrcBlocks []int64
 }
 
-const resamplingBufferSize = 4096
-
 func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resampling {
 	r := &Resampling{
 		source:   source,
@@ -55,14 +91,14 @@ func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resam
 	return r
 }
 
-func (r *Resampling) Size() int64 {
+func (r *Resampling) Length() int64 {
 	s := int64(float64(r.size) * float64(r.to) / float64(r.from))
 	return s / 4 * 4
 }
 
-func (r *Resampling) src(i int) (float64, float64, error) {
-	// Use int here since int64 is very slow on browsers.
-	// TODO: Resampling is too heavy on browsers. How about using OfflineAudioContext?
+func (r *Resampling) src(i int64) (float64, float64, error) {
+	const resamplingBufferSize = 4096
+
 	if i < 0 {
 		return 0, 0, nil
 	}
@@ -126,28 +162,29 @@ func (r *Resampling) src(i int) (float64, float64, error) {
 }
 
 func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 4.0
+	windowSize := 8.0
 	tInSrc := float64(t) * float64(r.from) / float64(r.to)
-	startN := tInSrc - windowSize
+	startN := int64(tInSrc - windowSize)
 	if startN < 0 {
 		startN = 0
 	}
-	if float64(r.size/4) <= startN {
-		startN = float64(r.size/4) - 1
+	if r.size/4 <= startN {
+		startN = r.size/4 - 1
 	}
-	endN := tInSrc + windowSize + 1
-	if float64(r.size/4) <= endN {
-		endN = float64(r.size/4) - 1
+	endN := int64(tInSrc + windowSize)
+	if r.size/4 <= endN {
+		endN = r.size/4 - 1
 	}
 	lv := 0.0
 	rv := 0.0
-	for n := startN; n < endN; n++ {
-		srcL, srcR, err := r.src(int(n))
+	for n := startN; n <= endN; n++ {
+		srcL, srcR, err := r.src(n)
 		if err != nil {
 			return 0, 0, err
 		}
-		w := 0.5 + 0.5*math.Cos(2*math.Pi*(tInSrc-n)/(windowSize*2+1))
-		s := sinc(math.Pi*(tInSrc-n)) * w
+		d := tInSrc - float64(n)
+		w := 0.5 + 0.5*fastCos01(d/(windowSize*2+1))
+		s := sinc01(d/2) * w
 		lv += srcL * s
 		rv += srcR * s
 	}
@@ -167,12 +204,12 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 }
 
 func (r *Resampling) Read(b []uint8) (int, error) {
-	if r.pos == r.Size() {
+	if r.pos == r.Length() {
 		return 0, io.EOF
 	}
 	n := len(b) / 4 * 4
-	if r.Size()-r.pos <= int64(n) {
-		n = int(r.Size() - r.pos)
+	if r.Length()-r.pos <= int64(n) {
+		n = int(r.Length() - r.pos)
 	}
 	for i := 0; i < n/4; i++ {
 		l, r, err := r.at(r.pos/4 + int64(i))
@@ -197,13 +234,13 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		r.pos += offset
 	case io.SeekEnd:
-		r.pos += r.Size() + offset
+		r.pos += r.Length() + offset
 	}
 	if r.pos < 0 {
 		r.pos = 0
 	}
-	if r.Size() <= r.pos {
-		r.pos = r.Size()
+	if r.Length() <= r.pos {
+		r.pos = r.Length()
 	}
 	return r.pos, nil
 }

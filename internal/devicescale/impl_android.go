@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ui
+package devicescale
 
 /*
 
@@ -63,19 +63,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/jni"
 )
 
-var (
-	androidDeviceScale = 0.0
-)
-
-func deviceScale() float64 {
-	if 0 < androidDeviceScale {
-		return androidDeviceScale
-	}
+func impl() float64 {
+	s := 0.0
 	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
-		androidDeviceScale = float64(C.deviceScale(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx)))
+		s = float64(C.deviceScale(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx)))
 		return nil
 	}); err != nil {
-		panic(fmt.Sprintf("ui: error %v", err))
+		panic(fmt.Sprintf("devicescale: error %v", err))
 	}
-	return androidDeviceScale
+	return s
 }

@@ -17,6 +17,8 @@ package ebiten
 import (
 	"math"
 
+	"github.com/hajimehoshi/ebiten/internal/audiobinding"
+	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -33,7 +35,6 @@ type graphicsContext struct {
 	offscreen   *Image
 	offscreen2  *Image // TODO: better name
 	screen      *Image
-	screenScale float64
 	initialized bool
 	invalidated bool // browser only
 }
@@ -71,7 +72,6 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 	c.offscreen = offscreen
 	c.offscreen2 = offscreen2
-	c.screenScale = screenScale
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {
@@ -97,7 +97,14 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	_ = dst.DrawImage(src, op)
 }
 
-func (c *graphicsContext) Update(updateCount int, afterFrameUpdate func()) error {
+func (c *graphicsContext) Update(afterFrameUpdate func()) error {
+	select {
+	case err := <-audiobinding.Error():
+		return err
+	default:
+	}
+	updateCount := clock.Update()
+
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
@@ -111,9 +118,9 @@ func (c *graphicsContext) Update(updateCount int, afterFrameUpdate func()) error
 	}
 	if 0 < updateCount {
 		drawWithFittingScale(c.offscreen2, c.offscreen)
+		_ = c.screen.Clear()
+		drawWithFittingScale(c.screen, c.offscreen2)
 	}
-	_ = c.screen.Clear()
-	drawWithFittingScale(c.screen, c.offscreen2)
 
 	if err := restorable.ResolveStaleImages(); err != nil {
 		return err

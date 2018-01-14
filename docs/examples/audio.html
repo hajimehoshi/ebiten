@@ -118,11 +118,11 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context) (*Player, error) {
         const bytesPerSample = 4 // TODO: This should be defined in audio package
-        wavF, err := ebitenutil.OpenFile(&#34;_resources/audio/jab.wav&#34;)
+        wavF, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;audio&#34;, &#34;jab.wav&#34;))
         if err != nil {
                 return nil, err
         }
-        mp3F, err := ebitenutil.OpenFile(&#34;_resources/audio/classic.mp3&#34;)
+        mp3F, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;audio&#34;, &#34;classic.mp3&#34;))
         if err != nil {
                 return nil, err
         }
@@ -183,9 +183,6 @@ func (p *Player) update() error {
         if p.input.isKeyTriggered(ebiten.KeyB) {
                 b := ebiten.IsRunnableInBackground()
                 ebiten.SetRunnableInBackground(!b)
-        }
-        if err := p.audioContext.Update(); err != nil {
-                return err
         }
         return nil
 }

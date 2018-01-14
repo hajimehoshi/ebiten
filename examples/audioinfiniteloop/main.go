@@ -57,7 +57,7 @@ func update(screen *ebiten.Image) error {
 			return err
 		}
 
-		s := audio.NewInfiniteLoop(wavS, wavS.Size())
+		s := audio.NewInfiniteLoop(wavS, wavS.Length())
 
 		player, err = audio.NewPlayer(audioContext, s)
 		if err != nil {

@@ -12,20 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build dragonfly freebsd linux netbsd openbsd solaris
 // +build !js
+// +build !android
 
 package ui
-
-// TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
-
-// #cgo LDFLAGS: -lgdi32
-//
-// #include <windows.h>
-//
-// static int getCaptionHeight() {
-//   return GetSystemMetrics(SM_CYCAPTION);
-// }
-import "C"
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
@@ -36,14 +27,5 @@ func glfwScale() float64 {
 }
 
 func adjustWindowPosition(x, y int) (int, int) {
-	// As the video width/height might be wrong,
-	// adjust x/y at least to enable to handle the window (#328)
-	if x < 0 {
-		x = 0
-	}
-	t := int(C.getCaptionHeight())
-	if y < t {
-		y = t
-	}
 	return x, y
 }

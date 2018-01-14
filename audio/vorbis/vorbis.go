@@ -48,9 +48,14 @@ func (s *Stream) Close() error {
 	return s.decoded.Close()
 }
 
-// Size returns the size of decoded stream in bytes.
-func (s *Stream) Size() int64 {
+// Length returns the size of decoded stream in bytes.
+func (s *Stream) Length() int64 {
 	return s.size
+}
+
+// Size is deprecated as of version 1.6.0-alpha. Use Length instead.
+func (s *Stream) Size() int64 {
+	return s.Length()
 }
 
 type decoded struct {
@@ -141,7 +146,7 @@ func (d *decoded) Close() error {
 	return nil
 }
 
-func (d *decoded) Size() int64 {
+func (d *decoded) Length() int64 {
 	return int64(d.totalBytes)
 }
 
@@ -182,7 +187,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		return nil, fmt.Errorf("vorbis: number of channels must be 1 or 2 but was %d", channelNum)
 	}
 	var s audio.ReadSeekCloser = decoded
-	size := decoded.Size()
+	size := decoded.Length()
 	if channelNum == 1 {
 		s = convert.NewStereo16(s, true, false)
 		size *= 2
@@ -190,7 +195,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if sampleRate != context.SampleRate() {
 		r := convert.NewResampling(s, size, sampleRate, context.SampleRate())
 		s = r
-		size = r.Size()
+		size = r.Length()
 	}
 	return &Stream{decoded: s, size: size}, nil
 }

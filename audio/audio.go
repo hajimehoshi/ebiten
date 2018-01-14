@@ -40,13 +40,13 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/oto"
 
 	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -260,10 +260,7 @@ func (c *Context) loop() {
 
 		written += int64(n)
 		fs := written/int64(bytesPerFrame) - prevWritten/int64(bytesPerFrame)
-		for fs > 0 {
-			clock.ProceedPrimaryTimer()
-			fs--
-		}
+		clock.ProceedAudioTimer(fs)
 		prevWritten = written
 	}
 }

@@ -47,9 +47,14 @@ func (s *Stream) Close() error {
 	return s.inner.Close()
 }
 
-// Size returns the size of decoded stream in bytes.
-func (s *Stream) Size() int64 {
+// Length returns the size of decoded stream in bytes.
+func (s *Stream) Length() int64 {
 	return s.size
+}
+
+// Size is deprecated as of version 1.6.0-alpha. Use Length instead.
+func (s *Stream) Size() int64 {
+	return s.Length()
 }
 
 type stream struct {
@@ -103,8 +108,8 @@ func (s *stream) Close() error {
 	return s.src.Close()
 }
 
-// Size returns the size of decoded stream in bytes.
-func (s *stream) Size() int64 {
+// Length returns the size of decoded stream in bytes.
+func (s *stream) Length() int64 {
 	return s.dataSize
 }
 
@@ -221,7 +226,7 @@ chunks:
 	if sampleRateFrom != sampleRateTo {
 		r := convert.NewResampling(s, dataSize, sampleRateFrom, sampleRateTo)
 		s = r
-		dataSize = r.Size()
+		dataSize = r.Length()
 	}
 	return &Stream{inner: s, size: dataSize}, nil
 }

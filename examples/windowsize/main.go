@@ -131,7 +131,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)
-	ebiten.SetCursorVisibility(cursorVisible)
+	ebiten.SetCursorVisible(cursorVisible)
 
 	if keyStates[ebiten.KeyI] == 1 {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -167,6 +167,8 @@ FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 }
 
 func main() {
+	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
+
 	var err error
 	gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterNearest)
 	if err != nil {

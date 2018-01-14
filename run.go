@@ -18,8 +18,8 @@ import (
 	"image"
 	"sync/atomic"
 
-	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -62,38 +62,13 @@ func IsRunningSlowly() bool {
 var theGraphicsContext atomic.Value
 
 func run(width, height int, scale float64, title string, g *graphicsContext) error {
-	if err := ui.Run(width, height, scale, title, &updater{g}); err != nil {
+	if err := ui.Run(width, height, scale, title, g); err != nil {
 		if _, ok := err.(*ui.RegularTermination); ok {
 			return nil
 		}
 		return err
 	}
 	return nil
-}
-
-type updater struct {
-	g *graphicsContext
-}
-
-func (u *updater) SetSize(width, height int, scale float64) {
-	u.g.SetSize(width, height, scale)
-}
-
-func (u *updater) Update(afterFrameUpdate func()) error {
-	select {
-	case err := <-audiobinding.Error():
-		return err
-	default:
-	}
-	n := clock.Update()
-	if err := u.g.Update(n, afterFrameUpdate); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (u *updater) Invalidate() {
-	u.g.Invalidate()
 }
 
 // Run runs the game.
@@ -103,6 +78,11 @@ func (u *updater) Invalidate() {
 //
 // A window size is based on the given values (width, height and scale).
 // scale is used to enlarge the screen.
+// Note that the actual screen is multiplied not only by the given scale but also
+// by the device scale on high-DPI display.
+// If you pass inverse of the device scale,
+// you can disable this automatical device scaling as a result.
+// You can get the device scale by DeviceScaleFactor function.
 //
 // Run must be called from the OS main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
@@ -174,6 +154,12 @@ func SetScreenSize(width, height int) {
 
 // SetScreenScale changes the scale of the screen.
 //
+// Note that the actual screen is multiplied not only by the given scale but also
+// by the device scale on high-DPI display.
+// If you pass inverse of the device scale,
+// you can disable this automatical device scaling as a result.
+// You can get the device scale by DeviceScaleFactor function.
+//
 // This function is concurrent-safe.
 func SetScreenScale(scale float64) {
 	if scale <= 0 {
@@ -201,13 +187,18 @@ func IsCursorVisible() bool {
 	return ui.IsCursorVisible()
 }
 
-// SetCursorVisibility changes the state of cursor visiblity.
+// SetCursorVisible changes the state of cursor visiblity.
 //
-// SetCursorVisibility does nothing on mobiles.
+// SetCursorVisible does nothing on mobiles.
 //
 // This function is concurrent-safe.
+func SetCursorVisible(visible bool) {
+	ui.SetCursorVisible(visible)
+}
+
+// SetCursorVisibility is deprecated as of 1.6.0-alpha. Use SetCursorVisible instead.
 func SetCursorVisibility(visible bool) {
-	ui.SetCursorVisibility(visible)
+	SetCursorVisible(visible)
 }
 
 // IsFullscreen returns a boolean value indicating whether
@@ -282,4 +273,14 @@ func SetRunnableInBackground(runnableInBackground bool) {
 // This function is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
+}
+
+// DeviceScaleFactor returns a device scale factor value.
+//
+// DeviceScaleFactor returns a meaningful value on high-DPI display environment,
+// otherwise DeviceScaleFactor returns 1.
+//
+// This function is concurrent-safe.
+func DeviceScaleFactor() float64 {
+	return devicescale.DeviceScale()
 }

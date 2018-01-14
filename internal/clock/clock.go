@@ -12,6 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package clock manages game timers.
+//
+// There are two types of clocks internally:
+//
+// System clock:
+//   A clock offered by the OS.
+//
+// Audio clock:
+//   An audio clock that is used in the higher priority over the system clock.
+//   An audio clock might not exist when the audio is not used.
 package clock
 
 import (
@@ -23,10 +33,12 @@ import (
 const FPS = 60
 
 var (
-	primaryTime     int64
-	lastPrimaryTime int64
-	frames          int64
-	logicalTime     int64
+	frames                int64
+	audioTimeInFrames     int64
+	lastAudioTimeInFrames int64
+
+	// lastSystemTime is the last system time in the previous Update.
+	lastSystemTime int64
 
 	currentFPS     float64
 	lastFPSUpdated int64
@@ -50,10 +62,10 @@ func RegisterPing(pingFunc func()) {
 	m.Unlock()
 }
 
-// ProceedPrimaryTimer increments the primary time by a frame.
-func ProceedPrimaryTimer() {
+// ProceedAudioTimer increments the audio time by the given number of frames.
+func ProceedAudioTimer(num int64) {
 	m.Lock()
-	primaryTime++
+	audioTimeInFrames += num
 	m.Unlock()
 }
 
@@ -71,7 +83,7 @@ func updateFPS(now int64) {
 }
 
 // Update updates the inner clock state and returns an integer value
-// indicating how many logical frames the game should update.
+// indicating how many game frames the game should update.
 func Update() int {
 	m.Lock()
 	defer m.Unlock()
@@ -82,70 +94,57 @@ func Update() int {
 		ping()
 	}
 
-	// Initialize logicalTime if needed.
-	if logicalTime == 0 {
-		logicalTime = n
+	// Initialize lastSystemTime if needed.
+	if lastSystemTime == 0 {
+		lastSystemTime = n
 	}
 
-	t := n - logicalTime
-	if t < 0 {
+	diff := n - lastSystemTime
+	if diff < 0 {
 		return 0
 	}
 
 	count := 0
+	syncWithSystemClock := false
 
-	// Logical clock:
-	//   A clock that updated based on the number of frames.
-	//
-	// System clock:
-	//   A clock that offered by the OS.
-	//
-	// Primary clock:
-	//   A clock that is used in the higher priority over the system clock.
-	//   Primary time is usually an audio time.
-	//   Primary time might not exist when e.g. audio is not used.
-
-	// When sync is true, the logical time is forced to sync with the system clock.
-	sync := false
-
-	if primaryTime > 0 && lastPrimaryTime != primaryTime {
-		// If the primary clock is updated, use this.
-		if frames < primaryTime {
-			count = int(primaryTime - frames)
+	if audioTimeInFrames > 0 && lastAudioTimeInFrames != audioTimeInFrames {
+		// If the audio clock is updated, use this.
+		if frames < audioTimeInFrames {
+			count = int(audioTimeInFrames - frames)
 		}
-		lastPrimaryTime = primaryTime
-		sync = true
-	} else {
-		// Use system clock when
-		// 1) Inc() is not called, or
-		// 2) the primary clock is not updated yet.
-		// As the primary clock can be updated discountinuously, the system clock is still needed.
+		lastAudioTimeInFrames = audioTimeInFrames
 
-		if t > 5*int64(time.Second)/FPS {
+		// Now the current lastSystemTime value is not meaningful,
+		// force to sync lastSystemTime with the system timer.
+		syncWithSystemClock = true
+	} else {
+		// Use system clock when the audio clock is not updated yet.
+		// As the audio clock can be updated discountinuously,
+		// the system clock is still needed.
+
+		if diff > 5*int64(time.Second)/FPS {
 			// The previous time is too old.
-			// Let's force to sync the logical time with the OS clock.
-			sync = true
+			// Let's force to sync the game time with the system clock.
+			syncWithSystemClock = true
 		} else {
-			count = int(t * FPS / int64(time.Second))
+			count = int(diff * FPS / int64(time.Second))
 		}
 	}
 
 	// Stabilize FPS.
-	if count == 0 && (int64(time.Second)/FPS/2) < t {
+	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
+	if count == 0 && (int64(time.Second)/FPS/2) < diff {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/FPS*3/2) > t {
+	if count == 2 && (int64(time.Second)/FPS*3/2) > diff {
 		count = 1
-	}
-	if count > 3 {
-		count = 3
 	}
 
 	frames += int64(count)
-	if sync {
-		logicalTime = n
+	if syncWithSystemClock {
+		lastSystemTime = n
 	} else {
-		logicalTime += int64(count) * int64(time.Second) / FPS
+		lastSystemTime += int64(count) * int64(time.Second) / FPS
 	}
 
 	updateFPS(n)

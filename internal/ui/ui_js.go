@@ -22,6 +22,8 @@ import (
 	"unicode"
 
 	"github.com/gopherjs/gopherjs/js"
+
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -34,7 +36,6 @@ type userInterface struct {
 	fullscreen           bool
 	runnableInBackground bool
 
-	deviceScale float64
 	sizeChanged bool
 	windowFocus bool
 }
@@ -42,11 +43,6 @@ type userInterface struct {
 var currentUI = &userInterface{
 	sizeChanged: true,
 	windowFocus: true,
-}
-
-// NOTE: This returns true even when the browser is not active.
-func shown() bool {
-	return !js.Global.Get("document").Get("hidden").Bool()
 }
 
 func SetScreenSize(width, height int) bool {
@@ -90,8 +86,8 @@ func IsCursorVisible() bool {
 	return canvas.Get("style").Get("cursor").String() != "none"
 }
 
-func SetCursorVisibility(visibility bool) {
-	if visibility {
+func SetCursorVisible(visible bool) {
+	if visible {
 		canvas.Get("style").Set("cursor", "auto")
 	} else {
 		canvas.Get("style").Set("cursor", "none")
@@ -119,7 +115,12 @@ func (u *userInterface) getScale() float64 {
 }
 
 func (u *userInterface) actualScreenScale() float64 {
-	return u.getScale() * u.deviceScale
+	// CSS imageRendering property seems useful to enlarge the screen,
+	// but doesn't work in some cases (#306):
+	// * Chrome just after restoring the lost context
+	// * Safari
+	// Let's use the devicePixelRatio as it is here.
+	return u.getScale() * devicescale.DeviceScale()
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -346,14 +347,6 @@ func setMouseCursorFromEvent(e *js.Object) {
 	currentInput.setMouseCursor(int(float64(x)/scale), int(float64(y)/scale))
 }
 
-func devicePixelRatio() float64 {
-	ratio := js.Global.Get("window").Get("devicePixelRatio").Float()
-	if ratio == 0 {
-		ratio = 1
-	}
-	return ratio
-}
-
 func RunMainThreadLoop(ch <-chan error) error {
 	return <-ch
 }
@@ -384,13 +377,6 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 }
 
 func (u *userInterface) updateScreenSize() {
-	// CSS imageRendering seems useful to enlarge the screen,
-	// but doesn't work in some cases (#306):
-	// * Chrome just after restoring the lost context
-	// * Safari
-	// Let's use the pixel ratio as it is here.
-	u.deviceScale = devicePixelRatio()
-
 	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")

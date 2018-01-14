@@ -141,7 +141,7 @@ Press &lt;- or -&gt; to change the number of sprites`, ebiten.CurrentFPS(), spri
 
 func main() {
         var err error
-        img, _, err := ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
+        img, _, err := ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;images&#34;, &#34;ebiten.png&#34;), ebiten.FilterNearest)
         if err != nil {
                 log.Fatal(err)
         }

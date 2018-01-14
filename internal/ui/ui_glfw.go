@@ -27,29 +27,34 @@ import (
 	"time"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
+
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 type userInterface struct {
-	title                string
-	window               *glfw.Window
-	width                int
-	windowWidth          int
-	height               int
-	scale                float64
-	cachedDeviceScale    float64
-	cachedGLFWScale      float64
-	fullscreenScale      float64
-	funcs                chan func()
+	title       string
+	window      *glfw.Window
+	width       int
+	windowWidth int
+	height      int
+
+	scale           float64
+	fullscreenScale float64
+
 	running              bool
 	sizeChanged          bool
 	origPosX             int
 	origPosY             int
-	initFullscreen       bool
-	initCursorVisible    bool
-	initIconImages       []image.Image
 	runnableInBackground bool
-	m                    sync.Mutex
+
+	initFullscreen    bool
+	initCursorVisible bool
+	initIconImages    []image.Image
+
+	funcs chan func()
+
+	m sync.Mutex
 }
 
 var (
@@ -304,9 +309,10 @@ func ScreenOffset() (float64, float64) {
 	oy := 0.0
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
+	d := devicescale.DeviceScale()
 	_ = u.runOnMainThread(func() error {
-		ox = (float64(v.Width)*u.deviceScale()/u.glfwScale() - float64(u.width)*u.actualScreenScale()) / 2
-		oy = (float64(v.Height)*u.deviceScale()/u.glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
+		ox = (float64(v.Width)*d/glfwScale() - float64(u.width)*u.actualScreenScale()) / 2
+		oy = (float64(v.Height)*d/glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
 		return nil
 	})
 	return ox, oy
@@ -339,7 +345,7 @@ func IsCursorVisible() bool {
 	return v
 }
 
-func SetCursorVisibility(visible bool) {
+func SetCursorVisible(visible bool) {
 	u := currentUI
 	if !u.isRunning() {
 		u.setInitCursorVisible(visible)
@@ -383,23 +389,9 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	return u.loop(g)
 }
 
-func (u *userInterface) glfwScale() float64 {
-	if u.cachedGLFWScale == 0 {
-		u.cachedGLFWScale = glfwScale()
-	}
-	return u.cachedGLFWScale
-}
-
-func (u *userInterface) deviceScale() float64 {
-	if u.cachedDeviceScale == 0 {
-		u.cachedDeviceScale = deviceScale()
-	}
-	return u.cachedDeviceScale
-}
-
 func (u *userInterface) glfwSize() (int, int) {
-	w := int(float64(u.windowWidth) * u.getScale() * u.glfwScale())
-	h := int(float64(u.height) * u.getScale() * u.glfwScale())
+	w := int(float64(u.windowWidth) * u.getScale() * glfwScale())
+	h := int(float64(u.height) * u.getScale() * glfwScale())
 	return w, h
 }
 
@@ -410,8 +402,8 @@ func (u *userInterface) getScale() float64 {
 	if u.fullscreenScale == 0 {
 		m := glfw.GetPrimaryMonitor()
 		v := m.GetVideoMode()
-		sw := float64(v.Width) / u.glfwScale() / float64(u.width)
-		sh := float64(v.Height) / u.glfwScale() / float64(u.height)
+		sw := float64(v.Width) / glfwScale() / float64(u.width)
+		sh := float64(v.Height) / glfwScale() / float64(u.height)
 		s := sw
 		if s > sh {
 			s = sh
@@ -422,12 +414,12 @@ func (u *userInterface) getScale() float64 {
 }
 
 func (u *userInterface) actualScreenScale() float64 {
-	return u.getScale() * u.deviceScale()
+	return u.getScale() * devicescale.DeviceScale()
 }
 
 func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
-	currentInput.update(u.window, u.getScale()*u.glfwScale())
+	currentInput.update(u.window, u.getScale()*glfwScale())
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -495,7 +487,8 @@ func (u *userInterface) loop(g GraphicsContext) error {
 		if err := u.update(g); err != nil {
 			return err
 		}
-		// The bound framebuffer must be the default one (0) before swapping buffers.
+		// The bound framebuffer must be the original screen framebuffer
+		// before swapping buffers.
 		opengl.GetContext().BindScreenFramebuffer()
 		_ = u.runOnMainThread(func() error {
 			u.swapBuffers()
@@ -520,7 +513,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 
 	u.width = width
 	u.windowWidth = width
-	s := scale * u.deviceScale()
+	s := scale * devicescale.DeviceScale()
 	if int(float64(width)*s) < minWindowWidth {
 		u.windowWidth = int(math.Ceil(minWindowWidth / s))
 	}

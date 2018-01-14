@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -96,7 +97,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if sizeChanged {
 		width = u.width
 		height = u.height
-		actualScale = u.scale * deviceScale()
+		actualScale = u.scale * devicescale.DeviceScale()
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
@@ -161,7 +162,7 @@ func IsCursorVisible() bool {
 	return false
 }
 
-func SetCursorVisibility(visibility bool) {
+func SetCursorVisible(visible bool) {
 	// Do nothing
 }
 

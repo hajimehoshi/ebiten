@@ -57,12 +57,17 @@ func (s *Stream) Close() error {
 	return s.orig.Close()
 }
 
-// Size returns the size of decoded stream in bytes.
-func (s *Stream) Size() int64 {
+// Length returns the size of decoded stream in bytes.
+func (s *Stream) Length() int64 {
 	if s.resampling != nil {
-		return s.resampling.Size()
+		return s.resampling.Length()
 	}
 	return s.orig.Length()
+}
+
+// Size is deprecated as of 1.6.0-alpha. Use Length instead.
+func (s *Stream) Size() int64 {
+	return s.Length()
 }
 
 // Decode decodes MP3 source and returns a decoded stream.
