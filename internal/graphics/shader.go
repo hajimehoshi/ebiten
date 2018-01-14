@@ -47,8 +47,6 @@ const (
 uniform mat4 projection_matrix;
 attribute vec2 vertex;
 attribute vec4 tex_coord;
-attribute vec4 geo_matrix_body;
-attribute vec2 geo_matrix_translation;
 varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
@@ -59,13 +57,7 @@ void main(void) {
     vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
   varying_tex_coord_max =
     vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
-  mat4 geo_matrix = mat4(
-    vec4(geo_matrix_body[0], geo_matrix_body[2], 0, 0),
-    vec4(geo_matrix_body[1], geo_matrix_body[3], 0, 0),
-    vec4(0, 0, 1, 0),
-    vec4(geo_matrix_translation, 0, 1)
-  );
-  gl_Position = projection_matrix * geo_matrix * vec4(vertex, 0, 1);
+  gl_Position = projection_matrix * vec4(vertex, 0, 1);
 }
 `
 	shaderStrFragment = `

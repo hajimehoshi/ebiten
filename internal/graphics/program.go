@@ -92,16 +92,6 @@ var (
 				dataType: opengl.Float,
 				num:      4,
 			},
-			{
-				name:     "geo_matrix_body",
-				dataType: opengl.Float,
-				num:      4,
-			},
-			{
-				name:     "geo_matrix_translation",
-				dataType: opengl.Float,
-				num:      2,
-			},
 		},
 	}
 )
