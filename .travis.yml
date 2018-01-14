@@ -36,6 +36,7 @@ before_script:
   - sleep 3
 
 script:
+  - test -z $(gofmt -s -l .)
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - go test -v github.com/hajimehoshi/ebiten
   - go test -v github.com/hajimehoshi/ebiten/audio/internal/convert
