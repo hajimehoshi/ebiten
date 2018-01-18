@@ -68,15 +68,14 @@ func update(screen *ebiten.Image) error {
 		y := i/4 + 1
 		op.GeoM.Translate(ox+float64(dx*x), oy+float64(dy*y))
 
-		// Set RGB (not Alpha) 1 forcibly
+		// Reset RGB (not Alpha) 0 forcibly
 		op.ColorM.Scale(0, 0, 0, 1)
-		op.ColorM.Translate(1, 1, 1, 0)
 
-		// Set color by scaling
+		// Set color
 		r := float64(c.R) / 0xff
 		g := float64(c.G) / 0xff
 		b := float64(c.B) / 0xff
-		op.ColorM.Scale(r, g, b, 1)
+		op.ColorM.Translate(r, g, b, 0)
 		screen.DrawImage(ebitenImage, op)
 	}
 	return nil
