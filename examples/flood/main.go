@@ -88,7 +88,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Fill with solid colors (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Flood fill with solid colors (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
