@@ -44,7 +44,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := ebiten.Run(update, twenty48.ScreenWidth, twenty48.ScreenHeight, 2, "2048 (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, twenty48.ScreenWidth, twenty48.ScreenHeight, 1, "2048 (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }

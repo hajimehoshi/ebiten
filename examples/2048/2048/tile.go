@@ -34,6 +34,7 @@ import (
 )
 
 var (
+	mplusSmallFont  font.Face
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
 )
@@ -56,13 +57,18 @@ func init() {
 	}
 
 	const dpi = 72
+	mplusSmallFont = truetype.NewFace(tt, &truetype.Options{
+		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
 	mplusNormalFont = truetype.NewFace(tt, &truetype.Options{
-		Size:    12,
+		Size:    32,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
 	mplusBigFont = truetype.NewFace(tt, &truetype.Options{
-		Size:    24,
+		Size:    48,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
@@ -341,8 +347,8 @@ func meanF(a, b float64, rate float64) float64 {
 }
 
 const (
-	tileSize   = 40
-	tileMargin = 2
+	tileSize   = 80
+	tileMargin = 4
 )
 
 var (
@@ -400,7 +406,10 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	str := strconv.Itoa(v)
 
 	f := mplusBigFont
-	if 2 < len(str) {
+	switch {
+	case 3 < len(str):
+		f = mplusSmallFont
+	case 2 < len(str):
 		f = mplusNormalFont
 	}
 

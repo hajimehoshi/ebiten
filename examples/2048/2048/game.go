@@ -28,8 +28,8 @@ func init() {
 }
 
 const (
-	ScreenWidth  = 210
-	ScreenHeight = 300
+	ScreenWidth  = 420
+	ScreenHeight = 600
 	boardSize    = 4
 )
 
