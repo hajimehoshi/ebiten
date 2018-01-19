@@ -19,13 +19,54 @@ package twenty48
 import (
 	"errors"
 	"image/color"
+	"io/ioutil"
+	"log"
 	"math/rand"
 	"sort"
 	"strconv"
 
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
+
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/common"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/text"
 )
+
+var (
+	mplusNormalFont font.Face
+	mplusBigFont    font.Face
+)
+
+func init() {
+	f, err := ebitenutil.OpenFile("_resources/fonts/mplus-1p-regular.ttf")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tt, err := truetype.Parse(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	const dpi = 72
+	mplusNormalFont = truetype.NewFace(tt, &truetype.Options{
+		Size:    12,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	mplusBigFont = truetype.NewFace(tt, &truetype.Options{
+		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+}
 
 // TileData represents a tile information like a value and a position.
 type TileData struct {
@@ -357,13 +398,16 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	op.ColorM.Scale(r, g, b, a)
 	boardImage.DrawImage(tileImage, op)
 	str := strconv.Itoa(v)
-	scale := 2
+
+	f := mplusBigFont
 	if 2 < len(str) {
-		scale = 1
+		f = mplusNormalFont
 	}
-	w := common.ArcadeFont.TextWidth(str) * scale
-	h := common.ArcadeFont.TextHeight(str) * scale
+
+	bound, _ := font.BoundString(f, str)
+	w := (bound.Max.X - bound.Min.X).Ceil()
+	h := (bound.Max.Y - bound.Min.Y).Ceil()
 	x = x + (tileSize-w)/2
-	y = y + (tileSize-h)/2
-	common.ArcadeFont.DrawText(boardImage, str, x, y, scale, tileColor(v))
+	y = y + (tileSize-h)/2 + h
+	text.Draw(boardImage, str, f, x, y, tileColor(v))
 }
