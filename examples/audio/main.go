@@ -47,6 +47,11 @@ var (
 	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
 
+// Input manages the current input state to detect keys 'just pressed'.
+//
+// Note: 'just pressed' is a very common idiom.
+// There is a plan to create a new package for input utility.
+// See https://github.com/hajimehoshi/ebiten/issues/415.
 type Input struct {
 	mouseButtonStates map[ebiten.MouseButton]int
 	keyStates         map[ebiten.Key]int
@@ -67,7 +72,7 @@ func (i *Input) update() {
 	}
 }
 
-func (i *Input) isKeyTriggered(key ebiten.Key) bool {
+func (i *Input) isKeyJustPressed(key ebiten.Key) bool {
 	return i.keyStates[key] == 1
 }
 
@@ -75,24 +80,21 @@ func (i *Input) isKeyPressed(key ebiten.Key) bool {
 	return i.keyStates[key] > 0
 }
 
-func (i *Input) isMouseButtonTriggered(mouseButton ebiten.MouseButton) bool {
+func (i *Input) isMouseButtonJustPressed(mouseButton ebiten.MouseButton) bool {
 	return i.mouseButtonStates[mouseButton] == 1
 }
 
+// Player represents the current audio state.
 type Player struct {
 	input        *Input
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
 	current      time.Duration
 	total        time.Duration
-	seBytes      []uint8
-	seCh         chan []uint8
+	seBytes      []byte
+	seCh         chan []byte
 	volume128    int
 }
-
-var (
-	musicPlayer *Player
-)
 
 func playerBarRect() (x, y, w, h int) {
 	w, h = 300, 4
@@ -128,7 +130,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		audioPlayer:  p,
 		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
 		volume128:    128,
-		seCh:         make(chan []uint8),
+		seCh:         make(chan []byte),
 	}
 	if player.total == 0 {
 		player.total = 1
@@ -158,32 +160,36 @@ func (p *Player) update() error {
 		p.seCh = nil
 	default:
 	}
+
 	if p.audioPlayer.IsPlaying() {
 		p.current = p.audioPlayer.Current()
 	}
-	p.updateBar()
-	p.updatePlayPause()
-	p.updateSE()
-	p.updateVolume()
-	if p.input.isKeyTriggered(ebiten.KeyB) {
+	p.seekBarIfNeeded()
+	p.switchPlayStateIfNeeded()
+	p.playSEIfNeeded()
+	p.updateVolumeIfNeeded()
+
+	if p.input.isKeyJustPressed(ebiten.KeyB) {
 		b := ebiten.IsRunnableInBackground()
 		ebiten.SetRunnableInBackground(!b)
 	}
 	return nil
 }
 
-func (p *Player) updateSE() {
+func (p *Player) playSEIfNeeded() {
 	if p.seBytes == nil {
+		// Bytes for the SE is not loaded yet.
 		return
 	}
-	if !p.input.isKeyTriggered(ebiten.KeyP) {
+
+	if !p.input.isKeyJustPressed(ebiten.KeyP) {
 		return
 	}
 	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
 	sePlayer.Play()
 }
 
-func (p *Player) updateVolume() {
+func (p *Player) updateVolumeIfNeeded() {
 	if p.input.isKeyPressed(ebiten.KeyZ) {
 		p.volume128--
 	}
@@ -199,8 +205,8 @@ func (p *Player) updateVolume() {
 	p.audioPlayer.SetVolume(float64(p.volume128) / 128)
 }
 
-func (p *Player) updatePlayPause() {
-	if !p.input.isKeyTriggered(ebiten.KeyS) {
+func (p *Player) switchPlayStateIfNeeded() {
+	if !p.input.isKeyJustPressed(ebiten.KeyS) {
 		return
 	}
 	if p.audioPlayer.IsPlaying() {
@@ -210,11 +216,12 @@ func (p *Player) updatePlayPause() {
 	p.audioPlayer.Play()
 }
 
-func (p *Player) updateBar() {
-	if !p.input.isMouseButtonTriggered(ebiten.MouseButtonLeft) {
+func (p *Player) seekBarIfNeeded() {
+	if !p.input.isMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
-	// Start seeking.
+
+	// Calculate the next seeking position from the current cursor position.
 	x, y := ebiten.CursorPosition()
 	bx, by, bw, bh := playerBarRect()
 	const padding = 4
@@ -234,40 +241,45 @@ func (p *Player) close() error {
 }
 
 func (p *Player) draw(screen *ebiten.Image) {
-	// Bar
+	// Draw the bar.
 	x, y, w, h := playerBarRect()
 	ebitenutil.DrawRect(screen, float64(x), float64(y), float64(w), float64(h), playerBarColor)
 
-	currentTimeStr := "00:00"
-
-	// Current Time
+	// Draw the cursor on the bar.
 	c := p.current
-	m := (c / time.Minute) % 100
-	s := (c / time.Second) % 60
-	currentTimeStr = fmt.Sprintf("%02d:%02d", m, s)
-
-	// Cursor
 	cw, ch := 4, 10
 	cx := int(time.Duration(w)*c/p.total) + x - cw/2
 	cy := y - (ch-h)/2
 	ebitenutil.DrawRect(screen, float64(cx), float64(cy), float64(cw), float64(ch), playerCurrentColor)
 
+	// Compose the curren time text.
+	m := (c / time.Minute) % 100
+	s := (c / time.Second) % 60
+	currentTimeStr := fmt.Sprintf("%02d:%02d", m, s)
+
+	// Draw the debug message.
 	msg := fmt.Sprintf(`FPS: %0.2f
 Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 Press B to switch the run-in-background state
-%s`, ebiten.CurrentFPS(), currentTimeStr)
+Current Time: %s`, ebiten.CurrentFPS(), currentTimeStr)
 	ebitenutil.DebugPrint(screen, msg)
 }
+
+var (
+	musicPlayer *Player
+)
 
 func update(screen *ebiten.Image) error {
 	if err := musicPlayer.update(); err != nil {
 		return err
 	}
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	musicPlayer.draw(screen)
 	return nil
 }
@@ -285,9 +297,7 @@ func main() {
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
-	if musicPlayer != nil {
-		if err := musicPlayer.close(); err != nil {
-			log.Fatal(err)
-		}
+	if err := musicPlayer.close(); err != nil {
+		log.Fatal(err)
 	}
 }
