@@ -106,26 +106,6 @@ func NewTile(value int, x, y int) *Tile {
 	}
 }
 
-// Value returns the current value.
-func (t *Tile) Value() int {
-	return t.current.value
-}
-
-// Pos returns the current position.
-func (t *Tile) Pos() (int, int) {
-	return t.current.x, t.current.y
-}
-
-// NextValue returns the next value.
-func (t *Tile) NextValue() int {
-	return t.next.value
-}
-
-// NextPos returns the next position.
-func (t *Tile) NextPos() (int, int) {
-	return t.next.x, t.next.y
-}
-
 // IsMoving returns a boolean value indicating if the tile is animating.
 func (t *Tile) IsMoving() bool {
 	return 0 < t.movingCount
