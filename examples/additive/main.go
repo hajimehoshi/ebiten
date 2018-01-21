@@ -38,17 +38,24 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	w, _ := ebitenImage.Size()
-	const ox = 10
-	const oy = 10
+
+	const (
+		ox = 10
+		oy = 10
+	)
+
 	screen.Fill(color.NRGBA{0x00, 0x40, 0x80, 0xff})
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ox, oy)
 	screen.DrawImage(ebitenImage, op)
+
 	op = &ebiten.DrawImageOptions{}
+	w, _ := ebitenImage.Size()
 	op.GeoM.Translate(ox+float64(w), oy)
 	op.CompositeMode = ebiten.CompositeModeLighter
 	screen.DrawImage(ebitenImage, op)
+
 	return nil
 }
 
