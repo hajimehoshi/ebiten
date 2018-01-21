@@ -56,6 +56,7 @@ func init() {
 		panic(err)
 	}
 	groundImage, _ = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
+
 	const repeat = 5
 	w, h := gophersImage.Size()
 	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
@@ -159,6 +160,7 @@ func (p *player) Angle() int {
 
 func updateGroundImage(ground *ebiten.Image) {
 	ground.Clear()
+
 	x16, y16 := thePlayer.Position()
 	a := thePlayer.Angle()
 	gw, gh := ground.Size()
@@ -171,7 +173,23 @@ func updateGroundImage(ground *ebiten.Image) {
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
+// scaleForLine calculates the scale to render at y-th line of the ground image.
 func scaleForLine(y int) float64 {
+	// c  |
+	// |\ |
+	// | \|
+	// |  s
+	// |  |\
+	// |  | \
+	// A--B--C (plane)
+	//
+	// c:   camera
+	// s:   intersection of the ray and the screen
+	// B-s: horizon height
+	// A-C: far point on the plane
+	// A-B: the distance from the camera to the screen
+	//
+	// The ground image is on the plane, and the head of the ground image is on 'C'.
 	const (
 		horizonHeight   = screenHeight * 2.0 / 3.0
 		cameraHeight    = horizonHeight + 200.0
