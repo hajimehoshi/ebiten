@@ -171,9 +171,19 @@ func updateGroundImage(ground *ebiten.Image) {
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
-func scaleForLine(x int) float64 {
-	// This is an very rough approximate calculation.
-	return math.Pow(float64(x)/2.5, 1.2)
+func scaleForLine(y int) float64 {
+	const (
+		horizonHeight   = screenHeight * 2.0 / 3.0
+		cameraHeight    = horizonHeight + 200.0
+		farPointOnPlane = 200.0
+		cameraToScreen  = farPointOnPlane - farPointOnPlane/cameraHeight*horizonHeight
+	)
+	s1 := cameraHeight / (farPointOnPlane - float64(y)) * (farPointOnPlane - float64(y) - cameraToScreen)
+	s2 := cameraHeight / (farPointOnPlane - float64(y+1)) * (farPointOnPlane - float64(y+1) - cameraToScreen)
+	if math.IsInf(s1, 0) || math.IsInf(s2, 0) {
+		return 0
+	}
+	return s1 - s2
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
@@ -184,20 +194,20 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	g.Translate(float64(w)/2, 0)
 	g.Translate(float64(screenWidth-w)/2, screenHeight/3)
 	op := &ebiten.DrawImageOptions{}
+	y := 0.0
 	for i := 0; i < h; i++ {
 		op.GeoM.Reset()
-		x := scaleForLine(i)
-		j := scaleForLine(i)
-		dx0, dy0, dx1, dy1 := -x, j, float64(w)+x, j+6
-		sw := float64(dx1-dx0) / float64(w)
-		sh := float64(dy1 - dy0)
-		op.GeoM.Scale(sw, sh)
+		s := scaleForLine(i)
+		dx0, dy0 := float64(w)*(1-s)/2, y
+		op.GeoM.Scale(s, s+1)
 		op.GeoM.Translate(float64(dx0), float64(dy0))
 		op.GeoM.Concat(g)
 
 		src := image.Rect(0, i, w, i+1)
 		op.SourceRect = &src
 		screen.DrawImage(ground, op)
+
+		y += s
 	}
 	op = &ebiten.DrawImageOptions{}
 	op.GeoM = g
@@ -220,9 +230,11 @@ func update(screen *ebiten.Image) error {
 	if !rotated {
 		thePlayer.Stabilize()
 	}
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	screen.Fill(skyColor)
 	updateGroundImage(groundImage)
 	drawGroundImage(screen, groundImage)
