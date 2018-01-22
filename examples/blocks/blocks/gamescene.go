@@ -127,7 +127,6 @@ func drawTextBoxContent(r *ebiten.Image, content string, x, y, width int) {
 
 type GameScene struct {
 	field              *Field
-	rand               *rand.Rand
 	currentPiece       *Piece
 	currentPieceX      int
 	currentPieceY      int
@@ -135,16 +134,18 @@ type GameScene struct {
 	currentPieceAngle  Angle
 	nextPiece          *Piece
 	landingCount       int
-	currentFrame       int
 	score              int
 	lines              int
 	gameover           bool
 }
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 func NewGameScene() *GameScene {
 	return &GameScene{
 		field: &Field{},
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -180,7 +181,7 @@ const (
 
 func (s *GameScene) choosePiece() *Piece {
 	num := int(BlockTypeMax)
-	blockType := BlockType(s.rand.Intn(num) + 1)
+	blockType := BlockType(rand.Intn(num) + 1)
 	return Pieces[blockType]
 }
 
@@ -224,8 +225,6 @@ func (s *GameScene) Update(state *GameState) error {
 		}
 		return nil
 	}
-
-	s.currentFrame++
 
 	const maxLandingCount = ebiten.FPS
 	if s.currentPiece == nil {
