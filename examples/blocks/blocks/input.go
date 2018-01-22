@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
+// Input manages the input state including gamepads and keyboards.
 type Input struct {
 	keyStates                  map[ebiten.Key]int
 	anyGamepadButtonPressed    bool
@@ -27,6 +28,7 @@ type Input struct {
 	gamepadConfig              gamepadConfig
 }
 
+// StateForKey returns time length indicating how long the key is pressed.
 func (i *Input) StateForKey(key ebiten.Key) int {
 	if i.keyStates == nil {
 		return 0
@@ -34,6 +36,8 @@ func (i *Input) StateForKey(key ebiten.Key) int {
 	return i.keyStates[key]
 }
 
+// IsAnyGamepadButtonPressed returns a boolean value indicating
+// whether any gamepad button is pressed.
 func (i *Input) IsAnyGamepadButtonPressed() bool {
 	return i.anyGamepadButtonPressed
 }

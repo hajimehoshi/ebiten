@@ -124,6 +124,8 @@ func (c *gamepadConfig) Scan(gamepadID int, b virtualGamepadButton) bool {
 	return false
 }
 
+// IsButtonPressed returns a boolean value indicating whether
+// the given virtual button b is pressed.
 func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	c.initializeIfNeeded()
 
@@ -131,6 +133,7 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	if ok {
 		return ebiten.IsGamepadButtonPressed(0, bb)
 	}
+
 	a, ok := c.axes[b]
 	if ok {
 		v := ebiten.GamepadAxis(0, a.id)
@@ -143,7 +146,7 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	return false
 }
 
-// Name returns the button's name.
+// Name returns the pysical button's name for the given virtual button.
 func (c *gamepadConfig) ButtonName(b virtualGamepadButton) string {
 	c.initializeIfNeeded()
 
