@@ -19,14 +19,51 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"io/ioutil"
 	"log"
 	"math"
+
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/common"
+	"github.com/hajimehoshi/ebiten/text"
 )
+
+const (
+	arcadeFontSize = 8
+)
+
+var (
+	arcadeFont font.Face
+)
+
+func init() {
+	f, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath("_resources", "fonts", "arcade_n.ttf"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tt, err := truetype.Parse(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	const dpi = 72
+	arcadeFont = truetype.NewFace(tt, &truetype.Options{
+		Size:    arcadeFontSize,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+}
 
 const (
 	screenWidth  = 320
@@ -158,7 +195,7 @@ func init() {
 		x := i*width + 36
 		height := 112
 		ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.White)
-		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.Black)
+		text.Draw(imagePiano, k, arcadeFont, x+8, y+height-8, color.Black)
 	}
 
 	blackKeys := []string{"Q", "W", "", "R", "T", "", "U", "I", "O"}
@@ -169,7 +206,7 @@ func init() {
 		x := i*width + 24
 		height := 64
 		ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.Black)
-		common.ArcadeFont.DrawText(imagePiano, k, x+8, y+height-16, 1, color.White)
+		text.Draw(imagePiano, k, arcadeFont, x+8, y+height-8, color.White)
 	}
 }
 
