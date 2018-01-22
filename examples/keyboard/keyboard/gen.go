@@ -17,17 +17,57 @@
 package main
 
 import (
+	"errors"
 	"image"
 	"image/color"
-	"image/draw"
 	"image/png"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
 
-	"github.com/hajimehoshi/ebiten/examples/common"
+	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
+
+	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/internal"
+	"github.com/hajimehoshi/ebiten/text"
 )
+
+const (
+	arcadeFontSize = 8
+)
+
+var (
+	arcadeFont font.Face
+)
+
+func init() {
+	f, err := ebitenutil.OpenFile(filepath.Join("..", "..", "_resources", "fonts", "arcade_n.ttf"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tt, err := truetype.Parse(b)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	const dpi = 72
+	arcadeFont = truetype.NewFace(tt, &truetype.Options{
+		Size:    arcadeFontSize,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+}
 
 var keyboardKeys = [][]string{
 	{"Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "\\", "`", " "},
@@ -40,11 +80,11 @@ var keyboardKeys = [][]string{
 	{"Left", "Down", "Right"},
 }
 
-func drawKey(t *image.NRGBA, name string, x, y, width int) {
+func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	const height = 16
 	width--
-	shape := image.NewNRGBA(image.Rect(0, 0, width, height))
-	p := shape.Pix
+	img, _ := ebiten.NewImage(width, height, ebiten.FilterNearest)
+	p := make([]byte, width*height*4)
 	for j := 0; j < height; j++ {
 		for i := 0; i < width; i++ {
 			x := (i + j*width) * 4
@@ -80,13 +120,18 @@ func drawKey(t *image.NRGBA, name string, x, y, width int) {
 			}
 		}
 	}
-	draw.Draw(t, image.Rect(x, y, x+width, y+height), shape, image.ZP, draw.Over)
-	common.ArcadeFont.DrawTextOnImage(t, name, x+4, y+5)
+	img.ReplacePixels(p)
+	const offset = 4
+	text.Draw(img, name, arcadeFont, offset, arcadeFontSize+offset, color.White)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	t.DrawImage(img, op)
 }
 
 func outputKeyboardImage() (map[string]image.Rectangle, error) {
 	keyMap := map[string]image.Rectangle{}
-	img := image.NewNRGBA(image.Rect(0, 0, 320, 240))
+	img, _ := ebiten.NewImage(320, 240, ebiten.FilterNearest)
 	x, y := 0, 0
 	for j, line := range keyboardKeys {
 		x = 0
@@ -130,18 +175,13 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 		y += height
 	}
 
-	palette := color.Palette([]color.Color{
-		color.Transparent, color.Opaque,
-	})
-	palettedImg := image.NewPaletted(img.Bounds(), palette)
-	draw.Draw(palettedImg, palettedImg.Bounds(), img, image.ZP, draw.Src)
-
-	f, err := os.Create("../../_resources/images/keyboard/keyboard.png")
+	f, err := os.Create(filepath.Join("..", "..", "_resources", "images", "keyboard", "keyboard.png"))
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	if err := png.Encode(f, palettedImg); err != nil {
+
+	if err := png.Encode(f, img); err != nil {
 		return nil, err
 	}
 	return keyMap, nil
@@ -194,12 +234,21 @@ func outputKeyRectsGo(k map[string]image.Rectangle) error {
 	})
 }
 
+var regularTermination = errors.New("regular termination")
+
 func main() {
-	m, err := outputKeyboardImage()
-	if err != nil {
+	var rects map[string]image.Rectangle
+	if err := ebiten.Run(func(_ *ebiten.Image) error {
+		var err error
+		rects, err = outputKeyboardImage()
+		if err != nil {
+			return err
+		}
+		return regularTermination
+	}, 256, 256, 1, ""); err != regularTermination {
 		log.Fatal(err)
 	}
-	if err := outputKeyRectsGo(m); err != nil {
+	if err := outputKeyRectsGo(rects); err != nil {
 		log.Fatal(err)
 	}
 }
