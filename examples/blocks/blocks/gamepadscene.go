@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 type GamepadScene struct {
@@ -103,5 +102,5 @@ ROTATE RIGHT: %s
 		msg = "OK!"
 	}
 	str := fmt.Sprintf(f, s.buttonStates[0], s.buttonStates[1], s.buttonStates[2], s.buttonStates[3], s.buttonStates[4], msg)
-	common.ArcadeFont.DrawTextWithShadow(screen, str, 16, 16, 1, color.White)
+	drawTextWithShadow(screen, str, 16, 16, 1, color.White)
 }

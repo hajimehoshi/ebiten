@@ -25,7 +25,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 var (
@@ -85,7 +84,7 @@ func init() {
 
 	// Windows: Next
 	x, y = nextWindowLabelPosition()
-	common.ArcadeFont.DrawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor)
+	drawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor)
 	x, y = nextWindowPosition()
 	drawWindow(imageWindows, x, y, 5*blockWidth, 5*blockHeight)
 
@@ -115,7 +114,7 @@ func drawWindow(r *ebiten.Image, x, y, width, height int) {
 var fontColor = color.NRGBA{0x40, 0x40, 0xff, 0xff}
 
 func drawTextBox(r *ebiten.Image, label string, x, y, width int) {
-	common.ArcadeFont.DrawTextWithShadow(r, label, x, y, 1, fontColor)
+	drawTextWithShadow(r, label, x, y, 1, fontColor)
 	y += blockWidth
 	drawWindow(r, x, y, width, 2*blockHeight)
 }

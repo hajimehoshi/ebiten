@@ -21,7 +21,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"github.com/hajimehoshi/ebiten/examples/common"
 )
 
 var imageBackground *ebiten.Image
@@ -72,9 +71,9 @@ func (s *TitleScene) Draw(r *ebiten.Image) {
 	drawLogo(r, "BLOCKS")
 
 	message := "PRESS SPACE TO START"
-	x := (ScreenWidth - common.ArcadeFont.TextWidth(message)) / 2
+	x := 0
 	y := ScreenHeight - 48
-	common.ArcadeFont.DrawTextWithShadow(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff})
+	drawTextWithShadowCenter(r, message, x, y, 1, color.NRGBA{0x80, 0, 0, 0xff}, ScreenWidth)
 }
 
 func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
@@ -93,8 +92,7 @@ func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
 
 func drawLogo(r *ebiten.Image, str string) {
 	const scale = 4
-	textWidth := common.ArcadeFont.TextWidth(str) * scale
-	x := (ScreenWidth - textWidth) / 2
+	x := 0
 	y := 32
-	common.ArcadeFont.DrawTextWithShadow(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff})
+	drawTextWithShadowCenter(r, str, x, y, scale, color.NRGBA{0x00, 0x00, 0x80, 0xff}, ScreenWidth)
 }
