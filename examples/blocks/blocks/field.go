@@ -22,16 +22,15 @@ import (
 
 const maxFlushCount = 20
 
+// Field represents a game field with block states.
 type Field struct {
-	blocks        [fieldBlockNumX][fieldBlockNumY]BlockType
-	flushCount    int
-	onEndFlushing func(int)
+	blocks              [fieldBlockNumX][fieldBlockNumY]BlockType
+	flushCount          int
+	onEndFlushAnimating func(int)
 }
 
-func NewField() *Field {
-	return &Field{}
-}
-
+// IsBlocked returns a boolean value indicating whether
+// there is a block at position (x, y) on the field.
 func (f *Field) IsBlocked(x, y int) bool {
 	if x < 0 || fieldBlockNumX <= x {
 		return true
@@ -45,49 +44,58 @@ func (f *Field) IsBlocked(x, y int) bool {
 	return f.blocks[x][y] != BlockTypeNone
 }
 
-func (f *Field) collides(piece *Piece, x, y int, angle Angle) bool {
-	return piece.collides(f, x, y, angle)
-}
-
+// MovePieceToLeft tries to move the piece to the left
+// and returns the piece's next x position.
 func (f *Field) MovePieceToLeft(piece *Piece, x, y int, angle Angle) int {
-	if f.collides(piece, x-1, y, angle) {
+	if piece.collides(f, x-1, y, angle) {
 		return x
 	}
 	return x - 1
 }
 
+// MovePieceToRight tries to move the piece to the right
+// and returns the piece's next x position.
 func (f *Field) MovePieceToRight(piece *Piece, x, y int, angle Angle) int {
-	if f.collides(piece, x+1, y, angle) {
+	if piece.collides(f, x+1, y, angle) {
 		return x
 	}
 	return x + 1
 }
 
+// PieceDroppable returns a boolean value indicating whether
+// the piece at (x, y) with the given angle can drop.
 func (f *Field) PieceDroppable(piece *Piece, x, y int, angle Angle) bool {
-	return !f.collides(piece, x, y+1, angle)
+	return !piece.collides(f, x, y+1, angle)
 }
 
+// DropPiece tries to drop the piece to the right
+// and returns the piece's next y position.
 func (f *Field) DropPiece(piece *Piece, x, y int, angle Angle) int {
-	if f.collides(piece, x, y+1, angle) {
+	if piece.collides(f, x, y+1, angle) {
 		return y
 	}
 	return y + 1
 }
 
+// RotatePieceRight tries to rotate the piece to the right
+// and returns the piece's next angle.
 func (f *Field) RotatePieceRight(piece *Piece, x, y int, angle Angle) Angle {
-	if f.collides(piece, x, y, angle.RotateRight()) {
+	if piece.collides(f, x, y, angle.RotateRight()) {
 		return angle
 	}
 	return angle.RotateRight()
 }
 
+// RotatePieceLeft tries to rotate the piece to the left
+// and returns the piece's next angle.
 func (f *Field) RotatePieceLeft(piece *Piece, x, y int, angle Angle) Angle {
-	if f.collides(piece, x, y, angle.RotateLeft()) {
+	if piece.collides(f, x, y, angle.RotateLeft()) {
 		return angle
 	}
 	return angle.RotateLeft()
 }
 
+// AbsorbPiece absorbs the piece at (x, y) with the given angle into the field.
 func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) {
 	piece.AbsorbInto(f, x, y, angle)
 	if f.flushable() {
@@ -95,14 +103,20 @@ func (f *Field) AbsorbPiece(piece *Piece, x, y int, angle Angle) {
 	}
 }
 
-func (f *Field) Flushing() bool {
+// IsFlushAnimating returns a boolean value indicating
+// whether there is a flush animation.
+func (f *Field) IsFlushAnimating() bool {
 	return 0 < f.flushCount
 }
 
-func (f *Field) SetEndFlushing(fn func(lines int)) {
-	f.onEndFlushing = fn
+// SetEndFlushAnimating sets a callback fired on the end of flush animation.
+// The callback argument is the number of flushed lines.
+func (f *Field) SetEndFlushAnimating(fn func(lines int)) {
+	f.onEndFlushAnimating = fn
 }
 
+// flushable returns a boolean value indicating whether
+// there is a flushable line in the field.
 func (f *Field) flushable() bool {
 	for j := fieldBlockNumY - 1; 0 <= j; j-- {
 		if f.flushableLine(j) {
@@ -112,6 +126,8 @@ func (f *Field) flushable() bool {
 	return false
 }
 
+// flushableLine returns a boolean value indicating whether
+// the line j is flushabled or not.
 func (f *Field) flushableLine(j int) bool {
 	for i := 0; i < fieldBlockNumX; i++ {
 		if f.blocks[i][j] == BlockTypeNone {
@@ -125,7 +141,7 @@ func (f *Field) setBlock(x, y int, blockType BlockType) {
 	f.blocks[x][y] = blockType
 }
 
-func (f *Field) endFlushing() int {
+func (f *Field) endFlushAnimating() int {
 	flushedLineNum := 0
 	for j := fieldBlockNumY - 1; 0 <= j; j-- {
 		if f.flushLine(j + flushedLineNum) {
@@ -135,6 +151,11 @@ func (f *Field) endFlushing() int {
 	return flushedLineNum
 }
 
+// flushLine flushes the line j if possible, and if the line is flushed,
+// the other lines above the line go down.
+//
+// flushLine returns a boolean value indicating whether
+// the line is actually flushed.
 func (f *Field) flushLine(j int) bool {
 	for i := 0; i < fieldBlockNumX; i++ {
 		if f.blocks[i][j] == BlockTypeNone {
@@ -153,14 +174,17 @@ func (f *Field) flushLine(j int) bool {
 }
 
 func (f *Field) Update() {
-	if 0 <= f.flushCount {
-		f.flushCount--
-		if f.flushCount == 0 {
-			l := f.endFlushing()
-			if f.onEndFlushing != nil {
-				f.onEndFlushing(l)
-			}
-		}
+	if f.flushCount == 0 {
+		return
+	}
+
+	f.flushCount--
+	if f.flushCount > 0 {
+		return
+	}
+
+	if f.onEndFlushAnimating != nil {
+		f.onEndFlushAnimating(f.endFlushAnimating())
 	}
 }
 
@@ -171,12 +195,7 @@ func min(a, b float64) float64 {
 	return a
 }
 
-func (f *Field) flushingColor() ebiten.ColorM {
-	c := f.flushCount
-	if c < 0 {
-		c = 0
-	}
-	rate := float64(c) / maxFlushCount
+func flushingColor(rate float64) ebiten.ColorM {
 	clr := ebiten.ColorM{}
 	alpha := min(1, rate*2)
 	clr.Scale(1, 1, 1, alpha)
@@ -186,23 +205,16 @@ func (f *Field) flushingColor() ebiten.ColorM {
 }
 
 func (f *Field) Draw(r *ebiten.Image, x, y int) {
-	blocks := make([][]BlockType, len(f.blocks))
-	flushingBlocks := make([][]BlockType, len(f.blocks))
-	for i := 0; i < fieldBlockNumX; i++ {
-		blocks[i] = make([]BlockType, fieldBlockNumY)
-		flushingBlocks[i] = make([]BlockType, fieldBlockNumY)
-	}
+	fc := flushingColor(float64(f.flushCount) / maxFlushCount)
 	for j := 0; j < fieldBlockNumY; j++ {
 		if f.flushableLine(j) {
 			for i := 0; i < fieldBlockNumX; i++ {
-				flushingBlocks[i][j] = f.blocks[i][j]
+				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, fc)
 			}
 		} else {
 			for i := 0; i < fieldBlockNumX; i++ {
-				blocks[i][j] = f.blocks[i][j]
+				drawBlock(r, f.blocks[i][j], i*blockWidth+x, j*blockHeight+y, ebiten.ColorM{})
 			}
 		}
 	}
-	drawBlocks(r, blocks, x, y, ebiten.ColorM{})
-	drawBlocks(r, flushingBlocks, x, y, f.flushingColor())
 }

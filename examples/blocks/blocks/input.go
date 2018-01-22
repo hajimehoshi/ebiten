@@ -20,19 +20,11 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-var gamepadAbstractButtons = []abstractButton{
-	abstractButtonLeft,
-	abstractButtonRight,
-	abstractButtonDown,
-	abstractButtonButtonA,
-	abstractButtonButtonB,
-}
-
 type Input struct {
-	keyStates                   map[ebiten.Key]int
-	gamepadButtonStates         map[ebiten.GamepadButton]int
-	gamepadAbstractButtonStates map[abstractButton]int
-	gamepadConfig               gamepadConfig
+	keyStates                  map[ebiten.Key]int
+	gamepadButtonStates        map[ebiten.GamepadButton]int
+	virtualGamepadButtonStates map[virtualGamepadButton]int
+	gamepadConfig              gamepadConfig
 }
 
 func (i *Input) StateForKey(key ebiten.Key) int {
@@ -49,11 +41,11 @@ func (i *Input) StateForGamepadButton(b ebiten.GamepadButton) int {
 	return i.gamepadButtonStates[b]
 }
 
-func (i *Input) stateForGamepadAbstractButton(b abstractButton) int {
-	if i.gamepadAbstractButtonStates == nil {
+func (i *Input) stateForVirtualGamepadButton(b virtualGamepadButton) int {
+	if i.virtualGamepadButtonStates == nil {
 		return 0
 	}
-	return i.gamepadAbstractButtonStates[b]
+	return i.virtualGamepadButtonStates[b]
 }
 
 func (i *Input) Update() {
@@ -80,30 +72,30 @@ func (i *Input) Update() {
 		i.gamepadButtonStates[b]++
 	}
 
-	if i.gamepadAbstractButtonStates == nil {
-		i.gamepadAbstractButtonStates = map[abstractButton]int{}
+	if i.virtualGamepadButtonStates == nil {
+		i.virtualGamepadButtonStates = map[virtualGamepadButton]int{}
 	}
-	for _, b := range gamepadAbstractButtons {
-		if !i.gamepadConfig.IsButtonPressed(gamepadID, b) {
-			i.gamepadAbstractButtonStates[b] = 0
+	for _, b := range virtualGamepadButtons {
+		if !i.gamepadConfig.IsButtonPressed(b) {
+			i.virtualGamepadButtonStates[b] = 0
 			continue
 		}
-		i.gamepadAbstractButtonStates[b]++
+		i.virtualGamepadButtonStates[b]++
 	}
 }
 
-func (i *Input) IsRotateRightTrigger() bool {
+func (i *Input) IsRotateRightJustPressed() bool {
 	if i.StateForKey(ebiten.KeySpace) == 1 || i.StateForKey(ebiten.KeyX) == 1 {
 		return true
 	}
-	return i.stateForGamepadAbstractButton(abstractButtonButtonB) == 1
+	return i.stateForVirtualGamepadButton(virtualGamepadButtonButtonB) == 1
 }
 
-func (i *Input) IsRotateLeftTrigger() bool {
+func (i *Input) IsRotateLeftJustPressed() bool {
 	if i.StateForKey(ebiten.KeyZ) == 1 {
 		return true
 	}
-	return i.stateForGamepadAbstractButton(abstractButtonButtonA) == 1
+	return i.stateForVirtualGamepadButton(virtualGamepadButtonButtonA) == 1
 }
 
 func (i *Input) StateForLeft() int {
@@ -111,7 +103,7 @@ func (i *Input) StateForLeft() int {
 	if 0 < v {
 		return v
 	}
-	return i.stateForGamepadAbstractButton(abstractButtonLeft)
+	return i.stateForVirtualGamepadButton(virtualGamepadButtonLeft)
 }
 
 func (i *Input) StateForRight() int {
@@ -119,7 +111,7 @@ func (i *Input) StateForRight() int {
 	if 0 < v {
 		return v
 	}
-	return i.stateForGamepadAbstractButton(abstractButtonRight)
+	return i.stateForVirtualGamepadButton(virtualGamepadButtonRight)
 }
 
 func (i *Input) StateForDown() int {
@@ -127,5 +119,5 @@ func (i *Input) StateForDown() int {
 	if 0 < v {
 		return v
 	}
-	return i.stateForGamepadAbstractButton(abstractButtonDown)
+	return i.stateForVirtualGamepadButton(virtualGamepadButtonDown)
 }

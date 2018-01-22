@@ -41,7 +41,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	game := blocks.NewGame()
+	game := &blocks.Game{}
 	update := game.Update
 	if err := ebiten.Run(update, blocks.ScreenWidth, blocks.ScreenHeight, 2, "Blocks (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

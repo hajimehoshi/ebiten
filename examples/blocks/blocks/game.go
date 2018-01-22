@@ -17,41 +17,33 @@
 package blocks
 
 import (
-	"sync"
-
 	"github.com/hajimehoshi/ebiten"
 )
 
-const ScreenWidth = 256
-const ScreenHeight = 240
-
-type GameState struct {
-	SceneManager *SceneManager
-	Input        *Input
-}
+const (
+	ScreenWidth  = 256
+	ScreenHeight = 240
+)
 
 type Game struct {
-	once         sync.Once
 	sceneManager *SceneManager
 	input        Input
 }
 
-func NewGame() *Game {
-	return &Game{
-		sceneManager: NewSceneManager(NewTitleScene()),
+func (g *Game) Update(r *ebiten.Image) error {
+	if g.sceneManager == nil {
+		g.sceneManager = &SceneManager{}
+		g.sceneManager.GoTo(&TitleScene{})
 	}
-}
 
-func (game *Game) Update(r *ebiten.Image) error {
-	game.input.Update()
-	if err := game.sceneManager.Update(&GameState{
-		SceneManager: game.sceneManager,
-		Input:        &game.input,
-	}); err != nil {
+	g.input.Update()
+	if err := g.sceneManager.Update(&g.input); err != nil {
 		return err
 	}
-	if !ebiten.IsRunningSlowly() {
-		game.sceneManager.Draw(r)
+	if ebiten.IsRunningSlowly() {
+		return nil
 	}
+
+	g.sceneManager.Draw(r)
 	return nil
 }

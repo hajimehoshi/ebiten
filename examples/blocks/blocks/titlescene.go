@@ -38,13 +38,9 @@ type TitleScene struct {
 	count int
 }
 
-func NewTitleScene() *TitleScene {
-	return &TitleScene{}
-}
-
 func anyGamepadAbstractButtonPressed(i *Input) bool {
-	for _, b := range gamepadAbstractButtons {
-		if i.gamepadConfig.IsButtonPressed(0, b) {
+	for _, b := range virtualGamepadButtons {
+		if i.gamepadConfig.IsButtonPressed(b) {
 			return true
 		}
 	}
@@ -71,8 +67,11 @@ func (s *TitleScene) Update(state *GameState) error {
 		state.SceneManager.GoTo(NewGameScene())
 		return nil
 	}
+
+	// If 'abstract' gamepad buttons are not set and any gamepad buttons are pressed,
+	// go to the gamepad configuration scene.
 	if anyGamepadButtonPressed(state.Input) {
-		state.SceneManager.GoTo(NewGamepadScene())
+		state.SceneManager.GoTo(&GamepadScene{})
 		return nil
 	}
 	return nil
@@ -93,7 +92,7 @@ func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
 	op := &ebiten.DrawImageOptions{}
 	for i := 0; i < (ScreenWidth/w+1)*(ScreenHeight/h+2); i++ {
 		op.GeoM.Reset()
-		dx := (-c / 4) % w
+		dx := -(c / 4) % w
 		dy := (c / 4) % h
 		dstX := (i%(ScreenWidth/w+1))*w + dx
 		dstY := (i/(ScreenWidth/w+1)-1)*h + dy
@@ -103,7 +102,7 @@ func (s *TitleScene) drawTitleBackground(r *ebiten.Image, c int) {
 }
 
 func drawLogo(r *ebiten.Image, str string) {
-	scale := 4
+	const scale = 4
 	textWidth := common.ArcadeFont.TextWidth(str) * scale
 	x := (ScreenWidth - textWidth) / 2
 	y := 32

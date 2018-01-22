@@ -43,31 +43,35 @@ type SceneManager struct {
 	transitionCount int
 }
 
-func NewSceneManager(initScene Scene) *SceneManager {
-	return &SceneManager{
-		current:         initScene,
-		transitionCount: -1,
-	}
+type GameState struct {
+	SceneManager *SceneManager
+	Input        *Input
 }
 
-func (s *SceneManager) Update(state *GameState) error {
-	if s.transitionCount == -1 {
-		return s.current.Update(state)
+func (s *SceneManager) Update(input *Input) error {
+	if s.transitionCount == 0 {
+		return s.current.Update(&GameState{
+			SceneManager: s,
+			Input:        input,
+		})
 	}
-	s.transitionCount++
-	if transitionMaxCount <= s.transitionCount {
-		s.current = s.next
-		s.next = nil
-		s.transitionCount = -1
+
+	s.transitionCount--
+	if s.transitionCount > 0 {
+		return nil
 	}
+
+	s.current = s.next
+	s.next = nil
 	return nil
 }
 
 func (s *SceneManager) Draw(r *ebiten.Image) {
-	if s.transitionCount == -1 {
+	if s.transitionCount == 0 {
 		s.current.Draw(r)
 		return
 	}
+
 	transitionFrom.Clear()
 	s.current.Draw(transitionFrom)
 
@@ -76,13 +80,17 @@ func (s *SceneManager) Draw(r *ebiten.Image) {
 
 	r.DrawImage(transitionFrom, nil)
 
-	alpha := float64(s.transitionCount) / float64(transitionMaxCount)
+	alpha := 1 - float64(s.transitionCount)/float64(transitionMaxCount)
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, alpha)
 	r.DrawImage(transitionTo, op)
 }
 
 func (s *SceneManager) GoTo(scene Scene) {
-	s.next = scene
-	s.transitionCount = 0
+	if s.current == nil {
+		s.current = scene
+	} else {
+		s.next = scene
+		s.transitionCount = transitionMaxCount
+	}
 }

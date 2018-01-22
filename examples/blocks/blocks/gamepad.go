@@ -22,15 +22,23 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-type abstractButton int
+type virtualGamepadButton int
 
 const (
-	abstractButtonLeft abstractButton = iota
-	abstractButtonRight
-	abstractButtonDown
-	abstractButtonButtonA
-	abstractButtonButtonB
+	virtualGamepadButtonLeft virtualGamepadButton = iota
+	virtualGamepadButtonRight
+	virtualGamepadButtonDown
+	virtualGamepadButtonButtonA
+	virtualGamepadButtonButtonB
 )
+
+var virtualGamepadButtons = []virtualGamepadButton{
+	virtualGamepadButtonLeft,
+	virtualGamepadButtonRight,
+	virtualGamepadButtonDown,
+	virtualGamepadButtonButtonA,
+	virtualGamepadButtonButtonB,
+}
 
 const threshold = 0.75
 
@@ -40,19 +48,19 @@ type axis struct {
 }
 
 type gamepadConfig struct {
-	current         abstractButton
-	buttons         map[abstractButton]ebiten.GamepadButton
-	axes            map[abstractButton]axis
+	current         virtualGamepadButton
+	buttons         map[virtualGamepadButton]ebiten.GamepadButton
+	axes            map[virtualGamepadButton]axis
 	assignedButtons map[ebiten.GamepadButton]struct{}
 	assignedAxes    map[axis]struct{}
 }
 
 func (c *gamepadConfig) initializeIfNeeded() {
 	if c.buttons == nil {
-		c.buttons = map[abstractButton]ebiten.GamepadButton{}
+		c.buttons = map[virtualGamepadButton]ebiten.GamepadButton{}
 	}
 	if c.axes == nil {
-		c.axes = map[abstractButton]axis{}
+		c.axes = map[virtualGamepadButton]axis{}
 	}
 	if c.assignedButtons == nil {
 		c.assignedButtons = map[ebiten.GamepadButton]struct{}{}
@@ -69,27 +77,29 @@ func (c *gamepadConfig) Reset() {
 	c.assignedAxes = nil
 }
 
-func (c *gamepadConfig) Scan(index int, b abstractButton) bool {
+// Scan scans the current input state and assigns the given virtual gamepad button b
+// to the current (pysical) pressed buttons of the gamepad.
+func (c *gamepadConfig) Scan(gamepadID int, b virtualGamepadButton) bool {
 	c.initializeIfNeeded()
 
 	delete(c.buttons, b)
 	delete(c.axes, b)
 
-	ebn := ebiten.GamepadButton(ebiten.GamepadButtonNum(index))
+	ebn := ebiten.GamepadButton(ebiten.GamepadButtonNum(gamepadID))
 	for eb := ebiten.GamepadButton(0); eb < ebn; eb++ {
 		if _, ok := c.assignedButtons[eb]; ok {
 			continue
 		}
-		if ebiten.IsGamepadButtonPressed(index, eb) {
+		if ebiten.IsGamepadButtonPressed(gamepadID, eb) {
 			c.buttons[b] = eb
 			c.assignedButtons[eb] = struct{}{}
 			return true
 		}
 	}
 
-	an := ebiten.GamepadAxisNum(index)
+	an := ebiten.GamepadAxisNum(gamepadID)
 	for a := 0; a < an; a++ {
-		v := ebiten.GamepadAxis(index, a)
+		v := ebiten.GamepadAxis(gamepadID, a)
 		// Check |v| < 1.0 because
 		// 1) there is a bug that a button returns an axis value wrongly
 		// and the value may be over 1.
@@ -114,7 +124,7 @@ func (c *gamepadConfig) Scan(index int, b abstractButton) bool {
 	return false
 }
 
-func (c *gamepadConfig) IsButtonPressed(id int, b abstractButton) bool {
+func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	c.initializeIfNeeded()
 
 	bb, ok := c.buttons[b]
@@ -133,7 +143,8 @@ func (c *gamepadConfig) IsButtonPressed(id int, b abstractButton) bool {
 	return false
 }
 
-func (c *gamepadConfig) Name(b abstractButton) string {
+// Name returns the button's name.
+func (c *gamepadConfig) ButtonName(b virtualGamepadButton) string {
 	c.initializeIfNeeded()
 
 	bb, ok := c.buttons[b]

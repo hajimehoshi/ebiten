@@ -78,20 +78,25 @@ func init() {
 
 	// Windows
 	imageWindows, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+
 	// Windows: Field
 	x, y := fieldWindowPosition()
 	drawWindow(imageWindows, x, y, fieldWidth, fieldHeight)
+
 	// Windows: Next
 	x, y = nextWindowLabelPosition()
 	common.ArcadeFont.DrawTextWithShadow(imageWindows, "NEXT", x, y, 1, fontColor)
 	x, y = nextWindowPosition()
 	drawWindow(imageWindows, x, y, 5*blockWidth, 5*blockHeight)
+
 	// Windows: Score
 	x, y = scoreTextBoxPosition()
 	drawTextBox(imageWindows, "SCORE", x, y, textBoxWidth())
+
 	// Windows: Level
 	x, y = levelTextBoxPosition()
 	drawTextBox(imageWindows, "LEVEL", x, y, textBoxWidth())
+
 	// Windows: Lines
 	x, y = linesTextBoxPosition()
 	drawTextBox(imageWindows, "LINES", x, y, textBoxWidth())
@@ -138,7 +143,7 @@ type GameScene struct {
 
 func NewGameScene() *GameScene {
 	return &GameScene{
-		field: NewField(),
+		field: &Field{},
 		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
@@ -168,8 +173,10 @@ func (s *GameScene) drawBackground(r *ebiten.Image) {
 	r.DrawImage(imageGameBG, op)
 }
 
-const fieldWidth = blockWidth * fieldBlockNumX
-const fieldHeight = blockHeight * fieldBlockNumY
+const (
+	fieldWidth  = blockWidth * fieldBlockNumX
+	fieldHeight = blockHeight * fieldBlockNumY
+)
 
 func (s *GameScene) choosePiece() *Piece {
 	num := int(BlockTypeMax)
@@ -213,7 +220,7 @@ func (s *GameScene) Update(state *GameState) error {
 	if s.gameover {
 		// TODO: Gamepad key?
 		if state.Input.StateForKey(ebiten.KeySpace) == 1 {
-			state.SceneManager.GoTo(NewTitleScene())
+			state.SceneManager.GoTo(&TitleScene{})
 		}
 		return nil
 	}
@@ -233,14 +240,14 @@ func (s *GameScene) Update(state *GameState) error {
 	angle := s.currentPieceAngle
 
 	// Move piece by user input.
-	if !s.field.Flushing() {
+	if !s.field.IsFlushAnimating() {
 		piece := s.currentPiece
 		x := s.currentPieceX
 		y := s.currentPieceY
-		if state.Input.IsRotateRightTrigger() {
+		if state.Input.IsRotateRightJustPressed() {
 			s.currentPieceAngle = s.field.RotatePieceRight(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
-		} else if state.Input.IsRotateLeftTrigger() {
+		} else if state.Input.IsRotateLeftJustPressed() {
 			s.currentPieceAngle = s.field.RotatePieceLeft(piece, x, y, angle)
 			moved = angle != s.currentPieceAngle
 		} else if l := state.Input.StateForLeft(); l == 1 || (10 <= l && l%2 == 0) {
@@ -259,7 +266,7 @@ func (s *GameScene) Update(state *GameState) error {
 	}
 
 	// Drop the current piece with gravity.
-	if !s.field.Flushing() {
+	if !s.field.IsFlushAnimating() {
 		angle := s.currentPieceAngle
 		s.currentPieceYCarry += 2*s.level() + 1
 		const maxCarry = 60
@@ -269,7 +276,7 @@ func (s *GameScene) Update(state *GameState) error {
 		}
 	}
 
-	if !s.field.Flushing() && !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
+	if !s.field.IsFlushAnimating() && !s.field.PieceDroppable(piece, s.currentPieceX, s.currentPieceY, angle) {
 		if 0 < state.Input.StateForDown() {
 			s.landingCount += 10
 		} else {
@@ -277,8 +284,8 @@ func (s *GameScene) Update(state *GameState) error {
 		}
 		if maxLandingCount <= s.landingCount {
 			s.field.AbsorbPiece(piece, s.currentPieceX, s.currentPieceY, angle)
-			if s.field.Flushing() {
-				s.field.SetEndFlushing(func(lines int) {
+			if s.field.IsFlushAnimating() {
+				s.field.SetEndFlushAnimating(func(lines int) {
 					s.lines += lines
 					if 0 < lines {
 						s.addScore(lines)
@@ -298,7 +305,7 @@ func (s *GameScene) goNextPiece() {
 	s.initCurrentPiece(s.nextPiece)
 	s.nextPiece = s.choosePiece()
 	s.landingCount = 0
-	if s.currentPiece.Collides(s.field, s.currentPieceX, s.currentPieceY, s.currentPieceAngle) {
+	if s.currentPiece.collides(s.field, s.currentPieceX, s.currentPieceY, s.currentPieceAngle) {
 		s.gameover = true
 	}
 }
@@ -323,7 +330,7 @@ func (s *GameScene) Draw(r *ebiten.Image) {
 	// Draw blocks
 	fieldX, fieldY := fieldWindowPosition()
 	s.field.Draw(r, fieldX, fieldY)
-	if s.currentPiece != nil && !s.field.Flushing() {
+	if s.currentPiece != nil && !s.field.IsFlushAnimating() {
 		x := fieldX + s.currentPieceX*blockWidth
 		y := fieldY + s.currentPieceY*blockHeight
 		s.currentPiece.Draw(r, x, y, s.currentPieceAngle)

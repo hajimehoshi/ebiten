@@ -75,77 +75,86 @@ type Piece struct {
 	blocks    [][]bool
 }
 
-func toBlocks(ints [][]int) [][]bool {
-	blocks := make([][]bool, len(ints))
-	for j, row := range ints {
+func transpose(bs [][]bool) [][]bool {
+	blocks := make([][]bool, len(bs))
+	for j, row := range bs {
 		blocks[j] = make([]bool, len(row))
 	}
 	// Tranpose the argument matrix.
-	for i, col := range ints {
+	for i, col := range bs {
 		for j, v := range col {
-			blocks[j][i] = v != 0
+			blocks[j][i] = v
 		}
 	}
 	return blocks
 }
 
-var Pieces = map[BlockType]*Piece{
-	BlockType1: {
-		blockType: BlockType1,
-		blocks: toBlocks([][]int{
-			{0, 0, 0, 0},
-			{1, 1, 1, 1},
-			{0, 0, 0, 0},
-			{0, 0, 0, 0},
-		}),
-	},
-	BlockType2: {
-		blockType: BlockType2,
-		blocks: toBlocks([][]int{
-			{1, 0, 0},
-			{1, 1, 1},
-			{0, 0, 0},
-		}),
-	},
-	BlockType3: {
-		blockType: BlockType3,
-		blocks: toBlocks([][]int{
-			{0, 1, 0},
-			{1, 1, 1},
-			{0, 0, 0},
-		}),
-	},
-	BlockType4: {
-		blockType: BlockType4,
-		blocks: toBlocks([][]int{
-			{0, 0, 1},
-			{1, 1, 1},
-			{0, 0, 0},
-		}),
-	},
-	BlockType5: {
-		blockType: BlockType5,
-		blocks: toBlocks([][]int{
-			{1, 1, 0},
-			{0, 1, 1},
-			{0, 0, 0},
-		}),
-	},
-	BlockType6: {
-		blockType: BlockType6,
-		blocks: toBlocks([][]int{
-			{0, 1, 1},
-			{1, 1, 0},
-			{0, 0, 0},
-		}),
-	},
-	BlockType7: {
-		blockType: BlockType7,
-		blocks: toBlocks([][]int{
-			{1, 1},
-			{1, 1},
-		}),
-	},
+// Pieces is the set of all the possible pieces.
+var Pieces map[BlockType]*Piece
+
+func init() {
+	const (
+		f = false
+		t = true
+	)
+	Pieces = map[BlockType]*Piece{
+		BlockType1: {
+			blockType: BlockType1,
+			blocks: transpose([][]bool{
+				{f, f, f, f},
+				{t, t, t, t},
+				{f, f, f, f},
+				{f, f, f, f},
+			}),
+		},
+		BlockType2: {
+			blockType: BlockType2,
+			blocks: transpose([][]bool{
+				{t, f, f},
+				{t, t, t},
+				{f, f, f},
+			}),
+		},
+		BlockType3: {
+			blockType: BlockType3,
+			blocks: transpose([][]bool{
+				{f, t, f},
+				{t, t, t},
+				{f, f, f},
+			}),
+		},
+		BlockType4: {
+			blockType: BlockType4,
+			blocks: transpose([][]bool{
+				{f, f, t},
+				{t, t, t},
+				{f, f, f},
+			}),
+		},
+		BlockType5: {
+			blockType: BlockType5,
+			blocks: transpose([][]bool{
+				{t, t, f},
+				{f, t, t},
+				{f, f, f},
+			}),
+		},
+		BlockType6: {
+			blockType: BlockType6,
+			blocks: transpose([][]bool{
+				{f, t, t},
+				{t, t, f},
+				{f, f, f},
+			}),
+		},
+		BlockType7: {
+			blockType: BlockType7,
+			blocks: transpose([][]bool{
+				{t, t},
+				{t, t},
+			}),
+		},
+	}
 }
 
 const (
@@ -155,23 +164,19 @@ const (
 	fieldBlockNumY = 20
 )
 
-func drawBlocks(r *ebiten.Image, blocks [][]BlockType, x, y int, clr ebiten.ColorM) {
+func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr ebiten.ColorM) {
+	if block == BlockTypeNone {
+		return
+	}
+
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM = clr
-	for j := 0; j < len(blocks[0]); j++ {
-		for i := 0; i < len(blocks); i++ {
-			op.GeoM.Reset()
-			op.GeoM.Translate(float64(i*blockWidth+x), float64(j*blockHeight+y))
-			block := blocks[i][j]
-			if block == BlockTypeNone {
-				continue
-			}
-			x := (int(block) - 1) * blockWidth
-			src := image.Rect(x, 0, x+blockWidth, blockHeight)
-			op.SourceRect = &src
-			r.DrawImage(imageBlocks, op)
-		}
-	}
+	op.GeoM.Translate(float64(x), float64(y))
+
+	srcX := (int(block) - 1) * blockWidth
+	src := image.Rect(srcX, 0, srcX+blockWidth, blockHeight)
+	op.SourceRect = &src
+	r.DrawImage(imageBlocks, op)
 }
 
 func (p *Piece) InitialPosition() (int, int) {
@@ -190,6 +195,8 @@ Loop:
 	return x, y
 }
 
+// isBlocked returns a boolean value indicating whether
+// there is a block at the position (x, y) of the piece with the given angle.
 func (p *Piece) isBlocked(i, j int, angle Angle) bool {
 	size := len(p.blocks)
 	i2, j2 := i, j
@@ -208,6 +215,8 @@ func (p *Piece) isBlocked(i, j int, angle Angle) bool {
 	return p.blocks[i2][j2]
 }
 
+// collides returns a boolean value indicating whether
+// the piece at (x, y) with the given angle would collide with the field's blocks.
 func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 	size := len(p.blocks)
 	for i := 0; i < size; i++ {
@@ -218,10 +227,6 @@ func (p *Piece) collides(field *Field, x, y int, angle Angle) bool {
 		}
 	}
 	return false
-}
-
-func (p *Piece) Collides(field *Field, x, y int, angle Angle) bool {
-	return p.collides(field, x, y, angle)
 }
 
 func (p *Piece) AbsorbInto(field *Field, x, y int, angle Angle) {
@@ -242,15 +247,12 @@ func (p *Piece) DrawAtCenter(r *ebiten.Image, x, y, width, height int, angle Ang
 }
 
 func (p *Piece) Draw(r *ebiten.Image, x, y int, angle Angle) {
-	size := len(p.blocks)
-	blocks := make([][]BlockType, size)
 	for i := range p.blocks {
-		blocks[i] = make([]BlockType, size)
-		for j := range blocks[i] {
+		for j := range p.blocks[i] {
 			if p.isBlocked(i, j, angle) {
-				blocks[i][j] = p.blockType
+				drawBlock(r, p.blockType, i*blockWidth+x, j*blockHeight+y, ebiten.ColorM{})
 			}
 		}
 	}
-	drawBlocks(r, blocks, x, y, ebiten.ColorM{})
+
 }

@@ -31,25 +31,21 @@ type GamepadScene struct {
 	buttonStates      []string
 }
 
-func NewGamepadScene() *GamepadScene {
-	return &GamepadScene{}
-}
-
 func (s *GamepadScene) Update(state *GameState) error {
 	if s.currentIndex == 0 {
 		state.Input.gamepadConfig.Reset()
 	}
 	if state.Input.StateForKey(ebiten.KeyEscape) == 1 {
 		state.Input.gamepadConfig.Reset()
-		state.SceneManager.GoTo(NewTitleScene())
+		state.SceneManager.GoTo(&TitleScene{})
 	}
 
 	if s.buttonStates == nil {
-		s.buttonStates = make([]string, len(gamepadAbstractButtons))
+		s.buttonStates = make([]string, len(virtualGamepadButtons))
 	}
-	for i, b := range gamepadAbstractButtons {
+	for i, b := range virtualGamepadButtons {
 		if i < s.currentIndex {
-			s.buttonStates[i] = strings.ToUpper(state.Input.gamepadConfig.Name(b))
+			s.buttonStates[i] = strings.ToUpper(state.Input.gamepadConfig.ButtonName(b))
 			continue
 		}
 		if s.currentIndex == i {
@@ -62,15 +58,16 @@ func (s *GamepadScene) Update(state *GameState) error {
 	if 0 < s.countAfterSetting {
 		s.countAfterSetting--
 		if s.countAfterSetting <= 0 {
-			state.SceneManager.GoTo(NewTitleScene())
+			state.SceneManager.GoTo(&TitleScene{})
 		}
 		return nil
 	}
 
-	b := gamepadAbstractButtons[s.currentIndex]
-	if state.Input.gamepadConfig.Scan(0, b) {
+	b := virtualGamepadButtons[s.currentIndex]
+	const gamepadID = 0
+	if state.Input.gamepadConfig.Scan(gamepadID, b) {
 		s.currentIndex++
-		if s.currentIndex == len(gamepadAbstractButtons) {
+		if s.currentIndex == len(virtualGamepadButtons) {
 			s.countAfterSetting = ebiten.FPS
 		}
 	}
@@ -102,7 +99,7 @@ ROTATE RIGHT: %s
 
 %s`
 	msg := ""
-	if s.currentIndex == len(gamepadAbstractButtons) {
+	if s.currentIndex == len(virtualGamepadButtons) {
 		msg = "OK!"
 	}
 	str := fmt.Sprintf(f, s.buttonStates[0], s.buttonStates[1], s.buttonStates[2], s.buttonStates[3], s.buttonStates[4], msg)
