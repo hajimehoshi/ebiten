@@ -40,7 +40,7 @@ var (
 )
 
 func init() {
-	f, err := ebitenutil.OpenFile("_resources/fonts/mplus-1p-regular.ttf")
+	f, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath("_resources", "fonts", "mplus-1p-regular.ttf"))
 	if err != nil {
 		log.Fatal(err)
 	}
