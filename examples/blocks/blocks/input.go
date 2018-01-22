@@ -22,7 +22,7 @@ import (
 
 type Input struct {
 	keyStates                  map[ebiten.Key]int
-	gamepadButtonStates        map[ebiten.GamepadButton]int
+	anyGamepadButtonPressed    bool
 	virtualGamepadButtonStates map[virtualGamepadButton]int
 	gamepadConfig              gamepadConfig
 }
@@ -34,11 +34,8 @@ func (i *Input) StateForKey(key ebiten.Key) int {
 	return i.keyStates[key]
 }
 
-func (i *Input) StateForGamepadButton(b ebiten.GamepadButton) int {
-	if i.gamepadButtonStates == nil {
-		return 0
-	}
-	return i.gamepadButtonStates[b]
+func (i *Input) IsAnyGamepadButtonPressed() bool {
+	return i.anyGamepadButtonPressed
 }
 
 func (i *Input) stateForVirtualGamepadButton(b virtualGamepadButton) int {
@@ -61,15 +58,12 @@ func (i *Input) Update() {
 	}
 
 	const gamepadID = 0
-	if i.gamepadButtonStates == nil {
-		i.gamepadButtonStates = map[ebiten.GamepadButton]int{}
-	}
+	i.anyGamepadButtonPressed = false
 	for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
-		if !ebiten.IsGamepadButtonPressed(gamepadID, b) {
-			i.gamepadButtonStates[b] = 0
-			continue
+		if ebiten.IsGamepadButtonPressed(gamepadID, b) {
+			i.anyGamepadButtonPressed = true
+			break
 		}
-		i.gamepadButtonStates[b]++
 	}
 
 	if i.virtualGamepadButtonStates == nil {

@@ -47,16 +47,6 @@ func anyGamepadAbstractButtonPressed(i *Input) bool {
 	return false
 }
 
-func anyGamepadButtonPressed(i *Input) bool {
-	bn := ebiten.GamepadButton(ebiten.GamepadButtonNum(0))
-	for b := ebiten.GamepadButton(0); b < bn; b++ {
-		if i.StateForGamepadButton(b) == 1 {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *TitleScene) Update(state *GameState) error {
 	s.count++
 	if state.Input.StateForKey(ebiten.KeySpace) == 1 {
@@ -70,7 +60,7 @@ func (s *TitleScene) Update(state *GameState) error {
 
 	// If 'abstract' gamepad buttons are not set and any gamepad buttons are pressed,
 	// go to the gamepad configuration scene.
-	if anyGamepadButtonPressed(state.Input) {
+	if state.Input.IsAnyGamepadButtonPressed() {
 		state.SceneManager.GoTo(&GamepadScene{})
 		return nil
 	}
