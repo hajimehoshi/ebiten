@@ -40,7 +40,7 @@ var virtualGamepadButtons = []virtualGamepadButton{
 	virtualGamepadButtonButtonB,
 }
 
-const threshold = 0.75
+const axisThreshold = 0.75
 
 type axis struct {
 	id       int
@@ -53,6 +53,8 @@ type gamepadConfig struct {
 	axes            map[virtualGamepadButton]axis
 	assignedButtons map[ebiten.GamepadButton]struct{}
 	assignedAxes    map[axis]struct{}
+
+	defaultAxesValues map[int]float64
 }
 
 func (c *gamepadConfig) initializeIfNeeded() {
@@ -67,6 +69,20 @@ func (c *gamepadConfig) initializeIfNeeded() {
 	}
 	if c.assignedAxes == nil {
 		c.assignedAxes = map[axis]struct{}{}
+	}
+
+	// Set default values.
+	// It is assumed that all axes are not pressed here.
+	//
+	// These default values are used to detect if an axis is actually pressed.
+	// For example, on PS4 controllers, L2/R2's axes valuse can be -1.0.
+	if c.defaultAxesValues == nil {
+		c.defaultAxesValues = map[int]float64{}
+		const gamepadID = 0
+		na := ebiten.GamepadAxisNum(gamepadID)
+		for a := 0; a < na; a++ {
+			c.defaultAxesValues[a] = ebiten.GamepadAxis(gamepadID, a)
+		}
 	}
 }
 
@@ -97,22 +113,19 @@ func (c *gamepadConfig) Scan(gamepadID int, b virtualGamepadButton) bool {
 		}
 	}
 
-	an := ebiten.GamepadAxisNum(gamepadID)
-	for a := 0; a < an; a++ {
+	na := ebiten.GamepadAxisNum(gamepadID)
+	for a := 0; a < na; a++ {
 		v := ebiten.GamepadAxis(gamepadID, a)
-		// Check |v| < 1.0 because
-		// 1) there is a bug that a button returns an axis value wrongly
-		// and the value may be over 1.
-		// 2) just 1.0 or -1.0 values are ignored since PS4's L2/R2 keys take
-		// -1.0 by default.
-		if threshold <= v && v < 1.0 {
+		// Check |v| < 1.0 because there is a bug that a button returns
+		// an axis value wrongly and the value may be over 1 on some platforms.
+		if axisThreshold <= v && v <= 1.0 && v != c.defaultAxesValues[a] {
 			if _, ok := c.assignedAxes[axis{a, true}]; !ok {
 				c.axes[b] = axis{a, true}
 				c.assignedAxes[axis{a, true}] = struct{}{}
 				return true
 			}
 		}
-		if -1.0 < v && v <= -threshold {
+		if -1.0 <= v && v <= -axisThreshold && v != c.defaultAxesValues[a] {
 			if _, ok := c.assignedAxes[axis{a, false}]; !ok {
 				c.axes[b] = axis{a, false}
 				c.assignedAxes[axis{a, false}] = struct{}{}
@@ -138,9 +151,9 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	if ok {
 		v := ebiten.GamepadAxis(0, a.id)
 		if a.positive {
-			return threshold <= v && v <= 1.0
+			return axisThreshold <= v && v <= 1.0
 		} else {
-			return -1.0 <= v && v <= -threshold
+			return -1.0 <= v && v <= -axisThreshold
 		}
 	}
 	return false
