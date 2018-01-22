@@ -45,10 +45,14 @@ func update(screen *ebiten.Image) error {
 	case 240 < count:
 		diff = float64(480-count) * 0.2
 	}
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
+
+	// Draw 100 Ebitens
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
 	for i := 0; i < 10*10; i++ {

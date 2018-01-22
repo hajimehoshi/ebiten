@@ -40,16 +40,19 @@ func update(screen *ebiten.Image) error {
 	}
 
 	const (
+		// The offset point to render the image.
 		ox = 10
 		oy = 10
 	)
 
 	screen.Fill(color.NRGBA{0x00, 0x40, 0x80, 0xff})
 
+	// Draw the image with 'Source Alpha' composite mode (default).
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(ox, oy)
 	screen.DrawImage(ebitenImage, op)
 
+	// Draw the image with 'Lighter (a.k.a Additive)' composite mode.
 	op = &ebiten.DrawImageOptions{}
 	w, _ := ebitenImage.Size()
 	op.GeoM.Translate(ox+float64(w), oy)

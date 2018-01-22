@@ -47,22 +47,30 @@ var player *audio.Player
 
 func update(screen *ebiten.Image) error {
 	if player == nil {
+		// Open a wav file.
+		// wavF is *os.File, which is an io.ReadCloser and io.Seeker.
 		wavF, err := ebitenutil.OpenFile(filepath.Join("_resources", "audio", "jab.wav"))
 		if err != nil {
 			return err
 		}
 
+		// Decode the wav file.
+		// wavS is a decoded io.ReadCloser and io.Seeker.
 		wavS, err := wav.Decode(audioContext, wavF)
 		if err != nil {
 			return err
 		}
 
+		// Create an infinite loop stream from the decoded bytes.
+		// s is still an io.ReadCloser and io.Seeker.
 		s := audio.NewInfiniteLoop(wavS, wavS.Length())
 
 		player, err = audio.NewPlayer(audioContext, s)
 		if err != nil {
 			return err
 		}
+
+		// Play the infinite-length stream. This never ends.
 		player.Play()
 	}
 
