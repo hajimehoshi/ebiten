@@ -34,14 +34,51 @@ package main
 import (
         &#34;fmt&#34;
         &#34;image/color&#34;
+        &#34;io/ioutil&#34;
         &#34;log&#34;
         &#34;math&#34;
+
+        &#34;github.com/golang/freetype/truetype&#34;
+        &#34;golang.org/x/image/font&#34;
 
         &#34;github.com/hajimehoshi/ebiten&#34;
         &#34;github.com/hajimehoshi/ebiten/audio&#34;
         &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-        &#34;github.com/hajimehoshi/ebiten/examples/common&#34;
+        &#34;github.com/hajimehoshi/ebiten/text&#34;
 )
+
+const (
+        arcadeFontSize = 8
+)
+
+var (
+        arcadeFont font.Face
+)
+
+func init() {
+        f, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;fonts&#34;, &#34;arcade_n.ttf&#34;))
+        if err != nil {
+                log.Fatal(err)
+        }
+        defer f.Close()
+
+        b, err := ioutil.ReadAll(f)
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        tt, err := truetype.Parse(b)
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        const dpi = 72
+        arcadeFont = truetype.NewFace(tt, &amp;truetype.Options{
+                Size:    arcadeFontSize,
+                DPI:     dpi,
+                Hinting: font.HintingFull,
+        })
+}
 
 const (
         screenWidth  = 320
@@ -64,15 +101,13 @@ var pcm = make([]float64, 4*sampleRate)
 const baseFreq = 220
 
 func init() {
-        s := float64(sampleRate)
         amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
         x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
         for i := 0; i &lt; len(pcm); i&#43;&#43; {
                 v := 0.0
-                twoPiF := 2.0 * math.Pi * baseFreq
                 for j := 0; j &lt; len(amp); j&#43;&#43; {
-                        a := amp[j] * math.Exp(-5*float64(i)/(x[j]*s))
-                        v &#43;= a * math.Sin(float64(i)*twoPiF*float64(j&#43;1)/s)
+                        a := amp[j] * math.Exp(-5*float64(i)/(x[j]*sampleRate))
+                        v &#43;= a * math.Sin(2.0*math.Pi*float64(i)*baseFreq*float64(j&#43;1)/sampleRate)
                 }
                 pcm[i] = v / 5.0
         }
@@ -175,7 +210,7 @@ func init() {
                 x := i*width &#43; 36
                 height := 112
                 ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.White)
-                common.ArcadeFont.DrawText(imagePiano, k, x&#43;8, y&#43;height-16, 1, color.Black)
+                text.Draw(imagePiano, k, arcadeFont, x&#43;8, y&#43;height-8, color.Black)
         }
 
         blackKeys := []string{&#34;Q&#34;, &#34;W&#34;, &#34;&#34;, &#34;R&#34;, &#34;T&#34;, &#34;&#34;, &#34;U&#34;, &#34;I&#34;, &#34;O&#34;}
@@ -186,7 +221,7 @@ func init() {
                 x := i*width &#43; 24
                 height := 64
                 ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.Black)
-                common.ArcadeFont.DrawText(imagePiano, k, x&#43;8, y&#43;height-16, 1, color.White)
+                text.Draw(imagePiano, k, arcadeFont, x&#43;8, y&#43;height-8, color.White)
         }
 }
 
