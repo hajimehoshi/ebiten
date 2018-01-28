@@ -65,12 +65,11 @@ func init() {
 		for i := 0; i < alphas.X; i++ {
 			// d is the distance between (i, j) and the (circle) center.
 			d := math.Sqrt(float64((i-r)*(i-r) + (j-r)*(j-r)))
-			// Alpha at the center is 0xff and the outside of the circle is 0.
-			b := uint8(max(0, min(0xff, 3*(0xff-int(d*0xff)/r))))
+			// Alphas around the center are 0 and values outside of the circle are 0xff.
+			b := uint8(max(0, min(0xff, int(3*d*0xff/r)-2*0xff)))
 			a.SetAlpha(i, j, color.Alpha{b})
 		}
 	}
-	// Note that alpha values matter an other RGB values don't matter in the spot light image.
 	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
 }
 
@@ -100,25 +99,24 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	maskedFgImage.Clear()
-
+	// Reset the maskedFgImage.
+	maskedFgImage.Fill(color.White)
 	op := &ebiten.DrawImageOptions{}
+	op.CompositeMode = ebiten.CompositeModeCopy
 	op.GeoM.Translate(float64(spotLightX), float64(spotLightY))
 	maskedFgImage.DrawImage(spotLightImage, op)
 
-	// Use 'source-out' composite mode so that the source image (fgImage) is used but the alpha
-	// is determined by the destination image (maskedFgImage). With source-out, the destination
-	// image values are not used at the result image.
+	// Use 'source-in' composite mode so that the source image (fgImage) is used but the alpha
+	// is determined by the destination image (maskedFgImage).
 	//
-	// If the alpha value of the destination is 0xff, the source at the point is not adopted.
-	// In the opposite way, if the alpha value of the destination is 0, the source at the point
-	// is fully adopted. As alpha values outside of the spot light image are 0, the source
-	// values are fully adopted there. As a result, the maskedFgImage draws the source image
-	// with a hole that shape is spotLightImage.
+	// The result image is the source image with the destination alpha. In maskedFgImage, alpha
+	// values in the hole is 0 and alpha values in other places are 0xff. As a result, the
+	// maskedFgImage draws the source image with a hole that shape is spotLightImage. Note that
+	// RGB values in the destination image are ignored.
 	//
-	// See also https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcout.
+	// See also https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcin.
 	op = &ebiten.DrawImageOptions{}
-	op.CompositeMode = ebiten.CompositeModeSourceOut
+	op.CompositeMode = ebiten.CompositeModeSourceIn
 	maskedFgImage.DrawImage(fgImage, op)
 
 	screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
