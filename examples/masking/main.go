@@ -33,8 +33,8 @@ const (
 )
 
 var (
-	gophersImage   *ebiten.Image
-	fiveyearsImage *ebiten.Image
+	bgImage        *ebiten.Image
+	fgImage        *ebiten.Image
 	maskImage      *ebiten.Image
 	spotLightImage *ebiten.Image
 	spotLightX     = 0
@@ -42,6 +42,37 @@ var (
 	spotLightVX    = 1
 	spotLightVY    = 1
 )
+
+func init() {
+	var err error
+	bgImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fgImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "fiveyears.jpg"), ebiten.FilterNearest)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	maskImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+
+	// Initialize the spot light image.
+	const r = 64
+	alphas := image.Point{r * 2, r * 2}
+	a := image.NewAlpha(image.Rectangle{image.ZP, alphas})
+	for j := 0; j < alphas.Y; j++ {
+		for i := 0; i < alphas.X; i++ {
+			// d is the distance between (i, j) and the (circle) center.
+			d := math.Sqrt(float64((i-r)*(i-r) + (j-r)*(j-r)))
+			// Alpha at the center is 0xff and the outside of the circle is 0.
+			b := uint8(max(0, min(0xff, 3*(0xff-int(d*0xff)/r))))
+			a.SetAlpha(i, j, color.Alpha{b})
+		}
+	}
+	// Note that alpha values matter an other RGB values don't matter in the spot light image.
+	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
+}
 
 func update(screen *ebiten.Image) error {
 	spotLightX += spotLightVX
@@ -64,21 +95,34 @@ func update(screen *ebiten.Image) error {
 		spotLightY = -spotLightY + 2*maxY
 		spotLightVY = -spotLightVY
 	}
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	maskImage.Clear()
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(spotLightX), float64(spotLightY))
 	maskImage.DrawImage(spotLightImage, op)
 
+	// Use 'source-out' composite mode so that the source image (fgImage) is used but the alpha
+	// is determined by the destination image (maskImage). With source-out, the destination image
+	// values are not used at the result image.
+	//
+	// If the alpha value of the destination is 0xff, the source at the point is not adopted.
+	// In the opposite way, if the alpha value of the destination is 0, the source at the point
+	// is fully adopted. As alpha values outside of the spot light image are 0, the source values
+	// are fully adopted there. As a result, the maskImage draws the source image with a hole
+	// that shape is spotLightImage.
+	//
+	// See also https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcout.
 	op = &ebiten.DrawImageOptions{}
 	op.CompositeMode = ebiten.CompositeModeSourceOut
-	maskImage.DrawImage(fiveyearsImage, op)
+	maskImage.DrawImage(fgImage, op)
 
 	screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
-	screen.DrawImage(gophersImage, &ebiten.DrawImageOptions{})
+	screen.DrawImage(bgImage, &ebiten.DrawImageOptions{})
 	screen.DrawImage(maskImage, &ebiten.DrawImageOptions{})
 
 	return nil
@@ -99,28 +143,6 @@ func min(a, b int) int {
 }
 
 func main() {
-	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fiveyearsImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "fiveyears.jpg"), ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-	maskImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-
-	as := image.Point{128, 128}
-	a := image.NewAlpha(image.Rectangle{image.ZP, as})
-	for j := 0; j < as.Y; j++ {
-		for i := 0; i < as.X; i++ {
-			r := as.X / 2
-			d := math.Sqrt(float64((i-r)*(i-r) + (j-r)*(j-r)))
-			b := uint8(max(0, min(0xff, 3*0xff-int(d*3*0xff)/r)))
-			a.SetAlpha(i, j, color.Alpha{b})
-		}
-	}
-	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Masking (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
