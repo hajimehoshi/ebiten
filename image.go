@@ -206,7 +206,7 @@ func (i *Image) Dispose() error {
 // When the image is disposed, ReplacePixels does nothing.
 //
 // ReplacePixels always returns nil as of 1.5.0-alpha.
-func (i *Image) ReplacePixels(p []uint8) error {
+func (i *Image) ReplacePixels(p []byte) error {
 	if i.restorable == nil {
 		return nil
 	}
@@ -215,7 +215,7 @@ func (i *Image) ReplacePixels(p []uint8) error {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
 	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
-	pix := make([]uint8, 4*w2*h2)
+	pix := make([]byte, 4*w2*h2)
 	for j := 0; j < h; j++ {
 		copy(pix[j*w2*4:], p[j*w*4:(j+1)*w*4])
 	}

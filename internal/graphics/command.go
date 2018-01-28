@@ -299,7 +299,7 @@ func (c *drawImageCommand) quadsNum() int {
 // replacePixelsCommand represents a command to replace pixels of an image.
 type replacePixelsCommand struct {
 	dst    *Image
-	pixels []uint8
+	pixels []byte
 }
 
 // Exec executes the replacePixelsCommand.

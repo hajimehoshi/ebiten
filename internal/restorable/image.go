@@ -63,7 +63,7 @@ type Image struct {
 	filter graphics.Filter
 
 	// baseImage and baseColor are exclusive.
-	basePixels []uint8
+	basePixels []byte
 	baseColor  color.RGBA
 
 	// drawImageHistory is a set of draw-image commands.
@@ -101,7 +101,7 @@ func NewImageFromImage(source image.Image, filter graphics.Filter) *Image {
 	width, height := size.X, size.Y
 	rgbaImg := CopyImage(source)
 	w2, h2 := math.NextPowerOf2Int(width), math.NextPowerOf2Int(height)
-	p := make([]uint8, 4*w2*h2)
+	p := make([]byte, 4*w2*h2)
 	for j := 0; j < height; j++ {
 		copy(p[j*w2*4:(j+1)*w2*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
@@ -130,7 +130,7 @@ func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Ima
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
-func (i *Image) BasePixelsForTesting() []uint8 {
+func (i *Image) BasePixelsForTesting() []byte {
 	return i.basePixels
 }
 
@@ -173,7 +173,7 @@ func (i *Image) Fill(r, g, b, a uint8) {
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
-func (i *Image) ReplacePixels(pixels []uint8) {
+func (i *Image) ReplacePixels(pixels []byte) {
 	theImages.makeStaleIfDependingOn(i)
 	i.image.ReplacePixels(pixels)
 	i.basePixels = pixels

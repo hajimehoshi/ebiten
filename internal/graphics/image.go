@@ -104,7 +104,7 @@ func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mo
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode)
 }
 
-func (i *Image) Pixels() ([]uint8, error) {
+func (i *Image) Pixels() ([]byte, error) {
 	// Flush the enqueued commands so that pixels are certainly read.
 	if err := theCommandQueue.Flush(); err != nil {
 		return nil, err
@@ -116,8 +116,8 @@ func (i *Image) Pixels() ([]uint8, error) {
 	return opengl.GetContext().FramebufferPixels(f.native, math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height))
 }
 
-func (i *Image) ReplacePixels(p []uint8) {
-	pixels := make([]uint8, len(p))
+func (i *Image) ReplacePixels(p []byte) {
+	pixels := make([]byte, len(p))
 	copy(pixels, p)
 	c := &replacePixelsCommand{
 		dst:    i,
