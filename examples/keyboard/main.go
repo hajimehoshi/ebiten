@@ -71,15 +71,7 @@ var keyNames = map[ebiten.Key]string{
 }
 
 func update(screen *ebiten.Image) error {
-	if ebiten.IsRunningSlowly() {
-		return nil
-	}
-	const offsetX, offsetY = 24, 40
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(offsetX, offsetY)
-	op.ColorM.Scale(0.5, 0.5, 0.5, 1)
-	screen.DrawImage(keyboardImage, op)
-
+	// Collect pressed keys' names.
 	pressed := []string{}
 	for i := 0; i <= 9; i++ {
 		if ebiten.IsKeyPressed(ebiten.Key(i) + ebiten.Key0) {
@@ -87,12 +79,12 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 	for c := 'A'; c <= 'Z'; c++ {
-		if ebiten.IsKeyPressed(ebiten.Key(c) - 'A' + ebiten.KeyA) {
+		if ebiten.IsKeyPressed(ebiten.KeyA + ebiten.Key(c-'A')) {
 			pressed = append(pressed, string(c))
 		}
 	}
 	for i := 1; i <= 12; i++ {
-		if ebiten.IsKeyPressed(ebiten.Key(i) + ebiten.KeyF1 - 1) {
+		if ebiten.IsKeyPressed(ebiten.KeyF1 + ebiten.Key(i-1)) {
 			pressed = append(pressed, "F"+strconv.Itoa(i))
 		}
 	}
@@ -102,6 +94,22 @@ func update(screen *ebiten.Image) error {
 		}
 	}
 
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
+	const (
+		offsetX = 24
+		offsetY = 40
+	)
+
+	// Draw the base (grayed) keyboard image.
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(offsetX, offsetY)
+	op.ColorM.Scale(0.5, 0.5, 0.5, 1)
+	screen.DrawImage(keyboardImage, op)
+
+	// Draw the highlighted keys.
 	op = &ebiten.DrawImageOptions{}
 	for _, p := range pressed {
 		op.GeoM.Reset()
