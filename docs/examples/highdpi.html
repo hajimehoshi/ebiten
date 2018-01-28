@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/highdpi.png">
+<meta name="description" content="Ebiten example - highdpi">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - highdpi</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - highdpi</h2>
+  <iframe src="highdpi.content.html" width="640" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;fmt&#34;
+        &#34;image&#34;
+        _ &#34;image/jpeg&#34;
+        &#34;log&#34;
+        &#34;net/http&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+var (
+        count        int
+        highDPIImage *ebiten.Image
+)
+
+func init() {
+        // licensed under Public Domain
+        // https://commons.wikimedia.org/wiki/File:As08-16-2593.jpg
+        const url = &#34;https://upload.wikimedia.org/wikipedia/commons/1/1f/As08-16-2593.jpg&#34;
+
+        res, err := http.Get(url)
+        if err != nil {
+                log.Fatal(err)
+        }
+        defer res.Body.Close()
+
+        img, _, err := image.Decode(res.Body)
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        highDPIImage, err = ebiten.NewImageFromImage(img, ebiten.FilterLinear)
+        if err != nil {
+                log.Fatal(err)
+        }
+}
+
+func update(screen *ebiten.Image) error {
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+
+        scale := ebiten.DeviceScaleFactor()
+        sw, sh := screen.Size()
+
+        w, h := highDPIImage.Size()
+        op := &amp;ebiten.DrawImageOptions{}
+
+        // Move the images&#39;s center to the upper left corner.
+        op.GeoM.Translate(float64(-w)/2, float64(-h)/2)
+
+        // The image is just too big. Adjust the scale.
+        op.GeoM.Scale(0.25, 0.25)
+        // Scale the image by the device ratio so that the rendering result can be same
+        // on various (diffrent-DPI) environments.
+        op.GeoM.Scale(scale, scale)
+
+        // Move the image&#39;s center to the screen&#39;s center.
+        op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
+        screen.DrawImage(highDPIImage, op)
+
+        ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;Device Scale Ratio: %0.2f&#34;, scale))
+        return nil
+}
+
+func main() {
+        const (
+                screenWidth  = 640
+                screenHeight = 480
+        )
+
+        // Pass the invert of scale so that Ebiten&#39;s auto scaling by device scale is disabled.
+        s := ebiten.DeviceScaleFactor()
+        if err := ebiten.Run(update, int(screenWidth*s), int(screenHeight*s), 1/s, &#34;High DPI (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>

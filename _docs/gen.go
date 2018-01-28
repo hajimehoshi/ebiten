@@ -180,6 +180,7 @@ var examples = []example{
 	{"alphablending", 320, 240},
 	{"audio", 320, 240},
 	{"font", 320, 240},
+	{"highdpi", 320, 240},
 	{"hsv", 320, 240},
 	{"hue", 320, 240},
 	{"gamepad", 320, 240},
