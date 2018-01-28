@@ -32,15 +32,17 @@ const (
 )
 
 var (
-	hueInt        = 0
-	saturationInt = 128
-	valueInt      = 128
-	inverted      = false
+	hue128        = 0
+	saturation128 = 128
+	value128      = 128
+
+	inverted = false
 
 	prevPressedI = false
 	gophersImage *ebiten.Image
 )
 
+// clamp clamps v to the range [min, max].
 func clamp(v, min, max int) int {
 	if min > max {
 		panic("min must <= max")
@@ -55,24 +57,29 @@ func clamp(v, min, max int) int {
 }
 
 func update(screen *ebiten.Image) error {
+	// Adjust HSV values along with the user's input.
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		hueInt--
+		hue128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
-		hueInt++
+		hue128++
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyA) {
-		saturationInt--
+		saturation128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyS) {
-		saturationInt++
+		saturation128++
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		valueInt--
+		value128--
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyX) {
-		valueInt++
+		value128++
 	}
+
+	hue128 = clamp(hue128, -256, 256)
+	saturation128 = clamp(saturation128, 0, 256)
+	value128 = clamp(value128, 0, 256)
 
 	pressedI := ebiten.IsKeyPressed(ebiten.KeyI)
 	if pressedI && !prevPressedI {
@@ -83,18 +90,19 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	hueInt = clamp(hueInt, -256, 256)
-	saturationInt = clamp(saturationInt, 0, 256)
-	valueInt = clamp(valueInt, 0, 256)
 
+	// Center the image on the screen.
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
 
-	hue := float64(hueInt) * 2 * math.Pi / 128
-	saturation := float64(saturationInt) / 128
-	value := float64(valueInt) / 128
+	// Change HSV.
+	hue := float64(hue128) * 2 * math.Pi / 128
+	saturation := float64(saturation128) / 128
+	value := float64(value128) / 128
 	op.ColorM.ChangeHSV(hue, saturation, value)
+
+	// Invert the color.
 	if inverted {
 		op.ColorM.Scale(-1, -1, -1, 1)
 		op.ColorM.Translate(1, 1, 1, 0)
@@ -102,6 +110,7 @@ func update(screen *ebiten.Image) error {
 
 	screen.DrawImage(gophersImage, op)
 
+	// Draw the text of the current status.
 	msgInverted := "false"
 	if inverted {
 		msgInverted = "true"

@@ -37,13 +37,19 @@ var (
 
 func update(screen *ebiten.Image) error {
 	count++
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
+	// Center the image on the screen.
 	w, h := gophersImage.Size()
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
+
+	// Rotate the hue.
 	op.ColorM.RotateHue(float64(count%360) * 2 * math.Pi / 360)
+
 	screen.DrawImage(gophersImage, op)
 	return nil
 }

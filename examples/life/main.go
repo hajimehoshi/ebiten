@@ -33,13 +33,13 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-// World represents the game state
+// World represents the game state.
 type World struct {
 	area [][]bool
 	rnd  *rand.Rand
 }
 
-// NewWorld creates a new world
+// NewWorld creates a new world.
 func NewWorld(width, height int) *World {
 	world := World{
 		area: makeArea(width, height),
@@ -48,7 +48,7 @@ func NewWorld(width, height int) *World {
 	return &world
 }
 
-// RandomSeed inits world with a random state
+// RandomSeed inits world with a random state.
 func (w *World) RandomSeed(limit int) {
 	height := len(w.area)
 	width := len(w.area[0])
@@ -59,14 +59,13 @@ func (w *World) RandomSeed(limit int) {
 	}
 }
 
-// Progress game state by one tick
-func (w *World) Progress() {
+// Update game state by one tick.
+func (w *World) Update() {
 	height := len(w.area)
 	width := len(w.area[0])
 	next := makeArea(width, height)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-
 			pop := neighbourCount(w.area, x, y)
 			switch {
 			case pop < 2:
@@ -95,7 +94,7 @@ func (w *World) Progress() {
 }
 
 // DrawImage paints current game state
-func (w *World) DrawImage(pix []uint8) {
+func (w *World) DrawImage(pix []byte) {
 	height := len(w.area)
 	width := len(w.area[0])
 	for y := 0; y < height; y++ {
@@ -116,7 +115,7 @@ func (w *World) DrawImage(pix []uint8) {
 	}
 }
 
-// neighbourCount calculates the Moore neighborhood of x, y
+// neighbourCount calculates the Moore neighborhood of (x, y)
 func neighbourCount(a [][]bool, x, y int) int {
 	height := len(a)
 	width := len(a[0])
@@ -163,11 +162,11 @@ const (
 
 var (
 	world  = NewWorld(screenWidth, screenHeight)
-	pixels = make([]uint8, screenWidth*screenHeight*4)
+	pixels = make([]byte, screenWidth*screenHeight*4)
 )
 
 func update(screen *ebiten.Image) error {
-	world.Progress()
+	world.Update()
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
