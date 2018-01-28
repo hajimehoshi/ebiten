@@ -14,6 +14,9 @@
 
 // +build example
 
+// This example is just to check if Ebiten can draw fine checker pattern evenly.
+// If there is something wrong in the implementation, the result might include
+// uneven patterns (#459).
 package main
 
 import (
@@ -23,20 +26,15 @@ import (
 )
 
 const (
-	initScreenWidth  = 640
-	initScreenHeight = 480
-	initScreenScale  = 1
+	screenWidth     = 640
+	screenHeight    = 480
+	initScreenScale = 1
 )
 
 var (
-	gophersImage *ebiten.Image
-	keyStates    = map[ebiten.Key]int{
-		ebiten.KeyUp:    0,
-		ebiten.KeyDown:  0,
-		ebiten.KeyLeft:  0,
-		ebiten.KeyRight: 0,
-		ebiten.KeyS:     0,
-		ebiten.KeyF:     0,
+	keyStates = map[ebiten.Key]int{
+		ebiten.KeyS: 0,
+		ebiten.KeyF: 0,
 	}
 )
 
@@ -75,26 +73,8 @@ func update(screen *ebiten.Image) error {
 		keyStates[key]++
 	}
 	screenScale := ebiten.ScreenScale()
-	d := int(32 / screenScale)
-	screenWidth, screenHeight := screen.Size()
 	fullscreen := ebiten.IsFullscreen()
 
-	if keyStates[ebiten.KeyUp] == 1 {
-		screenHeight += d
-	}
-	if keyStates[ebiten.KeyDown] == 1 {
-		if 16 < screenHeight && d < screenHeight {
-			screenHeight -= d
-		}
-	}
-	if keyStates[ebiten.KeyLeft] == 1 {
-		if 16 < screenWidth && d < screenWidth {
-			screenWidth -= d
-		}
-	}
-	if keyStates[ebiten.KeyRight] == 1 {
-		screenWidth += d
-	}
 	if keyStates[ebiten.KeyS] == 1 {
 		switch screenScale {
 		case 1:
@@ -110,7 +90,6 @@ func update(screen *ebiten.Image) error {
 	if keyStates[ebiten.KeyF] == 1 {
 		fullscreen = !fullscreen
 	}
-	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 
@@ -123,7 +102,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Moire (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, initScreenScale, "Moire (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
