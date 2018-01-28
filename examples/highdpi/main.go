@@ -18,9 +18,10 @@ package main
 
 import (
 	"fmt"
+	"image"
 	_ "image/jpeg"
 	"log"
-	"math"
+	"net/http"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -28,42 +29,62 @@ import (
 
 var (
 	count        int
-	gophersImage *ebiten.Image
+	highDPIImage *ebiten.Image
 )
 
+func init() {
+	// licensed under Public Domain
+	// https://commons.wikimedia.org/wiki/File:As08-16-2593.jpg
+	const url = "https://upload.wikimedia.org/wikipedia/commons/1/1f/As08-16-2593.jpg"
+
+	res, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	img, _, err := image.Decode(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	highDPIImage, err = ebiten.NewImageFromImage(img, ebiten.FilterLinear)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func update(screen *ebiten.Image) error {
-	count++
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	scale := ebiten.DeviceScaleFactor()
 	sw, sh := screen.Size()
 
-	w, h := gophersImage.Size()
+	w, h := highDPIImage.Size()
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-	op.GeoM.Rotate(float64(count%360) * 2 * math.Pi / 360)
+	op.GeoM.Translate(float64(-w)/2, float64(-h)/2)
+	// The image is just too big. Adjust the scale.
+	op.GeoM.Scale(0.25, 0.25)
+	// Scale the image by the device ratio so that the rendering result can be same
+	// on various (diffrent-DPI) environments.
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
-	screen.DrawImage(gophersImage, op)
+	screen.DrawImage(highDPIImage, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Scale: %0.2f", scale))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Device Scale Ratio: %0.2f", scale))
 	return nil
 }
 
 func main() {
 	const (
-		screenWidth  = 320
-		screenHeight = 240
+		screenWidth  = 640
+		screenHeight = 480
 	)
 
-	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterLinear)
-	if err != nil {
-		log.Fatal(err)
-	}
-	s := ebiten.DeviceScaleFactor()
 	// Pass the invert of scale so that Ebiten's auto scaling by device scale is disabled.
+	s := ebiten.DeviceScaleFactor()
 	if err := ebiten.Run(update, int(screenWidth*s), int(screenHeight*s), 1/s, "High DPI (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
