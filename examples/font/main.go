@@ -128,6 +128,7 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
+	// Change the text color for each second.
 	if counter%ebiten.FPS == 0 {
 		kanjiText = []rune{}
 		for j := 0; j < 4; j++ {
@@ -148,10 +149,16 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
 	const x = 20
+
+	// Draw info
+	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
 	text.Draw(screen, msg, mplusNormalFont, x, 40, color.White)
+
+	// Draw the sample text
 	text.Draw(screen, sampleText, mplusNormalFont, x, 80, color.White)
+
+	// Draw Kanji text lines
 	for i, line := range strings.Split(string(kanjiText), "\n") {
 		text.Draw(screen, line, mplusBigFont, x, 160+54*i, kanjiTextColor)
 	}

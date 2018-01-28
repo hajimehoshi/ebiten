@@ -54,6 +54,7 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	// Draw the current gamepad status.
 	str := ""
 	if len(ids) > 0 {
 		for _, id := range ids {
