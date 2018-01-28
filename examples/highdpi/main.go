@@ -64,12 +64,17 @@ func update(screen *ebiten.Image) error {
 
 	w, h := highDPIImage.Size()
 	op := &ebiten.DrawImageOptions{}
+
+	// Move the images's center to the upper left corner.
 	op.GeoM.Translate(float64(-w)/2, float64(-h)/2)
+
 	// The image is just too big. Adjust the scale.
 	op.GeoM.Scale(0.25, 0.25)
 	// Scale the image by the device ratio so that the rendering result can be same
 	// on various (diffrent-DPI) environments.
 	op.GeoM.Scale(scale, scale)
+
+	// Move the image's center to the screen's center.
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
 	screen.DrawImage(highDPIImage, op)
 
