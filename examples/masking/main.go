@@ -35,7 +35,7 @@ const (
 var (
 	bgImage        *ebiten.Image
 	fgImage        *ebiten.Image
-	maskImage      *ebiten.Image
+	maskedFgImage  *ebiten.Image
 	spotLightImage *ebiten.Image
 	spotLightX     = 0
 	spotLightY     = 0
@@ -55,7 +55,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	maskImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 
 	// Initialize the spot light image.
 	const r = 64
@@ -100,30 +100,30 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	maskImage.Clear()
+	maskedFgImage.Clear()
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(spotLightX), float64(spotLightY))
-	maskImage.DrawImage(spotLightImage, op)
+	maskedFgImage.DrawImage(spotLightImage, op)
 
 	// Use 'source-out' composite mode so that the source image (fgImage) is used but the alpha
-	// is determined by the destination image (maskImage). With source-out, the destination image
-	// values are not used at the result image.
+	// is determined by the destination image (maskedFgImage). With source-out, the destination
+	// image values are not used at the result image.
 	//
 	// If the alpha value of the destination is 0xff, the source at the point is not adopted.
 	// In the opposite way, if the alpha value of the destination is 0, the source at the point
-	// is fully adopted. As alpha values outside of the spot light image are 0, the source values
-	// are fully adopted there. As a result, the maskImage draws the source image with a hole
-	// that shape is spotLightImage.
+	// is fully adopted. As alpha values outside of the spot light image are 0, the source
+	// values are fully adopted there. As a result, the maskedFgImage draws the source image
+	// with a hole that shape is spotLightImage.
 	//
 	// See also https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcout.
 	op = &ebiten.DrawImageOptions{}
 	op.CompositeMode = ebiten.CompositeModeSourceOut
-	maskImage.DrawImage(fgImage, op)
+	maskedFgImage.DrawImage(fgImage, op)
 
 	screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
 	screen.DrawImage(bgImage, &ebiten.DrawImageOptions{})
-	screen.DrawImage(maskImage, &ebiten.DrawImageOptions{})
+	screen.DrawImage(maskedFgImage, &ebiten.DrawImageOptions{})
 
 	return nil
 }
