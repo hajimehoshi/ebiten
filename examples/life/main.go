@@ -36,25 +36,36 @@ import (
 // World represents the game state.
 type World struct {
 	area [][]bool
-	rnd  *rand.Rand
+}
+
+func newArea(width, height int) [][]bool {
+	a := make([][]bool, height)
+	for i := 0; i < height; i++ {
+		a[i] = make([]bool, width)
+	}
+	return a
 }
 
 // NewWorld creates a new world.
-func NewWorld(width, height int) *World {
-	world := World{
-		area: makeArea(width, height),
-		rnd:  rand.New(rand.NewSource(time.Now().UnixNano())),
+func NewWorld(width, height int, maxInitLiveCells int) *World {
+	w := &World{
+		area: newArea(width, height),
 	}
-	return &world
+	w.init(maxInitLiveCells)
+	return w
 }
 
-// RandomSeed inits world with a random state.
-func (w *World) RandomSeed(limit int) {
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+// init inits world with a random state.
+func (w *World) init(maxLiveCells int) {
 	height := len(w.area)
 	width := len(w.area[0])
-	for i := 0; i < limit; i++ {
-		x := w.rnd.Intn(width)
-		y := w.rnd.Intn(height)
+	for i := 0; i < maxLiveCells; i++ {
+		x := rand.Intn(width)
+		y := rand.Intn(height)
 		w.area[y][x] = true
 	}
 }
@@ -63,7 +74,7 @@ func (w *World) RandomSeed(limit int) {
 func (w *World) Update() {
 	height := len(w.area)
 	width := len(w.area[0])
-	next := makeArea(width, height)
+	next := newArea(width, height)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			pop := neighbourCount(w.area, x, y)
@@ -93,66 +104,63 @@ func (w *World) Update() {
 	w.area = next
 }
 
-// DrawImage paints current game state
-func (w *World) DrawImage(pix []byte) {
+// Draw paints current game state.
+func (w *World) Draw(pix []byte) {
 	height := len(w.area)
 	width := len(w.area[0])
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			pos := 4*y*width + 4*x
+			idx := 4*y*width + 4*x
 			if w.area[y][x] {
-				pix[pos] = 0xff
-				pix[pos+1] = 0xff
-				pix[pos+2] = 0xff
-				pix[pos+3] = 0xff
+				pix[idx] = 0xff
+				pix[idx+1] = 0xff
+				pix[idx+2] = 0xff
+				pix[idx+3] = 0xff
 			} else {
-				pix[pos] = 0
-				pix[pos+1] = 0
-				pix[pos+2] = 0
-				pix[pos+3] = 0
+				pix[idx] = 0
+				pix[idx+1] = 0
+				pix[idx+2] = 0
+				pix[idx+3] = 0
 			}
 		}
 	}
 }
 
-// neighbourCount calculates the Moore neighborhood of (x, y)
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// neighbourCount calculates the Moore neighborhood of (x, y).
 func neighbourCount(a [][]bool, x, y int) int {
-	height := len(a)
-	width := len(a[0])
-	lowX := 0
-	if x > 0 {
-		lowX = x - 1
-	}
-	lowY := 0
-	if y > 0 {
-		lowY = y - 1
-	}
-	highX := width - 1
-	if x < width-1 {
-		highX = x + 1
-	}
-	highY := height - 1
-	if y < height-1 {
-		highY = y + 1
-	}
-	near := 0
-	for pY := lowY; pY <= highY; pY++ {
-		for pX := lowX; pX <= highX; pX++ {
-			if !(pX == x && pY == y) && a[pY][pX] {
-				near++
+	w := len(a[0])
+	h := len(a)
+	minI := max(x-1, 0)
+	minJ := max(y-1, 0)
+	maxI := min(x+1, w-1)
+	maxJ := min(y+1, h-1)
+
+	c := 0
+	for j := minJ; j <= maxJ; j++ {
+		for i := minI; i <= maxI; i++ {
+			if i == x && j == y {
+				continue
+			}
+			if a[j][i] {
+				c++
 			}
 		}
 	}
-
-	return near
-}
-
-func makeArea(width, height int) [][]bool {
-	area := make([][]bool, height)
-	for i := 0; i < height; i++ {
-		area[i] = make([]bool, width)
-	}
-	return area
+	return c
 }
 
 const (
@@ -161,23 +169,24 @@ const (
 )
 
 var (
-	world  = NewWorld(screenWidth, screenHeight)
+	world  = NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10))
 	pixels = make([]byte, screenWidth*screenHeight*4)
 )
 
 func update(screen *ebiten.Image) error {
 	world.Update()
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
-	world.DrawImage(pixels)
+
+	world.Draw(pixels)
 	screen.ReplacePixels(pixels)
 	return nil
 }
 
 func main() {
-	world.RandomSeed(int((screenWidth * screenHeight) / 10))
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2.0, "Game of Life (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Game of Life (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
