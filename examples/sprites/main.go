@@ -89,43 +89,7 @@ var (
 	op      = &ebiten.DrawImageOptions{}
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		sprites.num -= 20
-		if sprites.num < MinSprites {
-			sprites.num = MinSprites
-		}
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		sprites.num += 20
-		if MaxSprites < sprites.num {
-			sprites.num = MaxSprites
-		}
-	}
-	sprites.Update()
-
-	if ebiten.IsRunningSlowly() {
-		return nil
-	}
-	w, h := ebitenImage.Size()
-	for i := 0; i < sprites.num; i++ {
-		s := sprites.sprites[i]
-		op.GeoM.Reset()
-		op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-		op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
-		op.GeoM.Translate(float64(w)/2, float64(h)/2)
-		op.GeoM.Translate(float64(s.x), float64(s.y))
-		screen.DrawImage(ebitenImage, op)
-	}
-	msg := fmt.Sprintf(`FPS: %0.2f
-Num of sprites: %d
-Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.num)
-	ebitenutil.DebugPrint(screen, msg)
-	return nil
-}
-
-func main() {
-	var err error
+func init() {
 	img, _, err := ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
@@ -150,6 +114,55 @@ func main() {
 			angle:       a,
 		}
 	}
+}
+
+func update(screen *ebiten.Image) error {
+	// Decrease the nubmer of the sprites.
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		sprites.num -= 20
+		if sprites.num < MinSprites {
+			sprites.num = MinSprites
+		}
+	}
+
+	// Increase the nubmer of the sprites.
+	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+		sprites.num += 20
+		if MaxSprites < sprites.num {
+			sprites.num = MaxSprites
+		}
+	}
+
+	sprites.Update()
+
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
+	// Draw each sprite.
+	// DrawImage can be called many many times, but in the implementation,
+	// the actual draw call to GPU is very few since these calls satisfy
+	// some conditions e.g. all the rendering sources and targets are same.
+	// For more detail, see:
+	// https://godoc.org/github.com/hajimehoshi/ebiten#Image.DrawImage
+	w, h := ebitenImage.Size()
+	for i := 0; i < sprites.num; i++ {
+		s := sprites.sprites[i]
+		op.GeoM.Reset()
+		op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+		op.GeoM.Rotate(2 * math.Pi * float64(s.angle) / maxAngle)
+		op.GeoM.Translate(float64(w)/2, float64(h)/2)
+		op.GeoM.Translate(float64(s.x), float64(s.y))
+		screen.DrawImage(ebitenImage, op)
+	}
+	msg := fmt.Sprintf(`FPS: %0.2f
+Num of sprites: %d
+Press <- or -> to change the number of sprites`, ebiten.CurrentFPS(), sprites.num)
+	ebitenutil.DebugPrint(screen, msg)
+	return nil
+}
+
+func main() {
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Sprites (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
