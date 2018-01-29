@@ -39,40 +39,50 @@ import (
         &#34;github.com/hajimehoshi/ebiten&#34;
 )
 
-// World represents the game state
+// World represents the game state.
 type World struct {
         area [][]bool
-        rnd  *rand.Rand
 }
 
-// NewWorld creates a new world
-func NewWorld(width, height int) *World {
-        world := World{
-                area: makeArea(width, height),
-                rnd:  rand.New(rand.NewSource(time.Now().UnixNano())),
+func newArea(width, height int) [][]bool {
+        a := make([][]bool, height)
+        for i := 0; i &lt; height; i&#43;&#43; {
+                a[i] = make([]bool, width)
         }
-        return &amp;world
+        return a
 }
 
-// RandomSeed inits world with a random state
-func (w *World) RandomSeed(limit int) {
+// NewWorld creates a new world.
+func NewWorld(width, height int, maxInitLiveCells int) *World {
+        w := &amp;World{
+                area: newArea(width, height),
+        }
+        w.init(maxInitLiveCells)
+        return w
+}
+
+func init() {
+        rand.Seed(time.Now().UnixNano())
+}
+
+// init inits world with a random state.
+func (w *World) init(maxLiveCells int) {
         height := len(w.area)
         width := len(w.area[0])
-        for i := 0; i &lt; limit; i&#43;&#43; {
-                x := w.rnd.Intn(width)
-                y := w.rnd.Intn(height)
+        for i := 0; i &lt; maxLiveCells; i&#43;&#43; {
+                x := rand.Intn(width)
+                y := rand.Intn(height)
                 w.area[y][x] = true
         }
 }
 
-// Progress game state by one tick
-func (w *World) Progress() {
+// Update game state by one tick.
+func (w *World) Update() {
         height := len(w.area)
         width := len(w.area[0])
-        next := makeArea(width, height)
+        next := newArea(width, height)
         for y := 0; y &lt; height; y&#43;&#43; {
                 for x := 0; x &lt; width; x&#43;&#43; {
-
                         pop := neighbourCount(w.area, x, y)
                         switch {
                         case pop &lt; 2:
@@ -100,66 +110,63 @@ func (w *World) Progress() {
         w.area = next
 }
 
-// DrawImage paints current game state
-func (w *World) DrawImage(pix []uint8) {
+// Draw paints current game state.
+func (w *World) Draw(pix []byte) {
         height := len(w.area)
         width := len(w.area[0])
         for y := 0; y &lt; height; y&#43;&#43; {
                 for x := 0; x &lt; width; x&#43;&#43; {
-                        pos := 4*y*width &#43; 4*x
+                        idx := 4*y*width &#43; 4*x
                         if w.area[y][x] {
-                                pix[pos] = 0xff
-                                pix[pos&#43;1] = 0xff
-                                pix[pos&#43;2] = 0xff
-                                pix[pos&#43;3] = 0xff
+                                pix[idx] = 0xff
+                                pix[idx&#43;1] = 0xff
+                                pix[idx&#43;2] = 0xff
+                                pix[idx&#43;3] = 0xff
                         } else {
-                                pix[pos] = 0
-                                pix[pos&#43;1] = 0
-                                pix[pos&#43;2] = 0
-                                pix[pos&#43;3] = 0
+                                pix[idx] = 0
+                                pix[idx&#43;1] = 0
+                                pix[idx&#43;2] = 0
+                                pix[idx&#43;3] = 0
                         }
                 }
         }
 }
 
-// neighbourCount calculates the Moore neighborhood of x, y
+func max(a, b int) int {
+        if a &lt; b {
+                return b
+        }
+        return a
+}
+
+func min(a, b int) int {
+        if a &lt; b {
+                return a
+        }
+        return b
+}
+
+// neighbourCount calculates the Moore neighborhood of (x, y).
 func neighbourCount(a [][]bool, x, y int) int {
-        height := len(a)
-        width := len(a[0])
-        lowX := 0
-        if x &gt; 0 {
-                lowX = x - 1
-        }
-        lowY := 0
-        if y &gt; 0 {
-                lowY = y - 1
-        }
-        highX := width - 1
-        if x &lt; width-1 {
-                highX = x &#43; 1
-        }
-        highY := height - 1
-        if y &lt; height-1 {
-                highY = y &#43; 1
-        }
-        near := 0
-        for pY := lowY; pY &lt;= highY; pY&#43;&#43; {
-                for pX := lowX; pX &lt;= highX; pX&#43;&#43; {
-                        if !(pX == x &amp;&amp; pY == y) &amp;&amp; a[pY][pX] {
-                                near&#43;&#43;
+        w := len(a[0])
+        h := len(a)
+        minI := max(x-1, 0)
+        minJ := max(y-1, 0)
+        maxI := min(x&#43;1, w-1)
+        maxJ := min(y&#43;1, h-1)
+
+        c := 0
+        for j := minJ; j &lt;= maxJ; j&#43;&#43; {
+                for i := minI; i &lt;= maxI; i&#43;&#43; {
+                        if i == x &amp;&amp; j == y {
+                                continue
+                        }
+                        if a[j][i] {
+                                c&#43;&#43;
                         }
                 }
         }
-
-        return near
-}
-
-func makeArea(width, height int) [][]bool {
-        area := make([][]bool, height)
-        for i := 0; i &lt; height; i&#43;&#43; {
-                area[i] = make([]bool, width)
-        }
-        return area
+        return c
 }
 
 const (
@@ -168,23 +175,24 @@ const (
 )
 
 var (
-        world  = NewWorld(screenWidth, screenHeight)
-        pixels = make([]uint8, screenWidth*screenHeight*4)
+        world  = NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10))
+        pixels = make([]byte, screenWidth*screenHeight*4)
 )
 
 func update(screen *ebiten.Image) error {
-        world.Progress()
+        world.Update()
+
         if ebiten.IsRunningSlowly() {
                 return nil
         }
-        world.DrawImage(pixels)
+
+        world.Draw(pixels)
         screen.ReplacePixels(pixels)
         return nil
 }
 
 func main() {
-        world.RandomSeed(int((screenWidth * screenHeight) / 10))
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2.0, &#34;Game of Life (Ebiten Demo)&#34;); err != nil {
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Game of Life (Ebiten Demo)&#34;); err != nil {
                 log.Fatal(err)
         }
 }

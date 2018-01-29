@@ -56,7 +56,7 @@ var (
 )
 
 func init() {
-        f, err := ebitenutil.OpenFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;fonts&#34;, &#34;arcade_n.ttf&#34;))
+        f, err := ebitenutil.OpenFile(&#34;_resources/fonts/arcade_n.ttf&#34;)
         if err != nil {
                 log.Fatal(err)
         }

@@ -48,15 +48,45 @@ const (
 )
 
 var (
-        gophersImage   *ebiten.Image
-        fiveyearsImage *ebiten.Image
-        maskImage      *ebiten.Image
+        bgImage        *ebiten.Image
+        fgImage        *ebiten.Image
+        maskedFgImage  *ebiten.Image
         spotLightImage *ebiten.Image
         spotLightX     = 0
         spotLightY     = 0
         spotLightVX    = 1
         spotLightVY    = 1
 )
+
+func init() {
+        var err error
+        bgImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        fgImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/fiveyears.jpg&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+
+        // Initialize the spot light image.
+        const r = 64
+        alphas := image.Point{r * 2, r * 2}
+        a := image.NewAlpha(image.Rectangle{image.ZP, alphas})
+        for j := 0; j &lt; alphas.Y; j&#43;&#43; {
+                for i := 0; i &lt; alphas.X; i&#43;&#43; {
+                        // d is the distance between (i, j) and the (circle) center.
+                        d := math.Sqrt(float64((i-r)*(i-r) &#43; (j-r)*(j-r)))
+                        // Alphas around the center are 0 and values outside of the circle are 0xff.
+                        b := uint8(max(0, min(0xff, int(3*d*0xff/r)-2*0xff)))
+                        a.SetAlpha(i, j, color.Alpha{b})
+                }
+        }
+        spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
+}
 
 func update(screen *ebiten.Image) error {
         spotLightX &#43;= spotLightVX
@@ -79,22 +109,34 @@ func update(screen *ebiten.Image) error {
                 spotLightY = -spotLightY &#43; 2*maxY
                 spotLightVY = -spotLightVY
         }
+
         if ebiten.IsRunningSlowly() {
                 return nil
         }
-        maskImage.Clear()
 
+        // Reset the maskedFgImage.
+        maskedFgImage.Fill(color.White)
         op := &amp;ebiten.DrawImageOptions{}
+        op.CompositeMode = ebiten.CompositeModeCopy
         op.GeoM.Translate(float64(spotLightX), float64(spotLightY))
-        maskImage.DrawImage(spotLightImage, op)
+        maskedFgImage.DrawImage(spotLightImage, op)
 
+        // Use &#39;source-in&#39; composite mode so that the source image (fgImage) is used but the alpha
+        // is determined by the destination image (maskedFgImage).
+        //
+        // The result image is the source image with the destination alpha. In maskedFgImage, alpha
+        // values in the hole is 0 and alpha values in other places are 0xff. As a result, the
+        // maskedFgImage draws the source image with a hole that shape is spotLightImage. Note that
+        // RGB values in the destination image are ignored.
+        //
+        // See also https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcin.
         op = &amp;ebiten.DrawImageOptions{}
-        op.CompositeMode = ebiten.CompositeModeSourceOut
-        maskImage.DrawImage(fiveyearsImage, op)
+        op.CompositeMode = ebiten.CompositeModeSourceIn
+        maskedFgImage.DrawImage(fgImage, op)
 
         screen.Fill(color.RGBA{0x00, 0x00, 0x80, 0xff})
-        screen.DrawImage(gophersImage, &amp;ebiten.DrawImageOptions{})
-        screen.DrawImage(maskImage, &amp;ebiten.DrawImageOptions{})
+        screen.DrawImage(bgImage, &amp;ebiten.DrawImageOptions{})
+        screen.DrawImage(maskedFgImage, &amp;ebiten.DrawImageOptions{})
 
         return nil
 }
@@ -114,28 +156,6 @@ func min(a, b int) int {
 }
 
 func main() {
-        var err error
-        gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;images&#34;, &#34;gophers.jpg&#34;), ebiten.FilterNearest)
-        if err != nil {
-                log.Fatal(err)
-        }
-        fiveyearsImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;images&#34;, &#34;fiveyears.jpg&#34;), ebiten.FilterNearest)
-        if err != nil {
-                log.Fatal(err)
-        }
-        maskImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-
-        as := image.Point{128, 128}
-        a := image.NewAlpha(image.Rectangle{image.ZP, as})
-        for j := 0; j &lt; as.Y; j&#43;&#43; {
-                for i := 0; i &lt; as.X; i&#43;&#43; {
-                        r := as.X / 2
-                        d := math.Sqrt(float64((i-r)*(i-r) &#43; (j-r)*(j-r)))
-                        b := uint8(max(0, min(0xff, 3*0xff-int(d*3*0xff)/r)))
-                        a.SetAlpha(i, j, color.Alpha{b})
-                }
-        }
-        spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
         if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Masking (Ebiten Demo)&#34;); err != nil {
                 log.Fatal(err)
         }

@@ -82,7 +82,7 @@ func update(screen *ebiten.Image) error {
 
 func main() {
         var err error
-        ebitenImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;images&#34;, &#34;ebiten.png&#34;), ebiten.FilterNearest)
+        ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
         if err != nil {
                 log.Fatal(err)
         }

@@ -51,13 +51,26 @@ var (
         gophersRenderTarget *ebiten.Image
 )
 
+func init() {
+        var err error
+        gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+}
+
 func update(screen *ebiten.Image) error {
         if ebiten.IsRunningSlowly() {
                 return nil
         }
+
+        // Shrink the image once.
         op := &amp;ebiten.DrawImageOptions{}
         op.GeoM.Scale(1.0/mosaicRatio, 1.0/mosaicRatio)
         gophersRenderTarget.DrawImage(gophersImage, op)
+
+        // Enlarge the shrunk image.
+        // The filter is the nearest filter, so the result will be mosaic.
         op = &amp;ebiten.DrawImageOptions{}
         op.GeoM.Scale(mosaicRatio, mosaicRatio)
         screen.DrawImage(gophersRenderTarget, op)
@@ -65,11 +78,6 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-        var err error
-        gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;images&#34;, &#34;gophers.jpg&#34;), ebiten.FilterNearest)
-        if err != nil {
-                log.Fatal(err)
-        }
         w, h := gophersImage.Size()
         gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
         if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Mosaic (Ebiten Demo)&#34;); err != nil {

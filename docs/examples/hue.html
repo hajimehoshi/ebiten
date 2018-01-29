@@ -52,20 +52,26 @@ var (
 
 func update(screen *ebiten.Image) error {
         count&#43;&#43;
+
         if ebiten.IsRunningSlowly() {
                 return nil
         }
+
+        // Center the image on the screen.
         w, h := gophersImage.Size()
         op := &amp;ebiten.DrawImageOptions{}
         op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
+
+        // Rotate the hue.
         op.ColorM.RotateHue(float64(count%360) * 2 * math.Pi / 360)
+
         screen.DrawImage(gophersImage, op)
         return nil
 }
 
 func main() {
         var err error
-        gophersImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath(&#34;_resources&#34;, &#34;images&#34;, &#34;gophers.jpg&#34;), ebiten.FilterNearest)
+        gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterNearest)
         if err != nil {
                 log.Fatal(err)
         }
