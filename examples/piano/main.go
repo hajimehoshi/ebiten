@@ -32,10 +32,6 @@ import (
 	"github.com/hajimehoshi/ebiten/text"
 )
 
-const (
-	arcadeFontSize = 8
-)
-
 var (
 	arcadeFont font.Face
 )
@@ -57,7 +53,10 @@ func init() {
 		log.Fatal(err)
 	}
 
-	const dpi = 72
+	const (
+		arcadeFontSize = 8
+		dpi            = 72
+	)
 	arcadeFont = truetype.NewFace(tt, &truetype.Options{
 		Size:    arcadeFontSize,
 		DPI:     dpi,
@@ -69,6 +68,7 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 	sampleRate   = 44100
+	baseFreq     = 220
 )
 
 var audioContext *audio.Context
@@ -81,27 +81,21 @@ func init() {
 	}
 }
 
-var pcm = make([]float64, 4*sampleRate)
-
-const baseFreq = 220
-
-func init() {
+// pianoAt returns an i-th sample of piano with the given frequency.
+func pianoAt(i int, freq float64) float64 {
+	// Create piano-like waves with multiple sin waves.
 	amp := []float64{1.0, 0.8, 0.6, 0.4, 0.2}
 	x := []float64{4.0, 2.0, 1.0, 0.5, 0.25}
-	for i := 0; i < len(pcm); i++ {
-		v := 0.0
-		for j := 0; j < len(amp); j++ {
-			a := amp[j] * math.Exp(-5*float64(i)/(x[j]*sampleRate))
-			v += a * math.Sin(2.0*math.Pi*float64(i)*baseFreq*float64(j+1)/sampleRate)
-		}
-		pcm[i] = v / 5.0
+	v := 0.0
+	for j := 0; j < len(amp); j++ {
+		// Decay
+		a := amp[j] * math.Exp(-5*float64(i)*freq/baseFreq/(x[j]*sampleRate))
+		v += a * math.Sin(2.0*math.Pi*float64(i)*freq*float64(j+1)/sampleRate)
 	}
+	return v / 5.0
 }
 
-var (
-	noteCache = map[int][]byte{}
-)
-
+// toBytes returns the 2ch little endian 16bit byte sequence with the given left/right sequence.
 func toBytes(l, r []int16) []byte {
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
@@ -116,62 +110,109 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-func addNote(freq float64, vol float64) {
-	// TODO: Call Close method of *audio.Player.
-	// However, this works without Close because Close is automatically called when GC
-	// collects a *audio.Player object.
-	f := int(freq)
-	if n, ok := noteCache[f]; ok {
-		p, _ := audio.NewPlayerFromBytes(audioContext, n)
-		p.Play()
-		return
-	}
-	length := len(pcm) * baseFreq / f
-	l := make([]int16, length)
-	r := make([]int16, length)
-	j := 0
-	jj := 0
-	for i := 0; i < len(l); i++ {
-		p := pcm[j]
-		l[i] = int16(p * vol * math.MaxInt16)
-		r[i] = l[i]
-		jj += f
-		j = jj / baseFreq
-	}
-	n := toBytes(l, r)
-	noteCache[f] = n
-	p, _ := audio.NewPlayerFromBytes(audioContext, n)
-	p.Play()
-	return
-}
-
-var keys = []ebiten.Key{
-	ebiten.KeyQ,
-	ebiten.KeyA,
-	ebiten.KeyW,
-	ebiten.KeyS,
-	ebiten.KeyD,
-	ebiten.KeyR,
-	ebiten.KeyF,
-	ebiten.KeyT,
-	ebiten.KeyG,
-	ebiten.KeyH,
-	ebiten.KeyU,
-	ebiten.KeyJ,
-	ebiten.KeyI,
-	ebiten.KeyK,
-	ebiten.KeyO,
-	ebiten.KeyL,
-}
-
-var keyStates = map[ebiten.Key]int{}
+var (
+	pianoNoteSamples       = map[int][]byte{}
+	pianoNoteSamplesInited = false
+	pianoNoteSamplesInitCh = make(chan struct{})
+)
 
 func init() {
-	for _, key := range keys {
-		keyStates[key] = 0
+	// Initialize piano data.
+	// This takes a little long time (especially on browsers),
+	// so run this asynchronously and notice the progress.
+	go func() {
+		// Create a reference data and use this for other frequency.
+		const refFreq = 110
+		length := 4 * sampleRate * baseFreq / refFreq
+		refData := make([]int16, length)
+		for i := 0; i < length; i++ {
+			refData[i] = int16(pianoAt(i, refFreq) * math.MaxInt16)
+		}
+
+		for i := range keys {
+			freq := baseFreq * math.Exp2(float64(i-1)/12.0)
+
+			// Clculate the wave data for the freq.
+			length := 4 * sampleRate * baseFreq / int(freq)
+			l := make([]int16, length)
+			r := make([]int16, length)
+			for i := 0; i < length; i++ {
+				idx := int(float64(i) * freq / refFreq)
+				if len(refData) <= idx {
+					break
+				}
+				l[i] = refData[idx]
+			}
+			copy(r, l)
+			n := toBytes(l, r)
+			pianoNoteSamples[int(freq)] = n
+		}
+		close(pianoNoteSamplesInitCh)
+	}()
+}
+
+// playNote plays piano sound with the given frequency.
+func playNote(freq float64) {
+	f := int(freq)
+	p, _ := audio.NewPlayerFromBytes(audioContext, pianoNoteSamples[f])
+	p.Play()
+}
+
+var (
+	pianoImage *ebiten.Image
+)
+
+func init() {
+	pianoImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+
+	const (
+		keyWidth = 24
+		y        = 48
+	)
+
+	whiteKeys := []string{"A", "S", "D", "F", "G", "H", "J", "K", "L"}
+	for i, k := range whiteKeys {
+		x := i*keyWidth + 36
+		height := 112
+		ebitenutil.DrawRect(pianoImage, float64(x), float64(y), float64(keyWidth-1), float64(height), color.White)
+		text.Draw(pianoImage, k, arcadeFont, x+8, y+height-8, color.Black)
+	}
+
+	blackKeys := []string{"Q", "W", "", "R", "T", "", "U", "I", "O"}
+	for i, k := range blackKeys {
+		if k == "" {
+			continue
+		}
+		x := i*keyWidth + 24
+		height := 64
+		ebitenutil.DrawRect(pianoImage, float64(x), float64(y), float64(keyWidth-1), float64(height), color.Black)
+		text.Draw(pianoImage, k, arcadeFont, x+8, y+height-8, color.White)
 	}
 }
 
+var (
+	keys = []ebiten.Key{
+		ebiten.KeyQ,
+		ebiten.KeyA,
+		ebiten.KeyW,
+		ebiten.KeyS,
+		ebiten.KeyD,
+		ebiten.KeyR,
+		ebiten.KeyF,
+		ebiten.KeyT,
+		ebiten.KeyG,
+		ebiten.KeyH,
+		ebiten.KeyU,
+		ebiten.KeyJ,
+		ebiten.KeyI,
+		ebiten.KeyK,
+		ebiten.KeyO,
+		ebiten.KeyL,
+	}
+	keyStates = map[ebiten.Key]int{}
+)
+
+// updateInput updates the input state.
 func updateInput() {
 	for _, key := range keys {
 		if !ebiten.IsKeyPressed(key) {
@@ -182,47 +223,33 @@ func updateInput() {
 	}
 }
 
-var (
-	imagePiano *ebiten.Image
-)
-
-func init() {
-	imagePiano, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
-	whiteKeys := []string{"A", "S", "D", "F", "G", "H", "J", "K", "L"}
-	width := 24
-	y := 48
-	for i, k := range whiteKeys {
-		x := i*width + 36
-		height := 112
-		ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.White)
-		text.Draw(imagePiano, k, arcadeFont, x+8, y+height-8, color.Black)
-	}
-
-	blackKeys := []string{"Q", "W", "", "R", "T", "", "U", "I", "O"}
-	for i, k := range blackKeys {
-		if k == "" {
-			continue
-		}
-		x := i*width + 24
-		height := 64
-		ebitenutil.DrawRect(imagePiano, float64(x), float64(y), float64(width-1), float64(height), color.Black)
-		text.Draw(imagePiano, k, arcadeFont, x+8, y+height-8, color.White)
-	}
-}
-
 func update(screen *ebiten.Image) error {
-	updateInput()
-	for i, key := range keys {
-		if keyStates[key] != 1 {
-			continue
+	// The piano data is still being initialized.
+	// Get the progress if available.
+	if !pianoNoteSamplesInited {
+		select {
+		case <-pianoNoteSamplesInitCh:
+			pianoNoteSamplesInited = true
+		default:
 		}
-		addNote(220*math.Exp2(float64(i-1)/12.0), 1.0)
 	}
+
+	if pianoNoteSamplesInited {
+		updateInput()
+		for i, key := range keys {
+			if keyStates[key] != 1 {
+				continue
+			}
+			playNote(baseFreq * math.Exp2(float64(i-1)/12.0))
+		}
+	}
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
-	screen.DrawImage(imagePiano, nil)
+	screen.DrawImage(pianoImage, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
