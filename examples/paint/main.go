@@ -38,46 +38,12 @@ var (
 	canvasImage *ebiten.Image
 )
 
-func paint(screen *ebiten.Image, x, y int) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
-	theta := 2.0 * math.Pi * float64(count%ebiten.FPS) / ebiten.FPS
-	op.ColorM.RotateHue(theta)
-	canvasImage.DrawImage(brushImage, op)
-}
-
-func update(screen *ebiten.Image) error {
-	drawn := false
-	mx, my := ebiten.CursorPosition()
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		paint(screen, mx, my)
-		drawn = true
-	}
-	for _, t := range ebiten.Touches() {
-		x, y := t.Position()
-		paint(screen, x, y)
-		drawn = true
-	}
-	if drawn {
-		count++
-	}
-	if ebiten.IsRunningSlowly() {
-		return nil
-	}
-	screen.DrawImage(canvasImage, nil)
-
-	msg := fmt.Sprintf("(%d, %d)", mx, my)
-	for _, t := range ebiten.Touches() {
-		x, y := t.Position()
-		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t.ID())
-	}
-	ebitenutil.DebugPrint(screen, msg)
-	return nil
-}
-
-func main() {
-	const a0, a1, a2 = 0x40, 0xc0, 0xff
+func init() {
+	const (
+		a0 = 0x40
+		a1 = 0xc0
+		a2 = 0xff
+	)
 	pixels := []uint8{
 		a0, a1, a1, a0,
 		a1, a2, a2, a1,
@@ -92,7 +58,55 @@ func main() {
 
 	canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
 	canvasImage.Fill(color.White)
+}
 
+// paint draws the brush on the given canvas image at the position (x, y).
+func paint(canvas *ebiten.Image, x, y int) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	// Scale the color and rotate the hue so that colors vary on each frame.
+	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
+	theta := 2.0 * math.Pi * float64(count%ebiten.FPS) / ebiten.FPS
+	op.ColorM.RotateHue(theta)
+	canvas.DrawImage(brushImage, op)
+}
+
+func update(screen *ebiten.Image) error {
+	drawn := false
+
+	// Paint the brush by mouse dragging
+	mx, my := ebiten.CursorPosition()
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		paint(canvasImage, mx, my)
+		drawn = true
+	}
+
+	// Paint the brush by touches
+	for _, t := range ebiten.Touches() {
+		x, y := t.Position()
+		paint(canvasImage, x, y)
+		drawn = true
+	}
+	if drawn {
+		count++
+	}
+
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
+	screen.DrawImage(canvasImage, nil)
+
+	msg := fmt.Sprintf("(%d, %d)", mx, my)
+	for _, t := range ebiten.Touches() {
+		x, y := t.Position()
+		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t.ID())
+	}
+	ebitenutil.DebugPrint(screen, msg)
+	return nil
+}
+
+func main() {
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Paint (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
