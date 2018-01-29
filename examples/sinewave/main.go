@@ -19,6 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math"
 
@@ -44,10 +45,14 @@ func init() {
 	}
 }
 
+// stream is an infinite stream of 440 Hz sine wave.
 type stream struct {
 	position int64
 }
 
+// Read is io.Reader's Read.
+//
+// Read fills the data with sine wave samples.
 func (s *stream) Read(data []byte) (int, error) {
 	if len(data)%4 != 0 {
 		return 0, errors.New("len(data) % 4 must be 0")
@@ -68,20 +73,24 @@ func (s *stream) Read(data []byte) (int, error) {
 	return len(data), nil
 }
 
+// Seek is io.Seeker's Seek.
+//
+// whence must be io.SeekStart or io.SeekCurrent.
 func (s *stream) Seek(offset int64, whence int) (int64, error) {
 	const length = sampleRate / frequency
 	switch whence {
-	case 0:
+	case io.SeekStart:
 		s.position = offset
-	case 1:
+	case io.SeekCurrent:
 		s.position += offset
-	case 2:
-		return 0, errors.New("whence must be 0 or 1")
+	default:
+		return 0, errors.New("whence must be io.SeekStart or io.SeekCurrent")
 	}
 	s.position %= length * 4
 	return s.position, nil
 }
 
+// Close is io.Closer's Close.
 func (s *stream) Close() error {
 	return nil
 }
@@ -90,6 +99,8 @@ var player *audio.Player
 
 func update(screen *ebiten.Image) error {
 	if player == nil {
+		// Pass the (infinite) stream to audio.NewPlayer.
+		// After calling Play, the stream never ends as long as the player object lives.
 		var err error
 		player, err = audio.NewPlayer(audioContext, &stream{})
 		if err != nil {
