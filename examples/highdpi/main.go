@@ -28,8 +28,9 @@ import (
 )
 
 var (
-	count        int
-	highDPIImage *ebiten.Image
+	count          int
+	highDPIImage   *ebiten.Image
+	highDPIImageCh = make(chan *ebiten.Image)
 )
 
 func init() {
@@ -37,25 +38,45 @@ func init() {
 	// https://commons.wikimedia.org/wiki/File:As08-16-2593.jpg
 	const url = "https://upload.wikimedia.org/wikipedia/commons/1/1f/As08-16-2593.jpg"
 
-	res, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
+	// Load the image asynchronously.
+	go func() {
+		res, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer res.Body.Close()
 
-	img, _, err := image.Decode(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+		img, _, err := image.Decode(res.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	highDPIImage, err = ebiten.NewImageFromImage(img, ebiten.FilterLinear)
-	if err != nil {
-		log.Fatal(err)
-	}
+		eimg, err := ebiten.NewImageFromImage(img, ebiten.FilterLinear)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		highDPIImageCh <- eimg
+		close(highDPIImageCh)
+	}()
 }
 
 func update(screen *ebiten.Image) error {
+	if highDPIImage == nil {
+		// Use select and 'default' clause for non-blocking receiving.
+		select {
+		case img := <-highDPIImageCh:
+			highDPIImage = img
+		default:
+		}
+	}
+
 	if ebiten.IsRunningSlowly() {
+		return nil
+	}
+
+	if highDPIImage == nil {
+		ebitenutil.DebugPrint(screen, "Loading the image...")
 		return nil
 	}
 
