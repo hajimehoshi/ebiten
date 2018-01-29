@@ -25,8 +25,8 @@ import (
 
 const (
 	// Settings
-	width  = 1024
-	height = 512
+	screenWidth  = 1024
+	screenHeight = 512
 )
 
 var (
@@ -35,7 +35,30 @@ var (
 	rightSprite     *ebiten.Image
 	idleSprite      *ebiten.Image
 	backgroundImage *ebiten.Image
+)
 
+func init() {
+	// Preload images
+	var err error
+	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	leftSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/left.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	idleSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/mainchar.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+	backgroundImage, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/background.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+}
+
+var (
 	charX = 50
 	charY = 380
 )
@@ -79,27 +102,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	// Preload images
-	var err error
-	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	leftSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/left.png", ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	idleSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/mainchar.png", ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-	backgroundImage, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/background.png", ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-
-	// Starts the program
-	if err := ebiten.Run(update, width, height, 1, "Platformer (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Platformer (Ebiten Demo)"); err != nil {
 		panic(err)
 	}
 }
