@@ -91,6 +91,7 @@ func update(screen *ebiten.Image) error {
 
 	// The image is just too big. Adjust the scale.
 	op.GeoM.Scale(0.25, 0.25)
+
 	// Scale the image by the device ratio so that the rendering result can be same
 	// on various (diffrent-DPI) environments.
 	op.GeoM.Scale(scale, scale)
