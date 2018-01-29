@@ -230,7 +230,9 @@ func (c *Context) loop() {
 	// e.g. a variable for JVM on Android might not be set.
 	<-initCh
 
-	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize())
+	// On most desktop environments, 4096 [bytes] is enough
+	// but there are some known environment that is too short (e.g. Windows on Parallels, iOS).
+	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, 8192)
 	if err != nil {
 		audiobinding.SetError(err)
 		return
