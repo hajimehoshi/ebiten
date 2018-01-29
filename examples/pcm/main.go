@@ -19,6 +19,7 @@ package main
 import (
 	"log"
 	"math"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
@@ -41,8 +42,6 @@ func init() {
 	}
 }
 
-var frames = 0
-
 const (
 	freqA  = 440.0
 	freqAS = 466.2
@@ -59,10 +58,11 @@ const (
 )
 
 // Twinkle, Twinkle, Little Star
-const score = `CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`
+var score = strings.Replace(
+	`CCGGAAGR FFEEDDCR GGFFEEDR GGFFEEDR CCGGAAGR FFEEDDCR`,
+	" ", "", -1)
 
-var scoreIndex = 0
-
+// square fills out with square wave values with the specified volume, frequency and sequence.
 func square(out []int16, volume float64, freq float64, sequence float64) {
 	if freq == 0 {
 		for i := 0; i < len(out); i++ {
@@ -83,6 +83,7 @@ func square(out []int16, volume float64, freq float64, sequence float64) {
 	}
 }
 
+// toBytes returns the 2ch little endian 16bit byte sequence with the given left/right sequence.
 func toBytes(l, r []int16) []byte {
 	if len(l) != len(r) {
 		panic("len(l) must equal to len(r)")
@@ -97,50 +98,60 @@ func toBytes(l, r []int16) []byte {
 	return b
 }
 
-func addNote() rune {
-	size := sampleRate / ebiten.FPS
-	notes := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
-
-	defer func() {
-		scoreIndex++
-		scoreIndex %= len(score)
-	}()
-	l := make([]int16, size*30)
-	r := make([]int16, size*30)
+// playNote plays the note at scoreIndex of the score.
+func playNote(scoreIndex int) rune {
 	note := score[scoreIndex]
-	for note == ' ' {
-		scoreIndex++
-		scoreIndex %= len(score)
-		note = score[scoreIndex]
+
+	// If the note is 'rest', play nothing.
+	if note == 'R' {
+		return rune(note)
 	}
+
+	freqs := []float64{freqC, freqD, freqE, freqF, freqG, freqA * 2, freqB * 2}
 	freq := 0.0
 	switch {
-	case note == 'R':
-		freq = 0
-	case note <= 'B':
-		freq = notes[int(note)+len(notes)-int('C')]
+	case 'A' <= note && note <= 'B':
+		freq = freqs[int(note)+len(freqs)-int('C')]
+	case 'C' <= note && note <= 'G':
+		freq = freqs[note-'C']
 	default:
-		freq = notes[note-'C']
+		panic("note out of range")
 	}
-	vol := 1.0 / 16.0
+
+	const (
+		vol  = 1.0 / 16.0
+		size = 30 * sampleRate / ebiten.FPS
+	)
+	l := make([]int16, size)
+	r := make([]int16, size)
 	square(l, vol, freq, 0.25)
 	square(r, vol, freq, 0.25)
-	b := toBytes(l, r)
-	p, _ := audio.NewPlayerFromBytes(audioContext, b)
+
+	p, _ := audio.NewPlayerFromBytes(audioContext, toBytes(l, r))
 	p.Play()
+
 	return rune(note)
 }
 
-var currentNote rune
+var (
+	scoreIndex  = 0
+	frames      = 0
+	currentNote rune
+)
 
 func update(screen *ebiten.Image) error {
+	// Play notes for each half second.
 	if frames%30 == 0 {
-		currentNote = addNote()
+		currentNote = playNote(scoreIndex)
+		scoreIndex++
+		scoreIndex %= len(score)
 	}
 	frames++
+
 	if ebiten.IsRunningSlowly() {
 		return nil
 	}
+
 	msg := "Note: "
 	if currentNote == 'R' {
 		msg += "-"
