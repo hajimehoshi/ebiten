@@ -43,7 +43,7 @@ var (
 
 func init() {
 	var err error
-	uiImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "ui.png"), ebiten.FilterNearest)
+	uiImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ui.png", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

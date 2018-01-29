@@ -45,12 +45,12 @@ var (
 
 func init() {
 	var err error
-	bgImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "gophers.jpg"), ebiten.FilterNearest)
+	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fgImage, _, err = ebitenutil.NewImageFromFile(ebitenutil.JoinStringsIntoFilePath("_resources", "images", "fiveyears.jpg"), ebiten.FilterNearest)
+	fgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/fiveyears.jpg", ebiten.FilterNearest)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"path"
 
 	"github.com/gopherjs/gopherjs/js"
 )
@@ -62,8 +61,4 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	data := js.Global.Get("Uint8Array").New(content).Interface().([]uint8)
 	f := &file{bytes.NewReader(data)}
 	return f, nil
-}
-
-func JoinStringsIntoFilePath(elems ...string) string {
-	return path.Join(elems...)
 }

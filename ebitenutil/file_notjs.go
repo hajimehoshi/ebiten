@@ -26,17 +26,9 @@ import (
 
 // OpenFile opens a file and returns a stream for its data.
 //
-// How to solve path depends on your environment. This varies on your desktop or web browser.
+// The path parts should be separated with slash '/' on any environments.
+//
 // Note that this doesn't work on mobiles.
 func OpenFile(path string) (ReadSeekCloser, error) {
-	return os.Open(path)
-}
-
-// JoinStringsIntoFilePath joins any number of path elements into a single path,
-// adding a Separator if necessary.
-//
-// This is basically same as filepath.Join, but the behavior is different on JavaScript.
-// For browsers, path.Join is called instead of filepath.Join.
-func JoinStringsIntoFilePath(elems ...string) string {
-	return filepath.Join(elems...)
+	return os.Open(filepath.FromSlash(path))
 }
