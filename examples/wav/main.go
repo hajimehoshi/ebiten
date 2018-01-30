@@ -38,21 +38,27 @@ var (
 
 func init() {
 	var err error
+	// Initialize audio context.
 	audioContext, err = audio.NewContext(sampleRate)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Open a wav file.
+	// Note that f.Close() should not be closed in this init function
+	// since audio.Player manages stream state.
 	f, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Decode wav-formatted data and retrieve decoded PCM stream.
 	d, err := wav.Decode(audioContext, f)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Create an audio.Player that has one stream.
 	audioPlayer, err = audio.NewPlayer(audioContext, d)
 	if err != nil {
 		log.Fatal(err)
@@ -61,6 +67,8 @@ func init() {
 
 func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyP) && !audioPlayer.IsPlaying() {
+		// As audioPlayer has one stream and remembers the playing position,
+		// rewinding is needed before playing when reusing audioPlayer.
 		audioPlayer.Rewind()
 		audioPlayer.Play()
 	}

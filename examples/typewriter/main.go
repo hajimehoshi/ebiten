@@ -31,14 +31,23 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
+	// Add a string from InputChars, that returns string input by users.
+	// Note that InputChars result changes every frame, so you need to call this
+	// every frame.
 	text += string(ebiten.InputChars())
+
+	// Adjust the string to be at most 10 lines.
 	ss := strings.Split(text, "\n")
 	if len(ss) > 10 {
 		text = strings.Join(ss[len(ss)-10:], "\n")
 	}
+
+	// If the enter key is pressed, add a line break.
 	if ebiten.IsKeyPressed(ebiten.KeyEnter) && !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}
+
+	// If the backspace key is pressed, remove one character.
 	bsPressed := ebiten.IsKeyPressed(ebiten.KeyBackspace)
 	if !bsPrevPressed && bsPressed {
 		if len(text) >= 1 {
@@ -53,6 +62,7 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	// Blink the cursor.
 	t := text
 	if counter%60 < 30 {
 		t += "_"
