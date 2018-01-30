@@ -172,11 +172,11 @@ type Button struct {
 	Text string
 
 	mouseDown bool
-	pressed   bool
+
+	onPressed func(b *Button)
 }
 
 func (b *Button) Update() {
-	b.pressed = false
 	if theInput.IsMouseButtonPressed() {
 		x, y := ebiten.CursorPosition()
 		if b.Rect.Min.X <= x && x < b.Rect.Max.X && b.Rect.Min.Y <= y && y < b.Rect.Max.Y {
@@ -186,7 +186,9 @@ func (b *Button) Update() {
 		}
 	} else {
 		if b.mouseDown {
-			b.pressed = true
+			if b.onPressed != nil {
+				b.onPressed(b)
+			}
 		}
 		b.mouseDown = false
 	}
@@ -206,8 +208,8 @@ func (b *Button) Draw(dst *ebiten.Image) {
 	text.Draw(dst, b.Text, uiFont, x, y, color.Black)
 }
 
-func (b *Button) Pressed() bool {
-	return b.pressed
+func (b *Button) SetOnPressed(f func(b *Button)) {
+	b.onPressed = f
 }
 
 const VScrollBarWidth = 16
@@ -395,9 +397,10 @@ type CheckBox struct {
 	Y    int
 	Text string
 
-	checked      bool
-	mouseDown    bool
-	checkChanged bool
+	checked   bool
+	mouseDown bool
+
+	onCheckChanged func(c *CheckBox)
 }
 
 func (c *CheckBox) width() int {
@@ -407,7 +410,6 @@ func (c *CheckBox) width() int {
 }
 
 func (c *CheckBox) Update() {
-	c.checkChanged = false
 	if theInput.IsMouseButtonPressed() {
 		x, y := ebiten.CursorPosition()
 		if c.X <= x && x < c.X+c.width() && c.Y <= y && y < c.Y+checkboxHeight {
@@ -417,12 +419,12 @@ func (c *CheckBox) Update() {
 		}
 	} else {
 		if c.mouseDown {
-			c.checkChanged = true
+			c.checked = !c.checked
+			if c.onCheckChanged != nil {
+				c.onCheckChanged(c)
+			}
 		}
 		c.mouseDown = false
-	}
-	if c.checkChanged {
-		c.checked = !c.checked
 	}
 }
 
@@ -446,8 +448,8 @@ func (c *CheckBox) Checked() bool {
 	return c.checked
 }
 
-func (c *CheckBox) CheckChanged() bool {
-	return c.checkChanged
+func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
+	c.onCheckChanged = f
 }
 
 var (
@@ -469,6 +471,24 @@ var (
 	}
 )
 
+func init() {
+	button1.SetOnPressed(func(b *Button) {
+		textBoxLog.AppendLine("Button 1 Pressed")
+	})
+	button2.SetOnPressed(func(b *Button) {
+		textBoxLog.AppendLine("Button 2 Pressed")
+	})
+	checkBox.SetOnCheckChanged(func(c *CheckBox) {
+		msg := "Check box check changed"
+		if c.Checked() {
+			msg += " (Checked)"
+		} else {
+			msg += " (Unchecked)"
+		}
+		textBoxLog.AppendLine(msg)
+	})
+}
+
 func update(screen *ebiten.Image) error {
 	theInput.Update()
 
@@ -476,22 +496,6 @@ func update(screen *ebiten.Image) error {
 	button2.Update()
 	checkBox.Update()
 	textBoxLog.Update()
-
-	if button1.Pressed() {
-		textBoxLog.AppendLine("Button 1 Pressed")
-	}
-	if button2.Pressed() {
-		textBoxLog.AppendLine("Button 2 Pressed")
-	}
-	if checkBox.CheckChanged() {
-		msg := "Check box check changed"
-		if checkBox.Checked() {
-			msg += " (Checked)"
-		} else {
-			msg += " (Unchecked)"
-		}
-		textBoxLog.AppendLine(msg)
-	}
 
 	if ebiten.IsRunningSlowly() {
 		return nil
