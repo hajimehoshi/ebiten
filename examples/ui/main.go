@@ -373,8 +373,7 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 		if y < -lineHeight {
 			continue
 		}
-		_, h := t.viewSize()
-		if y >= h+lineHeight {
+		if _, h := t.viewSize(); y >= h+lineHeight {
 			continue
 		}
 		text.Draw(t.contentBuf, line, uiFont, x, y, color.Black)
