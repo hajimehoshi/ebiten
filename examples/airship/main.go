@@ -31,7 +31,6 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
-	groundWidth  = screenWidth + 70
 	maxAngle     = 256
 	maxLean      = 16
 )
@@ -43,10 +42,11 @@ var (
 		y16:   16 * 200,
 		angle: maxAngle * 3 / 4,
 	}
-	gophersImage         *ebiten.Image
-	repeatedGophersImage *ebiten.Image
-	groundImage          *ebiten.Image
-	fogImage             *ebiten.Image
+	gophersImage           *ebiten.Image
+	repeatedGophersImage   *ebiten.Image
+	groundImage            *ebiten.Image
+	perspectiveGroundImage *ebiten.Image
+	fogImage               *ebiten.Image
 )
 
 func init() {
@@ -55,7 +55,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	groundImage, _ = ebiten.NewImage(groundWidth, screenHeight*2/3+50, ebiten.FilterNearest)
+	groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3+50, ebiten.FilterNearest)
+	perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight, ebiten.FilterNearest)
 
 	const repeat = 5
 	w, h := gophersImage.Size()
@@ -67,11 +68,10 @@ func init() {
 			repeatedGophersImage.DrawImage(gophersImage, op)
 		}
 	}
-}
 
-func init() {
 	const fogHeight = 8
-	fogRGBA := image.NewRGBA(image.Rect(0, 0, groundWidth, fogHeight))
+	w, _ = perspectiveGroundImage.Size()
+	fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
 	for j := 0; j < fogHeight; j++ {
 		a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
 		clr := skyColor
@@ -80,7 +80,7 @@ func init() {
 		clr.G = uint8(g * a / oa)
 		clr.B = uint8(b * a / oa)
 		clr.A = uint8(a)
-		for i := 0; i < groundWidth; i++ {
+		for i := 0; i < w; i++ {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}
@@ -185,6 +185,7 @@ func scaleForLine(y int) float64 {
 	//
 	// c:   camera
 	// s:   intersection of the ray and the screen
+	// A-c: camera height
 	// B-s: horizon height
 	// A-C: far point on the plane
 	// A-B: the distance from the camera to the screen
@@ -192,7 +193,7 @@ func scaleForLine(y int) float64 {
 	// The ground image is on the plane, and the head of the ground image is on 'C'.
 	const (
 		horizonHeight   = screenHeight * 2.0 / 3.0
-		cameraHeight    = horizonHeight + 200.0
+		cameraHeight    = horizonHeight + 100.0
 		farPointOnPlane = 200.0
 		cameraToScreen  = farPointOnPlane - farPointOnPlane/cameraHeight*horizonHeight
 	)
@@ -205,31 +206,34 @@ func scaleForLine(y int) float64 {
 }
 
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
-	w, h := ground.Size()
-	g := ebiten.GeoM{}
-	g.Translate(-float64(w)/2, 0)
-	g.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
-	g.Translate(float64(w)/2, 0)
-	g.Translate(float64(screenWidth-w)/2, screenHeight/3)
-	op := &ebiten.DrawImageOptions{}
+	perspectiveGroundImage.Clear()
+	gw, gh := ground.Size()
+	pw, ph := perspectiveGroundImage.Size()
 	y := 0.0
-	for i := 0; i < h; i++ {
-		op.GeoM.Reset()
+	for i := 0; i < ph; i++ {
+		op := &ebiten.DrawImageOptions{}
 		s := scaleForLine(i)
-		dx0, dy0 := float64(w)*(1-s)/2, y
+		dx0 := -float64(gw)*s/2 + float64(pw)/2
 		op.GeoM.Scale(s, s+1)
-		op.GeoM.Translate(float64(dx0), float64(dy0))
-		op.GeoM.Concat(g)
+		op.GeoM.Translate(float64(dx0), y)
 
-		src := image.Rect(0, i, w, i+1)
+		src := image.Rect(0, i, gw, i+1)
 		op.SourceRect = &src
-		screen.DrawImage(ground, op)
+		perspectiveGroundImage.DrawImage(ground, op)
 
 		y += s
+		if y > float64(gh) {
+			break
+		}
 	}
-	op = &ebiten.DrawImageOptions{}
-	op.GeoM = g
-	screen.DrawImage(fogImage, op)
+
+	perspectiveGroundImage.DrawImage(fogImage, nil)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(-float64(pw)/2, 0)
+	op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
+	op.GeoM.Translate(float64(screenWidth)/2, screenHeight/3)
+	screen.DrawImage(perspectiveGroundImage, op)
 }
 
 func update(screen *ebiten.Image) error {
