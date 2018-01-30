@@ -60,13 +60,39 @@
   </dl>
 
   <h2 id="examples">Examples</h2>
+  <h3>Graphics</h3>
   <div class="row">
-  {{range .Examples -}}
+  {{range .GraphicsExamples -}}
     <div class="col-3">
       <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
     </div>
   {{- end}}
   </div>
+  <h3>Input</h3>
+  <div class="row">
+  {{range .InputExamples -}}
+    <div class="col-3">
+      <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
+    </div>
+  {{- end}}
+  </div>
+  <h3>Audio</h3>
+  <div class="row">
+  {{range .AudioExamples -}}
+    <div class="col-3">
+      <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
+    </div>
+  {{- end}}
+  </div>
+  <h3>Game</h3>
+  <div class="row">
+  {{range .GameExamples -}}
+    <div class="col-3">
+      <a href="examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
+    </div>
+  {{- end}}
+  </div>
+
   <p><a href="https://blog.golang.org/go-programming-language-turns-two">The Gopher photographs by Chris Nokleberg</a> are licensed under <a href="https://creativecommons.org/licenses/by/3.0/">the Creative Commons 3.0 Attributions License</a>.</p>
 
   <h3>Execute the examples</h3>

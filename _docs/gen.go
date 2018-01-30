@@ -176,29 +176,37 @@ func versions() string {
 	return fmt.Sprintf("v%s (dev: v%s)", stableVersion, devVersion)
 }
 
-var examples = []example{
-	{"alphablending", 320, 240},
-	{"audio", 320, 240},
-	{"font", 320, 240},
-	{"highdpi", 320, 240},
-	{"hsv", 320, 240},
-	{"hue", 320, 240},
-	{"gamepad", 320, 240},
-	{"infinitescroll", 320, 240},
-	{"keyboard", 320, 240},
-	{"life", 320, 240},
-	{"masking", 320, 240},
-	{"mosaic", 320, 240},
-	{"noise", 320, 240},
-	{"paint", 320, 240},
-	{"perspective", 320, 240},
-	{"piano", 320, 240},
-	{"rotate", 320, 240},
-	{"sprites", 320, 240},
-	{"typewriter", 320, 240},
-	{"2048", 210, 300},
-	{"blocks", 256, 240},
-}
+var (
+	graphicsExamples = []example{
+		{"alphablending", 320, 240},
+		{"font", 320, 240},
+		{"highdpi", 320, 240},
+		{"hsv", 320, 240},
+		{"hue", 320, 240},
+		{"infinitescroll", 320, 240},
+		{"life", 320, 240},
+		{"masking", 320, 240},
+		{"mosaic", 320, 240},
+		{"noise", 320, 240},
+		{"paint", 320, 240},
+		{"perspective", 320, 240},
+		{"rotate", 320, 240},
+		{"sprites", 320, 240},
+	}
+	inputExamples = []example{
+		{"gamepad", 320, 240},
+		{"keyboard", 320, 240},
+		{"typewriter", 320, 240},
+	}
+	audioExamples = []example{
+		{"audio", 320, 240},
+		{"piano", 320, 240},
+	}
+	gameExamples = []example{
+		{"2048", 210, 300},
+		{"blocks", 256, 240},
+	}
+)
 
 func clear() error {
 	if err := filepath.Walk("public", func(path string, info os.FileInfo, err error) error {
@@ -253,11 +261,14 @@ func outputMain() error {
 	}
 
 	data := map[string]interface{}{
-		"URL":           url,
-		"Copyright":     copyright,
-		"StableVersion": stableVersion,
-		"DevVersion":    devVersion,
-		"Examples":      examples,
+		"URL":              url,
+		"Copyright":        copyright,
+		"StableVersion":    stableVersion,
+		"DevVersion":       devVersion,
+		"GraphicsExamples": graphicsExamples,
+		"InputExamples":    inputExamples,
+		"AudioExamples":    audioExamples,
+		"GameExamples":     gameExamples,
 	}
 	return t.Funcs(funcs).Execute(f, data)
 }
@@ -355,6 +366,12 @@ func main() {
 	if err := outputExampleResources(); err != nil {
 		log.Fatal(err)
 	}
+
+	examples := []example{}
+	examples = append(examples, graphicsExamples...)
+	examples = append(examples, inputExamples...)
+	examples = append(examples, audioExamples...)
+	examples = append(examples, gameExamples...)
 	for _, e := range examples {
 		if err := outputExampleContent(&e); err != nil {
 			log.Fatal(err)

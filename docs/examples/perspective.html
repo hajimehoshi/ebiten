@@ -53,17 +53,25 @@ func update(screen *ebiten.Image) error {
         if ebiten.IsRunningSlowly() {
                 return nil
         }
+
+        // Split the image into horizontal lines and draw them with different scales.
         op := &amp;ebiten.DrawImageOptions{}
         w, h := gophersImage.Size()
         for i := 0; i &lt; h; i&#43;&#43; {
                 op.GeoM.Reset()
-                width := w &#43; i*3/4
-                x := ((h - i) * 3 / 4) / 2
-                op.GeoM.Scale(float64(width)/float64(w), 1)
-                op.GeoM.Translate(float64(x), float64(i))
-                maxWidth := float64(w) &#43; float64(h)*3/4
-                op.GeoM.Translate(-maxWidth/2, -float64(h)/2)
+
+                // Move the image&#39;s center to the upper-left corner.
+                op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+
+                // Scale each lines and adjust the position.
+                lineW := w &#43; i*3/4
+                x := -float64(lineW) / float64(w) / 2
+                op.GeoM.Scale(float64(lineW)/float64(w), 1)
+                op.GeoM.Translate(x, float64(i))
+
+                // Move the image&#39;s center to the screen&#39;s center.
                 op.GeoM.Translate(screenWidth/2, screenHeight/2)
+
                 r := image.Rect(0, i, w, i&#43;1)
                 op.SourceRect = &amp;r
                 screen.DrawImage(gophersImage, op)

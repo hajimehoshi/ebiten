@@ -62,20 +62,23 @@ func (r *rand) next() uint32 {
         return r.w
 }
 
-var randInstance = &amp;rand{12345678, 4185243, 776511, 45411}
+var theRand = &amp;rand{12345678, 4185243, 776511, 45411}
 
 func update(screen *ebiten.Image) error {
+        // Generate the noise with random RGB values.
         const l = screenWidth * screenHeight
         for i := 0; i &lt; l; i&#43;&#43; {
-                x := randInstance.next()
+                x := theRand.next()
                 noiseImage.Pix[4*i] = uint8(x &gt;&gt; 24)
                 noiseImage.Pix[4*i&#43;1] = uint8(x &gt;&gt; 16)
                 noiseImage.Pix[4*i&#43;2] = uint8(x &gt;&gt; 8)
                 noiseImage.Pix[4*i&#43;3] = 0xff
         }
+
         if ebiten.IsRunningSlowly() {
                 return nil
         }
+
         screen.ReplacePixels(noiseImage.Pix)
         ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %f&#34;, ebiten.CurrentFPS()))
         return nil
