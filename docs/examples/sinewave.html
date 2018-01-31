@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/sinewave.png">
+<meta name="description" content="Ebiten example - sinewave">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - sinewave</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - sinewave</h2>
+  <iframe src="sinewave.content.html" width="640" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;errors&#34;
+        &#34;fmt&#34;
+        &#34;io&#34;
+        &#34;log&#34;
+        &#34;math&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/audio&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+const (
+        screenWidth  = 320
+        screenHeight = 240
+        sampleRate   = 44100
+        frequency    = 440
+)
+
+var audioContext *audio.Context
+
+func init() {
+        var err error
+        audioContext, err = audio.NewContext(sampleRate)
+        if err != nil {
+                log.Fatal(err)
+        }
+}
+
+// stream is an infinite stream of 440 Hz sine wave.
+type stream struct {
+        position int64
+}
+
+// Read is io.Reader&#39;s Read.
+//
+// Read fills the data with sine wave samples.
+func (s *stream) Read(data []byte) (int, error) {
+        if len(data)%4 != 0 {
+                return 0, errors.New(&#34;len(data) % 4 must be 0&#34;)
+        }
+        const length = sampleRate / frequency // TODO: This should be integer?
+        p := s.position / 4
+        for i := 0; i &lt; len(data)/4; i&#43;&#43; {
+                const max = (1&lt;&lt;15 - 1) / 2
+                b := int16(math.Sin(2*math.Pi*float64(p)/length) * max)
+                data[4*i] = byte(b)
+                data[4*i&#43;1] = byte(b &gt;&gt; 8)
+                data[4*i&#43;2] = byte(b)
+                data[4*i&#43;3] = byte(b &gt;&gt; 8)
+                p&#43;&#43;
+        }
+        s.position &#43;= int64(len(data))
+        s.position %= length * 4
+        return len(data), nil
+}
+
+// Seek is io.Seeker&#39;s Seek.
+//
+// whence must be io.SeekStart or io.SeekCurrent.
+func (s *stream) Seek(offset int64, whence int) (int64, error) {
+        const length = sampleRate / frequency
+        switch whence {
+        case io.SeekStart:
+                s.position = offset
+        case io.SeekCurrent:
+                s.position &#43;= offset
+        default:
+                return 0, errors.New(&#34;whence must be io.SeekStart or io.SeekCurrent&#34;)
+        }
+        s.position %= length * 4
+        return s.position, nil
+}
+
+// Close is io.Closer&#39;s Close.
+func (s *stream) Close() error {
+        return nil
+}
+
+var player *audio.Player
+
+func update(screen *ebiten.Image) error {
+        if player == nil {
+                // Pass the (infinite) stream to audio.NewPlayer.
+                // After calling Play, the stream never ends as long as the player object lives.
+                var err error
+                player, err = audio.NewPlayer(audioContext, &amp;stream{})
+                if err != nil {
+                        return err
+                }
+                player.Play()
+        }
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+        msg := fmt.Sprintf(&#34;FPS: %0.2f\nThis is an example using infinite audio stream.&#34;, ebiten.CurrentFPS())
+        ebitenutil.DebugPrint(screen, msg)
+        return nil
+}
+
+func main() {
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Sine Wave (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>

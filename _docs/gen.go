@@ -136,17 +136,25 @@ func safeHTML(text string) template.HTML {
 }
 
 type example struct {
-	Name        string
-	ThumbWidth  int
-	ThumbHeight int
+	Name         string
+	ThumbWidth   int
+	ThumbHeight  int
+	ScreenWidth  int
+	ScreenHeight int
 }
 
 func (e *example) Width() int {
-	return e.ThumbWidth * 2
+	if e.ScreenWidth == 0 {
+		return e.ThumbWidth * 2
+	}
+	return e.ScreenWidth
 }
 
 func (e *example) Height() int {
-	return e.ThumbHeight * 2
+	if e.ScreenHeight == 0 {
+		return e.ThumbHeight * 2
+	}
+	return e.ScreenHeight
 }
 
 func (e *example) Source() string {
@@ -177,34 +185,37 @@ func versions() string {
 }
 
 var (
+	gamesExamples = []example{
+		{Name: "2048", ThumbWidth: 210, ThumbHeight: 300},
+		{Name: "blocks", ThumbWidth: 256, ThumbHeight: 240},
+	}
 	graphicsExamples = []example{
-		{"alphablending", 320, 240},
-		{"font", 320, 240},
-		{"highdpi", 320, 240},
-		{"hsv", 320, 240},
-		{"hue", 320, 240},
-		{"infinitescroll", 320, 240},
-		{"life", 320, 240},
-		{"masking", 320, 240},
-		{"mosaic", 320, 240},
-		{"noise", 320, 240},
-		{"paint", 320, 240},
-		{"perspective", 320, 240},
-		{"rotate", 320, 240},
-		{"sprites", 320, 240},
+		{Name: "alphablending", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "flood", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "font", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "highdpi", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "hsv", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "hue", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "infinitescroll", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "life", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "mandelbrot", ThumbWidth: 320, ThumbHeight: 320, ScreenWidth: 640, ScreenHeight: 640},
+		{Name: "masking", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "mosaic", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "noise", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "paint", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "perspective", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "rotate", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "sprites", ThumbWidth: 320, ThumbHeight: 240},
 	}
 	inputExamples = []example{
-		{"gamepad", 320, 240},
-		{"keyboard", 320, 240},
-		{"typewriter", 320, 240},
+		{Name: "gamepad", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "keyboard", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "typewriter", ThumbWidth: 320, ThumbHeight: 240},
 	}
 	audioExamples = []example{
-		{"audio", 320, 240},
-		{"piano", 320, 240},
-	}
-	gameExamples = []example{
-		{"2048", 210, 300},
-		{"blocks", 256, 240},
+		{Name: "audio", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "piano", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "sinewave", ThumbWidth: 320, ThumbHeight: 240},
 	}
 )
 
@@ -268,7 +279,7 @@ func outputMain() error {
 		"GraphicsExamples": graphicsExamples,
 		"InputExamples":    inputExamples,
 		"AudioExamples":    audioExamples,
-		"GameExamples":     gameExamples,
+		"GamesExamples":    gamesExamples,
 	}
 	return t.Funcs(funcs).Execute(f, data)
 }
@@ -371,7 +382,7 @@ func main() {
 	examples = append(examples, graphicsExamples...)
 	examples = append(examples, inputExamples...)
 	examples = append(examples, audioExamples...)
-	examples = append(examples, gameExamples...)
+	examples = append(examples, gamesExamples...)
 	for _, e := range examples {
 		if err := outputExampleContent(&e); err != nil {
 			log.Fatal(err)

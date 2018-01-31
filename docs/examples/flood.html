@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/flood.png">
+<meta name="description" content="Ebiten example - flood">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - flood</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - flood</h2>
+  <iframe src="flood.content.html" width="640" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;image/color&#34;
+        _ &#34;image/png&#34;
+        &#34;log&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+const (
+        screenWidth  = 320
+        screenHeight = 240
+)
+
+var (
+        ebitenImage *ebiten.Image
+        colors      = []color.RGBA{
+                {0xff, 0xff, 0xff, 0xff},
+                {0xff, 0xff, 0x0, 0xff},
+                {0xff, 0x0, 0xff, 0xff},
+                {0xff, 0x0, 0x0, 0xff},
+                {0x0, 0xff, 0xff, 0xff},
+                {0x0, 0xff, 0x0, 0xff},
+                {0x0, 0x0, 0xff, 0xff},
+                {0x0, 0x0, 0x0, 0xff},
+        }
+)
+
+func update(screen *ebiten.Image) error {
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+
+        const (
+                ox = 10
+                oy = 10
+                dx = 60
+                dy = 50
+        )
+        screen.Fill(color.NRGBA{0x00, 0x40, 0x80, 0xff})
+
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(ox, oy)
+        screen.DrawImage(ebitenImage, op)
+
+        // Fill with solid colors
+        for i, c := range colors {
+                op := &amp;ebiten.DrawImageOptions{}
+                x := i % 4
+                y := i/4 &#43; 1
+                op.GeoM.Translate(ox&#43;float64(dx*x), oy&#43;float64(dy*y))
+
+                // Reset RGB (not Alpha) 0 forcibly
+                op.ColorM.Scale(0, 0, 0, 1)
+
+                // Set color
+                r := float64(c.R) / 0xff
+                g := float64(c.G) / 0xff
+                b := float64(c.B) / 0xff
+                op.ColorM.Translate(r, g, b, 0)
+                screen.DrawImage(ebitenImage, op)
+        }
+        return nil
+}
+
+func main() {
+        var err error
+        ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Flood fill with solid colors (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
