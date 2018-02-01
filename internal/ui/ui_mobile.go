@@ -82,12 +82,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	}
 }
 
-func (u *userInterface) update(g GraphicsContext) error {
-	<-chRender
-	defer func() {
-		chRenderEnd <- struct{}{}
-	}()
-
+func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	sizeChanged := false
 	width, height := 0, 0
 	actualScale := 0.0
@@ -106,8 +101,19 @@ func (u *userInterface) update(g GraphicsContext) error {
 		// Sizing also calls GL functions
 		g.SetSize(width, height, actualScale)
 	}
+}
 
-	if err := g.Update(func() {}); err != nil {
+func (u *userInterface) update(g GraphicsContext) error {
+	<-chRender
+	defer func() {
+		chRenderEnd <- struct{}{}
+	}()
+
+	u.updateGraphicsContext(g)
+
+	if err := g.Update(func() {
+		u.updateGraphicsContext(g)
+	}); err != nil {
 		return err
 	}
 	return nil

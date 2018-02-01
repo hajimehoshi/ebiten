@@ -123,6 +123,13 @@ func (u *userInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.DeviceScale()
 }
 
+func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
+	if u.sizeChanged {
+		u.sizeChanged = false
+		g.SetSize(u.width, u.height, u.actualScreenScale())
+	}
+}
+
 func (u *userInterface) update(g GraphicsContext) error {
 	if !u.runnableInBackground && !u.windowFocus {
 		return nil
@@ -132,13 +139,11 @@ func (u *userInterface) update(g GraphicsContext) error {
 		g.Invalidate()
 	}
 	currentInput.updateGamepads()
-	if u.sizeChanged {
-		u.sizeChanged = false
-		g.SetSize(u.width, u.height, u.actualScreenScale())
-		return nil
-	}
+	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
 		currentInput.runeBuffer = nil
+		// The offscreens must be updated every frame (#490).
+		u.updateGraphicsContext(g)
 	}); err != nil {
 		return err
 	}

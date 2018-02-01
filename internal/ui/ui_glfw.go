@@ -422,6 +422,23 @@ func (u *userInterface) pollEvents() {
 	currentInput.update(u.window, u.getScale()*glfwScale())
 }
 
+func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
+	actualScale := 0.0
+	sizeChanged := false
+	_ = u.runOnMainThread(func() error {
+		if !u.sizeChanged {
+			return nil
+		}
+		u.sizeChanged = false
+		actualScale = u.actualScreenScale()
+		sizeChanged = true
+		return nil
+	})
+	if sizeChanged {
+		g.SetSize(u.width, u.height, actualScale)
+	}
+}
+
 func (u *userInterface) update(g GraphicsContext) error {
 	shouldClose := false
 	_ = u.runOnMainThread(func() error {
@@ -441,20 +458,8 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return nil
 	})
 
-	actualScale := 0.0
-	sizeChanged := false
-	_ = u.runOnMainThread(func() error {
-		if !u.sizeChanged {
-			return nil
-		}
-		u.sizeChanged = false
-		actualScale = u.actualScreenScale()
-		sizeChanged = true
-		return nil
-	})
-	if sizeChanged {
-		g.SetSize(u.width, u.height, actualScale)
-	}
+	// This call is needed for initialization.
+	u.updateGraphicsContext(g)
 
 	_ = u.runOnMainThread(func() error {
 		u.pollEvents()
@@ -470,6 +475,8 @@ func (u *userInterface) update(g GraphicsContext) error {
 	})
 	if err := g.Update(func() {
 		currentInput.runeBuffer = currentInput.runeBuffer[:0]
+		// The offscreens must be updated every frame (#490).
+		u.updateGraphicsContext(g)
 	}); err != nil {
 		return err
 	}
