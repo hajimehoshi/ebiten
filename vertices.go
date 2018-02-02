@@ -87,6 +87,15 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 	hf := float32(h)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
 
+	// Adjust texels to be slightly inside the source rect. Without this
+	// adjustment, texels can be exactly as same values as the edges'
+	// positions and it could happen that nothing is rendered. (#491)
+	const minHighpValue = 1.0/32768.0
+	u0 += minHighpValue
+	v0 += minHighpValue
+	u1 -= minHighpValue
+	v1 -= minHighpValue
+
 	x, y := geo.Apply32(x0, y0)
 	// Vertex coordinates
 	vs[0] = x
