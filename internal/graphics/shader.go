@@ -51,19 +51,13 @@ varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
 
-const float minHighpValue = 1.0 / 32768.0;
-
 void main(void) {
   varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
   // varying_tex_coord_min and varying_tex_coord_max mean endmost texel values
   // in the source rect. As varying_tex_coord is adjusted with minHighpValue
   // in vertices.go, re-adjust them so that exact endmost texel values.
-  varying_tex_coord_min = vec2(
-    min(tex_coord[0], tex_coord[2]) - minHighpValue,
-    min(tex_coord[1], tex_coord[3]) - minHighpValue);
-  varying_tex_coord_max = vec2(
-    max(tex_coord[0], tex_coord[2]) + minHighpValue,
-    max(tex_coord[1], tex_coord[3]) + minHighpValue);
+  varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
+  varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
   gl_Position = projection_matrix * vec4(vertex, 0, 1);
 }
 `
@@ -101,6 +95,13 @@ highp vec2 roundTexel(highp vec2 p) {
 
 void main(void) {
   highp vec2 pos = varying_tex_coord;
+
+  // Adjust texels to be slightly inside the source rect. Without this
+  // adjustment, texels can be exactly as same values as the (lower and left) edges'
+  // positions and it could happen that outside of the source is rendered. (#491)
+  // 1.0 / 4096.0 is an arbitrary number that doesn't cause problems on MacBook Pro.
+  pos.x = min(varying_tex_coord_max.x - 1.0 / 4096.0, pos.x);
+  pos.y = min(varying_tex_coord_max.y - 1.0 / 4096.0, pos.y);
 
 #if defined(FILTER_NEAREST)
   vec4 color = texture2D(texture, pos);
