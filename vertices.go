@@ -89,7 +89,7 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 
 	// Adjust texels to be slightly inside the source rect. Without this
 	// adjustment, texels can be exactly as same values as the edges'
-	// positions and it could happen that nothing is rendered. (#491)
+	// positions and it could happen that outside of the source is rendered. (#491)
 	const minHighpValue = 1.0 / 32768.0
 	u0 += minHighpValue
 	v0 += minHighpValue
