@@ -680,3 +680,29 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 		}
 	}
 }
+
+func TestImage4096(t *testing.T) {
+	src, _ := NewImage(4096, 4096, FilterNearest)
+	dst, _ := NewImage(4096, 4096, FilterNearest)
+	pix := make([]byte, 4096*4096*4)
+	for j := 4095; j < 4096; j++ {
+		for i := 4095; i < 4096; i++ {
+			idx := 4 * (i + j*4096)
+			pix[idx] = uint8(i + j)
+			pix[idx+1] = uint8((i + j) >> 8)
+			pix[idx+2] = uint8((i + j) >> 16)
+			pix[idx+3] = 0xff
+		}
+	}
+	src.ReplacePixels(pix)
+	dst.DrawImage(src, nil)
+	for j := 4095; j < 4096; j++ {
+		for i := 4095; i < 4096; i++ {
+			got := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
+			want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+			}
+		}
+	}
+}
