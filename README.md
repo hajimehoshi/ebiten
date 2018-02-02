@@ -4,7 +4,7 @@
 [![GoDoc](https://godoc.org/github.com/hajimehoshi/ebiten?status.svg)](http://godoc.org/github.com/hajimehoshi/ebiten)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hajimehoshi/ebiten)](https://goreportcard.com/report/github.com/hajimehoshi/ebiten)
 
-A simple 2D game library in Go
+A dead simple 2D game library in Go
 
 * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
 * [macOS](https://github.com/hajimehoshi/ebiten/wiki/macOS)
