@@ -57,11 +57,17 @@ func setRunningSlowly(slow bool) {
 // The typical code with IsRunningSlowly is this:
 //
 //    func update(screen *ebiten.Image) error {
-//        // update the state
+//
+//        // Update the state.
+//
+//        // When IsRunningSlowly is true, the rendered result is not adopted.
+//        // Skip rendering then.
 //        if ebiten.IsRunningSlowly() {
 //            return nil
 //        }
-//        // draw something to the screen
+//
+//        // Draw something to the screen.
+//
 //        return nil
 //    }
 //
