@@ -54,6 +54,17 @@ func setRunningSlowly(slow bool) {
 // It is recommended to skip heavy processing, especially drawing screen,
 // when IsRunningSlowly is true.
 //
+// The typical code with IsRunningSlowly is this:
+//
+//    func update(screen *ebiten.Image) error {
+//        // update the state
+//        if ebiten.IsRunningSlowly() {
+//            return nil
+//        }
+//        // draw something to the screen
+//        return nil
+//    }
+//
 // This function is concurrent-safe.
 func IsRunningSlowly() bool {
 	return atomic.LoadInt32(&isRunningSlowly) != 0
