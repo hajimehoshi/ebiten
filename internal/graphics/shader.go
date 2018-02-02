@@ -53,9 +53,6 @@ varying vec2 varying_tex_coord_max;
 
 void main(void) {
   varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
-  // varying_tex_coord_min and varying_tex_coord_max mean endmost texel values
-  // in the source rect. As varying_tex_coord is adjusted with minHighpValue
-  // in vertices.go, re-adjust them so that exact endmost texel values.
   varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
   varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
   gl_Position = projection_matrix * vec4(vertex, 0, 1);
