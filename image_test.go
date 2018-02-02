@@ -499,10 +499,7 @@ func TestImageEdge(t *testing.T) {
 		img1Width  = 32
 		img1Height = 32
 	)
-	img0, err := NewImage(img0Width, img0Height, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-	}
+	img0, _ := NewImage(img0Width, img0Height, FilterNearest)
 	pixels := make([]uint8, 4*img0Width*img0Height)
 	for j := 0; j < img0Height; j++ {
 		for i := 0; i < img0Width; i++ {
@@ -521,20 +518,13 @@ func TestImageEdge(t *testing.T) {
 			}
 		}
 	}
-	if err := img0.ReplacePixels(pixels); err != nil {
-		t.Fatal(err)
-	}
-	img1, err := NewImage(img1Width, img1Height, FilterNearest)
-	if err != nil {
-		t.Fatal(err)
-	}
+	img0.ReplacePixels(pixels)
+	img1, _ := NewImage(img1Width, img1Height, FilterNearest)
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
 
 	for a := 0; a < 360; a += 5 {
-		if err := img1.Clear(); err != nil {
-			t.Fatal(err)
-		}
+		img1.Clear()
 		op := &DrawImageOptions{}
 		w, h := img0.Size()
 		r := image.Rect(0, 0, w, h/2)
@@ -542,9 +532,7 @@ func TestImageEdge(t *testing.T) {
 		op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
 		op.GeoM.Rotate(float64(a) * math.Pi / 180)
 		op.GeoM.Translate(img1Width/2, img1Height/2)
-		if err := img1.DrawImage(img0, op); err != nil {
-			t.Fatal(err)
-		}
+		img1.DrawImage(img0, op)
 		for j := 0; j < img1Height; j++ {
 			for i := 0; i < img1Width; i++ {
 				c := img1.At(i, j)
