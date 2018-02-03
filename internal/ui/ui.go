@@ -14,15 +14,17 @@
 
 package ui
 
+import (
+	"errors"
+)
+
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64)
 	Update(afterFrameUpdate func()) error
 	Invalidate()
 }
 
-type RegularTermination struct {
-}
-
-func (*RegularTermination) Error() string {
-	return "regular termination"
-}
+// RegularTermination represents a regular termination.
+// Run can return this error, and if this error is received,
+// the game loop should be terminated as soon as possible.
+var RegularTermination = errors.New("regular termination")

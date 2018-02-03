@@ -80,7 +80,7 @@ var theGraphicsContext atomic.Value
 
 func run(width, height int, scale float64, title string, g *graphicsContext) error {
 	if err := ui.Run(width, height, scale, title, g); err != nil {
-		if _, ok := err.(*ui.RegularTermination); ok {
+		if err == ui.RegularTermination {
 			return nil
 		}
 		return err

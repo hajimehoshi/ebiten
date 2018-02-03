@@ -446,7 +446,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return nil
 	})
 	if shouldClose {
-		return &RegularTermination{}
+		return RegularTermination
 	}
 
 	_ = u.runOnMainThread(func() error {
