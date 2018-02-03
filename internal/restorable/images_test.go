@@ -47,6 +47,25 @@ func byteSliceToColor(b []byte, index int) color.RGBA {
 	return color.RGBA{b[i], b[i+1], b[i+2], b[i+3]}
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// sameColors compares c1 and c2 and returns a boolean value indicating
+// if the two colors are (almost) same.
+//
+// Pixels read from GPU might include errors (#492), and
+// sameColors considers such errors as delta.
+func sameColors(c1, c2 color.RGBA, delta int) bool {
+	return abs(int(c1.R)-int(c2.R)) <= delta &&
+		abs(int(c1.G)-int(c2.G)) <= delta &&
+		abs(int(c1.B)-int(c2.B)) <= delta &&
+		abs(int(c1.A)-int(c2.A)) <= delta
+}
+
 func TestRestore(t *testing.T) {
 	img0 := NewImage(1, 1, graphics.FilterNearest, false)
 	// Clear images explicitly.
@@ -65,7 +84,7 @@ func TestRestore(t *testing.T) {
 	}
 	want := clr0
 	got := byteSliceToColor(img0.BasePixelsForTesting(), 0)
-	if got != want {
+	if !sameColors(got, want, 1) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
@@ -113,7 +132,7 @@ func TestRestoreChain(t *testing.T) {
 	want := clr
 	for i, img := range imgs {
 		got := byteSliceToColor(img.BasePixelsForTesting(), 0)
-		if got != want {
+		if !sameColors(got, want, 1) {
 			t.Errorf("%d: got %v, want %v", i, got, want)
 		}
 	}
@@ -174,7 +193,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 		},
 	}
 	for _, c := range testCases {
-		if c.got != c.want {
+		if !sameColors(c.got, c.want, 1) {
 			t.Errorf("%s: got %v, want %v", c.name, c.got, c.want)
 		}
 	}
@@ -286,7 +305,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
 			got := byteSliceToColor(c.image.BasePixelsForTesting(), i)
-			if got != want {
+			if !sameColors(got, want, 1) {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
 			}
 		}
@@ -337,7 +356,7 @@ func TestRestoreRecursive(t *testing.T) {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
 			got := byteSliceToColor(c.image.BasePixelsForTesting(), i)
-			if got != want {
+			if !sameColors(got, want, 1) {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
 			}
 		}
