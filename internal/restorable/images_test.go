@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func uint8SliceToColor(b []uint8, index int) color.RGBA {
+func byteSliceToColor(b []byte, index int) color.RGBA {
 	i := index * 4
 	return color.RGBA{b[i], b[i+1], b[i+2], b[i+3]}
 }
@@ -64,7 +64,7 @@ func TestRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := clr0
-	got := uint8SliceToColor(img0.BasePixelsForTesting(), 0)
+	got := byteSliceToColor(img0.BasePixelsForTesting(), 0)
 	if got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -112,7 +112,7 @@ func TestRestoreChain(t *testing.T) {
 	}
 	want := clr
 	for i, img := range imgs {
-		got := uint8SliceToColor(img.BasePixelsForTesting(), 0)
+		got := byteSliceToColor(img.BasePixelsForTesting(), 0)
 		if got != want {
 			t.Errorf("%d: got %v, want %v", i, got, want)
 		}
@@ -155,22 +155,22 @@ func TestRestoreOverrideSource(t *testing.T) {
 		{
 			"0",
 			clr1,
-			uint8SliceToColor(img0.BasePixelsForTesting(), 0),
+			byteSliceToColor(img0.BasePixelsForTesting(), 0),
 		},
 		{
 			"1",
 			clr1,
-			uint8SliceToColor(img1.BasePixelsForTesting(), 0),
+			byteSliceToColor(img1.BasePixelsForTesting(), 0),
 		},
 		{
 			"2",
 			clr0,
-			uint8SliceToColor(img2.BasePixelsForTesting(), 0),
+			byteSliceToColor(img2.BasePixelsForTesting(), 0),
 		},
 		{
 			"3",
 			clr0,
-			uint8SliceToColor(img3.BasePixelsForTesting(), 0),
+			byteSliceToColor(img3.BasePixelsForTesting(), 0),
 		},
 	}
 	for _, c := range testCases {
@@ -285,7 +285,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 			if c.out[i] == '*' {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
-			got := uint8SliceToColor(c.image.BasePixelsForTesting(), i)
+			got := byteSliceToColor(c.image.BasePixelsForTesting(), i)
 			if got != want {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
 			}
@@ -336,7 +336,7 @@ func TestRestoreRecursive(t *testing.T) {
 			if c.out[i] == '*' {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
-			got := uint8SliceToColor(c.image.BasePixelsForTesting(), i)
+			got := byteSliceToColor(c.image.BasePixelsForTesting(), i)
 			if got != want {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
 			}
