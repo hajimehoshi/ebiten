@@ -693,7 +693,19 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 	}
 }
 
-func TestImage4096(t *testing.T) {
+func TestImageSize1(t *testing.T) {
+	src, _ := NewImage(1, 1, FilterNearest)
+	dst, _ := NewImage(1, 1, FilterNearest)
+	src.Fill(color.White)
+	dst.DrawImage(src, nil)
+	got := color.RGBAModel.Convert(src.At(0, 0)).(color.RGBA)
+	want := color.RGBAModel.Convert(color.White).(color.RGBA)
+	if !sameColors(got, want, 1) {
+		t.Errorf("got: %#v, want: %#v", got, want)
+	}
+}
+
+func TestImageSize4096(t *testing.T) {
 	src, _ := NewImage(4096, 4096, FilterNearest)
 	dst, _ := NewImage(4096, 4096, FilterNearest)
 	pix := make([]byte, 4096*4096*4)
