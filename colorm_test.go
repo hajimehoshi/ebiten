@@ -168,7 +168,7 @@ func TestColorMConcatSelf(t *testing.T) {
 	}
 }
 
-func abs(x uint32) uint32 {
+func absU32(x uint32) uint32 {
 	if x < 0 {
 		return -x
 	}
@@ -217,8 +217,8 @@ func TestColorMApply(t *testing.T) {
 		out := c.ColorM.Apply(c.In)
 		r0, g0, b0, a0 := out.RGBA()
 		r1, g1, b1, a1 := c.Out.RGBA()
-		if abs(r0-r1) > c.Delta || abs(g0-g1) > c.Delta ||
-			abs(b0-b1) > c.Delta || abs(a0-a1) > c.Delta {
+		if absU32(r0-r1) > c.Delta || absU32(g0-g1) > c.Delta ||
+			absU32(b0-b1) > c.Delta || absU32(a0-a1) > c.Delta {
 			println(r0, r1)
 			t.Errorf("%v.Apply(%v) = %v, want %v", c.ColorM, c.In, out, c.Out)
 		}

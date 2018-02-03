@@ -71,11 +71,23 @@ func openEbitenImage(path string) (*Image, image.Image, error) {
 	return eimg, img, nil
 }
 
-func diff(x, y uint8) uint8 {
-	if x <= y {
-		return y - x
+func abs(x int) int {
+	if x < 0 {
+		return -x
 	}
-	return x - y
+	return x
+}
+
+// sameColors compares c1 and c2 and returns a boolean value indicating
+// if the two colors are (almost) same.
+//
+// Pixels read from GPU might include errors (#492), and
+// sameColors considers such errors as delta.
+func sameColors(c1, c2 color.RGBA, delta int) bool {
+	return abs(int(c1.R)-int(c2.R)) <= delta &&
+		abs(int(c1.G)-int(c2.G)) <= delta &&
+		abs(int(c1.B)-int(c2.B)) <= delta &&
+		abs(int(c1.A)-int(c2.A)) <= delta
 }
 
 func TestImagePixels(t *testing.T) {
@@ -184,7 +196,7 @@ func TestImageComposition(t *testing.T) {
 		for i := 0; i < w; i++ {
 			c1 := img_12_3.At(i, j).(color.RGBA)
 			c2 := img_1_23.At(i, j).(color.RGBA)
-			if 1 < diff(c1.R, c2.R) || 1 < diff(c1.G, c2.G) || 1 < diff(c1.B, c2.B) || 1 < diff(c1.A, c2.A) {
+			if !sameColors(c1, c2, 1) {
 				t.Errorf("img_12_3.At(%d, %d) = %#v; img_1_23.At(%[1]d, %[2]d) = %#[4]v", i, j, c1, c2)
 			}
 			if c1.A == 0 {
@@ -603,7 +615,7 @@ func TestImageLinear(t *testing.T) {
 			c := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
 			got := c.G
 			want := uint8(0)
-			if got != want {
+			if abs(int(c.G)-int(want)) > 1 {
 				t.Errorf("dst At(%d, %d).G: got %#v, want: %#v", i, j, got, want)
 			}
 		}
