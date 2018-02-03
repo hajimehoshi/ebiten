@@ -561,7 +561,7 @@ func TestImageEdge(t *testing.T) {
 }
 
 func indexToColor(index int) uint8 {
-	return uint8((17 * index + 0x40) % 256)
+	return uint8((17*index + 0x40) % 256)
 }
 
 // Issue #419
