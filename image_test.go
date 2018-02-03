@@ -561,7 +561,7 @@ func TestImageEdge(t *testing.T) {
 }
 
 func indexToColor(index int) uint8 {
-	return uint8((17 * index) % 256)
+	return uint8((17 * index + 0x40) % 256)
 }
 
 // Issue #419
@@ -580,10 +580,10 @@ func TestImageTooManyFill(t *testing.T) {
 
 	for i := 0; i < width; i++ {
 		c := indexToColor(i)
-		got := color.RGBAModel.Convert(dst.At(i, 0))
+		got := color.RGBAModel.Convert(dst.At(i, 0)).(color.RGBA)
 		want := color.RGBA{c, c, c, 0xff}
-		if got != want {
-			t.Errorf("src At(%d, %d): got %#v, want: %#v", i, 0, got, want)
+		if !sameColors(got, want, 1) {
+			t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i, 0, got, want)
 		}
 	}
 }
