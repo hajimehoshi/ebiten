@@ -18,6 +18,7 @@ package twenty48
 
 import (
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 // Dir represents a direction.
@@ -79,8 +80,6 @@ func (d Dir) Vector() (x, y int) {
 
 // Input represents the current key states.
 type Input struct {
-	keyState map[ebiten.Key]int
-
 	mouseState    mouseState
 	mouseInitPosX int
 	mouseInitPosY int
@@ -97,19 +96,8 @@ type Input struct {
 
 // NewInput generates a new Input object.
 func NewInput() *Input {
-	return &Input{
-		keyState: map[ebiten.Key]int{},
-	}
+	return &Input{}
 }
-
-var (
-	dirKeys = map[ebiten.Key]Dir{
-		ebiten.KeyUp:    DirUp,
-		ebiten.KeyRight: DirRight,
-		ebiten.KeyDown:  DirDown,
-		ebiten.KeyLeft:  DirLeft,
-	}
-)
 
 func abs(x int) int {
 	if x < 0 {
@@ -137,13 +125,6 @@ func vecToDir(dx, dy int) (Dir, bool) {
 
 // Update updates the current input states.
 func (i *Input) Update() {
-	for k := range dirKeys {
-		if ebiten.IsKeyPressed(k) {
-			i.keyState[k]++
-		} else {
-			i.keyState[k] = 0
-		}
-	}
 	switch i.mouseState {
 	case mouseStateNone:
 		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
@@ -218,10 +199,17 @@ func (i *Input) Update() {
 // Dir returns a currently pressed direction.
 // Dir returns false if no direction key is pressed.
 func (i *Input) Dir() (Dir, bool) {
-	for k, d := range dirKeys {
-		if i.keyState[k] == 1 {
-			return d, true
-		}
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		return DirUp, true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		return DirLeft, true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+		return DirRight, true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		return DirDown, true
 	}
 	if i.mouseState == mouseStateSettled {
 		return i.mouseDir, true
