@@ -44,8 +44,8 @@ import (
 
 	"github.com/hajimehoshi/oto"
 
-	"github.com/hajimehoshi/ebiten/internal/audiobinding"
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -155,13 +155,24 @@ type Context struct {
 	initedCh   chan struct{}
 	pingCount  int
 	sampleRate int
-	m          sync.Mutex
+	err        error
+
+	m sync.Mutex
 }
 
 var (
 	theContext     *Context
 	theContextLock sync.Mutex
 )
+
+func init() {
+	hooks.AppendHookOnUpdate(func() error {
+		theContext.m.Lock()
+		err := theContext.err
+		theContext.m.Unlock()
+		return err
+	})
+}
 
 // NewContext creates a new audio context with the given sample rate.
 //
@@ -234,7 +245,7 @@ func (c *Context) loop() {
 	// but there are some known environment that is too short (e.g. Windows on Parallels, iOS).
 	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, 8192)
 	if err != nil {
-		audiobinding.SetError(err)
+		c.err = err
 		return
 	}
 	defer p.Close()
@@ -256,7 +267,7 @@ func (c *Context) loop() {
 
 		const n = 4096
 		if _, err := io.CopyN(p, c.players, n); err != nil {
-			audiobinding.SetError(err)
+			c.err = err
 			return
 		}
 
