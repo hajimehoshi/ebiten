@@ -50,7 +50,7 @@ func (i *inputState) update() {
 	i.m.Lock()
 	defer i.m.Unlock()
 
-	for k := ebiten.Key(0); k < ebiten.KeyMax; k++ {
+	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {
 			i.keyStates[k]++
 		} else {
