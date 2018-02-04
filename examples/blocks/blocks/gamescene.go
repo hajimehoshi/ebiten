@@ -25,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 var (
@@ -219,7 +220,7 @@ func (s *GameScene) Update(state *GameState) error {
 
 	if s.gameover {
 		// TODO: Gamepad key?
-		if state.Input.StateForKey(ebiten.KeySpace) == 1 {
+		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			state.SceneManager.GoTo(&TitleScene{})
 		}
 		return nil

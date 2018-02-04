@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 type GamepadScene struct {
@@ -34,7 +35,7 @@ func (s *GamepadScene) Update(state *GameState) error {
 	if s.currentIndex == 0 {
 		state.Input.gamepadConfig.Reset()
 	}
-	if state.Input.StateForKey(ebiten.KeyEscape) == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		state.Input.gamepadConfig.Reset()
 		state.SceneManager.GoTo(&TitleScene{})
 	}
