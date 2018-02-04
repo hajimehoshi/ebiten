@@ -28,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
 )
 
@@ -92,24 +93,6 @@ const (
 
 type Input struct {
 	mouseButtonState int
-}
-
-var theInput = &Input{}
-
-func (i *Input) Update() {
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		i.mouseButtonState++
-	} else {
-		i.mouseButtonState = 0
-	}
-}
-
-func (i *Input) IsMouseButtonPressed() bool {
-	return i.mouseButtonState > 0
-}
-
-func (i *Input) IsMouseButtonTriggered() bool {
-	return i.mouseButtonState == 1
 }
 
 func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.Rectangle) {
@@ -177,7 +160,7 @@ type Button struct {
 }
 
 func (b *Button) Update() {
-	if theInput.IsMouseButtonPressed() {
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		if b.Rect.Min.X <= x && x < b.Rect.Max.X && b.Rect.Min.Y <= y && y < b.Rect.Max.Y {
 			b.mouseDown = true
@@ -261,7 +244,7 @@ func (v *VScrollBar) ContentOffset() int {
 func (v *VScrollBar) Update(contentHeight int) {
 	v.thumbRate = float64(v.Height) / float64(contentHeight)
 
-	if !v.dragging && theInput.IsMouseButtonTriggered() {
+	if !v.dragging && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		tr := v.thumbRect()
 		if tr.Min.X <= x && x < tr.Max.X && tr.Min.Y <= y && y < tr.Max.Y {
@@ -271,7 +254,7 @@ func (v *VScrollBar) Update(contentHeight int) {
 		}
 	}
 	if v.dragging {
-		if theInput.IsMouseButtonPressed() {
+		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 			_, y := ebiten.CursorPosition()
 			v.thumbOffset = v.draggingStartOffset + (y - v.draggingStartY)
 			if v.thumbOffset < 0 {
@@ -409,7 +392,7 @@ func (c *CheckBox) width() int {
 }
 
 func (c *CheckBox) Update() {
-	if theInput.IsMouseButtonPressed() {
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		if c.X <= x && x < c.X+c.width() && c.Y <= y && y < c.Y+checkboxHeight {
 			c.mouseDown = true
@@ -489,8 +472,6 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
-	theInput.Update()
-
 	button1.Update()
 	button2.Update()
 	checkBox.Update()
