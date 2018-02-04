@@ -29,6 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
 )
 
@@ -209,19 +210,7 @@ var (
 		ebiten.KeyO,
 		ebiten.KeyL,
 	}
-	keyStates = map[ebiten.Key]int{}
 )
-
-// updateInput updates the input state.
-func updateInput() {
-	for _, key := range keys {
-		if !ebiten.IsKeyPressed(key) {
-			keyStates[key] = 0
-			continue
-		}
-		keyStates[key]++
-	}
-}
 
 func update(screen *ebiten.Image) error {
 	// The piano data is still being initialized.
@@ -235,9 +224,8 @@ func update(screen *ebiten.Image) error {
 	}
 
 	if pianoNoteSamplesInited {
-		updateInput()
 		for i, key := range keys {
-			if keyStates[key] != 1 {
+			if !inpututil.IsKeyJustPressed(key) {
 				continue
 			}
 			playNote(baseFreq * math.Exp2(float64(i-1)/12.0))
