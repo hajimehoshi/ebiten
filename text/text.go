@@ -14,8 +14,6 @@
 
 // Package text offers functions to draw texts on an Ebiten's image.
 //
-// Note: This package is experimental and API might be changed.
-//
 // For the example using a TTF font, see font package in the examples.
 package text
 
