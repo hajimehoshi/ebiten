@@ -45,7 +45,6 @@ const (
 	touchStatePressing
 	touchStateSettled
 	touchStateInvalid
-	n
 )
 
 // String returns a string representing the direction.
