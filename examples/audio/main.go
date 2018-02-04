@@ -31,6 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/audio/mp3"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
@@ -47,46 +48,8 @@ var (
 	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
 
-// Input manages the current input state to detect keys 'just pressed'.
-//
-// Note: 'just pressed' is a very common idiom.
-// There is a plan to create a new package for input utility.
-// See https://github.com/hajimehoshi/ebiten/issues/415.
-type Input struct {
-	mouseButtonStates map[ebiten.MouseButton]int
-	keyStates         map[ebiten.Key]int
-}
-
-func (i *Input) update() {
-	for _, key := range []ebiten.Key{ebiten.KeyP, ebiten.KeyS, ebiten.KeyX, ebiten.KeyZ, ebiten.KeyB} {
-		if !ebiten.IsKeyPressed(key) {
-			i.keyStates[key] = 0
-		} else {
-			i.keyStates[key]++
-		}
-	}
-	if !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		i.mouseButtonStates[ebiten.MouseButtonLeft] = 0
-	} else {
-		i.mouseButtonStates[ebiten.MouseButtonLeft]++
-	}
-}
-
-func (i *Input) isKeyJustPressed(key ebiten.Key) bool {
-	return i.keyStates[key] == 1
-}
-
-func (i *Input) isKeyPressed(key ebiten.Key) bool {
-	return i.keyStates[key] > 0
-}
-
-func (i *Input) isMouseButtonJustPressed(mouseButton ebiten.MouseButton) bool {
-	return i.mouseButtonStates[mouseButton] == 1
-}
-
 // Player represents the current audio state.
 type Player struct {
-	input        *Input
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
 	current      time.Duration
@@ -122,10 +85,6 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		return nil, err
 	}
 	player := &Player{
-		input: &Input{
-			mouseButtonStates: map[ebiten.MouseButton]int{},
-			keyStates:         map[ebiten.Key]int{},
-		},
 		audioContext: audioContext,
 		audioPlayer:  p,
 		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
@@ -153,7 +112,6 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 }
 
 func (p *Player) update() error {
-	p.input.update()
 	select {
 	case p.seBytes = <-p.seCh:
 		close(p.seCh)
@@ -169,7 +127,7 @@ func (p *Player) update() error {
 	p.playSEIfNeeded()
 	p.updateVolumeIfNeeded()
 
-	if p.input.isKeyJustPressed(ebiten.KeyB) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
 		b := ebiten.IsRunnableInBackground()
 		ebiten.SetRunnableInBackground(!b)
 	}
@@ -182,7 +140,7 @@ func (p *Player) playSEIfNeeded() {
 		return
 	}
 
-	if !p.input.isKeyJustPressed(ebiten.KeyP) {
+	if !inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		return
 	}
 	sePlayer, _ := audio.NewPlayerFromBytes(p.audioContext, p.seBytes)
@@ -190,10 +148,10 @@ func (p *Player) playSEIfNeeded() {
 }
 
 func (p *Player) updateVolumeIfNeeded() {
-	if p.input.isKeyPressed(ebiten.KeyZ) {
+	if ebiten.IsKeyPressed(ebiten.KeyZ) {
 		p.volume128--
 	}
-	if p.input.isKeyPressed(ebiten.KeyX) {
+	if ebiten.IsKeyPressed(ebiten.KeyX) {
 		p.volume128++
 	}
 	if p.volume128 < 0 {
@@ -206,7 +164,7 @@ func (p *Player) updateVolumeIfNeeded() {
 }
 
 func (p *Player) switchPlayStateIfNeeded() {
-	if !p.input.isKeyJustPressed(ebiten.KeyS) {
+	if !inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		return
 	}
 	if p.audioPlayer.IsPlaying() {
@@ -217,7 +175,7 @@ func (p *Player) switchPlayStateIfNeeded() {
 }
 
 func (p *Player) seekBarIfNeeded() {
-	if !p.input.isMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return
 	}
 

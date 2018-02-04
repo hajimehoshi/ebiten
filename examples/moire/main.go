@@ -23,19 +23,13 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
 	screenWidth     = 640
 	screenHeight    = 480
 	initScreenScale = 1
-)
-
-var (
-	keyStates = map[ebiten.Key]int{
-		ebiten.KeyS: 0,
-		ebiten.KeyF: 0,
-	}
 )
 
 var (
@@ -65,17 +59,10 @@ func getDots(width, height int) []uint8 {
 }
 
 func update(screen *ebiten.Image) error {
-	for key := range keyStates {
-		if !ebiten.IsKeyPressed(key) {
-			keyStates[key] = 0
-			continue
-		}
-		keyStates[key]++
-	}
 	screenScale := ebiten.ScreenScale()
 	fullscreen := ebiten.IsFullscreen()
 
-	if keyStates[ebiten.KeyS] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		switch screenScale {
 		case 1:
 			screenScale = 1.5
@@ -87,7 +74,7 @@ func update(screen *ebiten.Image) error {
 			panic("not reached")
 		}
 	}
-	if keyStates[ebiten.KeyF] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		fullscreen = !fullscreen
 	}
 	ebiten.SetScreenScale(screenScale)
