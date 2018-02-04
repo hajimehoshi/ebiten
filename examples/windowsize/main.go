@@ -28,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 func init() {
@@ -42,18 +43,7 @@ const (
 
 var (
 	gophersImage *ebiten.Image
-	keyStates    = map[ebiten.Key]int{
-		ebiten.KeyUp:    0,
-		ebiten.KeyDown:  0,
-		ebiten.KeyLeft:  0,
-		ebiten.KeyRight: 0,
-		ebiten.KeyS:     0,
-		ebiten.KeyF:     0,
-		ebiten.KeyB:     0,
-		ebiten.KeyC:     0,
-		ebiten.KeyI:     0,
-	}
-	count = 0
+	count        = 0
 )
 
 func createRandomIconImage() image.Image {
@@ -76,13 +66,6 @@ func createRandomIconImage() image.Image {
 }
 
 func update(screen *ebiten.Image) error {
-	for key := range keyStates {
-		if !ebiten.IsKeyPressed(key) {
-			keyStates[key] = 0
-			continue
-		}
-		keyStates[key]++
-	}
 	screenScale := ebiten.ScreenScale()
 	d := int(32 / screenScale)
 	screenWidth, screenHeight := screen.Size()
@@ -90,23 +73,23 @@ func update(screen *ebiten.Image) error {
 	runnableInBackground := ebiten.IsRunnableInBackground()
 	cursorVisible := ebiten.IsCursorVisible()
 
-	if keyStates[ebiten.KeyUp] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		screenHeight += d
 	}
-	if keyStates[ebiten.KeyDown] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
 		if 16 < screenHeight && d < screenHeight {
 			screenHeight -= d
 		}
 	}
-	if keyStates[ebiten.KeyLeft] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		if 16 < screenWidth && d < screenWidth {
 			screenWidth -= d
 		}
 	}
-	if keyStates[ebiten.KeyRight] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		screenWidth += d
 	}
-	if keyStates[ebiten.KeyS] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		switch screenScale {
 		case 1:
 			screenScale = 1.5
@@ -118,13 +101,13 @@ func update(screen *ebiten.Image) error {
 			panic("not reached")
 		}
 	}
-	if keyStates[ebiten.KeyF] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		fullscreen = !fullscreen
 	}
-	if keyStates[ebiten.KeyB] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
 		runnableInBackground = !runnableInBackground
 	}
-	if keyStates[ebiten.KeyC] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		cursorVisible = !cursorVisible
 	}
 	ebiten.SetScreenSize(screenWidth, screenHeight)
@@ -133,7 +116,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisible(cursorVisible)
 
-	if keyStates[ebiten.KeyI] == 1 {
+	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 	}
 
