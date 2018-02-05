@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/tiles.png">
+<meta name="description" content="Ebiten example - tiles">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - tiles</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - tiles</h2>
+  <iframe src="tiles.content.html" width="480" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;fmt&#34;
+        &#34;image&#34;
+        &#34;log&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+const (
+        screenWidth  = 240
+        screenHeight = 240
+)
+
+const (
+        tileSize = 16
+        tileXNum = 25
+)
+
+var (
+        tilesImage *ebiten.Image
+)
+
+func init() {
+        var err error
+        tilesImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/tiles.png&#34;, ebiten.FilterNearest)
+        if err != nil {
+                log.Fatal(err)
+        }
+}
+
+var (
+        layers = [][]int{
+                {
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 218, 243, 243, 243, 243, 243, 243, 243, 243, 243, 218, 243, 244, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 244, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 219, 243, 243, 243, 219, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                        243, 218, 243, 243, 243, 243, 243, 243, 243, 243, 243, 244, 243, 243, 243,
+                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
+                },
+                {
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 26, 27, 28, 29, 30, 31, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 51, 52, 53, 54, 55, 56, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 76, 77, 78, 79, 80, 81, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 101, 102, 103, 104, 105, 106, 0, 0, 0, 0,
+
+                        0, 0, 0, 0, 0, 126, 127, 128, 129, 130, 131, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 303, 303, 245, 242, 303, 303, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
+                },
+        }
+)
+
+func update(screen *ebiten.Image) error {
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+
+        // Draw each tile with each DrawImage call.
+        // As the source images of all DrawImage calls are always same,
+        // this rendering is done very effectively.
+        // For more detail, see https://godoc.org/github.com/hajimehoshi/ebiten#Image.DrawImage
+        const xNum = screenWidth / tileSize
+        for _, l := range layers {
+                for i, t := range l {
+                        op := &amp;ebiten.DrawImageOptions{}
+                        op.GeoM.Translate(float64((i%xNum)*tileSize), float64((i/xNum)*tileSize))
+
+                        sx := (t % tileXNum) * tileSize
+                        sy := (t / tileXNum) * tileSize
+                        r := image.Rect(sx, sy, sx&#43;tileSize, sy&#43;tileSize)
+                        op.SourceRect = &amp;r
+                        screen.DrawImage(tilesImage, op)
+                }
+        }
+
+        ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %0.2f&#34;, ebiten.CurrentFPS()))
+
+        return nil
+}
+
+func main() {
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Tiles (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>

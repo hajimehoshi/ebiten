@@ -206,6 +206,7 @@ var (
 		{Name: "perspective", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "rotate", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "sprites", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "tiles", ThumbWidth: 240, ThumbHeight: 240},
 	}
 	inputExamples = []example{
 		{Name: "gamepad", ThumbWidth: 320, ThumbHeight: 240},
