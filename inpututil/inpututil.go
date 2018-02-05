@@ -50,6 +50,7 @@ func (i *inputState) update() {
 	i.m.Lock()
 	defer i.m.Unlock()
 
+	// Keyboard
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {
 			i.keyStates[k]++
@@ -58,6 +59,7 @@ func (i *inputState) update() {
 		}
 	}
 
+	// Mouse
 	for _, b := range []ebiten.MouseButton{
 		ebiten.MouseButtonLeft,
 		ebiten.MouseButtonRight,
@@ -70,7 +72,10 @@ func (i *inputState) update() {
 		}
 	}
 
+	// Gamepads
+	ids := map[int]struct{}{}
 	for _, id := range ebiten.GamepadIDs() {
+		ids[id] = struct{}{}
 		if _, ok := i.gamepadButtonStates[id]; !ok {
 			i.gamepadButtonStates[id] = map[ebiten.GamepadButton]int{}
 		}
@@ -83,13 +88,23 @@ func (i *inputState) update() {
 			}
 		}
 	}
+	idsToDelete := []int{}
+	for id := range i.gamepadButtonStates {
+		if _, ok := ids[id]; !ok {
+			idsToDelete = append(idsToDelete, id)
+		}
+	}
+	for _, id := range idsToDelete {
+		delete(i.gamepadButtonStates, id)
+	}
 
-	ids := map[int]struct{}{}
+	// Touches
+	ids = map[int]struct{}{}
 	for _, t := range ebiten.Touches() {
 		ids[t.ID()] = struct{}{}
 		i.touchStates[t.ID()]++
 	}
-	idsToDelete := []int{}
+	idsToDelete = []int{}
 	for id := range i.touchStates {
 		if _, ok := ids[id]; !ok {
 			idsToDelete = append(idsToDelete, id)
