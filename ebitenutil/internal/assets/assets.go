@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go-bindata -nocompress -pkg=assets text.png
+//go:generate file2byteslice -input text.png -output bindata.go -package assets -var textPng
 //go:generate gofmt -s -w .
 
 package assets
@@ -32,8 +32,7 @@ const (
 )
 
 func TextImage() image.Image {
-	b := MustAsset("text.png")
-	img, _, err := image.Decode(bytes.NewBuffer(b))
+	img, _, err := image.Decode(bytes.NewBuffer(textPng))
 	if err != nil {
 		panic(fmt.Sprintf("assets: image.Decode failed, %v", err))
 	}
