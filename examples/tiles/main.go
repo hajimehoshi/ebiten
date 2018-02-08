@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"image"
+	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
