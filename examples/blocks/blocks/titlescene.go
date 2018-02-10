@@ -18,6 +18,7 @@ package blocks
 
 import (
 	"image/color"
+	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"

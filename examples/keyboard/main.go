@@ -17,6 +17,7 @@
 package main
 
 import (
+	_ "image/png"
 	"log"
 	"strconv"
 

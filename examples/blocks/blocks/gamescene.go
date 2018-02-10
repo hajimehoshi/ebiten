@@ -19,6 +19,7 @@ package blocks
 import (
 	"image/color"
 	_ "image/jpeg"
+	_ "image/png"
 	"math/rand"
 	"strconv"
 	"time"

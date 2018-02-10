@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
