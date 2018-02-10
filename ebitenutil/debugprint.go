@@ -54,15 +54,18 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, ox, oy int, c c
 	op.ColorM.Scale(r, g, b, a)
 	x := 0
 	y := 0
+	w, _ := d.textImage.Size()
 	for _, c := range str {
-		const cw = assets.TextImageCharWidth
-		const ch = assets.TextImageCharHeight
+		const (
+			cw = assets.CharWidth
+			ch = assets.CharHeight
+		)
 		if c == '\n' {
 			x = 0
 			y += ch
 			continue
 		}
-		const n = assets.TextImageWidth / cw
+		n := w / cw
 		sx := (int(c) % n) * cw
 		sy := (int(c) / n) * ch
 		r := image.Rect(sx, sy, sx+cw, sy+ch)
@@ -78,7 +81,7 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, ox, oy int, c c
 // DebugPrint prints the given text str on the given image r.
 func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
 	if d.textImage == nil {
-		img := assets.TextImage()
+		img := assets.CreateTextImage()
 		d.textImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterNearest)
 	}
 	if d.debugPrintRenderTarget == nil {

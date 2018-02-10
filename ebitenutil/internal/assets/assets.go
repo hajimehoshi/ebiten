@@ -25,13 +25,11 @@ import (
 )
 
 const (
-	TextImageWidth      = 192
-	TextImageHeight     = 128
-	TextImageCharWidth  = TextImageWidth / 32
-	TextImageCharHeight = TextImageHeight / 8
+	CharWidth  = 6
+	CharHeight = 16
 )
 
-func TextImage() image.Image {
+func CreateTextImage() image.Image {
 	img, _, err := image.Decode(bytes.NewBuffer(textPng))
 	if err != nil {
 		panic(fmt.Sprintf("assets: image.Decode failed, %v", err))
