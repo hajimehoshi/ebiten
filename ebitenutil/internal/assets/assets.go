@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate go run png2rgba.go -input text.png -output /tmp/compressedTextRGBA
+//go:generate png2compressedrgba -input text.png -output /tmp/compressedTextRGBA
 //go:generate file2byteslice -input /tmp/compressedTextRGBA -output textrgba.go -package assets -var compressedTextRGBA
 //go:generate gofmt -s -w .
 
