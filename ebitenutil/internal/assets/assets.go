@@ -12,27 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate file2byteslice -input text.png -output bindata.go -package assets -var textPng
+//go:generate go run png2rgba.go -input text.png -output /tmp/compressedTextRGBA
+//go:generate file2byteslice -input /tmp/compressedTextRGBA -output textrgba.go -package assets -var compressedTextRGBA
 //go:generate gofmt -s -w .
 
 package assets
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"image"
-	_ "image/png"
+	"io/ioutil"
 )
 
 const (
+	imgWidth  = 192
+	imgHeight = 128
+
 	CharWidth  = 6
 	CharHeight = 16
 )
 
 func CreateTextImage() image.Image {
-	img, _, err := image.Decode(bytes.NewBuffer(textPng))
+	s, err := gzip.NewReader(bytes.NewReader(compressedTextRGBA))
 	if err != nil {
-		panic(fmt.Sprintf("assets: image.Decode failed, %v", err))
+		panic(fmt.Sprintf("assets: gzip.NewReader failed: %v", err))
 	}
-	return img
+	defer s.Close()
+
+	pix, err := ioutil.ReadAll(s)
+	if err != nil {
+		panic(fmt.Sprintf("assets: ioutil.ReadAll failed: %v", err))
+	}
+	return &image.RGBA{
+		Pix:    pix,
+		Stride: 4 * imgWidth,
+		Rect:   image.Rect(0, 0, imgWidth, imgHeight),
+	}
 }
