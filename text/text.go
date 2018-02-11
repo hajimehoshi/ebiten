@@ -124,6 +124,10 @@ func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x) / (1 << 6)
 }
 
+var (
+	colorMCache = map[color.Color]ebiten.ColorM{}
+)
+
 func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	cr, cg, cb, ca := clr.RGBA()
 	if ca == 0 {
@@ -134,11 +138,17 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(fixed26_6ToFloat64(x+b.Min.X), fixed26_6ToFloat64(y+b.Min.Y))
 
-	rf := float64(cr) / float64(ca)
-	gf := float64(cg) / float64(ca)
-	bf := float64(cb) / float64(ca)
-	af := float64(ca) / 0xffff
-	op.ColorM.Scale(rf, gf, bf, af)
+	cm, ok := colorMCache[clr]
+	if !ok {
+		rf := float64(cr) / float64(ca)
+		gf := float64(cg) / float64(ca)
+		bf := float64(cb) / float64(ca)
+		af := float64(ca) / 0xffff
+		cm.Reset()
+		cm.Scale(rf, gf, bf, af)
+		colorMCache[clr] = cm
+	}
+	op.ColorM = cm
 
 	a := atlases[g.char.face][g.char.atlasGroup()]
 	sx, sy := a.at(g)
