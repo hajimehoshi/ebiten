@@ -40,28 +40,23 @@ func now() int64 {
 	return monotonicClock
 }
 
-type face struct {
-	f font.Face
-}
-
 var (
-	faces = map[font.Face]face{}
+	faces = map[font.Face]struct{}{}
 )
 
-func fontFaceToFace(f font.Face) face {
-	if fa, ok := faces[f]; ok {
-		return fa
+func fontFaceToFace(f font.Face) font.Face {
+	if _, ok := faces[f]; ok {
+		return f
 	}
 	// If the (DeepEqual-ly) same font exists,
 	// reuse this to avoid to consume a lot of cache (#498).
-	for key, value := range faces {
+	for key := range faces {
 		if reflect.DeepEqual(key, f) {
-			return value
+			return key
 		}
 	}
-	fa := face{f}
-	faces[f] = fa
-	return fa
+	faces[f] = struct{}{}
+	return f
 }
 
 var (
@@ -69,20 +64,20 @@ var (
 )
 
 type char struct {
-	face face
+	face font.Face
 	rune rune
 }
 
 func (c *char) bounds() (minX, minY, maxX, maxY fixed.Int26_6) {
-	if m, ok := charBounds[c.face.f]; ok {
+	if m, ok := charBounds[c.face]; ok {
 		if b, ok := m[c.rune]; ok {
 			return b.Min.X, b.Min.Y, b.Max.X, b.Max.Y
 		}
 	} else {
-		charBounds[c.face.f] = map[rune]fixed.Rectangle26_6{}
+		charBounds[c.face] = map[rune]fixed.Rectangle26_6{}
 	}
-	b, _, _ := c.face.f.GlyphBounds(c.rune)
-	charBounds[c.face.f][c.rune] = b
+	b, _, _ := c.face.GlyphBounds(c.rune)
+	charBounds[c.face][c.rune] = b
 	return b.Min.X, b.Min.Y, b.Max.X, b.Max.Y
 }
 
@@ -138,7 +133,7 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	af := float64(ca) / 0xffff
 	op.ColorM.Scale(rf, gf, bf, af)
 
-	a := atlases[g.char.face.f][g.char.atlasGroup()]
+	a := atlases[g.char.face][g.char.atlasGroup()]
 	sx, sy := a.at(g)
 	r := image.Rect(sx, sy, sx+a.glyphSize, sy+a.glyphSize)
 	op.SourceRect = &r
@@ -181,7 +176,7 @@ func (a *atlas) maxGlyphNum() int {
 	return xnum * ynum
 }
 
-func (a *atlas) appendGlyph(face face, rune rune, now int64) *glyph {
+func (a *atlas) appendGlyph(face font.Face, rune rune, now int64) *glyph {
 	g := &glyph{
 		char:  char{face, rune},
 		atime: now,
@@ -219,7 +214,7 @@ func (a *atlas) draw(glyph *glyph) {
 	d := font.Drawer{
 		Dst:  dst,
 		Src:  image.White,
-		Face: glyph.char.face.f,
+		Face: glyph.char.face,
 	}
 	minX, minY, _, _ := glyph.char.bounds()
 	d.Dot = fixed.Point26_6{-minX, -minY}
@@ -235,10 +230,10 @@ func (a *atlas) draw(glyph *glyph) {
 	a.tmpImage.Clear()
 }
 
-func getGlyphFromCache(face face, r rune, now int64) *glyph {
+func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 	ch := char{face, r}
 	var at *atlas
-	if m, ok := atlases[face.f]; ok {
+	if m, ok := atlases[face]; ok {
 		a, ok := m[ch.atlasGroup()]
 		if ok {
 			g, ok := a.runeToGlyph[r]
@@ -249,7 +244,7 @@ func getGlyphFromCache(face face, r rune, now int64) *glyph {
 		}
 		at = a
 	} else {
-		atlases[face.f] = map[int]*atlas{}
+		atlases[face] = map[int]*atlas{}
 	}
 
 	if ch.empty() {
@@ -279,7 +274,7 @@ func getGlyphFromCache(face face, r rune, now int64) *glyph {
 			glyphSize:   ch.atlasGroup(),
 			runeToGlyph: map[rune]*glyph{},
 		}
-		atlases[face.f][ch.atlasGroup()] = at
+		atlases[face][ch.atlasGroup()] = at
 	}
 
 	return at.appendGlyph(ch.face, ch.rune, now)
