@@ -59,9 +59,9 @@ func fontFaceToFace(f font.Face) face {
 			return value
 		}
 	}
-	fe := face{f}
-	faces[f] = fe
-	return fe
+	fa := face{f}
+	faces[f] = fa
+	return fa
 }
 
 var (
@@ -232,8 +232,8 @@ func (a *atlas) draw(glyph *glyph) {
 	a.tmpImage.Clear()
 }
 
-func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
-	ch := char{fontFaceToFace(face), r}
+func getGlyphFromCache(face face, r rune, now int64) *glyph {
+	ch := char{face, r}
 	a, ok := atlases[ch.atlasGroup()]
 	if ok {
 		g, ok := a.charToGlyph[ch]
@@ -301,7 +301,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		if prevC >= 0 {
 			fx += face.Kern(prevC, c)
 		}
-		if g := getGlyphFromCache(face, c, n); g != nil {
+		fa := fontFaceToFace(face)
+		if g := getGlyphFromCache(fa, c, n); g != nil {
 			if !g.char.empty() {
 				g.draw(dst, fx, fixed.I(y), clr)
 			}
