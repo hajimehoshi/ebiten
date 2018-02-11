@@ -21,6 +21,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"reflect"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -39,12 +40,36 @@ func now() int64 {
 	return monotonicClock
 }
 
+type face struct {
+	f font.Face
+}
+
+var (
+	faces = map[font.Face]face{}
+)
+
+func fontFaceToFace(f font.Face) face {
+	if fa, ok := faces[f]; ok {
+		return fa
+	}
+	// If the (DeepEqual-ly) same font exists,
+	// reuse this to avoid to consume a lot of cache (#498).
+	for key, value := range faces {
+		if reflect.DeepEqual(key, f) {
+			return value
+		}
+	}
+	fe := face{f}
+	faces[f] = fe
+	return fe
+}
+
 var (
 	charBounds = map[char]fixed.Rectangle26_6{}
 )
 
 type char struct {
-	face font.Face
+	face face
 	rune rune
 }
 
@@ -52,7 +77,7 @@ func (c *char) bounds() fixed.Rectangle26_6 {
 	if b, ok := charBounds[*c]; ok {
 		return b
 	}
-	b, _, _ := c.face.GlyphBounds(c.rune)
+	b, _, _ := c.face.f.GlyphBounds(c.rune)
 	charBounds[*c] = b
 	return b
 }
@@ -153,7 +178,7 @@ func (a *atlas) maxGlyphNum() int {
 	return xnum * ynum
 }
 
-func (a *atlas) appendGlyph(face font.Face, rune rune, now int64) *glyph {
+func (a *atlas) appendGlyph(face face, rune rune, now int64) *glyph {
 	g := &glyph{
 		char:  char{face, rune},
 		atime: now,
@@ -191,7 +216,7 @@ func (a *atlas) draw(glyph *glyph) {
 	d := font.Drawer{
 		Dst:  dst,
 		Src:  image.White,
-		Face: glyph.char.face,
+		Face: glyph.char.face.f,
 	}
 	b := glyph.char.bounds()
 	d.Dot = fixed.Point26_6{-b.Min.X, -b.Min.Y}
@@ -208,7 +233,7 @@ func (a *atlas) draw(glyph *glyph) {
 }
 
 func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
-	ch := char{face, r}
+	ch := char{fontFaceToFace(face), r}
 	a, ok := atlases[ch.atlasGroup()]
 	if ok {
 		g, ok := a.charToGlyph[ch]
