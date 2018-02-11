@@ -65,7 +65,7 @@ func fontFaceToFace(f font.Face) face {
 }
 
 var (
-	charBounds = map[char]fixed.Rectangle26_6{}
+	charBounds = map[font.Face]map[rune]fixed.Rectangle26_6{}
 )
 
 type char struct {
@@ -74,11 +74,15 @@ type char struct {
 }
 
 func (c *char) bounds() fixed.Rectangle26_6 {
-	if b, ok := charBounds[*c]; ok {
-		return b
+	if m, ok := charBounds[c.face.f]; ok {
+		if b, ok := m[c.rune]; ok {
+			return b
+		}
+	} else {
+		charBounds[c.face.f] = map[rune]fixed.Rectangle26_6{}
 	}
 	b, _, _ := c.face.f.GlyphBounds(c.rune)
-	charBounds[*c] = b
+	charBounds[c.face.f][c.rune] = b
 	return b
 }
 
@@ -135,7 +139,7 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	af := float64(ca) / 0xffff
 	op.ColorM.Scale(rf, gf, bf, af)
 
-	a := atlases[g.char.atlasGroup()]
+	a := atlases[g.char.face.f][g.char.atlasGroup()]
 	sx, sy := a.at(g)
 	r := image.Rect(sx, sy, sx+a.glyphSize, sy+a.glyphSize)
 	op.SourceRect = &r
@@ -144,7 +148,7 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 }
 
 var (
-	atlases = map[int]*atlas{}
+	atlases = map[font.Face]map[int]*atlas{}
 )
 
 type atlas struct {
@@ -158,7 +162,7 @@ type atlas struct {
 	// This value is always power of 2.
 	glyphSize int
 
-	charToGlyph map[char]*glyph
+	runeToGlyph map[rune]*glyph
 }
 
 func (a *atlas) at(glyph *glyph) (int, int) {
@@ -183,10 +187,10 @@ func (a *atlas) appendGlyph(face face, rune rune, now int64) *glyph {
 		char:  char{face, rune},
 		atime: now,
 	}
-	if len(a.charToGlyph) == a.maxGlyphNum() {
+	if len(a.runeToGlyph) == a.maxGlyphNum() {
 		var oldest *glyph
 		t := int64(math.MaxInt64)
-		for _, g := range a.charToGlyph {
+		for _, g := range a.runeToGlyph {
 			if g.atime < t {
 				t = g.atime
 				oldest = g
@@ -196,13 +200,13 @@ func (a *atlas) appendGlyph(face face, rune rune, now int64) *glyph {
 			panic("not reached")
 		}
 		idx := oldest.index
-		delete(a.charToGlyph, oldest.char)
+		delete(a.runeToGlyph, oldest.char.rune)
 
 		g.index = idx
 	} else {
-		g.index = len(a.charToGlyph)
+		g.index = len(a.runeToGlyph)
 	}
-	a.charToGlyph[g.char] = g
+	a.runeToGlyph[g.char.rune] = g
 	a.draw(g)
 	return g
 }
@@ -234,13 +238,19 @@ func (a *atlas) draw(glyph *glyph) {
 
 func getGlyphFromCache(face face, r rune, now int64) *glyph {
 	ch := char{face, r}
-	a, ok := atlases[ch.atlasGroup()]
-	if ok {
-		g, ok := a.charToGlyph[ch]
+	var at *atlas
+	if m, ok := atlases[face.f]; ok {
+		a, ok := m[ch.atlasGroup()]
 		if ok {
-			g.atime = now
-			return g
+			g, ok := a.runeToGlyph[r]
+			if ok {
+				g.atime = now
+				return g
+			}
 		}
+		at = a
+	} else {
+		atlases[face.f] = map[int]*atlas{}
 	}
 
 	if ch.empty() {
@@ -252,7 +262,7 @@ func getGlyphFromCache(face face, r rune, now int64) *glyph {
 		}
 	}
 
-	if !ok {
+	if at == nil {
 		// Don't use ebiten.MaxImageSize here.
 		// It's because the back-end image pixels will be restored from GPU
 		// whenever a new glyph is rendered on the image, and restoring cost is
@@ -265,15 +275,15 @@ func getGlyphFromCache(face face, r rune, now int64) *glyph {
 		// TODO: How about making a new function for 'flagile' image?
 		const size = 1024
 		i, _ := ebiten.NewImage(size, size, ebiten.FilterNearest)
-		a = &atlas{
+		at = &atlas{
 			image:       i,
 			glyphSize:   ch.atlasGroup(),
-			charToGlyph: map[char]*glyph{},
+			runeToGlyph: map[rune]*glyph{},
 		}
-		atlases[ch.atlasGroup()] = a
+		atlases[face.f][ch.atlasGroup()] = at
 	}
 
-	return a.appendGlyph(ch.face, ch.rune, now)
+	return at.appendGlyph(ch.face, ch.rune, now)
 }
 
 var textM sync.Mutex
