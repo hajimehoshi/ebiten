@@ -167,7 +167,8 @@ func (s *GameScene) drawBackground(r *ebiten.Image) {
 	op.GeoM.Translate(ScreenWidth/2, ScreenHeight/2)
 
 	a := 0.7
-	m := ebiten.Monochrome()
+	m := ebiten.ColorM{}
+	m.ChangeHSV(0, 0, 1)
 	m.Scale(a, a, a, a)
 	op.ColorM.Scale(1-a, 1-a, 1-a, 1-a)
 	op.ColorM.Add(m)

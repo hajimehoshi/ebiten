@@ -131,7 +131,8 @@ func TestColorMMonochrome(t *testing.T) {
 		{0.2990, 0.5870, 0.1140, 0, 0},
 		{0, 0, 0, 1, 0},
 	}
-	m := Monochrome()
+	m := ColorM{}
+	m.ChangeHSV(0, 0, 1)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 5; j++ {
 			got := m.Element(i, j)
