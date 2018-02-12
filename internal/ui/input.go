@@ -31,9 +31,14 @@ func (i *Input) CursorPosition() (x, y int) {
 	return adjustCursorPosition(i.cursorX, i.cursorY)
 }
 
+var emptyIDs = []int{}
+
 func (i *Input) GamepadIDs() []int {
 	i.m.RLock()
 	defer i.m.RUnlock()
+	if len(i.gamepads) == 0 {
+		return emptyIDs
+	}
 	r := []int{}
 	for id, g := range i.gamepads {
 		if g.valid {
