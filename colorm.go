@@ -87,7 +87,11 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 
 // Element returns a value of a matrix at (i, j).
 func (c *ColorM) Element(i, j int) float64 {
-	return c.impl.UnsafeElements()[i*affine.ColorMDim+j]
+	b, t := c.impl.UnsafeElements()
+	if j < ColorMDim-1 {
+		return b[i*(ColorMDim-1)+j]
+	}
+	return t[i]
 }
 
 // SetElement sets an element at (i, j).

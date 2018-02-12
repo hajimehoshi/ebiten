@@ -264,19 +264,14 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		copy(s.lastProjectionMatrix, proj)
 	}
 
-	e := [4][5]float32{}
-	es := colorM.UnsafeElements()
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 5; j++ {
-			e[i][j] = float32(es[i*affine.ColorMDim+j])
-		}
-	}
+	esBody, esTranslate := colorM.UnsafeElements()
 
-	colorMatrix := []float32{
-		e[0][0], e[1][0], e[2][0], e[3][0],
-		e[0][1], e[1][1], e[2][1], e[3][1],
-		e[0][2], e[1][2], e[2][2], e[3][2],
-		e[0][3], e[1][3], e[2][3], e[3][3],
+	// transpose
+	colorMatrix := make([]float32, (affine.ColorMDim-1)*(affine.ColorMDim-1))
+	for i := 0; i < affine.ColorMDim-1; i++ {
+		for j := 0; j < affine.ColorMDim-1; j++ {
+			colorMatrix[i+j*(affine.ColorMDim-1)] = float32(esBody[i*(affine.ColorMDim-1)+j])
+		}
 	}
 	if !areSameFloat32Array(s.lastColorMatrix, colorMatrix) {
 		c.UniformFloats(program, "color_matrix", colorMatrix)
@@ -286,7 +281,10 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		copy(s.lastColorMatrix, colorMatrix)
 	}
 	colorMatrixTranslation := []float32{
-		e[0][4], e[1][4], e[2][4], e[3][4],
+		float32(esTranslate[0]),
+		float32(esTranslate[1]),
+		float32(esTranslate[2]),
+		float32(esTranslate[3]),
 	}
 	if !areSameFloat32Array(s.lastColorMatrixTranslation, colorMatrixTranslation) {
 		c.UniformFloats(program, "color_matrix_translation", colorMatrixTranslation)

@@ -25,16 +25,13 @@ func add(lhs, rhs []float64, dim int) []float64 {
 	return result
 }
 
-func mul(lhs, rhs []float64, dim int) []float64 {
+func mulSquare(lhs, rhs []float64, dim int) []float64 {
 	result := make([]float64, len(lhs))
-	for i := 0; i < dim-1; i++ {
+	for i := 0; i < dim; i++ {
 		for j := 0; j < dim; j++ {
 			e := 0.0
-			for k := 0; k < dim-1; k++ {
+			for k := 0; k < dim; k++ {
 				e += lhs[i*dim+k] * rhs[k*dim+j]
-			}
-			if j == dim-1 {
-				e += lhs[i*dim+j]
 			}
 			result[i*dim+j] = e
 		}
