@@ -40,28 +40,15 @@ func now() int64 {
 	return monotonicClock
 }
 
-var (
-	faces = map[font.Face]struct{}{}
-)
+type cacheEntry struct {
+	// Use pointers to avoid copying on browsers.
+	bounds map[rune]*fixed.Rectangle26_6
 
-func fontFaceToFace(f font.Face) font.Face {
-	if _, ok := faces[f]; ok {
-		return f
-	}
-	// If the (DeepEqual-ly) same font exists,
-	// reuse this to avoid to consume a lot of cache (#498).
-	for key := range faces {
-		if reflect.DeepEqual(key, f) {
-			return key
-		}
-	}
-	faces[f] = struct{}{}
-	return f
+	atlases map[int]*atlas
 }
 
 var (
-	// Use pointers to avoid copying on browsers.
-	charBounds = map[font.Face]map[rune]*fixed.Rectangle26_6{}
+	cache = map[font.Face]*cacheEntry{}
 )
 
 type char struct {
@@ -71,15 +58,12 @@ type char struct {
 }
 
 func (c *char) bounds() *fixed.Rectangle26_6 {
-	if m, ok := charBounds[c.face]; ok {
-		if b, ok := m[c.rune]; ok {
-			return b
-		}
-	} else {
-		charBounds[c.face] = map[rune]*fixed.Rectangle26_6{}
+	e := cache[c.face]
+	if b, ok := e.bounds[c.rune]; ok {
+		return b
 	}
 	b, _, _ := c.face.GlyphBounds(c.rune)
-	charBounds[c.face][c.rune] = &b
+	e.bounds[c.rune] = &b
 	return &b
 }
 
@@ -180,17 +164,13 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	}
 	op.ColorM = e.m
 
-	a := atlases[g.char.face][g.char.atlasGroup()]
+	a := cache[g.char.face].atlases[g.char.atlasGroup()]
 	sx, sy := a.at(g)
 	r := image.Rect(sx, sy, sx+a.glyphSize, sy+a.glyphSize)
 	op.SourceRect = &r
 
 	dst.DrawImage(a.image, op)
 }
-
-var (
-	atlases = map[font.Face]map[int]*atlas{}
-)
 
 type atlas struct {
 	// image is the back-end image to hold glyph cache.
@@ -282,19 +262,13 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 		face: face,
 		rune: r,
 	}
-	var at *atlas
-	if m, ok := atlases[face]; ok {
-		a, ok := m[ch.atlasGroup()]
+	at, ok := cache[face].atlases[ch.atlasGroup()]
+	if ok {
+		g, ok := at.runeToGlyph[r]
 		if ok {
-			g, ok := a.runeToGlyph[r]
-			if ok {
-				g.atime = now
-				return g
-			}
+			g.atime = now
+			return g
 		}
-		at = a
-	} else {
-		atlases[face] = map[int]*atlas{}
 	}
 
 	if ch.empty() {
@@ -324,10 +298,28 @@ func getGlyphFromCache(face font.Face, r rune, now int64) *glyph {
 			glyphSize:   ch.atlasGroup(),
 			runeToGlyph: map[rune]*glyph{},
 		}
-		atlases[face][ch.atlasGroup()] = at
+		cache[face].atlases[ch.atlasGroup()] = at
 	}
 
 	return at.appendGlyph(ch, now)
+}
+
+func uniqFace(f font.Face) font.Face {
+	if _, ok := cache[f]; ok {
+		return f
+	}
+	// If the (DeepEqual-ly) same font exists,
+	// reuse this to avoid to consume a lot of cache (#498).
+	for key := range cache {
+		if reflect.DeepEqual(key, f) {
+			return key
+		}
+	}
+	cache[f] = &cacheEntry{
+		bounds:  map[rune]*fixed.Rectangle26_6{},
+		atlases: map[int]*atlas{},
+	}
+	return f
 }
 
 var textM sync.Mutex
@@ -355,7 +347,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		if prevC >= 0 {
 			fx += face.Kern(prevC, c)
 		}
-		fa := fontFaceToFace(face)
+		fa := uniqFace(face)
 		if g := getGlyphFromCache(fa, c, n); g != nil {
 			if !g.char.empty() {
 				g.draw(dst, fx, fixed.I(y), clr)
