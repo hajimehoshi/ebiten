@@ -173,7 +173,28 @@ func (c *ColorM) Concat(other *ColorM) {
 
 // Add is deprecated.
 func (c *ColorM) Add(other ColorM) {
-	// Do nothing.
+	// Implementation is just for backward compatibility.
+	if c.body == nil {
+		c.body = colorMIdentityBody
+		c.translate = colorMIdentityTranslate
+	}
+	if other.body == nil {
+		other.body = colorMIdentityBody
+		other.translate = colorMIdentityTranslate
+	}
+
+	body := make([]float64, len(c.body))
+	for i := range c.body {
+		body[i] = c.body[i] + other.body[i]
+	}
+
+	translate := make([]float64, len(c.translate))
+	for i := range c.translate {
+		translate[i] = c.translate[i] + other.translate[i]
+	}
+
+	c.body = body
+	c.translate = translate
 }
 
 // Scale scales the matrix by (r, g, b, a).
