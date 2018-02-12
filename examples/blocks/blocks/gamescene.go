@@ -150,6 +150,25 @@ func NewGameScene() *GameScene {
 	}
 }
 
+var (
+	lightGray ebiten.ColorM
+)
+
+func init() {
+	id := ebiten.ColorM{}
+
+	mono := ebiten.ColorM{}
+	mono.ChangeHSV(0, 0, 1)
+
+	for j := 0; j < ebiten.ColorMDim-1; j++ {
+		for i := 0; i < ebiten.ColorMDim-1; i++ {
+			lightGray.SetElement(i, j, mono.Element(i, j)*0.7+id.Element(i, j)*0.3)
+		}
+	}
+
+	lightGray.Translate(0.3, 0.3, 0.3, 0.3)
+}
+
 func (s *GameScene) drawBackground(r *ebiten.Image) {
 	r.Fill(color.White)
 
@@ -165,14 +184,7 @@ func (s *GameScene) drawBackground(r *ebiten.Image) {
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(ScreenWidth/2, ScreenHeight/2)
-
-	a := 0.7
-	m := ebiten.ColorM{}
-	m.ChangeHSV(0, 0, 1)
-	m.Scale(a, a, a, a)
-	op.ColorM.Scale(1-a, 1-a, 1-a, 1-a)
-	op.ColorM.Add(m)
-	op.ColorM.Translate(0.3, 0.3, 0.3, 0)
+	op.ColorM = lightGray
 	r.DrawImage(imageGameBG, op)
 }
 
