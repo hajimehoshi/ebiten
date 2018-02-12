@@ -164,7 +164,7 @@ func init() {
 		}
 	}
 
-	lightGray.Translate(0.3, 0.3, 0.3, 0.3)
+	lightGray.Translate(0.3, 0.3, 0.3, 0)
 }
 
 func (s *GameScene) drawBackground(r *ebiten.Image) {
