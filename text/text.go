@@ -124,17 +124,24 @@ func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x) / (1 << 6)
 }
 
+type colorMCacheKey uint32
+
 type colorMCacheEntry struct {
 	m     ebiten.ColorM
 	atime int64
 }
 
 var (
-	colorMCache = map[color.Color]*colorMCacheEntry{}
+	colorMCache = map[colorMCacheKey]*colorMCacheEntry{}
 )
 
 func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
+	// RGBA() is in [0 - 0xffff]. Adjust them in [0 - 0xff].
 	cr, cg, cb, ca := clr.RGBA()
+	cr >>= 8
+	cg >>= 8
+	cb >>= 8
+	ca >>= 8
 	if ca == 0 {
 		return
 	}
@@ -143,12 +150,13 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(fixed26_6ToFloat64(x+b.Min.X), fixed26_6ToFloat64(y+b.Min.Y))
 
-	e, ok := colorMCache[clr]
+	key := colorMCacheKey(uint32(cr) | (uint32(cg) << 8) | (uint32(cb) << 16) | (uint32(ca) << 24))
+	e, ok := colorMCache[key]
 	if ok {
 		e.atime = now()
 	} else {
 		if len(colorMCache) >= 256 {
-			var oldest color.Color
+			var oldest colorMCacheKey
 			t := int64(math.MaxInt64)
 			for key, e := range colorMCache {
 				if e.atime < t {
@@ -162,13 +170,13 @@ func (g *glyph) draw(dst *ebiten.Image, x, y fixed.Int26_6, clr color.Color) {
 		rf := float64(cr) / float64(ca)
 		gf := float64(cg) / float64(ca)
 		bf := float64(cb) / float64(ca)
-		af := float64(ca) / 0xffff
+		af := float64(ca) / 0xff
 		cm.Scale(rf, gf, bf, af)
 		e = &colorMCacheEntry{
 			m:     cm,
 			atime: now(),
 		}
-		colorMCache[clr] = e
+		colorMCache[key] = e
 	}
 	op.ColorM = e.m
 
