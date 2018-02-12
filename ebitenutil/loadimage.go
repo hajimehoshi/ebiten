@@ -26,6 +26,9 @@ import (
 
 // NewImageFromFile loads the file with path and returns ebiten.Image and image.Image.
 //
+// Image decoders must be imported when using this function. For example,
+// if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
+//
 // How to solve path depends on your environment. This varies on your desktop or web browser.
 // Note that this doesn't work on mobiles.
 //
