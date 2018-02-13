@@ -125,7 +125,7 @@ Inverted:   %s [I]`, hue, saturation, value, msgInverted)
 
 func main() {
 	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}

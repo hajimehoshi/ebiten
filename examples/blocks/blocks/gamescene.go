@@ -72,13 +72,13 @@ func linesTextBoxPosition() (x, y int) {
 func init() {
 	// Background
 	var err error
-	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterLinear)
+	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
 	if err != nil {
 		panic(err)
 	}
 
 	// Windows
-	imageWindows, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	imageWindows, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterDefault)
 
 	// Windows: Field
 	x, y := fieldWindowPosition()
@@ -103,7 +103,7 @@ func init() {
 	drawTextBox(imageWindows, "LINES", x, y, textBoxWidth())
 
 	// Gameover
-	imageGameover, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterNearest)
+	imageGameover, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterDefault)
 	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
 	y = (ScreenHeight - blockHeight) / 2
 	drawTextWithShadowCenter(imageGameover, "GAME OVER", 0, y, 1, color.White, ScreenWidth)
@@ -185,6 +185,7 @@ func (s *GameScene) drawBackground(r *ebiten.Image) {
 	op.GeoM.Scale(scale, scale)
 	op.GeoM.Translate(ScreenWidth/2, ScreenHeight/2)
 	op.ColorM = lightGray
+	op.Filter = ebiten.FilterLinear
 	r.DrawImage(imageGameBG, op)
 }
 

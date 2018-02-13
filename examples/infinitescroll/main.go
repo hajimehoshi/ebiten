@@ -36,7 +36,7 @@ var (
 
 func init() {
 	var err error
-	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/tile.png", ebiten.FilterNearest)
+	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/tile.png", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -45,7 +45,7 @@ var (
 
 func init() {
 	var err error
-	uiImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ui.png", ebiten.FilterNearest)
+	uiImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ui.png", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func (t *TextBox) Draw(dst *ebiten.Image) {
 	}
 	if t.contentBuf == nil {
 		w, h := t.viewSize()
-		t.contentBuf, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
+		t.contentBuf, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
 	}
 
 	t.contentBuf.Clear()

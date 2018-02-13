@@ -66,7 +66,7 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if g.boardImage == nil {
 		w, h := g.board.Size()
-		g.boardImage, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
+		g.boardImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
 	}
 	screen.Fill(backgroundColor)
 	g.board.Draw(g.boardImage)

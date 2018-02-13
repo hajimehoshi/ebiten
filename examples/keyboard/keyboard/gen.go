@@ -83,7 +83,7 @@ var keyboardKeys = [][]string{
 func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	const height = 16
 	width--
-	img, _ := ebiten.NewImage(width, height, ebiten.FilterNearest)
+	img, _ := ebiten.NewImage(width, height, ebiten.FilterDefault)
 	p := make([]byte, width*height*4)
 	for j := 0; j < height; j++ {
 		for i := 0; i < width; i++ {
@@ -131,7 +131,7 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 
 func outputKeyboardImage() (map[string]image.Rectangle, error) {
 	keyMap := map[string]image.Rectangle{}
-	img, _ := ebiten.NewImage(320, 240, ebiten.FilterNearest)
+	img, _ := ebiten.NewImage(320, 240, ebiten.FilterDefault)
 	x, y := 0, 0
 	for j, line := range keyboardKeys {
 		x = 0

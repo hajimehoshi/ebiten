@@ -41,19 +41,19 @@ var (
 func init() {
 	// Preload images
 	var err error
-	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterNearest)
+	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterDefault)
 	if err != nil {
 		panic(err)
 	}
-	leftSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/left.png", ebiten.FilterNearest)
+	leftSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/left.png", ebiten.FilterDefault)
 	if err != nil {
 		panic(err)
 	}
-	idleSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/mainchar.png", ebiten.FilterNearest)
+	idleSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/mainchar.png", ebiten.FilterDefault)
 	if err != nil {
 		panic(err)
 	}
-	backgroundImage, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/background.png", ebiten.FilterNearest)
+	backgroundImage, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/background.png", ebiten.FilterDefault)
 	if err != nil {
 		panic(err)
 	}

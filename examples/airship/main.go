@@ -51,16 +51,16 @@ var (
 
 func init() {
 	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
 	if err != nil {
 		panic(err)
 	}
-	groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3+50, ebiten.FilterNearest)
-	perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight, ebiten.FilterNearest)
+	groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3+50, ebiten.FilterDefault)
+	perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight, ebiten.FilterDefault)
 
 	const repeat = 5
 	w, h := gophersImage.Size()
-	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterNearest)
+	repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterDefault)
 	for j := 0; j < repeat; j++ {
 		for i := 0; i < repeat; i++ {
 			op := &ebiten.DrawImageOptions{}
@@ -84,7 +84,7 @@ func init() {
 			fogRGBA.SetRGBA(i, j, clr)
 		}
 	}
-	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterNearest)
+	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterDefault)
 }
 
 type player struct {

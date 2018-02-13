@@ -90,12 +90,12 @@ var (
 )
 
 func init() {
-	img, _, err := ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterNearest)
+	img, _, err := ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}
 	w, h := img.Size()
-	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
+	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, 0.5)
 	ebitenImage.DrawImage(img, op)

@@ -336,7 +336,7 @@ var (
 )
 
 func init() {
-	tileImage, _ = ebiten.NewImage(tileSize, tileSize, ebiten.FilterNearest)
+	tileImage, _ = ebiten.NewImage(tileSize, tileSize, ebiten.FilterDefault)
 	tileImage.Fill(color.White)
 }
 

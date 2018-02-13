@@ -45,17 +45,17 @@ var (
 
 func init() {
 	var err error
-	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
+	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/fiveyears.jpg", ebiten.FilterNearest)
+	fgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/fiveyears.jpg", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterNearest)
+	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
 
 	// Initialize the spot light image.
 	const r = 64
@@ -70,7 +70,7 @@ func init() {
 			a.SetAlpha(i, j, color.Alpha{b})
 		}
 	}
-	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterNearest)
+	spotLightImage, _ = ebiten.NewImageFromImage(a, ebiten.FilterDefault)
 }
 
 func update(screen *ebiten.Image) error {

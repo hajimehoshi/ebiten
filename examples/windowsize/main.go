@@ -153,7 +153,7 @@ func main() {
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
 
 	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}

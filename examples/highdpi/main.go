@@ -51,7 +51,7 @@ func init() {
 			log.Fatal(err)
 		}
 
-		eimg, err := ebiten.NewImageFromImage(img, ebiten.FilterLinear)
+		eimg, err := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -98,6 +98,8 @@ func update(screen *ebiten.Image) error {
 
 	// Move the image's center to the screen's center.
 	op.GeoM.Translate(float64(sw)/2, float64(sh)/2)
+
+	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(highDPIImage, op)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("Device Scale Ratio: %0.2f", scale))

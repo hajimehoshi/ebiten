@@ -38,7 +38,7 @@ var (
 
 func init() {
 	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterNearest)
+	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func update(screen *ebiten.Image) error {
 
 func main() {
 	w, h := gophersImage.Size()
-	gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterNearest)
+	gophersRenderTarget, _ = ebiten.NewImage(w/mosaicRatio, h/mosaicRatio, ebiten.FilterDefault)
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Mosaic (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
