@@ -256,6 +256,9 @@ type DrawImageOptions struct {
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterDefault.
 	//
+	// Filter can also be specified at NewImage* functions, but
+	// specifying filter at DrawImageOptions is recommended (as of 1.7.0-alpha).
+	//
 	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
 	// FilterNearest is used.
 	// If either is FilterDefault and the other is not, the latter is used.
