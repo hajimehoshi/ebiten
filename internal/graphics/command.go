@@ -71,13 +71,13 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 }
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode) {
+func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
 	q.m.Lock()
 	q.appendVertices(vertices)
 	if 0 < len(q.commands) {
 		if c, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
-			if c.canMerge(dst, src, clr, mode) {
+			if c.canMerge(dst, src, clr, mode, filter) {
 				c.verticesNum += len(vertices)
 				q.m.Unlock()
 				return
@@ -90,6 +90,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		verticesNum: len(vertices),
 		color:       *clr,
 		mode:        mode,
+		filter:      filter,
 	}
 	q.commands = append(q.commands, c)
 	q.m.Unlock()
@@ -225,6 +226,7 @@ type drawImageCommand struct {
 	verticesNum int
 	color       affine.ColorM
 	mode        opengl.CompositeMode
+	filter      Filter
 }
 
 // QuadVertexSizeInBytes returns the size in bytes of vertices for a quadrangle.
@@ -251,7 +253,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	sh = emath.NextPowerOf2Int(sh)
 	_, dh := c.dst.Size()
 	proj := f.projectionMatrix(dh)
-	theOpenGLState.useProgram(proj, c.src.texture.native, sw, sh, c.color, c.src.texture.filter)
+	theOpenGLState.useProgram(proj, c.src.texture.native, sw, sh, c.color, c.filter)
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
 	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
@@ -279,7 +281,7 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 
 // canMerge returns a boolean value indicating whether the other drawImageCommand can be merged
 // with the drawImageCommand c.
-func (c *drawImageCommand) canMerge(dst, src *Image, clr *affine.ColorM, mode opengl.CompositeMode) bool {
+func (c *drawImageCommand) canMerge(dst, src *Image, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
 	if c.dst != dst {
 		return false
 	}
@@ -290,6 +292,9 @@ func (c *drawImageCommand) canMerge(dst, src *Image, clr *affine.ColorM, mode op
 		return false
 	}
 	if c.mode != mode {
+		return false
+	}
+	if c.filter != filter {
 		return false
 	}
 	return true
@@ -351,7 +356,6 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 type newImageFromImageCommand struct {
 	result *Image
 	img    *image.RGBA
-	filter Filter
 }
 
 // Exec executes the newImageFromImageCommand.
@@ -373,7 +377,6 @@ func (c *newImageFromImageCommand) Exec(indexOffsetInBytes int) error {
 	}
 	c.result.texture = &texture{
 		native: native,
-		filter: c.filter,
 	}
 	return nil
 }
@@ -383,7 +386,6 @@ type newImageCommand struct {
 	result *Image
 	width  int
 	height int
-	filter Filter
 }
 
 // Exec executes a newImageCommand.
@@ -402,7 +404,6 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	}
 	c.result.texture = &texture{
 		native: native,
-		filter: c.filter,
 	}
 	return nil
 }

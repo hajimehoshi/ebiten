@@ -21,7 +21,7 @@ import (
 type Filter int
 
 const (
-	FilterNone Filter = iota
+	FilterDefault Filter = iota
 	FilterNearest
 	FilterLinear
 )
@@ -29,5 +29,4 @@ const (
 // texture represents OpenGL's texture.
 type texture struct {
 	native opengl.Texture
-	filter Filter
 }

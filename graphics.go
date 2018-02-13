@@ -19,10 +19,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-// Filter represents the type of filter to be used when an image is maginified or minified.
+// Filter represents the type of texture filter to be used when an image is maginified or minified.
 type Filter int
 
 const (
+	// FilterDefault represents the defualt filter.
+	FilterDefault Filter = Filter(graphics.FilterDefault)
+
 	// FilterNearest represents nearest (crisp-edged) filter
 	FilterNearest Filter = Filter(graphics.FilterNearest)
 

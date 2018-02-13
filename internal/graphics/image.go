@@ -33,7 +33,7 @@ type Image struct {
 // MaxImageSize is the maximum of width/height of an image.
 const MaxImageSize = defaultViewportSize
 
-func NewImage(width, height int, filter Filter) *Image {
+func NewImage(width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
@@ -42,13 +42,12 @@ func NewImage(width, height int, filter Filter) *Image {
 		result: i,
 		width:  width,
 		height: height,
-		filter: filter,
 	}
 	theCommandQueue.Enqueue(c)
 	return i
 }
 
-func NewImageFromImage(img *image.RGBA, width, height int, filter Filter) *Image {
+func NewImageFromImage(img *image.RGBA, width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
@@ -56,7 +55,6 @@ func NewImageFromImage(img *image.RGBA, width, height int, filter Filter) *Image
 	c := &newImageFromImageCommand{
 		result: i,
 		img:    img,
-		filter: filter,
 	}
 	theCommandQueue.Enqueue(c)
 	return i
@@ -100,8 +98,8 @@ func (i *Image) Fill(r, g, b, a uint8) {
 	theCommandQueue.Enqueue(c)
 }
 
-func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode) {
-	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode)
+func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
+	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode, filter)
 }
 
 func (i *Image) Pixels() ([]byte, error) {

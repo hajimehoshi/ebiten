@@ -33,6 +33,7 @@ import (
 // Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
 type Image struct {
 	restorable *restorable.Image
+	filter     Filter
 }
 
 // Size returns the size of the image.
@@ -82,6 +83,7 @@ func (i *Image) Fill(clr color.Color) error {
 //   * All render sources are same (B in A.DrawImage(B, op))
 //   * All ColorM values are same
 //   * All CompositeMode values are same
+//   * All Filter values are same
 //
 // For more performance tips, see https://github.com/hajimehoshi/ebiten/wiki/Performance-Tips.
 //
@@ -144,7 +146,15 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		return nil
 	}
 	mode := opengl.CompositeMode(options.CompositeMode)
-	i.restorable.DrawImage(img.restorable, vs, &options.ColorM.impl, mode)
+
+	filter := graphics.FilterNearest
+	if options.Filter != FilterDefault {
+		filter = graphics.Filter(options.Filter)
+	} else if img.filter != FilterDefault {
+		filter = graphics.Filter(img.filter)
+	}
+
+	i.restorable.DrawImage(img.restorable, vs, &options.ColorM.impl, mode, filter)
 	return nil
 }
 
@@ -243,6 +253,15 @@ type DrawImageOptions struct {
 	// The default (zero) value is regular alpha blending.
 	CompositeMode CompositeMode
 
+	// Filter is a type of texture filter.
+	// The default (zero) value is FilterDefault.
+	//
+	// If both Filter specified at NewImage* and DrawImageOptions are FilterDefault,
+	// FilterNearest is used.
+	// If either is FilterDefault and the other is not, the latter is used.
+	// Otherwise, Filter specified at DrawImageOptions is used.
+	Filter Filter
+
 	// Deprecated (as of 1.5.0-alpha): Use SourceRect instead.
 	ImageParts ImageParts
 
@@ -254,12 +273,15 @@ type DrawImageOptions struct {
 //
 // If width or height is less than 1 or more than MaxImageSize, NewImage panics.
 //
+// filter argument is just for backward compatibility.
+// If you are not sure, specify FilterDefault.
+//
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
-	r := restorable.NewImage(width, height, graphics.Filter(filter), false)
+	r := restorable.NewImage(width, height, false)
 	r.Fill(0, 0, 0, 0)
-	i := &Image{r}
+	i := &Image{r, filter}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
 }
@@ -281,9 +303,9 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) *Image {
 	checkSize(width, height)
-	r := restorable.NewImage(width, height, graphics.Filter(filter), true)
+	r := restorable.NewImage(width, height, true)
 	r.Fill(0, 0, 0, 0)
-	i := &Image{r}
+	i := &Image{r, filter}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
@@ -292,12 +314,15 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 //
 // If source's width or height is less than 1 or more than MaxImageSize, NewImageFromImage panics.
 //
+// filter argument is just for backward compatibility.
+// If you are not sure, specify FilterDefault.
+//
 // Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	checkSize(size.X, size.Y)
-	r := restorable.NewImageFromImage(source, graphics.Filter(filter))
-	i := &Image{r}
+	r := restorable.NewImageFromImage(source)
+	i := &Image{r, filter}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
 }
@@ -305,7 +330,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 func newImageWithScreenFramebuffer(width, height int, offsetX, offsetY float64) *Image {
 	checkSize(width, height)
 	r := restorable.NewScreenFramebufferImage(width, height, offsetX, offsetY)
-	i := &Image{r}
+	i := &Image{r, FilterDefault}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }

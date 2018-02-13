@@ -40,11 +40,12 @@ type drawImageHistoryItem struct {
 	vertices []float32
 	colorm   affine.ColorM
 	mode     opengl.CompositeMode
+	filter   graphics.Filter
 }
 
 // canMerge returns a boolean value indicating whether the drawImageHistoryItem d
 // can be merged with the given conditions.
-func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mode opengl.CompositeMode) bool {
+func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) bool {
 	if d.image != image {
 		return false
 	}
@@ -54,13 +55,15 @@ func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mod
 	if d.mode != mode {
 		return false
 	}
+	if d.filter != filter {
+		return false
+	}
 	return true
 }
 
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
-	image  *graphics.Image
-	filter graphics.Filter
+	image *graphics.Image
 
 	// baseImage and baseColor are exclusive.
 	basePixels []byte
@@ -83,11 +86,10 @@ type Image struct {
 	offsetY float64
 }
 
-// NewImage creates an empty image with the given size and filter.
-func NewImage(width, height int, filter graphics.Filter, volatile bool) *Image {
+// NewImage creates an empty image with the given size.
+func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{
-		image:    graphics.NewImage(width, height, filter),
-		filter:   filter,
+		image:    graphics.NewImage(width, height),
 		volatile: volatile,
 	}
 	theImages.add(i)
@@ -96,7 +98,7 @@ func NewImage(width, height int, filter graphics.Filter, volatile bool) *Image {
 }
 
 // NewImageFromImage creates an image with source image.
-func NewImageFromImage(source image.Image, filter graphics.Filter) *Image {
+func NewImageFromImage(source image.Image) *Image {
 	size := source.Bounds().Size()
 	width, height := size.X, size.Y
 	rgbaImg := CopyImage(source)
@@ -106,9 +108,8 @@ func NewImageFromImage(source image.Image, filter graphics.Filter) *Image {
 		copy(p[j*w2*4:(j+1)*w2*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
 	i := &Image{
-		image:      graphics.NewImageFromImage(rgbaImg, width, height, filter),
+		image:      graphics.NewImageFromImage(rgbaImg, width, height),
 		basePixels: p,
-		filter:     filter,
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -183,24 +184,24 @@ func (i *Image) ReplacePixels(pixels []byte) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
+func (i *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	theImages.makeStaleIfDependingOn(i)
 	if img.stale || img.volatile || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
-		i.appendDrawImageHistory(img, vertices, colorm, mode)
+		i.appendDrawImageHistory(img, vertices, colorm, mode, filter)
 	}
-	i.image.DrawImage(img.image, vertices, colorm, mode)
+	i.image.DrawImage(img.image, vertices, colorm, mode, filter)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode) {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	if i.stale || i.volatile {
 		return
 	}
 	if len(i.drawImageHistory) > 0 {
 		last := i.drawImageHistory[len(i.drawImageHistory)-1]
-		if last.canMerge(image, colorm, mode) {
+		if last.canMerge(image, colorm, mode, filter) {
 			last.vertices = append(last.vertices, vertices...)
 			return
 		}
@@ -217,6 +218,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 		vertices: vertices,
 		colorm:   *colorm,
 		mode:     mode,
+		filter:   filter,
 	}
 	i.drawImageHistory = append(i.drawImageHistory, item)
 }
@@ -318,7 +320,7 @@ func (i *Image) restore() error {
 		return nil
 	}
 	if i.volatile {
-		i.image = graphics.NewImage(w, h, i.filter)
+		i.image = graphics.NewImage(w, h)
 		i.basePixels = nil
 		i.baseColor = color.RGBA{}
 		i.drawImageHistory = nil
@@ -336,7 +338,7 @@ func (i *Image) restore() error {
 			copy(img.Pix[j*img.Stride:], i.basePixels[j*w2*4:(j+1)*w2*4])
 		}
 	}
-	gimg := graphics.NewImageFromImage(img, w, h, i.filter)
+	gimg := graphics.NewImageFromImage(img, w, h)
 	if i.baseColor != (color.RGBA{}) {
 		if i.basePixels != nil {
 			panic("not reached")
@@ -348,7 +350,7 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, &c.colorm, c.mode)
+		gimg.DrawImage(c.image.image, c.vertices, &c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 

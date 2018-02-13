@@ -67,7 +67,7 @@ func sameColors(c1, c2 color.RGBA, delta int) bool {
 }
 
 func TestRestore(t *testing.T) {
-	img0 := NewImage(1, 1, graphics.FilterNearest, false)
+	img0 := NewImage(1, 1, false)
 	// Clear images explicitly.
 	// In this 'restorable' layer, reused texture might not be cleared.
 	img0.Fill(0, 0, 0, 0)
@@ -109,7 +109,7 @@ func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(1, 1, graphics.FilterNearest, false)
+		img := NewImage(1, 1, false)
 		img.Fill(0, 0, 0, 0)
 		imgs = append(imgs, img)
 	}
@@ -121,7 +121,7 @@ func TestRestoreChain(t *testing.T) {
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	imgs[0].Fill(clr.R, clr.G, clr.B, clr.A)
 	for i := 0; i < num-1; i++ {
-		imgs[i+1].DrawImage(imgs[i], vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+		imgs[i+1].DrawImage(imgs[i], vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	}
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -139,13 +139,13 @@ func TestRestoreChain(t *testing.T) {
 }
 
 func TestRestoreOverrideSource(t *testing.T) {
-	img0 := NewImage(1, 1, graphics.FilterNearest, false)
+	img0 := NewImage(1, 1, false)
 	img0.Fill(0, 0, 0, 0)
-	img1 := NewImage(1, 1, graphics.FilterNearest, false)
+	img1 := NewImage(1, 1, false)
 	img1.Fill(0, 0, 0, 0)
-	img2 := NewImage(1, 1, graphics.FilterNearest, false)
+	img2 := NewImage(1, 1, false)
 	img2.Fill(0, 0, 0, 0)
-	img3 := NewImage(1, 1, graphics.FilterNearest, false)
+	img3 := NewImage(1, 1, false)
 	img3.Fill(0, 0, 0, 0)
 	defer func() {
 		img3.Dispose()
@@ -156,10 +156,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
 	img1.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
-	img2.DrawImage(img1, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img3.DrawImage(img2, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img2.DrawImage(img1, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img3.DrawImage(img2, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	img0.Fill(clr1.R, clr1.G, clr1.B, clr1.A)
-	img1.DrawImage(img0, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img1.DrawImage(img0, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -214,18 +214,18 @@ func TestRestoreComplexGraph(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base, graphics.FilterNearest)
-	img1 := NewImageFromImage(base, graphics.FilterNearest)
-	img2 := NewImageFromImage(base, graphics.FilterNearest)
-	img3 := NewImage(4, 1, graphics.FilterNearest, false)
+	img0 := NewImageFromImage(base)
+	img1 := NewImageFromImage(base)
+	img2 := NewImageFromImage(base)
+	img3 := NewImage(4, 1, false)
 	img3.Fill(0, 0, 0, 0)
-	img4 := NewImage(4, 1, graphics.FilterNearest, false)
+	img4 := NewImage(4, 1, false)
 	img4.Fill(0, 0, 0, 0)
-	img5 := NewImage(4, 1, graphics.FilterNearest, false)
+	img5 := NewImage(4, 1, false)
 	img5.Fill(0, 0, 0, 0)
-	img6 := NewImage(4, 1, graphics.FilterNearest, false)
+	img6 := NewImage(4, 1, false)
 	img6.Fill(0, 0, 0, 0)
-	img7 := NewImage(4, 1, graphics.FilterNearest, false)
+	img7 := NewImage(4, 1, false)
 	img7.Fill(0, 0, 0, 0)
 	defer func() {
 		img7.Dispose()
@@ -237,15 +237,15 @@ func TestRestoreComplexGraph(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	img3.DrawImage(img0, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img3.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img4.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img4.DrawImage(img2, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img5.DrawImage(img3, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img6.DrawImage(img3, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img6.DrawImage(img4, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img7.DrawImage(img2, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img7.DrawImage(img3, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img3.DrawImage(img0, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img3.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img4.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img4.DrawImage(img2, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img5.DrawImage(img3, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img6.DrawImage(img3, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img6.DrawImage(img4, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img7.DrawImage(img2, vertices(4, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img7.DrawImage(img3, vertices(4, 1, 2, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -318,15 +318,15 @@ func TestRestoreRecursive(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base, graphics.FilterNearest)
-	img1 := NewImage(4, 1, graphics.FilterNearest, false)
+	img0 := NewImageFromImage(base)
+	img1 := NewImage(4, 1, false)
 	img1.Fill(0, 0, 0, 0)
 	defer func() {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	img1.DrawImage(img0, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
-	img0.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver)
+	img1.DrawImage(img0, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img0.DrawImage(img1, vertices(4, 1, 1, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
