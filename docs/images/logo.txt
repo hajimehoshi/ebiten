@@ -1,0 +1,4 @@
+Red:     0080-Y70R #DD664F
+Yellow1: 0080-Y    #FFDB33
+Yellow2: 0080-Y10R #FACB37
+Yellow3: 0080-Y20R #F5BA3B
