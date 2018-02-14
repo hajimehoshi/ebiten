@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/filter.png">
+<meta name="description" content="Ebiten example - filter">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - filter</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - filter</h2>
+  <iframe src="filter.content.html" width="640" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        _ &#34;image/png&#34;
+        &#34;log&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+const (
+        screenWidth  = 640
+        screenHeight = 480
+)
+
+var (
+        ebitenImage *ebiten.Image
+)
+
+func update(screen *ebiten.Image) error {
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+
+        ebitenutil.DebugPrint(screen, &#34;Nearest Filter (default) VS Linear Filter&#34;)
+
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Scale(4, 4)
+        op.GeoM.Translate(64, 64)
+        // By default, nearest filter is used.
+        screen.DrawImage(ebitenImage, op)
+
+        op = &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Scale(4, 4)
+        op.GeoM.Translate(64, 64&#43;240)
+        // Specify linear filter.
+        op.Filter = ebiten.FilterLinear
+        screen.DrawImage(ebitenImage, op)
+
+        return nil
+}
+
+func main() {
+        var err error
+        // Specifying filter on NewImage(FromImage) is just for backward compatibility.
+        // Now specifying filter at DrawImageOptions is recommended.
+        // Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
+        ebitenImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/ebiten.png&#34;, ebiten.FilterDefault)
+        if err != nil {
+                log.Fatal(err)
+        }
+        if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Filter (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>

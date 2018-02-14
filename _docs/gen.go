@@ -191,6 +191,7 @@ var (
 	}
 	graphicsExamples = []example{
 		{Name: "alphablending", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "filter", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "flood", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "font", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "highdpi", ThumbWidth: 320, ThumbHeight: 240},
