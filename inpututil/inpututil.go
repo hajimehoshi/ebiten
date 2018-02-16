@@ -127,12 +127,16 @@ func (i *inputState) update() {
 
 // IsKeyJustPressed returns a boolean value indicating
 // whether the given key is pressed just in the current frame.
+//
+// IsKeyJustPressed is concurrent safe.
 func IsKeyJustPressed(key ebiten.Key) bool {
 	return KeyPressDuration(key) == 1
 }
 
 // IsKeyJustReleased returns a boolean value indicating
 // whether the given key is released just in the current frame.
+//
+// IsKeyJustReleased is concurrent safe.
 func IsKeyJustReleased(key ebiten.Key) bool {
 	theInputState.m.RLock()
 	r := theInputState.keyStates[key] == 0 && theInputState.prevKeyStates[key] > 0
@@ -141,6 +145,8 @@ func IsKeyJustReleased(key ebiten.Key) bool {
 }
 
 // KeyPressDuration returns how long the key is pressed in frames.
+//
+// KeyPressDuration is concurrent safe.
 func KeyPressDuration(key ebiten.Key) int {
 	theInputState.m.RLock()
 	s := theInputState.keyStates[key]
@@ -150,12 +156,16 @@ func KeyPressDuration(key ebiten.Key) int {
 
 // IsMouseButtonJustPressed returns a boolean value indicating
 // whether the given mouse button is pressed just in the current frame.
+//
+// IsMouseButtonJustPressed is concurrent safe.
 func IsMouseButtonJustPressed(button ebiten.MouseButton) bool {
 	return MouseButtonPressDuration(button) == 1
 }
 
 // IsMouseButtonJustReleased returns a boolean value indicating
 // whether the given mouse button is released just in the current frame.
+//
+// IsMouseButtonJustReleased is concurrent safe.
 func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
 	theInputState.m.RLock()
 	r := theInputState.mouseButtonStates[button] == 0 &&
@@ -165,6 +175,8 @@ func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
 }
 
 // MouseButtonPressDuration returns how long the mouse button is pressed in frames.
+//
+// MouseButtonPressDuration is concurrent safe.
 func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	theInputState.m.RLock()
 	s := theInputState.mouseButtonStates[button]
@@ -174,11 +186,15 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 
 // IsGamepadButtonJustPressed returns a boolean value indicating
 // whether the given gamepad button of the gamepad id is pressed just in the current frame.
+//
+// IsGamepadButtonJustPressed is concurrent safe.
 func IsGamepadButtonJustPressed(id int, button ebiten.GamepadButton) bool {
 	return GamepadButtonPressDuration(id, button) == 1
 }
 
 // GamepadButtonPressDuration returns how long the gamepad button of the gamepad id is pressed in frames.
+//
+// GamepadButtonPressDuration is concurrent safe.
 func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 	theInputState.m.RLock()
 	s := 0
@@ -191,11 +207,15 @@ func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 
 // IsJustTouched returns a boolean value indicating
 // whether the given touch is pressed just in the current frame.
+//
+// IsJustTouched is concurrent safe.
 func IsJustTouched(id int) bool {
 	return TouchDuration(id) == 1
 }
 
 // TouchDuration returns how long the touch remains in frames.
+//
+// TouchDuration is concurrent safe.
 func TouchDuration(id int) int {
 	theInputState.m.RLock()
 	s := theInputState.touchStates[id]
