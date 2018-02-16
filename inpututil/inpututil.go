@@ -30,8 +30,10 @@ type inputState struct {
 	mouseButtonStates     map[ebiten.MouseButton]int
 	prevMouseButtonStates map[ebiten.MouseButton]int
 
-	gamepadButtonStates map[int]map[ebiten.GamepadButton]int
-	touchStates         map[int]int
+	gamepadButtonStates     map[int]map[ebiten.GamepadButton]int
+	prevGamepadButtonStates map[int]map[ebiten.GamepadButton]int
+
+	touchStates map[int]int
 
 	m sync.RWMutex
 }
@@ -43,8 +45,10 @@ var theInputState = &inputState{
 	mouseButtonStates:     map[ebiten.MouseButton]int{},
 	prevMouseButtonStates: map[ebiten.MouseButton]int{},
 
-	gamepadButtonStates: map[int]map[ebiten.GamepadButton]int{},
-	touchStates:         map[int]int{},
+	gamepadButtonStates:     map[int]map[ebiten.GamepadButton]int{},
+	prevGamepadButtonStates: map[int]map[ebiten.GamepadButton]int{},
+
+	touchStates: map[int]int{},
 }
 
 func init() {
@@ -83,14 +87,27 @@ func (i *inputState) update() {
 	}
 
 	// Gamepads
+
+	// Reset the previous states first since some gamepad IDs might be already gone.
+	for id := range i.prevGamepadButtonStates {
+		for b := range i.prevGamepadButtonStates[id] {
+			i.prevGamepadButtonStates[id][b] = 0
+		}
+	}
 	ids := map[int]struct{}{}
 	for _, id := range ebiten.GamepadIDs() {
 		ids[id] = struct{}{}
+
+		if _, ok := i.prevGamepadButtonStates[id]; !ok {
+			i.prevGamepadButtonStates[id] = map[ebiten.GamepadButton]int{}
+		}
 		if _, ok := i.gamepadButtonStates[id]; !ok {
 			i.gamepadButtonStates[id] = map[ebiten.GamepadButton]int{}
 		}
+
 		n := ebiten.GamepadButtonNum(id)
 		for b := ebiten.GamepadButton(0); b < ebiten.GamepadButton(n); b++ {
+			i.prevGamepadButtonStates[id][b] = i.gamepadButtonStates[id][b]
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				i.gamepadButtonStates[id][b]++
 			} else {
@@ -190,6 +207,24 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 // IsGamepadButtonJustPressed is concurrent safe.
 func IsGamepadButtonJustPressed(id int, button ebiten.GamepadButton) bool {
 	return GamepadButtonPressDuration(id, button) == 1
+}
+
+// IsGamepadButtonJustReleased returns a boolean value indicating
+// whether the given gamepad button of the gamepad id is released just in the current frame.
+//
+// IsGamepadButtonJustReleased is concurrent safe.
+func IsGamepadButtonJustReleased(id int, button ebiten.GamepadButton) bool {
+	theInputState.m.RLock()
+	prev := 0
+	if _, ok := theInputState.prevGamepadButtonStates[id]; ok {
+		prev = theInputState.prevGamepadButtonStates[id][button]
+	}
+	current := 0
+	if _, ok := theInputState.gamepadButtonStates[id]; ok {
+		current = theInputState.gamepadButtonStates[id][button]
+	}
+	theInputState.m.RUnlock()
+	return current == 0 && prev > 0
 }
 
 // GamepadButtonPressDuration returns how long the gamepad button of the gamepad id is pressed in frames.
