@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
@@ -46,6 +47,14 @@ func update(screen *ebiten.Image) error {
 		for b := ebiten.GamepadButton(id); b < maxButton; b++ {
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				pressedButtons[id] = append(pressedButtons[id], strconv.Itoa(int(b)))
+			}
+
+			// Log some events.
+			if inpututil.IsGamepadButtonJustPressed(id, b) {
+				log.Printf("Button Just Pressed: id(%d), button(%d)", id, b)
+			}
+			if inpututil.IsGamepadButtonJustReleased(id, b) {
+				log.Printf("Button Just Released: id(%d), button(%d)", id, b)
 			}
 		}
 	}
