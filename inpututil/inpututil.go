@@ -49,7 +49,8 @@ var theInputState = &inputState{
 	gamepadButtonStates:     map[int]map[ebiten.GamepadButton]int{},
 	prevGamepadButtonStates: map[int]map[ebiten.GamepadButton]int{},
 
-	touchStates: map[int]int{},
+	touchStates:     map[int]int{},
+	prevTouchStates: map[int]int{},
 }
 
 func init() {
