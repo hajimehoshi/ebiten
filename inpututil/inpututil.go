@@ -33,7 +33,8 @@ type inputState struct {
 	gamepadButtonStates     map[int]map[ebiten.GamepadButton]int
 	prevGamepadButtonStates map[int]map[ebiten.GamepadButton]int
 
-	touchStates map[int]int
+	touchStates     map[int]int
+	prevTouchStates map[int]int
 
 	m sync.RWMutex
 }
@@ -127,8 +128,15 @@ func (i *inputState) update() {
 
 	// Touches
 	ids = map[int]struct{}{}
+
+	// Reset the previous states first since some gamepad IDs might be already gone.
+	for id := range i.prevTouchStates {
+		i.prevTouchStates[id] = 0
+	}
+
 	for _, t := range ebiten.Touches() {
 		ids[t.ID()] = struct{}{}
+		i.prevTouchStates[t.ID()] = i.touchStates[t.ID()]
 		i.touchStates[t.ID()]++
 	}
 	idsToDelete = []int{}
@@ -246,6 +254,17 @@ func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 // IsJustTouched is concurrent safe.
 func IsJustTouched(id int) bool {
 	return TouchDuration(id) == 1
+}
+
+// IsTouchJustReleased returns a boolean value indicating
+// whether the given touch is released just in the current frame.
+//
+// IsTouchJustReleased is concurrent safe.
+func IsTouchJustReleased(id int) bool {
+	theInputState.m.RLock()
+	r := theInputState.touchStates[id] == 0 && theInputState.prevTouchStates[id] > 0
+	theInputState.m.RUnlock()
+	return r
 }
 
 // TouchDuration returns how long the touch remains in frames.
