@@ -24,8 +24,12 @@ import (
 )
 
 type inputState struct {
-	keyStates           map[ebiten.Key]int
-	mouseButtonStates   map[ebiten.MouseButton]int
+	keyStates     map[ebiten.Key]int
+	prevKeyStates map[ebiten.Key]int
+
+	mouseButtonStates     map[ebiten.MouseButton]int
+	prevMouseButtonStates map[ebiten.MouseButton]int
+
 	gamepadButtonStates map[int]map[ebiten.GamepadButton]int
 	touchStates         map[int]int
 
@@ -33,8 +37,12 @@ type inputState struct {
 }
 
 var theInputState = &inputState{
-	keyStates:           map[ebiten.Key]int{},
-	mouseButtonStates:   map[ebiten.MouseButton]int{},
+	keyStates:     map[ebiten.Key]int{},
+	prevKeyStates: map[ebiten.Key]int{},
+
+	mouseButtonStates:     map[ebiten.MouseButton]int{},
+	prevMouseButtonStates: map[ebiten.MouseButton]int{},
+
 	gamepadButtonStates: map[int]map[ebiten.GamepadButton]int{},
 	touchStates:         map[int]int{},
 }
@@ -52,6 +60,7 @@ func (i *inputState) update() {
 
 	// Keyboard
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
+		i.prevKeyStates[k] = i.keyStates[k]
 		if ebiten.IsKeyPressed(k) {
 			i.keyStates[k]++
 		} else {
@@ -65,6 +74,7 @@ func (i *inputState) update() {
 		ebiten.MouseButtonRight,
 		ebiten.MouseButtonMiddle,
 	} {
+		i.prevMouseButtonStates[b] = i.mouseButtonStates[b]
 		if ebiten.IsMouseButtonPressed(b) {
 			i.mouseButtonStates[b]++
 		} else {
@@ -121,6 +131,15 @@ func IsKeyJustPressed(key ebiten.Key) bool {
 	return KeyPressDuration(key) == 1
 }
 
+// IsKeyJustReleased returns a boolean value indicating
+// whether the given key is released just in the current frame.
+func IsKeyJustReleased(key ebiten.Key) bool {
+	theInputState.m.RLock()
+	r := theInputState.keyStates[key] == 0 && theInputState.prevKeyStates[key] > 0
+	theInputState.m.RUnlock()
+	return r
+}
+
 // KeyPressDuration returns how long the key is pressed in frames.
 func KeyPressDuration(key ebiten.Key) int {
 	theInputState.m.RLock()
@@ -133,6 +152,16 @@ func KeyPressDuration(key ebiten.Key) int {
 // whether the given mouse button is pressed just in the current frame.
 func IsMouseButtonJustPressed(button ebiten.MouseButton) bool {
 	return MouseButtonPressDuration(button) == 1
+}
+
+// IsMouseButtonJustReleased returns a boolean value indicating
+// whether the given mouse button is released just in the current frame.
+func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
+	theInputState.m.RLock()
+	r := theInputState.mouseButtonStates[button] == 0 &&
+		theInputState.prevMouseButtonStates[button] > 0
+	theInputState.m.RUnlock()
+	return r
 }
 
 // MouseButtonPressDuration returns how long the mouse button is pressed in frames.
