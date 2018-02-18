@@ -220,7 +220,6 @@ func TestColorMApply(t *testing.T) {
 		r1, g1, b1, a1 := c.Out.RGBA()
 		if absU32(r0-r1) > c.Delta || absU32(g0-g1) > c.Delta ||
 			absU32(b0-b1) > c.Delta || absU32(a0-a1) > c.Delta {
-			println(r0, r1)
 			t.Errorf("%v.Apply(%v) = %v, want %v", c.ColorM, c.In, out, c.Out)
 		}
 	}
