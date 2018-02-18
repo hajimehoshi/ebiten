@@ -33,22 +33,15 @@ type Texture struct {
 	*js.Object
 }
 
-type Framebuffer struct {
-	*js.Object
-}
-
 type (
-	Shader  interface{}
-	Program interface{}
-	Buffer  interface{}
+	Framebuffer interface{}
+	Shader      interface{}
+	Program     interface{}
+	Buffer      interface{}
 )
 
 func (t Texture) equals(other Texture) bool {
 	return t.Object == other.Object
-}
-
-func (f Framebuffer) equals(other Framebuffer) bool {
-	return f.Object == other.Object
 }
 
 type uniformLocation interface{}
@@ -59,7 +52,7 @@ type programID int
 
 var (
 	invalidTexture     = Texture{}
-	invalidFramebuffer = Framebuffer{}
+	invalidFramebuffer = Framebuffer(nil)
 )
 
 func getProgramID(p Program) programID {
@@ -135,7 +128,7 @@ func (c *Context) Reset() error {
 	gl.Enable(gl.BLEND)
 	c.BlendFunc(CompositeModeSourceOver)
 	f := gl.GetParameter(gl.FRAMEBUFFER_BINDING)
-	c.screenFramebuffer = Framebuffer{f}
+	c.screenFramebuffer = f
 	return nil
 }
 
@@ -177,7 +170,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl := c.gl
-	gl.BindFramebuffer(gl.FRAMEBUFFER, f.Object)
+	gl.BindFramebuffer(gl.FRAMEBUFFER, f.(*js.Object))
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
@@ -226,15 +219,15 @@ func (c *Context) TexSubImage2D(p []uint8, width, height int) {
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
-	c.bindFramebuffer(Framebuffer{f})
+	c.bindFramebuffer(f)
 
 	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.Object, 0)
 	s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if s != gl.FRAMEBUFFER_COMPLETE {
-		return Framebuffer{nil}, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))
+		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))
 	}
 
-	return Framebuffer{f}, nil
+	return f, nil
 }
 
 func (c *Context) setViewportImpl(width, height int) {
@@ -255,7 +248,7 @@ func (c *Context) FillFramebuffer(r, g, b, a float32) error {
 
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl := c.gl
-	if !gl.IsFramebuffer(f.Object) {
+	if !gl.IsFramebuffer(f.(*js.Object)) {
 		return
 	}
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer
@@ -266,7 +259,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
-	gl.DeleteFramebuffer(f.Object)
+	gl.DeleteFramebuffer(f.(*js.Object))
 }
 
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {

@@ -83,7 +83,7 @@ func (c *Context) BindTexture(t Texture) {
 }
 
 func (c *Context) bindFramebuffer(f Framebuffer) {
-	if c.lastFramebuffer.equals(f) {
+	if c.lastFramebuffer == f {
 		return
 	}
 	c.bindFramebufferImpl(f)
