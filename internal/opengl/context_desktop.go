@@ -54,7 +54,7 @@ const (
 	invalidFramebuffer = (1 << 32) - 1
 )
 
-func (p Program) id() programID {
+func getProgramID(p Program) programID {
 	return programID(p)
 }
 

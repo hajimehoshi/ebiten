@@ -41,9 +41,7 @@ type Shader struct {
 	*js.Object
 }
 
-type Program struct {
-	*js.Object
-}
+type Program interface{}
 
 type Buffer struct {
 	*js.Object
@@ -68,8 +66,8 @@ var (
 	invalidFramebuffer = Framebuffer{}
 )
 
-func (p Program) id() programID {
-	return programID(p.Get("__ebiten_programId").Int())
+func getProgramID(p Program) programID {
+	return programID(p.(*js.Object).Get("__ebiten_programId").Int())
 }
 
 func init() {
@@ -301,7 +299,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
 	if p == nil {
-		return Program{nil}, errors.New("opengl: glCreateProgram failed")
+		return nil, errors.New("opengl: glCreateProgram failed")
 	}
 	p.Set("__ebiten_programId", c.lastProgramID)
 	c.lastProgramID++
@@ -311,27 +309,27 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	}
 	gl.LinkProgram(p)
 	if !gl.GetProgramParameterb(p, gl.LINK_STATUS) {
-		return Program{nil}, errors.New("opengl: program error")
+		return nil, errors.New("opengl: program error")
 	}
-	return Program{p}, nil
+	return Program(p), nil
 }
 
 func (c *Context) UseProgram(p Program) {
 	gl := c.gl
-	gl.UseProgram(p.Object)
+	gl.UseProgram(p.(*js.Object))
 }
 
 func (c *Context) DeleteProgram(p Program) {
 	gl := c.gl
-	if !gl.IsProgram(p.Object) {
+	if !gl.IsProgram(p.(*js.Object)) {
 		return
 	}
-	gl.DeleteProgram(p.Object)
+	gl.DeleteProgram(p.(*js.Object))
 }
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return uniformLocation(gl.GetUniformLocation(p.Object, location))
+	return uniformLocation(gl.GetUniformLocation(p.(*js.Object), location))
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
@@ -357,7 +355,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
 	gl := c.gl
-	return attribLocation(gl.GetAttribLocation(p.Object, location))
+	return attribLocation(gl.GetAttribLocation(p.(*js.Object), location))
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
