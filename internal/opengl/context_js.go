@@ -51,8 +51,7 @@ type attribLocation int
 type programID int
 
 var (
-	invalidTexture     = Texture{}
-	invalidFramebuffer = Framebuffer(nil)
+	invalidTexture = Texture{}
 )
 
 func getProgramID(p Program) programID {
@@ -120,7 +119,7 @@ func Init() error {
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
-	c.lastFramebuffer = invalidFramebuffer
+	c.lastFramebuffer = nil
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
@@ -255,7 +254,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
-		c.lastFramebuffer = invalidFramebuffer
+		c.lastFramebuffer = nil
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
