@@ -37,11 +37,8 @@ type Framebuffer struct {
 	*js.Object
 }
 
-type Shader struct {
-	*js.Object
-}
-
 type (
+	Shader  interface{}
 	Program interface{}
 	Buffer  interface{}
 )
@@ -276,7 +273,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl := c.gl
 	s := gl.CreateShader(int(shaderType))
 	if s == nil {
-		return Shader{nil}, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
+		return nil, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
 	gl.ShaderSource(s, source)
@@ -284,14 +281,14 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 	if !gl.GetShaderParameterb(s, gl.COMPILE_STATUS) {
 		log := gl.GetShaderInfoLog(s)
-		return Shader{nil}, fmt.Errorf("opengl: shader compile failed: %s", log)
+		return nil, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
-	return Shader{s}, nil
+	return Shader(s), nil
 }
 
 func (c *Context) DeleteShader(s Shader) {
 	gl := c.gl
-	gl.DeleteShader(s.Object)
+	gl.DeleteShader(s.(*js.Object))
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
@@ -304,7 +301,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	c.lastProgramID++
 
 	for _, shader := range shaders {
-		gl.AttachShader(p, shader.Object)
+		gl.AttachShader(p, shader.(*js.Object))
 	}
 	gl.LinkProgram(p)
 	if !gl.GetProgramParameterb(p, gl.LINK_STATUS) {
