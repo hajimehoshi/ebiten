@@ -41,11 +41,10 @@ type Shader struct {
 	*js.Object
 }
 
-type Program interface{}
-
-type Buffer struct {
-	*js.Object
-}
+type (
+	Program interface{}
+	Buffer  interface{}
+)
 
 func (t Texture) equals(other Texture) bool {
 	return t.Object == other.Object
@@ -381,7 +380,7 @@ func (c *Context) NewArrayBuffer(size int) Buffer {
 	b := gl.CreateBuffer()
 	gl.BindBuffer(int(ArrayBuffer), b)
 	gl.BufferData(int(ArrayBuffer), size, int(DynamicDraw))
-	return Buffer{b}
+	return Buffer(b)
 }
 
 func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
@@ -389,12 +388,12 @@ func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 	b := gl.CreateBuffer()
 	gl.BindBuffer(int(ElementArrayBuffer), b)
 	gl.BufferData(int(ElementArrayBuffer), indices, int(StaticDraw))
-	return Buffer{b}
+	return Buffer(b)
 }
 
 func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl := c.gl
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.Object)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.(*js.Object))
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
@@ -404,7 +403,7 @@ func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
 
 func (c *Context) DeleteBuffer(b Buffer) {
 	gl := c.gl
-	gl.DeleteBuffer(b.Object)
+	gl.DeleteBuffer(b.(*js.Object))
 }
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
