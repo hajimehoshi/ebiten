@@ -276,7 +276,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 		log := gl.GetShaderInfoLog(s)
 		return nil, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
-	return Shader(s), nil
+	return s, nil
 }
 
 func (c *Context) DeleteShader(s Shader) {
@@ -300,7 +300,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	if !gl.GetProgramParameterb(p, gl.LINK_STATUS) {
 		return nil, errors.New("opengl: program error")
 	}
-	return Program(p), nil
+	return p, nil
 }
 
 func (c *Context) UseProgram(p Program) {
@@ -318,7 +318,7 @@ func (c *Context) DeleteProgram(p Program) {
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return uniformLocation(gl.GetUniformLocation(p.(*js.Object), location))
+	return gl.GetUniformLocation(p.(*js.Object), location)
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
@@ -370,7 +370,7 @@ func (c *Context) NewArrayBuffer(size int) Buffer {
 	b := gl.CreateBuffer()
 	gl.BindBuffer(int(ArrayBuffer), b)
 	gl.BufferData(int(ArrayBuffer), size, int(DynamicDraw))
-	return Buffer(b)
+	return b
 }
 
 func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
@@ -378,7 +378,7 @@ func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 	b := gl.CreateBuffer()
 	gl.BindBuffer(int(ElementArrayBuffer), b)
 	gl.BufferData(int(ElementArrayBuffer), indices, int(StaticDraw))
-	return Buffer(b)
+	return b
 }
 
 func (c *Context) BindElementArrayBuffer(b Buffer) {
