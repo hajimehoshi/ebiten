@@ -57,9 +57,7 @@ func (f Framebuffer) equals(other Framebuffer) bool {
 	return f.Object == other.Object
 }
 
-type uniformLocation struct {
-	*js.Object
-}
+type uniformLocation interface{}
 
 type attribLocation int
 
@@ -333,13 +331,13 @@ func (c *Context) DeleteProgram(p Program) {
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return uniformLocation{gl.GetUniformLocation(p.Object, location)}
+	return uniformLocation(gl.GetUniformLocation(p.Object, location))
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Uniform1i(l.Object, v)
+	gl.Uniform1i(l.(*js.Object), v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
@@ -347,11 +345,11 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
 	case 2:
-		gl.Call("uniform2fv", l.Object, v)
+		gl.Call("uniform2fv", l.(*js.Object), v)
 	case 4:
-		gl.Call("uniform4fv", l.Object, v)
+		gl.Call("uniform4fv", l.(*js.Object), v)
 	case 16:
-		gl.UniformMatrix4fv(l.Object, false, v)
+		gl.UniformMatrix4fv(l.(*js.Object), false, v)
 	default:
 		panic("not reached")
 	}
