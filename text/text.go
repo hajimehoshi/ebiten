@@ -352,8 +352,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 			if !g.char.empty() {
 				g.draw(dst, fx, fixed.I(y), clr)
 			}
-			a, _ := face.GlyphAdvance(c)
-			fx += a
+			fx += glyphAdvance(fa, c)
 		}
 		prevC = c
 	}
