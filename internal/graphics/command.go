@@ -214,8 +214,7 @@ func (c *fillCommand) Exec(indexOffsetInBytes int) error {
 	opengl.GetContext().Flush()
 	// Mysterious, but binding texture is needed after filling
 	// on some mechines like Photon 2 (#492).
-	var t opengl.Texture
-	opengl.GetContext().BindTexture(t)
+	opengl.GetContext().BindTexture(opengl.InvalidTexture)
 	return nil
 }
 

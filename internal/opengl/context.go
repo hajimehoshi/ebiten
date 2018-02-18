@@ -75,7 +75,7 @@ func GetContext() *Context {
 }
 
 func (c *Context) BindTexture(t Texture) {
-	if c.lastTexture.equals(t) {
+	if c.lastTexture == t {
 		return
 	}
 	c.bindTextureImpl(t)

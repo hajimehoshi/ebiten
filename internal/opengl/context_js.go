@@ -29,30 +29,20 @@ import (
 // Note that `type Texture *js.Object` doesn't work.
 // There is no way to get the internal object in that case.
 
-type Texture struct {
-	*js.Object
-}
-
 type (
-	Framebuffer interface{}
-	Shader      interface{}
-	Program     interface{}
-	Buffer      interface{}
+	Texture         interface{}
+	Framebuffer     interface{}
+	Shader          interface{}
+	Program         interface{}
+	Buffer          interface{}
+	uniformLocation interface{}
 )
-
-func (t Texture) equals(other Texture) bool {
-	return t.Object == other.Object
-}
-
-type uniformLocation interface{}
 
 type attribLocation int
 
 type programID int
 
-var (
-	invalidTexture = Texture{}
-)
+var InvalidTexture = Texture((*js.Object)(nil))
 
 func getProgramID(p Program) programID {
 	return programID(p.(*js.Object).Get("__ebiten_programId").Int())
@@ -118,7 +108,7 @@ func Init() error {
 
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
-	c.lastTexture = invalidTexture
+	c.lastTexture = nil
 	c.lastFramebuffer = nil
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
@@ -145,10 +135,10 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t == nil {
-		return Texture{nil}, errors.New("opengl: glGenTexture failed")
+		return nil, errors.New("opengl: glGenTexture failed")
 	}
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
-	c.BindTexture(Texture{t})
+	c.BindTexture(t)
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
@@ -164,7 +154,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 	}
 	gl.Call("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, p)
 
-	return Texture{t}, nil
+	return t, nil
 }
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
@@ -187,23 +177,23 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 
 func (c *Context) bindTextureImpl(t Texture) {
 	gl := c.gl
-	gl.BindTexture(gl.TEXTURE_2D, t.Object)
+	gl.BindTexture(gl.TEXTURE_2D, t.(*js.Object))
 }
 
 func (c *Context) DeleteTexture(t Texture) {
 	gl := c.gl
-	if !gl.IsTexture(t.Object) {
+	if !gl.IsTexture(t.(*js.Object)) {
 		return
 	}
 	if c.lastTexture == t {
-		c.lastTexture = invalidTexture
+		c.lastTexture = nil
 	}
-	gl.DeleteTexture(t.Object)
+	gl.DeleteTexture(t.(*js.Object))
 }
 
 func (c *Context) IsTexture(t Texture) bool {
 	gl := c.gl
-	b := gl.IsTexture(t.Object)
+	b := gl.IsTexture(t.(*js.Object))
 	return b
 }
 
@@ -220,7 +210,7 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	f := gl.CreateFramebuffer()
 	c.bindFramebuffer(f)
 
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.Object, 0)
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.(*js.Object), 0)
 	s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
 	if s != gl.FRAMEBUFFER_COMPLETE {
 		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))

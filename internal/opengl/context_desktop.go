@@ -34,13 +34,7 @@ type (
 	Buffer      uint32
 )
 
-func (t Texture) equals(other Texture) bool {
-	return t == other
-}
-
-func (f Framebuffer) equals(other Framebuffer) bool {
-	return f == other
-}
+var InvalidTexture Texture
 
 type (
 	uniformLocation int32
