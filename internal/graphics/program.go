@@ -266,19 +266,12 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 
 	esBody, esTranslate := colorM.UnsafeElements()
 
-	// transpose
-	colorMatrix := make([]float32, (affine.ColorMDim-1)*(affine.ColorMDim-1))
-	for i := 0; i < affine.ColorMDim-1; i++ {
-		for j := 0; j < affine.ColorMDim-1; j++ {
-			colorMatrix[i+j*(affine.ColorMDim-1)] = float32(esBody[i*(affine.ColorMDim-1)+j])
-		}
-	}
-	if !areSameFloat32Array(s.lastColorMatrix, colorMatrix) {
-		c.UniformFloats(program, "color_matrix", colorMatrix)
+	if !areSameFloat32Array(s.lastColorMatrix, esBody) {
+		c.UniformFloats(program, "color_matrix", esBody)
 		if s.lastColorMatrix == nil {
 			s.lastColorMatrix = make([]float32, 16)
 		}
-		copy(s.lastColorMatrix, colorMatrix)
+		copy(s.lastColorMatrix, esBody)
 	}
 	if !areSameFloat32Array(s.lastColorMatrixTranslation, esTranslate) {
 		c.UniformFloats(program, "color_matrix_translation", esTranslate)

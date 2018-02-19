@@ -89,7 +89,7 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 func (c *ColorM) Element(i, j int) float64 {
 	b, t := c.impl.UnsafeElements()
 	if j < ColorMDim-1 {
-		return float64(b[i*(ColorMDim-1)+j])
+		return float64(b[i+j*(ColorMDim-1)])
 	}
 	return float64(t[i])
 }
