@@ -280,18 +280,12 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		}
 		copy(s.lastColorMatrix, colorMatrix)
 	}
-	colorMatrixTranslation := []float32{
-		float32(esTranslate[0]),
-		float32(esTranslate[1]),
-		float32(esTranslate[2]),
-		float32(esTranslate[3]),
-	}
-	if !areSameFloat32Array(s.lastColorMatrixTranslation, colorMatrixTranslation) {
-		c.UniformFloats(program, "color_matrix_translation", colorMatrixTranslation)
+	if !areSameFloat32Array(s.lastColorMatrixTranslation, esTranslate) {
+		c.UniformFloats(program, "color_matrix_translation", esTranslate)
 		if s.lastColorMatrixTranslation == nil {
 			s.lastColorMatrixTranslation = make([]float32, 4)
 		}
-		copy(s.lastColorMatrixTranslation, colorMatrixTranslation)
+		copy(s.lastColorMatrixTranslation, esTranslate)
 	}
 
 	if program == s.programLinear {

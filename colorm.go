@@ -61,12 +61,12 @@ func (c *ColorM) Add(other ColorM) {
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
-	c.impl.Scale(r, g, b, a)
+	c.impl.Scale(float32(r), float32(g), float32(b), float32(a))
 }
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
-	c.impl.Translate(r, g, b, a)
+	c.impl.Translate(float32(r), float32(g), float32(b), float32(a))
 }
 
 // RotateHue rotates the hue.
@@ -82,21 +82,21 @@ func (c *ColorM) RotateHue(theta float64) {
 //
 // This conversion uses RGB to/from YCrCb conversion.
 func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
-	c.impl.ChangeHSV(hueTheta, saturationScale, valueScale)
+	c.impl.ChangeHSV(hueTheta, float32(saturationScale), float32(valueScale))
 }
 
 // Element returns a value of a matrix at (i, j).
 func (c *ColorM) Element(i, j int) float64 {
 	b, t := c.impl.UnsafeElements()
 	if j < ColorMDim-1 {
-		return b[i*(ColorMDim-1)+j]
+		return float64(b[i*(ColorMDim-1)+j])
 	}
-	return t[i]
+	return float64(t[i])
 }
 
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
-	c.impl.SetElement(i, j, element)
+	c.impl.SetElement(i, j, float32(element))
 }
 
 // Monochrome is deprecated as of 1.6.0-alpha. Use ChangeHSV(0, 0, 1) instead.

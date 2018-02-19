@@ -16,6 +16,7 @@ package ebiten_test
 
 import (
 	"image/color"
+	"math"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
@@ -137,7 +138,7 @@ func TestColorMMonochrome(t *testing.T) {
 		for j := 0; j < 5; j++ {
 			got := m.Element(i, j)
 			want := expected[i][j]
-			if want != got {
+			if math.Abs(want-got) > 0.0001 {
 				t.Errorf("m.Element(%d, %d) = %f, want %f", i, j, got, want)
 			}
 		}
