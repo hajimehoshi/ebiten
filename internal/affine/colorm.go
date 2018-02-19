@@ -44,7 +44,7 @@ var (
 // The initial value is identity.
 type ColorM struct {
 	// When elements is nil, this matrix is identity.
-	// elements is immutable and a new array must be created when updating.
+	// elements are immutable and a new array must be created when updating.
 	body      []float32
 	translate []float32
 }

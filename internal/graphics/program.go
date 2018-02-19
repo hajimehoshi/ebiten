@@ -271,14 +271,16 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		if s.lastColorMatrix == nil {
 			s.lastColorMatrix = make([]float32, 16)
 		}
-		copy(s.lastColorMatrix, esBody)
+		// ColorM's elements are immutable. It's OK to hold the reference without copying.
+		s.lastColorMatrix = esBody
 	}
 	if !areSameFloat32Array(s.lastColorMatrixTranslation, esTranslate) {
 		c.UniformFloats(program, "color_matrix_translation", esTranslate)
 		if s.lastColorMatrixTranslation == nil {
 			s.lastColorMatrixTranslation = make([]float32, 4)
 		}
-		copy(s.lastColorMatrixTranslation, esTranslate)
+		// ColorM's elements are immutable. It's OK to hold the reference without copying.
+		s.lastColorMatrixTranslation = esTranslate
 	}
 
 	if program == s.programLinear {
