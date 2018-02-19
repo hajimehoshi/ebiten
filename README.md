@@ -6,6 +6,10 @@
 
 A dead simple 2D game library in Go
 
+Website: https://hajimehoshi.github.io/ebiten/
+
+## Platforms
+
 * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
 * [macOS](https://github.com/hajimehoshi/ebiten/wiki/macOS)
 * [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
@@ -22,9 +26,17 @@ Note: Gamepad and keyboard are not available on Android/iOS.
 * Input (Mouse, Keyboard, Gamepads, Touches)
 * Audio (MP3, Ogg/Vorbis, WAV, PCM, Syncing with game progress)
 
-## Web Site
+## Packages
 
-https://hajimehoshi.github.io/ebiten/
+* [ebiten](https://godoc.org/github.com/hajimehoshi/ebiten)
+  * [audio](https://godoc.org/github.com/hajimehoshi/ebiten/audio)
+    * [mp3](https://godoc.org/github.com/hajimehoshi/ebiten/audio/mp3)
+    * [vorbis](https://godoc.org/github.com/hajimehoshi/ebiten/audio/vorbis)
+    * [wav](https://godoc.org/github.com/hajimehoshi/ebiten/audio/wav)
+  * [ebitenutil](https://godoc.org/github.com/hajimehoshi/ebiten/ebitenutil)
+  * [inpututil](https://godoc.org/github.com/hajimehoshi/ebiten/inpututil)
+  * [mobile](https://godoc.org/github.com/hajimehoshi/ebiten/mobile)
+  * [text](https://godoc.org/github.com/hajimehoshi/ebiten/text)
 
 ## Community
 
