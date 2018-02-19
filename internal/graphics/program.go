@@ -261,7 +261,9 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		if s.lastProjectionMatrix == nil {
 			s.lastProjectionMatrix = make([]float32, 16)
 		}
-		copy(s.lastProjectionMatrix, proj)
+		// (*framebuffer).projectionMatrix is always same for the same framebuffer.
+		// It's OK to hold the reference without copying.
+		s.lastProjectionMatrix = proj
 	}
 
 	esBody, esTranslate := colorM.UnsafeElements()
