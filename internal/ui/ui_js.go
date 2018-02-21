@@ -288,6 +288,7 @@ func initialize() error {
 			// Assume that UA is Edge.
 			code := e.Get("keyCode").Int()
 			currentInput.keyUpEdge(code)
+			return
 		}
 		code := e.Get("code").String()
 		currentInput.keyUp(code)
