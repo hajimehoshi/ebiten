@@ -94,6 +94,7 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	sh := float64(hd) / float64(hs)
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(sw, sh)
+	op.CompositeMode = CompositeModeCopy
 	_ = dst.DrawImage(src, op)
 }
 
@@ -116,7 +117,6 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	}
 	if 0 < updateCount {
 		drawWithFittingScale(c.offscreen2, c.offscreen)
-		_ = c.screen.Clear()
 		drawWithFittingScale(c.screen, c.offscreen2)
 	}
 
