@@ -46,39 +46,39 @@ const (
 	CompositeModeSourceOver CompositeMode = CompositeMode(opengl.CompositeModeSourceOver)
 
 	// c_out = 0
-	CompositeModeClear = CompositeMode(opengl.CompositeModeClear)
+	CompositeModeClear CompositeMode = CompositeMode(opengl.CompositeModeClear)
 
 	// c_out = c_src
-	CompositeModeCopy = CompositeMode(opengl.CompositeModeCopy)
+	CompositeModeCopy CompositeMode = CompositeMode(opengl.CompositeModeCopy)
 
 	// c_out = c_dst
-	CompositeModeDestination = CompositeMode(opengl.CompositeModeDestination)
+	CompositeModeDestination CompositeMode = CompositeMode(opengl.CompositeModeDestination)
 
 	// c_out = c_src × (1 - α_dst) + c_dst
-	CompositeModeDestinationOver = CompositeMode(opengl.CompositeModeDestinationOver)
+	CompositeModeDestinationOver CompositeMode = CompositeMode(opengl.CompositeModeDestinationOver)
 
 	// c_out = c_src × α_dst
-	CompositeModeSourceIn = CompositeMode(opengl.CompositeModeSourceIn)
+	CompositeModeSourceIn CompositeMode = CompositeMode(opengl.CompositeModeSourceIn)
 
 	// c_out = c_dst × α_src
-	CompositeModeDestinationIn = CompositeMode(opengl.CompositeModeDestinationIn)
+	CompositeModeDestinationIn CompositeMode = CompositeMode(opengl.CompositeModeDestinationIn)
 
 	// c_out = c_src × (1 - α_dst)
-	CompositeModeSourceOut = CompositeMode(opengl.CompositeModeSourceOut)
+	CompositeModeSourceOut CompositeMode = CompositeMode(opengl.CompositeModeSourceOut)
 
 	// c_out = c_dst × (1 - α_src)
-	CompositeModeDestinationOut = CompositeMode(opengl.CompositeModeDestinationOut)
+	CompositeModeDestinationOut CompositeMode = CompositeMode(opengl.CompositeModeDestinationOut)
 
 	// c_out = c_src × α_dst + c_dst × (1 - α_src)
-	CompositeModeSourceAtop = CompositeMode(opengl.CompositeModeSourceAtop)
+	CompositeModeSourceAtop CompositeMode = CompositeMode(opengl.CompositeModeSourceAtop)
 
 	// c_out = c_src × (1 - α_dst) + c_dst × α_src
-	CompositeModeDestinationAtop = CompositeMode(opengl.CompositeModeDestinationAtop)
+	CompositeModeDestinationAtop CompositeMode = CompositeMode(opengl.CompositeModeDestinationAtop)
 
 	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
-	CompositeModeXor = CompositeMode(opengl.CompositeModeXor)
+	CompositeModeXor CompositeMode = CompositeMode(opengl.CompositeModeXor)
 
 	// Sum of source and destination (a.k.a. 'plus' or 'additive')
 	// c_out = c_src + c_dst
-	CompositeModeLighter = CompositeMode(opengl.CompositeModeLighter)
+	CompositeModeLighter CompositeMode = CompositeMode(opengl.CompositeModeLighter)
 )
