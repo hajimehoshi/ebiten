@@ -57,12 +57,12 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if c.offscreen2 != nil {
 		_ = c.offscreen2.Dispose()
 	}
-	offscreen := newVolatileImage(screenWidth, screenHeight, FilterNearest)
+	offscreen := newVolatileImage(screenWidth, screenHeight, FilterDefault)
 
 	intScreenScale := int(math.Ceil(screenScale))
 	w := screenWidth * intScreenScale
 	h := screenHeight * intScreenScale
-	offscreen2 := newVolatileImage(w, h, FilterLinear)
+	offscreen2 := newVolatileImage(w, h, FilterDefault)
 
 	w = int(float64(screenWidth) * screenScale)
 	h = int(float64(screenHeight) * screenScale)
@@ -87,7 +87,7 @@ func (c *graphicsContext) initializeIfNeeded() error {
 	return nil
 }
 
-func drawWithFittingScale(dst *Image, src *Image) {
+func drawWithFittingScale(dst *Image, src *Image, filter Filter) {
 	wd, hd := dst.Size()
 	ws, hs := src.Size()
 	sw := float64(wd) / float64(ws)
@@ -95,6 +95,7 @@ func drawWithFittingScale(dst *Image, src *Image) {
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(sw, sh)
 	op.CompositeMode = CompositeModeCopy
+	op.Filter = filter
 	_ = dst.DrawImage(src, op)
 }
 
@@ -116,8 +117,8 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 	if 0 < updateCount {
-		drawWithFittingScale(c.offscreen2, c.offscreen)
-		drawWithFittingScale(c.screen, c.offscreen2)
+		drawWithFittingScale(c.offscreen2, c.offscreen, FilterNearest)
+		drawWithFittingScale(c.screen, c.offscreen2, FilterLinear)
 	}
 
 	if err := restorable.ResolveStaleImages(); err != nil {
