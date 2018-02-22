@@ -252,6 +252,8 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		s.lastProjectionMatrix = nil
 		s.lastColorMatrix = nil
 		s.lastColorMatrixTranslation = nil
+		s.lastSourceWidth = 0
+		s.lastSourceHeight = 0
 		c.BindElementArrayBuffer(s.elementArrayBuffer)
 		c.UniformInt(program, "texture", 0)
 	}
