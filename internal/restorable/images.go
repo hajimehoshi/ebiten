@@ -57,6 +57,9 @@ func ResolveStaleImages() error {
 	if err := graphics.FlushCommands(); err != nil {
 		return err
 	}
+	if !restoringEnabled {
+		return nil
+	}
 	return theImages.resolveStaleImages()
 }
 
