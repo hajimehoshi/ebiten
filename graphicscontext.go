@@ -15,8 +15,6 @@
 package ebiten
 
 import (
-	"math"
-
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
@@ -33,7 +31,6 @@ func newGraphicsContext(f func(*Image) error) *graphicsContext {
 type graphicsContext struct {
 	f           func(*Image) error
 	offscreen   *Image
-	offscreen2  *Image // TODO: better name
 	screen      *Image
 	initialized bool
 	invalidated bool // browser only
@@ -54,24 +51,15 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if c.offscreen != nil {
 		_ = c.offscreen.Dispose()
 	}
-	if c.offscreen2 != nil {
-		_ = c.offscreen2.Dispose()
-	}
 	offscreen := newVolatileImage(screenWidth, screenHeight, FilterDefault)
 
-	intScreenScale := int(math.Ceil(screenScale))
-	w := screenWidth * intScreenScale
-	h := screenHeight * intScreenScale
-	offscreen2 := newVolatileImage(w, h, FilterDefault)
-
-	w = int(float64(screenWidth) * screenScale)
-	h = int(float64(screenHeight) * screenScale)
+	w := int(float64(screenWidth) * screenScale)
+	h := int(float64(screenHeight) * screenScale)
 	ox, oy := ui.ScreenOffset()
 	c.screen = newImageWithScreenFramebuffer(w, h, ox, oy)
 	_ = c.screen.Clear()
 
 	c.offscreen = offscreen
-	c.offscreen2 = offscreen2
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {
@@ -117,8 +105,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 	if 0 < updateCount {
-		drawWithFittingScale(c.offscreen2, c.offscreen, FilterNearest)
-		drawWithFittingScale(c.screen, c.offscreen2, FilterLinear)
+		drawWithFittingScale(c.screen, c.offscreen, filterScreen)
 	}
 
 	if err := restorable.ResolveStaleImages(); err != nil {

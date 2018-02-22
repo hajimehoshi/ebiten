@@ -31,6 +31,9 @@ const (
 
 	// FilterLinear represents linear filter
 	FilterLinear Filter = Filter(graphics.FilterLinear)
+
+	// filterScreen represents a special filter for screen. Inner usage only.
+	filterScreen Filter = Filter(graphics.FilterScreen)
 )
 
 // CompositeMode represents Porter-Duff composition mode.

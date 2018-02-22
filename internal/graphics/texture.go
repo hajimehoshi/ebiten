@@ -24,6 +24,7 @@ const (
 	FilterDefault Filter = iota
 	FilterNearest
 	FilterLinear
+	FilterScreen
 )
 
 // texture represents OpenGL's texture.

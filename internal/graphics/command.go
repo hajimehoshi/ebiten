@@ -247,12 +247,9 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if n == 0 {
 		return nil
 	}
-	sw, sh := c.src.Size()
-	sw = emath.NextPowerOf2Int(sw)
-	sh = emath.NextPowerOf2Int(sh)
 	_, dh := c.dst.Size()
 	proj := f.projectionMatrix(dh)
-	theOpenGLState.useProgram(proj, c.src.texture.native, sw, sh, c.color, c.filter)
+	theOpenGLState.useProgram(proj, c.src.texture.native, c.dst, c.src, c.color, c.filter)
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
 	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)

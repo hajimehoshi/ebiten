@@ -316,6 +316,12 @@ func (c *Context) UniformInt(p Program, location string, v int) {
 	gl.Uniform1i(l.(*js.Object), v)
 }
 
+func (c *Context) UniformFloat(p Program, location string, v float32) {
+	gl := c.gl
+	l := c.locationCache.GetUniformLocation(c, p, location)
+	gl.Uniform1f(l.(*js.Object), v)
+}
+
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)

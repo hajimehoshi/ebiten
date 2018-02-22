@@ -309,6 +309,11 @@ func (c *Context) UniformInt(p Program, location string, v int) {
 	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
+func (c *Context) UniformFloat(p Program, location string, v float32) {
+	gl := c.gl
+	gl.Uniform1f(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
+}
+
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))

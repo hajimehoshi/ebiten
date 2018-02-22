@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -110,6 +111,8 @@ type openGLState struct {
 	// programLinear is OpenGL's program for rendering a texture with linear filter.
 	programLinear opengl.Program
 
+	programScreen opengl.Program
+
 	lastProgram                opengl.Program
 	lastProjectionMatrix       []float32
 	lastColorMatrix            []float32
@@ -157,6 +160,9 @@ func (s *openGLState) reset() error {
 	if s.programLinear != zeroProgram {
 		opengl.GetContext().DeleteProgram(s.programLinear)
 	}
+	if s.programScreen != zeroProgram {
+		opengl.GetContext().DeleteProgram(s.programScreen)
+	}
 	if s.arrayBuffer != zeroBuffer {
 		opengl.GetContext().DeleteBuffer(s.arrayBuffer)
 	}
@@ -182,6 +188,12 @@ func (s *openGLState) reset() error {
 	}
 	defer opengl.GetContext().DeleteShader(shaderFragmentLinearNative)
 
+	shaderFragmentScreenNative, err := opengl.GetContext().NewShader(opengl.FragmentShader, shader(shaderFragmentScreen))
+	if err != nil {
+		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
+	}
+	defer opengl.GetContext().DeleteShader(shaderFragmentScreenNative)
+
 	s.programNearest, err = opengl.GetContext().NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentNearestNative,
@@ -193,6 +205,14 @@ func (s *openGLState) reset() error {
 	s.programLinear, err = opengl.GetContext().NewProgram([]opengl.Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentLinearNative,
+	})
+	if err != nil {
+		return err
+	}
+
+	s.programScreen, err = opengl.GetContext().NewProgram([]opengl.Shader{
+		shaderVertexModelviewNative,
+		shaderFragmentScreenNative,
 	})
 	if err != nil {
 		return err
@@ -228,7 +248,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceWidth, sourceHeight int, colorM affine.ColorM, filter Filter) {
+func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, colorM affine.ColorM, filter Filter) {
 	c := opengl.GetContext()
 
 	var program opengl.Program
@@ -237,6 +257,8 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		program = s.programNearest
 	case FilterLinear:
 		program = s.programLinear
+	case FilterScreen:
+		program = s.programScreen
 	default:
 		panic("not reached")
 	}
@@ -287,13 +309,22 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, sourceW
 		s.lastColorMatrixTranslation = esTranslate
 	}
 
-	if program == s.programLinear {
-		if s.lastSourceWidth != sourceWidth || s.lastSourceHeight != sourceHeight {
-			c.UniformFloats(program, "source_size",
-				[]float32{float32(sourceWidth), float32(sourceHeight)})
-			s.lastSourceWidth = sourceWidth
-			s.lastSourceHeight = sourceHeight
+	if program == s.programLinear || program == s.programScreen {
+		sw, sh := src.Size()
+		sw = emath.NextPowerOf2Int(sw)
+		sh = emath.NextPowerOf2Int(sh)
+
+		if s.lastSourceWidth != sw || s.lastSourceHeight != sh {
+			c.UniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
+			s.lastSourceWidth = sw
+			s.lastSourceHeight = sh
 		}
+	}
+	if program == s.programScreen {
+		sw, _ := src.Size()
+		dw, _ := dst.Size()
+		scale := float32(dw) / float32(sw)
+		c.UniformFloat(program, "scale", scale)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture

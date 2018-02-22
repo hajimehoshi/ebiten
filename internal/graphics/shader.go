@@ -24,6 +24,7 @@ const (
 	shaderVertexModelview shaderID = iota
 	shaderFragmentNearest
 	shaderFragmentLinear
+	shaderFragmentScreen
 )
 
 func shader(id shaderID) string {
@@ -36,6 +37,8 @@ func shader(id shaderID) string {
 		defs = append(defs, "#define FILTER_NEAREST")
 	case shaderFragmentLinear:
 		defs = append(defs, "#define FILTER_LINEAR")
+	case shaderFragmentScreen:
+		defs = append(defs, "#define FILTER_SCREEN")
 	default:
 		panic("not reached")
 	}
@@ -73,8 +76,12 @@ uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
 
-#if defined(FILTER_LINEAR)
+#if defined(FILTER_LINEAR) || defined(FILTER_SCREEN)
 uniform highp vec2 source_size;
+#endif
+
+#if defined(FILTER_SCREEN)
+uniform highp float scale;
 #endif
 
 varying highp vec2 varying_tex_coord;
@@ -139,6 +146,23 @@ void main(void) {
   }
 
   vec2 rate = fract(pos * source_size);
+  vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+#endif
+
+#if defined(FILTER_SCREEN)
+  pos = roundTexel(pos);
+  highp vec2 texel_size = 1.0 / source_size;
+  pos -= texel_size * 0.5 / scale;
+
+  highp vec2 p0 = pos;
+  highp vec2 p1 = pos + texel_size / scale;
+  vec4 c0 = texture2D(texture, p0);
+  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(texture, p1);
+  // Texels must be in the source rect, so it is not necessary to check that like linear filter.
+
+  vec2 rate = min(max(1.0 - ((1.0 - fract(pos * source_size)) * scale), 0.0), 1.0);
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 

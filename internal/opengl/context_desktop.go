@@ -398,6 +398,14 @@ func (c *Context) UniformInt(p Program, location string, v int) {
 	})
 }
 
+func (c *Context) UniformFloat(p Program, location string, v float32) {
+	_ = c.runOnContextThread(func() error {
+		l := int32(c.locationCache.GetUniformLocation(c, p, location))
+		gl.Uniform1f(l, v)
+		return nil
+	})
+}
+
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	_ = c.runOnContextThread(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
