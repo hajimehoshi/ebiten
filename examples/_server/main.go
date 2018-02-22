@@ -28,13 +28,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"time"
 )
 
 var (
-	host = flag.String("host", "", "host name")
-	port = flag.Int("port", 8000, "port number")
+	httpAddr = flag.String("http", ":8000", "HTTP address")
 )
 
 func init() {
@@ -168,10 +166,5 @@ func main() {
 	http.HandleFunc("/main.js", serveMainJS)
 	http.HandleFunc("/main.js.map", serveMainJSMap)
 	http.HandleFunc("/", serveFileHandle)
-	if *host == "" {
-		fmt.Printf("http://127.0.0.1:%d/\n", *port)
-	} else {
-		fmt.Printf("http://%s:%d/\n", *host, *port)
-	}
-	log.Fatal(http.ListenAndServe(*host+":"+strconv.Itoa(*port), nil))
+	log.Fatal(http.ListenAndServe(*httpAddr, nil))
 }
