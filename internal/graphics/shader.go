@@ -100,14 +100,6 @@ highp vec2 roundTexel(highp vec2 p) {
 void main(void) {
   highp vec2 pos = varying_tex_coord;
 
-  // Adjust texels to be slightly inside the source rect. Without this
-  // adjustment, texels can be exactly as same values as the (lower and left) edges'
-  // positions and it could happen that outside of the source is rendered. (#491)
-  // 1.0 / 4096.0 is an arbitrary number that doesn't cause problems on MacBook Pro.
-  // TODO: Adding is better?
-  pos.x = min(varying_tex_coord_max.x - 1.0 / 4096.0, pos.x);
-  pos.y = min(varying_tex_coord_max.y - 1.0 / 4096.0, pos.y);
-
 #if defined(FILTER_NEAREST)
   vec4 color = texture2D(texture, pos);
   if (pos.x < varying_tex_coord_min.x ||
