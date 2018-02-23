@@ -144,6 +144,7 @@ void main(void) {
 #if defined(FILTER_SCREEN)
   pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
+  pos -= texel_size * 0.5 * scale;
 
   highp vec2 p0 = pos;
   highp vec2 p1 = pos + texel_size / scale;
