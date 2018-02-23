@@ -26,6 +26,36 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
+// emptyImage is an empty image used for filling other images with a uniform color.
+//
+// Do not call Fill or Clear on emptyImage or the program causes infinite recursion.
+var emptyImage *Image
+
+func init() {
+	const (
+		w = 16
+		h = 16
+	)
+	emptyImage = newImageWithoutInit(w, h)
+	pix := make([]uint8, w*h*4)
+	_ = emptyImage.ReplacePixels(pix)
+}
+
+func drawWithFittingScale(dst *Image, src *Image, colorM *ColorM, filter Filter) {
+	wd, hd := dst.Size()
+	ws, hs := src.Size()
+	sw := float64(wd) / float64(ws)
+	sh := float64(hd) / float64(hs)
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(sw, sh)
+	if colorM != nil {
+		op.ColorM = *colorM
+	}
+	op.CompositeMode = CompositeModeCopy
+	op.Filter = filter
+	_ = dst.DrawImage(src, op)
+}
+
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image.
@@ -47,7 +77,7 @@ func (i *Image) Size() (width, height int) {
 //
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
-	i.restorable.Fill(0, 0, 0, 0)
+	i.fill(0, 0, 0, 0)
 	return nil
 }
 
@@ -58,8 +88,21 @@ func (i *Image) Clear() error {
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
 	r, g, b, a := clr.RGBA()
-	i.restorable.Fill(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
+	i.fill(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
 	return nil
+}
+
+func (i *Image) fill(r, g, b, a uint8) {
+	var c *ColorM
+	if a > 0 {
+		c = &ColorM{}
+		rf := float64(r) / float64(a)
+		gf := float64(g) / float64(a)
+		bf := float64(b) / float64(a)
+		af := float64(a) / 0xff
+		c.Translate(rf, gf, bf, af)
+	}
+	drawWithFittingScale(i, emptyImage, c, FilterNearest)
 }
 
 // DrawImage draws the given image on the image i.
@@ -283,10 +326,19 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, false)
-	r.Fill(0, 0, 0, 0)
 	i := &Image{r, filter}
+	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
+}
+
+// newImageWithoutInit creates an empty image without initialization.
+func newImageWithoutInit(width, height int) *Image {
+	checkSize(width, height)
+	r := restorable.NewImage(width, height, false)
+	i := &Image{r, FilterDefault}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i
 }
 
 // newVolatileImage returns an empty 'volatile' image.
@@ -307,8 +359,8 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 func newVolatileImage(width, height int, filter Filter) *Image {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, true)
-	r.Fill(0, 0, 0, 0)
 	i := &Image{r, filter}
+	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }

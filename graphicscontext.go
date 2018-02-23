@@ -75,18 +75,6 @@ func (c *graphicsContext) initializeIfNeeded() error {
 	return nil
 }
 
-func drawWithFittingScale(dst *Image, src *Image, filter Filter) {
-	wd, hd := dst.Size()
-	ws, hs := src.Size()
-	sw := float64(wd) / float64(ws)
-	sh := float64(hd) / float64(hs)
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(sw, sh)
-	op.CompositeMode = CompositeModeCopy
-	op.Filter = filter
-	_ = dst.DrawImage(src, op)
-}
-
 func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	updateCount := clock.Update()
 
@@ -105,7 +93,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 	if 0 < updateCount {
-		drawWithFittingScale(c.screen, c.offscreen, filterScreen)
+		drawWithFittingScale(c.screen, c.offscreen, nil, filterScreen)
 	}
 
 	if err := restorable.ResolveStaleImages(); err != nil {
