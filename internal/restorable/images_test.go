@@ -66,16 +66,28 @@ func sameColors(c1, c2 color.RGBA, delta int) bool {
 		abs(int(c1.A)-int(c2.A)) <= delta
 }
 
+func fill(img *Image, r, g, b, a uint8) {
+	w, h := img.Size()
+	pix := make([]uint8, w*h*4)
+	for i := 0; i < w*h; i++ {
+		pix[4*i] = r
+		pix[4*i+1] = g
+		pix[4*i+2] = b
+		pix[4*i+3] = a
+	}
+	img.ReplacePixels(pix)
+}
+
 func TestRestore(t *testing.T) {
 	img0 := NewImage(1, 1, false)
 	// Clear images explicitly.
 	// In this 'restorable' layer, reused texture might not be cleared.
-	img0.Fill(0, 0, 0, 0)
+	fill(img0, 0, 0, 0, 0)
 	defer func() {
 		img0.Dispose()
 	}()
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	img0.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
+	fill(img0, clr0.R, clr0.G, clr0.B, clr0.A)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +122,7 @@ func TestRestoreChain(t *testing.T) {
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
 		img := NewImage(1, 1, false)
-		img.Fill(0, 0, 0, 0)
+		fill(img, 0, 0, 0, 0)
 		imgs = append(imgs, img)
 	}
 	defer func() {
@@ -119,7 +131,7 @@ func TestRestoreChain(t *testing.T) {
 		}
 	}()
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	imgs[0].Fill(clr.R, clr.G, clr.B, clr.A)
+	fill(imgs[0], clr.R, clr.G, clr.B, clr.A)
 	for i := 0; i < num-1; i++ {
 		imgs[i+1].DrawImage(imgs[i], vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	}
@@ -140,13 +152,13 @@ func TestRestoreChain(t *testing.T) {
 
 func TestRestoreOverrideSource(t *testing.T) {
 	img0 := NewImage(1, 1, false)
-	img0.Fill(0, 0, 0, 0)
+	fill(img0, 0, 0, 0, 0)
 	img1 := NewImage(1, 1, false)
-	img1.Fill(0, 0, 0, 0)
+	fill(img1, 0, 0, 0, 0)
 	img2 := NewImage(1, 1, false)
-	img2.Fill(0, 0, 0, 0)
+	fill(img2, 0, 0, 0, 0)
 	img3 := NewImage(1, 1, false)
-	img3.Fill(0, 0, 0, 0)
+	fill(img3, 0, 0, 0, 0)
 	defer func() {
 		img3.Dispose()
 		img2.Dispose()
@@ -155,10 +167,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}()
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
-	img1.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
+	fill(img1, clr0.R, clr0.G, clr0.B, clr0.A)
 	img2.DrawImage(img1, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	img3.DrawImage(img2, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img0.Fill(clr1.R, clr1.G, clr1.B, clr1.A)
+	fill(img0, clr1.R, clr1.G, clr1.B, clr1.A)
 	img1.DrawImage(img0, vertices(1, 1, 0, 0), &affine.ColorM{}, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -218,15 +230,15 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img1 := NewImageFromImage(base)
 	img2 := NewImageFromImage(base)
 	img3 := NewImage(4, 1, false)
-	img3.Fill(0, 0, 0, 0)
+	fill(img3, 0, 0, 0, 0)
 	img4 := NewImage(4, 1, false)
-	img4.Fill(0, 0, 0, 0)
+	fill(img4, 0, 0, 0, 0)
 	img5 := NewImage(4, 1, false)
-	img5.Fill(0, 0, 0, 0)
+	fill(img5, 0, 0, 0, 0)
 	img6 := NewImage(4, 1, false)
-	img6.Fill(0, 0, 0, 0)
+	fill(img6, 0, 0, 0, 0)
 	img7 := NewImage(4, 1, false)
-	img7.Fill(0, 0, 0, 0)
+	fill(img7, 0, 0, 0, 0)
 	defer func() {
 		img7.Dispose()
 		img6.Dispose()
@@ -320,7 +332,7 @@ func TestRestoreRecursive(t *testing.T) {
 	base.Pix[3] = 0xff
 	img0 := NewImageFromImage(base)
 	img1 := NewImage(4, 1, false)
-	img1.Fill(0, 0, 0, 0)
+	fill(img1, 0, 0, 0, 0)
 	defer func() {
 		img1.Dispose()
 		img0.Dispose()

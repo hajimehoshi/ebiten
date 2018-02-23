@@ -65,9 +65,7 @@ func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mod
 type Image struct {
 	image *graphics.Image
 
-	// baseImage and baseColor are exclusive.
 	basePixels []byte
-	baseColor  color.RGBA
 
 	// drawImageHistory is a set of draw-image commands.
 	// TODO: This should be merged with the similar command queue in package graphics (#433).
@@ -143,7 +141,6 @@ func (i *Image) Size() (int, int) {
 // makeStale makes the image stale.
 func (i *Image) makeStale() {
 	i.basePixels = nil
-	i.baseColor = color.RGBA{}
 	i.drawImageHistory = nil
 	i.stale = true
 }
@@ -154,7 +151,6 @@ func (i *Image) clearIfVolatile() {
 		return
 	}
 	i.basePixels = nil
-	i.baseColor = color.RGBA{}
 	i.drawImageHistory = nil
 	i.stale = false
 	if i.image == nil {
@@ -163,22 +159,11 @@ func (i *Image) clearIfVolatile() {
 	i.image.Fill(0, 0, 0, 0)
 }
 
-// Fill fills the image with the given color.
-func (i *Image) Fill(r, g, b, a uint8) {
-	theImages.makeStaleIfDependingOn(i)
-	i.basePixels = nil
-	i.baseColor = color.RGBA{r, g, b, a}
-	i.drawImageHistory = nil
-	i.stale = false
-	i.image.Fill(r, g, b, a)
-}
-
 // ReplacePixels replaces the image pixels with the given pixels slice.
 func (i *Image) ReplacePixels(pixels []byte) {
 	theImages.makeStaleIfDependingOn(i)
 	i.image.ReplacePixels(pixels)
 	i.basePixels = pixels
-	i.baseColor = color.RGBA{}
 	i.drawImageHistory = nil
 	i.stale = false
 }
@@ -259,7 +244,6 @@ func (i *Image) readPixelsFromGPU(image *graphics.Image) error {
 	if err != nil {
 		return err
 	}
-	i.baseColor = color.RGBA{}
 	i.drawImageHistory = nil
 	i.stale = false
 	return nil
@@ -314,7 +298,6 @@ func (i *Image) restore() error {
 		// be changed.
 		i.image = graphics.NewScreenFramebufferImage(w, h, i.offsetX, i.offsetY)
 		i.basePixels = nil
-		i.baseColor = color.RGBA{}
 		i.drawImageHistory = nil
 		i.stale = false
 		return nil
@@ -322,7 +305,6 @@ func (i *Image) restore() error {
 	if i.volatile {
 		i.image = graphics.NewImage(w, h)
 		i.basePixels = nil
-		i.baseColor = color.RGBA{}
 		i.drawImageHistory = nil
 		i.stale = false
 		return nil
@@ -339,12 +321,6 @@ func (i *Image) restore() error {
 		}
 	}
 	gimg := graphics.NewImageFromImage(img, w, h)
-	if i.baseColor != (color.RGBA{}) {
-		if i.basePixels != nil {
-			panic("not reached")
-		}
-		gimg.Fill(i.baseColor.R, i.baseColor.G, i.baseColor.B, i.baseColor.A)
-	}
 	for _, c := range i.drawImageHistory {
 		// All dependencies must be already resolved.
 		if c.image.hasDependency() {
@@ -359,7 +335,6 @@ func (i *Image) restore() error {
 	if err != nil {
 		return err
 	}
-	i.baseColor = color.RGBA{}
 	i.drawImageHistory = nil
 	i.stale = false
 	return nil
@@ -373,7 +348,6 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = nil
-	i.baseColor = color.RGBA{}
 	i.drawImageHistory = nil
 	i.stale = false
 	theImages.remove(i)
