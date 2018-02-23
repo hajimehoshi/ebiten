@@ -162,7 +162,7 @@ void main(void) {
   vec4 c3 = texture2D(texture, p1);
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
-  vec2 rate = min(max((fract(pos * source_size) - 0.5) * scale, 0.0), 1.0);
+  vec2 rate = clamp((fract(pos * source_size) - 0.5) * scale + 0.5, 0.0, 1.0);
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
