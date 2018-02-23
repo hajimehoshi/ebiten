@@ -144,6 +144,7 @@ void main(void) {
 #if defined(FILTER_SCREEN)
   pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
+  pos -= texel_size / 2.0 / scale;
 
   highp vec2 p0 = pos;
   highp vec2 p1 = pos + texel_size / scale;
@@ -153,7 +154,8 @@ void main(void) {
   vec4 c3 = texture2D(texture, p1);
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
-  vec2 rate = clamp((fract(pos * source_size) - vec2(0.5, 0.5)) * scale + vec2(0.5, 0.5), vec2(0.0, 0.), vec2(1.0, 1.0));
+  vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
+  vec2 rate = clamp(((fract(pos * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
