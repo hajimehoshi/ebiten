@@ -104,6 +104,7 @@ void main(void) {
   // adjustment, texels can be exactly as same values as the (lower and left) edges'
   // positions and it could happen that outside of the source is rendered. (#491)
   // 1.0 / 4096.0 is an arbitrary number that doesn't cause problems on MacBook Pro.
+  // TODO: Adding is better?
   pos.x = min(varying_tex_coord_max.x - 1.0 / 4096.0, pos.x);
   pos.y = min(varying_tex_coord_max.y - 1.0 / 4096.0, pos.y);
 
@@ -120,7 +121,6 @@ void main(void) {
 #if defined(FILTER_LINEAR)
   pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
-  pos -= texel_size * 0.5;
 
   highp vec2 p0 = pos;
   highp vec2 p1 = pos + texel_size;
@@ -152,7 +152,6 @@ void main(void) {
 #if defined(FILTER_SCREEN)
   pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
-  pos -= texel_size * 0.5 / scale;
 
   highp vec2 p0 = pos;
   highp vec2 p1 = pos + texel_size / scale;
@@ -162,7 +161,7 @@ void main(void) {
   vec4 c3 = texture2D(texture, p1);
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
-  vec2 rate = clamp((fract(pos * source_size) - 0.5) * scale + 0.5, 0.0, 1.0);
+  vec2 rate = clamp((fract(pos * source_size) - vec2(0.5, 0.5)) * scale + vec2(0.5, 0.5), vec2(0.0, 0.), vec2(1.0, 1.0));
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
