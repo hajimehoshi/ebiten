@@ -43,11 +43,6 @@ type framebuffer struct {
 	proMatrix []float32
 	width     int
 	height    int
-
-	// offsetX and offsetY are translation part of the projection matrix.
-	// offsetX and offsetY are used for the fullscreen mode.
-	offsetX float64
-	offsetY float64
 }
 
 // newFramebufferFromTexture creates a framebuffer from the given texture.
@@ -64,14 +59,12 @@ func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffe
 }
 
 // newScreenFramebuffer creates a framebuffer for the screen.
-func newScreenFramebuffer(width, height int, offsetX, offsetY float64) *framebuffer {
+func newScreenFramebuffer(width, height int) *framebuffer {
 	return &framebuffer{
-		native:  opengl.GetContext().ScreenFramebuffer(),
-		flipY:   true,
-		width:   width,
-		height:  height,
-		offsetX: offsetX,
-		offsetY: offsetY,
+		native: opengl.GetContext().ScreenFramebuffer(),
+		flipY:  true,
+		width:  width,
+		height: height,
 	}
 }
 

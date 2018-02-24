@@ -119,7 +119,7 @@ func NewImageFromImage(source image.Image) *Image {
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
 func NewScreenFramebufferImage(width, height int, paddingX0, paddingY0, paddingX1, paddingY1 float64) *Image {
 	i := &Image{
-		image:     graphics.NewScreenFramebufferImage(width, height, paddingX0, paddingY0),
+		image:     graphics.NewScreenFramebufferImage(width, height),
 		volatile:  true,
 		screen:    true,
 		paddingX0: paddingX0,
@@ -322,7 +322,7 @@ func (i *Image) restore() error {
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphics.NewScreenFramebufferImage(w, h, i.paddingX0, i.paddingY0)
+		i.image = graphics.NewScreenFramebufferImage(w, h)
 		i.basePixels = nil
 		i.drawImageHistory = nil
 		i.stale = false

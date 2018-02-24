@@ -60,17 +60,15 @@ func NewImageFromImage(img *image.RGBA, width, height int) *Image {
 	return i
 }
 
-func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Image {
+func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
 	}
 	c := &newScreenFramebufferImageCommand{
-		result:  i,
-		width:   width,
-		height:  height,
-		offsetX: offsetX,
-		offsetY: offsetY,
+		result: i,
+		width:  width,
+		height: height,
 	}
 	theCommandQueue.Enqueue(c)
 	return i

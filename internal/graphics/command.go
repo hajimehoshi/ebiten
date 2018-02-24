@@ -371,11 +371,9 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 
 // newScreenFramebufferImageCommand is a command to create a special image for the screen.
 type newScreenFramebufferImageCommand struct {
-	result  *Image
-	width   int
-	height  int
-	offsetX float64
-	offsetY float64
+	result *Image
+	width  int
+	height int
 }
 
 // Exec executes a newScreenFramebufferImageCommand.
@@ -389,6 +387,6 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	// The (default) framebuffer size can't be converted to a power of 2.
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).
-	c.result.framebuffer = newScreenFramebuffer(c.width, c.height, c.offsetX, c.offsetY)
+	c.result.framebuffer = newScreenFramebuffer(c.width, c.height)
 	return nil
 }
