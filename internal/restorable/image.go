@@ -167,13 +167,18 @@ func (i *Image) clearIfVolatile() {
 	}
 
 	w, h := i.image.Size()
-	wf, hf := float32(w), float32(h)
+	x0 := -float32(i.offsetX)
+	y0 := -float32(i.offsetY)
+	// TODO: This is an ad-hoc way to fix the problem #513.
+	// Fix this for better calculation.
+	x1 := float32(w) + float32(i.offsetX)
+	y1 := float32(h) + float32(i.offsetY)
 	// For the rule of values, see vertices.go.
 	clearVertices := []float32{
-		0, 0, 0, 0, 1, 1,
-		wf, 0, 1, 0, 0, 1,
-		0, hf, 0, 1, 1, 0,
-		wf, hf, 1, 1, 0, 0,
+		x0, y0, 0, 0, 1, 1,
+		x1, y0, 1, 0, 0, 1,
+		x0, y1, 0, 1, 1, 0,
+		x1, y1, 1, 1, 0, 0,
 	}
 	i.image.DrawImage(dummyImage, clearVertices, clearColorM, opengl.CompositeModeCopy, graphics.FilterNearest)
 }
