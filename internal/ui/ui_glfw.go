@@ -425,6 +425,7 @@ func (u *userInterface) pollEvents() {
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	actualScale := 0.0
 	sizeChanged := false
+	// TODO: Is it possible to reduce 'runOnMainThread' calls?
 	_ = u.runOnMainThread(func() error {
 		if !u.sizeChanged {
 			return nil
