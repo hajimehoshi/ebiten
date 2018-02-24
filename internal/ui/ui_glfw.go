@@ -309,6 +309,7 @@ func ScreenOffset() (float64, float64) {
 		if u.width == u.windowWidth {
 			return 0, 0
 		}
+		// The window width can be bigger than the game screen width (#444).
 		return (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2, 0
 	}
 	ox := 0.0
