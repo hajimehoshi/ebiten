@@ -34,6 +34,8 @@ type graphicsContext struct {
 	screen      *Image
 	initialized bool
 	invalidated bool // browser only
+	offsetX     float64
+	offsetY     float64
 }
 
 func (c *graphicsContext) Invalidate() {
@@ -60,6 +62,9 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	_ = c.screen.Clear()
 
 	c.offscreen = offscreen
+
+	c.offsetX = px0
+	c.offsetY = py0
 }
 
 func (c *graphicsContext) initializeIfNeeded() error {
@@ -93,7 +98,21 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 	if 0 < updateCount {
-		drawWithFittingScale(c.screen, c.offscreen, nil, filterScreen)
+		dw, dh := c.screen.Size()
+		sw, _ := c.offscreen.Size()
+		scale := float64(dw) / float64(sw)
+
+		op := &DrawImageOptions{}
+
+		// c.screen is special: its Y axis is down to up,
+		// and the origin point is lower left.
+		op.GeoM.Scale(scale, -scale)
+		op.GeoM.Translate(0, float64(dh))
+		op.GeoM.Translate(c.offsetX, c.offsetY)
+
+		op.CompositeMode = CompositeModeCopy
+		op.Filter = filterScreen
+		_ = c.screen.DrawImage(c.offscreen, op)
 	}
 
 	if err := restorable.ResolveStaleImages(); err != nil {

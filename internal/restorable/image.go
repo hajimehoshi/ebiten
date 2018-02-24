@@ -171,10 +171,10 @@ func (i *Image) clearIfVolatile() {
 	}
 
 	w, h := i.image.Size()
-	x0 := -float32(i.paddingX0)
-	y0 := -float32(i.paddingY0)
-	x1 := float32(w) + float32(i.paddingX1)
-	y1 := float32(h) + float32(i.paddingY1)
+	x0 := float32(0)
+	y0 := float32(0)
+	x1 := float32(w) + float32(i.paddingX0+i.paddingX1)
+	y1 := float32(h) + float32(i.paddingY0+i.paddingY1)
 	// For the rule of values, see vertices.go.
 	clearVertices := []float32{
 		x0, y0, 0, 0, 1, 1,
