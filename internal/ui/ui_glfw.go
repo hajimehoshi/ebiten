@@ -43,7 +43,7 @@ type userInterface struct {
 	fullscreenScale float64
 
 	running              bool
-	sizeChanged          bool
+	toChangeSize         bool
 	origPosX             int
 	origPosY             int
 	runnableInBackground bool
@@ -59,7 +59,7 @@ type userInterface struct {
 
 var (
 	currentUI = &userInterface{
-		sizeChanged:       true,
+		toChangeSize:      true,
 		origPosX:          -1,
 		origPosY:          -1,
 		initCursorVisible: true,
@@ -439,10 +439,10 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
 	_ = u.runOnMainThread(func() error {
-		if !u.sizeChanged {
+		if !u.toChangeSize {
 			return nil
 		}
-		u.sizeChanged = false
+		u.toChangeSize = false
 		actualScale = u.actualScreenScale()
 		sizeChanged = true
 		return nil
@@ -594,7 +594,6 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// buffering, what will happen?
 	glfw.SwapInterval(1)
 
-	// TODO: Rename this variable?
-	u.sizeChanged = true
+	u.toChangeSize = true
 	return true
 }
