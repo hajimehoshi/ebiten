@@ -18,8 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
@@ -184,38 +182,6 @@ func (q *commandQueue) Flush() error {
 // FlushCommands flushes the command queue.
 func FlushCommands() error {
 	return theCommandQueue.Flush()
-}
-
-// fillCommand represents a drawing command to fill an image with a solid color.
-type fillCommand struct {
-	dst   *Image
-	color color.RGBA
-}
-
-// Exec executes the fillCommand.
-func (c *fillCommand) Exec(indexOffsetInBytes int) error {
-	f, err := c.dst.createFramebufferIfNeeded()
-	if err != nil {
-		return err
-	}
-	f.setAsViewport()
-
-	cr, cg, cb, ca := c.color.R, c.color.G, c.color.B, c.color.A
-	const max = math.MaxUint8
-	r := float32(cr) / max
-	g := float32(cg) / max
-	b := float32(cb) / max
-	a := float32(ca) / max
-	if err := opengl.GetContext().FillFramebuffer(r, g, b, a); err != nil {
-		return err
-	}
-
-	// Flush is needed after filling (#419)
-	opengl.GetContext().Flush()
-	// Mysterious, but binding texture is needed after filling
-	// on some mechines like Photon 2 (#492).
-	opengl.GetContext().BindTexture(opengl.InvalidTexture)
-	return nil
 }
 
 // drawImageCommand represents a drawing command to draw an image on another image.

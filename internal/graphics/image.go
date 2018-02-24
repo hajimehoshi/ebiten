@@ -87,17 +87,6 @@ func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-func (i *Image) Fill(r, g, b, a uint8) {
-	c := &fillCommand{
-		dst: i,
-	}
-	c.color.R = r
-	c.color.G = g
-	c.color.B = b
-	c.color.A = a
-	theCommandQueue.Enqueue(c)
-}
-
 func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode, filter)
 }
