@@ -41,21 +41,6 @@ func init() {
 	_ = emptyImage.ReplacePixels(pix)
 }
 
-func drawWithFittingScale(dst *Image, src *Image, colorM *ColorM, filter Filter) {
-	wd, hd := dst.Size()
-	ws, hs := src.Size()
-	sw := float64(wd) / float64(ws)
-	sh := float64(hd) / float64(hs)
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(sw, sh)
-	if colorM != nil {
-		op.ColorM = *colorM
-	}
-	op.CompositeMode = CompositeModeCopy
-	op.Filter = filter
-	_ = dst.DrawImage(src, op)
-}
-
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
 // Image implements image.Image.
@@ -93,16 +78,22 @@ func (i *Image) Fill(clr color.Color) error {
 }
 
 func (i *Image) fill(r, g, b, a uint8) {
-	var c *ColorM
+	wd, hd := i.Size()
+	ws, hs := emptyImage.Size()
+	sw := float64(wd) / float64(ws)
+	sh := float64(hd) / float64(hs)
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(sw, sh)
 	if a > 0 {
-		c = &ColorM{}
 		rf := float64(r) / float64(a)
 		gf := float64(g) / float64(a)
 		bf := float64(b) / float64(a)
 		af := float64(a) / 0xff
-		c.Translate(rf, gf, bf, af)
+		op.ColorM.Translate(rf, gf, bf, af)
 	}
-	drawWithFittingScale(i, emptyImage, c, FilterNearest)
+	op.CompositeMode = CompositeModeCopy
+	op.Filter = FilterNearest
+	_ = i.DrawImage(emptyImage, op)
 }
 
 // DrawImage draws the given image on the image i.
