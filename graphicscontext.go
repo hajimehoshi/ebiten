@@ -17,6 +17,7 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
+	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -58,7 +59,9 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	w := int(float64(screenWidth) * screenScale)
 	h := int(float64(screenHeight) * screenScale)
 	px0, py0, px1, py1 := ui.ScreenPadding()
-	c.screen = newImageWithScreenFramebuffer(w, h, px0, py0, px1, py1)
+	fw := math.NextPowerOf2Int(w + int(px0+px1))
+	fh := math.NextPowerOf2Int(h + int(py0+py1))
+	c.screen = newImageWithScreenFramebuffer(w, h, fw, fh)
 	_ = c.screen.Clear()
 
 	c.offscreen = offscreen
