@@ -103,7 +103,7 @@ func (f *framebuffer) setAsViewport() {
 // A projection matrix converts the coodinates on the framebuffer
 // (0, 0) - (viewport width, viewport height)
 // to the normalized device coodinates (-1, -1) - (1, 1) with adjustment.
-func (f *framebuffer) projectionMatrix(height int) []float32 {
+func (f *framebuffer) projectionMatrix() []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}

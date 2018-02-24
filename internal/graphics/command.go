@@ -213,8 +213,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if n == 0 {
 		return nil
 	}
-	_, dh := c.dst.Size()
-	proj := f.projectionMatrix(dh)
+	proj := f.projectionMatrix()
 	theOpenGLState.useProgram(proj, c.src.texture.native, c.dst, c.src, c.color, c.filter)
 	// TODO: We should call glBindBuffer here?
 	// The buffer is already bound at begin() but it is counterintuitive.
