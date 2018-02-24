@@ -397,12 +397,14 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	return u.loop(g)
 }
 
+// getSize must be called from the main thread.
 func (u *userInterface) glfwSize() (int, int) {
 	w := int(float64(u.windowWidth) * u.getScale() * glfwScale())
 	h := int(float64(u.height) * u.getScale() * glfwScale())
 	return w, h
 }
 
+// getScale must be called from the main thread.
 func (u *userInterface) getScale() float64 {
 	if !u.fullscreen() {
 		return u.scale
@@ -421,10 +423,12 @@ func (u *userInterface) getScale() float64 {
 	return u.fullscreenScale
 }
 
+// actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.DeviceScale()
 }
 
+// pollEvents must be called from the main thread.
 func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
 	currentInput.update(u.window, u.getScale()*glfwScale())
@@ -513,10 +517,12 @@ func (u *userInterface) loop(g GraphicsContext) error {
 	}
 }
 
+// swapBuffers must be called from the main thread.
 func (u *userInterface) swapBuffers() {
 	u.window.SwapBuffers()
 }
 
+// setScreenSize must be called from the main thread.
 func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
 	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen {
 		return false
