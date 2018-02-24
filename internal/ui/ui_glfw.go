@@ -247,6 +247,7 @@ func ScreenScale() float64 {
 	return s
 }
 
+// fullscreen must be called from the main thread.
 func (u *userInterface) fullscreen() bool {
 	if !u.isRunning() {
 		panic("not reached")
@@ -259,7 +260,12 @@ func IsFullscreen() bool {
 	if !u.isRunning() {
 		return u.isInitFullscreen()
 	}
-	return u.fullscreen()
+	b := false
+	_ = u.runOnMainThread(func() error {
+		b = u.fullscreen()
+		return nil
+	})
+	return b
 }
 
 func SetFullscreen(fullscreen bool) {
