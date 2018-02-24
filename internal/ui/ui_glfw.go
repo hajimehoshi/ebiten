@@ -300,17 +300,18 @@ func SetWindowIcon(iconImages []image.Image) {
 	})
 }
 
-func ScreenOffset() (float64, float64) {
+func ScreenPadding() (x0, y0, x1, y1 float64) {
 	u := currentUI
 	if !u.isRunning() {
-		return 0, 0
+		return 0, 0, 0, 0
 	}
 	if !IsFullscreen() {
 		if u.width == u.windowWidth {
-			return 0, 0
+			return 0, 0, 0, 0
 		}
 		// The window width can be bigger than the game screen width (#444).
-		return (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2, 0
+		ox := (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2
+		return ox, 0, ox, 0
 	}
 	ox := 0.0
 	oy := 0.0
@@ -322,7 +323,7 @@ func ScreenOffset() (float64, float64) {
 		oy = (float64(v.Height)*d/glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
 		return nil
 	})
-	return ox, oy
+	return ox, oy, ox, oy
 }
 
 func adjustCursorPosition(x, y int) (int, int) {
@@ -330,7 +331,7 @@ func adjustCursorPosition(x, y int) (int, int) {
 	if !u.isRunning() {
 		return x, y
 	}
-	ox, oy := ScreenOffset()
+	ox, oy, _, _ := ScreenPadding()
 	s := 0.0
 	_ = currentUI.runOnMainThread(func() error {
 		s = currentUI.actualScreenScale()

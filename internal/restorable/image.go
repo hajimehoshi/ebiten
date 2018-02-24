@@ -80,8 +80,10 @@ type Image struct {
 	// screen indicates whether the image is used as an actual screen.
 	screen bool
 
-	offsetX float64
-	offsetY float64
+	paddingX0 float64
+	paddingY0 float64
+	paddingX1 float64
+	paddingY1 float64
 }
 
 // NewImage creates an empty image with the given size.
@@ -115,13 +117,15 @@ func NewImageFromImage(source image.Image) *Image {
 }
 
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
-func NewScreenFramebufferImage(width, height int, offsetX, offsetY float64) *Image {
+func NewScreenFramebufferImage(width, height int, paddingX0, paddingY0, paddingX1, paddingY1 float64) *Image {
 	i := &Image{
-		image:    graphics.NewScreenFramebufferImage(width, height, offsetX, offsetY),
-		volatile: true,
-		screen:   true,
-		offsetX:  offsetX,
-		offsetY:  offsetY,
+		image:     graphics.NewScreenFramebufferImage(width, height, paddingX0, paddingY0),
+		volatile:  true,
+		screen:    true,
+		paddingX0: paddingX0,
+		paddingY0: paddingY0,
+		paddingX1: paddingX1,
+		paddingY1: paddingY1,
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -167,12 +171,10 @@ func (i *Image) clearIfVolatile() {
 	}
 
 	w, h := i.image.Size()
-	x0 := -float32(i.offsetX)
-	y0 := -float32(i.offsetY)
-	// TODO: This is an ad-hoc way to fix the problem #513.
-	// Fix this for better calculation.
-	x1 := float32(w) + float32(i.offsetX)
-	y1 := float32(h) + float32(i.offsetY)
+	x0 := -float32(i.paddingX0)
+	y0 := -float32(i.paddingY0)
+	x1 := float32(w) + float32(i.paddingX1)
+	y1 := float32(h) + float32(i.paddingY1)
 	// For the rule of values, see vertices.go.
 	clearVertices := []float32{
 		x0, y0, 0, 0, 1, 1,
@@ -320,7 +322,7 @@ func (i *Image) restore() error {
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphics.NewScreenFramebufferImage(w, h, i.offsetX, i.offsetY)
+		i.image = graphics.NewScreenFramebufferImage(w, h, i.paddingX0, i.paddingY0)
 		i.basePixels = nil
 		i.drawImageHistory = nil
 		i.stale = false

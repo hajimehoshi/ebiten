@@ -156,8 +156,8 @@ func ScreenScale() float64 {
 	return s
 }
 
-func ScreenOffset() (float64, float64) {
-	return 0, 0
+func ScreenPadding() (x0, y0, x1, y1 float64) {
+	return 0, 0, 0, 0
 }
 
 func adjustCursorPosition(x, y int) (int, int) {
