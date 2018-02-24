@@ -145,6 +145,15 @@ func (i *Image) makeStale() {
 	i.stale = true
 }
 
+var (
+	dummyImage  = graphics.NewImage(16, 16)
+	clearColorM = &affine.ColorM{}
+)
+
+func init() {
+	clearColorM.Scale(0, 0, 0, 0)
+}
+
 // clearIfVolatile clears the image if the image is volatile.
 func (i *Image) clearIfVolatile() {
 	if !i.volatile {
@@ -156,7 +165,17 @@ func (i *Image) clearIfVolatile() {
 	if i.image == nil {
 		panic("not reached")
 	}
-	i.image.Fill(0, 0, 0, 0)
+
+	w, h := i.image.Size()
+	wf, hf := float32(w), float32(h)
+	// For the rule of values, see vertices.go.
+	clearVertices := []float32{
+		0, 0, 0, 0, 1, 1,
+		wf, 0, 1, 0, 0, 1,
+		0, hf, 0, 1, 1, 0,
+		wf, hf, 1, 1, 0, 0,
+	}
+	i.image.DrawImage(dummyImage, clearVertices, clearColorM, opengl.CompositeModeCopy, graphics.FilterNearest)
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
