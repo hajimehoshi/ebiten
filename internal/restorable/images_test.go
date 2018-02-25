@@ -225,9 +225,9 @@ func TestRestoreComplexGraph(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base)
-	img1 := NewImageFromImage(base)
-	img2 := NewImageFromImage(base)
+	img0 := newImageFromImage(base)
+	img1 := newImageFromImage(base)
+	img2 := newImageFromImage(base)
 	img3 := NewImage(4, 1, false)
 	fill(img3, 0, 0, 0, 0)
 	img4 := NewImage(4, 1, false)
@@ -323,13 +323,20 @@ func TestRestoreComplexGraph(t *testing.T) {
 	}
 }
 
+func newImageFromImage(rgba *image.RGBA) *Image {
+	s := rgba.Bounds().Size()
+	img := NewImage(s.X, s.Y, false)
+	img.ReplacePixels(rgba.Pix)
+	return img
+}
+
 func TestRestoreRecursive(t *testing.T) {
 	base := image.NewRGBA(image.Rect(0, 0, 4, 1))
 	base.Pix[0] = 0xff
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
-	img0 := NewImageFromImage(base)
+	img0 := newImageFromImage(base)
 	img1 := NewImage(4, 1, false)
 	fill(img1, 0, 0, 0, 0)
 	defer func() {

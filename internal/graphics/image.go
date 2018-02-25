@@ -15,8 +15,6 @@
 package graphics
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -42,19 +40,6 @@ func NewImage(width, height int) *Image {
 		result: i,
 		width:  width,
 		height: height,
-	}
-	theCommandQueue.Enqueue(c)
-	return i
-}
-
-func NewImageFromImage(img *image.RGBA, width, height int) *Image {
-	i := &Image{
-		width:  width,
-		height: height,
-	}
-	c := &newImageFromImageCommand{
-		result: i,
-		img:    img,
 	}
 	theCommandQueue.Enqueue(c)
 	return i

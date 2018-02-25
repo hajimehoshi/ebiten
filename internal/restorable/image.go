@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"errors"
-	"image"
 	"image/color"
 	"runtime"
 
@@ -91,25 +90,6 @@ func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{
 		image:    graphics.NewImage(width, height),
 		volatile: volatile,
-	}
-	theImages.add(i)
-	runtime.SetFinalizer(i, (*Image).Dispose)
-	return i
-}
-
-// NewImageFromImage creates an image with source image.
-func NewImageFromImage(source image.Image) *Image {
-	size := source.Bounds().Size()
-	width, height := size.X, size.Y
-	rgbaImg := CopyImage(source)
-	w2, h2 := math.NextPowerOf2Int(width), math.NextPowerOf2Int(height)
-	p := make([]byte, 4*w2*h2)
-	for j := 0; j < height; j++ {
-		copy(p[j*w2*4:(j+1)*w2*4], rgbaImg.Pix[j*rgbaImg.Stride:])
-	}
-	i := &Image{
-		image:      graphics.NewImageFromImage(rgbaImg, width, height),
-		basePixels: p,
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -339,14 +319,14 @@ func (i *Image) restore() error {
 		// TODO: panic here?
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
-	img := image.NewRGBA(image.Rect(0, 0, w2, h2))
+	gimg := graphics.NewImage(w, h)
 	if i.basePixels != nil {
-		for j := 0; j < h; j++ {
-			copy(img.Pix[j*img.Stride:], i.basePixels[j*w2*4:(j+1)*w2*4])
-		}
+		gimg.ReplacePixels(i.basePixels)
+	} else {
+		// Clear the image explicitly.
+		pix := make([]uint8, w*h*4)
+		gimg.ReplacePixels(pix)
 	}
-	gimg := graphics.NewImageFromImage(img, w, h)
 	for _, c := range i.drawImageHistory {
 		// All dependencies must be already resolved.
 		if c.image.hasDependency() {

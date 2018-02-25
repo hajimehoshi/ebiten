@@ -398,12 +398,22 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	checkSize(size.X, size.Y)
-	r := restorable.NewImageFromImage(source)
+	width, height := size.X, size.Y
+	rgbaImg := restorable.CopyImage(source)
+	p := make([]byte, 4*width*height)
+	for j := 0; j < height; j++ {
+		copy(p[j*width*4:(j+1)*width*4], rgbaImg.Pix[j*rgbaImg.Stride:])
+	}
+
+	r := restorable.NewImage(width, height, false)
 	i := &Image{
 		restorable: r,
 		filter:     filter,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
+
+	_ = i.ReplacePixels(p)
+
 	return i, nil
 }
 

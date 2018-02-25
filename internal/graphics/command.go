@@ -17,7 +17,6 @@ package graphics
 import (
 	"errors"
 	"fmt"
-	"image"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
@@ -309,35 +308,6 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 	}
 	if c.target.texture != nil {
 		opengl.GetContext().DeleteTexture(c.target.texture.native)
-	}
-	return nil
-}
-
-// newImageFromImageCommand represents a command to create an image from an image.RGBA.
-type newImageFromImageCommand struct {
-	result *Image
-	img    *image.RGBA
-}
-
-// Exec executes the newImageFromImageCommand.
-func (c *newImageFromImageCommand) Exec(indexOffsetInBytes int) error {
-	origSize := c.img.Bounds().Size()
-	if origSize.X < 1 {
-		return errors.New("graphics: width must be equal or more than 1.")
-	}
-	if origSize.Y < 1 {
-		return errors.New("graphics: height must be equal or more than 1.")
-	}
-	w, h := c.img.Bounds().Size().X, c.img.Bounds().Size().Y
-	if c.img.Bounds() != image.Rect(0, 0, emath.NextPowerOf2Int(w), emath.NextPowerOf2Int(h)) {
-		panic(fmt.Sprintf("graphics: invalid image bounds: %v", c.img.Bounds()))
-	}
-	native, err := opengl.GetContext().NewTexture(w, h, c.img.Pix)
-	if err != nil {
-		return err
-	}
-	c.result.texture = &texture{
-		native: native,
 	}
 	return nil
 }
