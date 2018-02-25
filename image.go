@@ -183,7 +183,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		return nil
 	}
 
-	w, h := img.restorable.Size()
+	w, h := img.Size()
 	sx0, sy0, sx1, sy1 := 0, 0, w, h
 	if r := options.SourceRect; r != nil {
 		sx0 = r.Min.X
@@ -214,7 +214,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
-	w, h := i.restorable.Size()
+	w, h := i.Size()
 	return image.Rect(0, 0, w, h)
 }
 
@@ -276,7 +276,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.restorable == nil {
 		return nil
 	}
-	w, h := i.restorable.Size()
+	w, h := i.Size()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
