@@ -17,11 +17,12 @@ package restorable
 import (
 	"errors"
 	"image/color"
+	"math"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/math"
+	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -153,8 +154,8 @@ func (i *Image) clearIfVolatile() {
 	w, h := i.image.Size()
 	x0 := float32(0)
 	y0 := float32(0)
-	x1 := float32(w) + float32(i.paddingX0+i.paddingX1)
-	y1 := float32(h) + float32(i.paddingY0+i.paddingY1)
+	x1 := float32(w + int(math.Ceil(i.paddingX0+i.paddingX1)))
+	y1 := float32(h + int(math.Ceil(i.paddingY0+i.paddingY1)))
 	// For the rule of values, see vertices.go.
 	clearVertices := []float32{
 		x0, y0, 0, 0, 1, 1,
@@ -219,7 +220,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (color.RGBA, error) {
 	w, h := i.image.Size()
-	w2, h2 := math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)
+	w2, h2 := emath.NextPowerOf2Int(w), emath.NextPowerOf2Int(h)
 	if x < 0 || y < 0 || w2 <= x || h2 <= y {
 		return color.RGBA{}, nil
 	}
