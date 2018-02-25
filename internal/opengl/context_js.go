@@ -131,7 +131,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	gl.BlendFunc(int(s), int(d))
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error) {
+func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t == nil {
@@ -148,11 +148,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
 	//     GLenum type, ArrayBufferView? pixels);
-	var p interface{}
-	if pixels != nil {
-		p = pixels
-	}
-	gl.Call("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, p)
+	gl.Call("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
 
 	return t, nil
 }

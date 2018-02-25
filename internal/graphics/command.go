@@ -329,7 +329,7 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	if h < 1 {
 		return errors.New("graphics: height must be equal or more than 1.")
 	}
-	native, err := opengl.GetContext().NewTexture(w, h, nil)
+	native, err := opengl.GetContext().NewTexture(w, h)
 	if err != nil {
 		return err
 	}

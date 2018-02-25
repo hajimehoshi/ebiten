@@ -133,7 +133,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	})
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error) {
+func (c *Context) NewTexture(width, height int) (Texture, error) {
 	var texture Texture
 	if err := c.runOnContextThread(func() error {
 		var t uint32
@@ -152,12 +152,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 	_ = c.runOnContextThread(func() error {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-
-		var p interface{}
-		if pixels != nil {
-			p = pixels
-		}
-		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
+		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
 		return nil
 	})
 	return texture, nil

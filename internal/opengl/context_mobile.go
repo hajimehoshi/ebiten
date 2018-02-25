@@ -123,7 +123,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	gl.BlendFunc(mgl.Enum(s), mgl.Enum(d))
 }
 
-func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error) {
+func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t.Value <= 0 {
@@ -134,12 +134,7 @@ func (c *Context) NewTexture(width, height int, pixels []uint8) (Texture, error)
 
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MAG_FILTER, mgl.NEAREST)
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, mgl.NEAREST)
-
-	var p []uint8
-	if pixels != nil {
-		p = pixels
-	}
-	gl.TexImage2D(mgl.TEXTURE_2D, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
+	gl.TexImage2D(mgl.TEXTURE_2D, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
 
 	return Texture(t), nil
 }
