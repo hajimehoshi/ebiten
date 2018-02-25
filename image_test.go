@@ -744,3 +744,15 @@ func TestImageSize4096(t *testing.T) {
 		}
 	}
 }
+
+func TestImageCopy(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("copying image and using it should panic")
+		}
+	}()
+
+	img0, _ := NewImage(256, 256, FilterDefault)
+	img1 := *img0
+	img1.Fill(color.Transparent)
+}

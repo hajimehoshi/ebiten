@@ -47,8 +47,25 @@ func init() {
 //
 // Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
 type Image struct {
+	// addr holds self to check copying.
+	// See strings.Builder for similar examples.
+	addr *Image
+
 	restorable *restorable.Image
-	filter     Filter
+
+	filter Filter
+}
+
+func (i *Image) copyCheck() {
+	if i.addr == nil {
+		// As it is OK that an image is allocated at heap,
+		// 'noespace' function like strings.noescape is not needed.
+		i.addr = i
+		return
+	}
+	if i.addr != i {
+		panic("ebiten: illegal use of non-zero Image copied by value")
+	}
 }
 
 // Size returns the size of the image.
@@ -62,6 +79,7 @@ func (i *Image) Size() (width, height int) {
 //
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
+	i.copyCheck()
 	i.fill(0, 0, 0, 0)
 	return nil
 }
@@ -72,6 +90,7 @@ func (i *Image) Clear() error {
 //
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
+	i.copyCheck()
 	r, g, b, a := clr.RGBA()
 	i.fill(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
 	return nil
@@ -123,6 +142,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
+	i.copyCheck()
 	if i == img {
 		panic("ebiten: Image.DrawImage: img must be different from the receiver")
 	}
@@ -230,6 +250,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // Dipose always return nil as of 1.5.0-alpha.
 func (i *Image) Dispose() error {
+	i.copyCheck()
 	if i.restorable == nil {
 		return nil
 	}
@@ -251,6 +272,7 @@ func (i *Image) Dispose() error {
 //
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []byte) error {
+	i.copyCheck()
 	if i.restorable == nil {
 		return nil
 	}
@@ -317,7 +339,10 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, false)
-	i := &Image{r, filter}
+	i := &Image{
+		restorable: r,
+		filter:     filter,
+	}
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
@@ -327,7 +352,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 func newImageWithoutInit(width, height int) *Image {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, false)
-	i := &Image{r, FilterDefault}
+	i := &Image{
+		restorable: r,
+		filter:     FilterDefault,
+	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
@@ -350,7 +378,10 @@ func newImageWithoutInit(width, height int) *Image {
 func newVolatileImage(width, height int, filter Filter) *Image {
 	checkSize(width, height)
 	r := restorable.NewImage(width, height, true)
-	i := &Image{r, filter}
+	i := &Image{
+		restorable: r,
+		filter:     filter,
+	}
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
@@ -368,7 +399,10 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	checkSize(size.X, size.Y)
 	r := restorable.NewImageFromImage(source)
-	i := &Image{r, filter}
+	i := &Image{
+		restorable: r,
+		filter:     filter,
+	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
 }
@@ -376,7 +410,10 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 func newImageWithScreenFramebuffer(width, height, framebufferWidth, framebufferHeight int) *Image {
 	checkSize(width, height)
 	r := restorable.NewScreenFramebufferImage(width, height, framebufferWidth, framebufferHeight)
-	i := &Image{r, FilterDefault}
+	i := &Image{
+		restorable: r,
+		filter:     FilterDefault,
+	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
