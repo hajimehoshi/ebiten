@@ -80,8 +80,10 @@ type Image struct {
 	// screen indicates whether the image is used as an actual screen.
 	screen bool
 
-	framebufferWidth  int
-	framebufferHeight int
+	paddingX0 float64
+	paddingY0 float64
+	paddingX1 float64
+	paddingY1 float64
 }
 
 // NewImage creates an empty image with the given size.
@@ -115,13 +117,15 @@ func NewImageFromImage(source image.Image) *Image {
 }
 
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
-func NewScreenFramebufferImage(width, height, framebufferWidth, framebufferHeight int) *Image {
+func NewScreenFramebufferImage(width, height int, paddingX0, paddingY0, paddingX1, paddingY1 float64) *Image {
 	i := &Image{
-		image:             graphics.NewScreenFramebufferImage(width, height),
-		volatile:          true,
-		screen:            true,
-		framebufferWidth:  framebufferWidth,
-		framebufferHeight: framebufferHeight,
+		image:     graphics.NewScreenFramebufferImage(width, height),
+		volatile:  true,
+		screen:    true,
+		paddingX0: paddingX0,
+		paddingY0: paddingY0,
+		paddingX1: paddingX1,
+		paddingY1: paddingY1,
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -166,10 +170,11 @@ func (i *Image) clearIfVolatile() {
 		panic("not reached")
 	}
 
+	w, h := i.image.Size()
 	x0 := float32(0)
 	y0 := float32(0)
-	x1 := float32(i.framebufferWidth)
-	y1 := float32(i.framebufferHeight)
+	x1 := float32(w) + float32(i.paddingX0+i.paddingX1)
+	y1 := float32(h) + float32(i.paddingY0+i.paddingY1)
 	// For the rule of values, see vertices.go.
 	clearVertices := []float32{
 		x0, y0, 0, 0, 1, 1,
