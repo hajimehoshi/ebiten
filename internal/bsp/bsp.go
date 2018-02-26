@@ -50,6 +50,19 @@ func (n *Node) Region() (x, y, width, height int) {
 	return n.x, n.y, n.width, n.height
 }
 
+// square returns a float value indicating how much the given rectangle is close to a square.
+// If the given rectangle is square, this return 1 (maximum value).
+// Otherwise, this returns a value in [0, 1).
+func square(width, height int) float64 {
+	if width == 0 && height == 0 {
+		return 0
+	}
+	if width <= height {
+		return float64(width) / float64(height)
+	}
+	return float64(height) / float64(width)
+}
+
 func (n *Node) alloc(width, height int) *Node {
 	if n.width < width || n.height < height {
 		return nil
@@ -62,7 +75,7 @@ func (n *Node) alloc(width, height int) *Node {
 			n.used = true
 			return n
 		}
-		if n.height == height || (n.width != width && width <= height) {
+		if square(n.width-width, n.height) >= square(n.width, n.height-height) {
 			// Split vertically
 			n.child0 = &Node{
 				x:      n.x,
