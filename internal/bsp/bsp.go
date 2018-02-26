@@ -17,7 +17,7 @@ package bsp
 
 const (
 	MaxSize = 1024
-	minSize = 4
+	minSize = 1
 )
 
 type Page struct {
