@@ -15,7 +15,7 @@
 package ebitenutil
 
 import (
-	// Import image/png for backward compatibility (#500, #518)
+	// Import image/png for backward compatibility (#500, #516)
 	// TODO: Deprecate and remove this at the next major version (2.0).
 	_ "image/png"
 )
