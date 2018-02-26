@@ -91,7 +91,6 @@ func (n *Node) alloc(width, height int) *Node {
 				height: n.height,
 				parent: n,
 			}
-			return n.child0.alloc(width, height)
 		} else {
 			// Split holizontally
 			n.child0 = &Node{
@@ -108,8 +107,8 @@ func (n *Node) alloc(width, height int) *Node {
 				height: n.height - height,
 				parent: n,
 			}
-			return n.child0.alloc(width, height)
 		}
+		return n.child0.alloc(width, height)
 	}
 	if n.child0 == nil || n.child1 == nil {
 		panic("not reached")
