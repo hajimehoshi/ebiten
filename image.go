@@ -115,6 +115,10 @@ func (i *Image) fill(r, g, b, a uint8) {
 	_ = i.DrawImage(emptyImage, op)
 }
 
+func (i *Image) isDisposed() bool {
+	return i.restorable == nil
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -125,7 +129,8 @@ func (i *Image) fill(r, g, b, a uint8) {
 // Even if the argument image is mutated after this call,
 // the drawing result is never affected.
 //
-// When the i is disposed, DrawImage does nothing.
+// When the image i is disposed, DrawImage does nothing.
+// When the given image img is disposed, DrawImage panics.
 //
 // When the given image is as same as i, DrawImage panics.
 //
@@ -146,7 +151,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if i == img {
 		panic("ebiten: Image.DrawImage: img must be different from the receiver")
 	}
-	if i.restorable == nil {
+	if img.isDisposed() {
+		panic("ebiten: the given image to DrawImage must not be disposed")
+	}
+	if i.isDisposed() {
 		return nil
 	}
 	// Calculate vertices before locking because the user can do anything in
@@ -231,7 +239,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
-	if i.restorable == nil {
+	if i.isDisposed() {
 		return color.Transparent
 	}
 	// TODO: Error should be delayed until flushing. Do not panic here.
@@ -251,7 +259,7 @@ func (i *Image) At(x, y int) color.Color {
 // Dipose always return nil as of 1.5.0-alpha.
 func (i *Image) Dispose() error {
 	i.copyCheck()
-	if i.restorable == nil {
+	if i.isDisposed() {
 		return nil
 	}
 	i.restorable.Dispose()
@@ -273,7 +281,7 @@ func (i *Image) Dispose() error {
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
-	if i.restorable == nil {
+	if i.isDisposed() {
 		return nil
 	}
 	w, h := i.Size()
