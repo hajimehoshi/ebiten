@@ -65,10 +65,10 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 			dy = -float64(sy0)
 			sy0 = 0
 		}
-		g := affine.GeoM{}
-		g.Translate(dx, dy)
-		g.Concat(geo)
-		geo = &g
+		var g *affine.GeoM
+		g = g.Translate(dx, dy)
+		g = g.Concat(geo)
+		geo = g
 	}
 	x0, y0 := 0.0, 0.0
 	x1, y1 := float64(sx1-sx0), float64(sy1-sy0)

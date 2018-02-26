@@ -203,7 +203,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
-	vs := vertices(sx0, sy0, sx1, sy1, w, h, &options.GeoM.impl)
+	vs := vertices(sx0, sy0, sx1, sy1, w, h, options.GeoM.impl)
 	if vs == nil {
 		return nil
 	}

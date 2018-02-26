@@ -25,12 +25,12 @@ const GeoMDim = affine.GeoMDim
 //
 // The initial value is identity.
 type GeoM struct {
-	impl affine.GeoM
+	impl *affine.GeoM
 }
 
 // Reset resets the GeoM as identity.
 func (g *GeoM) Reset() {
-	g.impl.Reset()
+	g.impl = nil
 }
 
 // Apply pre-multiplies a vector (x, y, 1) by the matrix.
@@ -64,34 +64,34 @@ func (g *GeoM) Element(i, j int) float64 {
 // Concat multiplies a geometry matrix with the other geometry matrix.
 // This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
-	g.impl.Concat(&other.impl)
+	g.impl = g.impl.Concat(other.impl)
 }
 
 // Add is deprecated as of 1.5.0-alpha.
 // Note that this doesn't make sense as an operation for affine matrices.
 func (g *GeoM) Add(other GeoM) {
-	g.impl.Add(other.impl)
+	g.impl = g.impl.Add(other.impl)
 }
 
 // Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
-	g.impl.Scale(x, y)
+	g.impl = g.impl.Scale(x, y)
 }
 
 // Translate translates the matrix by (tx, ty).
 func (g *GeoM) Translate(tx, ty float64) {
-	g.impl.Translate(tx, ty)
+	g.impl = g.impl.Translate(tx, ty)
 }
 
 // Rotate rotates the matrix by theta.
 // The unit is radian.
 func (g *GeoM) Rotate(theta float64) {
-	g.impl.Rotate(theta)
+	g.impl = g.impl.Rotate(theta)
 }
 
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
-	g.impl.SetElement(i, j, element)
+	g.impl = g.impl.SetElement(i, j, element)
 }
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
