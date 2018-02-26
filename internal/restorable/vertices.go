@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package restorable
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 var (
-	quadFloat32Num     = restorable.QuadVertexSizeInBytes() / 4
+	quadFloat32Num     = graphics.QuadVertexSizeInBytes() / 4
 	theVerticesBackend = &verticesBackend{}
 )
 
@@ -43,7 +43,7 @@ func (v *verticesBackend) get() []float32 {
 	return s
 }
 
-func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []float32 {
+func (i *Image) vertices(sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []float32 {
 	if sx0 >= sx1 || sy0 >= sy1 {
 		return nil
 	}
@@ -75,6 +75,7 @@ func vertices(sx0, sy0, sx1, sy1 int, width, height int, geo *affine.GeoM) []flo
 
 	// it really feels like we should be able to cache this computation
 	// but it may not matter.
+	width, height := i.Size()
 	w := 1
 	h := 1
 	for w < width {

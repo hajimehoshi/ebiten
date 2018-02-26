@@ -203,10 +203,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
-	vs := vertices(sx0, sy0, sx1, sy1, w, h, options.GeoM.impl)
-	if vs == nil {
-		return nil
-	}
 	mode := opengl.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
@@ -216,7 +212,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.restorable.DrawImage(img.restorable, vs, &options.ColorM.impl, mode, filter)
+	i.restorable.DrawImage(img.restorable, sx0, sy0, sx1, sy1, options.GeoM.impl, &options.ColorM.impl, mode, filter)
 	return nil
 }
 

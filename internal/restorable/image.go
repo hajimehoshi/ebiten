@@ -29,11 +29,6 @@ import (
 // MaxImageSize represents the maximum width/height of an image.
 const MaxImageSize = graphics.MaxImageSize
 
-// QuadVertexSizeInBytes returns the byte size of vertices for a quadrilateral.
-func QuadVertexSizeInBytes() int {
-	return graphics.QuadVertexSizeInBytes()
-}
-
 // drawImageHistoryItem is an item for history of draw-image commands.
 type drawImageHistoryItem struct {
 	image    *Image
@@ -176,14 +171,18 @@ func (i *Image) ReplacePixels(pixels []byte) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	theImages.makeStaleIfDependingOn(i)
+	vs := img.vertices(sx0, sy0, sx1, sy1, geom)
+	if vs == nil {
+		return
+	}
 	if img.stale || img.volatile || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
-		i.appendDrawImageHistory(img, vertices, colorm, mode, filter)
+		i.appendDrawImageHistory(img, vs, colorm, mode, filter)
 	}
-	i.image.DrawImage(img.image, vertices, colorm, mode, filter)
+	i.image.DrawImage(img.image, vs, colorm, mode, filter)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
