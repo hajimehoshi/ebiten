@@ -169,11 +169,11 @@ func TestColorMConcatSelf(t *testing.T) {
 	}
 }
 
-func absU32(x uint32) uint32 {
-	if x < 0 {
-		return -x
+func absDiffU32(x, y uint32) uint32 {
+	if x < y {
+		return y - x
 	}
-	return x
+	return x - y
 }
 
 func TestColorMApply(t *testing.T) {
@@ -182,6 +182,9 @@ func TestColorMApply(t *testing.T) {
 
 	shiny := ColorM{}
 	shiny.Translate(1, 1, 1, 0)
+
+	shift := ColorM{}
+	shift.Translate(0.5, 0.5, 0.5, 0.5)
 
 	cases := []struct {
 		ColorM ColorM
@@ -213,15 +216,20 @@ func TestColorMApply(t *testing.T) {
 			Out:    color.RGBA{0xb0, 0xb0, 0xb0, 0xb0},
 			Delta:  1,
 		},
+		{
+			ColorM: shift,
+			In:     color.RGBA{0x00, 0x00, 0x00, 0x00},
+			Out:    color.RGBA{0x40, 0x40, 0x40, 0x80},
+			Delta:  0x101,
+		},
 	}
 	for _, c := range cases {
 		out := c.ColorM.Apply(c.In)
 		r0, g0, b0, a0 := out.RGBA()
 		r1, g1, b1, a1 := c.Out.RGBA()
-		if absU32(r0-r1) > c.Delta || absU32(g0-g1) > c.Delta ||
-			absU32(b0-b1) > c.Delta || absU32(a0-a1) > c.Delta {
-			println(r0, r1)
-			t.Errorf("%v.Apply(%v) = %v, want %v", c.ColorM, c.In, out, c.Out)
+		if absDiffU32(r0, r1) > c.Delta || absDiffU32(g0, g1) > c.Delta ||
+			absDiffU32(b0, b1) > c.Delta || absDiffU32(a0, a1) > c.Delta {
+			t.Errorf("%v.Apply(%v) = {%d, %d, %d, %d}, want {%d, %d, %d, %d}", c.ColorM, c.In, r0, g0, b0, a0, r1, g1, b1, a1)
 		}
 	}
 }
