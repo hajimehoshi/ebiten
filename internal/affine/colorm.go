@@ -69,14 +69,14 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 		return clr
 	}
 	r, g, b, a := clr.RGBA()
-	if a == 0 {
-		return color.Transparent
-	}
+	rf, gf, bf, af := float32(0.0), float32(0.0), float32(0.0), float32(0.0)
 	// Unmultiply alpha
-	rf := float32(r) / float32(a)
-	gf := float32(g) / float32(a)
-	bf := float32(b) / float32(a)
-	af := float32(a) / 0xffff
+	if a > 0 {
+		rf = float32(r) / float32(a)
+		gf = float32(g) / float32(a)
+		bf = float32(b) / float32(a)
+		af = float32(a) / 0xffff
+	}
 	eb := c.body
 	et := c.translate
 	rf2 := eb[0]*rf + eb[4]*gf + eb[8]*bf + eb[12]*af + et[0]
