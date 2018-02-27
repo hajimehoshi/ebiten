@@ -24,7 +24,9 @@ const GeoMDim = 3
 
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
-// The initial value is identity.
+// The nil value is identity.
+//
+// Note that the initial value GeoM{} is no longer identity. TODO: This is confusing. Fix this.
 type GeoM struct {
 	a  float64
 	b  float64

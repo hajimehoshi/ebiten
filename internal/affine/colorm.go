@@ -41,7 +41,7 @@ var (
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
 //
-// The initial value is identity.
+// The nil and initial value is identity.
 type ColorM struct {
 	// When elements is nil, this matrix is identity.
 	// elements are immutable and a new array must be created when updating.
