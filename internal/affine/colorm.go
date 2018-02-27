@@ -59,8 +59,12 @@ func clamp(x float32) float32 {
 	return x
 }
 
+func (c *ColorM) isInited() bool {
+	return c != nil && c.body != nil
+}
+
 func (c *ColorM) Apply(clr color.Color) color.Color {
-	if c == nil || c.body == nil {
+	if !c.isInited() {
 		return clr
 	}
 	r, g, b, a := clr.RGBA()
@@ -91,7 +95,7 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 }
 
 func (c *ColorM) UnsafeElements() ([]float32, []float32) {
-	if c == nil || c.body == nil {
+	if !c.isInited() {
 		return colorMIdentityBody, colorMIdentityTranslate
 	}
 	return c.body, c.translate
@@ -103,7 +107,7 @@ func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 		body:      make([]float32, 16),
 		translate: make([]float32, 4),
 	}
-	if c == nil || c.body == nil {
+	if !c.isInited() {
 		copy(newC.body, colorMIdentityBody)
 		copy(newC.translate, colorMIdentityTranslate)
 	} else {
@@ -119,7 +123,7 @@ func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 }
 
 func (c *ColorM) Equals(other *ColorM) bool {
-	if (c == nil || c.body == nil) && (other == nil || other.body == nil) {
+	if !c.isInited() && !other.isInited() {
 		return true
 	}
 
@@ -127,11 +131,11 @@ func (c *ColorM) Equals(other *ColorM) bool {
 	lhst := colorMIdentityTranslate
 	rhsb := colorMIdentityBody
 	rhst := colorMIdentityTranslate
-	if other != nil {
+	if other.isInited() {
 		lhsb = other.body
 		lhst = other.translate
 	}
-	if c != nil {
+	if c.isInited() {
 		rhsb = c.body
 		rhst = c.translate
 	}
@@ -152,10 +156,10 @@ func (c *ColorM) Equals(other *ColorM) bool {
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other *ColorM) *ColorM {
-	if c == nil || c.body == nil {
+	if !c.isInited() {
 		return other
 	}
-	if other == nil || other.body == nil {
+	if !other.isInited() {
 		return c
 	}
 
@@ -163,11 +167,11 @@ func (c *ColorM) Concat(other *ColorM) *ColorM {
 	lhst := colorMIdentityTranslate
 	rhsb := colorMIdentityBody
 	rhst := colorMIdentityTranslate
-	if other != nil {
+	if other.isInited() {
 		lhsb = other.body
 		lhst = other.translate
 	}
-	if c != nil {
+	if c.isInited() {
 		rhsb = c.body
 		rhst = c.translate
 	}
@@ -191,11 +195,11 @@ func (c *ColorM) Add(other *ColorM) *ColorM {
 	lhst := colorMIdentityTranslate
 	rhsb := colorMIdentityBody
 	rhst := colorMIdentityTranslate
-	if other != nil {
+	if other.isInited() {
 		lhsb = other.body
 		lhst = other.translate
 	}
-	if c != nil {
+	if c.isInited() {
 		rhsb = c.body
 		rhst = c.translate
 	}
@@ -216,7 +220,7 @@ func (c *ColorM) Add(other *ColorM) *ColorM {
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
-	if c == nil || c.body == nil {
+	if !c.isInited() {
 		return &ColorM{
 			body: []float32{
 				r, 0, 0, 0,
@@ -249,7 +253,7 @@ func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float32) *ColorM {
-	if c == nil || c.body == nil {
+	if !c.isInited() {
 		return &ColorM{
 			body:      colorMIdentityBody,
 			translate: []float32{r, g, b, a},
