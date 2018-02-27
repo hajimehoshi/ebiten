@@ -127,7 +127,7 @@ func (i *Image) makeStale() {
 
 var (
 	dummyImage  = graphics.NewImage(16, 16)
-	clearColorM = &affine.ColorM{}
+	clearColorM *affine.ColorM
 )
 
 func init() {
