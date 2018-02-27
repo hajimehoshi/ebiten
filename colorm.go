@@ -32,12 +32,12 @@ const ColorMDim = affine.ColorMDim
 //
 // The initial value is identity.
 type ColorM struct {
-	impl affine.ColorM
+	impl *affine.ColorM
 }
 
 // Reset resets the ColorM as identity.
 func (c *ColorM) Reset() {
-	c.impl.Reset()
+	c.impl = nil
 }
 
 // Apply pre-multiplies a vector (r, g, b, a, 1) by the matrix
@@ -50,23 +50,23 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
-	c.impl.Concat(&other.impl)
+	c.impl = c.impl.Concat(other.impl)
 }
 
 // Add is deprecated as of 1.5.0-alpha.
 // Note that this doesn't make sense as an operation for affine matrices.
 func (c *ColorM) Add(other ColorM) {
-	c.impl.Add(other.impl)
+	c.impl = c.impl.Add(other.impl)
 }
 
 // Scale scales the matrix by (r, g, b, a).
 func (c *ColorM) Scale(r, g, b, a float64) {
-	c.impl.Scale(float32(r), float32(g), float32(b), float32(a))
+	c.impl = c.impl.Scale(float32(r), float32(g), float32(b), float32(a))
 }
 
 // Translate translates the matrix by (r, g, b, a).
 func (c *ColorM) Translate(r, g, b, a float64) {
-	c.impl.Translate(float32(r), float32(g), float32(b), float32(a))
+	c.impl = c.impl.Translate(float32(r), float32(g), float32(b), float32(a))
 }
 
 // RotateHue rotates the hue.
@@ -82,7 +82,7 @@ func (c *ColorM) RotateHue(theta float64) {
 //
 // This conversion uses RGB to/from YCrCb conversion.
 func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {
-	c.impl.ChangeHSV(hueTheta, float32(saturationScale), float32(valueScale))
+	c.impl = c.impl.ChangeHSV(hueTheta, float32(saturationScale), float32(valueScale))
 }
 
 // Element returns a value of a matrix at (i, j).
@@ -96,7 +96,7 @@ func (c *ColorM) Element(i, j int) float64 {
 
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float64) {
-	c.impl.SetElement(i, j, float32(element))
+	c.impl = c.impl.SetElement(i, j, float32(element))
 }
 
 // Monochrome is deprecated as of 1.6.0-alpha. Use ChangeHSV(0, 0, 1) instead.

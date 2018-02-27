@@ -49,11 +49,6 @@ type ColorM struct {
 	translate []float32
 }
 
-func (c *ColorM) Reset() {
-	c.body = nil
-	c.translate = nil
-}
-
 func clamp(x float32) float32 {
 	if x > 1 {
 		return 1
@@ -65,7 +60,7 @@ func clamp(x float32) float32 {
 }
 
 func (c *ColorM) Apply(clr color.Color) color.Color {
-	if c.body == nil {
+	if c == nil || c.body == nil {
 		return clr
 	}
 	r, g, b, a := clr.RGBA()
@@ -96,51 +91,58 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 }
 
 func (c *ColorM) UnsafeElements() ([]float32, []float32) {
-	if c.body == nil {
-		c.body = colorMIdentityBody
-		c.translate = colorMIdentityTranslate
+	if c == nil || c.body == nil {
+		return colorMIdentityBody, colorMIdentityTranslate
 	}
 	return c.body, c.translate
 }
 
 // SetElement sets an element at (i, j).
-func (c *ColorM) SetElement(i, j int, element float32) {
-	if c.body == nil {
-		c.body = colorMIdentityBody
-		c.translate = colorMIdentityTranslate
+func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
+	newC := &ColorM{
+		body:      make([]float32, 16),
+		translate: make([]float32, 4),
+	}
+	if c == nil || c.body == nil {
+		copy(newC.body, colorMIdentityBody)
+		copy(newC.translate, colorMIdentityTranslate)
+	} else {
+		copy(newC.body, c.body)
+		copy(newC.translate, c.translate)
 	}
 	if j < (ColorMDim - 1) {
-		es := make([]float32, len(c.body))
-		copy(es, c.body)
-		es[i+j*(ColorMDim-1)] = element
-		c.body = es
+		newC.body[i+j*(ColorMDim-1)] = element
 	} else {
-		es := make([]float32, len(c.translate))
-		copy(es, c.translate)
-		es[i] = element
-		c.translate = es
+		newC.translate[i] = element
 	}
+	return newC
 }
 
 func (c *ColorM) Equals(other *ColorM) bool {
-	if c.body == nil {
-		if other.body == nil {
-			return true
-		}
-		c.body = colorMIdentityBody
-		c.translate = colorMIdentityTranslate
+	if (c == nil || c.body == nil) && (other == nil || other.body == nil) {
+		return true
 	}
-	if other.body == nil {
-		other.body = colorMIdentityBody
-		other.translate = colorMIdentityTranslate
+
+	lhsb := colorMIdentityBody
+	lhst := colorMIdentityTranslate
+	rhsb := colorMIdentityBody
+	rhst := colorMIdentityTranslate
+	if other != nil {
+		lhsb = other.body
+		lhst = other.translate
 	}
-	for i := range c.body {
-		if c.body[i] != other.body[i] {
+	if c != nil {
+		rhsb = c.body
+		rhst = c.translate
+	}
+
+	for i := range lhsb {
+		if lhsb[i] != rhsb[i] {
 			return false
 		}
 	}
-	for i := range c.translate {
-		if c.translate[i] != other.translate[i] {
+	for i := range lhst {
+		if lhst[i] != rhst[i] {
 			return false
 		}
 	}
@@ -149,67 +151,81 @@ func (c *ColorM) Equals(other *ColorM) bool {
 
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
-func (c *ColorM) Concat(other *ColorM) {
-	if c.body == nil {
-		c.body = colorMIdentityBody
-		c.translate = colorMIdentityTranslate
+func (c *ColorM) Concat(other *ColorM) *ColorM {
+	if c == nil || c.body == nil {
+		return other
 	}
-	if other.body == nil {
-		other.body = colorMIdentityBody
-		other.translate = colorMIdentityTranslate
+	if other == nil || other.body == nil {
+		return c
 	}
-	// TODO: This is a temporary hack to calculate multiply of transposed matrices.
-	// Fix mulSquare implmentation and swap the arguments.
-	c.body = mulSquare(c.body, other.body, ColorMDim-1)
 
-	lhsb := other.body
-	lhst := other.translate
-	rhst := c.translate
-	c.translate = []float32{
-		lhsb[0]*rhst[0] + lhsb[4]*rhst[1] + lhsb[8]*rhst[2] + lhsb[12]*rhst[3] + lhst[0],
-		lhsb[1]*rhst[0] + lhsb[5]*rhst[1] + lhsb[9]*rhst[2] + lhsb[13]*rhst[3] + lhst[1],
-		lhsb[2]*rhst[0] + lhsb[6]*rhst[1] + lhsb[10]*rhst[2] + lhsb[14]*rhst[3] + lhst[2],
-		lhsb[3]*rhst[0] + lhsb[7]*rhst[1] + lhsb[11]*rhst[2] + lhsb[15]*rhst[3] + lhst[3],
+	lhsb := colorMIdentityBody
+	lhst := colorMIdentityTranslate
+	rhsb := colorMIdentityBody
+	rhst := colorMIdentityTranslate
+	if other != nil {
+		lhsb = other.body
+		lhst = other.translate
+	}
+	if c != nil {
+		rhsb = c.body
+		rhst = c.translate
+	}
+
+	return &ColorM{
+		// TODO: This is a temporary hack to calculate multiply of transposed matrices.
+		// Fix mulSquare implmentation and swap the arguments.
+		body: mulSquare(rhsb, lhsb, ColorMDim-1),
+		translate: []float32{
+			lhsb[0]*rhst[0] + lhsb[4]*rhst[1] + lhsb[8]*rhst[2] + lhsb[12]*rhst[3] + lhst[0],
+			lhsb[1]*rhst[0] + lhsb[5]*rhst[1] + lhsb[9]*rhst[2] + lhsb[13]*rhst[3] + lhst[1],
+			lhsb[2]*rhst[0] + lhsb[6]*rhst[1] + lhsb[10]*rhst[2] + lhsb[14]*rhst[3] + lhst[2],
+			lhsb[3]*rhst[0] + lhsb[7]*rhst[1] + lhsb[11]*rhst[2] + lhsb[15]*rhst[3] + lhst[3],
+		},
 	}
 }
 
 // Add is deprecated.
-func (c *ColorM) Add(other ColorM) {
-	// Implementation is just for backward compatibility.
-	if c.body == nil {
-		c.body = colorMIdentityBody
-		c.translate = colorMIdentityTranslate
+func (c *ColorM) Add(other *ColorM) *ColorM {
+	lhsb := colorMIdentityBody
+	lhst := colorMIdentityTranslate
+	rhsb := colorMIdentityBody
+	rhst := colorMIdentityTranslate
+	if other != nil {
+		lhsb = other.body
+		lhst = other.translate
 	}
-	if other.body == nil {
-		other.body = colorMIdentityBody
-		other.translate = colorMIdentityTranslate
-	}
-
-	body := make([]float32, len(c.body))
-	for i := range c.body {
-		body[i] = c.body[i] + other.body[i]
+	if c != nil {
+		rhsb = c.body
+		rhst = c.translate
 	}
 
-	translate := make([]float32, len(c.translate))
-	for i := range c.translate {
-		translate[i] = c.translate[i] + other.translate[i]
+	newC := &ColorM{
+		body:      make([]float32, 16),
+		translate: make([]float32, 4),
+	}
+	for i := range lhsb {
+		newC.body[i] = lhsb[i] + rhsb[i]
+	}
+	for i := range lhst {
+		newC.translate[i] = lhst[i] + rhst[i]
 	}
 
-	c.body = body
-	c.translate = translate
+	return newC
 }
 
 // Scale scales the matrix by (r, g, b, a).
-func (c *ColorM) Scale(r, g, b, a float32) {
-	if c.body == nil {
-		c.body = []float32{
-			r, 0, 0, 0,
-			0, g, 0, 0,
-			0, 0, b, 0,
-			0, 0, 0, a,
+func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
+	if c == nil || c.body == nil {
+		return &ColorM{
+			body: []float32{
+				r, 0, 0, 0,
+				0, g, 0, 0,
+				0, 0, b, 0,
+				0, 0, 0, a,
+			},
+			translate: colorMIdentityTranslate,
 		}
-		c.translate = colorMIdentityTranslate
-		return
 	}
 	es := make([]float32, len(c.body))
 	copy(es, c.body)
@@ -219,22 +235,25 @@ func (c *ColorM) Scale(r, g, b, a float32) {
 		es[i*(ColorMDim-1)+2] *= b
 		es[i*(ColorMDim-1)+3] *= a
 	}
-	c.body = es
 
-	c.translate = []float32{
-		c.translate[0] * r,
-		c.translate[1] * g,
-		c.translate[2] * b,
-		c.translate[3] * a,
+	return &ColorM{
+		body: es,
+		translate: []float32{
+			c.translate[0] * r,
+			c.translate[1] * g,
+			c.translate[2] * b,
+			c.translate[3] * a,
+		},
 	}
 }
 
 // Translate translates the matrix by (r, g, b, a).
-func (c *ColorM) Translate(r, g, b, a float32) {
-	if c.body == nil {
-		c.body = colorMIdentityBody
-		c.translate = []float32{r, g, b, a}
-		return
+func (c *ColorM) Translate(r, g, b, a float32) *ColorM {
+	if c == nil || c.body == nil {
+		return &ColorM{
+			body:      colorMIdentityBody,
+			translate: []float32{r, g, b, a},
+		}
 	}
 	es := make([]float32, len(c.translate))
 	copy(es, c.translate)
@@ -242,7 +261,10 @@ func (c *ColorM) Translate(r, g, b, a float32) {
 	es[1] += g
 	es[2] += b
 	es[3] += a
-	c.translate = es
+	return &ColorM{
+		body:      c.body,
+		translate: es,
+	}
 }
 
 var (
@@ -251,7 +273,7 @@ var (
 	//   Cb: [-0.5 - 0.5]
 	//   Cr: [-0.5 - 0.5]
 
-	rgbToYCbCr = ColorM{
+	rgbToYCbCr = &ColorM{
 		body: []float32{
 			0.2990, -0.1687, 0.5000, 0,
 			0.5870, -0.3313, -0.4187, 0,
@@ -260,7 +282,7 @@ var (
 		},
 		translate: []float32{0, 0, 0, 0},
 	}
-	yCbCrToRgb = ColorM{
+	yCbCrToRgb = &ColorM{
 		body: []float32{
 			1, 1, 1, 0,
 			0, -0.34414, 1.77200, 0,
@@ -277,11 +299,11 @@ var (
 // valueScale is a value to scale value (a.k.a. brightness).
 //
 // This conversion uses RGB to/from YCrCb conversion.
-func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float32, valueScale float32) {
+func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float32, valueScale float32) *ColorM {
 	sin, cos := math.Sincos(hueTheta)
 	s32, c32 := float32(sin), float32(cos)
-	c.Concat(&rgbToYCbCr)
-	c.Concat(&ColorM{
+	c = c.Concat(rgbToYCbCr)
+	c = c.Concat(&ColorM{
 		body: []float32{
 			1, 0, 0, 0,
 			0, c32, s32, 0,
@@ -292,6 +314,7 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float32, valueScale
 	})
 	s := saturationScale
 	v := valueScale
-	c.Scale(v, s*v, s*v, 1)
-	c.Concat(&yCbCrToRgb)
+	c = c.Scale(v, s*v, s*v, 1)
+	c = c.Concat(yCbCrToRgb)
+	return c
 }

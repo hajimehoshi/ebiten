@@ -85,7 +85,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		dst:         dst,
 		src:         src,
 		verticesNum: len(vertices),
-		color:       *clr,
+		color:       clr,
 		mode:        mode,
 		filter:      filter,
 	}
@@ -188,7 +188,7 @@ type drawImageCommand struct {
 	dst         *Image
 	src         *Image
 	verticesNum int
-	color       affine.ColorM
+	color       *affine.ColorM
 	mode        opengl.CompositeMode
 	filter      Filter
 }

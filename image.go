@@ -212,7 +212,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.restorable.DrawImage(img.restorable, sx0, sy0, sx1, sy1, options.GeoM.impl, &options.ColorM.impl, mode, filter)
+	i.restorable.DrawImage(img.restorable, sx0, sy0, sx1, sy1, options.GeoM.impl, options.ColorM.impl, mode, filter)
 	return nil
 }
 

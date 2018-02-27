@@ -33,7 +33,7 @@ const MaxImageSize = graphics.MaxImageSize
 type drawImageHistoryItem struct {
 	image    *Image
 	vertices []float32
-	colorm   affine.ColorM
+	colorm   *affine.ColorM
 	mode     opengl.CompositeMode
 	filter   graphics.Filter
 }
@@ -131,7 +131,7 @@ var (
 )
 
 func init() {
-	clearColorM.Scale(0, 0, 0, 0)
+	clearColorM = clearColorM.Scale(0, 0, 0, 0)
 }
 
 // clearIfVolatile clears the image if the image is volatile.
@@ -207,7 +207,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
-		colorm:   *colorm,
+		colorm:   colorm,
 		mode:     mode,
 		filter:   filter,
 	}
@@ -332,7 +332,7 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, &c.colorm, c.mode, c.filter)
+		gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 

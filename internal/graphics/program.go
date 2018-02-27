@@ -248,7 +248,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, colorM affine.ColorM, filter Filter) {
+func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, colorM *affine.ColorM, filter Filter) {
 	c := opengl.GetContext()
 
 	var program opengl.Program
