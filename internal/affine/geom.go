@@ -24,44 +24,42 @@ const GeoMDim = 3
 
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
-// The nil value is identity.
-//
-// Note that the initial value GeoM{} is no longer identity. TODO: This is confusing. Fix this.
+// The nil and initial value is identity.
 type GeoM struct {
-	a  float64
-	b  float64
-	c  float64
-	d  float64
-	tx float64
-	ty float64
+	a_1 float64 // The actual 'a' value minus 1
+	b   float64
+	c   float64
+	d_1 float64 // The actual 'd' value minus 1
+	tx  float64
+	ty  float64
 }
 
 func (g *GeoM) Apply(x, y float64) (x2, y2 float64) {
 	if g == nil {
 		return x, y
 	}
-	return g.a*x + g.b*y + g.tx, g.c*x + g.d*y + g.ty
+	return (g.a_1+1)*x + g.b*y + g.tx, g.c*x + (g.d_1+1)*y + g.ty
 }
 
 func (g *GeoM) Apply32(x, y float64) (x2, y2 float32) {
 	if g == nil {
 		return float32(x), float32(y)
 	}
-	return float32(g.a*x + g.b*y + g.tx), float32(g.c*x + g.d*y + g.ty)
+	return float32((g.a_1+1)*x + g.b*y + g.tx), float32(g.c*x + (g.d_1+1)*y + g.ty)
 }
 
 func (g *GeoM) Elements() (a, b, c, d, tx, ty float64) {
 	if g == nil {
 		return 1, 0, 0, 1, 0, 0
 	}
-	return g.a, g.b, g.c, g.d, g.tx, g.ty
+	return g.a_1 + 1, g.b, g.c, g.d_1 + 1, g.tx, g.ty
 }
 
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) *GeoM {
 	a, b, c, d, tx, ty := 1.0, 0.0, 0.0, 1.0, 0.0, 0.0
 	if g != nil {
-		a, b, c, d, tx, ty = g.a, g.b, g.c, g.d, g.tx, g.ty
+		a, b, c, d, tx, ty = g.a_1+1, g.b, g.c, g.d_1+1, g.tx, g.ty
 	}
 	switch {
 	case i == 0 && j == 0:
@@ -80,12 +78,12 @@ func (g *GeoM) SetElement(i, j int, element float64) *GeoM {
 		panic(fmt.Sprintf("affine: i or j is out of index: (%d, %d)", i, j))
 	}
 	return &GeoM{
-		a:  a,
-		b:  b,
-		c:  c,
-		d:  d,
-		tx: tx,
-		ty: ty,
+		a_1: a - 1,
+		b:   b,
+		c:   c,
+		d_1: d - 1,
+		tx:  tx,
+		ty:  ty,
 	}
 }
 
@@ -100,30 +98,30 @@ func (g *GeoM) Concat(other *GeoM) *GeoM {
 	}
 
 	return &GeoM{
-		a:  other.a*g.a + other.b*g.c,
-		b:  other.a*g.b + other.b*g.d,
-		tx: other.a*g.tx + other.b*g.ty + other.tx,
-		c:  other.c*g.a + other.d*g.c,
-		d:  other.c*g.b + other.d*g.d,
-		ty: other.c*g.tx + other.d*g.ty + other.ty,
+		a_1: (other.a_1+1)*(g.a_1+1) + other.b*g.c - 1,
+		b:   (other.a_1+1)*g.b + other.b*(g.d_1+1),
+		tx:  (other.a_1+1)*g.tx + other.b*g.ty + other.tx,
+		c:   other.c*(g.a_1+1) + (other.d_1+1)*g.c,
+		d_1: other.c*g.b + (other.d_1+1)*(g.d_1+1) - 1,
+		ty:  other.c*g.tx + (other.d_1+1)*g.ty + other.ty,
 	}
 }
 
 // Add is deprecated.
 func (g *GeoM) Add(other *GeoM) *GeoM {
 	if g == nil {
-		g = &GeoM{1, 0, 0, 1, 0, 0}
+		g = &GeoM{}
 	}
 	if other == nil {
-		other = &GeoM{1, 0, 0, 1, 0, 0}
+		other = &GeoM{}
 	}
 	return &GeoM{
-		a:  g.a + other.a,
-		b:  g.b + other.b,
-		c:  g.c + other.c,
-		d:  g.d + other.d,
-		tx: g.tx + other.tx,
-		ty: g.ty + other.ty,
+		a_1: (g.a_1 + 1) + (other.a_1 + 1) - 1,
+		b:   g.b + other.b,
+		c:   g.c + other.c,
+		d_1: (g.d_1 + 1) + (other.d_1 + 1) - 1,
+		tx:  g.tx + other.tx,
+		ty:  g.ty + other.ty,
 	}
 }
 
@@ -131,21 +129,19 @@ func (g *GeoM) Add(other *GeoM) *GeoM {
 func (g *GeoM) Scale(x, y float64) *GeoM {
 	if g == nil {
 		return &GeoM{
-			a:  x,
-			b:  0,
-			c:  0,
-			d:  y,
-			tx: 0,
-			ty: 0,
+			a_1: x - 1,
+			b:   0,
+			c:   0,
+			d_1: y - 1,
 		}
 	}
 	return &GeoM{
-		a:  g.a * x,
-		b:  g.b * x,
-		tx: g.tx * x,
-		c:  g.c * y,
-		d:  g.d * y,
-		ty: g.ty * y,
+		a_1: (g.a_1+1)*x - 1,
+		b:   g.b * x,
+		tx:  g.tx * x,
+		c:   g.c * y,
+		d_1: (g.d_1+1)*y - 1,
+		ty:  g.ty * y,
 	}
 }
 
@@ -153,21 +149,17 @@ func (g *GeoM) Scale(x, y float64) *GeoM {
 func (g *GeoM) Translate(tx, ty float64) *GeoM {
 	if g == nil {
 		return &GeoM{
-			a:  1,
-			b:  0,
-			c:  0,
-			d:  1,
 			tx: tx,
 			ty: ty,
 		}
 	}
 	return &GeoM{
-		a:  g.a,
-		b:  g.b,
-		c:  g.c,
-		d:  g.d,
-		tx: g.tx + tx,
-		ty: g.ty + ty,
+		a_1: g.a_1,
+		b:   g.b,
+		c:   g.c,
+		d_1: g.d_1,
+		tx:  g.tx + tx,
+		ty:  g.ty + ty,
 	}
 }
 
@@ -176,20 +168,18 @@ func (g *GeoM) Rotate(theta float64) *GeoM {
 	sin, cos := math.Sincos(theta)
 	if g == nil {
 		return &GeoM{
-			a:  cos,
-			b:  -sin,
-			c:  sin,
-			d:  cos,
-			tx: 0,
-			ty: 0,
+			a_1: cos - 1,
+			b:   -sin,
+			c:   sin,
+			d_1: cos - 1,
 		}
 	}
 	return &GeoM{
-		a:  cos*g.a - sin*g.c,
-		b:  cos*g.b - sin*g.d,
-		tx: cos*g.tx - sin*g.ty,
-		c:  sin*g.a + cos*g.c,
-		d:  sin*g.b + cos*g.d,
-		ty: sin*g.tx + cos*g.ty,
+		a_1: cos*(g.a_1+1) - sin*g.c - 1,
+		b:   cos*g.b - sin*(g.d_1+1),
+		tx:  cos*g.tx - sin*g.ty,
+		c:   sin*(g.a_1+1) + cos*g.c,
+		d_1: sin*g.b + cos*(g.d_1+1) - 1,
+		ty:  sin*g.tx + cos*g.ty,
 	}
 }
