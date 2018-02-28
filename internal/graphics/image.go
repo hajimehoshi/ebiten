@@ -83,7 +83,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return opengl.GetContext().FramebufferPixels(f.native, math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height))
+	return opengl.GetContext().FramebufferPixels(f.native, i.width, i.height)
 }
 
 func (i *Image) ReplacePixels(p []byte) {

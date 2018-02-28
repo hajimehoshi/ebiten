@@ -21,7 +21,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -213,8 +212,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (color.RGBA, error) {
 	w, h := i.image.Size()
-	w2, h2 := emath.NextPowerOf2Int(w), emath.NextPowerOf2Int(h)
-	if x < 0 || y < 0 || w2 <= x || h2 <= y {
+	if x < 0 || y < 0 || w <= x || h <= y {
 		return color.RGBA{}, nil
 	}
 	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
@@ -222,7 +220,7 @@ func (i *Image) At(x, y int) (color.RGBA, error) {
 			return color.RGBA{}, err
 		}
 	}
-	idx := 4*x + 4*y*w2
+	idx := 4*x + 4*y*w
 	r, g, b, a := i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
 	return color.RGBA{r, g, b, a}, nil
 }

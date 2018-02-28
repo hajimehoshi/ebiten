@@ -283,7 +283,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
 	opengl.GetContext().BindTexture(c.dst.texture.native)
-	opengl.GetContext().TexSubImage2D(c.pixels, emath.NextPowerOf2Int(c.dst.width), emath.NextPowerOf2Int(c.dst.height))
+	opengl.GetContext().TexSubImage2D(c.pixels, c.dst.width, c.dst.height)
 	return nil
 }
 
