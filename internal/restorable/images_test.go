@@ -407,6 +407,27 @@ func TestReplacePixels(t *testing.T) {
 			}
 		}
 	}
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got, err := img.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := color.RGBA{}
+			if 5 <= i && i < 9 && 7 <= j && j < 11 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }
 
 // TODO: How about volatile/screen images?
