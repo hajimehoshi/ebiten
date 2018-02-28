@@ -279,14 +279,9 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	}
 	f.setAsViewport()
 
-	// Filling with non black or white color is required here for glTexSubImage2D.
-	// Very mysterious but this actually works (Issue #186).
-	// This is needed even after fixing a shader bug at f537378f2a6a8ef56e1acf1c03034967b77c7b51.
-	if err := opengl.GetContext().FillFramebuffer(0, 0, 0.5, 1); err != nil {
-		return err
-	}
-	// This is necessary on Android. We can't call glClear just before glTexSubImage2D without
-	// glFlush. glTexSubImage2D didn't work without this hack at least on Nexus 5x (#211).
+	// This is necessary on Android.
+	//
+	// glTexSubImage2D didn't work without this hack at least on Nexus 5x (#211).
 	// This also happens when a fillCommand precedes a replacePixelsCommand.
 	// TODO: Can we have a better way like optimizing commands?
 	opengl.GetContext().Flush()
