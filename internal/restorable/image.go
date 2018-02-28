@@ -172,11 +172,11 @@ func (i *Image) ReplacePixels(pixels []byte) {
 
 // DrawImage draws a given image img to the image.
 func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
-	theImages.makeStaleIfDependingOn(i)
 	vs := img.vertices(sx0, sy0, sx1, sy1, geom)
 	if vs == nil {
 		return
 	}
+	theImages.makeStaleIfDependingOn(i)
 	if img.stale || img.volatile || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
