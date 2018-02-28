@@ -143,8 +143,6 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 
-	// TODO: Can we use glTexSubImage2D with linear filtering?
-
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
 	//     GLenum type, ArrayBufferView? pixels);
@@ -158,7 +156,7 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, f.(*js.Object))
 }
 
-func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
+func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 
 	c.bindFramebuffer(f)
@@ -168,7 +166,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	if e := gl.GetError(); e != gl.NO_ERROR {
 		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
 	}
-	return pixels.Interface().([]uint8), nil
+	return pixels.Interface().([]byte), nil
 }
 
 func (c *Context) bindTextureImpl(t Texture) {
@@ -193,12 +191,12 @@ func (c *Context) IsTexture(t Texture) bool {
 	return b
 }
 
-func (c *Context) TexSubImage2D(p []uint8, width, height int) {
+func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
 	gl := c.gl
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-	gl.Call("texSubImage2D", gl.TEXTURE_2D, 0, 0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
+	gl.Call("texSubImage2D", gl.TEXTURE_2D, 0, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
 }
 
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {

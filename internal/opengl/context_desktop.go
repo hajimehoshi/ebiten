@@ -165,8 +165,8 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	})
 }
 
-func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
-	var pixels []uint8
+func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
+	var pixels []byte
 	if err := c.runOnContextThread(func() error {
 		gl.Flush()
 		return nil
@@ -175,7 +175,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, 
 	}
 	c.bindFramebuffer(f)
 	if err := c.runOnContextThread(func() error {
-		pixels = make([]uint8, 4*width*height)
+		pixels = make([]byte, 4*width*height)
 		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
 		if e := gl.GetError(); e != gl.NO_ERROR {
 			pixels = nil
@@ -218,9 +218,9 @@ func (c *Context) IsTexture(t Texture) bool {
 	return r
 }
 
-func (c *Context) TexSubImage2D(p []uint8, width, height int) {
+func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
 	_ = c.runOnContextThread(func() error {
-		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
+		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
 		return nil
 	})
 }
@@ -312,10 +312,10 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 		var v int32
 		gl.GetShaderiv(s, gl.COMPILE_STATUS, &v)
 		if v == gl.FALSE {
-			log := []uint8{}
+			log := []byte{}
 			gl.GetShaderiv(uint32(s), gl.INFO_LOG_LENGTH, &v)
 			if v != 0 {
-				log = make([]uint8, int(v))
+				log = make([]byte, int(v))
 				gl.GetShaderInfoLog(uint32(s), v, nil, (*uint8)(gl.Ptr(log)))
 			}
 			return fmt.Errorf("opengl: shader compile failed: %s", log)

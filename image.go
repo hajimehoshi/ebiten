@@ -283,12 +283,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-
-	// Copy the pixels so that this works even p is modified just after ReplacePixels.
-	pix := make([]byte, len(p))
-	copy(pix, p)
-
-	i.restorable.ReplacePixels(pix)
+	i.restorable.ReplacePixels(p, 0, 0, w, h)
 	return nil
 }
 

@@ -75,7 +75,7 @@ func fill(img *Image, r, g, b, a uint8) {
 		pix[4*i+2] = b
 		pix[4*i+3] = a
 	}
-	img.ReplacePixels(pix)
+	img.ReplacePixels(pix, 0, 0, w, h)
 }
 
 func TestRestore(t *testing.T) {
@@ -326,7 +326,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 func newImageFromImage(rgba *image.RGBA) *Image {
 	s := rgba.Bounds().Size()
 	img := NewImage(s.X, s.Y, false)
-	img.ReplacePixels(rgba.Pix)
+	img.ReplacePixels(rgba.Pix, 0, 0, s.X, s.Y)
 	return img
 }
 
@@ -376,6 +376,34 @@ func TestRestoreRecursive(t *testing.T) {
 			got := byteSliceToColor(c.image.BasePixelsForTesting(), i)
 			if !sameColors(got, want, 1) {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
+			}
+		}
+	}
+}
+
+func TestReplacePixels(t *testing.T) {
+	const (
+		w = 17
+		h = 31
+	)
+	img := NewImage(17, 31, false)
+	pix := make([]byte, 4*4*4)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	img.ReplacePixels(pix, 5, 7, 4, 4)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got, err := img.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := color.RGBA{}
+			if 5 <= i && i < 9 && 7 <= j && j < 11 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}

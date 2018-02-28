@@ -144,13 +144,13 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 }
 
-func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]uint8, error) {
+func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 	gl.Flush()
 
 	c.bindFramebuffer(f)
 
-	pixels := make([]uint8, 4*width*height)
+	pixels := make([]byte, 4*width*height)
 	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
 	if e := gl.GetError(); e != mgl.NO_ERROR {
 		return nil, fmt.Errorf("opengl: glReadPixels: %d", e)
@@ -179,9 +179,9 @@ func (c *Context) IsTexture(t Texture) bool {
 	return gl.IsTexture(mgl.Texture(t))
 }
 
-func (c *Context) TexSubImage2D(p []uint8, width, height int) {
+func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
 	gl := c.gl
-	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
+	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
 func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
@@ -351,9 +351,9 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
-func uint16ToBytes(v []uint16) []uint8 {
+func uint16ToBytes(v []uint16) []byte {
 	// TODO: Consider endian?
-	b := make([]uint8, len(v)*2)
+	b := make([]byte, len(v)*2)
 	for i, x := range v {
 		b[2*i] = uint8(x)
 		b[2*i+1] = uint8(x >> 8)

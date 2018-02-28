@@ -86,12 +86,16 @@ func (i *Image) Pixels() ([]byte, error) {
 	return opengl.GetContext().FramebufferPixels(f.native, i.width, i.height)
 }
 
-func (i *Image) ReplacePixels(p []byte) {
+func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 	pixels := make([]byte, len(p))
 	copy(pixels, p)
 	c := &replacePixelsCommand{
 		dst:    i,
 		pixels: pixels,
+		x:      x,
+		y:      y,
+		width:  width,
+		height: height,
 	}
 	theCommandQueue.Enqueue(c)
 }

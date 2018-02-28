@@ -16,6 +16,7 @@ package restorable
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 	"runtime"
 
@@ -155,10 +156,27 @@ func (i *Image) ClearFramebuffer() {
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
-func (i *Image) ReplacePixels(pixels []byte) {
+func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+	w, h := i.image.Size()
+	if width <= 0 || height <= 0 {
+		panic("restorable: width/height must be positive")
+	}
+	if x < 0 || y < 0 || w <= x || h <= y || x+width <= 0 || y+height <= 0 || w < x+width || h < y+height {
+		panic(fmt.Sprintf("restorable: out of range x: %d, y: %d, width: %d, height: %d", x, y, width, height))
+	}
 	theImages.makeStaleIfDependingOn(i)
-	i.image.ReplacePixels(pixels)
-	i.basePixels = pixels
+	i.image.ReplacePixels(pixels, x, y, width, height)
+
+	// Copy the pixels so that this works even p is modified just after ReplacePixels.
+	if i.basePixels == nil {
+		w, h := i.image.Size()
+		i.basePixels = make([]byte, 4*w*h)
+	}
+	idx := 4 * (y*w + x)
+	for j := 0; j < height; j++ {
+		copy(i.basePixels[idx:idx+4*width], pixels[4*j*width:4*(j+1)*width])
+		idx += 4 * w
+	}
 	i.drawImageHistory = nil
 	i.stale = false
 }
@@ -316,11 +334,11 @@ func (i *Image) restore() error {
 	}
 	gimg := graphics.NewImage(w, h)
 	if i.basePixels != nil {
-		gimg.ReplacePixels(i.basePixels)
+		gimg.ReplacePixels(i.basePixels, 0, 0, w, h)
 	} else {
 		// Clear the image explicitly.
 		pix := make([]uint8, w*h*4)
-		gimg.ReplacePixels(pix)
+		gimg.ReplacePixels(pix, 0, 0, w, h)
 	}
 	for _, c := range i.drawImageHistory {
 		// All dependencies must be already resolved.

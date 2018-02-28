@@ -269,6 +269,10 @@ func (c *drawImageCommand) quadsNum() int {
 type replacePixelsCommand struct {
 	dst    *Image
 	pixels []byte
+	x      int
+	y      int
+	width  int
+	height int
 }
 
 // Exec executes the replacePixelsCommand.
@@ -283,7 +287,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
 	opengl.GetContext().BindTexture(c.dst.texture.native)
-	opengl.GetContext().TexSubImage2D(c.pixels, c.dst.width, c.dst.height)
+	opengl.GetContext().TexSubImage2D(c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
 
