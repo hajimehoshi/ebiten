@@ -87,6 +87,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
+		restorable.ClearVolatileImages()
 		setRunningSlowly(i < updateCount-1)
 		if err := hooks.Run(); err != nil {
 			return err
