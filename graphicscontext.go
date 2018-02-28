@@ -57,8 +57,8 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 	w := int(float64(screenWidth) * screenScale)
 	h := int(float64(screenHeight) * screenScale)
-	px0, py0, px1, py1 := ui.ScreenPadding()
-	c.screen = newImageWithScreenFramebuffer(w, h, px0, py0, px1, py1)
+	px0, py0, _, _ := ui.ScreenPadding()
+	c.screen = newImageWithScreenFramebuffer(w, h)
 	_ = c.screen.Clear()
 
 	c.offscreen = offscreen

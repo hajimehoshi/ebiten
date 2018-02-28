@@ -111,3 +111,7 @@ func (i *Image) createFramebufferIfNeeded() (*framebuffer, error) {
 	i.framebuffer = f
 	return i.framebuffer, nil
 }
+
+func (i *Image) ViewportSize() (int, int) {
+	return i.framebuffer.viewportSize()
+}
