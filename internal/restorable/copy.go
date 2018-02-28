@@ -19,8 +19,6 @@ import (
 	"image/color"
 	"image/draw"
 	"runtime"
-
-	"github.com/hajimehoshi/ebiten/internal/math"
 )
 
 // CopyImage copies origImg to a new RGBA image.
@@ -32,7 +30,7 @@ import (
 func CopyImage(origImg image.Image) *image.RGBA {
 	size := origImg.Bounds().Size()
 	w, h := size.X, size.Y
-	newImg := image.NewRGBA(image.Rect(0, 0, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h)))
+	newImg := image.NewRGBA(image.Rect(0, 0, w, h))
 	switch origImg := origImg.(type) {
 	case *image.Paletted:
 		b := origImg.Bounds()
