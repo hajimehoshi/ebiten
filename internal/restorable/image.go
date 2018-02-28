@@ -90,7 +90,7 @@ func NewImage(width, height int, volatile bool) *Image {
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		image:    graphics.NewScreenFramebufferImage(width, height),
-		volatile: true,
+		volatile: false,
 		screen:   true,
 	}
 	theImages.add(i)
@@ -129,6 +129,10 @@ func (i *Image) clearIfVolatile() {
 	if !i.volatile {
 		return
 	}
+	i.ClearFramebuffer()
+}
+
+func (i *Image) ClearFramebuffer() {
 	i.basePixels = nil
 	i.drawImageHistory = nil
 	i.stale = false
@@ -167,7 +171,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 		return
 	}
 	theImages.makeStaleIfDependingOn(i)
-	if img.stale || img.volatile || !IsRestoringEnabled() {
+	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
 		i.appendDrawImageHistory(img, vs, colorm, mode, filter)
@@ -177,7 +181,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 
 // appendDrawImageHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
-	if i.stale || i.volatile {
+	if i.stale || i.volatile || i.screen {
 		return
 	}
 	if len(i.drawImageHistory) > 0 {
@@ -251,6 +255,9 @@ func (i *Image) resolveStale() error {
 		return nil
 	}
 	if i.volatile {
+		return nil
+	}
+	if i.screen {
 		return nil
 	}
 	if !i.stale {

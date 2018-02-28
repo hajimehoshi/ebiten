@@ -87,7 +87,6 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		restorable.ClearVolatileImages()
 		setRunningSlowly(i < updateCount-1)
 		if err := hooks.Run(); err != nil {
 			return err
@@ -98,6 +97,10 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 	if 0 < updateCount {
+		// Call ClearFramebuffer instead of c.screen.Clear()
+		// to clear the whole region including fullscreen's padding.
+		c.screen.restorable.ClearFramebuffer()
+
 		dw, dh := c.screen.Size()
 		sw, _ := c.offscreen.Size()
 		scale := float64(dw) / float64(sw)
