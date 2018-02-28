@@ -27,6 +27,8 @@ import (
 // If origImg is a paletted image, an optimized copying method is used.
 //
 // CopyImage is used only internally but it is exposed for testing.
+//
+// TODO: CopyImage should return []byte (#521)
 func CopyImage(origImg image.Image) *image.RGBA {
 	size := origImg.Bounds().Size()
 	w, h := size.X, size.Y

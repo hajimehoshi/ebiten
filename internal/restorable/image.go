@@ -164,7 +164,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if x < 0 || y < 0 || w <= x || h <= y || x+width <= 0 || y+height <= 0 || w < x+width || h < y+height {
 		panic(fmt.Sprintf("restorable: out of range x: %d, y: %d, width: %d, height: %d", x, y, width, height))
 	}
+
+	// TODO: Avoid making other images stale if possible.
+	// For this purpuse, images should remember which part of that is used for DrawImage.
 	theImages.makeStaleIfDependingOn(i)
+
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
 	// Copy the pixels so that this works even p is modified just after ReplacePixels.
