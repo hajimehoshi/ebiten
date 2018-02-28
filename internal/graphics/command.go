@@ -279,11 +279,8 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	}
 	f.setAsViewport()
 
-	// This is necessary on Android.
-	//
-	// glTexSubImage2D didn't work without this hack at least on Nexus 5x (#211).
-	// This also happens when a fillCommand precedes a replacePixelsCommand.
-	// TODO: Can we have a better way like optimizing commands?
+	// glFlush is necessary on Android.
+	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
 	opengl.GetContext().BindTexture(c.dst.texture.native)
 	opengl.GetContext().TexSubImage2D(c.pixels, emath.NextPowerOf2Int(c.dst.width), emath.NextPowerOf2Int(c.dst.height))
