@@ -97,26 +97,27 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		}
 		afterFrameUpdate()
 	}
+	if 0 < updateCount {
+		// Call ClearFramebuffer instead of c.screen.Clear()
+		// to clear the whole region including fullscreen's padding.
+		c.screen.restorable.ClearFramebuffer()
 
-	// Call ClearFramebuffer instead of c.screen.Clear()
-	// to clear the whole region including fullscreen's padding.
-	c.screen.restorable.ClearFramebuffer()
+		dw, dh := c.screen.Size()
+		sw, _ := c.offscreen.Size()
+		scale := float64(dw) / float64(sw)
 
-	dw, dh := c.screen.Size()
-	sw, _ := c.offscreen.Size()
-	scale := float64(dw) / float64(sw)
+		op := &DrawImageOptions{}
 
-	op := &DrawImageOptions{}
+		// c.screen is special: its Y axis is down to up,
+		// and the origin point is lower left.
+		op.GeoM.Scale(scale, -scale)
+		op.GeoM.Translate(0, float64(dh))
+		op.GeoM.Translate(c.offsetX, c.offsetY)
 
-	// c.screen is special: its Y axis is down to up,
-	// and the origin point is lower left.
-	op.GeoM.Scale(scale, -scale)
-	op.GeoM.Translate(0, float64(dh))
-	op.GeoM.Translate(c.offsetX, c.offsetY)
-
-	op.CompositeMode = CompositeModeCopy
-	op.Filter = filterScreen
-	_ = c.screen.DrawImage(c.offscreen, op)
+		op.CompositeMode = CompositeModeCopy
+		op.Filter = filterScreen
+		_ = c.screen.DrawImage(c.offscreen, op)
+	}
 
 	if err := restorable.ResolveStaleImages(); err != nil {
 		return err
