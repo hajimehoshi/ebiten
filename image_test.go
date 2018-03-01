@@ -693,6 +693,21 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 	}
 }
 
+func TestImageSize(t *testing.T) {
+	const (
+		w = 17
+		h = 31
+	)
+	img, _ := NewImage(w, h, FilterDefault)
+	gotW, gotH := img.Size()
+	if gotW != w {
+		t.Errorf("got: %d, want: %d", gotW, w)
+	}
+	if gotH != h {
+		t.Errorf("got: %d, want: %d", gotH, h)
+	}
+}
+
 func TestImageSize1(t *testing.T) {
 	src, _ := NewImage(1, 1, FilterNearest)
 	dst, _ := NewImage(1, 1, FilterNearest)
