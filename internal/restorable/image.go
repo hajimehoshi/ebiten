@@ -116,6 +116,8 @@ func (i *Image) makeStale() {
 }
 
 var (
+	// TODO: Don't use *graphics.Image here.
+	// If emptyImage is destoryed by context lost, there is no way to recover this.
 	emptyImage = graphics.NewImage(16, 16)
 )
 
