@@ -115,18 +115,6 @@ func (i *Image) makeStale() {
 	i.stale = true
 }
 
-var (
-	// TODO: Don't use *graphics.Image here.
-	// If emptyImage is destoryed by context lost, there is no way to recover this.
-	emptyImage = graphics.NewImage(16, 16)
-)
-
-func init() {
-	w, h := emptyImage.Size()
-	pix := make([]byte, 4*w*h)
-	emptyImage.ReplacePixels(pix, 0, 0, w, h)
-}
-
 // clearIfVolatile clears the image if the image is volatile.
 func (i *Image) clearIfVolatile() {
 	if !i.volatile {
@@ -139,18 +127,11 @@ func (i *Image) clearIfVolatile() {
 		panic("not reached")
 	}
 
-	x0 := float32(0)
-	y0 := float32(0)
-	x1 := float32(graphics.MaxImageSize)
-	y1 := float32(graphics.MaxImageSize)
-	// For the rule of values, see vertices.go.
-	clearVertices := []float32{
-		x0, y0, 0, 0, 1, 1,
-		x1, y0, 1, 0, 0, 1,
-		x0, y1, 0, 1, 1, 0,
-		x1, y1, 1, 1, 0, 0,
-	}
-	i.image.DrawImage(emptyImage, clearVertices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	// TODO: ReplacePixels is bad in terms of performance. Use DrawImage if possible.
+	// Note that using DrawImage with *graphics.Image directly is dangerous since the image
+	// is never restored from context lost.
+	w, h := i.image.Size()
+	i.image.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
