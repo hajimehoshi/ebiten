@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 // arrayBufferLayoutPart is a part of an array buffer layout.
@@ -163,11 +164,16 @@ func (s *openGLState) reset() error {
 	if s.programScreen != zeroProgram {
 		opengl.GetContext().DeleteProgram(s.programScreen)
 	}
-	if s.arrayBuffer != zeroBuffer {
-		opengl.GetContext().DeleteBuffer(s.arrayBuffer)
-	}
-	if s.elementArrayBuffer != zeroBuffer {
-		opengl.GetContext().DeleteBuffer(s.elementArrayBuffer)
+
+	// On browsers (at least Chrome), buffers are already detached from the context
+	// and must not be deleted by DeleteBuffer.
+	if !web.IsBrowser() {
+		if s.arrayBuffer != zeroBuffer {
+			opengl.GetContext().DeleteBuffer(s.arrayBuffer)
+		}
+		if s.elementArrayBuffer != zeroBuffer {
+			opengl.GetContext().DeleteBuffer(s.elementArrayBuffer)
+		}
 	}
 
 	shaderVertexModelviewNative, err := opengl.GetContext().NewShader(opengl.VertexShader, shader(shaderVertexModelview))
