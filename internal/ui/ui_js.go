@@ -137,7 +137,12 @@ func (u *userInterface) update(g GraphicsContext) error {
 	if opengl.GetContext().IsContextLost() {
 		opengl.GetContext().RestoreContext()
 		g.Invalidate()
+
+		// Need to return once to wait restored (#526)
+		// TODO: Is it necessary to handle webglcontextrestored event?
+		return nil
 	}
+
 	currentInput.updateGamepads()
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
