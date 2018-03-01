@@ -115,25 +115,6 @@ func (i *Image) makeStale() {
 	i.stale = true
 }
 
-// clearIfVolatile clears the image if the image is volatile.
-func (i *Image) clearIfVolatile() {
-	if !i.volatile {
-		return
-	}
-	i.basePixels = nil
-	i.drawImageHistory = nil
-	i.stale = false
-	if i.image == nil {
-		panic("not reached")
-	}
-
-	// TODO: ReplacePixels is bad in terms of performance. Use DrawImage if possible.
-	// Note that using DrawImage with *graphics.Image directly is dangerous since the image
-	// is never restored from context lost.
-	w, h := i.image.Size()
-	i.image.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
-}
-
 // ReplacePixels replaces the image pixels with the given pixels slice.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	w, h := i.image.Size()

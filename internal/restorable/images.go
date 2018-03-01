@@ -73,13 +73,6 @@ func Restore() error {
 	return theImages.restore()
 }
 
-// ClearVolatileImages clears volatile images.
-//
-// ClearVolatileImages is intended to be called at the start of a frame.
-func ClearVolatileImages() {
-	theImages.clearVolatileImages()
-}
-
 // add adds img to the images.
 func (i *images) add(img *Image) {
 	i.m.Lock()
@@ -193,15 +186,6 @@ func (i *images) restore() error {
 		}
 	}
 	return nil
-}
-
-// clearVolatileImages clears the volatile images.
-func (i *images) clearVolatileImages() {
-	i.m.Lock()
-	defer i.m.Unlock()
-	for img := range i.images {
-		img.clearIfVolatile()
-	}
 }
 
 // InitializeGLState initializes the GL state.
