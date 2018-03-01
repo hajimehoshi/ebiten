@@ -16,6 +16,7 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -97,27 +98,31 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		}
 		afterFrameUpdate()
 	}
-	if 0 < updateCount {
-		// Call ClearFramebuffer instead of c.screen.Clear()
-		// to clear the whole region including fullscreen's padding.
-		c.screen.restorable.ClearFramebuffer()
 
-		dw, dh := c.screen.Size()
-		sw, _ := c.offscreen.Size()
-		scale := float64(dw) / float64(sw)
+	// Clear the screen framebuffer by DrawImage instad of Fill
+	// to clear the whole region including fullscreen's padding.
+	op := &DrawImageOptions{}
+	w, h := emptyImage.Size()
+	// graphics.MaxImageSize should be the maximum size of framebuffer.
+	op.GeoM.Scale(graphics.MaxImageSize/float64(w), graphics.MaxImageSize/float64(h))
+	op.CompositeMode = CompositeModeCopy
+	op.Filter = filterScreen // any filter is fine: just use the same filter as below.
+	c.screen.DrawImage(emptyImage, op)
 
-		op := &DrawImageOptions{}
+	dw, dh := c.screen.Size()
+	sw, _ := c.offscreen.Size()
+	scale := float64(dw) / float64(sw)
 
-		// c.screen is special: its Y axis is down to up,
-		// and the origin point is lower left.
-		op.GeoM.Scale(scale, -scale)
-		op.GeoM.Translate(0, float64(dh))
-		op.GeoM.Translate(c.offsetX, c.offsetY)
+	op = &DrawImageOptions{}
+	// c.screen is special: its Y axis is down to up,
+	// and the origin point is lower left.
+	op.GeoM.Scale(scale, -scale)
+	op.GeoM.Translate(0, float64(dh))
+	op.GeoM.Translate(c.offsetX, c.offsetY)
 
-		op.CompositeMode = CompositeModeCopy
-		op.Filter = filterScreen
-		_ = c.screen.DrawImage(c.offscreen, op)
-	}
+	op.CompositeMode = CompositeModeCopy
+	op.Filter = filterScreen
+	_ = c.screen.DrawImage(c.offscreen, op)
 
 	if err := restorable.ResolveStaleImages(); err != nil {
 		return err

@@ -129,10 +129,6 @@ func (i *Image) clearIfVolatile() {
 	if !i.volatile {
 		return
 	}
-	i.ClearFramebuffer()
-}
-
-func (i *Image) ClearFramebuffer() {
 	i.basePixels = nil
 	i.drawImageHistory = nil
 	i.stale = false
