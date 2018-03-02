@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package restorable_test
+package graphicsutil_test
 
 import (
 	"image"
@@ -20,7 +20,7 @@ import (
 	"image/color/palette"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/restorable"
+	. "github.com/hajimehoshi/ebiten/internal/graphicsutil"
 )
 
 func TestCopyImage(t *testing.T) {
