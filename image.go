@@ -149,11 +149,11 @@ func (i *Image) isDisposed() bool {
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
-	if i == img {
-		panic("ebiten: Image.DrawImage: img must be different from the receiver")
-	}
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
+	}
+	if i == img {
+		panic("ebiten: Image.DrawImage: img must be different from the receiver")
 	}
 	if i.isDisposed() {
 		return nil
