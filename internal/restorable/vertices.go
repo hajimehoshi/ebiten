@@ -54,22 +54,6 @@ func (i *Image) vertices(sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []float32 {
 	// TODO: This function should be in graphics package?
 	vs := theVerticesBackend.get()
 
-	if sx0 < 0 || sy0 < 0 {
-		dx := 0.0
-		dy := 0.0
-		if sx0 < 0 {
-			dx = -float64(sx0)
-			sx0 = 0
-		}
-		if sy0 < 0 {
-			dy = -float64(sy0)
-			sy0 = 0
-		}
-		var g *affine.GeoM
-		g = g.Translate(dx, dy)
-		g = g.Concat(geo)
-		geo = g
-	}
 	x0, y0 := 0.0, 0.0
 	x1, y1 := float64(sx1-sx0), float64(sy1-sy0)
 

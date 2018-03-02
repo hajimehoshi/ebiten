@@ -20,6 +20,7 @@ import (
 	"image/color"
 	"runtime"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
@@ -202,6 +203,24 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
+	geom := options.GeoM.impl
+	if sx0 < 0 || sy0 < 0 {
+		dx := 0.0
+		dy := 0.0
+		if sx0 < 0 {
+			dx = -float64(sx0)
+			sx0 = 0
+		}
+		if sy0 < 0 {
+			dy = -float64(sy0)
+			sy0 = 0
+		}
+		var g *affine.GeoM
+		g = g.Translate(dx, dy)
+		g = g.Concat(geom)
+		geom = g
+	}
+
 	mode := opengl.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
@@ -211,7 +230,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.restorable.DrawImage(img.restorable, sx0, sy0, sx1, sy1, options.GeoM.impl, options.ColorM.impl, mode, filter)
+	i.restorable.DrawImage(img.restorable, sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
 	return nil
 }
 
