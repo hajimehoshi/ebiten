@@ -18,7 +18,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"runtime"
 )
 
 // CopyImage copies origImg to a new RGBA image.
@@ -70,6 +69,5 @@ func CopyImage(origImg image.Image) *image.RGBA {
 	default:
 		draw.Draw(newImg, image.Rect(0, 0, w, h), origImg, origImg.Bounds().Min, draw.Src)
 	}
-	runtime.Gosched()
 	return newImg
 }
