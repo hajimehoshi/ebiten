@@ -17,6 +17,7 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/bsp"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 type sharedImage struct {
@@ -60,8 +61,12 @@ func (s *sharedImagePart) Dispose() {
 	}
 }
 
+var sharedImageLock sync.Mutex
+
 func newSharedImagePart(width, height int) *sharedImagePart {
-	// TODO: Lock!
+	sharedImageLock.Lock()
+	sharedImageLock.Unlock()
+
 	if width > bsp.MaxSize || height > bsp.MaxSize {
 		return nil
 	}
