@@ -15,6 +15,10 @@
 // Package bsp offers binary space partitioning algorithm.
 package bsp
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/sync"
+)
+
 const (
 	MaxSize = 2048
 	minSize = 1
@@ -22,13 +26,18 @@ const (
 
 type Page struct {
 	root *Node
+	m    sync.Mutex
 }
 
 func (p *Page) IsEmpty() bool {
+	p.m.Lock()
 	if p.root == nil {
+		p.m.Unlock()
 		return true
 	}
-	return !p.root.used && p.root.child0 == nil && p.root.child1 == nil
+	r := !p.root.used && p.root.child0 == nil && p.root.child1 == nil
+	p.m.Unlock()
+	return r
 }
 
 type Node struct {
@@ -130,6 +139,7 @@ func (n *Node) alloc(width, height int) *Node {
 }
 
 func (p *Page) Alloc(width, height int) *Node {
+	p.m.Lock()
 	if width <= 0 || height <= 0 {
 		panic("bsp: width and height must > 0")
 	}
@@ -145,10 +155,18 @@ func (p *Page) Alloc(width, height int) *Node {
 	if height < minSize {
 		height = minSize
 	}
-	return p.root.alloc(width, height)
+	n := p.root.alloc(width, height)
+	p.m.Unlock()
+	return n
 }
 
 func (p *Page) Free(node *Node) {
+	p.m.Lock()
+	p.free(node)
+	p.m.Unlock()
+}
+
+func (p *Page) free(node *Node) {
 	if node.child0 != nil || node.child1 != nil {
 		panic("bsp: can't free the node including children")
 	}
@@ -162,6 +180,6 @@ func (p *Page) Free(node *Node) {
 	if node.parent.child0.canFree() && node.parent.child1.canFree() {
 		node.parent.child0 = nil
 		node.parent.child1 = nil
-		p.Free(node.parent)
+		p.free(node.parent)
 	}
 }
