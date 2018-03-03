@@ -106,21 +106,20 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
-func (img *Image) ensureNotShared() {
-	if img.sharedImagePart == nil {
+func (i *Image) ensureNotShared() {
+	if i.sharedImagePart == nil {
 		return
 	}
-	if img.restorable == nil {
-		// The image is already disposed.
-		return
+	if i.restorable != nil {
+		panic("not reached")
 	}
 
-	s := img.sharedImagePart
+	s := i.sharedImagePart
 	x, y, w, h := s.region()
 
-	img.restorable = restorable.NewImage(w, h, false)
-	img.sharedImagePart = nil
-	img.restorable.DrawImage(s.image(), x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	i.restorable = restorable.NewImage(w, h, false)
+	i.sharedImagePart = nil
+	i.restorable.DrawImage(s.image(), x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	s.Dispose()
 }
 
@@ -180,6 +179,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
 	i.ensureNotShared()
+	if i.restorable == nil {
+		panic("not reached")
+	}
+
 	// Compare i and img after ensuring i is not shared, or
 	// i and img might share the same texture even though i != img.
 	if i == img {
@@ -439,11 +442,19 @@ type DrawImageOptions struct {
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
-	// TODO: Is it possible to use the shared texture here? (#514)
-	r := restorable.NewImage(width, height, false)
-	i := &Image{
-		restorable: r,
-		filter:     filter,
+	var i *Image
+	s := newSharedImagePart(width, height)
+	if s != nil {
+		i = &Image{
+			sharedImagePart: s,
+			filter:          filter,
+		}
+	} else {
+		r := restorable.NewImage(width, height, false)
+		i = &Image{
+			restorable: r,
+			filter:     filter,
+		}
 	}
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -453,11 +464,19 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // newImageWithoutInit creates an empty image without initialization.
 func newImageWithoutInit(width, height int) *Image {
 	checkSize(width, height)
-	// TODO: Is it possible to use the shared texture here? (#514)
-	r := restorable.NewImage(width, height, false)
-	i := &Image{
-		restorable: r,
-		filter:     FilterDefault,
+	var i *Image
+	s := newSharedImagePart(width, height)
+	if s != nil {
+		i = &Image{
+			sharedImagePart: s,
+			filter:          FilterDefault,
+		}
+	} else {
+		r := restorable.NewImage(width, height, false)
+		i = &Image{
+			restorable: r,
+			filter:     FilterDefault,
+		}
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
@@ -506,16 +525,16 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	var i *Image
 	s := newSharedImagePart(width, height)
-	if s == nil {
+	if s != nil {
+		i = &Image{
+			sharedImagePart: s,
+			filter:          filter,
+		}
+	} else {
 		r := restorable.NewImage(width, height, false)
 		i = &Image{
 			restorable: r,
 			filter:     filter,
-		}
-	} else {
-		i = &Image{
-			sharedImagePart: s,
-			filter:          filter,
 		}
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
