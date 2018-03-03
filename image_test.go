@@ -318,6 +318,10 @@ func TestImageDotByDotInversion(t *testing.T) {
 }
 
 func TestReplacePixels(t *testing.T) {
+	// Create a dummy image so that the shared texture is use and origImg's position is shfited.
+	dummyImg, _ := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)), FilterDefault)
+	defer dummyImg.Dispose()
+
 	origImg, err := openImage("testdata/ebiten.png")
 	if err != nil {
 		t.Fatal(err)
@@ -369,7 +373,6 @@ func TestReplacePixels(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestImageDispose(t *testing.T) {

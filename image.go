@@ -147,16 +147,6 @@ func (i *Image) isDisposed() bool {
 	return i.restorable == nil && i.sharedImagePart == nil
 }
 
-func (i *Image) restorableImage() *restorable.Image {
-	if i.restorable != nil {
-		return i.restorable
-	}
-	if i.sharedImagePart != nil {
-		return i.sharedImagePart.image()
-	}
-	return nil
-}
-
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -355,6 +345,27 @@ func (i *Image) Dispose() error {
 	return nil
 }
 
+func (i *Image) region() (x, y, width, height int) {
+	if i.restorable != nil {
+		w, h := i.restorable.Size()
+		return 0, 0, w, h
+	}
+	if i.sharedImagePart != nil {
+		return i.sharedImagePart.region()
+	}
+	panic("not reached")
+}
+
+func (i *Image) restorableImage() *restorable.Image {
+	if i.restorable != nil {
+		return i.restorable
+	}
+	if i.sharedImagePart != nil {
+		return i.sharedImagePart.image()
+	}
+	return nil
+}
+
 // ReplacePixels replaces the pixels of the image with p.
 //
 // The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
@@ -368,15 +379,14 @@ func (i *Image) Dispose() error {
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
-	i.ensureNotShared()
 	if i.isDisposed() {
 		return nil
 	}
-	w, h := i.Size()
+	x, y, w, h := i.region()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	i.restorable.ReplacePixels(p, 0, 0, w, h)
+	i.restorableImage().ReplacePixels(p, x, y, w, h)
 	return nil
 }
 
@@ -515,14 +525,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	for j := 0; j < height; j++ {
 		copy(p[j*width*4:(j+1)*width*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
-
-	if s == nil {
-		_ = i.ReplacePixels(p)
-	} else {
-		x, y, width, height := s.region()
-		s.image().ReplacePixels(p, x, y, width, height)
-	}
-
+	_ = i.ReplacePixels(p)
 	return i, nil
 }
 
