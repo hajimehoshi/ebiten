@@ -378,8 +378,17 @@ func TestImageDispose(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
+	img.Fill(color.White)
 	if err := img.Dispose(); err != nil {
 		t.Errorf("img.Dipose() returns error: %v", err)
+	}
+
+	// The color is transparent (color.RGBA{}).
+	// Note that the value's type must be color.RGBA.
+	got := img.At(0, 0)
+	want := color.RGBA{}
+	if got != want {
+		t.Errorf("img.At(0, 0) got: %v, want: %v", got, want)
 	}
 }
 

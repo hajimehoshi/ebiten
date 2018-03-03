@@ -163,12 +163,12 @@ func (i *Image) ColorModel() color.Model {
 //
 // At loads pixels from GPU to system memory if necessary, which means that At can be slow.
 //
-// At always returns color.Transparend if the image is disposed.
+// At always returns a transparent color if the image is disposed.
 //
 // At can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
 	if i.restorable == nil {
-		return color.Transparent
+		return color.RGBA{}
 	}
 	// TODO: Error should be delayed until flushing. Do not panic here.
 	clr, err := i.restorable.At(x, y)
