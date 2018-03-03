@@ -16,12 +16,19 @@
 package bsp
 
 const (
-	MaxSize = 1024
+	MaxSize = 2048
 	minSize = 1
 )
 
 type Page struct {
 	root *Node
+}
+
+func (p *Page) IsEmpty() bool {
+	if p.root == nil {
+		return true
+	}
+	return !p.root.used && p.root.child0 == nil && p.root.child1 == nil
 }
 
 type Node struct {

@@ -52,7 +52,9 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	restorable *restorable.Image
+	// restorable and sharedImagePart are exclusive.
+	restorable      *restorable.Image
+	sharedImagePart *sharedImagePart
 
 	filter Filter
 }
@@ -71,7 +73,14 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.restorable.Size()
+	w := 0
+	h := 0
+	if i.restorable != nil {
+		w, h = i.restorable.Size()
+	} else if i.sharedImagePart != nil {
+		_, _, w, h = i.sharedImagePart.region()
+	}
+	return w, h
 }
 
 // Clear resets the pixels of the image into 0.
@@ -97,6 +106,24 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
+func (img *Image) ensureNotShared() {
+	if img.sharedImagePart == nil {
+		return
+	}
+	if img.restorable == nil {
+		// The image is already disposed.
+		return
+	}
+
+	s := img.sharedImagePart
+	x, y, w, h := s.region()
+
+	img.restorable = restorable.NewImage(w, h, false)
+	img.sharedImagePart = nil
+	img.restorable.DrawImage(s.image(), x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	s.Dispose()
+}
+
 func (i *Image) fill(r, g, b, a uint8) {
 	wd, hd := i.Size()
 	ws, hs := emptyImage.Size()
@@ -117,7 +144,17 @@ func (i *Image) fill(r, g, b, a uint8) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.restorable == nil
+	return i.restorable == nil && i.sharedImagePart == nil
+}
+
+func (i *Image) restorableImage() *restorable.Image {
+	if i.restorable != nil {
+		return i.restorable
+	}
+	if i.sharedImagePart != nil {
+		return i.sharedImagePart.image()
+	}
+	return nil
 }
 
 // DrawImage draws the given image on the image i.
@@ -152,12 +189,16 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
+	i.ensureNotShared()
+	// Compare i and img after ensuring i is not shared, or
+	// i and img might share the same texture even though i != img.
 	if i == img {
 		panic("ebiten: Image.DrawImage: img must be different from the receiver")
 	}
 	if i.isDisposed() {
 		return nil
 	}
+
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
 	if options == nil {
@@ -222,6 +263,14 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		geom = g
 	}
 
+	if img.sharedImagePart != nil {
+		dx, dy, _, _ := img.sharedImagePart.region()
+		sx0 += dx
+		sy0 += dy
+		sx1 += dx
+		sy1 += dy
+	}
+
 	mode := opengl.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
@@ -231,7 +280,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.restorable.DrawImage(img.restorable, sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
+	i.restorable.DrawImage(img.restorableImage(), sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
 	return nil
 }
 
@@ -257,12 +306,27 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	// TODO: Error should be delayed until flushing. Do not panic here.
-	clr, err := i.restorable.At(x, y)
-	if err != nil {
-		panic(err)
+	switch {
+	case i.restorable != nil:
+		// TODO: Error should be delayed until flushing. Do not panic here.
+		clr, err := i.restorable.At(x, y)
+		if err != nil {
+			panic(err)
+		}
+		return clr
+	case i.sharedImagePart != nil:
+		ox, oy, w, h := i.sharedImagePart.region()
+		if x < 0 || y < 0 || x >= w || y >= h {
+			return color.RGBA{}
+		}
+		clr, err := i.sharedImagePart.image().At(x+ox, y+oy)
+		if err != nil {
+			panic(err)
+		}
+		return clr
+	default:
+		panic("not reached")
 	}
-	return clr
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -277,8 +341,16 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.restorable.Dispose()
-	i.restorable = nil
+	switch {
+	case i.restorable != nil:
+		i.restorable.Dispose()
+		i.restorable = nil
+	case i.sharedImagePart != nil:
+		i.sharedImagePart.Dispose()
+		i.sharedImagePart = nil
+	default:
+		panic("not reached")
+	}
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -296,6 +368,7 @@ func (i *Image) Dispose() error {
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
+	i.ensureNotShared()
 	if i.isDisposed() {
 		return nil
 	}
@@ -356,6 +429,7 @@ type DrawImageOptions struct {
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	checkSize(width, height)
+	// TODO: Is it possible to use the shared texture here? (#514)
 	r := restorable.NewImage(width, height, false)
 	i := &Image{
 		restorable: r,
@@ -369,6 +443,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // newImageWithoutInit creates an empty image without initialization.
 func newImageWithoutInit(width, height int) *Image {
 	checkSize(width, height)
+	// TODO: Is it possible to use the shared texture here? (#514)
 	r := restorable.NewImage(width, height, false)
 	i := &Image{
 		restorable: r,
@@ -416,21 +491,37 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
 	checkSize(size.X, size.Y)
+
 	width, height := size.X, size.Y
+
+	var i *Image
+	s := newSharedImagePart(width, height)
+	if s == nil {
+		r := restorable.NewImage(width, height, false)
+		i = &Image{
+			restorable: r,
+			filter:     filter,
+		}
+	} else {
+		i = &Image{
+			sharedImagePart: s,
+			filter:          filter,
+		}
+	}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+
 	rgbaImg := graphicsutil.CopyImage(source)
 	p := make([]byte, 4*width*height)
 	for j := 0; j < height; j++ {
 		copy(p[j*width*4:(j+1)*width*4], rgbaImg.Pix[j*rgbaImg.Stride:])
 	}
 
-	r := restorable.NewImage(width, height, false)
-	i := &Image{
-		restorable: r,
-		filter:     filter,
+	if s == nil {
+		_ = i.ReplacePixels(p)
+	} else {
+		x, y, width, height := s.region()
+		s.image().ReplacePixels(p, x, y, width, height)
 	}
-	runtime.SetFinalizer(i, (*Image).Dispose)
-
-	_ = i.ReplacePixels(p)
 
 	return i, nil
 }

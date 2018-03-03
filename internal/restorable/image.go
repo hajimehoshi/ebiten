@@ -125,7 +125,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		panic(fmt.Sprintf("restorable: out of range x: %d, y: %d, width: %d, height: %d", x, y, width, height))
 	}
 
-	// TODO: Avoid making other images stale if possible.
+	// TODO: Avoid making other images stale if possible. (#514)
 	// For this purpuse, images should remember which part of that is used for DrawImage.
 	theImages.makeStaleIfDependingOn(i)
 
