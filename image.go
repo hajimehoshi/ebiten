@@ -363,7 +363,7 @@ func (i *Image) restorableImage() *restorable.Image {
 	if i.sharedImagePart != nil {
 		return i.sharedImagePart.image()
 	}
-	return nil
+	panic("not reached")
 }
 
 // ReplacePixels replaces the pixels of the image with p.
