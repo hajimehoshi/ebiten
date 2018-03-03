@@ -166,6 +166,9 @@ func (i *Image) isDisposed() bool {
 //
 //   * All render targets are same (A in A.DrawImage(B, op))
 //   * All render sources are same (B in A.DrawImage(B, op))
+//     * This is not a strong request since different images might share a same inner
+//       OpenGL texture in high possibility. This is not 100%, so using the same render
+//       source is safer.
 //   * All ColorM values are same
 //   * All CompositeMode values are same
 //   * All Filter values are same
