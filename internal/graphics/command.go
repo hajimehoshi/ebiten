@@ -29,6 +29,8 @@ import (
 // A command is not immediately executed after created. Instaed, it is queued after created,
 // and executed only when necessary.
 type command interface {
+	fmt.Stringer
+
 	Exec(indexOffsetInBytes int) error
 	NumVertices() int
 	NumIndices() int
@@ -147,6 +149,9 @@ func (q *commandQueue) Flush() {
 	opengl.GetContext().ResetViewportSize()
 	es := q.indices
 	vs := q.vertices
+	if recordLog() {
+		fmt.Println("--")
+	}
 	for len(q.commands) > 0 {
 		nv := 0
 		ne := 0
@@ -176,6 +181,9 @@ func (q *commandQueue) Flush() {
 			if err := c.Exec(indexOffsetInBytes); err != nil {
 				q.err = err
 				return
+			}
+			if recordLog() {
+				fmt.Printf("%s\n", c)
 			}
 			// TODO: indexOffsetInBytes should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
@@ -219,6 +227,10 @@ type drawImageCommand struct {
 // VertexSizeInBytes returns the size in bytes of one vertex.
 func VertexSizeInBytes() int {
 	return theArrayBufferLayout.totalBytes()
+}
+
+func (c *drawImageCommand) String() string {
+	return fmt.Sprintf("draw-image: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d", c.dst, c.src, c.color, c.mode, c.filter)
 }
 
 // Exec executes the drawImageCommand.
@@ -292,6 +304,10 @@ type replacePixelsCommand struct {
 	height int
 }
 
+func (c *replacePixelsCommand) String() string {
+	return fmt.Sprintf("replace-pixels: dst: %p, x: %d, y: %d, width: %d, height: %d", c.dst, c.x, c.y, c.width, c.height)
+}
+
 // Exec executes the replacePixelsCommand.
 func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glFlush is necessary on Android.
@@ -339,6 +355,10 @@ func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+func (c *pixelsCommand) String() string {
+	return fmt.Sprintf("pixels: img: %p", c.img)
+}
+
 func (c *pixelsCommand) NumVertices() int {
 	return 0
 }
@@ -360,6 +380,10 @@ func (c *pixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode ope
 // disposeCommand represents a command to dispose an image.
 type disposeCommand struct {
 	target *Image
+}
+
+func (c *disposeCommand) String() string {
+	return fmt.Sprintf("dispose: target: %p", c.target)
 }
 
 // Exec executes the disposeCommand.
@@ -415,6 +439,10 @@ func checkSize(width, height int) {
 	}
 }
 
+func (c *newImageCommand) String() string {
+	return fmt.Sprintf("new-image: result: %p, width: %d, height: %d", c.result, c.width, c.height)
+}
+
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	w := emath.NextPowerOf2Int(c.width)
@@ -453,6 +481,10 @@ type newScreenFramebufferImageCommand struct {
 	result *Image
 	width  int
 	height int
+}
+
+func (c *newScreenFramebufferImageCommand) String() string {
+	return fmt.Sprintf("new-screen-framebuffer-image: result: %p, width: %d, height: %d", c.result, c.width, c.height)
 }
 
 // Exec executes a newScreenFramebufferImageCommand.
