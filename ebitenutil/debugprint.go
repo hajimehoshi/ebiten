@@ -83,7 +83,7 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, ox, oy int, c c
 func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
 	if d.textImage == nil {
 		img := assets.CreateTextImage()
-		d.textImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterNearest)
+		d.textImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 	}
 	d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
 	d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})

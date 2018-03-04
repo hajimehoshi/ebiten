@@ -26,9 +26,7 @@ var (
 )
 
 func init() {
-	// Filter must be 'nearest' filter.
-	// Linear filtering would make edges blurred.
-	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterNearest)
+	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterDefault)
 	_ = emptyImage.Fill(color.White)
 }
 
@@ -57,6 +55,8 @@ func DrawLine(dst *ebiten.Image, x1, y1, x2, y2 float64, clr color.Color) {
 	op.GeoM.Rotate(math.Atan2(y2-y1, x2-x1))
 	op.GeoM.Translate(x1, y1)
 	op.ColorM.Scale(colorScale(clr))
+	// Filter must be 'nearest' filter (default).
+	// Linear filtering would make edges blurred.
 	_ = dst.DrawImage(emptyImage, op)
 }
 
@@ -70,5 +70,7 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	op.GeoM.Scale(width/float64(ew), height/float64(eh))
 	op.GeoM.Translate(x, y)
 	op.ColorM.Scale(colorScale(clr))
+	// Filter must be 'nearest' filter (default).
+	// Linear filtering would make edges blurred.
 	_ = dst.DrawImage(emptyImage, op)
 }
