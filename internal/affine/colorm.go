@@ -139,6 +139,9 @@ func (c *ColorM) Equals(other *ColorM) bool {
 		rhsb = c.body
 		rhst = c.translate
 	}
+	if &lhsb == &rhsb && &lhst == &rhst {
+		return true
+	}
 
 	for i := range lhsb {
 		if lhsb[i] != rhsb[i] {
