@@ -458,7 +458,8 @@ func (p *Player) readLoop() {
 		close(p.readLoopEndedCh)
 	}()
 
-	t := time.After(0)
+	timer := time.NewTimer(0)
+	timerCh := timer.C
 	var readErr error
 	for {
 		select {
@@ -472,13 +473,21 @@ func (p *Player) readLoop() {
 			p.pos = pos
 			p.srcEOF = false
 			p.seekedCh <- err
-			t = time.After(time.Millisecond)
+			if timer != nil {
+				timer.Stop()
+			}
+			timer = time.NewTimer(time.Millisecond)
+			timerCh = timer.C
 			break
 
-		case <-t:
+		case <-timerCh:
 			// If the buffer has 1 second, that's enough.
 			if len(p.buf) >= p.sampleRate*bytesPerSample*channelNum {
-				t = time.After(100 * time.Millisecond)
+				if timer != nil {
+					timer.Stop()
+				}
+				timer = time.NewTimer(100 * time.Millisecond)
+				timerCh = timer.C
 				break
 			}
 
@@ -499,19 +508,31 @@ func (p *Player) readLoop() {
 				p.srcEOF = true
 			}
 			if p.srcEOF && len(p.buf) == 0 {
-				t = nil
+				if timer != nil {
+					timer.Stop()
+				}
+				timer = nil
+				timerCh = nil
 				break
 			}
 			if err != nil && err != io.EOF {
 				readErr = err
-				t = nil
+				if timer != nil {
+					timer.Stop()
+				}
+				timer = nil
+				timerCh = nil
 				break
 			}
-			if web.IsBrowser() {
-				t = time.After(10 * time.Millisecond)
-			} else {
-				t = time.After(time.Millisecond)
+			if timer != nil {
+				timer.Stop()
 			}
+			if web.IsBrowser() {
+				timer = time.NewTimer(10 * time.Millisecond)
+			} else {
+				timer = time.NewTimer(time.Millisecond)
+			}
+			timerCh = timer.C
 
 		case buf := <-p.proceedCh:
 			if readErr != nil {
