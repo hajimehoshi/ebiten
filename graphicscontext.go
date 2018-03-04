@@ -102,19 +102,22 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 
 	// Clear the screen framebuffer by DrawImage instad of Fill
 	// to clear the whole region including fullscreen's padding.
-	op := &DrawImageOptions{}
-	w, h := emptyImage.Size()
-	// graphics.MaxImageSize should be the maximum size of framebuffer.
-	op.GeoM.Scale(graphics.MaxImageSize/float64(w), graphics.MaxImageSize/float64(h))
-	op.CompositeMode = CompositeModeCopy
-	op.Filter = filterScreen // any filter is fine: just use the same filter as below.
-	c.screen.DrawImage(emptyImage, op)
+	// TODO: This clear is needed only when the screen size is changed.
+	if c.offsetX > 0 || c.offsetY > 0 {
+		op := &DrawImageOptions{}
+		w, h := emptyImage.Size()
+		// graphics.MaxImageSize should be the maximum size of framebuffer.
+		op.GeoM.Scale(graphics.MaxImageSize/float64(w), graphics.MaxImageSize/float64(h))
+		op.CompositeMode = CompositeModeCopy
+		op.Filter = filterScreen // any filter is fine: just use the same filter as below.
+		c.screen.DrawImage(emptyImage, op)
+	}
 
 	dw, dh := c.screen.Size()
 	sw, _ := c.offscreen.Size()
 	scale := float64(dw) / float64(sw)
 
-	op = &DrawImageOptions{}
+	op := &DrawImageOptions{}
 	// c.screen is special: its Y axis is down to up,
 	// and the origin point is lower left.
 	op.GeoM.Scale(scale, -scale)
