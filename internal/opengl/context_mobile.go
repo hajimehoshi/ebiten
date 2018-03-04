@@ -19,9 +19,9 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"math"
+	"reflect"
+	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/internal/endian"
 	mgl "golang.org/x/mobile/gl"
 )
 
@@ -352,12 +352,13 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 }
 
 func uint16ToBytes(v []uint16) []byte {
-	// TODO: Consider endian?
-	b := make([]byte, len(v)*2)
-	for i, x := range v {
-		b[2*i] = uint8(x)
-		b[2*i+1] = uint8(x >> 8)
-	}
+	u16h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
+
+	var b []byte
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	bh.Data = u16h.Data
+	bh.Len = len(v) * 2
+	bh.Cap = len(v) * 2
 	return b
 }
 
@@ -383,25 +384,13 @@ func (c *Context) BindElementArrayBuffer(b Buffer) {
 }
 
 func float32ToBytes(v []float32) []byte {
-	b := make([]byte, len(v)*4)
-	if endian.IsLittle() {
-		for i, x := range v {
-			bits := math.Float32bits(x)
-			b[4*i] = uint8(bits)
-			b[4*i+1] = uint8(bits >> 8)
-			b[4*i+2] = uint8(bits >> 16)
-			b[4*i+3] = uint8(bits >> 24)
-		}
-	} else {
-		// TODO: Test this
-		for i, x := range v {
-			bits := math.Float32bits(x)
-			b[4*i] = uint8(bits >> 24)
-			b[4*i+1] = uint8(bits >> 16)
-			b[4*i+2] = uint8(bits >> 8)
-			b[4*i+3] = uint8(bits)
-		}
-	}
+	f32h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
+
+	var b []byte
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	bh.Data = f32h.Data
+	bh.Len = len(v) * 4
+	bh.Cap = len(v) * 4
 	return b
 }
 

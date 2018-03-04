@@ -149,6 +149,9 @@ func (q *commandQueue) Flush() error {
 			}
 		}
 		if 0 < n-lastN {
+			// Note that the vertices passed to BufferSubData is not under GC management
+			// in opengl package due to unsafe-way.
+			// See BufferSubData in context_mobile.go.
 			opengl.GetContext().BufferSubData(opengl.ArrayBuffer, q.vertices[lastN:n])
 		}
 		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
