@@ -32,6 +32,7 @@ import (
 // and executed only when necessary.
 type command interface {
 	Exec(indexOffsetInBytes int) error
+	NumVertices() int
 }
 
 // commandQueue is a command queue for drawing commands.
@@ -42,10 +43,10 @@ type commandQueue struct {
 	// vertices represents a vertices data in OpenGL's array buffer.
 	vertices []float32
 
-	// verticesNum represents the current length of vertices.
-	// verticesNum must <= len(vertices).
+	// nvertices represents the current length of vertices.
+	// nvertices must <= len(vertices).
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
-	verticesNum int
+	nvertices int
 
 	m sync.Mutex
 }
@@ -55,16 +56,16 @@ var theCommandQueue = &commandQueue{}
 
 // appendVertices appends vertices to the queue.
 func (q *commandQueue) appendVertices(vertices []float32) {
-	if len(q.vertices) < q.verticesNum+len(vertices) {
-		n := q.verticesNum + len(vertices) - len(q.vertices)
+	if len(q.vertices) < q.nvertices+len(vertices) {
+		n := q.nvertices + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
 	}
 	// for-loop might be faster than copy:
 	// On GopherJS, copy might cause subarray calls.
 	for i := 0; i < len(vertices); i++ {
-		q.vertices[q.verticesNum+i] = vertices[i]
+		q.vertices[q.nvertices+i] = vertices[i]
 	}
-	q.verticesNum += len(vertices)
+	q.nvertices += len(vertices)
 }
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
@@ -75,19 +76,19 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	if 0 < len(q.commands) {
 		if c, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
 			if c.canMerge(dst, src, clr, mode, filter) {
-				c.verticesNum += len(vertices)
+				c.nvertices += len(vertices)
 				q.m.Unlock()
 				return
 			}
 		}
 	}
 	c := &drawImageCommand{
-		dst:         dst,
-		src:         src,
-		verticesNum: len(vertices),
-		color:       clr,
-		mode:        mode,
-		filter:      filter,
+		dst:       dst,
+		src:       src,
+		nvertices: len(vertices),
+		color:     clr,
+		mode:      mode,
+		filter:    filter,
 	}
 	q.commands = append(q.commands, c)
 	q.m.Unlock()
@@ -143,10 +144,7 @@ func (q *commandQueue) Flush() error {
 	lastN := 0
 	for _, g := range q.commandGroups() {
 		for _, c := range g {
-			switch c := c.(type) {
-			case *drawImageCommand:
-				n += c.verticesNum
-			}
+			n += c.NumVertices()
 		}
 		if 0 < n-lastN {
 			// Note that the vertices passed to BufferSubData is not under GC management
@@ -165,10 +163,8 @@ func (q *commandQueue) Flush() error {
 			if err := c.Exec(indexOffsetInBytes); err != nil {
 				return err
 			}
-			if c, ok := c.(*drawImageCommand); ok {
-				n := c.verticesNum * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
-				indexOffsetInBytes += 6 * n * 2
-			}
+			n := c.NumVertices() * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+			indexOffsetInBytes += 6 * n * 2
 		}
 		if 0 < numc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
@@ -177,7 +173,7 @@ func (q *commandQueue) Flush() error {
 		lastN = n
 	}
 	q.commands = nil
-	q.verticesNum = 0
+	q.nvertices = 0
 	return nil
 }
 
@@ -188,12 +184,12 @@ func FlushCommands() error {
 
 // drawImageCommand represents a drawing command to draw an image on another image.
 type drawImageCommand struct {
-	dst         *Image
-	src         *Image
-	verticesNum int
-	color       *affine.ColorM
-	mode        opengl.CompositeMode
-	filter      Filter
+	dst       *Image
+	src       *Image
+	nvertices int
+	color     *affine.ColorM
+	mode      opengl.CompositeMode
+	filter    Filter
 }
 
 // QuadVertexSizeInBytes returns the size in bytes of vertices for a quadrangle.
@@ -228,6 +224,10 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+func (c *drawImageCommand) NumVertices() int {
+	return c.nvertices
+}
+
 // split splits the drawImageCommand c into two drawImageCommands.
 //
 // split is called when the number of vertices reaches of the maximum and
@@ -237,8 +237,8 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	c2 := *c
 	s := opengl.Float.SizeInBytes()
 	n := quadsNum * QuadVertexSizeInBytes() / s
-	c1.verticesNum = n
-	c2.verticesNum -= n
+	c1.nvertices = n
+	c2.nvertices -= n
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
@@ -265,7 +265,7 @@ func (c *drawImageCommand) canMerge(dst, src *Image, clr *affine.ColorM, mode op
 
 // quadsNum returns the number of quadrangles.
 func (c *drawImageCommand) quadsNum() int {
-	return c.verticesNum * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+	return c.nvertices * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 }
 
 // replacePixelsCommand represents a command to replace pixels of an image.
@@ -294,6 +294,10 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+func (c *replacePixelsCommand) NumVertices() int {
+	return 0
+}
+
 // disposeCommand represents a command to dispose an image.
 type disposeCommand struct {
 	target *Image
@@ -309,6 +313,10 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 		opengl.GetContext().DeleteTexture(c.target.texture.native)
 	}
 	return nil
+}
+
+func (c *disposeCommand) NumVertices() int {
+	return 0
 }
 
 // newImageCommand represents a command to create an empty image with given width and height.
@@ -338,6 +346,10 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	return nil
 }
 
+func (c *newImageCommand) NumVertices() int {
+	return 0
+}
+
 // newScreenFramebufferImageCommand is a command to create a special image for the screen.
 type newScreenFramebufferImageCommand struct {
 	result *Image
@@ -358,4 +370,8 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	// Edge can't treat a bigger viewport than the drawing area (#71).
 	c.result.framebuffer = newScreenFramebuffer(c.width, c.height)
 	return nil
+}
+
+func (c *newScreenFramebufferImageCommand) NumVertices() int {
+	return 0
 }
