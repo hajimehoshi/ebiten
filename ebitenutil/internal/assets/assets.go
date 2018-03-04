@@ -34,7 +34,7 @@ const (
 	CharHeight = 16
 )
 
-func CreateTextImage() image.Image {
+func CreateTextImage() *image.RGBA {
 	s, err := gzip.NewReader(bytes.NewReader(compressedTextRGBA))
 	if err != nil {
 		panic(fmt.Sprintf("assets: gzip.NewReader failed: %v", err))

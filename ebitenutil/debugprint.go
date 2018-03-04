@@ -16,17 +16,35 @@ package ebitenutil
 
 import (
 	"image"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil/internal/assets"
 )
 
-var debugPrintTextImage *ebiten.Image
+var (
+	debugPrintTextImage       *ebiten.Image
+	debugPrintTextShadowImage *ebiten.Image
+)
 
 func init() {
 	img := assets.CreateTextImage()
 	debugPrintTextImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	// Using color matrices for shadow color is not efficient.
+	// Instead, use a different image, that shares the same texture in highly possibility.
+	s := img.Bounds().Size()
+	for j := 0; j < s.Y; j++ {
+		for i := 0; i < s.X; i++ {
+			idx := (img.Stride)*j + 4*i
+			if img.Pix[idx+3] != 0 {
+				img.Pix[idx] = 0
+				img.Pix[idx+1] = 0
+				img.Pix[idx+2] = 0
+				img.Pix[idx+3] = 0x80
+			}
+		}
+	}
+	debugPrintTextShadowImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 // DebugPrint draws the string str on the image.
@@ -35,22 +53,13 @@ func init() {
 //
 // DebugPrint always returns nil as of 1.5.0-alpha.
 func DebugPrint(image *ebiten.Image, str string) error {
-	drawDebugText(image, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
-	drawDebugText(image, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})
+	drawDebugText(image, str, 1, 1, debugPrintTextShadowImage)
+	drawDebugText(image, str, 0, 0, debugPrintTextImage)
 	return nil
 }
 
-func drawDebugText(rt *ebiten.Image, str string, ox, oy int, c color.Color) {
+func drawDebugText(rt *ebiten.Image, str string, ox, oy int, src *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	ur, ug, ub, ua := c.RGBA()
-	if ua == 0 {
-		return
-	}
-	r := float64(ur) / float64(ua)
-	g := float64(ug) / float64(ua)
-	b := float64(ub) / float64(ua)
-	a := float64(ua) / 0xffff
-	op.ColorM.Scale(r, g, b, a)
 	x := 0
 	y := 0
 	w, _ := debugPrintTextImage.Size()
@@ -72,7 +81,7 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, c color.Color) {
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(x), float64(y))
 		op.GeoM.Translate(float64(ox+1), float64(oy))
-		_ = rt.DrawImage(debugPrintTextImage, op)
+		_ = rt.DrawImage(src, op)
 		x += cw
 	}
 }
