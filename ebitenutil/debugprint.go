@@ -17,17 +17,17 @@ package ebitenutil
 import (
 	"image"
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil/internal/assets"
 )
 
-type debugPrintState struct {
-	textImage *ebiten.Image
-}
+var debugPrintTextImage *ebiten.Image
 
-var defaultDebugPrintState = &debugPrintState{}
+func init() {
+	img := assets.CreateTextImage()
+	debugPrintTextImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+}
 
 // DebugPrint draws the string str on the image.
 //
@@ -35,27 +35,25 @@ var defaultDebugPrintState = &debugPrintState{}
 //
 // DebugPrint always returns nil as of 1.5.0-alpha.
 func DebugPrint(image *ebiten.Image, str string) error {
-	defaultDebugPrintState.DebugPrint(image, str)
+	drawDebugText(image, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
+	drawDebugText(image, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})
 	return nil
 }
 
-func (d *debugPrintState) drawText(rt *ebiten.Image, str string, ox, oy int, c color.Color) {
+func drawDebugText(rt *ebiten.Image, str string, ox, oy int, c color.Color) {
 	op := &ebiten.DrawImageOptions{}
 	ur, ug, ub, ua := c.RGBA()
-	const max = math.MaxUint16
-	r := float64(ur) / max
-	g := float64(ug) / max
-	b := float64(ub) / max
-	a := float64(ua) / max
-	if 0 < a {
-		r /= a
-		g /= a
-		b /= a
+	if ua == 0 {
+		return
 	}
+	r := float64(ur) / float64(ua)
+	g := float64(ug) / float64(ua)
+	b := float64(ub) / float64(ua)
+	a := float64(ua) / 0xffff
 	op.ColorM.Scale(r, g, b, a)
 	x := 0
 	y := 0
-	w, _ := d.textImage.Size()
+	w, _ := debugPrintTextImage.Size()
 	for _, c := range str {
 		const (
 			cw = assets.CharWidth
@@ -74,17 +72,7 @@ func (d *debugPrintState) drawText(rt *ebiten.Image, str string, ox, oy int, c c
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(x), float64(y))
 		op.GeoM.Translate(float64(ox+1), float64(oy))
-		_ = rt.DrawImage(d.textImage, op)
+		_ = rt.DrawImage(debugPrintTextImage, op)
 		x += cw
 	}
-}
-
-// DebugPrint prints the given text str on the given image r.
-func (d *debugPrintState) DebugPrint(r *ebiten.Image, str string) {
-	if d.textImage == nil {
-		img := assets.CreateTextImage()
-		d.textImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-	}
-	d.drawText(r, str, 1, 1, color.NRGBA{0x00, 0x00, 0x00, 0x80})
-	d.drawText(r, str, 0, 0, color.NRGBA{0xff, 0xff, 0xff, 0xff})
 }
