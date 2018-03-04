@@ -167,9 +167,14 @@ var (
 
 func init() {
 	hooks.AppendHookOnUpdate(func() error {
-		theContext.m.Lock()
-		err := theContext.err
-		theContext.m.Unlock()
+		var err error
+		theContextLock.Lock()
+		if theContext != nil {
+			theContext.m.Lock()
+			err = theContext.err
+			theContext.m.Unlock()
+		}
+		theContextLock.Unlock()
 		return err
 	})
 }
