@@ -79,7 +79,7 @@ func square(width, height int) float64 {
 	return float64(height) / float64(width)
 }
 
-func (n *Node) alloc(width, height int) *Node {
+func (p *Page) alloc(n *Node, width, height int) *Node {
 	if n.width < width || n.height < height {
 		return nil
 	}
@@ -124,15 +124,15 @@ func (n *Node) alloc(width, height int) *Node {
 				parent: n,
 			}
 		}
-		return n.child0.alloc(width, height)
+		return p.alloc(n.child0, width, height)
 	}
 	if n.child0 == nil || n.child1 == nil {
 		panic("not reached")
 	}
-	if node := n.child0.alloc(width, height); node != nil {
+	if node := p.alloc(n.child0, width, height); node != nil {
 		return node
 	}
-	if node := n.child1.alloc(width, height); node != nil {
+	if node := p.alloc(n.child1, width, height); node != nil {
 		return node
 	}
 	return nil
@@ -155,7 +155,7 @@ func (p *Page) Alloc(width, height int) *Node {
 	if height < minSize {
 		height = minSize
 	}
-	n := p.root.alloc(width, height)
+	n := p.alloc(p.root, width, height)
 	p.m.Unlock()
 	return n
 }
