@@ -106,7 +106,6 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		// graphics.MaxImageSize should be the maximum size of framebuffer.
 		op.GeoM.Scale(graphics.MaxImageSize/float64(w), graphics.MaxImageSize/float64(h))
 		op.CompositeMode = CompositeModeCopy
-		op.Filter = filterScreen // any filter is fine: just use the same filter as below.
 		c.screen.DrawImage(emptyImage, op)
 	}
 
