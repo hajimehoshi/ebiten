@@ -54,14 +54,12 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	if c.offscreen != nil {
 		_ = c.offscreen.Dispose()
 	}
-	offscreen := newVolatileImage(screenWidth, screenHeight, FilterDefault)
+	c.offscreen = newVolatileImage(screenWidth, screenHeight, FilterDefault)
 
 	w := int(float64(screenWidth) * screenScale)
 	h := int(float64(screenHeight) * screenScale)
 	px0, py0, _, _ := ui.ScreenPadding()
 	c.screen = newImageWithScreenFramebuffer(w, h)
-
-	c.offscreen = offscreen
 
 	c.offsetX = px0
 	c.offsetY = py0
