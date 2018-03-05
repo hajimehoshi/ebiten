@@ -15,14 +15,14 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/bsp"
+	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 type sharedImage struct {
 	restorable *restorable.Image
-	page       bsp.Page
+	page       packing.Page
 }
 
 var (
@@ -31,7 +31,7 @@ var (
 
 type sharedImagePart struct {
 	sharedImage *sharedImage
-	node        *bsp.Node
+	node        *packing.Node
 }
 
 func (s *sharedImagePart) image() *restorable.Image {
@@ -67,7 +67,7 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 	sharedImageLock.Lock()
 	sharedImageLock.Unlock()
 
-	if width > bsp.MaxSize || height > bsp.MaxSize {
+	if width > packing.MaxSize || height > packing.MaxSize {
 		return nil
 	}
 	for _, s := range theSharedImages {
@@ -79,7 +79,7 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 		}
 	}
 	s := &sharedImage{
-		restorable: restorable.NewImage(bsp.MaxSize, bsp.MaxSize, false),
+		restorable: restorable.NewImage(packing.MaxSize, packing.MaxSize, false),
 	}
 	theSharedImages = append(theSharedImages, s)
 

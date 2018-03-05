@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bsp offers binary space partitioning algorithm.
-package bsp
+// Package packing offers a packing algorithm in 2D space.
+package packing
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/sync"

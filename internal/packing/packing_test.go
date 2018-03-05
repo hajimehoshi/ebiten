@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bsp_test
+package packing_test
 
 import (
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/bsp"
+	. "github.com/hajimehoshi/ebiten/internal/packing"
 )
 
 func TestBSP(t *testing.T) {
