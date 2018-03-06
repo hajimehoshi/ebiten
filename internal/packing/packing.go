@@ -16,16 +16,20 @@
 package packing
 
 import (
+	"errors"
+
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 const (
-	MaxSize = 2048
-	minSize = 1
+	initSize = 1024
+	MaxSize  = 4096
+	minSize  = 1
 )
 
 type Page struct {
 	root *Node
+	size int
 	m    sync.Mutex
 }
 
@@ -138,15 +142,30 @@ func (p *Page) alloc(n *Node, width, height int) *Node {
 	return nil
 }
 
+func (p *Page) ensureSize() {
+	if p.size == 0 {
+		p.size = initSize
+	}
+}
+
+func (p *Page) Size() int {
+	p.m.Lock()
+	p.ensureSize()
+	s := p.size
+	p.m.Unlock()
+	return s
+}
+
 func (p *Page) Alloc(width, height int) *Node {
 	p.m.Lock()
 	if width <= 0 || height <= 0 {
 		panic("bsp: width and height must > 0")
 	}
+	p.ensureSize()
 	if p.root == nil {
 		p.root = &Node{
-			width:  MaxSize,
-			height: MaxSize,
+			width:  p.size,
+			height: p.size,
 		}
 	}
 	if width < minSize {
@@ -182,4 +201,94 @@ func (p *Page) free(node *Node) {
 		node.parent.child1 = nil
 		p.free(node.parent)
 	}
+}
+
+func walk(n *Node, f func(n *Node) error) error {
+	if err := f(n); err != nil {
+		return err
+	}
+	if n.child0 != nil {
+		if err := walk(n.child0, f); err != nil {
+			return err
+		}
+	}
+	if n.child1 != nil {
+		if err := walk(n.child1, f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Page) Extend() bool {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	p.ensureSize()
+	if p.size >= MaxSize {
+		return false
+	}
+	newSize := p.size * 2
+	edgeNodes := []*Node{}
+	abort := errors.New("abort")
+	aborted := false
+	_ = walk(p.root, func(n *Node) error {
+		if n.x+n.width < p.size && n.y+n.height < p.size {
+			return nil
+		}
+		if n.used {
+			aborted = true
+			return abort
+		}
+		edgeNodes = append(edgeNodes, n)
+		return nil
+	})
+	if aborted {
+		leftUpper := p.root
+		leftLower := &Node{
+			x:      0,
+			y:      p.size,
+			width:  p.size,
+			height: newSize - p.size,
+		}
+		left := &Node{
+			x:      0,
+			y:      0,
+			width:  p.size,
+			height: p.size,
+			child0: leftUpper,
+			child1: leftLower,
+		}
+		leftUpper.parent = left
+		leftLower.parent = left
+
+		right := &Node{
+			x:      p.size,
+			y:      0,
+			width:  newSize - p.size,
+			height: newSize,
+		}
+		p.root = &Node{
+			x:      0,
+			y:      0,
+			width:  newSize,
+			height: newSize,
+			child0: left,
+			child1: right,
+		}
+		left.parent = p.root
+		right.parent = p.root
+	} else {
+		for _, n := range edgeNodes {
+			if n.x+n.width == p.size {
+				n.width += newSize - p.size
+			}
+			if n.y+n.height == p.size {
+				n.height += newSize - p.size
+			}
+		}
+	}
+
+	p.size = newSize
+	return true
 }
