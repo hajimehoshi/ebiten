@@ -20,7 +20,7 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/packing"
 )
 
-func TestBSP(t *testing.T) {
+func TestPage(t *testing.T) {
 	type Rect struct {
 		X      int
 		Y      int
