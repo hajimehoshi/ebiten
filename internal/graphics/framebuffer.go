@@ -70,8 +70,11 @@ func newScreenFramebuffer(width, height int) *framebuffer {
 
 // defaultViewportSize is the default size (width or height) of viewport.
 //
-// defaultViewportSize also represents the maximum size of a framebuffer.
-const defaultViewportSize = 4096
+// defaultViewportSize also represents the maximum size of a framebuffer
+// and of an Image (it is used to declare MaxImageSize).
+//
+// For portability reasons it must be a power of two.
+const defaultViewportSize = 8192
 
 // viewportSize returns the viewport size of the framebuffer.
 func (f *framebuffer) viewportSize() (int, int) {
