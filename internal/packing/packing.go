@@ -231,19 +231,28 @@ func (p *Page) Extend() bool {
 	newSize := p.size * 2
 	edgeNodes := []*Node{}
 	abort := errors.New("abort")
-	aborted := false
+	canExtendNodes := true
 	_ = walk(p.root, func(n *Node) error {
 		if n.x+n.width < p.size && n.y+n.height < p.size {
 			return nil
 		}
 		if n.used {
-			aborted = true
+			canExtendNodes = false
 			return abort
 		}
 		edgeNodes = append(edgeNodes, n)
 		return nil
 	})
-	if aborted {
+	if canExtendNodes {
+		for _, n := range edgeNodes {
+			if n.x+n.width == p.size {
+				n.width += newSize - p.size
+			}
+			if n.y+n.height == p.size {
+				n.height += newSize - p.size
+			}
+		}
+	} else {
 		leftUpper := p.root
 		leftLower := &Node{
 			x:      0,
@@ -278,15 +287,6 @@ func (p *Page) Extend() bool {
 		}
 		left.parent = p.root
 		right.parent = p.root
-	} else {
-		for _, n := range edgeNodes {
-			if n.x+n.width == p.size {
-				n.width += newSize - p.size
-			}
-			if n.y+n.height == p.size {
-				n.height += newSize - p.size
-			}
-		}
 	}
 
 	p.size = newSize

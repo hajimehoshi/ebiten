@@ -211,6 +211,7 @@ func TestExtend(t *testing.T) {
 	p := &Page{}
 	s := p.Size()
 	p.Alloc(s/2, s/2)
+	// Now Extend extends the page by exntending the existing edge nodes.
 	p.Extend()
 	if p.Alloc(s*3/2, s*2) == nil {
 		t.Fail()
@@ -223,7 +224,7 @@ func TestExtend(t *testing.T) {
 	}
 }
 
-func TestExtend2(t *testing.T) {
+func TestExtendAddingNewNodes(t *testing.T) {
 	p := &Page{}
 	s := p.Size()
 	p.Alloc(s/2, s/2)
@@ -232,7 +233,13 @@ func TestExtend2(t *testing.T) {
 	p.Alloc(s/2, s/2)
 	p.Free(n1)
 	p.Free(n2)
+	// There is an allocation at lower left.
+	// In this case, Extend doesn't extend the existing edge nodes, but
+	// instead adds new nodes.
 	p.Extend()
+	if p.Alloc(s*3/2, s*2) != nil {
+		t.Fail()
+	}
 	if p.Alloc(s, s*2) == nil {
 		t.Fail()
 	}
