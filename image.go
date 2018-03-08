@@ -558,7 +558,7 @@ func newImageWithScreenFramebuffer(width, height int) *Image {
 }
 
 // MaxImageSize represents the maximum width/height of an image.
-const MaxImageSize = restorable.MaxImageSize
+const MaxImageSize = graphics.MaxImageSize
 
 func checkSize(width, height int) {
 	if width <= 0 {

@@ -25,9 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-// MaxImageSize represents the maximum width/height of an image.
-const MaxImageSize = graphics.MaxImageSize
-
 // drawImageHistoryItem is an item for history of draw-image commands.
 type drawImageHistoryItem struct {
 	image    *Image
