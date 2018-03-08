@@ -15,6 +15,7 @@
 package graphicsutil_test
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/color/palette"
@@ -39,7 +40,7 @@ func TestCopyImage(t *testing.T) {
 	bigPalette := color.Palette(p)
 	cases := []struct {
 		In  image.Image
-		Out *image.RGBA
+		Out []uint8
 	}{
 		{
 			In: &image.Paletted{
@@ -50,19 +51,11 @@ func TestCopyImage(t *testing.T) {
 					color.Transparent, color.White,
 				}),
 			},
-			Out: &image.RGBA{
-				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
-				Stride: 8,
-				Rect:   image.Rect(0, 0, 2, 2),
-			},
+			Out: []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
 		},
 		{
-			In: image.NewPaletted(image.Rect(0, 0, 240, 160), pal).SubImage(image.Rect(238, 158, 240, 160)),
-			Out: &image.RGBA{
-				Pix:    []uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-				Stride: 8,
-				Rect:   image.Rect(0, 0, 2, 2),
-			},
+			In:  image.NewPaletted(image.Rect(0, 0, 240, 160), pal).SubImage(image.Rect(238, 158, 240, 160)),
+			Out: []uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		},
 		{
 			In: &image.RGBA{
@@ -70,11 +63,15 @@ func TestCopyImage(t *testing.T) {
 				Stride: 8,
 				Rect:   image.Rect(0, 0, 2, 2),
 			},
-			Out: &image.RGBA{
-				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+			Out: []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
+		},
+		{
+			In: &image.NRGBA{
+				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 0, 0, 0},
 				Stride: 8,
 				Rect:   image.Rect(0, 0, 2, 2),
 			},
+			Out: []uint8{0, 0, 0, 0, 0x80, 0x80, 0x80, 0x80, 0x40, 0x40, 0x40, 0x80, 0, 0, 0, 0},
 		},
 		{
 			In: &image.Paletted{
@@ -83,11 +80,7 @@ func TestCopyImage(t *testing.T) {
 				Rect:    image.Rect(0, 0, 2, 2),
 				Palette: bigPalette,
 			},
-			Out: &image.RGBA{
-				Pix:    []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0},
-				Stride: 8,
-				Rect:   image.Rect(0, 0, 2, 2),
-			},
+			Out: []uint8{0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0},
 		},
 		{
 			In: (&image.Paletted{
@@ -96,28 +89,14 @@ func TestCopyImage(t *testing.T) {
 				Rect:    image.Rect(0, 0, 2, 2),
 				Palette: bigPalette,
 			}).SubImage(image.Rect(1, 0, 2, 1)),
-			Out: &image.RGBA{
-				Pix:    []uint8{0xff, 0xff, 0xff, 0xff},
-				Stride: 4,
-				Rect:   image.Rect(0, 0, 1, 1),
-			},
+			Out: []uint8{0xff, 0xff, 0xff, 0xff},
 		},
 	}
-	for _, c := range cases {
+	for i, c := range cases {
 		got := CopyImage(c.In)
-		if got.Rect != c.Out.Rect {
-			t.Errorf("Rect: %v, want: %v", got.Rect, c.Out.Rect)
-		}
-		size := got.Rect.Size()
-		w, h := size.X, size.Y
-		for j := 0; j < h; j++ {
-			for i := 0; i < w; i++ {
-				got := got.At(i, j)
-				want := c.Out.At(i, j)
-				if got != want {
-					t.Errorf("At(%d, %d): %v, want: %v", i, j, got, want)
-				}
-			}
+		want := c.Out
+		if !bytes.Equal(got, want) {
+			t.Errorf("Test %d: got: %v, want: %v", i, got, want)
 		}
 	}
 }
