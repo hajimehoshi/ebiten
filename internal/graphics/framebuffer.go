@@ -39,7 +39,6 @@ func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
 // framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
 	native    opengl.Framebuffer
-	flipY     bool
 	proMatrix []float32
 	width     int
 	height    int
@@ -62,7 +61,6 @@ func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffe
 func newScreenFramebuffer(width, height int) *framebuffer {
 	return &framebuffer{
 		native: opengl.GetContext().ScreenFramebuffer(),
-		flipY:  true,
 		width:  width,
 		height: height,
 	}
