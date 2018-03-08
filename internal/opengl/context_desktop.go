@@ -270,17 +270,6 @@ func (c *Context) setViewportImpl(width, height int) {
 	})
 }
 
-func (c *Context) FillFramebuffer(r, g, b, a float32) error {
-	return c.runOnContextThread(func() error {
-		gl.ClearColor(adjustForClearColor(r),
-			adjustForClearColor(g),
-			adjustForClearColor(b),
-			adjustForClearColor(a))
-		gl.Clear(gl.COLOR_BUFFER_BIT)
-		return nil
-	})
-}
-
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	_ = c.runOnContextThread(func() error {
 		ff := uint32(f)

@@ -211,16 +211,6 @@ func (c *Context) setViewportImpl(width, height int) {
 	gl.Viewport(0, 0, width, height)
 }
 
-func (c *Context) FillFramebuffer(r, g, b, a float32) error {
-	gl := c.gl
-	gl.ClearColor(adjustForClearColor(r),
-		adjustForClearColor(g),
-		adjustForClearColor(b),
-		adjustForClearColor(a))
-	gl.Clear(mgl.COLOR_BUFFER_BIT)
-	return nil
-}
-
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl := c.gl
 	if !gl.IsFramebuffer(mgl.Framebuffer(f)) {
