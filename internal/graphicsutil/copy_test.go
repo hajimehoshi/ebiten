@@ -89,6 +89,19 @@ func TestCopyImage(t *testing.T) {
 				Rect:   image.Rect(0, 0, 2, 2),
 			},
 		},
+		{
+			In: (&image.Paletted{
+				Pix:     []uint8{0, 64, 0, 0},
+				Stride:  2,
+				Rect:    image.Rect(0, 0, 2, 2),
+				Palette: bigPalette,
+			}).SubImage(image.Rect(1, 0, 2, 1)),
+			Out: &image.RGBA{
+				Pix:    []uint8{0xff, 0xff, 0xff, 0xff},
+				Stride: 4,
+				Rect:   image.Rect(0, 0, 1, 1),
+			},
+		},
 	}
 	for _, c := range cases {
 		got := CopyImage(c.In)

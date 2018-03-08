@@ -51,6 +51,7 @@ func CopyImage(origImg image.Image) *image.RGBA {
 		index1 := 0
 		d0 := origImg.Stride - (x1 - x0)
 		d1 := newImg.Stride - (x1-x0)*4
+		// Even origImg is a subimage of another image, Pix starts with 0-th index.
 		pix0 := origImg.Pix
 		pix1 := newImg.Pix
 		for j := 0; j < y1-y0; j++ {
