@@ -15,8 +15,6 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/sync"
@@ -73,41 +71,22 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 		return nil
 	}
 	for _, s := range theSharedImages {
-		for {
-			if n := s.page.Alloc(width, height); n != nil {
-				return &sharedImagePart{
-					sharedImage: s,
-					node:        n,
-				}
+		if n := s.page.Alloc(width, height); n != nil {
+			return &sharedImagePart{
+				sharedImage: s,
+				node:        n,
 			}
-			if !s.page.Extend() {
-				break
-			}
-			newSharedImage := restorable.NewImage(s.page.Size(), s.page.Size(), false)
-			newSharedImage.DrawImage(s.restorable, 0, 0, s.page.Size(), s.page.Size(), nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
-			s.restorable.Dispose()
-
-			s.restorable = newSharedImage
 		}
 	}
-
-	s := &sharedImage{}
-	var n *packing.Node
-	for {
-		n = s.page.Alloc(width, height)
-		if n != nil {
-			break
-		}
-		if !s.page.Extend() {
-			break
-		}
+	s := &sharedImage{
+		restorable: restorable.NewImage(packing.MaxSize, packing.MaxSize, false),
 	}
+	theSharedImages = append(theSharedImages, s)
+
+	n := s.page.Alloc(width, height)
 	if n == nil {
 		panic("not reached")
 	}
-	s.restorable = restorable.NewImage(s.page.Size(), s.page.Size(), false)
-	theSharedImages = append(theSharedImages, s)
-
 	return &sharedImagePart{
 		sharedImage: s,
 		node:        n,
