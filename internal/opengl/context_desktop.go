@@ -494,6 +494,17 @@ func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 	})
 }
 
+func (c *Context) maxTextureSizeImpl() int {
+	size := 0
+	_ = c.runOnContextThread(func() error {
+		s := int32(0)
+		gl.GetIntegerv(gl.MAX_TEXTURE_SIZE, &s)
+		size = int(s)
+		return nil
+	})
+	return size
+}
+
 func (c *Context) Flush() {
 	_ = c.runOnContextThread(func() error {
 		gl.Flush()

@@ -147,6 +147,7 @@ func (s *openGLState) reset() error {
 	if err := opengl.GetContext().Reset(); err != nil {
 		return err
 	}
+
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
 	s.lastColorMatrix = nil

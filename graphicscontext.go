@@ -103,8 +103,8 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	if c.offsetX > 0 || c.offsetY > 0 {
 		op := &DrawImageOptions{}
 		w, h := emptyImage.Size()
-		// graphics.MaxImageSize should be the maximum size of framebuffer.
-		op.GeoM.Scale(graphics.MaxImageSize/float64(w), graphics.MaxImageSize/float64(h))
+		s := float64(graphics.MaxImageSize())
+		op.GeoM.Scale(s/float64(w), s/float64(h))
 		op.CompositeMode = CompositeModeCopy
 		c.screen.DrawImage(emptyImage, op)
 	}

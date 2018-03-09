@@ -51,6 +51,7 @@ type Context struct {
 	lastViewportWidth  int
 	lastViewportHeight int
 	lastCompositeMode  CompositeMode
+	maxTextureSize     int
 	context
 }
 
@@ -92,4 +93,11 @@ func (c *Context) ScreenFramebuffer() Framebuffer {
 func (c *Context) ResetViewportSize() {
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
+}
+
+func (c *Context) MaxTextureSize() int {
+	if c.maxTextureSize == 0 {
+		c.maxTextureSize = c.maxTextureSizeImpl()
+	}
+	return c.maxTextureSize
 }

@@ -332,11 +332,12 @@ func checkSize(width, height int) {
 	if height < 1 {
 		panic(fmt.Sprintf("graphics: height (%d) must be equal or more than 1.", height))
 	}
-	if width > MaxImageSize {
-		panic(fmt.Sprintf("graphics: width (%d) must be less than or equal to %d", width, MaxImageSize))
+	m := MaxImageSize()
+	if width > m {
+		panic(fmt.Sprintf("graphics: width (%d) must be less than or equal to %d", width, m))
 	}
-	if height > MaxImageSize {
-		panic(fmt.Sprintf("graphics: height (%d) must be less than or equal to %d", height, MaxImageSize))
+	if height > m {
+		panic(fmt.Sprintf("graphics: height (%d) must be less than or equal to %d", height, m))
 	}
 }
 
