@@ -15,7 +15,6 @@
 package graphics
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
@@ -326,16 +325,26 @@ type newImageCommand struct {
 	height int
 }
 
+func checkSize(width, height int) {
+	if width < 1 {
+		panic(fmt.Sprintf("graphics: width (%d) must be equal or more than 1.", width))
+	}
+	if height < 1 {
+		panic(fmt.Sprintf("graphics: height (%d) must be equal or more than 1.", height))
+	}
+	if width > MaxImageSize {
+		panic(fmt.Sprintf("graphics: width (%d) must be less than or equal to %d", width, MaxImageSize))
+	}
+	if height > MaxImageSize {
+		panic(fmt.Sprintf("graphics: height (%d) must be less than or equal to %d", height, MaxImageSize))
+	}
+}
+
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	w := emath.NextPowerOf2Int(c.width)
 	h := emath.NextPowerOf2Int(c.height)
-	if w < 1 {
-		return errors.New("graphics: width must be equal or more than 1.")
-	}
-	if h < 1 {
-		return errors.New("graphics: height must be equal or more than 1.")
-	}
+	checkSize(w, h)
 	native, err := opengl.GetContext().NewTexture(w, h)
 	if err != nil {
 		return err
@@ -359,12 +368,7 @@ type newScreenFramebufferImageCommand struct {
 
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
-	if c.width < 1 {
-		return errors.New("graphics: width must be equal or more than 1.")
-	}
-	if c.height < 1 {
-		return errors.New("graphics: height must be equal or more than 1.")
-	}
+	checkSize(c.width, c.height)
 	// The (default) framebuffer size can't be converted to a power of 2.
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).

@@ -444,7 +444,6 @@ type DrawImageOptions struct {
 //
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	checkSize(width, height)
 	var i *Image
 	s := newSharedImagePart(width, height)
 	if s != nil {
@@ -466,7 +465,6 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 
 // newImageWithoutInit creates an empty image without initialization.
 func newImageWithoutInit(width, height int) *Image {
-	checkSize(width, height)
 	var i *Image
 	s := newSharedImagePart(width, height)
 	if s != nil {
@@ -501,7 +499,6 @@ func newImageWithoutInit(width, height int) *Image {
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) *Image {
-	checkSize(width, height)
 	r := restorable.NewImage(width, height, true)
 	i := &Image{
 		restorable: r,
@@ -522,7 +519,6 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 // Error returned by NewImageFromImage is always nil as of 1.5.0-alpha.
 func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	size := source.Bounds().Size()
-	checkSize(size.X, size.Y)
 
 	width, height := size.X, size.Y
 
@@ -547,7 +543,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 }
 
 func newImageWithScreenFramebuffer(width, height int) *Image {
-	checkSize(width, height)
 	r := restorable.NewScreenFramebufferImage(width, height)
 	i := &Image{
 		restorable: r,
@@ -559,18 +554,3 @@ func newImageWithScreenFramebuffer(width, height int) *Image {
 
 // MaxImageSize represents the maximum width/height of an image.
 const MaxImageSize = graphics.MaxImageSize
-
-func checkSize(width, height int) {
-	if width <= 0 {
-		panic("ebiten: width must be more than 0")
-	}
-	if height <= 0 {
-		panic("ebiten: height must be more than 0")
-	}
-	if width > MaxImageSize {
-		panic(fmt.Sprintf("ebiten: width (%d) must be less than or equal to %d", width, MaxImageSize))
-	}
-	if height > MaxImageSize {
-		panic(fmt.Sprintf("ebiten: height (%d) must be less than or equal to %d", height, MaxImageSize))
-	}
-}
