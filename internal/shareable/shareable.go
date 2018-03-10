@@ -32,6 +32,20 @@ type backend struct {
 	page       *packing.Page
 }
 
+func (b *backend) Extend() bool {
+	if !b.page.Extend() {
+		return false
+	}
+
+	s := b.page.Size()
+	newImg := restorable.NewImage(s, s, false)
+	newImg.DrawImage(b.restorable, 0, 0, s, s, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+
+	b.restorable.Dispose()
+	b.restorable = newImg
+	return true
+}
+
 var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
@@ -177,7 +191,10 @@ func (s *Image) IsInvalidated() (bool, error) {
 }
 
 func NewImage(width, height int) *Image {
-	const maxSize = 2048
+	const (
+		initSize = 1024
+		maxSize  = 4096
+	)
 
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -191,26 +208,39 @@ func NewImage(width, height int) *Image {
 		}
 	}
 
-	for _, s := range theBackends {
-		if n := s.page.Alloc(width, height); n != nil {
-			return &Image{
-				backend: s,
-				node:    n,
+	for _, b := range theBackends {
+		for {
+			if n := b.page.Alloc(width, height); n != nil {
+				return &Image{
+					backend: b,
+					node:    n,
+				}
+			}
+			if !b.Extend() {
+				break
 			}
 		}
 	}
-	s := &backend{
-		restorable: restorable.NewImage(maxSize, maxSize, false),
-		page:       packing.NewPage(maxSize, maxSize), // TODO: Utilize 'Extend' page.
+	size := initSize
+	for width > size || height > size {
+		if size == maxSize {
+			panic("not reached")
+		}
+		size *= 2
 	}
-	theBackends = append(theBackends, s)
 
-	n := s.page.Alloc(width, height)
+	b := &backend{
+		restorable: restorable.NewImage(size, size, false),
+		page:       packing.NewPage(size, maxSize),
+	}
+	theBackends = append(theBackends, b)
+
+	n := b.page.Alloc(width, height)
 	if n == nil {
 		panic("not reached")
 	}
 	i := &Image{
-		backend: s,
+		backend: b,
 		node:    n,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
