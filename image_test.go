@@ -238,6 +238,7 @@ func TestImageScale(t *testing.T) {
 		}
 		op := &DrawImageOptions{}
 		op.GeoM.Scale(float64(scale), float64(scale))
+
 		if err := img1.DrawImage(img0, op); err != nil {
 			t.Fatal(err)
 			return
@@ -317,7 +318,7 @@ func TestImageDotByDotInversion(t *testing.T) {
 	}
 }
 
-func TestReplacePixels(t *testing.T) {
+func TestImageReplacePixels(t *testing.T) {
 	// Create a dummy image so that the shared texture is used and origImg's position is shfited.
 	dummyImg, _ := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)), FilterDefault)
 	defer dummyImg.Dispose()

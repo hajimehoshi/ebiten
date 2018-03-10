@@ -33,6 +33,9 @@ type backend struct {
 }
 
 var (
+	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
+	backendsM sync.Mutex
+
 	// theBackends is a set of actually shared images.
 	theBackends = []*backend{}
 )
@@ -53,7 +56,7 @@ func (s *Image) ensureNotShared() {
 	newImg := restorable.NewImage(w, h, false)
 	newImg.DrawImage(s.backend.restorable, x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
-	s.Dispose()
+	s.dispose()
 	s.backend = &backend{
 		restorable: newImg,
 	}
@@ -68,11 +71,19 @@ func (s *Image) region() (x, y, width, height int) {
 }
 
 func (s *Image) Size() (width, height int) {
+	backendsM.Lock()
 	_, _, w, h := s.region()
+	backendsM.Unlock()
 	return w, h
 }
 
 func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	s.drawImage(img, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
+}
+
+func (s *Image) drawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	s.ensureNotShared()
 
 	// Compare i and img after ensuring i is not shared, or
@@ -90,6 +101,9 @@ func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 }
 
 func (s *Image) ReplacePixels(p []byte) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
 	x, y, w, h := s.region()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("shareable: len(p) was %d but must be %d", len(p), l))
@@ -98,11 +112,17 @@ func (s *Image) ReplacePixels(p []byte) {
 }
 
 func (s *Image) At(x, y int) (color.Color, error) {
+	backendsM.Lock()
+
 	ox, oy, w, h := s.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
+		backendsM.Unlock()
 		return color.RGBA{}, nil
 	}
-	return s.backend.restorable.At(x+ox, y+oy)
+
+	clr, err := s.backend.restorable.At(x+ox, y+oy)
+	backendsM.Unlock()
+	return clr, err
 }
 
 func (s *Image) isDisposed() bool {
@@ -110,6 +130,12 @@ func (s *Image) isDisposed() bool {
 }
 
 func (s *Image) Dispose() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	s.dispose()
+}
+
+func (s *Image) dispose() {
 	if s.isDisposed() {
 		return
 	}
@@ -144,16 +170,17 @@ func (s *Image) Dispose() {
 }
 
 func (s *Image) IsInvalidated() (bool, error) {
-	return s.backend.restorable.IsInvalidated()
+	backendsM.Lock()
+	v, err := s.backend.restorable.IsInvalidated()
+	backendsM.Unlock()
+	return v, err
 }
-
-var shareableImageLock sync.Mutex
 
 func NewImage(width, height int) *Image {
 	const maxSize = 2048
 
-	shareableImageLock.Lock()
-	defer shareableImageLock.Unlock()
+	backendsM.Lock()
+	defer backendsM.Unlock()
 
 	if width > maxSize || height > maxSize {
 		s := &backend{

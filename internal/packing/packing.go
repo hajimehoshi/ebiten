@@ -15,10 +15,6 @@
 // Package packing offers a packing algorithm in 2D space.
 package packing
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/sync"
-)
-
 const (
 	minSize = 1
 )
@@ -26,7 +22,6 @@ const (
 type Page struct {
 	root    *Node
 	maxSize int
-	m       sync.Mutex
 }
 
 func NewPage(maxSize int) *Page {
@@ -36,14 +31,10 @@ func NewPage(maxSize int) *Page {
 }
 
 func (p *Page) IsEmpty() bool {
-	p.m.Lock()
 	if p.root == nil {
-		p.m.Unlock()
 		return true
 	}
-	r := !p.root.used && p.root.child0 == nil && p.root.child1 == nil
-	p.m.Unlock()
-	return r
+	return !p.root.used && p.root.child0 == nil && p.root.child1 == nil
 }
 
 type Node struct {
@@ -145,7 +136,6 @@ func (p *Page) alloc(n *Node, width, height int) *Node {
 }
 
 func (p *Page) Alloc(width, height int) *Node {
-	p.m.Lock()
 	if width <= 0 || height <= 0 {
 		panic("bsp: width and height must > 0")
 	}
@@ -162,17 +152,10 @@ func (p *Page) Alloc(width, height int) *Node {
 		height = minSize
 	}
 	n := p.alloc(p.root, width, height)
-	p.m.Unlock()
 	return n
 }
 
 func (p *Page) Free(node *Node) {
-	p.m.Lock()
-	p.free(node)
-	p.m.Unlock()
-}
-
-func (p *Page) free(node *Node) {
 	if node.child0 != nil || node.child1 != nil {
 		panic("bsp: can't free the node including children")
 	}
@@ -186,6 +169,6 @@ func (p *Page) free(node *Node) {
 	if node.parent.child0.canFree() && node.parent.child1.canFree() {
 		node.parent.child0 = nil
 		node.parent.child1 = nil
-		p.free(node.parent)
+		p.Free(node.parent)
 	}
 }
