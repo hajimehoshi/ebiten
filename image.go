@@ -23,7 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
 // emptyImage is an empty image used for filling other images with a uniform color.
@@ -51,7 +51,7 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	shareableImagePart *shareableImagePart
+	shareableImagePart *shareable.ImagePart
 
 	filter Filter
 }
@@ -153,13 +153,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
-	}
-	i.shareableImagePart.ensureNotShared()
-
-	// Compare i and img after ensuring i is not shared, or
-	// i and img might share the same texture even though i != img.
-	if i == img {
-		panic("ebiten: Image.DrawImage: img must be different from the receiver")
 	}
 	if i.isDisposed() {
 		return nil
@@ -357,7 +350,7 @@ type DrawImageOptions struct {
 //
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	s := newSharedImagePart(width, height)
+	s := shareable.NewImagePart(width, height)
 	i := &Image{
 		shareableImagePart: s,
 		filter:             filter,
@@ -369,7 +362,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 
 // newImageWithoutInit creates an empty image without initialization.
 func newImageWithoutInit(width, height int) *Image {
-	s := newSharedImagePart(width, height)
+	s := shareable.NewImagePart(width, height)
 	i := &Image{
 		shareableImagePart: s,
 		filter:             FilterDefault,
@@ -394,14 +387,9 @@ func newImageWithoutInit(width, height int) *Image {
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) *Image {
-	r := restorable.NewImage(width, height, true)
 	i := &Image{
-		shareableImagePart: &shareableImagePart{
-			shareableImage: &shareableImage{
-				restorable: r,
-			},
-		},
-		filter: filter,
+		shareableImagePart: shareable.NewVolatileImagePart(width, height),
+		filter:             filter,
 	}
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -421,7 +409,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	width, height := size.X, size.Y
 
-	s := newSharedImagePart(width, height)
+	s := shareable.NewImagePart(width, height)
 	i := &Image{
 		shareableImagePart: s,
 		filter:             filter,
@@ -433,14 +421,9 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 }
 
 func newImageWithScreenFramebuffer(width, height int) *Image {
-	r := restorable.NewScreenFramebufferImage(width, height)
 	i := &Image{
-		shareableImagePart: &shareableImagePart{
-			shareableImage: &shareableImage{
-				restorable: r,
-			},
-		},
-		filter: FilterDefault,
+		shareableImagePart: shareable.NewScreenFramebufferImagePart(width, height),
+		filter:             FilterDefault,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
