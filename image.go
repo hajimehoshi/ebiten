@@ -246,7 +246,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.sharedImagePart.image().DrawImage(img.sharedImagePart.image(), sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
+	i.sharedImagePart.DrawImage(img.sharedImagePart, sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
 	return nil
 }
 
@@ -276,7 +276,7 @@ func (i *Image) At(x, y int) color.Color {
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return color.RGBA{}
 	}
-	clr, err := i.sharedImagePart.image().At(x+ox, y+oy)
+	clr, err := i.sharedImagePart.At(x+ox, y+oy)
 	if err != nil {
 		panic(err)
 	}
@@ -321,7 +321,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	i.sharedImagePart.image().ReplacePixels(p, x, y, w, h)
+	i.sharedImagePart.ReplacePixels(p, x, y, w, h)
 	return nil
 }
 

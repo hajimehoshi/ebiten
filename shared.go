@@ -15,6 +15,9 @@
 package ebiten
 
 import (
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/packing"
@@ -53,16 +56,24 @@ func (s *sharedImagePart) ensureNotShared() {
 	}
 }
 
-func (s *sharedImagePart) image() *restorable.Image {
-	return s.sharedImage.restorable
-}
-
 func (s *sharedImagePart) region() (x, y, width, height int) {
 	if s.node == nil {
 		w, h := s.sharedImage.restorable.Size()
 		return 0, 0, w, h
 	}
 	return s.node.Region()
+}
+
+func (s *sharedImagePart) DrawImage(img *sharedImagePart, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+	s.sharedImage.restorable.DrawImage(img.sharedImage.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
+}
+
+func (s *sharedImagePart) ReplacePixels(pixels []byte, x, y, width, height int) {
+	s.sharedImage.restorable.ReplacePixels(pixels, x, y, width, height)
+}
+
+func (s *sharedImagePart) At(x, y int) (color.Color, error) {
+	return s.sharedImage.restorable.At(x, y)
 }
 
 func (s *sharedImagePart) isDisposed() bool {
