@@ -201,7 +201,7 @@ func NewImage(width, height int) *Image {
 	}
 	s := &backend{
 		restorable: restorable.NewImage(maxSize, maxSize, false),
-		page:       packing.NewPage(maxSize),
+		page:       packing.NewPage(maxSize, maxSize), // TODO: Utilize 'Extend' page.
 	}
 	theBackends = append(theBackends, s)
 

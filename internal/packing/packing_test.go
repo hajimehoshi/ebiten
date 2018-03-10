@@ -211,7 +211,7 @@ func TestPage(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		p := NewPage(1024)
+		p := NewPage(1024, 1024)
 		nodes := []*Node{}
 		nnodes := 0
 		for i, in := range c.In {
@@ -250,5 +250,48 @@ func TestPage(t *testing.T) {
 				t.Errorf("%s: nodes[%d]: got: %v, want: %v", c.Name, i, got, want)
 			}
 		}
+	}
+}
+
+func TestExtend(t *testing.T) {
+	p := NewPage(1024, 4096)
+	s := p.Size()
+	p.Alloc(s/2, s/2)
+	p.Extend()
+	if p.Size() != s*2 {
+		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
+	}
+	if p.Alloc(s*3/2, s*2) == nil {
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s*3/2, s*2)
+	}
+	if p.Alloc(s/2, s*3/2) == nil {
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s/2, s*3/2)
+	}
+	if p.Alloc(1, 1) != nil {
+		t.Errorf("p.Alloc must fail: width: %d, height: %d", 1, 1)
+	}
+}
+
+func TestExtend2(t *testing.T) {
+	p := NewPage(1024, 4096)
+	s := p.Size()
+	p.Alloc(s/2, s/2)
+	n1 := p.Alloc(s/2, s/2)
+	n2 := p.Alloc(s/2, s/2)
+	p.Alloc(s/2, s/2)
+	p.Free(n1)
+	p.Free(n2)
+	p.Extend()
+	if p.Size() != s*2 {
+		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
+	}
+	if p.Alloc(s, s*2) == nil {
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s, s*2)
+	}
+	if p.Alloc(s, s) == nil {
+		t.Errorf("p.Alloc failed: width: %d, height: %d", s, s)
+	}
+	if p.Alloc(s, s) != nil {
+		t.Errorf("p.Alloc must fail: width: %d, height: %d", s, s)
 	}
 }

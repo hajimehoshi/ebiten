@@ -15,17 +15,23 @@
 // Package packing offers a packing algorithm in 2D space.
 package packing
 
+import (
+	"errors"
+)
+
 const (
 	minSize = 1
 )
 
 type Page struct {
 	root    *Node
+	size    int
 	maxSize int
 }
 
-func NewPage(maxSize int) *Page {
+func NewPage(initSize int, maxSize int) *Page {
 	return &Page{
+		size:    initSize,
 		maxSize: maxSize,
 	}
 }
@@ -135,14 +141,18 @@ func (p *Page) alloc(n *Node, width, height int) *Node {
 	return nil
 }
 
+func (p *Page) Size() int {
+	return p.size
+}
+
 func (p *Page) Alloc(width, height int) *Node {
 	if width <= 0 || height <= 0 {
 		panic("bsp: width and height must > 0")
 	}
 	if p.root == nil {
 		p.root = &Node{
-			width:  p.maxSize,
-			height: p.maxSize,
+			width:  p.size,
+			height: p.size,
 		}
 	}
 	if width < minSize {
@@ -171,4 +181,90 @@ func (p *Page) Free(node *Node) {
 		node.parent.child1 = nil
 		p.Free(node.parent)
 	}
+}
+
+func walk(n *Node, f func(n *Node) error) error {
+	if err := f(n); err != nil {
+		return err
+	}
+	if n.child0 != nil {
+		if err := walk(n.child0, f); err != nil {
+			return err
+		}
+	}
+	if n.child1 != nil {
+		if err := walk(n.child1, f); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Page) Extend() bool {
+	if p.size >= p.maxSize {
+		return false
+	}
+	newSize := p.size * 2
+	edgeNodes := []*Node{}
+	abort := errors.New("abort")
+	aborted := false
+	_ = walk(p.root, func(n *Node) error {
+		if n.x+n.width < p.size && n.y+n.height < p.size {
+			return nil
+		}
+		if n.used {
+			aborted = true
+			return abort
+		}
+		edgeNodes = append(edgeNodes, n)
+		return nil
+	})
+	if aborted {
+		leftUpper := p.root
+		leftLower := &Node{
+			x:      0,
+			y:      p.size,
+			width:  p.size,
+			height: newSize - p.size,
+		}
+		left := &Node{
+			x:      0,
+			y:      0,
+			width:  p.size,
+			height: p.size,
+			child0: leftUpper,
+			child1: leftLower,
+		}
+		leftUpper.parent = left
+		leftLower.parent = left
+
+		right := &Node{
+			x:      p.size,
+			y:      0,
+			width:  newSize - p.size,
+			height: newSize,
+		}
+		p.root = &Node{
+			x:      0,
+			y:      0,
+			width:  newSize,
+			height: newSize,
+			child0: left,
+			child1: right,
+		}
+		left.parent = p.root
+		right.parent = p.root
+	} else {
+		for _, n := range edgeNodes {
+			if n.x+n.width == p.size {
+				n.width += newSize - p.size
+			}
+			if n.y+n.height == p.size {
+				n.height += newSize - p.size
+			}
+		}
+	}
+
+	p.size = newSize
+	return true
 }
