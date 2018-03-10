@@ -210,6 +210,7 @@ func TestImageComposition(t *testing.T) {
 }
 
 func TestImageSelf(t *testing.T) {
+	// Note that mutex usages: without defer, unlocking is not called when panicing.
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("DrawImage must panic but not")
