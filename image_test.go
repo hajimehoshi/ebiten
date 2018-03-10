@@ -540,30 +540,41 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 	img0.ReplacePixels(pixels)
-	img1, _ := NewImage(img1Width, img1Height, FilterNearest)
+	img1, _ := NewImage(img1Width, img1Height, FilterDefault)
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
 
-	for a := 0; a < 360; a += 5 {
-		img1.Clear()
-		op := &DrawImageOptions{}
-		w, h := img0.Size()
-		r := image.Rect(0, 0, w, h/2)
-		op.SourceRect = &r
-		op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
-		op.GeoM.Rotate(float64(a) * math.Pi / 180)
-		op.GeoM.Translate(img1Width/2, img1Height/2)
-		img1.DrawImage(img0, op)
-		for j := 0; j < img1Height; j++ {
-			for i := 0; i < img1Width; i++ {
-				c := img1.At(i, j)
-				if c == red {
-					continue
+	for _, f := range []Filter{FilterNearest, FilterLinear} {
+		for a := 0; a < 360; a += 5 {
+			img1.Clear()
+			op := &DrawImageOptions{}
+			w, h := img0.Size()
+			r := image.Rect(0, 0, w, h/2)
+			op.SourceRect = &r
+			op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
+			op.GeoM.Rotate(float64(a) * math.Pi / 180)
+			op.GeoM.Translate(img1Width/2, img1Height/2)
+			op.Filter = f
+			img1.DrawImage(img0, op)
+			for j := 0; j < img1Height; j++ {
+				for i := 0; i < img1Width; i++ {
+					c := img1.At(i, j)
+					if c == transparent {
+						continue
+					}
+					switch f {
+					case FilterNearest:
+						if c == red {
+							continue
+						}
+					case FilterLinear:
+						_, g, b, _ := c.RGBA()
+						if g == 0 && b == 0 {
+							continue
+						}
+					}
+					t.Errorf("img1.At(%d, %d) (filter: %d, angle: %d) want: red or transparent, got: %v", i, j, f, a, c)
 				}
-				if c == transparent {
-					continue
-				}
-				t.Errorf("img1.At(%d, %d) (angle: %d) want: red or transparent, got: %v", i, j, a, c)
 			}
 		}
 	}

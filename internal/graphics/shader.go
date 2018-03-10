@@ -115,8 +115,8 @@ void main(void) {
   highp vec2 texel_size = 1.0 / source_size;
   pos -= texel_size * 0.5;
 
-  highp vec2 p0 = pos;
-  highp vec2 p1 = pos + texel_size;
+  highp vec2 p0 = pos - texel_size / 2.0;
+  highp vec2 p1 = pos + texel_size / 2.0;
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
@@ -138,7 +138,7 @@ void main(void) {
     c3 = vec4(0, 0, 0, 0);
   }
 
-  vec2 rate = fract(pos * source_size);
+  vec2 rate = fract(p0 * source_size);
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
