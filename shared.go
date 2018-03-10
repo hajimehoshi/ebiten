@@ -67,7 +67,7 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 	const maxSize = 2048
 
 	sharedImageLock.Lock()
-	sharedImageLock.Unlock()
+	defer sharedImageLock.Unlock()
 
 	if width > maxSize || height > maxSize {
 		return nil
