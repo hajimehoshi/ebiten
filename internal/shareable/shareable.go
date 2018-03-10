@@ -36,14 +36,14 @@ var (
 	theBackends = []*backend{}
 )
 
-type ImagePart struct {
+type Image struct {
 	backend *backend
 
 	// If node is nil, the image is not shared.
 	node *packing.Node
 }
 
-func (s *ImagePart) ensureNotShared() {
+func (s *Image) ensureNotShared() {
 	if s.node == nil {
 		return
 	}
@@ -58,7 +58,7 @@ func (s *ImagePart) ensureNotShared() {
 	}
 }
 
-func (s *ImagePart) region() (x, y, width, height int) {
+func (s *Image) region() (x, y, width, height int) {
 	if s.node == nil {
 		w, h := s.backend.restorable.Size()
 		return 0, 0, w, h
@@ -66,12 +66,12 @@ func (s *ImagePart) region() (x, y, width, height int) {
 	return s.node.Region()
 }
 
-func (s *ImagePart) Size() (width, height int) {
+func (s *Image) Size() (width, height int) {
 	_, _, w, h := s.region()
 	return w, h
 }
 
-func (s *ImagePart) DrawImage(img *ImagePart, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	s.ensureNotShared()
 
 	// Compare i and img after ensuring i is not shared, or
@@ -88,7 +88,7 @@ func (s *ImagePart) DrawImage(img *ImagePart, sx0, sy0, sx1, sy1 int, geom *affi
 	s.backend.restorable.DrawImage(img.backend.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
 }
 
-func (s *ImagePart) ReplacePixels(p []byte) {
+func (s *Image) ReplacePixels(p []byte) {
 	x, y, w, h := s.region()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("shareable: len(p) was %d but must be %d", len(p), l))
@@ -96,7 +96,7 @@ func (s *ImagePart) ReplacePixels(p []byte) {
 	s.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (s *ImagePart) At(x, y int) (color.Color, error) {
+func (s *Image) At(x, y int) (color.Color, error) {
 	ox, oy, w, h := s.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return color.RGBA{}, nil
@@ -104,11 +104,11 @@ func (s *ImagePart) At(x, y int) (color.Color, error) {
 	return s.backend.restorable.At(x+ox, y+oy)
 }
 
-func (s *ImagePart) isDisposed() bool {
+func (s *Image) isDisposed() bool {
 	return s.backend == nil
 }
 
-func (s *ImagePart) Dispose() {
+func (s *Image) Dispose() {
 	if s.isDisposed() {
 		return
 	}
@@ -141,13 +141,13 @@ func (s *ImagePart) Dispose() {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func (s *ImagePart) IsInvalidated() (bool, error) {
+func (s *Image) IsInvalidated() (bool, error) {
 	return s.backend.restorable.IsInvalidated()
 }
 
 var shareableImageLock sync.Mutex
 
-func NewImagePart(width, height int) *ImagePart {
+func NewImage(width, height int) *Image {
 	const maxSize = 2048
 
 	shareableImageLock.Lock()
@@ -157,14 +157,14 @@ func NewImagePart(width, height int) *ImagePart {
 		s := &backend{
 			restorable: restorable.NewImage(width, height, false),
 		}
-		return &ImagePart{
+		return &Image{
 			backend: s,
 		}
 	}
 
 	for _, s := range theBackends {
 		if n := s.page.Alloc(width, height); n != nil {
-			return &ImagePart{
+			return &Image{
 				backend: s,
 				node:    n,
 			}
@@ -180,24 +180,24 @@ func NewImagePart(width, height int) *ImagePart {
 	if n == nil {
 		panic("not reached")
 	}
-	return &ImagePart{
+	return &Image{
 		backend: s,
 		node:    n,
 	}
 }
 
-func NewVolatileImagePart(width, height int) *ImagePart {
+func NewVolatileImage(width, height int) *Image {
 	r := restorable.NewImage(width, height, true)
-	return &ImagePart{
+	return &Image{
 		backend: &backend{
 			restorable: r,
 		},
 	}
 }
 
-func NewScreenFramebufferImagePart(width, height int) *ImagePart {
+func NewScreenFramebufferImage(width, height int) *Image {
 	r := restorable.NewScreenFramebufferImage(width, height)
-	return &ImagePart{
+	return &Image{
 		backend: &backend{
 			restorable: r,
 		},

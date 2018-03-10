@@ -51,7 +51,7 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	shareableImagePart *shareable.ImagePart
+	shareableImage *shareable.Image
 
 	filter Filter
 }
@@ -70,7 +70,7 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.shareableImagePart.Size()
+	return i.shareableImage.Size()
 }
 
 // Clear resets the pixels of the image into 0.
@@ -116,7 +116,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.shareableImagePart == nil
+	return i.shareableImage == nil
 }
 
 // DrawImage draws the given image on the image i.
@@ -231,7 +231,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.shareableImagePart.DrawImage(img.shareableImagePart, sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
+	i.shareableImage.DrawImage(img.shareableImage, sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
 	return nil
 }
 
@@ -257,7 +257,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	clr, err := i.shareableImagePart.At(x, y)
+	clr, err := i.shareableImage.At(x, y)
 	if err != nil {
 		panic(err)
 	}
@@ -276,8 +276,8 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImagePart.Dispose()
-	i.shareableImagePart = nil
+	i.shareableImage.Dispose()
+	i.shareableImage = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -298,7 +298,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImagePart.ReplacePixels(p)
+	i.shareableImage.ReplacePixels(p)
 	return nil
 }
 
@@ -350,10 +350,10 @@ type DrawImageOptions struct {
 //
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	s := shareable.NewImagePart(width, height)
+	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImagePart: s,
-		filter:             filter,
+		shareableImage: s,
+		filter:         filter,
 	}
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -362,10 +362,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 
 // newImageWithoutInit creates an empty image without initialization.
 func newImageWithoutInit(width, height int) *Image {
-	s := shareable.NewImagePart(width, height)
+	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImagePart: s,
-		filter:             FilterDefault,
+		shareableImage: s,
+		filter:         FilterDefault,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
@@ -388,8 +388,8 @@ func newImageWithoutInit(width, height int) *Image {
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) *Image {
 	i := &Image{
-		shareableImagePart: shareable.NewVolatileImagePart(width, height),
-		filter:             filter,
+		shareableImage: shareable.NewVolatileImage(width, height),
+		filter:         filter,
 	}
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -409,10 +409,10 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	width, height := size.X, size.Y
 
-	s := shareable.NewImagePart(width, height)
+	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImagePart: s,
-		filter:             filter,
+		shareableImage: s,
+		filter:         filter,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 
@@ -422,8 +422,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 func newImageWithScreenFramebuffer(width, height int) *Image {
 	i := &Image{
-		shareableImagePart: shareable.NewScreenFramebufferImagePart(width, height),
-		filter:             FilterDefault,
+		shareableImage: shareable.NewScreenFramebufferImage(width, height),
+		filter:         FilterDefault,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
