@@ -26,102 +26,103 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
-type sharedImage struct {
+type shareableImage struct {
 	restorable *restorable.Image
 	page       *packing.Page
 }
 
 var (
-	theSharedImages = []*sharedImage{}
+	// theSharedImages is a set of actually shared images.
+	theSharedImages = []*shareableImage{}
 )
 
-type sharedImagePart struct {
-	sharedImage *sharedImage
+type shareableImagePart struct {
+	shareableImage *shareableImage
 
 	// If node is nil, the image is not shared.
 	node *packing.Node
 }
 
-func (s *sharedImagePart) ensureNotShared() {
+func (s *shareableImagePart) ensureNotShared() {
 	if s.node == nil {
 		return
 	}
 
 	x, y, w, h := s.region()
 	newImg := restorable.NewImage(w, h, false)
-	newImg.DrawImage(s.sharedImage.restorable, x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(s.shareableImage.restorable, x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	s.Dispose()
-	s.sharedImage = &sharedImage{
+	s.shareableImage = &shareableImage{
 		restorable: newImg,
 	}
 }
 
-func (s *sharedImagePart) region() (x, y, width, height int) {
+func (s *shareableImagePart) region() (x, y, width, height int) {
 	if s.node == nil {
-		w, h := s.sharedImage.restorable.Size()
+		w, h := s.shareableImage.restorable.Size()
 		return 0, 0, w, h
 	}
 	return s.node.Region()
 }
 
-func (s *sharedImagePart) Size() (width, height int) {
+func (s *shareableImagePart) Size() (width, height int) {
 	_, _, w, h := s.region()
 	return w, h
 }
 
-func (s *sharedImagePart) DrawImage(img *sharedImagePart, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (s *shareableImagePart) DrawImage(img *shareableImagePart, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	dx, dy, _, _ := img.region()
 	sx0 += dx
 	sy0 += dy
 	sx1 += dx
 	sy1 += dy
-	s.sharedImage.restorable.DrawImage(img.sharedImage.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
+	s.shareableImage.restorable.DrawImage(img.shareableImage.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
 }
 
-func (s *sharedImagePart) ReplacePixels(p []byte) {
+func (s *shareableImagePart) ReplacePixels(p []byte) {
 	x, y, w, h := s.region()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	s.sharedImage.restorable.ReplacePixels(p, x, y, w, h)
+	s.shareableImage.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (s *sharedImagePart) At(x, y int) (color.Color, error) {
+func (s *shareableImagePart) At(x, y int) (color.Color, error) {
 	ox, oy, w, h := s.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return color.RGBA{}, nil
 	}
-	return s.sharedImage.restorable.At(x+ox, y+oy)
+	return s.shareableImage.restorable.At(x+ox, y+oy)
 }
 
-func (s *sharedImagePart) isDisposed() bool {
-	return s.sharedImage == nil
+func (s *shareableImagePart) isDisposed() bool {
+	return s.shareableImage == nil
 }
 
-func (s *sharedImagePart) Dispose() {
+func (s *shareableImagePart) Dispose() {
 	if s.isDisposed() {
 		return
 	}
 
 	defer func() {
-		s.sharedImage = nil
+		s.shareableImage = nil
 		s.node = nil
 	}()
 
 	if s.node == nil {
-		s.sharedImage.restorable.Dispose()
+		s.shareableImage.restorable.Dispose()
 		return
 	}
 
-	s.sharedImage.page.Free(s.node)
-	if !s.sharedImage.page.IsEmpty() {
+	s.shareableImage.page.Free(s.node)
+	if !s.shareableImage.page.IsEmpty() {
 		return
 	}
 
 	index := -1
 	for i, sh := range theSharedImages {
-		if sh == s.sharedImage {
+		if sh == s.shareableImage {
 			index = i
 			break
 		}
@@ -132,36 +133,36 @@ func (s *sharedImagePart) Dispose() {
 	theSharedImages = append(theSharedImages[:index], theSharedImages[index+1:]...)
 }
 
-func (s *sharedImagePart) IsInvalidated() (bool, error) {
-	return s.sharedImage.restorable.IsInvalidated()
+func (s *shareableImagePart) IsInvalidated() (bool, error) {
+	return s.shareableImage.restorable.IsInvalidated()
 }
 
-var sharedImageLock sync.Mutex
+var shareableImageLock sync.Mutex
 
-func newSharedImagePart(width, height int) *sharedImagePart {
+func newSharedImagePart(width, height int) *shareableImagePart {
 	const maxSize = 2048
 
-	sharedImageLock.Lock()
-	defer sharedImageLock.Unlock()
+	shareableImageLock.Lock()
+	defer shareableImageLock.Unlock()
 
 	if width > maxSize || height > maxSize {
-		s := &sharedImage{
+		s := &shareableImage{
 			restorable: restorable.NewImage(width, height, false),
 		}
-		return &sharedImagePart{
-			sharedImage: s,
+		return &shareableImagePart{
+			shareableImage: s,
 		}
 	}
 
 	for _, s := range theSharedImages {
 		if n := s.page.Alloc(width, height); n != nil {
-			return &sharedImagePart{
-				sharedImage: s,
-				node:        n,
+			return &shareableImagePart{
+				shareableImage: s,
+				node:           n,
 			}
 		}
 	}
-	s := &sharedImage{
+	s := &shareableImage{
 		restorable: restorable.NewImage(maxSize, maxSize, false),
 		page:       packing.NewPage(maxSize),
 	}
@@ -171,8 +172,8 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 	if n == nil {
 		panic("not reached")
 	}
-	return &sharedImagePart{
-		sharedImage: s,
-		node:        n,
+	return &shareableImagePart{
+		shareableImage: s,
+		node:           n,
 	}
 }
