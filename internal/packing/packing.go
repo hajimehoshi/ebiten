@@ -20,13 +20,19 @@ import (
 )
 
 const (
-	MaxSize = 2048
 	minSize = 1
 )
 
 type Page struct {
-	root *Node
-	m    sync.Mutex
+	root    *Node
+	maxSize int
+	m       sync.Mutex
+}
+
+func NewPage(maxSize int) *Page {
+	return &Page{
+		maxSize: maxSize,
+	}
 }
 
 func (p *Page) IsEmpty() bool {
@@ -145,8 +151,8 @@ func (p *Page) Alloc(width, height int) *Node {
 	}
 	if p.root == nil {
 		p.root = &Node{
-			width:  MaxSize,
-			height: MaxSize,
+			width:  p.maxSize,
+			height: p.maxSize,
 		}
 	}
 	if width < minSize {

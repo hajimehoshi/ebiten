@@ -22,7 +22,7 @@ import (
 
 type sharedImage struct {
 	restorable *restorable.Image
-	page       packing.Page
+	page       *packing.Page
 }
 
 var (
@@ -64,10 +64,12 @@ func (s *sharedImagePart) Dispose() {
 var sharedImageLock sync.Mutex
 
 func newSharedImagePart(width, height int) *sharedImagePart {
+	const maxSize = 2048
+
 	sharedImageLock.Lock()
 	sharedImageLock.Unlock()
 
-	if width > packing.MaxSize || height > packing.MaxSize {
+	if width > maxSize || height > maxSize {
 		return nil
 	}
 	for _, s := range theSharedImages {
@@ -79,7 +81,8 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 		}
 	}
 	s := &sharedImage{
-		restorable: restorable.NewImage(packing.MaxSize, packing.MaxSize, false),
+		restorable: restorable.NewImage(maxSize, maxSize, false),
+		page:       packing.NewPage(maxSize),
 	}
 	theSharedImages = append(theSharedImages, s)
 
