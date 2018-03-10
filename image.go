@@ -259,13 +259,11 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		geom = g
 	}
 
-	if img.sharedImagePart != nil {
-		dx, dy, _, _ := img.sharedImagePart.region()
-		sx0 += dx
-		sy0 += dy
-		sx1 += dx
-		sy1 += dy
-	}
+	dx, dy, _, _ := img.region()
+	sx0 += dx
+	sy0 += dy
+	sx1 += dx
+	sy1 += dy
 
 	mode := opengl.CompositeMode(options.CompositeMode)
 
