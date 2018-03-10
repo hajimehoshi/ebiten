@@ -73,13 +73,7 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	w := 0
-	h := 0
-	if i.restorable != nil {
-		w, h = i.restorable.Size()
-	} else if i.sharedImagePart != nil {
-		_, _, w, h = i.sharedImagePart.region()
-	}
+	_, _, w, h := i.region()
 	return w, h
 }
 
