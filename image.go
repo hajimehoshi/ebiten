@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"runtime"
@@ -71,8 +70,7 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	_, _, w, h := i.sharedImagePart.region()
-	return w, h
+	return i.sharedImagePart.Size()
 }
 
 // Clear resets the pixels of the image into 0.
@@ -231,12 +229,6 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		geom = g
 	}
 
-	dx, dy, _, _ := img.sharedImagePart.region()
-	sx0 += dx
-	sy0 += dy
-	sx1 += dx
-	sy1 += dy
-
 	mode := opengl.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
@@ -272,11 +264,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	ox, oy, w, h := i.sharedImagePart.region()
-	if x < 0 || y < 0 || x >= w || y >= h {
-		return color.RGBA{}
-	}
-	clr, err := i.sharedImagePart.At(x+ox, y+oy)
+	clr, err := i.sharedImagePart.At(x, y)
 	if err != nil {
 		panic(err)
 	}
@@ -317,11 +305,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	x, y, w, h := i.sharedImagePart.region()
-	if l := 4 * w * h; len(p) != l {
-		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
-	}
-	i.sharedImagePart.ReplacePixels(p, x, y, w, h)
+	i.sharedImagePart.ReplacePixels(p)
 	return nil
 }
 

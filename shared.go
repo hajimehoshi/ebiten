@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
@@ -64,16 +65,34 @@ func (s *sharedImagePart) region() (x, y, width, height int) {
 	return s.node.Region()
 }
 
+func (s *sharedImagePart) Size() (width, height int) {
+	_, _, w, h := s.region()
+	return w, h
+}
+
 func (s *sharedImagePart) DrawImage(img *sharedImagePart, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+	dx, dy, _, _ := img.region()
+	sx0 += dx
+	sy0 += dy
+	sx1 += dx
+	sy1 += dy
 	s.sharedImage.restorable.DrawImage(img.sharedImage.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
 }
 
-func (s *sharedImagePart) ReplacePixels(pixels []byte, x, y, width, height int) {
-	s.sharedImage.restorable.ReplacePixels(pixels, x, y, width, height)
+func (s *sharedImagePart) ReplacePixels(p []byte) {
+	x, y, w, h := s.region()
+	if l := 4 * w * h; len(p) != l {
+		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
+	}
+	s.sharedImage.restorable.ReplacePixels(p, x, y, w, h)
 }
 
 func (s *sharedImagePart) At(x, y int) (color.Color, error) {
-	return s.sharedImage.restorable.At(x, y)
+	ox, oy, w, h := s.region()
+	if x < 0 || y < 0 || x >= w || y >= h {
+		return color.RGBA{}, nil
+	}
+	return s.sharedImage.restorable.At(x+ox, y+oy)
 }
 
 func (s *sharedImagePart) isDisposed() bool {
