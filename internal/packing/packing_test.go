@@ -73,6 +73,37 @@ func TestPage(t *testing.T) {
 			},
 		},
 		{
+			Name: "alloc and free and empty",
+			In: []Op{
+				{31, 41, -1},
+				{59, 26, -1},
+				{53, 58, -1},
+				{97, 93, -1},
+				{28, 84, -1},
+				{62, 64, -1},
+				{0, 0, 0},
+				{0, 0, 1},
+				{0, 0, 2},
+				{0, 0, 3},
+				{0, 0, 4},
+				{0, 0, 5},
+			},
+			Out: []*Rect{
+				{0, 0, 31, 41},
+				{31, 0, 59, 26},
+				{31, 26, 53, 58},
+				{31, 84, 97, 93},
+				{0, 41, 28, 84},
+				{31, 177, 62, 64},
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+			},
+		},
+		{
 			Name: "random Alloc",
 			In: []Op{
 				{100, 200, -1},
@@ -182,13 +213,23 @@ func TestPage(t *testing.T) {
 	for _, c := range cases {
 		p := NewPage(1024)
 		nodes := []*Node{}
-		for _, in := range c.In {
+		nnodes := 0
+		for i, in := range c.In {
 			if in.FreeNodeID == -1 {
 				n := p.Alloc(in.Width, in.Height)
 				nodes = append(nodes, n)
+				nnodes++
 			} else {
 				p.Free(nodes[in.FreeNodeID])
 				nodes = append(nodes, nil)
+				nnodes--
+			}
+			if nnodes < 0 {
+				panic("not reached")
+			}
+
+			if p.IsEmpty() != (nnodes == 0) {
+				t.Errorf("%s: nodes[%d]: page.IsEmpty(): got: %v, want: %v", c.Name, i, p.IsEmpty(), (nnodes == 0))
 			}
 		}
 		for i, out := range c.Out {
