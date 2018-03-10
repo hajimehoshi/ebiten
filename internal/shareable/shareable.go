@@ -17,6 +17,7 @@ package shareable
 import (
 	"fmt"
 	"image/color"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -116,6 +117,7 @@ func (s *Image) Dispose() {
 	defer func() {
 		s.backend = nil
 		s.node = nil
+		runtime.SetFinalizer(s, nil)
 	}()
 
 	if s.node == nil {
@@ -180,26 +182,32 @@ func NewImage(width, height int) *Image {
 	if n == nil {
 		panic("not reached")
 	}
-	return &Image{
+	i := &Image{
 		backend: s,
 		node:    n,
 	}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i
 }
 
 func NewVolatileImage(width, height int) *Image {
 	r := restorable.NewImage(width, height, true)
-	return &Image{
+	i := &Image{
 		backend: &backend{
 			restorable: r,
 		},
 	}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	r := restorable.NewScreenFramebufferImage(width, height)
-	return &Image{
+	i := &Image{
 		backend: &backend{
 			restorable: r,
 		},
 	}
+	runtime.SetFinalizer(i, (*Image).Dispose)
+	return i
 }
