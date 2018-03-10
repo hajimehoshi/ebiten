@@ -35,10 +35,12 @@ func TestPage(t *testing.T) {
 	}
 
 	cases := []struct {
-		In  []Op
-		Out []*Rect
+		Name string
+		In   []Op
+		Out  []*Rect
 	}{
 		{
+			Name: "alloc and random free",
 			In: []Op{
 				{100, 100, -1},
 				{100, 100, -1},
@@ -71,6 +73,7 @@ func TestPage(t *testing.T) {
 			},
 		},
 		{
+			Name: "random Alloc",
 			In: []Op{
 				{100, 200, -1},
 				{1024, 1024, -1},
@@ -99,6 +102,7 @@ func TestPage(t *testing.T) {
 			},
 		},
 		{
+			Name: "fill squares",
 			In: []Op{
 				{256, 256, -1},
 				{256, 256, -1},
@@ -147,6 +151,7 @@ func TestPage(t *testing.T) {
 			},
 		},
 		{
+			Name: "fill not fitting squares",
 			In: []Op{
 				{300, 300, -1},
 				{300, 300, -1},
@@ -174,7 +179,7 @@ func TestPage(t *testing.T) {
 		},
 	}
 
-	for caseIndex, c := range cases {
+	for _, c := range cases {
 		p := NewPage(1024)
 		nodes := []*Node{}
 		for _, in := range c.In {
@@ -189,19 +194,19 @@ func TestPage(t *testing.T) {
 		for i, out := range c.Out {
 			if nodes[i] == nil {
 				if out != nil {
-					t.Errorf("(%d) nodes[%d]: should be nil but %v", caseIndex, i, out)
+					t.Errorf("%s: nodes[%d]: should be nil but %v", c.Name, i, out)
 				}
 				continue
 			}
 			x, y, width, height := nodes[i].Region()
 			got := Rect{x, y, width, height}
 			if out == nil {
-				t.Errorf("(%d) nodes[%d]: got: %v, want: %v", caseIndex, i, got, nil)
+				t.Errorf("%s: nodes[%d]: got: %v, want: %v", c.Name, i, got, nil)
 				continue
 			}
 			want := *out
 			if got != want {
-				t.Errorf("(%d) nodes[%d]: got: %v, want: %v", caseIndex, i, got, want)
+				t.Errorf("%s: nodes[%d]: got: %v, want: %v", c.Name, i, got, want)
 			}
 		}
 	}
