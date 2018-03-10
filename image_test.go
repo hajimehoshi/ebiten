@@ -540,11 +540,11 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 	img0.ReplacePixels(pixels)
-	img1, _ := NewImage(img1Width, img1Height, FilterDefault)
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
 
 	for _, f := range []Filter{FilterNearest, FilterLinear} {
+		img1, _ := NewImage(img1Width, img1Height, f)
 		for a := 0; a < 360; a += 5 {
 			img1.Clear()
 			op := &DrawImageOptions{}
@@ -554,7 +554,6 @@ func TestImageEdge(t *testing.T) {
 			op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
 			op.GeoM.Rotate(float64(a) * math.Pi / 180)
 			op.GeoM.Translate(img1Width/2, img1Height/2)
-			op.Filter = f
 			img1.DrawImage(img0, op)
 			for j := 0; j < img1Height; j++ {
 				for i := 0; i < img1Width; i++ {
