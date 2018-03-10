@@ -134,7 +134,7 @@ func (c *graphicsContext) needsRestoring() (bool, error) {
 	if web.IsBrowser() {
 		return c.invalidated, nil
 	}
-	return c.offscreen.restorable.IsInvalidated()
+	return c.offscreen.sharedImagePart.IsInvalidated()
 }
 
 func (c *graphicsContext) restoreIfNeeded() error {

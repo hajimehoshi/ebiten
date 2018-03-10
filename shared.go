@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/sync"
@@ -31,7 +33,24 @@ var (
 
 type sharedImagePart struct {
 	sharedImage *sharedImage
-	node        *packing.Node
+
+	// If node is nil, the image is not shared.
+	node *packing.Node
+}
+
+func (s *sharedImagePart) ensureNotShared() {
+	if s.node == nil {
+		return
+	}
+
+	x, y, w, h := s.region()
+	newImg := restorable.NewImage(w, h, false)
+	newImg.DrawImage(s.sharedImage.restorable, x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+
+	s.Dispose()
+	s.sharedImage = &sharedImage{
+		restorable: newImg,
+	}
 }
 
 func (s *sharedImagePart) image() *restorable.Image {
@@ -39,26 +58,52 @@ func (s *sharedImagePart) image() *restorable.Image {
 }
 
 func (s *sharedImagePart) region() (x, y, width, height int) {
+	if s.node == nil {
+		w, h := s.sharedImage.restorable.Size()
+		return 0, 0, w, h
+	}
 	return s.node.Region()
 }
 
+func (s *sharedImagePart) isDisposed() bool {
+	return s.sharedImage == nil
+}
+
 func (s *sharedImagePart) Dispose() {
-	s.sharedImage.page.Free(s.node)
-	if s.sharedImage.page.IsEmpty() {
-		s.sharedImage.restorable.Dispose()
-		s.sharedImage.restorable = nil
-		index := -1
-		for i, sh := range theSharedImages {
-			if sh == s.sharedImage {
-				index = i
-				break
-			}
-		}
-		if index == -1 {
-			panic("not reached")
-		}
-		theSharedImages = append(theSharedImages[:index], theSharedImages[index+1:]...)
+	if s.isDisposed() {
+		return
 	}
+
+	defer func() {
+		s.sharedImage = nil
+		s.node = nil
+	}()
+
+	if s.node == nil {
+		s.sharedImage.restorable.Dispose()
+		return
+	}
+
+	s.sharedImage.page.Free(s.node)
+	if !s.sharedImage.page.IsEmpty() {
+		return
+	}
+
+	index := -1
+	for i, sh := range theSharedImages {
+		if sh == s.sharedImage {
+			index = i
+			break
+		}
+	}
+	if index == -1 {
+		panic("not reached")
+	}
+	theSharedImages = append(theSharedImages[:index], theSharedImages[index+1:]...)
+}
+
+func (s *sharedImagePart) IsInvalidated() (bool, error) {
+	return s.sharedImage.restorable.IsInvalidated()
 }
 
 var sharedImageLock sync.Mutex
@@ -70,8 +115,14 @@ func newSharedImagePart(width, height int) *sharedImagePart {
 	defer sharedImageLock.Unlock()
 
 	if width > maxSize || height > maxSize {
-		return nil
+		s := &sharedImage{
+			restorable: restorable.NewImage(width, height, false),
+		}
+		return &sharedImagePart{
+			sharedImage: s,
+		}
 	}
+
 	for _, s := range theSharedImages {
 		if n := s.page.Alloc(width, height); n != nil {
 			return &sharedImagePart{
