@@ -173,58 +173,22 @@ func updateGroundImage(ground *ebiten.Image) {
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
-// scaleForLine calculates the scale to render at y-th line of the ground image.
-func scaleForLine(y int) float64 {
-	// c  |
-	// |\ |
-	// | \|
-	// |  s
-	// |  |\
-	// |  | \
-	// A--B--C (plane)
-	//
-	// c:   camera
-	// s:   intersection of the ray and the screen
-	// A-c: camera height
-	// B-s: horizon height
-	// A-C: far point on the plane
-	// A-B: the distance from the camera to the screen
-	//
-	// The ground image is on the plane, and the head of the ground image is on 'C'.
-	const (
-		horizonHeight   = screenHeight * 2.0 / 3.0
-		cameraHeight    = horizonHeight + 100.0
-		farPointOnPlane = 200.0
-		cameraToScreen  = farPointOnPlane - farPointOnPlane/cameraHeight*horizonHeight
-	)
-	s1 := cameraHeight / (farPointOnPlane - float64(y)) * (farPointOnPlane - float64(y) - cameraToScreen)
-	s2 := cameraHeight / (farPointOnPlane - float64(y+1)) * (farPointOnPlane - float64(y+1) - cameraToScreen)
-	if math.IsInf(s1, 0) || math.IsInf(s2, 0) {
-		return 0
-	}
-	return s1 - s2
-}
-
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	perspectiveGroundImage.Clear()
-	gw, gh := ground.Size()
+	gw, _ := ground.Size()
 	pw, ph := perspectiveGroundImage.Size()
-	y := 0.0
-	for i := 0; i < ph; i++ {
+	for j := 0; j < ph; j++ {
+		// z is in [1.5, 0.01]
+		rate := float64(j) / float64(ph)
+		z := (1-rate)*1.5 + rate*0.01
 		op := &ebiten.DrawImageOptions{}
-		s := scaleForLine(i)
-		dx0 := -float64(gw)*s/2 + float64(pw)/2
-		op.GeoM.Scale(s, s+1)
-		op.GeoM.Translate(float64(dx0), y)
+		op.GeoM.Translate(-float64(pw)/2, 0)
+		op.GeoM.Scale(1/z, 4) // 4 is an arbitrary number not to make empty lines.
+		op.GeoM.Translate(float64(pw)/2, float64(j)/z)
 
-		src := image.Rect(0, i, gw, i+1)
+		src := image.Rect(0, j, gw, j+1)
 		op.SourceRect = &src
 		perspectiveGroundImage.DrawImage(ground, op)
-
-		y += s
-		if y > float64(gh) {
-			break
-		}
 	}
 
 	perspectiveGroundImage.DrawImage(fogImage, nil)
