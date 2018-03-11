@@ -15,6 +15,7 @@
 package ebiten_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -116,6 +117,16 @@ func TestGeoMConcatSelf(t *testing.T) {
 	}
 }
 
+func geoMToString(g GeoM) string {
+	a := g.Element(0, 0)
+	b := g.Element(0, 1)
+	c := g.Element(1, 0)
+	d := g.Element(1, 1)
+	tx := g.Element(0, 2)
+	ty := g.Element(1, 2)
+	return fmt.Sprintf("{a: %f, b: %f, c: %f, d: %f, tx: %f, ty: %f}", a, b, c, d, tx, ty)
+}
+
 func TestGeoMApply(t *testing.T) {
 	trans := GeoM{}
 	trans.Translate(1, 2)
@@ -172,7 +183,91 @@ func TestGeoMApply(t *testing.T) {
 	for _, c := range cases {
 		rx, ry := c.GeoM.Apply(c.InX, c.InY)
 		if math.Abs(rx-c.OutX) > c.Delta || math.Abs(ry-c.OutY) > c.Delta {
-			t.Errorf("%v.Apply(%v, %v) = (%v, %v), want (%v, %v)", c.GeoM, c.InX, c.InY, rx, ry, c.OutX, c.OutY)
+			t.Errorf("%s.Apply(%f, %f) = (%f, %f), want (%f, %f)", geoMToString(c.GeoM), c.InX, c.InY, rx, ry, c.OutX, c.OutY)
+		}
+	}
+}
+
+func TestGeoMIsInvert(t *testing.T) {
+	zero := GeoM{}
+	zero.Scale(0, 0)
+
+	trans := GeoM{}
+	trans.Translate(1, 2)
+
+	scale := GeoM{}
+	scale.Scale(1.5, 2.5)
+
+	cpx := GeoM{}
+	cpx.Rotate(math.Pi)
+	cpx.Scale(1.5, 2.5)
+	cpx.Translate(-2, -3)
+
+	cases := []struct {
+		GeoM       GeoM
+		Invertible bool
+	}{
+		{
+			GeoM:       zero,
+			Invertible: false,
+		},
+		{
+			GeoM:       GeoM{},
+			Invertible: true,
+		},
+		{
+			GeoM:       trans,
+			Invertible: true,
+		},
+		{
+			GeoM:       scale,
+			Invertible: true,
+		},
+		{
+			GeoM:       cpx,
+			Invertible: true,
+		},
+	}
+
+	pts := []struct {
+		X float64
+		Y float64
+	}{
+		{
+			X: 0,
+			Y: 0,
+		},
+		{
+			X: 1,
+			Y: 1,
+		},
+		{
+			X: 3.14159,
+			Y: 2.81828,
+		},
+		{
+			X: -1000,
+			Y: 1000,
+		},
+	}
+
+	const delta = 0.00001
+
+	for _, c := range cases {
+		if c.GeoM.IsInvertible() != c.Invertible {
+			t.Errorf("%s.IsInvertible(): got: %t, want: %t", geoMToString(c.GeoM), c.GeoM.IsInvertible(), c.Invertible)
+		}
+		if !c.GeoM.IsInvertible() {
+			continue
+		}
+		invGeoM := c.GeoM
+		invGeoM.Invert()
+		for _, p := range pts {
+			x, y := p.X, p.Y
+			gotX, gotY := invGeoM.Apply(c.GeoM.Apply(x, y))
+			if math.Abs(gotX-x) > delta || math.Abs(gotY-y) > delta {
+				t.Errorf("%s.Apply(%s.Apply(%f, %f)): got: (%f, %f), want: (%f, %f)", geoMToString(invGeoM), geoMToString(c.GeoM), x, y, gotX, gotY, x, y)
+			}
 		}
 	}
 }

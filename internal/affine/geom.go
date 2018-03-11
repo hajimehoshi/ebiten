@@ -183,3 +183,32 @@ func (g *GeoM) Rotate(theta float64) *GeoM {
 		ty:  sin*g.tx + cos*g.ty,
 	}
 }
+
+func (g *GeoM) det() float64 {
+	if g == nil {
+		return 1
+	}
+	return (g.a_1+1)*(g.d_1+1) - g.b - g.c
+}
+
+func (g *GeoM) IsInvertible() bool {
+	return g.det() != 0
+}
+
+func (g *GeoM) Invert() *GeoM {
+	if g == nil {
+		return nil
+	}
+	det := g.det()
+	if det == 0 {
+		panic("affine: g is not invertible")
+	}
+	return &GeoM{
+		a_1: ((g.d_1 + 1) / det) - 1,
+		b:   -g.b / det,
+		c:   -g.c / det,
+		d_1: ((g.a_1 + 1) / det) - 1,
+		tx:  (-(g.d_1+1)*g.tx + g.b*g.ty) / det,
+		ty:  (g.c*g.tx + -(g.a_1+1)*g.ty) / det,
+	}
+}

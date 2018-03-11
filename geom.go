@@ -83,6 +83,18 @@ func (g *GeoM) Translate(tx, ty float64) {
 	g.impl = g.impl.Translate(tx, ty)
 }
 
+// IsInvertible returns a boolean value indicating
+// whether the matrix g is invertible or not.
+func (g *GeoM) IsInvertible() bool {
+	return g.impl.IsInvertible()
+}
+
+// Invert inverts the matrix.
+// If g is not invertible, Invert panics.
+func (g *GeoM) Invert() {
+	g.impl = g.impl.Invert()
+}
+
 // Rotate rotates the matrix by theta.
 // The unit is radian.
 func (g *GeoM) Rotate(theta float64) {
