@@ -353,7 +353,7 @@ type DrawImageOptions struct {
 
 // NewImage returns an empty image.
 //
-// If width or height is less than 1 or more than MaxImageSize, NewImage panics.
+// If width or height is less than 1 or more than device-dependent maximum size, NewImage panics.
 //
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
@@ -393,7 +393,7 @@ func newImageWithoutInit(width, height int) *Image {
 //
 // Note that volatile images are internal only and will never be source of drawing.
 //
-// If width or height is less than 1 or more than MaxImageSize, newVolatileImage panics.
+// If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
 func newVolatileImage(width, height int, filter Filter) *Image {
@@ -408,7 +408,7 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 
 // NewImageFromImage creates a new image with the given image (source).
 //
-// If source's width or height is less than 1 or more than MaxImageSize, NewImageFromImage panics.
+// If source's width or height is less than 1 or more than device-dependent maximum size, NewImageFromImage panics.
 //
 // filter argument is just for backward compatibility.
 // If you are not sure, specify FilterDefault.
