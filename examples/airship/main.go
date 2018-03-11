@@ -87,17 +87,27 @@ func init() {
 	fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterDefault)
 }
 
+// player represents the current airship's position.
 type player struct {
-	x16   int
-	y16   int
+	// x16, y16 represents the position in XY plane in fixed float format.
+	// The fractional part has 16 bits of precision.
+	x16 int
+	y16 int
+
+	// angle represents the player's angle in XY plane.
+	// angle takes an integer value in [0, maxAngle).
 	angle int
-	lean  int
+
+	// lean represents the player's leaning.
+	// lean takes an integer value in [-maxLean, maxLean].
+	lean int
 }
 
 func round(x float64) float64 {
 	return math.Floor(x + 0.5)
 }
 
+// MoveForward moves the player p forward.
 func (p *player) MoveForward() {
 	w, h := gophersImage.Size()
 	mx := w * 16
@@ -119,6 +129,7 @@ func (p *player) MoveForward() {
 	}
 }
 
+// RotateRight rotates the player p in the right direction.
 func (p *player) RotateRight() {
 	p.angle++
 	if maxAngle <= p.angle {
@@ -130,6 +141,7 @@ func (p *player) RotateRight() {
 	}
 }
 
+// RotateLeft rotates the player p in the left direction.
 func (p *player) RotateLeft() {
 	p.angle--
 	if p.angle < 0 {
@@ -141,6 +153,7 @@ func (p *player) RotateLeft() {
 	}
 }
 
+// Stabilize tries to move the player in the stable position (lean).
 func (p *player) Stabilize() {
 	if 0 < p.lean {
 		p.lean--
@@ -150,14 +163,17 @@ func (p *player) Stabilize() {
 	}
 }
 
+// Position returns the player p's position.
 func (p *player) Position() (int, int) {
 	return p.x16, p.y16
 }
 
+// Angle returns the player p's angle.
 func (p *player) Angle() int {
 	return p.angle
 }
 
+// updateGroundImage updates the ground image according to the current player's position.
 func updateGroundImage(ground *ebiten.Image) {
 	ground.Clear()
 
@@ -173,6 +189,7 @@ func updateGroundImage(ground *ebiten.Image) {
 	ground.DrawImage(repeatedGophersImage, op)
 }
 
+// drawGroundImage draws the ground image to the given screen image.
 func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	perspectiveGroundImage.Clear()
 	gw, _ := ground.Size()
@@ -201,6 +218,7 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 }
 
 func update(screen *ebiten.Image) error {
+	// Manipulate the player by the input.
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		thePlayer.MoveForward()
 	}
@@ -221,9 +239,12 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	// Draw the ground image.
 	screen.Fill(skyColor)
 	updateGroundImage(groundImage)
 	drawGroundImage(screen, groundImage)
+
+	// Draw the message.
 	tutrial := "Space: Move forward\nLeft/Right: Rotate"
 	msg := fmt.Sprintf("FPS: %0.2f\n%s", ebiten.CurrentFPS(), tutrial)
 	ebitenutil.DebugPrint(screen, msg)
