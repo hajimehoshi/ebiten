@@ -195,12 +195,12 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	gw, _ := ground.Size()
 	pw, ph := perspectiveGroundImage.Size()
 	for j := 0; j < ph; j++ {
-		// z is in [1.5, 0.01]
+		// z is in [1, -1]
 		rate := float64(j) / float64(ph)
-		z := (1-rate)*1.5 + rate*0.01
+		z := (1-rate)*1 + rate*-1
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(-float64(pw)/2, 0)
-		op.GeoM.Scale(1/z, 4) // 4 is an arbitrary number not to make empty lines.
+		op.GeoM.Scale(1/z, 8) // 8 is an arbitrary number not to make empty lines.
 		op.GeoM.Translate(float64(pw)/2, float64(j)/z)
 
 		src := image.Rect(0, j, gw, j+1)
