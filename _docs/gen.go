@@ -27,6 +27,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal"
 )
@@ -385,12 +386,20 @@ func main() {
 	examples = append(examples, inputExamples...)
 	examples = append(examples, audioExamples...)
 	examples = append(examples, gamesExamples...)
+
+	wg := sync.WaitGroup{}
 	for _, e := range examples {
-		if err := outputExampleContent(&e); err != nil {
-			log.Fatal(err)
-		}
-		if err := outputExample(&e); err != nil {
-			log.Fatal(err)
-		}
+		e := e
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := outputExampleContent(&e); err != nil {
+				log.Fatal(err)
+			}
+			if err := outputExample(&e); err != nil {
+				log.Fatal(err)
+			}
+		}()
 	}
+	wg.Wait()
 }
