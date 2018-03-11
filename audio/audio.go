@@ -270,7 +270,7 @@ func (c *Context) loop() {
 		c.pingCount--
 		c.m.Unlock()
 
-		const n = 4096
+		const n = 2048
 		if _, err := io.CopyN(p, c.players, n); err != nil {
 			c.err = err
 			return
