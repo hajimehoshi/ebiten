@@ -191,6 +191,7 @@ var (
 		{Name: "blocks", ThumbWidth: 256, ThumbHeight: 240},
 	}
 	graphicsExamples = []example{
+		{Name: "airship", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "alphablending", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "filter", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "flood", ThumbWidth: 320, ThumbHeight: 240},

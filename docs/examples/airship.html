@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta property="og:image" itemprop="image primaryImageOfPage" content="https://hajimehoshi.github.io/ebiten/images/examples/airship.png">
+<meta name="description" content="Ebiten example - airship">
+<link rel="shortcut icon" href="../favicon.png" type="image/png" >
+<link rel="icon" href="../favicon.png" type="image/png" >
+<title>Ebiten example - airship</title>
+
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/highlight-github.css">
+<link rel="stylesheet" href="../stylesheets/ebiten.css">
+<script src="../scripts/googleanalytics.js"></script>
+
+<nav class="navbar"><div class="container">
+  <nav class="d-flex flex-row" style="width: 100%;">
+    <div class="nav mr-auto"><a class="navbar-brand" href="../"><img src="../images/logo_white.svg" alt="EBITEN"></a></div>
+    <ul class="nav">
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
+      <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
+      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
+    </ul>
+  </nav>
+</div></nav>
+
+<main><div class="container">
+
+  <h2>Ebiten example - airship</h2>
+  <iframe src="airship.content.html" width="640" height="480"></iframe>
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+
+package main
+
+import (
+        &#34;fmt&#34;
+        &#34;image&#34;
+        &#34;image/color&#34;
+        _ &#34;image/jpeg&#34;
+        &#34;log&#34;
+        &#34;math&#34;
+
+        &#34;github.com/hajimehoshi/ebiten&#34;
+        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+)
+
+const (
+        screenWidth  = 320
+        screenHeight = 240
+        maxAngle     = 256
+        maxLean      = 16
+)
+
+var (
+        skyColor  = color.RGBA{0x66, 0xcc, 0xff, 0xff}
+        thePlayer = &amp;player{
+                x16:   16 * 100,
+                y16:   16 * 200,
+                angle: maxAngle * 3 / 4,
+        }
+        gophersImage           *ebiten.Image
+        repeatedGophersImage   *ebiten.Image
+        groundImage            *ebiten.Image
+        perspectiveGroundImage *ebiten.Image
+        fogImage               *ebiten.Image
+)
+
+func init() {
+        var err error
+        gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterDefault)
+        if err != nil {
+                panic(err)
+        }
+        groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3&#43;50, ebiten.FilterDefault)
+        perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight, ebiten.FilterDefault)
+
+        const repeat = 5
+        w, h := gophersImage.Size()
+        repeatedGophersImage, _ = ebiten.NewImage(w*repeat, h*repeat, ebiten.FilterDefault)
+        for j := 0; j &lt; repeat; j&#43;&#43; {
+                for i := 0; i &lt; repeat; i&#43;&#43; {
+                        op := &amp;ebiten.DrawImageOptions{}
+                        op.GeoM.Translate(float64(w*i), float64(h*j))
+                        repeatedGophersImage.DrawImage(gophersImage, op)
+                }
+        }
+
+        const fogHeight = 8
+        w, _ = perspectiveGroundImage.Size()
+        fogRGBA := image.NewRGBA(image.Rect(0, 0, w, fogHeight))
+        for j := 0; j &lt; fogHeight; j&#43;&#43; {
+                a := uint32(float64(fogHeight-1-j) * 0xff / (fogHeight - 1))
+                clr := skyColor
+                r, g, b, oa := uint32(clr.R), uint32(clr.G), uint32(clr.B), uint32(clr.A)
+                clr.R = uint8(r * a / oa)
+                clr.G = uint8(g * a / oa)
+                clr.B = uint8(b * a / oa)
+                clr.A = uint8(a)
+                for i := 0; i &lt; w; i&#43;&#43; {
+                        fogRGBA.SetRGBA(i, j, clr)
+                }
+        }
+        fogImage, _ = ebiten.NewImageFromImage(fogRGBA, ebiten.FilterDefault)
+}
+
+// player represents the current airship&#39;s position.
+type player struct {
+        // x16, y16 represents the position in XY plane in fixed float format.
+        // The fractional part has 16 bits of precision.
+        x16 int
+        y16 int
+
+        // angle represents the player&#39;s angle in XY plane.
+        // angle takes an integer value in [0, maxAngle).
+        angle int
+
+        // lean represents the player&#39;s leaning.
+        // lean takes an integer value in [-maxLean, maxLean].
+        lean int
+}
+
+func round(x float64) float64 {
+        return math.Floor(x &#43; 0.5)
+}
+
+// MoveForward moves the player p forward.
+func (p *player) MoveForward() {
+        w, h := gophersImage.Size()
+        mx := w * 16
+        my := h * 16
+        s, c := math.Sincos(float64(p.angle) * 2 * math.Pi / maxAngle)
+        p.x16 &#43;= int(round(16*c) * 2)
+        p.y16 &#43;= int(round(16*s) * 2)
+        for mx &lt;= p.x16 {
+                p.x16 -= mx
+        }
+        for my &lt;= p.y16 {
+                p.y16 -= my
+        }
+        for p.x16 &lt; 0 {
+                p.x16 &#43;= mx
+        }
+        for p.y16 &lt; 0 {
+                p.y16 &#43;= my
+        }
+}
+
+// RotateRight rotates the player p in the right direction.
+func (p *player) RotateRight() {
+        p.angle&#43;&#43;
+        if maxAngle &lt;= p.angle {
+                p.angle -= maxAngle
+        }
+        p.lean&#43;&#43;
+        if maxLean &lt; p.lean {
+                p.lean = maxLean
+        }
+}
+
+// RotateLeft rotates the player p in the left direction.
+func (p *player) RotateLeft() {
+        p.angle--
+        if p.angle &lt; 0 {
+                p.angle &#43;= maxAngle
+        }
+        p.lean--
+        if p.lean &lt; -maxLean {
+                p.lean = -maxLean
+        }
+}
+
+// Stabilize tries to move the player in the stable position (lean).
+func (p *player) Stabilize() {
+        if 0 &lt; p.lean {
+                p.lean--
+        }
+        if p.lean &lt; 0 {
+                p.lean&#43;&#43;
+        }
+}
+
+// Position returns the player p&#39;s position.
+func (p *player) Position() (int, int) {
+        return p.x16, p.y16
+}
+
+// Angle returns the player p&#39;s angle.
+func (p *player) Angle() int {
+        return p.angle
+}
+
+// updateGroundImage updates the ground image according to the current player&#39;s position.
+func updateGroundImage(ground *ebiten.Image) {
+        ground.Clear()
+
+        x16, y16 := thePlayer.Position()
+        a := thePlayer.Angle()
+        gw, gh := ground.Size()
+        w, h := gophersImage.Size()
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(float64(-x16)/16, float64(-y16)/16)
+        op.GeoM.Translate(float64(-w*2), float64(-h*2))
+        op.GeoM.Rotate(float64(-a)*2*math.Pi/maxAngle &#43; math.Pi*3.0/2.0)
+        op.GeoM.Translate(float64(gw)/2, float64(gh)-32)
+        ground.DrawImage(repeatedGophersImage, op)
+}
+
+// drawGroundImage draws the ground image to the given screen image.
+func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
+        perspectiveGroundImage.Clear()
+        gw, _ := ground.Size()
+        pw, ph := perspectiveGroundImage.Size()
+        for j := 0; j &lt; ph; j&#43;&#43; {
+                // z is in [1.5, 0.01]
+                rate := float64(j) / float64(ph)
+                z := (1-rate)*1.5 &#43; rate*0.01
+                op := &amp;ebiten.DrawImageOptions{}
+                op.GeoM.Translate(-float64(pw)/2, 0)
+                op.GeoM.Scale(1/z, 4) // 4 is an arbitrary number not to make empty lines.
+                op.GeoM.Translate(float64(pw)/2, float64(j)/z)
+
+                src := image.Rect(0, j, gw, j&#43;1)
+                op.SourceRect = &amp;src
+                perspectiveGroundImage.DrawImage(ground, op)
+        }
+
+        perspectiveGroundImage.DrawImage(fogImage, nil)
+
+        op := &amp;ebiten.DrawImageOptions{}
+        op.GeoM.Translate(-float64(pw)/2, 0)
+        op.GeoM.Rotate(-1 * float64(thePlayer.lean) / maxLean * math.Pi / 8)
+        op.GeoM.Translate(float64(screenWidth)/2, screenHeight/3)
+        screen.DrawImage(perspectiveGroundImage, op)
+}
+
+func update(screen *ebiten.Image) error {
+        // Manipulate the player by the input.
+        if ebiten.IsKeyPressed(ebiten.KeySpace) {
+                thePlayer.MoveForward()
+        }
+        rotated := false
+        if ebiten.IsKeyPressed(ebiten.KeyRight) {
+                thePlayer.RotateRight()
+                rotated = true
+        }
+        if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+                thePlayer.RotateLeft()
+                rotated = true
+        }
+        if !rotated {
+                thePlayer.Stabilize()
+        }
+
+        if ebiten.IsRunningSlowly() {
+                return nil
+        }
+
+        // Draw the ground image.
+        screen.Fill(skyColor)
+        updateGroundImage(groundImage)
+        drawGroundImage(screen, groundImage)
+
+        // Draw the message.
+        tutrial := &#34;Space: Move forward\nLeft/Right: Rotate&#34;
+        msg := fmt.Sprintf(&#34;FPS: %0.2f\n%s&#34;, ebiten.CurrentFPS(), tutrial)
+        ebitenutil.DebugPrint(screen, msg)
+        return nil
+}
+
+func main() {
+        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Air Ship (Ebiten Demo)&#34;); err != nil {
+                log.Fatal(err)
+        }
+}
+</code></pre></div>
+
+</div></main>
+
+<footer><div class="container">
+  <p>© 2013 Hajime Hoshi</p>
+  <p>Code is licensed under <a href="https://github.com/hajimehoshi/ebiten/blob/master/LICENSE">the Apache License 2.0</a>.</p>
+  <p>The content of this page is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">the Creative Commons Attribution 4.0 License</a>.</p>
+</div></footer>
+
+<script src="../scripts/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
