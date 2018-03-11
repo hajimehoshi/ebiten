@@ -308,6 +308,16 @@ type DrawImageOptions struct {
 	// If SourceRect is nil, whole image is used.
 	//
 	// It is assured that texels out of the SourceRect are never used.
+	//
+	// Calling DrawImage copies the content of SourceRect pointer. This means that
+	// even if the SourceRect value is modified after passed to DrawImage,
+	// the result of DrawImage doen't change.
+	//
+	//     op := &ebiten.DrawImageOptions{}
+	//     r := image.Rect(0, 0, 100, 100)
+	//     op.SourceRect = &r
+	//     dst.DrawImage(src, op)
+	//     r.Min.X = 10 // This doesn't affect the previous DrawImage.
 	SourceRect *image.Rectangle
 
 	// GeoM is a geometry matrix to draw.
