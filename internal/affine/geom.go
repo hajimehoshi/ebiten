@@ -188,7 +188,7 @@ func (g *GeoM) det() float64 {
 	if g == nil {
 		return 1
 	}
-	return (g.a_1+1)*(g.d_1+1) - g.b - g.c
+	return (g.a_1+1)*(g.d_1+1) - g.b*g.c
 }
 
 func (g *GeoM) IsInvertible() bool {
