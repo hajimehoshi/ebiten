@@ -31,7 +31,6 @@ import (
 	"golang.org/x/image/font"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/internal"
 	"github.com/hajimehoshi/ebiten/text"
 )
@@ -45,7 +44,7 @@ var (
 )
 
 func init() {
-	f, err := ebitenutil.OpenFile(filepath.Join("..", "..", "_resources", "fonts", "arcade_n.ttf"))
+	f, err := os.Open(filepath.Join("..", "..", "_resources", "fonts", "arcade_n.ttf"))
 	if err != nil {
 		log.Fatal(err)
 	}
