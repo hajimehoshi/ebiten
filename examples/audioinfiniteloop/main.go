@@ -19,12 +19,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
 )
 
 const (
@@ -47,16 +47,9 @@ var player *audio.Player
 
 func update(screen *ebiten.Image) error {
 	if player == nil {
-		// Open a wav file.
-		// wavF is *os.File, which is an io.ReadCloser and io.Seeker.
-		wavF, err := ebitenutil.OpenFile(filepath.Join("_resources", "audio", "jab.wav"))
-		if err != nil {
-			return err
-		}
-
 		// Decode the wav file.
 		// wavS is a decoded io.ReadCloser and io.Seeker.
-		wavS, err := wav.Decode(audioContext, wavF)
+		wavS, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
 		if err != nil {
 			return err
 		}

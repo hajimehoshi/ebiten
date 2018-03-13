@@ -31,6 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/audio/mp3"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -68,15 +69,7 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
-	wavF, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
-	if err != nil {
-		return nil, err
-	}
-	mp3F, err := ebitenutil.OpenFile("_resources/audio/classic.mp3")
-	if err != nil {
-		return nil, err
-	}
-	s, err := mp3.Decode(audioContext, mp3F)
+	s, err := mp3.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Classic_mp3))
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +89,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	}
 	player.audioPlayer.Play()
 	go func() {
-		s, err := wav.Decode(audioContext, wavF)
+		s, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
 		if err != nil {
 			log.Fatal(err)
 			return

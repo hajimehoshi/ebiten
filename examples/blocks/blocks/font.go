@@ -18,7 +18,6 @@ package blocks
 
 import (
 	"image/color"
-	"io/ioutil"
 	"log"
 	"strings"
 
@@ -26,7 +25,7 @@ import (
 	"golang.org/x/image/font"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/text"
 )
 
@@ -39,18 +38,7 @@ var (
 )
 
 func init() {
-	f, err := ebitenutil.OpenFile("_resources/fonts/arcade_n.ttf")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tt, err := truetype.Parse(b)
+	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}

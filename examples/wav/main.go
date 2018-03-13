@@ -23,6 +23,7 @@ import (
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
 )
 
 const (
@@ -44,16 +45,22 @@ func init() {
 		log.Fatal(err)
 	}
 
-	// Open a wav file.
-	// Note that f.Close() should not be closed in this init function
+	// In this example, embeded resource "Jab_wav" is used.
+	//
+	// If you want to use a wav file, open this and pass the file stream to wav.Decode.
+	// Note that file's Close() should not be closed here
 	// since audio.Player manages stream state.
-	f, err := ebitenutil.OpenFile("_resources/audio/jab.wav")
-	if err != nil {
-		log.Fatal(err)
-	}
+	//
+	//     f, err := os.Open("jab.wav")
+	//     if err != nil {
+	//         return err
+	//     }
+	//
+	//     d, err := wav.Decode(audioContext, f)
+	//     ...
 
 	// Decode wav-formatted data and retrieve decoded PCM stream.
-	d, err := wav.Decode(audioContext, f)
+	d, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
 	if err != nil {
 		log.Fatal(err)
 	}

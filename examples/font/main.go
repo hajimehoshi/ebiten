@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"strings"
@@ -29,7 +28,7 @@ import (
 	"golang.org/x/image/font"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/text"
 )
 
@@ -94,18 +93,7 @@ func init() {
 }
 
 func init() {
-	f, err := ebitenutil.OpenFile("_resources/fonts/mplus-1p-regular.ttf")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tt, err := truetype.Parse(b)
+	tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
 	}
