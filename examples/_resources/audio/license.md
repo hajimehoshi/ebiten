@@ -18,14 +18,6 @@ Recorded by Mike Koenig
 Attribution 3.0: https://creativecommons.org/licenses/by/3.0/
 ```
 
-## game.ogg
-
-```
-http://mart.kitunebi.com/music_act.html
-
-Harpie's Feather (ハルピュイアの羽) by Napi
-```
-
 
 ## ragtime.ogg
 
