@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example
-
 //go:generate go run -tags=example gen.go
 //go:generate gofmt -s -w .
 
