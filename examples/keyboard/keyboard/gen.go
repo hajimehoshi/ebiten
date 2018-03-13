@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 
@@ -174,7 +175,7 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 		y += height
 	}
 
-	f, err := os.Create(filepath.Join("..", "..", "_resources", "images", "keyboard", "keyboard.png"))
+	f, err := ioutil.TempFile("", "ebiten")
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +184,17 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 	if err := png.Encode(f, img); err != nil {
 		return nil, err
 	}
+
+	args := []string{
+		"-package=keyboard",
+		"-input=" + f.Name(),
+		"-output=../../resources/images/keyboard/keyboard.go",
+		"-var=Keyboard_png",
+	}
+	if err := exec.Command("file2byteslice", args...).Run(); err != nil {
+		return nil, err
+	}
+
 	return keyMap, nil
 }
 

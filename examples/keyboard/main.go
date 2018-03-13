@@ -17,13 +17,14 @@
 package main
 
 import (
-	_ "image/png"
+	"bytes"
+	"image/png"
 	"log"
 	"strconv"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/keyboard/keyboard"
+	rkeyabord "github.com/hajimehoshi/ebiten/examples/resources/images/keyboard"
 )
 
 const (
@@ -34,11 +35,12 @@ const (
 var keyboardImage *ebiten.Image
 
 func init() {
-	var err error
-	keyboardImage, _, err = ebitenutil.NewImageFromFile("_resources/images/keyboard/keyboard.png", ebiten.FilterDefault)
+	img, err := png.Decode(bytes.NewReader(rkeyabord.Keyboard_png))
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	keyboardImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 var keyNames = map[ebiten.Key]string{
