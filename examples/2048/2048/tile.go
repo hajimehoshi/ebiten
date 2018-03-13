@@ -94,6 +94,30 @@ type Tile struct {
 	poppingCount      int
 }
 
+// Pos returns the tile's current position.
+// Pos is used only at testing so far.
+func (t *Tile) Pos() (int, int) {
+	return t.current.x, t.current.y
+}
+
+// NextPos returns the tile's next position.
+// NextPos is used only at testing so far.
+func (t *Tile) NextPos() (int, int) {
+	return t.next.x, t.next.y
+}
+
+// Value returns the tile's current value.
+// Value is used only at testing so far.
+func (t *Tile) Value() int {
+	return t.current.value
+}
+
+// NextValue returns the tile's current value.
+// NextValue is used only at testing so far.
+func (t *Tile) NextValue() int {
+	return t.next.value
+}
+
 // NewTile creates a new Tile object.
 func NewTile(value int, x, y int) *Tile {
 	return &Tile{
