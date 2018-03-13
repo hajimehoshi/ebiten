@@ -22,6 +22,12 @@
 //go:generate file2byteslice -package=images -input=../_resources/images/tile.png -output=./images/tile.go -var=Tile_png
 //go:generate file2byteslice -package=images -input=../_resources/images/tiles.png -output=./images/tiles.go -var=Tiles_png
 //go:generate file2byteslice -package=images -input=../_resources/images/ui.png -output=./images/ui.go -var=UI_png
+//go:generate file2byteslice -package=blocks -input=../_resources/images/blocks/background.png -output=./images/blocks/background.go -var=Background_png
+//go:generate file2byteslice -package=blocks -input=../_resources/images/blocks/blocks.png -output=./images/blocks/blocks.go -var=Blocks_png
+//go:generate file2byteslice -package=platformer -input=../_resources/images/platformer/background.png -output=./images/platformer/background.go -var=Background_png
+//go:generate file2byteslice -package=platformer -input=../_resources/images/platformer/left.png -output=./images/platformer/left.go -var=Left_png
+//go:generate file2byteslice -package=platformer -input=../_resources/images/platformer/mainchar.png -output=./images/platformer/mainchar.go -var=MainChar_png
+//go:generate file2byteslice -package=platformer -input=../_resources/images/platformer/right.png -output=./images/platformer/right.go -var=Right_png
 //go:generate gofmt -s -w .
 
 package resources
