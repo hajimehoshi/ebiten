@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example
+// +build example jsgo
 
 // This example is just to check if Ebiten can draw fine checker pattern evenly.
 // If there is something wrong in the implementation, the result might include
