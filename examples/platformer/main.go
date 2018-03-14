@@ -17,11 +17,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	rplatformer "github.com/hajimehoshi/ebiten/examples/resources/images/platformer"
 )
 
 const (
@@ -40,23 +43,29 @@ var (
 
 func init() {
 	// Preload images
-	var err error
-	rightSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/right.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(rplatformer.Right_png))
 	if err != nil {
 		panic(err)
 	}
-	leftSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/left.png", ebiten.FilterDefault)
+	rightSprite, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	img, _, err = image.Decode(bytes.NewReader(rplatformer.Left_png))
 	if err != nil {
 		panic(err)
 	}
-	idleSprite, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/mainchar.png", ebiten.FilterDefault)
+	leftSprite, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	img, _, err = image.Decode(bytes.NewReader(rplatformer.MainChar_png))
 	if err != nil {
 		panic(err)
 	}
-	backgroundImage, _, err = ebitenutil.NewImageFromFile("_resources/images/platformer/background.png", ebiten.FilterDefault)
+	idleSprite, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	img, _, err = image.Decode(bytes.NewReader(rplatformer.Background_png))
 	if err != nil {
 		panic(err)
 	}
+	backgroundImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 var (
