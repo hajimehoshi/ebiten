@@ -14,16 +14,16 @@
 
 package hooks
 
-var onUpdateHooks = []func() error{}
+var onBeforeUpdateHooks = []func() error{}
 
-// AppendHookOnUpdate appends a hook function that is run before the main update function
+// AppendHookOnBeforeUpdate appends a hook function that is run before the main update function
 // every frame.
-func AppendHookOnUpdate(f func() error) {
-	onUpdateHooks = append(onUpdateHooks, f)
+func AppendHookOnBeforeUpdate(f func() error) {
+	onBeforeUpdateHooks = append(onBeforeUpdateHooks, f)
 }
 
-func Run() error {
-	for _, f := range onUpdateHooks {
+func RunBeforeUpdateHooks() error {
+	for _, f := range onBeforeUpdateHooks {
 		if err := f(); err != nil {
 			return err
 		}

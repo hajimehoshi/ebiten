@@ -88,7 +88,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		c.offscreen.fill(0, 0, 0, 0)
 
 		setRunningSlowly(i < updateCount-1)
-		if err := hooks.Run(); err != nil {
+		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
 		if err := c.f(c.offscreen); err != nil {

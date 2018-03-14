@@ -166,7 +166,7 @@ var (
 )
 
 func init() {
-	hooks.AppendHookOnUpdate(func() error {
+	hooks.AppendHookOnBeforeUpdate(func() error {
 		var err error
 		theContextLock.Lock()
 		if theContext != nil {

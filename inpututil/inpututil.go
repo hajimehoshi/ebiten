@@ -54,7 +54,7 @@ var theInputState = &inputState{
 }
 
 func init() {
-	hooks.AppendHookOnUpdate(func() error {
+	hooks.AppendHookOnBeforeUpdate(func() error {
 		theInputState.update()
 		return nil
 	})
