@@ -17,11 +17,14 @@
 package main
 
 import (
+	"bytes"
+	"image"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 const (
@@ -57,14 +60,15 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	var err error
 	// Specifying filter on NewImage(FromImage) is just for backward compatibility.
 	// Now specifying filter at DrawImageOptions is recommended.
 	// Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
-	ebitenImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
+	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
 	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Filter (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

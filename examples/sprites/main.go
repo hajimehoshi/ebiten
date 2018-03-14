@@ -17,7 +17,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image"
 	_ "image/png"
 	"log"
 	"math"
@@ -25,6 +27,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 const (
@@ -90,15 +93,19 @@ var (
 )
 
 func init() {
-	img, _, err := ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
-	w, h := img.Size()
-	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
+	origEbitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	w, h := origEbitenImage.Size()
+	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
+
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, 0.5)
-	ebitenImage.DrawImage(img, op)
+	ebitenImage.DrawImage(origEbitenImage, op)
+
 	for i := range sprites.sprites {
 		w, h := ebitenImage.Size()
 		x, y := rand.Intn(screenWidth-w), rand.Intn(screenHeight-h)

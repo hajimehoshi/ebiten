@@ -17,7 +17,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image"
 	_ "image/jpeg"
 	"log"
 	"math"
@@ -26,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -68,11 +71,12 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
+	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Context Lost (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

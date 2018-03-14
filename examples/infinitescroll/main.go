@@ -17,12 +17,15 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 const (
@@ -35,11 +38,11 @@ var (
 )
 
 func init() {
-	var err error
-	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/tile.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Tile_png))
 	if err != nil {
 		log.Fatal(err)
 	}
+	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 var (

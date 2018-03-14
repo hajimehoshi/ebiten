@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	_ "image/png"
@@ -28,7 +29,7 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
 )
@@ -44,11 +45,11 @@ var (
 )
 
 func init() {
-	var err error
-	uiImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ui.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.UI_png))
 	if err != nil {
 		log.Fatal(err)
 	}
+	uiImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	tt, err := truetype.Parse(goregular.TTF)
 	if err != nil {

@@ -17,12 +17,14 @@
 package main
 
 import (
+	"bytes"
+	"image"
 	"image/color"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 const (
@@ -63,11 +65,12 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	var err error
-	ebitenImage, _, err = ebitenutil.NewImageFromFile("_resources/images/ebiten.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		log.Fatal(err)
 	}
+	ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Additive Blending (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

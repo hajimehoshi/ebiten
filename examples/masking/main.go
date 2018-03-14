@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	_ "image/jpeg"
@@ -24,7 +25,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 const (
@@ -44,16 +45,17 @@ var (
 )
 
 func init() {
-	var err error
-	bgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
+	bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	fgImage, _, err = ebitenutil.NewImageFromFile("_resources/images/fiveyears.jpg", ebiten.FilterDefault)
+	img, _, err = image.Decode(bytes.NewReader(images.FiveYears_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
+	fgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	maskedFgImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
 

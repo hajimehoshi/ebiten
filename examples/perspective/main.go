@@ -17,12 +17,13 @@
 package main
 
 import (
+	"bytes"
 	"image"
 	_ "image/jpeg"
 	"log"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 const (
@@ -65,11 +66,12 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
+	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Perspective (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}

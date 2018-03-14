@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -28,6 +29,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -152,11 +154,11 @@ FPS: %0.2f`, x, y, ebiten.CurrentFPS())
 func main() {
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
 
-	var err error
-	gophersImage, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		log.Fatal(err)
 	}
+	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 
