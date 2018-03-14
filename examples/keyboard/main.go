@@ -18,7 +18,8 @@ package main
 
 import (
 	"bytes"
-	"image/png"
+	"image"
+	_ "image/png"
 	"log"
 	"strconv"
 
@@ -35,7 +36,7 @@ const (
 var keyboardImage *ebiten.Image
 
 func init() {
-	img, err := png.Decode(bytes.NewReader(rkeyabord.Keyboard_png))
+	img, _, err := image.Decode(bytes.NewReader(rkeyabord.Keyboard_png))
 	if err != nil {
 		log.Fatal(err)
 	}
