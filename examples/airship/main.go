@@ -198,9 +198,9 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 	gw, _ := ground.Size()
 	pw, ph := perspectiveGroundImage.Size()
 	for j := 0; j < ph; j++ {
-		// z is in [1, -1]
+		// z is in [2, -1]
 		rate := float64(j) / float64(ph)
-		z := (1-rate)*1 + rate*-1
+		z := (1-rate)*2 + rate*-1
 		if z <= 0 {
 			break
 		}
