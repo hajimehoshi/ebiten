@@ -15,6 +15,7 @@
 package ebiten_test
 
 import (
+	"bytes"
 	"errors"
 	"image"
 	"image/color"
@@ -26,6 +27,7 @@ import (
 
 	. "github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
 )
 
@@ -43,23 +45,8 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-var ebitenImageBin = ""
-
-func openImage(path string) (image.Image, error) {
-	file, err := readFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return nil, err
-	}
-	return img, nil
-}
-
-func openEbitenImage(path string) (*Image, image.Image, error) {
-	img, err := openImage(path)
+func openEbitenImage() (*Image, image.Image, error) {
+	img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -91,7 +78,7 @@ func sameColors(c1, c2 color.RGBA, delta int) bool {
 }
 
 func TestImagePixels(t *testing.T) {
-	img0, img, err := openEbitenImage("testdata/ebiten.png")
+	img0, img, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -120,7 +107,7 @@ func TestImageComposition(t *testing.T) {
 	img3Color := color.NRGBA{0x85, 0xa3, 0x08, 0xd3}
 
 	// TODO: Rename this to img0
-	img1, _, err := openEbitenImage("testdata/ebiten.png")
+	img1, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -216,7 +203,7 @@ func TestImageSelf(t *testing.T) {
 			t.Errorf("DrawImage must panic but not")
 		}
 	}()
-	img, _, err := openEbitenImage("testdata/ebiten.png")
+	img, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -226,7 +213,7 @@ func TestImageSelf(t *testing.T) {
 
 func TestImageScale(t *testing.T) {
 	for _, scale := range []int{2, 3, 4} {
-		img0, _, err := openEbitenImage("testdata/ebiten.png")
+		img0, _, err := openEbitenImage()
 		if err != nil {
 			t.Fatal(err)
 			return
@@ -258,7 +245,7 @@ func TestImageScale(t *testing.T) {
 }
 
 func TestImage90DegreeRotate(t *testing.T) {
-	img0, _, err := openEbitenImage("testdata/ebiten.png")
+	img0, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -289,7 +276,7 @@ func TestImage90DegreeRotate(t *testing.T) {
 }
 
 func TestImageDotByDotInversion(t *testing.T) {
-	img0, _, err := openEbitenImage("testdata/ebiten.png")
+	img0, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -324,12 +311,12 @@ func TestImageReplacePixels(t *testing.T) {
 	dummyImg, _ := NewImageFromImage(image.NewRGBA(image.Rect(0, 0, 16, 16)), FilterDefault)
 	defer dummyImg.Dispose()
 
-	origImg, err := openImage("testdata/ebiten.png")
+	_, origImg, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	// Convert to RGBA
+	// Convert to *image.RGBA just in case.
 	img := image.NewRGBA(origImg.Bounds())
 	draw.Draw(img, img.Bounds(), origImg, image.ZP, draw.Src)
 
@@ -405,7 +392,7 @@ func min(a, b int) int {
 }
 
 func TestImageCompositeModeLighter(t *testing.T) {
-	img0, _, err := openEbitenImage("testdata/ebiten.png")
+	img0, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -443,7 +430,7 @@ func TestImageCompositeModeLighter(t *testing.T) {
 }
 
 func TestNewImageFromEbitenImage(t *testing.T) {
-	img, _, err := openEbitenImage("testdata/ebiten.png")
+	img, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -454,7 +441,7 @@ func TestNewImageFromEbitenImage(t *testing.T) {
 }
 
 func TestNewImageFromSubImage(t *testing.T) {
-	img, err := openImage("testdata/ebiten.png")
+	_, img, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
 		return
