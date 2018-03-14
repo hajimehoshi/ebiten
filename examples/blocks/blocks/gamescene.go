@@ -15,6 +15,8 @@
 package blocks
 
 import (
+	"bytes"
+	"image"
 	"image/color"
 	_ "image/jpeg"
 	_ "image/png"
@@ -24,6 +26,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -69,11 +72,11 @@ func linesTextBoxPosition() (x, y int) {
 
 func init() {
 	// Background
-	var err error
-	imageGameBG, _, err = ebitenutil.NewImageFromFile("_resources/images/gophers.jpg", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
 	if err != nil {
 		panic(err)
 	}
+	imageGameBG, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	// Windows
 	imageWindows, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterDefault)

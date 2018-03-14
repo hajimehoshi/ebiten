@@ -15,21 +15,23 @@
 package blocks
 
 import (
+	"bytes"
 	"image"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	rblocks "github.com/hajimehoshi/ebiten/examples/resources/images/blocks"
 )
 
 var imageBlocks *ebiten.Image
 
 func init() {
-	var err error
-	imageBlocks, _, err = ebitenutil.NewImageFromFile("_resources/images/blocks/blocks.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(rblocks.Blocks_png))
 	if err != nil {
 		panic(err)
 	}
+	imageBlocks, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
 }
 
 type Angle int

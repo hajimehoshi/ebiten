@@ -15,22 +15,24 @@
 package blocks
 
 import (
+	"bytes"
+	"image"
 	"image/color"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	rblocks "github.com/hajimehoshi/ebiten/examples/resources/images/blocks"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 var imageBackground *ebiten.Image
 
 func init() {
-	var err error
-	imageBackground, _, err = ebitenutil.NewImageFromFile("_resources/images/blocks/background.png", ebiten.FilterDefault)
+	img, _, err := image.Decode(bytes.NewReader(rblocks.Background_png))
 	if err != nil {
 		panic(err)
 	}
+	imageBackground, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 type TitleScene struct {
