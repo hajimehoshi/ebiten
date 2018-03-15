@@ -21,7 +21,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"reflect"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -110,25 +109,6 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, x, y fixed.Int26_6, cl
 	op.ColorM = e.m
 
 	_ = dst.DrawImage(img, op)
-}
-
-var (
-	fontFaces = map[font.Face]struct{}{}
-)
-
-func uniqFace(f font.Face) font.Face {
-	if _, ok := fontFaces[f]; ok {
-		return f
-	}
-	// If the (DeepEqual-ly) same font exists,
-	// reuse this to avoid to consume a lot of cache (#498).
-	for key := range fontFaces {
-		if reflect.DeepEqual(key, f) {
-			return key
-		}
-	}
-	fontFaces[f] = struct{}{}
-	return f
 }
 
 var (
@@ -223,6 +203,9 @@ var textM sync.Mutex
 // Glyphs used for rendering are cached in least-recently-used way.
 // It is OK to call this function with a same text and a same face at every frame in terms of performance.
 //
+// Be careful that the passed font face is held by this package and is never released.
+// This is a known issue (#498).
+//
 // This function is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	textM.Lock()
@@ -235,9 +218,8 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
-		fa := uniqFace(face)
-		drawGlyph(dst, fa, r, fx, fixed.I(y), clr)
-		fx += glyphAdvance(fa, r)
+		drawGlyph(dst, face, r, fx, fixed.I(y), clr)
+		fx += glyphAdvance(face, r)
 
 		prevR = r
 	}
