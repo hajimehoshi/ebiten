@@ -106,7 +106,9 @@ const (
 	KeyNumLock
 	KeyPageDown
 	KeyPageUp
+	KeyPause
 	KeyPeriod
+	KeyPrintScreen
 	KeyRight
 	KeyRightBracket
 	KeySemicolon

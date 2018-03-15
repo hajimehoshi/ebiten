@@ -250,8 +250,14 @@ var keyToCodes = map[Key][]string{
 	KeyPageUp: {
 		"PageUp",
 	},
+	KeyPause: {
+		"Pause",
+	},
 	KeyPeriod: {
 		"Period",
+	},
+	KeyPrintScreen: {
+		"PrintScreen",
 	},
 	KeyQ: {
 		"KeyQ",
@@ -316,6 +322,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	16:  KeyShift,
 	17:  KeyControl,
 	18:  KeyAlt,
+	19:  KeyPause,
 	20:  KeyCapsLock,
 	27:  KeyEscape,
 	32:  KeySpace,
@@ -327,6 +334,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	38:  KeyUp,
 	39:  KeyRight,
 	40:  KeyDown,
+	44:  KeyPrintScreen,
 	45:  KeyInsert,
 	46:  KeyDelete,
 	48:  Key0,
