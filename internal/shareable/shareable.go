@@ -29,21 +29,28 @@ import (
 
 type backend struct {
 	restorable *restorable.Image
-	page       *packing.Page
+
+	// If page is nil, the backend is not shared.
+	page *packing.Page
 }
 
-func (b *backend) Extend() bool {
-	if !b.page.Extend() {
-		return false
+func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
+	for {
+		if n := b.page.Alloc(width, height); n != nil {
+			return n, true
+		}
+		if !b.page.Extend() {
+			break
+		}
+
+		s := b.page.Size()
+		newImg := restorable.NewImage(s, s, false)
+		newImg.DrawImage(b.restorable, 0, 0, s, s, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+
+		b.restorable.Dispose()
+		b.restorable = newImg
 	}
-
-	s := b.page.Size()
-	newImg := restorable.NewImage(s, s, false)
-	newImg.DrawImage(b.restorable, 0, 0, s, s, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
-
-	b.restorable.Dispose()
-	b.restorable = newImg
-	return true
+	return nil, false
 }
 
 var (
@@ -209,15 +216,10 @@ func NewImage(width, height int) *Image {
 	}
 
 	for _, b := range theBackends {
-		for {
-			if n := b.page.Alloc(width, height); n != nil {
-				return &Image{
-					backend: b,
-					node:    n,
-				}
-			}
-			if !b.Extend() {
-				break
+		if n, ok := b.TryAlloc(width, height); ok {
+			return &Image{
+				backend: b,
+				node:    n,
 			}
 		}
 	}
