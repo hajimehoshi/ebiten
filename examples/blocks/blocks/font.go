@@ -32,27 +32,31 @@ const (
 )
 
 var (
-	arcadeFonts = map[int]font.Face{}
+	arcadeFonts map[int]font.Face
 )
 
-func init() {
-	tt, err := truetype.Parse(fonts.ArcadeN_ttf)
-	if err != nil {
-		log.Fatal(err)
-	}
+func getArcadeFonts(scale int) font.Face {
+	if arcadeFonts == nil {
+		tt, err := truetype.Parse(fonts.ArcadeN_ttf)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	for i := 1; i <= 4; i++ {
-		const dpi = 72
-		arcadeFonts[i] = truetype.NewFace(tt, &truetype.Options{
-			Size:    float64(arcadeFontBaseSize * i),
-			DPI:     dpi,
-			Hinting: font.HintingFull,
-		})
+		arcadeFonts = map[int]font.Face{}
+		for i := 1; i <= 4; i++ {
+			const dpi = 72
+			arcadeFonts[i] = truetype.NewFace(tt, &truetype.Options{
+				Size:    float64(arcadeFontBaseSize * i),
+				DPI:     dpi,
+				Hinting: font.HintingFull,
+			})
+		}
 	}
+	return arcadeFonts[scale]
 }
 
 func textWidth(str string) int {
-	b, _ := font.BoundString(arcadeFonts[1], str)
+	b, _ := font.BoundString(getArcadeFonts(1), str)
 	return (b.Max.X - b.Min.X).Ceil()
 }
 
@@ -64,8 +68,8 @@ func drawTextWithShadow(rt *ebiten.Image, str string, x, y, scale int, clr color
 	offsetY := arcadeFontBaseSize * scale
 	for _, line := range strings.Split(str, "\n") {
 		y += offsetY
-		text.Draw(rt, line, arcadeFonts[scale], x+1, y+1, shadowColor)
-		text.Draw(rt, line, arcadeFonts[scale], x, y, clr)
+		text.Draw(rt, line, getArcadeFonts(scale), x+1, y+1, shadowColor)
+		text.Draw(rt, line, getArcadeFonts(scale), x, y, clr)
 	}
 }
 
