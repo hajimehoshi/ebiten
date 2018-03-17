@@ -412,7 +412,7 @@ func SetWindowDecorated(decorated bool) {
 
 	panic("ui: SetWindowDecorated can't be called after Run so far.")
 
-	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later.
+	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
 	// If SetAttrib exists, the implementation would be:
 	//
 	//     _ = currentUI.runOnMainThread(func() error {
