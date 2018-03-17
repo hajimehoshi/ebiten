@@ -1,4 +1,4 @@
-# Exacute the examples
+# Execute the examples
 
 ```sh
 :; cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
