@@ -48,8 +48,8 @@ type Node struct {
 	y      int
 	width  int
 	height int
-
 	used   bool
+
 	parent *Node
 	child0 *Node
 	child1 *Node
@@ -267,4 +267,34 @@ func (p *Page) Extend() bool {
 
 	p.size = newSize
 	return true
+}
+
+func (n *Node) clone() *Node {
+	if n == nil {
+		return nil
+	}
+	cloned := &Node{
+		x:      n.x,
+		y:      n.y,
+		width:  n.width,
+		height: n.height,
+		used:   n.used,
+		child0: n.child0.clone(),
+		child1: n.child1.clone(),
+	}
+	if cloned.child0 != nil {
+		cloned.child0.parent = cloned
+	}
+	if cloned.child1 != nil {
+		cloned.child1.parent = cloned
+	}
+	return cloned
+}
+
+func (p *Page) Clone() *Page {
+	return &Page{
+		root:    p.root.clone(),
+		size:    p.size,
+		maxSize: p.maxSize,
+	}
 }
