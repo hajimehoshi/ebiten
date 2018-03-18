@@ -40,6 +40,7 @@ const (
 var (
 	count        = 0
 	gophersImage *ebiten.Image
+	extraImages  []*ebiten.Image
 )
 
 func update(screen *ebiten.Image) error {
@@ -85,6 +86,12 @@ func main() {
 		log.Fatal(err)
 	}
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	// Extend the shared backend GL texture on purpose.
+	for i := 0; i < 20; i++ {
+		eimg, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+		extraImages = append(extraImages, eimg)
+	}
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Context Lost (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
