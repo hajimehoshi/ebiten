@@ -32,6 +32,8 @@ import (
 type command interface {
 	Exec(indexOffsetInBytes int) error
 	NumVertices() int
+	AddNumVertices(n int)
+	CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool
 }
 
 // commandQueue is a command queue for drawing commands.
@@ -68,24 +70,23 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 }
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
+func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
 	q.m.Lock()
 	q.appendVertices(vertices)
 	if 0 < len(q.commands) {
-		if c, ok := q.commands[len(q.commands)-1].(*drawImageCommand); ok {
-			if c.canMerge(dst, src, clr, mode, filter) {
-				c.nvertices += len(vertices)
-				q.m.Unlock()
-				return
-			}
+		last := q.commands[len(q.commands)-1]
+		if last.CanMerge(dst, src, color, mode, filter) {
+			last.AddNumVertices(len(vertices))
+			q.m.Unlock()
+			return
 		}
 	}
 	c := &drawImageCommand{
 		dst:       dst,
 		src:       src,
 		nvertices: len(vertices),
-		color:     clr,
+		color:     color,
 		mode:      mode,
 		filter:    filter,
 	}
@@ -227,6 +228,10 @@ func (c *drawImageCommand) NumVertices() int {
 	return c.nvertices
 }
 
+func (c *drawImageCommand) AddNumVertices(n int) {
+	c.nvertices += n
+}
+
 // split splits the drawImageCommand c into two drawImageCommands.
 //
 // split is called when the number of vertices reaches of the maximum and
@@ -241,16 +246,16 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
-// canMerge returns a boolean value indicating whether the other drawImageCommand can be merged
+// CanMerge returns a boolean value indicating whether the other drawImageCommand can be merged
 // with the drawImageCommand c.
-func (c *drawImageCommand) canMerge(dst, src *Image, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
+func (c *drawImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
 	if c.dst != dst {
 		return false
 	}
 	if c.src != src {
 		return false
 	}
-	if !c.color.Equals(clr) {
+	if !c.color.Equals(color) {
 		return false
 	}
 	if c.mode != mode {
@@ -297,6 +302,13 @@ func (c *replacePixelsCommand) NumVertices() int {
 	return 0
 }
 
+func (c *replacePixelsCommand) AddNumVertices(n int) {
+}
+
+func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
+	return false
+}
+
 // disposeCommand represents a command to dispose an image.
 type disposeCommand struct {
 	target *Image
@@ -316,6 +328,13 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 
 func (c *disposeCommand) NumVertices() int {
 	return 0
+}
+
+func (c *disposeCommand) AddNumVertices(n int) {
+}
+
+func (c *disposeCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
+	return false
 }
 
 // newImageCommand represents a command to create an empty image with given width and height.
@@ -360,6 +379,13 @@ func (c *newImageCommand) NumVertices() int {
 	return 0
 }
 
+func (c *newImageCommand) AddNumVertices(n int) {
+}
+
+func (c *newImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
+	return false
+}
+
 // newScreenFramebufferImageCommand is a command to create a special image for the screen.
 type newScreenFramebufferImageCommand struct {
 	result *Image
@@ -379,4 +405,11 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 
 func (c *newScreenFramebufferImageCommand) NumVertices() int {
 	return 0
+}
+
+func (c *newScreenFramebufferImageCommand) AddNumVertices(n int) {
+}
+
+func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
+	return false
 }
