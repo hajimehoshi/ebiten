@@ -51,7 +51,6 @@ func (i *Image) vertices(sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []float32 {
 		return nil
 	}
 
-	// TODO: This function should be in graphics package?
 	vs := theVerticesBackend.get()
 
 	x0, y0 := 0.0, 0.0
