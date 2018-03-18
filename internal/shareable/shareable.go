@@ -39,6 +39,12 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		if n := b.page.Alloc(width, height); n != nil {
 			return n, true
 		}
+
+		// Break without extending the backend since the current Extend
+		// implementation includes a bug #562.
+		// TODO: Fix #562 and implement Extend correctly
+		break
+
 		if !b.page.Extend() {
 			break
 		}
