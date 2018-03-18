@@ -28,7 +28,7 @@ import (
 // drawImageHistoryItem is an item for history of draw-image commands.
 type drawImageHistoryItem struct {
 	image    *Image
-	vertices []float32
+	vertices [][]float32
 	colorm   *affine.ColorM
 	mode     opengl.CompositeMode
 	filter   graphics.Filter
@@ -165,7 +165,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	if len(i.drawImageHistory) > 0 {
 		last := i.drawImageHistory[len(i.drawImageHistory)-1]
 		if last.canMerge(image, colorm, mode, filter) {
-			last.vertices = append(last.vertices, vertices...)
+			last.vertices = append(last.vertices, vertices)
 			return
 		}
 	}
@@ -178,7 +178,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	// So we don't have to care if image is stale or not here.
 	item := &drawImageHistoryItem{
 		image:    image,
-		vertices: vertices,
+		vertices: [][]float32{vertices},
 		colorm:   colorm,
 		mode:     mode,
 		filter:   filter,
@@ -306,7 +306,11 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, c.colorm, c.mode, c.filter)
+		vs := []float32{}
+		for _, v := range c.vertices {
+			vs = append(vs, v...)
+		}
+		gimg.DrawImage(c.image.image, vs, c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 
