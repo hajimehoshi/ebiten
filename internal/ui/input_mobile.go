@@ -42,7 +42,6 @@ func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 
 func (i *Input) updateTouches(touches []Touch) {
 	i.m.Lock()
-	defer i.m.Unlock()
 	ts := make([]touch, len(touches))
 	for i := 0; i < len(ts); i++ {
 		ts[i].id = touches[i].ID()
@@ -50,4 +49,5 @@ func (i *Input) updateTouches(touches []Touch) {
 		ts[i].x, ts[i].y = x, y
 	}
 	i.touches = ts
+	i.m.Unlock()
 }

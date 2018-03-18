@@ -106,8 +106,8 @@ func (s *Image) Size() (width, height int) {
 
 func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
-	defer backendsM.Unlock()
 	s.drawImage(img, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
+	backendsM.Unlock()
 }
 
 func (s *Image) drawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
@@ -158,8 +158,8 @@ func (s *Image) isDisposed() bool {
 
 func (s *Image) Dispose() {
 	backendsM.Lock()
-	defer backendsM.Unlock()
 	s.dispose()
+	backendsM.Unlock()
 }
 
 func (s *Image) dispose() {

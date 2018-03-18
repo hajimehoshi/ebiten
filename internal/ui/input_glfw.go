@@ -39,8 +39,9 @@ type Input struct {
 
 func (i *Input) RuneBuffer() []rune {
 	i.m.RLock()
-	defer i.m.RUnlock()
-	return i.runeBuffer
+	buf := i.runeBuffer
+	i.m.RUnlock()
+	return buf
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
