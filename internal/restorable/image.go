@@ -195,7 +195,7 @@ func (i *Image) At(x, y int) (color.RGBA, error) {
 		return color.RGBA{}, nil
 	}
 	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
-		if err := i.readPixelsFromGPU(i.image); err != nil {
+		if err := i.readPixelsFromGPU(); err != nil {
 			return color.RGBA{}, err
 		}
 	}
@@ -215,9 +215,9 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
-func (i *Image) readPixelsFromGPU(image *graphics.Image) error {
+func (i *Image) readPixelsFromGPU() error {
 	var err error
-	i.basePixels, err = image.Pixels()
+	i.basePixels, err = i.image.Pixels()
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (i *Image) resolveStale() error {
 	if !i.stale {
 		return nil
 	}
-	return i.readPixelsFromGPU(i.image)
+	return i.readPixelsFromGPU()
 }
 
 // dependsOn returns a boolean value indicating whether the image depends on target.
