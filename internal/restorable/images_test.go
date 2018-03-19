@@ -101,21 +101,6 @@ func TestRestore(t *testing.T) {
 	}
 }
 
-func vertices(sw, sh int, x, y int) []float32 {
-	swf := float32(sw)
-	shf := float32(sh)
-	tx := float32(x)
-	ty := float32(y)
-
-	// For the rule of values, see vertices.go.
-	return []float32{
-		0 + tx, 0 + ty, 0, 0, 1, 1,
-		swf + tx, 0 + ty, 1, 0, 0, 1,
-		0 + tx, shf + ty, 0, 1, 1, 0,
-		swf + tx, shf + ty, 1, 1, 0, 0,
-	}
-}
-
 func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
@@ -336,6 +321,7 @@ func TestRestoreRecursive(t *testing.T) {
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
+
 	img0 := newImageFromImage(base)
 	img1 := NewImage(4, 1, false)
 	fill(img1, 0, 0, 0, 0)
@@ -386,22 +372,23 @@ func TestReplacePixels(t *testing.T) {
 		w = 17
 		h = 31
 	)
+
 	img := NewImage(17, 31, false)
+	defer img.Dispose()
+
 	pix := make([]byte, 4*4*4)
 	for i := range pix {
 		pix[i] = 0xff
 	}
 	img.ReplacePixels(pix, 5, 7, 4, 4)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	// Check the region (5, 7)-(9, 11). Outside state is indeterministic.
+	for j := 7; j < 11; j++ {
+		for i := 5; i < 9; i++ {
 			got, err := img.At(i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := color.RGBA{}
-			if 5 <= i && i < 9 && 7 <= j && j < 11 {
-				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
-			}
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -413,20 +400,46 @@ func TestReplacePixels(t *testing.T) {
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := 7; j < 11; j++ {
+		for i := 5; i < 9; i++ {
 			got, err := img.At(i, j)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := color.RGBA{}
-			if 5 <= i && i < 9 && 7 <= j && j < 11 {
-				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
-			}
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+func TestDrawImageAndReplacePixels(t *testing.T) {
+	base := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	base.Pix[0] = 0xff
+	base.Pix[1] = 0xff
+	base.Pix[2] = 0xff
+	base.Pix[3] = 0xff
+	img0 := newImageFromImage(base)
+	defer img0.Dispose()
+	img1 := NewImage(2, 1, false)
+	defer img1.Dispose()
+	img1.DrawImage(img0, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, 1, 0, 1, 1)
+
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	got, err := img1.At(0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	if !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
 
