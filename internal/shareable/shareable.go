@@ -35,24 +35,40 @@ type backend struct {
 }
 
 func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
-	for {
-		if n := b.page.Alloc(width, height); n != nil {
-			return n, true
-		}
+	// If the region is allocated without any extention, it's fine.
+	if n := b.page.Alloc(width, height); n != nil {
+		return n, true
+	}
 
-		if !b.page.Extend() {
+	// Simulate the extending the page and calculate the appropriate page size.
+	page := b.page.Clone()
+	nExtended := 0
+	for {
+		if !page.Extend() {
+			// The page can't be extended any more. Return as failure.
+			return nil, false
+		}
+		nExtended++
+		if n := page.Alloc(width, height); n != nil {
 			break
 		}
-
-		s := b.page.Size()
-		newImg := restorable.NewImage(s, s, false)
-		w, h := b.restorable.Size()
-		newImg.DrawImage(b.restorable, 0, 0, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
-
-		b.restorable.Dispose()
-		b.restorable = newImg
 	}
-	return nil, false
+
+	for i := 0; i < nExtended; i++ {
+		b.page.Extend()
+	}
+	s := b.page.Size()
+	newImg := restorable.NewImage(s, s, false)
+	w, h := b.restorable.Size()
+	newImg.DrawImage(b.restorable, 0, 0, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	b.restorable.Dispose()
+	b.restorable = newImg
+
+	n := b.page.Alloc(width, height)
+	if n == nil {
+		panic("not reached")
+	}
+	return n, true
 }
 
 var (
