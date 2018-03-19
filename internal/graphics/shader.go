@@ -76,9 +76,7 @@ uniform sampler2D texture;
 uniform mat4 color_matrix;
 uniform vec4 color_matrix_translation;
 
-#if defined(FILTER_LINEAR) || defined(FILTER_SCREEN)
 uniform highp vec2 source_size;
-#endif
 
 #if defined(FILTER_SCREEN)
 uniform highp float scale;
@@ -104,19 +102,10 @@ void main(void) {
   // roundTexel adjusts pos by rounding it (#315, #558).
   pos = roundTexel(pos);
 
-#if defined(FILTER_NEAREST)
-  vec4 color = texture2D(texture, pos);
-  if (pos.x < varying_tex_coord_min.x ||
-    pos.y < varying_tex_coord_min.y ||
-    varying_tex_coord_max.x <= pos.x ||
-    varying_tex_coord_max.y <= pos.y) {
-    color = vec4(0, 0, 0, 0);
-  }
-#endif
-
-#if defined(FILTER_LINEAR)
   highp vec2 texel_size = 1.0 / source_size;
 
+#if defined(FILTER_NEAREST) || defined(FILTER_LINEAR)
+  // Even with the nearest filter, it is better to calculate the color with around 4 texels (#558).
   highp vec2 p0 = pos - texel_size / 2.0;
   highp vec2 p1 = pos + texel_size / 2.0;
   vec4 c0 = texture2D(texture, p0);
@@ -141,11 +130,29 @@ void main(void) {
   }
 
   vec2 rate = fract(p0 * source_size);
+
+#if defined(FILTER_NEAREST)
+  vec4 color;
+  if (rate.x < 0.5) {
+    if (rate.y < 0.5) {
+      color = c0;
+    } else {
+      color = c2;
+    }
+  } else {
+    if (rate.y < 0.5) {
+      color = c1;
+    } else {
+      color = c3;
+    }
+  }
+#elif defined(FILTER_LINEAR)
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
+#endif
+
 #if defined(FILTER_SCREEN)
-  highp vec2 texel_size = 1.0 / source_size;
   pos -= texel_size / 2.0 / scale;
 
   highp vec2 p0 = pos;

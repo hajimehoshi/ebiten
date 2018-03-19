@@ -321,17 +321,16 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, sr
 		s.lastColorMatrixTranslation = esTranslate
 	}
 
-	if program == s.programLinear || program == s.programScreen {
-		sw, sh := src.Size()
-		sw = emath.NextPowerOf2Int(sw)
-		sh = emath.NextPowerOf2Int(sh)
+	sw, sh := src.Size()
+	sw = emath.NextPowerOf2Int(sw)
+	sh = emath.NextPowerOf2Int(sh)
 
-		if s.lastSourceWidth != sw || s.lastSourceHeight != sh {
-			c.UniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
-			s.lastSourceWidth = sw
-			s.lastSourceHeight = sh
-		}
+	if s.lastSourceWidth != sw || s.lastSourceHeight != sh {
+		c.UniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
+		s.lastSourceWidth = sw
+		s.lastSourceHeight = sh
 	}
+
 	if program == s.programScreen {
 		sw, _ := src.Size()
 		dw, _ := dst.Size()

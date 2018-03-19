@@ -504,7 +504,7 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
-// Issue #317
+// Issue #317, #558
 func TestImageEdge(t *testing.T) {
 	const (
 		img0Width  = 16
@@ -537,7 +537,7 @@ func TestImageEdge(t *testing.T) {
 	transparent := color.RGBA{0, 0, 0, 0}
 
 	for _, f := range []Filter{FilterNearest, FilterLinear} {
-		for a := 0; a < 360; a += 5 {
+		for a := 0; a < 360; a++ {
 			img1.Clear()
 			op := &DrawImageOptions{}
 			w, h := img0.Size()
