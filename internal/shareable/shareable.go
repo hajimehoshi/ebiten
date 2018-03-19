@@ -40,18 +40,14 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 			return n, true
 		}
 
-		// Break without extending the backend since the current Extend
-		// implementation includes a bug #562.
-		// TODO: Fix #562 and implement Extend correctly
-		break
-
 		if !b.page.Extend() {
 			break
 		}
 
 		s := b.page.Size()
 		newImg := restorable.NewImage(s, s, false)
-		newImg.DrawImage(b.restorable, 0, 0, s, s, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		w, h := b.restorable.Size()
+		newImg.DrawImage(b.restorable, 0, 0, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 		b.restorable.Dispose()
 		b.restorable = newImg
