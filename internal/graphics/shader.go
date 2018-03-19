@@ -100,6 +100,10 @@ highp vec2 roundTexel(highp vec2 p) {
 void main(void) {
   highp vec2 pos = varying_tex_coord;
 
+  // pos might include a very slight error.
+  // roundTexel adjusts pos by rounding it (#315, #558).
+  pos = roundTexel(pos);
+
 #if defined(FILTER_NEAREST)
   vec4 color = texture2D(texture, pos);
   if (pos.x < varying_tex_coord_min.x ||
@@ -111,7 +115,6 @@ void main(void) {
 #endif
 
 #if defined(FILTER_LINEAR)
-  pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
 
   highp vec2 p0 = pos - texel_size / 2.0;
@@ -142,7 +145,6 @@ void main(void) {
 #endif
 
 #if defined(FILTER_SCREEN)
-  pos = roundTexel(pos);
   highp vec2 texel_size = 1.0 / source_size;
   pos -= texel_size / 2.0 / scale;
 
