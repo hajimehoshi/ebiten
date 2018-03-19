@@ -153,10 +153,8 @@ void main(void) {
 #endif
 
 #if defined(FILTER_SCREEN)
-  pos -= texel_size / 2.0 / scale;
-
-  highp vec2 p0 = pos;
-  highp vec2 p1 = pos + texel_size / scale;
+  highp vec2 p0 = pos - texel_size / 2.0 / scale;
+  highp vec2 p1 = pos + texel_size / 2.0 / scale;
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
@@ -164,7 +162,7 @@ void main(void) {
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
   vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
-  vec2 rate = clamp(((fract(pos * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
+  vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
