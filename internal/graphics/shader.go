@@ -104,20 +104,28 @@ void main(void) {
 
   highp vec2 texel_size = 1.0 / source_size;
 
-#if defined(FILTER_NEAREST) || defined(FILTER_LINEAR)
-  // Even with the nearest filter, it is better to calculate the color with around 4 texels (#558).
-  
+#if defined(FILTER_NEAREST)
+  vec4 color = texture2D(texture, pos);
+  if (pos.x < varying_tex_coord_min.x ||
+    pos.y < varying_tex_coord_min.y ||
+    (varying_tex_coord_max.x - texel_size.x / 256.0) <= pos.x ||
+    (varying_tex_coord_max.y - texel_size.y / 256.0) <= pos.y) {
+    color = vec4(0, 0, 0, 0);
+  }
+#endif
+
+#if defined(FILTER_LINEAR)
   highp vec2 p0 = pos - texel_size / 2.0;
   highp vec2 p1 = pos + texel_size / 2.0;
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
   vec4 c3 = texture2D(texture, p1);
-  if (p0.x < (varying_tex_coord_min.x)) {
+  if (p0.x < varying_tex_coord_min.x) {
     c0 = vec4(0, 0, 0, 0);
     c2 = vec4(0, 0, 0, 0);
   }
-  if (p0.y < (varying_tex_coord_min.y)) {
+  if (p0.y < varying_tex_coord_min.y) {
     c0 = vec4(0, 0, 0, 0);
     c1 = vec4(0, 0, 0, 0);
   }
@@ -131,31 +139,13 @@ void main(void) {
   }
 
   vec2 rate = fract(p0 * source_size);
-
-#if defined(FILTER_NEAREST)
-  vec4 color;
-  if (rate.x < 0.5) {
-    if (rate.y < 0.5) {
-      color = c0;
-    } else {
-      color = c2;
-    }
-  } else {
-    if (rate.y < 0.5) {
-      color = c1;
-    } else {
-      color = c3;
-    }
-  }
-#elif defined(FILTER_LINEAR)
   vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-#endif
-
 #endif
 
 #if defined(FILTER_SCREEN)
   highp vec2 p0 = pos - texel_size / 2.0 / scale;
   highp vec2 p1 = pos + texel_size / 2.0 / scale;
+
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
