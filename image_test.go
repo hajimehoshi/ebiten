@@ -504,7 +504,7 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
-// Issue #317
+// Issue #317, #558
 func TestImageEdge(t *testing.T) {
 	const (
 		img0Width  = 16
@@ -536,15 +536,23 @@ func TestImageEdge(t *testing.T) {
 	red := color.RGBA{0xff, 0, 0, 0xff}
 	transparent := color.RGBA{0, 0, 0, 0}
 
+	angles := []float64{}
+	for a := 0; a < 360; a++ {
+		angles = append(angles, float64(a)/360*2*math.Pi)
+	}
+	for a := 0; a < 256; a++ {
+		angles = append(angles, float64(a)/256*2*math.Pi)
+	}
+
 	for _, f := range []Filter{FilterNearest, FilterLinear} {
-		for a := 0; a < 360; a += 5 {
+		for _, a := range angles {
 			img1.Clear()
 			op := &DrawImageOptions{}
 			w, h := img0.Size()
 			r := image.Rect(0, 0, w, h/2)
 			op.SourceRect = &r
 			op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
-			op.GeoM.Rotate(float64(a) * math.Pi / 180)
+			op.GeoM.Rotate(a)
 			op.GeoM.Translate(img1Width/2, img1Height/2)
 			op.Filter = f
 			img1.DrawImage(img0, op)
@@ -565,7 +573,7 @@ func TestImageEdge(t *testing.T) {
 							continue
 						}
 					}
-					t.Errorf("img1.At(%d, %d) (filter: %d, angle: %d) want: red or transparent, got: %v", i, j, f, a, c)
+					t.Errorf("img1.At(%d, %d) (filter: %d, angle: %f) want: red or transparent, got: %v", i, j, f, a, c)
 				}
 			}
 		}
