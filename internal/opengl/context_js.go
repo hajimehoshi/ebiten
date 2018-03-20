@@ -142,6 +142,8 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
