@@ -17,6 +17,7 @@ Website: https://hajimehoshi.github.io/ebiten/
 * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
 * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
 * [Web browsers (Chrome, Firefox, Safari and Edge on desktops)](https://github.com/hajimehoshi/ebiten/wiki/Web-Browsers) (powered by [GopherJS](http://gopherjs.org/))
+  * [jsgo.io Playground by Dave Brophy](https://goo.gl/Qtz8ur)
 
 Note: Gamepad and keyboard are not available on Android/iOS.
 
