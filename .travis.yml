@@ -37,8 +37,10 @@ before_script:
 script:
   - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
-  - go test -v github.com/hajimehoshi/ebiten/...
-  - go test -tags=example -v github.com/hajimehoshi/ebiten/examples/...
+  - go test -v github.com/hajimehoshi/ebiten
+  - go test -v github.com/hajimehoshi/ebiten/audio/internal/convert
+  - go test -v github.com/hajimehoshi/ebiten/internal/math
+  - go test -v github.com/hajimehoshi/ebiten/internal/restorable
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
 
 # Looks like testing GL on node is hard.
