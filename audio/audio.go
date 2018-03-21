@@ -614,7 +614,7 @@ func (p *Player) IsPlaying() bool {
 // Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
 	if _, ok := p.src.(io.Seeker); !ok {
-		panic("audio: player to be rewinded must be io.Seeker")
+		panic("audio: player to be rewound must be io.Seeker")
 	}
 	return p.Seek(0)
 }
