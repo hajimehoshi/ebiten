@@ -27,17 +27,20 @@
 
   <h2>Ebiten example - infinitescroll</h2>
   <iframe src="infinitescroll.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
 
 package main
 
 import (
+        &#34;bytes&#34;
         &#34;fmt&#34;
+        &#34;image&#34;
         _ &#34;image/png&#34;
         &#34;log&#34;
 
         &#34;github.com/hajimehoshi/ebiten&#34;
         &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten/examples/resources/images&#34;
 )
 
 const (
@@ -50,11 +53,20 @@ var (
 )
 
 func init() {
-        var err error
-        bgImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/tile.png&#34;, ebiten.FilterDefault)
+        // Decode image from a byte slice instead of a file so that
+        // this example works in any working directory.
+        // If you want to use a file, there are some options:
+        // 1) Use os.Open and pass the file to the image decoder.
+        //    This is a very regular way, but doesn&#39;t work on browsers.
+        // 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
+        //    This works even on browsers.
+        // 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
+        //    This also works on browsers.
+        img, _, err := image.Decode(bytes.NewReader(images.Tile_png))
         if err != nil {
                 log.Fatal(err)
         }
+        bgImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 var (

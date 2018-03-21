@@ -27,14 +27,13 @@
 
   <h2>Ebiten example - font</h2>
   <iframe src="font.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
 
 package main
 
 import (
         &#34;fmt&#34;
         &#34;image/color&#34;
-        &#34;io/ioutil&#34;
         &#34;log&#34;
         &#34;math/rand&#34;
         &#34;strings&#34;
@@ -44,7 +43,7 @@ import (
         &#34;golang.org/x/image/font&#34;
 
         &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten/examples/resources/fonts&#34;
         &#34;github.com/hajimehoshi/ebiten/text&#34;
 )
 
@@ -109,18 +108,7 @@ func init() {
 }
 
 func init() {
-        f, err := ebitenutil.OpenFile(&#34;_resources/fonts/mplus-1p-regular.ttf&#34;)
-        if err != nil {
-                log.Fatal(err)
-        }
-        defer f.Close()
-
-        b, err := ioutil.ReadAll(f)
-        if err != nil {
-                log.Fatal(err)
-        }
-
-        tt, err := truetype.Parse(b)
+        tt, err := truetype.Parse(fonts.MPlus1pRegular_ttf)
         if err != nil {
                 log.Fatal(err)
         }

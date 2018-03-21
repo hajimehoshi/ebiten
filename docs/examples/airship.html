@@ -27,11 +27,12 @@
 
   <h2>Ebiten example - airship</h2>
   <iframe src="airship.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
 
 package main
 
 import (
+        &#34;bytes&#34;
         &#34;fmt&#34;
         &#34;image&#34;
         &#34;image/color&#34;
@@ -41,6 +42,7 @@ import (
 
         &#34;github.com/hajimehoshi/ebiten&#34;
         &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        &#34;github.com/hajimehoshi/ebiten/examples/resources/images&#34;
 )
 
 const (
@@ -65,11 +67,21 @@ var (
 )
 
 func init() {
-        var err error
-        gophersImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/gophers.jpg&#34;, ebiten.FilterDefault)
+        // Decode image from a byte slice instead of a file so that
+        // this example works in any working directory.
+        // If you want to use a file, there are some options:
+        // 1) Use os.Open and pass the file to the image decoder.
+        //    This is a very regular way, but doesn&#39;t work on browsers.
+        // 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
+        //    This works even on browsers.
+        // 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
+        //    This also works on browsers.
+        img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
         if err != nil {
-                panic(err)
+                log.Fatal(err)
         }
+        gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
         groundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight*2/3&#43;50, ebiten.FilterDefault)
         perspectiveGroundImage, _ = ebiten.NewImage(screenWidth*2, screenHeight, ebiten.FilterDefault)
 
@@ -210,9 +222,9 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
         gw, _ := ground.Size()
         pw, ph := perspectiveGroundImage.Size()
         for j := 0; j &lt; ph; j&#43;&#43; {
-                // z is in [1, -1]
+                // z is in [2, -1]
                 rate := float64(j) / float64(ph)
-                z := (1-rate)*1 &#43; rate*-1
+                z := (1-rate)*2 &#43; rate*-1
                 if z &lt;= 0 {
                         break
                 }

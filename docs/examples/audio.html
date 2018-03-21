@@ -27,7 +27,7 @@
 
   <h2>Ebiten example - audio</h2>
   <iframe src="audio.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
 
 // This is an example to implement an audio player.
 // See examples/wav for a simpler example to play a sound file.
@@ -46,6 +46,7 @@ import (
         &#34;github.com/hajimehoshi/ebiten/audio/mp3&#34;
         &#34;github.com/hajimehoshi/ebiten/audio/wav&#34;
         &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
+        raudio &#34;github.com/hajimehoshi/ebiten/examples/resources/audio&#34;
         &#34;github.com/hajimehoshi/ebiten/inpututil&#34;
 )
 
@@ -83,15 +84,7 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context) (*Player, error) {
         const bytesPerSample = 4 // TODO: This should be defined in audio package
-        wavF, err := ebitenutil.OpenFile(&#34;_resources/audio/jab.wav&#34;)
-        if err != nil {
-                return nil, err
-        }
-        mp3F, err := ebitenutil.OpenFile(&#34;_resources/audio/classic.mp3&#34;)
-        if err != nil {
-                return nil, err
-        }
-        s, err := mp3.Decode(audioContext, mp3F)
+        s, err := mp3.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Classic_mp3))
         if err != nil {
                 return nil, err
         }
@@ -111,7 +104,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
         }
         player.audioPlayer.Play()
         go func() {
-                s, err := wav.Decode(audioContext, wavF)
+                s, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
                 if err != nil {
                         log.Fatal(err)
                         return

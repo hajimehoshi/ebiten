@@ -27,18 +27,20 @@
 
   <h2>Ebiten example - keyboard</h2>
   <iframe src="keyboard.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example
+  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
 
 package main
 
 import (
+        &#34;bytes&#34;
+        &#34;image&#34;
         _ &#34;image/png&#34;
         &#34;log&#34;
         &#34;strconv&#34;
 
         &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
         &#34;github.com/hajimehoshi/ebiten/examples/keyboard/keyboard&#34;
+        rkeyabord &#34;github.com/hajimehoshi/ebiten/examples/resources/images/keyboard&#34;
 )
 
 const (
@@ -49,11 +51,12 @@ const (
 var keyboardImage *ebiten.Image
 
 func init() {
-        var err error
-        keyboardImage, _, err = ebitenutil.NewImageFromFile(&#34;_resources/images/keyboard/keyboard.png&#34;, ebiten.FilterDefault)
+        img, _, err := image.Decode(bytes.NewReader(rkeyabord.Keyboard_png))
         if err != nil {
                 log.Fatal(err)
         }
+
+        keyboardImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 var keyNames = map[ebiten.Key]string{
