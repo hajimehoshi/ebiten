@@ -18,10 +18,8 @@ package main
 
 import (
 	"fmt"
-	"image"
 	_ "image/jpeg"
 	"log"
-	"net/http"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -40,23 +38,11 @@ func init() {
 
 	// Load the image asynchronously.
 	go func() {
-		res, err := http.Get(url)
+		img, err := ebitenutil.NewImageFromURL(url)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer res.Body.Close()
-
-		img, _, err := image.Decode(res.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		eimg, err := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		highDPIImageCh <- eimg
+		highDPIImageCh <- img
 		close(highDPIImageCh)
 	}()
 }
