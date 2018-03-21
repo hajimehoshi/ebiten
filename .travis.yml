@@ -28,7 +28,6 @@ install:
   - go get -t -v github.com/hajimehoshi/ebiten/...
   - go get github.com/gopherjs/gopherjs
   - go get github.com/gopherjs/webgl
-  - go get -tags example github.com/hajimehoshi/ebiten/examples/...
 
 before_script:
   - export DISPLAY=:99.0
