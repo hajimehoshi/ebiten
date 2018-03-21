@@ -19,7 +19,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"math"
 
@@ -71,23 +70,6 @@ func (s *stream) Read(data []byte) (int, error) {
 	s.position += int64(len(data))
 	s.position %= length * 4
 	return len(data), nil
-}
-
-// Seek is io.Seeker's Seek.
-//
-// whence must be io.SeekStart or io.SeekCurrent.
-func (s *stream) Seek(offset int64, whence int) (int64, error) {
-	const length = sampleRate / frequency
-	switch whence {
-	case io.SeekStart:
-		s.position = offset
-	case io.SeekCurrent:
-		s.position += offset
-	default:
-		return 0, errors.New("whence must be io.SeekStart or io.SeekCurrent")
-	}
-	s.position %= length * 4
-	return s.position, nil
 }
 
 // Close is io.Closer's Close.

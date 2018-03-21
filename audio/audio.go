@@ -132,7 +132,7 @@ func (p *players) hasPlayer(player *Player) bool {
 	return ok
 }
 
-func (p *players) hasSource(src ReadSeekCloser) bool {
+func (p *players) hasSource(src io.ReadCloser) bool {
 	p.RLock()
 	defer p.RUnlock()
 	for player := range p.players {
@@ -328,7 +328,7 @@ func BytesReadSeekCloser(b []byte) ReadSeekCloser {
 // Player is an audio player which has one stream.
 type Player struct {
 	players    *players
-	src        ReadSeekCloser
+	src        io.ReadCloser
 	srcEOF     bool
 	sampleRate int
 
@@ -362,11 +362,14 @@ type proceededValues struct {
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
+// The player is seekable when src is io.Seeker.
+// Attempt to seek the player that is not io.Seeker causes panic.
+//
 // Note that the given src can't be shared with other Player objects.
 //
 // NewPlayer tries to call Seek of src to get the current position.
 // NewPlayer returns error when the Seek returns error.
-func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
+func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 	if context.players.hasSource(src) {
 		return nil, errors.New("audio: src cannot be shared with another Player")
 	}
@@ -385,12 +388,14 @@ func NewPlayer(context *Context, src ReadSeekCloser) (*Player, error) {
 		proceededCh:     make(chan proceededValues),
 		syncCh:          make(chan func()),
 	}
-	// Get the current position of the source.
-	pos, err := p.src.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return nil, err
+	if seeker, ok := p.src.(io.Seeker); ok {
+		// Get the current position of the source.
+		pos, err := seeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return nil, err
+		}
+		p.pos = pos
 	}
-	p.pos = pos
 	runtime.SetFinalizer(p, (*Player).Close)
 
 	go func() {
@@ -473,7 +478,11 @@ func (p *Player) readLoop() {
 			return
 
 		case s := <-p.seekCh:
-			pos, err := p.src.Seek(s.offset, s.whence)
+			seeker, ok := p.src.(io.Seeker)
+			if !ok {
+				panic("not reached")
+			}
+			pos, err := seeker.Seek(s.offset, s.whence)
 			p.buf = nil
 			p.pos = pos
 			p.srcEOF = false
@@ -600,15 +609,25 @@ func (p *Player) IsPlaying() bool {
 
 // Rewind rewinds the current position to the start.
 //
+// The passed source to NewPlayer must be io.Seeker, or Rewind panics.
+//
 // Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
+	if _, ok := p.src.(io.Seeker); !ok {
+		panic("audio: player to be rewinded must be io.Seeker")
+	}
 	return p.Seek(0)
 }
 
 // Seek seeks the position with the given offset.
 //
+// The passed source to NewPlayer must be io.Seeker, or Seek panics.
+//
 // Seek returns error when seeking the source stream returns error.
 func (p *Player) Seek(offset time.Duration) error {
+	if _, ok := p.src.(io.Seeker); !ok {
+		panic("audio: player to be sought must be io.Seeker")
+	}
 	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
 	select {
