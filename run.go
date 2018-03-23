@@ -109,7 +109,7 @@ func run(width, height int, scale float64, title string, g *graphicsContext) err
 // f is not called when the window is in background by default.
 // This setting is configurable with SetRunnableInBackground.
 //
-// The given scale is ignored on fullscreen mode.
+// The given scale is ignored on fullscreen mode or gomobile-build mode.
 //
 // Run returns error when 1) OpenGL error happens, 2) audio error happens or 3) f returns error.
 // In the case of 3), Run returns the same error.
@@ -139,8 +139,8 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // RunWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
 // Different from Run, this function returns immediately.
 //
-// Typically, Ebiten users don't have to call this directly.
-// Instead, functions in github.com/hajimehoshi/ebiten/mobile module call this.
+// Ebiten users should NOT call this function.
+// Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	ch := make(chan error)
 	go func() {

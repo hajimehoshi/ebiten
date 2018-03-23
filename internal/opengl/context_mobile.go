@@ -82,7 +82,16 @@ func Init() {
 	theContext = c
 }
 
+func InitWithContext(context mgl.Context) {
+	c := &Context{}
+	c.gl = context
+	theContext = c
+}
+
 func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {
+	if c.worker == nil {
+		panic("not reached")
+	}
 	// TODO: Check this is called on the rendering thread
 loop:
 	for {

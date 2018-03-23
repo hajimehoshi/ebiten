@@ -14,6 +14,9 @@
 
 // Package mobile provides functions for mobile platforms (Android and iOS).
 //
+// This package is used when you use `gomobile bind`.
+// For `gomobile build`, you don't have to use this package.
+//
 // For usage, see https://github.com/hajimehoshi/ebiten/wiki/Mobile, https://github.com/hajimehoshi/ebiten/wiki/Android and https://github.com/hajimehoshi/ebiten/wiki/iOS.
 package mobile
 

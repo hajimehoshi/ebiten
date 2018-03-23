@@ -27,10 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-func RunMainThreadLoop(ch <-chan error) error {
-	return errors.New("ui: don't call this: use RunWithoutMainLoop instead of Run")
-}
-
 func Render(chError <-chan error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -54,6 +50,11 @@ type userInterface struct {
 	scale       float64
 	sizeChanged bool
 
+	// Used for gomobile-build
+	fullscreenScale    float64
+	fullscreenWidthPx  int
+	fullscreenHeightPx int
+
 	m sync.RWMutex
 }
 
@@ -72,9 +73,10 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	u.scale = scale
 	u.sizeChanged = true
 	u.m.Unlock()
-
 	// title is ignored?
-	opengl.Init()
+
+	initOpenGL()
+
 	for {
 		if err := u.update(g); err != nil {
 			return err
@@ -92,7 +94,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	if sizeChanged {
 		width = u.width
 		height = u.height
-		actualScale = u.scale * devicescale.DeviceScale()
+		actualScale = u.actualScaleImpl()
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
@@ -101,6 +103,25 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 		// Sizing also calls GL functions
 		g.SetSize(width, height, actualScale)
 	}
+}
+
+func actualScale() float64 {
+	return currentUI.actualScale()
+}
+
+func (u *userInterface) actualScale() float64 {
+	u.m.Lock()
+	s := u.actualScaleImpl()
+	u.m.Unlock()
+	return s
+}
+
+func (u *userInterface) actualScaleImpl() float64 {
+	scale := u.scale
+	if u.fullscreenScale != 0 {
+		scale = u.fullscreenScale
+	}
+	return scale * devicescale.DeviceScale()
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -119,6 +140,17 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
+func screenSize() (int, int) {
+	return currentUI.screenSize()
+}
+
+func (u *userInterface) screenSize() (int, int) {
+	u.m.Lock()
+	w, h := u.width, u.height
+	u.m.Unlock()
+	return w, h
+}
+
 func SetScreenSize(width, height int) bool {
 	currentUI.setScreenSize(width, height)
 	return true
@@ -129,6 +161,7 @@ func (u *userInterface) setScreenSize(width, height int) {
 	if u.width != width || u.height != height {
 		u.width = width
 		u.height = height
+		u.updateFullscreenScaleIfNeeded()
 		u.sizeChanged = true
 	}
 	u.m.Unlock()
@@ -156,12 +189,64 @@ func ScreenScale() float64 {
 	return s
 }
 
+func setFullscreen(widthPx, heightPx int) {
+	currentUI.setFullscreen(widthPx, heightPx)
+}
+
+func (u *userInterface) setFullscreen(widthPx, heightPx int) {
+	u.m.Lock()
+	u.fullscreenWidthPx = widthPx
+	u.fullscreenHeightPx = heightPx
+	u.updateFullscreenScaleIfNeeded()
+	u.sizeChanged = true
+	u.m.Unlock()
+}
+
+func (u *userInterface) updateFullscreenScaleIfNeeded() {
+	if u.fullscreenWidthPx == 0 || u.fullscreenHeightPx == 0 {
+		return
+	}
+	w, h := u.width, u.height
+	scaleX := float64(u.fullscreenWidthPx) / float64(w)
+	scaleY := float64(u.fullscreenHeightPx) / float64(h)
+	scale := scaleX
+	if scale > scaleY {
+		scale = scaleY
+	}
+	u.fullscreenScale = scale / devicescale.DeviceScale()
+}
+
 func ScreenPadding() (x0, y0, x1, y1 float64) {
-	return 0, 0, 0, 0
+	return currentUI.screenPadding()
+}
+
+func (u *userInterface) screenPadding() (x0, y0, x1, y1 float64) {
+	u.m.Lock()
+	x0, y0, x1, y1 = u.screenPaddingImpl()
+	u.m.Unlock()
+	return
+}
+
+func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
+	if u.fullscreenScale == 0 {
+		return 0, 0, 0, 0
+	}
+	s := u.fullscreenScale * devicescale.DeviceScale()
+	ox := (float64(u.fullscreenWidthPx) - float64(u.width)*s) / 2
+	oy := (float64(u.fullscreenHeightPx) - float64(u.height)*s) / 2
+	return ox, oy, ox, oy
 }
 
 func adjustCursorPosition(x, y int) (int, int) {
-	return x, y
+	return currentUI.adjustCursorPosition(x, y)
+}
+
+func (u *userInterface) adjustCursorPosition(x, y int) (int, int) {
+	u.m.Lock()
+	ox, oy, _, _ := u.screenPaddingImpl()
+	s := u.actualScaleImpl()
+	u.m.Unlock()
+	return x - int(ox/s), y - int(oy/s)
 }
 
 func IsCursorVisible() bool {
@@ -201,5 +286,9 @@ func SetWindowDecorated(decorated bool) {
 }
 
 func UpdateTouches(touches []Touch) {
-	currentInput.updateTouches(touches)
+	currentUI.m.Lock()
+	ox, oy, _, _ := currentUI.screenPaddingImpl()
+	s := currentUI.actualScaleImpl()
+	currentUI.m.Unlock()
+	currentInput.updateTouches(touches, -int(ox/s), -int(oy/s))
 }

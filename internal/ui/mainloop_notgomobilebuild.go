@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,41 +13,20 @@
 // limitations under the License.
 
 // +build android ios
+// +build !gomobilebuild
 
 package ui
 
 import (
-	"sync"
+	"errors"
+
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-type Input struct {
-	cursorX  int
-	cursorY  int
-	gamepads [16]gamePad
-	touches  []touch
-	m        sync.RWMutex
+func RunMainThreadLoop(ch <-chan error) error {
+	return errors.New("ui: don't call this: use RunWithoutMainLoop instead of Run")
 }
 
-func (i *Input) RuneBuffer() []rune {
-	return nil
-}
-
-func (i *Input) IsKeyPressed(key Key) bool {
-	return false
-}
-
-func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
-	return false
-}
-
-func (i *Input) updateTouches(touches []Touch, dx, dy int) {
-	i.m.Lock()
-	ts := make([]touch, len(touches))
-	for i := 0; i < len(ts); i++ {
-		ts[i].id = touches[i].ID()
-		x, y := touches[i].Position()
-		ts[i].x, ts[i].y = x+dx, y+dy
-	}
-	i.touches = ts
-	i.m.Unlock()
+func initOpenGL() {
+	opengl.Init()
 }
