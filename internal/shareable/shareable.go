@@ -34,43 +34,6 @@ type backend struct {
 	page *packing.Page
 }
 
-func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
-	// If the region is allocated without any extention, it's fine.
-	if n := b.page.Alloc(width, height); n != nil {
-		return n, true
-	}
-
-	// Simulate the extending the page and calculate the appropriate page size.
-	page := b.page.Clone()
-	nExtended := 0
-	for {
-		if !page.Extend() {
-			// The page can't be extended any more. Return as failure.
-			return nil, false
-		}
-		nExtended++
-		if n := page.Alloc(width, height); n != nil {
-			break
-		}
-	}
-
-	for i := 0; i < nExtended; i++ {
-		b.page.Extend()
-	}
-	s := b.page.Size()
-	newImg := restorable.NewImage(s, s, false)
-	w, h := b.restorable.Size()
-	newImg.DrawImage(b.restorable, 0, 0, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
-	b.restorable.Dispose()
-	b.restorable = newImg
-
-	n := b.page.Alloc(width, height)
-	if n == nil {
-		panic("not reached")
-	}
-	return n, true
-}
-
 var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
@@ -216,10 +179,7 @@ func (s *Image) IsInvalidated() (bool, error) {
 }
 
 func NewImage(width, height int) *Image {
-	const (
-		initSize = 1024
-		maxSize  = 4096
-	)
+	const maxSize = 2048
 
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -233,34 +193,26 @@ func NewImage(width, height int) *Image {
 		}
 	}
 
-	for _, b := range theBackends {
-		if n, ok := b.TryAlloc(width, height); ok {
+	for _, s := range theBackends {
+		if n := s.page.Alloc(width, height); n != nil {
 			return &Image{
-				backend: b,
+				backend: s,
 				node:    n,
 			}
 		}
 	}
-	size := initSize
-	for width > size || height > size {
-		if size == maxSize {
-			panic("not reached")
-		}
-		size *= 2
+	s := &backend{
+		restorable: restorable.NewImage(maxSize, maxSize, false),
+		page:       packing.NewPage(maxSize, maxSize), // TODO: Utilize 'Extend' page.
 	}
+	theBackends = append(theBackends, s)
 
-	b := &backend{
-		restorable: restorable.NewImage(size, size, false),
-		page:       packing.NewPage(size, maxSize),
-	}
-	theBackends = append(theBackends, b)
-
-	n := b.page.Alloc(width, height)
+	n := s.page.Alloc(width, height)
 	if n == nil {
 		panic("not reached")
 	}
 	i := &Image{
-		backend: b,
+		backend: s,
 		node:    n,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
