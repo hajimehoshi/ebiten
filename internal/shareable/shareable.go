@@ -185,34 +185,34 @@ func NewImage(width, height int) *Image {
 	defer backendsM.Unlock()
 
 	if width > maxSize || height > maxSize {
-		s := &backend{
+		b := &backend{
 			restorable: restorable.NewImage(width, height, false),
 		}
 		return &Image{
-			backend: s,
+			backend: b,
 		}
 	}
 
-	for _, s := range theBackends {
-		if n := s.page.Alloc(width, height); n != nil {
+	for _, b := range theBackends {
+		if n := b.page.Alloc(width, height); n != nil {
 			return &Image{
-				backend: s,
+				backend: b,
 				node:    n,
 			}
 		}
 	}
-	s := &backend{
+	b := &backend{
 		restorable: restorable.NewImage(maxSize, maxSize, false),
 		page:       packing.NewPage(maxSize, maxSize), // TODO: Utilize 'Extend' page.
 	}
-	theBackends = append(theBackends, s)
+	theBackends = append(theBackends, b)
 
-	n := s.page.Alloc(width, height)
+	n := b.page.Alloc(width, height)
 	if n == nil {
 		panic("not reached")
 	}
 	i := &Image{
-		backend: s,
+		backend: b,
 		node:    n,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
