@@ -443,4 +443,40 @@ func TestDrawImageAndReplacePixels(t *testing.T) {
 	}
 }
 
+func TestDispose(t *testing.T) {
+	base0 := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	img0 := newImageFromImage(base0)
+	defer img0.Dispose()
+
+	base1 := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	img1 := newImageFromImage(base1)
+
+	base2 := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	base2.Pix[0] = 0xff
+	base2.Pix[1] = 0xff
+	base2.Pix[2] = 0xff
+	base2.Pix[3] = 0xff
+	img2 := newImageFromImage(base2)
+	defer img2.Dispose()
+
+	img1.DrawImage(img2, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img0.DrawImage(img1, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img1.Dispose()
+
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	got, err := img0.At(0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	if !sameColors(got, want, 1) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
 // TODO: How about volatile/screen images?
