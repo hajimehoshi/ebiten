@@ -105,13 +105,11 @@ func (i *images) resolveStaleImages() error {
 // When target is changed, all images depending on target can't be restored with target.
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
+	if target == nil {
+		panic("not reached")
+	}
 	// Avoid defer for performance
 	i.m.Lock()
-	if target == nil {
-		// disposed
-		i.m.Unlock()
-		return
-	}
 	if i.lastTarget == target {
 		i.m.Unlock()
 		return
