@@ -198,6 +198,9 @@ func (i *Image) At(x, y int) (color.RGBA, error) {
 	if x < 0 || y < 0 || w <= x || h <= y {
 		return color.RGBA{}, nil
 	}
+	if err := graphics.FlushCommands(); err != nil {
+		return color.RGBA{}, err
+	}
 	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
 		if err := i.readPixelsFromGPU(); err != nil {
 			return color.RGBA{}, err
