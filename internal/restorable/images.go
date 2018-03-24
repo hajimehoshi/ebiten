@@ -133,8 +133,11 @@ func (i *images) restore() error {
 		panic("not reached")
 	}
 
-	// Framebuffers/textures cannot be disposed since framebuffers/textures that
-	// don't belong to the current context.
+	// Dispose image explicitly
+	for img := range i.images {
+		img.image.Dispose()
+		// img.image can't be set nil here, or Size() panics when restoring.
+	}
 
 	// Let's do topological sort based on dependencies of drawing history.
 	// It is assured that there are not loops since cyclic drawing makes images stale.
