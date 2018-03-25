@@ -524,4 +524,49 @@ func TestDispose(t *testing.T) {
 	}
 }
 
+func TestDoubleResolve(t *testing.T) {
+	base0 := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	img0 := newImageFromImage(base0)
+
+	base := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	base.Pix[0] = 0xff
+	base.Pix[1] = 0x00
+	base.Pix[2] = 0x00
+	base.Pix[3] = 0xff
+	img1 := newImageFromImage(base)
+
+	img0.DrawImage(img1, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img0.ReplacePixels([]uint8{0x00, 0xff, 0x00, 0xff}, 1, 1, 1, 1)
+	// Now img0 is stale.
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+
+	img0.ReplacePixels([]uint8{0x00, 0x00, 0xff, 0xff}, 1, 0, 1, 1)
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+
+	wantImg := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	wantImg.Set(0, 0, color.RGBA{0xff, 0x00, 0x00, 0xff})
+	wantImg.Set(1, 0, color.RGBA{0x00, 0x00, 0xff, 0xff})
+	wantImg.Set(1, 1, color.RGBA{0x00, 0xff, 0x00, 0xff})
+	for j := 0; j < 2; j++ {
+		for i := 0; i < 2; i++ {
+			got, err := img0.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := wantImg.At(i, j).(color.RGBA)
+			if !sameColors(got, want, 1) {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		}
+	}
+}
+
 // TODO: How about volatile/screen images?
