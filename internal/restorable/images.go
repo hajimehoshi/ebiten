@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 // restoringEnabled indicates if restoring happens or not.
@@ -41,7 +40,6 @@ func EnableRestoringForTesting() {
 type images struct {
 	images     map[*Image]struct{}
 	lastTarget *Image
-	m          sync.Mutex
 }
 
 // theImages represents the images for the current process.
@@ -75,23 +73,17 @@ func Restore() error {
 
 // add adds img to the images.
 func (i *images) add(img *Image) {
-	i.m.Lock()
 	i.images[img] = struct{}{}
-	i.m.Unlock()
 }
 
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
-	i.m.Lock()
 	i.makeStaleIfDependingOnImpl(img)
 	delete(i.images, img)
-	i.m.Unlock()
 }
 
 // resolveStaleImages resolves stale images.
 func (i *images) resolveStaleImages() error {
-	i.m.Lock()
-	defer i.m.Unlock()
 	i.lastTarget = nil
 	for img := range i.images {
 		if err := img.resolveStale(); err != nil {
@@ -107,9 +99,7 @@ func (i *images) resolveStaleImages() error {
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
 	// Avoid defer for performance
-	i.m.Lock()
 	i.makeStaleIfDependingOnImpl(target)
-	i.m.Unlock()
 }
 
 func (i *images) makeStaleIfDependingOnImpl(target *Image) {
@@ -129,8 +119,6 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 //
 // Restoring means to make all *graphics.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
-	i.m.Lock()
-	defer i.m.Unlock()
 	if !IsRestoringEnabled() {
 		panic("not reached")
 	}
