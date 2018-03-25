@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 // drawImageHistoryItem is an item for history of draw-image commands.
@@ -71,8 +70,6 @@ type Image struct {
 
 	// screen indicates whether the image is used as an actual screen.
 	screen bool
-
-	m sync.Mutex
 }
 
 // NewImage creates an empty image with the given size.
@@ -134,9 +131,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawImage.
 	theImages.makeStaleIfDependingOn(i)
 
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
 	if x == 0 && y == 0 && width == w && height == h {
@@ -172,9 +166,6 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 		return
 	}
 	theImages.makeStaleIfDependingOn(i)
-
-	i.m.Lock()
-	defer i.m.Unlock()
 
 	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
 		i.makeStale()
@@ -222,9 +213,6 @@ func (i *Image) At(x, y int) (color.RGBA, error) {
 		return color.RGBA{}, nil
 	}
 
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	if err := graphics.FlushCommands(); err != nil {
 		return color.RGBA{}, err
 	}
@@ -240,9 +228,6 @@ func (i *Image) At(x, y int) (color.RGBA, error) {
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.
 func (i *Image) makeStaleIfDependingOn(target *Image) {
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	if i.stale {
 		return
 	}
@@ -269,9 +254,6 @@ func (i *Image) resolveStale() error {
 		return nil
 	}
 
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	if i.volatile {
 		return nil
 	}
@@ -296,9 +278,6 @@ func (i *Image) dependsOn(target *Image) bool {
 
 // dependingImages returns all images that is depended by the image.
 func (i *Image) dependingImages() map[*Image]struct{} {
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	r := map[*Image]struct{}{}
 	for _, c := range i.drawImageHistory {
 		r[c.image] = struct{}{}
@@ -308,9 +287,6 @@ func (i *Image) dependingImages() map[*Image]struct{} {
 
 // hasDependency returns a boolean value indicating whether the image depends on another image.
 func (i *Image) hasDependency() bool {
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	if i.stale {
 		return false
 	}
@@ -319,9 +295,6 @@ func (i *Image) hasDependency() bool {
 
 // Restore restores *graphics.Image from the pixels using its state.
 func (i *Image) restore() error {
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	w, h := i.image.Size()
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
@@ -380,9 +353,6 @@ func (i *Image) restore() error {
 func (i *Image) Dispose() {
 	theImages.remove(i)
 
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = nil
@@ -402,9 +372,6 @@ func (i *Image) IsInvalidated() (bool, error) {
 	if !IsRestoringEnabled() {
 		return false, nil
 	}
-
-	i.m.Lock()
-	defer i.m.Unlock()
 
 	return i.image.IsInvalidated(), nil
 }

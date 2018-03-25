@@ -269,6 +269,9 @@ func NewImage(width, height int) *Image {
 }
 
 func NewVolatileImage(width, height int) *Image {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
 	r := restorable.NewImage(width, height, true)
 	i := &Image{
 		backend: &backend{
@@ -280,6 +283,9 @@ func NewVolatileImage(width, height int) *Image {
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
 	r := restorable.NewScreenFramebufferImage(width, height)
 	i := &Image{
 		backend: &backend{
@@ -288,4 +294,26 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
+}
+
+func InitializeGLState() error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return restorable.InitializeGLState()
+}
+
+func ResolveStaleImages() error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return restorable.ResolveStaleImages()
+}
+
+func IsRestoringEnabled() bool {
+	return restorable.IsRestoringEnabled()
+}
+
+func Restore() error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return restorable.Restore()
 }

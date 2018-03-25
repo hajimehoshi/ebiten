@@ -18,7 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -67,7 +67,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 func (c *graphicsContext) initializeIfNeeded() error {
 	if !c.initialized {
-		if err := restorable.InitializeGLState(); err != nil {
+		if err := shareable.InitializeGLState(); err != nil {
 			return err
 		}
 		c.initialized = true
@@ -124,7 +124,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	op.Filter = filterScreen
 	_ = c.screen.DrawImage(c.offscreen, op)
 
-	if err := restorable.ResolveStaleImages(); err != nil {
+	if err := shareable.ResolveStaleImages(); err != nil {
 		return err
 	}
 	return nil
@@ -138,7 +138,7 @@ func (c *graphicsContext) needsRestoring() (bool, error) {
 }
 
 func (c *graphicsContext) restoreIfNeeded() error {
-	if !restorable.IsRestoringEnabled() {
+	if !shareable.IsRestoringEnabled() {
 		return nil
 	}
 	r, err := c.needsRestoring()
@@ -148,7 +148,7 @@ func (c *graphicsContext) restoreIfNeeded() error {
 	if !r {
 		return nil
 	}
-	if err := restorable.Restore(); err != nil {
+	if err := shareable.Restore(); err != nil {
 		return err
 	}
 	c.invalidated = false
