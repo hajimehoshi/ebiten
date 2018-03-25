@@ -20,7 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 // command represents a drawing command.
@@ -48,8 +47,6 @@ type commandQueue struct {
 	// nvertices must <= len(vertices).
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
 	nvertices int
-
-	m sync.Mutex
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -72,13 +69,11 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
-	q.m.Lock()
 	q.appendVertices(vertices)
 	if 0 < len(q.commands) {
 		last := q.commands[len(q.commands)-1]
 		if last.CanMerge(dst, src, color, mode, filter) {
 			last.AddNumVertices(len(vertices))
-			q.m.Unlock()
 			return
 		}
 	}
@@ -91,16 +86,13 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		filter:    filter,
 	}
 	q.commands = append(q.commands, c)
-	q.m.Unlock()
 }
 
 // Enqueue enqueues a drawing command other than a draw-image command.
 //
 // For a draw-image command, use EnqueueDrawImageCommand.
 func (q *commandQueue) Enqueue(command command) {
-	q.m.Lock()
 	q.commands = append(q.commands, command)
-	q.m.Unlock()
 }
 
 // commandGroups separates q.commands into some groups.
@@ -136,8 +128,6 @@ func (q *commandQueue) commandGroups() [][]command {
 
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
-	q.m.Lock()
-	defer q.m.Unlock()
 	// glViewport must be called at least at every frame on iOS.
 	opengl.GetContext().ResetViewportSize()
 	n := 0

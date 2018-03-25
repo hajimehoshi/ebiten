@@ -18,20 +18,17 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 var (
 	// maxTextureSize is the maximum texture size
 	//
 	// maxTextureSize also represents the default size (width or height) of viewport.
-	maxTextureSize     = 0
-	maxTextureSizeLock sync.Mutex
+	maxTextureSize = 0
 )
 
 // MaxImageSize returns the maximum of width/height of an image.
 func MaxImageSize() int {
-	maxTextureSizeLock.Lock()
 	if maxTextureSize == 0 {
 		maxTextureSize = opengl.GetContext().MaxTextureSize()
 		if maxTextureSize == 0 {
@@ -39,7 +36,6 @@ func MaxImageSize() int {
 		}
 	}
 	s := maxTextureSize
-	maxTextureSizeLock.Unlock()
 	return s
 }
 
