@@ -309,6 +309,7 @@ func ResolveStaleImages() error {
 }
 
 func IsRestoringEnabled() bool {
+	// As IsRestoringEnabled is an immutable state, no need to lock here.
 	return restorable.IsRestoringEnabled()
 }
 
