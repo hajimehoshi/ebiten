@@ -110,6 +110,11 @@ func (i *Image) makeStale() {
 	i.basePixels = nil
 	i.drawImageHistory = nil
 	i.stale = true
+
+	// Don't have to call makeStale recursively here.
+	// Restoring is done after topological sorting is done.
+	// If an image depends on another stale image, this means that
+	// the former image can be restored from the latest state of the latter image.
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.

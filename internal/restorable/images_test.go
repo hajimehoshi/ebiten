@@ -117,7 +117,7 @@ func TestRestoreChain(t *testing.T) {
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	fill(imgs[0], clr.R, clr.G, clr.B, clr.A)
 	for i := 0; i < num-1; i++ {
-		imgs[i+1].DrawImage(imgs[i], 0, 0, 1, 1, nil, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+		imgs[i+1].DrawImage(imgs[i], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -127,6 +127,51 @@ func TestRestoreChain(t *testing.T) {
 	}
 	want := clr
 	for i, img := range imgs {
+		got := byteSliceToColor(img.BasePixelsForTesting(), 0)
+		if !sameColors(got, want, 1) {
+			t.Errorf("%d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+func TestRestoreChain2(t *testing.T) {
+	const num = 10
+	imgs := []*Image{}
+	for i := 0; i < num; i++ {
+		img := NewImage(1, 1, false)
+		fill(img, 0, 0, 0, 0)
+		imgs = append(imgs, img)
+	}
+	defer func() {
+		for _, img := range imgs {
+			img.Dispose()
+		}
+	}()
+
+	clr0 := color.RGBA{0xff, 0x00, 0x00, 0xff}
+	fill(imgs[0], clr0.R, clr0.G, clr0.B, clr0.A)
+	clr7 := color.RGBA{0x00, 0xff, 0x00, 0xff}
+	fill(imgs[7], clr7.R, clr7.G, clr7.B, clr7.A)
+	clr8 := color.RGBA{0x00, 0x00, 0xff, 0xff}
+	fill(imgs[8], clr8.R, clr8.G, clr8.B, clr8.A)
+
+	imgs[8].DrawImage(imgs[7], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	imgs[9].DrawImage(imgs[8], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	for i := 0; i < 7; i++ {
+		imgs[i+1].DrawImage(imgs[i], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	}
+
+	if err := ResolveStaleImages(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	for i, img := range imgs {
+		want := clr0
+		if i == 8 || i == 9 {
+			want = clr7
+		}
 		got := byteSliceToColor(img.BasePixelsForTesting(), 0)
 		if !sameColors(got, want, 1) {
 			t.Errorf("%d: got %v, want %v", i, got, want)

@@ -121,8 +121,6 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	}
 	i.lastTarget = target
 	for img := range i.images {
-		// TODO: This seems not enough: What if img becomes stale but what about
-		// other images depend on img? (#357)
 		img.makeStaleIfDependingOn(target)
 	}
 }
