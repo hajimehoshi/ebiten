@@ -93,12 +93,13 @@ func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {
 		panic("not reached")
 	}
 	// TODO: Check this is called on the rendering thread
+	workAvailable := c.worker.WorkAvailable()
 loop:
 	for {
 		select {
 		case err := <-chError:
 			return err
-		case <-c.worker.WorkAvailable():
+		case <-workAvailable:
 			c.worker.DoWork()
 		case <-chDone:
 			break loop
