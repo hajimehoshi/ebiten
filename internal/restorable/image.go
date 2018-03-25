@@ -133,21 +133,28 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
-	// Copy the pixels so that this works even p is modified just after ReplacePixels.
-	if i.basePixels == nil {
-		if x == 0 && y == 0 && width == w && height == h {
+	if x == 0 && y == 0 && width == w && height == h {
+		if i.basePixels == nil {
 			i.basePixels = make([]byte, 4*w*h)
-		} else {
-			i.makeStale()
-			return
 		}
+		copy(i.basePixels, pixels)
+		i.drawImageHistory = nil
+		i.stale = false
+		return
+	}
+	if i.basePixels == nil {
+		i.makeStale()
+		return
+	}
+	if len(i.drawImageHistory) > 0 {
+		i.makeStale()
+		return
 	}
 	idx := 4 * (y*w + x)
 	for j := 0; j < height; j++ {
 		copy(i.basePixels[idx:idx+4*width], pixels[4*j*width:4*(j+1)*width])
 		idx += 4 * w
 	}
-	i.drawImageHistory = nil
 	i.stale = false
 }
 
