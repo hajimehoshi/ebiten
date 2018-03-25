@@ -150,6 +150,11 @@ func (i *Image) isDisposed() bool {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
+	if i == img {
+		// Panic early so that we do not have to perform the draw to experience a panic.
+		// Panicking early allows us to not use defer in images.go
+		panic("ebiten: cannot draw image onto itself")
+	}
 	i.copyCheck()
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")

@@ -76,27 +76,28 @@ func Restore() error {
 // add adds img to the images.
 func (i *images) add(img *Image) {
 	i.m.Lock()
-	defer i.m.Unlock()
 	i.images[img] = struct{}{}
+	i.m.Unlock()
 }
 
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
 	i.m.Lock()
-	defer i.m.Unlock()
 	delete(i.images, img)
+	i.m.Unlock()
 }
 
 // resolveStaleImages resolves stale images.
 func (i *images) resolveStaleImages() error {
 	i.m.Lock()
-	defer i.m.Unlock()
 	i.lastTarget = nil
 	for img := range i.images {
 		if err := img.resolveStale(); err != nil {
+			i.m.Unlock()
 			return err
 		}
 	}
+	i.m.Unlock()
 	return nil
 }
 

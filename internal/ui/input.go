@@ -27,8 +27,9 @@ func CurrentInput() *Input {
 
 func (i *Input) CursorPosition() (x, y int) {
 	i.m.RLock()
-	defer i.m.RUnlock()
-	return adjustCursorPosition(i.cursorX, i.cursorY)
+	x, y = adjustCursorPosition(i.cursorX, i.cursorY)
+	i.m.RUnlock()
+	return x, y
 }
 
 var emptyIDs = []int{}
