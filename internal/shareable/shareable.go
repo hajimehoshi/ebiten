@@ -34,6 +34,44 @@ type backend struct {
 	page *packing.Page
 }
 
+func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
+	// If the region is allocated without any extention, it's fine.
+	if n := b.page.Alloc(width, height); n != nil {
+		return n, true
+	}
+
+	// Simulate the extending the page and calculate the appropriate page size.
+	page := b.page.Clone()
+	nExtended := 0
+	for {
+		if !page.Extend() {
+			// The page can't be extended any more. Return as failure.
+			return nil, false
+		}
+		nExtended++
+		if n := page.Alloc(width, height); n != nil {
+			break
+		}
+	}
+
+	for i := 0; i < nExtended; i++ {
+		b.page.Extend()
+	}
+	s := b.page.Size()
+	newImg := restorable.NewImage(s, s, false)
+	oldImg := b.restorable
+	w, h := oldImg.Size()
+	newImg.DrawImage(oldImg, 0, 0, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	oldImg.Dispose()
+	b.restorable = newImg
+
+	n := b.page.Alloc(width, height)
+	if n == nil {
+		panic("not reached")
+	}
+	return n, true
+}
+
 var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
@@ -179,7 +217,10 @@ func (s *Image) IsInvalidated() (bool, error) {
 }
 
 func NewImage(width, height int) *Image {
-	const maxSize = 2048
+	const (
+		initSize = 1024
+		maxSize  = 4096
+	)
 
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -194,16 +235,24 @@ func NewImage(width, height int) *Image {
 	}
 
 	for _, b := range theBackends {
-		if n := b.page.Alloc(width, height); n != nil {
+		if n, ok := b.TryAlloc(width, height); ok {
 			return &Image{
 				backend: b,
 				node:    n,
 			}
 		}
 	}
+	size := initSize
+	for width > size || height > size {
+		if size == maxSize {
+			panic("not reached")
+		}
+		size *= 2
+	}
+
 	b := &backend{
-		restorable: restorable.NewImage(maxSize, maxSize, false),
-		page:       packing.NewPage(maxSize, maxSize), // TODO: Utilize 'Extend' page.
+		restorable: restorable.NewImage(size, size, false),
+		page:       packing.NewPage(size, maxSize),
 	}
 	theBackends = append(theBackends, b)
 
