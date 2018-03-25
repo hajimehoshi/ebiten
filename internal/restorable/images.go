@@ -76,15 +76,16 @@ func Restore() error {
 // add adds img to the images.
 func (i *images) add(img *Image) {
 	i.m.Lock()
-	defer i.m.Unlock()
 	i.images[img] = struct{}{}
+	i.m.Unlock()
 }
 
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
 	i.m.Lock()
-	defer i.m.Unlock()
+	i.makeStaleIfDependingOnImpl(img)
 	delete(i.images, img)
+	i.m.Unlock()
 }
 
 // resolveStaleImages resolves stale images.
@@ -105,13 +106,17 @@ func (i *images) resolveStaleImages() error {
 // When target is changed, all images depending on target can't be restored with target.
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
+	// Avoid defer for performance
+	i.m.Lock()
+	i.makeStaleIfDependingOnImpl(target)
+	i.m.Unlock()
+}
+
+func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	if target == nil {
 		panic("not reached")
 	}
-	// Avoid defer for performance
-	i.m.Lock()
 	if i.lastTarget == target {
-		i.m.Unlock()
 		return
 	}
 	i.lastTarget = target
@@ -120,7 +125,6 @@ func (i *images) makeStaleIfDependingOn(target *Image) {
 		// other images depend on img? (#357)
 		img.makeStaleIfDependingOn(target)
 	}
-	i.m.Unlock()
 }
 
 // restore restores the images.

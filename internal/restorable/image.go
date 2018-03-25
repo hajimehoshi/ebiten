@@ -335,13 +335,12 @@ func (i *Image) restore() error {
 //
 // After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
-	theImages.makeStaleIfDependingOn(i)
+	theImages.remove(i)
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = nil
 	i.drawImageHistory = nil
 	i.stale = false
-	theImages.remove(i)
 	runtime.SetFinalizer(i, nil)
 }
 
