@@ -21,6 +21,8 @@
 package mp3
 
 import (
+	"runtime"
+
 	"github.com/hajimehoshi/go-mp3"
 
 	"github.com/hajimehoshi/ebiten/audio"
@@ -51,6 +53,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 
 // Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
+	runtime.SetFinalizer(s, nil)
 	if s.resampling != nil {
 		return s.resampling.Close()
 	}
@@ -84,8 +87,10 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if d.SampleRate() != context.SampleRate() {
 		r = convert.NewResampling(d, d.Length(), d.SampleRate(), context.SampleRate())
 	}
-	return &Stream{
+	s := &Stream{
 		orig:       d,
 		resampling: r,
-	}, nil
+	}
+	runtime.SetFinalizer(s, (*Stream).Close)
+	return s, nil
 }
