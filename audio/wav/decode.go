@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/internal/convert"
@@ -44,6 +45,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 
 // Read is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
+	runtime.SetFinalizer(s, nil)
 	return s.inner.Close()
 }
 
@@ -105,6 +107,7 @@ func (s *stream) Seek(offset int64, whence int) (int64, error) {
 
 // Close is implementation of io.Closer's Close.
 func (s *stream) Close() error {
+	runtime.SetFinalizer(s, nil)
 	return s.src.Close()
 }
 
@@ -214,6 +217,8 @@ chunks:
 		dataSize:   dataSize,
 		remaining:  dataSize,
 	}
+	runtime.SetFinalizer(s, (*stream).Close)
+
 	if mono || bitsPerSample != 16 {
 		s = convert.NewStereo16(s, mono, bitsPerSample != 16)
 		if mono {
@@ -228,5 +233,7 @@ chunks:
 		s = r
 		dataSize = r.Length()
 	}
-	return &Stream{inner: s, size: dataSize}, nil
+	ss := &Stream{inner: s, size: dataSize}
+	runtime.SetFinalizer(ss, (*Stream).Close)
+	return ss, nil
 }
