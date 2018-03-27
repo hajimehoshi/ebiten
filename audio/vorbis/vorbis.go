@@ -45,7 +45,11 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 
 // Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
-	return s.decoded.Close()
+	runtime.SetFinalizer(s, nil)
+	if err := s.decoded.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Length returns the size of decoded stream in bytes.
@@ -83,9 +87,6 @@ func (d *decoded) readUntil(posInBytes int) error {
 			d.readBytes += n * 2
 		}
 		if err == io.EOF {
-			if err := d.source.Close(); err != nil {
-				return err
-			}
 			break
 		}
 		if err != nil {
@@ -143,6 +144,9 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 
 func (d *decoded) Close() error {
 	runtime.SetFinalizer(d, nil)
+	if err := d.source.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -197,5 +201,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 		s = r
 		size = r.Length()
 	}
-	return &Stream{decoded: s, size: size}, nil
+	stream := &Stream{decoded: s, size: size}
+	runtime.SetFinalizer(stream, (*Stream).Close)
+	return stream, nil
 }
