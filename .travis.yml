@@ -40,6 +40,7 @@ script:
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - go test -v github.com/hajimehoshi/ebiten
   - go test -v github.com/hajimehoshi/ebiten/audio/internal/convert
+  - go test -v github.com/hajimehoshi/ebiten/audio/vorbis
   - go test -v github.com/hajimehoshi/ebiten/internal/math
   - go test -v github.com/hajimehoshi/ebiten/internal/restorable
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
