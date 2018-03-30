@@ -20,9 +20,10 @@ import (
 	"io"
 	"runtime"
 
+	"github.com/jfreymuth/oggvorbis"
+
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/internal/convert"
-	"github.com/jfreymuth/oggvorbis"
 )
 
 // Stream is a decoded audio stream.
