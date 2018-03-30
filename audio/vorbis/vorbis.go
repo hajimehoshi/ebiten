@@ -161,8 +161,11 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		return nil, 0, 0, err
 	}
 	d := &decoded{
-		data:       make([]float32, r.Length()*2),
-		totalBytes: int(r.Length()) * 4, // TODO: What if length is 0?
+		data: make([]float32, int(r.Length())*r.Channels()),
+
+		// TODO: r.Length() returns 0 when the format is unknown.
+		// Should we check that?
+		totalBytes: int(r.Length()) * r.Channels() * 2, // 2 means 16bit per sample.
 		posInBytes: 0,
 		source:     in,
 		decoder:    r,
