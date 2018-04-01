@@ -176,11 +176,6 @@ func (i *Input) UpdateGamepads() {
 	}
 }
 
-func (i *Input) updateTouches(t []*Touch) {
-	i.touches = make([]*Touch, len(t))
-	copy(i.touches, t)
-}
-
 func OnKeyDown(e *js.Object) {
 	c := e.Get("code")
 	if c == js.Undefined {
@@ -248,17 +243,17 @@ func OnMouseMove(e *js.Object) {
 
 func OnTouchStart(e *js.Object, scale float64, left, top int) {
 	e.Call("preventDefault")
-	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
+	theInput.updateTouches(e, scale, left, top)
 }
 
 func OnTouchEnd(e *js.Object, scale float64, left, top int) {
 	e.Call("preventDefault")
-	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
+	theInput.updateTouches(e, scale, left, top)
 }
 
 func OnTouchMove(e *js.Object, scale float64, left, top int) {
 	e.Call("preventDefault")
-	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
+	theInput.updateTouches(e, scale, left, top)
 }
 
 func setMouseCursorFromEvent(e *js.Object) {
@@ -266,19 +261,19 @@ func setMouseCursorFromEvent(e *js.Object) {
 	theInput.setMouseCursor(x, y)
 }
 
-func touchEventToTouches(e *js.Object, scale float64, left, top int) []*Touch {
+func (i *Input) updateTouches(e *js.Object, scale float64, left, top int) {
 	j := e.Get("targetTouches")
-	t := make([]*Touch, j.Get("length").Int())
-	for i := 0; i < len(t); i++ {
+	ts := make([]*Touch, j.Get("length").Int())
+	for i := 0; i < len(ts); i++ {
 		jj := j.Call("item", i)
 		id := jj.Get("identifier").Int()
 		x := int(float64(jj.Get("clientX").Int()-left) / scale)
 		y := int(float64(jj.Get("clientY").Int()-top) / scale)
-		t[i] = &Touch{
+		ts[i] = &Touch{
 			id: id,
 			x:  x,
 			y:  y,
 		}
 	}
-	return t
+	i.touches = ts
 }
