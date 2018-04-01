@@ -16,11 +16,24 @@
 //
 // You can start the game by calling the function Run.
 //
+//     // update is called every frame (1/60 [s]).
 //     func update(screen *ebiten.Image) error {
-//         // Define your game.
+//
+//         // Write your game's logical update.
+//
+//         if IsRunningSlowly() {
+//             // When the game is running slowly, the rendering result
+//             // will not be adopted.
+//             return nil
+//         }
+//
+//         // Write your game's rendering.
+//
+//         return nil
 //     }
 //
 //     func main() {
+//         // Call ebiten.Run to start your game loop.
 //         ebiten.Run(update, 320, 240, 2, "Your game's title")
 //     }
 package ebiten
