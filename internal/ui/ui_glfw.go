@@ -366,6 +366,11 @@ func adjustCursorPosition(x, y int) (int, int) {
 	return x - int(ox/s), y - int(oy/s)
 }
 
+func AdjustedTouches() []*input.Touch {
+	// TODO: Apply adjustCursorPosition
+	return input.Get().Touches()
+}
+
 func IsCursorVisible() bool {
 	u := currentUI
 	if !u.isRunning() {

@@ -86,6 +86,11 @@ func AdjustedCursorPosition() (x, y int) {
 	return int(float64(x) / scale), int(float64(y) / scale)
 }
 
+func AdjustedTouches() []*input.Touch {
+	// TODO: Apply adjustment here
+	return input.Get().Touches()
+}
+
 func IsCursorVisible() bool {
 	// The initial value is an empty string, so don't compare with "auto" here.
 	return canvas.Get("style").Get("cursor").String() != "none"

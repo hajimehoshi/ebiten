@@ -119,7 +119,7 @@ type Touch interface {
 //
 // Touches always returns nil on desktops.
 func Touches() []Touch {
-	t := input.Get().Touches()
+	t := ui.AdjustedTouches()
 	tt := make([]Touch, len(t))
 	for i := 0; i < len(tt); i++ {
 		tt[i] = t[i]

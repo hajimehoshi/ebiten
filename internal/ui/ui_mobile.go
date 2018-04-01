@@ -242,6 +242,11 @@ func AdjustedCursorPosition() (x, y int) {
 	return currentUI.adjustCursorPosition(input.Get().CursorPosition())
 }
 
+func AdjustedTouches() []*input.Touch {
+	// TODO: Apply adjustment here
+	return input.Get().Touches()
+}
+
 func (u *userInterface) adjustCursorPosition(x, y int) (int, int) {
 	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
