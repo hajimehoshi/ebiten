@@ -78,7 +78,12 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 }
 
 func AdjustedCursorPosition() (x, y int) {
-	return input.Get().CursorPosition()
+	x, y = input.Get().CursorPosition()
+	rect := canvas.Call("getBoundingClientRect")
+	x -= rect.Get("left").Int()
+	y -= rect.Get("top").Int()
+	scale := currentUI.getScale()
+	return int(float64(x) / scale), int(float64(y) / scale)
 }
 
 func IsCursorVisible() bool {
@@ -253,18 +258,9 @@ func initialize() error {
 	canvas.Call("addEventListener", "keyup", input.OnKeyUp)
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", func(e *js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		input.OnMouseDown(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
-	})
-	canvas.Call("addEventListener", "mouseup", func(e *js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		input.OnMouseUp(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
-	})
-	canvas.Call("addEventListener", "mousemove", func(e *js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		input.OnMouseMove(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
-	})
+	canvas.Call("addEventListener", "mousedown", input.OnMouseDown)
+	canvas.Call("addEventListener", "mouseup", input.OnMouseUp)
+	canvas.Call("addEventListener", "mousemove", input.OnMouseMove)
 	canvas.Call("addEventListener", "contextmenu", func(e *js.Object) {
 		e.Call("preventDefault")
 	})

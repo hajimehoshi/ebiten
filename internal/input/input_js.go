@@ -227,23 +227,23 @@ func OnKeyUp(e *js.Object) {
 	theInput.keyUp(code)
 }
 
-func OnMouseDown(e *js.Object, scale float64, left, top int) {
+func OnMouseDown(e *js.Object) {
 	e.Call("preventDefault")
 	button := e.Get("button").Int()
 	theInput.mouseDown(button)
-	setMouseCursorFromEvent(e, scale, left, top)
+	setMouseCursorFromEvent(e)
 }
 
-func OnMouseUp(e *js.Object, scale float64, left, top int) {
+func OnMouseUp(e *js.Object) {
 	e.Call("preventDefault")
 	button := e.Get("button").Int()
 	theInput.mouseUp(button)
-	setMouseCursorFromEvent(e, scale, left, top)
+	setMouseCursorFromEvent(e)
 }
 
-func OnMouseMove(e *js.Object, scale float64, left, top int) {
+func OnMouseMove(e *js.Object) {
 	e.Call("preventDefault")
-	setMouseCursorFromEvent(e, scale, left, top)
+	setMouseCursorFromEvent(e)
 }
 
 func OnTouchStart(e *js.Object, scale float64, left, top int) {
@@ -261,11 +261,9 @@ func OnTouchMove(e *js.Object, scale float64, left, top int) {
 	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
 }
 
-func setMouseCursorFromEvent(e *js.Object, scale float64, left, top int) {
+func setMouseCursorFromEvent(e *js.Object) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-	x -= left
-	y -= top
-	theInput.setMouseCursor(int(float64(x)/scale), int(float64(y)/scale))
+	theInput.setMouseCursor(x, y)
 }
 
 func touchEventToTouches(e *js.Object, scale float64, left, top int) []*Touch {
