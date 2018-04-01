@@ -14,9 +14,11 @@
 
 // +build js
 
-package ui
+package input
 
 import (
+	"unicode"
+
 	"github.com/gopherjs/gopherjs/js"
 )
 
@@ -34,13 +36,17 @@ type Input struct {
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
-	touches            []touch
+	touches            []*Touch
 	runeBuffer         []rune
 	m                  mockRWLock
 }
 
 func (i *Input) RuneBuffer() []rune {
 	return i.runeBuffer
+}
+
+func (i *Input) ClearRuneBuffer() {
+	i.runeBuffer = nil
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -131,7 +137,7 @@ func (i *Input) setMouseCursor(x, y int) {
 	i.cursorX, i.cursorY = x, y
 }
 
-func (i *Input) updateGamepads() {
+func (i *Input) UpdateGamepads() {
 	nav := js.Global.Get("navigator")
 	if nav.Get("getGamepads") == js.Undefined {
 		return
@@ -170,7 +176,111 @@ func (i *Input) updateGamepads() {
 	}
 }
 
-func (i *Input) updateTouches(t []touch) {
-	i.touches = make([]touch, len(t))
+func (i *Input) updateTouches(t []*Touch) {
+	i.touches = make([]*Touch, len(t))
 	copy(i.touches, t)
+}
+
+func OnKeyDown(e *js.Object) {
+	c := e.Get("code")
+	if c == js.Undefined {
+		code := e.Get("keyCode").Int()
+		if keyCodeToKeyEdge[code] == KeyUp ||
+			keyCodeToKeyEdge[code] == KeyDown ||
+			keyCodeToKeyEdge[code] == KeyLeft ||
+			keyCodeToKeyEdge[code] == KeyRight ||
+			keyCodeToKeyEdge[code] == KeyBackspace ||
+			keyCodeToKeyEdge[code] == KeyTab {
+			e.Call("preventDefault")
+		}
+		theInput.keyDownEdge(code)
+		return
+	}
+	cs := c.String()
+	if cs == keyToCodes[KeyUp][0] ||
+		cs == keyToCodes[KeyDown][0] ||
+		cs == keyToCodes[KeyLeft][0] ||
+		cs == keyToCodes[KeyRight][0] ||
+		cs == keyToCodes[KeyBackspace][0] ||
+		cs == keyToCodes[KeyTab][0] {
+		e.Call("preventDefault")
+	}
+	theInput.keyDown(cs)
+}
+
+func OnKeyPress(e *js.Object) {
+	e.Call("preventDefault")
+	if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
+		theInput.runeBuffer = append(theInput.runeBuffer, r)
+	}
+}
+
+func OnKeyUp(e *js.Object) {
+	e.Call("preventDefault")
+	if e.Get("code") == js.Undefined {
+		// Assume that UA is Edge.
+		code := e.Get("keyCode").Int()
+		theInput.keyUpEdge(code)
+		return
+	}
+	code := e.Get("code").String()
+	theInput.keyUp(code)
+}
+
+func OnMouseDown(e *js.Object, scale float64, left, top int) {
+	e.Call("preventDefault")
+	button := e.Get("button").Int()
+	theInput.mouseDown(button)
+	setMouseCursorFromEvent(e, scale, left, top)
+}
+
+func OnMouseUp(e *js.Object, scale float64, left, top int) {
+	e.Call("preventDefault")
+	button := e.Get("button").Int()
+	theInput.mouseUp(button)
+	setMouseCursorFromEvent(e, scale, left, top)
+}
+
+func OnMouseMove(e *js.Object, scale float64, left, top int) {
+	e.Call("preventDefault")
+	setMouseCursorFromEvent(e, scale, left, top)
+}
+
+func OnTouchStart(e *js.Object, scale float64, left, top int) {
+	e.Call("preventDefault")
+	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
+}
+
+func OnTouchEnd(e *js.Object, scale float64, left, top int) {
+	e.Call("preventDefault")
+	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
+}
+
+func OnTouchMove(e *js.Object, scale float64, left, top int) {
+	e.Call("preventDefault")
+	theInput.updateTouches(touchEventToTouches(e, scale, left, top))
+}
+
+func setMouseCursorFromEvent(e *js.Object, scale float64, left, top int) {
+	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
+	x -= left
+	y -= top
+	theInput.setMouseCursor(int(float64(x)/scale), int(float64(y)/scale))
+}
+
+func touchEventToTouches(e *js.Object, scale float64, left, top int) []*Touch {
+	j := e.Get("targetTouches")
+	t := make([]*Touch, j.Get("length").Int())
+	for i := 0; i < len(t); i++ {
+		jj := j.Call("item", i)
+		id := jj.Get("identifier").Int()
+		x := int(float64(jj.Get("clientX").Int()-left) / scale)
+		y := int(float64(jj.Get("clientY").Int()-top) / scale)
+		t[i] = &Touch{
+			id: id,
+			x:  x,
+			y:  y,
+		}
+	}
+	return t
 }

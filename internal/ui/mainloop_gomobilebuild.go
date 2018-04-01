@@ -22,9 +22,10 @@ import (
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
-	mtouch "golang.org/x/mobile/event/touch"
+	"golang.org/x/mobile/event/touch"
 	"golang.org/x/mobile/gl"
 
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -34,7 +35,7 @@ var (
 
 func appMain(a app.App) {
 	var glctx gl.Context
-	touches := map[mtouch.Sequence]*touch{}
+	touches := map[touch.Sequence]*input.Touch{}
 	for e := range a.Events() {
 		switch e := a.Filter(e).(type) {
 		case lifecycle.Event:
@@ -61,20 +62,17 @@ func appMain(a app.App) {
 			<-chRenderEnd
 			a.Publish()
 			a.Send(paint.Event{})
-		case mtouch.Event:
+		case touch.Event:
 			switch e.Type {
-			case mtouch.TypeBegin, mtouch.TypeMove:
+			case touch.TypeBegin, touch.TypeMove:
 				s := float32(actualScale())
-				t := &touch{
-					id: int(e.Sequence), // TODO: Is it ok to cast from int64 to int here?
-					x:  int(e.X / s),
-					y:  int(e.Y / s),
-				}
+				// TODO: Is it ok to cast from int64 to int here?
+				t := input.NewTouch(int(e.Sequence), int(e.X/s), int(e.Y/s))
 				touches[e.Sequence] = t
-			case mtouch.TypeEnd:
+			case touch.TypeEnd:
 				delete(touches, e.Sequence)
 			}
-			ts := []Touch{}
+			ts := []*input.Touch{}
 			for _, t := range touches {
 				ts = append(ts, t)
 			}

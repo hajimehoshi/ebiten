@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -237,8 +238,8 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	return ox, oy, ox, oy
 }
 
-func adjustCursorPosition(x, y int) (int, int) {
-	return currentUI.adjustCursorPosition(x, y)
+func AdjustedCursorPosition() (x, y int) {
+	return currentUI.adjustCursorPosition(input.Get().CursorPosition())
 }
 
 func (u *userInterface) adjustCursorPosition(x, y int) (int, int) {
@@ -285,10 +286,10 @@ func SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
-func UpdateTouches(touches []Touch) {
+func UpdateTouches(touches []*input.Touch) {
 	currentUI.m.Lock()
 	ox, oy, _, _ := currentUI.screenPaddingImpl()
 	s := currentUI.actualScaleImpl()
 	currentUI.m.Unlock()
-	currentInput.updateTouches(touches, -int(ox/s), -int(oy/s))
+	input.Get().UpdateTouches(touches, -int(ox/s), -int(oy/s))
 }

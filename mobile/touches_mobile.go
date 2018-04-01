@@ -17,6 +17,7 @@
 package mobile
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -29,26 +30,13 @@ var (
 	touches = map[int]position{}
 )
 
-// touch implements ui.Touch.
-type touch struct {
-	id       int
-	position position
-}
-
-func (t touch) ID() int {
-	return t.id
-}
-
-func (t touch) Position() (int, int) {
-	// TODO: Is this OK to adjust the position here?
-	return int(float64(t.position.x) / ui.ScreenScale()),
-		int(float64(t.position.y) / ui.ScreenScale())
-}
-
 func updateTouches() {
-	ts := []ui.Touch{}
+	ts := []*input.Touch{}
 	for id, position := range touches {
-		ts = append(ts, touch{id, position})
+		// TODO: Is this OK to adjust the position here?
+		x := int(float64(position.x) / ui.ScreenScale())
+		y := int(float64(position.y) / ui.ScreenScale())
+		ts = append(ts, input.NewTouch(id, x, y))
 	}
 	ui.UpdateTouches(ts)
 }

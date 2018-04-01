@@ -19,7 +19,7 @@
 // +build !android
 // +build !ios
 
-package ui
+package input
 
 import (
 	glfw "github.com/go-gl/glfw/v3.2/glfw"

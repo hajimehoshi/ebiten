@@ -16,7 +16,7 @@
 
 // +build js
 
-package ui
+package input
 
 var keyToCodes = map[Key][]string{
 	Key0: {

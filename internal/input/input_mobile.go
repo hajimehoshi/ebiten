@@ -14,7 +14,7 @@
 
 // +build android ios
 
-package ui
+package input
 
 import (
 	"sync"
@@ -24,7 +24,7 @@ type Input struct {
 	cursorX  int
 	cursorY  int
 	gamepads [16]gamePad
-	touches  []touch
+	touches  []*Touch
 	m        sync.RWMutex
 }
 
@@ -40,13 +40,16 @@ func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 	return false
 }
 
-func (i *Input) updateTouches(touches []Touch, dx, dy int) {
+func (i *Input) UpdateTouches(touches []*Touch, dx, dy int) {
 	i.m.Lock()
-	ts := make([]touch, len(touches))
+	ts := make([]*Touch, len(touches))
 	for i := 0; i < len(ts); i++ {
-		ts[i].id = touches[i].ID()
 		x, y := touches[i].Position()
-		ts[i].x, ts[i].y = x+dx, y+dy
+		ts[i] = &Touch{
+			id: touches[i].id,
+			x:  x + dx,
+			y:  y + dy,
+		}
 	}
 	i.touches = ts
 	i.m.Unlock()

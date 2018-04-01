@@ -137,7 +137,7 @@ const ebitenKeysTmpl = `{{.License}}
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/ui"
+	"github.com/hajimehoshi/ebiten/internal/input"
 )
 
 // A Key represents a keyboard key.
@@ -147,16 +147,16 @@ type Key int
 
 // Keys
 const (
-{{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(ui.Key{{$name}})
+{{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(input.Key{{$name}})
 {{end}}	KeyMax Key = Key{{.LastKeyName}}
 )
 `
 
-const uiKeysTmpl = `{{.License}}
+const inputKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-package ui
+package input
 
 type Key int
 
@@ -166,13 +166,13 @@ const (
 )
 `
 
-const uiKeysGlfwTmpl = `{{.License}}
+const inputKeysGlfwTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package ui
+package input
 
 import (
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
@@ -190,13 +190,13 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 }
 `
 
-const uiKeysJSTmpl = `{{.License}}
+const inputKeysJSTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package ui
+package input
 
 var keyToCodes = map[Key][]string{
 {{range $name, $codes := .NameToCodes}}Key{{$name}}: []string{
@@ -322,10 +322,10 @@ func main() {
 	sort.Strings(codes)
 
 	for path, tmpl := range map[string]string{
-		"keys.go":                  ebitenKeysTmpl,
-		"internal/ui/keys.go":      uiKeysTmpl,
-		"internal/ui/keys_glfw.go": uiKeysGlfwTmpl,
-		"internal/ui/keys_js.go":   uiKeysJSTmpl,
+		"keys.go":                     ebitenKeysTmpl,
+		"internal/input/keys.go":      inputKeysTmpl,
+		"internal/input/keys_glfw.go": inputKeysGlfwTmpl,
+		"internal/input/keys_js.go":   inputKeysJSTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
@@ -340,12 +340,12 @@ func main() {
 		// Pass the build tag and extract this in the template to make `go vet` happy.
 		buildTag := ""
 		switch path {
-		case "internal/ui/keys_glfw.go":
+		case "internal/input/keys_glfw.go":
 			buildTag = "// +build darwin freebsd linux windows" +
 				"\n// +build !js" +
 				"\n// +build !android" +
 				"\n// +build !ios"
-		case "internal/ui/keys_js.go":
+		case "internal/input/keys_js.go":
 			buildTag = "// +build js"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.

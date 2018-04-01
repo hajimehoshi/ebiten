@@ -29,6 +29,7 @@ import (
 	"github.com/go-gl/glfw/v3.2/glfw"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -347,6 +348,10 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 	return ox, oy, ox, oy
 }
 
+func AdjustedCursorPosition() (x, y int) {
+	return adjustCursorPosition(input.Get().CursorPosition())
+}
+
 func adjustCursorPosition(x, y int) (int, int) {
 	u := currentUI
 	if !u.isRunning() {
@@ -486,7 +491,7 @@ func (u *userInterface) actualScreenScale() float64 {
 // pollEvents must be called from the main thread.
 func (u *userInterface) pollEvents() {
 	glfw.PollEvents()
-	currentInput.update(u.window, u.getScale()*glfwScale())
+	input.Get().Update(u.window, u.getScale()*glfwScale())
 }
 
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
@@ -542,7 +547,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return nil
 	})
 	if err := g.Update(func() {
-		currentInput.runeBuffer = currentInput.runeBuffer[:0]
+		input.Get().ClearRuneBuffer()
 		// The offscreens must be updated every frame (#490).
 		u.updateGraphicsContext(g)
 	}); err != nil {

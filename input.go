@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -28,7 +29,7 @@ import (
 //
 // This function is concurrent-safe.
 func InputChars() []rune {
-	rb := ui.CurrentInput().RuneBuffer()
+	rb := input.Get().RuneBuffer()
 	return append(make([]rune, 0, len(rb)), rb...)
 }
 
@@ -36,14 +37,14 @@ func InputChars() []rune {
 //
 // This function is concurrent-safe.
 func IsKeyPressed(key Key) bool {
-	return ui.CurrentInput().IsKeyPressed(ui.Key(key))
+	return input.Get().IsKeyPressed(input.Key(key))
 }
 
 // CursorPosition returns a position of a mouse cursor.
 //
 // This function is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return ui.CurrentInput().CursorPosition()
+	return ui.AdjustedCursorPosition()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
@@ -53,7 +54,7 @@ func CursorPosition() (x, y int) {
 // Note that touch events not longer affect this function's result as of 1.4.0-alpha.
 // Use Touches instead.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return ui.CurrentInput().IsMouseButtonPressed(ui.MouseButton(mouseButton))
+	return input.Get().IsMouseButtonPressed(input.MouseButton(mouseButton))
 }
 
 // GamepadIDs returns a slice indicating available gamepad IDs.
@@ -62,7 +63,7 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 //
 // This function always returns an empty slice on mobiles.
 func GamepadIDs() []int {
-	return ui.CurrentInput().GamepadIDs()
+	return input.Get().GamepadIDs()
 }
 
 // GamepadAxisNum returns the number of axes of the gamepad (id).
@@ -71,7 +72,7 @@ func GamepadIDs() []int {
 //
 // This function always returns 0 on mobiles.
 func GamepadAxisNum(id int) int {
-	return ui.CurrentInput().GamepadAxisNum(id)
+	return input.Get().GamepadAxisNum(id)
 }
 
 // GamepadAxis returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
@@ -80,7 +81,7 @@ func GamepadAxisNum(id int) int {
 //
 // This function always returns 0 on mobiles.
 func GamepadAxis(id int, axis int) float64 {
-	return ui.CurrentInput().GamepadAxis(id, axis)
+	return input.Get().GamepadAxis(id, axis)
 }
 
 // GamepadButtonNum returns the number of the buttons of the given gamepad (id).
@@ -89,7 +90,7 @@ func GamepadAxis(id int, axis int) float64 {
 //
 // This function always returns 0 on mobiles.
 func GamepadButtonNum(id int) int {
-	return ui.CurrentInput().GamepadButtonNum(id)
+	return input.Get().GamepadButtonNum(id)
 }
 
 // IsGamepadButtonPressed returns the boolean indicating the given button of the gamepad (id) is pressed or not.
@@ -102,7 +103,7 @@ func GamepadButtonNum(id int) int {
 //
 // This function always returns false on mobiles.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
-	return ui.CurrentInput().IsGamepadButtonPressed(id, ui.GamepadButton(button))
+	return input.Get().IsGamepadButtonPressed(id, input.GamepadButton(button))
 }
 
 // Touch represents a touch state.
@@ -118,7 +119,7 @@ type Touch interface {
 //
 // Touches always returns nil on desktops.
 func Touches() []Touch {
-	t := ui.CurrentInput().Touches()
+	t := input.Get().Touches()
 	tt := make([]Touch, len(t))
 	for i := 0; i < len(tt); i++ {
 		tt[i] = t[i]

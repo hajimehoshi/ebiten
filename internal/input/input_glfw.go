@@ -17,7 +17,7 @@
 // +build !android
 // +build !ios
 
-package ui
+package input
 
 import (
 	"sync"
@@ -32,7 +32,7 @@ type Input struct {
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
-	touches            []touch // This is not updated until GLFW 3.3 is available (#417)
+	touches            []*Touch // This is not updated until GLFW 3.3 is available (#417)
 	runeBuffer         []rune
 	m                  sync.RWMutex
 }
@@ -41,6 +41,12 @@ func (i *Input) RuneBuffer() []rune {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	return i.runeBuffer
+}
+
+func (i *Input) ClearRuneBuffer() {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	i.runeBuffer = i.runeBuffer[:0]
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -83,7 +89,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonMiddle: MouseButtonMiddle,
 }
 
-func (i *Input) update(window *glfw.Window, scale float64) {
+func (i *Input) Update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	if i.runeBuffer == nil {

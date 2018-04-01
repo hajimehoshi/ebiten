@@ -19,11 +19,11 @@ package ui
 import (
 	"image"
 	"strconv"
-	"unicode"
 
 	"github.com/gopherjs/gopherjs/js"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -77,8 +77,8 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 	return 0, 0, 0, 0
 }
 
-func adjustCursorPosition(x, y int) (int, int) {
-	return x, y
+func AdjustedCursorPosition() (x, y int) {
+	return input.Get().CursorPosition()
 }
 
 func IsCursorVisible() bool {
@@ -151,10 +151,10 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return nil
 	}
 
-	currentInput.updateGamepads()
+	input.Get().UpdateGamepads()
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
-		currentInput.runeBuffer = nil
+		input.Get().ClearRuneBuffer()
 		// The offscreens must be updated every frame (#490).
 		u.updateGraphicsContext(g)
 	}); err != nil {
@@ -178,21 +178,6 @@ func (u *userInterface) loop(g GraphicsContext) error {
 	}
 	f()
 	return <-ch
-}
-
-func touchEventToTouches(e *js.Object) []touch {
-	scale := currentUI.getScale()
-	j := e.Get("targetTouches")
-	rect := canvas.Call("getBoundingClientRect")
-	left, top := rect.Get("left").Int(), rect.Get("top").Int()
-	t := make([]touch, j.Get("length").Int())
-	for i := 0; i < len(t); i++ {
-		jj := j.Call("item", i)
-		t[i].id = jj.Get("identifier").Int()
-		t[i].x = int(float64(jj.Get("clientX").Int()-left) / scale)
-		t[i].y = int(float64(jj.Get("clientY").Int()-top) / scale)
-	}
-	return t
 }
 
 func init() {
@@ -263,66 +248,22 @@ func initialize() error {
 	canvas.Get("style").Set("outline", "none")
 
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", func(e *js.Object) {
-		c := e.Get("code")
-		if c == js.Undefined {
-			code := e.Get("keyCode").Int()
-			if keyCodeToKeyEdge[code] == KeyUp ||
-				keyCodeToKeyEdge[code] == KeyDown ||
-				keyCodeToKeyEdge[code] == KeyLeft ||
-				keyCodeToKeyEdge[code] == KeyRight ||
-				keyCodeToKeyEdge[code] == KeyBackspace ||
-				keyCodeToKeyEdge[code] == KeyTab {
-				e.Call("preventDefault")
-			}
-			currentInput.keyDownEdge(code)
-			return
-		}
-		cs := c.String()
-		if cs == keyToCodes[KeyUp][0] ||
-			cs == keyToCodes[KeyDown][0] ||
-			cs == keyToCodes[KeyLeft][0] ||
-			cs == keyToCodes[KeyRight][0] ||
-			cs == keyToCodes[KeyBackspace][0] ||
-			cs == keyToCodes[KeyTab][0] {
-			e.Call("preventDefault")
-		}
-		currentInput.keyDown(cs)
-	})
-	canvas.Call("addEventListener", "keypress", func(e *js.Object) {
-		e.Call("preventDefault")
-		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
-			currentInput.runeBuffer = append(currentInput.runeBuffer, r)
-		}
-	})
-	canvas.Call("addEventListener", "keyup", func(e *js.Object) {
-		e.Call("preventDefault")
-		if e.Get("code") == js.Undefined {
-			// Assume that UA is Edge.
-			code := e.Get("keyCode").Int()
-			currentInput.keyUpEdge(code)
-			return
-		}
-		code := e.Get("code").String()
-		currentInput.keyUp(code)
-	})
+	canvas.Call("addEventListener", "keydown", input.OnKeyDown)
+	canvas.Call("addEventListener", "keypress", input.OnKeyPress)
+	canvas.Call("addEventListener", "keyup", input.OnKeyUp)
 
 	// Mouse
 	canvas.Call("addEventListener", "mousedown", func(e *js.Object) {
-		e.Call("preventDefault")
-		button := e.Get("button").Int()
-		currentInput.mouseDown(button)
-		setMouseCursorFromEvent(e)
+		rect := canvas.Call("getBoundingClientRect")
+		input.OnMouseDown(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
 	})
 	canvas.Call("addEventListener", "mouseup", func(e *js.Object) {
-		e.Call("preventDefault")
-		button := e.Get("button").Int()
-		currentInput.mouseUp(button)
-		setMouseCursorFromEvent(e)
+		rect := canvas.Call("getBoundingClientRect")
+		input.OnMouseUp(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
 	})
 	canvas.Call("addEventListener", "mousemove", func(e *js.Object) {
-		e.Call("preventDefault")
-		setMouseCursorFromEvent(e)
+		rect := canvas.Call("getBoundingClientRect")
+		input.OnMouseMove(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
 	})
 	canvas.Call("addEventListener", "contextmenu", func(e *js.Object) {
 		e.Call("preventDefault")
@@ -330,16 +271,16 @@ func initialize() error {
 
 	// Touch
 	canvas.Call("addEventListener", "touchstart", func(e *js.Object) {
-		e.Call("preventDefault")
-		currentInput.updateTouches(touchEventToTouches(e))
+		rect := canvas.Call("getBoundingClientRect")
+		input.OnTouchStart(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
 	})
 	canvas.Call("addEventListener", "touchend", func(e *js.Object) {
-		e.Call("preventDefault")
-		currentInput.updateTouches(touchEventToTouches(e))
+		rect := canvas.Call("getBoundingClientRect")
+		input.OnTouchEnd(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
 	})
 	canvas.Call("addEventListener", "touchmove", func(e *js.Object) {
-		e.Call("preventDefault")
-		currentInput.updateTouches(touchEventToTouches(e))
+		rect := canvas.Call("getBoundingClientRect")
+		input.OnTouchMove(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
 	})
 
 	// Gamepad
@@ -355,15 +296,6 @@ func initialize() error {
 	})
 
 	return nil
-}
-
-func setMouseCursorFromEvent(e *js.Object) {
-	scale := currentUI.getScale()
-	rect := canvas.Call("getBoundingClientRect")
-	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-	x -= rect.Get("left").Int()
-	y -= rect.Get("top").Int()
-	currentInput.setMouseCursor(int(float64(x)/scale), int(float64(y)/scale))
 }
 
 func RunMainThreadLoop(ch <-chan error) error {

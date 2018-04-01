@@ -12,23 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ui
+package input
 
-var currentInput = &Input{}
+var theInput = &Input{}
 
-type Touch interface {
-	ID() int
-	Position() (x, y int)
-}
-
-func CurrentInput() *Input {
-	return currentInput
+func Get() *Input {
+	return theInput
 }
 
 func (i *Input) CursorPosition() (x, y int) {
 	i.m.RLock()
 	defer i.m.RUnlock()
-	return adjustCursorPosition(i.cursorX, i.cursorY)
+	return i.cursorX, i.cursorY
 }
 
 var emptyIDs = []int{}
@@ -86,9 +81,9 @@ func (i *Input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return i.gamepads[id].buttonPressed[button]
 }
 
-var emptyTouches = []Touch{}
+var emptyTouches = []*Touch{}
 
-func (in *Input) Touches() []Touch {
+func (in *Input) Touches() []*Touch {
 	in.m.RLock()
 	defer in.m.RUnlock()
 
@@ -98,9 +93,9 @@ func (in *Input) Touches() []Touch {
 		return emptyTouches
 	}
 
-	t := make([]Touch, len(in.touches))
+	t := make([]*Touch, len(in.touches))
 	for i := 0; i < len(t); i++ {
-		t[i] = &in.touches[i]
+		t[i] = in.touches[i]
 	}
 	return t
 }
@@ -113,16 +108,24 @@ type gamePad struct {
 	buttonPressed [256]bool
 }
 
-type touch struct {
+type Touch struct {
 	id int
 	x  int
 	y  int
 }
 
-func (t *touch) ID() int {
+func NewTouch(id int, x, y int) *Touch {
+	return &Touch{
+		id: id,
+		x:  x,
+		y:  y,
+	}
+}
+
+func (t *Touch) ID() int {
 	return t.id
 }
 
-func (t *touch) Position() (x, y int) {
+func (t *Touch) Position() (x, y int) {
 	return t.x, t.y
 }
