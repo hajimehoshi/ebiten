@@ -267,12 +267,10 @@ func (i *Input) updateTouches(e *js.Object, scale float64, left, top int) {
 	for i := 0; i < len(ts); i++ {
 		jj := j.Call("item", i)
 		id := jj.Get("identifier").Int()
-		x := int(float64(jj.Get("clientX").Int()-left) / scale)
-		y := int(float64(jj.Get("clientY").Int()-top) / scale)
 		ts[i] = &Touch{
 			id: id,
-			x:  x,
-			y:  y,
+			x:  jj.Get("clientX").Int(),
+			y:  jj.Get("clientY").Int(),
 		}
 	}
 	i.touches = ts
