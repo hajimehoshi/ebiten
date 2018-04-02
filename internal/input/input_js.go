@@ -241,19 +241,19 @@ func OnMouseMove(e *js.Object) {
 	setMouseCursorFromEvent(e)
 }
 
-func OnTouchStart(e *js.Object, scale float64, left, top int) {
+func OnTouchStart(e *js.Object) {
 	e.Call("preventDefault")
-	theInput.updateTouches(e, scale, left, top)
+	theInput.updateTouches(e)
 }
 
-func OnTouchEnd(e *js.Object, scale float64, left, top int) {
+func OnTouchEnd(e *js.Object) {
 	e.Call("preventDefault")
-	theInput.updateTouches(e, scale, left, top)
+	theInput.updateTouches(e)
 }
 
-func OnTouchMove(e *js.Object, scale float64, left, top int) {
+func OnTouchMove(e *js.Object) {
 	e.Call("preventDefault")
-	theInput.updateTouches(e, scale, left, top)
+	theInput.updateTouches(e)
 }
 
 func setMouseCursorFromEvent(e *js.Object) {
@@ -261,7 +261,7 @@ func setMouseCursorFromEvent(e *js.Object) {
 	theInput.setMouseCursor(x, y)
 }
 
-func (i *Input) updateTouches(e *js.Object, scale float64, left, top int) {
+func (i *Input) updateTouches(e *js.Object) {
 	j := e.Get("targetTouches")
 	ts := make([]*Touch, j.Get("length").Int())
 	for i := 0; i < len(ts); i++ {

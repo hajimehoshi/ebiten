@@ -279,18 +279,9 @@ func initialize() error {
 	})
 
 	// Touch
-	canvas.Call("addEventListener", "touchstart", func(e *js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		input.OnTouchStart(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
-	})
-	canvas.Call("addEventListener", "touchend", func(e *js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		input.OnTouchEnd(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
-	})
-	canvas.Call("addEventListener", "touchmove", func(e *js.Object) {
-		rect := canvas.Call("getBoundingClientRect")
-		input.OnTouchMove(e, currentUI.getScale(), rect.Get("left").Int(), rect.Get("top").Int())
-	})
+	canvas.Call("addEventListener", "touchstart", input.OnTouchStart)
+	canvas.Call("addEventListener", "touchend", input.OnTouchEnd)
+	canvas.Call("addEventListener", "touchmove", input.OnTouchMove)
 
 	// Gamepad
 	window.Call("addEventListener", "gamepadconnected", func(e *js.Object) {
