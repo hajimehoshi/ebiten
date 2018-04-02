@@ -95,7 +95,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	if sizeChanged {
 		width = u.width
 		height = u.height
-		actualScale = u.actualScaleImpl()
+		actualScale = u.scaleImpl() * devicescale.DeviceScale()
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
@@ -112,17 +112,17 @@ func actualScale() float64 {
 
 func (u *userInterface) actualScale() float64 {
 	u.m.Lock()
-	s := u.actualScaleImpl()
+	s := u.scaleImpl() * devicescale.DeviceScale()
 	u.m.Unlock()
 	return s
 }
 
-func (u *userInterface) actualScaleImpl() float64 {
+func (u *userInterface) scaleImpl() float64 {
 	scale := u.scale
 	if u.fullscreenScale != 0 {
 		scale = u.fullscreenScale
 	}
-	return scale * devicescale.DeviceScale()
+	return scale
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
@@ -239,20 +239,26 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 }
 
 func AdjustedCursorPosition() (x, y int) {
-	return currentUI.adjustCursorPosition(input.Get().CursorPosition())
+	return currentUI.adjustPosition(input.Get().CursorPosition())
 }
 
 func AdjustedTouches() []*input.Touch {
-	// TODO: Apply adjustment here
-	return input.Get().Touches()
+	ts := input.Get().Touches()
+	adjusted := make([]*input.Touch, len(ts))
+	for i, t := range ts {
+		x, y := currentUI.adjustPosition(t.Position())
+		adjusted[i] = input.NewTouch(t.ID(), x, y)
+	}
+	return adjusted
 }
 
-func (u *userInterface) adjustCursorPosition(x, y int) (int, int) {
+func (u *userInterface) adjustPosition(x, y int) (int, int) {
 	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
-	s := u.actualScaleImpl()
+	s := u.scaleImpl()
+	as := s * devicescale.DeviceScale()
 	u.m.Unlock()
-	return x - int(ox/s), y - int(oy/s)
+	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
 
 func IsCursorVisible() bool {
@@ -292,9 +298,5 @@ func SetWindowDecorated(decorated bool) {
 }
 
 func UpdateTouches(touches []*input.Touch) {
-	currentUI.m.Lock()
-	ox, oy, _, _ := currentUI.screenPaddingImpl()
-	s := currentUI.actualScaleImpl()
-	currentUI.m.Unlock()
-	input.Get().UpdateTouches(touches, -int(ox/s), -int(oy/s))
+	input.Get().UpdateTouches(touches)
 }

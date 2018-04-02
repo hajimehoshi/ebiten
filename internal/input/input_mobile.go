@@ -40,17 +40,8 @@ func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 	return false
 }
 
-func (i *Input) UpdateTouches(touches []*Touch, dx, dy int) {
+func (i *Input) UpdateTouches(touches []*Touch) {
 	i.m.Lock()
-	ts := make([]*Touch, len(touches))
-	for i := 0; i < len(ts); i++ {
-		x, y := touches[i].Position()
-		ts[i] = &Touch{
-			id: touches[i].id,
-			x:  x + dx,
-			y:  y + dy,
-		}
-	}
-	i.touches = ts
+	i.touches = touches // TODO: Need copy?
 	i.m.Unlock()
 }

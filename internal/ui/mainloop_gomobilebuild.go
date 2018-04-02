@@ -25,6 +25,7 @@ import (
 	"golang.org/x/mobile/event/touch"
 	"golang.org/x/mobile/gl"
 
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -65,9 +66,10 @@ func appMain(a app.App) {
 		case touch.Event:
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
-				s := float32(actualScale())
+				s := devicescale.DeviceScale()
+				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
-				t := input.NewTouch(int(e.Sequence), int(e.X/s), int(e.Y/s))
+				t := input.NewTouch(int(e.Sequence), int(x), int(y))
 				touches[e.Sequence] = t
 			case touch.TypeEnd:
 				delete(touches, e.Sequence)

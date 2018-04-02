@@ -33,10 +33,7 @@ var (
 func updateTouches() {
 	ts := []*input.Touch{}
 	for id, position := range touches {
-		// TODO: Is this OK to adjust the position here?
-		x := int(float64(position.x) / ui.ScreenScale())
-		y := int(float64(position.y) / ui.ScreenScale())
-		ts = append(ts, input.NewTouch(id, x, y))
+		ts = append(ts, input.NewTouch(id, position.x, position.y))
 	}
 	ui.UpdateTouches(ts)
 }
