@@ -27,12 +27,6 @@ import (
 	"github.com/jakecoffman/cp"
 )
 
-const (
-	imageWidth     = 188
-	imageHeight    = 35
-	imageRowLength = 24
-)
-
 var (
 	space *cp.Space
 	dot   *ebiten.Image
@@ -41,10 +35,6 @@ var (
 func init() {
 	dot, _ = ebiten.NewImage(1, 1, ebiten.FilterNearest)
 	dot.Fill(color.White)
-}
-
-func getPixel(x, y uint) int {
-	return (imageBitmap[(x>>3)+y*imageRowLength] >> (^x & 0x7)) & 1
 }
 
 func update(screen *ebiten.Image) error {
@@ -67,6 +57,11 @@ func update(screen *ebiten.Image) error {
 
 	ebitenutil.DebugPrint(screen, fmt.Sprint(ebiten.CurrentFPS()))
 	return nil
+}
+
+func getPixel(x, y uint) int {
+	const imageRowLength = 24
+	return (imageBitmap[(x>>3)+y*imageRowLength] >> (^x & 0x7)) & 1
 }
 
 func makeBall(x, y float64) *cp.Shape {
@@ -117,6 +112,11 @@ var imageBitmap = []int{
 }
 
 func main() {
+	const (
+		imageWidth  = 188
+		imageHeight = 35
+	)
+
 	space = cp.NewSpace()
 	space.Iterations = 1
 
