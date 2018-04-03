@@ -439,8 +439,6 @@ func newImageWithScreenFramebuffer(width, height int) *Image {
 	return i
 }
 
-var GuaranteedMaxImageSize = 4096
-
 // MaxImageSize is deprecated as of 1.7.0-alpha. No replacement so far.
 //
 // TODO: Make this replacement (#541)
