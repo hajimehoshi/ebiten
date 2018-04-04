@@ -120,10 +120,6 @@ func (s *Image) Size() (width, height int) {
 func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	s.drawImage(img, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
-}
-
-func (s *Image) drawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	s.ensureNotShared()
 
 	// Compare i and img after ensuring i is not shared, or
