@@ -87,6 +87,20 @@ type Image struct {
 	node *packing.Node
 }
 
+type rand struct {
+	x, y, z, w uint32
+}
+
+func (r *rand) next() uint32 {
+	// Xorshift: http://en.wikipedia.org/wiki/Xorshift
+	t := r.x ^ (r.x << 11)
+	r.x, r.y, r.z = r.y, r.z, r.w
+	r.w = (r.w ^ (r.w >> 19)) ^ (t ^ (t >> 8))
+	return r.w
+}
+
+var theRand = &rand{12345678, 4185243, 776511, 45411}
+
 func (s *Image) ensureNotShared() {
 	if s.node == nil {
 		return
@@ -94,6 +108,16 @@ func (s *Image) ensureNotShared() {
 
 	x, y, w, h := s.region()
 	newImg := restorable.NewImage(w, h, false)
+
+	// Put a random color pixel on newImg to make tests reliable.
+	//
+	// Of course this function works without this ReplacePixels,
+	// but the tests might pass even if there is a bug in DrawImage
+	// because of GPU memory cache.
+	v := theRand.next()
+	r, g, b := uint8(v>>24), uint8(v>>16), uint8(v>>8)
+	newImg.ReplacePixels([]byte{r, g, b, 0xff}, 0, 0, 1, 1)
+
 	newImg.DrawImage(s.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	s.dispose()
