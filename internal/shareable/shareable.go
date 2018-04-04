@@ -112,8 +112,8 @@ func (s *Image) ensureNotShared() {
 	// Put a random color pixel on newImg to make tests reliable.
 	//
 	// Of course this function works without this ReplacePixels,
-	// but the tests might pass even if there is a bug in DrawImage
-	// because of GPU memory cache.
+	// but the tests might pass without this even if there is a bug
+	// in DrawImage because of previous GPU memory state.
 	v := theRand.next()
 	r, g, b := uint8(v>>24), uint8(v>>16), uint8(v>>8)
 	newImg.ReplacePixels([]byte{r, g, b, 0xff}, 0, 0, 1, 1)
