@@ -94,7 +94,7 @@ func (s *Image) ensureNotShared() {
 
 	x, y, w, h := s.region()
 	newImg := restorable.NewImage(w, h, false)
-	newImg.DrawImage(s.backend.restorable, x, y, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(s.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	s.dispose()
 	s.backend = &backend{
