@@ -72,13 +72,7 @@ type Image struct {
 	screen bool
 }
 
-var emptyImage = newImageWithoutInit(16, 16, false)
-
-func init() {
-	w, h := emptyImage.Size()
-	pix := make([]byte, 4*w*h)
-	emptyImage.ReplacePixels(pix, 0, 0, w, h)
-}
+var dummyImage = newImageWithoutInit(16, 16, false)
 
 func newImageWithoutInit(width, height int, volatile bool) *Image {
 	i := &Image{
@@ -100,10 +94,11 @@ func NewImage(width, height int, volatile bool) *Image {
 }
 
 func (i *Image) Clear(x, y, width, height int) {
-	w, h := emptyImage.Size()
+	w, h := dummyImage.Size()
 	geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
 	geom = geom.Translate(float64(x), float64(y))
-	i.DrawImage(emptyImage, 0, 0, w, h, geom, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
+	i.DrawImage(dummyImage, 0, 0, w, h, geom, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 }
 
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
