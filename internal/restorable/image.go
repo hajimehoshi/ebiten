@@ -72,6 +72,20 @@ type Image struct {
 	screen bool
 }
 
+type rand struct {
+	x, y, z, w uint32
+}
+
+func (r *rand) next() uint32 {
+	// Xorshift: http://en.wikipedia.org/wiki/Xorshift
+	t := r.x ^ (r.x << 11)
+	r.x, r.y, r.z = r.y, r.z, r.w
+	r.w = (r.w ^ (r.w >> 19)) ^ (t ^ (t >> 8))
+	return r.w
+}
+
+var theRand = &rand{12345678, 4185243, 776511, 45411}
+
 // NewImage creates an empty image with the given size.
 func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{
@@ -80,6 +94,17 @@ func NewImage(width, height int, volatile bool) *Image {
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
+
+	// Put a random color pixel on newImg to make tests reliable
+	// (e.g. shareable_test.TestEnsureNotShared. This test might pass
+	// without this ReplacePixels even when the next DrawImage has a bug).
+	// This avoids to use remaining GPU memory state unexpectedly.
+	//
+	// TODO: Is it better clearing the image? How about the cost?
+	v := theRand.next()
+	r, g, b := uint8(v>>24), uint8(v>>16), uint8(v>>8)
+	i.ReplacePixels([]byte{r, g, b, 0xff}, 0, 0, 1, 1)
+
 	return i
 }
 
