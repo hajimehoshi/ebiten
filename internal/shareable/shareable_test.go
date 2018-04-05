@@ -42,7 +42,8 @@ func TestMain(m *testing.M) {
 
 const bigSize = 2049
 
-func TestEnsureNotShared(t *testing.T) {
+// Temporary disabled per #575.
+func Disabled_TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
 	img1 := NewImage(bigSize, 100)
