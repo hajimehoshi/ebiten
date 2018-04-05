@@ -40,13 +40,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+const bigSize = 2049
+
 func TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
-	img1 := NewImage(2049, 100)
+	img1 := NewImage(bigSize, 100)
 	defer img1.Dispose()
 
-	img2 := NewImage(100, 2049)
+	img2 := NewImage(100, bigSize)
 	defer img2.Dispose()
 
 	const size = 32
@@ -95,5 +97,28 @@ func TestEnsureNotShared(t *testing.T) {
 				t.Errorf("img4.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+func TestDispose(t *testing.T) {
+	// There are already backend image for the offscreen or something.
+	// Creating a big image and the next image should be created at a new backend.
+	img1 := NewImage(bigSize, bigSize)
+	defer img1.Dispose()
+
+	if BackendNumForTesting() != 1 {
+		t.Errorf("BackendNumForTesting(): got: %d, want: %d", BackendNumForTesting(), 1)
+	}
+
+	img2 := NewImage(bigSize, bigSize)
+
+	if BackendNumForTesting() != 2 {
+		t.Errorf("BackendNumForTesting(): got: %d, want: %d", BackendNumForTesting(), 2)
+	}
+
+	img2.Dispose()
+
+	if BackendNumForTesting() != 1 {
+		t.Errorf("BackendNumForTesting(): got: %d, want: %d", BackendNumForTesting(), 1)
 	}
 }

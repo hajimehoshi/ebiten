@@ -191,6 +191,7 @@ func (s *Image) dispose() {
 		return
 	}
 
+	s.backend.restorable.Dispose()
 	index := -1
 	for i, sh := range theBackends {
 		if sh == s.backend {
@@ -312,4 +313,10 @@ func Restore() error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.Restore()
+}
+
+func BackendNumForTesting() int {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return len(theBackends)
 }
