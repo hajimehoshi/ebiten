@@ -25,9 +25,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	. "github.com/hajimehoshi/ebiten/internal/shareable"
+	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
 
 func TestMain(m *testing.M) {
+	testflock.Lock()
+	defer testflock.Unlock()
+
 	code := 0
 	regularTermination := errors.New("regular termination")
 	f := func(screen *ebiten.Image) error {
@@ -42,8 +46,7 @@ func TestMain(m *testing.M) {
 
 const bigSize = 2049
 
-// Temporary disabled per #575.
-func Disabled_TestEnsureNotShared(t *testing.T) {
+func TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
 	img1 := NewImage(bigSize, 100)

@@ -21,12 +21,15 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/go-mplusbitmap"
-
+	"github.com/hajimehoshi/ebiten/internal/testflock"
 	. "github.com/hajimehoshi/ebiten/text"
+	"github.com/hajimehoshi/go-mplusbitmap"
 )
 
 func TestMain(m *testing.M) {
+	testflock.Lock()
+	defer testflock.Unlock()
+
 	code := 0
 	// Run an Ebiten process so that (*Image).At is available.
 	regularTermination := errors.New("regular termination")

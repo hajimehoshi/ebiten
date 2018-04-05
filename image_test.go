@@ -29,9 +29,13 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
+	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
 
 func TestMain(m *testing.M) {
+	testflock.Lock()
+	defer testflock.Unlock()
+
 	code := 0
 	// Run an Ebiten process so that (*Image).At is available.
 	regularTermination := errors.New("regular termination")

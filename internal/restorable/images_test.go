@@ -26,9 +26,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	. "github.com/hajimehoshi/ebiten/internal/restorable"
+	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
 
 func TestMain(m *testing.M) {
+	testflock.Lock()
+	defer testflock.Unlock()
+
 	EnableRestoringForTesting()
 	code := 0
 	regularTermination := errors.New("regular termination")
