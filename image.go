@@ -57,12 +57,6 @@ type Image struct {
 }
 
 func (i *Image) copyCheck() {
-	if i.addr == nil {
-		// As it is OK that an image is allocated at heap,
-		// 'noespace' function like strings.noescape is not needed.
-		i.addr = i
-		return
-	}
 	if i.addr != i {
 		panic("ebiten: illegal use of non-zero Image copied by value")
 	}
@@ -365,6 +359,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		shareableImage: s,
 		filter:         filter,
 	}
+	i.addr = i
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
@@ -377,6 +372,7 @@ func newImageWithoutInit(width, height int) *Image {
 		shareableImage: s,
 		filter:         FilterDefault,
 	}
+	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
@@ -401,6 +397,7 @@ func newVolatileImage(width, height int, filter Filter) *Image {
 		shareableImage: shareable.NewVolatileImage(width, height),
 		filter:         filter,
 	}
+	i.addr = i
 	i.fill(0, 0, 0, 0)
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
@@ -424,6 +421,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		shareableImage: s,
 		filter:         filter,
 	}
+	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
 
 	_ = i.ReplacePixels(graphicsutil.CopyImage(source))
@@ -435,6 +433,7 @@ func newImageWithScreenFramebuffer(width, height int) *Image {
 		shareableImage: shareable.NewScreenFramebufferImage(width, height),
 		filter:         FilterDefault,
 	}
+	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
