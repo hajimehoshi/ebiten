@@ -72,43 +72,43 @@ type Image struct {
 	screen bool
 }
 
-type rand struct {
-	x, y, z, w uint32
+var emptyImage = newImageWithoutInit(16, 16, false)
+
+func init() {
+	w, h := emptyImage.Size()
+	pix := make([]byte, 4*w*h)
+	emptyImage.ReplacePixels(pix, 0, 0, w, h)
 }
 
-func (r *rand) next() uint32 {
-	// Xorshift: http://en.wikipedia.org/wiki/Xorshift
-	t := r.x ^ (r.x << 11)
-	r.x, r.y, r.z = r.y, r.z, r.w
-	r.w = (r.w ^ (r.w >> 19)) ^ (t ^ (t >> 8))
-	return r.w
-}
-
-var theRand = &rand{12345678, 4185243, 776511, 45411}
-
-// NewImage creates an empty image with the given size.
-func NewImage(width, height int, volatile bool) *Image {
+func newImageWithoutInit(width, height int, volatile bool) *Image {
 	i := &Image{
 		image:    graphics.NewImage(width, height),
 		volatile: volatile,
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
-
-	// Put a random color pixel on newImg to make tests reliable
-	// (e.g. shareable_test.TestEnsureNotShared. This test might pass
-	// without this ReplacePixels even when the next DrawImage has a bug).
-	// This avoids to use remaining GPU memory state unexpectedly.
-	//
-	// TODO: Is it better clearing the image? How about the cost?
-	v := theRand.next()
-	r, g, b := uint8(v>>24), uint8(v>>16), uint8(v>>8)
-	i.ReplacePixels([]byte{r, g, b, 0xff}, 0, 0, 1, 1)
-
 	return i
 }
 
+// NewImage creates an empty image with the given size.
+//
+// The returned image is cleared.
+func NewImage(width, height int, volatile bool) *Image {
+	i := newImageWithoutInit(width, height, volatile)
+	i.Clear(0, 0, width, height)
+	return i
+}
+
+func (i *Image) Clear(x, y, width, height int) {
+	w, h := emptyImage.Size()
+	geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
+	geom = geom.Translate(float64(x), float64(y))
+	i.DrawImage(emptyImage, 0, 0, w, h, geom, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+}
+
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
+//
+// The returned image is cleared.
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		image:    graphics.NewScreenFramebufferImage(width, height),
@@ -117,6 +117,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	}
 	theImages.add(i)
 	runtime.SetFinalizer(i, (*Image).Dispose)
+	i.Clear(0, 0, width, height)
 	return i
 }
 
