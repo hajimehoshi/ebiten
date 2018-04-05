@@ -112,8 +112,8 @@ func (s *Image) region() (x, y, width, height int) {
 
 func (s *Image) Size() (width, height int) {
 	backendsM.Lock()
+	defer backendsM.Unlock()
 	_, _, w, h := s.region()
-	backendsM.Unlock()
 	return w, h
 }
 
@@ -149,15 +149,14 @@ func (s *Image) ReplacePixels(p []byte) {
 
 func (s *Image) At(x, y int) (color.Color, error) {
 	backendsM.Lock()
+	defer backendsM.Unlock()
 
 	ox, oy, w, h := s.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
-		backendsM.Unlock()
 		return color.RGBA{}, nil
 	}
 
 	clr, err := s.backend.restorable.At(x+ox, y+oy)
-	backendsM.Unlock()
 	return clr, err
 }
 
@@ -207,8 +206,8 @@ func (s *Image) dispose() {
 
 func (s *Image) IsInvalidated() (bool, error) {
 	backendsM.Lock()
+	defer backendsM.Unlock()
 	v, err := s.backend.restorable.IsInvalidated()
-	backendsM.Unlock()
 	return v, err
 }
 
