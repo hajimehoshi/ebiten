@@ -80,12 +80,8 @@ func fill(img *Image, r, g, b, a uint8) {
 
 func TestRestore(t *testing.T) {
 	img0 := NewImage(1, 1, false)
-	// Clear images explicitly.
-	// In this 'restorable' layer, reused texture might not be cleared.
-	fill(img0, 0, 0, 0, 0)
-	defer func() {
-		img0.Dispose()
-	}()
+	defer img0.Dispose()
+
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	fill(img0, clr0.R, clr0.G, clr0.B, clr0.A)
 	if err := ResolveStaleImages(); err != nil {
