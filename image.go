@@ -26,20 +26,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
-// emptyImage is an empty image used for filling other images with a uniform color.
+// dummyImage is an empty image used for filling other images with a uniform color.
 //
-// Do not call Fill or Clear on emptyImage or the program causes infinite recursion.
-var emptyImage *Image
-
-func init() {
-	const (
-		w = 16
-		h = 16
-	)
-	emptyImage = newImageWithoutInit(w, h)
-	pix := make([]uint8, w*h*4)
-	_ = emptyImage.ReplacePixels(pix)
-}
+// Do not call Fill or Clear on dummyImage or the program causes infinite recursion.
+var dummyImage = newImageWithoutInit(16, 16)
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
@@ -92,11 +82,12 @@ func (i *Image) Fill(clr color.Color) error {
 
 func (i *Image) fill(r, g, b, a uint8) {
 	wd, hd := i.Size()
-	ws, hs := emptyImage.Size()
+	ws, hs := dummyImage.Size()
 	sw := float64(wd) / float64(ws)
 	sh := float64(hd) / float64(hs)
 	op := &DrawImageOptions{}
 	op.GeoM.Scale(sw, sh)
+	op.ColorM.Scale(0, 0, 0, 0)
 	if a > 0 {
 		rf := float64(r) / float64(a)
 		gf := float64(g) / float64(a)
@@ -106,7 +97,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	}
 	op.CompositeMode = CompositeModeCopy
 	op.Filter = FilterNearest
-	_ = i.DrawImage(emptyImage, op)
+	_ = i.DrawImage(dummyImage, op)
 }
 
 func (i *Image) isDisposed() bool {

@@ -102,11 +102,12 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	// TODO: This clear is needed only when the screen size is changed.
 	if c.offsetX > 0 || c.offsetY > 0 {
 		op := &DrawImageOptions{}
-		w, h := emptyImage.Size()
+		w, h := dummyImage.Size()
 		s := float64(graphics.MaxImageSize())
 		op.GeoM.Scale(s/float64(w), s/float64(h))
+		op.ColorM.Scale(0, 0, 0, 0)
 		op.CompositeMode = CompositeModeCopy
-		c.screen.DrawImage(emptyImage, op)
+		c.screen.DrawImage(dummyImage, op)
 	}
 
 	dw, dh := c.screen.Size()
