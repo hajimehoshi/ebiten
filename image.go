@@ -373,10 +373,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 //
 // Error returned by newVolatileImage is always nil as of 1.5.0-alpha.
-func newVolatileImage(width, height int, filter Filter) *Image {
+func newVolatileImage(width, height int) *Image {
 	i := &Image{
 		shareableImage: shareable.NewVolatileImage(width, height),
-		filter:         filter,
+		filter:         FilterDefault,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
