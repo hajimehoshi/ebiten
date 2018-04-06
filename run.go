@@ -78,8 +78,8 @@ func IsRunningSlowly() bool {
 
 var theGraphicsContext atomic.Value
 
-func run(width, height int, scale float64, title string, g *graphicsContext) error {
-	if err := ui.Run(width, height, scale, title, g); err != nil {
+func run(width, height int, scale float64, title string, g *graphicsContext, mainloop bool) error {
+	if err := ui.Run(width, height, scale, title, g, mainloop); err != nil {
 		if err == ui.RegularTermination {
 			return nil
 		}
@@ -124,7 +124,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := run(width, height, scale, title, g); err != nil {
+		if err := run(width, height, scale, title, g, true); err != nil {
 			ch <- err
 			return
 		}
@@ -148,7 +148,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 
 		g := newGraphicsContext(f)
 		theGraphicsContext.Store(g)
-		if err := run(width, height, scale, title, g); err != nil {
+		if err := run(width, height, scale, title, g, false); err != nil {
 			ch <- err
 			return
 		}

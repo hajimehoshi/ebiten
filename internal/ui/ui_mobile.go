@@ -23,9 +23,23 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/mobile/app"
+	"golang.org/x/mobile/event/lifecycle"
+	"golang.org/x/mobile/event/paint"
+	"golang.org/x/mobile/event/size"
+	"golang.org/x/mobile/event/touch"
+	"golang.org/x/mobile/gl"
+
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+)
+
+var (
+	glContextCh = make(chan gl.Context)
+	renderCh    = make(chan struct{})
+	renderChEnd = make(chan struct{})
+	currentUI   = &userInterface{}
 )
 
 func Render(chError <-chan error) error {
@@ -37,8 +51,8 @@ func Render(chError <-chan error) error {
 	}
 	// TODO: Check this is called on the rendering thread
 	select {
-	case chRender <- struct{}{}:
-		return opengl.GetContext().DoWork(chError, chRenderEnd)
+	case renderCh <- struct{}{}:
+		return opengl.GetContext().DoWork(chError, renderChEnd)
 	case <-time.After(500 * time.Millisecond):
 		// This function must not be blocked. We need to break for timeout.
 		return nil
@@ -59,13 +73,57 @@ type userInterface struct {
 	m sync.RWMutex
 }
 
-var (
-	chRender    = make(chan struct{})
-	chRenderEnd = make(chan struct{})
-	currentUI   = &userInterface{}
-)
+// appMain is the main routine for gomobile-build mode.
+func appMain(a app.App) {
+	var glctx gl.Context
+	touches := map[touch.Sequence]*input.Touch{}
+	for e := range a.Events() {
+		switch e := a.Filter(e).(type) {
+		case lifecycle.Event:
+			switch e.Crosses(lifecycle.StageVisible) {
+			case lifecycle.CrossOn:
+				glctx, _ = e.DrawContext.(gl.Context)
+				// Assume that glctx is always a same instance.
+				// Then, only once initializing should be enough.
+				if glContextCh != nil {
+					glContextCh <- glctx
+					glContextCh = nil
+				}
+				a.Send(paint.Event{})
+			case lifecycle.CrossOff:
+				glctx = nil
+			}
+		case size.Event:
+			setFullscreen(e.WidthPx, e.HeightPx)
+		case paint.Event:
+			if glctx == nil || e.External {
+				continue
+			}
+			renderCh <- struct{}{}
+			<-renderChEnd
+			a.Publish()
+			a.Send(paint.Event{})
+		case touch.Event:
+			switch e.Type {
+			case touch.TypeBegin, touch.TypeMove:
+				s := devicescale.DeviceScale()
+				x, y := float64(e.X)/s, float64(e.Y)/s
+				// TODO: Is it ok to cast from int64 to int here?
+				t := input.NewTouch(int(e.Sequence), int(x), int(y))
+				touches[e.Sequence] = t
+			case touch.TypeEnd:
+				delete(touches, e.Sequence)
+			}
+			ts := []*input.Touch{}
+			for _, t := range touches {
+				ts = append(ts, t)
+			}
+			UpdateTouches(ts)
+		}
+	}
+}
 
-func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	u := currentUI
 
 	u.m.Lock()
@@ -76,13 +134,25 @@ func Run(width, height int, scale float64, title string, g GraphicsContext) erro
 	u.m.Unlock()
 	// title is ignored?
 
-	initOpenGL()
+	if mainloop {
+		ctx := <-glContextCh
+		opengl.InitWithContext(ctx)
+	} else {
+		opengl.Init()
+	}
 
 	for {
 		if err := u.update(g); err != nil {
 			return err
 		}
 	}
+}
+
+// RunMainThreadLoop runs the main routine for gomobile-build.
+func RunMainThreadLoop(ch <-chan error) error {
+	// TODO: ch should be used
+	app.Main(appMain)
+	return nil
 }
 
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
@@ -126,9 +196,9 @@ func (u *userInterface) scaleImpl() float64 {
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
-	<-chRender
+	<-renderCh
 	defer func() {
-		chRenderEnd <- struct{}{}
+		renderChEnd <- struct{}{}
 	}()
 
 	u.updateGraphicsContext(g)

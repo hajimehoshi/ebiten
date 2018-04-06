@@ -302,7 +302,7 @@ func RunMainThreadLoop(ch <-chan error) error {
 	return <-ch
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	u := currentUI
 	doc := js.Global.Get("document")
 	doc.Set("title", title)

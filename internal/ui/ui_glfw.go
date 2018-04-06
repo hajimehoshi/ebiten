@@ -434,7 +434,7 @@ func SetWindowDecorated(decorated bool) {
 	//     return nil
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	<-currentUIInitialized
 
 	u := currentUI
