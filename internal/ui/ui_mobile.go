@@ -150,7 +150,12 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 
 // RunMainThreadLoop runs the main routine for gomobile-build.
 func RunMainThreadLoop(ch <-chan error) error {
-	// TODO: ch should be used
+	go func() {
+		// As mobile apps never ends, RunMainThreadLoop can't return.
+		// Just panic here.
+		err := <-ch
+		panic(err)
+	}()
 	app.Main(appMain)
 	return nil
 }
