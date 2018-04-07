@@ -24,18 +24,23 @@ import (
 	. "github.com/hajimehoshi/ebiten/audio/vorbis"
 )
 
+var audioContext *audio.Context
+
+func init() {
+	var err error
+	audioContext, err = audio.NewContext(44100)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func TestMono(t *testing.T) {
 	bs, err := ioutil.ReadFile("test_mono.ogg")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	c, err := audio.NewContext(44100)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s, err := Decode(c, audio.BytesReadSeekCloser(bs))
+	s, err := Decode(audioContext, audio.BytesReadSeekCloser(bs))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,6 +58,24 @@ func TestMono(t *testing.T) {
 	// this needs to be doubled by 2 (= bytes in 16bits).
 	want := r.Length() * 2 * 2
 
+	if got != want {
+		t.Errorf("s.Length(): got: %d, want: %d", got, want)
+	}
+}
+
+func TestTooShort(t *testing.T) {
+	bs, err := ioutil.ReadFile("test_tooshort.ogg")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := Decode(audioContext, audio.BytesReadSeekCloser(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := s.Length()
+	want := int64(79424)
 	if got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
 	}
