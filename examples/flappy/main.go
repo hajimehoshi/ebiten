@@ -25,6 +25,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/golang/freetype/truetype"
@@ -379,6 +380,11 @@ func (g *Game) drawGopher(screen *ebiten.Image) {
 
 func main() {
 	g := NewGame()
+	// On browsers, let's use fullscreen so that this is playable on any browsers.
+	// It is planned to ignore the given 'scale' apply fullscreen automatically on browsers (#571).
+	if runtime.GOARCH == "js" {
+		ebiten.SetFullscreen(true)
+	}
 	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 1, "Flappy Gopher (Ebiten Demo)"); err != nil {
 		panic(err)
 	}
