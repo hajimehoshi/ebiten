@@ -182,11 +182,8 @@ func jump() bool {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return true
 	}
-	if len(ebiten.Touches()) > 0 {
-		id := ebiten.Touches()[0].ID()
-		if inpututil.IsJustTouched(id) {
-			return true
-		}
+	if len(inpututil.JustPressedTouches()) > 0 {
+		return true
 	}
 	return false
 }

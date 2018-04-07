@@ -249,12 +249,19 @@ func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 	return s
 }
 
-// IsJustTouched returns a boolean value indicating
-// whether the given touch is pressed just in the current frame.
+// JustPressedTouches returns touch IDs that are created just in the current frame.
 //
-// IsJustTouched is concurrent safe.
-func IsJustTouched(id int) bool {
-	return TouchDuration(id) == 1
+// JustPressedTouches is concurrent safe.
+func JustPressedTouches() []int {
+	ids := []int{}
+	theInputState.m.RLock()
+	for id, s := range theInputState.touchStates {
+		if s == 1 {
+			ids = append(ids, id)
+		}
+	}
+	theInputState.m.RUnlock()
+	return ids
 }
 
 // IsTouchJustReleased returns a boolean value indicating
