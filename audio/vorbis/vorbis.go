@@ -172,7 +172,7 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		decoder:    r,
 	}
 	runtime.SetFinalizer(d, (*decoded).Close)
-	if _, err := d.Read(make([]uint8, 65536)); err != nil {
+	if _, err := d.Read(make([]uint8, 65536)); err != nil && err != io.EOF {
 		return nil, 0, 0, err
 	}
 	if _, err := d.Seek(0, io.SeekStart); err != nil {
