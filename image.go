@@ -61,6 +61,10 @@ func (i *Image) Size() (width, height int) {
 	return i.shareableImage.Size()
 }
 
+func (i *Image) isDisposed() bool {
+	return i.shareableImage == nil
+}
+
 // Clear resets the pixels of the image into 0.
 //
 // When the image is disposed, Clear does nothing.
@@ -68,6 +72,9 @@ func (i *Image) Size() (width, height int) {
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
 	i.copyCheck()
+	if i.isDisposed() {
+		return nil
+	}
 	i.fill(0, 0, 0, 0)
 	return nil
 }
@@ -79,6 +86,9 @@ func (i *Image) Clear() error {
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
+	if i.isDisposed() {
+		return nil
+	}
 	r, g, b, a := clr.RGBA()
 	i.fill(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
 	return nil
@@ -101,10 +111,6 @@ func (i *Image) fill(r, g, b, a uint8) {
 	op.CompositeMode = CompositeModeCopy
 	op.Filter = FilterNearest
 	_ = i.DrawImage(emptyImage, op)
-}
-
-func (i *Image) isDisposed() bool {
-	return i.shareableImage == nil
 }
 
 // DrawImage draws the given image on the image i.
