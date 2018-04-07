@@ -239,7 +239,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	var texts []string
 	switch g.mode {
 	case ModeTitle:
-		texts = []string{"FLAPPY GOPHER", "", "", "", "", "PRESS SPACE"}
+		texts = []string{"FLAPPY GOPHER", "", "", "", "", "PRESS SPACE KEY", "", "OR TOUCH SCREEN"}
 	case ModeGameOver:
 		texts = []string{"", "GAMEOVER!"}
 	}
