@@ -182,9 +182,11 @@ func jump() bool {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		return true
 	}
-	// TODO: Is it correct to use ID '0' here?
-	if inpututil.IsJustTouched(0) {
-		return true
+	if len(ebiten.Touches()) > 0 {
+		id := ebiten.Touches()[0].ID()
+		if inpututil.IsJustTouched(id) {
+			return true
+		}
 	}
 	return false
 }
