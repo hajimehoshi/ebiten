@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,131 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - tiles</h2>
-  <iframe src="tiles.content.html" width="480" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;bytes&#34;
-        &#34;fmt&#34;
-        &#34;image&#34;
-        _ &#34;image/png&#34;
-        &#34;log&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-        &#34;github.com/hajimehoshi/ebiten/examples/resources/images&#34;
-)
-
-const (
-        screenWidth  = 240
-        screenHeight = 240
-)
-
-const (
-        tileSize = 16
-        tileXNum = 25
-)
-
-var (
-        tilesImage *ebiten.Image
-)
-
-func init() {
-        // Decode image from a byte slice instead of a file so that
-        // this example works in any working directory.
-        // If you want to use a file, there are some options:
-        // 1) Use os.Open and pass the file to the image decoder.
-        //    This is a very regular way, but doesn&#39;t work on browsers.
-        // 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-        //    This works even on browsers.
-        // 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-        //    This also works on browsers.
-        img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
-        if err != nil {
-                log.Fatal(err)
-        }
-        tilesImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-}
-
-var (
-        layers = [][]int{
-                {
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 218, 243, 243, 243, 243, 243, 243, 243, 243, 243, 218, 243, 244, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 244, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 219, 243, 243, 243, 219, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                        243, 218, 243, 243, 243, 243, 243, 243, 243, 243, 243, 244, 243, 243, 243,
-                        243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
-                },
-                {
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 26, 27, 28, 29, 30, 31, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 51, 52, 53, 54, 55, 56, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 76, 77, 78, 79, 80, 81, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 101, 102, 103, 104, 105, 106, 0, 0, 0, 0,
-
-                        0, 0, 0, 0, 0, 126, 127, 128, 129, 130, 131, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 303, 303, 245, 242, 303, 303, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 245, 242, 0, 0, 0, 0, 0, 0,
-                },
-        }
-)
-
-func update(screen *ebiten.Image) error {
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        // Draw each tile with each DrawImage call.
-        // As the source images of all DrawImage calls are always same,
-        // this rendering is done very effectively.
-        // For more detail, see https://godoc.org/github.com/hajimehoshi/ebiten#Image.DrawImage
-        const xNum = screenWidth / tileSize
-        for _, l := range layers {
-                for i, t := range l {
-                        op := &amp;ebiten.DrawImageOptions{}
-                        op.GeoM.Translate(float64((i%xNum)*tileSize), float64((i/xNum)*tileSize))
-
-                        sx := (t % tileXNum) * tileSize
-                        sy := (t / tileXNum) * tileSize
-                        r := image.Rect(sx, sy, sx&#43;tileSize, sy&#43;tileSize)
-                        op.SourceRect = &amp;r
-                        screen.DrawImage(tilesImage, op)
-                }
-        }
-
-        ebitenutil.DebugPrint(screen, fmt.Sprintf(&#34;FPS: %0.2f&#34;, ebiten.CurrentFPS()))
-
-        return nil
-}
-
-func main() {
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Tiles (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/tiles">Go Playground page</a></p>
 
 </div></main>
 

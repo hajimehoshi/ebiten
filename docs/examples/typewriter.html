@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,72 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - typewriter</h2>
-  <iframe src="typewriter.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;log&#34;
-        &#34;strings&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-)
-
-var (
-        text          = &#34;Type on the keyboard:\n&#34;
-        counter       = 0
-        bsPrevPressed = false
-)
-
-func update(screen *ebiten.Image) error {
-        // Add a string from InputChars, that returns string input by users.
-        // Note that InputChars result changes every frame, so you need to call this
-        // every frame.
-        text &#43;= string(ebiten.InputChars())
-
-        // Adjust the string to be at most 10 lines.
-        ss := strings.Split(text, &#34;\n&#34;)
-        if len(ss) &gt; 10 {
-                text = strings.Join(ss[len(ss)-10:], &#34;\n&#34;)
-        }
-
-        // If the enter key is pressed, add a line break.
-        if ebiten.IsKeyPressed(ebiten.KeyEnter) &amp;&amp; !strings.HasSuffix(text, &#34;\n&#34;) {
-                text &#43;= &#34;\n&#34;
-        }
-
-        // If the backspace key is pressed, remove one character.
-        bsPressed := ebiten.IsKeyPressed(ebiten.KeyBackspace)
-        if !bsPrevPressed &amp;&amp; bsPressed {
-                if len(text) &gt;= 1 {
-                        text = text[:len(text)-1]
-                }
-        }
-        bsPrevPressed = bsPressed
-
-        counter&#43;&#43;
-
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        // Blink the cursor.
-        t := text
-        if counter%60 &lt; 30 {
-                t &#43;= &#34;_&#34;
-        }
-        ebitenutil.DebugPrint(screen, t)
-        return nil
-}
-
-func main() {
-        if err := ebiten.Run(update, 320, 240, 2.0, &#34;Typewriter (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/typewriter">Go Playground page</a></p>
 
 </div></main>
 

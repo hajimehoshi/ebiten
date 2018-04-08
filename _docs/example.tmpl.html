@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,8 +25,7 @@
 <main><div class="container">
 {{with .Example}}
   <h2>Ebiten example - {{.Name}}</h2>
-  <iframe src="{{.Name}}.content.html" width="{{.Width}}" height="{{.Height}}"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">{{.Source}}</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/{{.Name}}">Go Playground page</a></p>
 {{end}}
 </div></main>
 

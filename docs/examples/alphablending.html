@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,83 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - alphablending</h2>
-  <iframe src="alphablending.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;bytes&#34;
-        &#34;image&#34;
-        &#34;image/color&#34;
-        _ &#34;image/png&#34;
-        &#34;log&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/examples/resources/images&#34;
-)
-
-const (
-        screenWidth  = 320
-        screenHeight = 240
-)
-
-var (
-        count       int
-        ebitenImage *ebiten.Image
-)
-
-func update(screen *ebiten.Image) error {
-        count&#43;&#43;
-        count %= ebiten.FPS * 10
-        diff := float64(count) * 0.2
-        switch {
-        case 480 &lt; count:
-                diff = 0
-        case 240 &lt; count:
-                diff = float64(480-count) * 0.2
-        }
-
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        screen.Fill(color.NRGBA{0x00, 0x00, 0x80, 0xff})
-
-        // Draw 100 Ebitens
-        op := &amp;ebiten.DrawImageOptions{}
-        op.ColorM.Scale(1.0, 1.0, 1.0, 0.5)
-        for i := 0; i &lt; 10*10; i&#43;&#43; {
-                op.GeoM.Reset()
-                x := float64(i%10)*diff &#43; 15
-                y := float64(i/10)*diff &#43; 20
-                op.GeoM.Translate(x, y)
-                screen.DrawImage(ebitenImage, op)
-        }
-        return nil
-}
-
-func main() {
-        // Decode image from a byte slice instead of a file so that
-        // this example works in any working directory.
-        // If you want to use a file, there are some options:
-        // 1) Use os.Open and pass the file to the image decoder.
-        //    This is a very regular way, but doesn&#39;t work on browsers.
-        // 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-        //    This works even on browsers.
-        // 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-        //    This also works on browsers.
-        img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
-        if err != nil {
-                log.Fatal(err)
-        }
-        ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Alpha Blending (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/alphablending">Go Playground page</a></p>
 
 </div></main>
 

@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,79 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - filter</h2>
-  <iframe src="filter.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;bytes&#34;
-        &#34;image&#34;
-        _ &#34;image/png&#34;
-        &#34;log&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-        &#34;github.com/hajimehoshi/ebiten/examples/resources/images&#34;
-)
-
-const (
-        screenWidth  = 640
-        screenHeight = 480
-)
-
-var (
-        ebitenImage *ebiten.Image
-)
-
-func update(screen *ebiten.Image) error {
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        ebitenutil.DebugPrint(screen, &#34;Nearest Filter (default) VS Linear Filter&#34;)
-
-        op := &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Scale(4, 4)
-        op.GeoM.Translate(64, 64)
-        // By default, nearest filter is used.
-        screen.DrawImage(ebitenImage, op)
-
-        op = &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Scale(4, 4)
-        op.GeoM.Translate(64, 64&#43;240)
-        // Specify linear filter.
-        op.Filter = ebiten.FilterLinear
-        screen.DrawImage(ebitenImage, op)
-
-        return nil
-}
-
-func main() {
-        // Decode image from a byte slice instead of a file so that
-        // this example works in any working directory.
-        // If you want to use a file, there are some options:
-        // 1) Use os.Open and pass the file to the image decoder.
-        //    This is a very regular way, but doesn&#39;t work on browsers.
-        // 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-        //    This works even on browsers.
-        // 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-        //    This also works on browsers.
-        img, _, err := image.Decode(bytes.NewReader(images.Ebiten_png))
-        if err != nil {
-                log.Fatal(err)
-        }
-
-        // Specifying filter on NewImage[FromImage] is just for backward compatibility.
-        // Now specifying filter at DrawImageOptions is recommended.
-        // Specify FilterDefault here, that means to prefer filter specified at DrawImageOptions.
-        ebitenImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-
-        if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Filter (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/filter">Go Playground page</a></p>
 
 </div></main>
 

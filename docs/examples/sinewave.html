@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,99 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - sinewave</h2>
-  <iframe src="sinewave.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;errors&#34;
-        &#34;fmt&#34;
-        &#34;log&#34;
-        &#34;math&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/audio&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-)
-
-const (
-        screenWidth  = 320
-        screenHeight = 240
-        sampleRate   = 44100
-        frequency    = 440
-)
-
-var audioContext *audio.Context
-
-func init() {
-        var err error
-        audioContext, err = audio.NewContext(sampleRate)
-        if err != nil {
-                log.Fatal(err)
-        }
-}
-
-// stream is an infinite stream of 440 Hz sine wave.
-type stream struct {
-        position int64
-}
-
-// Read is io.Reader&#39;s Read.
-//
-// Read fills the data with sine wave samples.
-func (s *stream) Read(data []byte) (int, error) {
-        if len(data)%4 != 0 {
-                return 0, errors.New(&#34;len(data) % 4 must be 0&#34;)
-        }
-        const length = sampleRate / frequency // TODO: This should be integer?
-        p := s.position / 4
-        for i := 0; i &lt; len(data)/4; i&#43;&#43; {
-                const max = (1&lt;&lt;15 - 1) / 2
-                b := int16(math.Sin(2*math.Pi*float64(p)/length) * max)
-                data[4*i] = byte(b)
-                data[4*i&#43;1] = byte(b &gt;&gt; 8)
-                data[4*i&#43;2] = byte(b)
-                data[4*i&#43;3] = byte(b &gt;&gt; 8)
-                p&#43;&#43;
-        }
-        s.position &#43;= int64(len(data))
-        s.position %= length * 4
-        return len(data), nil
-}
-
-// Close is io.Closer&#39;s Close.
-func (s *stream) Close() error {
-        return nil
-}
-
-var player *audio.Player
-
-func update(screen *ebiten.Image) error {
-        if player == nil {
-                // Pass the (infinite) stream to audio.NewPlayer.
-                // After calling Play, the stream never ends as long as the player object lives.
-                var err error
-                player, err = audio.NewPlayer(audioContext, &amp;stream{})
-                if err != nil {
-                        return err
-                }
-                player.Play()
-        }
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-        msg := fmt.Sprintf(&#34;FPS: %0.2f\nThis is an example using infinite audio stream.&#34;, ebiten.CurrentFPS())
-        ebitenutil.DebugPrint(screen, msg)
-        return nil
-}
-
-func main() {
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Sine Wave (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/sinewave">Go Playground page</a></p>
 
 </div></main>
 

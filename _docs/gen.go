@@ -19,7 +19,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -37,29 +36,7 @@ const (
 )
 
 var (
-	examplesDir = filepath.Join("public", "examples")
-)
-
-func execute(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	msg, err := ioutil.ReadAll(stderr)
-	if err != nil {
-		return err
-	}
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("%v: %s", err, string(msg))
-	}
-	return nil
-}
-
-var (
+	examplesDir   = filepath.Join("public", "examples")
 	copyright     = ""
 	stableVersion = ""
 	devVersion    = ""
@@ -158,33 +135,6 @@ func (e *example) Height() int {
 	return e.ScreenHeight
 }
 
-func (e *example) Source() string {
-	const (
-		commentFor2048   = `// Please read examples/2048/main.go and examples/2048/2048/*.go`
-		commentForBlocks = `// Please read examples/blocks/main.go and examples/blocks/blocks/*.go
-// NOTE: If Gamepad API is available in your browswer, you can use gamepads. Try it out!`
-	)
-	if e.Name == "2048" {
-		return commentFor2048
-	}
-	if e.Name == "blocks" {
-		return commentForBlocks
-	}
-
-	path := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "hajimehoshi", "ebiten", "examples", e.Name, "main.go")
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	str := regexp.MustCompile("(?s)^.*?\n\n").ReplaceAllString(string(b), "")
-	str = strings.Replace(str, "\t", "        ", -1)
-	return str
-}
-
-func versions() string {
-	return fmt.Sprintf("v%s (dev: v%s)", stableVersion, devVersion)
-}
-
 var (
 	gamesExamples = []example{
 		{Name: "2048", ThumbWidth: 210, ThumbHeight: 300},
@@ -239,17 +189,6 @@ func clear() error {
 		if m {
 			return os.Remove(path)
 		}
-		// Remove example resources that are copied.
-		m, err = regexp.MatchString("^public/examples/_resources/images$", path)
-		if err != nil {
-			return err
-		}
-		if m {
-			if err := os.RemoveAll(path); err != nil {
-				return err
-			}
-			return filepath.SkipDir
-		}
 		return nil
 	}); err != nil {
 		return err
@@ -298,50 +237,6 @@ func createExamplesDir() error {
 	return nil
 }
 
-func outputExampleResources() error {
-	// TODO: Using cp command might not be portable.
-	// Use io.Copy instead.
-	if err := execute("cp", "-R", filepath.Join("..", "examples", "_resources"), filepath.Join(examplesDir, "_resources")); err != nil {
-		return err
-	}
-	return nil
-}
-
-func outputExampleContent(e *example) error {
-	f, err := os.Create(filepath.Join(examplesDir, e.Name+".content.html"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	funcs := template.FuncMap{
-		"comment":  comment,
-		"safeHTML": safeHTML,
-	}
-	const templatePath = "examplecontent.tmpl.html"
-	name := filepath.Base(templatePath)
-	t, err := template.New(name).Funcs(funcs).ParseFiles(templatePath)
-	if err != nil {
-		return err
-	}
-
-	data := map[string]interface{}{
-		"Copyright": copyright,
-		"Example":   e,
-	}
-	if err := t.Funcs(funcs).Execute(f, data); err != nil {
-		return err
-	}
-
-	out := filepath.Join(examplesDir, e.Name+".js")
-	path := "github.com/hajimehoshi/ebiten/examples/" + e.Name
-	if err := execute("gopherjs", "build", "--tags", "example", "-m", "-o", out, path); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func outputExample(e *example) error {
 	f, err := os.Create(filepath.Join(examplesDir, e.Name+".html"))
 	if err != nil {
@@ -378,9 +273,6 @@ func main() {
 	if err := createExamplesDir(); err != nil {
 		log.Fatal(err)
 	}
-	if err := outputExampleResources(); err != nil {
-		log.Fatal(err)
-	}
 
 	examples := []example{}
 	examples = append(examples, graphicsExamples...)
@@ -394,9 +286,6 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := outputExampleContent(&e); err != nil {
-				log.Fatal(err)
-			}
 			if err := outputExample(&e); err != nil {
 				log.Fatal(err)
 			}

@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,107 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - paint</h2>
-  <iframe src="paint.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;fmt&#34;
-        &#34;image&#34;
-        &#34;image/color&#34;
-        &#34;log&#34;
-        &#34;math&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-)
-
-const (
-        screenWidth  = 320
-        screenHeight = 240
-)
-
-var (
-        count       int
-        brushImage  *ebiten.Image
-        canvasImage *ebiten.Image
-)
-
-func init() {
-        const (
-                a0 = 0x40
-                a1 = 0xc0
-                a2 = 0xff
-        )
-        pixels := []uint8{
-                a0, a1, a1, a0,
-                a1, a2, a2, a1,
-                a1, a2, a2, a1,
-                a0, a1, a1, a0,
-        }
-        brushImage, _ = ebiten.NewImageFromImage(&amp;image.Alpha{
-                Pix:    pixels,
-                Stride: 4,
-                Rect:   image.Rect(0, 0, 4, 4),
-        }, ebiten.FilterDefault)
-
-        canvasImage, _ = ebiten.NewImage(screenWidth, screenHeight, ebiten.FilterDefault)
-        canvasImage.Fill(color.White)
-}
-
-// paint draws the brush on the given canvas image at the position (x, y).
-func paint(canvas *ebiten.Image, x, y int) {
-        op := &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Translate(float64(x), float64(y))
-        // Scale the color and rotate the hue so that colors vary on each frame.
-        op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
-        theta := 2.0 * math.Pi * float64(count%ebiten.FPS) / ebiten.FPS
-        op.ColorM.RotateHue(theta)
-        canvas.DrawImage(brushImage, op)
-}
-
-func update(screen *ebiten.Image) error {
-        drawn := false
-
-        // Paint the brush by mouse dragging
-        mx, my := ebiten.CursorPosition()
-        if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-                paint(canvasImage, mx, my)
-                drawn = true
-        }
-
-        // Paint the brush by touches
-        for _, t := range ebiten.Touches() {
-                x, y := t.Position()
-                paint(canvasImage, x, y)
-                drawn = true
-        }
-        if drawn {
-                count&#43;&#43;
-        }
-
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        screen.DrawImage(canvasImage, nil)
-
-        msg := fmt.Sprintf(&#34;(%d, %d)&#34;, mx, my)
-        for _, t := range ebiten.Touches() {
-                x, y := t.Position()
-                msg &#43;= fmt.Sprintf(&#34;\n(%d, %d) touch %d&#34;, x, y, t.ID())
-        }
-        ebitenutil.DebugPrint(screen, msg)
-        return nil
-}
-
-func main() {
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Paint (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/paint">Go Playground page</a></p>
 
 </div></main>
 

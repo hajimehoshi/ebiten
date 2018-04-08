@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,80 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - gamepad</h2>
-  <iframe src="gamepad.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;fmt&#34;
-        &#34;log&#34;
-        &#34;strconv&#34;
-        &#34;strings&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/ebitenutil&#34;
-        &#34;github.com/hajimehoshi/ebiten/inpututil&#34;
-)
-
-const (
-        screenWidth  = 640
-        screenHeight = 480
-)
-
-func update(screen *ebiten.Image) error {
-        ids := ebiten.GamepadIDs()
-        axes := map[int][]string{}
-        pressedButtons := map[int][]string{}
-
-        for _, id := range ids {
-                maxAxis := ebiten.GamepadAxisNum(id)
-                for a := 0; a &lt; maxAxis; a&#43;&#43; {
-                        v := ebiten.GamepadAxis(id, a)
-                        axes[id] = append(axes[id], fmt.Sprintf(&#34;%d:%0.2f&#34;, a, v))
-                }
-                maxButton := ebiten.GamepadButton(ebiten.GamepadButtonNum(id))
-                for b := ebiten.GamepadButton(id); b &lt; maxButton; b&#43;&#43; {
-                        if ebiten.IsGamepadButtonPressed(id, b) {
-                                pressedButtons[id] = append(pressedButtons[id], strconv.Itoa(int(b)))
-                        }
-
-                        // Log some events.
-                        if inpututil.IsGamepadButtonJustPressed(id, b) {
-                                log.Printf(&#34;Button Just Pressed: id(%d), button(%d)&#34;, id, b)
-                        }
-                        if inpututil.IsGamepadButtonJustReleased(id, b) {
-                                log.Printf(&#34;Button Just Released: id(%d), button(%d)&#34;, id, b)
-                        }
-                }
-        }
-
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        // Draw the current gamepad status.
-        str := &#34;&#34;
-        if len(ids) &gt; 0 {
-                for _, id := range ids {
-                        str &#43;= fmt.Sprintf(&#34;Gamepad (ID: %d):\n&#34;, id)
-                        str &#43;= fmt.Sprintf(&#34;  Axes:    %s\n&#34;, strings.Join(axes[id], &#34;, &#34;))
-                        str &#43;= fmt.Sprintf(&#34;  Buttons: %s\n&#34;, strings.Join(pressedButtons[id], &#34;, &#34;))
-                        str &#43;= &#34;\n&#34;
-                }
-        } else {
-                str = &#34;Please connect your gamepad.&#34;
-        }
-        ebitenutil.DebugPrint(screen, str)
-        return nil
-}
-
-func main() {
-        if err := ebiten.Run(update, screenWidth, screenHeight, 1, &#34;Gamepad (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/gamepad">Go Playground page</a></p>
 
 </div></main>
 

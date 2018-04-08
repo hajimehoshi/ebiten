@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,131 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - keyboard</h2>
-  <iframe src="keyboard.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;bytes&#34;
-        &#34;image&#34;
-        _ &#34;image/png&#34;
-        &#34;log&#34;
-        &#34;strconv&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/examples/keyboard/keyboard&#34;
-        rkeyabord &#34;github.com/hajimehoshi/ebiten/examples/resources/images/keyboard&#34;
-)
-
-const (
-        screenWidth  = 320
-        screenHeight = 240
-)
-
-var keyboardImage *ebiten.Image
-
-func init() {
-        img, _, err := image.Decode(bytes.NewReader(rkeyabord.Keyboard_png))
-        if err != nil {
-                log.Fatal(err)
-        }
-
-        keyboardImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-}
-
-var keyNames = map[ebiten.Key]string{
-        ebiten.KeyBackspace:    &#34;BS&#34;,
-        ebiten.KeyComma:        &#34;,&#34;,
-        ebiten.KeyEnter:        &#34;Enter&#34;,
-        ebiten.KeyEscape:       &#34;Esc&#34;,
-        ebiten.KeyPeriod:       &#34;.&#34;,
-        ebiten.KeySpace:        &#34;Space&#34;,
-        ebiten.KeyTab:          &#34;Tab&#34;,
-        ebiten.KeyMinus:        &#34;-&#34;,
-        ebiten.KeyEqual:        &#34;=&#34;,
-        ebiten.KeyBackslash:    &#34;\\&#34;,
-        ebiten.KeyGraveAccent:  &#34;`&#34;,
-        ebiten.KeyLeftBracket:  &#34;[&#34;,
-        ebiten.KeyRightBracket: &#34;]&#34;,
-        ebiten.KeySemicolon:    &#34;;&#34;,
-        ebiten.KeyApostrophe:   &#34;&#39;&#34;,
-        ebiten.KeySlash:        &#34;/&#34;,
-
-        // Arrows
-        ebiten.KeyDown:  &#34;Down&#34;,
-        ebiten.KeyLeft:  &#34;Left&#34;,
-        ebiten.KeyRight: &#34;Right&#34;,
-        ebiten.KeyUp:    &#34;Up&#34;,
-
-        // Mods
-        ebiten.KeyShift:   &#34;Shift&#34;,
-        ebiten.KeyControl: &#34;Ctrl&#34;,
-        ebiten.KeyAlt:     &#34;Alt&#34;,
-}
-
-func update(screen *ebiten.Image) error {
-        // Collect pressed keys&#39; names.
-        pressed := []string{}
-        for i := 0; i &lt;= 9; i&#43;&#43; {
-                if ebiten.IsKeyPressed(ebiten.Key(i) &#43; ebiten.Key0) {
-                        pressed = append(pressed, string(i&#43;&#39;0&#39;))
-                }
-        }
-        for c := &#39;A&#39;; c &lt;= &#39;Z&#39;; c&#43;&#43; {
-                if ebiten.IsKeyPressed(ebiten.KeyA &#43; ebiten.Key(c-&#39;A&#39;)) {
-                        pressed = append(pressed, string(c))
-                }
-        }
-        for i := 1; i &lt;= 12; i&#43;&#43; {
-                if ebiten.IsKeyPressed(ebiten.KeyF1 &#43; ebiten.Key(i-1)) {
-                        pressed = append(pressed, &#34;F&#34;&#43;strconv.Itoa(i))
-                }
-        }
-        for key, name := range keyNames {
-                if ebiten.IsKeyPressed(key) {
-                        pressed = append(pressed, name)
-                }
-        }
-
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        const (
-                offsetX = 24
-                offsetY = 40
-        )
-
-        // Draw the base (grayed) keyboard image.
-        op := &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Translate(offsetX, offsetY)
-        op.ColorM.Scale(0.5, 0.5, 0.5, 1)
-        screen.DrawImage(keyboardImage, op)
-
-        // Draw the highlighted keys.
-        op = &amp;ebiten.DrawImageOptions{}
-        for _, p := range pressed {
-                op.GeoM.Reset()
-                r, ok := keyboard.KeyRect(p)
-                if !ok {
-                        continue
-                }
-                op.GeoM.Translate(float64(r.Min.X), float64(r.Min.Y))
-                op.GeoM.Translate(offsetX, offsetY)
-                op.SourceRect = &amp;r
-                screen.DrawImage(keyboardImage, op)
-        }
-
-        return nil
-}
-
-func main() {
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Keyboard (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/keyboard">Go Playground page</a></p>
 
 </div></main>
 

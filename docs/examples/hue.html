@@ -18,7 +18,6 @@
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten">GitHub</a></li>
       <li class="nav-item"><a class="nav-link" href="https://godoc.org/github.com/hajimehoshi/ebiten">GoDoc</a></li>
       <li class="nav-item"><a class="nav-link" href="https://github.com/hajimehoshi/ebiten/wiki">Wiki</a>
-      <li class="nav-item"><a class="nav-link" href="https://ebiten-playground.github.io/">Playground</a>
     </ul>
   </nav>
 </div></nav>
@@ -26,72 +25,7 @@
 <main><div class="container">
 
   <h2>Ebiten example - hue</h2>
-  <iframe src="hue.content.html" width="640" height="480"></iframe>
-  <div class="card"><pre class="card-body"><code class="language-go">// &#43;build example jsgo
-
-package main
-
-import (
-        &#34;bytes&#34;
-        &#34;image&#34;
-        _ &#34;image/jpeg&#34;
-        &#34;log&#34;
-        &#34;math&#34;
-
-        &#34;github.com/hajimehoshi/ebiten&#34;
-        &#34;github.com/hajimehoshi/ebiten/examples/resources/images&#34;
-)
-
-const (
-        screenWidth  = 320
-        screenHeight = 240
-)
-
-var (
-        count        int
-        gophersImage *ebiten.Image
-)
-
-func update(screen *ebiten.Image) error {
-        count&#43;&#43;
-
-        if ebiten.IsRunningSlowly() {
-                return nil
-        }
-
-        // Center the image on the screen.
-        w, h := gophersImage.Size()
-        op := &amp;ebiten.DrawImageOptions{}
-        op.GeoM.Translate(float64(screenWidth-w)/2, float64(screenHeight-h)/2)
-
-        // Rotate the hue.
-        op.ColorM.RotateHue(float64(count%360) * 2 * math.Pi / 360)
-
-        screen.DrawImage(gophersImage, op)
-        return nil
-}
-
-func main() {
-        // Decode image from a byte slice instead of a file so that
-        // this example works in any working directory.
-        // If you want to use a file, there are some options:
-        // 1) Use os.Open and pass the file to the image decoder.
-        //    This is a very regular way, but doesn&#39;t work on browsers.
-        // 2) Use ebitenutil.OpenFile and pass the file to the image decoder.
-        //    This works even on browsers.
-        // 3) Use ebitenutil.NewImageFromFile to create an ebiten.Image directly from a file.
-        //    This also works on browsers.
-        img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
-        if err != nil {
-                log.Fatal(err)
-        }
-        gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-
-        if err := ebiten.Run(update, screenWidth, screenHeight, 2, &#34;Hue (Ebiten Demo)&#34;); err != nil {
-                log.Fatal(err)
-        }
-}
-</code></pre></div>
+  <p><a href="https://play.jsgo.io/github.com/hajimehoshi/ebiten/examples/hue">Go Playground page</a></p>
 
 </div></main>
 
