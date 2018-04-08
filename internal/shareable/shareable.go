@@ -87,44 +87,44 @@ type Image struct {
 	node *packing.Node
 }
 
-func (s *Image) ensureNotShared() {
-	if s.node == nil {
+func (i *Image) ensureNotShared() {
+	if i.node == nil {
 		return
 	}
 
-	x, y, w, h := s.region()
+	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
-	newImg.DrawImage(s.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(i.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
-	s.dispose()
-	s.backend = &backend{
+	i.dispose()
+	i.backend = &backend{
 		restorable: newImg,
 	}
 }
 
-func (s *Image) region() (x, y, width, height int) {
-	if s.node == nil {
-		w, h := s.backend.restorable.Size()
+func (i *Image) region() (x, y, width, height int) {
+	if i.node == nil {
+		w, h := i.backend.restorable.Size()
 		return 0, 0, w, h
 	}
-	return s.node.Region()
+	return i.node.Region()
 }
 
-func (s *Image) Size() (width, height int) {
+func (i *Image) Size() (width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	_, _, w, h := s.region()
+	_, _, w, h := i.region()
 	return w, h
 }
 
-func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	s.ensureNotShared()
+	i.ensureNotShared()
 
 	// Compare i and img after ensuring i is not shared, or
 	// i and img might share the same texture even though i != img.
-	if s.backend.restorable == img.backend.restorable {
+	if i.backend.restorable == img.backend.restorable {
 		panic("shareable: Image.DrawImage: img must be different from the receiver")
 	}
 
@@ -133,71 +133,71 @@ func (s *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	sy0 += dy
 	sx1 += dx
 	sy1 += dy
-	s.backend.restorable.DrawImage(img.backend.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
+	i.backend.restorable.DrawImage(img.backend.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
 }
 
-func (s *Image) ReplacePixels(p []byte) {
+func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x, y, w, h := s.region()
+	x, y, w, h := i.region()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("shareable: len(p) was %d but must be %d", len(p), l))
 	}
-	s.backend.restorable.ReplacePixels(p, x, y, w, h)
+	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (s *Image) At(x, y int) (color.Color, error) {
+func (i *Image) At(x, y int) (color.Color, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	ox, oy, w, h := s.region()
+	ox, oy, w, h := i.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
 		return color.RGBA{}, nil
 	}
 
-	clr, err := s.backend.restorable.At(x+ox, y+oy)
+	clr, err := i.backend.restorable.At(x+ox, y+oy)
 	return clr, err
 }
 
-func (s *Image) isDisposed() bool {
-	return s.backend == nil
+func (i *Image) isDisposed() bool {
+	return i.backend == nil
 }
 
-func (s *Image) Dispose() {
+func (i *Image) Dispose() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	s.dispose()
+	i.dispose()
 }
 
-func (s *Image) dispose() {
-	if s.isDisposed() {
+func (i *Image) dispose() {
+	if i.isDisposed() {
 		return
 	}
 
 	defer func() {
-		s.backend = nil
-		s.node = nil
-		runtime.SetFinalizer(s, nil)
+		i.backend = nil
+		i.node = nil
+		runtime.SetFinalizer(i, nil)
 	}()
 
-	if s.node == nil {
-		s.backend.restorable.Dispose()
+	if i.node == nil {
+		i.backend.restorable.Dispose()
 		return
 	}
 
-	s.backend.page.Free(s.node)
-	if !s.backend.page.IsEmpty() {
+	i.backend.page.Free(i.node)
+	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
-		s.backend.restorable.Clear(s.region())
+		i.backend.restorable.Clear(i.region())
 		return
 	}
 
-	s.backend.restorable.Dispose()
+	i.backend.restorable.Dispose()
 	index := -1
-	for i, sh := range theBackends {
-		if sh == s.backend {
-			index = i
+	for idx, sh := range theBackends {
+		if sh == i.backend {
+			index = idx
 			break
 		}
 	}
@@ -207,10 +207,10 @@ func (s *Image) dispose() {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func (s *Image) IsInvalidated() (bool, error) {
+func (i *Image) IsInvalidated() (bool, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	v, err := s.backend.restorable.IsInvalidated()
+	v, err := i.backend.restorable.IsInvalidated()
 	return v, err
 }
 
