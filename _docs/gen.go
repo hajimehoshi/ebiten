@@ -139,6 +139,7 @@ var (
 	gamesExamples = []example{
 		{Name: "2048", ThumbWidth: 210, ThumbHeight: 300},
 		{Name: "blocks", ThumbWidth: 256, ThumbHeight: 240},
+		{Name: "flappy", ThumbWidth: 320, ThumbHeight: 240},
 	}
 	graphicsExamples = []example{
 		{Name: "airship", ThumbWidth: 320, ThumbHeight: 240},
