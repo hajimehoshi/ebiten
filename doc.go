@@ -36,4 +36,10 @@
 //         // Call ebiten.Run to start your game loop.
 //         ebiten.Run(update, 320, 240, 2, "Your game's title")
 //     }
+//
+// The EBITEN_SCREENSHOT_KEY environment variable specified the key
+// to take a screenshot. For example, if you run your game with
+// `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
+// by pressing Q key. The image file is saved at the current directory
+// with the name screen*.png.
 package ebiten
