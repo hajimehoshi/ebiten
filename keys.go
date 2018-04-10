@@ -17,6 +17,8 @@
 package ebiten
 
 import (
+	"strings"
+
 	"github.com/hajimehoshi/ebiten/internal/input"
 )
 
@@ -107,3 +109,165 @@ const (
 	KeyUp           Key = Key(input.KeyUp)
 	KeyMax          Key = KeyUp
 )
+
+func keyNameToKey(name string) (Key, bool) {
+	switch strings.ToLower(name) {
+	case "0":
+		return Key0, true
+	case "1":
+		return Key1, true
+	case "2":
+		return Key2, true
+	case "3":
+		return Key3, true
+	case "4":
+		return Key4, true
+	case "5":
+		return Key5, true
+	case "6":
+		return Key6, true
+	case "7":
+		return Key7, true
+	case "8":
+		return Key8, true
+	case "9":
+		return Key9, true
+	case "a":
+		return KeyA, true
+	case "b":
+		return KeyB, true
+	case "c":
+		return KeyC, true
+	case "d":
+		return KeyD, true
+	case "e":
+		return KeyE, true
+	case "f":
+		return KeyF, true
+	case "g":
+		return KeyG, true
+	case "h":
+		return KeyH, true
+	case "i":
+		return KeyI, true
+	case "j":
+		return KeyJ, true
+	case "k":
+		return KeyK, true
+	case "l":
+		return KeyL, true
+	case "m":
+		return KeyM, true
+	case "n":
+		return KeyN, true
+	case "o":
+		return KeyO, true
+	case "p":
+		return KeyP, true
+	case "q":
+		return KeyQ, true
+	case "r":
+		return KeyR, true
+	case "s":
+		return KeyS, true
+	case "t":
+		return KeyT, true
+	case "u":
+		return KeyU, true
+	case "v":
+		return KeyV, true
+	case "w":
+		return KeyW, true
+	case "x":
+		return KeyX, true
+	case "y":
+		return KeyY, true
+	case "z":
+		return KeyZ, true
+	case "alt":
+		return KeyAlt, true
+	case "apostrophe":
+		return KeyApostrophe, true
+	case "backslash":
+		return KeyBackslash, true
+	case "backspace":
+		return KeyBackspace, true
+	case "capslock":
+		return KeyCapsLock, true
+	case "comma":
+		return KeyComma, true
+	case "control":
+		return KeyControl, true
+	case "delete":
+		return KeyDelete, true
+	case "down":
+		return KeyDown, true
+	case "end":
+		return KeyEnd, true
+	case "enter":
+		return KeyEnter, true
+	case "equal":
+		return KeyEqual, true
+	case "escape":
+		return KeyEscape, true
+	case "f1":
+		return KeyF1, true
+	case "f2":
+		return KeyF2, true
+	case "f3":
+		return KeyF3, true
+	case "f4":
+		return KeyF4, true
+	case "f5":
+		return KeyF5, true
+	case "f6":
+		return KeyF6, true
+	case "f7":
+		return KeyF7, true
+	case "f8":
+		return KeyF8, true
+	case "f9":
+		return KeyF9, true
+	case "f10":
+		return KeyF10, true
+	case "f11":
+		return KeyF11, true
+	case "f12":
+		return KeyF12, true
+	case "graveaccent":
+		return KeyGraveAccent, true
+	case "home":
+		return KeyHome, true
+	case "insert":
+		return KeyInsert, true
+	case "left":
+		return KeyLeft, true
+	case "leftbracket":
+		return KeyLeftBracket, true
+	case "minus":
+		return KeyMinus, true
+	case "pagedown":
+		return KeyPageDown, true
+	case "pageup":
+		return KeyPageUp, true
+	case "period":
+		return KeyPeriod, true
+	case "right":
+		return KeyRight, true
+	case "rightbracket":
+		return KeyRightBracket, true
+	case "semicolon":
+		return KeySemicolon, true
+	case "shift":
+		return KeyShift, true
+	case "slash":
+		return KeySlash, true
+	case "space":
+		return KeySpace, true
+	case "tab":
+		return KeyTab, true
+	case "up":
+		return KeyUp, true
+	}
+	return 0, false
+}

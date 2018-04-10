@@ -15,11 +15,14 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
+	"os"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/png"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -88,6 +91,68 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 	return nil
 }
 
+var screenshot = false
+var screenshotKey Key
+
+func init() {
+	keyname := os.Getenv("EBITEN_SCREENSHOT_KEY")
+	if keyname == "" {
+		return
+	}
+	key, ok := keyNameToKey(keyname)
+	if !ok {
+		return
+	}
+	screenshot = true
+	screenshotKey = key
+}
+
+type screenshotTaker struct {
+	f          func(screen *Image) error
+	keyState   int
+	needToTake bool
+}
+
+func (s *screenshotTaker) update(screen *Image) error {
+	if err := s.f(screen); err != nil {
+		return err
+	}
+	if !screenshot {
+		return nil
+	}
+
+	if IsKeyPressed(screenshotKey) {
+		s.keyState++
+		if s.keyState == 1 {
+			s.needToTake = true
+		}
+	} else {
+		s.keyState = 0
+	}
+	if s.needToTake && !IsRunningSlowly() {
+		filename := "screenshot.png"
+		i := 0
+		for {
+			if _, err := os.Stat(filename); os.IsNotExist(err) {
+				break
+			}
+			i++
+			filename = fmt.Sprintf("screenshot%d.png", i)
+		}
+		f, err := os.Create(filename)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if err := png.Encode(f, screen); err != nil {
+			return err
+		}
+		s.needToTake = false
+	}
+	return nil
+}
+
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -118,6 +183,11 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 //
 // Don't call Run twice or more in one process.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
+	if screenshot {
+		s := &screenshotTaker{f: f}
+		f = s.update
+	}
+
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -142,6 +212,11 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // Ebiten users should NOT call this function.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
+	if screenshot {
+		s := &screenshotTaker{f: f}
+		f = s.update
+	}
+
 	ch := make(chan error)
 	go func() {
 		defer close(ch)

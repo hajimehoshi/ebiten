@@ -26,6 +26,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/hajimehoshi/ebiten/internal"
@@ -137,6 +138,8 @@ const ebitenKeysTmpl = `{{.License}}
 package ebiten
 
 import (
+	"strings"
+
 	"github.com/hajimehoshi/ebiten/internal/input"
 )
 
@@ -150,6 +153,14 @@ const (
 {{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(input.Key{{$name}})
 {{end}}	KeyMax Key = Key{{.LastKeyName}}
 )
+
+func keyNameToKey(name string) (Key, bool) {
+	switch strings.ToLower(name) {
+	{{range $name := .KeyNames}}case {{$name | printf "%q" | ToLower}}:
+		return Key{{$name}}, true
+	{{end}}}
+	return 0, false
+}
 `
 
 const inputKeysTmpl = `{{.License}}
@@ -332,10 +343,15 @@ func main() {
 			log.Fatal(err)
 		}
 		defer f.Close()
-		tmpl, err := template.New(path).Parse(tmpl)
+
+		funcs := template.FuncMap{
+			"ToLower": strings.ToLower,
+		}
+		tmpl, err := template.New(path).Funcs(funcs).Parse(tmpl)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		// The build tag can't be included in the templates because of `go vet`.
 		// Pass the build tag and extract this in the template to make `go vet` happy.
 		buildTag := ""
