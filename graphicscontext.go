@@ -146,6 +146,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 			if err := png.Encode(f, img); err != nil {
 				return err
 			}
+			f.Close()
 		}
 		os.Exit(0)
 	}
