@@ -235,6 +235,9 @@ var keyToCodes = map[Key][]string{
 	KeyN: {
 		"KeyN",
 	},
+	KeyNumLock: {
+		"NumLock",
+	},
 	KeyO: {
 		"KeyO",
 	},

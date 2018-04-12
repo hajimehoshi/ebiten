@@ -108,6 +108,7 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 	glfw.KeyLeft:         KeyLeft,
 	glfw.KeyLeftBracket:  KeyLeftBracket,
 	glfw.KeyMinus:        KeyMinus,
+	glfw.KeyNumLock:      KeyNumLock,
 	glfw.KeyPageDown:     KeyPageDown,
 	glfw.KeyPageUp:       KeyPageUp,
 	glfw.KeyPeriod:       KeyPeriod,

@@ -103,6 +103,7 @@ const (
 	KeyLeft
 	KeyLeftBracket
 	KeyMinus
+	KeyNumLock
 	KeyPageDown
 	KeyPageUp
 	KeyPeriod

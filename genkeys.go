@@ -69,6 +69,7 @@ func init() {
 		"Backslash":    {"Backslash"},
 		"RightBracket": {"BracketRight"},
 		"GraveAccent":  {"Backquote"},
+		"NumLock":      {"NumLock"},
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {

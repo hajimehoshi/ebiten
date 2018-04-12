@@ -113,6 +113,7 @@ const (
 	KeyLeft         Key = Key(input.KeyLeft)
 	KeyLeftBracket  Key = Key(input.KeyLeftBracket)
 	KeyMinus        Key = Key(input.KeyMinus)
+	KeyNumLock      Key = Key(input.KeyNumLock)
 	KeyPageDown     Key = Key(input.KeyPageDown)
 	KeyPageUp       Key = Key(input.KeyPageUp)
 	KeyPeriod       Key = Key(input.KeyPeriod)
@@ -297,6 +298,8 @@ func keyNameToKey(name string) (Key, bool) {
 		return KeyLeftBracket, true
 	case "minus":
 		return KeyMinus, true
+	case "numlock":
+		return KeyNumLock, true
 	case "pagedown":
 		return KeyPageDown, true
 	case "pageup":
