@@ -16,6 +16,7 @@ package shareable
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"runtime"
 
@@ -321,4 +322,34 @@ func BackendNumForTesting() int {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return len(theBackends)
+}
+
+func Dump() ([]image.Image, error) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	imgs := make([]image.Image, len(theBackends))
+	for i, b := range theBackends {
+		w, h := b.page.Size(), b.page.Size()
+		pix := make([]byte, 4*w*h)
+		for j := 0; j < h; j++ {
+			for i := 0; i < w; i++ {
+				c, err := b.restorable.At(i, j)
+				if err != nil {
+					return nil, err
+				}
+				pix[4*(i+j*w)] = byte(c.R)
+				pix[4*(i+j*w)+1] = byte(c.G)
+				pix[4*(i+j*w)+2] = byte(c.B)
+				pix[4*(i+j*w)+3] = byte(c.A)
+			}
+		}
+
+		imgs[i] = &image.RGBA{
+			Pix:    pix,
+			Stride: 4 * w,
+			Rect:   image.Rect(0, 0, w, h),
+		}
+	}
+	return imgs, nil
 }

@@ -15,9 +15,13 @@
 package ebiten
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
+	"github.com/hajimehoshi/ebiten/internal/png"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -127,6 +131,25 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	if err := shareable.ResolveStaleImages(); err != nil {
 		return err
 	}
+
+	if IsKeyPressed(KeyQ) {
+		imgs, err := shareable.Dump()
+		if err != nil {
+			panic(err)
+		}
+		for i, img := range imgs {
+			f, err := os.Create(fmt.Sprintf("dump%d.png", i))
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			if err := png.Encode(f, img); err != nil {
+				return err
+			}
+		}
+		os.Exit(0)
+	}
+
 	return nil
 }
 
