@@ -83,6 +83,23 @@ const (
 	KeyGraveAccent
 	KeyHome
 	KeyInsert
+	KeyKP0
+	KeyKP1
+	KeyKP2
+	KeyKP3
+	KeyKP4
+	KeyKP5
+	KeyKP6
+	KeyKP7
+	KeyKP8
+	KeyKP9
+	KeyKPAdd
+	KeyKPDecimal
+	KeyKPDivide
+	KeyKPEnter
+	KeyKPEqual
+	KeyKPMultiply
+	KeyKPSubtract
 	KeyLeft
 	KeyLeftBracket
 	KeyMinus

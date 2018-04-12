@@ -82,6 +82,18 @@ func init() {
 	for i := 1; i <= 12; i++ {
 		nameToCodes["F"+strconv.Itoa(i)] = []string{"F" + strconv.Itoa(i)}
 	}
+	// Numpad
+	// https://www.w3.org/TR/uievents-code/#key-numpad-section
+	for c := '0'; c <= '9'; c++ {
+		nameToCodes["KP"+string(c)] = []string{"Numpad" + string(c)}
+	}
+	nameToCodes["KPDecimal"] = []string{"NumpadDecimal"}
+	nameToCodes["KPDivide"] = []string{"NumpadDivide"}
+	nameToCodes["KPMultiply"] = []string{"NumpadMultiply"}
+	nameToCodes["KPSubtract"] = []string{"NumpadSubtract"}
+	nameToCodes["KPAdd"] = []string{"NumpadAdd"}
+	nameToCodes["KPEnter"] = []string{"NumpadEnter"}
+	nameToCodes["KPEqual"] = []string{"NumpadEqual"}
 }
 
 func init() {
@@ -129,6 +141,7 @@ func init() {
 	for i := 1; i <= 12; i++ {
 		keyCodeToNameEdge[0x70+i-1] = "F" + strconv.Itoa(i)
 	}
+	// TODO: Add numpad keys
 }
 
 const ebitenKeysTmpl = `{{.License}}

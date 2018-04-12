@@ -166,6 +166,57 @@ var keyToCodes = map[Key][]string{
 	KeyK: {
 		"KeyK",
 	},
+	KeyKP0: {
+		"Numpad0",
+	},
+	KeyKP1: {
+		"Numpad1",
+	},
+	KeyKP2: {
+		"Numpad2",
+	},
+	KeyKP3: {
+		"Numpad3",
+	},
+	KeyKP4: {
+		"Numpad4",
+	},
+	KeyKP5: {
+		"Numpad5",
+	},
+	KeyKP6: {
+		"Numpad6",
+	},
+	KeyKP7: {
+		"Numpad7",
+	},
+	KeyKP8: {
+		"Numpad8",
+	},
+	KeyKP9: {
+		"Numpad9",
+	},
+	KeyKPAdd: {
+		"NumpadAdd",
+	},
+	KeyKPDecimal: {
+		"NumpadDecimal",
+	},
+	KeyKPDivide: {
+		"NumpadDivide",
+	},
+	KeyKPEnter: {
+		"NumpadEnter",
+	},
+	KeyKPEqual: {
+		"NumpadEqual",
+	},
+	KeyKPMultiply: {
+		"NumpadMultiply",
+	},
+	KeyKPSubtract: {
+		"NumpadSubtract",
+	},
 	KeyL: {
 		"KeyL",
 	},

@@ -93,6 +93,23 @@ const (
 	KeyGraveAccent  Key = Key(input.KeyGraveAccent)
 	KeyHome         Key = Key(input.KeyHome)
 	KeyInsert       Key = Key(input.KeyInsert)
+	KeyKP0          Key = Key(input.KeyKP0)
+	KeyKP1          Key = Key(input.KeyKP1)
+	KeyKP2          Key = Key(input.KeyKP2)
+	KeyKP3          Key = Key(input.KeyKP3)
+	KeyKP4          Key = Key(input.KeyKP4)
+	KeyKP5          Key = Key(input.KeyKP5)
+	KeyKP6          Key = Key(input.KeyKP6)
+	KeyKP7          Key = Key(input.KeyKP7)
+	KeyKP8          Key = Key(input.KeyKP8)
+	KeyKP9          Key = Key(input.KeyKP9)
+	KeyKPAdd        Key = Key(input.KeyKPAdd)
+	KeyKPDecimal    Key = Key(input.KeyKPDecimal)
+	KeyKPDivide     Key = Key(input.KeyKPDivide)
+	KeyKPEnter      Key = Key(input.KeyKPEnter)
+	KeyKPEqual      Key = Key(input.KeyKPEqual)
+	KeyKPMultiply   Key = Key(input.KeyKPMultiply)
+	KeyKPSubtract   Key = Key(input.KeyKPSubtract)
 	KeyLeft         Key = Key(input.KeyLeft)
 	KeyLeftBracket  Key = Key(input.KeyLeftBracket)
 	KeyMinus        Key = Key(input.KeyMinus)
@@ -240,6 +257,40 @@ func keyNameToKey(name string) (Key, bool) {
 		return KeyHome, true
 	case "insert":
 		return KeyInsert, true
+	case "kp0":
+		return KeyKP0, true
+	case "kp1":
+		return KeyKP1, true
+	case "kp2":
+		return KeyKP2, true
+	case "kp3":
+		return KeyKP3, true
+	case "kp4":
+		return KeyKP4, true
+	case "kp5":
+		return KeyKP5, true
+	case "kp6":
+		return KeyKP6, true
+	case "kp7":
+		return KeyKP7, true
+	case "kp8":
+		return KeyKP8, true
+	case "kp9":
+		return KeyKP9, true
+	case "kpadd":
+		return KeyKPAdd, true
+	case "kpdecimal":
+		return KeyKPDecimal, true
+	case "kpdivide":
+		return KeyKPDivide, true
+	case "kpenter":
+		return KeyKPEnter, true
+	case "kpequal":
+		return KeyKPEqual, true
+	case "kpmultiply":
+		return KeyKPMultiply, true
+	case "kpsubtract":
+		return KeyKPSubtract, true
 	case "left":
 		return KeyLeft, true
 	case "leftbracket":
