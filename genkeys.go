@@ -183,6 +183,17 @@ const (
 {{end}}	KeyMax Key = Key{{.LastKeyName}}
 )
 
+// String returns a string representing the key.
+//
+// If k is an undefined key, String returns an empty string.
+func (k Key) String() string {
+	switch k {
+	{{range $name := .KeyNames}}case Key{{$name}}:
+		return {{$name | printf "%q"}}
+	{{end}}}
+	return ""
+}
+
 func keyNameToKey(name string) (Key, bool) {
 	switch strings.ToLower(name) {
 	{{range $name := .KeyNames}}case {{$name | printf "%q" | ToLower}}:
