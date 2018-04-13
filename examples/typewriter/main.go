@@ -30,6 +30,22 @@ var (
 	counter = 0
 )
 
+// repeatingKeyPressed return true when key is pressed considering the repeat state.
+func repeatingKeyPressed(key ebiten.Key) bool {
+	const (
+		delay    = 30
+		interval = 3
+	)
+	d := inpututil.KeyPressDuration(key)
+	if d == 1 {
+		return true
+	}
+	if d >= delay && (d-delay)%interval == 0 {
+		return true
+	}
+	return false
+}
+
 func update(screen *ebiten.Image) error {
 	// Add a string from InputChars, that returns string input by users.
 	// Note that InputChars result changes every frame, so you need to call this
@@ -43,12 +59,12 @@ func update(screen *ebiten.Image) error {
 	}
 
 	// If the enter key is pressed, add a line break.
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyKPEnter) {
+	if repeatingKeyPressed(ebiten.KeyEnter) || repeatingKeyPressed(ebiten.KeyKPEnter) {
 		text += "\n"
 	}
 
 	// If the backspace key is pressed, remove one character.
-	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+	if repeatingKeyPressed(ebiten.KeyBackspace) {
 		if len(text) >= 1 {
 			text = text[:len(text)-1]
 		}
