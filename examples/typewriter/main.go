@@ -22,12 +22,12 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 var (
-	text          = "Type on the keyboard:\n"
-	counter       = 0
-	bsPrevPressed = false
+	text    = "Type on the keyboard:\n"
+	counter = 0
 )
 
 func update(screen *ebiten.Image) error {
@@ -43,18 +43,16 @@ func update(screen *ebiten.Image) error {
 	}
 
 	// If the enter key is pressed, add a line break.
-	if ebiten.IsKeyPressed(ebiten.KeyEnter) && !strings.HasSuffix(text, "\n") {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) || inpututil.IsKeyJustPressed(ebiten.KeyKPEnter) {
 		text += "\n"
 	}
 
 	// If the backspace key is pressed, remove one character.
-	bsPressed := ebiten.IsKeyPressed(ebiten.KeyBackspace)
-	if !bsPrevPressed && bsPressed {
+	if inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
 		if len(text) >= 1 {
 			text = text[:len(text)-1]
 		}
 	}
-	bsPrevPressed = bsPressed
 
 	counter++
 
