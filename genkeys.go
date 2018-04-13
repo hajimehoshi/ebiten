@@ -129,6 +129,16 @@ func init() {
 		0xdd: "RightBracket",
 		0xc0: "GraveAccent",
 		0x08: "Backspace",
+		0x90: "NumLock",
+		0x6e: "KPDecimal",
+		0x6f: "KPDivide",
+		0x6a: "KPMultiply",
+		0x6d: "KPSubtract",
+		0x6b: "KPAdd",
+
+		// TODO: On Edge, it is impossible to tell KPEnter and Enter / KPEqual and Equal.
+		// 0x0d: "KPEnter",
+		// 0x0c: "KPEqual",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
@@ -142,7 +152,10 @@ func init() {
 	for i := 1; i <= 12; i++ {
 		keyCodeToNameEdge[0x70+i-1] = "F" + strconv.Itoa(i)
 	}
-	// TODO: Add numpad keys
+	// Numpad keys
+	for c := '0'; c <= '9'; c++ {
+		keyCodeToNameEdge[0x60+int(c-'0')] = "KP" + string(c)
+	}
 }
 
 const ebitenKeysTmpl = `{{.License}}
@@ -162,7 +175,9 @@ import (
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 type Key int
 
-// Keys
+// Keys.
+//
+// Known issue: KeyKPEnter and KeyKPEqual don't work on Edge browsers.
 const (
 {{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(input.Key{{$name}})
 {{end}}	KeyMax Key = Key{{.LastKeyName}}

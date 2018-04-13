@@ -27,7 +27,9 @@ import (
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 type Key int
 
-// Keys
+// Keys.
+//
+// Known issue: KeyKPEnter and KeyKPEqual don't work on Edge browsers.
 const (
 	Key0            Key = Key(input.Key0)
 	Key1            Key = Key(input.Key1)
