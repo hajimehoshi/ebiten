@@ -28,8 +28,6 @@ import (
 type Key int
 
 // Keys.
-//
-// Known issue: KeyKPEnter and KeyKPEqual don't work on Edge browsers.
 const (
 	Key0            Key = Key(input.Key0)
 	Key1            Key = Key(input.Key1)

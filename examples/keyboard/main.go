@@ -21,8 +21,10 @@ import (
 	"image"
 	_ "image/png"
 	"log"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/keyboard/keyboard"
 	rkeyabord "github.com/hajimehoshi/ebiten/examples/resources/images/keyboard"
 )
@@ -44,7 +46,6 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
-	// Collect pressed keys' names.
 	pressed := []ebiten.Key{}
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {
@@ -80,6 +81,12 @@ func update(screen *ebiten.Image) error {
 		op.SourceRect = &r
 		screen.DrawImage(keyboardImage, op)
 	}
+
+	keyStrs := []string{}
+	for _, p := range pressed {
+		keyStrs = append(keyStrs, p.String())
+	}
+	ebitenutil.DebugPrint(screen, strings.Join(keyStrs, ", "))
 
 	return nil
 }
