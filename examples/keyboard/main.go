@@ -21,7 +21,6 @@ import (
 	"image"
 	_ "image/png"
 	"log"
-	"strconv"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/keyboard/keyboard"
@@ -44,57 +43,12 @@ func init() {
 	keyboardImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
-var keyNames = map[ebiten.Key]string{
-	ebiten.KeyBackspace:    "BS",
-	ebiten.KeyComma:        ",",
-	ebiten.KeyEnter:        "Enter",
-	ebiten.KeyEscape:       "Esc",
-	ebiten.KeyPeriod:       ".",
-	ebiten.KeySpace:        "Space",
-	ebiten.KeyTab:          "Tab",
-	ebiten.KeyMinus:        "-",
-	ebiten.KeyEqual:        "=",
-	ebiten.KeyBackslash:    "\\",
-	ebiten.KeyGraveAccent:  "`",
-	ebiten.KeyLeftBracket:  "[",
-	ebiten.KeyRightBracket: "]",
-	ebiten.KeySemicolon:    ";",
-	ebiten.KeyApostrophe:   "'",
-	ebiten.KeySlash:        "/",
-
-	// Arrows
-	ebiten.KeyDown:  "Down",
-	ebiten.KeyLeft:  "Left",
-	ebiten.KeyRight: "Right",
-	ebiten.KeyUp:    "Up",
-
-	// Mods
-	ebiten.KeyShift:   "Shift",
-	ebiten.KeyControl: "Ctrl",
-	ebiten.KeyAlt:     "Alt",
-}
-
 func update(screen *ebiten.Image) error {
 	// Collect pressed keys' names.
-	pressed := []string{}
-	for i := 0; i <= 9; i++ {
-		if ebiten.IsKeyPressed(ebiten.Key(i) + ebiten.Key0) {
-			pressed = append(pressed, string(i+'0'))
-		}
-	}
-	for c := 'A'; c <= 'Z'; c++ {
-		if ebiten.IsKeyPressed(ebiten.KeyA + ebiten.Key(c-'A')) {
-			pressed = append(pressed, string(c))
-		}
-	}
-	for i := 1; i <= 12; i++ {
-		if ebiten.IsKeyPressed(ebiten.KeyF1 + ebiten.Key(i-1)) {
-			pressed = append(pressed, "F"+strconv.Itoa(i))
-		}
-	}
-	for key, name := range keyNames {
-		if ebiten.IsKeyPressed(key) {
-			pressed = append(pressed, name)
+	pressed := []ebiten.Key{}
+	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
+		if ebiten.IsKeyPressed(k) {
+			pressed = append(pressed, k)
 		}
 	}
 

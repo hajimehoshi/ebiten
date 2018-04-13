@@ -80,6 +80,68 @@ var keyboardKeys = [][]string{
 	{"Left", "Down", "Right"},
 }
 
+func keyDisplayNameToKey(name string) ebiten.Key {
+	switch name {
+	case "Esc":
+		return ebiten.KeyEscape
+	case "Tab":
+		return ebiten.KeyTab
+	case "Ctrl":
+		return ebiten.KeyControl
+	case "Shift":
+		return ebiten.KeyShift
+	case "Alt":
+		return ebiten.KeyAlt
+	case "Space":
+		return ebiten.KeySpace
+	case "Up":
+		return ebiten.KeyUp
+	case "Left":
+		return ebiten.KeyLeft
+	case "Down":
+		return ebiten.KeyDown
+	case "Right":
+		return ebiten.KeyRight
+	case "BS":
+		return ebiten.KeyBackspace
+	case "Enter":
+		return ebiten.KeyEnter
+	case "-":
+		return ebiten.KeyMinus
+	case "=":
+		return ebiten.KeyEqual
+	case "\\":
+		return ebiten.KeyBackslash
+	case "`":
+		return ebiten.KeyGraveAccent
+	case "[":
+		return ebiten.KeyLeftBracket
+	case "]":
+		return ebiten.KeyRightBracket
+	case ";":
+		return ebiten.KeySemicolon
+	case "'":
+		return ebiten.KeyApostrophe
+	case ",":
+		return ebiten.KeyComma
+	case ".":
+		return ebiten.KeyPeriod
+	case "/":
+		return ebiten.KeySlash
+	}
+	if len(name) != 1 {
+		panic("not reached: unknown key " + name)
+	}
+	c := name[0]
+	if '0' <= c && c <= '9' {
+		return ebiten.Key0 + ebiten.Key(c-'0')
+	}
+	if 'A' <= c && c <= 'Z' {
+		return ebiten.KeyA + ebiten.Key(c-'A')
+	}
+	panic("not reached: unknown key " + name)
+}
+
 func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	const height = 16
 	width--
@@ -129,14 +191,14 @@ func drawKey(t *ebiten.Image, name string, x, y, width int) {
 	t.DrawImage(img, op)
 }
 
-func outputKeyboardImage() (map[string]image.Rectangle, error) {
-	keyMap := map[string]image.Rectangle{}
+func outputKeyboardImage() (map[ebiten.Key]image.Rectangle, error) {
+	keyMap := map[ebiten.Key]image.Rectangle{}
 	img, _ := ebiten.NewImage(320, 240, ebiten.FilterDefault)
 	x, y := 0, 0
 	for j, line := range keyboardKeys {
 		x = 0
 		const height = 18
-		for i, key := range line {
+		for i, keyDisplayName := range line {
 			width := 16
 			switch j {
 			default:
@@ -164,9 +226,10 @@ func outputKeyboardImage() (map[string]image.Rectangle, error) {
 			case 6, 7:
 				width = 16 * 3
 			}
-			if key != "" {
-				drawKey(img, key, x, y, width)
-				if key != " " {
+			if keyDisplayName != "" {
+				drawKey(img, keyDisplayName, x, y, width)
+				if keyDisplayName != " " {
+					key := keyDisplayNameToKey(keyDisplayName)
 					keyMap[key] = image.Rect(x, y, x+width, y+height)
 				}
 			}
@@ -206,20 +269,22 @@ package keyboard
 
 import (
 	"image"
+
+	"github.com/hajimehoshi/ebiten"
 )
 
-var keyboardKeyRects = map[string]image.Rectangle{}
+var keyboardKeyRects = map[ebiten.Key]image.Rectangle{}
 
 func init() {
-{{range $key, $rect := .KeyRectsMap}}	keyboardKeyRects[{{printf "%q" $key}}] = image.Rect({{$rect.Min.X}}, {{$rect.Min.Y}}, {{$rect.Max.X}}, {{$rect.Max.Y}})
+{{range $key, $rect := .KeyRectsMap}}	keyboardKeyRects[ebiten.Key{{$key}}] = image.Rect({{$rect.Min.X}}, {{$rect.Min.Y}}, {{$rect.Max.X}}, {{$rect.Max.Y}})
 {{end}}}
 
-func KeyRect(name string) (image.Rectangle, bool) {
-	r, ok := keyboardKeyRects[name]
+func KeyRect(key ebiten.Key) (image.Rectangle, bool) {
+	r, ok := keyboardKeyRects[key]
 	return r, ok
 }`
 
-func outputKeyRectsGo(k map[string]image.Rectangle) error {
+func outputKeyRectsGo(k map[ebiten.Key]image.Rectangle) error {
 	license, err := internal.LicenseComment()
 	if err != nil {
 		return err
@@ -245,7 +310,7 @@ func outputKeyRectsGo(k map[string]image.Rectangle) error {
 var regularTermination = errors.New("regular termination")
 
 func main() {
-	var rects map[string]image.Rectangle
+	var rects map[ebiten.Key]image.Rectangle
 	if err := ebiten.Run(func(_ *ebiten.Image) error {
 		var err error
 		rects, err = outputKeyboardImage()
