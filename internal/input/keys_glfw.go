@@ -116,6 +116,7 @@ var glfwKeyCodeToKey = map[glfw.Key]Key{
 	glfw.KeyPrintScreen:  KeyPrintScreen,
 	glfw.KeyRight:        KeyRight,
 	glfw.KeyRightBracket: KeyRightBracket,
+	glfw.KeyScrollLock:   KeyScrollLock,
 	glfw.KeySemicolon:    KeySemicolon,
 	glfw.KeySlash:        KeySlash,
 	glfw.KeySpace:        KeySpace,

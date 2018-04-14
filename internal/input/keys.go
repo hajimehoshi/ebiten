@@ -111,6 +111,7 @@ const (
 	KeyPrintScreen
 	KeyRight
 	KeyRightBracket
+	KeyScrollLock
 	KeySemicolon
 	KeyShift
 	KeySlash

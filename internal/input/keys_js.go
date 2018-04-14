@@ -274,6 +274,9 @@ var keyToCodes = map[Key][]string{
 	KeyS: {
 		"KeyS",
 	},
+	KeyScrollLock: {
+		"ScrollLock",
+	},
 	KeySemicolon: {
 		"Semicolon",
 	},
@@ -334,7 +337,6 @@ var keyCodeToKeyEdge = map[int]Key{
 	38:  KeyUp,
 	39:  KeyRight,
 	40:  KeyDown,
-	44:  KeyPrintScreen,
 	45:  KeyInsert,
 	46:  KeyDelete,
 	48:  Key0,
@@ -401,6 +403,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	122: KeyF11,
 	123: KeyF12,
 	144: KeyNumLock,
+	145: KeyScrollLock,
 	186: KeySemicolon,
 	187: KeyEqual,
 	188: KeyComma,

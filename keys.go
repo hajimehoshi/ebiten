@@ -118,9 +118,12 @@ const (
 	KeyNumLock      Key = Key(input.KeyNumLock)
 	KeyPageDown     Key = Key(input.KeyPageDown)
 	KeyPageUp       Key = Key(input.KeyPageUp)
+	KeyPause        Key = Key(input.KeyPause)
 	KeyPeriod       Key = Key(input.KeyPeriod)
+	KeyPrintScreen  Key = Key(input.KeyPrintScreen)
 	KeyRight        Key = Key(input.KeyRight)
 	KeyRightBracket Key = Key(input.KeyRightBracket)
+	KeyScrollLock   Key = Key(input.KeyScrollLock)
 	KeySemicolon    Key = Key(input.KeySemicolon)
 	KeyShift        Key = Key(input.KeyShift)
 	KeySlash        Key = Key(input.KeySlash)
@@ -309,12 +312,18 @@ func (k Key) String() string {
 		return "PageDown"
 	case KeyPageUp:
 		return "PageUp"
+	case KeyPause:
+		return "Pause"
 	case KeyPeriod:
 		return "Period"
+	case KeyPrintScreen:
+		return "PrintScreen"
 	case KeyRight:
 		return "Right"
 	case KeyRightBracket:
 		return "RightBracket"
+	case KeyScrollLock:
+		return "ScrollLock"
 	case KeySemicolon:
 		return "Semicolon"
 	case KeyShift:
@@ -507,12 +516,18 @@ func keyNameToKey(name string) (Key, bool) {
 		return KeyPageDown, true
 	case "pageup":
 		return KeyPageUp, true
+	case "pause":
+		return KeyPause, true
 	case "period":
 		return KeyPeriod, true
+	case "printscreen":
+		return KeyPrintScreen, true
 	case "right":
 		return KeyRight, true
 	case "rightbracket":
 		return KeyRightBracket, true
+	case "scrolllock":
+		return KeyScrollLock, true
 	case "semicolon":
 		return KeySemicolon, true
 	case "shift":

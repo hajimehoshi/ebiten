@@ -72,6 +72,7 @@ func init() {
 		"RightBracket": {"BracketRight"},
 		"GraveAccent":  {"Backquote"},
 		"NumLock":      {"NumLock"},
+		"ScrollLock":   {"ScrollLock"},
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
@@ -114,7 +115,6 @@ func init() {
 		0x2E: "Delete",
 		0x23: "End",
 		0x24: "Home",
-		0x2C: "PrintScreen",
 		0x2D: "Insert",
 		0x22: "PageDown",
 		0x21: "PageUp",
@@ -134,11 +134,15 @@ func init() {
 		0xc0: "GraveAccent",
 		0x08: "Backspace",
 		0x90: "NumLock",
+		0x91: "ScrollLock",
 		0x6e: "KPDecimal",
 		0x6f: "KPDivide",
 		0x6a: "KPMultiply",
 		0x6d: "KPSubtract",
 		0x6b: "KPAdd",
+
+		// On Chrome and Edge, this does not work seem to be captured. At least on Windows.
+		//0x2C: "PrintScreen",
 
 		// TODO: On Edge, it is impossible to tell KPEnter and Enter / KPEqual and Equal.
 		// 0x0d: "KPEnter",
