@@ -149,17 +149,7 @@ func (q *commandQueue) Flush() error {
 		}
 		numc := len(g)
 		indexOffsetInBytes := 0
-		var lastC command
 		for _, c := range g {
-			// On MacBook Pro (2013 Late?), glTexSubImage2D might not be finished
-			// before the next different comand. Call glFlush explicitly.
-			if _, ok := lastC.(*replacePixelsCommand); ok {
-				if _, ok := c.(*replacePixelsCommand); !ok {
-					opengl.GetContext().Flush()
-				}
-			}
-			lastC = c
-
 			if err := c.Exec(indexOffsetInBytes); err != nil {
 				return err
 			}
@@ -295,6 +285,10 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	opengl.GetContext().Flush()
 	opengl.GetContext().BindTexture(c.dst.texture.native)
 	opengl.GetContext().TexSubImage2D(c.pixels, c.x, c.y, c.width, c.height)
+
+	// On MacBook Pro (2013 Late?), glTexSubImage2D might not be finished
+	// before the next different comand. Call glFlush explicitly.
+	opengl.GetContext().Flush()
 	return nil
 }
 
