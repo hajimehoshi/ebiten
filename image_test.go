@@ -622,8 +622,8 @@ func BenchmarkDrawImage(b *testing.B) {
 }
 
 func TestImageLinear(t *testing.T) {
-	src, _ := NewImage(32, 32, FilterLinear)
-	dst, _ := NewImage(64, 64, FilterNearest)
+	src, _ := NewImage(32, 32, FilterDefault)
+	dst, _ := NewImage(64, 64, FilterDefault)
 	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
 	ebitenutil.DrawRect(src, 8, 8, 16, 16, color.RGBA{0xff, 0, 0, 0xff})
 
@@ -632,6 +632,7 @@ func TestImageLinear(t *testing.T) {
 	op.GeoM.Scale(2, 2)
 	r := image.Rect(8, 8, 24, 24)
 	op.SourceRect = &r
+	op.Filter = FilterLinear
 	dst.DrawImage(src, op)
 
 	for j := 0; j < 64; j++ {
