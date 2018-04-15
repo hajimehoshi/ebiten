@@ -21,6 +21,7 @@ import (
 	"image/color"
 	"image/draw"
 	_ "image/png"
+	"log"
 	"math"
 	"os"
 	"testing"
@@ -44,7 +45,7 @@ func TestMain(m *testing.M) {
 		return regularTermination
 	}
 	if err := Run(f, 320, 240, 1, "Test"); err != nil && err != regularTermination {
-		panic(err)
+		log.Fatal(err)
 	}
 	os.Exit(code)
 }
