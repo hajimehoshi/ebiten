@@ -114,6 +114,7 @@ const (
 	KeyKPSubtract   Key = Key(input.KeyKPSubtract)
 	KeyLeft         Key = Key(input.KeyLeft)
 	KeyLeftBracket  Key = Key(input.KeyLeftBracket)
+	KeyMenu         Key = Key(input.KeyMenu)
 	KeyMinus        Key = Key(input.KeyMinus)
 	KeyNumLock      Key = Key(input.KeyNumLock)
 	KeyPageDown     Key = Key(input.KeyPageDown)
@@ -304,6 +305,8 @@ func (k Key) String() string {
 		return "Left"
 	case KeyLeftBracket:
 		return "LeftBracket"
+	case KeyMenu:
+		return "Menu"
 	case KeyMinus:
 		return "Minus"
 	case KeyNumLock:
@@ -508,6 +511,8 @@ func keyNameToKey(name string) (Key, bool) {
 		return KeyLeft, true
 	case "leftbracket":
 		return KeyLeftBracket, true
+	case "menu":
+		return KeyMenu, true
 	case "minus":
 		return KeyMinus, true
 	case "numlock":

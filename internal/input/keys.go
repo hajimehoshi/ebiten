@@ -102,6 +102,7 @@ const (
 	KeyKPSubtract
 	KeyLeft
 	KeyLeftBracket
+	KeyMenu
 	KeyMinus
 	KeyNumLock
 	KeyPageDown

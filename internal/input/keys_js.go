@@ -229,6 +229,9 @@ var keyToCodes = map[Key][]string{
 	KeyM: {
 		"KeyM",
 	},
+	KeyMenu: {
+		"Menu",
+	},
 	KeyMinus: {
 		"Minus",
 	},
@@ -337,6 +340,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	38:  KeyUp,
 	39:  KeyRight,
 	40:  KeyDown,
+	44:  KeyPrintScreen,
 	45:  KeyInsert,
 	46:  KeyDelete,
 	48:  Key0,
@@ -375,6 +379,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	88:  KeyX,
 	89:  KeyY,
 	90:  KeyZ,
+	93:  KeyMenu,
 	96:  KeyKP0,
 	97:  KeyKP1,
 	98:  KeyKP2,
