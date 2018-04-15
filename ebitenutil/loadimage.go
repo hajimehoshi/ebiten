@@ -38,9 +38,7 @@ func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.I
 	if err != nil {
 		return nil, nil, err
 	}
-	defer func() {
-		_ = file.Close()
-	}()
+	defer file.Close()
 	img, _, err := image.Decode(file)
 	if err != nil {
 		return nil, nil, err
