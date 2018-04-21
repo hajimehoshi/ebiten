@@ -230,7 +230,7 @@ var keyToCodes = map[Key][]string{
 		"KeyM",
 	},
 	KeyMenu: {
-		"Menu",
+		"ContextMenu",
 	},
 	KeyMinus: {
 		"Minus",
@@ -340,7 +340,6 @@ var keyCodeToKeyEdge = map[int]Key{
 	38:  KeyUp,
 	39:  KeyRight,
 	40:  KeyDown,
-	44:  KeyPrintScreen,
 	45:  KeyInsert,
 	46:  KeyDelete,
 	48:  Key0,

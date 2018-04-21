@@ -73,7 +73,7 @@ func init() {
 		"GraveAccent":  {"Backquote"},
 		"NumLock":      {"NumLock"},
 		"ScrollLock":   {"ScrollLock"},
-		"Menu":         {"Menu"},
+		"Menu":         {"ContextMenu"},
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
@@ -136,13 +136,15 @@ func init() {
 		0x08: "Backspace",
 		0x90: "NumLock",
 		0x91: "ScrollLock",
-		0x2C: "PrintScreen",
 		0x6e: "KPDecimal",
 		0x6f: "KPDivide",
 		0x6a: "KPMultiply",
 		0x6d: "KPSubtract",
 		0x6b: "KPAdd",
 		0x5d: "Menu",
+
+		// NOTE: On Edge, this key does not work. hajimehoshi stated: "PrintScreen works only on keyup event, and PrintScreen doesn't work on Edge well."
+		//0x2C: "PrintScreen",
 
 		// TODO: On Edge, it is impossible to tell KPEnter and Enter / KPEqual and Equal.
 		// 0x0d: "KPEnter",
