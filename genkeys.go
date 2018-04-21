@@ -106,6 +106,8 @@ func init() {
 		0xbc: "Comma",
 		0xbe: "Period",
 		0x13: "Pause",
+		0x91: "ScrollLock",
+		0x5d: "Menu",
 		0x12: "Alt",
 		0x14: "CapsLock",
 		0x11: "Control",
@@ -135,13 +137,11 @@ func init() {
 		0xc0: "GraveAccent",
 		0x08: "Backspace",
 		0x90: "NumLock",
-		0x91: "ScrollLock",
 		0x6e: "KPDecimal",
 		0x6f: "KPDivide",
 		0x6a: "KPMultiply",
 		0x6d: "KPSubtract",
 		0x6b: "KPAdd",
-		0x5d: "Menu",
 
 		// NOTE: On Edge, this key does not work. hajimehoshi stated: "PrintScreen works only on keyup event, and PrintScreen doesn't work on Edge well."
 		//0x2C: "PrintScreen",
