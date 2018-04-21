@@ -35,8 +35,10 @@ func InputChars() []rune {
 
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 //
-// Known issue: On Edge browser, KeyKPEnter and KeyKPEqual don't work well.
-// These keys are recognized as KeyEnter and KeyEqual.
+// Known issue: On Edge browser, some keys don't work well:
+//
+//   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
+//   - KeyPrintScreen is only treated at keyup event.
 //
 // This function is concurrent-safe.
 func IsKeyPressed(key Key) bool {

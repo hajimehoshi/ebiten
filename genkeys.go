@@ -143,10 +143,10 @@ func init() {
 		0x91: "ScrollLock",
 		0x5d: "Menu",
 
-		// NOTE: On Edge, this key does not work. PrintScreen works only on keyup event, and PrintScreen doesn't work on Edge well.
-		//0x2C: "PrintScreen",
+		// On Edge, this key does not work. PrintScreen works only on keyup event.
+		// 0x2C: "PrintScreen",
 
-		// TODO: On Edge, it is impossible to tell KPEnter and Enter / KPEqual and Equal.
+		// On Edge, it is impossible to tell KPEnter and Enter / KPEqual and Equal.
 		// 0x0d: "KPEnter",
 		// 0x0c: "KPEqual",
 	}
