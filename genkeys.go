@@ -43,6 +43,8 @@ func init() {
 		"Period":       {"Period"},
 		"Alt":          {"AltLeft", "AltRight"},
 		"Pause":        {"Pause"},
+		"PrintScreen":  {"PrintScreen"},
+		"ScrollLock":   {"ScrollLock"},
 		"CapsLock":     {"CapsLock"},
 		"Control":      {"ControlLeft", "ControlRight"},
 		"Shift":        {"ShiftLeft", "ShiftRight"},
@@ -55,7 +57,6 @@ func init() {
 		"Insert":       {"Insert"},
 		"PageDown":     {"PageDown"},
 		"PageUp":       {"PageUp"},
-		"PrintScreen":  {"PrintScreen"},
 		"Down":         {"ArrowDown"},
 		"Left":         {"ArrowLeft"},
 		"Right":        {"ArrowRight"},
@@ -72,7 +73,6 @@ func init() {
 		"RightBracket": {"BracketRight"},
 		"GraveAccent":  {"Backquote"},
 		"NumLock":      {"NumLock"},
-		"ScrollLock":   {"ScrollLock"},
 		"Menu":         {"ContextMenu"},
 	}
 	// ASCII: 0 - 9
