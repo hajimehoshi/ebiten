@@ -102,13 +102,17 @@ const (
 	KeyKPSubtract
 	KeyLeft
 	KeyLeftBracket
+	KeyMenu
 	KeyMinus
 	KeyNumLock
 	KeyPageDown
 	KeyPageUp
+	KeyPause
 	KeyPeriod
+	KeyPrintScreen
 	KeyRight
 	KeyRightBracket
+	KeyScrollLock
 	KeySemicolon
 	KeyShift
 	KeySlash

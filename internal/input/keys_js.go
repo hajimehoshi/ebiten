@@ -229,6 +229,9 @@ var keyToCodes = map[Key][]string{
 	KeyM: {
 		"KeyM",
 	},
+	KeyMenu: {
+		"ContextMenu",
+	},
 	KeyMinus: {
 		"Minus",
 	},
@@ -250,8 +253,14 @@ var keyToCodes = map[Key][]string{
 	KeyPageUp: {
 		"PageUp",
 	},
+	KeyPause: {
+		"Pause",
+	},
 	KeyPeriod: {
 		"Period",
+	},
+	KeyPrintScreen: {
+		"PrintScreen",
 	},
 	KeyQ: {
 		"KeyQ",
@@ -267,6 +276,9 @@ var keyToCodes = map[Key][]string{
 	},
 	KeyS: {
 		"KeyS",
+	},
+	KeyScrollLock: {
+		"ScrollLock",
 	},
 	KeySemicolon: {
 		"Semicolon",
@@ -316,6 +328,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	16:  KeyShift,
 	17:  KeyControl,
 	18:  KeyAlt,
+	19:  KeyPause,
 	20:  KeyCapsLock,
 	27:  KeyEscape,
 	32:  KeySpace,
@@ -365,6 +378,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	88:  KeyX,
 	89:  KeyY,
 	90:  KeyZ,
+	93:  KeyMenu,
 	96:  KeyKP0,
 	97:  KeyKP1,
 	98:  KeyKP2,
@@ -393,6 +407,7 @@ var keyCodeToKeyEdge = map[int]Key{
 	122: KeyF11,
 	123: KeyF12,
 	144: KeyNumLock,
+	145: KeyScrollLock,
 	186: KeySemicolon,
 	187: KeyEqual,
 	188: KeyComma,
