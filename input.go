@@ -122,6 +122,7 @@ type Touch interface {
 
 // Touches returns the current touch states.
 //
+// Touches will return nil when there are no touches.
 // Touches always returns nil on desktops.
 func Touches() []Touch {
 	t := ui.AdjustedTouches()
