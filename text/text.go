@@ -53,22 +53,8 @@ type colorMCacheEntry struct {
 	atime int64
 }
 
-var (
-	colorMCache = map[colorMCacheKey]*colorMCacheEntry{}
-)
-
-func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y fixed.Int26_6, clr color.Color) {
+func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y fixed.Int26_6, clr ebiten.ColorM) {
 	if img == nil {
-		return
-	}
-
-	// RGBA() is in [0 - 0xffff]. Adjust them in [0 - 0xff].
-	cr, cg, cb, ca := clr.RGBA()
-	cr >>= 8
-	cg >>= 8
-	cb >>= 8
-	ca >>= 8
-	if ca == 0 {
 		return
 	}
 
@@ -76,36 +62,7 @@ func drawGlyph(dst *ebiten.Image, face font.Face, r rune, img *glyphImage, x, y 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(fixed26_6ToFloat64(x+b.Min.X), fixed26_6ToFloat64(y+b.Min.Y))
 
-	key := colorMCacheKey(uint32(cr) | (uint32(cg) << 8) | (uint32(cb) << 16) | (uint32(ca) << 24))
-	e, ok := colorMCache[key]
-	if ok {
-		e.atime = now()
-	} else {
-		if len(colorMCache) > cacheLimit {
-			oldest := int64(math.MaxInt64)
-			oldestKey := colorMCacheKey(0)
-			for key, c := range colorMCache {
-				if c.atime < oldest {
-					oldestKey = key
-					oldest = c.atime
-				}
-			}
-			delete(colorMCache, oldestKey)
-		}
-
-		cm := ebiten.ColorM{}
-		rf := float64(cr) / float64(ca)
-		gf := float64(cg) / float64(ca)
-		bf := float64(cb) / float64(ca)
-		af := float64(ca) / 0xff
-		cm.Scale(rf, gf, bf, af)
-		e = &colorMCacheEntry{
-			m:     cm,
-			atime: now(),
-		}
-		colorMCache[key] = e
-	}
-	op.ColorM = e.m
+	op.ColorM = clr
 	re := image.Rect(img.x, img.y, img.x+img.width, img.y+img.height)
 	op.SourceRect = &re
 
@@ -191,6 +148,7 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 		neededGlyphs[i] = b
 	}
 
+	// TODO: What if w2 is too big (e.g. > 4096)?
 	w2 := 0
 	h2 := 0
 	for _, b := range neededGlyphs {
@@ -236,6 +194,58 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 
 var textM sync.Mutex
 
+var (
+	colorMCache = map[colorMCacheKey]*colorMCacheEntry{}
+	emptyColorM ebiten.ColorM
+)
+
+func init() {
+	emptyColorM.Scale(0, 0, 0, 0)
+}
+
+func colorToColorM(clr color.Color) ebiten.ColorM {
+	// RGBA() is in [0 - 0xffff]. Adjust them in [0 - 0xff].
+	cr, cg, cb, ca := clr.RGBA()
+	cr >>= 8
+	cg >>= 8
+	cb >>= 8
+	ca >>= 8
+	if ca == 0 {
+		return emptyColorM
+	}
+	key := colorMCacheKey(uint32(cr) | (uint32(cg) << 8) | (uint32(cb) << 16) | (uint32(ca) << 24))
+	e, ok := colorMCache[key]
+	if ok {
+		e.atime = now()
+		return e.m
+	}
+	if len(colorMCache) > cacheLimit {
+		oldest := int64(math.MaxInt64)
+		oldestKey := colorMCacheKey(0)
+		for key, c := range colorMCache {
+			if c.atime < oldest {
+				oldestKey = key
+				oldest = c.atime
+			}
+		}
+		delete(colorMCache, oldestKey)
+	}
+
+	cm := ebiten.ColorM{}
+	rf := float64(cr) / float64(ca)
+	gf := float64(cg) / float64(ca)
+	bf := float64(cb) / float64(ca)
+	af := float64(ca) / 0xff
+	cm.Scale(rf, gf, bf, af)
+	e = &colorMCacheEntry{
+		m:     cm,
+		atime: now(),
+	}
+	colorMCache[key] = e
+
+	return e.m
+}
+
 // Draw draws a given text on a given destination image dst.
 //
 // face is the font for text rendering.
@@ -258,11 +268,13 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 
 	runes := []rune(text)
 	glyphImgs := getGlyphImages(face, runes)
+	colorm := colorToColorM(clr)
+
 	for i, r := range runes {
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
-		drawGlyph(dst, face, r, glyphImgs[i], fx, fixed.I(y), clr)
+		drawGlyph(dst, face, r, glyphImgs[i], fx, fixed.I(y), colorm)
 		fx += glyphAdvance(face, r)
 
 		prevR = r
