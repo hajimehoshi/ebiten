@@ -122,16 +122,13 @@ type Touch interface {
 
 // Touches returns the current touch states.
 //
-// Touches will return nil when there are no touches.
+// Touches returns nil when there are no touches.
 // Touches always returns nil on desktops.
 func Touches() []Touch {
-	t := ui.AdjustedTouches()
-	if len(t) == 0 {
-		return nil
+	touches := ui.AdjustedTouches()
+	var copies []Touch
+	for _, touch := range touches {
+		copies = append(copies, touch)
 	}
-	tt := make([]Touch, len(t))
-	for i := 0; i < len(tt); i++ {
-		tt[i] = t[i]
-	}
-	return tt
+	return copies
 }
