@@ -174,9 +174,8 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 			d.Dot = fixed.Point26_6{fixed.I(x) - b.Min.X, -b.Min.Y}
 			d.DrawString(string(r))
 
-			img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
 			g := &glyphImage{
-				image:  img,
+				image:  nil,
 				x:      x,
 				y:      0,
 				width:  w,
@@ -189,6 +188,11 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 			imgs[i] = g
 
 			x += w
+		}
+
+		img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
+		for i := range neededGlyphs {
+			imgs[i].image = img
 		}
 	}
 	return imgs
