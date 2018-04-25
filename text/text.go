@@ -148,46 +148,48 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 		neededGlyphs[i] = b
 	}
 
-	// TODO: What if w2 is too big (e.g. > 4096)?
-	w2 := 0
-	h2 := 0
-	for _, b := range neededGlyphs {
-		w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
-		w2 += w
-		if h2 < h {
-			h2 = h
+	if len(neededGlyphs) > 0 {
+		// TODO: What if w2 is too big (e.g. > 4096)?
+		w2 := 0
+		h2 := 0
+		for _, b := range neededGlyphs {
+			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+			w2 += w
+			if h2 < h {
+				h2 = h
+			}
 		}
-	}
-	rgba := image.NewRGBA(image.Rect(0, 0, w2, h2))
+		rgba := image.NewRGBA(image.Rect(0, 0, w2, h2))
 
-	x := 0
-	for i, b := range neededGlyphs {
-		w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+		x := 0
+		for i, b := range neededGlyphs {
+			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
 
-		r := runes[i]
-		d := font.Drawer{
-			Dst:  rgba,
-			Src:  image.White,
-			Face: face,
+			r := runes[i]
+			d := font.Drawer{
+				Dst:  rgba,
+				Src:  image.White,
+				Face: face,
+			}
+			d.Dot = fixed.Point26_6{fixed.I(x) - b.Min.X, -b.Min.Y}
+			d.DrawString(string(r))
+
+			img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
+			g := &glyphImage{
+				image:  img,
+				x:      x,
+				y:      0,
+				width:  w,
+				height: h,
+			}
+			glyphImageCache[face][r] = &glyphImageCacheEntry{
+				image: g,
+				atime: now(),
+			}
+			imgs[i] = g
+
+			x += w
 		}
-		d.Dot = fixed.Point26_6{fixed.I(x) - b.Min.X, -b.Min.Y}
-		d.DrawString(string(r))
-
-		img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
-		g := &glyphImage{
-			image:  img,
-			x:      x,
-			y:      0,
-			width:  w,
-			height: h,
-		}
-		glyphImageCache[face][r] = &glyphImageCacheEntry{
-			image: g,
-			atime: now(),
-		}
-		imgs[i] = g
-
-		x += w
 	}
 	return imgs
 }
