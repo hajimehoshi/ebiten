@@ -171,15 +171,15 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) dispose() {
-	if i.isDisposed() {
-		return
-	}
-
 	defer func() {
 		i.backend = nil
 		i.node = nil
 		runtime.SetFinalizer(i, nil)
 	}()
+
+	if i.isDisposed() {
+		return
+	}
 
 	if i.node == nil {
 		i.backend.restorable.Dispose()
