@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -74,19 +73,23 @@ type Image struct {
 
 var dummyImage = newImageWithoutInit(16, 16, false)
 
+// newImageWithoutInit creates an image without initialization.
+//
+// Note that Dispose is not called automatically.
 func newImageWithoutInit(width, height int, volatile bool) *Image {
 	i := &Image{
 		image:    graphics.NewImage(width, height),
 		volatile: volatile,
 	}
 	theImages.add(i)
-	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
 
 // NewImage creates an empty image with the given size.
 //
 // The returned image is cleared.
+//
+// Note that Dispose is not called automatically.
 func NewImage(width, height int, volatile bool) *Image {
 	i := newImageWithoutInit(width, height, volatile)
 	i.Clear(0, 0, width, height)
@@ -104,6 +107,8 @@ func (i *Image) Clear(x, y, width, height int) {
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
 //
 // The returned image is cleared.
+//
+// Note that Dispose is not called automatically.
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		image:    graphics.NewScreenFramebufferImage(width, height),
@@ -111,7 +116,6 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		screen:   true,
 	}
 	theImages.add(i)
-	runtime.SetFinalizer(i, (*Image).Dispose)
 	i.Clear(0, 0, width, height)
 	return i
 }
@@ -379,7 +383,6 @@ func (i *Image) Dispose() {
 	i.basePixels = nil
 	i.drawImageHistory = nil
 	i.stale = false
-	runtime.SetFinalizer(i, nil)
 }
 
 // IsInvalidated returns a boolean value indicating whether the image is invalidated.
