@@ -91,53 +91,51 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 	return nil
 }
 
-var screenshot = false
-var screenshotKey Key
+type imageDumper struct {
+	f func(screen *Image) error
 
-func init() {
-	keyname := os.Getenv("EBITEN_SCREENSHOT_KEY")
-	if keyname == "" {
-		return
-	}
-	key, ok := keyNameToKey(keyname)
-	if !ok {
-		return
-	}
-	screenshot = true
-	screenshotKey = key
+	keyState map[Key]int
+
+	hasScreenshotKey bool
+	screenshotKey    Key
+	toTakeScreenshot bool
 }
 
-type screenshotTaker struct {
-	f          func(screen *Image) error
-	keyState   int
-	needToTake bool
-}
-
-func (s *screenshotTaker) update(screen *Image) error {
-	if err := s.f(screen); err != nil {
+func (i *imageDumper) update(screen *Image) error {
+	if err := i.f(screen); err != nil {
 		return err
 	}
-	if !screenshot {
-		return nil
+
+	// If keyState is nil, all values are not initialized.
+	if i.keyState == nil {
+		i.keyState = map[Key]int{}
+
+		if keyname := os.Getenv("EBITEN_SCREENSHOT_KEY"); keyname != "" {
+			if key, ok := keyNameToKey(keyname); ok {
+				i.hasScreenshotKey = true
+				i.screenshotKey = key
+			}
+		}
 	}
 
-	if IsKeyPressed(screenshotKey) {
-		s.keyState++
-		if s.keyState == 1 {
-			s.needToTake = true
+	if i.hasScreenshotKey && IsKeyPressed(i.screenshotKey) {
+		i.keyState[i.screenshotKey]++
+		if i.keyState[i.screenshotKey] == 1 {
+			i.toTakeScreenshot = true
 		}
 	} else {
-		s.keyState = 0
+		i.keyState[i.screenshotKey] = 0
 	}
-	if s.needToTake && !IsRunningSlowly() {
+
+	if i.toTakeScreenshot && !IsRunningSlowly() {
 		filename := "screenshot.png"
-		i := 0
+		idx := 0
 		for {
 			if _, err := os.Stat(filename); os.IsNotExist(err) {
 				break
 			}
-			i++
-			filename = fmt.Sprintf("screenshot%d.png", i)
+			idx++
+			filename = fmt.Sprintf("screenshot%d.png", idx)
 		}
 		f, err := os.Create(filename)
 		if err != nil {
@@ -148,7 +146,7 @@ func (s *screenshotTaker) update(screen *Image) error {
 		if err := png.Encode(f, screen); err != nil {
 			return err
 		}
-		s.needToTake = false
+		i.toTakeScreenshot = false
 	}
 	return nil
 }
@@ -183,10 +181,7 @@ func (s *screenshotTaker) update(screen *Image) error {
 //
 // Don't call Run twice or more in one process.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
-	if screenshot {
-		s := &screenshotTaker{f: f}
-		f = s.update
-	}
+	f = (&imageDumper{f: f}).update
 
 	ch := make(chan error)
 	go func() {
@@ -212,10 +207,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // Ebiten users should NOT call this function.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
-	if screenshot {
-		s := &screenshotTaker{f: f}
-		f = s.update
-	}
+	f = (&imageDumper{f: f}).update
 
 	ch := make(chan error)
 	go func() {
