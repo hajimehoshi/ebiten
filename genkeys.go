@@ -186,8 +186,6 @@ import (
 type Key int
 
 // Keys.
-//
-// Known issue: KeyKPEnter and KeyKPEqual don't work on Edge browsers.
 const (
 {{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(input.Key{{$name}})
 {{end}}	KeyMax Key = Key{{.LastKeyName}}
