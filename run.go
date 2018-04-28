@@ -17,12 +17,15 @@ package ebiten
 import (
 	"fmt"
 	"image"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/png"
+	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
@@ -99,6 +102,10 @@ type imageDumper struct {
 	hasScreenshotKey bool
 	screenshotKey    Key
 	toTakeScreenshot bool
+
+	hasDumpImagesKey bool
+	dumpImagesKey    Key
+	toDumpImages     bool
 }
 
 func (i *imageDumper) update(screen *Image) error {
@@ -116,18 +123,43 @@ func (i *imageDumper) update(screen *Image) error {
 				i.screenshotKey = key
 			}
 		}
-	}
-
-	if i.hasScreenshotKey && IsKeyPressed(i.screenshotKey) {
-		i.keyState[i.screenshotKey]++
-		if i.keyState[i.screenshotKey] == 1 {
-			i.toTakeScreenshot = true
+		if keyname := os.Getenv("EBITEN_DUMP_IMAGES_KEY"); keyname != "" {
+			if key, ok := keyNameToKey(keyname); ok {
+				i.hasDumpImagesKey = true
+				i.dumpImagesKey = key
+			}
 		}
-	} else {
-		i.keyState[i.screenshotKey] = 0
 	}
 
-	if i.toTakeScreenshot && !IsRunningSlowly() {
+	keys := map[Key]struct{}{}
+	if i.hasScreenshotKey {
+		keys[i.screenshotKey] = struct{}{}
+	}
+	if i.hasDumpImagesKey {
+		keys[i.dumpImagesKey] = struct{}{}
+	}
+
+	for key := range keys {
+		if IsKeyPressed(key) {
+			i.keyState[key]++
+			if i.keyState[key] == 1 {
+				if i.hasScreenshotKey && key == i.screenshotKey {
+					i.toTakeScreenshot = true
+				}
+				if i.hasDumpImagesKey && key == i.dumpImagesKey {
+					i.toDumpImages = true
+				}
+			}
+		} else {
+			i.keyState[key] = 0
+		}
+	}
+
+	if IsRunningSlowly() {
+		return nil
+	}
+
+	if i.toTakeScreenshot {
 		filename := "screenshot.png"
 		idx := 0
 		for {
@@ -148,6 +180,42 @@ func (i *imageDumper) update(screen *Image) error {
 		}
 		i.toTakeScreenshot = false
 	}
+
+	if i.toDumpImages {
+		dir, err := ioutil.TempDir("", "ebiten_textures")
+		if err != nil {
+			return err
+		}
+
+		dump := func(img image.Image, index int) error {
+			filename := filepath.Join(dir, fmt.Sprintf("%d.png", index))
+			f, err := os.Create(filename)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			if err := png.Encode(f, img); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		images, err := shareable.Images()
+		if err != nil {
+			return err
+		}
+		for i, img := range images {
+			if err := dump(img, i); err != nil {
+				return err
+			}
+		}
+
+		i.toDumpImages = false
+
+		fmt.Fprintf(os.Stderr, "Dumped texture at: %s\n", dir)
+	}
+
 	return nil
 }
 

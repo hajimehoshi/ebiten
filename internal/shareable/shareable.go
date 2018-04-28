@@ -16,6 +16,7 @@ package shareable
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"runtime"
 
@@ -321,4 +322,10 @@ func BackendNumForTesting() int {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return len(theBackends)
+}
+
+func Images() ([]image.Image, error) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return restorable.Images()
 }
