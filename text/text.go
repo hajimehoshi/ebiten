@@ -113,7 +113,8 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 	}
 
 	imgs := make([]*glyphImage, len(runes))
-	neededGlyphs := map[int]*fixed.Rectangle26_6{}
+	glyphBounds := map[rune]*fixed.Rectangle26_6{}
+	neededGlyphIndices := map[int]rune{}
 	for i, r := range runes {
 		if _, ok := emptyGlyphs[face][r]; ok {
 			continue
@@ -145,14 +146,15 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 			delete(glyphImageCache[face], oldestKey)
 		}
 
-		neededGlyphs[i] = b
+		glyphBounds[r] = b
+		neededGlyphIndices[i] = r
 	}
 
-	if len(neededGlyphs) > 0 {
+	if len(neededGlyphIndices) > 0 {
 		// TODO: What if w2 is too big (e.g. > 4096)?
 		w2 := 0
 		h2 := 0
-		for _, b := range neededGlyphs {
+		for _, b := range glyphBounds {
 			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
 			w2 += w
 			if h2 < h {
@@ -162,10 +164,10 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 		rgba := image.NewRGBA(image.Rect(0, 0, w2, h2))
 
 		x := 0
-		for i, b := range neededGlyphs {
-			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+		xs := map[rune]int{}
+		for r, b := range glyphBounds {
+			w := (b.Max.X - b.Min.X).Ceil()
 
-			r := runes[i]
 			d := font.Drawer{
 				Dst:  rgba,
 				Src:  image.White,
@@ -173,26 +175,30 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 			}
 			d.Dot = fixed.Point26_6{fixed.I(x) - b.Min.X, -b.Min.Y}
 			d.DrawString(string(r))
-
-			g := &glyphImage{
-				image:  nil,
-				x:      x,
-				y:      0,
-				width:  w,
-				height: h,
-			}
-			glyphImageCache[face][r] = &glyphImageCacheEntry{
-				image: g,
-				atime: now(),
-			}
-			imgs[i] = g
+			xs[r] = x
 
 			x += w
 		}
 
 		img, _ := ebiten.NewImageFromImage(rgba, ebiten.FilterDefault)
-		for i := range neededGlyphs {
-			imgs[i].image = img
+		for i, r := range neededGlyphIndices {
+			b := glyphBounds[r]
+			w, h := (b.Max.X - b.Min.X).Ceil(), (b.Max.Y - b.Min.Y).Ceil()
+
+			g := &glyphImage{
+				image:  img,
+				x:      xs[r],
+				y:      0,
+				width:  w,
+				height: h,
+			}
+			if _, ok := glyphImageCache[face][r]; !ok {
+				glyphImageCache[face][r] = &glyphImageCacheEntry{
+					image: g,
+					atime: now(),
+				}
+			}
+			imgs[i] = g
 		}
 	}
 	return imgs
