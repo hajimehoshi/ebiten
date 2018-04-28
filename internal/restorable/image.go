@@ -92,16 +92,8 @@ func newImageWithoutInit(width, height int, volatile bool) *Image {
 // Note that Dispose is not called automatically.
 func NewImage(width, height int, volatile bool) *Image {
 	i := newImageWithoutInit(width, height, volatile)
-	i.Clear(0, 0, width, height)
+	i.ReplacePixels(nil, 0, 0, width, height)
 	return i
-}
-
-func (i *Image) Clear(x, y, width, height int) {
-	w, h := dummyImage.Size()
-	geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
-	geom = geom.Translate(float64(x), float64(y))
-	colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
-	i.DrawImage(dummyImage, 0, 0, w, h, geom, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 }
 
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
@@ -116,7 +108,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		screen:   true,
 	}
 	theImages.add(i)
-	i.Clear(0, 0, width, height)
+	i.ReplacePixels(nil, 0, 0, width, height)
 	return i
 }
 
@@ -143,6 +135,8 @@ func (i *Image) makeStale() {
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
+//
+// If pixels is nil, ReplacePixels clears the specified reagion.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	w, h := i.image.Size()
 	if width <= 0 || height <= 0 {
@@ -156,7 +150,19 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawImage.
 	theImages.makeStaleIfDependingOn(i)
 
-	i.image.ReplacePixels(pixels, x, y, width, height)
+	if pixels != nil {
+		i.image.ReplacePixels(pixels, x, y, width, height)
+	} else {
+		// There is not 'drawImageHistoryItem' for this image and dummyImage.
+		// This means dummyImage might not be restored yet when this image is restored.
+		// However, that's ok since this image will be stale or have updated pixel data.
+		w, h := dummyImage.Size()
+		geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
+		geom = geom.Translate(float64(x), float64(y))
+		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
+		vs := vertices(w, h, 0, 0, w, h, geom)
+		i.image.DrawImage(dummyImage.image, vs, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
+	}
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if i.basePixels == nil {
@@ -176,9 +182,17 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 	idx := 4 * (y*w + x)
-	for j := 0; j < height; j++ {
-		copy(i.basePixels[idx:idx+4*width], pixels[4*j*width:4*(j+1)*width])
-		idx += 4 * w
+	if pixels != nil {
+		for j := 0; j < height; j++ {
+			copy(i.basePixels[idx:idx+4*width], pixels[4*j*width:4*(j+1)*width])
+			idx += 4 * w
+		}
+	} else {
+		zeros := make([]byte, 4*width)
+		for j := 0; j < height; j++ {
+			copy(i.basePixels[idx:idx+4*width], zeros)
+			idx += 4 * w
+		}
 	}
 	i.stale = false
 }
