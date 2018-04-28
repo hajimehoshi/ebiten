@@ -103,9 +103,9 @@ type imageDumper struct {
 	screenshotKey    Key
 	toTakeScreenshot bool
 
-	hasDumpImagesKey bool
-	dumpImagesKey    Key
-	toDumpImages     bool
+	hasDumpInternalImagesKey bool
+	dumpInternalImagesKey    Key
+	toDumpInternalImages     bool
 }
 
 func (i *imageDumper) update(screen *Image) error {
@@ -123,10 +123,10 @@ func (i *imageDumper) update(screen *Image) error {
 				i.screenshotKey = key
 			}
 		}
-		if keyname := os.Getenv("EBITEN_DUMP_IMAGES_KEY"); keyname != "" {
+		if keyname := os.Getenv("EBITEN_INTERNAL_IMAGES_KEY"); keyname != "" {
 			if key, ok := keyNameToKey(keyname); ok {
-				i.hasDumpImagesKey = true
-				i.dumpImagesKey = key
+				i.hasDumpInternalImagesKey = true
+				i.dumpInternalImagesKey = key
 			}
 		}
 	}
@@ -135,8 +135,8 @@ func (i *imageDumper) update(screen *Image) error {
 	if i.hasScreenshotKey {
 		keys[i.screenshotKey] = struct{}{}
 	}
-	if i.hasDumpImagesKey {
-		keys[i.dumpImagesKey] = struct{}{}
+	if i.hasDumpInternalImagesKey {
+		keys[i.dumpInternalImagesKey] = struct{}{}
 	}
 
 	for key := range keys {
@@ -146,8 +146,8 @@ func (i *imageDumper) update(screen *Image) error {
 				if i.hasScreenshotKey && key == i.screenshotKey {
 					i.toTakeScreenshot = true
 				}
-				if i.hasDumpImagesKey && key == i.dumpImagesKey {
-					i.toDumpImages = true
+				if i.hasDumpInternalImagesKey && key == i.dumpInternalImagesKey {
+					i.toDumpInternalImages = true
 				}
 			}
 		} else {
@@ -185,8 +185,8 @@ func (i *imageDumper) update(screen *Image) error {
 		fmt.Fprintf(os.Stderr, "Saved screenshot: %s.png\n", name)
 	}
 
-	if i.toDumpImages {
-		dir, err := ioutil.TempDir("", "ebiten_textures_")
+	if i.toDumpInternalImages {
+		dir, err := ioutil.TempDir("", "ebiten_internal_images_")
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func (i *imageDumper) update(screen *Image) error {
 			}
 		}
 
-		i.toDumpImages = false
+		i.toDumpInternalImages = false
 
 		fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dir)
 	}

@@ -42,6 +42,6 @@
 // `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
 // by pressing Q key.
 //
-// The EBITEN_DUMP_IMAGES_KEY environment variable specifies the key
+// The EBITEN_INTERNAL_IMAGES_KEY environment variable specifies the key
 // to dump all the internal images.
 package ebiten
