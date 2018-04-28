@@ -238,13 +238,15 @@ func (i *Image) At(x, y int) (color.RGBA, error) {
 		return color.RGBA{}, nil
 	}
 
-	if err := graphics.FlushCommands(); err != nil {
-		return color.RGBA{}, err
-	}
 	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
+		if err := graphics.FlushCommands(); err != nil {
+			return color.RGBA{}, err
+		}
 		if err := i.readPixelsFromGPU(); err != nil {
 			return color.RGBA{}, err
 		}
+		i.drawImageHistory = nil
+		i.stale = false
 	}
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
