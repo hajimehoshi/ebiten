@@ -40,8 +40,7 @@
 // The EBITEN_SCREENSHOT_KEY environment variable specifies the key
 // to take a screenshot. For example, if you run your game with
 // `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
-// by pressing Q key. The image file is saved at the current directory
-// with the name screen*.png.
+// by pressing Q key.
 //
 // The EBITEN_DUMP_IMAGES_KEY environment variable specifies the key
 // to dump all the internal images.

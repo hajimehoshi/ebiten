@@ -160,29 +160,33 @@ func (i *imageDumper) update(screen *Image) error {
 	}
 
 	if i.toTakeScreenshot {
-		filename := "screenshot.png"
-		idx := 0
-		for {
-			if _, err := os.Stat(filename); os.IsNotExist(err) {
-				break
+		dump := func() (string, error) {
+			f, err := ioutil.TempFile("", "ebiten_screenshot_")
+			if err != nil {
+				return "", err
 			}
-			idx++
-			filename = fmt.Sprintf("screenshot%d.png", idx)
+			defer f.Close()
+
+			if err := png.Encode(f, screen); err != nil {
+				return "", err
+			}
+			return f.Name(), nil
 		}
-		f, err := os.Create(filename)
+
+		name, err := dump()
 		if err != nil {
 			return err
 		}
-		defer f.Close()
-
-		if err := png.Encode(f, screen); err != nil {
+		if err := os.Rename(name, name+".png"); err != nil {
 			return err
 		}
+
 		i.toTakeScreenshot = false
+		fmt.Fprintf(os.Stderr, "Saved screenshot: %s.png\n", name)
 	}
 
 	if i.toDumpImages {
-		dir, err := ioutil.TempDir("", "ebiten_textures")
+		dir, err := ioutil.TempDir("", "ebiten_textures_")
 		if err != nil {
 			return err
 		}
@@ -213,7 +217,7 @@ func (i *imageDumper) update(screen *Image) error {
 
 		i.toDumpImages = false
 
-		fmt.Fprintf(os.Stderr, "Dumped texture at: %s\n", dir)
+		fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dir)
 	}
 
 	return nil
