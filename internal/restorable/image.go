@@ -155,7 +155,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	} else {
 		// There is not 'drawImageHistoryItem' for this image and dummyImage.
 		// This means dummyImage might not be restored yet when this image is restored.
-		// However, that's ok since this image will be stale or have updated pixel data.
+		// However, that's ok since this image will be stale or have updated pixel data
+		// and this image can be restored without dummyImage.
 		w, h := dummyImage.Size()
 		geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
 		geom = geom.Translate(float64(x), float64(y))
