@@ -103,7 +103,6 @@ func (i *Image) ensureNotShared() {
 	}
 
 	x, y, w, h := i.region()
-	println(x, y, w, h)
 	newImg := restorable.NewImage(w, h, false)
 	newImg.DrawImage(i.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
@@ -248,6 +247,10 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) allocate(shareable bool) {
+	if i.allocated {
+		panic("not reached")
+	}
+
 	const (
 		initSize = 1024
 		maxSize  = 4096
