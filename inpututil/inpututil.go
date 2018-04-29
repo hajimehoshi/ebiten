@@ -225,6 +225,9 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	return s
 }
 
+// JustConnectedGamepadIDs returns gamepad IDs that are connected just in the current frame.
+//
+// JustConnectedGamepadIDs is concurrent safe.
 func JustConnectedGamepadIDs() []int {
 	ids := []int{}
 	theInputState.m.RLock()
@@ -238,6 +241,9 @@ func JustConnectedGamepadIDs() []int {
 	return ids
 }
 
+// JustDisconnectedGamepadIDs returns gamepad IDs that are disconnected just in the current frame.
+//
+// JustDisconnectedGamepadIDs is concurrent safe.
 func JustDisconnectedGamepadIDs() []int {
 	ids := []int{}
 	theInputState.m.RLock()
