@@ -32,12 +32,21 @@ const (
 	screenHeight = 480
 )
 
+var (
+	gamepadIDs = map[int]struct{}{}
+)
+
 func update(screen *ebiten.Image) error {
+	// Log the gamepad connection events.
 	for _, id := range inpututil.JustConnectedGamepadIDs() {
 		log.Printf("gamepad connected: id: %d", id)
+		gamepadIDs[id] = struct{}{}
 	}
-	for _, id := range inpututil.JustDisconnectedGamepadIDs() {
-		log.Printf("gamepad disconnected: id: %d", id)
+	for id := range gamepadIDs {
+		if inpututil.IsGamepadJustDisconnected(id) {
+			log.Printf("gamepad disconnected: id: %d", id)
+			delete(gamepadIDs, id)
+		}
 	}
 
 	ids := ebiten.GamepadIDs()
@@ -56,7 +65,7 @@ func update(screen *ebiten.Image) error {
 				pressedButtons[id] = append(pressedButtons[id], strconv.Itoa(int(b)))
 			}
 
-			// Log some events.
+			// Log button events.
 			if inpututil.IsGamepadButtonJustPressed(id, b) {
 				log.Printf("button pressed: id: %d, button: %d", id, b)
 			}

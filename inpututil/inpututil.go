@@ -243,22 +243,16 @@ func JustConnectedGamepadIDs() []int {
 	return ids
 }
 
-// JustDisconnectedGamepadIDs returns gamepad IDs that are disconnected just in the current frame.
+// IsGamepadJustDisconnected returns a boolean value indicating
+// whether the gamepad of the given id is released just in the current frame.
 //
-// JustDisconnectedGamepadIDs might return nil when there is no disconnected gamepad.
-//
-// JustDisconnectedGamepadIDs is concurrent safe.
-func JustDisconnectedGamepadIDs() []int {
-	var ids []int
+// IsGamepadJustDisconnected is concurrent safe.
+func IsGamepadJustDisconnected(id int) bool {
 	theInputState.m.RLock()
-	for id := range theInputState.prevGamepadIDs {
-		if _, ok := theInputState.gamepadIDs[id]; !ok {
-			ids = append(ids, id)
-		}
-	}
+	_, prev := theInputState.prevGamepadIDs[id]
+	_, current := theInputState.gamepadIDs[id]
 	theInputState.m.RUnlock()
-	sort.Ints(ids)
-	return ids
+	return prev && !current
 }
 
 // IsGamepadButtonJustPressed returns a boolean value indicating
