@@ -24,33 +24,33 @@ import (
 )
 
 type inputState struct {
-	keyStates     map[ebiten.Key]int
-	prevKeyStates map[ebiten.Key]int
+	keyDurations     map[ebiten.Key]int
+	prevKeyDurations map[ebiten.Key]int
 
-	mouseButtonStates     map[ebiten.MouseButton]int
-	prevMouseButtonStates map[ebiten.MouseButton]int
+	mouseButtonDurations     map[ebiten.MouseButton]int
+	prevMouseButtonDurations map[ebiten.MouseButton]int
 
-	gamepadButtonStates     map[int]map[ebiten.GamepadButton]int
-	prevGamepadButtonStates map[int]map[ebiten.GamepadButton]int
+	gamepadButtonDurations     map[int]map[ebiten.GamepadButton]int
+	prevGamepadButtonDurations map[int]map[ebiten.GamepadButton]int
 
-	touchStates     map[int]int
-	prevTouchStates map[int]int
+	touchDurations     map[int]int
+	prevTouchDurations map[int]int
 
 	m sync.RWMutex
 }
 
 var theInputState = &inputState{
-	keyStates:     map[ebiten.Key]int{},
-	prevKeyStates: map[ebiten.Key]int{},
+	keyDurations:     map[ebiten.Key]int{},
+	prevKeyDurations: map[ebiten.Key]int{},
 
-	mouseButtonStates:     map[ebiten.MouseButton]int{},
-	prevMouseButtonStates: map[ebiten.MouseButton]int{},
+	mouseButtonDurations:     map[ebiten.MouseButton]int{},
+	prevMouseButtonDurations: map[ebiten.MouseButton]int{},
 
-	gamepadButtonStates:     map[int]map[ebiten.GamepadButton]int{},
-	prevGamepadButtonStates: map[int]map[ebiten.GamepadButton]int{},
+	gamepadButtonDurations:     map[int]map[ebiten.GamepadButton]int{},
+	prevGamepadButtonDurations: map[int]map[ebiten.GamepadButton]int{},
 
-	touchStates:     map[int]int{},
-	prevTouchStates: map[int]int{},
+	touchDurations:     map[int]int{},
+	prevTouchDurations: map[int]int{},
 }
 
 func init() {
@@ -66,11 +66,11 @@ func (i *inputState) update() {
 
 	// Keyboard
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
-		i.prevKeyStates[k] = i.keyStates[k]
+		i.prevKeyDurations[k] = i.keyDurations[k]
 		if ebiten.IsKeyPressed(k) {
-			i.keyStates[k]++
+			i.keyDurations[k]++
 		} else {
-			i.keyStates[k] = 0
+			i.keyDurations[k] = 0
 		}
 	}
 
@@ -80,74 +80,74 @@ func (i *inputState) update() {
 		ebiten.MouseButtonRight,
 		ebiten.MouseButtonMiddle,
 	} {
-		i.prevMouseButtonStates[b] = i.mouseButtonStates[b]
+		i.prevMouseButtonDurations[b] = i.mouseButtonDurations[b]
 		if ebiten.IsMouseButtonPressed(b) {
-			i.mouseButtonStates[b]++
+			i.mouseButtonDurations[b]++
 		} else {
-			i.mouseButtonStates[b] = 0
+			i.mouseButtonDurations[b] = 0
 		}
 	}
 
 	// Gamepads
 
 	// Reset the previous states first since some gamepad IDs might be already gone.
-	for id := range i.prevGamepadButtonStates {
-		for b := range i.prevGamepadButtonStates[id] {
-			i.prevGamepadButtonStates[id][b] = 0
+	for id := range i.prevGamepadButtonDurations {
+		for b := range i.prevGamepadButtonDurations[id] {
+			i.prevGamepadButtonDurations[id][b] = 0
 		}
 	}
 	ids := map[int]struct{}{}
 	for _, id := range ebiten.GamepadIDs() {
 		ids[id] = struct{}{}
 
-		if _, ok := i.prevGamepadButtonStates[id]; !ok {
-			i.prevGamepadButtonStates[id] = map[ebiten.GamepadButton]int{}
+		if _, ok := i.prevGamepadButtonDurations[id]; !ok {
+			i.prevGamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
 		}
-		if _, ok := i.gamepadButtonStates[id]; !ok {
-			i.gamepadButtonStates[id] = map[ebiten.GamepadButton]int{}
+		if _, ok := i.gamepadButtonDurations[id]; !ok {
+			i.gamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
 		}
 
 		n := ebiten.GamepadButtonNum(id)
 		for b := ebiten.GamepadButton(0); b < ebiten.GamepadButton(n); b++ {
-			i.prevGamepadButtonStates[id][b] = i.gamepadButtonStates[id][b]
+			i.prevGamepadButtonDurations[id][b] = i.gamepadButtonDurations[id][b]
 			if ebiten.IsGamepadButtonPressed(id, b) {
-				i.gamepadButtonStates[id][b]++
+				i.gamepadButtonDurations[id][b]++
 			} else {
-				i.gamepadButtonStates[id][b] = 0
+				i.gamepadButtonDurations[id][b] = 0
 			}
 		}
 	}
 	idsToDelete := []int{}
-	for id := range i.gamepadButtonStates {
+	for id := range i.gamepadButtonDurations {
 		if _, ok := ids[id]; !ok {
 			idsToDelete = append(idsToDelete, id)
 		}
 	}
 	for _, id := range idsToDelete {
-		delete(i.gamepadButtonStates, id)
+		delete(i.gamepadButtonDurations, id)
 	}
 
 	// Touches
 	ids = map[int]struct{}{}
 
 	// Reset the previous states first since some gamepad IDs might be already gone.
-	for id := range i.prevTouchStates {
-		i.prevTouchStates[id] = 0
+	for id := range i.prevTouchDurations {
+		i.prevTouchDurations[id] = 0
 	}
 
 	for _, t := range ebiten.Touches() {
 		ids[t.ID()] = struct{}{}
-		i.prevTouchStates[t.ID()] = i.touchStates[t.ID()]
-		i.touchStates[t.ID()]++
+		i.prevTouchDurations[t.ID()] = i.touchDurations[t.ID()]
+		i.touchDurations[t.ID()]++
 	}
 	idsToDelete = []int{}
-	for id := range i.touchStates {
+	for id := range i.touchDurations {
 		if _, ok := ids[id]; !ok {
 			idsToDelete = append(idsToDelete, id)
 		}
 	}
 	for _, id := range idsToDelete {
-		delete(i.touchStates, id)
+		delete(i.touchDurations, id)
 	}
 }
 
@@ -165,7 +165,7 @@ func IsKeyJustPressed(key ebiten.Key) bool {
 // IsKeyJustReleased is concurrent safe.
 func IsKeyJustReleased(key ebiten.Key) bool {
 	theInputState.m.RLock()
-	r := theInputState.keyStates[key] == 0 && theInputState.prevKeyStates[key] > 0
+	r := theInputState.keyDurations[key] == 0 && theInputState.prevKeyDurations[key] > 0
 	theInputState.m.RUnlock()
 	return r
 }
@@ -175,7 +175,7 @@ func IsKeyJustReleased(key ebiten.Key) bool {
 // KeyPressDuration is concurrent safe.
 func KeyPressDuration(key ebiten.Key) int {
 	theInputState.m.RLock()
-	s := theInputState.keyStates[key]
+	s := theInputState.keyDurations[key]
 	theInputState.m.RUnlock()
 	return s
 }
@@ -194,8 +194,8 @@ func IsMouseButtonJustPressed(button ebiten.MouseButton) bool {
 // IsMouseButtonJustReleased is concurrent safe.
 func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
 	theInputState.m.RLock()
-	r := theInputState.mouseButtonStates[button] == 0 &&
-		theInputState.prevMouseButtonStates[button] > 0
+	r := theInputState.mouseButtonDurations[button] == 0 &&
+		theInputState.prevMouseButtonDurations[button] > 0
 	theInputState.m.RUnlock()
 	return r
 }
@@ -205,7 +205,7 @@ func IsMouseButtonJustReleased(button ebiten.MouseButton) bool {
 // MouseButtonPressDuration is concurrent safe.
 func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	theInputState.m.RLock()
-	s := theInputState.mouseButtonStates[button]
+	s := theInputState.mouseButtonDurations[button]
 	theInputState.m.RUnlock()
 	return s
 }
@@ -225,12 +225,12 @@ func IsGamepadButtonJustPressed(id int, button ebiten.GamepadButton) bool {
 func IsGamepadButtonJustReleased(id int, button ebiten.GamepadButton) bool {
 	theInputState.m.RLock()
 	prev := 0
-	if _, ok := theInputState.prevGamepadButtonStates[id]; ok {
-		prev = theInputState.prevGamepadButtonStates[id][button]
+	if _, ok := theInputState.prevGamepadButtonDurations[id]; ok {
+		prev = theInputState.prevGamepadButtonDurations[id][button]
 	}
 	current := 0
-	if _, ok := theInputState.gamepadButtonStates[id]; ok {
-		current = theInputState.gamepadButtonStates[id][button]
+	if _, ok := theInputState.gamepadButtonDurations[id]; ok {
+		current = theInputState.gamepadButtonDurations[id][button]
 	}
 	theInputState.m.RUnlock()
 	return current == 0 && prev > 0
@@ -242,8 +242,8 @@ func IsGamepadButtonJustReleased(id int, button ebiten.GamepadButton) bool {
 func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 	theInputState.m.RLock()
 	s := 0
-	if _, ok := theInputState.gamepadButtonStates[id]; ok {
-		s = theInputState.gamepadButtonStates[id][button]
+	if _, ok := theInputState.gamepadButtonDurations[id]; ok {
+		s = theInputState.gamepadButtonDurations[id][button]
 	}
 	theInputState.m.RUnlock()
 	return s
@@ -255,7 +255,7 @@ func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 func JustPressedTouches() []int {
 	ids := []int{}
 	theInputState.m.RLock()
-	for id, s := range theInputState.touchStates {
+	for id, s := range theInputState.touchDurations {
 		if s == 1 {
 			ids = append(ids, id)
 		}
@@ -270,7 +270,7 @@ func JustPressedTouches() []int {
 // IsTouchJustReleased is concurrent safe.
 func IsTouchJustReleased(id int) bool {
 	theInputState.m.RLock()
-	r := theInputState.touchStates[id] == 0 && theInputState.prevTouchStates[id] > 0
+	r := theInputState.touchDurations[id] == 0 && theInputState.prevTouchDurations[id] > 0
 	theInputState.m.RUnlock()
 	return r
 }
@@ -280,7 +280,7 @@ func IsTouchJustReleased(id int) bool {
 // TouchDuration is concurrent safe.
 func TouchDuration(id int) int {
 	theInputState.m.RLock()
-	s := theInputState.touchStates[id]
+	s := theInputState.touchDurations[id]
 	theInputState.m.RUnlock()
 	return s
 }
