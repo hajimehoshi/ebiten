@@ -51,19 +51,21 @@ func TestEnsureNotShared(t *testing.T) {
 	// with non-upper-left location.
 	img1 := NewImage(bigSize, 100)
 	defer img1.Dispose()
+	// Ensure img1's region is allocated.
+	img1.ReplacePixels(make([]byte, 4*bigSize*100))
 
 	img2 := NewImage(100, bigSize)
 	defer img2.Dispose()
+	img2.ReplacePixels(make([]byte, 4*100*bigSize))
 
 	const size = 32
 
 	img3 := NewImage(size/2, size/2)
 	defer img3.Dispose()
+	img3.ReplacePixels(make([]byte, (size/2)*(size/2)*4))
 
 	img4 := NewImage(size, size)
 	defer img4.Dispose()
-
-	img3.ReplacePixels(make([]byte, (size/2)*(size/2)*4))
 
 	pix := make([]byte, size*size*4)
 	for j := 0; j < size; j++ {
