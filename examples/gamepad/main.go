@@ -33,16 +33,16 @@ const (
 )
 
 func update(screen *ebiten.Image) error {
-	ids := ebiten.GamepadIDs()
-	axes := map[int][]string{}
-	pressedButtons := map[int][]string{}
-
 	for _, id := range inpututil.JustConnectedGamepadIDs() {
 		log.Printf("gamepad connected: id: %d", id)
 	}
 	for _, id := range inpututil.JustDisconnectedGamepadIDs() {
 		log.Printf("gamepad disconnected: id: %d", id)
 	}
+
+	ids := ebiten.GamepadIDs()
+	axes := map[int][]string{}
+	pressedButtons := map[int][]string{}
 
 	for _, id := range ids {
 		maxAxis := ebiten.GamepadAxisNum(id)
