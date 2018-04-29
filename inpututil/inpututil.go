@@ -18,6 +18,8 @@
 package inpututil
 
 import (
+	"sort"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/sync"
@@ -261,6 +263,7 @@ func JustPressedTouches() []int {
 		}
 	}
 	theInputState.m.RUnlock()
+	sort.Ints(ids)
 	return ids
 }
 
