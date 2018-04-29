@@ -82,9 +82,9 @@ var (
 )
 
 type Image struct {
-	allocated bool
-	width     int
-	height    int
+	width    int
+	height   int
+	disposed bool
 
 	backend *backend
 
@@ -93,7 +93,7 @@ type Image struct {
 }
 
 func (i *Image) ensureNotShared() {
-	if !i.allocated {
+	if i.backend == nil {
 		i.allocate(false)
 		return
 	}
@@ -113,7 +113,7 @@ func (i *Image) ensureNotShared() {
 }
 
 func (i *Image) region() (x, y, width, height int) {
-	if !i.allocated {
+	if i.backend == nil {
 		panic("not reached")
 	}
 	if i.node == nil {
@@ -131,7 +131,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	if !img.allocated {
+	if img.backend == nil {
 		img.allocate(true)
 	}
 
@@ -155,7 +155,7 @@ func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	if !i.allocated {
+	if i.backend == nil {
 		i.allocate(true)
 	}
 
@@ -170,7 +170,7 @@ func (i *Image) At(x, y int) (color.Color, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	if !i.allocated {
+	if i.backend == nil {
 		return color.RGBA{}, nil
 	}
 
@@ -183,10 +183,6 @@ func (i *Image) At(x, y int) (color.Color, error) {
 	return clr, err
 }
 
-func (i *Image) isDisposed() bool {
-	return i.backend == nil
-}
-
 func (i *Image) Dispose() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -195,12 +191,18 @@ func (i *Image) Dispose() {
 
 func (i *Image) dispose() {
 	defer func() {
+		i.disposed = true
 		i.backend = nil
 		i.node = nil
 		runtime.SetFinalizer(i, nil)
 	}()
 
-	if i.isDisposed() {
+	if i.disposed {
+		return
+	}
+
+	if i.backend == nil {
+		// Not allocated yet.
 		return
 	}
 
@@ -247,7 +249,7 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) allocate(shareable bool) {
-	if i.allocated {
+	if i.backend != nil {
 		panic("not reached")
 	}
 
@@ -257,7 +259,6 @@ func (i *Image) allocate(shareable bool) {
 	)
 
 	if !shareable || i.width > maxSize || i.height > maxSize {
-		i.allocated = true
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, false),
 		}
@@ -266,7 +267,6 @@ func (i *Image) allocate(shareable bool) {
 
 	for _, b := range theBackends {
 		if n, ok := b.TryAlloc(i.width, i.height); ok {
-			i.allocated = true
 			i.backend = b
 			i.node = n
 			return
@@ -290,7 +290,6 @@ func (i *Image) allocate(shareable bool) {
 	if n == nil {
 		panic("not reached")
 	}
-	i.allocated = true
 	i.backend = b
 	i.node = n
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -303,9 +302,8 @@ func NewVolatileImage(width, height int) *Image {
 
 	r := restorable.NewImage(width, height, true)
 	i := &Image{
-		allocated: true,
-		width:     width,
-		height:    height,
+		width:  width,
+		height: height,
 		backend: &backend{
 			restorable: r,
 		},
@@ -320,9 +318,8 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 	r := restorable.NewScreenFramebufferImage(width, height)
 	i := &Image{
-		allocated: true,
-		width:     width,
-		height:    height,
+		width:  width,
+		height: height,
 		backend: &backend{
 			restorable: r,
 		},
