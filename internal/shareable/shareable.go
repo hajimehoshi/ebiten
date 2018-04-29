@@ -82,6 +82,10 @@ var (
 )
 
 type Image struct {
+	allocated bool
+	width     int
+	height    int
+
 	backend *backend
 
 	// If node is nil, the image is not shared.
@@ -89,11 +93,17 @@ type Image struct {
 }
 
 func (i *Image) ensureNotShared() {
+	if !i.allocated {
+		i.allocate(false)
+		return
+	}
+
 	if i.node == nil {
 		return
 	}
 
 	x, y, w, h := i.region()
+	println(x, y, w, h)
 	newImg := restorable.NewImage(w, h, false)
 	newImg.DrawImage(i.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
@@ -104,6 +114,9 @@ func (i *Image) ensureNotShared() {
 }
 
 func (i *Image) region() (x, y, width, height int) {
+	if !i.allocated {
+		panic("not reached")
+	}
 	if i.node == nil {
 		w, h := i.backend.restorable.Size()
 		return 0, 0, w, h
@@ -112,15 +125,17 @@ func (i *Image) region() (x, y, width, height int) {
 }
 
 func (i *Image) Size() (width, height int) {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	_, _, w, h := i.region()
-	return w, h
+	return i.width, i.height
 }
 
 func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if !img.allocated {
+		img.allocate(true)
+	}
+
 	i.ensureNotShared()
 
 	// Compare i and img after ensuring i is not shared, or
@@ -141,6 +156,10 @@ func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	if !i.allocated {
+		i.allocate(true)
+	}
+
 	x, y, w, h := i.region()
 	if l := 4 * w * h; len(p) != l {
 		panic(fmt.Sprintf("shareable: len(p) was %d but must be %d", len(p), l))
@@ -151,6 +170,10 @@ func (i *Image) ReplacePixels(p []byte) {
 func (i *Image) At(x, y int) (color.Color, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	if !i.allocated {
+		return color.RGBA{}, nil
+	}
 
 	ox, oy, w, h := i.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
@@ -217,33 +240,37 @@ func (i *Image) IsInvalidated() (bool, error) {
 }
 
 func NewImage(width, height int) *Image {
+	// Actual allocation is done lazily.
+	return &Image{
+		width:  width,
+		height: height,
+	}
+}
+
+func (i *Image) allocate(shareable bool) {
 	const (
 		initSize = 1024
 		maxSize  = 4096
 	)
 
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	if width > maxSize || height > maxSize {
-		b := &backend{
-			restorable: restorable.NewImage(width, height, false),
+	if !shareable || i.width > maxSize || i.height > maxSize {
+		i.allocated = true
+		i.backend = &backend{
+			restorable: restorable.NewImage(i.width, i.height, false),
 		}
-		return &Image{
-			backend: b,
-		}
+		return
 	}
 
 	for _, b := range theBackends {
-		if n, ok := b.TryAlloc(width, height); ok {
-			return &Image{
-				backend: b,
-				node:    n,
-			}
+		if n, ok := b.TryAlloc(i.width, i.height); ok {
+			i.allocated = true
+			i.backend = b
+			i.node = n
+			return
 		}
 	}
 	size := initSize
-	for width > size || height > size {
+	for i.width > size || i.height > size {
 		if size == maxSize {
 			panic("not reached")
 		}
@@ -256,16 +283,15 @@ func NewImage(width, height int) *Image {
 	}
 	theBackends = append(theBackends, b)
 
-	n := b.page.Alloc(width, height)
+	n := b.page.Alloc(i.width, i.height)
 	if n == nil {
 		panic("not reached")
 	}
-	i := &Image{
-		backend: b,
-		node:    n,
-	}
+	i.allocated = true
+	i.backend = b
+	i.node = n
 	runtime.SetFinalizer(i, (*Image).Dispose)
-	return i
+	return
 }
 
 func NewVolatileImage(width, height int) *Image {
@@ -274,6 +300,9 @@ func NewVolatileImage(width, height int) *Image {
 
 	r := restorable.NewImage(width, height, true)
 	i := &Image{
+		allocated: true,
+		width:     width,
+		height:    height,
 		backend: &backend{
 			restorable: r,
 		},
@@ -288,6 +317,9 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 	r := restorable.NewScreenFramebufferImage(width, height)
 	i := &Image{
+		allocated: true,
+		width:     width,
+		height:    height,
 		backend: &backend{
 			restorable: r,
 		},
@@ -317,12 +349,6 @@ func Restore() error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.Restore()
-}
-
-func BackendNumForTesting() int {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	return len(theBackends)
 }
 
 func Images() ([]image.Image, error) {

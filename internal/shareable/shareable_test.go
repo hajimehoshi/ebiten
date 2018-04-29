@@ -103,26 +103,3 @@ func TestEnsureNotShared(t *testing.T) {
 		}
 	}
 }
-
-func TestDispose(t *testing.T) {
-	// There are already backend image for the offscreen or something.
-	// Creating a big image and the next image should be created at a new backend.
-	img1 := NewImage(bigSize, bigSize)
-	defer img1.Dispose()
-
-	if BackendNumForTesting() != 1 {
-		t.Errorf("BackendNumForTesting(): got: %d, want: %d", BackendNumForTesting(), 1)
-	}
-
-	img2 := NewImage(bigSize, bigSize)
-
-	if BackendNumForTesting() != 2 {
-		t.Errorf("BackendNumForTesting(): got: %d, want: %d", BackendNumForTesting(), 2)
-	}
-
-	img2.Dispose()
-
-	if BackendNumForTesting() != 1 {
-		t.Errorf("BackendNumForTesting(): got: %d, want: %d", BackendNumForTesting(), 1)
-	}
-}
