@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 type virtualGamepadButton int
@@ -104,7 +105,7 @@ func (c *gamepadConfig) Scan(gamepadID int, b virtualGamepadButton) bool {
 		if _, ok := c.assignedButtons[eb]; ok {
 			continue
 		}
-		if ebiten.IsGamepadButtonPressed(gamepadID, eb) {
+		if inpututil.IsGamepadButtonJustPressed(gamepadID, eb) {
 			c.buttons[b] = eb
 			c.assignedButtons[eb] = struct{}{}
 			return true
