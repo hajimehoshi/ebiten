@@ -37,6 +37,13 @@ func update(screen *ebiten.Image) error {
 	axes := map[int][]string{}
 	pressedButtons := map[int][]string{}
 
+	for _, id := range inpututil.JustConnectedGamepadIDs() {
+		log.Printf("gamepad connected: id: %d", id)
+	}
+	for _, id := range inpututil.JustDisconnectedGamepadIDs() {
+		log.Printf("gamepad disconnected: id: %d", id)
+	}
+
 	for _, id := range ids {
 		maxAxis := ebiten.GamepadAxisNum(id)
 		for a := 0; a < maxAxis; a++ {
@@ -51,10 +58,10 @@ func update(screen *ebiten.Image) error {
 
 			// Log some events.
 			if inpututil.IsGamepadButtonJustPressed(id, b) {
-				log.Printf("Button Just Pressed: id(%d), button(%d)", id, b)
+				log.Printf("button pressed: id: %d, button: %d", id, b)
 			}
 			if inpututil.IsGamepadButtonJustReleased(id, b) {
-				log.Printf("Button Just Released: id(%d), button(%d)", id, b)
+				log.Printf("button released: id: %d, button: %d", id, b)
 			}
 		}
 	}

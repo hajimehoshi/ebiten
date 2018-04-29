@@ -32,6 +32,9 @@ type inputState struct {
 	mouseButtonDurations     map[ebiten.MouseButton]int
 	prevMouseButtonDurations map[ebiten.MouseButton]int
 
+	gamepadIDs     map[int]struct{}
+	prevGamepadIDs map[int]struct{}
+
 	gamepadButtonDurations     map[int]map[ebiten.GamepadButton]int
 	prevGamepadButtonDurations map[int]map[ebiten.GamepadButton]int
 
@@ -47,6 +50,9 @@ var theInputState = &inputState{
 
 	mouseButtonDurations:     map[ebiten.MouseButton]int{},
 	prevMouseButtonDurations: map[ebiten.MouseButton]int{},
+
+	gamepadIDs:     map[int]struct{}{},
+	prevGamepadIDs: map[int]struct{}{},
 
 	gamepadButtonDurations:     map[int]map[ebiten.GamepadButton]int{},
 	prevGamepadButtonDurations: map[int]map[ebiten.GamepadButton]int{},
@@ -92,15 +98,22 @@ func (i *inputState) update() {
 
 	// Gamepads
 
+	// Copy the gamepad IDs
+	i.prevGamepadIDs = map[int]struct{}{}
+	for id := range i.gamepadIDs {
+		i.prevGamepadIDs[id] = struct{}{}
+	}
+
 	// Reset the previous states first since some gamepad IDs might be already gone.
 	for id := range i.prevGamepadButtonDurations {
 		for b := range i.prevGamepadButtonDurations[id] {
 			i.prevGamepadButtonDurations[id][b] = 0
 		}
 	}
-	ids := map[int]struct{}{}
+
+	i.gamepadIDs = map[int]struct{}{}
 	for _, id := range ebiten.GamepadIDs() {
-		ids[id] = struct{}{}
+		i.gamepadIDs[id] = struct{}{}
 
 		if _, ok := i.prevGamepadButtonDurations[id]; !ok {
 			i.prevGamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
@@ -121,7 +134,7 @@ func (i *inputState) update() {
 	}
 	idsToDelete := []int{}
 	for id := range i.gamepadButtonDurations {
-		if _, ok := ids[id]; !ok {
+		if _, ok := i.gamepadIDs[id]; !ok {
 			idsToDelete = append(idsToDelete, id)
 		}
 	}
@@ -130,7 +143,7 @@ func (i *inputState) update() {
 	}
 
 	// Touches
-	ids = map[int]struct{}{}
+	ids := map[int]struct{}{}
 
 	// Reset the previous states first since some gamepad IDs might be already gone.
 	for id := range i.prevTouchDurations {
@@ -210,6 +223,32 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 	s := theInputState.mouseButtonDurations[button]
 	theInputState.m.RUnlock()
 	return s
+}
+
+func JustConnectedGamepadIDs() []int {
+	ids := []int{}
+	theInputState.m.RLock()
+	for id := range theInputState.gamepadIDs {
+		if _, ok := theInputState.prevGamepadIDs[id]; !ok {
+			ids = append(ids, id)
+		}
+	}
+	theInputState.m.RUnlock()
+	sort.Ints(ids)
+	return ids
+}
+
+func JustDisconnectedGamepadIDs() []int {
+	ids := []int{}
+	theInputState.m.RLock()
+	for id := range theInputState.prevGamepadIDs {
+		if _, ok := theInputState.gamepadIDs[id]; !ok {
+			ids = append(ids, id)
+		}
+	}
+	theInputState.m.RUnlock()
+	sort.Ints(ids)
+	return ids
 }
 
 // IsGamepadButtonJustPressed returns a boolean value indicating
