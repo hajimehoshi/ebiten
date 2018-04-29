@@ -227,9 +227,11 @@ func MouseButtonPressDuration(button ebiten.MouseButton) int {
 
 // JustConnectedGamepadIDs returns gamepad IDs that are connected just in the current frame.
 //
+// JustConnectedGamepadIDs might return nil when there is no connected gamepad.
+//
 // JustConnectedGamepadIDs is concurrent safe.
 func JustConnectedGamepadIDs() []int {
-	ids := []int{}
+	var ids []int
 	theInputState.m.RLock()
 	for id := range theInputState.gamepadIDs {
 		if _, ok := theInputState.prevGamepadIDs[id]; !ok {
@@ -243,9 +245,11 @@ func JustConnectedGamepadIDs() []int {
 
 // JustDisconnectedGamepadIDs returns gamepad IDs that are disconnected just in the current frame.
 //
+// JustDisconnectedGamepadIDs might return nil when there is no disconnected gamepad.
+//
 // JustDisconnectedGamepadIDs is concurrent safe.
 func JustDisconnectedGamepadIDs() []int {
-	ids := []int{}
+	var ids []int
 	theInputState.m.RLock()
 	for id := range theInputState.prevGamepadIDs {
 		if _, ok := theInputState.gamepadIDs[id]; !ok {
@@ -298,9 +302,11 @@ func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 
 // JustPressedTouches returns touch IDs that are created just in the current frame.
 //
+// JustPressedTouches might return nil when there is not touch.
+//
 // JustPressedTouches is concurrent safe.
 func JustPressedTouches() []int {
-	ids := []int{}
+	var ids []int
 	theInputState.m.RLock()
 	for id, s := range theInputState.touchDurations {
 		if s == 1 {
