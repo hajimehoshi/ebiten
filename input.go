@@ -102,9 +102,8 @@ func GamepadButtonNum(id int) int {
 //
 // This function is concurrent-safe.
 //
-// The button states vary depending on environments.
+// The relationships between physical buttons and buttion IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
-// Don't assume that returned values are always same when same buttons are pressed.
 //
 // This function always returns false on mobiles.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
