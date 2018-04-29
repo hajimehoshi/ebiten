@@ -131,6 +131,12 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	if img.disposed {
+		panic("shareable: the drawing source image must not be disposed")
+	}
+	if i.disposed {
+		panic("shareable: the drawing target image must not be disposed")
+	}
 	if img.backend == nil {
 		img.allocate(true)
 	}
@@ -155,6 +161,9 @@ func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	if i.disposed {
+		panic("shareable: the image must not be disposed")
+	}
 	if i.backend == nil {
 		i.allocate(true)
 	}
