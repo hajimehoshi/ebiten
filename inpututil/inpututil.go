@@ -294,12 +294,12 @@ func GamepadButtonPressDuration(id int, button ebiten.GamepadButton) int {
 	return s
 }
 
-// JustPressedTouches returns touch IDs that are created just in the current frame.
+// JustPressedTouchIDs returns touch IDs that are created just in the current frame.
 //
-// JustPressedTouches might return nil when there is not touch.
+// JustPressedTouchIDs might return nil when there is not touch.
 //
-// JustPressedTouches is concurrent safe.
-func JustPressedTouches() []int {
+// JustPressedTouchIDs is concurrent safe.
+func JustPressedTouchIDs() []int {
 	var ids []int
 	theInputState.m.RLock()
 	for id, s := range theInputState.touchDurations {
