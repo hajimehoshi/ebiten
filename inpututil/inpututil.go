@@ -323,10 +323,10 @@ func IsTouchJustReleased(id int) bool {
 	return r
 }
 
-// TouchDuration returns how long the touch remains in frames.
+// TouchPressDuration returns how long the touch remains in frames.
 //
-// TouchDuration is concurrent safe.
-func TouchDuration(id int) int {
+// TouchPressDuration is concurrent safe.
+func TouchPressDuration(id int) int {
 	theInputState.m.RLock()
 	s := theInputState.touchDurations[id]
 	theInputState.m.RUnlock()
