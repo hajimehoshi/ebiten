@@ -274,12 +274,6 @@ type replacePixelsCommand struct {
 
 // Exec executes the replacePixelsCommand.
 func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
-	f, err := c.dst.createFramebufferIfNeeded()
-	if err != nil {
-		return err
-	}
-	f.setAsViewport()
-
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
