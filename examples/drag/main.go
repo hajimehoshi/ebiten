@@ -46,6 +46,10 @@ type Sprite struct {
 func (s *Sprite) In(x, y int) bool {
 	// Check the actual color (alpha) value at the specified position
 	// so that the result of In becomes natural to users.
+	//
+	// Note that this is not a good manner to use At for logic
+	// since color from At might include some errors on some machines.
+	// As this is not so important logic, it's ok to use it so far.
 	return s.image.At(x-s.x, y-s.y).(color.RGBA).A > 0
 }
 
