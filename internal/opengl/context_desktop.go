@@ -169,12 +169,10 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
 	var pixels []byte
-	if err := c.runOnContextThread(func() error {
+	_ = c.runOnContextThread(func() error {
 		gl.Flush()
 		return nil
-	}); err != nil {
-		return nil, err
-	}
+	})
 	c.bindFramebuffer(f)
 	if err := c.runOnContextThread(func() error {
 		pixels = make([]byte, 4*width*height)
