@@ -311,6 +311,16 @@ func IsRunnableInBackground() bool {
 	return currentUI.isRunnableInBackground()
 }
 
+func SetWindowTitle(title string) {
+	if !currentUI.isRunning() {
+		return
+	}
+	_ = currentUI.runOnMainThread(func() error {
+		currentUI.window.SetTitle(title)
+		return nil
+	})
+}
+
 func SetWindowIcon(iconImages []image.Image) {
 	if !currentUI.isRunning() {
 		currentUI.setInitIconImages(iconImages)

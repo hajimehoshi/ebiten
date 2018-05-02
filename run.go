@@ -428,6 +428,15 @@ func SetRunnableInBackground(runnableInBackground bool) {
 	ui.SetRunnableInBackground(runnableInBackground)
 }
 
+// SetWindowTitle sets the title of the window.
+//
+// SetWindowTitle does nothing on mobiles.
+//
+// SetWindowTitle is concurrent-safe.
+func SetWindowTitle(title string) {
+	ui.SetWindowTitle(title)
+}
+
 // SetWindowIcon sets the icon of the game window.
 //
 // If len(iconImages) is 0, SetWindowIcon reverts the icon to the default one.

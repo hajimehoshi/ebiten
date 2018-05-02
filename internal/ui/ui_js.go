@@ -112,6 +112,11 @@ func SetCursorVisible(visible bool) {
 	}
 }
 
+func SetWindowTitle(title string) {
+	doc := js.Global.Get("document")
+	doc.Set("title", title)
+}
+
 func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }

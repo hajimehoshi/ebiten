@@ -360,6 +360,10 @@ func SetRunnableInBackground(runnableInBackground bool) {
 	// Do nothing
 }
 
+func SetWindowTitle(title string) {
+	// Do nothing
+}
+
 func SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }
