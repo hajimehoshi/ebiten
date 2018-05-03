@@ -53,6 +53,8 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 // Update updates and renders the game.
 // This should be called on every frame.
 //
+// If Update is called before Start is called, Update panics.
+//
 // On Android, this should be called at onDrawFrame of Renderer (used by GLSurfaceView).
 //
 // On iOS, this should be called at glkView:drawInRect: of GLKViewDelegate.
@@ -95,6 +97,8 @@ func Update() error {
 //
 // The coodinate x/y is in dp.
 //
+// UpdateTouchesOnAndroid can be called even before Start is called.
+//
 // UpdateTouchesOnAndroid is concurrent-safe.
 //
 // For more details, see https://github.com/hajimehoshi/ebiten/wiki/Android.
@@ -136,6 +140,8 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 //     }
 //
 // The coodinate x/y is in point.
+//
+// UpdateTouchesOnIOS can be called even before Start is called.
 //
 // UpdateTouchesOnIOS is concurrent-safe.
 //
