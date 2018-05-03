@@ -21,7 +21,16 @@
 package mobile
 
 import (
+	"sync"
+
 	"github.com/hajimehoshi/ebiten"
+)
+
+var (
+	// mobileMutex is a mutex required for each function.
+	// For example, on Android, Update can be called from a different thread:
+	// https://developer.android.com/reference/android/opengl/GLSurfaceView.Renderer
+	mobileMutex sync.Mutex
 )
 
 // Start starts the game and returns immediately.
@@ -30,8 +39,13 @@ import (
 //
 // The unit of width/height is device-independent pixel (dp on Android and point on iOS).
 //
+// Start is concurrent-safe.
+//
 // Start always returns nil as of 1.5.0-alpha.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
+	mobileMutex.Lock()
+	defer mobileMutex.Unlock()
+
 	start(f, width, height, scale, title)
 	return nil
 }
@@ -43,8 +57,13 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 //
 // On iOS, this should be called at glkView:drawInRect: of GLKViewDelegate.
 //
+// Update is concurrent-safe.
+//
 // Update returns error when 1) OpenGL error happens, or 2) f in Start returns error samely as ebiten.Run.
 func Update() error {
+	mobileMutex.Lock()
+	defer mobileMutex.Unlock()
+
 	return update()
 }
 
@@ -76,8 +95,13 @@ func Update() error {
 //
 // The coodinate x/y is in dp.
 //
+// UpdateTouchesOnAndroid is concurrent-safe.
+//
 // For more details, see https://github.com/hajimehoshi/ebiten/wiki/Android.
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
+	mobileMutex.Lock()
+	defer mobileMutex.Unlock()
+
 	updateTouchesOnAndroid(action, id, x, y)
 }
 
@@ -113,7 +137,12 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 //
 // The coodinate x/y is in point.
 //
+// UpdateTouchesOnIOS is concurrent-safe.
+//
 // For more details, see https://github.com/hajimehoshi/ebiten/wiki/iOS.
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
+	mobileMutex.Lock()
+	defer mobileMutex.Unlock()
+
 	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }
