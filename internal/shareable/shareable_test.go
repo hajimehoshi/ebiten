@@ -104,4 +104,8 @@ func TestEnsureNotShared(t *testing.T) {
 			}
 		}
 	}
+
+	// Check further drawing doesn't cause panic.
+	// This bug was fixed by 03dcd948.
+	img4.DrawImage(img3, 0, 0, size/2, size/2, geom, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 }
