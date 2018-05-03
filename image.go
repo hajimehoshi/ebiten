@@ -96,6 +96,20 @@ func (i *Image) Fill(clr color.Color) error {
 
 func (i *Image) fill(r, g, b, a uint8) {
 	wd, hd := i.Size()
+
+	if wd*hd <= 256 {
+		// Prefer ReplacePixels since ReplacePixels can keep the images shared.
+		pix := make([]uint8, 4*wd*hd)
+		for i := 0; i < wd*hd; i++ {
+			pix[4*i] = r
+			pix[4*i+1] = g
+			pix[4*i+2] = b
+			pix[4*i+3] = a
+		}
+		i.ReplacePixels(pix)
+		return
+	}
+
 	ws, hs := emptyImage.Size()
 	sw := float64(wd) / float64(ws)
 	sh := float64(hd) / float64(hs)
