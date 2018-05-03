@@ -106,7 +106,7 @@ func (i *Image) ensureNotShared() {
 	newImg := restorable.NewImage(w, h, false)
 	newImg.DrawImage(i.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
-	i.dispose()
+	i.dispose(false)
 	i.backend = &backend{
 		restorable: newImg,
 	}
@@ -195,12 +195,14 @@ func (i *Image) At(x, y int) (color.Color, error) {
 func (i *Image) Dispose() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.dispose()
+	i.dispose(true)
 }
 
-func (i *Image) dispose() {
+func (i *Image) dispose(markDisposed bool) {
 	defer func() {
-		i.disposed = true
+		if markDisposed {
+			i.disposed = true
+		}
 		i.backend = nil
 		i.node = nil
 		runtime.SetFinalizer(i, nil)
