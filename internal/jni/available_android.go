@@ -12,22 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package devicescale
+package jni
 
-import (
-	"sync"
-)
+/*
+#include <jni.h>
+#include <stdbool.h>
 
-var (
-	scale = 0.0
-	m     sync.Mutex
-)
+JavaVM* current_vm;
 
-func DeviceScale() float64 {
-	m.Lock()
-	defer m.Unlock()
-	if scale == 0.0 {
-		scale = impl()
-	}
-	return scale
+static bool isJVMAvailable() {
+	return current_vm != NULL;
+}
+*/
+import "C"
+
+// IsJVMAvailable returns a boolean value indicating whether JVM is available or not.
+//
+// In init functions, JVM is not available.
+func IsJVMAvailable() bool {
+	return bool(C.isJVMAvailable())
 }

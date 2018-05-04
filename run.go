@@ -466,7 +466,11 @@ func SetWindowIcon(iconImages []image.Image) {
 // DeviceScaleFactor returns a meaningful value on high-DPI display environment,
 // otherwise DeviceScaleFactor returns 1.
 //
-// This function is concurrent-safe.
+// DeviceScaleFactor might return 0 on init function on some devices like Android.
+// Don't expect DeviceScaleFactor returns a valid value until main starts.
+// Then, it is not recommended to call DeviceScaleFactor from init functions.
+//
+// DeviceScaleFactor is concurrent-safe.
 func DeviceScaleFactor() float64 {
 	return devicescale.DeviceScale()
 }

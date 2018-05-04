@@ -64,6 +64,9 @@ import (
 )
 
 func impl() float64 {
+	if !jni.IsJVMAvailable() {
+		return 0
+	}
 	s := 0.0
 	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
 		s = float64(C.deviceScale(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx)))
