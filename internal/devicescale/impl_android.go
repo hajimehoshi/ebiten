@@ -65,7 +65,7 @@ import (
 
 func impl() float64 {
 	if !jni.IsJVMAvailable() {
-		return 0
+		panic("devicescale: JVM is not available yet: is this called from init funcitons?")
 	}
 	s := 0.0
 	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
