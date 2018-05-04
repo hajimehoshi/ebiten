@@ -168,6 +168,8 @@ func main() {
 	flag.Parse()
 
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
+	w, h := ebiten.MonitorSize()
+	fmt.Printf("Monitor size: %d, %d\n", w, h)
 
 	// Decode image from a byte slice instead of a file so that
 	// this example works in any working directory.

@@ -45,6 +45,11 @@ var currentUI = &userInterface{
 	windowFocus: true,
 }
 
+func MonitorSize() (int, int) {
+	w := js.Global.Get("window")
+	return w.Get("innerWidth").Int(), w.Get("innerHeight").Int()
+}
+
 func SetScreenSize(width, height int) bool {
 	return currentUI.setScreenSize(width, height, currentUI.scale, currentUI.fullscreen)
 }

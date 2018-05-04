@@ -227,6 +227,12 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 	return err
 }
 
+func MonitorSize() (int, int) {
+	m := glfw.GetPrimaryMonitor()
+	v := m.GetVideoMode()
+	return v.Width, v.Height
+}
+
 func SetScreenSize(width, height int) bool {
 	u := currentUI
 	if !u.isRunning() {

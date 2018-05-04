@@ -227,6 +227,12 @@ func (u *userInterface) screenSize() (int, int) {
 	return w, h
 }
 
+func MonitorSize() (int, int) {
+	// TODO: This function should return fullscreenWidthPx, fullscreenHeightPx,
+	// but these values are not initialized until the main loop starts.
+	return 0, 0
+}
+
 func SetScreenSize(width, height int) bool {
 	currentUI.setScreenSize(width, height)
 	return true

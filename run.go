@@ -295,6 +295,39 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	return ch
 }
 
+// MonitorSize returns the monitor size in device-independent pixels.
+//
+// On browsers, MonitorSize returns the 'window' size, not 'screen' size since an Ebiten game
+// should not know the outside of the window object.
+// For more detials, see SetFullscreen API comment.
+//
+// On mobiles, MonitorSize returns (0, 0) so far.
+//
+// Note that MonitorSize returns the 'primary' monitor size, which is the monitor
+// where taskbar is present (Windows) or menubar is present (macOS).
+//
+// If you use this for screen size with SetFullscreen(true), you can get the fullscreen mode
+// which size is well adjusted with the monitor.
+//
+//     w, h := MonitorSize()
+//     ebiten.SetFullscreen(true)
+//     ebiten.Run(update, w, h, 1, "title")
+//
+// Furthermore, you can use them with DeviceScaleFactor(), you can get the finest
+// fullscreen mode.
+//
+//     s := ebiten.DeviceScaleFactor()
+//     w, h := MonitorSize()
+//     ebiten.SetFullscreen(true)
+//     ebiten.Run(update, int(float64(w) * s), int(float64(h) * s), 1/s, "title")
+//
+// For actual example, see examples/fullscreen
+//
+// MonitorSize is concurrent-safe.
+func MonitorSize() (int, int) {
+	return ui.MonitorSize()
+}
+
 // SetScreenSize changes the (logical) size of the screen.
 // This doesn't affect the current scale of the screen.
 //
@@ -377,6 +410,9 @@ func IsFullscreen() bool {
 //
 // On browsers, the game screen is resized to fit with the body element (client) size.
 // Additionally, the game screen is automatically resized when the body element is resized.
+// Note that this has nothing to do with 'screen' which is outside of 'window'.
+// It is recommended to put Ebiten game in an iframe, and if you want to make the game 'fullscreen'
+// on browsers with Fullscreen API, you can do this by applying the API to the iframe.
 //
 // SetFullscreen does nothing on mobiles.
 //
