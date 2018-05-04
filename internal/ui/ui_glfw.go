@@ -66,11 +66,13 @@ var (
 		initCursorVisible:   true,
 		initWindowDecorated: true,
 	}
-	currentUIInitialized = make(chan struct{})
 )
 
 func init() {
 	runtime.LockOSThread()
+	if err := initialize(); err != nil {
+		panic(err)
+	}
 }
 
 func initialize() error {
@@ -115,11 +117,6 @@ func initialize() error {
 
 func RunMainThreadLoop(ch <-chan error) error {
 	// This must be called on the main thread.
-
-	if err := initialize(); err != nil {
-		return err
-	}
-	close(currentUIInitialized)
 
 	// TODO: Check this is done on the main thread.
 	currentUI.setRunning(true)
@@ -445,8 +442,6 @@ func SetWindowDecorated(decorated bool) {
 }
 
 func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
-	<-currentUIInitialized
-
 	u := currentUI
 	// GLContext must be created before setting the screen size, which requires
 	// swapping buffers.
