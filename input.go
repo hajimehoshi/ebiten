@@ -110,7 +110,35 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return input.Get().IsGamepadButtonPressed(id, input.GamepadButton(button))
 }
 
-// Touch represents a touch state.
+// TouchIDs returns the current touch states.
+//
+// TouchIDs returns nil when there are no touches.
+// TouchIDs always returns nil on desktops.
+//
+// TouchIDs is concurrent-safe.
+func TouchIDs() []int {
+	var ids []int
+	for _, t := range ui.AdjustedTouches() {
+		ids = append(ids, t.ID())
+	}
+	return ids
+}
+
+// TouchPosition returns the position for the touch of the specified ID.
+//
+// If the touch of the specified ID is not present, TouchPosition returns (0, 0).
+//
+// TouchPosition is cuncurrent-safe.
+func TouchPosition(id int) (int, int) {
+	for _, t := range ui.AdjustedTouches() {
+		if t.ID() == id {
+			return t.Position()
+		}
+	}
+	return 0, 0
+}
+
+// Touch is deprecated as of 1.7.0. Use TouchPosition instead.
 type Touch interface {
 	// ID returns an identifier for one stroke.
 	ID() int
@@ -119,10 +147,7 @@ type Touch interface {
 	Position() (x, y int)
 }
 
-// Touches returns the current touch states.
-//
-// Touches returns nil when there are no touches.
-// Touches always returns nil on desktops.
+// Touches is deprecated as of 1.7.0. Use TouchIDs instead.
 func Touches() []Touch {
 	touches := ui.AdjustedTouches()
 	var copies []Touch

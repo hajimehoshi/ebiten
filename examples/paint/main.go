@@ -82,8 +82,8 @@ func update(screen *ebiten.Image) error {
 	}
 
 	// Paint the brush by touches
-	for _, t := range ebiten.Touches() {
-		x, y := t.Position()
+	for _, t := range ebiten.TouchIDs() {
+		x, y := ebiten.TouchPosition(t)
 		paint(canvasImage, x, y)
 		drawn = true
 	}
@@ -98,9 +98,9 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(canvasImage, nil)
 
 	msg := fmt.Sprintf("(%d, %d)", mx, my)
-	for _, t := range ebiten.Touches() {
-		x, y := t.Position()
-		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t.ID())
+	for _, t := range ebiten.TouchIDs() {
+		x, y := ebiten.TouchPosition(t)
+		msg += fmt.Sprintf("\n(%d, %d) touch %d", x, y, t)
 	}
 	ebitenutil.DebugPrint(screen, msg)
 	return nil

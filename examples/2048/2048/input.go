@@ -149,10 +149,10 @@ func (i *Input) Update() {
 	}
 	switch i.touchState {
 	case touchStateNone:
-		ts := ebiten.Touches()
+		ts := ebiten.TouchIDs()
 		if len(ts) == 1 {
-			i.touchID = ts[0].ID()
-			x, y := ts[0].Position()
+			i.touchID = ts[0]
+			x, y := ebiten.TouchPosition(ts[0])
 			i.touchInitPosX = x
 			i.touchInitPosY = y
 			i.touchLastPosX = x
@@ -160,15 +160,15 @@ func (i *Input) Update() {
 			i.touchState = touchStatePressing
 		}
 	case touchStatePressing:
-		ts := ebiten.Touches()
+		ts := ebiten.TouchIDs()
 		if len(ts) >= 2 {
 			break
 		}
 		if len(ts) == 1 {
-			if ts[0].ID() != i.touchID {
+			if ts[0] != i.touchID {
 				i.touchState = touchStateInvalid
 			} else {
-				x, y := ts[0].Position()
+				x, y := ebiten.TouchPosition(ts[0])
 				i.touchLastPosX = x
 				i.touchLastPosY = y
 			}
@@ -188,7 +188,7 @@ func (i *Input) Update() {
 	case touchStateSettled:
 		i.touchState = touchStateNone
 	case touchStateInvalid:
-		if len(ebiten.Touches()) == 0 {
+		if len(ebiten.TouchIDs()) == 0 {
 			i.touchState = touchStateNone
 		}
 	}

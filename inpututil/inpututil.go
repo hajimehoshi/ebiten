@@ -150,10 +150,10 @@ func (i *inputState) update() {
 		i.prevTouchDurations[id] = 0
 	}
 
-	for _, t := range ebiten.Touches() {
-		ids[t.ID()] = struct{}{}
-		i.prevTouchDurations[t.ID()] = i.touchDurations[t.ID()]
-		i.touchDurations[t.ID()]++
+	for _, id := range ebiten.TouchIDs() {
+		ids[id] = struct{}{}
+		i.prevTouchDurations[id] = i.touchDurations[id]
+		i.touchDurations[id]++
 	}
 	idsToDelete = []int{}
 	for id := range i.touchDurations {
