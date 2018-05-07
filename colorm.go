@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"fmt"
+
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
@@ -33,6 +35,16 @@ const ColorMDim = affine.ColorMDim
 // The initial value is identity.
 type ColorM struct {
 	impl *affine.ColorM
+}
+
+// String returns a string representation of ColorM.
+func (c *ColorM) String() string {
+	b, t := c.impl.UnsafeElements()
+	return fmt.Sprintf("[[%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f]]",
+		b[0], b[4], b[8], b[12], t[0],
+		b[1], b[5], b[9], b[13], t[1],
+		b[2], b[6], b[10], b[14], t[2],
+		b[3], b[7], b[11], b[15], t[3])
 }
 
 // Reset resets the ColorM as identity.

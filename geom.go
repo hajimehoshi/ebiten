@@ -15,6 +15,8 @@
 package ebiten
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/affine"
 )
 
@@ -26,6 +28,12 @@ const GeoMDim = affine.GeoMDim
 // The initial value is identity.
 type GeoM struct {
 	impl *affine.GeoM
+}
+
+// String returns a string representation of GeoM.
+func (g *GeoM) String() string {
+	a, b, c, d, tx, ty := g.impl.Elements()
+	return fmt.Sprintf("[[%f, %f, %f], [%f, %f, %f]]", a, b, tx, c, d, ty)
 }
 
 // Reset resets the GeoM as identity.
