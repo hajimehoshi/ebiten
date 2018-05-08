@@ -162,7 +162,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	_ = c.runOnContextThread(func() error {
-		gl.BindFramebuffer(gl.FRAMEBUFFER, uint32(f))
+		gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
 		return nil
 	})
 }
@@ -233,7 +233,7 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	var framebuffer Framebuffer
 	var f uint32
 	if err := c.runOnContextThread(func() error {
-		gl.GenFramebuffers(1, &f)
+		gl.GenFramebuffersEXT(1, &f)
 		// TODO: Use gl.IsFramebuffer
 		if f <= 0 {
 			return errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
@@ -244,8 +244,8 @@ func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
 	}
 	c.bindFramebuffer(Framebuffer(f))
 	if err := c.runOnContextThread(func() error {
-		gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
-		s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
+		gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
+		s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER)
 		if s != gl.FRAMEBUFFER_COMPLETE {
 			if s != 0 {
 				return fmt.Errorf("opengl: creating framebuffer failed: %v", s)
@@ -273,7 +273,7 @@ func (c *Context) setViewportImpl(width, height int) {
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	_ = c.runOnContextThread(func() error {
 		ff := uint32(f)
-		if !gl.IsFramebuffer(ff) {
+		if !gl.IsFramebufferEXT(ff) {
 			return nil
 		}
 		if c.lastFramebuffer == f {
@@ -281,7 +281,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 			c.lastViewportWidth = 0
 			c.lastViewportHeight = 0
 		}
-		gl.DeleteFramebuffers(1, &ff)
+		gl.DeleteFramebuffersEXT(1, &ff)
 		return nil
 	})
 }
