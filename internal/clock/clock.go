@@ -25,9 +25,8 @@
 package clock
 
 import (
+	"sync"
 	"time"
-
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 const FPS = 60

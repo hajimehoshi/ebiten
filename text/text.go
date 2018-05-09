@@ -21,12 +21,12 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 )
 
 var (
