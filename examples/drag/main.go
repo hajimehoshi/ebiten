@@ -23,12 +23,17 @@ import (
 	_ "image/png"
 	"log"
 	"math/rand"
+	"time"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 const (
 	screenWidth  = 320
@@ -82,63 +87,104 @@ func (s *Sprite) Draw(screen *ebiten.Image, dx, dy int, alpha float64) {
 	screen.DrawImage(s.image, op)
 }
 
-type DragPhase int
+// StrokeSource represents a input device to provide strokes.
+type StrokeSource interface {
+	Position() (int, int)
+	IsJustReleased() bool
+}
 
-const (
-	DragPhaseNone DragPhase = iota
-	DragPhaseStart
-	DragPhaseDrag
-	DragPhaseEnd
-)
+// MouseStrokeSource is a StrokeSource implementation of mouse.
+type MouseStrokeSource struct{}
 
-// DragState manages the current drag state.
-type DragState struct {
-	phase DragPhase
+func (m *MouseStrokeSource) Position() (int, int) {
+	return ebiten.CursorPosition()
+}
+
+func (m *MouseStrokeSource) IsJustReleased() bool {
+	return inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft)
+}
+
+// TouchStrokeSource is a StrokeSource implementation of touch.
+type TouchStrokeSource struct {
+	ID int
+}
+
+func (t *TouchStrokeSource) Position() (int, int) {
+	return ebiten.TouchPosition(t.ID)
+}
+
+func (t *TouchStrokeSource) IsJustReleased() bool {
+	return inpututil.IsTouchJustReleased(t.ID)
+}
+
+// Stroke manages the current drag state by mouse.
+type Stroke struct {
+	source StrokeSource
 
 	// initX and initY represents the position when dragging starts.
-	// initX and initY values don't make sense when phase is DragPhaseNone.
 	initX int
 	initY int
 
 	// currentX and currentY represents the current position
-	// initX and initY values don't make sense when phase is DragPhaseNone.
 	currentX int
 	currentY int
+
+	released bool
+
+	// draggingObject represents a object (sprite in this case)
+	// that is being dragged.
+	draggingObject interface{}
 }
 
-func (d *DragState) Update() {
-	switch d.phase {
-	case DragPhaseNone:
-		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-			cx, cy := ebiten.CursorPosition()
-			d.phase = DragPhaseStart
-			d.initX = cx
-			d.initY = cy
-			d.currentX = cx
-			d.currentY = cy
-		}
-	case DragPhaseStart:
-		d.phase = DragPhaseDrag
-	case DragPhaseDrag:
-		x, y := ebiten.CursorPosition()
-		d.currentX = x
-		d.currentY = y
-		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
-			d.phase = DragPhaseEnd
-		}
-	case DragPhaseEnd:
-		d.phase = DragPhaseNone
+func NewStroke(source StrokeSource) *Stroke {
+	cx, cy := source.Position()
+	return &Stroke{
+		source:   source,
+		initX:    cx,
+		initY:    cy,
+		currentX: cx,
+		currentY: cy,
 	}
 }
 
-type Game struct {
-	dragState DragState
-	sprites   []*Sprite
+func (s *Stroke) Update() {
+	if s.released {
+		return
+	}
+	if s.source.IsJustReleased() {
+		s.released = true
+		return
+	}
+	x, y := s.source.Position()
+	s.currentX = x
+	s.currentY = y
+}
 
-	// draggingSpriteIndex represents the index of the sprites
-	// that is being dragged. If draggingSpriteIndex is -1,
-	// there is not such sprite.
-	draggingSpriteIndex int
+func (s *Stroke) IsReleased() bool {
+	return s.released
+}
+
+func (s *Stroke) Position() (int, int) {
+	return s.currentX, s.currentY
+}
+
+func (s *Stroke) PositionDiff() (int, int) {
+	dx := s.currentX - s.initX
+	dy := s.currentY - s.initY
+	return dx, dy
+}
+
+func (s *Stroke) DraggingObject() interface{} {
+	return s.draggingObject
+}
+
+func (s *Stroke) SetDraggingObject(object interface{}) {
+	s.draggingObject = object
+}
+
+type Game struct {
+	strokes map[*Stroke]struct{}
+	sprites []*Sprite
 }
 
 var theGame *Game
@@ -173,40 +219,67 @@ func init() {
 
 	// Initialize the game.
 	theGame = &Game{
-		sprites:             sprites,
-		draggingSpriteIndex: -1,
+		strokes: map[*Stroke]struct{}{},
+		sprites: sprites,
 	}
 }
 
-func (g *Game) update(screen *ebiten.Image) error {
-	g.dragState.Update()
-	switch g.dragState.phase {
-	case DragPhaseStart:
-		if g.draggingSpriteIndex == -1 {
-			// As the sprites are ordered from back to front,
-			// search the clicked/touched sprite in reverse order.
-			for i := len(g.sprites) - 1; i >= 0; i-- {
-				s := g.sprites[i]
-				if s.In(g.dragState.initX, g.dragState.initY) {
-					g.draggingSpriteIndex = i
-					break
-				}
-			}
+func (g *Game) spriteAt(x, y int) *Sprite {
+	// As the sprites are ordered from back to front,
+	// search the clicked/touched sprite in reverse order.
+	for i := len(g.sprites) - 1; i >= 0; i-- {
+		s := g.sprites[i]
+		if s.In(x, y) {
+			return s
 		}
-	case DragPhaseEnd:
-		if g.draggingSpriteIndex != -1 {
-			dx := g.dragState.currentX - g.dragState.initX
-			dy := g.dragState.currentY - g.dragState.initY
-			g.sprites[g.draggingSpriteIndex].MoveBy(dx, dy)
+	}
+	return nil
+}
 
-			// Move the dragged sprite to the front.
-			s := g.sprites[g.draggingSpriteIndex]
-			g.sprites = append(
-				g.sprites[:g.draggingSpriteIndex],
-				g.sprites[g.draggingSpriteIndex+1:]...)
-			g.sprites = append(g.sprites, s)
+func (g *Game) updateStroke(stroke *Stroke) {
+	stroke.Update()
+	if !stroke.IsReleased() {
+		return
+	}
 
-			g.draggingSpriteIndex = -1
+	s := stroke.DraggingObject().(*Sprite)
+	if s == nil {
+		return
+	}
+
+	s.MoveBy(stroke.PositionDiff())
+
+	index := -1
+	for i, ss := range g.sprites {
+		if ss == s {
+			index = i
+			break
+		}
+	}
+
+	// Move the dragged sprite to the front.
+	g.sprites = append(g.sprites[:index], g.sprites[index+1:]...)
+	g.sprites = append(g.sprites, s)
+
+	stroke.SetDraggingObject(nil)
+}
+
+func (g *Game) update(screen *ebiten.Image) error {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		s := NewStroke(&MouseStrokeSource{})
+		s.SetDraggingObject(g.spriteAt(s.Position()))
+		g.strokes[s] = struct{}{}
+	}
+	for _, id := range inpututil.JustPressedTouchIDs() {
+		s := NewStroke(&TouchStrokeSource{id})
+		s.SetDraggingObject(g.spriteAt(s.Position()))
+		g.strokes[s] = struct{}{}
+	}
+
+	for s := range g.strokes {
+		g.updateStroke(s)
+		if s.IsReleased() {
+			delete(g.strokes, s)
 		}
 	}
 
@@ -214,18 +287,18 @@ func (g *Game) update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	for i, s := range g.sprites {
-		if i == g.draggingSpriteIndex {
-			s.Draw(screen, 0, 0, 0.5)
+	ss := map[*Sprite]*Stroke{}
+	for s := range g.strokes {
+		ss[s.DraggingObject().(*Sprite)] = s
+	}
+
+	for _, s := range g.sprites {
+		if stroke, ok := ss[s]; ok {
+			dx, dy := stroke.PositionDiff()
+			s.Draw(screen, dx, dy, 0.5)
 		} else {
 			s.Draw(screen, 0, 0, 1)
 		}
-	}
-	if g.draggingSpriteIndex != -1 {
-		s := g.sprites[g.draggingSpriteIndex]
-		dx := g.dragState.currentX - g.dragState.initX
-		dy := g.dragState.currentY - g.dragState.initY
-		s.Draw(screen, dx, dy, 1)
 	}
 
 	ebitenutil.DebugPrint(screen, "Drag & Drop the sprites!")
