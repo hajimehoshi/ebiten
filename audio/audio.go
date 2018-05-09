@@ -40,13 +40,13 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/oto"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/sync"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
