@@ -145,14 +145,13 @@ func (i *inputState) update() {
 	// Touches
 	ids := map[int]struct{}{}
 
-	// Reset the previous states first since some gamepad IDs might be already gone.
-	for id := range i.prevTouchDurations {
-		i.prevTouchDurations[id] = 0
+	i.prevTouchDurations = map[int]int{}
+	for id := range i.touchDurations {
+		i.prevTouchDurations[id] = i.touchDurations[id]
 	}
 
 	for _, id := range ebiten.TouchIDs() {
 		ids[id] = struct{}{}
-		i.prevTouchDurations[id] = i.touchDurations[id]
 		i.touchDurations[id]++
 	}
 	idsToDelete = []int{}
