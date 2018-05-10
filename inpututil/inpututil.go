@@ -98,33 +98,29 @@ func (i *inputState) update() {
 
 	// Gamepads
 
-	// Copy the gamepad IDs
+	// Copy the gamepad IDs.
 	i.prevGamepadIDs = map[int]struct{}{}
 	for id := range i.gamepadIDs {
 		i.prevGamepadIDs[id] = struct{}{}
 	}
 
-	// Reset the previous states first since some gamepad IDs might be already gone.
-	for id := range i.prevGamepadButtonDurations {
-		for b := range i.prevGamepadButtonDurations[id] {
-			i.prevGamepadButtonDurations[id][b] = 0
+	// Copy the gamepad button durations.
+	i.prevGamepadButtonDurations = map[int]map[ebiten.GamepadButton]int{}
+	for id, ds := range i.gamepadButtonDurations {
+		i.prevGamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
+		for b, d := range ds {
+			i.prevGamepadButtonDurations[id][b] = d
 		}
 	}
 
 	i.gamepadIDs = map[int]struct{}{}
 	for _, id := range ebiten.GamepadIDs() {
 		i.gamepadIDs[id] = struct{}{}
-
-		if _, ok := i.prevGamepadButtonDurations[id]; !ok {
-			i.prevGamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
-		}
 		if _, ok := i.gamepadButtonDurations[id]; !ok {
 			i.gamepadButtonDurations[id] = map[ebiten.GamepadButton]int{}
 		}
-
 		n := ebiten.GamepadButtonNum(id)
 		for b := ebiten.GamepadButton(0); b < ebiten.GamepadButton(n); b++ {
-			i.prevGamepadButtonDurations[id][b] = i.gamepadButtonDurations[id][b]
 			if ebiten.IsGamepadButtonPressed(id, b) {
 				i.gamepadButtonDurations[id][b]++
 			} else {
@@ -145,6 +141,7 @@ func (i *inputState) update() {
 	// Touches
 	ids := map[int]struct{}{}
 
+	// Copy the touch durations.
 	i.prevTouchDurations = map[int]int{}
 	for id := range i.touchDurations {
 		i.prevTouchDurations[id] = i.touchDurations[id]
