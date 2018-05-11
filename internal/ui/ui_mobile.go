@@ -296,6 +296,7 @@ func (u *userInterface) updateFullscreenScaleIfNeeded() {
 		scale = scaleY
 	}
 	u.fullscreenScale = scale / devicescale.DeviceScale()
+	u.sizeChanged = true
 }
 
 func ScreenPadding() (x0, y0, x1, y1 float64) {
