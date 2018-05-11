@@ -95,7 +95,6 @@ func (f *framebuffer) projectionMatrix() []float32 {
 		return f.proMatrix
 	}
 	w, h := f.viewportSize()
-	m := orthoProjectionMatrix(0, w, 0, h)
-	f.proMatrix = m
+	f.proMatrix = orthoProjectionMatrix(0, w, 0, h)
 	return f.proMatrix
 }

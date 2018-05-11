@@ -161,12 +161,11 @@ func RunMainThreadLoop(ch <-chan error) error {
 }
 
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
-	sizeChanged := false
 	width, height := 0, 0
 	actualScale := 0.0
 
 	u.m.Lock()
-	sizeChanged = u.sizeChanged
+	sizeChanged := u.sizeChanged
 	if sizeChanged {
 		width = u.width
 		height = u.height
