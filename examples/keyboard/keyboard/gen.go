@@ -45,7 +45,7 @@ var (
 )
 
 func init() {
-	f, err := os.Open(filepath.Join("..", "..", "_resources", "fonts", "arcade_n.ttf"))
+	f, err := os.Open(filepath.Join("..", "..", "resources", "fonts", "arcade_n.ttf"))
 	if err != nil {
 		log.Fatal(err)
 	}
