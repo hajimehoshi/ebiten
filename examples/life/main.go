@@ -35,21 +35,17 @@ import (
 
 // World represents the game state.
 type World struct {
-	area [][]bool
-}
-
-func newArea(width, height int) [][]bool {
-	a := make([][]bool, height)
-	for i := 0; i < height; i++ {
-		a[i] = make([]bool, width)
-	}
-	return a
+	area   []bool
+	width  int
+	height int
 }
 
 // NewWorld creates a new world.
 func NewWorld(width, height int, maxInitLiveCells int) *World {
 	w := &World{
-		area: newArea(width, height),
+		area:   make([]bool, width*height),
+		width:  width,
+		height: height,
 	}
 	w.init(maxInitLiveCells)
 	return w
@@ -61,43 +57,41 @@ func init() {
 
 // init inits world with a random state.
 func (w *World) init(maxLiveCells int) {
-	height := len(w.area)
-	width := len(w.area[0])
 	for i := 0; i < maxLiveCells; i++ {
-		x := rand.Intn(width)
-		y := rand.Intn(height)
-		w.area[y][x] = true
+		x := rand.Intn(w.width)
+		y := rand.Intn(w.height)
+		w.area[y*w.width+x] = true
 	}
 }
 
 // Update game state by one tick.
 func (w *World) Update() {
-	height := len(w.area)
-	width := len(w.area[0])
-	next := newArea(width, height)
+	width := w.width
+	height := w.height
+	next := make([]bool, width*height)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			pop := neighbourCount(w.area, x, y)
+			pop := neighbourCount(w.area, width, height, x, y)
 			switch {
 			case pop < 2:
 				// rule 1. Any live cell with fewer than two live neighbours
 				// dies, as if caused by under-population.
-				next[y][x] = false
+				next[y*width+x] = false
 
-			case (pop == 2 || pop == 3) && w.area[y][x]:
+			case (pop == 2 || pop == 3) && w.area[y*width+x]:
 				// rule 2. Any live cell with two or three live neighbours
 				// lives on to the next generation.
-				next[y][x] = true
+				next[y*width+x] = true
 
 			case pop > 3:
 				// rule 3. Any live cell with more than three live neighbours
 				// dies, as if by over-population.
-				next[y][x] = false
+				next[y*width+x] = false
 
 			case pop == 3:
 				// rule 4. Any dead cell with exactly three live neighbours
 				// becomes a live cell, as if by reproduction.
-				next[y][x] = true
+				next[y*width+x] = true
 			}
 		}
 	}
@@ -106,22 +100,17 @@ func (w *World) Update() {
 
 // Draw paints current game state.
 func (w *World) Draw(pix []byte) {
-	height := len(w.area)
-	width := len(w.area[0])
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			idx := 4*y*width + 4*x
-			if w.area[y][x] {
-				pix[idx] = 0xff
-				pix[idx+1] = 0xff
-				pix[idx+2] = 0xff
-				pix[idx+3] = 0xff
-			} else {
-				pix[idx] = 0
-				pix[idx+1] = 0
-				pix[idx+2] = 0
-				pix[idx+3] = 0
-			}
+	for i, v := range w.area {
+		if v {
+			pix[4*i] = 0xff
+			pix[4*i+1] = 0xff
+			pix[4*i+2] = 0xff
+			pix[4*i+3] = 0xff
+		} else {
+			pix[4*i] = 0
+			pix[4*i+1] = 0
+			pix[4*i+2] = 0
+			pix[4*i+3] = 0
 		}
 	}
 }
@@ -141,21 +130,19 @@ func min(a, b int) int {
 }
 
 // neighbourCount calculates the Moore neighborhood of (x, y).
-func neighbourCount(a [][]bool, x, y int) int {
-	w := len(a[0])
-	h := len(a)
-	minI := max(x-1, 0)
-	minJ := max(y-1, 0)
-	maxI := min(x+1, w-1)
-	maxJ := min(y+1, h-1)
-
+func neighbourCount(a []bool, width, height, x, y int) int {
 	c := 0
-	for j := minJ; j <= maxJ; j++ {
-		for i := minI; i <= maxI; i++ {
-			if i == x && j == y {
+	for j := -1; j <= 1; j++ {
+		for i := -1; i <= 1; i++ {
+			if i == 0 && j == 0 {
 				continue
 			}
-			if a[j][i] {
+			x2 := x + i
+			y2 := y + j
+			if x2 < 0 || y2 < 0 || width <= x2 || height <= y2 {
+				continue
+			}
+			if a[y2*width+x2] {
 				c++
 			}
 		}
