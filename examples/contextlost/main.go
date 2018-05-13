@@ -48,8 +48,17 @@ func update(screen *ebiten.Image) error {
 		doc := js.Global.Get("document")
 		canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
 		context := canvas.Call("getContext", "webgl")
-		context.Call("getExtension", "WEBGL_lose_context").Call("loseContext")
-		fmt.Println("Context Lost!")
+		if context == nil {
+			context = canvas.Call("getContext", "experimental-webgl")
+		}
+		// Edge might not support the extension. See
+		// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
+		if ext := context.Call("getExtension", "WEBGL_lose_context"); ext != nil {
+			ext.Call("loseContext")
+			fmt.Println("Context Lost!")
+		} else {
+			fmt.Println("Fail to force context lost. Edge might not support the extension yet.")
+		}
 		return nil
 	}
 
