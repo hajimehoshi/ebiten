@@ -86,20 +86,8 @@ varying highp vec2 varying_tex_coord;
 varying highp vec2 varying_tex_coord_min;
 varying highp vec2 varying_tex_coord_max;
 
-highp vec2 roundTexel(highp vec2 p) {
-  // highp (relative) precision is 2^(-16) in the spec.
-  // The minimum value for a denominator is half of 65536.
-  highp float factor = 1.0 / 32768.0;
-  return p - (mod(p + factor * 0.5, factor) - factor * 0.5);
-}
-
 void main(void) {
   highp vec2 pos = varying_tex_coord;
-
-  // pos might include a very slight error.
-  // roundTexel adjusts pos by rounding it (#315, #558).
-  pos = roundTexel(pos);
-
   highp vec2 texel_size = 1.0 / source_size;
 
 #if defined(FILTER_NEAREST)
