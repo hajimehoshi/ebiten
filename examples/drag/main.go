@@ -287,20 +287,24 @@ func (g *Game) update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	movingSprites := map[*Sprite]struct{}{}
+	draggingSprites := map[*Sprite]struct{}{}
 	for s := range g.strokes {
-		movingSprites[s.DraggingObject().(*Sprite)] = struct{}{}
+		if sprite := s.DraggingObject().(*Sprite); sprite != nil {
+			draggingSprites[sprite] = struct{}{}
+		}
 	}
 
 	for _, s := range g.sprites {
-		if _, ok := movingSprites[s]; ok {
+		if _, ok := draggingSprites[s]; ok {
 			continue
 		}
 		s.Draw(screen, 0, 0, 1)
 	}
 	for s := range g.strokes {
 		dx, dy := s.PositionDiff()
-		s.DraggingObject().(*Sprite).Draw(screen, dx, dy, 0.5)
+		if sprite := s.DraggingObject().(*Sprite); sprite != nil {
+			sprite.Draw(screen, dx, dy, 0.5)
+		}
 	}
 
 	ebitenutil.DebugPrint(screen, "Drag & Drop the sprites!")
