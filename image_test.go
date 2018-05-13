@@ -541,11 +541,11 @@ func TestImageEdge(t *testing.T) {
 	transparent := color.RGBA{0, 0, 0, 0}
 
 	angles := []float64{}
-	for a := 0; a < 360; a++ {
-		angles = append(angles, float64(a)/360*2*math.Pi)
+	for a := 0; a < 1440; a++ {
+		angles = append(angles, float64(a)/1440*2*math.Pi)
 	}
-	for a := 0; a < 256; a++ {
-		angles = append(angles, float64(a)/256*2*math.Pi)
+	for a := 0; a < 4096; a++ {
+		angles = append(angles, float64(a)/4096*2*math.Pi)
 	}
 
 	for _, f := range []Filter{FilterNearest, FilterLinear} {

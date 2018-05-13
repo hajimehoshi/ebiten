@@ -94,8 +94,8 @@ void main(void) {
   vec4 color = texture2D(texture, pos);
   if (pos.x < varying_tex_coord_min.x ||
     pos.y < varying_tex_coord_min.y ||
-    (varying_tex_coord_max.x - texel_size.x / 256.0) <= pos.x ||
-    (varying_tex_coord_max.y - texel_size.y / 256.0) <= pos.y) {
+    (varying_tex_coord_max.x - texel_size.x / 512.0) <= pos.x ||
+    (varying_tex_coord_max.y - texel_size.y / 512.0) <= pos.y) {
     color = vec4(0, 0, 0, 0);
   }
 #endif
@@ -115,11 +115,11 @@ void main(void) {
     c0 = vec4(0, 0, 0, 0);
     c1 = vec4(0, 0, 0, 0);
   }
-  if ((varying_tex_coord_max.x - texel_size.x / 256.0) <= p1.x) {
+  if ((varying_tex_coord_max.x - texel_size.x / 512.0) <= p1.x) {
     c1 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
-  if ((varying_tex_coord_max.y - texel_size.y / 256.0) <= p1.y) {
+  if ((varying_tex_coord_max.y - texel_size.y / 512.0) <= p1.y) {
     c2 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
