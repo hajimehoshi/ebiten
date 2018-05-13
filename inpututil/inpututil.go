@@ -13,8 +13,6 @@
 // limitations under the License.
 
 // Package inpututil provides utility functions of input like keyboard or mouse.
-//
-// Note: This package is experimental and API might be changed.
 package inpututil
 
 import (
