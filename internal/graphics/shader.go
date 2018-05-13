@@ -90,7 +90,7 @@ highp vec2 roundTexel(highp vec2 p) {
   // highp (relative) precision is 2^(-16) in the spec.
   // The minimum value for a denominator is half of 65536.
   highp float factor = 1.0 / 32768.0;
-  return p - (mod(p.x + factor * 0.5, factor) - factor * 0.5);
+  return p - (mod(p + factor * 0.5, factor) - factor * 0.5);
 }
 
 void main(void) {
