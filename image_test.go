@@ -796,3 +796,40 @@ func TestImageCopy(t *testing.T) {
 	img1 := *img0
 	img1.Fill(color.Transparent)
 }
+
+func TestImageStretch(t *testing.T) {
+	img0, _ := NewImage(16, 17, FilterDefault)
+
+	pix := make([]byte, 4*16*17)
+	for i := 0; i < 16*16; i++ {
+		pix[4*i] = 0xff
+		pix[4*i+3] = 0xff
+	}
+	for i := 0; i < 16; i++ {
+		pix[4*(16*16+i)+1] = 0xff
+		pix[4*(16*16+i)+3] = 0xff
+	}
+	img0.ReplacePixels(pix)
+
+	// TODO: 4096 doesn't pass on MacBook Pro (#611).
+	const h = 2048
+	img1, _ := NewImage(16, h, FilterDefault)
+	for i := 1; i < h; i++ {
+		img1.Clear()
+		op := &DrawImageOptions{}
+		op.GeoM.Scale(1, float64(i)/16)
+		r := image.Rect(0, 0, 16, 16)
+		op.SourceRect = &r
+		img1.DrawImage(img0, op)
+		for j := -1; j <= 1; j++ {
+			got := img1.At(0, i+j).(color.RGBA)
+			want := color.RGBA{}
+			if j < 0 {
+				want = color.RGBA{0xff, 0, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("At(%d, %d) (i=%d): got: %#v, want: %#v", 0, i+j, i, got, want)
+			}
+		}
+	}
+}
