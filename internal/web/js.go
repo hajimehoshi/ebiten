@@ -40,6 +40,9 @@ func IsBrowser() bool {
 }
 
 func IsIOSSafari() bool {
+	if IsNodeJS() {
+		return false
+	}
 	ua := js.Global.Get("navigator").Get("userAgent").String()
 	if !strings.Contains(ua, "iPhone") {
 		return false
@@ -48,6 +51,9 @@ func IsIOSSafari() bool {
 }
 
 func IsAndroidChrome() bool {
+	if IsNodeJS() {
+		return false
+	}
 	ua := js.Global.Get("navigator").Get("userAgent").String()
 	if !strings.Contains(ua, "Android") {
 		return false
