@@ -25,6 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var canvas *js.Object
@@ -216,7 +217,7 @@ func init() {
 
 func initialize() error {
 	// Do nothing in node.js.
-	if js.Global.Get("require") != js.Undefined {
+	if web.IsNodeJS() {
 		return nil
 	}
 
