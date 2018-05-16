@@ -18,12 +18,21 @@ package web
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/gopherjs/gopherjs/js"
 )
 
+var (
+	isNodeJSOnce sync.Once
+	isNodeJS     = false
+)
+
 func IsNodeJS() bool {
-	return js.Global.Get("require") != js.Undefined
+	isNodeJSOnce.Do(func() {
+		isNodeJS = js.Global.Get("process") != js.Undefined
+	})
+	return isNodeJS
 }
 
 func IsBrowser() bool {
