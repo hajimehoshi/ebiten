@@ -12,30 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package testflock provides a lock for testing.
-//
-// There is a CI service like TravisCI where multiple OpenGL processes
-// don't work well at the same time, and tests with an OpenGL main routine
-// should be protected by a file lock (#575).
+// +build js
+
 package testflock
 
 import (
-	"os"
-	"path/filepath"
-
-	"github.com/theckman/go-flock"
+	"sync"
 )
 
-var theLock = flock.NewFlock(filepath.Join(os.TempDir(), "ebitentest"))
+var theLock sync.Mutex
 
 func Lock() {
-	if err := theLock.Lock(); err != nil {
-		panic(err)
-	}
+	theLock.Lock()
 }
 
 func Unlock() {
-	if err := theLock.Unlock(); err != nil {
-		panic(err)
-	}
+	theLock.Unlock()
 }
