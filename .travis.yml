@@ -9,7 +9,6 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - libasound2-dev
-      - libglew-dev # required by headless-gl.
       - libgles2-mesa-dev
       - libalut-dev
       - libxcursor-dev
@@ -17,18 +16,20 @@ addons:
       - libxinerama-dev
       - libxrandr-dev
       - libxxf86vm-dev
-
-# gl module is not available (2016-05-18)
-#
-# before_install:
-#  - export NODE_PATH=$(npm config get prefix)/lib/node_modules
-#  - npm install --global gl
+  chrome: stable
 
 install:
   - go get -t -v github.com/hajimehoshi/ebiten/...
   - go get github.com/gopherjs/gopherjs
   - go get github.com/gopherjs/webgl
   - go get -tags example github.com/hajimehoshi/ebiten/examples/...
+  - go get myitcv.io/gjbt
+  - mkdir /tmp/google-chrome-bin
+  - ln -s /usr/bin/google-chrome-stable /tmp/google-chrome-bin/google-chrome
+  - export PATH=/tmp/google-chrome-bin:$PATH
+  - curl -s https://chromedriver.storage.googleapis.com/2.38/chromedriver_linux64.zip > /tmp/chromedriver_linux64.zip
+  - unzip -d /tmp/chromedriver_linux64 /tmp/chromedriver_linux64.zip
+  - export PATH=/tmp/chromedriver_linux64:$PATH
 
 before_script:
   - export DISPLAY=:99.0
@@ -40,9 +41,7 @@ script:
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - go test -v github.com/hajimehoshi/ebiten/...
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
-
-# Looks like testing GL on node is hard.
-# - gopherjs test -v github.com/hajimehoshi/ebiten github.com/hajimehoshi/ebiten/internal/graphics
+  - gjbt github.com/hajimehoshi/ebiten # TODO: Use test the subdirectories
 
 notifications:
   email:
