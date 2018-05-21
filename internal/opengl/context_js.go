@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/gopherjs/webgl"
 
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -71,7 +70,7 @@ func init() {
 }
 
 type context struct {
-	gl            *webgl.Context
+	gl            *js.Object
 	loseContext   *js.Object
 	lastProgramID programID
 }
@@ -81,21 +80,29 @@ func Init() error {
 		return fmt.Errorf("opengl: Node.js is not supported")
 	}
 
+	if js.Global.Get("WebGLRenderingContext") == js.Undefined {
+		return fmt.Errorf("opengl: WebGL is not supported")
+	}
+
 	// TODO: Define id?
 	canvas := js.Global.Get("document").Call("querySelector", "canvas")
-	gl, err := webgl.NewContext(canvas, &webgl.ContextAttributes{
-		Alpha:              true,
-		PremultipliedAlpha: true,
-	})
-	if err != nil {
-		return err
+	attr := map[string]bool{
+		"alpha":              true,
+		"premultipliedAlpha": true,
+	}
+	gl := canvas.Call("getContext", "webgl", attr)
+	if gl == nil {
+		gl = canvas.Call("getContext", "experimental-webgl", attr)
+		if gl == nil {
+			return fmt.Errorf("opengl: getContext failed")
+		}
 	}
 	c := &Context{}
 	c.gl = gl
 
 	// Getting an extension might fail after the context is lost, so
 	// it is required to get the extension here.
-	c.loseContext = gl.GetExtension("WEBGL_lose_context")
+	c.loseContext = gl.Call("getExtension", "WEBGL_lose_context")
 	if c.loseContext != nil {
 		// This testing function name is temporary.
 		js.Global.Set("_ebiten_loseContextForTesting", func() {
@@ -114,9 +121,9 @@ func (c *Context) Reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
 	gl := c.gl
-	gl.Enable(gl.BLEND)
+	gl.Call("enable", gl.Get("BLEND"))
 	c.BlendFunc(CompositeModeSourceOver)
-	f := gl.GetParameter(gl.FRAMEBUFFER_BINDING)
+	f := gl.Call("getParameter", gl.Get("FRAMEBUFFER_BINDING"))
 	c.screenFramebuffer = f
 	return nil
 }
@@ -128,34 +135,34 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 	c.lastCompositeMode = mode
 	s, d := operations(mode)
 	gl := c.gl
-	gl.BlendFunc(int(s), int(d))
+	gl.Call("blendFunc", int(s), int(d))
 }
 
 func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl := c.gl
-	t := gl.CreateTexture()
+	t := gl.Call("createTexture")
 	if t == nil {
 		return nil, errors.New("opengl: glGenTexture failed")
 	}
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
+	gl.Call("pixelStorei", gl.Get("UNPACK_ALIGNMENT"), 4)
 	c.BindTexture(t)
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("NEAREST"))
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("NEAREST"))
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
+	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
 
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
 	//     GLenum type, ArrayBufferView? pixels);
-	gl.Call("texImage2D", gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+	gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"), width, height, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), nil)
 
 	return t, nil
 }
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl := c.gl
-	gl.BindFramebuffer(gl.FRAMEBUFFER, f.(*js.Object))
+	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), f.(*js.Object))
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
@@ -164,8 +171,8 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 	c.bindFramebuffer(f)
 
 	pixels := js.Global.Get("Uint8Array").New(4 * width * height)
-	gl.ReadPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-	if e := gl.GetError(); e != gl.NO_ERROR {
+	gl.Call("readPixels", 0, 0, width, height, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), pixels)
+	if e := gl.Call("getError"); e != gl.Get("NO_ERROR") {
 		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
 	}
 	return pixels.Interface().([]byte), nil
@@ -173,24 +180,23 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 
 func (c *Context) bindTextureImpl(t Texture) {
 	gl := c.gl
-	gl.BindTexture(gl.TEXTURE_2D, t.(*js.Object))
+	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), t.(*js.Object))
 }
 
 func (c *Context) DeleteTexture(t Texture) {
 	gl := c.gl
-	if !gl.IsTexture(t.(*js.Object)) {
+	if !gl.Call("isTexture", t.(*js.Object)).Bool() {
 		return
 	}
 	if c.lastTexture == t {
 		c.lastTexture = nil
 	}
-	gl.DeleteTexture(t.(*js.Object))
+	gl.Call("deleteTexture", t.(*js.Object))
 }
 
 func (c *Context) IsTexture(t Texture) bool {
 	gl := c.gl
-	b := gl.IsTexture(t.(*js.Object))
-	return b
+	return gl.Call("isTexture", t.(*js.Object)).Bool()
 }
 
 func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
@@ -198,17 +204,16 @@ func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-	gl.Call("texSubImage2D", gl.TEXTURE_2D, 0, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, p)
+	gl.Call("texSubImage2D", gl.Get("TEXTURE_2D"), 0, x, y, width, height, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), p)
 }
 
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	gl := c.gl
-	f := gl.CreateFramebuffer()
+	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(f)
 
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.(*js.Object), 0)
-	s := gl.CheckFramebufferStatus(gl.FRAMEBUFFER)
-	if s != gl.FRAMEBUFFER_COMPLETE {
+	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), t.(*js.Object), 0)
+	if s := gl.Call("checkFramebufferStatus", gl.Get("FRAMEBUFFER")); s != gl.Get("FRAMEBUFFER_COMPLETE") {
 		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))
 	}
 
@@ -217,12 +222,12 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 
 func (c *Context) setViewportImpl(width, height int) {
 	gl := c.gl
-	gl.Viewport(0, 0, width, height)
+	gl.Call("viewport", 0, 0, width, height)
 }
 
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl := c.gl
-	if !gl.IsFramebuffer(f.(*js.Object)) {
+	if !gl.Call("isFramebuffer", f.(*js.Object)).Bool() {
 		return
 	}
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer
@@ -233,21 +238,21 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
-	gl.DeleteFramebuffer(f.(*js.Object))
+	gl.Call("deleteFramebuffer", f.(*js.Object))
 }
 
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
 	gl := c.gl
-	s := gl.CreateShader(int(shaderType))
+	s := gl.Call("createShader", int(shaderType))
 	if s == nil {
 		return nil, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
-	gl.ShaderSource(s, source)
-	gl.CompileShader(s)
+	gl.Call("shaderSource", s, source)
+	gl.Call("compileShader", s)
 
-	if !gl.GetShaderParameterb(s, gl.COMPILE_STATUS) {
-		log := gl.GetShaderInfoLog(s)
+	if !gl.Call("getShaderParameter", s, gl.Get("COMPILE_STATUS")).Bool() {
+		log := gl.Call("getShaderInfoLog", s)
 		return nil, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
 	return s, nil
@@ -255,12 +260,12 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 func (c *Context) DeleteShader(s Shader) {
 	gl := c.gl
-	gl.DeleteShader(s.(*js.Object))
+	gl.Call("deleteShader", s.(*js.Object))
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
-	p := gl.CreateProgram()
+	p := gl.Call("createProgram")
 	if p == nil {
 		return nil, errors.New("opengl: glCreateProgram failed")
 	}
@@ -268,10 +273,10 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	c.lastProgramID++
 
 	for _, shader := range shaders {
-		gl.AttachShader(p, shader.(*js.Object))
+		gl.Call("attachShader", p, shader.(*js.Object))
 	}
-	gl.LinkProgram(p)
-	if !gl.GetProgramParameterb(p, gl.LINK_STATUS) {
+	gl.Call("linkProgram", p)
+	if !gl.Call("getProgramParameter", p, gl.Get("LINK_STATUS")).Bool() {
 		return nil, errors.New("opengl: program error")
 	}
 	return p, nil
@@ -279,32 +284,32 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 
 func (c *Context) UseProgram(p Program) {
 	gl := c.gl
-	gl.UseProgram(p.(*js.Object))
+	gl.Call("useProgram", p.(*js.Object))
 }
 
 func (c *Context) DeleteProgram(p Program) {
 	gl := c.gl
-	if !gl.IsProgram(p.(*js.Object)) {
+	if !gl.Call("isProgram", p.(*js.Object)).Bool() {
 		return
 	}
-	gl.DeleteProgram(p.(*js.Object))
+	gl.Call("deleteProgram", p.(*js.Object))
 }
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return gl.GetUniformLocation(p.(*js.Object), location)
+	return gl.Call("getUniformLocation", p.(*js.Object), location)
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Uniform1i(l.(*js.Object), v)
+	gl.Call("uniform1i", l.(*js.Object), v)
 }
 
 func (c *Context) UniformFloat(p Program, location string, v float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Uniform1f(l.(*js.Object), v)
+	gl.Call("uniform1f", l.(*js.Object), v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
@@ -316,7 +321,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	case 4:
 		gl.Call("uniform4fv", l.(*js.Object), v)
 	case 16:
-		gl.UniformMatrix4fv(l.(*js.Object), false, v)
+		gl.Call("uniformMatrix4fv", l.(*js.Object), false, v)
 	default:
 		panic("not reached")
 	}
@@ -324,76 +329,76 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
 	gl := c.gl
-	return attribLocation(gl.GetAttribLocation(p.(*js.Object), location))
+	return attribLocation(gl.Call("getAttribLocation", p.(*js.Object), location).Int())
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.VertexAttribPointer(int(l), size, int(dataType), false, stride, offset)
+	gl.Call("vertexAttribPointer", int(l), size, int(dataType), false, stride, offset)
 }
 
 func (c *Context) EnableVertexAttribArray(p Program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.EnableVertexAttribArray(int(l))
+	gl.Call("enableVertexAttribArray", int(l))
 }
 
 func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.DisableVertexAttribArray(int(l))
+	gl.Call("disableVertexAttribArray", int(l))
 }
 
 func (c *Context) NewArrayBuffer(size int) Buffer {
 	gl := c.gl
-	b := gl.CreateBuffer()
-	gl.BindBuffer(int(ArrayBuffer), b)
-	gl.BufferData(int(ArrayBuffer), size, int(DynamicDraw))
+	b := gl.Call("createBuffer")
+	gl.Call("bindBuffer", int(ArrayBuffer), b)
+	gl.Call("bufferData", int(ArrayBuffer), size, int(DynamicDraw))
 	return b
 }
 
 func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 	gl := c.gl
-	b := gl.CreateBuffer()
-	gl.BindBuffer(int(ElementArrayBuffer), b)
-	gl.BufferData(int(ElementArrayBuffer), indices, int(StaticDraw))
+	b := gl.Call("createBuffer")
+	gl.Call("bindBuffer", int(ElementArrayBuffer), b)
+	gl.Call("bufferData", int(ElementArrayBuffer), indices, int(StaticDraw))
 	return b
 }
 
 func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl := c.gl
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.(*js.Object))
+	gl.Call("bindBuffer", gl.Get("ELEMENT_ARRAY_BUFFER"), b.(*js.Object))
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
 	gl := c.gl
-	gl.BufferSubData(int(bufferType), 0, data)
+	gl.Call("bufferSubData", int(bufferType), 0, data)
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {
 	gl := c.gl
-	gl.DeleteBuffer(b.(*js.Object))
+	gl.Call("deleteBuffer", b.(*js.Object))
 }
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 	gl := c.gl
-	gl.DrawElements(int(mode), len, gl.UNSIGNED_SHORT, offsetInBytes)
+	gl.Call("drawElements", int(mode), len, gl.Get("UNSIGNED_SHORT"), offsetInBytes)
 }
 
 func (c *Context) maxTextureSizeImpl() int {
 	gl := c.gl
-	return gl.GetParameter(gl.MAX_TEXTURE_SIZE).Int()
+	return gl.Call("getParameter", gl.Get("MAX_TEXTURE_SIZE")).Int()
 }
 
 func (c *Context) Flush() {
 	gl := c.gl
-	gl.Flush()
+	gl.Call("flush")
 }
 
 func (c *Context) IsContextLost() bool {
 	gl := c.gl
-	return gl.IsContextLost()
+	return gl.Call("isContextLost").Bool()
 }
 
 func (c *Context) RestoreContext() {
