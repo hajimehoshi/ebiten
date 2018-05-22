@@ -41,7 +41,7 @@ script:
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - go test -v github.com/hajimehoshi/ebiten/...
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
-  - gjbt github.com/hajimehoshi/ebiten # TODO: Use test the subdirectories
+  - gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
 
 notifications:
   email:
