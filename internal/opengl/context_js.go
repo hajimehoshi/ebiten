@@ -162,7 +162,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl := c.gl
-	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), f.(*js.Object))
+	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), f)
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
@@ -180,23 +180,23 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 
 func (c *Context) bindTextureImpl(t Texture) {
 	gl := c.gl
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), t.(*js.Object))
+	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), t)
 }
 
 func (c *Context) DeleteTexture(t Texture) {
 	gl := c.gl
-	if !gl.Call("isTexture", t.(*js.Object)).Bool() {
+	if !gl.Call("isTexture", t).Bool() {
 		return
 	}
 	if c.lastTexture == t {
 		c.lastTexture = nil
 	}
-	gl.Call("deleteTexture", t.(*js.Object))
+	gl.Call("deleteTexture", t)
 }
 
 func (c *Context) IsTexture(t Texture) bool {
 	gl := c.gl
-	return gl.Call("isTexture", t.(*js.Object)).Bool()
+	return gl.Call("isTexture", t).Bool()
 }
 
 func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
@@ -212,7 +212,7 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(f)
 
-	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), t.(*js.Object), 0)
+	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), t, 0)
 	if s := gl.Call("checkFramebufferStatus", gl.Get("FRAMEBUFFER")); s != gl.Get("FRAMEBUFFER_COMPLETE") {
 		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))
 	}
@@ -227,7 +227,7 @@ func (c *Context) setViewportImpl(width, height int) {
 
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl := c.gl
-	if !gl.Call("isFramebuffer", f.(*js.Object)).Bool() {
+	if !gl.Call("isFramebuffer", f).Bool() {
 		return
 	}
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer
@@ -238,7 +238,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
-	gl.Call("deleteFramebuffer", f.(*js.Object))
+	gl.Call("deleteFramebuffer", f)
 }
 
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
@@ -260,7 +260,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 func (c *Context) DeleteShader(s Shader) {
 	gl := c.gl
-	gl.Call("deleteShader", s.(*js.Object))
+	gl.Call("deleteShader", s)
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
@@ -273,7 +273,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	c.lastProgramID++
 
 	for _, shader := range shaders {
-		gl.Call("attachShader", p, shader.(*js.Object))
+		gl.Call("attachShader", p, shader)
 	}
 	gl.Call("linkProgram", p)
 	if !gl.Call("getProgramParameter", p, gl.Get("LINK_STATUS")).Bool() {
@@ -284,32 +284,32 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 
 func (c *Context) UseProgram(p Program) {
 	gl := c.gl
-	gl.Call("useProgram", p.(*js.Object))
+	gl.Call("useProgram", p)
 }
 
 func (c *Context) DeleteProgram(p Program) {
 	gl := c.gl
-	if !gl.Call("isProgram", p.(*js.Object)).Bool() {
+	if !gl.Call("isProgram", p).Bool() {
 		return
 	}
-	gl.Call("deleteProgram", p.(*js.Object))
+	gl.Call("deleteProgram", p)
 }
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return gl.Call("getUniformLocation", p.(*js.Object), location)
+	return gl.Call("getUniformLocation", p, location)
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Call("uniform1i", l.(*js.Object), v)
+	gl.Call("uniform1i", l, v)
 }
 
 func (c *Context) UniformFloat(p Program, location string, v float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Call("uniform1f", l.(*js.Object), v)
+	gl.Call("uniform1f", l, v)
 }
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
@@ -317,11 +317,11 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
 	case 2:
-		gl.Call("uniform2fv", l.(*js.Object), v)
+		gl.Call("uniform2fv", l, v)
 	case 4:
-		gl.Call("uniform4fv", l.(*js.Object), v)
+		gl.Call("uniform4fv", l, v)
 	case 16:
-		gl.Call("uniformMatrix4fv", l.(*js.Object), false, v)
+		gl.Call("uniformMatrix4fv", l, false, v)
 	default:
 		panic("not reached")
 	}
@@ -329,7 +329,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
 	gl := c.gl
-	return attribLocation(gl.Call("getAttribLocation", p.(*js.Object), location).Int())
+	return attribLocation(gl.Call("getAttribLocation", p, location).Int())
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
@@ -368,7 +368,7 @@ func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 
 func (c *Context) BindElementArrayBuffer(b Buffer) {
 	gl := c.gl
-	gl.Call("bindBuffer", gl.Get("ELEMENT_ARRAY_BUFFER"), b.(*js.Object))
+	gl.Call("bindBuffer", gl.Get("ELEMENT_ARRAY_BUFFER"), b)
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
@@ -378,7 +378,7 @@ func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
 
 func (c *Context) DeleteBuffer(b Buffer) {
 	gl := c.gl
-	gl.Call("deleteBuffer", b.(*js.Object))
+	gl.Call("deleteBuffer", b)
 }
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
