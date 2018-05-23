@@ -29,9 +29,9 @@ import (
 type (
 	Texture         js.Value
 	Framebuffer     js.Value
-	Shader          interface{}
-	Program         interface{}
-	Buffer          interface{}
+	Shader          js.Value
+	Program         js.Value
+	Buffer          js.Value
 	uniformLocation js.Value
 )
 
@@ -42,7 +42,7 @@ type programID int
 var InvalidTexture = Texture(js.Null)
 
 func getProgramID(p Program) programID {
-	return programID(p.(js.Value).Get("__ebiten_programId").Int())
+	return programID(js.Value(p).Get("__ebiten_programId").Int())
 }
 
 func init() {
@@ -241,46 +241,46 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
 	if s == js.Null {
-		return nil, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
+		return Shader(js.Null), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
-	gl.Call("shaderSource", s, source)
-	gl.Call("compileShader", s)
+	gl.Call("shaderSource", js.Value(s), source)
+	gl.Call("compileShader", js.Value(s))
 
-	if !gl.Call("getShaderParameter", s, gl.Get("COMPILE_STATUS")).Bool() {
-		log := gl.Call("getShaderInfoLog", s)
-		return nil, fmt.Errorf("opengl: shader compile failed: %s", log)
+	if !gl.Call("getShaderParameter", js.Value(s), gl.Get("COMPILE_STATUS")).Bool() {
+		log := gl.Call("getShaderInfoLog", js.Value(s))
+		return Shader(js.Null), fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
-	return s, nil
+	return Shader(s), nil
 }
 
 func (c *Context) DeleteShader(s Shader) {
 	gl := c.gl
-	gl.Call("deleteShader", s)
+	gl.Call("deleteShader", js.Value(s))
 }
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.Call("createProgram")
 	if p == js.Null {
-		return nil, errors.New("opengl: glCreateProgram failed")
+		return Program(js.Null), errors.New("opengl: glCreateProgram failed")
 	}
 	p.Set("__ebiten_programId", int(c.lastProgramID))
 	c.lastProgramID++
 
 	for _, shader := range shaders {
-		gl.Call("attachShader", p, shader)
+		gl.Call("attachShader", js.Value(p), js.Value(shader))
 	}
-	gl.Call("linkProgram", p)
-	if !gl.Call("getProgramParameter", p, gl.Get("LINK_STATUS")).Bool() {
-		return nil, errors.New("opengl: program error")
+	gl.Call("linkProgram", js.Value(p))
+	if !gl.Call("getProgramParameter", js.Value(p), gl.Get("LINK_STATUS")).Bool() {
+		return Program(js.Null), errors.New("opengl: program error")
 	}
-	return p, nil
+	return Program(p), nil
 }
 
 func (c *Context) UseProgram(p Program) {
 	gl := c.gl
-	gl.Call("useProgram", p)
+	gl.Call("useProgram", js.Value(p))
 }
 
 func (c *Context) DeleteProgram(p Program) {
@@ -293,7 +293,7 @@ func (c *Context) DeleteProgram(p Program) {
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return uniformLocation(gl.Call("getUniformLocation", p, location))
+	return uniformLocation(gl.Call("getUniformLocation", js.Value(p), location))
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
@@ -351,7 +351,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
 	gl := c.gl
-	return attribLocation(gl.Call("getAttribLocation", p, location).Int())
+	return attribLocation(gl.Call("getAttribLocation", js.Value(p), location).Int())
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
@@ -375,22 +375,22 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 func (c *Context) NewArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(ArrayBuffer), b)
+	gl.Call("bindBuffer", int(ArrayBuffer), js.Value(b))
 	gl.Call("bufferData", int(ArrayBuffer), size, int(DynamicDraw))
-	return b
+	return Buffer(b)
 }
 
 func (c *Context) NewElementArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(ElementArrayBuffer), b)
+	gl.Call("bindBuffer", int(ElementArrayBuffer), js.Value(b))
 	gl.Call("bufferData", int(ElementArrayBuffer), size, int(DynamicDraw))
-	return b
+	return Buffer(b)
 }
 
 func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	gl := c.gl
-	gl.Call("bindBuffer", int(bufferType), b)
+	gl.Call("bindBuffer", int(bufferType), js.Value(b))
 }
 
 func (c *Context) ArrayBufferSubData(data []float32) {
@@ -405,7 +405,7 @@ func (c *Context) ElementArrayBufferSubData(data []uint16) {
 
 func (c *Context) DeleteBuffer(b Buffer) {
 	gl := c.gl
-	gl.Call("deleteBuffer", b)
+	gl.Call("deleteBuffer", js.Value(b))
 }
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
