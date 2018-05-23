@@ -19,8 +19,6 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"reflect"
-	"unsafe"
 
 	mgl "golang.org/x/mobile/gl"
 )
@@ -371,28 +369,6 @@ func (c *Context) NewElementArrayBuffer(size int) Buffer {
 func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	gl := c.gl
 	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
-}
-
-func uint16ToBytes(v []uint16) []byte {
-	u16h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
-
-	var b []byte
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data = u16h.Data
-	bh.Len = len(v) * 2
-	bh.Cap = len(v) * 2
-	return b
-}
-
-func float32ToBytes(v []float32) []byte {
-	f32h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
-
-	var b []byte
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data = f32h.Data
-	bh.Len = len(v) * 4
-	bh.Cap = len(v) * 4
-	return b
 }
 
 func (c *Context) ArrayBufferSubData(data []float32) {

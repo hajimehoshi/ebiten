@@ -19,8 +19,9 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"runtime"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -41,10 +42,10 @@ type attribLocation int
 
 type programID int
 
-var InvalidTexture = Texture((*js.Object)(nil))
+var InvalidTexture = Texture(js.Null)
 
 func getProgramID(p Program) programID {
-	return programID(p.(*js.Object).Get("__ebiten_programId").Int())
+	return programID(p.(js.Value).Get("__ebiten_programId").Int())
 }
 
 func init() {
@@ -69,8 +70,8 @@ func init() {
 }
 
 type context struct {
-	gl            *js.Object
-	loseContext   *js.Object
+	gl            js.Value
+	loseContext   js.Value
 	lastProgramID programID
 }
 
@@ -85,14 +86,13 @@ func Init() error {
 
 	// TODO: Define id?
 	canvas := js.Global.Get("document").Call("querySelector", "canvas")
-	attr := map[string]bool{
-		"alpha":              true,
-		"premultipliedAlpha": true,
-	}
+	attr := js.Global.Get("Object").New()
+	attr.Set("alpha", true)
+	attr.Set("premultipliedAlpha", true)
 	gl := canvas.Call("getContext", "webgl", attr)
-	if gl == nil {
+	if gl == js.Null {
 		gl = canvas.Call("getContext", "experimental-webgl", attr)
-		if gl == nil {
+		if gl == js.Null {
 			return fmt.Errorf("opengl: getContext failed")
 		}
 	}
@@ -102,11 +102,11 @@ func Init() error {
 	// Getting an extension might fail after the context is lost, so
 	// it is required to get the extension here.
 	c.loseContext = gl.Call("getExtension", "WEBGL_lose_context")
-	if c.loseContext != nil {
+	if c.loseContext != js.Null {
 		// This testing function name is temporary.
-		js.Global.Set("_ebiten_loseContextForTesting", func() {
+		js.Global.Set("_ebiten_loseContextForTesting", js.NewCallback(func([]js.Value) {
 			c.loseContext.Call("loseContext")
-		})
+		}))
 	}
 	theContext = c
 	return nil
@@ -140,7 +140,7 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.Call("createTexture")
-	if t == nil {
+	if t == js.Null {
 		return nil, errors.New("opengl: glGenTexture failed")
 	}
 	gl.Call("pixelStorei", gl.Get("UNPACK_ALIGNMENT"), 4)
@@ -169,12 +169,12 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 
 	c.bindFramebuffer(f)
 
-	pixels := js.Global.Get("Uint8Array").New(4 * width * height)
+	pixels := make([]byte, 4*width*height)
 	gl.Call("readPixels", 0, 0, width, height, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), pixels)
-	if e := gl.Call("getError"); e != gl.Get("NO_ERROR") {
+	if e := gl.Call("getError"); e.Int() != gl.Get("NO_ERROR").Int() {
 		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
 	}
-	return pixels.Interface().([]byte), nil
+	return pixels, nil
 }
 
 func (c *Context) bindTextureImpl(t Texture) {
@@ -212,8 +212,8 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	c.bindFramebuffer(f)
 
 	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), t, 0)
-	if s := gl.Call("checkFramebufferStatus", gl.Get("FRAMEBUFFER")); s != gl.Get("FRAMEBUFFER_COMPLETE") {
-		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s))
+	if s := gl.Call("checkFramebufferStatus", gl.Get("FRAMEBUFFER")); s.Int() != gl.Get("FRAMEBUFFER_COMPLETE").Int() {
+		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
 	return f, nil
@@ -243,7 +243,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
-	if s == nil {
+	if s == js.Null {
 		return nil, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
@@ -265,10 +265,10 @@ func (c *Context) DeleteShader(s Shader) {
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	p := gl.Call("createProgram")
-	if p == nil {
+	if p == js.Null {
 		return nil, errors.New("opengl: glCreateProgram failed")
 	}
-	p.Set("__ebiten_programId", c.lastProgramID)
+	p.Set("__ebiten_programId", int(c.lastProgramID))
 	c.lastProgramID++
 
 	for _, shader := range shaders {
@@ -311,16 +311,42 @@ func (c *Context) UniformFloat(p Program, location string, v float32) {
 	gl.Call("uniform1f", l, v)
 }
 
+func float32sToValue(v []float32) js.Value {
+	if runtime.GOARCH == "wasm" {
+		return js.ValueOf(float32sToBytes(v))
+	}
+	a := js.Global.Get("Float32Array").New(len(v))
+	for i, f32 := range v {
+		a.SetIndex(i, f32)
+	}
+	return a
+}
+
+func uint16sToValue(v []uint16) js.Value {
+	if runtime.GOARCH == "wasm" {
+		return js.ValueOf(uint16sToBytes(v))
+	}
+	a := js.Global.Get("Uint16Array").New(len(v))
+	for i, u16 := range v {
+		a.SetIndex(i, u16)
+	}
+	return a
+}
+
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
 	case 2:
-		gl.Call("uniform2fv", l, v)
+		gl.Call("uniform2f", l, v[0], v[1])
 	case 4:
-		gl.Call("uniform4fv", l, v)
+		gl.Call("uniform4f", l, v[0], v[1], v[2], v[3])
 	case 16:
-		gl.Call("uniformMatrix4fv", l, false, v)
+		m := js.Global.Get("Float32Array").New(16)
+		for i := range v {
+			m.SetIndex(i, v[i])
+		}
+		gl.Call("uniformMatrix4fv", l, false, m)
 	default:
 		panic("not reached")
 	}
@@ -372,12 +398,12 @@ func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 
 func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(ArrayBuffer), 0, data)
+	gl.Call("bufferSubData", int(ArrayBuffer), 0, float32sToValue(data))
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, data)
+	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, uint16sToValue(data))
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {
@@ -406,7 +432,7 @@ func (c *Context) IsContextLost() bool {
 }
 
 func (c *Context) RestoreContext() {
-	if c.loseContext != nil {
+	if c.loseContext != js.Null {
 		c.loseContext.Call("restoreContext")
 	}
 }
