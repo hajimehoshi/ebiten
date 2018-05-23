@@ -26,12 +26,9 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
-// Note that `type Texture *js.Object` doesn't work.
-// There is no way to get the internal object in that case.
-
 type (
-	Texture         interface{}
-	Framebuffer     interface{}
+	Texture         js.Value
+	Framebuffer     js.Value
 	Shader          interface{}
 	Program         interface{}
 	Buffer          interface{}
@@ -114,8 +111,8 @@ func Init() error {
 
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
-	c.lastTexture = nil
-	c.lastFramebuffer = nil
+	c.lastTexture = Texture(js.Null)
+	c.lastFramebuffer = Framebuffer(js.Null)
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
@@ -123,7 +120,7 @@ func (c *Context) Reset() error {
 	gl.Call("enable", gl.Get("BLEND"))
 	c.BlendFunc(CompositeModeSourceOver)
 	f := gl.Call("getParameter", gl.Get("FRAMEBUFFER_BINDING"))
-	c.screenFramebuffer = f
+	c.screenFramebuffer = Framebuffer(f)
 	return nil
 }
 
@@ -141,10 +138,10 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.Call("createTexture")
 	if t == js.Null {
-		return nil, errors.New("opengl: glGenTexture failed")
+		return Texture(js.Null), errors.New("opengl: glGenTexture failed")
 	}
 	gl.Call("pixelStorei", gl.Get("UNPACK_ALIGNMENT"), 4)
-	c.BindTexture(t)
+	c.BindTexture(Texture(t))
 
 	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("NEAREST"))
 	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("NEAREST"))
@@ -156,12 +153,12 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	//     GLenum type, ArrayBufferView? pixels);
 	gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"), width, height, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), nil)
 
-	return t, nil
+	return Texture(t), nil
 }
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl := c.gl
-	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), f)
+	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), js.Value(f))
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
@@ -179,23 +176,23 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 
 func (c *Context) bindTextureImpl(t Texture) {
 	gl := c.gl
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), t)
+	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), js.Value(t))
 }
 
 func (c *Context) DeleteTexture(t Texture) {
 	gl := c.gl
-	if !gl.Call("isTexture", t).Bool() {
+	if !gl.Call("isTexture", js.Value(t)).Bool() {
 		return
 	}
 	if c.lastTexture == t {
-		c.lastTexture = nil
+		c.lastTexture = Texture(js.Null)
 	}
-	gl.Call("deleteTexture", t)
+	gl.Call("deleteTexture", js.Value(t))
 }
 
 func (c *Context) IsTexture(t Texture) bool {
 	gl := c.gl
-	return gl.Call("isTexture", t).Bool()
+	return gl.Call("isTexture", js.Value(t)).Bool()
 }
 
 func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
@@ -209,14 +206,14 @@ func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.Call("createFramebuffer")
-	c.bindFramebuffer(f)
+	c.bindFramebuffer(Framebuffer(f))
 
-	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), t, 0)
+	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), js.Value(t), 0)
 	if s := gl.Call("checkFramebufferStatus", gl.Get("FRAMEBUFFER")); s.Int() != gl.Get("FRAMEBUFFER_COMPLETE").Int() {
-		return nil, errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
+		return Framebuffer(js.Null), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
-	return f, nil
+	return Framebuffer(f), nil
 }
 
 func (c *Context) setViewportImpl(width, height int) {
@@ -226,18 +223,18 @@ func (c *Context) setViewportImpl(width, height int) {
 
 func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl := c.gl
-	if !gl.Call("isFramebuffer", f).Bool() {
+	if !gl.Call("isFramebuffer", js.Value(f)).Bool() {
 		return
 	}
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
-		c.lastFramebuffer = nil
+		c.lastFramebuffer = Framebuffer(js.Null)
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
-	gl.Call("deleteFramebuffer", f)
+	gl.Call("deleteFramebuffer", js.Value(f))
 }
 
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
