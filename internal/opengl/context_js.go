@@ -32,7 +32,7 @@ type (
 	Shader          interface{}
 	Program         interface{}
 	Buffer          interface{}
-	uniformLocation interface{}
+	uniformLocation js.Value
 )
 
 type attribLocation int
@@ -293,19 +293,19 @@ func (c *Context) DeleteProgram(p Program) {
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return gl.Call("getUniformLocation", p, location)
+	return uniformLocation(gl.Call("getUniformLocation", p, location))
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Call("uniform1i", l, v)
+	gl.Call("uniform1i", js.Value(l), v)
 }
 
 func (c *Context) UniformFloat(p Program, location string, v float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
-	gl.Call("uniform1f", l, v)
+	gl.Call("uniform1f", js.Value(l), v)
 }
 
 func float32sToValue(v []float32) js.Value {
@@ -335,15 +335,15 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
 	case 2:
-		gl.Call("uniform2f", l, v[0], v[1])
+		gl.Call("uniform2f", js.Value(l), v[0], v[1])
 	case 4:
-		gl.Call("uniform4f", l, v[0], v[1], v[2], v[3])
+		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
 	case 16:
 		m := js.Global.Get("Float32Array").New(16)
 		for i := range v {
 			m.SetIndex(i, v[i])
 		}
-		gl.Call("uniformMatrix4fv", l, false, m)
+		gl.Call("uniformMatrix4fv", js.Value(l), false, m)
 	default:
 		panic("not reached")
 	}
