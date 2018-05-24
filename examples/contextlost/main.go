@@ -24,7 +24,7 @@ import (
 	"log"
 	"math"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -44,16 +44,16 @@ var (
 )
 
 func update(screen *ebiten.Image) error {
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) && js.Global != nil {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) && js.Global != js.Null {
 		doc := js.Global.Get("document")
 		canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
 		context := canvas.Call("getContext", "webgl")
-		if context == nil {
+		if context == js.Null {
 			context = canvas.Call("getContext", "experimental-webgl")
 		}
 		// Edge might not support the extension. See
 		// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
-		if ext := context.Call("getExtension", "WEBGL_lose_context"); ext != nil {
+		if ext := context.Call("getExtension", "WEBGL_lose_context"); ext != js.Null {
 			ext.Call("loseContext")
 			fmt.Println("Context Lost!")
 		} else {
