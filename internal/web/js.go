@@ -20,7 +20,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 )
 
 var (
