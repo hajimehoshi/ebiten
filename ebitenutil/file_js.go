@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 )
 
 type file struct {
@@ -34,7 +34,7 @@ func (f *file) Close() error {
 
 func OpenFile(path string) (ReadSeekCloser, error) {
 	var err error
-	var content *js.Object
+	var content js.Value
 	ch := make(chan struct{})
 	req := js.Global.Get("XMLHttpRequest").New()
 	req.Call("open", "GET", path, true)
@@ -58,7 +58,8 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 		return nil, err
 	}
 
-	data := js.Global.Get("Uint8Array").New(content).Interface().([]uint8)
+	var data []byte
+	js.ValueOf(data).Call("set", content)
 	f := &file{bytes.NewReader(data)}
 	return f, nil
 }
