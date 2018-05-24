@@ -17,7 +17,7 @@
 package devicescale
 
 import (
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 )
 
 func impl() float64 {
