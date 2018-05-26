@@ -18,7 +18,6 @@ package ui
 
 import (
 	"image"
-	"runtime"
 	"strconv"
 
 	"github.com/hajimehoshi/gopherwasm/js"
@@ -232,9 +231,6 @@ func init() {
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
 		}))
-		if runtime.GOARCH == "js" {
-			js.Global.Get("console").Call("warn", "'deadlock' error is raised from GopherJS, but this is a known issue: https://github.com/gopherjs/gopherjs/issues/826")
-		}
 		<-ch
 	}
 
