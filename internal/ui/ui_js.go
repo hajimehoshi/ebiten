@@ -23,6 +23,7 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -39,11 +40,13 @@ type userInterface struct {
 
 	sizeChanged bool
 	windowFocus bool
+	pageVisible bool
 }
 
 var currentUI = &userInterface{
 	sizeChanged: true,
 	windowFocus: true,
+	pageVisible: true,
 }
 
 func MonitorSize() (int, int) {
@@ -167,10 +170,17 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	}
 }
 
+func (u *userInterface) suspended() bool {
+	return !u.runnableInBackground && (!u.windowFocus || !u.pageVisible)
+}
+
 func (u *userInterface) update(g GraphicsContext) error {
-	if !u.runnableInBackground && !u.windowFocus {
+	if u.suspended() {
+		hooks.SuspendAudio()
 		return nil
 	}
+	hooks.ResumeAudio()
+
 	if opengl.GetContext().IsContextLost() {
 		opengl.GetContext().RestoreContext()
 		g.Invalidate()
@@ -232,9 +242,27 @@ func initialize() error {
 	}
 	window.Call("addEventListener", "focus", func() {
 		currentUI.windowFocus = true
+		if currentUI.suspended() {
+			hooks.SuspendAudio()
+		} else {
+			hooks.ResumeAudio()
+		}
 	})
 	window.Call("addEventListener", "blur", func() {
 		currentUI.windowFocus = false
+		if currentUI.suspended() {
+			hooks.SuspendAudio()
+		} else {
+			hooks.ResumeAudio()
+		}
+	})
+	doc.Call("addEventListener", "visibilitychange", func() {
+		currentUI.pageVisible = !doc.Get("hidden").Bool()
+		if currentUI.suspended() {
+			hooks.SuspendAudio()
+		} else {
+			hooks.ResumeAudio()
+		}
 	})
 	window.Call("addEventListener", "resize", func() {
 		currentUI.updateScreenSize()

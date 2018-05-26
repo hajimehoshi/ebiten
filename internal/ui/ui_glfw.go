@@ -29,6 +29,7 @@ import (
 	"github.com/go-gl/glfw/v3.2/glfw"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -552,7 +553,9 @@ func (u *userInterface) update(g GraphicsContext) error {
 
 	_ = u.runOnMainThread(func() error {
 		u.pollEvents()
+		defer hooks.ResumeAudio()
 		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
+			hooks.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
 			u.pollEvents()

@@ -31,6 +31,7 @@ import (
 	"golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -202,7 +203,18 @@ func (u *userInterface) scaleImpl() float64 {
 }
 
 func (u *userInterface) update(g GraphicsContext) error {
-	<-renderCh
+render:
+	for {
+		select {
+		case <-renderCh:
+			break render
+		case <-time.After(500 * time.Millisecond):
+			hooks.SuspendAudio()
+			continue
+		}
+	}
+	hooks.ResumeAudio()
+
 	defer func() {
 		renderChEnd <- struct{}{}
 	}()

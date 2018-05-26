@@ -43,7 +43,8 @@ var (
 	lastFPSUpdated int64
 	framesForFPS   int64
 
-	ping func()
+	started bool
+	onStart func()
 
 	m sync.Mutex
 )
@@ -55,9 +56,9 @@ func CurrentFPS() float64 {
 	return v
 }
 
-func RegisterPing(pingFunc func()) {
+func OnStart(f func()) {
 	m.Lock()
-	ping = pingFunc
+	onStart = f
 	m.Unlock()
 }
 
@@ -87,11 +88,14 @@ func Update() int {
 	m.Lock()
 	defer m.Unlock()
 
-	n := now()
-
-	if ping != nil {
-		ping()
+	if !started {
+		if onStart != nil {
+			onStart()
+		}
+		started = true
 	}
+
+	n := now()
 
 	// Initialize lastSystemTime if needed.
 	if lastSystemTime == 0 {

@@ -151,9 +151,6 @@ func (p *players) hasSource(src io.ReadCloser) bool {
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
 	players    *players
-	initCh     chan struct{}
-	initedCh   chan struct{}
-	pingCount  int
 	sampleRate int
 	err        error
 
@@ -218,26 +215,20 @@ func CurrentContext() *Context {
 	return c
 }
 
-func (c *Context) ping() {
-	if c.initCh != nil {
-		close(c.initCh)
-		c.initCh = nil
-	}
-	<-c.initedCh
-
-	c.m.Lock()
-	c.pingCount = 5
-	c.m.Unlock()
-}
-
 func (c *Context) loop() {
-	c.initCh = make(chan struct{})
-	c.initedCh = make(chan struct{})
+	initCh := make(chan struct{})
 
-	// Copy the channel since c.initCh can be set as nil after clock.RegisterPing.
-	initCh := c.initCh
-
-	clock.RegisterPing(c.ping)
+	suspendCh := make(chan struct{}, 1)
+	resumeCh := make(chan struct{}, 1)
+	hooks.OnSuspendAudio(func() {
+		suspendCh <- struct{}{}
+	})
+	hooks.OnResumeAudio(func() {
+		resumeCh <- struct{}{}
+	})
+	clock.OnStart(func() {
+		close(initCh)
+	})
 
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
 	// Accessing oto.Player functions requires the environment to be already initialized,
@@ -255,31 +246,25 @@ func (c *Context) loop() {
 	}
 	defer p.Close()
 
-	close(c.initedCh)
-
 	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
 	written := int64(0)
 	prevWritten := int64(0)
 	for {
-		c.m.Lock()
-		if c.pingCount == 0 {
-			c.m.Unlock()
-			time.Sleep(10 * time.Millisecond)
-			continue
-		}
-		c.pingCount--
-		c.m.Unlock()
+		select {
+		case <-suspendCh:
+			<-resumeCh
+		default:
+			const n = 2048
+			if _, err := io.CopyN(p, c.players, n); err != nil {
+				c.err = err
+				return
+			}
 
-		const n = 2048
-		if _, err := io.CopyN(p, c.players, n); err != nil {
-			c.err = err
-			return
+			written += int64(n)
+			fs := written/int64(bytesPerFrame) - prevWritten/int64(bytesPerFrame)
+			clock.ProceedAudioTimer(fs)
+			prevWritten = written
 		}
-
-		written += int64(n)
-		fs := written/int64(bytesPerFrame) - prevWritten/int64(bytesPerFrame)
-		clock.ProceedAudioTimer(fs)
-		prevWritten = written
 	}
 }
 
