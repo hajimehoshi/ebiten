@@ -141,6 +141,8 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		opengl.Init()
 	}
 
+	// Force to set the screen size
+	u.updateGraphicsContext(g)
 	for {
 		if err := u.update(g); err != nil {
 			return err
@@ -204,8 +206,6 @@ func (u *userInterface) update(g GraphicsContext) error {
 	defer func() {
 		renderChEnd <- struct{}{}
 	}()
-
-	u.updateGraphicsContext(g)
 
 	if err := g.Update(func() {
 		u.updateGraphicsContext(g)
