@@ -13,15 +13,6 @@
 // limitations under the License.
 
 // Package clock manages game timers.
-//
-// There are two types of clocks internally:
-//
-// System clock:
-//   A clock offered by the OS.
-//
-// Audio clock:
-//   An audio clock that is used in the higher priority over the system clock.
-//   An audio clock might not exist when the audio is not used.
 package clock
 
 import (
@@ -32,9 +23,7 @@ import (
 const FPS = 60
 
 var (
-	frames                int64
-	audioTimeInFrames     int64
-	lastAudioTimeInFrames int64
+	frames int64
 
 	// lastSystemTime is the last system time in the previous Update.
 	lastSystemTime int64
@@ -59,13 +48,6 @@ func CurrentFPS() float64 {
 func OnStart(f func()) {
 	m.Lock()
 	onStart = f
-	m.Unlock()
-}
-
-// ProceedAudioTimer increments the audio time by the given number of frames.
-func ProceedAudioTimer(num int64) {
-	m.Lock()
-	audioTimeInFrames += num
 	m.Unlock()
 }
 
@@ -110,28 +92,12 @@ func Update() int {
 	count := 0
 	syncWithSystemClock := false
 
-	if audioTimeInFrames > 0 && lastAudioTimeInFrames != audioTimeInFrames {
-		// If the audio clock is updated, use this.
-		if frames < audioTimeInFrames {
-			count = int(audioTimeInFrames - frames)
-		}
-		lastAudioTimeInFrames = audioTimeInFrames
-
-		// Now the current lastSystemTime value is not meaningful,
-		// force to sync lastSystemTime with the system timer.
+	if diff > 5*int64(time.Second)/FPS {
+		// The previous time is too old.
+		// Let's force to sync the game time with the system clock.
 		syncWithSystemClock = true
 	} else {
-		// Use system clock when the audio clock is not updated yet.
-		// As the audio clock can be updated discountinuously,
-		// the system clock is still needed.
-
-		if diff > 5*int64(time.Second)/FPS {
-			// The previous time is too old.
-			// Let's force to sync the game time with the system clock.
-			syncWithSystemClock = true
-		} else {
-			count = int(diff * FPS / int64(time.Second))
-		}
+		count = int(diff * FPS / int64(time.Second))
 	}
 
 	// Stabilize FPS.

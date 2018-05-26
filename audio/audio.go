@@ -28,9 +28,6 @@
 // When multiple players play, mixing is automatically done.
 // Note that too many players may cause distortion.
 //
-// Ebiten's game progress tries to synchronizes with audio progress, but
-// delay can happen if, e.g., decoding an audio source takes long.
-//
 // For the simplest example to play sound, see wav package in the examples.
 package audio
 
@@ -246,9 +243,6 @@ func (c *Context) loop() {
 	}
 	defer p.Close()
 
-	bytesPerFrame := c.sampleRate * bytesPerSample * channelNum / clock.FPS
-	written := int64(0)
-	prevWritten := int64(0)
 	for {
 		select {
 		case <-suspendCh:
@@ -259,11 +253,6 @@ func (c *Context) loop() {
 				c.err = err
 				return
 			}
-
-			written += int64(n)
-			fs := written/int64(bytesPerFrame) - prevWritten/int64(bytesPerFrame)
-			clock.ProceedAudioTimer(fs)
-			prevWritten = written
 		}
 	}
 }
