@@ -18,9 +18,10 @@ package ui
 
 import (
 	"image"
+	"runtime"
 	"strconv"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
@@ -29,7 +30,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
-var canvas *js.Object
+var canvas js.Value
 
 type userInterface struct {
 	width                int
@@ -204,69 +205,66 @@ func (u *userInterface) update(g GraphicsContext) error {
 
 func (u *userInterface) loop(g GraphicsContext) error {
 	ch := make(chan error)
-	var f func()
-	f = func() {
-		go func() {
-			if err := u.update(g); err != nil {
-				ch <- err
-				close(ch)
-				return
-			}
-			js.Global.Get("window").Call("requestAnimationFrame", f)
-		}()
+	var f func([]js.Value)
+	var cf js.Callback
+	f = func([]js.Value) {
+		if err := u.update(g); err != nil {
+			ch <- err
+			close(ch)
+			return
+		}
+		js.Global.Get("window").Call("requestAnimationFrame", cf)
 	}
-	f()
+	cf = js.NewCallback(f)
+	f(nil)
 	return <-ch
 }
 
 func init() {
-	if err := initialize(); err != nil {
-		panic(err)
-	}
-}
-
-func initialize() error {
 	// Do nothing in node.js.
 	if web.IsNodeJS() {
-		return nil
+		return
 	}
-
 	doc := js.Global.Get("document")
 	window := js.Global.Get("window")
-	if doc.Get("body") == nil {
+	if doc.Get("body") == js.Null {
 		ch := make(chan struct{})
-		window.Call("addEventListener", "load", func() {
+		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
-		})
+		}))
+		if runtime.GOARCH == "js" {
+			js.Global.Get("console").Call("warn", "'deadlock' error is raised from GopherJS, but this is a known issue: https://github.com/gopherjs/gopherjs/issues/826")
+		}
 		<-ch
 	}
-	window.Call("addEventListener", "focus", func() {
+
+	window.Call("addEventListener", "focus", js.NewCallback(func([]js.Value) {
 		currentUI.windowFocus = true
 		if currentUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
 			hooks.ResumeAudio()
 		}
-	})
-	window.Call("addEventListener", "blur", func() {
+	}))
+	window.Call("addEventListener", "blur", js.NewCallback(func([]js.Value) {
 		currentUI.windowFocus = false
 		if currentUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
 			hooks.ResumeAudio()
 		}
-	})
-	doc.Call("addEventListener", "visibilitychange", func() {
+	}))
+	doc.Call("addEventListener", "visibilitychange", js.NewCallback(func([]js.Value) {
 		currentUI.pageVisible = !doc.Get("hidden").Bool()
 		if currentUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
 			hooks.ResumeAudio()
 		}
-	})
-	window.Call("addEventListener", "resize", func() {
+	}))
+	window.Call("addEventListener", "resize", js.NewCallback(func([]js.Value) {
 		currentUI.updateScreenSize()
-	})
+	}))
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
@@ -293,9 +291,9 @@ func initialize() error {
 	bodyStyle.Set("padding", "0")
 	// TODO: This is OK as long as the game is in an independent iframe.
 	// What if the canvas is embedded in a HTML directly?
-	doc.Get("body").Call("addEventListener", "click", func() {
+	doc.Get("body").Call("addEventListener", "click", js.NewCallback(func([]js.Value) {
 		canvas.Call("focus")
-	})
+	}))
 
 	canvasStyle := canvas.Get("style")
 	canvasStyle.Set("position", "absolute")
@@ -305,36 +303,35 @@ func initialize() error {
 	canvas.Get("style").Set("outline", "none")
 
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", input.OnKeyDown)
-	canvas.Call("addEventListener", "keypress", input.OnKeyPress)
-	canvas.Call("addEventListener", "keyup", input.OnKeyUp)
+	canvas.Call("addEventListener", "keydown", js.NewEventCallback(true, false, false, input.OnKeyDown))
+	canvas.Call("addEventListener", "keypress", js.NewEventCallback(true, false, false, input.OnKeyPress))
+	canvas.Call("addEventListener", "keyup", js.NewEventCallback(true, false, false, input.OnKeyUp))
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", input.OnMouseDown)
-	canvas.Call("addEventListener", "mouseup", input.OnMouseUp)
-	canvas.Call("addEventListener", "mousemove", input.OnMouseMove)
-	canvas.Call("addEventListener", "contextmenu", func(e *js.Object) {
-		e.Call("preventDefault")
-	})
+	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(true, false, false, input.OnMouseDown))
+	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(true, false, false, input.OnMouseUp))
+	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(true, false, false, input.OnMouseMove))
 
 	// Touch
-	canvas.Call("addEventListener", "touchstart", input.OnTouchStart)
-	canvas.Call("addEventListener", "touchend", input.OnTouchEnd)
-	canvas.Call("addEventListener", "touchmove", input.OnTouchMove)
+	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(true, false, false, input.OnTouchStart))
+	canvas.Call("addEventListener", "touchend", js.NewEventCallback(true, false, false, input.OnTouchEnd))
+	canvas.Call("addEventListener", "touchmove", js.NewEventCallback(true, false, false, input.OnTouchMove))
 
 	// Gamepad
-	window.Call("addEventListener", "gamepadconnected", func(e *js.Object) {
+	window.Call("addEventListener", "gamepadconnected", js.NewCallback(func(e []js.Value) {
 		// Do nothing.
-	})
+	}))
 
-	canvas.Call("addEventListener", "webglcontextlost", func(e *js.Object) {
-		e.Call("preventDefault")
-	})
-	canvas.Call("addEventListener", "webglcontextrestored", func(e *js.Object) {
+	canvas.Call("addEventListener", "contextmenu", js.NewEventCallback(true, false, false, func(js.Value) {
 		// Do nothing.
-	})
+	}))
 
-	return nil
+	canvas.Call("addEventListener", "webglcontextlost", js.NewEventCallback(true, false, false, func(js.Value) {
+		// Do nothing.
+	}))
+	canvas.Call("addEventListener", "webglcontextrestored", js.NewCallback(func(e []js.Value) {
+		// Do nothing.
+	}))
 }
 
 func RunMainThreadLoop(ch <-chan error) error {

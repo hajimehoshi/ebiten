@@ -19,7 +19,7 @@ package input
 import (
 	"unicode"
 
-	"github.com/gopherjs/gopherjs/js"
+	"github.com/hajimehoshi/gopherwasm/js"
 )
 
 type mockRWLock struct{}
@@ -147,7 +147,7 @@ func (i *Input) UpdateGamepads() {
 	for id := 0; id < l; id++ {
 		i.gamepads[id].valid = false
 		gamepad := gamepads.Index(id)
-		if gamepad == js.Undefined || gamepad == nil {
+		if gamepad == js.Undefined || gamepad == js.Null {
 			continue
 		}
 		i.gamepads[id].valid = true
@@ -176,7 +176,7 @@ func (i *Input) UpdateGamepads() {
 	}
 }
 
-func OnKeyDown(e *js.Object) {
+func OnKeyDown(e js.Value) {
 	c := e.Get("code")
 	if c == js.Undefined {
 		code := e.Get("keyCode").Int()
@@ -203,15 +203,13 @@ func OnKeyDown(e *js.Object) {
 	theInput.keyDown(cs)
 }
 
-func OnKeyPress(e *js.Object) {
-	e.Call("preventDefault")
+func OnKeyPress(e js.Value) {
 	if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
 		theInput.runeBuffer = append(theInput.runeBuffer, r)
 	}
 }
 
-func OnKeyUp(e *js.Object) {
-	e.Call("preventDefault")
+func OnKeyUp(e js.Value) {
 	if e.Get("code") == js.Undefined {
 		// Assume that UA is Edge.
 		code := e.Get("keyCode").Int()
@@ -222,46 +220,40 @@ func OnKeyUp(e *js.Object) {
 	theInput.keyUp(code)
 }
 
-func OnMouseDown(e *js.Object) {
-	e.Call("preventDefault")
+func OnMouseDown(e js.Value) {
 	button := e.Get("button").Int()
 	theInput.mouseDown(button)
 	setMouseCursorFromEvent(e)
 }
 
-func OnMouseUp(e *js.Object) {
-	e.Call("preventDefault")
+func OnMouseUp(e js.Value) {
 	button := e.Get("button").Int()
 	theInput.mouseUp(button)
 	setMouseCursorFromEvent(e)
 }
 
-func OnMouseMove(e *js.Object) {
-	e.Call("preventDefault")
+func OnMouseMove(e js.Value) {
 	setMouseCursorFromEvent(e)
 }
 
-func OnTouchStart(e *js.Object) {
-	e.Call("preventDefault")
+func OnTouchStart(e js.Value) {
 	theInput.updateTouches(e)
 }
 
-func OnTouchEnd(e *js.Object) {
-	e.Call("preventDefault")
+func OnTouchEnd(e js.Value) {
 	theInput.updateTouches(e)
 }
 
-func OnTouchMove(e *js.Object) {
-	e.Call("preventDefault")
+func OnTouchMove(e js.Value) {
 	theInput.updateTouches(e)
 }
 
-func setMouseCursorFromEvent(e *js.Object) {
+func setMouseCursorFromEvent(e js.Value) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
 	theInput.setMouseCursor(x, y)
 }
 
-func (i *Input) updateTouches(e *js.Object) {
+func (i *Input) updateTouches(e js.Value) {
 	j := e.Get("targetTouches")
 	ts := make([]*Touch, j.Get("length").Int())
 	for i := 0; i < len(ts); i++ {
