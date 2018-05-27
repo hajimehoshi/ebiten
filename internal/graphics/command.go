@@ -142,7 +142,8 @@ func (q *commandQueue) Flush() error {
 			// See BufferSubData in context_mobile.go.
 			opengl.GetContext().BufferSubData(opengl.ArrayBuffer, q.vertices[lastN:n])
 		}
-		// NOTE: WebGL doesn't seem to have Check gl.MAX_ELEMENTS_VERTICES or gl.MAX_ELEMENTS_INDICES so far.
+		// NOTE: WebGL doesn't seem to have gl.MAX_ELEMENTS_VERTICES or
+		// gl.MAX_ELEMENTS_INDICES so far.
 		// Let's use them to compare to len(quads) in the future.
 		if maxQuads < (n-lastN)*opengl.Float.SizeInBytes()/QuadVertexSizeInBytes() {
 			return fmt.Errorf("len(quads) must be equal to or less than %d", maxQuads)
@@ -154,6 +155,9 @@ func (q *commandQueue) Flush() error {
 				return err
 			}
 			n := c.NumVertices() * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+			// TODO: indexOffsetInBytes should be reset if the command type is different
+			// from the previous one. This fix is needed when another drawing command is
+			// introduced than drawImageCommand.
 			indexOffsetInBytes += 6 * n * 2
 		}
 		if 0 < numc {
@@ -203,8 +207,6 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	}
 	proj := f.projectionMatrix()
 	theOpenGLState.useProgram(proj, c.src.texture.native, c.dst, c.src, c.color, c.filter)
-	// TODO: We should call glBindBuffer here?
-	// The buffer is already bound at begin() but it is counterintuitive.
 	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
