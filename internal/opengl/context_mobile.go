@@ -380,9 +380,9 @@ func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 	return Buffer(b)
 }
 
-func (c *Context) BindElementArrayBuffer(b Buffer) {
+func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	gl := c.gl
-	gl.BindBuffer(mgl.ELEMENT_ARRAY_BUFFER, mgl.Buffer(b))
+	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
 }
 
 func float32ToBytes(v []float32) []byte {

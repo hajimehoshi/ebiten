@@ -465,9 +465,9 @@ func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 	return buffer
 }
 
-func (c *Context) BindElementArrayBuffer(b Buffer) {
+func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	_ = c.runOnContextThread(func() error {
-		gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, uint32(b))
+		gl.BindBuffer(uint32(bufferType), uint32(b))
 		return nil
 	})
 }

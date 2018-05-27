@@ -366,9 +366,9 @@ func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
 	return b
 }
 
-func (c *Context) BindElementArrayBuffer(b Buffer) {
+func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	gl := c.gl
-	gl.Call("bindBuffer", gl.Get("ELEMENT_ARRAY_BUFFER"), b)
+	gl.Call("bindBuffer", int(bufferType), b)
 }
 
 func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
