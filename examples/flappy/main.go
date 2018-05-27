@@ -64,6 +64,7 @@ const (
 	screenHeight     = 480
 	tileSize         = 32
 	fontSize         = 32
+	smallFontSize    = fontSize / 2
 	pipeWidth        = tileSize * 2
 	pipeStartOffsetX = 8
 	pipeIntervalX    = 8
@@ -71,9 +72,10 @@ const (
 )
 
 var (
-	gopherImage *ebiten.Image
-	tilesImage  *ebiten.Image
-	arcadeFont  font.Face
+	gopherImage     *ebiten.Image
+	tilesImage      *ebiten.Image
+	arcadeFont      font.Face
+	smallArcadeFont font.Face
 )
 
 func init() {
@@ -98,6 +100,11 @@ func init() {
 	const dpi = 72
 	arcadeFont = truetype.NewFace(tt, &truetype.Options{
 		Size:    fontSize,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	smallArcadeFont = truetype.NewFace(tt, &truetype.Options{
+		Size:    smallFontSize,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	})
@@ -245,6 +252,17 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	for i, l := range texts {
 		x := (screenWidth - len(l)*fontSize) / 2
 		text.Draw(screen, l, arcadeFont, x, (i+4)*fontSize, color.White)
+	}
+
+	if g.mode == ModeTitle {
+		msg := []string{
+			"Go Gopher by Renee French is",
+			"licenced under CC BY 3.0.",
+		}
+		for i, l := range msg {
+			x := (screenWidth - len(l)*smallFontSize) / 2
+			text.Draw(screen, l, smallArcadeFont, x, screenHeight-4+(i-1)*smallFontSize, color.White)
+		}
 	}
 
 	scoreStr := fmt.Sprintf("%04d", g.score())
