@@ -584,13 +584,13 @@ func TestImageEdge(t *testing.T) {
 	}
 }
 
-func indexToColor(index int) uint8 {
-	return uint8((17*index + 0x40) % 256)
-}
-
 // Issue #419
 func TestImageTooManyFill(t *testing.T) {
 	const width = 1024
+
+	indexToColor := func(index int) uint8 {
+		return uint8((17*index + 0x40) % 256)
+	}
 
 	src, _ := NewImage(1, 1, FilterNearest)
 	dst, _ := NewImage(width, 1, FilterNearest)
@@ -829,6 +829,34 @@ func TestImageStretch(t *testing.T) {
 			}
 			if got != want {
 				t.Errorf("At(%d, %d) (i=%d): got: %#v, want: %#v", 0, i+j, i, got, want)
+			}
+		}
+	}
+}
+
+func TestSprites(t *testing.T) {
+	const (
+		width  = 512
+		height = 512
+	)
+
+	src, _ := NewImage(4, 4, FilterNearest)
+	src.Fill(color.RGBA{0xff, 0xff, 0xff, 0xff})
+	dst, _ := NewImage(width, height, FilterNearest)
+	for j := 0; j < height/4; j++ {
+		for i := 0; i < width/4; i++ {
+			op := &DrawImageOptions{}
+			op.GeoM.Translate(float64(i*4), float64(j*4))
+			dst.DrawImage(src, op)
+		}
+	}
+
+	for j := 0; j < height/4; j++ {
+		for i := 0; i < width/4; i++ {
+			got := color.RGBAModel.Convert(dst.At(i*4, j*4)).(color.RGBA)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i*4, j*4, got, want)
 			}
 		}
 	}
