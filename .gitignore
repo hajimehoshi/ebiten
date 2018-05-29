@@ -2,5 +2,3 @@
 *~
 *.aar
 *.apk
-docs/examples/*.js
-docs/examples/*.js.map
