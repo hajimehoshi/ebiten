@@ -55,7 +55,6 @@ func init() {
 	ArrayBuffer = BufferType(c.Get("ARRAY_BUFFER").Int())
 	ElementArrayBuffer = BufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
 	DynamicDraw = BufferUsage(c.Get("DYNAMIC_DRAW").Int())
-	StaticDraw = BufferUsage(c.Get("STATIC_DRAW").Int())
 	Triangles = Mode(c.Get("TRIANGLES").Int())
 	Lines = Mode(c.Get("LINES").Int())
 	Short = DataType(c.Get("SHORT").Int())
@@ -358,11 +357,11 @@ func (c *Context) NewArrayBuffer(size int) Buffer {
 	return b
 }
 
-func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
+func (c *Context) NewElementArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(ElementArrayBuffer), b)
-	gl.Call("bufferData", int(ElementArrayBuffer), indices, int(StaticDraw))
+	gl.Call("bufferData", int(ElementArrayBuffer), size, int(DynamicDraw))
 	return b
 }
 
@@ -371,9 +370,14 @@ func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	gl.Call("bindBuffer", int(bufferType), b)
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
+func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(bufferType), 0, data)
+	gl.Call("bufferSubData", int(ArrayBuffer), 0, data)
+}
+
+func (c *Context) ElementArrayBufferSubData(data []uint16) {
+	gl := c.gl
+	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, data)
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {

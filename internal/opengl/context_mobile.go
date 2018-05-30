@@ -57,7 +57,6 @@ func init() {
 	ArrayBuffer = mgl.ARRAY_BUFFER
 	ElementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
 	DynamicDraw = mgl.DYNAMIC_DRAW
-	StaticDraw = mgl.STATIC_DRAW
 	Triangles = mgl.TRIANGLES
 	Lines = mgl.LINES
 	Short = mgl.SHORT
@@ -353,6 +352,27 @@ func (c *Context) DisableVertexAttribArray(p Program, location string) {
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
+func (c *Context) NewArrayBuffer(size int) Buffer {
+	gl := c.gl
+	b := gl.CreateBuffer()
+	gl.BindBuffer(mgl.Enum(ArrayBuffer), b)
+	gl.BufferInit(mgl.Enum(ArrayBuffer), size, mgl.Enum(DynamicDraw))
+	return Buffer(b)
+}
+
+func (c *Context) NewElementArrayBuffer(size int) Buffer {
+	gl := c.gl
+	b := gl.CreateBuffer()
+	gl.BindBuffer(mgl.Enum(ElementArrayBuffer), b)
+	gl.BufferInit(mgl.Enum(ElementArrayBuffer), size, mgl.Enum(DynamicDraw))
+	return Buffer(b)
+}
+
+func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
+	gl := c.gl
+	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
+}
+
 func uint16ToBytes(v []uint16) []byte {
 	u16h := (*reflect.SliceHeader)(unsafe.Pointer(&v))
 
@@ -362,27 +382,6 @@ func uint16ToBytes(v []uint16) []byte {
 	bh.Len = len(v) * 2
 	bh.Cap = len(v) * 2
 	return b
-}
-
-func (c *Context) NewArrayBuffer(size int) Buffer {
-	gl := c.gl
-	b := gl.CreateBuffer()
-	gl.BindBuffer(mgl.Enum(ArrayBuffer), b)
-	gl.BufferInit(mgl.Enum(ArrayBuffer), size, mgl.Enum(DynamicDraw))
-	return Buffer(b)
-}
-
-func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
-	gl := c.gl
-	b := gl.CreateBuffer()
-	gl.BindBuffer(mgl.Enum(ElementArrayBuffer), b)
-	gl.BufferData(mgl.Enum(ElementArrayBuffer), uint16ToBytes(indices), mgl.Enum(StaticDraw))
-	return Buffer(b)
-}
-
-func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
-	gl := c.gl
-	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
 }
 
 func float32ToBytes(v []float32) []byte {
@@ -396,9 +395,14 @@ func float32ToBytes(v []float32) []byte {
 	return b
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
+func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(bufferType), 0, float32ToBytes(data))
+	gl.BufferSubData(mgl.Enum(ArrayBuffer), 0, float32ToBytes(data))
+}
+
+func (c *Context) ElementArrayBufferSubData(data []uint16) {
+	gl := c.gl
+	gl.BufferSubData(mgl.Enum(ElementArrayBuffer), 0, uint16ToBytes(data))
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {

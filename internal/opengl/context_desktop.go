@@ -58,7 +58,6 @@ func init() {
 	ArrayBuffer = gl.ARRAY_BUFFER
 	ElementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
 	DynamicDraw = gl.DYNAMIC_DRAW
-	StaticDraw = gl.STATIC_DRAW
 	Triangles = gl.TRIANGLES
 	Lines = gl.LINES
 	Short = gl.SHORT
@@ -452,13 +451,13 @@ func (c *Context) NewArrayBuffer(size int) Buffer {
 	return buffer
 }
 
-func (c *Context) NewElementArrayBuffer(indices []uint16) Buffer {
+func (c *Context) NewElementArrayBuffer(size int) Buffer {
 	var buffer Buffer
 	_ = c.runOnContextThread(func() error {
 		var b uint32
 		gl.GenBuffers(1, &b)
 		gl.BindBuffer(uint32(ElementArrayBuffer), b)
-		gl.BufferData(uint32(ElementArrayBuffer), 2*len(indices), gl.Ptr(indices), uint32(StaticDraw))
+		gl.BufferData(uint32(ElementArrayBuffer), size, nil, uint32(DynamicDraw))
 		buffer = Buffer(b)
 		return nil
 	})
@@ -472,9 +471,16 @@ func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 	})
 }
 
-func (c *Context) BufferSubData(bufferType BufferType, data []float32) {
+func (c *Context) ArrayBufferSubData(data []float32) {
 	_ = c.runOnContextThread(func() error {
-		gl.BufferSubData(uint32(bufferType), 0, len(data)*4, gl.Ptr(data))
+		gl.BufferSubData(uint32(ArrayBuffer), 0, len(data)*4, gl.Ptr(data))
+		return nil
+	})
+}
+
+func (c *Context) ElementArrayBufferSubData(data []uint16) {
+	_ = c.runOnContextThread(func() error {
+		gl.BufferSubData(uint32(ElementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
 		return nil
 	})
 }

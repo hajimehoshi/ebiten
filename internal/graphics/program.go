@@ -120,8 +120,6 @@ type openGLState struct {
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
 	lastSourceHeight           int
-
-	indices []uint16
 }
 
 var (
@@ -229,19 +227,10 @@ func (s *openGLState) reset() error {
 
 	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer()
 
-	s.indices = make([]uint16, 6*maxQuads)
-	for i := uint16(0); i < maxQuads; i++ {
-		s.indices[6*i+0] = 4*i + 0
-		s.indices[6*i+1] = 4*i + 1
-		s.indices[6*i+2] = 4*i + 2
-		s.indices[6*i+3] = 4*i + 1
-		s.indices[6*i+4] = 4*i + 2
-		s.indices[6*i+5] = 4*i + 3
-	}
 	// Note that the indices passed to NewElementArrayBuffer is not under GC management
 	// in opengl package due to unsafe-way.
 	// See NewElementArrayBuffer in context_mobile.go.
-	s.elementArrayBuffer = opengl.GetContext().NewElementArrayBuffer(s.indices)
+	s.elementArrayBuffer = opengl.GetContext().NewElementArrayBuffer(indicesNum * 2)
 
 	return nil
 }

@@ -47,10 +47,26 @@ type commandQueue struct {
 	// nvertices must <= len(vertices).
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
 	nvertices int
+
+	indices []uint16
 }
 
 // theCommandQueue is the command queue for the current process.
 var theCommandQueue = &commandQueue{}
+
+func init() {
+	q := theCommandQueue
+	// Initialize indices for drawImageCommand.
+	q.indices = make([]uint16, 6*maxQuads)
+	for i := uint16(0); i < maxQuads; i++ {
+		q.indices[6*i+0] = 4*i + 0
+		q.indices[6*i+1] = 4*i + 1
+		q.indices[6*i+2] = 4*i + 2
+		q.indices[6*i+3] = 4*i + 1
+		q.indices[6*i+4] = 4*i + 2
+		q.indices[6*i+5] = 4*i + 3
+	}
+}
 
 // appendVertices appends vertices to the queue.
 func (q *commandQueue) appendVertices(vertices []float32) {
@@ -140,7 +156,8 @@ func (q *commandQueue) Flush() error {
 			// Note that the vertices passed to BufferSubData is not under GC management
 			// in opengl package due to unsafe-way.
 			// See BufferSubData in context_mobile.go.
-			opengl.GetContext().BufferSubData(opengl.ArrayBuffer, q.vertices[lastN:n])
+			opengl.GetContext().ElementArrayBufferSubData(q.indices)
+			opengl.GetContext().ArrayBufferSubData(q.vertices[lastN:n])
 		}
 		// NOTE: WebGL doesn't seem to have gl.MAX_ELEMENTS_VERTICES or
 		// gl.MAX_ELEMENTS_INDICES so far.
