@@ -105,12 +105,14 @@ func update(screen *ebiten.Image) error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		switch screenScale {
+		case 0.75:
+			screenScale = 1
 		case 1:
 			screenScale = 1.5
 		case 1.5:
 			screenScale = 2
 		case 2:
-			screenScale = 1
+			screenScale = 0.75
 		default:
 			panic("not reached")
 		}
