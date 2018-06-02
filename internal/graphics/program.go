@@ -55,7 +55,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 
 // newArrayBuffer creates OpenGL's buffer object for the array buffer.
 func (a *arrayBufferLayout) newArrayBuffer() opengl.Buffer {
-	return opengl.GetContext().NewArrayBuffer(a.totalBytes() * 4 * maxQuads)
+	return opengl.GetContext().NewArrayBuffer(a.totalBytes() * indicesNum)
 }
 
 // enable binds the array buffer the given program to use the array buffer.
@@ -131,8 +131,9 @@ var (
 )
 
 const (
-	indicesNum = 1 << 16
-	maxQuads   = indicesNum / 6
+	indicesNum   = 1 << 16
+	maxTriangles = indicesNum / 3
+	maxQuads     = maxTriangles / 2
 )
 
 // ResetGLState resets or initializes the current OpenGL state.
