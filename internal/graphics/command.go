@@ -87,14 +87,43 @@ func (q *commandQueue) appendElements(e0, e1, e2, e3, e4, e5 uint16) {
 	q.nelements += 6
 }
 
+func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nelements int, color *affine.ColorM, mode opengl.CompositeMode, filter Filter, forceNewCommand bool) {
+	if nelements > indicesNum {
+		panic("not implemented for too many elements")
+	}
+	if !forceNewCommand && 0 < len(q.commands) {
+		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter) {
+			last.AddNumVertices(nvertices)
+			last.AddNumElements(nelements)
+			return
+		}
+	}
+	c := &drawImageCommand{
+		dst:       dst,
+		src:       src,
+		nvertices: nvertices,
+		nelements: nelements,
+		color:     color,
+		mode:      mode,
+		filter:    filter,
+	}
+	q.commands = append(q.commands, c)
+}
+
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
 	q.appendVertices(vertices)
 	nelements := 6 * len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+	nv := 0
+	ne := 0
 	for i := 0; i < nelements/6; i++ {
-		if q.nelements%indicesNum > (q.nelements+6)%indicesNum {
+		if q.nelements%indicesNum >= (q.nelements+6)%indicesNum {
 			q.nextIndex = 0
+			// Note that even if ne == 0, that's fine.
+			q.doEnqueueDrawImageCommand(dst, src, nv, ne, color, mode, filter, true)
+			nv = 0
+			ne = 0
 		}
 		q.appendElements(
 			uint16(q.nextIndex+0),
@@ -105,25 +134,10 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 			uint16(q.nextIndex+3),
 		)
 		q.nextIndex += 4
+		nv += QuadVertexSizeInBytes() / opengl.Float.SizeInBytes()
+		ne += 6
 	}
-	if 0 < len(q.commands) {
-		last := q.commands[len(q.commands)-1]
-		if last.CanMerge(dst, src, color, mode, filter) {
-			last.AddNumVertices(len(vertices))
-			last.AddNumElements(nelements)
-			return
-		}
-	}
-	c := &drawImageCommand{
-		dst:       dst,
-		src:       src,
-		nvertices: len(vertices),
-		nelements: nelements,
-		color:     color,
-		mode:      mode,
-		filter:    filter,
-	}
-	q.commands = append(q.commands, c)
+	q.doEnqueueDrawImageCommand(dst, src, nv, ne, color, mode, filter, false)
 }
 
 // Enqueue enqueues a drawing command other than a draw-image command.
@@ -133,63 +147,38 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
-// commandGroups separates q.commands into some groups.
-// The number of quads of drawImageCommand in one groups must be equal to or less than
-// its limit (maxQuads).
-func (q *commandQueue) commandGroups() [][]command {
-	cs := q.commands
-	var gs [][]command
-	quads := 0
-	for 0 < len(cs) {
-		if len(gs) == 0 {
-			gs = append(gs, []command{})
-		}
-		c := cs[0]
-		switch c := c.(type) {
-		case *drawImageCommand:
-			// NOTE: WebGL doesn't seem to have gl.MAX_ELEMENTS_VERTICES or
-			// gl.MAX_ELEMENTS_INDICES so far.
-			// Let's use them to compare to len(quads) in the future.
-			if maxQuads >= quads+c.quadsNum() {
-				quads += c.quadsNum()
-				break
-			}
-			cc := c.split(maxQuads - quads)
-			gs[len(gs)-1] = append(gs[len(gs)-1], cc[0])
-			cs[0] = cc[1]
-			quads = 0
-			gs = append(gs, []command{})
-			continue
-		}
-		gs[len(gs)-1] = append(gs[len(gs)-1], c)
-		cs = cs[1:]
-	}
-	return gs
-}
-
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() error {
 	// glViewport must be called at least at every frame on iOS.
 	opengl.GetContext().ResetViewportSize()
-	nv := 0
-	lastNv := 0
-	ne := 0
-	lastNe := 0
-	for _, g := range q.commandGroups() {
-		for _, c := range g {
+	es := q.elements
+	vs := q.vertices
+	for len(q.commands) > 0 {
+		nv := 0
+		ne := 0
+		nc := 0
+		for _, c := range q.commands {
+			if c.NumElements() > indicesNum {
+				panic("not reached")
+			}
+			if ne+c.NumElements() > indicesNum {
+				break
+			}
 			nv += c.NumVertices()
 			ne += c.NumElements()
+			nc++
 		}
-		if 0 < ne-lastNe {
+		if 0 < ne {
 			// Note that the vertices passed to BufferSubData is not under GC management
 			// in opengl package due to unsafe-way.
 			// See BufferSubData in context_mobile.go.
-			opengl.GetContext().ElementArrayBufferSubData(q.elements[lastNe:ne])
-			opengl.GetContext().ArrayBufferSubData(q.vertices[lastNv:nv])
+			opengl.GetContext().ElementArrayBufferSubData(es[:ne])
+			opengl.GetContext().ArrayBufferSubData(vs[:nv])
+			es = es[ne:]
+			vs = vs[nv:]
 		}
-		numc := len(g)
 		indexOffsetInBytes := 0
-		for _, c := range g {
+		for _, c := range q.commands[:nc] {
 			if err := c.Exec(indexOffsetInBytes); err != nil {
 				return err
 			}
@@ -198,12 +187,11 @@ func (q *commandQueue) Flush() error {
 			// introduced than drawImageCommand.
 			indexOffsetInBytes += c.NumElements() * 2 // 2 is uint16 size in bytes
 		}
-		if 0 < numc {
+		if 0 < nc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 			opengl.GetContext().Flush()
 		}
-		lastNv = nv
-		lastNe = ne
+		q.commands = q.commands[nc:]
 	}
 	q.commands = nil
 	q.nvertices = 0
@@ -271,22 +259,6 @@ func (c *drawImageCommand) AddNumVertices(n int) {
 
 func (c *drawImageCommand) AddNumElements(n int) {
 	c.nelements += n
-}
-
-// split splits the drawImageCommand c into two drawImageCommands.
-//
-// split is called when the number of vertices reaches of the maximum and
-// a command is needed to be executed as another draw call.
-func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
-	c1 := *c
-	c2 := *c
-	s := opengl.Float.SizeInBytes()
-	n := quadsNum * QuadVertexSizeInBytes() / s
-	c1.nvertices = n
-	c2.nvertices -= n
-	c1.nelements = 6 * quadsNum
-	c2.nelements -= 6 * quadsNum
-	return [2]*drawImageCommand{&c1, &c2}
 }
 
 // CanMerge returns a boolean value indicating whether the other drawImageCommand can be merged
