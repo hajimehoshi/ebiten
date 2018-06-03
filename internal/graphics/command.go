@@ -114,10 +114,10 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nel
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
 	q.appendVertices(vertices)
-	nelements := 6 * len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+	nq := len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 	nv := 0
 	ne := 0
-	for i := 0; i < nelements/6; i++ {
+	for i := 0; i < nq; i++ {
 		if q.nelements%indicesNum >= (q.nelements+6)%indicesNum {
 			q.nextIndex = 0
 			// Note that even if ne == 0, that's fine.
@@ -280,11 +280,6 @@ func (c *drawImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode 
 		return false
 	}
 	return true
-}
-
-// quadsNum returns the number of quadrangles.
-func (c *drawImageCommand) quadsNum() int {
-	return c.nvertices * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 }
 
 // replacePixelsCommand represents a command to replace pixels of an image.
