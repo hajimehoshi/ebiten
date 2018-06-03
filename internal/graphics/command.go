@@ -31,7 +31,9 @@ import (
 type command interface {
 	Exec(indexOffsetInBytes int) error
 	NumVertices() int
+	NumElements() int
 	AddNumVertices(n int)
+	AddNumElements(n int)
 	CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool
 }
 
@@ -48,7 +50,7 @@ type commandQueue struct {
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
 	nvertices int
 
-	indices []uint16
+	elements []uint16
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -56,15 +58,15 @@ var theCommandQueue = &commandQueue{}
 
 func init() {
 	q := theCommandQueue
-	// Initialize indices for drawImageCommand.
-	q.indices = make([]uint16, 6*maxQuads)
+	// Initialize elements for drawImageCommand.
+	q.elements = make([]uint16, 6*maxQuads)
 	for i := uint16(0); i < maxQuads; i++ {
-		q.indices[6*i+0] = 4*i + 0
-		q.indices[6*i+1] = 4*i + 1
-		q.indices[6*i+2] = 4*i + 2
-		q.indices[6*i+3] = 4*i + 1
-		q.indices[6*i+4] = 4*i + 2
-		q.indices[6*i+5] = 4*i + 3
+		q.elements[6*i+0] = 4*i + 0
+		q.elements[6*i+1] = 4*i + 1
+		q.elements[6*i+2] = 4*i + 2
+		q.elements[6*i+3] = 4*i + 1
+		q.elements[6*i+4] = 4*i + 2
+		q.elements[6*i+5] = 4*i + 3
 	}
 }
 
@@ -86,10 +88,12 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
 	q.appendVertices(vertices)
+	ne := 6 * len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 	if 0 < len(q.commands) {
 		last := q.commands[len(q.commands)-1]
 		if last.CanMerge(dst, src, color, mode, filter) {
 			last.AddNumVertices(len(vertices))
+			last.AddNumElements(ne)
 			return
 		}
 	}
@@ -97,6 +101,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		dst:       dst,
 		src:       src,
 		nvertices: len(vertices),
+		nelements: ne,
 		color:     color,
 		mode:      mode,
 		filter:    filter,
@@ -125,6 +130,9 @@ func (q *commandQueue) commandGroups() [][]command {
 		c := cs[0]
 		switch c := c.(type) {
 		case *drawImageCommand:
+			// NOTE: WebGL doesn't seem to have gl.MAX_ELEMENTS_VERTICES or
+			// gl.MAX_ELEMENTS_INDICES so far.
+			// Let's use them to compare to len(quads) in the future.
 			if maxQuads >= quads+c.quadsNum() {
 				quads += c.quadsNum()
 				break
@@ -156,14 +164,8 @@ func (q *commandQueue) Flush() error {
 			// Note that the vertices passed to BufferSubData is not under GC management
 			// in opengl package due to unsafe-way.
 			// See BufferSubData in context_mobile.go.
-			opengl.GetContext().ElementArrayBufferSubData(q.indices)
+			opengl.GetContext().ElementArrayBufferSubData(q.elements)
 			opengl.GetContext().ArrayBufferSubData(q.vertices[lastN:n])
-		}
-		// NOTE: WebGL doesn't seem to have gl.MAX_ELEMENTS_VERTICES or
-		// gl.MAX_ELEMENTS_INDICES so far.
-		// Let's use them to compare to len(quads) in the future.
-		if maxQuads < (n-lastN)*opengl.Float.SizeInBytes()/QuadVertexSizeInBytes() {
-			return fmt.Errorf("len(quads) must be equal to or less than %d", maxQuads)
 		}
 		numc := len(g)
 		indexOffsetInBytes := 0
@@ -171,11 +173,10 @@ func (q *commandQueue) Flush() error {
 			if err := c.Exec(indexOffsetInBytes); err != nil {
 				return err
 			}
-			n := c.NumVertices() * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
 			// TODO: indexOffsetInBytes should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawImageCommand.
-			indexOffsetInBytes += 6 * n * 2
+			indexOffsetInBytes += c.NumElements() * 2 // 2 is uint16 size in bytes
 		}
 		if 0 < numc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
@@ -198,6 +199,7 @@ type drawImageCommand struct {
 	dst       *Image
 	src       *Image
 	nvertices int
+	nelements int
 	color     *affine.ColorM
 	mode      opengl.CompositeMode
 	filter    Filter
@@ -218,13 +220,12 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 
 	opengl.GetContext().BlendFunc(c.mode)
 
-	n := c.quadsNum()
-	if n == 0 {
+	if c.nelements == 0 {
 		return nil
 	}
 	proj := f.projectionMatrix()
 	theOpenGLState.useProgram(proj, c.src.texture.native, c.dst, c.src, c.color, c.filter)
-	opengl.GetContext().DrawElements(opengl.Triangles, 6*n, indexOffsetInBytes)
+	opengl.GetContext().DrawElements(opengl.Triangles, c.nelements, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
@@ -237,8 +238,16 @@ func (c *drawImageCommand) NumVertices() int {
 	return c.nvertices
 }
 
+func (c *drawImageCommand) NumElements() int {
+	return c.nelements
+}
+
 func (c *drawImageCommand) AddNumVertices(n int) {
 	c.nvertices += n
+}
+
+func (c *drawImageCommand) AddNumElements(n int) {
+	c.nelements += n
 }
 
 // split splits the drawImageCommand c into two drawImageCommands.
@@ -252,6 +261,8 @@ func (c *drawImageCommand) split(quadsNum int) [2]*drawImageCommand {
 	n := quadsNum * QuadVertexSizeInBytes() / s
 	c1.nvertices = n
 	c2.nvertices -= n
+	c1.nelements = 6 * quadsNum
+	c2.nelements -= 6 * quadsNum
 	return [2]*drawImageCommand{&c1, &c2}
 }
 
@@ -305,7 +316,14 @@ func (c *replacePixelsCommand) NumVertices() int {
 	return 0
 }
 
+func (c *replacePixelsCommand) NumElements() int {
+	return 0
+}
+
 func (c *replacePixelsCommand) AddNumVertices(n int) {
+}
+
+func (c *replacePixelsCommand) AddNumElements(n int) {
 }
 
 func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
@@ -333,7 +351,14 @@ func (c *disposeCommand) NumVertices() int {
 	return 0
 }
 
+func (c *disposeCommand) NumElements() int {
+	return 0
+}
+
 func (c *disposeCommand) AddNumVertices(n int) {
+}
+
+func (c *disposeCommand) AddNumElements(n int) {
 }
 
 func (c *disposeCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
@@ -382,7 +407,14 @@ func (c *newImageCommand) NumVertices() int {
 	return 0
 }
 
+func (c *newImageCommand) NumElements() int {
+	return 0
+}
+
 func (c *newImageCommand) AddNumVertices(n int) {
+}
+
+func (c *newImageCommand) AddNumElements(n int) {
 }
 
 func (c *newImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
@@ -410,7 +442,14 @@ func (c *newScreenFramebufferImageCommand) NumVertices() int {
 	return 0
 }
 
+func (c *newScreenFramebufferImageCommand) NumElements() int {
+	return 0
+}
+
 func (c *newScreenFramebufferImageCommand) AddNumVertices(n int) {
+}
+
+func (c *newScreenFramebufferImageCommand) AddNumElements(n int) {
 }
 
 func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {

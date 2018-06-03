@@ -131,7 +131,7 @@ var (
 )
 
 const (
-	indicesNum   = 1 << 16
+	indicesNum   = (1 << 16) / 3 * 3 // Adjust num for triangles.
 	maxTriangles = indicesNum / 3
 	maxQuads     = maxTriangles / 2
 )
