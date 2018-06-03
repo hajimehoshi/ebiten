@@ -50,25 +50,13 @@ type commandQueue struct {
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
 	nvertices int
 
-	elements []uint16
+	elements  []uint16
+	nelements int
+	nextIndex int
 }
 
 // theCommandQueue is the command queue for the current process.
 var theCommandQueue = &commandQueue{}
-
-func init() {
-	q := theCommandQueue
-	// Initialize elements for drawImageCommand.
-	q.elements = make([]uint16, 6*maxQuads)
-	for i := uint16(0); i < maxQuads; i++ {
-		q.elements[6*i+0] = 4*i + 0
-		q.elements[6*i+1] = 4*i + 1
-		q.elements[6*i+2] = 4*i + 2
-		q.elements[6*i+3] = 4*i + 1
-		q.elements[6*i+4] = 4*i + 2
-		q.elements[6*i+5] = 4*i + 3
-	}
-}
 
 // appendVertices appends vertices to the queue.
 func (q *commandQueue) appendVertices(vertices []float32) {
@@ -84,16 +72,45 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 	q.nvertices += len(vertices)
 }
 
+func (q *commandQueue) appendElements(e0, e1, e2, e3, e4, e5 uint16) {
+	// For GopherJS performance, take 6 arguments instead of an array.
+	if len(q.elements) < q.nelements+6 {
+		n := q.nelements + 6 - len(q.elements)
+		q.elements = append(q.elements, make([]uint16, n)...)
+	}
+	q.elements[q.nelements+0] = e0
+	q.elements[q.nelements+1] = e1
+	q.elements[q.nelements+2] = e2
+	q.elements[q.nelements+3] = e3
+	q.elements[q.nelements+4] = e4
+	q.elements[q.nelements+5] = e5
+	q.nelements += 6
+}
+
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	// Avoid defer for performance
 	q.appendVertices(vertices)
-	ne := 6 * len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+	nelements := 6 * len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+	for i := 0; i < nelements/6; i++ {
+		if q.nelements%indicesNum > (q.nelements+6)%indicesNum {
+			q.nextIndex = 0
+		}
+		q.appendElements(
+			uint16(q.nextIndex+0),
+			uint16(q.nextIndex+1),
+			uint16(q.nextIndex+2),
+			uint16(q.nextIndex+1),
+			uint16(q.nextIndex+2),
+			uint16(q.nextIndex+3),
+		)
+		q.nextIndex += 4
+	}
 	if 0 < len(q.commands) {
 		last := q.commands[len(q.commands)-1]
 		if last.CanMerge(dst, src, color, mode, filter) {
 			last.AddNumVertices(len(vertices))
-			last.AddNumElements(ne)
+			last.AddNumElements(nelements)
 			return
 		}
 	}
@@ -101,7 +118,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 		dst:       dst,
 		src:       src,
 		nvertices: len(vertices),
-		nelements: ne,
+		nelements: nelements,
 		color:     color,
 		mode:      mode,
 		filter:    filter,
@@ -154,18 +171,21 @@ func (q *commandQueue) commandGroups() [][]command {
 func (q *commandQueue) Flush() error {
 	// glViewport must be called at least at every frame on iOS.
 	opengl.GetContext().ResetViewportSize()
-	n := 0
-	lastN := 0
+	nv := 0
+	lastNv := 0
+	ne := 0
+	lastNe := 0
 	for _, g := range q.commandGroups() {
 		for _, c := range g {
-			n += c.NumVertices()
+			nv += c.NumVertices()
+			ne += c.NumElements()
 		}
-		if 0 < n-lastN {
+		if 0 < ne-lastNe {
 			// Note that the vertices passed to BufferSubData is not under GC management
 			// in opengl package due to unsafe-way.
 			// See BufferSubData in context_mobile.go.
-			opengl.GetContext().ElementArrayBufferSubData(q.elements)
-			opengl.GetContext().ArrayBufferSubData(q.vertices[lastN:n])
+			opengl.GetContext().ElementArrayBufferSubData(q.elements[lastNe:ne])
+			opengl.GetContext().ArrayBufferSubData(q.vertices[lastNv:nv])
 		}
 		numc := len(g)
 		indexOffsetInBytes := 0
@@ -182,10 +202,13 @@ func (q *commandQueue) Flush() error {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 			opengl.GetContext().Flush()
 		}
-		lastN = n
+		lastNv = nv
+		lastNe = ne
 	}
 	q.commands = nil
 	q.nvertices = 0
+	q.nelements = 0
+	q.nextIndex = 0
 	return nil
 }
 
