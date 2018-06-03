@@ -272,15 +272,18 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, sr
 		}
 		theArrayBufferLayout.enable(program)
 
+		if s.lastProgram == zeroProgram {
+			c.BindBuffer(opengl.ArrayBuffer, s.arrayBuffer)
+			c.BindBuffer(opengl.ElementArrayBuffer, s.elementArrayBuffer)
+			c.UniformInt(program, "texture", 0)
+		}
+
 		s.lastProgram = program
 		s.lastProjectionMatrix = nil
 		s.lastColorMatrix = nil
 		s.lastColorMatrixTranslation = nil
 		s.lastSourceWidth = 0
 		s.lastSourceHeight = 0
-		c.BindBuffer(opengl.ArrayBuffer, s.arrayBuffer)
-		c.BindBuffer(opengl.ElementArrayBuffer, s.elementArrayBuffer)
-		c.UniformInt(program, "texture", 0)
 	}
 
 	if !areSameFloat32Array(s.lastProjectionMatrix, proj) {
