@@ -73,7 +73,7 @@ precision mediump float;
 {{Definitions}}
 
 uniform sampler2D texture;
-uniform mat4 color_matrix;
+uniform mat4 color_matrix_body;
 uniform vec4 color_matrix_translation;
 
 uniform highp vec2 source_size;
@@ -148,7 +148,7 @@ void main(void) {
     color.rgb /= color.a;
   }
   // Apply the color matrix
-  color = (color_matrix * color) + color_matrix_translation;
+  color = (color_matrix_body * color) + color_matrix_translation;
   color = clamp(color, 0.0, 1.0);
   // Premultiply alpha
   color.rgb *= color.a;

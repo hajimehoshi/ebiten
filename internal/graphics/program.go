@@ -299,7 +299,7 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, sr
 	esBody, esTranslate := colorM.UnsafeElements()
 
 	if !areSameFloat32Array(s.lastColorMatrix, esBody) {
-		c.UniformFloats(program, "color_matrix", esBody)
+		c.UniformFloats(program, "color_matrix_body", esBody)
 		if s.lastColorMatrix == nil {
 			s.lastColorMatrix = make([]float32, 16)
 		}
