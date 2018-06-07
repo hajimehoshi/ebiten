@@ -33,6 +33,7 @@ type graphicsContext struct {
 	f           func(*Image) error
 	offscreen   *Image
 	screen      *Image
+	screenScale float64
 	initialized bool
 	invalidated bool // browser only
 	offsetX     float64
@@ -48,6 +49,8 @@ func (c *graphicsContext) Invalidate() {
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) {
+	c.screenScale = screenScale
+
 	if c.screen != nil {
 		_ = c.screen.Dispose()
 	}
@@ -109,14 +112,12 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		c.screen.DrawImage(emptyImage, op)
 	}
 
-	dw, dh := c.screen.Size()
-	sw, _ := c.offscreen.Size()
-	scale := float64(dw) / float64(sw)
+	_, dh := c.screen.Size()
 
 	op := &DrawImageOptions{}
 	// c.screen is special: its Y axis is down to up,
 	// and the origin point is lower left.
-	op.GeoM.Scale(scale, -scale)
+	op.GeoM.Scale(c.screenScale, -c.screenScale)
 	op.GeoM.Translate(0, float64(dh))
 	op.GeoM.Translate(c.offsetX, c.offsetY)
 
