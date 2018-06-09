@@ -87,7 +87,27 @@ func (i *Image) Size() (int, int) {
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
-	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, clr, mode, filter)
+	for len(vertices) > 0 {
+		var next []float32
+		nq := len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+		if nq > maxQuads {
+			nq = maxQuads
+			i := nq * QuadVertexSizeInBytes() / opengl.Float.SizeInBytes()
+			next = vertices[i:]
+			vertices = vertices[:i]
+		}
+		indices := make([]uint16, 6*nq)
+		for i := 0; i < nq; i++ {
+			indices[6*i+0] = uint16(4*i + 0)
+			indices[6*i+1] = uint16(4*i + 1)
+			indices[6*i+2] = uint16(4*i + 2)
+			indices[6*i+3] = uint16(4*i + 1)
+			indices[6*i+4] = uint16(4*i + 2)
+			indices[6*i+5] = uint16(4*i + 3)
+		}
+		theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter)
+		vertices = next
+	}
 }
 
 func (i *Image) Pixels() ([]byte, error) {

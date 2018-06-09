@@ -52,7 +52,9 @@ type commandQueue struct {
 
 	elements  []uint16
 	nelements int
-	nextIndex int
+
+	tmpNumElements int
+	nextIndex      int
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -66,25 +68,21 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 	}
 	// for-loop might be faster than copy:
 	// On GopherJS, copy might cause subarray calls.
-	for i := 0; i < len(vertices); i++ {
+	for i := range vertices {
 		q.vertices[q.nvertices+i] = vertices[i]
 	}
 	q.nvertices += len(vertices)
 }
 
-func (q *commandQueue) appendElements(e0, e1, e2, e3, e4, e5 uint16) {
-	// For GopherJS performance, take 6 arguments instead of an array.
-	if len(q.elements) < q.nelements+6 {
-		n := q.nelements + 6 - len(q.elements)
+func (q *commandQueue) appendElements(indices []uint16, offset uint16) {
+	if len(q.elements) < q.nelements+len(indices) {
+		n := q.nelements + len(indices) - len(q.elements)
 		q.elements = append(q.elements, make([]uint16, n)...)
 	}
-	q.elements[q.nelements+0] = e0
-	q.elements[q.nelements+1] = e1
-	q.elements[q.nelements+2] = e2
-	q.elements[q.nelements+3] = e3
-	q.elements[q.nelements+4] = e4
-	q.elements[q.nelements+5] = e5
-	q.nelements += 6
+	for i := range indices {
+		q.elements[q.nelements+i] = indices[i] + offset
+	}
+	q.nelements += len(indices)
 }
 
 func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nelements int, color *affine.ColorM, mode opengl.CompositeMode, filter Filter, forceNewCommand bool) {
@@ -111,33 +109,24 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nel
 }
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
-	// Avoid defer for performance
-	q.appendVertices(vertices)
-	nq := len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
-	nv := 0
-	ne := 0
-	for i := 0; i < nq; i++ {
-		if q.nelements%indicesNum >= (q.nelements+6)%indicesNum {
-			q.nextIndex = 0
-			// Note that even if ne == 0, that's fine.
-			q.doEnqueueDrawImageCommand(dst, src, nv, ne, color, mode, filter, true)
-			nv = 0
-			ne = 0
-		}
-		q.appendElements(
-			uint16(q.nextIndex+0),
-			uint16(q.nextIndex+1),
-			uint16(q.nextIndex+2),
-			uint16(q.nextIndex+1),
-			uint16(q.nextIndex+2),
-			uint16(q.nextIndex+3),
-		)
-		q.nextIndex += 4
-		nv += QuadVertexSizeInBytes() / opengl.Float.SizeInBytes()
-		ne += 6
+func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
+	if len(indices) > indicesNum {
+		panic("not reached")
 	}
-	q.doEnqueueDrawImageCommand(dst, src, nv, ne, color, mode, filter, false)
+
+	split := false
+	if q.tmpNumElements+len(indices) > indicesNum {
+		q.tmpNumElements = 0
+		q.nextIndex = 0
+		split = true
+	}
+
+	q.appendVertices(vertices)
+	q.appendElements(indices, uint16(q.nextIndex))
+	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / theArrayBufferLayout.totalBytes()
+	q.tmpNumElements += len(indices)
+
+	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, split)
 }
 
 // Enqueue enqueues a drawing command other than a draw-image command.
@@ -196,6 +185,7 @@ func (q *commandQueue) Flush() error {
 	q.commands = nil
 	q.nvertices = 0
 	q.nelements = 0
+	q.tmpNumElements = 0
 	q.nextIndex = 0
 	return nil
 }
