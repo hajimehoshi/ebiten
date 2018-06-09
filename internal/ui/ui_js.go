@@ -208,16 +208,17 @@ func (u *userInterface) loop(g GraphicsContext) error {
 	var cf js.Callback
 	f = func([]js.Value) {
 		if err := u.update(g); err != nil {
-			go func() {
-				ch <- err
-				close(ch)
-			}()
+			ch <- err
+			close(ch)
 			return
 		}
 		js.Global.Get("window").Call("requestAnimationFrame", cf)
 	}
 	cf = js.NewCallback(f)
-	f(nil)
+	// Call f asyncly to be async since ch is used in f.
+	go func() {
+		f(nil)
+	}()
 	return <-ch
 }
 
