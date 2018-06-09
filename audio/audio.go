@@ -76,7 +76,6 @@ func (p *players) Read(b []byte) (int, error) {
 
 	for player := range p.players {
 		if player.isJustAfterStartedOrSeeked() {
-			println("oh")
 			continue
 		}
 		s := player.bufferSizeInBytes()
