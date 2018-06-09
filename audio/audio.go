@@ -74,17 +74,6 @@ func (p *players) Read(b []byte) (int, error) {
 	l := len(b)
 	l &= mask
 
-	for player := range p.players {
-		if player.isJustAfterStartedOrSeeked() {
-			continue
-		}
-		s := player.bufferSizeInBytes()
-		if l > s {
-			l = s
-			l &= mask
-		}
-	}
-
 	b16s := [][]int16{}
 	for player := range p.players {
 		buf, err := player.bufferToInt16(l)
@@ -93,7 +82,6 @@ func (p *players) Read(b []byte) (int, error) {
 		}
 		b16s = append(b16s, buf)
 	}
-
 	for i := 0; i < l/2; i++ {
 		x := 0
 		for _, b16 := range b16s {
@@ -361,7 +349,7 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 		players:         context.players,
 		src:             src,
 		sampleRate:      context.sampleRate,
-		buf:             nil,
+		buf:             []byte{},
 		volume:          1,
 		closeCh:         make(chan struct{}),
 		closedCh:        make(chan struct{}),
@@ -538,15 +526,13 @@ func (p *Player) readLoop() {
 				return
 			}
 
-			if p.isJustAfterStartedOrSeekedImpl() {
-				// Return zero values.
-				p.proceededCh <- proceededValues{buf, nil}
-				break
-			}
-
 			lengthInBytes := len(buf) * 2
 			l := lengthInBytes
 
+			if len(p.buf) < lengthInBytes && !p.srcEOF {
+				p.proceededCh <- proceededValues{buf, nil}
+				break
+			}
 			if l > len(p.buf) {
 				l = len(p.buf)
 			}
@@ -557,7 +543,7 @@ func (p *Player) readLoop() {
 			p.pos += int64(l)
 			p.buf = p.buf[l:]
 
-			p.proceededCh <- proceededValues{buf[:l/2], nil}
+			p.proceededCh <- proceededValues{buf, nil}
 
 		case f := <-p.syncCh:
 			f()
@@ -578,28 +564,6 @@ func (p *Player) sync(f func()) bool {
 	case <-p.readLoopEndedCh:
 		return false
 	}
-}
-
-func (p *Player) isJustAfterStartedOrSeeked() bool {
-	r := false
-	p.sync(func() {
-		r = p.isJustAfterStartedOrSeekedImpl()
-	})
-	return r
-}
-
-func (p *Player) isJustAfterStartedOrSeekedImpl() bool {
-	// When p.buf is nil, the player just starts playing or seeking.
-	// Note that this is different from len(p.buf) == 0 && p.buf != nil.
-	return p.buf == nil
-}
-
-func (p *Player) bufferSizeInBytes() int {
-	s := 0
-	p.sync(func() {
-		s = len(p.buf)
-	})
-	return s
 }
 
 func (p *Player) eof() bool {
