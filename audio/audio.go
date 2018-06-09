@@ -74,6 +74,25 @@ func (p *players) Read(b []byte) (int, error) {
 	l := len(b)
 	l &= mask
 
+	for player := range p.players {
+		if player.shouldSkip() {
+			continue
+		}
+		s := player.bufferSizeInBytes()
+		if l > s {
+			l = s
+			l &= mask
+		}
+	}
+
+	if l == 0 {
+		// If l is 0, all the players might reach EOF at the next update.
+		// However, this Read might block forever and never causes context switch
+		// on single-thread environment (e.g. browser).
+		// Call Gosched to cause context switch on purpose.
+		runtime.Gosched()
+	}
+
 	b16s := [][]int16{}
 	for player := range p.players {
 		buf, err := player.bufferToInt16(l)
@@ -82,6 +101,7 @@ func (p *players) Read(b []byte) (int, error) {
 		}
 		b16s = append(b16s, buf)
 	}
+
 	for i := 0; i < l/2; i++ {
 		x := 0
 		for _, b16 := range b16s {
@@ -349,7 +369,7 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 		players:         context.players,
 		src:             src,
 		sampleRate:      context.sampleRate,
-		buf:             []byte{},
+		buf:             nil,
 		volume:          1,
 		closeCh:         make(chan struct{}),
 		closedCh:        make(chan struct{}),
@@ -526,13 +546,15 @@ func (p *Player) readLoop() {
 				return
 			}
 
-			lengthInBytes := len(buf) * 2
-			l := lengthInBytes
-
-			if len(p.buf) < lengthInBytes && !p.srcEOF {
+			if p.shouldSkipImpl() {
+				// Return zero values.
 				p.proceededCh <- proceededValues{buf, nil}
 				break
 			}
+
+			lengthInBytes := len(buf) * 2
+			l := lengthInBytes
+
 			if l > len(p.buf) {
 				l = len(p.buf)
 			}
@@ -543,7 +565,7 @@ func (p *Player) readLoop() {
 			p.pos += int64(l)
 			p.buf = p.buf[l:]
 
-			p.proceededCh <- proceededValues{buf, nil}
+			p.proceededCh <- proceededValues{buf[:l/2], nil}
 
 		case f := <-p.syncCh:
 			f()
@@ -566,12 +588,44 @@ func (p *Player) sync(f func()) bool {
 	}
 }
 
+func (p *Player) shouldSkip() bool {
+	r := false
+	p.sync(func() {
+		r = p.shouldSkipImpl()
+	})
+	return r
+}
+
+func (p *Player) shouldSkipImpl() bool {
+	// When p.buf is nil, the player just starts playing or seeking.
+	// Note that this is different from len(p.buf) == 0 && p.buf != nil.
+	if p.buf == nil {
+		return true
+	}
+	if p.eofImpl() {
+		return true
+	}
+	return false
+}
+
+func (p *Player) bufferSizeInBytes() int {
+	s := 0
+	p.sync(func() {
+		s = len(p.buf)
+	})
+	return s
+}
+
 func (p *Player) eof() bool {
 	r := false
 	p.sync(func() {
-		r = p.srcEOF && len(p.buf) == 0
+		r = p.eofImpl()
 	})
 	return r
+}
+
+func (p *Player) eofImpl() bool {
+	return p.srcEOF && len(p.buf) == 0
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
