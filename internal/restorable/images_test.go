@@ -101,6 +101,10 @@ func TestRestore(t *testing.T) {
 	}
 }
 
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
 func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
@@ -117,7 +121,9 @@ func TestRestoreChain(t *testing.T) {
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	fill(imgs[0], clr.R, clr.G, clr.B, clr.A)
 	for i := 0; i < num-1; i++ {
-		imgs[i+1].DrawImage(imgs[i], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		w, h := imgs[i].Size()
+		vs := QuadVertices(w, h, 0, 0, 1, 1, nil)
+		imgs[i+1].DrawImage(imgs[i], vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -135,10 +141,14 @@ func TestRestoreChain(t *testing.T) {
 }
 
 func TestRestoreChain2(t *testing.T) {
-	const num = 10
+	const (
+		num = 10
+		w   = 1
+		h   = 1
+	)
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(1, 1, false)
+		img := NewImage(w, h, false)
 		fill(img, 0, 0, 0, 0)
 		imgs = append(imgs, img)
 	}
@@ -155,10 +165,11 @@ func TestRestoreChain2(t *testing.T) {
 	clr8 := color.RGBA{0x00, 0x00, 0xff, 0xff}
 	fill(imgs[8], clr8.R, clr8.G, clr8.B, clr8.A)
 
-	imgs[8].DrawImage(imgs[7], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
-	imgs[9].DrawImage(imgs[8], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	vs := QuadVertices(w, h, 0, 0, w, h, nil)
+	imgs[8].DrawImage(imgs[7], vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	imgs[9].DrawImage(imgs[8], vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	for i := 0; i < 7; i++ {
-		imgs[i+1].DrawImage(imgs[i], 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		imgs[i+1].DrawImage(imgs[i], vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if err := ResolveStaleImages(); err != nil {
@@ -180,13 +191,17 @@ func TestRestoreChain2(t *testing.T) {
 }
 
 func TestRestoreOverrideSource(t *testing.T) {
-	img0 := NewImage(1, 1, false)
+	const (
+		w = 1
+		h = 1
+	)
+	img0 := NewImage(w, h, false)
 	fill(img0, 0, 0, 0, 0)
-	img1 := NewImage(1, 1, false)
+	img1 := NewImage(w, h, false)
 	fill(img1, 0, 0, 0, 0)
-	img2 := NewImage(1, 1, false)
+	img2 := NewImage(w, h, false)
 	fill(img2, 0, 0, 0, 0)
-	img3 := NewImage(1, 1, false)
+	img3 := NewImage(w, h, false)
 	fill(img3, 0, 0, 0, 0)
 	defer func() {
 		img3.Dispose()
@@ -197,10 +212,11 @@ func TestRestoreOverrideSource(t *testing.T) {
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
 	fill(img1, clr0.R, clr0.G, clr0.B, clr0.A)
-	img2.DrawImage(img1, 0, 0, 1, 1, nil, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img3.DrawImage(img2, 0, 0, 1, 1, nil, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs := QuadVertices(w, h, 0, 0, w, h, nil)
+	img2.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img3.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	fill(img0, clr1.R, clr1.G, clr1.B, clr1.A)
-	img1.DrawImage(img0, 0, 0, 1, 1, nil, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -241,6 +257,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 }
 
 func TestRestoreComplexGraph(t *testing.T) {
+	const (
+		w = 4
+		h = 1
+	)
 	// 0 -> 3
 	// 1 -> 3
 	// 1 -> 4
@@ -250,7 +270,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 	// 3 -> 6
 	// 3 -> 7
 	// 4 -> 6
-	base := image.NewRGBA(image.Rect(0, 0, 4, 1))
+	base := image.NewRGBA(image.Rect(0, 0, w, h))
 	base.Pix[0] = 0xff
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
@@ -258,15 +278,15 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img0 := newImageFromImage(base)
 	img1 := newImageFromImage(base)
 	img2 := newImageFromImage(base)
-	img3 := NewImage(4, 1, false)
+	img3 := NewImage(w, h, false)
 	fill(img3, 0, 0, 0, 0)
-	img4 := NewImage(4, 1, false)
+	img4 := NewImage(w, h, false)
 	fill(img4, 0, 0, 0, 0)
-	img5 := NewImage(4, 1, false)
+	img5 := NewImage(w, h, false)
 	fill(img5, 0, 0, 0, 0)
-	img6 := NewImage(4, 1, false)
+	img6 := NewImage(w, h, false)
 	fill(img6, 0, 0, 0, 0)
-	img7 := NewImage(4, 1, false)
+	img7 := NewImage(w, h, false)
 	fill(img7, 0, 0, 0, 0)
 	defer func() {
 		img7.Dispose()
@@ -278,15 +298,24 @@ func TestRestoreComplexGraph(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	img3.DrawImage(img0, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(0, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img3.DrawImage(img1, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(1, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img4.DrawImage(img1, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(1, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img4.DrawImage(img2, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(2, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img5.DrawImage(img3, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(0, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img6.DrawImage(img3, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(0, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img6.DrawImage(img4, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(1, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img7.DrawImage(img2, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(0, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img7.DrawImage(img3, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(2, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs := QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	img3.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	img3.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	img4.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(2, 0))
+	img4.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	img5.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	img6.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	img6.DrawImage(img4, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	img7.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs = QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(2, 0))
+	img7.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -361,21 +390,26 @@ func newImageFromImage(rgba *image.RGBA) *Image {
 }
 
 func TestRestoreRecursive(t *testing.T) {
-	base := image.NewRGBA(image.Rect(0, 0, 4, 1))
+	const (
+		w = 4
+		h = 1
+	)
+	base := image.NewRGBA(image.Rect(0, 0, w, h))
 	base.Pix[0] = 0xff
 	base.Pix[1] = 0xff
 	base.Pix[2] = 0xff
 	base.Pix[3] = 0xff
 
 	img0 := newImageFromImage(base)
-	img1 := NewImage(4, 1, false)
+	img1 := NewImage(w, h, false)
 	fill(img1, 0, 0, 0, 0)
 	defer func() {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	img1.DrawImage(img0, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(1, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	img0.DrawImage(img1, 0, 0, 4, 1, (*affine.GeoM)(nil).Translate(1, 0), nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	vs := QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
+	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
 	}
@@ -469,7 +503,9 @@ func TestDrawImageAndReplacePixels(t *testing.T) {
 	defer img0.Dispose()
 	img1 := NewImage(2, 1, false)
 	defer img1.Dispose()
-	img1.DrawImage(img0, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+
+	vs := QuadVertices(1, 1, 0, 0, 1, 1, nil)
+	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, 1, 0, 1, 1)
 
 	if err := ResolveStaleImages(); err != nil {
@@ -504,8 +540,9 @@ func TestDispose(t *testing.T) {
 	img2 := newImageFromImage(base2)
 	defer img2.Dispose()
 
-	img1.DrawImage(img2, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
-	img0.DrawImage(img1, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	vs := QuadVertices(1, 1, 0, 0, 1, 1, nil)
+	img1.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	img1.Dispose()
 
 	if err := ResolveStaleImages(); err != nil {
@@ -535,7 +572,8 @@ func TestDoubleResolve(t *testing.T) {
 	base.Pix[3] = 0xff
 	img1 := newImageFromImage(base)
 
-	img0.DrawImage(img1, 0, 0, 1, 1, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	vs := QuadVertices(1, 1, 0, 0, 1, 1, nil)
+	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	img0.ReplacePixels([]uint8{0x00, 0xff, 0x00, 0xff}, 1, 1, 1, 1)
 	// Now img0 is stale.
 	if err := ResolveStaleImages(); err != nil {

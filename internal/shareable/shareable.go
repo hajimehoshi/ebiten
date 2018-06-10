@@ -28,6 +28,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
 type backend struct {
 	restorable *restorable.Image
 
@@ -62,7 +66,8 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	newImg.DrawImage(oldImg, 0, 0, w, h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	vs := restorable.QuadVertices(w, h, 0, 0, w, h, nil)
+	newImg.DrawImage(oldImg, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
 
@@ -104,7 +109,9 @@ func (i *Image) ensureNotShared() {
 
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
-	newImg.DrawImage(i.backend.restorable, x, y, x+w, y+h, nil, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	vw, vh := i.backend.restorable.Size()
+	vs := restorable.QuadVertices(vw, vh, x, y, x+w, y+h, nil)
+	newImg.DrawImage(i.backend.restorable, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -154,7 +161,9 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	sy0 += dy
 	sx1 += dx
 	sy1 += dy
-	i.backend.restorable.DrawImage(img.backend.restorable, sx0, sy0, sx1, sy1, geom, colorm, mode, filter)
+	w, h := img.backend.restorable.Size()
+	vs := restorable.QuadVertices(w, h, sx0, sy0, sx1, sy1, geom)
+	i.backend.restorable.DrawImage(img.backend.restorable, vs, quadIndices, colorm, mode, filter)
 }
 
 func (i *Image) ReplacePixels(p []byte) {

@@ -148,7 +148,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
 		geom = geom.Translate(float64(x), float64(y))
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
-		vs := quadVertices(w, h, 0, 0, w, h, geom)
+		vs := QuadVertices(w, h, 0, 0, w, h, geom)
 		i.image.DrawImage(dummyImage.image, vs, quadIndices, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 
@@ -186,21 +186,18 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
-	w, h := img.Size()
-	vs := quadVertices(w, h, sx0, sy0, sx1, sy1, geom)
-	if vs == nil {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+	if len(vertices) == 0 {
 		return
 	}
 	theImages.makeStaleIfDependingOn(i)
 
-	indices := quadIndices
 	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
-		i.appendDrawImageHistory(img, vs, indices, colorm, mode, filter)
+		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter)
 	}
-	i.image.DrawImage(img.image, vs, indices, colorm, mode, filter)
+	i.image.DrawImage(img.image, vertices, indices, colorm, mode, filter)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.

@@ -44,7 +44,7 @@ func (v *verticesBackend) sliceForOneQuad() []float32 {
 	return s
 }
 
-func quadVertices(width, height int, sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []float32 {
+func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []float32 {
 	if sx0 >= sx1 || sy0 >= sy1 {
 		return nil
 	}
