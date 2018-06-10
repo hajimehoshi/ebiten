@@ -31,9 +31,9 @@ import (
 type command interface {
 	Exec(indexOffsetInBytes int) error
 	NumVertices() int
-	NumElements() int
+	NumIndices() int
 	AddNumVertices(n int)
-	AddNumElements(n int)
+	AddNumIndices(n int)
 	CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool
 }
 
@@ -50,11 +50,11 @@ type commandQueue struct {
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
 	nvertices int
 
-	elements  []uint16
-	nelements int
+	indices  []uint16
+	nindices int
 
-	tmpNumElements int
-	nextIndex      int
+	tmpNumIndices int
+	nextIndex     int
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -74,25 +74,25 @@ func (q *commandQueue) appendVertices(vertices []float32) {
 	q.nvertices += len(vertices)
 }
 
-func (q *commandQueue) appendElements(indices []uint16, offset uint16) {
-	if len(q.elements) < q.nelements+len(indices) {
-		n := q.nelements + len(indices) - len(q.elements)
-		q.elements = append(q.elements, make([]uint16, n)...)
+func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
+	if len(q.indices) < q.nindices+len(indices) {
+		n := q.nindices + len(indices) - len(q.indices)
+		q.indices = append(q.indices, make([]uint16, n)...)
 	}
 	for i := range indices {
-		q.elements[q.nelements+i] = indices[i] + offset
+		q.indices[q.nindices+i] = indices[i] + offset
 	}
-	q.nelements += len(indices)
+	q.nindices += len(indices)
 }
 
-func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nelements int, color *affine.ColorM, mode opengl.CompositeMode, filter Filter, forceNewCommand bool) {
-	if nelements > indicesNum {
-		panic("not implemented for too many elements")
+func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode opengl.CompositeMode, filter Filter, forceNewCommand bool) {
+	if nindices > indicesNum {
+		panic("not implemented for too many indices")
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
 		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter) {
 			last.AddNumVertices(nvertices)
-			last.AddNumElements(nelements)
+			last.AddNumIndices(nindices)
 			return
 		}
 	}
@@ -100,7 +100,7 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nel
 		dst:       dst,
 		src:       src,
 		nvertices: nvertices,
-		nelements: nelements,
+		nindices:  nindices,
 		color:     color,
 		mode:      mode,
 		filter:    filter,
@@ -115,16 +115,16 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	}
 
 	split := false
-	if q.tmpNumElements+len(indices) > indicesNum {
-		q.tmpNumElements = 0
+	if q.tmpNumIndices+len(indices) > indicesNum {
+		q.tmpNumIndices = 0
 		q.nextIndex = 0
 		split = true
 	}
 
 	q.appendVertices(vertices)
-	q.appendElements(indices, uint16(q.nextIndex))
+	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / theArrayBufferLayout.totalBytes()
-	q.tmpNumElements += len(indices)
+	q.tmpNumIndices += len(indices)
 
 	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, split)
 }
@@ -140,21 +140,21 @@ func (q *commandQueue) Enqueue(command command) {
 func (q *commandQueue) Flush() error {
 	// glViewport must be called at least at every frame on iOS.
 	opengl.GetContext().ResetViewportSize()
-	es := q.elements
+	es := q.indices
 	vs := q.vertices
 	for len(q.commands) > 0 {
 		nv := 0
 		ne := 0
 		nc := 0
 		for _, c := range q.commands {
-			if c.NumElements() > indicesNum {
+			if c.NumIndices() > indicesNum {
 				panic("not reached")
 			}
-			if ne+c.NumElements() > indicesNum {
+			if ne+c.NumIndices() > indicesNum {
 				break
 			}
 			nv += c.NumVertices()
-			ne += c.NumElements()
+			ne += c.NumIndices()
 			nc++
 		}
 		if 0 < ne {
@@ -174,7 +174,7 @@ func (q *commandQueue) Flush() error {
 			// TODO: indexOffsetInBytes should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawImageCommand.
-			indexOffsetInBytes += c.NumElements() * 2 // 2 is uint16 size in bytes
+			indexOffsetInBytes += c.NumIndices() * 2 // 2 is uint16 size in bytes
 		}
 		if 0 < nc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
@@ -184,8 +184,8 @@ func (q *commandQueue) Flush() error {
 	}
 	q.commands = nil
 	q.nvertices = 0
-	q.nelements = 0
-	q.tmpNumElements = 0
+	q.nindices = 0
+	q.tmpNumIndices = 0
 	q.nextIndex = 0
 	return nil
 }
@@ -200,7 +200,7 @@ type drawImageCommand struct {
 	dst       *Image
 	src       *Image
 	nvertices int
-	nelements int
+	nindices  int
 	color     *affine.ColorM
 	mode      opengl.CompositeMode
 	filter    Filter
@@ -221,12 +221,12 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 
 	opengl.GetContext().BlendFunc(c.mode)
 
-	if c.nelements == 0 {
+	if c.nindices == 0 {
 		return nil
 	}
 	proj := f.projectionMatrix()
 	theOpenGLState.useProgram(proj, c.src.texture.native, c.dst, c.src, c.color, c.filter)
-	opengl.GetContext().DrawElements(opengl.Triangles, c.nelements, indexOffsetInBytes)
+	opengl.GetContext().DrawElements(opengl.Triangles, c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
@@ -239,16 +239,16 @@ func (c *drawImageCommand) NumVertices() int {
 	return c.nvertices
 }
 
-func (c *drawImageCommand) NumElements() int {
-	return c.nelements
+func (c *drawImageCommand) NumIndices() int {
+	return c.nindices
 }
 
 func (c *drawImageCommand) AddNumVertices(n int) {
 	c.nvertices += n
 }
 
-func (c *drawImageCommand) AddNumElements(n int) {
-	c.nelements += n
+func (c *drawImageCommand) AddNumIndices(n int) {
+	c.nindices += n
 }
 
 // CanMerge returns a boolean value indicating whether the other drawImageCommand can be merged
@@ -296,14 +296,14 @@ func (c *replacePixelsCommand) NumVertices() int {
 	return 0
 }
 
-func (c *replacePixelsCommand) NumElements() int {
+func (c *replacePixelsCommand) NumIndices() int {
 	return 0
 }
 
 func (c *replacePixelsCommand) AddNumVertices(n int) {
 }
 
-func (c *replacePixelsCommand) AddNumElements(n int) {
+func (c *replacePixelsCommand) AddNumIndices(n int) {
 }
 
 func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
@@ -331,14 +331,14 @@ func (c *disposeCommand) NumVertices() int {
 	return 0
 }
 
-func (c *disposeCommand) NumElements() int {
+func (c *disposeCommand) NumIndices() int {
 	return 0
 }
 
 func (c *disposeCommand) AddNumVertices(n int) {
 }
 
-func (c *disposeCommand) AddNumElements(n int) {
+func (c *disposeCommand) AddNumIndices(n int) {
 }
 
 func (c *disposeCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
@@ -387,14 +387,14 @@ func (c *newImageCommand) NumVertices() int {
 	return 0
 }
 
-func (c *newImageCommand) NumElements() int {
+func (c *newImageCommand) NumIndices() int {
 	return 0
 }
 
 func (c *newImageCommand) AddNumVertices(n int) {
 }
 
-func (c *newImageCommand) AddNumElements(n int) {
+func (c *newImageCommand) AddNumIndices(n int) {
 }
 
 func (c *newImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
@@ -422,14 +422,14 @@ func (c *newScreenFramebufferImageCommand) NumVertices() int {
 	return 0
 }
 
-func (c *newScreenFramebufferImageCommand) NumElements() int {
+func (c *newScreenFramebufferImageCommand) NumIndices() int {
 	return 0
 }
 
 func (c *newScreenFramebufferImageCommand) AddNumVertices(n int) {
 }
 
-func (c *newScreenFramebufferImageCommand) AddNumElements(n int) {
+func (c *newScreenFramebufferImageCommand) AddNumIndices(n int) {
 }
 
 func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
