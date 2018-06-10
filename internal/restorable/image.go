@@ -27,28 +27,10 @@ import (
 // drawImageHistoryItem is an item for history of draw-image commands.
 type drawImageHistoryItem struct {
 	image    *Image
-	vertices [][]float32
+	vertices []float32
 	colorm   *affine.ColorM
 	mode     opengl.CompositeMode
 	filter   graphics.Filter
-}
-
-// canMerge returns a boolean value indicating whether the drawImageHistoryItem d
-// can be merged with the given conditions.
-func (d *drawImageHistoryItem) canMerge(image *Image, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) bool {
-	if d.image != image {
-		return false
-	}
-	if !d.colorm.Equals(colorm) {
-		return false
-	}
-	if d.mode != mode {
-		return false
-	}
-	if d.filter != filter {
-		return false
-	}
-	return true
 }
 
 // Image represents an image that can be restored when GL context is lost.
@@ -224,13 +206,6 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	if i.stale || i.volatile || i.screen {
 		return
 	}
-	if len(i.drawImageHistory) > 0 {
-		last := i.drawImageHistory[len(i.drawImageHistory)-1]
-		if last.canMerge(image, colorm, mode, filter) {
-			last.vertices = append(last.vertices, vertices)
-			return
-		}
-	}
 	const maxDrawImageHistoryNum = 100
 	if len(i.drawImageHistory)+1 > maxDrawImageHistoryNum {
 		i.makeStale()
@@ -240,7 +215,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	// So we don't have to care if image is stale or not here.
 	item := &drawImageHistoryItem{
 		image:    image,
-		vertices: [][]float32{vertices},
+		vertices: vertices,
 		colorm:   colorm,
 		mode:     mode,
 		filter:   filter,
@@ -375,9 +350,7 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		for _, v := range c.vertices {
-			gimg.DrawImage(c.image.image, v, quadIndices, c.colorm, c.mode, c.filter)
-		}
+		gimg.DrawImage(c.image.image, c.vertices, quadIndices, c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 
