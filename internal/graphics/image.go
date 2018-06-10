@@ -89,10 +89,10 @@ func (i *Image) Size() (int, int) {
 func (i *Image) DrawImage(src *Image, vertices []float32, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
 	for len(vertices) > 0 {
 		var next []float32
-		nq := len(vertices) * opengl.Float.SizeInBytes() / QuadVertexSizeInBytes()
+		nq := len(vertices) * opengl.Float.SizeInBytes() / VertexSizeInBytes() / 4
 		if nq > maxQuads {
 			nq = maxQuads
-			i := nq * QuadVertexSizeInBytes() / opengl.Float.SizeInBytes()
+			i := 4 * nq * VertexSizeInBytes() / opengl.Float.SizeInBytes()
 			next = vertices[i:]
 			vertices = vertices[:i]
 		}

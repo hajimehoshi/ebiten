@@ -209,9 +209,9 @@ type drawImageCommand struct {
 	filter    Filter
 }
 
-// QuadVertexSizeInBytes returns the size in bytes of vertices for a quadrangle.
-func QuadVertexSizeInBytes() int {
-	return 4 * theArrayBufferLayout.totalBytes()
+// VertexSizeInBytes returns the size in bytes of one vertex.
+func VertexSizeInBytes() int {
+	return theArrayBufferLayout.totalBytes()
 }
 
 // Exec executes the drawImageCommand.

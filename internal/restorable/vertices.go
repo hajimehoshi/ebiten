@@ -17,10 +17,10 @@ package restorable
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 var (
-	quadFloat32Num     = graphics.QuadVertexSizeInBytes() / 4
 	theVerticesBackend = &verticesBackend{}
 )
 
@@ -29,14 +29,15 @@ type verticesBackend struct {
 	head    int
 }
 
-func (v *verticesBackend) get() []float32 {
+func (v *verticesBackend) sliceForOneQuad() []float32 {
 	const num = 256
+	size := 4 * graphics.VertexSizeInBytes() / opengl.Float.SizeInBytes()
 	if v.backend == nil {
-		v.backend = make([]float32, quadFloat32Num*num)
+		v.backend = make([]float32, size*num)
 	}
-	s := v.backend[v.head : v.head+quadFloat32Num]
-	v.head += quadFloat32Num
-	if v.head+quadFloat32Num > len(v.backend) {
+	s := v.backend[v.head : v.head+size]
+	v.head += size
+	if v.head+size > len(v.backend) {
 		v.backend = nil
 		v.head = 0
 	}
@@ -51,7 +52,7 @@ func vertices(width, height int, sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []flo
 		return nil
 	}
 
-	vs := theVerticesBackend.get()
+	vs := theVerticesBackend.sliceForOneQuad()
 
 	x0, y0 := 0.0, 0.0
 	x1, y1 := float64(sx1-sx0), float64(sy1-sy0)
