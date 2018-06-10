@@ -134,6 +134,10 @@ func (i *Image) makeStale() {
 	// the former image can be restored from the latest state of the latter image.
 }
 
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // If pixels is nil, ReplacePixels clears the specified reagion.
@@ -162,7 +166,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		geom = geom.Translate(float64(x), float64(y))
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
 		vs := vertices(w, h, 0, 0, w, h, geom)
-		i.image.DrawImage(dummyImage.image, vs, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
+		i.image.DrawImage(dummyImage.image, vs, quadIndices, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
@@ -212,7 +216,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	} else {
 		i.appendDrawImageHistory(img, vs, colorm, mode, filter)
 	}
-	i.image.DrawImage(img.image, vs, colorm, mode, filter)
+	i.image.DrawImage(img.image, vs, quadIndices, colorm, mode, filter)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
@@ -375,7 +379,7 @@ func (i *Image) restore() error {
 		for _, v := range c.vertices {
 			vs = append(vs, v...)
 		}
-		gimg.DrawImage(c.image.image, vs, c.colorm, c.mode, c.filter)
+		gimg.DrawImage(c.image.image, vs, quadIndices, c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 
