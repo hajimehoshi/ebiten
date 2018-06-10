@@ -21,6 +21,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -148,7 +149,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		geom := (*affine.GeoM)(nil).Scale(float64(width)/float64(w), float64(height)/float64(h))
 		geom = geom.Translate(float64(x), float64(y))
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
-		vs := QuadVertices(w, h, 0, 0, w, h, geom)
+		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, geom)
 		i.image.DrawImage(dummyImage.image, vs, quadIndices, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 

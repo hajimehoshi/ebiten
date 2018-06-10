@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package restorable
+package graphicsutil
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"

@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
@@ -66,7 +67,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := restorable.QuadVertices(w, h, 0, 0, w, h, nil)
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, nil)
 	newImg.DrawImage(oldImg, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
@@ -110,7 +111,7 @@ func (i *Image) ensureNotShared() {
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
-	vs := restorable.QuadVertices(vw, vh, x, y, x+w, y+h, nil)
+	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, nil)
 	newImg.DrawImage(i.backend.restorable, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)
@@ -162,7 +163,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	sx1 += dx
 	sy1 += dy
 	w, h := img.backend.restorable.Size()
-	vs := restorable.QuadVertices(w, h, sx0, sy0, sx1, sy1, geom)
+	vs := graphicsutil.QuadVertices(w, h, sx0, sy0, sx1, sy1, geom)
 	i.backend.restorable.DrawImage(img.backend.restorable, vs, quadIndices, colorm, mode, filter)
 }
 
