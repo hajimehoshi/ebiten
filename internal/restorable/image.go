@@ -375,11 +375,9 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		vs := []float32{}
 		for _, v := range c.vertices {
-			vs = append(vs, v...)
+			gimg.DrawImage(c.image.image, v, quadIndices, c.colorm, c.mode, c.filter)
 		}
-		gimg.DrawImage(c.image.image, vs, quadIndices, c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 
