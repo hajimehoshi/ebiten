@@ -28,6 +28,7 @@ import (
 type drawImageHistoryItem struct {
 	image    *Image
 	vertices []float32
+	indices  []uint16
 	colorm   *affine.ColorM
 	mode     opengl.CompositeMode
 	filter   graphics.Filter
@@ -193,16 +194,17 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM,
 	}
 	theImages.makeStaleIfDependingOn(i)
 
+	indices := quadIndices
 	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
-		i.appendDrawImageHistory(img, vs, colorm, mode, filter)
+		i.appendDrawImageHistory(img, vs, indices, colorm, mode, filter)
 	}
-	i.image.DrawImage(img.image, vs, quadIndices, colorm, mode, filter)
+	i.image.DrawImage(img.image, vs, indices, colorm, mode, filter)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}
@@ -216,6 +218,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, colorm 
 	item := &drawImageHistoryItem{
 		image:    image,
 		vertices: vertices,
+		indices:  indices,
 		colorm:   colorm,
 		mode:     mode,
 		filter:   filter,
@@ -350,7 +353,7 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, quadIndices, c.colorm, c.mode, c.filter)
+		gimg.DrawImage(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter)
 	}
 	i.image = gimg
 
