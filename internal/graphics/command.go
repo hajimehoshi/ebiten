@@ -48,6 +48,9 @@ type commandQueue struct {
 	// nvertices represents the current length of vertices.
 	// nvertices must <= len(vertices).
 	// vertices is never shrunk since re-extending a vertices buffer is heavy.
+	//
+	// TODO: This is a number of float32 values, not a number of vertices.
+	// Rename or fix the program.
 	nvertices int
 
 	indices  []uint16
