@@ -193,6 +193,15 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	return graphicsutil.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
+func (i *Image) Vertex(dx, dy, sx, sy float32, cr, cg, cb, ca float32) []float32 {
+	if i.backend == nil {
+		i.allocate(true)
+	}
+	ox, oy, _, _ := i.region()
+	w, h := i.backend.restorable.SizePowerOf2()
+	return graphicsutil.Vertex(w, h, dx, dy, sx+float32(ox), sy+float32(oy), cr, cg, cb, ca)
+}
+
 const MaxCountForShare = 10
 
 func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {

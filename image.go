@@ -338,6 +338,84 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	i.disposeMipmaps()
 }
 
+// Vertex represents a vertex passed to DrawTriangles.
+//
+// Note that this API is experimental.
+type Vertex struct {
+	// DstX and DstY represents a point on a destination image.
+	DstX float32
+	DstY float32
+
+	// SrcX and SrcY represents a point on a source image.
+	SrcX float32
+	SrcY float32
+
+	// ColorR/ColorG/ColorB/ColorA represents color scaling values.
+	// 1 means the original source image color is used.
+	// 0 means a transparent color is used.
+	ColorR float32
+	ColorG float32
+	ColorB float32
+	ColorA float32
+}
+
+// DrawTrianglesOptions represents options to render triangles on an image.
+//
+// Note that this API is experimental.
+type DrawTrianglesOptions struct {
+	// ColorM is a color matrix to draw.
+	// The default (zero) value is identity, which doesn't change any color.
+	// ColorM is applied before vertex color scale is applied.
+	ColorM ColorM
+
+	// CompositeMode is a composite mode to draw.
+	// The default (zero) value is regular alpha blending.
+	CompositeMode CompositeMode
+
+	// Filter is a type of texture filter.
+	// The default (zero) value is FilterDefault.
+	Filter Filter
+}
+
+// DrawTriangles draws a triangle with the specified vertices and their indices.
+//
+// If len(indices) is not multiple of 3, DrawTriangles panics.
+//
+// The rule in which DrawTriangles works effectively is same as DrawImage's.
+//
+// In contrast to DrawImage, DrawTriangles doesn't care source image edges.
+// This means that you might need to add 1px gap on a source region when you render an image by DrawTriangles.
+// Note that Ebiten creates texture atlases internally, so you still have to care this even when
+// you render a single image.
+//
+// Note that this API is experimental.
+func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
+	if len(indices)%3 != 0 {
+		panic("ebiten: len(indices) % 3 must be 0")
+	}
+	// TODO: Check the maximum value of indices and len(vertices)?
+
+	if options == nil {
+		options = &DrawTrianglesOptions{}
+	}
+
+	mode := opengl.CompositeMode(options.CompositeMode)
+
+	filter := graphics.FilterNearest
+	if options.Filter != FilterDefault {
+		filter = graphics.Filter(options.Filter)
+	} else if img.filter != FilterDefault {
+		filter = graphics.Filter(img.filter)
+	}
+
+	vs := []float32{}
+	src := img.shareableImages[0]
+	for _, v := range vertices {
+		vs = append(vs, src.Vertex(float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)...)
+	}
+	i.shareableImages[0].DrawImage(img.shareableImages[0], vs, indices, options.ColorM.impl, mode, filter)
+}
+
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
 	w, h := i.Size()

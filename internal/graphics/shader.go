@@ -56,10 +56,19 @@ varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
 varying vec4 varying_color_scale;
 
+bool isNaN(float x) {
+  return x != x;
+}
+
 void main(void) {
   varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
-  varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
-  varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
+  if (!isNaN(tex_coord[2]) && !isNaN(tex_coord[3])) {
+    varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
+    varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
+  } else {
+    varying_tex_coord_min = vec2(0, 0);
+    varying_tex_coord_max = vec2(1, 1);
+  }
   varying_color_scale = color_scale;
   gl_Position = projection_matrix * vec4(vertex, 0, 1);
 }

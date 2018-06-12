@@ -15,6 +15,8 @@
 package graphicsutil
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -134,4 +136,36 @@ var (
 
 func QuadIndices() []uint16 {
 	return quadIndices
+}
+
+var (
+	nan32 = float32(math.NaN())
+)
+
+func Vertex(width, height int, dx, dy, sx, sy float32, cr, cg, cb, ca float32) []float32 {
+	if !isPowerOf2(width) {
+		panic("not reached")
+	}
+	if !isPowerOf2(height) {
+		panic("not reached")
+	}
+
+	wf := float32(width)
+	hf := float32(height)
+
+	// Specifying a range explicitly here is redundant but this helps optimization
+	// to eliminate boundry checks.
+	vs := theVerticesBackend.sliceForOneQuad()[0:10]
+	vs[0] = dx
+	vs[1] = dy
+	vs[2] = sx / wf
+	vs[3] = sy / hf
+	vs[4] = nan32
+	vs[5] = nan32
+	vs[6] = cr
+	vs[7] = cg
+	vs[8] = cb
+	vs[9] = ca
+
+	return vs
 }
