@@ -19,7 +19,6 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"runtime"
 
 	"github.com/hajimehoshi/gopherwasm/js"
 
@@ -308,28 +307,6 @@ func (c *Context) UniformFloat(p Program, location string, v float32) {
 	gl.Call("uniform1f", js.Value(l), v)
 }
 
-func float32sToValue(v []float32) js.Value {
-	if runtime.GOARCH == "wasm" {
-		return js.ValueOf(float32sToBytes(v))
-	}
-	a := js.Global.Get("Float32Array").New(len(v))
-	for i, f32 := range v {
-		a.SetIndex(i, f32)
-	}
-	return a
-}
-
-func uint16sToValue(v []uint16) js.Value {
-	if runtime.GOARCH == "wasm" {
-		return js.ValueOf(uint16sToBytes(v))
-	}
-	a := js.Global.Get("Uint16Array").New(len(v))
-	for i, u16 := range v {
-		a.SetIndex(i, u16)
-	}
-	return a
-}
-
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
@@ -395,12 +372,12 @@ func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 
 func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(ArrayBuffer), 0, float32sToValue(data))
+	gl.Call("bufferSubData", int(ArrayBuffer), 0, js.ValueOf(data))
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, uint16sToValue(data))
+	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, js.ValueOf(data))
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {
