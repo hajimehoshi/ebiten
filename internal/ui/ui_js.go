@@ -302,30 +302,30 @@ func init() {
 	canvas.Get("style").Set("outline", "none")
 
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", js.NewEventCallback(true, false, false, input.OnKeyDown))
-	canvas.Call("addEventListener", "keypress", js.NewEventCallback(true, false, false, input.OnKeyPress))
-	canvas.Call("addEventListener", "keyup", js.NewEventCallback(true, false, false, input.OnKeyUp))
+	canvas.Call("addEventListener", "keydown", js.NewEventCallback(js.PreventDefault, input.OnKeyDown))
+	canvas.Call("addEventListener", "keypress", js.NewEventCallback(js.PreventDefault, input.OnKeyPress))
+	canvas.Call("addEventListener", "keyup", js.NewEventCallback(js.PreventDefault, input.OnKeyUp))
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(true, false, false, input.OnMouseDown))
-	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(true, false, false, input.OnMouseUp))
-	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(true, false, false, input.OnMouseMove))
+	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(js.PreventDefault, input.OnMouseDown))
+	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(js.PreventDefault, input.OnMouseUp))
+	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(js.PreventDefault, input.OnMouseMove))
 
 	// Touch
-	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(true, false, false, input.OnTouchStart))
-	canvas.Call("addEventListener", "touchend", js.NewEventCallback(true, false, false, input.OnTouchEnd))
-	canvas.Call("addEventListener", "touchmove", js.NewEventCallback(true, false, false, input.OnTouchMove))
+	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(js.PreventDefault, input.OnTouchStart))
+	canvas.Call("addEventListener", "touchend", js.NewEventCallback(js.PreventDefault, input.OnTouchEnd))
+	canvas.Call("addEventListener", "touchmove", js.NewEventCallback(js.PreventDefault, input.OnTouchMove))
 
 	// Gamepad
 	window.Call("addEventListener", "gamepadconnected", js.NewCallback(func(e []js.Value) {
 		// Do nothing.
 	}))
 
-	canvas.Call("addEventListener", "contextmenu", js.NewEventCallback(true, false, false, func(js.Value) {
+	canvas.Call("addEventListener", "contextmenu", js.NewEventCallback(js.PreventDefault, func(js.Value) {
 		// Do nothing.
 	}))
 
-	canvas.Call("addEventListener", "webglcontextlost", js.NewEventCallback(true, false, false, func(js.Value) {
+	canvas.Call("addEventListener", "webglcontextlost", js.NewEventCallback(js.PreventDefault, func(js.Value) {
 		// Do nothing.
 	}))
 	canvas.Call("addEventListener", "webglcontextrestored", js.NewCallback(func(e []js.Value) {
