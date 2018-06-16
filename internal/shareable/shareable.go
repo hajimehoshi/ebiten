@@ -67,7 +67,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, nil)
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, idGeoM{})
 	newImg.DrawImage(oldImg, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
@@ -98,6 +98,12 @@ type Image struct {
 	node *packing.Node
 }
 
+type idGeoM struct{}
+
+func (idGeoM) Apply(x, y float64) (x2, y2 float64) {
+	return x, y
+}
+
 func (i *Image) ensureNotShared() {
 	if i.backend == nil {
 		i.allocate(false)
@@ -111,7 +117,7 @@ func (i *Image) ensureNotShared() {
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
-	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, nil)
+	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, idGeoM{})
 	newImg.DrawImage(i.backend.restorable, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)

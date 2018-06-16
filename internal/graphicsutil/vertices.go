@@ -74,10 +74,7 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float3
 	hf := float32(h)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
 
-	x, y := x0, y0
-	if geom != nil {
-		x, y = geom.Apply(x, y)
-	}
+	x, y := geom.Apply(x0, y0)
 	// Vertex coordinates
 	vs[0] = float32(x)
 	vs[1] = float32(y)
@@ -91,10 +88,7 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float3
 	vs[5] = v1
 
 	// and the same for the other three coordinates
-	x, y = x1, y0
-	if geom != nil {
-		x, y = geom.Apply(x, y)
-	}
+	x, y = geom.Apply(x1, y0)
 	vs[6] = float32(x)
 	vs[7] = float32(y)
 	vs[8] = u1
@@ -102,10 +96,7 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float3
 	vs[10] = u0
 	vs[11] = v1
 
-	x, y = x0, y1
-	if geom != nil {
-		x, y = geom.Apply(x, y)
-	}
+	x, y = geom.Apply(x0, y1)
 	vs[12] = float32(x)
 	vs[13] = float32(y)
 	vs[14] = u0
@@ -113,10 +104,7 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float3
 	vs[16] = u1
 	vs[17] = v0
 
-	x, y = x1, y1
-	if geom != nil {
-		x, y = geom.Apply(x, y)
-	}
+	x, y = geom.Apply(x1, y1)
 	vs[18] = float32(x)
 	vs[19] = float32(y)
 	vs[20] = u1
