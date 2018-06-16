@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -257,6 +256,15 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}
 }
 
+type geoM struct {
+	tx float64
+	ty float64
+}
+
+func (g *geoM) Apply(x, y float64) (x2, y2 float64) {
+	return x + g.tx, y + g.ty
+}
+
 func TestRestoreComplexGraph(t *testing.T) {
 	const (
 		w = 4
@@ -299,23 +307,23 @@ func TestRestoreComplexGraph(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{0, 0})
 	img3.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{1, 0})
 	img3.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{1, 0})
 	img4.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(2, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{2, 0})
 	img4.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{0, 0})
 	img5.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{0, 0})
 	img6.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{1, 0})
 	img6.DrawImage(img4, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(0, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{0, 0})
 	img7.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(2, 0))
+	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{2, 0})
 	img7.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {
 		t.Fatal(err)
@@ -408,7 +416,7 @@ func TestRestoreRecursive(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, (*affine.GeoM)(nil).Translate(1, 0))
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{1, 0})
 	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	if err := ResolveStaleImages(); err != nil {

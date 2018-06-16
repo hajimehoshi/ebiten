@@ -135,7 +135,7 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom *affine.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom graphicsutil.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

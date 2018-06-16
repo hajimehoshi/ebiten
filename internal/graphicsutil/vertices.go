@@ -15,7 +15,6 @@
 package graphicsutil
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -44,7 +43,11 @@ func (v *verticesBackend) sliceForOneQuad() []float32 {
 	return s
 }
 
-func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geo *affine.GeoM) []float32 {
+type GeoM interface {
+	Apply(x, y float64) (x2, y2 float64)
+}
+
+func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float32 {
 	if sx0 >= sx1 || sy0 >= sy1 {
 		return nil
 	}
@@ -71,10 +74,13 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geo *affine.GeoM) [
 	hf := float32(h)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
 
-	x, y := geo.Apply32(x0, y0)
+	x, y := x0, y0
+	if geom != nil {
+		x, y = geom.Apply(x, y)
+	}
 	// Vertex coordinates
-	vs[0] = x
-	vs[1] = y
+	vs[0] = float32(x)
+	vs[1] = float32(y)
 
 	// Texture coordinates: first 2 values indicates the actual coodinate, and
 	// the second indicates diagonally opposite coodinates.
@@ -85,25 +91,34 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geo *affine.GeoM) [
 	vs[5] = v1
 
 	// and the same for the other three coordinates
-	x, y = geo.Apply32(x1, y0)
-	vs[6] = x
-	vs[7] = y
+	x, y = x1, y0
+	if geom != nil {
+		x, y = geom.Apply(x, y)
+	}
+	vs[6] = float32(x)
+	vs[7] = float32(y)
 	vs[8] = u1
 	vs[9] = v0
 	vs[10] = u0
 	vs[11] = v1
 
-	x, y = geo.Apply32(x0, y1)
-	vs[12] = x
-	vs[13] = y
+	x, y = x0, y1
+	if geom != nil {
+		x, y = geom.Apply(x, y)
+	}
+	vs[12] = float32(x)
+	vs[13] = float32(y)
 	vs[14] = u0
 	vs[15] = v1
 	vs[16] = u1
 	vs[17] = v0
 
-	x, y = geo.Apply32(x1, y1)
-	vs[18] = x
-	vs[19] = y
+	x, y = x1, y1
+	if geom != nil {
+		x, y = geom.Apply(x, y)
+	}
+	vs[18] = float32(x)
+	vs[19] = float32(y)
 	vs[20] = u1
 	vs[21] = v1
 	vs[22] = u0

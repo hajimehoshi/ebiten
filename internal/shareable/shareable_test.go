@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	. "github.com/hajimehoshi/ebiten/internal/shareable"
@@ -45,6 +44,15 @@ func TestMain(m *testing.M) {
 }
 
 const bigSize = 2049
+
+type geoM struct {
+	tx float64
+	ty float64
+}
+
+func (g *geoM) Apply(x, y float64) (x2, y2 float64) {
+	return x + g.tx, y + g.ty
+}
 
 func TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
@@ -85,7 +93,7 @@ func TestEnsureNotShared(t *testing.T) {
 		dy1 = size * 3 / 4
 	)
 	// img4.ensureNotShared() should be called.
-	geom := (*affine.GeoM)(nil).Translate(size/4, size/4)
+	geom := &geoM{size / 4, size / 4}
 	img4.DrawImage(img3, 0, 0, size/2, size/2, geom, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	for j := 0; j < size; j++ {

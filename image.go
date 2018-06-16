@@ -19,7 +19,6 @@ import (
 	"image/color"
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -212,7 +211,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
-	geom := options.GeoM.impl
+	geom := &options.GeoM
 	if sx0 < 0 || sy0 < 0 {
 		dx := 0.0
 		dy := 0.0
@@ -224,10 +223,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			dy = -float64(sy0)
 			sy0 = 0
 		}
-		var g *affine.GeoM
-		g = g.Translate(dx, dy)
-		g = g.Concat(geom)
-		geom = g
+		geom = &GeoM{}
+		geom.Translate(dx, dy)
+		geom.Concat(options.GeoM)
 	}
 
 	mode := opengl.CompositeMode(options.CompositeMode)

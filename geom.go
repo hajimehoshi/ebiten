@@ -16,54 +16,61 @@ package ebiten
 
 import (
 	"fmt"
-
-	"github.com/hajimehoshi/ebiten/internal/affine"
+	"math"
 )
 
 // GeoMDim is a dimension of a GeoM.
-const GeoMDim = affine.GeoMDim
+const GeoMDim = 3
 
 // A GeoM represents a matrix to transform geometry when rendering an image.
 //
 // The initial value is identity.
 type GeoM struct {
-	impl *affine.GeoM
+	a_1 float64 // The actual 'a' value minus 1
+	b   float64
+	c   float64
+	d_1 float64 // The actual 'd' value minus 1
+	tx  float64
+	ty  float64
 }
 
 // String returns a string representation of GeoM.
 func (g *GeoM) String() string {
-	a, b, c, d, tx, ty := g.impl.Elements()
-	return fmt.Sprintf("[[%f, %f, %f], [%f, %f, %f]]", a, b, tx, c, d, ty)
+	return fmt.Sprintf("[[%f, %f, %f], [%f, %f, %f]]", g.a_1+1, g.b, g.tx, g.c, g.d_1+1, g.ty)
 }
 
 // Reset resets the GeoM as identity.
 func (g *GeoM) Reset() {
-	g.impl = nil
+	g.a_1 = 0
+	g.b = 0
+	g.c = 0
+	g.d_1 = 0
+	g.tx = 0
+	g.ty = 0
 }
 
 // Apply pre-multiplies a vector (x, y, 1) by the matrix.
 // In other words, Apply calculates GeoM * (x, y, 1)^T.
 // The return value is x and y values of the result vector.
 func (g *GeoM) Apply(x, y float64) (x2, y2 float64) {
-	return g.impl.Apply(x, y)
+	return (g.a_1+1)*x + g.b*y + g.tx, g.c*x + (g.d_1+1)*y + g.ty
 }
 
 // Element returns a value of a matrix at (i, j).
 func (g *GeoM) Element(i, j int) float64 {
-	a, b, c, d, tx, ty := g.impl.Elements()
 	switch {
 	case i == 0 && j == 0:
-		return a
+		return g.a_1 + 1
 	case i == 0 && j == 1:
-		return b
+		return g.b
 	case i == 0 && j == 2:
-		return tx
+		return g.tx
 	case i == 1 && j == 0:
-		return c
+		return g.c
 	case i == 1 && j == 1:
-		return d
+		return g.d_1 + 1
 	case i == 1 && j == 2:
-		return ty
+		return g.ty
 	default:
 		panic("ebiten: i or j is out of index")
 	}
@@ -72,46 +79,126 @@ func (g *GeoM) Element(i, j int) float64 {
 // Concat multiplies a geometry matrix with the other geometry matrix.
 // This is same as muptiplying the matrix other and the matrix g in this order.
 func (g *GeoM) Concat(other GeoM) {
-	g.impl = g.impl.Concat(other.impl)
+	a := (other.a_1+1)*(g.a_1+1) + other.b*g.c
+	b := (other.a_1+1)*g.b + other.b*(g.d_1+1)
+	tx := (other.a_1+1)*g.tx + other.b*g.ty + other.tx
+	c := other.c*(g.a_1+1) + (other.d_1+1)*g.c
+	d := other.c*g.b + (other.d_1+1)*(g.d_1+1)
+	ty := other.c*g.tx + (other.d_1+1)*g.ty + other.ty
+
+	g.a_1 = a - 1
+	g.b = b
+	g.c = c
+	g.d_1 = d - 1
+	g.tx = tx
+	g.ty = ty
 }
 
 // Add is deprecated as of 1.5.0-alpha.
 // Note that this doesn't make sense as an operation for affine matrices.
 func (g *GeoM) Add(other GeoM) {
-	g.impl = g.impl.Add(other.impl)
+	g.a_1 += other.a_1
+	g.b += other.b
+	g.c += other.c
+	g.d_1 += other.d_1
+	g.tx += other.tx
+	g.ty += other.ty
 }
 
 // Scale scales the matrix by (x, y).
 func (g *GeoM) Scale(x, y float64) {
-	g.impl = g.impl.Scale(x, y)
+	a := (g.a_1 + 1) * x
+	b := g.b * x
+	tx := g.tx * x
+	c := g.c * y
+	d := (g.d_1 + 1) * y
+	ty := g.ty * y
+
+	g.a_1 = a - 1
+	g.b = b
+	g.c = c
+	g.d_1 = d - 1
+	g.tx = tx
+	g.ty = ty
 }
 
 // Translate translates the matrix by (tx, ty).
 func (g *GeoM) Translate(tx, ty float64) {
-	g.impl = g.impl.Translate(tx, ty)
-}
-
-// IsInvertible returns a boolean value indicating
-// whether the matrix g is invertible or not.
-func (g *GeoM) IsInvertible() bool {
-	return g.impl.IsInvertible()
-}
-
-// Invert inverts the matrix.
-// If g is not invertible, Invert panics.
-func (g *GeoM) Invert() {
-	g.impl = g.impl.Invert()
+	g.tx += tx
+	g.ty += ty
 }
 
 // Rotate rotates the matrix by theta.
 // The unit is radian.
 func (g *GeoM) Rotate(theta float64) {
-	g.impl = g.impl.Rotate(theta)
+	sin, cos := math.Sincos(theta)
+
+	a := cos*(g.a_1+1) - sin*g.c
+	b := cos*g.b - sin*(g.d_1+1)
+	tx := cos*g.tx - sin*g.ty
+	c := sin*(g.a_1+1) + cos*g.c
+	d := sin*g.b + cos*(g.d_1+1)
+	ty := sin*g.tx + cos*g.ty
+
+	g.a_1 = a - 1
+	g.b = b
+	g.c = c
+	g.d_1 = d - 1
+	g.tx = tx
+	g.ty = ty
+}
+
+func (g *GeoM) det() float64 {
+	return (g.a_1+1)*(g.d_1+1) - g.b*g.c
+}
+
+// IsInvertible returns a boolean value indicating
+// whether the matrix g is invertible or not.
+func (g *GeoM) IsInvertible() bool {
+	return g.det() != 0
+}
+
+// Invert inverts the matrix.
+// If g is not invertible, Invert panics.
+func (g *GeoM) Invert() {
+	det := g.det()
+	if det == 0 {
+		panic("ebiten: g is not invertible")
+	}
+
+	a := (g.d_1 + 1) / det
+	b := -g.b / det
+	c := -g.c / det
+	d := (g.a_1 + 1) / det
+	tx := (-(g.d_1+1)*g.tx + g.b*g.ty) / det
+	ty := (g.c*g.tx + -(g.a_1+1)*g.ty) / det
+
+	g.a_1 = a - 1
+	g.b = b
+	g.c = c
+	g.d_1 = d - 1
+	g.tx = tx
+	g.ty = ty
 }
 
 // SetElement sets an element at (i, j).
 func (g *GeoM) SetElement(i, j int, element float64) {
-	g.impl = g.impl.SetElement(i, j, element)
+	switch {
+	case i == 0 && j == 0:
+		g.a_1 = element - 1
+	case i == 0 && j == 1:
+		g.b = element
+	case i == 0 && j == 2:
+		g.tx = element
+	case i == 1 && j == 0:
+		g.c = element
+	case i == 1 && j == 1:
+		g.d_1 = element - 1
+	case i == 1 && j == 2:
+		g.ty = element
+	default:
+		panic("ebiten: i or j is out of index")
+	}
 }
 
 // ScaleGeo is deprecated as of 1.2.0-alpha. Use Scale instead.
