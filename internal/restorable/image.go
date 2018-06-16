@@ -123,13 +123,13 @@ var (
 )
 
 type geoM struct {
-	scaleX float64
-	scaleY float64
-	tx     float64
-	ty     float64
+	scaleX float32
+	scaleY float32
+	tx     float32
+	ty     float32
 }
 
-func (g *geoM) Apply(x, y float64) (float64, float64) {
+func (g *geoM) Apply(x, y float32) (float32, float32) {
 	return x*g.scaleX + g.tx, y*g.scaleY + g.ty
 }
 
@@ -159,10 +159,10 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		w, h := dummyImage.Size()
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
 		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{
-			scaleX: float64(width) / float64(w),
-			scaleY: float64(height) / float64(h),
-			tx:     float64(x),
-			ty:     float64(y),
+			scaleX: float32(width) / float32(w),
+			scaleY: float32(height) / float32(h),
+			tx:     float32(x),
+			ty:     float32(y),
 		})
 		i.image.DrawImage(dummyImage.image, vs, quadIndices, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}

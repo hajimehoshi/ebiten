@@ -126,6 +126,14 @@ func (i *Image) fill(r, g, b, a uint8) {
 	_ = i.DrawImage(emptyImage, op)
 }
 
+type geoM32 struct {
+	inner *GeoM
+}
+
+func (g geoM32) Apply(x, y float32) (x2, y2 float32) {
+	return g.inner.apply32(x, y)
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -211,7 +219,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
-	geom := &options.GeoM
+	geom := geoM32{&options.GeoM}
 	if sx0 < 0 || sy0 < 0 {
 		dx := 0.0
 		dy := 0.0
@@ -223,9 +231,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			dy = -float64(sy0)
 			sy0 = 0
 		}
-		geom = &GeoM{}
-		geom.Translate(dx, dy)
-		geom.Concat(options.GeoM)
+		g := &GeoM{}
+		g.Translate(dx, dy)
+		g.Concat(options.GeoM)
+		geom = geoM32{g}
 	}
 
 	mode := opengl.CompositeMode(options.CompositeMode)
