@@ -52,6 +52,11 @@ func CursorPosition() (x, y int) {
 	return ui.AdjustedCursorPosition()
 }
 
+// MouseScroll returns the y offset of the mouse wheel
+func MouseScroll() float64 {
+	return input.Get().MouseScroll()
+}
+
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 //
 // This function is concurrent-safe.
