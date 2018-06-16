@@ -22,6 +22,7 @@ package input
 import (
 	"sync"
 	"unicode"
+	"time"
 
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
 )
@@ -29,6 +30,8 @@ import (
 type Input struct {
 	keyPressed         map[glfw.Key]bool
 	mouseButtonPressed map[glfw.MouseButton]bool
+	scrollY			   float64
+	scrollTime		   time.Time
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
@@ -83,6 +86,12 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
+func (i *Input) MouseScroll() float64 {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	return i.scrollY
+}
+
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
 	glfw.MouseButtonRight:  MouseButtonRight,
@@ -101,7 +110,15 @@ func (i *Input) Update(window *glfw.Window, scale float64) {
 				i.m.Unlock()
 			}
 		})
+		// I added this in here so that it would only be run once too
+		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+			i.m.Lock()
+			i.scrollY = yoff
+			i.scrollTime = time.Now()
+			i.m.Unlock()
+		})
 	}
+	if time.Now() != i.scrollTime { i.scrollY = 0 } // this is a rather inelegant way of setting the scroll value to 0 if no scrolling is happening
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
