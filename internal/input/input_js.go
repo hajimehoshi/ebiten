@@ -97,7 +97,7 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 }
 
 // TODO: Mouse scroll functionality is not yet implemented in js
-func (i *Input) MouseScroll() (xoff, yoff float64) {
+func (i *Input) MouseWheel() (xoff, yoff float64) {
 	return 0, 0
 }
 
