@@ -55,7 +55,7 @@ func CursorPosition() (x, y int) {
 // MouseScroll returns the x and y offset of the scroll wheel.
 // It returns 0 if the wheel isn't being rolled.
 func MouseWheel() (xoff, yoff float64) {
-	return input.Get().MouseScroll()
+	return input.Get().MouseWheel()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
