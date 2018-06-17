@@ -47,7 +47,18 @@ type GeoM interface {
 	Elements() (a, b, c, d, tx, ty float32)
 }
 
+func isPowerOf2(x int) bool {
+	return (x & (x - 1)) == 0
+}
+
 func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float32 {
+	if !isPowerOf2(width) {
+		panic("not reached")
+	}
+	if !isPowerOf2(height) {
+		panic("not reached")
+	}
+
 	if sx0 >= sx1 || sy0 >= sy1 {
 		return nil
 	}
@@ -55,18 +66,8 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float3
 		return nil
 	}
 
-	// it really feels like we should be able to cache this computation
-	// but it may not matter.
-	w := 1
-	h := 1
-	for w < width {
-		w *= 2
-	}
-	for h < height {
-		h *= 2
-	}
-	wf := float32(w)
-	hf := float32(h)
+	wf := float32(width)
+	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
 	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, geom)
 }
