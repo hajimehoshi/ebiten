@@ -100,7 +100,7 @@ type Image struct {
 
 type idGeoM struct{}
 
-func (idGeoM) Apply(x, y float64) (x2, y2 float64) {
+func (idGeoM) Apply(x, y float32) (x2, y2 float32) {
 	return x, y
 }
 

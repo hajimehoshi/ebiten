@@ -46,11 +46,11 @@ func TestMain(m *testing.M) {
 const bigSize = 2049
 
 type geoM struct {
-	tx float64
-	ty float64
+	tx float32
+	ty float32
 }
 
-func (g *geoM) Apply(x, y float64) (x2, y2 float64) {
+func (g *geoM) Apply(x, y float32) (x2, y2 float32) {
 	return x + g.tx, y + g.ty
 }
 

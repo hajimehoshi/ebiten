@@ -258,7 +258,7 @@ func TestGeoMIsInvert(t *testing.T) {
 		},
 	}
 
-	const delta = 0.00001
+	const delta = 0.001
 
 	for _, c := range cases {
 		if c.GeoM.IsInvertible() != c.Invertible {
