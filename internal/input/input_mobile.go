@@ -40,6 +40,10 @@ func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
 	return false
 }
 
+func (i *Input) MouseScroll() (xoff, yoff float64) {
+	return 0, 0
+}
+
 func (i *Input) UpdateTouches(touches []*Touch) {
 	i.m.Lock()
 	i.touches = touches // TODO: Need copy?
