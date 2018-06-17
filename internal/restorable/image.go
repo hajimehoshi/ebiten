@@ -129,8 +129,8 @@ type geoM struct {
 	ty     float32
 }
 
-func (g *geoM) Apply(x, y float32) (float32, float32) {
-	return x*g.scaleX + g.tx, y*g.scaleY + g.ty
+func (g *geoM) Elements() (a, b, c, d, tx, ty float32) {
+	return g.scaleX, 0, 0, g.scaleY, g.tx, g.ty
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
