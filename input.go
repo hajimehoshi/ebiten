@@ -52,8 +52,8 @@ func CursorPosition() (x, y int) {
 	return ui.AdjustedCursorPosition()
 }
 
-// MouseScroll returns the x and y offset of the scroll wheel or scrolling device.
-// For a scroll wheel it returns 0 if the wheel isn't being rolled.
+// MouseScroll returns the x and y offset of the scroll wheel.
+// It returns 0 if the wheel isn't being rolled.
 func MouseScroll() (xoff, yoff float64) {
 	return input.Get().MouseScroll()
 }
