@@ -75,6 +75,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1 float32, geom GeoM) []float32 {
 	vs := theVerticesBackend.sliceForOneQuad()
 
 	a, b, c, d, tx, ty := geom.Elements()
+	ax, by, cx, dy := a*x, b*y, c*x, d*y
+
 	// Vertex coordinates
 	vs[0] = tx
 	vs[1] = ty
@@ -88,22 +90,22 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1 float32, geom GeoM) []float32 {
 	vs[5] = v1
 
 	// and the same for the other three coordinates
-	vs[6] = a*x + tx
-	vs[7] = c*x + ty
+	vs[6] = ax + tx
+	vs[7] = cx + ty
 	vs[8] = u1
 	vs[9] = v0
 	vs[10] = u0
 	vs[11] = v1
 
-	vs[12] = b*y + tx
-	vs[13] = d*y + ty
+	vs[12] = by + tx
+	vs[13] = dy + ty
 	vs[14] = u0
 	vs[15] = v1
 	vs[16] = u1
 	vs[17] = v0
 
-	vs[18] = a*x + b*y + tx
-	vs[19] = c*x + d*y + ty
+	vs[18] = ax + by + tx
+	vs[19] = cx + dy + ty
 	vs[20] = u1
 	vs[21] = v1
 	vs[22] = u0
