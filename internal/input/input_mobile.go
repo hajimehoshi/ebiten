@@ -23,6 +23,8 @@ import (
 type Input struct {
 	cursorX  int
 	cursorY  int
+	scrollX  float64
+	scrollY  float64
 	gamepads [16]gamePad
 	touches  []*Touch
 	m        sync.RWMutex
@@ -36,12 +38,12 @@ func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 
-func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
-	return false
-}
-
 func (i *Input) MouseScroll() (xoff, yoff float64) {
 	return 0, 0
+}
+
+func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
+	return false
 }
 
 func (i *Input) UpdateTouches(touches []*Touch) {
