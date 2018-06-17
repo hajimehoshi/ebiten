@@ -38,7 +38,7 @@ func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 
-func (i *Input) MouseScroll() (xoff, yoff float64) {
+func (i *Input) MouseWheel() (xoff, yoff float64) {
 	return 0, 0
 }
 
