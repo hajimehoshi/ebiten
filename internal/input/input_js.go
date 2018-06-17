@@ -91,10 +91,6 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
-func (i *Input) MouseScroll() (xoff, yoff float64) {
-	return 0, 0
-}
-
 func (i *Input) keyDown(code string) {
 	if i.keyPressed == nil {
 		i.keyPressed = map[string]bool{}
