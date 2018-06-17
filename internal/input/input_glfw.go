@@ -30,9 +30,9 @@ import (
 type Input struct {
 	keyPressed         map[glfw.Key]bool
 	mouseButtonPressed map[glfw.MouseButton]bool
-	scrollX		   float64
-	scrollY		   float64
-	scrollTime	   time.Time
+	scrollX            float64
+	scrollY            float64
+	scrollTime         time.Time
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
