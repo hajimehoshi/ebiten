@@ -21,8 +21,8 @@ package input
 
 import (
 	"sync"
-	"unicode"
 	"time"
+	"unicode"
 
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
 )
@@ -116,11 +116,13 @@ func (i *Input) Update(window *glfw.Window, scale float64) {
 			i.m.Lock()
 			i.scrollX = xoff
 			i.scrollY = yoff
-			i.scrollTime = time.Now()
+			i.scrollTime = time.Now() // this is a rather inelegant way of setting the scroll value to 0 if no scrolling is happening
 			i.m.Unlock()
 		})
 	}
-	if time.Now() != i.scrollTime { i.scrollX, i.scrollY = 0, 0 } // this is a rather inelegant way of setting the scroll value to 0 if no scrolling is happening
+	if time.Now() != i.scrollTime {
+		i.scrollX, i.scrollY = 0, 0
+	}
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
