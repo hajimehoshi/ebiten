@@ -56,19 +56,21 @@ func (s *Sprite) Update() {
 	if s.x < 0 {
 		s.x = -s.x
 		s.vx = -s.vx
-	} else if screenWidth <= s.x+s.imageWidth {
-		s.x = 2*(screenWidth-s.imageWidth) - s.x
+	} else if mx := screenWidth - s.imageWidth; mx <= s.x {
+		s.x = 2*mx - s.x
 		s.vx = -s.vx
 	}
 	if s.y < 0 {
 		s.y = -s.y
 		s.vy = -s.vy
-	} else if screenHeight <= s.y+s.imageHeight {
-		s.y = 2*(screenHeight-s.imageHeight) - s.y
+	} else if my := screenHeight - s.imageHeight; my <= s.y {
+		s.y = 2*my - s.y
 		s.vy = -s.vy
 	}
 	s.angle++
-	s.angle %= maxAngle
+	if s.angle == maxAngle {
+		s.angle = 0
+	}
 }
 
 type Sprites struct {
