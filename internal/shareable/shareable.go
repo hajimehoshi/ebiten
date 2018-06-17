@@ -164,7 +164,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom graphicsutil.
 	}
 
 	dx, dy, _, _ := img.region()
-	w, h := img.backend.restorable.Size()
+	w, h := img.backend.restorable.SizePowerOf2()
 	vs := graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, geom)
 	i.backend.restorable.DrawImage(img.backend.restorable, vs, quadIndices, colorm, mode, filter)
 }

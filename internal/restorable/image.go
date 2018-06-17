@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
+	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -53,6 +54,9 @@ type Image struct {
 
 	// screen indicates whether the image is used as an actual screen.
 	screen bool
+
+	w2 int
+	h2 int
 }
 
 var dummyImage = newImageWithoutInit(16, 16, false)
@@ -104,6 +108,16 @@ func (i *Image) BasePixelsForTesting() []byte {
 // Size returns the image's size.
 func (i *Image) Size() (int, int) {
 	return i.image.Size()
+}
+
+// SizePowerOf2 returns the next power of 2 values for the size.
+func (i *Image) SizePowerOf2() (int, int) {
+	if i.w2 == 0 || i.h2 == 0 {
+		w, h := i.image.Size()
+		i.w2 = math.NextPowerOf2Int(w)
+		i.h2 = math.NextPowerOf2Int(h)
+	}
+	return i.w2, i.h2
 }
 
 // makeStale makes the image stale.
