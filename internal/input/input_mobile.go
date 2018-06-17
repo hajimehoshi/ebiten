@@ -38,6 +38,7 @@ func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 
+// TODO: Scrolling is not yet implemented on mobile.
 func (i *Input) MouseWheel() (xoff, yoff float64) {
 	return 0, 0
 }
