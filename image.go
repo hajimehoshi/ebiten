@@ -130,8 +130,8 @@ type geoM32 struct {
 	inner *GeoM
 }
 
-func (g geoM32) Apply(x, y float32) (x2, y2 float32) {
-	return g.inner.apply32(x, y)
+func (g geoM32) Elements() (a, b, c, d, tx, ty float32) {
+	return g.inner.elements()
 }
 
 // DrawImage draws the given image on the image i.

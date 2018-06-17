@@ -50,8 +50,8 @@ type geoM struct {
 	ty float32
 }
 
-func (g *geoM) Apply(x, y float32) (x2, y2 float32) {
-	return x + g.tx, y + g.ty
+func (g *geoM) Elements() (a, b, c, d, tx, ty float32) {
+	return 1, 0, 0, 1, g.tx, g.ty
 }
 
 func TestEnsureNotShared(t *testing.T) {

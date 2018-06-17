@@ -61,6 +61,10 @@ func (g *GeoM) apply32(x, y float32) (x2, y2 float32) {
 	return (g.a_1+1)*x + g.b*y + g.tx, g.c*x + (g.d_1+1)*y + g.ty
 }
 
+func (g *GeoM) elements() (a, b, c, d, tx, ty float32) {
+	return g.a_1 + 1, g.b, g.c, g.d_1 + 1, g.tx, g.ty
+}
+
 // Element returns a value of a matrix at (i, j).
 func (g *GeoM) Element(i, j int) float64 {
 	switch {
@@ -136,6 +140,10 @@ func (g *GeoM) Translate(tx, ty float64) {
 // Rotate rotates the matrix by theta.
 // The unit is radian.
 func (g *GeoM) Rotate(theta float64) {
+	if theta == 0 {
+		return
+	}
+
 	sin64, cos64 := math.Sincos(theta)
 	sin, cos := float32(sin64), float32(cos64)
 
