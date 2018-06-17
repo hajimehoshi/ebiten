@@ -67,7 +67,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, idGeoM{})
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0)
 	newImg.DrawImage(oldImg, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
@@ -98,12 +98,6 @@ type Image struct {
 	node *packing.Node
 }
 
-type idGeoM struct{}
-
-func (idGeoM) Elements() (a, b, c, d, tx, ty float32) {
-	return 1, 0, 0, 1, 0, 0
-}
-
 func (i *Image) ensureNotShared() {
 	if i.backend == nil {
 		i.allocate(false)
@@ -117,7 +111,7 @@ func (i *Image) ensureNotShared() {
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
-	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, idGeoM{})
+	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0)
 	newImg.DrawImage(i.backend.restorable, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)
@@ -141,7 +135,7 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom graphicsutil.GeoM, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -165,7 +159,7 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, geom graphicsutil.
 
 	dx, dy, _, _ := img.region()
 	w, h := img.backend.restorable.SizePowerOf2()
-	vs := graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, geom)
+	vs := graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)
 	i.backend.restorable.DrawImage(img.backend.restorable, vs, quadIndices, colorm, mode, filter)
 }
 

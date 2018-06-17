@@ -136,17 +136,6 @@ var (
 	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
 )
 
-type geoM struct {
-	scaleX float32
-	scaleY float32
-	tx     float32
-	ty     float32
-}
-
-func (g *geoM) Elements() (a, b, c, d, tx, ty float32) {
-	return g.scaleX, 0, 0, g.scaleY, g.tx, g.ty
-}
-
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // If pixels is nil, ReplacePixels clears the specified reagion.
@@ -172,12 +161,9 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		// and this image can be restored without dummyImage.
 		w, h := dummyImage.Size()
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
-		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, &geoM{
-			scaleX: float32(width) / float32(w),
-			scaleY: float32(height) / float32(h),
-			tx:     float32(x),
-			ty:     float32(y),
-		})
+		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h,
+			float32(width)/float32(w), 0, 0, float32(height)/float32(h),
+			float32(x), float32(y))
 		i.image.DrawImage(dummyImage.image, vs, quadIndices, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 

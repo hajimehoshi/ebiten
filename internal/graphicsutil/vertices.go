@@ -43,15 +43,11 @@ func (v *verticesBackend) sliceForOneQuad() []float32 {
 	return s
 }
 
-type GeoM interface {
-	Elements() (a, b, c, d, tx, ty float32)
-}
-
 func isPowerOf2(x int) bool {
 	return (x & (x - 1)) == 0
 }
 
-func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float32 {
+func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
 	if !isPowerOf2(width) {
 		panic("not reached")
 	}
@@ -69,13 +65,12 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, geom GeoM) []float3
 	wf := float32(width)
 	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, geom)
+	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty)
 }
 
-func quadVerticesImpl(x, y, u0, v0, u1, v1 float32, geom GeoM) []float32 {
+func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float32 {
 	vs := theVerticesBackend.sliceForOneQuad()
 
-	a, b, c, d, tx, ty := geom.Elements()
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 
 	// Vertex coordinates

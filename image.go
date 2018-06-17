@@ -126,14 +126,6 @@ func (i *Image) fill(r, g, b, a uint8) {
 	_ = i.DrawImage(emptyImage, op)
 }
 
-type geoM32 struct {
-	inner *GeoM
-}
-
-func (g geoM32) Elements() (a, b, c, d, tx, ty float32) {
-	return g.inner.elements()
-}
-
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -219,7 +211,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			sy1 = r.Max.Y
 		}
 	}
-	geom := geoM32{&options.GeoM}
+	geom := &options.GeoM
 	if sx0 < 0 || sy0 < 0 {
 		dx := 0.0
 		dy := 0.0
@@ -231,10 +223,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			dy = -float64(sy0)
 			sy0 = 0
 		}
-		g := &GeoM{}
-		g.Translate(dx, dy)
-		g.Concat(options.GeoM)
-		geom = geoM32{g}
+		geom = &GeoM{}
+		geom.Translate(dx, dy)
+		geom.Concat(options.GeoM)
 	}
 
 	mode := opengl.CompositeMode(options.CompositeMode)
@@ -246,7 +237,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = graphics.Filter(img.filter)
 	}
 
-	i.shareableImage.DrawImage(img.shareableImage, sx0, sy0, sx1, sy1, geom, options.ColorM.impl, mode, filter)
+	a, b, c, d, tx, ty := geom.elements()
+	i.shareableImage.DrawImage(img.shareableImage, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
 	return nil
 }
 

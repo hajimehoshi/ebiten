@@ -45,15 +45,6 @@ func TestMain(m *testing.M) {
 
 const bigSize = 2049
 
-type geoM struct {
-	tx float32
-	ty float32
-}
-
-func (g *geoM) Elements() (a, b, c, d, tx, ty float32) {
-	return 1, 0, 0, 1, g.tx, g.ty
-}
-
 func TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
@@ -93,8 +84,7 @@ func TestEnsureNotShared(t *testing.T) {
 		dy1 = size * 3 / 4
 	)
 	// img4.ensureNotShared() should be called.
-	geom := &geoM{size / 4, size / 4}
-	img4.DrawImage(img3, 0, 0, size/2, size/2, geom, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img4.DrawImage(img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -115,5 +105,5 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawImage(img3, 0, 0, size/2, size/2, geom, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img4.DrawImage(img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 }
