@@ -91,6 +91,11 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
+func (i *Input) MouseWheel() (xoff, yoff float64) {
+	return 0, 0
+	// TODO: Mouse scroll functionality is not yet implemented in js
+}
+
 func (i *Input) keyDown(code string) {
 	if i.keyPressed == nil {
 		i.keyPressed = map[string]bool{}

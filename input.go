@@ -52,6 +52,12 @@ func CursorPosition() (x, y int) {
 	return ui.AdjustedCursorPosition()
 }
 
+// MouseWheel returns the x and y offset of the scroll wheel.
+// It returns 0 if the wheel isn't being rolled.
+func MouseWheel() (xoff, yoff float64) {
+	return input.Get().MouseWheel()
+}
+
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 //
 // This function is concurrent-safe.

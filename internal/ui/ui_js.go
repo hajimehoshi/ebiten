@@ -194,6 +194,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
 		input.Get().ClearRuneBuffer()
+		// TODO: insert ResetScrollValues() counterpart to 'ui_glfw.go' here
 		// The offscreens must be updated every frame (#490).
 		u.updateGraphicsContext(g)
 	}); err != nil {

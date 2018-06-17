@@ -27,14 +27,17 @@ import (
 )
 
 type Input struct {
-	keyPressed         map[glfw.Key]bool
-	mouseButtonPressed map[glfw.MouseButton]bool
-	cursorX            int
-	cursorY            int
-	gamepads           [16]gamePad
-	touches            []*Touch // This is not updated until GLFW 3.3 is available (#417)
-	runeBuffer         []rune
-	m                  sync.RWMutex
+	keyPressed           map[glfw.Key]bool
+	mouseButtonPressed   map[glfw.MouseButton]bool
+	callbacksInitialized bool
+	scrollX              float64
+	scrollY              float64
+	cursorX              int
+	cursorY              int
+	gamepads             [16]gamePad
+	touches              []*Touch // This is not updated until GLFW 3.3 is available (#417)
+	runeBuffer           []rune
+	m                    sync.RWMutex
 }
 
 func (i *Input) RuneBuffer() []rune {
@@ -47,6 +50,12 @@ func (i *Input) ClearRuneBuffer() {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	i.runeBuffer = i.runeBuffer[:0]
+}
+
+func (i *Input) ResetScrollValues() {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	i.scrollX, i.scrollY = 0, 0
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -83,6 +92,12 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
+func (i *Input) MouseWheel() (xoff, yoff float64) {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	return i.scrollX, i.scrollY
+}
+
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 	glfw.MouseButtonLeft:   MouseButtonLeft,
 	glfw.MouseButtonRight:  MouseButtonRight,
@@ -92,7 +107,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
 func (i *Input) Update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if i.runeBuffer == nil {
+	if !i.callbacksInitialized {
 		i.runeBuffer = make([]rune, 0, 1024)
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 			if unicode.IsPrint(char) {
@@ -101,6 +116,13 @@ func (i *Input) Update(window *glfw.Window, scale float64) {
 				i.m.Unlock()
 			}
 		})
+		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+			i.m.Lock()
+			i.scrollX = xoff
+			i.scrollY = yoff
+			i.m.Unlock()
+		})
+		i.callbacksInitialized = true
 	}
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
