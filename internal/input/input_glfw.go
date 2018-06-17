@@ -21,7 +21,6 @@ package input
 
 import (
 	"sync"
-	"time"
 	"unicode"
 
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
@@ -32,7 +31,6 @@ type Input struct {
 	mouseButtonPressed map[glfw.MouseButton]bool
 	scrollX            float64
 	scrollY            float64
-	scrollTime         time.Time
 	cursorX            int
 	cursorY            int
 	gamepads           [16]gamePad
@@ -51,6 +49,12 @@ func (i *Input) ClearRuneBuffer() {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	i.runeBuffer = i.runeBuffer[:0]
+}
+
+func (i *Input) ResetScrollValues() {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	i.scrollX, i.scrollY = 0, 0
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -116,12 +120,8 @@ func (i *Input) Update(window *glfw.Window, scale float64) {
 			i.m.Lock()
 			i.scrollX = xoff
 			i.scrollY = yoff
-			i.scrollTime = time.Now() // this is a rather inelegant way of setting the scroll value to 0 if no scrolling is happening
 			i.m.Unlock()
 		})
-	}
-	if time.Now() != i.scrollTime {
-		i.scrollX, i.scrollY = 0, 0
 	}
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
