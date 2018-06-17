@@ -49,11 +49,6 @@ func (i *Input) ClearRuneBuffer() {
 	i.runeBuffer = nil
 }
 
-func (i *Input) ResetScrollValues() {
-	// Do nothing
-	// TODO: add fields to 'Input' and implement mouse scroll functionality
-}
-
 func (i *Input) IsKeyPressed(key Key) bool {
 	if i.keyPressed != nil {
 		for _, c := range keyToCodes[key] {
