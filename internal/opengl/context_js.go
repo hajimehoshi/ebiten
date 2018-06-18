@@ -44,6 +44,29 @@ func getProgramID(p Program) programID {
 	return programID(js.Value(p).Get("__ebiten_programId").Int())
 }
 
+var (
+	blend               js.Value
+	clampToEdge         js.Value
+	colorAttachment0    js.Value
+	compileStatus       js.Value
+	framebuffer         js.Value
+	framebufferBinding  js.Value
+	framebufferComplete js.Value
+	linkStatus          js.Value
+	maxTextureSize      js.Value
+	nearest             js.Value
+	noError             js.Value
+	texture2d           js.Value
+	textureMagFilter    js.Value
+	textureMinFilter    js.Value
+	textureWrapS        js.Value
+	textureWrapT        js.Value
+	rgba                js.Value
+	unpackAlignment     js.Value
+	unsignedByte        js.Value
+	unsignedShort       js.Value
+)
+
 func init() {
 	// Accessing the prototype is rquired on Safari.
 	c := js.Global.Get("WebGLRenderingContext").Get("prototype")
@@ -63,6 +86,27 @@ func init() {
 	dstAlpha = operation(c.Get("DST_ALPHA").Int())
 	oneMinusSrcAlpha = operation(c.Get("ONE_MINUS_SRC_ALPHA").Int())
 	oneMinusDstAlpha = operation(c.Get("ONE_MINUS_DST_ALPHA").Int())
+
+	blend = c.Get("BLEND")
+	clampToEdge = c.Get("CLAMP_TO_EDGE")
+	compileStatus = c.Get("COMPILE_STATUS")
+	colorAttachment0 = c.Get("COLOR_ATTACHMENT0")
+	framebuffer = c.Get("FRAMEBUFFER")
+	framebufferBinding = c.Get("FRAMEBUFFER_BINDING")
+	framebufferComplete = c.Get("FRAMEBUFFER_COMPLETE")
+	linkStatus = c.Get("LINK_STATUS")
+	maxTextureSize = c.Get("MAX_TEXTURE_SIZE")
+	nearest = c.Get("NEAREST")
+	noError = c.Get("NO_ERROR")
+	rgba = c.Get("RGBA")
+	texture2d = c.Get("TEXTURE_2D")
+	textureMagFilter = c.Get("TEXTURE_MAG_FILTER")
+	textureMinFilter = c.Get("TEXTURE_MIN_FILTER")
+	textureWrapS = c.Get("TEXTURE_WRAP_S")
+	textureWrapT = c.Get("TEXTURE_WRAP_T")
+	unpackAlignment = c.Get("UNPACK_ALIGNMENT")
+	unsignedByte = c.Get("UNSIGNED_BYTE")
+	unsignedShort = c.Get("UNSIGNED_SHORT")
 }
 
 type context struct {
@@ -116,9 +160,9 @@ func (c *Context) Reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
 	gl := c.gl
-	gl.Call("enable", gl.Get("BLEND"))
+	gl.Call("enable", blend)
 	c.BlendFunc(CompositeModeSourceOver)
-	f := gl.Call("getParameter", gl.Get("FRAMEBUFFER_BINDING"))
+	f := gl.Call("getParameter", framebufferBinding)
 	c.screenFramebuffer = Framebuffer(f)
 	return nil
 }
@@ -139,25 +183,25 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	if t == js.Null {
 		return Texture(js.Null), errors.New("opengl: glGenTexture failed")
 	}
-	gl.Call("pixelStorei", gl.Get("UNPACK_ALIGNMENT"), 4)
+	gl.Call("pixelStorei", unpackAlignment, 4)
 	c.BindTexture(Texture(t))
 
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("NEAREST"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("NEAREST"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
+	gl.Call("texParameteri", texture2d, textureMagFilter, nearest)
+	gl.Call("texParameteri", texture2d, textureMinFilter, nearest)
+	gl.Call("texParameteri", texture2d, textureWrapS, clampToEdge)
+	gl.Call("texParameteri", texture2d, textureWrapT, clampToEdge)
 
 	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
 	//     GLsizei width, GLsizei height, GLint border, GLenum format,
 	//     GLenum type, ArrayBufferView? pixels);
-	gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"), width, height, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), nil)
+	gl.Call("texImage2D", texture2d, 0, rgba, width, height, 0, rgba, unsignedByte, nil)
 
 	return Texture(t), nil
 }
 
 func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl := c.gl
-	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), js.Value(f))
+	gl.Call("bindFramebuffer", framebuffer, js.Value(f))
 }
 
 func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
@@ -166,8 +210,8 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 	c.bindFramebuffer(f)
 
 	pixels := make([]byte, 4*width*height)
-	gl.Call("readPixels", 0, 0, width, height, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), pixels)
-	if e := gl.Call("getError"); e.Int() != gl.Get("NO_ERROR").Int() {
+	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, pixels)
+	if e := gl.Call("getError"); e.Int() != noError.Int() {
 		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
 	}
 	return pixels, nil
@@ -175,7 +219,7 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 
 func (c *Context) bindTextureImpl(t Texture) {
 	gl := c.gl
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), js.Value(t))
+	gl.Call("bindTexture", texture2d, js.Value(t))
 }
 
 func (c *Context) DeleteTexture(t Texture) {
@@ -199,7 +243,7 @@ func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-	gl.Call("texSubImage2D", gl.Get("TEXTURE_2D"), 0, x, y, width, height, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), p)
+	gl.Call("texSubImage2D", texture2d, 0, x, y, width, height, rgba, unsignedByte, p)
 }
 
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
@@ -207,8 +251,8 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(Framebuffer(f))
 
-	gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), js.Value(t), 0)
-	if s := gl.Call("checkFramebufferStatus", gl.Get("FRAMEBUFFER")); s.Int() != gl.Get("FRAMEBUFFER_COMPLETE").Int() {
+	gl.Call("framebufferTexture2D", framebuffer, colorAttachment0, texture2d, js.Value(t), 0)
+	if s := gl.Call("checkFramebufferStatus", framebuffer); s.Int() != framebufferComplete.Int() {
 		return Framebuffer(js.Null), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
@@ -246,7 +290,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	gl.Call("shaderSource", js.Value(s), source)
 	gl.Call("compileShader", js.Value(s))
 
-	if !gl.Call("getShaderParameter", js.Value(s), gl.Get("COMPILE_STATUS")).Bool() {
+	if !gl.Call("getShaderParameter", js.Value(s), compileStatus).Bool() {
 		log := gl.Call("getShaderInfoLog", js.Value(s))
 		return Shader(js.Null), fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
@@ -271,7 +315,7 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 		gl.Call("attachShader", js.Value(p), js.Value(shader))
 	}
 	gl.Call("linkProgram", js.Value(p))
-	if !gl.Call("getProgramParameter", js.Value(p), gl.Get("LINK_STATUS")).Bool() {
+	if !gl.Call("getProgramParameter", js.Value(p), linkStatus).Bool() {
 		return Program(js.Null), errors.New("opengl: program error")
 	}
 	return Program(p), nil
@@ -389,12 +433,12 @@ func (c *Context) DeleteBuffer(b Buffer) {
 
 func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
 	gl := c.gl
-	gl.Call("drawElements", int(mode), len, gl.Get("UNSIGNED_SHORT"), offsetInBytes)
+	gl.Call("drawElements", int(mode), len, unsignedShort, offsetInBytes)
 }
 
 func (c *Context) maxTextureSizeImpl() int {
 	gl := c.gl
-	return gl.Call("getParameter", gl.Get("MAX_TEXTURE_SIZE")).Int()
+	return gl.Call("getParameter", maxTextureSize).Int()
 }
 
 func (c *Context) Flush() {

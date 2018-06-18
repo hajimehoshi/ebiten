@@ -50,8 +50,9 @@ var currentUI = &userInterface{
 }
 
 var (
-	window   = js.Global.Get("window")
-	document = js.Global.Get("document")
+	window                = js.Global.Get("window")
+	document              = js.Global.Get("document")
+	requestAnimationFrame = window.Get("requestAnimationFrame")
 )
 
 func MonitorSize() (int, int) {
@@ -215,7 +216,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			close(ch)
 			return
 		}
-		window.Call("requestAnimationFrame", cf)
+		requestAnimationFrame.Invoke(cf)
 	}
 	cf = js.NewCallback(f)
 	// Call f asyncly to be async since ch is used in f.
