@@ -307,6 +307,10 @@ func (c *Context) UniformFloat(p Program, location string, v float32) {
 	gl.Call("uniform1f", js.Value(l), v)
 }
 
+var (
+	float32Array = js.Global.Get("Float32Array")
+)
+
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
@@ -317,7 +321,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
 	case 16:
 		u8 := js.ValueOf(v)
-		m := js.Global.Get("Float32Array").New(u8.Get("buffer"), u8.Get("byteOffset").Int(), 16)
+		m := float32Array.New(u8.Get("buffer"), u8.Get("byteOffset").Int(), 16)
 		gl.Call("uniformMatrix4fv", js.Value(l), false, m)
 	default:
 		panic("not reached")

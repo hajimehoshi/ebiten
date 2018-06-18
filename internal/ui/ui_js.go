@@ -49,9 +49,13 @@ var currentUI = &userInterface{
 	pageVisible: true,
 }
 
+var (
+	window   = js.Global.Get("window")
+	document = js.Global.Get("document")
+)
+
 func MonitorSize() (int, int) {
-	w := js.Global.Get("window")
-	return w.Get("innerWidth").Int(), w.Get("innerHeight").Int()
+	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
 func SetScreenSize(width, height int) bool {
@@ -122,8 +126,7 @@ func SetCursorVisible(visible bool) {
 }
 
 func SetWindowTitle(title string) {
-	doc := js.Global.Get("document")
-	doc.Set("title", title)
+	document.Set("title", title)
 }
 
 func SetWindowIcon(iconImages []image.Image) {
@@ -142,8 +145,7 @@ func (u *userInterface) getScale() float64 {
 	if !u.fullscreen {
 		return u.scale
 	}
-	doc := js.Global.Get("document")
-	body := doc.Get("body")
+	body := document.Get("body")
 	bw := body.Get("clientWidth").Float()
 	bh := body.Get("clientHeight").Float()
 	sw := bw / float64(u.width)
@@ -213,7 +215,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			close(ch)
 			return
 		}
-		js.Global.Get("window").Call("requestAnimationFrame", cf)
+		window.Call("requestAnimationFrame", cf)
 	}
 	cf = js.NewCallback(f)
 	// Call f asyncly to be async since ch is used in f.
@@ -228,9 +230,7 @@ func init() {
 	if web.IsNodeJS() {
 		return
 	}
-	doc := js.Global.Get("document")
-	window := js.Global.Get("window")
-	if doc.Get("body") == js.Null {
+	if document.Get("body") == js.Null {
 		ch := make(chan struct{})
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
@@ -254,8 +254,8 @@ func init() {
 			hooks.ResumeAudio()
 		}
 	}))
-	doc.Call("addEventListener", "visibilitychange", js.NewCallback(func([]js.Value) {
-		currentUI.pageVisible = !doc.Get("hidden").Bool()
+	document.Call("addEventListener", "visibilitychange", js.NewCallback(func([]js.Value) {
+		currentUI.pageVisible = !document.Get("hidden").Bool()
 		if currentUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
@@ -268,22 +268,22 @@ func init() {
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
-	meta := doc.Call("createElement", "meta")
+	meta := document.Call("createElement", "meta")
 	meta.Set("name", "viewport")
 	meta.Set("content", "width=device-width, initial-scale=1")
-	doc.Get("head").Call("appendChild", meta)
+	document.Get("head").Call("appendChild", meta)
 
-	canvas = doc.Call("createElement", "canvas")
+	canvas = document.Call("createElement", "canvas")
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
-	doc.Get("body").Call("appendChild", canvas)
+	document.Get("body").Call("appendChild", canvas)
 
-	htmlStyle := doc.Get("documentElement").Get("style")
+	htmlStyle := document.Get("documentElement").Get("style")
 	htmlStyle.Set("height", "100%")
 	htmlStyle.Set("margin", "0")
 	htmlStyle.Set("padding", "0")
 
-	bodyStyle := doc.Get("body").Get("style")
+	bodyStyle := document.Get("body").Get("style")
 	bodyStyle.Set("backgroundColor", "#000")
 	bodyStyle.Set("position", "relative")
 	bodyStyle.Set("height", "100%")
@@ -291,7 +291,7 @@ func init() {
 	bodyStyle.Set("padding", "0")
 	// TODO: This is OK as long as the game is in an independent iframe.
 	// What if the canvas is embedded in a HTML directly?
-	doc.Get("body").Call("addEventListener", "click", js.NewCallback(func([]js.Value) {
+	document.Get("body").Call("addEventListener", "click", js.NewCallback(func([]js.Value) {
 		canvas.Call("focus")
 	}))
 
@@ -340,8 +340,7 @@ func RunMainThreadLoop(ch <-chan error) error {
 
 func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	u := currentUI
-	doc := js.Global.Get("document")
-	doc.Set("title", title)
+	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
 	if err := opengl.Init(); err != nil {
