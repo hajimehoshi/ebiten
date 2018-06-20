@@ -373,12 +373,12 @@ func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 
 func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(ArrayBuffer), 0, float32ToBytes(data))
+	gl.BufferSubData(mgl.Enum(ArrayBuffer), 0, float32sToBytes(data))
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(ElementArrayBuffer), 0, uint16ToBytes(data))
+	gl.BufferSubData(mgl.Enum(ElementArrayBuffer), 0, uint16sToBytes(data))
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {
