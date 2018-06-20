@@ -270,11 +270,6 @@ func (i *Image) allocate(shareable bool) {
 		panic("not reached")
 	}
 
-	const (
-		initSize = 1024
-		maxSize  = 4096
-	)
-
 	if !shareable || i.width > maxSize || i.height > maxSize {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, false),
