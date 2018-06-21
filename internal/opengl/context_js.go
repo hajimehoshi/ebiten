@@ -29,19 +29,21 @@ type (
 	Texture         js.Value
 	Framebuffer     js.Value
 	Shader          js.Value
-	Program         js.Value
 	Buffer          js.Value
 	uniformLocation js.Value
+
+	attribLocation int
+	programID      int
+	Program        struct {
+		value js.Value
+		id    programID
+	}
 )
-
-type attribLocation int
-
-type programID int
 
 var InvalidTexture = Texture(js.Null)
 
 func getProgramID(p Program) programID {
-	return programID(js.Value(p).Get("__ebiten_programId").Int())
+	return p.id
 }
 
 var (
@@ -304,26 +306,30 @@ func (c *Context) DeleteShader(s Shader) {
 
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
-	p := gl.Call("createProgram")
-	if p == js.Null {
-		return Program(js.Null), errors.New("opengl: glCreateProgram failed")
+	v := gl.Call("createProgram")
+	if v == js.Null {
+		return Program{}, errors.New("opengl: glCreateProgram failed")
 	}
-	p.Set("__ebiten_programId", int(c.lastProgramID))
-	c.lastProgramID++
 
 	for _, shader := range shaders {
-		gl.Call("attachShader", js.Value(p), js.Value(shader))
+		gl.Call("attachShader", v, js.Value(shader))
 	}
-	gl.Call("linkProgram", js.Value(p))
-	if !gl.Call("getProgramParameter", js.Value(p), linkStatus).Bool() {
-		return Program(js.Null), errors.New("opengl: program error")
+	gl.Call("linkProgram", v)
+	if !gl.Call("getProgramParameter", v, linkStatus).Bool() {
+		return Program{}, errors.New("opengl: program error")
 	}
-	return Program(p), nil
+
+	id := c.lastProgramID
+	c.lastProgramID++
+	return Program{
+		value: v,
+		id:    id,
+	}, nil
 }
 
 func (c *Context) UseProgram(p Program) {
 	gl := c.gl
-	gl.Call("useProgram", js.Value(p))
+	gl.Call("useProgram", p.value)
 }
 
 func (c *Context) DeleteProgram(p Program) {
@@ -336,7 +342,7 @@ func (c *Context) DeleteProgram(p Program) {
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
 	gl := c.gl
-	return uniformLocation(gl.Call("getUniformLocation", js.Value(p), location))
+	return uniformLocation(gl.Call("getUniformLocation", p.value, location))
 }
 
 func (c *Context) UniformInt(p Program, location string, v int) {
@@ -374,7 +380,7 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 
 func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
 	gl := c.gl
-	return attribLocation(gl.Call("getAttribLocation", js.Value(p), location).Int())
+	return attribLocation(gl.Call("getAttribLocation", p.value, location).Int())
 }
 
 func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
