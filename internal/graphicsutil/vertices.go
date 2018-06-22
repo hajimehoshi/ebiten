@@ -69,7 +69,9 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 }
 
 func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float32 {
-	vs := theVerticesBackend.sliceForOneQuad()
+	// Specifying a range explicitly here is redundant but this helps optimization
+	// to eliminate boundry checks.
+	vs := theVerticesBackend.sliceForOneQuad()[0:24]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 
