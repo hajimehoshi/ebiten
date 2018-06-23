@@ -188,7 +188,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	oc := offlineAudioContextClass.New(2, 1, context.SampleRate())
 
 	u8 := js.ValueOf(buf)
-	a := u8.Get("buffer").Call("slice", u8.Get("byteOffset"), u8.Get("byteOffset").Int()+len(buf))
+	a := u8.Get("buffer").Call("slice", u8.Get("byteOffset"), u8.Get("byteOffset").Int()+u8.Get("byteLength").Int())
 
 	oc.Call("decodeAudioData", a, js.NewCallback(func(args []js.Value) {
 		buf := args[0]
