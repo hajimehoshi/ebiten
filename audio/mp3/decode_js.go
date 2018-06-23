@@ -186,7 +186,10 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 
 	// TODO: 1 is a correct second argument?
 	oc := offlineAudioContextClass.New(2, 1, context.SampleRate())
-	a := js.ValueOf(buf).Get("buffer").Call("slice", 0, len(buf))
+
+	u8 := js.ValueOf(buf)
+	a := u8.Get("buffer").Call("slice", u8.Get("byteOffset"), u8.Get("byteOffset").Int()+len(buf))
+
 	oc.Call("decodeAudioData", a, js.NewCallback(func(args []js.Value) {
 		buf := args[0]
 		s.leftData = float32ArrayToSlice(buf.Call("getChannelData", 0))
