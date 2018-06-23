@@ -24,8 +24,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/gopherjs/gopherjs/js"
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/gopherwasm/js"
 )
 
 // TODO: This just uses decodeAudioData, that can treat audio files other than MP3.
@@ -159,7 +159,7 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	return s, nil
 }
 
-var offlineAudioContextClass *js.Object
+var offlineAudioContextClass = js.Null
 
 func init() {
 	if klass := js.Global.Get("OfflineAudioContext"); klass != js.Undefined {
@@ -173,7 +173,7 @@ func init() {
 }
 
 func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
-	if offlineAudioContextClass == nil {
+	if offlineAudioContextClass == js.Null {
 		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
 	}
 
@@ -186,27 +186,30 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 
 	// TODO: 1 is a correct second argument?
 	oc := offlineAudioContextClass.New(2, 1, context.SampleRate())
-	oc.Call("decodeAudioData", js.NewArrayBuffer(buf), func(buf *js.Object) {
-		s.leftData = buf.Call("getChannelData", 0).Interface().([]float32)
+	a := js.ValueOf(buf).Get("buffer")
+	oc.Call("decodeAudioData", a, js.NewCallback(func(args []js.Value) {
+		buf := args[0]
+		s.leftData = float32ArrayToSlice(buf.Call("getChannelData", 0))
 		switch n := buf.Get("numberOfChannels").Int(); n {
 		case 1:
 			s.rightData = s.leftData
 			close(ch)
 		case 2:
-			s.rightData = buf.Call("getChannelData", 1).Interface().([]float32)
+			s.rightData = float32ArrayToSlice(buf.Call("getChannelData", 1))
 			close(ch)
 		default:
 			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
 		}
-	}, func(err *js.Object) {
-		if err != nil {
+	}), js.NewCallback(func(args []js.Value) {
+		err := args[0]
+		if err != js.Null || err != js.Undefined {
 			ch <- fmt.Errorf("audio/mp3: decodeAudioData failed: %v", err)
 		} else {
 			// On Safari, error value might be null and it is needed to retry decoding
 			// from the next frame (#438).
 			ch <- errTryAgain
 		}
-	})
+	}))
 
 	timeout := time.Duration(math.Pow(2, float64(try))) * time.Second
 
