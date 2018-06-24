@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hajimehoshi/gopherwasm/js"
+	"github.com/gopherjs/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten/internal/web"
 )

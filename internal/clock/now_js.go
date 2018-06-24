@@ -19,7 +19,7 @@ package clock
 import (
 	"time"
 
-	"github.com/hajimehoshi/gopherwasm/js"
+	"github.com/gopherjs/gopherwasm/js"
 )
 
 func now() int64 {

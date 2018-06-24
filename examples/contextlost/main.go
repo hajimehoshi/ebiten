@@ -24,7 +24,7 @@ import (
 	"log"
 	"math"
 
-	"github.com/hajimehoshi/gopherwasm/js"
+	"github.com/gopherjs/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"

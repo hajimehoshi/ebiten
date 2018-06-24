@@ -18,7 +18,7 @@ package mp3
 
 import (
 	gjs "github.com/gopherjs/gopherjs/js"
-	"github.com/hajimehoshi/gopherwasm/js"
+	"github.com/gopherjs/gopherwasm/js"
 )
 
 func float32ArrayToSlice(arr js.Value) []float32 {

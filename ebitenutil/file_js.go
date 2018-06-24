@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hajimehoshi/gopherwasm/js"
+	"github.com/gopherjs/gopherwasm/js"
 )
 
 type file struct {

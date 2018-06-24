@@ -24,8 +24,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/gopherjs/gopherwasm/js"
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/gopherwasm/js"
 )
 
 // TODO: This just uses decodeAudioData, that can treat audio files other than MP3.

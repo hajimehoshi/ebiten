@@ -19,7 +19,7 @@ package input
 import (
 	"unicode"
 
-	"github.com/hajimehoshi/gopherwasm/js"
+	"github.com/gopherjs/gopherwasm/js"
 )
 
 type mockRWLock struct{}
