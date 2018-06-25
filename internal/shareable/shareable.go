@@ -94,8 +94,11 @@ type Image struct {
 
 	backend *backend
 
-	// If node is nil, the image is not shared.
 	node *packing.Node
+}
+
+func (i *Image) isShared() bool {
+	return i.node != nil
 }
 
 func (i *Image) ensureNotShared() {
@@ -104,7 +107,7 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	if i.node == nil {
+	if !i.isShared() {
 		return
 	}
 
@@ -124,7 +127,7 @@ func (i *Image) region() (x, y, width, height int) {
 	if i.backend == nil {
 		panic("not reached")
 	}
-	if i.node == nil {
+	if !i.isShared() {
 		w, h := i.backend.restorable.Size()
 		return 0, 0, w, h
 	}
@@ -223,7 +226,7 @@ func (i *Image) dispose(markDisposed bool) {
 		return
 	}
 
-	if i.node == nil {
+	if !i.isShared() {
 		i.backend.restorable.Dispose()
 		return
 	}
