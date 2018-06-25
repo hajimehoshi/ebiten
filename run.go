@@ -109,6 +109,11 @@ type imageDumper struct {
 }
 
 func (i *imageDumper) update(screen *Image) error {
+	const (
+		envScreenshotKey     = "EBITEN_SCREENSHOT_KEY"
+		envInternalImagesKey = "EBITEN_INTERNAL_IMAGES_KEY"
+	)
+
 	if err := i.f(screen); err != nil {
 		return err
 	}
@@ -117,16 +122,21 @@ func (i *imageDumper) update(screen *Image) error {
 	if i.keyState == nil {
 		i.keyState = map[Key]int{}
 
-		if keyname := os.Getenv("EBITEN_SCREENSHOT_KEY"); keyname != "" {
+		if keyname := os.Getenv(envScreenshotKey); keyname != "" {
 			if key, ok := keyNameToKey(keyname); ok {
 				i.hasScreenshotKey = true
 				i.screenshotKey = key
 			}
 		}
-		if keyname := os.Getenv("EBITEN_INTERNAL_IMAGES_KEY"); keyname != "" {
-			if key, ok := keyNameToKey(keyname); ok {
-				i.hasDumpInternalImagesKey = true
-				i.dumpInternalImagesKey = key
+
+		if keyname := os.Getenv(envInternalImagesKey); keyname != "" {
+			if isDebug() {
+				if key, ok := keyNameToKey(keyname); ok {
+					i.hasDumpInternalImagesKey = true
+					i.dumpInternalImagesKey = key
+				}
+			} else {
+				fmt.Fprintf(os.Stderr, "%s is disabled. Specify a build tag 'ebitendebug' to enable it.\n", envInternalImagesKey)
 			}
 		}
 	}

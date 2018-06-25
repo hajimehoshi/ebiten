@@ -43,5 +43,6 @@
 // by pressing Q key.
 //
 // The EBITEN_INTERNAL_IMAGES_KEY environment variable specifies the key
-// to dump all the internal images.
+// to dump all the internal images. This is valid only when the build tag
+// 'ebitendebug' is specified.
 package ebiten
