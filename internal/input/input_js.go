@@ -143,8 +143,8 @@ func (i *Input) setMouseCursor(x, y int) {
 }
 
 func (i *Input) UpdateGamepads() {
-	nav := js.Global.Get("navigator")
-	if nav.Get("getGamepads") == js.Undefined {
+	nav := js.Global().Get("navigator")
+	if nav.Get("getGamepads") == js.Undefined() {
 		return
 	}
 	gamepads := nav.Call("getGamepads")
@@ -152,7 +152,7 @@ func (i *Input) UpdateGamepads() {
 	for id := 0; id < l; id++ {
 		i.gamepads[id].valid = false
 		gamepad := gamepads.Index(id)
-		if gamepad == js.Undefined || gamepad == js.Null {
+		if gamepad == js.Undefined() || gamepad == js.Null() {
 			continue
 		}
 		i.gamepads[id].valid = true
@@ -183,7 +183,7 @@ func (i *Input) UpdateGamepads() {
 
 func OnKeyDown(e js.Value) {
 	c := e.Get("code")
-	if c == js.Undefined {
+	if c == js.Undefined() {
 		code := e.Get("keyCode").Int()
 		if keyCodeToKeyEdge[code] == KeyUp ||
 			keyCodeToKeyEdge[code] == KeyDown ||
@@ -215,7 +215,7 @@ func OnKeyPress(e js.Value) {
 }
 
 func OnKeyUp(e js.Value) {
-	if e.Get("code") == js.Undefined {
+	if e.Get("code") == js.Undefined() {
 		// Assume that UA is Edge.
 		code := e.Get("keyCode").Int()
 		theInput.keyUpEdge(code)

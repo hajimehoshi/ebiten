@@ -49,8 +49,8 @@ var currentUI = &userInterface{
 }
 
 var (
-	window                = js.Global.Get("window")
-	document              = js.Global.Get("document")
+	window                = js.Global().Get("window")
+	document              = js.Global().Get("document")
 	requestAnimationFrame = window.Get("requestAnimationFrame")
 )
 
@@ -226,7 +226,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 }
 
 func init() {
-	if document.Get("body") == js.Null {
+	if document.Get("body") == js.Null() {
 		ch := make(chan struct{})
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
