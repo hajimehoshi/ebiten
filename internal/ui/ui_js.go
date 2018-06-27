@@ -26,7 +26,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var canvas js.Value
@@ -227,10 +226,6 @@ func (u *userInterface) loop(g GraphicsContext) error {
 }
 
 func init() {
-	// Do nothing in node.js.
-	if web.IsNodeJS() {
-		return
-	}
 	if document.Get("body") == js.Null {
 		ch := make(chan struct{})
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {

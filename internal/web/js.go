@@ -28,21 +28,11 @@ var (
 	isNodeJS     = false
 )
 
-func IsNodeJS() bool {
-	isNodeJSOnce.Do(func() {
-		isNodeJS = js.Global.Get("process") != js.Undefined
-	})
-	return isNodeJS
-}
-
 func IsBrowser() bool {
-	return !IsNodeJS()
+	return true
 }
 
 func IsIOSSafari() bool {
-	if IsNodeJS() {
-		return false
-	}
 	ua := js.Global.Get("navigator").Get("userAgent").String()
 	if !strings.Contains(ua, "iPhone") {
 		return false
@@ -51,9 +41,6 @@ func IsIOSSafari() bool {
 }
 
 func IsAndroidChrome() bool {
-	if IsNodeJS() {
-		return false
-	}
 	ua := js.Global.Get("navigator").Get("userAgent").String()
 	if !strings.Contains(ua, "Android") {
 		return false

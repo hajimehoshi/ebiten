@@ -16,10 +16,6 @@
 
 package web
 
-func IsNodeJS() bool {
-	return false
-}
-
 func IsBrowser() bool {
 	return false
 }

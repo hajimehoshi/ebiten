@@ -21,8 +21,6 @@ import (
 	"fmt"
 
 	"github.com/gopherjs/gopherwasm/js"
-
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 type (
@@ -118,10 +116,6 @@ type context struct {
 }
 
 func Init() error {
-	if web.IsNodeJS() {
-		return fmt.Errorf("opengl: Node.js is not supported")
-	}
-
 	if js.Global.Get("WebGLRenderingContext") == js.Undefined {
 		return fmt.Errorf("opengl: WebGL is not supported")
 	}
