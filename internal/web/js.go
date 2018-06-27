@@ -18,14 +18,8 @@ package web
 
 import (
 	"strings"
-	"sync"
 
 	"github.com/gopherjs/gopherwasm/js"
-)
-
-var (
-	isNodeJSOnce sync.Once
-	isNodeJS     = false
 )
 
 func IsBrowser() bool {
