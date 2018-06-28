@@ -277,6 +277,7 @@ func (i *Image) allocate(shareable bool) {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, false),
 		}
+		runtime.SetFinalizer(i, (*Image).Dispose)
 		return
 	}
 
@@ -284,6 +285,7 @@ func (i *Image) allocate(shareable bool) {
 		if n, ok := b.TryAlloc(i.width, i.height); ok {
 			i.backend = b
 			i.node = n
+			runtime.SetFinalizer(i, (*Image).Dispose)
 			return
 		}
 	}
