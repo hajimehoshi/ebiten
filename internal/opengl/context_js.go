@@ -38,7 +38,7 @@ type (
 	}
 )
 
-var InvalidTexture = Texture(js.Null)
+var InvalidTexture = Texture(js.Null())
 
 func getProgramID(p Program) programID {
 	return p.id
@@ -69,7 +69,7 @@ var (
 
 func init() {
 	// Accessing the prototype is rquired on Safari.
-	c := js.Global.Get("WebGLRenderingContext").Get("prototype")
+	c := js.Global().Get("WebGLRenderingContext").Get("prototype")
 	VertexShader = ShaderType(c.Get("VERTEX_SHADER").Int())
 	FragmentShader = ShaderType(c.Get("FRAGMENT_SHADER").Int())
 	ArrayBuffer = BufferType(c.Get("ARRAY_BUFFER").Int())
@@ -116,19 +116,19 @@ type context struct {
 }
 
 func Init() error {
-	if js.Global.Get("WebGLRenderingContext") == js.Undefined {
+	if js.Global().Get("WebGLRenderingContext") == js.Undefined() {
 		return fmt.Errorf("opengl: WebGL is not supported")
 	}
 
 	// TODO: Define id?
-	canvas := js.Global.Get("document").Call("querySelector", "canvas")
-	attr := js.Global.Get("Object").New()
+	canvas := js.Global().Get("document").Call("querySelector", "canvas")
+	attr := js.Global().Get("Object").New()
 	attr.Set("alpha", true)
 	attr.Set("premultipliedAlpha", true)
 	gl := canvas.Call("getContext", "webgl", attr)
-	if gl == js.Null {
+	if gl == js.Null() {
 		gl = canvas.Call("getContext", "experimental-webgl", attr)
-		if gl == js.Null {
+		if gl == js.Null() {
 			return fmt.Errorf("opengl: getContext failed")
 		}
 	}
@@ -138,9 +138,9 @@ func Init() error {
 	// Getting an extension might fail after the context is lost, so
 	// it is required to get the extension here.
 	c.loseContext = gl.Call("getExtension", "WEBGL_lose_context")
-	if c.loseContext != js.Null {
+	if c.loseContext != js.Null() {
 		// This testing function name is temporary.
-		js.Global.Set("_ebiten_loseContextForTesting", js.NewCallback(func([]js.Value) {
+		js.Global().Set("_ebiten_loseContextForTesting", js.NewCallback(func([]js.Value) {
 			c.loseContext.Call("loseContext")
 		}))
 	}
@@ -150,8 +150,8 @@ func Init() error {
 
 func (c *Context) Reset() error {
 	c.locationCache = newLocationCache()
-	c.lastTexture = Texture(js.Null)
-	c.lastFramebuffer = Framebuffer(js.Null)
+	c.lastTexture = Texture(js.Null())
+	c.lastFramebuffer = Framebuffer(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = CompositeModeUnknown
@@ -176,8 +176,8 @@ func (c *Context) BlendFunc(mode CompositeMode) {
 func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.Call("createTexture")
-	if t == js.Null {
-		return Texture(js.Null), errors.New("opengl: glGenTexture failed")
+	if t == js.Null() {
+		return Texture(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
 	gl.Call("pixelStorei", unpackAlignment, 4)
 	c.BindTexture(Texture(t))
@@ -224,7 +224,7 @@ func (c *Context) DeleteTexture(t Texture) {
 		return
 	}
 	if c.lastTexture == t {
-		c.lastTexture = Texture(js.Null)
+		c.lastTexture = Texture(js.Null())
 	}
 	gl.Call("deleteTexture", js.Value(t))
 }
@@ -249,7 +249,7 @@ func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
 
 	gl.Call("framebufferTexture2D", framebuffer, colorAttachment0, texture2d, js.Value(t), 0)
 	if s := gl.Call("checkFramebufferStatus", framebuffer); s.Int() != framebufferComplete.Int() {
-		return Framebuffer(js.Null), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
+		return Framebuffer(js.Null()), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
 	return Framebuffer(f), nil
@@ -269,7 +269,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
-		c.lastFramebuffer = Framebuffer(js.Null)
+		c.lastFramebuffer = Framebuffer(js.Null())
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}
@@ -279,8 +279,8 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
-	if s == js.Null {
-		return Shader(js.Null), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
+	if s == js.Null() {
+		return Shader(js.Null()), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
 	gl.Call("shaderSource", js.Value(s), source)
@@ -288,7 +288,7 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 
 	if !gl.Call("getShaderParameter", js.Value(s), compileStatus).Bool() {
 		log := gl.Call("getShaderInfoLog", js.Value(s))
-		return Shader(js.Null), fmt.Errorf("opengl: shader compile failed: %s", log)
+		return Shader(js.Null()), fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
 	return Shader(s), nil
 }
@@ -301,7 +301,7 @@ func (c *Context) DeleteShader(s Shader) {
 func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	v := gl.Call("createProgram")
-	if v == js.Null {
+	if v == js.Null() {
 		return Program{}, errors.New("opengl: glCreateProgram failed")
 	}
 
@@ -352,7 +352,7 @@ func (c *Context) UniformFloat(p Program, location string, v float32) {
 }
 
 var (
-	float32Array = js.Global.Get("Float32Array")
+	float32Array = js.Global().Get("Float32Array")
 )
 
 func (c *Context) UniformFloats(p Program, location string, v []float32) {
@@ -450,7 +450,7 @@ func (c *Context) IsContextLost() bool {
 }
 
 func (c *Context) RestoreContext() {
-	if c.loseContext != js.Null {
+	if c.loseContext != js.Null() {
 		c.loseContext.Call("restoreContext")
 	}
 }

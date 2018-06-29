@@ -25,7 +25,7 @@ import (
 func float32ArrayToSlice(arr js.Value) []float32 {
 	bytes := make([]byte, arr.Length()*4)
 	buf := arr.Get("buffer").Call("slice", arr.Get("byteOffset"), arr.Get("byteOffset").Int()+arr.Get("byteLength").Int())
-	js.ValueOf(bytes).Call("set", js.Global.Get("Uint8Array").New(buf))
+	js.ValueOf(bytes).Call("set", js.Global().Get("Uint8Array").New(buf))
 
 	bh := (*reflect.SliceHeader)(unsafe.Pointer(&bytes))
 	var f []float32

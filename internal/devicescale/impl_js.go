@@ -21,7 +21,7 @@ import (
 )
 
 func impl() float64 {
-	ratio := js.Global.Get("window").Get("devicePixelRatio").Float()
+	ratio := js.Global().Get("window").Get("devicePixelRatio").Float()
 	if ratio == 0 {
 		ratio = 1
 	}

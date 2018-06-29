@@ -159,21 +159,21 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	return s, nil
 }
 
-var offlineAudioContextClass = js.Null
+var offlineAudioContextClass = js.Null()
 
 func init() {
-	if klass := js.Global.Get("OfflineAudioContext"); klass != js.Undefined {
+	if klass := js.Global().Get("OfflineAudioContext"); klass != js.Undefined() {
 		offlineAudioContextClass = klass
 		return
 	}
-	if klass := js.Global.Get("webkitOfflineAudioContext"); klass != js.Undefined {
+	if klass := js.Global().Get("webkitOfflineAudioContext"); klass != js.Undefined() {
 		offlineAudioContextClass = klass
 		return
 	}
 }
 
 func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
-	if offlineAudioContextClass == js.Null {
+	if offlineAudioContextClass == js.Null() {
 		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
 	}
 
@@ -205,7 +205,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 		}
 	}), js.NewCallback(func(args []js.Value) {
 		err := args[0]
-		if err != js.Null || err != js.Undefined {
+		if err != js.Null() || err != js.Undefined() {
 			ch <- fmt.Errorf("audio/mp3: decodeAudioData failed: %v", err)
 		} else {
 			// On Safari, error value might be null and it is needed to retry decoding
