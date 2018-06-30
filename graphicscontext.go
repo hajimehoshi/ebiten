@@ -91,6 +91,14 @@ func (c *graphicsContext) initializeIfNeeded() error {
 }
 
 func (c *graphicsContext) Update(afterFrameUpdate func()) error {
+	if activeBenchmark != nil {
+		activeBenchmark.StartTimer()
+		defer func() {
+			if activeBenchmark != nil {
+				activeBenchmark.StopTimer()
+			}
+		}()
+	}
 	tps := int(MaxTPS())
 	updateCount := clock.Update(tps)
 
