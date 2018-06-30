@@ -328,10 +328,10 @@ func (c *Context) UseProgram(p Program) {
 
 func (c *Context) DeleteProgram(p Program) {
 	gl := c.gl
-	if !gl.Call("isProgram", p).Bool() {
+	if !gl.Call("isProgram", p.value).Bool() {
 		return
 	}
-	gl.Call("deleteProgram", p)
+	gl.Call("deleteProgram", p.value)
 }
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
