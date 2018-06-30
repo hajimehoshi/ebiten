@@ -138,12 +138,7 @@ func Init() error {
 	// Getting an extension might fail after the context is lost, so
 	// it is required to get the extension here.
 	c.loseContext = gl.Call("getExtension", "WEBGL_lose_context")
-	if c.loseContext != js.Null() {
-		// This testing function name is temporary.
-		js.Global().Set("_ebiten_loseContextForTesting", js.NewCallback(func([]js.Value) {
-			c.loseContext.Call("loseContext")
-		}))
-	}
+
 	theContext = c
 	return nil
 }
