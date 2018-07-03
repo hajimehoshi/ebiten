@@ -121,7 +121,6 @@ func init() {
 
 	jumpD, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jump_ogg))
 	if err != nil {
-		println("!?")
 		log.Fatal(err)
 	}
 	jumpPlayer, err = audio.NewPlayer(audioContext, jumpD)
