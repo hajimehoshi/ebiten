@@ -1,0 +1,4 @@
+*.wasm
+*.wasm.map
+*.wast
+

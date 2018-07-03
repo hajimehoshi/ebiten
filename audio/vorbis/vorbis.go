@@ -20,8 +20,6 @@ import (
 	"io"
 	"runtime"
 
-	"github.com/jfreymuth/oggvorbis"
-
 	"github.com/hajimehoshi/ebiten/audio"
 	"github.com/hajimehoshi/ebiten/audio/internal/convert"
 )
@@ -63,13 +61,20 @@ func (s *Stream) Size() int64 {
 	return s.Length()
 }
 
+type decoder interface {
+	Read([]float32) (int, error)
+	Length() int64
+	Channels() int
+	SampleRate() int
+}
+
 type decoded struct {
 	data       []float32
 	totalBytes int
 	readBytes  int
 	posInBytes int
 	source     io.Closer
-	decoder    *oggvorbis.Reader
+	decoder    decoder
 }
 
 func (d *decoded) readUntil(posInBytes int) error {
@@ -93,7 +98,6 @@ func (d *decoded) readUntil(posInBytes int) error {
 		if err != nil {
 			return err
 		}
-		runtime.Gosched()
 	}
 	return nil
 }
@@ -157,7 +161,7 @@ func (d *decoded) Length() int64 {
 
 // decode accepts an ogg stream and returns a decorded stream.
 func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
-	r, err := oggvorbis.NewReader(in)
+	r, err := newDecoder(in)
 	if err != nil {
 		return nil, 0, 0, err
 	}
