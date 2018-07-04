@@ -15,6 +15,6 @@
 package stb
 
 //go:generate bash build.sh
-//go:generate file2byteslice -package=stb -input=decode.js -output=decodejs_file_js.go -var=decode_js
-//go:generate file2byteslice -package=stb -input=stbvorbis.js -output=stbvorbisjs_file_js.go -var=stbvorbis_js
-//go:generate file2byteslice -package=stb -input=wasm.js -output=wasmjs_file_js.go -var=wasm_js
+//go:generate file2byteslice -package=stb -input=decode.js -output=decodejs_file.go -var=decode_js
+//go:generate file2byteslice -package=stb -input=stbvorbis.js -output=stbvorbisjs_file.go -var=stbvorbis_js
+//go:generate file2byteslice -package=stb -input=wasm.js -output=wasmjs_file.go -var=wasm_js
