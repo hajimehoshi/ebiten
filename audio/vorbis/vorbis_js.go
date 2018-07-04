@@ -25,7 +25,7 @@ import (
 )
 
 type decoderImpl struct {
-	data       []int16
+	data       []float32
 	channels   int
 	sampleRate int
 }
@@ -35,13 +35,7 @@ func (d *decoderImpl) Read(buf []float32) (int, error) {
 		return 0, io.EOF
 	}
 
-	n := len(buf)
-	if n > len(d.data) {
-		n = len(d.data)
-	}
-	for i := 0; i < n; i++ {
-		buf[i] = float32(d.data[i]) / 32768
-	}
+	n := copy(buf, d.data)
 	d.data = d.data[n:]
 	return n, nil
 }

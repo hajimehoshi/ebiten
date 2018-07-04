@@ -24,7 +24,7 @@ var _ebiten = {};
   };
 
   Module.onRuntimeInitialized = () => {
-    decodeMemory = Module.cwrap('stb_vorbis_decode_memory', 'number', ['number', 'number', 'number', 'number', 'number']);
+    decodeMemory = Module.cwrap('stb_vorbis_decode_memory_float', 'number', ['number', 'number', 'number', 'number', 'number']);
     if (vorbisDecoderInitialized) {
       vorbisDecoderInitialized();
     }
@@ -47,10 +47,10 @@ var _ebiten = {};
     return a[0];
   }
 
-  function ptrToInt16s(ptr, length) {
-    const buf = new ArrayBuffer(length * Int16Array.BYTES_PER_ELEMENT);
-    const copied = new Int16Array(buf);
-    copied.set(new Int16Array(Module.HEAPU8.buffer, ptr, length));
+  function ptrToFloat32s(ptr, length) {
+    const buf = new ArrayBuffer(length * Float32Array.BYTES_PER_ELEMENT);
+    const copied = new Float32Array(buf);
+    copied.set(new Float32Array(Module.HEAPU8.buffer, ptr, length));
     return copied;
   }
 
@@ -65,7 +65,7 @@ var _ebiten = {};
     }
     const channels = ptrToInt32(channelsPtr);
     const result = {
-      data:       ptrToInt16s(ptrToInt32(outputPtr), length * channels),
+      data:       ptrToFloat32s(ptrToInt32(outputPtr), length * channels),
       channels:   channels,
       sampleRate: ptrToInt32(sampleRatePtr),
     };

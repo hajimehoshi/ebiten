@@ -5462,3 +5462,48 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+
+// Added by Hajime Hoshi
+
+int stb_vorbis_decode_memory_float(const uint8 *mem, int len, int *channels, int *sample_rate, float **output) {
+  int data_len, offset, total, limit, error;
+  float* data;
+  stb_vorbis* v = stb_vorbis_open_memory(mem, len, &error, NULL);
+  if (v == NULL) {
+    return -1;
+  }
+  limit = v->channels * 4096;
+  *channels = v->channels;
+  if (sample_rate) {
+    *sample_rate = v->sample_rate;
+  }
+  offset = data_len = 0;
+  total = limit;
+  data = (float*)malloc(total * sizeof(*data));
+  if (data == NULL) {
+    stb_vorbis_close(v);
+    return -2;
+  }
+  for (;;) {
+    int n = stb_vorbis_get_samples_float_interleaved(v, v->channels, data+offset, total-offset);
+    if (n == 0) {
+      break;
+    }
+    data_len += n;
+    offset += n * v->channels;
+    if (offset + limit > total) {
+      float* data2;
+      total *= 2;
+      data2 = (float*)realloc(data, total * sizeof(*data));
+      if (data2 == NULL) {
+        free(data);
+        stb_vorbis_close(v);
+        return -2;
+      }
+      data = data2;
+    }
+  }
+  *output = data;
+  stb_vorbis_close(v);
+  return data_len;
+}

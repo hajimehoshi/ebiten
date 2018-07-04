@@ -1663,7 +1663,7 @@ var ASM_CONSTS = [];
 
 STATIC_BASE = GLOBAL_BASE;
 
-STATICTOP = STATIC_BASE + 3888;
+STATICTOP = STATIC_BASE + 3776;
 /* global initializers */  __ATINIT__.push();
 
 
@@ -1672,7 +1672,7 @@ STATICTOP = STATIC_BASE + 3888;
 
 
 
-var STATIC_BUMP = 3888;
+var STATIC_BUMP = 3776;
 Module["STATIC_BASE"] = STATIC_BASE;
 Module["STATIC_BUMP"] = STATIC_BUMP;
 
@@ -1805,7 +1805,7 @@ var _malloc = Module["_malloc"] = function() {  return Module["asm"]["_malloc"].
 var _memcpy = Module["_memcpy"] = function() {  return Module["asm"]["_memcpy"].apply(null, arguments) };
 var _memset = Module["_memset"] = function() {  return Module["asm"]["_memset"].apply(null, arguments) };
 var _sbrk = Module["_sbrk"] = function() {  return Module["asm"]["_sbrk"].apply(null, arguments) };
-var _stb_vorbis_decode_memory = Module["_stb_vorbis_decode_memory"] = function() {  return Module["asm"]["_stb_vorbis_decode_memory"].apply(null, arguments) };
+var _stb_vorbis_decode_memory_float = Module["_stb_vorbis_decode_memory_float"] = function() {  return Module["asm"]["_stb_vorbis_decode_memory_float"].apply(null, arguments) };
 var establishStackSpace = Module["establishStackSpace"] = function() {  return Module["asm"]["establishStackSpace"].apply(null, arguments) };
 var getTempRet0 = Module["getTempRet0"] = function() {  return Module["asm"]["getTempRet0"].apply(null, arguments) };
 var runPostSets = Module["runPostSets"] = function() {  return Module["asm"]["runPostSets"].apply(null, arguments) };
