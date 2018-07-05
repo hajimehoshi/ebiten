@@ -201,7 +201,10 @@ func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, e
 	c.bindFramebuffer(f)
 
 	pixels := make([]byte, 4*width*height)
-	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, pixels)
+	p := js.TypedArrayOf(pixels)
+	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
+	p.Release()
+
 	if e := gl.Call("getError"); e.Int() != noError.Int() {
 		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
 	}
@@ -229,12 +232,14 @@ func (c *Context) IsTexture(t Texture) bool {
 	return gl.Call("isTexture", js.Value(t)).Bool()
 }
 
-func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
+func (c *Context) TexSubImage2D(pixels []byte, x, y, width, height int) {
 	gl := c.gl
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
+	p := js.TypedArrayOf(pixels)
 	gl.Call("texSubImage2D", texture2d, 0, x, y, width, height, rgba, unsignedByte, p)
+	p.Release()
 }
 
 func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
@@ -359,7 +364,9 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 	case 4:
 		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
 	case 16:
-		gl.Call("uniformMatrix4fv", js.Value(l), false, js.ValueOf(v))
+		arr := js.TypedArrayOf(v)
+		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
+		arr.Release()
 	default:
 		panic("not reached")
 	}
@@ -411,12 +418,16 @@ func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
 
 func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(ArrayBuffer), 0, js.ValueOf(data))
+	arr := js.TypedArrayOf(data)
+	gl.Call("bufferSubData", int(ArrayBuffer), 0, arr)
+	arr.Release()
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, js.ValueOf(data))
+	arr := js.TypedArrayOf(data)
+	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, arr)
+	arr.Release()
 }
 
 func (c *Context) DeleteBuffer(b Buffer) {

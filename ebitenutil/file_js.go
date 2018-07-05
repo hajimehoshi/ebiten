@@ -58,8 +58,10 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 		return nil, err
 	}
 
-	var data []byte
-	js.ValueOf(data).Call("set", content)
+	data := make([]byte, content.Get("byteLength").Int())
+	arr := js.TypedArrayOf(data)
+	arr.Call("set", content)
+	arr.Release()
 	f := &file{bytes.NewReader(data)}
 	return f, nil
 }
