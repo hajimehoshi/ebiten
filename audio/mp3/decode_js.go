@@ -172,6 +172,14 @@ func init() {
 	}
 }
 
+func float32ArrayToSlice(arr js.Value) []float32 {
+	f := make([]float32, arr.Length())
+	a := js.TypedArrayOf(f)
+	a.Call("set", arr)
+	a.Release()
+	return f
+}
+
 func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	if offlineAudioContextClass == js.Null() {
 		return nil, errors.New("audio/mp3: OfflineAudioContext is not available")
@@ -187,7 +195,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	// TODO: 1 is a correct second argument?
 	oc := offlineAudioContextClass.New(2, 1, context.SampleRate())
 
-	u8 := js.ValueOf(buf)
+	u8 := js.TypedArrayOf(buf)
 	a := u8.Get("buffer").Call("slice", u8.Get("byteOffset"), u8.Get("byteOffset").Int()+u8.Get("byteLength").Int())
 
 	oc.Call("decodeAudioData", a, js.NewCallback(func(args []js.Value) {
@@ -213,6 +221,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 			ch <- errTryAgain
 		}
 	}))
+	u8.Release()
 
 	timeout := time.Duration(math.Pow(2, float64(try))) * time.Second
 
