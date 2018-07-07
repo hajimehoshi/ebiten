@@ -35,13 +35,16 @@ func init() {
 }
 
 func DecodeVorbis(buf []byte) ([]float32, int, int, error) {
-	r := js.Global().Get("_ebiten").Call("decodeVorbis", buf)
+	arr := js.TypedArrayOf(buf)
+	r := js.Global().Get("_ebiten").Call("decodeVorbis", arr)
+	arr.Release()
 	if r == js.Null() {
 		return nil, 0, 0, fmt.Errorf("audio/vorbis/internal/stb: decode failed")
 	}
+
 	data := make([]float32, r.Get("data").Get("length").Int())
-	// TODO: Use js.TypeArrayOf
-	arr := js.ValueOf(data)
+	arr = js.TypedArrayOf(data)
 	arr.Call("set", r.Get("data"))
+	arr.Release()
 	return data, r.Get("channels").Int(), r.Get("sampleRate").Int(), nil
 }
