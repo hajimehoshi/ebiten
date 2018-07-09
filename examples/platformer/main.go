@@ -89,7 +89,7 @@ func update(screen *ebiten.Image) error {
 		loadedSprite = idleSprite
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

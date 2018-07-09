@@ -106,7 +106,7 @@ func update(screen *ebiten.Image) error {
 		spotLightVY = -spotLightVY
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

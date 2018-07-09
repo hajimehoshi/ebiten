@@ -90,7 +90,7 @@ func update(screen *ebiten.Image) error {
 	}
 	prevPressedI = pressedI
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

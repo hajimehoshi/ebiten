@@ -36,7 +36,7 @@ func update(screen *ebiten.Image) error {
 	count++
 	count %= 240
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

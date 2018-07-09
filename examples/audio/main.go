@@ -227,7 +227,7 @@ func update(screen *ebiten.Image) error {
 		return err
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

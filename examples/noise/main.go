@@ -60,7 +60,7 @@ func update(screen *ebiten.Image) error {
 		noiseImage.Pix[4*i+3] = 0xff
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

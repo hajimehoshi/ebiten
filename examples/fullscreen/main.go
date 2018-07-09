@@ -80,7 +80,7 @@ func update(screen *ebiten.Image) error {
 		return regularTermination
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

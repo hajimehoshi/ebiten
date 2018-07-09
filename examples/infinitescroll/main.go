@@ -81,7 +81,7 @@ func (p *viewport) Position() (int, int) {
 func update(screen *ebiten.Image) error {
 	theViewport.Move()
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

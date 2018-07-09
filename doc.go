@@ -21,7 +21,7 @@
 //
 //         // Write your game's logical update.
 //
-//         if IsRunningSlowly() {
+//         if IsDrawingSkipped() {
 //             // When the game is running slowly, the rendering result
 //             // will not be adopted.
 //             return nil

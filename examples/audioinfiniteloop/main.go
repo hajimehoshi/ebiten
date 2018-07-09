@@ -67,7 +67,7 @@ func update(screen *ebiten.Image) error {
 		player.Play()
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

@@ -79,7 +79,7 @@ func update(screen *ebiten.Image) error {
 		audioPlayer.Rewind()
 		audioPlayer.Play()
 	}
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 	if audioPlayer.IsPlaying() {

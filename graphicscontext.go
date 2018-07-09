@@ -90,7 +90,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	for i := 0; i < updateCount; i++ {
 		c.offscreen.fill(0, 0, 0, 0)
 
-		setRunningSlowly(i < updateCount-1)
+		setDrawingSkipped(i < updateCount-1)
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}

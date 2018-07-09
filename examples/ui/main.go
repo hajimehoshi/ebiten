@@ -488,7 +488,7 @@ func update(screen *ebiten.Image) error {
 	checkBox.Update()
 	textBoxLog.Update()
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

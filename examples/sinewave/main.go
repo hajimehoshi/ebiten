@@ -90,7 +90,7 @@ func update(screen *ebiten.Image) error {
 		}
 		player.Play()
 	}
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 	msg := fmt.Sprintf("FPS: %0.2f\nThis is an example using infinite audio stream.", ebiten.CurrentFPS())

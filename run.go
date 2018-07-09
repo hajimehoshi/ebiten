@@ -44,31 +44,31 @@ func CurrentFPS() float64 {
 }
 
 var (
-	isRunningSlowly = int32(0)
+	isDrawingSkipped = int32(0)
 )
 
-func setRunningSlowly(slow bool) {
+func setDrawingSkipped(skipped bool) {
 	v := int32(0)
-	if slow {
+	if skipped {
 		v = 1
 	}
-	atomic.StoreInt32(&isRunningSlowly, v)
+	atomic.StoreInt32(&isDrawingSkipped, v)
 }
 
-// IsRunningSlowly returns true if the game is running too slowly to keep 60 FPS of rendering.
-// The game screen is not updated when IsRunningSlowly is true.
+// IsDrawingSkipped returns true if the game is running too slowly to keep 60 FPS of rendering.
+// The game screen is not updated when IsDrawingSkipped is true.
 // It is recommended to skip heavy processing, especially drawing screen,
-// when IsRunningSlowly is true.
+// when IsDrawingSkipped is true.
 //
-// The typical code with IsRunningSlowly is this:
+// The typical code with IsDrawingSkipped is this:
 //
 //    func update(screen *ebiten.Image) error {
 //
 //        // Update the state.
 //
-//        // When IsRunningSlowly is true, the rendered result is not adopted.
+//        // When IsDrawingSkipped is true, the rendered result is not adopted.
 //        // Skip rendering then.
-//        if ebiten.IsRunningSlowly() {
+//        if ebiten.IsDrawingSkipped() {
 //            return nil
 //        }
 //
@@ -78,8 +78,14 @@ func setRunningSlowly(slow bool) {
 //    }
 //
 // This function is concurrent-safe.
+func IsDrawingSkipped() bool {
+	return atomic.LoadInt32(&isDrawingSkipped) != 0
+}
+
+// IsRunningSlowly is deprecated as of 1.8.0-alpha.
+// Use IsDrawingSkipped instead.
 func IsRunningSlowly() bool {
-	return atomic.LoadInt32(&isRunningSlowly) != 0
+	return IsDrawingSkipped()
 }
 
 var theGraphicsContext atomic.Value
@@ -165,7 +171,7 @@ func (i *imageDumper) update(screen *Image) error {
 		}
 	}
 
-	if IsRunningSlowly() {
+	if IsDrawingSkipped() {
 		return nil
 	}
 

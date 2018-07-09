@@ -48,7 +48,7 @@ func update(screen *ebiten.Image) error {
 		diff = float64(480-count) * 0.2
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

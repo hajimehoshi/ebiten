@@ -163,7 +163,7 @@ var (
 func update(screen *ebiten.Image) error {
 	world.Update()
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

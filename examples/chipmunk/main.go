@@ -40,7 +40,7 @@ func init() {
 func update(screen *ebiten.Image) error {
 	space.Step(1.0 / ebiten.FPS)
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

@@ -72,7 +72,7 @@ func update(screen *ebiten.Image) error {
 
 	counter++
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

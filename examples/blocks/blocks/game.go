@@ -38,7 +38,7 @@ func (g *Game) Update(r *ebiten.Image) error {
 	if err := g.sceneManager.Update(&g.input); err != nil {
 		return err
 	}
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 

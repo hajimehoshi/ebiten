@@ -232,7 +232,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		}
 	}
 
-	if ebiten.IsRunningSlowly() {
+	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
