@@ -23,6 +23,14 @@ Photograph by Chris Nokleberg
 the Creative Commons Attribution 3.0 License
 ```
 
+## runner.png
+
+```
+https://opengameart.org/content/runner-character
+
+CC0 1.0
+```
+
 ## tile.png
 
 ```

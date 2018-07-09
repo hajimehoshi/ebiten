@@ -21,6 +21,7 @@
 //go:generate file2byteslice -package=images -input=./images/fiveyears.jpg -output=./images/fiveyears.go -var=FiveYears_jpg
 //go:generate file2byteslice -package=images -input=./images/gophers.jpg -output=./images/gophers.go -var=Gophers_jpg
 //go:generate file2byteslice -package=images -input=./images/tile.png -output=./images/tile.go -var=Tile_png
+//go:generate file2byteslice -package=images -input=./images/runner.png -output=./images/runner.go -var=Runner_png
 //go:generate file2byteslice -package=images -input=./images/tiles.png -output=./images/tiles.go -var=Tiles_png
 //go:generate file2byteslice -package=images -input=./images/ui.png -output=./images/ui.go -var=UI_png
 //go:generate file2byteslice -package=blocks -input=./images/blocks/background.png -output=./images/blocks/background.go -var=Background_png
