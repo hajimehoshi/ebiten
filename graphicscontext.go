@@ -82,10 +82,6 @@ func (c *graphicsContext) initializeIfNeeded() error {
 }
 
 func (c *graphicsContext) Update(afterFrameUpdate func()) error {
-	if err := shareable.Error(); err != nil {
-		return err
-	}
-
 	updateCount := clock.Update()
 
 	if err := c.initializeIfNeeded(); err != nil {
@@ -130,6 +126,10 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	_ = c.screen.DrawImage(c.offscreen, op)
 
 	shareable.ResolveStaleImages()
+
+	if err := shareable.Error(); err != nil {
+		return err
+	}
 	return nil
 }
 
