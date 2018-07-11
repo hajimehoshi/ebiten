@@ -309,6 +309,43 @@ func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, m
 	return false
 }
 
+type pixelsCommand struct {
+	result []byte
+	img    *Image
+}
+
+// Exec executes a pixelsCommand.
+func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
+	f, err := c.img.createFramebufferIfNeeded()
+	if err != nil {
+		return err
+	}
+	p, err := opengl.GetContext().FramebufferPixels(f.native, c.img.width, c.img.height)
+	if err != nil {
+		return err
+	}
+	c.result = p
+	return nil
+}
+
+func (c *pixelsCommand) NumVertices() int {
+	return 0
+}
+
+func (c *pixelsCommand) NumIndices() int {
+	return 0
+}
+
+func (c *pixelsCommand) AddNumVertices(n int) {
+}
+
+func (c *pixelsCommand) AddNumIndices(n int) {
+}
+
+func (c *pixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode opengl.CompositeMode, filter Filter) bool {
+	return false
+}
+
 // disposeCommand represents a command to dispose an image.
 type disposeCommand struct {
 	target *Image

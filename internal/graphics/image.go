@@ -91,15 +91,14 @@ func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr 
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	// Flush the enqueued commands so that pixels are certainly read.
+	c := &pixelsCommand{
+		img: i,
+	}
+	theCommandQueue.Enqueue(c)
 	if err := theCommandQueue.Flush(); err != nil {
 		return nil, err
 	}
-	f, err := i.createFramebufferIfNeeded()
-	if err != nil {
-		return nil, err
-	}
-	return opengl.GetContext().FramebufferPixels(f.native, i.width, i.height)
+	return c.result, nil
 }
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
