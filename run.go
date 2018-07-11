@@ -55,9 +55,8 @@ func setDrawingSkipped(skipped bool) {
 	atomic.StoreInt32(&isDrawingSkipped, v)
 }
 
-// IsDrawingSkipped returns true if the game is running too slowly to keep 60 FPS of rendering.
-// The game screen is not updated when IsDrawingSkipped is true.
-// It is recommended to skip heavy processing, especially drawing screen,
+// IsDrawingSkipped returns true if rendering result is not adopted.
+// It is recommended to skip drawing images or screen
 // when IsDrawingSkipped is true.
 //
 // The typical code with IsDrawingSkipped is this:
