@@ -88,6 +88,10 @@ func TestEnsureNotShared(t *testing.T) {
 	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4)
 	is := graphicsutil.QuadIndices()
 	img4.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	want := false
+	if got := img4.IsSharedForTesting(); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -106,4 +110,77 @@ func TestEnsureNotShared(t *testing.T) {
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
 	img4.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+}
+
+func TestReshared(t *testing.T) {
+	const size = 16
+
+	img0 := NewImage(size, size)
+	defer img0.Dispose()
+	img0.ReplacePixels(make([]byte, 4*size*size))
+
+	img1 := NewImage(size, size)
+	defer img1.Dispose()
+	img1.ReplacePixels(make([]byte, 4*size*size))
+	want := true
+	if got := img1.IsSharedForTesting(); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	img2 := NewImage(size, size)
+	defer img2.Dispose()
+	pix := make([]byte, 4*size*size)
+	for j := 0; j < size; j++ {
+		for i := 0; i < size; i++ {
+			pix[4*(i+j*size)] = byte(i + j)
+			pix[4*(i+j*size)+1] = byte(i + j)
+			pix[4*(i+j*size)+2] = byte(i + j)
+			pix[4*(i+j*size)+3] = byte(i + j)
+		}
+	}
+	img2.ReplacePixels(pix)
+
+	// Use img1 as a render target.
+	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0)
+	is := graphicsutil.QuadIndices()
+	img1.DrawImage(img2, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	want = false
+	if got := img1.IsSharedForTesting(); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	// Use img1 as a render source.
+	for i := 0; i < ReshareCount-1; i++ {
+		img0.DrawImage(img1, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		want := false
+		if got := img1.IsSharedForTesting(); got != want {
+			t.Errorf("got: %v, want: %v", got, want)
+		}
+	}
+
+	for j := 0; j < size; j++ {
+		for i := 0; i < size; i++ {
+			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+			got := img1.At(i, j).(color.RGBA)
+			if got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		}
+	}
+
+	img0.DrawImage(img1, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	want = true
+	if got := img1.IsSharedForTesting(); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	for j := 0; j < size; j++ {
+		for i := 0; i < size; i++ {
+			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
+			got := img1.At(i, j).(color.RGBA)
+			if got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		}
+	}
 }

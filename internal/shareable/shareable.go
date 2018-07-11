@@ -91,11 +91,18 @@ type Image struct {
 
 	backend *backend
 
-	node *packing.Node
+	node        *packing.Node
+	sharedCount int
 }
 
 func (i *Image) isShared() bool {
 	return i.node != nil
+}
+
+func (i *Image) IsSharedForTesting() bool {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return i.isShared()
 }
 
 func (i *Image) ensureNotShared() {
@@ -119,6 +126,36 @@ func (i *Image) ensureNotShared() {
 	i.backend = &backend{
 		restorable: newImg,
 	}
+}
+
+func (i *Image) forceShared() {
+	if i.backend == nil {
+		i.allocate(false)
+		return
+	}
+
+	if i.isShared() {
+		return
+	}
+
+	if !i.shareable() {
+		panic("not reached")
+	}
+
+	newI := NewImage(i.width, i.height)
+	pixels := make([]byte, 4*i.width*i.height)
+	for y := 0; y < i.height; y++ {
+		for x := 0; x < i.width; x++ {
+			c := i.at(x, y).(color.RGBA)
+			pixels[4*(x+i.width*y)] = c.R
+			pixels[4*(x+i.width*y)+1] = c.G
+			pixels[4*(x+i.width*y)+2] = c.B
+			pixels[4*(x+i.width*y)+3] = c.A
+		}
+	}
+	newI.replacePixels(pixels)
+	i.dispose(false)
+	*i = *newI
 }
 
 func (i *Image) region() (x, y, width, height int) {
@@ -145,6 +182,8 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32)
 	return graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)
 }
 
+const ReshareCount = 10
+
 func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -168,12 +207,24 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	}
 
 	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
+
+	i.sharedCount = 0
+	if !img.isShared() && img.shareable() {
+		img.sharedCount++
+		if img.sharedCount >= ReshareCount {
+			img.forceShared()
+			img.sharedCount = 0
+		}
+	}
 }
 
 func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+	i.replacePixels(p)
+}
 
+func (i *Image) replacePixels(p []byte) {
 	if i.disposed {
 		panic("shareable: the image must not be disposed")
 	}
@@ -191,7 +242,10 @@ func (i *Image) ReplacePixels(p []byte) {
 func (i *Image) At(x, y int) color.Color {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+	return i.at(x, y)
+}
 
+func (i *Image) at(x, y int) color.Color {
 	if i.backend == nil {
 		return color.RGBA{}
 	}
@@ -271,12 +325,16 @@ func NewImage(width, height int) *Image {
 	}
 }
 
+func (i *Image) shareable() bool {
+	return i.width <= maxSize && i.height <= maxSize
+}
+
 func (i *Image) allocate(shareable bool) {
 	if i.backend != nil {
 		panic("not reached")
 	}
 
-	if !shareable || i.width > maxSize || i.height > maxSize {
+	if !shareable || !i.shareable() {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, false),
 		}
