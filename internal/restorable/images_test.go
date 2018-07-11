@@ -88,9 +88,7 @@ func TestRestore(t *testing.T) {
 
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	fill(img0, clr0.R, clr0.G, clr0.B, clr0.A)
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
@@ -125,9 +123,7 @@ func TestRestoreChain(t *testing.T) {
 		vs := graphicsutil.QuadVertices(w, h, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0)
 		imgs[i+1].DrawImage(imgs[i], vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
@@ -172,9 +168,7 @@ func TestRestoreChain2(t *testing.T) {
 		imgs[i+1].DrawImage(imgs[i], vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
@@ -217,9 +211,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	img3.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	fill(img0, clr1.R, clr1.G, clr1.B, clr1.A)
 	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
@@ -316,9 +308,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img7.DrawImage(img2, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 2, 0)
 	img7.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
@@ -410,9 +400,7 @@ func TestRestoreRecursive(t *testing.T) {
 	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0)
 	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
 	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeSourceOver, graphics.FilterNearest)
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
@@ -463,28 +451,20 @@ func TestReplacePixels(t *testing.T) {
 	// Check the region (5, 7)-(9, 11). Outside state is indeterministic.
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
-			got, err := img.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			got := img.At(i, j)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
-			got, err := img.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			got := img.At(i, j)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -508,16 +488,11 @@ func TestDrawImageAndReplacePixels(t *testing.T) {
 	img1.DrawImage(img0, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, 1, 0, 1, 1)
 
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
-	got, err := img1.At(0, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	got := img1.At(0, 0)
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -545,16 +520,11 @@ func TestDispose(t *testing.T) {
 	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	img1.Dispose()
 
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
-	got, err := img0.At(0, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	got := img0.At(0, 0)
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -576,14 +546,10 @@ func TestDoubleResolve(t *testing.T) {
 	img0.DrawImage(img1, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	img0.ReplacePixels([]uint8{0x00, 0xff, 0x00, 0xff}, 1, 1, 1, 1)
 	// Now img0 is stale.
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 
 	img0.ReplacePixels([]uint8{0x00, 0x00, 0xff, 0xff}, 1, 0, 1, 1)
-	if err := ResolveStaleImages(); err != nil {
-		t.Fatal(err)
-	}
+	ResolveStaleImages()
 
 	if err := Restore(); err != nil {
 		t.Fatal(err)
@@ -595,10 +561,7 @@ func TestDoubleResolve(t *testing.T) {
 	wantImg.Set(1, 1, color.RGBA{0x00, 0xff, 0x00, 0xff})
 	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
-			got, err := img0.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			got := img0.At(i, j)
 			want := wantImg.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
 				t.Errorf("got: %v, want: %v", got, want)

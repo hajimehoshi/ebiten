@@ -220,11 +220,7 @@ func (i *imageDumper) update(screen *Image) error {
 			return nil
 		}
 
-		images, err := shareable.Images()
-		if err != nil {
-			return err
-		}
-		for i, img := range images {
+		for i, img := range shareable.Images() {
 			if err := dump(img, i); err != nil {
 				return err
 			}

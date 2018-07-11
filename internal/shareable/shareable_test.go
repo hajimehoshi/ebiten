@@ -88,10 +88,7 @@ func TestEnsureNotShared(t *testing.T) {
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			got, err := img4.At(i, j)
-			if err != nil {
-				t.Fatal(err)
-			}
+			got := img4.At(i, j)
 			var want color.RGBA
 			if i < dx0 || dx1 <= i || j < dy0 || dy1 <= j {
 				c := byte(i + j)

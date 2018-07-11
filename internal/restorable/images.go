@@ -53,14 +53,12 @@ var theImages = &images{
 // all stale images.
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
-func ResolveStaleImages() error {
-	if err := graphics.FlushCommands(); err != nil {
-		return err
-	}
+func ResolveStaleImages() {
+	graphics.FlushCommands()
 	if !restoringEnabled {
-		return nil
+		return
 	}
-	return theImages.resolveStaleImages()
+	theImages.resolveStaleImages()
 }
 
 // Restore restores the images.
@@ -73,7 +71,7 @@ func Restore() error {
 	return theImages.restore()
 }
 
-func Images() ([]image.Image, error) {
+func Images() []image.Image {
 	var imgs []image.Image
 	for img := range theImages.images {
 		if img.volatile {
@@ -87,10 +85,7 @@ func Images() ([]image.Image, error) {
 		pix := make([]byte, 4*w*h)
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
-				c, err := img.At(i, j)
-				if err != nil {
-					return nil, err
-				}
+				c := img.At(i, j)
 				pix[4*(i+j*w)] = byte(c.R)
 				pix[4*(i+j*w)+1] = byte(c.G)
 				pix[4*(i+j*w)+2] = byte(c.B)
@@ -103,7 +98,7 @@ func Images() ([]image.Image, error) {
 			Rect:   image.Rect(0, 0, w, h),
 		})
 	}
-	return imgs, nil
+	return imgs
 }
 
 // add adds img to the images.
@@ -118,14 +113,11 @@ func (i *images) remove(img *Image) {
 }
 
 // resolveStaleImages resolves stale images.
-func (i *images) resolveStaleImages() error {
+func (i *images) resolveStaleImages() {
 	i.lastTarget = nil
 	for img := range i.images {
-		if err := img.resolveStale(); err != nil {
-			return err
-		}
+		img.resolveStale()
 	}
-	return nil
 }
 
 // makeStaleIfDependingOn makes all the images stale that depend on target.
@@ -217,4 +209,8 @@ func (i *images) restore() error {
 // InitializeGLState initializes the GL state.
 func InitializeGLState() error {
 	return graphics.ResetGLState()
+}
+
+func Error() error {
+	return graphics.Error()
 }

@@ -241,25 +241,27 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-func (i *Image) At(x, y int) (color.RGBA, error) {
+func (i *Image) At(x, y int) color.RGBA {
 	w, h := i.image.Size()
 	if x < 0 || y < 0 || w <= x || h <= y {
-		return color.RGBA{}, nil
+		return color.RGBA{}
 	}
 
 	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
-		if err := graphics.FlushCommands(); err != nil {
-			return color.RGBA{}, err
-		}
-		if err := i.readPixelsFromGPU(); err != nil {
-			return color.RGBA{}, err
-		}
+		graphics.FlushCommands()
+		i.readPixelsFromGPU()
 		i.drawImageHistory = nil
 		i.stale = false
 	}
+
+	// Even after readPixelsFromGPU, basePixels might be nil when OpenGL error happens.
+	if i.basePixels == nil {
+		return color.RGBA{}
+	}
+
 	idx := 4*x + 4*y*w
 	r, g, b, a := i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
-	return color.RGBA{r, g, b, a}, nil
+	return color.RGBA{r, g, b, a}
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.
@@ -273,33 +275,28 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
-func (i *Image) readPixelsFromGPU() error {
-	var err error
-	i.basePixels, err = i.image.Pixels()
-	if err != nil {
-		return err
-	}
+func (i *Image) readPixelsFromGPU() {
+	i.basePixels = i.image.Pixels()
 	i.drawImageHistory = nil
 	i.stale = false
-	return nil
 }
 
 // resolveStale resolves the image's 'stale' state.
-func (i *Image) resolveStale() error {
+func (i *Image) resolveStale() {
 	if !IsRestoringEnabled() {
-		return nil
+		return
 	}
 
 	if i.volatile {
-		return nil
+		return
 	}
 	if i.screen {
-		return nil
+		return
 	}
 	if !i.stale {
-		return nil
+		return
 	}
-	return i.readPixelsFromGPU()
+	i.readPixelsFromGPU()
 }
 
 // dependsOn returns a boolean value indicating whether the image depends on target.
@@ -369,11 +366,7 @@ func (i *Image) restore() error {
 	}
 	i.image = gimg
 
-	var err error
-	i.basePixels, err = gimg.Pixels()
-	if err != nil {
-		return err
-	}
+	i.basePixels = gimg.Pixels()
 	i.drawImageHistory = nil
 	i.stale = false
 	return nil
@@ -397,9 +390,7 @@ func (i *Image) Dispose() {
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
 func (i *Image) IsInvalidated() (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	if err := graphics.FlushCommands(); err != nil {
-		return false, err
-	}
+	graphics.FlushCommands()
 	if !IsRestoringEnabled() {
 		return false, nil
 	}

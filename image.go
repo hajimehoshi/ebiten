@@ -267,11 +267,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	clr, err := i.shareableImage.At(x, y)
-	if err != nil {
-		panic(err)
-	}
-	return clr
+	return i.shareableImage.At(x, y)
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.

@@ -90,15 +90,16 @@ func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr 
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter)
 }
 
-func (i *Image) Pixels() ([]byte, error) {
+// Pixels returns the image's pixels.
+// Pixels might return nil when OpenGL error happens.
+func (i *Image) Pixels() []byte {
 	c := &pixelsCommand{
-		img: i,
+		result: nil,
+		img:    i,
 	}
 	theCommandQueue.Enqueue(c)
-	if err := theCommandQueue.Flush(); err != nil {
-		return nil, err
-	}
-	return c.result, nil
+	theCommandQueue.Flush()
+	return c.result
 }
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {

@@ -58,6 +58,8 @@ type commandQueue struct {
 
 	tmpNumIndices int
 	nextIndex     int
+
+	err error
 }
 
 // theCommandQueue is the command queue for the current process.
@@ -136,7 +138,11 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush() error {
+func (q *commandQueue) Flush() {
+	if q.err != nil {
+		return
+	}
+
 	// glViewport must be called at least at every frame on iOS.
 	opengl.GetContext().ResetViewportSize()
 	es := q.indices
@@ -168,7 +174,8 @@ func (q *commandQueue) Flush() error {
 		indexOffsetInBytes := 0
 		for _, c := range q.commands[:nc] {
 			if err := c.Exec(indexOffsetInBytes); err != nil {
-				return err
+				q.err = err
+				return
 			}
 			// TODO: indexOffsetInBytes should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
@@ -186,12 +193,16 @@ func (q *commandQueue) Flush() error {
 	q.nindices = 0
 	q.tmpNumIndices = 0
 	q.nextIndex = 0
-	return nil
+}
+
+// Error returns an OpenGL error for the last command.
+func Error() error {
+	return theCommandQueue.err
 }
 
 // FlushCommands flushes the command queue.
-func FlushCommands() error {
-	return theCommandQueue.Flush()
+func FlushCommands() {
+	theCommandQueue.Flush()
 }
 
 // drawImageCommand represents a drawing command to draw an image on another image.

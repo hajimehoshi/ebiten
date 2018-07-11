@@ -184,21 +184,20 @@ func (i *Image) ReplacePixels(p []byte) {
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (i *Image) At(x, y int) (color.Color, error) {
+func (i *Image) At(x, y int) color.Color {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if i.backend == nil {
-		return color.RGBA{}, nil
+		return color.RGBA{}
 	}
 
 	ox, oy, w, h := i.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
-		return color.RGBA{}, nil
+		return color.RGBA{}
 	}
 
-	clr, err := i.backend.restorable.At(x+ox, y+oy)
-	return clr, err
+	return i.backend.restorable.At(x+ox, y+oy)
 }
 
 func (i *Image) Dispose() {
@@ -351,10 +350,10 @@ func InitializeGLState() error {
 	return restorable.InitializeGLState()
 }
 
-func ResolveStaleImages() error {
+func ResolveStaleImages() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return restorable.ResolveStaleImages()
+	restorable.ResolveStaleImages()
 }
 
 func IsRestoringEnabled() bool {
@@ -368,8 +367,14 @@ func Restore() error {
 	return restorable.Restore()
 }
 
-func Images() ([]image.Image, error) {
+func Images() []image.Image {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.Images()
+}
+
+func Error() error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	return restorable.Error()
 }
