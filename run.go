@@ -38,7 +38,7 @@ const FPS = clock.FPS
 // NOT how many times logical game updating (a passed function to Run) happens.
 // Note that logical game updating is assured to happen 60 times in a second.
 //
-// This function is concurrent-safe.
+// CurrentFPS is concurrent-safe.
 func CurrentFPS() float64 {
 	return clock.CurrentFPS()
 }
@@ -76,7 +76,7 @@ func setDrawingSkipped(skipped bool) {
 //        return nil
 //    }
 //
-// This function is concurrent-safe.
+// IsDrawingSkipped is concurrent-safe.
 func IsDrawingSkipped() bool {
 	return atomic.LoadInt32(&isDrawingSkipped) != 0
 }
@@ -285,9 +285,9 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 }
 
 // RunWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
-// Different from Run, this function returns immediately.
+// Different from Run, RunWithoutMainLoop returns immediately.
 //
-// Ebiten users should NOT call this function.
+// Ebiten users should NOT call RunWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	f = (&imageDumper{f: f}).update
@@ -344,7 +344,7 @@ func MonitorSize() (int, int) {
 //
 // Unit is device-independent pixel.
 //
-// This function is concurrent-safe.
+// SetScreenSize is concurrent-safe.
 func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
@@ -360,7 +360,7 @@ func SetScreenSize(width, height int) {
 // you can disable this automatical device scaling as a result.
 // You can get the device scale by DeviceScaleFactor function.
 //
-// This function is concurrent-safe.
+// SetScreenScale is concurrent-safe.
 func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
@@ -372,7 +372,7 @@ func SetScreenScale(scale float64) {
 //
 // If Run is not called, this returns 0.
 //
-// This function is concurrent-safe.
+// ScreenScale is concurrent-safe.
 func ScreenScale() float64 {
 	return ui.ScreenScale()
 }
@@ -382,7 +382,7 @@ func ScreenScale() float64 {
 //
 // IsCursorVisible always returns false on mobiles.
 //
-// This function is concurrent-safe.
+// IsCursorVisible is concurrent-safe.
 func IsCursorVisible() bool {
 	return ui.IsCursorVisible()
 }
@@ -391,7 +391,7 @@ func IsCursorVisible() bool {
 //
 // SetCursorVisible does nothing on mobiles.
 //
-// This function is concurrent-safe.
+// SetCursorVisible is concurrent-safe.
 func SetCursorVisible(visible bool) {
 	ui.SetCursorVisible(visible)
 }
@@ -406,7 +406,7 @@ func SetCursorVisibility(visible bool) {
 //
 // IsFullscreen always returns false on mobiles.
 //
-// This function is concurrent-safe.
+// IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
 	return ui.IsFullscreen()
 }
@@ -427,7 +427,7 @@ func IsFullscreen() bool {
 //
 // SetFullscreen does nothing on mobiles.
 //
-// This function is concurrent-safe.
+// SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
 	ui.SetFullscreen(fullscreen)
 }
@@ -435,7 +435,7 @@ func SetFullscreen(fullscreen bool) {
 // IsRunnableInBackground returns a boolean value indicating whether
 // the game runs even in background.
 //
-// This function is concurrent-safe.
+// IsRunnableInBackground is concurrent-safe.
 func IsRunnableInBackground() bool {
 	return ui.IsRunnableInBackground()
 }
@@ -447,7 +447,7 @@ func IsRunnableInBackground() bool {
 //
 // SetWindowDecorated panics if SetWindowDecorated is called after Run.
 //
-// This function is concurrent-safe.
+// SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
 	ui.SetWindowDecorated(decorated)
 }
@@ -455,7 +455,7 @@ func SetWindowDecorated(decorated bool) {
 // IsWindowDecorated returns a boolean value indicating whether
 // the window is decorated.
 //
-// This function is concurrent-safe.
+// IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
 	return ui.IsWindowDecorated()
 }
@@ -470,7 +470,7 @@ func IsWindowDecorated() bool {
 //
 // SetRunnableInBackground does nothing on mobiles so far.
 //
-// This function is concurrent-safe.
+// SetRunnableInBackground is concurrent-safe.
 func SetRunnableInBackground(runnableInBackground bool) {
 	ui.SetRunnableInBackground(runnableInBackground)
 }
@@ -503,7 +503,7 @@ func SetWindowTitle(title string) {
 //
 // SetWindowIcon doesn't work on browsers or mobiles.
 //
-// This function is concurrent-safe.
+// SetWindowIcon is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
 }

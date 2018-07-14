@@ -27,7 +27,7 @@ import (
 // IsKeyPressed is based on a mapping of device (US keyboard) codes to input device keys.
 // "Control" and modifier keys should be handled with IsKeyPressed.
 //
-// This function is concurrent-safe.
+// InputChars is concurrent-safe.
 func InputChars() []rune {
 	rb := input.Get().RuneBuffer()
 	return append(make([]rune, 0, len(rb)), rb...)
@@ -40,14 +40,14 @@ func InputChars() []rune {
 //   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
 //   - KeyPrintScreen is only treated at keyup event.
 //
-// This function is concurrent-safe.
+// IsKeyPressed is concurrent-safe.
 func IsKeyPressed(key Key) bool {
 	return input.Get().IsKeyPressed(input.Key(key))
 }
 
 // CursorPosition returns a position of a mouse cursor.
 //
-// This function is concurrent-safe.
+// CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
 	return ui.AdjustedCursorPosition()
 }
@@ -60,9 +60,9 @@ func MouseWheel() (xoff, yoff float64) {
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 //
-// This function is concurrent-safe.
+// IsMouseButtonPressed is concurrent-safe.
 //
-// Note that touch events not longer affect this function's result as of 1.4.0-alpha.
+// Note that touch events not longer affect IsMouseButtonPressed's result as of 1.4.0-alpha.
 // Use Touches instead.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
 	return input.Get().IsMouseButtonPressed(input.MouseButton(mouseButton))
@@ -70,48 +70,48 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 
 // GamepadIDs returns a slice indicating available gamepad IDs.
 //
-// This function is concurrent-safe.
+// GamepadIDs is concurrent-safe.
 //
-// This function always returns an empty slice on mobiles.
+// GamepadIDs always returns an empty slice on mobiles.
 func GamepadIDs() []int {
 	return input.Get().GamepadIDs()
 }
 
 // GamepadAxisNum returns the number of axes of the gamepad (id).
 //
-// This function is concurrent-safe.
+// GamepadAxisNum is concurrent-safe.
 //
-// This function always returns 0 on mobiles.
+// GamepadAxisNum always returns 0 on mobiles.
 func GamepadAxisNum(id int) int {
 	return input.Get().GamepadAxisNum(id)
 }
 
 // GamepadAxis returns the float value [-1.0 - 1.0] of the given gamepad (id)'s axis (axis).
 //
-// This function is concurrent-safe.
+// GamepadAxis is concurrent-safe.
 //
-// This function always returns 0 on mobiles.
+// GamepadAxis always returns 0 on mobiles.
 func GamepadAxis(id int, axis int) float64 {
 	return input.Get().GamepadAxis(id, axis)
 }
 
 // GamepadButtonNum returns the number of the buttons of the given gamepad (id).
 //
-// This function is concurrent-safe.
+// GamepadButtonNum is concurrent-safe.
 //
-// This function always returns 0 on mobiles.
+// GamepadButtonNum always returns 0 on mobiles.
 func GamepadButtonNum(id int) int {
 	return input.Get().GamepadButtonNum(id)
 }
 
 // IsGamepadButtonPressed returns the boolean indicating the given button of the gamepad (id) is pressed or not.
 //
-// This function is concurrent-safe.
+// IsGamepadButtonPressed is concurrent-safe.
 //
 // The relationships between physical buttons and buttion IDs depend on environments.
 // There can be differences even between Chrome and Firefox.
 //
-// This function always returns false on mobiles.
+// IsGamepadButtonPressed always returns false on mobiles.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return input.Get().IsGamepadButtonPressed(id, input.GamepadButton(button))
 }

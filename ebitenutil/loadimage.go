@@ -26,13 +26,13 @@ import (
 
 // NewImageFromFile loads the file with path and returns ebiten.Image and image.Image.
 //
-// Image decoders must be imported when using this function. For example,
+// Image decoders must be imported when using NewImageFromFile. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
 //
 // How to solve path depends on your environment. This varies on your desktop or web browser.
 // Note that this doesn't work on mobiles.
 //
-// For productions, instead of using this function, it is safer to embed your resources, e.g., with github.com/jteeuwen/go-bindata .
+// For productions, instead of using NewImageFromFile, it is safer to embed your resources, e.g., with github.com/jteeuwen/go-bindata .
 func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
 	if err != nil {

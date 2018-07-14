@@ -23,7 +23,7 @@ import (
 
 // NewImageFromURL creates a new ebiten.Image from the given URL.
 //
-// Image decoders must be imported when using this function. For example,
+// Image decoders must be imported when using NewImageFromURL. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
 //
 // FilterDefault is used at NewImgeFromImage internally.

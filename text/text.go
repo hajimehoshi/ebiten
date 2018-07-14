@@ -266,12 +266,12 @@ func colorToColorM(clr color.Color) ebiten.ColorM {
 // clr is the color for text rendering.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
-// It is OK to call this function with a same text and a same face at every frame in terms of performance.
+// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
 //
 // Be careful that the passed font face is held by this package and is never released.
 // This is a known issue (#498).
 //
-// This function is concurrent-safe.
+// Draw is concurrent-safe.
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	textM.Lock()
 

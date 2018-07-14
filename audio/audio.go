@@ -278,7 +278,7 @@ func (c *Context) loop() {
 // Update is deprecated as of 1.6.0-alpha.
 //
 // As of 1.6.0-alpha, Update always returns nil and does nothing related to updating the state.
-// You don't have to call this function any longer.
+// You don't have to call Update any longer.
 // The internal audio error is returned at ebiten.Run instead.
 func (c *Context) Update() error {
 	return nil
@@ -691,7 +691,7 @@ func (p *Player) Volume() float64 {
 }
 
 // SetVolume sets the volume of this player.
-// volume must be in between 0 and 1. This function panics otherwise.
+// volume must be in between 0 and 1. SetVolume panics otherwise.
 func (p *Player) SetVolume(volume float64) {
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
