@@ -36,6 +36,7 @@ type userInterface struct {
 	scale                float64
 	fullscreen           bool
 	runnableInBackground bool
+	vsync                bool
 
 	sizeChanged bool
 	windowFocus bool
@@ -46,12 +47,14 @@ var currentUI = &userInterface{
 	sizeChanged: true,
 	windowFocus: true,
 	pageVisible: true,
+	vsync:       true,
 }
 
 var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
 	requestAnimationFrame = window.Get("requestAnimationFrame")
+	setTimeoutForLoop     = js.Global().Call("eval", "((f) => { setTimeout(f, 0); })")
 )
 
 func MonitorSize() (int, int) {
@@ -84,6 +87,14 @@ func SetRunnableInBackground(runnableInBackground bool) {
 
 func IsRunnableInBackground() bool {
 	return currentUI.runnableInBackground
+}
+
+func SetVsyncEnabled(enabled bool) {
+	currentUI.vsync = enabled
+}
+
+func IsVsyncEnabled() bool {
+	return currentUI.vsync
 }
 
 func ScreenPadding() (x0, y0, x1, y1 float64) {
@@ -215,7 +226,11 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			close(ch)
 			return
 		}
-		requestAnimationFrame.Invoke(cf)
+		if u.vsync {
+			requestAnimationFrame.Invoke(cf)
+		} else {
+			setTimeoutForLoop.Invoke(cf)
+		}
 	}
 	cf = js.NewCallback(f)
 	// Call f asyncly to be async since ch is used in f.

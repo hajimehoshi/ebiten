@@ -86,6 +86,7 @@ func update(screen *ebiten.Image) error {
 	fullscreen := ebiten.IsFullscreen()
 	runnableInBackground := ebiten.IsRunnableInBackground()
 	cursorVisible := ebiten.IsCursorVisible()
+	vsyncEnabled := ebiten.IsVsyncEnabled()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		screenHeight += d
@@ -126,11 +127,16 @@ func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		cursorVisible = !cursorVisible
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
+		vsyncEnabled = !vsyncEnabled
+	}
+
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisible(cursorVisible)
+	ebiten.SetVsyncEnabled(vsyncEnabled)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -159,6 +165,7 @@ Press F key to switch the fullscreen state
 Press B key to switch the run-in-background state
 Press C key to switch the cursor visibility
 Press I key to change the window icon
+Press V key to switch vsync
 Press Q key to quit
 Cursor: (%d, %d)
 FPS: %0.2f`, x, y, ebiten.CurrentFPS())

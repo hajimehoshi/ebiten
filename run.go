@@ -520,3 +520,28 @@ func SetWindowIcon(iconImages []image.Image) {
 func DeviceScaleFactor() float64 {
 	return devicescale.DeviceScale()
 }
+
+// IsVsyncEnabled returns a boolean value indicating whether
+// the game uses the display's vsync.
+//
+// IsVsyncEnabled is concurrent-safe.
+func IsVsyncEnabled() bool {
+	return ui.IsVsyncEnabled()
+}
+
+// SetVsyncEnabled sets a boolean value indicating whether
+// the game uses the display's vsync.
+//
+// If the given value is true, the game tries to sync the display's refresh rate.
+// If false, the game ignores the display's refresh rate.
+// The initial value is true.
+// By disabling vsync, the game works more efficiently but consumes more CPU.
+//
+// Note that the state doesn't affect how many the run funciton is updated per second.
+//
+// SetVsyncEnabled doesn't work on mobiles so far.
+//
+// SetVsyncEnabled is concurrent-safe.
+func SetVsyncEnabled(enabled bool) {
+	ui.SetVsyncEnabled(enabled)
+}

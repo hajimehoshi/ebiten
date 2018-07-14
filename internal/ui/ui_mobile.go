@@ -394,6 +394,14 @@ func SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
+func IsVsyncEnabled() bool {
+	return true
+}
+
+func SetVsyncEnabled(enabled bool) {
+	// Do nothing
+}
+
 func UpdateTouches(touches []*input.Touch) {
 	input.Get().UpdateTouches(touches)
 }

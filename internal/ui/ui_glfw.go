@@ -49,6 +49,7 @@ type userInterface struct {
 	origPosX             int
 	origPosY             int
 	runnableInBackground bool
+	vsync                bool
 
 	initFullscreen      bool
 	initCursorVisible   bool
@@ -66,6 +67,7 @@ var (
 		origPosY:            -1,
 		initCursorVisible:   true,
 		initWindowDecorated: true,
+		vsync:               true,
 	}
 )
 
@@ -241,7 +243,7 @@ func SetScreenSize(width, height int) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(width, height, u.scale, u.fullscreen())
+		r = u.setScreenSize(width, height, u.scale, u.fullscreen(), u.vsync)
 		return nil
 	})
 	return r
@@ -254,7 +256,7 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = u.runOnMainThread(func() error {
-		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen())
+		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen(), u.vsync)
 		return nil
 	})
 	return r
@@ -302,7 +304,7 @@ func SetFullscreen(fullscreen bool) {
 	}
 	_ = u.runOnMainThread(func() error {
 		u := currentUI
-		u.setScreenSize(u.width, u.height, u.scale, fullscreen)
+		u.setScreenSize(u.width, u.height, u.scale, fullscreen, u.vsync)
 		return nil
 	})
 }
@@ -313,6 +315,32 @@ func SetRunnableInBackground(runnableInBackground bool) {
 
 func IsRunnableInBackground() bool {
 	return currentUI.isRunnableInBackground()
+}
+
+func SetVsyncEnabled(enabled bool) {
+	u := currentUI
+	if !u.isRunning() {
+		_ = u.runOnMainThread(func() error {
+			u.vsync = enabled
+			return nil
+		})
+		return
+	}
+	_ = u.runOnMainThread(func() error {
+		u := currentUI
+		u.setScreenSize(u.width, u.height, u.scale, u.fullscreen(), enabled)
+		return nil
+	})
+}
+
+func IsVsyncEnabled() bool {
+	r := false
+	u := currentUI
+	_ = u.runOnMainThread(func() error {
+		r = currentUI.vsync
+		return nil
+	})
+	return r
 }
 
 func SetWindowTitle(title string) {
@@ -459,7 +487,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 
 		// The game is in window mode (not fullscreen mode) at the first state.
 		// Don't refer u.initFullscreen here to avoid some GLFW problems.
-		u.setScreenSize(width, height, scale, false)
+		u.setScreenSize(width, height, scale, false, u.vsync)
 		u.title = title
 		u.window.SetTitle(title)
 		u.window.Show()
@@ -542,7 +570,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	_ = u.runOnMainThread(func() error {
 		if u.isInitFullscreen() {
 			u := currentUI
-			u.setScreenSize(u.width, u.height, u.scale, true)
+			u.setScreenSize(u.width, u.height, u.scale, true, u.vsync)
 			u.setInitFullscreen(false)
 		}
 		return nil
@@ -603,8 +631,8 @@ func (u *userInterface) swapBuffers() {
 }
 
 // setScreenSize must be called from the main thread.
-func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
-	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen {
+func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) bool {
+	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen && u.vsync == vsync {
 		return false
 	}
 
@@ -622,6 +650,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	u.height = height
 	u.scale = scale
 	u.fullscreenScale = 0
+	u.vsync = vsync
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
@@ -665,6 +694,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 		// Window title might be lost on macOS after coming back from fullscreen.
 		u.window.SetTitle(u.title)
 	}
+
 	// SwapInterval is affected by the current monitor of the window.
 	// This needs to be called at least after SetMonitor.
 	// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -672,7 +702,11 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	// TODO: (#405) If triple buffering is needed, SwapInterval(0) should be called,
 	// but is this correct? If glfw.SwapInterval(0) and the driver doesn't support triple
 	// buffering, what will happen?
-	glfw.SwapInterval(1)
+	if u.vsync {
+		glfw.SwapInterval(1)
+	} else {
+		glfw.SwapInterval(0)
+	}
 
 	u.toChangeSize = true
 	return true
