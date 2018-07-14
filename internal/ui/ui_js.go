@@ -54,7 +54,7 @@ var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
 	requestAnimationFrame = window.Get("requestAnimationFrame")
-	setTimeoutForLoop     = js.Global().Call("eval", "((f) => { setTimeout(f, 0); })")
+	setTimeout            = window.Get("setTimeout")
 )
 
 func MonitorSize() (int, int) {
@@ -229,7 +229,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 		if u.vsync {
 			requestAnimationFrame.Invoke(cf)
 		} else {
-			setTimeoutForLoop.Invoke(cf)
+			setTimeout.Invoke(cf, 0)
 		}
 	}
 	cf = js.NewCallback(f)
