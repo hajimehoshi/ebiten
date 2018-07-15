@@ -541,9 +541,10 @@ func IsVsyncEnabled() bool {
 // The initial value is true.
 // By disabling vsync, the game works more efficiently but consumes more CPU.
 //
-// Note that the state doesn't affect how many the run funciton is updated per second.
+// Note that the state doesn't affect TPS (ticks per second, i.e. how many the run funciton is
+// updated per second).
 //
-// SetVsyncEnabled doesn't work on mobiles so far.
+// SetVsyncEnabled does nothing on mobiles so far.
 //
 // SetVsyncEnabled is concurrent-safe.
 func SetVsyncEnabled(enabled bool) {
