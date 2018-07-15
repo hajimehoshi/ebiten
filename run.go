@@ -254,7 +254,7 @@ func (i *imageDumper) update(screen *Image) error {
 //
 // Ebiten tries to call f 60 times a second. In other words,
 // TPS (ticks per second) is 60.
-// This is not related to framerate (display's frashrate).
+// This is not related to framerate (display's refresh rate).
 //
 // f is not called when the window is in background by default.
 // This setting is configurable with SetRunnableInBackground.
