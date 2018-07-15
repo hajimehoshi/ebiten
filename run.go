@@ -30,7 +30,7 @@ import (
 )
 
 // FPS represents how many times game updating happens in a second (60).
-const FPS = clock.FPS
+const FPS = 60
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //

@@ -20,8 +20,6 @@ import (
 	"time"
 )
 
-const FPS = 60
-
 var (
 	frames int64
 
@@ -66,7 +64,7 @@ func updateFPS(now int64) {
 
 // Update updates the inner clock state and returns an integer value
 // indicating how many game frames the game should update.
-func Update() int {
+func Update(logicFPS int) int {
 	m.Lock()
 	defer m.Unlock()
 
@@ -92,20 +90,20 @@ func Update() int {
 	count := 0
 	syncWithSystemClock := false
 
-	if diff > 5*int64(time.Second)/FPS {
+	if diff > 5*int64(time.Second)/int64(logicFPS) {
 		// The previous time is too old.
 		// Let's force to sync the game time with the system clock.
 		syncWithSystemClock = true
 	} else {
-		count = int(diff * FPS / int64(time.Second))
+		count = int(diff * int64(logicFPS) / int64(time.Second))
 	}
 
 	// Stabilize FPS.
 	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
-	if count == 0 && (int64(time.Second)/FPS/2) < diff {
+	if count == 0 && (int64(time.Second)/int64(logicFPS)/2) < diff {
 		count = 1
 	}
-	if count == 2 && (int64(time.Second)/FPS*3/2) > diff {
+	if count == 2 && (int64(time.Second)/int64(logicFPS)*3/2) > diff {
 		count = 1
 	}
 
@@ -113,7 +111,7 @@ func Update() int {
 	if syncWithSystemClock {
 		lastSystemTime = n
 	} else {
-		lastSystemTime += int64(count) * int64(time.Second) / FPS
+		lastSystemTime += int64(count) * int64(time.Second) / int64(logicFPS)
 	}
 
 	updateFPS(n)
