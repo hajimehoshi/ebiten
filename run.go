@@ -30,13 +30,15 @@ import (
 )
 
 // FPS represents how many times game updating happens in a second (60).
+//
+// BUG: This actually represents TPS, not FPS.
 const FPS = 60
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
-// The returned value represents how many times rendering happens in a second and
-// NOT how many times logical game updating (a passed function to Run) happens.
-// Note that logical game updating is assured to happen 60 times in a second.
+// The returned value FPS (frames per second) that represents how many times rendering happens in a
+// second and NOT TPS (ticks per second) that represents how many times logical game updating (a
+// passed function to Run) happens in a second.
 //
 // CurrentFPS is concurrent-safe.
 func CurrentFPS() float64 {
@@ -250,8 +252,10 @@ func (i *imageDumper) update(screen *Image) error {
 // Run must be called from the OS main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
 //
-// The given function f is guaranteed to be called 60 times a second
-// even if a rendering frame is skipped.
+// Ebiten tries to call f 60 times a second. In other words,
+// TPS (ticks per second) is 60.
+// This is not related to framerate (display's frashrate).
+//
 // f is not called when the window is in background by default.
 // This setting is configurable with SetRunnableInBackground.
 //
