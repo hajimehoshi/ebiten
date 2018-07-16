@@ -29,12 +29,11 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
-const defaultTPS = 60
+// TPS represents a default ticks per second, that represents how many times game updating happens in a second.
+const DefaultTPS = 60
 
-// FPS represents how many times game updating happens in a second (60).
-//
-// BUG: This actually represents TPS, not FPS.
-const FPS = defaultTPS
+// FPS is deprecated as of 1.8.0-alpha: Use DefaultTPS instead.
+const FPS = DefaultTPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //
@@ -53,7 +52,7 @@ var (
 )
 
 func init() {
-	atomic.StoreInt32(&currentTPS, defaultTPS)
+	atomic.StoreInt32(&currentTPS, DefaultTPS)
 }
 
 func setDrawingSkipped(skipped bool) {

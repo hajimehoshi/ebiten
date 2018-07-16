@@ -39,7 +39,7 @@ var (
 
 func update(screen *ebiten.Image) error {
 	count++
-	count %= ebiten.FPS * 10
+	count %= ebiten.TPS() * 10
 	diff := float64(count) * 0.2
 	switch {
 	case 480 < count:

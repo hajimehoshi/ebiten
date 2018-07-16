@@ -66,7 +66,8 @@ func paint(canvas *ebiten.Image, x, y int) {
 	op.GeoM.Translate(float64(x), float64(y))
 	// Scale the color and rotate the hue so that colors vary on each frame.
 	op.ColorM.Scale(1.0, 0.50, 0.125, 1.0)
-	theta := 2.0 * math.Pi * float64(count%ebiten.FPS) / ebiten.FPS
+	tps := ebiten.TPS()
+	theta := 2.0 * math.Pi * float64(count%tps) / float64(tps)
 	op.ColorM.RotateHue(theta)
 	canvas.DrawImage(brushImage, op)
 }
