@@ -21,8 +21,6 @@ import (
 )
 
 var (
-	frames int64
-
 	// lastSystemTime is the last system time in the previous Update.
 	lastSystemTime int64
 
@@ -87,7 +85,6 @@ func calcCountFromTPS(tps int64, now int64) int {
 		count = 1
 	}
 
-	frames += int64(count)
 	if syncWithSystemClock {
 		lastSystemTime = now
 	} else {
