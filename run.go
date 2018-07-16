@@ -564,7 +564,7 @@ func TPS() int {
 	return int(atomic.LoadInt32(&currentTPS))
 }
 
-// SetTPS sets the TPS (ticks per frame), that represents how many updating function is called
+// SetTPS sets the TPS (ticks per second), that represents how many updating function is called
 // per second.
 // The initial value is 60.
 //
