@@ -87,6 +87,7 @@ func update(screen *ebiten.Image) error {
 	runnableInBackground := ebiten.IsRunnableInBackground()
 	cursorVisible := ebiten.IsCursorVisible()
 	vsyncEnabled := ebiten.IsVsyncEnabled()
+	tps := ebiten.TPS()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		screenHeight += d
@@ -130,6 +131,20 @@ func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 		vsyncEnabled = !vsyncEnabled
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
+		switch tps {
+		case -1:
+			tps = 30
+		case 30:
+			tps = 60
+		case 60:
+			tps = 120
+		case 120:
+			tps = -1
+		default:
+			panic("not reached")
+		}
+	}
 
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
@@ -137,6 +152,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisible(cursorVisible)
 	ebiten.SetVsyncEnabled(vsyncEnabled)
+	ebiten.SetTPS(tps)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -167,8 +183,10 @@ Press C key to switch the cursor visibility
 Press I key to change the window icon
 Press V key to switch vsync
 Press Q key to quit
+Press T key to switch TPS (ticks per second)
 Cursor: (%d, %d)
-FPS: %0.2f`, x, y, ebiten.CurrentFPS())
+FPS: %0.2f
+TPS: %d`, x, y, ebiten.CurrentFPS(), ebiten.TPS())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

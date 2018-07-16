@@ -49,7 +49,12 @@ func CurrentFPS() float64 {
 
 var (
 	isDrawingSkipped = int32(0)
+	currentTPS       = int32(0)
 )
+
+func init() {
+	atomic.StoreInt32(&currentTPS, defaultTPS)
+}
 
 func setDrawingSkipped(skipped bool) {
 	v := int32(0)
@@ -551,4 +556,22 @@ func IsVsyncEnabled() bool {
 // SetVsyncEnabled is concurrent-safe.
 func SetVsyncEnabled(enabled bool) {
 	ui.SetVsyncEnabled(enabled)
+}
+
+// TPS returns the current TPS.
+//
+// TPS is concurrent-safe.
+func TPS() int {
+	return int(atomic.LoadInt32(&currentTPS))
+}
+
+// SetTPS sets the TPS (ticks per frame), that represents how many updating function is called
+// per second.
+// The initial value is 60.
+//
+// If the given tps is negative, TPS is unfixed and the game is updated per frame.
+//
+// SetTPS is concurrent-safe.
+func SetTPS(tps int) {
+	atomic.StoreInt32(&currentTPS, int32(tps))
 }

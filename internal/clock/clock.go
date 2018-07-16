@@ -110,8 +110,7 @@ func updateFPS(now int64) {
 // Update updates the inner clock state and returns an integer value
 // indicating how many game frames the game should update based on given tps.
 // tps represents TPS (ticks per second).
-// If tps is 0, Update always returns 0.
-// If tps is negative, Update panics.
+// If tps <= 0, Update always returns 0.
 //
 // Update is expected to be called per frame.
 func Update(tps int) int {
@@ -127,5 +126,8 @@ func Update(tps int) int {
 
 	n := now()
 	updateFPS(n)
-	return calcCountFromTPS(int64(tps), n)
+	if tps > 0 {
+		return calcCountFromTPS(int64(tps), n)
+	}
+	return 0
 }

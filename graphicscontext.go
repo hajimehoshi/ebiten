@@ -82,7 +82,13 @@ func (c *graphicsContext) initializeIfNeeded() error {
 }
 
 func (c *graphicsContext) Update(afterFrameUpdate func()) error {
-	updateCount := clock.Update(defaultTPS)
+	tps := int(TPS())
+	count := clock.Update(tps)
+
+	updateCount := 1
+	if tps >= 0 {
+		updateCount = count
+	}
 
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
