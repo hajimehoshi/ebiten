@@ -29,10 +29,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
+const defaultTPS = 60
+
 // FPS represents how many times game updating happens in a second (60).
 //
 // BUG: This actually represents TPS, not FPS.
-const FPS = 60
+const FPS = defaultTPS
 
 // CurrentFPS returns the current number of frames per second of rendering.
 //

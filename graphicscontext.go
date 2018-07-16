@@ -82,7 +82,7 @@ func (c *graphicsContext) initializeIfNeeded() error {
 }
 
 func (c *graphicsContext) Update(afterFrameUpdate func()) error {
-	updateCount := clock.Update(FPS)
+	updateCount := clock.Update(defaultTPS)
 
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
