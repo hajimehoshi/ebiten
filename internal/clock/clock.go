@@ -49,6 +49,54 @@ func OnStart(f func()) {
 	m.Unlock()
 }
 
+func calcCountFromTPS(tps int64, now int64) int {
+	if tps == 0 {
+		return 0
+	}
+	if tps < 0 {
+		panic("clock: tps must >= 0")
+	}
+
+	// Initialize lastSystemTime if needed.
+	if lastSystemTime == 0 {
+		lastSystemTime = now
+	}
+
+	diff := now - lastSystemTime
+	if diff < 0 {
+		return 0
+	}
+
+	count := 0
+	syncWithSystemClock := false
+
+	if diff > int64(time.Second)*5/60 {
+		// The previous time is too old.
+		// Let's force to sync the game time with the system clock.
+		syncWithSystemClock = true
+	} else {
+		count = int(diff * tps / int64(time.Second))
+	}
+
+	// Stabilize FPS.
+	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
+	if count == 0 && (int64(time.Second)/tps/2) < diff {
+		count = 1
+	}
+	if count == 2 && (int64(time.Second)/tps*3/2) > diff {
+		count = 1
+	}
+
+	frames += int64(count)
+	if syncWithSystemClock {
+		lastSystemTime = now
+	} else {
+		lastSystemTime += int64(count) * int64(time.Second) / tps
+	}
+
+	return count
+}
+
 func updateFPS(now int64) {
 	if lastFPSUpdated == 0 {
 		lastFPSUpdated = now
@@ -63,7 +111,12 @@ func updateFPS(now int64) {
 }
 
 // Update updates the inner clock state and returns an integer value
-// indicating how many game frames the game should update.
+// indicating how many game frames the game should update based on given tps.
+// tps represents TPS (ticks per second).
+// If tps is 0, Update always returns 0.
+// If tps is negative, Update panics.
+//
+// Update is expected to be called per frame.
 func Update(tps int) int {
 	m.Lock()
 	defer m.Unlock()
@@ -76,45 +129,6 @@ func Update(tps int) int {
 	}
 
 	n := now()
-
-	// Initialize lastSystemTime if needed.
-	if lastSystemTime == 0 {
-		lastSystemTime = n
-	}
-
-	diff := n - lastSystemTime
-	if diff < 0 {
-		return 0
-	}
-
-	count := 0
-	syncWithSystemClock := false
-
-	if diff > int64(time.Second)*5/60 {
-		// The previous time is too old.
-		// Let's force to sync the game time with the system clock.
-		syncWithSystemClock = true
-	} else {
-		count = int(diff * int64(tps) / int64(time.Second))
-	}
-
-	// Stabilize FPS.
-	// Without this adjustment, count can be unstable like 0, 2, 0, 2, ...
-	if count == 0 && (int64(time.Second)/int64(tps)/2) < diff {
-		count = 1
-	}
-	if count == 2 && (int64(time.Second)/int64(tps)*3/2) > diff {
-		count = 1
-	}
-
-	frames += int64(count)
-	if syncWithSystemClock {
-		lastSystemTime = n
-	} else {
-		lastSystemTime += int64(count) * int64(time.Second) / int64(tps)
-	}
-
 	updateFPS(n)
-
-	return count
+	return calcCountFromTPS(int64(tps), n)
 }
