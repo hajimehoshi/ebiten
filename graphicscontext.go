@@ -85,6 +85,8 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	tps := int(MaxTPS())
 	updateCount := clock.Update(tps)
 
+	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
+
 	if err := c.initializeIfNeeded(); err != nil {
 		return err
 	}
