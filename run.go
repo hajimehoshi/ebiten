@@ -564,8 +564,14 @@ func MaxTPS() int {
 	return int(atomic.LoadInt32(&currentMaxTPS))
 }
 
+// CurrentTPS returns the current TPS (ticks per second),
+// that represents how many update function is called in a second.
+func CurrentTPS() float64 {
+	return clock.CurrentTPS()
+}
+
 // UncappedTPS is a special TPS value that means the game doesn't have limitation on TPS.
-const UncappedTPS = -1
+const UncappedTPS = clock.UncappedTPS
 
 // SetMaxTPS sets the maximum TPS (ticks per second),
 // that represents how many updating function is called per second.

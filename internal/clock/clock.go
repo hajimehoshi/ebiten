@@ -24,9 +24,11 @@ var (
 	// lastSystemTime is the last system time in the previous Update.
 	lastSystemTime int64
 
-	currentFPS     float64
-	lastFPSUpdated int64
-	framesForFPS   int64
+	currentFPS  float64
+	currentTPS  float64
+	lastUpdated int64
+	fpsCount    = 0
+	tpsCount    = 0
 
 	started bool
 	onStart func()
@@ -37,6 +39,13 @@ var (
 func CurrentFPS() float64 {
 	m.Lock()
 	v := currentFPS
+	m.Unlock()
+	return v
+}
+
+func CurrentTPS() float64 {
+	m.Lock()
+	v := currentTPS
 	m.Unlock()
 	return v
 }
@@ -94,23 +103,29 @@ func calcCountFromTPS(tps int64, now int64) int {
 	return count
 }
 
-func updateFPS(now int64) {
-	if lastFPSUpdated == 0 {
-		lastFPSUpdated = now
+func updateFPSAndTPS(now int64, count int) {
+	if lastUpdated == 0 {
+		lastUpdated = now
 	}
-	framesForFPS++
-	if time.Second > time.Duration(now-lastFPSUpdated) {
+	fpsCount++
+	tpsCount += count
+	if time.Second > time.Duration(now-lastUpdated) {
 		return
 	}
-	currentFPS = float64(framesForFPS) * float64(time.Second) / float64(now-lastFPSUpdated)
-	lastFPSUpdated = now
-	framesForFPS = 0
+	currentFPS = float64(fpsCount) * float64(time.Second) / float64(now-lastUpdated)
+	currentTPS = float64(tpsCount) * float64(time.Second) / float64(now-lastUpdated)
+	lastUpdated = now
+	fpsCount = 0
+	tpsCount = 0
 }
 
+const UncappedTPS = -1
+
 // Update updates the inner clock state and returns an integer value
-// indicating how many game frames the game should update based on given tps.
+// indicating how many times the game should update based on given tps.
 // tps represents TPS (ticks per second).
-// If tps <= 0, Update always returns 0.
+// If tps is UncappedTPS, Update always returns 1.
+// If tps <= 0 and not UncappedTPS, Update always returns 0.
 //
 // Update is expected to be called per frame.
 func Update(tps int) int {
@@ -125,9 +140,12 @@ func Update(tps int) int {
 	}
 
 	n := now()
-	updateFPS(n)
-	if tps > 0 {
-		return calcCountFromTPS(int64(tps), n)
+	c := 0
+	if tps == UncappedTPS {
+		c = 1
+	} else if tps > 0 {
+		c = calcCountFromTPS(int64(tps), n)
 	}
-	return 0
+	updateFPSAndTPS(n, c)
+	return c
 }

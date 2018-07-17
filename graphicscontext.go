@@ -84,9 +84,6 @@ func (c *graphicsContext) initializeIfNeeded() error {
 func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	tps := int(MaxTPS())
 	updateCount := clock.Update(tps)
-	if tps == UncappedTPS {
-		updateCount = 1
-	}
 
 	if err := c.initializeIfNeeded(); err != nil {
 		return err

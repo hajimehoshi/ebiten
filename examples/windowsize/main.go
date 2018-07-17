@@ -176,8 +176,8 @@ func update(screen *ebiten.Image) error {
 
 	x, y := ebiten.CursorPosition()
 	tpsStr := "Uncapped"
-	if maxTPS := ebiten.MaxTPS(); maxTPS != ebiten.UncappedTPS {
-		tpsStr = fmt.Sprintf("%d", maxTPS)
+	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
+		tpsStr = fmt.Sprintf("%d", t)
 	}
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
@@ -190,7 +190,7 @@ Press T key to switch TPS (ticks per second)
 Press Q key to quit
 Cursor: (%d, %d)
 FPS: %0.2f
-TPS: %s`, x, y, ebiten.CurrentFPS(), tpsStr)
+TPS: Current: %0.2f / Max: %s`, x, y, ebiten.CurrentFPS(), ebiten.CurrentTPS(), tpsStr)
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
