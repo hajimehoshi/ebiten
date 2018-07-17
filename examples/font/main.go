@@ -117,7 +117,7 @@ func init() {
 
 func update(screen *ebiten.Image) error {
 	// Change the text color for each second.
-	if counter%ebiten.TPS() == 0 {
+	if counter%ebiten.MaxTPS() == 0 {
 		kanjiText = []rune{}
 		for j := 0; j < 4; j++ {
 			for i := 0; i < 8; i++ {

@@ -119,7 +119,7 @@ func playNote(scoreIndex int) rune {
 	}
 
 	const vol = 1.0 / 16.0
-	size := 30 * sampleRate / ebiten.TPS()
+	size := 30 * sampleRate / ebiten.MaxTPS()
 	l := make([]int16, size)
 	r := make([]int16, size)
 	square(l, vol, freq, 0.25)

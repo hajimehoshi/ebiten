@@ -87,7 +87,7 @@ func update(screen *ebiten.Image) error {
 	runnableInBackground := ebiten.IsRunnableInBackground()
 	cursorVisible := ebiten.IsCursorVisible()
 	vsyncEnabled := ebiten.IsVsyncEnabled()
-	tps := ebiten.TPS()
+	tps := ebiten.MaxTPS()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		screenHeight += d
@@ -176,8 +176,8 @@ func update(screen *ebiten.Image) error {
 
 	x, y := ebiten.CursorPosition()
 	tpsStr := "Uncapped"
-	if tps := ebiten.TPS(); tps != ebiten.UncappedTPS {
-		tpsStr = fmt.Sprintf("%d", tps)
+	if maxTPS := ebiten.MaxTPS(); maxTPS != ebiten.UncappedTPS {
+		tpsStr = fmt.Sprintf("%d", maxTPS)
 	}
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale

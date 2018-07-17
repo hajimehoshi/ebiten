@@ -38,7 +38,7 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
-	space.Step(1.0 / float64(ebiten.TPS()))
+	space.Step(1.0 / float64(ebiten.MaxTPS()))
 
 	if ebiten.IsDrawingSkipped() {
 		return nil

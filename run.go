@@ -48,11 +48,11 @@ func CurrentFPS() float64 {
 
 var (
 	isDrawingSkipped = int32(0)
-	currentTPS       = int32(0)
+	currentMaxTPS    = int32(0)
 )
 
 func init() {
-	atomic.StoreInt32(&currentTPS, DefaultTPS)
+	atomic.StoreInt32(&currentMaxTPS, DefaultTPS)
 }
 
 func setDrawingSkipped(skipped bool) {
@@ -557,11 +557,11 @@ func SetVsyncEnabled(enabled bool) {
 	ui.SetVsyncEnabled(enabled)
 }
 
-// TPS returns the current TPS.
+// MaxTPS returns the current maximum TPS.
 //
-// TPS is concurrent-safe.
-func TPS() int {
-	return int(atomic.LoadInt32(&currentTPS))
+// MaxTPS is concurrent-safe.
+func MaxTPS() int {
+	return int(atomic.LoadInt32(&currentMaxTPS))
 }
 
 // UncappedTPS is a special TPS value that means the game doesn't have limitation on TPS.
@@ -579,5 +579,5 @@ func SetMaxTPS(tps int) {
 	if tps < 0 && tps != UncappedTPS {
 		panic("ebiten: tps must be >= 0 or UncappedTPS")
 	}
-	atomic.StoreInt32(&currentTPS, int32(tps))
+	atomic.StoreInt32(&currentMaxTPS, int32(tps))
 }
