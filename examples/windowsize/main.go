@@ -133,14 +133,14 @@ func update(screen *ebiten.Image) error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		switch tps {
-		case -1:
+		case ebiten.UncappedTPS:
 			tps = 30
 		case 30:
 			tps = 60
 		case 60:
 			tps = 120
 		case 120:
-			tps = -1
+			tps = ebiten.UncappedTPS
 		default:
 			panic("not reached")
 		}
