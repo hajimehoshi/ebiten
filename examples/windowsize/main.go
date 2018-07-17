@@ -152,7 +152,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisible(cursorVisible)
 	ebiten.SetVsyncEnabled(vsyncEnabled)
-	ebiten.SetTPS(tps)
+	ebiten.SetMaxTPS(tps)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -175,6 +175,10 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(gophersImage, op)
 
 	x, y := ebiten.CursorPosition()
+	tpsStr := "Uncapped"
+	if tps := ebiten.TPS(); tps != ebiten.UncappedTPS {
+		tpsStr = fmt.Sprintf("%d", tps)
+	}
 	msg := fmt.Sprintf(`Press arrow keys to change the window size
 Press S key to change the window scale
 Press F key to switch the fullscreen state
@@ -186,7 +190,7 @@ Press T key to switch TPS (ticks per second)
 Press Q key to quit
 Cursor: (%d, %d)
 FPS: %0.2f
-TPS: %d`, x, y, ebiten.CurrentFPS(), ebiten.TPS())
+TPS: %s`, x, y, ebiten.CurrentFPS(), tpsStr)
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

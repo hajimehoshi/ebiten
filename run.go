@@ -564,13 +564,20 @@ func TPS() int {
 	return int(atomic.LoadInt32(&currentTPS))
 }
 
-// SetTPS sets the TPS (ticks per second), that represents how many updating function is called
-// per second.
+// UncappedTPS is a special TPS value that means the game doesn't have limitation on TPS.
+const UncappedTPS = -1
+
+// SetMaxTPS sets the maximum TPS (ticks per second),
+// that represents how many updating function is called per second.
 // The initial value is 60.
 //
-// If the given tps is negative, TPS is unfixed and the game is updated per frame.
+// If tps is UncappedTPS, TPS is uncapped and the game is updated per frame.
+// If tps is negative but not UncappedTPS, SetMaxTPS panics.
 //
-// SetTPS is concurrent-safe.
-func SetTPS(tps int) {
+// SetMaxTPS is concurrent-safe.
+func SetMaxTPS(tps int) {
+	if tps < 0 && tps != UncappedTPS {
+		panic("ebiten: tps must be >= 0 or UncappedTPS")
+	}
 	atomic.StoreInt32(&currentTPS, int32(tps))
 }
