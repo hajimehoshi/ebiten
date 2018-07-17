@@ -182,8 +182,8 @@ Press B key to switch the run-in-background state
 Press C key to switch the cursor visibility
 Press I key to change the window icon
 Press V key to switch vsync
-Press Q key to quit
 Press T key to switch TPS (ticks per second)
+Press Q key to quit
 Cursor: (%d, %d)
 FPS: %0.2f
 TPS: %d`, x, y, ebiten.CurrentFPS(), ebiten.TPS())
