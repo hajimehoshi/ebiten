@@ -23,7 +23,7 @@ install:
   - go get github.com/gopherjs/gopherjs
   - go get github.com/gopherjs/gopherwasm/js
   - go get -tags example github.com/hajimehoshi/ebiten/examples/...
-  - go get myitcv.io/gjbt
+  - go get myitcv.io/cmd/gjbt
   - mkdir /tmp/google-chrome-bin
   - ln -s /usr/bin/google-chrome-stable /tmp/google-chrome-bin/google-chrome
   - export PATH=/tmp/google-chrome-bin:$PATH
