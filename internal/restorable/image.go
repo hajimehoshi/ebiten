@@ -132,10 +132,6 @@ func (i *Image) makeStale() {
 	// the former image can be restored from the latest state of the latter image.
 }
 
-var (
-	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
-)
-
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // If pixels is nil, ReplacePixels clears the specified reagion.
@@ -164,7 +160,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h,
 			float32(width)/float32(w), 0, 0, float32(height)/float32(h),
 			float32(x), float32(y))
-		i.image.DrawImage(dummyImage.image, vs, quadIndices, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
+		is := graphicsutil.QuadIndices()
+		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {

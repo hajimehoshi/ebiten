@@ -111,3 +111,11 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 
 	return vs
 }
+
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
+func QuadIndices() []uint16 {
+	return quadIndices
+}

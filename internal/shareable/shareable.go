@@ -29,10 +29,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
-var (
-	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
-)
-
 type backend struct {
 	restorable *restorable.Image
 
@@ -68,7 +64,8 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	oldImg := b.restorable
 	w, h := oldImg.Size()
 	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0)
-	newImg.DrawImage(oldImg, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	is := graphicsutil.QuadIndices()
+	newImg.DrawImage(oldImg, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
 
@@ -115,7 +112,8 @@ func (i *Image) ensureNotShared() {
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
 	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0)
-	newImg.DrawImage(i.backend.restorable, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	is := graphicsutil.QuadIndices()
+	newImg.DrawImage(i.backend.restorable, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)
 	i.backend = &backend{
