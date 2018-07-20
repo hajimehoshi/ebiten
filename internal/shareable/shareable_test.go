@@ -45,6 +45,10 @@ func TestMain(m *testing.M) {
 
 const bigSize = 2049
 
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
 func TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
@@ -84,7 +88,8 @@ func TestEnsureNotShared(t *testing.T) {
 		dy1 = size * 3 / 4
 	)
 	// img4.ensureNotShared() should be called.
-	img4.DrawImage(img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4)
+	img4.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -102,5 +107,5 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawImage(img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img4.DrawImage(img3, vs, quadIndices, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 }

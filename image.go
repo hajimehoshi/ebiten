@@ -126,6 +126,10 @@ func (i *Image) fill(r, g, b, a uint8) {
 	_ = i.DrawImage(emptyImage, op)
 }
 
+var (
+	quadIndices = []uint16{0, 1, 2, 1, 2, 3}
+)
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -238,7 +242,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	a, b, c, d, tx, ty := geom.elements()
-	i.shareableImage.DrawImage(img.shareableImage, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
+	vs := img.shareableImage.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty)
+	i.shareableImage.DrawImage(img.shareableImage, vs, quadIndices, options.ColorM.impl, mode, filter)
 	return nil
 }
 

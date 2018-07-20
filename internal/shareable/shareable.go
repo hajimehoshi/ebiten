@@ -138,7 +138,16 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
+	if i.backend == nil {
+		i.allocate(true)
+	}
+	dx, dy, _, _ := i.region()
+	w, h := i.backend.restorable.SizePowerOf2()
+	return graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)
+}
+
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -160,10 +169,10 @@ func (i *Image) DrawImage(img *Image, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty
 		panic("shareable: Image.DrawImage: img must be different from the receiver")
 	}
 
-	dx, dy, _, _ := img.region()
+	/*dx, dy, _, _ := img.region()
 	w, h := img.backend.restorable.SizePowerOf2()
-	vs := graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)
-	i.backend.restorable.DrawImage(img.backend.restorable, vs, quadIndices, colorm, mode, filter)
+	vs := graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)*/
+	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
 }
 
 func (i *Image) ReplacePixels(p []byte) {
