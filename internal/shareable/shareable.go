@@ -167,9 +167,6 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 		panic("shareable: Image.DrawImage: img must be different from the receiver")
 	}
 
-	/*dx, dy, _, _ := img.region()
-	w, h := img.backend.restorable.SizePowerOf2()
-	vs := graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)*/
 	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
 }
 
