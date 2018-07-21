@@ -9,10 +9,13 @@ github.com/gopherjs/gopherwasm v0.0.0-20180715123310-0765e455aaf6 h1:jlhhn5+kvyF
 github.com/gopherjs/gopherwasm v0.0.0-20180715123310-0765e455aaf6/go.mod h1:p5NWZjUtSXtYIzAvkf5nz1PKQ1ZP2kf/mb4apd1qN24=
 github.com/hajimehoshi/go-mp3 v0.0.0-20180207144744-3c185f92b8db h1:mzfVYbP9VhLVXAtH2bXuhTeacVty7UkIjqj/4tnExLo=
 github.com/hajimehoshi/go-mp3 v0.0.0-20180207144744-3c185f92b8db/go.mod h1:SUuVIxBoRGgFS+RYeGIJoiD2wUWy7EajN5tmFlh2ncc=
+github.com/hajimehoshi/go-mp3 v0.1.0/go.mod h1:SUuVIxBoRGgFS+RYeGIJoiD2wUWy7EajN5tmFlh2ncc=
 github.com/hajimehoshi/go-mplusbitmap v0.0.0-20180414172313-4e73a39eb112 h1:9gThfUMq1eZTun6sxSR7fKZTiUXPQUxdj/hhiPi8HNg=
 github.com/hajimehoshi/go-mplusbitmap v0.0.0-20180414172313-4e73a39eb112/go.mod h1:p0ABuCLcowP4ovBofe0b5Bra2t2ITZOBNpZZca5RCfA=
+github.com/hajimehoshi/go-mplusbitmap v1.0.0/go.mod h1:p0ABuCLcowP4ovBofe0b5Bra2t2ITZOBNpZZca5RCfA=
 github.com/hajimehoshi/oto v0.0.0-20180705142016-b091cc6aeb6d h1:EYq7S6tTsLhKOcpjDxxXP+duR9K1IG4S1vgY3w1T3eM=
 github.com/hajimehoshi/oto v0.0.0-20180705142016-b091cc6aeb6d/go.mod h1:Co7jIdNa4+UYZF0whfBysf8qY6o7oV8dFC1Ld//5HmY=
+github.com/hajimehoshi/oto v0.1.0/go.mod h1:Co7jIdNa4+UYZF0whfBysf8qY6o7oV8dFC1Ld//5HmY=
 github.com/jakecoffman/cp v0.0.0-20180418003712-60599de060a3 h1:Rlv44/It4vop0y1Ws61Q4+708mnuIP8FK3m3f8VCrgI=
 github.com/jakecoffman/cp v0.0.0-20180418003712-60599de060a3/go.mod h1:a3xPx9N8RyFAACD644t2dj/nK4SuLg1v+jL61m2yVo4=
 github.com/jfreymuth/oggvorbis v1.0.0 h1:aOpiihGrFLXpsh2osOlEvTcg5/aluzGQeC7m3uYWOZ0=

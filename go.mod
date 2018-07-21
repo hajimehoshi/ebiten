@@ -6,9 +6,9 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f // indirect
 	github.com/gopherjs/gopherwasm v0.0.0-20180715123310-0765e455aaf6
-	github.com/hajimehoshi/go-mp3 v0.0.0-20180207144744-3c185f92b8db
-	github.com/hajimehoshi/go-mplusbitmap v0.0.0-20180414172313-4e73a39eb112
-	github.com/hajimehoshi/oto v0.0.0-20180705142016-b091cc6aeb6d
+	github.com/hajimehoshi/go-mp3 v0.1.0
+	github.com/hajimehoshi/go-mplusbitmap v1.0.0
+	github.com/hajimehoshi/oto v0.1.0
 	github.com/jakecoffman/cp v0.0.0-20180418003712-60599de060a3
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
