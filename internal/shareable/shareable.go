@@ -205,7 +205,9 @@ func (i *Image) dispose(markDisposed bool) {
 		}
 		i.backend = nil
 		i.node = nil
-		runtime.SetFinalizer(i, nil)
+		if markDisposed {
+			runtime.SetFinalizer(i, nil)
+		}
 	}()
 
 	if i.disposed {
