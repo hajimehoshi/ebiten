@@ -95,6 +95,15 @@ type Image struct {
 	countForShare int
 }
 
+func (i *Image) moveTo(dst *Image) {
+	dst.dispose(false)
+	*dst = *i
+
+	// i is no longer available but Dispose must not be called
+	// since i and dst have the same values like node.
+	runtime.SetFinalizer(i, nil)
+}
+
 func (i *Image) isShared() bool {
 	return i.node != nil
 }
@@ -154,11 +163,8 @@ func (i *Image) forceShared() {
 		}
 	}
 	newI.replacePixels(pixels)
-	i.dispose(false)
-	*i = *newI
-	// TODO: This is a very tricky hack not to call Dispose twice for the same backend.
-	// Avoid such hack.
-	runtime.SetFinalizer(newI, nil)
+	newI.moveTo(i)
+	i.countForShare = 0
 }
 
 func (i *Image) region() (x, y, width, height int) {
