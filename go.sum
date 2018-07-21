@@ -2,6 +2,7 @@ github.com/go-gl/gl v0.0.0-20180407155706-68e253793080 h1:pNxZva3052YM+z2p1aP08F
 github.com/go-gl/gl v0.0.0-20180407155706-68e253793080/go.mod h1:482civXOzJJCPzJ4ZOX/pwvXBWSnzD4OKMdH4ClKGbk=
 github.com/go-gl/glfw v0.0.0-20180426074136-46a8d530c326 h1:QqWaXlVeUGwSH7hO8giZP2Y06Qjl1LWR+FWC22YQsU8=
 github.com/go-gl/glfw v0.0.0-20180426074136-46a8d530c326/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
+github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 h1:DACJavvAHhabrF08vX0COfcOBJRhZ8lUbR+ZWIs0Y5g=
 github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGwJL78qG/PmXZO1EjYhfJinVAhrmmHX6Z8B9k=
 github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f h1:FDM3EtwZLyhW48YRiyqjivNlNZjAObv4xt4NnJaU+NQ=
 github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
@@ -9,12 +10,12 @@ github.com/gopherjs/gopherwasm v0.0.0-20180715123310-0765e455aaf6 h1:jlhhn5+kvyF
 github.com/gopherjs/gopherwasm v0.0.0-20180715123310-0765e455aaf6/go.mod h1:p5NWZjUtSXtYIzAvkf5nz1PKQ1ZP2kf/mb4apd1qN24=
 github.com/gopherjs/webgl v0.0.0-20180508003723-39bd6d41eeb5 h1:vrKguNTgy5fq7lTzG9YNM9u8QOsNbEN2ejPt1k6gR/4=
 github.com/gopherjs/webgl v0.0.0-20180508003723-39bd6d41eeb5/go.mod h1:obh2agNa9TmQ5C1MrSr2jgLIqV0b4Cl96m/ig2VAXwM=
-github.com/hajimehoshi/go-mp3 v0.0.0-20180207144744-3c185f92b8db h1:mzfVYbP9VhLVXAtH2bXuhTeacVty7UkIjqj/4tnExLo=
-github.com/hajimehoshi/go-mp3 v0.0.0-20180207144744-3c185f92b8db/go.mod h1:SUuVIxBoRGgFS+RYeGIJoiD2wUWy7EajN5tmFlh2ncc=
-github.com/hajimehoshi/go-mplusbitmap v0.0.0-20180414172313-4e73a39eb112 h1:9gThfUMq1eZTun6sxSR7fKZTiUXPQUxdj/hhiPi8HNg=
-github.com/hajimehoshi/go-mplusbitmap v0.0.0-20180414172313-4e73a39eb112/go.mod h1:p0ABuCLcowP4ovBofe0b5Bra2t2ITZOBNpZZca5RCfA=
-github.com/hajimehoshi/oto v0.0.0-20180705142016-b091cc6aeb6d h1:EYq7S6tTsLhKOcpjDxxXP+duR9K1IG4S1vgY3w1T3eM=
-github.com/hajimehoshi/oto v0.0.0-20180705142016-b091cc6aeb6d/go.mod h1:Co7jIdNa4+UYZF0whfBysf8qY6o7oV8dFC1Ld//5HmY=
+github.com/hajimehoshi/go-mp3 v0.1.0 h1:nYqjO6rub69tJFI1JJSItb5xFi1z0jBED3INDwyKKlc=
+github.com/hajimehoshi/go-mp3 v0.1.0/go.mod h1:SUuVIxBoRGgFS+RYeGIJoiD2wUWy7EajN5tmFlh2ncc=
+github.com/hajimehoshi/go-mplusbitmap v1.0.0 h1:RTVrmfV5be1Qcgu2wTRnF7Oi/C/QlPh9IQsOredV90M=
+github.com/hajimehoshi/go-mplusbitmap v1.0.0/go.mod h1:p0ABuCLcowP4ovBofe0b5Bra2t2ITZOBNpZZca5RCfA=
+github.com/hajimehoshi/oto v0.1.0 h1:txvJhLf3/OUXa/nGyZ48u7hxx6WIgkNLcpXjXZ6lWmc=
+github.com/hajimehoshi/oto v0.1.0/go.mod h1:Co7jIdNa4+UYZF0whfBysf8qY6o7oV8dFC1Ld//5HmY=
 github.com/jakecoffman/cp v0.0.0-20180418003712-60599de060a3 h1:Rlv44/It4vop0y1Ws61Q4+708mnuIP8FK3m3f8VCrgI=
 github.com/jakecoffman/cp v0.0.0-20180418003712-60599de060a3/go.mod h1:a3xPx9N8RyFAACD644t2dj/nK4SuLg1v+jL61m2yVo4=
 github.com/jfreymuth/oggvorbis v1.0.0 h1:aOpiihGrFLXpsh2osOlEvTcg5/aluzGQeC7m3uYWOZ0=
