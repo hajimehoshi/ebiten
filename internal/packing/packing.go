@@ -147,7 +147,7 @@ func (p *Page) Size() int {
 
 func (p *Page) Alloc(width, height int) *Node {
 	if width <= 0 || height <= 0 {
-		panic("bsp: width and height must > 0")
+		panic("packing: width and height must > 0")
 	}
 	if p.root == nil {
 		p.root = &Node{
@@ -167,14 +167,14 @@ func (p *Page) Alloc(width, height int) *Node {
 
 func (p *Page) Free(node *Node) {
 	if node.child0 != nil || node.child1 != nil {
-		panic("bsp: can't free the node including children")
+		panic("packing: can't free the node including children")
 	}
 	node.used = false
 	if node.parent == nil {
 		return
 	}
 	if node.parent.child0 == nil || node.parent.child1 == nil {
-		panic("not reached")
+		panic("not reached: double free?")
 	}
 	if node.parent.child0.canFree() && node.parent.child1.canFree() {
 		node.parent.child0 = nil
