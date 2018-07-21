@@ -18,6 +18,7 @@ import (
 	"errors"
 	"image/color"
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten"
@@ -183,4 +184,6 @@ func TestReshared(t *testing.T) {
 			}
 		}
 	}
+
+	runtime.GC()
 }

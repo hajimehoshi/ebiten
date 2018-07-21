@@ -156,6 +156,9 @@ func (i *Image) forceShared() {
 	newI.replacePixels(pixels)
 	i.dispose(false)
 	*i = *newI
+	// TODO: This is a very tricky hack not to call Dispose twice for the same backend.
+	// Avoid such hack.
+	runtime.SetFinalizer(newI, nil)
 }
 
 func (i *Image) region() (x, y, width, height int) {
