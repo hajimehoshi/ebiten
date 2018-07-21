@@ -91,8 +91,8 @@ type Image struct {
 
 	backend *backend
 
-	node        *packing.Node
-	sharedCount int
+	node          *packing.Node
+	countForShare int
 }
 
 func (i *Image) isShared() bool {
@@ -182,7 +182,7 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32)
 	return graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)
 }
 
-const ReshareCount = 10
+const MaxCountForShare = 10
 
 func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
@@ -208,12 +208,12 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 
 	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
 
-	i.sharedCount = 0
+	i.countForShare = 0
 	if !img.isShared() && img.shareable() {
-		img.sharedCount++
-		if img.sharedCount >= ReshareCount {
+		img.countForShare++
+		if img.countForShare >= MaxCountForShare {
 			img.forceShared()
-			img.sharedCount = 0
+			img.countForShare = 0
 		}
 	}
 }

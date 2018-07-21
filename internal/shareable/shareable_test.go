@@ -150,7 +150,7 @@ func TestReshared(t *testing.T) {
 	}
 
 	// Use img1 as a render source.
-	for i := 0; i < ReshareCount-1; i++ {
+	for i := 0; i < MaxCountForShare-1; i++ {
 		img0.DrawImage(img1, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 		want := false
 		if got := img1.IsSharedForTesting(); got != want {
