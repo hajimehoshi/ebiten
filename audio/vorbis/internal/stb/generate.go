@@ -14,7 +14,9 @@
 
 package stb
 
-//go:generate bash build.sh
-//go:generate file2byteslice -package=stb -input=decode.js -output=decodejs_file.go -var=decode_js
+// stbvorbis.js
+// URL:     https://github.com/hajimehoshi/stbvorbis.js
+// License: Apache License 2.0
+// Commit:  ac1c2ee9d24eb6085eb1e968f55e0fb32cacc03a
+
 //go:generate file2byteslice -package=stb -input=stbvorbis.js -output=stbvorbisjs_file.go -var=stbvorbis_js
-//go:generate file2byteslice -package=stb -input=wasm.js -output=wasmjs_file.go -var=wasm_js

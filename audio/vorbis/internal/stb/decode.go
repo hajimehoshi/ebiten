@@ -20,31 +20,46 @@ import (
 	"github.com/gopherjs/gopherwasm/js"
 )
 
+var flatten = js.Global().Get("window").Call("eval", `(function(arr) {
+  var ch = arr.length;
+  var len = arr[0].length;
+  var result = new Float32Array(ch * len);
+  for (var j = 0; j < len; j++) {
+    for (var i = 0; i < ch; i++) {
+      result[j*ch+i] = arr[i][j];
+    }
+  }
+  return result;
+})`)
+
 func init() {
 	// Eval wasm.js first to set the Wasm binary to Module.
-	js.Global().Get("window").Call("eval", string(wasm_js))
-
 	js.Global().Get("window").Call("eval", string(stbvorbis_js))
-	js.Global().Get("window").Call("eval", string(decode_js))
-
-	ch := make(chan struct{})
-	js.Global().Get("_ebiten").Call("initializeVorbisDecoder", js.NewCallback(func([]js.Value) {
-		close(ch)
-	}))
-	<-ch
 }
 
 func DecodeVorbis(buf []byte) ([]float32, int, int, error) {
+	var r js.Value
+	ch := make(chan struct{})
 	arr := js.TypedArrayOf(buf)
-	r := js.Global().Get("_ebiten").Call("decodeVorbis", arr)
+	var f js.Callback
+	f = js.NewCallback(func(args []js.Value) {
+		r = args[0]
+		close(ch)
+		f.Release()
+	})
+	js.Global().Get("stbvorbis").Call("decode", arr).Call("then", f)
 	arr.Release()
+	<-ch
+
 	if r == js.Null() {
 		return nil, 0, 0, fmt.Errorf("audio/vorbis/internal/stb: decode failed")
 	}
 
-	data := make([]float32, r.Get("data").Get("length").Int())
+	channels := r.Get("data").Length()
+	flattened := flatten.Invoke(r.Get("data"))
+	data := make([]float32, flattened.Length())
 	arr = js.TypedArrayOf(data)
-	arr.Call("set", r.Get("data"))
+	arr.Call("set", flattened)
 	arr.Release()
-	return data, r.Get("channels").Int(), r.Get("sampleRate").Int(), nil
+	return data, channels, r.Get("sampleRate").Int(), nil
 }
