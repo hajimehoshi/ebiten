@@ -10,7 +10,7 @@ require (
 	github.com/hajimehoshi/go-mp3 v0.1.0
 	github.com/hajimehoshi/go-mplusbitmap v1.0.0
 	github.com/hajimehoshi/oto v0.1.0
-	github.com/jakecoffman/cp v0.0.0-20180418003712-60599de060a3
+	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
