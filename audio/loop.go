@@ -60,6 +60,9 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
 	}
+	if next < 0 {
+		return 0, fmt.Errorf("audio: position must >= 0")
+	}
 	next %= i.size
 	pos, err := i.stream.Seek(next, io.SeekStart)
 	if err != nil {

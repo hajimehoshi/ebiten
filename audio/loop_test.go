@@ -72,4 +72,9 @@ func TestInfiniteLoop(t *testing.T) {
 			t.Errorf("index: %d, got: %v, want: %v", i, got, want)
 		}
 	}
+
+	// Seek to negative position is an error.
+	if _, err := l.Seek(-1, io.SeekStart); err == nil {
+		t.Errorf("got: %v, want: %v", err, nil)
+	}
 }
