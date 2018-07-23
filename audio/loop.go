@@ -19,56 +19,107 @@ import (
 	"io"
 )
 
-// InfiniteLoop represents a loop which never ends.
+// InfiniteLoop represents a looped stream which never ends.
 type InfiniteLoop struct {
-	src  ReadSeekCloser
-	size int64
+	src     ReadSeekCloser
+	lstart  int64
+	llength int64
+	pos     int64
 }
 
-// NewInfiniteLoop creates a new infinite loop stream with a source stream and size in bytes.
-func NewInfiniteLoop(src ReadSeekCloser, size int64) *InfiniteLoop {
+// NewInfiniteLoop creates a new infinite loop stream with a source stream and length in bytes.
+func NewInfiniteLoop(src ReadSeekCloser, length int64) *InfiniteLoop {
+	return NewInfiniteLoopWithIntro(src, 0, length)
+}
+
+// NewInfiniteLoopWithIntro creates a new infinite loop stream with an intro part.
+// NewInfiniteLoopWithIntro accepts a source stream src, introLength in bytes and loopLength in bytes.
+func NewInfiniteLoopWithIntro(src ReadSeekCloser, introLength int64, loopLength int64) *InfiniteLoop {
 	return &InfiniteLoop{
-		src:  src,
-		size: size,
+		src:     src,
+		lstart:  introLength,
+		llength: loopLength,
+		pos:     -1,
 	}
+}
+
+func (i *InfiniteLoop) length() int64 {
+	return i.lstart + i.llength
+}
+
+func (i *InfiniteLoop) ensurePos() error {
+	if i.pos >= 0 {
+		return nil
+	}
+	pos, err := i.src.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return err
+	}
+	if pos >= i.length() {
+		return fmt.Errorf("audio: stream position must be less than the specified length")
+	}
+	i.pos = pos
+	return nil
 }
 
 // Read is implementation of ReadSeekCloser's Read.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
+	if err := i.ensurePos(); err != nil {
+		return 0, err
+	}
+
+	if i.pos+int64(len(b)) > i.length() {
+		b = b[:i.length()-i.pos]
+	}
+
 	n, err := i.src.Read(b)
-	if err == io.EOF {
-		if _, err := i.Seek(0, io.SeekStart); err != nil {
+	i.pos += int64(n)
+	if i.pos > i.length() {
+		panic("not reached")
+	}
+
+	if err != nil && err != io.EOF {
+		return 0, err
+	}
+
+	if err == io.EOF || i.pos == i.length() {
+		pos, err := i.Seek(i.lstart, io.SeekStart)
+		if err != nil {
 			return 0, err
 		}
-		err = nil
+		i.pos = pos
 	}
-	return n, err
+	return n, nil
 }
 
 // Seek is implementation of ReadSeekCloser's Seek.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
+	if err := i.ensurePos(); err != nil {
+		return 0, err
+	}
+
 	next := int64(0)
 	switch whence {
 	case io.SeekStart:
 		next = offset
 	case io.SeekCurrent:
-		current, err := i.src.Seek(0, io.SeekCurrent)
-		if err != nil {
-			return 0, err
-		}
-		next = current + offset
+		next = i.pos + offset
 	case io.SeekEnd:
 		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop")
 	}
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")
 	}
-	next %= i.size
-	pos, err := i.src.Seek(next, io.SeekStart)
-	if err != nil {
+	if next >= i.lstart {
+		next = ((next - i.lstart) % i.llength) + i.lstart
+	}
+	// Ignore the new position returned by Seek since the source position might not be match with the position
+	// managed by this.
+	if _, err := i.src.Seek(next, io.SeekStart); err != nil {
 		return 0, err
 	}
-	return pos, nil
+	i.pos = next
+	return i.pos, nil
 }
 
 // Close is implementation of ReadSeekCloser's Close.
