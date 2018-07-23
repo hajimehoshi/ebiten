@@ -54,10 +54,10 @@ type players struct {
 
 const (
 	channelNum     = 2
-	bytesPerSample = 2
+	bytesPerSample = 2 * channelNum
 
-	// TODO: This assumes that channelNum is a power of 2.
-	mask = ^(channelNum*bytesPerSample - 1)
+	// TODO: This assumes that bytesPerSample is a power of 2.
+	mask = ^(bytesPerSample - 1)
 )
 
 func (p *players) Read(b []byte) (int, error) {
@@ -254,7 +254,7 @@ func (c *Context) loop() {
 	// e.g. a variable for JVM on Android might not be set.
 	<-initCh
 
-	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample, bufferSize())
+	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample/channelNum, bufferSize())
 	if err != nil {
 		c.err = err
 		return
@@ -488,7 +488,7 @@ func (p *Player) readLoop() {
 
 		case <-timerCh:
 			// If the buffer has 1 second, that's enough.
-			if len(p.buf) >= p.sampleRate*bytesPerSample*channelNum {
+			if len(p.buf) >= p.sampleRate*bytesPerSample {
 				if timer != nil {
 					timer.Stop()
 				}
@@ -504,7 +504,7 @@ func (p *Player) readLoop() {
 			} else if web.IsBrowser() {
 				s = 20
 			}
-			l := p.sampleRate * bytesPerSample * channelNum / s
+			l := p.sampleRate * bytesPerSample / s
 			l &= mask
 			buf := make([]byte, l)
 			n, err := p.src.Read(buf)
@@ -654,7 +654,7 @@ func (p *Player) Seek(offset time.Duration) error {
 	if _, ok := p.src.(io.Seeker); !ok {
 		panic("audio: player to be sought must be io.Seeker")
 	}
-	o := int64(offset) * bytesPerSample * channelNum * int64(p.sampleRate) / int64(time.Second)
+	o := int64(offset) * bytesPerSample * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
 	select {
 	case p.seekCh <- seekArgs{o, io.SeekStart}:
@@ -676,7 +676,7 @@ func (p *Player) Pause() error {
 func (p *Player) Current() time.Duration {
 	sample := int64(0)
 	p.sync(func() {
-		sample = p.pos / bytesPerSample / channelNum
+		sample = p.pos / bytesPerSample
 	})
 	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
