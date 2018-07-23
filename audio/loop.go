@@ -21,21 +21,21 @@ import (
 
 // InfiniteLoop represents a loop which never ends.
 type InfiniteLoop struct {
-	stream ReadSeekCloser
-	size   int64
+	src  ReadSeekCloser
+	size int64
 }
 
-// NewInfiniteLoop creates a new infinite loop stream with a stream and size in bytes.
-func NewInfiniteLoop(stream ReadSeekCloser, size int64) *InfiniteLoop {
+// NewInfiniteLoop creates a new infinite loop stream with a source stream and size in bytes.
+func NewInfiniteLoop(src ReadSeekCloser, size int64) *InfiniteLoop {
 	return &InfiniteLoop{
-		stream: stream,
-		size:   size,
+		src:  src,
+		size: size,
 	}
 }
 
 // Read is implementation of ReadSeekCloser's Read.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
-	n, err := i.stream.Read(b)
+	n, err := i.src.Read(b)
 	if err == io.EOF {
 		if _, err := i.Seek(0, io.SeekStart); err != nil {
 			return 0, err
@@ -52,7 +52,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		next = offset
 	case io.SeekCurrent:
-		current, err := i.stream.Seek(0, io.SeekCurrent)
+		current, err := i.src.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return 0, err
 		}
@@ -64,7 +64,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("audio: position must >= 0")
 	}
 	next %= i.size
-	pos, err := i.stream.Seek(next, io.SeekStart)
+	pos, err := i.src.Seek(next, io.SeekStart)
 	if err != nil {
 		return 0, err
 	}
@@ -73,5 +73,5 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 
 // Close is implementation of ReadSeekCloser's Close.
 func (l *InfiniteLoop) Close() error {
-	return l.stream.Close()
+	return l.src.Close()
 }
