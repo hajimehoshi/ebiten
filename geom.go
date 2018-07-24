@@ -164,7 +164,7 @@ func (g *GeoM) Rotate(theta float64) {
 
 // Skew the image.
 func (g *GeoM) Skew(skewX, skewY float64) {
-	
+
 	sx64 := math.Tan(skewX)
 	sy64 := math.Tan(skewY)
 	sx, sy := float32(sx64), float32(sy64)
