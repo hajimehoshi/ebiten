@@ -93,6 +93,8 @@ type Image struct {
 
 	node          *packing.Node
 	countForShare int
+
+	neverShared bool
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -337,6 +339,9 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) shareable() bool {
+	if i.neverShared {
+		return false
+	}
 	return i.width <= maxSize && i.height <= maxSize
 }
 
@@ -396,6 +401,7 @@ func NewVolatileImage(width, height int) *Image {
 		backend: &backend{
 			restorable: r,
 		},
+		neverShared: true,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
@@ -412,6 +418,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		backend: &backend{
 			restorable: r,
 		},
+		neverShared: true,
 	}
 	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
