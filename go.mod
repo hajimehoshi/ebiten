@@ -12,6 +12,7 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/pty v1.1.2 // indirect
 	github.com/theckman/go-flock v0.4.0
 	golang.org/x/exp v0.0.0-20180710024300-14dda7b62fcd // indirect
 	golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81
