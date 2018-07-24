@@ -286,5 +286,6 @@ func BenchmarkGeoM(b *testing.B) {
 		m.Translate(10, 20)
 		m.Scale(2, 3)
 		m.Rotate(math.Pi / 2)
+		m.Skew(2, 3)
 	}
 }
