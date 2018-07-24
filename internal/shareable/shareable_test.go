@@ -141,6 +141,14 @@ func TestReshared(t *testing.T) {
 	}
 	img2.ReplacePixels(pix)
 
+	img3 := NewVolatileImage(size, size)
+	defer img3.Dispose()
+	img1.ReplacePixels(make([]byte, 4*size*size))
+	want = false
+	if got := img3.IsSharedForTesting(); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
 	// Use img1 as a render target.
 	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0)
 	is := graphicsutil.QuadIndices()
@@ -182,6 +190,15 @@ func TestReshared(t *testing.T) {
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
+		}
+	}
+
+	// Use img3 as a render source. img3 never uses a shared texture.
+	for i := 0; i < MaxCountForShare*2; i++ {
+		img0.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		want := false
+		if got := img3.IsSharedForTesting(); got != want {
+			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
 
