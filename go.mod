@@ -4,11 +4,10 @@ require (
 	github.com/go-gl/gl v0.0.0-20180407155706-68e253793080
 	github.com/go-gl/glfw v0.0.0-20180426074136-46a8d530c326
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
-	github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f // indirect
-	github.com/gopherjs/gopherwasm v0.1.0
-	github.com/hajimehoshi/go-mp3 v0.1.0
+	github.com/gopherjs/gopherwasm v0.1.1
+	github.com/hajimehoshi/go-mp3 v0.1.1
 	github.com/hajimehoshi/go-mplusbitmap v1.0.0
-	github.com/hajimehoshi/oto v0.1.0
+	github.com/hajimehoshi/oto v0.1.1
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
