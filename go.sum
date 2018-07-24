@@ -10,8 +10,8 @@ github.com/gopherjs/gopherwasm v0.1.1 h1:R/3+SfgCFStiql6ICfyfke1WtpglfjIvTEBux8R
 github.com/gopherjs/gopherwasm v0.1.1/go.mod h1:kx4n9a+MzHH0BJJhvlsQ65hqLFXDO/m256AsaDPQ+/4=
 github.com/hajimehoshi/go-mp3 v0.1.1 h1:Y33fAdTma70fkrxnc9u50Uq0lV6eZ+bkAlssdMmCwUc=
 github.com/hajimehoshi/go-mp3 v0.1.1/go.mod h1:4i+c5pDNKDrxl1iu9iG90/+fhP37lio6gNhjCx9WBJw=
-github.com/hajimehoshi/go-mplusbitmap v1.0.0 h1:RTVrmfV5be1Qcgu2wTRnF7Oi/C/QlPh9IQsOredV90M=
-github.com/hajimehoshi/go-mplusbitmap v1.0.0/go.mod h1:p0ABuCLcowP4ovBofe0b5Bra2t2ITZOBNpZZca5RCfA=
+github.com/hajimehoshi/go-mplusbitmap v1.0.1 h1:Q7vA2o/9uIXS0isGPeXc4ahLMFBfZl592OZgb/MH90w=
+github.com/hajimehoshi/go-mplusbitmap v1.0.1/go.mod h1:zW+y7DzqcVGNiGVPga2gau26lxIzv7zvtOEjgMiz6pU=
 github.com/hajimehoshi/oto v0.1.1 h1:EG+WxxeAfde1mI0adhLYvGbKgDCxm7bCTd6g+JIA6vI=
 github.com/hajimehoshi/oto v0.1.1/go.mod h1:hUiLWeBQnbDu4pZsAhOnGqMI1ZGibS6e2qhQdfpwz04=
 github.com/jakecoffman/cp v0.1.0 h1:sgSYEGUgfwiT447fRjloa2c5b6UyYP+7muR3gQK+Ep0=
@@ -25,6 +25,7 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/pkg/browser v0.0.0-20170505125900-c90ca0c84f15/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
 github.com/theckman/go-flock v0.4.0 h1:bcqNkS4RTQBGWybG7IBimUMxnLz53Qes1+D4QaOhzJc=
 github.com/theckman/go-flock v0.4.0/go.mod h1:kjuth3y9VJ2aNlkNEO99G/8lp9fMIKaGyBmh84IBheM=
 golang.org/x/exp v0.0.0-20180710024300-14dda7b62fcd h1:nLIcFw7GiqKXUS7HiChg6OAYWgASB2H97dZKd1GhDSs=
