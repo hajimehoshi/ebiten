@@ -90,26 +90,26 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs[5] = v1
 
 	// and the same for the other three coordinates
-	vs[6+20] = ax + tx
-	vs[7+20] = cx + ty
-	vs[8+20] = u1
-	vs[9+20] = v0
-	vs[10+20] = u0
-	vs[11+20] = v1
+	vs[26] = ax + tx
+	vs[27] = cx + ty
+	vs[28] = u1
+	vs[29] = v0
+	vs[30] = u0
+	vs[31] = v1
 
-	vs[12+40] = by + tx
-	vs[13+40] = dy + ty
-	vs[14+40] = u0
-	vs[15+40] = v1
-	vs[16+40] = u1
-	vs[17+40] = v0
+	vs[52] = by + tx
+	vs[53] = dy + ty
+	vs[54] = u0
+	vs[55] = v1
+	vs[56] = u1
+	vs[57] = v0
 
-	vs[18+60] = ax + by + tx
-	vs[19+60] = cx + dy + ty
-	vs[20+60] = u1
-	vs[21+60] = v1
-	vs[22+60] = u0
-	vs[23+60] = v0
+	vs[78] = ax + by + tx
+	vs[79] = cx + dy + ty
+	vs[80] = u1
+	vs[81] = v1
+	vs[82] = u0
+	vs[83] = v0
 
 	// Use for loop since subslicing is heavy on GopherJS.
 	for i := 0; i < 16; i++ {
