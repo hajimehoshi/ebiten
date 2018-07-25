@@ -15,6 +15,7 @@
 package graphicsutil
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -47,7 +48,7 @@ func isPowerOf2(x int) bool {
 	return (x & (x - 1)) == 0
 }
 
-func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
+func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, colorm *affine.ColorM) []float32 {
 	if !isPowerOf2(width) {
 		panic("not reached")
 	}
@@ -65,15 +66,16 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 	wf := float32(width)
 	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty)
+	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, colorm)
 }
 
-func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float32 {
+func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *affine.ColorM) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundry checks.
 	vs := theVerticesBackend.sliceForOneQuad()[0:104]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
+	cbody, ctranslate := colorm.UnsafeElements()
 
 	// Vertex coordinates
 	vs[0] = tx
@@ -86,6 +88,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 	vs[3] = v0
 	vs[4] = u1
 	vs[5] = v1
+	copy(vs[6:22], cbody)
+	copy(vs[22:26], ctranslate)
 
 	// and the same for the other three coordinates
 	vs[6+20] = ax + tx
@@ -94,6 +98,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 	vs[9+20] = v0
 	vs[10+20] = u0
 	vs[11+20] = v1
+	copy(vs[32:48], cbody)
+	copy(vs[48:52], ctranslate)
 
 	vs[12+40] = by + tx
 	vs[13+40] = dy + ty
@@ -101,6 +107,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 	vs[15+40] = v1
 	vs[16+40] = u1
 	vs[17+40] = v0
+	copy(vs[58:74], cbody)
+	copy(vs[74:78], ctranslate)
 
 	vs[18+60] = ax + by + tx
 	vs[19+60] = cx + dy + ty
@@ -108,6 +116,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 	vs[21+60] = v1
 	vs[22+60] = u0
 	vs[23+60] = v0
+	copy(vs[84:100], cbody)
+	copy(vs[100:104], ctranslate)
 
 	return vs
 }

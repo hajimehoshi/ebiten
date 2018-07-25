@@ -238,9 +238,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	a, b, c, d, tx, ty := geom.elements()
-	vs := img.shareableImage.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty)
+	vs := img.shareableImage.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl)
 	is := graphicsutil.QuadIndices()
-	i.shareableImage.DrawImage(img.shareableImage, vs, is, options.ColorM.impl, mode, filter)
+	i.shareableImage.DrawImage(img.shareableImage, vs, is, mode, filter)
 	return nil
 }
 
