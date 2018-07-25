@@ -94,6 +94,31 @@ var (
 				dataType: opengl.Float,
 				num:      4,
 			},
+			{
+				name:     "color0",
+				dataType: opengl.Float,
+				num:      4,
+			},
+			{
+				name:     "color1",
+				dataType: opengl.Float,
+				num:      4,
+			},
+			{
+				name:     "color2",
+				dataType: opengl.Float,
+				num:      4,
+			},
+			{
+				name:     "color3",
+				dataType: opengl.Float,
+				num:      4,
+			},
+			{
+				name:     "color4",
+				dataType: opengl.Float,
+				num:      4,
+			},
 		},
 	}
 )

@@ -50,15 +50,24 @@ const (
 uniform mat4 projection_matrix;
 attribute vec2 vertex;
 attribute vec4 tex_coord;
+attribute vec4 color0;
+attribute vec4 color1;
+attribute vec4 color2;
+attribute vec4 color3;
+attribute vec4 color4;
 varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
+varying mat4 varying_color_body;
+varying vec4 varying_color_translate;
 
 void main(void) {
   varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
   varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
   varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
   gl_Position = projection_matrix * vec4(vertex, 0, 1);
+  varying_color_body = mat4(color0, color1, color2, color3);
+  varying_color_translate = color4;
 }
 `
 	shaderStrFragment = `
@@ -85,6 +94,8 @@ uniform highp float scale;
 varying highp vec2 varying_tex_coord;
 varying highp vec2 varying_tex_coord_min;
 varying highp vec2 varying_tex_coord_max;
+varying highp mat4 varying_color_body;
+varying highp vec4 varying_color_translate;
 
 void main(void) {
   highp vec2 pos = varying_tex_coord;
@@ -153,7 +164,8 @@ void main(void) {
   // Premultiply alpha
   color.rgb *= color.a;
 
-  gl_FragColor = color;
+  // varying_color_body and varying_color_translate doesn't do anything so far.
+  gl_FragColor = color + varying_color_body * varying_color_translate * 0.0;
 }
 `
 )
