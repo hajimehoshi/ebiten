@@ -88,8 +88,6 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs[3] = v0
 	vs[4] = u1
 	vs[5] = v1
-	copy(vs[6:22], cbody)
-	copy(vs[22:26], ctranslate)
 
 	// and the same for the other three coordinates
 	vs[6+20] = ax + tx
@@ -98,8 +96,6 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs[9+20] = v0
 	vs[10+20] = u0
 	vs[11+20] = v1
-	copy(vs[32:48], cbody)
-	copy(vs[48:52], ctranslate)
 
 	vs[12+40] = by + tx
 	vs[13+40] = dy + ty
@@ -107,8 +103,6 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs[15+40] = v1
 	vs[16+40] = u1
 	vs[17+40] = v0
-	copy(vs[58:74], cbody)
-	copy(vs[74:78], ctranslate)
 
 	vs[18+60] = ax + by + tx
 	vs[19+60] = cx + dy + ty
@@ -116,8 +110,20 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs[21+60] = v1
 	vs[22+60] = u0
 	vs[23+60] = v0
-	copy(vs[84:100], cbody)
-	copy(vs[100:104], ctranslate)
+
+	// Use for loop since subslicing is heavy on GopherJS.
+	for i := 0; i < 16; i++ {
+		vs[6+i] = cbody[i]
+		vs[32+i] = cbody[i]
+		vs[58+i] = cbody[i]
+		vs[84+i] = cbody[i]
+	}
+	for i := 0; i < 4; i++ {
+		vs[22+i] = ctranslate[i]
+		vs[48+i] = ctranslate[i]
+		vs[74+i] = ctranslate[i]
+		vs[100+i] = ctranslate[i]
+	}
 
 	return vs
 }
