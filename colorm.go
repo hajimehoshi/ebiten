@@ -39,12 +39,12 @@ type ColorM struct {
 
 // String returns a string representation of ColorM.
 func (c *ColorM) String() string {
-	b, t := c.impl.UnsafeElements()
+	es := c.impl.UnsafeElements()
 	return fmt.Sprintf("[[%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f], [%f, %f, %f, %f, %f]]",
-		b[0], b[4], b[8], b[12], t[0],
-		b[1], b[5], b[9], b[13], t[1],
-		b[2], b[6], b[10], b[14], t[2],
-		b[3], b[7], b[11], b[15], t[3])
+		es[0], es[4], es[8], es[12], es[16],
+		es[1], es[5], es[9], es[13], es[17],
+		es[2], es[6], es[10], es[14], es[18],
+		es[3], es[7], es[11], es[15], es[19])
 }
 
 // Reset resets the ColorM as identity.
@@ -99,11 +99,8 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 
 // Element returns a value of a matrix at (i, j).
 func (c *ColorM) Element(i, j int) float64 {
-	b, t := c.impl.UnsafeElements()
-	if j < ColorMDim-1 {
-		return float64(b[i+j*(ColorMDim-1)])
-	}
-	return float64(t[i])
+	es := c.impl.UnsafeElements()
+	return float64(es[i+j*(ColorMDim-1)])
 }
 
 // SetElement sets an element at (i, j).

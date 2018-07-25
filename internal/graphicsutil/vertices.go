@@ -75,7 +75,7 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs := theVerticesBackend.sliceForOneQuad()[0:104]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
-	cbody, ctranslate := colorm.UnsafeElements()
+	ce := colorm.UnsafeElements()
 
 	// Vertex coordinates
 	vs[0] = tx
@@ -112,17 +112,11 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *
 	vs[83] = v0
 
 	// Use for loop since subslicing is heavy on GopherJS.
-	for i := 0; i < 16; i++ {
-		vs[6+i] = cbody[i]
-		vs[32+i] = cbody[i]
-		vs[58+i] = cbody[i]
-		vs[84+i] = cbody[i]
-	}
-	for i := 0; i < 4; i++ {
-		vs[22+i] = ctranslate[i]
-		vs[48+i] = ctranslate[i]
-		vs[74+i] = ctranslate[i]
-		vs[100+i] = ctranslate[i]
+	for i, e := range ce {
+		vs[6+i] = e
+		vs[32+i] = e
+		vs[58+i] = e
+		vs[84+i] = e
 	}
 
 	return vs

@@ -23,13 +23,11 @@ import (
 const ColorMDim = 5
 
 var (
-	colorMIdentityBody = []float32{
+	colorMIdentity = []float32{
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1,
-	}
-	colorMIdentityTranslate = []float32{
 		0, 0, 0, 0,
 	}
 )
@@ -45,8 +43,8 @@ var (
 type ColorM struct {
 	// When elements is nil, this matrix is identity.
 	// elements are immutable and a new array must be created when updating.
-	body      []float32
-	translate []float32
+	// Note that elements are transposed for OpenGL.
+	elements []float32
 }
 
 func clamp(x float32) float32 {
@@ -60,7 +58,7 @@ func clamp(x float32) float32 {
 }
 
 func (c *ColorM) isInited() bool {
-	return c != nil && (c.body != nil || c.translate != nil)
+	return c != nil && c.elements != nil
 }
 
 func (c *ColorM) Apply(clr color.Color) color.Color {
@@ -76,18 +74,14 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 		bf = float32(b) / float32(a)
 		af = float32(a) / 0xffff
 	}
-	eb := c.body
-	if eb == nil {
-		eb = colorMIdentityBody
+	es := c.elements
+	if es == nil {
+		es = colorMIdentity
 	}
-	et := c.translate
-	if et == nil {
-		et = colorMIdentityTranslate
-	}
-	rf2 := eb[0]*rf + eb[4]*gf + eb[8]*bf + eb[12]*af + et[0]
-	gf2 := eb[1]*rf + eb[5]*gf + eb[9]*bf + eb[13]*af + et[1]
-	bf2 := eb[2]*rf + eb[6]*gf + eb[10]*bf + eb[14]*af + et[2]
-	af2 := eb[3]*rf + eb[7]*gf + eb[11]*bf + eb[15]*af + et[3]
+	rf2 := es[0]*rf + es[4]*gf + es[8]*bf + es[12]*af + es[16]
+	gf2 := es[1]*rf + es[5]*gf + es[9]*bf + es[13]*af + es[17]
+	bf2 := es[2]*rf + es[6]*gf + es[10]*bf + es[14]*af + es[18]
+	af2 := es[3]*rf + es[7]*gf + es[11]*bf + es[15]*af + es[19]
 	rf2 = clamp(rf2)
 	gf2 = clamp(gf2)
 	bf2 = clamp(bf2)
@@ -100,42 +94,23 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 	}
 }
 
-func (c *ColorM) UnsafeElements() ([]float32, []float32) {
+func (c *ColorM) UnsafeElements() []float32 {
 	if !c.isInited() {
-		return colorMIdentityBody, colorMIdentityTranslate
+		return colorMIdentity
 	}
-	eb := c.body
-	if eb == nil {
-		eb = colorMIdentityBody
-	}
-	et := c.translate
-	if et == nil {
-		et = colorMIdentityTranslate
-	}
-	return eb, et
+	return c.elements
 }
 
 // SetElement sets an element at (i, j).
 func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 	newC := &ColorM{
-		body:      make([]float32, 16),
-		translate: make([]float32, 4),
+		elements: make([]float32, 20),
 	}
-	copy(newC.body, colorMIdentityBody)
-	copy(newC.translate, colorMIdentityTranslate)
+	copy(newC.elements, colorMIdentity)
 	if c.isInited() {
-		if c.body != nil {
-			copy(newC.body, c.body)
-		}
-		if c.translate != nil {
-			copy(newC.translate, c.translate)
-		}
+		copy(newC.elements, c.elements)
 	}
-	if j < (ColorMDim - 1) {
-		newC.body[i+j*(ColorMDim-1)] = element
-	} else {
-		newC.translate[i] = element
-	}
+	newC.elements[i+j*(ColorMDim-1)] = element
 	return newC
 }
 
@@ -149,72 +124,36 @@ func (c *ColorM) Concat(other *ColorM) *ColorM {
 		return c
 	}
 
-	lhsb := colorMIdentityBody
-	lhst := colorMIdentityTranslate
-	rhsb := colorMIdentityBody
-	rhst := colorMIdentityTranslate
+	lhs := colorMIdentity
+	rhs := colorMIdentity
 	if other.isInited() {
-		if other.body != nil {
-			lhsb = other.body
-		}
-		if other.translate != nil {
-			lhst = other.translate
-		}
+		lhs = other.elements
 	}
 	if c.isInited() {
-		if c.body != nil {
-			rhsb = c.body
-		}
-		if c.translate != nil {
-			rhst = c.translate
-		}
+		rhs = c.elements
 	}
 
 	return &ColorM{
-		// TODO: This is a temporary hack to calculate multiply of transposed matrices.
-		// Fix mulSquare implmentation and swap the arguments.
-		body: mulSquare(rhsb, lhsb, ColorMDim-1),
-		translate: []float32{
-			lhsb[0]*rhst[0] + lhsb[4]*rhst[1] + lhsb[8]*rhst[2] + lhsb[12]*rhst[3] + lhst[0],
-			lhsb[1]*rhst[0] + lhsb[5]*rhst[1] + lhsb[9]*rhst[2] + lhsb[13]*rhst[3] + lhst[1],
-			lhsb[2]*rhst[0] + lhsb[6]*rhst[1] + lhsb[10]*rhst[2] + lhsb[14]*rhst[3] + lhst[2],
-			lhsb[3]*rhst[0] + lhsb[7]*rhst[1] + lhsb[11]*rhst[2] + lhsb[15]*rhst[3] + lhst[3],
-		},
+		elements: mulAffine(lhs, rhs, ColorMDim),
 	}
 }
 
 // Add is deprecated.
 func (c *ColorM) Add(other *ColorM) *ColorM {
-	lhsb := colorMIdentityBody
-	lhst := colorMIdentityTranslate
-	rhsb := colorMIdentityBody
-	rhst := colorMIdentityTranslate
+	lhs := colorMIdentity
+	rhs := colorMIdentity
 	if other.isInited() {
-		if other.body != nil {
-			lhsb = other.body
-		}
-		if other.translate != nil {
-			lhst = other.translate
-		}
+		lhs = other.elements
 	}
 	if c.isInited() {
-		if c.body != nil {
-			rhsb = c.body
-		}
-		if c.translate != nil {
-			rhst = c.translate
-		}
+		rhs = c.elements
 	}
 
 	newC := &ColorM{
-		body:      make([]float32, 16),
-		translate: make([]float32, 4),
+		elements: make([]float32, 20),
 	}
-	for i := range lhsb {
-		newC.body[i] = lhsb[i] + rhsb[i]
-	}
-	for i := range lhst {
-		newC.translate[i] = lhst[i] + rhst[i]
+	for i := range lhs {
+		newC.elements[i] = lhs[i] + rhs[i]
 	}
 
 	return newC
@@ -224,41 +163,26 @@ func (c *ColorM) Add(other *ColorM) *ColorM {
 func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
 	if !c.isInited() {
 		return &ColorM{
-			body: []float32{
+			elements: []float32{
 				r, 0, 0, 0,
 				0, g, 0, 0,
 				0, 0, b, 0,
 				0, 0, 0, a,
+				0, 0, 0, 0,
 			},
 		}
 	}
-	eb := make([]float32, len(colorMIdentityBody))
-	if c.body != nil {
-		copy(eb, c.body)
-		for i := 0; i < ColorMDim-1; i++ {
-			eb[i*(ColorMDim-1)] *= r
-			eb[i*(ColorMDim-1)+1] *= g
-			eb[i*(ColorMDim-1)+2] *= b
-			eb[i*(ColorMDim-1)+3] *= a
-		}
-	} else {
-		eb[0] = r
-		eb[5] = g
-		eb[10] = b
-		eb[15] = a
-	}
-
-	et := make([]float32, len(colorMIdentityTranslate))
-	if c.translate != nil {
-		et[0] = c.translate[0] * r
-		et[1] = c.translate[1] * g
-		et[2] = c.translate[2] * b
-		et[3] = c.translate[3] * a
+	es := make([]float32, len(colorMIdentity))
+	copy(es, c.elements)
+	for i := 0; i < ColorMDim; i++ {
+		es[i*(ColorMDim-1)] *= r
+		es[i*(ColorMDim-1)+1] *= g
+		es[i*(ColorMDim-1)+2] *= b
+		es[i*(ColorMDim-1)+3] *= a
 	}
 
 	return &ColorM{
-		body:      eb,
-		translate: et,
+		elements: es,
 	}
 }
 
@@ -266,20 +190,23 @@ func (c *ColorM) Scale(r, g, b, a float32) *ColorM {
 func (c *ColorM) Translate(r, g, b, a float32) *ColorM {
 	if !c.isInited() {
 		return &ColorM{
-			translate: []float32{r, g, b, a},
+			elements: []float32{
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1,
+				r, g, b, a,
+			},
 		}
 	}
-	es := make([]float32, len(colorMIdentityTranslate))
-	if c.translate != nil {
-		copy(es, c.translate)
-	}
-	es[0] += r
-	es[1] += g
-	es[2] += b
-	es[3] += a
+	es := make([]float32, len(colorMIdentity))
+	copy(es, c.elements)
+	es[16] += r
+	es[17] += g
+	es[18] += b
+	es[19] += a
 	return &ColorM{
-		body:      c.body,
-		translate: es,
+		elements: es,
 	}
 }
 
@@ -290,19 +217,21 @@ var (
 	//   Cr: [-0.5 - 0.5]
 
 	rgbToYCbCr = &ColorM{
-		body: []float32{
+		elements: []float32{
 			0.2990, -0.1687, 0.5000, 0,
 			0.5870, -0.3313, -0.4187, 0,
 			0.1140, 0.5000, -0.0813, 0,
 			0, 0, 0, 1,
+			0, 0, 0, 0,
 		},
 	}
 	yCbCrToRgb = &ColorM{
-		body: []float32{
+		elements: []float32{
 			1, 1, 1, 0,
 			0, -0.34414, 1.77200, 0,
 			1.40200, -0.71414, 0, 0,
 			0, 0, 0, 1,
+			0, 0, 0, 0,
 		},
 	}
 )
@@ -318,11 +247,12 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float32, valueScale
 	s32, c32 := float32(sin), float32(cos)
 	c = c.Concat(rgbToYCbCr)
 	c = c.Concat(&ColorM{
-		body: []float32{
+		elements: []float32{
 			1, 0, 0, 0,
 			0, c32, s32, 0,
 			0, -s32, c32, 0,
 			0, 0, 0, 1,
+			0, 0, 0, 0,
 		},
 	})
 	s := saturationScale
