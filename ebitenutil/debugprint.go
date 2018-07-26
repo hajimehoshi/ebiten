@@ -22,29 +22,12 @@ import (
 )
 
 var (
-	debugPrintTextImage       *ebiten.Image
-	debugPrintTextShadowImage *ebiten.Image
+	debugPrintTextImage *ebiten.Image
 )
 
 func init() {
 	img := assets.CreateTextImage()
 	debugPrintTextImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
-
-	// Using color matrices for shadow color is not efficient.
-	// Instead, use a different image, that shares the same texture in highly possibility.
-	s := img.Bounds().Size()
-	for j := 0; j < s.Y; j++ {
-		for i := 0; i < s.X; i++ {
-			idx := (img.Stride)*j + 4*i
-			if img.Pix[idx+3] != 0 {
-				img.Pix[idx] = 0
-				img.Pix[idx+1] = 0
-				img.Pix[idx+2] = 0
-				img.Pix[idx+3] = 0x80
-			}
-		}
-	}
-	debugPrintTextShadowImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
 // DebugPrint draws the string str on the image.
@@ -53,13 +36,16 @@ func init() {
 //
 // DebugPrint always returns nil as of 1.5.0-alpha.
 func DebugPrint(image *ebiten.Image, str string) error {
-	drawDebugText(image, str, 1, 1, debugPrintTextShadowImage)
-	drawDebugText(image, str, 0, 0, debugPrintTextImage)
+	drawDebugText(image, str, 1, 1, true)
+	drawDebugText(image, str, 0, 0, false)
 	return nil
 }
 
-func drawDebugText(rt *ebiten.Image, str string, ox, oy int, src *ebiten.Image) {
+func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
 	op := &ebiten.DrawImageOptions{}
+	if shadow {
+		op.ColorM.Scale(0, 0, 0, 0.5)
+	}
 	x := 0
 	y := 0
 	w, _ := debugPrintTextImage.Size()
@@ -85,7 +71,7 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, src *ebiten.Image) 
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(x), float64(y))
 		op.GeoM.Translate(float64(ox+1), float64(oy))
-		_ = rt.DrawImage(src, op)
+		_ = rt.DrawImage(debugPrintTextImage, op)
 		x += cw
 	}
 }
