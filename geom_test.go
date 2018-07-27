@@ -206,6 +206,9 @@ func TestGeoMIsInvert(t *testing.T) {
 	cpx2.Rotate(0.234)
 	cpx2.Translate(100, 100)
 
+	skew := GeoM{}
+	skew.Skew(1, 1)
+
 	cases := []struct {
 		GeoM       GeoM
 		Invertible bool
@@ -232,6 +235,10 @@ func TestGeoMIsInvert(t *testing.T) {
 		},
 		{
 			GeoM:       cpx2,
+			Invertible: true,
+		},
+		{
+			GeoM:       skew,
 			Invertible: true,
 		},
 	}
