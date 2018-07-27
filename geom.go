@@ -169,16 +169,19 @@ func (g *GeoM) Skew(skewX, skewY float64) {
 	sy64 := math.Tan(skewY)
 	sx, sy := float32(sx64), float32(sy64)
 
-	a := g.c * sy
-	b := (g.d_1 + 1) * sy
+	a := (g.a_1 + 1) + g.c*sx
+	b := g.b + (g.d_1+1)*sy
 	c := (g.a_1 + 1) * sx
 	d := g.b * sx
+	tx := g.tx + g.ty*sx
+	ty := g.ty + g.tx*sy
 
 	g.a_1 = a - 1
 	g.b = b
 	g.c = c
 	g.d_1 = d - 1
-	// tx and ty are unaffected
+	g.tx = tx
+	g.ty = ty
 }
 
 func (g *GeoM) det() float32 {
