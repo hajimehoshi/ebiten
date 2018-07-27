@@ -17,6 +17,7 @@ package ebiten_test
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
@@ -286,6 +287,48 @@ func TestGeoMIsInvert(t *testing.T) {
 	}
 }
 
+func constructGeom(a, b, c, d, tx, ty float64) GeoM {
+	outp := GeoM{}
+	outp.SetElement(0, 0, a)
+	outp.SetElement(0, 1, b)
+	outp.SetElement(0, 2, tx)
+	outp.SetElement(1, 0, c)
+	outp.SetElement(1, 1, d)
+	outp.SetElement(1, 2, ty)
+	return outp
+}
+
+func TestGeomSkew(t *testing.T) {
+
+	testSkew := func(skewX, skewY float64, input, expected GeoM) {
+		input.Skew(skewX, skewY)
+		if !reflect.DeepEqual(input, expected) {
+			t.Errorf("Geom{}.Skew(1, 0): got %s, want: %s", geoMToString(input), geoMToString(expected))
+		}
+	}
+	// skewX = 0.25
+	expectedX := constructGeom(1, math.Tan(0.25), math.Tan(0), 1, 0, 0)
+	testSkew(0.25, 0, GeoM{}, expectedX)
+
+	// skewY = 0.25
+	expectedY := constructGeom(1, math.Tan(0), math.Tan(0.5), 1, 0, 0)
+	testSkew(0, 0.5, GeoM{}, expectedY)
+
+	// skewX, skewY = 0.3, 0.8
+	expectedXY := constructGeom(1, math.Tan(0.3), math.Tan(0.8), 1, 0, 0)
+	testSkew(0.3, 0.8, GeoM{}, expectedXY)
+
+	// skewX, skewY = 0.4, -1.8 ; b, c = 2, 3
+	expectedOffDiag := constructGeom(1+3*math.Tan(0.4), 2+math.Tan(0.4), 3+math.Tan(-1.8), 1+2*math.Tan(-1.8), 0, 0)
+	inputOffDiag := constructGeom(1, 2, 3, 1, 0, 0)
+	testSkew(0.4, -1.8, inputOffDiag, expectedOffDiag)
+
+	// skewX, skewY = -1.5, 1.5 ; tx, ty = 5, 6
+	expectedTrn := constructGeom(1, math.Tan(-1.5), math.Tan(1.5), 1, 5+math.Tan(-1.5)*6, 6+5*math.Tan(1.5))
+	inputTrn := constructGeom(1, 0, 0, 1, 5, 6)
+	testSkew(-1.5, 1.5, inputTrn, expectedTrn)
+}
+
 func BenchmarkGeoM(b *testing.B) {
 	var m GeoM
 	for i := 0; i < b.N; i++ {
@@ -293,6 +336,5 @@ func BenchmarkGeoM(b *testing.B) {
 		m.Translate(10, 20)
 		m.Scale(2, 3)
 		m.Rotate(math.Pi / 2)
-		m.Skew(2, 3)
 	}
 }

@@ -170,9 +170,9 @@ func (g *GeoM) Skew(skewX, skewY float64) {
 	sx, sy := float32(sx64), float32(sy64)
 
 	a := (g.a_1 + 1) + g.c*sx
-	b := g.b + (g.d_1+1)*sy
-	c := (g.a_1 + 1) * sx
-	d := g.b * sx
+	b := g.b + (g.d_1+1)*sx
+	c := (g.a_1+1)*sy + g.c
+	d := g.b*sy + (g.d_1 + 1)
 	tx := g.tx + g.ty*sx
 	ty := g.ty + g.tx*sy
 
