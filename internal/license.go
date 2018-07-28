@@ -40,15 +40,3 @@ func LicenseComment() (string, error) {
 	lines := strings.Split(license, "\n")
 	return "// " + strings.Join(lines[:len(lines)-1], "\n// "), nil
 }
-
-func LicenseYear() (int, error) {
-	license, err := LicenseComment()
-	if err != nil {
-		return 0, err
-	}
-	year, err := strconv.Atoi(regexp.MustCompile(`^// Copyright (\d+)`).FindStringSubmatch(license)[1])
-	if err != nil {
-		return 0, err
-	}
-	return year, nil
-}

@@ -27,28 +27,19 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/hajimehoshi/ebiten/internal"
 )
 
 const (
-	url = "https://hajimehoshi.github.io/ebiten/"
+	url         = "https://hajimehoshi.github.io/ebiten/"
+	licenseYear = 2013
 )
 
 var (
 	examplesDir   = filepath.Join("public", "examples")
-	copyright     = ""
+	copyright     = fmt.Sprintf("© %d Hajime Hoshi", licenseYear)
 	stableVersion = ""
 	devVersion    = ""
 )
-
-func init() {
-	year, err := internal.LicenseYear()
-	if err != nil {
-		panic(err)
-	}
-	copyright = fmt.Sprintf("© %d Hajime Hoshi", year)
-}
 
 func init() {
 	b, err := exec.Command("git", "tag").Output()
