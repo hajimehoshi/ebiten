@@ -99,10 +99,6 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func (i *Image) IsVolatile() bool {
-	return i.volatile
-}
-
 // BasePixelsForTesting returns the image's basePixels for testing.
 func (i *Image) BasePixelsForTesting() []byte {
 	return i.basePixels

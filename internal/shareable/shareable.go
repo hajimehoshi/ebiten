@@ -323,16 +323,6 @@ func (i *Image) dispose(markDisposed bool) {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func (i *Image) IsVolatile() bool {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	if i.backend == nil {
-		// Not allocated yet. Only non-volatile images can do lazy allocation so far.
-		return false
-	}
-	return i.backend.restorable.IsVolatile()
-}
-
 func (i *Image) IsInvalidated() (bool, error) {
 	backendsM.Lock()
 	defer backendsM.Unlock()

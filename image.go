@@ -45,8 +45,6 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	// shareableImages is a set of shareable.Image sorted by the order of mipmap level.
-	// The level 0 image is a regular image and higher-level images are used for mipmap.
 	shareableImages []*shareable.Image
 
 	filter Filter
@@ -284,12 +282,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		if w2 == 0 || h2 == 0 {
 			break
 		}
-		var s *shareable.Image
-		if img.shareableImages[0].IsVolatile() {
-			s = shareable.NewVolatileImage(w2, h2)
-		} else {
-			s = shareable.NewImage(w2, h2)
-		}
+		s := shareable.NewImage(w2, h2)
 		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, nil)
 		is := graphicsutil.QuadIndices()
 		s.DrawImage(src, vs, is, opengl.CompositeModeCopy, graphics.FilterLinear)
