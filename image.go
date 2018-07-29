@@ -17,6 +17,7 @@ package ebiten
 import (
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -44,7 +45,7 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	shareableImage *shareable.Image
+	shareableImages []*shareable.Image
 
 	filter Filter
 }
@@ -57,11 +58,11 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.shareableImage.Size()
+	return i.shareableImages[0].Size()
 }
 
 func (i *Image) isDisposed() bool {
-	return i.shareableImage == nil
+	return len(i.shareableImages) == 0
 }
 
 // Clear resets the pixels of the image into 0.
@@ -124,6 +125,16 @@ func (i *Image) fill(r, g, b, a uint8) {
 	op.CompositeMode = CompositeModeCopy
 	op.Filter = FilterNearest
 	_ = i.DrawImage(emptyImage, op)
+}
+
+func (i *Image) disposeMipmaps() {
+	if i.isDisposed() {
+		panic("not reached")
+	}
+	for idx := 1; idx < len(i.shareableImages); idx++ {
+		i.shareableImages[idx].Dispose()
+	}
+	i.shareableImages = i.shareableImages[:1]
 }
 
 // DrawImage draws the given image on the image i.
@@ -237,9 +248,56 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	a, b, c, d, tx, ty := geom.elements()
-	vs := img.shareableImage.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl)
-	is := graphicsutil.QuadIndices()
-	i.shareableImage.DrawImage(img.shareableImage, vs, is, mode, filter)
+
+	level := uint(0)
+	if filter == graphics.FilterLinear {
+		det := math.Abs(float64(geom.det()))
+		for det < 0.5 {
+			level++
+			det *= 4
+		}
+	}
+	if level > 6 {
+		level = 6
+	}
+
+	if level > 0 {
+		s := 1 << level
+		a *= float32(s)
+		b *= float32(s)
+		c *= float32(s)
+		d *= float32(s)
+		sx0 = int(math.Ceil(float64(sx0) / float64(s)))
+		sy0 = int(math.Ceil(float64(sy0) / float64(s)))
+		sx1 = int(math.Ceil(float64(sx1) / float64(s)))
+		sy1 = int(math.Ceil(float64(sy1) / float64(s)))
+	}
+
+	w, h = img.shareableImages[len(img.shareableImages)-1].Size()
+	for uint(len(img.shareableImages)) < level+1 {
+		lastl := uint(len(img.shareableImages)) - 1
+		src := img.shareableImages[lastl]
+		w2 := int(math.Ceil(float64(w) / 2.0))
+		h2 := int(math.Ceil(float64(h) / 2.0))
+		if w2 == 0 || h2 == 0 {
+			break
+		}
+		s := shareable.NewImage(w2, h2)
+		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, nil)
+		is := graphicsutil.QuadIndices()
+		s.DrawImage(src, vs, is, opengl.CompositeModeCopy, graphics.FilterLinear)
+		img.shareableImages = append(img.shareableImages, s)
+		w = w2
+		h = h2
+	}
+
+	if level < uint(len(img.shareableImages)) {
+		src := img.shareableImages[level]
+		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl)
+		is := graphicsutil.QuadIndices()
+		i.shareableImages[0].DrawImage(src, vs, is, mode, filter)
+	}
+	i.disposeMipmaps()
 	return nil
 }
 
@@ -268,7 +326,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	return i.shareableImage.At(x, y)
+	return i.shareableImages[0].At(x, y)
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -283,8 +341,10 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImage.Dispose()
-	i.shareableImage = nil
+	for _, img := range i.shareableImages {
+		img.Dispose()
+	}
+	i.shareableImages = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -305,7 +365,8 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImage.ReplacePixels(p)
+	i.shareableImages[0].ReplacePixels(p)
+	i.disposeMipmaps()
 	return nil
 }
 
@@ -369,8 +430,8 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImage: s,
-		filter:         filter,
+		shareableImages: []*shareable.Image{s},
+		filter:          filter,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -392,7 +453,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 func newVolatileImage(width, height int) *Image {
 	i := &Image{
-		shareableImage: shareable.NewVolatileImage(width, height),
+		shareableImages: []*shareable.Image{shareable.NewVolatileImage(width, height)},
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -414,8 +475,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImage: s,
-		filter:         filter,
+		shareableImages: []*shareable.Image{s},
+		filter:          filter,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -426,8 +487,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 func newImageWithScreenFramebuffer(width, height int) *Image {
 	i := &Image{
-		shareableImage: shareable.NewScreenFramebufferImage(width, height),
-		filter:         FilterDefault,
+		shareableImages: []*shareable.Image{shareable.NewScreenFramebufferImage(width, height)},
+		filter:          FilterDefault,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
