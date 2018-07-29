@@ -92,6 +92,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	}
 	for i := 0; i < updateCount; i++ {
 		c.offscreen.fill(0, 0, 0, 0)
+		c.offscreen.disposeMipmaps()
 
 		setDrawingSkipped(i < updateCount-1)
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
