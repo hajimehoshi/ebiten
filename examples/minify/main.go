@@ -30,6 +30,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
@@ -39,6 +40,7 @@ const (
 
 var (
 	gophersImage *ebiten.Image
+	rotate       = false
 	counter      = 0
 )
 
@@ -48,17 +50,26 @@ func update(screen *ebiten.Image) error {
 		counter = 0
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		rotate = !rotate
+	}
+
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
 	s := 1.5 / math.Pow(1.01, float64(counter))
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Minifying images (Nearest filter vs Linear filter)\nScale: %0.2f", s))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Minifying images (Nearest filter vs Linear filter): Press R to rotate the images.\nScale: %0.2f", s))
 
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
-		w, _ := gophersImage.Size()
+		w, h := gophersImage.Size()
 
 		op := &ebiten.DrawImageOptions{}
+		if rotate {
+			op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+			op.GeoM.Rotate(float64(counter) / 300 * 2 * math.Pi)
+			op.GeoM.Translate(float64(w)/2, float64(h)/2)
+		}
 		op.GeoM.Scale(s, s)
 		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 64)
 		op.Filter = f
