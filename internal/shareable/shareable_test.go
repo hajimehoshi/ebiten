@@ -170,7 +170,7 @@ func TestReshared(t *testing.T) {
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			got := img1.At(i, j).(color.RGBA)
+			got := img1.At(i, j)
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
@@ -186,7 +186,7 @@ func TestReshared(t *testing.T) {
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			got := img1.At(i, j).(color.RGBA)
+			got := img1.At(i, j)
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
