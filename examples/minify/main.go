@@ -21,6 +21,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	"log"
@@ -32,35 +33,36 @@ import (
 )
 
 const (
-	screenWidth  = 640
-	screenHeight = 800
+	screenWidth  = 800
+	screenHeight = 480
 )
 
 var (
 	gophersImage *ebiten.Image
+	counter      = 0
 )
 
 func update(screen *ebiten.Image) error {
+	counter++
+	if counter == 480 {
+		counter = 0
+	}
+
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
-	ebitenutil.DebugPrint(screen, "Minifying images (Nearest filter vs Linear filter)")
+	s := 1.5 / math.Pow(1.01, float64(counter))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Minifying images (Nearest filter vs Linear filter)\nScale: %0.2f", s))
 
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
-		y := 0
-		for j := 0; j < 12; j++ {
-			w, h := gophersImage.Size()
+		w, _ := gophersImage.Size()
 
-			op := &ebiten.DrawImageOptions{}
-			s := 1.0 / math.Pow(2, float64(j)/2)
-			op.GeoM.Scale(s, s)
-			op.GeoM.Translate(32+float64(i*(w+4)), 32+float64(y))
-			op.Filter = f
-			screen.DrawImage(gophersImage, op)
-
-			y += int(float64(h)*s) + 4
-		}
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Scale(s, s)
+		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 64)
+		op.Filter = f
+		screen.DrawImage(gophersImage, op)
 	}
 
 	return nil
