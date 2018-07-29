@@ -157,7 +157,7 @@ func (i *Image) forceShared() {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			c := i.at(x, y).(color.RGBA)
+			c := i.at(x, y)
 			pixels[4*(x+i.width*y)] = c.R
 			pixels[4*(x+i.width*y)+1] = c.G
 			pixels[4*(x+i.width*y)+2] = c.B
@@ -250,13 +250,13 @@ func (i *Image) replacePixels(p []byte) {
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (i *Image) At(x, y int) color.Color {
+func (i *Image) At(x, y int) color.RGBA {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return i.at(x, y)
 }
 
-func (i *Image) at(x, y int) color.Color {
+func (i *Image) at(x, y int) color.RGBA {
 	if i.backend == nil {
 		return color.RGBA{}
 	}
