@@ -45,6 +45,8 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
+	// shareableImages is a set of shareable.Image sorted by the order of mipmap level.
+	// The level 0 image is a regular image and higher-level images are used for mipmap.
 	shareableImages []*shareable.Image
 
 	filter Filter
