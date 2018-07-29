@@ -141,7 +141,7 @@ func (i *Image) ensureNotShared() {
 
 func (i *Image) forceShared() {
 	if i.backend == nil {
-		i.allocate(false)
+		i.allocate(true)
 		return
 	}
 
