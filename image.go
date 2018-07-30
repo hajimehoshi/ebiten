@@ -255,10 +255,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if filter == graphics.FilterLinear {
 		det := geom.det()
 		if det == 0 {
-			return
+			return nil
 		}
-		if math.IsNan(det) {
-			return
+		if math.IsNaN(float64(det)) {
+			return nil
 		}
 		level = graphicsutil.MipmapLevel(det)
 		if level < 0 {
