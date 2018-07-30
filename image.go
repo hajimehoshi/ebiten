@@ -254,7 +254,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	level := uint(0)
 	if filter == graphics.FilterLinear {
 		det := math.Abs(float64(geom.det()))
-		for det < 0.5 {
+		for det < 0.25 {
 			level++
 			det *= 4
 		}
