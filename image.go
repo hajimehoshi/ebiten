@@ -251,12 +251,18 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	a, b, c, d, tx, ty := geom.elements()
 
-	level := uint(0)
+	level := 0
 	if filter == graphics.FilterLinear {
-		det := math.Abs(float64(geom.det()))
-		for det < 0.25 {
-			level++
-			det *= 4
+		det := geom.det()
+		if det == 0 {
+			return
+		}
+		if math.IsNan(det) {
+			return
+		}
+		level = graphicsutil.MipmapLevel(det)
+		if level < 0 {
+			panic("not reached")
 		}
 	}
 	if level > 6 {
@@ -264,7 +270,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	if level > 0 {
-		s := 1 << level
+		s := 1 << uint(level)
 		a *= float32(s)
 		b *= float32(s)
 		c *= float32(s)
@@ -276,8 +282,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	w, h = img.shareableImages[len(img.shareableImages)-1].Size()
-	for uint(len(img.shareableImages)) < level+1 {
-		lastl := uint(len(img.shareableImages)) - 1
+	for len(img.shareableImages) < level+1 {
+		lastl := len(img.shareableImages) - 1
 		src := img.shareableImages[lastl]
 		w2 := int(math.Ceil(float64(w) / 2.0))
 		h2 := int(math.Ceil(float64(h) / 2.0))
@@ -298,7 +304,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		h = h2
 	}
 
-	if level < uint(len(img.shareableImages)) {
+	if level < len(img.shareableImages) {
 		src := img.shareableImages[level]
 		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl)
 		is := graphicsutil.QuadIndices()
