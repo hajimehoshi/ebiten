@@ -17,7 +17,6 @@ package ebiten_test
 import (
 	"fmt"
 	"math"
-	"reflect"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
@@ -302,8 +301,15 @@ func TestGeomSkew(t *testing.T) {
 
 	testSkew := func(skewX, skewY float64, input, expected GeoM) {
 		input.Skew(skewX, skewY)
-		if !reflect.DeepEqual(input, expected) {
-			t.Errorf("Geom{}.Skew(1, 0): got %s, want: %s", geoMToString(input), geoMToString(expected))
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 3; j++ {
+				got := input.Element(i, j)
+				want := expected.Element(i, j)
+				if want != got {
+					t.Errorf("Geom{}.Skew(1, 0): got %s, want: %s", input.String(), expected.String())
+					return
+				}
+			}
 		}
 	}
 	// skewX = 0.25
