@@ -63,9 +63,9 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0)
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, nil)
 	is := graphicsutil.QuadIndices()
-	newImg.DrawImage(oldImg, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(oldImg, vs, is, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
 
@@ -129,9 +129,9 @@ func (i *Image) ensureNotShared() {
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
-	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0)
+	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, nil)
 	is := graphicsutil.QuadIndices()
-	newImg.DrawImage(i.backend.restorable, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(i.backend.restorable, vs, is, opengl.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -141,7 +141,7 @@ func (i *Image) ensureNotShared() {
 
 func (i *Image) forceShared() {
 	if i.backend == nil {
-		i.allocate(false)
+		i.allocate(true)
 		return
 	}
 
@@ -157,7 +157,7 @@ func (i *Image) forceShared() {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			c := i.at(x, y).(color.RGBA)
+			c := i.at(x, y)
 			pixels[4*(x+i.width*y)] = c.R
 			pixels[4*(x+i.width*y)+1] = c.G
 			pixels[4*(x+i.width*y)+2] = c.B
@@ -184,18 +184,18 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
+func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, colorm *affine.ColorM) []float32 {
 	if i.backend == nil {
 		i.allocate(true)
 	}
 	dx, dy, _, _ := i.region()
 	w, h := i.backend.restorable.SizePowerOf2()
-	return graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty)
+	return graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty, colorm)
 }
 
 const MaxCountForShare = 10
 
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, mode opengl.CompositeMode, filter graphics.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -217,7 +217,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 		panic("shareable: Image.DrawImage: img must be different from the receiver")
 	}
 
-	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
+	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, mode, filter)
 
 	i.countForShare = 0
 	if !img.isShared() && img.shareable() {
@@ -250,13 +250,13 @@ func (i *Image) replacePixels(p []byte) {
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (i *Image) At(x, y int) color.Color {
+func (i *Image) At(x, y int) color.RGBA {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return i.at(x, y)
 }
 
-func (i *Image) at(x, y int) color.Color {
+func (i *Image) at(x, y int) color.RGBA {
 	if i.backend == nil {
 		return color.RGBA{}
 	}
@@ -321,6 +321,16 @@ func (i *Image) dispose(markDisposed bool) {
 		panic("not reached")
 	}
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
+}
+
+func (i *Image) IsVolatile() bool {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	if i.backend == nil {
+		// Not allocated yet. Only non-volatile images can do lazy allocation so far.
+		return false
+	}
+	return i.backend.restorable.IsVolatile()
 }
 
 func (i *Image) IsInvalidated() (bool, error) {

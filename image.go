@@ -17,6 +17,7 @@ package ebiten
 import (
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -44,7 +45,9 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	shareableImage *shareable.Image
+	// shareableImages is a set of shareable.Image sorted by the order of mipmap level.
+	// The level 0 image is a regular image and higher-level images are used for mipmap.
+	shareableImages []*shareable.Image
 
 	filter Filter
 }
@@ -57,11 +60,11 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.shareableImage.Size()
+	return i.shareableImages[0].Size()
 }
 
 func (i *Image) isDisposed() bool {
-	return i.shareableImage == nil
+	return len(i.shareableImages) == 0
 }
 
 // Clear resets the pixels of the image into 0.
@@ -126,6 +129,16 @@ func (i *Image) fill(r, g, b, a uint8) {
 	_ = i.DrawImage(emptyImage, op)
 }
 
+func (i *Image) disposeMipmaps() {
+	if i.isDisposed() {
+		panic("not reached")
+	}
+	for idx := 1; idx < len(i.shareableImages); idx++ {
+		i.shareableImages[idx].Dispose()
+	}
+	i.shareableImages = i.shareableImages[:1]
+}
+
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
@@ -149,7 +162,6 @@ func (i *Image) fill(r, g, b, a uint8) {
 //     * This is not a strong request since different images might share a same inner
 //       OpenGL texture in high possibility. This is not 100%, so using the same render
 //       source is safer.
-//   * All ColorM values are same
 //   * All CompositeMode values are same
 //   * All Filter values are same
 //
@@ -238,9 +250,67 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	a, b, c, d, tx, ty := geom.elements()
-	vs := img.shareableImage.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty)
-	is := graphicsutil.QuadIndices()
-	i.shareableImage.DrawImage(img.shareableImage, vs, is, options.ColorM.impl, mode, filter)
+
+	level := 0
+	if filter == graphics.FilterLinear {
+		det := geom.det()
+		if det == 0 {
+			return nil
+		}
+		if math.IsNaN(float64(det)) {
+			return nil
+		}
+		level = graphicsutil.MipmapLevel(det)
+		if level < 0 {
+			panic("not reached")
+		}
+	}
+	if level > 6 {
+		level = 6
+	}
+
+	if level > 0 {
+		s := 1 << uint(level)
+		a *= float32(s)
+		b *= float32(s)
+		c *= float32(s)
+		d *= float32(s)
+		sx0 = int(math.Ceil(float64(sx0) / float64(s)))
+		sy0 = int(math.Ceil(float64(sy0) / float64(s)))
+		sx1 = int(math.Ceil(float64(sx1) / float64(s)))
+		sy1 = int(math.Ceil(float64(sy1) / float64(s)))
+	}
+
+	w, h = img.shareableImages[len(img.shareableImages)-1].Size()
+	for len(img.shareableImages) < level+1 {
+		lastl := len(img.shareableImages) - 1
+		src := img.shareableImages[lastl]
+		w2 := int(math.Ceil(float64(w) / 2.0))
+		h2 := int(math.Ceil(float64(h) / 2.0))
+		if w2 == 0 || h2 == 0 {
+			break
+		}
+		var s *shareable.Image
+		if img.shareableImages[0].IsVolatile() {
+			s = shareable.NewVolatileImage(w2, h2)
+		} else {
+			s = shareable.NewImage(w2, h2)
+		}
+		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, nil)
+		is := graphicsutil.QuadIndices()
+		s.DrawImage(src, vs, is, opengl.CompositeModeCopy, graphics.FilterLinear)
+		img.shareableImages = append(img.shareableImages, s)
+		w = w2
+		h = h2
+	}
+
+	if level < len(img.shareableImages) {
+		src := img.shareableImages[level]
+		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl)
+		is := graphicsutil.QuadIndices()
+		i.shareableImages[0].DrawImage(src, vs, is, mode, filter)
+	}
+	i.disposeMipmaps()
 	return nil
 }
 
@@ -269,7 +339,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	return i.shareableImage.At(x, y)
+	return i.shareableImages[0].At(x, y)
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -284,8 +354,10 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImage.Dispose()
-	i.shareableImage = nil
+	for _, img := range i.shareableImages {
+		img.Dispose()
+	}
+	i.shareableImages = nil
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -306,7 +378,8 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImage.ReplacePixels(p)
+	i.shareableImages[0].ReplacePixels(p)
+	i.disposeMipmaps()
 	return nil
 }
 
@@ -370,8 +443,8 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImage: s,
-		filter:         filter,
+		shareableImages: []*shareable.Image{s},
+		filter:          filter,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -393,7 +466,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 func newVolatileImage(width, height int) *Image {
 	i := &Image{
-		shareableImage: shareable.NewVolatileImage(width, height),
+		shareableImages: []*shareable.Image{shareable.NewVolatileImage(width, height)},
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -415,8 +488,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImage: s,
-		filter:         filter,
+		shareableImages: []*shareable.Image{s},
+		filter:          filter,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -427,8 +500,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 func newImageWithScreenFramebuffer(width, height int) *Image {
 	i := &Image{
-		shareableImage: shareable.NewScreenFramebufferImage(width, height),
-		filter:         FilterDefault,
+		shareableImages: []*shareable.Image{shareable.NewScreenFramebufferImage(width, height)},
+		filter:          FilterDefault,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)

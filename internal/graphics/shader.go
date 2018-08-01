@@ -50,15 +50,24 @@ const (
 uniform mat4 projection_matrix;
 attribute vec2 vertex;
 attribute vec4 tex_coord;
+attribute vec4 color_body0;
+attribute vec4 color_body1;
+attribute vec4 color_body2;
+attribute vec4 color_body3;
+attribute vec4 color_translate;
 varying vec2 varying_tex_coord;
 varying vec2 varying_tex_coord_min;
 varying vec2 varying_tex_coord_max;
+varying mat4 varying_color_body;
+varying vec4 varying_color_translate;
 
 void main(void) {
   varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
   varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
   varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
   gl_Position = projection_matrix * vec4(vertex, 0, 1);
+  varying_color_body = mat4(color_body0, color_body1, color_body2, color_body3);
+  varying_color_translate = color_translate;
 }
 `
 	shaderStrFragment = `
@@ -73,8 +82,6 @@ precision mediump float;
 {{Definitions}}
 
 uniform sampler2D texture;
-uniform mat4 color_matrix_body;
-uniform vec4 color_matrix_translation;
 
 uniform highp vec2 source_size;
 
@@ -85,6 +92,8 @@ uniform highp float scale;
 varying highp vec2 varying_tex_coord;
 varying highp vec2 varying_tex_coord_min;
 varying highp vec2 varying_tex_coord_max;
+varying highp mat4 varying_color_body;
+varying highp vec4 varying_color_translate;
 
 void main(void) {
   highp vec2 pos = varying_tex_coord;
@@ -148,7 +157,7 @@ void main(void) {
     color.rgb /= color.a;
   }
   // Apply the color matrix
-  color = (color_matrix_body * color) + color_matrix_translation;
+  color = (varying_color_body * color) + varying_color_translate;
   color = clamp(color, 0.0, 1.0);
   // Premultiply alpha
   color.rgb *= color.a;

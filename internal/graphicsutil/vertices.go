@@ -15,6 +15,7 @@
 package graphicsutil
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -47,7 +48,7 @@ func isPowerOf2(x int) bool {
 	return (x & (x - 1)) == 0
 }
 
-func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
+func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, colorm *affine.ColorM) []float32 {
 	if !isPowerOf2(width) {
 		panic("not reached")
 	}
@@ -65,15 +66,16 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 	wf := float32(width)
 	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty)
+	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, colorm)
 }
 
-func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float32 {
+func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32, colorm *affine.ColorM) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundry checks.
-	vs := theVerticesBackend.sliceForOneQuad()[0:24]
+	vs := theVerticesBackend.sliceForOneQuad()[0:104]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
+	ce := colorm.UnsafeElements()
 
 	// Vertex coordinates
 	vs[0] = tx
@@ -88,26 +90,34 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 	vs[5] = v1
 
 	// and the same for the other three coordinates
-	vs[6] = ax + tx
-	vs[7] = cx + ty
-	vs[8] = u1
-	vs[9] = v0
-	vs[10] = u0
-	vs[11] = v1
+	vs[26] = ax + tx
+	vs[27] = cx + ty
+	vs[28] = u1
+	vs[29] = v0
+	vs[30] = u0
+	vs[31] = v1
 
-	vs[12] = by + tx
-	vs[13] = dy + ty
-	vs[14] = u0
-	vs[15] = v1
-	vs[16] = u1
-	vs[17] = v0
+	vs[52] = by + tx
+	vs[53] = dy + ty
+	vs[54] = u0
+	vs[55] = v1
+	vs[56] = u1
+	vs[57] = v0
 
-	vs[18] = ax + by + tx
-	vs[19] = cx + dy + ty
-	vs[20] = u1
-	vs[21] = v1
-	vs[22] = u0
-	vs[23] = v0
+	vs[78] = ax + by + tx
+	vs[79] = cx + dy + ty
+	vs[80] = u1
+	vs[81] = v1
+	vs[82] = u0
+	vs[83] = v0
+
+	// Use for loop since subslicing is heavy on GopherJS.
+	for i, e := range ce {
+		vs[6+i] = e
+		vs[32+i] = e
+		vs[58+i] = e
+		vs[84+i] = e
+	}
 
 	return vs
 }

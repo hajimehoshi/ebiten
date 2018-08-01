@@ -1,4 +1,4 @@
-// Copyright 2014 Hajime Hoshi
+// Copyright 2018 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package affine
+package graphicsutil
 
-func affineAt(es []float32, i, j int, dim int) float32 {
-	if i == dim-1 {
-		if j == dim-1 {
-			return 1
-		}
-		return 0
-	}
-	return es[i+j*(dim-1)]
-}
+import (
+	"math"
+)
 
-func mulAffine(lhs, rhs []float32, dim int) []float32 {
-	result := make([]float32, len(lhs))
-	for i := 0; i < dim-1; i++ {
-		for j := 0; j < dim; j++ {
-			e := float32(0.0)
-			for k := 0; k < dim; k++ {
-				e += affineAt(lhs, i, k, dim) * affineAt(rhs, k, j, dim)
-			}
-			result[i+j*(dim-1)] = e
-		}
+// MipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
+//
+// MipmapLevel returns -1 if det is 0.
+//
+// MipmapLevel panics if det is NaN.
+func MipmapLevel(det float32) int {
+	if math.IsNaN(float64(det)) {
+		panic("graphicsutil: det must be finite")
 	}
-	return result
+	if det == 0 {
+		return -1
+	}
+
+	d := math.Abs(float64(det))
+	level := 0
+	for d < 0.25 {
+		level++
+		d *= 4
+	}
+	return level
 }
