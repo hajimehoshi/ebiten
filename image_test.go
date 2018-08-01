@@ -861,3 +861,51 @@ func TestSprites(t *testing.T) {
 		}
 	}
 }
+
+func TestMipmap(t *testing.T) {
+	ceilDiv := func(x, y int) int {
+		return int(math.Ceil(float64(x) / float64(y)))
+	}
+
+	src, _, err := openEbitenImage()
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	w, h := src.Size()
+
+	l1, _ := NewImage(ceilDiv(w, 2), ceilDiv(h, 2), FilterDefault)
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(1/2.0, 1/2.0)
+	op.Filter = FilterLinear
+	l1.DrawImage(src, op)
+
+	l1w, l1h := l1.Size()
+	l2, _ := NewImage(ceilDiv(l1w, 2), ceilDiv(l1h, 2), FilterDefault)
+	op = &DrawImageOptions{}
+	op.GeoM.Scale(1/2.0, 1/2.0)
+	op.Filter = FilterLinear
+	l2.DrawImage(l1, op)
+
+	gotDst, _ := NewImage(w, h, FilterDefault)
+	op = &DrawImageOptions{}
+	op.GeoM.Scale(1/5.0, 1/5.0)
+	op.Filter = FilterLinear
+	gotDst.DrawImage(src, op)
+
+	wantDst, _ := NewImage(w, h, FilterDefault)
+	op = &DrawImageOptions{}
+	op.GeoM.Scale(4.0/5.0, 4.0/5.0)
+	op.Filter = FilterLinear
+	wantDst.DrawImage(l2, op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < h; i++ {
+			got := gotDst.At(i, j).(color.RGBA)
+			want := wantDst.At(i, j).(color.RGBA)
+			if !sameColors(got, want, 1) {
+				t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
+			}
+		}
+	}
+}
