@@ -162,6 +162,27 @@ func (g *GeoM) Rotate(theta float64) {
 	g.ty = ty
 }
 
+// Skew skews the matrix by (skewX, skewY). The unit is radian.
+func (g *GeoM) Skew(skewX, skewY float64) {
+	sx64 := math.Tan(skewX)
+	sy64 := math.Tan(skewY)
+	sx, sy := float32(sx64), float32(sy64)
+
+	a := (g.a_1 + 1) + g.c*sx
+	b := g.b + (g.d_1+1)*sx
+	c := (g.a_1+1)*sy + g.c
+	d := g.b*sy + (g.d_1 + 1)
+	tx := g.tx + g.ty*sx
+	ty := g.ty + g.tx*sy
+
+	g.a_1 = a - 1
+	g.b = b
+	g.c = c
+	g.d_1 = d - 1
+	g.tx = tx
+	g.ty = ty
+}
+
 func (g *GeoM) det() float32 {
 	return (g.a_1+1)*(g.d_1+1) - g.b*g.c
 }
