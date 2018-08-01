@@ -604,7 +604,7 @@ func TestImageTooManyFill(t *testing.T) {
 
 	for i := 0; i < width; i++ {
 		c := indexToColor(i)
-		got := color.RGBAModel.Convert(dst.At(i, 0)).(color.RGBA)
+		got := dst.At(i, 0).(color.RGBA)
 		want := color.RGBA{c, c, c, 0xff}
 		if !sameColors(got, want, 1) {
 			t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i, 0, got, want)
@@ -637,7 +637,7 @@ func TestImageLinear(t *testing.T) {
 
 	for j := 0; j < 64; j++ {
 		for i := 0; i < 64; i++ {
-			c := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
+			c := dst.At(i, j).(color.RGBA)
 			got := c.G
 			want := uint8(0)
 			if abs(int(c.G)-int(want)) > 1 {
@@ -680,7 +680,7 @@ func TestImageOutside(t *testing.T) {
 
 		for j := 0; j < 4; j++ {
 			for i := 0; i < 4; i++ {
-				got := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
+				got := dst.At(i, j).(color.RGBA)
 				want := color.RGBA{0, 0, 0, 0}
 				if got != want {
 					t.Errorf("src(x: %d, y: %d, w: %d, h: %d), dst At(%d, %d): got %#v, want: %#v", c.X, c.Y, c.Width, c.Height, i, j, got, want)
@@ -709,8 +709,8 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 
 	for j := 0; j < 16; j++ {
 		for i := 0; i < 16; i++ {
-			got := color.RGBAModel.Convert(dst1.At(i, j)).(color.RGBA)
-			want := color.RGBAModel.Convert(dst2.At(i, j)).(color.RGBA)
+			got := dst1.At(i, j).(color.RGBA)
+			want := dst2.At(i, j).(color.RGBA)
 			if got != want {
 				t.Errorf("got: dst1.At(%d, %d): %#v, want: dst2.At(%d, %d): %#v", i, j, got, i, j, want)
 			}
@@ -738,8 +738,8 @@ func TestImageSize1(t *testing.T) {
 	dst, _ := NewImage(1, 1, FilterNearest)
 	src.Fill(color.White)
 	dst.DrawImage(src, nil)
-	got := color.RGBAModel.Convert(src.At(0, 0)).(color.RGBA)
-	want := color.RGBAModel.Convert(color.White).(color.RGBA)
+	got := src.At(0, 0).(color.RGBA)
+	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %#v, want: %#v", got, want)
 	}
@@ -769,7 +769,7 @@ func TestImageSize4096(t *testing.T) {
 	dst.DrawImage(src, nil)
 	for i := 4095; i < 4096; i++ {
 		j := 4095
-		got := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
+		got := dst.At(i, j).(color.RGBA)
 		want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
 		if got != want {
 			t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
@@ -777,7 +777,7 @@ func TestImageSize4096(t *testing.T) {
 	}
 	for j := 4095; j < 4096; j++ {
 		i := 4095
-		got := color.RGBAModel.Convert(dst.At(i, j)).(color.RGBA)
+		got := dst.At(i, j).(color.RGBA)
 		want := color.RGBA{uint8(i + j), uint8((i + j) >> 8), uint8((i + j) >> 16), 0xff}
 		if got != want {
 			t.Errorf("At(%d, %d): got: %#v, want: %#v", i, j, got, want)
@@ -853,7 +853,7 @@ func TestSprites(t *testing.T) {
 
 	for j := 0; j < height/4; j++ {
 		for i := 0; i < width/4; i++ {
-			got := color.RGBAModel.Convert(dst.At(i*4, j*4)).(color.RGBA)
+			got := dst.At(i*4, j*4).(color.RGBA)
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if !sameColors(got, want, 1) {
 				t.Errorf("dst.At(%d, %d): got %#v, want: %#v", i*4, j*4, got, want)
