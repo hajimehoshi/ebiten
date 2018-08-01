@@ -305,7 +305,7 @@ func TestGeomSkew(t *testing.T) {
 				got := input.Element(i, j)
 				want := expected.Element(i, j)
 				if want != got {
-					t.Errorf("Geom{}.Skew(1, 0): got %s, want: %s", input.String(), expected.String())
+					t.Errorf("Geom{}.Skew(%f, %f): got %s, want: %s", skewX, skewY, input.String(), expected.String())
 					return
 				}
 			}
