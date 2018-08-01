@@ -286,7 +286,7 @@ func TestGeoMIsInvert(t *testing.T) {
 	}
 }
 
-func constructGeom(a, b, c, d, tx, ty float64) GeoM {
+func newGeoM(a, b, c, d, tx, ty float64) GeoM {
 	outp := GeoM{}
 	outp.SetElement(0, 0, a)
 	outp.SetElement(0, 1, b)
@@ -305,32 +305,32 @@ func TestGeomSkew(t *testing.T) {
 				got := input.Element(i, j)
 				want := expected.Element(i, j)
 				if want != got {
-					t.Errorf("Geom{}.Skew(%f, %f): got %s, want: %s", skewX, skewY, input.String(), expected.String())
+					t.Errorf("Skew(%f, %f): got %s, want: %s", skewX, skewY, input.String(), expected.String())
 					return
 				}
 			}
 		}
 	}
 	// skewX = 0.25
-	expectedX := constructGeom(1, math.Tan(0.25), math.Tan(0), 1, 0, 0)
+	expectedX := newGeoM(1, math.Tan(0.25), math.Tan(0), 1, 0, 0)
 	testSkew(0.25, 0, GeoM{}, expectedX)
 
 	// skewY = 0.25
-	expectedY := constructGeom(1, math.Tan(0), math.Tan(0.5), 1, 0, 0)
+	expectedY := newGeoM(1, math.Tan(0), math.Tan(0.5), 1, 0, 0)
 	testSkew(0, 0.5, GeoM{}, expectedY)
 
 	// skewX, skewY = 0.3, 0.8
-	expectedXY := constructGeom(1, math.Tan(0.3), math.Tan(0.8), 1, 0, 0)
+	expectedXY := newGeoM(1, math.Tan(0.3), math.Tan(0.8), 1, 0, 0)
 	testSkew(0.3, 0.8, GeoM{}, expectedXY)
 
 	// skewX, skewY = 0.4, -1.8 ; b, c = 2, 3
-	expectedOffDiag := constructGeom(1+3*math.Tan(0.4), 2+math.Tan(0.4), 3+math.Tan(-1.8), 1+2*math.Tan(-1.8), 0, 0)
-	inputOffDiag := constructGeom(1, 2, 3, 1, 0, 0)
+	expectedOffDiag := newGeoM(1+3*math.Tan(0.4), 2+math.Tan(0.4), 3+math.Tan(-1.8), 1+2*math.Tan(-1.8), 0, 0)
+	inputOffDiag := newGeoM(1, 2, 3, 1, 0, 0)
 	testSkew(0.4, -1.8, inputOffDiag, expectedOffDiag)
 
 	// skewX, skewY = -1.5, 1.5 ; tx, ty = 5, 6
-	expectedTrn := constructGeom(1, math.Tan(-1.5), math.Tan(1.5), 1, 5+math.Tan(-1.5)*6, 6+5*math.Tan(1.5))
-	inputTrn := constructGeom(1, 0, 0, 1, 5, 6)
+	expectedTrn := newGeoM(1, math.Tan(-1.5), math.Tan(1.5), 1, 5+math.Tan(-1.5)*6, 6+5*math.Tan(1.5))
+	inputTrn := newGeoM(1, 0, 0, 1, 5, 6)
 	testSkew(-1.5, 1.5, inputTrn, expectedTrn)
 }
 
