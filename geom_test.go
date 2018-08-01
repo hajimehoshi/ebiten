@@ -298,10 +298,9 @@ func constructGeom(a, b, c, d, tx, ty float64) GeoM {
 }
 
 func TestGeomSkew(t *testing.T) {
-
 	testSkew := func(skewX, skewY float64, input, expected GeoM) {
 		input.Skew(skewX, skewY)
-		for i := 0; i < 3; i++ {
+		for i := 0; i < 2; i++ {
 			for j := 0; j < 3; j++ {
 				got := input.Element(i, j)
 				want := expected.Element(i, j)
