@@ -275,18 +275,18 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		b *= float32(s)
 		c *= float32(s)
 		d *= float32(s)
-		sx0 = int(math.Ceil(float64(sx0) / float64(s)))
-		sy0 = int(math.Ceil(float64(sy0) / float64(s)))
-		sx1 = int(math.Ceil(float64(sx1) / float64(s)))
-		sy1 = int(math.Ceil(float64(sy1) / float64(s)))
+		sx0 = sx0 / s
+		sy0 = sy0 / s
+		sx1 = sx1 / s
+		sy1 = sy1 / s
 	}
 
 	w, h = img.shareableImages[len(img.shareableImages)-1].Size()
 	for len(img.shareableImages) < level+1 {
 		lastl := len(img.shareableImages) - 1
 		src := img.shareableImages[lastl]
-		w2 := int(math.Ceil(float64(w) / 2.0))
-		h2 := int(math.Ceil(float64(h) / 2.0))
+		w2 := w / 2
+		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
 			break
 		}
