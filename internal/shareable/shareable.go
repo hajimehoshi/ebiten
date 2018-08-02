@@ -188,9 +188,9 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	if i.backend == nil {
 		i.allocate(true)
 	}
-	dx, dy, _, _ := i.region()
+	ox, oy, _, _ := i.region()
 	w, h := i.backend.restorable.SizePowerOf2()
-	return graphicsutil.QuadVertices(w, h, sx0+dx, sy0+dy, sx1+dx, sy1+dy, a, b, c, d, tx, ty, colorm)
+	return graphicsutil.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, colorm)
 }
 
 const MaxCountForShare = 10
