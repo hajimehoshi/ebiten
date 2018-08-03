@@ -366,7 +366,9 @@ func (c *Context) DeleteProgram(p Program) {
 }
 
 func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
-	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), gl.Str(location+"\x00")))
+	l, free := gl.Strs(location + "\x00")
+	uniform := uniformLocation(gl.GetUniformLocation(uint32(p), *l))
+	free()
 	if uniform == -1 {
 		panic("opengl: invalid uniform location: " + location)
 	}
@@ -407,7 +409,9 @@ func (c *Context) UniformFloats(p Program, location string, v []float32) {
 }
 
 func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
-	attrib := attribLocation(gl.GetAttribLocation(uint32(p), gl.Str(location+"\x00")))
+	l, free := gl.Strs(location + "\x00")
+	attrib := attribLocation(gl.GetAttribLocation(uint32(p), *l))
+	free()
 	if attrib == -1 {
 		panic("opengl: invalid attrib location: " + location)
 	}
