@@ -297,9 +297,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		} else {
 			s = shareable.NewImage(w2, h2)
 		}
-		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, nil)
+		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0)
 		is := graphicsutil.QuadIndices()
-		s.DrawImage(src, vs, is, opengl.CompositeModeCopy, graphics.FilterLinear)
+		s.DrawImage(src, vs, is, options.ColorM.impl, opengl.CompositeModeCopy, graphics.FilterLinear)
 		img.shareableImages = append(img.shareableImages, s)
 		w = w2
 		h = h2
@@ -307,9 +307,9 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 
 	if level < len(img.shareableImages) {
 		src := img.shareableImages[level]
-		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, options.ColorM.impl)
+		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty)
 		is := graphicsutil.QuadIndices()
-		i.shareableImages[0].DrawImage(src, vs, is, mode, filter)
+		i.shareableImages[0].DrawImage(src, vs, is, options.ColorM.impl, mode, filter)
 	}
 	i.disposeMipmaps()
 	return nil

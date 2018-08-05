@@ -139,6 +139,48 @@ func (c *ColorM) SetElement(i, j int, element float32) *ColorM {
 	return newC
 }
 
+func (c *ColorM) Equals(other *ColorM) bool {
+	if !c.isInited() && !other.isInited() {
+		return true
+	}
+
+	lhsb := colorMIdentityBody
+	lhst := colorMIdentityTranslate
+	rhsb := colorMIdentityBody
+	rhst := colorMIdentityTranslate
+	if other.isInited() {
+		if other.body != nil {
+			lhsb = other.body
+		}
+		if other.translate != nil {
+			lhst = other.translate
+		}
+	}
+	if c.isInited() {
+		if c.body != nil {
+			rhsb = c.body
+		}
+		if c.translate != nil {
+			rhst = c.translate
+		}
+	}
+	if &lhsb == &rhsb && &lhst == &rhst {
+		return true
+	}
+
+	for i := range lhsb {
+		if lhsb[i] != rhsb[i] {
+			return false
+		}
+	}
+	for i := range lhst {
+		if lhst[i] != rhst[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // Concat multiplies a color matrix with the other color matrix.
 // This is same as muptiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other *ColorM) *ColorM {

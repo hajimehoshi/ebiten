@@ -15,6 +15,7 @@
 package graphics
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -85,8 +86,8 @@ func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, mode opengl.CompositeMode, filter Filter) {
-	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, mode, filter)
+func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode opengl.CompositeMode, filter Filter) {
+	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter)
 }
 
 // Pixels returns the image's pixels.

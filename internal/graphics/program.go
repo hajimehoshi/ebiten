@@ -17,6 +17,7 @@ package graphics
 import (
 	"fmt"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -93,31 +94,6 @@ var (
 				dataType: opengl.Float,
 				num:      4,
 			},
-			{
-				name:     "color_body0",
-				dataType: opengl.Float,
-				num:      4,
-			},
-			{
-				name:     "color_body1",
-				dataType: opengl.Float,
-				num:      4,
-			},
-			{
-				name:     "color_body2",
-				dataType: opengl.Float,
-				num:      4,
-			},
-			{
-				name:     "color_body3",
-				dataType: opengl.Float,
-				num:      4,
-			},
-			{
-				name:     "color_translate",
-				dataType: opengl.Float,
-				num:      4,
-			},
 		},
 	}
 )
@@ -138,10 +114,12 @@ type openGLState struct {
 
 	programScreen opengl.Program
 
-	lastProgram          opengl.Program
-	lastProjectionMatrix []float32
-	lastSourceWidth      int
-	lastSourceHeight     int
+	lastProgram                opengl.Program
+	lastProjectionMatrix       []float32
+	lastColorMatrix            []float32
+	lastColorMatrixTranslation []float32
+	lastSourceWidth            int
+	lastSourceHeight           int
 }
 
 var (
@@ -171,6 +149,8 @@ func (s *openGLState) reset() error {
 
 	s.lastProgram = zeroProgram
 	s.lastProjectionMatrix = nil
+	s.lastColorMatrix = nil
+	s.lastColorMatrixTranslation = nil
 	s.lastSourceWidth = 0
 	s.lastSourceHeight = 0
 
@@ -270,7 +250,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, filter Filter) {
+func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, colorM *affine.ColorM, filter Filter) {
 	c := opengl.GetContext()
 
 	var program opengl.Program
@@ -300,6 +280,8 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, sr
 
 		s.lastProgram = program
 		s.lastProjectionMatrix = nil
+		s.lastColorMatrix = nil
+		s.lastColorMatrixTranslation = nil
 		s.lastSourceWidth = 0
 		s.lastSourceHeight = 0
 	}
@@ -312,6 +294,25 @@ func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, sr
 		// (*framebuffer).projectionMatrix is always same for the same framebuffer.
 		// It's OK to hold the reference without copying.
 		s.lastProjectionMatrix = proj
+	}
+
+	esBody, esTranslate := colorM.UnsafeElements()
+
+	if !areSameFloat32Array(s.lastColorMatrix, esBody) {
+		c.UniformFloats(program, "color_matrix_body", esBody)
+		if s.lastColorMatrix == nil {
+			s.lastColorMatrix = make([]float32, 16)
+		}
+		// ColorM's elements are immutable. It's OK to hold the reference without copying.
+		s.lastColorMatrix = esBody
+	}
+	if !areSameFloat32Array(s.lastColorMatrixTranslation, esTranslate) {
+		c.UniformFloats(program, "color_matrix_translation", esTranslate)
+		if s.lastColorMatrixTranslation == nil {
+			s.lastColorMatrixTranslation = make([]float32, 4)
+		}
+		// ColorM's elements are immutable. It's OK to hold the reference without copying.
+		s.lastColorMatrixTranslation = esTranslate
 	}
 
 	sw, sh := src.Size()
