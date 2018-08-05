@@ -19,15 +19,12 @@ import (
 )
 
 var (
-	scale = 0.0
-	m     sync.Mutex
+	m sync.Mutex
 )
 
 func DeviceScale() float64 {
 	m.Lock()
 	defer m.Unlock()
-	if scale == 0.0 {
-		scale = impl()
-	}
-	return scale
+	// TODO: Cache this value (again) for mobile platforms.
+	return impl()
 }

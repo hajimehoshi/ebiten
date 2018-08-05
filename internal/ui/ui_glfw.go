@@ -51,6 +51,10 @@ type userInterface struct {
 	runnableInBackground bool
 	vsync                bool
 
+	deviceScale        float64
+	deviceScaleUpdated int64
+	lastActualScale    float64
+
 	initFullscreen      bool
 	initCursorVisible   bool
 	initWindowDecorated bool
@@ -540,7 +544,13 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
-	return u.getScale() * devicescale.DeviceScale()
+	n := time.Now().UnixNano()
+	// As devicescale.DeviceScale accesses OS API, not call this too often.
+	if u.deviceScale == 0 || n-u.deviceScaleUpdated < int64(time.Second/2) {
+		u.deviceScale = devicescale.DeviceScale()
+		u.deviceScaleUpdated = n
+	}
+	return u.getScale() * u.deviceScale
 }
 
 // pollEvents must be called from the main thread.
@@ -554,11 +564,14 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
 	_ = u.runOnMainThread(func() error {
-		if !u.toChangeSize {
+		actualScale = u.actualScreenScale()
+
+		if !u.toChangeSize && u.lastActualScale == actualScale {
 			return nil
 		}
+
+		u.lastActualScale = actualScale
 		u.toChangeSize = false
-		actualScale = u.actualScreenScale()
 		sizeChanged = true
 		return nil
 	})
