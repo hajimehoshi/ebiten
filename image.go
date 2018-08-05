@@ -162,6 +162,7 @@ func (i *Image) disposeMipmaps() {
 //     * This is not a strong request since different images might share a same inner
 //       OpenGL texture in high possibility. This is not 100%, so using the same render
 //       source is safer.
+//   * All ColorM values are same
 //   * All CompositeMode values are same
 //   * All Filter values are same
 //
