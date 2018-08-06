@@ -60,15 +60,13 @@ import "C"
 import (
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/jni"
+	"golang.org/x/mobile/app"
 )
 
 func impl() float64 {
-	if !jni.IsJVMAvailable() {
-		panic("devicescale: JVM is not available yet: is this called from init funcitons?")
-	}
 	s := 0.0
-	if err := jni.RunOnJVM(func(vm, env, ctx uintptr) error {
+	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
+		// TODO: This might be crash when this is called from init(). How can we detect this?
 		s = float64(C.deviceScale(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx)))
 		return nil
 	}); err != nil {
