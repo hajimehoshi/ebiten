@@ -126,7 +126,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	}
 	op.CompositeMode = CompositeModeCopy
 	op.Filter = FilterNearest
-	_ = i.DrawImage(emptyImage, op)
+	i.drawImage(emptyImage, op, r == 0 && g == 0 && b == 0 && a == 0)
 }
 
 func (i *Image) disposeMipmaps() {
@@ -170,12 +170,17 @@ func (i *Image) disposeMipmaps() {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
+	i.drawImage(img, options, false)
+	return nil
+}
+
+func (i *Image) drawImage(img *Image, options *DrawImageOptions, clear bool) {
 	i.copyCheck()
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
 	if i.isDisposed() {
-		return nil
+		return
 	}
 
 	// Calculate vertices before locking because the user can do anything in
@@ -209,7 +214,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			op.GeoM.Concat(options.GeoM)
 			i.DrawImage(img, op)
 		}
-		return nil
+		return
 	}
 
 	w, h := img.Size()
@@ -256,10 +261,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if filter == graphics.FilterLinear {
 		det := geom.det()
 		if det == 0 {
-			return nil
+			return
 		}
 		if math.IsNaN(float64(det)) {
-			return nil
+			return
 		}
 		level = graphicsutil.MipmapLevel(det)
 		if level < 0 {
@@ -311,8 +316,10 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		is := graphicsutil.QuadIndices()
 		i.shareableImages[0].DrawImage(src, vs, is, options.ColorM.impl, mode, filter)
 	}
+	if clear {
+		i.shareableImages[0].ClearRestorableState()
+	}
 	i.disposeMipmaps()
-	return nil
 }
 
 // Bounds returns the bounds of the image.

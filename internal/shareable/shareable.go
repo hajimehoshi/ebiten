@@ -232,6 +232,22 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	// }
 }
 
+func (i *Image) ClearRestorableState() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if i.disposed {
+		panic("shareable: the image must not be disposed")
+	}
+	if i.backend == nil {
+		panic("shareable: the image must have backend")
+	}
+	if i.isShared() {
+		panic("shareable: the image must not be shared")
+	}
+	i.backend.restorable.ClearState()
+}
+
 func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()

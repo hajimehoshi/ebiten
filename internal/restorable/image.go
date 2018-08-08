@@ -216,6 +216,17 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	i.image.DrawImage(img.image, vertices, indices, colorm, mode, filter)
 }
 
+// ClearState clears the internal state. This is useful when it is known that the image is cleared and not stale.
+//
+// TODO: This is a tricky function since it is hard to determine when to call ClearState.
+// Refactor this.
+func (i *Image) ClearState() {
+	// TODO: Ensure i.image is already cleared?
+	i.basePixels = nil
+	i.drawImageHistory = nil
+	i.stale = false
+}
+
 // appendDrawImageHistory appends a draw-image history item to the image.
 func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	if i.stale || i.volatile || i.screen {
