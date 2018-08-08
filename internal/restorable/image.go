@@ -155,7 +155,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if pixels != nil {
 		i.image.ReplacePixels(pixels, x, y, width, height)
 	} else {
-		// There is not 'drawImageHistoryItem' for this image and dummyImage.
+		// There are not 'drawImageHistoryItem's for this image and dummyImage (in clear).
 		// This means dummyImage might not be restored yet when this image is restored.
 		// However, that's ok since this image will be stale or have updated pixel data
 		// and this image can be restored without dummyImage.
@@ -214,17 +214,6 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter)
 	}
 	i.image.DrawImage(img.image, vertices, indices, colorm, mode, filter)
-}
-
-// ClearState clears the internal state. This is useful when it is known that the image is cleared and not stale.
-//
-// TODO: This is a tricky function since it is hard to determine when to call ClearState.
-// Refactor this.
-func (i *Image) ClearState() {
-	// TODO: Ensure i.image is already cleared?
-	i.basePixels = nil
-	i.drawImageHistory = nil
-	i.stale = false
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.

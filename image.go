@@ -97,6 +97,12 @@ func (i *Image) Fill(clr color.Color) error {
 }
 
 func (i *Image) fill(r, g, b, a uint8) {
+	if r == 0 && g == 0 && b == 0 && a == 0 {
+		i.shareableImages[0].ReplacePixels(nil)
+		i.disposeMipmaps()
+		return
+	}
+
 	wd, hd := i.Size()
 
 	if wd*hd <= 256 {
@@ -126,7 +132,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	}
 	op.CompositeMode = CompositeModeCopy
 	op.Filter = FilterNearest
-	i.drawImage(emptyImage, op, r == 0 && g == 0 && b == 0 && a == 0)
+	i.drawImage(emptyImage, op)
 }
 
 func (i *Image) disposeMipmaps() {
@@ -170,11 +176,11 @@ func (i *Image) disposeMipmaps() {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
-	i.drawImage(img, options, false)
+	i.drawImage(img, options)
 	return nil
 }
 
-func (i *Image) drawImage(img *Image, options *DrawImageOptions, clear bool) {
+func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	i.copyCheck()
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
@@ -315,9 +321,6 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions, clear bool) {
 		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty)
 		is := graphicsutil.QuadIndices()
 		i.shareableImages[0].DrawImage(src, vs, is, options.ColorM.impl, mode, filter)
-	}
-	if clear {
-		i.shareableImages[0].ClearRestorableState()
 	}
 	i.disposeMipmaps()
 }
