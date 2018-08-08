@@ -155,7 +155,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if pixels != nil {
 		i.image.ReplacePixels(pixels, x, y, width, height)
 	} else {
-		// There are not 'drawImageHistoryItem's for this image and dummyImage (in clear).
+		// There are not 'drawImageHistoryItem's for this image and dummyImage.
 		// This means dummyImage might not be restored yet when this image is restored.
 		// However, that's ok since this image will be stale or have updated pixel data
 		// and this image can be restored without dummyImage.
