@@ -220,13 +220,16 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
 
 	i.countForShare = 0
-	if !img.isShared() && img.shareable() {
-		img.countForShare++
-		if img.countForShare >= MaxCountForShare {
-			img.forceShared()
-			img.countForShare = 0
-		}
-	}
+
+	// TODO: Reusing shared images is temporarily suspended for performance. See #661.
+	//
+	// if !img.isShared() && img.shareable() {
+	//	img.countForShare++
+	//	if img.countForShare >= MaxCountForShare {
+	//		img.forceShared()
+	//		img.countForShare = 0
+	//	}
+	// }
 }
 
 func (i *Image) ReplacePixels(p []byte) {
