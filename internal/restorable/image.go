@@ -163,7 +163,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
 		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h,
 			float32(width)/float32(w), 0, 0, float32(height)/float32(h),
-			float32(x), float32(y))
+			float32(x), float32(y),
+			1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
 		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}

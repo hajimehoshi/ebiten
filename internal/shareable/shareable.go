@@ -63,7 +63,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0)
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
 	newImg.DrawImage(oldImg, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
@@ -129,7 +129,7 @@ func (i *Image) ensureNotShared() {
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
-	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0)
+	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
 	newImg.DrawImage(i.backend.restorable, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 
@@ -184,13 +184,13 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
+func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
 	if i.backend == nil {
 		i.allocate(true)
 	}
 	ox, oy, _, _ := i.region()
 	w, h := i.backend.restorable.SizePowerOf2()
-	return graphicsutil.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty)
+	return graphicsutil.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
 const MaxCountForShare = 10

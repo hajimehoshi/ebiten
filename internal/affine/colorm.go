@@ -63,6 +63,30 @@ func (c *ColorM) isInited() bool {
 	return c != nil && (c.body != nil || c.translate != nil)
 }
 
+func (c *ColorM) ScaleOnly() bool {
+	if c == nil {
+		return true
+	}
+	if c.body != nil {
+		for i, e := range c.body {
+			if i == 0 || i == 5 || i == 10 || i == 15 {
+				continue
+			}
+			if e != 0 {
+				return false
+			}
+		}
+	}
+	if c.translate != nil {
+		for _, e := range c.translate {
+			if e != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (c *ColorM) Apply(clr color.Color) color.Color {
 	if !c.isInited() {
 		return clr

@@ -47,7 +47,7 @@ func isPowerOf2(x int) bool {
 	return (x & (x - 1)) == 0
 }
 
-func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32) []float32 {
+func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
 	if !isPowerOf2(width) {
 		panic("not reached")
 	}
@@ -65,13 +65,13 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 	wf := float32(width)
 	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty)
+	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
-func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float32 {
+func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundry checks.
-	vs := theVerticesBackend.sliceForOneQuad()[0:24]
+	vs := theVerticesBackend.sliceForOneQuad()[0:40]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 
@@ -86,28 +86,44 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty float32) []float3
 	vs[3] = v0
 	vs[4] = u1
 	vs[5] = v1
+	vs[6] = cr
+	vs[7] = cg
+	vs[8] = cb
+	vs[9] = ca
 
 	// and the same for the other three coordinates
-	vs[6] = ax + tx
-	vs[7] = cx + ty
-	vs[8] = u1
-	vs[9] = v0
-	vs[10] = u0
-	vs[11] = v1
-
-	vs[12] = by + tx
-	vs[13] = dy + ty
+	vs[10] = ax + tx
+	vs[11] = cx + ty
+	vs[12] = u1
+	vs[13] = v0
 	vs[14] = u0
 	vs[15] = v1
-	vs[16] = u1
-	vs[17] = v0
+	vs[16] = cr
+	vs[17] = cg
+	vs[18] = cb
+	vs[19] = ca
 
-	vs[18] = ax + by + tx
-	vs[19] = cx + dy + ty
-	vs[20] = u1
-	vs[21] = v1
+	vs[20] = by + tx
+	vs[21] = dy + ty
 	vs[22] = u0
-	vs[23] = v0
+	vs[23] = v1
+	vs[24] = u1
+	vs[25] = v0
+	vs[26] = cr
+	vs[27] = cg
+	vs[28] = cb
+	vs[29] = ca
+
+	vs[30] = ax + by + tx
+	vs[31] = cx + dy + ty
+	vs[32] = u1
+	vs[33] = v1
+	vs[34] = u0
+	vs[35] = v0
+	vs[36] = cr
+	vs[37] = cg
+	vs[38] = cb
+	vs[39] = ca
 
 	return vs
 }

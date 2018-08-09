@@ -86,7 +86,7 @@ func TestEnsureNotShared(t *testing.T) {
 		dy1 = size * 3 / 4
 	)
 	// img4.ensureNotShared() should be called.
-	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4)
+	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
 	img4.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	want := false
@@ -150,7 +150,7 @@ func Disabled_TestReshared(t *testing.T) {
 	}
 
 	// Use img1 as a render target.
-	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0)
+	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
 	img1.DrawImage(img2, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
 	want = false

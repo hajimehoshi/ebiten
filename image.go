@@ -308,7 +308,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		} else {
 			s = shareable.NewImage(w2, h2)
 		}
-		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0)
+		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
 		s.DrawImage(src, vs, is, options.ColorM.impl, opengl.CompositeModeCopy, graphics.FilterLinear)
 		img.shareableImages = append(img.shareableImages, s)
@@ -318,9 +318,22 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 
 	if level < len(img.shareableImages) {
 		src := img.shareableImages[level]
-		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty)
+		colorm := options.ColorM.impl
+		cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
+		if colorm.ScaleOnly() {
+			body, _ := colorm.UnsafeElements()
+			cr = body[0]
+			cg = body[5]
+			cb = body[10]
+			ca = body[15]
+		}
+		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphicsutil.QuadIndices()
-		i.shareableImages[0].DrawImage(src, vs, is, options.ColorM.impl, mode, filter)
+
+		if colorm.ScaleOnly() {
+			colorm = nil
+		}
+		i.shareableImages[0].DrawImage(src, vs, is, colorm, mode, filter)
 	}
 	i.disposeMipmaps()
 }

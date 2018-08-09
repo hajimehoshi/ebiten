@@ -94,6 +94,11 @@ var (
 				dataType: opengl.Float,
 				num:      4,
 			},
+			{
+				name:     "color_scale",
+				dataType: opengl.Float,
+				num:      4,
+			},
 		},
 	}
 )
