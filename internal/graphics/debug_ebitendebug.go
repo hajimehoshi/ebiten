@@ -17,5 +17,5 @@
 package graphics
 
 func recordLog() bool {
-	return recordLog
+	return true
 }
