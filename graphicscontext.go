@@ -122,7 +122,8 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	// c.screen is special: its Y axis is down to up,
 	// and the origin point is lower left.
 	op.GeoM.Scale(c.screenScale, -c.screenScale)
-	op.GeoM.Translate(0, float64(dh))
+	// Make dh an even number to fit the upper side of the screen (#662).
+	op.GeoM.Translate(0, float64((dh+1)/2*2))
 	op.GeoM.Translate(c.offsetX, c.offsetY)
 
 	op.CompositeMode = CompositeModeCopy
