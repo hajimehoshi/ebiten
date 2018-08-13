@@ -140,7 +140,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Triangles (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Polygons (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
