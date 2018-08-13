@@ -56,36 +56,30 @@ func genVertices(num int) []ebiten.Vertex {
 
 	vs := []ebiten.Vertex{}
 	for i := 0; i < num; i++ {
-		theta := float64(i) / float64(num) * 2 * math.Pi
-		cr := float32(0)
-		cg := float32(0)
-		cb := float32(0)
-		if 0 <= i && i < 2*num/3 {
-			cr = 2 * float32(i) / float32(num/3)
+		rate := float64(i) / float64(num)
+		cr := 0.0
+		cg := 0.0
+		cb := 0.0
+		if rate < 1.0/3.0 {
+			cb = 2 - 2*(rate*3)
+			cr = 2 * (rate * 3)
 		}
-		if num/3 <= i && i < 2*num/3 {
-			cr = 2 - 2*float32(i-num/3)/float32(num/3)
+		if 1.0/3.0 <= rate && rate < 2.0/3.0 {
+			cr = 2 - 2*(rate-1.0/3.0)*3
+			cg = 2 * (rate - 1.0/3.0) * 3
 		}
-		if num/3 <= i && i < 2*num/3 {
-			cg = 2 * float32(i-num/3) / float32(num/3)
-		}
-		if 2*num/3 <= i && i < num {
-			cg = 2 - 2*float32(i-2*num/3)/float32(num/3)
-		}
-		if 2*num/3 <= i && i < num {
-			cb = 2 * float32(i-2*num/3) / float32(num/3)
-		}
-		if 0 <= i && i < num/3 {
-			cb = 2 - 2*float32(i)/float32(num/3)
+		if 2.0/3.0 <= rate {
+			cg = 2 - 2*(rate-2.0/3.0)*3
+			cb = 2 * (rate - 2.0/3.0) * 3
 		}
 		vs = append(vs, ebiten.Vertex{
-			DstX:   float32(r*math.Cos(theta)) + centerX,
-			DstY:   float32(r*math.Sin(theta)) + centerY,
+			DstX:   float32(r*math.Cos(2*math.Pi*rate)) + centerX,
+			DstY:   float32(r*math.Sin(2*math.Pi*rate)) + centerY,
 			SrcX:   0,
 			SrcY:   0,
-			ColorR: cr,
-			ColorG: cg,
-			ColorB: cb,
+			ColorR: float32(cr),
+			ColorG: float32(cg),
+			ColorB: float32(cb),
 			ColorA: 1,
 		})
 	}
