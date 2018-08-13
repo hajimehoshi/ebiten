@@ -43,8 +43,8 @@ func init() {
 var (
 	vertices []ebiten.Vertex
 
-	numVerticesToDraw     = 10
-	prevNumVerticesToDraw = 0
+	ngon     = 10
+	prevNgon = 0
 )
 
 func genVertices(num int) []ebiten.Vertex {
@@ -106,21 +106,21 @@ func genVertices(num int) []ebiten.Vertex {
 
 func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		numVerticesToDraw--
-		if numVerticesToDraw < 1 {
-			numVerticesToDraw = 1
+		ngon--
+		if ngon < 1 {
+			ngon = 1
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-		numVerticesToDraw++
-		if numVerticesToDraw > 120 {
-			numVerticesToDraw = 120
+		ngon++
+		if ngon > 120 {
+			ngon = 120
 		}
 	}
 
-	if prevNumVerticesToDraw != numVerticesToDraw || len(vertices) == 0 {
-		vertices = genVertices(numVerticesToDraw)
-		prevNumVerticesToDraw = numVerticesToDraw
+	if prevNgon != ngon || len(vertices) == 0 {
+		vertices = genVertices(ngon)
+		prevNgon = ngon
 	}
 
 	if ebiten.IsDrawingSkipped() {
@@ -129,12 +129,12 @@ func update(screen *ebiten.Image) error {
 
 	op := &ebiten.DrawTrianglesOptions{}
 	indices := []uint16{}
-	for i := 0; i < numVerticesToDraw; i++ {
-		indices = append(indices, uint16(i), uint16(i+1)%uint16(numVerticesToDraw), uint16(numVerticesToDraw))
+	for i := 0; i < ngon; i++ {
+		indices = append(indices, uint16(i), uint16(i+1)%uint16(ngon), uint16(ngon))
 	}
 	screen.DrawTriangles(vertices, indices, emptyImage, op)
 
-	msg := fmt.Sprintf("TPS: %0.2f\nVertices: %d\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), numVerticesToDraw)
+	msg := fmt.Sprintf("TPS: %0.2f\n%d-gon\nPress <- or -> to change the number of the vertices", ebiten.CurrentTPS(), ngon)
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
