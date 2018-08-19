@@ -5,8 +5,8 @@ require (
 	github.com/go-gl/glfw v0.0.0-20180813204114-2484f3e51bc4
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gopherjs/gopherwasm v0.1.1
+	github.com/hajimehoshi/bitmapfont v1.0.2
 	github.com/hajimehoshi/go-mp3 v0.1.1
-	github.com/hajimehoshi/go-mplusbitmap v1.0.1
 	github.com/hajimehoshi/oto v0.1.2
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
