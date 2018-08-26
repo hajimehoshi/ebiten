@@ -19,11 +19,16 @@ addons:
   chrome: stable
 
 install:
-  - go get -t -v github.com/hajimehoshi/ebiten/...
+  - mkdir /tmp/work
+  - cd /tmp/work
+  - go mod init example.com/m
+  - go get github.com/hajimehoshi/ebiten@master
   - go get github.com/gopherjs/gopherjs
-  - go get github.com/gopherjs/gopherwasm/js
-  - go get -tags example github.com/hajimehoshi/ebiten/examples/...
   - go get myitcv.io/cmd/gjbt
+  - # gopath-get for the current GopherJS and gjbt.
+  - GO111MODULE=off go get -tags example github.com/hajimehoshi/ebiten/... 
+  - GO111MODULE=off go get github.com/gopherjs/gopherjs
+  - GO111MODULE=off go get github.com/gopherjs/gopherwasm/js
   - mkdir /tmp/google-chrome-bin
   - ln -s /usr/bin/google-chrome-stable /tmp/google-chrome-bin/google-chrome
   - export PATH=/tmp/google-chrome-bin:$PATH
@@ -37,11 +42,13 @@ before_script:
   - sleep 3
 
 script:
-  - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
+  - cd /tmp/work
   - go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - go test -v github.com/hajimehoshi/ebiten/...
   - gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
   - gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
+
+# - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
 
 notifications:
   email:
