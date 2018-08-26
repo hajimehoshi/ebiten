@@ -39,7 +39,7 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	req := js.Global().Get("XMLHttpRequest").New()
 	req.Call("open", "GET", path, true)
 	req.Set("responseType", "arraybuffer")
-	req.Call("addEventListener", "load", func() {
+	req.Call("addEventListener", "load", js.NewCallback(func(e []js.Value) {
 		defer close(ch)
 		status := req.Get("status").Int()
 		if 200 <= status && status < 400 {
@@ -47,11 +47,11 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 			return
 		}
 		err = errors.New(fmt.Sprintf("http error: %d", status))
-	})
-	req.Call("addEventListener", "error", func() {
+	}))
+	req.Call("addEventListener", "error", js.NewCallback(func(e []js.Value) {
 		defer close(ch)
 		err = errors.New(fmt.Sprintf("XMLHttpRequest error: %s", req.Get("statusText").String()))
-	})
+	}))
 	req.Call("send")
 	<-ch
 	if err != nil {
