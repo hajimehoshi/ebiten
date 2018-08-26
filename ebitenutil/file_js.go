@@ -39,7 +39,7 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	req := js.Global().Get("XMLHttpRequest").New()
 	req.Call("open", "GET", path, true)
 	req.Set("responseType", "arraybuffer")
-	req.Call("addEventListener", "load", func() {
+	loadCallback := js.NewCallback(func([]js.Value) {
 		defer close(ch)
 		status := req.Get("status").Int()
 		if 200 <= status && status < 400 {
@@ -48,19 +48,24 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 		}
 		err = errors.New(fmt.Sprintf("http error: %d", status))
 	})
-	req.Call("addEventListener", "error", func() {
+	defer loadCallback.Release()
+	req.Call("addEventListener", "load", loadCallback)
+	errorCallback := js.NewCallback(func([]js.Value) {
 		defer close(ch)
 		err = errors.New(fmt.Sprintf("XMLHttpRequest error: %s", req.Get("statusText").String()))
 	})
+	req.Call("addEventListener", "error", errorCallback)
+	defer errorCallback.Release()
 	req.Call("send")
 	<-ch
 	if err != nil {
 		return nil, err
 	}
 
-	data := make([]byte, content.Get("byteLength").Int())
+	uint8contentWrapper := js.Global().Get("Uint8Array").New(content)
+	data := make([]byte, uint8contentWrapper.Get("byteLength").Int())
 	arr := js.TypedArrayOf(data)
-	arr.Call("set", content)
+	arr.Call("set", uint8contentWrapper)
 	arr.Release()
 	f := &file{bytes.NewReader(data)}
 	return f, nil
