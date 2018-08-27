@@ -8,8 +8,8 @@ github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f h1:FDM3EtwZLyhW4
 github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherwasm v0.1.1 h1:R/3+SfgCFStiql6ICfyfke1WtpglfjIvTEBux8R1euc=
 github.com/gopherjs/gopherwasm v0.1.1/go.mod h1:kx4n9a+MzHH0BJJhvlsQ65hqLFXDO/m256AsaDPQ+/4=
-github.com/hajimehoshi/bitmapfont v1.0.2 h1:30AXHzHv9J3r7Q6FawvLCeGkRZlF/7lq6yC5ifN0nDY=
-github.com/hajimehoshi/bitmapfont v1.0.2/go.mod h1:KQGAlhASw21tAOCcESd/CXl1XnPU7EN97NSnRO75n5g=
+github.com/hajimehoshi/bitmapfont v1.0.3 h1:Ja4mj0HAoynXLu6xdTozCdl/Uq+NecUrjdkaC3W0JmI=
+github.com/hajimehoshi/bitmapfont v1.0.3/go.mod h1:KQGAlhASw21tAOCcESd/CXl1XnPU7EN97NSnRO75n5g=
 github.com/hajimehoshi/go-mp3 v0.1.1 h1:Y33fAdTma70fkrxnc9u50Uq0lV6eZ+bkAlssdMmCwUc=
 github.com/hajimehoshi/go-mp3 v0.1.1/go.mod h1:4i+c5pDNKDrxl1iu9iG90/+fhP37lio6gNhjCx9WBJw=
 github.com/hajimehoshi/oto v0.1.1/go.mod h1:hUiLWeBQnbDu4pZsAhOnGqMI1ZGibS6e2qhQdfpwz04=
