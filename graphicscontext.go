@@ -127,7 +127,14 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	op.GeoM.Translate(c.offsetX, c.offsetY)
 
 	op.CompositeMode = CompositeModeCopy
-	op.Filter = filterScreen
+
+	// filterScreen works with >=1 scale, but does not well with <1 scale.
+	// Use regular FilterLinear instead so far (#669).
+	if c.screenScale >= 1 {
+		op.Filter = filterScreen
+	} else {
+		op.Filter = FilterLinear
+	}
 	_ = c.screen.DrawImage(c.offscreen, op)
 
 	shareable.ResolveStaleImages()

@@ -99,6 +99,20 @@ varying highp vec2 varying_tex_coord_min;
 varying highp vec2 varying_tex_coord_max;
 varying highp vec4 varying_color_scale;
 
+// adjustTexel adjusts the two texels and returns the adjusted second texel.
+// When p1 - p0 is exactly equal to the texel size, jaggy can happen on macOS (#669).
+// In order to avoid this jaggy, subtract a little bit from the second texel.
+highp vec2 adjustTexel(highp vec2 p0, highp vec2 p1) {
+  highp vec2 texel_size = 1.0 / source_size;
+  if (fract((p1.x-p0.x)*source_size.x) == 0.0) {
+    p1.x -= texel_size.x / 512.0;
+  }
+  if (fract((p1.y-p0.y)*source_size.y) == 0.0) {
+    p1.y -= texel_size.y / 512.0;
+  }
+  return p1;
+}
+
 void main(void) {
   highp vec2 pos = varying_tex_coord;
   highp vec2 texel_size = 1.0 / source_size;
@@ -116,6 +130,9 @@ void main(void) {
 #if defined(FILTER_LINEAR)
   highp vec2 p0 = pos - texel_size / 2.0;
   highp vec2 p1 = pos + texel_size / 2.0;
+
+  p1 = adjustTexel(p0, p1);
+
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
@@ -144,6 +161,8 @@ void main(void) {
 #if defined(FILTER_SCREEN)
   highp vec2 p0 = pos - texel_size / 2.0 / scale;
   highp vec2 p1 = pos + texel_size / 2.0 / scale;
+
+  p1 = adjustTexel(p0, p1);
 
   vec4 c0 = texture2D(texture, p0);
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
