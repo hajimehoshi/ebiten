@@ -23,7 +23,7 @@ import (
 type Filter int
 
 const (
-	// FilterDefault represents the defualt filter.
+	// FilterDefault represents the default filter.
 	FilterDefault Filter = Filter(graphics.FilterDefault)
 
 	// FilterNearest represents nearest (crisp-edged) filter
