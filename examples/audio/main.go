@@ -28,7 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/mp3"
+	"github.com/hajimehoshi/ebiten/audio/vorbis"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
@@ -39,7 +39,7 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 
-	// This sample rate doesn't match with wav/mp3's sample rate,
+	// This sample rate doesn't match with wav/vorbis's sample rate,
 	// but decoders adjust them.
 	sampleRate = 48000
 )
@@ -69,7 +69,7 @@ func playerBarRect() (x, y, w, h int) {
 
 func NewPlayer(audioContext *audio.Context) (*Player, error) {
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
-	s, err := mp3.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Classic_mp3))
+	s, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
 	if err != nil {
 		return nil, err
 	}
