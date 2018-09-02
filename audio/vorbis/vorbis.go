@@ -102,7 +102,7 @@ func (d *decoded) readUntil(posInBytes int) error {
 	return nil
 }
 
-func (d *decoded) Read(b []uint8) (int, error) {
+func (d *decoded) Read(b byte) (int, error) {
 	l := d.totalBytes - d.posInBytes
 	if l > len(b) {
 		l = len(b)
@@ -176,7 +176,7 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		decoder:    r,
 	}
 	runtime.SetFinalizer(d, (*decoded).Close)
-	if _, err := d.Read(make([]uint8, 65536)); err != nil && err != io.EOF {
+	if _, err := d.Read(make(byte, 65536)); err != nil && err != io.EOF {
 		return nil, 0, 0, err
 	}
 	if _, err := d.Seek(0, io.SeekStart); err != nil {
