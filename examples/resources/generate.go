@@ -15,6 +15,7 @@
 //go:generate file2byteslice -package=audio -input=./audio/classic.mp3 -output=./audio/classic.go -var=Classic_mp3
 //go:generate file2byteslice -package=audio -input=./audio/jab.wav -output=./audio/jab.go -var=Jab_wav
 //go:generate file2byteslice -package=audio -input=./audio/jump.ogg -output=./audio/jump.go -var=Jump_ogg
+//go:generate file2byteslice -package=audio -input=./audio/ragtime.ogg -output=./audio/ragtime.go -var=Ragtime_ogg
 //go:generate file2byteslice -package=fonts -input=./fonts/arcade_n.ttf -output=./fonts/arcaden.go -var=ArcadeN_ttf
 //go:generate file2byteslice -package=fonts -input=./fonts/mplus-1p-regular.ttf -output=./fonts/mplus1pregular.go -var=MPlus1pRegular_ttf
 //go:generate file2byteslice -package=images -input=./images/ebiten.png -output=./images/ebiten.go -var=Ebiten_png
