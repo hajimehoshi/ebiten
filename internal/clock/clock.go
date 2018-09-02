@@ -30,8 +30,8 @@ var (
 	fpsCount    = 0
 	tpsCount    = 0
 
-	started bool
-	onStart func()
+	onStartCalled bool
+	onStart       func()
 
 	m sync.Mutex
 )
@@ -132,11 +132,11 @@ func Update(tps int) int {
 	m.Lock()
 	defer m.Unlock()
 
-	if !started {
+	if !onStartCalled {
 		if onStart != nil {
 			onStart()
+			onStartCalled = true
 		}
-		started = true
 	}
 
 	n := now()
