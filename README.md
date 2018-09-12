@@ -8,6 +8,8 @@ A dead simple 2D game library in Go
 
 Website: https://hajimehoshi.github.io/ebiten/
 
+![Flappy Example](docs/images/examples/flappy.png)
+
 ## Platforms
 
 * [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
