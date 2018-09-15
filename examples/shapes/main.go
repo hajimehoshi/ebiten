@@ -42,11 +42,12 @@ func init() {
 var count = 0
 
 func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
-	const width = 0.5
+	const width = 1
 
-	theta := math.Atan2(float64(x1-x0), float64(y1-y0))
-	dx := float32(math.Cos(theta) - math.Sin(theta))
-	dy := float32(math.Sin(theta) + math.Cos(theta))
+	theta := math.Atan2(float64(y1-y0), float64(x1-x0))
+	theta += math.Pi / 2
+	dx := float32(math.Cos(theta))
+	dy := float32(math.Sin(theta))
 
 	r := float32(clr.R) / 0xff
 	g := float32(clr.G) / 0xff
@@ -55,8 +56,8 @@ func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 
 	return []ebiten.Vertex{
 		{
-			DstX:   x0 - width*dx,
-			DstY:   y0 - width*dy,
+			DstX:   x0 - width*dx/2,
+			DstY:   y0 - width*dy/2,
 			SrcX:   1,
 			SrcY:   1,
 			ColorR: r,
@@ -65,8 +66,8 @@ func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 			ColorA: a,
 		},
 		{
-			DstX:   x0 + width*dx,
-			DstY:   y0 + width*dy,
+			DstX:   x0 + width*dx/2,
+			DstY:   y0 + width*dy/2,
 			SrcX:   1,
 			SrcY:   1,
 			ColorR: r,
@@ -75,8 +76,8 @@ func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 			ColorA: a,
 		},
 		{
-			DstX:   x1 - width*dx,
-			DstY:   y1 - width*dy,
+			DstX:   x1 - width*dx/2,
+			DstY:   y1 - width*dy/2,
 			SrcX:   1,
 			SrcY:   1,
 			ColorR: r,
@@ -85,8 +86,8 @@ func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 			ColorA: a,
 		},
 		{
-			DstX:   x1 + width*dx,
-			DstY:   y1 + width*dy,
+			DstX:   x1 + width*dx/2,
+			DstY:   y1 + width*dy/2,
 			SrcX:   1,
 			SrcY:   1,
 			ColorR: r,
