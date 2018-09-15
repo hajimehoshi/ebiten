@@ -98,6 +98,60 @@ func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
 	}, []uint16{0, 1, 2, 1, 2, 3}
 }
 
+func rect(x, y, w, h float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
+	r := float32(clr.R) / 0xff
+	g := float32(clr.G) / 0xff
+	b := float32(clr.B) / 0xff
+	a := float32(clr.A) / 0xff
+	x0 := x
+	y0 := y
+	x1 := x + w
+	y1 := y + h
+
+	return []ebiten.Vertex{
+		{
+			DstX:   x0,
+			DstY:   y0,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+		{
+			DstX:   x1,
+			DstY:   y0,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+		{
+			DstX:   x0,
+			DstY:   y1,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+		{
+			DstX:   x1,
+			DstY:   y1,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+	}, []uint16{0, 1, 2, 1, 2, 3}
+}
+
 func update(screen *ebiten.Image) error {
 	count++
 	count %= 240
@@ -109,12 +163,15 @@ func update(screen *ebiten.Image) error {
 	cf := float64(count)
 	v, i := line(100, 100, 300, 100, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	screen.DrawTriangles(v, i, emptyImage, nil)
-	v, i = line(50, 150, 50, 350, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	v, i = line(50, 150, 50, 350, color.RGBA{0xff, 0xff, 0x00, 0xff})
 	screen.DrawTriangles(v, i, emptyImage, nil)
 	v, i = line(50, 100+float32(cf), 200+float32(cf), 250, color.RGBA{0x00, 0xff, 0xff, 0xff})
 	screen.DrawTriangles(v, i, emptyImage, nil)
-	ebitenutil.DrawRect(screen, 50+cf, 50+cf, 100+cf, 100+cf, color.RGBA{0x80, 0x80, 0x80, 0x80})
-	ebitenutil.DrawRect(screen, 300-cf, 50, 120, 120, color.RGBA{0x00, 0x80, 0x00, 0x80})
+
+	v, i = rect(50+float32(cf), 50+float32(cf), 100+float32(cf), 100+float32(cf), color.RGBA{0x80, 0x80, 0x80, 0x80})
+	screen.DrawTriangles(v, i, emptyImage, nil)
+	v, i = rect(300-float32(cf), 50, 120, 120, color.RGBA{0x00, 0x80, 0x00, 0x80})
+	screen.DrawTriangles(v, i, emptyImage, nil)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
 	return nil
