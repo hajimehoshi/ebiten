@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -30,7 +31,71 @@ const (
 	screenHeight = 480
 )
 
+var (
+	emptyImage, _ = ebiten.NewImage(16, 16, ebiten.FilterDefault)
+)
+
+func init() {
+	emptyImage.Fill(color.White)
+}
+
 var count = 0
+
+func line(x0, y0, x1, y1 float32, clr color.RGBA) ([]ebiten.Vertex, []uint16) {
+	const width = 0.5
+
+	theta := math.Atan2(float64(x1-x0), float64(y1-y0))
+	dx := float32(math.Cos(theta) - math.Sin(theta))
+	dy := float32(math.Sin(theta) + math.Cos(theta))
+
+	r := float32(clr.R) / 0xff
+	g := float32(clr.G) / 0xff
+	b := float32(clr.B) / 0xff
+	a := float32(clr.A) / 0xff
+
+	return []ebiten.Vertex{
+		{
+			DstX:   x0 - width*dx,
+			DstY:   y0 - width*dy,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+		{
+			DstX:   x0 + width*dx,
+			DstY:   y0 + width*dy,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+		{
+			DstX:   x1 - width*dx,
+			DstY:   y1 - width*dy,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+		{
+			DstX:   x1 + width*dx,
+			DstY:   y1 + width*dy,
+			SrcX:   1,
+			SrcY:   1,
+			ColorR: r,
+			ColorG: g,
+			ColorB: b,
+			ColorA: a,
+		},
+	}, []uint16{0, 1, 2, 1, 2, 3}
+}
 
 func update(screen *ebiten.Image) error {
 	count++
@@ -41,9 +106,12 @@ func update(screen *ebiten.Image) error {
 	}
 
 	cf := float64(count)
-	ebitenutil.DrawLine(screen, 100, 100, 300, 100, color.RGBA{0xff, 0, 0xff, 0xff})
-	ebitenutil.DrawLine(screen, 50, 150, 50, 350, color.RGBA{0xff, 0xff, 0, 0xff})
-	ebitenutil.DrawLine(screen, 50, 100+cf, 200+cf, 250, color.RGBA{0x00, 0xff, 0xff, 0xff})
+	v, i := line(100, 100, 300, 100, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	screen.DrawTriangles(v, i, emptyImage, nil)
+	v, i = line(50, 150, 50, 350, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	screen.DrawTriangles(v, i, emptyImage, nil)
+	v, i = line(50, 100+float32(cf), 200+float32(cf), 250, color.RGBA{0x00, 0xff, 0xff, 0xff})
+	screen.DrawTriangles(v, i, emptyImage, nil)
 	ebitenutil.DrawRect(screen, 50+cf, 50+cf, 100+cf, 100+cf, color.RGBA{0x80, 0x80, 0x80, 0x80})
 	ebitenutil.DrawRect(screen, 300-cf, 50, 120, 120, color.RGBA{0x00, 0x80, 0x00, 0x80})
 
