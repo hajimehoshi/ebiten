@@ -40,8 +40,7 @@ func DebugPrint(image *ebiten.Image, str string) error {
 	return nil
 }
 
-
-// DebugPrintAt draws the string str on the image at X and Y coordinates.
+// DebugPrintAt draws the string str on the image at (x, y) position.
 //
 // The available runes are in U+0000 to U+00FF, which is C0 Controls and Basic Latin and C1 Controls and Latin-1 Supplement.
 func DebugPrintAt(image *ebiten.Image, str string, x, y int) {
