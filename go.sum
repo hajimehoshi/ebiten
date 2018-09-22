@@ -6,8 +6,12 @@ github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 h1:DACJavvAHhabrF0
 github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGwJL78qG/PmXZO1EjYhfJinVAhrmmHX6Z8B9k=
 github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f h1:FDM3EtwZLyhW48YRiyqjivNlNZjAObv4xt4NnJaU+NQ=
 github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
+github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c h1:16eHWuMGvCjSfgRJKqIzapE78onvvTbdi1rMkU00lZw=
+github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gopherjs/gopherwasm v0.1.1 h1:R/3+SfgCFStiql6ICfyfke1WtpglfjIvTEBux8R1euc=
 github.com/gopherjs/gopherwasm v0.1.1/go.mod h1:kx4n9a+MzHH0BJJhvlsQ65hqLFXDO/m256AsaDPQ+/4=
+github.com/gopherjs/gopherwasm v1.0.0 h1:32nge/RlujS1Im4HNCJPp0NbBOAeBXFuT1KonUuLl+Y=
+github.com/gopherjs/gopherwasm v1.0.0/go.mod h1:SkZ8z7CWBz5VXbhJel8TxCmAcsQqzgWGR/8nMhyhZSI=
 github.com/hajimehoshi/bitmapfont v1.1.0 h1:gbXI8RGMnvB0z2zy1UlysLu5PCb9XOHR/VY+jjJhjO8=
 github.com/hajimehoshi/bitmapfont v1.1.0/go.mod h1:KQGAlhASw21tAOCcESd/CXl1XnPU7EN97NSnRO75n5g=
 github.com/hajimehoshi/go-mp3 v0.1.1 h1:Y33fAdTma70fkrxnc9u50Uq0lV6eZ+bkAlssdMmCwUc=
