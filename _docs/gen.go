@@ -150,6 +150,7 @@ var (
 		{Name: "noise", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "paint", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "perspective", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "polygons", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "rotate", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "sprites", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "tiles", ThumbWidth: 240, ThumbHeight: 240},
