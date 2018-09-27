@@ -19,10 +19,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/audio/wav"
+	"github.com/hajimehoshi/ebiten/audio/vorbis"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	raudio "github.com/hajimehoshi/ebiten/examples/resources/audio"
 )
@@ -49,14 +50,14 @@ func update(screen *ebiten.Image) error {
 	if player == nil {
 		// Decode the wav file.
 		// wavS is a decoded io.ReadCloser and io.Seeker.
-		wavS, err := wav.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Jab_wav))
+		oggS, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
 		if err != nil {
 			return err
 		}
 
 		// Create an infinite loop stream from the decoded bytes.
 		// s is still an io.ReadCloser and io.Seeker.
-		s := audio.NewInfiniteLoop(wavS, wavS.Length())
+		s := audio.NewInfiniteLoopWithIntro(oggS, 5*4*sampleRate, 4*4*sampleRate)
 
 		player, err = audio.NewPlayer(audioContext, s)
 		if err != nil {
@@ -71,7 +72,15 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	msg := fmt.Sprintf("FPS: %0.2f\nThis is an example using audio.NewInfiniteLoop.", ebiten.CurrentFPS())
+	pos := player.Current()
+	if pos > 5*time.Second {
+		pos = (player.Current()-5*time.Second)%(4*time.Second) + 5*time.Second
+	}
+	msg := fmt.Sprintf(`FPS: %0.2f
+This is an example using audio.NewInfiniteLoop.
+Intro:   0[s] - 5[s]
+Loop:    5[s] - 9[s]
+Current: %0.2f[s]`, ebiten.CurrentFPS(), float64(pos)/float64(time.Second))
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
