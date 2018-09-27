@@ -32,6 +32,9 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 	sampleRate   = 44100
+
+	introLengthInSecond = 5
+	loopLengthInSecond  = 4
 )
 
 var audioContext *audio.Context
@@ -57,7 +60,7 @@ func update(screen *ebiten.Image) error {
 
 		// Create an infinite loop stream from the decoded bytes.
 		// s is still an io.ReadCloser and io.Seeker.
-		s := audio.NewInfiniteLoopWithIntro(oggS, 5*4*sampleRate, 4*4*sampleRate)
+		s := audio.NewInfiniteLoopWithIntro(oggS, introLengthInSecond*4*sampleRate, loopLengthInSecond*4*sampleRate)
 
 		player, err = audio.NewPlayer(audioContext, s)
 		if err != nil {
@@ -78,9 +81,9 @@ func update(screen *ebiten.Image) error {
 	}
 	msg := fmt.Sprintf(`FPS: %0.2f
 This is an example using audio.NewInfiniteLoop.
-Intro:   0[s] - 5[s]
-Loop:    5[s] - 9[s]
-Current: %0.2f[s]`, ebiten.CurrentFPS(), float64(pos)/float64(time.Second))
+Intro:   0[s] - %[2]d[s]
+Loop:    %[2]d[s] - %[3]d[s]
+Current: %0.2[4]f[s]`, ebiten.CurrentFPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second))
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
