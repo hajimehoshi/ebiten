@@ -31,7 +31,7 @@ import (
 const (
 	screenWidth  = 320
 	screenHeight = 240
-	sampleRate   = 44100
+	sampleRate   = 22050
 
 	introLengthInSecond = 5
 	loopLengthInSecond  = 4

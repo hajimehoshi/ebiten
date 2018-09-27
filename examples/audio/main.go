@@ -39,9 +39,7 @@ const (
 	screenWidth  = 320
 	screenHeight = 240
 
-	// This sample rate doesn't match with wav/vorbis's sample rate,
-	// but decoders adjust them.
-	sampleRate = 48000
+	sampleRate = 22050
 )
 
 var (
