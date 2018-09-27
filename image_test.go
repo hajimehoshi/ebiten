@@ -812,7 +812,7 @@ func TestImageStretch(t *testing.T) {
 	img0.ReplacePixels(pix)
 
 	// TODO: 4096 doesn't pass on MacBook Pro (#611).
-	const h = 2048
+	const h = 4000
 	img1, _ := NewImage(16, h, FilterDefault)
 	for i := 1; i < h; i++ {
 		img1.Clear()
