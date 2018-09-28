@@ -182,9 +182,13 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	gl.Call("texParameteri", texture2d, textureWrapS, clampToEdge)
 	gl.Call("texParameteri", texture2d, textureWrapT, clampToEdge)
 
-	// void texImage2D(GLenum target, GLint level, GLenum internalformat,
-	//     GLsizei width, GLsizei height, GLint border, GLenum format,
-	//     GLenum type, ArrayBufferView? pixels);
+	// Firefox warns the usage of textures without specifying pixels (#629)
+	//
+	//     Error: WebGL warning: drawElements: This operation requires zeroing texture data. This is slow.
+	//
+	// In Ebiten, textures are filled with pixels laster by the filter that ignores destination, so it is fine
+	// to leave textures as uninitialized here. Rather, extra memory allocating for initialization should be
+	// avoided.
 	gl.Call("texImage2D", texture2d, 0, rgba, width, height, 0, rgba, unsignedByte, nil)
 
 	return Texture(t), nil
