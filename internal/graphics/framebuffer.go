@@ -16,7 +16,6 @@ package graphics
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 // orthoProjectionMatrix returns an orthogonal projection matrix for OpenGL.
@@ -68,15 +67,10 @@ func newScreenFramebuffer(width, height int) *framebuffer {
 
 // viewportSize returns the viewport size of the framebuffer.
 func (f *framebuffer) viewportSize() (int, int) {
-	// On some browsers, viewport size must be within the framebuffer size.
-	// e.g. Edge (#71), Chrome on GPD Pocket (#420)
-	if web.IsBrowser() {
-		return f.width, f.height
-	}
-
-	// If possible, always use the same viewport size to reduce draw calls.
-	m := MaxImageSize()
-	return m, m
+	// On some environments, viewport size must be within the framebuffer size.
+	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
+	// Use the same size of the framebuffer here.
+	return f.width, f.height
 }
 
 // setAsViewport sets the framebuffer as the current viewport.
