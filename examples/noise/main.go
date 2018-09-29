@@ -65,7 +65,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	screen.ReplacePixels(noiseImage.Pix)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %f", ebiten.CurrentFPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 

@@ -140,7 +140,7 @@ func update(screen *ebiten.Image) error {
 	const x = 20
 
 	// Draw info
-	msg := fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS())
+	msg := fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS())
 	text.Draw(screen, msg, mplusNormalFont, x, 40, color.White)
 
 	// Draw the sample text

@@ -55,7 +55,7 @@ func update(screen *ebiten.Image) error {
 		screen.DrawImage(dot, op)
 	})
 
-	ebitenutil.DebugPrint(screen, fmt.Sprint(ebiten.CurrentFPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 

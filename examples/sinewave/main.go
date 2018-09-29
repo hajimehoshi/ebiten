@@ -93,7 +93,7 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
-	msg := fmt.Sprintf("FPS: %0.2f\nThis is an example using infinite audio stream.", ebiten.CurrentFPS())
+	msg := fmt.Sprintf("TPS: %0.2f\nThis is an example using infinite audio stream.", ebiten.CurrentTPS())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

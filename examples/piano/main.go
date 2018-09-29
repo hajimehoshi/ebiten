@@ -228,7 +228,7 @@ func update(screen *ebiten.Image) error {
 	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	screen.DrawImage(pianoImage, nil)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 

@@ -207,12 +207,12 @@ func (p *Player) draw(screen *ebiten.Image) {
 	currentTimeStr := fmt.Sprintf("%02d:%02d", m, s)
 
 	// Draw the debug message.
-	msg := fmt.Sprintf(`FPS: %0.2f
+	msg := fmt.Sprintf(`TPS: %0.2f
 Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 Press B to switch the run-in-background state
-Current Time: %s`, ebiten.CurrentFPS(), currentTimeStr)
+Current Time: %s`, ebiten.CurrentTPS(), currentTimeStr)
 	ebitenutil.DebugPrint(screen, msg)
 }
 

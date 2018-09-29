@@ -266,7 +266,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 	scoreStr := fmt.Sprintf("%04d", g.score())
 	text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize, fontSize, color.White)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 

@@ -79,11 +79,11 @@ func update(screen *ebiten.Image) error {
 	if pos > 5*time.Second {
 		pos = (player.Current()-5*time.Second)%(4*time.Second) + 5*time.Second
 	}
-	msg := fmt.Sprintf(`FPS: %0.2f
+	msg := fmt.Sprintf(`TPS: %0.2f
 This is an example using audio.NewInfiniteLoop.
 Intro:   0[s] - %[2]d[s]
 Loop:    %[2]d[s] - %[3]d[s]
-Current: %0.2[4]f[s]`, ebiten.CurrentFPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second))
+Current: %0.2[4]f[s]`, ebiten.CurrentTPS(), introLengthInSecond, introLengthInSecond+loopLengthInSecond, float64(pos)/float64(time.Second))
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

@@ -104,8 +104,8 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(float64(charX), float64(charY))
 	screen.DrawImage(loadedSprite, op)
 
-	// FPS counter
-	fps := fmt.Sprintf("FPS: %f", ebiten.CurrentFPS())
+	// TPS counter
+	fps := fmt.Sprintf("TPS: %f", ebiten.CurrentTPS())
 	ebitenutil.DebugPrint(screen, fps)
 
 	return nil

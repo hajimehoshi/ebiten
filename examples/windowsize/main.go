@@ -189,8 +189,8 @@ Press V key to switch vsync
 Press T key to switch TPS (ticks per second)
 Press Q key to quit
 Cursor: (%d, %d)
-FPS: %0.2f
-TPS: Current: %0.2f / Max: %s`, x, y, ebiten.CurrentFPS(), ebiten.CurrentTPS(), tpsStr)
+TPS: Current: %0.2f / Max: %s
+FPS: %0.2f`, x, y, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

@@ -173,7 +173,7 @@ func update(screen *ebiten.Image) error {
 	v, i = rect(300-float32(cf), 50, 120, 120, color.RGBA{0x00, 0x80, 0x00, 0x80})
 	screen.DrawTriangles(v, i, emptyImage, nil)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f", ebiten.CurrentFPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 
