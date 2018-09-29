@@ -348,17 +348,24 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 		ox := (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2
 		return ox, 0, ox, 0
 	}
-	ox := 0.0
-	oy := 0.0
+
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
 	d := devicescale.DeviceScale()
+
+	mx := float64(v.Width) * d / glfwScale()
+	my := float64(v.Height) * d / glfwScale()
+	sx := 0.0
+	sy := 0.0
+
 	_ = u.runOnMainThread(func() error {
-		ox = (float64(v.Width)*d/glfwScale() - float64(u.width)*u.actualScreenScale()) / 2
-		oy = (float64(v.Height)*d/glfwScale() - float64(u.height)*u.actualScreenScale()) / 2
+		sx = float64(u.width) * u.actualScreenScale()
+		sy = float64(u.height) * u.actualScreenScale()
 		return nil
 	})
-	return ox, oy, ox, oy
+	ox := (mx - sx) / 2
+	oy := (my - sy) / 2
+	return ox, oy, (mx - sx) - ox, (my - sy) - oy
 }
 
 func AdjustedCursorPosition() (x, y int) {
