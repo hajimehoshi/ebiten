@@ -15,8 +15,9 @@
 package ebiten
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -30,14 +31,16 @@ func newGraphicsContext(f func(*Image) error) *graphicsContext {
 }
 
 type graphicsContext struct {
-	f           func(*Image) error
-	offscreen   *Image
-	screen      *Image
-	screenScale float64
-	initialized bool
-	invalidated bool // browser only
-	offsetX     float64
-	offsetY     float64
+	f            func(*Image) error
+	offscreen    *Image
+	screen       *Image
+	screenWidth  int
+	screenHeight int
+	screenScale  float64
+	initialized  bool
+	invalidated  bool // browser only
+	offsetX      float64
+	offsetY      float64
 }
 
 func (c *graphicsContext) Invalidate() {
@@ -61,8 +64,10 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 	w := int(float64(screenWidth) * screenScale)
 	h := int(float64(screenHeight) * screenScale)
-	px0, py0, _, _ := ui.ScreenPadding()
-	c.screen = newImageWithScreenFramebuffer(w, h)
+	px0, py0, px1, py1 := ui.ScreenPadding()
+	c.screen = newImageWithScreenFramebuffer(w+int(math.Ceil(px0+px1)), h+int(math.Ceil(py0+py1)))
+	c.screenWidth = w
+	c.screenHeight = h
 
 	c.offsetX = px0
 	c.offsetY = py0
@@ -110,20 +115,18 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	if c.offsetX > 0 || c.offsetY > 0 {
 		op := &DrawImageOptions{}
 		w, h := emptyImage.Size()
-		s := float64(graphics.MaxImageSize())
-		op.GeoM.Scale(s/float64(w), s/float64(h))
+		sw, sh := c.screen.Size()
+		op.GeoM.Scale(float64(sw)/float64(w), float64(sh)/float64(h))
 		op.CompositeMode = CompositeModeCopy
 		c.screen.DrawImage(emptyImage, op)
 	}
-
-	_, dh := c.screen.Size()
 
 	op := &DrawImageOptions{}
 	// c.screen is special: its Y axis is down to up,
 	// and the origin point is lower left.
 	op.GeoM.Scale(c.screenScale, -c.screenScale)
-	// Make dh an even number to fit the upper side of the screen (#662).
-	op.GeoM.Translate(0, float64((dh+1)/2*2))
+	// Make the screen height an even number to fit the upper side of the screen (#662).
+	op.GeoM.Translate(0, float64((c.screenHeight+1)/2*2))
 	op.GeoM.Translate(c.offsetX, c.offsetY)
 
 	op.CompositeMode = CompositeModeCopy
