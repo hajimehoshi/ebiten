@@ -52,10 +52,10 @@ func CursorPosition() (x, y int) {
 	return ui.AdjustedCursorPosition()
 }
 
-// MouseWheel returns the x and y offset of the scroll wheel.
+// MouseWheel returns the x and y offset of the mouse wheel or touchpad scroll.
 // It returns 0 if the wheel isn't being rolled.
-func MouseWheel() (xoff, yoff float64) {
-	return input.Get().MouseWheel()
+func Wheel() (xoff, yoff float64) {
+	return input.Get().Wheel()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.

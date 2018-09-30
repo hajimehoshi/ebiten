@@ -92,7 +92,7 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 	return false
 }
 
-func (i *Input) MouseWheel() (xoff, yoff float64) {
+func (i *Input) Wheel() (xoff, yoff float64) {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	return i.scrollX, i.scrollY
