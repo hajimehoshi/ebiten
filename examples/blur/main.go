@@ -50,7 +50,7 @@ func update(screen *ebiten.Image) error {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(i), 244+float64(j))
 			// Alpha scale should be 1.0/49.0, but accumulating 1/49 49 times doesn't reach to 1 due to
-			// errors.
+			// errors (#694).
 			op.ColorM.Scale(1, 1, 1, 1.0/25.0)
 			screen.DrawImage(gophersImage, op)
 		}
