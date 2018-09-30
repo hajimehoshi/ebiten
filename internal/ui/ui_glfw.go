@@ -646,7 +646,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			d := time.Duration(n2 - n1)
 
 			// On macOS Mojave, vsync might not work (#692).
-			// As a tempoarry fix, just wait for a millisecond not to consume CPU too much.
+			// As a tempoarry fix, just wait for a while not to consume CPU too much.
 			const threshold = 4 * time.Millisecond // 250 [Hz]
 			if d < threshold {
 				time.Sleep(threshold - d)
