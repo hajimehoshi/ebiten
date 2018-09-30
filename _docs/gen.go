@@ -135,6 +135,7 @@ var (
 	graphicsExamples = []example{
 		{Name: "airship", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "alphablending", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "blur", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "drag", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "filter", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "flood", ThumbWidth: 320, ThumbHeight: 240},
@@ -159,6 +160,7 @@ var (
 		{Name: "gamepad", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "keyboard", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "typewriter", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "wheel", ThumbWidth: 320, ThumbHeight: 240},
 	}
 	audioExamples = []example{
 		{Name: "audio", ThumbWidth: 320, ThumbHeight: 240},
