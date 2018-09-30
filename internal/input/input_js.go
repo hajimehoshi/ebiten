@@ -248,6 +248,7 @@ func OnMouseMove(e js.Value) {
 }
 
 func OnWheel(e js.Value) {
+	// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
 	theInput.wheelX = e.Get("deltaX").Float()
 	theInput.wheelY = e.Get("deltaY").Float()
 }

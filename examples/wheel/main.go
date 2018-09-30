@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 
@@ -55,7 +56,8 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(pointerImage, op)
 
-	ebitenutil.DebugPrint(screen, "Move the red point by mouse wheeling")
+	ebitenutil.DebugPrint(screen,
+		fmt.Sprintf("Move the red point by mouse wheel\n(%0.2f, %0.2f)", x, y))
 
 	return nil
 }
