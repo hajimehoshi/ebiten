@@ -23,8 +23,6 @@ import (
 type Input struct {
 	cursorX  int
 	cursorY  int
-	scrollX  float64
-	scrollY  float64
 	gamepads [16]gamePad
 	touches  []*Touch
 	m        sync.RWMutex
