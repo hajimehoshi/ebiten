@@ -38,6 +38,9 @@ const FPS = DefaultTPS
 // CurrentFPS returns the current number of FPS (frames per second), that represents
 // how many swapping buffer happens per second.
 //
+// On some environments, CurrentFPS doesn't return a reliable value since vsync doesn't work well there.
+// If you want to measure the application's speed, Use CurrentTPS.
+//
 // CurrentFPS is concurrent-safe.
 func CurrentFPS() float64 {
 	return clock.CurrentFPS()

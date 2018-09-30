@@ -625,11 +625,32 @@ func (u *userInterface) loop(g GraphicsContext) error {
 		if err := u.update(g); err != nil {
 			return err
 		}
+
+		u.m.Lock()
+		vsync := u.vsync
+		u.m.Unlock()
+
 		// The bound framebuffer must be the original screen framebuffer
 		// before swapping buffers.
 		opengl.GetContext().BindScreenFramebuffer()
+
 		_ = u.runOnMainThread(func() error {
+			if !vsync {
+				u.swapBuffers()
+				return nil
+			}
+
+			n1 := time.Now().UnixNano()
 			u.swapBuffers()
+			n2 := time.Now().UnixNano()
+			d := time.Duration(n2 - n1)
+
+			// On macOS Mojave, vsync might not work (#692).
+			// As a tempoarry fix, just wait for a millisecond not to consume CPU too much.
+			const threshold = 4 * time.Millisecond // 250 [Hz]
+			if d < threshold {
+				time.Sleep(threshold - d)
+			}
 			return nil
 		})
 	}
