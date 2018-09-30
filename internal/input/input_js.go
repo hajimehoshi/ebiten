@@ -35,6 +35,8 @@ type Input struct {
 	mouseButtonPressed map[int]bool
 	cursorX            int
 	cursorY            int
+	wheelX             float64
+	wheelY             float64
 	gamepads           [16]gamePad
 	touches            []*Touch
 	runeBuffer         []rune
@@ -47,6 +49,11 @@ func (i *Input) RuneBuffer() []rune {
 
 func (i *Input) ClearRuneBuffer() {
 	i.runeBuffer = nil
+}
+
+func (i *Input) ResetWheelValues() {
+	i.wheelX = 0
+	i.wheelY = 0
 }
 
 func (i *Input) IsKeyPressed(key Key) bool {
@@ -92,8 +99,7 @@ func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
 }
 
 func (i *Input) Wheel() (xoff, yoff float64) {
-	return 0, 0
-	// TODO: Mouse scroll functionality is not yet implemented in js
+	return i.wheelX, i.wheelY
 }
 
 func (i *Input) keyDown(code string) {
@@ -239,6 +245,11 @@ func OnMouseUp(e js.Value) {
 
 func OnMouseMove(e js.Value) {
 	setMouseCursorFromEvent(e)
+}
+
+func OnWheel(e js.Value) {
+	theInput.wheelX = e.Get("deltaX").Float()
+	theInput.wheelY = e.Get("deltaY").Float()
 }
 
 func OnTouchStart(e js.Value) {

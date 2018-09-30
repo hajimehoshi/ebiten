@@ -207,8 +207,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
 		input.Get().ClearRuneBuffer()
-		// TODO: insert ResetScrollValues() counterpart to 'ui_glfw.go' here
-		// The offscreens must be updated every frame (#490).
+		input.Get().ResetWheelValues()
 		u.updateGraphicsContext(g)
 	}); err != nil {
 		return err
@@ -322,6 +321,7 @@ func init() {
 	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(js.PreventDefault, input.OnMouseDown))
 	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(js.PreventDefault, input.OnMouseUp))
 	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(js.PreventDefault, input.OnMouseMove))
+	canvas.Call("addEventListener", "wheel", js.NewEventCallback(js.PreventDefault, input.OnWheel))
 
 	// Touch
 	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(js.PreventDefault, input.OnTouchStart))
