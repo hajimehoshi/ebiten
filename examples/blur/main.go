@@ -44,7 +44,8 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(0, 0)
 	screen.DrawImage(gophersImage, op)
 
-	// Simple linear blur (7x7)
+	// Box blur (7x7)
+	// https://en.wikipedia.org/wiki/Box_blur
 	for j := -3; j <= 3; j++ {
 		for i := -3; i <= 3; i++ {
 			op := &ebiten.DrawImageOptions{}
