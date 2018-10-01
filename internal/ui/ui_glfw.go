@@ -639,8 +639,8 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			return err
 		}
 
-		u.m.Lock()
 		u.frame++
+		u.m.Lock()
 		vsync := u.vsync
 		u.m.Unlock()
 
