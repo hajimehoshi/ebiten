@@ -546,7 +546,10 @@ func (u *userInterface) getScale() float64 {
 func (u *userInterface) actualScreenScale() float64 {
 	n := time.Now().UnixNano()
 	// As devicescale.DeviceScale accesses OS API, not call this too often.
-	if u.deviceScale == 0 || n-u.deviceScaleUpdated < int64(time.Second/2) {
+	//
+	// TODO: This function might return different values in one frame. Instead of using time, can we use frames
+	// or tick?
+	if u.deviceScale == 0 || n-u.deviceScaleUpdated > int64(time.Second/4) {
 		u.deviceScale = devicescale.DeviceScale()
 		u.deviceScaleUpdated = n
 	}
