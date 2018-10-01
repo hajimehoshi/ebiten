@@ -25,6 +25,5 @@ var (
 func DeviceScale() float64 {
 	m.Lock()
 	defer m.Unlock()
-	// TODO: Cache this value (again) for mobile platforms.
 	return impl()
 }

@@ -74,6 +74,21 @@ type userInterface struct {
 	m sync.RWMutex
 }
 
+var (
+	deviceScaleVal float64
+	deviceScaleM   sync.Mutex
+)
+
+func deviceScale() float64 {
+	deviceScaleM.Lock()
+	defer deviceScaleM.Unlock()
+
+	if deviceScaleVal == 0 {
+		deviceScaleVal = devicescale.DeviceScale()
+	}
+	return deviceScaleVal
+}
+
 // appMain is the main routine for gomobile-build mode.
 func appMain(a app.App) {
 	var glctx gl.Context
@@ -107,7 +122,7 @@ func appMain(a app.App) {
 		case touch.Event:
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
-				s := devicescale.DeviceScale()
+				s := deviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
 				t := input.NewTouch(int(e.Sequence), int(x), int(y))
@@ -172,7 +187,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	if sizeChanged {
 		width = u.width
 		height = u.height
-		actualScale = u.scaleImpl() * devicescale.DeviceScale()
+		actualScale = u.scaleImpl() * deviceScale()
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
@@ -189,7 +204,7 @@ func actualScale() float64 {
 
 func (u *userInterface) actualScale() float64 {
 	u.m.Lock()
-	s := u.scaleImpl() * devicescale.DeviceScale()
+	s := u.scaleImpl() * deviceScale()
 	u.m.Unlock()
 	return s
 }
@@ -306,7 +321,7 @@ func (u *userInterface) updateFullscreenScaleIfNeeded() {
 	if scale > scaleY {
 		scale = scaleY
 	}
-	u.fullscreenScale = scale / devicescale.DeviceScale()
+	u.fullscreenScale = scale / deviceScale()
 	u.sizeChanged = true
 }
 
@@ -325,7 +340,7 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	if u.fullscreenScale == 0 {
 		return 0, 0, 0, 0
 	}
-	s := u.fullscreenScale * devicescale.DeviceScale()
+	s := u.fullscreenScale * deviceScale()
 	ox := (float64(u.fullscreenWidthPx) - float64(u.width)*s) / 2
 	oy := (float64(u.fullscreenHeightPx) - float64(u.height)*s) / 2
 	return ox, oy, ox, oy
@@ -349,7 +364,7 @@ func (u *userInterface) adjustPosition(x, y int) (int, int) {
 	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()
-	as := s * devicescale.DeviceScale()
+	as := s * deviceScale()
 	u.m.Unlock()
 	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
