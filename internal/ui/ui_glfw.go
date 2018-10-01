@@ -52,6 +52,7 @@ type userInterface struct {
 	vsync                bool
 
 	deviceScale        float64
+	frame              int64
 	deviceScaleUpdated int64
 	lastActualScale    float64
 
@@ -544,14 +545,10 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
-	n := time.Now().UnixNano()
 	// As devicescale.DeviceScale accesses OS API, not call this too often.
-	//
-	// TODO: This function might return different values in one frame. Instead of using time, can we use frames
-	// or tick?
-	if u.deviceScale == 0 || n-u.deviceScaleUpdated > int64(time.Second/4) {
+	if u.deviceScale == 0 || u.frame-u.deviceScaleUpdated > 30 {
 		u.deviceScale = devicescale.DeviceScale()
-		u.deviceScaleUpdated = n
+		u.deviceScaleUpdated = u.frame
 	}
 	return u.getScale() * u.deviceScale
 }
@@ -643,6 +640,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 		}
 
 		u.m.Lock()
+		u.frame++
 		vsync := u.vsync
 		u.m.Unlock()
 
