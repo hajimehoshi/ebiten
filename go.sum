@@ -30,8 +30,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/theckman/go-flock v0.4.0 h1:bcqNkS4RTQBGWybG7IBimUMxnLz53Qes1+D4QaOhzJc=
-github.com/theckman/go-flock v0.4.0/go.mod h1:kjuth3y9VJ2aNlkNEO99G/8lp9fMIKaGyBmh84IBheM=
+github.com/theckman/go-flock v0.6.0 h1:hOL3E/2/pQv7uPUt/V6zLN3UC+n5dWmA2fR1nyc0BFM=
+github.com/theckman/go-flock v0.6.0/go.mod h1:kjuth3y9VJ2aNlkNEO99G/8lp9fMIKaGyBmh84IBheM=
 golang.org/x/exp v0.0.0-20180710024300-14dda7b62fcd h1:nLIcFw7GiqKXUS7HiChg6OAYWgASB2H97dZKd1GhDSs=
 golang.org/x/exp v0.0.0-20180710024300-14dda7b62fcd/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81 h1:00VmoueYNlNz/aHIilyyQz/MHSqGoWJzpFv/HW8xpzI=
