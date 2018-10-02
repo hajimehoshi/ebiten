@@ -27,12 +27,9 @@ package ui
 // }
 import "C"
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
-)
-
 func glfwScale() float64 {
-	return devicescale.DeviceScale()
+	// This function must be called on the main thread.
+	return currentUI.deviceScale.Get()
 }
 
 func adjustWindowPosition(x, y int) (int, int) {
