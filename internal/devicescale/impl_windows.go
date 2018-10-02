@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	logPixelSx              = 88
+	logPixelsX              = 88
 	monitorDefaultToNearest = 2
 	mdtEffectiveDpi         = 0
 )
@@ -150,7 +150,7 @@ func getFromLogPixelSx() float64 {
 
 	// Note that GetDeviceCaps with LOGPIXELSX always returns a same value for any monitors
 	// even if multiple monitors are used.
-	dpi, err := getDeviceCaps(dc, logPixelSx)
+	dpi, err := getDeviceCaps(dc, logPixelsX)
 	if err != nil {
 		panic(err)
 	}
