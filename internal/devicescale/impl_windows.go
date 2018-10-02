@@ -49,7 +49,6 @@ var (
 	procGetDpiForMonitor = shcore.NewProc("GetDpiForMonitor")
 )
 
-
 var shcoreAvailable = false
 
 func init() {
