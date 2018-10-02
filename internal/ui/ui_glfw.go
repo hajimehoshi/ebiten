@@ -28,7 +28,6 @@ import (
 
 	"github.com/go-gl/glfw/v3.2/glfw"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -51,10 +50,8 @@ type userInterface struct {
 	runnableInBackground bool
 	vsync                bool
 
-	deviceScale        float64
-	frame              int64
-	deviceScaleUpdated int64
-	lastActualScale    float64
+	deviceScale     deviceScale
+	lastActualScale float64
 
 	initFullscreen      bool
 	initCursorVisible   bool
@@ -388,7 +385,7 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 
 	m := glfw.GetPrimaryMonitor()
 	v := m.GetVideoMode()
-	d := devicescale.DeviceScale()
+	d := u.deviceScale.Get()
 
 	mx := float64(v.Width) * d / glfwScale()
 	my := float64(v.Height) * d / glfwScale()
@@ -545,12 +542,7 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
-	// As devicescale.DeviceScale accesses OS API, not call this too often.
-	if u.deviceScale == 0 || u.frame-u.deviceScaleUpdated > 30 {
-		u.deviceScale = devicescale.DeviceScale()
-		u.deviceScaleUpdated = u.frame
-	}
-	return u.getScale() * u.deviceScale
+	return u.getScale() * u.deviceScale.Get()
 }
 
 // pollEvents must be called from the main thread.
@@ -639,7 +631,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			return err
 		}
 
-		u.frame++
+		u.deviceScale.Update()
 		u.m.Lock()
 		vsync := u.vsync
 		u.m.Unlock()
@@ -688,7 +680,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 
 	u.width = width
 	u.windowWidth = width
-	s := scale * devicescale.DeviceScale()
+	s := scale * u.deviceScale.Get()
 	if int(float64(width)*s) < minWindowWidth {
 		u.windowWidth = int(math.Ceil(minWindowWidth / s))
 	}

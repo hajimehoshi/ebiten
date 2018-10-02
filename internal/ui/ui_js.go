@@ -22,7 +22,6 @@ import (
 
 	"github.com/gopherjs/gopherwasm/js"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -42,10 +41,8 @@ type userInterface struct {
 	windowFocus bool
 	pageVisible bool
 
-	deviceScale        float64
-	frame              int64
-	deviceScaleUpdated int64
-	lastActualScale    float64
+	deviceScale     deviceScale
+	lastActualScale float64
 }
 
 var currentUI = &userInterface{
@@ -178,11 +175,7 @@ func (u *userInterface) actualScreenScale() float64 {
 	// * Chrome just after restoring the lost context
 	// * Safari
 	// Let's use the devicePixelRatio as it is here.
-	if u.deviceScale == 0 || u.frame-u.deviceScaleUpdated > 30 {
-		u.deviceScale = devicescale.DeviceScale()
-		u.deviceScaleUpdated = u.frame
-	}
-	return u.getScale() * u.deviceScale
+	return u.getScale() * u.deviceScale.Get()
 }
 
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
@@ -240,7 +233,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			close(ch)
 			return
 		}
-		u.frame++
+		u.deviceScale.Update()
 		if u.vsync {
 			requestAnimationFrame.Invoke(cf)
 		} else {
