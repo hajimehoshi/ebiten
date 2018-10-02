@@ -557,12 +557,15 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
 	_ = u.runOnMainThread(func() error {
 		actualScale = u.actualScreenScale()
+		if u.lastActualScale != actualScale {
+			u.forceSetScreenSize(u.width, u.height, u.scale, u.fullscreen(), u.vsync)
+		}
+		u.lastActualScale = actualScale
 
-		if !u.toChangeSize && u.lastActualScale == actualScale {
+		if !u.toChangeSize {
 			return nil
 		}
 
-		u.lastActualScale = actualScale
 		u.toChangeSize = false
 		sizeChanged = true
 		return nil
@@ -672,7 +675,12 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen && u.vsync == vsync {
 		return false
 	}
+	u.forceSetScreenSize(width, height, scale, fullscreen, vsync)
+	return true
+}
 
+// forceSetScreenSize must be called from the main thread.
+func (u *userInterface) forceSetScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) {
 	// On Windows, giving a too small width doesn't call a callback (#165).
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
@@ -746,5 +754,4 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	}
 
 	u.toChangeSize = true
-	return true
 }
