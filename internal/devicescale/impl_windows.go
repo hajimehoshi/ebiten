@@ -145,12 +145,15 @@ func getFromLogPixelSx() float64 {
 	if err != nil {
 		panic(err)
 	}
-	defer releaseDC(0, dc)
 
 	// Note that GetDeviceCaps with LOGPIXELSX always returns a same value for any monitors
 	// even if multiple monitors are used.
 	dpi, err := getDeviceCaps(dc, logPixelsX)
 	if err != nil {
+		panic(err)
+	}
+
+	if err := releaseDC(0, dc); err != nil {
 		panic(err)
 	}
 
@@ -173,9 +176,9 @@ func impl() float64 {
 	}
 	// The window is not initialized yet when w == 0.
 	if w == 0 {
+		// TODO: Use the primary monitor instead.
 		return getFromLogPixelSx()
 	}
-	defer releaseDC(0, w)
 
 	m, err := monitorFromWindow(w, monitorDefaultToNearest)
 	if err != nil {
