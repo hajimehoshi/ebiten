@@ -41,6 +41,11 @@ type userInterface struct {
 	sizeChanged bool
 	windowFocus bool
 	pageVisible bool
+
+	deviceScale        float64
+	frame              int64
+	deviceScaleUpdated int64
+	lastActualScale    float64
 }
 
 var currentUI = &userInterface{
@@ -173,13 +178,23 @@ func (u *userInterface) actualScreenScale() float64 {
 	// * Chrome just after restoring the lost context
 	// * Safari
 	// Let's use the devicePixelRatio as it is here.
-	return u.getScale() * devicescale.DeviceScale()
+	if u.deviceScale == 0 || u.frame-u.deviceScaleUpdated > 30 {
+		u.deviceScale = devicescale.DeviceScale()
+		u.deviceScaleUpdated = u.frame
+	}
+	return u.getScale() * u.deviceScale
 }
 
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
+	a := u.actualScreenScale()
+	if u.lastActualScale != a {
+		u.updateScreenSize()
+	}
+	u.lastActualScale = a
+
 	if u.sizeChanged {
 		u.sizeChanged = false
-		g.SetSize(u.width, u.height, u.actualScreenScale())
+		g.SetSize(u.width, u.height, a)
 	}
 }
 
@@ -225,6 +240,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			close(ch)
 			return
 		}
+		u.frame++
 		if u.vsync {
 			requestAnimationFrame.Invoke(cf)
 		} else {
