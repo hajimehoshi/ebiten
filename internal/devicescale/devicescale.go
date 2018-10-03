@@ -22,7 +22,7 @@ var (
 	m sync.Mutex
 )
 
-func DeviceScale() float64 {
+func Get() float64 {
 	m.Lock()
 	defer m.Unlock()
 	return impl()

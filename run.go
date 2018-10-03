@@ -528,7 +528,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // DeviceScaleFactor is concurrent-safe.
 func DeviceScaleFactor() float64 {
-	return devicescale.DeviceScale()
+	return devicescale.Get()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether

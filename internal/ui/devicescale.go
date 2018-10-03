@@ -31,7 +31,7 @@ func (d *deviceScale) Update() {
 func (d *deviceScale) Get() float64 {
 	// As devicescale.DeviceScale accesses OS API, not call this too often.
 	if d.val == 0 || d.frame-d.lastUpdated > 30 {
-		d.val = devicescale.DeviceScale()
+		d.val = devicescale.Get()
 		d.lastUpdated = d.frame
 	}
 	return d.val

@@ -23,7 +23,7 @@ import (
 )
 
 func glfwScale() float64 {
-	return devicescale.DeviceScale()
+	return devicescale.Get()
 }
 
 func adjustWindowPosition(x, y int) (int, int) {
