@@ -15,8 +15,6 @@
 package graphicsutil
 
 import (
-	"math"
-
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
@@ -138,10 +136,6 @@ func QuadIndices() []uint16 {
 	return quadIndices
 }
 
-var (
-	nan32 = float32(math.NaN())
-)
-
 func Vertex(width, height int, dx, dy, sx, sy float32, cr, cg, cb, ca float32) []float32 {
 	if !isPowerOf2(width) {
 		panic("not reached")
@@ -160,8 +154,8 @@ func Vertex(width, height int, dx, dy, sx, sy float32, cr, cg, cb, ca float32) [
 	vs[1] = dy
 	vs[2] = sx / wf
 	vs[3] = sy / hf
-	vs[4] = nan32
-	vs[5] = nan32
+	vs[4] = -1
+	vs[5] = -1
 	vs[6] = cr
 	vs[7] = cg
 	vs[8] = cb
