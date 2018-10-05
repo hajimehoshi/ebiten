@@ -38,28 +38,51 @@ func init() {
 }
 
 func DecodeVorbis(buf []byte) ([]float32, int, int, error) {
-	var r js.Value
-	ch := make(chan struct{})
-	arr := js.TypedArrayOf(buf)
+	ch := make(chan error)
+	data := []float32{}
+	channels := 0
+	sampleRate := 0
+
 	var f js.Callback
 	f = js.NewCallback(func(args []js.Value) {
-		r = args[0]
-		close(ch)
-		f.Release()
-	})
-	js.Global().Get("stbvorbis").Call("decode", arr).Call("then", f)
-	arr.Release()
-	<-ch
+		r := args[0]
 
-	if r == js.Null() {
-		return nil, 0, 0, fmt.Errorf("audio/vorbis/internal/stb: decode failed")
+		if e := r.Get("error"); e != js.Null() {
+			ch <- fmt.Errorf("audio/vorbis/internal/stb: decode error: %s", e.String())
+			close(ch)
+			f.Release()
+			return
+		}
+
+		if r.Get("eof").Bool() {
+			close(ch)
+			f.Release()
+			return
+		}
+
+		if channels == 0 {
+			channels = r.Get("data").Length()
+		}
+		if sampleRate == 0 {
+			sampleRate = r.Get("sampleRate").Int()
+		}
+
+		flattened := flatten.Invoke(r.Get("data"))
+		d := make([]float32, flattened.Length())
+		arr := js.TypedArrayOf(d)
+		arr.Call("set", flattened)
+		arr.Release()
+
+		data = append(data, d...)
+	})
+
+	arr := js.TypedArrayOf(buf)
+	js.Global().Get("stbvorbis").Call("decode", arr, f)
+	arr.Release()
+
+	if err := <-ch; err != nil {
+		return nil, 0, 0, err
 	}
 
-	channels := r.Get("data").Length()
-	flattened := flatten.Invoke(r.Get("data"))
-	data := make([]float32, flattened.Length())
-	arr = js.TypedArrayOf(data)
-	arr.Call("set", flattened)
-	arr.Release()
-	return data, channels, r.Get("sampleRate").Int(), nil
+	return data, channels, sampleRate, nil
 }
