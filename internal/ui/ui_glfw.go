@@ -383,8 +383,7 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 		return ox, 0, ox, 0
 	}
 
-	m := glfw.GetPrimaryMonitor()
-	v := m.GetVideoMode()
+	v := u.window.GetMonitor().GetVideoMode()
 	d := u.deviceScale.Get()
 
 	mx := float64(v.Width) * d / glfwScale()
@@ -527,8 +526,7 @@ func (u *userInterface) getScale() float64 {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
-		m := glfw.GetPrimaryMonitor()
-		v := m.GetVideoMode()
+		v := u.window.GetMonitor().GetVideoMode()
 		sw := float64(v.Width) / glfwScale() / float64(u.width)
 		sh := float64(v.Height) / glfwScale() / float64(u.height)
 		s := sw
