@@ -18,7 +18,6 @@
 package vorbis
 
 import (
-	"io"
 	"io/ioutil"
 
 	"github.com/hajimehoshi/ebiten/audio"
@@ -26,23 +25,17 @@ import (
 )
 
 type decoderImpl struct {
-	data       []float32
+	samples    *stb.Samples
 	channels   int
 	sampleRate int
 }
 
 func (d *decoderImpl) Read(buf []float32) (int, error) {
-	if len(d.data) == 0 {
-		return 0, io.EOF
-	}
-
-	n := copy(buf, d.data)
-	d.data = d.data[n:]
-	return n, nil
+	return d.samples.Read(buf)
 }
 
 func (d *decoderImpl) Length() int64 {
-	return int64(len(d.data) / d.channels)
+	return d.samples.Length()
 }
 
 func (d *decoderImpl) Channels() int {
@@ -59,9 +52,9 @@ func newDecoder(in audio.ReadSeekCloser) (decoder, error) {
 		return nil, err
 	}
 
-	data, channels, sampleRate, err := stb.DecodeVorbis(buf)
+	samples, channels, sampleRate, err := stb.DecodeVorbis(buf)
 	if err != nil {
 		return nil, err
 	}
-	return &decoderImpl{data, channels, sampleRate}, nil
+	return &decoderImpl{samples, channels, sampleRate}, nil
 }

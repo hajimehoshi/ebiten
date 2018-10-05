@@ -16,6 +16,7 @@ package stb
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/gopherjs/gopherwasm/js"
 )
@@ -37,9 +38,30 @@ func init() {
 	js.Global().Get("window").Call("eval", string(stbvorbis_js))
 }
 
-func DecodeVorbis(buf []byte) ([]float32, int, int, error) {
+type Samples struct {
+	samples [][]float32
+	length  int64
+}
+
+func (s *Samples) Read(buf []float32) (int, error) {
+	if len(s.samples) == 0 {
+		return 0, io.EOF
+	}
+	n := copy(buf, s.samples[0])
+	s.samples[0] = s.samples[0][n:]
+	if len(s.samples[0]) == 0 {
+		s.samples = s.samples[1:]
+	}
+	return n, nil
+}
+
+func (s *Samples) Length() int64 {
+	return s.length
+}
+
+func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 	ch := make(chan error)
-	data := []float32{}
+	samples := &Samples{}
 	channels := 0
 	sampleRate := 0
 
@@ -68,12 +90,13 @@ func DecodeVorbis(buf []byte) ([]float32, int, int, error) {
 		}
 
 		flattened := flatten.Invoke(r.Get("data"))
-		d := make([]float32, flattened.Length())
-		arr := js.TypedArrayOf(d)
+		s := make([]float32, flattened.Length())
+		arr := js.TypedArrayOf(s)
 		arr.Call("set", flattened)
 		arr.Release()
 
-		data = append(data, d...)
+		samples.samples = append(samples.samples, s)
+		samples.length += int64(len(s)) / int64(channels)
 	})
 
 	arr := js.TypedArrayOf(buf)
@@ -84,5 +107,5 @@ func DecodeVorbis(buf []byte) ([]float32, int, int, error) {
 		return nil, 0, 0, err
 	}
 
-	return data, channels, sampleRate, nil
+	return samples, channels, sampleRate, nil
 }
