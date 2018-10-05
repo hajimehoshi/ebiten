@@ -773,7 +773,7 @@ func (u *userInterface) currentMonitor() *glfw.Monitor {
 	ww, wh := w.GetSize()
 	wr := image.Rect(wx, wy, wx+ww, wy+wh)
 
-	best := 0
+	best := -1
 	var current *glfw.Monitor
 	for _, m := range glfw.GetMonitors() {
 		mx, my := m.GetPos()
