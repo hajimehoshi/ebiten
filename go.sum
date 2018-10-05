@@ -19,6 +19,8 @@ github.com/hajimehoshi/go-mp3 v0.1.1/go.mod h1:4i+c5pDNKDrxl1iu9iG90/+fhP37lio6g
 github.com/hajimehoshi/oto v0.1.1/go.mod h1:hUiLWeBQnbDu4pZsAhOnGqMI1ZGibS6e2qhQdfpwz04=
 github.com/hajimehoshi/oto v0.1.4 h1:YixDDnNhUjtrYP84YXISGWhQUN2VJfVIgKUeSNMWtxQ=
 github.com/hajimehoshi/oto v0.1.4/go.mod h1:0ZepxT+2KLDrCm1gdkKBCQCxr+8fgQqoh0I7g+kr040=
+github.com/hajimehoshi/oto v0.2.0 h1:7JRO4/b+/xjWdV9ccUs35xcYTDrzRHxs5qnxeMHj7CM=
+github.com/hajimehoshi/oto v0.2.0/go.mod h1:0ZepxT+2KLDrCm1gdkKBCQCxr+8fgQqoh0I7g+kr040=
 github.com/jakecoffman/cp v0.1.0 h1:sgSYEGUgfwiT447fRjloa2c5b6UyYP+7muR3gQK+Ep0=
 github.com/jakecoffman/cp v0.1.0/go.mod h1:a3xPx9N8RyFAACD644t2dj/nK4SuLg1v+jL61m2yVo4=
 github.com/jfreymuth/oggvorbis v1.0.0 h1:aOpiihGrFLXpsh2osOlEvTcg5/aluzGQeC7m3uYWOZ0=
