@@ -233,8 +233,15 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 }
 
 func MonitorSize() (int, int) {
-	m := glfw.GetPrimaryMonitor()
-	v := m.GetVideoMode()
+	var v *glfw.VidMode
+	if currentUI.isRunning() {
+		_ = currentUI.runOnMainThread(func() error {
+			v = currentUI.currentMonitor().GetVideoMode()
+			return nil
+		})
+	} else {
+		v = glfw.GetPrimaryMonitor().GetVideoMode()
+	}
 	return v.Width, v.Height
 }
 
@@ -493,8 +500,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
 	_ = u.runOnMainThread(func() error {
-		m := glfw.GetPrimaryMonitor()
-		v := m.GetVideoMode()
+		v := u.currentMonitor().GetVideoMode()
 
 		// The game is in window mode (not fullscreen mode) at the first state.
 		// Don't refer u.initFullscreen here to avoid some GLFW problems.
@@ -703,7 +709,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 		if u.origPosX < 0 && u.origPosY < 0 {
 			u.origPosX, u.origPosY = u.window.GetPos()
 		}
-		m := glfw.GetPrimaryMonitor()
+		m := u.currentMonitor()
 		v := m.GetVideoMode()
 		u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
@@ -752,4 +758,33 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 	}
 
 	u.toChangeSize = true
+}
+
+// currentMonitor returns the monitor nearest from the current window.
+//
+// currentMonitor must be called on the main thread.
+func (u *userInterface) currentMonitor() *glfw.Monitor {
+	w := u.window
+	if m := w.GetMonitor(); m != nil {
+		return m
+	}
+
+	wx, wy := w.GetPos()
+	ww, wh := w.GetSize()
+	wr := image.Rect(wx, wy, wx+ww, wy+wh)
+
+	best := 0
+	var current *glfw.Monitor
+	for _, m := range glfw.GetMonitors() {
+		mx, my := m.GetPos()
+		v := m.GetVideoMode()
+		mr := image.Rect(mx, my, mx+v.Width, my+v.Height)
+		overlap := wr.Intersect(mr)
+		area := overlap.Dx() * overlap.Dy()
+		if area > best {
+			current = m
+			best = area
+		}
+	}
+	return current
 }

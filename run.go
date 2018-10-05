@@ -317,15 +317,15 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 }
 
 // MonitorSize returns the monitor size in device-independent pixels.
+// The adopted monitor is the 'current' monitor that includes the biggest area of the window.
+// However, if the window doesn't exist, MonitorSize returns the 'primary' monitor,
+// where the taskbar exists on Windows for example.
 //
 // On browsers, MonitorSize returns the 'window' size, not 'screen' size since an Ebiten game
 // should not know the outside of the window object.
 // For more detials, see SetFullscreen API comment.
 //
 // On mobiles, MonitorSize returns (0, 0) so far.
-//
-// Note that MonitorSize returns the 'primary' monitor size, which is the monitor
-// where taskbar is present (Windows) or menubar is present (macOS).
 //
 // If you use this for screen size with SetFullscreen(true), you can get the fullscreen mode
 // which size is well adjusted with the monitor.
