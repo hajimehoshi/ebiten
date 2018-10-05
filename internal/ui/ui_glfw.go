@@ -713,12 +713,10 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 		v := m.GetVideoMode()
 		u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 	} else {
-		if u.origPosX >= 0 && u.origPosY >= 0 {
-			x := u.origPosX
-			y := u.origPosY
-			u.window.SetMonitor(nil, x, y, 16, 16, 0)
-			u.origPosX = -1
-			u.origPosY = -1
+		if u.window.GetMonitor() != nil {
+			// Give dummy values as the window position and size.
+			// The new window position should be specifying after SetSize.
+			u.window.SetMonitor(nil, 0, 0, 16, 16, 0)
 		}
 
 		oldW, oldH := u.window.GetSize()
@@ -740,6 +738,15 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 				}
 			}
 		}
+
+		if u.origPosX >= 0 && u.origPosY >= 0 {
+			x := u.origPosX
+			y := u.origPosY
+			u.window.SetPos(x, y)
+			u.origPosX = -1
+			u.origPosY = -1
+		}
+
 		// Window title might be lost on macOS after coming back from fullscreen.
 		u.window.SetTitle(u.title)
 	}
