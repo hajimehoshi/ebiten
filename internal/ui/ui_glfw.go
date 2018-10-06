@@ -767,7 +767,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 	u.toChangeSize = true
 }
 
-// currentMonitor returns the monitor nearest from the current window.
+// currentMonitor returns the monitor most suitable from the current window.
 //
 // currentMonitor must be called on the main thread.
 func (u *userInterface) currentMonitor() *glfw.Monitor {
@@ -777,21 +777,12 @@ func (u *userInterface) currentMonitor() *glfw.Monitor {
 	}
 
 	wx, wy := w.GetPos()
-	ww, wh := w.GetSize()
-	wr := image.Rect(wx, wy, wx+ww, wy+wh)
-
-	best := -1
-	var current *glfw.Monitor
 	for _, m := range glfw.GetMonitors() {
 		mx, my := m.GetPos()
 		v := m.GetVideoMode()
-		mr := image.Rect(mx, my, mx+v.Width, my+v.Height)
-		overlap := wr.Intersect(mr)
-		area := overlap.Dx() * overlap.Dy()
-		if area > best {
-			current = m
-			best = area
+		if mx <= wx && wx < mx+v.Width && my <= wy && wy < my+v.Height {
+			return m
 		}
 	}
-	return current
+	return glfw.GetPrimaryMonitor()
 }
