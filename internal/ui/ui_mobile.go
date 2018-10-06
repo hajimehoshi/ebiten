@@ -79,7 +79,7 @@ var (
 	deviceScaleM   sync.Mutex
 )
 
-func deviceScale() float64 {
+func getDeviceScale() float64 {
 	deviceScaleM.Lock()
 	defer deviceScaleM.Unlock()
 
@@ -122,7 +122,7 @@ func appMain(a app.App) {
 		case touch.Event:
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
-				s := deviceScale()
+				s := getDeviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
 				t := input.NewTouch(int(e.Sequence), int(x), int(y))
@@ -187,7 +187,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	if sizeChanged {
 		width = u.width
 		height = u.height
-		actualScale = u.scaleImpl() * deviceScale()
+		actualScale = u.scaleImpl() * getDeviceScale()
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
@@ -204,7 +204,7 @@ func actualScale() float64 {
 
 func (u *userInterface) actualScale() float64 {
 	u.m.Lock()
-	s := u.scaleImpl() * deviceScale()
+	s := u.scaleImpl() * getDeviceScale()
 	u.m.Unlock()
 	return s
 }
@@ -321,7 +321,7 @@ func (u *userInterface) updateFullscreenScaleIfNeeded() {
 	if scale > scaleY {
 		scale = scaleY
 	}
-	u.fullscreenScale = scale / deviceScale()
+	u.fullscreenScale = scale / getDeviceScale()
 	u.sizeChanged = true
 }
 
@@ -340,7 +340,7 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	if u.fullscreenScale == 0 {
 		return 0, 0, 0, 0
 	}
-	s := u.fullscreenScale * deviceScale()
+	s := u.fullscreenScale * getDeviceScale()
 	ox := (float64(u.fullscreenWidthPx) - float64(u.width)*s) / 2
 	oy := (float64(u.fullscreenHeightPx) - float64(u.height)*s) / 2
 	return ox, oy, ox, oy
@@ -364,7 +364,7 @@ func (u *userInterface) adjustPosition(x, y int) (int, int) {
 	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()
-	as := s * deviceScale()
+	as := s * getDeviceScale()
 	u.m.Unlock()
 	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
