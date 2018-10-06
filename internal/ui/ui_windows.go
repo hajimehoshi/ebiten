@@ -16,20 +16,80 @@
 
 package ui
 
-// TODO: Use golang.org/x/sys/windows (NewLazyDLL) instead of cgo.
-
-// #cgo LDFLAGS: -lgdi32
-//
-// #include <windows.h>
-//
-// static int getCaptionHeight() {
-//   return GetSystemMetrics(SM_CYCAPTION);
-// }
-import "C"
-
 import (
+	"fmt"
+	"syscall"
+	"unsafe"
+
+	"github.com/go-gl/glfw/v3.2/glfw"
+
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 )
+
+const (
+	smCyCaption             = 4
+	monitorDefaultToNearest = 2
+)
+
+type rect struct {
+	left   int32
+	top    int32
+	right  int32
+	bottom int32
+}
+
+type monitorInfo struct {
+	cbSize    uint32
+	rcMonitor rect
+	rcWork    rect
+	dwFlags   uint32
+}
+
+var (
+	// user32 is defined at hideconsole_windows.go
+	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
+	procGetActiveWindow   = user32.NewProc("GetActiveWindow")
+	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
+	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
+)
+
+func getSystemMetrics(nIndex int) (int, error) {
+	r, _, e := syscall.Syscall(procGetSystemMetrics.Addr(), 1, uintptr(nIndex), 0, 0)
+	if e != 0 {
+		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %d", e)
+	}
+	return int(r), nil
+}
+
+func getActiveWindow() (uintptr, error) {
+	r, _, e := syscall.Syscall(procGetActiveWindow.Addr(), 0, 0, 0, 0)
+	if e != 0 {
+		return 0, fmt.Errorf("ui: GetActiveWindow failed: error code: %d", e)
+	}
+	return r, nil
+}
+
+func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
+	r, _, e := syscall.Syscall(procMonitorFromWindow.Addr(), 2, hwnd, uintptr(dwFlags), 0)
+	if e != 0 {
+		return 0, fmt.Errorf("ui: MonitorFromWindow failed: error code: %d", e)
+	}
+	if r == 0 {
+		return 0, fmt.Errorf("ui: MonitorFromWindow failed: returned value: %d", r)
+	}
+	return r, nil
+}
+
+func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
+	r, _, e := syscall.Syscall(procGetMonitorInfoW.Addr(), 2, hMonitor, uintptr(unsafe.Pointer(lpmi)), 0)
+	if e != 0 {
+		return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %d", e)
+	}
+	if r == 0 {
+		return fmt.Errorf("ui: GetMonitorInfoW failed: returned value: %d", r)
+	}
+	return nil
+}
 
 func glfwScale() float64 {
 	// This function must be called on the main thread.
@@ -42,9 +102,43 @@ func adjustWindowPosition(x, y int) (int, int) {
 	if x < 0 {
 		x = 0
 	}
-	t := int(C.getCaptionHeight())
+	t, err := getSystemMetrics(smCyCaption)
+	if err != nil {
+		panic(err)
+	}
 	if y < t {
 		y = t
 	}
 	return x, y
+}
+
+func currentMonitor() *glfw.Monitor {
+	w, err := getActiveWindow()
+	if err != nil {
+		panic(err)
+	}
+	if w == 0 {
+		// There is no window at launching.
+		return glfw.GetPrimaryMonitor()
+	}
+
+	m, err := monitorFromWindow(w, monitorDefaultToNearest)
+	if err != nil {
+		panic(err)
+	}
+
+	mi := monitorInfo{}
+	mi.cbSize = uint32(unsafe.Sizeof(mi))
+	if err := getMonitorInfoW(m, &mi); err != nil {
+		panic(err)
+	}
+
+	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
+	for _, m := range glfw.GetMonitors() {
+		mx, my := m.GetPos()
+		if mx == x && my == y {
+			return m
+		}
+	}
+	return nil
 }

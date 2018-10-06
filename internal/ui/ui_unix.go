@@ -19,6 +19,8 @@
 package ui
 
 import (
+	"github.com/go-gl/glfw/v3.2/glfw"
+
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 )
 
@@ -29,4 +31,18 @@ func glfwScale() float64 {
 
 func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
+}
+
+func currentMonitor() *glfw.Monitor {
+	// TODO: Return more appropriate display.
+	w := glfw.GetCurrentContext()
+	wx, wy := w.GetPos()
+	for _, m := range glfw.GetMonitors() {
+		mx, my := m.GetPos()
+		v := m.GetVideoMode()
+		if mx <= wx && wx < mx+v.Width && my <= wy && wy < my+v.Height {
+			return m
+		}
+	}
+	return nil
 }

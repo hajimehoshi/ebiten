@@ -774,14 +774,6 @@ func (u *userInterface) currentMonitor() *glfw.Monitor {
 	if m := w.GetMonitor(); m != nil {
 		return m
 	}
-
-	wx, wy := w.GetPos()
-	for _, m := range glfw.GetMonitors() {
-		mx, my := m.GetPos()
-		v := m.GetVideoMode()
-		if mx <= wx && wx < mx+v.Width && my <= wy && wy < my+v.Height {
-			return m
-		}
-	}
-	return glfw.GetPrimaryMonitor()
+	// Get the monitor which the current window belongs to. This requires OS API.
+	return currentMonitor()
 }

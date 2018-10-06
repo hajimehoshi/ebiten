@@ -24,7 +24,6 @@ import (
 
 const (
 	logPixelsX              = 88
-	monitorDefaultToNull    = 0
 	monitorDefaultToNearest = 2
 	mdtEffectiveDpi         = 0
 )
@@ -178,7 +177,7 @@ func impl(x, y int) float64 {
 
 	// MonitorFromPoint requires to pass a POINT value, and there seems no portable way to
 	// do this with Cgo. Use MonitorFromRect instead.
-	m, err := monitorFromRect(uintptr(unsafe.Pointer(&lprc)), monitorDefaultToNull)
+	m, err := monitorFromRect(uintptr(unsafe.Pointer(&lprc)), monitorDefaultToNearest)
 	if err != nil {
 		panic(err)
 	}

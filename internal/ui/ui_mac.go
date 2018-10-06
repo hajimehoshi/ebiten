@@ -18,10 +18,42 @@
 
 package ui
 
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework AppKit
+//
+// #import <AppKit/AppKit.h>
+//
+// static void currentMonitorPos(int* x, int* y) {
+//   NSDictionary* screenDictionary = [[NSScreen mainScreen] deviceDescription];
+//   NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
+//   CGDirectDisplayID aID = [screenID unsignedIntValue];
+//   const CGRect bounds = CGDisplayBounds(aID);
+//   *x = bounds.origin.x;
+//   *y = bounds.origin.y;
+// }
+import "C"
+
+import (
+	"github.com/go-gl/glfw/v3.2/glfw"
+)
+
 func glfwScale() float64 {
 	return 1
 }
 
 func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
+}
+
+func currentMonitor() *glfw.Monitor {
+	x := C.int(0)
+	y := C.int(0)
+	C.currentMonitorPos(&x, &y)
+	for _, m := range glfw.GetMonitors() {
+		mx, my := m.GetPos()
+		if int(x) == mx && int(y) == my {
+			return m
+		}
+	}
+	return nil
 }
