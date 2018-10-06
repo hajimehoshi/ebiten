@@ -147,8 +147,10 @@ func Vertex(width, height int, dx, dy, sx, sy float32, cr, cg, cb, ca float32) [
 	wf := float32(width)
 	hf := float32(height)
 
-	// Specifying a range explicitly here is redundant but this helps optimization
-	// to eliminate boundry checks.
+	// Specify -1 for the source region, which means the source region is ignored.
+	//
+	// NaN would make more sense to represent an invalid state, but vertices including NaN values doesn't work on
+	// some machines (#696). Let's use negative numbers to represent such state.
 	vs := theVerticesBackend.sliceForOneQuad()[0:10]
 	vs[0] = dx
 	vs[1] = dy
