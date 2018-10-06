@@ -23,12 +23,17 @@ package devicescale
 //
 // #import <AppKit/AppKit.h>
 //
-// static float scale() {
-//   NSScreen* current = [NSScreen mainScreen];
-//   return [current backingScaleFactor];
+// static float scaleAt(int x, int y) {
+//   NSArray<NSScreen*>* screens = [NSScreen screens];
+//   for (NSScreen* screen in screens) {
+//     if (NSPointInRect(NSMakePoint(x, y), [screen frame])) {
+//       return [screen backingScaleFactor];
+//     }
+//   }
+//   return 0;
 // }
 import "C"
 
-func impl() float64 {
-	return float64(C.scale())
+func impl(x, y int) float64 {
+	return float64(C.scaleAt(C.int(x), C.int(y)))
 }

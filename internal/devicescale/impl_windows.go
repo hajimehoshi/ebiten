@@ -24,9 +24,17 @@ import (
 
 const (
 	logPixelsX              = 88
+	monitorDefaultToNull    = 0
 	monitorDefaultToNearest = 2
 	mdtEffectiveDpi         = 0
 )
+
+type rect struct {
+	left   int32
+	top    int32
+	right  int32
+	bottom int32
+}
 
 var (
 	user32 = syscall.NewLazyDLL("user32")
@@ -36,10 +44,9 @@ var (
 
 var (
 	procSetProcessDPIAware = user32.NewProc("SetProcessDPIAware")
-	procGetActiveWindow    = user32.NewProc("GetActiveWindow")
 	procGetWindowDC        = user32.NewProc("GetWindowDC")
 	procReleaseDC          = user32.NewProc("ReleaseDC")
-	procMonitorFromWindow  = user32.NewProc("MonitorFromWindow")
+	procMonitorFromRect    = user32.NewProc("MonitorFromRect")
 	procGetMonitorInfo     = user32.NewProc("GetMonitorInfoW")
 
 	procGetDeviceCaps = gdi32.NewProc("GetDeviceCaps")
@@ -66,14 +73,6 @@ func setProcessDPIAware() error {
 		return fmt.Errorf("devicescale: SetProcessDPIAware failed: returned value: %d", r)
 	}
 	return nil
-}
-
-func getActiveWindow() (uintptr, error) {
-	r, _, e := syscall.Syscall(procGetActiveWindow.Addr(), 0, 0, 0, 0)
-	if e != 0 {
-		return 0, fmt.Errorf("devicescale: GetActiveWindow failed: error code: %d", e)
-	}
-	return r, nil
 }
 
 func getWindowDC(hwnd uintptr) (uintptr, error) {
@@ -106,13 +105,13 @@ func getDeviceCaps(hdc uintptr, nindex int) (int, error) {
 	return int(r), nil
 }
 
-func monitorFromWindow(hwnd uintptr, dwFlags int) (uintptr, error) {
-	r, _, e := syscall.Syscall(procMonitorFromWindow.Addr(), 2, hwnd, uintptr(dwFlags), 0)
+func monitorFromRect(lprc uintptr, dwFlags int) (uintptr, error) {
+	r, _, e := syscall.Syscall(procMonitorFromRect.Addr(), 2, lprc, uintptr(dwFlags), 0)
 	if e != 0 {
-		return 0, fmt.Errorf("devicescale: MonitorFromWindow failed: error code: %d", e)
+		return 0, fmt.Errorf("devicescale: MonitorFromRect failed: error code: %d", e)
 	}
 	if r == 0 {
-		return 0, fmt.Errorf("devicescale: MonitorFromWindow failed: returned value: %d", r)
+		return 0, fmt.Errorf("devicescale: MonitorFromRect failed: returned value: %d", r)
 	}
 	return r, nil
 }
@@ -160,7 +159,7 @@ func getFromLogPixelSx() float64 {
 	return float64(dpi) / 96
 }
 
-func impl() float64 {
+func impl(x, y int) float64 {
 	if err := setProcessDPIAware(); err != nil {
 		panic(err)
 	}
@@ -170,17 +169,16 @@ func impl() float64 {
 		return getFromLogPixelSx()
 	}
 
-	w, err := getActiveWindow()
-	if err != nil {
-		panic(err)
-	}
-	// The window is not initialized yet when w == 0.
-	if w == 0 {
-		// TODO: Use the primary monitor instead.
-		return getFromLogPixelSx()
+	lprc := rect{
+		left:   int32(x),
+		right:  int32(x + 1),
+		top:    int32(y),
+		bottom: int32(y + 1),
 	}
 
-	m, err := monitorFromWindow(w, monitorDefaultToNearest)
+	// MonitorFromPoint requires to pass a POINT value, and there seems no portable way to
+	// do this with Cgo. Use MonitorFromRect instead.
+	m, err := monitorFromRect(uintptr(unsafe.Pointer(&lprc)), monitorDefaultToNull)
 	if err != nil {
 		panic(err)
 	}

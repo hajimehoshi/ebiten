@@ -95,7 +95,8 @@ func cinnamonScale() float64 {
 	return float64(s)
 }
 
-func impl() float64 {
+func impl(x, y int) float64 {
+	// TODO: Can Linux has different scales for multiple monitors?
 	switch currentDesktop() {
 	case desktopGnome:
 		s := gnomeScale()

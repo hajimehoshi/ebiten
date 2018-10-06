@@ -63,7 +63,7 @@ import (
 	"golang.org/x/mobile/app"
 )
 
-func impl() float64 {
+func impl(x, y int) float64 {
 	s := 0.0
 	if err := app.RunOnJVM(func(vm, env, ctx uintptr) error {
 		// TODO: This might be crash when this is called from init(). How can we detect this?

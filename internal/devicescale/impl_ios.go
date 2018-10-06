@@ -26,6 +26,6 @@ package devicescale
 // }
 import "C"
 
-func impl() float64 {
+func impl(x, y int) float64 {
 	return float64(C.devicePixelRatio())
 }

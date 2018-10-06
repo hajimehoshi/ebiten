@@ -20,7 +20,7 @@ import (
 	"github.com/gopherjs/gopherwasm/js"
 )
 
-func impl() float64 {
+func impl(x, y int) float64 {
 	ratio := js.Global().Get("window").Get("devicePixelRatio").Float()
 	if ratio == 0 {
 		ratio = 1

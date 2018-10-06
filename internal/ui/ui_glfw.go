@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-gl/glfw/v3.2/glfw"
 
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -390,8 +391,9 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 		return ox, 0, ox, 0
 	}
 
-	v := u.window.GetMonitor().GetVideoMode()
-	d := u.deviceScale.Get()
+	m := u.window.GetMonitor()
+	d := devicescale.GetAt(m.GetPos())
+	v := m.GetVideoMode()
 
 	mx := float64(v.Width) * d / glfwScale()
 	my := float64(v.Height) * d / glfwScale()
@@ -500,8 +502,6 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
 	_ = u.runOnMainThread(func() error {
-		v := u.currentMonitor().GetVideoMode()
-
 		// The game is in window mode (not fullscreen mode) at the first state.
 		// Don't refer u.initFullscreen here to avoid some GLFW problems.
 		u.setScreenSize(width, height, scale, false, u.vsync)
@@ -509,6 +509,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		u.window.SetTitle(title)
 		u.window.Show()
 
+		v := u.currentMonitor().GetVideoMode()
 		w, h := u.glfwSize()
 		x := (v.Width - w) / 2
 		y := (v.Height - h) / 3
@@ -546,7 +547,7 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
-	return u.getScale() * u.deviceScale.Get()
+	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
 // pollEvents must be called from the main thread.
@@ -638,7 +639,6 @@ func (u *userInterface) loop(g GraphicsContext) error {
 			return err
 		}
 
-		u.deviceScale.Update()
 		u.m.Lock()
 		vsync := u.vsync
 		u.m.Unlock()
@@ -692,7 +692,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 
 	u.width = width
 	u.windowWidth = width
-	s := scale * u.deviceScale.Get()
+	s := scale * devicescale.GetAt(u.currentMonitor().GetPos())
 	if int(float64(width)*s) < minWindowWidth {
 		u.windowWidth = int(math.Ceil(minWindowWidth / s))
 	}
