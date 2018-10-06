@@ -24,8 +24,8 @@ package devicescale
 // #import <AppKit/AppKit.h>
 //
 // static float scale() {
-//   NSScreen* primary = [NSScreen mainScreen];
-//   return [primary backingScaleFactor];
+//   NSScreen* current = [NSScreen mainScreen];
+//   return [current backingScaleFactor];
 // }
 import "C"
 
