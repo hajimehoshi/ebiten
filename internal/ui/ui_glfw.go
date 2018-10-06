@@ -766,7 +766,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 	u.toChangeSize = true
 }
 
-// currentMonitor returns the monitor most suitable from the current window.
+// currentMonitor returns the monitor most suitable with the current window.
 //
 // currentMonitor must be called on the main thread.
 func (u *userInterface) currentMonitor() *glfw.Monitor {
