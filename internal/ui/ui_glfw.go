@@ -51,7 +51,6 @@ type userInterface struct {
 	runnableInBackground bool
 	vsync                bool
 
-	deviceScale     deviceScale
 	lastActualScale float64
 
 	initFullscreen      bool
