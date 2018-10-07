@@ -495,6 +495,21 @@ func SetWindowDecorated(decorated bool) {
 	//     return nil
 }
 
+func DeviceScaleFactor() float64 {
+	f := 0.0
+	u := currentUI
+	if !u.isRunning() {
+		return devicescale.GetAt(currentMonitor().GetPos())
+	}
+
+	_ = u.runOnMainThread(func() error {
+		m := u.currentMonitor()
+		f = devicescale.GetAt(m.GetPos())
+		return nil
+	})
+	return f
+}
+
 func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	u := currentUI
 	// GLContext must be created before setting the screen size, which requires

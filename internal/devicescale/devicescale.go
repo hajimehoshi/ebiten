@@ -22,10 +22,6 @@ var (
 	m sync.Mutex
 )
 
-func Get() float64 {
-	return GetAt(0, 0)
-}
-
 func GetAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()

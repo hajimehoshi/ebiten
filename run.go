@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/png"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -528,7 +527,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // DeviceScaleFactor is concurrent-safe.
 func DeviceScaleFactor() float64 {
-	return devicescale.Get()
+	return ui.DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether

@@ -84,7 +84,7 @@ func getDeviceScale() float64 {
 	defer deviceScaleM.Unlock()
 
 	if deviceScaleVal == 0 {
-		deviceScaleVal = devicescale.Get()
+		deviceScaleVal = devicescale.GetAt(0, 0)
 	}
 	return deviceScaleVal
 }
