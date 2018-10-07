@@ -516,6 +516,10 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
 	_ = u.runOnMainThread(func() error {
+		// Get the monitor before calling setScreenSize. On Windows, setScreenSize can affect the
+		// monitor where the hidden window is shown.
+		m := u.currentMonitor()
+
 		// The game is in window mode (not fullscreen mode) at the first state.
 		// Don't refer u.initFullscreen here to avoid some GLFW problems.
 		u.setScreenSize(width, height, scale, false, u.vsync)
@@ -523,7 +527,6 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		m := u.currentMonitor()
 		mx, my := m.GetPos()
 		v := m.GetVideoMode()
 		w, h := u.glfwSize()
