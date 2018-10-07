@@ -508,10 +508,12 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		v := u.currentMonitor().GetVideoMode()
+		m := u.currentMonitor()
+		mx, my := m.GetPos()
+		v := m.GetVideoMode()
 		w, h := u.glfwSize()
-		x := (v.Width - w) / 2
-		y := (v.Height - h) / 3
+		x := mx + (v.Width-w)/2
+		y := my + (v.Height-h)/3
 		x, y = adjustWindowPosition(x, y)
 		u.window.SetPos(x, y)
 		return nil
