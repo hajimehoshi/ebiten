@@ -119,8 +119,12 @@ func currentMonitor() *glfw.Monitor {
 	}
 	if w == 0 {
 		// There is no window at launching.
+		// TODO: Use glfw.GetCurrentContext() like currentMonitor() in ui_unix.go.
 		return glfw.GetPrimaryMonitor()
 	}
+
+	// Get the current monitor by the window handle instead of the window position. It is because the window
+	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
 
 	m, err := monitorFromWindow(w, monitorDefaultToNearest)
 	if err != nil {
