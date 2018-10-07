@@ -516,8 +516,18 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
 	_ = u.runOnMainThread(func() error {
-		// Get the monitor before calling setScreenSize. On Windows, setScreenSize can affect the
-		// monitor where the hidden window is shown.
+		// Get the monitor before showing the window.
+		//
+		// On Windows, there are two types of windows:
+		//
+		//   active window:     The window that has input-focus and attached to the calling thread.
+		//   foreground window: The window that has input-focus: this can be in another process
+		//
+		// currentMonitor returns the monitor for the active window when possible and then the monitor for
+		// the foreground window as fallback. In the current situation, the current window is hidden and
+		// there is not the active window but the foreground window. After showing the current window, the
+		// current window will be the active window. Thus, currentMonitor retuls varies before and after
+		// showing the window.
 		m := u.currentMonitor()
 
 		// The game is in window mode (not fullscreen mode) at the first state.
