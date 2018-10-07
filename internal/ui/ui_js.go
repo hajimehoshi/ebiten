@@ -22,6 +22,7 @@ import (
 
 	"github.com/gopherjs/gopherwasm/js"
 
+	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -153,6 +154,10 @@ func SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
+func DeviceScaleFactor() float64 {
+	return devicescale.GetAt(0, 0)
+}
+
 func (u *userInterface) getScale() float64 {
 	if !u.fullscreen {
 		return u.scale
@@ -174,7 +179,7 @@ func (u *userInterface) actualScreenScale() float64 {
 	// * Chrome just after restoring the lost context
 	// * Safari
 	// Let's use the devicePixelRatio as it is here.
-	return u.getScale() * deviceScale.GetAt(0, 0)
+	return u.getScale() * devicescale.GetAt(0, 0)
 }
 
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {

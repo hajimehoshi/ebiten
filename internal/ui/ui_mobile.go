@@ -420,3 +420,7 @@ func SetVsyncEnabled(enabled bool) {
 func UpdateTouches(touches []*input.Touch) {
 	input.Get().UpdateTouches(touches)
 }
+
+func DeviceScaleFactor() float64 {
+	return getDeviceScale()
+}
