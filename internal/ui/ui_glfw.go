@@ -240,7 +240,7 @@ func MonitorSize() (int, int) {
 			return nil
 		})
 	} else {
-		v = glfw.GetPrimaryMonitor().GetVideoMode()
+		v = currentMonitor().GetVideoMode()
 	}
 	return v.Width, v.Height
 }
