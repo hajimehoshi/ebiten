@@ -24,7 +24,15 @@ package ui
 // #import <AppKit/AppKit.h>
 //
 // static void currentMonitorPos(int* x, int* y) {
-//   NSDictionary* screenDictionary = [[NSScreen mainScreen] deviceDescription];
+//   NSScreen* screen = [NSScreen mainScreen];
+//   NSWindow* window = [NSApp mainWindow];
+//   if ([window isVisible]) {
+//     // When the window is visible, the window is already initialized.
+//     // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
+//     // Use [[NSApp mainWindow] screen] instead.
+//     screen = [window screen];
+//   }
+//   NSDictionary* screenDictionary = [screen deviceDescription];
 //   NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
 //   CGDirectDisplayID aID = [screenID unsignedIntValue];
 //   const CGRect bounds = CGDisplayBounds(aID);
