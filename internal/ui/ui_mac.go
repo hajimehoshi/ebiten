@@ -55,5 +55,5 @@ func currentMonitor() *glfw.Monitor {
 			return m
 		}
 	}
-	return nil
+	return glfw.GetPrimaryMonitor()
 }

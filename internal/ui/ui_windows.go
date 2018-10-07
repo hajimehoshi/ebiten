@@ -47,10 +47,11 @@ type monitorInfo struct {
 
 var (
 	// user32 is defined at hideconsole_windows.go
-	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
-	procGetActiveWindow   = user32.NewProc("GetActiveWindow")
-	procMonitorFromWindow = user32.NewProc("MonitorFromWindow")
-	procGetMonitorInfoW   = user32.NewProc("GetMonitorInfoW")
+	procGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
+	procGetActiveWindow     = user32.NewProc("GetActiveWindow")
+	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
+	procMonitorFromWindow   = user32.NewProc("MonitorFromWindow")
+	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
 )
 
 func getSystemMetrics(nIndex int) (int, error) {
@@ -65,6 +66,14 @@ func getActiveWindow() (uintptr, error) {
 	r, _, e := syscall.Syscall(procGetActiveWindow.Addr(), 0, 0, 0, 0)
 	if e != 0 {
 		return 0, fmt.Errorf("ui: GetActiveWindow failed: error code: %d", e)
+	}
+	return r, nil
+}
+
+func getForegroundWindow() (uintptr, error) {
+	r, _, e := syscall.Syscall(procGetForegroundWindow.Addr(), 0, 0, 0, 0)
+	if e != 0 {
+		return 0, fmt.Errorf("ui: GetForegroundWindow failed: error code: %d", e)
 	}
 	return r, nil
 }
@@ -118,9 +127,17 @@ func currentMonitor() *glfw.Monitor {
 		panic(err)
 	}
 	if w == 0 {
-		// There is no window at launching.
-		// TODO: Use glfw.GetCurrentContext() like currentMonitor() in ui_unix.go.
-		return glfw.GetPrimaryMonitor()
+		// There is no window at launching, but there is a hidden initialized window.
+		// Get the foreground window, that is common among multiple processes.
+		w, err = getForegroundWindow()
+		if err != nil {
+			panic(err)
+		}
+		if w == 0 {
+			// GetForegroundWindow can return null according to the document. Use
+			// the primary monitor instead.
+			return glfw.GetPrimaryMonitor()
+		}
 	}
 
 	// Get the current monitor by the window handle instead of the window position. It is because the window
@@ -144,5 +161,5 @@ func currentMonitor() *glfw.Monitor {
 			return m
 		}
 	}
-	return nil
+	return glfw.GetPrimaryMonitor()
 }
