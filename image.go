@@ -149,7 +149,7 @@ func (i *Image) disposeMipmaps() {
 //
 // DrawImage accepts the options. For details, see the document of DrawImageOptions.
 //
-// DrawImage determinines the part to draw, then DrawImage applies the geometry matrix and the color matrix.
+// DrawImage determines the part to draw, then DrawImage applies the geometry matrix and the color matrix.
 //
 // For drawing, the pixels of the argument image at the time of this call is adopted.
 // Even if the argument image is mutated after this call,
