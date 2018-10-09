@@ -233,16 +233,20 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 }
 
 func ScreenSizeInFullscreen() (int, int) {
+	u := currentUI
 	var v *glfw.VidMode
-	if currentUI.isRunning() {
-		_ = currentUI.runOnMainThread(func() error {
-			v = currentUI.currentMonitor().GetVideoMode()
+	s := 0.0
+	if u.isRunning() {
+		_ = u.runOnMainThread(func() error {
+			v = u.currentMonitor().GetVideoMode()
+			s = glfwScale()
 			return nil
 		})
 	} else {
 		v = currentUI.currentMonitor().GetVideoMode()
+		s = glfwScale()
 	}
-	return v.Width, v.Height
+	return int(float64(v.Width) / s), int(float64(v.Height) / s)
 }
 
 func SetScreenSize(width, height int) bool {
