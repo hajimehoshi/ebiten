@@ -240,7 +240,7 @@ func ScreenSizeInFullscreen() (int, int) {
 			return nil
 		})
 	} else {
-		v = currentMonitor().GetVideoMode()
+		v = currentUI.currentMonitor().GetVideoMode()
 	}
 	return v.Width, v.Height
 }
@@ -501,7 +501,7 @@ func DeviceScaleFactor() float64 {
 	f := 0.0
 	u := currentUI
 	if !u.isRunning() {
-		return devicescale.GetAt(currentMonitor().GetPos())
+		return devicescale.GetAt(u.currentMonitor().GetPos())
 	}
 
 	_ = u.runOnMainThread(func() error {
@@ -813,5 +813,5 @@ func (u *userInterface) currentMonitor() *glfw.Monitor {
 		return m
 	}
 	// Get the monitor which the current window belongs to. This requires OS API.
-	return currentMonitor()
+	return u.currentMonitorImpl()
 }

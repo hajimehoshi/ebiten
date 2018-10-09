@@ -53,7 +53,7 @@ func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitor() *glfw.Monitor {
+func (u *userInterface) currentMonitorImpl() *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
 	C.currentMonitorPos(&x, &y)

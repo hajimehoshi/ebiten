@@ -33,9 +33,9 @@ func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func currentMonitor() *glfw.Monitor {
+func (u *userInterface) currentMonitorImpl() *glfw.Monitor {
 	// TODO: Return more appropriate display.
-	w := glfw.GetCurrentContext()
+	w := u.window
 	wx, wy := w.GetPos()
 	for _, m := range glfw.GetMonitors() {
 		mx, my := m.GetPos()
