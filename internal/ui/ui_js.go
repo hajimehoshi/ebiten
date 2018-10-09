@@ -59,7 +59,7 @@ var (
 	setTimeout            = window.Get("setTimeout")
 )
 
-func MonitorSize() (int, int) {
+func ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 

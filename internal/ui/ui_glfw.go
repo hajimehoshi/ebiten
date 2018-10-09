@@ -232,7 +232,7 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 	return err
 }
 
-func MonitorSize() (int, int) {
+func ScreenSizeInFullscreen() (int, int) {
 	var v *glfw.VidMode
 	if currentUI.isRunning() {
 		_ = currentUI.runOnMainThread(func() error {

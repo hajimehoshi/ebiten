@@ -315,19 +315,20 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	return ch
 }
 
-// MonitorSize returns the monitor size in device-independent pixels.
-// The adopted monitor is the 'current' monitor that includes the biggest area of the window.
+// ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
+// The adopted monitor is the 'current' monitor which the window belongs to.
+// The returned value can be given to Run or SetSize function if the perfectly fit fullscreen is needed.
 //
-// On browsers, MonitorSize returns the 'window' size, not 'screen' size since an Ebiten game
+// On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebiten game
 // should not know the outside of the window object.
 // For more detials, see SetFullscreen API comment.
 //
-// On mobiles, MonitorSize returns (0, 0) so far.
+// On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
 //
 // If you use this for screen size with SetFullscreen(true), you can get the fullscreen mode
 // which size is well adjusted with the monitor.
 //
-//     w, h := MonitorSize()
+//     w, h := ScreenSizeInFullscreen()
 //     ebiten.SetFullscreen(true)
 //     ebiten.Run(update, w, h, 1, "title")
 //
@@ -335,15 +336,15 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 // fullscreen mode.
 //
 //     s := ebiten.DeviceScaleFactor()
-//     w, h := MonitorSize()
+//     w, h := ScreenSizeInFullscreen()
 //     ebiten.SetFullscreen(true)
 //     ebiten.Run(update, int(float64(w) * s), int(float64(h) * s), 1/s, "title")
 //
 // For actual example, see examples/fullscreen
 //
-// MonitorSize is concurrent-safe.
-func MonitorSize() (int, int) {
-	return ui.MonitorSize()
+// ScreenSizeInFullscreen is concurrent-safe.
+func ScreenSizeInFullscreen() (int, int) {
+	return ui.ScreenSizeInFullscreen()
 }
 
 // SetScreenSize changes the (logical) size of the screen.
@@ -515,7 +516,7 @@ func SetWindowIcon(iconImages []image.Image) {
 	ui.SetWindowIcon(iconImages)
 }
 
-// DeviceScaleFactor returns a device scale factor value.
+// DeviceScaleFactor returns a device scale factor value of the current monitor which the window belongs to.
 //
 // DeviceScaleFactor returns a meaningful value on high-DPI display environment,
 // otherwise DeviceScaleFactor returns 1.

@@ -97,10 +97,10 @@ func update(screen *ebiten.Image) error {
 	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(gophersImage, op)
 
-	mw, mh := ebiten.MonitorSize()
+	fw, fh := ebiten.ScreenSizeInFullscreen()
 	msgs := []string{
 		"This is an example of the finest fullscreen. Press Q to quit.",
-		fmt.Sprintf("Monitor size: %d, %d", mw, mh),
+		fmt.Sprintf("Screen size in fullscreen: %d, %d", fw, fh),
 		fmt.Sprintf("Game's screen size: %d, %d", sw, sh),
 		fmt.Sprintf("Device scale factor: %0.2f", scale),
 	}
@@ -118,7 +118,7 @@ func main() {
 
 	ebiten.SetFullscreen(true)
 
-	w, h := ebiten.MonitorSize()
+	w, h := ebiten.ScreenSizeInFullscreen()
 	// On mobiles, ebiten.MonitorSize is not available so far.
 	// Use arbitrary values.
 	if w == 0 || h == 0 {
