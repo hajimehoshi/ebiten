@@ -394,16 +394,18 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 	d := devicescale.GetAt(m.GetPos())
 	v := m.GetVideoMode()
 
-	mx := float64(v.Width) * d / glfwScale()
-	my := float64(v.Height) * d / glfwScale()
 	sx := 0.0
 	sy := 0.0
-
+	gs := 0.0
 	_ = u.runOnMainThread(func() error {
 		sx = float64(u.width) * u.actualScreenScale()
 		sy = float64(u.height) * u.actualScreenScale()
+		gs = glfwScale()
 		return nil
 	})
+	mx := float64(v.Width) * d / gs
+	my := float64(v.Height) * d / gs
+
 	ox := (mx - sx) / 2
 	oy := (my - sy) / 2
 	return ox, oy, (mx - sx) - ox, (my - sy) - oy
