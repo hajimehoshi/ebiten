@@ -310,7 +310,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		}
 		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
-		s.DrawImage(src, vs, is, options.ColorM.impl, opengl.CompositeModeCopy, graphics.FilterLinear)
+		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
 		img.shareableImages = append(img.shareableImages, s)
 		w = w2
 		h = h2
