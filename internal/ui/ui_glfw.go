@@ -350,12 +350,10 @@ func SetVsyncEnabled(enabled bool) {
 }
 
 func IsVsyncEnabled() bool {
-	r := false
 	u := currentUI
-	_ = u.runOnMainThread(func() error {
-		r = currentUI.vsync
-		return nil
-	})
+	u.m.Lock()
+	r := u.vsync
+	u.m.Unlock()
 	return r
 }
 
