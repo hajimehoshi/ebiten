@@ -254,7 +254,7 @@ func (i *imageDumper) update(screen *Image) error {
 // you can disable this automatical device scaling as a result.
 // You can get the device scale by DeviceScaleFactor function.
 //
-// Run must be called from the OS main thread.
+// Run must be called on the main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
 //
 // Ebiten tries to call f 60 times a second. In other words,
@@ -342,7 +342,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 //
 // For actual example, see examples/fullscreen
 //
-// ScreenSizeInFullscreen is concurrent-safe.
+// ScreenSizeInFullscreen must be called on the main thread before ebiten.Run, and is concurrent-safe after ebiten.Run.
 func ScreenSizeInFullscreen() (int, int) {
 	return ui.ScreenSizeInFullscreen()
 }
@@ -524,7 +524,7 @@ func SetWindowIcon(iconImages []image.Image) {
 // DeviceScaleFactor might panic on init function on some devices like Android.
 // Then, it is not recommended to call DeviceScaleFactor from init functions.
 //
-// DeviceScaleFactor is concurrent-safe.
+// DeviceScaleFactor must be called on the main thread before ebiten.Run, and is concurrent-safe after ebiten.Run.
 func DeviceScaleFactor() float64 {
 	return ui.DeviceScaleFactor()
 }
@@ -565,7 +565,7 @@ func MaxTPS() int {
 // CurrentTPS returns the current TPS (ticks per second),
 // that represents how many update function is called in a second.
 //
-// CurrentTPS is concurrent safe.
+// CurrentTPS is concurrent-safe.
 func CurrentTPS() float64 {
 	return clock.CurrentTPS()
 }
