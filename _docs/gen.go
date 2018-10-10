@@ -135,6 +135,7 @@ var (
 	graphicsExamples = []example{
 		{Name: "airship", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "alphablending", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "animation", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "blur", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "drag", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "filter", ThumbWidth: 320, ThumbHeight: 240},
