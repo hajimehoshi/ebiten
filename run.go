@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/png"
@@ -199,12 +200,26 @@ func (i *imageDumper) update(screen *Image) error {
 		if err != nil {
 			return err
 		}
-		if err := os.Rename(name, name+".png"); err != nil {
+
+		newname := fmt.Sprintf("%s.png", time.Now().Format("20060102030405"))
+		for i := 1; ; i++ {
+			if _, err := os.Stat(newname); err != nil {
+				if os.IsNotExist(err) {
+					break
+				}
+				if !os.IsNotExist(err) {
+					return err
+				}
+			}
+			newname = fmt.Sprintf("%s_%d.png", time.Now().Format("20060102030405"), i)
+		}
+
+		if err := os.Rename(name, newname); err != nil {
 			return err
 		}
 
 		i.toTakeScreenshot = false
-		fmt.Fprintf(os.Stderr, "Saved screenshot: %s.png\n", name)
+		fmt.Fprintf(os.Stderr, "Saved screenshot: %s\n", newname)
 	}
 
 	if i.toDumpInternalImages {
