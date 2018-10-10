@@ -905,3 +905,33 @@ func TestMipmap(t *testing.T) {
 		}
 	}
 }
+
+// Issue #710
+func TestMipmapColor(t *testing.T) {
+	img0, _ := NewImage(256, 256, FilterDefault)
+	img1, _ := NewImage(128, 128, FilterDefault)
+	img1.Fill(color.White)
+
+	for i := 0; i < 8; i++ {
+		img0.Clear()
+
+		s := 1 - float64(i)/8
+
+		op := &DrawImageOptions{}
+		op.Filter = FilterLinear
+		op.GeoM.Scale(s, s)
+		op.ColorM.Scale(1, 1, 0, 1)
+		img0.DrawImage(img1, op)
+
+		op.GeoM.Translate(128, 0)
+		op.ColorM.Reset()
+		op.ColorM.Scale(0, 1, 1, 1)
+		img0.DrawImage(img1, op)
+
+		want := color.RGBA{0, 0xff, 0xff, 0xff}
+		got := img0.At(128, 0)
+		if got != want {
+			t.Errorf("want: %#v, got: %#v", want, got)
+		}
+	}
+}
