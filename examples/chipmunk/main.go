@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	dot, _ = ebiten.NewImage(1, 1, ebiten.FilterNearest)
+	dot, _ = ebiten.NewImage(1, 1, ebiten.FilterDefault)
 	dot.Fill(color.White)
 }
 

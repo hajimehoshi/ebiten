@@ -111,7 +111,7 @@ func init() {
 	origEbitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	w, h := origEbitenImage.Size()
-	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterNearest)
+	ebitenImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
 
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(1, 1, 1, 0.5)
