@@ -106,7 +106,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	for i, msg := range msgs {
-		text.Draw(screen, msg, mplusFont, 100, 100+int(float64(i)*16*scale), color.White)
+		text.Draw(screen, msg, mplusFont, int(50*scale), int(50+float64(i)*16*scale), color.White)
 	}
 
 	return nil
