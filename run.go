@@ -362,6 +362,11 @@ func ScreenSizeInFullscreen() (int, int) {
 	return ui.ScreenSizeInFullscreen()
 }
 
+// MonitorSize is deprecated as of 1.8.0-alpha. Use ScreenSizeInFullscreen instead.
+func MonitorSize() (int, int) {
+	return ScreenSizeInFullscreen()
+}
+
 // SetScreenSize changes the (logical) size of the screen.
 // This doesn't affect the current scale of the screen.
 //
