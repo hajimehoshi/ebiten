@@ -28,7 +28,7 @@ Note: Gamepad and keyboard are not available on Android/iOS.
 
 * 2D Graphics (Geometry/Color matrix transformation, Various composition modes, Offscreen rendering, Fullscreen, Text rendering, Automatic batches, Automatic texture atlas)
 * Input (Mouse, Keyboard, Gamepads, Touches)
-* Audio (MP3, Ogg/Vorbis, WAV, PCM, Syncing with game progress)
+* Audio (Ogg/Vorbis, MP3, WAV, PCM)
 
 ## Packages
 
