@@ -88,7 +88,7 @@ func (c *ColorM) RotateHue(theta float64) {
 }
 
 // ChangeHSV changes HSV (Hue-Saturation-Value) values.
-// hueTheta is a radian value to ratate hue.
+// hueTheta is a radian value to rotate hue.
 // saturationScale is a value to scale saturation.
 // valueScale is a value to scale value (a.k.a. brightness).
 //
