@@ -121,6 +121,26 @@ type imageDumper struct {
 	toDumpInternalImages     bool
 }
 
+// availableFilename returns a filename that is valid as a new file or directory.
+func availableFilename(prefix, postfix string) (string, error) {
+	const datetimeFormat = "20060102030405"
+
+	now := time.Now()
+	name := fmt.Sprintf("%s%s%s", prefix, now.Format(datetimeFormat), postfix)
+	for i := 1; ; i++ {
+		if _, err := os.Stat(name); err != nil {
+			if os.IsNotExist(err) {
+				break
+			}
+			if !os.IsNotExist(err) {
+				return "", err
+			}
+		}
+		name = fmt.Sprintf("%s%s_%d%s", prefix, now.Format(datetimeFormat), i, postfix)
+	}
+	return name, nil
+}
+
 func (i *imageDumper) update(screen *Image) error {
 	const (
 		envScreenshotKey     = "EBITEN_SCREENSHOT_KEY"
@@ -184,7 +204,7 @@ func (i *imageDumper) update(screen *Image) error {
 
 	if i.toTakeScreenshot {
 		dump := func() (string, error) {
-			f, err := ioutil.TempFile("", "ebiten_screenshot_")
+			f, err := ioutil.TempFile("", "")
 			if err != nil {
 				return "", err
 			}
@@ -201,17 +221,9 @@ func (i *imageDumper) update(screen *Image) error {
 			return err
 		}
 
-		newname := fmt.Sprintf("%s.png", time.Now().Format("20060102030405"))
-		for i := 1; ; i++ {
-			if _, err := os.Stat(newname); err != nil {
-				if os.IsNotExist(err) {
-					break
-				}
-				if !os.IsNotExist(err) {
-					return err
-				}
-			}
-			newname = fmt.Sprintf("%s_%d.png", time.Now().Format("20060102030405"), i)
+		newname, err := availableFilename("screenshot_", ".png")
+		if err != nil {
+			return err
 		}
 
 		if err := os.Rename(name, newname); err != nil {
@@ -223,8 +235,12 @@ func (i *imageDumper) update(screen *Image) error {
 	}
 
 	if i.toDumpInternalImages {
-		dir, err := ioutil.TempDir("", "ebiten_internal_images_")
+		dir, err := availableFilename("internalimages_", "")
 		if err != nil {
+			return err
+		}
+
+		if err := os.Mkdir(dir, 0755); err != nil {
 			return err
 		}
 
