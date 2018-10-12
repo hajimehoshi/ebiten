@@ -29,6 +29,9 @@ var (
 	count          int
 	highDPIImage   *ebiten.Image
 	highDPIImageCh = make(chan *ebiten.Image)
+
+	// scale represents the device scale when the application starts.
+	scale = 1.0
 )
 
 func init() {
@@ -48,6 +51,10 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
+	// TODO: DeviceScaleFactor() might return different values for different monitors.
+	// Add a mode to adjust the screen size along with the current device scale (#705).
+	// Now this example uses the device scale initialized at the begining of this application.
+
 	if highDPIImage == nil {
 		// Use select and 'default' clause for non-blocking receiving.
 		select {
@@ -66,7 +73,6 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	scale := ebiten.DeviceScaleFactor()
 	sw, sh := screen.Size()
 
 	w, h := highDPIImage.Size()
@@ -88,7 +94,7 @@ func update(screen *ebiten.Image) error {
 	op.Filter = ebiten.FilterLinear
 	screen.DrawImage(highDPIImage, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Device Scale Ratio: %0.2f", scale))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("(Init) Device Scale Ratio: %0.2f", scale))
 	return nil
 }
 
@@ -99,7 +105,10 @@ func main() {
 	)
 
 	// Pass the invert of scale so that Ebiten's auto scaling by device scale is disabled.
-	s := ebiten.DeviceScaleFactor()
+	//
+	// Note that DeviceScaleFactor cannot be called from init() functions on some environments.
+	scale = ebiten.DeviceScaleFactor()
+	s := scale
 	if err := ebiten.Run(update, int(screenWidth*s), int(screenHeight*s), 1/s, "High DPI (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
