@@ -9,9 +9,13 @@ h2 {
   margin-bottom: 1rem;
 }
 
-h2, h3, h4, h5, h6, .navbar, .lead {
+h2, h3, h4, h5, h6, .lead {
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 300;
+}
+
+.navbar {
+  font-family: "HelveticaNeue-Regular", "Helvetica Neue Regular", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 dt {
