@@ -398,7 +398,7 @@ func main() {
 	g := NewGame()
 	// On browsers, let's use fullscreen so that this is playable on any browsers.
 	// It is planned to ignore the given 'scale' apply fullscreen automatically on browsers (#571).
-	if runtime.GOARCH == "js" {
+	if runtime.GOARCH == "js" || runtime.GOOS == "js" {
 		ebiten.SetFullscreen(true)
 	}
 	if err := ebiten.Run(g.Update, screenWidth, screenHeight, 1, "Flappy Gopher (Ebiten Demo)"); err != nil {
