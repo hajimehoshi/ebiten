@@ -170,6 +170,7 @@ type Context struct {
 	players    *players
 	sampleRate int
 	err        error
+	ready      bool
 
 	m sync.Mutex
 }
@@ -266,13 +267,25 @@ func (c *Context) loop() {
 		case <-suspendCh:
 			<-resumeCh
 		default:
-			const n = 2048
-			if _, err := io.CopyN(p, c.players, n); err != nil {
+			if _, err := io.CopyN(p, c.players, 2048); err != nil {
 				c.err = err
 				return
 			}
+			c.m.Lock()
+			c.ready = true
+			c.m.Unlock()
 		}
 	}
+}
+
+// IsReady returns a boolean value indicating whether the audio is ready or not.
+//
+// On some browsers, user interaction like click or pressing keys is required to start audio.
+func (c *Context) IsReady() bool {
+	c.m.Lock()
+	r := c.ready
+	c.m.Unlock()
+	return r
 }
 
 // Update is deprecated as of 1.6.0-alpha.

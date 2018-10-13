@@ -139,7 +139,7 @@ var (
 
 func update(screen *ebiten.Image) error {
 	// Play notes for each half second.
-	if frames%30 == 0 {
+	if frames%30 == 0 && audioContext.IsReady() {
 		currentNote = playNote(scoreIndex)
 		scoreIndex++
 		scoreIndex %= len(score)
@@ -151,10 +151,13 @@ func update(screen *ebiten.Image) error {
 	}
 
 	msg := "Note: "
-	if currentNote == 'R' {
+	if currentNote == 'R' || currentNote == 0 {
 		msg += "-"
 	} else {
 		msg += string(currentNote)
+	}
+	if !audioContext.IsReady() {
+		msg += "\n\n(If the audio doesn't start,\n click the screen or press keys)"
 	}
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
