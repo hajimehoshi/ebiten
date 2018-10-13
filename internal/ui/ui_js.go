@@ -229,9 +229,8 @@ func (u *userInterface) update(g GraphicsContext) error {
 
 func (u *userInterface) loop(g GraphicsContext) error {
 	ch := make(chan error)
-	var f func([]js.Value)
 	var cf js.Callback
-	f = func([]js.Value) {
+	f := func([]js.Value) {
 		if err := u.update(g); err != nil {
 			ch <- err
 			close(ch)
