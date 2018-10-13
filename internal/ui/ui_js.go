@@ -325,6 +325,7 @@ func init() {
 	canvas.Get("style").Set("outline", "none")
 
 	// Keyboard
+	// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
 	canvas.Call("addEventListener", "keydown", js.NewEventCallback(0, input.OnKeyDown))
 	canvas.Call("addEventListener", "keypress", js.NewEventCallback(js.PreventDefault, input.OnKeyPress))
 	canvas.Call("addEventListener", "keyup", js.NewEventCallback(js.PreventDefault, input.OnKeyUp))
