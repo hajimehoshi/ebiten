@@ -107,7 +107,7 @@ func init() {
 	imageGameover, _ = ebiten.NewImage(ScreenWidth, ScreenHeight, ebiten.FilterDefault)
 	imageGameover.Fill(color.NRGBA{0x00, 0x00, 0x00, 0x80})
 	y = (ScreenHeight - blockHeight) / 2
-	drawTextWithShadowCenter(imageGameover, "GAME OVER\n\nPRESS START", 0, y, 1, color.White, ScreenWidth)
+	drawTextWithShadowCenter(imageGameover, "GAME OVER\n\nPRESS SPACE", 0, y, 1, color.White, ScreenWidth)
 }
 
 func drawWindow(r *ebiten.Image, x, y, width, height int) {
