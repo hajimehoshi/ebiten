@@ -40,6 +40,10 @@ type TitleScene struct {
 }
 
 func anyGamepadAbstractButtonPressed(i *Input) bool {
+	if !i.gamepadConfig.IsInitialized() {
+		return false
+	}
+
 	for _, b := range virtualGamepadButtons {
 		if i.gamepadConfig.IsButtonPressed(b) {
 			return true
@@ -54,6 +58,7 @@ func (s *TitleScene) Update(state *GameState) error {
 		state.SceneManager.GoTo(NewGameScene())
 		return nil
 	}
+
 	if anyGamepadAbstractButtonPressed(state.Input) {
 		state.SceneManager.GoTo(NewGameScene())
 		return nil
@@ -61,8 +66,10 @@ func (s *TitleScene) Update(state *GameState) error {
 
 	// If 'abstract' gamepad buttons are not set and any gamepad buttons are pressed,
 	// go to the gamepad configuration scene.
-	if state.Input.IsAnyGamepadButtonPressed() {
-		state.SceneManager.GoTo(&GamepadScene{})
+	if id := state.Input.GamepadIDButtonPressed(); id >= 0 {
+		g := &GamepadScene{}
+		g.gamepadID = id
+		state.SceneManager.GoTo(g)
 		return nil
 	}
 	return nil

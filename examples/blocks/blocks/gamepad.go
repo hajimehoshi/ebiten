@@ -47,6 +47,9 @@ type axis struct {
 }
 
 type gamepadConfig struct {
+	gamepadID            int
+	gamepadIDInitialized bool
+
 	current         virtualGamepadButton
 	buttons         map[virtualGamepadButton]ebiten.GamepadButton
 	axes            map[virtualGamepadButton]axis
@@ -56,7 +59,20 @@ type gamepadConfig struct {
 	defaultAxesValues map[int]float64
 }
 
+func (c *gamepadConfig) SetGamepadID(id int) {
+	c.gamepadID = id
+	c.gamepadIDInitialized = true
+}
+
+func (c *gamepadConfig) IsInitialized() bool {
+	return c.gamepadIDInitialized
+}
+
 func (c *gamepadConfig) initializeIfNeeded() {
+	if !c.gamepadIDInitialized {
+		panic("not reached")
+	}
+
 	if c.buttons == nil {
 		c.buttons = map[virtualGamepadButton]ebiten.GamepadButton{}
 	}
@@ -77,15 +93,17 @@ func (c *gamepadConfig) initializeIfNeeded() {
 	// For example, on PS4 controllers, L2/R2's axes valuse can be -1.0.
 	if c.defaultAxesValues == nil {
 		c.defaultAxesValues = map[int]float64{}
-		const gamepadID = 0
-		na := ebiten.GamepadAxisNum(gamepadID)
+		na := ebiten.GamepadAxisNum(c.gamepadID)
 		for a := 0; a < na; a++ {
-			c.defaultAxesValues[a] = ebiten.GamepadAxis(gamepadID, a)
+			c.defaultAxesValues[a] = ebiten.GamepadAxis(c.gamepadID, a)
 		}
 	}
 }
 
 func (c *gamepadConfig) Reset() {
+	c.gamepadID = 0
+	c.gamepadIDInitialized = false
+
 	c.buttons = nil
 	c.axes = nil
 	c.assignedButtons = nil
@@ -94,37 +112,45 @@ func (c *gamepadConfig) Reset() {
 
 // Scan scans the current input state and assigns the given virtual gamepad button b
 // to the current (pysical) pressed buttons of the gamepad.
-func (c *gamepadConfig) Scan(gamepadID int, b virtualGamepadButton) bool {
+func (c *gamepadConfig) Scan(b virtualGamepadButton) bool {
+	if !c.gamepadIDInitialized {
+		panic("not reached")
+	}
+
 	c.initializeIfNeeded()
 
 	delete(c.buttons, b)
 	delete(c.axes, b)
 
-	ebn := ebiten.GamepadButton(ebiten.GamepadButtonNum(gamepadID))
+	ebn := ebiten.GamepadButton(ebiten.GamepadButtonNum(c.gamepadID))
 	for eb := ebiten.GamepadButton(0); eb < ebn; eb++ {
 		if _, ok := c.assignedButtons[eb]; ok {
 			continue
 		}
-		if inpututil.IsGamepadButtonJustPressed(gamepadID, eb) {
+		if inpututil.IsGamepadButtonJustPressed(c.gamepadID, eb) {
 			c.buttons[b] = eb
 			c.assignedButtons[eb] = struct{}{}
 			return true
 		}
 	}
 
-	na := ebiten.GamepadAxisNum(gamepadID)
+	na := ebiten.GamepadAxisNum(c.gamepadID)
 	for a := 0; a < na; a++ {
-		v := ebiten.GamepadAxis(gamepadID, a)
+		v := ebiten.GamepadAxis(c.gamepadID, a)
+		const delta = 0.25
+
 		// Check |v| < 1.0 because there is a bug that a button returns
 		// an axis value wrongly and the value may be over 1 on some platforms.
-		if axisThreshold <= v && v <= 1.0 && v != c.defaultAxesValues[a] {
+		if axisThreshold <= v && v <= 1.0 &&
+			(v < c.defaultAxesValues[a]-delta || c.defaultAxesValues[a]+delta < v) {
 			if _, ok := c.assignedAxes[axis{a, true}]; !ok {
 				c.axes[b] = axis{a, true}
 				c.assignedAxes[axis{a, true}] = struct{}{}
 				return true
 			}
 		}
-		if -1.0 <= v && v <= -axisThreshold && v != c.defaultAxesValues[a] {
+		if -1.0 <= v && v <= -axisThreshold &&
+			(v < c.defaultAxesValues[a]-delta || c.defaultAxesValues[a]+delta < v) {
 			if _, ok := c.assignedAxes[axis{a, false}]; !ok {
 				c.axes[b] = axis{a, false}
 				c.assignedAxes[axis{a, false}] = struct{}{}
@@ -139,16 +165,20 @@ func (c *gamepadConfig) Scan(gamepadID int, b virtualGamepadButton) bool {
 // IsButtonPressed returns a boolean value indicating whether
 // the given virtual button b is pressed.
 func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
+	if !c.gamepadIDInitialized {
+		panic("not reached")
+	}
+
 	c.initializeIfNeeded()
 
 	bb, ok := c.buttons[b]
 	if ok {
-		return ebiten.IsGamepadButtonPressed(0, bb)
+		return ebiten.IsGamepadButtonPressed(c.gamepadID, bb)
 	}
 
 	a, ok := c.axes[b]
 	if ok {
-		v := ebiten.GamepadAxis(0, a.id)
+		v := ebiten.GamepadAxis(c.gamepadID, a.id)
 		if a.positive {
 			return axisThreshold <= v && v <= 1.0
 		} else {
@@ -160,6 +190,10 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 
 // Name returns the pysical button's name for the given virtual button.
 func (c *gamepadConfig) ButtonName(b virtualGamepadButton) string {
+	if !c.gamepadIDInitialized {
+		panic("not reached")
+	}
+
 	c.initializeIfNeeded()
 
 	bb, ok := c.buttons[b]

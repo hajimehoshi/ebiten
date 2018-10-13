@@ -25,16 +25,17 @@ type Input struct {
 	gamepadConfig              gamepadConfig
 }
 
-// IsAnyGamepadButtonPressed returns a boolean value indicating
-// whether any gamepad button is pressed.
-func (i *Input) IsAnyGamepadButtonPressed() bool {
-	const gamepadID = 0
-	for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
-		if ebiten.IsGamepadButtonPressed(gamepadID, b) {
-			return true
+// GamepadIDButtonPressed returns a gamepad ID where at least one button is pressed.
+// If no button is pressed, GamepadIDButtonPressed returns -1.
+func (i *Input) GamepadIDButtonPressed() int {
+	for _, id := range ebiten.GamepadIDs() {
+		for b := ebiten.GamepadButton(0); b <= ebiten.GamepadButtonMax; b++ {
+			if ebiten.IsGamepadButtonPressed(id, b) {
+				return id
+			}
 		}
 	}
-	return false
+	return -1
 }
 
 func (i *Input) stateForVirtualGamepadButton(b virtualGamepadButton) int {
@@ -45,6 +46,10 @@ func (i *Input) stateForVirtualGamepadButton(b virtualGamepadButton) int {
 }
 
 func (i *Input) Update() {
+	if !i.gamepadConfig.IsInitialized() {
+		return
+	}
+
 	if i.virtualGamepadButtonStates == nil {
 		i.virtualGamepadButtonStates = map[virtualGamepadButton]int{}
 	}

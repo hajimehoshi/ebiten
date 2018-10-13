@@ -24,6 +24,7 @@ import (
 )
 
 type GamepadScene struct {
+	gamepadID         int
 	currentIndex      int
 	countAfterSetting int
 	buttonStates      []string
@@ -32,6 +33,7 @@ type GamepadScene struct {
 func (s *GamepadScene) Update(state *GameState) error {
 	if s.currentIndex == 0 {
 		state.Input.gamepadConfig.Reset()
+		state.Input.gamepadConfig.SetGamepadID(s.gamepadID)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		state.Input.gamepadConfig.Reset()
@@ -62,8 +64,7 @@ func (s *GamepadScene) Update(state *GameState) error {
 	}
 
 	b := virtualGamepadButtons[s.currentIndex]
-	const gamepadID = 0
-	if state.Input.gamepadConfig.Scan(gamepadID, b) {
+	if state.Input.gamepadConfig.Scan(b) {
 		s.currentIndex++
 		if s.currentIndex == len(virtualGamepadButtons) {
 			s.countAfterSetting = ebiten.MaxTPS()
