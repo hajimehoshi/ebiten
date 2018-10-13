@@ -325,7 +325,7 @@ func init() {
 	canvas.Get("style").Set("outline", "none")
 
 	// Keyboard
-	canvas.Call("addEventListener", "keydown", js.NewEventCallback(js.PreventDefault, input.OnKeyDown))
+	canvas.Call("addEventListener", "keydown", js.NewEventCallback(0, input.OnKeyDown))
 	canvas.Call("addEventListener", "keypress", js.NewEventCallback(js.PreventDefault, input.OnKeyPress))
 	canvas.Call("addEventListener", "keyup", js.NewEventCallback(js.PreventDefault, input.OnKeyUp))
 
