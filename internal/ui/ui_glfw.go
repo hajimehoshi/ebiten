@@ -533,17 +533,20 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		// current window will be the active window. Thus, currentMonitor retuls varies before and after
 		// showing the window.
 		m := u.currentMonitor()
+		mx, my := m.GetPos()
+		v := m.GetVideoMode()
 
 		// The game is in window mode (not fullscreen mode) at the first state.
 		// Don't refer u.initFullscreen here to avoid some GLFW problems.
 		u.setScreenSize(width, height, scale, false, u.vsync)
+		// Get the window size before showing since window.Show might change the current
+		// monitor which affects glfwSize result.
+		w, h := u.glfwSize()
+
 		u.title = title
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		mx, my := m.GetPos()
-		v := m.GetVideoMode()
-		w, h := u.glfwSize()
 		x := mx + (v.Width-w)/2
 		y := my + (v.Height-h)/3
 		x, y = adjustWindowPosition(x, y)
