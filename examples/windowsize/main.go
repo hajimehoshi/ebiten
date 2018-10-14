@@ -81,7 +81,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	screenScale := ebiten.ScreenScale()
-	d := int(32 / screenScale)
+	const d = 16
 	screenWidth, screenHeight := screen.Size()
 	fullscreen := ebiten.IsFullscreen()
 	runnableInBackground := ebiten.IsRunnableInBackground()
