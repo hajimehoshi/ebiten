@@ -190,7 +190,8 @@ Press T key to switch TPS (ticks per second)
 Press Q key to quit
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
-FPS: %0.2f`, x, y, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS())
+FPS: %0.2f
+Device Scale Factor: %0.2f`, x, y, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
