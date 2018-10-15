@@ -24,7 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -35,9 +35,11 @@ const (
 )
 
 var (
-	examplesDir   = filepath.Join("public", "examples")
-	copyright     = fmt.Sprintf("© %d Hajime Hoshi", licenseYear)
+	examplesDir = filepath.Join("public", "examples")
+	copyright   = fmt.Sprintf("© %d Hajime Hoshi", licenseYear)
+
 	stableVersion = ""
+	rcVersion     = ""
 	devVersion    = ""
 )
 
@@ -46,37 +48,31 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	lastStableVersion := ""
-	lastCommitTime := 0
-	for _, tag := range strings.Split(string(b), "\n") {
-		m := regexp.MustCompile(`^v(\d.+)$`).FindStringSubmatch(tag)
-		if m == nil {
-			continue
-		}
-		t, err := exec.Command("git", "log", tag, "-1", "--format=%ct").Output()
-		if err != nil {
-			panic(err)
-		}
-		tt, err := strconv.Atoi(strings.TrimSpace(string(t)))
-		if err != nil {
-			panic(err)
-		}
-		if lastCommitTime >= tt {
-			continue
-		}
-		lastCommitTime = tt
-		lastStableVersion = m[1]
-	}
-	// See the HEAD commit time
-	stableVersion = lastStableVersion
-}
+	vers := strings.Split(strings.TrimSpace(string(b)), "\n")
+	// TODO: Sort by a semantic version lib
+	sort.Strings(vers)
 
-func init() {
-	b, err := exec.Command("git", "show", "master:version.txt").Output()
-	if err != nil {
-		panic(err)
+	devVers := []string{}
+	rcVers := []string{}
+	stableVers := []string{}
+	for _, ver := range vers {
+		if strings.Index(ver, "-rc") != -1 {
+			rcVers = append(rcVers, ver)
+			continue
+		}
+		if strings.Index(ver, "-") != -1 {
+			devVers = append(devVers, ver)
+			continue
+		}
+		stableVers = append(stableVers, ver)
 	}
-	devVersion = strings.TrimSpace(string(b))
+
+	stableVersion = stableVers[len(stableVers)-1]
+	rcVersion = rcVers[len(rcVers)-1]
+	if rcVersion[:strings.Index(rcVersion, "-")] == stableVersion {
+		rcVersion = ""
+	}
+	devVersion = devVers[len(devVers)-1]
 }
 
 func comment(text string) template.HTML {
@@ -215,6 +211,7 @@ func outputMain() error {
 		"URL":              url,
 		"Copyright":        copyright,
 		"StableVersion":    stableVersion,
+		"RCVersion":        rcVersion,
 		"DevVersion":       devVersion,
 		"GraphicsExamples": graphicsExamples,
 		"InputExamples":    inputExamples,
