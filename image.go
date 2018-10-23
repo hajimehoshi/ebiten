@@ -330,7 +330,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		sy1 = sy1 / s
 	}
 
-	w, h = img.shareableImages.level(img.shareableImages.len()-1).Size()
+	w, h = img.shareableImages.level(img.shareableImages.len() - 1).Size()
 	for img.shareableImages.len() < level+1 {
 		lastl := img.shareableImages.len() - 1
 		src := img.shareableImages.level(lastl)
