@@ -27,6 +27,7 @@ github.com/hajimehoshi/oto v0.2.0 h1:7JRO4/b+/xjWdV9ccUs35xcYTDrzRHxs5qnxeMHj7CM
 github.com/hajimehoshi/oto v0.2.0/go.mod h1:0ZepxT+2KLDrCm1gdkKBCQCxr+8fgQqoh0I7g+kr040=
 github.com/hajimehoshi/oto v0.2.1-0.20181013145203-3a9bb05c78a0 h1:Ruf7x6Tkg6lx6fwHO8a38eR/cf+2GEX+9tAyJnqV8jc=
 github.com/hajimehoshi/oto v0.2.1-0.20181013145203-3a9bb05c78a0/go.mod h1:0ZepxT+2KLDrCm1gdkKBCQCxr+8fgQqoh0I7g+kr040=
+github.com/hajimehoshi/oto v0.2.1 h1:8mn8yNgLE/irztYCw8iBaGMb2oxXwaNqDh85j9fk+X8=
 github.com/hajimehoshi/oto v0.2.1/go.mod h1:0ZepxT+2KLDrCm1gdkKBCQCxr+8fgQqoh0I7g+kr040=
 github.com/jakecoffman/cp v0.1.0 h1:sgSYEGUgfwiT447fRjloa2c5b6UyYP+7muR3gQK+Ep0=
 github.com/jakecoffman/cp v0.1.0/go.mod h1:a3xPx9N8RyFAACD644t2dj/nK4SuLg1v+jL61m2yVo4=
