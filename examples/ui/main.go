@@ -154,9 +154,7 @@ func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.R
 			op.GeoM.Scale(float64(dw)/float64(sw), float64(dh)/float64(sh))
 			op.GeoM.Translate(float64(dx), float64(dy))
 			op.GeoM.Translate(float64(dstX), float64(dstY))
-			r := image.Rect(sx, sy, sx+sw, sy+sh)
-			op.SourceRect = &r
-			dst.DrawImage(uiImage, op)
+			dst.DrawImage(uiImage.SubImage(image.Rect(sx, sy, sx+sw, sy+sh)).(*ebiten.Image), op)
 		}
 	}
 }

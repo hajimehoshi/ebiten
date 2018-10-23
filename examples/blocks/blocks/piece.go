@@ -175,9 +175,7 @@ func drawBlock(r *ebiten.Image, block BlockType, x, y int, clr ebiten.ColorM) {
 	op.GeoM.Translate(float64(x), float64(y))
 
 	srcX := (int(block) - 1) * blockWidth
-	src := image.Rect(srcX, 0, srcX+blockWidth, blockHeight)
-	op.SourceRect = &src
-	r.DrawImage(imageBlocks, op)
+	r.DrawImage(imageBlocks.SubImage(image.Rect(srcX, 0, srcX+blockWidth, blockHeight)).(*ebiten.Image), op)
 }
 
 func (p *Piece) InitialPosition() (int, int) {

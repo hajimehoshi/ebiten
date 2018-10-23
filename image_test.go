@@ -555,21 +555,20 @@ func TestImageEdge(t *testing.T) {
 		angles = append(angles, float64(a)/4096*2*math.Pi)
 	}
 
+	img0Sub := img0.SubImage(image.Rect(img0OffsetWidth, img0InnerHeight, img0Width-img0OffsetWidth, img0Height-img0InnerHeight)).(*Image)
+
 	for _, s := range []float64{1, 0.5, 0.25} {
 		for _, f := range []Filter{FilterNearest, FilterLinear} {
 			for _, a := range angles {
 				img1.Clear()
 				op := &DrawImageOptions{}
-				r := image.Rect(img0OffsetWidth, img0InnerHeight, img0Width-img0OffsetWidth, img0Height-img0InnerHeight)
-				op.SourceRect = &r
-
 				w, h := img0.Size()
 				op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 				op.GeoM.Scale(s, s)
 				op.GeoM.Rotate(a)
 				op.GeoM.Translate(img1Width/2, img1Height/2)
 				op.Filter = f
-				img1.DrawImage(img0, op)
+				img1.DrawImage(img0Sub, op)
 				for j := 0; j < img1Height; j++ {
 					for i := 0; i < img1Width; i++ {
 						c := img1.At(i, j)
@@ -641,10 +640,8 @@ func TestImageLinear(t *testing.T) {
 	op := &DrawImageOptions{}
 	op.GeoM.Translate(8, 8)
 	op.GeoM.Scale(2, 2)
-	r := image.Rect(8, 8, 24, 24)
-	op.SourceRect = &r
 	op.Filter = FilterLinear
-	dst.DrawImage(src, op)
+	dst.DrawImage(src.SubImage(image.Rect(8, 8, 24, 24)).(*Image), op)
 
 	for j := 0; j < 64; j++ {
 		for i := 0; i < 64; i++ {
@@ -683,11 +680,10 @@ func TestImageOutside(t *testing.T) {
 
 		op := &DrawImageOptions{}
 		op.GeoM.Translate(0, 0)
-		op.SourceRect = &image.Rectangle{
+		dst.DrawImage(src.SubImage(image.Rectangle{
 			Min: image.Pt(c.X, c.Y),
 			Max: image.Pt(c.X+c.Width, c.Y+c.Height),
-		}
-		dst.DrawImage(src, op)
+		}).(*Image), op)
 
 		for j := 0; j < 4; j++ {
 			for i := 0; i < 4; i++ {
@@ -709,12 +705,12 @@ func TestImageOutsideUpperLeft(t *testing.T) {
 
 	op := &DrawImageOptions{}
 	op.GeoM.Rotate(math.Pi / 4)
-	r := image.Rect(-4, -4, 8, 8)
-	op.SourceRect = &r
-	dst1.DrawImage(src, op)
+	dst1.DrawImage(src.SubImage(image.Rect(-4, -4, 8, 8)).(*Image), op)
 
 	op = &DrawImageOptions{}
-	op.GeoM.Translate(4, 4)
+	// The outside part of the source rect is just ignored.
+	// This behavior was changed as of 1.9.0-alpha.
+	// op.GeoM.Translate(4, 4)
 	op.GeoM.Rotate(math.Pi / 4)
 	dst2.DrawImage(src, op)
 
@@ -829,9 +825,7 @@ func TestImageStretch(t *testing.T) {
 		img1.Clear()
 		op := &DrawImageOptions{}
 		op.GeoM.Scale(1, float64(i)/16)
-		r := image.Rect(0, 0, 16, 16)
-		op.SourceRect = &r
-		img1.DrawImage(img0, op)
+		img1.DrawImage(img0.SubImage(image.Rect(0, 0, 16, 16)).(*Image), op)
 		for j := -1; j <= 1; j++ {
 			got := img1.At(0, i+j).(color.RGBA)
 			want := color.RGBA{}
@@ -1021,5 +1015,22 @@ func TestImageMiamapAndDrawTriangle(t *testing.T) {
 				t.Errorf("img0.At(%d, %d): red want %d got %d", i, j, 0, c.R)
 			}
 		}
+	}
+}
+
+func TestImageSubImageAt(t *testing.T) {
+	img, _ := NewImage(16, 16, FilterDefault)
+	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	got := img.SubImage(image.Rect(1, 1, 16, 16)).At(0, 0).(color.RGBA)
+	want := color.RGBA{}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	got = img.SubImage(image.Rect(1, 1, 16, 16)).At(1, 1).(color.RGBA)
+	want = color.RGBA{0xff, 0, 0, 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

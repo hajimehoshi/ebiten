@@ -119,9 +119,7 @@ func update(screen *ebiten.Image) error {
 
 			sx := (t % tileXNum) * tileSize
 			sy := (t / tileXNum) * tileSize
-			r := image.Rect(sx, sy, sx+tileSize, sy+tileSize)
-			op.SourceRect = &r
-			screen.DrawImage(tilesImage, op)
+			screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
 		}
 	}
 

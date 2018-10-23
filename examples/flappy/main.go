@@ -345,9 +345,7 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(i*tileSize-floorMod(g.cameraX, tileSize)),
 			float64((ny-1)*tileSize-floorMod(g.cameraY, tileSize)))
-		r := image.Rect(0, 0, tileSize, tileSize)
-		op.SourceRect = &r
-		screen.DrawImage(tilesImage, op)
+		screen.DrawImage(tilesImage.SubImage(image.Rect(0, 0, tileSize, tileSize)).(*ebiten.Image), op)
 
 		// pipe
 		if tileY, ok := g.pipeAt(floorDiv(g.cameraX, tileSize) + i); ok {
@@ -357,27 +355,25 @@ func (g *Game) drawTiles(screen *ebiten.Image) {
 				op.GeoM.Translate(float64(i*tileSize-floorMod(g.cameraX, tileSize)),
 					float64(j*tileSize-floorMod(g.cameraY, tileSize)))
 				op.GeoM.Translate(0, tileSize)
+				var r image.Rectangle
 				if j == tileY-1 {
-					r := image.Rect(pipeTileSrcX, pipeTileSrcY, pipeTileSrcX+tileSize*2, pipeTileSrcY+tileSize)
-					op.SourceRect = &r
+					r = image.Rect(pipeTileSrcX, pipeTileSrcY, pipeTileSrcX+tileSize*2, pipeTileSrcY+tileSize)
 				} else {
-					r := image.Rect(pipeTileSrcX, pipeTileSrcY+tileSize, pipeTileSrcX+tileSize*2, pipeTileSrcY+tileSize*2)
-					op.SourceRect = &r
+					r = image.Rect(pipeTileSrcX, pipeTileSrcY+tileSize, pipeTileSrcX+tileSize*2, pipeTileSrcY+tileSize*2)
 				}
-				screen.DrawImage(tilesImage, op)
+				screen.DrawImage(tilesImage.SubImage(r).(*ebiten.Image), op)
 			}
 			for j := tileY + pipeGapY; j < screenHeight/tileSize-1; j++ {
 				op.GeoM.Reset()
 				op.GeoM.Translate(float64(i*tileSize-floorMod(g.cameraX, tileSize)),
 					float64(j*tileSize-floorMod(g.cameraY, tileSize)))
+				var r image.Rectangle
 				if j == tileY+pipeGapY {
-					r := image.Rect(pipeTileSrcX, pipeTileSrcY, pipeTileSrcX+pipeWidth, pipeTileSrcY+tileSize)
-					op.SourceRect = &r
+					r = image.Rect(pipeTileSrcX, pipeTileSrcY, pipeTileSrcX+pipeWidth, pipeTileSrcY+tileSize)
 				} else {
-					r := image.Rect(pipeTileSrcX, pipeTileSrcY+tileSize, pipeTileSrcX+pipeWidth, pipeTileSrcY+tileSize+tileSize)
-					op.SourceRect = &r
+					r = image.Rect(pipeTileSrcX, pipeTileSrcY+tileSize, pipeTileSrcX+pipeWidth, pipeTileSrcY+tileSize+tileSize)
 				}
-				screen.DrawImage(tilesImage, op)
+				screen.DrawImage(tilesImage.SubImage(r).(*ebiten.Image), op)
 			}
 		}
 	}

@@ -69,6 +69,7 @@ Press C to clip the images.
 Scale: %0.2f`, s)
 	ebitenutil.DebugPrint(screen, msg)
 
+	clippedGophersImage := gophersImage.SubImage(image.Rect(10, 10, 100, 100)).(*ebiten.Image)
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 		w, h := gophersImage.Size()
 
@@ -82,10 +83,10 @@ Scale: %0.2f`, s)
 		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 64)
 		op.Filter = f
 		if clip {
-			r := image.Rect(10, 10, 100, 100)
-			op.SourceRect = &r
+			screen.DrawImage(clippedGophersImage, op)
+		} else {
+			screen.DrawImage(gophersImage, op)
 		}
-		screen.DrawImage(gophersImage, op)
 	}
 
 	return nil

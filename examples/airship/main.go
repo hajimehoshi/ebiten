@@ -218,9 +218,7 @@ func drawGroundImage(screen *ebiten.Image, ground *ebiten.Image) {
 		op.GeoM.Scale(1/z, 8) // 8 is an arbitrary number not to make empty lines.
 		op.GeoM.Translate(float64(pw)/2, float64(j)/z)
 
-		src := image.Rect(0, j, gw, j+1)
-		op.SourceRect = &src
-		perspectiveGroundImage.DrawImage(ground, op)
+		perspectiveGroundImage.DrawImage(ground.SubImage(image.Rect(0, j, gw, j+1)).(*ebiten.Image), op)
 	}
 
 	perspectiveGroundImage.DrawImage(fogImage, nil)

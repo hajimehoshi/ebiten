@@ -56,7 +56,6 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
 	x := 0
 	y := 0
 	w, _ := debugPrintTextImage.Size()
-	var r image.Rectangle
 	for _, c := range str {
 		const (
 			cw = assets.CharWidth
@@ -70,15 +69,10 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
 		n := w / cw
 		sx := (int(c) % n) * cw
 		sy := (int(c) / n) * ch
-		r.Min.X = sx
-		r.Min.Y = sy
-		r.Max.X = sx + cw
-		r.Max.Y = sy + ch
-		op.SourceRect = &r
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(x), float64(y))
 		op.GeoM.Translate(float64(ox+1), float64(oy))
-		_ = rt.DrawImage(debugPrintTextImage, op)
+		_ = rt.DrawImage(debugPrintTextImage.SubImage(image.Rect(sx, sy, sx+cw, sy+ch)).(*ebiten.Image), op)
 		x += cw
 	}
 }

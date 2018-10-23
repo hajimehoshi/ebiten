@@ -58,9 +58,7 @@ func update(screen *ebiten.Image) error {
 		// Move the image's center to the screen's center.
 		op.GeoM.Translate(screenWidth/2, screenHeight/2)
 
-		r := image.Rect(0, i, w, i+1)
-		op.SourceRect = &r
-		screen.DrawImage(gophersImage, op)
+		screen.DrawImage(gophersImage.SubImage(image.Rect(0, i, w, i+1)).(*ebiten.Image), op)
 	}
 	return nil
 }
