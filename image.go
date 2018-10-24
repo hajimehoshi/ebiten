@@ -46,15 +46,36 @@ func newShareableImages(s *shareable.Image) *shareableImages {
 }
 
 func (s *shareableImages) level(i int) *shareable.Image {
+	w, h := s.imgs[len(s.imgs) - 1].Size()
+	for len(s.imgs) < i+1 {
+		lastl := len(s.imgs) - 1
+		src := s.imgs[lastl]
+		w2 := w / 2
+		h2 := h / 2
+		if w2 == 0 || h2 == 0 {
+			return nil
+		}
+		var sh *shareable.Image
+		if s.imgs[0].IsVolatile() {
+			sh = shareable.NewVolatileImage(w2, h2)
+		} else {
+			sh = shareable.NewImage(w2, h2)
+		}
+		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		is := graphicsutil.QuadIndices()
+		sh.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
+		s.imgs = append(s.imgs, sh)
+		w = w2
+		h = h2
+	}
+	if len(s.imgs) <= i {
+		return nil
+	}
 	return s.imgs[i]
 }
 
 func (s *shareableImages) len() int {
 	return len(s.imgs)
-}
-
-func (s *shareableImages) append(img *shareable.Image) {
-	s.imgs = append(s.imgs, img)
 }
 
 func (s *shareableImages) isDisposed() bool {
@@ -330,31 +351,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		sy1 = sy1 / s
 	}
 
-	w, h = img.shareableImages.level(img.shareableImages.len() - 1).Size()
-	for img.shareableImages.len() < level+1 {
-		lastl := img.shareableImages.len() - 1
-		src := img.shareableImages.level(lastl)
-		w2 := w / 2
-		h2 := h / 2
-		if w2 == 0 || h2 == 0 {
-			break
-		}
-		var s *shareable.Image
-		if img.shareableImages.level(0).IsVolatile() {
-			s = shareable.NewVolatileImage(w2, h2)
-		} else {
-			s = shareable.NewImage(w2, h2)
-		}
-		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		is := graphicsutil.QuadIndices()
-		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
-		img.shareableImages.append(s)
-		w = w2
-		h = h2
-	}
-
-	if level < img.shareableImages.len() {
-		src := img.shareableImages.level(level)
+	if src := img.shareableImages.level(level); src != nil {
 		colorm := options.ColorM.impl
 		cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
 		if colorm.ScaleOnly() {
