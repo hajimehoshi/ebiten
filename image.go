@@ -45,6 +45,10 @@ func newMipmap(s *shareable.Image) *mipmap {
 	}
 }
 
+func (m *mipmap) original() *shareable.Image {
+	return m.imgs[0]
+}
+
 func (m *mipmap) level(i int) *shareable.Image {
 	w, h := m.imgs[len(m.imgs) - 1].Size()
 	for len(m.imgs) < i+1 {
@@ -117,7 +121,7 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.mipmap.level(0).Size()
+	return i.mipmap.original().Size()
 }
 
 func (i *Image) isDisposed() bool {
@@ -155,7 +159,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 func (i *Image) fill(r, g, b, a uint8) {
 	if r == 0 && g == 0 && b == 0 && a == 0 {
-		i.mipmap.level(0).ReplacePixels(nil)
+		i.mipmap.original().ReplacePixels(nil)
 		i.disposeMipmaps()
 		return
 	}
@@ -363,7 +367,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		if colorm.ScaleOnly() {
 			colorm = nil
 		}
-		i.mipmap.level(0).DrawImage(src, vs, is, colorm, mode, filter)
+		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
 	}
 	i.disposeMipmaps()
 }
@@ -439,11 +443,11 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	vs := []float32{}
-	src := img.mipmap.level(0)
+	src := img.mipmap.original()
 	for _, v := range vertices {
 		vs = append(vs, src.Vertex(float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)...)
 	}
-	i.mipmap.level(0).DrawImage(img.mipmap.level(0), vs, indices, options.ColorM.impl, mode, filter)
+	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter)
 }
 
 // Bounds returns the bounds of the image.
@@ -471,7 +475,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	return i.mipmap.level(0).At(x, y)
+	return i.mipmap.original().At(x, y)
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -507,7 +511,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.mipmap.level(0).ReplacePixels(p)
+	i.mipmap.original().ReplacePixels(p)
 	i.disposeMipmaps()
 	return nil
 }

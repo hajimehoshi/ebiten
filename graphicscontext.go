@@ -152,7 +152,7 @@ func (c *graphicsContext) needsRestoring() (bool, error) {
 	if web.IsBrowser() {
 		return c.invalidated, nil
 	}
-	return c.offscreen.mipmap.level(0).IsInvalidated()
+	return c.offscreen.mipmap.original().IsInvalidated()
 }
 
 func (c *graphicsContext) restoreIfNeeded() error {
