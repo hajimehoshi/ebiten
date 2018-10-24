@@ -35,65 +35,61 @@ func init() {
 	emptyImage, _ = NewImage(16, 16, FilterDefault)
 }
 
-type shareableImages struct {
+type mipmap struct {
 	imgs []*shareable.Image
 }
 
-func newShareableImages(s *shareable.Image) *shareableImages {
-	return &shareableImages{
+func newMipmap(s *shareable.Image) *mipmap {
+	return &mipmap{
 		imgs: []*shareable.Image{s},
 	}
 }
 
-func (s *shareableImages) level(i int) *shareable.Image {
-	w, h := s.imgs[len(s.imgs) - 1].Size()
-	for len(s.imgs) < i+1 {
-		lastl := len(s.imgs) - 1
-		src := s.imgs[lastl]
+func (m *mipmap) level(i int) *shareable.Image {
+	w, h := m.imgs[len(m.imgs) - 1].Size()
+	for len(m.imgs) < i+1 {
+		lastl := len(m.imgs) - 1
+		src := m.imgs[lastl]
 		w2 := w / 2
 		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
 			return nil
 		}
-		var sh *shareable.Image
-		if s.imgs[0].IsVolatile() {
-			sh = shareable.NewVolatileImage(w2, h2)
+		var s *shareable.Image
+		if m.imgs[0].IsVolatile() {
+			s = shareable.NewVolatileImage(w2, h2)
 		} else {
-			sh = shareable.NewImage(w2, h2)
+			s = shareable.NewImage(w2, h2)
 		}
 		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
-		sh.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
-		s.imgs = append(s.imgs, sh)
+		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
+		m.imgs = append(m.imgs, s)
 		w = w2
 		h = h2
 	}
-	if len(s.imgs) <= i {
+	if len(m.imgs) <= i {
 		return nil
 	}
-	return s.imgs[i]
+	return m.imgs[i]
 }
 
-func (s *shareableImages) len() int {
-	return len(s.imgs)
+func (m *mipmap) isDisposed() bool {
+	return len(m.imgs) == 0
 }
 
-func (s *shareableImages) isDisposed() bool {
-	return len(s.imgs) == 0
-}
-
-func (s *shareableImages) dispose() {
-	for _, img := range s.imgs {
+func (m *mipmap) dispose() {
+	for _, img := range m.imgs {
 		img.Dispose()
 	}
-	s.imgs = nil
+	m.imgs = nil
 }
 
-func (s *shareableImages) disposeMipmaps() {
-	for i := 1; i < len(s.imgs); i++ {
-		s.imgs[i].Dispose()
+func (m *mipmap) disposeMipmaps() {
+	for i := 1; i < len(m.imgs); i++ {
+		m.imgs[i].Dispose()
 	}
-	s.imgs = s.imgs[:1]
+	m.imgs = m.imgs[:1]
 }
 
 // Image represents a rectangle set of pixels.
@@ -106,9 +102,9 @@ type Image struct {
 	// See strings.Builder for similar examples.
 	addr *Image
 
-	// shareableImages is a set of shareable.Image sorted by the order of mipmap level.
+	// mipmap is a set of shareable.Image sorted by the order of mipmap level.
 	// The level 0 image is a regular image and higher-level images are used for mipmap.
-	shareableImages *shareableImages
+	mipmap *mipmap
 
 	filter Filter
 }
@@ -121,11 +117,11 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.shareableImages.level(0).Size()
+	return i.mipmap.level(0).Size()
 }
 
 func (i *Image) isDisposed() bool {
-	return i.shareableImages.isDisposed()
+	return i.mipmap.isDisposed()
 }
 
 // Clear resets the pixels of the image into 0.
@@ -159,7 +155,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 func (i *Image) fill(r, g, b, a uint8) {
 	if r == 0 && g == 0 && b == 0 && a == 0 {
-		i.shareableImages.level(0).ReplacePixels(nil)
+		i.mipmap.level(0).ReplacePixels(nil)
 		i.disposeMipmaps()
 		return
 	}
@@ -200,7 +196,7 @@ func (i *Image) disposeMipmaps() {
 	if i.isDisposed() {
 		panic("not reached")
 	}
-	i.shareableImages.disposeMipmaps()
+	i.mipmap.disposeMipmaps()
 }
 
 // DrawImage draws the given image on the image i.
@@ -351,7 +347,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		sy1 = sy1 / s
 	}
 
-	if src := img.shareableImages.level(level); src != nil {
+	if src := img.mipmap.level(level); src != nil {
 		colorm := options.ColorM.impl
 		cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
 		if colorm.ScaleOnly() {
@@ -367,7 +363,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		if colorm.ScaleOnly() {
 			colorm = nil
 		}
-		i.shareableImages.level(0).DrawImage(src, vs, is, colorm, mode, filter)
+		i.mipmap.level(0).DrawImage(src, vs, is, colorm, mode, filter)
 	}
 	i.disposeMipmaps()
 }
@@ -443,11 +439,11 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	vs := []float32{}
-	src := img.shareableImages.level(0)
+	src := img.mipmap.level(0)
 	for _, v := range vertices {
 		vs = append(vs, src.Vertex(float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)...)
 	}
-	i.shareableImages.level(0).DrawImage(img.shareableImages.level(0), vs, indices, options.ColorM.impl, mode, filter)
+	i.mipmap.level(0).DrawImage(img.mipmap.level(0), vs, indices, options.ColorM.impl, mode, filter)
 }
 
 // Bounds returns the bounds of the image.
@@ -475,7 +471,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	return i.shareableImages.level(0).At(x, y)
+	return i.mipmap.level(0).At(x, y)
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -490,7 +486,7 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImages.dispose()
+	i.mipmap.dispose()
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -511,7 +507,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	i.shareableImages.level(0).ReplacePixels(p)
+	i.mipmap.level(0).ReplacePixels(p)
 	i.disposeMipmaps()
 	return nil
 }
@@ -576,7 +572,7 @@ type DrawImageOptions struct {
 func NewImage(width, height int, filter Filter) (*Image, error) {
 	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImages: newShareableImages(s),
+		mipmap: newMipmap(s),
 		filter:          filter,
 	}
 	i.addr = i
@@ -599,7 +595,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 func newVolatileImage(width, height int) *Image {
 	i := &Image{
-		shareableImages: newShareableImages(shareable.NewVolatileImage(width, height)),
+		mipmap: newMipmap(shareable.NewVolatileImage(width, height)),
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -621,7 +617,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	s := shareable.NewImage(width, height)
 	i := &Image{
-		shareableImages: newShareableImages(s),
+		mipmap: newMipmap(s),
 		filter:          filter,
 	}
 	i.addr = i
@@ -633,7 +629,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 func newImageWithScreenFramebuffer(width, height int) *Image {
 	i := &Image{
-		shareableImages: newShareableImages(shareable.NewScreenFramebufferImage(width, height)),
+		mipmap: newMipmap(shareable.NewScreenFramebufferImage(width, height)),
 		filter:          FilterDefault,
 	}
 	i.addr = i
