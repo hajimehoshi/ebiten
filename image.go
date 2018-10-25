@@ -50,7 +50,7 @@ func (m *mipmap) original() *shareable.Image {
 }
 
 func (m *mipmap) level(i int) *shareable.Image {
-	w, h := m.imgs[len(m.imgs) - 1].Size()
+	w, h := m.imgs[len(m.imgs)-1].Size()
 	for len(m.imgs) < i+1 {
 		lastl := len(m.imgs) - 1
 		src := m.imgs[lastl]
@@ -577,7 +577,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	s := shareable.NewImage(width, height)
 	i := &Image{
 		mipmap: newMipmap(s),
-		filter:          filter,
+		filter: filter,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -622,7 +622,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	s := shareable.NewImage(width, height)
 	i := &Image{
 		mipmap: newMipmap(s),
-		filter:          filter,
+		filter: filter,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
@@ -634,7 +634,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 func newImageWithScreenFramebuffer(width, height int) *Image {
 	i := &Image{
 		mipmap: newMipmap(shareable.NewScreenFramebufferImage(width, height)),
-		filter:          FilterDefault,
+		filter: FilterDefault,
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
