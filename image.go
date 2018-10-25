@@ -36,31 +36,39 @@ func init() {
 }
 
 type mipmap struct {
+	orig *shareable.Image
 	imgs []*shareable.Image
 }
 
 func newMipmap(s *shareable.Image) *mipmap {
 	return &mipmap{
-		imgs: []*shareable.Image{s},
+		orig: s,
 	}
 }
 
 func (m *mipmap) original() *shareable.Image {
-	return m.imgs[0]
+	return m.orig
 }
 
-func (m *mipmap) level(i int) *shareable.Image {
-	w, h := m.imgs[len(m.imgs)-1].Size()
-	for len(m.imgs) < i+1 {
-		lastl := len(m.imgs) - 1
-		src := m.imgs[lastl]
+func (m *mipmap) level(level int) *shareable.Image {
+	if level == 0 {
+		return m.orig
+	}
+
+	idx := level - 1
+	w, h := m.orig.Size()
+	if len(m.imgs) > 0 {
+		w, h = m.imgs[len(m.imgs)-1].Size()
+	}
+	for len(m.imgs) < idx+1 {
+		src := m.level(len(m.imgs))
 		w2 := w / 2
 		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
 			return nil
 		}
 		var s *shareable.Image
-		if m.imgs[0].IsVolatile() {
+		if m.orig.IsVolatile() {
 			s = shareable.NewVolatileImage(w2, h2)
 		} else {
 			s = shareable.NewImage(w2, h2)
@@ -72,28 +80,27 @@ func (m *mipmap) level(i int) *shareable.Image {
 		w = w2
 		h = h2
 	}
-	if len(m.imgs) <= i {
+	if len(m.imgs) <= idx {
 		return nil
 	}
-	return m.imgs[i]
+	return m.imgs[idx]
 }
 
 func (m *mipmap) isDisposed() bool {
-	return len(m.imgs) == 0
+	return m.orig == nil
 }
 
 func (m *mipmap) dispose() {
+	m.disposeMipmaps()
+	m.orig.Dispose()
+	m.orig = nil
+}
+
+func (m *mipmap) disposeMipmaps() {
 	for _, img := range m.imgs {
 		img.Dispose()
 	}
 	m.imgs = nil
-}
-
-func (m *mipmap) disposeMipmaps() {
-	for i := 1; i < len(m.imgs); i++ {
-		m.imgs[i].Dispose()
-	}
-	m.imgs = m.imgs[:1]
 }
 
 // Image represents a rectangle set of pixels.
