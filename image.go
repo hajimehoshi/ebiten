@@ -376,6 +376,8 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 			ca = body[15]
 		}
 		var vs []float32
+		// TODO: This is too tricky: src is a whole image when level == 0,
+		// or a part of the image when level > 0. Do refactoring.
 		if level == 0 {
 			vs = src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		} else {
