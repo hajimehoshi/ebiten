@@ -946,3 +946,80 @@ func TestMipmapColor(t *testing.T) {
 		}
 	}
 }
+
+// Issue #725
+func TestImageMiamapAndDrawTriangle(t *testing.T) {
+	img0, _ := NewImage(32, 32, FilterDefault)
+	img1, _ := NewImage(128, 128, FilterDefault)
+	img2, _ := NewImage(128, 128, FilterDefault)
+
+	// Fill img1 red and create img1's mipmap
+	img1.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(0.25, 0.25)
+	op.Filter = FilterLinear
+	img0.DrawImage(img1, op)
+
+	// Call DrawTriangle on img1 and fill it with green
+	img2.Fill(color.RGBA{0, 0xff, 0, 0xff})
+	vs := []Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   128,
+			DstY:   0,
+			SrcX:   128,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   128,
+			SrcX:   0,
+			SrcY:   128,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   128,
+			DstY:   128,
+			SrcX:   128,
+			SrcY:   128,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	img1.DrawTriangles(vs, []uint16{0, 1, 2, 1, 2, 3}, img2, nil)
+
+	// Draw img1 (green) again. Confirm mipmap is correctly updated.
+	img0.Clear()
+	op = &DrawImageOptions{}
+	op.GeoM.Scale(0.25, 0.25)
+	op.Filter = FilterLinear
+	img0.DrawImage(img1, op)
+
+	w, h := img0.Size()
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			c := img0.At(i, j).(color.RGBA)
+			if c.R != 0 {
+				t.Errorf("img0.At(%d, %d): red want %d got %d", i, j, 0, c.R)
+			}
+		}
+	}
+}
