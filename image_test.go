@@ -508,11 +508,16 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
-// Issue #317, #558
+// Issue #317, #558, #724
 func TestImageEdge(t *testing.T) {
 	const (
-		img0Width  = 16
-		img0Height = 16
+		img0Width        = 16
+		img0Height       = 16
+		img0InnerWidth   = 6
+		img0InnerHeight  = 6
+		img0OffsetWidth  = (img0Width - img0InnerWidth) / 2
+		img0OffsetHeight = (img0Height - img0InnerHeight) / 2
+
 		img1Width  = 32
 		img1Height = 32
 	)
@@ -522,7 +527,8 @@ func TestImageEdge(t *testing.T) {
 		for i := 0; i < img0Width; i++ {
 			idx := 4 * (i + j*img0Width)
 			switch {
-			case j < img0Height/2:
+			case img0OffsetWidth <= i && i < img0Width-img0OffsetWidth &&
+				img0InnerHeight <= j && j < img0Height-img0InnerHeight:
 				pixels[idx] = 0xff
 				pixels[idx+1] = 0
 				pixels[idx+2] = 0
@@ -544,40 +550,45 @@ func TestImageEdge(t *testing.T) {
 	for a := 0; a < 1440; a++ {
 		angles = append(angles, float64(a)/1440*2*math.Pi)
 	}
-	for a := 0; a < 4096; a++ {
+	for a := 0; a < 4096; a += 3 {
+		// a++ should be fine, but it takes long to test.
 		angles = append(angles, float64(a)/4096*2*math.Pi)
 	}
 
-	for _, f := range []Filter{FilterNearest, FilterLinear} {
-		for _, a := range angles {
-			img1.Clear()
-			op := &DrawImageOptions{}
-			w, h := img0.Size()
-			r := image.Rect(0, 0, w, h/2)
-			op.SourceRect = &r
-			op.GeoM.Translate(-float64(img0Width)/2, -float64(img0Height)/2)
-			op.GeoM.Rotate(a)
-			op.GeoM.Translate(img1Width/2, img1Height/2)
-			op.Filter = f
-			img1.DrawImage(img0, op)
-			for j := 0; j < img1Height; j++ {
-				for i := 0; i < img1Width; i++ {
-					c := img1.At(i, j)
-					if c == transparent {
-						continue
-					}
-					switch f {
-					case FilterNearest:
-						if c == red {
+	for _, s := range []float64{1, 0.5, 0.25} {
+		for _, f := range []Filter{FilterNearest, FilterLinear} {
+			for _, a := range angles {
+				img1.Clear()
+				op := &DrawImageOptions{}
+				r := image.Rect(img0OffsetWidth, img0InnerHeight, img0Width-img0OffsetWidth, img0Height-img0InnerHeight)
+				op.SourceRect = &r
+
+				w, h := img0.Size()
+				op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+				op.GeoM.Scale(s, s)
+				op.GeoM.Rotate(a)
+				op.GeoM.Translate(img1Width/2, img1Height/2)
+				op.Filter = f
+				img1.DrawImage(img0, op)
+				for j := 0; j < img1Height; j++ {
+					for i := 0; i < img1Width; i++ {
+						c := img1.At(i, j)
+						if c == transparent {
 							continue
 						}
-					case FilterLinear:
-						_, g, b, _ := c.RGBA()
-						if g == 0 && b == 0 {
-							continue
+						switch f {
+						case FilterNearest:
+							if c == red {
+								continue
+							}
+						case FilterLinear:
+							_, g, b, _ := c.RGBA()
+							if g == 0 && b == 0 {
+								continue
+							}
 						}
+						t.Errorf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f) want: red or transparent, got: %v", i, j, f, s, a, c)
 					}
-					t.Errorf("img1.At(%d, %d) (filter: %d, angle: %f) want: red or transparent, got: %v", i, j, f, a, c)
 				}
 			}
 		}

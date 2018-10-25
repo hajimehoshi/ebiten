@@ -37,12 +37,13 @@ func init() {
 
 type mipmap struct {
 	orig *shareable.Image
-	imgs []*shareable.Image
+	imgs map[image.Rectangle][]*shareable.Image
 }
 
 func newMipmap(s *shareable.Image) *mipmap {
 	return &mipmap{
 		orig: s,
+		imgs: map[image.Rectangle][]*shareable.Image{},
 	}
 }
 
@@ -50,18 +51,26 @@ func (m *mipmap) original() *shareable.Image {
 	return m.orig
 }
 
-func (m *mipmap) level(level int) *shareable.Image {
+func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	if level == 0 {
 		return m.orig
 	}
 
-	idx := level - 1
-	w, h := m.orig.Size()
-	if len(m.imgs) > 0 {
-		w, h = m.imgs[len(m.imgs)-1].Size()
+	imgs, ok := m.imgs[r]
+	if !ok {
+		imgs = []*shareable.Image{}
+		m.imgs[r] = imgs
 	}
-	for len(m.imgs) < idx+1 {
-		src := m.level(len(m.imgs))
+	idx := level - 1
+
+	size := r.Size()
+	w, h := size.X, size.Y
+	if len(imgs) > 0 {
+		w, h = imgs[len(imgs)-1].Size()
+	}
+
+	for len(imgs) < idx+1 {
+		src := m.level(r, len(imgs))
 		w2 := w / 2
 		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
@@ -73,17 +82,24 @@ func (m *mipmap) level(level int) *shareable.Image {
 		} else {
 			s = shareable.NewImage(w2, h2)
 		}
-		vs := src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		var vs []float32
+		if len(imgs) == 0 {
+			vs = src.QuadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		} else {
+			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		}
 		is := graphicsutil.QuadIndices()
 		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
-		m.imgs = append(m.imgs, s)
+		imgs = append(imgs, s)
 		w = w2
 		h = h2
 	}
-	if len(m.imgs) <= idx {
+	m.imgs[r] = imgs
+
+	if len(imgs) <= idx {
 		return nil
 	}
-	return m.imgs[idx]
+	return imgs[idx]
 }
 
 func (m *mipmap) isDisposed() bool {
@@ -97,10 +113,12 @@ func (m *mipmap) dispose() {
 }
 
 func (m *mipmap) disposeMipmaps() {
-	for _, img := range m.imgs {
-		img.Dispose()
+	for _, a := range m.imgs {
+		for _, img := range a {
+			img.Dispose()
+		}
 	}
-	m.imgs = nil
+	m.imgs = map[image.Rectangle][]*shareable.Image{}
 }
 
 // Image represents a rectangle set of pixels.
@@ -346,19 +364,8 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		level = 6
 	}
 
-	if level > 0 {
-		s := 1 << uint(level)
-		a *= float32(s)
-		b *= float32(s)
-		c *= float32(s)
-		d *= float32(s)
-		sx0 = sx0 / s
-		sy0 = sy0 / s
-		sx1 = sx1 / s
-		sy1 = sy1 / s
-	}
-
-	if src := img.mipmap.level(level); src != nil {
+	// TODO: Move this logic to mipmap?
+	if src := img.mipmap.level(image.Rect(sx0, sy0, sx1, sy1), level); src != nil {
 		colorm := options.ColorM.impl
 		cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
 		if colorm.ScaleOnly() {
@@ -368,12 +375,24 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 			cb = body[10]
 			ca = body[15]
 		}
-		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		var vs []float32
+		if level == 0 {
+			vs = src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		} else {
+			w, h := src.Size()
+			s := 1 << uint(level)
+			a *= float32(s)
+			b *= float32(s)
+			c *= float32(s)
+			d *= float32(s)
+			vs = src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		}
 		is := graphicsutil.QuadIndices()
 
 		if colorm.ScaleOnly() {
 			colorm = nil
 		}
+
 		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
 	}
 	i.disposeMipmaps()

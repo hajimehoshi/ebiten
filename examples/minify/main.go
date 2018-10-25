@@ -41,6 +41,7 @@ const (
 var (
 	gophersImage *ebiten.Image
 	rotate       = false
+	clip         = false
 	counter      = 0
 )
 
@@ -53,13 +54,20 @@ func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		rotate = !rotate
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
+		clip = !clip
+	}
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
 	s := 1.5 / math.Pow(1.01, float64(counter))
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Minifying images (Nearest filter vs Linear filter): Press R to rotate the images.\nScale: %0.2f", s))
+	msg := fmt.Sprintf(`Minifying images (Nearest filter vs Linear filter):
+Press R to rotate the images.
+Press C to clip the images.
+Scale: %0.2f`, s)
+	ebitenutil.DebugPrint(screen, msg)
 
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 		w, h := gophersImage.Size()
@@ -73,6 +81,10 @@ func update(screen *ebiten.Image) error {
 		op.GeoM.Scale(s, s)
 		op.GeoM.Translate(32+float64(i*w)*s+float64(i*4), 64)
 		op.Filter = f
+		if clip {
+			r := image.Rect(10, 10, 100, 100)
+			op.SourceRect = &r
+		}
 		screen.DrawImage(gophersImage, op)
 	}
 
