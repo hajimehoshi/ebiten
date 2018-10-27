@@ -53,7 +53,7 @@ func (m *mipmap) original() *shareable.Image {
 
 func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	if level == 0 {
-		return m.orig
+		panic("not reached")
 	}
 
 	imgs, ok := m.imgs[r]
@@ -70,7 +70,13 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	}
 
 	for len(imgs) < idx+1 {
-		src := m.level(r, len(imgs))
+		l := len(imgs)
+		var src *shareable.Image
+		if l > 0 {
+			src = m.level(r, l)
+		} else {
+			src = m.orig
+		}
 		w2 := w / 2
 		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
@@ -83,7 +89,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			s = shareable.NewImage(w2, h2)
 		}
 		var vs []float32
-		if len(imgs) == 0 {
+		if l == 0 {
 			vs = src.QuadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		} else {
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
@@ -364,37 +370,32 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		level = 6
 	}
 
-	// TODO: Move this logic to mipmap?
-	if src := img.mipmap.level(image.Rect(sx0, sy0, sx1, sy1), level); src != nil {
-		colorm := options.ColorM.impl
-		cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
-		if colorm.ScaleOnly() {
-			body, _ := colorm.UnsafeElements()
-			cr = body[0]
-			cg = body[5]
-			cb = body[10]
-			ca = body[15]
-		}
-		var vs []float32
-		// TODO: This is too tricky: src is a whole image when level == 0,
-		// or a part of the image when level > 0. Do refactoring.
-		if level == 0 {
-			vs = src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
-		} else {
-			w, h := src.Size()
-			s := 1 << uint(level)
-			a *= float32(s)
-			b *= float32(s)
-			c *= float32(s)
-			d *= float32(s)
-			vs = src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
-		}
+	// TODO: Add (*mipmap).drawImage and move the below code.
+	colorm := options.ColorM.impl
+	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
+	if colorm.ScaleOnly() {
+		body, _ := colorm.UnsafeElements()
+		cr = body[0]
+		cg = body[5]
+		cb = body[10]
+		ca = body[15]
+		colorm = nil
+	}
+
+	if level == 0 {
+		src := img.mipmap.original()
+		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphicsutil.QuadIndices()
-
-		if colorm.ScaleOnly() {
-			colorm = nil
-		}
-
+		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
+	} else if src := img.mipmap.level(image.Rect(sx0, sy0, sx1, sy1), level); src != nil {
+		w, h := src.Size()
+		s := 1 << uint(level)
+		a *= float32(s)
+		b *= float32(s)
+		c *= float32(s)
+		d *= float32(s)
+		vs := src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		is := graphicsutil.QuadIndices()
 		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
 	}
 	i.disposeMipmaps()
