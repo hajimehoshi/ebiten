@@ -451,8 +451,15 @@ type DrawTrianglesOptions struct {
 // Note that Ebiten creates texture atlases internally, so you still have to care this even when
 // you render a single image.
 //
+// When the image i is disposed, DrawTriangles does nothing.
+//
 // Note that this API is experimental.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
+	i.copyCheck()
+	if i.isDisposed() {
+		return
+	}
+
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
