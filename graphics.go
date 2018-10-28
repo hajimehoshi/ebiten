@@ -16,7 +16,6 @@ package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 // Filter represents the type of texture filter to be used when an image is maginified or minified.
@@ -46,42 +45,42 @@ type CompositeMode int
 const (
 	// Regular alpha blending
 	// c_out = c_src + c_dst × (1 - α_src)
-	CompositeModeSourceOver CompositeMode = CompositeMode(opengl.CompositeModeSourceOver)
+	CompositeModeSourceOver CompositeMode = CompositeMode(graphics.CompositeModeSourceOver)
 
 	// c_out = 0
-	CompositeModeClear CompositeMode = CompositeMode(opengl.CompositeModeClear)
+	CompositeModeClear CompositeMode = CompositeMode(graphics.CompositeModeClear)
 
 	// c_out = c_src
-	CompositeModeCopy CompositeMode = CompositeMode(opengl.CompositeModeCopy)
+	CompositeModeCopy CompositeMode = CompositeMode(graphics.CompositeModeCopy)
 
 	// c_out = c_dst
-	CompositeModeDestination CompositeMode = CompositeMode(opengl.CompositeModeDestination)
+	CompositeModeDestination CompositeMode = CompositeMode(graphics.CompositeModeDestination)
 
 	// c_out = c_src × (1 - α_dst) + c_dst
-	CompositeModeDestinationOver CompositeMode = CompositeMode(opengl.CompositeModeDestinationOver)
+	CompositeModeDestinationOver CompositeMode = CompositeMode(graphics.CompositeModeDestinationOver)
 
 	// c_out = c_src × α_dst
-	CompositeModeSourceIn CompositeMode = CompositeMode(opengl.CompositeModeSourceIn)
+	CompositeModeSourceIn CompositeMode = CompositeMode(graphics.CompositeModeSourceIn)
 
 	// c_out = c_dst × α_src
-	CompositeModeDestinationIn CompositeMode = CompositeMode(opengl.CompositeModeDestinationIn)
+	CompositeModeDestinationIn CompositeMode = CompositeMode(graphics.CompositeModeDestinationIn)
 
 	// c_out = c_src × (1 - α_dst)
-	CompositeModeSourceOut CompositeMode = CompositeMode(opengl.CompositeModeSourceOut)
+	CompositeModeSourceOut CompositeMode = CompositeMode(graphics.CompositeModeSourceOut)
 
 	// c_out = c_dst × (1 - α_src)
-	CompositeModeDestinationOut CompositeMode = CompositeMode(opengl.CompositeModeDestinationOut)
+	CompositeModeDestinationOut CompositeMode = CompositeMode(graphics.CompositeModeDestinationOut)
 
 	// c_out = c_src × α_dst + c_dst × (1 - α_src)
-	CompositeModeSourceAtop CompositeMode = CompositeMode(opengl.CompositeModeSourceAtop)
+	CompositeModeSourceAtop CompositeMode = CompositeMode(graphics.CompositeModeSourceAtop)
 
 	// c_out = c_src × (1 - α_dst) + c_dst × α_src
-	CompositeModeDestinationAtop CompositeMode = CompositeMode(opengl.CompositeModeDestinationAtop)
+	CompositeModeDestinationAtop CompositeMode = CompositeMode(graphics.CompositeModeDestinationAtop)
 
 	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
-	CompositeModeXor CompositeMode = CompositeMode(opengl.CompositeModeXor)
+	CompositeModeXor CompositeMode = CompositeMode(graphics.CompositeModeXor)
 
 	// Sum of source and destination (a.k.a. 'plus' or 'additive')
 	// c_out = c_src + c_dst
-	CompositeModeLighter CompositeMode = CompositeMode(opengl.CompositeModeLighter)
+	CompositeModeLighter CompositeMode = CompositeMode(graphics.CompositeModeLighter)
 )

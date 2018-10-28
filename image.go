@@ -22,7 +22,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
@@ -92,7 +91,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphicsutil.QuadIndices()
-		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
+		s.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear)
 		imgs = append(imgs, s)
 		w = w2
 		h = h2
@@ -374,7 +373,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		geom.Concat(options.GeoM)
 	}
 
-	mode := opengl.CompositeMode(options.CompositeMode)
+	mode := graphics.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
 	if options.Filter != FilterDefault {
@@ -509,7 +508,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
-	mode := opengl.CompositeMode(options.CompositeMode)
+	mode := graphics.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
 	if options.Filter != FilterDefault {

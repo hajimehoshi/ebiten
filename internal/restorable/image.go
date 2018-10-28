@@ -24,7 +24,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/math"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 // drawImageHistoryItem is an item for history of draw-image commands.
@@ -33,7 +32,7 @@ type drawImageHistoryItem struct {
 	vertices []float32
 	indices  []uint16
 	colorm   *affine.ColorM
-	mode     opengl.CompositeMode
+	mode     graphics.CompositeMode
 	filter   graphics.Filter
 }
 
@@ -167,7 +166,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			float32(x), float32(y),
 			1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
+		i.image.DrawImage(dummyImage.image, vs, is, colorm, graphics.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
@@ -204,7 +203,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -219,7 +218,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}

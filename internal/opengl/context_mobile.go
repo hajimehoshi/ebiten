@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	mgl "golang.org/x/mobile/gl"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 type (
@@ -111,23 +113,24 @@ func (c *Context) Reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = CompositeModeUnknown
+	c.lastCompositeMode = graphics.CompositeModeUnknown
 	c.gl.Enable(mgl.BLEND)
-	c.BlendFunc(CompositeModeSourceOver)
+	c.BlendFunc(graphics.CompositeModeSourceOver)
 	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
 
-func (c *Context) BlendFunc(mode CompositeMode) {
+func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	gl := c.gl
 	if c.lastCompositeMode == mode {
 		return
 	}
 	c.lastCompositeMode = mode
-	s, d := operations(mode)
-	gl.BlendFunc(mgl.Enum(s), mgl.Enum(d))
+	s, d := mode.Operations()
+	s2, d2 := convertOperation(s), convertOperation(d)
+	gl.BlendFunc(mgl.Enum(s2), mgl.Enum(d2))
 }
 
 func (c *Context) NewTexture(width, height int) (Texture, error) {

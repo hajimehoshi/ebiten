@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	"github.com/gopherjs/gopherwasm/js"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 type (
@@ -149,23 +151,24 @@ func (c *Context) Reset() error {
 	c.lastFramebuffer = Framebuffer(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = CompositeModeUnknown
+	c.lastCompositeMode = graphics.CompositeModeUnknown
 	gl := c.gl
 	gl.Call("enable", blend)
-	c.BlendFunc(CompositeModeSourceOver)
+	c.BlendFunc(graphics.CompositeModeSourceOver)
 	f := gl.Call("getParameter", framebufferBinding)
 	c.screenFramebuffer = Framebuffer(f)
 	return nil
 }
 
-func (c *Context) BlendFunc(mode CompositeMode) {
+func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
 	c.lastCompositeMode = mode
-	s, d := operations(mode)
+	s, d := mode.Operations()
+	s2, d2 := convertOperation(s), convertOperation(d)
 	gl := c.gl
-	gl.Call("blendFunc", int(s), int(d))
+	gl.Call("blendFunc", int(s2), int(d2))
 }
 
 func (c *Context) NewTexture(width, height int) (Texture, error) {

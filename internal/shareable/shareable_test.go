@@ -24,7 +24,6 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 	. "github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
@@ -88,7 +87,7 @@ func TestEnsureNotShared(t *testing.T) {
 	// img4.ensureNotShared() should be called.
 	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
-	img4.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img4.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	want := false
 	if got := img4.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -110,7 +109,7 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img4.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 }
 
 func Disabled_TestReshared(t *testing.T) {
@@ -152,7 +151,7 @@ func Disabled_TestReshared(t *testing.T) {
 	// Use img1 as a render target.
 	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
-	img1.DrawImage(img2, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img1.DrawImage(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	want = false
 	if got := img1.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -160,7 +159,7 @@ func Disabled_TestReshared(t *testing.T) {
 
 	// Use img1 as a render source.
 	for i := 0; i < MaxCountForShare-1; i++ {
-		img0.DrawImage(img1, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 		want := false
 		if got := img1.IsSharedForTesting(); got != want {
 			t.Errorf("got: %v, want: %v", got, want)
@@ -177,7 +176,7 @@ func Disabled_TestReshared(t *testing.T) {
 		}
 	}
 
-	img0.DrawImage(img1, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	want = true
 	if got := img1.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -195,7 +194,7 @@ func Disabled_TestReshared(t *testing.T) {
 
 	// Use img3 as a render source. img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
-		img0.DrawImage(img3, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+		img0.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 		want := false
 		if got := img3.IsSharedForTesting(); got != want {
 			t.Errorf("got: %v, want: %v", got, want)

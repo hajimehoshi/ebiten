@@ -22,58 +22,6 @@ type (
 	operation   int
 )
 
-type CompositeMode int
-
-const (
-	CompositeModeSourceOver CompositeMode = iota // This value must be 0 (= initial value)
-	CompositeModeClear
-	CompositeModeCopy
-	CompositeModeDestination
-	CompositeModeDestinationOver
-	CompositeModeSourceIn
-	CompositeModeDestinationIn
-	CompositeModeSourceOut
-	CompositeModeDestinationOut
-	CompositeModeSourceAtop
-	CompositeModeDestinationAtop
-	CompositeModeXor
-	CompositeModeLighter
-	CompositeModeUnknown
-)
-
-func operations(mode CompositeMode) (src operation, dst operation) {
-	switch mode {
-	case CompositeModeSourceOver:
-		return one, oneMinusSrcAlpha
-	case CompositeModeClear:
-		return zero, zero
-	case CompositeModeCopy:
-		return one, zero
-	case CompositeModeDestination:
-		return zero, one
-	case CompositeModeDestinationOver:
-		return oneMinusDstAlpha, one
-	case CompositeModeSourceIn:
-		return dstAlpha, zero
-	case CompositeModeDestinationIn:
-		return zero, srcAlpha
-	case CompositeModeSourceOut:
-		return oneMinusDstAlpha, zero
-	case CompositeModeDestinationOut:
-		return zero, oneMinusSrcAlpha
-	case CompositeModeSourceAtop:
-		return dstAlpha, oneMinusSrcAlpha
-	case CompositeModeDestinationAtop:
-		return oneMinusDstAlpha, srcAlpha
-	case CompositeModeXor:
-		return oneMinusDstAlpha, oneMinusSrcAlpha
-	case CompositeModeLighter:
-		return one, one
-	default:
-		panic("not reached")
-	}
-}
-
 type DataType int
 
 func (d DataType) SizeInBytes() int {

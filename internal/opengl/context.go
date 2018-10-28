@@ -16,6 +16,8 @@ package opengl
 
 import (
 	"math"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 var (
@@ -43,6 +45,25 @@ var (
 	oneMinusDstAlpha operation
 )
 
+func convertOperation(op graphics.Operation) operation {
+	switch op {
+	case graphics.Zero:
+		return zero
+	case graphics.One:
+		return one
+	case graphics.SrcAlpha:
+		return srcAlpha
+	case graphics.DstAlpha:
+		return dstAlpha
+	case graphics.OneMinusSrcAlpha:
+		return oneMinusSrcAlpha
+	case graphics.OneMinusDstAlpha:
+		return oneMinusDstAlpha
+	default:
+		panic("not reached")
+	}
+}
+
 type Context struct {
 	locationCache      *locationCache
 	screenFramebuffer  Framebuffer // This might not be the default frame buffer '0' (e.g. iOS).
@@ -50,7 +71,7 @@ type Context struct {
 	lastTexture        Texture
 	lastViewportWidth  int
 	lastViewportHeight int
-	lastCompositeMode  CompositeMode
+	lastCompositeMode  graphics.CompositeMode
 	maxTextureSize     int
 	context
 }

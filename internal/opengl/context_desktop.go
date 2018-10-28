@@ -24,6 +24,8 @@ import (
 	"fmt"
 
 	"github.com/go-gl/gl/v2.1/gl"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 type (
@@ -105,12 +107,12 @@ func (c *Context) Reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = CompositeModeUnknown
+	c.lastCompositeMode = graphics.CompositeModeUnknown
 	_ = c.runOnContextThread(func() error {
 		gl.Enable(gl.BLEND)
 		return nil
 	})
-	c.BlendFunc(CompositeModeSourceOver)
+	c.BlendFunc(graphics.CompositeModeSourceOver)
 	_ = c.runOnContextThread(func() error {
 		f := int32(0)
 		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
@@ -120,14 +122,15 @@ func (c *Context) Reset() error {
 	return nil
 }
 
-func (c *Context) BlendFunc(mode CompositeMode) {
+func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	_ = c.runOnContextThread(func() error {
 		if c.lastCompositeMode == mode {
 			return nil
 		}
 		c.lastCompositeMode = mode
-		s, d := operations(mode)
-		gl.BlendFunc(uint32(s), uint32(d))
+		s, d := mode.Operations()
+		s2, d2 := convertOperation(s), convertOperation(d)
+		gl.BlendFunc(uint32(s2), uint32(d2))
 		return nil
 	})
 }
