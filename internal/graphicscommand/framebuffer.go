@@ -18,23 +18,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
-// orthoProjectionMatrix returns an orthogonal projection matrix for OpenGL.
-//
-// The matrix converts the coodinates (left, bottom) - (right, top) to the normalized device coodinates (-1, -1) - (1, 1).
-func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
-	e11 := 2 / float32(right-left)
-	e22 := 2 / float32(top-bottom)
-	e14 := -1 * float32(right+left) / float32(right-left)
-	e24 := -1 * float32(top+bottom) / float32(top-bottom)
-
-	return []float32{
-		e11, 0, 0, 0,
-		0, e22, 0, 0,
-		0, 0, 1, 0,
-		e14, e24, 0, 1,
-	}
-}
-
 // framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
 	native    opengl.Framebuffer
@@ -89,6 +72,6 @@ func (f *framebuffer) projectionMatrix() []float32 {
 		return f.proMatrix
 	}
 	w, h := f.viewportSize()
-	f.proMatrix = orthoProjectionMatrix(0, w, 0, h)
+	f.proMatrix = opengl.OrthoProjectionMatrix(0, w, 0, h)
 	return f.proMatrix
 }
