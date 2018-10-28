@@ -494,7 +494,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	// TODO: Implement this.
-	if img.isSubImage() {
+	if img.isSubimage() {
 		panic("using a subimage at DrawTriangles is not implemented")
 	}
 	if i.isSubimage() {
