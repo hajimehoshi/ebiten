@@ -16,7 +16,6 @@ package graphicsutil
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 var (
@@ -30,7 +29,7 @@ type verticesBackend struct {
 
 func (v *verticesBackend) sliceForOneQuad() []float32 {
 	const num = 256
-	size := 4 * graphicscommand.VertexSizeInBytes() / opengl.Float.SizeInBytes()
+	size := 4 * graphicscommand.VertexFloatNum()
 	if v.backend == nil {
 		v.backend = make([]float32, size*num)
 	}

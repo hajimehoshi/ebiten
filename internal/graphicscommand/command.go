@@ -127,7 +127,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 
 	q.appendVertices(vertices)
 	q.appendIndices(indices, uint16(q.nextIndex))
-	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / VertexSizeInBytes()
+	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / theArrayBufferLayout.totalBytes()
 	q.tmpNumIndices += len(indices)
 
 	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, split)
@@ -225,9 +225,9 @@ type drawImageCommand struct {
 	filter    graphics.Filter
 }
 
-// VertexSizeInBytes returns the size in bytes of one vertex.
-func VertexSizeInBytes() int {
-	return theArrayBufferLayout.totalBytes()
+// VertexFloatNum returns the number of floats for one vertex.
+func VertexFloatNum() int {
+	return theArrayBufferLayout.totalBytes() / opengl.Float.SizeInBytes()
 }
 
 func (c *drawImageCommand) String() string {
