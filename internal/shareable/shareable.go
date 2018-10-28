@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
@@ -62,8 +61,8 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	newImg.DrawImage(oldImg, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
@@ -128,8 +127,8 @@ func (i *Image) ensureNotShared() {
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h, false)
 	vw, vh := i.backend.restorable.Size()
-	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	newImg.DrawImage(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 
 	i.dispose(false)
@@ -189,7 +188,7 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	}
 	ox, oy, _, _ := i.region()
 	w, h := i.backend.restorable.SizePowerOf2()
-	return graphicsutil.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	return graphics.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
 func (i *Image) Vertex(dx, dy, sx, sy float32, cr, cg, cb, ca float32) []float32 {
@@ -198,7 +197,7 @@ func (i *Image) Vertex(dx, dy, sx, sy float32, cr, cg, cb, ca float32) []float32
 	}
 	ox, oy, _, _ := i.region()
 	w, h := i.backend.restorable.SizePowerOf2()
-	return graphicsutil.Vertex(w, h, dx, dy, sx+float32(ox), sy+float32(oy), cr, cg, cb, ca)
+	return graphics.Vertex(w, h, dx, dy, sx+float32(ox), sy+float32(oy), cr, cg, cb, ca)
 }
 
 const MaxCountForShare = 10

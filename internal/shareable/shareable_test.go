@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	. "github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
@@ -86,7 +85,7 @@ func TestEnsureNotShared(t *testing.T) {
 	)
 	// img4.ensureNotShared() should be called.
 	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	is := graphics.QuadIndices()
 	img4.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	want := false
 	if got := img4.IsSharedForTesting(); got != want {
@@ -150,7 +149,7 @@ func Disabled_TestReshared(t *testing.T) {
 
 	// Use img1 as a render target.
 	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	is := graphics.QuadIndices()
 	img1.DrawImage(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	want = false
 	if got := img1.IsSharedForTesting(); got != want {

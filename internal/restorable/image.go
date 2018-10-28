@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/math"
 )
 
@@ -161,11 +160,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		// and this image can be restored without dummyImage.
 		w, h := dummyImage.Size()
 		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
-		vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h,
+		vs := graphics.QuadVertices(w, h, 0, 0, w, h,
 			float32(width)/float32(w), 0, 0, float32(height)/float32(h),
 			float32(x), float32(y),
 			1, 1, 1, 1)
-		is := graphicsutil.QuadIndices()
+		is := graphics.QuadIndices()
 		i.image.DrawImage(dummyImage.image, vs, is, colorm, graphics.CompositeModeCopy, graphics.FilterNearest)
 	}
 

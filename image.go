@@ -21,7 +21,6 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
@@ -90,7 +89,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			src = m.level(r, l)
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
-		is := graphicsutil.QuadIndices()
+		is := graphics.QuadIndices()
 		s.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear)
 		imgs = append(imgs, s)
 		w = w2
@@ -393,7 +392,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		if math.IsNaN(float64(det)) {
 			return
 		}
-		level = graphicsutil.MipmapLevel(det)
+		level = graphics.MipmapLevel(det)
 		if level < 0 {
 			panic("not reached")
 		}
@@ -417,7 +416,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	if level == 0 {
 		src := img.mipmap.original()
 		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
-		is := graphicsutil.QuadIndices()
+		is := graphics.QuadIndices()
 		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
 	} else if src := img.mipmap.level(image.Rect(sx0, sy0, sx1, sy1), level); src != nil {
 		w, h := src.Size()
@@ -427,7 +426,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		c *= float32(s)
 		d *= float32(s)
 		vs := src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
-		is := graphicsutil.QuadIndices()
+		is := graphics.QuadIndices()
 		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
 	}
 	i.disposeMipmaps()
@@ -740,7 +739,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)
 
-	_ = i.ReplacePixels(graphicsutil.CopyImage(source))
+	_ = i.ReplacePixels(graphics.CopyImage(source))
 	return i, nil
 }
 

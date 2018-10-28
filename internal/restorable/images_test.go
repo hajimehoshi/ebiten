@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	. "github.com/hajimehoshi/ebiten/internal/restorable"
 	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
@@ -115,8 +114,8 @@ func TestRestoreChain(t *testing.T) {
 	fill(imgs[0], clr.R, clr.G, clr.B, clr.A)
 	for i := 0; i < num-1; i++ {
 		w, h := imgs[i].Size()
-		vs := graphicsutil.QuadVertices(w, h, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-		is := graphicsutil.QuadIndices()
+		vs := graphics.QuadVertices(w, h, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+		is := graphics.QuadIndices()
 		imgs[i+1].DrawImage(imgs[i], vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	}
 	ResolveStaleImages()
@@ -157,8 +156,8 @@ func TestRestoreChain2(t *testing.T) {
 	clr8 := color.RGBA{0x00, 0x00, 0xff, 0xff}
 	fill(imgs[8], clr8.R, clr8.G, clr8.B, clr8.A)
 
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	imgs[8].DrawImage(imgs[7], vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	imgs[9].DrawImage(imgs[8], vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	for i := 0; i < 7; i++ {
@@ -203,8 +202,8 @@ func TestRestoreOverrideSource(t *testing.T) {
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
 	fill(img1, clr0.R, clr0.G, clr0.B, clr0.A)
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	img2.DrawImage(img1, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
 	img3.DrawImage(img2, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
 	fill(img0, clr1.R, clr1.G, clr1.B, clr1.A)
@@ -288,24 +287,24 @@ func TestRestoreComplexGraph(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	img3.DrawImage(img0, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
 	img3.DrawImage(img1, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
 	img4.DrawImage(img1, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 2, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 2, 0, 1, 1, 1, 1)
 	img4.DrawImage(img2, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	img5.DrawImage(img3, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	img6.DrawImage(img3, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
 	img6.DrawImage(img4, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	img7.DrawImage(img2, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
-	vs = graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 2, 0, 1, 1, 1, 1)
+	vs = graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 2, 0, 1, 1, 1, 1)
 	img7.DrawImage(img3, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
 	ResolveStaleImages()
 	if err := Restore(); err != nil {
@@ -396,8 +395,8 @@ func TestRestoreRecursive(t *testing.T) {
 		img1.Dispose()
 		img0.Dispose()
 	}()
-	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	img1.DrawImage(img0, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
 	img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest)
 	ResolveStaleImages()
@@ -484,8 +483,8 @@ func TestDrawImageAndReplacePixels(t *testing.T) {
 	img1 := NewImage(2, 1, false)
 	defer img1.Dispose()
 
-	vs := graphicsutil.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	img1.DrawImage(img0, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, 1, 0, 1, 1)
 
@@ -516,8 +515,8 @@ func TestDispose(t *testing.T) {
 	img2 := newImageFromImage(base2)
 	defer img2.Dispose()
 
-	vs := graphicsutil.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	img1.DrawImage(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	img1.Dispose()
@@ -544,8 +543,8 @@ func TestDoubleResolve(t *testing.T) {
 	base.Pix[3] = 0xff
 	img1 := newImageFromImage(base)
 
-	vs := graphicsutil.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphicsutil.QuadIndices()
+	vs := graphics.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
 	img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	img0.ReplacePixels([]uint8{0x00, 0xff, 0x00, 0xff}, 1, 1, 1, 1)
 	// Now img0 is stale.
