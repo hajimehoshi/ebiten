@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -255,16 +256,16 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, colorM *affine.ColorM, filter Filter) {
+func (s *openGLState) useProgram(proj []float32, texture opengl.Texture, dst, src *Image, colorM *affine.ColorM, filter graphics.Filter) {
 	c := opengl.GetContext()
 
 	var program opengl.Program
 	switch filter {
-	case FilterNearest:
+	case graphics.FilterNearest:
 		program = s.programNearest
-	case FilterLinear:
+	case graphics.FilterLinear:
 		program = s.programLinear
-	case FilterScreen:
+	case graphics.FilterScreen:
 		program = s.programScreen
 	default:
 		panic("not reached")

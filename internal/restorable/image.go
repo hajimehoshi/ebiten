@@ -20,6 +20,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/math"
@@ -33,7 +34,7 @@ type drawImageHistoryItem struct {
 	indices  []uint16
 	colorm   *affine.ColorM
 	mode     opengl.CompositeMode
-	filter   graphicscommand.Filter
+	filter   graphics.Filter
 }
 
 // Image represents an image that can be restored when GL context is lost.
@@ -166,7 +167,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			float32(x), float32(y),
 			1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphicscommand.FilterNearest)
+		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
@@ -203,7 +204,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphicscommand.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -218,7 +219,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphicscommand.Filter) {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}

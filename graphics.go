@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -24,16 +24,16 @@ type Filter int
 
 const (
 	// FilterDefault represents the default filter.
-	FilterDefault Filter = Filter(graphicscommand.FilterDefault)
+	FilterDefault Filter = Filter(graphics.FilterDefault)
 
 	// FilterNearest represents nearest (crisp-edged) filter
-	FilterNearest Filter = Filter(graphicscommand.FilterNearest)
+	FilterNearest Filter = Filter(graphics.FilterNearest)
 
 	// FilterLinear represents linear filter
-	FilterLinear Filter = Filter(graphicscommand.FilterLinear)
+	FilterLinear Filter = Filter(graphics.FilterLinear)
 
 	// filterScreen represents a special filter for screen. Inner usage only.
-	filterScreen Filter = Filter(graphicscommand.FilterScreen)
+	filterScreen Filter = Filter(graphics.FilterScreen)
 )
 
 // CompositeMode represents Porter-Duff composition mode.
