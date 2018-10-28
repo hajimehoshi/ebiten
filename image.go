@@ -20,7 +20,7 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
@@ -92,7 +92,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphicsutil.QuadIndices()
-		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterLinear)
+		s.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphicscommand.FilterLinear)
 		imgs = append(imgs, s)
 		w = w2
 		h = h2
@@ -376,17 +376,17 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 
 	mode := opengl.CompositeMode(options.CompositeMode)
 
-	filter := graphics.FilterNearest
+	filter := graphicscommand.FilterNearest
 	if options.Filter != FilterDefault {
-		filter = graphics.Filter(options.Filter)
+		filter = graphicscommand.Filter(options.Filter)
 	} else if img.filter != FilterDefault {
-		filter = graphics.Filter(img.filter)
+		filter = graphicscommand.Filter(img.filter)
 	}
 
 	a, b, c, d, tx, ty := geom.elements()
 
 	level := 0
-	if filter == graphics.FilterLinear {
+	if filter == graphicscommand.FilterLinear {
 		det := geom.det()
 		if det == 0 {
 			return
@@ -511,11 +511,11 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	mode := opengl.CompositeMode(options.CompositeMode)
 
-	filter := graphics.FilterNearest
+	filter := graphicscommand.FilterNearest
 	if options.Filter != FilterDefault {
-		filter = graphics.Filter(options.Filter)
+		filter = graphicscommand.Filter(options.Filter)
 	} else if img.filter != FilterDefault {
-		filter = graphics.Filter(img.filter)
+		filter = graphicscommand.Filter(img.filter)
 	}
 
 	vs := []float32{}

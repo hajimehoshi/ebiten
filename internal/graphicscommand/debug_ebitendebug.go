@@ -14,7 +14,7 @@
 
 // +build ebitendebug
 
-package graphics
+package graphicscommand
 
 func recordLog() bool {
 	return true

@@ -20,7 +20,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
@@ -33,12 +33,12 @@ type drawImageHistoryItem struct {
 	indices  []uint16
 	colorm   *affine.ColorM
 	mode     opengl.CompositeMode
-	filter   graphics.Filter
+	filter   graphicscommand.Filter
 }
 
 // Image represents an image that can be restored when GL context is lost.
 type Image struct {
-	image *graphics.Image
+	image *graphicscommand.Image
 
 	basePixels []byte
 
@@ -66,7 +66,7 @@ var dummyImage = newImageWithoutInit(16, 16, false)
 // Note that Dispose is not called automatically.
 func newImageWithoutInit(width, height int, volatile bool) *Image {
 	i := &Image{
-		image:    graphics.NewImage(width, height),
+		image:    graphicscommand.NewImage(width, height),
 		volatile: volatile,
 	}
 	theImages.add(i)
@@ -91,7 +91,7 @@ func NewImage(width, height int, volatile bool) *Image {
 // Note that Dispose is not called automatically.
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		image:    graphics.NewScreenFramebufferImage(width, height),
+		image:    graphicscommand.NewScreenFramebufferImage(width, height),
 		volatile: false,
 		screen:   true,
 	}
@@ -166,7 +166,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			float32(x), float32(y),
 			1, 1, 1, 1)
 		is := graphicsutil.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphics.FilterNearest)
+		i.image.DrawImage(dummyImage.image, vs, is, colorm, opengl.CompositeModeCopy, graphicscommand.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
@@ -203,7 +203,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphicscommand.Filter) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -218,7 +218,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphicscommand.Filter) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}
@@ -250,7 +250,7 @@ func (i *Image) At(x, y int) color.RGBA {
 	}
 
 	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
-		graphics.FlushCommands()
+		graphicscommand.FlushCommands()
 		i.readPixelsFromGPU()
 		i.drawImageHistory = nil
 		i.stale = false
@@ -328,20 +328,20 @@ func (i *Image) hasDependency() bool {
 	return len(i.drawImageHistory) > 0
 }
 
-// Restore restores *graphics.Image from the pixels using its state.
+// Restore restores *graphicscommand.Image from the pixels using its state.
 func (i *Image) restore() error {
 	w, h := i.image.Size()
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphics.NewScreenFramebufferImage(w, h)
+		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
 		i.basePixels = nil
 		i.drawImageHistory = nil
 		i.stale = false
 		return nil
 	}
 	if i.volatile {
-		i.image = graphics.NewImage(w, h)
+		i.image = graphicscommand.NewImage(w, h)
 		i.basePixels = nil
 		i.drawImageHistory = nil
 		i.stale = false
@@ -351,7 +351,7 @@ func (i *Image) restore() error {
 		// TODO: panic here?
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
-	gimg := graphics.NewImage(w, h)
+	gimg := graphicscommand.NewImage(w, h)
 	if i.basePixels != nil {
 		gimg.ReplacePixels(i.basePixels, 0, 0, w, h)
 	} else {
@@ -392,7 +392,7 @@ func (i *Image) Dispose() {
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
 func (i *Image) IsInvalidated() (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	graphics.FlushCommands()
+	graphicscommand.FlushCommands()
 	if !IsRestoringEnabled() {
 		return false, nil
 	}

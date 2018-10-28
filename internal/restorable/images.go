@@ -17,7 +17,7 @@ package restorable
 import (
 	"image"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
 
 // restoringEnabled indicates if restoring happens or not.
@@ -54,7 +54,7 @@ var theImages = &images{
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() {
-	graphics.FlushCommands()
+	graphicscommand.FlushCommands()
 	if !restoringEnabled {
 		return
 	}
@@ -63,9 +63,9 @@ func ResolveStaleImages() {
 
 // Restore restores the images.
 //
-// Restoring means to make all *graphics.Image objects have their textures and framebuffers.
+// Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func Restore() error {
-	if err := graphics.ResetGLState(); err != nil {
+	if err := graphicscommand.ResetGLState(); err != nil {
 		return err
 	}
 	return theImages.restore()
@@ -144,7 +144,7 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 
 // restore restores the images.
 //
-// Restoring means to make all *graphics.Image objects have their textures and framebuffers.
+// Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
 	if !IsRestoringEnabled() {
 		panic("not reached")
@@ -208,9 +208,9 @@ func (i *images) restore() error {
 
 // InitializeGLState initializes the GL state.
 func InitializeGLState() error {
-	return graphics.ResetGLState()
+	return graphicscommand.ResetGLState()
 }
 
 func Error() error {
-	return graphics.Error()
+	return graphicscommand.Error()
 }

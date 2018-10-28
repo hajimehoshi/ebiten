@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/graphicsutil"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 	"github.com/hajimehoshi/ebiten/internal/packing"
@@ -65,7 +65,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	w, h := oldImg.Size()
 	vs := graphicsutil.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
-	newImg.DrawImage(oldImg, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(oldImg, vs, is, nil, opengl.CompositeModeCopy, graphicscommand.FilterNearest)
 	oldImg.Dispose()
 	b.restorable = newImg
 
@@ -131,7 +131,7 @@ func (i *Image) ensureNotShared() {
 	vw, vh := i.backend.restorable.Size()
 	vs := graphicsutil.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphicsutil.QuadIndices()
-	newImg.DrawImage(i.backend.restorable, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(i.backend.restorable, vs, is, nil, opengl.CompositeModeCopy, graphicscommand.FilterNearest)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -204,7 +204,7 @@ func (i *Image) Vertex(dx, dy, sx, sy float32, cr, cg, cb, ca float32) []float32
 
 const MaxCountForShare = 10
 
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode opengl.CompositeMode, filter graphicscommand.Filter) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
