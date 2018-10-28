@@ -486,6 +486,8 @@ type DrawTrianglesOptions struct {
 //
 // When the image i is disposed, DrawTriangles does nothing.
 //
+// Internal mipmap is not used on DrawTriangles.
+//
 // Note that this API is experimental.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
