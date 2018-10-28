@@ -27,18 +27,25 @@ type verticesBackend struct {
 	head    int
 }
 
-func (v *verticesBackend) sliceForOneQuad() []float32 {
+func (v *verticesBackend) slice(n int) []float32 {
 	const num = 256
-	size := 4 * graphicscommand.VertexFloatNum()
-	if v.backend == nil {
-		v.backend = make([]float32, size*num)
+	if n > num {
+		panic("not reached")
 	}
-	s := v.backend[v.head : v.head+size]
-	v.head += size
-	if v.head+size > len(v.backend) {
+
+	need := n * graphicscommand.VertexFloatNum()
+	if v.head+need > len(v.backend) {
 		v.backend = nil
 		v.head = 0
 	}
+
+	if v.backend == nil {
+		size := 4 * graphicscommand.VertexFloatNum()
+		v.backend = make([]float32, size*num)
+	}
+
+	s := v.backend[v.head : v.head+need]
+	v.head += need
 	return s
 }
 
@@ -70,7 +77,7 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundry checks.
-	vs := theVerticesBackend.sliceForOneQuad()[0:40]
+	vs := theVerticesBackend.slice(4)[0:40]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 
@@ -150,7 +157,7 @@ func Vertex(width, height int, dx, dy, sx, sy float32, cr, cg, cb, ca float32) [
 	//
 	// NaN would make more sense to represent an invalid state, but vertices including NaN values doesn't work on
 	// some machines (#696). Let's use negative numbers to represent such state.
-	vs := theVerticesBackend.sliceForOneQuad()[0:10]
+	vs := theVerticesBackend.slice(1)[0:10]
 	vs[0] = dx
 	vs[1] = dy
 	vs[2] = sx / wf
