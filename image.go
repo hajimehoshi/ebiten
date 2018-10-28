@@ -70,13 +70,6 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	}
 
 	for len(imgs) < idx+1 {
-		l := len(imgs)
-		var src *shareable.Image
-		if l > 0 {
-			src = m.level(r, l)
-		} else {
-			src = m.orig
-		}
 		w2 := w / 2
 		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
@@ -88,10 +81,14 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		} else {
 			s = shareable.NewImage(w2, h2)
 		}
+
+		var src *shareable.Image
 		var vs []float32
-		if l == 0 {
+		if l := len(imgs); l == 0 {
+			src = m.orig
 			vs = src.QuadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		} else {
+			src = m.level(r, l)
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphicsutil.QuadIndices()
