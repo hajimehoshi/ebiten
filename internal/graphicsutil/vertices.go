@@ -14,10 +14,6 @@
 
 package graphicsutil
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
-)
-
 var (
 	theVerticesBackend = &verticesBackend{}
 )
@@ -28,20 +24,22 @@ type verticesBackend struct {
 }
 
 func (v *verticesBackend) slice(n int) []float32 {
-	const num = 256
+	const (
+		num            = 1024
+		vertexFloatNum = 10
+	)
 	if n > num {
 		panic("not reached")
 	}
 
-	need := n * graphicscommand.VertexFloatNum()
+	need := n * vertexFloatNum
 	if v.head+need > len(v.backend) {
 		v.backend = nil
 		v.head = 0
 	}
 
 	if v.backend == nil {
-		size := 4 * graphicscommand.VertexFloatNum()
-		v.backend = make([]float32, size*num)
+		v.backend = make([]float32, vertexFloatNum*num)
 	}
 
 	s := v.backend[v.head : v.head+need]

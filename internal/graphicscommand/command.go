@@ -225,11 +225,6 @@ type drawImageCommand struct {
 	filter    graphics.Filter
 }
 
-// VertexFloatNum returns the number of floats for one vertex.
-func VertexFloatNum() int {
-	return theArrayBufferLayout.totalBytes() / opengl.Float.SizeInBytes()
-}
-
 func (c *drawImageCommand) String() string {
 	return fmt.Sprintf("draw-image: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d", c.dst, c.src, c.color, c.mode, c.filter)
 }
