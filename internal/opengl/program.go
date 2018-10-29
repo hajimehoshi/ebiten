@@ -54,12 +54,12 @@ func (a *arrayBufferLayout) totalBytes() int {
 }
 
 // newArrayBuffer creates OpenGL's buffer object for the array buffer.
-func (a *arrayBufferLayout) newArrayBuffer() Buffer {
+func (a *arrayBufferLayout) newArrayBuffer() buffer {
 	return GetContext().newArrayBuffer(a.totalBytes() * IndicesNum)
 }
 
 // enable binds the array buffer the given program to use the array buffer.
-func (a *arrayBufferLayout) enable(program Program) {
+func (a *arrayBufferLayout) enable(program program) {
 	for _, p := range a.parts {
 		GetContext().enableVertexAttribArray(program, p.name)
 	}
@@ -72,7 +72,7 @@ func (a *arrayBufferLayout) enable(program Program) {
 }
 
 // disable stops using the array buffer.
-func (a *arrayBufferLayout) disable(program Program) {
+func (a *arrayBufferLayout) disable(program program) {
 	// TODO: Disabling should be done in reversed order?
 	for _, p := range a.parts {
 		GetContext().disableVertexAttribArray(program, p.name)
@@ -112,20 +112,20 @@ func ArrayBufferLayoutTotalBytes() int {
 // openGLState is a state for
 type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
-	arrayBuffer Buffer
+	arrayBuffer buffer
 
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
-	elementArrayBuffer Buffer
+	elementArrayBuffer buffer
 
 	// programNearest is OpenGL's program for rendering a texture with nearest filter.
-	programNearest Program
+	programNearest program
 
 	// programLinear is OpenGL's program for rendering a texture with linear filter.
-	programLinear Program
+	programLinear program
 
-	programScreen Program
+	programScreen program
 
-	lastProgram                Program
+	lastProgram                program
 	lastProjectionMatrix       []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
@@ -137,8 +137,8 @@ var (
 	// theOpenGLState is the OpenGL state in the current process.
 	theOpenGLState openGLState
 
-	zeroBuffer  Buffer
-	zeroProgram Program
+	zeroBuffer  buffer
+	zeroProgram program
 )
 
 const (
@@ -189,31 +189,31 @@ func (s *openGLState) reset() error {
 		}
 	}
 
-	shaderVertexModelviewNative, err := GetContext().newShader(VertexShader, shader(shaderVertexModelview))
+	shaderVertexModelviewNative, err := GetContext().newShader(VertexShader, shaderStr(shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentNearestNative, err := GetContext().newShader(FragmentShader, shader(shaderFragmentNearest))
+	shaderFragmentNearestNative, err := GetContext().newShader(FragmentShader, shaderStr(shaderFragmentNearest))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderFragmentNearestNative)
 
-	shaderFragmentLinearNative, err := GetContext().newShader(FragmentShader, shader(shaderFragmentLinear))
+	shaderFragmentLinearNative, err := GetContext().newShader(FragmentShader, shaderStr(shaderFragmentLinear))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderFragmentLinearNative)
 
-	shaderFragmentScreenNative, err := GetContext().newShader(FragmentShader, shader(shaderFragmentScreen))
+	shaderFragmentScreenNative, err := GetContext().newShader(FragmentShader, shaderStr(shaderFragmentScreen))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderFragmentScreenNative)
 
-	s.programNearest, err = GetContext().newProgram([]Shader{
+	s.programNearest, err = GetContext().newProgram([]shader{
 		shaderVertexModelviewNative,
 		shaderFragmentNearestNative,
 	})
@@ -221,7 +221,7 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.programLinear, err = GetContext().newProgram([]Shader{
+	s.programLinear, err = GetContext().newProgram([]shader{
 		shaderVertexModelviewNative,
 		shaderFragmentLinearNative,
 	})
@@ -229,7 +229,7 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.programScreen, err = GetContext().newProgram([]Shader{
+	s.programScreen, err = GetContext().newProgram([]shader{
 		shaderVertexModelviewNative,
 		shaderFragmentScreenNative,
 	})
@@ -268,7 +268,7 @@ func UseProgram(proj []float32, texture Texture, dstW, dstH, srcW, srcH int, col
 func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
 	c := GetContext()
 
-	var program Program
+	var program program
 	switch filter {
 	case graphics.FilterNearest:
 		program = s.programNearest

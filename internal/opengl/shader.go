@@ -27,7 +27,7 @@ const (
 	shaderFragmentScreen
 )
 
-func shader(id shaderID) string {
+func shaderStr(id shaderID) string {
 	if id == shaderVertexModelview {
 		return shaderStrVertex
 	}

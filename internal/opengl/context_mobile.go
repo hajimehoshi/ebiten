@@ -28,9 +28,9 @@ import (
 type (
 	Texture     mgl.Texture
 	Framebuffer mgl.Framebuffer
-	Shader      mgl.Shader
-	Program     mgl.Program
-	Buffer      mgl.Buffer
+	shader      mgl.Shader
+	program     mgl.Program
+	buffer      mgl.Buffer
 )
 
 var InvalidTexture Texture
@@ -47,7 +47,7 @@ var (
 	invalidFramebuffer = Framebuffer(mgl.Framebuffer{(1 << 32) - 1})
 )
 
-func getProgramID(p Program) programID {
+func getProgramID(p program) programID {
 	return programID(p.Value)
 }
 
@@ -241,11 +241,11 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl.DeleteFramebuffer(mgl.Framebuffer(f))
 }
 
-func (c *Context) newShader(shaderType ShaderType, source string) (Shader, error) {
+func (c *Context) newShader(shaderType shaderType, source string) (shader, error) {
 	gl := c.gl
 	s := gl.CreateShader(mgl.Enum(shaderType))
 	if s.Value == 0 {
-		return Shader{}, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
+		return shader{}, fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 	gl.ShaderSource(s, source)
 	gl.CompileShader(s)
@@ -253,21 +253,21 @@ func (c *Context) newShader(shaderType ShaderType, source string) (Shader, error
 	v := gl.GetShaderi(s, mgl.COMPILE_STATUS)
 	if v == mgl.FALSE {
 		log := gl.GetShaderInfoLog(s)
-		return Shader{}, fmt.Errorf("opengl: shader compile failed: %s", log)
+		return shader{}, fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
-	return Shader(s), nil
+	return shader(s), nil
 }
 
-func (c *Context) deleteShader(s Shader) {
+func (c *Context) deleteShader(s shader) {
 	gl := c.gl
 	gl.DeleteShader(mgl.Shader(s))
 }
 
-func (c *Context) newProgram(shaders []Shader) (Program, error) {
+func (c *Context) newProgram(shaders []shader) (program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
 	if p.Value == 0 {
-		return Program{}, errors.New("opengl: glCreateProgram failed")
+		return program{}, errors.New("opengl: glCreateProgram failed")
 	}
 
 	for _, shader := range shaders {
@@ -276,17 +276,17 @@ func (c *Context) newProgram(shaders []Shader) (Program, error) {
 	gl.LinkProgram(p)
 	v := gl.GetProgrami(p, mgl.LINK_STATUS)
 	if v == mgl.FALSE {
-		return Program{}, errors.New("opengl: program error")
+		return program{}, errors.New("opengl: program error")
 	}
-	return Program(p), nil
+	return program(p), nil
 }
 
-func (c *Context) useProgram(p Program) {
+func (c *Context) useProgram(p program) {
 	gl := c.gl
 	gl.UseProgram(mgl.Program(p))
 }
 
-func (c *Context) deleteProgram(p Program) {
+func (c *Context) deleteProgram(p program) {
 	gl := c.gl
 	if !gl.IsProgram(mgl.Program(p)) {
 		return
@@ -294,7 +294,7 @@ func (c *Context) deleteProgram(p Program) {
 	gl.DeleteProgram(mgl.Program(p))
 }
 
-func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
+func (c *Context) getUniformLocationImpl(p program, location string) uniformLocation {
 	gl := c.gl
 	u := uniformLocation(gl.GetUniformLocation(mgl.Program(p), location))
 	if u.Value == -1 {
@@ -303,17 +303,17 @@ func (c *Context) getUniformLocationImpl(p Program, location string) uniformLoca
 	return u
 }
 
-func (c *Context) uniformInt(p Program, location string, v int) {
+func (c *Context) uniformInt(p program, location string, v int) {
 	gl := c.gl
 	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
-func (c *Context) uniformFloat(p Program, location string, v float32) {
+func (c *Context) uniformFloat(p program, location string, v float32) {
 	gl := c.gl
 	gl.Uniform1f(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
-func (c *Context) uniformFloats(p Program, location string, v []float32) {
+func (c *Context) uniformFloats(p program, location string, v []float32) {
 	gl := c.gl
 	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))
 	switch len(v) {
@@ -328,7 +328,7 @@ func (c *Context) uniformFloats(p Program, location string, v []float32) {
 	}
 }
 
-func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
+func (c *Context) getAttribLocationImpl(p program, location string) attribLocation {
 	gl := c.gl
 	a := attribLocation(gl.GetAttribLocation(mgl.Program(p), location))
 	if a.Value == ^uint(0) {
@@ -337,41 +337,41 @@ func (c *Context) getAttribLocationImpl(p Program, location string) attribLocati
 	return a
 }
 
-func (c *Context) vertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
+func (c *Context) vertexAttribPointer(p program, location string, size int, dataType DataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.Enum(dataType), false, stride, offset)
 }
 
-func (c *Context) enableVertexAttribArray(p Program, location string) {
+func (c *Context) enableVertexAttribArray(p program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(mgl.Attrib(l))
 }
 
-func (c *Context) disableVertexAttribArray(p Program, location string) {
+func (c *Context) disableVertexAttribArray(p program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
-func (c *Context) newArrayBuffer(size int) Buffer {
+func (c *Context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(ArrayBuffer), b)
 	gl.BufferInit(mgl.Enum(ArrayBuffer), size, mgl.Enum(DynamicDraw))
-	return Buffer(b)
+	return buffer(b)
 }
 
-func (c *Context) newElementArrayBuffer(size int) Buffer {
+func (c *Context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(ElementArrayBuffer), b)
 	gl.BufferInit(mgl.Enum(ElementArrayBuffer), size, mgl.Enum(DynamicDraw))
-	return Buffer(b)
+	return buffer(b)
 }
 
-func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
+func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
 	gl := c.gl
 	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
 }
@@ -386,12 +386,12 @@ func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl.BufferSubData(mgl.Enum(ElementArrayBuffer), 0, uint16sToBytes(data))
 }
 
-func (c *Context) deleteBuffer(b Buffer) {
+func (c *Context) deleteBuffer(b buffer) {
 	gl := c.gl
 	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
-func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
+func (c *Context) DrawElements(mode mode, len int, offsetInBytes int) {
 	gl := c.gl
 	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, offsetInBytes)
 }

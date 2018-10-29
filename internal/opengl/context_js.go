@@ -28,13 +28,13 @@ import (
 type (
 	Texture         js.Value
 	Framebuffer     js.Value
-	Shader          js.Value
-	Buffer          js.Value
+	shader          js.Value
+	buffer          js.Value
 	uniformLocation js.Value
 
 	attribLocation int
 	programID      int
-	Program        struct {
+	program        struct {
 		value js.Value
 		id    programID
 	}
@@ -42,7 +42,7 @@ type (
 
 var InvalidTexture = Texture(js.Null())
 
-func getProgramID(p Program) programID {
+func getProgramID(p program) programID {
 	return p.id
 }
 
@@ -72,13 +72,13 @@ var (
 func init() {
 	// Accessing the prototype is rquired on Safari.
 	c := js.Global().Get("WebGLRenderingContext").Get("prototype")
-	VertexShader = ShaderType(c.Get("VERTEX_SHADER").Int())
-	FragmentShader = ShaderType(c.Get("FRAGMENT_SHADER").Int())
-	ArrayBuffer = BufferType(c.Get("ARRAY_BUFFER").Int())
-	ElementArrayBuffer = BufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
-	DynamicDraw = BufferUsage(c.Get("DYNAMIC_DRAW").Int())
-	Triangles = Mode(c.Get("TRIANGLES").Int())
-	Lines = Mode(c.Get("LINES").Int())
+	VertexShader = shaderType(c.Get("VERTEX_SHADER").Int())
+	FragmentShader = shaderType(c.Get("FRAGMENT_SHADER").Int())
+	ArrayBuffer = bufferType(c.Get("ARRAY_BUFFER").Int())
+	ElementArrayBuffer = bufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
+	DynamicDraw = bufferUsage(c.Get("DYNAMIC_DRAW").Int())
+	Triangles = mode(c.Get("TRIANGLES").Int())
+	Lines = mode(c.Get("LINES").Int())
 	Short = DataType(c.Get("SHORT").Int())
 	Float = DataType(c.Get("FLOAT").Int())
 
@@ -285,11 +285,11 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl.Call("deleteFramebuffer", js.Value(f))
 }
 
-func (c *Context) newShader(shaderType ShaderType, source string) (Shader, error) {
+func (c *Context) newShader(shaderType shaderType, source string) (shader, error) {
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
 	if s == js.Null() {
-		return Shader(js.Null()), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
+		return shader(js.Null()), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
 	gl.Call("shaderSource", js.Value(s), source)
@@ -297,21 +297,21 @@ func (c *Context) newShader(shaderType ShaderType, source string) (Shader, error
 
 	if !gl.Call("getShaderParameter", js.Value(s), compileStatus).Bool() {
 		log := gl.Call("getShaderInfoLog", js.Value(s))
-		return Shader(js.Null()), fmt.Errorf("opengl: shader compile failed: %s", log)
+		return shader(js.Null()), fmt.Errorf("opengl: shader compile failed: %s", log)
 	}
-	return Shader(s), nil
+	return shader(s), nil
 }
 
-func (c *Context) deleteShader(s Shader) {
+func (c *Context) deleteShader(s shader) {
 	gl := c.gl
 	gl.Call("deleteShader", js.Value(s))
 }
 
-func (c *Context) newProgram(shaders []Shader) (Program, error) {
+func (c *Context) newProgram(shaders []shader) (program, error) {
 	gl := c.gl
 	v := gl.Call("createProgram")
 	if v == js.Null() {
-		return Program{}, errors.New("opengl: glCreateProgram failed")
+		return program{}, errors.New("opengl: glCreateProgram failed")
 	}
 
 	for _, shader := range shaders {
@@ -319,23 +319,23 @@ func (c *Context) newProgram(shaders []Shader) (Program, error) {
 	}
 	gl.Call("linkProgram", v)
 	if !gl.Call("getProgramParameter", v, linkStatus).Bool() {
-		return Program{}, errors.New("opengl: program error")
+		return program{}, errors.New("opengl: program error")
 	}
 
 	id := c.lastProgramID
 	c.lastProgramID++
-	return Program{
+	return program{
 		value: v,
 		id:    id,
 	}, nil
 }
 
-func (c *Context) useProgram(p Program) {
+func (c *Context) useProgram(p program) {
 	gl := c.gl
 	gl.Call("useProgram", p.value)
 }
 
-func (c *Context) deleteProgram(p Program) {
+func (c *Context) deleteProgram(p program) {
 	gl := c.gl
 	if !gl.Call("isProgram", p.value).Bool() {
 		return
@@ -343,18 +343,18 @@ func (c *Context) deleteProgram(p Program) {
 	gl.Call("deleteProgram", p.value)
 }
 
-func (c *Context) getUniformLocationImpl(p Program, location string) uniformLocation {
+func (c *Context) getUniformLocationImpl(p program, location string) uniformLocation {
 	gl := c.gl
 	return uniformLocation(gl.Call("getUniformLocation", p.value, location))
 }
 
-func (c *Context) uniformInt(p Program, location string, v int) {
+func (c *Context) uniformInt(p program, location string, v int) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	gl.Call("uniform1i", js.Value(l), v)
 }
 
-func (c *Context) uniformFloat(p Program, location string, v float32) {
+func (c *Context) uniformFloat(p program, location string, v float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	gl.Call("uniform1f", js.Value(l), v)
@@ -364,7 +364,7 @@ var (
 	float32Array = js.Global().Get("Float32Array")
 )
 
-func (c *Context) uniformFloats(p Program, location string, v []float32) {
+func (c *Context) uniformFloats(p program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
@@ -381,46 +381,46 @@ func (c *Context) uniformFloats(p Program, location string, v []float32) {
 	}
 }
 
-func (c *Context) getAttribLocationImpl(p Program, location string) attribLocation {
+func (c *Context) getAttribLocationImpl(p program, location string) attribLocation {
 	gl := c.gl
 	return attribLocation(gl.Call("getAttribLocation", p.value, location).Int())
 }
 
-func (c *Context) vertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
+func (c *Context) vertexAttribPointer(p program, location string, size int, dataType DataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("vertexAttribPointer", int(l), size, int(dataType), false, stride, offset)
 }
 
-func (c *Context) enableVertexAttribArray(p Program, location string) {
+func (c *Context) enableVertexAttribArray(p program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("enableVertexAttribArray", int(l))
 }
 
-func (c *Context) disableVertexAttribArray(p Program, location string) {
+func (c *Context) disableVertexAttribArray(p program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("disableVertexAttribArray", int(l))
 }
 
-func (c *Context) newArrayBuffer(size int) Buffer {
+func (c *Context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(ArrayBuffer), js.Value(b))
 	gl.Call("bufferData", int(ArrayBuffer), size, int(DynamicDraw))
-	return Buffer(b)
+	return buffer(b)
 }
 
-func (c *Context) newElementArrayBuffer(size int) Buffer {
+func (c *Context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(ElementArrayBuffer), js.Value(b))
 	gl.Call("bufferData", int(ElementArrayBuffer), size, int(DynamicDraw))
-	return Buffer(b)
+	return buffer(b)
 }
 
-func (c *Context) BindBuffer(bufferType BufferType, b Buffer) {
+func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
 	gl := c.gl
 	gl.Call("bindBuffer", int(bufferType), js.Value(b))
 }
@@ -439,12 +439,12 @@ func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	arr.Release()
 }
 
-func (c *Context) deleteBuffer(b Buffer) {
+func (c *Context) deleteBuffer(b buffer) {
 	gl := c.gl
 	gl.Call("deleteBuffer", js.Value(b))
 }
 
-func (c *Context) DrawElements(mode Mode, len int, offsetInBytes int) {
+func (c *Context) DrawElements(mode mode, len int, offsetInBytes int) {
 	gl := c.gl
 	gl.Call("drawElements", int(mode), len, unsignedShort, offsetInBytes)
 }

@@ -15,10 +15,10 @@
 package opengl
 
 type (
-	ShaderType  int
-	BufferType  int
-	BufferUsage int
-	Mode        int
+	shaderType  int
+	bufferType  int
+	bufferUsage int
+	mode        int
 	operation   int
 )
 
