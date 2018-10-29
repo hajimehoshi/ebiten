@@ -90,7 +90,7 @@ func (c *Context) runOnContextThread(f func() error) error {
 	return c.runOnMainThread(f)
 }
 
-func (c *Context) Reset() error {
+func (c *Context) reset() error {
 	if err := c.runOnContextThread(func() error {
 		if c.init {
 			return nil

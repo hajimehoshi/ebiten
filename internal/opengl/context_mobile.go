@@ -109,7 +109,7 @@ loop:
 	return nil
 }
 
-func (c *Context) Reset() error {
+func (c *Context) reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer

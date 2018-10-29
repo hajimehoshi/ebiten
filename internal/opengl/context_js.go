@@ -147,7 +147,7 @@ func Init() error {
 	return nil
 }
 
-func (c *Context) Reset() error {
+func (c *Context) reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = Texture(js.Null())
 	c.lastFramebuffer = Framebuffer(js.Null())

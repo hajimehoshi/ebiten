@@ -154,7 +154,7 @@ func ResetGLState() error {
 
 // reset resets or initializes the OpenGL state.
 func (s *openGLState) reset() error {
-	if err := GetContext().Reset(); err != nil {
+	if err := GetContext().reset(); err != nil {
 		return err
 	}
 
