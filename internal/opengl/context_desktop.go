@@ -71,6 +71,8 @@ func init() {
 	dstAlpha = gl.DST_ALPHA
 	oneMinusSrcAlpha = gl.ONE_MINUS_SRC_ALPHA
 	oneMinusDstAlpha = gl.ONE_MINUS_DST_ALPHA
+
+	initializeArrayBuferLayout()
 }
 
 type context struct {

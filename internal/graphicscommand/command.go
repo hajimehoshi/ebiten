@@ -90,7 +90,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, forceNewCommand bool) {
-	if nindices > indicesNum {
+	if nindices > opengl.IndicesNum {
 		panic("not implemented for too many indices")
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
@@ -114,12 +114,12 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
-	if len(indices) > indicesNum {
+	if len(indices) > opengl.IndicesNum {
 		panic("not reached")
 	}
 
 	split := false
-	if q.tmpNumIndices+len(indices) > indicesNum {
+	if q.tmpNumIndices+len(indices) > opengl.IndicesNum {
 		q.tmpNumIndices = 0
 		q.nextIndex = 0
 		split = true
@@ -127,7 +127,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 
 	q.appendVertices(vertices)
 	q.appendIndices(indices, uint16(q.nextIndex))
-	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / theArrayBufferLayout.totalBytes()
+	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / opengl.ArrayBufferLayoutTotalBytes()
 	q.tmpNumIndices += len(indices)
 
 	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, split)
@@ -158,10 +158,10 @@ func (q *commandQueue) Flush() {
 		ne := 0
 		nc := 0
 		for _, c := range q.commands {
-			if c.NumIndices() > indicesNum {
+			if c.NumIndices() > opengl.IndicesNum {
 				panic("not reached")
 			}
-			if ne+c.NumIndices() > indicesNum {
+			if ne+c.NumIndices() > opengl.IndicesNum {
 				break
 			}
 			nv += c.NumVertices()
@@ -243,7 +243,9 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 		return nil
 	}
 	proj := f.projectionMatrix()
-	theOpenGLState.useProgram(proj, c.src.texture.native, c.dst, c.src, c.color, c.filter)
+	dw, dh := c.dst.Size()
+	sw, sh := c.src.Size()
+	opengl.UseProgram(proj, c.src.texture.native, dw, dh, sw, sh, c.color, c.filter)
 	opengl.GetContext().DrawElements(opengl.Triangles, c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
@@ -509,4 +511,11 @@ func (c *newScreenFramebufferImageCommand) AddNumIndices(n int) {
 
 func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
 	return false
+}
+
+// ResetGLState resets or initializes the current OpenGL state.
+//
+// TODO: Rename this
+func ResetGLState() error {
+	return opengl.ResetGLState()
 }
