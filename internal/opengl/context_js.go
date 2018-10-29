@@ -285,7 +285,7 @@ func (c *Context) DeleteFramebuffer(f Framebuffer) {
 	gl.Call("deleteFramebuffer", js.Value(f))
 }
 
-func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error) {
+func (c *Context) newShader(shaderType ShaderType, source string) (Shader, error) {
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
 	if s == js.Null() {
@@ -302,12 +302,12 @@ func (c *Context) NewShader(shaderType ShaderType, source string) (Shader, error
 	return Shader(s), nil
 }
 
-func (c *Context) DeleteShader(s Shader) {
+func (c *Context) deleteShader(s Shader) {
 	gl := c.gl
 	gl.Call("deleteShader", js.Value(s))
 }
 
-func (c *Context) NewProgram(shaders []Shader) (Program, error) {
+func (c *Context) newProgram(shaders []Shader) (Program, error) {
 	gl := c.gl
 	v := gl.Call("createProgram")
 	if v == js.Null() {
@@ -330,12 +330,12 @@ func (c *Context) NewProgram(shaders []Shader) (Program, error) {
 	}, nil
 }
 
-func (c *Context) UseProgram(p Program) {
+func (c *Context) useProgram(p Program) {
 	gl := c.gl
 	gl.Call("useProgram", p.value)
 }
 
-func (c *Context) DeleteProgram(p Program) {
+func (c *Context) deleteProgram(p Program) {
 	gl := c.gl
 	if !gl.Call("isProgram", p.value).Bool() {
 		return
@@ -348,13 +348,13 @@ func (c *Context) getUniformLocationImpl(p Program, location string) uniformLoca
 	return uniformLocation(gl.Call("getUniformLocation", p.value, location))
 }
 
-func (c *Context) UniformInt(p Program, location string, v int) {
+func (c *Context) uniformInt(p Program, location string, v int) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	gl.Call("uniform1i", js.Value(l), v)
 }
 
-func (c *Context) UniformFloat(p Program, location string, v float32) {
+func (c *Context) uniformFloat(p Program, location string, v float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	gl.Call("uniform1f", js.Value(l), v)
@@ -364,7 +364,7 @@ var (
 	float32Array = js.Global().Get("Float32Array")
 )
 
-func (c *Context) UniformFloats(p Program, location string, v []float32) {
+func (c *Context) uniformFloats(p Program, location string, v []float32) {
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	switch len(v) {
@@ -386,25 +386,25 @@ func (c *Context) getAttribLocationImpl(p Program, location string) attribLocati
 	return attribLocation(gl.Call("getAttribLocation", p.value, location).Int())
 }
 
-func (c *Context) VertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
+func (c *Context) vertexAttribPointer(p Program, location string, size int, dataType DataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("vertexAttribPointer", int(l), size, int(dataType), false, stride, offset)
 }
 
-func (c *Context) EnableVertexAttribArray(p Program, location string) {
+func (c *Context) enableVertexAttribArray(p Program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("enableVertexAttribArray", int(l))
 }
 
-func (c *Context) DisableVertexAttribArray(p Program, location string) {
+func (c *Context) disableVertexAttribArray(p Program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("disableVertexAttribArray", int(l))
 }
 
-func (c *Context) NewArrayBuffer(size int) Buffer {
+func (c *Context) newArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(ArrayBuffer), js.Value(b))
@@ -412,7 +412,7 @@ func (c *Context) NewArrayBuffer(size int) Buffer {
 	return Buffer(b)
 }
 
-func (c *Context) NewElementArrayBuffer(size int) Buffer {
+func (c *Context) newElementArrayBuffer(size int) Buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
 	gl.Call("bindBuffer", int(ElementArrayBuffer), js.Value(b))
@@ -439,7 +439,7 @@ func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	arr.Release()
 }
 
-func (c *Context) DeleteBuffer(b Buffer) {
+func (c *Context) deleteBuffer(b Buffer) {
 	gl := c.gl
 	gl.Call("deleteBuffer", js.Value(b))
 }

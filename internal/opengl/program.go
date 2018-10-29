@@ -55,18 +55,18 @@ func (a *arrayBufferLayout) totalBytes() int {
 
 // newArrayBuffer creates OpenGL's buffer object for the array buffer.
 func (a *arrayBufferLayout) newArrayBuffer() Buffer {
-	return GetContext().NewArrayBuffer(a.totalBytes() * IndicesNum)
+	return GetContext().newArrayBuffer(a.totalBytes() * IndicesNum)
 }
 
 // enable binds the array buffer the given program to use the array buffer.
 func (a *arrayBufferLayout) enable(program Program) {
 	for _, p := range a.parts {
-		GetContext().EnableVertexAttribArray(program, p.name)
+		GetContext().enableVertexAttribArray(program, p.name)
 	}
 	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
-		GetContext().VertexAttribPointer(program, p.name, p.num, p.dataType, total, offset)
+		GetContext().vertexAttribPointer(program, p.name, p.num, p.dataType, total, offset)
 		offset += p.dataType.SizeInBytes() * p.num
 	}
 }
@@ -75,7 +75,7 @@ func (a *arrayBufferLayout) enable(program Program) {
 func (a *arrayBufferLayout) disable(program Program) {
 	// TODO: Disabling should be done in reversed order?
 	for _, p := range a.parts {
-		GetContext().DisableVertexAttribArray(program, p.name)
+		GetContext().disableVertexAttribArray(program, p.name)
 	}
 }
 
@@ -109,7 +109,7 @@ func ArrayBufferLayoutTotalBytes() int {
 	return theArrayBufferLayout.totalBytes()
 }
 
-// openGLState is a state for 
+// openGLState is a state for
 type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
 	arrayBuffer Buffer
@@ -169,51 +169,51 @@ func (s *openGLState) reset() error {
 	// However, it is not assumed that reset is called only when context lost happens.
 	// Let's delete them explicitly.
 	if s.programNearest != zeroProgram {
-		GetContext().DeleteProgram(s.programNearest)
+		GetContext().deleteProgram(s.programNearest)
 	}
 	if s.programLinear != zeroProgram {
-		GetContext().DeleteProgram(s.programLinear)
+		GetContext().deleteProgram(s.programLinear)
 	}
 	if s.programScreen != zeroProgram {
-		GetContext().DeleteProgram(s.programScreen)
+		GetContext().deleteProgram(s.programScreen)
 	}
 
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
 	if !web.IsBrowser() {
 		if s.arrayBuffer != zeroBuffer {
-			GetContext().DeleteBuffer(s.arrayBuffer)
+			GetContext().deleteBuffer(s.arrayBuffer)
 		}
 		if s.elementArrayBuffer != zeroBuffer {
-			GetContext().DeleteBuffer(s.elementArrayBuffer)
+			GetContext().deleteBuffer(s.elementArrayBuffer)
 		}
 	}
 
-	shaderVertexModelviewNative, err := GetContext().NewShader(VertexShader, shader(shaderVertexModelview))
+	shaderVertexModelviewNative, err := GetContext().newShader(VertexShader, shader(shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer GetContext().DeleteShader(shaderVertexModelviewNative)
+	defer GetContext().deleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentNearestNative, err := GetContext().NewShader(FragmentShader, shader(shaderFragmentNearest))
+	shaderFragmentNearestNative, err := GetContext().newShader(FragmentShader, shader(shaderFragmentNearest))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer GetContext().DeleteShader(shaderFragmentNearestNative)
+	defer GetContext().deleteShader(shaderFragmentNearestNative)
 
-	shaderFragmentLinearNative, err := GetContext().NewShader(FragmentShader, shader(shaderFragmentLinear))
+	shaderFragmentLinearNative, err := GetContext().newShader(FragmentShader, shader(shaderFragmentLinear))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer GetContext().DeleteShader(shaderFragmentLinearNative)
+	defer GetContext().deleteShader(shaderFragmentLinearNative)
 
-	shaderFragmentScreenNative, err := GetContext().NewShader(FragmentShader, shader(shaderFragmentScreen))
+	shaderFragmentScreenNative, err := GetContext().newShader(FragmentShader, shader(shaderFragmentScreen))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer GetContext().DeleteShader(shaderFragmentScreenNative)
+	defer GetContext().deleteShader(shaderFragmentScreenNative)
 
-	s.programNearest, err = GetContext().NewProgram([]Shader{
+	s.programNearest, err = GetContext().newProgram([]Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentNearestNative,
 	})
@@ -221,7 +221,7 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.programLinear, err = GetContext().NewProgram([]Shader{
+	s.programLinear, err = GetContext().newProgram([]Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentLinearNative,
 	})
@@ -229,7 +229,7 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.programScreen, err = GetContext().NewProgram([]Shader{
+	s.programScreen, err = GetContext().newProgram([]Shader{
 		shaderVertexModelviewNative,
 		shaderFragmentScreenNative,
 	})
@@ -242,7 +242,7 @@ func (s *openGLState) reset() error {
 	// Note that the indices passed to NewElementArrayBuffer is not under GC management
 	// in opengl package due to unsafe-way.
 	// See NewElementArrayBuffer in context_mobile.go.
-	s.elementArrayBuffer = GetContext().NewElementArrayBuffer(IndicesNum * 2)
+	s.elementArrayBuffer = GetContext().newElementArrayBuffer(IndicesNum * 2)
 
 	return nil
 }
@@ -281,7 +281,7 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 	}
 
 	if s.lastProgram != program {
-		c.UseProgram(program)
+		c.useProgram(program)
 		if s.lastProgram != zeroProgram {
 			theArrayBufferLayout.disable(s.lastProgram)
 		}
@@ -290,7 +290,7 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 		if s.lastProgram == zeroProgram {
 			c.BindBuffer(ArrayBuffer, s.arrayBuffer)
 			c.BindBuffer(ElementArrayBuffer, s.elementArrayBuffer)
-			c.UniformInt(program, "texture", 0)
+			c.uniformInt(program, "texture", 0)
 		}
 
 		s.lastProgram = program
@@ -302,7 +302,7 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 	}
 
 	if !areSameFloat32Array(s.lastProjectionMatrix, proj) {
-		c.UniformFloats(program, "projection_matrix", proj)
+		c.uniformFloats(program, "projection_matrix", proj)
 		if s.lastProjectionMatrix == nil {
 			s.lastProjectionMatrix = make([]float32, 16)
 		}
@@ -314,7 +314,7 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 	esBody, esTranslate := colorM.UnsafeElements()
 
 	if !areSameFloat32Array(s.lastColorMatrix, esBody) {
-		c.UniformFloats(program, "color_matrix_body", esBody)
+		c.uniformFloats(program, "color_matrix_body", esBody)
 		if s.lastColorMatrix == nil {
 			s.lastColorMatrix = make([]float32, 16)
 		}
@@ -322,7 +322,7 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 		s.lastColorMatrix = esBody
 	}
 	if !areSameFloat32Array(s.lastColorMatrixTranslation, esTranslate) {
-		c.UniformFloats(program, "color_matrix_translation", esTranslate)
+		c.uniformFloats(program, "color_matrix_translation", esTranslate)
 		if s.lastColorMatrixTranslation == nil {
 			s.lastColorMatrixTranslation = make([]float32, 4)
 		}
@@ -334,14 +334,14 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 	sh := emath.NextPowerOf2Int(srcH)
 
 	if s.lastSourceWidth != sw || s.lastSourceHeight != sh {
-		c.UniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
+		c.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
 		s.lastSourceWidth = sw
 		s.lastSourceHeight = sh
 	}
 
 	if program == s.programScreen {
 		scale := float32(dstW) / float32(srcW)
-		c.UniformFloat(program, "scale", scale)
+		c.uniformFloat(program, "scale", scale)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
