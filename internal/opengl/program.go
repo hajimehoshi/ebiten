@@ -288,8 +288,8 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 		theArrayBufferLayout.enable(program)
 
 		if s.lastProgram == zeroProgram {
-			c.BindBuffer(arrayBuffer, s.arrayBuffer)
-			c.BindBuffer(elementArrayBuffer, s.elementArrayBuffer)
+			c.bindBuffer(arrayBuffer, s.arrayBuffer)
+			c.bindBuffer(elementArrayBuffer, s.elementArrayBuffer)
 			c.uniformInt(program, "texture", 0)
 		}
 

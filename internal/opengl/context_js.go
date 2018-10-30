@@ -420,7 +420,7 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
+func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
 	gl := c.gl
 	gl.Call("bindBuffer", int(bufferType), js.Value(b))
 }

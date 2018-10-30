@@ -471,7 +471,7 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 	return bf
 }
 
-func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
+func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
 	_ = c.runOnContextThread(func() error {
 		gl.BindBuffer(uint32(bufferType), uint32(b))
 		return nil

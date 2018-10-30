@@ -369,7 +369,7 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
+func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
 	gl := c.gl
 	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
 }
