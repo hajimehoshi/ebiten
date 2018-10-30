@@ -169,10 +169,16 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
-		if i.basePixels == nil {
-			i.basePixels = make([]byte, 4*w*h)
+		if pixels != nil {
+			if i.basePixels == nil {
+				i.basePixels = make([]byte, 4*w*h)
+			}
+			copy(i.basePixels, pixels)
+		} else {
+			// If basePixels is nil, the restored pixels are cleared.
+			// See restore() implementation.
+			i.basePixels = nil
 		}
-		copy(i.basePixels, pixels)
 		i.drawImageHistory = nil
 		i.stale = false
 		return

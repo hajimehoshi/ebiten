@@ -97,6 +97,26 @@ func TestRestore(t *testing.T) {
 	}
 }
 
+func TestRestoreWithoutDraw(t *testing.T) {
+	img0 := NewImage(1024, 1024, false)
+	defer img0.Dispose()
+
+	// If there is no drawing command on img0, img0 is cleared when restored.
+
+	ResolveStaleImages()
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 1024*1024; i++ {
+		want := color.RGBA{0x00, 0x00, 0x00, 0x00}
+		got := byteSliceToColor(img0.BasePixelsForTesting(), i)
+		if !sameColors(got, want, 0) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	}
+}
+
 func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
