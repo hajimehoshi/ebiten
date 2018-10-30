@@ -32,8 +32,6 @@ var (
 	ElementArrayBuffer bufferType
 	DynamicDraw        bufferUsage
 	StaticDraw         bufferUsage
-	Triangles          mode
-	Lines              mode
 	Short              DataType
 	Float              DataType
 

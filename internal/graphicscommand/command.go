@@ -246,7 +246,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
 	opengl.UseProgram(proj, c.src.texture.native, dw, dh, sw, sh, c.color, c.filter)
-	opengl.GetContext().DrawElements(opengl.Triangles, c.nindices, indexOffsetInBytes)
+	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).

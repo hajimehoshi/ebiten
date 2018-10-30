@@ -57,8 +57,6 @@ func init() {
 	ArrayBuffer = mgl.ARRAY_BUFFER
 	ElementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
 	DynamicDraw = mgl.DYNAMIC_DRAW
-	Triangles = mgl.TRIANGLES
-	Lines = mgl.LINES
 	Short = mgl.SHORT
 	Float = mgl.FLOAT
 
@@ -391,9 +389,9 @@ func (c *Context) deleteBuffer(b buffer) {
 	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
-func (c *Context) DrawElements(mode mode, len int, offsetInBytes int) {
+func (c *Context) DrawElements(len int, offsetInBytes int) {
 	gl := c.gl
-	gl.DrawElements(mgl.Enum(mode), len, mgl.UNSIGNED_SHORT, offsetInBytes)
+	gl.DrawElements(mgl.TRIANGLES, len, mgl.UNSIGNED_SHORT, offsetInBytes)
 }
 
 func (c *Context) maxTextureSizeImpl() int {

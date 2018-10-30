@@ -63,6 +63,7 @@ var (
 	textureMinFilter    js.Value
 	textureWrapS        js.Value
 	textureWrapT        js.Value
+	triangles           js.Value
 	rgba                js.Value
 	unpackAlignment     js.Value
 	unsignedByte        js.Value
@@ -77,8 +78,6 @@ func init() {
 	ArrayBuffer = bufferType(c.Get("ARRAY_BUFFER").Int())
 	ElementArrayBuffer = bufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
 	DynamicDraw = bufferUsage(c.Get("DYNAMIC_DRAW").Int())
-	Triangles = mode(c.Get("TRIANGLES").Int())
-	Lines = mode(c.Get("LINES").Int())
 	Short = DataType(c.Get("SHORT").Int())
 	Float = DataType(c.Get("FLOAT").Int())
 
@@ -106,6 +105,7 @@ func init() {
 	textureMinFilter = c.Get("TEXTURE_MIN_FILTER")
 	textureWrapS = c.Get("TEXTURE_WRAP_S")
 	textureWrapT = c.Get("TEXTURE_WRAP_T")
+	triangles = c.Get("TRIANGLES")
 	unpackAlignment = c.Get("UNPACK_ALIGNMENT")
 	unsignedByte = c.Get("UNSIGNED_BYTE")
 	unsignedShort = c.Get("UNSIGNED_SHORT")
@@ -444,9 +444,9 @@ func (c *Context) deleteBuffer(b buffer) {
 	gl.Call("deleteBuffer", js.Value(b))
 }
 
-func (c *Context) DrawElements(mode mode, len int, offsetInBytes int) {
+func (c *Context) DrawElements(len int, offsetInBytes int) {
 	gl := c.gl
-	gl.Call("drawElements", int(mode), len, unsignedShort, offsetInBytes)
+	gl.Call("drawElements", triangles, len, unsignedShort, offsetInBytes)
 }
 
 func (c *Context) maxTextureSizeImpl() int {

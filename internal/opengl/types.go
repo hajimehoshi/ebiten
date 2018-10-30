@@ -18,7 +18,6 @@ type (
 	shaderType  int
 	bufferType  int
 	bufferUsage int
-	mode        int
 	operation   int
 )
 

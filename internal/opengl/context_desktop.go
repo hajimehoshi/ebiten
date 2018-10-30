@@ -60,8 +60,6 @@ func init() {
 	ArrayBuffer = gl.ARRAY_BUFFER
 	ElementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
 	DynamicDraw = gl.DYNAMIC_DRAW
-	Triangles = gl.TRIANGLES
-	Lines = gl.LINES
 	Short = gl.SHORT
 	Float = gl.FLOAT
 
@@ -502,9 +500,9 @@ func (c *Context) deleteBuffer(b buffer) {
 	})
 }
 
-func (c *Context) DrawElements(mode mode, len int, offsetInBytes int) {
+func (c *Context) DrawElements(len int, offsetInBytes int) {
 	_ = c.runOnContextThread(func() error {
-		gl.DrawElements(uint32(mode), int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(offsetInBytes))
+		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(offsetInBytes))
 		return nil
 	})
 }
