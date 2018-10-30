@@ -172,8 +172,7 @@ func (q *commandQueue) Flush() {
 			// Note that the vertices passed to BufferSubData is not under GC management
 			// in opengl package due to unsafe-way.
 			// See BufferSubData in context_mobile.go.
-			opengl.GetContext().ElementArrayBufferSubData(es[:ne])
-			opengl.GetContext().ArrayBufferSubData(vs[:nv])
+			opengl.BufferSubData(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}

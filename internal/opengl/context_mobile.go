@@ -374,12 +374,12 @@ func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
 	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
 }
 
-func (c *Context) ArrayBufferSubData(data []float32) {
+func (c *Context) arrayBufferSubData(data []float32) {
 	gl := c.gl
 	gl.BufferSubData(mgl.Enum(arrayBuffer), 0, float32sToBytes(data))
 }
 
-func (c *Context) ElementArrayBufferSubData(data []uint16) {
+func (c *Context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	gl.BufferSubData(mgl.Enum(elementArrayBuffer), 0, uint16sToBytes(data))
 }

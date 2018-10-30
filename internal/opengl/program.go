@@ -260,6 +260,12 @@ func areSameFloat32Array(a, b []float32) bool {
 	return true
 }
 
+func BufferSubData(vertices []float32, indices []uint16) {
+	c := GetContext()
+	c.arrayBufferSubData(vertices)
+	c.elementArrayBufferSubData(indices)
+}
+
 func UseProgram(proj []float32, texture Texture, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
 	theOpenGLState.useProgram(proj, texture, dstW, dstH, srcW, srcH, colorM, filter)
 }

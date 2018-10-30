@@ -425,14 +425,14 @@ func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
 	gl.Call("bindBuffer", int(bufferType), js.Value(b))
 }
 
-func (c *Context) ArrayBufferSubData(data []float32) {
+func (c *Context) arrayBufferSubData(data []float32) {
 	gl := c.gl
 	arr := js.TypedArrayOf(data)
 	gl.Call("bufferSubData", int(arrayBuffer), 0, arr)
 	arr.Release()
 }
 
-func (c *Context) ElementArrayBufferSubData(data []uint16) {
+func (c *Context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	arr := js.TypedArrayOf(data)
 	gl.Call("bufferSubData", int(elementArrayBuffer), 0, arr)
