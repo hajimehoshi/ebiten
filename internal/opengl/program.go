@@ -189,25 +189,25 @@ func (s *openGLState) reset() error {
 		}
 	}
 
-	shaderVertexModelviewNative, err := GetContext().newShader(VertexShader, shaderStr(shaderVertexModelview))
+	shaderVertexModelviewNative, err := GetContext().newShader(vertexShader, shaderStr(shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentNearestNative, err := GetContext().newShader(FragmentShader, shaderStr(shaderFragmentNearest))
+	shaderFragmentNearestNative, err := GetContext().newShader(fragmentShader, shaderStr(shaderFragmentNearest))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderFragmentNearestNative)
 
-	shaderFragmentLinearNative, err := GetContext().newShader(FragmentShader, shaderStr(shaderFragmentLinear))
+	shaderFragmentLinearNative, err := GetContext().newShader(fragmentShader, shaderStr(shaderFragmentLinear))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer GetContext().deleteShader(shaderFragmentLinearNative)
 
-	shaderFragmentScreenNative, err := GetContext().newShader(FragmentShader, shaderStr(shaderFragmentScreen))
+	shaderFragmentScreenNative, err := GetContext().newShader(fragmentShader, shaderStr(shaderFragmentScreen))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
@@ -288,8 +288,8 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 		theArrayBufferLayout.enable(program)
 
 		if s.lastProgram == zeroProgram {
-			c.BindBuffer(ArrayBuffer, s.arrayBuffer)
-			c.BindBuffer(ElementArrayBuffer, s.elementArrayBuffer)
+			c.BindBuffer(arrayBuffer, s.arrayBuffer)
+			c.BindBuffer(elementArrayBuffer, s.elementArrayBuffer)
 			c.uniformInt(program, "texture", 0)
 		}
 

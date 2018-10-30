@@ -52,11 +52,11 @@ func getProgramID(p program) programID {
 }
 
 func init() {
-	VertexShader = mgl.VERTEX_SHADER
-	FragmentShader = mgl.FRAGMENT_SHADER
-	ArrayBuffer = mgl.ARRAY_BUFFER
-	ElementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
-	DynamicDraw = mgl.DYNAMIC_DRAW
+	vertexShader = mgl.VERTEX_SHADER
+	fragmentShader = mgl.FRAGMENT_SHADER
+	arrayBuffer = mgl.ARRAY_BUFFER
+	elementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
+	dynamicDraw = mgl.DYNAMIC_DRAW
 	Short = mgl.SHORT
 	Float = mgl.FLOAT
 
@@ -356,16 +356,16 @@ func (c *Context) disableVertexAttribArray(p program, location string) {
 func (c *Context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
-	gl.BindBuffer(mgl.Enum(ArrayBuffer), b)
-	gl.BufferInit(mgl.Enum(ArrayBuffer), size, mgl.Enum(DynamicDraw))
+	gl.BindBuffer(mgl.Enum(arrayBuffer), b)
+	gl.BufferInit(mgl.Enum(arrayBuffer), size, mgl.Enum(dynamicDraw))
 	return buffer(b)
 }
 
 func (c *Context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
-	gl.BindBuffer(mgl.Enum(ElementArrayBuffer), b)
-	gl.BufferInit(mgl.Enum(ElementArrayBuffer), size, mgl.Enum(DynamicDraw))
+	gl.BindBuffer(mgl.Enum(elementArrayBuffer), b)
+	gl.BufferInit(mgl.Enum(elementArrayBuffer), size, mgl.Enum(dynamicDraw))
 	return buffer(b)
 }
 
@@ -376,12 +376,12 @@ func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
 
 func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(ArrayBuffer), 0, float32sToBytes(data))
+	gl.BufferSubData(mgl.Enum(arrayBuffer), 0, float32sToBytes(data))
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl := c.gl
-	gl.BufferSubData(mgl.Enum(ElementArrayBuffer), 0, uint16sToBytes(data))
+	gl.BufferSubData(mgl.Enum(elementArrayBuffer), 0, uint16sToBytes(data))
 }
 
 func (c *Context) deleteBuffer(b buffer) {

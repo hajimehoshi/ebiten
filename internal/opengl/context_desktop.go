@@ -55,11 +55,11 @@ func getProgramID(p program) programID {
 }
 
 func init() {
-	VertexShader = gl.VERTEX_SHADER
-	FragmentShader = gl.FRAGMENT_SHADER
-	ArrayBuffer = gl.ARRAY_BUFFER
-	ElementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
-	DynamicDraw = gl.DYNAMIC_DRAW
+	vertexShader = gl.VERTEX_SHADER
+	fragmentShader = gl.FRAGMENT_SHADER
+	arrayBuffer = gl.ARRAY_BUFFER
+	elementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
+	dynamicDraw = gl.DYNAMIC_DRAW
 	Short = gl.SHORT
 	Float = gl.FLOAT
 
@@ -450,8 +450,8 @@ func (c *Context) newArrayBuffer(size int) buffer {
 	_ = c.runOnContextThread(func() error {
 		var b uint32
 		gl.GenBuffers(1, &b)
-		gl.BindBuffer(uint32(ArrayBuffer), b)
-		gl.BufferData(uint32(ArrayBuffer), size, nil, uint32(DynamicDraw))
+		gl.BindBuffer(uint32(arrayBuffer), b)
+		gl.BufferData(uint32(arrayBuffer), size, nil, uint32(dynamicDraw))
 		bf = buffer(b)
 		return nil
 	})
@@ -463,8 +463,8 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 	_ = c.runOnContextThread(func() error {
 		var b uint32
 		gl.GenBuffers(1, &b)
-		gl.BindBuffer(uint32(ElementArrayBuffer), b)
-		gl.BufferData(uint32(ElementArrayBuffer), size, nil, uint32(DynamicDraw))
+		gl.BindBuffer(uint32(elementArrayBuffer), b)
+		gl.BufferData(uint32(elementArrayBuffer), size, nil, uint32(dynamicDraw))
 		bf = buffer(b)
 		return nil
 	})
@@ -480,14 +480,14 @@ func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
 
 func (c *Context) ArrayBufferSubData(data []float32) {
 	_ = c.runOnContextThread(func() error {
-		gl.BufferSubData(uint32(ArrayBuffer), 0, len(data)*4, gl.Ptr(data))
+		gl.BufferSubData(uint32(arrayBuffer), 0, len(data)*4, gl.Ptr(data))
 		return nil
 	})
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	_ = c.runOnContextThread(func() error {
-		gl.BufferSubData(uint32(ElementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
+		gl.BufferSubData(uint32(elementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
 		return nil
 	})
 }

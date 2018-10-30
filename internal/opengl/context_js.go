@@ -73,11 +73,11 @@ var (
 func init() {
 	// Accessing the prototype is rquired on Safari.
 	c := js.Global().Get("WebGLRenderingContext").Get("prototype")
-	VertexShader = shaderType(c.Get("VERTEX_SHADER").Int())
-	FragmentShader = shaderType(c.Get("FRAGMENT_SHADER").Int())
-	ArrayBuffer = bufferType(c.Get("ARRAY_BUFFER").Int())
-	ElementArrayBuffer = bufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
-	DynamicDraw = bufferUsage(c.Get("DYNAMIC_DRAW").Int())
+	vertexShader = shaderType(c.Get("VERTEX_SHADER").Int())
+	fragmentShader = shaderType(c.Get("FRAGMENT_SHADER").Int())
+	arrayBuffer = bufferType(c.Get("ARRAY_BUFFER").Int())
+	elementArrayBuffer = bufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
+	dynamicDraw = bufferUsage(c.Get("DYNAMIC_DRAW").Int())
 	Short = DataType(c.Get("SHORT").Int())
 	Float = DataType(c.Get("FLOAT").Int())
 
@@ -407,16 +407,16 @@ func (c *Context) disableVertexAttribArray(p program, location string) {
 func (c *Context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(ArrayBuffer), js.Value(b))
-	gl.Call("bufferData", int(ArrayBuffer), size, int(DynamicDraw))
+	gl.Call("bindBuffer", int(arrayBuffer), js.Value(b))
+	gl.Call("bufferData", int(arrayBuffer), size, int(dynamicDraw))
 	return buffer(b)
 }
 
 func (c *Context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.Call("createBuffer")
-	gl.Call("bindBuffer", int(ElementArrayBuffer), js.Value(b))
-	gl.Call("bufferData", int(ElementArrayBuffer), size, int(DynamicDraw))
+	gl.Call("bindBuffer", int(elementArrayBuffer), js.Value(b))
+	gl.Call("bufferData", int(elementArrayBuffer), size, int(dynamicDraw))
 	return buffer(b)
 }
 
@@ -428,14 +428,14 @@ func (c *Context) BindBuffer(bufferType bufferType, b buffer) {
 func (c *Context) ArrayBufferSubData(data []float32) {
 	gl := c.gl
 	arr := js.TypedArrayOf(data)
-	gl.Call("bufferSubData", int(ArrayBuffer), 0, arr)
+	gl.Call("bufferSubData", int(arrayBuffer), 0, arr)
 	arr.Release()
 }
 
 func (c *Context) ElementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	arr := js.TypedArrayOf(data)
-	gl.Call("bufferSubData", int(ElementArrayBuffer), 0, arr)
+	gl.Call("bufferSubData", int(elementArrayBuffer), 0, arr)
 	arr.Release()
 }
 

@@ -26,12 +26,12 @@ var (
 )
 
 var (
-	VertexShader       shaderType
-	FragmentShader     shaderType
-	ArrayBuffer        bufferType
-	ElementArrayBuffer bufferType
-	DynamicDraw        bufferUsage
-	StaticDraw         bufferUsage
+	vertexShader       shaderType
+	fragmentShader     shaderType
+	arrayBuffer        bufferType
+	elementArrayBuffer bufferType
+	dynamicDraw        bufferUsage
+	staticDraw         bufferUsage
 	Short              DataType
 	Float              DataType
 
