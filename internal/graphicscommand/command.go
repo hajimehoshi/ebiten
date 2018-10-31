@@ -512,9 +512,7 @@ func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affi
 	return false
 }
 
-// ResetGLState resets or initializes the current OpenGL state.
-//
-// TODO: Rename this
-func ResetGLState() error {
-	return opengl.ResetGLState()
+// ResetGraphicsDriverState resets or initializes the current graphics driver state.
+func ResetGraphicsDriverState() error {
+	return opengl.Reset()
 }

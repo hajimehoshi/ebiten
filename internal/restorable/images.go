@@ -65,7 +65,7 @@ func ResolveStaleImages() {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func Restore() error {
-	if err := graphicscommand.ResetGLState(); err != nil {
+	if err := graphicscommand.ResetGraphicsDriverState(); err != nil {
 		return err
 	}
 	return theImages.restore()
@@ -206,9 +206,9 @@ func (i *images) restore() error {
 	return nil
 }
 
-// InitializeGLState initializes the GL state.
-func InitializeGLState() error {
-	return graphicscommand.ResetGLState()
+// InitializeGraphicsDriverState initializes the graphics driver state.
+func InitializeGraphicsDriverState() error {
+	return graphicscommand.ResetGraphicsDriverState()
 }
 
 func Error() error {

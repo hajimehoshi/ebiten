@@ -449,10 +449,10 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func InitializeGLState() error {
+func InitializeGraphicsDriverState() error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return restorable.InitializeGLState()
+	return restorable.InitializeGraphicsDriverState()
 }
 
 func ResolveStaleImages() {

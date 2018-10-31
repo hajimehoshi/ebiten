@@ -147,8 +147,8 @@ const (
 	maxQuads     = maxTriangles / 2
 )
 
-// ResetGLState resets or initializes the current OpenGL state.
-func ResetGLState() error {
+// Reset resets or initializes the current OpenGL state.
+func Reset() error {
 	return theOpenGLState.reset()
 }
 

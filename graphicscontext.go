@@ -75,7 +75,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 
 func (c *graphicsContext) initializeIfNeeded() error {
 	if !c.initialized {
-		if err := shareable.InitializeGLState(); err != nil {
+		if err := shareable.InitializeGraphicsDriverState(); err != nil {
 			return err
 		}
 		c.initialized = true
