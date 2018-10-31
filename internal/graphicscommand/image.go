@@ -121,7 +121,7 @@ func (i *Image) IsInvalidated() bool {
 	return !opengl.GetContext().IsTexture(i.texture)
 }
 
-func (i *Image) createFramebufferIfNeeded() (*framebuffer, error) {
+func (i *Image) ensureFramebuffer() (*framebuffer, error) {
 	if i.framebuffer != nil {
 		return i.framebuffer, nil
 	}

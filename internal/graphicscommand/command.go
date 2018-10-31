@@ -230,7 +230,7 @@ func (c *drawImageCommand) String() string {
 
 // Exec executes the drawImageCommand.
 func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
-	f, err := c.dst.createFramebufferIfNeeded()
+	f, err := c.dst.ensureFramebuffer()
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ type pixelsCommand struct {
 
 // Exec executes a pixelsCommand.
 func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
-	f, err := c.img.createFramebufferIfNeeded()
+	f, err := c.img.ensureFramebuffer()
 	if err != nil {
 		return err
 	}
