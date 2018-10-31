@@ -42,7 +42,7 @@ func MaxImageSize() int {
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	texture     *texture
+	texture     opengl.Texture
 	framebuffer *framebuffer
 	width       int
 	height      int
@@ -118,7 +118,7 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !opengl.GetContext().IsTexture(i.texture.native)
+	return !opengl.GetContext().IsTexture(i.texture)
 }
 
 func (i *Image) createFramebufferIfNeeded() (*framebuffer, error) {

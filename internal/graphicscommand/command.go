@@ -244,7 +244,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	proj := f.projectionMatrix()
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
-	opengl.UseProgram(proj, c.src.texture.native, dw, dh, sw, sh, c.color, c.filter)
+	opengl.UseProgram(proj, c.src.texture, dw, dh, sw, sh, c.color, c.filter)
 	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
@@ -310,7 +310,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
-	opengl.GetContext().BindTexture(c.dst.texture.native)
+	opengl.GetContext().BindTexture(c.dst.texture)
 	opengl.GetContext().TexSubImage2D(c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
@@ -389,8 +389,8 @@ func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
 		c.target.framebuffer.native != opengl.GetContext().ScreenFramebuffer() {
 		opengl.GetContext().DeleteFramebuffer(c.target.framebuffer.native)
 	}
-	if c.target.texture != nil {
-		opengl.GetContext().DeleteTexture(c.target.texture.native)
+	if c.target.texture != *new(opengl.Texture) {
+		opengl.GetContext().DeleteTexture(c.target.texture)
 	}
 	return nil
 }
@@ -445,13 +445,11 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	w := emath.NextPowerOf2Int(c.width)
 	h := emath.NextPowerOf2Int(c.height)
 	checkSize(w, h)
-	native, err := opengl.GetContext().NewTexture(w, h)
+	t, err := opengl.GetContext().NewTexture(w, h)
 	if err != nil {
 		return err
 	}
-	c.result.texture = &texture{
-		native: native,
-	}
+	c.result.texture = t
 	return nil
 }
 
