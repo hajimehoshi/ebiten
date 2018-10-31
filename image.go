@@ -519,10 +519,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = graphics.Filter(img.filter)
 	}
 
-	vs := []float32{}
+	vs := make([]float32, len(vertices)*10)
 	src := img.mipmap.original()
-	for _, v := range vertices {
-		vs = append(vs, src.Vertex(float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)...)
+	for idx, v := range vertices {
+		src.PutVertex(vs[idx*10:idx*10+10], float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
 	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter)
 	i.disposeMipmaps()
