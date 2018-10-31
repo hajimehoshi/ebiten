@@ -28,7 +28,7 @@ type framebuffer struct {
 
 // newFramebufferFromTexture creates a framebuffer from the given texture.
 func newFramebufferFromTexture(texture *texture, width, height int) (*framebuffer, error) {
-	native, err := opengl.GetContext().NewFramebuffer(opengl.Texture(texture.native))
+	native, err := opengl.GetContext().NewFramebuffer(texture.native)
 	if err != nil {
 		return nil, err
 	}
