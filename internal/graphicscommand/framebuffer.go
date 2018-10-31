@@ -48,20 +48,6 @@ func newScreenFramebuffer(width, height int) *framebuffer {
 	}
 }
 
-// viewportSize returns the viewport size of the framebuffer.
-func (f *framebuffer) viewportSize() (int, int) {
-	// On some environments, viewport size must be within the framebuffer size.
-	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
-	// Use the same size of the framebuffer here.
-	return f.width, f.height
-}
-
-// setAsViewport sets the framebuffer as the current viewport.
-func (f *framebuffer) setAsViewport() {
-	w, h := f.viewportSize()
-	opengl.GetContext().SetViewport(f.native, w, h)
-}
-
 // projectionMatrix returns a projection matrix of the framebuffer.
 //
 // A projection matrix converts the coodinates on the framebuffer
@@ -71,7 +57,6 @@ func (f *framebuffer) projectionMatrix() []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
-	w, h := f.viewportSize()
-	f.proMatrix = opengl.OrthoProjectionMatrix(0, w, 0, h)
+	f.proMatrix = opengl.OrthoProjectionMatrix(0, f.width, 0, f.height)
 	return f.proMatrix
 }

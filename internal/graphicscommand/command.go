@@ -234,8 +234,11 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	f.setAsViewport()
 
+	// On some environments, viewport size must be within the framebuffer size.
+	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
+	// Use the same size of the framebuffer here.
+	opengl.GetContext().SetViewport(f.native, f.width, f.height)
 	opengl.GetContext().BlendFunc(c.mode)
 
 	if c.nindices == 0 {
