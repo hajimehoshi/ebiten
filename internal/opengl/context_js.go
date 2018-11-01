@@ -180,7 +180,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 		return Texture(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
 	gl.Call("pixelStorei", unpackAlignment, 4)
-	c.BindTexture(Texture(t))
+	c.bindTexture(Texture(t))
 
 	gl.Call("texParameteri", texture2d, textureMagFilter, nearest)
 	gl.Call("texParameteri", texture2d, textureMinFilter, nearest)
@@ -241,7 +241,8 @@ func (c *Context) IsTexture(t Texture) bool {
 	return gl.Call("isTexture", js.Value(t)).Bool()
 }
 
-func (c *Context) TexSubImage2D(pixels []byte, x, y, width, height int) {
+func (c *Context) TexSubImage2D(t Texture, pixels []byte, x, y, width, height int) {
+	c.bindTexture(t)
 	gl := c.gl
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,

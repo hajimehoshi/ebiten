@@ -80,7 +80,7 @@ func GetContext() *Context {
 	return theContext
 }
 
-func (c *Context) BindTexture(t Texture) {
+func (c *Context) bindTexture(t Texture) {
 	if c.lastTexture == t {
 		return
 	}

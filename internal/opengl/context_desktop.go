@@ -150,7 +150,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	}); err != nil {
 		return 0, err
 	}
-	c.BindTexture(texture)
+	c.bindTexture(texture)
 	_ = c.runOnContextThread(func() error {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
@@ -220,7 +220,8 @@ func (c *Context) IsTexture(t Texture) bool {
 	return r
 }
 
-func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
+func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
+	c.bindTexture(t)
 	_ = c.runOnContextThread(func() error {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
 		return nil

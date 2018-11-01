@@ -140,7 +140,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 		return Texture{}, errors.New("opengl: creating texture failed")
 	}
 	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
-	c.BindTexture(Texture(t))
+	c.bindTexture(Texture(t))
 
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MAG_FILTER, mgl.NEAREST)
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, mgl.NEAREST)
@@ -191,7 +191,8 @@ func (c *Context) IsTexture(t Texture) bool {
 	return gl.IsTexture(mgl.Texture(t))
 }
 
-func (c *Context) TexSubImage2D(p []byte, x, y, width, height int) {
+func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
+	c.bindTexture(t)
 	gl := c.gl
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }

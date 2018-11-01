@@ -352,5 +352,5 @@ func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, sr
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	c.BindTexture(texture)
+	c.bindTexture(texture)
 }
