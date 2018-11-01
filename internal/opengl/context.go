@@ -100,18 +100,21 @@ func (c *Context) SetViewport(f Framebuffer, width, height int) {
 	c.bindFramebuffer(f)
 	if c.lastViewportWidth != width || c.lastViewportHeight != height {
 		c.setViewportImpl(width, height)
-		c.lastViewportWidth = width
-		c.lastViewportHeight = height
+		// glViewport must be called at least at every frame on iOS.
+		// As the screen framebuffer is the last render target, next SetViewport should be
+		// the first call at a frame.
+		if f == c.screenFramebuffer {
+			c.lastViewportWidth = 0
+			c.lastViewportHeight = 0
+		} else {
+			c.lastViewportWidth = width
+			c.lastViewportHeight = height
+		}
 	}
 }
 
 func (c *Context) ScreenFramebuffer() Framebuffer {
 	return c.screenFramebuffer
-}
-
-func (c *Context) ResetViewportSize() {
-	c.lastViewportWidth = 0
-	c.lastViewportHeight = 0
 }
 
 func (c *Context) MaxTextureSize() int {
