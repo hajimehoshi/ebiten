@@ -147,6 +147,11 @@ func (q *commandQueue) Flush() {
 	}
 
 	// glViewport must be called at least at every frame on iOS.
+	// This is introduced at https://github.com/hajimehoshi/ebiten/commit/e9de66aca2007a679de4ba11ea14ef061dca2f6e.
+	// At that time viewport sizes were always same so it was needed to force to call
+	// glViewport, but now viewport sizes can change and apps can work without this. This is
+	// needed only when the screen framebuffer size and the first framebuffer size are same,
+	// probably.
 	opengl.GetContext().ResetViewportSize()
 	es := q.indices
 	vs := q.vertices
