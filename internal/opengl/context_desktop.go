@@ -228,7 +228,7 @@ func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
 	})
 }
 
-func (c *Context) BindScreenFramebuffer() {
+func (c *Context) BeforeSwapping() {
 	c.bindFramebuffer(c.screenFramebuffer)
 }
 

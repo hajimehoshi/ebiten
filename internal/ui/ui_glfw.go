@@ -681,7 +681,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 
 		// The bound framebuffer must be the original screen framebuffer
 		// before swapping buffers.
-		opengl.GetContext().BindScreenFramebuffer()
+		opengl.GetContext().BeforeSwapping()
 
 		_ = u.runOnMainThread(func() error {
 			if !vsync {
