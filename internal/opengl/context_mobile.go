@@ -76,15 +76,11 @@ type context struct {
 }
 
 func Init() {
-	c := &Context{}
-	c.gl, c.worker = mgl.NewContext()
-	theContext = c
+	theContext.gl, theContext.worker = mgl.NewContext()
 }
 
 func InitWithContext(context mgl.Context) {
-	c := &Context{}
-	c.gl = context
-	theContext = c
+	theContext.gl = context
 }
 
 func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {

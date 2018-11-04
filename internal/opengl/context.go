@@ -74,7 +74,7 @@ type Context struct {
 	context
 }
 
-var theContext *Context
+var theContext = &Context{}
 
 func GetContext() *Context {
 	return theContext

@@ -78,10 +78,6 @@ type context struct {
 	init bool
 }
 
-func init() {
-	theContext = &Context{}
-}
-
 func (c *Context) reset() error {
 	if err := mainthread.Run(func() error {
 		if c.init {

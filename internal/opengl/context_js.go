@@ -119,10 +119,6 @@ type context struct {
 	lastProgramID programID
 }
 
-func init() {
-	theContext = &Context{}
-}
-
 func (c *Context) ensureGL() {
 	if c.gl != (js.Value{}) {
 		return
