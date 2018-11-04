@@ -26,7 +26,7 @@ import (
 )
 
 type (
-	Texture           js.Value
+	textureNative     js.Value
 	framebufferNative js.Value
 	shader            js.Value
 	buffer            js.Value
@@ -40,7 +40,7 @@ type (
 	}
 )
 
-var InvalidTexture = Texture(js.Null())
+var InvalidTexture = textureNative(js.Null())
 
 func getProgramID(p program) programID {
 	return p.id
@@ -149,7 +149,7 @@ func Init() error {
 
 func (c *Context) reset() error {
 	c.locationCache = newLocationCache()
-	c.lastTexture = Texture(js.Null())
+	c.lastTexture = textureNative(js.Null())
 	c.lastFramebuffer = framebufferNative(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
@@ -173,14 +173,14 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	gl.Call("blendFunc", int(s2), int(d2))
 }
 
-func (c *Context) newTexture(width, height int) (Texture, error) {
+func (c *Context) newTexture(width, height int) (textureNative, error) {
 	gl := c.gl
 	t := gl.Call("createTexture")
 	if t == js.Null() {
-		return Texture(js.Null()), errors.New("opengl: glGenTexture failed")
+		return textureNative(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
 	gl.Call("pixelStorei", unpackAlignment, 4)
-	c.bindTexture(Texture(t))
+	c.bindTexture(textureNative(t))
 
 	gl.Call("texParameteri", texture2d, textureMagFilter, nearest)
 	gl.Call("texParameteri", texture2d, textureMinFilter, nearest)
@@ -196,7 +196,7 @@ func (c *Context) newTexture(width, height int) (Texture, error) {
 	// avoided.
 	gl.Call("texImage2D", texture2d, 0, rgba, width, height, 0, rgba, unsignedByte, nil)
 
-	return Texture(t), nil
+	return textureNative(t), nil
 }
 
 func (c *Context) bindFramebufferImpl(f framebufferNative) {
@@ -220,28 +220,28 @@ func (c *Context) framebufferPixels(f *Framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
-func (c *Context) bindTextureImpl(t Texture) {
+func (c *Context) bindTextureImpl(t textureNative) {
 	gl := c.gl
 	gl.Call("bindTexture", texture2d, js.Value(t))
 }
 
-func (c *Context) deleteTexture(t Texture) {
+func (c *Context) deleteTexture(t textureNative) {
 	gl := c.gl
 	if !gl.Call("isTexture", js.Value(t)).Bool() {
 		return
 	}
 	if c.lastTexture == t {
-		c.lastTexture = Texture(js.Null())
+		c.lastTexture = textureNative(js.Null())
 	}
 	gl.Call("deleteTexture", js.Value(t))
 }
 
-func (c *Context) isTexture(t Texture) bool {
+func (c *Context) isTexture(t textureNative) bool {
 	gl := c.gl
 	return gl.Call("isTexture", js.Value(t)).Bool()
 }
 
-func (c *Context) texSubImage2D(t Texture, pixels []byte, x, y, width, height int) {
+func (c *Context) texSubImage2D(t textureNative, pixels []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	gl := c.gl
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
@@ -252,7 +252,7 @@ func (c *Context) texSubImage2D(t Texture, pixels []byte, x, y, width, height in
 	p.Release()
 }
 
-func (c *Context) newFramebuffer(t Texture) (framebufferNative, error) {
+func (c *Context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(framebufferNative(f))

@@ -29,14 +29,14 @@ import (
 )
 
 type (
-	Texture           uint32
+	textureNative     uint32
 	framebufferNative uint32
 	shader            uint32
 	program           uint32
 	buffer            uint32
 )
 
-var InvalidTexture Texture
+var InvalidTexture textureNative
 
 type (
 	uniformLocation int32
@@ -135,8 +135,8 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	})
 }
 
-func (c *Context) newTexture(width, height int) (Texture, error) {
-	var texture Texture
+func (c *Context) newTexture(width, height int) (textureNative, error) {
+	var texture textureNative
 	if err := c.runOnContextThread(func() error {
 		var t uint32
 		gl.GenTextures(1, &t)
@@ -145,7 +145,7 @@ func (c *Context) newTexture(width, height int) (Texture, error) {
 			return errors.New("opengl: creating texture failed")
 		}
 		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
-		texture = Texture(t)
+		texture = textureNative(t)
 		return nil
 	}); err != nil {
 		return 0, err
@@ -190,14 +190,14 @@ func (c *Context) framebufferPixels(f *Framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
-func (c *Context) bindTextureImpl(t Texture) {
+func (c *Context) bindTextureImpl(t textureNative) {
 	_ = c.runOnContextThread(func() error {
 		gl.BindTexture(gl.TEXTURE_2D, uint32(t))
 		return nil
 	})
 }
 
-func (c *Context) deleteTexture(t Texture) {
+func (c *Context) deleteTexture(t textureNative) {
 	_ = c.runOnContextThread(func() error {
 		tt := uint32(t)
 		if !gl.IsTexture(tt) {
@@ -211,7 +211,7 @@ func (c *Context) deleteTexture(t Texture) {
 	})
 }
 
-func (c *Context) isTexture(t Texture) bool {
+func (c *Context) isTexture(t textureNative) bool {
 	r := false
 	_ = c.runOnContextThread(func() error {
 		r = gl.IsTexture(uint32(t))
@@ -220,7 +220,7 @@ func (c *Context) isTexture(t Texture) bool {
 	return r
 }
 
-func (c *Context) texSubImage2D(t Texture, p []byte, x, y, width, height int) {
+func (c *Context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	_ = c.runOnContextThread(func() error {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
@@ -232,7 +232,7 @@ func (c *Context) BeforeSwapping() {
 	c.bindFramebuffer(c.screenFramebuffer)
 }
 
-func (c *Context) newFramebuffer(texture Texture) (framebufferNative, error) {
+func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var framebuffer framebufferNative
 	var f uint32
 	if err := c.runOnContextThread(func() error {

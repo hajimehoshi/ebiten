@@ -26,14 +26,14 @@ import (
 )
 
 type (
-	Texture           mgl.Texture
+	textureNative     mgl.Texture
 	framebufferNative mgl.Framebuffer
 	shader            mgl.Shader
 	program           mgl.Program
 	buffer            mgl.Buffer
 )
 
-var InvalidTexture Texture
+var InvalidTexture textureNative
 
 type (
 	uniformLocation mgl.Uniform
@@ -43,7 +43,7 @@ type (
 type programID uint32
 
 var (
-	invalidTexture     = Texture(mgl.Texture{})
+	invalidTexture     = textureNative(mgl.Texture{})
 	invalidFramebuffer = framebufferNative(mgl.Framebuffer{(1 << 32) - 1})
 )
 
@@ -133,14 +133,14 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	gl.BlendFunc(mgl.Enum(s2), mgl.Enum(d2))
 }
 
-func (c *Context) newTexture(width, height int) (Texture, error) {
+func (c *Context) newTexture(width, height int) (textureNative, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t.Value <= 0 {
-		return Texture{}, errors.New("opengl: creating texture failed")
+		return textureNative{}, errors.New("opengl: creating texture failed")
 	}
 	gl.PixelStorei(mgl.UNPACK_ALIGNMENT, 4)
-	c.bindTexture(Texture(t))
+	c.bindTexture(textureNative(t))
 
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MAG_FILTER, mgl.NEAREST)
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, mgl.NEAREST)
@@ -148,7 +148,7 @@ func (c *Context) newTexture(width, height int) (Texture, error) {
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_WRAP_T, mgl.CLAMP_TO_EDGE)
 	gl.TexImage2D(mgl.TEXTURE_2D, 0, mgl.RGBA, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
 
-	return Texture(t), nil
+	return textureNative(t), nil
 }
 
 func (c *Context) bindFramebufferImpl(f framebufferNative) {
@@ -170,12 +170,12 @@ func (c *Context) framebufferPixels(f *Framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
-func (c *Context) bindTextureImpl(t Texture) {
+func (c *Context) bindTextureImpl(t textureNative) {
 	gl := c.gl
 	gl.BindTexture(mgl.TEXTURE_2D, mgl.Texture(t))
 }
 
-func (c *Context) deleteTexture(t Texture) {
+func (c *Context) deleteTexture(t textureNative) {
 	gl := c.gl
 	if !gl.IsTexture(mgl.Texture(t)) {
 		return
@@ -186,18 +186,18 @@ func (c *Context) deleteTexture(t Texture) {
 	gl.DeleteTexture(mgl.Texture(t))
 }
 
-func (c *Context) isTexture(t Texture) bool {
+func (c *Context) isTexture(t textureNative) bool {
 	gl := c.gl
 	return gl.IsTexture(mgl.Texture(t))
 }
 
-func (c *Context) texSubImage2D(t Texture, p []byte, x, y, width, height int) {
+func (c *Context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	gl := c.gl
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) newFramebuffer(texture Texture) (framebufferNative, error) {
+func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
 	if f.Value <= 0 {

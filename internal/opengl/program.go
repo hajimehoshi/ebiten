@@ -267,11 +267,11 @@ func BufferSubData(vertices []float32, indices []uint16) {
 }
 
 func UseProgram(proj []float32, src *Image, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
-	theOpenGLState.useProgram(proj, src.Texture, dstW, dstH, srcW, srcH, colorM, filter)
+	theOpenGLState.useProgram(proj, src.textureNative, dstW, dstH, srcW, srcH, colorM, filter)
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture Texture, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
+func (s *openGLState) useProgram(proj []float32, texture textureNative, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
 	c := GetContext()
 
 	var program program

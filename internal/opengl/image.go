@@ -37,10 +37,10 @@ func checkSize(width, height int) {
 }
 
 type Image struct {
-	Texture     Texture
-	Framebuffer *Framebuffer
-	width       int
-	height      int
+	textureNative textureNative
+	Framebuffer   *Framebuffer
+	width         int
+	height        int
 }
 
 func NewImage(width, height int) (*Image, error) {
@@ -55,7 +55,7 @@ func NewImage(width, height int) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	i.Texture = t
+	i.textureNative = t
 	return i, nil
 }
 
@@ -77,15 +77,15 @@ func (i *Image) Size() (int, int) {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !theContext.isTexture(i.Texture)
+	return !theContext.isTexture(i.textureNative)
 }
 
 func (i *Image) Delete() {
 	if i.Framebuffer != nil {
 		i.Framebuffer.delete()
 	}
-	if i.Texture != *new(Texture) {
-		theContext.deleteTexture(i.Texture)
+	if i.textureNative != *new(textureNative) {
+		theContext.deleteTexture(i.textureNative)
 	}
 }
 
@@ -121,7 +121,7 @@ func (i *Image) ensureFramebuffer() error {
 		return nil
 	}
 	w, h := i.Size()
-	f, err := newFramebufferFromTexture(i.Texture, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
+	f, err := newFramebufferFromTexture(i.textureNative, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
 	if err != nil {
 		return err
 	}
@@ -130,5 +130,5 @@ func (i *Image) ensureFramebuffer() error {
 }
 
 func (i *Image) TexSubImage2D(p []byte, x, y, width, height int) {
-	theContext.texSubImage2D(i.Texture, p, x, y, width, height)
+	theContext.texSubImage2D(i.textureNative, p, x, y, width, height)
 }

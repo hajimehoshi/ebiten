@@ -66,7 +66,7 @@ type Context struct {
 	locationCache      *locationCache
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    framebufferNative
-	lastTexture        Texture
+	lastTexture        textureNative
 	lastViewportWidth  int
 	lastViewportHeight int
 	lastCompositeMode  graphics.CompositeMode
@@ -80,7 +80,7 @@ func GetContext() *Context {
 	return theContext
 }
 
-func (c *Context) bindTexture(t Texture) {
+func (c *Context) bindTexture(t textureNative) {
 	if c.lastTexture == t {
 		return
 	}
