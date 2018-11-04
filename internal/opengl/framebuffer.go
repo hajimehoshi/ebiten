@@ -12,51 +12,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphicscommand
+package opengl
 
-import (
-	"github.com/hajimehoshi/ebiten/internal/opengl"
-)
-
-// framebuffer is a wrapper of OpenGL's framebuffer.
-type framebuffer struct {
-	native    opengl.Framebuffer
+// FramebufferStruct is a wrapper of OpenGL's framebuffer.
+//
+// TODO: Create a new struct Image and embed this struct.
+type FramebufferStruct struct {
+	native    Framebuffer
 	proMatrix []float32
 	width     int
 	height    int
 }
 
-// newFramebufferFromTexture creates a framebuffer from the given texture.
-func newFramebufferFromTexture(texture opengl.Texture, width, height int) (*framebuffer, error) {
-	native, err := opengl.GetContext().NewFramebuffer(texture)
+// NewFramebufferFromTexture creates a framebuffer from the given texture.
+func NewFramebufferFromTexture(texture Texture, width, height int) (*FramebufferStruct, error) {
+	native, err := theContext.newFramebuffer(texture)
 	if err != nil {
 		return nil, err
 	}
-	return &framebuffer{
+	return &FramebufferStruct{
 		native: native,
 		width:  width,
 		height: height,
 	}, nil
 }
 
-// newScreenFramebuffer creates a framebuffer for the screen.
-func newScreenFramebuffer(width, height int) *framebuffer {
-	return &framebuffer{
-		native: opengl.GetContext().ScreenFramebuffer(),
+// NewScreenFramebuffer creates a framebuffer for the screen.
+func NewScreenFramebuffer(width, height int) *FramebufferStruct {
+	return &FramebufferStruct{
+		native: theContext.getScreenFramebuffer(),
 		width:  width,
 		height: height,
 	}
 }
 
-// projectionMatrix returns a projection matrix of the framebuffer.
+// ProjectionMatrix returns a projection matrix of the framebuffer.
 //
 // A projection matrix converts the coodinates on the framebuffer
 // (0, 0) - (viewport width, viewport height)
 // to the normalized device coodinates (-1, -1) - (1, 1) with adjustment.
-func (f *framebuffer) projectionMatrix() []float32 {
+func (f *FramebufferStruct) ProjectionMatrix() []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
-	f.proMatrix = opengl.OrthoProjectionMatrix(0, f.width, 0, f.height)
+	f.proMatrix = orthoProjectionMatrix(0, f.width, 0, f.height)
 	return f.proMatrix
+}
+
+func (f *FramebufferStruct) Delete() {
+	if f.native != theContext.getScreenFramebuffer() {
+		theContext.deleteFramebuffer(f.native)
+	}
 }

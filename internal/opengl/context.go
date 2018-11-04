@@ -96,24 +96,24 @@ func (c *Context) bindFramebuffer(f Framebuffer) {
 	c.lastFramebuffer = f
 }
 
-func (c *Context) SetViewport(f Framebuffer, width, height int) {
-	c.bindFramebuffer(f)
-	if c.lastViewportWidth != width || c.lastViewportHeight != height {
-		c.setViewportImpl(width, height)
+func (c *Context) SetViewport(f *FramebufferStruct) {
+	c.bindFramebuffer(f.native)
+	if c.lastViewportWidth != f.width || c.lastViewportHeight != f.height {
+		c.setViewportImpl(f.width, f.height)
 		// glViewport must be called at least at every frame on iOS.
 		// As the screen framebuffer is the last render target, next SetViewport should be
 		// the first call at a frame.
-		if f == c.screenFramebuffer {
+		if f.native == c.screenFramebuffer {
 			c.lastViewportWidth = 0
 			c.lastViewportHeight = 0
 		} else {
-			c.lastViewportWidth = width
-			c.lastViewportHeight = height
+			c.lastViewportWidth = f.width
+			c.lastViewportHeight = f.height
 		}
 	}
 }
 
-func (c *Context) ScreenFramebuffer() Framebuffer {
+func (c *Context) getScreenFramebuffer() Framebuffer {
 	return c.screenFramebuffer
 }
 

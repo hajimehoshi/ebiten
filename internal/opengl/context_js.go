@@ -204,10 +204,10 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl.Call("bindFramebuffer", framebuffer, js.Value(f))
 }
 
-func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
+func (c *Context) FramebufferPixels(f *FramebufferStruct, width, height int) ([]byte, error) {
 	gl := c.gl
 
-	c.bindFramebuffer(f)
+	c.bindFramebuffer(f.native)
 
 	pixels := make([]byte, 4*width*height)
 	p := js.TypedArrayOf(pixels)
@@ -252,7 +252,7 @@ func (c *Context) TexSubImage2D(t Texture, pixels []byte, x, y, width, height in
 	p.Release()
 }
 
-func (c *Context) NewFramebuffer(t Texture) (Framebuffer, error) {
+func (c *Context) newFramebuffer(t Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(Framebuffer(f))
@@ -270,7 +270,7 @@ func (c *Context) setViewportImpl(width, height int) {
 	gl.Call("viewport", 0, 0, width, height)
 }
 
-func (c *Context) DeleteFramebuffer(f Framebuffer) {
+func (c *Context) deleteFramebuffer(f Framebuffer) {
 	gl := c.gl
 	if !gl.Call("isFramebuffer", js.Value(f)).Bool() {
 		return

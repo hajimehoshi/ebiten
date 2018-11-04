@@ -236,13 +236,13 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	// On some environments, viewport size must be within the framebuffer size.
 	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
 	// Use the same size of the framebuffer here.
-	opengl.GetContext().SetViewport(f.native, f.width, f.height)
+	opengl.GetContext().SetViewport(f)
 	opengl.GetContext().BlendFunc(c.mode)
 
 	if c.nindices == 0 {
 		return nil
 	}
-	proj := f.projectionMatrix()
+	proj := f.ProjectionMatrix()
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
 	opengl.UseProgram(proj, c.src.texture, dw, dh, sw, sh, c.color, c.filter)
@@ -344,7 +344,7 @@ func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	p, err := opengl.GetContext().FramebufferPixels(f.native, c.img.width, c.img.height)
+	p, err := opengl.GetContext().FramebufferPixels(f, c.img.width, c.img.height)
 	if err != nil {
 		return err
 	}
@@ -385,9 +385,8 @@ func (c *disposeCommand) String() string {
 
 // Exec executes the disposeCommand.
 func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
-	if c.target.framebuffer != nil &&
-		c.target.framebuffer.native != opengl.GetContext().ScreenFramebuffer() {
-		opengl.GetContext().DeleteFramebuffer(c.target.framebuffer.native)
+	if c.target.framebuffer != nil {
+		c.target.framebuffer.Delete()
 	}
 	if c.target.texture != *new(opengl.Texture) {
 		opengl.GetContext().DeleteTexture(c.target.texture)
@@ -488,7 +487,7 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	// The (default) framebuffer size can't be converted to a power of 2.
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).
-	c.result.framebuffer = newScreenFramebuffer(c.width, c.height)
+	c.result.framebuffer = opengl.NewScreenFramebuffer(c.width, c.height)
 	return nil
 }
 

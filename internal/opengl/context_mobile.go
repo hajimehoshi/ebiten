@@ -156,11 +156,11 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 }
 
-func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
+func (c *Context) FramebufferPixels(f *FramebufferStruct, width, height int) ([]byte, error) {
 	gl := c.gl
 	gl.Flush()
 
-	c.bindFramebuffer(f)
+	c.bindFramebuffer(f.native)
 
 	pixels := make([]byte, 4*width*height)
 	gl.ReadPixels(pixels, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE)
@@ -197,7 +197,7 @@ func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
+func (c *Context) newFramebuffer(texture Texture) (Framebuffer, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
 	if f.Value <= 0 {
@@ -224,7 +224,7 @@ func (c *Context) setViewportImpl(width, height int) {
 	gl.Viewport(0, 0, width, height)
 }
 
-func (c *Context) DeleteFramebuffer(f Framebuffer) {
+func (c *Context) deleteFramebuffer(f Framebuffer) {
 	gl := c.gl
 	if !gl.IsFramebuffer(mgl.Framebuffer(f)) {
 		return

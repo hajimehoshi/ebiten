@@ -169,13 +169,13 @@ func (c *Context) bindFramebufferImpl(f Framebuffer) {
 	})
 }
 
-func (c *Context) FramebufferPixels(f Framebuffer, width, height int) ([]byte, error) {
+func (c *Context) FramebufferPixels(f *FramebufferStruct, width, height int) ([]byte, error) {
 	var pixels []byte
 	_ = c.runOnContextThread(func() error {
 		gl.Flush()
 		return nil
 	})
-	c.bindFramebuffer(f)
+	c.bindFramebuffer(f.native)
 	if err := c.runOnContextThread(func() error {
 		pixels = make([]byte, 4*width*height)
 		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
@@ -232,7 +232,7 @@ func (c *Context) BeforeSwapping() {
 	c.bindFramebuffer(c.screenFramebuffer)
 }
 
-func (c *Context) NewFramebuffer(texture Texture) (Framebuffer, error) {
+func (c *Context) newFramebuffer(texture Texture) (Framebuffer, error) {
 	var framebuffer Framebuffer
 	var f uint32
 	if err := c.runOnContextThread(func() error {
@@ -273,7 +273,7 @@ func (c *Context) setViewportImpl(width, height int) {
 	})
 }
 
-func (c *Context) DeleteFramebuffer(f Framebuffer) {
+func (c *Context) deleteFramebuffer(f Framebuffer) {
 	_ = c.runOnContextThread(func() error {
 		ff := uint32(f)
 		if !gl.IsFramebufferEXT(ff) {

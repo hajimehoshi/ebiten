@@ -14,10 +14,10 @@
 
 package opengl
 
-// OrthoProjectionMatrix returns an orthogonal projection matrix for OpenGL.
+// orthoProjectionMatrix returns an orthogonal projection matrix for OpenGL.
 //
 // The matrix converts the coodinates (left, bottom) - (right, top) to the normalized device coodinates (-1, -1) - (1, 1).
-func OrthoProjectionMatrix(left, right, bottom, top int) []float32 {
+func orthoProjectionMatrix(left, right, bottom, top int) []float32 {
 	e11 := 2 / float32(right-left)
 	e22 := 2 / float32(top-bottom)
 	e14 := -1 * float32(right+left) / float32(right-left)
