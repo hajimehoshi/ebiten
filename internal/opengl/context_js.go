@@ -506,7 +506,3 @@ func (c *Context) RestoreContext() {
 		c.loseContext.Call("restoreContext")
 	}
 }
-
-func (c *Context) BeforeSwapping() {
-	// Do nothing
-}

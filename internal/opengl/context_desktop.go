@@ -218,10 +218,6 @@ func (c *Context) texSubImage2D(t textureNative, p []byte, x, y, width, height i
 	})
 }
 
-func (c *Context) BeforeSwapping() {
-	c.bindFramebuffer(c.screenFramebuffer)
-}
-
 func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var framebuffer framebufferNative
 	var f uint32
