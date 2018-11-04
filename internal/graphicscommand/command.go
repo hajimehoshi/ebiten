@@ -245,7 +245,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	proj := f.ProjectionMatrix()
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
-	opengl.UseProgram(proj, c.src.image.Texture, dw, dh, sw, sh, c.color, c.filter)
+	opengl.UseProgram(proj, c.src.image, dw, dh, sw, sh, c.color, c.filter)
 	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),

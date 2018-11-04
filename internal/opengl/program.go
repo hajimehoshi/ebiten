@@ -266,8 +266,8 @@ func BufferSubData(vertices []float32, indices []uint16) {
 	c.elementArrayBufferSubData(indices)
 }
 
-func UseProgram(proj []float32, texture Texture, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
-	theOpenGLState.useProgram(proj, texture, dstW, dstH, srcW, srcH, colorM, filter)
+func UseProgram(proj []float32, src *Image, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
+	theOpenGLState.useProgram(proj, src.Texture, dstW, dstH, srcW, srcH, colorM, filter)
 }
 
 // useProgram uses the program (programTexture).
