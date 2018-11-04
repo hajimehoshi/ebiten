@@ -14,6 +14,10 @@
 
 package opengl
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/math"
+)
+
 type Image struct {
 	Texture     Texture
 	Framebuffer *Framebuffer
@@ -38,9 +42,49 @@ func (i *Image) IsInvalidated() bool {
 
 func (i *Image) Delete() {
 	if i.Framebuffer != nil {
-		i.Framebuffer.Delete()
+		i.Framebuffer.delete()
 	}
 	if i.Texture != *new(Texture) {
 		theContext.deleteTexture(i.Texture)
 	}
+}
+
+func (i *Image) SetViewport() error {
+	if err := i.ensureFramebuffer(); err != nil {
+		return err
+	}
+	theContext.setViewport(i.Framebuffer)
+	return nil
+}
+
+func (i *Image) Pixels() ([]byte, error) {
+	if err := i.ensureFramebuffer(); err != nil {
+		return nil, err
+	}
+	w, h := i.Size()
+	p, err := theContext.FramebufferPixels(i.Framebuffer, w, h)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (i *Image) ProjectionMatrix() []float32 {
+	if i.Framebuffer == nil {
+		panic("not reached")
+	}
+	return i.Framebuffer.projectionMatrix()
+}
+
+func (i *Image) ensureFramebuffer() error {
+	if i.Framebuffer != nil {
+		return nil
+	}
+	w, h := i.Size()
+	f, err := NewFramebufferFromTexture(i.Texture, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
+	if err != nil {
+		return err
+	}
+	i.Framebuffer = f
+	return nil
 }

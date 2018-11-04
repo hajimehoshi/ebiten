@@ -17,7 +17,6 @@ package graphicscommand
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -114,17 +113,4 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 
 func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
-}
-
-func (i *Image) ensureFramebuffer() (*opengl.Framebuffer, error) {
-	if i.image.Framebuffer != nil {
-		return i.image.Framebuffer, nil
-	}
-	w, h := i.image.Size()
-	f, err := opengl.NewFramebufferFromTexture(i.image.Texture, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
-	if err != nil {
-		return nil, err
-	}
-	i.image.Framebuffer = f
-	return i.image.Framebuffer, nil
 }

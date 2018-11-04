@@ -228,21 +228,18 @@ func (c *drawImageCommand) String() string {
 
 // Exec executes the drawImageCommand.
 func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
-	f, err := c.dst.ensureFramebuffer()
-	if err != nil {
-		return err
-	}
-
 	// On some environments, viewport size must be within the framebuffer size.
 	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
 	// Use the same size of the framebuffer here.
-	opengl.GetContext().SetViewport(f)
+	if err := c.dst.image.SetViewport(); err != nil {
+		return err
+	}
 	opengl.GetContext().BlendFunc(c.mode)
 
 	if c.nindices == 0 {
 		return nil
 	}
-	proj := f.ProjectionMatrix()
+	proj := c.dst.image.ProjectionMatrix()
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
 	opengl.UseProgram(proj, c.src.image, dw, dh, sw, sh, c.color, c.filter)
@@ -340,12 +337,7 @@ type pixelsCommand struct {
 
 // Exec executes a pixelsCommand.
 func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
-	f, err := c.img.ensureFramebuffer()
-	if err != nil {
-		return err
-	}
-	w, h := c.img.Size()
-	p, err := opengl.GetContext().FramebufferPixels(f, w, h)
+	p, err := c.img.image.Pixels()
 	if err != nil {
 		return err
 	}

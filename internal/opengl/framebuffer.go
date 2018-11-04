@@ -46,12 +46,12 @@ func NewScreenFramebuffer(width, height int) *Framebuffer {
 	}
 }
 
-// ProjectionMatrix returns a projection matrix of the framebuffer.
+// projectionMatrix returns a projection matrix of the framebuffer.
 //
 // A projection matrix converts the coodinates on the framebuffer
 // (0, 0) - (viewport width, viewport height)
 // to the normalized device coodinates (-1, -1) - (1, 1) with adjustment.
-func (f *Framebuffer) ProjectionMatrix() []float32 {
+func (f *Framebuffer) projectionMatrix() []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
@@ -59,7 +59,7 @@ func (f *Framebuffer) ProjectionMatrix() []float32 {
 	return f.proMatrix
 }
 
-func (f *Framebuffer) Delete() {
+func (f *Framebuffer) delete() {
 	if f.native != theContext.getScreenFramebuffer() {
 		theContext.deleteFramebuffer(f.native)
 	}
