@@ -62,7 +62,7 @@ func (i *Image) Pixels() ([]byte, error) {
 		return nil, err
 	}
 	w, h := i.Size()
-	p, err := theContext.FramebufferPixels(i.Framebuffer, w, h)
+	p, err := theContext.framebufferPixels(i.Framebuffer, w, h)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (i *Image) ensureFramebuffer() error {
 		return nil
 	}
 	w, h := i.Size()
-	f, err := NewFramebufferFromTexture(i.Texture, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
+	f, err := newFramebufferFromTexture(i.Texture, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
 	if err != nil {
 		return err
 	}

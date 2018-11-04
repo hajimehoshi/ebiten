@@ -24,8 +24,8 @@ type Framebuffer struct {
 	height    int
 }
 
-// NewFramebufferFromTexture creates a framebuffer from the given texture.
-func NewFramebufferFromTexture(texture Texture, width, height int) (*Framebuffer, error) {
+// newFramebufferFromTexture creates a framebuffer from the given texture.
+func newFramebufferFromTexture(texture Texture, width, height int) (*Framebuffer, error) {
 	native, err := theContext.newFramebuffer(texture)
 	if err != nil {
 		return nil, err

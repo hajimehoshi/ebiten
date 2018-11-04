@@ -156,7 +156,7 @@ func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 }
 
-func (c *Context) FramebufferPixels(f *Framebuffer, width, height int) ([]byte, error) {
+func (c *Context) framebufferPixels(f *Framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 	gl.Flush()
 
