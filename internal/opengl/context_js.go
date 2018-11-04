@@ -204,7 +204,7 @@ func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	gl.Call("bindFramebuffer", framebuffer, js.Value(f))
 }
 
-func (c *Context) FramebufferPixels(f *FramebufferStruct, width, height int) ([]byte, error) {
+func (c *Context) FramebufferPixels(f *Framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 
 	c.bindFramebuffer(f.native)

@@ -14,10 +14,10 @@
 
 package opengl
 
-// FramebufferStruct is a wrapper of OpenGL's framebuffer.
+// Framebuffer is a wrapper of OpenGL's framebuffer.
 //
 // TODO: Create a new struct Image and embed this struct.
-type FramebufferStruct struct {
+type Framebuffer struct {
 	native    framebufferNative
 	proMatrix []float32
 	width     int
@@ -25,12 +25,12 @@ type FramebufferStruct struct {
 }
 
 // NewFramebufferFromTexture creates a framebuffer from the given texture.
-func NewFramebufferFromTexture(texture Texture, width, height int) (*FramebufferStruct, error) {
+func NewFramebufferFromTexture(texture Texture, width, height int) (*Framebuffer, error) {
 	native, err := theContext.newFramebuffer(texture)
 	if err != nil {
 		return nil, err
 	}
-	return &FramebufferStruct{
+	return &Framebuffer{
 		native: native,
 		width:  width,
 		height: height,
@@ -38,8 +38,8 @@ func NewFramebufferFromTexture(texture Texture, width, height int) (*Framebuffer
 }
 
 // NewScreenFramebuffer creates a framebuffer for the screen.
-func NewScreenFramebuffer(width, height int) *FramebufferStruct {
-	return &FramebufferStruct{
+func NewScreenFramebuffer(width, height int) *Framebuffer {
+	return &Framebuffer{
 		native: theContext.getScreenFramebuffer(),
 		width:  width,
 		height: height,
@@ -51,7 +51,7 @@ func NewScreenFramebuffer(width, height int) *FramebufferStruct {
 // A projection matrix converts the coodinates on the framebuffer
 // (0, 0) - (viewport width, viewport height)
 // to the normalized device coodinates (-1, -1) - (1, 1) with adjustment.
-func (f *FramebufferStruct) ProjectionMatrix() []float32 {
+func (f *Framebuffer) ProjectionMatrix() []float32 {
 	if f.proMatrix != nil {
 		return f.proMatrix
 	}
@@ -59,7 +59,7 @@ func (f *FramebufferStruct) ProjectionMatrix() []float32 {
 	return f.proMatrix
 }
 
-func (f *FramebufferStruct) Delete() {
+func (f *Framebuffer) Delete() {
 	if f.native != theContext.getScreenFramebuffer() {
 		theContext.deleteFramebuffer(f.native)
 	}

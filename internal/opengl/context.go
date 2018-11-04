@@ -96,7 +96,7 @@ func (c *Context) bindFramebuffer(f framebufferNative) {
 	c.lastFramebuffer = f
 }
 
-func (c *Context) SetViewport(f *FramebufferStruct) {
+func (c *Context) SetViewport(f *Framebuffer) {
 	c.bindFramebuffer(f.native)
 	if c.lastViewportWidth != f.width || c.lastViewportHeight != f.height {
 		c.setViewportImpl(f.width, f.height)

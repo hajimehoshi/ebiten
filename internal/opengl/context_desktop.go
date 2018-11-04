@@ -169,7 +169,7 @@ func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	})
 }
 
-func (c *Context) FramebufferPixels(f *FramebufferStruct, width, height int) ([]byte, error) {
+func (c *Context) FramebufferPixels(f *Framebuffer, width, height int) ([]byte, error) {
 	var pixels []byte
 	_ = c.runOnContextThread(func() error {
 		gl.Flush()
