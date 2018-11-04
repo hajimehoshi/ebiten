@@ -191,7 +191,7 @@ func (c *Context) isTexture(t Texture) bool {
 	return gl.IsTexture(mgl.Texture(t))
 }
 
-func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
+func (c *Context) texSubImage2D(t Texture, p []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	gl := c.gl
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)

@@ -220,7 +220,7 @@ func (c *Context) isTexture(t Texture) bool {
 	return r
 }
 
-func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
+func (c *Context) texSubImage2D(t Texture, p []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	_ = c.runOnContextThread(func() error {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))

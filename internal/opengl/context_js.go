@@ -241,7 +241,7 @@ func (c *Context) isTexture(t Texture) bool {
 	return gl.Call("isTexture", js.Value(t)).Bool()
 }
 
-func (c *Context) TexSubImage2D(t Texture, pixels []byte, x, y, width, height int) {
+func (c *Context) texSubImage2D(t Texture, pixels []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	gl := c.gl
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,

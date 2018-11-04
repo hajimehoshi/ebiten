@@ -307,7 +307,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
-	opengl.GetContext().TexSubImage2D(c.dst.image.Texture, c.pixels, c.x, c.y, c.width, c.height)
+	c.dst.image.TexSubImage2D(c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
 

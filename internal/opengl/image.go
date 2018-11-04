@@ -128,3 +128,7 @@ func (i *Image) ensureFramebuffer() error {
 	i.Framebuffer = f
 	return nil
 }
+
+func (i *Image) TexSubImage2D(p []byte, x, y, width, height int) {
+	theContext.texSubImage2D(i.Texture, p, x, y, width, height)
+}
