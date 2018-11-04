@@ -175,7 +175,7 @@ func (c *Context) bindTextureImpl(t Texture) {
 	gl.BindTexture(mgl.TEXTURE_2D, mgl.Texture(t))
 }
 
-func (c *Context) DeleteTexture(t Texture) {
+func (c *Context) deleteTexture(t Texture) {
 	gl := c.gl
 	if !gl.IsTexture(mgl.Texture(t)) {
 		return

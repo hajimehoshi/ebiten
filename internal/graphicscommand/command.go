@@ -386,12 +386,7 @@ func (c *disposeCommand) String() string {
 
 // Exec executes the disposeCommand.
 func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
-	if c.target.image.Framebuffer != nil {
-		c.target.image.Framebuffer.Delete()
-	}
-	if c.target.image.Texture != *new(opengl.Texture) {
-		opengl.GetContext().DeleteTexture(c.target.image.Texture)
-	}
+	c.target.image.Delete()
 	return nil
 }
 

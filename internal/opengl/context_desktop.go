@@ -197,7 +197,7 @@ func (c *Context) bindTextureImpl(t Texture) {
 	})
 }
 
-func (c *Context) DeleteTexture(t Texture) {
+func (c *Context) deleteTexture(t Texture) {
 	_ = c.runOnContextThread(func() error {
 		tt := uint32(t)
 		if !gl.IsTexture(tt) {

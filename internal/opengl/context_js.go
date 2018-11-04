@@ -225,7 +225,7 @@ func (c *Context) bindTextureImpl(t Texture) {
 	gl.Call("bindTexture", texture2d, js.Value(t))
 }
 
-func (c *Context) DeleteTexture(t Texture) {
+func (c *Context) deleteTexture(t Texture) {
 	gl := c.gl
 	if !gl.Call("isTexture", js.Value(t)).Bool() {
 		return

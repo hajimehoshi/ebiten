@@ -35,3 +35,12 @@ func (i *Image) Size() (int, int) {
 func (i *Image) IsInvalidated() bool {
 	return !theContext.isTexture(i.Texture)
 }
+
+func (i *Image) Delete() {
+	if i.Framebuffer != nil {
+		i.Framebuffer.Delete()
+	}
+	if i.Texture != *new(Texture) {
+		theContext.deleteTexture(i.Texture)
+	}
+}
