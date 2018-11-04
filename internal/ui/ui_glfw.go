@@ -32,7 +32,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
 type userInterface struct {
@@ -648,10 +647,6 @@ func (u *userInterface) loop(g GraphicsContext) error {
 		u.m.Lock()
 		vsync := u.vsync
 		u.m.Unlock()
-
-		// The bound framebuffer must be the original screen framebuffer
-		// before swapping buffers.
-		opengl.GetContext().BeforeSwapping()
 
 		_ = mainthread.Run(func() error {
 			if !vsync {

@@ -198,6 +198,13 @@ func (q *commandQueue) Flush() {
 	q.nindices = 0
 	q.tmpNumIndices = 0
 	q.nextIndex = 0
+
+	// The bound framebuffer must be the original screen framebuffer before swapping buffers.
+	// Note that swapping might not happen after this function. BeforeSwapping should not be
+	// harmful in any cases.
+	//
+	// TODO: Confirm which machine requires this. Probably BungBungame Photon 2?
+	opengl.GetContext().BeforeSwapping()
 }
 
 // Error returns an OpenGL error for the last command.
