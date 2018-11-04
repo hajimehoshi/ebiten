@@ -15,14 +15,7 @@
 package opengl
 
 import (
-	"math"
-
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-)
-
-var (
-	zeroPlus = math.Nextafter32(0, 1)
-	oneMinus = math.Nextafter32(1, 0)
 )
 
 var (
@@ -74,10 +67,10 @@ type Context struct {
 	context
 }
 
-var theContext = &Context{}
+var theContext Context
 
 func GetContext() *Context {
-	return theContext
+	return &theContext
 }
 
 func (c *Context) bindTexture(t textureNative) {
