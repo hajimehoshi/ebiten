@@ -38,7 +38,7 @@ func checkSize(width, height int) {
 
 type Image struct {
 	textureNative textureNative
-	Framebuffer   *Framebuffer
+	Framebuffer   *framebuffer
 	width         int
 	height        int
 }

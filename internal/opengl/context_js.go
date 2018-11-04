@@ -51,7 +51,7 @@ var (
 	clampToEdge         js.Value
 	colorAttachment0    js.Value
 	compileStatus       js.Value
-	framebuffer         js.Value
+	framebuffer_        js.Value
 	framebufferBinding  js.Value
 	framebufferComplete js.Value
 	linkStatus          js.Value
@@ -92,7 +92,7 @@ func init() {
 	clampToEdge = c.Get("CLAMP_TO_EDGE")
 	compileStatus = c.Get("COMPILE_STATUS")
 	colorAttachment0 = c.Get("COLOR_ATTACHMENT0")
-	framebuffer = c.Get("FRAMEBUFFER")
+	framebuffer_ = c.Get("FRAMEBUFFER")
 	framebufferBinding = c.Get("FRAMEBUFFER_BINDING")
 	framebufferComplete = c.Get("FRAMEBUFFER_COMPLETE")
 	linkStatus = c.Get("LINK_STATUS")
@@ -201,10 +201,10 @@ func (c *Context) newTexture(width, height int) (textureNative, error) {
 
 func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	gl := c.gl
-	gl.Call("bindFramebuffer", framebuffer, js.Value(f))
+	gl.Call("bindFramebuffer", framebuffer_, js.Value(f))
 }
 
-func (c *Context) framebufferPixels(f *Framebuffer, width, height int) ([]byte, error) {
+func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 
 	c.bindFramebuffer(f.native)
@@ -257,8 +257,8 @@ func (c *Context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	f := gl.Call("createFramebuffer")
 	c.bindFramebuffer(framebufferNative(f))
 
-	gl.Call("framebufferTexture2D", framebuffer, colorAttachment0, texture2d, js.Value(t), 0)
-	if s := gl.Call("checkFramebufferStatus", framebuffer); s.Int() != framebufferComplete.Int() {
+	gl.Call("framebufferTexture2D", framebuffer_, colorAttachment0, texture2d, js.Value(t), 0)
+	if s := gl.Call("checkFramebufferStatus", framebuffer_); s.Int() != framebufferComplete.Int() {
 		return framebufferNative(js.Null()), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
