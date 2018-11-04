@@ -72,10 +72,6 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func (i *Image) Size() (int, int) {
-	return i.width, i.height
-}
-
 func (i *Image) IsInvalidated() bool {
 	return !theContext.isTexture(i.textureNative)
 }
@@ -101,8 +97,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
-	w, h := i.Size()
-	p, err := theContext.framebufferPixels(i.Framebuffer, w, h)
+	p, err := theContext.framebufferPixels(i.Framebuffer, i.width, i.height)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +115,7 @@ func (i *Image) ensureFramebuffer() error {
 	if i.Framebuffer != nil {
 		return nil
 	}
-	w, h := i.Size()
+	w, h := i.width, i.height
 	f, err := newFramebufferFromTexture(i.textureNative, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
 	if err != nil {
 		return err
