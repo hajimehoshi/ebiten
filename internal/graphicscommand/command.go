@@ -19,7 +19,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -407,36 +406,17 @@ type newImageCommand struct {
 	height int
 }
 
-func checkSize(width, height int) {
-	if width < 1 {
-		panic(fmt.Sprintf("graphics: width (%d) must be equal or more than 1.", width))
-	}
-	if height < 1 {
-		panic(fmt.Sprintf("graphics: height (%d) must be equal or more than 1.", height))
-	}
-	m := MaxImageSize()
-	if width > m {
-		panic(fmt.Sprintf("graphics: width (%d) must be less than or equal to %d", width, m))
-	}
-	if height > m {
-		panic(fmt.Sprintf("graphics: height (%d) must be less than or equal to %d", height, m))
-	}
-}
-
 func (c *newImageCommand) String() string {
 	return fmt.Sprintf("new-image: result: %p, width: %d, height: %d", c.result, c.width, c.height)
 }
 
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
-	w := emath.NextPowerOf2Int(c.width)
-	h := emath.NextPowerOf2Int(c.height)
-	checkSize(w, h)
-	t, err := opengl.GetContext().NewTexture(w, h)
+	i, err := opengl.NewImage(c.width, c.height)
 	if err != nil {
 		return err
 	}
-	c.result.image.Texture = t
+	c.result.image = i
 	return nil
 }
 
@@ -471,11 +451,7 @@ func (c *newScreenFramebufferImageCommand) String() string {
 
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
-	checkSize(c.width, c.height)
-	// The (default) framebuffer size can't be converted to a power of 2.
-	// On browsers, c.width and c.height are used as viewport size and
-	// Edge can't treat a bigger viewport than the drawing area (#71).
-	c.result.image.Framebuffer = opengl.NewScreenFramebuffer(c.width, c.height)
+	c.result.image = opengl.NewScreenFramebufferImage(c.width, c.height)
 	return nil
 }
 

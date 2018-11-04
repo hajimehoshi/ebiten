@@ -133,7 +133,7 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	gl.BlendFunc(mgl.Enum(s2), mgl.Enum(d2))
 }
 
-func (c *Context) NewTexture(width, height int) (Texture, error) {
+func (c *Context) newTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t.Value <= 0 {

@@ -173,7 +173,7 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	gl.Call("blendFunc", int(s2), int(d2))
 }
 
-func (c *Context) NewTexture(width, height int) (Texture, error) {
+func (c *Context) newTexture(width, height int) (Texture, error) {
 	gl := c.gl
 	t := gl.Call("createTexture")
 	if t == js.Null() {

@@ -41,12 +41,15 @@ func MaxImageSize() int {
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image *opengl.Image
+	image  *opengl.Image
+	width  int
+	height int
 }
 
 func NewImage(width, height int) *Image {
 	i := &Image{
-		image: opengl.NewImage(width, height),
+		width:  width,
+		height: height,
 	}
 	c := &newImageCommand{
 		result: i,
@@ -59,7 +62,8 @@ func NewImage(width, height int) *Image {
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		image: opengl.NewImage(width, height),
+		width:  width,
+		height: height,
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
@@ -78,7 +82,8 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) Size() (int, int) {
-	return i.image.Size()
+	// i.image can be nil before initializing.
+	return i.width, i.height
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
@@ -112,5 +117,9 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 }
 
 func (i *Image) IsInvalidated() bool {
+	// i.image can be nil before initializing.
+	if i.image == nil {
+		return false
+	}
 	return i.image.IsInvalidated()
 }

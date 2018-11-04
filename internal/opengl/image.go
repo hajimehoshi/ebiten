@@ -15,8 +15,26 @@
 package opengl
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/math"
 )
+
+func checkSize(width, height int) {
+	if width < 1 {
+		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1.", width))
+	}
+	if height < 1 {
+		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1.", height))
+	}
+	m := theContext.MaxTextureSize()
+	if width > m {
+		panic(fmt.Sprintf("opengl: width (%d) must be less than or equal to %d", width, m))
+	}
+	if height > m {
+		panic(fmt.Sprintf("opengl: height (%d) must be less than or equal to %d", height, m))
+	}
+}
 
 type Image struct {
 	Texture     Texture
@@ -25,11 +43,33 @@ type Image struct {
 	height      int
 }
 
-func NewImage(width, height int) *Image {
-	return &Image{
+func NewImage(width, height int) (*Image, error) {
+	i := &Image{
 		width:  width,
 		height: height,
 	}
+	w := math.NextPowerOf2Int(width)
+	h := math.NextPowerOf2Int(height)
+	checkSize(w, h)
+	t, err := theContext.newTexture(w, h)
+	if err != nil {
+		return nil, err
+	}
+	i.Texture = t
+	return i, nil
+}
+
+func NewScreenFramebufferImage(width, height int) *Image {
+	checkSize(width, height)
+	i := &Image{
+		width:  width,
+		height: height,
+	}
+	// The (default) framebuffer size can't be converted to a power of 2.
+	// On browsers, c.width and c.height are used as viewport size and
+	// Edge can't treat a bigger viewport than the drawing area (#71).
+	i.Framebuffer = newScreenFramebuffer(width, height)
+	return i
 }
 
 func (i *Image) Size() (int, int) {

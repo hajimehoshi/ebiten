@@ -37,8 +37,8 @@ func newFramebufferFromTexture(texture Texture, width, height int) (*Framebuffer
 	}, nil
 }
 
-// NewScreenFramebuffer creates a framebuffer for the screen.
-func NewScreenFramebuffer(width, height int) *Framebuffer {
+// newScreenFramebuffer creates a framebuffer for the screen.
+func newScreenFramebuffer(width, height int) *Framebuffer {
 	return &Framebuffer{
 		native: theContext.getScreenFramebuffer(),
 		width:  width,

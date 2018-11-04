@@ -135,7 +135,7 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 	})
 }
 
-func (c *Context) NewTexture(width, height int) (Texture, error) {
+func (c *Context) newTexture(width, height int) (Texture, error) {
 	var texture Texture
 	if err := c.runOnContextThread(func() error {
 		var t uint32
