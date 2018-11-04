@@ -357,7 +357,7 @@ func init() {
 	}))
 }
 
-func RunMainThreadLoop(ch <-chan error) error {
+func Loop(ch <-chan error) error {
 	return <-ch
 }
 
@@ -366,9 +366,6 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
-	if err := opengl.Init(); err != nil {
-		return err
-	}
 	return u.loop(g)
 }
 

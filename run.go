@@ -318,7 +318,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 		}
 	}()
 	// TODO: Use context in Go 1.7?
-	if err := ui.RunMainThreadLoop(ch); err != nil {
+	if err := ui.Loop(ch); err != nil {
 		return err
 	}
 	return nil

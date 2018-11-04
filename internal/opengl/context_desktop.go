@@ -26,6 +26,7 @@ import (
 	"github.com/go-gl/gl/v2.1/gl"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/mainthread"
 )
 
 type (
@@ -74,22 +75,15 @@ func init() {
 }
 
 type context struct {
-	init            bool
-	runOnMainThread func(func() error) error
+	init bool
 }
 
-func Init(runOnMainThread func(func() error) error) {
-	c := &Context{}
-	c.runOnMainThread = runOnMainThread
-	theContext = c
-}
-
-func (c *Context) runOnContextThread(f func() error) error {
-	return c.runOnMainThread(f)
+func init() {
+	theContext = &Context{}
 }
 
 func (c *Context) reset() error {
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		if c.init {
 			return nil
 		}
@@ -108,12 +102,12 @@ func (c *Context) reset() error {
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = graphics.CompositeModeUnknown
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.Enable(gl.BLEND)
 		return nil
 	})
 	c.BlendFunc(graphics.CompositeModeSourceOver)
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		f := int32(0)
 		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
 		c.screenFramebuffer = framebufferNative(f)
@@ -123,7 +117,7 @@ func (c *Context) reset() error {
 }
 
 func (c *Context) BlendFunc(mode graphics.CompositeMode) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		if c.lastCompositeMode == mode {
 			return nil
 		}
@@ -137,7 +131,7 @@ func (c *Context) BlendFunc(mode graphics.CompositeMode) {
 
 func (c *Context) newTexture(width, height int) (textureNative, error) {
 	var texture textureNative
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		var t uint32
 		gl.GenTextures(1, &t)
 		// TODO: Use gl.IsTexture
@@ -151,7 +145,7 @@ func (c *Context) newTexture(width, height int) (textureNative, error) {
 		return 0, err
 	}
 	c.bindTexture(texture)
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 		gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -163,7 +157,7 @@ func (c *Context) newTexture(width, height int) (textureNative, error) {
 }
 
 func (c *Context) bindFramebufferImpl(f framebufferNative) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
 		return nil
 	})
@@ -171,12 +165,12 @@ func (c *Context) bindFramebufferImpl(f framebufferNative) {
 
 func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	var pixels []byte
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.Flush()
 		return nil
 	})
 	c.bindFramebuffer(f.native)
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		pixels = make([]byte, 4*width*height)
 		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
 		if e := gl.GetError(); e != gl.NO_ERROR {
@@ -191,14 +185,14 @@ func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 }
 
 func (c *Context) bindTextureImpl(t textureNative) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.BindTexture(gl.TEXTURE_2D, uint32(t))
 		return nil
 	})
 }
 
 func (c *Context) deleteTexture(t textureNative) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		tt := uint32(t)
 		if !gl.IsTexture(tt) {
 			return nil
@@ -213,7 +207,7 @@ func (c *Context) deleteTexture(t textureNative) {
 
 func (c *Context) isTexture(t textureNative) bool {
 	r := false
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		r = gl.IsTexture(uint32(t))
 		return nil
 	})
@@ -222,7 +216,7 @@ func (c *Context) isTexture(t textureNative) bool {
 
 func (c *Context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
 	c.bindTexture(t)
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
 		return nil
 	})
@@ -235,7 +229,7 @@ func (c *Context) BeforeSwapping() {
 func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var framebuffer framebufferNative
 	var f uint32
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		gl.GenFramebuffersEXT(1, &f)
 		// TODO: Use gl.IsFramebuffer
 		if f <= 0 {
@@ -246,7 +240,7 @@ func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, erro
 		return 0, err
 	}
 	c.bindFramebuffer(framebufferNative(f))
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
 		s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER)
 		if s != gl.FRAMEBUFFER_COMPLETE {
@@ -267,14 +261,14 @@ func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, erro
 }
 
 func (c *Context) setViewportImpl(width, height int) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.Viewport(0, 0, int32(width), int32(height))
 		return nil
 	})
 }
 
 func (c *Context) deleteFramebuffer(f framebufferNative) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		ff := uint32(f)
 		if !gl.IsFramebufferEXT(ff) {
 			return nil
@@ -291,7 +285,7 @@ func (c *Context) deleteFramebuffer(f framebufferNative) {
 
 func (c *Context) newShader(shaderType shaderType, source string) (shader, error) {
 	var sh shader
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		s := gl.CreateShader(uint32(shaderType))
 		if s == 0 {
 			return fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
@@ -321,7 +315,7 @@ func (c *Context) newShader(shaderType shaderType, source string) (shader, error
 }
 
 func (c *Context) deleteShader(s shader) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.DeleteShader(uint32(s))
 		return nil
 	})
@@ -329,7 +323,7 @@ func (c *Context) deleteShader(s shader) {
 
 func (c *Context) newProgram(shaders []shader) (program, error) {
 	var pr program
-	if err := c.runOnContextThread(func() error {
+	if err := mainthread.Run(func() error {
 		p := gl.CreateProgram()
 		if p == 0 {
 			return errors.New("opengl: glCreateProgram failed")
@@ -353,14 +347,14 @@ func (c *Context) newProgram(shaders []shader) (program, error) {
 }
 
 func (c *Context) useProgram(p program) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.UseProgram(uint32(p))
 		return nil
 	})
 }
 
 func (c *Context) deleteProgram(p program) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		if !gl.IsProgram(uint32(p)) {
 			return nil
 		}
@@ -380,7 +374,7 @@ func (c *Context) getUniformLocationImpl(p program, location string) uniformLoca
 }
 
 func (c *Context) uniformInt(p program, location string, v int) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
 		gl.Uniform1i(l, int32(v))
 		return nil
@@ -388,7 +382,7 @@ func (c *Context) uniformInt(p program, location string, v int) {
 }
 
 func (c *Context) uniformFloat(p program, location string, v float32) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
 		gl.Uniform1f(l, v)
 		return nil
@@ -396,7 +390,7 @@ func (c *Context) uniformFloat(p program, location string, v float32) {
 }
 
 func (c *Context) uniformFloats(p program, location string, v []float32) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		l := int32(c.locationCache.GetUniformLocation(c, p, location))
 		switch len(v) {
 		case 2:
@@ -423,7 +417,7 @@ func (c *Context) getAttribLocationImpl(p program, location string) attribLocati
 }
 
 func (c *Context) vertexAttribPointer(p program, location string, size int, dataType DataType, stride int, offset int) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		l := c.locationCache.GetAttribLocation(c, p, location)
 		gl.VertexAttribPointer(uint32(l), int32(size), uint32(dataType), false, int32(stride), gl.PtrOffset(offset))
 		return nil
@@ -431,7 +425,7 @@ func (c *Context) vertexAttribPointer(p program, location string, size int, data
 }
 
 func (c *Context) enableVertexAttribArray(p program, location string) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		l := c.locationCache.GetAttribLocation(c, p, location)
 		gl.EnableVertexAttribArray(uint32(l))
 		return nil
@@ -439,7 +433,7 @@ func (c *Context) enableVertexAttribArray(p program, location string) {
 }
 
 func (c *Context) disableVertexAttribArray(p program, location string) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		l := c.locationCache.GetAttribLocation(c, p, location)
 		gl.DisableVertexAttribArray(uint32(l))
 		return nil
@@ -448,7 +442,7 @@ func (c *Context) disableVertexAttribArray(p program, location string) {
 
 func (c *Context) newArrayBuffer(size int) buffer {
 	var bf buffer
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		var b uint32
 		gl.GenBuffers(1, &b)
 		gl.BindBuffer(uint32(arrayBuffer), b)
@@ -461,7 +455,7 @@ func (c *Context) newArrayBuffer(size int) buffer {
 
 func (c *Context) newElementArrayBuffer(size int) buffer {
 	var bf buffer
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		var b uint32
 		gl.GenBuffers(1, &b)
 		gl.BindBuffer(uint32(elementArrayBuffer), b)
@@ -473,28 +467,28 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 }
 
 func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.BindBuffer(uint32(bufferType), uint32(b))
 		return nil
 	})
 }
 
 func (c *Context) arrayBufferSubData(data []float32) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.BufferSubData(uint32(arrayBuffer), 0, len(data)*4, gl.Ptr(data))
 		return nil
 	})
 }
 
 func (c *Context) elementArrayBufferSubData(data []uint16) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.BufferSubData(uint32(elementArrayBuffer), 0, len(data)*2, gl.Ptr(data))
 		return nil
 	})
 }
 
 func (c *Context) deleteBuffer(b buffer) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		bb := uint32(b)
 		gl.DeleteBuffers(1, &bb)
 		return nil
@@ -502,7 +496,7 @@ func (c *Context) deleteBuffer(b buffer) {
 }
 
 func (c *Context) DrawElements(len int, offsetInBytes int) {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(offsetInBytes))
 		return nil
 	})
@@ -510,7 +504,7 @@ func (c *Context) DrawElements(len int, offsetInBytes int) {
 
 func (c *Context) maxTextureSizeImpl() int {
 	size := 0
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		s := int32(0)
 		gl.GetIntegerv(gl.MAX_TEXTURE_SIZE, &s)
 		size = int(s)
@@ -520,7 +514,7 @@ func (c *Context) maxTextureSizeImpl() int {
 }
 
 func (c *Context) Flush() {
-	_ = c.runOnContextThread(func() error {
+	_ = mainthread.Run(func() error {
 		gl.Flush()
 		return nil
 	})

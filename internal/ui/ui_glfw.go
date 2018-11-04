@@ -31,6 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
+	"github.com/hajimehoshi/ebiten/internal/mainthread"
 	"github.com/hajimehoshi/ebiten/internal/opengl"
 )
 
@@ -57,8 +58,6 @@ type userInterface struct {
 	initCursorVisible   bool
 	initWindowDecorated bool
 	initIconImages      []image.Image
-
-	funcs chan func()
 
 	m sync.Mutex
 }
@@ -102,7 +101,6 @@ func initialize() error {
 	}
 	hideConsoleWindowOnWindows()
 	currentUI.window = window
-	currentUI.funcs = make(chan func())
 
 	currentUI.window.MakeContextCurrent()
 
@@ -120,23 +118,13 @@ func initialize() error {
 	return nil
 }
 
-func RunMainThreadLoop(ch <-chan error) error {
-	// This must be called on the main thread.
-
-	// TODO: Check this is done on the main thread.
+func Loop(ch <-chan error) error {
 	currentUI.setRunning(true)
-	defer func() {
-		currentUI.setRunning(false)
-	}()
-	for {
-		select {
-		case f := <-currentUI.funcs:
-			f()
-		case err := <-ch:
-			// ch returns a value not only when an error occur but also it is closed.
-			return err
-		}
+	if err := mainthread.Loop(ch); err != nil {
+		return err
 	}
+	currentUI.setRunning(false)
+	return nil
 }
 
 func (u *userInterface) isRunning() bool {
@@ -217,27 +205,12 @@ func (u *userInterface) setInitIconImages(iconImages []image.Image) {
 	u.m.Unlock()
 }
 
-func (u *userInterface) runOnMainThread(f func() error) error {
-	if u.funcs == nil {
-		// already closed
-		return nil
-	}
-	ch := make(chan struct{})
-	var err error
-	u.funcs <- func() {
-		err = f()
-		close(ch)
-	}
-	<-ch
-	return err
-}
-
 func ScreenSizeInFullscreen() (int, int) {
 	u := currentUI
 	var v *glfw.VidMode
 	s := 0.0
 	if u.isRunning() {
-		_ = u.runOnMainThread(func() error {
+		_ = mainthread.Run(func() error {
 			v = u.currentMonitor().GetVideoMode()
 			s = glfwScale()
 			return nil
@@ -255,7 +228,7 @@ func SetScreenSize(width, height int) bool {
 		panic("ui: Run is not called yet")
 	}
 	r := false
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		r = u.setScreenSize(width, height, u.scale, u.fullscreen(), u.vsync)
 		return nil
 	})
@@ -268,7 +241,7 @@ func SetScreenScale(scale float64) bool {
 		panic("ui: Run is not called yet")
 	}
 	r := false
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen(), u.vsync)
 		return nil
 	})
@@ -281,7 +254,7 @@ func ScreenScale() float64 {
 		return 0
 	}
 	s := 0.0
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		s = u.scale
 		return nil
 	})
@@ -302,7 +275,7 @@ func IsFullscreen() bool {
 		return u.isInitFullscreen()
 	}
 	b := false
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		b = u.fullscreen()
 		return nil
 	})
@@ -315,7 +288,7 @@ func SetFullscreen(fullscreen bool) {
 		u.setInitFullscreen(fullscreen)
 		return
 	}
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		u := currentUI
 		u.setScreenSize(u.width, u.height, u.scale, fullscreen, u.vsync)
 		return nil
@@ -342,7 +315,7 @@ func SetVsyncEnabled(enabled bool) {
 		u.m.Unlock()
 		return
 	}
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		u := currentUI
 		u.setScreenSize(u.width, u.height, u.scale, u.fullscreen(), enabled)
 		return nil
@@ -361,7 +334,7 @@ func SetWindowTitle(title string) {
 	if !currentUI.isRunning() {
 		return
 	}
-	_ = currentUI.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		currentUI.window.SetTitle(title)
 		return nil
 	})
@@ -372,7 +345,7 @@ func SetWindowIcon(iconImages []image.Image) {
 		currentUI.setInitIconImages(iconImages)
 		return
 	}
-	_ = currentUI.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		currentUI.window.SetIcon(iconImages)
 		return nil
 	})
@@ -399,7 +372,7 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 	sx := 0.0
 	sy := 0.0
 	gs := 0.0
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		sx = float64(u.width) * u.actualScreenScale()
 		sy = float64(u.height) * u.actualScreenScale()
 		gs = glfwScale()
@@ -424,7 +397,7 @@ func adjustCursorPosition(x, y int) (int, int) {
 	}
 	ox, oy, _, _ := ScreenPadding()
 	s := 0.0
-	_ = currentUI.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		s = currentUI.actualScreenScale()
 		return nil
 	})
@@ -442,7 +415,7 @@ func IsCursorVisible() bool {
 		return u.isInitCursorVisible()
 	}
 	v := false
-	_ = currentUI.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		v = currentUI.window.GetInputMode(glfw.CursorMode) == glfw.CursorNormal
 		return nil
 	})
@@ -455,7 +428,7 @@ func SetCursorVisible(visible bool) {
 		u.setInitCursorVisible(visible)
 		return
 	}
-	_ = currentUI.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		c := glfw.CursorNormal
 		if !visible {
 			c = glfw.CursorHidden
@@ -471,7 +444,7 @@ func IsWindowDecorated() bool {
 		return u.isInitWindowDecorated()
 	}
 	v := false
-	_ = currentUI.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		v = currentUI.window.GetAttrib(glfw.Decorated) == glfw.True
 		return nil
 	})
@@ -490,7 +463,7 @@ func SetWindowDecorated(decorated bool) {
 	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
 	// If SetAttrib exists, the implementation would be:
 	//
-	//     _ = currentUI.runOnMainThread(func() error {
+	//     _ = mainthread.Run(func() error {
 	//         v := glfw.False
 	//         if decorated {
 	//             v = glfw.True
@@ -506,7 +479,7 @@ func DeviceScaleFactor() float64 {
 		return devicescale.GetAt(u.currentMonitor().GetPos())
 	}
 
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		m := u.currentMonitor()
 		f = devicescale.GetAt(m.GetPos())
 		return nil
@@ -516,10 +489,7 @@ func DeviceScaleFactor() float64 {
 
 func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	u := currentUI
-	// GLContext must be created before setting the screen size, which requires
-	// swapping buffers.
-	opengl.Init(currentUI.runOnMainThread)
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		// Get the monitor before showing the window.
 		//
 		// On Windows, there are two types of windows:
@@ -596,7 +566,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	actualScale := 0.0
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		actualScale = u.actualScreenScale()
 		if u.lastActualScale != actualScale {
 			u.forceSetScreenSize(u.width, u.height, u.scale, u.fullscreen(), u.vsync)
@@ -618,7 +588,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 
 func (u *userInterface) update(g GraphicsContext) error {
 	shouldClose := false
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		shouldClose = u.window.ShouldClose()
 		return nil
 	})
@@ -626,7 +596,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return RegularTermination
 	}
 
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		if u.isInitFullscreen() {
 			u := currentUI
 			u.setScreenSize(u.width, u.height, u.scale, true, u.vsync)
@@ -638,7 +608,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	// This call is needed for initialization.
 	u.updateGraphicsContext(g)
 
-	_ = u.runOnMainThread(func() error {
+	_ = mainthread.Run(func() error {
 		u.pollEvents()
 		defer hooks.ResumeAudio()
 		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
@@ -665,7 +635,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 
 func (u *userInterface) loop(g GraphicsContext) error {
 	defer func() {
-		_ = u.runOnMainThread(func() error {
+		_ = mainthread.Run(func() error {
 			glfw.Terminate()
 			return nil
 		})
@@ -683,7 +653,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 		// before swapping buffers.
 		opengl.GetContext().BeforeSwapping()
 
-		_ = u.runOnMainThread(func() error {
+		_ = mainthread.Run(func() error {
 			if !vsync {
 				u.swapBuffers()
 				return nil
