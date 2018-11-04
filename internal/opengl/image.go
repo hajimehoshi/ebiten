@@ -38,7 +38,7 @@ func checkSize(width, height int) {
 
 type Image struct {
 	textureNative textureNative
-	Framebuffer   *framebuffer
+	framebuffer   *framebuffer
 	width         int
 	height        int
 }
@@ -68,7 +68,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	// The (default) framebuffer size can't be converted to a power of 2.
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).
-	i.Framebuffer = newScreenFramebuffer(width, height)
+	i.framebuffer = newScreenFramebuffer(width, height)
 	return i
 }
 
@@ -77,8 +77,8 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) Delete() {
-	if i.Framebuffer != nil {
-		i.Framebuffer.delete()
+	if i.framebuffer != nil {
+		i.framebuffer.delete()
 	}
 	if i.textureNative != *new(textureNative) {
 		theContext.deleteTexture(i.textureNative)
@@ -89,7 +89,7 @@ func (i *Image) SetViewport() error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-	theContext.setViewport(i.Framebuffer)
+	theContext.setViewport(i.framebuffer)
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
-	p, err := theContext.framebufferPixels(i.Framebuffer, i.width, i.height)
+	p, err := theContext.framebufferPixels(i.framebuffer, i.width, i.height)
 	if err != nil {
 		return nil, err
 	}
@@ -105,14 +105,14 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) ProjectionMatrix() []float32 {
-	if i.Framebuffer == nil {
+	if i.framebuffer == nil {
 		panic("not reached")
 	}
-	return i.Framebuffer.projectionMatrix()
+	return i.framebuffer.projectionMatrix()
 }
 
 func (i *Image) ensureFramebuffer() error {
-	if i.Framebuffer != nil {
+	if i.framebuffer != nil {
 		return nil
 	}
 	w, h := i.width, i.height
@@ -120,7 +120,7 @@ func (i *Image) ensureFramebuffer() error {
 	if err != nil {
 		return err
 	}
-	i.Framebuffer = f
+	i.framebuffer = f
 	return nil
 }
 
