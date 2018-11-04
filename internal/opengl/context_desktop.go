@@ -211,7 +211,7 @@ func (c *Context) DeleteTexture(t Texture) {
 	})
 }
 
-func (c *Context) IsTexture(t Texture) bool {
+func (c *Context) isTexture(t Texture) bool {
 	r := false
 	_ = c.runOnContextThread(func() error {
 		r = gl.IsTexture(uint32(t))

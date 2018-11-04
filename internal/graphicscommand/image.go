@@ -42,16 +42,12 @@ func MaxImageSize() int {
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	texture     opengl.Texture
-	framebuffer *opengl.Framebuffer
-	width       int
-	height      int
+	image *opengl.Image
 }
 
 func NewImage(width, height int) *Image {
 	i := &Image{
-		width:  width,
-		height: height,
+		image: opengl.NewImage(width, height),
 	}
 	c := &newImageCommand{
 		result: i,
@@ -64,8 +60,7 @@ func NewImage(width, height int) *Image {
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		width:  width,
-		height: height,
+		image: opengl.NewImage(width, height),
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
@@ -84,7 +79,7 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) Size() (int, int) {
-	return i.width, i.height
+	return i.image.Size()
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
@@ -118,17 +113,18 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !opengl.GetContext().IsTexture(i.texture)
+	return i.image.IsInvalidated()
 }
 
 func (i *Image) ensureFramebuffer() (*opengl.Framebuffer, error) {
-	if i.framebuffer != nil {
-		return i.framebuffer, nil
+	if i.image.Framebuffer != nil {
+		return i.image.Framebuffer, nil
 	}
-	f, err := opengl.NewFramebufferFromTexture(i.texture, math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height))
+	w, h := i.image.Size()
+	f, err := opengl.NewFramebufferFromTexture(i.image.Texture, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
 	if err != nil {
 		return nil, err
 	}
-	i.framebuffer = f
-	return i.framebuffer, nil
+	i.image.Framebuffer = f
+	return i.image.Framebuffer, nil
 }

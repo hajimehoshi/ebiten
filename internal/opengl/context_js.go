@@ -236,7 +236,7 @@ func (c *Context) DeleteTexture(t Texture) {
 	gl.Call("deleteTexture", js.Value(t))
 }
 
-func (c *Context) IsTexture(t Texture) bool {
+func (c *Context) isTexture(t Texture) bool {
 	gl := c.gl
 	return gl.Call("isTexture", js.Value(t)).Bool()
 }

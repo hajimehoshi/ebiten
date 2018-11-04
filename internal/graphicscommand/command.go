@@ -245,7 +245,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	proj := f.ProjectionMatrix()
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
-	opengl.UseProgram(proj, c.src.texture, dw, dh, sw, sh, c.color, c.filter)
+	opengl.UseProgram(proj, c.src.image.Texture, dw, dh, sw, sh, c.color, c.filter)
 	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
@@ -311,7 +311,7 @@ func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	opengl.GetContext().Flush()
-	opengl.GetContext().TexSubImage2D(c.dst.texture, c.pixels, c.x, c.y, c.width, c.height)
+	opengl.GetContext().TexSubImage2D(c.dst.image.Texture, c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
 
@@ -344,7 +344,8 @@ func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	p, err := opengl.GetContext().FramebufferPixels(f, c.img.width, c.img.height)
+	w, h := c.img.Size()
+	p, err := opengl.GetContext().FramebufferPixels(f, w, h)
 	if err != nil {
 		return err
 	}
@@ -385,11 +386,11 @@ func (c *disposeCommand) String() string {
 
 // Exec executes the disposeCommand.
 func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
-	if c.target.framebuffer != nil {
-		c.target.framebuffer.Delete()
+	if c.target.image.Framebuffer != nil {
+		c.target.image.Framebuffer.Delete()
 	}
-	if c.target.texture != *new(opengl.Texture) {
-		opengl.GetContext().DeleteTexture(c.target.texture)
+	if c.target.image.Texture != *new(opengl.Texture) {
+		opengl.GetContext().DeleteTexture(c.target.image.Texture)
 	}
 	return nil
 }
@@ -448,7 +449,7 @@ func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
 	if err != nil {
 		return err
 	}
-	c.result.texture = t
+	c.result.image.Texture = t
 	return nil
 }
 
@@ -487,7 +488,7 @@ func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
 	// The (default) framebuffer size can't be converted to a power of 2.
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).
-	c.result.framebuffer = opengl.NewScreenFramebuffer(c.width, c.height)
+	c.result.image.Framebuffer = opengl.NewScreenFramebuffer(c.width, c.height)
 	return nil
 }
 

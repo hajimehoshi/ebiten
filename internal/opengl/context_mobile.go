@@ -186,7 +186,7 @@ func (c *Context) DeleteTexture(t Texture) {
 	gl.DeleteTexture(mgl.Texture(t))
 }
 
-func (c *Context) IsTexture(t Texture) bool {
+func (c *Context) isTexture(t Texture) bool {
 	gl := c.gl
 	return gl.IsTexture(mgl.Texture(t))
 }
