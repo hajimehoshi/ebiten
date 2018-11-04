@@ -26,11 +26,11 @@ import (
 )
 
 type (
-	Texture     mgl.Texture
-	Framebuffer mgl.Framebuffer
-	shader      mgl.Shader
-	program     mgl.Program
-	buffer      mgl.Buffer
+	Texture           mgl.Texture
+	framebufferNative mgl.Framebuffer
+	shader            mgl.Shader
+	program           mgl.Program
+	buffer            mgl.Buffer
 )
 
 var InvalidTexture Texture
@@ -44,7 +44,7 @@ type programID uint32
 
 var (
 	invalidTexture     = Texture(mgl.Texture{})
-	invalidFramebuffer = Framebuffer(mgl.Framebuffer{(1 << 32) - 1})
+	invalidFramebuffer = framebufferNative(mgl.Framebuffer{(1 << 32) - 1})
 )
 
 func getProgramID(p program) programID {
@@ -117,7 +117,7 @@ func (c *Context) reset() error {
 	c.gl.Enable(mgl.BLEND)
 	c.BlendFunc(graphics.CompositeModeSourceOver)
 	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
-	c.screenFramebuffer = Framebuffer(mgl.Framebuffer{uint32(f)})
+	c.screenFramebuffer = framebufferNative(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
@@ -151,7 +151,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	return Texture(t), nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) {
+func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	gl := c.gl
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 }
@@ -197,26 +197,26 @@ func (c *Context) TexSubImage2D(t Texture, p []byte, x, y, width, height int) {
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) newFramebuffer(texture Texture) (Framebuffer, error) {
+func (c *Context) newFramebuffer(texture Texture) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
 	if f.Value <= 0 {
-		return Framebuffer{}, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
+		return framebufferNative{}, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
 	}
-	c.bindFramebuffer(Framebuffer(f))
+	c.bindFramebuffer(framebufferNative(f))
 
 	gl.FramebufferTexture2D(mgl.FRAMEBUFFER, mgl.COLOR_ATTACHMENT0, mgl.TEXTURE_2D, mgl.Texture(texture), 0)
 	s := gl.CheckFramebufferStatus(mgl.FRAMEBUFFER)
 	if s != mgl.FRAMEBUFFER_COMPLETE {
 		if s != 0 {
-			return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+			return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
 		}
 		if e := gl.GetError(); e != mgl.NO_ERROR {
-			return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
+			return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
 		}
-		return Framebuffer{}, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
+		return framebufferNative{}, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
-	return Framebuffer(f), nil
+	return framebufferNative(f), nil
 }
 
 func (c *Context) setViewportImpl(width, height int) {
@@ -224,7 +224,7 @@ func (c *Context) setViewportImpl(width, height int) {
 	gl.Viewport(0, 0, width, height)
 }
 
-func (c *Context) deleteFramebuffer(f Framebuffer) {
+func (c *Context) deleteFramebuffer(f framebufferNative) {
 	gl := c.gl
 	if !gl.IsFramebuffer(mgl.Framebuffer(f)) {
 		return

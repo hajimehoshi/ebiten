@@ -26,11 +26,11 @@ import (
 )
 
 type (
-	Texture         js.Value
-	Framebuffer     js.Value
-	shader          js.Value
-	buffer          js.Value
-	uniformLocation js.Value
+	Texture           js.Value
+	framebufferNative js.Value
+	shader            js.Value
+	buffer            js.Value
+	uniformLocation   js.Value
 
 	attribLocation int
 	programID      int
@@ -150,7 +150,7 @@ func Init() error {
 func (c *Context) reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = Texture(js.Null())
-	c.lastFramebuffer = Framebuffer(js.Null())
+	c.lastFramebuffer = framebufferNative(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = graphics.CompositeModeUnknown
@@ -158,7 +158,7 @@ func (c *Context) reset() error {
 	gl.Call("enable", blend)
 	c.BlendFunc(graphics.CompositeModeSourceOver)
 	f := gl.Call("getParameter", framebufferBinding)
-	c.screenFramebuffer = Framebuffer(f)
+	c.screenFramebuffer = framebufferNative(f)
 	return nil
 }
 
@@ -199,7 +199,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	return Texture(t), nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) {
+func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	gl := c.gl
 	gl.Call("bindFramebuffer", framebuffer, js.Value(f))
 }
@@ -252,17 +252,17 @@ func (c *Context) TexSubImage2D(t Texture, pixels []byte, x, y, width, height in
 	p.Release()
 }
 
-func (c *Context) newFramebuffer(t Texture) (Framebuffer, error) {
+func (c *Context) newFramebuffer(t Texture) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.Call("createFramebuffer")
-	c.bindFramebuffer(Framebuffer(f))
+	c.bindFramebuffer(framebufferNative(f))
 
 	gl.Call("framebufferTexture2D", framebuffer, colorAttachment0, texture2d, js.Value(t), 0)
 	if s := gl.Call("checkFramebufferStatus", framebuffer); s.Int() != framebufferComplete.Int() {
-		return Framebuffer(js.Null()), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
+		return framebufferNative(js.Null()), errors.New(fmt.Sprintf("opengl: creating framebuffer failed: %d", s.Int()))
 	}
 
-	return Framebuffer(f), nil
+	return framebufferNative(f), nil
 }
 
 func (c *Context) setViewportImpl(width, height int) {
@@ -270,7 +270,7 @@ func (c *Context) setViewportImpl(width, height int) {
 	gl.Call("viewport", 0, 0, width, height)
 }
 
-func (c *Context) deleteFramebuffer(f Framebuffer) {
+func (c *Context) deleteFramebuffer(f framebufferNative) {
 	gl := c.gl
 	if !gl.Call("isFramebuffer", js.Value(f)).Bool() {
 		return
@@ -279,7 +279,7 @@ func (c *Context) deleteFramebuffer(f Framebuffer) {
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
 	if c.lastFramebuffer == f {
-		c.lastFramebuffer = Framebuffer(js.Null())
+		c.lastFramebuffer = framebufferNative(js.Null())
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
 	}

@@ -18,7 +18,7 @@ package opengl
 //
 // TODO: Create a new struct Image and embed this struct.
 type FramebufferStruct struct {
-	native    Framebuffer
+	native    framebufferNative
 	proMatrix []float32
 	width     int
 	height    int

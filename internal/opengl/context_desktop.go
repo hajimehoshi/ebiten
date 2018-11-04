@@ -29,11 +29,11 @@ import (
 )
 
 type (
-	Texture     uint32
-	Framebuffer uint32
-	shader      uint32
-	program     uint32
-	buffer      uint32
+	Texture           uint32
+	framebufferNative uint32
+	shader            uint32
+	program           uint32
+	buffer            uint32
 )
 
 var InvalidTexture Texture
@@ -116,7 +116,7 @@ func (c *Context) reset() error {
 	_ = c.runOnContextThread(func() error {
 		f := int32(0)
 		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
-		c.screenFramebuffer = Framebuffer(f)
+		c.screenFramebuffer = framebufferNative(f)
 		return nil
 	})
 	return nil
@@ -162,7 +162,7 @@ func (c *Context) NewTexture(width, height int) (Texture, error) {
 	return texture, nil
 }
 
-func (c *Context) bindFramebufferImpl(f Framebuffer) {
+func (c *Context) bindFramebufferImpl(f framebufferNative) {
 	_ = c.runOnContextThread(func() error {
 		gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
 		return nil
@@ -232,8 +232,8 @@ func (c *Context) BeforeSwapping() {
 	c.bindFramebuffer(c.screenFramebuffer)
 }
 
-func (c *Context) newFramebuffer(texture Texture) (Framebuffer, error) {
-	var framebuffer Framebuffer
+func (c *Context) newFramebuffer(texture Texture) (framebufferNative, error) {
+	var framebuffer framebufferNative
 	var f uint32
 	if err := c.runOnContextThread(func() error {
 		gl.GenFramebuffersEXT(1, &f)
@@ -245,7 +245,7 @@ func (c *Context) newFramebuffer(texture Texture) (Framebuffer, error) {
 	}); err != nil {
 		return 0, err
 	}
-	c.bindFramebuffer(Framebuffer(f))
+	c.bindFramebuffer(framebufferNative(f))
 	if err := c.runOnContextThread(func() error {
 		gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
 		s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER)
@@ -258,7 +258,7 @@ func (c *Context) newFramebuffer(texture Texture) (Framebuffer, error) {
 			}
 			return fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 		}
-		framebuffer = Framebuffer(f)
+		framebuffer = framebufferNative(f)
 		return nil
 	}); err != nil {
 		return 0, err
@@ -273,7 +273,7 @@ func (c *Context) setViewportImpl(width, height int) {
 	})
 }
 
-func (c *Context) deleteFramebuffer(f Framebuffer) {
+func (c *Context) deleteFramebuffer(f framebufferNative) {
 	_ = c.runOnContextThread(func() error {
 		ff := uint32(f)
 		if !gl.IsFramebufferEXT(ff) {

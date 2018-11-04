@@ -64,8 +64,8 @@ func convertOperation(op graphics.Operation) operation {
 
 type Context struct {
 	locationCache      *locationCache
-	screenFramebuffer  Framebuffer // This might not be the default frame buffer '0' (e.g. iOS).
-	lastFramebuffer    Framebuffer
+	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
+	lastFramebuffer    framebufferNative
 	lastTexture        Texture
 	lastViewportWidth  int
 	lastViewportHeight int
@@ -88,7 +88,7 @@ func (c *Context) bindTexture(t Texture) {
 	c.lastTexture = t
 }
 
-func (c *Context) bindFramebuffer(f Framebuffer) {
+func (c *Context) bindFramebuffer(f framebufferNative) {
 	if c.lastFramebuffer == f {
 		return
 	}
@@ -113,7 +113,7 @@ func (c *Context) SetViewport(f *FramebufferStruct) {
 	}
 }
 
-func (c *Context) getScreenFramebuffer() Framebuffer {
+func (c *Context) getScreenFramebuffer() framebufferNative {
 	return c.screenFramebuffer
 }
 
