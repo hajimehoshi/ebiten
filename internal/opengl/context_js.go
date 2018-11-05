@@ -477,7 +477,7 @@ func (c *Context) deleteBuffer(b buffer) {
 	gl.Call("deleteBuffer", js.Value(b))
 }
 
-func (c *Context) DrawElements(len int, offsetInBytes int) {
+func (c *Context) drawElements(len int, offsetInBytes int) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("drawElements", triangles, len, unsignedShort, offsetInBytes)
@@ -489,19 +489,19 @@ func (c *Context) maxTextureSizeImpl() int {
 	return gl.Call("getParameter", maxTextureSize).Int()
 }
 
-func (c *Context) Flush() {
+func (c *Context) flush() {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("flush")
 }
 
-func (c *Context) IsContextLost() bool {
+func (c *Context) isContextLost() bool {
 	c.ensureGL()
 	gl := c.gl
 	return gl.Call("isContextLost").Bool()
 }
 
-func (c *Context) RestoreContext() {
+func (c *Context) restoreContext() {
 	if c.loseContext != js.Null() {
 		c.loseContext.Call("restoreContext")
 	}

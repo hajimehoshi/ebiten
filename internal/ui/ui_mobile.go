@@ -53,7 +53,7 @@ func Render(chError <-chan error) error {
 	// TODO: Check this is called on the rendering thread
 	select {
 	case renderCh <- struct{}{}:
-		return opengl.GetContext().DoWork(chError, renderChEnd)
+		return opengl.GetDriver().DoWork(chError, renderChEnd)
 	case <-time.After(500 * time.Millisecond):
 		// This function must not be blocked. We need to break for timeout.
 		return nil
