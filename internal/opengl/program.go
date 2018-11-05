@@ -265,7 +265,8 @@ func BufferSubData(vertices []float32, indices []uint16) {
 	c.elementArrayBufferSubData(indices)
 }
 
-func UseProgram(proj []float32, src *Image, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
+func UseProgram(mode graphics.CompositeMode, proj []float32, src *Image, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
+	GetContext().blendFunc(mode)
 	theOpenGLState.useProgram(proj, src.textureNative, dstW, dstH, srcW, srcH, colorM, filter)
 }
 

@@ -102,7 +102,7 @@ func (c *Context) reset() error {
 		gl.Enable(gl.BLEND)
 		return nil
 	})
-	c.BlendFunc(graphics.CompositeModeSourceOver)
+	c.blendFunc(graphics.CompositeModeSourceOver)
 	_ = mainthread.Run(func() error {
 		f := int32(0)
 		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
@@ -112,7 +112,7 @@ func (c *Context) reset() error {
 	return nil
 }
 
-func (c *Context) BlendFunc(mode graphics.CompositeMode) {
+func (c *Context) blendFunc(mode graphics.CompositeMode) {
 	_ = mainthread.Run(func() error {
 		if c.lastCompositeMode == mode {
 			return nil

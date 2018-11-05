@@ -233,7 +233,6 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if err := c.dst.image.SetViewport(); err != nil {
 		return err
 	}
-	opengl.GetContext().BlendFunc(c.mode)
 
 	if c.nindices == 0 {
 		return nil
@@ -241,7 +240,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	proj := c.dst.image.ProjectionMatrix()
 	dw, dh := c.dst.Size()
 	sw, sh := c.src.Size()
-	opengl.UseProgram(proj, c.src.image, dw, dh, sw, sh, c.color, c.filter)
+	opengl.UseProgram(c.mode, proj, c.src.image, dw, dh, sw, sh, c.color, c.filter)
 	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),

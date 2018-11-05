@@ -111,14 +111,14 @@ func (c *Context) reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = graphics.CompositeModeUnknown
 	c.gl.Enable(mgl.BLEND)
-	c.BlendFunc(graphics.CompositeModeSourceOver)
+	c.blendFunc(graphics.CompositeModeSourceOver)
 	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
 
-func (c *Context) BlendFunc(mode graphics.CompositeMode) {
+func (c *Context) blendFunc(mode graphics.CompositeMode) {
 	gl := c.gl
 	if c.lastCompositeMode == mode {
 		return

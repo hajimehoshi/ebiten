@@ -158,13 +158,13 @@ func (c *Context) reset() error {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("enable", blend)
-	c.BlendFunc(graphics.CompositeModeSourceOver)
+	c.blendFunc(graphics.CompositeModeSourceOver)
 	f := gl.Call("getParameter", framebufferBinding)
 	c.screenFramebuffer = framebufferNative(f)
 	return nil
 }
 
-func (c *Context) BlendFunc(mode graphics.CompositeMode) {
+func (c *Context) blendFunc(mode graphics.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
