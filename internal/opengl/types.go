@@ -21,13 +21,13 @@ type (
 	operation   int
 )
 
-type DataType int
+type dataType int
 
-func (d DataType) SizeInBytes() int {
+func (d dataType) SizeInBytes() int {
 	switch d {
-	case Short:
+	case short:
 		return 2
-	case Float:
+	case float:
 		return 4
 	default:
 		panic("not reached")

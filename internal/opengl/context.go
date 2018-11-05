@@ -25,8 +25,8 @@ var (
 	elementArrayBuffer bufferType
 	dynamicDraw        bufferUsage
 	staticDraw         bufferUsage
-	Short              DataType
-	Float              DataType
+	short              dataType
+	float              dataType
 
 	zero             operation
 	one              operation

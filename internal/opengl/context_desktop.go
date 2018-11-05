@@ -61,8 +61,8 @@ func init() {
 	arrayBuffer = gl.ARRAY_BUFFER
 	elementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
 	dynamicDraw = gl.DYNAMIC_DRAW
-	Short = gl.SHORT
-	Float = gl.FLOAT
+	short = gl.SHORT
+	float = gl.FLOAT
 
 	zero = gl.ZERO
 	one = gl.ONE
@@ -408,7 +408,7 @@ func (c *Context) getAttribLocationImpl(p program, location string) attribLocati
 	return attrib
 }
 
-func (c *Context) vertexAttribPointer(p program, location string, size int, dataType DataType, stride int, offset int) {
+func (c *Context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
 	_ = mainthread.Run(func() error {
 		l := c.locationCache.GetAttribLocation(c, p, location)
 		gl.VertexAttribPointer(uint32(l), int32(size), uint32(dataType), false, int32(stride), gl.PtrOffset(offset))

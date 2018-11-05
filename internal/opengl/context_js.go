@@ -78,8 +78,8 @@ func init() {
 	arrayBuffer = bufferType(c.Get("ARRAY_BUFFER").Int())
 	elementArrayBuffer = bufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
 	dynamicDraw = bufferUsage(c.Get("DYNAMIC_DRAW").Int())
-	Short = DataType(c.Get("SHORT").Int())
-	Float = DataType(c.Get("FLOAT").Int())
+	short = dataType(c.Get("SHORT").Int())
+	float = dataType(c.Get("FLOAT").Int())
 
 	zero = operation(c.Get("ZERO").Int())
 	one = operation(c.Get("ONE").Int())
@@ -410,7 +410,7 @@ func (c *Context) getAttribLocationImpl(p program, location string) attribLocati
 	return attribLocation(gl.Call("getAttribLocation", p.value, location).Int())
 }
 
-func (c *Context) vertexAttribPointer(p program, location string, size int, dataType DataType, stride int, offset int) {
+func (c *Context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)

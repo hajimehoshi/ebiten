@@ -126,7 +126,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 
 	q.appendVertices(vertices)
 	q.appendIndices(indices, uint16(q.nextIndex))
-	q.nextIndex += len(vertices) * opengl.Float.SizeInBytes() / opengl.ArrayBufferLayoutTotalBytes()
+	q.nextIndex += len(vertices) / opengl.ArrayBufferLayoutFloatNum()
 	q.tmpNumIndices += len(indices)
 
 	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, split)

@@ -46,7 +46,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 	}
 	t := 0
 	for _, p := range a.parts {
-		t += Float.SizeInBytes() * p.num
+		t += float.SizeInBytes() * p.num
 	}
 	a.total = t
 	return a.total
@@ -65,8 +65,8 @@ func (a *arrayBufferLayout) enable(program program) {
 	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
-		GetContext().vertexAttribPointer(program, p.name, p.num, Float, total, offset)
-		offset += Float.SizeInBytes() * p.num
+		GetContext().vertexAttribPointer(program, p.name, p.num, float, total, offset)
+		offset += float.SizeInBytes() * p.num
 	}
 }
 
@@ -101,8 +101,8 @@ func initializeArrayBuferLayout() {
 	}
 }
 
-func ArrayBufferLayoutTotalBytes() int {
-	return theArrayBufferLayout.totalBytes()
+func ArrayBufferLayoutFloatNum() int {
+	return theArrayBufferLayout.totalBytes() / float.SizeInBytes()
 }
 
 // openGLState is a state for

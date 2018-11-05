@@ -57,8 +57,8 @@ func init() {
 	arrayBuffer = mgl.ARRAY_BUFFER
 	elementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
 	dynamicDraw = mgl.DYNAMIC_DRAW
-	Short = mgl.SHORT
-	Float = mgl.FLOAT
+	short = mgl.SHORT
+	float = mgl.FLOAT
 
 	zero = mgl.ZERO
 	one = mgl.ONE
@@ -332,7 +332,7 @@ func (c *Context) getAttribLocationImpl(p program, location string) attribLocati
 	return a
 }
 
-func (c *Context) vertexAttribPointer(p program, location string, size int, dataType DataType, stride int, offset int) {
+func (c *Context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.Enum(dataType), false, stride, offset)
