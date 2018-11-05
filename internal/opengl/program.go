@@ -101,8 +101,11 @@ func initializeArrayBuferLayout() {
 	}
 }
 
-func ArrayBufferLayoutFloatNum() int {
-	return theArrayBufferLayout.totalBytes() / float.SizeInBytes()
+func init() {
+	vertexFloatNum := theArrayBufferLayout.totalBytes() / float.SizeInBytes()
+	if graphics.VertexFloatNum != vertexFloatNum {
+		panic(fmt.Sprintf("vertex float num must be %d but %d", graphics.VertexFloatNum, vertexFloatNum))
+	}
 }
 
 // openGLState is a state for

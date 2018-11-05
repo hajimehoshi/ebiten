@@ -23,23 +23,22 @@ type verticesBackend struct {
 	head    int
 }
 
+const VertexFloatNum = 10
+
 func (v *verticesBackend) slice(n int) []float32 {
-	const (
-		num            = 1024
-		vertexFloatNum = 10
-	)
+	const num = 1024
 	if n > num {
 		panic("not reached")
 	}
 
-	need := n * vertexFloatNum
+	need := n * VertexFloatNum
 	if v.head+need > len(v.backend) {
 		v.backend = nil
 		v.head = 0
 	}
 
 	if v.backend == nil {
-		v.backend = make([]float32, vertexFloatNum*num)
+		v.backend = make([]float32, VertexFloatNum*num)
 	}
 
 	s := v.backend[v.head : v.head+need]
@@ -75,6 +74,8 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundry checks.
+	//
+	// 4*VertexFloatNum is better than 40, but in GopherJS, optimization might not work.
 	vs := theVerticesBackend.slice(4)[0:40]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
