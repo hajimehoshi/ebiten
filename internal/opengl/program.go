@@ -26,9 +26,8 @@ import (
 // arrayBufferLayoutPart is a part of an array buffer layout.
 type arrayBufferLayoutPart struct {
 	// TODO: This struct should belong to a program and know it.
-	name     string
-	dataType DataType
-	num      int
+	name string
+	num  int
 }
 
 // arrayBufferLayout is an array buffer layout.
@@ -47,7 +46,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 	}
 	t := 0
 	for _, p := range a.parts {
-		t += p.dataType.SizeInBytes() * p.num
+		t += Float.SizeInBytes() * p.num
 	}
 	a.total = t
 	return a.total
@@ -66,8 +65,8 @@ func (a *arrayBufferLayout) enable(program program) {
 	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
-		GetContext().vertexAttribPointer(program, p.name, p.num, p.dataType, total, offset)
-		offset += p.dataType.SizeInBytes() * p.num
+		GetContext().vertexAttribPointer(program, p.name, p.num, Float, total, offset)
+		offset += Float.SizeInBytes() * p.num
 	}
 }
 
@@ -87,19 +86,16 @@ func initializeArrayBuferLayout() {
 		// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
 		parts: []arrayBufferLayoutPart{
 			{
-				name:     "vertex",
-				dataType: Float,
-				num:      2,
+				name: "vertex",
+				num:  2,
 			},
 			{
-				name:     "tex_coord",
-				dataType: Float,
-				num:      4,
+				name: "tex_coord",
+				num:  4,
 			},
 			{
-				name:     "color_scale",
-				dataType: Float,
-				num:      4,
+				name: "color_scale",
+				num:  4,
 			},
 		},
 	}
