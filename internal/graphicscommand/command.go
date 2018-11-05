@@ -227,20 +227,16 @@ func (c *drawImageCommand) String() string {
 
 // Exec executes the drawImageCommand.
 func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
-	// On some environments, viewport size must be within the framebuffer size.
-	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
-	// Use the same size of the framebuffer here.
-	if err := c.dst.image.SetViewport(); err != nil {
-		return err
-	}
-
+	// TODO: Is it ok not to bind any framebuffer here?
 	if c.nindices == 0 {
 		return nil
 	}
-	proj := c.dst.image.ProjectionMatrix()
-	dw, dh := c.dst.Size()
-	sw, sh := c.src.Size()
-	opengl.UseProgram(c.mode, proj, c.src.image, dw, dh, sw, sh, c.color, c.filter)
+
+	c.dst.image.SetAsDestination()
+	c.src.image.SetAsSource()
+	if err := opengl.UseProgram(c.mode, c.color, c.filter); err != nil {
+		return err
+	}
 	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),

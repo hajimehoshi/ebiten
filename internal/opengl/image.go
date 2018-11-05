@@ -85,7 +85,11 @@ func (i *Image) Delete() {
 	}
 }
 
-func (i *Image) SetViewport() error {
+func (i *Image) SetAsDestination() {
+	theOpenGLState.destination = i
+}
+
+func (i *Image) setViewport() error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
@@ -104,7 +108,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	return p, nil
 }
 
-func (i *Image) ProjectionMatrix() []float32 {
+func (i *Image) projectionMatrix() []float32 {
 	if i.framebuffer == nil {
 		panic("not reached")
 	}
@@ -126,4 +130,8 @@ func (i *Image) ensureFramebuffer() error {
 
 func (i *Image) TexSubImage2D(p []byte, x, y, width, height int) {
 	theContext.texSubImage2D(i.textureNative, p, x, y, width, height)
+}
+
+func (i *Image) SetAsSource() {
+	theOpenGLState.source = i
 }

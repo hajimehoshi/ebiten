@@ -130,6 +130,9 @@ type openGLState struct {
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
 	lastSourceHeight           int
+
+	source      *Image
+	destination *Image
 }
 
 var (
@@ -265,14 +268,39 @@ func BufferSubData(vertices []float32, indices []uint16) {
 	c.elementArrayBufferSubData(indices)
 }
 
-func UseProgram(mode graphics.CompositeMode, proj []float32, src *Image, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
+func UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
+	destination := theOpenGLState.destination
+	if destination == nil {
+		panic("destination image is not set")
+	}
+	source := theOpenGLState.source
+	if source == nil {
+		panic("source image is not set")
+	}
+
+	// On some environments, viewport size must be within the framebuffer size.
+	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
+	// Use the same size of the framebuffer here.
+	if err := destination.setViewport(); err != nil {
+		return err
+	}
+	proj := destination.projectionMatrix()
+	dw, dh := destination.width, destination.height
+	sw, sh := source.width, source.height
+
 	GetContext().blendFunc(mode)
-	theOpenGLState.useProgram(proj, src.textureNative, dstW, dstH, srcW, srcH, colorM, filter)
+	theOpenGLState.useProgram(proj, dw, dh, sw, sh, colorM, filter)
+
+	theOpenGLState.source = nil
+	theOpenGLState.destination = nil
+	return nil
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, texture textureNative, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
+func (s *openGLState) useProgram(proj []float32, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
 	c := GetContext()
+
+	texture := theOpenGLState.source.textureNative
 
 	var program program
 	switch filter {
