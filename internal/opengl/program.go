@@ -54,7 +54,7 @@ func (a *arrayBufferLayout) totalBytes() int {
 
 // newArrayBuffer creates OpenGL's buffer object for the array buffer.
 func (a *arrayBufferLayout) newArrayBuffer() buffer {
-	return theContext.newArrayBuffer(a.totalBytes() * IndicesNum)
+	return theContext.newArrayBuffer(a.totalBytes() * graphics.IndicesNum)
 }
 
 // enable binds the array buffer the given program to use the array buffer.
@@ -144,8 +144,7 @@ var (
 )
 
 const (
-	IndicesNum   = (1 << 16) / 3 * 3 // Adjust num for triangles.
-	maxTriangles = IndicesNum / 3
+	maxTriangles = graphics.IndicesNum / 3
 	maxQuads     = maxTriangles / 2
 )
 
@@ -239,7 +238,7 @@ func (s *openGLState) reset() error {
 	// Note that the indices passed to NewElementArrayBuffer is not under GC management
 	// in opengl package due to unsafe-way.
 	// See NewElementArrayBuffer in context_mobile.go.
-	s.elementArrayBuffer = theContext.newElementArrayBuffer(IndicesNum * 2)
+	s.elementArrayBuffer = theContext.newElementArrayBuffer(graphics.IndicesNum * 2)
 
 	return nil
 }

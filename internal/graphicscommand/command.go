@@ -89,7 +89,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, forceNewCommand bool) {
-	if nindices > opengl.IndicesNum {
+	if nindices > graphics.IndicesNum {
 		panic("not implemented for too many indices")
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
@@ -113,12 +113,12 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
-	if len(indices) > opengl.IndicesNum {
+	if len(indices) > graphics.IndicesNum {
 		panic("not reached")
 	}
 
 	split := false
-	if q.tmpNumIndices+len(indices) > opengl.IndicesNum {
+	if q.tmpNumIndices+len(indices) > graphics.IndicesNum {
 		q.tmpNumIndices = 0
 		q.nextIndex = 0
 		split = true
@@ -155,10 +155,10 @@ func (q *commandQueue) Flush() {
 		ne := 0
 		nc := 0
 		for _, c := range q.commands {
-			if c.NumIndices() > opengl.IndicesNum {
+			if c.NumIndices() > graphics.IndicesNum {
 				panic("not reached")
 			}
-			if ne+c.NumIndices() > opengl.IndicesNum {
+			if ne+c.NumIndices() > graphics.IndicesNum {
 				break
 			}
 			nv += c.NumVertices()
