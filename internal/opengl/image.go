@@ -27,7 +27,7 @@ func checkSize(width, height int) {
 	if height < 1 {
 		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1.", height))
 	}
-	m := theContext.MaxTextureSize()
+	m := theContext.getMaxTextureSize()
 	if width > m {
 		panic(fmt.Sprintf("opengl: width (%d) must be less than or equal to %d", width, m))
 	}
@@ -37,39 +37,11 @@ func checkSize(width, height int) {
 }
 
 type Image struct {
+	driver        *Driver
 	textureNative textureNative
 	framebuffer   *framebuffer
 	width         int
 	height        int
-}
-
-func NewImage(width, height int) (*Image, error) {
-	i := &Image{
-		width:  width,
-		height: height,
-	}
-	w := math.NextPowerOf2Int(width)
-	h := math.NextPowerOf2Int(height)
-	checkSize(w, h)
-	t, err := theContext.newTexture(w, h)
-	if err != nil {
-		return nil, err
-	}
-	i.textureNative = t
-	return i, nil
-}
-
-func NewScreenFramebufferImage(width, height int) *Image {
-	checkSize(width, height)
-	i := &Image{
-		width:  width,
-		height: height,
-	}
-	// The (default) framebuffer size can't be converted to a power of 2.
-	// On browsers, c.width and c.height are used as viewport size and
-	// Edge can't treat a bigger viewport than the drawing area (#71).
-	i.framebuffer = newScreenFramebuffer(width, height)
-	return i
 }
 
 func (i *Image) IsInvalidated() bool {
@@ -86,7 +58,7 @@ func (i *Image) Delete() {
 }
 
 func (i *Image) SetAsDestination() {
-	theOpenGLState.destination = i
+	i.driver.state.destination = i
 }
 
 func (i *Image) setViewport() error {
@@ -133,5 +105,5 @@ func (i *Image) TexSubImage2D(p []byte, x, y, width, height int) {
 }
 
 func (i *Image) SetAsSource() {
-	theOpenGLState.source = i
+	i.driver.state.source = i
 }

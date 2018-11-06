@@ -487,7 +487,7 @@ func (c *Context) deleteBuffer(b buffer) {
 	})
 }
 
-func (c *Context) DrawElements(len int, offsetInBytes int) {
+func (c *Context) drawElements(len int, offsetInBytes int) {
 	_ = mainthread.Run(func() error {
 		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(offsetInBytes))
 		return nil
@@ -505,7 +505,7 @@ func (c *Context) maxTextureSizeImpl() int {
 	return size
 }
 
-func (c *Context) Flush() {
+func (c *Context) flush() {
 	_ = mainthread.Run(func() error {
 		gl.Flush()
 		return nil

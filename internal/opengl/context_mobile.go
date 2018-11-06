@@ -83,7 +83,7 @@ func InitWithContext(context mgl.Context) {
 	theContext.gl = context
 }
 
-func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {
+func (c *Context) doWork(chError <-chan error, chDone <-chan struct{}) error {
 	if c.worker == nil {
 		panic("not reached")
 	}
@@ -386,7 +386,7 @@ func (c *Context) deleteBuffer(b buffer) {
 	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
-func (c *Context) DrawElements(len int, offsetInBytes int) {
+func (c *Context) drawElements(len int, offsetInBytes int) {
 	gl := c.gl
 	gl.DrawElements(mgl.TRIANGLES, len, mgl.UNSIGNED_SHORT, offsetInBytes)
 }
@@ -396,7 +396,7 @@ func (c *Context) maxTextureSizeImpl() int {
 	return gl.GetInteger(mgl.MAX_TEXTURE_SIZE)
 }
 
-func (c *Context) Flush() {
+func (c *Context) flush() {
 	gl := c.gl
 	gl.Flush()
 }

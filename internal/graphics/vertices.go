@@ -23,7 +23,10 @@ type verticesBackend struct {
 	head    int
 }
 
-const VertexFloatNum = 10
+const (
+	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
+	VertexFloatNum = 10
+)
 
 func (v *verticesBackend) slice(n int) []float32 {
 	const num = 1024

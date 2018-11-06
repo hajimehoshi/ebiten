@@ -30,7 +30,7 @@ var (
 // MaxImageSize returns the maximum of width/height of an image.
 func MaxImageSize() int {
 	if maxTextureSize == 0 {
-		maxTextureSize = opengl.GetContext().MaxTextureSize()
+		maxTextureSize = opengl.GetDriver().MaxTextureSize()
 		if maxTextureSize == 0 {
 			panic("graphics: failed to get the max texture size")
 		}

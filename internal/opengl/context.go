@@ -55,6 +55,7 @@ func convertOperation(op graphics.Operation) operation {
 	}
 }
 
+// TODO: Unexport this
 type Context struct {
 	locationCache      *locationCache
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
@@ -68,10 +69,6 @@ type Context struct {
 }
 
 var theContext Context
-
-func GetContext() *Context {
-	return &theContext
-}
 
 func (c *Context) bindTexture(t textureNative) {
 	if c.lastTexture == t {
@@ -110,7 +107,7 @@ func (c *Context) getScreenFramebuffer() framebufferNative {
 	return c.screenFramebuffer
 }
 
-func (c *Context) MaxTextureSize() int {
+func (c *Context) getMaxTextureSize() int {
 	if c.maxTextureSize == 0 {
 		c.maxTextureSize = c.maxTextureSizeImpl()
 	}

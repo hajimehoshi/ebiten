@@ -89,7 +89,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 }
 
 func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, forceNewCommand bool) {
-	if nindices > opengl.IndicesNum {
+	if nindices > graphics.IndicesNum {
 		panic("not implemented for too many indices")
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
@@ -113,12 +113,12 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
-	if len(indices) > opengl.IndicesNum {
+	if len(indices) > graphics.IndicesNum {
 		panic("not reached")
 	}
 
 	split := false
-	if q.tmpNumIndices+len(indices) > opengl.IndicesNum {
+	if q.tmpNumIndices+len(indices) > graphics.IndicesNum {
 		q.tmpNumIndices = 0
 		q.nextIndex = 0
 		split = true
@@ -155,10 +155,10 @@ func (q *commandQueue) Flush() {
 		ne := 0
 		nc := 0
 		for _, c := range q.commands {
-			if c.NumIndices() > opengl.IndicesNum {
+			if c.NumIndices() > graphics.IndicesNum {
 				panic("not reached")
 			}
-			if ne+c.NumIndices() > opengl.IndicesNum {
+			if ne+c.NumIndices() > graphics.IndicesNum {
 				break
 			}
 			nv += c.NumVertices()
@@ -169,7 +169,7 @@ func (q *commandQueue) Flush() {
 			// Note that the vertices passed to BufferSubData is not under GC management
 			// in opengl package due to unsafe-way.
 			// See BufferSubData in context_mobile.go.
-			opengl.BufferSubData(vs[:nv], es[:ne])
+			opengl.GetDriver().BufferSubData(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}
@@ -189,7 +189,7 @@ func (q *commandQueue) Flush() {
 		}
 		if 0 < nc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-			opengl.GetContext().Flush()
+			opengl.GetDriver().Flush()
 		}
 		q.commands = q.commands[nc:]
 	}
@@ -234,10 +234,10 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 
 	c.dst.image.SetAsDestination()
 	c.src.image.SetAsSource()
-	if err := opengl.UseProgram(c.mode, c.color, c.filter); err != nil {
+	if err := opengl.GetDriver().UseProgram(c.mode, c.color, c.filter); err != nil {
 		return err
 	}
-	opengl.GetContext().DrawElements(c.nindices, indexOffsetInBytes)
+	opengl.GetDriver().DrawElements(c.nindices, indexOffsetInBytes)
 
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
@@ -301,7 +301,7 @@ func (c *replacePixelsCommand) String() string {
 func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
-	opengl.GetContext().Flush()
+	opengl.GetDriver().Flush()
 	c.dst.image.TexSubImage2D(c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
@@ -407,7 +407,7 @@ func (c *newImageCommand) String() string {
 
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
-	i, err := opengl.NewImage(c.width, c.height)
+	i, err := opengl.GetDriver().NewImage(c.width, c.height)
 	if err != nil {
 		return err
 	}
@@ -446,7 +446,7 @@ func (c *newScreenFramebufferImageCommand) String() string {
 
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
-	c.result.image = opengl.NewScreenFramebufferImage(c.width, c.height)
+	c.result.image = opengl.GetDriver().NewScreenFramebufferImage(c.width, c.height)
 	return nil
 }
 
@@ -470,5 +470,5 @@ func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affi
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
 func ResetGraphicsDriverState() error {
-	return opengl.Reset()
+	return opengl.GetDriver().Reset()
 }
