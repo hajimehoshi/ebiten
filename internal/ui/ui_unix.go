@@ -26,15 +26,6 @@ import (
 
 func glfwScale() float64 {
 	// This function must be called on the main thread.
-	cm := currentUI.currentMonitor()
-
-	// Figure out if we have that monitor cached.
-	for _, m := range monitors {
-		if m.m == cm {
-			return m.scale
-		}
-	}
-	// Fallback to just getting the devicescale if we don't have it cached.
 	return devicescale.GetAt(currentUI.currentMonitor().GetPos())
 }
 

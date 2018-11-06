@@ -69,7 +69,6 @@ var (
 		initWindowDecorated: true,
 		vsync:               true,
 	}
-	scaleExpiresMS = int64(16)
 )
 
 func init() {
@@ -128,12 +127,6 @@ type cachedMonitor struct {
 	// Pos of monitor in virtual coords
 	x int
 	y int
-	// Currently there is no event to signal changes in scale.
-	// This value must be re-calculated every frame for now.
-	// See https://github.com/glfw/glfw/issues/677 for futher details.
-	// The event that is needed should be released in GLFW 3.3
-	scale     float64
-	scaleTime int64 // unix time in milliseconds this value was set
 }
 
 // monitors is the cache for unix monitor list.
@@ -147,11 +140,10 @@ func cacheMonitors() {
 	for _, m := range ms {
 		x, y := m.GetPos()
 		monitors = append(monitors, &cachedMonitor{
-			m:     m,
-			vm:    m.GetVideoMode(),
-			x:     x,
-			y:     y,
-			scale: devicescale.GetAt(x, y),
+			m:  m,
+			vm: m.GetVideoMode(),
+			x:  x,
+			y:  y,
 		})
 	}
 }
@@ -602,21 +594,6 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
-	wx, wy := u.window.GetPos()
-	cached, ok := getCachedMonitor(wx, wy)
-	if ok {
-		now := time.Now().UnixNano() / int64(time.Millisecond)
-		if now-cached.scaleTime < scaleExpiresMS {
-			return cached.scale
-		}
-		// Re-cache the value if its too old
-		scale := u.getScale() * devicescale.GetAt(wx, wy)
-		cached.scale = scale
-		cached.scaleTime = now
-		return scale
-	}
-
-	// Default to just grabbing the full information if the caches fail.
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 

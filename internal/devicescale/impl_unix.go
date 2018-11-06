@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type desktop int
@@ -35,6 +36,12 @@ const (
 	desktopUnity
 	desktopKDE
 	desktopXfce
+)
+
+var (
+	cachedScale    float64
+	cachedAt       int64
+	scaleExpiresMS = int64(16)
 )
 
 func currentDesktop() desktop {
@@ -96,29 +103,33 @@ func cinnamonScale() float64 {
 }
 
 func impl(x, y int) float64 {
+	now := time.Now().UnixNano() / int64(time.Millisecond)
+	if now-cachedAt < scaleExpiresMS {
+		return cachedScale
+	}
+
 	// TODO: Can Linux has different scales for multiple monitors?
+	//  Gnome supports fractional and per-monitor scaling in wayland.
+	s := 1.0
 	switch currentDesktop() {
 	case desktopGnome:
-		s := gnomeScale()
-		if s <= 0 {
-			return 1
-		}
-		return s
+		s = gnomeScale()
 	case desktopCinnamon:
-		s := cinnamonScale()
-		if s <= 0 {
-			return 1
-		}
-		return s
+		s = cinnamonScale()
 	case desktopUnity:
 		// TODO: Implement
-		return 1
 	case desktopKDE:
 		// TODO: Implement
-		return 1
 	case desktopXfce:
 		// TODO: Implement
-		return 1
 	}
+	if s <= 0 {
+		s = 1
+	}
+
+	// Cache the scale for later.
+	now = time.Now().UnixNano() / int64(time.Millisecond)
+	cachedScale = s
+	cachedAt = now
 	return 1
 }
