@@ -37,6 +37,7 @@ func checkSize(width, height int) {
 }
 
 type Image struct {
+	driver        *Driver
 	textureNative textureNative
 	framebuffer   *framebuffer
 	width         int
@@ -57,7 +58,7 @@ func (i *Image) Delete() {
 }
 
 func (i *Image) SetAsDestination() {
-	theOpenGLState.destination = i
+	i.driver.state.destination = i
 }
 
 func (i *Image) setViewport() error {
@@ -104,5 +105,5 @@ func (i *Image) TexSubImage2D(p []byte, x, y, width, height int) {
 }
 
 func (i *Image) SetAsSource() {
-	theOpenGLState.source = i
+	i.driver.state.source = i
 }

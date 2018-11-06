@@ -27,10 +27,12 @@ func GetDriver() *Driver {
 }
 
 type Driver struct {
+	state openGLState
 }
 
 func (d *Driver) NewImage(width, height int) (*Image, error) {
 	i := &Image{
+		driver: d,
 		width:  width,
 		height: height,
 	}
@@ -48,6 +50,7 @@ func (d *Driver) NewImage(width, height int) (*Image, error) {
 func (d *Driver) NewScreenFramebufferImage(width, height int) *Image {
 	checkSize(width, height)
 	i := &Image{
+		driver: d,
 		width:  width,
 		height: height,
 	}
@@ -60,7 +63,7 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) *Image {
 
 // Reset resets or initializes the current OpenGL state.
 func (d *Driver) Reset() error {
-	return theOpenGLState.reset()
+	return d.state.reset()
 }
 
 func (d *Driver) BufferSubData(vertices []float32, indices []uint16) {
@@ -68,7 +71,7 @@ func (d *Driver) BufferSubData(vertices []float32, indices []uint16) {
 }
 
 func (d *Driver) UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
-	return useProgram(mode, colorM, filter)
+	return d.state.useProgram(mode, colorM, filter)
 }
 
 func (d *Driver) DrawElements(len int, offsetInBytes int) {

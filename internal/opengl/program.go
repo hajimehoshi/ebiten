@@ -136,9 +136,6 @@ type openGLState struct {
 }
 
 var (
-	// theOpenGLState is the OpenGL state in the current process.
-	theOpenGLState openGLState
-
 	zeroBuffer  buffer
 	zeroProgram program
 )
@@ -261,12 +258,13 @@ func bufferSubData(vertices []float32, indices []uint16) {
 	theContext.elementArrayBufferSubData(indices)
 }
 
-func useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
-	destination := theOpenGLState.destination
+// useProgram uses the program (programTexture).
+func (s *openGLState) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
+	destination := s.destination
 	if destination == nil {
 		panic("destination image is not set")
 	}
-	source := theOpenGLState.source
+	source := s.source
 	if source == nil {
 		panic("source image is not set")
 	}
@@ -278,20 +276,10 @@ func useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graph
 		return err
 	}
 	proj := destination.projectionMatrix()
-	dw, dh := destination.width, destination.height
-	sw, sh := source.width, source.height
+	dstW := destination.width
+	srcW, srcH := source.width, source.height
 
 	theContext.blendFunc(mode)
-	theOpenGLState.useProgram(proj, dw, dh, sw, sh, colorM, filter)
-
-	theOpenGLState.source = nil
-	theOpenGLState.destination = nil
-	return nil
-}
-
-// useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(proj []float32, dstW, dstH, srcW, srcH int, colorM *affine.ColorM, filter graphics.Filter) {
-	texture := theOpenGLState.source.textureNative
 
 	var program program
 	switch filter {
@@ -371,5 +359,9 @@ func (s *openGLState) useProgram(proj []float32, dstW, dstH, srcW, srcH int, col
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	theContext.bindTexture(texture)
+	theContext.bindTexture(source.textureNative)
+
+	s.source = nil
+	s.destination = nil
+	return nil
 }
