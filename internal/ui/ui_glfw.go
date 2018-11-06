@@ -69,6 +69,7 @@ var (
 		initWindowDecorated: true,
 		vsync:               true,
 	}
+	scaleExpiresMS = int64(16)
 )
 
 func init() {
@@ -76,6 +77,10 @@ func init() {
 	if err := initialize(); err != nil {
 		panic(err)
 	}
+	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.MonitorEvent) {
+		cacheMonitors()
+	})
+	cacheMonitors()
 }
 
 func initialize() error {
@@ -115,6 +120,51 @@ func initialize() error {
 	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	return nil
+}
+
+type cachedMonitor struct {
+	m  *glfw.Monitor
+	vm *glfw.VidMode
+	// Pos of monitor in virtual coords
+	x int
+	y int
+	// Currently there is no event to signal changes in scale.
+	// This value must be re-calculated every frame for now.
+	// See https://github.com/glfw/glfw/issues/677 for futher details.
+	// The event that is needed should be released in GLFW 3.3
+	scale     float64
+	scaleTime int64 // unix time in milliseconds this value was set
+}
+
+// monitors is the cache for unix monitor list.
+// populated by 'cacheMonitors' which is called on init and every
+// monitor config change event.
+var monitors []*cachedMonitor
+
+func cacheMonitors() {
+	monitors = make([]*cachedMonitor, 0, 3)
+	ms := glfw.GetMonitors()
+	for _, m := range ms {
+		x, y := m.GetPos()
+		monitors = append(monitors, &cachedMonitor{
+			m:     m,
+			vm:    m.GetVideoMode(),
+			x:     x,
+			y:     y,
+			scale: devicescale.GetAt(x, y),
+		})
+	}
+}
+
+// getCachedMonitor returns a monitor for the given window x/y
+// returns false if monitor is not found.
+func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
+	for _, m := range monitors {
+		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
+			return m, true
+		}
+	}
+	return nil, false
 }
 
 func Loop(ch <-chan error) error {
@@ -552,6 +602,21 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
+	wx, wy := u.window.GetPos()
+	cached, ok := getCachedMonitor(wx, wy)
+	if ok {
+		now := time.Now().UnixNano() / int64(time.Millisecond)
+		if now-cached.scaleTime < scaleExpiresMS {
+			return cached.scale
+		}
+		// Re-cache the value if its too old
+		scale := u.getScale() * devicescale.GetAt(wx, wy)
+		cached.scale = scale
+		cached.scaleTime = now
+		return scale
+	}
+
+	// Default to just grabbing the full information if the caches fail.
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
