@@ -108,18 +108,17 @@ func impl(x, y int) float64 {
 		return cachedScale
 	}
 
-	// TODO: Can Linux has different scales for multiple monitors?
-	//  Gnome supports fractional and per-monitor scaling in wayland.
 	s := 1.0
 	switch currentDesktop() {
 	case desktopGnome:
+		// TODO: Support wayland and per-monitor scaling https://wiki.gnome.org/HowDoI/HiDpi
 		s = gnomeScale()
 	case desktopCinnamon:
 		s = cinnamonScale()
 	case desktopUnity:
-		// TODO: Implement
+		// TODO: Implement, supports per-monitor scaling
 	case desktopKDE:
-		// TODO: Implement
+		// TODO: Implement, appears to support per-monitor scaling
 	case desktopXfce:
 		// TODO: Implement
 	}
