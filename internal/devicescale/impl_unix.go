@@ -19,11 +19,13 @@
 package devicescale
 
 import (
+	"math"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -39,10 +41,27 @@ const (
 )
 
 var (
-	cachedScale  float64
-	cachedAt     int64
-	scaleExpires = int64(time.Second / 60)
+	cachedScale     uint64 // use atomic to read/write as multiple goroutines touch it.
+	cacheUpdateWait = time.Millisecond * 100
 )
+
+func init() {
+	go scaleUpdater()
+}
+
+func impl(x, y int) float64 {
+	return math.Float64frombits(atomic.LoadUint64(&cachedScale))
+}
+
+// run as goroutine. Will keep the desktop scale up to date.
+// This can be removed once the scale change event is implemented in GLFW 3.3
+func scaleUpdater() {
+	for {
+		s := getscale(0, 0)
+		atomic.StoreUint64(&cachedScale, math.Float64bits(s))
+		time.Sleep(cacheUpdateWait)
+	}
+}
 
 func currentDesktop() desktop {
 	tokens := strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
@@ -102,13 +121,8 @@ func cinnamonScale() float64 {
 	return float64(s)
 }
 
-func impl(x, y int) float64 {
-	now := time.Now().UnixNano()
-	if now-cachedAt < scaleExpires {
-		return cachedScale
-	}
-
-	s := 1.0
+func getscale(x, y int) float64 {
+	s := -1.0
 	switch currentDesktop() {
 	case desktopGnome:
 		// TODO: Support wayland and per-monitor scaling https://wiki.gnome.org/HowDoI/HiDpi
@@ -126,9 +140,5 @@ func impl(x, y int) float64 {
 		s = 1
 	}
 
-	// Cache the scale for later.
-	now = time.Now().UnixNano()
-	cachedScale = s
-	cachedAt = now
-	return 1
+	return s
 }

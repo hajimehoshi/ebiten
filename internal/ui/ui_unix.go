@@ -26,7 +26,11 @@ import (
 
 func glfwScale() float64 {
 	// This function must be called on the main thread.
-	return devicescale.GetAt(currentUI.currentMonitor().GetPos())
+	cm, ok := getCachedMonitor(currentUI.window.GetPos())
+	if !ok {
+		return devicescale.GetAt(currentUI.currentMonitor().GetPos())
+	}
+	return devicescale.GetAt(cm.x, cm.y)
 }
 
 func adjustWindowPosition(x, y int) (int, int) {

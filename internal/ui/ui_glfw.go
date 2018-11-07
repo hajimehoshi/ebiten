@@ -594,6 +594,10 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
+	// Avoid calling monitor.GetPos if we have the monitor position cached already.
+	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
+		return u.getScale() * devicescale.GetAt(cm.x, cm.y)
+	}
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
