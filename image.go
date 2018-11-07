@@ -150,7 +150,8 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	return i.mipmap.original().Size()
+	s := i.Bounds().Size()
+	return s.X, s.Y
 }
 
 func (i *Image) isDisposed() bool {
@@ -329,24 +330,23 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	w, h := img.Size()
-	sx0, sy0, sx1, sy1 := 0, 0, w, h
+	// TODO: Add tests about #732
+	bounds := img.Bounds()
+	sx0, sy0, sx1, sy1 := bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y
 
 	// SourceRect is deprecated. This implementation is for backward compatibility.
-	if img.bounds != nil || options.SourceRect != nil {
-		r := img.bounds
-		if r == nil {
-			r = options.SourceRect
-		} else if options.SourceRect != nil {
-			r2 := r.Intersect(*options.SourceRect)
-			r = &r2
-		}
+	if options.SourceRect != nil {
+		r := bounds.Intersect(*options.SourceRect)
 		if r.Empty() {
 			return
 		}
 
-		sx0 = r.Min.X
-		sy0 = r.Min.Y
+		if sx0 < r.Min.X {
+			sx0 = r.Min.X
+		}
+		if sy0 < r.Min.Y {
+			sy0 = r.Min.Y
+		}
 		if sx1 > r.Max.X {
 			sx1 = r.Max.X
 		}
@@ -569,7 +569,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
 	if i.bounds == nil {
-		w, h := i.Size()
+		w, h := i.mipmap.original().Size()
 		return image.Rect(0, 0, w, h)
 	}
 	return *i.bounds
