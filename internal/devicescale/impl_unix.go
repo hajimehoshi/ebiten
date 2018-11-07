@@ -39,9 +39,9 @@ const (
 )
 
 var (
-	cachedScale    float64
-	cachedAt       int64
-	scaleExpiresMS = int64(16)
+	cachedScale  float64
+	cachedAt     int64
+	scaleExpires = int64(time.Second / 60)
 )
 
 func currentDesktop() desktop {
@@ -103,8 +103,8 @@ func cinnamonScale() float64 {
 }
 
 func impl(x, y int) float64 {
-	now := time.Now().UnixNano() / int64(time.Millisecond)
-	if now-cachedAt < scaleExpiresMS {
+	now := time.Now().UnixNano()
+	if now-cachedAt < scaleExpires {
 		return cachedScale
 	}
 
@@ -127,7 +127,7 @@ func impl(x, y int) float64 {
 	}
 
 	// Cache the scale for later.
-	now = time.Now().UnixNano() / int64(time.Millisecond)
+	now = time.Now().UnixNano()
 	cachedScale = s
 	cachedAt = now
 	return 1

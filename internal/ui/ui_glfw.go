@@ -129,7 +129,7 @@ type cachedMonitor struct {
 	y int
 }
 
-// monitors is the cache for unix monitor list.
+// monitors is the monitor list cache for desktop glfw compile targets.
 // populated by 'cacheMonitors' which is called on init and every
 // monitor config change event.
 var monitors []*cachedMonitor
