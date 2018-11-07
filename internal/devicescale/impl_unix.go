@@ -19,11 +19,14 @@
 package devicescale
 
 import (
+	"math"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
+	"time"
 )
 
 type desktop int
@@ -36,6 +39,29 @@ const (
 	desktopKDE
 	desktopXfce
 )
+
+var (
+	cachedScale     uint64 // use atomic to read/write as multiple goroutines touch it.
+	cacheUpdateWait = time.Millisecond * 100
+)
+
+func init() {
+	go scaleUpdater()
+}
+
+func impl(x, y int) float64 {
+	return math.Float64frombits(atomic.LoadUint64(&cachedScale))
+}
+
+// run as goroutine. Will keep the desktop scale up to date.
+// This can be removed once the scale change event is implemented in GLFW 3.3
+func scaleUpdater() {
+	for {
+		s := getscale(0, 0)
+		atomic.StoreUint64(&cachedScale, math.Float64bits(s))
+		time.Sleep(cacheUpdateWait)
+	}
+}
 
 func currentDesktop() desktop {
 	tokens := strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
@@ -95,30 +121,24 @@ func cinnamonScale() float64 {
 	return float64(s)
 }
 
-func impl(x, y int) float64 {
-	// TODO: Can Linux has different scales for multiple monitors?
+func getscale(x, y int) float64 {
+	s := -1.0
 	switch currentDesktop() {
 	case desktopGnome:
-		s := gnomeScale()
-		if s <= 0 {
-			return 1
-		}
-		return s
+		// TODO: Support wayland and per-monitor scaling https://wiki.gnome.org/HowDoI/HiDpi
+		s = gnomeScale()
 	case desktopCinnamon:
-		s := cinnamonScale()
-		if s <= 0 {
-			return 1
-		}
-		return s
+		s = cinnamonScale()
 	case desktopUnity:
-		// TODO: Implement
-		return 1
+		// TODO: Implement, supports per-monitor scaling
 	case desktopKDE:
-		// TODO: Implement
-		return 1
+		// TODO: Implement, appears to support per-monitor scaling
 	case desktopXfce:
 		// TODO: Implement
-		return 1
 	}
-	return 1
+	if s <= 0 {
+		s = 1
+	}
+
+	return s
 }

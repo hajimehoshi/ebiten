@@ -76,6 +76,10 @@ func init() {
 	if err := initialize(); err != nil {
 		panic(err)
 	}
+	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.MonitorEvent) {
+		cacheMonitors()
+	})
+	cacheMonitors()
 }
 
 func initialize() error {
@@ -115,6 +119,44 @@ func initialize() error {
 	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	return nil
+}
+
+type cachedMonitor struct {
+	m  *glfw.Monitor
+	vm *glfw.VidMode
+	// Pos of monitor in virtual coords
+	x int
+	y int
+}
+
+// monitors is the monitor list cache for desktop glfw compile targets.
+// populated by 'cacheMonitors' which is called on init and every
+// monitor config change event.
+var monitors []*cachedMonitor
+
+func cacheMonitors() {
+	monitors = make([]*cachedMonitor, 0, 3)
+	ms := glfw.GetMonitors()
+	for _, m := range ms {
+		x, y := m.GetPos()
+		monitors = append(monitors, &cachedMonitor{
+			m:  m,
+			vm: m.GetVideoMode(),
+			x:  x,
+			y:  y,
+		})
+	}
+}
+
+// getCachedMonitor returns a monitor for the given window x/y
+// returns false if monitor is not found.
+func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
+	for _, m := range monitors {
+		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
+			return m, true
+		}
+	}
+	return nil, false
 }
 
 func Loop(ch <-chan error) error {
@@ -552,6 +594,10 @@ func (u *userInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *userInterface) actualScreenScale() float64 {
+	// Avoid calling monitor.GetPos if we have the monitor position cached already.
+	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
+		return u.getScale() * devicescale.GetAt(cm.x, cm.y)
+	}
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
