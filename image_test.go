@@ -569,25 +569,30 @@ func TestImageEdge(t *testing.T) {
 				op.GeoM.Translate(img1Width/2, img1Height/2)
 				op.Filter = f
 				img1.DrawImage(img0Sub, op)
+				allTransparent := true
 				for j := 0; j < img1Height; j++ {
 					for i := 0; i < img1Width; i++ {
 						c := img1.At(i, j)
 						if c == transparent {
 							continue
 						}
+						allTransparent = false
 						switch f {
 						case FilterNearest:
 							if c == red {
 								continue
 							}
 						case FilterLinear:
-							_, g, b, _ := c.RGBA()
-							if g == 0 && b == 0 {
+							if _, g, b, _ := c.RGBA(); g == 0 && b == 0 {
 								continue
 							}
 						}
 						t.Errorf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f) want: red or transparent, got: %v", i, j, f, s, a, c)
 					}
+				}
+				// TODO: Fix bug for scale 0.25
+				if allTransparent && s > 0.25 {
+					t.Fatalf("img1 (filter: %d, scale: %f, angle: %f) is transparent but should not", f, s, a)
 				}
 			}
 		}

@@ -330,7 +330,6 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		return
 	}
 
-	// TODO: Add tests about #732
 	bounds := img.Bounds()
 	sx0, sy0, sx1, sy1 := bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y
 
