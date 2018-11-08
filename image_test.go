@@ -1034,14 +1034,3 @@ func TestImageSubImageAt(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
-
-func TestImageSubImageSize(t *testing.T) {
-	img, _ := NewImage(16, 16, FilterDefault)
-	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
-
-	got, _ := img.SubImage(image.Rect(1, 1, 16, 16)).(*Image).Size()
-	want := 15
-	if got != want {
-		t.Errorf("got: %v, want: %v", got, want)
-	}
-}

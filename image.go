@@ -150,8 +150,7 @@ func (i *Image) copyCheck() {
 
 // Size returns the size of the image.
 func (i *Image) Size() (width, height int) {
-	s := i.Bounds().Size()
-	return s.X, s.Y
+	return i.mipmap.original().Size()
 }
 
 func (i *Image) isDisposed() bool {
@@ -570,7 +569,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
 	if i.bounds == nil {
-		w, h := i.mipmap.original().Size()
+		w, h := i.Size()
 		return image.Rect(0, 0, w, h)
 	}
 	return *i.bounds
