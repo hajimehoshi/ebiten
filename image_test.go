@@ -843,7 +843,7 @@ func TestImageStretch(t *testing.T) {
 	}
 }
 
-func TestSprites(t *testing.T) {
+func TestImageSprites(t *testing.T) {
 	const (
 		width  = 512
 		height = 512
@@ -871,7 +871,7 @@ func TestSprites(t *testing.T) {
 	}
 }
 
-func TestMipmap(t *testing.T) {
+func TestImageMipmap(t *testing.T) {
 	src, _, err := openEbitenImage()
 	if err != nil {
 		t.Fatal(err)
@@ -916,7 +916,7 @@ func TestMipmap(t *testing.T) {
 }
 
 // Issue #710
-func TestMipmapColor(t *testing.T) {
+func TestImageMipmapColor(t *testing.T) {
 	img0, _ := NewImage(256, 256, FilterDefault)
 	img1, _ := NewImage(128, 128, FilterDefault)
 	img1.Fill(color.White)
