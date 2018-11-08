@@ -157,6 +157,7 @@ func (d *decoded) Close() error {
 	if err := d.source.Close(); err != nil {
 		return err
 	}
+	d.decoder = nil
 	return nil
 }
 
