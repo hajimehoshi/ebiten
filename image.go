@@ -331,46 +331,16 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	}
 
 	bounds := img.Bounds()
-	sx0, sy0, sx1, sy1 := bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y
 
 	// SourceRect is deprecated. This implementation is for backward compatibility.
 	if options.SourceRect != nil {
-		r := bounds.Intersect(*options.SourceRect)
-		if r.Empty() {
+		bounds = bounds.Intersect(*options.SourceRect)
+		if bounds.Empty() {
 			return
-		}
-
-		if sx0 < r.Min.X {
-			sx0 = r.Min.X
-		}
-		if sy0 < r.Min.Y {
-			sy0 = r.Min.Y
-		}
-		if sx1 > r.Max.X {
-			sx1 = r.Max.X
-		}
-		if sy1 > r.Max.Y {
-			sy1 = r.Max.Y
 		}
 	}
 
 	geom := &options.GeoM
-	if sx0 < 0 || sy0 < 0 {
-		dx := 0.0
-		dy := 0.0
-		if sx0 < 0 {
-			dx = -float64(sx0)
-			sx0 = 0
-		}
-		if sy0 < 0 {
-			dy = -float64(sy0)
-			sy0 = 0
-		}
-		geom = &GeoM{}
-		geom.Translate(dx, dy)
-		geom.Concat(options.GeoM)
-	}
-
 	mode := graphics.CompositeMode(options.CompositeMode)
 
 	filter := graphics.FilterNearest
@@ -414,10 +384,10 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 
 	if level == 0 {
 		src := img.mipmap.original()
-		vs := src.QuadVertices(sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		vs := src.QuadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
 		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
-	} else if src := img.mipmap.level(image.Rect(sx0, sy0, sx1, sy1), level); src != nil {
+	} else if src := img.mipmap.level(bounds, level); src != nil {
 		w, h := src.Size()
 		s := 1 << uint(level)
 		a *= float32(s)
