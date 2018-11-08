@@ -69,7 +69,7 @@ Press C to clip the images.
 Scale: %0.2f`, s)
 	ebitenutil.DebugPrint(screen, msg)
 
-	clippedGophersImage := gophersImage.SubImage(image.Rect(10, 10, 100, 100)).(*ebiten.Image)
+	clippedGophersImage := gophersImage.SubImage(image.Rect(100, 100, 200, 200)).(*ebiten.Image)
 	for i, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 		w, h := gophersImage.Size()
 
