@@ -75,14 +75,6 @@ type contextImpl struct {
 	worker mgl.Worker
 }
 
-func Init() {
-	theContext.gl, theContext.worker = mgl.NewContext()
-}
-
-func InitWithContext(context mgl.Context) {
-	theContext.gl = context
-}
-
 func (c *context) doWork(chError <-chan error, chDone <-chan struct{}) error {
 	if c.worker == nil {
 		panic("not reached")

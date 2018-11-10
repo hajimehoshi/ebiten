@@ -16,6 +16,18 @@
 
 package opengl
 
+import (
+	"golang.org/x/mobile/gl"
+)
+
 func (d *Driver) DoWork(chError <-chan error, chDone <-chan struct{}) error {
-	return theContext.doWork(chError, chDone)
+	return d.context.doWork(chError, chDone)
+}
+
+func (d *Driver) Init() {
+	d.context.gl, d.context.worker = gl.NewContext()
+}
+
+func (d *Driver) InitWithContext(context gl.Context) {
+	d.context.gl = context
 }

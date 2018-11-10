@@ -152,9 +152,9 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 
 	if mainloop {
 		ctx := <-glContextCh
-		opengl.InitWithContext(ctx)
+		opengl.GetDriver().InitWithContext(ctx)
 	} else {
-		opengl.Init()
+		opengl.GetDriver().Init()
 	}
 
 	// Force to set the screen size

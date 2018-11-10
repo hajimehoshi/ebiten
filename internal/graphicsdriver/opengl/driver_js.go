@@ -17,9 +17,9 @@
 package opengl
 
 func (d *Driver) IsContextLost() bool {
-	return theContext.isContextLost()
+	return d.context.isContextLost()
 }
 
 func (d *Driver) RestoreContext() {
-	theContext.restoreContext()
+	d.context.restoreContext()
 }
