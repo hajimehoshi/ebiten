@@ -237,11 +237,6 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 		return err
 	}
 	driver().DrawElements(c.nindices, indexOffsetInBytes)
-
-	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
-	// but basically this pass the tests (esp. TestImageTooManyFill).
-	// As glFlush() causes performance problems, this should be avoided as much as possible.
-	// Let's wait and see, and file a new issue when this problem is newly found.
 	return nil
 }
 
@@ -298,10 +293,7 @@ func (c *replacePixelsCommand) String() string {
 
 // Exec executes the replacePixelsCommand.
 func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
-	// glFlush is necessary on Android.
-	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
-	driver().Flush()
-	c.dst.image.TexSubImage2D(c.pixels, c.x, c.y, c.width, c.height)
+	c.dst.image.ReplacePixels(c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
 

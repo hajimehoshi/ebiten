@@ -36,5 +36,5 @@ type Image interface {
 	Pixels() ([]byte, error)
 	SetAsDestination()
 	SetAsSource()
-	TexSubImage2D(p []byte, x, y, width, height int)
+	ReplacePixels(pixels []byte, x, y, width, height int)
 }

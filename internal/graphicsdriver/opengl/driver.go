@@ -77,6 +77,10 @@ func (d *Driver) UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 
 func (d *Driver) DrawElements(len int, offsetInBytes int) {
 	theContext.drawElements(len, offsetInBytes)
+	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
+	// but basically this pass the tests (esp. TestImageTooManyFill).
+	// As glFlush() causes performance problems, this should be avoided as much as possible.
+	// Let's wait and see, and file a new issue when this problem is newly found.
 }
 
 func (d *Driver) Flush() {
