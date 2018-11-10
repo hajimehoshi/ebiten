@@ -55,8 +55,7 @@ func convertOperation(op graphics.Operation) operation {
 	}
 }
 
-// TODO: Unexport this
-type Context struct {
+type context struct {
 	locationCache      *locationCache
 	screenFramebuffer  framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer    framebufferNative
@@ -65,12 +64,12 @@ type Context struct {
 	lastViewportHeight int
 	lastCompositeMode  graphics.CompositeMode
 	maxTextureSize     int
-	context
+	contextImpl
 }
 
-var theContext Context
+var theContext context
 
-func (c *Context) bindTexture(t textureNative) {
+func (c *context) bindTexture(t textureNative) {
 	if c.lastTexture == t {
 		return
 	}
@@ -78,7 +77,7 @@ func (c *Context) bindTexture(t textureNative) {
 	c.lastTexture = t
 }
 
-func (c *Context) bindFramebuffer(f framebufferNative) {
+func (c *context) bindFramebuffer(f framebufferNative) {
 	if c.lastFramebuffer == f {
 		return
 	}
@@ -86,7 +85,7 @@ func (c *Context) bindFramebuffer(f framebufferNative) {
 	c.lastFramebuffer = f
 }
 
-func (c *Context) setViewport(f *framebuffer) {
+func (c *context) setViewport(f *framebuffer) {
 	c.bindFramebuffer(f.native)
 	if c.lastViewportWidth != f.width || c.lastViewportHeight != f.height {
 		c.setViewportImpl(f.width, f.height)
@@ -103,11 +102,11 @@ func (c *Context) setViewport(f *framebuffer) {
 	}
 }
 
-func (c *Context) getScreenFramebuffer() framebufferNative {
+func (c *context) getScreenFramebuffer() framebufferNative {
 	return c.screenFramebuffer
 }
 
-func (c *Context) getMaxTextureSize() int {
+func (c *context) getMaxTextureSize() int {
 	if c.maxTextureSize == 0 {
 		c.maxTextureSize = c.maxTextureSizeImpl()
 	}

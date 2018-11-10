@@ -70,7 +70,7 @@ func init() {
 	initializeArrayBuferLayout()
 }
 
-type context struct {
+type contextImpl struct {
 	gl     mgl.Context
 	worker mgl.Worker
 }
@@ -83,7 +83,7 @@ func InitWithContext(context mgl.Context) {
 	theContext.gl = context
 }
 
-func (c *Context) doWork(chError <-chan error, chDone <-chan struct{}) error {
+func (c *context) doWork(chError <-chan error, chDone <-chan struct{}) error {
 	if c.worker == nil {
 		panic("not reached")
 	}
@@ -103,7 +103,7 @@ loop:
 	return nil
 }
 
-func (c *Context) reset() error {
+func (c *context) reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = invalidTexture
 	c.lastFramebuffer = invalidFramebuffer
@@ -118,7 +118,7 @@ func (c *Context) reset() error {
 	return nil
 }
 
-func (c *Context) blendFunc(mode graphics.CompositeMode) {
+func (c *context) blendFunc(mode graphics.CompositeMode) {
 	gl := c.gl
 	if c.lastCompositeMode == mode {
 		return
@@ -129,7 +129,7 @@ func (c *Context) blendFunc(mode graphics.CompositeMode) {
 	gl.BlendFunc(mgl.Enum(s2), mgl.Enum(d2))
 }
 
-func (c *Context) newTexture(width, height int) (textureNative, error) {
+func (c *context) newTexture(width, height int) (textureNative, error) {
 	gl := c.gl
 	t := gl.CreateTexture()
 	if t.Value <= 0 {
@@ -147,12 +147,12 @@ func (c *Context) newTexture(width, height int) (textureNative, error) {
 	return textureNative(t), nil
 }
 
-func (c *Context) bindFramebufferImpl(f framebufferNative) {
+func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl := c.gl
 	gl.BindFramebuffer(mgl.FRAMEBUFFER, mgl.Framebuffer(f))
 }
 
-func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
+func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
 	gl.Flush()
 
@@ -166,12 +166,12 @@ func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
-func (c *Context) bindTextureImpl(t textureNative) {
+func (c *context) bindTextureImpl(t textureNative) {
 	gl := c.gl
 	gl.BindTexture(mgl.TEXTURE_2D, mgl.Texture(t))
 }
 
-func (c *Context) deleteTexture(t textureNative) {
+func (c *context) deleteTexture(t textureNative) {
 	gl := c.gl
 	if !gl.IsTexture(mgl.Texture(t)) {
 		return
@@ -182,18 +182,18 @@ func (c *Context) deleteTexture(t textureNative) {
 	gl.DeleteTexture(mgl.Texture(t))
 }
 
-func (c *Context) isTexture(t textureNative) bool {
+func (c *context) isTexture(t textureNative) bool {
 	gl := c.gl
 	return gl.IsTexture(mgl.Texture(t))
 }
 
-func (c *Context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
+func (c *context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	gl := c.gl
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
 }
 
-func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, error) {
+func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
 	if f.Value <= 0 {
@@ -215,12 +215,12 @@ func (c *Context) newFramebuffer(texture textureNative) (framebufferNative, erro
 	return framebufferNative(f), nil
 }
 
-func (c *Context) setViewportImpl(width, height int) {
+func (c *context) setViewportImpl(width, height int) {
 	gl := c.gl
 	gl.Viewport(0, 0, width, height)
 }
 
-func (c *Context) deleteFramebuffer(f framebufferNative) {
+func (c *context) deleteFramebuffer(f framebufferNative) {
 	gl := c.gl
 	if !gl.IsFramebuffer(mgl.Framebuffer(f)) {
 		return
@@ -236,7 +236,7 @@ func (c *Context) deleteFramebuffer(f framebufferNative) {
 	gl.DeleteFramebuffer(mgl.Framebuffer(f))
 }
 
-func (c *Context) newShader(shaderType shaderType, source string) (shader, error) {
+func (c *context) newShader(shaderType shaderType, source string) (shader, error) {
 	gl := c.gl
 	s := gl.CreateShader(mgl.Enum(shaderType))
 	if s.Value == 0 {
@@ -253,12 +253,12 @@ func (c *Context) newShader(shaderType shaderType, source string) (shader, error
 	return shader(s), nil
 }
 
-func (c *Context) deleteShader(s shader) {
+func (c *context) deleteShader(s shader) {
 	gl := c.gl
 	gl.DeleteShader(mgl.Shader(s))
 }
 
-func (c *Context) newProgram(shaders []shader) (program, error) {
+func (c *context) newProgram(shaders []shader) (program, error) {
 	gl := c.gl
 	p := gl.CreateProgram()
 	if p.Value == 0 {
@@ -276,12 +276,12 @@ func (c *Context) newProgram(shaders []shader) (program, error) {
 	return program(p), nil
 }
 
-func (c *Context) useProgram(p program) {
+func (c *context) useProgram(p program) {
 	gl := c.gl
 	gl.UseProgram(mgl.Program(p))
 }
 
-func (c *Context) deleteProgram(p program) {
+func (c *context) deleteProgram(p program) {
 	gl := c.gl
 	if !gl.IsProgram(mgl.Program(p)) {
 		return
@@ -289,7 +289,7 @@ func (c *Context) deleteProgram(p program) {
 	gl.DeleteProgram(mgl.Program(p))
 }
 
-func (c *Context) getUniformLocationImpl(p program, location string) uniformLocation {
+func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
 	gl := c.gl
 	u := uniformLocation(gl.GetUniformLocation(mgl.Program(p), location))
 	if u.Value == -1 {
@@ -298,17 +298,17 @@ func (c *Context) getUniformLocationImpl(p program, location string) uniformLoca
 	return u
 }
 
-func (c *Context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) {
 	gl := c.gl
 	gl.Uniform1i(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
-func (c *Context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) {
 	gl := c.gl
 	gl.Uniform1f(mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location)), v)
 }
 
-func (c *Context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32) {
 	gl := c.gl
 	l := mgl.Uniform(c.locationCache.GetUniformLocation(c, p, location))
 	switch len(v) {
@@ -323,7 +323,7 @@ func (c *Context) uniformFloats(p program, location string, v []float32) {
 	}
 }
 
-func (c *Context) getAttribLocationImpl(p program, location string) attribLocation {
+func (c *context) getAttribLocationImpl(p program, location string) attribLocation {
 	gl := c.gl
 	a := attribLocation(gl.GetAttribLocation(mgl.Program(p), location))
 	if a.Value == ^uint(0) {
@@ -332,25 +332,25 @@ func (c *Context) getAttribLocationImpl(p program, location string) attribLocati
 	return a
 }
 
-func (c *Context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
+func (c *context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.VertexAttribPointer(mgl.Attrib(l), size, mgl.Enum(dataType), false, stride, offset)
 }
 
-func (c *Context) enableVertexAttribArray(p program, location string) {
+func (c *context) enableVertexAttribArray(p program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.EnableVertexAttribArray(mgl.Attrib(l))
 }
 
-func (c *Context) disableVertexAttribArray(p program, location string) {
+func (c *context) disableVertexAttribArray(p program, location string) {
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.DisableVertexAttribArray(mgl.Attrib(l))
 }
 
-func (c *Context) newArrayBuffer(size int) buffer {
+func (c *context) newArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(arrayBuffer), b)
@@ -358,7 +358,7 @@ func (c *Context) newArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *Context) newElementArrayBuffer(size int) buffer {
+func (c *context) newElementArrayBuffer(size int) buffer {
 	gl := c.gl
 	b := gl.CreateBuffer()
 	gl.BindBuffer(mgl.Enum(elementArrayBuffer), b)
@@ -366,37 +366,37 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
+func (c *context) bindBuffer(bufferType bufferType, b buffer) {
 	gl := c.gl
 	gl.BindBuffer(mgl.Enum(bufferType), mgl.Buffer(b))
 }
 
-func (c *Context) arrayBufferSubData(data []float32) {
+func (c *context) arrayBufferSubData(data []float32) {
 	gl := c.gl
 	gl.BufferSubData(mgl.Enum(arrayBuffer), 0, float32sToBytes(data))
 }
 
-func (c *Context) elementArrayBufferSubData(data []uint16) {
+func (c *context) elementArrayBufferSubData(data []uint16) {
 	gl := c.gl
 	gl.BufferSubData(mgl.Enum(elementArrayBuffer), 0, uint16sToBytes(data))
 }
 
-func (c *Context) deleteBuffer(b buffer) {
+func (c *context) deleteBuffer(b buffer) {
 	gl := c.gl
 	gl.DeleteBuffer(mgl.Buffer(b))
 }
 
-func (c *Context) drawElements(len int, offsetInBytes int) {
+func (c *context) drawElements(len int, offsetInBytes int) {
 	gl := c.gl
 	gl.DrawElements(mgl.TRIANGLES, len, mgl.UNSIGNED_SHORT, offsetInBytes)
 }
 
-func (c *Context) maxTextureSizeImpl() int {
+func (c *context) maxTextureSizeImpl() int {
 	gl := c.gl
 	return gl.GetInteger(mgl.MAX_TEXTURE_SIZE)
 }
 
-func (c *Context) flush() {
+func (c *context) flush() {
 	gl := c.gl
 	gl.Flush()
 }

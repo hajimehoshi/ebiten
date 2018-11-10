@@ -28,7 +28,7 @@ func newLocationCache() *locationCache {
 	}
 }
 
-func (c *locationCache) GetUniformLocation(context *Context, p program, location string) uniformLocation {
+func (c *locationCache) GetUniformLocation(context *context, p program, location string) uniformLocation {
 	id := getProgramID(p)
 	if _, ok := c.uniformLocationCache[id]; !ok {
 		c.uniformLocationCache[id] = map[string]uniformLocation{}
@@ -41,7 +41,7 @@ func (c *locationCache) GetUniformLocation(context *Context, p program, location
 	return l
 }
 
-func (c *locationCache) GetAttribLocation(context *Context, p program, location string) attribLocation {
+func (c *locationCache) GetAttribLocation(context *context, p program, location string) attribLocation {
 	id := getProgramID(p)
 	if _, ok := c.attribLocationCache[id]; !ok {
 		c.attribLocationCache[id] = map[string]attribLocation{}

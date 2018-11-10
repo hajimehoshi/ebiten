@@ -113,13 +113,13 @@ func init() {
 	initializeArrayBuferLayout()
 }
 
-type context struct {
+type contextImpl struct {
 	gl            js.Value
 	loseContext   js.Value
 	lastProgramID programID
 }
 
-func (c *Context) ensureGL() {
+func (c *context) ensureGL() {
 	if c.gl != (js.Value{}) {
 		return
 	}
@@ -147,7 +147,7 @@ func (c *Context) ensureGL() {
 	c.loseContext = gl.Call("getExtension", "WEBGL_lose_context")
 }
 
-func (c *Context) reset() error {
+func (c *context) reset() error {
 	c.locationCache = newLocationCache()
 	c.lastTexture = textureNative(js.Null())
 	c.lastFramebuffer = framebufferNative(js.Null())
@@ -164,7 +164,7 @@ func (c *Context) reset() error {
 	return nil
 }
 
-func (c *Context) blendFunc(mode graphics.CompositeMode) {
+func (c *context) blendFunc(mode graphics.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
@@ -176,7 +176,7 @@ func (c *Context) blendFunc(mode graphics.CompositeMode) {
 	gl.Call("blendFunc", int(s2), int(d2))
 }
 
-func (c *Context) newTexture(width, height int) (textureNative, error) {
+func (c *context) newTexture(width, height int) (textureNative, error) {
 	c.ensureGL()
 	gl := c.gl
 	t := gl.Call("createTexture")
@@ -203,13 +203,13 @@ func (c *Context) newTexture(width, height int) (textureNative, error) {
 	return textureNative(t), nil
 }
 
-func (c *Context) bindFramebufferImpl(f framebufferNative) {
+func (c *context) bindFramebufferImpl(f framebufferNative) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("bindFramebuffer", framebuffer_, js.Value(f))
 }
 
-func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
+func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	c.ensureGL()
 	gl := c.gl
 
@@ -226,13 +226,13 @@ func (c *Context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	return pixels, nil
 }
 
-func (c *Context) bindTextureImpl(t textureNative) {
+func (c *context) bindTextureImpl(t textureNative) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("bindTexture", texture2d, js.Value(t))
 }
 
-func (c *Context) deleteTexture(t textureNative) {
+func (c *context) deleteTexture(t textureNative) {
 	c.ensureGL()
 	gl := c.gl
 	if !gl.Call("isTexture", js.Value(t)).Bool() {
@@ -244,13 +244,13 @@ func (c *Context) deleteTexture(t textureNative) {
 	gl.Call("deleteTexture", js.Value(t))
 }
 
-func (c *Context) isTexture(t textureNative) bool {
+func (c *context) isTexture(t textureNative) bool {
 	c.ensureGL()
 	gl := c.gl
 	return gl.Call("isTexture", js.Value(t)).Bool()
 }
 
-func (c *Context) texSubImage2D(t textureNative, pixels []byte, x, y, width, height int) {
+func (c *context) texSubImage2D(t textureNative, pixels []byte, x, y, width, height int) {
 	c.bindTexture(t)
 	c.ensureGL()
 	gl := c.gl
@@ -262,7 +262,7 @@ func (c *Context) texSubImage2D(t textureNative, pixels []byte, x, y, width, hei
 	p.Release()
 }
 
-func (c *Context) newFramebuffer(t textureNative) (framebufferNative, error) {
+func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	c.ensureGL()
 	gl := c.gl
 	f := gl.Call("createFramebuffer")
@@ -276,13 +276,13 @@ func (c *Context) newFramebuffer(t textureNative) (framebufferNative, error) {
 	return framebufferNative(f), nil
 }
 
-func (c *Context) setViewportImpl(width, height int) {
+func (c *context) setViewportImpl(width, height int) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("viewport", 0, 0, width, height)
 }
 
-func (c *Context) deleteFramebuffer(f framebufferNative) {
+func (c *context) deleteFramebuffer(f framebufferNative) {
 	c.ensureGL()
 	gl := c.gl
 	if !gl.Call("isFramebuffer", js.Value(f)).Bool() {
@@ -299,7 +299,7 @@ func (c *Context) deleteFramebuffer(f framebufferNative) {
 	gl.Call("deleteFramebuffer", js.Value(f))
 }
 
-func (c *Context) newShader(shaderType shaderType, source string) (shader, error) {
+func (c *context) newShader(shaderType shaderType, source string) (shader, error) {
 	c.ensureGL()
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
@@ -317,13 +317,13 @@ func (c *Context) newShader(shaderType shaderType, source string) (shader, error
 	return shader(s), nil
 }
 
-func (c *Context) deleteShader(s shader) {
+func (c *context) deleteShader(s shader) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("deleteShader", js.Value(s))
 }
 
-func (c *Context) newProgram(shaders []shader) (program, error) {
+func (c *context) newProgram(shaders []shader) (program, error) {
 	c.ensureGL()
 	gl := c.gl
 	v := gl.Call("createProgram")
@@ -347,13 +347,13 @@ func (c *Context) newProgram(shaders []shader) (program, error) {
 	}, nil
 }
 
-func (c *Context) useProgram(p program) {
+func (c *context) useProgram(p program) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("useProgram", p.value)
 }
 
-func (c *Context) deleteProgram(p program) {
+func (c *context) deleteProgram(p program) {
 	c.ensureGL()
 	gl := c.gl
 	if !gl.Call("isProgram", p.value).Bool() {
@@ -362,20 +362,20 @@ func (c *Context) deleteProgram(p program) {
 	gl.Call("deleteProgram", p.value)
 }
 
-func (c *Context) getUniformLocationImpl(p program, location string) uniformLocation {
+func (c *context) getUniformLocationImpl(p program, location string) uniformLocation {
 	c.ensureGL()
 	gl := c.gl
 	return uniformLocation(gl.Call("getUniformLocation", p.value, location))
 }
 
-func (c *Context) uniformInt(p program, location string, v int) {
+func (c *context) uniformInt(p program, location string, v int) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
 	gl.Call("uniform1i", js.Value(l), v)
 }
 
-func (c *Context) uniformFloat(p program, location string, v float32) {
+func (c *context) uniformFloat(p program, location string, v float32) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
@@ -386,7 +386,7 @@ var (
 	float32Array = js.Global().Get("Float32Array")
 )
 
-func (c *Context) uniformFloats(p program, location string, v []float32) {
+func (c *context) uniformFloats(p program, location string, v []float32) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetUniformLocation(c, p, location)
@@ -404,34 +404,34 @@ func (c *Context) uniformFloats(p program, location string, v []float32) {
 	}
 }
 
-func (c *Context) getAttribLocationImpl(p program, location string) attribLocation {
+func (c *context) getAttribLocationImpl(p program, location string) attribLocation {
 	c.ensureGL()
 	gl := c.gl
 	return attribLocation(gl.Call("getAttribLocation", p.value, location).Int())
 }
 
-func (c *Context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
+func (c *context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("vertexAttribPointer", int(l), size, int(dataType), false, stride, offset)
 }
 
-func (c *Context) enableVertexAttribArray(p program, location string) {
+func (c *context) enableVertexAttribArray(p program, location string) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("enableVertexAttribArray", int(l))
 }
 
-func (c *Context) disableVertexAttribArray(p program, location string) {
+func (c *context) disableVertexAttribArray(p program, location string) {
 	c.ensureGL()
 	gl := c.gl
 	l := c.locationCache.GetAttribLocation(c, p, location)
 	gl.Call("disableVertexAttribArray", int(l))
 }
 
-func (c *Context) newArrayBuffer(size int) buffer {
+func (c *context) newArrayBuffer(size int) buffer {
 	c.ensureGL()
 	gl := c.gl
 	b := gl.Call("createBuffer")
@@ -440,7 +440,7 @@ func (c *Context) newArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *Context) newElementArrayBuffer(size int) buffer {
+func (c *context) newElementArrayBuffer(size int) buffer {
 	c.ensureGL()
 	gl := c.gl
 	b := gl.Call("createBuffer")
@@ -449,13 +449,13 @@ func (c *Context) newElementArrayBuffer(size int) buffer {
 	return buffer(b)
 }
 
-func (c *Context) bindBuffer(bufferType bufferType, b buffer) {
+func (c *context) bindBuffer(bufferType bufferType, b buffer) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("bindBuffer", int(bufferType), js.Value(b))
 }
 
-func (c *Context) arrayBufferSubData(data []float32) {
+func (c *context) arrayBufferSubData(data []float32) {
 	c.ensureGL()
 	gl := c.gl
 	arr := js.TypedArrayOf(data)
@@ -463,7 +463,7 @@ func (c *Context) arrayBufferSubData(data []float32) {
 	arr.Release()
 }
 
-func (c *Context) elementArrayBufferSubData(data []uint16) {
+func (c *context) elementArrayBufferSubData(data []uint16) {
 	c.ensureGL()
 	gl := c.gl
 	arr := js.TypedArrayOf(data)
@@ -471,37 +471,37 @@ func (c *Context) elementArrayBufferSubData(data []uint16) {
 	arr.Release()
 }
 
-func (c *Context) deleteBuffer(b buffer) {
+func (c *context) deleteBuffer(b buffer) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("deleteBuffer", js.Value(b))
 }
 
-func (c *Context) drawElements(len int, offsetInBytes int) {
+func (c *context) drawElements(len int, offsetInBytes int) {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("drawElements", triangles, len, unsignedShort, offsetInBytes)
 }
 
-func (c *Context) maxTextureSizeImpl() int {
+func (c *context) maxTextureSizeImpl() int {
 	c.ensureGL()
 	gl := c.gl
 	return gl.Call("getParameter", maxTextureSize).Int()
 }
 
-func (c *Context) flush() {
+func (c *context) flush() {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("flush")
 }
 
-func (c *Context) isContextLost() bool {
+func (c *context) isContextLost() bool {
 	c.ensureGL()
 	gl := c.gl
 	return gl.Call("isContextLost").Bool()
 }
 
-func (c *Context) restoreContext() {
+func (c *context) restoreContext() {
 	if c.loseContext != js.Null() {
 		c.loseContext.Call("restoreContext")
 	}
