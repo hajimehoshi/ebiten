@@ -23,7 +23,7 @@ type GraphicsDriver interface {
 	BufferSubData(vertices []float32, indices []uint16)
 	DrawElements(len int, offsetInBytes int)
 	Flush()
-	MaxTextureSize() int
+	MaxImageSize() int
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) Image
 	Reset() error

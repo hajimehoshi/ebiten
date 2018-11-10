@@ -21,22 +21,21 @@ import (
 )
 
 var (
-	// maxTextureSize is the maximum texture size
+	// maxImageSize is the maximum texture size
 	//
-	// maxTextureSize also represents the default size (width or height) of viewport.
-	maxTextureSize = 0
+	// maxImageSize also represents the default size (width or height) of viewport.
+	maxImageSize = 0
 )
 
 // MaxImageSize returns the maximum of width/height of an image.
 func MaxImageSize() int {
-	if maxTextureSize == 0 {
-		maxTextureSize = driver().MaxTextureSize()
-		if maxTextureSize == 0 {
+	if maxImageSize == 0 {
+		maxImageSize = driver().MaxImageSize()
+		if maxImageSize == 0 {
 			panic("graphics: failed to get the max texture size")
 		}
 	}
-	s := maxTextureSize
-	return s
+	return maxImageSize
 }
 
 // Image represents an image that is implemented with OpenGL.

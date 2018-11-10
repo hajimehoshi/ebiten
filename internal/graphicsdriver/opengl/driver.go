@@ -83,6 +83,6 @@ func (d *Driver) Flush() {
 	theContext.flush()
 }
 
-func (d *Driver) MaxTextureSize() int {
+func (d *Driver) MaxImageSize() int {
 	return theContext.getMaxTextureSize()
 }
