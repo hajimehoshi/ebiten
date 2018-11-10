@@ -17,6 +17,7 @@ package opengl
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/math"
 )
 
@@ -30,7 +31,7 @@ type Driver struct {
 	state openGLState
 }
 
-func (d *Driver) NewImage(width, height int) (*Image, error) {
+func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 	i := &Image{
 		driver: d,
 		width:  width,
@@ -47,7 +48,7 @@ func (d *Driver) NewImage(width, height int) (*Image, error) {
 	return i, nil
 }
 
-func (d *Driver) NewScreenFramebufferImage(width, height int) *Image {
+func (d *Driver) NewScreenFramebufferImage(width, height int) graphicsdriver.Image {
 	checkSize(width, height)
 	i := &Image{
 		driver: d,

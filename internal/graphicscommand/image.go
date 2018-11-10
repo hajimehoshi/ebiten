@@ -17,7 +17,7 @@ package graphicscommand
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 // MaxImageSize returns the maximum of width/height of an image.
 func MaxImageSize() int {
 	if maxTextureSize == 0 {
-		maxTextureSize = opengl.GetDriver().MaxTextureSize()
+		maxTextureSize = driver().MaxTextureSize()
 		if maxTextureSize == 0 {
 			panic("graphics: failed to get the max texture size")
 		}
@@ -41,7 +41,7 @@ func MaxImageSize() int {
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image  *opengl.Image
+	image  graphicsdriver.Image
 	width  int
 	height int
 }
