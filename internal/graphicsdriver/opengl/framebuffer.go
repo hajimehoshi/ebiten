@@ -16,6 +16,7 @@ package opengl
 
 // framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
+	driver    *Driver
 	native    framebufferNative
 	proMatrix []float32
 	width     int
@@ -23,8 +24,8 @@ type framebuffer struct {
 }
 
 // newFramebufferFromTexture creates a framebuffer from the given texture.
-func newFramebufferFromTexture(texture textureNative, width, height int) (*framebuffer, error) {
-	native, err := theContext.newFramebuffer(texture)
+func newFramebufferFromTexture(context *context, texture textureNative, width, height int) (*framebuffer, error) {
+	native, err := context.newFramebuffer(texture)
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +37,9 @@ func newFramebufferFromTexture(texture textureNative, width, height int) (*frame
 }
 
 // newScreenFramebuffer creates a framebuffer for the screen.
-func newScreenFramebuffer(width, height int) *framebuffer {
+func newScreenFramebuffer(context *context, width, height int) *framebuffer {
 	return &framebuffer{
-		native: theContext.getScreenFramebuffer(),
+		native: context.getScreenFramebuffer(),
 		width:  width,
 		height: height,
 	}
@@ -57,8 +58,8 @@ func (f *framebuffer) projectionMatrix() []float32 {
 	return f.proMatrix
 }
 
-func (f *framebuffer) delete() {
-	if f.native != theContext.getScreenFramebuffer() {
-		theContext.deleteFramebuffer(f.native)
+func (f *framebuffer) delete(context *context) {
+	if f.native != context.getScreenFramebuffer() {
+		context.deleteFramebuffer(f.native)
 	}
 }

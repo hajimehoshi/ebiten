@@ -53,28 +53,28 @@ func (a *arrayBufferLayout) totalBytes() int {
 }
 
 // newArrayBuffer creates OpenGL's buffer object for the array buffer.
-func (a *arrayBufferLayout) newArrayBuffer() buffer {
-	return theContext.newArrayBuffer(a.totalBytes() * graphics.IndicesNum)
+func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
+	return context.newArrayBuffer(a.totalBytes() * graphics.IndicesNum)
 }
 
 // enable binds the array buffer the given program to use the array buffer.
-func (a *arrayBufferLayout) enable(program program) {
+func (a *arrayBufferLayout) enable(context *context, program program) {
 	for _, p := range a.parts {
-		theContext.enableVertexAttribArray(program, p.name)
+		context.enableVertexAttribArray(program, p.name)
 	}
 	total := a.totalBytes()
 	offset := 0
 	for _, p := range a.parts {
-		theContext.vertexAttribPointer(program, p.name, p.num, float, total, offset)
+		context.vertexAttribPointer(program, p.name, p.num, float, total, offset)
 		offset += float.SizeInBytes() * p.num
 	}
 }
 
 // disable stops using the array buffer.
-func (a *arrayBufferLayout) disable(program program) {
+func (a *arrayBufferLayout) disable(context *context, program program) {
 	// TODO: Disabling should be done in reversed order?
 	for _, p := range a.parts {
-		theContext.disableVertexAttribArray(program, p.name)
+		context.disableVertexAttribArray(program, p.name)
 	}
 }
 
@@ -146,8 +146,8 @@ const (
 )
 
 // reset resets or initializes the OpenGL state.
-func (s *openGLState) reset() error {
-	if err := theContext.reset(); err != nil {
+func (s *openGLState) reset(context *context) error {
+	if err := context.reset(); err != nil {
 		return err
 	}
 
@@ -162,51 +162,51 @@ func (s *openGLState) reset() error {
 	// However, it is not assumed that reset is called only when context lost happens.
 	// Let's delete them explicitly.
 	if s.programNearest != zeroProgram {
-		theContext.deleteProgram(s.programNearest)
+		context.deleteProgram(s.programNearest)
 	}
 	if s.programLinear != zeroProgram {
-		theContext.deleteProgram(s.programLinear)
+		context.deleteProgram(s.programLinear)
 	}
 	if s.programScreen != zeroProgram {
-		theContext.deleteProgram(s.programScreen)
+		context.deleteProgram(s.programScreen)
 	}
 
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
 	if !web.IsBrowser() {
 		if s.arrayBuffer != zeroBuffer {
-			theContext.deleteBuffer(s.arrayBuffer)
+			context.deleteBuffer(s.arrayBuffer)
 		}
 		if s.elementArrayBuffer != zeroBuffer {
-			theContext.deleteBuffer(s.elementArrayBuffer)
+			context.deleteBuffer(s.elementArrayBuffer)
 		}
 	}
 
-	shaderVertexModelviewNative, err := theContext.newShader(vertexShader, shaderStr(shaderVertexModelview))
+	shaderVertexModelviewNative, err := context.newShader(vertexShader, shaderStr(shaderVertexModelview))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer theContext.deleteShader(shaderVertexModelviewNative)
+	defer context.deleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentNearestNative, err := theContext.newShader(fragmentShader, shaderStr(shaderFragmentNearest))
+	shaderFragmentNearestNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentNearest))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer theContext.deleteShader(shaderFragmentNearestNative)
+	defer context.deleteShader(shaderFragmentNearestNative)
 
-	shaderFragmentLinearNative, err := theContext.newShader(fragmentShader, shaderStr(shaderFragmentLinear))
+	shaderFragmentLinearNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentLinear))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer theContext.deleteShader(shaderFragmentLinearNative)
+	defer context.deleteShader(shaderFragmentLinearNative)
 
-	shaderFragmentScreenNative, err := theContext.newShader(fragmentShader, shaderStr(shaderFragmentScreen))
+	shaderFragmentScreenNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentScreen))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer theContext.deleteShader(shaderFragmentScreenNative)
+	defer context.deleteShader(shaderFragmentScreenNative)
 
-	s.programNearest, err = theContext.newProgram([]shader{
+	s.programNearest, err = context.newProgram([]shader{
 		shaderVertexModelviewNative,
 		shaderFragmentNearestNative,
 	})
@@ -214,7 +214,7 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.programLinear, err = theContext.newProgram([]shader{
+	s.programLinear, err = context.newProgram([]shader{
 		shaderVertexModelviewNative,
 		shaderFragmentLinearNative,
 	})
@@ -222,7 +222,7 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.programScreen, err = theContext.newProgram([]shader{
+	s.programScreen, err = context.newProgram([]shader{
 		shaderVertexModelviewNative,
 		shaderFragmentScreenNative,
 	})
@@ -230,12 +230,12 @@ func (s *openGLState) reset() error {
 		return err
 	}
 
-	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer()
+	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
 
 	// Note that the indices passed to NewElementArrayBuffer is not under GC management
 	// in opengl package due to unsafe-way.
 	// See NewElementArrayBuffer in context_mobile.go.
-	s.elementArrayBuffer = theContext.newElementArrayBuffer(graphics.IndicesNum * 2)
+	s.elementArrayBuffer = context.newElementArrayBuffer(graphics.IndicesNum * 2)
 
 	return nil
 }
@@ -253,18 +253,18 @@ func areSameFloat32Array(a, b []float32) bool {
 	return true
 }
 
-func bufferSubData(vertices []float32, indices []uint16) {
-	theContext.arrayBufferSubData(vertices)
-	theContext.elementArrayBufferSubData(indices)
+func bufferSubData(context *context, vertices []float32, indices []uint16) {
+	context.arrayBufferSubData(vertices)
+	context.elementArrayBufferSubData(indices)
 }
 
 // useProgram uses the program (programTexture).
-func (s *openGLState) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
-	destination := s.destination
+func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
+	destination := d.state.destination
 	if destination == nil {
 		panic("destination image is not set")
 	}
-	source := s.source
+	source := d.state.source
 	if source == nil {
 		panic("source image is not set")
 	}
@@ -279,89 +279,89 @@ func (s *openGLState) useProgram(mode graphics.CompositeMode, colorM *affine.Col
 	dstW := destination.width
 	srcW, srcH := source.width, source.height
 
-	theContext.blendFunc(mode)
+	d.context.blendFunc(mode)
 
 	var program program
 	switch filter {
 	case graphics.FilterNearest:
-		program = s.programNearest
+		program = d.state.programNearest
 	case graphics.FilterLinear:
-		program = s.programLinear
+		program = d.state.programLinear
 	case graphics.FilterScreen:
-		program = s.programScreen
+		program = d.state.programScreen
 	default:
 		panic("not reached")
 	}
 
-	if s.lastProgram != program {
-		theContext.useProgram(program)
-		if s.lastProgram != zeroProgram {
-			theArrayBufferLayout.disable(s.lastProgram)
+	if d.state.lastProgram != program {
+		d.context.useProgram(program)
+		if d.state.lastProgram != zeroProgram {
+			theArrayBufferLayout.disable(&d.context, d.state.lastProgram)
 		}
-		theArrayBufferLayout.enable(program)
+		theArrayBufferLayout.enable(&d.context, program)
 
-		if s.lastProgram == zeroProgram {
-			theContext.bindBuffer(arrayBuffer, s.arrayBuffer)
-			theContext.bindBuffer(elementArrayBuffer, s.elementArrayBuffer)
-			theContext.uniformInt(program, "texture", 0)
+		if d.state.lastProgram == zeroProgram {
+			d.context.bindBuffer(arrayBuffer, d.state.arrayBuffer)
+			d.context.bindBuffer(elementArrayBuffer, d.state.elementArrayBuffer)
+			d.context.uniformInt(program, "texture", 0)
 		}
 
-		s.lastProgram = program
-		s.lastProjectionMatrix = nil
-		s.lastColorMatrix = nil
-		s.lastColorMatrixTranslation = nil
-		s.lastSourceWidth = 0
-		s.lastSourceHeight = 0
+		d.state.lastProgram = program
+		d.state.lastProjectionMatrix = nil
+		d.state.lastColorMatrix = nil
+		d.state.lastColorMatrixTranslation = nil
+		d.state.lastSourceWidth = 0
+		d.state.lastSourceHeight = 0
 	}
 
-	if !areSameFloat32Array(s.lastProjectionMatrix, proj) {
-		theContext.uniformFloats(program, "projection_matrix", proj)
-		if s.lastProjectionMatrix == nil {
-			s.lastProjectionMatrix = make([]float32, 16)
+	if !areSameFloat32Array(d.state.lastProjectionMatrix, proj) {
+		d.context.uniformFloats(program, "projection_matrix", proj)
+		if d.state.lastProjectionMatrix == nil {
+			d.state.lastProjectionMatrix = make([]float32, 16)
 		}
 		// (*framebuffer).projectionMatrix is always same for the same framebuffer.
 		// It's OK to hold the reference without copying.
-		s.lastProjectionMatrix = proj
+		d.state.lastProjectionMatrix = proj
 	}
 
 	esBody, esTranslate := colorM.UnsafeElements()
 
-	if !areSameFloat32Array(s.lastColorMatrix, esBody) {
-		theContext.uniformFloats(program, "color_matrix_body", esBody)
-		if s.lastColorMatrix == nil {
-			s.lastColorMatrix = make([]float32, 16)
+	if !areSameFloat32Array(d.state.lastColorMatrix, esBody) {
+		d.context.uniformFloats(program, "color_matrix_body", esBody)
+		if d.state.lastColorMatrix == nil {
+			d.state.lastColorMatrix = make([]float32, 16)
 		}
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
-		s.lastColorMatrix = esBody
+		d.state.lastColorMatrix = esBody
 	}
-	if !areSameFloat32Array(s.lastColorMatrixTranslation, esTranslate) {
-		theContext.uniformFloats(program, "color_matrix_translation", esTranslate)
-		if s.lastColorMatrixTranslation == nil {
-			s.lastColorMatrixTranslation = make([]float32, 4)
+	if !areSameFloat32Array(d.state.lastColorMatrixTranslation, esTranslate) {
+		d.context.uniformFloats(program, "color_matrix_translation", esTranslate)
+		if d.state.lastColorMatrixTranslation == nil {
+			d.state.lastColorMatrixTranslation = make([]float32, 4)
 		}
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
-		s.lastColorMatrixTranslation = esTranslate
+		d.state.lastColorMatrixTranslation = esTranslate
 	}
 
 	sw := emath.NextPowerOf2Int(srcW)
 	sh := emath.NextPowerOf2Int(srcH)
 
-	if s.lastSourceWidth != sw || s.lastSourceHeight != sh {
-		theContext.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
-		s.lastSourceWidth = sw
-		s.lastSourceHeight = sh
+	if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
+		d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
+		d.state.lastSourceWidth = sw
+		d.state.lastSourceHeight = sh
 	}
 
-	if program == s.programScreen {
+	if program == d.state.programScreen {
 		scale := float32(dstW) / float32(srcW)
-		theContext.uniformFloat(program, "scale", scale)
+		d.context.uniformFloat(program, "scale", scale)
 	}
 
 	// We don't have to call gl.ActiveTexture here: GL_TEXTURE0 is the default active texture
 	// See also: https://www.opengl.org/sdk/docs/man2/xhtml/glActiveTexture.xml
-	theContext.bindTexture(source.textureNative)
+	d.context.bindTexture(source.textureNative)
 
-	s.source = nil
-	s.destination = nil
+	d.state.source = nil
+	d.state.destination = nil
 	return nil
 }

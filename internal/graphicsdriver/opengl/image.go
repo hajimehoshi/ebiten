@@ -15,26 +15,8 @@
 package opengl
 
 import (
-	"fmt"
-
 	"github.com/hajimehoshi/ebiten/internal/math"
 )
-
-func checkSize(width, height int) {
-	if width < 1 {
-		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1.", width))
-	}
-	if height < 1 {
-		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1.", height))
-	}
-	m := theContext.getMaxTextureSize()
-	if width > m {
-		panic(fmt.Sprintf("opengl: width (%d) must be less than or equal to %d", width, m))
-	}
-	if height > m {
-		panic(fmt.Sprintf("opengl: height (%d) must be less than or equal to %d", height, m))
-	}
-}
 
 type Image struct {
 	driver        *Driver
@@ -45,15 +27,15 @@ type Image struct {
 }
 
 func (i *Image) IsInvalidated() bool {
-	return !theContext.isTexture(i.textureNative)
+	return !i.driver.context.isTexture(i.textureNative)
 }
 
 func (i *Image) Delete() {
 	if i.framebuffer != nil {
-		i.framebuffer.delete()
+		i.framebuffer.delete(&i.driver.context)
 	}
 	if i.textureNative != *new(textureNative) {
-		theContext.deleteTexture(i.textureNative)
+		i.driver.context.deleteTexture(i.textureNative)
 	}
 }
 
@@ -65,7 +47,7 @@ func (i *Image) setViewport() error {
 	if err := i.ensureFramebuffer(); err != nil {
 		return err
 	}
-	theContext.setViewport(i.framebuffer)
+	i.driver.context.setViewport(i.framebuffer)
 	return nil
 }
 
@@ -73,7 +55,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
-	p, err := theContext.framebufferPixels(i.framebuffer, i.width, i.height)
+	p, err := i.driver.context.framebufferPixels(i.framebuffer, i.width, i.height)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +74,7 @@ func (i *Image) ensureFramebuffer() error {
 		return nil
 	}
 	w, h := i.width, i.height
-	f, err := newFramebufferFromTexture(i.textureNative, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
+	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
 	if err != nil {
 		return err
 	}
@@ -103,8 +85,8 @@ func (i *Image) ensureFramebuffer() error {
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
-	theContext.flush()
-	theContext.texSubImage2D(i.textureNative, p, x, y, width, height)
+	i.driver.context.flush()
+	i.driver.context.texSubImage2D(i.textureNative, p, x, y, width, height)
 }
 
 func (i *Image) SetAsSource() {

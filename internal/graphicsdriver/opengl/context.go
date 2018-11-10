@@ -67,8 +67,6 @@ type context struct {
 	contextImpl
 }
 
-var theContext context
-
 func (c *context) bindTexture(t textureNative) {
 	if c.lastTexture == t {
 		return

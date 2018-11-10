@@ -15,6 +15,8 @@
 package opengl
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
@@ -28,7 +30,24 @@ func GetDriver() *Driver {
 }
 
 type Driver struct {
-	state openGLState
+	state   openGLState
+	context context
+}
+
+func (d *Driver) checkSize(width, height int) {
+	if width < 1 {
+		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1.", width))
+	}
+	if height < 1 {
+		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1.", height))
+	}
+	m := d.context.getMaxTextureSize()
+	if width > m {
+		panic(fmt.Sprintf("opengl: width (%d) must be less than or equal to %d", width, m))
+	}
+	if height > m {
+		panic(fmt.Sprintf("opengl: height (%d) must be less than or equal to %d", height, m))
+	}
 }
 
 func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
@@ -39,8 +58,8 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 	}
 	w := math.NextPowerOf2Int(width)
 	h := math.NextPowerOf2Int(height)
-	checkSize(w, h)
-	t, err := theContext.newTexture(w, h)
+	d.checkSize(w, h)
+	t, err := d.context.newTexture(w, h)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +68,7 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 }
 
 func (d *Driver) NewScreenFramebufferImage(width, height int) graphicsdriver.Image {
-	checkSize(width, height)
+	d.checkSize(width, height)
 	i := &Image{
 		driver: d,
 		width:  width,
@@ -58,25 +77,25 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) graphicsdriver.Ima
 	// The (default) framebuffer size can't be converted to a power of 2.
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).
-	i.framebuffer = newScreenFramebuffer(width, height)
+	i.framebuffer = newScreenFramebuffer(&d.context, width, height)
 	return i
 }
 
 // Reset resets or initializes the current OpenGL state.
 func (d *Driver) Reset() error {
-	return d.state.reset()
+	return d.state.reset(&d.context)
 }
 
 func (d *Driver) BufferSubData(vertices []float32, indices []uint16) {
-	bufferSubData(vertices, indices)
+	bufferSubData(&d.context, vertices, indices)
 }
 
 func (d *Driver) UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
-	return d.state.useProgram(mode, colorM, filter)
+	return d.useProgram(mode, colorM, filter)
 }
 
 func (d *Driver) DrawElements(len int, offsetInBytes int) {
-	theContext.drawElements(len, offsetInBytes)
+	d.context.drawElements(len, offsetInBytes)
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
 	// As glFlush() causes performance problems, this should be avoided as much as possible.
@@ -84,9 +103,9 @@ func (d *Driver) DrawElements(len int, offsetInBytes int) {
 }
 
 func (d *Driver) Flush() {
-	theContext.flush()
+	d.context.flush()
 }
 
 func (d *Driver) MaxImageSize() int {
-	return theContext.getMaxTextureSize()
+	return d.context.getMaxTextureSize()
 }
