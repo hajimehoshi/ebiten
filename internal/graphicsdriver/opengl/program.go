@@ -253,11 +253,6 @@ func areSameFloat32Array(a, b []float32) bool {
 	return true
 }
 
-func bufferSubData(context *context, vertices []float32, indices []uint16) {
-	context.arrayBufferSubData(vertices)
-	context.elementArrayBufferSubData(indices)
-}
-
 // useProgram uses the program (programTexture).
 func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
 	destination := d.state.destination

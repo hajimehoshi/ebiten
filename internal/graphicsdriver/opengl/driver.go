@@ -87,7 +87,8 @@ func (d *Driver) Reset() error {
 }
 
 func (d *Driver) BufferSubData(vertices []float32, indices []uint16) {
-	bufferSubData(&d.context, vertices, indices)
+	d.context.arrayBufferSubData(vertices)
+	d.context.elementArrayBufferSubData(indices)
 }
 
 func (d *Driver) UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
