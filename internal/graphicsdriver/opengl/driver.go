@@ -91,16 +91,16 @@ func (d *Driver) BufferSubData(vertices []float32, indices []uint16) {
 	d.context.elementArrayBufferSubData(indices)
 }
 
-func (d *Driver) UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
-	return d.useProgram(mode, colorM, filter)
-}
-
-func (d *Driver) DrawElements(len int, offset int) {
-	d.context.drawElements(len, offset*2) // 2 is uint16 size in bytes
+func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
+	if err := d.useProgram(mode, colorM, filter); err != nil {
+		return err
+	}
+	d.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
 	// As glFlush() causes performance problems, this should be avoided as much as possible.
 	// Let's wait and see, and file a new issue when this problem is newly found.
+	return nil
 }
 
 func (d *Driver) Flush() {

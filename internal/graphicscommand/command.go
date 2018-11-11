@@ -233,10 +233,9 @@ func (c *drawImageCommand) Exec(indexOffset int) error {
 
 	c.dst.image.SetAsDestination()
 	c.src.image.SetAsSource()
-	if err := driver().UseProgram(c.mode, c.color, c.filter); err != nil {
+	if err := driver().Draw(c.nindices, indexOffset, c.mode, c.color, c.filter); err != nil {
 		return err
 	}
-	driver().DrawElements(c.nindices, indexOffset)
 	return nil
 }
 

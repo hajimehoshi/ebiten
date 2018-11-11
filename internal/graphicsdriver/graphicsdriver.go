@@ -21,13 +21,12 @@ import (
 
 type GraphicsDriver interface {
 	BufferSubData(vertices []float32, indices []uint16)
-	DrawElements(indexLen int, indexOffset int)
 	Flush()
 	MaxImageSize() int
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) Image
 	Reset() error
-	UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error
+	Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error
 }
 
 type Image interface {
