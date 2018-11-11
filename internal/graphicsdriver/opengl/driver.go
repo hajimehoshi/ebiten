@@ -95,8 +95,8 @@ func (d *Driver) UseProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	return d.useProgram(mode, colorM, filter)
 }
 
-func (d *Driver) DrawElements(len int, offsetInBytes int) {
-	d.context.drawElements(len, offsetInBytes)
+func (d *Driver) DrawElements(len int, offset int) {
+	d.context.drawElements(len, offset*2) // 2 is uint16 size in bytes
 	// glFlush() might be necessary at least on MacBook Pro (a smilar problem at #419),
 	// but basically this pass the tests (esp. TestImageTooManyFill).
 	// As glFlush() causes performance problems, this should be avoided as much as possible.

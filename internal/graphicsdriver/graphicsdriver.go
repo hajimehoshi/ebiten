@@ -21,7 +21,7 @@ import (
 
 type GraphicsDriver interface {
 	BufferSubData(vertices []float32, indices []uint16)
-	DrawElements(len int, offsetInBytes int)
+	DrawElements(indexLen int, indexOffset int)
 	Flush()
 	MaxImageSize() int
 	NewImage(width, height int) (Image, error)

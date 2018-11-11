@@ -30,7 +30,7 @@ import (
 type command interface {
 	fmt.Stringer
 
-	Exec(indexOffsetInBytes int) error
+	Exec(indexOffset int) error
 	NumVertices() int
 	NumIndices() int
 	AddNumVertices(n int)
@@ -172,19 +172,19 @@ func (q *commandQueue) Flush() {
 			es = es[ne:]
 			vs = vs[nv:]
 		}
-		indexOffsetInBytes := 0
+		indexOffset := 0
 		for _, c := range q.commands[:nc] {
-			if err := c.Exec(indexOffsetInBytes); err != nil {
+			if err := c.Exec(indexOffset); err != nil {
 				q.err = err
 				return
 			}
 			if recordLog() {
 				fmt.Printf("%s\n", c)
 			}
-			// TODO: indexOffsetInBytes should be reset if the command type is different
+			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
 			// introduced than drawImageCommand.
-			indexOffsetInBytes += c.NumIndices() * 2 // 2 is uint16 size in bytes
+			indexOffset += c.NumIndices()
 		}
 		if 0 < nc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
@@ -225,7 +225,7 @@ func (c *drawImageCommand) String() string {
 }
 
 // Exec executes the drawImageCommand.
-func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
+func (c *drawImageCommand) Exec(indexOffset int) error {
 	// TODO: Is it ok not to bind any framebuffer here?
 	if c.nindices == 0 {
 		return nil
@@ -236,7 +236,7 @@ func (c *drawImageCommand) Exec(indexOffsetInBytes int) error {
 	if err := driver().UseProgram(c.mode, c.color, c.filter); err != nil {
 		return err
 	}
-	driver().DrawElements(c.nindices, indexOffsetInBytes)
+	driver().DrawElements(c.nindices, indexOffset)
 	return nil
 }
 
@@ -292,7 +292,7 @@ func (c *replacePixelsCommand) String() string {
 }
 
 // Exec executes the replacePixelsCommand.
-func (c *replacePixelsCommand) Exec(indexOffsetInBytes int) error {
+func (c *replacePixelsCommand) Exec(indexOffset int) error {
 	c.dst.image.ReplacePixels(c.pixels, c.x, c.y, c.width, c.height)
 	return nil
 }
@@ -321,7 +321,7 @@ type pixelsCommand struct {
 }
 
 // Exec executes a pixelsCommand.
-func (c *pixelsCommand) Exec(indexOffsetInBytes int) error {
+func (c *pixelsCommand) Exec(indexOffset int) error {
 	p, err := c.img.image.Pixels()
 	if err != nil {
 		return err
@@ -362,7 +362,7 @@ func (c *disposeCommand) String() string {
 }
 
 // Exec executes the disposeCommand.
-func (c *disposeCommand) Exec(indexOffsetInBytes int) error {
+func (c *disposeCommand) Exec(indexOffset int) error {
 	c.target.image.Delete()
 	return nil
 }
@@ -397,7 +397,7 @@ func (c *newImageCommand) String() string {
 }
 
 // Exec executes a newImageCommand.
-func (c *newImageCommand) Exec(indexOffsetInBytes int) error {
+func (c *newImageCommand) Exec(indexOffset int) error {
 	i, err := driver().NewImage(c.width, c.height)
 	if err != nil {
 		return err
@@ -436,7 +436,7 @@ func (c *newScreenFramebufferImageCommand) String() string {
 }
 
 // Exec executes a newScreenFramebufferImageCommand.
-func (c *newScreenFramebufferImageCommand) Exec(indexOffsetInBytes int) error {
+func (c *newScreenFramebufferImageCommand) Exec(indexOffset int) error {
 	c.result.image = driver().NewScreenFramebufferImage(c.width, c.height)
 	return nil
 }
