@@ -67,7 +67,7 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 	return i, nil
 }
 
-func (d *Driver) NewScreenFramebufferImage(width, height int) graphicsdriver.Image {
+func (d *Driver) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
 	d.checkSize(width, height)
 	i := &Image{
 		driver: d,
@@ -78,7 +78,7 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) graphicsdriver.Ima
 	// On browsers, c.width and c.height are used as viewport size and
 	// Edge can't treat a bigger viewport than the drawing area (#71).
 	i.framebuffer = newScreenFramebuffer(&d.context, width, height)
-	return i
+	return i, nil
 }
 
 // Reset resets or initializes the current OpenGL state.

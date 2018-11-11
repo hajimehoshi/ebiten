@@ -433,8 +433,9 @@ func (c *newScreenFramebufferImageCommand) String() string {
 
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffset int) error {
-	c.result.image = driver().NewScreenFramebufferImage(c.width, c.height)
-	return nil
+	var err error
+	c.result.image, err = driver().NewScreenFramebufferImage(c.width, c.height)
+	return err
 }
 
 func (c *newScreenFramebufferImageCommand) NumVertices() int {

@@ -24,7 +24,7 @@ type GraphicsDriver interface {
 	Flush()
 	MaxImageSize() int
 	NewImage(width, height int) (Image, error)
-	NewScreenFramebufferImage(width, height int) Image
+	NewScreenFramebufferImage(width, height int) (Image, error)
 	Reset() error
 	Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error
 }
