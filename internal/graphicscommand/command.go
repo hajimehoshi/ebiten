@@ -165,10 +165,7 @@ func (q *commandQueue) Flush() {
 			nc++
 		}
 		if 0 < ne {
-			// Note that the vertices passed to BufferSubData is not under GC management
-			// in opengl package due to unsafe-way.
-			// See BufferSubData in context_mobile.go.
-			driver().BufferSubData(vs[:nv], es[:ne])
+			driver().SetVertices(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}

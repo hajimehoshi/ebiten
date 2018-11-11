@@ -86,7 +86,10 @@ func (d *Driver) Reset() error {
 	return d.state.reset(&d.context)
 }
 
-func (d *Driver) BufferSubData(vertices []float32, indices []uint16) {
+func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
+	// Note that the vertices passed to BufferSubData is not under GC management
+	// in opengl package due to unsafe-way.
+	// See BufferSubData in context_mobile.go.
 	d.context.arrayBufferSubData(vertices)
 	d.context.elementArrayBufferSubData(indices)
 }

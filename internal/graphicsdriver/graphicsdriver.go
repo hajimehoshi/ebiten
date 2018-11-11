@@ -20,7 +20,7 @@ import (
 )
 
 type GraphicsDriver interface {
-	BufferSubData(vertices []float32, indices []uint16)
+	SetVertices(vertices []float32, indices []uint16)
 	Flush()
 	MaxImageSize() int
 	NewImage(width, height int) (Image, error)
