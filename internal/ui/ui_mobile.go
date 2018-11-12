@@ -53,7 +53,7 @@ func Render(chError <-chan error) error {
 	// TODO: Check this is called on the rendering thread
 	select {
 	case renderCh <- struct{}{}:
-		return opengl.GetDriver().DoWork(chError, renderChEnd)
+		return opengl.Get().DoWork(chError, renderChEnd)
 	case <-time.After(500 * time.Millisecond):
 		// This function must not be blocked. We need to break for timeout.
 		return nil
@@ -152,9 +152,9 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 
 	if mainloop {
 		ctx := <-glContextCh
-		opengl.GetDriver().InitWithContext(ctx)
+		opengl.Get().InitWithContext(ctx)
 	} else {
-		opengl.GetDriver().Init()
+		opengl.Get().Init()
 	}
 
 	// Force to set the screen size

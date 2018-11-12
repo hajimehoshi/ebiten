@@ -25,7 +25,7 @@ import (
 
 var theDriver Driver
 
-func GetDriver() *Driver {
+func Get() *Driver {
 	return &theDriver
 }
 

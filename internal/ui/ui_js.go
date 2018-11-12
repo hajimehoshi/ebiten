@@ -206,8 +206,8 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 	hooks.ResumeAudio()
 
-	if opengl.GetDriver().IsContextLost() {
-		opengl.GetDriver().RestoreContext()
+	if opengl.Get().IsContextLost() {
+		opengl.Get().RestoreContext()
 		g.Invalidate()
 
 		// Need to return once to wait restored (#526)

@@ -20,5 +20,5 @@ import (
 )
 
 func driver() graphicsdriver.GraphicsDriver {
-	return opengl.GetDriver()
+	return opengl.Get()
 }
