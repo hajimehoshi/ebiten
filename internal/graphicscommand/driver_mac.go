@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build darwin,!ios
+// +build !js
+
 package graphicscommand
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
 )
 
-func driver() graphicsdriver.GraphicsDriver {
-	return opengl.Get()
+func Driver() graphicsdriver.GraphicsDriver {
+	return metal.Get()
 }

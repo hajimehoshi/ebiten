@@ -105,6 +105,11 @@ func (i *Image) BasePixelsForTesting() []byte {
 	return i.basePixels
 }
 
+func (i *Image) Pixels() []byte {
+	i.readPixelsFromGPUIfNeeded()
+	return i.basePixels
+}
+
 // Size returns the image's size.
 func (i *Image) Size() (int, int) {
 	return i.image.Size()
@@ -245,6 +250,15 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices
 	i.drawImageHistory = append(i.drawImageHistory, item)
 }
 
+func (i *Image) readPixelsFromGPUIfNeeded() {
+	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
+		graphicscommand.FlushCommands()
+		i.readPixelsFromGPU()
+		i.drawImageHistory = nil
+		i.stale = false
+	}
+}
+
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
@@ -254,12 +268,7 @@ func (i *Image) At(x, y int) color.RGBA {
 		return color.RGBA{}
 	}
 
-	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
-		graphicscommand.FlushCommands()
-		i.readPixelsFromGPU()
-		i.drawImageHistory = nil
-		i.stale = false
-	}
+	i.readPixelsFromGPUIfNeeded()
 
 	// Even after readPixelsFromGPU, basePixels might be nil when OpenGL error happens.
 	if i.basePixels == nil {

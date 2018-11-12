@@ -31,6 +31,8 @@ const (
 	CompositeModeXor
 	CompositeModeLighter
 	CompositeModeUnknown
+
+	CompositeModeMax = CompositeModeLighter
 )
 
 type Operation int

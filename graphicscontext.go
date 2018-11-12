@@ -18,6 +18,8 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -122,13 +124,21 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	}
 
 	op := &DrawImageOptions{}
-	// c.screen is special: its Y axis is down to up,
-	// and the origin point is lower left.
-	op.GeoM.Scale(c.screenScale, -c.screenScale)
-	// Make the screen height an even number to fit the upper side of the screen (#662).
-	op.GeoM.Translate(0, float64((c.screenHeight+1)/2*2))
-	op.GeoM.Translate(c.offsetX, c.offsetY)
 
+	switch graphicscommand.Driver().VDirection() {
+	case graphicsdriver.VDownward:
+		// c.screen is special: its Y axis is down to up,
+		// and the origin point is lower left.
+		op.GeoM.Scale(c.screenScale, -c.screenScale)
+		// Make the screen height an even number to fit the upper side of the screen (#662).
+		op.GeoM.Translate(0, float64((c.screenHeight+1)/2*2))
+	case graphicsdriver.VUpward:
+		op.GeoM.Scale(c.screenScale, c.screenScale)
+	default:
+		panic("not reached")
+	}
+
+	op.GeoM.Translate(c.offsetX, c.offsetY)
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.

@@ -165,7 +165,7 @@ func (q *commandQueue) Flush() {
 			nc++
 		}
 		if 0 < ne {
-			driver().SetVertices(vs[:nv], es[:ne])
+			Driver().SetVertices(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}
@@ -185,7 +185,7 @@ func (q *commandQueue) Flush() {
 		}
 		if 0 < nc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-			driver().Flush()
+			Driver().Flush()
 		}
 		q.commands = q.commands[nc:]
 	}
@@ -230,7 +230,7 @@ func (c *drawImageCommand) Exec(indexOffset int) error {
 
 	c.dst.image.SetAsDestination()
 	c.src.image.SetAsSource()
-	if err := driver().Draw(c.nindices, indexOffset, c.mode, c.color, c.filter); err != nil {
+	if err := Driver().Draw(c.nindices, indexOffset, c.mode, c.color, c.filter); err != nil {
 		return err
 	}
 	return nil
@@ -394,7 +394,7 @@ func (c *newImageCommand) String() string {
 
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffset int) error {
-	i, err := driver().NewImage(c.width, c.height)
+	i, err := Driver().NewImage(c.width, c.height)
 	if err != nil {
 		return err
 	}
@@ -434,7 +434,7 @@ func (c *newScreenFramebufferImageCommand) String() string {
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffset int) error {
 	var err error
-	c.result.image, err = driver().NewScreenFramebufferImage(c.width, c.height)
+	c.result.image, err = Driver().NewScreenFramebufferImage(c.width, c.height)
 	return err
 }
 
@@ -458,5 +458,5 @@ func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affi
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
 func ResetGraphicsDriverState() error {
-	return driver().Reset()
+	return Driver().Reset()
 }

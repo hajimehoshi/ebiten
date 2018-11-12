@@ -20,12 +20,16 @@ import (
 )
 
 type GraphicsDriver interface {
+	SetWindow(window uintptr)
 	SetVertices(vertices []float32, indices []uint16)
 	Flush()
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Reset() error
 	Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error
+	SetVsyncEnabled(enabled bool)
+	VDirection() VDirection
+	IsGL() bool
 }
 
 type Image interface {
@@ -36,3 +40,10 @@ type Image interface {
 	SetAsSource()
 	ReplacePixels(pixels []byte, x, y, width, height int)
 }
+
+type VDirection int
+
+const (
+	VUpward VDirection = iota
+	VDownward
+)

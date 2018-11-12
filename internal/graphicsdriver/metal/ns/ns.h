@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !darwin ios js
+// +build darwin
 
-package shareable
+typedef signed char BOOL;
 
-const (
-	initSize = 1024
-	maxSize  = 4096
-)
+void *Window_ContentView(void *window);
+
+void View_SetLayer(void *view, void *layer);
+void View_SetWantsLayer(void *view, BOOL wantsLayer);

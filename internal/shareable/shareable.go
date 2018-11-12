@@ -26,6 +26,11 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
+const (
+	initSize = 1024
+	maxSize  = 4096
+)
+
 type backend struct {
 	restorable *restorable.Image
 

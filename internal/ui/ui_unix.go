@@ -44,3 +44,7 @@ func (u *userInterface) currentMonitorImpl() *glfw.Monitor {
 	}
 	return glfw.GetPrimaryMonitor()
 }
+
+func (u *userInterface) setWindowToDriver() {
+	// Do nothing
+}

@@ -13,17 +13,18 @@
 // limitations under the License.
 
 // +build darwin
-// +build !ios
-// +build !js
 
-package shareable
+#include "ns.h"
+#import <Cocoa/Cocoa.h>
 
-// On MacBook Pro 2013 (Late), there is a bug in texture rendering and
-// extending shareable textures sometimes fail (#593). This is due to
-// a bug in the grahics driver, and there is nothing we can do. Let's
-// not extend shareable textures in such environment.
+void *Window_ContentView(void *window) {
+  return ((NSWindow *)window).contentView;
+}
 
-const (
-	initSize = 4096
-	maxSize  = 4096
-)
+void View_SetLayer(void *view, void *layer) {
+  ((NSView *)view).layer = (CALayer *)layer;
+}
+
+void View_SetWantsLayer(void *view, BOOL wantsLayer) {
+  ((NSView *)view).wantsLayer = wantsLayer;
+}
