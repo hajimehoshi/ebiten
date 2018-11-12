@@ -359,7 +359,7 @@ func (c *disposeCommand) String() string {
 
 // Exec executes the disposeCommand.
 func (c *disposeCommand) Exec(indexOffset int) error {
-	c.target.image.Delete()
+	c.target.image.Dispose()
 	return nil
 }
 

@@ -30,7 +30,7 @@ type GraphicsDriver interface {
 }
 
 type Image interface {
-	Delete()
+	Dispose()
 	IsInvalidated() bool
 	Pixels() ([]byte, error)
 	SetAsDestination()

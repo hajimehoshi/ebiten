@@ -30,7 +30,7 @@ func (i *Image) IsInvalidated() bool {
 	return !i.driver.context.isTexture(i.textureNative)
 }
 
-func (i *Image) Delete() {
+func (i *Image) Dispose() {
 	if i.framebuffer != nil {
 		i.framebuffer.delete(&i.driver.context)
 	}
