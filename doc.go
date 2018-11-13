@@ -40,11 +40,11 @@
 // The EBITEN_SCREENSHOT_KEY environment variable specifies the key
 // to take a screenshot. For example, if you run your game with
 // `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
-// by pressing Q key.
+// by pressing Q key. This works only on desktops.
 //
 // The EBITEN_INTERNAL_IMAGES_KEY environment variable specifies the key
 // to dump all the internal images. This is valid only when the build tag
-// 'ebitendebug' is specified.
+// 'ebitendebug' is specified. This works only on desktops.
 //
 // In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
 // statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions that
