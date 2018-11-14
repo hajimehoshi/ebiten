@@ -132,10 +132,12 @@ type cachedMonitor struct {
 // monitors is the monitor list cache for desktop glfw compile targets.
 // populated by 'cacheMonitors' which is called on init and every
 // monitor config change event.
+//
+// monitors must be manipulated on the main thread.
 var monitors []*cachedMonitor
 
 func cacheMonitors() {
-	monitors = make([]*cachedMonitor, 0, 3)
+	monitors = nil
 	ms := glfw.GetMonitors()
 	for _, m := range ms {
 		x, y := m.GetPos()
@@ -150,6 +152,8 @@ func cacheMonitors() {
 
 // getCachedMonitor returns a monitor for the given window x/y
 // returns false if monitor is not found.
+//
+// getCachedMonitor must be called on the main thread.
 func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
 	for _, m := range monitors {
 		if m.x <= wx && wx < m.x+m.vm.Width && m.y <= wy && wy < m.y+m.vm.Height {
