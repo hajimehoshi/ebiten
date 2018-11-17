@@ -73,11 +73,8 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) (graphicsdriver.Im
 		driver: d,
 		width:  width,
 		height: height,
+		screen: true,
 	}
-	// The (default) framebuffer size can't be converted to a power of 2.
-	// On browsers, c.width and c.height are used as viewport size and
-	// Edge can't treat a bigger viewport than the drawing area (#71).
-	i.framebuffer = newScreenFramebuffer(&d.context, width, height)
 	return i, nil
 }
 

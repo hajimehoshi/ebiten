@@ -24,6 +24,7 @@ type Image struct {
 	framebuffer   *framebuffer
 	width         int
 	height        int
+	screen        bool
 }
 
 func (i *Image) IsInvalidated() bool {
@@ -73,6 +74,15 @@ func (i *Image) ensureFramebuffer() error {
 	if i.framebuffer != nil {
 		return nil
 	}
+
+	if i.screen {
+		// The (default) framebuffer size can't be converted to a power of 2.
+		// On browsers, c.width and c.height are used as viewport size and
+		// Edge can't treat a bigger viewport than the drawing area (#71).
+		i.framebuffer = newScreenFramebuffer(&i.driver.context, i.width, i.height)
+		return nil
+	}
+
 	w, h := math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height)
 	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, w, h)
 	if err != nil {
