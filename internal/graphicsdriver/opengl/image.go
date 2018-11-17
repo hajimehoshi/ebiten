@@ -86,6 +86,11 @@ func (i *Image) ensureFramebuffer() error {
 }
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
+	if i.screen {
+		// The screen image doesn't have a texture to replace pixels.
+		panic("not reached")
+	}
+
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
 	i.driver.context.flush()
