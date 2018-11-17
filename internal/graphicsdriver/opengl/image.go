@@ -15,7 +15,7 @@
 package opengl
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/math"
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 type Image struct {
@@ -83,7 +83,7 @@ func (i *Image) ensureFramebuffer() error {
 		return nil
 	}
 
-	w, h := math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height)
+	w, h := graphics.NextPowerOf2Int(i.width), graphics.NextPowerOf2Int(i.height)
 	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, w, h)
 	if err != nil {
 		return err

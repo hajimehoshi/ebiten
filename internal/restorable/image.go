@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/internal/math"
 )
 
 // drawImageHistoryItem is an item for history of draw-image commands.
@@ -117,8 +116,8 @@ func (i *Image) Size() (int, int) {
 func (i *Image) SizePowerOf2() (int, int) {
 	if i.w2 == 0 || i.h2 == 0 {
 		w, h := i.image.Size()
-		i.w2 = math.NextPowerOf2Int(w)
-		i.h2 = math.NextPowerOf2Int(h)
+		i.w2 = graphics.NextPowerOf2Int(w)
+		i.h2 = graphics.NextPowerOf2Int(h)
 	}
 	return i.w2, i.h2
 }

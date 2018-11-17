@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package math_test
+package graphics_test
 
 import (
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/math"
+	. "github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 func TestNextPowerOf2(t *testing.T) {

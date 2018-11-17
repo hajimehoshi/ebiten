@@ -20,7 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/internal/math"
 )
 
 var theDriver Driver
@@ -56,8 +55,8 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 		width:  width,
 		height: height,
 	}
-	w := math.NextPowerOf2Int(width)
-	h := math.NextPowerOf2Int(height)
+	w := graphics.NextPowerOf2Int(width)
+	h := graphics.NextPowerOf2Int(height)
 	d.checkSize(w, h)
 	t, err := d.context.newTexture(w, h)
 	if err != nil {

@@ -19,7 +19,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	emath "github.com/hajimehoshi/ebiten/internal/math"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -335,8 +334,8 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		d.state.lastColorMatrixTranslation = esTranslate
 	}
 
-	sw := emath.NextPowerOf2Int(srcW)
-	sh := emath.NextPowerOf2Int(srcH)
+	sw := graphics.NextPowerOf2Int(srcW)
+	sh := graphics.NextPowerOf2Int(srcH)
 
 	if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
 		d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
