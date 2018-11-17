@@ -124,7 +124,8 @@ type openGLState struct {
 	programScreen program
 
 	lastProgram                program
-	lastViewportSize           []float32
+	lastViewportWidth          int
+	lastViewportHeight         int
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
@@ -151,7 +152,8 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = zeroProgram
-	s.lastViewportSize = nil
+	s.lastViewportWidth = 0
+	s.lastViewportHeight = 0
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
 	s.lastSourceWidth = 0
@@ -266,10 +268,6 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	if err := destination.setViewport(); err != nil {
 		return err
 	}
-	viewportSize := []float32{
-		float32(destination.framebuffer.width),
-		float32(destination.framebuffer.height),
-	}
 	dstW := destination.width
 	srcW, srcH := source.width, source.height
 
@@ -301,36 +299,31 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		}
 
 		d.state.lastProgram = program
-		d.state.lastViewportSize = nil
+		d.state.lastViewportWidth = 0
+		d.state.lastViewportHeight = 0
 		d.state.lastColorMatrix = nil
 		d.state.lastColorMatrixTranslation = nil
 		d.state.lastSourceWidth = 0
 		d.state.lastSourceHeight = 0
 	}
 
-	if !areSameFloat32Array(d.state.lastViewportSize, viewportSize) {
-		d.context.uniformFloats(program, "viewport_size", viewportSize)
-		if d.state.lastViewportSize == nil {
-			d.state.lastViewportSize = make([]float32, 2)
-		}
-		d.state.lastViewportSize = viewportSize
+	vw := destination.framebuffer.width
+	vh := destination.framebuffer.height
+	if d.state.lastViewportWidth != vw || d.state.lastSourceHeight != vh {
+		d.context.uniformFloats(program, "viewport_size", []float32{float32(vw), float32(vh)})
+		d.state.lastViewportWidth = vw
+		d.state.lastViewportHeight = vh
 	}
 
 	esBody, esTranslate := colorM.UnsafeElements()
 
 	if !areSameFloat32Array(d.state.lastColorMatrix, esBody) {
 		d.context.uniformFloats(program, "color_matrix_body", esBody)
-		if d.state.lastColorMatrix == nil {
-			d.state.lastColorMatrix = make([]float32, 16)
-		}
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
 		d.state.lastColorMatrix = esBody
 	}
 	if !areSameFloat32Array(d.state.lastColorMatrixTranslation, esTranslate) {
 		d.context.uniformFloats(program, "color_matrix_translation", esTranslate)
-		if d.state.lastColorMatrixTranslation == nil {
-			d.state.lastColorMatrixTranslation = make([]float32, 4)
-		}
 		// ColorM's elements are immutable. It's OK to hold the reference without copying.
 		d.state.lastColorMatrixTranslation = esTranslate
 	}
