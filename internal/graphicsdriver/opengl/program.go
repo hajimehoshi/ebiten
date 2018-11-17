@@ -264,9 +264,6 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		panic("source image is not set")
 	}
 
-	// On some environments, viewport size must be within the framebuffer size.
-	// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
-	// Use the same size of the framebuffer here.
 	if err := destination.setViewport(); err != nil {
 		return err
 	}

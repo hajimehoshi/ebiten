@@ -86,7 +86,11 @@ func (c *context) bindFramebuffer(f framebufferNative) {
 func (c *context) setViewport(f *framebuffer) {
 	c.bindFramebuffer(f.native)
 	if c.lastViewportWidth != f.width || c.lastViewportHeight != f.height {
+		// On some environments, viewport size must be within the framebuffer size.
+		// e.g. Edge (#71), Chrome on GPD Pocket (#420), macOS Mojave (#691).
+		// Use the same size of the framebuffer here.
 		c.setViewportImpl(f.width, f.height)
+
 		// glViewport must be called at least at every frame on iOS.
 		// As the screen framebuffer is the last render target, next SetViewport should be
 		// the first call at a frame.

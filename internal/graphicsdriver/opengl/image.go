@@ -73,8 +73,8 @@ func (i *Image) ensureFramebuffer() error {
 	if i.framebuffer != nil {
 		return nil
 	}
-	w, h := i.width, i.height
-	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, math.NextPowerOf2Int(w), math.NextPowerOf2Int(h))
+	w, h := math.NextPowerOf2Int(i.width), math.NextPowerOf2Int(i.height)
+	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, w, h)
 	if err != nil {
 		return err
 	}
