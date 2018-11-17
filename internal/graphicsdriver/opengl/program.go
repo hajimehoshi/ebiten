@@ -87,7 +87,7 @@ func initializeArrayBuferLayout() {
 		parts: []arrayBufferLayoutPart{
 			{
 				name: "vertex",
-				num:  2,
+				num:  4,
 			},
 			{
 				name: "tex_coord",

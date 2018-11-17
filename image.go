@@ -488,10 +488,10 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = graphics.Filter(img.filter)
 	}
 
-	vs := make([]float32, len(vertices)*10)
+	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	src := img.mipmap.original()
 	for idx, v := range vertices {
-		src.PutVertex(vs[idx*10:idx*10+10], float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)
+		src.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum], float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
 	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter)
 	i.disposeMipmaps()
