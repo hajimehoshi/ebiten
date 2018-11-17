@@ -48,7 +48,7 @@ func shaderStr(id shaderID) string {
 const (
 	shaderStrVertex = `
 uniform vec2 viewport_size;
-attribute vec4 vertex;
+attribute vec2 vertex;
 attribute vec4 tex_coord;
 attribute vec4 color_scale;
 varying vec2 varying_tex_coord;
@@ -73,7 +73,7 @@ void main(void) {
     vec4(0, 0, 1, 0),
     vec4(-1, -1, 0, 1)
   );
-  gl_Position = projection_matrix * vertex;
+  gl_Position = projection_matrix * vec4(vertex, 0, 1);
 }
 `
 	shaderStrFragment = `
