@@ -124,7 +124,7 @@ type openGLState struct {
 	programScreen program
 
 	lastProgram                program
-	lastProjectionMatrix       []float32
+	lastViewportSize           []float32
 	lastColorMatrix            []float32
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
@@ -151,7 +151,7 @@ func (s *openGLState) reset(context *context) error {
 	}
 
 	s.lastProgram = zeroProgram
-	s.lastProjectionMatrix = nil
+	s.lastViewportSize = nil
 	s.lastColorMatrix = nil
 	s.lastColorMatrixTranslation = nil
 	s.lastSourceWidth = 0
@@ -266,7 +266,10 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	if err := destination.setViewport(); err != nil {
 		return err
 	}
-	proj := destination.projectionMatrix()
+	viewportSize := []float32{
+		float32(destination.framebuffer.width),
+		float32(destination.framebuffer.height),
+	}
 	dstW := destination.width
 	srcW, srcH := source.width, source.height
 
@@ -298,21 +301,19 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		}
 
 		d.state.lastProgram = program
-		d.state.lastProjectionMatrix = nil
+		d.state.lastViewportSize = nil
 		d.state.lastColorMatrix = nil
 		d.state.lastColorMatrixTranslation = nil
 		d.state.lastSourceWidth = 0
 		d.state.lastSourceHeight = 0
 	}
 
-	if !areSameFloat32Array(d.state.lastProjectionMatrix, proj) {
-		d.context.uniformFloats(program, "projection_matrix", proj)
-		if d.state.lastProjectionMatrix == nil {
-			d.state.lastProjectionMatrix = make([]float32, 16)
+	if !areSameFloat32Array(d.state.lastViewportSize, viewportSize) {
+		d.context.uniformFloats(program, "viewport_size", viewportSize)
+		if d.state.lastViewportSize == nil {
+			d.state.lastViewportSize = make([]float32, 2)
 		}
-		// (*framebuffer).projectionMatrix is always same for the same framebuffer.
-		// It's OK to hold the reference without copying.
-		d.state.lastProjectionMatrix = proj
+		d.state.lastViewportSize = viewportSize
 	}
 
 	esBody, esTranslate := colorM.UnsafeElements()

@@ -16,11 +16,10 @@ package opengl
 
 // framebuffer is a wrapper of OpenGL's framebuffer.
 type framebuffer struct {
-	driver    *Driver
-	native    framebufferNative
-	proMatrix []float32
-	width     int
-	height    int
+	driver *Driver
+	native framebufferNative
+	width  int
+	height int
 }
 
 // newFramebufferFromTexture creates a framebuffer from the given texture.
@@ -43,19 +42,6 @@ func newScreenFramebuffer(context *context, width, height int) *framebuffer {
 		width:  width,
 		height: height,
 	}
-}
-
-// projectionMatrix returns a projection matrix of the framebuffer.
-//
-// A projection matrix converts the coodinates on the framebuffer
-// (0, 0) - (viewport width, viewport height)
-// to the normalized device coodinates (-1, -1) - (1, 1) with adjustment.
-func (f *framebuffer) projectionMatrix() []float32 {
-	if f.proMatrix != nil {
-		return f.proMatrix
-	}
-	f.proMatrix = orthoProjectionMatrix(0, f.width, 0, f.height)
-	return f.proMatrix
 }
 
 func (f *framebuffer) delete(context *context) {

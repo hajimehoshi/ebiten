@@ -63,13 +63,6 @@ func (i *Image) Pixels() ([]byte, error) {
 	return p, nil
 }
 
-func (i *Image) projectionMatrix() []float32 {
-	if i.framebuffer == nil {
-		panic("not reached")
-	}
-	return i.framebuffer.projectionMatrix()
-}
-
 func (i *Image) ensureFramebuffer() error {
 	if i.framebuffer != nil {
 		return nil

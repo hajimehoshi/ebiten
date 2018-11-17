@@ -47,7 +47,7 @@ func shaderStr(id shaderID) string {
 
 const (
 	shaderStrVertex = `
-uniform mat4 projection_matrix;
+uniform vec2 viewport_size;
 attribute vec4 vertex;
 attribute vec4 tex_coord;
 attribute vec4 color_scale;
@@ -66,6 +66,13 @@ void main(void) {
     varying_tex_coord_max = vec2(1, 1);
   }
   varying_color_scale = color_scale;
+
+  mat4 projection_matrix = mat4(
+    vec4(2.0 / viewport_size.x, 0, 0, 0),
+    vec4(0, 2.0 / viewport_size.y, 0, 0),
+    vec4(0, 0, 1, 0),
+    vec4(-1, -1, 0, 1)
+  );
   gl_Position = projection_matrix * vertex;
 }
 `
