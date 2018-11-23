@@ -440,9 +440,14 @@ type DrawTrianglesOptions struct {
 	Filter Filter
 }
 
+// MaxIndicesNum is the maximum number of indices for DrawTriangles.
+const MaxIndicesNum = graphics.IndicesNum
+
 // DrawTriangles draws a triangle with the specified vertices and their indices.
 //
 // If len(indices) is not multiple of 3, DrawTriangles panics.
+//
+// If len(indices) is more than MaxIndicesNum, DrawTriangles panics.
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
@@ -472,6 +477,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
+	}
+	if len(indices) > MaxIndicesNum {
+		panic("ebiten: len(indices) must be <= MaxIndicesNum")
 	}
 	// TODO: Check the maximum value of indices and len(vertices)?
 

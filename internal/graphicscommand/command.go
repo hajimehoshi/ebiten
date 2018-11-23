@@ -89,7 +89,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 
 func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, forceNewCommand bool) {
 	if nindices > graphics.IndicesNum {
-		panic("not implemented for too many indices")
+		panic("not reached")
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
 		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter) {
