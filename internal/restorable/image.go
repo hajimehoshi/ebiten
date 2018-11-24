@@ -158,13 +158,12 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		// However, that's ok since this image will be stale or have updated pixel data
 		// and this image can be restored without dummyImage.
 		w, h := dummyImage.Size()
-		colorm := (*affine.ColorM)(nil).Scale(0, 0, 0, 0)
 		vs := graphics.QuadVertices(w, h, 0, 0, w, h,
 			float32(width)/float32(w), 0, 0, float32(height)/float32(h),
 			float32(x), float32(y),
-			1, 1, 1, 1)
+			0, 0, 0, 0)
 		is := graphics.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, colorm, graphics.CompositeModeCopy, graphics.FilterNearest)
+		i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
