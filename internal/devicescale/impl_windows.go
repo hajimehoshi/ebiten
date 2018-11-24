@@ -57,6 +57,16 @@ var (
 
 var shcoreAvailable = false
 
+type winErr struct {
+	FuncName string
+	Code     syscall.Errno
+	Return   uintptr
+}
+
+func (e *winErr) Error() string {
+	return fmt.Sprintf("devicescale: %s failed: error code: %d", e.FuncName, e.Code)
+}
+
 func init() {
 	if shcore.Load() == nil {
 		shcoreAvailable = true
@@ -66,10 +76,16 @@ func init() {
 func setProcessDPIAware() error {
 	r, _, e := syscall.Syscall(procSetProcessDPIAware.Addr(), 0, 0, 0, 0)
 	if e != 0 {
-		return fmt.Errorf("devicescale: SetProcessDPIAware failed: error code: %d", e)
+		return &winErr{
+			FuncName: "SetProcessDPIAware",
+			Code:     e,
+		}
 	}
 	if r == 0 {
-		return fmt.Errorf("devicescale: SetProcessDPIAware failed: returned value: %d", r)
+		return &winErr{
+			FuncName: "SetProcessDPIAware",
+			Return:   r,
+		}
 	}
 	return nil
 }
@@ -77,10 +93,16 @@ func setProcessDPIAware() error {
 func getWindowDC(hwnd uintptr) (uintptr, error) {
 	r, _, e := syscall.Syscall(procGetWindowDC.Addr(), 1, hwnd, 0, 0)
 	if e != 0 {
-		return 0, fmt.Errorf("devicescale: GetWindowDC failed: error code: %d", e)
+		return 0, &winErr{
+			FuncName: "GetWindowDC",
+			Code:     e,
+		}
 	}
 	if r == 0 {
-		return 0, fmt.Errorf("devicescale: GetWindowDC failed: returned value: %d", r)
+		return 0, &winErr{
+			FuncName: "GetWindowDC",
+			Return:   r,
+		}
 	}
 	return r, nil
 }
@@ -88,10 +110,16 @@ func getWindowDC(hwnd uintptr) (uintptr, error) {
 func releaseDC(hwnd, hdc uintptr) error {
 	r, _, e := syscall.Syscall(procReleaseDC.Addr(), 2, hwnd, hdc, 0)
 	if e != 0 {
-		return fmt.Errorf("devicescale: ReleaseDC failed: error code: %d", e)
+		return &winErr{
+			FuncName: "ReleaseDC",
+			Code:     e,
+		}
 	}
 	if r == 0 {
-		return fmt.Errorf("devicescale: ReleaseDC failed: returned value: %d", r)
+		return &winErr{
+			FuncName: "ReleaseDC",
+			Return:   r,
+		}
 	}
 	return nil
 }
@@ -99,7 +127,10 @@ func releaseDC(hwnd, hdc uintptr) error {
 func getDeviceCaps(hdc uintptr, nindex int) (int, error) {
 	r, _, e := syscall.Syscall(procGetDeviceCaps.Addr(), 2, hdc, uintptr(nindex), 0)
 	if e != 0 {
-		return 0, fmt.Errorf("devicescale: GetDeviceCaps failed: error code: %d", e)
+		return 0, &winErr{
+			FuncName: "GetDeviceCaps",
+			Code:     e,
+		}
 	}
 	return int(r), nil
 }
@@ -107,10 +138,16 @@ func getDeviceCaps(hdc uintptr, nindex int) (int, error) {
 func monitorFromRect(lprc uintptr, dwFlags int) (uintptr, error) {
 	r, _, e := syscall.Syscall(procMonitorFromRect.Addr(), 2, lprc, uintptr(dwFlags), 0)
 	if e != 0 {
-		return 0, fmt.Errorf("devicescale: MonitorFromRect failed: error code: %d", e)
+		return 0, &winErr{
+			FuncName: "MonitorFromRect",
+			Code:     e,
+		}
 	}
 	if r == 0 {
-		return 0, fmt.Errorf("devicescale: MonitorFromRect failed: returned value: %d", r)
+		return 0, &winErr{
+			FuncName: "MonitorFromRect",
+			Return:   r,
+		}
 	}
 	return r, nil
 }
@@ -118,10 +155,16 @@ func monitorFromRect(lprc uintptr, dwFlags int) (uintptr, error) {
 func getMonitorInfo(hMonitor uintptr, lpMonitorInfo uintptr) error {
 	r, _, e := syscall.Syscall(procGetMonitorInfo.Addr(), 2, hMonitor, lpMonitorInfo, 0)
 	if e != 0 {
-		return fmt.Errorf("devicescale: GetMonitorInfo failed: error code: %d", e)
+		return &winErr{
+			FuncName: "GetMonitorInfo",
+			Code:     e,
+		}
 	}
 	if r == 0 {
-		return fmt.Errorf("devicescale: GetMonitorInfo failed: returned value: %d", r)
+		return &winErr{
+			FuncName: "GetMonitorInfo",
+			Return:   r,
+		}
 	}
 	return nil
 }
@@ -130,10 +173,16 @@ func getDpiForMonitor(hMonitor uintptr, dpiType uintptr, dpiX, dpiY uintptr) err
 	r, _, e := syscall.Syscall6(procGetDpiForMonitor.Addr(), 4,
 		hMonitor, dpiType, dpiX, dpiY, 0, 0)
 	if e != 0 {
-		return fmt.Errorf("devicescale: GetDpiForMonitor failed: error code: %d", e)
+		return &winErr{
+			FuncName: "GetDpiForMonitor",
+			Code:     e,
+		}
 	}
 	if r != 0 {
-		return fmt.Errorf("devicescale: GetDpiForMonitor failed: returned value: %d", r)
+		return &winErr{
+			FuncName: "GetDpiForMonitor",
+			Return:   r,
+		}
 	}
 	return nil
 }
@@ -141,6 +190,10 @@ func getDpiForMonitor(hMonitor uintptr, dpiType uintptr, dpiX, dpiY uintptr) err
 func getFromLogPixelSx() float64 {
 	dc, err := getWindowDC(0)
 	if err != nil {
+		// On Wine, it looks like GetWindowDC(0) doesn't work (#738).
+		if err.(*winErr).Code == 1400 {
+			return 1
+		}
 		panic(err)
 	}
 
