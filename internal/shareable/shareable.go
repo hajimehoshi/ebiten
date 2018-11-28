@@ -15,7 +15,6 @@
 package shareable
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"runtime"
@@ -259,7 +258,7 @@ func (i *Image) replacePixels(p []byte) {
 	x, y, w, h := i.region()
 	if p != nil {
 		if l := 4 * w * h; len(p) != l {
-			panic(fmt.Sprintf("shareable: len(p) was %d but must be %d", len(p), l))
+			panic("not reached")
 		}
 	}
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)

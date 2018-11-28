@@ -368,6 +368,22 @@ func TestImageReplacePixels(t *testing.T) {
 	}
 }
 
+func TestImageReplacePixelsNil(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReplacePixels(nil) must panic")
+		}
+	}()
+
+	img, err := NewImage(16, 16, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	img.Fill(color.White)
+	img.ReplacePixels(nil)
+}
+
 func TestImageDispose(t *testing.T) {
 	img, err := NewImage(16, 16, FilterNearest)
 	if err != nil {
@@ -799,7 +815,7 @@ func TestImageSize4096(t *testing.T) {
 func TestImageCopy(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("copying image and using it should panic")
+			t.Errorf("copying image and using it must panic")
 		}
 	}()
 

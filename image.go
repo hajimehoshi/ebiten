@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -615,6 +616,10 @@ func (i *Image) ReplacePixels(p []byte) error {
 	// TODO: Implement this.
 	if i.isSubimage() {
 		panic("render to a subimage is not implemented")
+	}
+	s := i.Bounds().Size()
+	if l := 4 * s.X * s.Y; len(p) != l {
+		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
 	i.mipmap.original().ReplacePixels(p)
 	i.disposeMipmaps()
