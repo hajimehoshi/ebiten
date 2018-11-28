@@ -157,9 +157,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		// This means dummyImage might not be restored yet when this image is restored.
 		// However, that's ok since this image will be stale or have updated pixel data
 		// and this image can be restored without dummyImage.
-		w, h := dummyImage.Size()
-		vs := graphics.QuadVertices(w, h, 0, 0, w, h,
-			float32(width)/float32(w), 0, 0, float32(height)/float32(h),
+		dw, dh := dummyImage.Size()
+		w2 := graphics.NextPowerOf2Int(w)
+		h2 := graphics.NextPowerOf2Int(h)
+		vs := graphics.QuadVertices(w2, h2, 0, 0, dw, dh,
+			float32(width)/float32(dw), 0, 0, float32(height)/float32(dh),
 			float32(x), float32(y),
 			0, 0, 0, 0)
 		is := graphics.QuadIndices()

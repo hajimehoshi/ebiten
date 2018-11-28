@@ -524,6 +524,36 @@ func TestImageFill(t *testing.T) {
 	}
 }
 
+// Issue #740
+func TestImageClear(t *testing.T) {
+	const w, h = 128, 256
+	img, err := NewImage(w, h, FilterNearest)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	img.Fill(color.White)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if got != want {
+				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
+	img.Clear()
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img.At(i, j)
+			want := color.RGBA{}
+			if got != want {
+				t.Errorf("img At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
+}
+
 // Issue #317, #558, #724
 func TestImageEdge(t *testing.T) {
 	const (
