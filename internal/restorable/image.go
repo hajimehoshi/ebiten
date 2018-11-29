@@ -78,7 +78,6 @@ func newImageWithoutInit(width, height int, volatile bool) *Image {
 // Note that Dispose is not called automatically.
 func NewImage(width, height int, volatile bool) *Image {
 	i := newImageWithoutInit(width, height, volatile)
-	i.ReplacePixels(nil, 0, 0, width, height)
 	return i
 }
 
@@ -94,7 +93,6 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		screen:   true,
 	}
 	theImages.add(i)
-	// The screen image doesn't have to be cleared.
 	return i
 }
 
@@ -163,7 +161,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		vs := graphics.QuadVertices(w2, h2, 0, 0, dw, dh,
 			float32(width)/float32(dw), 0, 0, float32(height)/float32(dh),
 			float32(x), float32(y),
-			0, 0, 0, 0)
+			1, 1, 1, 1)
 		is := graphics.QuadIndices()
 		i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	}

@@ -319,7 +319,8 @@ func (i *Image) dispose(markDisposed bool) {
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
 		x, y, w, h := i.region()
-		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
+		// TODO: Now nil cannot be used here (see the test result). Fix this.
+		i.backend.restorable.ReplacePixels(make([]byte, 4*w*h), x, y, w, h)
 		return
 	}
 

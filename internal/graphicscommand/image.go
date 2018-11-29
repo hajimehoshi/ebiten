@@ -38,17 +38,37 @@ func MaxImageSize() int {
 	return maxImageSize
 }
 
+// imageState is a state of an image.
+type imageState int
+
+const (
+	// imageStateInit represents that the image is just allocated and not ready for DrawImages.
+	imageStateInit imageState = iota
+
+	// imageStateReplacePixelsOnly represents that only ReplacePixels is acceptable.
+	imageStateReplacePixelsOnly
+
+	// imageStateDrawable represents that the image is ready to draw with any commands.
+	imageStateDrawable
+
+	// imageStateScreen is the special state for screen framebuffer.
+	// Only copying image on the screen image is allowed.
+	imageStateScreen
+)
+
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
 	image  graphicsdriver.Image
 	width  int
 	height int
+	state  imageState
 }
 
 func NewImage(width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
+		state:  imageStateInit, // The screen image must be inited with ReplacePixels first.
 	}
 	c := &newImageCommand{
 		result: i,
@@ -63,6 +83,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
+		state:  imageStateScreen,
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
@@ -71,6 +92,26 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	}
 	theCommandQueue.Enqueue(c)
 	return i
+}
+
+// clearByReplacingPixels clears the image by replacing pixels.
+//
+// The implementation must use replacing-pixels way instead of drawing polygons, since
+// some environments (e.g. Metal) require replacing-pixels way as initialization.
+func (i *Image) clearByReplacingPixels() {
+	if i.state != imageStateInit {
+		panic("not reached")
+	}
+	c := &replacePixelsCommand{
+		dst:    i,
+		pixels: make([]byte, 4*i.width*i.height),
+		x:      0,
+		y:      0,
+		width:  i.width,
+		height: i.height,
+	}
+	theCommandQueue.Enqueue(c)
+	i.state = imageStateDrawable
 }
 
 func (i *Image) Dispose() {
@@ -86,12 +127,41 @@ func (i *Image) Size() (int, int) {
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
+	switch i.state {
+	case imageStateInit:
+		// Before DrawImage, the image must be initialized with ReplacePixels.
+		// Especially on Metal, the image might be broken when drawing without initializing.
+		i.clearByReplacingPixels()
+	case imageStateReplacePixelsOnly:
+		panic("not reached")
+	case imageStateDrawable:
+		// Do nothing
+	case imageStateScreen:
+		if mode != graphics.CompositeModeCopy {
+			panic("not reached")
+		}
+	default:
+		panic("not reached")
+	}
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter)
 }
 
 // Pixels returns the image's pixels.
 // Pixels might return nil when OpenGL error happens.
 func (i *Image) Pixels() []byte {
+	switch i.state {
+	case imageStateInit:
+		i.clearByReplacingPixels()
+	case imageStateReplacePixelsOnly:
+		// Do nothing
+		// TODO: Check the region?
+	case imageStateDrawable:
+		// Do nothing
+	case imageStateScreen:
+		panic("not reached")
+	default:
+		panic("not reached")
+	}
 	c := &pixelsCommand{
 		result: nil,
 		img:    i,
@@ -102,6 +172,22 @@ func (i *Image) Pixels() []byte {
 }
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
+	switch i.state {
+	case imageStateInit:
+		if x == 0 && y == 0 && width == i.width && height == i.height {
+			i.state = imageStateDrawable
+		} else {
+			i.state = imageStateReplacePixelsOnly
+		}
+	case imageStateReplacePixelsOnly:
+		// Do nothing
+	case imageStateDrawable:
+		// Do nothing
+	case imageStateScreen:
+		panic("not reached")
+	default:
+		panic("not reached")
+	}
 	pixels := make([]byte, len(p))
 	copy(pixels, p)
 	c := &replacePixelsCommand{
