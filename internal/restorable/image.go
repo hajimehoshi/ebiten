@@ -94,7 +94,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		screen:   true,
 	}
 	theImages.add(i)
-	i.ReplacePixels(nil, 0, 0, width, height)
+	// The screen image doesn't have to be cleared.
 	return i
 }
 
