@@ -57,19 +57,7 @@ type Image struct {
 	h2 int
 }
 
-var dummyImage = newImageWithoutInit(16, 16, false)
-
-// newImageWithoutInit creates an image without initialization.
-//
-// Note that Dispose is not called automatically.
-func newImageWithoutInit(width, height int, volatile bool) *Image {
-	i := &Image{
-		image:    graphicscommand.NewImage(width, height),
-		volatile: volatile,
-	}
-	theImages.add(i)
-	return i
-}
+var dummyImage = NewImage(16, 16, false)
 
 // NewImage creates an empty image with the given size.
 //
@@ -77,7 +65,11 @@ func newImageWithoutInit(width, height int, volatile bool) *Image {
 //
 // Note that Dispose is not called automatically.
 func NewImage(width, height int, volatile bool) *Image {
-	i := newImageWithoutInit(width, height, volatile)
+	i := &Image{
+		image:    graphicscommand.NewImage(width, height),
+		volatile: volatile,
+	}
+	theImages.add(i)
 	return i
 }
 
