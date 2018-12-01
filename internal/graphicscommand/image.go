@@ -143,6 +143,21 @@ func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr 
 	default:
 		panic("not reached")
 	}
+
+	switch src.state {
+	case imageStateInit:
+		src.clearByReplacingPixels()
+	case imageStateReplacePixelsOnly:
+		// Do nothing
+		// TODO: Check the region.
+	case imageStateDrawable:
+		// Do nothing
+	case imageStateScreen:
+		panic("not reached")
+	default:
+		panic("not reached")
+	}
+
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter)
 }
 

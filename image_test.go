@@ -1095,3 +1095,33 @@ func TestImageSubImageSize(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestImageDrawImmediately(t *testing.T) {
+	const w, h = 16, 16
+	img0, _ := NewImage(w, h, FilterDefault)
+	img1, _ := NewImage(w, h, FilterDefault)
+	// Do not manipulate img0 here.
+
+	img0.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img0.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("img0.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	img0.DrawImage(img1, nil)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img0.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("img0.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
