@@ -318,8 +318,8 @@ func (i *Image) dispose(markDisposed bool) {
 	i.backend.page.Free(i.node)
 	if !i.backend.page.IsEmpty() {
 		// As this part can be reused, this should be cleared explicitly.
-		x0, y0, x1, y1 := i.region()
-		i.backend.restorable.ReplacePixels(nil, x0, y0, x1, y1)
+		x, y, w, h := i.region()
+		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
 		return
 	}
 
