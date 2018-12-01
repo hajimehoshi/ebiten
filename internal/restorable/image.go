@@ -57,7 +57,7 @@ type Image struct {
 	h2 int
 }
 
-var dummyImage = NewImage(16, 16, false)
+var emptyImage = NewImage(16, 16, false)
 
 // NewImage creates an empty image with the given size.
 //
@@ -143,11 +143,13 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if pixels != nil {
 		i.image.ReplacePixels(pixels, x, y, width, height)
 	} else {
-		// There are not 'drawImageHistoryItem's for this image and dummyImage.
-		// This means dummyImage might not be restored yet when this image is restored.
-		// However, that's ok since this image will be stale or have updated pixel data
-		// and this image can be restored without dummyImage.
-		dw, dh := dummyImage.Size()
+		// There are not 'drawImageHistoryItem's for this image and emptyImage.
+		// This means emptyImage might not be restored yet when this image is restored.
+		// However, that's ok since this image will be stale or have its updated pixel data soon,
+		// and this image can be restored without emptyImage.
+		//
+		// emptyImage should be restored later anyway.
+		dw, dh := emptyImage.Size()
 		w2 := graphics.NextPowerOf2Int(w)
 		h2 := graphics.NextPowerOf2Int(h)
 		vs := graphics.QuadVertices(w2, h2, 0, 0, dw, dh,
@@ -155,7 +157,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			float32(x), float32(y),
 			1, 1, 1, 1)
 		is := graphics.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
+		i.image.DrawImage(emptyImage.image, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
