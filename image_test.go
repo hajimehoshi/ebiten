@@ -681,7 +681,34 @@ func BenchmarkDrawImage(b *testing.B) {
 	}
 }
 
-func TestImageLinear(t *testing.T) {
+func TestImageLinearGradiation(t *testing.T) {
+	img0, _ := NewImage(2, 2, FilterNearest)
+	img0.ReplacePixels([]byte{
+		0xff, 0x00, 0x00, 0xff,
+		0x00, 0xff, 0x00, 0xff,
+		0x00, 0x00, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff,
+	})
+
+	const w, h = 32, 32
+	img1, _ := NewImage(w, h, FilterNearest)
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(w, h)
+	op.GeoM.Translate(-w/4, -h/4)
+	op.Filter = FilterLinear
+	img1.DrawImage(img0, op)
+
+	for j := 1; j < h-1; j++ {
+		for i := 1; i < w-1; i++ {
+			c := img1.At(i, j).(color.RGBA)
+			if c.R == 0 || c.R == 0xff {
+				t.Errorf("img1.At(%d, %d).R must be in between 0x01 and 0xfe but %#v", i, j, c)
+			}
+		}
+	}
+}
+
+func TestImageLinearEdges(t *testing.T) {
 	src, _ := NewImage(32, 32, FilterDefault)
 	dst, _ := NewImage(64, 64, FilterDefault)
 	src.Fill(color.RGBA{0, 0xff, 0, 0xff})
