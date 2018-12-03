@@ -34,7 +34,7 @@ type backend struct {
 }
 
 func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
-	// If the region is allocated without any extention, it's fine.
+	// If the region is allocated without any extension, it's fine.
 	if n := b.page.Alloc(width, height); n != nil {
 		return n, true
 	}

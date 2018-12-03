@@ -180,7 +180,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size since an Ebiten game
 // should not know the outside of the window object.
-// For more detials, see SetFullscreen API comment.
+// For more details, see SetFullscreen API comment.
 //
 // On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
 //
@@ -409,7 +409,7 @@ func IsVsyncEnabled() bool {
 // The initial value is true.
 // By disabling vsync, the game works more efficiently but consumes more CPU.
 //
-// Note that the state doesn't affect TPS (ticks per second, i.e. how many the run funciton is
+// Note that the state doesn't affect TPS (ticks per second, i.e. how many the run function is
 // updated per second).
 //
 // SetVsyncEnabled does nothing on mobiles so far.

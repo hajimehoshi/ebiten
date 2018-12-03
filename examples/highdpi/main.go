@@ -85,7 +85,7 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Scale(0.25, 0.25)
 
 	// Scale the image by the device ratio so that the rendering result can be same
-	// on various (diffrent-DPI) environments.
+	// on various (different-DPI) environments.
 	op.GeoM.Scale(scale, scale)
 
 	// Move the image's center to the screen's center.

@@ -76,7 +76,7 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 
 func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
-	// to eliminate boundry checks.
+	// to eliminate boundary checks.
 	//
 	// 4*VertexFloatNum is better than 40, but in GopherJS, optimization might not work.
 	vs := theVerticesBackend.slice(4)[0:40]

@@ -46,7 +46,7 @@ func update(screen *ebiten.Image) error {
 	op := &ebiten.DrawImageOptions{}
 
 	// Move the image's center to the screen's upper-left corner.
-	// This is a prepartion for rotating. When geometry matrices are applied,
+	// This is a preparation for rotating. When geometry matrices are applied,
 	// the origin point is the upper-left corner.
 	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 

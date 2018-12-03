@@ -45,7 +45,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	// In this example, embeded resource "Jab_wav" is used.
+	// In this example, embedded resource "Jab_wav" is used.
 	//
 	// If you want to use a wav file, open this and pass the file stream to wav.Decode.
 	// Note that file's Close() should not be closed here
