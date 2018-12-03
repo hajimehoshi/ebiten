@@ -53,7 +53,7 @@ func init() {
 func update(screen *ebiten.Image) error {
 	// TODO: DeviceScaleFactor() might return different values for different monitors.
 	// Add a mode to adjust the screen size along with the current device scale (#705).
-	// Now this example uses the device scale initialized at the begining of this application.
+	// Now this example uses the device scale initialized at the beginning of this application.
 
 	if highDPIImage == nil {
 		// Use select and 'default' clause for non-blocking receiving.
