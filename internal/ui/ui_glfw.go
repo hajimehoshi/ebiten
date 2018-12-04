@@ -97,7 +97,7 @@ func initialize() error {
 	}
 	glfw.WindowHint(glfw.Decorated, decorated)
 
-	// As start, create an window with temporary size to create OpenGL context thread.
+	// As a start, create a window with temporary size to create OpenGL context thread.
 	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
 	if err != nil {
 		return err
