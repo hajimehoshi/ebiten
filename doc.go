@@ -21,7 +21,7 @@
 //
 //         // Write your game's logical update.
 //
-//         if IsDrawingSkipped() {
+//         if ebiten.IsDrawingSkipped() {
 //             // When the game is running slowly, the rendering result
 //             // will not be adopted.
 //             return nil
