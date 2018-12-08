@@ -22,7 +22,7 @@ install:
   - mkdir /tmp/work
   - cd /tmp/work
   - go mod init example.com/m
-  - go get github.com/hajimehoshi/ebiten@master
+  - go get github.com/hajimehoshi/ebiten@$TRAVIS_BRANCH
   - go get github.com/gopherjs/gopherjs
   - go get myitcv.io/cmd/gjbt
   - # gopath-get for the current GopherJS and gjbt.
