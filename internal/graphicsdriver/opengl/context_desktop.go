@@ -23,9 +23,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-gl/gl/v2.1/gl"
-
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
 )
 

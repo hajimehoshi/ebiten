@@ -1,7 +1,6 @@
 module github.com/hajimehoshi/ebiten
 
 require (
-	github.com/go-gl/gl v0.0.0-20180407155706-68e253793080
 	github.com/go-gl/glfw v0.0.0-20181008143348-547915429f42
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/gopherjs/gopherwasm v1.0.1
