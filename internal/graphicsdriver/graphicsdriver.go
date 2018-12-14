@@ -22,7 +22,6 @@ import (
 type GraphicsDriver interface {
 	SetVertices(vertices []float32, indices []uint16)
 	Flush()
-	MaxImageSize() int
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Reset() error

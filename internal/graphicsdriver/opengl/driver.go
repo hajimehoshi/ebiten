@@ -105,7 +105,3 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 func (d *Driver) Flush() {
 	d.context.flush()
 }
-
-func (d *Driver) MaxImageSize() int {
-	return d.context.getMaxTextureSize()
-}

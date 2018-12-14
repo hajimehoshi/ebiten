@@ -27,17 +27,6 @@ var (
 	maxImageSize = 0
 )
 
-// MaxImageSize returns the maximum of width/height of an image.
-func MaxImageSize() int {
-	if maxImageSize == 0 {
-		maxImageSize = driver().MaxImageSize()
-		if maxImageSize == 0 {
-			panic("graphics: failed to get the max texture size")
-		}
-	}
-	return maxImageSize
-}
-
 // imageState is a state of an image.
 type imageState int
 
