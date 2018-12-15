@@ -204,10 +204,10 @@ func Disabled_TestReshared(t *testing.T) {
 }
 
 func TestExtend(t *testing.T) {
-	const w, h = 100, 100
-	img0 := NewImage(w, h)
-	p0 := make([]byte, 4*w*h)
-	for i := 0; i < w*h; i++ {
+	const w0, h0 = 100, 100
+	img0 := NewImage(w0, h0)
+	p0 := make([]byte, 4*w0*h0)
+	for i := 0; i < w0*h0; i++ {
 		p0[4*i] = byte(i)
 		p0[4*i+1] = byte(i)
 		p0[4*i+2] = byte(i)
@@ -215,18 +215,36 @@ func TestExtend(t *testing.T) {
 	}
 	img0.ReplacePixels(p0)
 
-	img1 := NewImage(bigSize, bigSize)
-	p1 := make([]byte, 4*bigSize*bigSize)
+	const w1, h1 = 1025, 100
+	img1 := NewImage(w1, h1)
+	p1 := make([]byte, 4*w1*h1)
+	for i := 0; i < w1*h1; i++ {
+		p1[4*i] = byte(i)
+		p1[4*i+1] = byte(i)
+		p1[4*i+2] = byte(i)
+		p1[4*i+3] = byte(i)
+	}
 	// Ensure to allocate
 	img1.ReplacePixels(p1)
 
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := 0; j < h0; j++ {
+		for i := 0; i < w0; i++ {
 			got := img0.At(i, j)
-			c := byte(i + w*j)
+			c := byte(i + w0*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {
-				t.Errorf("got: %v, want: %v", got, want)
+				t.Errorf("img0.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	for j := 0; j < h1; j++ {
+		for i := 0; i < w1; i++ {
+			got := img1.At(i, j)
+			c := byte(i + w1*j)
+			want := color.RGBA{c, c, c, c}
+			if got != want {
+				t.Errorf("img1.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
 	}
