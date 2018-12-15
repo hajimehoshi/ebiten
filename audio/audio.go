@@ -48,7 +48,7 @@ import (
 )
 
 type players struct {
-	players map[*Player]struct{}
+	players map[*playerImpl]struct{}
 	sync.RWMutex
 }
 
@@ -117,7 +117,7 @@ func (p *players) Read(b []byte) (int, error) {
 		b[2*i+1] = byte(x >> 8)
 	}
 
-	closed := []*Player{}
+	closed := []*playerImpl{}
 	for player := range p.players {
 		if player.eof() {
 			closed = append(closed, player)
@@ -130,19 +130,19 @@ func (p *players) Read(b []byte) (int, error) {
 	return l, nil
 }
 
-func (p *players) addPlayer(player *Player) {
+func (p *players) addPlayer(player *playerImpl) {
 	p.Lock()
 	p.players[player] = struct{}{}
 	p.Unlock()
 }
 
-func (p *players) removePlayer(player *Player) {
+func (p *players) removePlayer(player *playerImpl) {
 	p.Lock()
 	delete(p.players, player)
 	p.Unlock()
 }
 
-func (p *players) hasPlayer(player *Player) bool {
+func (p *players) hasPlayer(player *playerImpl) bool {
 	p.RLock()
 	_, ok := p.players[player]
 	p.RUnlock()
@@ -217,7 +217,7 @@ func NewContext(sampleRate int) (*Context, error) {
 	}
 	theContext = c
 	c.players = &players{
-		players: map[*Player]struct{}{},
+		players: map[*playerImpl]struct{}{},
 	}
 
 	go c.loop()
@@ -332,6 +332,10 @@ func BytesReadSeekCloser(b []byte) ReadSeekCloser {
 
 // Player is an audio player which has one stream.
 type Player struct {
+	p *playerImpl
+}
+
+type playerImpl struct {
 	players    *players
 	src        io.ReadCloser
 	srcEOF     bool
@@ -379,32 +383,34 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 		return nil, errors.New("audio: src cannot be shared with another Player")
 	}
 	p := &Player{
-		players:         context.players,
-		src:             src,
-		sampleRate:      context.sampleRate,
-		buf:             nil,
-		volume:          1,
-		closeCh:         make(chan struct{}),
-		closedCh:        make(chan struct{}),
-		readLoopEndedCh: make(chan struct{}),
-		seekCh:          make(chan seekArgs),
-		seekedCh:        make(chan error),
-		proceedCh:       make(chan []int16),
-		proceededCh:     make(chan proceededValues),
-		syncCh:          make(chan func()),
+		&playerImpl{
+			players:         context.players,
+			src:             src,
+			sampleRate:      context.sampleRate,
+			buf:             nil,
+			volume:          1,
+			closeCh:         make(chan struct{}),
+			closedCh:        make(chan struct{}),
+			readLoopEndedCh: make(chan struct{}),
+			seekCh:          make(chan seekArgs),
+			seekedCh:        make(chan error),
+			proceedCh:       make(chan []int16),
+			proceededCh:     make(chan proceededValues),
+			syncCh:          make(chan func()),
+		},
 	}
-	if seeker, ok := p.src.(io.Seeker); ok {
+	if seeker, ok := p.p.src.(io.Seeker); ok {
 		// Get the current position of the source.
 		pos, err := seeker.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return nil, err
 		}
-		p.pos = pos
+		p.p.pos = pos
 	}
 	runtime.SetFinalizer(p, (*Player).Close)
 
 	go func() {
-		p.readLoop()
+		p.p.readLoop()
 	}()
 	return p, nil
 }
@@ -435,6 +441,10 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 // Close returns error when closing the source returns error.
 func (p *Player) Close() error {
 	runtime.SetFinalizer(p, nil)
+	return p.p.Close()
+}
+
+func (p *playerImpl) Close() error {
 	p.players.removePlayer(p)
 
 	select {
@@ -446,7 +456,7 @@ func (p *Player) Close() error {
 	}
 }
 
-func (p *Player) bufferToInt16(lengthInBytes int) ([]int16, error) {
+func (p *playerImpl) bufferToInt16(lengthInBytes int) ([]int16, error) {
 	select {
 	case p.proceedCh <- make([]int16, lengthInBytes/2):
 		r := <-p.proceededCh
@@ -460,11 +470,15 @@ func (p *Player) bufferToInt16(lengthInBytes int) ([]int16, error) {
 //
 // Play always returns nil.
 func (p *Player) Play() error {
-	p.players.addPlayer(p)
+	p.p.Play()
 	return nil
 }
 
-func (p *Player) readLoop() {
+func (p *playerImpl) Play() {
+	p.players.addPlayer(p)
+}
+
+func (p *playerImpl) readLoop() {
 	defer func() {
 		// Note: the error is ignored
 		p.src.Close()
@@ -586,7 +600,7 @@ func (p *Player) readLoop() {
 	}
 }
 
-func (p *Player) sync(f func()) bool {
+func (p *playerImpl) sync(f func()) bool {
 	ch := make(chan struct{})
 	ff := func() {
 		f()
@@ -601,7 +615,7 @@ func (p *Player) sync(f func()) bool {
 	}
 }
 
-func (p *Player) shouldSkip() bool {
+func (p *playerImpl) shouldSkip() bool {
 	r := false
 	p.sync(func() {
 		r = p.shouldSkipImpl()
@@ -609,7 +623,7 @@ func (p *Player) shouldSkip() bool {
 	return r
 }
 
-func (p *Player) shouldSkipImpl() bool {
+func (p *playerImpl) shouldSkipImpl() bool {
 	// When p.buf is nil, the player just starts playing or seeking.
 	// Note that this is different from len(p.buf) == 0 && p.buf != nil.
 	if p.buf == nil {
@@ -621,7 +635,7 @@ func (p *Player) shouldSkipImpl() bool {
 	return false
 }
 
-func (p *Player) bufferSizeInBytes() int {
+func (p *playerImpl) bufferSizeInBytes() int {
 	s := 0
 	p.sync(func() {
 		s = len(p.buf)
@@ -629,7 +643,7 @@ func (p *Player) bufferSizeInBytes() int {
 	return s
 }
 
-func (p *Player) eof() bool {
+func (p *playerImpl) eof() bool {
 	r := false
 	p.sync(func() {
 		r = p.eofImpl()
@@ -637,12 +651,16 @@ func (p *Player) eof() bool {
 	return r
 }
 
-func (p *Player) eofImpl() bool {
+func (p *playerImpl) eofImpl() bool {
 	return p.srcEOF && len(p.buf) == 0
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
 func (p *Player) IsPlaying() bool {
+	return p.p.IsPlaying()
+}
+
+func (p *playerImpl) IsPlaying() bool {
 	return p.players.hasPlayer(p)
 }
 
@@ -652,6 +670,10 @@ func (p *Player) IsPlaying() bool {
 //
 // Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
+	return p.p.Rewind()
+}
+
+func (p *playerImpl) Rewind() error {
 	if _, ok := p.src.(io.Seeker); !ok {
 		panic("audio: player to be rewound must be io.Seeker")
 	}
@@ -664,6 +686,10 @@ func (p *Player) Rewind() error {
 //
 // Seek returns error when seeking the source stream returns error.
 func (p *Player) Seek(offset time.Duration) error {
+	return p.p.Seek(offset)
+}
+
+func (p *playerImpl) Seek(offset time.Duration) error {
 	if _, ok := p.src.(io.Seeker); !ok {
 		panic("audio: player to be sought must be io.Seeker")
 	}
@@ -681,12 +707,20 @@ func (p *Player) Seek(offset time.Duration) error {
 //
 // Pause always returns nil.
 func (p *Player) Pause() error {
-	p.players.removePlayer(p)
+	p.p.Pause()
 	return nil
+}
+
+func (p *playerImpl) Pause() {
+	p.players.removePlayer(p)
 }
 
 // Current returns the current position.
 func (p *Player) Current() time.Duration {
+	return p.p.Current()
+}
+
+func (p *playerImpl) Current() time.Duration {
 	sample := int64(0)
 	p.sync(func() {
 		sample = p.pos / bytesPerSample
@@ -696,6 +730,10 @@ func (p *Player) Current() time.Duration {
 
 // Volume returns the current volume of this player [0-1].
 func (p *Player) Volume() float64 {
+	return p.p.Volume()
+}
+
+func (p *playerImpl) Volume() float64 {
 	v := 0.0
 	p.sync(func() {
 		v = p.volume
@@ -706,6 +744,10 @@ func (p *Player) Volume() float64 {
 // SetVolume sets the volume of this player.
 // volume must be in between 0 and 1. SetVolume panics otherwise.
 func (p *Player) SetVolume(volume float64) {
+	p.p.SetVolume(volume)
+}
+
+func (p *playerImpl) SetVolume(volume float64) {
 	// The condition must be true when volume is NaN.
 	if !(0 <= volume && volume <= 1) {
 		panic("audio: volume must be in between 0 and 1")
