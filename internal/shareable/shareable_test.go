@@ -202,3 +202,35 @@ func Disabled_TestReshared(t *testing.T) {
 
 	runtime.GC()
 }
+
+func TestExtend(t *testing.T) {
+	const w, h = 100, 100
+	img0 := NewImage(w, h)
+	p0 := make([]byte, 4*w*h)
+	for i := 0; i < w*h; i++ {
+		p0[4*i] = byte(i)
+		p0[4*i+1] = byte(i)
+		p0[4*i+2] = byte(i)
+		p0[4*i+3] = byte(i)
+	}
+	img0.ReplacePixels(p0)
+
+	img1 := NewImage(bigSize, bigSize)
+	p1 := make([]byte, 4*bigSize*bigSize)
+	// Ensure to allocate
+	img1.ReplacePixels(p1)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img0.At(i, j)
+			c := byte(i + w*j)
+			want := color.RGBA{c, c, c, c}
+			if got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		}
+	}
+
+	img0.Dispose()
+	img1.Dispose()
+}
