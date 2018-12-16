@@ -131,6 +131,9 @@ func (p *players) Read(b []byte) (int, error) {
 		}
 	}
 	for _, player := range closed {
+		if player.isFinalized() {
+			player.closeImpl()
+		}
 		delete(p.players, player)
 	}
 
@@ -369,6 +372,8 @@ type playerImpl struct {
 	proceedCh       chan []int16
 	proceededCh     chan proceededValues
 	syncCh          chan func()
+
+	finalized bool
 }
 
 type seekArgs struct {
@@ -423,7 +428,7 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 		}
 		p.p.pos = pos
 	}
-	runtime.SetFinalizer(p, (*Player).Close)
+	runtime.SetFinalizer(p, (*Player).finalize)
 
 	go func() {
 		p.p.readLoop()
@@ -449,6 +454,30 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 	return p, nil
 }
 
+func (p *Player) finalize() {
+	runtime.SetFinalizer(p, nil)
+	p.p.setFinalized(true)
+	// TODO: It is really hard to say concurrent safety.
+	// Refactor this package to reduce goroutines.
+	if !p.IsPlaying() {
+		p.Close()
+	}
+}
+
+func (p *playerImpl) setFinalized(finalized bool) {
+	p.sync(func() {
+		p.finalized = finalized
+	})
+}
+
+func (p *playerImpl) isFinalized() bool {
+	b := false
+	p.sync(func() {
+		b = p.finalized
+	})
+	return b
+}
+
 // Close closes the stream.
 //
 // When closing, the stream owned by the player will also be closed by calling its Close.
@@ -462,7 +491,10 @@ func (p *Player) Close() error {
 
 func (p *playerImpl) Close() error {
 	p.players.removePlayer(p)
+	return p.closeImpl()
+}
 
+func (p *playerImpl) closeImpl() error {
 	select {
 	case p.closeCh <- struct{}{}:
 		<-p.closedCh
