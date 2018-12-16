@@ -252,3 +252,34 @@ func TestExtend(t *testing.T) {
 	img0.Dispose()
 	img1.Dispose()
 }
+
+func TestReplacePixelsAfterDrawImage(t *testing.T) {
+	const w, h = 256, 256
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
+
+	pix := make([]byte, 4*w*h)
+	for i := 0; i < w*h; i++ {
+		pix[4*i] = byte(i)
+		pix[4*i+1] = byte(i)
+		pix[4*i+2] = byte(i)
+		pix[4*i+3] = byte(i)
+	}
+	src.ReplacePixels(pix)
+
+	vs := src.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
+	dst.ReplacePixels(pix)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			c := byte(i + w*j)
+			want := color.RGBA{c, c, c, c}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
