@@ -15,11 +15,33 @@
 package audio_test
 
 import (
+	"errors"
+	"os"
 	"runtime"
 	"testing"
+	"time"
 
+	"github.com/hajimehoshi/ebiten"
 	. "github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/internal/testflock"
 )
+
+func TestMain(m *testing.M) {
+	testflock.Lock()
+	defer testflock.Unlock()
+
+	code := 0
+	// Run an Ebiten process so that audio is available.
+	regularTermination := errors.New("regular termination")
+	f := func(screen *ebiten.Image) error {
+		code = m.Run()
+		return regularTermination
+	}
+	if err := ebiten.Run(f, 320, 240, 1, "Test"); err != nil && err != regularTermination {
+		panic(err)
+	}
+	os.Exit(code)
+}
 
 var context *Context
 
@@ -48,6 +70,9 @@ func TestGC(t *testing.T) {
 	runtime.KeepAlive(p)
 	p = nil
 	runtime.GC()
+	// 100[ms] should be enough all the bytes are consumed.
+	// TODO: This is a darty hack. Would it be possible to use virtual time?
+	time.Sleep(100 * time.Millisecond)
 	got = PlayersNumForTesting()
 	if want := 0; got != want {
 		t.Errorf("PlayersNum() after GC: got: %d, want: %d", got, want)
