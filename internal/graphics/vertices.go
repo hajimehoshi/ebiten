@@ -50,6 +50,9 @@ func (v *verticesBackend) slice(n int) []float32 {
 }
 
 func isPowerOf2(x int) bool {
+	if x <= 0 {
+		return false
+	}
 	return (x & (x - 1)) == 0
 }
 
