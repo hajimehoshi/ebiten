@@ -83,6 +83,9 @@ func square(out []int16, volume float64, freq float64, sequence float64) {
 	}
 }
 
+// players holds audio.Player objects not to be GCed.
+var players = map[*audio.Player]struct{}{}
+
 // toBytes returns the 2ch little endian 16bit byte sequence with the given left/right sequence.
 func toBytes(l, r []int16) []byte {
 	if len(l) != len(r) {
@@ -127,6 +130,7 @@ func playNote(scoreIndex int) rune {
 
 	p, _ := audio.NewPlayerFromBytes(audioContext, toBytes(l, r))
 	p.Play()
+	players[p] = struct{}{}
 
 	return rune(note)
 }
@@ -145,6 +149,18 @@ func update(screen *ebiten.Image) error {
 		scoreIndex %= len(score)
 	}
 	frames++
+
+	// Close players that alrady finish.
+	closed := []*audio.Player{}
+	for p := range players {
+		if p.IsPlaying() {
+			continue
+		}
+		closed = append(closed, p)
+	}
+	for _, p := range closed {
+		delete(players, p)
+	}
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
