@@ -508,6 +508,7 @@ func SetWindowDecorated(decorated bool) {
 	//         if decorated {
 	//             v = glfw.True
 	//         }
+	//     })
 	//     currentUI.window.SetAttrib(glfw.Decorated, v)
 	//     return nil
 }
@@ -516,6 +517,9 @@ func DeviceScaleFactor() float64 {
 	f := 0.0
 	u := currentUI
 	if !u.isRunning() {
+		// TODO: Unfortunately, this assumes that a window already exists.
+		// Can we fix this not depending on the window?
+		// This is related to SetWindowDecorated bug (#753).
 		return devicescale.GetAt(u.currentMonitor().GetPos())
 	}
 
