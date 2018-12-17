@@ -74,15 +74,22 @@ func (p *players) Read(b []byte) (int, error) {
 	l := len(b)
 	l &= mask
 
+	allSkipped := true
+
 	for player := range p.players {
 		if player.shouldSkip() {
 			continue
 		}
+		allSkipped = false
 		s := player.bufferSizeInBytes()
 		if l > s {
 			l = s
 			l &= mask
 		}
+	}
+
+	if allSkipped {
+		l = 0
 	}
 
 	if l == 0 {
@@ -236,6 +243,15 @@ func CurrentContext() *Context {
 	return c
 }
 
+var driverForTesting io.WriteCloser
+
+func newDriver(sampleRate int) (io.WriteCloser, error) {
+	if driverForTesting != nil {
+		return driverForTesting, nil
+	}
+	return oto.NewPlayer(sampleRate, channelNum, bytesPerSample/channelNum, bufferSize())
+}
+
 func (c *Context) loop() {
 	initCh := make(chan struct{})
 
@@ -258,7 +274,7 @@ func (c *Context) loop() {
 	// e.g. a variable for JVM on Android might not be set.
 	<-initCh
 
-	p, err := oto.NewPlayer(c.sampleRate, channelNum, bytesPerSample/channelNum, bufferSize())
+	p, err := newDriver(c.sampleRate)
 	if err != nil {
 		c.err = err
 		return
