@@ -106,14 +106,9 @@ func initialize() error {
 
 	currentUI.window.MakeContextCurrent()
 
-	mode := glfw.CursorNormal
-	if !currentUI.isInitCursorVisible() {
-		mode = glfw.CursorHidden
-	}
 	if i := currentUI.getInitIconImages(); i != nil {
 		currentUI.window.SetIcon(i)
 	}
-	currentUI.window.SetInputMode(glfw.CursorMode, mode)
 
 	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
@@ -520,6 +515,13 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
 	_ = u.runOnMainThread(func() error {
+		// Solve the initial properties of the window.
+		mode := glfw.CursorNormal
+		if !currentUI.isInitCursorVisible() {
+			mode = glfw.CursorHidden
+		}
+		u.window.SetInputMode(glfw.CursorMode, mode)
+
 		// Get the monitor before showing the window.
 		//
 		// On Windows, there are two types of windows:
