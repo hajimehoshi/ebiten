@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestCopy(t *testing.T) {
+func TestClear(t *testing.T) {
 	const w, h = 1024, 1024
 	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
@@ -71,7 +71,7 @@ func TestCopy(t *testing.T) {
 
 	vs := graphics.QuadVertices(w/2, h/2, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
+	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest)
 
 	pix = dst.Pixels()
 	for j := 0; j < h/2; j++ {
