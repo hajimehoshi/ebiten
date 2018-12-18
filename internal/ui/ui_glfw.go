@@ -35,12 +35,14 @@ import (
 )
 
 type userInterface struct {
-	title       string
-	window      *glfw.Window
-	width       int
-	windowWidth int
-	height      int
-	initMonitor *glfw.Monitor
+	title                string
+	window               *glfw.Window
+	width                int
+	windowWidth          int
+	height               int
+	initMonitor          *glfw.Monitor
+	initFullscreenWidth  int
+	initFullscreenHeight int
 
 	scale           float64
 	fullscreenScale float64
@@ -97,6 +99,10 @@ func initialize() error {
 	// TODO: Fix this hack. currentMonitorImpl now requires u.window on POSIX.
 	currentUI.window = w
 	currentUI.initMonitor = currentUI.currentMonitorImpl()
+	v := currentUI.initMonitor.GetVideoMode()
+	s := glfwScale()
+	currentUI.initFullscreenWidth = int(float64(v.Width) / s)
+	currentUI.initFullscreenHeight = int(float64(v.Height) / s)
 	currentUI.window.Destroy()
 	currentUI.window = nil
 	currentUI.funcs = make(chan func())
@@ -218,18 +224,17 @@ func (u *userInterface) runOnMainThread(f func() error) error {
 
 func ScreenSizeInFullscreen() (int, int) {
 	u := currentUI
+	if !u.isRunning() {
+		return u.initFullscreenWidth, u.initFullscreenHeight
+	}
+
 	var v *glfw.VidMode
 	s := 0.0
-	if u.isRunning() {
-		_ = u.runOnMainThread(func() error {
-			v = u.currentMonitor().GetVideoMode()
-			s = glfwScale()
-			return nil
-		})
-	} else {
-		v = currentUI.initMonitor.GetVideoMode()
+	_ = u.runOnMainThread(func() error {
+		v = u.currentMonitor().GetVideoMode()
 		s = glfwScale()
-	}
+		return nil
+	})
 	return int(float64(v.Width) / s), int(float64(v.Height) / s)
 }
 
