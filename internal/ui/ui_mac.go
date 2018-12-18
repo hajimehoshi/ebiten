@@ -23,14 +23,15 @@ package ui
 //
 // #import <AppKit/AppKit.h>
 //
-// static void currentMonitorPos(int* x, int* y) {
+// static void currentMonitorPos(void* windowPtr, int* x, int* y) {
 //   NSScreen* screen = [NSScreen mainScreen];
-//   NSWindow* window = [NSApp mainWindow];
-//   if ([window isVisible]) {
-//     // When the window is visible, the window is already initialized.
-//     // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
-//     // Use [[NSApp mainWindow] screen] instead.
-//     screen = [window screen];
+//   if (windowPtr) {
+//     NSWindow* window = (NSWindow*)windowPtr;
+//     if ([window isVisible]) {
+//       // When the window is visible, the window is already initialized.
+//       // [NSScreen mainScreen] sometimes tells a lie when the window is put across monitors (#703).
+//       screen = [window screen];
+//     }
 //   }
 //   NSDictionary* screenDictionary = [screen deviceDescription];
 //   NSNumber* screenID = [screenDictionary objectForKey:@"NSScreenNumber"];
@@ -42,6 +43,8 @@ package ui
 import "C"
 
 import (
+	"unsafe"
+
 	"github.com/go-gl/glfw/v3.2/glfw"
 )
 
@@ -56,7 +59,9 @@ func adjustWindowPosition(x, y int) (int, int) {
 func (u *userInterface) currentMonitorImpl() *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
-	C.currentMonitorPos(&x, &y)
+	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
+	win := unsafe.Pointer(u.window.GetCocoaWindow())
+	C.currentMonitorPos(win, &x, &y)
 	for _, m := range glfw.GetMonitors() {
 		mx, my := m.GetPos()
 		if int(x) == mx && int(y) == my {

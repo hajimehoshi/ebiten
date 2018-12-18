@@ -122,6 +122,7 @@ func adjustWindowPosition(x, y int) (int, int) {
 }
 
 func (u *userInterface) currentMonitorImpl() *glfw.Monitor {
+	// TODO: Should we use u.window.GetWin32Window() here?
 	w, err := getActiveWindow()
 	if err != nil {
 		panic(err)
