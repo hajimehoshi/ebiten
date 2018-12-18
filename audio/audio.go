@@ -350,6 +350,11 @@ func BytesReadSeekCloser(b []byte) ReadSeekCloser {
 }
 
 // Player is an audio player which has one stream.
+//
+// Even when all references to a Player object is gone,
+// the object is not GCed until the player finishes playing.
+// This means that if a Player plays an infinite stream,
+// the object is never GCed unless Close is called.
 type Player struct {
 	p *playerImpl
 }
