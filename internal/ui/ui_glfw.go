@@ -40,6 +40,7 @@ type userInterface struct {
 	width       int
 	windowWidth int
 	height      int
+	initMonitor *glfw.Monitor
 
 	scale           float64
 	fullscreenScale float64
@@ -75,6 +76,7 @@ var (
 
 func init() {
 	runtime.LockOSThread()
+	hideConsoleWindowOnWindows()
 	if err := initialize(); err != nil {
 		panic(err)
 	}
@@ -86,28 +88,19 @@ func initialize() error {
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
 	glfw.WindowHint(glfw.Resizable, glfw.False)
-	glfw.WindowHint(glfw.ContextVersionMajor, 2)
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 
-	decorated := glfw.False
-	if currentUI.isInitWindowDecorated() {
-		decorated = glfw.True
-	}
-	glfw.WindowHint(glfw.Decorated, decorated)
-
-	// As start, create an window with temporary size to create OpenGL context thread.
-	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
+	// Create a window to set the initial monitor.
+	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
 	if err != nil {
 		return err
 	}
-	hideConsoleWindowOnWindows()
-	currentUI.window = window
+	// TODO: Fix this hack. currentMonitorImpl now requires u.window on POSIX.
+	currentUI.window = w
+	currentUI.initMonitor = currentUI.currentMonitorImpl()
+	currentUI.window.Destroy()
+	currentUI.window = nil
 	currentUI.funcs = make(chan func())
 
-	currentUI.window.MakeContextCurrent()
-
-	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
-	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	return nil
 }
 
@@ -234,7 +227,7 @@ func ScreenSizeInFullscreen() (int, int) {
 			return nil
 		})
 	} else {
-		v = currentUI.currentMonitor().GetVideoMode()
+		v = currentUI.initMonitor.GetVideoMode()
 		s = glfwScale()
 	}
 	return int(float64(v.Width) / s), int(float64(v.Height) / s)
@@ -494,7 +487,7 @@ func DeviceScaleFactor() float64 {
 	f := 0.0
 	u := currentUI
 	if !u.isRunning() {
-		return devicescale.GetAt(u.currentMonitor().GetPos())
+		return devicescale.GetAt(u.initMonitor.GetPos())
 	}
 
 	_ = u.runOnMainThread(func() error {
@@ -511,15 +504,37 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	// swapping buffers.
 	opengl.Init(currentUI.runOnMainThread)
 	_ = u.runOnMainThread(func() error {
+		glfw.WindowHint(glfw.ContextVersionMajor, 2)
+		glfw.WindowHint(glfw.ContextVersionMinor, 1)
+
+		// 'decorated' must be solved before creating a window (#556).
+		decorated := glfw.False
+		if u.isInitWindowDecorated() {
+			decorated = glfw.True
+		}
+		glfw.WindowHint(glfw.Decorated, decorated)
+
+		// As a start, create a window with temporary size to create OpenGL context thread.
+		window, err := glfw.CreateWindow(16, 16, "", nil, nil)
+		if err != nil {
+			return err
+		}
+		u.window = window
+
+		u.window.MakeContextCurrent()
+
+		u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
+		u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
+
 		// Solve the initial properties of the window.
 		mode := glfw.CursorNormal
-		if !currentUI.isInitCursorVisible() {
+		if !u.isInitCursorVisible() {
 			mode = glfw.CursorHidden
 		}
 		u.window.SetInputMode(glfw.CursorMode, mode)
 
-		if i := currentUI.getInitIconImages(); i != nil {
-			currentUI.window.SetIcon(i)
+		if i := u.getInitIconImages(); i != nil {
+			u.window.SetIcon(i)
 		}
 
 		// Get the monitor before showing the window.
