@@ -107,10 +107,6 @@ func initialize() error {
 
 	currentUI.window.MakeContextCurrent()
 
-	if i := currentUI.getInitIconImages(); i != nil {
-		currentUI.window.SetIcon(i)
-	}
-
 	currentUI.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	currentUI.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 	return nil
@@ -540,6 +536,10 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 			mode = glfw.CursorHidden
 		}
 		u.window.SetInputMode(glfw.CursorMode, mode)
+
+		if i := currentUI.getInitIconImages(); i != nil {
+			currentUI.window.SetIcon(i)
+		}
 
 		// Get the monitor before showing the window.
 		//
