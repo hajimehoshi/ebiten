@@ -35,10 +35,10 @@ type Driver struct {
 
 func (d *Driver) checkSize(width, height int) {
 	if width < 1 {
-		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1.", width))
+		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1", width))
 	}
 	if height < 1 {
-		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1.", height))
+		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1", height))
 	}
 	m := d.context.getMaxTextureSize()
 	if width > m {
