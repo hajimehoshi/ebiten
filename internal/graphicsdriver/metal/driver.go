@@ -170,7 +170,7 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
   }
   c = (color_matrix_body * c) + color_matrix_translation;
   c *= v.color;
-  c = clamp(c, 0, 1);
+  c = clamp(c, 0.0f, 1.0f);
   c.rgb *= c.a;
   return c;
 }
