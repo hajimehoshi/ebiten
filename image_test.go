@@ -1152,3 +1152,51 @@ func TestImageDrawImmediately(t *testing.T) {
 		}
 	}
 }
+
+// Issue #669, #759
+func TestImageLinearFilterGlitch(t *testing.T) {
+	const w, h = 200, 12
+	const scale = 1.2
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(int(math.Floor(w*scale)), h, FilterDefault)
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := i + w*j
+			if j < 3 {
+				pix[4*idx] = 0xff
+				pix[4*idx+1] = 0xff
+				pix[4*idx+2] = 0xff
+				pix[4*idx+3] = 0xff
+			} else {
+				pix[4*idx] = 0
+				pix[4*idx+1] = 0
+				pix[4*idx+2] = 0
+				pix[4*idx+3] = 0xff
+			}
+		}
+	}
+	src.ReplacePixels(pix)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(scale, 1)
+	op.Filter = FilterLinear
+	dst.DrawImage(src, op)
+
+	for j := 1; j < h-1; j++ {
+		offset := int(math.Ceil(scale))
+		for i := offset; i < int(math.Floor(w*scale))-offset; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if j < 3 {
+				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+			} else {
+				want = color.RGBA{0, 0, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("src.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
