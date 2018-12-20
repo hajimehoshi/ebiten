@@ -65,9 +65,11 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	newImg := restorable.NewImage(s, s, false)
 	oldImg := b.restorable
 	w, h := oldImg.Size()
-	vs := graphics.QuadVertices(w, h, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	newImg.DrawImage(oldImg, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
+	// Do not use DrawImage here. ReplacePixels will be called on a part of newImg later, and it looked like
+	// ReplacePixels on a part of image deletes other region that are rendered by DrawImage (#593, 758).
+	// TODO: Add validations to ensure that an image cannot accept DrawImage after ReplacePixels on a part of
+	// it.
+	newImg.ReplacePixels(oldImg.Pixels(), 0, 0, w, h)
 	oldImg.Dispose()
 	b.restorable = newImg
 
