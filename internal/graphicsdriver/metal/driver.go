@@ -83,6 +83,19 @@ vertex VertexOut VertexShader(
   return out;
 }
 
+// AdjustTexels adjust texels.
+// See #669, #759
+float2 AdjustTexel(float2 source_size, float2 p0, float2 p1) {
+  const float2 texel_size = 1.0 / source_size;
+  if (fract((p1.x-p0.x)*source_size.x) == 0.0) {
+    p1.x -= texel_size.x / 512.0;
+  }
+  if (fract((p1.y-p0.y)*source_size.y) == 0.0) {
+    p1.y -= texel_size.y / 512.0;
+  }
+  return p1;
+}
+
 fragment float4 FragmentShader(VertexOut v [[stage_in]],
                                texture2d<float> texture [[texture(0)]],
                                constant float4x4& color_matrix_body [[buffer(2)]],
@@ -116,6 +129,7 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
   case FILTER_LINEAR: {
     float2 p0 = v.tex - texel_size / 2.0;
     float2 p1 = v.tex + texel_size / 2.0;
+    p1 = AdjustTexel(source_size, p0, p1);
 
     float4 c0 = texture.sample(texture_sampler, p0);
     float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
@@ -147,6 +161,7 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
   case FILTER_SCREEN: {
     float2 p0 = v.tex - texel_size / 2.0 / scale;
     float2 p1 = v.tex + texel_size / 2.0 / scale;
+    p1 = AdjustTexel(source_size, p0, p1);
 
     float4 c0 = texture.sample(texture_sampler, p0);
     float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
