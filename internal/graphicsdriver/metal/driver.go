@@ -552,7 +552,10 @@ func (i *Image) viewportSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	i.texture.Release()
+	mainthread.Run(func() error {
+		i.texture.Release()
+		return nil
+	})
 }
 
 func (i *Image) IsInvalidated() bool {
