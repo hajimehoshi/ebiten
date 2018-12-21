@@ -104,7 +104,7 @@ func initialize() error {
 	}
 	// TODO: Fix this hack. currentMonitorImpl now requires u.window on POSIX.
 	currentUI.window = w
-	currentUI.initMonitor = currentUI.currentMonitorImpl()
+	currentUI.initMonitor = currentUI.currentMonitorFromPosition()
 	v := currentUI.initMonitor.GetVideoMode()
 	s := glfwScale()
 	currentUI.initFullscreenWidth = int(float64(v.Width) / s)
@@ -858,5 +858,5 @@ func (u *userInterface) currentMonitor() *glfw.Monitor {
 		return m
 	}
 	// Get the monitor which the current window belongs to. This requires OS API.
-	return u.currentMonitorImpl()
+	return u.currentMonitorFromPosition()
 }

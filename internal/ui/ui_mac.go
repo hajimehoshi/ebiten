@@ -58,7 +58,7 @@ func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *userInterface) currentMonitorImpl() *glfw.Monitor {
+func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
