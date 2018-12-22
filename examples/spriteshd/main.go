@@ -180,9 +180,10 @@ func update(screen *ebiten.Image) error {
 		screen.DrawImage(ebitenImage, op)
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f
+FPS: %0.2f
 Num of sprites: %d
 Press <- or -> to change the number of sprites
-Press Q to quit`, ebiten.CurrentTPS(), sprites.num)
+Press Q to quit`, ebiten.CurrentTPS(), ebiten.CurrentFPS(), sprites.num)
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
