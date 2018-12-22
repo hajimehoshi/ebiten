@@ -40,15 +40,15 @@ using namespace metal;
 
 struct VertexIn {
   packed_float2 position;
-  packed_float4 tex;
+  packed_float2 tex;
+  packed_float4 tex_region;
   packed_float4 color;
 };
 
 struct VertexOut {
   float4 position [[position]];
   float2 tex;
-  float2 tex_min;
-  float2 tex_max;
+  float4 tex_region;
   float4 color;
 };
 
@@ -68,17 +68,10 @@ vertex VertexOut VertexShader(
 
   VertexOut out = {
     .position = projectionMatrix * float4(in.position, 0, 1),
-    .tex = float2(in.tex[0], in.tex[1]),
+    .tex = in.tex,
+    .tex_region = in.tex_region,
     .color = in.color,
   };
-
-  if (in.tex[2] >= 0 && in.tex[3] >= 0) {
-    out.tex_min = float2(min(in.tex[0], in.tex[2]), min(in.tex[1], in.tex[3]));
-    out.tex_max = float2(max(in.tex[0], in.tex[2]), max(in.tex[1], in.tex[3]));
-  } else {
-    out.tex_min = float2(0);
-    out.tex_max = float2(1);
-  }
 
   return out;
 }
@@ -117,10 +110,10 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
   switch (filter) {
   case FILTER_NEAREST: {
     c = texture.sample(texture_sampler, v.tex);
-    if (v.tex.x < v.tex_min.x ||
-        v.tex.y < v.tex_min.y ||
-        (v.tex_max.x - texel_size.x / 512.0) <= v.tex.x ||
-        (v.tex_max.y - texel_size.y / 512.0) <= v.tex.y) {
+    if (v.tex.x < v.tex_region[0] ||
+        v.tex.y < v.tex_region[1] ||
+        (v.tex_region[2] - texel_size.x / 512.0) <= v.tex.x ||
+        (v.tex_region[3] - texel_size.y / 512.0) <= v.tex.y) {
       c = 0;
     }
     break;
@@ -136,19 +129,19 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
     float4 c2 = texture.sample(texture_sampler, float2(p0.x, p1.y));
     float4 c3 = texture.sample(texture_sampler, p1);
 
-    if (p0.x < v.tex_min.x) {
+    if (p0.x < v.tex_region[0]) {
       c0 = 0;
       c2 = 0;
     }
-    if (p0.y < v.tex_min.y) {
+    if (p0.y < v.tex_region[1]) {
       c0 = 0;
       c1 = 0;
     }
-    if ((v.tex_max.x - texel_size.x / 512.0) <= p1.x) {
+    if ((v.tex_region[2] - texel_size.x / 512.0) <= p1.x) {
       c1 = 0;
       c3 = 0;
     }
-    if ((v.tex_max.y - texel_size.y / 512.0) <= p1.y) {
+    if ((v.tex_region[3] - texel_size.y / 512.0) <= p1.y) {
       c2 = 0;
       c3 = 0;
     }

@@ -25,7 +25,7 @@ type verticesBackend struct {
 
 const (
 	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
-	VertexFloatNum = 10
+	VertexFloatNum = 12
 )
 
 func (v *verticesBackend) slice(n int) []float32 {
@@ -81,8 +81,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
 	//
-	// 4*VertexFloatNum is better than 40, but in GopherJS, optimization might not work.
-	vs := theVerticesBackend.slice(4)[0:40]
+	// 4*VertexFloatNum is better than 48, but in GopherJS, optimization might not work.
+	vs := theVerticesBackend.slice(4)[0:48]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 
@@ -95,46 +95,54 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	// The second is needed to calculate source rectangle size in shader programs.
 	vs[2] = u0
 	vs[3] = v0
-	vs[4] = u1
-	vs[5] = v1
-	vs[6] = cr
-	vs[7] = cg
-	vs[8] = cb
-	vs[9] = ca
+	vs[4] = u0
+	vs[5] = v0
+	vs[6] = u1
+	vs[7] = v1
+	vs[8] = cr
+	vs[9] = cg
+	vs[10] = cb
+	vs[11] = ca
 
 	// and the same for the other three coordinates
-	vs[10] = ax + tx
-	vs[11] = cx + ty
-	vs[12] = u1
-	vs[13] = v0
-	vs[14] = u0
-	vs[15] = v1
-	vs[16] = cr
-	vs[17] = cg
-	vs[18] = cb
-	vs[19] = ca
+	vs[12] = ax + tx
+	vs[13] = cx + ty
+	vs[14] = u1
+	vs[15] = v0
+	vs[16] = u0
+	vs[17] = v0
+	vs[18] = u1
+	vs[19] = v1
+	vs[20] = cr
+	vs[21] = cg
+	vs[22] = cb
+	vs[23] = ca
 
-	vs[20] = by + tx
-	vs[21] = dy + ty
-	vs[22] = u0
-	vs[23] = v1
-	vs[24] = u1
-	vs[25] = v0
-	vs[26] = cr
-	vs[27] = cg
-	vs[28] = cb
-	vs[29] = ca
+	vs[24] = by + tx
+	vs[25] = dy + ty
+	vs[26] = u0
+	vs[27] = v1
+	vs[28] = u0
+	vs[29] = v0
+	vs[30] = u1
+	vs[31] = v1
+	vs[32] = cr
+	vs[33] = cg
+	vs[34] = cb
+	vs[35] = ca
 
-	vs[30] = ax + by + tx
-	vs[31] = cx + dy + ty
-	vs[32] = u1
-	vs[33] = v1
-	vs[34] = u0
-	vs[35] = v0
-	vs[36] = cr
-	vs[37] = cg
-	vs[38] = cb
-	vs[39] = ca
+	vs[36] = ax + by + tx
+	vs[37] = cx + dy + ty
+	vs[38] = u1
+	vs[39] = v1
+	vs[40] = u0
+	vs[41] = v0
+	vs[42] = u1
+	vs[43] = v1
+	vs[44] = cr
+	vs[45] = cg
+	vs[46] = cb
+	vs[47] = ca
 
 	return vs
 }
@@ -166,10 +174,12 @@ func PutVertex(vs []float32, width, height int, dx, dy, sx, sy float32, cr, cg, 
 	vs[1] = dy
 	vs[2] = sx / wf
 	vs[3] = sy / hf
-	vs[4] = -1
-	vs[5] = -1
-	vs[6] = cr
-	vs[7] = cg
-	vs[8] = cb
-	vs[9] = ca
+	vs[4] = 0
+	vs[5] = 0
+	vs[6] = 1
+	vs[7] = 1
+	vs[8] = cr
+	vs[9] = cg
+	vs[10] = cb
+	vs[11] = ca
 }

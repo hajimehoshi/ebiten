@@ -89,7 +89,11 @@ func initializeArrayBuferLayout() {
 				num:  2,
 			},
 			{
-				name: "tex_coord",
+				name: "tex",
+				num:  2,
+			},
+			{
+				name: "tex_region",
 				num:  4,
 			},
 			{

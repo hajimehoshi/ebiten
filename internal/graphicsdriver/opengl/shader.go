@@ -49,22 +49,16 @@ const (
 	shaderStrVertex = `
 uniform vec2 viewport_size;
 attribute vec2 vertex;
-attribute vec4 tex_coord;
+attribute vec2 tex;
+attribute vec4 tex_region;
 attribute vec4 color_scale;
-varying vec2 varying_tex_coord;
-varying vec2 varying_tex_coord_min;
-varying vec2 varying_tex_coord_max;
+varying vec2 varying_tex;
+varying vec4 varying_tex_region;
 varying vec4 varying_color_scale;
 
 void main(void) {
-  varying_tex_coord = vec2(tex_coord[0], tex_coord[1]);
-  if (tex_coord[2] >= 0.0 && tex_coord[3] >= 0.0) {
-    varying_tex_coord_min = vec2(min(tex_coord[0], tex_coord[2]), min(tex_coord[1], tex_coord[3]));
-    varying_tex_coord_max = vec2(max(tex_coord[0], tex_coord[2]), max(tex_coord[1], tex_coord[3]));
-  } else {
-    varying_tex_coord_min = vec2(0, 0);
-    varying_tex_coord_max = vec2(1, 1);
-  }
+  varying_tex = tex;
+  varying_tex_region = tex_region;
   varying_color_scale = color_scale;
 
   mat4 projection_matrix = mat4(
@@ -97,9 +91,8 @@ uniform highp vec2 source_size;
 uniform highp float scale;
 #endif
 
-varying highp vec2 varying_tex_coord;
-varying highp vec2 varying_tex_coord_min;
-varying highp vec2 varying_tex_coord_max;
+varying highp vec2 varying_tex;
+varying highp vec4 varying_tex_region;
 varying highp vec4 varying_color_scale;
 
 // adjustTexel adjusts the two texels and returns the adjusted second texel.
@@ -117,15 +110,15 @@ highp vec2 adjustTexel(highp vec2 p0, highp vec2 p1) {
 }
 
 void main(void) {
-  highp vec2 pos = varying_tex_coord;
+  highp vec2 pos = varying_tex;
   highp vec2 texel_size = 1.0 / source_size;
 
 #if defined(FILTER_NEAREST)
   vec4 color = texture2D(texture, pos);
-  if (pos.x < varying_tex_coord_min.x ||
-    pos.y < varying_tex_coord_min.y ||
-    (varying_tex_coord_max.x - texel_size.x / 512.0) <= pos.x ||
-    (varying_tex_coord_max.y - texel_size.y / 512.0) <= pos.y) {
+  if (pos.x < varying_tex_region[0] ||
+    pos.y < varying_tex_region[1] ||
+    (varying_tex_region[2] - texel_size.x / 512.0) <= pos.x ||
+    (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
     color = vec4(0, 0, 0, 0);
   }
 #endif
@@ -140,19 +133,19 @@ void main(void) {
   vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
   vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
   vec4 c3 = texture2D(texture, p1);
-  if (p0.x < varying_tex_coord_min.x) {
+  if (p0.x < varying_tex_region[0]) {
     c0 = vec4(0, 0, 0, 0);
     c2 = vec4(0, 0, 0, 0);
   }
-  if (p0.y < varying_tex_coord_min.y) {
+  if (p0.y < varying_tex_region[1]) {
     c0 = vec4(0, 0, 0, 0);
     c1 = vec4(0, 0, 0, 0);
   }
-  if ((varying_tex_coord_max.x - texel_size.x / 512.0) <= p1.x) {
+  if ((varying_tex_region[2] - texel_size.x / 512.0) <= p1.x) {
     c1 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
-  if ((varying_tex_coord_max.y - texel_size.y / 512.0) <= p1.y) {
+  if ((varying_tex_region[3] - texel_size.y / 512.0) <= p1.y) {
     c2 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
