@@ -46,34 +46,12 @@ func TestClear(t *testing.T) {
 	const w, h = 1024, 1024
 	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
-	pix := dst.Pixels()
-	for j := 0; j < h/2; j++ {
-		for i := 0; i < w/2; i++ {
-			idx := 4 * (i + w*j)
-			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
-			want := color.RGBA{}
-			if got != want {
-				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-	pix = src.Pixels()
-	for j := 0; j < h/2; j++ {
-		for i := 0; i < w/2; i++ {
-			idx := 4 * (i + (w/2)*j)
-			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
-			want := color.RGBA{}
-			if got != want {
-				t.Errorf("src.At(%d, %d): got %v, want: %v", i, j, got, want)
-			}
-		}
-	}
 
 	vs := graphics.QuadVertices(w/2, h/2, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest)
 
-	pix = dst.Pixels()
+	pix := dst.Pixels()
 	for j := 0; j < h/2; j++ {
 		for i := 0; i < w/2; i++ {
 			idx := 4 * (i + w*j)
