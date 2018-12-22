@@ -411,7 +411,8 @@ type Vertex struct {
 	DstY float32
 
 	// SrcX and SrcY represents a point on a source image.
-	// Note that SrcX/SrcY on a sub-image should be in its bounds.
+	// Be careful that SrcX/SrcY coordinates are on the image's bounds.
+	// This means that a left-upper point of a sub-image might not be (0, 0).
 	SrcX float32
 	SrcY float32
 
