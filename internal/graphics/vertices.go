@@ -155,7 +155,7 @@ func QuadIndices() []uint16 {
 	return quadIndices
 }
 
-func PutVertex(vs []float32, width, height int, dx, dy, sx, sy float32, cr, cg, cb, ca float32) {
+func PutVertex(vs []float32, width, height int, dx, dy, su, sv float32, u0, v0, u1, v1 float32, cr, cg, cb, ca float32) {
 	if !isPowerOf2(width) {
 		panic("not reached")
 	}
@@ -163,21 +163,14 @@ func PutVertex(vs []float32, width, height int, dx, dy, sx, sy float32, cr, cg, 
 		panic("not reached")
 	}
 
-	wf := float32(width)
-	hf := float32(height)
-
-	// Specify -1 for the source region, which means the source region is ignored.
-	//
-	// NaN would make more sense to represent an invalid state, but vertices including NaN values doesn't work on
-	// some machines (#696). Let's use negative numbers to represent such state.
 	vs[0] = dx
 	vs[1] = dy
-	vs[2] = sx / wf
-	vs[3] = sy / hf
-	vs[4] = 0
-	vs[5] = 0
-	vs[6] = 1
-	vs[7] = 1
+	vs[2] = su
+	vs[3] = sv
+	vs[4] = u0
+	vs[5] = v0
+	vs[6] = u1
+	vs[7] = v1
 	vs[8] = cr
 	vs[9] = cg
 	vs[10] = cb

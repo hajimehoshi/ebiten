@@ -197,13 +197,23 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	return graphics.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
-func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, cr, cg, cb, ca float32) {
+func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32,
+	cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
 	}
 	ox, oy, _, _ := i.region()
+	oxf, oyf := float32(ox), float32(oy)
 	w, h := i.backend.restorable.SizePowerOf2()
-	graphics.PutVertex(dest, w, h, dx, dy, sx+float32(ox), sy+float32(oy), cr, cg, cb, ca)
+
+	su := (sx + oxf) / float32(w)
+	sv := (sy + oyf) / float32(h)
+	u0 := (bx0 + oxf) / float32(w)
+	v0 := (by0 + oyf) / float32(h)
+	u1 := (bx1 + oxf) / float32(w)
+	v1 := (by1 + oyf) / float32(h)
+
+	graphics.PutVertex(dest, w, h, dx, dy, su, sv, u0, v0, u1, v1, cr, cg, cb, ca)
 }
 
 const MaxCountForShare = 10

@@ -606,38 +606,96 @@ func TestImageEdge(t *testing.T) {
 	for _, s := range []float64{1, 0.5, 0.25} {
 		for _, f := range []Filter{FilterNearest, FilterLinear} {
 			for _, a := range angles {
-				img1.Clear()
-				op := &DrawImageOptions{}
-				w, h := img0Sub.Size()
-				op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
-				op.GeoM.Scale(s, s)
-				op.GeoM.Rotate(a)
-				op.GeoM.Translate(img1Width/2, img1Height/2)
-				op.Filter = f
-				img1.DrawImage(img0Sub, op)
-				allTransparent := true
-				for j := 0; j < img1Height; j++ {
-					for i := 0; i < img1Width; i++ {
-						c := img1.At(i, j)
-						if c == transparent {
-							continue
+				for _, testDrawTriangles := range []bool{false, true} {
+					img1.Clear()
+					w, h := img0Sub.Size()
+					b := img0Sub.Bounds()
+					var geo GeoM
+					geo.Translate(-float64(w)/2, -float64(h)/2)
+					geo.Scale(s, s)
+					geo.Rotate(a)
+					geo.Translate(img1Width/2, img1Height/2)
+					if !testDrawTriangles {
+						op := &DrawImageOptions{}
+						op.GeoM = geo
+						op.Filter = f
+						img1.DrawImage(img0Sub, op)
+					} else {
+						op := &DrawTrianglesOptions{}
+						dx0, dy0 := geo.Apply(0, 0)
+						dx1, dy1 := geo.Apply(float64(w), 0)
+						dx2, dy2 := geo.Apply(0, float64(h))
+						dx3, dy3 := geo.Apply(float64(w), float64(h))
+						vs := []Vertex{
+							{
+								DstX:   float32(dx0),
+								DstY:   float32(dy0),
+								SrcX:   float32(b.Min.X),
+								SrcY:   float32(b.Min.Y),
+								ColorR: 1,
+								ColorG: 1,
+								ColorB: 1,
+								ColorA: 1,
+							},
+							{
+								DstX:   float32(dx1),
+								DstY:   float32(dy1),
+								SrcX:   float32(b.Max.X),
+								SrcY:   float32(b.Min.Y),
+								ColorR: 1,
+								ColorG: 1,
+								ColorB: 1,
+								ColorA: 1,
+							},
+							{
+								DstX:   float32(dx2),
+								DstY:   float32(dy2),
+								SrcX:   float32(b.Min.X),
+								SrcY:   float32(b.Max.Y),
+								ColorR: 1,
+								ColorG: 1,
+								ColorB: 1,
+								ColorA: 1,
+							},
+							{
+								DstX:   float32(dx3),
+								DstY:   float32(dy3),
+								SrcX:   float32(b.Max.X),
+								SrcY:   float32(b.Max.Y),
+								ColorR: 1,
+								ColorG: 1,
+								ColorB: 1,
+								ColorA: 1,
+							},
 						}
-						allTransparent = false
-						switch f {
-						case FilterNearest:
-							if c == red {
-								continue
-							}
-						case FilterLinear:
-							if _, g, b, _ := c.RGBA(); g == 0 && b == 0 {
-								continue
-							}
-						}
-						t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f) want: red or transparent, got: %v", i, j, f, s, a, c)
+						is := graphics.QuadIndices()
+						op.Filter = f
+						img1.DrawTriangles(vs, is, img0Sub, op)
 					}
-				}
-				if allTransparent {
-					t.Fatalf("img1 (filter: %d, scale: %f, angle: %f) is transparent but should not", f, s, a)
+					allTransparent := true
+					for j := 0; j < img1Height; j++ {
+						for i := 0; i < img1Width; i++ {
+							c := img1.At(i, j)
+							if c == transparent {
+								continue
+							}
+							allTransparent = false
+							switch f {
+							case FilterNearest:
+								if c == red {
+									continue
+								}
+							case FilterLinear:
+								if _, g, b, _ := c.RGBA(); g == 0 && b == 0 {
+									continue
+								}
+							}
+							t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, f, s, a, testDrawTriangles, c)
+						}
+					}
+					if allTransparent {
+						t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", f, s, a, testDrawTriangles)
+					}
 				}
 			}
 		}

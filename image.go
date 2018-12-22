@@ -411,6 +411,7 @@ type Vertex struct {
 	DstY float32
 
 	// SrcX and SrcY represents a point on a source image.
+	// Note that SrcX/SrcY on a sub-image should be in its bounds.
 	SrcX float32
 	SrcY float32
 
@@ -452,11 +453,6 @@ const MaxIndicesNum = graphics.IndicesNum
 //
 // The rule in which DrawTriangles works effectively is same as DrawImage's.
 //
-// In contrast to DrawImage, DrawTriangles doesn't care source image edges.
-// This means that you might need to add 1px gap on a source region when you render an image by DrawTriangles.
-// Note that Ebiten creates texture atlases internally, so you still have to care this even when
-// you render a single image.
-//
 // When the image i is disposed, DrawTriangles does nothing.
 //
 // Internal mipmap is not used on DrawTriangles.
@@ -468,10 +464,6 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
-	// TODO: Implement this.
-	if img.isSubimage() {
-		panic("using a subimage at DrawTriangles is not implemented")
-	}
 	if i.isSubimage() {
 		panic("render to a subimage is not implemented")
 	}
@@ -499,8 +491,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 
 	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
 	src := img.mipmap.original()
+	r := img.Bounds()
 	for idx, v := range vertices {
-		src.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum], float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY, v.ColorR, v.ColorG, v.ColorB, v.ColorA)
+		src.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum],
+			float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY,
+			float32(r.Min.X), float32(r.Min.Y), float32(r.Max.X), float32(r.Max.Y),
+			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
 	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter)
 	i.disposeMipmaps()
