@@ -34,9 +34,11 @@ func shaderStr(id shaderID) string {
 		return shaderStrVertex
 	case shaderFragmentColorMatrix:
 		replaces := map[string]string{
-			"{{.FilterNearest}}": fmt.Sprintf("%d", graphics.FilterNearest),
-			"{{.FilterLinear}}":  fmt.Sprintf("%d", graphics.FilterLinear),
-			"{{.FilterScreen}}":  fmt.Sprintf("%d", graphics.FilterScreen),
+			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
+			"{{.FilterLinear}}":       fmt.Sprintf("%d", graphics.FilterLinear),
+			"{{.FilterScreen}}":       fmt.Sprintf("%d", graphics.FilterScreen),
+			"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
+			"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
 		}
 		src := shaderStrFragment
 		for k, v := range replaces {
@@ -85,6 +87,8 @@ precision mediump float;
 #define FILTER_NEAREST ({{.FilterNearest}})
 #define FILTER_LINEAR ({{.FilterLinear}})
 #define FILTER_SCREEN ({{.FilterScreen}})
+#define ADDRESS_CLAMP_TO_ZERO ({{.AddressClampToZero}})
+#define ADDRESS_REPEAT ({{.AddressRepeat}})
 
 uniform sampler2D texture;
 uniform mat4 color_matrix_body;
@@ -92,6 +96,7 @@ uniform vec4 color_matrix_translation;
 
 uniform int filter;
 uniform highp vec2 source_size;
+uniform int address;
 
 #if defined(FILTER_SCREEN)
 uniform highp float scale;
@@ -115,6 +120,26 @@ highp vec2 adjustTexel(highp vec2 p0, highp vec2 p1) {
   return p1;
 }
 
+highp float mod(highp float x, highp float y) {
+  if (x < 0.0) {
+    return y - (-x - y * floor(-x/y));
+  }
+  return x - y * floor(x/y);
+}
+
+highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region, int address) {
+  if (address == ADDRESS_CLAMP_TO_ZERO) {
+    return p;
+  }
+  if (address == ADDRESS_REPEAT) {
+    highp vec2 o = vec2(tex_region[0], tex_region[1]);
+    highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+    return vec2(mod((p.x - o.x), size.x) + o.x, mod((p.y - o.y), size.y) + o.y);
+  }
+  // Not reached.
+  return vec2(0.0);
+}
+
 void main(void) {
   highp vec2 pos = varying_tex;
   highp vec2 texel_size = 1.0 / source_size;
@@ -122,6 +147,7 @@ void main(void) {
   vec4 color;
 
   if (filter == FILTER_NEAREST) {
+    pos = adjustTexelByAddress(pos, varying_tex_region, address);
     color = texture2D(texture, pos);
     if (pos.x < varying_tex_region[0] ||
       pos.y < varying_tex_region[1] ||
@@ -134,6 +160,8 @@ void main(void) {
     highp vec2 p1 = pos + texel_size / 2.0;
 
     p1 = adjustTexel(p0, p1);
+    p0 = adjustTexelByAddress(p0, varying_tex_region, address);
+    p1 = adjustTexelByAddress(p1, varying_tex_region, address);
 
     vec4 c0 = texture2D(texture, p0);
     vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));

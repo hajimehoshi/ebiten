@@ -94,8 +94,8 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 	d.context.elementArrayBufferSubData(indices)
 }
 
-func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
-	if err := d.useProgram(mode, colorM, filter); err != nil {
+func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
+	if err := d.useProgram(mode, colorM, filter, address); err != nil {
 		return err
 	}
 	d.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes

@@ -49,7 +49,7 @@ func TestClear(t *testing.T) {
 
 	vs := graphics.QuadVertices(w/2, h/2, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest)
+	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
 
 	pix := dst.Pixels()
 	for j := 0; j < h/2; j++ {

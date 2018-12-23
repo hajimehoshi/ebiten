@@ -22,3 +22,10 @@ const (
 	FilterLinear
 	FilterScreen
 )
+
+type Address int
+
+const (
+	AddressClampToZero Address = iota
+	AddressRepeat
+)

@@ -130,6 +130,7 @@ type openGLState struct {
 	lastSourceWidth            int
 	lastSourceHeight           int
 	lastFilter                 *graphics.Filter
+	lastAddress                *graphics.Address
 
 	source      *Image
 	destination *Image
@@ -159,6 +160,7 @@ func (s *openGLState) reset(context *context) error {
 	s.lastSourceWidth = 0
 	s.lastSourceHeight = 0
 	s.lastFilter = nil
+	s.lastAddress = nil
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
@@ -222,7 +224,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
+func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
 	destination := d.state.destination
 	if destination == nil {
 		panic("destination image is not set")
@@ -296,6 +298,10 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	if d.state.lastFilter == nil || *d.state.lastFilter != filter {
 		d.context.uniformInt(program, "filter", int(filter))
 		d.state.lastFilter = &filter
+	}
+	if d.state.lastAddress == nil || *d.state.lastAddress != address {
+		d.context.uniformInt(program, "address", int(address))
+		d.state.lastAddress = &address
 	}
 
 	if filter == graphics.FilterScreen {

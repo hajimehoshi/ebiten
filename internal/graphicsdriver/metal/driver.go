@@ -36,6 +36,9 @@ const source = `#include <metal_stdlib>
 #define FILTER_LINEAR ({{.FilterLinear}})
 #define FILTER_SCREEN ({{.FilterScreen}})
 
+#define ADDRESS_CLAMP_TO_ZERO ({{.AddressClampToZero}})
+#define ADDRESS_REPEAT ({{.AddressRepeat}})
+
 using namespace metal;
 
 struct VertexIn {
@@ -89,12 +92,37 @@ float2 AdjustTexel(float2 source_size, float2 p0, float2 p1) {
   return p1;
 }
 
+float Mod(float x, float y) {
+  if (x < 0.0) {
+    return y - (-x - y * floor(-x/y));
+  }
+  return x - y * floor(x/y);
+}
+
+float2 AdjustTexelByAddress(float2 p, float4 tex_region, uint8_t address)  {
+  switch (address) {
+  case ADDRESS_CLAMP_TO_ZERO: {
+    return p;
+  }
+  case ADDRESS_REPEAT: {
+    float2 o = float2(tex_region[0], tex_region[1]);
+    float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+    return float2(Mod((p.x - o.x), size.x) + o.x, Mod((p.y - o.y), size.y) + o.y);
+  }
+  default:
+    // Not reached.
+    break;
+  }
+  return 0.0;
+}
+
 fragment float4 FragmentShader(VertexOut v [[stage_in]],
                                texture2d<float> texture [[texture(0)]],
                                constant float4x4& color_matrix_body [[buffer(2)]],
                                constant float4& color_matrix_translation [[buffer(3)]],
                                constant uint8_t& filter [[buffer(4)]],
-                               constant float& scale [[buffer(5)]]) {
+                               constant uint8_t& address [[buffer(5)]],
+                               constant float& scale [[buffer(6)]]) {
   constexpr sampler texture_sampler(filter::nearest);
   float2 source_size = 1;
   while (source_size.x < texture.get_width()) {
@@ -109,11 +137,12 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
 
   switch (filter) {
   case FILTER_NEAREST: {
-    c = texture.sample(texture_sampler, v.tex);
-    if (v.tex.x < v.tex_region[0] ||
-        v.tex.y < v.tex_region[1] ||
-        (v.tex_region[2] - texel_size.x / 512.0) <= v.tex.x ||
-        (v.tex_region[3] - texel_size.y / 512.0) <= v.tex.y) {
+    float2 p = AdjustTexelByAddress(v.tex, v.tex_region, address);
+    c = texture.sample(texture_sampler, p);
+    if (p.x < v.tex_region[0] ||
+        p.y < v.tex_region[1] ||
+        (v.tex_region[2] - texel_size.x / 512.0) <= p.x ||
+        (v.tex_region[3] - texel_size.y / 512.0) <= p.y) {
       c = 0;
     }
     break;
@@ -123,6 +152,8 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
     float2 p0 = v.tex - texel_size / 2.0;
     float2 p1 = v.tex + texel_size / 2.0;
     p1 = AdjustTexel(source_size, p0, p1);
+    p0 = AdjustTexelByAddress(p0, v.tex_region, address);
+    p1 = AdjustTexelByAddress(p1, v.tex_region, address);
 
     float4 c0 = texture.sample(texture_sampler, p0);
     float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
@@ -367,9 +398,11 @@ func (d *Driver) Reset() error {
 		d.ml.SetDisplaySyncEnabled(true)
 
 		replaces := map[string]string{
-			"{{.FilterNearest}}": fmt.Sprintf("%d", graphics.FilterNearest),
-			"{{.FilterLinear}}":  fmt.Sprintf("%d", graphics.FilterLinear),
-			"{{.FilterScreen}}":  fmt.Sprintf("%d", graphics.FilterScreen),
+			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
+			"{{.FilterLinear}}":       fmt.Sprintf("%d", graphics.FilterLinear),
+			"{{.FilterScreen}}":       fmt.Sprintf("%d", graphics.FilterScreen),
+			"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
+			"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
 		}
 		src := source
 		for k, v := range replaces {
@@ -452,7 +485,8 @@ func (d *Driver) Reset() error {
 	return nil
 }
 
-func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter) error {
+func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
+	// TODO: Use address
 	if err := mainthread.Run(func() error {
 		// NSView can be changed anytime (probably). Set this everyframe.
 		cocoaWindow := ns.NewWindow(unsafe.Pointer(d.window))
@@ -509,8 +543,11 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		f := uint8(filter)
 		rce.SetFragmentBytes(unsafe.Pointer(&f), 1, 4)
 
+		a := uint8(address)
+		rce.SetFragmentBytes(unsafe.Pointer(&a), 1, 5)
+
 		scale := float32(d.dst.width) / float32(d.src.width)
-		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 5)
+		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 6)
 
 		if d.src != nil {
 			rce.SetFragmentTexture(d.src.texture, 0)

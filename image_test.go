@@ -1258,3 +1258,84 @@ func TestImageLinearFilterGlitch(t *testing.T) {
 		}
 	}
 }
+
+func TestImageAddressRepeat(t *testing.T) {
+	const w, h = 16, 16
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := 4 * (i + j*w)
+			if 4 <= i && i < 8 && 4 <= j && j < 8 {
+				pix[idx] = byte(i-4) * 0x10
+				pix[idx+1] = byte(j-4) * 0x10
+				pix[idx+2] = 0
+				pix[idx+3] = 0xff
+			} else {
+				pix[idx] = 0
+				pix[idx+1] = 0
+				pix[idx+2] = 0xff
+				pix[idx+3] = 0xff
+			}
+		}
+	}
+	src.ReplacePixels(pix)
+
+	vs := []Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &DrawTrianglesOptions{}
+	op.Address = AddressRepeat
+	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*Image), op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{byte(i%4) * 0x10, byte(j%4) * 0x10, 0, 0xff}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

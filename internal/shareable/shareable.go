@@ -135,7 +135,7 @@ func (i *Image) ensureNotShared() {
 	vw, vh := i.backend.restorable.Size()
 	vs := graphics.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	newImg.DrawImage(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest)
+	newImg.DrawImage(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -218,7 +218,7 @@ func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1,
 
 const MaxCountForShare = 10
 
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -240,7 +240,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 		panic("shareable: Image.DrawImage: img must be different from the receiver")
 	}
 
-	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter)
+	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter, address)
 
 	i.countForShare = 0
 

@@ -32,6 +32,7 @@ type drawImageHistoryItem struct {
 	colorm   *affine.ColorM
 	mode     graphics.CompositeMode
 	filter   graphics.Filter
+	address  graphics.Address
 }
 
 // Image represents an image that can be restored when GL context is lost.
@@ -170,7 +171,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			float32(x), float32(y),
 			1, 1, 1, 1)
 		is := graphics.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest)
+		i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
@@ -213,7 +214,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
+func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if len(vertices) == 0 {
 		return
 	}
@@ -222,13 +223,13 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
 		i.makeStale()
 	} else {
-		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter)
+		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter, address)
 	}
-	i.image.DrawImage(img.image, vertices, indices, colorm, mode, filter)
+	i.image.DrawImage(img.image, vertices, indices, colorm, mode, filter, address)
 }
 
 // appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
+func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}
@@ -246,6 +247,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices
 		colorm:   colorm,
 		mode:     mode,
 		filter:   filter,
+		address:  address,
 	}
 	i.drawImageHistory = append(i.drawImageHistory, item)
 }
@@ -378,7 +380,7 @@ func (i *Image) restore() error {
 		if c.image.hasDependency() {
 			panic("not reached")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter)
+		gimg.DrawImage(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address)
 	}
 	i.image = gimg
 

@@ -91,7 +91,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphics.QuadIndices()
-		s.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear)
+		s.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear, graphics.AddressClampToZero)
 		imgs = append(imgs, s)
 		w = w2
 		h = h2
@@ -387,7 +387,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		src := img.mipmap.original()
 		vs := src.QuadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
+		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	} else if src := img.mipmap.level(bounds, level); src != nil {
 		w, h := src.Size()
 		s := 1 << uint(level)
@@ -397,7 +397,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		d *= float32(s)
 		vs := src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter)
+		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	}
 	i.disposeMipmaps()
 }
@@ -425,6 +425,17 @@ type Vertex struct {
 	ColorA float32
 }
 
+// Address represents a sampler address mode.
+type Address int
+
+const (
+	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
+	AddressClampToZero = Address(graphics.AddressClampToZero)
+
+	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
+	AddressRepeat = Address(graphics.AddressRepeat)
+)
+
 // DrawTrianglesOptions represents options to render triangles on an image.
 //
 // Note that this API is experimental.
@@ -441,6 +452,10 @@ type DrawTrianglesOptions struct {
 	// Filter is a type of texture filter.
 	// The default (zero) value is FilterDefault.
 	Filter Filter
+
+	// Address is a sampler address mode.
+	// The default (zero) value is AddressClampToZero.
+	Address Address
 }
 
 // MaxIndicesNum is the maximum number of indices for DrawTriangles.
@@ -499,7 +514,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			float32(r.Min.X), float32(r.Min.Y), float32(r.Max.X), float32(r.Max.Y),
 			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
-	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter)
+	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter, graphics.Address(options.Address))
 	i.disposeMipmaps()
 }
 

@@ -35,7 +35,7 @@ type command interface {
 	NumIndices() int
 	AddNumVertices(n int)
 	AddNumIndices(n int)
-	CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool
+	CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool
 }
 
 // commandQueue is a command queue for drawing commands.
@@ -87,12 +87,12 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 	q.nindices += len(indices)
 }
 
-func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, forceNewCommand bool) {
+func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address, forceNewCommand bool) {
 	if nindices > graphics.IndicesNum {
 		panic("not reached")
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
-		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter) {
+		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter, address) {
 			last.AddNumVertices(nvertices)
 			last.AddNumIndices(nindices)
 			return
@@ -106,12 +106,13 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 		color:     color,
 		mode:      mode,
 		filter:    filter,
+		address:   address,
 	}
 	q.commands = append(q.commands, c)
 }
 
 // EnqueueDrawImageCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) {
+func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if len(indices) > graphics.IndicesNum {
 		panic("not reached")
 	}
@@ -128,7 +129,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
 
-	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, split)
+	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, address, split)
 }
 
 // Enqueue enqueues a drawing command other than a draw-image command.
@@ -215,6 +216,7 @@ type drawImageCommand struct {
 	color     *affine.ColorM
 	mode      graphics.CompositeMode
 	filter    graphics.Filter
+	address   graphics.Address
 }
 
 func (c *drawImageCommand) String() string {
@@ -230,7 +232,7 @@ func (c *drawImageCommand) Exec(indexOffset int) error {
 
 	c.dst.image.SetAsDestination()
 	c.src.image.SetAsSource()
-	if err := Driver().Draw(c.nindices, indexOffset, c.mode, c.color, c.filter); err != nil {
+	if err := Driver().Draw(c.nindices, indexOffset, c.mode, c.color, c.filter, c.address); err != nil {
 		return err
 	}
 	return nil
@@ -254,7 +256,7 @@ func (c *drawImageCommand) AddNumIndices(n int) {
 
 // CanMerge returns a boolean value indicating whether the other drawImageCommand can be merged
 // with the drawImageCommand c.
-func (c *drawImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
+func (c *drawImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	if c.dst != dst {
 		return false
 	}
@@ -268,6 +270,9 @@ func (c *drawImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode 
 		return false
 	}
 	if c.filter != filter {
+		return false
+	}
+	if c.address != address {
 		return false
 	}
 	return true
@@ -307,7 +312,7 @@ func (c *replacePixelsCommand) AddNumVertices(n int) {
 func (c *replacePixelsCommand) AddNumIndices(n int) {
 }
 
-func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
+func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	return false
 }
 
@@ -344,7 +349,7 @@ func (c *pixelsCommand) AddNumVertices(n int) {
 func (c *pixelsCommand) AddNumIndices(n int) {
 }
 
-func (c *pixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
+func (c *pixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	return false
 }
 
@@ -377,7 +382,7 @@ func (c *disposeCommand) AddNumVertices(n int) {
 func (c *disposeCommand) AddNumIndices(n int) {
 }
 
-func (c *disposeCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
+func (c *disposeCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	return false
 }
 
@@ -416,7 +421,7 @@ func (c *newImageCommand) AddNumVertices(n int) {
 func (c *newImageCommand) AddNumIndices(n int) {
 }
 
-func (c *newImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
+func (c *newImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	return false
 }
 
@@ -452,7 +457,7 @@ func (c *newScreenFramebufferImageCommand) AddNumVertices(n int) {
 func (c *newScreenFramebufferImageCommand) AddNumIndices(n int) {
 }
 
-func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter) bool {
+func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	return false
 }
 
