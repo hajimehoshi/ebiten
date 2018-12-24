@@ -92,7 +92,7 @@ float2 AdjustTexel(float2 source_size, float2 p0, float2 p1) {
   return p1;
 }
 
-float Mod(float x, float y) {
+float FloorMod(float x, float y) {
   if (x < 0.0) {
     return y - (-x - y * floor(-x/y));
   }
@@ -107,7 +107,7 @@ float2 AdjustTexelByAddress(float2 p, float4 tex_region, uint8_t address)  {
   case ADDRESS_REPEAT: {
     float2 o = float2(tex_region[0], tex_region[1]);
     float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
-    return float2(Mod((p.x - o.x), size.x) + o.x, Mod((p.y - o.y), size.y) + o.y);
+    return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
   }
   default:
     // Not reached.
