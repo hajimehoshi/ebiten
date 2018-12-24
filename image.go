@@ -430,10 +430,10 @@ type Address int
 
 const (
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
-	AddressClampToZero = Address(graphics.AddressClampToZero)
+	AddressClampToZero Address = Address(graphics.AddressClampToZero)
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
-	AddressRepeat = Address(graphics.AddressRepeat)
+	AddressRepeat Address = Address(graphics.AddressRepeat)
 )
 
 // DrawTrianglesOptions represents options to render triangles on an image.
