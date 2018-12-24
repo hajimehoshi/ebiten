@@ -43,6 +43,11 @@ var (
 	devVersion    = ""
 )
 
+func majorMinor(ver string) string {
+	t := strings.Split(ver, ".")
+	return t[0] + "." + t[1]
+}
+
 func init() {
 	b, err := exec.Command("git", "tag").Output()
 	if err != nil {
@@ -69,7 +74,7 @@ func init() {
 
 	stableVersion = stableVers[len(stableVers)-1]
 	rcVersion = rcVers[len(rcVers)-1]
-	if rcVersion[:strings.Index(rcVersion, "-")] == stableVersion {
+	if majorMinor(rcVersion[:strings.Index(rcVersion, "-")]) == majorMinor(stableVersion) {
 		rcVersion = ""
 	}
 	devVersion = devVers[len(devVers)-1]
