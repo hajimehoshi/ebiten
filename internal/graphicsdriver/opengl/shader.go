@@ -120,7 +120,7 @@ highp vec2 adjustTexel(highp vec2 p0, highp vec2 p1) {
   return p1;
 }
 
-highp float mod(highp float x, highp float y) {
+highp float floorMod(highp float x, highp float y) {
   if (x < 0.0) {
     return y - (-x - y * floor(-x/y));
   }
@@ -134,7 +134,7 @@ highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region, int address
   if (address == ADDRESS_REPEAT) {
     highp vec2 o = vec2(tex_region[0], tex_region[1]);
     highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
-    return vec2(mod((p.x - o.x), size.x) + o.x, mod((p.y - o.y), size.y) + o.y);
+    return vec2(floorMod((p.x - o.x), size.x) + o.x, floorMod((p.y - o.y), size.y) + o.y);
   }
   // Not reached.
   return vec2(0.0);
