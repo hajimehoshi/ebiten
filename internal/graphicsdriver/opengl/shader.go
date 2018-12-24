@@ -15,34 +15,37 @@
 package opengl
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 type shaderID int
 
 const (
 	shaderVertexModelview shaderID = iota
-	shaderFragmentNearest
-	shaderFragmentLinear
-	shaderFragmentScreen
+	shaderFragmentColorMatrix
 )
 
 func shaderStr(id shaderID) string {
-	if id == shaderVertexModelview {
-		return shaderStrVertex
-	}
-	defs := []string{}
 	switch id {
-	case shaderFragmentNearest:
-		defs = append(defs, "#define FILTER_NEAREST")
-	case shaderFragmentLinear:
-		defs = append(defs, "#define FILTER_LINEAR")
-	case shaderFragmentScreen:
-		defs = append(defs, "#define FILTER_SCREEN")
+	case shaderVertexModelview:
+		return shaderStrVertex
+	case shaderFragmentColorMatrix:
+		replaces := map[string]string{
+			"{{.FilterNearest}}": fmt.Sprintf("%d", graphics.FilterNearest),
+			"{{.FilterLinear}}":  fmt.Sprintf("%d", graphics.FilterLinear),
+			"{{.FilterScreen}}":  fmt.Sprintf("%d", graphics.FilterScreen),
+		}
+		src := shaderStrFragment
+		for k, v := range replaces {
+			src = strings.Replace(src, k, v, -1)
+		}
+		return src
 	default:
 		panic("not reached")
 	}
-	return strings.Replace(shaderStrFragment, "{{Definitions}}", strings.Join(defs, "\n"), -1)
 }
 
 const (
@@ -79,12 +82,15 @@ precision mediump float;
 #define highp
 #endif
 
-{{Definitions}}
+#define FILTER_NEAREST ({{.FilterNearest}})
+#define FILTER_LINEAR ({{.FilterLinear}})
+#define FILTER_SCREEN ({{.FilterScreen}})
 
 uniform sampler2D texture;
 uniform mat4 color_matrix_body;
 uniform vec4 color_matrix_translation;
 
+uniform int filter;
 uniform highp vec2 source_size;
 
 #if defined(FILTER_SCREEN)
@@ -113,65 +119,64 @@ void main(void) {
   highp vec2 pos = varying_tex;
   highp vec2 texel_size = 1.0 / source_size;
 
-#if defined(FILTER_NEAREST)
-  vec4 color = texture2D(texture, pos);
-  if (pos.x < varying_tex_region[0] ||
-    pos.y < varying_tex_region[1] ||
-    (varying_tex_region[2] - texel_size.x / 512.0) <= pos.x ||
-    (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
-    color = vec4(0, 0, 0, 0);
+  vec4 color;
+
+  if (filter == FILTER_NEAREST) {
+    color = texture2D(texture, pos);
+    if (pos.x < varying_tex_region[0] ||
+      pos.y < varying_tex_region[1] ||
+      (varying_tex_region[2] - texel_size.x / 512.0) <= pos.x ||
+      (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
+      color = vec4(0, 0, 0, 0);
+    }
+  } else if (filter == FILTER_LINEAR) {
+    highp vec2 p0 = pos - texel_size / 2.0;
+    highp vec2 p1 = pos + texel_size / 2.0;
+
+    p1 = adjustTexel(p0, p1);
+
+    vec4 c0 = texture2D(texture, p0);
+    vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
+    vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
+    vec4 c3 = texture2D(texture, p1);
+    if (p0.x < varying_tex_region[0]) {
+      c0 = vec4(0, 0, 0, 0);
+      c2 = vec4(0, 0, 0, 0);
+    }
+    if (p0.y < varying_tex_region[1]) {
+      c0 = vec4(0, 0, 0, 0);
+      c1 = vec4(0, 0, 0, 0);
+    }
+    if ((varying_tex_region[2] - texel_size.x / 512.0) <= p1.x) {
+      c1 = vec4(0, 0, 0, 0);
+      c3 = vec4(0, 0, 0, 0);
+    }
+    if ((varying_tex_region[3] - texel_size.y / 512.0) <= p1.y) {
+      c2 = vec4(0, 0, 0, 0);
+      c3 = vec4(0, 0, 0, 0);
+    }
+
+    vec2 rate = fract(p0 * source_size);
+    color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+  } else if (filter == FILTER_SCREEN) {
+    highp vec2 p0 = pos - texel_size / 2.0 / scale;
+    highp vec2 p1 = pos + texel_size / 2.0 / scale;
+
+    p1 = adjustTexel(p0, p1);
+
+    vec4 c0 = texture2D(texture, p0);
+    vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
+    vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
+    vec4 c3 = texture2D(texture, p1);
+    // Texels must be in the source rect, so it is not necessary to check that like linear filter.
+
+    vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
+    vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
+    color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+  } else {
+    // Not reached.
+    discard;
   }
-#endif
-
-#if defined(FILTER_LINEAR)
-  highp vec2 p0 = pos - texel_size / 2.0;
-  highp vec2 p1 = pos + texel_size / 2.0;
-
-  p1 = adjustTexel(p0, p1);
-
-  vec4 c0 = texture2D(texture, p0);
-  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-  vec4 c3 = texture2D(texture, p1);
-  if (p0.x < varying_tex_region[0]) {
-    c0 = vec4(0, 0, 0, 0);
-    c2 = vec4(0, 0, 0, 0);
-  }
-  if (p0.y < varying_tex_region[1]) {
-    c0 = vec4(0, 0, 0, 0);
-    c1 = vec4(0, 0, 0, 0);
-  }
-  if ((varying_tex_region[2] - texel_size.x / 512.0) <= p1.x) {
-    c1 = vec4(0, 0, 0, 0);
-    c3 = vec4(0, 0, 0, 0);
-  }
-  if ((varying_tex_region[3] - texel_size.y / 512.0) <= p1.y) {
-    c2 = vec4(0, 0, 0, 0);
-    c3 = vec4(0, 0, 0, 0);
-  }
-
-  vec2 rate = fract(p0 * source_size);
-  vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-#endif
-
-#if defined(FILTER_SCREEN)
-  highp vec2 p0 = pos - texel_size / 2.0 / scale;
-  highp vec2 p1 = pos + texel_size / 2.0 / scale;
-  // Prevent this variable from being optimized out.
-  p0 += varying_tex_region.xy - varying_tex_region.xy;
-
-  p1 = adjustTexel(p0, p1);
-
-  vec4 c0 = texture2D(texture, p0);
-  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-  vec4 c3 = texture2D(texture, p1);
-  // Texels must be in the source rect, so it is not necessary to check that like linear filter.
-
-  vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
-  vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
-  vec4 color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-#endif
 
   // Un-premultiply alpha
   if (0.0 < color.a) {

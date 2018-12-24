@@ -119,13 +119,8 @@ type openGLState struct {
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
 	elementArrayBuffer buffer
 
-	// programNearest is OpenGL's program for rendering a texture with nearest filter.
-	programNearest program
-
-	// programLinear is OpenGL's program for rendering a texture with linear filter.
-	programLinear program
-
-	programScreen program
+	// program is OpenGL's program for rendering a texture.
+	program program
 
 	lastProgram                program
 	lastViewportWidth          int
@@ -134,6 +129,7 @@ type openGLState struct {
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
 	lastSourceHeight           int
+	lastFilter                 *graphics.Filter
 
 	source      *Image
 	destination *Image
@@ -162,18 +158,13 @@ func (s *openGLState) reset(context *context) error {
 	s.lastColorMatrixTranslation = nil
 	s.lastSourceWidth = 0
 	s.lastSourceHeight = 0
+	s.lastFilter = nil
 
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
 	// Let's delete them explicitly.
-	if s.programNearest != zeroProgram {
-		context.deleteProgram(s.programNearest)
-	}
-	if s.programLinear != zeroProgram {
-		context.deleteProgram(s.programLinear)
-	}
-	if s.programScreen != zeroProgram {
-		context.deleteProgram(s.programScreen)
+	if s.program != zeroProgram {
+		context.deleteProgram(s.program)
 	}
 
 	// On browsers (at least Chrome), buffers are already detached from the context
@@ -193,43 +184,15 @@ func (s *openGLState) reset(context *context) error {
 	}
 	defer context.deleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentNearestNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentNearest))
+	shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentColorMatrix))
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
-	defer context.deleteShader(shaderFragmentNearestNative)
+	defer context.deleteShader(shaderFragmentColorMatrixNative)
 
-	shaderFragmentLinearNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentLinear))
-	if err != nil {
-		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
-	}
-	defer context.deleteShader(shaderFragmentLinearNative)
-
-	shaderFragmentScreenNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentScreen))
-	if err != nil {
-		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
-	}
-	defer context.deleteShader(shaderFragmentScreenNative)
-
-	s.programNearest, err = context.newProgram([]shader{
+	s.program, err = context.newProgram([]shader{
 		shaderVertexModelviewNative,
-		shaderFragmentNearestNative,
-	})
-	if err != nil {
-		return err
-	}
-
-	s.programLinear, err = context.newProgram([]shader{
-		shaderVertexModelviewNative,
-		shaderFragmentLinearNative,
-	})
-	if err != nil {
-		return err
-	}
-
-	s.programScreen, err = context.newProgram([]shader{
-		shaderVertexModelviewNative,
-		shaderFragmentScreenNative,
+		shaderFragmentColorMatrixNative,
 	})
 	if err != nil {
 		return err
@@ -277,18 +240,7 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 
 	d.context.blendFunc(mode)
 
-	var program program
-	switch filter {
-	case graphics.FilterNearest:
-		program = d.state.programNearest
-	case graphics.FilterLinear:
-		program = d.state.programLinear
-	case graphics.FilterScreen:
-		program = d.state.programScreen
-	default:
-		panic("not reached")
-	}
-
+	program := d.state.program
 	if d.state.lastProgram != program {
 		d.context.useProgram(program)
 		if d.state.lastProgram != zeroProgram {
@@ -341,7 +293,12 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		d.state.lastSourceHeight = sh
 	}
 
-	if program == d.state.programScreen {
+	if d.state.lastFilter == nil || *d.state.lastFilter != filter {
+		d.context.uniformInt(program, "filter", int(filter))
+		d.state.lastFilter = &filter
+	}
+
+	if filter == graphics.FilterScreen {
 		scale := float32(dstW) / float32(srcW)
 		d.context.uniformFloat(program, "scale", scale)
 	}
