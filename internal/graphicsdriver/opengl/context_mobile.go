@@ -66,8 +66,6 @@ func init() {
 	dstAlpha = mgl.DST_ALPHA
 	oneMinusSrcAlpha = mgl.ONE_MINUS_SRC_ALPHA
 	oneMinusDstAlpha = mgl.ONE_MINUS_DST_ALPHA
-
-	initializeArrayBuferLayout()
 }
 
 type contextImpl struct {

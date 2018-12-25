@@ -78,30 +78,26 @@ func (a *arrayBufferLayout) disable(context *context, program program) {
 }
 
 // theArrayBufferLayout is the array buffer layout for Ebiten.
-var theArrayBufferLayout arrayBufferLayout
-
-func initializeArrayBuferLayout() {
-	theArrayBufferLayout = arrayBufferLayout{
-		// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
-		parts: []arrayBufferLayoutPart{
-			{
-				name: "vertex",
-				num:  2,
-			},
-			{
-				name: "tex",
-				num:  2,
-			},
-			{
-				name: "tex_region",
-				num:  4,
-			},
-			{
-				name: "color_scale",
-				num:  4,
-			},
+var theArrayBufferLayout = arrayBufferLayout{
+	// Note that GL_MAX_VERTEX_ATTRIBS is at least 16.
+	parts: []arrayBufferLayoutPart{
+		{
+			name: "vertex",
+			num:  2,
 		},
-	}
+		{
+			name: "tex",
+			num:  2,
+		},
+		{
+			name: "tex_region",
+			num:  4,
+		},
+		{
+			name: "color_scale",
+			num:  4,
+		},
+	},
 }
 
 func init() {

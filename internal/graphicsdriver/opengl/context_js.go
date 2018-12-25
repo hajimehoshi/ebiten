@@ -109,8 +109,6 @@ func init() {
 	unpackAlignment = c.Get("UNPACK_ALIGNMENT")
 	unsignedByte = c.Get("UNSIGNED_BYTE")
 	unsignedShort = c.Get("UNSIGNED_SHORT")
-
-	initializeArrayBuferLayout()
 }
 
 type contextImpl struct {
