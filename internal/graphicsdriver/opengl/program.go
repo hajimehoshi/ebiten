@@ -263,7 +263,7 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 
 	vw := destination.framebuffer.width
 	vh := destination.framebuffer.height
-	if d.state.lastViewportWidth != vw || d.state.lastSourceHeight != vh {
+	if d.state.lastViewportWidth != vw || d.state.lastViewportHeight != vh {
 		d.context.uniformFloats(program, "viewport_size", []float32{float32(vw), float32(vh)})
 		d.state.lastViewportWidth = vw
 		d.state.lastViewportHeight = vh
