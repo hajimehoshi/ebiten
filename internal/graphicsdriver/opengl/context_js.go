@@ -47,69 +47,46 @@ func getProgramID(p program) programID {
 }
 
 var (
-	blend               js.Value
-	clampToEdge         js.Value
-	colorAttachment0    js.Value
-	compileStatus       js.Value
-	framebuffer_        js.Value
-	framebufferBinding  js.Value
-	framebufferComplete js.Value
-	linkStatus          js.Value
-	maxTextureSize      js.Value
-	nearest             js.Value
-	noError             js.Value
-	texture2d           js.Value
-	textureMagFilter    js.Value
-	textureMinFilter    js.Value
-	textureWrapS        js.Value
-	textureWrapT        js.Value
-	triangles           js.Value
-	rgba                js.Value
-	unpackAlignment     js.Value
-	unsignedByte        js.Value
-	unsignedShort       js.Value
-)
-
-func init() {
 	// Accessing the prototype is rquired on Safari.
-	c := js.Global().Get("WebGLRenderingContext").Get("prototype")
-	vertexShader = shaderType(c.Get("VERTEX_SHADER").Int())
-	fragmentShader = shaderType(c.Get("FRAGMENT_SHADER").Int())
-	arrayBuffer = bufferType(c.Get("ARRAY_BUFFER").Int())
-	elementArrayBuffer = bufferType(c.Get("ELEMENT_ARRAY_BUFFER").Int())
-	dynamicDraw = bufferUsage(c.Get("DYNAMIC_DRAW").Int())
-	short = dataType(c.Get("SHORT").Int())
-	float = dataType(c.Get("FLOAT").Int())
+	contextPrototype = js.Global().Get("WebGLRenderingContext").Get("prototype")
 
-	zero = operation(c.Get("ZERO").Int())
-	one = operation(c.Get("ONE").Int())
-	srcAlpha = operation(c.Get("SRC_ALPHA").Int())
-	dstAlpha = operation(c.Get("DST_ALPHA").Int())
-	oneMinusSrcAlpha = operation(c.Get("ONE_MINUS_SRC_ALPHA").Int())
-	oneMinusDstAlpha = operation(c.Get("ONE_MINUS_DST_ALPHA").Int())
+	vertexShader       = shaderType(contextPrototype.Get("VERTEX_SHADER").Int())
+	fragmentShader     = shaderType(contextPrototype.Get("FRAGMENT_SHADER").Int())
+	arrayBuffer        = bufferType(contextPrototype.Get("ARRAY_BUFFER").Int())
+	elementArrayBuffer = bufferType(contextPrototype.Get("ELEMENT_ARRAY_BUFFER").Int())
+	dynamicDraw        = bufferUsage(contextPrototype.Get("DYNAMIC_DRAW").Int())
+	short              = dataType(contextPrototype.Get("SHORT").Int())
+	float              = dataType(contextPrototype.Get("FLOAT").Int())
 
-	blend = c.Get("BLEND")
-	clampToEdge = c.Get("CLAMP_TO_EDGE")
-	compileStatus = c.Get("COMPILE_STATUS")
-	colorAttachment0 = c.Get("COLOR_ATTACHMENT0")
-	framebuffer_ = c.Get("FRAMEBUFFER")
-	framebufferBinding = c.Get("FRAMEBUFFER_BINDING")
-	framebufferComplete = c.Get("FRAMEBUFFER_COMPLETE")
-	linkStatus = c.Get("LINK_STATUS")
-	maxTextureSize = c.Get("MAX_TEXTURE_SIZE")
-	nearest = c.Get("NEAREST")
-	noError = c.Get("NO_ERROR")
-	rgba = c.Get("RGBA")
-	texture2d = c.Get("TEXTURE_2D")
-	textureMagFilter = c.Get("TEXTURE_MAG_FILTER")
-	textureMinFilter = c.Get("TEXTURE_MIN_FILTER")
-	textureWrapS = c.Get("TEXTURE_WRAP_S")
-	textureWrapT = c.Get("TEXTURE_WRAP_T")
-	triangles = c.Get("TRIANGLES")
-	unpackAlignment = c.Get("UNPACK_ALIGNMENT")
-	unsignedByte = c.Get("UNSIGNED_BYTE")
-	unsignedShort = c.Get("UNSIGNED_SHORT")
-}
+	zero             = operation(contextPrototype.Get("ZERO").Int())
+	one              = operation(contextPrototype.Get("ONE").Int())
+	srcAlpha         = operation(contextPrototype.Get("SRC_ALPHA").Int())
+	dstAlpha         = operation(contextPrototype.Get("DST_ALPHA").Int())
+	oneMinusSrcAlpha = operation(contextPrototype.Get("ONE_MINUS_SRC_ALPHA").Int())
+	oneMinusDstAlpha = operation(contextPrototype.Get("ONE_MINUS_DST_ALPHA").Int())
+
+	blend               = contextPrototype.Get("BLEND")
+	clampToEdge         = contextPrototype.Get("CLAMP_TO_EDGE")
+	compileStatus       = contextPrototype.Get("COMPILE_STATUS")
+	colorAttachment0    = contextPrototype.Get("COLOR_ATTACHMENT0")
+	framebuffer_        = contextPrototype.Get("FRAMEBUFFER")
+	framebufferBinding  = contextPrototype.Get("FRAMEBUFFER_BINDING")
+	framebufferComplete = contextPrototype.Get("FRAMEBUFFER_COMPLETE")
+	linkStatus          = contextPrototype.Get("LINK_STATUS")
+	maxTextureSize      = contextPrototype.Get("MAX_TEXTURE_SIZE")
+	nearest             = contextPrototype.Get("NEAREST")
+	noError             = contextPrototype.Get("NO_ERROR")
+	rgba                = contextPrototype.Get("RGBA")
+	texture2d           = contextPrototype.Get("TEXTURE_2D")
+	textureMagFilter    = contextPrototype.Get("TEXTURE_MAG_FILTER")
+	textureMinFilter    = contextPrototype.Get("TEXTURE_MIN_FILTER")
+	textureWrapS        = contextPrototype.Get("TEXTURE_WRAP_S")
+	textureWrapT        = contextPrototype.Get("TEXTURE_WRAP_T")
+	triangles           = contextPrototype.Get("TRIANGLES")
+	unpackAlignment     = contextPrototype.Get("UNPACK_ALIGNMENT")
+	unsignedByte        = contextPrototype.Get("UNSIGNED_BYTE")
+	unsignedShort       = contextPrototype.Get("UNSIGNED_SHORT")
+)
 
 type contextImpl struct {
 	gl            js.Value

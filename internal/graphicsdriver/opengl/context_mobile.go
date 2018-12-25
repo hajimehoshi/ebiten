@@ -51,22 +51,22 @@ func getProgramID(p program) programID {
 	return programID(p.Value)
 }
 
-func init() {
-	vertexShader = mgl.VERTEX_SHADER
-	fragmentShader = mgl.FRAGMENT_SHADER
-	arrayBuffer = mgl.ARRAY_BUFFER
-	elementArrayBuffer = mgl.ELEMENT_ARRAY_BUFFER
-	dynamicDraw = mgl.DYNAMIC_DRAW
-	short = mgl.SHORT
-	float = mgl.FLOAT
+const (
+	vertexShader       = shaderType(mgl.VERTEX_SHADER)
+	fragmentShader     = shaderType(mgl.FRAGMENT_SHADER)
+	arrayBuffer        = bufferType(mgl.ARRAY_BUFFER)
+	elementArrayBuffer = bufferType(mgl.ELEMENT_ARRAY_BUFFER)
+	dynamicDraw        = bufferUsage(mgl.DYNAMIC_DRAW)
+	short              = dataType(mgl.SHORT)
+	float              = dataType(mgl.FLOAT)
 
-	zero = mgl.ZERO
-	one = mgl.ONE
-	srcAlpha = mgl.SRC_ALPHA
-	dstAlpha = mgl.DST_ALPHA
-	oneMinusSrcAlpha = mgl.ONE_MINUS_SRC_ALPHA
-	oneMinusDstAlpha = mgl.ONE_MINUS_DST_ALPHA
-}
+	zero             = operation(mgl.ZERO)
+	one              = operation(mgl.ONE)
+	srcAlpha         = operation(mgl.SRC_ALPHA)
+	dstAlpha         = operation(mgl.DST_ALPHA)
+	oneMinusSrcAlpha = operation(mgl.ONE_MINUS_SRC_ALPHA)
+	oneMinusDstAlpha = operation(mgl.ONE_MINUS_DST_ALPHA)
+)
 
 type contextImpl struct {
 	gl     mgl.Context

@@ -41,12 +41,8 @@ func CurrentFPS() float64 {
 
 var (
 	isDrawingSkipped = int32(0)
-	currentMaxTPS    = int32(0)
+	currentMaxTPS    = int32(DefaultTPS)
 )
-
-func init() {
-	atomic.StoreInt32(&currentMaxTPS, DefaultTPS)
-}
 
 func setDrawingSkipped(skipped bool) {
 	v := int32(0)

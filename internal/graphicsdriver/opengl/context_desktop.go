@@ -54,22 +54,22 @@ func getProgramID(p program) programID {
 	return programID(p)
 }
 
-func init() {
-	vertexShader = gl.VERTEX_SHADER
-	fragmentShader = gl.FRAGMENT_SHADER
-	arrayBuffer = gl.ARRAY_BUFFER
-	elementArrayBuffer = gl.ELEMENT_ARRAY_BUFFER
-	dynamicDraw = gl.DYNAMIC_DRAW
-	short = gl.SHORT
-	float = gl.FLOAT
+const (
+	vertexShader       = shaderType(gl.VERTEX_SHADER)
+	fragmentShader     = shaderType(gl.FRAGMENT_SHADER)
+	arrayBuffer        = bufferType(gl.ARRAY_BUFFER)
+	elementArrayBuffer = bufferType(gl.ELEMENT_ARRAY_BUFFER)
+	dynamicDraw        = bufferUsage(gl.DYNAMIC_DRAW)
+	short              = dataType(gl.SHORT)
+	float              = dataType(gl.FLOAT)
 
-	zero = gl.ZERO
-	one = gl.ONE
-	srcAlpha = gl.SRC_ALPHA
-	dstAlpha = gl.DST_ALPHA
-	oneMinusSrcAlpha = gl.ONE_MINUS_SRC_ALPHA
-	oneMinusDstAlpha = gl.ONE_MINUS_DST_ALPHA
-}
+	zero             = operation(gl.ZERO)
+	one              = operation(gl.ONE)
+	srcAlpha         = operation(gl.SRC_ALPHA)
+	dstAlpha         = operation(gl.DST_ALPHA)
+	oneMinusSrcAlpha = operation(gl.ONE_MINUS_SRC_ALPHA)
+	oneMinusDstAlpha = operation(gl.ONE_MINUS_DST_ALPHA)
+)
 
 type contextImpl struct {
 	init bool

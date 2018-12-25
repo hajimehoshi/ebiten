@@ -18,24 +18,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-var (
-	vertexShader       shaderType
-	fragmentShader     shaderType
-	arrayBuffer        bufferType
-	elementArrayBuffer bufferType
-	dynamicDraw        bufferUsage
-	staticDraw         bufferUsage
-	short              dataType
-	float              dataType
-
-	zero             operation
-	one              operation
-	srcAlpha         operation
-	dstAlpha         operation
-	oneMinusSrcAlpha operation
-	oneMinusDstAlpha operation
-)
-
 func convertOperation(op graphics.Operation) operation {
 	switch op {
 	case graphics.Zero:
