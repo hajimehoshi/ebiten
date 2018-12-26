@@ -71,20 +71,14 @@ func TestGC(t *testing.T) {
 	p = nil
 	runtime.GC()
 
-	ch := make(chan struct{})
-	go func() {
-		defer close(ch)
-		for i := 0; i < 10; i++ {
-			got = PlayersNumForTesting()
-			if want := 0; got == want {
-				return
-			}
-			// 100[ms] should be enough all the bytes are consumed.
-			// TODO: This is a darty hack. Would it be possible to use virtual time?
-			time.Sleep(100 * time.Millisecond)
+	for i := 0; i < 10; i++ {
+		got = PlayersNumForTesting()
+		if want := 0; got == want {
+			return
 		}
-		t.Errorf("time out")
-	}()
-
-	<-ch
+		// 100[ms] should be enough all the bytes are consumed.
+		// TODO: This is a darty hack. Would it be possible to use virtual time?
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Errorf("time out")
 }
