@@ -106,6 +106,10 @@ func (i *Image) BasePixelsForTesting() []byte {
 	return i.basePixels
 }
 
+// Pixels returns the image's pixel bytes.
+//
+// Pixels tries to read pixels from GPU if needed.
+// It is assured that GPU is not accessed if only the image's ReplacePixels is called.
 func (i *Image) Pixels() []byte {
 	i.readPixelsFromGPUIfNeeded()
 	return i.basePixels
@@ -189,13 +193,15 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.stale = false
 		return
 	}
-	if i.basePixels == nil {
-		i.makeStale()
-		return
-	}
 	if len(i.drawImageHistory) > 0 {
 		i.makeStale()
 		return
+	}
+	if i.stale {
+		return
+	}
+	if i.basePixels == nil {
+		i.basePixels = make([]byte, 4*w*h)
 	}
 	idx := 4 * (y*w + x)
 	if pixels != nil {

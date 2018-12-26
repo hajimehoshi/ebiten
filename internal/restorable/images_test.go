@@ -657,4 +657,26 @@ func TestClear(t *testing.T) {
 	}
 }
 
+func TestReplacePixelsOnly(t *testing.T) {
+	const w, h = 128, 128
+	img := NewImage(w, h, false)
+	defer img.Dispose()
+
+	for i := 0; i < w*h; i += 5 {
+		img.ReplacePixels([]byte{1, 2, 3, 4}, i%w, i/w, 1, 1)
+	}
+
+	// BasePixelsForTesting is available without GPU accessing.
+	for i := 0; i < w*h; i++ {
+		var want color.RGBA
+		if i%5 == 0 {
+			want = color.RGBA{1, 2, 3, 4}
+		}
+		got := byteSliceToColor(img.BasePixelsForTesting(), i)
+		if !sameColors(got, want, 0) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	}
+}
+
 // TODO: How about volatile/screen images?
