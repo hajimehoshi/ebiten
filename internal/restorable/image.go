@@ -62,8 +62,7 @@ var dummyImage *Image
 
 func init() {
 	dummyImage = &Image{
-		image:    graphicscommand.NewImage(16, 16),
-		volatile: false,
+		image: graphicscommand.NewImage(16, 16),
 	}
 }
 
@@ -89,9 +88,8 @@ func NewImage(width, height int, volatile bool) *Image {
 // Note that Dispose is not called automatically.
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		image:    graphicscommand.NewScreenFramebufferImage(width, height),
-		volatile: false,
-		screen:   true,
+		image:  graphicscommand.NewScreenFramebufferImage(width, height),
+		screen: true,
 	}
 	theImages.add(i)
 	return i
@@ -109,7 +107,7 @@ func (i *Image) BasePixelsForTesting() []byte {
 // Pixels returns the image's pixel bytes.
 //
 // Pixels tries to read pixels from GPU if needed.
-// It is assured that GPU is not accessed if only the image's ReplacePixels is called.
+// It is assured that GPU is not accessed if the opration against the image is only ReplacePixels.
 func (i *Image) Pixels() []byte {
 	i.readPixelsFromGPUIfNeeded()
 	return i.basePixels
