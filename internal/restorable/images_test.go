@@ -659,23 +659,43 @@ func TestClear(t *testing.T) {
 
 func TestReplacePixelsOnly(t *testing.T) {
 	const w, h = 128, 128
-	img := NewImage(w, h, false)
-	defer img.Dispose()
+	img0 := NewImage(w, h, false)
+	defer img0.Dispose()
+	img1 := NewImage(1, 1, false)
+	defer img1.Dispose()
 
 	for i := 0; i < w*h; i += 5 {
-		img.ReplacePixels([]byte{1, 2, 3, 4}, i%w, i/w, 1, 1)
+		img0.ReplacePixels([]byte{1, 2, 3, 4}, i%w, i/w, 1, 1)
 	}
+
+	vs := graphics.QuadVertices(w, h, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	img1.DrawImage(img0, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img0.ReplacePixels([]byte{5, 6, 7, 8}, 0, 0, 1, 1)
 
 	// BasePixelsForTesting is available without GPU accessing.
 	for i := 0; i < w*h; i++ {
 		var want color.RGBA
-		if i%5 == 0 {
+		switch {
+		case i == 0:
+			want = color.RGBA{5, 6, 7, 8}
+		case i%5 == 0:
 			want = color.RGBA{1, 2, 3, 4}
 		}
-		got := byteSliceToColor(img.BasePixelsForTesting(), i)
+		got := byteSliceToColor(img0.BasePixelsForTesting(), i)
 		if !sameColors(got, want, 0) {
 			t.Errorf("got %v, want %v", got, want)
 		}
+	}
+
+	ResolveStaleImages()
+	if err := Restore(); err != nil {
+		t.Fatal(err)
+	}
+	want := color.RGBA{1, 2, 3, 4}
+	got := byteSliceToColor(img1.BasePixelsForTesting(), 0)
+	if !sameColors(got, want, 0) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
