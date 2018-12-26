@@ -193,30 +193,32 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.stale = false
 		return
 	}
+
 	if len(i.drawImageHistory) > 0 {
 		i.makeStale()
 		return
 	}
+
 	if i.stale {
 		return
 	}
-	if i.basePixels == nil {
-		i.basePixels = make([]byte, 4*w*h)
-	}
+
 	idx := 4 * (y*w + x)
 	if pixels != nil {
+		if i.basePixels == nil {
+			i.basePixels = make([]byte, 4*w*h)
+		}
 		for j := 0; j < height; j++ {
 			copy(i.basePixels[idx:idx+4*width], pixels[4*j*width:4*(j+1)*width])
 			idx += 4 * w
 		}
-	} else {
+	} else if i.basePixels != nil {
 		zeros := make([]byte, 4*width)
 		for j := 0; j < height; j++ {
 			copy(i.basePixels[idx:idx+4*width], zeros)
 			idx += 4 * w
 		}
 	}
-	i.stale = false
 }
 
 // DrawImage draws a given image img to the image.
