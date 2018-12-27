@@ -594,10 +594,9 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		y := my + (v.Height-h)/3
 		x, y = adjustWindowPosition(x, y)
 		u.window.SetPos(x, y)
-
-		u.setWindowToDriver()
 		return nil
 	})
+	u.setWindowToDriver()
 	return u.loop(g)
 }
 

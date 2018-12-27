@@ -243,9 +243,12 @@ func Get() *Driver {
 }
 
 func (d *Driver) SetWindow(window uintptr) {
-	// Note that [NSApp mainWindow] returns nil when the window is borderless.
-	// Then the window is needed to be given.
-	d.window = window
+	mainthread.Run(func() error {
+		// Note that [NSApp mainWindow] returns nil when the window is borderless.
+		// Then the window is needed to be given.
+		d.window = window
+		return nil
+	})
 }
 
 func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
@@ -565,7 +568,10 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 }
 
 func (d *Driver) ResetSource() {
-	d.src = nil
+	mainthread.Run(func() error {
+		d.src = nil
+		return nil
+	})
 }
 
 func (d *Driver) SetVsyncEnabled(enabled bool) {
@@ -591,6 +597,7 @@ type Image struct {
 	texture mtl.Texture
 }
 
+// viewportSize must be called from the main thread.
 func (i *Image) viewportSize() (int, int) {
 	if i.screen {
 		return i.width, i.height
@@ -643,11 +650,17 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	i.driver.dst = i
+	mainthread.Run(func() error {
+		i.driver.dst = i
+		return nil
+	})
 }
 
 func (i *Image) SetAsSource() {
-	i.driver.src = i
+	mainthread.Run(func() error {
+		i.driver.src = i
+		return nil
+	})
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
