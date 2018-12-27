@@ -76,7 +76,6 @@ var (
 )
 
 func init() {
-	runtime.LockOSThread()
 	hideConsoleWindowOnWindows()
 	if err := initialize(); err != nil {
 		panic(err)
