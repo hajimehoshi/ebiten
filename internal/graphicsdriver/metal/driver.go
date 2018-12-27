@@ -233,11 +233,10 @@ type Driver struct {
 	src *Image
 	dst *Image
 
-	vsync        bool
 	maxImageSize int
 }
 
-var theDriver = Driver{vsync: true}
+var theDriver Driver
 
 func Get() *Driver {
 	return &theDriver
@@ -396,7 +395,7 @@ func (d *Driver) Reset() error {
 		// MTLPixelFormatBGRA10_XR_sRGB.
 		d.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
 		d.ml.SetMaximumDrawableCount(3)
-		d.ml.SetDisplaySyncEnabled(d.vsync)
+		d.ml.SetDisplaySyncEnabled(true)
 
 		replaces := map[string]string{
 			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
@@ -571,11 +570,7 @@ func (d *Driver) ResetSource() {
 }
 
 func (d *Driver) SetVsyncEnabled(enabled bool) {
-	mainthread.Run(func() error {
-		d.ml.SetDisplaySyncEnabled(enabled)
-		d.vsync = enabled
-		return nil
-	})
+	d.ml.SetDisplaySyncEnabled(enabled)
 }
 
 func (d *Driver) VDirection() graphicsdriver.VDirection {
