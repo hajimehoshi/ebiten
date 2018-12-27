@@ -234,6 +234,7 @@ type Driver struct {
 	dst *Image
 
 	maxImageSize int
+	vsync        bool
 }
 
 var theDriver Driver
@@ -395,7 +396,7 @@ func (d *Driver) Reset() error {
 		// MTLPixelFormatBGRA10_XR_sRGB.
 		d.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
 		d.ml.SetMaximumDrawableCount(3)
-		d.ml.SetDisplaySyncEnabled(true)
+		d.ml.SetDisplaySyncEnabled(d.vsync)
 
 		replaces := map[string]string{
 			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
@@ -570,7 +571,11 @@ func (d *Driver) ResetSource() {
 }
 
 func (d *Driver) SetVsyncEnabled(enabled bool) {
+	// TODO: Now SetVsyncEnabled is called only from the main thread, and mainthread.Run is not available since
+	// recursive function call via Run is forbidden.
+	// Fix this to use mainthread.Run to avoid confusion.
 	d.ml.SetDisplaySyncEnabled(enabled)
+	d.vsync = enabled
 }
 
 func (d *Driver) VDirection() graphicsdriver.VDirection {
