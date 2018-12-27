@@ -14,6 +14,14 @@
 
 package mainthread
 
+import (
+	"runtime"
+)
+
+func init() {
+	runtime.LockOSThread()
+}
+
 var funcs = make(chan func())
 
 // Loop starts the main-thread loop.
