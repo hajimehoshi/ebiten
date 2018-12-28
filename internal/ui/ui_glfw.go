@@ -596,7 +596,13 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		u.window.SetPos(x, y)
 		return nil
 	})
-	u.setWindowToDriver()
+
+	var w uintptr
+	_ = mainthread.Run(func() error {
+		w = u.nativeWindow()
+		return nil
+	})
+	graphicscommand.Driver().SetWindow(w)
 	return u.loop(g)
 }
 

@@ -45,6 +45,7 @@ func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *userInterface) setWindowToDriver() {
-	// Do nothing
+func (u *userInterface) nativeWindow() uintptr {
+	// TODO: Implement this.
+	return 0
 }

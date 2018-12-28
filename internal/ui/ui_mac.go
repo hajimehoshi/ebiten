@@ -46,8 +46,6 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
-
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
 
 func glfwScale() float64 {
@@ -73,6 +71,6 @@ func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *userInterface) setWindowToDriver() {
-	graphicscommand.Driver().SetWindow(u.window.GetCocoaWindow())
+func (u *userInterface) nativeWindow() uintptr {
+	return u.window.GetCocoaWindow()
 }
