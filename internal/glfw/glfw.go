@@ -19,5 +19,33 @@ import (
 )
 
 type (
-	Key = glfw.Key
+	Action       = glfw.Action
+	Hint         = glfw.Hint
+	InputMode    = glfw.InputMode
+	Joystick     = glfw.Joystick
+	Key          = glfw.Key
+	ModifierKey  = glfw.ModifierKey
+	MouseButton  = glfw.MouseButton
+	MonitorEvent = glfw.MonitorEvent
+)
+
+type (
+	Monitor = glfw.Monitor
+	VidMode = glfw.VidMode
+	Window  = glfw.Window
+)
+
+var (
+	CreateWindow       = glfw.CreateWindow
+	GetJoystickAxes    = glfw.GetJoystickAxes
+	GetJoystickButtons = glfw.GetJoystickButtons
+	GetMonitors        = glfw.GetMonitors
+	GetPrimaryMonitor  = glfw.GetPrimaryMonitor
+	Init               = glfw.Init
+	JoystickPresent    = glfw.JoystickPresent
+	PollEvents         = glfw.PollEvents
+	SetMonitorCallback = glfw.SetMonitorCallback
+	SwapInterval       = glfw.SwapInterval
+	Terminate          = glfw.Terminate
+	WindowHint         = glfw.WindowHint
 )

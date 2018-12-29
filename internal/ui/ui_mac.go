@@ -45,7 +45,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/go-gl/glfw/v3.2/glfw"
+	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
 func glfwScale() float64 {
