@@ -31,12 +31,12 @@ import (
 )
 
 var (
-	nameToCodes       map[string][]string
+	nameToJSKeyCodes  map[string][]string
 	keyCodeToNameEdge map[int]string
 )
 
 func init() {
-	nameToCodes = map[string][]string{
+	nameToJSKeyCodes = map[string][]string{
 		"Comma":        {"Comma"},
 		"Period":       {"Period"},
 		"Alt":          {"AltLeft", "AltRight"},
@@ -75,28 +75,28 @@ func init() {
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		nameToCodes[string(c)] = []string{"Digit" + string(c)}
+		nameToJSKeyCodes[string(c)] = []string{"Digit" + string(c)}
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		nameToCodes[string(c)] = []string{"Key" + string(c)}
+		nameToJSKeyCodes[string(c)] = []string{"Key" + string(c)}
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
-		nameToCodes["F"+strconv.Itoa(i)] = []string{"F" + strconv.Itoa(i)}
+		nameToJSKeyCodes["F"+strconv.Itoa(i)] = []string{"F" + strconv.Itoa(i)}
 	}
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
 	for c := '0'; c <= '9'; c++ {
-		nameToCodes["KP"+string(c)] = []string{"Numpad" + string(c)}
+		nameToJSKeyCodes["KP"+string(c)] = []string{"Numpad" + string(c)}
 	}
-	nameToCodes["KPDecimal"] = []string{"NumpadDecimal"}
-	nameToCodes["KPDivide"] = []string{"NumpadDivide"}
-	nameToCodes["KPMultiply"] = []string{"NumpadMultiply"}
-	nameToCodes["KPSubtract"] = []string{"NumpadSubtract"}
-	nameToCodes["KPAdd"] = []string{"NumpadAdd"}
-	nameToCodes["KPEnter"] = []string{"NumpadEnter"}
-	nameToCodes["KPEqual"] = []string{"NumpadEqual"}
+	nameToJSKeyCodes["KPDecimal"] = []string{"NumpadDecimal"}
+	nameToJSKeyCodes["KPDivide"] = []string{"NumpadDivide"}
+	nameToJSKeyCodes["KPMultiply"] = []string{"NumpadMultiply"}
+	nameToJSKeyCodes["KPSubtract"] = []string{"NumpadSubtract"}
+	nameToJSKeyCodes["KPAdd"] = []string{"NumpadAdd"}
+	nameToJSKeyCodes["KPEnter"] = []string{"NumpadEnter"}
+	nameToJSKeyCodes["KPEqual"] = []string{"NumpadEqual"}
 }
 
 func init() {
@@ -256,7 +256,7 @@ const inputKeysJSTmpl = `{{.License}}
 package input
 
 var keyToCodes = map[Key][]string{
-{{range $name, $codes := .NameToCodes}}Key{{$name}}: []string{
+{{range $name, $codes := .NameToJSKeyCodes}}Key{{$name}}: []string{
 {{range $code := $codes}}"{{$code}}",{{end}}
 },
 {{end}}
@@ -368,7 +368,7 @@ func main() {
 	namesSet := map[string]struct{}{}
 	namesWithoutModsSet := map[string]struct{}{}
 	codes := []string{}
-	for name, cs := range nameToCodes {
+	for name, cs := range nameToJSKeyCodes {
 		namesSet[name] = struct{}{}
 		codes = append(codes, cs...)
 		if name != "Alt" && name != "Control" && name != "Shift" {
@@ -425,7 +425,7 @@ func main() {
 			"License":             license,
 			"DoNotEdit":           doNotEdit,
 			"BuildTag":            buildTag,
-			"NameToCodes":         nameToCodes,
+			"NameToJSKeyCodes":    nameToJSKeyCodes,
 			"KeyCodeToNameEdge":   keyCodeToNameEdge,
 			"Codes":               codes,
 			"KeyNames":            names,
