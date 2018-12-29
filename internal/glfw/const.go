@@ -14,6 +14,17 @@
 
 package glfw
 
+type (
+	Action       int
+	Hint         int
+	InputMode    int
+	Joystick     int
+	Key          int
+	ModifierKey  int
+	MouseButton  int
+	MonitorEvent int
+)
+
 const (
 	False = 0
 	True  = 1
