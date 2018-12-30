@@ -14,8 +14,13 @@
 
 package glfw
 
+import (
+	"fmt"
+)
+
 type (
 	Action       int
+	ErrorCode    int
 	Hint         int
 	InputMode    int
 	Joystick     int
@@ -88,3 +93,43 @@ const (
 	CursorNormal = 0x00034001
 	NoAPI        = 0
 )
+
+const (
+	NotInitialized     = ErrorCode(0x00010001)
+	NoCurrentContext   = ErrorCode(0x00010002)
+	InvalidEnum        = ErrorCode(0x00010003)
+	InvalidValue       = ErrorCode(0x00010004)
+	OutOfMemory        = ErrorCode(0x00010005)
+	APIUnavailable     = ErrorCode(0x00010006)
+	VersionUnavailable = ErrorCode(0x00010007)
+	PlatformError      = ErrorCode(0x00010008)
+	FormatUnavailable  = ErrorCode(0x00010009)
+	NoWindowContext    = ErrorCode(0x0001000A)
+)
+
+func (e ErrorCode) String() string {
+	switch e {
+	case NotInitialized:
+		return "not initialized"
+	case NoCurrentContext:
+		return "no current context"
+	case InvalidEnum:
+		return "invalid enum"
+	case InvalidValue:
+		return "invalid value"
+	case OutOfMemory:
+		return "out of memory"
+	case APIUnavailable:
+		return "API unavailable"
+	case VersionUnavailable:
+		return "version unavailable"
+	case PlatformError:
+		return "platform error"
+	case FormatUnavailable:
+		return "format unavailable"
+	case NoWindowContext:
+		return "no window context"
+	default:
+		return fmt.Sprintf("GLFW error code (%d)", e)
+	}
+}

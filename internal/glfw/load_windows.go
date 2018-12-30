@@ -17,16 +17,33 @@ package glfw
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
 
 type dll struct {
-	d    *windows.LazyDLL
-	path string
+	d     *windows.LazyDLL
+	path  string
+	procs map[string]*windows.LazyProc
+}
+
+func (d *dll) call(name string, args ...uintptr) uintptr {
+	if d.procs == nil {
+		d.procs = map[string]*windows.LazyProc{}
+	}
+	if _, ok := d.procs[name]; !ok {
+		d.procs[name] = d.d.NewProc(name)
+	}
+	r, _, err := d.procs[name].Call(args...)
+	if err != nil && err.(windows.Errno) != 0 {
+		panic(err)
+	}
+	return r
 }
 
 func createTempDLL(content io.Reader) (string, error) {
@@ -73,8 +90,91 @@ func (d *dll) unload() error {
 	return nil
 }
 
-func init() {
-	if _, err := loadDLL(); err != nil {
+func uintptrToString(ptr uintptr) string {
+	var bs []byte
+	for {
+		b := *(*byte)(unsafe.Pointer(ptr))
+		if b == 0 {
+			break
+		}
+		bs = append(bs, b)
+		ptr++
+	}
+	return string(bs)
+}
+
+type glfwError struct {
+	code ErrorCode
+	desc string
+}
+
+func (e *glfwError) Error() string {
+	return fmt.Sprintf("glfw: %s: %s", e.code.String(), e.desc)
+}
+
+var lastErr = make(chan *glfwError, 1)
+
+func fetchError() error {
+	select {
+	case err := <-lastErr:
+		return err
+	default:
+		return nil
+	}
+}
+
+func panicError() {
+	if err := acceptError(); err != nil {
 		panic(err)
 	}
+}
+
+func flushErrors() {
+	if err := fetchError(); err != nil {
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err))
+	}
+}
+
+func acceptError(codes ...ErrorCode) error {
+	err := fetchError()
+	if err == nil {
+		return nil
+	}
+	for _, c := range codes {
+		if err.(*glfwError).code == c {
+			return nil
+		}
+	}
+	if err.(*glfwError).code == PlatformError {
+		// PlatformError is not handled here (See github.com/go-gl/glfw's implementation).
+		// TODO: Should we log this error?
+		return nil
+	}
+	return err
+}
+
+func goGLFWErrorCallback(code uintptr, desc uintptr) uintptr {
+	flushErrors()
+	err := &glfwError{
+		code: ErrorCode(code),
+		desc: uintptrToString(desc),
+	}
+	select {
+	case lastErr <- err:
+	default:
+		panic(fmt.Sprintf("glfw: uncaught error: %s", err))
+	}
+	return 0
+}
+
+var glfwDLL *dll
+
+func init() {
+	dll, err := loadDLL()
+	if err != nil {
+		panic(err)
+	}
+	glfwDLL = dll
+
+	glfwDLL.call("glfwSetErrorCallback", windows.NewCallbackCDecl(goGLFWErrorCallback))
 }
