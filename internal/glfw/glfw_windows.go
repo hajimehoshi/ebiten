@@ -16,12 +16,28 @@ package glfw
 
 import (
 	"image"
+	"image/draw"
 	"runtime"
 	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
+
+type glfwVidMode struct {
+	width       int32
+	height      int32
+	redBits     int32
+	greenBits   int32
+	blueBits    int32
+	refreshRate int32
+}
+
+type glfwImage struct {
+	width  int32
+	height int32
+	pixels uintptr
+}
 
 type glfwWindows map[uintptr]*Window
 
@@ -55,15 +71,6 @@ func (w glfwWindows) get(win uintptr) *Window {
 	ww := w[win]
 	glfwWindowsM.Unlock()
 	return ww
-}
-
-type glfwVidMode struct {
-	width       int32
-	height      int32
-	redBits     int32
-	greenBits   int32
-	blueBits    int32
-	refreshRate int32
 }
 
 type Monitor struct {
@@ -197,10 +204,20 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 }
 
 func (w *Window) SetIcon(images []image.Image) {
-	// TODO: Implement this
+	gimgs := make([]glfwImage, len(images))
+	defer runtime.KeepAlive(gimgs)
 
-	// glfwDLL.call("glfwSetWindowIcon", w.w, l, p)
-	// panicError()
+	for i, img := range images {
+		b := img.Bounds()
+		m := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+		draw.Draw(m, m.Bounds(), img, b.Min, draw.Src)
+		gimgs[i].width = int32(b.Dx())
+		gimgs[i].height = int32(b.Dy())
+		gimgs[i].pixels = uintptr(unsafe.Pointer(&m.Pix[0]))
+	}
+
+	glfwDLL.call("glfwSetWindowIcon", w.w, uintptr(len(gimgs)), uintptr(unsafe.Pointer(&gimgs[0])))
+	panicError()
 }
 
 func (w *Window) SetInputMode(mode InputMode, value int) {
