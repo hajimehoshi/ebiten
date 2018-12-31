@@ -13,7 +13,7 @@ A dead simple 2D game library in Go
 
 ## Platforms
 
-* [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows)
+* [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows) (No Cgo!)
 * [macOS](https://github.com/hajimehoshi/ebiten/wiki/macOS)
 * [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
 * [FreeBSD](https://github.com/hajimehoshi/ebiten/wiki/FreeBSD)
