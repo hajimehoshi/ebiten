@@ -381,12 +381,6 @@ type Device struct {
 	// LowPower indicates whether a device is low-power.
 	LowPower bool
 
-	// Removable determines whether or not a GPU is removable.
-	Removable bool
-
-	// RegistryID is the registry ID value for the device.
-	RegistryID uint64
-
 	// Name is the name of the device.
 	Name string
 }
@@ -401,12 +395,10 @@ func CreateSystemDefaultDevice() (Device, error) {
 	}
 
 	return Device{
-		device:     d.Device,
-		Headless:   d.Headless != 0,
-		LowPower:   d.LowPower != 0,
-		Removable:  d.Removable != 0,
-		RegistryID: uint64(d.RegistryID),
-		Name:       C.GoString(d.Name),
+		device:   d.Device,
+		Headless: d.Headless != 0,
+		LowPower: d.LowPower != 0,
+		Name:     C.GoString(d.Name),
 	}, nil
 }
 
@@ -424,8 +416,6 @@ func CopyAllDevices() []Device {
 		ds[i].device = d.Device
 		ds[i].Headless = d.Headless != 0
 		ds[i].LowPower = d.LowPower != 0
-		ds[i].Removable = d.Removable != 0
-		ds[i].RegistryID = uint64(d.RegistryID)
 		ds[i].Name = C.GoString(d.Name)
 	}
 	return ds

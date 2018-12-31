@@ -30,8 +30,6 @@ struct Device CreateSystemDefaultDevice() {
   d.Device = device;
   d.Headless = device.headless;
   d.LowPower = device.lowPower;
-  d.Removable = device.removable;
-  d.RegistryID = device.registryID;
   d.Name = device.name.UTF8String;
   return d;
 }
@@ -46,8 +44,6 @@ struct Devices CopyAllDevices() {
     d.Devices[i].Device = devices[i];
     d.Devices[i].Headless = devices[i].headless;
     d.Devices[i].LowPower = devices[i].lowPower;
-    d.Devices[i].Removable = devices[i].removable;
-    d.Devices[i].RegistryID = devices[i].registryID;
     d.Devices[i].Name = devices[i].name.UTF8String;
   }
   d.Length = devices.count;
