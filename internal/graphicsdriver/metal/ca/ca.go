@@ -28,6 +28,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 )
 
+// #cgo CFLAGS: -mmacosx-version-min=10.11
 // #cgo LDFLAGS: -framework QuartzCore -framework Foundation -framework CoreGraphics
 //
 // #include "ca.h"

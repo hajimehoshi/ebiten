@@ -59,7 +59,9 @@ const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
 
 void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
                                       BOOL displaySyncEnabled) {
-  ((CAMetalLayer *)metalLayer).displaySyncEnabled = displaySyncEnabled;
+  if (@available(macOS 10.13, *)) {
+    ((CAMetalLayer *)metalLayer).displaySyncEnabled = displaySyncEnabled;
+  }
 }
 
 void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height) {
