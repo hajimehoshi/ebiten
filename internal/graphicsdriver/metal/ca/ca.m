@@ -48,8 +48,11 @@ const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
                                                uint_t maximumDrawableCount) {
   if (@available(macOS 10.13.2, *)) {
     @try {
-      ((CAMetalLayer *)metalLayer).maximumDrawableCount =
-          (NSUInteger)maximumDrawableCount;
+      if ([(CAMetalLayer *)metalLayer
+              respondsToSelector:@selector(maximumDrawableCount)]) {
+        ((CAMetalLayer *)metalLayer).maximumDrawableCount =
+            (NSUInteger)maximumDrawableCount;
+      }
     } @catch (NSException *exception) {
       return exception.reason.UTF8String;
     }
@@ -60,7 +63,10 @@ const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
 void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
                                       BOOL displaySyncEnabled) {
   if (@available(macOS 10.13, *)) {
-    ((CAMetalLayer *)metalLayer).displaySyncEnabled = displaySyncEnabled;
+    if ([(CAMetalLayer *)metalLayer
+            respondsToSelector:@selector(displaySyncEnabled)]) {
+      ((CAMetalLayer *)metalLayer).displaySyncEnabled = displaySyncEnabled;
+    }
   }
 }
 
