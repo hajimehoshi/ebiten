@@ -37,9 +37,9 @@ type rect struct {
 }
 
 var (
-	user32 = windows.NewLazyDLL("user32")
-	gdi32  = windows.NewLazyDLL("gdi32")
-	shcore = windows.NewLazyDLL("shcore")
+	user32 = windows.NewLazySystemDLL("user32")
+	gdi32  = windows.NewLazySystemDLL("gdi32")
+	shcore = windows.NewLazySystemDLL("shcore")
 )
 
 var (
