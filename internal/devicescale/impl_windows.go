@@ -18,8 +18,9 @@ package devicescale
 
 import (
 	"fmt"
-	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -36,9 +37,9 @@ type rect struct {
 }
 
 var (
-	user32 = syscall.NewLazyDLL("user32")
-	gdi32  = syscall.NewLazyDLL("gdi32")
-	shcore = syscall.NewLazyDLL("shcore")
+	user32 = windows.NewLazyDLL("user32")
+	gdi32  = windows.NewLazyDLL("gdi32")
+	shcore = windows.NewLazyDLL("shcore")
 )
 
 var (
@@ -59,7 +60,7 @@ var shcoreAvailable = false
 
 type winErr struct {
 	FuncName string
-	Code     syscall.Errno
+	Code     windows.Errno
 	Return   uintptr
 }
 
@@ -74,11 +75,11 @@ func init() {
 }
 
 func setProcessDPIAware() error {
-	r, _, e := syscall.Syscall(procSetProcessDPIAware.Addr(), 0, 0, 0, 0)
-	if e != 0 {
+	r, _, e := procSetProcessDPIAware.Call()
+	if e != nil && e.(windows.Errno) != 0 {
 		return &winErr{
 			FuncName: "SetProcessDPIAware",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	if r == 0 {
@@ -91,11 +92,11 @@ func setProcessDPIAware() error {
 }
 
 func getWindowDC(hwnd uintptr) (uintptr, error) {
-	r, _, e := syscall.Syscall(procGetWindowDC.Addr(), 1, hwnd, 0, 0)
-	if e != 0 {
+	r, _, e := procGetWindowDC.Call(hwnd)
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, &winErr{
 			FuncName: "GetWindowDC",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	if r == 0 {
@@ -108,11 +109,11 @@ func getWindowDC(hwnd uintptr) (uintptr, error) {
 }
 
 func releaseDC(hwnd, hdc uintptr) error {
-	r, _, e := syscall.Syscall(procReleaseDC.Addr(), 2, hwnd, hdc, 0)
-	if e != 0 {
+	r, _, e := procReleaseDC.Call(hwnd, hdc)
+	if e != nil && e.(windows.Errno) != 0 {
 		return &winErr{
 			FuncName: "ReleaseDC",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	if r == 0 {
@@ -125,22 +126,22 @@ func releaseDC(hwnd, hdc uintptr) error {
 }
 
 func getDeviceCaps(hdc uintptr, nindex int) (int, error) {
-	r, _, e := syscall.Syscall(procGetDeviceCaps.Addr(), 2, hdc, uintptr(nindex), 0)
-	if e != 0 {
+	r, _, e := procGetDeviceCaps.Call(hdc, uintptr(nindex))
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, &winErr{
 			FuncName: "GetDeviceCaps",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	return int(r), nil
 }
 
 func monitorFromRect(lprc uintptr, dwFlags int) (uintptr, error) {
-	r, _, e := syscall.Syscall(procMonitorFromRect.Addr(), 2, lprc, uintptr(dwFlags), 0)
-	if e != 0 {
+	r, _, e := procMonitorFromRect.Call(lprc, uintptr(dwFlags))
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, &winErr{
 			FuncName: "MonitorFromRect",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	if r == 0 {
@@ -153,11 +154,11 @@ func monitorFromRect(lprc uintptr, dwFlags int) (uintptr, error) {
 }
 
 func getMonitorInfo(hMonitor uintptr, lpMonitorInfo uintptr) error {
-	r, _, e := syscall.Syscall(procGetMonitorInfo.Addr(), 2, hMonitor, lpMonitorInfo, 0)
-	if e != 0 {
+	r, _, e := procGetMonitorInfo.Call(hMonitor, lpMonitorInfo)
+	if e != nil && e.(windows.Errno) != 0 {
 		return &winErr{
 			FuncName: "GetMonitorInfo",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	if r == 0 {
@@ -170,12 +171,11 @@ func getMonitorInfo(hMonitor uintptr, lpMonitorInfo uintptr) error {
 }
 
 func getDpiForMonitor(hMonitor uintptr, dpiType uintptr, dpiX, dpiY uintptr) error {
-	r, _, e := syscall.Syscall6(procGetDpiForMonitor.Addr(), 4,
-		hMonitor, dpiType, dpiX, dpiY, 0, 0)
-	if e != 0 {
+	r, _, e := procGetDpiForMonitor.Call(hMonitor, dpiType, dpiX, dpiY)
+	if e != nil && e.(windows.Errno) != 0 {
 		return &winErr{
 			FuncName: "GetDpiForMonitor",
-			Code:     e,
+			Code:     e.(windows.Errno),
 		}
 	}
 	if r != 0 {
