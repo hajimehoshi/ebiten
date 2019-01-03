@@ -190,8 +190,8 @@ func getDpiForMonitor(hMonitor uintptr, dpiType uintptr, dpiX, dpiY uintptr) err
 func getFromLogPixelSx() float64 {
 	dc, err := getWindowDC(0)
 	if err != nil {
-		// On Wine, it looks like GetWindowDC(0) doesn't work (#738).
-		if err.(*winErr).Code == 1400 {
+		// On Wine, it looks like GetWindowDC(0) doesn't work (#738, #743).
+		if code := err.(*winErr).Code; code == 1400 || code == 1812 {
 			return 1
 		}
 		panic(err)
