@@ -18,8 +18,9 @@ package ui
 
 import (
 	"fmt"
-	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
@@ -54,32 +55,32 @@ var (
 )
 
 func getSystemMetrics(nIndex int) (int, error) {
-	r, _, e := syscall.Syscall(procGetSystemMetrics.Addr(), 1, uintptr(nIndex), 0, 0)
-	if e != 0 {
+	r, _, e := procGetSystemMetrics.Call(uintptr(nIndex))
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, fmt.Errorf("ui: GetSystemMetrics failed: error code: %d", e)
 	}
 	return int(r), nil
 }
 
 func getActiveWindow() (uintptr, error) {
-	r, _, e := syscall.Syscall(procGetActiveWindow.Addr(), 0, 0, 0, 0)
-	if e != 0 {
+	r, _, e := procGetActiveWindow.Call()
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, fmt.Errorf("ui: GetActiveWindow failed: error code: %d", e)
 	}
 	return r, nil
 }
 
 func getForegroundWindow() (uintptr, error) {
-	r, _, e := syscall.Syscall(procGetForegroundWindow.Addr(), 0, 0, 0, 0)
-	if e != 0 {
+	r, _, e := procGetForegroundWindow.Call()
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, fmt.Errorf("ui: GetForegroundWindow failed: error code: %d", e)
 	}
 	return r, nil
 }
 
 func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
-	r, _, e := syscall.Syscall(procMonitorFromWindow.Addr(), 2, hwnd, uintptr(dwFlags), 0)
-	if e != 0 {
+	r, _, e := procMonitorFromWindow.Call(hwnd, uintptr(dwFlags))
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, fmt.Errorf("ui: MonitorFromWindow failed: error code: %d", e)
 	}
 	if r == 0 {
@@ -89,8 +90,8 @@ func monitorFromWindow(hwnd uintptr, dwFlags uint32) (uintptr, error) {
 }
 
 func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
-	r, _, e := syscall.Syscall(procGetMonitorInfoW.Addr(), 2, hMonitor, uintptr(unsafe.Pointer(lpmi)), 0)
-	if e != 0 {
+	r, _, e := procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(lpmi)))
+	if e != nil && e.(windows.Errno) != 0 {
 		return fmt.Errorf("ui: GetMonitorInfoW failed: error code: %d", e)
 	}
 	if r == 0 {

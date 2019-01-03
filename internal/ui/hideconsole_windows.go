@@ -18,7 +18,6 @@ package ui
 
 import (
 	"fmt"
-	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -39,8 +38,8 @@ var (
 )
 
 func getCurrentProcessId() (uint32, error) {
-	r, _, e := syscall.Syscall(getCurrentProcessIdProc.Addr(), 0, 0, 0, 0)
-	if e != 0 {
+	r, _, e := getCurrentProcessIdProc.Call()
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, fmt.Errorf("ui: GetCurrentProcessId failed: %d", e)
 	}
 	return uint32(r), nil
@@ -48,7 +47,7 @@ func getCurrentProcessId() (uint32, error) {
 
 func getWindowThreadProcessId(hwnd uintptr) (uint32, error) {
 	pid := uint32(0)
-	r, _, e := syscall.Syscall(getWindowThreadProcessIdProc.Addr(), 2, hwnd, uintptr(unsafe.Pointer(&pid)), 0)
+	r, _, e := getWindowThreadProcessIdProc.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
 	if r == 0 {
 		return 0, fmt.Errorf("ui: GetWindowThreadProcessId failed: %d", e)
 	}
@@ -56,16 +55,15 @@ func getWindowThreadProcessId(hwnd uintptr) (uint32, error) {
 }
 
 func getConsoleWindow() (uintptr, error) {
-	r, _, e := syscall.Syscall(getConsoleWindowProc.Addr(), 0, 0, 0, 0)
-	if e != 0 {
+	r, _, e := getConsoleWindowProc.Call()
+	if e != nil && e.(windows.Errno) != 0 {
 		return 0, fmt.Errorf("ui: GetConsoleWindow failed: %d", e)
 	}
 	return r, nil
 }
 
 func showWindowAsync(hwnd uintptr, show int) error {
-	_, _, e := syscall.Syscall(showWindowAsyncProc.Addr(), 2, hwnd, uintptr(show), 0)
-	if e != 0 {
+	if _, _, e := showWindowAsyncProc.Call(hwnd, uintptr(show)); e != nil && e.(windows.Errno) != 0 {
 		return fmt.Errorf("ui: ShowWindowAsync failed: %d", e)
 	}
 	return nil
