@@ -190,8 +190,16 @@ func getDpiForMonitor(hMonitor uintptr, dpiType uintptr, dpiX, dpiY uintptr) err
 func getFromLogPixelSx() float64 {
 	dc, err := getWindowDC(0)
 	if err != nil {
+		const (
+			errorInvalidWindowHandle  = 1400
+			errorResourceDataNotFound = 1812
+		)
 		// On Wine, it looks like GetWindowDC(0) doesn't work (#738, #743).
-		if code := err.(*winErr).Code; code == 1400 || code == 1812 {
+		code := err.(*winErr).Code
+		if code == errorInvalidWindowHandle {
+			return 1
+		}
+		if code == errorResourceDataNotFound {
 			return 1
 		}
 		panic(err)
