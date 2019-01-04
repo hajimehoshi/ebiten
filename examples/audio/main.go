@@ -212,7 +212,8 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 Press B to switch the run-in-background state
-Current Time: %s`, ebiten.CurrentTPS(), currentTimeStr)
+Current Time: %s
+Current Volume: %d/128`, ebiten.CurrentTPS(), currentTimeStr, int(p.audioPlayer.Volume()*128))
 	ebitenutil.DebugPrint(screen, msg)
 }
 
