@@ -3,17 +3,17 @@
 package gl
 
 import (
-	"syscall"
+	"golang.org/x/sys/windows"
 	"unsafe"
 )
 
 var (
-	opengl32          = syscall.NewLazyDLL("opengl32")
+	opengl32          = windows.NewLazySystemDLL("opengl32")
 	wglGetProcAddress = opengl32.NewProc("wglGetProcAddress")
 )
 
 func getProcAddress(namea string) unsafe.Pointer {
-	cname, err := syscall.BytePtrFromString(namea)
+	cname, err := windows.BytePtrFromString(namea)
 	if err != nil {
 		panic(err)
 	}
