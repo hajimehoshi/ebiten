@@ -483,8 +483,8 @@ func TestReplacePixels(t *testing.T) {
 func TestDrawImageAndReplacePixels(t *testing.T) {
 	base := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	base.Pix[0] = 0xff
-	base.Pix[1] = 0xff
-	base.Pix[2] = 0xff
+	base.Pix[1] = 0
+	base.Pix[2] = 0
 	base.Pix[3] = 0xff
 	img0 := newImageFromImage(base)
 	defer img0.Dispose()
@@ -494,7 +494,7 @@ func TestDrawImageAndReplacePixels(t *testing.T) {
 	vs := graphics.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	img1.DrawImage(img0, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
-	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff}, 1, 0, 1, 1)
+	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0, 0, 2, 1)
 
 	ResolveStaleImages()
 	if err := Restore(); err != nil {
@@ -537,46 +537,6 @@ func TestDispose(t *testing.T) {
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
-	}
-}
-
-func TestDoubleResolve(t *testing.T) {
-	base0 := image.NewRGBA(image.Rect(0, 0, 2, 2))
-	img0 := newImageFromImage(base0)
-
-	base := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	base.Pix[0] = 0xff
-	base.Pix[1] = 0x00
-	base.Pix[2] = 0x00
-	base.Pix[3] = 0xff
-	img1 := newImageFromImage(base)
-
-	vs := graphics.QuadVertices(1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
-	img0.ReplacePixels([]uint8{0x00, 0xff, 0x00, 0xff}, 1, 1, 1, 1)
-	// Now img0 is stale.
-	ResolveStaleImages()
-
-	img0.ReplacePixels([]uint8{0x00, 0x00, 0xff, 0xff}, 1, 0, 1, 1)
-	ResolveStaleImages()
-
-	if err := Restore(); err != nil {
-		t.Fatal(err)
-	}
-
-	wantImg := image.NewRGBA(image.Rect(0, 0, 2, 2))
-	wantImg.Set(0, 0, color.RGBA{0xff, 0x00, 0x00, 0xff})
-	wantImg.Set(1, 0, color.RGBA{0x00, 0x00, 0xff, 0xff})
-	wantImg.Set(1, 1, color.RGBA{0x00, 0xff, 0x00, 0xff})
-	for j := 0; j < 2; j++ {
-		for i := 0; i < 2; i++ {
-			got := img0.At(i, j)
-			want := wantImg.At(i, j).(color.RGBA)
-			if !sameColors(got, want, 1) {
-				t.Errorf("got: %v, want: %v", got, want)
-			}
-		}
 	}
 }
 

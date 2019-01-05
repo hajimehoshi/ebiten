@@ -63,3 +63,20 @@ func TestClear(t *testing.T) {
 		}
 	}
 }
+
+func TestReplacePixelsPartAfterDrawImage(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReplacePixels must panic but not")
+		}
+	}()
+	const w, h = 32, 32
+	clr := NewImage(w, h)
+	src := NewImage(16, 16)
+	dst := NewImage(w, h)
+	vs := graphics.QuadVertices(16, 16, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dst.DrawImage(clr, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+}

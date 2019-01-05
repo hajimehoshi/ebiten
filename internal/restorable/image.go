@@ -165,11 +165,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		// and this image can be restored without dummyImage.
 		//
 		// dummyImage should be restored later anyway.
-		dw, dh := dummyImage.Size()
-		w2 := graphics.NextPowerOf2Int(w)
-		h2 := graphics.NextPowerOf2Int(h)
-		vs := graphics.QuadVertices(w2, h2, 0, 0, dw, dh,
-			float32(width)/float32(dw), 0, 0, float32(height)/float32(dh),
+		sw, sh := dummyImage.Size()
+		dw := graphics.NextPowerOf2Int(w)
+		dh := graphics.NextPowerOf2Int(h)
+		vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
+			float32(width)/float32(sw), 0, 0, float32(height)/float32(sh),
 			float32(x), float32(y),
 			1, 1, 1, 1)
 		is := graphics.QuadIndices()
@@ -193,8 +193,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if len(i.drawImageHistory) > 0 {
-		i.makeStale()
-		return
+		panic("restorable: ReplacePixels for a part after DrawImage is forbidden")
 	}
 
 	if i.stale {

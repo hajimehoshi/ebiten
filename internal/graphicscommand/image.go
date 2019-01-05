@@ -20,11 +20,22 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 )
 
+type lastCommand int
+
+const (
+	lastCommandNone lastCommand = iota
+	lastCommandClear
+	lastCommandDrawImage
+	lastCommandReplacePixels
+)
+
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image  graphicsdriver.Image
-	width  int
-	height int
+	image       graphicsdriver.Image
+	width       int
+	height      int
+	screen      bool
+	lastCommand lastCommand
 }
 
 // NewImage returns a new image.
@@ -48,6 +59,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		width:  width,
 		height: height,
+		screen: true,
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
@@ -71,7 +83,19 @@ func (i *Image) Size() (int, int) {
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+	if i.lastCommand == lastCommandNone {
+		if !i.screen && mode != graphics.CompositeModeClear {
+			panic("graphicscommand: the image must be cleared first")
+		}
+	}
+
 	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter, address)
+
+	if i.lastCommand == lastCommandNone && !i.screen {
+		i.lastCommand = lastCommandClear
+	} else {
+		i.lastCommand = lastCommandDrawImage
+	}
 }
 
 // Pixels returns the image's pixels.
@@ -87,6 +111,12 @@ func (i *Image) Pixels() []byte {
 }
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
+	// ReplacePixels for a part might invalidate the current image that are drawn by DrawImage (#593, #738).
+	if i.lastCommand == lastCommandDrawImage {
+		if x != 0 || y != 0 || i.width != width || i.height != height {
+			panic("graphicscommand: ReplacePixels for a part after DrawImage is forbidden")
+		}
+	}
 	pixels := make([]byte, len(p))
 	copy(pixels, p)
 	c := &replacePixelsCommand{
@@ -98,6 +128,7 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 		height: height,
 	}
 	theCommandQueue.Enqueue(c)
+	i.lastCommand = lastCommandReplacePixels
 }
 
 func (i *Image) IsInvalidated() bool {
