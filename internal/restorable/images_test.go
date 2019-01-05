@@ -122,7 +122,6 @@ func TestRestoreChain(t *testing.T) {
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
 		img := NewImage(1, 1, false)
-		fill(img, 0, 0, 0, 0)
 		imgs = append(imgs, img)
 	}
 	defer func() {
@@ -160,7 +159,6 @@ func TestRestoreChain2(t *testing.T) {
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
 		img := NewImage(w, h, false)
-		fill(img, 0, 0, 0, 0)
 		imgs = append(imgs, img)
 	}
 	defer func() {
@@ -206,13 +204,9 @@ func TestRestoreOverrideSource(t *testing.T) {
 		h = 1
 	)
 	img0 := NewImage(w, h, false)
-	fill(img0, 0, 0, 0, 0)
 	img1 := NewImage(w, h, false)
-	fill(img1, 0, 0, 0, 0)
 	img2 := NewImage(w, h, false)
-	fill(img2, 0, 0, 0, 0)
 	img3 := NewImage(w, h, false)
-	fill(img3, 0, 0, 0, 0)
 	defer func() {
 		img3.Dispose()
 		img2.Dispose()
@@ -288,15 +282,10 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img1 := newImageFromImage(base)
 	img2 := newImageFromImage(base)
 	img3 := NewImage(w, h, false)
-	fill(img3, 0, 0, 0, 0)
 	img4 := NewImage(w, h, false)
-	fill(img4, 0, 0, 0, 0)
 	img5 := NewImage(w, h, false)
-	fill(img5, 0, 0, 0, 0)
 	img6 := NewImage(w, h, false)
-	fill(img6, 0, 0, 0, 0)
 	img7 := NewImage(w, h, false)
-	fill(img7, 0, 0, 0, 0)
 	defer func() {
 		img7.Dispose()
 		img6.Dispose()
@@ -410,7 +399,6 @@ func TestRestoreRecursive(t *testing.T) {
 
 	img0 := newImageFromImage(base)
 	img1 := NewImage(w, h, false)
-	fill(img1, 0, 0, 0, 0)
 	defer func() {
 		img1.Dispose()
 		img0.Dispose()
