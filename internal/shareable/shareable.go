@@ -66,7 +66,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	oldImg := b.restorable
 	w, h := oldImg.Size()
 	// Do not use DrawImage here. ReplacePixels will be called on a part of newImg later, and it looked like
-	// ReplacePixels on a part of image deletes other region that are rendered by DrawImage (#593, 758).
+	// ReplacePixels on a part of image deletes other region that are rendered by DrawImage (#593, #758).
 	// TODO: Add validations to ensure that an image cannot accept DrawImage after ReplacePixels on a part of
 	// it.
 	//
