@@ -408,6 +408,14 @@ func SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
+func IsWindowResizable() bool {
+	return false
+}
+
+func SetWindowResizable(decorated bool) {
+	// Do nothing
+}
+
 func IsVsyncEnabled() bool {
 	return true
 }

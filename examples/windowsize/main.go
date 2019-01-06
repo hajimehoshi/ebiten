@@ -37,6 +37,7 @@ import (
 
 var (
 	windowDecorated = flag.Bool("windowdecorated", true, "whether the window is decorated")
+	windowResizable = flag.Bool("windowresizable", false, "whether the window is resizable")
 )
 
 func init() {
@@ -221,6 +222,7 @@ func main() {
 	ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
 
 	ebiten.SetWindowDecorated(*windowDecorated)
+	ebiten.SetWindowResizable(*windowResizable)
 
 	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil && err != terminated {
 		log.Fatal(err)

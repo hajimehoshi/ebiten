@@ -154,6 +154,14 @@ func SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
+func IsWindowResizable() bool {
+	return false
+}
+
+func SetWindowResizable(decorated bool) {
+	// Do nothing
+}
+
 func DeviceScaleFactor() float64 {
 	return devicescale.GetAt(0, 0)
 }
