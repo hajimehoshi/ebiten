@@ -50,8 +50,12 @@ func update(screen *ebiten.Image) error {
 		for i := -3; i <= 3; i++ {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64(i), 244+float64(j))
-			// Alpha scale should be 1.0/49.0, but accumulating 1/49 49 times doesn't reach to 1 due to
-			// errors (#694).
+			// Alpha scale should be 1.0/49.0, but accumulating 1/49 49 times doesn't reach to 1, because
+			// the final color is affected by the destination alpha when CompositeModeSourceOver is used.
+			// This composite mode is the default mode. See how this is calculated at the doc:
+			// https://godoc.org/github.com/hajimehoshi/ebiten#CompositeMode
+			//
+			// Use a higher value than 1.0/49.0. Here, 1.0/25.0 here to get a reasonable result.
 			op.ColorM.Scale(1, 1, 1, 1.0/25.0)
 			screen.DrawImage(gophersImage, op)
 		}
