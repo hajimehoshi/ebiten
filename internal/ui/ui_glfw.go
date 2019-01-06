@@ -764,13 +764,16 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 	// On Windows, giving a too small width doesn't call a callback (#165).
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
-	const minWindowWidth = 252
+	minWindowWidth := 252
+	if currentUI.window.GetAttrib(glfw.Decorated) == glfw.False {
+		minWindowWidth = 1
+	}
 
 	u.width = width
 	u.windowWidth = width
 	s := scale * devicescale.GetAt(u.currentMonitor().GetPos())
 	if int(float64(width)*s) < minWindowWidth {
-		u.windowWidth = int(math.Ceil(minWindowWidth / s))
+		u.windowWidth = int(math.Ceil(float64(minWindowWidth) / s))
 	}
 	u.height = height
 	u.scale = scale
