@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -28,10 +29,44 @@ const (
 	shaderFragmentColorMatrix
 )
 
+// glslReservedKeywords is a set of reserved keywords that cannot be used as an indentifier on some environments.
+// See https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf.
+var glslReservedKeywords = map[string]struct{}{
+	"common": {}, "partition": {}, "active": {},
+	"asm":   {},
+	"class": {}, "union": {}, "enum": {}, "typedef": {}, "template": {}, "this": {},
+	"resource": {},
+	"goto":     {},
+	"inline":   {}, "noinline": {}, "public": {}, "static": {}, "extern": {}, "external": {}, "interface": {},
+	"long": {}, "short": {}, "half": {}, "fixed": {}, "unsigned": {}, "superp": {},
+	"input": {}, "output": {},
+	"hvec2": {}, "hvec3": {}, "hvec4": {}, "fvec2": {}, "fvec3": {}, "fvec4": {},
+	"filter": {},
+	"sizeof": {}, "cast": {},
+	"namespace": {}, "using": {},
+	"sampler3DRect": {},
+}
+
+var glslIdentifier = regexp.MustCompile(`[_a-zA-Z][_a-zA-Z0-9]*`)
+
+func checkGLSL(src string) {
+	for _, l := range strings.Split(src, "\n") {
+		if strings.Contains(l, "//") {
+			l = l[:strings.Index(l, "//")]
+		}
+		for _, token := range glslIdentifier.FindAllString(l, -1) {
+			if _, ok := glslReservedKeywords[token]; ok {
+				panic(fmt.Sprintf("opengl: %q is a reserved keyword", token))
+			}
+		}
+	}
+}
+
 func shaderStr(id shaderID) string {
+	src := ""
 	switch id {
 	case shaderVertexModelview:
-		return shaderStrVertex
+		src = shaderStrVertex
 	case shaderFragmentColorMatrix:
 		replaces := map[string]string{
 			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
@@ -40,14 +75,16 @@ func shaderStr(id shaderID) string {
 			"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
 			"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
 		}
-		src := shaderStrFragment
+		src = shaderStrFragment
 		for k, v := range replaces {
 			src = strings.Replace(src, k, v, -1)
 		}
-		return src
 	default:
 		panic("not reached")
 	}
+
+	checkGLSL(src)
+	return src
 }
 
 const (
