@@ -292,7 +292,7 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	}
 
 	if d.state.lastFilter == nil || *d.state.lastFilter != filter {
-		d.context.uniformInt(program, "filter", int(filter))
+		d.context.uniformInt(program, "filter_type", int(filter))
 		d.state.lastFilter = &filter
 	}
 	if d.state.lastAddress == nil || *d.state.lastAddress != address {

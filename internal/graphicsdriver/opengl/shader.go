@@ -94,7 +94,7 @@ uniform sampler2D texture;
 uniform mat4 color_matrix_body;
 uniform vec4 color_matrix_translation;
 
-uniform int filter;
+uniform int filter_type;
 uniform highp vec2 source_size;
 uniform int address;
 
@@ -146,7 +146,7 @@ void main(void) {
 
   vec4 color;
 
-  if (filter == FILTER_NEAREST) {
+  if (filter_type == FILTER_NEAREST) {
     pos = adjustTexelByAddress(pos, varying_tex_region, address);
     color = texture2D(texture, pos);
     if (pos.x < varying_tex_region[0] ||
@@ -155,7 +155,7 @@ void main(void) {
       (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
       color = vec4(0, 0, 0, 0);
     }
-  } else if (filter == FILTER_LINEAR) {
+  } else if (filter_type == FILTER_LINEAR) {
     highp vec2 p0 = pos - texel_size / 2.0;
     highp vec2 p1 = pos + texel_size / 2.0;
 
@@ -186,7 +186,7 @@ void main(void) {
 
     vec2 rate = fract(p0 * source_size);
     color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  } else if (filter == FILTER_SCREEN) {
+  } else if (filter_type == FILTER_SCREEN) {
     highp vec2 p0 = pos - texel_size / 2.0 / scale;
     highp vec2 p1 = pos + texel_size / 2.0 / scale;
 
