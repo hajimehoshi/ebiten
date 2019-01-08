@@ -59,11 +59,7 @@ type userInterface struct {
 	initFullscreen      bool
 	initCursorVisible   bool
 	initWindowDecorated bool
-	initWindowResizable bool
 	initIconImages      []image.Image
-
-	reqWidth  int
-	reqHeight int
 
 	m sync.Mutex
 }
@@ -97,6 +93,7 @@ func initialize() error {
 		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
+	glfw.WindowHint(glfw.Resizable, glfw.False)
 
 	// Create a window to set the initial monitor.
 	w, err := glfw.CreateWindow(16, 16, "", nil, nil)
@@ -232,19 +229,6 @@ func (u *userInterface) setRunnableInBackground(runnableInBackground bool) {
 	u.m.Unlock()
 }
 
-func (u *userInterface) isInitWindowResizable() bool {
-	u.m.Lock()
-	v := u.initWindowResizable
-	u.m.Unlock()
-	return v
-}
-
-func (u *userInterface) setInitWindowResizable(resizable bool) {
-	u.m.Lock()
-	u.initWindowResizable = resizable
-	u.m.Unlock()
-}
-
 func (u *userInterface) getInitIconImages() []image.Image {
 	u.m.Lock()
 	i := u.initIconImages
@@ -274,15 +258,17 @@ func ScreenSizeInFullscreen() (int, int) {
 	return int(float64(v.Width) / s), int(float64(v.Height) / s)
 }
 
-func SetScreenSize(width, height int) {
+func SetScreenSize(width, height int) bool {
 	u := currentUI
 	if !u.isRunning() {
 		panic("ui: Run is not called yet")
 	}
+	r := false
 	_ = mainthread.Run(func() error {
-		u.setScreenSize(width, height, u.scale, u.fullscreen(), u.vsync)
+		r = u.setScreenSize(width, height, u.scale, u.fullscreen(), u.vsync)
 		return nil
 	})
+	return r
 }
 
 func SetScreenScale(scale float64) bool {
@@ -523,30 +509,6 @@ func SetWindowDecorated(decorated bool) {
 	//     return nil
 }
 
-func IsWindowResizable() bool {
-	u := currentUI
-	if !u.isRunning() {
-		return u.isInitWindowResizable()
-	}
-	v := false
-	_ = mainthread.Run(func() error {
-		v = currentUI.window.GetAttrib(glfw.Resizable) == glfw.True
-		return nil
-	})
-	return v
-}
-
-func SetWindowResizable(resizable bool) {
-	if !currentUI.isRunning() {
-		currentUI.setInitWindowResizable(resizable)
-		return
-	}
-
-	panic("ui: SetWindowResizable can't be called after Run so far.")
-
-	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
-}
-
 func DeviceScaleFactor() float64 {
 	f := 0.0
 	u := currentUI
@@ -574,12 +536,6 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 			decorated = glfw.True
 		}
 		glfw.WindowHint(glfw.Decorated, decorated)
-
-		resizable := glfw.False
-		if u.isInitWindowResizable() {
-			resizable = glfw.True
-		}
-		glfw.WindowHint(glfw.Resizable, resizable)
 
 		// As a start, create a window with temporary size to create OpenGL context thread.
 		window, err := glfw.CreateWindow(16, 16, "", nil, nil)
@@ -637,21 +593,6 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		y := my + (v.Height-h)/3
 		x, y = adjustWindowPosition(x, y)
 		u.window.SetPos(x, y)
-
-		u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
-			go func() {
-				w := int(float64(width) / u.scale)
-				h := int(float64(height) / u.scale)
-				_ = mainthread.Run(func() error {
-					if u.fullscreen() {
-						return nil
-					}
-					u.reqWidth = w
-					u.reqHeight = h
-					return nil
-				})
-			}()
-		})
 		return nil
 	})
 
@@ -772,17 +713,6 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}); err != nil {
 		return err
 	}
-
-	// Update the screen size when the window is resizable.
-	_ = mainthread.Run(func() error {
-		w, h := u.reqWidth, u.reqHeight
-		if w != 0 || h != 0 {
-			u.setScreenSize(w, h, u.scale, u.fullscreen(), u.vsync)
-		}
-		u.reqWidth = 0
-		u.reqHeight = 0
-		return nil
-	})
 	return nil
 }
 
@@ -837,13 +767,6 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 	minWindowWidth := 252
 	if currentUI.window.GetAttrib(glfw.Decorated) == glfw.False {
 		minWindowWidth = 1
-	}
-
-	if width < 1 {
-		width = 1
-	}
-	if height < 1 {
-		height = 1
 	}
 
 	u.width = width

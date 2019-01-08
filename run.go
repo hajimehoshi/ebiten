@@ -310,8 +310,6 @@ func IsRunnableInBackground() bool {
 
 // SetWindowDecorated sets the state if the window is decorated.
 //
-// The window is decorated by default.
-//
 // SetWindowDecorated works only on desktops.
 // SetWindowDecorated does nothing on other platforms.
 //
@@ -322,34 +320,12 @@ func SetWindowDecorated(decorated bool) {
 	ui.SetWindowDecorated(decorated)
 }
 
-// IsWindowDecorated reports whether the window is decorated.
+// IsWindowDecorated returns a boolean value indicating whether
+// the window is decorated.
 //
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
 	return ui.IsWindowDecorated()
-}
-
-// SetWindowResizable sets the state if the window is resizable.
-//
-// The window is not resizable by default.
-//
-// When the window is resizable, the image size given via the update function can be changed by resizing.
-//
-// SetWindowResizable works only on desktops.
-// SetWindowResizable does nothing on other platforms.
-//
-// SetWindowResizable panics if SetWindowResizable is called after Run.
-//
-// SetWindowResizable is concurrent-safe.
-func SetWindowResizable(resizable bool) {
-	ui.SetWindowResizable(resizable)
-}
-
-// IsWindowResizable reports whether the window is resizable.
-//
-// IsWindowResizable is concurrent-safe.
-func IsWindowResizable() bool {
-	return ui.IsWindowResizable()
 }
 
 // SetRunnableInBackground sets the state if the game runs even in background.

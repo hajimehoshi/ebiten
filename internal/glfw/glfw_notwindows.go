@@ -162,17 +162,6 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 	return nil // TODO
 }
 
-func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
-	var gcb glfw.SizeCallback
-	if cbfun != nil {
-		gcb = func(window *glfw.Window, width, height int) {
-			cbfun(theWindows.get(window), width, height)
-		}
-	}
-	w.w.SetSizeCallback(gcb)
-	return nil // TODO
-}
-
 func (w *Window) SetIcon(images []image.Image) {
 	w.w.SetIcon(images)
 }

@@ -18,7 +18,6 @@ type (
 	CharModsCallback        func(w *Window, char rune, mods ModifierKey)
 	FramebufferSizeCallback func(w *Window, width int, height int)
 	ScrollCallback          func(w *Window, xoff float64, yoff float64)
-	SizeCallback            func(w *Window, width int, height int)
 )
 
 type VidMode struct {
