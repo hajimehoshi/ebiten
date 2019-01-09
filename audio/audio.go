@@ -42,7 +42,6 @@ import (
 
 	"github.com/hajimehoshi/oto"
 
-	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -66,20 +65,6 @@ var (
 	theContext     *Context
 	theContextLock sync.Mutex
 )
-
-func init() {
-	hooks.AppendHookOnBeforeUpdate(func() error {
-		var err error
-		theContextLock.Lock()
-		if theContext != nil {
-			theContext.m.Lock()
-			err = theContext.err
-			theContext.m.Unlock()
-		}
-		theContextLock.Unlock()
-		return err
-	})
-}
 
 // NewContext creates a new audio context with the given sample rate.
 //
@@ -128,8 +113,6 @@ func newDriver(sampleRate int) (io.WriteCloser, error) {
 }
 
 func (c *Context) loop() {
-	initCh := make(chan struct{})
-
 	suspendCh := make(chan struct{}, 1)
 	resumeCh := make(chan struct{}, 1)
 	hooks.OnSuspendAudio(func() {
@@ -138,8 +121,23 @@ func (c *Context) loop() {
 	hooks.OnResumeAudio(func() {
 		resumeCh <- struct{}{}
 	})
-	clock.OnStart(func() {
-		close(initCh)
+
+	initCh := make(chan struct{})
+	var once sync.Once
+	hooks.AppendHookOnBeforeUpdate(func() error {
+		once.Do(func() {
+			close(initCh)
+		})
+
+		var err error
+		theContextLock.Lock()
+		if theContext != nil {
+			theContext.m.Lock()
+			err = theContext.err
+			theContext.m.Unlock()
+		}
+		theContextLock.Unlock()
+		return err
 	})
 
 	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.

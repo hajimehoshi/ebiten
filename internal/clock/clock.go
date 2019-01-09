@@ -30,9 +30,6 @@ var (
 	fpsCount    = 0
 	tpsCount    = 0
 
-	onStartCalled bool
-	onStart       func()
-
 	m sync.Mutex
 )
 
@@ -48,12 +45,6 @@ func CurrentTPS() float64 {
 	v := currentTPS
 	m.Unlock()
 	return v
-}
-
-func OnStart(f func()) {
-	m.Lock()
-	onStart = f
-	m.Unlock()
 }
 
 func calcCountFromTPS(tps int64, now int64) int {
@@ -131,13 +122,6 @@ const UncappedTPS = -1
 func Update(tps int) int {
 	m.Lock()
 	defer m.Unlock()
-
-	if !onStartCalled {
-		if onStart != nil {
-			onStart()
-			onStartCalled = true
-		}
-	}
 
 	n := now()
 	c := 0
