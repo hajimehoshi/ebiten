@@ -639,18 +639,14 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		u.window.SetPos(x, y)
 
 		u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
-			go func() {
-				w := int(float64(width) / u.scale)
-				h := int(float64(height) / u.scale)
-				_ = mainthread.Run(func() error {
-					if u.fullscreen() {
-						return nil
-					}
-					u.reqWidth = w
-					u.reqHeight = h
-					return nil
-				})
-			}()
+			s := glfwScale()
+			w := int(float64(width) / u.scale / s)
+			h := int(float64(height) / u.scale / s)
+			if u.fullscreen() {
+				return
+			}
+			u.reqWidth = w
+			u.reqHeight = h
 		})
 		return nil
 	})
