@@ -203,6 +203,19 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (previous ScrollCallbac
 	return nil // TODO
 }
 
+func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCallback) {
+	var gcb uintptr
+	if cbfun != nil {
+		gcb = windows.NewCallbackCDecl(func(window uintptr, width int, height int) uintptr {
+			cbfun(theGLFWWindows.get(window), width, height)
+			return 0
+		})
+	}
+	glfwDLL.call("glfwSetWindowSizeCallback", w.w, gcb)
+	panicError()
+	return nil // TODO
+}
+
 func (w *Window) SetIcon(images []image.Image) {
 	gimgs := make([]glfwImage, len(images))
 	defer runtime.KeepAlive(gimgs)
