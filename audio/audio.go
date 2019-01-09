@@ -47,129 +47,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
-type players struct {
-	players map[*playerImpl]struct{}
-	sync.RWMutex
-}
-
-const (
-	channelNum     = 2
-	bytesPerSample = 2 * channelNum
-
-	// TODO: This assumes that bytesPerSample is a power of 2.
-	mask = ^(bytesPerSample - 1)
-)
-
-func (p *players) Read(b []byte) (int, error) {
-	p.Lock()
-	defer p.Unlock()
-
-	if len(p.players) == 0 {
-		l := len(b)
-		l &= mask
-		copy(b, make([]byte, l))
-		return l, nil
-	}
-
-	l := len(b)
-	l &= mask
-
-	allSkipped := true
-
-	for player := range p.players {
-		if player.shouldSkip() {
-			continue
-		}
-		allSkipped = false
-		s := player.bufferSizeInBytes()
-		if l > s {
-			l = s
-			l &= mask
-		}
-	}
-
-	if allSkipped {
-		l = 0
-	}
-
-	if l == 0 {
-		// If l is 0, all the players might reach EOF at the next update.
-		// However, this Read might block forever and never causes context switch
-		// on single-thread environment (e.g. browser).
-		// Call Gosched to cause context switch on purpose.
-		runtime.Gosched()
-	}
-
-	b16s := [][]int16{}
-	for player := range p.players {
-		buf, err := player.bufferToInt16(l)
-		if err != nil {
-			return 0, err
-		}
-		b16s = append(b16s, buf)
-	}
-
-	for i := 0; i < l/2; i++ {
-		x := 0
-		for _, b16 := range b16s {
-			x += int(b16[i])
-		}
-		if x > (1<<15)-1 {
-			x = (1 << 15) - 1
-		}
-		if x < -(1 << 15) {
-			x = -(1 << 15)
-		}
-		b[2*i] = byte(x)
-		b[2*i+1] = byte(x >> 8)
-	}
-
-	closed := []*playerImpl{}
-	for player := range p.players {
-		if player.eof() {
-			closed = append(closed, player)
-		}
-	}
-	for _, player := range closed {
-		if player.isFinalized() {
-			player.closeImpl()
-		}
-		delete(p.players, player)
-	}
-
-	return l, nil
-}
-
-func (p *players) addPlayer(player *playerImpl) {
-	p.Lock()
-	p.players[player] = struct{}{}
-	p.Unlock()
-}
-
-func (p *players) removePlayer(player *playerImpl) {
-	p.Lock()
-	delete(p.players, player)
-	p.Unlock()
-}
-
-func (p *players) hasPlayer(player *playerImpl) bool {
-	p.RLock()
-	_, ok := p.players[player]
-	p.RUnlock()
-	return ok
-}
-
-func (p *players) hasSource(src io.ReadCloser) bool {
-	p.RLock()
-	defer p.RUnlock()
-	for player := range p.players {
-		if player.src == src {
-			return true
-		}
-	}
-	return false
-}
-
 // A Context represents a current state of audio.
 //
 // At most one Context object can exist in one process.
@@ -177,7 +54,7 @@ func (p *players) hasSource(src io.ReadCloser) bool {
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	players    *players
+	mux        *mux
 	sampleRate int
 	err        error
 	ready      bool
@@ -226,9 +103,7 @@ func NewContext(sampleRate int) (*Context, error) {
 		sampleRate: sampleRate,
 	}
 	theContext = c
-	c.players = &players{
-		players: map[*playerImpl]struct{}{},
-	}
+	c.mux = newMux()
 
 	go c.loop()
 
@@ -286,7 +161,7 @@ func (c *Context) loop() {
 		case <-suspendCh:
 			<-resumeCh
 		default:
-			if _, err := io.CopyN(p, c.players, 2048); err != nil {
+			if _, err := io.CopyN(p, c.mux, 2048); err != nil {
 				c.err = err
 				return
 			}
@@ -360,7 +235,7 @@ type Player struct {
 }
 
 type playerImpl struct {
-	players    *players
+	mux        *mux
 	src        io.ReadCloser
 	srcEOF     bool
 	sampleRate int
@@ -405,12 +280,12 @@ type proceededValues struct {
 // NewPlayer tries to call Seek of src to get the current position.
 // NewPlayer returns error when the Seek returns error.
 func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
-	if context.players.hasSource(src) {
+	if context.mux.hasSource(src) {
 		return nil, errors.New("audio: src cannot be shared with another Player")
 	}
 	p := &Player{
 		&playerImpl{
-			players:         context.players,
+			mux:             context.mux,
 			src:             src,
 			sampleRate:      context.sampleRate,
 			buf:             nil,
@@ -495,7 +370,7 @@ func (p *Player) Close() error {
 }
 
 func (p *playerImpl) Close() error {
-	p.players.removePlayer(p)
+	p.mux.removePlayer(p)
 	return p.closeImpl()
 }
 
@@ -528,7 +403,7 @@ func (p *Player) Play() error {
 }
 
 func (p *playerImpl) Play() {
-	p.players.addPlayer(p)
+	p.mux.addPlayer(p)
 }
 
 func (p *playerImpl) readLoop() {
@@ -714,7 +589,7 @@ func (p *Player) IsPlaying() bool {
 }
 
 func (p *playerImpl) IsPlaying() bool {
-	return p.players.hasPlayer(p)
+	return p.mux.hasPlayer(p)
 }
 
 // Rewind rewinds the current position to the start.
@@ -765,7 +640,7 @@ func (p *Player) Pause() error {
 }
 
 func (p *playerImpl) Pause() {
-	p.players.removePlayer(p)
+	p.mux.removePlayer(p)
 }
 
 // Current returns the current position.
