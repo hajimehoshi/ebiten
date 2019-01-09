@@ -437,7 +437,6 @@ func (p *playerImpl) readLoop() {
 			}
 			timer = time.NewTimer(time.Millisecond)
 			timerCh = timer.C
-			break
 
 		case <-timerCh:
 			// If the buffer has 1 second, that's enough.

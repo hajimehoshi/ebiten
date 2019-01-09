@@ -55,6 +55,8 @@ func (m *mux) Read(b []byte) (int, error) {
 
 	allSkipped := true
 
+	// TODO: Now a player is not locked. Should we lock it?
+
 	for p := range m.ps {
 		if p.shouldSkip() {
 			continue
