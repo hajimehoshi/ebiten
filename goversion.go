@@ -16,4 +16,7 @@
 
 package ebiten
 
+// Between Go 1.10 and Go 1.11, ioutil.TempFile's behavior is different.
+// Ebiten forces the Go version in order to avoid confusion. (#777)
+
 const __EBITEN_REQUIRES_GO_VERSION_1_11_OR_LATER__ = true
