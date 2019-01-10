@@ -76,7 +76,23 @@ func NewImage(width, height int, volatile bool) *Image {
 		image:    graphicscommand.NewImage(width, height),
 		volatile: volatile,
 	}
-	i.ReplacePixels(nil, 0, 0, width, height)
+
+	// There are not 'drawImageHistoryItem's for this image and dummyImage.
+	// This means dummyImage might not be restored yet when this image is restored.
+	// However, that's ok since this image will be stale or have its updated pixel data soon,
+	// and this image can be restored without dummyImage.
+	//
+	// dummyImage should be restored later anyway.
+	sw, sh := dummyImage.Size()
+	dw := graphics.NextPowerOf2Int(width)
+	dh := graphics.NextPowerOf2Int(height)
+	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
+		float32(width)/float32(sw), 0, 0, float32(height)/float32(sh),
+		0, 0,
+		1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+
 	theImages.add(i)
 	return i
 }
@@ -156,25 +172,10 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawImage.
 	theImages.makeStaleIfDependingOn(i)
 
-	if pixels != nil {
-		i.image.ReplacePixels(pixels, x, y, width, height)
-	} else {
-		// There are not 'drawImageHistoryItem's for this image and dummyImage.
-		// This means dummyImage might not be restored yet when this image is restored.
-		// However, that's ok since this image will be stale or have its updated pixel data soon,
-		// and this image can be restored without dummyImage.
-		//
-		// dummyImage should be restored later anyway.
-		sw, sh := dummyImage.Size()
-		dw := graphics.NextPowerOf2Int(w)
-		dh := graphics.NextPowerOf2Int(h)
-		vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
-			float32(width)/float32(sw), 0, 0, float32(height)/float32(sh),
-			float32(x), float32(y),
-			1, 1, 1, 1)
-		is := graphics.QuadIndices()
-		i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+	if pixels == nil {
+		pixels = make([]byte, 4*width*height)
 	}
+	i.image.ReplacePixels(pixels, x, y, width, height)
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {

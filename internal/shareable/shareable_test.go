@@ -206,6 +206,7 @@ func Disabled_TestReshared(t *testing.T) {
 func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
 	img0 := NewImage(w0, h0)
+	defer img0.Dispose()
 	p0 := make([]byte, 4*w0*h0)
 	for i := 0; i < w0*h0; i++ {
 		p0[4*i] = byte(i)
@@ -217,6 +218,7 @@ func TestExtend(t *testing.T) {
 
 	const w1, h1 = 1025, 100
 	img1 := NewImage(w1, h1)
+	defer img1.Dispose()
 	p1 := make([]byte, 4*w1*h1)
 	for i := 0; i < w1*h1; i++ {
 		p1[4*i] = byte(i)
@@ -256,7 +258,9 @@ func TestExtend(t *testing.T) {
 func TestReplacePixelsAfterDrawImage(t *testing.T) {
 	const w, h = 256, 256
 	src := NewImage(w, h)
+	defer src.Dispose()
 	dst := NewImage(w, h)
+	defer dst.Dispose()
 
 	pix := make([]byte, 4*w*h)
 	for i := 0; i < w*h; i++ {
@@ -282,4 +286,18 @@ func TestReplacePixelsAfterDrawImage(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestVariousReplacePixelsMustNotCrash(t *testing.T) {
+	const w, h = 256, 256
+	img0 := NewImage(w, h)
+	defer img0.Dispose()
+	img1 := NewImage(w, h)
+	defer img1.Dispose()
+	img0.ReplacePixels(nil)
+	img0.ReplacePixels(make([]byte, 4*w*h))
+	img0.ReplacePixels(nil)
+	img0.ReplacePixels(make([]byte, 4*w*h))
+	img1.Dispose()
+	img0.Dispose()
 }
