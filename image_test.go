@@ -1339,3 +1339,17 @@ func TestImageAddressRepeat(t *testing.T) {
 		}
 	}
 }
+
+func TestReplacePixelsAfterClear(t *testing.T) {
+	const w, h = 256, 256
+	img, _ := NewImage(w, h, FilterDefault)
+	img.ReplacePixels(make([]byte, 4*w*h))
+	// Clear used to call DrawImage to clear the image, which was the cause of crash. It is because after
+	// DrawImage is called, ReplacePixels for a region is forbidden.
+	//
+	// Now ReplacePixels was always called at Clear instead.
+	img.Clear()
+	img.ReplacePixels(make([]byte, 4*w*h))
+
+	// The test passes if this doesn't crash.
+}

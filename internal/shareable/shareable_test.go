@@ -287,13 +287,3 @@ func TestReplacePixelsAfterDrawImage(t *testing.T) {
 		}
 	}
 }
-
-func TestVariousReplacePixelsMustNotCrash(t *testing.T) {
-	const w, h = 256, 256
-	img0 := NewImage(w, h)
-	defer img0.Dispose()
-	img0.ReplacePixels(nil)
-	img0.ReplacePixels(make([]byte, 4*w*h))
-	img0.ReplacePixels(nil)
-	img0.ReplacePixels(make([]byte, 4*w*h))
-}
