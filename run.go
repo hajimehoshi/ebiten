@@ -22,6 +22,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
+var _ = __EBITEN_REQUIRES_GO_VERSION_1_11_OR_LATER__
+
 // TPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = 60
 
