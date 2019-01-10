@@ -292,12 +292,8 @@ func TestVariousReplacePixelsMustNotCrash(t *testing.T) {
 	const w, h = 256, 256
 	img0 := NewImage(w, h)
 	defer img0.Dispose()
-	img1 := NewImage(w, h)
-	defer img1.Dispose()
 	img0.ReplacePixels(nil)
 	img0.ReplacePixels(make([]byte, 4*w*h))
 	img0.ReplacePixels(nil)
 	img0.ReplacePixels(make([]byte, 4*w*h))
-	img1.Dispose()
-	img0.Dispose()
 }
