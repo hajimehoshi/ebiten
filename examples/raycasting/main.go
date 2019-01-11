@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build example jsgo
+// // +build example jsgo
 
 package main
 
@@ -25,6 +25,7 @@ import (
 	_ "image/png"
 	"log"
 	"math"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 
@@ -105,36 +106,60 @@ func intersection(l1, l2 Line) (float64, float64, error) {
 	return x, y, nil
 }
 
-func rayCasting(cx, cy float64, walls []Line, numRays float64) []Line {
+func calcAngle(l Line) float64 {
+	return math.Atan2(l.Y2-l.Y1, l.X2-l.X1)
+}
+
+func smartRayCasting(cx, cy float64, objects [][]Line) []Line {
 	var rays []Line
 
 	rayLength := 1000. // something large
-	for i := 0.; i < numRays; i++ {
-		v := (i / numRays) * 2 * math.Pi
+	for _, obj := range objects {
 
-		// Create a new line to serve as ray
-		ray := directedRay(cx, cy, rayLength, v)
+		// Get one of the endpoints for all segments,
+		// + the startpoint of the first one, for non-closed paths
+		var objPoints [][2]float64
+		for _, wall := range obj {
+			objPoints = append(objPoints, [2]float64{wall.X2, wall.Y2})
+		}
+		objPoints = append(objPoints, [2]float64{obj[0].X1, obj[0].Y1})
 
-		// Check for intersection and save collision points
-		points := [][2]float64{}
-		for _, wall := range walls {
-			if px, py, err := intersection(ray, wall); err == nil {
-				points = append(points, [2]float64{px, py})
+		// Cast two rays per point
+		for _, p := range objPoints {
+			v := calcAngle(Line{cx, cy, p[0], p[1]})
+
+			for _, offset := range []float64{-0.005, 0.005} {
+				points := [][2]float64{}
+				ray := directedRay(cx, cy, rayLength, v+offset)
+
+				// Unpack all objects
+				for _, o := range objects {
+					for _, wall := range o {
+						if px, py, err := intersection(ray, wall); err == nil {
+							points = append(points, [2]float64{px, py})
+						}
+					}
+				}
+
+				// Find the point closest to start of ray
+				min := math.Inf(1)
+				var minI = -1
+				for i, p := range points {
+					d2 := (cx-p[0])*(cx-p[0]) + (cy-p[1])*(cy-p[1])
+					if d2 < min {
+						min = d2
+						minI = i
+					}
+				}
+				rays = append(rays, Line{cx, cy, points[minI][0], points[minI][1]})
 			}
 		}
-
-		// Find the point closest to start of ray
-		min := math.Inf(1)
-		var minI = -1
-		for i, p := range points {
-			d2 := (cx-p[0])*(cx-p[0]) + (cy-p[1])*(cy-p[1])
-			if d2 < min {
-				min = d2
-				minI = i
-			}
-		}
-		rays = append(rays, Line{cx, cy, points[minI][0], points[minI][1]})
 	}
+
+	// Sort rays based on angle, otherwise light triangles will not come out right
+	sort.Slice(rays, func(i int, j int) bool {
+		return calcAngle(rays[i]) < calcAngle(rays[j])
+	})
 	return rays
 }
 
@@ -155,51 +180,21 @@ func rect(x, y, w, h float64) []Line {
 	return lines
 }
 
-func handleRays() {
-	var raysFactor float64
-	switch {
-	case inpututil.IsKeyJustPressed(ebiten.Key0):
-		numRays = 0
-		return
-	case inpututil.IsKeyJustPressed(ebiten.Key1):
-		raysFactor = 2
-	case inpututil.IsKeyJustPressed(ebiten.Key2):
-		raysFactor = 3
-	case inpututil.IsKeyJustPressed(ebiten.Key3):
-		raysFactor = 4
-	case inpututil.IsKeyJustPressed(ebiten.Key4):
-		raysFactor = 5
-	case inpututil.IsKeyJustPressed(ebiten.Key5):
-		raysFactor = 6
-	case inpututil.IsKeyJustPressed(ebiten.Key6):
-		raysFactor = 7
-	case inpututil.IsKeyJustPressed(ebiten.Key7):
-		raysFactor = 8
-	case inpututil.IsKeyJustPressed(ebiten.Key8):
-		raysFactor = 9
-	case inpututil.IsKeyJustPressed(ebiten.Key9):
-		raysFactor = 10
-	default:
-		return
-	}
-	numRays = float64(math.Pow(2, raysFactor))
-}
-
 func handleMovement() {
 	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
-		px += 2
+		px += 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyDown) {
-		py += 2
+		py += 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		px -= 2
+		px -= 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyUp) {
-		py -= 2
+		py -= 4
 	}
 
 	// +1/-1 is to stop player before it reaches the border
@@ -229,7 +224,6 @@ func update(screen *ebiten.Image) error {
 		showRays = !showRays
 	}
 
-	handleRays()
 	handleMovement()
 
 	if ebiten.IsDrawingSkipped() {
@@ -238,7 +232,7 @@ func update(screen *ebiten.Image) error {
 
 	// Reset the shadowImage
 	shadowImage.Fill(color.Black)
-	rays := rayCasting(px, py, walls, numRays)
+	rays := smartRayCasting(px, py, objects)
 
 	// Subtract ray triangles from shadow
 	opt := &ebiten.DrawTrianglesOptions{}
@@ -269,8 +263,10 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(shadowImage, op)
 
 	// Draw walls
-	for _, w := range walls {
-		ebitenutil.DrawLine(screen, w.X1, w.Y1, w.X2, w.Y2, color.RGBA{255, 0, 0, 255})
+	for _, wall := range objects {
+		for _, w := range wall {
+			ebitenutil.DrawLine(screen, w.X1, w.Y1, w.X2, w.Y2, color.RGBA{255, 0, 0, 255})
+		}
 	}
 
 	// Draw player as a rect
@@ -285,7 +281,6 @@ func update(screen *ebiten.Image) error {
 
 	ebitenutil.DebugPrintAt(screen, "WASD: move", 160, 0)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 51, 51)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("0-9: control # rays (%4.0f)", numRays), padding, screenHeight-20)
 	return nil
 }
 
@@ -293,7 +288,7 @@ var (
 	showRays bool
 	numRays  float64
 	px, py   float64
-	walls    []Line
+	objects  [][]Line
 )
 
 const padding = 20
@@ -304,14 +299,14 @@ func main() {
 	numRays = 128
 
 	// Add outer walls
-	walls = append(walls, rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding)...)
+	objects = append(objects, rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding))
 
 	// Angled wall
-	walls = append(walls, Line{50, 110, 100, 150})
+	objects = append(objects, []Line{Line{50, 110, 100, 150}})
 
 	// Rectangles
-	walls = append(walls, rect(45, 50, 70, 20)...)
-	walls = append(walls, rect(150, 50, 30, 60)...)
+	objects = append(objects, rect(45, 50, 70, 20))
+	objects = append(objects, rect(150, 50, 30, 60))
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Ray casting and shadows (Ebiten demo)"); err != nil {
 		log.Fatal(err)
