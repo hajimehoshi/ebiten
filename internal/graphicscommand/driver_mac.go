@@ -20,8 +20,26 @@ package graphicscommand
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
+// patch: some earlier Apple Mac product dose
+// NOT support Metal
+var is_MacOS_GPU_support_Metal = true
+
+func init() {
+	// on 1st initialization , detect Metal feature
+	_, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		is_MacOS_GPU_support_Metal = false
+	}
+}
+
 func Driver() graphicsdriver.GraphicsDriver {
-	return metal.Get()
+	if is_MacOS_GPU_support_Metal {
+		return metal.Get()
+	} else {
+		return opengl.Get()
+	}
 }
