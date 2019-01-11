@@ -20,8 +20,23 @@ package graphicscommand
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
+// isMetalSupported represents whether Metal is supported.
+var isMetalSupported = true
+
+func init() {
+	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
+		isMetalSupported = false
+	}
+}
+
 func Driver() graphicsdriver.GraphicsDriver {
-	return metal.Get()
+	if isMetalSupported {
+		return metal.Get()
+	} else {
+		return opengl.Get()
+	}
 }
