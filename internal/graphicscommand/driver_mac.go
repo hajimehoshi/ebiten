@@ -22,7 +22,7 @@ package graphicscommand
 //
 // #import <Foundation/Foundation.h>
 //
-// static int getDarwinMinorVersion() {
+// static int getMacOSMinorVersion() {
 //   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
 //   return (int)version.minorVersion;
 // }
@@ -38,8 +38,6 @@ import (
 var (
 	// isMetalSupported represents whether Metal is supported.
 	isMetalSupported = true
-
-	darwinMajorVersion = 0
 )
 
 func init() {
@@ -49,7 +47,7 @@ func init() {
 	}
 	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
 	// Use the OpenGL in macOS 10.11 or older.
-	if C.getDarwinMinorVersion() <= 11 {
+	if C.getMacOSMinorVersion() <= 11 {
 		isMetalSupported = false
 	}
 }
