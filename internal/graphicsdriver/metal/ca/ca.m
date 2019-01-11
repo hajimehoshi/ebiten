@@ -46,27 +46,35 @@ const char *MetalLayer_SetPixelFormat(void *metalLayer, uint16_t pixelFormat) {
 
 const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
                                                uint_t maximumDrawableCount) {
-  if (@available(macOS 10.13.2, *)) {
-    @try {
-      if ([(CAMetalLayer *)metalLayer
-              respondsToSelector:@selector(setMaximumDrawableCount:)]) {
-        [((CAMetalLayer *)metalLayer)
-            setMaximumDrawableCount:(NSUInteger)maximumDrawableCount];
-      }
-    } @catch (NSException *exception) {
-      return exception.reason.UTF8String;
+  // @available syntax is not available for old Xcode (#781)
+  //
+  // If possible, we'd want to write the guard like:
+  //
+  //     if (@available(macOS 10.13.2, *)) { ...
+
+  @try {
+    if ([(CAMetalLayer *)metalLayer
+            respondsToSelector:@selector(setMaximumDrawableCount:)]) {
+      [((CAMetalLayer *)metalLayer)
+          setMaximumDrawableCount:(NSUInteger)maximumDrawableCount];
     }
+  } @catch (NSException *exception) {
+    return exception.reason.UTF8String;
   }
   return NULL;
 }
 
 void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
                                       BOOL displaySyncEnabled) {
-  if (@available(macOS 10.13, *)) {
-    if ([(CAMetalLayer *)metalLayer
-            respondsToSelector:@selector(setDisplaySyncEnabled:)]) {
-      [((CAMetalLayer *)metalLayer) setDisplaySyncEnabled:displaySyncEnabled];
-    }
+  // @available syntax is not available for old Xcode (#781)
+  //
+  // If possible, we'd want to write the guard like:
+  //
+  //     if (@available(macOS 10.13, *)) { ...
+
+  if ([(CAMetalLayer *)metalLayer
+          respondsToSelector:@selector(setDisplaySyncEnabled:)]) {
+    [((CAMetalLayer *)metalLayer) setDisplaySyncEnabled:displaySyncEnabled];
   }
 }
 

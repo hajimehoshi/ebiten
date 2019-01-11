@@ -28,7 +28,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 )
 
-// #cgo CFLAGS: -mmacosx-version-min=10.11
+// Suppress the warnings about availability guard with -Wno-unguarded-availability-new.
+// It is because old Xcode (8 or older?) does not accept @available syntax.
+
+// #cgo CFLAGS: -mmacosx-version-min=10.11 -Wno-unguarded-availability-new
 // #cgo LDFLAGS: -framework QuartzCore -framework Foundation -framework CoreGraphics
 //
 // #include "ca.h"

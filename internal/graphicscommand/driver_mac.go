@@ -17,6 +17,17 @@
 
 package graphicscommand
 
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework Foundation
+//
+// #import <Foundation/Foundation.h>
+//
+// static int getMacOSMinorVersion() {
+//   NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
+//   return (int)version.minorVersion;
+// }
+import "C"
+
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
@@ -24,11 +35,19 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-// isMetalSupported represents whether Metal is supported.
-var isMetalSupported = true
+var (
+	// isMetalSupported represents whether Metal is supported.
+	isMetalSupported = true
+)
 
 func init() {
+	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
+		isMetalSupported = false
+	}
+	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
+	// Use the OpenGL in macOS 10.11 or older.
+	if C.getMacOSMinorVersion() <= 11 {
 		isMetalSupported = false
 	}
 }
@@ -36,7 +55,6 @@ func init() {
 func Driver() graphicsdriver.GraphicsDriver {
 	if isMetalSupported {
 		return metal.Get()
-	} else {
-		return opengl.Get()
 	}
+	return opengl.Get()
 }
