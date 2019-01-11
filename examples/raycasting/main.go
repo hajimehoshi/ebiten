@@ -1,4 +1,4 @@
-// Copyright 2016 The Ebiten Authors
+// Copyright 2019 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build example jsgo
+
 package main
 
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	_ "image/png"
@@ -24,8 +27,6 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-
-	geo "github.com/paulmach/go.geo"
 
 	"github.com/hajimehoshi/ebiten/inpututil"
 
@@ -68,42 +69,71 @@ type Line struct {
 	X1, Y1, X2, Y2 float64
 }
 
-func rayCasting(cx, cy float64, walls []Line) []Line {
-	start := geo.NewPoint(cx, cy)
+func directedRay(x, y, length, v float64) Line {
 
+	return Line{
+		X1: x,
+		Y1: y,
+		X2: x + length*math.Cos(v),
+		Y2: y + length*math.Sin(v),
+	}
+}
+
+// Algebra from wikipedia
+// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
+func intersection(l1, l2 Line) (float64, float64, error) {
+	denom := (l1.X1-l1.X2)*(l2.Y1-l2.Y2) - (l1.Y1-l1.Y2)*(l2.X1-l2.X2)
+	tNum := (l1.X1-l2.X1)*(l2.Y1-l2.Y2) - (l1.Y1-l2.Y1)*(l2.X1-l2.X2)
+	uNum := -((l1.X1-l1.X2)*(l1.Y1-l2.Y1) - (l1.Y1-l1.Y2)*(l1.X1-l2.X1))
+
+	if denom == 0 {
+		return 0, 0, errors.New("lines parallel or coincident")
+	}
+
+	t := tNum / denom
+	if t > 1. || t < 0 {
+		return 0, 0, errors.New("lines intersect, segments do not")
+	}
+
+	u := uNum / denom
+	if u > 1. || u < 0 {
+		return 0, 0, errors.New("lines intersect, segments do not")
+	}
+
+	x := l1.X1 + t*(l1.X2-l1.X1)
+	y := l1.Y1 + t*(l1.Y2-l1.Y1)
+	return x, y, nil
+}
+
+func rayCasting(cx, cy float64, walls []Line, numRays float64) []Line {
 	var rays []Line
 
 	rayLength := 1000. // something large
-	sparser := 2.      // decrease number of rays
-	for i := 0.; i < 360/sparser; i++ {
-		v := sparser * math.Pi * i / 180
-		ray := geo.NewLine(start, geo.NewPoint(rayLength*math.Cos(v), rayLength*math.Sin(v)))
+	for i := 0.; i < numRays; i++ {
+		v := (i / numRays) * 2 * math.Pi
 
-		// Check for intersection
-		// Save all collision points
-		points := []*geo.Point{}
+		// Create a new line to serve as ray
+		ray := directedRay(cx, cy, rayLength, v)
+
+		// Check for intersection and save collision points
+		points := [][2]float64{}
 		for _, wall := range walls {
-			p := geo.NewPath()
-			p.InsertAt(0, geo.NewPoint(wall.X1, wall.Y1))
-			p.InsertAt(1, geo.NewPoint(wall.X2, wall.Y2))
-			pts, _ := p.IntersectionLine(ray)
-			points = append(points, pts...)
+			if px, py, err := intersection(ray, wall); err == nil {
+				points = append(points, [2]float64{px, py})
+			}
 		}
 
 		// Find the point closest to start of ray
 		min := math.Inf(1)
-		minP := &geo.Point{}
-		for i := range points {
-
-			d := points[i].DistanceFrom(start)
-
-			if d < min {
-				min = d
-				minP = points[i]
+		var minI = -1
+		for i, p := range points {
+			d2 := (cx-p[0])*(cx-p[0]) + (cy-p[1])*(cy-p[1])
+			if d2 < min {
+				min = d2
+				minI = i
 			}
 		}
-
-		rays = append(rays, Line{cx, cy, minP.X(), minP.Y()})
+		rays = append(rays, Line{cx, cy, points[minI][0], points[minI][1]})
 	}
 	return rays
 }
@@ -125,44 +155,72 @@ func rect(x, y, w, h float64) []Line {
 	return lines
 }
 
+func handleRays() {
+	var raysFactor float64
+	switch {
+	case inpututil.IsKeyJustPressed(ebiten.Key0):
+		numRays = 0
+		return
+	case inpututil.IsKeyJustPressed(ebiten.Key1):
+		raysFactor = 2
+	case inpututil.IsKeyJustPressed(ebiten.Key2):
+		raysFactor = 3
+	case inpututil.IsKeyJustPressed(ebiten.Key3):
+		raysFactor = 4
+	case inpututil.IsKeyJustPressed(ebiten.Key4):
+		raysFactor = 5
+	case inpututil.IsKeyJustPressed(ebiten.Key5):
+		raysFactor = 6
+	case inpututil.IsKeyJustPressed(ebiten.Key6):
+		raysFactor = 7
+	case inpututil.IsKeyJustPressed(ebiten.Key7):
+		raysFactor = 8
+	case inpututil.IsKeyJustPressed(ebiten.Key8):
+		raysFactor = 9
+	case inpututil.IsKeyJustPressed(ebiten.Key9):
+		raysFactor = 10
+	default:
+		return
+	}
+	numRays = float64(math.Pow(2, raysFactor))
+}
+
 func handleMovement() {
 	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
-		x += 2
+		px += 2
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyDown) {
-		y += 2
+		py += 2
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		x -= 2
+		px -= 2
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyUp) {
-		y -= 2
+		py -= 2
 	}
 
 	// +1/-1 is to stop player before it reaches the border
-	if x >= screenHeight-padding {
-		x = screenHeight - padding - 1
+	if px >= screenHeight-padding {
+		px = screenHeight - padding - 1
 	}
 
-	if x <= padding {
-		x = padding + 1
+	if px <= padding {
+		px = padding + 1
 	}
 
-	if y >= screenWidth-padding {
-		y = screenWidth - padding - 1
+	if py >= screenWidth-padding {
+		py = screenWidth - padding - 1
 	}
 
-	if y <= padding {
-		y = padding + 1
+	if py <= padding {
+		py = padding + 1
 	}
-
 }
 
 func update(screen *ebiten.Image) error {
-
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return errors.New("game ended by player")
 	}
@@ -171,31 +229,28 @@ func update(screen *ebiten.Image) error {
 		showRays = !showRays
 	}
 
+	handleRays()
 	handleMovement()
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
-	// x = 50 + 50*math.Cos(float64(time.Now().Nanosecond()/10000000)/100)
-
 	// Reset the shadowImage
 	shadowImage.Fill(color.Black)
-
-	rays := rayCasting(x, y, walls)
+	rays := rayCasting(px, py, walls, numRays)
 
 	// Subtract ray triangles from shadow
 	opt := &ebiten.DrawTrianglesOptions{}
 	opt.Address = ebiten.AddressRepeat
 	opt.CompositeMode = ebiten.CompositeModeSourceOut
 
-	prevLine := rays[len(rays)-1]
-	for _, line := range rays {
+	for i, line := range rays {
+		nextLine := rays[(i+1)%len(rays)]
 
 		// Draw triangle of area between rays
-		v := vertices(x, y, prevLine.X2, prevLine.Y2, line.X2, line.Y2)
+		v := vertices(px, py, nextLine.X2, nextLine.Y2, line.X2, line.Y2)
 		shadowImage.DrawTriangles(v, []uint16{0, 1, 2}, triangleImage, opt)
-		prevLine = line
 	}
 
 	// Draw background
@@ -219,30 +274,43 @@ func update(screen *ebiten.Image) error {
 	}
 
 	// Draw player as a rect
-	ebitenutil.DrawRect(screen, x-2, y-2, 4, 4, color.Black)
-	ebitenutil.DrawRect(screen, x-1, y-1, 2, 2, color.RGBA{255, 100, 100, 255})
+	ebitenutil.DrawRect(screen, px-2, py-2, 4, 4, color.Black)
+	ebitenutil.DrawRect(screen, px-1, py-1, 2, 2, color.RGBA{255, 100, 100, 255})
 
-	ebitenutil.DebugPrint(screen, "   R: toggle rays          WASD: move")
+	if showRays {
+		ebitenutil.DebugPrintAt(screen, "R: hide rays", padding, 0)
+	} else {
+		ebitenutil.DebugPrintAt(screen, "R: show rays", padding, 0)
+	}
+
+	ebitenutil.DebugPrintAt(screen, "WASD: move", 160, 0)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 51, 51)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("0-9: control # rays (%4.0f)", numRays), padding, screenHeight-20)
 	return nil
 }
 
 var (
-	showRays         = true
-	x, y     float64 = screenWidth / 2, screenHeight / 2
+	showRays bool
+	numRays  float64
+	px, py   float64
 	walls    []Line
 )
 
 const padding = 20
 
 func main() {
+	px = screenWidth / 2
+	py = screenHeight / 2
+	numRays = 128
 
 	// Add outer walls
 	walls = append(walls, rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding)...)
 
 	// Angled wall
-	walls = append(walls, Line{50, 80, 100, 150})
+	walls = append(walls, Line{50, 110, 100, 150})
 
-	// Rectangle
+	// Rectangles
+	walls = append(walls, rect(45, 50, 70, 20)...)
 	walls = append(walls, rect(150, 50, 30, 60)...)
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Ray casting and shadows (Ebiten demo)"); err != nil {
