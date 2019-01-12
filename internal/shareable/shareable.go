@@ -256,6 +256,39 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	// }
 }
 
+// emptyImage is an empty image used for filling other images with a uniform color.
+//
+// Do not call Fill on emptyImage or the program causes infinite recursion.
+var emptyImage = NewImage(16, 16)
+
+// Fill fills the image with a color. This affects not only the (0, 0)-(width, height) region but also the whole
+// framebuffer region.
+func (i *Image) Fill(r, g, b, a uint8) {
+	backendsM.Lock()
+	if i.disposed {
+		panic("shareable: the drawing target image must not be disposed")
+	}
+	i.ensureNotShared()
+	backendsM.Unlock()
+
+	dw, dh := i.backend.restorable.SizePowerOf2()
+	sw, sh := emptyImage.Size()
+	vs := emptyImage.QuadVertices(0, 0, sw, sh,
+		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
+		1, 1, 1, 1)
+	is := graphics.QuadIndices()
+
+	var colorm *affine.ColorM
+	if a > 0 {
+		rf := float32(r) / float32(a)
+		gf := float32(g) / float32(a)
+		bf := float32(b) / float32(a)
+		af := float32(a) / 0xff
+		colorm = colorm.Translate(rf, gf, bf, af)
+	}
+	i.DrawImage(emptyImage, vs, is, colorm, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+}
+
 func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()

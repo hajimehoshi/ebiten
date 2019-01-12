@@ -25,15 +25,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
-// emptyImage is an empty image used for filling other images with a uniform color.
-//
-// Do not call Fill or Clear on emptyImage or the program causes infinite recursion.
-var emptyImage *Image
-
-func init() {
-	emptyImage, _ = NewImage(16, 16, FilterDefault)
-}
-
 type mipmap struct {
 	orig *shareable.Image
 	imgs map[image.Rectangle][]*shareable.Image
@@ -191,36 +182,8 @@ func (i *Image) Fill(clr color.Color) error {
 
 	r16, g16, b16, a16 := clr.RGBA()
 	r, g, b, a := uint8(r16>>8), uint8(g16>>8), uint8(b16>>8), uint8(a16>>8)
-
-	wd, hd := i.Size()
-	if wd*hd <= 256 {
-		// Prefer ReplacePixels since ReplacePixels can keep the images shared.
-		pix := make([]uint8, 4*wd*hd)
-		for i := 0; i < wd*hd; i++ {
-			pix[4*i] = r
-			pix[4*i+1] = g
-			pix[4*i+2] = b
-			pix[4*i+3] = a
-		}
-		i.ReplacePixels(pix)
-		return nil
-	}
-
-	ws, hs := emptyImage.Size()
-	sw := float64(wd) / float64(ws)
-	sh := float64(hd) / float64(hs)
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(sw, sh)
-	if a > 0 {
-		rf := float64(r) / float64(a)
-		gf := float64(g) / float64(a)
-		bf := float64(b) / float64(a)
-		af := float64(a) / 0xff
-		op.ColorM.Translate(rf, gf, bf, af)
-	}
-	op.CompositeMode = CompositeModeCopy
-	op.Filter = FilterNearest
-	i.drawImage(emptyImage, op)
+	i.mipmap.original().Fill(r, g, b, a)
+	i.disposeMipmaps()
 	return nil
 }
 

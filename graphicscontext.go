@@ -112,16 +112,9 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 
-	// Clear the screen framebuffer by DrawImage instad of Fill
-	// to clear the whole region including fullscreen's padding.
 	// TODO: This clear is needed only when the screen size is changed.
 	if c.offsetX > 0 || c.offsetY > 0 {
-		op := &DrawImageOptions{}
-		w, h := emptyImage.Size()
-		sw, sh := c.screen.Size()
-		op.GeoM.Scale(float64(sw)/float64(w), float64(sh)/float64(h))
-		op.CompositeMode = CompositeModeCopy
-		c.screen.DrawImage(emptyImage, op)
+		c.screen.Clear()
 	}
 
 	op := &DrawImageOptions{}
