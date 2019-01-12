@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// // +build example jsgo
+// +build example jsgo
 
 package main
 
@@ -27,12 +27,10 @@ import (
 	"math"
 	"sort"
 
-	"github.com/hajimehoshi/ebiten/ebitenutil"
-
-	"github.com/hajimehoshi/ebiten/inpututil"
-
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
@@ -70,17 +68,16 @@ type Line struct {
 	X1, Y1, X2, Y2 float64
 }
 
-func directedRay(x, y, length, v float64) Line {
-
+func newRay(x, y, length, angle float64) Line {
 	return Line{
 		X1: x,
 		Y1: y,
-		X2: x + length*math.Cos(v),
-		Y2: y + length*math.Sin(v),
+		X2: x + length*math.Cos(angle),
+		Y2: y + length*math.Sin(angle),
 	}
 }
 
-// Algebra from wikipedia
+// intersection calculates the intersection of given two lines.
 // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
 func intersection(l1, l2 Line) (float64, float64, error) {
 	denom := (l1.X1-l1.X2)*(l2.Y1-l2.Y2) - (l1.Y1-l1.Y2)*(l2.X1-l2.X2)
@@ -92,12 +89,12 @@ func intersection(l1, l2 Line) (float64, float64, error) {
 	}
 
 	t := tNum / denom
-	if t > 1. || t < 0 {
+	if t > 1 || t < 0 {
 		return 0, 0, errors.New("lines intersect, segments do not")
 	}
 
 	u := uNum / denom
-	if u > 1. || u < 0 {
+	if u > 1 || u < 0 {
 		return 0, 0, errors.New("lines intersect, segments do not")
 	}
 
@@ -110,10 +107,11 @@ func calcAngle(l Line) float64 {
 	return math.Atan2(l.Y2-l.Y1, l.X2-l.X1)
 }
 
-func smartRayCasting(cx, cy float64, objects [][]Line) []Line {
+// rayCasting returns a slice of Line originating from point cx, cy and intersecting with objects
+func rayCasting(cx, cy float64, objects [][]Line) []Line {
 	var rays []Line
 
-	rayLength := 1000. // something large
+	rayLength := 1000.0 // something large
 	for _, obj := range objects {
 
 		// Get one of the endpoints for all segments,
@@ -126,11 +124,11 @@ func smartRayCasting(cx, cy float64, objects [][]Line) []Line {
 
 		// Cast two rays per point
 		for _, p := range objPoints {
-			v := calcAngle(Line{cx, cy, p[0], p[1]})
+			angle := calcAngle(Line{cx, cy, p[0], p[1]})
 
 			for _, offset := range []float64{-0.005, 0.005} {
 				points := [][2]float64{}
-				ray := directedRay(cx, cy, rayLength, v+offset)
+				ray := newRay(cx, cy, rayLength, angle+offset)
 
 				// Unpack all objects
 				for _, o := range objects {
@@ -232,7 +230,7 @@ func update(screen *ebiten.Image) error {
 
 	// Reset the shadowImage
 	shadowImage.Fill(color.Black)
-	rays := smartRayCasting(px, py, objects)
+	rays := rayCasting(px, py, objects)
 
 	// Subtract ray triangles from shadow
 	opt := &ebiten.DrawTrianglesOptions{}
