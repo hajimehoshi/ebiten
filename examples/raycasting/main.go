@@ -68,6 +68,10 @@ type Line struct {
 	X1, Y1, X2, Y2 float64
 }
 
+func (l *Line) angle() float64 {
+	return math.Atan2(l.Y2-l.Y1, l.X2-l.X1)
+}
+
 func newRay(x, y, length, angle float64) Line {
 	return Line{
 		X1: x,
@@ -78,8 +82,8 @@ func newRay(x, y, length, angle float64) Line {
 }
 
 // intersection calculates the intersection of given two lines.
-// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
 func intersection(l1, l2 Line) (float64, float64, error) {
+	// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
 	denom := (l1.X1-l1.X2)*(l2.Y1-l2.Y2) - (l1.Y1-l1.Y2)*(l2.X1-l2.X2)
 	tNum := (l1.X1-l2.X1)*(l2.Y1-l2.Y2) - (l1.Y1-l2.Y1)*(l2.X1-l2.X2)
 	uNum := -((l1.X1-l1.X2)*(l1.Y1-l2.Y1) - (l1.Y1-l1.Y2)*(l1.X1-l2.X1))
@@ -103,10 +107,6 @@ func intersection(l1, l2 Line) (float64, float64, error) {
 	return x, y, nil
 }
 
-func calcAngle(l Line) float64 {
-	return math.Atan2(l.Y2-l.Y1, l.X2-l.X1)
-}
-
 // rayCasting returns a slice of Line originating from point cx, cy and intersecting with objects
 func rayCasting(cx, cy float64, objects [][]Line) []Line {
 	var rays []Line
@@ -124,7 +124,8 @@ func rayCasting(cx, cy float64, objects [][]Line) []Line {
 
 		// Cast two rays per point
 		for _, p := range objPoints {
-			angle := calcAngle(Line{cx, cy, p[0], p[1]})
+			l := Line{cx, cy, p[0], p[1]}
+			angle := l.angle()
 
 			for _, offset := range []float64{-0.005, 0.005} {
 				points := [][2]float64{}
@@ -156,26 +157,26 @@ func rayCasting(cx, cy float64, objects [][]Line) []Line {
 
 	// Sort rays based on angle, otherwise light triangles will not come out right
 	sort.Slice(rays, func(i int, j int) bool {
-		return calcAngle(rays[i]) < calcAngle(rays[j])
+		return rays[i].angle() < rays[j].angle()
 	})
 	return rays
 }
 
 func vertices(x1, y1, x2, y2, x3, y3 float64) []ebiten.Vertex {
 	return []ebiten.Vertex{
-		ebiten.Vertex{float32(x1), float32(y1), 0, 0, 1, 1, 1, 1},
-		ebiten.Vertex{float32(x2), float32(y2), 0, 0, 1, 1, 1, 1},
-		ebiten.Vertex{float32(x3), float32(y3), 0, 0, 1, 1, 1, 1},
+		{float32(x1), float32(y1), 0, 0, 1, 1, 1, 1},
+		{float32(x2), float32(y2), 0, 0, 1, 1, 1, 1},
+		{float32(x3), float32(y3), 0, 0, 1, 1, 1, 1},
 	}
 }
 
 func rect(x, y, w, h float64) []Line {
-	var lines []Line
-	lines = append(lines, Line{x, y, x, y + h})
-	lines = append(lines, Line{x, y + h, x + w, y + h})
-	lines = append(lines, Line{x + w, y + h, x + w, y})
-	lines = append(lines, Line{x + w, y, x, y})
-	return lines
+	return []Line{
+		{x, y, x, y + h},
+		{x, y + h, x + w, y + h},
+		{x + w, y + h, x + w, y},
+		{x + w, y, x, y},
+	}
 }
 
 func handleMovement() {
@@ -284,7 +285,6 @@ func update(screen *ebiten.Image) error {
 
 var (
 	showRays bool
-	numRays  float64
 	px, py   float64
 	objects  [][]Line
 )
@@ -294,13 +294,12 @@ const padding = 20
 func main() {
 	px = screenWidth / 2
 	py = screenHeight / 2
-	numRays = 128
 
 	// Add outer walls
 	objects = append(objects, rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding))
 
 	// Angled wall
-	objects = append(objects, []Line{Line{50, 110, 100, 150}})
+	objects = append(objects, []Line{{50, 110, 100, 150}})
 
 	// Rectangles
 	objects = append(objects, rect(45, 50, 70, 20))
