@@ -111,7 +111,7 @@ func calcAngle(l Line) float64 {
 func rayCasting(cx, cy float64, objects [][]Line) []Line {
 	var rays []Line
 
-	rayLength := 1000 // something large
+	const rayLength = 1000 // something large enough to reach all objects
 	for _, obj := range objects {
 
 		// Get one of the endpoints for all segments,
