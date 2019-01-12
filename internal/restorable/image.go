@@ -87,7 +87,7 @@ func NewImage(width, height int, volatile bool) *Image {
 	dw := graphics.NextPowerOf2Int(width)
 	dh := graphics.NextPowerOf2Int(height)
 	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
-		float32(width)/float32(sw), 0, 0, float32(height)/float32(sh),
+		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh),
 		0, 0,
 		1, 1, 1, 1)
 	is := graphics.QuadIndices()
