@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
@@ -98,7 +99,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		c.offscreen.fill(0, 0, 0, 0)
+		c.offscreen.Fill(color.Transparent)
 		// Mipmap images should be disposed by fill.
 
 		setDrawingSkipped(i < updateCount-1)

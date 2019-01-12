@@ -169,17 +169,7 @@ func (i *Image) isSubimage() bool {
 //
 // Clear always returns nil as of 1.5.0-alpha.
 func (i *Image) Clear() error {
-	i.copyCheck()
-	if i.isDisposed() {
-		return nil
-	}
-
-	// TODO: Implement this.
-	if i.isSubimage() {
-		panic("render to a subimage is not implemented")
-	}
-
-	i.fill(0, 0, 0, 0)
+	i.Fill(color.Transparent)
 	return nil
 }
 
@@ -199,20 +189,10 @@ func (i *Image) Fill(clr color.Color) error {
 		panic("render to a subimage is not implemented")
 	}
 
-	r, g, b, a := clr.RGBA()
-	i.fill(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
-	return nil
-}
-
-func (i *Image) fill(r, g, b, a uint8) {
-	if r == 0 && g == 0 && b == 0 && a == 0 {
-		i.mipmap.original().ReplacePixels(nil)
-		i.disposeMipmaps()
-		return
-	}
+	r16, g16, b16, a16 := clr.RGBA()
+	r, g, b, a := uint8(r16>>8), uint8(g16>>8), uint8(b16>>8), uint8(a16>>8)
 
 	wd, hd := i.Size()
-
 	if wd*hd <= 256 {
 		// Prefer ReplacePixels since ReplacePixels can keep the images shared.
 		pix := make([]uint8, 4*wd*hd)
@@ -223,7 +203,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 			pix[4*i+3] = a
 		}
 		i.ReplacePixels(pix)
-		return
+		return nil
 	}
 
 	ws, hs := emptyImage.Size()
@@ -241,6 +221,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	op.CompositeMode = CompositeModeCopy
 	op.Filter = FilterNearest
 	i.drawImage(emptyImage, op)
+	return nil
 }
 
 func (i *Image) disposeMipmaps() {
