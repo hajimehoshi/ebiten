@@ -131,7 +131,7 @@ type Image struct {
 	bounds   *image.Rectangle
 	original *Image
 
-	pixelsToSet map[int]color.RGBA
+	pixelsToSet []byte
 
 	filter Filter
 }
@@ -552,63 +552,57 @@ func (i *Image) At(x, y int) color.Color {
 // Set can't be called before the main loop (ebiten.Run) starts.
 //
 // If the image is disposed, Set does nothing.
-func (i *Image) Set(x, y int, clr color.Color) {
-	i.copyCheck()
-	if i.isDisposed() {
+func (img *Image) Set(x, y int, clr color.Color) {
+	img.copyCheck()
+	if img.isDisposed() {
 		return
 	}
-	if i.bounds != nil && !image.Pt(x, y).In(*i.bounds) {
+	if img.bounds != nil && !image.Pt(x, y).In(*img.bounds) {
 		return
 	}
+	if img.isSubimage() {
+		img = img.original
+	}
+
+	w, h := img.Size()
+	if img.pixelsToSet == nil {
+		pix := make([]byte, 4*w*h)
+		idx := 0
+		for j := 0; j < h; j++ {
+			for i := 0; i < w; i++ {
+				c := img.mipmap.original().At(i, j)
+				pix[4*idx] = c.R
+				pix[4*idx+1] = c.G
+				pix[4*idx+2] = c.B
+				pix[4*idx+3] = c.A
+				idx++
+			}
+		}
+		img.pixelsToSet = pix
+	}
+	r, g, b, a := clr.RGBA()
+	img.pixelsToSet[4*(x+y*w)] = byte(r >> 8)
+	img.pixelsToSet[4*(x+y*w)+1] = byte(g >> 8)
+	img.pixelsToSet[4*(x+y*w)+2] = byte(b >> 8)
+	img.pixelsToSet[4*(x+y*w)+3] = byte(a >> 8)
+}
+
+func (i *Image) resolvePixelsToSet(draw bool) {
 	if i.isSubimage() {
 		i = i.original
 	}
 
 	if i.pixelsToSet == nil {
-		i.pixelsToSet = map[int]color.RGBA{}
-	}
-	r, g, b, a := clr.RGBA()
-	w, _ := i.Size()
-	i.pixelsToSet[x+y*w] = color.RGBA{
-		byte(r >> 8),
-		byte(g >> 8),
-		byte(b >> 8),
-		byte(a >> 8),
-	}
-}
-
-func (img *Image) resolvePixelsToSet(draw bool) {
-	if img.isSubimage() {
-		img = img.original
-	}
-
-	if img.pixelsToSet == nil {
 		return
 	}
 
 	if !draw {
-		img.pixelsToSet = nil
+		i.pixelsToSet = nil
 		return
 	}
 
-	w, h := img.Size()
-	pix := make([]byte, 4*w*h)
-	idx := 0
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
-			c, ok := img.pixelsToSet[idx]
-			if !ok {
-				c = img.mipmap.original().At(i, j)
-			}
-			pix[4*idx] = c.R
-			pix[4*idx+1] = c.G
-			pix[4*idx+2] = c.B
-			pix[4*idx+3] = c.A
-			idx++
-		}
-	}
-	img.ReplacePixels(pix)
-	img.pixelsToSet = nil
+	i.ReplacePixels(i.pixelsToSet)
+	i.pixelsToSet = nil
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
