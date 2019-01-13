@@ -76,23 +76,7 @@ func NewImage(width, height int, volatile bool) *Image {
 		image:    graphicscommand.NewImage(width, height),
 		volatile: volatile,
 	}
-
-	// There are not 'drawImageHistoryItem's for this image and dummyImage.
-	// This means dummyImage might not be restored yet when this image is restored.
-	// However, that's ok since this image will be stale or have its updated pixel data soon,
-	// and this image can be restored without dummyImage.
-	//
-	// dummyImage should be restored later anyway.
-	sw, sh := dummyImage.Size()
-	dw := graphics.NextPowerOf2Int(width)
-	dh := graphics.NextPowerOf2Int(height)
-	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
-		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh),
-		0, 0,
-		1, 1, 1, 1)
-	is := graphics.QuadIndices()
-	i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
-
+	i.clear()
 	theImages.add(i)
 	return i
 }
@@ -107,8 +91,32 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		image:  graphicscommand.NewScreenFramebufferImage(width, height),
 		screen: true,
 	}
+	i.clear()
 	theImages.add(i)
 	return i
+}
+
+func (i *Image) clear() {
+	// There are not 'drawImageHistoryItem's for this image and dummyImage.
+	// This means dummyImage might not be restored yet when this image is restored.
+	// However, that's ok since this image will be stale or have its updated pixel data soon,
+	// and this image can be restored without dummyImage.
+	//
+	// dummyImage should be restored later anyway.
+	w, h := i.Size()
+	sw, sh := dummyImage.Size()
+	dw := graphics.NextPowerOf2Int(w)
+	dh := graphics.NextPowerOf2Int(h)
+	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
+		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh),
+		0, 0,
+		1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+
+	i.basePixels = nil
+	i.drawImageHistory = nil
+	i.stale = false
 }
 
 func (i *Image) IsVolatile() bool {
@@ -364,15 +372,14 @@ func (i *Image) restore() error {
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
-		i.basePixels = nil
-		i.drawImageHistory = nil
-		i.stale = false
+		i.clear()
 		return nil
 	}
 	if i.stale {
 		// TODO: panic here?
 		return errors.New("restorable: pixels must not be stale when restoring")
 	}
+
 	gimg := graphicscommand.NewImage(w, h)
 	if i.basePixels != nil {
 		gimg.ReplacePixels(i.basePixels, 0, 0, w, h)
