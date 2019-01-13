@@ -542,7 +542,8 @@ func (i *Image) At(x, y int) color.Color {
 		return color.RGBA{}
 	}
 	i.resolvePixelsToSet(true)
-	return i.mipmap.original().At(x, y)
+	r, g, b, a := i.mipmap.original().At(x, y)
+	return color.RGBA{r, g, b, a}
 }
 
 // Set sets the color at (x, y).
@@ -570,11 +571,11 @@ func (img *Image) Set(x, y int, clr color.Color) {
 		idx := 0
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
-				c := img.mipmap.original().At(i, j)
-				pix[4*idx] = c.R
-				pix[4*idx+1] = c.G
-				pix[4*idx+2] = c.B
-				pix[4*idx+3] = c.A
+				r, g, b, a := img.mipmap.original().At(i, j)
+				pix[4*idx] = r
+				pix[4*idx+1] = g
+				pix[4*idx+2] = b
+				pix[4*idx+3] = a
 				idx++
 			}
 		}

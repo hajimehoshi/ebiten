@@ -94,7 +94,8 @@ func TestEnsureNotShared(t *testing.T) {
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			got := img4.At(i, j)
+			r, g, b, a := img4.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			var want color.RGBA
 			if i < dx0 || dx1 <= i || j < dy0 || dy1 <= j {
 				c := byte(i + j)
@@ -168,7 +169,8 @@ func Disabled_TestReshared(t *testing.T) {
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			got := img1.At(i, j)
+			r, g, b, a := img1.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
@@ -184,7 +186,8 @@ func Disabled_TestReshared(t *testing.T) {
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			got := img1.At(i, j)
+			r, g, b, a := img1.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
@@ -231,7 +234,8 @@ func TestExtend(t *testing.T) {
 
 	for j := 0; j < h0; j++ {
 		for i := 0; i < w0; i++ {
-			got := img0.At(i, j)
+			r, g, b, a := img0.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			c := byte(i + w0*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {
@@ -242,7 +246,8 @@ func TestExtend(t *testing.T) {
 
 	for j := 0; j < h1; j++ {
 		for i := 0; i < w1; i++ {
-			got := img1.At(i, j)
+			r, g, b, a := img1.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			c := byte(i + w1*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {
@@ -278,7 +283,8 @@ func TestReplacePixelsAfterDrawImage(t *testing.T) {
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			got := dst.At(i, j)
+			r, g, b, a := dst.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			c := byte(i + w*j)
 			want := color.RGBA{c, c, c, c}
 			if got != want {

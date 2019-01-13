@@ -458,7 +458,8 @@ func TestReplacePixels(t *testing.T) {
 	// Check the region (5, 7)-(9, 11). Outside state is indeterministic.
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
-			got := img.At(i, j)
+			r, g, b, a := img.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -471,7 +472,8 @@ func TestReplacePixels(t *testing.T) {
 	}
 	for j := 7; j < 11; j++ {
 		for i := 5; i < 9; i++ {
-			got := img.At(i, j)
+			r, g, b, a := img.At(i, j)
+			got := color.RGBA{r, g, b, a}
 			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 			if got != want {
 				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
@@ -500,7 +502,8 @@ func TestDrawImageAndReplacePixels(t *testing.T) {
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
-	got := img1.At(0, 0)
+	r, g, b, a := img1.At(0, 0)
+	got := color.RGBA{r, g, b, a}
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -533,7 +536,8 @@ func TestDispose(t *testing.T) {
 	if err := Restore(); err != nil {
 		t.Fatal(err)
 	}
-	got := img0.At(0, 0)
+	r, g, b, a := img0.At(0, 0)
+	got := color.RGBA{r, g, b, a}
 	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	if !sameColors(got, want, 1) {
 		t.Errorf("got: %v, want: %v", got, want)

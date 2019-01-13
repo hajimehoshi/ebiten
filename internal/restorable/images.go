@@ -85,11 +85,11 @@ func Images() []image.Image {
 		pix := make([]byte, 4*w*h)
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
-				c := img.At(i, j)
-				pix[4*(i+j*w)] = byte(c.R)
-				pix[4*(i+j*w)+1] = byte(c.G)
-				pix[4*(i+j*w)+2] = byte(c.B)
-				pix[4*(i+j*w)+3] = byte(c.A)
+				r, g, b, a := img.At(i, j)
+				pix[4*(i+j*w)] = r
+				pix[4*(i+j*w)+1] = g
+				pix[4*(i+j*w)+2] = b
+				pix[4*(i+j*w)+3] = a
 			}
 		}
 		imgs = append(imgs, &image.RGBA{

@@ -17,7 +17,6 @@ package restorable
 import (
 	"errors"
 	"fmt"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -278,22 +277,21 @@ func (i *Image) readPixelsFromGPUIfNeeded() {
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-func (i *Image) At(x, y int) color.RGBA {
+func (i *Image) At(x, y int) (byte, byte, byte, byte) {
 	w, h := i.image.Size()
 	if x < 0 || y < 0 || w <= x || h <= y {
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
 
 	i.readPixelsFromGPUIfNeeded()
 
 	// Even after readPixelsFromGPU, basePixels might be nil when OpenGL error happens.
 	if i.basePixels == nil {
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
 
 	idx := 4*x + 4*y*w
-	r, g, b, a := i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
-	return color.RGBA{r, g, b, a}
+	return i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.

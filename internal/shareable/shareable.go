@@ -16,7 +16,6 @@ package shareable
 
 import (
 	"image"
-	"image/color"
 	"runtime"
 	"sync"
 
@@ -162,11 +161,11 @@ func (i *Image) forceShared() {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			c := i.at(x, y)
-			pixels[4*(x+i.width*y)] = c.R
-			pixels[4*(x+i.width*y)+1] = c.G
-			pixels[4*(x+i.width*y)+2] = c.B
-			pixels[4*(x+i.width*y)+3] = c.A
+			r, g, b, a := i.at(x, y)
+			pixels[4*(x+i.width*y)] = r
+			pixels[4*(x+i.width*y)+1] = g
+			pixels[4*(x+i.width*y)+2] = b
+			pixels[4*(x+i.width*y)+3] = a
 		}
 	}
 	newI.replacePixels(pixels)
@@ -315,20 +314,20 @@ func (i *Image) replacePixels(p []byte) {
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (i *Image) At(x, y int) color.RGBA {
+func (i *Image) At(x, y int) (byte, byte, byte, byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return i.at(x, y)
 }
 
-func (i *Image) at(x, y int) color.RGBA {
+func (i *Image) at(x, y int) (byte, byte, byte, byte) {
 	if i.backend == nil {
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
 
 	ox, oy, w, h := i.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
-		return color.RGBA{}
+		return 0, 0, 0, 0
 	}
 
 	return i.backend.restorable.At(x+ox, y+oy)
