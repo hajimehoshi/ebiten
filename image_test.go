@@ -1340,7 +1340,7 @@ func TestImageAddressRepeat(t *testing.T) {
 	}
 }
 
-func TestReplacePixelsAfterClear(t *testing.T) {
+func TestImageReplacePixelsAfterClear(t *testing.T) {
 	const w, h = 256, 256
 	img, _ := NewImage(w, h, FilterDefault)
 	img.ReplacePixels(make([]byte, 4*w*h))
@@ -1352,4 +1352,98 @@ func TestReplacePixelsAfterClear(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*w*h))
 
 	// The test passes if this doesn't crash.
+}
+
+func TestImageSet(t *testing.T) {
+	type Pt struct {
+		X, Y int
+	}
+
+	const w, h = 16, 16
+	img, _ := NewImage(w, h, FilterDefault)
+	colors := map[Pt]color.RGBA{
+		{1, 2}:   {3, 4, 5, 6},
+		{7, 8}:   {9, 10, 11, 12},
+		{13, 14}: {15, 16, 17, 18},
+	}
+
+	for p, c := range colors {
+		img.Set(p.X, p.Y, c)
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := img.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if c, ok := colors[Pt{i, j}]; ok {
+				want = c
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageSetAndDraw(t *testing.T) {
+	type Pt struct {
+		X, Y int
+	}
+
+	const w, h = 16, 16
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
+	colors := map[Pt]color.RGBA{
+		{1, 2}:   {3, 4, 5, 6},
+		{7, 8}:   {9, 10, 11, 12},
+		{13, 14}: {15, 16, 17, 18},
+	}
+	for p, c := range colors {
+		src.Set(p.X, p.Y, c)
+		dst.Set(p.X+1, p.Y+1, c)
+	}
+
+	dst.DrawImage(src, nil)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if c, ok := colors[Pt{i, j}]; ok {
+				want = c
+			}
+			if c, ok := colors[Pt{i - 1, j - 1}]; ok {
+				want = c
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+
+	src.Clear()
+	dst.Clear()
+	for p, c := range colors {
+		src.Set(p.X, p.Y, c)
+		dst.Set(p.X+1, p.Y+1, c)
+	}
+	op := &DrawImageOptions{}
+	op.GeoM.Translate(2, 2)
+	dst.DrawImage(src.SubImage(image.Rect(2, 2, w-2, h-2)).(*Image), op)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if 2 <= i && 2 <= j && i < w-2 && j < h-2 {
+				if c, ok := colors[Pt{i, j}]; ok {
+					want = c
+				}
+			}
+			if c, ok := colors[Pt{i - 1, j - 1}]; ok {
+				want = c
+			}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }

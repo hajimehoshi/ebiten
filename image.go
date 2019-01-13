@@ -116,7 +116,7 @@ func (m *mipmap) disposeMipmaps() {
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
-// Image implements image.Image.
+// Image implements image.Image and draw.Image.
 //
 // Functions of Image never returns error as of 1.5.0-alpha, and error values are always nil.
 type Image struct {
@@ -130,6 +130,8 @@ type Image struct {
 
 	bounds   *image.Rectangle
 	original *Image
+
+	pixelsToSet map[int]color.RGBA
 
 	filter Filter
 }
@@ -179,6 +181,8 @@ func (i *Image) Fill(clr color.Color) error {
 	if i.isSubimage() {
 		panic("render to a subimage is not implemented")
 	}
+
+	i.resolvePixelsToSet(false)
 
 	r16, g16, b16, a16 := clr.RGBA()
 	r, g, b, a := uint8(r16>>8), uint8(g16>>8), uint8(b16>>8), uint8(a16>>8)
@@ -242,6 +246,9 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	if i.isSubimage() {
 		panic("render to a subimage is not implemented")
 	}
+
+	img.resolvePixelsToSet(true)
+	i.resolvePixelsToSet(true)
 
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -428,6 +435,9 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		panic("render to a subimage is not implemented")
 	}
 
+	img.resolvePixelsToSet(true)
+	i.resolvePixelsToSet(true)
+
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
@@ -531,7 +541,74 @@ func (i *Image) At(x, y int) color.Color {
 	if i.bounds != nil && !image.Pt(x, y).In(*i.bounds) {
 		return color.RGBA{}
 	}
+	i.resolvePixelsToSet(true)
 	return i.mipmap.original().At(x, y)
+}
+
+// Set sets the color at (x, y).
+//
+// Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
+//
+// Set can't be called before the main loop (ebiten.Run) starts.
+//
+// If the image is disposed, Set does nothing.
+func (i *Image) Set(x, y int, clr color.Color) {
+	i.copyCheck()
+	if i.isDisposed() {
+		return
+	}
+	if i.bounds != nil && !image.Pt(x, y).In(*i.bounds) {
+		return
+	}
+	if i.isSubimage() {
+		i = i.original
+	}
+
+	if i.pixelsToSet == nil {
+		i.pixelsToSet = map[int]color.RGBA{}
+	}
+	r, g, b, a := clr.RGBA()
+	w, _ := i.Size()
+	i.pixelsToSet[x+y*w] = color.RGBA{
+		byte(r >> 8),
+		byte(g >> 8),
+		byte(b >> 8),
+		byte(a >> 8),
+	}
+}
+
+func (img *Image) resolvePixelsToSet(draw bool) {
+	if img.isSubimage() {
+		img = img.original
+	}
+
+	if img.pixelsToSet == nil {
+		return
+	}
+
+	if !draw {
+		img.pixelsToSet = nil
+		return
+	}
+
+	w, h := img.Size()
+	pix := make([]byte, 4*w*h)
+	idx := 0
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			c, ok := img.pixelsToSet[idx]
+			if !ok {
+				c = img.mipmap.original().At(i, j)
+			}
+			pix[4*idx] = c.R
+			pix[4*idx+1] = c.G
+			pix[4*idx+2] = c.B
+			pix[4*idx+3] = c.A
+			idx++
+		}
+	}
+	img.ReplacePixels(pix)
+	img.pixelsToSet = nil
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -549,6 +626,7 @@ func (i *Image) Dispose() error {
 	if !i.isSubimage() {
 		i.mipmap.dispose()
 	}
+	i.resolvePixelsToSet(false)
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
@@ -573,6 +651,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isSubimage() {
 		panic("render to a subimage is not implemented")
 	}
+	i.resolvePixelsToSet(false)
 	s := i.Bounds().Size()
 	if l := 4 * s.X * s.Y; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
