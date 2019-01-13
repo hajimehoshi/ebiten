@@ -123,8 +123,12 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 //
 // The given scale is ignored on fullscreen mode or gomobile-build mode.
 //
-// Run returns error when 1) OpenGL error happens, 2) audio error happens or 3) f returns error.
-// In the case of 3), Run returns the same error.
+// On non-GopherJS environments, Run returns error when 1) OpenGL error happens, 2) audio error happens or
+// 3) f returns error. In the case of 3), Run returns the same error.
+//
+// On GopherJS, Run returns immediately.
+// It is because the 'main' goroutine cannot be blocked on GopherJS.
+// When an error happens, this is shown as an error on the console.
 //
 // The size unit is device-independent pixel.
 //

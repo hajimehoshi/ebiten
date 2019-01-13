@@ -18,6 +18,8 @@ package ui
 
 import (
 	"image"
+	"log"
+	"runtime"
 	"strconv"
 
 	"github.com/gopherjs/gopherwasm/js"
@@ -235,7 +237,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) loop(g GraphicsContext) error {
+func (u *userInterface) loop(g GraphicsContext) <-chan error {
 	ch := make(chan error)
 	var cf js.Callback
 	f := func([]js.Value) {
@@ -255,7 +257,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 	go func() {
 		f(nil)
 	}()
-	return <-ch
+	return ch
 }
 
 func init() {
@@ -264,6 +266,7 @@ func init() {
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
 		}))
+		// TODO: This blocks the main goroutine, but should not.
 		<-ch
 	}
 
@@ -374,7 +377,18 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
-	return u.loop(g)
+	ch := u.loop(g)
+	if runtime.GOARCH == "wasm" {
+		return <-ch
+	}
+
+	// On GopherJS, the main goroutine must not be blocked. Return immediately.
+	go func() {
+		if err := <-ch; err != nil {
+			log.Fatal(err)
+		}
+	}()
+	return nil
 }
 
 func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
