@@ -114,8 +114,8 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 // Run must be called on the main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
 //
-// Ebiten tries to call f 60 times a second. In other words,
-// TPS (ticks per second) is 60.
+// Ebiten tries to call f 60 times a second by default. In other words,
+// TPS (ticks per second) is 60 by default.
 // This is not related to framerate (display's refresh rate).
 //
 // f is not called when the window is in background by default.
