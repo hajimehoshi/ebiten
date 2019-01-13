@@ -6,7 +6,7 @@ require (
 	github.com/gopherjs/gopherwasm v1.0.1
 	github.com/hajimehoshi/bitmapfont v1.1.1
 	github.com/hajimehoshi/go-mp3 v0.1.1
-	github.com/hajimehoshi/oto v0.2.1
+	github.com/hajimehoshi/oto v0.2.2
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
@@ -15,7 +15,7 @@ require (
 	golang.org/x/image v0.0.0-20180926015637-991ec62608f3
 	golang.org/x/mobile v0.0.0-20180907224111-0ff817254b04
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
-	golang.org/x/sys v0.0.0-20180814072032-4e1fef560951
+	golang.org/x/sys v0.0.0-20190109145017-48ac38b7c8cb
 	golang.org/x/tools v0.0.0-20181023010539-40a48ad93fbe // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
