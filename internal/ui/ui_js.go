@@ -266,7 +266,7 @@ func init() {
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
 		}))
-		// TODO: This blocks the main goroutine, but should not.
+		// TODO: This blocks the main goroutine on GopherJS, but should not.
 		<-ch
 	}
 
