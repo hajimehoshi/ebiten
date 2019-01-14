@@ -46,7 +46,7 @@ func update(screen *ebiten.Image) error {
 	w, h := offscreen.Size()
 	x := rand.Intn(w)
 	y := rand.Intn(h)
-	c := color.NRGBA{
+	c := color.RGBA{
 		byte(rand.Intn(256)),
 		byte(rand.Intn(256)),
 		byte(rand.Intn(256)),
