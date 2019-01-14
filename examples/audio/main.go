@@ -247,7 +247,4 @@ func main() {
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Audio (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
-	if err := musicPlayer.close(); err != nil {
-		log.Fatal(err)
-	}
 }
