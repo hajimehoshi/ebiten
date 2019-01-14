@@ -185,10 +185,6 @@ func (p *Player) seekBarIfNeeded() {
 	p.audioPlayer.Seek(pos)
 }
 
-func (p *Player) close() error {
-	return p.audioPlayer.Close()
-}
-
 func (p *Player) draw(screen *ebiten.Image) {
 	// Draw the bar.
 	x, y, w, h := playerBarRect()
