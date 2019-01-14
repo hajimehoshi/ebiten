@@ -63,48 +63,18 @@ func (s *Stream) Size() int64 {
 
 type decoder interface {
 	Read([]float32) (int, error)
+	SetPosition(int64) error
 	Length() int64
 	Channels() int
 	SampleRate() int
 }
 
 type decoded struct {
-	data       []float32
 	totalBytes int
 	readBytes  int
 	posInBytes int
 	source     io.Closer
 	decoder    decoder
-}
-
-func (d *decoded) readUntil(posInBytes int) error {
-	if d.decoder == nil {
-		return nil
-	}
-
-	buffer := make([]float32, 8192)
-	for d.readBytes < posInBytes {
-		n, err := d.decoder.Read(buffer)
-		if n > 0 {
-			// Actual read bytes might exceed the total bytes.
-			if d.readBytes+n*2 > d.totalBytes {
-				n = (d.totalBytes - d.readBytes) / 2
-			}
-			p := d.readBytes / 2
-			for i := 0; i < n; i++ {
-				d.data[p+i] = buffer[i]
-			}
-			d.readBytes += n * 2
-		}
-		if err == io.EOF {
-			d.decoder = nil
-			break
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (d *decoded) Read(b []byte) (int, error) {
@@ -115,22 +85,29 @@ func (d *decoded) Read(b []byte) (int, error) {
 	if l < 0 {
 		return 0, io.EOF
 	}
-	// l must be even so that d.posInBytes is always even.
-	l = l / 2 * 2
-	if err := d.readUntil(d.posInBytes + l); err != nil {
+
+	bf := make([]float32, l/2)
+retry:
+	n, err := d.decoder.Read(bf)
+	if err != nil && err != io.EOF {
 		return 0, err
 	}
-	for i := 0; i < l/2; i++ {
-		f := d.data[d.posInBytes/2+i]
+	if n == 0 && len(bf) > 0 && err != io.EOF {
+		// When l is too small, decoder's Read might return 0 for a while. Let's retry.
+		goto retry
+	}
+
+	for i := 0; i < n; i++ {
+		f := bf[i]
 		s := int16(f * (1<<15 - 1))
 		b[2*i] = uint8(s)
 		b[2*i+1] = uint8(s >> 8)
 	}
-	d.posInBytes += l
-	if d.posInBytes == d.totalBytes {
-		return l, io.EOF
+	d.posInBytes += 2 * n
+	if d.posInBytes == d.totalBytes || err == io.EOF {
+		return 2 * n, io.EOF
 	}
-	return l, nil
+	return 2 * n, nil
 }
 
 func (d *decoded) Seek(offset int64, whence int) (int64, error) {
@@ -146,9 +123,7 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 	// pos should be always even
 	next = next / 2 * 2
 	d.posInBytes = int(next)
-	if err := d.readUntil(d.posInBytes); err != nil {
-		return 0, err
-	}
+	d.decoder.SetPosition(next / int64(d.decoder.Channels()) / 2)
 	return next, nil
 }
 
@@ -172,8 +147,6 @@ func decode(in audio.ReadSeekCloser) (*decoded, int, int, error) {
 		return nil, 0, 0, err
 	}
 	d := &decoded{
-		data: make([]float32, int(r.Length())*r.Channels()),
-
 		// TODO: r.Length() returns 0 when the format is unknown.
 		// Should we check that?
 		totalBytes: int(r.Length()) * r.Channels() * 2, // 2 means 16bit per sample.

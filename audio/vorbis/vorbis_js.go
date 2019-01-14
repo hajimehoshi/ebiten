@@ -46,6 +46,10 @@ func (d *decoderImpl) SampleRate() int {
 	return d.sampleRate
 }
 
+func (d *decoderImpl) SetPosition(pos int64) error {
+	return d.samples.SetPosition(pos)
+}
+
 func newDecoder(in audio.ReadSeekCloser) (decoder, error) {
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {

@@ -39,30 +39,55 @@ func init() {
 }
 
 type Samples struct {
-	samples [][]float32
-	length  int64
+	samples         [][]float32
+	channels        int
+	lengthInSamples int64
+	posInSamples    int64
 }
 
 func (s *Samples) Read(buf []float32) (int, error) {
-	if len(s.samples) == 0 {
+	if s.posInSamples == s.lengthInSamples {
 		return 0, io.EOF
 	}
-	n := copy(buf, s.samples[0])
-	s.samples[0] = s.samples[0][n:]
-	if len(s.samples[0]) == 0 {
-		s.samples = s.samples[1:]
+	if len(buf) == 0 {
+		return 0, nil
 	}
+
+	var p int64
+	idx := 0
+	for idx < len(s.samples) {
+		l := int64(len(s.samples[idx])) / int64(s.channels)
+		if p+l > s.posInSamples {
+			break
+		}
+		p += l
+		idx++
+	}
+	start := (s.posInSamples - p) * int64(s.channels)
+	if start == int64(len(s.samples[idx])) {
+		idx++
+		start = 0
+	}
+	if len(s.samples[idx]) == 0 {
+		panic("not reached")
+	}
+	n := copy(buf, s.samples[idx][start:])
+	s.posInSamples += int64(n) / int64(s.channels)
 	return n, nil
 }
 
 func (s *Samples) Length() int64 {
-	return s.length
+	return s.lengthInSamples
+}
+
+func (s *Samples) SetPosition(pos int64) error {
+	s.posInSamples = pos
+	return nil
 }
 
 func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 	ch := make(chan error)
 	samples := &Samples{}
-	channels := 0
 	sampleRate := 0
 
 	var f js.Callback
@@ -82,21 +107,26 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 			return
 		}
 
-		if channels == 0 {
-			channels = r.Get("data").Length()
+		if samples.channels == 0 {
+			samples.channels = r.Get("data").Length()
+
 		}
 		if sampleRate == 0 {
 			sampleRate = r.Get("sampleRate").Int()
 		}
 
 		flattened := flatten.Invoke(r.Get("data"))
+		if flattened.Length() == 0 {
+			return
+		}
+
 		s := make([]float32, flattened.Length())
 		arr := js.TypedArrayOf(s)
 		arr.Call("set", flattened)
 		arr.Release()
 
 		samples.samples = append(samples.samples, s)
-		samples.length += int64(len(s)) / int64(channels)
+		samples.lengthInSamples += int64(len(s)) / int64(samples.channels)
 	})
 
 	arr := js.TypedArrayOf(buf)
@@ -107,5 +137,5 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 		return nil, 0, 0, err
 	}
 
-	return samples, channels, sampleRate, nil
+	return samples, samples.channels, sampleRate, nil
 }
