@@ -75,9 +75,14 @@ type decoded struct {
 	posInBytes int
 	source     io.Closer
 	decoder    decoder
+	decoderr   io.Reader
 }
 
 func (d *decoded) Read(b []byte) (int, error) {
+	if d.decoderr == nil {
+		d.decoderr = convert.NewReaderFromFloat32Reader(d.decoder)
+	}
+
 	l := d.totalBytes - d.posInBytes
 	if l > len(b) {
 		l = len(b)
@@ -86,28 +91,21 @@ func (d *decoded) Read(b []byte) (int, error) {
 		return 0, io.EOF
 	}
 
-	bf := make([]float32, l/2)
 retry:
-	n, err := d.decoder.Read(bf)
+	n, err := d.decoderr.Read(b[:l])
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
-	if n == 0 && len(bf) > 0 && err != io.EOF {
+	if n == 0 && l > 0 && err != io.EOF {
 		// When l is too small, decoder's Read might return 0 for a while. Let's retry.
 		goto retry
 	}
 
-	for i := 0; i < n; i++ {
-		f := bf[i]
-		s := int16(f * (1<<15 - 1))
-		b[2*i] = uint8(s)
-		b[2*i+1] = uint8(s >> 8)
-	}
-	d.posInBytes += 2 * n
+	d.posInBytes += n
 	if d.posInBytes == d.totalBytes || err == io.EOF {
-		return 2 * n, io.EOF
+		return n, io.EOF
 	}
-	return 2 * n, nil
+	return n, nil
 }
 
 func (d *decoded) Seek(offset int64, whence int) (int64, error) {
@@ -124,6 +122,7 @@ func (d *decoded) Seek(offset int64, whence int) (int64, error) {
 	next = next / 2 * 2
 	d.posInBytes = int(next)
 	d.decoder.SetPosition(next / int64(d.decoder.Channels()) / 2)
+	d.decoderr = nil
 	return next, nil
 }
 
@@ -133,6 +132,7 @@ func (d *decoded) Close() error {
 		return err
 	}
 	d.decoder = nil
+	d.decoderr = nil
 	return nil
 }
 
