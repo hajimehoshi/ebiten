@@ -411,7 +411,11 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 			return 0, 0, 0, 0
 		}
 		// The window width can be bigger than the game screen width (#444).
-		ox := (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2
+		ox := 0.0
+		_ = mainthread.Run(func() error {
+			ox = (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2
+			return nil
+		})
 		return ox, 0, ox, 0
 	}
 
