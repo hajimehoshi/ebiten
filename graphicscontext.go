@@ -124,8 +124,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
 		op.GeoM.Scale(c.screenScale, -c.screenScale)
-		// Make the screen height an even number to fit the upper side of the screen (#662).
-		op.GeoM.Translate(0, float64((c.screenHeight+1)/2*2))
+		op.GeoM.Translate(0, float64(c.screenHeight))
 	case graphicsdriver.VUpward:
 		op.GeoM.Scale(c.screenScale, c.screenScale)
 	default:
