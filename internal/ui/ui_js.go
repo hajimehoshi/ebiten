@@ -266,7 +266,6 @@ func init() {
 		window.Call("addEventListener", "load", js.NewCallback(func([]js.Value) {
 			close(ch)
 		}))
-		// TODO: This blocks the main goroutine on GopherJS, but should not.
 		<-ch
 	}
 
@@ -382,7 +381,8 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		return <-ch
 	}
 
-	// On GopherJS, the main goroutine must not be blocked. Return immediately.
+	// On GopherJS, the main goroutine cannot be blocked due to the bug (gopherjs/gopherjs#826).
+	// Return immediately.
 	go func() {
 		if err := <-ch; err != nil {
 			log.Fatal(err)

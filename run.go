@@ -127,7 +127,7 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 // 3) f returns error. In the case of 3), Run returns the same error.
 //
 // On GopherJS, Run returns immediately.
-// It is because the 'main' goroutine cannot be blocked on GopherJS.
+// It is because the 'main' goroutine cannot be blocked on GopherJS due to the bug (gopherjs/gopherjs#826).
 // When an error happens, this is shown as an error on the console.
 //
 // The size unit is device-independent pixel.
