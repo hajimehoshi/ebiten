@@ -112,10 +112,8 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 
-	// TODO: This clear is needed only when the screen size is changed.
-	if c.offsetX > 0 || c.offsetY > 0 {
-		c.screen.Clear()
-	}
+	// This clear is needed for fullscreen mode or some mobile platforms (#622).
+	c.screen.Clear()
 
 	op := &DrawImageOptions{}
 
