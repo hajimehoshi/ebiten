@@ -34,7 +34,9 @@
 //
 //     func main() {
 //         // Call ebiten.Run to start your game loop.
-//         ebiten.Run(update, 320, 240, 2, "Your game's title")
+//         if err := ebiten.Run(update, 320, 240, 2, "Your game's title"); err != nil {
+//             log.Fatal(err)
+//         }
 //     }
 //
 // The EBITEN_SCREENSHOT_KEY environment variable specifies the key

@@ -533,7 +533,7 @@ func (i *Image) ColorModel() color.Model {
 // Note that important logic should not rely on At result since
 // At might include a very slight error on some machines.
 //
-// At can't be called before the main loop (ebiten.Run) starts (as of version 1.4.0-alpha).
+// At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
@@ -550,7 +550,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // Set loads pixels from GPU to system memory if necessary, which means that Set can be slow.
 //
-// Set can't be called before the main loop (ebiten.Run) starts.
+// Set can't be called outside the main loop (ebiten.Run's updating function) starts.
 //
 // If the image is disposed, Set does nothing.
 func (img *Image) Set(x, y int, clr color.Color) {
