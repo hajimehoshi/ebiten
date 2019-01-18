@@ -14,6 +14,10 @@
 
 package graphics
 
+import (
+	"sync"
+)
+
 var (
 	theVerticesBackend = &verticesBackend{}
 )
@@ -21,6 +25,7 @@ var (
 type verticesBackend struct {
 	backend []float32
 	head    int
+	m       sync.Mutex
 }
 
 const (
@@ -34,6 +39,8 @@ func (v *verticesBackend) slice(n int) []float32 {
 		panic("not reached")
 	}
 
+	v.m.Lock()
+
 	need := n * VertexFloatNum
 	if v.head+need > len(v.backend) {
 		v.backend = nil
@@ -46,6 +53,8 @@ func (v *verticesBackend) slice(n int) []float32 {
 
 	s := v.backend[v.head : v.head+need]
 	v.head += need
+
+	v.m.Unlock()
 	return s
 }
 
