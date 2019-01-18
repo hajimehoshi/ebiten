@@ -20,6 +20,7 @@ import (
 	"image/color"
 	"math"
 	"runtime"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
@@ -535,6 +536,10 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
+	if atomic.LoadInt32(&isRunning) == 0 {
+		panic("ebiten: (*Image).At is not available outside the main loop so far")
+	}
+
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
@@ -554,6 +559,10 @@ func (i *Image) At(x, y int) color.Color {
 //
 // If the image is disposed, Set does nothing.
 func (img *Image) Set(x, y int, clr color.Color) {
+	if atomic.LoadInt32(&isRunning) == 0 {
+		panic("ebiten: (*Image).Set is not available outside the main loop so far")
+	}
+
 	img.copyCheck()
 	if img.isDisposed() {
 		return

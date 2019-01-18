@@ -44,6 +44,7 @@ func CurrentFPS() float64 {
 var (
 	isDrawingSkipped = int32(0)
 	currentMaxTPS    = int32(DefaultTPS)
+	isRunning        = int32(0)
 )
 
 func setDrawingSkipped(skipped bool) {
@@ -89,6 +90,8 @@ func IsRunningSlowly() bool {
 var theGraphicsContext atomic.Value
 
 func run(width, height int, scale float64, title string, g *graphicsContext, mainloop bool) error {
+	atomic.StoreInt32(&isRunning, 1)
+	defer atomic.StoreInt32(&isRunning, 0)
 	if err := ui.Run(width, height, scale, title, g, mainloop); err != nil {
 		if err == ui.RegularTermination {
 			return nil
