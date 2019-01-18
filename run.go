@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/ui"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var _ = __EBITEN_REQUIRES_GO_VERSION_1_11_OR_LATER__
@@ -91,7 +92,10 @@ var theGraphicsContext atomic.Value
 
 func run(width, height int, scale float64, title string, g *graphicsContext, mainloop bool) error {
 	atomic.StoreInt32(&isRunning, 1)
-	defer atomic.StoreInt32(&isRunning, 0)
+	// On GopherJS, run returns immediately.
+	if !web.IsGopherJS() {
+		defer atomic.StoreInt32(&isRunning, 0)
+	}
 	if err := ui.Run(width, height, scale, title, g, mainloop); err != nil {
 		if err == ui.RegularTermination {
 			return nil

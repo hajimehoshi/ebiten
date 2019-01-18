@@ -17,10 +17,15 @@
 package web
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/gopherjs/gopherwasm/js"
 )
+
+func IsGopherJS() bool {
+	return runtime.GOOS != "js"
+}
 
 func IsBrowser() bool {
 	return true
