@@ -68,7 +68,7 @@ func (s *stream) Read(buf []byte) (int, error) {
 	const length = int64(sampleRate / frequency)
 	p := s.position / 4
 	for i := 0; i < len(buf)/4; i++ {
-		const max = (1<<15 - 1) / 2
+		const max = 32767
 		b := int16(math.Sin(2*math.Pi*float64(p)/float64(length)) * max)
 		buf[4*i] = byte(b)
 		buf[4*i+1] = byte(b >> 8)
