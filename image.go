@@ -224,7 +224,8 @@ func (i *Image) disposeMipmaps() {
 //
 // Even when all the above conditions are satisfied, multiple draw commands can be used in really rare cases. Ebiten
 // images usually share an internal automatic texture atlas, but when you consume the atlas, or you create a huge
-// image, those images cannot be on the same texture atlas. In this case, draw commands are separated.
+// image, those images cannot be on the same texture atlas. In this case, draw commands are separated. The texture
+// atlas size is 4096x4096 so far.
 //
 // For more performance tips, see https://github.com/hajimehoshi/ebiten/wiki/Performance-Tips.
 //
