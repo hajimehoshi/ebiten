@@ -218,13 +218,13 @@ func (i *Image) disposeMipmaps() {
 // when the successive calls of DrawImages satisfies the below conditions:
 //
 //   * All render targets are same (A in A.DrawImage(B, op))
-//   * All render sources are same (B in A.DrawImage(B, op))
-//     * This is not a strong request since different images might share a same inner
-//       OpenGL texture in high possibility. This is not 100%, so using the same render
-//       source is safer.
 //   * All ColorM values are same, or all the ColorM have only 'scale' operations
 //   * All CompositeMode values are same
 //   * All Filter values are same
+//
+// Even when all the above conditions are satisfied, multiple draw commands can be used in really rare cases. Ebiten
+// images usually share an internal automatic texture atlas, but when you consume the atlas, or you create a huge
+// image, those images cannot be on the same texture atlas. In this case, draw commands are separated.
 //
 // For more performance tips, see https://github.com/hajimehoshi/ebiten/wiki/Performance-Tips.
 //
