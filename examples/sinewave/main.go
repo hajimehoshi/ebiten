@@ -17,7 +17,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -46,30 +45,47 @@ func init() {
 
 // stream is an infinite stream of 440 Hz sine wave.
 type stream struct {
-	position int64
+	position  int64
+	remaining []byte
 }
 
 // Read is io.Reader's Read.
 //
 // Read fills the data with sine wave samples.
-func (s *stream) Read(data []byte) (int, error) {
-	if len(data)%4 != 0 {
-		return 0, errors.New("len(data) % 4 must be 0")
+func (s *stream) Read(buf []byte) (int, error) {
+	if len(s.remaining) > 0 {
+		n := copy(buf, s.remaining)
+		s.remaining = s.remaining[n:]
+		return n, nil
 	}
-	const length = sampleRate / frequency // TODO: This should be integer?
+
+	var origBuf []byte
+	if len(buf)%4 > 0 {
+		origBuf = buf
+		buf = make([]byte, len(origBuf)+4-len(origBuf)%4)
+	}
+
+	const length = int64(sampleRate / frequency)
 	p := s.position / 4
-	for i := 0; i < len(data)/4; i++ {
+	for i := 0; i < len(buf)/4; i++ {
 		const max = (1<<15 - 1) / 2
-		b := int16(math.Sin(2*math.Pi*float64(p)/length) * max)
-		data[4*i] = byte(b)
-		data[4*i+1] = byte(b >> 8)
-		data[4*i+2] = byte(b)
-		data[4*i+3] = byte(b >> 8)
+		b := int16(math.Sin(2*math.Pi*float64(p)/float64(length)) * max)
+		buf[4*i] = byte(b)
+		buf[4*i+1] = byte(b >> 8)
+		buf[4*i+2] = byte(b)
+		buf[4*i+3] = byte(b >> 8)
 		p++
 	}
-	s.position += int64(len(data))
+
+	s.position += int64(len(buf))
 	s.position %= length * 4
-	return len(data), nil
+
+	if origBuf != nil {
+		n := copy(origBuf, buf)
+		s.remaining = buf[n:]
+		return len(origBuf), nil
+	}
+	return len(buf), nil
 }
 
 // Close is io.Closer's Close.
