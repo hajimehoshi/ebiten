@@ -83,7 +83,7 @@ func (s *stream) Read(buf []byte) (int, error) {
 	if origBuf != nil {
 		n := copy(origBuf, buf)
 		s.remaining = buf[n:]
-		return len(origBuf), nil
+		return n, nil
 	}
 	return len(buf), nil
 }
