@@ -101,6 +101,10 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) clear() {
+	if i.priority {
+		panic("not reached")
+	}
+
 	// There are not 'drawImageHistoryItem's for this image and dummyImage.
 	// As dummyImage is a priority image, this is restored before other regular images are restored.
 	w, h := i.Size()
@@ -229,6 +233,9 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 // DrawImage draws a given image img to the image.
 func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+	if i.priority {
+		panic("not reached")
+	}
 	if len(vertices) == 0 {
 		return
 	}
@@ -384,6 +391,7 @@ func (i *Image) restore() error {
 		gimg.ReplacePixels(i.basePixels, 0, 0, w, h)
 	} else {
 		// Clear the image explicitly.
+		// TODO: Is dummyImage available for clearing?
 		pix := make([]uint8, w*h*4)
 		gimg.ReplacePixels(pix, 0, 0, w, h)
 	}
