@@ -55,13 +55,17 @@ type Image struct {
 
 	w2 int
 	h2 int
+
+	// priority indicates whether the image is restored in high priority when context-lost happens.
+	priority bool
 }
 
 var dummyImage *Image
 
 func init() {
 	dummyImage = &Image{
-		image: graphicscommand.NewImage(16, 16),
+		image:    graphicscommand.NewImage(16, 16),
+		priority: true,
 	}
 	theImages.add(dummyImage)
 }
@@ -98,11 +102,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func (i *Image) clear() {
 	// There are not 'drawImageHistoryItem's for this image and dummyImage.
-	// This means dummyImage might not be restored yet when this image is restored.
-	// However, that's ok since this image will be stale or have its updated pixel data soon,
-	// and this image can be restored without dummyImage.
-	//
-	// dummyImage should be restored later anyway.
+	// As dummyImage is a priority image, this is restored faster than other regular images.
 	w, h := i.Size()
 	sw, sh := dummyImage.Size()
 	dw := graphics.NextPowerOf2Int(w)

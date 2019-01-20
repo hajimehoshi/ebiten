@@ -164,7 +164,9 @@ func (i *images) restore() error {
 	}
 	images := map[*Image]struct{}{}
 	for i := range i.images {
-		images[i] = struct{}{}
+		if !i.priority {
+			images[i] = struct{}{}
+		}
 	}
 	edges := map[edge]struct{}{}
 	for t := range images {
@@ -172,7 +174,13 @@ func (i *images) restore() error {
 			edges[edge{source: s, target: t}] = struct{}{}
 		}
 	}
+
 	sorted := []*Image{}
+	for i := range i.images {
+		if i.priority {
+			sorted = append(sorted, i)
+		}
+	}
 	for len(images) > 0 {
 		// current repesents images that have no incoming edges.
 		current := map[*Image]struct{}{}
@@ -198,6 +206,7 @@ func (i *images) restore() error {
 			delete(edges, e)
 		}
 	}
+
 	for _, img := range sorted {
 		if err := img.restore(); err != nil {
 			return err
