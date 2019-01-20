@@ -63,6 +63,7 @@ func init() {
 	dummyImage = &Image{
 		image: graphicscommand.NewImage(16, 16),
 	}
+	theImages.add(dummyImage)
 }
 
 // NewImage creates an empty image with the given size.
