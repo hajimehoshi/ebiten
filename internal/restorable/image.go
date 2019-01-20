@@ -102,7 +102,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func (i *Image) clear() {
 	// There are not 'drawImageHistoryItem's for this image and dummyImage.
-	// As dummyImage is a priority image, this is restored faster than other regular images.
+	// As dummyImage is a priority image, this is restored before other regular images are restored.
 	w, h := i.Size()
 	sw, sh := dummyImage.Size()
 	dw := graphics.NextPowerOf2Int(w)
