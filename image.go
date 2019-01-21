@@ -219,8 +219,9 @@ func (i *Image) disposeMipmaps() {
 //   * All render targets are same (A in A.DrawImage(B, op))
 //   * Either all ColorM element values are same or all the ColorM have only
 //      diagonal ('scale') elements
-//     * (*ColorM).Scale modifies only diagonal elements. Other ColorM functions
-//       might modify the other elements.
+//     * If only (*ColorM).Scale is applied to a ColorM, the ColorM has only
+//       diagonal elements. The other ColorM functions might modify the other
+//       elements.
 //   * All CompositeMode values are same
 //   * All Filter values are same
 //
