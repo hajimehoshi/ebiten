@@ -241,7 +241,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	}
 	theImages.makeStaleIfDependingOn(i)
 
-	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
+	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter, address)
@@ -274,7 +274,7 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices
 }
 
 func (i *Image) readPixelsFromGPUIfNeeded() {
-	if i.basePixels == nil || i.drawImageHistory != nil || i.stale {
+	if i.basePixels == nil || len(i.drawImageHistory) > 0 || i.stale {
 		graphicscommand.FlushCommands()
 		i.readPixelsFromGPU()
 		i.drawImageHistory = nil
