@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
@@ -99,7 +98,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
-		c.offscreen.Fill(color.Transparent)
+		c.offscreen.Clear()
 		// Mipmap images should be disposed by fill.
 
 		setDrawingSkipped(i < updateCount-1)
@@ -112,7 +111,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 
-	// Before clearing the screen, the offscreen's pixels must be solved.
+	// Before clearing the screen, the offscreen's pixels must be resolved.
 	// After clearing the screen, resolving doesn't work. This is very hacky
 	// but we could not find other way so far (#792).
 	c.offscreen.resolvePixelsToSet(true)
