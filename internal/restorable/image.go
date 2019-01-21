@@ -209,7 +209,7 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	}
 	theImages.makeStaleIfDependingOn(i)
 
-	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() {
+	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter)

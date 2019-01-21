@@ -640,3 +640,27 @@ func TestClear(t *testing.T) {
 }
 
 // TODO: How about volatile/screen images?
+
+// Issue #793
+func TestReadPixelsFromVolatileImage(t *testing.T) {
+	const w, h = 16, 16
+	dst := NewImage(w, h, true)
+	src := NewImage(w, h, false)
+
+	// First, make sure that dst has pixels
+	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
+
+	// Second, draw src to dst. If the implementation is correct, drawImageHistory is created.
+	fill(src, 0xff, 0xff, 0xff, 0xff)
+	vs := graphicsutil.QuadVertices(w, h, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphicsutil.QuadIndices()
+	dst.DrawImage(src, vs, is, nil, opengl.CompositeModeCopy, graphics.FilterNearest)
+
+	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to
+	// drawImageHistory items.
+	want := byte(0xff)
+	got := dst.At(0, 0).R
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
