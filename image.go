@@ -201,13 +201,12 @@ func (i *Image) disposeMipmaps() {
 
 // DrawImage draws the given image on the image i.
 //
-// DrawImage accepts the options. For details, see the document of DrawImageOptions.
+// DrawImage accepts the options. For details, see the document of
+// DrawImageOptions.
 //
-// DrawImage determines the part to draw, then DrawImage applies the geometry matrix and the color matrix.
-//
-// For drawing, the pixels of the argument image at the time of this call is adopted.
-// Even if the argument image is mutated after this call,
-// the drawing result is never affected.
+// For drawing, the pixels of the argument image at the time of this call is
+// adopted. Even if the argument image is mutated after this call, the drawing
+// result is never affected.
 //
 // When the image i is disposed, DrawImage does nothing.
 // When the given image img is disposed, DrawImage panics.
@@ -215,18 +214,22 @@ func (i *Image) disposeMipmaps() {
 // When the given image is as same as i, DrawImage panics.
 //
 // DrawImage works more efficiently as batches
-// when the successive calls of DrawImages satisfies the below conditions:
+// when the successive calls of DrawImages satisfy the below conditions:
 //
 //   * All render targets are same (A in A.DrawImage(B, op))
-//   * Either all ColorM element values are same or all the ColorM have only diagonal ('scale') elements
-//     * (*ColorM).Scale modifies only diagonal elements. Other ColorM functions might modify the other elements.
+//   * Either all ColorM element values are same or all the ColorM have only
+//      diagonal ('scale') elements
+//     * (*ColorM).Scale modifies only diagonal elements. Other ColorM functions
+//       might modify the other elements.
 //   * All CompositeMode values are same
 //   * All Filter values are same
 //
-// Even when all the above conditions are satisfied, multiple draw commands can be used in really rare cases. Ebiten
-// images usually share an internal automatic texture atlas, but when you consume the atlas, or you create a huge
-// image, those images cannot be on the same texture atlas. In this case, draw commands are separated. The texture
-// atlas size is 4096x4096 so far. Another case is when you use an offscreen as a render source. An offscreen doesn't
+// Even when all the above conditions are satisfied, multiple draw commands can
+// be used in really rare cases. Ebiten images usually share an internal
+// automatic texture atlas, but when you consume the atlas, or you create a huge
+// image, those images cannot be on the same texture atlas. In this case, draw
+// commands are separated. The texture atlas size is 4096x4096 so far. Another
+// case is when you use an offscreen as a render source. An offscreen doesn't
 // share the texture atlas with high probability.
 //
 // For more performance tips, see https://github.com/hajimehoshi/ebiten/wiki/Performance-Tips.
