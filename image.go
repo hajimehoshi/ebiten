@@ -218,7 +218,8 @@ func (i *Image) disposeMipmaps() {
 // when the successive calls of DrawImages satisfies the below conditions:
 //
 //   * All render targets are same (A in A.DrawImage(B, op))
-//   * All ColorM values are same, or all the ColorM have only 'scale' operations
+//   * Either all ColorM element values are same or all the ColorM have only diagonal ('scale') elements
+//     * (*ColorM).Scale modified only diagonal elements. Other ColorM funcitons might modify the other elements.
 //   * All CompositeMode values are same
 //   * All Filter values are same
 //
