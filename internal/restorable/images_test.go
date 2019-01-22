@@ -662,14 +662,14 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	// First, make sure that dst has pixels
 	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
 
-	// Second, draw src to dst. If the implementation is correct, drawImageHistory is created.
+	// Second, draw src to dst. If the implementation is correct, dst becomes stale.
 	fill(src, 0xff, 0xff, 0xff, 0xff)
 	vs := graphics.QuadVertices(w, h, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 
-	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to
-	// drawImageHistory items.
+	// Read the pixels. If the implementation is correct, dst tries to read its pixels from GPU due to being
+	// stale.
 	want := byte(0xff)
 	got, _, _, _ := dst.At(0, 0)
 	if got != want {
