@@ -68,13 +68,41 @@ func (c *ColorM) ScaleOnly() bool {
 		return true
 	}
 	if c.body != nil {
-		for i, e := range c.body {
-			if i == 0 || i == 5 || i == 10 || i == 15 {
-				continue
-			}
-			if e != 0 {
-				return false
-			}
+		if c.body[1] != 0 {
+			return false
+		}
+		if c.body[2] != 0 {
+			return false
+		}
+		if c.body[3] != 0 {
+			return false
+		}
+		if c.body[4] != 0 {
+			return false
+		}
+		if c.body[6] != 0 {
+			return false
+		}
+		if c.body[7] != 0 {
+			return false
+		}
+		if c.body[8] != 0 {
+			return false
+		}
+		if c.body[9] != 0 {
+			return false
+		}
+		if c.body[11] != 0 {
+			return false
+		}
+		if c.body[12] != 0 {
+			return false
+		}
+		if c.body[13] != 0 {
+			return false
+		}
+		if c.body[14] != 0 {
+			return false
 		}
 	}
 	if c.translate != nil {
