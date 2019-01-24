@@ -64,6 +64,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	}
 	c.offscreen = newVolatileImage(screenWidth, screenHeight)
 
+	// Round up the screensize not to cause glitches e.g. on Xperia (#622)
 	w := int(math.Ceil(float64(screenWidth) * screenScale))
 	h := int(math.Ceil(float64(screenHeight) * screenScale))
 	px0, py0, px1, py1 := ui.ScreenPadding()
