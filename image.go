@@ -279,6 +279,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 			op := &DrawImageOptions{
 				ColorM:        options.ColorM,
 				CompositeMode: options.CompositeMode,
+				Filter:        options.Filter,
 			}
 			op.GeoM.Scale(
 				float64(dx1-dx0)/float64(sx1-sx0),
