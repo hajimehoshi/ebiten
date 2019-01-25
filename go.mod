@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten
 require (
 	github.com/go-gl/glfw v0.0.0-20181008143348-547915429f42
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
-	github.com/gopherjs/gopherwasm v1.0.1
+	github.com/gopherjs/gopherwasm v1.1.0
 	github.com/hajimehoshi/bitmapfont v1.1.1
 	github.com/hajimehoshi/go-mp3 v0.1.1
 	github.com/hajimehoshi/oto v0.2.2
