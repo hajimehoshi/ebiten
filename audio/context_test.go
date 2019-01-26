@@ -14,16 +14,31 @@
 
 package audio
 
-type dummyDriver struct{}
+import (
+	"io"
+)
 
-func (d *dummyDriver) Write(b []byte) (int, error) {
+type (
+	dummyContext struct{}
+	dummyPlayer  struct{}
+)
+
+func (d *dummyContext) NewPlayer() io.WriteCloser {
+	return &dummyPlayer{}
+}
+
+func (d *dummyContext) Close() error {
+	return nil
+}
+
+func (p *dummyPlayer) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (d *dummyDriver) Close() error {
+func (p *dummyPlayer) Close() error {
 	return nil
 }
 
 func init() {
-	driverForTesting = &dummyDriver{}
+	contextForTesting = &dummyContext{}
 }

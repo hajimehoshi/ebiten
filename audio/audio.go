@@ -103,13 +103,34 @@ func CurrentContext() *Context {
 	return c
 }
 
-var driverForTesting io.WriteCloser
+type context interface {
+	NewPlayer() io.WriteCloser
+	io.Closer
+}
 
-func newDriver(sampleRate int) (io.WriteCloser, error) {
-	if driverForTesting != nil {
-		return driverForTesting, nil
+var contextForTesting context
+
+type otoContext struct {
+	c *oto.Context
+}
+
+func (d *otoContext) NewPlayer() io.WriteCloser {
+	return d.c.NewPlayer()
+}
+
+func (d *otoContext) Close() error {
+	return d.c.Close()
+}
+
+func newContext(sampleRate int) (context, error) {
+	if contextForTesting != nil {
+		return contextForTesting, nil
 	}
-	return oto.NewPlayer(sampleRate, channelNum, bytesPerSample/channelNum, bufferSize())
+	c, err := oto.NewContext(sampleRate, channelNum, bytesPerSample/channelNum, bufferSize())
+	if err != nil {
+		return nil, err
+	}
+	return &otoContext{c}, nil
 }
 
 func (c *Context) loop() {
@@ -147,11 +168,14 @@ func (c *Context) loop() {
 	// e.g. a variable for JVM on Android might not be set.
 	<-initCh
 
-	p, err := newDriver(c.sampleRate)
+	context, err := newContext(c.sampleRate)
 	if err != nil {
 		c.err = err
 		return
 	}
+	defer context.Close()
+
+	p := context.NewPlayer()
 	defer p.Close()
 
 	for {
