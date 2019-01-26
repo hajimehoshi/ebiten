@@ -40,8 +40,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/oto"
-
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -53,6 +51,9 @@ import (
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
+	c      context
+	initCh chan struct{}
+
 	mux        *mux
 	sampleRate int
 	err        error
@@ -84,8 +85,17 @@ func NewContext(sampleRate int) (*Context, error) {
 	if theContext != nil {
 		panic("audio: context is already created")
 	}
+
+	ch := make(chan struct{})
+
+	context, err := newContext(sampleRate, ch)
+	if err != nil {
+		return nil, err
+	}
 	c := &Context{
 		sampleRate: sampleRate,
+		c:          context,
+		initCh:     ch,
 	}
 	theContext = c
 	c.mux = newMux()
@@ -103,36 +113,6 @@ func CurrentContext() *Context {
 	return c
 }
 
-type context interface {
-	NewPlayer() io.WriteCloser
-	io.Closer
-}
-
-var contextForTesting context
-
-type otoContext struct {
-	c *oto.Context
-}
-
-func (d *otoContext) NewPlayer() io.WriteCloser {
-	return d.c.NewPlayer()
-}
-
-func (d *otoContext) Close() error {
-	return d.c.Close()
-}
-
-func newContext(sampleRate int) (context, error) {
-	if contextForTesting != nil {
-		return contextForTesting, nil
-	}
-	c, err := oto.NewContext(sampleRate, channelNum, bytesPerSample/channelNum, bufferSize())
-	if err != nil {
-		return nil, err
-	}
-	return &otoContext{c}, nil
-}
-
 func (c *Context) loop() {
 	suspendCh := make(chan struct{}, 1)
 	resumeCh := make(chan struct{}, 1)
@@ -143,11 +123,10 @@ func (c *Context) loop() {
 		resumeCh <- struct{}{}
 	})
 
-	initCh := make(chan struct{})
 	var once sync.Once
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		once.Do(func() {
-			close(initCh)
+			close(c.initCh)
 		})
 
 		var err error
@@ -161,21 +140,11 @@ func (c *Context) loop() {
 		return err
 	})
 
-	// Initialize oto.Player lazily to enable calling NewContext in an 'init' function.
-	// Accessing oto.Player functions requires the environment to be already initialized,
-	// but if Ebiten is used for a shared library, the timing when init functions are called
-	// is unexpectable.
-	// e.g. a variable for JVM on Android might not be set.
-	<-initCh
+	<-c.initCh
 
-	context, err := newContext(c.sampleRate)
-	if err != nil {
-		c.err = err
-		return
-	}
-	defer context.Close()
+	defer c.c.Close()
 
-	p := context.NewPlayer()
+	p := c.c.NewPlayer()
 	defer p.Close()
 
 	for {
