@@ -1,0 +1,50 @@
+// Copyright 2019 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package clock
+
+import (
+	"fmt"
+	"unsafe"
+
+	"golang.org/x/sys/windows"
+)
+
+var (
+	kernel32 = windows.NewLazySystemDLL("kernel32")
+)
+
+var (
+	procQueryPerformanceFrequency = kernel32.NewProc("QueryPerformanceFrequency")
+	procQueryPerformanceCounter   = kernel32.NewProc("QueryPerformanceCounter")
+)
+
+var freq int64
+
+func init() {
+	_, _, e := procQueryPerformanceFrequency.Call(uintptr(unsafe.Pointer(&freq)))
+	if e != nil && e.(windows.Errno) != 0 {
+		panic(fmt.Sprintf("clock: QueryPerformanceFrequency failed: errno: %d", e.(windows.Errno)))
+	}
+}
+
+func now() int64 {
+	var ctr int64
+	// TODO: Should the returned value be checked?
+	_, _, e := procQueryPerformanceCounter.Call(uintptr(unsafe.Pointer(&ctr)))
+	if e != nil && e.(windows.Errno) != 0 {
+		panic(fmt.Sprintf("clock: QueryPerformanceCounter failed: errno: %d", e.(windows.Errno)))
+	}
+	return (ctr * 1e9) / freq
+}

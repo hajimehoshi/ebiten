@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // +build !js
+// +build !windows
 
 package clock
 
