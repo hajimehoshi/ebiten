@@ -1447,3 +1447,68 @@ func TestImageSetAndDraw(t *testing.T) {
 		}
 	}
 }
+
+func TestImageAlphaOnBlack(t *testing.T) {
+	const w, h = 16, 16
+	src0, _ := NewImage(w, h, FilterDefault)
+	src1, _ := NewImage(w, h, FilterDefault)
+	dst0, _ := NewImage(w, h, FilterDefault)
+	dst1, _ := NewImage(w, h, FilterDefault)
+
+	pix0 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if (i/3)%2 == (j/3)%2 {
+				pix0[4*(i+j*w)] = 0xff
+				pix0[4*(i+j*w)+1] = 0xff
+				pix0[4*(i+j*w)+2] = 0xff
+				pix0[4*(i+j*w)+3] = 0xff
+			}
+		}
+	}
+	src0.ReplacePixels(pix0)
+
+	pix1 := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if (i/3)%2 == (j/3)%2 {
+				pix1[4*(i+j*w)] = 0xff
+				pix1[4*(i+j*w)+1] = 0xff
+				pix1[4*(i+j*w)+2] = 0xff
+				pix1[4*(i+j*w)+3] = 0xff
+			} else {
+				pix1[4*(i+j*w)] = 0
+				pix1[4*(i+j*w)+1] = 0
+				pix1[4*(i+j*w)+2] = 0
+				pix1[4*(i+j*w)+3] = 0xff
+			}
+		}
+	}
+	src1.ReplacePixels(pix1)
+
+	dst0.Fill(color.Black)
+	dst1.Fill(color.Black)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(0.5, 0.5)
+	op.Filter = FilterLinear
+	dst0.DrawImage(src0, op)
+	dst1.DrawImage(src1, op)
+
+	gray := false
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst0.At(i, j)
+			want := dst1.At(i, j)
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+			if r := got.(color.RGBA).R; 0 < r && r < 255 {
+				gray = true
+			}
+		}
+	}
+	if !gray {
+		t.Errorf("gray must be included in the results but not")
+	}
+}
