@@ -30,21 +30,33 @@ var (
 	procQueryPerformanceCounter   = kernel32.NewProc("QueryPerformanceCounter")
 )
 
-var freq int64
-
-func init() {
+func queryPerformanceFrequency() int64 {
+	var freq int64
+	// TODO: Should the returned value be checked?
 	_, _, e := procQueryPerformanceFrequency.Call(uintptr(unsafe.Pointer(&freq)))
 	if e != nil && e.(windows.Errno) != 0 {
 		panic(fmt.Sprintf("clock: QueryPerformanceFrequency failed: errno: %d", e.(windows.Errno)))
 	}
+	return freq
 }
 
-func now() int64 {
+func queryPerformanceCounter() int64 {
 	var ctr int64
 	// TODO: Should the returned value be checked?
 	_, _, e := procQueryPerformanceCounter.Call(uintptr(unsafe.Pointer(&ctr)))
 	if e != nil && e.(windows.Errno) != 0 {
 		panic(fmt.Sprintf("clock: QueryPerformanceCounter failed: errno: %d", e.(windows.Errno)))
 	}
-	return (ctr * 1e9) / freq
+	return ctr
+}
+
+var (
+	freq    = queryPerformanceFrequency()
+	initCtr = queryPerformanceCounter()
+)
+
+func now() int64 {
+	// Use the time duration instead of the current counter to avoid overflow.
+	duration := queryPerformanceCounter() - initCtr
+	return (duration * 1e9) / freq
 }
