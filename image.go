@@ -112,7 +112,9 @@ func (m *mipmap) disposeMipmaps() {
 			img.Dispose()
 		}
 	}
-	m.imgs = map[image.Rectangle][]*shareable.Image{}
+	for k := range m.imgs {
+		delete(m.imgs, k)
+	}
 }
 
 // Image represents a rectangle set of pixels.
