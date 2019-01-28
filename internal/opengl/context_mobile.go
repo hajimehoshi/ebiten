@@ -85,7 +85,7 @@ func InitWithContext(context mgl.Context) {
 	theContext = c
 }
 
-func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {
+func (c *Context) DoWork(chDone <-chan struct{}) error {
 	if c.worker == nil {
 		panic("not reached")
 	}
@@ -94,8 +94,6 @@ func (c *Context) DoWork(chError <-chan error, chDone <-chan struct{}) error {
 loop:
 	for {
 		select {
-		case err := <-chError:
-			return err
 		case <-workAvailable:
 			c.worker.DoWork()
 		case <-chDone:
