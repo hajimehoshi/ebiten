@@ -73,7 +73,7 @@ type contextImpl struct {
 	worker mgl.Worker
 }
 
-func (c *context) doWork(chError <-chan error, chDone <-chan struct{}) error {
+func (c *context) doWork(chDone <-chan struct{}) error {
 	if c.worker == nil {
 		panic("not reached")
 	}
@@ -82,8 +82,6 @@ func (c *context) doWork(chError <-chan error, chDone <-chan struct{}) error {
 loop:
 	for {
 		select {
-		case err := <-chError:
-			return err
 		case <-workAvailable:
 			c.worker.DoWork()
 		case <-chDone:
