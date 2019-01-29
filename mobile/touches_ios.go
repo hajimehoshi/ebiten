@@ -40,7 +40,7 @@ func getIDFromPtr(ptr int64) int {
 }
 
 func updateTouchesOnAndroid(action int, id int, x, y int) {
-	panic("not reach")
+	panic("mobile: updateTouchesOnAndroid must not be called on iOS")
 }
 
 func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
@@ -55,6 +55,6 @@ func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
 		delete(touches, id)
 		updateTouches()
 	default:
-		panic("not reach")
+		panic("not reached")
 	}
 }

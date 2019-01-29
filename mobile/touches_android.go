@@ -26,5 +26,5 @@ func updateTouchesOnAndroid(action int, id int, x, y int) {
 }
 
 func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
-	panic("not reach")
+	panic("mobile: updateTouchesOnIOSImpl must not be called on Android")
 }
