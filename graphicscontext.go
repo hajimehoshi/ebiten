@@ -23,7 +23,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
@@ -155,9 +154,6 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 }
 
 func (c *graphicsContext) needsRestoring() (bool, error) {
-	if web.IsBrowser() {
-		return c.invalidated, nil
-	}
 	return c.offscreen.mipmap.original().IsInvalidated()
 }
 

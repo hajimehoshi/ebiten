@@ -90,7 +90,6 @@ var (
 
 type contextImpl struct {
 	gl            js.Value
-	loseContext   js.Value
 	lastProgramID programID
 }
 
@@ -116,10 +115,6 @@ func (c *context) ensureGL() {
 	}
 
 	c.gl = gl
-
-	// Getting an extension might fail after the context is lost, so
-	// it is required to get the extension here.
-	c.loseContext = gl.Call("getExtension", "WEBGL_lose_context")
 }
 
 func (c *context) reset() error {
@@ -130,7 +125,11 @@ func (c *context) reset() error {
 	c.lastViewportHeight = 0
 	c.lastCompositeMode = graphics.CompositeModeUnknown
 
+	c.gl = js.Value{}
 	c.ensureGL()
+	if c.gl.Call("isContextLost").Bool() {
+		return fmt.Errorf("opengl: the context is lost")
+	}
 	gl := c.gl
 	gl.Call("enable", blend)
 	c.blendFunc(graphics.CompositeModeSourceOver)
@@ -468,16 +467,4 @@ func (c *context) flush() {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("flush")
-}
-
-func (c *context) isContextLost() bool {
-	c.ensureGL()
-	gl := c.gl
-	return gl.Call("isContextLost").Bool()
-}
-
-func (c *context) restoreContext() {
-	if c.loseContext != js.Null() {
-		c.loseContext.Call("restoreContext")
-	}
 }

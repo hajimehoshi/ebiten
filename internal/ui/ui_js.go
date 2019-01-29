@@ -25,7 +25,6 @@ import (
 	"github.com/gopherjs/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 )
@@ -43,6 +42,7 @@ type userInterface struct {
 	sizeChanged bool
 	windowFocus bool
 	pageVisible bool
+	contextLost bool
 
 	lastActualScale float64
 }
@@ -216,15 +216,6 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 	hooks.ResumeAudio()
 
-	if opengl.Get().IsContextLost() {
-		opengl.Get().RestoreContext()
-		g.Invalidate()
-
-		// Need to return once to wait restored (#526)
-		// TODO: Is it necessary to handle webglcontextrestored event?
-		return nil
-	}
-
 	input.Get().UpdateGamepads()
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
@@ -241,6 +232,11 @@ func (u *userInterface) loop(g GraphicsContext) <-chan error {
 	ch := make(chan error)
 	var cf js.Callback
 	f := func([]js.Value) {
+		if u.contextLost {
+			requestAnimationFrame.Invoke(cf)
+			return
+		}
+
 		if err := u.update(g); err != nil {
 			ch <- err
 			close(ch)
@@ -359,11 +355,12 @@ func init() {
 		// Do nothing.
 	}))
 
+	// Context
 	canvas.Call("addEventListener", "webglcontextlost", js.NewEventCallback(js.PreventDefault, func(js.Value) {
-		// Do nothing.
+		currentUI.contextLost = true
 	}))
 	canvas.Call("addEventListener", "webglcontextrestored", js.NewCallback(func(e []js.Value) {
-		// Do nothing.
+		currentUI.contextLost = false
 	}))
 }
 

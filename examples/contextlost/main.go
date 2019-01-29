@@ -23,6 +23,7 @@ import (
 	_ "image/jpeg"
 	"log"
 	"math"
+	"time"
 
 	"github.com/gopherjs/gopherwasm/js"
 
@@ -41,7 +42,38 @@ var (
 	count        = 0
 	gophersImage *ebiten.Image
 	extraImages  []*ebiten.Image
+	lost         = false
 )
+
+func loseAndRestoreContext(context js.Value) {
+	if lost {
+		return
+	}
+
+	// Edge might not support the extension. See
+	// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
+	ext := context.Call("getExtension", "WEBGL_lose_context")
+	if ext == js.Null() {
+		fmt.Println("Fail to force context lost. Edge might not support the extension yet.")
+		return
+	}
+
+	ext.Call("loseContext")
+	fmt.Println("Lost the context!")
+	fmt.Println("The context is automatically restored after 3 seconds.")
+	lost = true
+
+	// If and only if the context is lost by loseContext, you need to call restoreContext. Note that in usual
+	// case of context lost, you cannot call restoreContext but the context should be restored automatically.
+	//
+	// After the context is lost, update will not be called. Instead, fire the goroutine to restore the context.
+	go func() {
+		time.Sleep(3 * time.Second)
+		ext.Call("restoreContext")
+		fmt.Println("Restored the context!")
+		lost = false
+	}()
+}
 
 func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) && js.Global() != js.Null() {
@@ -51,14 +83,8 @@ func update(screen *ebiten.Image) error {
 		if context == js.Null() {
 			context = canvas.Call("getContext", "experimental-webgl")
 		}
-		// Edge might not support the extension. See
-		// https://developer.mozilla.org/en-US/docs/Web/API/WEBGL_lose_context
-		if ext := context.Call("getExtension", "WEBGL_lose_context"); ext != js.Null() {
-			ext.Call("loseContext")
-			fmt.Println("Context Lost!")
-		} else {
-			fmt.Println("Fail to force context lost. Edge might not support the extension yet.")
-		}
+
+		loseAndRestoreContext(context)
 		return nil
 	}
 
@@ -75,7 +101,7 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)
 
-	ebitenutil.DebugPrint(screen, "Press Space to force GL context lost!\n(Browser only)")
+	ebitenutil.DebugPrint(screen, "Press Space to force to lose/restore the GL context!\n(Browser only)")
 
 	return nil
 }
