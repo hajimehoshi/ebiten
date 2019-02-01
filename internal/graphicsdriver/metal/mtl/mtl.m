@@ -108,11 +108,18 @@ Device_MakeRenderPipelineState(void *device,
   return rps;
 }
 
-void *Device_MakeBuffer(void *device, const void *bytes, size_t length,
-                        uint16_t options) {
+void *Device_MakeBufferWithBytes(void *device, const void *bytes, size_t length,
+                                 uint16_t options) {
   return [(id<MTLDevice>)device newBufferWithBytes:(const void *)bytes
                                             length:(NSUInteger)length
                                            options:(MTLResourceOptions)options];
+}
+
+void *Device_MakeBufferWithLength(void *device, size_t length,
+                                  uint16_t options) {
+  return
+      [(id<MTLDevice>)device newBufferWithLength:(NSUInteger)length
+                                         options:(MTLResourceOptions)options];
 }
 
 void *Device_MakeTexture(void *device, struct TextureDescriptor descriptor) {
@@ -310,5 +317,11 @@ void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
                                withBytes:bytes
                              bytesPerRow:(NSUInteger)bytesPerRow];
 }
+
+void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes) {
+  memcpy(((id<MTLBuffer>)buffer).contents, data, lengthInBytes);
+}
+
+void Buffer_Retain(void *buffer) { [(id<MTLBuffer>)buffer retain]; }
 
 void Buffer_Release(void *buffer) { [(id<MTLBuffer>)buffer release]; }

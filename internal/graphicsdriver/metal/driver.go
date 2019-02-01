@@ -227,8 +227,8 @@ type Driver struct {
 
 	screenDrawable ca.MetalDrawable
 
-	vb mtl.Buffer
-	ib mtl.Buffer
+	vb *buffer
+	ib *buffer
 
 	src *Image
 	dst *Image
@@ -253,14 +253,14 @@ func (d *Driver) SetWindow(window uintptr) {
 
 func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 	mainthread.Run(func() error {
-		if d.vb != (mtl.Buffer{}) {
-			d.vb.Release()
+		if d.vb != nil {
+			putBuffer(d.vb)
 		}
-		if d.ib != (mtl.Buffer{}) {
-			d.ib.Release()
+		if d.ib != nil {
+			putBuffer(d.ib)
 		}
-		d.vb = d.device.MakeBuffer(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), mtl.ResourceStorageModeManaged)
-		d.ib = d.device.MakeBuffer(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), mtl.ResourceStorageModeManaged)
+		d.vb = getBuffer(d.device, unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)))
+		d.ib = getBuffer(d.device, unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)))
 		return nil
 	})
 }
@@ -539,7 +539,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 			rce.SetRenderPipelineState(d.rpss[mode])
 		}
 		rce.SetViewport(mtl.Viewport{0, 0, float64(w), float64(h), -1, 1})
-		rce.SetVertexBuffer(d.vb, 0, 0)
+		rce.SetVertexBuffer(d.vb.b, 0, 0)
 
 		viewportSize := [...]float32{float32(w), float32(h)}
 		rce.SetVertexBytes(unsafe.Pointer(&viewportSize[0]), unsafe.Sizeof(viewportSize), 1)
@@ -562,7 +562,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		} else {
 			rce.SetFragmentTexture(mtl.Texture{}, 0)
 		}
-		rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, d.ib, indexOffset*2)
+		rce.DrawIndexedPrimitives(mtl.PrimitiveTypeTriangle, indexLen, mtl.IndexTypeUInt16, d.ib.b, indexOffset*2)
 		rce.EndEncoding()
 
 		return nil

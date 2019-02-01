@@ -479,12 +479,19 @@ func (d Device) MakeRenderPipelineState(rpd RenderPipelineDescriptor) (RenderPip
 	return RenderPipelineState{rps.RenderPipelineState}, nil
 }
 
-// MakeBuffer allocates a new buffer of a given length
+// MakeBufferWithBytes allocates a new buffer of a given length
 // and initializes its contents by copying existing data into it.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433429-makebuffer.
-func (d Device) MakeBuffer(bytes unsafe.Pointer, length uintptr, opt ResourceOptions) Buffer {
-	return Buffer{C.Device_MakeBuffer(d.device, bytes, C.size_t(length), C.uint16_t(opt))}
+func (d Device) MakeBufferWithBytes(bytes unsafe.Pointer, length uintptr, opt ResourceOptions) Buffer {
+	return Buffer{C.Device_MakeBufferWithBytes(d.device, bytes, C.size_t(length), C.uint16_t(opt))}
+}
+
+// MakeBufferWithLength allocates a new zero-filled buffer of a given length.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtldevice/1433375-newbufferwithlength
+func (d Device) MakeBufferWithLength(length uintptr, opt ResourceOptions) Buffer {
+	return Buffer{C.Device_MakeBufferWithLength(d.device, C.size_t(length), C.uint16_t(opt))}
 }
 
 // MakeTexture creates a texture object with privately owned storage
@@ -772,8 +779,20 @@ type Buffer struct {
 	buffer unsafe.Pointer
 }
 
+func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
+	C.Buffer_CopyToContents(b.buffer, data, C.size_t(lengthInBytes))
+}
+
+func (b Buffer) Retain() {
+	C.Buffer_Retain(b.buffer)
+}
+
 func (b Buffer) Release() {
 	C.Buffer_Release(b.buffer)
+}
+
+func (b Buffer) Native() unsafe.Pointer {
+	return b.buffer
 }
 
 // Function represents a programmable graphics or compute function executed by the GPU.

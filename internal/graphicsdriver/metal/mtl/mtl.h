@@ -115,8 +115,10 @@ struct Library Device_MakeLibrary(void *device, const char *source,
 struct RenderPipelineState
 Device_MakeRenderPipelineState(void *device,
                                struct RenderPipelineDescriptor descriptor);
-void *Device_MakeBuffer(void *device, const void *bytes, size_t length,
-                        uint16_t options);
+void *Device_MakeBufferWithBytes(void *device, const void *bytes, size_t length,
+                                 uint16_t options);
+void *Device_MakeBufferWithLength(void *device, size_t length,
+                                  uint16_t options);
 void *Device_MakeTexture(void *device, struct TextureDescriptor descriptor);
 
 void CommandQueue_Release(void *commandQueue);
@@ -172,4 +174,6 @@ void Texture_GetBytes(void *texture, void *pixelBytes, size_t bytesPerRow,
 void Texture_ReplaceRegion(void *texture, struct Region region, uint_t level,
                            void *pixelBytes, uint_t bytesPerRow);
 
+void Buffer_CopyToContents(void *buffer, void *data, size_t lengthInBytes);
+void Buffer_Retain(void *buffer);
 void Buffer_Release(void *buffer);
