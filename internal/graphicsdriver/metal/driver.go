@@ -266,6 +266,10 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (d *Driver) Flush() {
+	d.flush(false)
+}
+
+func (d *Driver) flush(wait bool) {
 	mainthread.Run(func() error {
 		if d.cb == (mtl.CommandBuffer{}) {
 			return nil
@@ -275,7 +279,9 @@ func (d *Driver) Flush() {
 			d.cb.PresentDrawable(d.screenDrawable)
 		}
 		d.cb.Commit()
-		d.cb.WaitUntilCompleted()
+		if wait {
+			d.cb.WaitUntilCompleted()
+		}
 
 		d.cb = mtl.CommandBuffer{}
 		d.screenDrawable = ca.MetalDrawable{}
@@ -636,7 +642,7 @@ func (i *Image) syncTexture() {
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	i.driver.Flush()
+	i.driver.flush(true)
 	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
@@ -664,7 +670,7 @@ func (i *Image) SetAsSource() {
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	i.driver.Flush()
+	i.driver.flush(true)
 
 	mainthread.Run(func() error {
 		i.texture.ReplaceRegion(mtl.Region{
