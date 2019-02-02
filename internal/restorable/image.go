@@ -189,6 +189,13 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
+	// TODO: We wanted to skip copying pixels, but this can cause reading-pixels before the driver is initialized.
+	//
+	// if !IsRestoringEnabled() {
+	//	i.makeStale()
+	//	return
+	// }
+
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
 			if i.basePixels == nil {

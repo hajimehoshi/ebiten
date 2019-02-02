@@ -16,18 +16,23 @@ package mainthread
 
 import (
 	"runtime"
+	"sync/atomic"
 )
 
 func init() {
 	runtime.LockOSThread()
 }
 
-var funcs = make(chan func())
+var (
+	started = int32(0)
+	funcs   = make(chan func())
+)
 
 // Loop starts the main-thread loop.
 //
 // Loop must be called on the main thread.
 func Loop(ch <-chan error) error {
+	atomic.StoreInt32(&started, 1)
 	for {
 		select {
 		case f := <-funcs:
@@ -41,6 +46,10 @@ func Loop(ch <-chan error) error {
 
 // Run calls f on the main thread.
 func Run(f func() error) error {
+	if atomic.LoadInt32(&started) == 0 {
+		panic("mainthread: the mainthread loop is not started yet")
+	}
+
 	ch := make(chan struct{})
 	var err error
 	funcs <- func() {
