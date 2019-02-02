@@ -189,11 +189,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
-	if !IsRestoringEnabled() {
-		i.makeStale()
-		return
-	}
-
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
 			if i.basePixels == nil {
