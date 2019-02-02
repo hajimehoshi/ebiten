@@ -190,6 +190,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
 	// TODO: We wanted to skip copying pixels, but this can cause reading-pixels before the driver is initialized.
+	// For example, Pixels() is called at shareable package when enlarging the shareable images.
 	//
 	// if !IsRestoringEnabled() {
 	//	i.makeStale()
