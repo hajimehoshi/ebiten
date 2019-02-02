@@ -168,6 +168,17 @@ func (i *Image) makeStale() {
 	// the former image can be restored from the latest state of the latter image.
 }
 
+func (i *Image) CopyPixels(src *Image) {
+	// TODO: Avoid making other images stale if possible. (#514)
+	// For this purpuse, images should remember which part of that is used for DrawImage.
+	theImages.makeStaleIfDependingOn(i)
+
+	i.image.CopyPixels(src.image)
+
+	// As pixels should not be obtained here, making the image stale is inevitable.
+	i.makeStale()
+}
+
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // If pixels is nil, ReplacePixels clears the specified reagion.
@@ -189,13 +200,10 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
-	// TODO: We wanted to skip copying pixels, but this can cause reading-pixels before the driver is initialized.
-	// For example, Pixels() is called at shareable package when enlarging the shareable images.
-	//
-	// if !IsRestoringEnabled() {
-	//	i.makeStale()
-	//	return
-	// }
+	if !IsRestoringEnabled() {
+		i.makeStale()
+		return
+	}
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {

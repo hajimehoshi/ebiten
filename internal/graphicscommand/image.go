@@ -131,6 +131,24 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 	i.lastCommand = lastCommandReplacePixels
 }
 
+// CopyPixels is basically same as Pixels and ReplacePixels, but reading pixels from GPU is done lazily.
+func (i *Image) CopyPixels(src *Image) {
+	if i.lastCommand == lastCommandDrawImage {
+		if i.width != src.width || i.height != src.height {
+			panic("graphicscommand: Copy for a part after DrawImage is forbidden")
+		}
+	}
+
+	c := &copyPixelsCommand{
+		dst: i,
+		src: src,
+	}
+	theCommandQueue.Enqueue(c)
+
+	// The execution is basically same as replacing pixels.
+	i.lastCommand = lastCommandReplacePixels
+}
+
 func (i *Image) IsInvalidated() bool {
 	// i.image can be nil before initializing.
 	if i.image == nil {

@@ -293,3 +293,5 @@ func TestReplacePixelsAfterDrawImage(t *testing.T) {
 		}
 	}
 }
+
+// TODO: Add tests to extend shareable image out of the main loop
