@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/theckman/go-flock"
+	"github.com/gofrs/flock"
 )
 
 var theLock = flock.NewFlock(filepath.Join(os.TempDir(), "ebitentest"))
