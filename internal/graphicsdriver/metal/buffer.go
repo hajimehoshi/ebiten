@@ -28,6 +28,7 @@ import (
 // #import <CoreFoundation/CoreFoundation.h>
 //
 // static int count(void* obj) {
+//   // TODO: Don't rely on the number of ref counts. CFGetRetainCount should be used only for debugging.
 //   return CFGetRetainCount(obj);
 // }
 import "C"
@@ -72,6 +73,7 @@ func getBuffer(device mtl.Device, data unsafe.Pointer, lengthInBytes uintptr) *b
 
 func putBuffer(buf *buffer) {
 	buf.b.Release()
+	// The buffer will be actually released after all the current command buffers are finished.
 	gcBufferPool()
 }
 
