@@ -29,6 +29,8 @@ import (
 //
 // static int count(void* obj) {
 //   // TODO: Don't rely on the number of ref counts. CFGetRetainCount should be used only for debugging.
+//   // Note that checking whether MTLCommandBuffer's status is completed or not does not work, because the
+//   // CommandBuffer might still be used even in such situation.
 //   return CFGetRetainCount(obj);
 // }
 import "C"

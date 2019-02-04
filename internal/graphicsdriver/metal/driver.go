@@ -494,7 +494,6 @@ func (d *Driver) Reset() error {
 }
 
 func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
-	// TODO: Use address
 	if err := mainthread.Run(func() error {
 		// NSView can be changed anytime (probably). Set this everyframe.
 		cocoaWindow := ns.NewWindow(unsafe.Pointer(d.window))
