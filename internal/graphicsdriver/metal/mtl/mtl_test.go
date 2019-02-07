@@ -89,7 +89,7 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 		{f32.Vec4{-0.75, -0.75, 0, 1}, f32.Vec4{0, 1, 0, 1}},
 		{f32.Vec4{+0.75, -0.75, 0, 1}, f32.Vec4{0, 0, 1, 1}},
 	}
-	vertexBuffer := device.MakeBuffer(unsafe.Pointer(&vertexData[0]), unsafe.Sizeof(vertexData), mtl.ResourceStorageModeManaged)
+	vertexBuffer := device.MakeBufferWithBytes(unsafe.Pointer(&vertexData[0]), unsafe.Sizeof(vertexData), mtl.ResourceStorageModeManaged)
 
 	// Create an output texture to render into.
 	td := mtl.TextureDescriptor{
