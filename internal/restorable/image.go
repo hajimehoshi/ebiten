@@ -102,7 +102,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func (i *Image) clear() {
 	if i.priority {
-		panic("not reached")
+		panic("restorable: clear cannot be called on a priority image")
 	}
 
 	// There are not 'drawImageHistoryItem's for this image and dummyImage.
@@ -250,7 +250,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 // DrawImage draws a given image img to the image.
 func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if i.priority {
-		panic("not reached")
+		panic("restorable: DrawImage cannot be called on a priority image")
 	}
 	if len(vertices) == 0 {
 		return
@@ -412,9 +412,8 @@ func (i *Image) restore() error {
 		gimg.ReplacePixels(pix, 0, 0, w, h)
 	}
 	for _, c := range i.drawImageHistory {
-		// All dependencies must be already resolved.
 		if c.image.hasDependency() {
-			panic("not reached")
+			panic("restorable: all dependencies must be already resolved but not")
 		}
 		gimg.DrawImage(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address)
 	}

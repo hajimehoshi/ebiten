@@ -75,7 +75,7 @@ type contextImpl struct {
 
 func (c *context) doWork(chDone <-chan struct{}) error {
 	if c.worker == nil {
-		panic("not reached")
+		panic("opengl: worker must be initialized but not")
 	}
 	// TODO: Check this is called on the rendering thread
 	workAvailable := c.worker.WorkAvailable()
@@ -307,7 +307,7 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 	case 16:
 		gl.UniformMatrix4fv(l, v)
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 	}
 }
 

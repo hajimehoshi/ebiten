@@ -80,7 +80,7 @@ func shaderStr(id shaderID) string {
 			src = strings.Replace(src, k, v, -1)
 		}
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("opengl: invalid shader id: %d", id))
 	}
 
 	checkGLSL(src)

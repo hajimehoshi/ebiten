@@ -460,7 +460,7 @@ func (d *Driver) Reset() error {
 			case graphics.OneMinusDstAlpha:
 				return mtl.BlendFactorOneMinusDestinationAlpha
 			default:
-				panic("not reached")
+				panic(fmt.Sprintf("metal: invalid operation: %d", c))
 			}
 		}
 
@@ -627,7 +627,7 @@ func (i *Image) IsInvalidated() bool {
 func (i *Image) syncTexture() {
 	mainthread.Run(func() error {
 		if i.driver.cb != (mtl.CommandBuffer{}) {
-			panic("not reached")
+			panic("metal: command buffer must be empty at syncTexture: flush is not called yet?")
 		}
 
 		cb := i.driver.cq.MakeCommandBuffer()

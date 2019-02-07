@@ -14,6 +14,10 @@
 
 package graphics
 
+import (
+	"fmt"
+)
+
 type CompositeMode int
 
 const (
@@ -75,6 +79,6 @@ func (c CompositeMode) Operations() (src Operation, dst Operation) {
 	case CompositeModeLighter:
 		return One, One
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("graphics: invalid composite mode: %d", c))
 	}
 }

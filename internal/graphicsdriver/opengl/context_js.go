@@ -374,7 +374,7 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
 		arr.Release()
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 	}
 }
 

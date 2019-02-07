@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
@@ -121,7 +122,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 
 	op := &DrawImageOptions{}
 
-	switch graphicscommand.Driver().VDirection() {
+	switch vd := graphicscommand.Driver().VDirection(); vd {
 	case graphicsdriver.VDownward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
@@ -130,7 +131,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	case graphicsdriver.VUpward:
 		op.GeoM.Scale(c.screenScale, c.screenScale)
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
 	op.GeoM.Translate(c.offsetX, c.offsetY)

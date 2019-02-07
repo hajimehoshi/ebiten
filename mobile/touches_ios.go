@@ -16,6 +16,10 @@
 
 package mobile
 
+import (
+	"fmt"
+)
+
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation -framework UIKit
 //
@@ -55,6 +59,6 @@ func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
 		delete(touches, id)
 		updateTouches()
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("mobile: invalid phase: %d", phase))
 	}
 }

@@ -44,7 +44,7 @@ func (m *mipmap) original() *shareable.Image {
 
 func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	if level == 0 {
-		panic("not reached")
+		panic("ebiten: level must not be 0 (original image) at level")
 	}
 
 	imgs, ok := m.imgs[r]
@@ -182,7 +182,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 	// TODO: Implement this.
 	if i.isSubimage() {
-		panic("render to a subimage is not implemented")
+		panic("ebiten: render to a subimage is not implemented (Fill)")
 	}
 
 	i.resolvePixelsToSet(false)
@@ -196,7 +196,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 func (i *Image) disposeMipmaps() {
 	if i.isDisposed() {
-		panic("not reached")
+		panic("ebiten: the image is already disposed at disposeMipmap")
 	}
 	i.mipmap.disposeMipmaps()
 }
@@ -254,7 +254,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 
 	// TODO: Implement this.
 	if i.isSubimage() {
-		panic("render to a subimage is not implemented")
+		panic("ebiten: render to a subimage is not implemented (drawImage)")
 	}
 
 	img.resolvePixelsToSet(true)
@@ -326,7 +326,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		}
 		level = graphics.MipmapLevel(det)
 		if level < 0 {
-			panic("not reached")
+			panic(fmt.Sprintf("ebiten: level must be >= 0 but %d", level))
 		}
 	}
 	if level > 6 {
@@ -443,7 +443,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	if i.isSubimage() {
-		panic("render to a subimage is not implemented")
+		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
 	}
 
 	img.resolvePixelsToSet(true)
@@ -663,7 +663,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	}
 	// TODO: Implement this.
 	if i.isSubimage() {
-		panic("render to a subimage is not implemented")
+		panic("ebiten: render to a subimage is not implemented (ReplacePixels)")
 	}
 	i.resolvePixelsToSet(false)
 	s := i.Bounds().Size()

@@ -75,7 +75,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	n, err := i.src.Read(b)
 	i.pos += int64(n)
 	if i.pos > i.length() {
-		panic("not reached")
+		panic(fmt.Sprintf("audio: position must be <= length but not at (*InfiniteLoop).Read: pos: %d, length: %d", i.pos, i.length()))
 	}
 
 	if err != nil && err != io.EOF {

@@ -14,6 +14,10 @@
 
 package opengl
 
+import (
+	"fmt"
+)
+
 type (
 	shaderType  int
 	bufferType  int
@@ -30,6 +34,6 @@ func (d dataType) SizeInBytes() int {
 	case float:
 		return 4
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("opengl: invalid data type: %d", d))
 	}
 }

@@ -130,7 +130,7 @@ func (p *Page) alloc(n *Node, width, height int) *Node {
 		return p.alloc(n.child0, width, height)
 	}
 	if n.child0 == nil || n.child1 == nil {
-		panic("not reached")
+		panic("packing: both two children must not be nil at alloc")
 	}
 	if node := p.alloc(n.child0, width, height); node != nil {
 		return node
@@ -174,7 +174,7 @@ func (p *Page) Free(node *Node) {
 		return
 	}
 	if node.parent.child0 == nil || node.parent.child1 == nil {
-		panic("not reached: double free?")
+		panic("packing: both two children must not be nil at Free: double free happened?")
 	}
 	if node.parent.child0.canFree() && node.parent.child1.canFree() {
 		node.parent.child0 = nil

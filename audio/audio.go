@@ -320,7 +320,7 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 	p, err := NewPlayer(context, b)
 	if err != nil {
 		// Errors should never happen.
-		panic(err)
+		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
 	}
 	return p, nil
 }
@@ -418,7 +418,7 @@ func (p *playerImpl) readLoop() {
 		case s := <-p.seekCh:
 			seeker, ok := p.src.(io.Seeker)
 			if !ok {
-				panic("not reached")
+				panic("audio: the source must be io.Seeker when seeking")
 			}
 			pos, err := seeker.Seek(s.offset, s.whence)
 			p.buf = nil

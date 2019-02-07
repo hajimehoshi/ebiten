@@ -15,6 +15,7 @@
 package shareable
 
 import (
+	"fmt"
 	"image"
 	"runtime"
 	"sync"
@@ -71,7 +72,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 
 	n := b.page.Alloc(width, height)
 	if n == nil {
-		panic("not reached")
+		panic("shareable: Alloc result must not be nil at TryAlloc")
 	}
 	return n, true
 }
@@ -150,7 +151,7 @@ func (i *Image) forceShared() {
 	}
 
 	if !i.shareable() {
-		panic("not reached")
+		panic("shareable: forceShared cannot be called on a non-shareable image")
 	}
 
 	newI := NewImage(i.width, i.height)
@@ -171,7 +172,7 @@ func (i *Image) forceShared() {
 
 func (i *Image) region() (x, y, width, height int) {
 	if i.backend == nil {
-		panic("not reached")
+		panic("shareable: backend must not be nil: not allocated yet?")
 	}
 	if !i.isShared() {
 		w, h := i.backend.restorable.Size()
@@ -304,7 +305,7 @@ func (i *Image) replacePixels(p []byte) {
 	x, y, w, h := i.region()
 	if p != nil {
 		if l := 4 * w * h; len(p) != l {
-			panic("not reached")
+			panic(fmt.Sprintf("shareable: len(p) must be %d but %d", l, len(p)))
 		}
 	}
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
@@ -379,7 +380,7 @@ func (i *Image) dispose(markDisposed bool) {
 		}
 	}
 	if index == -1 {
-		panic("not reached")
+		panic("shareable: backend not found at an image being disposed")
 	}
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
@@ -418,7 +419,7 @@ func (i *Image) shareable() bool {
 
 func (i *Image) allocate(shareable bool) {
 	if i.backend != nil {
-		panic("not reached")
+		panic("shareable: the image is already allocated")
 	}
 
 	if !shareable || !i.shareable() {
@@ -440,7 +441,7 @@ func (i *Image) allocate(shareable bool) {
 	size := initSize
 	for i.width > size || i.height > size {
 		if size == maxSize {
-			panic("not reached")
+			panic(fmt.Sprintf("shareable: the image being shared is too big: width: %d, height: %d", i.width, i.height))
 		}
 		size *= 2
 	}
@@ -453,7 +454,7 @@ func (i *Image) allocate(shareable bool) {
 
 	n := b.page.Alloc(i.width, i.height)
 	if n == nil {
-		panic("not reached")
+		panic("shareable: Alloc result must not be nil at allocate")
 	}
 	i.backend = b
 	i.node = n

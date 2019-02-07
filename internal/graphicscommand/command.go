@@ -89,7 +89,7 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 
 func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address, forceNewCommand bool) {
 	if nindices > graphics.IndicesNum {
-		panic("not reached")
+		panic(fmt.Sprintf("graphicscommand: nindices must be <= graphics.IndicesNum but not at doEnqueueDrawImageCommand: nindices: %d, graphics.IndicesNum: %d", nindices, graphics.IndicesNum))
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
 		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter, address) {
@@ -114,7 +114,7 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 // EnqueueDrawImageCommand enqueues a drawing-image command.
 func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if len(indices) > graphics.IndicesNum {
-		panic("not reached")
+		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawImageCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
 
 	split := false
@@ -156,7 +156,7 @@ func (q *commandQueue) Flush() {
 		nc := 0
 		for _, c := range q.commands {
 			if c.NumIndices() > graphics.IndicesNum {
-				panic("not reached")
+				panic(fmt.Sprintf("graphicscommand: c.NumIndices() must be <= graphics.IndicesNum but not at Flush: c.NumIndices(): %d, graphics.IndicesNum: %d", c.NumIndices(), graphics.IndicesNum))
 			}
 			if ne+c.NumIndices() > graphics.IndicesNum {
 				break

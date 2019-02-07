@@ -391,7 +391,7 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 		case 16:
 			gl.UniformMatrix4fv(l, 1, false, (*float32)(gl.Ptr(v)))
 		default:
-			panic("not reached")
+			panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 		}
 		return nil
 	})

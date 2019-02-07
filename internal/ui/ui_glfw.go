@@ -280,7 +280,7 @@ func SetScreenSize(width, height int) {
 		panic("ui: Run is not called yet")
 	}
 	_ = mainthread.Run(func() error {
-		u.setScreenSize(width, height, u.scale, u.fullscreen(), u.vsync)
+		u.setScreenSize(width, height, u.scale, u.isFullscreen(), u.vsync)
 		return nil
 	})
 }
@@ -292,7 +292,7 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = mainthread.Run(func() error {
-		r = u.setScreenSize(u.width, u.height, scale, u.fullscreen(), u.vsync)
+		r = u.setScreenSize(u.width, u.height, scale, u.isFullscreen(), u.vsync)
 		return nil
 	})
 	return r
@@ -311,10 +311,10 @@ func ScreenScale() float64 {
 	return s
 }
 
-// fullscreen must be called from the main thread.
-func (u *userInterface) fullscreen() bool {
+// isFullscreen must be called from the main thread.
+func (u *userInterface) isFullscreen() bool {
 	if !u.isRunning() {
-		panic("not reached")
+		panic("ui: the game must be running at isFullscreen")
 	}
 	return u.window.GetMonitor() != nil
 }
@@ -326,7 +326,7 @@ func IsFullscreen() bool {
 	}
 	b := false
 	_ = mainthread.Run(func() error {
-		b = u.fullscreen()
+		b = u.isFullscreen()
 		return nil
 	})
 	return b
@@ -367,7 +367,7 @@ func SetVsyncEnabled(enabled bool) {
 	}
 	_ = mainthread.Run(func() error {
 		u := currentUI
-		u.setScreenSize(u.width, u.height, u.scale, u.fullscreen(), enabled)
+		u.setScreenSize(u.width, u.height, u.scale, u.isFullscreen(), enabled)
 		return nil
 	})
 }
@@ -646,7 +646,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 			s := glfwScale()
 			w := int(float64(width) / u.scale / s)
 			h := int(float64(height) / u.scale / s)
-			if u.fullscreen() {
+			if u.isFullscreen() {
 				return
 			}
 			u.reqWidth = w
@@ -673,7 +673,7 @@ func (u *userInterface) glfwSize() (int, int) {
 
 // getScale must be called from the main thread.
 func (u *userInterface) getScale() float64 {
-	if !u.fullscreen() {
+	if !u.isFullscreen() {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
@@ -711,7 +711,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	_ = mainthread.Run(func() error {
 		actualScale = u.actualScreenScale()
 		if u.lastActualScale != actualScale {
-			u.forceSetScreenSize(u.width, u.height, u.scale, u.fullscreen(), u.vsync)
+			u.forceSetScreenSize(u.width, u.height, u.scale, u.isFullscreen(), u.vsync)
 		}
 		u.lastActualScale = actualScale
 
@@ -777,7 +777,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	_ = mainthread.Run(func() error {
 		w, h := u.reqWidth, u.reqHeight
 		if w != 0 || h != 0 {
-			u.setScreenSize(w, h, u.scale, u.fullscreen(), u.vsync)
+			u.setScreenSize(w, h, u.scale, u.isFullscreen(), u.vsync)
 		}
 		u.reqWidth = 0
 		u.reqHeight = 0
@@ -822,7 +822,7 @@ func (u *userInterface) swapBuffers() {
 
 // setScreenSize must be called from the main thread.
 func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) bool {
-	if u.width == width && u.height == height && u.scale == scale && u.fullscreen() == fullscreen && u.vsync == vsync {
+	if u.width == width && u.height == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync {
 		return false
 	}
 	u.forceSetScreenSize(width, height, scale, fullscreen, vsync)

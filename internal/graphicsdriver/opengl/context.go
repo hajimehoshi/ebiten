@@ -15,6 +15,8 @@
 package opengl
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
@@ -33,7 +35,7 @@ func convertOperation(op graphics.Operation) operation {
 	case graphics.OneMinusDstAlpha:
 		return oneMinusDstAlpha
 	default:
-		panic("not reached")
+		panic(fmt.Sprintf("opengl: invalid operation %d at convertOperation", op))
 	}
 }
 

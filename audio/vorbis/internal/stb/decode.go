@@ -69,7 +69,7 @@ func (s *Samples) Read(buf []float32) (int, error) {
 		start = 0
 	}
 	if len(s.samples[idx]) == 0 {
-		panic("not reached")
+		panic(fmt.Sprintf("stb: len(samples[%d]) must be > 0", idx))
 	}
 	n := copy(buf, s.samples[idx][start:])
 	s.posInSamples += int64(n) / int64(s.channels)

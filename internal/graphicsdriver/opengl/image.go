@@ -87,8 +87,7 @@ func (i *Image) ensureFramebuffer() error {
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 	if i.screen {
-		// The screen image doesn't have a texture to replace pixels.
-		panic("not reached")
+		panic("opengl: ReplacePixels cannot be called on the screen, that doesn't have a texture")
 	}
 
 	// glFlush is necessary on Android.

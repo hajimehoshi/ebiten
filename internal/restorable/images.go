@@ -131,7 +131,7 @@ func (i *images) makeStaleIfDependingOn(target *Image) {
 
 func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 	if target == nil {
-		panic("not reached")
+		panic("restorable: target must not be nil at makeStaleIfDependingOnImpl")
 	}
 	if i.lastTarget == target {
 		return
@@ -147,7 +147,7 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
 	if !IsRestoringEnabled() {
-		panic("not reached")
+		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 
 	// Dispose image explicitly
