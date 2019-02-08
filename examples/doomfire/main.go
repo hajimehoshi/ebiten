@@ -28,10 +28,10 @@ import (
 const (
 	screenWidth  = 100
 	screenHeight = 50
+	screenSize   = screenWidth * screenHeight
 )
 
 var (
-	screenSize  = screenWidth * screenHeight
 	pixels      = make([]byte, screenSize*4)
 	firePixels  = make([]byte, screenSize)
 	firePalette = []color.RGBA{
