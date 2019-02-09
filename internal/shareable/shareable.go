@@ -220,10 +220,10 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	defer backendsM.Unlock()
 
 	if img.disposed {
-		panic("shareable: the drawing source image must not be disposed")
+		panic("shareable: the drawing source image must not be disposed (DrawImage)")
 	}
 	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed")
+		panic("shareable: the drawing target image must not be disposed (DrawImage)")
 	}
 	if img.backend == nil {
 		img.allocate(true)
@@ -262,7 +262,7 @@ var emptyImage = NewImage(16, 16)
 func (i *Image) Fill(r, g, b, a uint8) {
 	backendsM.Lock()
 	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed")
+		panic("shareable: the drawing target image must not be disposed (Fill)")
 	}
 	i.ensureNotShared()
 	backendsM.Unlock()
@@ -293,7 +293,7 @@ func (i *Image) ReplacePixels(p []byte) {
 
 func (i *Image) replacePixels(p []byte) {
 	if i.disposed {
-		panic("shareable: the image must not be disposed")
+		panic("shareable: the image must not be disposed at replacePixels")
 	}
 	if i.backend == nil {
 		if p == nil {
