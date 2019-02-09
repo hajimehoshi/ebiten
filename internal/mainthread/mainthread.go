@@ -45,9 +45,12 @@ func Loop(ch <-chan error) error {
 }
 
 // Run calls f on the main thread.
+//
+// Do not call this from the main thread. This would block forever.
 func Run(f func() error) error {
 	if atomic.LoadInt32(&started) == 0 {
-		panic("mainthread: the mainthread loop is not started yet")
+		// TODO: This can reach from other goroutine before Loop is called (#809).
+		// panic("mainthread: the mainthread loop is not started yet")
 	}
 
 	ch := make(chan struct{})
