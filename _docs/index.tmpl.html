@@ -40,7 +40,7 @@
     <dd class="col-9">{{.DevVersion}}</dd>
   </dl>
 
-  <h2 id="platforms">Platforms</h2>
+  <h2>Platforms</h2>
   <dl class="row">
     <dt class="col-3 text-right">Desktops</dt>
     <dd class="col-9"><a href="https://github.com/hajimehoshi/ebiten/wiki/Windows">Windows</a>, <a href="https://github.com/hajimehoshi/ebiten/wiki/macOS">macOS</a>, <a href="https://github.com/hajimehoshi/ebiten/wiki/Linux">Linux</a>, <a href="https://github.com/hajimehoshi/ebiten/wiki/FreeBSD">FreeBSD</a></dd>
@@ -51,7 +51,7 @@
   </dl>
   <p><small>Note: Gamepads and keyboard are not available on Android/iOS.</small></p>
 
-  <h2 id="features">Features</h2>
+  <h2>Features</h2>
   <dl class="row">
     <dt class="col-3 text-right">2D Graphics</dt>
     <dd class="col-9">Geometry/Color matrix transformation, Various composition modes, Offscreen rendering, Fullscreen, Text rendering, Automatic batches, Automatic texture atlas</dd>
@@ -61,8 +61,7 @@
     <dd class="col-9">Ogg/Vorbis, MP3, WAV, PCM</dd>
   </dl>
 
-  <h2 id="examples">Examples</h2>
-  <h3>Games</h3>
+  <h2>Game Examples</h2>
   <div class="row">
   {{range .GamesExamples -}}
     <div class="col-3">
@@ -70,6 +69,25 @@
     </div>
   {{- end}}
   </div>
+
+  <h2>Featured Projects</h2>
+  <div class="row">
+    <div class="col-3">
+      <a href="https://daigostudio.com/bearsrestaurant/"><img src="images/projects/bears_restaurant.png" width="960" height="960" alt="Bear's Restaurant" class="img-thumbnail"></a>
+    </div>
+    <div class="col-3">
+      <a href="http://blockbros.net/bluebird/"><img src="images/projects/bluebird_of_happiness.png" width="540" height="540" alt="Bluebird of Happiness" class="img-thumbnail"></a>
+    </div>
+    <div class="col-3">
+      <a href="http://blockbros.net/tsugunai/"><img src="images/projects/clock_of_atonement.png" width="480" height="480" alt="Clock of Atonement" class="img-thumbnail"></a>
+    </div>
+    <div class="col-3">
+      <a href="https://github.com/hajimehoshi/go-inovation"><img src="images/projects/inovation.png" width="1024" height="500" alt="Inovation 2007" class="img-thumbnail"></a>
+    </div>
+  </div>
+  <p><a href="https://github.com/hajimehoshi/ebiten/wiki/Works">Find more nice works with Ebiten!</a></p>
+  
+  <h2>Examples</h2>
   <h3>Graphics</h3>
   <div class="row">
   {{range .GraphicsExamples -}}
@@ -103,21 +121,7 @@ cd $GOPATH/src/github.com/hajimehoshi/ebiten/examples
 go run -tags=example rotate/main.go</code></pre></div>
   <p>Note that you need to add <code>-tags=example</code> to run examples.</p>
 
-  <h2 id="projects-with-ebiten">Projects with Ebiten</h2>
-  <div class="row">
-    <div class="col-3">
-      <a href="https://github.com/hajimehoshi/go-inovation"><img src="images/projects/inovation.png" width="1024" height="500" alt="Inovation 2007" class="img-thumbnail"></a>
-    </div>
-    <div class="col-3">
-      <a href="http://blockbros.net/tsugunai/"><img src="images/projects/clock_of_atonement.png" width="480" height="480" alt="Clock of Atonement" class="img-thumbnail"></a>
-    </div>
-    <div class="col-3">
-      <a href="http://blockbros.net/bluebird/"><img src="images/projects/bluebird_of_happiness.png" width="540" height="540" alt="Bluebird of Happiness" class="img-thumbnail"></a>
-    </div>
-  </div>
-  <p><a href="https://github.com/hajimehoshi/ebiten/wiki/Works">Find more nice works with Ebiten!</a></p>
-
-  <h2 id="getting-started">Getting Started</h2>
+  <h2>Getting Started</h2>
 
   <p>Let's build a simple "Hello world!" game to get started with Ebiten.
 First create a new directory (<code>mkdir hello_world</code>), and change
