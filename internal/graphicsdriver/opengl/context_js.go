@@ -172,6 +172,8 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	// In Ebiten, textures are filled with pixels laster by the filter that ignores destination, so it is fine
 	// to leave textures as uninitialized here. Rather, extra memory allocating for initialization should be
 	// avoided.
+
+	// gl.RGBA8 is available as of WebGL 2.
 	gl.Call("texImage2D", texture2d, 0, rgba, width, height, 0, rgba, unsignedByte, nil)
 
 	return textureNative(t), nil
