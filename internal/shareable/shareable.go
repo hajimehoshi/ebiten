@@ -296,7 +296,11 @@ func (i *Image) Fill(r, g, b, a uint8) {
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
-	i.DrawImage(emptyImage, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	c := graphics.CompositeModeSourceOver
+	if a < 0xff {
+		c = graphics.CompositeModeCopy
+	}
+	i.DrawImage(emptyImage, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
 }
 
 func (i *Image) ReplacePixels(p []byte) {
