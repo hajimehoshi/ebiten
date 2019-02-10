@@ -296,9 +296,10 @@ func (i *Image) Fill(r, g, b, a uint8) {
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
-	c := graphics.CompositeModeSourceOver
-	if a < 0xff {
-		c = graphics.CompositeModeCopy
+	c := graphics.CompositeModeCopy
+	if a == 0xff {
+		// If the color is opaque, SourceOver is available and this is preferable for optimization.
+		c = graphics.CompositeModeSourceOver
 	}
 	i.DrawImage(emptyImage, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
 }
