@@ -220,7 +220,7 @@ type drawImageCommand struct {
 }
 
 func (c *drawImageCommand) String() string {
-	return fmt.Sprintf("draw-image: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d", c.dst, c.src, c.color, c.mode, c.filter)
+	return fmt.Sprintf("draw-image: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d, address: %d", c.dst, c.src, c.color, c.mode, c.filter, c.address)
 }
 
 // Exec executes the drawImageCommand.
