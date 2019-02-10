@@ -24,6 +24,9 @@ package devicescale
 // #import <AppKit/AppKit.h>
 //
 // static float scaleAt(int x, int y) {
+//   // On macOS, the direction of Y axis is inverted from GLFW monitors (#807).
+//   y = -y;
+//
 //   NSArray<NSScreen*>* screens = [NSScreen screens];
 //   for (NSScreen* screen in screens) {
 //     if (NSPointInRect(NSMakePoint(x, y), [screen frame])) {
