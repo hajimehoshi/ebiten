@@ -130,7 +130,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_MIN_FILTER, mgl.NEAREST)
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_WRAP_S, mgl.CLAMP_TO_EDGE)
 	gl.TexParameteri(mgl.TEXTURE_2D, mgl.TEXTURE_WRAP_T, mgl.CLAMP_TO_EDGE)
-	gl.TexImage2D(mgl.TEXTURE_2D, 0, mgl.RGBA8, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
+	gl.TexImage2D(mgl.TEXTURE_2D, 0, mgl.RGBA, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
 }
