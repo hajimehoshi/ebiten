@@ -259,7 +259,7 @@ func update(screen *ebiten.Image) error {
 
 	// Draw the message.
 	tutrial := "Space: Move forward\nLeft/Right: Rotate"
-	msg := fmt.Sprintf("TPS: %0.2f\n%s", ebiten.CurrentTPS(), tutrial)
+	msg := fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\n%s", ebiten.CurrentTPS(), ebiten.CurrentFPS(), tutrial)
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
