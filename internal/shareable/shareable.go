@@ -481,22 +481,13 @@ func (i *Image) allocate(shareable bool) {
 	return
 }
 
-func NewVolatileImage(width, height int) *Image {
+func (i *Image) MakeVolatile() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	r := restorable.NewImage(width, height)
-	r.MakeVolatile()
-	i := &Image{
-		width:  width,
-		height: height,
-		backend: &backend{
-			restorable: r,
-		},
-		neverShared: true,
-	}
-	runtime.SetFinalizer(i, (*Image).Dispose)
-	return i
+	i.ensureNotShared()
+	i.backend.restorable.MakeVolatile()
+	i.neverShared = true
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {

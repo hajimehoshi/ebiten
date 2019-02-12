@@ -66,12 +66,10 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		if w2 == 0 || h2 == 0 {
 			return nil
 		}
-		var s *shareable.Image
+		s := shareable.NewImage(w2, h2)
 		if m.orig.IsVolatile() {
 			// TODO: As s is cleared every frame, is there any reason to keep it?
-			s = shareable.NewVolatileImage(w2, h2)
-		} else {
-			s = shareable.NewImage(w2, h2)
+			s.MakeVolatile()
 		}
 
 		var src *shareable.Image
@@ -743,8 +741,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 func newVolatileImage(width, height int) *Image {
+	s := shareable.NewImage(width, height)
+	s.MakeVolatile()
 	i := &Image{
-		mipmap: newMipmap(shareable.NewVolatileImage(width, height)),
+		mipmap: newMipmap(s),
 	}
 	i.addr = i
 	runtime.SetFinalizer(i, (*Image).Dispose)

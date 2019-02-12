@@ -140,7 +140,8 @@ func Disabled_TestReshared(t *testing.T) {
 	}
 	img2.ReplacePixels(pix)
 
-	img3 := NewVolatileImage(size, size)
+	img3 := NewImage(size, size)
+	img3.MakeVolatile()
 	defer img3.Dispose()
 	img1.ReplacePixels(make([]byte, 4*size*size))
 	want = false
