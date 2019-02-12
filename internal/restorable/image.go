@@ -17,11 +17,66 @@ package restorable
 import (
 	"errors"
 	"fmt"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
+
+type Pixels struct {
+	pixels []byte
+
+	length int
+
+	// color is used only when pixels == nil
+	color color.RGBA
+}
+
+func (p *Pixels) ensurePixels() {
+	if p.pixels != nil {
+		return
+	}
+	p.pixels = make([]byte, p.length)
+	if p.color.A == 0 {
+		return
+	}
+	for i := 0; i < p.length/4; i++ {
+		p.pixels[4*i] = p.color.R
+		p.pixels[4*i+1] = p.color.G
+		p.pixels[4*i+2] = p.color.B
+		p.pixels[4*i+3] = p.color.A
+	}
+}
+
+func (p *Pixels) CopyFrom(pix []byte, from int) {
+	p.ensurePixels()
+	copy(p.pixels[from:from+len(pix)], pix)
+}
+
+func (p *Pixels) At(i int) byte {
+	if i < 0 || p.length <= i {
+		panic(fmt.Sprintf("restorable: index out of range: %d for length: %d", i, p.length))
+	}
+	if p.pixels == nil {
+		switch i % 4 {
+		case 0:
+			return p.color.R
+		case 1:
+			return p.color.G
+		case 2:
+			return p.color.B
+		case 3:
+			return p.color.A
+		}
+	}
+	return p.pixels[i]
+}
+
+func (p *Pixels) Slice() []byte {
+	p.ensurePixels()
+	return p.pixels
+}
 
 // drawImageHistoryItem is an item for history of draw-image commands.
 type drawImageHistoryItem struct {
@@ -38,7 +93,7 @@ type drawImageHistoryItem struct {
 type Image struct {
 	image *graphicscommand.Image
 
-	basePixels []byte
+	basePixels *Pixels
 
 	// drawImageHistory is a set of draw-image commands.
 	// TODO: This should be merged with the similar command queue in package graphics (#433).
@@ -150,19 +205,9 @@ func (i *Image) fill(r, g, b, a uint8) {
 	}
 	i.image.DrawImage(emptyImage.image, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
 
-	if a == 0 {
-		i.basePixels = nil
-	} else {
-		// TODO: Add baseColor?
-		if i.basePixels == nil {
-			i.basePixels = make([]byte, 4*w*h)
-		}
-		for idx := 0; idx < w*h; idx++ {
-			i.basePixels[4*idx] = r
-			i.basePixels[4*idx+1] = g
-			i.basePixels[4*idx+2] = b
-			i.basePixels[4*idx+3] = a
-		}
+	i.basePixels = &Pixels{
+		color:  color.RGBA{r, g, b, a},
+		length: 4 * w * h,
 	}
 	i.drawImageHistory = nil
 	i.stale = false
@@ -173,7 +218,7 @@ func (i *Image) IsVolatile() bool {
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
-func (i *Image) BasePixelsForTesting() []byte {
+func (i *Image) BasePixelsForTesting() *Pixels {
 	return i.basePixels
 }
 
@@ -244,9 +289,11 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
 			if i.basePixels == nil {
-				i.basePixels = make([]byte, 4*w*h)
+				i.basePixels = &Pixels{
+					length: 4 * w * h,
+				}
 			}
-			copy(i.basePixels, pixels)
+			i.basePixels.CopyFrom(pixels, 0)
 		} else {
 			// If basePixels is nil, the restored pixels are cleared.
 			// See restore() implementation.
@@ -268,16 +315,18 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	idx := 4 * (y*w + x)
 	if pixels != nil {
 		if i.basePixels == nil {
-			i.basePixels = make([]byte, 4*w*h)
+			i.basePixels = &Pixels{
+				length: 4 * w * h,
+			}
 		}
 		for j := 0; j < height; j++ {
-			copy(i.basePixels[idx:idx+4*width], pixels[4*j*width:4*(j+1)*width])
+			i.basePixels.CopyFrom(pixels[4*j*width:4*(j+1)*width], idx)
 			idx += 4 * w
 		}
 	} else if i.basePixels != nil {
 		zeros := make([]byte, 4*width)
 		for j := 0; j < height; j++ {
-			copy(i.basePixels[idx:idx+4*width], zeros)
+			i.basePixels.CopyFrom(zeros, idx)
 			idx += 4 * w
 		}
 	}
@@ -351,7 +400,7 @@ func (i *Image) At(x, y int) (byte, byte, byte, byte) {
 	}
 
 	idx := 4*x + 4*y*w
-	return i.basePixels[idx], i.basePixels[idx+1], i.basePixels[idx+2], i.basePixels[idx+3]
+	return i.basePixels.At(idx), i.basePixels.At(idx + 1), i.basePixels.At(idx + 2), i.basePixels.At(idx + 3)
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.
@@ -366,7 +415,10 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() {
-	i.basePixels = i.image.Pixels()
+	i.basePixels = &Pixels{
+		pixels: i.image.Pixels(),
+		length: len(i.image.Pixels()),
+	}
 	i.drawImageHistory = nil
 	i.stale = false
 }
@@ -440,7 +492,7 @@ func (i *Image) restore() error {
 
 	gimg := graphicscommand.NewImage(w, h)
 	if i.basePixels != nil {
-		gimg.ReplacePixels(i.basePixels, 0, 0, w, h)
+		gimg.ReplacePixels(i.basePixels.Slice(), 0, 0, w, h)
 	} else {
 		// Clear the image explicitly.
 		pix := make([]uint8, w*h*4)
@@ -454,7 +506,10 @@ func (i *Image) restore() error {
 	}
 	i.image = gimg
 
-	i.basePixels = gimg.Pixels()
+	i.basePixels = &Pixels{
+		pixels: gimg.Pixels(),
+		length: len(gimg.Pixels()),
+	}
 	i.drawImageHistory = nil
 	i.stale = false
 	return nil
