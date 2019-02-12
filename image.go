@@ -68,6 +68,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		}
 		var s *shareable.Image
 		if m.orig.IsVolatile() {
+			// TODO: As s is cleared every frame, is there any reason to keep it?
 			s = shareable.NewVolatileImage(w2, h2)
 		} else {
 			s = shareable.NewImage(w2, h2)
@@ -736,11 +737,9 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // This is suitable for offscreen images that pixels are changed often.
 //
 // Pixels in regular non-volatile images are saved at each end of a frame if the image
-// is changed, and restored automatically from the saved pixels on GL context lost.
+// is changed, and restored automatically from the saved pixels on context lost.
 // On the other hand, pixels in volatile images are not saved.
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
-//
-// Note that volatile images are internal only and will never be source of drawing.
 //
 // If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
 func newVolatileImage(width, height int) *Image {
