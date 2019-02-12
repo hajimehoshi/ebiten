@@ -132,15 +132,6 @@ func (i *Image) BasePixelsForTesting() []byte {
 	return i.basePixels
 }
 
-// Pixels returns the image's pixel bytes.
-//
-// Pixels tries to read pixels from GPU if needed.
-// It is assured that GPU is not accessed if the opration against the image is only ReplacePixels.
-func (i *Image) Pixels() []byte {
-	i.readPixelsFromGPUIfNeeded()
-	return i.basePixels
-}
-
 // Size returns the image's size.
 func (i *Image) Size() (int, int) {
 	return i.image.Size()
