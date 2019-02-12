@@ -62,7 +62,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		b.page.Extend()
 	}
 	s := b.page.Size()
-	newImg := restorable.NewImage(s, s, false)
+	newImg := restorable.NewImage(s, s)
 	oldImg := b.restorable
 	// Do not use DrawImage here. ReplacePixels will be called on a part of newImg later, and it looked like
 	// ReplacePixels on a part of image deletes other region that are rendered by DrawImage (#593, #758).
@@ -128,7 +128,7 @@ func (i *Image) ensureNotShared() {
 	}
 
 	x, y, w, h := i.region()
-	newImg := restorable.NewImage(w, h, false)
+	newImg := restorable.NewImage(w, h)
 	vw, vh := i.backend.restorable.Size()
 	vs := graphics.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
@@ -443,7 +443,7 @@ func (i *Image) allocate(shareable bool) {
 
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width, i.height, false),
+			restorable: restorable.NewImage(i.width, i.height),
 		}
 		runtime.SetFinalizer(i, (*Image).Dispose)
 		return
@@ -466,7 +466,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 
 	b := &backend{
-		restorable: restorable.NewImage(size, size, false),
+		restorable: restorable.NewImage(size, size),
 		page:       packing.NewPage(size, maxSize),
 	}
 	theBackends = append(theBackends, b)
@@ -485,7 +485,8 @@ func NewVolatileImage(width, height int) *Image {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	r := restorable.NewImage(width, height, true)
+	r := restorable.NewImage(width, height)
+	r.MakeVolatile()
 	i := &Image{
 		width:  width,
 		height: height,

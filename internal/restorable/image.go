@@ -75,14 +75,17 @@ func init() {
 // The returned image is cleared.
 //
 // Note that Dispose is not called automatically.
-func NewImage(width, height int, volatile bool) *Image {
+func NewImage(width, height int) *Image {
 	i := &Image{
-		image:    graphicscommand.NewImage(width, height),
-		volatile: volatile,
+		image: graphicscommand.NewImage(width, height),
 	}
 	i.clear()
 	theImages.add(i)
 	return i
+}
+
+func (i *Image) MakeVolatile() {
+	i.volatile = true
 }
 
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
