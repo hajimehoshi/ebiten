@@ -103,6 +103,11 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
+func (i *Image) Clear() {
+	theImages.makeStaleIfDependingOn(i)
+	i.clear()
+}
+
 func (i *Image) clear() {
 	if i.priority {
 		panic("restorable: clear cannot be called on a priority image")

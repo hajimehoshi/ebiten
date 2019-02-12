@@ -278,6 +278,11 @@ func (i *Image) Fill(r, g, b, a uint8) {
 	i.ensureNotShared()
 	backendsM.Unlock()
 
+	if r == 0 && g == 0 && b == 0 && a == 0 {
+		i.backend.restorable.Clear()
+		return
+	}
+
 	rf := float32(0)
 	gf := float32(0)
 	bf := float32(0)
