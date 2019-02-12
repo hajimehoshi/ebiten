@@ -107,6 +107,11 @@ func init() {
 	}
 }
 
+type programKey struct {
+	filter  graphics.Filter
+	address graphics.Address
+}
+
 // openGLState is a state for
 type openGLState struct {
 	// arrayBuffer is OpenGL's array buffer (vertices data).
@@ -115,8 +120,8 @@ type openGLState struct {
 	// elementArrayBuffer is OpenGL's element array buffer (indices data).
 	elementArrayBuffer buffer
 
-	// program is OpenGL's program for rendering a texture.
-	program program
+	// programs is OpenGL's program for rendering a texture.
+	programs map[programKey]program
 
 	lastProgram                program
 	lastViewportWidth          int
@@ -161,8 +166,13 @@ func (s *openGLState) reset(context *context) error {
 	// When context lost happens, deleting programs or buffers is not necessary.
 	// However, it is not assumed that reset is called only when context lost happens.
 	// Let's delete them explicitly.
-	if s.program != zeroProgram {
-		context.deleteProgram(s.program)
+	if s.programs == nil {
+		s.programs = map[programKey]program{}
+	} else {
+		for k, p := range s.programs {
+			context.deleteProgram(p)
+			delete(s.programs, k)
+		}
 	}
 
 	// On browsers (at least Chrome), buffers are already detached from the context
@@ -176,24 +186,39 @@ func (s *openGLState) reset(context *context) error {
 		}
 	}
 
-	shaderVertexModelviewNative, err := context.newShader(vertexShader, shaderStr(shaderVertexModelview))
+	shaderVertexModelviewNative, err := context.newShader(vertexShader, vertexShaderStr())
 	if err != nil {
 		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
 	}
 	defer context.deleteShader(shaderVertexModelviewNative)
 
-	shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, shaderStr(shaderFragmentColorMatrix))
-	if err != nil {
-		panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
-	}
-	defer context.deleteShader(shaderFragmentColorMatrixNative)
+	for _, a := range []graphics.Address{
+		graphics.AddressClampToZero,
+		graphics.AddressRepeat,
+	} {
+		for _, f := range []graphics.Filter{
+			graphics.FilterNearest,
+			graphics.FilterLinear,
+			graphics.FilterScreen,
+		} {
+			shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, fragmentShaderStr(f, a))
+			if err != nil {
+				panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
+			}
+			defer context.deleteShader(shaderFragmentColorMatrixNative)
 
-	s.program, err = context.newProgram([]shader{
-		shaderVertexModelviewNative,
-		shaderFragmentColorMatrixNative,
-	})
-	if err != nil {
-		return err
+			program, err := context.newProgram([]shader{
+				shaderVertexModelviewNative,
+				shaderFragmentColorMatrixNative,
+			})
+			if err != nil {
+				return err
+			}
+			s.programs[programKey{
+				filter:  f,
+				address: a,
+			}] = program
+		}
 	}
 
 	s.arrayBuffer = theArrayBufferLayout.newArrayBuffer(context)
@@ -238,7 +263,10 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 
 	d.context.blendFunc(mode)
 
-	program := d.state.program
+	program := d.state.programs[programKey{
+		filter:  filter,
+		address: address,
+	}]
 	if d.state.lastProgram != program {
 		d.context.useProgram(program)
 		if d.state.lastProgram != zeroProgram {
@@ -289,15 +317,6 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
 		d.state.lastSourceWidth = sw
 		d.state.lastSourceHeight = sh
-	}
-
-	if d.state.lastFilter == nil || *d.state.lastFilter != filter {
-		d.context.uniformInt(program, "filter_type", int(filter))
-		d.state.lastFilter = &filter
-	}
-	if d.state.lastAddress == nil || *d.state.lastAddress != address {
-		d.context.uniformInt(program, "address", int(address))
-		d.state.lastAddress = &address
 	}
 
 	if filter == graphics.FilterScreen {

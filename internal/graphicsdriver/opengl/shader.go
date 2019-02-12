@@ -22,13 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-type shaderID int
-
-const (
-	shaderVertexModelview shaderID = iota
-	shaderFragmentColorMatrix
-)
-
 // glslReservedKeywords is a set of reserved keywords that cannot be used as an indentifier on some environments.
 // See https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf.
 var glslReservedKeywords = map[string]struct{}{
@@ -62,26 +55,43 @@ func checkGLSL(src string) {
 	}
 }
 
-func shaderStr(id shaderID) string {
-	src := ""
-	switch id {
-	case shaderVertexModelview:
-		src = shaderStrVertex
-	case shaderFragmentColorMatrix:
-		replaces := map[string]string{
-			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
-			"{{.FilterLinear}}":       fmt.Sprintf("%d", graphics.FilterLinear),
-			"{{.FilterScreen}}":       fmt.Sprintf("%d", graphics.FilterScreen),
-			"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
-			"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
-		}
-		src = shaderStrFragment
-		for k, v := range replaces {
-			src = strings.Replace(src, k, v, -1)
-		}
-	default:
-		panic(fmt.Sprintf("opengl: invalid shader id: %d", id))
+func vertexShaderStr() string {
+	src := shaderStrVertex
+	checkGLSL(src)
+	return src
+}
+
+func fragmentShaderStr(filter graphics.Filter, address graphics.Address) string {
+	replaces := map[string]string{
+		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
+		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
 	}
+	src := shaderStrFragment
+	for k, v := range replaces {
+		src = strings.Replace(src, k, v, -1)
+	}
+
+	var defs []string
+	switch filter {
+	case graphics.FilterNearest:
+		defs = append(defs, "#define FILTER_NEAREST")
+	case graphics.FilterLinear:
+		defs = append(defs, "#define FILTER_LINEAR")
+	case graphics.FilterScreen:
+		defs = append(defs, "#define FILTER_SCREEN")
+	default:
+		panic(fmt.Sprintf("opengl: invalid filter: %d", filter))
+	}
+	switch address {
+	case graphics.AddressClampToZero:
+		defs = append(defs, "#define ADDRESS_CLAMP_TO_ZERO")
+	case graphics.AddressRepeat:
+		defs = append(defs, "#define ADDRESS_REPEAT")
+	default:
+		panic(fmt.Sprintf("opengl: invalid address: %d", address))
+	}
+
+	src = strings.Replace(src, "{{.Definitions}}", strings.Join(defs, "\n"), -1)
 
 	checkGLSL(src)
 	return src
@@ -121,19 +131,13 @@ precision mediump float;
 #define highp
 #endif
 
-#define FILTER_NEAREST ({{.FilterNearest}})
-#define FILTER_LINEAR ({{.FilterLinear}})
-#define FILTER_SCREEN ({{.FilterScreen}})
-#define ADDRESS_CLAMP_TO_ZERO ({{.AddressClampToZero}})
-#define ADDRESS_REPEAT ({{.AddressRepeat}})
+{{.Definitions}}
 
 uniform sampler2D texture;
 uniform mat4 color_matrix_body;
 uniform vec4 color_matrix_translation;
 
-uniform int filter_type;
 uniform highp vec2 source_size;
-uniform int address;
 
 #if defined(FILTER_SCREEN)
 uniform highp float scale;
@@ -164,17 +168,16 @@ highp float floorMod(highp float x, highp float y) {
   return x - y * floor(x/y);
 }
 
-highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region, int address) {
-  if (address == ADDRESS_CLAMP_TO_ZERO) {
-    return p;
-  }
-  if (address == ADDRESS_REPEAT) {
-    highp vec2 o = vec2(tex_region[0], tex_region[1]);
-    highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
-    return vec2(floorMod((p.x - o.x), size.x) + o.x, floorMod((p.y - o.y), size.y) + o.y);
-  }
-  // Not reached.
-  return vec2(0.0);
+highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region) {
+#if defined(ADDRESS_CLAMP_TO_ZERO)
+  return p;
+#endif
+
+#if defined(ADDRESS_REPEAT)
+  highp vec2 o = vec2(tex_region[0], tex_region[1]);
+  highp vec2 size = vec2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+  return vec2(floorMod((p.x - o.x), size.x) + o.x, floorMod((p.y - o.y), size.y) + o.y);
+#endif
 }
 
 void main(void) {
@@ -183,65 +186,69 @@ void main(void) {
 
   vec4 color;
 
-  if (filter_type == FILTER_NEAREST) {
-    pos = adjustTexelByAddress(pos, varying_tex_region, address);
-    color = texture2D(texture, pos);
-    if (pos.x < varying_tex_region[0] ||
-      pos.y < varying_tex_region[1] ||
-      (varying_tex_region[2] - texel_size.x / 512.0) <= pos.x ||
-      (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
-      color = vec4(0, 0, 0, 0);
-    }
-  } else if (filter_type == FILTER_LINEAR) {
-    highp vec2 p0 = pos - texel_size / 2.0;
-    highp vec2 p1 = pos + texel_size / 2.0;
-
-    p1 = adjustTexel(p0, p1);
-    p0 = adjustTexelByAddress(p0, varying_tex_region, address);
-    p1 = adjustTexelByAddress(p1, varying_tex_region, address);
-
-    vec4 c0 = texture2D(texture, p0);
-    vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-    vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-    vec4 c3 = texture2D(texture, p1);
-    if (p0.x < varying_tex_region[0]) {
-      c0 = vec4(0, 0, 0, 0);
-      c2 = vec4(0, 0, 0, 0);
-    }
-    if (p0.y < varying_tex_region[1]) {
-      c0 = vec4(0, 0, 0, 0);
-      c1 = vec4(0, 0, 0, 0);
-    }
-    if ((varying_tex_region[2] - texel_size.x / 512.0) <= p1.x) {
-      c1 = vec4(0, 0, 0, 0);
-      c3 = vec4(0, 0, 0, 0);
-    }
-    if ((varying_tex_region[3] - texel_size.y / 512.0) <= p1.y) {
-      c2 = vec4(0, 0, 0, 0);
-      c3 = vec4(0, 0, 0, 0);
-    }
-
-    vec2 rate = fract(p0 * source_size);
-    color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  } else if (filter_type == FILTER_SCREEN) {
-    highp vec2 p0 = pos - texel_size / 2.0 / scale;
-    highp vec2 p1 = pos + texel_size / 2.0 / scale;
-
-    p1 = adjustTexel(p0, p1);
-
-    vec4 c0 = texture2D(texture, p0);
-    vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
-    vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
-    vec4 c3 = texture2D(texture, p1);
-    // Texels must be in the source rect, so it is not necessary to check that like linear filter.
-
-    vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
-    vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
-    color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  } else {
-    // Not reached.
-    discard;
+#if defined(FILTER_NEAREST)
+  pos = adjustTexelByAddress(pos, varying_tex_region);
+  color = texture2D(texture, pos);
+  if (pos.x < varying_tex_region[0] ||
+    pos.y < varying_tex_region[1] ||
+    (varying_tex_region[2] - texel_size.x / 512.0) <= pos.x ||
+    (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
+    color = vec4(0, 0, 0, 0);
   }
+#endif
+
+#if defined(FILTER_LINEAR)
+  highp vec2 p0 = pos - texel_size / 2.0;
+  highp vec2 p1 = pos + texel_size / 2.0;
+
+  p1 = adjustTexel(p0, p1);
+  p0 = adjustTexelByAddress(p0, varying_tex_region);
+  p1 = adjustTexelByAddress(p1, varying_tex_region);
+
+  vec4 c0 = texture2D(texture, p0);
+  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(texture, p1);
+  if (p0.x < varying_tex_region[0]) {
+    c0 = vec4(0, 0, 0, 0);
+    c2 = vec4(0, 0, 0, 0);
+  }
+  if (p0.y < varying_tex_region[1]) {
+    c0 = vec4(0, 0, 0, 0);
+    c1 = vec4(0, 0, 0, 0);
+  }
+  if ((varying_tex_region[2] - texel_size.x / 512.0) <= p1.x) {
+    c1 = vec4(0, 0, 0, 0);
+    c3 = vec4(0, 0, 0, 0);
+  }
+  if ((varying_tex_region[3] - texel_size.y / 512.0) <= p1.y) {
+    c2 = vec4(0, 0, 0, 0);
+    c3 = vec4(0, 0, 0, 0);
+  }
+
+  vec2 rate = fract(p0 * source_size);
+  color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+#endif
+
+#if defined(FILTER_SCREEN)
+  highp vec2 p0 = pos - texel_size / 2.0 / scale;
+  highp vec2 p1 = pos + texel_size / 2.0 / scale;
+
+  // Prevent this variable from being optimized out.
+  p0 += varying_tex_region.xy - varying_tex_region.xy;
+
+  p1 = adjustTexel(p0, p1);
+
+  vec4 c0 = texture2D(texture, p0);
+  vec4 c1 = texture2D(texture, vec2(p1.x, p0.y));
+  vec4 c2 = texture2D(texture, vec2(p0.x, p1.y));
+  vec4 c3 = texture2D(texture, p1);
+  // Texels must be in the source rect, so it is not necessary to check that like linear filter.
+
+  vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
+  vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
+  color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+#endif
 
   // Un-premultiply alpha
   if (0.0 < color.a) {
