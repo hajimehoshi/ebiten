@@ -61,17 +61,16 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	}
 
 	for len(imgs) < idx+1 {
+		if m.orig.IsVolatile() {
+			panic("ebiten: mipmap images for a volatile image is not implemented yet")
+		}
+
 		w2 := w / 2
 		h2 := h / 2
 		if w2 == 0 || h2 == 0 {
 			return nil
 		}
 		s := shareable.NewImage(w2, h2)
-		if m.orig.IsVolatile() {
-			// TODO: As s is cleared every frame, is there any reason to keep it?
-			s.MakeVolatile()
-		}
-
 		var src *shareable.Image
 		var vs []float32
 		if l := len(imgs); l == 0 {
@@ -315,7 +314,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	a, b, c, d, tx, ty := geom.elements()
 
 	level := 0
-	if filter == graphics.FilterLinear {
+	if filter == graphics.FilterLinear && !img.mipmap.original().IsVolatile() {
 		det := geom.det()
 		if det == 0 {
 			return
