@@ -252,22 +252,6 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	// }
 }
 
-// emptyImage is an empty image used for filling other images with a uniform color.
-//
-// Do not call Fill on emptyImage or the program causes infinite recursion.
-var emptyImage = NewImage(16, 16)
-
-func init() {
-	// Initialize emptyImage. As emptyImage is used for Fill, emptyImage itself cannot be initialized with Fill.
-	// Call ReplacePixels instead.
-	w, h := emptyImage.Size()
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-	emptyImage.ReplacePixels(pix)
-}
-
 // Fill fills the image with a color. This affects not only the (0, 0)-(width, height) region but also the whole
 // framebuffer region.
 func (i *Image) Fill(r, g, b, a uint8) {
@@ -278,35 +262,7 @@ func (i *Image) Fill(r, g, b, a uint8) {
 	i.ensureNotShared()
 	backendsM.Unlock()
 
-	if r == 0 && g == 0 && b == 0 && a == 0 {
-		i.backend.restorable.Clear()
-		return
-	}
-
-	rf := float32(0)
-	gf := float32(0)
-	bf := float32(0)
-	af := float32(0)
-	if a > 0 {
-		rf = float32(r) / float32(a)
-		gf = float32(g) / float32(a)
-		bf = float32(b) / float32(a)
-		af = float32(a) / 0xff
-	}
-
-	dw, dh := i.backend.restorable.SizePowerOf2()
-	sw, sh := emptyImage.Size()
-	vs := emptyImage.QuadVertices(0, 0, sw, sh,
-		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
-		rf, gf, bf, af)
-	is := graphics.QuadIndices()
-
-	c := graphics.CompositeModeCopy
-	if a == 0xff {
-		// If the color is opaque, SourceOver is available and this is preferable for optimization.
-		c = graphics.CompositeModeSourceOver
-	}
-	i.DrawImage(emptyImage, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
+	i.backend.restorable.Fill(r, g, b, a)
 }
 
 func (i *Image) ReplacePixels(p []byte) {

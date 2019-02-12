@@ -60,14 +60,20 @@ type Image struct {
 	priority bool
 }
 
-var dummyImage *Image
+var emptyImage *Image
 
 func init() {
-	dummyImage = &Image{
-		image:    graphicscommand.NewImage(16, 16),
+	const w, h = 16, 16
+	emptyImage = &Image{
+		image:    graphicscommand.NewImage(w, h),
 		priority: true,
 	}
-	theImages.add(dummyImage)
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	emptyImage.ReplacePixels(pix, 0, 0, w, h)
+	theImages.add(emptyImage)
 }
 
 // NewImage creates an empty image with the given size.
@@ -103,30 +109,61 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func (i *Image) Clear() {
+func (i *Image) Fill(r, g, b, a uint8) {
 	theImages.makeStaleIfDependingOn(i)
-	i.clear()
+	i.fill(r, g, b, a)
 }
 
 func (i *Image) clear() {
+	i.fill(0, 0, 0, 0)
+}
+
+func (i *Image) fill(r, g, b, a uint8) {
 	if i.priority {
 		panic("restorable: clear cannot be called on a priority image")
 	}
 
-	// There are not 'drawImageHistoryItem's for this image and dummyImage.
-	// As dummyImage is a priority image, this is restored before other regular images are restored.
+	rf := float32(0)
+	gf := float32(0)
+	bf := float32(0)
+	af := float32(0)
+	if a > 0 {
+		rf = float32(r) / float32(a)
+		gf = float32(g) / float32(a)
+		bf = float32(b) / float32(a)
+		af = float32(a) / 0xff
+	}
+
+	// There are not 'drawImageHistoryItem's for this image and emptyImage.
+	// As emptyImage is a priority image, this is restored before other regular images are restored.
 	w, h := i.Size()
-	sw, sh := dummyImage.Size()
+	sw, sh := emptyImage.Size()
 	dw := graphics.NextPowerOf2Int(w)
 	dh := graphics.NextPowerOf2Int(h)
 	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
-		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh),
-		0, 0,
-		1, 1, 1, 1)
+		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
+		rf, gf, bf, af)
 	is := graphics.QuadIndices()
-	i.image.DrawImage(dummyImage.image, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+	c := graphics.CompositeModeCopy
+	if a == 0 {
+		c = graphics.CompositeModeClear
+	}
+	i.image.DrawImage(emptyImage.image, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
 
-	i.basePixels = nil
+	if a == 0 {
+		i.basePixels = nil
+	} else {
+		// TODO: Add baseColor?
+		if i.basePixels == nil {
+			i.basePixels = make([]byte, 4*w*h)
+		}
+		for idx := 0; idx < w*h; idx++ {
+			i.basePixels[4*idx] = r
+			i.basePixels[4*idx+1] = g
+			i.basePixels[4*idx+2] = b
+			i.basePixels[4*idx+3] = a
+		}
+	}
 	i.drawImageHistory = nil
 	i.stale = false
 }
@@ -406,7 +443,6 @@ func (i *Image) restore() error {
 		gimg.ReplacePixels(i.basePixels, 0, 0, w, h)
 	} else {
 		// Clear the image explicitly.
-		// TODO: Is dummyImage available for clearing?
 		pix := make([]uint8, w*h*4)
 		gimg.ReplacePixels(pix, 0, 0, w, h)
 	}
