@@ -729,7 +729,7 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 	return i, nil
 }
 
-// newVolatileImage returns an empty 'volatile' image.
+// makeVolatile makes the image 'volatile'.
 // A volatile image is always cleared at the start of a frame.
 //
 // This is suitable for offscreen images that pixels are changed often.
@@ -739,16 +739,13 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 // On the other hand, pixels in volatile images are not saved.
 // Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
 //
-// If width or height is less than 1 or more than device-dependent maximum size, newVolatileImage panics.
-func newVolatileImage(width, height int) *Image {
-	s := shareable.NewImage(width, height)
-	s.MakeVolatile()
-	i := &Image{
-		mipmap: newMipmap(s),
+// When the image is disposed, makeVolatile does nothing.
+func (i *Image) makeVolatile() {
+	if i.isDisposed() {
+		return
 	}
-	i.addr = i
-	runtime.SetFinalizer(i, (*Image).Dispose)
-	return i
+	i.mipmap.orig.MakeVolatile()
+	i.disposeMipmaps()
 }
 
 // NewImageFromImage creates a new image with the given image (source).
