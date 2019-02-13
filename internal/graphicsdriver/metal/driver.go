@@ -201,11 +201,11 @@ float4 fragmentShader(
   return c;
 }
 
-// Define Foo and FooCp macro to force macro replacement.
+// Define Foo and FooCp macros to force macro replacement.
 // See "6.10.3.1 Argument substitution" in ISO/IEC 9899.
 
 #define FragmentShaderFunc(filter, address) \
-  FragmentShaderFuncCp(filter, address) // 
+  FragmentShaderFuncCp(filter, address)
 
 #define FragmentShaderFuncCp(filter, address) \
   fragment float4 FragmentShader_##filter##_##address( \
