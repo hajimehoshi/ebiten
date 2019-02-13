@@ -416,9 +416,10 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() {
+	pix := i.image.Pixels()
 	i.basePixels = &Pixels{
-		pixels: i.image.Pixels(),
-		length: len(i.image.Pixels()),
+		pixels: pix,
+		length: len(pix),
 	}
 	i.drawImageHistory = nil
 	i.stale = false
