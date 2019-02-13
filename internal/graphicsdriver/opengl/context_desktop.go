@@ -161,7 +161,10 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	var pixels []byte
 	_ = mainthread.Run(func() error {
-		gl.Flush()
+		// glFlush is not enough. glFinish can be required before glReadPixels on some environments like
+		// Travis CI (#814)
+		// See also: https://forums.khronos.org/showthread.php/62741
+		gl.Finish()
 		return nil
 	})
 	c.bindFramebuffer(f.native)
