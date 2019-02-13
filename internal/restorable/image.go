@@ -508,9 +508,10 @@ func (i *Image) restore() error {
 	}
 	i.image = gimg
 
+	pix := gimg.Pixels()
 	i.basePixels = &Pixels{
-		pixels: gimg.Pixels(),
-		length: len(gimg.Pixels()),
+		pixels: pix,
+		length: len(pix),
 	}
 	i.drawImageHistory = nil
 	i.stale = false
