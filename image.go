@@ -733,10 +733,10 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // This is suitable for offscreen images that pixels are changed often.
 //
-// Pixels in regular non-volatile images are saved at each end of a frame if the image
-// is changed, and restored automatically from the saved pixels on context lost.
-// On the other hand, pixels in volatile images are not saved.
-// Saving pixels is an expensive operation, and it is desirable to avoid it if possible.
+// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
+// the images can be restored automatically from the context lost. However, such recording the drawing history or
+// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
+// is cleared every frame instead.
 //
 // When the image is disposed, makeVolatile does nothing.
 func (i *Image) makeVolatile() {
