@@ -355,7 +355,8 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices
 	if i.stale || i.volatile || i.screen {
 		return
 	}
-	const maxDrawImageHistoryNum = 100
+	// TODO: Would it be possible to merge draw image history items?
+	const maxDrawImageHistoryNum = 1024
 	if len(i.drawImageHistory)+1 > maxDrawImageHistoryNum {
 		i.makeStale()
 		return
