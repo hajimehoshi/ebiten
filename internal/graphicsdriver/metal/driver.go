@@ -32,12 +32,12 @@ import (
 
 const source = `#include <metal_stdlib>
 
-#define FILTER_NEAREST ({{.FilterNearest}})
-#define FILTER_LINEAR ({{.FilterLinear}})
-#define FILTER_SCREEN ({{.FilterScreen}})
+#define FILTER_NEAREST {{.FilterNearest}}
+#define FILTER_LINEAR {{.FilterLinear}}
+#define FILTER_SCREEN {{.FilterScreen}}
 
-#define ADDRESS_CLAMP_TO_ZERO ({{.AddressClampToZero}})
-#define ADDRESS_REPEAT ({{.AddressRepeat}})
+#define ADDRESS_CLAMP_TO_ZERO {{.AddressClampToZero}}
+#define ADDRESS_REPEAT {{.AddressRepeat}}
 
 using namespace metal;
 
@@ -99,30 +99,27 @@ float FloorMod(float x, float y) {
   return x - y * floor(x/y);
 }
 
-float2 AdjustTexelByAddress(float2 p, float4 tex_region, uint8_t address)  {
-  switch (address) {
-  case ADDRESS_CLAMP_TO_ZERO: {
+template<uint8_t address>
+float2 AdjustTexelByAddress(float2 p, float4 tex_region) {
+  if (address == ADDRESS_CLAMP_TO_ZERO) {
     return p;
   }
-  case ADDRESS_REPEAT: {
+  if (address == ADDRESS_REPEAT) {
     float2 o = float2(tex_region[0], tex_region[1]);
     float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
     return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
   }
-  default:
-    // Not reached.
-    break;
-  }
+  // Not reached.
   return 0.0;
 }
 
-fragment float4 FragmentShader(VertexOut v [[stage_in]],
-                               texture2d<float> texture [[texture(0)]],
-                               constant float4x4& color_matrix_body [[buffer(2)]],
-                               constant float4& color_matrix_translation [[buffer(3)]],
-                               constant uint8_t& filter [[buffer(4)]],
-                               constant uint8_t& address [[buffer(5)]],
-                               constant float& scale [[buffer(6)]]) {
+template<uint8_t filter, uint8_t address>
+float4 fragmentShader(
+    VertexOut v,
+    texture2d<float> texture,
+    constant float4x4& color_matrix_body,
+    constant float4& color_matrix_translation,
+    constant float& scale) {
   constexpr sampler texture_sampler(filter::nearest);
   float2 source_size = 1;
   while (source_size.x < texture.get_width()) {
@@ -135,9 +132,8 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
 
   float4 c;
 
-  switch (filter) {
-  case FILTER_NEAREST: {
-    float2 p = AdjustTexelByAddress(v.tex, v.tex_region, address);
+  if (filter == FILTER_NEAREST) {
+    float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
     c = texture.sample(texture_sampler, p);
     if (p.x < v.tex_region[0] ||
         p.y < v.tex_region[1] ||
@@ -145,15 +141,12 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
         (v.tex_region[3] - texel_size.y / 512.0) <= p.y) {
       c = 0;
     }
-    break;
-  }
-
-  case FILTER_LINEAR: {
+  } else if (filter == FILTER_LINEAR) {
     float2 p0 = v.tex - texel_size / 2.0;
     float2 p1 = v.tex + texel_size / 2.0;
     p1 = AdjustTexel(source_size, p0, p1);
-    p0 = AdjustTexelByAddress(p0, v.tex_region, address);
-    p1 = AdjustTexelByAddress(p1, v.tex_region, address);
+    p0 = AdjustTexelByAddress<address>(p0, v.tex_region);
+    p1 = AdjustTexelByAddress<address>(p1, v.tex_region);
 
     float4 c0 = texture.sample(texture_sampler, p0);
     float4 c1 = texture.sample(texture_sampler, float2(p1.x, p0.y));
@@ -179,10 +172,7 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
 
     float2 rate = fract(p0 * source_size);
     c = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-    break;
-  }
-
-  case FILTER_SCREEN: {
+  } else if (filter == FILTER_SCREEN) {
     float2 p0 = v.tex - texel_size / 2.0 / scale;
     float2 p1 = v.tex + texel_size / 2.0 / scale;
     p1 = AdjustTexel(source_size, p0, p1);
@@ -195,10 +185,7 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
     float2 rate_center = float2(1.0, 1.0) - texel_size / 2.0 / scale;
     float2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
     c = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-    break;
-  }
-
-  default:
+  } else {
     // Not reached.
     discard_fragment();
     return float4(0);
@@ -213,7 +200,38 @@ fragment float4 FragmentShader(VertexOut v [[stage_in]],
   c.rgb *= c.a;
   return c;
 }
+
+// Define Foo and FooCp macro to force macro replacement.
+// See "6.10.3.1 Argument substitution" in ISO/IEC 9899.
+
+#define FragmentShaderFunc(filter, address) \
+  FragmentShaderFuncCp(filter, address) // 
+
+#define FragmentShaderFuncCp(filter, address) \
+  fragment float4 FragmentShader_##filter##_##address( \
+      VertexOut v [[stage_in]], \
+      texture2d<float> texture [[texture(0)]], \
+      constant float4x4& color_matrix_body [[buffer(2)]], \
+      constant float4& color_matrix_translation [[buffer(3)]], \
+      constant float& scale [[buffer(4)]]) { \
+    return fragmentShader<filter, address>( \
+        v, texture, color_matrix_body, color_matrix_translation, scale); \
+  }
+
+FragmentShaderFunc(FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(FILTER_SCREEN, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(FILTER_NEAREST, ADDRESS_REPEAT)
+FragmentShaderFunc(FILTER_LINEAR, ADDRESS_REPEAT)
+
+#undef FragmentShaderFuncName
 `
+
+type rpsKey struct {
+	filter        graphics.Filter
+	address       graphics.Address
+	compositeMode graphics.CompositeMode
+}
 
 type Driver struct {
 	window uintptr
@@ -221,7 +239,7 @@ type Driver struct {
 	device    mtl.Device
 	ml        ca.MetalLayer
 	screenRPS mtl.RenderPipelineState
-	rpss      map[graphics.CompositeMode]mtl.RenderPipelineState
+	rpss      map[rpsKey]mtl.RenderPipelineState
 	cq        mtl.CommandQueue
 	cb        mtl.CommandBuffer
 
@@ -386,7 +404,7 @@ func (d *Driver) Reset() error {
 
 		// TODO: Release existing rpss
 		if d.rpss == nil {
-			d.rpss = map[graphics.CompositeMode]mtl.RenderPipelineState{}
+			d.rpss = map[rpsKey]mtl.RenderPipelineState{}
 		}
 
 		var err error
@@ -425,7 +443,8 @@ func (d *Driver) Reset() error {
 		if err != nil {
 			return err
 		}
-		fs, err := lib.MakeFunction("FragmentShader")
+		fs, err := lib.MakeFunction(
+			fmt.Sprintf("FragmentShader_%d_%d", graphics.FilterScreen, graphics.AddressClampToZero))
 		if err != nil {
 			return err
 		}
@@ -464,24 +483,42 @@ func (d *Driver) Reset() error {
 			}
 		}
 
-		for c := graphics.CompositeModeSourceOver; c <= graphics.CompositeModeMax; c++ {
-			rpld := mtl.RenderPipelineDescriptor{
-				VertexFunction:   vs,
-				FragmentFunction: fs,
-			}
-			rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
-			rpld.ColorAttachments[0].BlendingEnabled = true
+		for _, a := range []graphics.Address{
+			graphics.AddressClampToZero,
+			graphics.AddressRepeat,
+		} {
+			for _, f := range []graphics.Filter{
+				graphics.FilterNearest,
+				graphics.FilterLinear,
+			} {
+				for c := graphics.CompositeModeSourceOver; c <= graphics.CompositeModeMax; c++ {
+					fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d", f, a))
+					if err != nil {
+						return err
+					}
+					rpld := mtl.RenderPipelineDescriptor{
+						VertexFunction:   vs,
+						FragmentFunction: fs,
+					}
+					rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
+					rpld.ColorAttachments[0].BlendingEnabled = true
 
-			src, dst := c.Operations()
-			rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
-			rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
-			rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
-			rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
-			rps, err := d.device.MakeRenderPipelineState(rpld)
-			if err != nil {
-				return err
+					src, dst := c.Operations()
+					rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
+					rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
+					rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
+					rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
+					rps, err := d.device.MakeRenderPipelineState(rpld)
+					if err != nil {
+						return err
+					}
+					d.rpss[rpsKey{
+						filter:        f,
+						address:       a,
+						compositeMode: c,
+					}] = rps
+				}
 			}
-			d.rpss[c] = rps
 		}
 
 		d.cq = d.device.MakeCommandQueue()
@@ -535,7 +572,11 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		if d.dst.screen {
 			rce.SetRenderPipelineState(d.screenRPS)
 		} else {
-			rce.SetRenderPipelineState(d.rpss[mode])
+			rce.SetRenderPipelineState(d.rpss[rpsKey{
+				filter:        filter,
+				address:       address,
+				compositeMode: mode,
+			}])
 		}
 		rce.SetViewport(mtl.Viewport{0, 0, float64(w), float64(h), -1, 1})
 		rce.SetVertexBuffer(d.vb, 0, 0)
@@ -547,14 +588,8 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 2)
 		rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 3)
 
-		f := uint8(filter)
-		rce.SetFragmentBytes(unsafe.Pointer(&f), 1, 4)
-
-		a := uint8(address)
-		rce.SetFragmentBytes(unsafe.Pointer(&a), 1, 5)
-
 		scale := float32(d.dst.width) / float32(d.src.width)
-		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 6)
+		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 4)
 
 		if d.src != nil {
 			rce.SetFragmentTexture(d.src.texture, 0)
