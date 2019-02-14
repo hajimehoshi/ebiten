@@ -120,12 +120,12 @@ func renderFire() {
 
 func update(screen *ebiten.Image) error {
 	updateFirePixels()
-	renderFire()
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
+	renderFire()
 	screen.ReplacePixels(pixels)
 	return nil
 }
