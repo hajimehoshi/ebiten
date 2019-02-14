@@ -100,21 +100,22 @@ float FloorMod(float x, float y) {
 }
 
 template<uint8_t address>
-float2 AdjustTexelByAddress(float2 p, float4 tex_region) {
-  if (address == ADDRESS_CLAMP_TO_ZERO) {
-    return p;
-  }
-  if (address == ADDRESS_REPEAT) {
-    float2 o = float2(tex_region[0], tex_region[1]);
-    float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
-    return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
-  }
-  // Not reached.
-  return 0.0;
+float2 AdjustTexelByAddress(float2 p, float4 tex_region);
+
+template<>
+float2 AdjustTexelByAddress<ADDRESS_CLAMP_TO_ZERO>(float2 p, float4 tex_region) {
+  return p;
+}
+
+template<>
+float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 tex_region) {
+  float2 o = float2(tex_region[0], tex_region[1]);
+  float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
+  return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
 }
 
 template<uint8_t filter, uint8_t address>
-float4 fragmentShader(
+float4 FragmentShaderImpl(
     VertexOut v,
     texture2d<float> texture,
     constant float4x4& color_matrix_body,
@@ -214,7 +215,7 @@ float4 fragmentShader(
       constant float4x4& color_matrix_body [[buffer(2)]], \
       constant float4& color_matrix_translation [[buffer(3)]], \
       constant float& scale [[buffer(4)]]) { \
-    return fragmentShader<filter, address>( \
+    return FragmentShaderImpl<filter, address>( \
         v, texture, color_matrix_body, color_matrix_translation, scale); \
   }
 
