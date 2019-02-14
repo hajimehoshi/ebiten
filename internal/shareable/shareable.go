@@ -190,7 +190,7 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 		i.allocate(true)
 	}
 	ox, oy, _, _ := i.region()
-	w, h := i.backend.restorable.SizePowerOf2()
+	w, h := i.backend.restorable.InternalSize()
 	return graphics.QuadVertices(w, h, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
@@ -201,7 +201,7 @@ func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1,
 	}
 	ox, oy, _, _ := i.region()
 	oxf, oyf := float32(ox), float32(oy)
-	w, h := i.backend.restorable.SizePowerOf2()
+	w, h := i.backend.restorable.InternalSize()
 
 	su := (sx + oxf) / float32(w)
 	sv := (sy + oyf) / float32(h)

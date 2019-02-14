@@ -227,8 +227,8 @@ func (i *Image) Size() (int, int) {
 	return i.image.Size()
 }
 
-// SizePowerOf2 returns the next power of 2 values for the size.
-func (i *Image) SizePowerOf2() (int, int) {
+// InternalSize returns the size of the internal texture.
+func (i *Image) InternalSize() (int, int) {
 	if i.w2 == 0 || i.h2 == 0 {
 		w, h := i.image.Size()
 		i.w2 = graphics.NextPowerOf2Int(w)
