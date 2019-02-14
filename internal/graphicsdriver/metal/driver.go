@@ -118,17 +118,11 @@ template<uint8_t filter, uint8_t address>
 float4 FragmentShaderImpl(
     VertexOut v,
     texture2d<float> texture,
+    constant float2& source_size,
     constant float4x4& color_matrix_body,
     constant float4& color_matrix_translation,
     constant float& scale) {
   constexpr sampler texture_sampler(filter::nearest);
-  float2 source_size = 1;
-  while (source_size.x < texture.get_width()) {
-    source_size.x *= 2;
-  }
-  while (source_size.y < texture.get_height()) {
-    source_size.y *= 2;
-  }
   const float2 texel_size = 1 / source_size;
 
   float4 c;
@@ -212,11 +206,12 @@ float4 FragmentShaderImpl(
   fragment float4 FragmentShader_##filter##_##address( \
       VertexOut v [[stage_in]], \
       texture2d<float> texture [[texture(0)]], \
-      constant float4x4& color_matrix_body [[buffer(2)]], \
-      constant float4& color_matrix_translation [[buffer(3)]], \
-      constant float& scale [[buffer(4)]]) { \
+      constant float2& source_size [[buffer(2)]], \
+      constant float4x4& color_matrix_body [[buffer(3)]], \
+      constant float4& color_matrix_translation [[buffer(4)]], \
+      constant float& scale [[buffer(5)]]) { \
     return FragmentShaderImpl<filter, address>( \
-        v, texture, color_matrix_body, color_matrix_translation, scale); \
+        v, texture, source_size, color_matrix_body, color_matrix_translation, scale); \
   }
 
 FragmentShaderFunc(FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
@@ -584,13 +579,22 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 
 		viewportSize := [...]float32{float32(w), float32(h)}
 		rce.SetVertexBytes(unsafe.Pointer(&viewportSize[0]), unsafe.Sizeof(viewportSize), 1)
-		esBody, esTranslate := colorM.UnsafeElements()
 
-		rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 2)
-		rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 3)
+		sourceSize := [...]float32{float32(1), float32(1)}
+		for sourceSize[0] < float32(w) {
+			sourceSize[0] *= 2
+		}
+		for sourceSize[1] < float32(h) {
+			sourceSize[1] *= 2
+		}
+		rce.SetFragmentBytes(unsafe.Pointer(&sourceSize[0]), unsafe.Sizeof(sourceSize), 2)
+
+		esBody, esTranslate := colorM.UnsafeElements()
+		rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 3)
+		rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 4)
 
 		scale := float32(d.dst.width) / float32(d.src.width)
-		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 4)
+		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 5)
 
 		if d.src != nil {
 			rce.SetFragmentTexture(d.src.texture, 0)
