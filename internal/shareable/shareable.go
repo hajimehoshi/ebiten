@@ -129,7 +129,7 @@ func (i *Image) ensureNotShared() {
 
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h)
-	vw, vh := i.backend.restorable.Size()
+	vw, vh := i.backend.restorable.InternalSize()
 	vs := graphics.QuadVertices(vw, vh, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	newImg.DrawImage(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
