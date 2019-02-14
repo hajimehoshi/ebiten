@@ -39,10 +39,10 @@ func (d *Driver) SetWindow(window uintptr) {
 
 func (d *Driver) checkSize(width, height int) {
 	if width < 1 {
-		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than 1", width))
+		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than %d", width, 1))
 	}
 	if height < 1 {
-		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than 1", height))
+		panic(fmt.Sprintf("opengl: height (%d) must be equal or more than %d", height, 1))
 	}
 	m := d.context.getMaxTextureSize()
 	if width > m {
@@ -59,8 +59,8 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 		width:  width,
 		height: height,
 	}
-	w := graphics.NextPowerOf2Int(width)
-	h := graphics.NextPowerOf2Int(height)
+	w := graphics.InternalImageSize(width)
+	h := graphics.InternalImageSize(height)
 	d.checkSize(w, h)
 	t, err := d.context.newTexture(w, h)
 	if err != nil {

@@ -59,19 +59,14 @@ func (v *verticesBackend) slice(n int) []float32 {
 	return s
 }
 
-func isPowerOf2(x int) bool {
-	if x <= 0 {
-		return false
-	}
-	return (x & (x - 1)) == 0
-}
-
 func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
-	if !isPowerOf2(width) {
-		panic(fmt.Sprintf("graphics: width must be power of 2 but not at QuadVertices: %d", width))
+	// For performance reason, graphics.InternalImageSize is not applied to width/height here.
+
+	if !isInternalImageSize(width) {
+		panic(fmt.Sprintf("graphics: width must be an internal image size at QuadVertices: %d", width))
 	}
-	if !isPowerOf2(height) {
-		panic(fmt.Sprintf("graphics: height must be power of 2 but not at QuadVertices: %d", height))
+	if !isInternalImageSize(height) {
+		panic(fmt.Sprintf("graphics: height must be an internal image size at QuadVertices: %d", height))
 	}
 
 	if sx0 >= sx1 || sy0 >= sy1 {
@@ -166,11 +161,11 @@ func QuadIndices() []uint16 {
 }
 
 func PutVertex(vs []float32, width, height int, dx, dy, su, sv float32, u0, v0, u1, v1 float32, cr, cg, cb, ca float32) {
-	if !isPowerOf2(width) {
-		panic(fmt.Sprintf("graphics: width must be power of 2 but not at PutVertices: %d", width))
+	if !isInternalImageSize(width) {
+		panic(fmt.Sprintf("graphics: width must be an internal image size at PutVertices: %d", width))
 	}
-	if !isPowerOf2(height) {
-		panic(fmt.Sprintf("graphics: height must be power of 2 but not at PutVertices: %d", height))
+	if !isInternalImageSize(height) {
+		panic(fmt.Sprintf("graphics: height must be an internal image size at PutVertices: %d", height))
 	}
 
 	vs[0] = dx

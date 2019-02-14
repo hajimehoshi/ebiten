@@ -20,7 +20,7 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-func TestNextPowerOf2(t *testing.T) {
+func TestInternalImageSize(t *testing.T) {
 	testCases := []struct {
 		expected int
 		arg      int
@@ -31,7 +31,7 @@ func TestNextPowerOf2(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		got := NextPowerOf2Int(testCase.arg)
+		got := InternalImageSize(testCase.arg)
 		wanted := testCase.expected
 		if wanted != got {
 			t.Errorf("Clp(%d) = %d, wanted %d", testCase.arg, got, wanted)

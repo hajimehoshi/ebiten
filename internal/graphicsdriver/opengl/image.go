@@ -76,7 +76,7 @@ func (i *Image) ensureFramebuffer() error {
 		return nil
 	}
 
-	w, h := graphics.NextPowerOf2Int(i.width), graphics.NextPowerOf2Int(i.height)
+	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 	f, err := newFramebufferFromTexture(&i.driver.context, i.textureNative, w, h)
 	if err != nil {
 		return err

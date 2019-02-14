@@ -340,10 +340,10 @@ func (d *Driver) checkSize(width, height int) {
 	})
 
 	if width < 1 {
-		panic(fmt.Sprintf("metal: width (%d) must be equal or more than 1", width))
+		panic(fmt.Sprintf("metal: width (%d) must be equal or more than %d", width, 1))
 	}
 	if height < 1 {
-		panic(fmt.Sprintf("metal: height (%d) must be equal or more than 1", height))
+		panic(fmt.Sprintf("metal: height (%d) must be equal or more than %d", height, 1))
 	}
 	if width > m {
 		panic(fmt.Sprintf("metal: width (%d) must be less than or equal to %d", width, m))
@@ -357,8 +357,8 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 	d.checkSize(width, height)
 	td := mtl.TextureDescriptor{
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
-		Width:       graphics.NextPowerOf2Int(width),
-		Height:      graphics.NextPowerOf2Int(height),
+		Width:       graphics.InternalImageSize(width),
+		Height:      graphics.InternalImageSize(height),
 		StorageMode: mtl.StorageModeManaged,
 
 		// MTLTextureUsageRenderTarget might cause a problematic render result. Not sure the reason.
@@ -581,8 +581,8 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		rce.SetVertexBytes(unsafe.Pointer(&viewportSize[0]), unsafe.Sizeof(viewportSize), 1)
 
 		sourceSize := [...]float32{
-			float32(graphics.NextPowerOf2Int(d.src.width)),
-			float32(graphics.NextPowerOf2Int(d.src.height)),
+			float32(graphics.InternalImageSize(d.src.width)),
+			float32(graphics.InternalImageSize(d.src.height)),
 		}
 		rce.SetFragmentBytes(unsafe.Pointer(&sourceSize[0]), unsafe.Sizeof(sourceSize), 2)
 
@@ -644,7 +644,7 @@ func (i *Image) viewportSize() (int, int) {
 	if i.screen {
 		return i.width, i.height
 	}
-	return graphics.NextPowerOf2Int(i.width), graphics.NextPowerOf2Int(i.height)
+	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 }
 
 func (i *Image) Dispose() {

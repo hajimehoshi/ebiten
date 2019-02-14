@@ -230,8 +230,8 @@ func (i *Image) Size() (int, int) {
 func (i *Image) InternalSize() (int, int) {
 	if i.w2 == 0 || i.h2 == 0 {
 		w, h := i.image.Size()
-		i.w2 = graphics.NextPowerOf2Int(w)
-		i.h2 = graphics.NextPowerOf2Int(h)
+		i.w2 = graphics.InternalImageSize(w)
+		i.h2 = graphics.InternalImageSize(h)
 	}
 	return i.w2, i.h2
 }
