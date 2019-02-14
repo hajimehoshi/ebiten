@@ -191,10 +191,8 @@ func (i *Image) fill(r, g, b, a uint8) {
 
 	// There are not 'drawImageHistoryItem's for this image and emptyImage.
 	// As emptyImage is a priority image, this is restored before other regular images are restored.
-	w, h := i.Size()
+	dw, dh := i.InternalSize()
 	sw, sh := emptyImage.Size()
-	dw := graphics.NextPowerOf2Int(w)
-	dh := graphics.NextPowerOf2Int(h)
 	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)
@@ -205,6 +203,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	}
 	i.image.DrawImage(emptyImage.image, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
 
+	w, h := i.Size()
 	i.basePixels = &Pixels{
 		color:  color.RGBA{r, g, b, a},
 		length: 4 * w * h,
