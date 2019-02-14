@@ -60,6 +60,8 @@ func (v *verticesBackend) slice(n int) []float32 {
 }
 
 func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
+	// width and height are the source image's size.
+
 	// For performance reason, graphics.InternalImageSize is not applied to width/height here.
 
 	if !isInternalImageSize(width) {

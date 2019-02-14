@@ -191,7 +191,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 
 	// There are not 'drawImageHistoryItem's for this image and emptyImage.
 	// As emptyImage is a priority image, this is restored before other regular images are restored.
-	dw, dh := i.InternalSize()
+	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
 	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
@@ -226,14 +226,32 @@ func (i *Image) Size() (int, int) {
 	return i.image.Size()
 }
 
-// InternalSize returns the size of the internal texture.
-func (i *Image) InternalSize() (int, int) {
+// internalSize returns the size of the internal texture.
+func (i *Image) internalSize() (int, int) {
 	if i.w2 == 0 || i.h2 == 0 {
 		w, h := i.image.Size()
 		i.w2 = graphics.InternalImageSize(w)
 		i.h2 = graphics.InternalImageSize(h)
 	}
 	return i.w2, i.h2
+}
+
+func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
+	w, h := i.internalSize()
+	return graphics.QuadVertices(w, h, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+}
+
+func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
+	w, h := i.internalSize()
+
+	su := sx / float32(w)
+	sv := sy / float32(h)
+	u0 := bx0 / float32(w)
+	v0 := by0 / float32(h)
+	u1 := bx1 / float32(w)
+	v1 := by1 / float32(h)
+
+	graphics.PutVertex(dest, w, h, dx, dy, su, sv, u0, v0, u1, v1, cr, cg, cb, ca)
 }
 
 // makeStale makes the image stale.
