@@ -161,25 +161,3 @@ var (
 func QuadIndices() []uint16 {
 	return quadIndices
 }
-
-func PutVertex(vs []float32, width, height int, dx, dy, su, sv float32, u0, v0, u1, v1 float32, cr, cg, cb, ca float32) {
-	if !isInternalImageSize(width) {
-		panic(fmt.Sprintf("graphics: width must be an internal image size at PutVertices: %d", width))
-	}
-	if !isInternalImageSize(height) {
-		panic(fmt.Sprintf("graphics: height must be an internal image size at PutVertices: %d", height))
-	}
-
-	vs[0] = dx
-	vs[1] = dy
-	vs[2] = su
-	vs[3] = sv
-	vs[4] = u0
-	vs[5] = v0
-	vs[6] = u1
-	vs[7] = v1
-	vs[8] = cr
-	vs[9] = cg
-	vs[10] = cb
-	vs[11] = ca
-}

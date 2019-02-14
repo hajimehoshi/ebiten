@@ -241,17 +241,20 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	return graphics.QuadVertices(w, h, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
-func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
+func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	w, h := i.internalSize()
-
-	su := sx / float32(w)
-	sv := sy / float32(h)
-	u0 := bx0 / float32(w)
-	v0 := by0 / float32(h)
-	u1 := bx1 / float32(w)
-	v1 := by1 / float32(h)
-
-	graphics.PutVertex(dest, w, h, dx, dy, su, sv, u0, v0, u1, v1, cr, cg, cb, ca)
+	vs[0] = dx
+	vs[1] = dy
+	vs[2] = sx / float32(w)
+	vs[3] = sy / float32(h)
+	vs[4] = bx0 / float32(w)
+	vs[5] = by0 / float32(h)
+	vs[6] = bx1 / float32(w)
+	vs[7] = by1 / float32(h)
+	vs[8] = cr
+	vs[9] = cg
+	vs[10] = cb
+	vs[11] = ca
 }
 
 // makeStale makes the image stale.
