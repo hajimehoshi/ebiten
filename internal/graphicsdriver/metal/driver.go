@@ -580,12 +580,9 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		viewportSize := [...]float32{float32(w), float32(h)}
 		rce.SetVertexBytes(unsafe.Pointer(&viewportSize[0]), unsafe.Sizeof(viewportSize), 1)
 
-		sourceSize := [...]float32{float32(1), float32(1)}
-		for sourceSize[0] < float32(d.src.width) {
-			sourceSize[0] *= 2
-		}
-		for sourceSize[1] < float32(d.src.height) {
-			sourceSize[1] *= 2
+		sourceSize := [...]float32{
+			float32(graphics.NextPowerOf2Int(d.src.width)),
+			float32(graphics.NextPowerOf2Int(d.src.height)),
 		}
 		rce.SetFragmentBytes(unsafe.Pointer(&sourceSize[0]), unsafe.Sizeof(sourceSize), 2)
 
