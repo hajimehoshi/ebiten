@@ -103,40 +103,43 @@ template<uint8_t address>
 float2 AdjustTexelByAddress(float2 p, float4 tex_region);
 
 template<>
-float2 AdjustTexelByAddress<ADDRESS_CLAMP_TO_ZERO>(float2 p, float4 tex_region) {
+inline float2 AdjustTexelByAddress<ADDRESS_CLAMP_TO_ZERO>(float2 p, float4 tex_region) {
   return p;
 }
 
 template<>
-float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 tex_region) {
+inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 tex_region) {
   float2 o = float2(tex_region[0], tex_region[1]);
   float2 size = float2(tex_region[2] - tex_region[0], tex_region[3] - tex_region[1]);
   return float2(FloorMod((p.x - o.x), size.x) + o.x, FloorMod((p.y - o.y), size.y) + o.y);
 }
 
 template<uint8_t filter, uint8_t address>
-float4 FragmentShaderImpl(
-    VertexOut v,
-    texture2d<float> texture,
-    constant float2& source_size,
-    constant float4x4& color_matrix_body,
-    constant float4& color_matrix_translation,
-    constant float& scale) {
-  constexpr sampler texture_sampler(filter::nearest);
-  const float2 texel_size = 1 / source_size;
+struct GetColorFromTexel;
 
-  float4 c;
+template<uint8_t address>
+struct GetColorFromTexel<FILTER_NEAREST, address> {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+    constexpr sampler texture_sampler(filter::nearest);
+    const float2 texel_size = 1 / source_size;
 
-  if (filter == FILTER_NEAREST) {
     float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
-    c = texture.sample(texture_sampler, p);
     if (p.x < v.tex_region[0] ||
         p.y < v.tex_region[1] ||
         (v.tex_region[2] - texel_size.x / 512.0) <= p.x ||
         (v.tex_region[3] - texel_size.y / 512.0) <= p.y) {
-      c = 0;
+      return 0.0;
     }
-  } else if (filter == FILTER_LINEAR) {
+    return texture.sample(texture_sampler, p);
+  }
+};
+
+template<uint8_t address>
+struct GetColorFromTexel<FILTER_LINEAR, address> {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+    constexpr sampler texture_sampler(filter::nearest);
+    const float2 texel_size = 1 / source_size;
+
     float2 p0 = v.tex - texel_size / 2.0;
     float2 p1 = v.tex + texel_size / 2.0;
     p1 = AdjustTexel(source_size, p0, p1);
@@ -166,8 +169,16 @@ float4 FragmentShaderImpl(
     }
 
     float2 rate = fract(p0 * source_size);
-    c = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  } else if (filter == FILTER_SCREEN) {
+    return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+  }
+};
+
+template<uint8_t address>
+struct GetColorFromTexel<FILTER_SCREEN, address> {
+  inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
+    constexpr sampler texture_sampler(filter::nearest);
+    const float2 texel_size = 1 / source_size;
+
     float2 p0 = v.tex - texel_size / 2.0 / scale;
     float2 p1 = v.tex + texel_size / 2.0 / scale;
     p1 = AdjustTexel(source_size, p0, p1);
@@ -179,13 +190,19 @@ float4 FragmentShaderImpl(
 
     float2 rate_center = float2(1.0, 1.0) - texel_size / 2.0 / scale;
     float2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
-    c = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-  } else {
-    // Not reached.
-    discard_fragment();
-    return float4(0);
+    return mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
   }
+};
 
+template<uint8_t filter, uint8_t address>
+float4 FragmentShaderImpl(
+    VertexOut v,
+    texture2d<float> texture,
+    constant float2& source_size,
+    constant float4x4& color_matrix_body,
+    constant float4& color_matrix_translation,
+    constant float& scale) {
+  float4 c = GetColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
   if (0 < c.a) {
     c.rgb /= c.a;
   }
