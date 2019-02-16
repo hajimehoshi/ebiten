@@ -256,19 +256,21 @@ void main(void) {
   color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
+#if defined(USE_COLOR_MATRIX)
   // Un-premultiply alpha.
   // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
   color.rgb /= color.a + (1.0 - sign(color.a));
-
-#if defined(USE_COLOR_MATRIX)
   // Apply the color matrix or scale.
   color = (color_matrix_body * color) + color_matrix_translation;
-#endif
-
   color *= varying_color_scale;
   color = clamp(color, 0.0, 1.0);
   // Premultiply alpha
   color.rgb *= color.a;
+#else
+  vec4 s = varying_color_scale;
+  color *= vec4(s.r, s.g, s.b, 1.0) * s.a;
+  color = clamp(color, 0.0, color.a);
+#endif
 
   gl_FragColor = color;
 }

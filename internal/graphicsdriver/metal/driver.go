@@ -121,7 +121,6 @@ template<uint8_t address>
 struct GetColorFromTexel<FILTER_NEAREST, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
     constexpr sampler texture_sampler(filter::nearest);
-    const float2 texel_size = 1 / source_size;
 
     float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
     if (p.x < v.tex_region[0] ||
@@ -203,13 +202,17 @@ float4 FragmentShaderImpl(
     constant float4& color_matrix_translation,
     constant float& scale) {
   float4 c = GetColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
-  c.rgb /= c.a + (1.0 - sign(c.a));
   if (useColorM) {
+    c.rgb /= c.a + (1.0 - sign(c.a));
     c = (color_matrix_body * c) + color_matrix_translation;
+    c *= v.color;
+    c = clamp(c, 0.0, 1.0);
+    c.rgb *= c.a;
+  } else {
+    float4 s = v.color;
+    c *= float4(s.r, s.g, s.b, 1.0) * s.a;
+    c = clamp(c, 0.0, c.a);
   }
-  c *= v.color;
-  c = clamp(c, 0.0, 1.0);
-  c.rgb *= c.a;
   return c;
 }
 
