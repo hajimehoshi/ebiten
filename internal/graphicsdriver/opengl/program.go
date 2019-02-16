@@ -323,10 +323,15 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	sw := graphics.InternalImageSize(srcW)
 	sh := graphics.InternalImageSize(srcH)
 
-	if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
-		d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
-		d.state.lastSourceWidth = sw
-		d.state.lastSourceHeight = sh
+	if filter == graphics.FilterNearest {
+		d.state.lastSourceWidth = 0
+		d.state.lastSourceHeight = 0
+	} else {
+		if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
+			d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
+			d.state.lastSourceWidth = sw
+			d.state.lastSourceHeight = sh
+		}
 	}
 
 	if filter == graphics.FilterScreen {
