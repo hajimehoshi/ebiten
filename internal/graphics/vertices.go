@@ -81,10 +81,12 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 	wf := float32(width)
 	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	return quadVerticesImpl(float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	return quadVerticesImpl(wf, hf, float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
-func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
+const TexelAdjustmentFactor = 512.0
+
+func quadVerticesImpl(sw, sh, x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
 	//
@@ -92,6 +94,9 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	vs := theVerticesBackend.slice(4)[0:48]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
+
+	du := 1.0 / sw / TexelAdjustmentFactor
+	dv := 1.0 / sh / TexelAdjustmentFactor
 
 	// Vertex coordinates
 	vs[0] = tx
@@ -104,8 +109,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	vs[3] = v0
 	vs[4] = u0
 	vs[5] = v0
-	vs[6] = u1
-	vs[7] = v1
+	vs[6] = u1 - du
+	vs[7] = v1 - dv
 	vs[8] = cr
 	vs[9] = cg
 	vs[10] = cb
@@ -118,8 +123,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	vs[15] = v0
 	vs[16] = u0
 	vs[17] = v0
-	vs[18] = u1
-	vs[19] = v1
+	vs[18] = u1 - du
+	vs[19] = v1 - dv
 	vs[20] = cr
 	vs[21] = cg
 	vs[22] = cb
@@ -131,8 +136,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	vs[27] = v1
 	vs[28] = u0
 	vs[29] = v0
-	vs[30] = u1
-	vs[31] = v1
+	vs[30] = u1 - du
+	vs[31] = v1 - dv
 	vs[32] = cr
 	vs[33] = cg
 	vs[34] = cb
@@ -144,8 +149,8 @@ func quadVerticesImpl(x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca f
 	vs[39] = v1
 	vs[40] = u0
 	vs[41] = v0
-	vs[42] = u1
-	vs[43] = v1
+	vs[42] = u1 - du
+	vs[43] = v1 - dv
 	vs[44] = cr
 	vs[45] = cg
 	vs[46] = cb

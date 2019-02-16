@@ -191,8 +191,8 @@ void main(void) {
   color = texture2D(texture, pos);
   if (pos.x < varying_tex_region[0] ||
     pos.y < varying_tex_region[1] ||
-    (varying_tex_region[2] - texel_size.x / 512.0) <= pos.x ||
-    (varying_tex_region[3] - texel_size.y / 512.0) <= pos.y) {
+    varying_tex_region[2] <= pos.x ||
+    varying_tex_region[3] <= pos.y) {
     color = vec4(0, 0, 0, 0);
   }
 #endif
@@ -217,11 +217,11 @@ void main(void) {
     c0 = vec4(0, 0, 0, 0);
     c1 = vec4(0, 0, 0, 0);
   }
-  if ((varying_tex_region[2] - texel_size.x / 512.0) <= p1.x) {
+  if (varying_tex_region[2] <= p1.x) {
     c1 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }
-  if ((varying_tex_region[3] - texel_size.y / 512.0) <= p1.y) {
+  if (varying_tex_region[3] <= p1.y) {
     c2 = vec4(0, 0, 0, 0);
     c3 = vec4(0, 0, 0, 0);
   }

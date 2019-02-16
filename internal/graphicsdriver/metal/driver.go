@@ -126,8 +126,8 @@ struct GetColorFromTexel<FILTER_NEAREST, address> {
     float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
     if (p.x < v.tex_region[0] ||
         p.y < v.tex_region[1] ||
-        (v.tex_region[2] - texel_size.x / 512.0) <= p.x ||
-        (v.tex_region[3] - texel_size.y / 512.0) <= p.y) {
+        v.tex_region[2] <= p.x ||
+        v.tex_region[3] <= p.y) {
       return 0.0;
     }
     return texture.sample(texture_sampler, p);
@@ -159,11 +159,11 @@ struct GetColorFromTexel<FILTER_LINEAR, address> {
       c0 = 0;
       c1 = 0;
     }
-    if ((v.tex_region[2] - texel_size.x / 512.0) <= p1.x) {
+    if (v.tex_region[2] <= p1.x) {
       c1 = 0;
       c3 = 0;
     }
-    if ((v.tex_region[3] - texel_size.y / 512.0) <= p1.y) {
+    if (v.tex_region[3] <= p1.y) {
       c2 = 0;
       c3 = 0;
     }
