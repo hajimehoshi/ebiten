@@ -247,10 +247,9 @@ void main(void) {
   color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
 #endif
 
-  // Un-premultiply alpha
-  if (0.0 < color.a) {
-    color.rgb /= color.a;
-  }
+  // Un-premultiply alpha.
+  // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
+  color.rgb /= color.a + (1.0 - sign(color.a));
   // Apply the color matrix or scale.
   color = (color_matrix_body * color) + color_matrix_translation;
   color *= varying_color_scale;

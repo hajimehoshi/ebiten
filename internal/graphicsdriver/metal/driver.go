@@ -203,9 +203,7 @@ float4 FragmentShaderImpl(
     constant float4& color_matrix_translation,
     constant float& scale) {
   float4 c = GetColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
-  if (0 < c.a) {
-    c.rgb /= c.a;
-  }
+  c.rgb /= c.a + (1.0 - sign(c.a));
   c = (color_matrix_body * c) + color_matrix_translation;
   c *= v.color;
   c = clamp(c, 0.0, 1.0);
