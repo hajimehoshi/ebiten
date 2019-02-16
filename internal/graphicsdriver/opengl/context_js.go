@@ -193,10 +193,6 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	p := js.TypedArrayOf(pixels)
 	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
 	p.Release()
-
-	if e := gl.Call("getError"); e.Int() != noError.Int() {
-		return nil, errors.New(fmt.Sprintf("opengl: error: %d", e))
-	}
 	return pixels, nil
 }
 

@@ -171,10 +171,6 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 	if err := mainthread.Run(func() error {
 		pixels = make([]byte, 4*width*height)
 		gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
-		if e := gl.GetError(); e != gl.NO_ERROR {
-			pixels = nil
-			return fmt.Errorf("opengl: glReadPixels: %d", e)
-		}
 		return nil
 	}); err != nil {
 		return nil, err
