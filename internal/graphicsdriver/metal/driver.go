@@ -194,7 +194,7 @@ struct GetColorFromTexel<FILTER_SCREEN, address> {
   }
 };
 
-template<uint8_t filter, uint8_t address>
+template<bool useColorM, uint8_t filter, uint8_t address>
 float4 FragmentShaderImpl(
     VertexOut v,
     texture2d<float> texture,
@@ -204,7 +204,9 @@ float4 FragmentShaderImpl(
     constant float& scale) {
   float4 c = GetColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
   c.rgb /= c.a + (1.0 - sign(c.a));
-  c = (color_matrix_body * c) + color_matrix_translation;
+  if (useColorM) {
+    c = (color_matrix_body * c) + color_matrix_translation;
+  }
   c *= v.color;
   c = clamp(c, 0.0, 1.0);
   c.rgb *= c.a;
@@ -214,31 +216,37 @@ float4 FragmentShaderImpl(
 // Define Foo and FooCp macros to force macro replacement.
 // See "6.10.3.1 Argument substitution" in ISO/IEC 9899.
 
-#define FragmentShaderFunc(filter, address) \
-  FragmentShaderFuncCp(filter, address)
+#define FragmentShaderFunc(useColorM, filter, address) \
+  FragmentShaderFuncCp(useColorM, filter, address)
 
-#define FragmentShaderFuncCp(filter, address) \
-  fragment float4 FragmentShader_##filter##_##address( \
+#define FragmentShaderFuncCp(useColorM, filter, address) \
+  fragment float4 FragmentShader_##useColorM##_##filter##_##address( \
       VertexOut v [[stage_in]], \
       texture2d<float> texture [[texture(0)]], \
       constant float2& source_size [[buffer(2)]], \
       constant float4x4& color_matrix_body [[buffer(3)]], \
       constant float4& color_matrix_translation [[buffer(4)]], \
       constant float& scale [[buffer(5)]]) { \
-    return FragmentShaderImpl<filter, address>( \
+    return FragmentShaderImpl<useColorM, filter, address>( \
         v, texture, source_size, color_matrix_body, color_matrix_translation, scale); \
   }
 
-FragmentShaderFunc(FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(FILTER_SCREEN, ADDRESS_CLAMP_TO_ZERO)
-FragmentShaderFunc(FILTER_NEAREST, ADDRESS_REPEAT)
-FragmentShaderFunc(FILTER_LINEAR, ADDRESS_REPEAT)
+FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(0, FILTER_NEAREST, ADDRESS_REPEAT)
+FragmentShaderFunc(0, FILTER_LINEAR, ADDRESS_REPEAT)
+FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_CLAMP_TO_ZERO)
+FragmentShaderFunc(1, FILTER_NEAREST, ADDRESS_REPEAT)
+FragmentShaderFunc(1, FILTER_LINEAR, ADDRESS_REPEAT)
+
+FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_CLAMP_TO_ZERO)
 
 #undef FragmentShaderFuncName
 `
 
 type rpsKey struct {
+	useColorM     bool
 	filter        graphics.Filter
 	address       graphics.Address
 	compositeMode graphics.CompositeMode
@@ -455,7 +463,7 @@ func (d *Driver) Reset() error {
 			return err
 		}
 		fs, err := lib.MakeFunction(
-			fmt.Sprintf("FragmentShader_%d_%d", graphics.FilterScreen, graphics.AddressClampToZero))
+			fmt.Sprintf("FragmentShader_%d_%d_%d", 0, graphics.FilterScreen, graphics.AddressClampToZero))
 		if err != nil {
 			return err
 		}
@@ -494,40 +502,47 @@ func (d *Driver) Reset() error {
 			}
 		}
 
-		for _, a := range []graphics.Address{
-			graphics.AddressClampToZero,
-			graphics.AddressRepeat,
-		} {
-			for _, f := range []graphics.Filter{
-				graphics.FilterNearest,
-				graphics.FilterLinear,
+		for _, cm := range []bool{false, true} {
+			for _, a := range []graphics.Address{
+				graphics.AddressClampToZero,
+				graphics.AddressRepeat,
 			} {
-				for c := graphics.CompositeModeSourceOver; c <= graphics.CompositeModeMax; c++ {
-					fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d", f, a))
-					if err != nil {
-						return err
-					}
-					rpld := mtl.RenderPipelineDescriptor{
-						VertexFunction:   vs,
-						FragmentFunction: fs,
-					}
-					rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
-					rpld.ColorAttachments[0].BlendingEnabled = true
+				for _, f := range []graphics.Filter{
+					graphics.FilterNearest,
+					graphics.FilterLinear,
+				} {
+					for c := graphics.CompositeModeSourceOver; c <= graphics.CompositeModeMax; c++ {
+						cmi := 0
+						if cm {
+							cmi = 1
+						}
+						fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
+						if err != nil {
+							return err
+						}
+						rpld := mtl.RenderPipelineDescriptor{
+							VertexFunction:   vs,
+							FragmentFunction: fs,
+						}
+						rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
+						rpld.ColorAttachments[0].BlendingEnabled = true
 
-					src, dst := c.Operations()
-					rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
-					rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
-					rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
-					rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
-					rps, err := d.device.MakeRenderPipelineState(rpld)
-					if err != nil {
-						return err
+						src, dst := c.Operations()
+						rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
+						rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
+						rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
+						rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
+						rps, err := d.device.MakeRenderPipelineState(rpld)
+						if err != nil {
+							return err
+						}
+						d.rpss[rpsKey{
+							useColorM:     cm,
+							filter:        f,
+							address:       a,
+							compositeMode: c,
+						}] = rps
 					}
-					d.rpss[rpsKey{
-						filter:        f,
-						address:       a,
-						compositeMode: c,
-					}] = rps
 				}
 			}
 		}
@@ -584,6 +599,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 			rce.SetRenderPipelineState(d.screenRPS)
 		} else {
 			rce.SetRenderPipelineState(d.rpss[rpsKey{
+				useColorM:     colorM != nil,
 				filter:        filter,
 				address:       address,
 				compositeMode: mode,
@@ -601,9 +617,11 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		}
 		rce.SetFragmentBytes(unsafe.Pointer(&sourceSize[0]), unsafe.Sizeof(sourceSize), 2)
 
-		esBody, esTranslate := colorM.UnsafeElements()
-		rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 3)
-		rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 4)
+		if colorM != nil {
+			esBody, esTranslate := colorM.UnsafeElements()
+			rce.SetFragmentBytes(unsafe.Pointer(&esBody[0]), unsafe.Sizeof(esBody[0])*uintptr(len(esBody)), 3)
+			rce.SetFragmentBytes(unsafe.Pointer(&esTranslate[0]), unsafe.Sizeof(esTranslate[0])*uintptr(len(esTranslate)), 4)
+		}
 
 		scale := float32(d.dst.width) / float32(d.src.width)
 		rce.SetFragmentBytes(unsafe.Pointer(&scale), unsafe.Sizeof(scale), 5)

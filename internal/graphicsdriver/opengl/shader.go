@@ -61,7 +61,7 @@ func vertexShaderStr() string {
 	return src
 }
 
-func fragmentShaderStr(filter graphics.Filter, address graphics.Address) string {
+func fragmentShaderStr(useColorM bool, filter graphics.Filter, address graphics.Address) string {
 	replaces := map[string]string{
 		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
 		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
@@ -72,6 +72,11 @@ func fragmentShaderStr(filter graphics.Filter, address graphics.Address) string 
 	}
 
 	var defs []string
+
+	if useColorM {
+		defs = append(defs, "#define USE_COLOR_MATRIX")
+	}
+
 	switch filter {
 	case graphics.FilterNearest:
 		defs = append(defs, "#define FILTER_NEAREST")
@@ -82,6 +87,7 @@ func fragmentShaderStr(filter graphics.Filter, address graphics.Address) string 
 	default:
 		panic(fmt.Sprintf("opengl: invalid filter: %d", filter))
 	}
+
 	switch address {
 	case graphics.AddressClampToZero:
 		defs = append(defs, "#define ADDRESS_CLAMP_TO_ZERO")
@@ -134,8 +140,11 @@ precision mediump float;
 {{.Definitions}}
 
 uniform sampler2D texture;
+
+#if defined(USE_COLOR_MATRIX)
 uniform mat4 color_matrix_body;
 uniform vec4 color_matrix_translation;
+#endif
 
 uniform highp vec2 source_size;
 
@@ -250,8 +259,12 @@ void main(void) {
   // Un-premultiply alpha.
   // When the alpha is 0, 1.0 - sign(alpha) is 1.0, which means division does nothing.
   color.rgb /= color.a + (1.0 - sign(color.a));
+
+#if defined(USE_COLOR_MATRIX)
   // Apply the color matrix or scale.
   color = (color_matrix_body * color) + color_matrix_translation;
+#endif
+
   color *= varying_color_scale;
   color = clamp(color, 0.0, 1.0);
   // Premultiply alpha

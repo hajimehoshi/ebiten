@@ -116,8 +116,9 @@ func init() {
 }
 
 type programKey struct {
-	filter  graphics.Filter
-	address graphics.Address
+	useColorM bool
+	filter    graphics.Filter
+	address   graphics.Address
 }
 
 // openGLState is a state for
@@ -200,34 +201,37 @@ func (s *openGLState) reset(context *context) error {
 	}
 	defer context.deleteShader(shaderVertexModelviewNative)
 
-	for _, a := range []graphics.Address{
-		graphics.AddressClampToZero,
-		graphics.AddressRepeat,
-	} {
-		for _, f := range []graphics.Filter{
-			graphics.FilterNearest,
-			graphics.FilterLinear,
-			graphics.FilterScreen,
+	for _, c := range []bool{false, true} {
+		for _, a := range []graphics.Address{
+			graphics.AddressClampToZero,
+			graphics.AddressRepeat,
 		} {
-			shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, fragmentShaderStr(f, a))
-			if err != nil {
-				panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
+			for _, f := range []graphics.Filter{
+				graphics.FilterNearest,
+				graphics.FilterLinear,
+				graphics.FilterScreen,
+			} {
+				shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, fragmentShaderStr(c, f, a))
+				if err != nil {
+					panic(fmt.Sprintf("graphics: shader compiling error:\n%s", err))
+				}
+				defer context.deleteShader(shaderFragmentColorMatrixNative)
+
+				program, err := context.newProgram([]shader{
+					shaderVertexModelviewNative,
+					shaderFragmentColorMatrixNative,
+				}, theArrayBufferLayout.names())
+
+				if err != nil {
+					return err
+				}
+
+				s.programs[programKey{
+					useColorM: c,
+					filter:    f,
+					address:   a,
+				}] = program
 			}
-			defer context.deleteShader(shaderFragmentColorMatrixNative)
-
-			program, err := context.newProgram([]shader{
-				shaderVertexModelviewNative,
-				shaderFragmentColorMatrixNative,
-			}, theArrayBufferLayout.names())
-
-			if err != nil {
-				return err
-			}
-
-			s.programs[programKey{
-				filter:  f,
-				address: a,
-			}] = program
 		}
 	}
 
@@ -274,8 +278,9 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	d.context.blendFunc(mode)
 
 	program := d.state.programs[programKey{
-		filter:  filter,
-		address: address,
+		useColorM: colorM != nil,
+		filter:    filter,
+		address:   address,
 	}]
 	if d.state.lastProgram != program {
 		d.context.useProgram(program)
@@ -307,26 +312,24 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		d.state.lastViewportHeight = vh
 	}
 
-	esBody, esTranslate := colorM.UnsafeElements()
-
-	if !areSameFloat32Array(d.state.lastColorMatrix, esBody) {
-		d.context.uniformFloats(program, "color_matrix_body", esBody)
-		// ColorM's elements are immutable. It's OK to hold the reference without copying.
-		d.state.lastColorMatrix = esBody
-	}
-	if !areSameFloat32Array(d.state.lastColorMatrixTranslation, esTranslate) {
-		d.context.uniformFloats(program, "color_matrix_translation", esTranslate)
-		// ColorM's elements are immutable. It's OK to hold the reference without copying.
-		d.state.lastColorMatrixTranslation = esTranslate
+	if colorM != nil {
+		esBody, esTranslate := colorM.UnsafeElements()
+		if !areSameFloat32Array(d.state.lastColorMatrix, esBody) {
+			d.context.uniformFloats(program, "color_matrix_body", esBody)
+			// ColorM's elements are immutable. It's OK to hold the reference without copying.
+			d.state.lastColorMatrix = esBody
+		}
+		if !areSameFloat32Array(d.state.lastColorMatrixTranslation, esTranslate) {
+			d.context.uniformFloats(program, "color_matrix_translation", esTranslate)
+			// ColorM's elements are immutable. It's OK to hold the reference without copying.
+			d.state.lastColorMatrixTranslation = esTranslate
+		}
 	}
 
 	sw := graphics.InternalImageSize(srcW)
 	sh := graphics.InternalImageSize(srcH)
 
-	if filter == graphics.FilterNearest {
-		d.state.lastSourceWidth = 0
-		d.state.lastSourceHeight = 0
-	} else {
+	if filter != graphics.FilterNearest {
 		if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
 			d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
 			d.state.lastSourceWidth = sw
