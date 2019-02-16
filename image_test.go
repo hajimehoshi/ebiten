@@ -1512,3 +1512,86 @@ func TestImageAlphaOnBlack(t *testing.T) {
 		t.Errorf("gray must be included in the results but not")
 	}
 }
+
+func TestImageDrawTrianglesWithSubImage(t *testing.T) {
+	const w, h = 16, 16
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
+
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			if 4 <= i && i < 8 && 4 <= j && j < 8 {
+				pix[4*(i+j*w)] = 0xff
+				pix[4*(i+j*w)+1] = 0
+				pix[4*(i+j*w)+2] = 0
+				pix[4*(i+j*w)+3] = 0xff
+			} else {
+				pix[4*(i+j*w)] = 0
+				pix[4*(i+j*w)+1] = 0xff
+				pix[4*(i+j*w)+2] = 0
+				pix[4*(i+j*w)+3] = 0xff
+			}
+		}
+	}
+	src.ReplacePixels(pix)
+
+	vs := []Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &DrawTrianglesOptions{}
+	dst.DrawTriangles(vs, is, src.SubImage(image.Rect(4, 4, 8, 8)).(*Image), op)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if 4 <= i && i < 8 && 4 <= j && j < 8 {
+				want = src.At(i, j).(color.RGBA)
+			}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
