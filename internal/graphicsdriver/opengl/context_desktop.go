@@ -311,7 +311,7 @@ func (c *context) deleteShader(s shader) {
 	})
 }
 
-func (c *context) newProgram(shaders []shader) (program, error) {
+func (c *context) newProgram(shaders []shader, attributes []string) (program, error) {
 	var pr program
 	if err := mainthread.Run(func() error {
 		p := gl.CreateProgram()
@@ -322,6 +322,13 @@ func (c *context) newProgram(shaders []shader) (program, error) {
 		for _, shader := range shaders {
 			gl.AttachShader(p, uint32(shader))
 		}
+
+		for i, name := range attributes {
+			l, free := gl.Strs(name + "\x00")
+			gl.BindAttribLocation(p, uint32(i), *l)
+			free()
+		}
+
 		gl.LinkProgram(p)
 		var v int32
 		gl.GetProgramiv(p, gl.LINK_STATUS, &v)
@@ -396,36 +403,23 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 	})
 }
 
-func (c *context) getAttribLocationImpl(p program, location string) attribLocation {
-	l, free := gl.Strs(location + "\x00")
-	attrib := attribLocation(gl.GetAttribLocation(uint32(p), *l))
-	free()
-	if attrib == -1 {
-		panic("opengl: invalid attrib location: " + location)
-	}
-	return attrib
-}
-
-func (c *context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
+func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
 	_ = mainthread.Run(func() error {
-		l := c.locationCache.GetAttribLocation(c, p, location)
-		gl.VertexAttribPointer(uint32(l), int32(size), uint32(dataType), false, int32(stride), gl.PtrOffset(offset))
+		gl.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), gl.PtrOffset(offset))
 		return nil
 	})
 }
 
-func (c *context) enableVertexAttribArray(p program, location string) {
+func (c *context) enableVertexAttribArray(p program, index int) {
 	_ = mainthread.Run(func() error {
-		l := c.locationCache.GetAttribLocation(c, p, location)
-		gl.EnableVertexAttribArray(uint32(l))
+		gl.EnableVertexAttribArray(uint32(index))
 		return nil
 	})
 }
 
-func (c *context) disableVertexAttribArray(p program, location string) {
+func (c *context) disableVertexAttribArray(p program, index int) {
 	_ = mainthread.Run(func() error {
-		l := c.locationCache.GetAttribLocation(c, p, location)
-		gl.DisableVertexAttribArray(uint32(l))
+		gl.DisableVertexAttribArray(uint32(index))
 		return nil
 	})
 }

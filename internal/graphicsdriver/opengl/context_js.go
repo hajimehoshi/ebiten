@@ -293,7 +293,7 @@ func (c *context) deleteShader(s shader) {
 	gl.Call("deleteShader", js.Value(s))
 }
 
-func (c *context) newProgram(shaders []shader) (program, error) {
+func (c *context) newProgram(shaders []shader, attributes []string) (program, error) {
 	c.ensureGL()
 	gl := c.gl
 	v := gl.Call("createProgram")
@@ -304,6 +304,11 @@ func (c *context) newProgram(shaders []shader) (program, error) {
 	for _, shader := range shaders {
 		gl.Call("attachShader", v, js.Value(shader))
 	}
+
+	for i, name := range attributes {
+		gl.Call("bindAttribLocation", v, i, name)
+	}
+
 	gl.Call("linkProgram", v)
 	if !gl.Call("getProgramParameter", v, linkStatus).Bool() {
 		return program{}, errors.New("opengl: program error")
@@ -374,31 +379,22 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 	}
 }
 
-func (c *context) getAttribLocationImpl(p program, location string) attribLocation {
+func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
 	c.ensureGL()
 	gl := c.gl
-	return attribLocation(gl.Call("getAttribLocation", p.value, location).Int())
+	gl.Call("vertexAttribPointer", index, size, int(dataType), false, stride, offset)
 }
 
-func (c *context) vertexAttribPointer(p program, location string, size int, dataType dataType, stride int, offset int) {
+func (c *context) enableVertexAttribArray(p program, index int) {
 	c.ensureGL()
 	gl := c.gl
-	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.Call("vertexAttribPointer", int(l), size, int(dataType), false, stride, offset)
+	gl.Call("enableVertexAttribArray", index)
 }
 
-func (c *context) enableVertexAttribArray(p program, location string) {
+func (c *context) disableVertexAttribArray(p program, index int) {
 	c.ensureGL()
 	gl := c.gl
-	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.Call("enableVertexAttribArray", int(l))
-}
-
-func (c *context) disableVertexAttribArray(p program, location string) {
-	c.ensureGL()
-	gl := c.gl
-	l := c.locationCache.GetAttribLocation(c, p, location)
-	gl.Call("disableVertexAttribArray", int(l))
+	gl.Call("disableVertexAttribArray", index)
 }
 
 func (c *context) newArrayBuffer(size int) buffer {

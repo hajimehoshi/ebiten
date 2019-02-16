@@ -38,6 +38,14 @@ type arrayBufferLayout struct {
 	total int
 }
 
+func (a *arrayBufferLayout) names() []string {
+	ns := make([]string, len(a.parts))
+	for i, p := range a.parts {
+		ns[i] = p.name
+	}
+	return ns
+}
+
 // totalBytes returns the size in bytes for one element of the array buffer.
 func (a *arrayBufferLayout) totalBytes() int {
 	if a.total != 0 {
@@ -58,13 +66,13 @@ func (a *arrayBufferLayout) newArrayBuffer(context *context) buffer {
 
 // enable binds the array buffer the given program to use the array buffer.
 func (a *arrayBufferLayout) enable(context *context, program program) {
-	for _, p := range a.parts {
-		context.enableVertexAttribArray(program, p.name)
+	for i := range a.parts {
+		context.enableVertexAttribArray(program, i)
 	}
 	total := a.totalBytes()
 	offset := 0
-	for _, p := range a.parts {
-		context.vertexAttribPointer(program, p.name, p.num, float, total, offset)
+	for i, p := range a.parts {
+		context.vertexAttribPointer(program, i, p.num, float, total, offset)
 		offset += float.SizeInBytes() * p.num
 	}
 }
@@ -72,8 +80,8 @@ func (a *arrayBufferLayout) enable(context *context, program program) {
 // disable stops using the array buffer.
 func (a *arrayBufferLayout) disable(context *context, program program) {
 	// TODO: Disabling should be done in reversed order?
-	for _, p := range a.parts {
-		context.disableVertexAttribArray(program, p.name)
+	for i := range a.parts {
+		context.disableVertexAttribArray(program, i)
 	}
 }
 
@@ -210,10 +218,12 @@ func (s *openGLState) reset(context *context) error {
 			program, err := context.newProgram([]shader{
 				shaderVertexModelviewNative,
 				shaderFragmentColorMatrixNative,
-			})
+			}, theArrayBufferLayout.names())
+
 			if err != nil {
 				return err
 			}
+
 			s.programs[programKey{
 				filter:  f,
 				address: a,

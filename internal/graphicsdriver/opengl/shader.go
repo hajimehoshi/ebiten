@@ -234,9 +234,6 @@ void main(void) {
   highp vec2 p0 = pos - texel_size / 2.0 / scale;
   highp vec2 p1 = pos + texel_size / 2.0 / scale;
 
-  // Prevent this variable from being optimized out.
-  p0 += varying_tex_region.xy - varying_tex_region.xy;
-
   p1 = adjustTexel(p0, p1);
 
   vec4 c0 = texture2D(texture, p0);

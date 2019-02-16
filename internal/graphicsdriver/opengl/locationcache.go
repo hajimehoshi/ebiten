@@ -18,13 +18,11 @@ package opengl
 
 type locationCache struct {
 	uniformLocationCache map[programID]map[string]uniformLocation
-	attribLocationCache  map[programID]map[string]attribLocation
 }
 
 func newLocationCache() *locationCache {
 	return &locationCache{
 		uniformLocationCache: map[programID]map[string]uniformLocation{},
-		attribLocationCache:  map[programID]map[string]attribLocation{},
 	}
 }
 
@@ -37,19 +35,6 @@ func (c *locationCache) GetUniformLocation(context *context, p program, location
 	if !ok {
 		l = context.getUniformLocationImpl(p, location)
 		c.uniformLocationCache[id][location] = l
-	}
-	return l
-}
-
-func (c *locationCache) GetAttribLocation(context *context, p program, location string) attribLocation {
-	id := getProgramID(p)
-	if _, ok := c.attribLocationCache[id]; !ok {
-		c.attribLocationCache[id] = map[string]attribLocation{}
-	}
-	l, ok := c.attribLocationCache[id][location]
-	if !ok {
-		l = context.getAttribLocationImpl(p, location)
-		c.attribLocationCache[id][location] = l
 	}
 	return l
 }
