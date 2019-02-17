@@ -191,11 +191,9 @@ highp vec2 adjustTexelByAddress(highp vec2 p, highp vec4 tex_region) {
 
 void main(void) {
   highp vec2 pos = varying_tex;
-  highp vec2 texel_size = 1.0 / source_size;
-
-  vec4 color;
 
 #if defined(FILTER_NEAREST)
+  vec4 color;
   pos = adjustTexelByAddress(pos, varying_tex_region);
   if (varying_tex_region[0] <= pos.x &&
       varying_tex_region[1] <= pos.y &&
@@ -208,6 +206,8 @@ void main(void) {
 #endif
 
 #if defined(FILTER_LINEAR)
+  vec4 color;
+  highp vec2 texel_size = 1.0 / source_size;
   highp vec2 p0 = pos - texel_size / 2.0;
   highp vec2 p1 = pos + texel_size / 2.0;
 
@@ -241,9 +241,10 @@ void main(void) {
 #endif
 
 #if defined(FILTER_SCREEN)
-
-  highp vec2 p0 = pos - texel_size / 2.0 / scale;
-  highp vec2 p1 = pos + texel_size / 2.0 / scale;
+  highp vec2 texel_size = 1.0 / source_size;
+  highp vec2 half_scaled_texel_size = texel_size / 2.0 / scale;
+  highp vec2 p0 = pos - half_scaled_texel_size;
+  highp vec2 p1 = pos + half_scaled_texel_size;
 
   p1 = adjustTexel(p0, p1);
 
@@ -253,8 +254,8 @@ void main(void) {
   vec4 c3 = texture2D(texture, p1);
   // Texels must be in the source rect, so it is not necessary to check that like linear filter.
 
-  vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
-  vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
+  vec2 rate_center = vec2(1.0, 1.0) - half_scaled_texel_size;
+  vec2 rate = clamp(((fract(p0 * source_size) - rate_center) * scale) + rate_center, 0.0, 1.0);
   gl_FragColor = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
   // Assume that a color matrix and color vector values are not used with FILTER_SCREEN.
 
