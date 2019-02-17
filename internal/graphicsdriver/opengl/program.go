@@ -284,12 +284,8 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 	}]
 	if d.state.lastProgram != program {
 		d.context.useProgram(program)
-		if d.state.lastProgram != zeroProgram {
-			theArrayBufferLayout.disable(&d.context, d.state.lastProgram)
-		}
-		theArrayBufferLayout.enable(&d.context, program)
-
 		if d.state.lastProgram == zeroProgram {
+			theArrayBufferLayout.enable(&d.context, program)
 			d.context.bindBuffer(arrayBuffer, d.state.arrayBuffer)
 			d.context.bindBuffer(elementArrayBuffer, d.state.elementArrayBuffer)
 			d.context.uniformInt(program, "texture", 0)
