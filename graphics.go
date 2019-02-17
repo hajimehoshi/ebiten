@@ -32,6 +32,8 @@ const (
 	FilterLinear Filter = Filter(graphics.FilterLinear)
 
 	// filterScreen represents a special filter for screen. Inner usage only.
+	//
+	// Some parameters like a color matrix or color vertex values can be ignored when filterScreen is used.
 	filterScreen Filter = Filter(graphics.FilterScreen)
 )
 
