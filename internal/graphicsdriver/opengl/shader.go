@@ -197,12 +197,13 @@ void main(void) {
 
 #if defined(FILTER_NEAREST)
   pos = adjustTexelByAddress(pos, varying_tex_region);
-  color = vec4(0, 0, 0, 0);
   if (varying_tex_region[0] <= pos.x &&
       varying_tex_region[1] <= pos.y &&
       pos.x < varying_tex_region[2] &&
       pos.y < varying_tex_region[3]) {
     color = texture2D(texture, pos);
+  } else {
+    color = vec4(0, 0, 0, 0);
   }
 #endif
 
@@ -240,6 +241,7 @@ void main(void) {
 #endif
 
 #if defined(FILTER_SCREEN)
+
   highp vec2 p0 = pos - texel_size / 2.0 / scale;
   highp vec2 p1 = pos + texel_size / 2.0 / scale;
 
@@ -253,8 +255,10 @@ void main(void) {
 
   vec2 rateCenter = vec2(1.0, 1.0) - texel_size / 2.0 / scale;
   vec2 rate = clamp(((fract(p0 * source_size) - rateCenter) * scale) + rateCenter, 0.0, 1.0);
-  color = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
-#endif
+  gl_FragColor = mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y);
+  // Assume that a color matrix and color vector values are not used with FILTER_SCREEN.
+
+#else
 
 #if defined(USE_COLOR_MATRIX)
   // Un-premultiply alpha.
@@ -273,6 +277,9 @@ void main(void) {
   color = min(color, color.a);
 
   gl_FragColor = color;
+
+#endif
+
 }
 `
 )

@@ -115,10 +115,10 @@ inline float2 AdjustTexelByAddress<ADDRESS_REPEAT>(float2 p, float4 tex_region) 
 }
 
 template<uint8_t filter, uint8_t address>
-struct GetColorFromTexel;
+struct ColorFromTexel;
 
 template<uint8_t address>
-struct GetColorFromTexel<FILTER_NEAREST, address> {
+struct ColorFromTexel<FILTER_NEAREST, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
     float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
     if (v.tex_region[0] <= p.x &&
@@ -133,7 +133,7 @@ struct GetColorFromTexel<FILTER_NEAREST, address> {
 };
 
 template<uint8_t address>
-struct GetColorFromTexel<FILTER_LINEAR, address> {
+struct ColorFromTexel<FILTER_LINEAR, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
@@ -172,7 +172,7 @@ struct GetColorFromTexel<FILTER_LINEAR, address> {
 };
 
 template<uint8_t address>
-struct GetColorFromTexel<FILTER_SCREEN, address> {
+struct ColorFromTexel<FILTER_SCREEN, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
     constexpr sampler texture_sampler(filter::nearest);
     const float2 texel_size = 1 / source_size;
@@ -193,26 +193,41 @@ struct GetColorFromTexel<FILTER_SCREEN, address> {
 };
 
 template<bool useColorM, uint8_t filter, uint8_t address>
-float4 FragmentShaderImpl(
-    VertexOut v,
-    texture2d<float> texture,
-    constant float2& source_size,
-    constant float4x4& color_matrix_body,
-    constant float4& color_matrix_translation,
-    constant float& scale) {
-  float4 c = GetColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
-  if (useColorM) {
-    c.rgb /= c.a + (1.0 - sign(c.a));
-    c = (color_matrix_body * c) + color_matrix_translation;
-    c *= v.color;
-    c.rgb *= c.a;
-  } else {
-    float4 s = v.color;
-    c *= float4(s.r, s.g, s.b, 1.0) * s.a;
+struct FragmentShaderImpl {
+  inline float4 Do(
+      VertexOut v,
+      texture2d<float> texture,
+      constant float2& source_size,
+      constant float4x4& color_matrix_body,
+      constant float4& color_matrix_translation,
+      constant float& scale) {
+    float4 c = ColorFromTexel<filter, address>().Do(v, texture, source_size, scale);
+    if (useColorM) {
+      c.rgb /= c.a + (1.0 - sign(c.a));
+      c = (color_matrix_body * c) + color_matrix_translation;
+      c *= v.color;
+      c.rgb *= c.a;
+    } else {
+      float4 s = v.color;
+      c *= float4(s.r, s.g, s.b, 1.0) * s.a;
+    }
+    c = min(c, c.a);
+    return c;
   }
-  c = min(c, c.a);
-  return c;
-}
+};
+
+template<bool useColorM, uint8_t address>
+struct FragmentShaderImpl<useColorM, FILTER_SCREEN, address> {
+  inline float4 Do(
+      VertexOut v,
+      texture2d<float> texture,
+      constant float2& source_size,
+      constant float4x4& color_matrix_body,
+      constant float4& color_matrix_translation,
+      constant float& scale) {
+    return ColorFromTexel<FILTER_SCREEN, address>().Do(v, texture, source_size, scale);
+  }
+};
 
 // Define Foo and FooCp macros to force macro replacement.
 // See "6.10.3.1 Argument substitution" in ISO/IEC 9899.
@@ -228,7 +243,7 @@ float4 FragmentShaderImpl(
       constant float4x4& color_matrix_body [[buffer(3)]], \
       constant float4& color_matrix_translation [[buffer(4)]], \
       constant float& scale [[buffer(5)]]) { \
-    return FragmentShaderImpl<useColorM, filter, address>( \
+    return FragmentShaderImpl<useColorM, filter, address>().Do( \
         v, texture, source_size, color_matrix_body, color_matrix_translation, scale); \
   }
 
