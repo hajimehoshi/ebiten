@@ -263,14 +263,14 @@ void main(void) {
   // Apply the color matrix or scale.
   color = (color_matrix_body * color) + color_matrix_translation;
   color *= varying_color_scale;
-  color = clamp(color, 0.0, 1.0);
   // Premultiply alpha
   color.rgb *= color.a;
 #else
   vec4 s = varying_color_scale;
   color *= vec4(s.r, s.g, s.b, 1.0) * s.a;
-  color = clamp(color, 0.0, color.a);
 #endif
+
+  color = min(color, color.a);
 
   gl_FragColor = color;
 }

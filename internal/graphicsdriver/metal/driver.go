@@ -206,13 +206,12 @@ float4 FragmentShaderImpl(
     c.rgb /= c.a + (1.0 - sign(c.a));
     c = (color_matrix_body * c) + color_matrix_translation;
     c *= v.color;
-    c = clamp(c, 0.0, 1.0);
     c.rgb *= c.a;
   } else {
     float4 s = v.color;
     c *= float4(s.r, s.g, s.b, 1.0) * s.a;
-    c = clamp(c, 0.0, c.a);
   }
+  c = min(c, c.a);
   return c;
 }
 
