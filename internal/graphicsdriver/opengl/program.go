@@ -322,10 +322,9 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		}
 	}
 
-	sw := graphics.InternalImageSize(srcW)
-	sh := graphics.InternalImageSize(srcH)
-
 	if filter != graphics.FilterNearest {
+		sw := graphics.InternalImageSize(srcW)
+		sh := graphics.InternalImageSize(srcH)
 		if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
 			d.context.uniformFloats(program, "source_size", []float32{float32(sw), float32(sh)})
 			d.state.lastSourceWidth = sw
