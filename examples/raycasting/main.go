@@ -36,6 +36,7 @@ import (
 const (
 	screenWidth  = 240
 	screenHeight = 240
+	padding      = 20
 )
 
 var (
@@ -64,16 +65,31 @@ func init() {
 	triangleImage.Fill(color.White)
 }
 
-type Line struct {
+type line struct {
 	X1, Y1, X2, Y2 float64
 }
 
-func (l *Line) angle() float64 {
+func (l *line) angle() float64 {
 	return math.Atan2(l.Y2-l.Y1, l.X2-l.X1)
 }
 
-func newRay(x, y, length, angle float64) Line {
-	return Line{
+type object struct {
+	walls []line
+}
+
+func (o object) points() [][2]float64 {
+	// Get one of the endpoints for all segments,
+	// + the startpoint of the first one, for non-closed paths
+	var points [][2]float64
+	for _, wall := range o.walls {
+		points = append(points, [2]float64{wall.X2, wall.Y2})
+	}
+	points = append(points, [2]float64{o.walls[0].X1, o.walls[0].Y1})
+	return points
+}
+
+func newRay(x, y, length, angle float64) line {
+	return line{
 		X1: x,
 		Y1: y,
 		X2: x + length*math.Cos(angle),
@@ -82,49 +98,40 @@ func newRay(x, y, length, angle float64) Line {
 }
 
 // intersection calculates the intersection of given two lines.
-func intersection(l1, l2 Line) (float64, float64, error) {
+func intersection(l1, l2 line) (float64, float64, bool) {
 	// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
 	denom := (l1.X1-l1.X2)*(l2.Y1-l2.Y2) - (l1.Y1-l1.Y2)*(l2.X1-l2.X2)
 	tNum := (l1.X1-l2.X1)*(l2.Y1-l2.Y2) - (l1.Y1-l2.Y1)*(l2.X1-l2.X2)
 	uNum := -((l1.X1-l1.X2)*(l1.Y1-l2.Y1) - (l1.Y1-l1.Y2)*(l1.X1-l2.X1))
 
 	if denom == 0 {
-		return 0, 0, errors.New("lines parallel or coincident")
+		return 0, 0, false
 	}
 
 	t := tNum / denom
 	if t > 1 || t < 0 {
-		return 0, 0, errors.New("lines intersect, segments do not")
+		return 0, 0, false
 	}
 
 	u := uNum / denom
 	if u > 1 || u < 0 {
-		return 0, 0, errors.New("lines intersect, segments do not")
+		return 0, 0, false
 	}
 
 	x := l1.X1 + t*(l1.X2-l1.X1)
 	y := l1.Y1 + t*(l1.Y2-l1.Y1)
-	return x, y, nil
+	return x, y, true
 }
 
-// rayCasting returns a slice of Line originating from point cx, cy and intersecting with objects
-func rayCasting(cx, cy float64, objects [][]Line) []Line {
-	var rays []Line
-
+// rayCasting returns a slice of line originating from point cx, cy and intersecting with objects
+func rayCasting(cx, cy float64, objects []object) []line {
 	const rayLength = 1000 // something large enough to reach all objects
+
+	var rays []line
 	for _, obj := range objects {
-
-		// Get one of the endpoints for all segments,
-		// + the startpoint of the first one, for non-closed paths
-		var objPoints [][2]float64
-		for _, wall := range obj {
-			objPoints = append(objPoints, [2]float64{wall.X2, wall.Y2})
-		}
-		objPoints = append(objPoints, [2]float64{obj[0].X1, obj[0].Y1})
-
 		// Cast two rays per point
-		for _, p := range objPoints {
-			l := Line{cx, cy, p[0], p[1]}
+		for _, p := range obj.points() {
+			l := line{cx, cy, p[0], p[1]}
 			angle := l.angle()
 
 			for _, offset := range []float64{-0.005, 0.005} {
@@ -133,8 +140,8 @@ func rayCasting(cx, cy float64, objects [][]Line) []Line {
 
 				// Unpack all objects
 				for _, o := range objects {
-					for _, wall := range o {
-						if px, py, err := intersection(ray, wall); err == nil {
+					for _, wall := range o.walls {
+						if px, py, ok := intersection(ray, wall); ok {
 							points = append(points, [2]float64{px, py})
 						}
 					}
@@ -142,7 +149,7 @@ func rayCasting(cx, cy float64, objects [][]Line) []Line {
 
 				// Find the point closest to start of ray
 				min := math.Inf(1)
-				var minI = -1
+				minI := -1
 				for i, p := range points {
 					d2 := (cx-p[0])*(cx-p[0]) + (cy-p[1])*(cy-p[1])
 					if d2 < min {
@@ -150,7 +157,7 @@ func rayCasting(cx, cy float64, objects [][]Line) []Line {
 						minI = i
 					}
 				}
-				rays = append(rays, Line{cx, cy, points[minI][0], points[minI][1]})
+				rays = append(rays, line{cx, cy, points[minI][0], points[minI][1]})
 			}
 		}
 	}
@@ -160,23 +167,6 @@ func rayCasting(cx, cy float64, objects [][]Line) []Line {
 		return rays[i].angle() < rays[j].angle()
 	})
 	return rays
-}
-
-func vertices(x1, y1, x2, y2, x3, y3 float64) []ebiten.Vertex {
-	return []ebiten.Vertex{
-		{float32(x1), float32(y1), 0, 0, 1, 1, 1, 1},
-		{float32(x2), float32(y2), 0, 0, 1, 1, 1, 1},
-		{float32(x3), float32(y3), 0, 0, 1, 1, 1, 1},
-	}
-}
-
-func rect(x, y, w, h float64) []Line {
-	return []Line{
-		{x, y, x, y + h},
-		{x, y + h, x + w, y + h},
-		{x + w, y + h, x + w, y},
-		{x + w, y, x, y},
-	}
 }
 
 func handleMovement() {
@@ -214,6 +204,14 @@ func handleMovement() {
 	}
 }
 
+func rayVertices(x1, y1, x2, y2, x3, y3 float64) []ebiten.Vertex {
+	return []ebiten.Vertex{
+		{float32(x1), float32(y1), 0, 0, 1, 1, 1, 1},
+		{float32(x2), float32(y2), 0, 0, 1, 1, 1, 1},
+		{float32(x3), float32(y3), 0, 0, 1, 1, 1, 1},
+	}
+}
+
 func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		return errors.New("game ended by player")
@@ -231,23 +229,22 @@ func update(screen *ebiten.Image) error {
 
 	// Reset the shadowImage
 	shadowImage.Fill(color.Black)
-	rays := rayCasting(px, py, objects)
+	rays := rayCasting(float64(px), float64(py), objects)
 
 	// Subtract ray triangles from shadow
 	opt := &ebiten.DrawTrianglesOptions{}
 	opt.Address = ebiten.AddressRepeat
 	opt.CompositeMode = ebiten.CompositeModeSourceOut
-
 	for i, line := range rays {
 		nextLine := rays[(i+1)%len(rays)]
 
 		// Draw triangle of area between rays
-		v := vertices(px, py, nextLine.X2, nextLine.Y2, line.X2, line.Y2)
+		v := rayVertices(float64(px), float64(py), nextLine.X2, nextLine.Y2, line.X2, line.Y2)
 		shadowImage.DrawTriangles(v, []uint16{0, 1, 2}, triangleImage, opt)
 	}
 
 	// Draw background
-	screen.DrawImage(bgImage, &ebiten.DrawImageOptions{})
+	screen.DrawImage(bgImage, nil)
 
 	if showRays {
 		// Draw rays
@@ -262,15 +259,15 @@ func update(screen *ebiten.Image) error {
 	screen.DrawImage(shadowImage, op)
 
 	// Draw walls
-	for _, wall := range objects {
-		for _, w := range wall {
+	for _, obj := range objects {
+		for _, w := range obj.walls {
 			ebitenutil.DrawLine(screen, w.X1, w.Y1, w.X2, w.Y2, color.RGBA{255, 0, 0, 255})
 		}
 	}
 
 	// Draw player as a rect
-	ebitenutil.DrawRect(screen, px-2, py-2, 4, 4, color.Black)
-	ebitenutil.DrawRect(screen, px-1, py-1, 2, 2, color.RGBA{255, 100, 100, 255})
+	ebitenutil.DrawRect(screen, float64(px)-2, float64(py)-2, 4, 4, color.Black)
+	ebitenutil.DrawRect(screen, float64(px)-1, float64(py)-1, 2, 2, color.RGBA{255, 100, 100, 255})
 
 	if showRays {
 		ebitenutil.DebugPrintAt(screen, "R: hide rays", padding, 0)
@@ -285,25 +282,32 @@ func update(screen *ebiten.Image) error {
 
 var (
 	showRays bool
-	px, py   float64
-	objects  [][]Line
+	px, py   int
+	objects  []object
 )
 
-const padding = 20
+func rect(x, y, w, h float64) []line {
+	return []line{
+		{x, y, x, y + h},
+		{x, y + h, x + w, y + h},
+		{x + w, y + h, x + w, y},
+		{x + w, y, x, y},
+	}
+}
 
 func main() {
 	px = screenWidth / 2
 	py = screenHeight / 2
 
 	// Add outer walls
-	objects = append(objects, rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding))
+	objects = append(objects, object{rect(padding, padding, screenWidth-2*padding, screenHeight-2*padding)})
 
 	// Angled wall
-	objects = append(objects, []Line{{50, 110, 100, 150}})
+	objects = append(objects, object{[]line{{50, 110, 100, 150}}})
 
 	// Rectangles
-	objects = append(objects, rect(45, 50, 70, 20))
-	objects = append(objects, rect(150, 50, 30, 60))
+	objects = append(objects, object{rect(45, 50, 70, 20)})
+	objects = append(objects, object{rect(150, 50, 30, 60)})
 
 	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Ray casting and shadows (Ebiten demo)"); err != nil {
 		log.Fatal(err)
