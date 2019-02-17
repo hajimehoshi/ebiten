@@ -120,16 +120,15 @@ struct GetColorFromTexel;
 template<uint8_t address>
 struct GetColorFromTexel<FILTER_NEAREST, address> {
   inline float4 Do(VertexOut v, texture2d<float> texture, constant float2& source_size, float scale) {
-    constexpr sampler texture_sampler(filter::nearest);
-
     float2 p = AdjustTexelByAddress<address>(v.tex, v.tex_region);
-    if (p.x < v.tex_region[0] ||
-        p.y < v.tex_region[1] ||
-        v.tex_region[2] <= p.x ||
-        v.tex_region[3] <= p.y) {
-      return 0.0;
+    if (v.tex_region[0] <= p.x &&
+        v.tex_region[1] <= p.y &&
+        p.x < v.tex_region[2] &&
+        p.y < v.tex_region[3]) {
+      constexpr sampler texture_sampler(filter::nearest);
+      return texture.sample(texture_sampler, p);
     }
-    return texture.sample(texture_sampler, p);
+    return 0.0;
   }
 };
 

@@ -968,7 +968,7 @@ func TestImageStretch(t *testing.T) {
 				want = color.RGBA{0xff, 0, 0, 0xff}
 			}
 			if got != want {
-				t.Errorf("At(%d, %d) (i=%d): got: %#v, want: %#v", 0, i+j, i, got, want)
+				t.Fatalf("At(%d, %d) (i=%d): got: %#v, want: %#v", 0, i+j, i, got, want)
 			}
 		}
 	}

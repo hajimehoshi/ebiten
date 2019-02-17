@@ -197,12 +197,12 @@ void main(void) {
 
 #if defined(FILTER_NEAREST)
   pos = adjustTexelByAddress(pos, varying_tex_region);
-  color = texture2D(texture, pos);
-  if (pos.x < varying_tex_region[0] ||
-    pos.y < varying_tex_region[1] ||
-    varying_tex_region[2] <= pos.x ||
-    varying_tex_region[3] <= pos.y) {
-    color = vec4(0, 0, 0, 0);
+  color = vec4(0, 0, 0, 0);
+  if (varying_tex_region[0] <= pos.x &&
+      varying_tex_region[1] <= pos.y &&
+      pos.x < varying_tex_region[2] &&
+      pos.y < varying_tex_region[3]) {
+    color = texture2D(texture, pos);
   }
 #endif
 
