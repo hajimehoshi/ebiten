@@ -611,7 +611,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		}
 		rce := d.cb.MakeRenderCommandEncoder(rpd)
 
-		if d.dst.screen {
+		if d.dst.screen && filter == graphics.FilterScreen {
 			rce.SetRenderPipelineState(d.screenRPS)
 		} else {
 			rce.SetRenderPipelineState(d.rpss[rpsKey{
