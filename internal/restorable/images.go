@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"image"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
@@ -43,8 +42,6 @@ func EnableRestoringForTesting() {
 type images struct {
 	images     map[*Image]struct{}
 	lastTarget *Image
-
-	m sync.Mutex
 }
 
 // theImages represents the images for the current process.
@@ -75,15 +72,8 @@ func Restore() error {
 }
 
 func Images() []image.Image {
-	return theImages.images()
-}
-
-func (i *images) images() []image.Image {
-	i.m.Lock()
-	defer i.m.Unlock()
-
 	var imgs []image.Image
-	for img := range i.images {
+	for img := range theImages.images {
 		if img.volatile {
 			continue
 		}
@@ -113,27 +103,21 @@ func (i *images) images() []image.Image {
 
 // add adds img to the images.
 func (i *images) add(img *Image) {
-	i.m.Lock()
 	i.images[img] = struct{}{}
-	i.m.Unlock()
 }
 
 // remove removes img from the images.
 func (i *images) remove(img *Image) {
-	i.m.Lock()
 	i.makeStaleIfDependingOnImpl(img)
 	delete(i.images, img)
-	i.m.Unlock()
 }
 
 // resolveStaleImages resolves stale images.
 func (i *images) resolveStaleImages() {
-	i.m.Lock()
 	i.lastTarget = nil
 	for img := range i.images {
 		img.resolveStale()
 	}
-	i.m.Unlock()
 }
 
 // makeStaleIfDependingOn makes all the images stale that depend on target.
@@ -141,10 +125,8 @@ func (i *images) resolveStaleImages() {
 // When target is changed, all images depending on target can't be restored with target.
 // makeStaleIfDependingOn is called in such situation.
 func (i *images) makeStaleIfDependingOn(target *Image) {
-	i.m.Lock()
 	// Avoid defer for performance
 	i.makeStaleIfDependingOnImpl(target)
-	i.m.Unlock()
 }
 
 func (i *images) makeStaleIfDependingOnImpl(target *Image) {
@@ -167,9 +149,6 @@ func (i *images) restore() error {
 	if !IsRestoringEnabled() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
-
-	i.m.Lock()
-	defer i.m.Unlock()
 
 	// Dispose image explicitly
 	for img := range i.images {
