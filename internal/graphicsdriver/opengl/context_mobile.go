@@ -142,7 +142,7 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 
 func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, error) {
 	gl := c.gl
-	gl.Finish()
+	gl.Flush()
 
 	c.bindFramebuffer(f.native)
 
