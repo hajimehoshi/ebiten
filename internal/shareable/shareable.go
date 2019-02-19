@@ -248,9 +248,10 @@ func (i *Image) Fill(r, g, b, a uint8) {
 		panic("shareable: the drawing target image must not be disposed (Fill)")
 	}
 	i.ensureNotShared()
-	backendsM.Unlock()
 
 	i.backend.restorable.Fill(r, g, b, a)
+
+	backendsM.Unlock()
 }
 
 func (i *Image) ReplacePixels(p []byte) {
