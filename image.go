@@ -129,7 +129,7 @@ type Image struct {
 	// The level 0 image is a regular image and higher-level images are used for mipmap.
 	mipmap *mipmap
 
-	bounds   *image.Rectangle
+	bounds   image.Rectangle
 	original *Image
 
 	pixelsToSet []byte
@@ -510,20 +510,20 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	r = r.Intersect(i.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
 	if r.Empty() {
-		img.bounds = &image.ZR
+		img.bounds = image.ZR
 	} else {
-		img.bounds = &r
+		img.bounds = r
 	}
 	return img
 }
 
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
-	if i.bounds == nil {
+	if !i.isSubImage() {
 		w, h := i.mipmap.original().Size()
 		return image.Rect(0, 0, w, h)
 	}
-	return *i.bounds
+	return i.bounds
 }
 
 // ColorModel returns the color model of the image.
@@ -549,7 +549,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
-	if i.bounds != nil && !image.Pt(x, y).In(*i.bounds) {
+	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
 		return color.RGBA{}
 	}
 	i.resolvePixelsToSet(true)
@@ -573,7 +573,7 @@ func (img *Image) Set(x, y int, clr color.Color) {
 	if img.isDisposed() {
 		return
 	}
-	if img.bounds != nil && !image.Pt(x, y).In(*img.bounds) {
+	if img.isSubImage() && !image.Pt(x, y).In(img.bounds) {
 		return
 	}
 	if img.isSubImage() {
