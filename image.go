@@ -634,10 +634,11 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	if !i.isSubImage() {
-		i.mipmap.dispose()
-		i.resolvePixelsToSet(false)
+	if i.isSubImage() {
+		return nil
 	}
+	i.mipmap.dispose()
+	i.resolvePixelsToSet(false)
 	runtime.SetFinalizer(i, nil)
 	return nil
 }
