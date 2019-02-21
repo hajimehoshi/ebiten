@@ -54,7 +54,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		}
 		nExtended++
 		if n := page.Alloc(width, height); n != nil {
-			page.Free(n)
+			// The page is just for emulation, so we don't have to free it.
 			break
 		}
 	}
