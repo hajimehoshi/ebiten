@@ -154,7 +154,7 @@ func (i *Image) isDisposed() bool {
 }
 
 func (i *Image) isSubImage() bool {
-	return i.bounds != nil
+	return i.original != nil
 }
 
 // Clear resets the pixels of the image into 0.
@@ -605,7 +605,8 @@ func (img *Image) Set(x, y int, clr color.Color) {
 
 func (i *Image) resolvePixelsToSet(draw bool) {
 	if i.isSubImage() {
-		i = i.original
+		i.original.resolvePixelsToSet(draw)
+		return
 	}
 
 	if i.pixelsToSet == nil {
