@@ -54,6 +54,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		}
 		nExtended++
 		if n := page.Alloc(width, height); n != nil {
+			page.Free(n)
 			break
 		}
 	}
