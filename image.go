@@ -505,9 +505,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	} else {
 		img.original = i
 	}
-
 	img.addr = img
-	runtime.SetFinalizer(img, (*Image).Dispose)
 
 	r = r.Intersect(img.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
@@ -637,8 +635,8 @@ func (i *Image) Dispose() error {
 	}
 	if !i.isSubimage() {
 		i.mipmap.dispose()
+		i.resolvePixelsToSet(false)
 	}
-	i.resolvePixelsToSet(false)
 	runtime.SetFinalizer(i, nil)
 	return nil
 }

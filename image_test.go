@@ -23,6 +23,7 @@ import (
 	_ "image/png"
 	"math"
 	"os"
+	"runtime"
 	"testing"
 
 	. "github.com/hajimehoshi/ebiten"
@@ -1593,5 +1594,26 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+// Issue #823
+func TestImageAtAfterDisposingSubImage(t *testing.T) {
+	img, _ := NewImage(16, 16, FilterDefault)
+	img.Set(0, 0, color.White)
+	img.SubImage(image.Rect(0, 0, 16, 16))
+	runtime.GC()
+	got := img.At(0, 0)
+	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	img.Set(0, 1, color.White)
+	sub := img.SubImage(image.Rect(0, 0, 16, 16)).(*Image)
+	sub.Dispose()
+	got = img.At(0, 1)
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
