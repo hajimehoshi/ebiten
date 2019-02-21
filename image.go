@@ -153,7 +153,7 @@ func (i *Image) isDisposed() bool {
 	return i.mipmap.isDisposed()
 }
 
-func (i *Image) isSubimage() bool {
+func (i *Image) isSubImage() bool {
 	return i.bounds != nil
 }
 
@@ -179,7 +179,7 @@ func (i *Image) Fill(clr color.Color) error {
 	}
 
 	// TODO: Implement this.
-	if i.isSubimage() {
+	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (Fill)")
 	}
 
@@ -251,7 +251,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	}
 
 	// TODO: Implement this.
-	if i.isSubimage() {
+	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (drawImage)")
 	}
 
@@ -440,7 +440,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		return
 	}
 
-	if i.isSubimage() {
+	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
 	}
 
@@ -500,7 +500,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 
 	// Keep the original image's reference not to dispose that by GC.
-	if i.isSubimage() {
+	if i.isSubImage() {
 		img.original = i.original
 	} else {
 		img.original = i
@@ -576,7 +576,7 @@ func (img *Image) Set(x, y int, clr color.Color) {
 	if img.bounds != nil && !image.Pt(x, y).In(*img.bounds) {
 		return
 	}
-	if img.isSubimage() {
+	if img.isSubImage() {
 		img = img.original
 	}
 
@@ -604,7 +604,7 @@ func (img *Image) Set(x, y int, clr color.Color) {
 }
 
 func (i *Image) resolvePixelsToSet(draw bool) {
-	if i.isSubimage() {
+	if i.isSubImage() {
 		i = i.original
 	}
 
@@ -633,7 +633,7 @@ func (i *Image) Dispose() error {
 	if i.isDisposed() {
 		return nil
 	}
-	if !i.isSubimage() {
+	if !i.isSubImage() {
 		i.mipmap.dispose()
 		i.resolvePixelsToSet(false)
 	}
@@ -658,7 +658,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 		return nil
 	}
 	// TODO: Implement this.
-	if i.isSubimage() {
+	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (ReplacePixels)")
 	}
 	i.resolvePixelsToSet(false)
