@@ -698,7 +698,10 @@ func (i *Image) viewportSize() (int, int) {
 
 func (i *Image) Dispose() {
 	mainthread.Run(func() error {
-		i.texture.Release()
+		if i.texture != (mtl.Texture{}) {
+			i.texture.Release()
+			i.texture = mtl.Texture{}
+		}
 		return nil
 	})
 }
