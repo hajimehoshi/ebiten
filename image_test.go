@@ -1617,3 +1617,38 @@ func TestImageAtAfterDisposingSubImage(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestImageSubImageSubImage(t *testing.T) {
+	img, _ := NewImage(16, 16, FilterDefault)
+	img.Fill(color.White)
+	sub0 := img.SubImage(image.Rect(0, 0, 12, 12)).(*Image)
+	sub1 := sub0.SubImage(image.Rect(4, 4, 16, 16)).(*Image)
+	cases := []struct {
+		X     int
+		Y     int
+		Color color.RGBA
+	}{
+		{
+			X:     0,
+			Y:     0,
+			Color: color.RGBA{},
+		},
+		{
+			X:     4,
+			Y:     4,
+			Color: color.RGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			X:     15,
+			Y:     15,
+			Color: color.RGBA{},
+		},
+	}
+	for _, c := range cases {
+		got := sub1.At(c.X, c.Y)
+		want := c.Color
+		if got != want {
+			t.Errorf("At(%d, %d): got: %v, want: %v", c.X, c.Y, got, want)
+		}
+	}
+}

@@ -507,7 +507,7 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	}
 	img.addr = img
 
-	r = r.Intersect(img.Bounds())
+	r = r.Intersect(i.Bounds())
 	// Need to check Empty explicitly. See the standard image package implementations.
 	if r.Empty() {
 		img.bounds = &image.ZR
