@@ -19,7 +19,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"runtime"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -639,7 +638,6 @@ func (i *Image) Dispose() error {
 	}
 	i.mipmap.dispose()
 	i.resolvePixelsToSet(false)
-	runtime.SetFinalizer(i, nil)
 	return nil
 }
 
@@ -724,7 +722,6 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 		filter: filter,
 	}
 	i.addr = i
-	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i, nil
 }
 
@@ -766,7 +763,6 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 		filter: filter,
 	}
 	i.addr = i
-	runtime.SetFinalizer(i, (*Image).Dispose)
 
 	_ = i.ReplacePixels(graphics.CopyImage(source))
 	return i, nil
@@ -778,7 +774,6 @@ func newImageWithScreenFramebuffer(width, height int) *Image {
 		filter: FilterDefault,
 	}
 	i.addr = i
-	runtime.SetFinalizer(i, (*Image).Dispose)
 	return i
 }
 
