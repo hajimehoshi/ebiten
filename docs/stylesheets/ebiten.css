@@ -60,6 +60,8 @@ nav a {
 
 .jumbotron {
   background-color: #fff;
+  padding-top: 2rem;
+  padding-bottom: 0;
 }
 
 footer {

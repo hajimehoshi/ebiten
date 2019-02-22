@@ -24,7 +24,7 @@
 </div></nav>
 
 <header class="jumbotron jumbotron-fluid"><div class="container text-center">
-  <h1><img src="images/logo.svg" alt="EBITEN" style="width: 220px; height: 242px;"></h1>
+  <h1><img src="images/logo.svg" alt="EBITEN" style="width: 165px; height: 181.5px;"></h1>
   <p class="lead">A dead simple 2D game library in Go</p>
 </div></header>
 
@@ -39,6 +39,32 @@
     <dt class="col-3 text-right">Development Version</dt>
     <dd class="col-9">{{.DevVersion}}</dd>
   </dl>
+
+  <h2>Featured Projects</h2>
+  <div class="row">
+    <div class="col-3">
+      <a href="https://daigostudio.com/bearsrestaurant/"><img src="images/projects/bears_restaurant.png" width="960" height="960" alt="Bear's Restaurant" class="img-thumbnail"></a>
+    </div>
+    <div class="col-3">
+      <a href="http://blockbros.net/bluebird/"><img src="images/projects/bluebird_of_happiness.png" width="540" height="540" alt="Bluebird of Happiness" class="img-thumbnail"></a>
+    </div>
+    <div class="col-3">
+      <a href="http://blockbros.net/tsugunai/"><img src="images/projects/clock_of_atonement.png" width="480" height="480" alt="Clock of Atonement" class="img-thumbnail"></a>
+    </div>
+    <div class="col-3">
+      <a href="https://github.com/hajimehoshi/go-inovation"><img src="images/projects/inovation.png" width="1024" height="500" alt="Inovation 2007" class="img-thumbnail"></a>
+    </div>
+  </div>
+  <p><a href="https://github.com/hajimehoshi/ebiten/wiki/Works">Find more nice works with Ebiten!</a></p>
+
+  <h2>Game Examples</h2>
+  <div class="row">
+  {{range .GamesExamples -}}
+    <div class="col-3">
+      <a href="./examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
+    </div>
+  {{- end}}
+  </div>
 
   <h2>Platforms</h2>
   <dl class="row">
@@ -61,32 +87,6 @@
     <dd class="col-9">Ogg/Vorbis, MP3, WAV, PCM</dd>
   </dl>
 
-  <h2>Game Examples</h2>
-  <div class="row">
-  {{range .GamesExamples -}}
-    <div class="col-3">
-      <a href="./examples/{{.Name}}.html"><img src="images/examples/{{.Name}}.png" width="{{.ThumbWidth}}" height="{{.ThumbHeight}}" alt="Ebiten example: {{.Name}}" class="img-thumbnail"></a>
-    </div>
-  {{- end}}
-  </div>
-
-  <h2>Featured Projects</h2>
-  <div class="row">
-    <div class="col-3">
-      <a href="https://daigostudio.com/bearsrestaurant/"><img src="images/projects/bears_restaurant.png" width="960" height="960" alt="Bear's Restaurant" class="img-thumbnail"></a>
-    </div>
-    <div class="col-3">
-      <a href="http://blockbros.net/bluebird/"><img src="images/projects/bluebird_of_happiness.png" width="540" height="540" alt="Bluebird of Happiness" class="img-thumbnail"></a>
-    </div>
-    <div class="col-3">
-      <a href="http://blockbros.net/tsugunai/"><img src="images/projects/clock_of_atonement.png" width="480" height="480" alt="Clock of Atonement" class="img-thumbnail"></a>
-    </div>
-    <div class="col-3">
-      <a href="https://github.com/hajimehoshi/go-inovation"><img src="images/projects/inovation.png" width="1024" height="500" alt="Inovation 2007" class="img-thumbnail"></a>
-    </div>
-  </div>
-  <p><a href="https://github.com/hajimehoshi/ebiten/wiki/Works">Find more nice works with Ebiten!</a></p>
-  
   <h2>Examples</h2>
   <h3>Graphics</h3>
   <div class="row">

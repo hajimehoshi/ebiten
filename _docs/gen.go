@@ -129,8 +129,8 @@ func (e *example) Height() int {
 
 var (
 	gamesExamples = []example{
-		{Name: "2048", ThumbWidth: 210, ThumbHeight: 300},
-		{Name: "blocks", ThumbWidth: 256, ThumbHeight: 240},
+		{Name: "2048", ThumbWidth: 420, ThumbHeight: 315, ScreenWidth: 420, ScreenHeight: 600},
+		{Name: "blocks", ThumbWidth: 256, ThumbHeight: 192, ScreenWidth: 512, ScreenHeight: 480},
 		{Name: "flappy", ThumbWidth: 320, ThumbHeight: 240},
 	}
 	graphicsExamples = []example{
@@ -154,10 +154,10 @@ var (
 		{Name: "paint", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "perspective", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "polygons", ThumbWidth: 320, ThumbHeight: 240},
-		{Name: "raycasting", ThumbWidth: 240, ThumbHeight: 240},
+		{Name: "raycasting", ThumbWidth: 320, ThumbHeight: 240, ScreenWidth: 480, ScreenHeight: 480},
 		{Name: "rotate", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "sprites", ThumbWidth: 320, ThumbHeight: 240},
-		{Name: "tiles", ThumbWidth: 240, ThumbHeight: 240},
+		{Name: "tiles", ThumbWidth: 320, ThumbHeight: 240, ScreenWidth: 480, ScreenHeight: 480},
 	}
 	inputExamples = []example{
 		{Name: "gamepad", ThumbWidth: 320, ThumbHeight: 240},
