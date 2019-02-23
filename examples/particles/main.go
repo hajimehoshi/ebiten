@@ -64,10 +64,11 @@ func init() {
 type sprite struct {
 	count    int
 	maxCount int
-	angle    float64
+	dir      float64
 
 	img   *ebiten.Image
 	scale float64
+	angle float64
 	alpha float64
 }
 
@@ -91,13 +92,14 @@ func (s *sprite) draw(screen *ebiten.Image) {
 		ox = screenWidth / 2
 		oy = screenHeight / 2
 	)
-	x := math.Cos(s.angle) * float64(s.maxCount-s.count)
-	y := math.Sin(s.angle) * float64(s.maxCount-s.count)
+	x := math.Cos(s.dir) * float64(s.maxCount-s.count)
+	y := math.Sin(s.dir) * float64(s.maxCount-s.count)
 
 	op := &ebiten.DrawImageOptions{}
 
 	sx, sy := s.img.Size()
 	op.GeoM.Translate(-float64(sx)/2, -float64(sy)/2)
+	op.GeoM.Rotate(s.angle)
 	op.GeoM.Scale(s.scale, s.scale)
 	op.GeoM.Translate(x, y)
 	op.GeoM.Translate(ox, oy)
@@ -114,13 +116,12 @@ func (s *sprite) draw(screen *ebiten.Image) {
 	alpha *= s.alpha
 	op.ColorM.Scale(1, 1, 1, alpha)
 
-	op.Filter = ebiten.FilterLinear
-
 	screen.DrawImage(s.img, op)
 }
 
 func newSprite(img *ebiten.Image) *sprite {
 	c := rand.Intn(50) + 300
+	dir := rand.Float64() * 2 * math.Pi
 	a := rand.Float64() * 2 * math.Pi
 	s := rand.Float64()*0.1 + 0.4
 	return &sprite{
@@ -128,9 +129,11 @@ func newSprite(img *ebiten.Image) *sprite {
 
 		maxCount: c,
 		count:    c,
-		angle:    a,
-		scale:    s,
-		alpha:    0.5,
+		dir:      dir,
+
+		angle: a,
+		scale: s,
+		alpha: 0.5,
 	}
 }
 
