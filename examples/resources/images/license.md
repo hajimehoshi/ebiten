@@ -31,6 +31,14 @@ https://opengameart.org/content/runner-character
 CC0 1.0
 ```
 
+## smoke.png
+
+```
+https://opengameart.org/content/smoke-particle-assets
+
+CC0 1.0
+```
+
 ## tile.png
 
 ```
