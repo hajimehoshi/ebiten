@@ -18,7 +18,9 @@ package mobile
 
 import (
 	"context"
+	"fmt"
 	"image"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -192,7 +194,17 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 	return ch
 }
 
-func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics, mainloop bool) error {
+func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics, mainloop bool) (err error) {
+	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
+	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
+	// unfortunately.
+	// TODO: Panic on other goroutines cannot be handled here.
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v\n%q", r, string(debug.Stack()))
+		}
+	}()
+
 	u.m.Lock()
 	u.width = width
 	u.height = height
