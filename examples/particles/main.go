@@ -137,7 +137,7 @@ func newSprite(img *ebiten.Image) *sprite {
 var sprites = list.New()
 
 func update(screen *ebiten.Image) error {
-	if sprites.Len() < 500 {
+	if sprites.Len() < 500 && rand.Intn(4) < 3 {
 		// Emit
 		sprites.PushBack(newSprite(smokeImage))
 	}
