@@ -135,7 +135,6 @@ var (
 	}
 	graphicsExamples = []example{
 		{Name: "airship", ThumbWidth: 320, ThumbHeight: 240},
-		{Name: "alphablending", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "animation", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "blur", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "drag", ThumbWidth: 320, ThumbHeight: 240},
@@ -144,7 +143,6 @@ var (
 		{Name: "font", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "highdpi", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "hsv", ThumbWidth: 320, ThumbHeight: 240},
-		{Name: "hue", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "infinitescroll", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "life", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "mandelbrot", ThumbWidth: 320, ThumbHeight: 320, ScreenWidth: 640, ScreenHeight: 640},
@@ -152,10 +150,10 @@ var (
 		{Name: "mosaic", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "noise", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "paint", ThumbWidth: 320, ThumbHeight: 240},
+		{Name: "particles", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "perspective", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "polygons", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "raycasting", ThumbWidth: 320, ThumbHeight: 240, ScreenWidth: 480, ScreenHeight: 480},
-		{Name: "rotate", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "sprites", ThumbWidth: 320, ThumbHeight: 240},
 		{Name: "tiles", ThumbWidth: 320, ThumbHeight: 240, ScreenWidth: 480, ScreenHeight: 480},
 	}
