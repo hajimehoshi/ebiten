@@ -643,12 +643,16 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		u.window.SetPos(x, y)
 
 		u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
-			s := glfwScale()
-			w := int(float64(width) / u.scale / s)
-			h := int(float64(height) / u.scale / s)
+			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
+				return
+			}
 			if u.isFullscreen() {
 				return
 			}
+
+			s := glfwScale()
+			w := int(float64(width) / u.scale / s)
+			h := int(float64(height) / u.scale / s)
 			u.reqWidth = w
 			u.reqHeight = h
 		})
