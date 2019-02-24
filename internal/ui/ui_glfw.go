@@ -68,10 +68,16 @@ type userInterface struct {
 	m sync.Mutex
 }
 
+const (
+	maxInt     = int(^uint(0) >> 1)
+	minInt     = -maxInt - 1
+	invalidPos = minInt
+)
+
 var (
 	currentUI = &userInterface{
-		origPosX:            -1,
-		origPosY:            -1,
+		origPosX:            invalidPos,
+		origPosY:            invalidPos,
 		initCursorVisible:   true,
 		initWindowDecorated: true,
 		vsync:               true,
@@ -869,7 +875,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 	u.swapBuffers()
 
 	if fullscreen {
-		if u.origPosX < 0 && u.origPosY < 0 {
+		if u.origPosX == invalidPos || u.origPosY == invalidPos {
 			u.origPosX, u.origPosY = u.window.GetPos()
 		}
 		m := u.currentMonitor()
@@ -902,7 +908,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 			}
 		}
 
-		if u.origPosX >= 0 && u.origPosY >= 0 {
+		if u.origPosX != invalidPos && u.origPosY != invalidPos {
 			x := u.origPosX
 			y := u.origPosY
 			u.window.SetPos(x, y)
@@ -912,8 +918,8 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 				u.window.SetPos(x+1, y)
 				u.window.SetPos(x, y)
 			}
-			u.origPosX = -1
-			u.origPosY = -1
+			u.origPosX = invalidPos
+			u.origPosY = invalidPos
 		}
 
 		// Window title might be lost on macOS after coming back from fullscreen.
