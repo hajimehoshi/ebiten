@@ -639,7 +639,10 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 
 		x := mx + (v.Width-w)/2
 		y := my + (v.Height-h)/3
-		x, y = adjustWindowPosition(x, y)
+		// Adjusting the position is needed only when the monitor is primary. (#829)
+		if mx == 0 && my == 0 {
+			x, y = adjustWindowPosition(x, y)
+		}
 		u.window.SetPos(x, y)
 
 		u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
