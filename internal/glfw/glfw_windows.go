@@ -77,10 +77,11 @@ type Monitor struct {
 	m uintptr
 }
 
-func (m *Monitor) GetPos() (x, y int) {
+func (m *Monitor) GetPos() (int, int) {
+	var x, y int32
 	glfwDLL.call("glfwGetMonitorPos", m.m, uintptr(unsafe.Pointer(&x)), uintptr(unsafe.Pointer(&y)))
 	panicError()
-	return
+	return int(x), int(y)
 }
 
 func (m *Monitor) GetVideoMode() *VidMode {
@@ -145,16 +146,18 @@ func (w *Window) GetMouseButton(button MouseButton) Action {
 	return Action(r)
 }
 
-func (w *Window) GetPos() (x, y int) {
+func (w *Window) GetPos() (int, int) {
+	var x, y int32
 	glfwDLL.call("glfwGetWindowPos", w.w, uintptr(unsafe.Pointer(&x)), uintptr(unsafe.Pointer(&y)))
 	panicError()
-	return
+	return int(x), int(y)
 }
 
-func (w *Window) GetSize() (width, height int) {
+func (w *Window) GetSize() (int, int) {
+	var width, height int32
 	glfwDLL.call("glfwGetWindowSize", w.w, uintptr(unsafe.Pointer(&width)), uintptr(unsafe.Pointer(&height)))
 	panicError()
-	return
+	return int(width), int(height)
 }
 
 func (w *Window) MakeContextCurrent() {
@@ -303,11 +306,11 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 }
 
 func GetJoystickAxes(joy Joystick) []float32 {
-	l := 0
+	var l int32
 	ptr := glfwDLL.call("glfwGetJoystickAxes", uintptr(joy), uintptr(unsafe.Pointer(&l)))
 	panicError()
 	as := make([]float32, l)
-	for i := 0; i < l; i++ {
+	for i := int32(0); i < l; i++ {
 		as[i] = *(*float32)(unsafe.Pointer(ptr))
 		ptr += unsafe.Sizeof(float32(0))
 	}
@@ -315,11 +318,11 @@ func GetJoystickAxes(joy Joystick) []float32 {
 }
 
 func GetJoystickButtons(joy Joystick) []byte {
-	l := 0
+	var l int32
 	ptr := glfwDLL.call("glfwGetJoystickButtons", uintptr(joy), uintptr(unsafe.Pointer(&l)))
 	panicError()
 	bs := make([]byte, l)
-	for i := 0; i < l; i++ {
+	for i := int32(0); i < l; i++ {
 		bs[i] = *(*byte)(unsafe.Pointer(ptr))
 		ptr++
 	}
@@ -327,11 +330,11 @@ func GetJoystickButtons(joy Joystick) []byte {
 }
 
 func GetMonitors() []*Monitor {
-	l := 0
+	var l int32
 	ptr := glfwDLL.call("glfwGetMonitors", uintptr(unsafe.Pointer(&l)))
 	panicError()
 	ms := make([]*Monitor, l)
-	for i := 0; i < l; i++ {
+	for i := int32(0); i < l; i++ {
 		m := *(*unsafe.Pointer)(unsafe.Pointer(ptr))
 		if m != nil {
 			ms[i] = &Monitor{uintptr(m)}
