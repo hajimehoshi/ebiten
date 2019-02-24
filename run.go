@@ -342,19 +342,21 @@ func IsWindowDecorated() bool {
 	return ui.IsWindowDecorated()
 }
 
-// SetWindowResizable sets the state if the window is resizable.
+// setWindowResizable is unexported until specification is determined (#320)
+//
+// setWindowResizable sets the state if the window is resizable.
 //
 // The window is not resizable by default.
 //
 // When the window is resizable, the image size given via the update function can be changed by resizing.
 //
-// SetWindowResizable works only on desktops.
-// SetWindowResizable does nothing on other platforms.
+// setWindowResizable works only on desktops.
+// setWindowResizable does nothing on other platforms.
 //
-// SetWindowResizable panics if SetWindowResizable is called after Run.
+// setWindowResizable panics if setWindowResizable is called after Run.
 //
-// SetWindowResizable is concurrent-safe.
-func SetWindowResizable(resizable bool) {
+// setWindowResizable is concurrent-safe.
+func setWindowResizable(resizable bool) {
 	ui.SetWindowResizable(resizable)
 }
 

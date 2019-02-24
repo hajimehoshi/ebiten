@@ -286,6 +286,7 @@ func SetScreenSize(width, height int) {
 		panic("ui: Run is not called yet")
 	}
 	_ = mainthread.Run(func() error {
+		// TODO: What if the window is maximized? (#320)
 		u.setScreenSize(width, height, u.scale, u.isFullscreen(), u.vsync)
 		return nil
 	})
@@ -298,6 +299,7 @@ func SetScreenScale(scale float64) bool {
 	}
 	r := false
 	_ = mainthread.Run(func() error {
+		// TODO: What if the window is maximized? (#320)
 		r = u.setScreenSize(u.width, u.height, scale, u.isFullscreen(), u.vsync)
 		return nil
 	})
