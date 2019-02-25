@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -48,14 +49,50 @@ func majorMinor(ver string) string {
 	return t[0] + "." + t[1]
 }
 
+// reSemVer indicates the regexp for semantic versioning (https://semver.org/)
+//
+// reSemVer ignores periods in pre-release version so far.
+var reSemVer = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)(-[0-9a-zA-Z-]+)?$`)
+
+func mustAtoi(str string) int {
+	v, err := strconv.Atoi(str)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 func init() {
 	b, err := exec.Command("git", "tag").Output()
 	if err != nil {
 		panic(err)
 	}
 	vers := strings.Split(strings.TrimSpace(string(b)), "\n")
-	// TODO: Sort by a semantic version lib
-	sort.Strings(vers)
+	sort.Slice(vers, func(a, b int) bool {
+		ma := reSemVer.FindStringSubmatch(vers[a])
+		mb := reSemVer.FindStringSubmatch(vers[b])
+
+		if majorA, majorB := mustAtoi(ma[1]), mustAtoi(mb[1]); majorA != majorB {
+			return majorA < majorB
+		}
+		if minorA, minorB := mustAtoi(ma[2]), mustAtoi(mb[2]); minorA != minorB {
+			return minorA < minorB
+		}
+		if patchA, patchB := mustAtoi(ma[3]), mustAtoi(mb[3]); patchA != patchB {
+			return patchA < patchB
+		}
+		if len(ma) == 4 {
+			return false
+		}
+		if len(mb) == 4 {
+			return true
+		}
+
+		// To be exact, sorting pre-release tokens must consider numerics identifiers, but we ignore this
+		// here. See https://semver.org/#spec-item-11
+		preA, preB := ma[4], mb[4]
+		return preA < preB
+	})
 
 	devVers := []string{}
 	rcVers := []string{}
