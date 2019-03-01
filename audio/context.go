@@ -91,12 +91,12 @@ func (p *otoPlayer) ensurePlayer() error {
 	return nil
 }
 
-func newContext(sampleRate int, initCh <-chan struct{}) (context, error) {
+func newContext(sampleRate int, initCh <-chan struct{}) context {
 	if contextForTesting != nil {
-		return contextForTesting, nil
+		return contextForTesting
 	}
 	return &otoContext{
 		sampleRate: sampleRate,
 		initCh:     initCh,
-	}, nil
+	}
 }

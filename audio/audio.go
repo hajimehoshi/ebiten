@@ -88,13 +88,9 @@ func NewContext(sampleRate int) (*Context, error) {
 
 	ch := make(chan struct{})
 
-	context, err := newContext(sampleRate, ch)
-	if err != nil {
-		return nil, err
-	}
 	c := &Context{
 		sampleRate: sampleRate,
-		c:          context,
+		c:          newContext(sampleRate, ch),
 		initCh:     ch,
 	}
 	theContext = c
