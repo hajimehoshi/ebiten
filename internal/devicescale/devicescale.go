@@ -18,12 +18,22 @@ import (
 	"sync"
 )
 
+type pos struct {
+	x, y int
+}
+
 var (
-	m sync.Mutex
+	m     sync.Mutex
+	cache = map[pos]float64{}
 )
 
 func GetAt(x, y int) float64 {
 	m.Lock()
 	defer m.Unlock()
-	return impl(x, y)
+	if s, ok := cache[pos{x, y}]; ok {
+		return s
+	}
+	s := impl(x, y)
+	cache[pos{x, y}] = s
+	return s
 }
