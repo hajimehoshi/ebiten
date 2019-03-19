@@ -316,6 +316,10 @@ func init() {
 	bodyStyle.Set("height", "100%")
 	bodyStyle.Set("margin", "0")
 	bodyStyle.Set("padding", "0")
+	bodyStyle.Set("display", "flex")
+	bodyStyle.Set("alignItems", "center")
+	bodyStyle.Set("justifyContent", "center")
+
 	// TODO: This is OK as long as the game is in an independent iframe.
 	// What if the canvas is embedded in a HTML directly?
 	document.Get("body").Call("addEventListener", "click", js.NewCallback(func([]js.Value) {
@@ -411,9 +415,6 @@ func (u *userInterface) updateScreenSize() {
 	cssHeight := int(float64(u.height) * s)
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
 	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
-	// CSS calc requires space chars.
-	canvasStyle.Set("left", "calc((100% - "+strconv.Itoa(cssWidth)+"px) / 2)")
-	canvasStyle.Set("top", "calc((100% - "+strconv.Itoa(cssHeight)+"px) / 2)")
 
 	u.sizeChanged = true
 }
