@@ -9,7 +9,7 @@ A dead simple 2D game library in Go
 * [Website](https://hajimehoshi.github.io/ebiten/)
 * [Cheat Sheet](https://github.com/hajimehoshi/ebiten/wiki/Cheat-Sheet)
 
-[![Flappy Example](docs/images/examples/flappy.png)](https://hajimehoshi.github.io/ebiten/examples/flappy.html)
+<p style="text-align: center;"><a href="https://ebiten.org/examples/flappy.html"><img src="https://ebiten.org/images/examples/flappy.png" width="640" height="480" alt="flappy"></a></p>
 
 ## Platforms
 
