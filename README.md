@@ -15,10 +15,10 @@ Ebiten is an open-source game library, with which you can develop 2D games with 
 
 ## Platforms
 
-* [Windows](https://github.com/hajimehoshi/ebiten/wiki/Windows) (No Cgo!)
-* [macOS](https://github.com/hajimehoshi/ebiten/wiki/macOS)
-* [Linux](https://github.com/hajimehoshi/ebiten/wiki/Linux)
-* [FreeBSD](https://github.com/hajimehoshi/ebiten/wiki/FreeBSD)
+* Windows (No Cgo!)
+* macOS
+* Linux
+* FreeBSD
 * [Android](https://github.com/hajimehoshi/ebiten/wiki/Android)
 * [iOS](https://github.com/hajimehoshi/ebiten/wiki/iOS)
 * Web browsers (Chrome, Firefox, Safari and Edge)
@@ -26,6 +26,8 @@ Ebiten is an open-source game library, with which you can develop 2D games with 
   * [WebAssembly](https://github.com/hajimehoshi/ebiten/wiki/WebAssembly) (Experimental)
 
 Note: Gamepad and keyboard are not available on Android/iOS.
+
+For installation on desktops, see [the installation instruction](https://ebiten.org/install.html).
 
 ## Features
 
