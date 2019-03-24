@@ -26,15 +26,11 @@ func (i *Input) CursorPosition() (x, y int) {
 	return i.cursorX, i.cursorY
 }
 
-var emptyIDs = []int{}
-
 func (i *Input) GamepadIDs() []int {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if len(i.gamepads) == 0 {
-		// Avoid creating a slice if possible.
-		// This is a performance optimization for browsers.
-		return emptyIDs
+		return nil
 	}
 	r := []int{}
 	for id, g := range i.gamepads {
@@ -81,16 +77,12 @@ func (i *Input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
 	return i.gamepads[id].buttonPressed[button]
 }
 
-var emptyTouches = []*Touch{}
-
 func (in *Input) Touches() []*Touch {
 	in.m.RLock()
 	defer in.m.RUnlock()
 
 	if len(in.touches) == 0 {
-		// Avoid creating a slice if possible.
-		// This is a performance optimization for browsers.
-		return emptyTouches
+		return nil
 	}
 
 	t := make([]*Touch, len(in.touches))
