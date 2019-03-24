@@ -15,7 +15,7 @@
 // +build darwin,!ios
 // +build !js
 
-package graphicscommand
+package drivers
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation
@@ -52,7 +52,7 @@ func init() {
 	}
 }
 
-func Driver() graphicsdriver.GraphicsDriver {
+func Graphics() graphicsdriver.GraphicsDriver {
 	if isMetalSupported {
 		return metal.Get()
 	}

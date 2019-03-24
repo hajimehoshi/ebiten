@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/drivers"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
@@ -99,7 +99,7 @@ func initialize() error {
 	if err := glfw.Init(); err != nil {
 		return err
 	}
-	if !graphicscommand.Driver().IsGL() {
+	if !drivers.Graphics().IsGL() {
 		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
@@ -604,7 +604,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		}
 		u.window = window
 
-		if graphicscommand.Driver().IsGL() {
+		if drivers.Graphics().IsGL() {
 			u.window.MakeContextCurrent()
 		}
 
@@ -679,7 +679,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		w = u.nativeWindow()
 		return nil
 	})
-	graphicscommand.Driver().SetWindow(w)
+	drivers.Graphics().SetWindow(w)
 	return u.loop(g)
 }
 
@@ -834,7 +834,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 
 // swapBuffers must be called from the main thread.
 func (u *userInterface) swapBuffers() {
-	if graphicscommand.Driver().IsGL() {
+	if drivers.Graphics().IsGL() {
 		u.window.SwapBuffers()
 	}
 }
@@ -932,7 +932,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 		u.window.SetTitle(u.title)
 	}
 
-	if graphicscommand.Driver().IsGL() {
+	if drivers.Graphics().IsGL() {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
 		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -946,7 +946,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 			glfw.SwapInterval(0)
 		}
 	}
-	graphicscommand.Driver().SetVsyncEnabled(vsync)
+	drivers.Graphics().SetVsyncEnabled(vsync)
 
 	u.toChangeSize = true
 }
