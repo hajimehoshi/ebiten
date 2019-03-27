@@ -99,9 +99,6 @@ func initialize() error {
 	if err := glfw.Init(); err != nil {
 		return err
 	}
-	if !driver.Graphics().IsGL() {
-		glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
-	}
 	glfw.WindowHint(glfw.Visible, glfw.False)
 
 	// Create a window to set the initial monitor.
@@ -581,8 +578,12 @@ func DeviceScaleFactor() float64 {
 func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
 	u := currentUI
 	_ = mainthread.Run(func() error {
-		glfw.WindowHint(glfw.ContextVersionMajor, 2)
-		glfw.WindowHint(glfw.ContextVersionMinor, 1)
+		if driver.Graphics().IsGL() {
+			glfw.WindowHint(glfw.ContextVersionMajor, 2)
+			glfw.WindowHint(glfw.ContextVersionMinor, 1)
+		} else {
+			glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
+		}
 
 		// 'decorated' must be solved before creating a window (#556).
 		decorated := glfw.False
