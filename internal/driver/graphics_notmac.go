@@ -14,7 +14,7 @@
 
 // +build !darwin ios js
 
-package drivers
+package driver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"

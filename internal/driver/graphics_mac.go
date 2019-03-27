@@ -15,7 +15,7 @@
 // +build darwin,!ios
 // +build !js
 
-package drivers
+package driver
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation
