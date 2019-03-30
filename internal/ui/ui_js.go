@@ -122,8 +122,12 @@ func AdjustedTouches() []*input.Touch {
 	ts := input.Get().Touches()
 	adjusted := make([]*input.Touch, len(ts))
 	for i, t := range ts {
-		x, y := adjustPosition(t.Position())
-		adjusted[i] = input.NewTouch(t.ID(), x, y)
+		x, y := adjustPosition(t.X, t.Y)
+		adjusted[i] = &input.Touch{
+			ID: t.ID,
+			X:  x,
+			Y:  y,
+		}
 	}
 	return adjusted
 }

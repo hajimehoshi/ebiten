@@ -18,7 +18,6 @@ package mobile
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/input"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 type position struct {
@@ -39,5 +38,5 @@ func updateTouches() {
 			Y:  position.y,
 		})
 	}
-	ui.UpdateTouches(ts)
+	input.Get().UpdateTouches(ts)
 }

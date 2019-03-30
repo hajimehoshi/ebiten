@@ -140,7 +140,7 @@ func appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			UpdateTouches(ts)
+			input.Get().UpdateTouches(ts)
 		}
 	}
 }
@@ -432,10 +432,6 @@ func IsVsyncEnabled() bool {
 
 func SetVsyncEnabled(enabled bool) {
 	// Do nothing
-}
-
-func UpdateTouches(touches []*input.Touch) {
-	input.Get().UpdateTouches(touches)
 }
 
 func DeviceScaleFactor() float64 {
