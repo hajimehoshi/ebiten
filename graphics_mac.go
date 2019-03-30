@@ -15,7 +15,7 @@
 // +build darwin,!ios
 // +build !js
 
-package driver
+package ebiten
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation
@@ -52,7 +52,7 @@ func init() {
 	}
 }
 
-func Graphics() graphicsdriver.GraphicsDriver {
+func graphicsDriver() graphicsdriver.GraphicsDriver {
 	if isMetalSupported {
 		return metal.Get()
 	}

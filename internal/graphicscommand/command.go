@@ -18,9 +18,15 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 )
+
+var theGraphicsDriver graphicsdriver.GraphicsDriver
+
+func SetGraphicsDriver(driver graphicsdriver.GraphicsDriver) {
+	theGraphicsDriver = driver
+}
 
 // command represents a drawing command.
 //
@@ -167,7 +173,7 @@ func (q *commandQueue) Flush() {
 			nc++
 		}
 		if 0 < ne {
-			driver.Graphics().SetVertices(vs[:nv], es[:ne])
+			theGraphicsDriver.SetVertices(vs[:nv], es[:ne])
 			es = es[ne:]
 			vs = vs[nv:]
 		}
@@ -187,7 +193,7 @@ func (q *commandQueue) Flush() {
 		}
 		if 0 < nc {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-			driver.Graphics().Flush()
+			theGraphicsDriver.Flush()
 		}
 		q.commands = q.commands[nc:]
 	}
@@ -233,7 +239,7 @@ func (c *drawImageCommand) Exec(indexOffset int) error {
 
 	c.dst.image.SetAsDestination()
 	c.src.image.SetAsSource()
-	if err := driver.Graphics().Draw(c.nindices, indexOffset, c.mode, c.color, c.filter, c.address); err != nil {
+	if err := theGraphicsDriver.Draw(c.nindices, indexOffset, c.mode, c.color, c.filter, c.address); err != nil {
 		return err
 	}
 	return nil
@@ -439,7 +445,7 @@ func (c *newImageCommand) String() string {
 
 // Exec executes a newImageCommand.
 func (c *newImageCommand) Exec(indexOffset int) error {
-	i, err := driver.Graphics().NewImage(c.width, c.height)
+	i, err := theGraphicsDriver.NewImage(c.width, c.height)
 	if err != nil {
 		return err
 	}
@@ -479,7 +485,7 @@ func (c *newScreenFramebufferImageCommand) String() string {
 // Exec executes a newScreenFramebufferImageCommand.
 func (c *newScreenFramebufferImageCommand) Exec(indexOffset int) error {
 	var err error
-	c.result.image, err = driver.Graphics().NewScreenFramebufferImage(c.width, c.height)
+	c.result.image, err = theGraphicsDriver.NewScreenFramebufferImage(c.width, c.height)
 	return err
 }
 
@@ -503,5 +509,5 @@ func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affi
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
 func ResetGraphicsDriverState() error {
-	return driver.Graphics().Reset()
+	return theGraphicsDriver.Reset()
 }

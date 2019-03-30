@@ -19,7 +19,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -97,7 +96,7 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 	if !web.IsGopherJS() {
 		defer atomic.StoreInt32(&isRunning, 0)
 	}
-	if err := ui.Run(width, height, scale, title, g, mainloop, driver.Graphics()); err != nil {
+	if err := ui.Run(width, height, scale, title, g, mainloop, graphicsDriver()); err != nil {
 		if err == ui.RegularTermination {
 			return nil
 		}

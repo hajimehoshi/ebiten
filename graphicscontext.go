@@ -19,12 +19,16 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
-	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
+
+func init() {
+	graphicscommand.SetGraphicsDriver(graphicsDriver())
+}
 
 func newGraphicsContext(f func(*Image) error) *graphicsContext {
 	return &graphicsContext{
@@ -123,7 +127,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 
 	op := &DrawImageOptions{}
 
-	switch vd := driver.Graphics().VDirection(); vd {
+	switch vd := graphicsDriver().VDirection(); vd {
 	case graphicsdriver.VDownward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.

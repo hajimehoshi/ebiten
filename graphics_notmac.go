@@ -14,13 +14,13 @@
 
 // +build !darwin ios js
 
-package driver
+package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-func Graphics() graphicsdriver.GraphicsDriver {
+func graphicsDriver() graphicsdriver.GraphicsDriver {
 	return opengl.Get()
 }
