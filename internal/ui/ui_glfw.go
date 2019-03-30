@@ -789,8 +789,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 		return nil
 	})
 	if err := g.Update(func() {
-		input.Get().ClearRuneBuffer()
-		input.Get().ResetScrollValues()
+		input.Get().Reset()
 		// The offscreens must be updated every frame (#490).
 		u.updateGraphicsContext(g)
 	}); err != nil {

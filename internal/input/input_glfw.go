@@ -47,15 +47,10 @@ func (i *Input) RuneBuffer() []rune {
 	return i.runeBuffer
 }
 
-func (i *Input) ClearRuneBuffer() {
+func (i *Input) Reset() {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	i.runeBuffer = i.runeBuffer[:0]
-}
-
-func (i *Input) ResetScrollValues() {
-	i.m.RLock()
-	defer i.m.RUnlock()
 	i.scrollX, i.scrollY = 0, 0
 }
 
