@@ -50,7 +50,7 @@ func IsKeyPressed(key Key) bool {
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return ui.AdjustedCursorPosition()
+	return ui.AdjustPosition(input.Get().CursorPosition())
 }
 
 // Wheel returns the x and y offset of the mouse wheel or touchpad scroll.

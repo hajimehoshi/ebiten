@@ -114,10 +114,6 @@ func AdjustPosition(x, y int) (int, int) {
 	return int(float64(x) / scale), int(float64(y) / scale)
 }
 
-func AdjustedCursorPosition() (x, y int) {
-	return AdjustPosition(input.Get().CursorPosition())
-}
-
 func IsCursorVisible() bool {
 	// The initial value is an empty string, so don't compare with "auto" here.
 	return canvas.Get("style").Get("cursor").String() != "none"

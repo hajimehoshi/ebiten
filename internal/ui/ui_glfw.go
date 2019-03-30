@@ -451,10 +451,6 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 	return ox, oy, (mx - sx) - ox, (my - sy) - oy
 }
 
-func AdjustedCursorPosition() (x, y int) {
-	return AdjustPosition(input.Get().CursorPosition())
-}
-
 func AdjustPosition(x, y int) (int, int) {
 	u := currentUI
 	if !u.isRunning() {
