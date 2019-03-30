@@ -320,14 +320,18 @@ const inputKeysJSTmpl = `{{.License}}
 
 package input
 
-var keyToCodes = map[Key][]string{
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
+var keyToCodes = map[driver.Key][]string{
 {{range $name, $codes := .NameToJSKeyCodes}}driver.Key{{$name}}: []string{
 {{range $code := $codes}}"{{$code}}",{{end}}
 },
 {{end}}
 }
 
-var keyCodeToKeyEdge = map[int]Key{
+var keyCodeToKeyEdge = map[int]driver.Key{
 {{range $code, $name := .KeyCodeToNameEdge}}{{$code}}: driver.Key{{$name}},
 {{end}}
 }

@@ -18,7 +18,11 @@
 
 package input
 
-var keyToCodes = map[Key][]string{
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
+var keyToCodes = map[driver.Key][]string{
 	driver.Key0: {
 		"Digit0",
 	},
@@ -321,7 +325,7 @@ var keyToCodes = map[Key][]string{
 	},
 }
 
-var keyCodeToKeyEdge = map[int]Key{
+var keyCodeToKeyEdge = map[int]driver.Key{
 	8:   driver.KeyBackspace,
 	9:   driver.KeyTab,
 	13:  driver.KeyEnter,

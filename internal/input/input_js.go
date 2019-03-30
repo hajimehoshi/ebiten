@@ -20,6 +20,8 @@ import (
 	"unicode"
 
 	"github.com/gopherjs/gopherwasm/js"
+
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 type mockRWLock struct{}
@@ -56,7 +58,7 @@ func (i *Input) ResetWheelValues() {
 	i.wheelY = 0
 }
 
-func (i *Input) IsKeyPressed(key Key) bool {
+func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if i.keyPressed != nil {
 		for _, c := range keyToCodes[key] {
 			if i.keyPressed[c] {
@@ -77,13 +79,13 @@ func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 
-var codeToMouseButton = map[int]MouseButton{
-	0: MouseButtonLeft,
-	1: MouseButtonMiddle,
-	2: MouseButtonRight,
+var codeToMouseButton = map[int]driver.MouseButton{
+	0: driver.MouseButtonLeft,
+	1: driver.MouseButtonMiddle,
+	2: driver.MouseButtonRight,
 }
 
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[int]bool{}
 	}
@@ -191,24 +193,24 @@ func OnKeyDown(e js.Value) {
 	c := e.Get("code")
 	if c == js.Undefined() {
 		code := e.Get("keyCode").Int()
-		if keyCodeToKeyEdge[code] == KeyUp ||
-			keyCodeToKeyEdge[code] == KeyDown ||
-			keyCodeToKeyEdge[code] == KeyLeft ||
-			keyCodeToKeyEdge[code] == KeyRight ||
-			keyCodeToKeyEdge[code] == KeyBackspace ||
-			keyCodeToKeyEdge[code] == KeyTab {
+		if keyCodeToKeyEdge[code] == driver.KeyUp ||
+			keyCodeToKeyEdge[code] == driver.KeyDown ||
+			keyCodeToKeyEdge[code] == driver.KeyLeft ||
+			keyCodeToKeyEdge[code] == driver.KeyRight ||
+			keyCodeToKeyEdge[code] == driver.KeyBackspace ||
+			keyCodeToKeyEdge[code] == driver.KeyTab {
 			e.Call("preventDefault")
 		}
 		theInput.keyDownEdge(code)
 		return
 	}
 	cs := c.String()
-	if cs == keyToCodes[KeyUp][0] ||
-		cs == keyToCodes[KeyDown][0] ||
-		cs == keyToCodes[KeyLeft][0] ||
-		cs == keyToCodes[KeyRight][0] ||
-		cs == keyToCodes[KeyBackspace][0] ||
-		cs == keyToCodes[KeyTab][0] {
+	if cs == keyToCodes[driver.KeyUp][0] ||
+		cs == keyToCodes[driver.KeyDown][0] ||
+		cs == keyToCodes[driver.KeyLeft][0] ||
+		cs == keyToCodes[driver.KeyRight][0] ||
+		cs == keyToCodes[driver.KeyBackspace][0] ||
+		cs == keyToCodes[driver.KeyTab][0] {
 		e.Call("preventDefault")
 	}
 	theInput.keyDown(cs)

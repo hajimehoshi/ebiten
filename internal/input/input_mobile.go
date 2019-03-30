@@ -18,6 +18,8 @@ package input
 
 import (
 	"sync"
+
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 type Input struct {
@@ -32,7 +34,7 @@ func (i *Input) RuneBuffer() []rune {
 	return nil
 }
 
-func (i *Input) IsKeyPressed(key Key) bool {
+func (i *Input) IsKeyPressed(key driver.Key) bool {
 	return false
 }
 
@@ -40,7 +42,7 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 	return 0, 0
 }
 
-func (i *Input) IsMouseButtonPressed(key MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
