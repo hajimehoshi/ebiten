@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
@@ -64,6 +64,8 @@ type userInterface struct {
 
 	reqWidth  int
 	reqHeight int
+
+	driver graphicsdriver.GraphicsDriver
 
 	m sync.Mutex
 }
@@ -575,10 +577,12 @@ func DeviceScaleFactor() float64 {
 	return f
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver graphicsdriver.GraphicsDriver) error {
 	u := currentUI
 	_ = mainthread.Run(func() error {
-		if driver.Graphics().IsGL() {
+		u.driver = driver
+
+		if driver.IsGL() {
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
 		} else {
@@ -605,7 +609,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		}
 		u.window = window
 
-		if driver.Graphics().IsGL() {
+		if driver.IsGL() {
 			u.window.MakeContextCurrent()
 		}
 
@@ -680,7 +684,7 @@ func Run(width, height int, scale float64, title string, g GraphicsContext, main
 		w = u.nativeWindow()
 		return nil
 	})
-	driver.Graphics().SetWindow(w)
+	driver.SetWindow(w)
 	return u.loop(g)
 }
 
@@ -835,7 +839,7 @@ func (u *userInterface) loop(g GraphicsContext) error {
 
 // swapBuffers must be called from the main thread.
 func (u *userInterface) swapBuffers() {
-	if driver.Graphics().IsGL() {
+	if u.driver.IsGL() {
 		u.window.SwapBuffers()
 	}
 }
@@ -933,7 +937,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 		u.window.SetTitle(u.title)
 	}
 
-	if driver.Graphics().IsGL() {
+	if u.driver.IsGL() {
 		// SwapInterval is affected by the current monitor of the window.
 		// This needs to be called at least after SetMonitor.
 		// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -947,7 +951,7 @@ func (u *userInterface) forceSetScreenSize(width, height int, scale float64, ful
 			glfw.SwapInterval(0)
 		}
 	}
-	driver.Graphics().SetVsyncEnabled(vsync)
+	u.driver.SetVsyncEnabled(vsync)
 
 	u.toChangeSize = true
 }

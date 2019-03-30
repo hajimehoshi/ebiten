@@ -31,6 +31,7 @@ import (
 	"golang.org/x/mobile/gl"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
@@ -141,7 +142,7 @@ func appMain(a app.App) {
 	}
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver graphicsdriver.GraphicsDriver) error {
 	u := currentUI
 
 	u.m.Lock()
