@@ -19,404 +19,404 @@
 package input
 
 var keyToCodes = map[Key][]string{
-	Key0: {
+	driver.Key0: {
 		"Digit0",
 	},
-	Key1: {
+	driver.Key1: {
 		"Digit1",
 	},
-	Key2: {
+	driver.Key2: {
 		"Digit2",
 	},
-	Key3: {
+	driver.Key3: {
 		"Digit3",
 	},
-	Key4: {
+	driver.Key4: {
 		"Digit4",
 	},
-	Key5: {
+	driver.Key5: {
 		"Digit5",
 	},
-	Key6: {
+	driver.Key6: {
 		"Digit6",
 	},
-	Key7: {
+	driver.Key7: {
 		"Digit7",
 	},
-	Key8: {
+	driver.Key8: {
 		"Digit8",
 	},
-	Key9: {
+	driver.Key9: {
 		"Digit9",
 	},
-	KeyA: {
+	driver.KeyA: {
 		"KeyA",
 	},
-	KeyAlt: {
+	driver.KeyAlt: {
 		"AltLeft", "AltRight",
 	},
-	KeyApostrophe: {
+	driver.KeyApostrophe: {
 		"Quote",
 	},
-	KeyB: {
+	driver.KeyB: {
 		"KeyB",
 	},
-	KeyBackslash: {
+	driver.KeyBackslash: {
 		"Backslash",
 	},
-	KeyBackspace: {
+	driver.KeyBackspace: {
 		"Backspace",
 	},
-	KeyC: {
+	driver.KeyC: {
 		"KeyC",
 	},
-	KeyCapsLock: {
+	driver.KeyCapsLock: {
 		"CapsLock",
 	},
-	KeyComma: {
+	driver.KeyComma: {
 		"Comma",
 	},
-	KeyControl: {
+	driver.KeyControl: {
 		"ControlLeft", "ControlRight",
 	},
-	KeyD: {
+	driver.KeyD: {
 		"KeyD",
 	},
-	KeyDelete: {
+	driver.KeyDelete: {
 		"Delete",
 	},
-	KeyDown: {
+	driver.KeyDown: {
 		"ArrowDown",
 	},
-	KeyE: {
+	driver.KeyE: {
 		"KeyE",
 	},
-	KeyEnd: {
+	driver.KeyEnd: {
 		"End",
 	},
-	KeyEnter: {
+	driver.KeyEnter: {
 		"Enter",
 	},
-	KeyEqual: {
+	driver.KeyEqual: {
 		"Equal",
 	},
-	KeyEscape: {
+	driver.KeyEscape: {
 		"Escape",
 	},
-	KeyF: {
+	driver.KeyF: {
 		"KeyF",
 	},
-	KeyF1: {
+	driver.KeyF1: {
 		"F1",
 	},
-	KeyF10: {
+	driver.KeyF10: {
 		"F10",
 	},
-	KeyF11: {
+	driver.KeyF11: {
 		"F11",
 	},
-	KeyF12: {
+	driver.KeyF12: {
 		"F12",
 	},
-	KeyF2: {
+	driver.KeyF2: {
 		"F2",
 	},
-	KeyF3: {
+	driver.KeyF3: {
 		"F3",
 	},
-	KeyF4: {
+	driver.KeyF4: {
 		"F4",
 	},
-	KeyF5: {
+	driver.KeyF5: {
 		"F5",
 	},
-	KeyF6: {
+	driver.KeyF6: {
 		"F6",
 	},
-	KeyF7: {
+	driver.KeyF7: {
 		"F7",
 	},
-	KeyF8: {
+	driver.KeyF8: {
 		"F8",
 	},
-	KeyF9: {
+	driver.KeyF9: {
 		"F9",
 	},
-	KeyG: {
+	driver.KeyG: {
 		"KeyG",
 	},
-	KeyGraveAccent: {
+	driver.KeyGraveAccent: {
 		"Backquote",
 	},
-	KeyH: {
+	driver.KeyH: {
 		"KeyH",
 	},
-	KeyHome: {
+	driver.KeyHome: {
 		"Home",
 	},
-	KeyI: {
+	driver.KeyI: {
 		"KeyI",
 	},
-	KeyInsert: {
+	driver.KeyInsert: {
 		"Insert",
 	},
-	KeyJ: {
+	driver.KeyJ: {
 		"KeyJ",
 	},
-	KeyK: {
+	driver.KeyK: {
 		"KeyK",
 	},
-	KeyKP0: {
+	driver.KeyKP0: {
 		"Numpad0",
 	},
-	KeyKP1: {
+	driver.KeyKP1: {
 		"Numpad1",
 	},
-	KeyKP2: {
+	driver.KeyKP2: {
 		"Numpad2",
 	},
-	KeyKP3: {
+	driver.KeyKP3: {
 		"Numpad3",
 	},
-	KeyKP4: {
+	driver.KeyKP4: {
 		"Numpad4",
 	},
-	KeyKP5: {
+	driver.KeyKP5: {
 		"Numpad5",
 	},
-	KeyKP6: {
+	driver.KeyKP6: {
 		"Numpad6",
 	},
-	KeyKP7: {
+	driver.KeyKP7: {
 		"Numpad7",
 	},
-	KeyKP8: {
+	driver.KeyKP8: {
 		"Numpad8",
 	},
-	KeyKP9: {
+	driver.KeyKP9: {
 		"Numpad9",
 	},
-	KeyKPAdd: {
+	driver.KeyKPAdd: {
 		"NumpadAdd",
 	},
-	KeyKPDecimal: {
+	driver.KeyKPDecimal: {
 		"NumpadDecimal",
 	},
-	KeyKPDivide: {
+	driver.KeyKPDivide: {
 		"NumpadDivide",
 	},
-	KeyKPEnter: {
+	driver.KeyKPEnter: {
 		"NumpadEnter",
 	},
-	KeyKPEqual: {
+	driver.KeyKPEqual: {
 		"NumpadEqual",
 	},
-	KeyKPMultiply: {
+	driver.KeyKPMultiply: {
 		"NumpadMultiply",
 	},
-	KeyKPSubtract: {
+	driver.KeyKPSubtract: {
 		"NumpadSubtract",
 	},
-	KeyL: {
+	driver.KeyL: {
 		"KeyL",
 	},
-	KeyLeft: {
+	driver.KeyLeft: {
 		"ArrowLeft",
 	},
-	KeyLeftBracket: {
+	driver.KeyLeftBracket: {
 		"BracketLeft",
 	},
-	KeyM: {
+	driver.KeyM: {
 		"KeyM",
 	},
-	KeyMenu: {
+	driver.KeyMenu: {
 		"ContextMenu",
 	},
-	KeyMinus: {
+	driver.KeyMinus: {
 		"Minus",
 	},
-	KeyN: {
+	driver.KeyN: {
 		"KeyN",
 	},
-	KeyNumLock: {
+	driver.KeyNumLock: {
 		"NumLock",
 	},
-	KeyO: {
+	driver.KeyO: {
 		"KeyO",
 	},
-	KeyP: {
+	driver.KeyP: {
 		"KeyP",
 	},
-	KeyPageDown: {
+	driver.KeyPageDown: {
 		"PageDown",
 	},
-	KeyPageUp: {
+	driver.KeyPageUp: {
 		"PageUp",
 	},
-	KeyPause: {
+	driver.KeyPause: {
 		"Pause",
 	},
-	KeyPeriod: {
+	driver.KeyPeriod: {
 		"Period",
 	},
-	KeyPrintScreen: {
+	driver.KeyPrintScreen: {
 		"PrintScreen",
 	},
-	KeyQ: {
+	driver.KeyQ: {
 		"KeyQ",
 	},
-	KeyR: {
+	driver.KeyR: {
 		"KeyR",
 	},
-	KeyRight: {
+	driver.KeyRight: {
 		"ArrowRight",
 	},
-	KeyRightBracket: {
+	driver.KeyRightBracket: {
 		"BracketRight",
 	},
-	KeyS: {
+	driver.KeyS: {
 		"KeyS",
 	},
-	KeyScrollLock: {
+	driver.KeyScrollLock: {
 		"ScrollLock",
 	},
-	KeySemicolon: {
+	driver.KeySemicolon: {
 		"Semicolon",
 	},
-	KeyShift: {
+	driver.KeyShift: {
 		"ShiftLeft", "ShiftRight",
 	},
-	KeySlash: {
+	driver.KeySlash: {
 		"Slash",
 	},
-	KeySpace: {
+	driver.KeySpace: {
 		"Space",
 	},
-	KeyT: {
+	driver.KeyT: {
 		"KeyT",
 	},
-	KeyTab: {
+	driver.KeyTab: {
 		"Tab",
 	},
-	KeyU: {
+	driver.KeyU: {
 		"KeyU",
 	},
-	KeyUp: {
+	driver.KeyUp: {
 		"ArrowUp",
 	},
-	KeyV: {
+	driver.KeyV: {
 		"KeyV",
 	},
-	KeyW: {
+	driver.KeyW: {
 		"KeyW",
 	},
-	KeyX: {
+	driver.KeyX: {
 		"KeyX",
 	},
-	KeyY: {
+	driver.KeyY: {
 		"KeyY",
 	},
-	KeyZ: {
+	driver.KeyZ: {
 		"KeyZ",
 	},
 }
 
 var keyCodeToKeyEdge = map[int]Key{
-	8:   KeyBackspace,
-	9:   KeyTab,
-	13:  KeyEnter,
-	16:  KeyShift,
-	17:  KeyControl,
-	18:  KeyAlt,
-	19:  KeyPause,
-	20:  KeyCapsLock,
-	27:  KeyEscape,
-	32:  KeySpace,
-	33:  KeyPageUp,
-	34:  KeyPageDown,
-	35:  KeyEnd,
-	36:  KeyHome,
-	37:  KeyLeft,
-	38:  KeyUp,
-	39:  KeyRight,
-	40:  KeyDown,
-	45:  KeyInsert,
-	46:  KeyDelete,
-	48:  Key0,
-	49:  Key1,
-	50:  Key2,
-	51:  Key3,
-	52:  Key4,
-	53:  Key5,
-	54:  Key6,
-	55:  Key7,
-	56:  Key8,
-	57:  Key9,
-	65:  KeyA,
-	66:  KeyB,
-	67:  KeyC,
-	68:  KeyD,
-	69:  KeyE,
-	70:  KeyF,
-	71:  KeyG,
-	72:  KeyH,
-	73:  KeyI,
-	74:  KeyJ,
-	75:  KeyK,
-	76:  KeyL,
-	77:  KeyM,
-	78:  KeyN,
-	79:  KeyO,
-	80:  KeyP,
-	81:  KeyQ,
-	82:  KeyR,
-	83:  KeyS,
-	84:  KeyT,
-	85:  KeyU,
-	86:  KeyV,
-	87:  KeyW,
-	88:  KeyX,
-	89:  KeyY,
-	90:  KeyZ,
-	93:  KeyMenu,
-	96:  KeyKP0,
-	97:  KeyKP1,
-	98:  KeyKP2,
-	99:  KeyKP3,
-	100: KeyKP4,
-	101: KeyKP5,
-	102: KeyKP6,
-	103: KeyKP7,
-	104: KeyKP8,
-	105: KeyKP9,
-	106: KeyKPMultiply,
-	107: KeyKPAdd,
-	109: KeyKPSubtract,
-	110: KeyKPDecimal,
-	111: KeyKPDivide,
-	112: KeyF1,
-	113: KeyF2,
-	114: KeyF3,
-	115: KeyF4,
-	116: KeyF5,
-	117: KeyF6,
-	118: KeyF7,
-	119: KeyF8,
-	120: KeyF9,
-	121: KeyF10,
-	122: KeyF11,
-	123: KeyF12,
-	144: KeyNumLock,
-	145: KeyScrollLock,
-	186: KeySemicolon,
-	187: KeyEqual,
-	188: KeyComma,
-	189: KeyMinus,
-	190: KeyPeriod,
-	191: KeySlash,
-	192: KeyGraveAccent,
-	219: KeyLeftBracket,
-	220: KeyBackslash,
-	221: KeyRightBracket,
-	222: KeyApostrophe,
+	8:   driver.KeyBackspace,
+	9:   driver.KeyTab,
+	13:  driver.KeyEnter,
+	16:  driver.KeyShift,
+	17:  driver.KeyControl,
+	18:  driver.KeyAlt,
+	19:  driver.KeyPause,
+	20:  driver.KeyCapsLock,
+	27:  driver.KeyEscape,
+	32:  driver.KeySpace,
+	33:  driver.KeyPageUp,
+	34:  driver.KeyPageDown,
+	35:  driver.KeyEnd,
+	36:  driver.KeyHome,
+	37:  driver.KeyLeft,
+	38:  driver.KeyUp,
+	39:  driver.KeyRight,
+	40:  driver.KeyDown,
+	45:  driver.KeyInsert,
+	46:  driver.KeyDelete,
+	48:  driver.Key0,
+	49:  driver.Key1,
+	50:  driver.Key2,
+	51:  driver.Key3,
+	52:  driver.Key4,
+	53:  driver.Key5,
+	54:  driver.Key6,
+	55:  driver.Key7,
+	56:  driver.Key8,
+	57:  driver.Key9,
+	65:  driver.KeyA,
+	66:  driver.KeyB,
+	67:  driver.KeyC,
+	68:  driver.KeyD,
+	69:  driver.KeyE,
+	70:  driver.KeyF,
+	71:  driver.KeyG,
+	72:  driver.KeyH,
+	73:  driver.KeyI,
+	74:  driver.KeyJ,
+	75:  driver.KeyK,
+	76:  driver.KeyL,
+	77:  driver.KeyM,
+	78:  driver.KeyN,
+	79:  driver.KeyO,
+	80:  driver.KeyP,
+	81:  driver.KeyQ,
+	82:  driver.KeyR,
+	83:  driver.KeyS,
+	84:  driver.KeyT,
+	85:  driver.KeyU,
+	86:  driver.KeyV,
+	87:  driver.KeyW,
+	88:  driver.KeyX,
+	89:  driver.KeyY,
+	90:  driver.KeyZ,
+	93:  driver.KeyMenu,
+	96:  driver.KeyKP0,
+	97:  driver.KeyKP1,
+	98:  driver.KeyKP2,
+	99:  driver.KeyKP3,
+	100: driver.KeyKP4,
+	101: driver.KeyKP5,
+	102: driver.KeyKP6,
+	103: driver.KeyKP7,
+	104: driver.KeyKP8,
+	105: driver.KeyKP9,
+	106: driver.KeyKPMultiply,
+	107: driver.KeyKPAdd,
+	109: driver.KeyKPSubtract,
+	110: driver.KeyKPDecimal,
+	111: driver.KeyKPDivide,
+	112: driver.KeyF1,
+	113: driver.KeyF2,
+	114: driver.KeyF3,
+	115: driver.KeyF4,
+	116: driver.KeyF5,
+	117: driver.KeyF6,
+	118: driver.KeyF7,
+	119: driver.KeyF8,
+	120: driver.KeyF9,
+	121: driver.KeyF10,
+	122: driver.KeyF11,
+	123: driver.KeyF12,
+	144: driver.KeyNumLock,
+	145: driver.KeyScrollLock,
+	186: driver.KeySemicolon,
+	187: driver.KeyEqual,
+	188: driver.KeyComma,
+	189: driver.KeyMinus,
+	190: driver.KeyPeriod,
+	191: driver.KeySlash,
+	192: driver.KeyGraveAccent,
+	219: driver.KeyLeftBracket,
+	220: driver.KeyBackslash,
+	221: driver.KeyRightBracket,
+	222: driver.KeyApostrophe,
 }

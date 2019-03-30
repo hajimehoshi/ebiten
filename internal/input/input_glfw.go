@@ -59,7 +59,7 @@ func (i *Input) ResetScrollValues() {
 	i.scrollX, i.scrollY = 0, 0
 }
 
-func (i *Input) IsKeyPressed(key Key) bool {
+func (i *Input) IsKeyPressed(key driver.Key) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if i.keyPressed == nil {

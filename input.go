@@ -43,7 +43,7 @@ func InputChars() []rune {
 //
 // IsKeyPressed is concurrent-safe.
 func IsKeyPressed(key Key) bool {
-	return input.Get().IsKeyPressed(input.Key(key))
+	return input.Get().IsKeyPressed(driver.Key(key))
 }
 
 // CursorPosition returns a position of a mouse cursor.

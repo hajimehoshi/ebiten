@@ -239,7 +239,7 @@ package ebiten
 import (
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/input"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 // A Key represents a keyboard key.
@@ -249,7 +249,7 @@ type Key int
 
 // Keys.
 const (
-{{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(input.Key{{$name}})
+{{range $index, $name := .KeyNames}}Key{{$name}} Key = Key(driver.Key{{$name}})
 {{end}}	KeyMax Key = Key{{.LastKeyName}}
 )
 
@@ -273,11 +273,11 @@ func keyNameToKey(name string) (Key, bool) {
 }
 `
 
-const inputKeysTmpl = `{{.License}}
+const driverKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
-package input
+package driver
 
 type Key int
 
@@ -296,18 +296,19 @@ const inputKeysGlfwTmpl = `{{.License}}
 package input
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-var glfwKeyCodeToKey = map[glfw.Key]Key{
-{{range $index, $name := .KeyNamesWithoutMods}}glfw.Key{{$name}}: Key{{$name}},
+var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
+{{range $index, $name := .KeyNamesWithoutMods}}glfw.Key{{$name}}: driver.Key{{$name}},
 {{end}}
-	glfw.KeyLeftAlt:      KeyAlt,
-	glfw.KeyRightAlt:     KeyAlt,
-	glfw.KeyLeftControl:  KeyControl,
-	glfw.KeyRightControl: KeyControl,
-	glfw.KeyLeftShift:    KeyShift,
-	glfw.KeyRightShift:   KeyShift,
+	glfw.KeyLeftAlt:      driver.KeyAlt,
+	glfw.KeyRightAlt:     driver.KeyAlt,
+	glfw.KeyLeftControl:  driver.KeyControl,
+	glfw.KeyRightControl: driver.KeyControl,
+	glfw.KeyLeftShift:    driver.KeyShift,
+	glfw.KeyRightShift:   driver.KeyShift,
 }
 `
 
@@ -320,14 +321,14 @@ const inputKeysJSTmpl = `{{.License}}
 package input
 
 var keyToCodes = map[Key][]string{
-{{range $name, $codes := .NameToJSKeyCodes}}Key{{$name}}: []string{
+{{range $name, $codes := .NameToJSKeyCodes}}driver.Key{{$name}}: []string{
 {{range $code := $codes}}"{{$code}}",{{end}}
 },
 {{end}}
 }
 
 var keyCodeToKeyEdge = map[int]Key{
-{{range $code, $name := .KeyCodeToNameEdge}}{{$code}}: Key{{$name}},
+{{range $code, $name := .KeyCodeToNameEdge}}{{$code}}: driver.Key{{$name}},
 {{end}}
 }
 `
@@ -468,7 +469,7 @@ func main() {
 
 	for path, tmpl := range map[string]string{
 		"keys.go":                     ebitenKeysTmpl,
-		"internal/input/keys.go":      inputKeysTmpl,
+		"internal/driver/keys.go":     driverKeysTmpl,
 		"internal/input/keys_glfw.go": inputKeysGlfwTmpl,
 		"internal/input/keys_js.go":   inputKeysJSTmpl,
 		"internal/glfw/keys.go":       glfwKeysTmpl,
