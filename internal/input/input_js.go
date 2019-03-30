@@ -276,9 +276,9 @@ func (i *Input) updateTouches(e js.Value) {
 		jj := j.Call("item", i)
 		id := jj.Get("identifier").Int()
 		ts[i] = &Touch{
-			id: id,
-			x:  jj.Get("clientX").Int(),
-			y:  jj.Get("clientY").Int(),
+			ID: id,
+			X:  jj.Get("clientX").Int(),
+			Y:  jj.Get("clientY").Int(),
 		}
 	}
 	i.touches = ts

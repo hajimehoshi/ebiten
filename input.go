@@ -128,7 +128,7 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 func TouchIDs() []int {
 	var ids []int
 	for _, t := range ui.AdjustedTouches() {
-		ids = append(ids, t.ID())
+		ids = append(ids, t.ID)
 	}
 	return ids
 }
@@ -140,8 +140,8 @@ func TouchIDs() []int {
 // TouchPosition is cuncurrent-safe.
 func TouchPosition(id int) (int, int) {
 	for _, t := range ui.AdjustedTouches() {
-		if t.ID() == id {
-			return t.Position()
+		if t.ID == id {
+			return t.X, t.Y
 		}
 	}
 	return 0, 0
@@ -156,12 +156,24 @@ type Touch interface {
 	Position() (x, y int)
 }
 
+type touch struct {
+	t *input.Touch
+}
+
+func (t *touch) ID() int {
+	return t.t.ID
+}
+
+func (t *touch) Position() (x, y int) {
+	return t.t.X, t.t.Y
+}
+
 // Touches is deprecated as of 1.7.0. Use TouchIDs instead.
 func Touches() []Touch {
 	touches := ui.AdjustedTouches()
 	var copies []Touch
-	for _, touch := range touches {
-		copies = append(copies, touch)
+	for _, t := range touches {
+		copies = append(copies, &touch{t})
 	}
 	return copies
 }

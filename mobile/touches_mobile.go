@@ -33,7 +33,11 @@ var (
 func updateTouches() {
 	ts := []*input.Touch{}
 	for id, position := range touches {
-		ts = append(ts, input.NewTouch(id, position.x, position.y))
+		ts = append(ts, &input.Touch{
+			ID: id,
+			X:  position.x,
+			Y:  position.y,
+		})
 	}
 	ui.UpdateTouches(ts)
 }

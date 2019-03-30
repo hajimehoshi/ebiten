@@ -128,8 +128,11 @@ func appMain(a app.App) {
 				s := getDeviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
-				t := input.NewTouch(int(e.Sequence), int(x), int(y))
-				touches[e.Sequence] = t
+				touches[e.Sequence] = &input.Touch{
+					ID: int(e.Sequence),
+					X:  int(x),
+					Y:  int(y),
+				}
 			case touch.TypeEnd:
 				delete(touches, e.Sequence)
 			}
@@ -356,8 +359,12 @@ func AdjustedTouches() []*input.Touch {
 	ts := input.Get().Touches()
 	adjusted := make([]*input.Touch, len(ts))
 	for i, t := range ts {
-		x, y := currentUI.adjustPosition(t.Position())
-		adjusted[i] = input.NewTouch(t.ID(), x, y)
+		x, y := currentUI.adjustPosition(t.X, t.Y)
+		adjusted[i] = &input.Touch{
+			ID: t.ID,
+			X:  x,
+			Y:  y,
+		}
 	}
 	return adjusted
 }

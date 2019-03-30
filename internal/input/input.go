@@ -105,23 +105,7 @@ type gamePad struct {
 }
 
 type Touch struct {
-	id int
-	x  int
-	y  int
-}
-
-func NewTouch(id int, x, y int) *Touch {
-	return &Touch{
-		id: id,
-		x:  x,
-		y:  y,
-	}
-}
-
-func (t *Touch) ID() int {
-	return t.id
-}
-
-func (t *Touch) Position() (x, y int) {
-	return t.x, t.y
+	ID int
+	X  int
+	Y  int
 }
