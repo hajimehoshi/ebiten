@@ -106,7 +106,7 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 	return 0, 0, 0, 0
 }
 
-func adjustPosition(x, y int) (int, int) {
+func AdjustPosition(x, y int) (int, int) {
 	rect := canvas.Call("getBoundingClientRect")
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
@@ -115,21 +115,7 @@ func adjustPosition(x, y int) (int, int) {
 }
 
 func AdjustedCursorPosition() (x, y int) {
-	return adjustPosition(input.Get().CursorPosition())
-}
-
-func AdjustedTouches() []*input.Touch {
-	ts := input.Get().Touches()
-	adjusted := make([]*input.Touch, len(ts))
-	for i, t := range ts {
-		x, y := adjustPosition(t.X, t.Y)
-		adjusted[i] = &input.Touch{
-			ID: t.ID,
-			X:  x,
-			Y:  y,
-		}
-	}
-	return adjusted
+	return AdjustPosition(input.Get().CursorPosition())
 }
 
 func IsCursorVisible() bool {

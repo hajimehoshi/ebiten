@@ -352,21 +352,11 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 }
 
 func AdjustedCursorPosition() (x, y int) {
-	return currentUI.adjustPosition(input.Get().CursorPosition())
+	return AdjustPosition(input.Get().CursorPosition())
 }
 
-func AdjustedTouches() []*input.Touch {
-	ts := input.Get().Touches()
-	adjusted := make([]*input.Touch, len(ts))
-	for i, t := range ts {
-		x, y := currentUI.adjustPosition(t.X, t.Y)
-		adjusted[i] = &input.Touch{
-			ID: t.ID,
-			X:  x,
-			Y:  y,
-		}
-	}
-	return adjusted
+func AdjustPosition(x, y int) (int, int) {
+	return currentUI.adjustPosition(x, y)
 }
 
 func (u *userInterface) adjustPosition(x, y int) (int, int) {

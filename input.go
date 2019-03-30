@@ -127,7 +127,7 @@ func IsGamepadButtonPressed(id int, button GamepadButton) bool {
 // TouchIDs is concurrent-safe.
 func TouchIDs() []int {
 	var ids []int
-	for _, t := range ui.AdjustedTouches() {
+	for _, t := range adjustedTouches() {
 		ids = append(ids, t.ID)
 	}
 	return ids
@@ -139,7 +139,7 @@ func TouchIDs() []int {
 //
 // TouchPosition is cuncurrent-safe.
 func TouchPosition(id int) (int, int) {
-	for _, t := range ui.AdjustedTouches() {
+	for _, t := range adjustedTouches() {
 		if t.ID == id {
 			return t.X, t.Y
 		}
@@ -170,10 +170,24 @@ func (t *touch) Position() (x, y int) {
 
 // Touches is deprecated as of 1.7.0. Use TouchIDs instead.
 func Touches() []Touch {
-	touches := ui.AdjustedTouches()
+	touches := adjustedTouches()
 	var copies []Touch
 	for _, t := range touches {
 		copies = append(copies, &touch{t})
 	}
 	return copies
+}
+
+func adjustedTouches() []*input.Touch {
+	ts := input.Get().Touches()
+	adjusted := make([]*input.Touch, len(ts))
+	for i, t := range ts {
+		x, y := ui.AdjustPosition(t.X, t.Y)
+		adjusted[i] = &input.Touch{
+			ID: t.ID,
+			X:  x,
+			Y:  y,
+		}
+	}
+	return adjusted
 }

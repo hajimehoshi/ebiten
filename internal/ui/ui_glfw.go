@@ -452,10 +452,10 @@ func ScreenPadding() (x0, y0, x1, y1 float64) {
 }
 
 func AdjustedCursorPosition() (x, y int) {
-	return adjustCursorPosition(input.Get().CursorPosition())
+	return AdjustPosition(input.Get().CursorPosition())
 }
 
-func adjustCursorPosition(x, y int) (int, int) {
+func AdjustPosition(x, y int) (int, int) {
 	u := currentUI
 	if !u.isRunning() {
 		return x, y
@@ -467,11 +467,6 @@ func adjustCursorPosition(x, y int) (int, int) {
 		return nil
 	})
 	return x - int(ox/s), y - int(oy/s)
-}
-
-func AdjustedTouches() []*input.Touch {
-	// TODO: Apply adjustCursorPosition
-	return input.Get().Touches()
 }
 
 func IsCursorVisible() bool {
