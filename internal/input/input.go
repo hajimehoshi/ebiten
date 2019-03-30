@@ -14,6 +14,10 @@
 
 package input
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
 var theInput = &Input{}
 
 func Get() *Input {
@@ -68,7 +72,7 @@ func (i *Input) GamepadButtonNum(id int) int {
 	return i.gamepads[id].buttonNum
 }
 
-func (i *Input) IsGamepadButtonPressed(id int, button GamepadButton) bool {
+func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {

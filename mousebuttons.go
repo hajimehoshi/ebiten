@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/input"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 // A MouseButton represents a mouse button.
@@ -23,7 +23,7 @@ type MouseButton int
 
 // MouseButtons
 const (
-	MouseButtonLeft   MouseButton = MouseButton(input.MouseButtonLeft)
-	MouseButtonRight  MouseButton = MouseButton(input.MouseButtonRight)
-	MouseButtonMiddle MouseButton = MouseButton(input.MouseButtonMiddle)
+	MouseButtonLeft   MouseButton = MouseButton(driver.MouseButtonLeft)
+	MouseButtonRight  MouseButton = MouseButton(driver.MouseButtonRight)
+	MouseButtonMiddle MouseButton = MouseButton(driver.MouseButtonMiddle)
 )

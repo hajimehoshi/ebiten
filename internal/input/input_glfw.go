@@ -23,6 +23,7 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
@@ -75,7 +76,7 @@ func (i *Input) IsKeyPressed(key Key) bool {
 	return false
 }
 
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
+func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	if i.mouseButtonPressed == nil {
@@ -98,10 +99,10 @@ func (i *Input) Wheel() (xoff, yoff float64) {
 	return i.scrollX, i.scrollY
 }
 
-var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
-	glfw.MouseButtonLeft:   MouseButtonLeft,
-	glfw.MouseButtonRight:  MouseButtonRight,
-	glfw.MouseButtonMiddle: MouseButtonMiddle,
+var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
+	glfw.MouseButtonLeft:   driver.MouseButtonLeft,
+	glfw.MouseButtonRight:  driver.MouseButtonRight,
+	glfw.MouseButtonMiddle: driver.MouseButtonMiddle,
 }
 
 func (i *Input) Update(window *glfw.Window, scale float64) {

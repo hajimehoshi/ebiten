@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -67,7 +68,7 @@ func Wheel() (xoff, yoff float64) {
 // Note that touch events not longer affect IsMouseButtonPressed's result as of 1.4.0-alpha.
 // Use Touches instead.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
-	return input.Get().IsMouseButtonPressed(input.MouseButton(mouseButton))
+	return input.Get().IsMouseButtonPressed(driver.MouseButton(mouseButton))
 }
 
 // GamepadIDs returns a slice indicating available gamepad IDs.
@@ -115,7 +116,7 @@ func GamepadButtonNum(id int) int {
 //
 // IsGamepadButtonPressed always returns false on mobiles.
 func IsGamepadButtonPressed(id int, button GamepadButton) bool {
-	return input.Get().IsGamepadButtonPressed(id, input.GamepadButton(button))
+	return input.Get().IsGamepadButtonPressed(id, driver.GamepadButton(button))
 }
 
 // TouchIDs returns the current touch states.
