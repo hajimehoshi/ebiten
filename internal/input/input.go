@@ -81,19 +81,31 @@ func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool
 	return i.gamepads[id].buttonPressed[button]
 }
 
-func (in *Input) Touches() []*Touch {
-	in.m.RLock()
-	defer in.m.RUnlock()
+func (i *Input) TouchIDs() []int {
+	i.m.RLock()
+	defer i.m.RUnlock()
 
-	if len(in.touches) == 0 {
+	if len(i.touches) == 0 {
 		return nil
 	}
 
-	t := make([]*Touch, len(in.touches))
-	for i := 0; i < len(t); i++ {
-		t[i] = in.touches[i]
+	var ids []int
+	for _, t := range i.touches {
+		ids = append(ids, t.ID)
 	}
-	return t
+	return ids
+}
+
+func (i *Input) TouchPosition(id int) (x, y int) {
+	i.m.RLock()
+	defer i.m.RUnlock()
+
+	for _, t := range i.touches {
+		if id == t.ID {
+			return t.X, t.Y
+		}
+	}
+	return 0, 0
 }
 
 type gamePad struct {
