@@ -17,10 +17,10 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-func graphicsDriver() graphicsdriver.GraphicsDriver {
+func graphicsDriver() driver.Graphics {
 	return opengl.Get()
 }

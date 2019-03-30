@@ -16,8 +16,8 @@ package graphicscommand
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 )
 
 type lastCommand int
@@ -31,7 +31,7 @@ const (
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image       graphicsdriver.Image
+	image       driver.Image
 	width       int
 	height      int
 	screen      bool

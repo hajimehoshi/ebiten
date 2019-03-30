@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 )
 
 var theDriver Driver
@@ -53,7 +53,7 @@ func (d *Driver) checkSize(width, height int) {
 	}
 }
 
-func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
+func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 	i := &Image{
 		driver: d,
 		width:  width,
@@ -70,7 +70,7 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 	return i, nil
 }
 
-func (d *Driver) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
+func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
 	d.checkSize(width, height)
 	i := &Image{
 		driver: d,
@@ -114,8 +114,8 @@ func (d *Driver) SetVsyncEnabled(enabled bool) {
 	// Do nothing
 }
 
-func (d *Driver) VDirection() graphicsdriver.VDirection {
-	return graphicsdriver.VDownward
+func (d *Driver) VDirection() driver.VDirection {
+	return driver.VDownward
 }
 
 func (d *Driver) IsGL() bool {

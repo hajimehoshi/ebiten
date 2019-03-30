@@ -18,13 +18,13 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 )
 
-var theGraphicsDriver graphicsdriver.GraphicsDriver
+var theGraphicsDriver driver.Graphics
 
-func SetGraphicsDriver(driver graphicsdriver.GraphicsDriver) {
+func SetGraphicsDriver(driver driver.Graphics) {
 	theGraphicsDriver = driver
 }
 

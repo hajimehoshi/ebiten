@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphicsdriver
+package driver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
-type GraphicsDriver interface {
+type Graphics interface {
 	SetWindow(window uintptr)
 	SetVertices(vertices []float32, indices []uint16)
 	Flush()

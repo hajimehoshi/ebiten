@@ -29,7 +29,7 @@ package ebiten
 import "C"
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
@@ -52,7 +52,7 @@ func init() {
 	}
 }
 
-func graphicsDriver() graphicsdriver.GraphicsDriver {
+func graphicsDriver() driver.Graphics {
 	if isMetalSupported {
 		return metal.Get()
 	}

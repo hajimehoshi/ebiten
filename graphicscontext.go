@@ -19,8 +19,8 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
@@ -128,12 +128,12 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	op := &DrawImageOptions{}
 
 	switch vd := graphicsDriver().VDirection(); vd {
-	case graphicsdriver.VDownward:
+	case driver.VDownward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
 		op.GeoM.Scale(c.screenScale, -c.screenScale)
 		op.GeoM.Translate(0, float64(c.screenHeight))
-	case graphicsdriver.VUpward:
+	case driver.VUpward:
 		op.GeoM.Scale(c.screenScale, c.screenScale)
 	default:
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))

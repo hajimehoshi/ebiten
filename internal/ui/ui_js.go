@@ -25,7 +25,7 @@ import (
 	"github.com/gopherjs/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 )
@@ -373,7 +373,7 @@ func Loop(ch <-chan error) error {
 	return <-ch
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver graphicsdriver.GraphicsDriver) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver driver.Graphics) error {
 	u := currentUI
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)

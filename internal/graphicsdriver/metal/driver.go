@@ -22,8 +22,8 @@ import (
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ns"
@@ -392,7 +392,7 @@ func (d *Driver) checkSize(width, height int) {
 	}
 }
 
-func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
+func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 	d.checkSize(width, height)
 	td := mtl.TextureDescriptor{
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
@@ -417,7 +417,7 @@ func (d *Driver) NewImage(width, height int) (graphicsdriver.Image, error) {
 	}, nil
 }
 
-func (d *Driver) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
+func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
 	mainthread.Run(func() error {
 		d.ml.SetDrawableSize(width, height)
 		return nil
@@ -672,8 +672,8 @@ func (d *Driver) SetVsyncEnabled(enabled bool) {
 	d.ml.SetDisplaySyncEnabled(enabled)
 }
 
-func (d *Driver) VDirection() graphicsdriver.VDirection {
-	return graphicsdriver.VUpward
+func (d *Driver) VDirection() driver.VDirection {
+	return driver.VUpward
 }
 
 func (d *Driver) IsGL() bool {

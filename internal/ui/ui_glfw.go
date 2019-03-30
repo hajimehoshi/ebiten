@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
@@ -65,7 +65,7 @@ type userInterface struct {
 	reqWidth  int
 	reqHeight int
 
-	driver graphicsdriver.GraphicsDriver
+	driver driver.Graphics
 
 	m sync.Mutex
 }
@@ -577,7 +577,7 @@ func DeviceScaleFactor() float64 {
 	return f
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver graphicsdriver.GraphicsDriver) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver driver.Graphics) error {
 	u := currentUI
 	_ = mainthread.Run(func() error {
 		u.driver = driver
