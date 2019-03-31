@@ -28,17 +28,17 @@ import (
 )
 
 type Input struct {
-	keyPressed           map[glfw.Key]bool
-	mouseButtonPressed   map[glfw.MouseButton]bool
-	callbacksInitialized bool
-	scrollX              float64
-	scrollY              float64
-	cursorX              int
-	cursorY              int
-	gamepads             [16]gamePad
-	touches              map[int]pos // This is not updated until GLFW 3.3 is available (#417)
-	runeBuffer           []rune
-	m                    sync.RWMutex
+	keyPressed         map[glfw.Key]bool
+	mouseButtonPressed map[glfw.MouseButton]bool
+	onceCallback       sync.Once
+	scrollX            float64
+	scrollY            float64
+	cursorX            int
+	cursorY            int
+	gamepads           [16]gamePad
+	touches            map[int]pos // This is not updated until GLFW 3.3 is available (#417)
+	runeBuffer         []rune
+	m                  sync.RWMutex
 }
 
 func (i *Input) RuneBuffer() []rune {
@@ -120,15 +120,14 @@ func (i *Input) Update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
-	if !i.callbacksInitialized {
+	i.onceCallback.Do(func() {
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
 			i.appendRuneBuffer(char)
 		})
 		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
 			i.setWheel(xoff, yoff)
 		})
-		i.callbacksInitialized = true
-	}
+	})
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
