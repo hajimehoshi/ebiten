@@ -21,6 +21,7 @@
 package mp3
 
 import (
+	"io"
 	"runtime"
 
 	"github.com/hajimehoshi/go-mp3"
@@ -33,6 +34,7 @@ import (
 type Stream struct {
 	orig       *mp3.Decoder
 	resampling *convert.Resampling
+	toClose    io.Closer
 }
 
 // Read is implementation of io.Reader's Read.
@@ -54,10 +56,7 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 // Close is implementation of io.Closer's Close.
 func (s *Stream) Close() error {
 	runtime.SetFinalizer(s, nil)
-	if s.resampling != nil {
-		return s.resampling.Close()
-	}
-	return nil
+	return s.toClose.Close()
 }
 
 // Length returns the size of decoded stream in bytes.
@@ -83,13 +82,17 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+	var toClose io.Closer = src
+
 	var r *convert.Resampling
 	if d.SampleRate() != context.SampleRate() {
 		r = convert.NewResampling(d, d.Length(), d.SampleRate(), context.SampleRate())
+		toClose = r
 	}
 	s := &Stream{
 		orig:       d,
 		resampling: r,
+		toClose:    toClose,
 	}
 	runtime.SetFinalizer(s, (*Stream).Close)
 	return s, nil
