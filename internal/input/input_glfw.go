@@ -100,24 +100,32 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
 	glfw.MouseButtonMiddle: driver.MouseButtonMiddle,
 }
 
+func (i *Input) appendRuneBuffer(char rune) {
+	if !unicode.IsPrint(char) {
+		return
+	}
+	i.m.Lock()
+	i.runeBuffer = append(i.runeBuffer, char)
+	i.m.Unlock()
+}
+
+func (i *Input) setWheel(xoff, yoff float64) {
+	i.m.Lock()
+	i.scrollX = xoff
+	i.scrollY = yoff
+	i.m.Unlock()
+}
+
 func (i *Input) Update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
 	if !i.callbacksInitialized {
-		i.runeBuffer = make([]rune, 0, 1024)
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
-			if unicode.IsPrint(char) {
-				i.m.Lock()
-				i.runeBuffer = append(i.runeBuffer, char)
-				i.m.Unlock()
-			}
+			i.appendRuneBuffer(char)
 		})
 		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
-			i.m.Lock()
-			i.scrollX = xoff
-			i.scrollY = yoff
-			i.m.Unlock()
+			i.setWheel(xoff, yoff)
 		})
 		i.callbacksInitialized = true
 	}
