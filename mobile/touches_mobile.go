@@ -38,5 +38,5 @@ func updateTouches() {
 			Y:  position.y,
 		})
 	}
-	input.Get().UpdateTouches(ts)
+	input.Get().SetTouches(ts)
 }

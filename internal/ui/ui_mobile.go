@@ -140,7 +140,7 @@ func appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			input.Get().UpdateTouches(ts)
+			input.Get().SetTouches(ts)
 		}
 	}
 }

@@ -46,7 +46,7 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) UpdateTouches(touches []*Touch) {
+func (i *Input) SetTouches(touches []*Touch) {
 	i.m.Lock()
 	i.touches = touches // TODO: Need copy?
 	i.m.Unlock()
