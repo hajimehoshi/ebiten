@@ -17,8 +17,6 @@ package convert
 import (
 	"io"
 	"math"
-
-	"github.com/hajimehoshi/ebiten/audio"
 )
 
 var cosTable = [65536]float64{}
@@ -67,7 +65,7 @@ func sinc01(x float64) float64 {
 }
 
 type Resampling struct {
-	source       audio.ReadSeekCloser
+	source       io.ReadSeeker
 	size         int64
 	from         int
 	to           int
@@ -78,7 +76,7 @@ type Resampling struct {
 	lruSrcBlocks []int64
 }
 
-func NewResampling(source audio.ReadSeekCloser, size int64, from, to int) *Resampling {
+func NewResampling(source io.ReadSeeker, size int64, from, to int) *Resampling {
 	r := &Resampling{
 		source:   source,
 		size:     size,
@@ -246,5 +244,8 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (r *Resampling) Close() error {
-	return r.source.Close()
+	if closer, ok := r.source.(io.Closer); ok {
+		return closer.Close()
+	}
+	panic("audio/internal/convert: r.source must be io.Closer")
 }

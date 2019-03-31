@@ -82,17 +82,15 @@ func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
-	var toClose io.Closer = src
 
 	var r *convert.Resampling
 	if d.SampleRate() != context.SampleRate() {
 		r = convert.NewResampling(d, d.Length(), d.SampleRate(), context.SampleRate())
-		toClose = r
 	}
 	s := &Stream{
 		orig:       d,
 		resampling: r,
-		toClose:    toClose,
+		toClose:    src,
 	}
 	runtime.SetFinalizer(s, (*Stream).Close)
 	return s, nil
