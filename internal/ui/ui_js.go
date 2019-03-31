@@ -206,7 +206,6 @@ func (u *userInterface) update(g GraphicsContext) error {
 	input.Get().UpdateGamepads()
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
-		input.Get().Reset()
 		u.updateGraphicsContext(g)
 	}); err != nil {
 		return err

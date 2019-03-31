@@ -49,7 +49,7 @@ func (i *Input) RuneBuffer() []rune {
 	return i.runeBuffer
 }
 
-func (i *Input) Reset() {
+func (i *Input) ResetForFrame() {
 	i.runeBuffer = nil
 	i.wheelX = 0
 	i.wheelY = 0

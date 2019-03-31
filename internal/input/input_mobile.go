@@ -57,3 +57,7 @@ func (i *Input) SetTouches(touches []*Touch) {
 	}
 	i.m.Unlock()
 }
+
+func (i *Input) ResetForFrame() {
+	// Do nothing
+}

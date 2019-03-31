@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
+	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 )
@@ -114,6 +115,8 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		if err := c.f(c.offscreen); err != nil {
 			return err
 		}
+
+		input.Get().ResetForFrame()
 		afterFrameUpdate()
 	}
 

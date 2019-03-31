@@ -47,7 +47,7 @@ func (i *Input) RuneBuffer() []rune {
 	return i.runeBuffer
 }
 
-func (i *Input) Reset() {
+func (i *Input) ResetForFrame() {
 	i.m.RLock()
 	defer i.m.RUnlock()
 	i.runeBuffer = i.runeBuffer[:0]
