@@ -95,7 +95,7 @@ func getDeviceScale() float64 {
 // appMain is the main routine for gomobile-build mode.
 func appMain(a app.App) {
 	var glctx gl.Context
-	touches := map[touch.Sequence]*input.Touch{}
+	touches := map[touch.Sequence]*driver.Touch{}
 	for e := range a.Events() {
 		switch e := a.Filter(e).(type) {
 		case lifecycle.Event:
@@ -128,7 +128,7 @@ func appMain(a app.App) {
 				s := getDeviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
-				touches[e.Sequence] = &input.Touch{
+				touches[e.Sequence] = &driver.Touch{
 					ID: int(e.Sequence),
 					X:  int(x),
 					Y:  int(y),
@@ -136,7 +136,7 @@ func appMain(a app.App) {
 			case touch.TypeEnd:
 				delete(touches, e.Sequence)
 			}
-			ts := []*input.Touch{}
+			ts := []*driver.Touch{}
 			for _, t := range touches {
 				ts = append(ts, t)
 			}

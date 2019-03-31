@@ -1,4 +1,4 @@
-// Copyright 2016 Hajime Hoshi
+// Copyright 2019 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,32 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
+package driver
 
-package mobile
-
-import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/input"
-)
-
-type position struct {
-	x int
-	y int
-}
-
-var (
-	touches = map[int]position{}
-)
-
-func updateTouches() {
-	ts := []*driver.Touch{}
-	for id, position := range touches {
-		ts = append(ts, &driver.Touch{
-			ID: id,
-			X:  position.x,
-			Y:  position.y,
-		})
-	}
-	input.Get().SetTouches(ts)
+// TODO: Remove this for API simplicity.
+type Touch struct {
+	ID int
+	X  int
+	Y  int
 }

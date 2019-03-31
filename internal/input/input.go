@@ -120,9 +120,3 @@ type gamePad struct {
 	buttonNum     int
 	buttonPressed [256]bool
 }
-
-type Touch struct {
-	ID int
-	X  int
-	Y  int
-}
