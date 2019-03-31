@@ -124,6 +124,8 @@ func (s *stream) Length() int64 {
 // Decode returns error when decoding fails or IO error happens.
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
+//
+// Decode takes the ownership of src, and Stream's Close function closes src.
 func Decode(context *audio.Context, src audio.ReadSeekCloser) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
