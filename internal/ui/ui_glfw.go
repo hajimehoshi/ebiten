@@ -713,12 +713,6 @@ func (u *userInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
-// pollEvents must be called from the main thread.
-func (u *userInterface) pollEvents() {
-	glfw.PollEvents()
-	input.Get().Update(u.window, u.getScale()*glfwScale())
-}
-
 func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	actualScale := 0.0
 	sizeChanged := false
@@ -766,13 +760,16 @@ func (u *userInterface) update(g GraphicsContext) error {
 	u.updateGraphicsContext(g)
 
 	_ = mainthread.Run(func() error {
-		u.pollEvents()
+		glfw.PollEvents()
+		input.Get().Update(u.window, u.getScale()*glfwScale())
+
 		defer hooks.ResumeAudio()
+
 		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
 			hooks.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
-			u.pollEvents()
+			glfw.PollEvents()
 			if u.window.ShouldClose() {
 				return nil
 			}

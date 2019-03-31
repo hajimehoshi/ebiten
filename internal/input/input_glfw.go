@@ -103,6 +103,7 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
 func (i *Input) Update(window *glfw.Window, scale float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
+
 	if !i.callbacksInitialized {
 		i.runeBuffer = make([]rune, 0, 1024)
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
