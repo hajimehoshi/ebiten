@@ -57,7 +57,7 @@ func (s *Stream) Close() error {
 	if s.resampling != nil {
 		return s.resampling.Close()
 	}
-	return s.orig.Close()
+	return nil
 }
 
 // Length returns the size of decoded stream in bytes.
