@@ -20,6 +20,11 @@ import (
 
 var theInput = &Input{}
 
+type pos struct {
+	X int
+	Y int
+}
+
 func Get() *Input {
 	return theInput
 }
@@ -90,8 +95,8 @@ func (i *Input) TouchIDs() []int {
 	}
 
 	var ids []int
-	for _, t := range i.touches {
-		ids = append(ids, t.ID)
+	for id := range i.touches {
+		ids = append(ids, id)
 	}
 	return ids
 }
@@ -100,9 +105,9 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 	i.m.RLock()
 	defer i.m.RUnlock()
 
-	for _, t := range i.touches {
-		if id == t.ID {
-			return t.X, t.Y
+	for tid, pos := range i.touches {
+		if id == tid {
+			return pos.X, pos.Y
 		}
 	}
 	return 0, 0

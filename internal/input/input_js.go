@@ -40,7 +40,7 @@ type Input struct {
 	wheelX             float64
 	wheelY             float64
 	gamepads           [16]gamePad
-	touches            []*Touch
+	touches            map[int]pos
 	runeBuffer         []rune
 	m                  mockRWLock
 }
@@ -271,14 +271,13 @@ func setMouseCursorFromEvent(e js.Value) {
 
 func (i *Input) updateTouches(e js.Value) {
 	j := e.Get("targetTouches")
-	ts := make([]*Touch, j.Get("length").Int())
+	ts := map[int]pos{}
 	for i := 0; i < len(ts); i++ {
 		jj := j.Call("item", i)
 		id := jj.Get("identifier").Int()
-		ts[i] = &Touch{
-			ID: id,
-			X:  jj.Get("clientX").Int(),
-			Y:  jj.Get("clientY").Int(),
+		ts[id] = pos{
+			X: jj.Get("clientX").Int(),
+			Y: jj.Get("clientY").Int(),
 		}
 	}
 	i.touches = ts

@@ -26,7 +26,7 @@ type Input struct {
 	cursorX  int
 	cursorY  int
 	gamepads [16]gamePad
-	touches  []*Touch
+	touches  map[int]pos
 	m        sync.RWMutex
 }
 
@@ -48,6 +48,12 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 
 func (i *Input) SetTouches(touches []*Touch) {
 	i.m.Lock()
-	i.touches = touches // TODO: Need copy?
+	i.touches = map[int]pos{}
+	for _, t := range touches {
+		i.touches[t.ID] = pos{
+			X: t.X,
+			Y: t.Y,
+		}
+	}
 	i.m.Unlock()
 }
