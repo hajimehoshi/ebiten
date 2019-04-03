@@ -174,8 +174,6 @@ func getMonitorInfo(hMonitor uintptr, lpMonitorInfo uintptr) error {
 
 func getDpiForMonitor(hMonitor uintptr, dpiType uintptr, dpiX, dpiY *uint32) error {
 	r, _, e := procGetDpiForMonitor.Call(hMonitor, dpiType, uintptr(unsafe.Pointer(dpiX)), uintptr(unsafe.Pointer(dpiY)))
-	runtime.KeepAlive(dpiX)
-	runtime.KeepAlive(dpiY)
 	if e != nil && e.(windows.Errno) != 0 {
 		return &winErr{
 			FuncName: "GetDpiForMonitor",
@@ -248,9 +246,11 @@ func impl(x, y int) float64 {
 	}
 
 	dpiX := uint32(0)
-	dpiY := uint32(0) // Passing dpiY is needed even though this is not used.
+	dpiY := uint32(0) // Passing dpiY is needed even though this is not used, or GetDpiForMonitor returns an error.
 	if err := getDpiForMonitor(m, mdtEffectiveDpi, &dpiX, &dpiY); err != nil {
 		panic(err)
 	}
+	runtime.KeepAlive(dpiY)
+
 	return float64(dpiX) / 96
 }
