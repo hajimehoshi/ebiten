@@ -18,6 +18,7 @@ package devicescale
 
 import (
 	"fmt"
+	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -136,8 +137,9 @@ func getDeviceCaps(hdc uintptr, nindex int) (int, error) {
 	return int(r), nil
 }
 
-func monitorFromRect(lprc uintptr, dwFlags int) (uintptr, error) {
-	r, _, e := procMonitorFromRect.Call(lprc, uintptr(dwFlags))
+func monitorFromRect(lprc *rect, dwFlags int) (uintptr, error) {
+	r, _, e := procMonitorFromRect.Call(uintptr(unsafe.Pointer(lprc)), uintptr(dwFlags))
+	runtime.KeepAlive(lprc)
 	if e != nil && e.(windows.Errno) != 0 {
 		return 0, &winErr{
 			FuncName: "MonitorFromRect",
@@ -238,7 +240,7 @@ func impl(x, y int) float64 {
 
 	// MonitorFromPoint requires to pass a POINT value, and there seems no portable way to
 	// do this with Cgo. Use MonitorFromRect instead.
-	m, err := monitorFromRect(uintptr(unsafe.Pointer(&lprc)), monitorDefaultToNearest)
+	m, err := monitorFromRect(&lprc, monitorDefaultToNearest)
 	if err != nil {
 		panic(err)
 	}
