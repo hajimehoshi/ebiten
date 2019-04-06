@@ -147,7 +147,7 @@ func (i *Input) setMouseCursor(x, y int) {
 	i.cursorX, i.cursorY = x, y
 }
 
-func (i *Input) Update() {
+func (i *Input) UpdateGamepads() {
 	nav := js.Global().Get("navigator")
 	if nav.Get("getGamepads") == js.Undefined() {
 		return

@@ -148,7 +148,11 @@ func appMain(a app.App) {
 	}
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver driver.Graphics) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+	if graphics != opengl.Get() {
+		panic("ui: graphics driver must be OpenGL")
+	}
+
 	u := currentUI
 
 	u.m.Lock()

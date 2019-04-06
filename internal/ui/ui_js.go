@@ -32,6 +32,12 @@ import (
 
 var canvas js.Value
 
+type inputDriver interface {
+	driver.Input
+
+	UpdateGamepads()
+}
+
 type userInterface struct {
 	width                int
 	height               int
@@ -46,6 +52,8 @@ type userInterface struct {
 	contextLost bool
 
 	lastActualScale float64
+
+	input inputDriver
 }
 
 var currentUI = &userInterface{
@@ -203,11 +211,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 	hooks.ResumeAudio()
 
-	type updater interface {
-		Update()
-	}
-
-	input.Get().(updater).Update()
+	u.input.UpdateGamepads()
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
 		u.updateGraphicsContext(g)
@@ -361,8 +365,10 @@ func Loop(ch <-chan error) error {
 	return <-ch
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, driver driver.Graphics) error {
+func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
 	u := currentUI
+	u.input = input.(inputDriver)
+
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
