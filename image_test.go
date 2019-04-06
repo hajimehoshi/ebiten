@@ -1652,3 +1652,21 @@ func TestImageSubImageSubImage(t *testing.T) {
 		}
 	}
 }
+
+// Issue 839
+func TestImageTooSmallMipmap(t *testing.T) {
+	const w, h = 16, 16
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
+
+	src.Fill(color.White)
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(1, 0.24)
+	op.Filter = FilterLinear
+	dst.DrawImage(src.SubImage(image.Rect(5, 0, 6, 16)).(*Image), op)
+	got := dst.At(0, 0).(color.RGBA)
+	want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}

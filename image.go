@@ -325,6 +325,17 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		if level < 0 {
 			panic(fmt.Sprintf("ebiten: level must be >= 0 but %d", level))
 		}
+
+		// If the image can be scaled into 0 size, adjust the level. (#839)
+		w, h := bounds.Dx(), bounds.Dy()
+		for level >= 0 {
+			s := 1 << uint(level)
+			if w/s == 0 || h/s == 0 {
+				level--
+				continue
+			}
+			break
+		}
 	}
 	if level > 6 {
 		level = 6
