@@ -761,7 +761,12 @@ func (u *userInterface) update(g GraphicsContext) error {
 
 	_ = mainthread.Run(func() error {
 		glfw.PollEvents()
-		input.Get().Update(u.window, u.getScale()*glfwScale())
+
+		type updater interface {
+			Update(window *glfw.Window, scale float64)
+		}
+
+		input.Get().(updater).Update(u.window, u.getScale()*glfwScale())
 
 		defer hooks.ResumeAudio()
 

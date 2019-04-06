@@ -25,7 +25,7 @@ type pos struct {
 	Y int
 }
 
-func Get() *Input {
+func Get() driver.Input {
 	return theInput
 }
 

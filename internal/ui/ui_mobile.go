@@ -140,7 +140,10 @@ func appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			input.Get().SetTouches(ts)
+			type updater interface {
+				Update(touches []*driver.Touch)
+			}
+			input.Get().(updater).Update(ts)
 		}
 	}
 }

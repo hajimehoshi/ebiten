@@ -14,6 +14,22 @@
 
 package driver
 
+type Input interface {
+	CursorPosition() (x, y int)
+	GamepadAxis(id int, axis int) float64
+	GamepadAxisNum(id int) int
+	GamepadButtonNum(id int) int
+	GamepadIDs() []int
+	IsGamepadButtonPressed(id int, button GamepadButton) bool
+	IsKeyPressed(key Key) bool
+	IsMouseButtonPressed(button MouseButton) bool
+	ResetForFrame()
+	RuneBuffer() []rune
+	TouchIDs() []int
+	TouchPosition(id int) (x, y int)
+	Wheel() (xoff, yoff float64)
+}
+
 // TODO: Remove this for API simplicity.
 type Touch struct {
 	ID int

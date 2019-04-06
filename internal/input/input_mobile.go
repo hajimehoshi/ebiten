@@ -46,7 +46,7 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) SetTouches(touches []*driver.Touch) {
+func (i *Input) Update(touches []*driver.Touch) {
 	i.m.Lock()
 	i.touches = map[int]pos{}
 	for _, t := range touches {

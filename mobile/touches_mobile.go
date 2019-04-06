@@ -39,5 +39,8 @@ func updateTouches() {
 			Y:  position.y,
 		})
 	}
-	input.Get().SetTouches(ts)
+	type updater interface {
+		Update(touches []*driver.Touch)
+	}
+	input.Get().(updater).Update(ts)
 }

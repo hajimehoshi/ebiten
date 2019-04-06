@@ -203,7 +203,11 @@ func (u *userInterface) update(g GraphicsContext) error {
 	}
 	hooks.ResumeAudio()
 
-	input.Get().UpdateGamepads()
+	type updater interface {
+		Update()
+	}
+
+	input.Get().(updater).Update()
 	u.updateGraphicsContext(g)
 	if err := g.Update(func() {
 		u.updateGraphicsContext(g)
