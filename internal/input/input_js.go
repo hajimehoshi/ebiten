@@ -186,87 +186,68 @@ func (i *Input) UpdateGamepads() {
 	}
 }
 
-func OnKeyDown(e js.Value) {
-	c := e.Get("code")
-	if c == js.Undefined() {
-		code := e.Get("keyCode").Int()
-		if keyCodeToKeyEdge[code] == driver.KeyUp ||
-			keyCodeToKeyEdge[code] == driver.KeyDown ||
-			keyCodeToKeyEdge[code] == driver.KeyLeft ||
-			keyCodeToKeyEdge[code] == driver.KeyRight ||
-			keyCodeToKeyEdge[code] == driver.KeyBackspace ||
-			keyCodeToKeyEdge[code] == driver.KeyTab {
+func (i *Input) Update(e js.Value) {
+	switch e.Get("type").String() {
+	case "keydown":
+		c := e.Get("code")
+		if c == js.Undefined() {
+			code := e.Get("keyCode").Int()
+			if keyCodeToKeyEdge[code] == driver.KeyUp ||
+				keyCodeToKeyEdge[code] == driver.KeyDown ||
+				keyCodeToKeyEdge[code] == driver.KeyLeft ||
+				keyCodeToKeyEdge[code] == driver.KeyRight ||
+				keyCodeToKeyEdge[code] == driver.KeyBackspace ||
+				keyCodeToKeyEdge[code] == driver.KeyTab {
+				e.Call("preventDefault")
+			}
+			i.keyDownEdge(code)
+			return
+		}
+		cs := c.String()
+		if cs == keyToCodes[driver.KeyUp][0] ||
+			cs == keyToCodes[driver.KeyDown][0] ||
+			cs == keyToCodes[driver.KeyLeft][0] ||
+			cs == keyToCodes[driver.KeyRight][0] ||
+			cs == keyToCodes[driver.KeyBackspace][0] ||
+			cs == keyToCodes[driver.KeyTab][0] {
 			e.Call("preventDefault")
 		}
-		theInput.keyDownEdge(code)
-		return
+		i.keyDown(cs)
+	case "keypress":
+		if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
+			i.runeBuffer = append(i.runeBuffer, r)
+		}
+	case "keyup":
+		if e.Get("code") == js.Undefined() {
+			// Assume that UA is Edge.
+			code := e.Get("keyCode").Int()
+			i.keyUpEdge(code)
+			return
+		}
+		code := e.Get("code").String()
+		i.keyUp(code)
+	case "mousedown":
+		button := e.Get("button").Int()
+		i.mouseDown(button)
+		i.setMouseCursorFromEvent(e)
+	case "mouseup":
+		button := e.Get("button").Int()
+		i.mouseUp(button)
+		i.setMouseCursorFromEvent(e)
+	case "mousemove":
+		i.setMouseCursorFromEvent(e)
+	case "wheel":
+		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
+		i.wheelX = -e.Get("deltaX").Float()
+		i.wheelY = -e.Get("deltaY").Float()
+	case "touchstart", "touchend", "touchmove":
+		i.updateTouches(e)
 	}
-	cs := c.String()
-	if cs == keyToCodes[driver.KeyUp][0] ||
-		cs == keyToCodes[driver.KeyDown][0] ||
-		cs == keyToCodes[driver.KeyLeft][0] ||
-		cs == keyToCodes[driver.KeyRight][0] ||
-		cs == keyToCodes[driver.KeyBackspace][0] ||
-		cs == keyToCodes[driver.KeyTab][0] {
-		e.Call("preventDefault")
-	}
-	theInput.keyDown(cs)
 }
 
-func OnKeyPress(e js.Value) {
-	if r := rune(e.Get("charCode").Int()); unicode.IsPrint(r) {
-		theInput.runeBuffer = append(theInput.runeBuffer, r)
-	}
-}
-
-func OnKeyUp(e js.Value) {
-	if e.Get("code") == js.Undefined() {
-		// Assume that UA is Edge.
-		code := e.Get("keyCode").Int()
-		theInput.keyUpEdge(code)
-		return
-	}
-	code := e.Get("code").String()
-	theInput.keyUp(code)
-}
-
-func OnMouseDown(e js.Value) {
-	button := e.Get("button").Int()
-	theInput.mouseDown(button)
-	setMouseCursorFromEvent(e)
-}
-
-func OnMouseUp(e js.Value) {
-	button := e.Get("button").Int()
-	theInput.mouseUp(button)
-	setMouseCursorFromEvent(e)
-}
-
-func OnMouseMove(e js.Value) {
-	setMouseCursorFromEvent(e)
-}
-
-func OnWheel(e js.Value) {
-	// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
-	theInput.wheelX = -e.Get("deltaX").Float()
-	theInput.wheelY = -e.Get("deltaY").Float()
-}
-
-func OnTouchStart(e js.Value) {
-	theInput.updateTouches(e)
-}
-
-func OnTouchEnd(e js.Value) {
-	theInput.updateTouches(e)
-}
-
-func OnTouchMove(e js.Value) {
-	theInput.updateTouches(e)
-}
-
-func setMouseCursorFromEvent(e js.Value) {
+func (i *Input) setMouseCursorFromEvent(e js.Value) {
 	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-	theInput.setMouseCursor(x, y)
+	i.setMouseCursor(x, y)
 }
 
 func (i *Input) updateTouches(e js.Value) {

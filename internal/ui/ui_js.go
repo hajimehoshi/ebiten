@@ -27,7 +27,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/input"
 )
 
 var canvas js.Value
@@ -35,6 +34,7 @@ var canvas js.Value
 type inputDriver interface {
 	driver.Input
 
+	Update(e js.Value)
 	UpdateGamepads()
 }
 
@@ -328,20 +328,40 @@ func init() {
 
 	// Keyboard
 	// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
-	canvas.Call("addEventListener", "keydown", js.NewEventCallback(0, input.OnKeyDown))
-	canvas.Call("addEventListener", "keypress", js.NewEventCallback(js.PreventDefault, input.OnKeyPress))
-	canvas.Call("addEventListener", "keyup", js.NewEventCallback(js.PreventDefault, input.OnKeyUp))
+	canvas.Call("addEventListener", "keydown", js.NewEventCallback(0, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "keypress", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "keyup", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
 
 	// Mouse
-	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(js.PreventDefault, input.OnMouseDown))
-	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(js.PreventDefault, input.OnMouseUp))
-	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(js.PreventDefault, input.OnMouseMove))
-	canvas.Call("addEventListener", "wheel", js.NewEventCallback(js.PreventDefault, input.OnWheel))
+	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "wheel", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
 
 	// Touch
-	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(js.PreventDefault, input.OnTouchStart))
-	canvas.Call("addEventListener", "touchend", js.NewEventCallback(js.PreventDefault, input.OnTouchEnd))
-	canvas.Call("addEventListener", "touchmove", js.NewEventCallback(js.PreventDefault, input.OnTouchMove))
+	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "touchend", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
+	canvas.Call("addEventListener", "touchmove", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
+		currentUI.input.Update(e)
+	}))
 
 	// Gamepad
 	window.Call("addEventListener", "gamepadconnected", js.NewCallback(func(e []js.Value) {
