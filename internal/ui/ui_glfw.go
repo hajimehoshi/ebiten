@@ -745,7 +745,7 @@ func (u *userInterface) update(g driver.GraphicsContext) error {
 		return nil
 	})
 	if shouldClose {
-		return RegularTermination
+		return driver.RegularTermination
 	}
 
 	_ = mainthread.Run(func() error {

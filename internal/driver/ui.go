@@ -14,7 +14,16 @@
 
 package driver
 
+import (
+	"errors"
+)
+
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64)
 	Update(afterFrameUpdate func()) error
 }
+
+// RegularTermination represents a regular termination.
+// Run can return this error, and if this error is received,
+// the game loop should be terminated as soon as possible.
+var RegularTermination = errors.New("regular termination")

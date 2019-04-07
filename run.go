@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/ui"
 	"github.com/hajimehoshi/ebiten/internal/web"
@@ -98,7 +99,7 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 		defer atomic.StoreInt32(&isRunning, 0)
 	}
 	if err := ui.Run(width, height, scale, title, g, mainloop, graphicsDriver(), input.Get()); err != nil {
-		if err == ui.RegularTermination {
+		if err == driver.RegularTermination {
 			return nil
 		}
 		return err
