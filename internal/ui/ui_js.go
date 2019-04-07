@@ -187,7 +187,7 @@ func (u *userInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(0, 0)
 }
 
-func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
+func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	a := u.actualScreenScale()
 	if u.lastActualScale != a {
 		u.updateScreenSize()
@@ -204,7 +204,7 @@ func (u *userInterface) suspended() bool {
 	return !u.runnableInBackground && (!u.windowFocus || !u.pageVisible)
 }
 
-func (u *userInterface) update(g GraphicsContext) error {
+func (u *userInterface) update(g driver.GraphicsContext) error {
 	if u.suspended() {
 		hooks.SuspendAudio()
 		return nil
@@ -221,7 +221,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) loop(g GraphicsContext) <-chan error {
+func (u *userInterface) loop(g driver.GraphicsContext) <-chan error {
 	ch := make(chan error)
 	var cf js.Callback
 	f := func([]js.Value) {
@@ -385,7 +385,7 @@ func Loop(ch <-chan error) error {
 	return <-ch
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+func Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
 	u := currentUI
 	u.input = input.(inputDriver)
 

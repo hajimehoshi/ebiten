@@ -148,7 +148,7 @@ func appMain(a app.App) {
 	}
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+func Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
 	if graphics != opengl.Get() {
 		panic("ui: graphics driver must be OpenGL")
 	}
@@ -190,7 +190,7 @@ func Loop(ch <-chan error) error {
 	return nil
 }
 
-func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
+func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	width, height := 0, 0
 	actualScale := 0.0
 
@@ -229,7 +229,7 @@ func (u *userInterface) scaleImpl() float64 {
 	return scale
 }
 
-func (u *userInterface) update(g GraphicsContext) error {
+func (u *userInterface) update(g driver.GraphicsContext) error {
 render:
 	for {
 		select {

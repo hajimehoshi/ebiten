@@ -568,7 +568,7 @@ func DeviceScaleFactor() float64 {
 	return f
 }
 
-func Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+func Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
 	u := currentUI
 	_ = mainthread.Run(func() error {
 		u.graphics = graphics
@@ -714,7 +714,7 @@ func (u *userInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
-func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
+func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	actualScale := 0.0
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
@@ -738,7 +738,7 @@ func (u *userInterface) updateGraphicsContext(g GraphicsContext) {
 	}
 }
 
-func (u *userInterface) update(g GraphicsContext) error {
+func (u *userInterface) update(g driver.GraphicsContext) error {
 	shouldClose := false
 	_ = mainthread.Run(func() error {
 		shouldClose = u.window.ShouldClose()
@@ -802,7 +802,7 @@ func (u *userInterface) update(g GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) loop(g GraphicsContext) error {
+func (u *userInterface) loop(g driver.GraphicsContext) error {
 	defer func() {
 		_ = mainthread.Run(func() error {
 			glfw.Terminate()
