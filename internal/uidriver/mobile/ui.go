@@ -102,7 +102,7 @@ func getDeviceScale() float64 {
 }
 
 // appMain is the main routine for gomobile-build mode.
-func appMain(a app.App) {
+func (u *UserInterface) appMain(a app.App) {
 	var glctx gl.Context
 	touches := map[touch.Sequence]*driver.Touch{}
 	for e := range a.Events() {
@@ -122,7 +122,7 @@ func appMain(a app.App) {
 				glctx = nil
 			}
 		case size.Event:
-			theUI.setFullscreenImpl(e.WidthPx, e.HeightPx)
+			u.setFullscreenImpl(e.WidthPx, e.HeightPx)
 		case paint.Event:
 			if glctx == nil || e.External {
 				continue
@@ -149,7 +149,7 @@ func appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			theUI.input.update(ts)
+			u.input.update(ts)
 		}
 	}
 }
@@ -190,7 +190,7 @@ func (u *UserInterface) Loop(ch <-chan error) error {
 		err := <-ch
 		panic(err)
 	}()
-	app.Main(appMain)
+	app.Main(u.appMain)
 	return nil
 }
 
