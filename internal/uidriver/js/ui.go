@@ -436,3 +436,7 @@ func (u *UserInterface) updateScreenSize() {
 
 	u.sizeChanged = true
 }
+
+func (u *UserInterface) Input() driver.Input {
+	return u.input
+}

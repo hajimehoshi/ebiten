@@ -941,3 +941,7 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	// Get the monitor which the current window belongs to. This requires OS API.
 	return u.currentMonitorFromPosition()
 }
+
+func (u *UserInterface) Input() driver.Input {
+	return u.input
+}

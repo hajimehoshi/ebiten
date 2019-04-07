@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
@@ -106,7 +105,7 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 			return err
 		}
 
-		input.Get().ResetForFrame()
+		uiDriver().Input().ResetForFrame()
 		afterFrameUpdate()
 	}
 

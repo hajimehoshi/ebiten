@@ -53,4 +53,5 @@ type UI interface {
 	SetWindowIcon(iconImages []image.Image)
 	SetWindowResizable(resizable bool)
 	SetWindowTitle(title string)
+	Input() Input
 }

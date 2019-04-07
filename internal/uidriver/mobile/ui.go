@@ -402,3 +402,7 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	return getDeviceScale()
 }
+
+func (u *UserInterface) Input() driver.Input {
+	return input.Get()
+}
