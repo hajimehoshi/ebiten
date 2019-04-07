@@ -14,7 +14,7 @@
 
 // +build js
 
-package input
+package js
 
 import (
 	"unicode"
@@ -24,12 +24,18 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-type mockRWLock struct{}
+type pos struct {
+	X int
+	Y int
+}
 
-func (m mockRWLock) Lock()    {}
-func (m mockRWLock) Unlock()  {}
-func (m mockRWLock) RLock()   {}
-func (m mockRWLock) RUnlock() {}
+type gamePad struct {
+	valid         bool
+	axisNum       int
+	axes          [16]float64
+	buttonNum     int
+	buttonPressed [256]bool
+}
 
 type Input struct {
 	keyPressed         map[string]bool
@@ -42,7 +48,72 @@ type Input struct {
 	gamepads           [16]gamePad
 	touches            map[int]pos
 	runeBuffer         []rune
-	m                  mockRWLock
+}
+
+func (i *Input) CursorPosition() (x, y int) {
+	return i.cursorX, i.cursorY
+}
+
+func (i *Input) GamepadIDs() []int {
+	if len(i.gamepads) == 0 {
+		return nil
+	}
+	r := []int{}
+	for id, g := range i.gamepads {
+		if g.valid {
+			r = append(r, id)
+		}
+	}
+	return r
+}
+
+func (i *Input) GamepadAxisNum(id int) int {
+	if len(i.gamepads) <= id {
+		return 0
+	}
+	return i.gamepads[id].axisNum
+}
+
+func (i *Input) GamepadAxis(id int, axis int) float64 {
+	if len(i.gamepads) <= id {
+		return 0
+	}
+	return i.gamepads[id].axes[axis]
+}
+
+func (i *Input) GamepadButtonNum(id int) int {
+	if len(i.gamepads) <= id {
+		return 0
+	}
+	return i.gamepads[id].buttonNum
+}
+
+func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
+	if len(i.gamepads) <= id {
+		return false
+	}
+	return i.gamepads[id].buttonPressed[button]
+}
+
+func (i *Input) TouchIDs() []int {
+	if len(i.touches) == 0 {
+		return nil
+	}
+
+	var ids []int
+	for id := range i.touches {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+func (i *Input) TouchPosition(id int) (x, y int) {
+	for tid, pos := range i.touches {
+		if id == tid {
+			return pos.X, pos.Y
+		}
+	}
+	return 0, 0
 }
 
 func (i *Input) RuneBuffer() []rune {

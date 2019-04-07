@@ -31,13 +31,6 @@ import (
 
 var canvas js.Value
 
-type inputDriver interface {
-	driver.Input
-
-	Update(e js.Value)
-	UpdateGamepads()
-}
-
 type UserInterface struct {
 	width                int
 	height               int
@@ -53,7 +46,7 @@ type UserInterface struct {
 
 	lastActualScale float64
 
-	input inputDriver
+	input Input
 }
 
 var theUI = &UserInterface{
@@ -389,9 +382,7 @@ func (u *UserInterface) Loop(ch <-chan error) error {
 	return <-ch
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
-	u.input = input.(inputDriver)
-
+func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics) error {
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
@@ -438,5 +429,5 @@ func (u *UserInterface) updateScreenSize() {
 }
 
 func (u *UserInterface) Input() driver.Input {
-	return u.input
+	return &u.input
 }

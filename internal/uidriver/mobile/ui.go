@@ -34,7 +34,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/input"
 )
 
 var (
@@ -77,6 +76,8 @@ type UserInterface struct {
 	fullscreenScale    float64
 	fullscreenWidthPx  int
 	fullscreenHeightPx int
+
+	input Input
 
 	m sync.RWMutex
 }
@@ -144,15 +145,12 @@ func appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			type updater interface {
-				Update(touches []*driver.Touch)
-			}
-			input.Get().(updater).Update(ts)
+			theUI.input.update(ts)
 		}
 	}
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics) error {
 	if graphics != opengl.Get() {
 		panic("ui: graphics driver must be OpenGL")
 	}
@@ -404,5 +402,9 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 }
 
 func (u *UserInterface) Input() driver.Input {
-	return input.Get()
+	return &u.input
+}
+
+func (u *UserInterface) UpdateInput(touches []*driver.Touch) {
+	u.input.update(touches)
 }

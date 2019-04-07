@@ -16,7 +16,7 @@
 
 // +build js
 
-package input
+package js
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"

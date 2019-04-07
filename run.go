@@ -20,7 +20,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/input"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -97,7 +96,7 @@ func run(width, height int, scale float64, title string, g *graphicsContext, mai
 	if !web.IsGopherJS() {
 		defer atomic.StoreInt32(&isRunning, 0)
 	}
-	if err := uiDriver().Run(width, height, scale, title, g, mainloop, graphicsDriver(), input.Get()); err != nil {
+	if err := uiDriver().Run(width, height, scale, title, g, mainloop, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}

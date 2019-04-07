@@ -65,7 +65,7 @@ type UserInterface struct {
 	reqHeight int
 
 	graphics driver.Graphics
-	input    driver.Input
+	input    Input
 
 	m sync.Mutex
 }
@@ -552,10 +552,9 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return f
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics) error {
 	_ = mainthread.Run(func() error {
 		u.graphics = graphics
-		u.input = input
 
 		if graphics.IsGL() {
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
@@ -745,11 +744,7 @@ func (u *UserInterface) update(g driver.GraphicsContext) error {
 	_ = mainthread.Run(func() error {
 		glfw.PollEvents()
 
-		type updater interface {
-			Update(window *glfw.Window, scale float64)
-		}
-
-		u.input.(updater).Update(u.window, u.getScale()*u.glfwScale())
+		u.input.update(u.window, u.getScale()*u.glfwScale())
 
 		defer hooks.ResumeAudio()
 
@@ -943,5 +938,5 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 }
 
 func (u *UserInterface) Input() driver.Input {
-	return u.input
+	return &u.input
 }

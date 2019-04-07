@@ -14,7 +14,7 @@
 
 // +build android ios
 
-package input
+package mobile
 
 import (
 	"sync"
@@ -22,12 +22,69 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
+type pos struct {
+	X int
+	Y int
+}
+
 type Input struct {
-	cursorX  int
-	cursorY  int
-	gamepads [16]gamePad
-	touches  map[int]pos
-	m        sync.RWMutex
+	cursorX int
+	cursorY int
+	touches map[int]pos
+	m       sync.RWMutex
+}
+
+func (i *Input) CursorPosition() (x, y int) {
+	i.m.RLock()
+	defer i.m.RUnlock()
+	return i.cursorX, i.cursorY
+}
+
+func (i *Input) GamepadIDs() []int {
+	return nil
+}
+
+func (i *Input) GamepadAxisNum(id int) int {
+	return 0
+}
+
+func (i *Input) GamepadAxis(id int, axis int) float64 {
+	return 0
+}
+
+func (i *Input) GamepadButtonNum(id int) int {
+	return 0
+}
+
+func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
+	return false
+}
+
+func (i *Input) TouchIDs() []int {
+	i.m.RLock()
+	defer i.m.RUnlock()
+
+	if len(i.touches) == 0 {
+		return nil
+	}
+
+	var ids []int
+	for id := range i.touches {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+func (i *Input) TouchPosition(id int) (x, y int) {
+	i.m.RLock()
+	defer i.m.RUnlock()
+
+	for tid, pos := range i.touches {
+		if id == tid {
+			return pos.X, pos.Y
+		}
+	}
+	return 0, 0
 }
 
 func (i *Input) RuneBuffer() []rune {
@@ -46,7 +103,7 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) Update(touches []*driver.Touch) {
+func (i *Input) update(touches []*driver.Touch) {
 	i.m.Lock()
 	i.touches = map[int]pos{}
 	for _, t := range touches {

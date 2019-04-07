@@ -18,7 +18,7 @@ package mobile
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/input"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
 type position struct {
@@ -39,8 +39,5 @@ func updateTouches() {
 			Y:  position.y,
 		})
 	}
-	type updater interface {
-		Update(touches []*driver.Touch)
-	}
-	input.Get().(updater).Update(ts)
+	mobile.Get().UpdateInput(ts)
 }

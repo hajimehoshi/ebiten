@@ -19,7 +19,7 @@
 // +build !android
 // +build !ios
 
-package input
+package glfw
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"

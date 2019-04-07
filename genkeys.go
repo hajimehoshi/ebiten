@@ -287,13 +287,13 @@ const (
 )
 `
 
-const inputKeysGlfwTmpl = `{{.License}}
+const uidriverGlfwKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package input
+package glfw
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -312,13 +312,13 @@ var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
 }
 `
 
-const inputKeysJSTmpl = `{{.License}}
+const uidriverJsKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
 
 {{.BuildTag}}
 
-package input
+package js
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -472,11 +472,11 @@ func main() {
 	sort.Strings(codes)
 
 	for path, tmpl := range map[string]string{
-		"keys.go":                     ebitenKeysTmpl,
-		"internal/driver/keys.go":     driverKeysTmpl,
-		"internal/input/keys_glfw.go": inputKeysGlfwTmpl,
-		"internal/input/keys_js.go":   inputKeysJSTmpl,
-		"internal/glfw/keys.go":       glfwKeysTmpl,
+		"keys.go":                        ebitenKeysTmpl,
+		"internal/driver/keys.go":        driverKeysTmpl,
+		"internal/glfw/keys.go":          glfwKeysTmpl,
+		"internal/uidriver/glfw/keys.go": uidriverGlfwKeysTmpl,
+		"internal/uidriver/js/keys.go":   uidriverJsKeysTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
@@ -496,12 +496,12 @@ func main() {
 		// Pass the build tag and extract this in the template to make `go vet` happy.
 		buildTag := ""
 		switch path {
-		case "internal/input/keys_glfw.go":
+		case "internal/uidriver/glfw/keys.go":
 			buildTag = "// +build darwin freebsd linux windows" +
 				"\n// +build !js" +
 				"\n// +build !android" +
 				"\n// +build !ios"
-		case "internal/input/keys_js.go":
+		case "internal/uidriver/js/keys.go":
 			buildTag = "// +build js"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
