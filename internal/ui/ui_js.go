@@ -56,7 +56,7 @@ type userInterface struct {
 	input inputDriver
 }
 
-var currentUI = &userInterface{
+var theUI = &userInterface{
 	sizeChanged: true,
 	windowFocus: true,
 	pageVisible: true,
@@ -75,39 +75,39 @@ func ScreenSizeInFullscreen() (int, int) {
 }
 
 func SetScreenSize(width, height int) bool {
-	return currentUI.setScreenSize(width, height, currentUI.scale, currentUI.fullscreen)
+	return theUI.setScreenSize(width, height, theUI.scale, theUI.fullscreen)
 }
 
 func SetScreenScale(scale float64) bool {
-	return currentUI.setScreenSize(currentUI.width, currentUI.height, scale, currentUI.fullscreen)
+	return theUI.setScreenSize(theUI.width, theUI.height, scale, theUI.fullscreen)
 }
 
 func ScreenScale() float64 {
-	return currentUI.scale
+	return theUI.scale
 }
 
 func SetFullscreen(fullscreen bool) {
-	currentUI.setScreenSize(currentUI.width, currentUI.height, currentUI.scale, fullscreen)
+	theUI.setScreenSize(theUI.width, theUI.height, theUI.scale, fullscreen)
 }
 
 func IsFullscreen() bool {
-	return currentUI.fullscreen
+	return theUI.fullscreen
 }
 
 func SetRunnableInBackground(runnableInBackground bool) {
-	currentUI.runnableInBackground = runnableInBackground
+	theUI.runnableInBackground = runnableInBackground
 }
 
 func IsRunnableInBackground() bool {
-	return currentUI.runnableInBackground
+	return theUI.runnableInBackground
 }
 
 func SetVsyncEnabled(enabled bool) {
-	currentUI.vsync = enabled
+	theUI.vsync = enabled
 }
 
 func IsVsyncEnabled() bool {
-	return currentUI.vsync
+	return theUI.vsync
 }
 
 func ScreenPadding() (x0, y0, x1, y1 float64) {
@@ -118,7 +118,7 @@ func AdjustPosition(x, y int) (int, int) {
 	rect := canvas.Call("getBoundingClientRect")
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	scale := currentUI.getScale()
+	scale := theUI.getScale()
 	return int(float64(x) / scale), int(float64(y) / scale)
 }
 
@@ -259,31 +259,31 @@ func init() {
 	}
 
 	window.Call("addEventListener", "focus", js.NewCallback(func([]js.Value) {
-		currentUI.windowFocus = true
-		if currentUI.suspended() {
+		theUI.windowFocus = true
+		if theUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
 			hooks.ResumeAudio()
 		}
 	}))
 	window.Call("addEventListener", "blur", js.NewCallback(func([]js.Value) {
-		currentUI.windowFocus = false
-		if currentUI.suspended() {
+		theUI.windowFocus = false
+		if theUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
 			hooks.ResumeAudio()
 		}
 	}))
 	document.Call("addEventListener", "visibilitychange", js.NewCallback(func([]js.Value) {
-		currentUI.pageVisible = !document.Get("hidden").Bool()
-		if currentUI.suspended() {
+		theUI.pageVisible = !document.Get("hidden").Bool()
+		if theUI.suspended() {
 			hooks.SuspendAudio()
 		} else {
 			hooks.ResumeAudio()
 		}
 	}))
 	window.Call("addEventListener", "resize", js.NewCallback(func([]js.Value) {
-		currentUI.updateScreenSize()
+		theUI.updateScreenSize()
 	}))
 
 	// Adjust the initial scale to 1.
@@ -329,38 +329,38 @@ func init() {
 	// Keyboard
 	// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
 	canvas.Call("addEventListener", "keydown", js.NewEventCallback(0, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "keypress", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "keyup", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 
 	// Mouse
 	canvas.Call("addEventListener", "mousedown", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "mouseup", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "mousemove", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "wheel", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 
 	// Touch
 	canvas.Call("addEventListener", "touchstart", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "touchend", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 	canvas.Call("addEventListener", "touchmove", js.NewEventCallback(js.PreventDefault, func(e js.Value) {
-		currentUI.input.Update(e)
+		theUI.input.Update(e)
 	}))
 
 	// Gamepad
@@ -374,10 +374,10 @@ func init() {
 
 	// Context
 	canvas.Call("addEventListener", "webglcontextlost", js.NewEventCallback(js.PreventDefault, func(js.Value) {
-		currentUI.contextLost = true
+		theUI.contextLost = true
 	}))
 	canvas.Call("addEventListener", "webglcontextrestored", js.NewCallback(func(e []js.Value) {
-		currentUI.contextLost = false
+		theUI.contextLost = false
 	}))
 }
 
@@ -386,7 +386,7 @@ func Loop(ch <-chan error) error {
 }
 
 func Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
-	u := currentUI
+	u := theUI
 	u.input = input.(inputDriver)
 
 	document.Set("title", title)

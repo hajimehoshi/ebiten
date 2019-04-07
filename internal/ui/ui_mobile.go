@@ -41,7 +41,7 @@ var (
 	glContextCh = make(chan gl.Context)
 	renderCh    = make(chan struct{})
 	renderChEnd = make(chan struct{})
-	currentUI   = &userInterface{}
+	theUI       = &userInterface{}
 )
 
 func Render(chError <-chan error) error {
@@ -153,7 +153,7 @@ func Run(width, height int, scale float64, title string, g driver.GraphicsContex
 		panic("ui: graphics driver must be OpenGL")
 	}
 
-	u := currentUI
+	u := theUI
 
 	u.m.Lock()
 	u.width = width
@@ -211,7 +211,7 @@ func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
 }
 
 func actualScale() float64 {
-	return currentUI.actualScale()
+	return theUI.actualScale()
 }
 
 func (u *userInterface) actualScale() float64 {
@@ -255,7 +255,7 @@ render:
 }
 
 func screenSize() (int, int) {
-	return currentUI.screenSize()
+	return theUI.screenSize()
 }
 
 func (u *userInterface) screenSize() (int, int) {
@@ -272,7 +272,7 @@ func ScreenSizeInFullscreen() (int, int) {
 }
 
 func SetScreenSize(width, height int) bool {
-	currentUI.setScreenSize(width, height)
+	theUI.setScreenSize(width, height)
 	return true
 }
 
@@ -288,7 +288,7 @@ func (u *userInterface) setScreenSize(width, height int) {
 }
 
 func SetScreenScale(scale float64) bool {
-	currentUI.setScreenScale(scale)
+	theUI.setScreenScale(scale)
 	return false
 }
 
@@ -302,7 +302,7 @@ func (u *userInterface) setScreenScale(scale float64) {
 }
 
 func ScreenScale() float64 {
-	u := currentUI
+	u := theUI
 	u.m.RLock()
 	s := u.scale
 	u.m.RUnlock()
@@ -310,7 +310,7 @@ func ScreenScale() float64 {
 }
 
 func setFullscreen(widthPx, heightPx int) {
-	currentUI.setFullscreen(widthPx, heightPx)
+	theUI.setFullscreen(widthPx, heightPx)
 }
 
 func (u *userInterface) setFullscreen(widthPx, heightPx int) {
@@ -338,7 +338,7 @@ func (u *userInterface) updateFullscreenScaleIfNeeded() {
 }
 
 func ScreenPadding() (x0, y0, x1, y1 float64) {
-	return currentUI.screenPadding()
+	return theUI.screenPadding()
 }
 
 func (u *userInterface) screenPadding() (x0, y0, x1, y1 float64) {
@@ -359,7 +359,7 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 }
 
 func AdjustPosition(x, y int) (int, int) {
-	return currentUI.adjustPosition(x, y)
+	return theUI.adjustPosition(x, y)
 }
 
 func (u *userInterface) adjustPosition(x, y int) (int, int) {

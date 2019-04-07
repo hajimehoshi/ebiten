@@ -102,7 +102,7 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 
 func glfwScale() float64 {
 	// This function must be called on the main thread.
-	return devicescale.GetAt(currentUI.currentMonitor().GetPos())
+	return devicescale.GetAt(theUI.currentMonitor().GetPos())
 }
 
 func adjustWindowPosition(x, y int) (int, int) {
