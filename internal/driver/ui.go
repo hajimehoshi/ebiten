@@ -30,7 +30,6 @@ type GraphicsContext interface {
 var RegularTermination = errors.New("regular termination")
 
 type UI interface {
-	AdjustPosition(x, y int) (int, int)
 	DeviceScaleFactor() float64
 	IsCursorVisible() bool
 	IsFullscreen() bool

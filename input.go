@@ -48,7 +48,7 @@ func IsKeyPressed(key Key) bool {
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return uiDriver().AdjustPosition(uiDriver().Input().CursorPosition())
+	return uiDriver().Input().CursorPosition()
 }
 
 // Wheel returns the x and y offset of the mouse wheel or touchpad scroll.
@@ -144,7 +144,7 @@ func TouchPosition(id int) (int, int) {
 		return 0, 0
 	}
 
-	return uiDriver().AdjustPosition(uiDriver().Input().TouchPosition(id))
+	return uiDriver().Input().TouchPosition(id)
 }
 
 // Touch is deprecated as of 1.7.0. Use TouchPosition instead.

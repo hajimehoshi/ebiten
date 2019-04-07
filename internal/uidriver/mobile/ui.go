@@ -43,6 +43,10 @@ var (
 	theUI       = &UserInterface{}
 )
 
+func init() {
+	theUI.input.ui = theUI
+}
+
 func Get() *UserInterface {
 	return theUI
 }
@@ -332,7 +336,7 @@ func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	return ox, oy, ox, oy
 }
 
-func (u *UserInterface) AdjustPosition(x, y int) (int, int) {
+func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()

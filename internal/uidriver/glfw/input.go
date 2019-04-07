@@ -46,6 +46,7 @@ type Input struct {
 	gamepads           [16]gamePad
 	touches            map[int]pos // This is not updated until GLFW 3.3 is available (#417)
 	runeBuffer         []rune
+	ui                 *UserInterface
 	m                  sync.RWMutex
 }
 
@@ -57,7 +58,7 @@ type pos struct {
 func (i *Input) CursorPosition() (x, y int) {
 	i.m.RLock()
 	defer i.m.RUnlock()
-	return i.cursorX, i.cursorY
+	return i.ui.adjustPosition(i.cursorX, i.cursorY)
 }
 
 func (i *Input) GamepadIDs() []int {
@@ -132,7 +133,7 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 
 	for tid, pos := range i.touches {
 		if id == tid {
-			return pos.X, pos.Y
+			return i.ui.adjustPosition(pos.X, pos.Y)
 		}
 	}
 	return 0, 0

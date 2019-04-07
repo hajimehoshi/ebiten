@@ -48,10 +48,11 @@ type Input struct {
 	gamepads           [16]gamePad
 	touches            map[int]pos
 	runeBuffer         []rune
+	ui                 *UserInterface
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	return i.cursorX, i.cursorY
+	return i.ui.adjustPosition(i.cursorX, i.cursorY)
 }
 
 func (i *Input) GamepadIDs() []int {
@@ -110,7 +111,7 @@ func (i *Input) TouchIDs() []int {
 func (i *Input) TouchPosition(id int) (x, y int) {
 	for tid, pos := range i.touches {
 		if id == tid {
-			return pos.X, pos.Y
+			return i.ui.adjustPosition(pos.X, pos.Y)
 		}
 	}
 	return 0, 0

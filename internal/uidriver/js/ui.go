@@ -56,6 +56,10 @@ var theUI = &UserInterface{
 	vsync:       true,
 }
 
+func init() {
+	theUI.input.ui = theUI
+}
+
 func Get() *UserInterface {
 	return theUI
 }
@@ -111,7 +115,7 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	return 0, 0, 0, 0
 }
 
-func (u *UserInterface) AdjustPosition(x, y int) (int, int) {
+func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	rect := canvas.Call("getBoundingClientRect")
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
