@@ -14,7 +14,7 @@
 
 // +build android ios
 
-package ui
+package mobile
 
 import (
 	"errors"
@@ -41,10 +41,14 @@ var (
 	glContextCh = make(chan gl.Context)
 	renderCh    = make(chan struct{})
 	renderChEnd = make(chan struct{})
-	theUI       = &userInterface{}
+	theUI       = &UserInterface{}
 )
 
-func Render(chError <-chan error) error {
+func Get() *UserInterface {
+	return theUI
+}
+
+func (u *UserInterface) Render(chError <-chan error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -63,7 +67,7 @@ func Render(chError <-chan error) error {
 	}
 }
 
-type userInterface struct {
+type UserInterface struct {
 	width       int
 	height      int
 	scale       float64
@@ -113,7 +117,7 @@ func appMain(a app.App) {
 				glctx = nil
 			}
 		case size.Event:
-			setFullscreen(e.WidthPx, e.HeightPx)
+			theUI.setFullscreenImpl(e.WidthPx, e.HeightPx)
 		case paint.Event:
 			if glctx == nil || e.External {
 				continue
@@ -148,12 +152,10 @@ func appMain(a app.App) {
 	}
 }
 
-func Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
 	if graphics != opengl.Get() {
 		panic("ui: graphics driver must be OpenGL")
 	}
-
-	u := theUI
 
 	u.m.Lock()
 	u.width = width
@@ -180,7 +182,7 @@ func Run(width, height int, scale float64, title string, g driver.GraphicsContex
 }
 
 // Loop runs the main routine for gomobile-build.
-func Loop(ch <-chan error) error {
+func (u *UserInterface) Loop(ch <-chan error) error {
 	go func() {
 		// As mobile apps never ends, Loop can't return. Just panic here.
 		err := <-ch
@@ -190,7 +192,7 @@ func Loop(ch <-chan error) error {
 	return nil
 }
 
-func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
+func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	width, height := 0, 0
 	actualScale := 0.0
 
@@ -210,18 +212,14 @@ func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	}
 }
 
-func actualScale() float64 {
-	return theUI.actualScale()
-}
-
-func (u *userInterface) actualScale() float64 {
+func (u *UserInterface) ActualScale() float64 {
 	u.m.Lock()
 	s := u.scaleImpl() * getDeviceScale()
 	u.m.Unlock()
 	return s
 }
 
-func (u *userInterface) scaleImpl() float64 {
+func (u *UserInterface) scaleImpl() float64 {
 	scale := u.scale
 	if u.fullscreenScale != 0 {
 		scale = u.fullscreenScale
@@ -229,7 +227,7 @@ func (u *userInterface) scaleImpl() float64 {
 	return scale
 }
 
-func (u *userInterface) update(g driver.GraphicsContext) error {
+func (u *UserInterface) update(g driver.GraphicsContext) error {
 render:
 	for {
 		select {
@@ -254,29 +252,20 @@ render:
 	return nil
 }
 
-func screenSize() (int, int) {
-	return theUI.screenSize()
-}
-
-func (u *userInterface) screenSize() (int, int) {
+func (u *UserInterface) ScreenSize() (int, int) {
 	u.m.Lock()
 	w, h := u.width, u.height
 	u.m.Unlock()
 	return w, h
 }
 
-func ScreenSizeInFullscreen() (int, int) {
+func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	// TODO: This function should return fullscreenWidthPx, fullscreenHeightPx,
 	// but these values are not initialized until the main loop starts.
 	return 0, 0
 }
 
-func SetScreenSize(width, height int) bool {
-	theUI.setScreenSize(width, height)
-	return true
-}
-
-func (u *userInterface) setScreenSize(width, height int) {
+func (u *UserInterface) SetScreenSize(width, height int) {
 	u.m.Lock()
 	if u.width != width || u.height != height {
 		u.width = width
@@ -287,12 +276,7 @@ func (u *userInterface) setScreenSize(width, height int) {
 	u.m.Unlock()
 }
 
-func SetScreenScale(scale float64) bool {
-	theUI.setScreenScale(scale)
-	return false
-}
-
-func (u *userInterface) setScreenScale(scale float64) {
+func (u *UserInterface) SetScreenScale(scale float64) {
 	u.m.Lock()
 	if u.scale != scale {
 		u.scale = scale
@@ -301,19 +285,15 @@ func (u *userInterface) setScreenScale(scale float64) {
 	u.m.Unlock()
 }
 
-func ScreenScale() float64 {
-	u := theUI
+func (u *UserInterface) ScreenScale() float64 {
 	u.m.RLock()
 	s := u.scale
 	u.m.RUnlock()
 	return s
 }
 
-func setFullscreen(widthPx, heightPx int) {
-	theUI.setFullscreen(widthPx, heightPx)
-}
-
-func (u *userInterface) setFullscreen(widthPx, heightPx int) {
+func (u *UserInterface) setFullscreenImpl(widthPx, heightPx int) {
+	// This implementation is only for gomobile-build so far.
 	u.m.Lock()
 	u.fullscreenWidthPx = widthPx
 	u.fullscreenHeightPx = heightPx
@@ -322,7 +302,7 @@ func (u *userInterface) setFullscreen(widthPx, heightPx int) {
 	u.m.Unlock()
 }
 
-func (u *userInterface) updateFullscreenScaleIfNeeded() {
+func (u *UserInterface) updateFullscreenScaleIfNeeded() {
 	if u.fullscreenWidthPx == 0 || u.fullscreenHeightPx == 0 {
 		return
 	}
@@ -337,18 +317,14 @@ func (u *userInterface) updateFullscreenScaleIfNeeded() {
 	u.sizeChanged = true
 }
 
-func ScreenPadding() (x0, y0, x1, y1 float64) {
-	return theUI.screenPadding()
-}
-
-func (u *userInterface) screenPadding() (x0, y0, x1, y1 float64) {
+func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	u.m.Lock()
 	x0, y0, x1, y1 = u.screenPaddingImpl()
 	u.m.Unlock()
 	return
 }
 
-func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
+func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	if u.fullscreenScale == 0 {
 		return 0, 0, 0, 0
 	}
@@ -358,11 +334,7 @@ func (u *userInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	return ox, oy, ox, oy
 }
 
-func AdjustPosition(x, y int) (int, int) {
-	return theUI.adjustPosition(x, y)
-}
-
-func (u *userInterface) adjustPosition(x, y int) (int, int) {
+func (u *UserInterface) AdjustPosition(x, y int) (int, int) {
 	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()
@@ -371,62 +343,62 @@ func (u *userInterface) adjustPosition(x, y int) (int, int) {
 	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
 
-func IsCursorVisible() bool {
+func (u *UserInterface) IsCursorVisible() bool {
 	return false
 }
 
-func SetCursorVisible(visible bool) {
+func (u *UserInterface) SetCursorVisible(visible bool) {
 	// Do nothing
 }
 
-func IsFullscreen() bool {
+func (u *UserInterface) IsFullscreen() bool {
 	return false
 }
 
-func SetFullscreen(fullscreen bool) {
+func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
-func IsRunnableInBackground() bool {
+func (u *UserInterface) IsRunnableInBackground() bool {
 	return false
 }
 
-func SetRunnableInBackground(runnableInBackground bool) {
+func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
 	// Do nothing
 }
 
-func SetWindowTitle(title string) {
+func (u *UserInterface) SetWindowTitle(title string) {
 	// Do nothing
 }
 
-func SetWindowIcon(iconImages []image.Image) {
+func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }
 
-func IsWindowDecorated() bool {
+func (u *UserInterface) IsWindowDecorated() bool {
 	return false
 }
 
-func SetWindowDecorated(decorated bool) {
+func (u *UserInterface) SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
-func IsWindowResizable() bool {
+func (u *UserInterface) IsWindowResizable() bool {
 	return false
 }
 
-func SetWindowResizable(decorated bool) {
+func (u *UserInterface) SetWindowResizable(decorated bool) {
 	// Do nothing
 }
 
-func IsVsyncEnabled() bool {
+func (u *UserInterface) IsVsyncEnabled() bool {
 	return true
 }
 
-func SetVsyncEnabled(enabled bool) {
+func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 	// Do nothing
 }
 
-func DeviceScaleFactor() float64 {
+func (u *UserInterface) DeviceScaleFactor() float64 {
 	return getDeviceScale()
 }

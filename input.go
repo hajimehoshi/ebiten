@@ -17,7 +17,6 @@ package ebiten
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/input"
-	"github.com/hajimehoshi/ebiten/internal/ui"
 )
 
 // InputChars return "printable" runes read from the keyboard at the time update is called.
@@ -50,7 +49,7 @@ func IsKeyPressed(key Key) bool {
 //
 // CursorPosition is concurrent-safe.
 func CursorPosition() (x, y int) {
-	return ui.AdjustPosition(input.Get().CursorPosition())
+	return uiDriver().AdjustPosition(input.Get().CursorPosition())
 }
 
 // Wheel returns the x and y offset of the mouse wheel or touchpad scroll.
@@ -146,7 +145,7 @@ func TouchPosition(id int) (int, int) {
 		return 0, 0
 	}
 
-	return ui.AdjustPosition(input.Get().TouchPosition(id))
+	return uiDriver().AdjustPosition(input.Get().TouchPosition(id))
 }
 
 // Touch is deprecated as of 1.7.0. Use TouchPosition instead.

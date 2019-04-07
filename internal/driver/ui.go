@@ -16,6 +16,7 @@ package driver
 
 import (
 	"errors"
+	"image"
 )
 
 type GraphicsContext interface {
@@ -27,3 +28,29 @@ type GraphicsContext interface {
 // Run can return this error, and if this error is received,
 // the game loop should be terminated as soon as possible.
 var RegularTermination = errors.New("regular termination")
+
+type UI interface {
+	AdjustPosition(x, y int) (int, int)
+	DeviceScaleFactor() float64
+	IsCursorVisible() bool
+	IsFullscreen() bool
+	IsRunnableInBackground() bool
+	IsVsyncEnabled() bool
+	IsWindowDecorated() bool
+	IsWindowResizable() bool
+	Loop(ch <-chan error) error
+	Run(width, height int, scale float64, title string, g GraphicsContext, mainloop bool, graphics Graphics, input Input) error
+	ScreenPadding() (x0, y0, x1, y1 float64)
+	ScreenScale() float64
+	ScreenSizeInFullscreen() (int, int)
+	SetCursorVisible(visible bool)
+	SetFullscreen(fullscreen bool)
+	SetRunnableInBackground(runnableInBackground bool)
+	SetScreenScale(scale float64)
+	SetScreenSize(width, height int)
+	SetVsyncEnabled(enabled bool)
+	SetWindowDecorated(decorated bool)
+	SetWindowIcon(iconImages []image.Image)
+	SetWindowResizable(resizable bool)
+	SetWindowTitle(title string)
+}

@@ -20,7 +20,7 @@ import (
 	"errors"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/ui"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
 var (
@@ -35,7 +35,7 @@ func update() error {
 	if !running {
 		return errors.New("mobile: start must be called ahead of update")
 	}
-	return ui.Render(chError)
+	return mobile.Get().Render(chError)
 }
 
 func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {

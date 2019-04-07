@@ -14,7 +14,7 @@
 
 // +build !js
 
-package ui
+package glfw
 
 import (
 	"fmt"

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
 // +build !js
 // +build !ios
 
-package ui
+package glfw
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework AppKit
@@ -48,7 +47,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-func glfwScale() float64 {
+func (u *UserInterface) glfwScale() float64 {
 	return 1
 }
 
@@ -56,7 +55,7 @@ func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
+func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	x := C.int(0)
 	y := C.int(0)
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
@@ -71,6 +70,6 @@ func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *userInterface) nativeWindow() uintptr {
+func (u *UserInterface) nativeWindow() uintptr {
 	return u.window.GetCocoaWindow()
 }

@@ -14,7 +14,7 @@
 
 // +build js
 
-package ui
+package js
 
 import (
 	"image"
@@ -38,7 +38,7 @@ type inputDriver interface {
 	UpdateGamepads()
 }
 
-type userInterface struct {
+type UserInterface struct {
 	width                int
 	height               int
 	scale                float64
@@ -56,11 +56,15 @@ type userInterface struct {
 	input inputDriver
 }
 
-var theUI = &userInterface{
+var theUI = &UserInterface{
 	sizeChanged: true,
 	windowFocus: true,
 	pageVisible: true,
 	vsync:       true,
+}
+
+func Get() *UserInterface {
+	return theUI
 }
 
 var (
@@ -70,64 +74,64 @@ var (
 	setTimeout            = window.Get("setTimeout")
 )
 
-func ScreenSizeInFullscreen() (int, int) {
+func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
-func SetScreenSize(width, height int) bool {
-	return theUI.setScreenSize(width, height, theUI.scale, theUI.fullscreen)
+func (u *UserInterface) SetScreenSize(width, height int) {
+	u.setScreenSize(width, height, u.scale, u.fullscreen)
 }
 
-func SetScreenScale(scale float64) bool {
-	return theUI.setScreenSize(theUI.width, theUI.height, scale, theUI.fullscreen)
+func (u *UserInterface) SetScreenScale(scale float64) {
+	u.setScreenSize(u.width, u.height, scale, u.fullscreen)
 }
 
-func ScreenScale() float64 {
-	return theUI.scale
+func (u *UserInterface) ScreenScale() float64 {
+	return u.scale
 }
 
-func SetFullscreen(fullscreen bool) {
-	theUI.setScreenSize(theUI.width, theUI.height, theUI.scale, fullscreen)
+func (u *UserInterface) SetFullscreen(fullscreen bool) {
+	u.setScreenSize(u.width, u.height, u.scale, fullscreen)
 }
 
-func IsFullscreen() bool {
-	return theUI.fullscreen
+func (u *UserInterface) IsFullscreen() bool {
+	return u.fullscreen
 }
 
-func SetRunnableInBackground(runnableInBackground bool) {
-	theUI.runnableInBackground = runnableInBackground
+func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
+	u.runnableInBackground = runnableInBackground
 }
 
-func IsRunnableInBackground() bool {
-	return theUI.runnableInBackground
+func (u *UserInterface) IsRunnableInBackground() bool {
+	return u.runnableInBackground
 }
 
-func SetVsyncEnabled(enabled bool) {
-	theUI.vsync = enabled
+func (u *UserInterface) SetVsyncEnabled(enabled bool) {
+	u.vsync = enabled
 }
 
-func IsVsyncEnabled() bool {
-	return theUI.vsync
+func (u *UserInterface) IsVsyncEnabled() bool {
+	return u.vsync
 }
 
-func ScreenPadding() (x0, y0, x1, y1 float64) {
+func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	return 0, 0, 0, 0
 }
 
-func AdjustPosition(x, y int) (int, int) {
+func (u *UserInterface) AdjustPosition(x, y int) (int, int) {
 	rect := canvas.Call("getBoundingClientRect")
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	scale := theUI.getScale()
+	scale := u.getScale()
 	return int(float64(x) / scale), int(float64(y) / scale)
 }
 
-func IsCursorVisible() bool {
+func (u *UserInterface) IsCursorVisible() bool {
 	// The initial value is an empty string, so don't compare with "auto" here.
 	return canvas.Get("style").Get("cursor").String() != "none"
 }
 
-func SetCursorVisible(visible bool) {
+func (u *UserInterface) SetCursorVisible(visible bool) {
 	if visible {
 		canvas.Get("style").Set("cursor", "auto")
 	} else {
@@ -135,35 +139,35 @@ func SetCursorVisible(visible bool) {
 	}
 }
 
-func SetWindowTitle(title string) {
+func (u *UserInterface) SetWindowTitle(title string) {
 	document.Set("title", title)
 }
 
-func SetWindowIcon(iconImages []image.Image) {
+func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
 	// Do nothing
 }
 
-func IsWindowDecorated() bool {
+func (u *UserInterface) IsWindowDecorated() bool {
 	return false
 }
 
-func SetWindowDecorated(decorated bool) {
+func (u *UserInterface) SetWindowDecorated(decorated bool) {
 	// Do nothing
 }
 
-func IsWindowResizable() bool {
+func (u *UserInterface) IsWindowResizable() bool {
 	return false
 }
 
-func SetWindowResizable(decorated bool) {
+func (u *UserInterface) SetWindowResizable(decorated bool) {
 	// Do nothing
 }
 
-func DeviceScaleFactor() float64 {
+func (u *UserInterface) DeviceScaleFactor() float64 {
 	return devicescale.GetAt(0, 0)
 }
 
-func (u *userInterface) getScale() float64 {
+func (u *UserInterface) getScale() float64 {
 	if !u.fullscreen {
 		return u.scale
 	}
@@ -178,7 +182,7 @@ func (u *userInterface) getScale() float64 {
 	return sw
 }
 
-func (u *userInterface) actualScreenScale() float64 {
+func (u *UserInterface) actualScreenScale() float64 {
 	// CSS imageRendering property seems useful to enlarge the screen,
 	// but doesn't work in some cases (#306):
 	// * Chrome just after restoring the lost context
@@ -187,7 +191,7 @@ func (u *userInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(0, 0)
 }
 
-func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
+func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	a := u.actualScreenScale()
 	if u.lastActualScale != a {
 		u.updateScreenSize()
@@ -200,11 +204,11 @@ func (u *userInterface) updateGraphicsContext(g driver.GraphicsContext) {
 	}
 }
 
-func (u *userInterface) suspended() bool {
+func (u *UserInterface) suspended() bool {
 	return !u.runnableInBackground && (!u.windowFocus || !u.pageVisible)
 }
 
-func (u *userInterface) update(g driver.GraphicsContext) error {
+func (u *UserInterface) update(g driver.GraphicsContext) error {
 	if u.suspended() {
 		hooks.SuspendAudio()
 		return nil
@@ -221,7 +225,7 @@ func (u *userInterface) update(g driver.GraphicsContext) error {
 	return nil
 }
 
-func (u *userInterface) loop(g driver.GraphicsContext) <-chan error {
+func (u *UserInterface) loop(g driver.GraphicsContext) <-chan error {
 	ch := make(chan error)
 	var cf js.Callback
 	f := func([]js.Value) {
@@ -381,12 +385,11 @@ func init() {
 	}))
 }
 
-func Loop(ch <-chan error) error {
+func (u *UserInterface) Loop(ch <-chan error) error {
 	return <-ch
 }
 
-func Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
-	u := theUI
+func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics, input driver.Input) error {
 	u.input = input.(inputDriver)
 
 	document.Set("title", title)
@@ -407,7 +410,7 @@ func Run(width, height int, scale float64, title string, g driver.GraphicsContex
 	return nil
 }
 
-func (u *userInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
+func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
 	if u.width == width && u.height == height &&
 		u.scale == scale && fullscreen == u.fullscreen {
 		return false
@@ -420,7 +423,7 @@ func (u *userInterface) setScreenSize(width, height int, scale float64, fullscre
 	return true
 }
 
-func (u *userInterface) updateScreenSize() {
+func (u *UserInterface) updateScreenSize() {
 	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")

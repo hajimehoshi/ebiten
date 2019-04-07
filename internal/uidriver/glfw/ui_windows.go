@@ -14,7 +14,7 @@
 
 // +build !js
 
-package ui
+package glfw
 
 import (
 	"fmt"
@@ -100,9 +100,9 @@ func getMonitorInfoW(hMonitor uintptr, lpmi *monitorInfo) error {
 	return nil
 }
 
-func glfwScale() float64 {
+func (u *UserInterface) glfwScale() float64 {
 	// This function must be called on the main thread.
-	return devicescale.GetAt(theUI.currentMonitor().GetPos())
+	return devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
 func adjustWindowPosition(x, y int) (int, int) {
@@ -121,7 +121,7 @@ func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
+func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	// TODO: Should we use u.window.GetWin32Window() here?
 	w, err := getActiveWindow()
 	if err != nil {
@@ -165,6 +165,6 @@ func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *userInterface) nativeWindow() uintptr {
+func (u *UserInterface) nativeWindow() uintptr {
 	return u.window.GetWin32Window()
 }

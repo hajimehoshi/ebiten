@@ -1,4 +1,4 @@
-// Copyright 2017 The Ebiten Authors
+// Copyright 2019 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !windows js
+// +build android ios
 
-package ui
+package ebiten
 
-// hideConsoleWindowOnWindows does nothing on non-Windows systems.
-func hideConsoleWindowOnWindows() {}
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
+)
+
+func uiDriver() driver.UI {
+	return mobile.Get()
+}

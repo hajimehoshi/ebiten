@@ -16,18 +16,18 @@
 // +build !js
 // +build !android
 
-package ui
+package glfw
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-func glfwScale() float64 {
+func (u *UserInterface) glfwScale() float64 {
 	// This function must be called on the main thread.
-	cm, ok := getCachedMonitor(theUI.window.GetPos())
+	cm, ok := getCachedMonitor(u.window.GetPos())
 	if !ok {
-		return devicescale.GetAt(theUI.currentMonitor().GetPos())
+		return devicescale.GetAt(u.currentMonitor().GetPos())
 	}
 	return devicescale.GetAt(cm.x, cm.y)
 }
@@ -36,7 +36,7 @@ func adjustWindowPosition(x, y int) (int, int) {
 	return x, y
 }
 
-func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
+func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	// TODO: Return more appropriate display.
 	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
 		return cm.m
@@ -44,7 +44,7 @@ func (u *userInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *userInterface) nativeWindow() uintptr {
+func (u *UserInterface) nativeWindow() uintptr {
 	// TODO: Implement this.
 	return 0
 }
