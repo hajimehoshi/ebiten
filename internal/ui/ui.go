@@ -21,7 +21,6 @@ import (
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64)
 	Update(afterFrameUpdate func()) error
-	Invalidate()
 }
 
 // RegularTermination represents a regular termination.

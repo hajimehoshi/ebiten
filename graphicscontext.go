@@ -45,17 +45,8 @@ type graphicsContext struct {
 	screenHeight int
 	screenScale  float64
 	initialized  bool
-	invalidated  bool // browser only
 	offsetX      float64
 	offsetY      float64
-}
-
-func (c *graphicsContext) Invalidate() {
-	// Note that this is called only on browsers so far.
-	// TODO: On mobiles, this function is not called and instead IsTexture is called
-	// to detect if the context is lost. This is simple but might not work on some platforms.
-	// Should Invalidate be called explicitly?
-	c.invalidated = true
 }
 
 func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) {
@@ -180,6 +171,5 @@ func (c *graphicsContext) restoreIfNeeded() error {
 	if err := shareable.Restore(); err != nil {
 		return err
 	}
-	c.invalidated = false
 	return nil
 }
