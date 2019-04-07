@@ -17,7 +17,6 @@
 package mobile
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
@@ -31,9 +30,9 @@ var (
 )
 
 func updateTouches() {
-	ts := []*driver.Touch{}
+	ts := []*mobile.Touch{}
 	for id, position := range touches {
-		ts = append(ts, &driver.Touch{
+		ts = append(ts, &mobile.Touch{
 			ID: id,
 			X:  position.x,
 			Y:  position.y,

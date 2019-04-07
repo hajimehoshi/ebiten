@@ -29,10 +29,3 @@ type Input interface {
 	TouchPosition(id int) (x, y int)
 	Wheel() (xoff, yoff float64)
 }
-
-// TODO: Remove this for API simplicity.
-type Touch struct {
-	ID int
-	X  int
-	Y  int
-}
