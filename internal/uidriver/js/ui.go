@@ -188,7 +188,7 @@ func (u *UserInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) updateGraphics() {
+func (u *UserInterface) updateSize() {
 	a := u.actualScreenScale()
 	if u.lastActualScale != a {
 		u.updateScreenSize()
@@ -213,9 +213,9 @@ func (u *UserInterface) update() error {
 	u.context.ResumeAudio()
 
 	u.input.UpdateGamepads()
-	u.updateGraphics()
+	u.updateSize()
 	if err := u.context.Update(func() {
-		u.updateGraphics()
+		u.updateSize()
 	}); err != nil {
 		return err
 	}

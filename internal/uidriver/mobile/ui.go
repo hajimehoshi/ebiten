@@ -174,7 +174,7 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, cont
 	}
 
 	// Force to set the screen size
-	u.updateGraphics(context)
+	u.updateSize(context)
 	for {
 		if err := u.update(context); err != nil {
 			return err
@@ -193,7 +193,7 @@ func (u *UserInterface) Loop(ch <-chan error) error {
 	return nil
 }
 
-func (u *UserInterface) updateGraphics(context driver.UIContext) {
+func (u *UserInterface) updateSize(context driver.UIContext) {
 	width, height := 0, 0
 	actualScale := 0.0
 
@@ -246,7 +246,7 @@ render:
 	}()
 
 	if err := context.Update(func() {
-		u.updateGraphics(context)
+		u.updateSize(context)
 	}); err != nil {
 		return err
 	}

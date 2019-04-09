@@ -699,7 +699,7 @@ func (u *UserInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
-func (u *UserInterface) updateGraphics(context driver.UIContext) {
+func (u *UserInterface) updateSize(context driver.UIContext) {
 	actualScale := 0.0
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
@@ -742,7 +742,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	})
 
 	// This call is needed for initialization.
-	u.updateGraphics(context)
+	u.updateSize(context)
 
 	_ = mainthread.Run(func() error {
 		glfw.PollEvents()
@@ -764,7 +764,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	})
 	if err := context.Update(func() {
 		// The offscreens must be updated every frame (#490).
-		u.updateGraphics(context)
+		u.updateSize(context)
 	}); err != nil {
 		return err
 	}
