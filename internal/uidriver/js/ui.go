@@ -26,7 +26,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
 )
 
 var canvas js.Value
@@ -46,7 +45,8 @@ type UserInterface struct {
 
 	lastActualScale float64
 
-	input Input
+	context driver.GraphicsContext
+	input   Input
 }
 
 var theUI = &UserInterface{
@@ -188,7 +188,7 @@ func (u *UserInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
+func (u *UserInterface) updateGraphicsContext() {
 	a := u.actualScreenScale()
 	if u.lastActualScale != a {
 		u.updateScreenSize()
@@ -197,7 +197,7 @@ func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
 
 	if u.sizeChanged {
 		u.sizeChanged = false
-		g.SetSize(u.width, u.height, a)
+		u.context.SetSize(u.width, u.height, a)
 	}
 }
 
@@ -205,17 +205,17 @@ func (u *UserInterface) suspended() bool {
 	return !u.runnableInBackground && (!u.windowFocus || !u.pageVisible)
 }
 
-func (u *UserInterface) update(g driver.GraphicsContext) error {
+func (u *UserInterface) update() error {
 	if u.suspended() {
-		hooks.SuspendAudio()
+		u.context.SuspendAudio()
 		return nil
 	}
-	hooks.ResumeAudio()
+	u.context.ResumeAudio()
 
 	u.input.UpdateGamepads()
-	u.updateGraphicsContext(g)
-	if err := g.Update(func() {
-		u.updateGraphicsContext(g)
+	u.updateGraphicsContext()
+	if err := u.context.Update(func() {
+		u.updateGraphicsContext()
 	}); err != nil {
 		return err
 	}
@@ -223,6 +223,8 @@ func (u *UserInterface) update(g driver.GraphicsContext) error {
 }
 
 func (u *UserInterface) loop(g driver.GraphicsContext) <-chan error {
+	u.context = g
+
 	ch := make(chan error)
 	var cf js.Callback
 	f := func([]js.Value) {
@@ -231,7 +233,7 @@ func (u *UserInterface) loop(g driver.GraphicsContext) <-chan error {
 			return
 		}
 
-		if err := u.update(g); err != nil {
+		if err := u.update(); err != nil {
 			ch <- err
 			close(ch)
 			return
@@ -262,25 +264,25 @@ func init() {
 	window.Call("addEventListener", "focus", js.NewCallback(func([]js.Value) {
 		theUI.windowFocus = true
 		if theUI.suspended() {
-			hooks.SuspendAudio()
+			theUI.context.SuspendAudio()
 		} else {
-			hooks.ResumeAudio()
+			theUI.context.ResumeAudio()
 		}
 	}))
 	window.Call("addEventListener", "blur", js.NewCallback(func([]js.Value) {
 		theUI.windowFocus = false
 		if theUI.suspended() {
-			hooks.SuspendAudio()
+			theUI.context.SuspendAudio()
 		} else {
-			hooks.ResumeAudio()
+			theUI.context.ResumeAudio()
 		}
 	}))
 	document.Call("addEventListener", "visibilitychange", js.NewCallback(func([]js.Value) {
 		theUI.pageVisible = !document.Get("hidden").Bool()
 		if theUI.suspended() {
-			hooks.SuspendAudio()
+			theUI.context.SuspendAudio()
 		} else {
-			hooks.ResumeAudio()
+			theUI.context.ResumeAudio()
 		}
 	}))
 	window.Call("addEventListener", "resize", js.NewCallback(func([]js.Value) {

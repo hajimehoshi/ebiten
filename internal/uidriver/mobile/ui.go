@@ -33,7 +33,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
 )
 
 var (
@@ -236,11 +235,11 @@ render:
 		case <-renderCh:
 			break render
 		case <-time.After(500 * time.Millisecond):
-			hooks.SuspendAudio()
+			g.SuspendAudio()
 			continue
 		}
 	}
-	hooks.ResumeAudio()
+	g.ResumeAudio()
 
 	defer func() {
 		renderChEnd <- struct{}{}

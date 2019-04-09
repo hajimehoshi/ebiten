@@ -171,3 +171,11 @@ func (c *graphicsContext) restoreIfNeeded() error {
 	}
 	return nil
 }
+
+func (c *graphicsContext) SuspendAudio() {
+	hooks.SuspendAudio()
+}
+
+func (c *graphicsContext) ResumeAudio() {
+	hooks.ResumeAudio()
+}

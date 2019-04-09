@@ -22,6 +22,8 @@ import (
 type GraphicsContext interface {
 	SetSize(width, height int, scale float64)
 	Update(afterFrameUpdate func()) error
+	SuspendAudio()
+	ResumeAudio()
 }
 
 // RegularTermination represents a regular termination.

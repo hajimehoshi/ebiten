@@ -29,7 +29,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
-	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
 )
 
@@ -750,10 +749,10 @@ func (u *UserInterface) update(g driver.GraphicsContext) error {
 
 		u.input.update(u.window, u.getScale()*u.glfwScale())
 
-		defer hooks.ResumeAudio()
+		defer g.ResumeAudio()
 
 		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
-			hooks.SuspendAudio()
+			g.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
 			glfw.PollEvents()
