@@ -555,7 +555,7 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return f
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, mainloop bool, graphics driver.Graphics) error {
 	_ = mainthread.Run(func() error {
 		u.graphics = graphics
 
@@ -662,7 +662,7 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, g dr
 		return nil
 	})
 	graphics.SetWindow(w)
-	return u.loop(g)
+	return u.loop(context)
 }
 
 // getSize must be called from the main thread.
@@ -699,7 +699,7 @@ func (u *UserInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
-func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
+func (u *UserInterface) updateGraphics(context driver.UIContext) {
 	actualScale := 0.0
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
@@ -719,11 +719,11 @@ func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
 		return nil
 	})
 	if sizeChanged {
-		g.SetSize(u.width, u.height, actualScale)
+		context.SetSize(u.width, u.height, actualScale)
 	}
 }
 
-func (u *UserInterface) update(g driver.GraphicsContext) error {
+func (u *UserInterface) update(context driver.UIContext) error {
 	shouldClose := false
 	_ = mainthread.Run(func() error {
 		shouldClose = u.window.ShouldClose()
@@ -742,17 +742,17 @@ func (u *UserInterface) update(g driver.GraphicsContext) error {
 	})
 
 	// This call is needed for initialization.
-	u.updateGraphicsContext(g)
+	u.updateGraphics(context)
 
 	_ = mainthread.Run(func() error {
 		glfw.PollEvents()
 
 		u.input.update(u.window, u.getScale()*u.glfwScale())
 
-		defer g.ResumeAudio()
+		defer context.ResumeAudio()
 
 		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
-			g.SuspendAudio()
+			context.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
 			glfw.PollEvents()
@@ -762,9 +762,9 @@ func (u *UserInterface) update(g driver.GraphicsContext) error {
 		}
 		return nil
 	})
-	if err := g.Update(func() {
+	if err := context.Update(func() {
 		// The offscreens must be updated every frame (#490).
-		u.updateGraphicsContext(g)
+		u.updateGraphics(context)
 	}); err != nil {
 		return err
 	}
@@ -782,7 +782,7 @@ func (u *UserInterface) update(g driver.GraphicsContext) error {
 	return nil
 }
 
-func (u *UserInterface) loop(g driver.GraphicsContext) error {
+func (u *UserInterface) loop(context driver.UIContext) error {
 	defer func() {
 		_ = mainthread.Run(func() error {
 			glfw.Terminate()
@@ -790,7 +790,7 @@ func (u *UserInterface) loop(g driver.GraphicsContext) error {
 		})
 	}()
 	for {
-		if err := u.update(g); err != nil {
+		if err := u.update(context); err != nil {
 			return err
 		}
 

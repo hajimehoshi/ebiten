@@ -45,7 +45,7 @@ type UserInterface struct {
 
 	lastActualScale float64
 
-	context driver.GraphicsContext
+	context driver.UIContext
 	input   Input
 }
 
@@ -188,7 +188,7 @@ func (u *UserInterface) actualScreenScale() float64 {
 	return u.getScale() * devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) updateGraphicsContext() {
+func (u *UserInterface) updateGraphics() {
 	a := u.actualScreenScale()
 	if u.lastActualScale != a {
 		u.updateScreenSize()
@@ -213,17 +213,17 @@ func (u *UserInterface) update() error {
 	u.context.ResumeAudio()
 
 	u.input.UpdateGamepads()
-	u.updateGraphicsContext()
+	u.updateGraphics()
 	if err := u.context.Update(func() {
-		u.updateGraphicsContext()
+		u.updateGraphics()
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *UserInterface) loop(g driver.GraphicsContext) <-chan error {
-	u.context = g
+func (u *UserInterface) loop(context driver.UIContext) <-chan error {
+	u.context = context
 
 	ch := make(chan error)
 	var cf js.Callback
@@ -388,11 +388,11 @@ func (u *UserInterface) Loop(ch <-chan error) error {
 	return <-ch
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, mainloop bool, graphics driver.Graphics) error {
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
-	ch := u.loop(g)
+	ch := u.loop(context)
 	if runtime.GOARCH == "wasm" {
 		return <-ch
 	}

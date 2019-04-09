@@ -88,15 +88,15 @@ func IsRunningSlowly() bool {
 	return IsDrawingSkipped()
 }
 
-var theGraphicsContext atomic.Value
+var theUIContext atomic.Value
 
-func run(width, height int, scale float64, title string, g *graphicsContext, mainloop bool) error {
+func run(width, height int, scale float64, title string, context *uiContext, mainloop bool) error {
 	atomic.StoreInt32(&isRunning, 1)
 	// On GopherJS, run returns immediately.
 	if !web.IsGopherJS() {
 		defer atomic.StoreInt32(&isRunning, 0)
 	}
-	if err := uiDriver().Run(width, height, scale, title, g, mainloop, graphicsDriver()); err != nil {
+	if err := uiDriver().Run(width, height, scale, title, context, mainloop, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}
@@ -147,8 +147,8 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	go func() {
 		defer close(ch)
 
-		g := newGraphicsContext(f)
-		theGraphicsContext.Store(g)
+		g := newUIContext(f)
+		theUIContext.Store(g)
 		if err := run(width, height, scale, title, g, true); err != nil {
 			ch <- err
 			return
@@ -173,8 +173,8 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	go func() {
 		defer close(ch)
 
-		g := newGraphicsContext(f)
-		theGraphicsContext.Store(g)
+		g := newUIContext(f)
+		theUIContext.Store(g)
 		if err := run(width, height, scale, title, g, false); err != nil {
 			ch <- err
 			return

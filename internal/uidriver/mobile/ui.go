@@ -153,7 +153,7 @@ func (u *UserInterface) appMain(a app.App) {
 	}
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, g driver.GraphicsContext, mainloop bool, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, mainloop bool, graphics driver.Graphics) error {
 	if graphics != opengl.Get() {
 		panic("ui: graphics driver must be OpenGL")
 	}
@@ -174,9 +174,9 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, g dr
 	}
 
 	// Force to set the screen size
-	u.updateGraphicsContext(g)
+	u.updateGraphics(context)
 	for {
-		if err := u.update(g); err != nil {
+		if err := u.update(context); err != nil {
 			return err
 		}
 	}
@@ -193,7 +193,7 @@ func (u *UserInterface) Loop(ch <-chan error) error {
 	return nil
 }
 
-func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
+func (u *UserInterface) updateGraphics(context driver.UIContext) {
 	width, height := 0, 0
 	actualScale := 0.0
 
@@ -209,7 +209,7 @@ func (u *UserInterface) updateGraphicsContext(g driver.GraphicsContext) {
 
 	if sizeChanged {
 		// Sizing also calls GL functions
-		g.SetSize(width, height, actualScale)
+		context.SetSize(width, height, actualScale)
 	}
 }
 
@@ -228,25 +228,25 @@ func (u *UserInterface) scaleImpl() float64 {
 	return scale
 }
 
-func (u *UserInterface) update(g driver.GraphicsContext) error {
+func (u *UserInterface) update(context driver.UIContext) error {
 render:
 	for {
 		select {
 		case <-renderCh:
 			break render
 		case <-time.After(500 * time.Millisecond):
-			g.SuspendAudio()
+			context.SuspendAudio()
 			continue
 		}
 	}
-	g.ResumeAudio()
+	context.ResumeAudio()
 
 	defer func() {
 		renderChEnd <- struct{}{}
 	}()
 
-	if err := g.Update(func() {
-		u.updateGraphicsContext(g)
+	if err := context.Update(func() {
+		u.updateGraphics(context)
 	}); err != nil {
 		return err
 	}

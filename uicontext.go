@@ -29,13 +29,13 @@ func init() {
 	graphicscommand.SetGraphicsDriver(graphicsDriver())
 }
 
-func newGraphicsContext(f func(*Image) error) *graphicsContext {
-	return &graphicsContext{
+func newUIContext(f func(*Image) error) *uiContext {
+	return &uiContext{
 		f: f,
 	}
 }
 
-type graphicsContext struct {
+type uiContext struct {
 	f            func(*Image) error
 	offscreen    *Image
 	screen       *Image
@@ -47,7 +47,7 @@ type graphicsContext struct {
 	offsetY      float64
 }
 
-func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale float64) {
+func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) {
 	c.screenScale = screenScale
 
 	if c.screen != nil {
@@ -71,7 +71,7 @@ func (c *graphicsContext) SetSize(screenWidth, screenHeight int, screenScale flo
 	c.offsetY = py0
 }
 
-func (c *graphicsContext) initializeIfNeeded() error {
+func (c *uiContext) initializeIfNeeded() error {
 	if !c.initialized {
 		if err := shareable.InitializeGraphicsDriverState(); err != nil {
 			return err
@@ -84,7 +84,7 @@ func (c *graphicsContext) initializeIfNeeded() error {
 	return nil
 }
 
-func (c *graphicsContext) Update(afterFrameUpdate func()) error {
+func (c *uiContext) Update(afterFrameUpdate func()) error {
 	tps := int(MaxTPS())
 	updateCount := clock.Update(tps)
 
@@ -151,11 +151,11 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 	return nil
 }
 
-func (c *graphicsContext) needsRestoring() (bool, error) {
+func (c *uiContext) needsRestoring() (bool, error) {
 	return c.offscreen.mipmap.original().IsInvalidated()
 }
 
-func (c *graphicsContext) restoreIfNeeded() error {
+func (c *uiContext) restoreIfNeeded() error {
 	if !shareable.IsRestoringEnabled() {
 		return nil
 	}
@@ -172,10 +172,10 @@ func (c *graphicsContext) restoreIfNeeded() error {
 	return nil
 }
 
-func (c *graphicsContext) SuspendAudio() {
+func (c *uiContext) SuspendAudio() {
 	hooks.SuspendAudio()
 }
 
-func (c *graphicsContext) ResumeAudio() {
+func (c *uiContext) ResumeAudio() {
 	hooks.ResumeAudio()
 }
