@@ -384,11 +384,7 @@ func init() {
 	}))
 }
 
-func (u *UserInterface) Loop(ch <-chan error) error {
-	return <-ch
-}
-
-func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, mainloop bool, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
 	document.Set("title", title)
 	u.setScreenSize(width, height, scale, u.fullscreen)
 	canvas.Call("focus")
@@ -405,6 +401,10 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, cont
 		}
 	}()
 	return nil
+}
+
+func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
+	panic("js: RunWithoutMainLoop is not implemented")
 }
 
 func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {

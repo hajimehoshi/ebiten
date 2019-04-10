@@ -153,7 +153,29 @@ func (u *UserInterface) appMain(a app.App) {
 	}
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, mainloop bool, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+	go func() {
+		if err := u.run(width, height, scale, title, context, graphics, true); err != nil {
+			// As mobile apps never ends, Loop can't return. Just panic here.
+			panic(err)
+		}
+	}()
+	app.Main(u.appMain)
+	return nil
+}
+
+func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		if err := u.run(width, height, scale, title, context, graphics, false); err != nil {
+			ch <- err
+		}
+	}()
+	return ch
+}
+
+func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics, mainloop bool) error {
 	if graphics != opengl.Get() {
 		panic("ui: graphics driver must be OpenGL")
 	}
@@ -180,17 +202,6 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, cont
 			return err
 		}
 	}
-}
-
-// Loop runs the main routine for gomobile-build.
-func (u *UserInterface) Loop(ch <-chan error) error {
-	go func() {
-		// As mobile apps never ends, Loop can't return. Just panic here.
-		err := <-ch
-		panic(err)
-	}()
-	app.Main(u.appMain)
-	return nil
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {

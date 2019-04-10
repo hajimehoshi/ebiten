@@ -90,21 +90,6 @@ func IsRunningSlowly() bool {
 
 var theUIContext atomic.Value
 
-func run(width, height int, scale float64, title string, context *uiContext, mainloop bool) error {
-	atomic.StoreInt32(&isRunning, 1)
-	// On GopherJS, run returns immediately.
-	if !web.IsGopherJS() {
-		defer atomic.StoreInt32(&isRunning, 0)
-	}
-	if err := uiDriver().Run(width, height, scale, title, context, mainloop, graphicsDriver()); err != nil {
-		if err == driver.RegularTermination {
-			return nil
-		}
-		return err
-	}
-	return nil
-}
-
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -143,21 +128,22 @@ func run(width, height int, scale float64, title string, context *uiContext, mai
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
 	f = (&imageDumper{f: f}).update
 
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
+	c := newUIContext(f)
+	theUIContext.Store(c)
 
-		g := newUIContext(f)
-		theUIContext.Store(g)
-		if err := run(width, height, scale, title, g, true); err != nil {
-			ch <- err
-			return
+	atomic.StoreInt32(&isRunning, 1)
+	// On GopherJS, run returns immediately.
+	if !web.IsGopherJS() {
+		defer atomic.StoreInt32(&isRunning, 0)
+	}
+
+	if err := uiDriver().Run(width, height, scale, title, c, graphicsDriver()); err != nil {
+		if err == driver.RegularTermination {
+			return nil
 		}
-	}()
-	// TODO: Use context in Go 1.7?
-	if err := uiDriver().Loop(ch); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -169,18 +155,11 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	f = (&imageDumper{f: f}).update
 
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
+	c := newUIContext(f)
+	theUIContext.Store(c)
 
-		g := newUIContext(f)
-		theUIContext.Store(g)
-		if err := run(width, height, scale, title, g, false); err != nil {
-			ch <- err
-			return
-		}
-	}()
-	return ch
+	atomic.StoreInt32(&isRunning, 1)
+	return uiDriver().RunWithoutMainLoop(width, height, scale, title, c, graphicsDriver())
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.

@@ -39,8 +39,8 @@ type UI interface {
 	IsVsyncEnabled() bool
 	IsWindowDecorated() bool
 	IsWindowResizable() bool
-	Loop(ch <-chan error) error
-	Run(width, height int, scale float64, title string, context UIContext, mainloop bool, graphics Graphics) error
+	Run(width, height int, scale float64, title string, context UIContext, graphics Graphics) error
+	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext, graphics Graphics) <-chan error
 	ScreenPadding() (x0, y0, x1, y1 float64)
 	ScreenScale() float64
 	ScreenSizeInFullscreen() (int, int)

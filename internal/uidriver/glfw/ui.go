@@ -170,7 +170,7 @@ func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
 	return nil, false
 }
 
-func (u *UserInterface) Loop(ch <-chan error) error {
+func (u *UserInterface) mainThreadLoop(ch <-chan error) error {
 	u.setRunning(true)
 	if err := mainthread.Loop(ch); err != nil {
 		return err
@@ -555,7 +555,26 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return f
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, mainloop bool, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		if err := u.run(width, height, scale, title, context, graphics); err != nil {
+			ch <- err
+		}
+	}()
+
+	if err := u.mainThreadLoop(ch); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
+	panic("glfw: RunWithoutMainLoop is not implemented")
+}
+
+func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
 	_ = mainthread.Run(func() error {
 		u.graphics = graphics
 
