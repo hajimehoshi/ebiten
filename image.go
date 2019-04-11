@@ -547,8 +547,8 @@ func (i *Image) ColorModel() color.Model {
 //
 // At always returns a transparent color if the image is disposed.
 //
-// Note that important logic should not rely on At result since
-// At might include a very slight error on some machines.
+// Note that important logic should not rely on values returned by At, since
+// the returned values can include very slight differences between some machines.
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
