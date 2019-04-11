@@ -32,7 +32,7 @@ import (
 // How to solve path depends on your environment. This varies on your desktop or web browser.
 // Note that this doesn't work on mobiles.
 //
-// For productions, instead of using NewImageFromFile, it is safer to embed your resources, e.g., with github.com/jteeuwen/go-bindata .
+// For productions, instead of using NewImageFromFile, it is safer to embed your resources, e.g., with github.com/rakyll/statik .
 func NewImageFromFile(path string, filter ebiten.Filter) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
 	if err != nil {
