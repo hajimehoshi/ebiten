@@ -131,7 +131,7 @@ type Image struct {
 	bounds   image.Rectangle
 	original *Image
 
-	pixelsToSet []byte
+	pendingPixels []byte
 
 	filter Filter
 }
@@ -182,7 +182,7 @@ func (i *Image) Fill(clr color.Color) error {
 		panic("ebiten: render to a subimage is not implemented (Fill)")
 	}
 
-	i.resolvePixelsToSet(false)
+	i.resolvePendingPixels(false)
 
 	r16, g16, b16, a16 := clr.RGBA()
 	r, g, b, a := uint8(r16>>8), uint8(g16>>8), uint8(b16>>8), uint8(a16>>8)
@@ -254,8 +254,8 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		panic("ebiten: render to a subimage is not implemented (drawImage)")
 	}
 
-	img.resolvePixelsToSet(true)
-	i.resolvePixelsToSet(true)
+	img.resolvePendingPixels(true)
+	i.resolvePendingPixels(true)
 
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -454,8 +454,8 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		panic("ebiten: render to a subimage is not implemented (DrawTriangles)")
 	}
 
-	img.resolvePixelsToSet(true)
-	i.resolvePixelsToSet(true)
+	img.resolvePendingPixels(true)
+	i.resolvePendingPixels(true)
 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
@@ -562,7 +562,7 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
 		return color.RGBA{}
 	}
-	i.resolvePixelsToSet(true)
+	i.resolvePendingPixels(true)
 	r, g, b, a := i.mipmap.original().At(x, y)
 	return color.RGBA{r, g, b, a}
 }
@@ -591,7 +591,7 @@ func (img *Image) Set(x, y int, clr color.Color) {
 	}
 
 	w, h := img.Size()
-	if img.pixelsToSet == nil {
+	if img.pendingPixels == nil {
 		pix := make([]byte, 4*w*h)
 		idx := 0
 		for j := 0; j < h; j++ {
@@ -604,32 +604,32 @@ func (img *Image) Set(x, y int, clr color.Color) {
 				idx++
 			}
 		}
-		img.pixelsToSet = pix
+		img.pendingPixels = pix
 	}
 	r, g, b, a := clr.RGBA()
-	img.pixelsToSet[4*(x+y*w)] = byte(r >> 8)
-	img.pixelsToSet[4*(x+y*w)+1] = byte(g >> 8)
-	img.pixelsToSet[4*(x+y*w)+2] = byte(b >> 8)
-	img.pixelsToSet[4*(x+y*w)+3] = byte(a >> 8)
+	img.pendingPixels[4*(x+y*w)] = byte(r >> 8)
+	img.pendingPixels[4*(x+y*w)+1] = byte(g >> 8)
+	img.pendingPixels[4*(x+y*w)+2] = byte(b >> 8)
+	img.pendingPixels[4*(x+y*w)+3] = byte(a >> 8)
 }
 
-func (i *Image) resolvePixelsToSet(draw bool) {
+func (i *Image) resolvePendingPixels(draw bool) {
 	if i.isSubImage() {
-		i.original.resolvePixelsToSet(draw)
+		i.original.resolvePendingPixels(draw)
 		return
 	}
 
-	if i.pixelsToSet == nil {
+	if i.pendingPixels == nil {
 		return
 	}
 
 	if !draw {
-		i.pixelsToSet = nil
+		i.pendingPixels = nil
 		return
 	}
 
-	i.ReplacePixels(i.pixelsToSet)
-	i.pixelsToSet = nil
+	i.ReplacePixels(i.pendingPixels)
+	i.pendingPixels = nil
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -648,7 +648,7 @@ func (i *Image) Dispose() error {
 		return nil
 	}
 	i.mipmap.dispose()
-	i.resolvePixelsToSet(false)
+	i.resolvePendingPixels(false)
 	return nil
 }
 
@@ -672,7 +672,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (ReplacePixels)")
 	}
-	i.resolvePixelsToSet(false)
+	i.resolvePendingPixels(false)
 	s := i.Bounds().Size()
 	if l := 4 * s.X * s.Y; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
