@@ -83,6 +83,10 @@ func (i *Image) Size() (int, int) {
 }
 
 func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+	if src.screen {
+		panic("graphicscommand: the screen image cannot be the rendering source")
+	}
+
 	if i.lastCommand == lastCommandNone {
 		if !i.screen && mode != graphics.CompositeModeClear {
 			panic("graphicscommand: the image must be cleared first")

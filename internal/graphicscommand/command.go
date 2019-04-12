@@ -136,6 +136,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	q.nextIndex += len(vertices) / graphics.VertexFloatNum
 	q.tmpNumIndices += len(indices)
 
+	// TODO: If dst is the screen, reorder the command to be the last.
 	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, address, split)
 }
 
@@ -143,6 +144,7 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 //
 // For a draw-image command, use EnqueueDrawImageCommand.
 func (q *commandQueue) Enqueue(command command) {
+	// TODO: If dst is the screen, reorder the command to be the last.
 	q.commands = append(q.commands, command)
 }
 
