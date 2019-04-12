@@ -90,7 +90,8 @@ func quadVerticesImpl(sw, sh, x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, 
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
 	//
-	// 4*VertexFloatNum is better than 48, but in GopherJS, optimization might not work.
+	// 4*VertexFloatNum is better than 48 in terms of code maintenanceability, but in GopherJS, optimization
+	// might not work.
 	vs := theVerticesBackend.slice(4)[0:48]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y

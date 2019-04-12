@@ -185,6 +185,10 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
+// QuadVertices returns the vertices for rendering a quad.
+//
+// QuadVertices is highly optimized for rendering quads, and that's the most significant difference from
+// PutVertices.
 func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
 	if i.backend == nil {
 		i.allocate(true)
@@ -193,6 +197,7 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	return i.backend.restorable.QuadVertices(sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
+// PutVertices puts the given dest with vertices that can be passed to DrawImage.
 func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
