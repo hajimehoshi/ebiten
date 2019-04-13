@@ -76,7 +76,7 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 
 	sw, sh := emptyImage.Size()
 	r, g, b, a := clr.RGBA()
-	rf, gf, bf, af := float32(r/0xffff), float32(g/0xffff), float32(b/0xffff), float32(a/0xffff)
+	rf, gf, bf, af := float32(r)/0xffff, float32(g)/0xffff, float32(b)/0xffff, float32(a)/0xffff
 	for i, s := range p.segs {
 		si, co := math.Sincos(s.atan2() + math.Pi/2)
 		dx, dy := float32(co)*lineWidth/2, float32(si)*lineWidth/2

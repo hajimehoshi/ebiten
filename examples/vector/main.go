@@ -86,7 +86,7 @@ func update(screen *ebiten.Image) error {
 
 	op := &vector.DrawPathOptions{}
 	op.LineWidth = 4
-	op.StrokeColor = color.White
+	op.StrokeColor = color.RGBA{0xdb, 0x56, 0x20, 0xff}
 	path.Draw(screen, op)
 
 	return nil
