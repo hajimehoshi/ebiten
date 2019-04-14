@@ -19,6 +19,7 @@ package main
 import (
 	"image/color"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/vector"
@@ -83,11 +84,79 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.Draw(screen, op)
 }
 
+type roundingPoint struct {
+	cx     float32
+	cy     float32
+	r      float32
+	degree int
+}
+
+func (r *roundingPoint) Update() {
+	r.degree++
+	r.degree %= 360
+}
+
+func (r *roundingPoint) Position() (float32, float32) {
+	s, c := math.Sincos(float64(r.degree) / 360 * 2 * math.Pi)
+	return r.cx + r.r*float32(c), r.cy + r.r*float32(s)
+}
+
+func drawLinesByRoundingPoints(screen *ebiten.Image, points []*roundingPoint) {
+	if len(points) == 0 {
+		return
+	}
+
+	var path vector.Path
+
+	path.MoveTo(points[0].Position())
+	for i := 1; i < len(points); i++ {
+		path.LineTo(points[i].Position())
+	}
+
+	op := &vector.DrawPathOptions{}
+	op.LineWidth = 4
+	op.StrokeColor = color.White
+	path.Draw(screen, op)
+}
+
+var points = []*roundingPoint{
+	{
+		cx:     100,
+		cy:     120,
+		r:      10,
+		degree: 0,
+	},
+	{
+		cx:     120,
+		cy:     120,
+		r:      10,
+		degree: 90,
+	},
+	{
+		cx:     100,
+		cy:     140,
+		r:      10,
+		degree: 180,
+	},
+	{
+		cx:     120,
+		cy:     140,
+		r:      10,
+		degree: 270,
+	},
+}
+
 func update(screen *ebiten.Image) error {
+	for _, p := range points {
+		p.Update()
+	}
+
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
+
 	drawEbitenText(screen)
+	drawLinesByRoundingPoints(screen, points)
 	return nil
 }
 
