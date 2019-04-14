@@ -67,56 +67,53 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 		return nil, nil
 	}
 
-	sw, sh := emptyImage.Size()
 	r, g, b, a := clr.RGBA()
 	rf, gf, bf, af := float32(r)/0xffff, float32(g)/0xffff, float32(b)/0xffff, float32(a)/0xffff
-	idx := uint16(0)
 	for _, ss := range p.segs {
+		idx := uint16(len(vertices))
 		for i, s := range ss {
 			s0 := s.Translate(-lineWidth / 2)
 			s1 := s.Translate(lineWidth / 2)
 
-			v0 := s0.P0
-			v1 := s1.P0
+			if i == 0 {
+				v0 := s0.P0
+				v1 := s1.P0
+				vertices = append(vertices,
+					ebiten.Vertex{
+						DstX:   v0.X,
+						DstY:   v0.Y,
+						SrcX:   v0.X,
+						SrcY:   v0.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					},
+					ebiten.Vertex{
+						DstX:   v1.X,
+						DstY:   v1.Y,
+						SrcX:   v1.X,
+						SrcY:   v1.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					})
+			}
+
 			v2 := s0.P1
 			v3 := s1.P1
-			if i != 0 {
-				ps := ss[i-1]
-				v0 = ps.Translate(-lineWidth / 2).IntersectionAsLines(s0)
-				v1 = ps.Translate(lineWidth / 2).IntersectionAsLines(s1)
-			}
 			if i != len(ss)-1 {
 				ns := ss[i+1]
 				v2 = ns.Translate(-lineWidth / 2).IntersectionAsLines(s0)
 				v3 = ns.Translate(lineWidth / 2).IntersectionAsLines(s1)
 			}
-
 			vertices = append(vertices,
-				ebiten.Vertex{
-					DstX:   v0.X,
-					DstY:   v0.Y,
-					SrcX:   0,
-					SrcY:   0,
-					ColorR: rf,
-					ColorG: gf,
-					ColorB: bf,
-					ColorA: af,
-				},
-				ebiten.Vertex{
-					DstX:   v1.X,
-					DstY:   v1.Y,
-					SrcX:   float32(sw),
-					SrcY:   0,
-					ColorR: rf,
-					ColorG: gf,
-					ColorB: bf,
-					ColorA: af,
-				},
 				ebiten.Vertex{
 					DstX:   v2.X,
 					DstY:   v2.Y,
-					SrcX:   0,
-					SrcY:   float32(sh),
+					SrcX:   v2.X,
+					SrcY:   v2.Y,
 					ColorR: rf,
 					ColorG: gf,
 					ColorB: bf,
@@ -125,16 +122,16 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 				ebiten.Vertex{
 					DstX:   v3.X,
 					DstY:   v3.Y,
-					SrcX:   float32(sw),
-					SrcY:   float32(sh),
+					SrcX:   v3.X,
+					SrcY:   v3.Y,
 					ColorR: rf,
 					ColorG: gf,
 					ColorB: bf,
 					ColorA: af,
-				},
-			)
+				})
+
 			indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
-			idx += 4
+			idx += 2
 		}
 	}
 
@@ -156,6 +153,8 @@ func (p *Path) Draw(target *ebiten.Image, op *DrawPathOptions) {
 	// TODO: Implement filling
 	if op.StrokeColor != nil {
 		vs, is := p.strokeVertices(op.LineWidth, op.StrokeColor)
-		target.DrawTriangles(vs, is, emptyImage, nil)
+		op := &ebiten.DrawTrianglesOptions{}
+		op.Address = ebiten.AddressRepeat
+		target.DrawTriangles(vs, is, emptyImage, op)
 	}
 }
