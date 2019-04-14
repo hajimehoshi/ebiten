@@ -325,7 +325,7 @@ func (i *Input) setMouseCursorFromEvent(e js.Value) {
 func (i *Input) updateTouches(e js.Value) {
 	j := e.Get("targetTouches")
 	ts := map[int]pos{}
-	for i := 0; i < len(ts); i++ {
+	for i := 0; i < j.Length(); i++ {
 		jj := j.Call("item", i)
 		id := jj.Get("identifier").Int()
 		ts[id] = pos{
