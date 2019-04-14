@@ -29,25 +29,20 @@ const (
 	screenHeight = 480
 )
 
-func update(screen *ebiten.Image) error {
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func drawEbitenText(screen *ebiten.Image) {
 	var path vector.Path
 
 	// E
-	path.MoveTo(20, 20)
+	path.MoveTo(60, 20)
+	path.LineTo(20, 20)
 	path.LineTo(20, 60)
-	path.MoveTo(20, 20)
-	path.LineTo(60, 20)
+	path.LineTo(60, 60)
 	path.MoveTo(20, 40)
 	path.LineTo(60, 40)
-	path.MoveTo(20, 60)
-	path.LineTo(60, 60)
 
 	// B
-	path.MoveTo(80, 20)
+	path.MoveTo(110, 20)
+	path.LineTo(80, 20)
 	path.LineTo(80, 60)
 	path.LineTo(110, 60)
 	path.LineTo(120, 50)
@@ -69,14 +64,12 @@ func update(screen *ebiten.Image) error {
 	path.LineTo(180, 60)
 
 	// E
-	path.MoveTo(220, 20)
+	path.MoveTo(260, 20)
+	path.LineTo(220, 20)
 	path.LineTo(220, 60)
-	path.MoveTo(220, 20)
-	path.LineTo(260, 20)
+	path.LineTo(260, 60)
 	path.MoveTo(220, 40)
 	path.LineTo(260, 40)
-	path.MoveTo(220, 60)
-	path.LineTo(260, 60)
 
 	// N
 	path.MoveTo(280, 60)
@@ -85,10 +78,16 @@ func update(screen *ebiten.Image) error {
 	path.LineTo(320, 20)
 
 	op := &vector.DrawPathOptions{}
-	op.LineWidth = 4
+	op.LineWidth = 8
 	op.StrokeColor = color.RGBA{0xdb, 0x56, 0x20, 0xff}
 	path.Draw(screen, op)
+}
 
+func update(screen *ebiten.Image) error {
+	if ebiten.IsDrawingSkipped() {
+		return nil
+	}
+	drawEbitenText(screen)
 	return nil
 }
 

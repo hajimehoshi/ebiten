@@ -19,9 +19,9 @@ package vector
 
 import (
 	"image/color"
-	"math"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/vector/internal/math"
 )
 
 var emptyImage *ebiten.Image
@@ -36,44 +36,30 @@ func init() {
 	emptyImage.ReplacePixels(pix)
 }
 
-type point struct {
-	x float32
-	y float32
-}
-
-type segment struct {
-	p0 point
-	p1 point
-}
-
-func (s *segment) atan2() float64 {
-	return math.Atan2(float64(s.p1.y-s.p0.y), float64(s.p1.x-s.p0.x))
-}
-
 // Path represents a collection of paths.
 type Path struct {
-	segs [][]segment
-	cur  point
+	segs [][]math.Segment
+	cur  math.Point
 }
 
 // MoveTo skips the current position of the path to the given position (x, y) without adding any strokes.
 func (p *Path) MoveTo(x, y float32) {
-	p.cur = point{x, y}
+	p.cur = math.Point{x, y}
 	if len(p.segs) > 0 && len(p.segs[len(p.segs)-1]) == 0 {
 		return
 	}
-	p.segs = append(p.segs, []segment{})
+	p.segs = append(p.segs, []math.Segment{})
 }
 
-// LineTo adds a segment to the path, which starts from the current position and ends to the given position (x, y).
+// LineTo adds a math.Segment to the path, which starts from the current position and ends to the given position (x, y).
 //
 // LineTo updates the current position to (x, y).
 func (p *Path) LineTo(x, y float32) {
 	if len(p.segs) == 0 {
-		p.segs = append(p.segs, []segment{})
+		p.segs = append(p.segs, []math.Segment{})
 	}
-	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], segment{p.cur, point{x, y}})
-	p.cur = point{x, y}
+	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], math.Segment{p.cur, math.Point{x, y}})
+	p.cur = math.Point{x, y}
 }
 
 func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []ebiten.Vertex, indices []uint16) {
@@ -86,18 +72,29 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 	rf, gf, bf, af := float32(r)/0xffff, float32(g)/0xffff, float32(b)/0xffff, float32(a)/0xffff
 	idx := uint16(0)
 	for _, ss := range p.segs {
-		for _, s := range ss {
-			si, co := math.Sincos(s.atan2() + math.Pi/2)
-			dx, dy := float32(co)*lineWidth/2, float32(si)*lineWidth/2
-			v0 := point{s.p0.x + dx, s.p0.y + dy}
-			v1 := point{s.p0.x - dx, s.p0.y - dy}
-			v2 := point{s.p1.x + dx, s.p1.y + dy}
-			v3 := point{s.p1.x - dx, s.p1.y - dy}
+		for i, s := range ss {
+			s0 := s.Translate(-lineWidth / 2)
+			s1 := s.Translate(lineWidth / 2)
+
+			v0 := s0.P0
+			v1 := s1.P0
+			v2 := s0.P1
+			v3 := s1.P1
+			if i != 0 {
+				ps := ss[i-1]
+				v0 = ps.Translate(-lineWidth / 2).IntersectionAsLines(s0)
+				v1 = ps.Translate(lineWidth / 2).IntersectionAsLines(s1)
+			}
+			if i != len(ss)-1 {
+				ns := ss[i+1]
+				v2 = ns.Translate(-lineWidth / 2).IntersectionAsLines(s0)
+				v3 = ns.Translate(lineWidth / 2).IntersectionAsLines(s1)
+			}
 
 			vertices = append(vertices,
 				ebiten.Vertex{
-					DstX:   v0.x,
-					DstY:   v0.y,
+					DstX:   v0.X,
+					DstY:   v0.Y,
 					SrcX:   0,
 					SrcY:   0,
 					ColorR: rf,
@@ -106,8 +103,8 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 					ColorA: af,
 				},
 				ebiten.Vertex{
-					DstX:   v1.x,
-					DstY:   v1.y,
+					DstX:   v1.X,
+					DstY:   v1.Y,
 					SrcX:   float32(sw),
 					SrcY:   0,
 					ColorR: rf,
@@ -116,8 +113,8 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 					ColorA: af,
 				},
 				ebiten.Vertex{
-					DstX:   v2.x,
-					DstY:   v2.y,
+					DstX:   v2.X,
+					DstY:   v2.Y,
 					SrcX:   0,
 					SrcY:   float32(sh),
 					ColorR: rf,
@@ -126,8 +123,8 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 					ColorA: af,
 				},
 				ebiten.Vertex{
-					DstX:   v3.x,
-					DstY:   v3.y,
+					DstX:   v3.X,
+					DstY:   v3.Y,
 					SrcX:   float32(sw),
 					SrcY:   float32(sh),
 					ColorR: rf,
