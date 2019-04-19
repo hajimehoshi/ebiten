@@ -152,7 +152,3 @@ func (md MetalDrawable) Drawable() unsafe.Pointer { return md.metalDrawable }
 func (md MetalDrawable) Texture() mtl.Texture {
 	return mtl.NewTexture(C.MetalDrawable_Texture(md.metalDrawable))
 }
-
-func (md MetalDrawable) Release() {
-	C.MetalDrawable_Release(md.metalDrawable)
-}
