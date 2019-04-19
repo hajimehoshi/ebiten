@@ -89,3 +89,7 @@ void *MetalLayer_NextDrawable(void *metalLayer) {
 void *MetalDrawable_Texture(void *metalDrawable) {
   return ((id<CAMetalDrawable>)metalDrawable).texture;
 }
+
+void MetalDrawable_Release(void *metalDrawable) {
+  [(id<CAMetalDrawable>)metalDrawable release];
+}
