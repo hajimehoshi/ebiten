@@ -598,6 +598,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 			}
 			t = d.screenDrawable.Texture()
 		} else {
+			d.screenDrawable.Release()
 			d.screenDrawable = ca.MetalDrawable{}
 			t = d.dst.texture
 		}
