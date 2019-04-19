@@ -31,4 +31,3 @@ void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height);
 void *MetalLayer_NextDrawable(void *metalLayer);
 
 void *MetalDrawable_Texture(void *drawable);
-void MetalDrawable_Release(void *drawable);
