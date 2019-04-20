@@ -113,11 +113,6 @@ func (c *graphicsContext) Update(afterFrameUpdate func()) error {
 		afterFrameUpdate()
 	}
 
-	// Before clearing the screen, the offscreen's pixels must be resolved.
-	// After clearing the screen, resolving doesn't work. This is very hacky
-	// but we could not find other way so far (#792).
-	c.offscreen.resolvePixelsToSet(true)
-
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
 	c.screen.Clear()
 

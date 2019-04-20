@@ -329,6 +329,7 @@ func (d *Driver) Begin() {
 }
 
 func (d *Driver) End() {
+	d.flush(false, true)
 	mainthread.Run(func() error {
 		d.screenDrawable = ca.MetalDrawable{}
 		C.releaseAutoreleasePool(d.pool)
@@ -361,18 +362,16 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (d *Driver) Flush() {
-	d.flush(false)
+	// On Metal, flushing command buffers only once is enough. Do not call flush.
 }
 
-func (d *Driver) flush(wait bool) {
+func (d *Driver) flush(wait bool, present bool) {
 	mainthread.Run(func() error {
 		if d.cb == (mtl.CommandBuffer{}) {
 			return nil
 		}
 
-		// TODO: Calling PresentDrawable here is odd since flush is not related to preseinging.
-		// Call it at End().
-		if d.screenDrawable != (ca.MetalDrawable{}) {
+		if present && d.screenDrawable != (ca.MetalDrawable{}) {
 			d.cb.PresentDrawable(d.screenDrawable)
 		}
 		d.cb.Commit()
@@ -765,7 +764,7 @@ func (i *Image) syncTexture() {
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	i.driver.flush(true)
+	i.driver.flush(true, false)
 	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
@@ -793,7 +792,7 @@ func (i *Image) SetAsSource() {
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	i.driver.flush(true)
+	i.driver.flush(true, false)
 
 	mainthread.Run(func() error {
 		i.texture.ReplaceRegion(mtl.Region{
