@@ -312,16 +312,25 @@ func Get() *Driver {
 }
 
 func (d *Driver) Begin() {
-	// NSAutoreleasePool is required to release drawable correctly (#847).
-	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 	mainthread.Run(func() error {
+		// NSAutoreleasePool is required to release drawable correctly (#847).
+		// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 		d.pool = C.allocAutoreleasePool()
+
+		drawable, err := d.ml.NextDrawable()
+		if err != nil {
+			// Drawable is nil. This can happen at the initial state. Let's wait and see.
+			return nil
+		}
+		d.screenDrawable = drawable
+
 		return nil
 	})
 }
 
 func (d *Driver) End() {
 	mainthread.Run(func() error {
+		d.screenDrawable = ca.MetalDrawable{}
 		C.releaseAutoreleasePool(d.pool)
 		d.pool = nil
 		return nil
@@ -361,6 +370,8 @@ func (d *Driver) flush(wait bool) {
 			return nil
 		}
 
+		// TODO: Calling PresentDrawable here is odd since flush is not related to preseinging.
+		// Call it at End().
 		if d.screenDrawable != (ca.MetalDrawable{}) {
 			d.cb.PresentDrawable(d.screenDrawable)
 		}
@@ -370,7 +381,6 @@ func (d *Driver) flush(wait bool) {
 		}
 
 		d.cb = mtl.CommandBuffer{}
-		d.screenDrawable = ca.MetalDrawable{}
 
 		return nil
 	})
@@ -622,16 +632,8 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		}
 		var t mtl.Texture
 		if d.dst.screen {
-			if d.screenDrawable == (ca.MetalDrawable{}) {
-				drawable, err := d.ml.NextDrawable()
-				if err != nil {
-					return err
-				}
-				d.screenDrawable = drawable
-			}
 			t = d.screenDrawable.Texture()
 		} else {
-			d.screenDrawable = ca.MetalDrawable{}
 			t = d.dst.texture
 		}
 		rpd.ColorAttachments[0].Texture = t
