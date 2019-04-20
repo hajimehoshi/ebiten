@@ -33,6 +33,14 @@ type Driver struct {
 	context context
 }
 
+func (d *Driver) Begin() {
+	// Do nothing.
+}
+
+func (d *Driver) End() {
+	// Do nothing.
+}
+
 func (d *Driver) SetWindow(window uintptr) {
 	// Do nothing.
 }

@@ -159,6 +159,8 @@ func (q *commandQueue) Flush() {
 	if recordLog() {
 		fmt.Println("--")
 	}
+
+	theGraphicsDriver.Begin()
 	for len(q.commands) > 0 {
 		nv := 0
 		ne := 0
@@ -199,6 +201,7 @@ func (q *commandQueue) Flush() {
 		}
 		q.commands = q.commands[nc:]
 	}
+	theGraphicsDriver.End()
 	q.commands = nil
 	q.nvertices = 0
 	q.nindices = 0
