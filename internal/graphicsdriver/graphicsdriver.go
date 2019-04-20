@@ -20,6 +20,8 @@ import (
 )
 
 type GraphicsDriver interface {
+	Begin()
+	End()
 	SetWindow(window uintptr)
 	SetVertices(vertices []float32, indices []uint16)
 	Flush()

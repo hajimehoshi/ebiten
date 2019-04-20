@@ -30,6 +30,20 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/mainthread"
 )
 
+// #cgo CFLAGS: -x objective-c -mmacosx-version-min=10.11
+// #cgo LDFLAGS: -framework Foundation
+//
+// #import <Foundation/Foundation.h>
+//
+// static void* allocAutoreleasePool() {
+//   return [[NSAutoreleasePool alloc] init];
+// }
+//
+// static void releaseAutoreleasePool(void* pool) {
+//   [(NSAutoreleasePool*)pool release];
+// }
+import "C"
+
 const source = `#include <metal_stdlib>
 
 #define FILTER_NEAREST {{.FilterNearest}}
@@ -287,12 +301,31 @@ type Driver struct {
 	dst *Image
 
 	maxImageSize int
+
+	pool unsafe.Pointer
 }
 
 var theDriver Driver
 
 func Get() *Driver {
 	return &theDriver
+}
+
+func (d *Driver) Begin() {
+	// NSAutoreleasePool is required to release drawable correctly (#847).
+	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
+	mainthread.Run(func() error {
+		d.pool = C.allocAutoreleasePool()
+		return nil
+	})
+}
+
+func (d *Driver) End() {
+	mainthread.Run(func() error {
+		C.releaseAutoreleasePool(d.pool)
+		d.pool = nil
+		return nil
+	})
 }
 
 func (d *Driver) SetWindow(window uintptr) {

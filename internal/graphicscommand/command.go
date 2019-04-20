@@ -150,6 +150,8 @@ func (q *commandQueue) Flush() {
 	if recordLog() {
 		fmt.Println("--")
 	}
+
+	Driver().Begin()
 	for len(q.commands) > 0 {
 		nv := 0
 		ne := 0
@@ -190,6 +192,7 @@ func (q *commandQueue) Flush() {
 		}
 		q.commands = q.commands[nc:]
 	}
+	Driver().End()
 	q.commands = nil
 	q.nvertices = 0
 	q.nindices = 0
