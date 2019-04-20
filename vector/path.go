@@ -63,6 +63,8 @@ func (p *Path) LineTo(x, y float32) {
 }
 
 func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []ebiten.Vertex, indices []uint16) {
+	const miterLimit = 10
+
 	if len(p.segs) == 0 {
 		return nil, nil
 	}
@@ -103,35 +105,93 @@ func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []eb
 
 			v2 := s0.P1
 			v3 := s1.P1
+			cut := false
 			if i != len(ss)-1 {
 				ns := ss[i+1]
-				v2 = ns.Translate(-lineWidth / 2).IntersectionAsLines(s0)
-				v3 = ns.Translate(lineWidth / 2).IntersectionAsLines(s1)
+				nv2 := ns.Translate(-lineWidth / 2).IntersectionAsLines(s0)
+				nv3 := ns.Translate(lineWidth / 2).IntersectionAsLines(s1)
+				l := lineWidth / 2 * miterLimit
+				if (nv2.X-nv3.X)*(nv2.X-nv3.X)+(nv2.Y-nv3.Y)*(nv2.Y-nv3.Y) < l*l {
+					v2 = nv2
+					v3 = nv3
+				} else {
+					cut = true
+				}
 			}
-			vertices = append(vertices,
-				ebiten.Vertex{
-					DstX:   v2.X,
-					DstY:   v2.Y,
-					SrcX:   v2.X,
-					SrcY:   v2.Y,
-					ColorR: rf,
-					ColorG: gf,
-					ColorB: bf,
-					ColorA: af,
-				},
-				ebiten.Vertex{
-					DstX:   v3.X,
-					DstY:   v3.Y,
-					SrcX:   v3.X,
-					SrcY:   v3.Y,
-					ColorR: rf,
-					ColorG: gf,
-					ColorB: bf,
-					ColorA: af,
-				})
 
-			indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
-			idx += 2
+			if cut {
+				ns := ss[i+1]
+				s2 := ns.Translate(-lineWidth / 2)
+				s3 := ns.Translate(lineWidth / 2)
+				vertices = append(vertices,
+					ebiten.Vertex{
+						DstX:   s0.P1.X,
+						DstY:   s0.P1.Y,
+						SrcX:   s0.P1.X,
+						SrcY:   s0.P1.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					},
+					ebiten.Vertex{
+						DstX:   s1.P1.X,
+						DstY:   s1.P1.Y,
+						SrcX:   s1.P1.X,
+						SrcY:   s1.P1.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					},
+					ebiten.Vertex{
+						DstX:   s2.P0.X,
+						DstY:   s2.P0.Y,
+						SrcX:   s2.P0.X,
+						SrcY:   s2.P0.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					},
+					ebiten.Vertex{
+						DstX:   s3.P0.X,
+						DstY:   s3.P0.Y,
+						SrcX:   s3.P0.X,
+						SrcY:   s3.P0.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					})
+				indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3,
+					idx+2, idx+3, idx+4, idx+3, idx+4, idx+5)
+				idx += 4
+			} else {
+				vertices = append(vertices,
+					ebiten.Vertex{
+						DstX:   v2.X,
+						DstY:   v2.Y,
+						SrcX:   v2.X,
+						SrcY:   v2.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					},
+					ebiten.Vertex{
+						DstX:   v3.X,
+						DstY:   v3.Y,
+						SrcX:   v3.X,
+						SrcY:   v3.Y,
+						ColorR: rf,
+						ColorG: gf,
+						ColorB: bf,
+						ColorA: af,
+					})
+				indices = append(indices, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
+				idx += 2
+			}
 		}
 	}
 
