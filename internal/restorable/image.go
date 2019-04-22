@@ -78,8 +78,8 @@ func (p *Pixels) Slice() []byte {
 	return p.pixels
 }
 
-// drawImageHistoryItem is an item for history of draw-image commands.
-type drawImageHistoryItem struct {
+// drawTrianglesHistoryItem is an item for history of draw-image commands.
+type drawTrianglesHistoryItem struct {
 	image    *Image
 	vertices []float32
 	indices  []uint16
@@ -95,9 +95,9 @@ type Image struct {
 
 	basePixels *Pixels
 
-	// drawImageHistory is a set of draw-image commands.
+	// drawTrianglesHistory is a set of draw-image commands.
 	// TODO: This should be merged with the similar command queue in package graphics (#433).
-	drawImageHistory []*drawImageHistoryItem
+	drawTrianglesHistory []*drawTrianglesHistoryItem
 
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.
 	stale bool
@@ -189,7 +189,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 		af = float32(a) / 0xff
 	}
 
-	// There are not 'drawImageHistoryItem's for this image and emptyImage.
+	// There are not 'drawTrianglesHistoryItem's for this image and emptyImage.
 	// As emptyImage is a priority image, this is restored before other regular images are restored.
 	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
@@ -201,14 +201,14 @@ func (i *Image) fill(r, g, b, a uint8) {
 	if a == 0 {
 		c = graphics.CompositeModeClear
 	}
-	i.image.DrawImage(emptyImage.image, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
+	i.image.DrawTriangles(emptyImage.image, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
 
 	w, h := i.Size()
 	i.basePixels = &Pixels{
 		color:  color.RGBA{r, g, b, a},
 		length: 4 * w * h,
 	}
-	i.drawImageHistory = nil
+	i.drawTrianglesHistory = nil
 	i.stale = false
 }
 
@@ -260,7 +260,7 @@ func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, b
 // makeStale makes the image stale.
 func (i *Image) makeStale() {
 	i.basePixels = nil
-	i.drawImageHistory = nil
+	i.drawTrianglesHistory = nil
 	i.stale = true
 
 	// Don't have to call makeStale recursively here.
@@ -271,7 +271,7 @@ func (i *Image) makeStale() {
 
 func (i *Image) CopyPixels(src *Image) {
 	// TODO: Avoid making other images stale if possible. (#514)
-	// For this purpuse, images should remember which part of that is used for DrawImage.
+	// For this purpuse, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
 	i.image.CopyPixels(src.image)
@@ -293,7 +293,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	// TODO: Avoid making other images stale if possible. (#514)
-	// For this purpuse, images should remember which part of that is used for DrawImage.
+	// For this purpuse, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels == nil {
@@ -319,13 +319,13 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			// See restore() implementation.
 			i.basePixels = nil
 		}
-		i.drawImageHistory = nil
+		i.drawTrianglesHistory = nil
 		i.stale = false
 		return
 	}
 
-	if len(i.drawImageHistory) > 0 {
-		panic("restorable: ReplacePixels for a part after DrawImage is forbidden")
+	if len(i.drawTrianglesHistory) > 0 {
+		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
 	}
 
 	if i.stale {
@@ -352,10 +352,10 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 }
 
-// DrawImage draws a given image img to the image.
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+// DrawTriangles draws a given image img to the image.
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if i.priority {
-		panic("restorable: DrawImage cannot be called on a priority image")
+		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
 	if len(vertices) == 0 {
 		return
@@ -365,25 +365,25 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() || i.volatile {
 		i.makeStale()
 	} else {
-		i.appendDrawImageHistory(img, vertices, indices, colorm, mode, filter, address)
+		i.appendDrawTrianglesHistory(img, vertices, indices, colorm, mode, filter, address)
 	}
-	i.image.DrawImage(img.image, vertices, indices, colorm, mode, filter, address)
+	i.image.DrawTriangles(img.image, vertices, indices, colorm, mode, filter, address)
 }
 
-// appendDrawImageHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+// appendDrawTrianglesHistory appends a draw-image history item to the image.
+func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}
 	// TODO: Would it be possible to merge draw image history items?
-	const maxDrawImageHistoryNum = 1024
-	if len(i.drawImageHistory)+1 > maxDrawImageHistoryNum {
+	const maxDrawTrianglesHistoryNum = 1024
+	if len(i.drawTrianglesHistory)+1 > maxDrawTrianglesHistoryNum {
 		i.makeStale()
 		return
 	}
 	// All images must be resolved and not stale each after frame.
 	// So we don't have to care if image is stale or not here.
-	item := &drawImageHistoryItem{
+	item := &drawTrianglesHistoryItem{
 		image:    image,
 		vertices: vertices,
 		indices:  indices,
@@ -392,14 +392,14 @@ func (i *Image) appendDrawImageHistory(image *Image, vertices []float32, indices
 		filter:   filter,
 		address:  address,
 	}
-	i.drawImageHistory = append(i.drawImageHistory, item)
+	i.drawTrianglesHistory = append(i.drawTrianglesHistory, item)
 }
 
 func (i *Image) readPixelsFromGPUIfNeeded() {
-	if i.basePixels == nil || len(i.drawImageHistory) > 0 || i.stale {
+	if i.basePixels == nil || len(i.drawTrianglesHistory) > 0 || i.stale {
 		graphicscommand.FlushCommands()
 		i.readPixelsFromGPU()
-		i.drawImageHistory = nil
+		i.drawTrianglesHistory = nil
 		i.stale = false
 	}
 }
@@ -441,7 +441,7 @@ func (i *Image) readPixelsFromGPU() {
 		pixels: pix,
 		length: len(pix),
 	}
-	i.drawImageHistory = nil
+	i.drawTrianglesHistory = nil
 	i.stale = false
 }
 
@@ -465,7 +465,7 @@ func (i *Image) resolveStale() {
 
 // dependsOn returns a boolean value indicating whether the image depends on target.
 func (i *Image) dependsOn(target *Image) bool {
-	for _, c := range i.drawImageHistory {
+	for _, c := range i.drawTrianglesHistory {
 		if c.image == target {
 			return true
 		}
@@ -476,7 +476,7 @@ func (i *Image) dependsOn(target *Image) bool {
 // dependingImages returns all images that is depended by the image.
 func (i *Image) dependingImages() map[*Image]struct{} {
 	r := map[*Image]struct{}{}
-	for _, c := range i.drawImageHistory {
+	for _, c := range i.drawTrianglesHistory {
 		r[c.image] = struct{}{}
 	}
 	return r
@@ -487,7 +487,7 @@ func (i *Image) hasDependency() bool {
 	if i.stale {
 		return false
 	}
-	return len(i.drawImageHistory) > 0
+	return len(i.drawTrianglesHistory) > 0
 }
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
@@ -498,7 +498,7 @@ func (i *Image) restore() error {
 		// be changed.
 		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
 		i.basePixels = nil
-		i.drawImageHistory = nil
+		i.drawTrianglesHistory = nil
 		i.stale = false
 		return nil
 	}
@@ -520,11 +520,11 @@ func (i *Image) restore() error {
 		pix := make([]uint8, w*h*4)
 		gimg.ReplacePixels(pix, 0, 0, w, h)
 	}
-	for _, c := range i.drawImageHistory {
+	for _, c := range i.drawTrianglesHistory {
 		if c.image.hasDependency() {
 			panic("restorable: all dependencies must be already resolved but not")
 		}
-		gimg.DrawImage(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address)
+		gimg.DrawTriangles(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address)
 	}
 	i.image = gimg
 
@@ -533,7 +533,7 @@ func (i *Image) restore() error {
 		pixels: pix,
 		length: len(pix),
 	}
-	i.drawImageHistory = nil
+	i.drawTrianglesHistory = nil
 	i.stale = false
 	return nil
 }
@@ -547,7 +547,7 @@ func (i *Image) Dispose() {
 	i.image.Dispose()
 	i.image = nil
 	i.basePixels = nil
-	i.drawImageHistory = nil
+	i.drawTrianglesHistory = nil
 	i.stale = false
 }
 

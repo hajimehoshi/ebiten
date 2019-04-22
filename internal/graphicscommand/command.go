@@ -30,7 +30,7 @@ func SetGraphicsDriver(driver driver.Graphics) {
 
 // command represents a drawing command.
 //
-// A command for drawing that is created when Image functions are called like DrawImage,
+// A command for drawing that is created when Image functions are called like DrawTriangles,
 // or Fill.
 // A command is not immediately executed after created. Instaed, it is queued after created,
 // and executed only when necessary.
@@ -94,9 +94,9 @@ func (q *commandQueue) appendIndices(indices []uint16, offset uint16) {
 	q.nindices += len(indices)
 }
 
-func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address, forceNewCommand bool) {
+func (q *commandQueue) doEnqueueDrawTrianglesCommand(dst, src *Image, nvertices, nindices int, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address, forceNewCommand bool) {
 	if nindices > graphics.IndicesNum {
-		panic(fmt.Sprintf("graphicscommand: nindices must be <= graphics.IndicesNum but not at doEnqueueDrawImageCommand: nindices: %d, graphics.IndicesNum: %d", nindices, graphics.IndicesNum))
+		panic(fmt.Sprintf("graphicscommand: nindices must be <= graphics.IndicesNum but not at doEnqueueDrawTrianglesCommand: nindices: %d, graphics.IndicesNum: %d", nindices, graphics.IndicesNum))
 	}
 	if !forceNewCommand && 0 < len(q.commands) {
 		if last := q.commands[len(q.commands)-1]; last.CanMerge(dst, src, color, mode, filter, address) {
@@ -105,7 +105,7 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 			return
 		}
 	}
-	c := &drawImageCommand{
+	c := &drawTrianglesCommand{
 		dst:       dst,
 		src:       src,
 		nvertices: nvertices,
@@ -118,10 +118,10 @@ func (q *commandQueue) doEnqueueDrawImageCommand(dst, src *Image, nvertices, nin
 	q.commands = append(q.commands, c)
 }
 
-// EnqueueDrawImageCommand enqueues a drawing-image command.
-func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+// EnqueueDrawTrianglesCommand enqueues a drawing-image command.
+func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []float32, indices []uint16, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if len(indices) > graphics.IndicesNum {
-		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawImageCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
+		panic(fmt.Sprintf("graphicscommand: len(indices) must be <= graphics.IndicesNum but not at EnqueueDrawTrianglesCommand: len(indices): %d, graphics.IndicesNum: %d", len(indices), graphics.IndicesNum))
 	}
 
 	split := false
@@ -137,12 +137,12 @@ func (q *commandQueue) EnqueueDrawImageCommand(dst, src *Image, vertices []float
 	q.tmpNumIndices += len(indices)
 
 	// TODO: If dst is the screen, reorder the command to be the last.
-	q.doEnqueueDrawImageCommand(dst, src, len(vertices), len(indices), color, mode, filter, address, split)
+	q.doEnqueueDrawTrianglesCommand(dst, src, len(vertices), len(indices), color, mode, filter, address, split)
 }
 
 // Enqueue enqueues a drawing command other than a draw-image command.
 //
-// For a draw-image command, use EnqueueDrawImageCommand.
+// For a draw-image command, use EnqueueDrawTrianglesCommand.
 func (q *commandQueue) Enqueue(command command) {
 	// TODO: If dst is the screen, reorder the command to be the last.
 	q.commands = append(q.commands, command)
@@ -192,7 +192,7 @@ func (q *commandQueue) Flush() {
 			}
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is
-			// introduced than drawImageCommand.
+			// introduced than drawTrianglesCommand.
 			indexOffset += c.NumIndices()
 		}
 		if 0 < nc {
@@ -219,8 +219,8 @@ func FlushCommands() {
 	theCommandQueue.Flush()
 }
 
-// drawImageCommand represents a drawing command to draw an image on another image.
-type drawImageCommand struct {
+// drawTrianglesCommand represents a drawing command to draw an image on another image.
+type drawTrianglesCommand struct {
 	dst       *Image
 	src       *Image
 	nvertices int
@@ -231,12 +231,12 @@ type drawImageCommand struct {
 	address   graphics.Address
 }
 
-func (c *drawImageCommand) String() string {
+func (c *drawTrianglesCommand) String() string {
 	return fmt.Sprintf("draw-image: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d, address: %d", c.dst, c.src, c.color, c.mode, c.filter, c.address)
 }
 
-// Exec executes the drawImageCommand.
-func (c *drawImageCommand) Exec(indexOffset int) error {
+// Exec executes the drawTrianglesCommand.
+func (c *drawTrianglesCommand) Exec(indexOffset int) error {
 	// TODO: Is it ok not to bind any framebuffer here?
 	if c.nindices == 0 {
 		return nil
@@ -250,25 +250,25 @@ func (c *drawImageCommand) Exec(indexOffset int) error {
 	return nil
 }
 
-func (c *drawImageCommand) NumVertices() int {
+func (c *drawTrianglesCommand) NumVertices() int {
 	return c.nvertices
 }
 
-func (c *drawImageCommand) NumIndices() int {
+func (c *drawTrianglesCommand) NumIndices() int {
 	return c.nindices
 }
 
-func (c *drawImageCommand) AddNumVertices(n int) {
+func (c *drawTrianglesCommand) AddNumVertices(n int) {
 	c.nvertices += n
 }
 
-func (c *drawImageCommand) AddNumIndices(n int) {
+func (c *drawTrianglesCommand) AddNumIndices(n int) {
 	c.nindices += n
 }
 
-// CanMerge returns a boolean value indicating whether the other drawImageCommand can be merged
-// with the drawImageCommand c.
-func (c *drawImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
+// CanMerge returns a boolean value indicating whether the other drawTrianglesCommand can be merged
+// with the drawTrianglesCommand c.
+func (c *drawTrianglesCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool {
 	if c.dst != dst {
 		return false
 	}

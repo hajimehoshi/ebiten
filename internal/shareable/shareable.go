@@ -65,8 +65,8 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	s := b.page.Size()
 	newImg := restorable.NewImage(s, s)
 	oldImg := b.restorable
-	// Do not use DrawImage here. ReplacePixels will be called on a part of newImg later, and it looked like
-	// ReplacePixels on a part of image deletes other region that are rendered by DrawImage (#593, #758).
+	// Do not use DrawTriangles here. ReplacePixels will be called on a part of newImg later, and it looked like
+	// ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles (#593, #758).
 	newImg.CopyPixels(oldImg)
 	oldImg.Dispose()
 	b.restorable = newImg
@@ -132,7 +132,7 @@ func (i *Image) ensureNotShared() {
 	newImg := restorable.NewImage(w, h)
 	vs := i.backend.restorable.QuadVertices(x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	newImg.DrawImage(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -197,7 +197,7 @@ func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32,
 	return i.backend.restorable.QuadVertices(sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
-// PutVertices puts the given dest with vertices that can be passed to DrawImage.
+// PutVertices puts the given dest with vertices that can be passed to DrawTriangles.
 func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
@@ -209,15 +209,15 @@ func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1,
 
 const MaxCountForShare = 10
 
-func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if img.disposed {
-		panic("shareable: the drawing source image must not be disposed (DrawImage)")
+		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
 	}
 	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed (DrawImage)")
+		panic("shareable: the drawing target image must not be disposed (DrawTriangles)")
 	}
 	if img.backend == nil {
 		img.allocate(true)
@@ -228,10 +228,10 @@ func (i *Image) DrawImage(img *Image, vertices []float32, indices []uint16, colo
 	// Compare i and img after ensuring i is not shared, or
 	// i and img might share the same texture even though i != img.
 	if i.backend.restorable == img.backend.restorable {
-		panic("shareable: Image.DrawImage: img must be different from the receiver")
+		panic("shareable: Image.DrawTriangles: img must be different from the receiver")
 	}
 
-	i.backend.restorable.DrawImage(img.backend.restorable, vertices, indices, colorm, mode, filter, address)
+	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address)
 
 	i.countForShare = 0
 

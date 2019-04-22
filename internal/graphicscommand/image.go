@@ -25,7 +25,7 @@ type lastCommand int
 const (
 	lastCommandNone lastCommand = iota
 	lastCommandClear
-	lastCommandDrawImage
+	lastCommandDrawTriangles
 	lastCommandReplacePixels
 )
 
@@ -82,7 +82,7 @@ func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	if src.screen {
 		panic("graphicscommand: the screen image cannot be the rendering source")
 	}
@@ -93,12 +93,12 @@ func (i *Image) DrawImage(src *Image, vertices []float32, indices []uint16, clr 
 		}
 	}
 
-	theCommandQueue.EnqueueDrawImageCommand(i, src, vertices, indices, clr, mode, filter, address)
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear
 	} else {
-		i.lastCommand = lastCommandDrawImage
+		i.lastCommand = lastCommandDrawTriangles
 	}
 }
 
@@ -115,10 +115,10 @@ func (i *Image) Pixels() []byte {
 }
 
 func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
-	// ReplacePixels for a part might invalidate the current image that are drawn by DrawImage (#593, #738).
-	if i.lastCommand == lastCommandDrawImage {
+	// ReplacePixels for a part might invalidate the current image that are drawn by DrawTriangles (#593, #738).
+	if i.lastCommand == lastCommandDrawTriangles {
 		if x != 0 || y != 0 || i.width != width || i.height != height {
-			panic("graphicscommand: ReplacePixels for a part after DrawImage is forbidden")
+			panic("graphicscommand: ReplacePixels for a part after DrawTriangles is forbidden")
 		}
 	}
 	pixels := make([]byte, len(p))
@@ -137,9 +137,9 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 
 // CopyPixels is basically same as Pixels and ReplacePixels, but reading pixels from GPU is done lazily.
 func (i *Image) CopyPixels(src *Image) {
-	if i.lastCommand == lastCommandDrawImage {
+	if i.lastCommand == lastCommandDrawTriangles {
 		if i.width != src.width || i.height != src.height {
-			panic("graphicscommand: Copy for a part after DrawImage is forbidden")
+			panic("graphicscommand: Copy for a part after DrawTriangles is forbidden")
 		}
 	}
 

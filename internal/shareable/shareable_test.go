@@ -86,7 +86,7 @@ func TestEnsureNotShared(t *testing.T) {
 	// img4.ensureNotShared() should be called.
 	vs := img3.QuadVertices(0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	img4.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img4.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	want := false
 	if got := img4.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -109,7 +109,7 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img4.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 }
 
 func Disabled_TestReshared(t *testing.T) {
@@ -152,7 +152,7 @@ func Disabled_TestReshared(t *testing.T) {
 	// Use img1 as a render target.
 	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	img1.DrawImage(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img1.DrawTriangles(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	want = false
 	if got := img1.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -160,7 +160,7 @@ func Disabled_TestReshared(t *testing.T) {
 
 	// Use img1 as a render source.
 	for i := 0; i < MaxCountForShare-1; i++ {
-		img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+		img0.DrawTriangles(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 		want := false
 		if got := img1.IsSharedForTesting(); got != want {
 			t.Errorf("got: %v, want: %v", got, want)
@@ -178,7 +178,7 @@ func Disabled_TestReshared(t *testing.T) {
 		}
 	}
 
-	img0.DrawImage(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img0.DrawTriangles(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	want = true
 	if got := img1.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -197,7 +197,7 @@ func Disabled_TestReshared(t *testing.T) {
 
 	// Use img3 as a render source. img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
-		img0.DrawImage(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+		img0.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 		want := false
 		if got := img3.IsSharedForTesting(); got != want {
 			t.Errorf("got: %v, want: %v", got, want)
@@ -261,7 +261,7 @@ func TestExtend(t *testing.T) {
 	img1.Dispose()
 }
 
-func TestReplacePixelsAfterDrawImage(t *testing.T) {
+func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	const w, h = 256, 256
 	src := NewImage(w, h)
 	defer src.Dispose()
@@ -279,7 +279,7 @@ func TestReplacePixelsAfterDrawImage(t *testing.T) {
 
 	vs := src.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	dst.ReplacePixels(pix)
 
 	for j := 0; j < h; j++ {

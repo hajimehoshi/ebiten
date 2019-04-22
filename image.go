@@ -80,7 +80,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			vs = src.QuadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphics.QuadIndices()
-		s.DrawImage(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear, graphics.AddressClampToZero)
+		s.DrawTriangles(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear, graphics.AddressClampToZero)
 		imgs = append(imgs, s)
 		w = w2
 		h = h2
@@ -357,7 +357,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		src := img.mipmap.original()
 		vs := src.QuadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
+		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	} else if src := img.mipmap.level(bounds, level); src != nil {
 		w, h := src.Size()
 		s := 1 << uint(level)
@@ -367,7 +367,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		d *= float32(s)
 		vs := src.QuadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		i.mipmap.original().DrawImage(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
+		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	}
 	i.disposeMipmaps()
 }
@@ -487,7 +487,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			float32(r.Min.X), float32(r.Min.Y), float32(r.Max.X), float32(r.Max.Y),
 			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
-	i.mipmap.original().DrawImage(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter, graphics.Address(options.Address))
+	i.mipmap.original().DrawTriangles(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter, graphics.Address(options.Address))
 	i.disposeMipmaps()
 }
 

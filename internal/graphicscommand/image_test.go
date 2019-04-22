@@ -49,7 +49,7 @@ func TestClear(t *testing.T) {
 
 	vs := graphics.QuadVertices(w/2, h/2, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
 
 	pix := dst.Pixels()
 	for j := 0; j < h/2; j++ {
@@ -58,13 +58,13 @@ func TestClear(t *testing.T) {
 			got := color.RGBA{pix[idx], pix[idx+1], pix[idx+2], pix[idx+3]}
 			want := color.RGBA{}
 			if got != want {
-				t.Errorf("dst.At(%d, %d) after DrawImage: got %v, want: %v", i, j, got, want)
+				t.Errorf("dst.At(%d, %d) after DrawTriangles: got %v, want: %v", i, j, got, want)
 			}
 		}
 	}
 }
 
-func TestReplacePixelsPartAfterDrawImage(t *testing.T) {
+func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("ReplacePixels must panic but not")
@@ -76,7 +76,7 @@ func TestReplacePixelsPartAfterDrawImage(t *testing.T) {
 	dst := NewImage(w, h)
 	vs := graphics.QuadVertices(16, 16, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawImage(clr, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
-	dst.DrawImage(src, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(clr, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
