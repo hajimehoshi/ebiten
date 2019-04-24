@@ -42,8 +42,8 @@ func (m *mipmap) original() *shareable.Image {
 }
 
 func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
-	if level == 0 {
-		panic("ebiten: level must not be 0 (original image) at level")
+	if level <= 0 {
+		panic("ebiten: level must be positive at level")
 	}
 
 	imgs, ok := m.imgs[r]
@@ -335,6 +335,11 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 				continue
 			}
 			break
+		}
+
+		if level < 0 {
+			// As the render source is too small, nothing is rendered.
+			return
 		}
 	}
 	if level > 6 {
