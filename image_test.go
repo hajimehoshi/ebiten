@@ -1670,3 +1670,13 @@ func TestImageTooSmallMipmap(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestImageZeroSizedMipmap(t *testing.T) {
+	const w, h = 16, 16
+	src, _ := NewImage(w, h, FilterDefault)
+	dst, _ := NewImage(w, h, FilterDefault)
+
+	op := &DrawImageOptions{}
+	op.Filter = FilterLinear
+	dst.DrawImage(src.SubImage(image.ZR).(*Image), op)
+}
