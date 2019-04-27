@@ -85,30 +85,14 @@ func NewContext(sampleRate int) (*Context, error) {
 		panic("audio: context is already created")
 	}
 
-	ch := make(chan struct{})
-
 	c := &Context{
 		sampleRate: sampleRate,
-		c:          newContext(sampleRate, ch),
-		initCh:     ch,
+		c:          newContext(sampleRate),
+		initCh:     make(chan struct{}),
 	}
 	theContext = c
 	c.mux = newMux()
 
-	go c.loop()
-
-	return c, nil
-}
-
-// CurrentContext returns the current context or nil if there is no context.
-func CurrentContext() *Context {
-	theContextLock.Lock()
-	c := theContext
-	theContextLock.Unlock()
-	return c
-}
-
-func (c *Context) loop() {
 	h := getHook()
 	h.OnSuspendAudio(func() {
 		c.m.Lock()
@@ -138,6 +122,20 @@ func (c *Context) loop() {
 		return err
 	})
 
+	go c.loop()
+
+	return c, nil
+}
+
+// CurrentContext returns the current context or nil if there is no context.
+func CurrentContext() *Context {
+	theContextLock.Lock()
+	c := theContext
+	theContextLock.Unlock()
+	return c
+}
+
+func (c *Context) loop() {
 	<-c.initCh
 
 	defer c.c.Close()

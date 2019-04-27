@@ -93,13 +93,22 @@ func (p *otoPlayer) ensurePlayer() error {
 	return nil
 }
 
-func newContext(sampleRate int, initCh <-chan struct{}) context {
+func newContext(sampleRate int) context {
 	if contextForTesting != nil {
 		return contextForTesting
 	}
+
+	ch := make(chan struct{})
+	var once sync.Once
+	hooks.AppendHookOnBeforeUpdate(func() error {
+		once.Do(func() {
+			close(ch)
+		})
+		return nil
+	})
 	return &otoContext{
 		sampleRate: sampleRate,
-		initCh:     initCh,
+		initCh:     ch,
 	}
 }
 
