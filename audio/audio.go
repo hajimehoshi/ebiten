@@ -55,6 +55,7 @@ type Context struct {
 	mux        *mux
 	sampleRate int
 	err        error
+	suspended  bool
 	ready      bool
 
 	m sync.Mutex
@@ -108,14 +109,16 @@ func CurrentContext() *Context {
 }
 
 func (c *Context) loop() {
-	suspendCh := make(chan struct{}, 1)
-	resumeCh := make(chan struct{}, 1)
 	h := getHook()
 	h.OnSuspendAudio(func() {
-		suspendCh <- struct{}{}
+		c.m.Lock()
+		c.suspended = true
+		c.m.Unlock()
 	})
 	h.OnResumeAudio(func() {
-		resumeCh <- struct{}{}
+		c.m.Lock()
+		c.suspended = false
+		c.m.Unlock()
 	})
 
 	var once sync.Once
@@ -143,20 +146,22 @@ func (c *Context) loop() {
 	defer p.Close()
 
 	for {
-		select {
-		case <-suspendCh:
-			<-resumeCh
-		default:
-			if _, err := io.CopyN(p, c.mux, 2048); err != nil {
-				c.m.Lock()
-				c.err = err
-				c.m.Unlock()
-				return
-			}
-			c.m.Lock()
-			c.ready = true
-			c.m.Unlock()
+		c.m.Lock()
+		s := c.suspended
+		c.m.Unlock()
+		if s {
+			runtime.Gosched()
+			continue
 		}
+		if _, err := io.CopyN(p, c.mux, 2048); err != nil {
+			c.m.Lock()
+			c.err = err
+			c.m.Unlock()
+			return
+		}
+		c.m.Lock()
+		c.ready = true
+		c.m.Unlock()
 	}
 }
 
