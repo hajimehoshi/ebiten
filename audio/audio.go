@@ -49,12 +49,12 @@ import (
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	c      context
-	initCh chan struct{}
+	c context
 
 	mux        *mux
 	sampleRate int
 	err        error
+	inited     bool
 	suspended  bool
 	ready      bool
 
@@ -88,7 +88,6 @@ func NewContext(sampleRate int) (*Context, error) {
 	c := &Context{
 		sampleRate: sampleRate,
 		c:          newContext(sampleRate),
-		initCh:     make(chan struct{}),
 	}
 	theContext = c
 	c.mux = newMux()
@@ -105,11 +104,10 @@ func NewContext(sampleRate int) (*Context, error) {
 		c.m.Unlock()
 	})
 
-	var once sync.Once
 	h.AppendHookOnBeforeUpdate(func() error {
-		once.Do(func() {
-			close(c.initCh)
-		})
+		c.m.Lock()
+		c.inited = true
+		c.m.Unlock()
 
 		var err error
 		theContextLock.Lock()
@@ -135,19 +133,22 @@ func CurrentContext() *Context {
 	return c
 }
 
-func (c *Context) loop() {
-	<-c.initCh
+func (c *Context) playable() bool {
+	c.m.Lock()
+	i := c.inited
+	s := c.suspended
+	c.m.Unlock()
+	return i && !s
+}
 
+func (c *Context) loop() {
 	defer c.c.Close()
 
 	p := c.c.NewPlayer()
 	defer p.Close()
 
 	for {
-		c.m.Lock()
-		s := c.suspended
-		c.m.Unlock()
-		if s {
+		if !c.playable() {
 			runtime.Gosched()
 			continue
 		}
