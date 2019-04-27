@@ -341,6 +341,15 @@ func (p *Player) Close() error {
 
 func (p *playerImpl) Close() error {
 	p.mux.removePlayer(p)
+
+	p.m.Lock()
+	c := p.closedExplicitly
+	p.m.Unlock()
+	if c {
+		p.m.Unlock()
+		return fmt.Errorf("audio: the player is already closed")
+	}
+
 	p.m.Lock()
 	p.closedExplicitly = true
 	p.m.Unlock()
@@ -365,9 +374,13 @@ func (p *playerImpl) ensureReadLoop() error {
 }
 
 func (p *playerImpl) closeImpl() error {
-	if err := p.ensureReadLoop(); err != nil {
-		return err
+	p.m.Lock()
+	r := p.runningReadLoop
+	p.m.Unlock()
+	if !r {
+		return nil
 	}
+
 	p.closeCh <- struct{}{}
 	<-p.closedCh
 	return nil
