@@ -112,9 +112,7 @@ func (m *mux) Read(b []byte) (int, error) {
 		}
 	}
 	for _, p := range closed {
-		if p.isFinalized() {
-			p.closeImpl()
-		}
+		p.closeImpl()
 		delete(m.ps, p)
 	}
 
