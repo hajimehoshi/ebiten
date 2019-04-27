@@ -346,7 +346,6 @@ func (p *playerImpl) Close() error {
 	c := p.closedExplicitly
 	p.m.Unlock()
 	if c {
-		p.m.Unlock()
 		return fmt.Errorf("audio: the player is already closed")
 	}
 
