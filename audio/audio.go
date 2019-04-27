@@ -238,9 +238,10 @@ type playerImpl struct {
 	seekedCh        chan error
 	proceedCh       chan []int16
 	proceededCh     chan proceededValues
-	syncCh          chan func()
 
 	finalized bool
+
+	m sync.Mutex
 }
 
 type seekArgs struct {
@@ -286,7 +287,6 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 			seekedCh:        make(chan error),
 			proceedCh:       make(chan []int16),
 			proceededCh:     make(chan proceededValues),
-			syncCh:          make(chan func()),
 		},
 	}
 	if seeker, ok := p.p.src.(io.Seeker); ok {
@@ -334,16 +334,15 @@ func (p *Player) finalize() {
 }
 
 func (p *playerImpl) setFinalized(finalized bool) {
-	p.sync(func() {
-		p.finalized = finalized
-	})
+	p.m.Lock()
+	p.finalized = finalized
+	p.m.Unlock()
 }
 
 func (p *playerImpl) isFinalized() bool {
-	b := false
-	p.sync(func() {
-		b = p.finalized
-	})
+	p.m.Lock()
+	b := p.finalized
+	p.m.Unlock()
 	return b
 }
 
@@ -419,9 +418,13 @@ func (p *playerImpl) readLoop() {
 				panic("audio: the source must be io.Seeker when seeking")
 			}
 			pos, err := seeker.Seek(s.offset, s.whence)
+
+			p.m.Lock()
 			p.buf = nil
 			p.pos = pos
 			p.srcEOF = false
+			p.m.Unlock()
+
 			p.seekedCh <- err
 			if timer != nil {
 				timer.Stop()
@@ -431,12 +434,14 @@ func (p *playerImpl) readLoop() {
 
 		case <-timerCh:
 			// If the buffer has 1 second, that's enough.
+			p.m.Lock()
 			if len(p.buf) >= p.sampleRate*bytesPerSample {
 				if timer != nil {
 					timer.Stop()
 				}
 				timer = time.NewTimer(100 * time.Millisecond)
 				timerCh = timer.C
+				p.m.Unlock()
 				break
 			}
 
@@ -462,8 +467,11 @@ func (p *playerImpl) readLoop() {
 				}
 				timer = nil
 				timerCh = nil
+				p.m.Unlock()
 				break
 			}
+			p.m.Unlock()
+
 			if err != nil && err != io.EOF {
 				readErr = err
 				if timer != nil {
@@ -489,9 +497,11 @@ func (p *playerImpl) readLoop() {
 				return
 			}
 
+			p.m.Lock()
 			if p.shouldSkipImpl() {
 				// Return zero values.
 				p.proceededCh <- proceededValues{buf, nil}
+				p.m.Unlock()
 				break
 			}
 
@@ -507,35 +517,17 @@ func (p *playerImpl) readLoop() {
 			}
 			p.pos += int64(l)
 			p.buf = p.buf[l:]
+			p.m.Unlock()
 
 			p.proceededCh <- proceededValues{buf[:l/2], nil}
-
-		case f := <-p.syncCh:
-			f()
 		}
 	}
 }
 
-func (p *playerImpl) sync(f func()) bool {
-	ch := make(chan struct{})
-	ff := func() {
-		f()
-		close(ch)
-	}
-	select {
-	case p.syncCh <- ff:
-		<-ch
-		return true
-	case <-p.readLoopEndedCh:
-		return false
-	}
-}
-
 func (p *playerImpl) shouldSkip() bool {
-	r := false
-	p.sync(func() {
-		r = p.shouldSkipImpl()
-	})
+	p.m.Lock()
+	r := p.shouldSkipImpl()
+	p.m.Unlock()
 	return r
 }
 
@@ -552,18 +544,16 @@ func (p *playerImpl) shouldSkipImpl() bool {
 }
 
 func (p *playerImpl) bufferSizeInBytes() int {
-	s := 0
-	p.sync(func() {
-		s = len(p.buf)
-	})
+	p.m.Lock()
+	s := len(p.buf)
+	p.m.Unlock()
 	return s
 }
 
 func (p *playerImpl) eof() bool {
-	r := false
-	p.sync(func() {
-		r = p.eofImpl()
-	})
+	p.m.Lock()
+	r := p.eofImpl()
+	p.m.Unlock()
 	return r
 }
 
@@ -637,10 +627,9 @@ func (p *Player) Current() time.Duration {
 }
 
 func (p *playerImpl) Current() time.Duration {
-	sample := int64(0)
-	p.sync(func() {
-		sample = p.pos / bytesPerSample
-	})
+	p.m.Lock()
+	sample := p.pos / bytesPerSample
+	p.m.Unlock()
 	return time.Duration(sample) * time.Second / time.Duration(p.sampleRate)
 }
 
@@ -650,10 +639,9 @@ func (p *Player) Volume() float64 {
 }
 
 func (p *playerImpl) Volume() float64 {
-	v := 0.0
-	p.sync(func() {
-		v = p.volume
-	})
+	p.m.Lock()
+	v := p.volume
+	p.m.Unlock()
 	return v
 }
 
@@ -669,7 +657,7 @@ func (p *playerImpl) SetVolume(volume float64) {
 		panic("audio: volume must be in between 0 and 1")
 	}
 
-	p.sync(func() {
-		p.volume = volume
-	})
+	p.m.Lock()
+	p.volume = volume
+	p.m.Unlock()
 }
