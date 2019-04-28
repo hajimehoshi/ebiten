@@ -271,9 +271,6 @@ type proceededValues struct {
 //
 // NewPlayer takes the ownership of src. Player's Close calls src's Close.
 func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
-	//if context.mux.hasSource(src) {
-	//	return nil, errors.New("audio: src cannot be shared with another Player")
-	//}
 	p := &Player{
 		&playerImpl{
 			mux:         context.mux,
