@@ -240,6 +240,7 @@ type playerImpl struct {
 	src              io.ReadCloser
 	srcEOF           bool
 	sampleRate       int
+	playing          bool
 	closedExplicitly bool
 	runningReadLoop  bool
 
@@ -351,22 +352,20 @@ func (p *Player) Close() error {
 }
 
 func (p *playerImpl) Close() error {
-	p.mux.removePlayer(p)
-
 	p.m.Lock()
-	c := p.closedExplicitly
-	p.m.Unlock()
-	if c {
+	p.playing = false
+	p.mux.removePlayer(p)
+	if p.closedExplicitly {
+		p.m.Unlock()
 		return fmt.Errorf("audio: the player is already closed")
 	}
-
-	p.m.Lock()
 	p.closedExplicitly = true
-	p.m.Unlock()
 	// src.Close is called only when Player's Close is called.
 	if err := p.src.Close(); err != nil {
+		p.m.Unlock()
 		return err
 	}
+	p.m.Unlock()
 	return p.closeImpl()
 }
 
@@ -388,6 +387,7 @@ func (p *playerImpl) ensureReadLoop() error {
 func (p *playerImpl) closeImpl() error {
 	p.m.Lock()
 	defer p.m.Unlock()
+	p.playing = false
 	if !p.runningReadLoop {
 		return nil
 	}
@@ -416,7 +416,10 @@ func (p *Player) Play() error {
 }
 
 func (p *playerImpl) Play() {
+	p.m.Lock()
+	p.playing = true
 	p.mux.addPlayer(p)
+	p.m.Unlock()
 }
 
 func (p *playerImpl) readLoop() {
@@ -584,7 +587,10 @@ func (p *Player) IsPlaying() bool {
 }
 
 func (p *playerImpl) IsPlaying() bool {
-	return p.mux.hasPlayer(p)
+	p.m.Lock()
+	r := p.playing
+	p.m.Unlock()
+	return r
 }
 
 // Rewind rewinds the current position to the start.
@@ -635,7 +641,10 @@ func (p *Player) Pause() error {
 }
 
 func (p *playerImpl) Pause() {
+	p.m.Lock()
+	p.playing = false
 	p.mux.removePlayer(p)
+	p.m.Unlock()
 }
 
 // Current returns the current position.

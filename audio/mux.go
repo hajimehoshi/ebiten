@@ -143,10 +143,3 @@ func (m *mux) removePlayer(player *playerImpl) {
 	delete(m.ps, player)
 	m.m.Unlock()
 }
-
-func (m *mux) hasPlayer(player *playerImpl) bool {
-	m.m.RLock()
-	_, ok := m.ps[player]
-	m.m.RUnlock()
-	return ok
-}
