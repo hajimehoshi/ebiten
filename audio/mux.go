@@ -15,6 +15,7 @@
 package audio
 
 import (
+	"errors"
 	"io"
 	"runtime"
 	"sync"
@@ -42,6 +43,15 @@ func newMux() *mux {
 func (m *mux) Read(b []byte) (int, error) {
 	m.m.Lock()
 	defer m.m.Unlock()
+
+	// Check the source duplication
+	srcs := map[io.ReadCloser]struct{}{}
+	for p := range m.ps {
+		if _, ok := srcs[p.src]; ok {
+			return 0, errors.New("audio: a same source is used by multiple Player")
+		}
+		srcs[p.src] = struct{}{}
+	}
 
 	if len(m.ps) == 0 {
 		l := len(b)
@@ -136,15 +146,4 @@ func (m *mux) hasPlayer(player *playerImpl) bool {
 	_, ok := m.ps[player]
 	m.m.RUnlock()
 	return ok
-}
-
-func (m *mux) hasSource(src io.ReadCloser) bool {
-	m.m.RLock()
-	defer m.m.RUnlock()
-	for p := range m.ps {
-		if p.src == src {
-			return true
-		}
-	}
-	return false
 }

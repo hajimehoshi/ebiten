@@ -64,3 +64,31 @@ func TestGC(t *testing.T) {
 	}
 	t.Errorf("time out")
 }
+
+// Issue #853
+func TestSameSourcePlayers(t *testing.T) {
+	src := BytesReadSeekCloser(make([]byte, 4))
+	p0, err := NewPlayer(context, src)
+	if err != nil {
+		t.Error(err)
+	}
+	p1, err := NewPlayer(context, src)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// As the player does not play yet, error doesn't happen.
+	if err := UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+
+	p0.Play()
+	p1.Play()
+
+	// 200[ms] should be enough all the bytes are consumed.
+	// TODO: This is a darty hack. Would it be possible to use virtual time?
+	time.Sleep(200 * time.Millisecond)
+	if err := UpdateForTesting(); err == nil {
+		t.Errorf("got: nil, want: an error")
+	}
+}
