@@ -250,18 +250,13 @@ type playerImpl struct {
 
 	closeCh     chan struct{}
 	closedCh    chan struct{}
-	seekCh      chan seekArgs
-	seekedCh    chan error
+	seekCh      chan struct{}
+	seekedCh    chan struct{}
 	proceedCh   chan []int16
 	proceededCh chan proceededValues
 	syncCh      chan func()
 
 	m sync.Mutex
-}
-
-type seekArgs struct {
-	offset int64
-	whence int
 }
 
 type proceededValues struct {
@@ -294,8 +289,8 @@ func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 			volume:      1,
 			closeCh:     make(chan struct{}),
 			closedCh:    make(chan struct{}),
-			seekCh:      make(chan seekArgs),
-			seekedCh:    make(chan error),
+			seekCh:      make(chan struct{}),
+			seekedCh:    make(chan struct{}),
 			proceedCh:   make(chan []int16),
 			proceededCh: make(chan proceededValues),
 		},
@@ -432,20 +427,8 @@ func (p *playerImpl) readLoop() {
 			p.closedCh <- struct{}{}
 			return
 
-		case s := <-p.seekCh:
-			seeker, ok := p.src.(io.Seeker)
-			if !ok {
-				panic("audio: the source must be io.Seeker when seeking")
-			}
-			pos, err := seeker.Seek(s.offset, s.whence)
-
-			p.m.Lock()
-			p.buf = nil
-			p.pos = pos
-			p.srcEOF = false
-			p.m.Unlock()
-
-			p.seekedCh <- err
+		case <-p.seekCh:
+			p.seekedCh <- struct{}{}
 			if timer != nil {
 				timer.Stop()
 			}
@@ -626,10 +609,27 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 		return err
 	}
 
+	p.m.Lock()
+	defer p.m.Unlock()
+
 	o := int64(offset) * bytesPerSample * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
-	p.seekCh <- seekArgs{o, io.SeekStart}
-	return <-p.seekedCh
+
+	seeker, ok := p.src.(io.Seeker)
+	if !ok {
+		panic("audio: the source must be io.Seeker when seeking")
+	}
+	pos, err := seeker.Seek(o, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	p.buf = nil
+	p.pos = pos
+	p.srcEOF = false
+	p.seekCh <- struct{}{}
+	<-p.seekedCh
+	return nil
 }
 
 // Pause pauses the playing.
