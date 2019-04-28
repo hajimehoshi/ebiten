@@ -87,6 +87,9 @@ func (m *mux) Read(b []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+		if l > len(buf)*2 {
+			l = len(buf) * 2
+		}
 		b16s = append(b16s, buf)
 	}
 
