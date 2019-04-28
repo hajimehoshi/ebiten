@@ -141,6 +141,19 @@ func (c *Context) playable() bool {
 	return i && !s
 }
 
+func (c *Context) setError(err error) {
+	// TODO: What if c.err already exists?
+	c.m.Lock()
+	c.err = err
+	c.m.Unlock()
+}
+
+func (c *Context) setReady() {
+	c.m.Lock()
+	c.ready = true
+	c.m.Unlock()
+}
+
 func (c *Context) loop() {
 	defer c.c.Close()
 
@@ -153,14 +166,10 @@ func (c *Context) loop() {
 			continue
 		}
 		if _, err := io.CopyN(p, c.mux, 2048); err != nil {
-			c.m.Lock()
-			c.err = err
-			c.m.Unlock()
+			c.setError(err)
 			return
 		}
-		c.m.Lock()
-		c.ready = true
-		c.m.Unlock()
+		c.setReady()
 	}
 }
 
@@ -367,6 +376,8 @@ func (p *playerImpl) ensureReadLoop() error {
 	if p.closedExplicitly {
 		return fmt.Errorf("audio: the player is already closed")
 	}
+	// TODO: This is not exactly atomic: there is a little chance not to run the loop even though the current
+	// loop is about to end. Fix this.
 	if p.runningReadLoop {
 		return nil
 	}
