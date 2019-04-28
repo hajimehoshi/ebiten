@@ -44,7 +44,7 @@ func init() {
 }
 
 type dummyHook struct {
-	update func() error
+	updates []func() error
 }
 
 func (h *dummyHook) OnSuspendAudio(f func()) {
@@ -54,7 +54,7 @@ func (h *dummyHook) OnResumeAudio(f func()) {
 }
 
 func (h *dummyHook) AppendHookOnBeforeUpdate(f func() error) {
-	h.update = f
+	h.updates = append(h.updates, f)
 }
 
 func init() {
@@ -62,5 +62,10 @@ func init() {
 }
 
 func UpdateForTesting() error {
-	return hookForTesting.(*dummyHook).update()
+	for _, f := range hookForTesting.(*dummyHook).updates {
+		if err := f(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
