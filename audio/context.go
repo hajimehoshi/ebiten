@@ -19,6 +19,8 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/oto"
+
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 )
 
 type context interface {
@@ -99,4 +101,33 @@ func newContext(sampleRate int, initCh <-chan struct{}) context {
 		sampleRate: sampleRate,
 		initCh:     initCh,
 	}
+}
+
+type hook interface {
+	OnSuspendAudio(f func())
+	OnResumeAudio(f func())
+	AppendHookOnBeforeUpdate(f func() error)
+}
+
+var hookForTesting hook
+
+func getHook() hook {
+	if hookForTesting != nil {
+		return hookForTesting
+	}
+	return &hookImpl{}
+}
+
+type hookImpl struct{}
+
+func (h *hookImpl) OnSuspendAudio(f func()) {
+	hooks.OnSuspendAudio(f)
+}
+
+func (h *hookImpl) OnResumeAudio(f func()) {
+	hooks.OnResumeAudio(f)
+}
+
+func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
+	hooks.AppendHookOnBeforeUpdate(f)
 }

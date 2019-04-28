@@ -42,3 +42,25 @@ func (p *dummyPlayer) Close() error {
 func init() {
 	contextForTesting = &dummyContext{}
 }
+
+type dummyHook struct {
+	update func() error
+}
+
+func (h *dummyHook) OnSuspendAudio(f func()) {
+}
+
+func (h *dummyHook) OnResumeAudio(f func()) {
+}
+
+func (h *dummyHook) AppendHookOnBeforeUpdate(f func() error) {
+	h.update = f
+}
+
+func init() {
+	hookForTesting = &dummyHook{}
+}
+
+func UpdateForTesting() error {
+	return hookForTesting.(*dummyHook).update()
+}

@@ -40,7 +40,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -112,15 +111,16 @@ func CurrentContext() *Context {
 func (c *Context) loop() {
 	suspendCh := make(chan struct{}, 1)
 	resumeCh := make(chan struct{}, 1)
-	hooks.OnSuspendAudio(func() {
+	h := getHook()
+	h.OnSuspendAudio(func() {
 		suspendCh <- struct{}{}
 	})
-	hooks.OnResumeAudio(func() {
+	h.OnResumeAudio(func() {
 		resumeCh <- struct{}{}
 	})
 
 	var once sync.Once
-	hooks.AppendHookOnBeforeUpdate(func() error {
+	h.AppendHookOnBeforeUpdate(func() error {
 		once.Do(func() {
 			close(c.initCh)
 		})
