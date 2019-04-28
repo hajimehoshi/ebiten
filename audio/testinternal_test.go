@@ -16,8 +16,8 @@ package audio
 
 func PlayersNumForTesting() int {
 	c := CurrentContext()
-	c.mux.m.Lock()
-	n := len(c.mux.ps)
-	c.mux.m.Unlock()
+	c.m.Lock()
+	n := len(c.players)
+	c.m.Unlock()
 	return n
 }

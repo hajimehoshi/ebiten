@@ -33,13 +33,17 @@ package audio
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
 	"sync"
 	"time"
+)
 
-	"github.com/hajimehoshi/ebiten/internal/web"
+const (
+	channelNum     = 2
+	bytesPerSample = 2 * channelNum
 )
 
 // A Context represents a current state of audio.
@@ -51,12 +55,13 @@ import (
 type Context struct {
 	c context
 
-	mux        *mux
 	sampleRate int
 	err        error
 	inited     bool
 	suspended  bool
 	ready      bool
+
+	players map[*playerImpl]struct{}
 
 	m sync.Mutex
 }
@@ -88,9 +93,9 @@ func NewContext(sampleRate int) (*Context, error) {
 	c := &Context{
 		sampleRate: sampleRate,
 		c:          newContext(sampleRate),
+		players:    map[*playerImpl]struct{}{},
 	}
 	theContext = c
-	c.mux = newMux()
 
 	h := getHook()
 	h.OnSuspendAudio(func() {
@@ -105,6 +110,7 @@ func NewContext(sampleRate int) (*Context, error) {
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
+		// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
 		c.m.Lock()
 		c.inited = true
 		c.m.Unlock()
@@ -119,8 +125,6 @@ func NewContext(sampleRate int) (*Context, error) {
 		theContextLock.Unlock()
 		return err
 	})
-
-	go c.loop()
 
 	return c, nil
 }
@@ -141,6 +145,13 @@ func (c *Context) playable() bool {
 	return i && !s
 }
 
+func (c *Context) hasError() bool {
+	c.m.Lock()
+	r := c.err != nil
+	c.m.Unlock()
+	return r
+}
+
 func (c *Context) setError(err error) {
 	// TODO: What if c.err already exists?
 	c.m.Lock()
@@ -154,23 +165,26 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) loop() {
-	defer c.c.Close()
+func (c *Context) addPlayer(p *playerImpl) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.players[p] = struct{}{}
 
-	p := c.c.NewPlayer()
-	defer p.Close()
-
-	for {
-		if !c.playable() {
-			runtime.Gosched()
-			continue
-		}
-		if _, err := io.CopyN(p, c.mux, 2048); err != nil {
-			c.setError(err)
+	// Check the source duplication
+	srcs := map[io.ReadCloser]struct{}{}
+	for p := range c.players {
+		if _, ok := srcs[p.src]; ok {
+			c.err = errors.New("audio: a same source is used by multiple Player")
 			return
 		}
-		c.setReady()
+		srcs[p.src] = struct{}{}
 	}
+}
+
+func (c *Context) removePlayer(p *playerImpl) {
+	c.m.Lock()
+	delete(c.players, p)
+	c.m.Unlock()
 }
 
 // IsReady returns a boolean value indicating whether the audio is ready or not.
@@ -236,9 +250,8 @@ type Player struct {
 }
 
 type playerImpl struct {
-	mux              *mux
+	context          *Context
 	src              io.ReadCloser
-	srcEOF           bool
 	sampleRate       int
 	playing          bool
 	closedExplicitly bool
@@ -248,20 +261,7 @@ type playerImpl struct {
 	pos    int64
 	volume float64
 
-	closeCh     chan struct{}
-	closedCh    chan struct{}
-	seekCh      chan struct{}
-	seekedCh    chan struct{}
-	proceedCh   chan []int16
-	proceededCh chan proceededValues
-	syncCh      chan func()
-
 	m sync.Mutex
-}
-
-type proceededValues struct {
-	buf []int16
-	err error
 }
 
 // NewPlayer creates a new player with the given stream.
@@ -282,17 +282,10 @@ type proceededValues struct {
 func NewPlayer(context *Context, src io.ReadCloser) (*Player, error) {
 	p := &Player{
 		&playerImpl{
-			mux:         context.mux,
-			src:         src,
-			sampleRate:  context.sampleRate,
-			buf:         nil,
-			volume:      1,
-			closeCh:     make(chan struct{}),
-			closedCh:    make(chan struct{}),
-			seekCh:      make(chan struct{}),
-			seekedCh:    make(chan struct{}),
-			proceedCh:   make(chan []int16),
-			proceededCh: make(chan proceededValues),
+			context:    context,
+			src:        src,
+			sampleRate: context.sampleRate,
+			volume:     1,
 		},
 	}
 	if seeker, ok := p.p.src.(io.Seeker); ok {
@@ -348,60 +341,25 @@ func (p *Player) Close() error {
 
 func (p *playerImpl) Close() error {
 	p.m.Lock()
+	defer p.m.Unlock()
+
 	p.playing = false
-	p.mux.removePlayer(p)
 	if p.closedExplicitly {
-		p.m.Unlock()
 		return fmt.Errorf("audio: the player is already closed")
 	}
 	p.closedExplicitly = true
 	// src.Close is called only when Player's Close is called.
 	if err := p.src.Close(); err != nil {
-		p.m.Unlock()
 		return err
 	}
-	p.m.Unlock()
-	return p.closeImpl()
-}
 
-func (p *playerImpl) ensureReadLoop() error {
-	p.m.Lock()
-	defer p.m.Unlock()
-	if p.closedExplicitly {
-		return fmt.Errorf("audio: the player is already closed")
-	}
-	if p.runningReadLoop {
+	if !p.runningReadLoop {
 		return nil
 	}
 
-	// Set runningReadLoop true here, not in the loop, or this causes deadlock with channels in Seek.
-	// While the for loop doesn't start, Seeks tries to send something to the channels.
-	// The for loop must start without any locking.
-	p.runningReadLoop = true
-	go p.readLoop()
+	// p.runningReadLoop is set to false in the loop.
+
 	return nil
-}
-
-func (p *playerImpl) closeImpl() error {
-	p.m.Lock()
-	r := p.runningReadLoop
-	p.m.Unlock()
-	if !r {
-		return nil
-	}
-
-	p.closeCh <- struct{}{}
-	<-p.closedCh
-	return nil
-}
-
-func (p *playerImpl) bufferToInt16(lengthInBytes int) ([]int16, error) {
-	if err := p.ensureReadLoop(); err != nil {
-		return nil, err
-	}
-	p.proceedCh <- make([]int16, lengthInBytes/2)
-	r := <-p.proceededCh
-	return r.buf, r.err
 }
 
 // Play plays the stream.
@@ -414,163 +372,115 @@ func (p *Player) Play() error {
 
 func (p *playerImpl) Play() {
 	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.closedExplicitly {
+		p.context.setError(fmt.Errorf("audio: the player is already closed"))
+		return
+	}
+
 	p.playing = true
-	p.mux.addPlayer(p)
-	p.m.Unlock()
+	if p.runningReadLoop {
+		return
+	}
+
+	// Set p.runningReadLoop to true here, not in the loop. This prevents duplicated active loops.
+	p.runningReadLoop = true
+	p.context.addPlayer(p)
+
+	go p.loop()
+	return
 }
 
-func (p *playerImpl) readLoop() {
+func (p *playerImpl) loop() {
+	w := p.context.c.NewPlayer()
+	wclosed := make(chan struct{})
+	defer func() {
+		<-wclosed
+		w.Close()
+	}()
+
 	defer func() {
 		p.m.Lock()
 		p.playing = false
+		p.context.removePlayer(p)
 		p.runningReadLoop = false
 		p.m.Unlock()
 	}()
 
-	timer := time.NewTimer(0)
-	timerCh := timer.C
-	var readErr error
-	for {
-		select {
-		case <-p.closeCh:
-			p.closedCh <- struct{}{}
-			return
+	ch := make(chan []byte)
+	defer close(ch)
 
-		case <-p.seekCh:
-			p.seekedCh <- struct{}{}
-			if timer != nil {
-				timer.Stop()
-			}
-			timer = time.NewTimer(time.Millisecond)
-			timerCh = timer.C
-
-		case <-timerCh:
-			// If the buffer has 1 second, that's enough.
-			p.m.Lock()
-			if len(p.buf) >= p.sampleRate*bytesPerSample {
-				if timer != nil {
-					timer.Stop()
-				}
-				timer = time.NewTimer(100 * time.Millisecond)
-				timerCh = timer.C
-				p.m.Unlock()
+	go func() {
+		for buf := range ch {
+			if _, err := w.Write(buf); err != nil {
+				p.context.setError(err)
 				break
 			}
-
-			// Try to read the buffer for 1/60[s].
-			s := 60
-			if web.IsAndroidChrome() {
-				s = 10
-			} else if web.IsBrowser() {
-				s = 20
-			}
-			l := p.sampleRate * bytesPerSample / s
-			l &= mask
-			buf := make([]byte, l)
-			n, err := p.src.Read(buf)
-
-			p.buf = append(p.buf, buf[:n]...)
-			if err == io.EOF {
-				p.srcEOF = true
-			}
-			if p.srcEOF && len(p.buf) == 0 {
-				if timer != nil {
-					timer.Stop()
-				}
-				timer = nil
-				timerCh = nil
-				p.m.Unlock()
-				break
-			}
-			p.m.Unlock()
-
-			if err != nil && err != io.EOF {
-				readErr = err
-				if timer != nil {
-					timer.Stop()
-				}
-				timer = nil
-				timerCh = nil
-				break
-			}
-			if timer != nil {
-				timer.Stop()
-			}
-			if web.IsBrowser() {
-				timer = time.NewTimer(10 * time.Millisecond)
-			} else {
-				timer = time.NewTimer(time.Millisecond)
-			}
-			timerCh = timer.C
-
-		case buf := <-p.proceedCh:
-			if readErr != nil {
-				p.proceededCh <- proceededValues{buf, readErr}
-				return
-			}
-
-			p.m.Lock()
-			if p.shouldSkipImpl() {
-				// Return zero values.
-				p.proceededCh <- proceededValues{buf, nil}
-				p.m.Unlock()
-				break
-			}
-
-			lengthInBytes := len(buf) * 2
-			l := lengthInBytes
-
-			if l > len(p.buf) {
-				l = len(p.buf)
-			}
-			for i := 0; i < l/2; i++ {
-				buf[i] = int16(p.buf[2*i]) | (int16(p.buf[2*i+1]) << 8)
-				buf[i] = int16(float64(buf[i]) * p.volume)
-			}
-			p.pos += int64(l)
-			p.buf = p.buf[l:]
-			p.m.Unlock()
-
-			p.proceededCh <- proceededValues{buf[:l/2], nil}
 		}
+		close(wclosed)
+	}()
+
+	for {
+		buf, ok := p.read()
+		if !ok {
+			return
+		}
+		ch <- buf
 	}
 }
 
-func (p *playerImpl) shouldSkip() bool {
+func (p *playerImpl) read() ([]byte, bool) {
 	p.m.Lock()
-	r := p.shouldSkipImpl()
-	p.m.Unlock()
-	return r
-}
+	defer p.m.Unlock()
 
-func (p *playerImpl) shouldSkipImpl() bool {
-	// When p.buf is nil, the player just starts playing or seeking.
-	// Note that this is different from len(p.buf) == 0 && p.buf != nil.
-	if p.buf == nil {
-		return true
+	if p.context.hasError() {
+		return nil, false
 	}
-	if p.eofImpl() {
-		return true
+
+	if p.closedExplicitly {
+		return nil, false
 	}
-	return false
-}
 
-func (p *playerImpl) bufferSizeInBytes() int {
-	p.m.Lock()
-	s := len(p.buf)
-	p.m.Unlock()
-	return s
-}
+	const bufSize = 2048
 
-func (p *playerImpl) eof() bool {
-	p.m.Lock()
-	r := p.eofImpl()
-	p.m.Unlock()
-	return r
-}
+	var buf []byte
+	var err error
+	var proceed int64
+	if p.playing && p.context.playable() {
+		newBuf := make([]byte, bufSize-len(p.buf))
+		n := 0
+		n, err = p.src.Read(newBuf)
+		buf = append(p.buf, newBuf[:n]...)
 
-func (p *playerImpl) eofImpl() bool {
-	return p.srcEOF && len(p.buf) == 0
+		n2 := len(buf) - len(buf)%bytesPerSample
+		buf, p.buf = buf[:n2], buf[n2:]
+
+		proceed = int64(len(buf))
+	} else {
+		// Fill zero values, or the driver can block forever as trying to proceed.
+		buf = make([]byte, bufSize)
+	}
+
+	if err == io.EOF && len(buf) == 0 {
+		return nil, false
+	}
+
+	if err != nil && err != io.EOF {
+		p.context.setError(err)
+		return nil, false
+	}
+
+	for i := 0; i < len(buf)/2; i++ {
+		v16 := int16(buf[2*i]) | (int16(buf[2*i+1]) << 8)
+		v16 = int16(float64(v16) * p.volume)
+		buf[2*i] = byte(v16)
+		buf[2*i+1] = byte(v16 >> 8)
+	}
+	p.pos += proceed
+	p.context.setReady()
+
+	return buf, true
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
@@ -614,13 +524,12 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 	if _, ok := p.src.(io.Seeker); !ok {
 		panic("audio: player to be sought must be io.Seeker")
 	}
-	if err := p.ensureReadLoop(); err != nil {
-		return err
-	}
 
 	p.m.Lock()
+	defer p.m.Unlock()
+
 	o := int64(offset) * bytesPerSample * int64(p.sampleRate) / int64(time.Second)
-	o &= mask
+	o = o - (o % bytesPerSample)
 
 	seeker, ok := p.src.(io.Seeker)
 	if !ok {
@@ -628,17 +537,11 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 	}
 	pos, err := seeker.Seek(o, io.SeekStart)
 	if err != nil {
-		p.m.Unlock()
 		return err
 	}
 
 	p.buf = nil
 	p.pos = pos
-	p.srcEOF = false
-	p.m.Unlock()
-
-	p.seekCh <- struct{}{}
-	<-p.seekedCh
 	return nil
 }
 
@@ -653,7 +556,6 @@ func (p *Player) Pause() error {
 func (p *playerImpl) Pause() {
 	p.m.Lock()
 	p.playing = false
-	p.mux.removePlayer(p)
 	p.m.Unlock()
 }
 
