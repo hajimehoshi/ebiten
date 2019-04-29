@@ -420,6 +420,7 @@ func (p *playerImpl) Play() {
 func (p *playerImpl) readLoop() {
 	defer func() {
 		p.m.Lock()
+		p.playing = false
 		p.runningReadLoop = false
 		p.m.Unlock()
 	}()
