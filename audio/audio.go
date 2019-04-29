@@ -375,6 +375,7 @@ func (p *playerImpl) ensureReadLoop() error {
 	if p.runningReadLoop {
 		return nil
 	}
+	p.runningReadLoop = true
 	go p.readLoop()
 	return nil
 }
@@ -417,9 +418,6 @@ func (p *playerImpl) Play() {
 }
 
 func (p *playerImpl) readLoop() {
-	p.m.Lock()
-	p.runningReadLoop = true
-	p.m.Unlock()
 	defer func() {
 		p.m.Lock()
 		p.runningReadLoop = false
