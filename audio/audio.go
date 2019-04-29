@@ -370,23 +370,22 @@ func (p *playerImpl) ensureReadLoop() error {
 	if p.closedExplicitly {
 		return fmt.Errorf("audio: the player is already closed")
 	}
+	// TODO: This is not exactly atomic: there is a little chance not to run the loop even though the current
+	// loop is about to end. Fix this.
 	if p.runningReadLoop {
 		return nil
 	}
-	p.runningReadLoop = true
-
 	go p.readLoop()
 	return nil
 }
 
 func (p *playerImpl) closeImpl() error {
 	p.m.Lock()
-	defer p.m.Unlock()
-	p.playing = false
-	if !p.runningReadLoop {
+	r := p.runningReadLoop
+	p.m.Unlock()
+	if !r {
 		return nil
 	}
-	p.runningReadLoop = false
 
 	p.closeCh <- struct{}{}
 	<-p.closedCh
@@ -418,6 +417,15 @@ func (p *playerImpl) Play() {
 }
 
 func (p *playerImpl) readLoop() {
+	p.m.Lock()
+	p.runningReadLoop = true
+	p.m.Unlock()
+	defer func() {
+		p.m.Lock()
+		p.runningReadLoop = false
+		p.m.Unlock()
+	}()
+
 	timer := time.NewTimer(0)
 	timerCh := timer.C
 	var readErr error
