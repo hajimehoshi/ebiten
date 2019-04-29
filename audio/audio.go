@@ -370,11 +370,13 @@ func (p *playerImpl) ensureReadLoop() error {
 	if p.closedExplicitly {
 		return fmt.Errorf("audio: the player is already closed")
 	}
-	// TODO: This is not exactly atomic: there is a little chance not to run the loop even though the current
-	// loop is about to end. Fix this.
 	if p.runningReadLoop {
 		return nil
 	}
+
+	// Set runningReadLoop true here, not in the loop, or this causes deadlock with channels in Seek.
+	// While the for loop doesn't start, Seeks tries to send something to the channels.
+	// The for loop must start without any locking.
 	p.runningReadLoop = true
 	go p.readLoop()
 	return nil
