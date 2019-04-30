@@ -18,8 +18,8 @@ github.com/hajimehoshi/go-mp3 v0.1.2/go.mod h1:4i+c5pDNKDrxl1iu9iG90/+fhP37lio6g
 github.com/hajimehoshi/go-mp3 v0.2.0 h1:isy34iDg+96PsNuFbTdRRXzKr6a1gc2nhsPuFSfXacY=
 github.com/hajimehoshi/go-mp3 v0.2.0/go.mod h1:4i+c5pDNKDrxl1iu9iG90/+fhP37lio6gNhjCx9WBJw=
 github.com/hajimehoshi/oto v0.1.1/go.mod h1:hUiLWeBQnbDu4pZsAhOnGqMI1ZGibS6e2qhQdfpwz04=
-github.com/hajimehoshi/oto v0.3.4-0.20190429120749-cf91156c8120 h1:A2KJGAMyVidi7XxtrgfjFwq6KS2U3hYKdf+46tIycwM=
-github.com/hajimehoshi/oto v0.3.4-0.20190429120749-cf91156c8120/go.mod h1:e9eTLBB9iZto045HLbzfHJIc+jP3xaKrjZTghvb6fdM=
+github.com/hajimehoshi/oto v0.3.4-0.20190430105510-2306e632e3fd h1:kM46okD211QvJXebn0Zep2NScmuafjIVElDW07G/O/Y=
+github.com/hajimehoshi/oto v0.3.4-0.20190430105510-2306e632e3fd/go.mod h1:e9eTLBB9iZto045HLbzfHJIc+jP3xaKrjZTghvb6fdM=
 github.com/jakecoffman/cp v0.1.0 h1:sgSYEGUgfwiT447fRjloa2c5b6UyYP+7muR3gQK+Ep0=
 github.com/jakecoffman/cp v0.1.0/go.mod h1:a3xPx9N8RyFAACD644t2dj/nK4SuLg1v+jL61m2yVo4=
 github.com/jfreymuth/oggvorbis v1.0.0 h1:aOpiihGrFLXpsh2osOlEvTcg5/aluzGQeC7m3uYWOZ0=
