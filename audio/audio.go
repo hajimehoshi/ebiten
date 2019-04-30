@@ -619,8 +619,6 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 	}
 
 	p.m.Lock()
-	defer p.m.Unlock()
-
 	o := int64(offset) * bytesPerSample * int64(p.sampleRate) / int64(time.Second)
 	o &= mask
 
@@ -630,12 +628,15 @@ func (p *playerImpl) Seek(offset time.Duration) error {
 	}
 	pos, err := seeker.Seek(o, io.SeekStart)
 	if err != nil {
+		p.m.Unlock()
 		return err
 	}
 
 	p.buf = nil
 	p.pos = pos
 	p.srcEOF = false
+	p.m.Unlock()
+
 	p.seekCh <- struct{}{}
 	<-p.seekedCh
 	return nil
