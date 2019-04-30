@@ -17,9 +17,8 @@
 package js
 
 import (
+	"syscall/js"
 	"unicode"
-
-	"github.com/gopherjs/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )

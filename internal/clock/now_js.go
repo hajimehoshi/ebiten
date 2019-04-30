@@ -17,9 +17,8 @@
 package clock
 
 import (
+	"syscall/js"
 	"time"
-
-	"github.com/gopherjs/gopherwasm/js"
 )
 
 func now() int64 {

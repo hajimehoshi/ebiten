@@ -22,9 +22,9 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"syscall/js"
 	"time"
 
-	"github.com/gopherjs/gopherwasm/js"
 	"github.com/hajimehoshi/ebiten/audio"
 )
 
@@ -198,7 +198,7 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	u8 := js.TypedArrayOf(buf)
 	a := u8.Get("buffer").Call("slice", u8.Get("byteOffset"), u8.Get("byteOffset").Int()+u8.Get("byteLength").Int())
 
-	oc.Call("decodeAudioData", a, js.NewCallback(func(args []js.Value) {
+	succeeded := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		buf := args[0]
 		s.leftData = float32ArrayToSlice(buf.Call("getChannelData", 0))
 		switch n := buf.Get("numberOfChannels").Int(); n {
@@ -211,7 +211,11 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 		default:
 			ch <- fmt.Errorf("audio/mp3: number of channels must be 1 or 2 but %d", n)
 		}
-	}), js.NewCallback(func(args []js.Value) {
+		return nil
+	})
+	defer succeeded.Release()
+
+	failed := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		err := args[0]
 		if err != js.Null() || err != js.Undefined() {
 			ch <- fmt.Errorf("audio/mp3: decodeAudioData failed: %v", err)
@@ -220,7 +224,11 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 			// from the next frame (#438).
 			ch <- errTryAgain
 		}
-	}))
+		return nil
+	})
+	defer failed.Release()
+
+	oc.Call("decodeAudioData", a, succeeded, failed)
 	u8.Release()
 
 	timeout := time.Duration(math.Pow(2, float64(try))) * time.Second

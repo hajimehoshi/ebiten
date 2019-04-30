@@ -17,8 +17,7 @@ package stb
 import (
 	"fmt"
 	"io"
-
-	"github.com/gopherjs/gopherwasm/js"
+	"syscall/js"
 )
 
 var flatten = js.Global().Get("window").Call("eval", `(function(arr) {
@@ -90,21 +89,18 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 	samples := &Samples{}
 	sampleRate := 0
 
-	var f js.Callback
-	f = js.NewCallback(func(args []js.Value) {
+	f := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		r := args[0]
 
 		if e := r.Get("error"); e != js.Null() {
 			ch <- fmt.Errorf("audio/vorbis/internal/stb: decode error: %s", e.String())
 			close(ch)
-			f.Release()
-			return
+			return nil
 		}
 
 		if r.Get("eof").Bool() {
 			close(ch)
-			f.Release()
-			return
+			return nil
 		}
 
 		if samples.channels == 0 {
@@ -117,7 +113,7 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 
 		flattened := flatten.Invoke(r.Get("data"))
 		if flattened.Length() == 0 {
-			return
+			return nil
 		}
 
 		s := make([]float32, flattened.Length())
@@ -127,7 +123,9 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 
 		samples.samples = append(samples.samples, s)
 		samples.lengthInSamples += int64(len(s)) / int64(samples.channels)
+		return nil
 	})
+	defer f.Release()
 
 	arr := js.TypedArrayOf(buf)
 	js.Global().Get("stbvorbis").Call("decode", arr, f)

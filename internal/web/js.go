@@ -19,8 +19,7 @@ package web
 import (
 	"runtime"
 	"strings"
-
-	"github.com/gopherjs/gopherwasm/js"
+	"syscall/js"
 )
 
 func IsGopherJS() bool {

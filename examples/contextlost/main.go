@@ -23,9 +23,8 @@ import (
 	_ "image/jpeg"
 	"log"
 	"math"
+	"syscall/js"
 	"time"
-
-	"github.com/gopherjs/gopherwasm/js"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"

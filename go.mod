@@ -4,10 +4,10 @@ require (
 	github.com/go-gl/glfw v0.0.0-20181213070059-819e8ce5125f
 	github.com/gofrs/flock v0.7.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
-	github.com/gopherjs/gopherwasm v1.1.0
+	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c
 	github.com/hajimehoshi/bitmapfont v1.1.1
 	github.com/hajimehoshi/go-mp3 v0.2.0
-	github.com/hajimehoshi/oto v0.3.4-0.20190430120619-1c8ecbb2424a
+	github.com/hajimehoshi/oto v0.3.4-0.20190501045152-031fb1b9274d
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect

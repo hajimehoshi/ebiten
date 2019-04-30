@@ -17,7 +17,7 @@
 package devicescale
 
 import (
-	"github.com/gopherjs/gopherwasm/js"
+	"syscall/js"
 )
 
 func impl(x, y int) float64 {

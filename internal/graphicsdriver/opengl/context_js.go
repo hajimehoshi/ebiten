@@ -19,8 +19,7 @@ package opengl
 import (
 	"errors"
 	"fmt"
-
-	"github.com/gopherjs/gopherwasm/js"
+	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )

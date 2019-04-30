@@ -20,8 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
-	"github.com/gopherjs/gopherwasm/js"
+	"syscall/js"
 )
 
 type file struct {
@@ -39,23 +38,25 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	req := js.Global().Get("XMLHttpRequest").New()
 	req.Call("open", "GET", path, true)
 	req.Set("responseType", "arraybuffer")
-	loadCallback := js.NewCallback(func([]js.Value) {
+	loadf := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		defer close(ch)
 		status := req.Get("status").Int()
 		if 200 <= status && status < 400 {
 			content = req.Get("response")
-			return
+			return nil
 		}
 		err = errors.New(fmt.Sprintf("http error: %d", status))
+		return nil
 	})
-	defer loadCallback.Release()
-	req.Call("addEventListener", "load", loadCallback)
-	errorCallback := js.NewCallback(func([]js.Value) {
+	defer loadf.Release()
+	req.Call("addEventListener", "load", loadf)
+	errorf := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		defer close(ch)
 		err = errors.New(fmt.Sprintf("XMLHttpRequest error: %s", req.Get("statusText").String()))
+		return nil
 	})
-	req.Call("addEventListener", "error", errorCallback)
-	defer errorCallback.Release()
+	req.Call("addEventListener", "error", errorf)
+	defer errorf.Release()
 	req.Call("send")
 	<-ch
 	if err != nil {
