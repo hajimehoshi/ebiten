@@ -7,7 +7,7 @@ require (
 	github.com/gopherjs/gopherwasm v1.1.0
 	github.com/hajimehoshi/bitmapfont v1.1.1
 	github.com/hajimehoshi/go-mp3 v0.2.0
-	github.com/hajimehoshi/oto v0.3.4-0.20190430105510-2306e632e3fd
+	github.com/hajimehoshi/oto v0.3.4-0.20190430120619-1c8ecbb2424a
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
