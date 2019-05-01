@@ -454,32 +454,27 @@ func (p *playerImpl) read() ([]byte, bool) {
 
 	const bufSize = 2048
 
-	var buf []byte
-	var err error
-	var proceed int64
-	if p.context.playable() {
-		newBuf := make([]byte, bufSize-len(p.buf))
-		n := 0
-		n, err = p.src.Read(newBuf)
-		buf = append(p.buf, newBuf[:n]...)
-
-		n2 := len(buf) - len(buf)%bytesPerSample
-		buf, p.buf = buf[:n2], buf[n2:]
-
-		proceed = int64(len(buf))
-	} else {
+	if !p.context.playable() {
 		// Fill zero values, or the driver can block forever as trying to proceed.
-		buf = make([]byte, bufSize)
+		buf := make([]byte, bufSize)
+		return buf, true
 	}
 
-	if err == io.EOF && len(buf) == 0 {
-		return nil, false
+	newBuf := make([]byte, bufSize-len(p.buf))
+	n, err := p.src.Read(newBuf)
+	if err != nil {
+		if err != io.EOF {
+			p.context.setError(err)
+			return nil, false
+		}
+		if n == 0 {
+			return nil, false
+		}
 	}
+	buf := append(p.buf, newBuf[:n]...)
 
-	if err != nil && err != io.EOF {
-		p.context.setError(err)
-		return nil, false
-	}
+	n2 := len(buf) - len(buf)%bytesPerSample
+	buf, p.buf = buf[:n2], buf[n2:]
 
 	for i := 0; i < len(buf)/2; i++ {
 		v16 := int16(buf[2*i]) | (int16(buf[2*i+1]) << 8)
@@ -487,7 +482,7 @@ func (p *playerImpl) read() ([]byte, bool) {
 		buf[2*i] = byte(v16)
 		buf[2*i+1] = byte(v16 >> 8)
 	}
-	p.pos += proceed
+	p.pos += int64(len(buf))
 	p.context.setReady()
 
 	return buf, true
