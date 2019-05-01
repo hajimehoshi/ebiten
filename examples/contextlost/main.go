@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build js
 // +build example jsgo
 
 package main
@@ -75,7 +76,7 @@ func loseAndRestoreContext(context js.Value) {
 }
 
 func update(screen *ebiten.Image) error {
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) && js.Global() != js.Null() {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		doc := js.Global().Get("document")
 		canvas := doc.Call("getElementsByTagName", "canvas").Index(0)
 		context := canvas.Call("getContext", "webgl")
