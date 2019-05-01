@@ -447,12 +447,17 @@ func (p *playerImpl) read() ([]byte, bool) {
 		return nil, false
 	}
 
+	// playing can be false when pausing.
+	if !p.playing {
+		return nil, false
+	}
+
 	const bufSize = 2048
 
 	var buf []byte
 	var err error
 	var proceed int64
-	if p.playing && p.context.playable() {
+	if p.context.playable() {
 		newBuf := make([]byte, bufSize-len(p.buf))
 		n := 0
 		n, err = p.src.Read(newBuf)
