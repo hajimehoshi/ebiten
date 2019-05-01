@@ -55,9 +55,13 @@ const (
 type Context struct {
 	c context
 
+	// inited represents whether the audio device is initialized and available or not.
+	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
+	inited     chan struct{}
+	initedOnce sync.Once
+
 	sampleRate int
 	err        error
-	inited     bool
 	suspended  bool
 	ready      bool
 
@@ -94,6 +98,7 @@ func NewContext(sampleRate int) (*Context, error) {
 		sampleRate: sampleRate,
 		c:          newContext(sampleRate),
 		players:    map[*playerImpl]struct{}{},
+		inited:     make(chan struct{}),
 	}
 	theContext = c
 
@@ -110,10 +115,9 @@ func NewContext(sampleRate int) (*Context, error) {
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
-		// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
-		c.m.Lock()
-		c.inited = true
-		c.m.Unlock()
+		c.initedOnce.Do(func() {
+			close(c.inited)
+		})
 
 		var err error
 		theContextLock.Lock()
@@ -139,10 +143,9 @@ func CurrentContext() *Context {
 
 func (c *Context) playable() bool {
 	c.m.Lock()
-	i := c.inited
 	s := c.suspended
 	c.m.Unlock()
-	return i && !s
+	return !s
 }
 
 func (c *Context) hasError() bool {
@@ -393,6 +396,8 @@ func (p *playerImpl) Play() {
 }
 
 func (p *playerImpl) loop() {
+	<-p.context.inited
+
 	w := p.context.c.NewPlayer()
 	wclosed := make(chan struct{})
 	defer func() {
