@@ -559,7 +559,7 @@ func (p *playerImpl) Pause() {
 	p.m.Unlock()
 }
 
-// Current returns the current position.
+// Current returns the current position in time.
 func (p *Player) Current() time.Duration {
 	return p.p.Current()
 }
