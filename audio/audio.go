@@ -422,6 +422,7 @@ func (p *playerImpl) loop() {
 				p.context.setError(err)
 				break
 			}
+			p.context.setReady()
 		}
 		close(wclosed)
 	}()
@@ -483,7 +484,6 @@ func (p *playerImpl) read() ([]byte, bool) {
 		buf[2*i+1] = byte(v16 >> 8)
 	}
 	p.pos += int64(len(buf))
-	p.context.setReady()
 
 	return buf, true
 }
