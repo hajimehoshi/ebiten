@@ -324,8 +324,6 @@ func NewPlayerFromBytes(context *Context, src []byte) (*Player, error) {
 
 func (p *Player) finalize() {
 	runtime.SetFinalizer(p, nil)
-	// TODO: It is really hard to say concurrent safety.
-	// Refactor this package to reduce goroutines.
 	if !p.IsPlaying() {
 		p.Close()
 	}
@@ -352,6 +350,7 @@ func (p *playerImpl) Close() error {
 	}
 	p.closedExplicitly = true
 	// src.Close is called only when Player's Close is called.
+	// TODO: Is it ok not to call src.Close when GCed?
 	if err := p.src.Close(); err != nil {
 		return err
 	}
