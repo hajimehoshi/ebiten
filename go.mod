@@ -1,5 +1,7 @@
 module github.com/hajimehoshi/ebiten
 
+go 1.12
+
 require (
 	github.com/go-gl/glfw v0.0.0-20181213070059-819e8ce5125f
 	github.com/gofrs/flock v0.7.0
