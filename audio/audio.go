@@ -354,13 +354,6 @@ func (p *playerImpl) Close() error {
 	if err := p.src.Close(); err != nil {
 		return err
 	}
-
-	if !p.runningReadLoop {
-		return nil
-	}
-
-	// p.runningReadLoop is set to false in the loop.
-
 	return nil
 }
 

@@ -24,7 +24,7 @@ import (
 
 var context *Context
 
-func init() {
+func setup() {
 	var err error
 	context, err = NewContext(44100)
 	if err != nil {
@@ -32,8 +32,16 @@ func init() {
 	}
 }
 
+func teardown() {
+	ResetContext()
+	context = nil
+}
+
 // Issue #746
 func TestGC(t *testing.T) {
+	setup()
+	defer teardown()
+
 	p, _ := NewPlayer(context, BytesReadSeekCloser(make([]byte, 4)))
 	got := PlayersNumForTesting()
 	if want := 0; got != want {
@@ -70,14 +78,17 @@ func TestGC(t *testing.T) {
 
 // Issue #853
 func TestSameSourcePlayers(t *testing.T) {
+	setup()
+	defer teardown()
+
 	src := BytesReadSeekCloser(make([]byte, 4))
 	p0, err := NewPlayer(context, src)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	p1, err := NewPlayer(context, src)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// As the player does not play yet, error doesn't happen.

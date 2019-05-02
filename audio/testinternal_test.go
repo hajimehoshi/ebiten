@@ -21,3 +21,7 @@ func PlayersNumForTesting() int {
 	c.m.Unlock()
 	return n
 }
+
+func ResetContext() {
+	theContext = nil
+}
