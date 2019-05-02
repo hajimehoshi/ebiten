@@ -258,7 +258,7 @@ type playerImpl struct {
 	sampleRate       int
 	playing          bool
 	closedExplicitly bool
-	runningReadLoop  bool
+	isLoopActive     bool
 
 	buf    []byte
 	pos    int64
@@ -375,12 +375,12 @@ func (p *playerImpl) Play() {
 	}
 
 	p.playing = true
-	if p.runningReadLoop {
+	if p.isLoopActive {
 		return
 	}
 
-	// Set p.runningReadLoop to true here, not in the loop. This prevents duplicated active loops.
-	p.runningReadLoop = true
+	// Set p.isLoopActive to true here, not in the loop. This prevents duplicated active loops.
+	p.isLoopActive = true
 	p.context.addPlayer(p)
 
 	go p.loop()
@@ -401,7 +401,7 @@ func (p *playerImpl) loop() {
 		p.m.Lock()
 		p.playing = false
 		p.context.removePlayer(p)
-		p.runningReadLoop = false
+		p.isLoopActive = false
 		p.m.Unlock()
 	}()
 

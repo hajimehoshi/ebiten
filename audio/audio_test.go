@@ -106,3 +106,22 @@ func TestSameSourcePlayers(t *testing.T) {
 		t.Errorf("got: nil, want: an error")
 	}
 }
+
+func TestPauseBeforeInit(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := BytesReadSeekCloser(make([]byte, 4))
+	p, err := NewPlayer(context, src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+	p.Pause()
+	p.Play()
+
+	if err := UpdateForTesting(); err != nil {
+		t.Error(err)
+	}
+}
