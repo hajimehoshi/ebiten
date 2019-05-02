@@ -49,9 +49,6 @@ func TestGC(t *testing.T) {
 	}
 
 	p.Play()
-	// 200[ms] should be enough all the bytes are consumed.
-	// TODO: This is a darty hack. Would it be possible to use virtual time?
-	time.Sleep(200 * time.Millisecond)
 	got = PlayersNumForTesting()
 	if want := 1; got != want {
 		t.Errorf("PlayersNum() after Play: got: %d, want: %d", got, want)
@@ -99,9 +96,6 @@ func TestSameSourcePlayers(t *testing.T) {
 	p0.Play()
 	p1.Play()
 
-	// 200[ms] should be enough all the bytes are consumed.
-	// TODO: This is a darty hack. Would it be possible to use virtual time?
-	time.Sleep(200 * time.Millisecond)
 	if err := UpdateForTesting(); err == nil {
 		t.Errorf("got: nil, want: an error")
 	}
