@@ -46,21 +46,21 @@ var (
 )
 
 func init() {
-	go scaleUpdater()
+	// Run as goroutine. Will keep the desktop scale up to date.
+	// This can be removed once the scale change event is implemented in GLFW 3.3
+	//
+	// TODO: Now the value is cached, isn't this loop needed?
+	go func() {
+		for {
+			s := getscale(0, 0)
+			atomic.StoreUint64(&cachedScale, math.Float64bits(s))
+			time.Sleep(cacheUpdateWait)
+		}
+	}()
 }
 
 func impl(x, y int) float64 {
 	return math.Float64frombits(atomic.LoadUint64(&cachedScale))
-}
-
-// run as goroutine. Will keep the desktop scale up to date.
-// This can be removed once the scale change event is implemented in GLFW 3.3
-func scaleUpdater() {
-	for {
-		s := getscale(0, 0)
-		atomic.StoreUint64(&cachedScale, math.Float64bits(s))
-		time.Sleep(cacheUpdateWait)
-	}
 }
 
 func currentDesktop() desktop {
