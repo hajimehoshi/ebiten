@@ -19,14 +19,11 @@
 package devicescale
 
 import (
-	"math"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync/atomic"
-	"time"
 )
 
 type desktop int
@@ -39,29 +36,6 @@ const (
 	desktopKDE
 	desktopXfce
 )
-
-var (
-	cachedScale     uint64 // use atomic to read/write as multiple goroutines touch it.
-	cacheUpdateWait = time.Millisecond * 100
-)
-
-func init() {
-	// Run as goroutine. Will keep the desktop scale up to date.
-	// This can be removed once the scale change event is implemented in GLFW 3.3
-	//
-	// TODO: Now the value is cached, isn't this loop needed?
-	go func() {
-		for {
-			s := getscale(0, 0)
-			atomic.StoreUint64(&cachedScale, math.Float64bits(s))
-			time.Sleep(cacheUpdateWait)
-		}
-	}()
-}
-
-func impl(x, y int) float64 {
-	return math.Float64frombits(atomic.LoadUint64(&cachedScale))
-}
 
 func currentDesktop() desktop {
 	tokens := strings.Split(os.Getenv("XDG_CURRENT_DESKTOP"), ":")
@@ -121,7 +95,7 @@ func cinnamonScale() float64 {
 	return float64(s)
 }
 
-func getscale(x, y int) float64 {
+func impl(x, y int) float64 {
 	s := -1.0
 	switch currentDesktop() {
 	case desktopGnome:
