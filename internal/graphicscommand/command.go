@@ -140,9 +140,9 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 	q.doEnqueueDrawTrianglesCommand(dst, src, len(vertices), len(indices), color, mode, filter, address, split)
 }
 
-// Enqueue enqueues a drawing command other than a draw-image command.
+// Enqueue enqueues a drawing command other than a draw-triangles command.
 //
-// For a draw-image command, use EnqueueDrawTrianglesCommand.
+// For a draw-triangles command, use EnqueueDrawTrianglesCommand.
 func (q *commandQueue) Enqueue(command command) {
 	// TODO: If dst is the screen, reorder the command to be the last.
 	q.commands = append(q.commands, command)
@@ -232,7 +232,7 @@ type drawTrianglesCommand struct {
 }
 
 func (c *drawTrianglesCommand) String() string {
-	return fmt.Sprintf("draw-image: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d, address: %d", c.dst, c.src, c.color, c.mode, c.filter, c.address)
+	return fmt.Sprintf("draw-triangles: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d, address: %d", c.dst, c.src, c.color, c.mode, c.filter, c.address)
 }
 
 // Exec executes the drawTrianglesCommand.
