@@ -58,5 +58,7 @@ var (
 func now() int64 {
 	// Use the time duration instead of the current counter to avoid overflow.
 	duration := queryPerformanceCounter() - initCtr
-	return (duration * 1e9) / freq
+
+	// Use float64 not to overflow int64 values (#862).
+	return int64(float64(duration) / float64(freq) * 1e9)
 }
