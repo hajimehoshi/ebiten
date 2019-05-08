@@ -22,5 +22,7 @@ import (
 )
 
 func now() int64 {
+	// time.Now() is monotonic:
+	// https://golang.org/pkg/time/#hdr-Monotonic_Clocks
 	return time.Now().UnixNano()
 }
