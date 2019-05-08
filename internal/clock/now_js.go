@@ -25,6 +25,6 @@ func now() int64 {
 	// time.Now() is not reliable until GopherJS supports performance.now().
 	//
 	// performance.now is monotonic:
-	// https://developers.google.com/web/updates/2012/08/When-milliseconds-are-not-enough-performance-now#monotonic_time
+	// https://www.w3.org/TR/hr-time-2/#sec-monotonic-clock
 	return int64(js.Global().Get("performance").Call("now").Float() * float64(time.Millisecond))
 }
