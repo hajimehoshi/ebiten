@@ -112,7 +112,7 @@ func TestEnsureNotShared(t *testing.T) {
 	img4.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 }
 
-func Disabled_TestReshared(t *testing.T) {
+func TestReshared(t *testing.T) {
 	const size = 16
 
 	img0 := NewImage(size, size)
@@ -122,8 +122,7 @@ func Disabled_TestReshared(t *testing.T) {
 	img1 := NewImage(size, size)
 	defer img1.Dispose()
 	img1.ReplacePixels(make([]byte, 4*size*size))
-	want := true
-	if got := img1.IsSharedForTesting(); got != want {
+	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -144,8 +143,7 @@ func Disabled_TestReshared(t *testing.T) {
 	img3.MakeVolatile()
 	defer img3.Dispose()
 	img1.ReplacePixels(make([]byte, 4*size*size))
-	want = false
-	if got := img3.IsSharedForTesting(); got != want {
+	if got, want := img3.IsSharedForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -153,19 +151,19 @@ func Disabled_TestReshared(t *testing.T) {
 	vs := img2.QuadVertices(0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	img1.DrawTriangles(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
-	want = false
-	if got := img1.IsSharedForTesting(); got != want {
+	if got, want := img1.IsSharedForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
 	// Use img1 as a render source.
-	for i := 0; i < MaxCountForShare-1; i++ {
+	for i := 0; i < MaxCountForShare; i++ {
+		MakeImagesSharedForTesting()
 		img0.DrawTriangles(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
-		want := false
-		if got := img1.IsSharedForTesting(); got != want {
+		if got, want := img1.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
+	MakeImagesSharedForTesting()
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
@@ -179,8 +177,7 @@ func Disabled_TestReshared(t *testing.T) {
 	}
 
 	img0.DrawTriangles(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
-	want = true
-	if got := img1.IsSharedForTesting(); got != want {
+	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
@@ -197,9 +194,9 @@ func Disabled_TestReshared(t *testing.T) {
 
 	// Use img3 as a render source. img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
+		MakeImagesSharedForTesting()
 		img0.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
-		want := false
-		if got := img3.IsSharedForTesting(); got != want {
+		if got, want := img3.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}

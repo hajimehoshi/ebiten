@@ -22,9 +22,39 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
+
+func init() {
+	hooks.AppendHookOnBeforeUpdate(func() error {
+		makeImagesShared()
+		return nil
+	})
+}
+
+// MaxCountForShare represents the time duration when the image can become shared.
+//
+// This value is expoted for testing.
+const MaxCountForShare = 10
+
+func makeImagesShared() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	for i := range imagesToMakeShared {
+		i.nonUpdatedCount++
+		if i.nonUpdatedCount >= MaxCountForShare {
+			i.makeShared()
+		}
+		delete(imagesToMakeShared, i)
+	}
+}
+
+func MakeImagesSharedForTesting() {
+	makeImagesShared()
+}
 
 const (
 	initSize = 1024
@@ -84,6 +114,8 @@ var (
 
 	// theBackends is a set of actually shared images.
 	theBackends = []*backend{}
+
+	imagesToMakeShared = map[*Image]struct{}{}
 )
 
 type Image struct {
@@ -93,8 +125,17 @@ type Image struct {
 
 	backend *backend
 
-	node          *packing.Node
-	countForShare int
+	node *packing.Node
+
+	// nonUpdatedCount represents how long the image is kept not modified with DrawTriangles.
+	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
+	// a shared (restorable) image by ensureNotShared.
+	//
+	// nonUpdatedCount is increased every frame if the image is not modified, or set to 0 if the image id
+	// modified.
+	//
+	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
+	nonUpdatedCount int
 
 	neverShared bool
 }
@@ -140,7 +181,7 @@ func (i *Image) ensureNotShared() {
 	}
 }
 
-func (i *Image) forceShared() {
+func (i *Image) makeShared() {
 	if i.backend == nil {
 		i.allocate(true)
 		return
@@ -151,7 +192,7 @@ func (i *Image) forceShared() {
 	}
 
 	if !i.shareable() {
-		panic("shareable: forceShared cannot be called on a non-shareable image")
+		panic("shareable: makeShared cannot be called on a non-shareable image")
 	}
 
 	newI := NewImage(i.width, i.height)
@@ -167,7 +208,7 @@ func (i *Image) forceShared() {
 	}
 	newI.replacePixels(pixels)
 	newI.moveTo(i)
-	i.countForShare = 0
+	i.nonUpdatedCount = 0
 }
 
 func (i *Image) region() (x, y, width, height int) {
@@ -207,8 +248,6 @@ func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1,
 	i.backend.restorable.PutVertex(dest, dx, dy, sx+oxf, sy+oyf, bx0+oxf, by0+oyf, bx1+oxf, by1+oyf, cr, cg, cb, ca)
 }
 
-const MaxCountForShare = 10
-
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -233,17 +272,12 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 
 	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address)
 
-	i.countForShare = 0
+	i.nonUpdatedCount = 0
+	delete(imagesToMakeShared, i)
 
-	// TODO: Reusing shared images is temporarily suspended for performance. See #661.
-	//
-	// if !img.isShared() && img.shareable() {
-	//	img.countForShare++
-	//	if img.countForShare >= MaxCountForShare {
-	//		img.forceShared()
-	//		img.countForShare = 0
-	//	}
-	// }
+	if !img.isShared() && img.shareable() {
+		imagesToMakeShared[img] = struct{}{}
+	}
 }
 
 // Fill fills the image with a color. This affects not only the (0, 0)-(width, height) region but also the whole
