@@ -315,14 +315,6 @@ func (d *Driver) Begin() {
 		// NSAutoreleasePool is required to release drawable correctly (#847).
 		// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 		d.pool = C.allocAutoreleasePool()
-
-		drawable, err := d.ml.NextDrawable()
-		if err != nil {
-			// Drawable is nil. This can happen at the initial state. Let's wait and see.
-			return nil
-		}
-		d.screenDrawable = drawable
-
 		return nil
 	})
 }
@@ -628,6 +620,14 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		}
 		var t mtl.Texture
 		if d.dst.screen {
+			if d.screenDrawable == (ca.MetalDrawable{}) {
+				drawable, err := d.ml.NextDrawable()
+				if err != nil {
+					// Drawable is nil. This can happen at the initial state. Let's wait and see.
+					return nil
+				}
+				d.screenDrawable = drawable
+			}
 			t = d.screenDrawable.Texture()
 		} else {
 			t = d.dst.texture
