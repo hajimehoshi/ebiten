@@ -534,6 +534,9 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 
 // Bounds returns the bounds of the image.
 func (i *Image) Bounds() image.Rectangle {
+	if i.isDisposed() {
+		panic("ebiten: the image is already disposed")
+	}
 	if !i.isSubImage() {
 		w, h := i.mipmap.original().Size()
 		return image.Rect(0, 0, w, h)
