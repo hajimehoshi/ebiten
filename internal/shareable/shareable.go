@@ -131,7 +131,7 @@ type Image struct {
 	// In the current implementation, if an image is being modified by DrawTriangles, the image is separated from
 	// a shared (restorable) image by ensureNotShared.
 	//
-	// nonUpdatedCount is increased every frame if the image is not modified, or set to 0 if the image id
+	// nonUpdatedCount is increased every frame if the image is not modified, or set to 0 if the image is
 	// modified.
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
