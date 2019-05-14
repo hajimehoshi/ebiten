@@ -22,6 +22,9 @@ addons:
       - libxxf86vm-dev
   chrome: stable
 
+before_script:
+  - export DISPLAY=:99.0
+
 install:
   - mkdir /tmp/work
   - cd /tmp/work
