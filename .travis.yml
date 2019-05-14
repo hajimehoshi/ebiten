@@ -1,7 +1,11 @@
+dist: xenial
 language: go
 
 go:
   - "1.12"
+
+services:
+  - xvfb
 
 addons:
   apt:
@@ -35,11 +39,6 @@ install:
   - curl -s https://chromedriver.storage.googleapis.com/2.38/chromedriver_linux64.zip > /tmp/chromedriver_linux64.zip
   - unzip -d /tmp/chromedriver_linux64 /tmp/chromedriver_linux64.zip
   - export PATH=/tmp/chromedriver_linux64:$PATH
-
-before_script:
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - sleep 3
 
 script:
   - cd /tmp/work
