@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
@@ -41,6 +42,10 @@ var srcs = []string{
 	"glfw/src/win32_window.c",
 	"glfw/src/wgl_context.c",
 	"glfw/src/egl_context.c",
+}
+
+func init() {
+	sort.Strings(srcs)
 }
 
 type arch string
