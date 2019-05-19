@@ -27,27 +27,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var srcs = []string{
-	"glfw/src/context.c",
-	"glfw/src/init.c",
-	"glfw/src/input.c",
-	"glfw/src/monitor.c",
-	"glfw/src/vulkan.c",
-	"glfw/src/window.c",
-	"glfw/src/win32_init.c",
-	"glfw/src/win32_joystick.c",
-	"glfw/src/win32_monitor.c",
-	"glfw/src/win32_time.c",
-	"glfw/src/win32_tls.c",
-	"glfw/src/win32_window.c",
-	"glfw/src/wgl_context.c",
-	"glfw/src/egl_context.c",
-}
-
-func init() {
-	sort.Strings(srcs)
-}
-
 type arch string
 
 const (
@@ -78,6 +57,12 @@ func execCommand(name string, args ...string) error {
 }
 
 func run() error {
+	srcs, err := filepath.Glob(filepath.Join("glfw", "src", "*.c"))
+	if err != nil {
+		return err
+	}
+	sort.Strings(srcs)
+
 	for _, arch := range []arch{archAmd64, arch386} {
 		g := errgroup.Group{}
 		for _, s := range srcs {
