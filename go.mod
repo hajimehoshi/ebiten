@@ -3,7 +3,7 @@ module github.com/hajimehoshi/ebiten
 go 1.12
 
 require (
-	github.com/go-gl/glfw v0.0.0-20181213070059-819e8ce5125f
+	github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1
 	github.com/gofrs/flock v0.7.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/bitmapfont v1.1.1
