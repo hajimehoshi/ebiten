@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2019 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !darwin ios js
+// +build !android
+// +build !darwin
+// +build !freebsd
+// +build !ios
+// +build !js
+// +build !linux,cgo !cgo
+// +build !windows
 
 package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-func graphicsDriver() driver.Graphics {
-	return opengl.Get()
+func uiDriver() driver.UI {
+	if !isPlayground {
+		panic("ebiten: a UI driver is not implemented on this environment")
+	}
+	// TODO: Implement this
+	return nil
 }
