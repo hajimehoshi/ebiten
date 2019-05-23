@@ -113,8 +113,6 @@ func updateFPSAndTPS(now int64, count int) {
 
 const UncappedTPS = -1
 
-var previousNow int64
-
 // Update updates the inner clock state and returns an integer value
 // indicating how many times the game should update based on given tps.
 // tps represents TPS (ticks per second).
@@ -136,6 +134,5 @@ func Update(tps int) int {
 	}
 	updateFPSAndTPS(n, c)
 
-	previousNow = n
 	return c
 }
