@@ -62,6 +62,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 
 	diff := now - lastSystemTime
 	if diff < 0 {
+		// It is theoretically possible to change the OS clock, so now can be older than lastSystemTime.
 		return 0
 	}
 
@@ -126,9 +127,6 @@ func Update(tps int) int {
 	defer m.Unlock()
 
 	n := now()
-	if n < previousNow {
-		panic("clock: now() must be monotonic but returned older time than before: perhaps overflowing?")
-	}
 
 	c := 0
 	if tps == UncappedTPS {
