@@ -21,8 +21,10 @@ import (
 	"time"
 )
 
+var initTime = time.Now()
+
 func now() int64 {
-	// time.Now() is monotonic:
+	// time.Since() returns monotonic timer difference (#875):
 	// https://golang.org/pkg/time/#hdr-Monotonic_Clocks
-	return time.Now().UnixNano()
+	return int64(time.Since(initTime))
 }
