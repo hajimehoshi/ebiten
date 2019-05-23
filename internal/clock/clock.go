@@ -62,7 +62,7 @@ func calcCountFromTPS(tps int64, now int64) int {
 
 	diff := now - lastSystemTime
 	if diff < 0 {
-		// It is theoretically possible to change the OS clock, so now can be older than lastSystemTime.
+		// TODO: Should this panic?
 		lastSystemTime = now
 		return 0
 	}
@@ -103,7 +103,7 @@ func updateFPSAndTPS(now int64, count int) {
 	fpsCount++
 	tpsCount += count
 	if now < lastUpdated {
-		// It is theoretically possible to change the OS clock, so now can be older than lastSystemTime.
+		// TODO: Should this panic?
 		lastUpdated = now
 		fpsCount = 0
 		tpsCount = 0
