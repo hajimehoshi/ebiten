@@ -21,7 +21,10 @@ import (
 )
 
 var (
+	lastNow int64
+
 	// lastSystemTime is the last system time in the previous Update.
+	// lastSystemTime indicates the logical time in the game, so this can be bigger than the curren time.
 	lastSystemTime int64
 
 	currentFPS  float64
@@ -32,6 +35,13 @@ var (
 
 	m sync.Mutex
 )
+
+func init() {
+	n := now()
+	lastNow = n
+	lastSystemTime = n
+	lastUpdated = n
+}
 
 func CurrentFPS() float64 {
 	m.Lock()
@@ -55,15 +65,8 @@ func calcCountFromTPS(tps int64, now int64) int {
 		panic("clock: tps must >= 0")
 	}
 
-	// Initialize lastSystemTime if needed.
-	if lastSystemTime == 0 {
-		lastSystemTime = now
-	}
-
 	diff := now - lastSystemTime
 	if diff < 0 {
-		// TODO: Should this panic?
-		lastSystemTime = now
 		return 0
 	}
 
@@ -97,17 +100,10 @@ func calcCountFromTPS(tps int64, now int64) int {
 }
 
 func updateFPSAndTPS(now int64, count int) {
-	if lastUpdated == 0 {
-		lastUpdated = now
-	}
 	fpsCount++
 	tpsCount += count
 	if now < lastUpdated {
-		// TODO: Should this panic?
-		lastUpdated = now
-		fpsCount = 0
-		tpsCount = 0
-		return
+		panic("clock: lastUpdated must be older than now")
 	}
 	if time.Second > time.Duration(now-lastUpdated) {
 		return
@@ -133,6 +129,11 @@ func Update(tps int) int {
 	defer m.Unlock()
 
 	n := now()
+	if lastNow > n {
+		// This ensures that now() must be monotonic (#875).
+		panic("clock: lastNow must be older than n")
+	}
+	lastNow = n
 
 	c := 0
 	if tps == UncappedTPS {
