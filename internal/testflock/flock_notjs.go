@@ -28,7 +28,7 @@ import (
 	"github.com/gofrs/flock"
 )
 
-var theLock = flock.NewFlock(filepath.Join(os.TempDir(), "ebitentest"))
+var theLock = flock.New(filepath.Join(os.TempDir(), "ebitentest"))
 
 func Lock() {
 	if err := theLock.Lock(); err != nil {
