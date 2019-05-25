@@ -71,7 +71,6 @@ type decoder interface {
 
 type decoded struct {
 	totalBytes int
-	readBytes  int
 	posInBytes int
 	source     io.Closer
 	decoder    decoder
