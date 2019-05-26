@@ -29,6 +29,9 @@ func SetGraphicsDriver(driver driver.Graphics) {
 }
 
 func NeedsRestoring() bool {
+	if theGraphicsDriver == nil {
+		return false
+	}
 	return theGraphicsDriver.NeedsRestoring()
 }
 

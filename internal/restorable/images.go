@@ -21,7 +21,7 @@ import (
 )
 
 // forceRestoring reports whether restoring forcely happens or not.
-var forceRestoring = true
+var forceRestoring = false
 
 // NeedsRestoring reports whether restoring process works or not.
 func NeedsRestoring() bool {
