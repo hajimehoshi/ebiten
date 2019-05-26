@@ -30,7 +30,9 @@ func SetGraphicsDriver(driver driver.Graphics) {
 
 func NeedsRestoring() bool {
 	if theGraphicsDriver == nil {
-		return false
+		// This happens on initialization.
+		// Return true for fail-safe
+		return true
 	}
 	return theGraphicsDriver.NeedsRestoring()
 }
