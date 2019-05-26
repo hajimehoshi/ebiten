@@ -140,7 +140,7 @@ func NewImage(width, height int) *Image {
 	i := &Image{
 		image: graphicscommand.NewImage(width, height),
 	}
-	i.clear()
+	i.clearForInitialization()
 	theImages.add(i)
 	return i
 }
@@ -159,7 +159,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		image:  graphicscommand.NewScreenFramebufferImage(width, height),
 		screen: true,
 	}
-	i.clear()
+	i.clearForInitialization()
 	theImages.add(i)
 	return i
 }
@@ -169,7 +169,9 @@ func (i *Image) Fill(r, g, b, a uint8) {
 	i.fill(r, g, b, a)
 }
 
-func (i *Image) clear() {
+// clearForInitialization clears the underlying image for initialization.
+func (i *Image) clearForInitialization() {
+	// As this is for initialization, drawing history doesn't have to be adjusted.
 	i.fill(0, 0, 0, 0)
 }
 
@@ -504,7 +506,7 @@ func (i *Image) restore() error {
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
-		i.clear()
+		i.clearForInitialization()
 		return nil
 	}
 	if i.stale {
