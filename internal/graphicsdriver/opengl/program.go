@@ -151,11 +151,6 @@ var (
 	zeroProgram program
 )
 
-const (
-	maxTriangles = graphics.IndicesNum / 3
-	maxQuads     = maxTriangles / 2
-)
-
 // reset resets or initializes the OpenGL state.
 func (s *openGLState) reset(context *context) error {
 	if err := context.reset(); err != nil {

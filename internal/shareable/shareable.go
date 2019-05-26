@@ -468,7 +468,6 @@ func (i *Image) allocate(shareable bool) {
 	i.backend = b
 	i.node = n
 	runtime.SetFinalizer(i, (*Image).Dispose)
-	return
 }
 
 func (i *Image) MakeVolatile() {

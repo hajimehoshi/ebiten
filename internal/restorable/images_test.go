@@ -432,11 +432,6 @@ func TestRestoreRecursive(t *testing.T) {
 }
 
 func TestReplacePixels(t *testing.T) {
-	const (
-		w = 17
-		h = 31
-	)
-
 	img := NewImage(17, 31)
 	defer img.Dispose()
 
