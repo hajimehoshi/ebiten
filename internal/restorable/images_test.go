@@ -75,7 +75,7 @@ func TestRestore(t *testing.T) {
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	img0.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	want := clr0
@@ -92,7 +92,7 @@ func TestRestoreWithoutDraw(t *testing.T) {
 	// If there is no drawing command on img0, img0 is cleared when restored.
 
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -131,7 +131,7 @@ func TestRestoreChain(t *testing.T) {
 		imgs[i+1].DrawTriangles(imgs[i], vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	}
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	want := clr
@@ -175,7 +175,7 @@ func TestRestoreChain2(t *testing.T) {
 	}
 
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	for i, img := range imgs {
@@ -214,7 +214,7 @@ func TestRestoreOverrideSource(t *testing.T) {
 	img0.Fill(clr1.R, clr1.G, clr1.B, clr1.A)
 	img1.DrawTriangles(img0, quadVertices(img0, w, h, 0, 0), is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	testCases := []struct {
@@ -307,7 +307,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 	vs = quadVertices(img3, w, h, 2, 0)
 	img7.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	testCases := []struct {
@@ -398,7 +398,7 @@ func TestRestoreRecursive(t *testing.T) {
 	img1.DrawTriangles(img0, quadVertices(img0, w, h, 1, 0), is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
 	img0.DrawTriangles(img1, quadVertices(img1, w, h, 1, 0), is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	testCases := []struct {
@@ -452,7 +452,7 @@ func TestReplacePixels(t *testing.T) {
 		}
 	}
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	for j := 7; j < 11; j++ {
@@ -484,7 +484,7 @@ func TestDrawTrianglesAndReplacePixels(t *testing.T) {
 	img1.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, 0, 0, 2, 1)
 
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	r, g, b, a := img1.At(0, 0)
@@ -517,7 +517,7 @@ func TestDispose(t *testing.T) {
 	img1.Dispose()
 
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	r, g, b, a := img0.At(0, 0)
@@ -625,7 +625,7 @@ func TestReplacePixelsOnly(t *testing.T) {
 	}
 
 	ResolveStaleImages()
-	if err := Restore(); err != nil {
+	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
 	}
 	want := color.RGBA{1, 2, 3, 4}

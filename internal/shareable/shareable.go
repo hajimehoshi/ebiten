@@ -404,13 +404,6 @@ func (i *Image) IsVolatile() bool {
 	return i.backend.restorable.IsVolatile()
 }
 
-func (i *Image) IsInvalidated() (bool, error) {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	v, err := i.backend.restorable.IsInvalidated()
-	return v, err
-}
-
 func NewImage(width, height int) *Image {
 	// Actual allocation is done lazily.
 	return &Image{
@@ -508,15 +501,10 @@ func ResolveStaleImages() {
 	restorable.ResolveStaleImages()
 }
 
-func NeedsRestoring() bool {
-	// As NeedsRestoring is an immutable state, no need to lock here.
-	return restorable.NeedsRestoring()
-}
-
-func Restore() error {
+func RestoreIfNeeded() error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return restorable.Restore()
+	return restorable.RestoreIfNeeded()
 }
 
 func Images() []image.Image {
