@@ -20,22 +20,20 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
 
-// restoringEnabled indicates if restoring happens or not.
-//
-// This value is overridden at enabled_*.go.
-var restoringEnabled = true
+// forceRestoring reports whether restoring forcely happens or not.
+var forceRestoring = true
 
-// IsRestoringEnabled returns a boolean value indicating whether
-// restoring process works or not.
-func IsRestoringEnabled() bool {
-	// This value is updated only at init or EnableRestoringForTesting.
-	// No need to lock here.
-	return restoringEnabled
+// NeedsRestoring reports whether restoring process works or not.
+func NeedsRestoring() bool {
+	if forceRestoring {
+		return true
+	}
+	return graphicscommand.NeedsRestoring()
 }
 
 // EnableRestoringForTesting forces to enable restoring for testing.
 func EnableRestoringForTesting() {
-	restoringEnabled = true
+	forceRestoring = true
 }
 
 // images is a set of Image objects.
@@ -55,7 +53,7 @@ var theImages = &images{
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() {
 	graphicscommand.FlushCommands()
-	if !restoringEnabled {
+	if !NeedsRestoring() {
 		return
 	}
 	theImages.resolveStaleImages()
@@ -146,7 +144,7 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
-	if !IsRestoringEnabled() {
+	if !NeedsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 

@@ -28,6 +28,10 @@ func SetGraphicsDriver(driver driver.Graphics) {
 	theGraphicsDriver = driver
 }
 
+func NeedsRestoring() bool {
+	return theGraphicsDriver.NeedsRestoring()
+}
+
 // command represents a drawing command.
 //
 // A command for drawing that is created when Image functions are called like DrawTriangles,

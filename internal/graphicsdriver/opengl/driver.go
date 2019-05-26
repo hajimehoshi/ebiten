@@ -126,6 +126,10 @@ func (d *Driver) VDirection() driver.VDirection {
 	return driver.VDownward
 }
 
+func (d *Driver) NeedsRestoring() bool {
+	return d.context.needsRestoring()
+}
+
 func (d *Driver) IsGL() bool {
 	return true
 }

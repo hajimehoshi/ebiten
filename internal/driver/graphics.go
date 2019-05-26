@@ -31,6 +31,7 @@ type Graphics interface {
 	Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error
 	SetVsyncEnabled(enabled bool)
 	VDirection() VDirection
+	NeedsRestoring() bool
 	IsGL() bool
 }
 

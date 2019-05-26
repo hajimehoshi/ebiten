@@ -301,7 +301,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
-	if !IsRestoringEnabled() {
+	if !NeedsRestoring() {
 		i.makeStale()
 		return
 	}
@@ -362,7 +362,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 	theImages.makeStaleIfDependingOn(i)
 
-	if img.stale || img.volatile || i.screen || !IsRestoringEnabled() || i.volatile {
+	if img.stale || img.volatile || i.screen || !NeedsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(img, vertices, indices, colorm, mode, filter, address)
@@ -447,7 +447,7 @@ func (i *Image) readPixelsFromGPU() {
 
 // resolveStale resolves the image's 'stale' state.
 func (i *Image) resolveStale() {
-	if !IsRestoringEnabled() {
+	if !NeedsRestoring() {
 		return
 	}
 
@@ -557,7 +557,7 @@ func (i *Image) Dispose() {
 func (i *Image) IsInvalidated() (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	graphicscommand.FlushCommands()
-	if !IsRestoringEnabled() {
+	if !NeedsRestoring() {
 		return false, nil
 	}
 

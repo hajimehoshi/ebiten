@@ -22,6 +22,7 @@ import (
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 type (
@@ -458,4 +459,8 @@ func (c *context) flush() {
 	c.ensureGL()
 	gl := c.gl
 	gl.Call("flush")
+}
+
+func (c *context) needsRestoring() bool {
+	return !web.IsMobileBrowser()
 }

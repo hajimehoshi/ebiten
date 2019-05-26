@@ -508,9 +508,9 @@ func ResolveStaleImages() {
 	restorable.ResolveStaleImages()
 }
 
-func IsRestoringEnabled() bool {
-	// As IsRestoringEnabled is an immutable state, no need to lock here.
-	return restorable.IsRestoringEnabled()
+func NeedsRestoring() bool {
+	// As NeedsRestoring is an immutable state, no need to lock here.
+	return restorable.NeedsRestoring()
 }
 
 func Restore() error {

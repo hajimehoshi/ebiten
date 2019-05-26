@@ -378,3 +378,7 @@ func (c *context) flush() {
 	gl := c.gl
 	gl.Flush()
 }
+
+func (c *context) needsRestoring() bool {
+	return true
+}

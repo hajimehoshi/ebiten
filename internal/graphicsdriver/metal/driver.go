@@ -707,6 +707,10 @@ func (d *Driver) VDirection() driver.VDirection {
 	return driver.VUpward
 }
 
+func (d *Driver) NeedsRestoring() bool {
+	return false
+}
+
 func (d *Driver) IsGL() bool {
 	return false
 }

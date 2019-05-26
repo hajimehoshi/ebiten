@@ -500,3 +500,7 @@ func (c *context) flush() {
 		return nil
 	})
 }
+
+func (c *context) needsRestoring() bool {
+	return false
+}

@@ -151,7 +151,7 @@ func (c *uiContext) needsRestoring() (bool, error) {
 }
 
 func (c *uiContext) restoreIfNeeded() error {
-	if !shareable.IsRestoringEnabled() {
+	if !shareable.NeedsRestoring() {
 		return nil
 	}
 	r, err := c.needsRestoring()
