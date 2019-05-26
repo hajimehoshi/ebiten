@@ -301,7 +301,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
-	if !NeedsRestoring() {
+	if !needsRestoring() {
 		i.makeStale()
 		return
 	}
@@ -362,7 +362,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 	theImages.makeStaleIfDependingOn(i)
 
-	if img.stale || img.volatile || i.screen || !NeedsRestoring() || i.volatile {
+	if img.stale || img.volatile || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
 	} else {
 		i.appendDrawTrianglesHistory(img, vertices, indices, colorm, mode, filter, address)
@@ -447,7 +447,7 @@ func (i *Image) readPixelsFromGPU() {
 
 // resolveStale resolves the image's 'stale' state.
 func (i *Image) resolveStale() {
-	if !NeedsRestoring() {
+	if !needsRestoring() {
 		return
 	}
 
@@ -551,15 +551,11 @@ func (i *Image) Dispose() {
 	i.stale = false
 }
 
-// IsInvalidated returns a boolean value indicating whether the image is invalidated.
+// isInvalidated returns a boolean value indicating whether the image is invalidated.
 //
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
-func (i *Image) IsInvalidated() (bool, error) {
+func (i *Image) isInvalidated() bool {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
 	graphicscommand.FlushCommands()
-	if !NeedsRestoring() {
-		return false, nil
-	}
-
-	return i.image.IsInvalidated(), nil
+	return i.image.IsInvalidated()
 }
