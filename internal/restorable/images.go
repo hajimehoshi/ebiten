@@ -23,8 +23,8 @@ import (
 // forceRestoring reports whether restoring forcely happens or not.
 var forceRestoring = true
 
-// needsRestoring reports whether restoring process works or not.
-func needsRestoring() bool {
+// NeedsRestoring reports whether restoring process works or not.
+func NeedsRestoring() bool {
 	if forceRestoring {
 		return true
 	}
@@ -53,33 +53,16 @@ var theImages = &images{
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() {
 	graphicscommand.FlushCommands()
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		return
 	}
 	theImages.resolveStaleImages()
 }
 
-// RestoreIfNeeded restores the images.
+// Restore restores the images.
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func RestoreIfNeeded() error {
-	if !needsRestoring() {
-		return nil
-	}
-
-	if !forceRestoring {
-		r := false
-		// As isInvalidated() is expensive, call this only for one image.
-		// This assumes that if there is one image that is invalidated, all images are invalidated.
-		for img := range theImages.images {
-			r = img.isInvalidated()
-			break
-		}
-		if !r {
-			return nil
-		}
-	}
-
+func Restore() error {
 	if err := graphicscommand.ResetGraphicsDriverState(); err != nil {
 		return err
 	}
@@ -161,7 +144,7 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func (i *images) restore() error {
-	if !needsRestoring() {
+	if !NeedsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 
