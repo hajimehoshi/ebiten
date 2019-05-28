@@ -154,6 +154,12 @@ func (i *Image) CopyPixels(src *Image) {
 }
 
 func (i *Image) IsInvalidated() bool {
+	if i.screen {
+		// The screen image might not have a texture, and in this case it is impossible to detect whether
+		// the image is invalidated or not.
+		panic("graphicscommand: IsInvalidated cannot be called on the screen image")
+	}
+
 	// i.image can be nil before initializing.
 	if i.image == nil {
 		return false

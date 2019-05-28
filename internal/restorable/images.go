@@ -72,6 +72,10 @@ func RestoreIfNeeded() error {
 		// As isInvalidated() is expensive, call this only for one image.
 		// This assumes that if there is one image that is invalidated, all images are invalidated.
 		for img := range theImages.images {
+			// The screen image might not have a texture. Skip this.
+			if img.screen {
+				continue
+			}
 			r = img.isInvalidated()
 			break
 		}
