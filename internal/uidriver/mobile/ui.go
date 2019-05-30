@@ -37,9 +37,14 @@ import (
 
 var (
 	glContextCh = make(chan gl.Context)
-	renderCh    = make(chan struct{})
-	renderChEnd = make(chan struct{})
-	theUI       = &UserInterface{}
+
+	// renderCh recieves when updating starts.
+	renderCh = make(chan struct{})
+
+	// renderEndCh receives when updating finishes.
+	renderEndCh = make(chan struct{})
+
+	theUI = &UserInterface{}
 )
 
 func init() {
@@ -62,7 +67,7 @@ func (u *UserInterface) Render(chError <-chan error) error {
 	case err := <-chError:
 		return err
 	case renderCh <- struct{}{}:
-		return opengl.Get().DoWork(renderChEnd)
+		return opengl.Get().DoWork(renderEndCh)
 	case <-time.After(500 * time.Millisecond):
 		// This function must not be blocked. We need to break for timeout.
 		return nil
@@ -127,7 +132,7 @@ func (u *UserInterface) appMain(a app.App) {
 				continue
 			}
 			renderCh <- struct{}{}
-			<-renderChEnd
+			<-renderEndCh
 			a.Publish()
 			a.Send(paint.Event{})
 		case touch.Event:
@@ -253,7 +258,7 @@ render:
 	context.ResumeAudio()
 
 	defer func() {
-		renderChEnd <- struct{}{}
+		renderEndCh <- struct{}{}
 	}()
 
 	if err := context.Update(func() {

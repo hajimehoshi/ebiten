@@ -20,8 +20,8 @@ import (
 	"golang.org/x/mobile/gl"
 )
 
-func (d *Driver) DoWork(chDone <-chan struct{}) error {
-	return d.context.doWork(chDone)
+func (d *Driver) DoWork(done <-chan struct{}) error {
+	return d.context.doWork(done)
 }
 
 func (d *Driver) Init() {

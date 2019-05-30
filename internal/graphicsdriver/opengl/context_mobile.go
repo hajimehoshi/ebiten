@@ -73,7 +73,10 @@ type contextImpl struct {
 	worker mgl.Worker
 }
 
-func (c *context) doWork(chDone <-chan struct{}) error {
+// doWork consumes the queued GL tasks.
+//
+// doWork is called only on gomobile-bind.
+func (c *context) doWork(done <-chan struct{}) error {
 	if c.worker == nil {
 		panic("opengl: worker must be initialized but not")
 	}
@@ -84,7 +87,7 @@ loop:
 		select {
 		case <-workAvailable:
 			c.worker.DoWork()
-		case <-chDone:
+		case <-done:
 			break loop
 		}
 	}
