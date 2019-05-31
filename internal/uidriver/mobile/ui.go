@@ -63,12 +63,16 @@ func (u *UserInterface) Render(chError <-chan error) error {
 		return errors.New("ui: chError must not be nil")
 	}
 	// TODO: Check this is called on the rendering thread
+
+	t := time.NewTimer(500 * time.Millisecond)
+	defer t.Stop()
+
 	select {
 	case err := <-chError:
 		return err
 	case renderCh <- struct{}{}:
 		return opengl.Get().DoWork(renderEndCh)
-	case <-time.After(500 * time.Millisecond):
+	case <-t.C:
 		// This function must not be blocked. We need to break for timeout.
 		return nil
 	}
@@ -247,10 +251,13 @@ func (u *UserInterface) scaleImpl() float64 {
 func (u *UserInterface) update(context driver.UIContext) error {
 render:
 	for {
+		t := time.NewTimer(500 * time.Millisecond)
+		defer t.Stop()
+
 		select {
 		case <-renderCh:
 			break render
-		case <-time.After(500 * time.Millisecond):
+		case <-t.C:
 			context.SuspendAudio()
 			continue
 		}

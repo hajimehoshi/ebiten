@@ -232,13 +232,15 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	u8.Release()
 
 	timeout := time.Duration(math.Pow(2, float64(try))) * time.Second
+	t := time.NewTimer(timeout)
+	defer t.Stop()
 
 	select {
 	case err := <-ch:
 		if err != nil {
 			return nil, err
 		}
-	case <-time.After(timeout):
+	case <-t.C:
 		// Sometimes decode fails without calling the callbacks (#464).
 		// Let's just try again in this case.
 		return nil, errTimeout
