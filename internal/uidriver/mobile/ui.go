@@ -67,9 +67,11 @@ func (u *UserInterface) Render(chError <-chan error) error {
 	select {
 	case err := <-chError:
 		return err
-	case renderCh <- struct{}{}:
-		return opengl.Get().DoWork(renderEndCh)
+	default:
 	}
+
+	renderCh <- struct{}{}
+	return opengl.Get().DoWork(renderEndCh)
 }
 
 type UserInterface struct {
