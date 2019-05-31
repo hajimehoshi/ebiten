@@ -64,17 +64,11 @@ func (u *UserInterface) Render(chError <-chan error) error {
 	}
 	// TODO: Check this is called on the rendering thread
 
-	t := time.NewTimer(500 * time.Millisecond)
-	defer t.Stop()
-
 	select {
 	case err := <-chError:
 		return err
 	case renderCh <- struct{}{}:
 		return opengl.Get().DoWork(renderEndCh)
-	case <-t.C:
-		// This function must not be blocked. We need to break for timeout.
-		return nil
 	}
 }
 
