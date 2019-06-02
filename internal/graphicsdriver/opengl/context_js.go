@@ -22,6 +22,7 @@ import (
 	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/jsutil"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -189,11 +190,10 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 
 	c.bindFramebuffer(f.native)
 
-	pixels := make([]byte, 4*width*height)
-	p := js.TypedArrayOf(pixels)
+	p := js.Global().Get("Uint8Array").New(4 * width * height)
 	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
-	p.Release()
-	return pixels, nil
+
+	return jsutil.Uint8ArrayToSlice(p), nil
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
@@ -227,9 +227,9 @@ func (c *context) texSubImage2D(t textureNative, pixels []byte, x, y, width, hei
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-	p := js.TypedArrayOf(pixels)
+	p, free := jsutil.SliceToTypedArray(pixels)
 	gl.Call("texSubImage2D", texture2d, 0, x, y, width, height, rgba, unsignedByte, p)
-	p.Release()
+	free()
 }
 
 func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
@@ -367,9 +367,9 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 	case 4:
 		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
 	case 16:
-		arr := js.TypedArrayOf(v)
+		arr, free := jsutil.SliceToTypedArray(v)
 		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
-		arr.Release()
+		free()
 	default:
 		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 	}
@@ -420,17 +420,17 @@ func (c *context) bindBuffer(bufferType bufferType, b buffer) {
 func (c *context) arrayBufferSubData(data []float32) {
 	c.ensureGL()
 	gl := c.gl
-	arr := js.TypedArrayOf(data)
+	arr, free := jsutil.SliceToTypedArray(data)
 	gl.Call("bufferSubData", int(arrayBuffer), 0, arr)
-	arr.Release()
+	free()
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	c.ensureGL()
 	gl := c.gl
-	arr := js.TypedArrayOf(data)
+	arr, free := jsutil.SliceToTypedArray(data)
 	gl.Call("bufferSubData", int(elementArrayBuffer), 0, arr)
-	arr.Release()
+	free()
 }
 
 func (c *context) deleteBuffer(b buffer) {

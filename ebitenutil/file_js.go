@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/internal/jsutil"
 )
 
 type file struct {
@@ -63,11 +65,6 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 		return nil, err
 	}
 
-	uint8contentWrapper := js.Global().Get("Uint8Array").New(content)
-	data := make([]byte, uint8contentWrapper.Get("byteLength").Int())
-	arr := js.TypedArrayOf(data)
-	arr.Call("set", uint8contentWrapper)
-	arr.Release()
-	f := &file{bytes.NewReader(data)}
+	f := &file{bytes.NewReader(jsutil.ArrayBufferToSlice(content))}
 	return f, nil
 }

@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io"
 	"syscall/js"
+
+	"github.com/hajimehoshi/ebiten/internal/jsutil"
 )
 
 var flatten = js.Global().Get("window").Call("eval", `(function(arr) {
@@ -117,9 +119,9 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 		}
 
 		s := make([]float32, flattened.Length())
-		arr := js.TypedArrayOf(s)
+		arr, free := jsutil.SliceToTypedArray(s)
 		arr.Call("set", flattened)
-		arr.Release()
+		free()
 
 		samples.samples = append(samples.samples, s)
 		samples.lengthInSamples += int64(len(s)) / int64(samples.channels)
@@ -127,9 +129,9 @@ func DecodeVorbis(buf []byte) (*Samples, int, int, error) {
 	})
 	defer f.Release()
 
-	arr := js.TypedArrayOf(buf)
+	arr, free := jsutil.SliceToTypedArray(buf)
 	js.Global().Get("stbvorbis").Call("decode", arr, f)
-	arr.Release()
+	free()
 
 	if err := <-ch; err != nil {
 		return nil, 0, 0, err
