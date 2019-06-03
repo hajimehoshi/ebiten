@@ -357,10 +357,6 @@ func (c *context) uniformFloat(p program, location string, v float32) {
 	gl.Call("uniform1f", js.Value(l), v)
 }
 
-var (
-	float32Array = js.Global().Get("Float32Array")
-)
-
 func (c *context) uniformFloats(p program, location string, v []float32) {
 	c.ensureGL()
 	gl := c.gl
