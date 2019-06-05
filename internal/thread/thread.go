@@ -38,6 +38,8 @@ func New() *Thread {
 // Loop must be called on the thread.
 func (t *Thread) Loop(ch <-chan error) error {
 	atomic.StoreInt32(&t.started, 1)
+	defer atomic.StoreInt32(&t.started, 0)
+
 	for {
 		select {
 		case f := <-t.funcs:
