@@ -278,7 +278,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 
 	var v *glfw.VidMode
 	s := 0.0
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		v = u.currentMonitor().GetVideoMode()
 		s = u.glfwScale()
 		return nil
@@ -290,7 +290,7 @@ func (u *UserInterface) SetScreenSize(width, height int) {
 	if !u.isRunning() {
 		panic("ui: Run is not called yet")
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		// TODO: What if the window is maximized? (#320)
 		u.setScreenSize(width, height, u.scale, u.isFullscreen(), u.vsync)
 		return nil
@@ -301,7 +301,7 @@ func (u *UserInterface) SetScreenScale(scale float64) {
 	if !u.isRunning() {
 		panic("ui: Run is not called yet")
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		// TODO: What if the window is maximized? (#320)
 		u.setScreenSize(u.width, u.height, scale, u.isFullscreen(), u.vsync)
 		return nil
@@ -313,7 +313,7 @@ func (u *UserInterface) ScreenScale() float64 {
 		return 0
 	}
 	s := 0.0
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		s = u.scale
 		return nil
 	})
@@ -333,7 +333,7 @@ func (u *UserInterface) IsFullscreen() bool {
 		return u.isInitFullscreen()
 	}
 	b := false
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		b = u.isFullscreen()
 		return nil
 	})
@@ -345,7 +345,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		u.setInitFullscreen(fullscreen)
 		return
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		u.setScreenSize(u.width, u.height, u.scale, fullscreen, u.vsync)
 		return nil
 	})
@@ -370,7 +370,7 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 		u.m.Unlock()
 		return
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		u.setScreenSize(u.width, u.height, u.scale, u.isFullscreen(), enabled)
 		return nil
 	})
@@ -387,7 +387,7 @@ func (u *UserInterface) SetWindowTitle(title string) {
 	if !u.isRunning() {
 		return
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		u.window.SetTitle(title)
 		return nil
 	})
@@ -398,7 +398,7 @@ func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
 		u.setInitIconImages(iconImages)
 		return
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		u.window.SetIcon(iconImages)
 		return nil
 	})
@@ -414,7 +414,7 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 		}
 		// The window width can be bigger than the game screen width (#444).
 		ox := 0.0
-		_ = u.t.Run(func() error {
+		_ = u.t.Call(func() error {
 			ox = (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2
 			return nil
 		})
@@ -427,7 +427,7 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	gs := 0.0
 	vw := 0.0
 	vh := 0.0
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		m := u.window.GetMonitor()
 		d = devicescale.GetAt(m.GetPos())
 		sx = float64(u.width) * u.actualScreenScale()
@@ -452,7 +452,7 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	}
 	ox, oy, _, _ := u.ScreenPadding()
 	s := 0.0
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		s = u.actualScreenScale()
 		return nil
 	})
@@ -464,7 +464,7 @@ func (u *UserInterface) IsCursorVisible() bool {
 		return u.isInitCursorVisible()
 	}
 	v := false
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		v = u.window.GetInputMode(glfw.CursorMode) == glfw.CursorNormal
 		return nil
 	})
@@ -476,7 +476,7 @@ func (u *UserInterface) SetCursorVisible(visible bool) {
 		u.setInitCursorVisible(visible)
 		return
 	}
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		c := glfw.CursorNormal
 		if !visible {
 			c = glfw.CursorHidden
@@ -491,7 +491,7 @@ func (u *UserInterface) IsWindowDecorated() bool {
 		return u.isInitWindowDecorated()
 	}
 	v := false
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		v = u.window.GetAttrib(glfw.Decorated) == glfw.True
 		return nil
 	})
@@ -509,7 +509,7 @@ func (u *UserInterface) SetWindowDecorated(decorated bool) {
 	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
 	// If SetAttrib exists, the implementation would be:
 	//
-	//     _ = u.t.Run(func() error {
+	//     _ = u.t.Call(func() error {
 	//         v := glfw.False
 	//         if decorated {
 	//             v = glfw.True
@@ -524,7 +524,7 @@ func (u *UserInterface) IsWindowResizable() bool {
 		return u.isInitWindowResizable()
 	}
 	v := false
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		v = u.window.GetAttrib(glfw.Resizable) == glfw.True
 		return nil
 	})
@@ -548,7 +548,7 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 		return devicescale.GetAt(u.initMonitor.GetPos())
 	}
 
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		m := u.currentMonitor()
 		f = devicescale.GetAt(m.GetPos())
 		return nil
@@ -584,7 +584,7 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 }
 
 func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		u.graphics = graphics
 		u.graphics.SetThread(u.t)
 
@@ -686,7 +686,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	})
 
 	var w uintptr
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		w = u.nativeWindow()
 		return nil
 	})
@@ -732,7 +732,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 	actualScale := 0.0
 	sizeChanged := false
 	// TODO: Is it possible to reduce 'runOnMainThread' calls?
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		actualScale = u.actualScreenScale()
 		if u.lastActualScale != actualScale {
 			u.forceSetScreenSize(u.width, u.height, u.scale, u.isFullscreen(), u.vsync)
@@ -754,7 +754,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 
 func (u *UserInterface) update(context driver.UIContext) error {
 	shouldClose := false
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		shouldClose = u.window.ShouldClose()
 		return nil
 	})
@@ -762,7 +762,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 		return driver.RegularTermination
 	}
 
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		if u.isInitFullscreen() {
 			u.setScreenSize(u.width, u.height, u.scale, true, u.vsync)
 			u.setInitFullscreen(false)
@@ -773,7 +773,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	// This call is needed for initialization.
 	u.updateSize(context)
 
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		glfw.PollEvents()
 
 		u.input.update(u.window, u.getScale()*u.glfwScale())
@@ -799,7 +799,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}
 
 	// Update the screen size when the window is resizable.
-	_ = u.t.Run(func() error {
+	_ = u.t.Call(func() error {
 		w, h := u.reqWidth, u.reqHeight
 		if w != 0 || h != 0 {
 			u.setScreenSize(w, h, u.scale, u.isFullscreen(), u.vsync)
@@ -813,7 +813,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 
 func (u *UserInterface) loop(context driver.UIContext) error {
 	defer func() {
-		_ = u.t.Run(func() error {
+		_ = u.t.Call(func() error {
 			glfw.Terminate()
 			return nil
 		})
@@ -827,7 +827,7 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 		vsync := u.vsync
 		u.m.Unlock()
 
-		_ = u.t.Run(func() error {
+		_ = u.t.Call(func() error {
 			if !vsync {
 				u.swapBuffers()
 				return nil

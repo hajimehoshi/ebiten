@@ -317,7 +317,7 @@ func (d *Driver) SetThread(thread *thread.Thread) {
 }
 
 func (d *Driver) Begin() {
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		// NSAutoreleasePool is required to release drawable correctly (#847).
 		// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 		d.pool = C.allocAutoreleasePool()
@@ -327,7 +327,7 @@ func (d *Driver) Begin() {
 
 func (d *Driver) End() {
 	d.flush(false, true)
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		d.screenDrawable = ca.MetalDrawable{}
 		C.releaseAutoreleasePool(d.pool)
 		d.pool = nil
@@ -336,7 +336,7 @@ func (d *Driver) End() {
 }
 
 func (d *Driver) SetWindow(window uintptr) {
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		// Note that [NSApp mainWindow] returns nil when the window is borderless.
 		// Then the window is needed to be given.
 		d.window = window
@@ -345,7 +345,7 @@ func (d *Driver) SetWindow(window uintptr) {
 }
 
 func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		if d.vb != (mtl.Buffer{}) {
 			d.vb.Release()
 		}
@@ -363,7 +363,7 @@ func (d *Driver) Flush() {
 }
 
 func (d *Driver) flush(wait bool, present bool) {
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		if d.cb == (mtl.CommandBuffer{}) {
 			return nil
 		}
@@ -384,7 +384,7 @@ func (d *Driver) flush(wait bool, present bool) {
 
 func (d *Driver) checkSize(width, height int) {
 	m := 0
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		if d.maxImageSize == 0 {
 			d.maxImageSize = 4096
 			// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
@@ -444,7 +444,7 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 		Usage: mtl.TextureUsageShaderRead,
 	}
 	var t mtl.Texture
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		t = d.device.MakeTexture(td)
 		return nil
 	})
@@ -457,7 +457,7 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 }
 
 func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		d.ml.SetDrawableSize(width, height)
 		return nil
 	})
@@ -470,7 +470,7 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, err
 }
 
 func (d *Driver) Reset() error {
-	if err := d.t.Run(func() error {
+	if err := d.t.Call(func() error {
 		if d.cq != (mtl.CommandQueue{}) {
 			d.cq.Release()
 			d.cq = mtl.CommandQueue{}
@@ -612,7 +612,7 @@ func (d *Driver) Reset() error {
 }
 
 func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
-	if err := d.t.Run(func() error {
+	if err := d.t.Call(func() error {
 		// NSView can be changed anytime (probably). Set this everyframe.
 		setView(d.window, d.ml)
 
@@ -696,7 +696,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 }
 
 func (d *Driver) ResetSource() {
-	d.t.Run(func() error {
+	d.t.Call(func() error {
 		d.src = nil
 		return nil
 	})
@@ -738,7 +738,7 @@ func (i *Image) viewportSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	i.driver.t.Run(func() error {
+	i.driver.t.Call(func() error {
 		if i.texture != (mtl.Texture{}) {
 			i.texture.Release()
 			i.texture = mtl.Texture{}
@@ -755,7 +755,7 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) syncTexture() {
-	i.driver.t.Run(func() error {
+	i.driver.t.Call(func() error {
 		if i.driver.cb != (mtl.CommandBuffer{}) {
 			panic("metal: command buffer must be empty at syncTexture: flush is not called yet?")
 		}
@@ -775,7 +775,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
-	i.driver.t.Run(func() error {
+	i.driver.t.Call(func() error {
 		i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
 			Size: mtl.Size{i.width, i.height, 1},
 		}, 0)
@@ -785,14 +785,14 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	i.driver.t.Run(func() error {
+	i.driver.t.Call(func() error {
 		i.driver.dst = i
 		return nil
 	})
 }
 
 func (i *Image) SetAsSource() {
-	i.driver.t.Run(func() error {
+	i.driver.t.Call(func() error {
 		i.driver.src = i
 		return nil
 	})
@@ -801,7 +801,7 @@ func (i *Image) SetAsSource() {
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	i.driver.flush(true, false)
 
-	i.driver.t.Run(func() error {
+	i.driver.t.Call(func() error {
 		i.texture.ReplaceRegion(mtl.Region{
 			Origin: mtl.Origin{x, y, 0},
 			Size:   mtl.Size{width, height, 1},

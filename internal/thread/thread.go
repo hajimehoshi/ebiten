@@ -49,10 +49,10 @@ func (t *Thread) Loop(ch <-chan error) error {
 	}
 }
 
-// Run calls f on the thread.
+// Call calls f on the thread.
 //
 // Do not call this from the same thread. This would block forever.
-func (t *Thread) Run(f func() error) error {
+func (t *Thread) Call(f func() error) error {
 	if atomic.LoadInt32(&t.started) == 0 {
 		panic("thread: the thread loop is not started yet")
 	}
