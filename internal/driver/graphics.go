@@ -17,9 +17,11 @@ package driver
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
 type Graphics interface {
+	SetThread(thread *thread.Thread)
 	Begin()
 	End()
 	SetWindow(window uintptr)

@@ -26,7 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
-	"github.com/hajimehoshi/ebiten/internal/mainthread"
+	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
 // #cgo CFLAGS: -x objective-c -mmacosx-version-min=10.11
@@ -301,6 +301,8 @@ type Driver struct {
 
 	maxImageSize int
 
+	t *thread.Thread
+
 	pool unsafe.Pointer
 }
 
@@ -310,8 +312,12 @@ func Get() *Driver {
 	return &theDriver
 }
 
+func (d *Driver) SetThread(thread *thread.Thread) {
+	d.t = thread
+}
+
 func (d *Driver) Begin() {
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		// NSAutoreleasePool is required to release drawable correctly (#847).
 		// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/Drawables.html
 		d.pool = C.allocAutoreleasePool()
@@ -321,7 +327,7 @@ func (d *Driver) Begin() {
 
 func (d *Driver) End() {
 	d.flush(false, true)
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		d.screenDrawable = ca.MetalDrawable{}
 		C.releaseAutoreleasePool(d.pool)
 		d.pool = nil
@@ -330,7 +336,7 @@ func (d *Driver) End() {
 }
 
 func (d *Driver) SetWindow(window uintptr) {
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		// Note that [NSApp mainWindow] returns nil when the window is borderless.
 		// Then the window is needed to be given.
 		d.window = window
@@ -339,7 +345,7 @@ func (d *Driver) SetWindow(window uintptr) {
 }
 
 func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		if d.vb != (mtl.Buffer{}) {
 			d.vb.Release()
 		}
@@ -357,7 +363,7 @@ func (d *Driver) Flush() {
 }
 
 func (d *Driver) flush(wait bool, present bool) {
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		if d.cb == (mtl.CommandBuffer{}) {
 			return nil
 		}
@@ -378,7 +384,7 @@ func (d *Driver) flush(wait bool, present bool) {
 
 func (d *Driver) checkSize(width, height int) {
 	m := 0
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		if d.maxImageSize == 0 {
 			d.maxImageSize = 4096
 			// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
@@ -438,7 +444,7 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 		Usage: mtl.TextureUsageShaderRead,
 	}
 	var t mtl.Texture
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		t = d.device.MakeTexture(td)
 		return nil
 	})
@@ -451,7 +457,7 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 }
 
 func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		d.ml.SetDrawableSize(width, height)
 		return nil
 	})
@@ -464,7 +470,7 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, err
 }
 
 func (d *Driver) Reset() error {
-	if err := mainthread.Run(func() error {
+	if err := d.t.Run(func() error {
 		if d.cq != (mtl.CommandQueue{}) {
 			d.cq.Release()
 			d.cq = mtl.CommandQueue{}
@@ -606,7 +612,7 @@ func (d *Driver) Reset() error {
 }
 
 func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
-	if err := mainthread.Run(func() error {
+	if err := d.t.Run(func() error {
 		// NSView can be changed anytime (probably). Set this everyframe.
 		setView(d.window, d.ml)
 
@@ -690,16 +696,16 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 }
 
 func (d *Driver) ResetSource() {
-	mainthread.Run(func() error {
+	d.t.Run(func() error {
 		d.src = nil
 		return nil
 	})
 }
 
 func (d *Driver) SetVsyncEnabled(enabled bool) {
-	// TODO: Now SetVsyncEnabled is called only from the main thread, and mainthread.Run is not available since
+	// TODO: Now SetVsyncEnabled is called only from the main thread, and d.t.Run is not available since
 	// recursive function call via Run is forbidden.
-	// Fix this to use mainthread.Run to avoid confusion.
+	// Fix this to use d.t.Run to avoid confusion.
 	d.ml.SetDisplaySyncEnabled(enabled)
 }
 
@@ -732,7 +738,7 @@ func (i *Image) viewportSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	mainthread.Run(func() error {
+	i.driver.t.Run(func() error {
 		if i.texture != (mtl.Texture{}) {
 			i.texture.Release()
 			i.texture = mtl.Texture{}
@@ -749,7 +755,7 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) syncTexture() {
-	mainthread.Run(func() error {
+	i.driver.t.Run(func() error {
 		if i.driver.cb != (mtl.CommandBuffer{}) {
 			panic("metal: command buffer must be empty at syncTexture: flush is not called yet?")
 		}
@@ -769,7 +775,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	i.syncTexture()
 
 	b := make([]byte, 4*i.width*i.height)
-	mainthread.Run(func() error {
+	i.driver.t.Run(func() error {
 		i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
 			Size: mtl.Size{i.width, i.height, 1},
 		}, 0)
@@ -779,14 +785,14 @@ func (i *Image) Pixels() ([]byte, error) {
 }
 
 func (i *Image) SetAsDestination() {
-	mainthread.Run(func() error {
+	i.driver.t.Run(func() error {
 		i.driver.dst = i
 		return nil
 	})
 }
 
 func (i *Image) SetAsSource() {
-	mainthread.Run(func() error {
+	i.driver.t.Run(func() error {
 		i.driver.src = i
 		return nil
 	})
@@ -795,7 +801,7 @@ func (i *Image) SetAsSource() {
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	i.driver.flush(true, false)
 
-	mainthread.Run(func() error {
+	i.driver.t.Run(func() error {
 		i.texture.ReplaceRegion(mtl.Region{
 			Origin: mtl.Origin{x, y, 0},
 			Size:   mtl.Size{width, height, 1},

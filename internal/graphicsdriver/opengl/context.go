@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
 func convertOperation(op graphics.Operation) operation {
@@ -48,6 +49,9 @@ type context struct {
 	lastViewportHeight int
 	lastCompositeMode  graphics.CompositeMode
 	maxTextureSize     int
+
+	t *thread.Thread
+
 	contextImpl
 }
 

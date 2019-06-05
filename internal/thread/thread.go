@@ -12,30 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mainthread
+package thread
 
 import (
-	"runtime"
 	"sync/atomic"
 )
 
-func init() {
-	runtime.LockOSThread()
+// Thread represents an OS thread.
+type Thread struct {
+	started int32
+	funcs   chan func()
 }
 
-var (
-	started = int32(0)
-	funcs   = make(chan func())
-)
-
-// Loop starts the main-thread loop.
+// New creates a new thread.
 //
-// Loop must be called on the main thread.
-func Loop(ch <-chan error) error {
-	atomic.StoreInt32(&started, 1)
+// It is assumed that the OS thread is fixed by runtime.LockOSThread when New is called.
+func New() *Thread {
+	return &Thread{
+		funcs: make(chan func()),
+	}
+}
+
+// Loop starts the thread loop.
+//
+// Loop must be called on the thread.
+func (t *Thread) Loop(ch <-chan error) error {
+	atomic.StoreInt32(&t.started, 1)
 	for {
 		select {
-		case f := <-funcs:
+		case f := <-t.funcs:
 			f()
 		case err := <-ch:
 			// ch returns a value not only when an error occur but also it is closed.
@@ -44,18 +49,17 @@ func Loop(ch <-chan error) error {
 	}
 }
 
-// Run calls f on the main thread.
+// Run calls f on the thread.
 //
-// Do not call this from the main thread. This would block forever.
-func Run(f func() error) error {
-	if atomic.LoadInt32(&started) == 0 {
-		// TODO: This can reach from other goroutine before Loop is called (#809).
-		// panic("mainthread: the mainthread loop is not started yet")
+// Do not call this from the same thread. This would block forever.
+func (t *Thread) Run(f func() error) error {
+	if atomic.LoadInt32(&t.started) == 0 {
+		panic("thread: the thread loop is not started yet")
 	}
 
 	ch := make(chan struct{})
 	var err error
-	funcs <- func() {
+	t.funcs <- func() {
 		err = f()
 		close(ch)
 	}

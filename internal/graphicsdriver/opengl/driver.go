@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
 var theDriver Driver
@@ -31,6 +32,10 @@ func Get() *Driver {
 type Driver struct {
 	state   openGLState
 	context context
+}
+
+func (d *Driver) SetThread(thread *thread.Thread) {
+	d.context.t = thread
 }
 
 func (d *Driver) Begin() {
