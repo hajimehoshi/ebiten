@@ -17,6 +17,7 @@
 package mobile
 
 import (
+	"context"
 	"errors"
 	"image"
 	"runtime"
@@ -71,7 +72,13 @@ func (u *UserInterface) Render(chError <-chan error) error {
 	}
 
 	renderCh <- struct{}{}
-	return opengl.Get().DoWork(renderEndCh)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-renderEndCh
+		cancel()
+	}()
+	opengl.Get().DoWork(ctx)
+	return nil
 }
 
 type UserInterface struct {

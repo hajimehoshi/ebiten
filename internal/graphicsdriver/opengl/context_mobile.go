@@ -17,6 +17,7 @@
 package opengl
 
 import (
+	stdcontext "context"
 	"errors"
 	"fmt"
 
@@ -76,7 +77,7 @@ type contextImpl struct {
 // doWork consumes the queued GL tasks.
 //
 // doWork is called only on gomobile-bind.
-func (c *context) doWork(done <-chan struct{}) error {
+func (c *context) doWork(context stdcontext.Context) {
 	if c.worker == nil {
 		panic("opengl: worker must be initialized but not")
 	}
@@ -87,11 +88,10 @@ loop:
 		select {
 		case <-workAvailable:
 			c.worker.DoWork()
-		case <-done:
+		case <-context.Done():
 			break loop
 		}
 	}
-	return nil
 }
 
 func (c *context) reset() error {

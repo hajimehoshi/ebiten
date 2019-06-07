@@ -17,11 +17,13 @@
 package opengl
 
 import (
+	stdcontext "context"
+
 	"golang.org/x/mobile/gl"
 )
 
-func (d *Driver) DoWork(done <-chan struct{}) error {
-	return d.context.doWork(done)
+func (d *Driver) DoWork(context stdcontext.Context) {
+	d.context.doWork(context)
 }
 
 func (d *Driver) Init() {
