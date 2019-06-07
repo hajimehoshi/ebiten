@@ -18,9 +18,7 @@ package mobile
 
 import (
 	"context"
-	"errors"
 	"image"
-	"runtime"
 	"sync"
 	"time"
 
@@ -56,21 +54,7 @@ func Get() *UserInterface {
 	return theUI
 }
 
-func (u *UserInterface) Render(chError <-chan error) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	if chError == nil {
-		return errors.New("ui: chError must not be nil")
-	}
-	// TODO: Check this is called on the rendering thread
-
-	select {
-	case err := <-chError:
-		return err
-	default:
-	}
-
+func (u *UserInterface) Render() {
 	renderCh <- struct{}{}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -78,7 +62,6 @@ func (u *UserInterface) Render(chError <-chan error) error {
 		cancel()
 	}()
 	opengl.Get().DoWork(ctx)
-	return nil
 }
 
 type UserInterface struct {

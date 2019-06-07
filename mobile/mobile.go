@@ -63,6 +63,7 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 //
 // Update returns error when 1) OpenGL error happens, or 2) f in Start returns error samely as ebiten.Run.
 func Update() error {
+	// TODO: Is it safe to call Lock before locking the OS thread?
 	mobileMutex.Lock()
 	defer mobileMutex.Unlock()
 
