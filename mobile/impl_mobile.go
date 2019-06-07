@@ -18,7 +18,6 @@ package mobile
 
 import (
 	"errors"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
@@ -30,9 +29,6 @@ var (
 )
 
 func update() error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	if chError == nil {
 		return errors.New("mobile: chError must not be nil: Start is not called yet?")
 	}
