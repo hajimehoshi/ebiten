@@ -15,6 +15,7 @@
 package thread
 
 import (
+	"context"
 	"sync/atomic"
 )
 
@@ -36,17 +37,17 @@ func New() *Thread {
 // Loop starts the thread loop.
 //
 // Loop must be called on the thread.
-func (t *Thread) Loop(ch <-chan error) error {
+func (t *Thread) Loop(context context.Context) {
 	atomic.StoreInt32(&t.started, 1)
 	defer atomic.StoreInt32(&t.started, 0)
 
+loop:
 	for {
 		select {
 		case f := <-t.funcs:
 			f()
-		case err := <-ch:
-			// ch returns a value not only when an error occur but also it is closed.
-			return err
+		case <-context.Done():
+			break loop
 		}
 	}
 }

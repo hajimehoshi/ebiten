@@ -20,6 +20,7 @@
 package glfw
 
 import (
+	"context"
 	"image"
 	"math"
 	"runtime"
@@ -171,11 +172,9 @@ func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
 	return nil, false
 }
 
-func (u *UserInterface) mainThreadLoop(ch <-chan error) error {
+func (u *UserInterface) mainThreadLoop(context context.Context) error {
 	u.setRunning(true)
-	if err := u.t.Loop(ch); err != nil {
-		return err
-	}
+	u.t.Loop(context)
 	u.setRunning(false)
 	return nil
 }
@@ -561,22 +560,23 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(width, height int, scale float64, title string, uicontext driver.UIContext, graphics driver.Graphics) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
 
-	ch := make(chan error)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ch := make(chan error, 1)
 	go func() {
+		defer cancel()
 		defer close(ch)
-		if err := u.run(width, height, scale, title, context, graphics); err != nil {
+		if err := u.run(width, height, scale, title, uicontext, graphics); err != nil {
 			ch <- err
 		}
 	}()
 
-	if err := u.mainThreadLoop(ch); err != nil {
-		return err
-	}
-	return nil
+	u.mainThreadLoop(ctx)
+	return <-ch
 }
 
 func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
