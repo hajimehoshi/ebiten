@@ -14,9 +14,9 @@
 
 // +build darwin
 
-typedef signed char BOOL;
+#include <stdint.h>
+
 typedef unsigned long uint_t;
-typedef unsigned short uint16_t;
 
 void *MakeMetalLayer();
 
@@ -26,7 +26,7 @@ const char *MetalLayer_SetPixelFormat(void *metalLayer, uint16_t pixelFormat);
 const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
                                                uint_t maximumDrawableCount);
 void MetalLayer_SetDisplaySyncEnabled(void *metalLayer,
-                                      BOOL displaySyncEnabled);
+                                      uint8_t displaySyncEnabled);
 void MetalLayer_SetDrawableSize(void *metalLayer, double width, double height);
 void *MetalLayer_NextDrawable(void *metalLayer);
 

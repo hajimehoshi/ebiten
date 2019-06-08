@@ -29,7 +29,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
-// #cgo CFLAGS: -x objective-c -mmacosx-version-min=10.11
+// #cgo CFLAGS: -x objective-c
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
 // #cgo LDFLAGS: -framework Foundation
 //
 // #import <Foundation/Foundation.h>

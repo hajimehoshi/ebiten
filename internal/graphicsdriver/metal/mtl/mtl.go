@@ -30,7 +30,7 @@ import (
 	"unsafe"
 )
 
-// #cgo CFLAGS: -mmacosx-version-min=10.11
+// #cgo !ios CFLAGS: -mmacosx-version-min=10.11
 // #cgo LDFLAGS: -framework Metal -framework Foundation
 //
 // #include <stdlib.h>
@@ -437,16 +437,16 @@ func (d Device) MakeLibrary(source string, opt CompileOptions) (Library, error) 
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433369-makerenderpipelinestate.
 func (d Device) MakeRenderPipelineState(rpd RenderPipelineDescriptor) (RenderPipelineState, error) {
-	blendingEnabled := C.BOOL(0)
+	blendingEnabled := 0
 	if rpd.ColorAttachments[0].BlendingEnabled {
-		blendingEnabled = C.BOOL(1)
+		blendingEnabled = 1
 	}
 	c := &rpd.ColorAttachments[0]
 	descriptor := C.struct_RenderPipelineDescriptor{
 		VertexFunction:                              rpd.VertexFunction.function,
 		FragmentFunction:                            rpd.FragmentFunction.function,
 		ColorAttachment0PixelFormat:                 C.uint16_t(c.PixelFormat),
-		ColorAttachment0BlendingEnabled:             C.BOOL(blendingEnabled),
+		ColorAttachment0BlendingEnabled:             C.uint8_t(blendingEnabled),
 		ColorAttachment0DestinationAlphaBlendFactor: C.uint8_t(c.DestinationAlphaBlendFactor),
 		ColorAttachment0DestinationRGBBlendFactor:   C.uint8_t(c.DestinationRGBBlendFactor),
 		ColorAttachment0SourceAlphaBlendFactor:      C.uint8_t(c.SourceAlphaBlendFactor),

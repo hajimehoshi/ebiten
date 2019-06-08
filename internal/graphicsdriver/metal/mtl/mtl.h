@@ -15,18 +15,15 @@
 // +build darwin
 
 #include <stddef.h>
+#include <stdint.h>
 
-typedef signed char BOOL;
 typedef unsigned long uint_t;
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long long uint64_t;
 
 struct Device {
   void *Device;
-  BOOL Headless;
-  BOOL LowPower;
-  BOOL Removable;
+  uint8_t Headless;
+  uint8_t LowPower;
+  uint8_t Removable;
   uint64_t RegistryID;
   const char *Name;
 };
@@ -45,7 +42,7 @@ struct RenderPipelineDescriptor {
   void *VertexFunction;
   void *FragmentFunction;
   uint16_t ColorAttachment0PixelFormat;
-  BOOL ColorAttachment0BlendingEnabled;
+  uint8_t ColorAttachment0BlendingEnabled;
   uint8_t ColorAttachment0DestinationAlphaBlendFactor;
   uint8_t ColorAttachment0DestinationRGBBlendFactor;
   uint8_t ColorAttachment0SourceAlphaBlendFactor;
@@ -108,7 +105,7 @@ struct Viewport {
 struct Device CreateSystemDefaultDevice();
 struct Devices CopyAllDevices();
 
-BOOL Device_SupportsFeatureSet(void *device, uint16_t featureSet);
+uint8_t Device_SupportsFeatureSet(void *device, uint16_t featureSet);
 void *Device_MakeCommandQueue(void *device);
 struct Library Device_MakeLibrary(void *device, const char *source,
                                   size_t sourceLength);
