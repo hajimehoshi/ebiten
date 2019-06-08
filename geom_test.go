@@ -334,6 +334,37 @@ func TestGeomSkew(t *testing.T) {
 	testSkew(-1.5, 1.5, inputTrn, expectedTrn)
 }
 
+func TestGeoMEquals(t *testing.T) {
+	tests := []struct {
+		a    GeoM
+		b    GeoM
+		want bool
+	}{
+		{
+			a:    GeoM{},
+			b:    GeoM{},
+			want: true,
+		},
+		{
+			a:    newGeoM(3, 1, 4, 1, 5, 9),
+			b:    newGeoM(3, 1, 4, 1, 5, 9),
+			want: true,
+		},
+		{
+			a:    newGeoM(3, 1, 4, 1, 5, 9),
+			b:    newGeoM(3, 1, 4, 1, 5, 10),
+			want: false,
+		},
+	}
+	for _, test := range tests {
+		got := (test.a == test.b)
+		want := test.want
+		if got != want {
+			t.Errorf("%#v == %#v: got %t, want: %t", test.a, test.b, got, want)
+		}
+	}
+}
+
 func BenchmarkGeoM(b *testing.B) {
 	var m GeoM
 	for i := 0; i < b.N; i++ {
