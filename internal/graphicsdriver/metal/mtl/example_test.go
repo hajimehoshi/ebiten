@@ -31,9 +31,6 @@ import (
 )
 
 func Example_listDevices() {
-	allDevices := mtl.CopyAllDevices()
-	printJSON("all Metal devices in the system = ", allDevices)
-
 	device, err := mtl.CreateSystemDefaultDevice()
 	if err != nil {
 		log.Fatalln(err)

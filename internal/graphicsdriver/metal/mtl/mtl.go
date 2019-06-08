@@ -403,25 +403,6 @@ func CreateSystemDefaultDevice() (Device, error) {
 	}, nil
 }
 
-// CopyAllDevices returns all Metal devices in the system.
-//
-// Reference: https://developer.apple.com/documentation/metal/1433367-mtlcopyalldevices.
-func CopyAllDevices() []Device {
-	d := C.CopyAllDevices()
-	defer C.free(unsafe.Pointer(d.Devices))
-
-	ds := make([]Device, d.Length)
-	for i := 0; i < len(ds); i++ {
-		d := (*C.struct_Device)(unsafe.Pointer(uintptr(unsafe.Pointer(d.Devices)) + uintptr(i)*C.sizeof_struct_Device))
-
-		ds[i].device = d.Device
-		ds[i].Headless = d.Headless != 0
-		ds[i].LowPower = d.LowPower != 0
-		ds[i].Name = C.GoString(d.Name)
-	}
-	return ds
-}
-
 // Device returns the underlying id<MTLDevice> pointer.
 func (d Device) Device() unsafe.Pointer { return d.device }
 

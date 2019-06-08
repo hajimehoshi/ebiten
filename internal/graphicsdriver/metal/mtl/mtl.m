@@ -34,22 +34,6 @@ struct Device CreateSystemDefaultDevice() {
   return d;
 }
 
-// Caller must call free(d.devices).
-struct Devices CopyAllDevices() {
-  NSArray<id<MTLDevice>> *devices = MTLCopyAllDevices();
-
-  struct Devices d;
-  d.Devices = malloc(devices.count * sizeof(struct Device));
-  for (int i = 0; i < devices.count; i++) {
-    d.Devices[i].Device = devices[i];
-    d.Devices[i].Headless = devices[i].headless;
-    d.Devices[i].LowPower = devices[i].lowPower;
-    d.Devices[i].Name = devices[i].name.UTF8String;
-  }
-  d.Length = devices.count;
-  return d;
-}
-
 BOOL Device_SupportsFeatureSet(void *device, uint16_t featureSet) {
   return [(id<MTLDevice>)device supportsFeatureSet:featureSet];
 }
