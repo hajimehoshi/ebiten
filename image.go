@@ -236,17 +236,12 @@ func (i *Image) disposeMipmaps() {
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
-	i.drawImage(img, options)
-	return nil
-}
-
-func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	i.copyCheck()
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
 	if i.isDisposed() {
-		return
+		return nil
 	}
 
 	// TODO: Implement this.
@@ -287,7 +282,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 			op.GeoM.Concat(options.GeoM)
 			i.DrawImage(img.SubImage(image.Rect(sx0, sy0, sx1, sy1)).(*Image), op)
 		}
-		return
+		return nil
 	}
 
 	bounds := img.Bounds()
@@ -296,7 +291,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	if options.SourceRect != nil {
 		bounds = bounds.Intersect(*options.SourceRect)
 		if bounds.Empty() {
-			return
+			return nil
 		}
 	}
 
@@ -316,10 +311,10 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 	if filter == graphics.FilterLinear && !img.mipmap.original().IsVolatile() {
 		det := geom.det()
 		if det == 0 {
-			return
+			return nil
 		}
 		if math.IsNaN(float64(det)) {
-			return
+			return nil
 		}
 		level = graphics.MipmapLevel(det)
 		if level < 0 {
@@ -339,7 +334,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 
 		if level < 0 {
 			// As the render source is too small, nothing is rendered.
-			return
+			return nil
 		}
 	}
 	if level > 6 {
@@ -375,6 +370,7 @@ func (i *Image) drawImage(img *Image, options *DrawImageOptions) {
 		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	}
 	i.disposeMipmaps()
+	return nil
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
