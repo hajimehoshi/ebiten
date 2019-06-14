@@ -23,14 +23,6 @@ import (
 	. "github.com/hajimehoshi/ebiten/internal/jsutil"
 )
 
-func jsArray(values []float64) js.Value {
-	a := js.Global().Get("Array").New()
-	for _, v := range values {
-		a.Call("push", v)
-	}
-	return a
-}
-
 func TestArrayBufferToSlice(t *testing.T) {
 	// TODO
 }
