@@ -19,8 +19,44 @@ package metal
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 )
 
-func setView(window uintptr, layer ca.MetalLayer) {
+type view struct {
+}
+
+func (v *view) setWindow(window uintptr) {
+	panic("metal: setWindow cannot be called on iOS")
+}
+
+func (v *view) setDrawableSize(width, height int) {
+	// Do nothing
+}
+
+func (v *view) getMTLDevice() mtl.Device {
 	// TODO: Implement this
+	return mtl.Device{}
+}
+
+func (v *view) setDisplaySyncEnabled(enabled bool) {
+	// Do nothing
+}
+
+func (v *view) colorPixelFormat() mtl.PixelFormat {
+	// TODO: Implement this
+	return 0
+}
+
+func (v *view) reset() error {
+	// Do nothing
+	return nil
+}
+
+func (v *view) update() {
+	// Do nothing
+}
+
+func (v *view) drawable() ca.MetalDrawable {
+	// TODO: Implemnt this
+	return ca.MetalDrawable{}
 }

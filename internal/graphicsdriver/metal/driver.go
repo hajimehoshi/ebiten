@@ -283,10 +283,8 @@ type rpsKey struct {
 }
 
 type Driver struct {
-	window uintptr
+	view view
 
-	device    mtl.Device
-	ml        ca.MetalLayer
 	screenRPS mtl.RenderPipelineState
 	rpss      map[rpsKey]mtl.RenderPipelineState
 	cq        mtl.CommandQueue
@@ -339,8 +337,8 @@ func (d *Driver) End() {
 func (d *Driver) SetWindow(window uintptr) {
 	d.t.Call(func() error {
 		// Note that [NSApp mainWindow] returns nil when the window is borderless.
-		// Then the window is needed to be given.
-		d.window = window
+		// Then the window is needed to be given explicitly.
+		d.view.setWindow(window)
 		return nil
 	})
 }
@@ -353,8 +351,8 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 		if d.ib != (mtl.Buffer{}) {
 			d.ib.Release()
 		}
-		d.vb = d.device.MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), mtl.ResourceStorageModeManaged)
-		d.ib = d.device.MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), mtl.ResourceStorageModeManaged)
+		d.vb = d.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), mtl.ResourceStorageModeManaged)
+		d.ib = d.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), mtl.ResourceStorageModeManaged)
 		return nil
 	})
 }
@@ -390,25 +388,25 @@ func (d *Driver) checkSize(width, height int) {
 			d.maxImageSize = 4096
 			// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
 			switch {
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
 				d.maxImageSize = 16384
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
 				d.maxImageSize = 16384
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
 				d.maxImageSize = 16384
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
 				d.maxImageSize = 8192
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
 				d.maxImageSize = 4096
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
 				d.maxImageSize = 8192
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
 				d.maxImageSize = 4096
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
 				d.maxImageSize = 16384
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
 				d.maxImageSize = 8192
-			case d.device.SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
 				d.maxImageSize = 16384
 			default:
 				panic("metal: there is no supported feature set")
@@ -446,7 +444,7 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 	}
 	var t mtl.Texture
 	d.t.Call(func() error {
-		t = d.device.MakeTexture(td)
+		t = d.view.getMTLDevice().MakeTexture(td)
 		return nil
 	})
 	return &Image{
@@ -459,7 +457,7 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 
 func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, error) {
 	d.t.Call(func() error {
-		d.ml.SetDrawableSize(width, height)
+		d.view.setDrawableSize(width, height)
 		return nil
 	})
 	return &Image{
@@ -482,21 +480,9 @@ func (d *Driver) Reset() error {
 			d.rpss = map[rpsKey]mtl.RenderPipelineState{}
 		}
 
-		var err error
-		d.device, err = mtl.CreateSystemDefaultDevice()
-		if err != nil {
+		if err := d.view.reset(); err != nil {
 			return err
 		}
-
-		d.ml = ca.MakeMetalLayer()
-		d.ml.SetDevice(d.device)
-		// https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat
-		//
-		// The pixel format for a Metal layer must be MTLPixelFormatBGRA8Unorm,
-		// MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatRGBA16Float, MTLPixelFormatBGRA10_XR, or
-		// MTLPixelFormatBGRA10_XR_sRGB.
-		d.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
-		d.ml.SetMaximumDrawableCount(3)
 
 		replaces := map[string]string{
 			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
@@ -510,7 +496,7 @@ func (d *Driver) Reset() error {
 			src = strings.Replace(src, k, v, -1)
 		}
 
-		lib, err := d.device.MakeLibrary(src, mtl.CompileOptions{})
+		lib, err := d.view.getMTLDevice().MakeLibrary(src, mtl.CompileOptions{})
 		if err != nil {
 			return err
 		}
@@ -527,13 +513,13 @@ func (d *Driver) Reset() error {
 			VertexFunction:   vs,
 			FragmentFunction: fs,
 		}
-		rpld.ColorAttachments[0].PixelFormat = d.ml.PixelFormat()
+		rpld.ColorAttachments[0].PixelFormat = d.view.colorPixelFormat()
 		rpld.ColorAttachments[0].BlendingEnabled = true
 		rpld.ColorAttachments[0].DestinationAlphaBlendFactor = mtl.BlendFactorZero
 		rpld.ColorAttachments[0].DestinationRGBBlendFactor = mtl.BlendFactorZero
 		rpld.ColorAttachments[0].SourceAlphaBlendFactor = mtl.BlendFactorOne
 		rpld.ColorAttachments[0].SourceRGBBlendFactor = mtl.BlendFactorOne
-		rps, err := d.device.MakeRenderPipelineState(rpld)
+		rps, err := d.view.getMTLDevice().MakeRenderPipelineState(rpld)
 		if err != nil {
 			return err
 		}
@@ -588,7 +574,7 @@ func (d *Driver) Reset() error {
 						rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
 						rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
 						rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
-						rps, err := d.device.MakeRenderPipelineState(rpld)
+						rps, err := d.view.getMTLDevice().MakeRenderPipelineState(rpld)
 						if err != nil {
 							return err
 						}
@@ -603,7 +589,7 @@ func (d *Driver) Reset() error {
 			}
 		}
 
-		d.cq = d.device.MakeCommandQueue()
+		d.cq = d.view.getMTLDevice().MakeCommandQueue()
 		return nil
 	}); err != nil {
 		return err
@@ -614,8 +600,7 @@ func (d *Driver) Reset() error {
 
 func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
 	if err := d.t.Call(func() error {
-		// NSView can be changed anytime (probably). Set this everyframe.
-		setView(d.window, d.ml)
+		d.view.update()
 
 		rpd := mtl.RenderPassDescriptor{}
 		if d.dst.screen {
@@ -628,9 +613,8 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		var t mtl.Texture
 		if d.dst.screen {
 			if d.screenDrawable == (ca.MetalDrawable{}) {
-				drawable, err := d.ml.NextDrawable()
-				if err != nil {
-					// Drawable is nil. This can happen at the initial state. Let's wait and see.
+				drawable := d.view.drawable()
+				if drawable == (ca.MetalDrawable{}) {
 					return nil
 				}
 				d.screenDrawable = drawable
@@ -704,10 +688,7 @@ func (d *Driver) ResetSource() {
 }
 
 func (d *Driver) SetVsyncEnabled(enabled bool) {
-	// TODO: Now SetVsyncEnabled is called only from the main thread, and d.t.Run is not available since
-	// recursive function call via Run is forbidden.
-	// Fix this to use d.t.Run to avoid confusion.
-	d.ml.SetDisplaySyncEnabled(enabled)
+	d.view.setDisplaySyncEnabled(enabled)
 }
 
 func (d *Driver) VDirection() driver.VDirection {
