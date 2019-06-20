@@ -35,11 +35,6 @@ const (
 )
 
 func (v *verticesBackend) slice(n int) []float32 {
-	const num = 1024
-	if n > num {
-		panic(fmt.Sprintf("graphics: n must be <= num but not: n: %d, num: %d", n, num))
-	}
-
 	v.m.Lock()
 
 	need := n * VertexFloatNum
@@ -49,7 +44,11 @@ func (v *verticesBackend) slice(n int) []float32 {
 	}
 
 	if v.backend == nil {
-		v.backend = make([]float32, VertexFloatNum*num)
+		l := 1024
+		if n > l {
+			l = n
+		}
+		v.backend = make([]float32, VertexFloatNum*l)
 	}
 
 	s := v.backend[v.head : v.head+need]

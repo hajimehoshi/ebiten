@@ -481,7 +481,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = graphics.Filter(img.filter)
 	}
 
-	vs := make([]float32, len(vertices)*graphics.VertexFloatNum)
+	vs := graphics.VertexSlice(len(vertices))
 	src := img.mipmap.original()
 	r := img.Bounds()
 	for idx, v := range vertices {
