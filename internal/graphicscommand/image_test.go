@@ -47,7 +47,8 @@ func TestClear(t *testing.T) {
 	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
 
-	vs := graphics.QuadVertices(w/2, h/2, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := graphics.VertexSlice(4)
+	graphics.PutQuadVertices(vs, w/2, h/2, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
 
@@ -74,7 +75,8 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	clr := NewImage(w, h)
 	src := NewImage(16, 16)
 	dst := NewImage(w, h)
-	vs := graphics.QuadVertices(16, 16, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := graphics.VertexSlice(4)
+	graphics.PutQuadVertices(vs, 16, 16, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(clr, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
 	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)

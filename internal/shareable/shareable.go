@@ -171,7 +171,8 @@ func (i *Image) ensureNotShared() {
 
 	x, y, w, h := i.region()
 	newImg := restorable.NewImage(w, h)
-	vs := i.backend.restorable.QuadVertices(x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := graphics.VertexSlice(4)
+	i.backend.restorable.PutQuadVertices(vs, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 
@@ -226,16 +227,16 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-// QuadVertices returns the vertices for rendering a quad.
+// PutQuadVertices puts the given dest with vertices for rendering a quad.
 //
-// QuadVertices is highly optimized for rendering quads, and that's the most significant difference from
+// PutQuadVertices is highly optimized for rendering quads, and that's the most significant difference from
 // PutVertices.
-func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
+func (i *Image) PutQuadVertices(vs []float32, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
 	}
 	ox, oy, _, _ := i.region()
-	return i.backend.restorable.QuadVertices(sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	i.backend.restorable.PutQuadVertices(vs, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
 // PutVertices puts the given dest with vertices that can be passed to DrawTriangles.

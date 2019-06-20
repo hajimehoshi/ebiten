@@ -195,7 +195,8 @@ func (i *Image) fill(r, g, b, a uint8) {
 	// As emptyImage is a priority image, this is restored before other regular images are restored.
 	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
-	vs := graphics.QuadVertices(dw, dh, 0, 0, sw, sh,
+	vs := graphics.VertexSlice(4)
+	graphics.PutQuadVertices(vs, dw, dh, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
@@ -238,9 +239,9 @@ func (i *Image) internalSize() (int, int) {
 	return i.w2, i.h2
 }
 
-func (i *Image) QuadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
+func (i *Image) PutQuadVertices(vs []float32, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
 	w, h := i.internalSize()
-	return graphics.QuadVertices(w, h, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	graphics.PutQuadVertices(vs, w, h, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
 func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {

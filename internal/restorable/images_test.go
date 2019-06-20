@@ -106,9 +106,11 @@ func TestRestoreWithoutDraw(t *testing.T) {
 }
 
 func quadVertices(src *Image, sw, sh, x, y int) []float32 {
-	return src.QuadVertices(0, 0, sw, sh,
+	vs := graphics.VertexSlice(4)
+	src.PutQuadVertices(vs, 0, 0, sw, sh,
 		1, 0, 0, 1, float32(x), float32(y),
 		1, 1, 1, 1)
+	return vs
 }
 
 func TestRestoreChain(t *testing.T) {

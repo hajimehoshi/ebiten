@@ -59,7 +59,11 @@ func (v *verticesBackend) slice(n int) []float32 {
 	return s
 }
 
-func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) []float32 {
+func VertexSlice(n int) []float32 {
+	return theVerticesBackend.slice(n)
+}
+
+func PutQuadVertices(vs []float32, width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
 	// width and height are the source image's size.
 
 	// For performance reason, graphics.InternalImageSize is not applied to width/height here.
@@ -72,27 +76,29 @@ func QuadVertices(width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty 
 	}
 
 	if sx0 >= sx1 || sy0 >= sy1 {
-		return nil
+		// Do not modify vs. Here, it is assumed that vs is initialized with zero values.
+		return
 	}
 	if sx1 <= 0 || sy1 <= 0 {
-		return nil
+		// Do not modify vs. Here, it is assumed that vs is initialized with zero values.
+		return
 	}
 
 	wf := float32(width)
 	hf := float32(height)
 	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	return quadVerticesImpl(wf, hf, float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	putQuadVerticesImpl(vs, wf, hf, float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
 const TexelAdjustmentFactor = 512.0
 
-func quadVerticesImpl(sw, sh, x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) []float32 {
+func putQuadVerticesImpl(vs []float32, sw, sh, x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
 	//
 	// 4*VertexFloatNum is better than 48 in terms of code maintenanceability, but in GopherJS, optimization
 	// might not work.
-	vs := theVerticesBackend.slice(4)[0:48]
+	vs = vs[0:48]
 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 
@@ -156,8 +162,6 @@ func quadVerticesImpl(sw, sh, x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, 
 	vs[45] = cg
 	vs[46] = cb
 	vs[47] = ca
-
-	return vs
 }
 
 var (
