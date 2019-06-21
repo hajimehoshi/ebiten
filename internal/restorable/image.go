@@ -195,7 +195,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	// As emptyImage is a priority image, this is restored before other regular images are restored.
 	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
-	vs := graphics.VertexSlice(4)
+	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, i, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)

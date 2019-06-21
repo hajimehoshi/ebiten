@@ -69,7 +69,7 @@ func TestClear(t *testing.T) {
 	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
 
-	vs := graphics.VertexSlice(4)
+	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, &testVertexPutter{w / 2, h / 2}, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
@@ -97,7 +97,7 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	clr := NewImage(w, h)
 	src := NewImage(16, 16)
 	dst := NewImage(w, h)
-	vs := graphics.VertexSlice(4)
+	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, &testVertexPutter{w / 2, h / 2}, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(clr, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)

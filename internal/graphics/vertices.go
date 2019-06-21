@@ -14,52 +14,10 @@
 
 package graphics
 
-import (
-	"sync"
-)
-
-var (
-	theVerticesBackend = &verticesBackend{}
-)
-
-type verticesBackend struct {
-	backend []float32
-	head    int
-	m       sync.Mutex
-}
-
 const (
 	IndicesNum     = (1 << 16) / 3 * 3 // Adjust num for triangles.
 	VertexFloatNum = 12
 )
-
-func (v *verticesBackend) slice(n int) []float32 {
-	v.m.Lock()
-
-	need := n * VertexFloatNum
-	if v.head+need > len(v.backend) {
-		v.backend = nil
-		v.head = 0
-	}
-
-	if v.backend == nil {
-		l := 1024
-		if n > l {
-			l = n
-		}
-		v.backend = make([]float32, VertexFloatNum*l)
-	}
-
-	s := v.backend[v.head : v.head+need]
-	v.head += need
-
-	v.m.Unlock()
-	return s
-}
-
-func VertexSlice(n int) []float32 {
-	return theVerticesBackend.slice(n)
-}
 
 type VertexPutter interface {
 	PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32)

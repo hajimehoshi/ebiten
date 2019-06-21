@@ -171,7 +171,7 @@ func (i *Image) ensureNotShared() {
 
 	_, _, w, h := i.region()
 	newImg := restorable.NewImage(w, h)
-	vs := graphics.VertexSlice(4)
+	vs := make([]float32, 4*graphics.VertexFloatNum)
 	i.PutQuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
