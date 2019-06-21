@@ -240,8 +240,6 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	const texelAdjustmentFactor = 512.0
-
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
 	//
@@ -256,8 +254,8 @@ func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, b
 	vs[3] = sy / float32(h)
 	vs[4] = bx0 / float32(w)
 	vs[5] = by0 / float32(h)
-	vs[6] = bx1/float32(w) - 1.0/float32(w)/texelAdjustmentFactor
-	vs[7] = by1/float32(h) - 1.0/float32(h)/texelAdjustmentFactor
+	vs[6] = bx1 / float32(w)
+	vs[7] = by1 / float32(h)
 	vs[8] = cr
 	vs[9] = cg
 	vs[10] = cb

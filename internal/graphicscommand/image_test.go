@@ -49,7 +49,6 @@ type testVertexPutter struct {
 
 func (t *testVertexPutter) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	// The implementation is basically same as restorable.(*Image).PutVertex.
-	// This doesn't adjust texels, but this is fine as long as the rectangle is not rotated or scaled.
 	vs[0] = dx
 	vs[1] = dy
 	vs[2] = sx / t.w

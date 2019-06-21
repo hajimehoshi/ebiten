@@ -54,6 +54,11 @@ type command interface {
 	CanMerge(dst, src *Image, color *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) bool
 }
 
+type size struct {
+	width  float32
+	height float32
+}
+
 // commandQueue is a command queue for drawing commands.
 type commandQueue struct {
 	// commands is a queue of drawing commands.
@@ -70,6 +75,8 @@ type commandQueue struct {
 	// Rename or fix the program.
 	nvertices int
 
+	dstSizes []size
+
 	indices  []uint16
 	nindices int
 
@@ -83,12 +90,18 @@ type commandQueue struct {
 var theCommandQueue = &commandQueue{}
 
 // appendVertices appends vertices to the queue.
-func (q *commandQueue) appendVertices(vertices []float32) {
+func (q *commandQueue) appendVertices(vertices []float32, width, height float32) {
 	if len(q.vertices) < q.nvertices+len(vertices) {
 		n := q.nvertices + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
+		q.dstSizes = append(q.dstSizes, make([]size, n/graphics.VertexFloatNum)...)
 	}
 	copy(q.vertices[q.nvertices:], vertices)
+	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
+		idx := q.nvertices/graphics.VertexFloatNum + i
+		q.dstSizes[idx].width = width
+		q.dstSizes[idx].height = height
+	}
 	q.nvertices += len(vertices)
 }
 
@@ -140,9 +153,10 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 		split = true
 	}
 
-	q.appendVertices(vertices)
+	n := len(vertices) / graphics.VertexFloatNum
+	q.appendVertices(vertices, float32(dst.width), float32(dst.height))
 	q.appendIndices(indices, uint16(q.nextIndex))
-	q.nextIndex += len(vertices) / graphics.VertexFloatNum
+	q.nextIndex += n
 	q.tmpNumIndices += len(indices)
 
 	// TODO: If dst is the screen, reorder the command to be the last.
@@ -167,6 +181,15 @@ func (q *commandQueue) Flush() {
 	vs := q.vertices
 	if recordLog() {
 		fmt.Println("--")
+	}
+
+	// Adjust texels.
+	// TODO: texelAdjustmentFactor can vary depends on the highp precisions (#879).
+	const texelAdjustmentFactor = 1.0 / 512.0
+	for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
+		s := q.dstSizes[i]
+		vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
+		vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 	}
 
 	theGraphicsDriver.Begin()
