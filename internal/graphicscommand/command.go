@@ -183,13 +183,14 @@ func (q *commandQueue) Flush() {
 		fmt.Println("--")
 	}
 
-	// Adjust texels.
-	// TODO: texelAdjustmentFactor can vary depends on the highp precisions (#879).
-	const texelAdjustmentFactor = 1.0 / 512.0
-	for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
-		s := q.dstSizes[i]
-		vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
-		vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
+	if theGraphicsDriver.HasHighPrecisionFloat() {
+		// Adjust texels.
+		const texelAdjustmentFactor = 1.0 / 512.0
+		for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
+			s := q.dstSizes[i]
+			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
+			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
+		}
 	}
 
 	theGraphicsDriver.Begin()

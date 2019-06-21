@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/thread"
@@ -49,6 +50,8 @@ type context struct {
 	lastViewportHeight int
 	lastCompositeMode  graphics.CompositeMode
 	maxTextureSize     int
+	highp              bool
+	highpOnce          sync.Once
 
 	t *thread.Thread
 
@@ -101,4 +104,14 @@ func (c *context) getMaxTextureSize() int {
 		c.maxTextureSize = c.maxTextureSizeImpl()
 	}
 	return c.maxTextureSize
+}
+
+// highpPrecision represents an enough mantissa of float values in a shader.
+const highpPrecision = 23
+
+func (c *context) hasHighPrecisionFloat() bool {
+	c.highpOnce.Do(func() {
+		c.highp = c.getShaderPrecisionFormatPrecision() >= highpPrecision
+	})
+	return c.highp
 }

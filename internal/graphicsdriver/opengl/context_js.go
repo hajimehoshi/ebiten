@@ -73,6 +73,7 @@ var (
 	framebuffer_        = contextPrototype.Get("FRAMEBUFFER")
 	framebufferBinding  = contextPrototype.Get("FRAMEBUFFER_BINDING")
 	framebufferComplete = contextPrototype.Get("FRAMEBUFFER_COMPLETE")
+	highFloat           = contextPrototype.Get("HIGH_FLOAT")
 	linkStatus          = contextPrototype.Get("LINK_STATUS")
 	maxTextureSize      = contextPrototype.Get("MAX_TEXTURE_SIZE")
 	nearest             = contextPrototype.Get("NEAREST")
@@ -449,6 +450,12 @@ func (c *context) maxTextureSizeImpl() int {
 	c.ensureGL()
 	gl := c.gl
 	return gl.Call("getParameter", maxTextureSize).Int()
+}
+
+func (c *context) getShaderPrecisionFormatPrecision() int {
+	c.ensureGL()
+	gl := c.gl
+	return gl.Call("getShaderPrecisionFormat", js.ValueOf(int(fragmentShader)), highFloat).Get("precision").Int()
 }
 
 func (c *context) flush() {

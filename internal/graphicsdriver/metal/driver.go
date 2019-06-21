@@ -703,6 +703,10 @@ func (d *Driver) IsGL() bool {
 	return false
 }
 
+func (d *Driver) HasHighPrecisionFloat() bool {
+	return true
+}
+
 type Image struct {
 	driver  *Driver
 	width   int

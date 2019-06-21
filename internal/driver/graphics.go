@@ -35,6 +35,7 @@ type Graphics interface {
 	VDirection() VDirection
 	NeedsRestoring() bool
 	IsGL() bool
+	HasHighPrecisionFloat() bool
 }
 
 type Image interface {

@@ -138,3 +138,7 @@ func (d *Driver) NeedsRestoring() bool {
 func (d *Driver) IsGL() bool {
 	return true
 }
+
+func (d *Driver) HasHighPrecisionFloat() bool {
+	return d.context.hasHighPrecisionFloat()
+}

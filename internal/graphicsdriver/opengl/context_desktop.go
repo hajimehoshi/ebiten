@@ -493,6 +493,12 @@ func (c *context) maxTextureSizeImpl() int {
 	return size
 }
 
+func (c *context) getShaderPrecisionFormatPrecision() int {
+	// glGetShaderPrecisionFormat is not defined at OpenGL 2.0. Assume that desktop environments always have
+	// enough highp precision.
+	return highpPrecision
+}
+
 func (c *context) flush() {
 	_ = c.t.Call(func() error {
 		gl.Flush()

@@ -377,6 +377,12 @@ func (c *context) maxTextureSizeImpl() int {
 	return gl.GetInteger(mgl.MAX_TEXTURE_SIZE)
 }
 
+func (c *context) getShaderPrecisionFormatPrecision() int {
+	gl := c.gl
+	_, _, p := gl.GetShaderPrecisionFormat(mgl.FRAGMENT_SHADER, mgl.HIGH_FLOAT)
+	return p
+}
+
 func (c *context) flush() {
 	gl := c.gl
 	gl.Flush()
