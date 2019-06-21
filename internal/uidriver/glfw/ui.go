@@ -172,13 +172,6 @@ func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
 	return nil, false
 }
 
-func (u *UserInterface) mainThreadLoop(context context.Context) error {
-	u.setRunning(true)
-	u.t.Loop(context)
-	u.setRunning(false)
-	return nil
-}
-
 func (u *UserInterface) isRunning() bool {
 	u.m.Lock()
 	v := u.running
@@ -575,7 +568,9 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, uico
 		}
 	}()
 
-	u.mainThreadLoop(ctx)
+	u.setRunning(true)
+	u.t.Loop(ctx)
+	u.setRunning(false)
 	return <-ch
 }
 

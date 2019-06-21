@@ -16,13 +16,11 @@ package thread
 
 import (
 	"context"
-	"sync/atomic"
 )
 
 // Thread represents an OS thread.
 type Thread struct {
-	started int32
-	funcs   chan func()
+	funcs chan func()
 }
 
 // New creates a new thread.
@@ -38,9 +36,6 @@ func New() *Thread {
 //
 // Loop must be called on the thread.
 func (t *Thread) Loop(context context.Context) {
-	atomic.StoreInt32(&t.started, 1)
-	defer atomic.StoreInt32(&t.started, 0)
-
 loop:
 	for {
 		select {
@@ -56,10 +51,6 @@ loop:
 //
 // Do not call this from the same thread. This would block forever.
 func (t *Thread) Call(f func() error) error {
-	if atomic.LoadInt32(&t.started) == 0 {
-		panic("thread: the thread loop is not started yet")
-	}
-
 	ch := make(chan struct{})
 	var err error
 	t.funcs <- func() {
