@@ -169,10 +169,10 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	x, y, w, h := i.region()
+	_, _, w, h := i.region()
 	newImg := restorable.NewImage(w, h)
 	vs := graphics.VertexSlice(4)
-	i.backend.restorable.PutQuadVertices(vs, x, y, x+w, y+h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	i.PutQuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 
@@ -227,26 +227,22 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-// PutQuadVertices puts the given dest with vertices for rendering a quad.
-//
-// PutQuadVertices is highly optimized for rendering quads, and that's the most significant difference from
-// PutVertices.
-func (i *Image) PutQuadVertices(vs []float32, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
+// PutQuadVertices puts the given dst with vertices for rendering a quad.
+func (i *Image) PutQuadVertices(dst []float32, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
 	}
-	ox, oy, _, _ := i.region()
-	i.backend.restorable.PutQuadVertices(vs, sx0+ox, sy0+oy, sx1+ox, sy1+oy, a, b, c, d, tx, ty, cr, cg, cb, ca)
+	graphics.PutQuadVertices(dst, i, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
-// PutVertices puts the given dest with vertices that can be passed to DrawTriangles.
-func (i *Image) PutVertex(dest []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
+// PutVertices puts the given dst with vertices that can be passed to DrawTriangles.
+func (i *Image) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
 	}
 	ox, oy, _, _ := i.region()
 	oxf, oyf := float32(ox), float32(oy)
-	i.backend.restorable.PutVertex(dest, dx, dy, sx+oxf, sy+oyf, bx0+oxf, by0+oyf, bx1+oxf, by1+oyf, cr, cg, cb, ca)
+	i.backend.restorable.PutVertex(dst, dx, dy, sx+oxf, sy+oyf, bx0+oxf, by0+oyf, bx1+oxf, by1+oyf, cr, cg, cb, ca)
 }
 
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {

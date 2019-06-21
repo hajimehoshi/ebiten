@@ -15,7 +15,6 @@
 package graphics
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -62,105 +61,19 @@ func VertexSlice(n int) []float32 {
 	return theVerticesBackend.slice(n)
 }
 
-func PutQuadVertices(vs []float32, width, height int, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
-	// width and height are the source image's size.
-
-	// For performance reason, graphics.InternalImageSize is not applied to width/height here.
-
-	if !isInternalImageSize(width) {
-		panic(fmt.Sprintf("graphics: width must be an internal image size at QuadVertices: %d", width))
-	}
-	if !isInternalImageSize(height) {
-		panic(fmt.Sprintf("graphics: height must be an internal image size at QuadVertices: %d", height))
-	}
-
-	if sx0 >= sx1 || sy0 >= sy1 {
-		// Do not modify vs. Here, it is assumed that vs is initialized with zero values.
-		return
-	}
-	if sx1 <= 0 || sy1 <= 0 {
-		// Do not modify vs. Here, it is assumed that vs is initialized with zero values.
-		return
-	}
-
-	wf := float32(width)
-	hf := float32(height)
-	u0, v0, u1, v1 := float32(sx0)/wf, float32(sy0)/hf, float32(sx1)/wf, float32(sy1)/hf
-	putQuadVerticesImpl(vs, wf, hf, float32(sx1-sx0), float32(sy1-sy0), u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca)
+type VertexPutter interface {
+	PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32)
 }
 
-const TexelAdjustmentFactor = 512.0
-
-func putQuadVerticesImpl(vs []float32, sw, sh, x, y, u0, v0, u1, v1, a, b, c, d, tx, ty, cr, cg, cb, ca float32) {
-	// Specifying a range explicitly here is redundant but this helps optimization
-	// to eliminate boundary checks.
-	//
-	// 4*VertexFloatNum is better than 48 in terms of code maintenanceability, but in GopherJS, optimization
-	// might not work.
-	vs = vs[0:48]
-
+func PutQuadVertices(dst []float32, putter VertexPutter, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
+	x := float32(sx1 - sx0)
+	y := float32(sy1 - sy0)
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
-
-	du := 1.0 / sw / TexelAdjustmentFactor
-	dv := 1.0 / sh / TexelAdjustmentFactor
-
-	// Vertex coordinates
-	vs[0] = tx
-	vs[1] = ty
-
-	// Texture coordinates: first 2 values indicates the actual coodinate, and
-	// the second indicates diagonally opposite coodinates.
-	// The second is needed to calculate source rectangle size in shader programs.
-	vs[2] = u0
-	vs[3] = v0
-	vs[4] = u0
-	vs[5] = v0
-	vs[6] = u1 - du
-	vs[7] = v1 - dv
-	vs[8] = cr
-	vs[9] = cg
-	vs[10] = cb
-	vs[11] = ca
-
-	// and the same for the other three coordinates
-	vs[12] = ax + tx
-	vs[13] = cx + ty
-	vs[14] = u1
-	vs[15] = v0
-	vs[16] = u0
-	vs[17] = v0
-	vs[18] = u1 - du
-	vs[19] = v1 - dv
-	vs[20] = cr
-	vs[21] = cg
-	vs[22] = cb
-	vs[23] = ca
-
-	vs[24] = by + tx
-	vs[25] = dy + ty
-	vs[26] = u0
-	vs[27] = v1
-	vs[28] = u0
-	vs[29] = v0
-	vs[30] = u1 - du
-	vs[31] = v1 - dv
-	vs[32] = cr
-	vs[33] = cg
-	vs[34] = cb
-	vs[35] = ca
-
-	vs[36] = ax + by + tx
-	vs[37] = cx + dy + ty
-	vs[38] = u1
-	vs[39] = v1
-	vs[40] = u0
-	vs[41] = v0
-	vs[42] = u1 - du
-	vs[43] = v1 - dv
-	vs[44] = cr
-	vs[45] = cg
-	vs[46] = cb
-	vs[47] = ca
+	u0, v0, u1, v1 := float32(sx0), float32(sy0), float32(sx1), float32(sy1)
+	putter.PutVertex(dst[:VertexFloatNum], tx, ty, u0, v0, u0, v0, u1, v1, cr, cg, cb, ca)
+	putter.PutVertex(dst[VertexFloatNum:2*VertexFloatNum], ax+tx, cx+ty, u1, v0, u0, v0, u1, v1, cr, cg, cb, ca)
+	putter.PutVertex(dst[2*VertexFloatNum:3*VertexFloatNum], by+tx, dy+ty, u0, v1, u0, v0, u1, v1, cr, cg, cb, ca)
+	putter.PutVertex(dst[3*VertexFloatNum:4*VertexFloatNum], ax+by+tx, cx+dy+ty, u1, v1, u0, v0, u1, v1, cr, cg, cb, ca)
 }
 
 var (

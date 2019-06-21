@@ -196,7 +196,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
 	vs := graphics.VertexSlice(4)
-	graphics.PutQuadVertices(vs, dw, dh, 0, 0, sw, sh,
+	graphics.PutQuadVertices(vs, i, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
@@ -239,12 +239,16 @@ func (i *Image) internalSize() (int, int) {
 	return i.w2, i.h2
 }
 
-func (i *Image) PutQuadVertices(vs []float32, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
-	w, h := i.internalSize()
-	graphics.PutQuadVertices(vs, w, h, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
-}
-
 func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
+	const texelAdjustmentFactor = 512.0
+
+	// Specifying a range explicitly here is redundant but this helps optimization
+	// to eliminate boundary checks.
+	//
+	// VertexFloatNum is better than 12 in terms of code maintenanceability, but in GopherJS, optimization
+	// might not work.
+	vs = vs[0:12]
+
 	w, h := i.internalSize()
 	vs[0] = dx
 	vs[1] = dy
@@ -252,8 +256,8 @@ func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, b
 	vs[3] = sy / float32(h)
 	vs[4] = bx0 / float32(w)
 	vs[5] = by0 / float32(h)
-	vs[6] = bx1/float32(w) - 1.0/float32(w)/graphics.TexelAdjustmentFactor
-	vs[7] = by1/float32(h) - 1.0/float32(h)/graphics.TexelAdjustmentFactor
+	vs[6] = bx1/float32(w) - 1.0/float32(w)/texelAdjustmentFactor
+	vs[7] = by1/float32(h) - 1.0/float32(h)/texelAdjustmentFactor
 	vs[8] = cr
 	vs[9] = cg
 	vs[10] = cb
