@@ -56,6 +56,9 @@ func MakeImagesSharedForTesting() {
 	makeImagesShared()
 }
 
+// TODO: These values should be 512/512 on some machines that don't have highp (#879).
+// In this case, Ebiten needs to care the number of drawing commands since small shareable images would increase the
+// number.
 const (
 	initSize = 1024
 	maxSize  = 4096
