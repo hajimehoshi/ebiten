@@ -26,6 +26,7 @@ import (
 )
 
 func init() {
+	shareable.SetGraphicsDriver(graphicsDriver())
 	graphicscommand.SetGraphicsDriver(graphicsDriver())
 }
 

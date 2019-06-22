@@ -145,6 +145,13 @@ func (p *Page) Size() int {
 	return p.size
 }
 
+func (p *Page) SetMaxSize(size int) {
+	if p.maxSize > size {
+		panic("packing: maxSize cannot be decreased")
+	}
+	p.maxSize = size
+}
+
 func (p *Page) Alloc(width, height int) *Node {
 	if width <= 0 || height <= 0 {
 		panic("packing: width and height must > 0")

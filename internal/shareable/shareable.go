@@ -21,17 +21,50 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/packing"
 	"github.com/hajimehoshi/ebiten/internal/restorable"
 )
 
+var graphicsDriver driver.Graphics
+
+func SetGraphicsDriver(graphics driver.Graphics) {
+	graphicsDriver = graphics
+}
+
 func init() {
+	var once sync.Once
 	hooks.AppendHookOnBeforeUpdate(func() error {
+		backendsM.Lock()
+		defer backendsM.Unlock()
+		once.Do(func() {
+			if len(theBackends) != 0 {
+				panic("shareable: all the images must be not-shared before the game starts")
+			}
+			shareable = true
+			updateSizeLimit()
+		})
 		makeImagesShared()
 		return nil
 	})
+}
+
+var (
+	minSize = 512
+	maxSize = 512
+)
+
+func updateSizeLimit() {
+	if !graphicsDriver.HasHighPrecisionFloat() {
+		return
+	}
+
+	// Before the game starts, the texture sizes are set in a very conservative way.
+	// If the graphics driver supports high precision float values, allow bigger texture sizes.
+	minSize = 1024
+	maxSize = 4096
 }
 
 // MaxCountForShare represents the time duration when the image can become shared.
@@ -40,9 +73,6 @@ func init() {
 const MaxCountForShare = 10
 
 func makeImagesShared() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
 	for i := range imagesToMakeShared {
 		i.nonUpdatedCount++
 		if i.nonUpdatedCount >= MaxCountForShare {
@@ -55,14 +85,6 @@ func makeImagesShared() {
 func MakeImagesSharedForTesting() {
 	makeImagesShared()
 }
-
-// TODO: These values should be 512/512 on some machines that don't have highp (#879).
-// In this case, Ebiten needs to care the number of drawing commands since small shareable images would increase the
-// number.
-const (
-	initSize = 1024
-	maxSize  = 4096
-)
 
 type backend struct {
 	restorable *restorable.Image
@@ -119,7 +141,18 @@ var (
 	theBackends = []*backend{}
 
 	imagesToMakeShared = map[*Image]struct{}{}
+
+	shareable = false
 )
+
+// isShareable reports whether the new allocation can use the shareable backends.
+//
+// isShareable retruns false before the graphics driver is available.
+// After the graphics driver is available, read-only images will be automatically on the shareable backends by
+// makeShared().
+func isShareable() bool {
+	return shareable
+}
 
 type Image struct {
 	width    int
@@ -405,6 +438,9 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) shareable() bool {
+	if !isShareable() {
+		return false
+	}
 	if i.neverShared {
 		return false
 	}
@@ -432,7 +468,7 @@ func (i *Image) allocate(shareable bool) {
 			return
 		}
 	}
-	size := initSize
+	size := minSize
 	for i.width > size || i.height > size {
 		if size == maxSize {
 			panic(fmt.Sprintf("shareable: the image being shared is too big: width: %d, height: %d", i.width, i.height))
