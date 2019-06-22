@@ -175,7 +175,7 @@ func (i *Image) ensureNotShared() {
 	_, _, w, h := i.region()
 	newImg := restorable.NewImage(w, h)
 	vs := make([]float32, 4*graphics.VertexFloatNum)
-	i.PutQuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.PutQuadVertices(vs, i, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 
@@ -228,14 +228,6 @@ func (i *Image) region() (x, y, width, height int) {
 
 func (i *Image) Size() (width, height int) {
 	return i.width, i.height
-}
-
-// PutQuadVertices puts the given dst with vertices for rendering a quad.
-func (i *Image) PutQuadVertices(dst []float32, sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb, ca float32) {
-	if i.backend == nil {
-		i.allocate(true)
-	}
-	graphics.PutQuadVertices(dst, i, sx0, sy0, sx1, sy1, a, b, c, d, tx, ty, cr, cg, cb, ca)
 }
 
 // PutVertices puts the given dst with vertices that can be passed to DrawTriangles.

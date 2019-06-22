@@ -85,7 +85,7 @@ func TestEnsureNotShared(t *testing.T) {
 	)
 	// img4.ensureNotShared() should be called.
 	vs := make([]float32, 4*graphics.VertexFloatNum)
-	img3.PutQuadVertices(vs, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
+	graphics.PutQuadVertices(vs, img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	img4.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	want := false
@@ -150,7 +150,7 @@ func TestReshared(t *testing.T) {
 
 	// Use img1 as a render target.
 	vs := make([]float32, 4*graphics.VertexFloatNum)
-	img2.PutQuadVertices(vs, 0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.PutQuadVertices(vs, img2, 0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	img1.DrawTriangles(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	if got, want := img1.IsSharedForTesting(), false; got != want {
@@ -277,7 +277,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	src.ReplacePixels(pix)
 
 	vs := make([]float32, 4*graphics.VertexFloatNum)
-	src.PutQuadVertices(vs, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.PutQuadVertices(vs, src, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
 	dst.ReplacePixels(pix)

@@ -74,10 +74,10 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		vs := vertexSlice(4)
 		if l := len(imgs); l == 0 {
 			src = m.orig
-			src.PutQuadVertices(vs, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+			graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		} else {
 			src = m.level(r, l)
-			src.PutQuadVertices(vs, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+			graphics.PutQuadVertices(vs, src, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphics.QuadIndices()
 		s.DrawTriangles(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear, graphics.AddressClampToZero)
@@ -356,7 +356,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	if level == 0 {
 		src := img.mipmap.original()
 		vs := vertexSlice(4)
-		src.PutQuadVertices(vs, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		graphics.PutQuadVertices(vs, src, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
 		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	} else if src := img.mipmap.level(bounds, level); src != nil {
@@ -367,7 +367,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		c *= float32(s)
 		d *= float32(s)
 		vs := vertexSlice(4)
-		src.PutQuadVertices(vs, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		graphics.PutQuadVertices(vs, src, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
 		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
 	}
