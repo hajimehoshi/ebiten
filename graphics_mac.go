@@ -44,11 +44,13 @@ func init() {
 	// On old mac devices like iMac 2011, Metal is not supported (#779).
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
 		isMetalSupported = false
+		return
 	}
 	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
 	// Use the OpenGL in macOS 10.11 or older.
 	if C.getMacOSMinorVersion() <= 11 {
 		isMetalSupported = false
+		return
 	}
 }
 
