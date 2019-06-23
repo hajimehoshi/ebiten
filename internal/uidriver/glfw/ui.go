@@ -556,6 +556,8 @@ func init() {
 func (u *UserInterface) Run(width, height int, scale float64, title string, uicontext driver.UIContext, graphics driver.Graphics) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
+	u.graphics = graphics
+	u.graphics.SetThread(u.t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -563,7 +565,7 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, uico
 	go func() {
 		defer cancel()
 		defer close(ch)
-		if err := u.run(width, height, scale, title, uicontext, graphics); err != nil {
+		if err := u.run(width, height, scale, title, uicontext); err != nil {
 			ch <- err
 		}
 	}()
@@ -578,12 +580,9 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 	panic("glfw: RunWithoutMainLoop is not implemented")
 }
 
-func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext) error {
 	_ = u.t.Call(func() error {
-		u.graphics = graphics
-		u.graphics.SetThread(u.t)
-
-		if graphics.IsGL() {
+		if u.graphics.IsGL() {
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
 		} else {
@@ -610,7 +609,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		}
 		u.window = window
 
-		if graphics.IsGL() {
+		if u.graphics.IsGL() {
 			u.window.MakeContextCurrent()
 		}
 
@@ -685,7 +684,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		w = u.nativeWindow()
 		return nil
 	})
-	graphics.SetWindow(w)
+	u.graphics.SetWindow(w)
 	return u.loop(context)
 }
 
