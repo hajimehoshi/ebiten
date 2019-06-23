@@ -34,6 +34,11 @@ func SetGraphicsDriver(graphics driver.Graphics) {
 	graphicsDriver = graphics
 }
 
+var (
+	minSize = 0
+	maxSize = 0
+)
+
 func init() {
 	var once sync.Once
 	hooks.AppendHookOnBeforeUpdate(func() error {
@@ -43,28 +48,17 @@ func init() {
 			if len(theBackends) != 0 {
 				panic("shareable: all the images must be not-shared before the game starts")
 			}
-			shareable = true
-			updateSizeLimit()
+			if graphicsDriver.HasHighPrecisionFloat() {
+				minSize = 1024
+				maxSize = 4096
+			} else {
+				minSize = 512
+				maxSize = 512
+			}
 		})
 		makeImagesShared()
 		return nil
 	})
-}
-
-var (
-	minSize = 512
-	maxSize = 512
-)
-
-func updateSizeLimit() {
-	if !graphicsDriver.HasHighPrecisionFloat() {
-		return
-	}
-
-	// Before the game starts, the texture sizes are set in a very conservative way.
-	// If the graphics driver supports high precision float values, allow bigger texture sizes.
-	minSize = 1024
-	maxSize = 4096
 }
 
 // MaxCountForShare represents the time duration when the image can become shared.
@@ -141,17 +135,15 @@ var (
 	theBackends = []*backend{}
 
 	imagesToMakeShared = map[*Image]struct{}{}
-
-	shareable = false
 )
 
 // isShareable reports whether the new allocation can use the shareable backends.
 //
 // isShareable retruns false before the graphics driver is available.
 // After the graphics driver is available, read-only images will be automatically on the shareable backends by
-// makeShared().
+// (*Image).makeShared().
 func isShareable() bool {
-	return shareable
+	return minSize > 0 && maxSize > 0
 }
 
 type Image struct {
