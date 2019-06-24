@@ -41,7 +41,7 @@ var (
 	// isMetalSupported represents whether Metal is supported.
 	isMetalSupported = true
 
-	// isMetalSupportedOnce initialized isMetalSupported.
+	// isMetalSupportedOnce initializs isMetalSupported.
 	//
 	// Use sync.Once instead of init function to avoid init-order dependency (#886).
 	isMetalSupportedOnce sync.Once
