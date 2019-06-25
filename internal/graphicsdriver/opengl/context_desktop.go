@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
 )
 
@@ -93,12 +93,12 @@ func (c *context) reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = graphics.CompositeModeUnknown
+	c.lastCompositeMode = driver.CompositeModeUnknown
 	_ = c.t.Call(func() error {
 		gl.Enable(gl.BLEND)
 		return nil
 	})
-	c.blendFunc(graphics.CompositeModeSourceOver)
+	c.blendFunc(driver.CompositeModeSourceOver)
 	_ = c.t.Call(func() error {
 		f := int32(0)
 		gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
@@ -108,7 +108,7 @@ func (c *context) reset() error {
 	return nil
 }
 
-func (c *context) blendFunc(mode graphics.CompositeMode) {
+func (c *context) blendFunc(mode driver.CompositeMode) {
 	_ = c.t.Call(func() error {
 		if c.lastCompositeMode == mode {
 			return nil

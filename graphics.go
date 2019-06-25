@@ -15,7 +15,7 @@
 package ebiten
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 // Filter represents the type of texture filter to be used when an image is maginified or minified.
@@ -26,15 +26,15 @@ const (
 	FilterDefault Filter = 0
 
 	// FilterNearest represents nearest (crisp-edged) filter
-	FilterNearest Filter = Filter(graphics.FilterNearest)
+	FilterNearest Filter = Filter(driver.FilterNearest)
 
 	// FilterLinear represents linear filter
-	FilterLinear Filter = Filter(graphics.FilterLinear)
+	FilterLinear Filter = Filter(driver.FilterLinear)
 
 	// filterScreen represents a special filter for screen. Inner usage only.
 	//
 	// Some parameters like a color matrix or color vertex values can be ignored when filterScreen is used.
-	filterScreen Filter = Filter(graphics.FilterScreen)
+	filterScreen Filter = Filter(driver.FilterScreen)
 )
 
 // CompositeMode represents Porter-Duff composition mode.
@@ -47,42 +47,42 @@ type CompositeMode int
 const (
 	// Regular alpha blending
 	// c_out = c_src + c_dst × (1 - α_src)
-	CompositeModeSourceOver CompositeMode = CompositeMode(graphics.CompositeModeSourceOver)
+	CompositeModeSourceOver CompositeMode = CompositeMode(driver.CompositeModeSourceOver)
 
 	// c_out = 0
-	CompositeModeClear CompositeMode = CompositeMode(graphics.CompositeModeClear)
+	CompositeModeClear CompositeMode = CompositeMode(driver.CompositeModeClear)
 
 	// c_out = c_src
-	CompositeModeCopy CompositeMode = CompositeMode(graphics.CompositeModeCopy)
+	CompositeModeCopy CompositeMode = CompositeMode(driver.CompositeModeCopy)
 
 	// c_out = c_dst
-	CompositeModeDestination CompositeMode = CompositeMode(graphics.CompositeModeDestination)
+	CompositeModeDestination CompositeMode = CompositeMode(driver.CompositeModeDestination)
 
 	// c_out = c_src × (1 - α_dst) + c_dst
-	CompositeModeDestinationOver CompositeMode = CompositeMode(graphics.CompositeModeDestinationOver)
+	CompositeModeDestinationOver CompositeMode = CompositeMode(driver.CompositeModeDestinationOver)
 
 	// c_out = c_src × α_dst
-	CompositeModeSourceIn CompositeMode = CompositeMode(graphics.CompositeModeSourceIn)
+	CompositeModeSourceIn CompositeMode = CompositeMode(driver.CompositeModeSourceIn)
 
 	// c_out = c_dst × α_src
-	CompositeModeDestinationIn CompositeMode = CompositeMode(graphics.CompositeModeDestinationIn)
+	CompositeModeDestinationIn CompositeMode = CompositeMode(driver.CompositeModeDestinationIn)
 
 	// c_out = c_src × (1 - α_dst)
-	CompositeModeSourceOut CompositeMode = CompositeMode(graphics.CompositeModeSourceOut)
+	CompositeModeSourceOut CompositeMode = CompositeMode(driver.CompositeModeSourceOut)
 
 	// c_out = c_dst × (1 - α_src)
-	CompositeModeDestinationOut CompositeMode = CompositeMode(graphics.CompositeModeDestinationOut)
+	CompositeModeDestinationOut CompositeMode = CompositeMode(driver.CompositeModeDestinationOut)
 
 	// c_out = c_src × α_dst + c_dst × (1 - α_src)
-	CompositeModeSourceAtop CompositeMode = CompositeMode(graphics.CompositeModeSourceAtop)
+	CompositeModeSourceAtop CompositeMode = CompositeMode(driver.CompositeModeSourceAtop)
 
 	// c_out = c_src × (1 - α_dst) + c_dst × α_src
-	CompositeModeDestinationAtop CompositeMode = CompositeMode(graphics.CompositeModeDestinationAtop)
+	CompositeModeDestinationAtop CompositeMode = CompositeMode(driver.CompositeModeDestinationAtop)
 
 	// c_out = c_src × (1 - α_dst) + c_dst × (1 - α_src)
-	CompositeModeXor CompositeMode = CompositeMode(graphics.CompositeModeXor)
+	CompositeModeXor CompositeMode = CompositeMode(driver.CompositeModeXor)
 
 	// Sum of source and destination (a.k.a. 'plus' or 'additive')
 	// c_out = c_src + c_dst
-	CompositeModeLighter CompositeMode = CompositeMode(graphics.CompositeModeLighter)
+	CompositeModeLighter CompositeMode = CompositeMode(driver.CompositeModeLighter)
 )

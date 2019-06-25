@@ -277,9 +277,9 @@ FragmentShaderFunc(0, FILTER_SCREEN, ADDRESS_CLAMP_TO_ZERO)
 
 type rpsKey struct {
 	useColorM     bool
-	filter        graphics.Filter
-	address       graphics.Address
-	compositeMode graphics.CompositeMode
+	filter        driver.Filter
+	address       driver.Address
+	compositeMode driver.CompositeMode
 }
 
 type Driver struct {
@@ -485,11 +485,11 @@ func (d *Driver) Reset() error {
 		}
 
 		replaces := map[string]string{
-			"{{.FilterNearest}}":      fmt.Sprintf("%d", graphics.FilterNearest),
-			"{{.FilterLinear}}":       fmt.Sprintf("%d", graphics.FilterLinear),
-			"{{.FilterScreen}}":       fmt.Sprintf("%d", graphics.FilterScreen),
-			"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
-			"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
+			"{{.FilterNearest}}":      fmt.Sprintf("%d", driver.FilterNearest),
+			"{{.FilterLinear}}":       fmt.Sprintf("%d", driver.FilterLinear),
+			"{{.FilterScreen}}":       fmt.Sprintf("%d", driver.FilterScreen),
+			"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
+			"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
 		}
 		src := source
 		for k, v := range replaces {
@@ -505,7 +505,7 @@ func (d *Driver) Reset() error {
 			return err
 		}
 		fs, err := lib.MakeFunction(
-			fmt.Sprintf("FragmentShader_%d_%d_%d", 0, graphics.FilterScreen, graphics.AddressClampToZero))
+			fmt.Sprintf("FragmentShader_%d_%d_%d", 0, driver.FilterScreen, driver.AddressClampToZero))
 		if err != nil {
 			return err
 		}
@@ -525,19 +525,19 @@ func (d *Driver) Reset() error {
 		}
 		d.screenRPS = rps
 
-		conv := func(c graphics.Operation) mtl.BlendFactor {
+		conv := func(c driver.Operation) mtl.BlendFactor {
 			switch c {
-			case graphics.Zero:
+			case driver.Zero:
 				return mtl.BlendFactorZero
-			case graphics.One:
+			case driver.One:
 				return mtl.BlendFactorOne
-			case graphics.SrcAlpha:
+			case driver.SrcAlpha:
 				return mtl.BlendFactorSourceAlpha
-			case graphics.DstAlpha:
+			case driver.DstAlpha:
 				return mtl.BlendFactorDestinationAlpha
-			case graphics.OneMinusSrcAlpha:
+			case driver.OneMinusSrcAlpha:
 				return mtl.BlendFactorOneMinusSourceAlpha
-			case graphics.OneMinusDstAlpha:
+			case driver.OneMinusDstAlpha:
 				return mtl.BlendFactorOneMinusDestinationAlpha
 			default:
 				panic(fmt.Sprintf("metal: invalid operation: %d", c))
@@ -545,15 +545,15 @@ func (d *Driver) Reset() error {
 		}
 
 		for _, cm := range []bool{false, true} {
-			for _, a := range []graphics.Address{
-				graphics.AddressClampToZero,
-				graphics.AddressRepeat,
+			for _, a := range []driver.Address{
+				driver.AddressClampToZero,
+				driver.AddressRepeat,
 			} {
-				for _, f := range []graphics.Filter{
-					graphics.FilterNearest,
-					graphics.FilterLinear,
+				for _, f := range []driver.Filter{
+					driver.FilterNearest,
+					driver.FilterLinear,
 				} {
-					for c := graphics.CompositeModeSourceOver; c <= graphics.CompositeModeMax; c++ {
+					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
 						cmi := 0
 						if cm {
 							cmi = 1
@@ -598,7 +598,7 @@ func (d *Driver) Reset() error {
 	return nil
 }
 
-func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
+func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
 	if err := d.t.Call(func() error {
 		d.view.update()
 
@@ -633,7 +633,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode
 		}
 		rce := d.cb.MakeRenderCommandEncoder(rpd)
 
-		if d.dst.screen && filter == graphics.FilterScreen {
+		if d.dst.screen && filter == driver.FilterScreen {
 			rce.SetRenderPipelineState(d.screenRPS)
 		} else {
 			rce.SetRenderPipelineState(d.rpss[rpsKey{

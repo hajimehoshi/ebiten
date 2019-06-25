@@ -16,7 +16,6 @@ package driver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
@@ -30,7 +29,7 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	Reset() error
-	Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error
+	Draw(indexLen int, indexOffset int, mode CompositeMode, colorM *affine.ColorM, filter Filter, address Address) error
 	SetVsyncEnabled(enabled bool)
 	VDirection() VDirection
 	NeedsRestoring() bool

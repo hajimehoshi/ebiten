@@ -21,6 +21,7 @@ import (
 	"math"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
@@ -80,7 +81,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			graphics.PutQuadVertices(vs, src, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		}
 		is := graphics.QuadIndices()
-		s.DrawTriangles(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterLinear, graphics.AddressClampToZero)
+		s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterLinear, driver.AddressClampToZero)
 		imgs = append(imgs, s)
 		w = w2
 		h = h2
@@ -296,19 +297,19 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	geom := &options.GeoM
-	mode := graphics.CompositeMode(options.CompositeMode)
+	mode := driver.CompositeMode(options.CompositeMode)
 
-	filter := graphics.FilterNearest
+	filter := driver.FilterNearest
 	if options.Filter != FilterDefault {
-		filter = graphics.Filter(options.Filter)
+		filter = driver.Filter(options.Filter)
 	} else if img.filter != FilterDefault {
-		filter = graphics.Filter(img.filter)
+		filter = driver.Filter(img.filter)
 	}
 
 	a, b, c, d, tx, ty := geom.elements()
 
 	level := 0
-	if filter == graphics.FilterLinear && !img.mipmap.original().IsVolatile() {
+	if filter == driver.FilterLinear && !img.mipmap.original().IsVolatile() {
 		det := geom.det()
 		if det == 0 {
 			return nil
@@ -358,7 +359,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		vs := vertexSlice(4)
 		graphics.PutQuadVertices(vs, src, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
+		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	} else if src := img.mipmap.level(bounds, level); src != nil {
 		w, h := src.Size()
 		s := 1 << uint(level)
@@ -369,7 +370,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		vs := vertexSlice(4)
 		graphics.PutQuadVertices(vs, src, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, graphics.AddressClampToZero)
+		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	}
 	i.disposeMipmaps()
 	return nil
@@ -403,10 +404,10 @@ type Address int
 
 const (
 	// AddressClampToZero means that out-of-range texture coordinates return 0 (transparent).
-	AddressClampToZero Address = Address(graphics.AddressClampToZero)
+	AddressClampToZero Address = Address(driver.AddressClampToZero)
 
 	// AddressRepeat means that texture coordinates wrap to the other side of the texture.
-	AddressRepeat Address = Address(graphics.AddressRepeat)
+	AddressRepeat Address = Address(driver.AddressRepeat)
 )
 
 // DrawTrianglesOptions represents options to render triangles on an image.
@@ -472,13 +473,13 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		options = &DrawTrianglesOptions{}
 	}
 
-	mode := graphics.CompositeMode(options.CompositeMode)
+	mode := driver.CompositeMode(options.CompositeMode)
 
-	filter := graphics.FilterNearest
+	filter := driver.FilterNearest
 	if options.Filter != FilterDefault {
-		filter = graphics.Filter(options.Filter)
+		filter = driver.Filter(options.Filter)
 	} else if img.filter != FilterDefault {
-		filter = graphics.Filter(img.filter)
+		filter = driver.Filter(img.filter)
 	}
 
 	vs := vertexSlice(len(vertices))
@@ -490,7 +491,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			float32(r.Min.X), float32(r.Min.Y), float32(r.Max.X), float32(r.Max.Y),
 			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
-	i.mipmap.original().DrawTriangles(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter, graphics.Address(options.Address))
+	i.mipmap.original().DrawTriangles(img.mipmap.original(), vs, indices, options.ColorM.impl, mode, filter, driver.Address(options.Address))
 	i.disposeMipmaps()
 }
 

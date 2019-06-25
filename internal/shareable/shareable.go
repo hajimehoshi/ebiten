@@ -202,7 +202,7 @@ func (i *Image) ensureNotShared() {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, i, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -265,7 +265,7 @@ func (i *Image) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, 
 	i.backend.restorable.PutVertex(dst, dx, dy, sx+oxf, sy+oyf, bx0+oxf, by0+oyf, bx1+oxf, by1+oyf, cr, cg, cb, ca)
 }
 
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

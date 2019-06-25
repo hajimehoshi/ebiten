@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -117,8 +118,8 @@ func init() {
 
 type programKey struct {
 	useColorM bool
-	filter    graphics.Filter
-	address   graphics.Address
+	filter    driver.Filter
+	address   driver.Address
 }
 
 // openGLState is a state for
@@ -139,8 +140,8 @@ type openGLState struct {
 	lastColorMatrixTranslation []float32
 	lastSourceWidth            int
 	lastSourceHeight           int
-	lastFilter                 *graphics.Filter
-	lastAddress                *graphics.Address
+	lastFilter                 *driver.Filter
+	lastAddress                *driver.Address
 
 	source      *Image
 	destination *Image
@@ -197,14 +198,14 @@ func (s *openGLState) reset(context *context) error {
 	defer context.deleteShader(shaderVertexModelviewNative)
 
 	for _, c := range []bool{false, true} {
-		for _, a := range []graphics.Address{
-			graphics.AddressClampToZero,
-			graphics.AddressRepeat,
+		for _, a := range []driver.Address{
+			driver.AddressClampToZero,
+			driver.AddressRepeat,
 		} {
-			for _, f := range []graphics.Filter{
-				graphics.FilterNearest,
-				graphics.FilterLinear,
-				graphics.FilterScreen,
+			for _, f := range []driver.Filter{
+				driver.FilterNearest,
+				driver.FilterLinear,
+				driver.FilterScreen,
 			} {
 				shaderFragmentColorMatrixNative, err := context.newShader(fragmentShader, fragmentShaderStr(c, f, a))
 				if err != nil {
@@ -254,7 +255,7 @@ func areSameFloat32Array(a, b []float32) bool {
 }
 
 // useProgram uses the program (programTexture).
-func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
+func (d *Driver) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
 	destination := d.state.destination
 	if destination == nil {
 		panic("destination image is not set")
@@ -317,7 +318,7 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		}
 	}
 
-	if filter != graphics.FilterNearest {
+	if filter != driver.FilterNearest {
 		sw := graphics.InternalImageSize(srcW)
 		sh := graphics.InternalImageSize(srcH)
 		if d.state.lastSourceWidth != sw || d.state.lastSourceHeight != sh {
@@ -327,7 +328,7 @@ func (d *Driver) useProgram(mode graphics.CompositeMode, colorM *affine.ColorM, 
 		}
 	}
 
-	if filter == graphics.FilterScreen {
+	if filter == driver.FilterScreen {
 		scale := float32(dstW) / float32(srcW)
 		d.context.uniformFloat(program, "scale", scale)
 	}

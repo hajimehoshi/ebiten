@@ -107,7 +107,7 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 	d.context.elementArrayBufferSubData(indices)
 }
 
-func (d *Driver) Draw(indexLen int, indexOffset int, mode graphics.CompositeMode, colorM *affine.ColorM, filter graphics.Filter, address graphics.Address) error {
+func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
 	if err := d.useProgram(mode, colorM, filter, address); err != nil {
 		return err
 	}

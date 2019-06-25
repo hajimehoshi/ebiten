@@ -92,13 +92,13 @@ func (i *Image) InternalSize() (int, int) {
 	return i.internalWidth, i.internalHeight
 }
 
-func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if src.screen {
 		panic("graphicscommand: the screen image cannot be the rendering source")
 	}
 
 	if i.lastCommand == lastCommandNone {
-		if !i.screen && mode != graphics.CompositeModeClear {
+		if !i.screen && mode != driver.CompositeModeClear {
 			panic("graphicscommand: the image must be cleared first")
 		}
 	}

@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 // glslReservedKeywords is a set of reserved keywords that cannot be used as an indentifier on some environments.
@@ -61,10 +61,10 @@ func vertexShaderStr() string {
 	return src
 }
 
-func fragmentShaderStr(useColorM bool, filter graphics.Filter, address graphics.Address) string {
+func fragmentShaderStr(useColorM bool, filter driver.Filter, address driver.Address) string {
 	replaces := map[string]string{
-		"{{.AddressClampToZero}}": fmt.Sprintf("%d", graphics.AddressClampToZero),
-		"{{.AddressRepeat}}":      fmt.Sprintf("%d", graphics.AddressRepeat),
+		"{{.AddressClampToZero}}": fmt.Sprintf("%d", driver.AddressClampToZero),
+		"{{.AddressRepeat}}":      fmt.Sprintf("%d", driver.AddressRepeat),
 	}
 	src := shaderStrFragment
 	for k, v := range replaces {
@@ -78,20 +78,20 @@ func fragmentShaderStr(useColorM bool, filter graphics.Filter, address graphics.
 	}
 
 	switch filter {
-	case graphics.FilterNearest:
+	case driver.FilterNearest:
 		defs = append(defs, "#define FILTER_NEAREST")
-	case graphics.FilterLinear:
+	case driver.FilterLinear:
 		defs = append(defs, "#define FILTER_LINEAR")
-	case graphics.FilterScreen:
+	case driver.FilterScreen:
 		defs = append(defs, "#define FILTER_SCREEN")
 	default:
 		panic(fmt.Sprintf("opengl: invalid filter: %d", filter))
 	}
 
 	switch address {
-	case graphics.AddressClampToZero:
+	case driver.AddressClampToZero:
 		defs = append(defs, "#define ADDRESS_CLAMP_TO_ZERO")
-	case graphics.AddressRepeat:
+	case driver.AddressRepeat:
 		defs = append(defs, "#define ADDRESS_REPEAT")
 	default:
 		panic(fmt.Sprintf("opengl: invalid address: %d", address))

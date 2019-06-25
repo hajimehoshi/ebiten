@@ -23,7 +23,7 @@ import (
 
 	mgl "golang.org/x/mobile/gl"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 type (
@@ -100,16 +100,16 @@ func (c *context) reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = graphics.CompositeModeUnknown
+	c.lastCompositeMode = driver.CompositeModeUnknown
 	c.gl.Enable(mgl.BLEND)
-	c.blendFunc(graphics.CompositeModeSourceOver)
+	c.blendFunc(driver.CompositeModeSourceOver)
 	f := c.gl.GetInteger(mgl.FRAMEBUFFER_BINDING)
 	c.screenFramebuffer = framebufferNative(mgl.Framebuffer{uint32(f)})
 	// TODO: Need to update screenFramebufferWidth/Height?
 	return nil
 }
 
-func (c *context) blendFunc(mode graphics.CompositeMode) {
+func (c *context) blendFunc(mode driver.CompositeMode) {
 	gl := c.gl
 	if c.lastCompositeMode == mode {
 		return

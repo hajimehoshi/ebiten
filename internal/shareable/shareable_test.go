@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	. "github.com/hajimehoshi/ebiten/internal/shareable"
 	"github.com/hajimehoshi/ebiten/internal/testflock"
@@ -87,7 +88,7 @@ func TestEnsureNotShared(t *testing.T) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	img4.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img4.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	want := false
 	if got := img4.IsSharedForTesting(); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
@@ -110,7 +111,7 @@ func TestEnsureNotShared(t *testing.T) {
 
 	// Check further drawing doesn't cause panic.
 	// This bug was fixed by 03dcd948.
-	img4.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img4.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 }
 
 func TestReshared(t *testing.T) {
@@ -152,7 +153,7 @@ func TestReshared(t *testing.T) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, img2, 0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	img1.DrawTriangles(img2, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img1.DrawTriangles(img2, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	if got, want := img1.IsSharedForTesting(), false; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -160,7 +161,7 @@ func TestReshared(t *testing.T) {
 	// Use img1 as a render source.
 	for i := 0; i < MaxCountForShare; i++ {
 		MakeImagesSharedForTesting()
-		img0.DrawTriangles(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+		img0.DrawTriangles(img1, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 		if got, want := img1.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -178,7 +179,7 @@ func TestReshared(t *testing.T) {
 		}
 	}
 
-	img0.DrawTriangles(img1, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	img0.DrawTriangles(img1, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
@@ -197,7 +198,7 @@ func TestReshared(t *testing.T) {
 	// Use img3 as a render source. img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
 		MakeImagesSharedForTesting()
-		img0.DrawTriangles(img3, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+		img0.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 		if got, want := img3.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
@@ -279,7 +280,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, src, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeCopy, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	dst.ReplacePixels(pix)
 
 	for j := 0; j < h; j++ {
@@ -315,7 +316,7 @@ func TestSmallImages(t *testing.T) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, src, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {

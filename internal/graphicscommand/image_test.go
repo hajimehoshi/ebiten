@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	. "github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/testflock"
@@ -71,7 +72,7 @@ func TestClear(t *testing.T) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, &testVertexPutter{w / 2, h / 2}, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
 
 	pix := dst.Pixels()
 	for j := 0; j < h/2; j++ {
@@ -99,7 +100,7 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, &testVertexPutter{w / 2, h / 2}, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
-	dst.DrawTriangles(clr, vs, is, nil, graphics.CompositeModeClear, graphics.FilterNearest, graphics.AddressClampToZero)
-	dst.DrawTriangles(src, vs, is, nil, graphics.CompositeModeSourceOver, graphics.FilterNearest, graphics.AddressClampToZero)
+	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }

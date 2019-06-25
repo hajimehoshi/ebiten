@@ -20,6 +20,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
@@ -84,9 +85,9 @@ type drawTrianglesHistoryItem struct {
 	vertices []float32
 	indices  []uint16
 	colorm   *affine.ColorM
-	mode     graphics.CompositeMode
-	filter   graphics.Filter
-	address  graphics.Address
+	mode     driver.CompositeMode
+	filter   driver.Filter
+	address  driver.Address
 }
 
 // Image represents an image that can be restored when GL context is lost.
@@ -200,11 +201,11 @@ func (i *Image) fill(r, g, b, a uint8) {
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
-	c := graphics.CompositeModeCopy
+	c := driver.CompositeModeCopy
 	if a == 0 {
-		c = graphics.CompositeModeClear
+		c = driver.CompositeModeClear
 	}
-	i.image.DrawTriangles(emptyImage.image, vs, is, nil, c, graphics.FilterNearest, graphics.AddressClampToZero)
+	i.image.DrawTriangles(emptyImage.image, vs, is, nil, c, driver.FilterNearest, driver.AddressClampToZero)
 
 	w, h := i.Size()
 	i.basePixels = &Pixels{
@@ -353,7 +354,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 }
 
 // DrawTriangles draws a given image img to the image.
-func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -371,7 +372,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 }
 
 // appendDrawTrianglesHistory appends a draw-image history item to the image.
-func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
+func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if i.stale || i.volatile || i.screen {
 		return
 	}

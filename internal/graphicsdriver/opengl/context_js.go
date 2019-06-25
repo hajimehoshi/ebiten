@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/jsutil"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
@@ -125,7 +125,7 @@ func (c *context) reset() error {
 	c.lastFramebuffer = framebufferNative(js.Null())
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = graphics.CompositeModeUnknown
+	c.lastCompositeMode = driver.CompositeModeUnknown
 
 	c.gl = js.Value{}
 	c.ensureGL()
@@ -134,13 +134,13 @@ func (c *context) reset() error {
 	}
 	gl := c.gl
 	gl.Call("enable", blend)
-	c.blendFunc(graphics.CompositeModeSourceOver)
+	c.blendFunc(driver.CompositeModeSourceOver)
 	f := gl.Call("getParameter", framebufferBinding)
 	c.screenFramebuffer = framebufferNative(f)
 	return nil
 }
 
-func (c *context) blendFunc(mode graphics.CompositeMode) {
+func (c *context) blendFunc(mode driver.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
