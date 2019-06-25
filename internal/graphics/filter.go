@@ -17,8 +17,7 @@ package graphics
 type Filter int
 
 const (
-	FilterDefault Filter = iota
-	FilterNearest
+	FilterNearest Filter = iota + 1 // TODO: Remove '+ 1' when ebiten.FilterDefault can be removed.
 	FilterLinear
 	FilterScreen
 )
