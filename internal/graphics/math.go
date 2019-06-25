@@ -14,14 +14,14 @@
 
 package graphics
 
-// minInternalImageSize is the minimum size of internal images (texture/framebuffer).
-//
-// For example, the image size less than 15 is not supported on some iOS devices.
-// See also: https://stackoverflow.com/questions/15935651
-const minInternalImageSize = 16
-
 // InternalImageSize returns a nearest appropriate size as an internal image.
 func InternalImageSize(x int) int {
+	// minInternalImageSize is the minimum size of internal images (texture/framebuffer).
+	//
+	// For example, the image size less than 15 is not supported on some iOS devices.
+	// See also: https://stackoverflow.com/questions/15935651
+	const minInternalImageSize = 16
+
 	if x <= 0 {
 		panic("graphics: x must be positive")
 	}
