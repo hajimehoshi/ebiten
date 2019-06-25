@@ -108,9 +108,6 @@ type Image struct {
 	// screen indicates whether the image is used as an actual screen.
 	screen bool
 
-	w2 int
-	h2 int
-
 	// priority indicates whether the image is restored in high priority when context-lost happens.
 	priority bool
 }
@@ -234,12 +231,7 @@ func (i *Image) Size() (int, int) {
 
 // internalSize returns the size of the internal texture.
 func (i *Image) internalSize() (int, int) {
-	if i.w2 == 0 || i.h2 == 0 {
-		w, h := i.image.Size()
-		i.w2 = graphics.InternalImageSize(w)
-		i.h2 = graphics.InternalImageSize(h)
-	}
-	return i.w2, i.h2
+	return i.image.InternalSize()
 }
 
 func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {

@@ -31,11 +31,13 @@ const (
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image       driver.Image
-	width       int
-	height      int
-	screen      bool
-	lastCommand lastCommand
+	image          driver.Image
+	width          int
+	height         int
+	internalWidth  int
+	internalHeight int
+	screen         bool
+	lastCommand    lastCommand
 }
 
 // NewImage returns a new image.
@@ -43,8 +45,10 @@ type Image struct {
 // Note that the image is not initialized yet.
 func NewImage(width, height int) *Image {
 	i := &Image{
-		width:  width,
-		height: height,
+		width:          width,
+		height:         height,
+		internalWidth:  graphics.InternalImageSize(width),
+		internalHeight: graphics.InternalImageSize(height),
 	}
 	c := &newImageCommand{
 		result: i,
@@ -57,9 +61,11 @@ func NewImage(width, height int) *Image {
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		width:  width,
-		height: height,
-		screen: true,
+		width:          width,
+		height:         height,
+		internalWidth:  graphics.InternalImageSize(width),
+		internalHeight: graphics.InternalImageSize(height),
+		screen:         true,
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
@@ -80,6 +86,10 @@ func (i *Image) Dispose() {
 func (i *Image) Size() (int, int) {
 	// i.image can be nil before initializing.
 	return i.width, i.height
+}
+
+func (i *Image) InternalSize() (int, int) {
+	return i.internalWidth, i.internalHeight
 }
 
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode graphics.CompositeMode, filter graphics.Filter, address graphics.Address) {
