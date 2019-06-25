@@ -193,6 +193,9 @@ func (i *Image) fill(r, g, b, a uint8) {
 
 	// There are not 'drawTrianglesHistoryItem's for this image and emptyImage.
 	// As emptyImage is a priority image, this is restored before other regular images are restored.
+
+	// The rendering target size needs to be its 'internal' size instead of the exposed size to avoid glitches on
+	// mobile platforms (See the change 1e1f309a).
 	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
 	vs := make([]float32, 4*graphics.VertexFloatNum)
