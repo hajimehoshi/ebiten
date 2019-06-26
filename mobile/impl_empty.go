@@ -22,9 +22,18 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
+// Empty implementation of this package.
+// Package mobile is buildable for non-mobile platforms so that godoc can show comments.
+
 func update() error {
 	return nil
 }
 
 func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
+}
+
+func updateTouchesOnAndroid(action int, id int, x, y int) {
+}
+
+func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
 }
