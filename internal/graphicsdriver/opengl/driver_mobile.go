@@ -17,19 +17,9 @@
 package opengl
 
 import (
-	stdcontext "context"
-
 	"golang.org/x/mobile/gl"
 )
 
-func (d *Driver) DoWork(context stdcontext.Context) {
-	d.context.doWork(context)
-}
-
-func (d *Driver) Init() {
-	d.context.gl, d.context.worker = gl.NewContext()
-}
-
-func (d *Driver) InitWithContext(context gl.Context) {
+func (d *Driver) SetMobileGLContext(context gl.Context) {
 	d.context.gl = context
 }

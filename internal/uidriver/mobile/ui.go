@@ -61,7 +61,25 @@ func (u *UserInterface) Render() {
 		<-renderEndCh
 		cancel()
 	}()
-	opengl.Get().DoWork(ctx)
+
+	if u.graphics.IsGL() {
+		if u.glWorker == nil {
+			panic("mobile: glWorker must be initialized but not")
+		}
+		workAvailable := u.glWorker.WorkAvailable()
+	loop:
+		for {
+			select {
+			case <-workAvailable:
+				u.glWorker.DoWork()
+			case <-ctx.Done():
+				break loop
+			}
+		}
+		return
+	}
+
+	// TODO: Create and run the thread loop like the GLFW driver does.
 }
 
 type UserInterface struct {
@@ -75,7 +93,11 @@ type UserInterface struct {
 	fullscreenWidthPx  int
 	fullscreenHeightPx int
 
+	graphics driver.Graphics
+
 	input Input
+
+	glWorker gl.Worker
 
 	m sync.RWMutex
 }
@@ -171,23 +193,23 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 }
 
 func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics, mainloop bool) error {
-	if graphics != opengl.Get() {
-		panic("ui: graphics driver must be OpenGL")
-	}
-
 	u.m.Lock()
 	u.width = width
 	u.height = height
 	u.scale = scale
 	u.sizeChanged = true
+	u.graphics = graphics
 	u.m.Unlock()
 	// title is ignored?
 
-	if mainloop {
-		ctx := <-glContextCh
-		opengl.Get().InitWithContext(ctx)
-	} else {
-		opengl.Get().Init()
+	if graphics.IsGL() {
+		var ctx gl.Context
+		if mainloop {
+			ctx = <-glContextCh
+		} else {
+			ctx, u.glWorker = gl.NewContext()
+		}
+		graphics.(*opengl.Driver).SetMobileGLContext(ctx)
 	}
 
 	// Force to set the screen size
