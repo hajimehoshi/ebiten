@@ -75,7 +75,7 @@ type commandQueue struct {
 	// Rename or fix the program.
 	nvertices int
 
-	dstSizes []size
+	srcSizes []size
 
 	indices  []uint16
 	nindices int
@@ -94,13 +94,13 @@ func (q *commandQueue) appendVertices(vertices []float32, width, height float32)
 	if len(q.vertices) < q.nvertices+len(vertices) {
 		n := q.nvertices + len(vertices) - len(q.vertices)
 		q.vertices = append(q.vertices, make([]float32, n)...)
-		q.dstSizes = append(q.dstSizes, make([]size, n/graphics.VertexFloatNum)...)
+		q.srcSizes = append(q.srcSizes, make([]size, n/graphics.VertexFloatNum)...)
 	}
 	copy(q.vertices[q.nvertices:], vertices)
 	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
 		idx := q.nvertices/graphics.VertexFloatNum + i
-		q.dstSizes[idx].width = width
-		q.dstSizes[idx].height = height
+		q.srcSizes[idx].width = width
+		q.srcSizes[idx].height = height
 	}
 	q.nvertices += len(vertices)
 }
@@ -154,7 +154,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 	}
 
 	n := len(vertices) / graphics.VertexFloatNum
-	q.appendVertices(vertices, float32(graphics.InternalImageSize(dst.width)), float32(graphics.InternalImageSize(dst.height)))
+	q.appendVertices(vertices, float32(graphics.InternalImageSize(src.width)), float32(graphics.InternalImageSize(src.height)))
 	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += n
 	q.tmpNumIndices += len(indices)
@@ -187,7 +187,7 @@ func (q *commandQueue) Flush() {
 		// Adjust texels.
 		const texelAdjustmentFactor = 1.0 / 512.0
 		for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
-			s := q.dstSizes[i]
+			s := q.srcSizes[i]
 			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
 			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 		}

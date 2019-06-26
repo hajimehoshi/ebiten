@@ -331,4 +331,40 @@ func TestSmallImages(t *testing.T) {
 	}
 }
 
+// Issue #887
+func TestLongImages(t *testing.T) {
+	const w, h = 1, 6
+	src := NewImage(w, h)
+	defer src.Dispose()
+	dst := NewImage(256, 256)
+	defer dst.Dispose()
+
+	pix := make([]byte, 4*w*h)
+	for i := 0; i < w*h; i++ {
+		pix[4*i] = 0xff
+		pix[4*i+1] = 0xff
+		pix[4*i+2] = 0xff
+		pix[4*i+3] = 0xff
+	}
+	src.ReplacePixels(pix)
+
+	const scale = 120
+	vs := make([]float32, 4*graphics.VertexFloatNum)
+	graphics.PutQuadVertices(vs, src, 0, 0, w, h, scale, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w*scale; i++ {
+			r, _, _, a := dst.At(i, j)
+			if got, want := r, byte(0xff); got != want {
+				t.Errorf("At(%d, %d) red: got: %d, want: %d", i, j, got, want)
+			}
+			if got, want := a, byte(0xff); got != want {
+				t.Errorf("At(%d, %d) alpha: got: %d, want: %d", i, j, got, want)
+			}
+		}
+	}
+}
+
 // TODO: Add tests to extend shareable image out of the main loop
