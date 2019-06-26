@@ -93,6 +93,7 @@ func (m *Monitor) GetVideoMode() *VidMode {
 		Height:      int(vv.height),
 		RedBits:     int(vv.redBits),
 		GreenBits:   int(vv.greenBits),
+		BlueBits:    int(vv.blueBits),
 		RefreshRate: int(vv.refreshRate),
 	}
 }
