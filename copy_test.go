@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphics_test
+package ebiten_test
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ import (
 	"image/color/palette"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/graphics"
+	. "github.com/hajimehoshi/ebiten"
 )
 
 func TestCopyImage(t *testing.T) {

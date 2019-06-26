@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphics_test
+package ebiten_test
 
 import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/internal/graphics"
+	. "github.com/hajimehoshi/ebiten"
 )
 
 func TestMipmapLevel(t *testing.T) {

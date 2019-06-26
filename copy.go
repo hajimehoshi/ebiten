@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package graphics
+package ebiten
 
 import (
 	"image"
@@ -20,13 +20,11 @@ import (
 	"image/draw"
 )
 
-// CopyImage copies img to a new RGBA image.
+// copyImage copies img to a new RGBA image.
 //
-// Basically CopyImage just calls draw.Draw.
+// Basically copyImage just calls draw.Draw.
 // If img is a paletted image, an optimized copying method is used.
-//
-// CopyImage is used only internally but it is exposed for testing.
-func CopyImage(img image.Image) []byte {
+func copyImage(img image.Image) []byte {
 	size := img.Bounds().Size()
 	w, h := size.X, size.Y
 	bs := make([]byte, 4*w*h)
