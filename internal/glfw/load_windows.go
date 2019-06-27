@@ -91,15 +91,14 @@ func (d *dll) unload() error {
 	return nil
 }
 
-func uintptrToString(ptr uintptr) string {
+func bytePtrToString(ptr *byte) string {
 	var bs []byte
-	for {
-		b := *(*byte)(unsafe.Pointer(ptr))
+	for i := uintptr(0); ; i++ {
+		b := *(*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(ptr)) + i))
 		if b == 0 {
 			break
 		}
 		bs = append(bs, b)
-		ptr++
 	}
 	return string(bs)
 }
@@ -154,11 +153,11 @@ func acceptError(codes ...ErrorCode) error {
 	return err
 }
 
-func goGLFWErrorCallback(code uintptr, desc uintptr) uintptr {
+func goGLFWErrorCallback(code uintptr, desc *byte) uintptr {
 	flushErrors()
 	err := &glfwError{
 		code: ErrorCode(code),
-		desc: uintptrToString(desc),
+		desc: bytePtrToString(desc),
 	}
 	select {
 	case lastErr <- err:
