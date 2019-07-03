@@ -39,6 +39,13 @@ var (
 	maxSize = 0
 )
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func init() {
 	var once sync.Once
 	hooks.AppendHookOnBeforeUpdate(func() error {
@@ -52,10 +59,7 @@ func init() {
 				minSize = 1024
 				// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
 				// not enough evidences that bigger textures works correctly.
-				maxSize = 4096
-				if m := graphicsDriver.MaxImageSize(); maxSize < m {
-					maxSize = m
-				}
+				maxSize = min(4096, graphicsDriver.MaxImageSize())
 			} else {
 				minSize = 512
 				maxSize = 512
