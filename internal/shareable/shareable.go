@@ -50,7 +50,12 @@ func init() {
 			}
 			if graphicsDriver.HasHighPrecisionFloat() {
 				minSize = 1024
+				// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
+				// not enough evidences that bigger textures works correctly.
 				maxSize = 4096
+				if m := graphicsDriver.MaxImageSize(); maxSize < m {
+					maxSize = m
+				}
 			} else {
 				minSize = 512
 				maxSize = 512

@@ -382,46 +382,13 @@ func (d *Driver) flush(wait bool, present bool) {
 }
 
 func (d *Driver) checkSize(width, height int) {
-	m := 0
-	d.t.Call(func() error {
-		if d.maxImageSize == 0 {
-			d.maxImageSize = 4096
-			// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-			switch {
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
-				d.maxImageSize = 16384
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
-				d.maxImageSize = 16384
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
-				d.maxImageSize = 16384
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
-				d.maxImageSize = 8192
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
-				d.maxImageSize = 4096
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
-				d.maxImageSize = 8192
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
-				d.maxImageSize = 4096
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
-				d.maxImageSize = 16384
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
-				d.maxImageSize = 8192
-			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
-				d.maxImageSize = 16384
-			default:
-				panic("metal: there is no supported feature set")
-			}
-		}
-		m = d.maxImageSize
-		return nil
-	})
-
 	if width < 1 {
 		panic(fmt.Sprintf("metal: width (%d) must be equal or more than %d", width, 1))
 	}
 	if height < 1 {
 		panic(fmt.Sprintf("metal: height (%d) must be equal or more than %d", height, 1))
 	}
+	m := d.MaxImageSize()
 	if width > m {
 		panic(fmt.Sprintf("metal: width (%d) must be less than or equal to %d", width, m))
 	}
@@ -705,6 +672,43 @@ func (d *Driver) IsGL() bool {
 
 func (d *Driver) HasHighPrecisionFloat() bool {
 	return true
+}
+
+func (d *Driver) MaxImageSize() int {
+	m := 0
+	d.t.Call(func() error {
+		if d.maxImageSize == 0 {
+			d.maxImageSize = 4096
+			// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+			switch {
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily5_v1):
+				d.maxImageSize = 16384
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily4_v1):
+				d.maxImageSize = 16384
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily3_v1):
+				d.maxImageSize = 16384
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v2):
+				d.maxImageSize = 8192
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily2_v1):
+				d.maxImageSize = 4096
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v2):
+				d.maxImageSize = 8192
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_iOS_GPUFamily1_v1):
+				d.maxImageSize = 4096
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily2_v1):
+				d.maxImageSize = 16384
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_tvOS_GPUFamily1_v1):
+				d.maxImageSize = 8192
+			case d.view.getMTLDevice().SupportsFeatureSet(mtl.FeatureSet_macOS_GPUFamily1_v1):
+				d.maxImageSize = 16384
+			default:
+				panic("metal: there is no supported feature set")
+			}
+		}
+		m = d.maxImageSize
+		return nil
+	})
+	return m
 }
 
 type Image struct {

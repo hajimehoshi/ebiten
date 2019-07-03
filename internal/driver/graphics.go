@@ -35,6 +35,7 @@ type Graphics interface {
 	NeedsRestoring() bool
 	IsGL() bool
 	HasHighPrecisionFloat() bool
+	MaxImageSize() int
 }
 
 type Image interface {

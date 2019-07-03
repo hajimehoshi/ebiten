@@ -142,3 +142,7 @@ func (d *Driver) IsGL() bool {
 func (d *Driver) HasHighPrecisionFloat() bool {
 	return d.context.hasHighPrecisionFloat()
 }
+
+func (d *Driver) MaxImageSize() int {
+	return d.context.getMaxTextureSize()
+}
