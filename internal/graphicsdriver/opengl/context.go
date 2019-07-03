@@ -50,6 +50,7 @@ type context struct {
 	lastViewportHeight int
 	lastCompositeMode  driver.CompositeMode
 	maxTextureSize     int
+	maxTextureSizeOnce sync.Once
 	highp              bool
 	highpOnce          sync.Once
 
@@ -100,9 +101,9 @@ func (c *context) getScreenFramebuffer() framebufferNative {
 }
 
 func (c *context) getMaxTextureSize() int {
-	if c.maxTextureSize == 0 {
+	c.maxTextureSizeOnce.Do(func() {
 		c.maxTextureSize = c.maxTextureSizeImpl()
-	}
+	})
 	return c.maxTextureSize
 }
 
