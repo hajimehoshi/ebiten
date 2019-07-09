@@ -281,6 +281,12 @@ func (i *Image) CopyPixels(src *Image) {
 	i.makeStale()
 }
 
+// ClearPixels clears the specified region by ReplacePixels.
+func (i *Image) ClearPixels(x, y, width, height int) {
+	// TODO: Allocating bytes for all pixels are wasteful. Allocate memory only for required regions (#897).
+	i.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
+}
+
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // If pixels is nil, ReplacePixels clears the specified reagion.
@@ -298,6 +304,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	theImages.makeStaleIfDependingOn(i)
 
 	if pixels == nil {
+		// TODO: Allocating bytes for all pixels are wasteful. Allocate memory only for required regions
+		// (#897).
 		pixels = make([]byte, 4*width*height)
 	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
