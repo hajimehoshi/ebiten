@@ -191,11 +191,9 @@ func (i *Image) clearForInitialization() {
 	i.fill(0, 0, 0, 0)
 }
 
-func (i *Image) fill(r, g, b, a byte) {
-	if i.priority {
-		panic("restorable: clear cannot be called on a priority image")
-	}
-
+// fillImage fills a graphicscommand.Image with the specified color.
+// This does nothing to do with a restorable.Image's rendering state.
+func fillImage(img *graphicscommand.Image, r, g, b, a byte) {
 	rf := float32(0)
 	gf := float32(0)
 	bf := float32(0)
@@ -212,7 +210,7 @@ func (i *Image) fill(r, g, b, a byte) {
 
 	// The rendering target size needs to be its 'internal' size instead of the exposed size to avoid glitches on
 	// mobile platforms (See the change 1e1f309a).
-	dw, dh := i.internalSize()
+	dw, dh := img.InternalSize()
 	sw, sh := emptyImage.Size()
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
@@ -221,9 +219,19 @@ func (i *Image) fill(r, g, b, a byte) {
 	is := graphics.QuadIndices()
 	c := driver.CompositeModeCopy
 	if a == 0 {
+		// The first DrawTriangles must be clear mode for initialization.
+		// TODO: Can the graphicscommand package hide this knowledge?
 		c = driver.CompositeModeClear
 	}
-	i.image.DrawTriangles(emptyImage.image, vs, is, nil, c, driver.FilterNearest, driver.AddressClampToZero)
+	img.DrawTriangles(emptyImage.image, vs, is, nil, c, driver.FilterNearest, driver.AddressClampToZero)
+}
+
+func (i *Image) fill(r, g, b, a byte) {
+	if i.priority {
+		panic("restorable: clear cannot be called on a priority image")
+	}
+
+	fillImage(i.image, r, g, b, a)
 
 	w, h := i.Size()
 	i.basePixels = &Pixels{
@@ -533,8 +541,7 @@ func (i *Image) restore() error {
 		gimg.ReplacePixels(i.basePixels.Slice(), 0, 0, w, h)
 	} else {
 		// Clear the image explicitly.
-		pix := make([]byte, w*h*4)
-		gimg.ReplacePixels(pix, 0, 0, w, h)
+		fillImage(gimg, 0, 0, 0, 0)
 	}
 	for _, c := range i.drawTrianglesHistory {
 		if c.image.hasDependency() {
