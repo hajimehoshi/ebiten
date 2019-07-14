@@ -143,7 +143,7 @@ func NewImage(width, height int) *Image {
 	return i
 }
 
-// NewImage creates a new image and copies the pixels of the given source image.
+// NewImageFromImage creates a new image and copies the pixels of the given source image.
 //
 // The given size (width and height) doesn't have to match with the source image's size.
 // The image is copied at the left-upper corner of the new image.
