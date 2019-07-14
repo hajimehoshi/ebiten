@@ -121,12 +121,8 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		b.page.Extend()
 	}
 	s := b.page.Size()
-	newImg := restorable.NewImage(s, s)
-	oldImg := b.restorable
-	// Do not use DrawTriangles here. ReplacePixels will be called on a part of newImg later, and it looked like
-	// ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles (#593, #758).
-	newImg.CopyPixels(oldImg)
-	oldImg.Dispose()
+	newImg := restorable.NewImageFromImage(s, s, b.restorable)
+	b.restorable.Dispose()
 	b.restorable = newImg
 
 	n := b.page.Alloc(width, height)

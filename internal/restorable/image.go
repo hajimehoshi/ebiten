@@ -143,6 +143,24 @@ func NewImage(width, height int) *Image {
 	return i
 }
 
+// NewImage creates a new image and copies the pixels of the given source image.
+//
+// The given size (width and height) doesn't have to match with the source image's size.
+// The image is copied at the left-upper corner of the new image.
+func NewImageFromImage(width, height int, src *Image) *Image {
+	i := NewImage(width, height)
+
+	// Do not use DrawTriangles here. ReplacePixels will be called on a part of newImg later, and it looked like
+	// ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles (#593, #758).
+	i.image.CopyPixels(src.image)
+
+	// As pixels should not be obtained here, making the image stale is inevitable.
+	// TODO: Copy pixel data from the source instead of making this stale (#897).
+	i.makeStale()
+
+	return i
+}
+
 func (i *Image) MakeVolatile() {
 	i.volatile = true
 }
@@ -268,17 +286,6 @@ func (i *Image) makeStale() {
 	// Restoring is done after topological sorting is done.
 	// If an image depends on another stale image, this means that
 	// the former image can be restored from the latest state of the latter image.
-}
-
-func (i *Image) CopyPixels(src *Image) {
-	// TODO: Avoid making other images stale if possible. (#514)
-	// For this purpuse, images should remember which part of that is used for DrawTriangles.
-	theImages.makeStaleIfDependingOn(i)
-
-	i.image.CopyPixels(src.image)
-
-	// As pixels should not be obtained here, making the image stale is inevitable.
-	i.makeStale()
 }
 
 // ClearPixels clears the specified region by ReplacePixels.
