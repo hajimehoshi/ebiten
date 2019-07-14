@@ -180,7 +180,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func (i *Image) Fill(r, g, b, a uint8) {
+func (i *Image) Fill(r, g, b, a byte) {
 	theImages.makeStaleIfDependingOn(i)
 	i.fill(r, g, b, a)
 }
@@ -191,7 +191,7 @@ func (i *Image) clearForInitialization() {
 	i.fill(0, 0, 0, 0)
 }
 
-func (i *Image) fill(r, g, b, a uint8) {
+func (i *Image) fill(r, g, b, a byte) {
 	if i.priority {
 		panic("restorable: clear cannot be called on a priority image")
 	}
@@ -533,7 +533,7 @@ func (i *Image) restore() error {
 		gimg.ReplacePixels(i.basePixels.Slice(), 0, 0, w, h)
 	} else {
 		// Clear the image explicitly.
-		pix := make([]uint8, w*h*4)
+		pix := make([]byte, w*h*4)
 		gimg.ReplacePixels(pix, 0, 0, w, h)
 	}
 	for _, c := range i.drawTrianglesHistory {

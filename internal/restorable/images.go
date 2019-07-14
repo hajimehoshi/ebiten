@@ -90,6 +90,9 @@ func RestoreIfNeeded() error {
 	return theImages.restore()
 }
 
+// Images returns all the current images.
+//
+// This is for testing usage.
 func Images() []image.Image {
 	var imgs []image.Image
 	for img := range theImages.images {
