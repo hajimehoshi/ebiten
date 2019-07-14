@@ -1653,7 +1653,7 @@ func TestImageSubImageSubImage(t *testing.T) {
 	}
 }
 
-// Issue 839
+// Issue #839
 func TestImageTooSmallMipmap(t *testing.T) {
 	const w, h = 16, 16
 	src, _ := NewImage(w, h, FilterDefault)
@@ -1679,4 +1679,38 @@ func TestImageZeroSizedMipmap(t *testing.T) {
 	op := &DrawImageOptions{}
 	op.Filter = FilterLinear
 	dst.DrawImage(src.SubImage(image.ZR).(*Image), op)
+}
+
+// Issue #898
+func TestImageFillingAndEdges(t *testing.T) {
+	const (
+		srcw, srch = 16, 16
+		dstw, dsth = 256, 16
+	)
+
+	println("-- start --")
+	defer println("-- end --")
+	src, _ := NewImage(srcw, srch, FilterDefault)
+	dst, _ := NewImage(dstw, dsth, FilterDefault)
+
+	src.Fill(color.White)
+	dst.Fill(color.Black)
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(float64(dstw-2)/float64(srcw), float64(dsth-2)/float64(srch))
+	op.GeoM.Translate(1, 1)
+	dst.DrawImage(src, op)
+
+	for j := 0; j < dsth; j++ {
+		for i := 0; i < dstw; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0xff, 0xff, 0xff}
+			if i == 0 || i == dstw-1 || j == 0 || j == dsth-1 {
+				want = color.RGBA{0, 0, 0, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
 }

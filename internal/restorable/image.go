@@ -215,7 +215,7 @@ func (i *Image) fill(r, g, b, a uint8) {
 	dw, dh := i.internalSize()
 	sw, sh := emptyImage.Size()
 	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, i, 0, 0, sw, sh,
+	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
