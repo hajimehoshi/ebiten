@@ -1688,8 +1688,6 @@ func TestImageFillingAndEdges(t *testing.T) {
 		dstw, dsth = 256, 16
 	)
 
-	println("-- start --")
-	defer println("-- end --")
 	src, _ := NewImage(srcw, srch, FilterDefault)
 	dst, _ := NewImage(dstw, dsth, FilterDefault)
 
