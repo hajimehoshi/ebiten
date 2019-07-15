@@ -306,6 +306,10 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 //
 // If pixels is nil, ReplacePixels clears the specified reagion.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+	if pixels == nil {
+		panic("restorable: pixels must not be nil")
+	}
+
 	w, h := i.image.Size()
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
@@ -318,11 +322,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
-	if pixels == nil {
-		// TODO: Allocating bytes for all pixels are wasteful. Allocate memory only for required regions
-		// (#897).
-		pixels = make([]byte, 4*width*height)
-	}
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
 	if !needsRestoring() {

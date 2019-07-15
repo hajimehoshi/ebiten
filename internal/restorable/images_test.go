@@ -540,7 +540,7 @@ func TestClear(t *testing.T) {
 	img := NewImage(4, 4)
 	img.ReplacePixels(pix, 0, 0, 4, 4)
 	// This doesn't make the image stale. Its base pixels are available.
-	img.ReplacePixels(nil, 1, 1, 2, 2)
+	img.ReplacePixels(make([]byte, 4*4*4), 1, 1, 2, 2)
 
 	cases := []struct {
 		Index int
