@@ -563,14 +563,16 @@ func (i *Image) restore() error {
 		}
 		gimg.DrawTriangles(c.image.image, c.vertices, c.indices, c.colorm, c.mode, c.filter, c.address)
 	}
-	i.image = gimg
 
-	// TODO: Can we avoid getting pixels here? (#897)
-	pix := gimg.Pixels()
-	i.basePixels = &Pixels{
-		pixels: pix,
-		length: len(pix),
+	if len(i.drawTrianglesHistory) > 0 {
+		pix := gimg.Pixels()
+		i.basePixels = &Pixels{
+			pixels: pix,
+			length: len(pix),
+		}
 	}
+
+	i.image = gimg
 	i.drawTrianglesHistory = nil
 	i.stale = false
 	return nil
