@@ -74,11 +74,6 @@ func (p *Pixels) At(i int) byte {
 	return p.pixels[i]
 }
 
-func (p *Pixels) Slice() []byte {
-	p.ensurePixels()
-	return p.pixels
-}
-
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
 type drawTrianglesHistoryItem struct {
 	image    *Image
@@ -537,7 +532,20 @@ func (i *Image) restore() error {
 
 	gimg := graphicscommand.NewImage(w, h)
 	if i.basePixels != nil {
-		gimg.ReplacePixels(i.basePixels.Slice(), 0, 0, w, h)
+		if i.basePixels.pixels != nil {
+			// If ReplacePixels is the first command, the image doesn't have be cleared.
+			gimg.ReplacePixels(i.basePixels.pixels, 0, 0, w, h)
+		} else {
+			// Clear the image explicitly.
+			fillImage(gimg, 0, 0, 0, 0)
+			r := i.basePixels.color.R
+			g := i.basePixels.color.G
+			b := i.basePixels.color.B
+			a := i.basePixels.color.A
+			if a > 0 {
+				fillImage(gimg, r, g, b, a)
+			}
+		}
 	} else {
 		// Clear the image explicitly.
 		fillImage(gimg, 0, 0, 0, 0)
@@ -550,6 +558,7 @@ func (i *Image) restore() error {
 	}
 	i.image = gimg
 
+	// TODO: Can we avoid getting pixels here? (#897)
 	pix := gimg.Pixels()
 	i.basePixels = &Pixels{
 		pixels: pix,
