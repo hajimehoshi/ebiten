@@ -120,6 +120,9 @@ func init() {
 	for i := range pix {
 		pix[i] = 0xff
 	}
+
+	// As emptyImage is the source at fillImage, initialize this with ReplacePixels, not fillImage.
+	// This operation is also important when restoring emptyImage.
 	emptyImage.ReplacePixels(pix, 0, 0, w, h)
 	theImages.add(emptyImage)
 }
@@ -189,6 +192,10 @@ func (i *Image) clearForInitialization() {
 // fillImage fills a graphicscommand.Image with the specified color.
 // This does nothing to do with a restorable.Image's rendering state.
 func fillImage(img *graphicscommand.Image, r, g, b, a byte) {
+	if img == emptyImage.image {
+		panic("restorable: fillImage cannot be called on emptyImage")
+	}
+
 	rf := float32(0)
 	gf := float32(0)
 	bf := float32(0)
