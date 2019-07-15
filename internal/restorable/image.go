@@ -332,18 +332,12 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
-		if pixels != nil {
-			if i.basePixels == nil {
-				i.basePixels = &Pixels{
-					length: 4 * w * h,
-				}
+		if i.basePixels == nil {
+			i.basePixels = &Pixels{
+				length: 4 * w * h,
 			}
-			i.basePixels.CopyFrom(pixels, 0)
-		} else {
-			// If basePixels is nil, the restored pixels are cleared.
-			// See restore() implementation.
-			i.basePixels = nil
 		}
+		i.basePixels.CopyFrom(pixels, 0)
 		i.drawTrianglesHistory = nil
 		i.stale = false
 		return
@@ -358,22 +352,14 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	idx := 4 * (y*w + x)
-	if pixels != nil {
-		if i.basePixels == nil {
-			i.basePixels = &Pixels{
-				length: 4 * w * h,
-			}
+	if i.basePixels == nil {
+		i.basePixels = &Pixels{
+			length: 4 * w * h,
 		}
-		for j := 0; j < height; j++ {
-			i.basePixels.CopyFrom(pixels[4*j*width:4*(j+1)*width], idx)
-			idx += 4 * w
-		}
-	} else if i.basePixels != nil {
-		zeros := make([]byte, 4*width)
-		for j := 0; j < height; j++ {
-			i.basePixels.CopyFrom(zeros, idx)
-			idx += 4 * w
-		}
+	}
+	for j := 0; j < height; j++ {
+		i.basePixels.CopyFrom(pixels[4*j*width:4*(j+1)*width], idx)
+		idx += 4 * w
 	}
 }
 
