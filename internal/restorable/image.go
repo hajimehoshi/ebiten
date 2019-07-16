@@ -127,22 +127,29 @@ func NewImage(width, height int) *Image {
 	return i
 }
 
-// NewImageFromImage creates a new image and copies the pixels of the given source image.
+// Extend extends the image by the given size.
+// Extend creates a new image with the given size and copies the pixels of the given source image.
+// Extend disposes itself after its call.
 //
-// The given size (width and height) doesn't have to match with the source image's size.
-// The image is copied at the left-upper corner of the new image.
-func NewImageFromImage(width, height int, src *Image) *Image {
-	i := NewImage(width, height)
+// If the given size (width and height) is smaller than the source image, ExtendImage panics.
+func (i *Image) Extend(width, height int) *Image {
+	if w, h := i.Size(); w > width || h > height {
+		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", w, h, width, height))
+	}
+
+	newImg := NewImage(width, height)
 
 	// Do not use DrawTriangles here. ReplacePixels will be called on a part of newImg later, and it looked like
 	// ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles (#593, #758).
-	i.image.CopyPixels(src.image)
+	newImg.image.CopyPixels(i.image)
 
 	// As pixels should not be obtained here, making the image stale is inevitable.
 	// TODO: Copy pixel data from the source instead of making this stale (#897).
-	i.makeStale()
+	newImg.makeStale()
 
-	return i
+	i.Dispose()
+
+	return newImg
 }
 
 func (i *Image) MakeVolatile() {

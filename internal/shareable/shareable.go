@@ -121,9 +121,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		b.page.Extend()
 	}
 	s := b.page.Size()
-	newImg := restorable.NewImageFromImage(s, s, b.restorable)
-	b.restorable.Dispose()
-	b.restorable = newImg
+	b.restorable = b.restorable.Extend(s, s)
 
 	n := b.page.Alloc(width, height)
 	if n == nil {
