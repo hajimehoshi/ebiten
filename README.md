@@ -9,7 +9,7 @@
 Ebiten is an open-source game library, with which you can develop 2D games with simple API for multi platforms in the Go programming language.
 
 * [Website (ebiten.org)](https://ebiten.org/)
-* [Cheat Sheet](https://github.com/hajimehoshi/ebiten/wiki/Cheat-Sheet)
+* [Cheat Sheet](https://ebiten.org/cheatsheet.html)
 
 <p><a href="https://ebiten.org/examples/flappy.html"><img src="https://ebiten.org/images/examples/flappy.png" width="640" height="480" alt="flappy"></a></p>
 
