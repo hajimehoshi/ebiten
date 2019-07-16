@@ -305,8 +305,6 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
-//
-// If pixels is nil, ReplacePixels clears the specified reagion.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if pixels == nil {
 		panic("restorable: pixels must not be nil")
