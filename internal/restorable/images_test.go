@@ -664,3 +664,52 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestAllowReplacePixelsAfterFill(t *testing.T) {
+	const w, h = 16, 16
+	dst := NewImage(w, h)
+	dst.Fill(1, 1, 1, 1)
+	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
+	// ReplacePixels for a whole image doesn't panic.
+}
+
+func TestDisallowReplacePixelsForPartAfterFill(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReplacePixels for a part after Fill must panic but not")
+		}
+	}()
+	const w, h = 16, 16
+	dst := NewImage(w, h)
+	dst.Fill(1, 1, 1, 1)
+	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+}
+
+func TestAllowReplacePixelsAfterDrawTriangles(t *testing.T) {
+	const w, h = 16, 16
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
+
+	vs := quadVertices(src, w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
+	// ReplacePixels for a whole image doesn't panic.
+}
+
+func TestDisallowReplacePixelsForPartAfterDrawTriangles(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("ReplacePixels for a part after DrawTriangles must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	src := NewImage(w, h)
+	dst := NewImage(w, h)
+
+	vs := quadVertices(src, w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
+}

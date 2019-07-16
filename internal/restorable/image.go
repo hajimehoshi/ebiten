@@ -34,24 +34,10 @@ type Pixels struct {
 	color color.RGBA
 }
 
-func (p *Pixels) ensurePixels() {
-	if p.pixels != nil {
-		return
-	}
-	p.pixels = make([]byte, p.length)
-	if p.color.A == 0 {
-		return
-	}
-	for i := 0; i < p.length/4; i++ {
-		p.pixels[4*i] = p.color.R
-		p.pixels[4*i+1] = p.color.G
-		p.pixels[4*i+2] = p.color.B
-		p.pixels[4*i+3] = p.color.A
-	}
-}
-
 func (p *Pixels) CopyFrom(pix []byte, from int) {
-	p.ensurePixels()
+	if p.pixels == nil {
+		p.pixels = make([]byte, p.length)
+	}
 	copy(p.pixels[from:from+len(pix)], pix)
 }
 
@@ -305,6 +291,8 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
+//
+// ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if pixels == nil {
 		panic("restorable: pixels must not be nil")
@@ -343,6 +331,10 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
+	}
+
+	if i.basePixels != nil && i.basePixels.color.A > 0 {
+		panic("restorable: ReplacePixels for a part after Fill is forbidden")
 	}
 
 	if i.stale {
