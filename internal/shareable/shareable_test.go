@@ -367,4 +367,20 @@ func TestLongImages(t *testing.T) {
 	}
 }
 
+func TestDisposeImmediately(t *testing.T) {
+	// This tests restorable.Image.ClearPixels is called but ReplacePixels is not called.
+
+	img0 := NewImage(16, 16)
+	vs := make([]float32, graphics.VertexFloatNum)
+	img0.PutVertex(vs, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1)
+
+	img1 := NewImage(16, 16)
+	img1.PutVertex(vs, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1)
+
+	// img0 and img1 should share the same backend in 99.9999% possibility.
+
+	img0.Dispose()
+	img1.Dispose()
+}
+
 // TODO: Add tests to extend shareable image out of the main loop

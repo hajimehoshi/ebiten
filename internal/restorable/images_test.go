@@ -533,16 +533,15 @@ func TestDispose(t *testing.T) {
 	}
 }
 
-func TestClear(t *testing.T) {
-	pix := make([]uint8, 4*4*4)
+func TestReplacePixelsPart(t *testing.T) {
+	pix := make([]uint8, 4*2*2)
 	for i := range pix {
 		pix[i] = 0xff
 	}
 
 	img := NewImage(4, 4)
-	img.ReplacePixels(pix, 0, 0, 4, 4)
 	// This doesn't make the image stale. Its base pixels are available.
-	img.ReplacePixels(make([]byte, 4*4*4), 1, 1, 2, 2)
+	img.ReplacePixels(pix, 1, 1, 2, 2)
 
 	cases := []struct {
 		i    int
@@ -552,52 +551,52 @@ func TestClear(t *testing.T) {
 		{
 			i:    0,
 			j:    0,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
 			i:    3,
 			j:    0,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
 			i:    0,
 			j:    1,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
 			i:    1,
 			j:    1,
-			want: color.RGBA{0, 0, 0, 0},
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
 			i:    3,
 			j:    1,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
 			i:    0,
-			j:    2,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
-		},
-		{
-			i:    2,
 			j:    2,
 			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
-			i:    3,
+			i:    2,
 			j:    2,
 			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
+			i:    3,
+			j:    2,
+			want: color.RGBA{0, 0, 0, 0},
+		},
+		{
 			i:    0,
 			j:    3,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
 			i:    3,
 			j:    3,
-			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
+			want: color.RGBA{0, 0, 0, 0},
 		},
 	}
 	for _, c := range cases {
@@ -777,4 +776,16 @@ func TestFillAndExtend(t *testing.T) {
 	orig := NewImage(w, h)
 	orig.Fill(0x01, 0x02, 0x03, 0x04)
 	orig.Extend(w*2, h*2)
+}
+
+func TestClearPixels(t *testing.T) {
+	const w, h = 16, 16
+	img := NewImage(w, h)
+	img.ReplacePixels(make([]byte, 4*4*4), 0, 0, 4, 4)
+	img.ReplacePixels(make([]byte, 4*4*4), 4, 0, 4, 4)
+	img.ClearPixels(0, 0, 4, 4)
+	img.ClearPixels(4, 0, 4, 4)
+
+	// After clearing, the regions will be available again.
+	img.ReplacePixels(make([]byte, 4*8*4), 0, 0, 8, 4)
 }

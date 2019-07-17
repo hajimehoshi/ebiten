@@ -26,32 +26,44 @@ import (
 )
 
 type Pixels struct {
-	pixels []byte
+	rectToPixels *rectToPixels
 
-	width  int
-	height int
-
-	// color is used only when pixels == nil
+	// color is used only when rectToPixels is nil.
 	color color.RGBA
 }
 
-func (p *Pixels) CopyFrom(pix []byte, from int) {
-	if p.pixels == nil {
-		p.pixels = make([]byte, 4*p.width*p.height)
+func (p *Pixels) Apply(img *graphicscommand.Image) {
+	if p.rectToPixels == nil {
+		fillImage(img, p.color.R, p.color.G, p.color.B, p.color.A)
+		return
 	}
-	copy(p.pixels[from:from+len(pix)], pix)
+
+	p.rectToPixels.apply(img)
+}
+
+func (p *Pixels) AddOrReplace(pix []byte, x, y, width, height int) {
+	if p.rectToPixels == nil {
+		p.rectToPixels = &rectToPixels{}
+	}
+	p.rectToPixels.addOrReplace(pix, x, y, width, height)
+	p.color = color.RGBA{}
+}
+
+func (p *Pixels) Remove(x, y, width, height int) {
+	// Note that we don't care whether the region is actually removed or not here. There is an actual case that
+	// the region is allocated but nothing is rendered. See TestDisposeImmediately at shareable package.
+	if p.rectToPixels == nil {
+		return
+	}
+	p.rectToPixels.remove(x, y, width, height)
 }
 
 func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
-	if i < 0 || p.width <= i {
-		panic(fmt.Sprintf("restorable: index out of range: %d for the width: %d", i, p.width))
-	}
-	if j < 0 || p.height <= j {
-		panic(fmt.Sprintf("restorable: index out of range: %d for the height: %d", i, p.height))
-	}
-	if p.pixels != nil {
-		idx := 4 * (j*p.width + i)
-		return p.pixels[idx], p.pixels[idx+1], p.pixels[idx+2], p.pixels[idx+3]
+	if p.rectToPixels != nil {
+		if r, g, b, a, ok := p.rectToPixels.at(i, j); ok {
+			return r, g, b, a
+		}
+		return 0, 0, 0, 0
 	}
 	return p.color.R, p.color.G, p.color.B, p.color.A
 }
@@ -152,22 +164,9 @@ func (i *Image) Extend(width, height int) *Image {
 
 	newImg := NewImage(width, height)
 
-	if i.basePixels != nil && i.basePixels.pixels != nil {
-		newImg.image.ReplacePixels(i.basePixels.pixels, 0, 0, w, h)
-	}
+	i.basePixels.Apply(newImg.image)
 
-	// Copy basePixels.
-	newImg.basePixels = &Pixels{
-		pixels: make([]byte, 4*width*height),
-		width:  width,
-		height: height,
-	}
-	pix := i.basePixels.pixels
-	idx := 0
-	for j := 0; j < h; j++ {
-		newImg.basePixels.CopyFrom(pix[4*j*w:4*(j+1)*w], idx)
-		idx += 4 * width
-	}
+	newImg.basePixels = i.basePixels
 
 	i.Dispose()
 
@@ -250,11 +249,8 @@ func (i *Image) fill(r, g, b, a byte) {
 
 	fillImage(i.image, r, g, b, a)
 
-	w, h := i.Size()
 	i.basePixels = &Pixels{
-		color:  color.RGBA{r, g, b, a},
-		width:  w,
-		height: h,
+		color: color.RGBA{r, g, b, a},
 	}
 	i.drawTrianglesHistory = nil
 	i.stale = false
@@ -316,18 +312,13 @@ func (i *Image) makeStale() {
 
 // ClearPixels clears the specified region by ReplacePixels.
 func (i *Image) ClearPixels(x, y, width, height int) {
-	// TODO: Allocating bytes for all pixels are wasteful. Allocate memory only for required regions (#897).
-	i.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
+	i.ReplacePixels(nil, x, y, width, height)
 }
 
 // ReplacePixels replaces the image pixels with the given pixels slice.
 //
 // ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	if pixels == nil {
-		panic("restorable: pixels must not be nil")
-	}
-
 	w, h := i.image.Size()
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
@@ -340,17 +331,24 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
-	i.image.ReplacePixels(pixels, x, y, width, height)
+	if pixels != nil {
+		i.image.ReplacePixels(pixels, x, y, width, height)
+	} else {
+		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
+		// accepts only ReplacePixels and not Fill or DrawTriangles.
+		// TODO: Separate Image struct into two: images for only-ReplacePixels, and the others.
+		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
+	}
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if i.basePixels == nil {
-			i.basePixels = &Pixels{
-				width:  w,
-				height: h,
-			}
+			i.basePixels = &Pixels{}
 		}
-		i.basePixels.CopyFrom(pixels, 0)
-		i.basePixels.color = color.RGBA{}
+		if pixels != nil {
+			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
+		} else {
+			i.basePixels.Remove(0, 0, w, h)
+		}
 		i.drawTrianglesHistory = nil
 		i.stale = false
 		return
@@ -372,16 +370,13 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	idx := 4 * (y*w + x)
 	if i.basePixels == nil {
-		i.basePixels = &Pixels{
-			width:  w,
-			height: h,
-		}
+		i.basePixels = &Pixels{}
 	}
-	for j := 0; j < height; j++ {
-		i.basePixels.CopyFrom(pixels[4*j*width:4*(j+1)*width], idx)
-		idx += 4 * w
+	if pixels != nil {
+		i.basePixels.AddOrReplace(pixels, x, y, width, height)
+	} else {
+		i.basePixels.Remove(x, y, width, height)
 	}
 }
 
@@ -469,12 +464,8 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() {
 	w, h := i.Size()
-	pix := i.image.Pixels()
-	i.basePixels = &Pixels{
-		pixels: pix,
-		width:  w,
-		height: h,
-	}
+	i.basePixels = &Pixels{}
+	i.basePixels.AddOrReplace(i.image.Pixels(), 0, 0, w, h)
 	i.drawTrianglesHistory = nil
 	i.stale = false
 }
@@ -547,25 +538,12 @@ func (i *Image) restore() error {
 	}
 
 	gimg := graphicscommand.NewImage(w, h)
+	// Clear the image explicitly.
+	fillImage(gimg, 0, 0, 0, 0)
 	if i.basePixels != nil {
-		if i.basePixels.pixels != nil {
-			// If ReplacePixels is the first command, the image doesn't have be cleared.
-			gimg.ReplacePixels(i.basePixels.pixels, 0, 0, w, h)
-		} else {
-			// Clear the image explicitly.
-			fillImage(gimg, 0, 0, 0, 0)
-			r := i.basePixels.color.R
-			g := i.basePixels.color.G
-			b := i.basePixels.color.B
-			a := i.basePixels.color.A
-			if a > 0 {
-				fillImage(gimg, r, g, b, a)
-			}
-		}
-	} else {
-		// Clear the image explicitly.
-		fillImage(gimg, 0, 0, 0, 0)
+		i.basePixels.Apply(gimg)
 	}
+
 	for _, c := range i.drawTrianglesHistory {
 		if c.image.hasDependency() {
 			panic("restorable: all dependencies must be already resolved but not")
@@ -574,12 +552,8 @@ func (i *Image) restore() error {
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {
-		pix := gimg.Pixels()
-		i.basePixels = &Pixels{
-			pixels: pix,
-			width:  w,
-			height: h,
-		}
+		i.basePixels = &Pixels{}
+		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, w, h)
 	}
 
 	i.image = gimg
