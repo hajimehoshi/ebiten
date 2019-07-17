@@ -361,45 +361,6 @@ func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, m
 	return false
 }
 
-type copyPixelsCommand struct {
-	dst *Image
-	src *Image
-}
-
-func (c *copyPixelsCommand) String() string {
-	return fmt.Sprintf("copy-pixels: dst: %p <- src: %p", c.dst, c.src)
-}
-
-func (c *copyPixelsCommand) Exec(indexOffset int) error {
-	p, err := c.src.image.Pixels()
-	if err != nil {
-		return err
-	}
-	if c.dst.width < c.src.width || c.dst.height < c.src.height {
-		return fmt.Errorf("graphicscommand: the destination size (%d, %d) must include the source size (%d, %d)", c.dst.width, c.dst.height, c.src.width, c.src.height)
-	}
-	c.dst.image.ReplacePixels(p, 0, 0, c.src.width, c.src.height)
-	return nil
-}
-
-func (c *copyPixelsCommand) NumVertices() int {
-	return 0
-}
-
-func (c *copyPixelsCommand) NumIndices() int {
-	return 0
-}
-
-func (c *copyPixelsCommand) AddNumVertices(n int) {
-}
-
-func (c *copyPixelsCommand) AddNumIndices(n int) {
-}
-
-func (c *copyPixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) bool {
-	return false
-}
-
 type pixelsCommand struct {
 	result []byte
 	img    *Image

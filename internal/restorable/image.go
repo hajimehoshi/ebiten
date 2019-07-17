@@ -158,9 +158,9 @@ func (i *Image) Extend(width, height int) *Image {
 
 	newImg := NewImage(width, height)
 
-	// Do not use DrawTriangles here. ReplacePixels will be called on a part of newImg later, and it looked like
-	// ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles (#593, #758).
-	newImg.image.CopyPixels(i.image)
+	if i.basePixels != nil && i.basePixels.pixels != nil {
+		newImg.image.ReplacePixels(i.basePixels.pixels, 0, 0, w, h)
+	}
 
 	// Copy basePixels.
 	newImg.basePixels = &Pixels{
@@ -358,6 +358,9 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.stale = false
 		return
 	}
+
+	// It looked like ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles
+	// (#593, #758).
 
 	if len(i.drawTrianglesHistory) > 0 {
 		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
