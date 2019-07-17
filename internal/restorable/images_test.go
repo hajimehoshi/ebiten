@@ -713,3 +713,52 @@ func TestDisallowReplacePixelsForPartAfterDrawTriangles(t *testing.T) {
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
+
+func TestExtend(t *testing.T) {
+	pixAt := func(i, j int) byte {
+		return byte(17*i + 13*j + 0x40)
+	}
+
+	const w, h = 16, 16
+	orig := NewImage(w, h)
+	pix := make([]byte, 4*w*h)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := j*w + i
+			v := pixAt(i, j)
+			pix[4*idx] = v
+			pix[4*idx+1] = v
+			pix[4*idx+2] = v
+			pix[4*idx+3] = v
+		}
+	}
+
+	orig.ReplacePixels(pix, 0, 0, w, h)
+	extended := orig.Extend(w*2, h*2) // After this, orig is already disposed.
+
+	for j := 0; j < h*2; j++ {
+		for i := 0; i < w*2; i++ {
+			got, _, _, _ := extended.At(i, j)
+			want := byte(0)
+			if i < w && j < h {
+				want = pixAt(i, j)
+			}
+			if got != want {
+				t.Errorf("extended.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestFillAndExtend(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Extend after Fill must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	orig := NewImage(w, h)
+	orig.Fill(0x01, 0x02, 0x03, 0x04)
+	orig.Extend(w*2, h*2)
+}

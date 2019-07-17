@@ -45,19 +45,21 @@ func (p *Pixels) At(i int) byte {
 	if i < 0 || p.length <= i {
 		panic(fmt.Sprintf("restorable: index out of range: %d for length: %d", i, p.length))
 	}
-	if p.pixels == nil {
-		switch i % 4 {
-		case 0:
-			return p.color.R
-		case 1:
-			return p.color.G
-		case 2:
-			return p.color.B
-		case 3:
-			return p.color.A
-		}
+	if p.pixels != nil {
+		return p.pixels[i]
 	}
-	return p.pixels[i]
+	switch i % 4 {
+	case 0:
+		return p.color.R
+	case 1:
+		return p.color.G
+	case 2:
+		return p.color.B
+	case 3:
+		return p.color.A
+	default:
+		panic("not reached")
+	}
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -132,9 +134,26 @@ func NewImage(width, height int) *Image {
 // Extend disposes itself after its call.
 //
 // If the given size (width and height) is smaller than the source image, ExtendImage panics.
+//
+// The image must be ReplacePixels-only image. Extend panics when Fill or DrawTriangles are applied on the image.
+//
+// Extend panics when the image is stale.
 func (i *Image) Extend(width, height int) *Image {
-	if w, h := i.Size(); w > width || h > height {
+	w, h := i.Size()
+	if w > width || h > height {
 		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", w, h, width, height))
+	}
+
+	if i.stale {
+		panic("restorable: Extend at a stale image is forbidden")
+	}
+
+	if len(i.drawTrianglesHistory) > 0 {
+		panic("restorable: Extend after DrawTriangles is forbidden")
+	}
+
+	if i.basePixels != nil && i.basePixels.color.A > 0 {
+		panic("restorable: Extend after Fill is forbidden")
 	}
 
 	newImg := NewImage(width, height)
@@ -143,9 +162,17 @@ func (i *Image) Extend(width, height int) *Image {
 	// ReplacePixels on a part of image deletes other region that are rendered by DrawTriangles (#593, #758).
 	newImg.image.CopyPixels(i.image)
 
-	// As pixels should not be obtained here, making the image stale is inevitable.
-	// TODO: Copy pixel data from the source instead of making this stale (#897).
-	newImg.makeStale()
+	// Copy basePixels.
+	newImg.basePixels = &Pixels{
+		pixels: make([]byte, 4*width*height),
+		length: 4 * width * height,
+	}
+	pix := i.basePixels.pixels
+	idx := 0
+	for j := 0; j < h; j++ {
+		newImg.basePixels.CopyFrom(pix[4*j*w:4*(j+1)*w], idx)
+		idx += 4 * width
+	}
 
 	i.Dispose()
 
@@ -319,11 +346,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	i.image.ReplacePixels(pixels, x, y, width, height)
 
-	if !needsRestoring() {
-		i.makeStale()
-		return
-	}
-
 	if x == 0 && y == 0 && width == w && height == h {
 		if i.basePixels == nil {
 			i.basePixels = &Pixels{
@@ -331,6 +353,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			}
 		}
 		i.basePixels.CopyFrom(pixels, 0)
+		i.basePixels.color = color.RGBA{}
 		i.drawTrianglesHistory = nil
 		i.stale = false
 		return
@@ -345,6 +368,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if i.stale {
+		// TODO: panic here?
 		return
 	}
 
