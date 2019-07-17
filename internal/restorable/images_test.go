@@ -45,9 +45,9 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func pixelsToColor(p *Pixels, index int) color.RGBA {
-	i := index * 4
-	return color.RGBA{p.At(i), p.At(i + 1), p.At(i + 2), p.At(i + 3)}
+func pixelsToColor(p *Pixels, i, j int) color.RGBA {
+	r, g, b, a := p.At(i, j)
+	return color.RGBA{r, g, b, a}
 }
 
 func abs(x int) int {
@@ -80,7 +80,7 @@ func TestRestore(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := clr0
-	got := pixelsToColor(img0.BasePixelsForTesting(), 0)
+	got := pixelsToColor(img0.BasePixelsForTesting(), 0, 0)
 	if !sameColors(got, want, 1) {
 		t.Errorf("got %v, want %v", got, want)
 	}
@@ -97,11 +97,13 @@ func TestRestoreWithoutDraw(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i := 0; i < 1024*1024; i++ {
-		want := color.RGBA{0x00, 0x00, 0x00, 0x00}
-		got := pixelsToColor(img0.BasePixelsForTesting(), i)
-		if !sameColors(got, want, 0) {
-			t.Errorf("got %v, want %v", got, want)
+	for j := 0; j < 1024; j++ {
+		for i := 0; i < 1024; i++ {
+			want := color.RGBA{0x00, 0x00, 0x00, 0x00}
+			got := pixelsToColor(img0.BasePixelsForTesting(), i, j)
+			if !sameColors(got, want, 0) {
+				t.Errorf("got %v, want %v", got, want)
+			}
 		}
 	}
 }
@@ -139,7 +141,7 @@ func TestRestoreChain(t *testing.T) {
 	}
 	want := clr
 	for i, img := range imgs {
-		got := pixelsToColor(img.BasePixelsForTesting(), 0)
+		got := pixelsToColor(img.BasePixelsForTesting(), 0, 0)
 		if !sameColors(got, want, 1) {
 			t.Errorf("%d: got %v, want %v", i, got, want)
 		}
@@ -186,7 +188,7 @@ func TestRestoreChain2(t *testing.T) {
 		if i == 8 || i == 9 {
 			want = clr7
 		}
-		got := pixelsToColor(img.BasePixelsForTesting(), 0)
+		got := pixelsToColor(img.BasePixelsForTesting(), 0, 0)
 		if !sameColors(got, want, 1) {
 			t.Errorf("%d: got %v, want %v", i, got, want)
 		}
@@ -228,22 +230,22 @@ func TestRestoreOverrideSource(t *testing.T) {
 		{
 			"0",
 			clr1,
-			pixelsToColor(img0.BasePixelsForTesting(), 0),
+			pixelsToColor(img0.BasePixelsForTesting(), 0, 0),
 		},
 		{
 			"1",
 			clr1,
-			pixelsToColor(img1.BasePixelsForTesting(), 0),
+			pixelsToColor(img1.BasePixelsForTesting(), 0, 0),
 		},
 		{
 			"2",
 			clr0,
-			pixelsToColor(img2.BasePixelsForTesting(), 0),
+			pixelsToColor(img2.BasePixelsForTesting(), 0, 0),
 		},
 		{
 			"3",
 			clr0,
-			pixelsToColor(img3.BasePixelsForTesting(), 0),
+			pixelsToColor(img3.BasePixelsForTesting(), 0, 0),
 		},
 	}
 	for _, c := range testCases {
@@ -365,7 +367,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 			if c.out[i] == '*' {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
-			got := pixelsToColor(c.image.BasePixelsForTesting(), i)
+			got := pixelsToColor(c.image.BasePixelsForTesting(), i, 0)
 			if !sameColors(got, want, 1) {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
 			}
@@ -426,7 +428,7 @@ func TestRestoreRecursive(t *testing.T) {
 			if c.out[i] == '*' {
 				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
 			}
-			got := pixelsToColor(c.image.BasePixelsForTesting(), i)
+			got := pixelsToColor(c.image.BasePixelsForTesting(), i, 0)
 			if !sameColors(got, want, 1) {
 				t.Errorf("%s[%d]: got %v, want %v", c.name, i, got, want)
 			}
@@ -543,55 +545,66 @@ func TestClear(t *testing.T) {
 	img.ReplacePixels(make([]byte, 4*4*4), 1, 1, 2, 2)
 
 	cases := []struct {
-		Index int
-		Want  color.RGBA
+		i    int
+		j    int
+		want color.RGBA
 	}{
 		{
-			Index: 0,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    0,
+			j:    0,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 3,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    3,
+			j:    0,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 4,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    0,
+			j:    1,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 5,
-			Want:  color.RGBA{0, 0, 0, 0},
+			i:    1,
+			j:    1,
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
-			Index: 7,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    3,
+			j:    1,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 8,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    0,
+			j:    2,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 10,
-			Want:  color.RGBA{0, 0, 0, 0},
+			i:    2,
+			j:    2,
+			want: color.RGBA{0, 0, 0, 0},
 		},
 		{
-			Index: 11,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    3,
+			j:    2,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 12,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    0,
+			j:    3,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 		{
-			Index: 15,
-			Want:  color.RGBA{0xff, 0xff, 0xff, 0xff},
+			i:    3,
+			j:    3,
+			want: color.RGBA{0xff, 0xff, 0xff, 0xff},
 		},
 	}
 	for _, c := range cases {
-		got := pixelsToColor(img.BasePixelsForTesting(), c.Index)
-		want := c.Want
+		got := pixelsToColor(img.BasePixelsForTesting(), c.i, c.j)
+		want := c.want
 		if got != want {
-			t.Errorf("base pixel [%d]: got %v, want %v", c.Index, got, want)
+			t.Errorf("base pixel (%d, %d): got %v, want %v", c.i, c.j, got, want)
 		}
 	}
 }
@@ -613,17 +626,20 @@ func TestReplacePixelsOnly(t *testing.T) {
 	img0.ReplacePixels([]byte{5, 6, 7, 8}, 0, 0, 1, 1)
 
 	// BasePixelsForTesting is available without GPU accessing.
-	for i := 0; i < w*h; i++ {
-		var want color.RGBA
-		switch {
-		case i == 0:
-			want = color.RGBA{5, 6, 7, 8}
-		case i%5 == 0:
-			want = color.RGBA{1, 2, 3, 4}
-		}
-		got := pixelsToColor(img0.BasePixelsForTesting(), i)
-		if !sameColors(got, want, 0) {
-			t.Errorf("got %v, want %v", got, want)
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			idx := j*w + i
+			var want color.RGBA
+			switch {
+			case idx == 0:
+				want = color.RGBA{5, 6, 7, 8}
+			case idx%5 == 0:
+				want = color.RGBA{1, 2, 3, 4}
+			}
+			got := pixelsToColor(img0.BasePixelsForTesting(), i, j)
+			if !sameColors(got, want, 0) {
+				t.Errorf("got %v, want %v", got, want)
+			}
 		}
 	}
 
@@ -632,7 +648,7 @@ func TestReplacePixelsOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := color.RGBA{1, 2, 3, 4}
-	got := pixelsToColor(img1.BasePixelsForTesting(), 0)
+	got := pixelsToColor(img1.BasePixelsForTesting(), 0, 0)
 	if !sameColors(got, want, 0) {
 		t.Errorf("got %v, want %v", got, want)
 	}

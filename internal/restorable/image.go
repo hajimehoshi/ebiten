@@ -28,7 +28,8 @@ import (
 type Pixels struct {
 	pixels []byte
 
-	length int
+	width  int
+	height int
 
 	// color is used only when pixels == nil
 	color color.RGBA
@@ -36,30 +37,23 @@ type Pixels struct {
 
 func (p *Pixels) CopyFrom(pix []byte, from int) {
 	if p.pixels == nil {
-		p.pixels = make([]byte, p.length)
+		p.pixels = make([]byte, 4*p.width*p.height)
 	}
 	copy(p.pixels[from:from+len(pix)], pix)
 }
 
-func (p *Pixels) At(i int) byte {
-	if i < 0 || p.length <= i {
-		panic(fmt.Sprintf("restorable: index out of range: %d for length: %d", i, p.length))
+func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
+	if i < 0 || p.width <= i {
+		panic(fmt.Sprintf("restorable: index out of range: %d for the width: %d", i, p.width))
+	}
+	if j < 0 || p.height <= j {
+		panic(fmt.Sprintf("restorable: index out of range: %d for the height: %d", i, p.height))
 	}
 	if p.pixels != nil {
-		return p.pixels[i]
+		idx := 4 * (j*p.width + i)
+		return p.pixels[idx], p.pixels[idx+1], p.pixels[idx+2], p.pixels[idx+3]
 	}
-	switch i % 4 {
-	case 0:
-		return p.color.R
-	case 1:
-		return p.color.G
-	case 2:
-		return p.color.B
-	case 3:
-		return p.color.A
-	default:
-		panic("not reached")
-	}
+	return p.color.R, p.color.G, p.color.B, p.color.A
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -165,7 +159,8 @@ func (i *Image) Extend(width, height int) *Image {
 	// Copy basePixels.
 	newImg.basePixels = &Pixels{
 		pixels: make([]byte, 4*width*height),
-		length: 4 * width * height,
+		width:  width,
+		height: height,
 	}
 	pix := i.basePixels.pixels
 	idx := 0
@@ -258,7 +253,8 @@ func (i *Image) fill(r, g, b, a byte) {
 	w, h := i.Size()
 	i.basePixels = &Pixels{
 		color:  color.RGBA{r, g, b, a},
-		length: 4 * w * h,
+		width:  w,
+		height: h,
 	}
 	i.drawTrianglesHistory = nil
 	i.stale = false
@@ -349,7 +345,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	if x == 0 && y == 0 && width == w && height == h {
 		if i.basePixels == nil {
 			i.basePixels = &Pixels{
-				length: 4 * w * h,
+				width:  w,
+				height: h,
 			}
 		}
 		i.basePixels.CopyFrom(pixels, 0)
@@ -378,7 +375,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	idx := 4 * (y*w + x)
 	if i.basePixels == nil {
 		i.basePixels = &Pixels{
-			length: 4 * w * h,
+			width:  w,
+			height: h,
 		}
 	}
 	for j := 0; j < height; j++ {
@@ -455,8 +453,7 @@ func (i *Image) At(x, y int) (byte, byte, byte, byte) {
 		return 0, 0, 0, 0
 	}
 
-	idx := 4*x + 4*y*w
-	return i.basePixels.At(idx), i.basePixels.At(idx + 1), i.basePixels.At(idx + 2), i.basePixels.At(idx + 3)
+	return i.basePixels.At(x, y)
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.
@@ -471,10 +468,12 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() {
+	w, h := i.Size()
 	pix := i.image.Pixels()
 	i.basePixels = &Pixels{
 		pixels: pix,
-		length: len(pix),
+		width:  w,
+		height: h,
 	}
 	i.drawTrianglesHistory = nil
 	i.stale = false
@@ -578,7 +577,8 @@ func (i *Image) restore() error {
 		pix := gimg.Pixels()
 		i.basePixels = &Pixels{
 			pixels: pix,
-			length: len(pix),
+			width:  w,
+			height: h,
 		}
 	}
 
