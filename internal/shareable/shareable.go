@@ -492,6 +492,13 @@ func (i *Image) MakeVolatile() {
 	i.neverShared = true
 }
 
+func (i *Image) Dump(path string) error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	return i.backend.restorable.Dump(path)
+}
+
 func NewScreenFramebufferImage(width, height int) *Image {
 	backendsM.Lock()
 	defer backendsM.Unlock()

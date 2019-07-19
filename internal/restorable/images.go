@@ -15,6 +15,8 @@
 package restorable
 
 import (
+	"path/filepath"
+
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
 
@@ -99,7 +101,7 @@ func DumpImages(dir string) error {
 		if img.screen {
 			continue
 		}
-		if err := img.image.DumpAt(dir); err != nil {
+		if err := img.image.Dump(filepath.Join(dir, "*.png")); err != nil {
 			return err
 		}
 	}

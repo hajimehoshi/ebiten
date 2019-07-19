@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"image"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -177,12 +177,13 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// DumpAt dumps the image to the specified directory.
-// The filename is determined by the image's ID.
+// Dump dumps the image to the specified path.
+// In the path, '*' is replaced with the image's ID.
 //
 // This is for testing usage.
-func (i *Image) DumpAt(dir string) error {
-	f, err := os.Create(filepath.Join(dir, fmt.Sprintf("%d.png", i.id)))
+func (i *Image) Dump(path string) error {
+	path = strings.ReplaceAll(path, "*", fmt.Sprintf("%d", i.id))
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}

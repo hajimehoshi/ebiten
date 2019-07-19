@@ -583,3 +583,7 @@ func (i *Image) isInvalidated() bool {
 	graphicscommand.FlushCommands()
 	return i.image.IsInvalidated()
 }
+
+func (i *Image) Dump(path string) error {
+	return i.image.Dump(path)
+}

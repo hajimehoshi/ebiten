@@ -20,11 +20,9 @@ package ebiten
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/internal/png"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
@@ -49,30 +47,12 @@ func availableFilename(prefix, postfix string) (string, error) {
 }
 
 func takeScreenshot(screen *Image) error {
-	dump := func() (string, error) {
-		f, err := ioutil.TempFile("", "")
-		if err != nil {
-			return "", err
-		}
-		defer f.Close()
-
-		if err := png.Encode(f, screen); err != nil {
-			return "", err
-		}
-		return f.Name(), nil
-	}
-
-	name, err := dump()
-	if err != nil {
-		return err
-	}
-
 	newname, err := availableFilename("screenshot_", ".png")
 	if err != nil {
 		return err
 	}
 
-	if err := os.Rename(name, newname); err != nil {
+	if err := screen.mipmap.orig.Dump(newname); err != nil {
 		return err
 	}
 
