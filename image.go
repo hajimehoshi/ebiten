@@ -78,6 +78,18 @@ func (i *Image) Clear() error {
 	return nil
 }
 
+var emptyImage *Image
+
+func init() {
+	const w, h = 16, 16
+	emptyImage, _ = NewImage(w, h, FilterDefault)
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	emptyImage.ReplacePixels(pix)
+}
+
 // Fill fills the image with a solid color.
 //
 // When the image is disposed, Fill does nothing.
@@ -96,10 +108,26 @@ func (i *Image) Fill(clr color.Color) error {
 
 	i.resolvePendingPixels(false)
 
-	r16, g16, b16, a16 := clr.RGBA()
-	r, g, b, a := uint8(r16>>8), uint8(g16>>8), uint8(b16>>8), uint8(a16>>8)
-	i.mipmap.original().Fill(r, g, b, a)
-	i.disposeMipmaps()
+	r, g, b, a := clr.RGBA()
+	rf, gf, bf, af := 0.0, 0.0, 0.0, 0.0
+	if a > 0 {
+		rf = float64(r) / float64(a)
+		gf = float64(g) / float64(a)
+		bf = float64(b) / float64(a)
+		af = float64(a) / 0xffff
+	}
+
+	sw, sh := emptyImage.Size()
+	dw, dh := i.Size()
+
+	op := &DrawImageOptions{}
+	op.GeoM.Scale(float64(dw)/float64(sw), float64(dh)/float64(sh))
+	op.ColorM.Scale(rf, gf, bf, af)
+	// TODO: Use the previous composite mode if possible.
+	if af < 1.0 {
+		op.CompositeMode = CompositeModeCopy
+	}
+	i.DrawImage(emptyImage, op)
 	return nil
 }
 

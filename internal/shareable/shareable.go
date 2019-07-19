@@ -299,18 +299,17 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 }
 
-// Fill fills the image with a color. This affects not only the (0, 0)-(width, height) region but also the whole
-// framebuffer region.
-func (i *Image) Fill(r, g, b, a uint8) {
+// ClearFramebuffer clears the image with a color. This affects not only the (0, 0)-(width, height) region but also
+// the whole framebuffer region.
+func (i *Image) ClearFramebuffer() {
 	backendsM.Lock()
+	defer backendsM.Unlock()
 	if i.disposed {
 		panic("shareable: the drawing target image must not be disposed (Fill)")
 	}
 	i.ensureNotShared()
 
-	i.backend.restorable.Fill(r, g, b, a)
-
-	backendsM.Unlock()
+	i.backend.restorable.Fill(0, 0, 0, 0)
 }
 
 func (i *Image) ReplacePixels(p []byte) {

@@ -111,7 +111,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	}
 
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
-	c.screen.Clear()
+	c.screen.mipmap.orig.ClearFramebuffer()
 
 	op := &DrawImageOptions{}
 
