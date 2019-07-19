@@ -309,7 +309,7 @@ func (i *Image) ClearFramebuffer() {
 	}
 	i.ensureNotShared()
 
-	i.backend.restorable.Fill(0, 0, 0, 0)
+	i.backend.restorable.Clear()
 }
 
 func (i *Image) ReplacePixels(p []byte) {

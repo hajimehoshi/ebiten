@@ -74,7 +74,7 @@ func TestRestore(t *testing.T) {
 	defer img0.Dispose()
 
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	img0.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
+	img0.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, 1, 1)
 	ResolveStaleImages()
 	if err := RestoreIfNeeded(); err != nil {
 		t.Fatal(err)
@@ -129,7 +129,7 @@ func TestRestoreChain(t *testing.T) {
 		}
 	}()
 	clr := color.RGBA{0x00, 0x00, 0x00, 0xff}
-	imgs[0].Fill(clr.R, clr.G, clr.B, clr.A)
+	imgs[0].ReplacePixels([]byte{clr.R, clr.G, clr.B, clr.A}, 0, 0, 1, 1)
 	for i := 0; i < num-1; i++ {
 		vs := quadVertices(imgs[i], 1, 1, 0, 0)
 		is := graphics.QuadIndices()
@@ -166,11 +166,11 @@ func TestRestoreChain2(t *testing.T) {
 	}()
 
 	clr0 := color.RGBA{0xff, 0x00, 0x00, 0xff}
-	imgs[0].Fill(clr0.R, clr0.G, clr0.B, clr0.A)
+	imgs[0].ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
 	clr7 := color.RGBA{0x00, 0xff, 0x00, 0xff}
-	imgs[7].Fill(clr7.R, clr7.G, clr7.B, clr7.A)
+	imgs[7].ReplacePixels([]byte{clr7.R, clr7.G, clr7.B, clr7.A}, 0, 0, w, h)
 	clr8 := color.RGBA{0x00, 0x00, 0xff, 0xff}
-	imgs[8].Fill(clr8.R, clr8.G, clr8.B, clr8.A)
+	imgs[8].ReplacePixels([]byte{clr8.R, clr8.G, clr8.B, clr8.A}, 0, 0, w, h)
 
 	is := graphics.QuadIndices()
 	imgs[8].DrawTriangles(imgs[7], quadVertices(imgs[7], w, h, 0, 0), is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
@@ -212,11 +212,11 @@ func TestRestoreOverrideSource(t *testing.T) {
 	}()
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
 	clr1 := color.RGBA{0x00, 0x00, 0x01, 0xff}
-	img1.Fill(clr0.R, clr0.G, clr0.B, clr0.A)
+	img1.ReplacePixels([]byte{clr0.R, clr0.G, clr0.B, clr0.A}, 0, 0, w, h)
 	is := graphics.QuadIndices()
 	img2.DrawTriangles(img1, quadVertices(img1, w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 	img3.DrawTriangles(img2, quadVertices(img2, w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
-	img0.Fill(clr1.R, clr1.G, clr1.B, clr1.A)
+	img0.ReplacePixels([]byte{clr1.R, clr1.G, clr1.B, clr1.A}, 0, 0, w, h)
 	img1.DrawTriangles(img0, quadVertices(img0, w, h, 0, 0), is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 	ResolveStaleImages()
 	if err := RestoreIfNeeded(); err != nil {
@@ -666,7 +666,11 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
 
 	// Second, draw src to dst. If the implementation is correct, dst becomes stale.
-	src.Fill(0xff, 0xff, 0xff, 0xff)
+	pix := make([]byte, 4*w*h)
+	for i := range pix {
+		pix[i] = 0xff
+	}
+	src.ReplacePixels(pix, 0, 0, w, h)
 	vs := quadVertices(src, 1, 1, 0, 0)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
@@ -678,26 +682,6 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 	if got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
-}
-
-func TestAllowReplacePixelsAfterFill(t *testing.T) {
-	const w, h = 16, 16
-	dst := NewImage(w, h)
-	dst.Fill(1, 1, 1, 1)
-	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
-	// ReplacePixels for a whole image doesn't panic.
-}
-
-func TestDisallowReplacePixelsForPartAfterFill(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("ReplacePixels for a part after Fill must panic but not")
-		}
-	}()
-	const w, h = 16, 16
-	dst := NewImage(w, h)
-	dst.Fill(1, 1, 1, 1)
-	dst.ReplacePixels(make([]byte, 4), 0, 0, 1, 1)
 }
 
 func TestAllowReplacePixelsAfterDrawTriangles(t *testing.T) {
@@ -763,19 +747,6 @@ func TestExtend(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestFillAndExtend(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Extend after Fill must panic but not")
-		}
-	}()
-
-	const w, h = 16, 16
-	orig := NewImage(w, h)
-	orig.Fill(0x01, 0x02, 0x03, 0x04)
-	orig.Extend(w*2, h*2)
 }
 
 func TestClearPixels(t *testing.T) {

@@ -17,7 +17,6 @@ package restorable
 import (
 	"errors"
 	"fmt"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -27,14 +26,11 @@ import (
 
 type Pixels struct {
 	rectToPixels *rectToPixels
-
-	// color is used only when rectToPixels is nil.
-	color color.RGBA
 }
 
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	if p.rectToPixels == nil {
-		fillImage(img, p.color.R, p.color.G, p.color.B, p.color.A)
+		clearImage(img)
 		return
 	}
 
@@ -46,7 +42,6 @@ func (p *Pixels) AddOrReplace(pix []byte, x, y, width, height int) {
 		p.rectToPixels = &rectToPixels{}
 	}
 	p.rectToPixels.addOrReplace(pix, x, y, width, height)
-	p.color = color.RGBA{}
 }
 
 func (p *Pixels) Remove(x, y, width, height int) {
@@ -63,9 +58,8 @@ func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
 		if r, g, b, a, ok := p.rectToPixels.at(i, j); ok {
 			return r, g, b, a
 		}
-		return 0, 0, 0, 0
 	}
-	return p.color.R, p.color.G, p.color.B, p.color.A
+	return 0, 0, 0, 0
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -90,6 +84,7 @@ type Image struct {
 	drawTrianglesHistory []*drawTrianglesHistoryItem
 
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.
+	// TODO: Instead of this boolean value, can we represent the stale state with basePixels's state?
 	stale bool
 
 	// volatile indicates whether the image is cleared whenever a frame starts.
@@ -115,7 +110,7 @@ func init() {
 		pix[i] = 0xff
 	}
 
-	// As emptyImage is the source at fillImage, initialize this with ReplacePixels, not fillImage.
+	// As emptyImage is the source at clearImage, initialize this with ReplacePixels, not clearImage.
 	// This operation is also important when restoring emptyImage.
 	emptyImage.ReplacePixels(pix, 0, 0, w, h)
 	theImages.add(emptyImage)
@@ -158,10 +153,6 @@ func (i *Image) Extend(width, height int) *Image {
 		panic("restorable: Extend after DrawTriangles is forbidden")
 	}
 
-	if i.basePixels != nil && i.basePixels.color.A > 0 {
-		panic("restorable: Extend after Fill is forbidden")
-	}
-
 	newImg := NewImage(width, height)
 
 	i.basePixels.Apply(newImg.image)
@@ -192,33 +183,22 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func (i *Image) Fill(r, g, b, a byte) {
+func (i *Image) Clear() {
 	theImages.makeStaleIfDependingOn(i)
-	i.fill(r, g, b, a)
+	i.clear()
 }
 
 // clearForInitialization clears the underlying image for initialization.
 func (i *Image) clearForInitialization() {
 	// As this is for initialization, drawing history doesn't have to be adjusted.
-	i.fill(0, 0, 0, 0)
+	i.clear()
 }
 
-// fillImage fills a graphicscommand.Image with the specified color.
+// clearImage clears a graphicscommand.Image.
 // This does nothing to do with a restorable.Image's rendering state.
-func fillImage(img *graphicscommand.Image, r, g, b, a byte) {
+func clearImage(img *graphicscommand.Image) {
 	if img == emptyImage.image {
-		panic("restorable: fillImage cannot be called on emptyImage")
-	}
-
-	rf := float32(0)
-	gf := float32(0)
-	bf := float32(0)
-	af := float32(0)
-	if a > 0 {
-		rf = float32(r) / float32(a)
-		gf = float32(g) / float32(a)
-		bf = float32(b) / float32(a)
-		af = float32(a) / 0xff
+		panic("restorable: clearImage cannot be called on emptyImage")
 	}
 
 	// There are not 'drawTrianglesHistoryItem's for this image and emptyImage.
@@ -231,27 +211,21 @@ func fillImage(img *graphicscommand.Image, r, g, b, a byte) {
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
 		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
-		rf, gf, bf, af)
+		0, 0, 0, 0)
 	is := graphics.QuadIndices()
-	c := driver.CompositeModeCopy
-	if a == 0 {
-		// The first DrawTriangles must be clear mode for initialization.
-		// TODO: Can the graphicscommand package hide this knowledge?
-		c = driver.CompositeModeClear
-	}
-	img.DrawTriangles(emptyImage.image, vs, is, nil, c, driver.FilterNearest, driver.AddressClampToZero)
+	// The first DrawTriangles must be clear mode for initialization.
+	// TODO: Can the graphicscommand package hide this knowledge?
+	img.DrawTriangles(emptyImage.image, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
 }
 
-func (i *Image) fill(r, g, b, a byte) {
+func (i *Image) clear() {
 	if i.priority {
 		panic("restorable: clear cannot be called on a priority image")
 	}
 
-	fillImage(i.image, r, g, b, a)
+	clearImage(i.image)
 
-	i.basePixels = &Pixels{
-		color: color.RGBA{r, g, b, a},
-	}
+	i.basePixels = &Pixels{}
 	i.drawTrianglesHistory = nil
 	i.stale = false
 }
@@ -359,10 +333,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		panic("restorable: ReplacePixels for a part after DrawTriangles is forbidden")
-	}
-
-	if i.basePixels != nil && i.basePixels.color.A > 0 {
-		panic("restorable: ReplacePixels for a part after Fill is forbidden")
 	}
 
 	if i.stale {
@@ -539,7 +509,7 @@ func (i *Image) restore() error {
 
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
-	fillImage(gimg, 0, 0, 0, 0)
+	clearImage(gimg)
 	if i.basePixels != nil {
 		i.basePixels.Apply(gimg)
 	}
