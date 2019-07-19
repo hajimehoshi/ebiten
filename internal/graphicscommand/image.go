@@ -177,7 +177,8 @@ func (i *Image) IsInvalidated() bool {
 	return i.image.IsInvalidated()
 }
 
-// DumpImages dumps the image to the specified directory.
+// DumpAt dumps the image to the specified directory.
+// The filename is determined by the image's ID.
 //
 // This is for testing usage.
 func (i *Image) DumpAt(dir string) error {
