@@ -16,7 +16,6 @@ package shareable
 
 import (
 	"fmt"
-	"image"
 	"runtime"
 	"sync"
 
@@ -528,10 +527,10 @@ func RestoreIfNeeded() error {
 	return restorable.RestoreIfNeeded()
 }
 
-func Images() []image.Image {
+func DumpImages(dir string) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return restorable.Images()
+	return restorable.DumpImages(dir)
 }
 
 func Error() error {

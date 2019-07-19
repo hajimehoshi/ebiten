@@ -15,9 +15,15 @@
 package graphicscommand
 
 import (
+	"fmt"
+	"image"
+	"os"
+	"path/filepath"
+
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/png"
 )
 
 type lastCommand int
@@ -169,4 +175,24 @@ func (i *Image) IsInvalidated() bool {
 		return false
 	}
 	return i.image.IsInvalidated()
+}
+
+// DumpImages dumps the image to the specified directory.
+//
+// This is for testing usage.
+func (i *Image) DumpAt(dir string) error {
+	f, err := os.Create(filepath.Join(dir, fmt.Sprintf("%d.png", i.id)))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if err := png.Encode(f, &image.RGBA{
+		Pix:    i.Pixels(),
+		Stride: 4 * i.width,
+		Rect:   image.Rect(0, 0, i.width, i.height),
+	}); err != nil {
+		return err
+	}
+	return nil
 }

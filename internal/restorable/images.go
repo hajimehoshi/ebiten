@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"image"
-
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
 
@@ -90,11 +88,10 @@ func RestoreIfNeeded() error {
 	return theImages.restore()
 }
 
-// Images returns all the current images.
+// DumpImages dumps all the current images to the specified directory.
 //
 // This is for testing usage.
-func Images() []image.Image {
-	var imgs []image.Image
+func DumpImages(dir string) error {
 	for img := range theImages.images {
 		if img.volatile {
 			continue
@@ -102,25 +99,11 @@ func Images() []image.Image {
 		if img.screen {
 			continue
 		}
-
-		w, h := img.Size()
-		pix := make([]byte, 4*w*h)
-		for j := 0; j < h; j++ {
-			for i := 0; i < w; i++ {
-				r, g, b, a := img.At(i, j)
-				pix[4*(i+j*w)] = r
-				pix[4*(i+j*w)+1] = g
-				pix[4*(i+j*w)+2] = b
-				pix[4*(i+j*w)+3] = a
-			}
+		if err := img.image.DumpAt(dir); err != nil {
+			return err
 		}
-		imgs = append(imgs, &image.RGBA{
-			Pix:    pix,
-			Stride: 4 * w,
-			Rect:   image.Rect(0, 0, w, h),
-		})
 	}
-	return imgs
+	return nil
 }
 
 // add adds img to the images.
