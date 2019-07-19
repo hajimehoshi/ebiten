@@ -37,7 +37,17 @@ type Image struct {
 	internalWidth  int
 	internalHeight int
 	screen         bool
-	lastCommand    lastCommand
+	id             int
+
+	lastCommand lastCommand
+}
+
+var nextID = 1
+
+func genNextID() int {
+	id := nextID
+	nextID++
+	return id
 }
 
 // NewImage returns a new image.
@@ -49,6 +59,7 @@ func NewImage(width, height int) *Image {
 		height:         height,
 		internalWidth:  graphics.InternalImageSize(width),
 		internalHeight: graphics.InternalImageSize(height),
+		id:             genNextID(),
 	}
 	c := &newImageCommand{
 		result: i,
@@ -66,6 +77,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		internalWidth:  graphics.InternalImageSize(width),
 		internalHeight: graphics.InternalImageSize(height),
 		screen:         true,
+		id:             genNextID(),
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,

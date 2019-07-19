@@ -21,7 +21,8 @@ import (
 type CompositeMode int
 
 const (
-	CompositeModeSourceOver CompositeMode = iota // This value must be 0 (= initial value)
+	CompositeModeUnknown    CompositeMode = iota - 1
+	CompositeModeSourceOver               // This value must be 0 (= initial value)
 	CompositeModeClear
 	CompositeModeCopy
 	CompositeModeDestination
@@ -34,7 +35,6 @@ const (
 	CompositeModeDestinationAtop
 	CompositeModeXor
 	CompositeModeLighter
-	CompositeModeUnknown
 
 	CompositeModeMax = CompositeModeLighter
 )

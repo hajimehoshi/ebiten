@@ -265,7 +265,61 @@ type drawTrianglesCommand struct {
 }
 
 func (c *drawTrianglesCommand) String() string {
-	return fmt.Sprintf("draw-triangles: dst: %p <- src: %p, colorm: %v, mode %d, filter: %d, address: %d", c.dst, c.src, c.color, c.mode, c.filter, c.address)
+	mode := ""
+	switch c.mode {
+	case driver.CompositeModeSourceOver:
+		mode = "source-over"
+	case driver.CompositeModeClear:
+		mode = "clear"
+	case driver.CompositeModeCopy:
+		mode = "copy"
+	case driver.CompositeModeDestination:
+		mode = "destination"
+	case driver.CompositeModeDestinationOver:
+		mode = "destination-over"
+	case driver.CompositeModeSourceIn:
+		mode = "source-in"
+	case driver.CompositeModeDestinationIn:
+		mode = "destination-in"
+	case driver.CompositeModeSourceOut:
+		mode = "source-out"
+	case driver.CompositeModeDestinationOut:
+		mode = "destination-out"
+	case driver.CompositeModeSourceAtop:
+		mode = "source-atop"
+	case driver.CompositeModeDestinationAtop:
+		mode = "destination-atop"
+	case driver.CompositeModeXor:
+		mode = "xor"
+	case driver.CompositeModeLighter:
+		mode = "lighter"
+	default:
+		panic(fmt.Sprintf("graphicscommand: invalid composite mode: %d", c.mode))
+	}
+
+	filter := ""
+	switch c.filter {
+	case driver.FilterNearest:
+		filter = "nearest"
+	case driver.FilterLinear:
+		filter = "linear"
+	case driver.FilterScreen:
+		filter = "screen"
+	default:
+		panic(fmt.Sprintf("graphicscommand: invalid filter: %d", c.filter))
+	}
+
+	address := ""
+	switch c.address {
+	case driver.AddressClampToZero:
+		address = "clamp_to_zero"
+	case driver.AddressRepeat:
+		address = "repeat"
+	default:
+		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
+	}
+
+	return fmt.Sprintf("draw-triangles: dst: %d <- src: %d, colorm: %v, mode %s, filter: %s, address: %s", c.dst.id, c.src.id, c.color, mode, filter, address)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -334,7 +388,7 @@ type replacePixelsCommand struct {
 }
 
 func (c *replacePixelsCommand) String() string {
-	return fmt.Sprintf("replace-pixels: dst: %p, x: %d, y: %d, width: %d, height: %d", c.dst, c.x, c.y, c.width, c.height)
+	return fmt.Sprintf("replace-pixels: dst: %d, x: %d, y: %d, width: %d, height: %d", c.dst.id, c.x, c.y, c.width, c.height)
 }
 
 // Exec executes the replacePixelsCommand.
@@ -377,7 +431,7 @@ func (c *pixelsCommand) Exec(indexOffset int) error {
 }
 
 func (c *pixelsCommand) String() string {
-	return fmt.Sprintf("pixels: img: %p", c.img)
+	return fmt.Sprintf("pixels: image: %d", c.img.id)
 }
 
 func (c *pixelsCommand) NumVertices() int {
@@ -404,7 +458,7 @@ type disposeCommand struct {
 }
 
 func (c *disposeCommand) String() string {
-	return fmt.Sprintf("dispose: target: %p", c.target)
+	return fmt.Sprintf("dispose: target: %d", c.target.id)
 }
 
 // Exec executes the disposeCommand.
@@ -439,7 +493,7 @@ type newImageCommand struct {
 }
 
 func (c *newImageCommand) String() string {
-	return fmt.Sprintf("new-image: result: %p, width: %d, height: %d", c.result, c.width, c.height)
+	return fmt.Sprintf("new-image: result: %d, width: %d, height: %d", c.result.id, c.width, c.height)
 }
 
 // Exec executes a newImageCommand.
@@ -478,7 +532,7 @@ type newScreenFramebufferImageCommand struct {
 }
 
 func (c *newScreenFramebufferImageCommand) String() string {
-	return fmt.Sprintf("new-screen-framebuffer-image: result: %p, width: %d, height: %d", c.result, c.width, c.height)
+	return fmt.Sprintf("new-screen-framebuffer-image: result: %d, width: %d, height: %d", c.result.id, c.width, c.height)
 }
 
 // Exec executes a newScreenFramebufferImageCommand.

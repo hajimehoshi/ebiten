@@ -1238,23 +1238,25 @@ func TestImageLinearFilterGlitch(t *testing.T) {
 	}
 	src.ReplacePixels(pix)
 
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(scale, 1)
-	op.Filter = FilterLinear
-	dst.DrawImage(src, op)
+	for _, f := range []Filter{FilterNearest, FilterLinear} {
+		op := &DrawImageOptions{}
+		op.GeoM.Scale(scale, 1)
+		op.Filter = f
+		dst.DrawImage(src, op)
 
-	for j := 1; j < h-1; j++ {
-		offset := int(math.Ceil(scale))
-		for i := offset; i < int(math.Floor(w*scale))-offset; i++ {
-			got := dst.At(i, j).(color.RGBA)
-			var want color.RGBA
-			if j < 3 {
-				want = color.RGBA{0xff, 0xff, 0xff, 0xff}
-			} else {
-				want = color.RGBA{0, 0, 0, 0xff}
-			}
-			if got != want {
-				t.Errorf("src.At(%d, %d): got: %v, want: %v", i, j, got, want)
+		for j := 1; j < h-1; j++ {
+			offset := int(math.Ceil(scale))
+			for i := offset; i < int(math.Floor(w*scale))-offset; i++ {
+				got := dst.At(i, j).(color.RGBA)
+				var want color.RGBA
+				if j < 3 {
+					want = color.RGBA{0xff, 0xff, 0xff, 0xff}
+				} else {
+					want = color.RGBA{0, 0, 0, 0xff}
+				}
+				if got != want {
+					t.Errorf("src.At(%d, %d): filter: %d, got: %v, want: %v", i, j, f, got, want)
+				}
 			}
 		}
 	}
