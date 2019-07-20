@@ -319,7 +319,16 @@ func (c *drawTrianglesCommand) String() string {
 		panic(fmt.Sprintf("graphicscommand: invalid address: %d", c.address))
 	}
 
-	return fmt.Sprintf("draw-triangles: dst: %d <- src: %d, colorm: %v, mode %s, filter: %s, address: %s", c.dst.id, c.src.id, c.color, mode, filter, address)
+	dst := fmt.Sprintf("%d", c.dst.id)
+	if c.dst.screen {
+		dst += " (screen)"
+	}
+	src := fmt.Sprintf("%d", c.src.id)
+	if c.src.screen {
+		src += " (screen)"
+	}
+
+	return fmt.Sprintf("draw-triangles: dst: %s <- src: %s, colorm: %v, mode %s, filter: %s, address: %s", dst, src, c.color, mode, filter, address)
 }
 
 // Exec executes the drawTrianglesCommand.

@@ -95,9 +95,6 @@ func RestoreIfNeeded() error {
 // This is for testing usage.
 func DumpImages(dir string) error {
 	for img := range theImages.images {
-		if img.volatile {
-			continue
-		}
 		if img.screen {
 			continue
 		}
