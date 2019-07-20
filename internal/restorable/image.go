@@ -224,7 +224,14 @@ func (i *Image) clear() {
 	}
 
 	clearImage(i.image)
+	i.ResetRestoringState()
+}
 
+// ResetRestoringState resets all the information for restoring.
+// ResetRestoringState doen't affect the underlying image.
+//
+// After ResetRestoringState, the image is assumed to be cleared.
+func (i *Image) ResetRestoringState() {
 	i.basePixels = &Pixels{}
 	i.drawTrianglesHistory = nil
 	i.stale = false

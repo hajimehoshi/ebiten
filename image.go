@@ -127,6 +127,10 @@ func (i *Image) Fill(clr color.Color) error {
 	if af < 1.0 {
 		op.CompositeMode = CompositeModeCopy
 	}
+	// As Fill will change all the pixels of the image into the same color, all the information for restoring
+	// will be invalidated.
+	// TODO: This is a little hacky. Is there a better way?
+	i.mipmap.resetRestoringState()
 	i.DrawImage(emptyImage, op)
 	return nil
 }

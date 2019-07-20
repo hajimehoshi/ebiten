@@ -112,6 +112,14 @@ func (m *mipmap) disposeMipmaps() {
 	}
 }
 
+func (m *mipmap) clearFramebuffer() {
+	m.orig.ClearFramebuffer()
+}
+
+func (m *mipmap) resetRestoringState() {
+	m.orig.ResetRestoringState()
+}
+
 // mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
 //
 // mipmapLevel returns -1 if det is 0.
