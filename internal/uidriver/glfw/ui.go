@@ -117,6 +117,11 @@ func initialize() error {
 	if err != nil {
 		return err
 	}
+	if w == nil {
+		// This can happen on Windows Remote Desktop (#903).
+		panic("ui: glfw.CreateWindow must not return nil")
+	}
+
 	// TODO: Fix this hack. currentMonitorImpl now requires u.window on POSIX.
 	theUI.window = w
 	theUI.initMonitor = theUI.currentMonitorFromPosition()
