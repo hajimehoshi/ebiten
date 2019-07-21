@@ -28,6 +28,7 @@ type Pixels struct {
 	rectToPixels *rectToPixels
 }
 
+// Apply applies the Pixels state to the given image especially for restoring.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	if p.rectToPixels == nil {
 		clearImage(img)
@@ -77,14 +78,13 @@ type drawTrianglesHistoryItem struct {
 type Image struct {
 	image *graphicscommand.Image
 
-	basePixels *Pixels
+	basePixels Pixels
 
 	// drawTrianglesHistory is a set of draw-image commands.
 	// TODO: This should be merged with the similar command queue in package graphics (#433).
 	drawTrianglesHistory []*drawTrianglesHistoryItem
 
 	// stale indicates whether the image needs to be synced with GPU as soon as possible.
-	// TODO: Instead of this boolean value, can we represent the stale state with basePixels's state?
 	stale bool
 
 	// volatile indicates whether the image is cleared whenever a frame starts.
@@ -125,7 +125,7 @@ func NewImage(width, height int) *Image {
 	i := &Image{
 		image: graphicscommand.NewImage(width, height),
 	}
-	i.clearForInitialization()
+	i.clear()
 	theImages.add(i)
 	return i
 }
@@ -154,7 +154,6 @@ func (i *Image) Extend(width, height int) *Image {
 	}
 
 	newImg := NewImage(width, height)
-
 	i.basePixels.Apply(newImg.image)
 
 	newImg.basePixels = i.basePixels
@@ -178,19 +177,13 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		image:  graphicscommand.NewScreenFramebufferImage(width, height),
 		screen: true,
 	}
-	i.clearForInitialization()
+	i.clear()
 	theImages.add(i)
 	return i
 }
 
 func (i *Image) Clear() {
 	theImages.makeStaleIfDependingOn(i)
-	i.clear()
-}
-
-// clearForInitialization clears the underlying image for initialization.
-func (i *Image) clearForInitialization() {
-	// As this is for initialization, drawing history doesn't have to be adjusted.
 	i.clear()
 }
 
@@ -232,7 +225,7 @@ func (i *Image) clear() {
 //
 // After ResetRestoringState, the image is assumed to be cleared.
 func (i *Image) ResetRestoringState() {
-	i.basePixels = &Pixels{}
+	i.basePixels = Pixels{}
 	i.drawTrianglesHistory = nil
 	i.stale = false
 }
@@ -243,7 +236,7 @@ func (i *Image) IsVolatile() bool {
 
 // BasePixelsForTesting returns the image's basePixels for testing.
 func (i *Image) BasePixelsForTesting() *Pixels {
-	return i.basePixels
+	return &i.basePixels
 }
 
 // Size returns the image's size.
@@ -281,7 +274,7 @@ func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, b
 
 // makeStale makes the image stale.
 func (i *Image) makeStale() {
-	i.basePixels = nil
+	i.basePixels = Pixels{}
 	i.drawTrianglesHistory = nil
 	i.stale = true
 
@@ -322,9 +315,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if x == 0 && y == 0 && width == w && height == h {
-		if i.basePixels == nil {
-			i.basePixels = &Pixels{}
-		}
 		if pixels != nil {
 			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
 		} else {
@@ -347,9 +337,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		return
 	}
 
-	if i.basePixels == nil {
-		i.basePixels = &Pixels{}
-	}
 	if pixels != nil {
 		i.basePixels.AddOrReplace(pixels, x, y, width, height)
 	} else {
@@ -401,7 +388,7 @@ func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, ind
 }
 
 func (i *Image) readPixelsFromGPUIfNeeded() {
-	if i.basePixels == nil || len(i.drawTrianglesHistory) > 0 || i.stale {
+	if len(i.drawTrianglesHistory) > 0 || i.stale {
 		graphicscommand.FlushCommands()
 		i.readPixelsFromGPU()
 		i.drawTrianglesHistory = nil
@@ -420,11 +407,6 @@ func (i *Image) At(x, y int) (byte, byte, byte, byte) {
 
 	i.readPixelsFromGPUIfNeeded()
 
-	// Even after readPixelsFromGPU, basePixels might be nil when OpenGL error happens.
-	if i.basePixels == nil {
-		return 0, 0, 0, 0
-	}
-
 	return i.basePixels.At(x, y)
 }
 
@@ -441,7 +423,7 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() {
 	w, h := i.Size()
-	i.basePixels = &Pixels{}
+	i.basePixels = Pixels{}
 	i.basePixels.AddOrReplace(i.image.Pixels(), 0, 0, w, h)
 	i.drawTrianglesHistory = nil
 	i.stale = false
@@ -499,14 +481,14 @@ func (i *Image) restore() error {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
 		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
-		i.basePixels = nil
+		i.basePixels = Pixels{}
 		i.drawTrianglesHistory = nil
 		i.stale = false
 		return nil
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
-		i.clearForInitialization()
+		i.clear()
 		return nil
 	}
 	if i.stale {
@@ -517,9 +499,7 @@ func (i *Image) restore() error {
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
 	clearImage(gimg)
-	if i.basePixels != nil {
-		i.basePixels.Apply(gimg)
-	}
+	i.basePixels.Apply(gimg)
 
 	for _, c := range i.drawTrianglesHistory {
 		if c.image.hasDependency() {
@@ -529,7 +509,7 @@ func (i *Image) restore() error {
 	}
 
 	if len(i.drawTrianglesHistory) > 0 {
-		i.basePixels = &Pixels{}
+		i.basePixels = Pixels{}
 		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, w, h)
 	}
 
@@ -547,7 +527,7 @@ func (i *Image) Dispose() {
 
 	i.image.Dispose()
 	i.image = nil
-	i.basePixels = nil
+	i.basePixels = Pixels{}
 	i.drawTrianglesHistory = nil
 	i.stale = false
 }
