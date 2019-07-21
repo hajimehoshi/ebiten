@@ -95,10 +95,7 @@ func RestoreIfNeeded() error {
 // This is for testing usage.
 func DumpImages(dir string) error {
 	for img := range theImages.images {
-		if img.screen {
-			continue
-		}
-		if err := img.image.Dump(filepath.Join(dir, "*.png")); err != nil {
+		if err := img.Dump(filepath.Join(dir, "*.png")); err != nil {
 			return err
 		}
 	}
@@ -152,12 +149,6 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 func (i *images) restore() error {
 	if !needsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
-	}
-
-	// Dispose image explicitly
-	for img := range i.images {
-		img.image.Dispose()
-		// img.image can't be set nil here, or Size() panics when restoring.
 	}
 
 	// Let's do topological sort based on dependencies of drawing history.

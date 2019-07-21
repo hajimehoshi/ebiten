@@ -182,6 +182,11 @@ func (i *Image) IsInvalidated() bool {
 //
 // This is for testing usage.
 func (i *Image) Dump(path string) error {
+	// Screen image cannot be dumped.
+	if i.screen {
+		return nil
+	}
+
 	path = strings.ReplaceAll(path, "*", fmt.Sprintf("%d", i.id))
 	f, err := os.Create(path)
 	if err != nil {

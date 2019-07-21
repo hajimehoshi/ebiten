@@ -476,7 +476,11 @@ func (i *Image) hasDependency() bool {
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
 func (i *Image) restore() error {
-	w, h := i.image.Size()
+	w, h := i.Size()
+
+	// Dispose the internal image after getting its size for safety.
+	i.image.Dispose()
+
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
