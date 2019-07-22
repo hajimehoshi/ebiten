@@ -36,11 +36,11 @@ import "C"
 //
 // Reference: https://developer.apple.com/documentation/appkit/nswindow.
 type Window struct {
-	window unsafe.Pointer
+	window uintptr
 }
 
 // NewWindow returns a Window that wraps an existing NSWindow * pointer.
-func NewWindow(window unsafe.Pointer) Window {
+func NewWindow(window uintptr) Window {
 	return Window{window}
 }
 
@@ -49,7 +49,7 @@ func NewWindow(window unsafe.Pointer) Window {
 //
 // Reference: https://developer.apple.com/documentation/appkit/nswindow/1419160-contentview.
 func (w Window) ContentView() View {
-	return View{C.Window_ContentView(w.window)}
+	return View{C.Window_ContentView(C.uintptr_t(w.window))}
 }
 
 // View is the infrastructure for drawing, printing, and handling events in an app.

@@ -18,8 +18,6 @@
 package metal
 
 import (
-	"unsafe"
-
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ns"
@@ -76,7 +74,7 @@ func (v *view) reset() error {
 
 func (v *view) update() {
 	// NSView can be changed anytime (probably). Set this everyframe.
-	cocoaWindow := ns.NewWindow(unsafe.Pointer(v.window))
+	cocoaWindow := ns.NewWindow(v.window)
 	cocoaWindow.ContentView().SetLayer(v.ml)
 	cocoaWindow.ContentView().SetWantsLayer(true)
 }

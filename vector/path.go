@@ -44,7 +44,7 @@ type Path struct {
 
 // MoveTo skips the current position of the path to the given position (x, y) without adding any strokes.
 func (p *Path) MoveTo(x, y float32) {
-	p.cur = math.Point{x, y}
+	p.cur = math.Point{X: x, Y: y}
 	if len(p.segs) > 0 && len(p.segs[len(p.segs)-1]) == 0 {
 		return
 	}
@@ -58,8 +58,8 @@ func (p *Path) LineTo(x, y float32) {
 	if len(p.segs) == 0 {
 		p.segs = append(p.segs, []math.Segment{})
 	}
-	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], math.Segment{p.cur, math.Point{x, y}})
-	p.cur = math.Point{x, y}
+	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], math.Segment{P0: p.cur, P1: math.Point{X: x, Y: y}})
+	p.cur = math.Point{X: x, Y: y}
 }
 
 func (p *Path) strokeVertices(lineWidth float32, clr color.Color) (vertices []ebiten.Vertex, indices []uint16) {

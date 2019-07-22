@@ -169,7 +169,7 @@ func getGlyphImages(face font.Face, runes []rune) []*glyphImage {
 				Src:  image.White,
 				Face: face,
 			}
-			d.Dot = fixed.Point26_6{fixed.I(x) - b.Min.X, -b.Min.Y}
+			d.Dot = fixed.Point26_6{X: fixed.I(x) - b.Min.X, Y: -b.Min.Y}
 			d.DrawString(string(r))
 			xs[r] = x
 

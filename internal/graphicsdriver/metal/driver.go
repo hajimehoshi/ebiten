@@ -610,7 +610,14 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, 
 				compositeMode: mode,
 			}])
 		}
-		rce.SetViewport(mtl.Viewport{0, 0, float64(w), float64(h), -1, 1})
+		rce.SetViewport(mtl.Viewport{
+			OriginX: 0,
+			OriginY: 0,
+			Width:   float64(w),
+			Height:  float64(h),
+			ZNear:   -1,
+			ZFar:    1,
+		})
 		rce.SetVertexBuffer(d.vb, 0, 0)
 
 		viewportSize := [...]float32{float32(w), float32(h)}
@@ -767,7 +774,7 @@ func (i *Image) Pixels() ([]byte, error) {
 	b := make([]byte, 4*i.width*i.height)
 	i.driver.t.Call(func() error {
 		i.texture.GetBytes(&b[0], uintptr(4*i.width), mtl.Region{
-			Size: mtl.Size{i.width, i.height, 1},
+			Size: mtl.Size{Width: i.width, Height: i.height, Depth: 1},
 		}, 0)
 		return nil
 	})
@@ -793,8 +800,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	i.driver.t.Call(func() error {
 		i.texture.ReplaceRegion(mtl.Region{
-			Origin: mtl.Origin{x, y, 0},
-			Size:   mtl.Size{width, height, 1},
+			Origin: mtl.Origin{X: x, Y: y, Z: 0},
+			Size:   mtl.Size{Width: width, Height: height, Depth: 1},
 		}, 0, unsafe.Pointer(&pixels[0]), 4*width)
 		return nil
 	})
