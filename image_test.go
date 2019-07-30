@@ -1037,7 +1037,7 @@ func TestImageMipmap(t *testing.T) {
 	wantDst.DrawImage(l2, op)
 
 	for j := 0; j < h; j++ {
-		for i := 0; i < h; i++ {
+		for i := 0; i < w; i++ {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {
@@ -1084,7 +1084,7 @@ func TestImageMipmapNegativeDet(t *testing.T) {
 
 	allZero := true
 	for j := 0; j < h; j++ {
-		for i := 0; i < h; i++ {
+		for i := 0; i < w; i++ {
 			got := gotDst.At(i, j).(color.RGBA)
 			want := wantDst.At(i, j).(color.RGBA)
 			if !sameColors(got, want, 1) {

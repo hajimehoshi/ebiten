@@ -56,6 +56,7 @@ func update(screen *ebiten.Image) error {
 
 	// Move the image to the screen's center.
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
+
 	screen.DrawImage(gophersImage, op)
 	return nil
 }
