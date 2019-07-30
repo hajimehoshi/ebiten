@@ -33,6 +33,7 @@ func init() {
 	for i := range pix {
 		pix[i] = 0xff
 	}
+	// (*Image).Fill uses emptyImage, then Fill cannot be called here.
 	emptyImage.ReplacePixels(pix)
 }
 

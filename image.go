@@ -81,13 +81,8 @@ func (i *Image) Clear() error {
 var emptyImage *Image
 
 func init() {
-	const w, h = 16, 16
-	emptyImage, _ = NewImage(w, h, FilterDefault)
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-	emptyImage.ReplacePixels(pix)
+	emptyImage, _ = NewImage(1, 1, FilterDefault)
+	emptyImage.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff})
 }
 
 // Fill fills the image with a solid color.
