@@ -82,6 +82,7 @@ var emptyImage *Image
 
 func init() {
 	emptyImage, _ = NewImage(1, 1, FilterDefault)
+	// (*Image).Fill uses emptyImage, then Fill cannot be called here.
 	emptyImage.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff})
 }
 

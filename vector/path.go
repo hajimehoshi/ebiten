@@ -29,12 +29,7 @@ var emptyImage *ebiten.Image
 func init() {
 	const w, h = 16, 16
 	emptyImage, _ = ebiten.NewImage(w, h, ebiten.FilterDefault)
-	pix := make([]byte, 4*w*h)
-	for i := range pix {
-		pix[i] = 0xff
-	}
-	// (*Image).Fill uses emptyImage, then Fill cannot be called here.
-	emptyImage.ReplacePixels(pix)
+	emptyImage.Fill(color.White)
 }
 
 // Path represents a collection of paths.
