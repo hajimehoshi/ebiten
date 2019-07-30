@@ -23,15 +23,17 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
+type levelToImage map[int]*shareable.Image
+
 type mipmap struct {
 	orig *shareable.Image
-	imgs map[image.Rectangle][]*shareable.Image
+	imgs map[image.Rectangle]levelToImage
 }
 
 func newMipmap(s *shareable.Image) *mipmap {
 	return &mipmap{
 		orig: s,
-		imgs: map[image.Rectangle][]*shareable.Image{},
+		imgs: map[image.Rectangle]levelToImage{},
 	}
 }
 
@@ -44,51 +46,50 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		panic("ebiten: level must be positive at level")
 	}
 
-	imgs, ok := m.imgs[r]
-	if !ok {
-		imgs = []*shareable.Image{}
-		m.imgs[r] = imgs
+	if m.orig.IsVolatile() {
+		panic("ebiten: mipmap images for a volatile image is not implemented yet")
 	}
-	idx := level - 1
+
+	if _, ok := m.imgs[r]; !ok {
+		m.imgs[r] = levelToImage{}
+	}
+	imgs := m.imgs[r]
+
+	if img, ok := imgs[level]; ok {
+		return img
+	}
 
 	size := r.Size()
 	w, h := size.X, size.Y
-	if len(imgs) > 0 {
-		w, h = imgs[len(imgs)-1].Size()
-	}
 
-	for len(imgs) < idx+1 {
-		if m.orig.IsVolatile() {
-			panic("ebiten: mipmap images for a volatile image is not implemented yet")
-		}
-
-		w2 := w / 2
-		h2 := h / 2
-		if w2 == 0 || h2 == 0 {
+	w2, h2 := w, h
+	for i := 0; i < level; i++ {
+		w2 /= 2
+		h2 /= 2
+		if w == 0 || h == 0 {
+			imgs[level] = nil
 			return nil
 		}
-		s := shareable.NewImage(w2, h2)
-		var src *shareable.Image
-		vs := vertexSlice(4)
-		if l := len(imgs); l == 0 {
-			src = m.orig
-			graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
-		} else {
-			src = m.level(r, l)
-			graphics.PutQuadVertices(vs, src, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+	}
+	s := shareable.NewImage(w2, h2)
+	var src *shareable.Image
+	vs := vertexSlice(4)
+	if level == 1 {
+		src = m.orig
+		graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+	} else {
+		src = m.level(r, level-1)
+		if src == nil {
+			imgs[level] = nil
+			return nil
 		}
-		is := graphics.QuadIndices()
-		s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterLinear, driver.AddressClampToZero)
-		imgs = append(imgs, s)
-		w = w2
-		h = h2
+		graphics.PutQuadVertices(vs, src, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 	}
-	m.imgs[r] = imgs
+	is := graphics.QuadIndices()
+	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterLinear, driver.AddressClampToZero)
+	imgs[level] = s
 
-	if len(imgs) <= idx {
-		return nil
-	}
-	return imgs[idx]
+	return imgs[level]
 }
 
 func (m *mipmap) isDisposed() bool {
