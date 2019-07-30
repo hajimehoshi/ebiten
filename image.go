@@ -249,22 +249,15 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = driver.Filter(img.filter)
 	}
 
-	a, b, c, d, tx, ty := geom.elements()
+	if det := geom.det(); det == 0 {
+		return nil
+	} else if math.IsNaN(float64(det)) {
+		return nil
+	}
 
-	level := 0
-	if filter == driver.FilterLinear && !img.mipmap.original().IsVolatile() {
-		det := geom.det()
-		if det == 0 {
-			return nil
-		}
-		if math.IsNaN(float64(det)) {
-			return nil
-		}
-		level = mipmapLevel(det)
-		if level < 0 {
-			panic(fmt.Sprintf("ebiten: level must be >= 0 but %d", level))
-		}
+	level := img.mipmap.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
 
+	if level > 0 {
 		// If the image can be scaled into 0 size, adjust the level. (#839)
 		w, h := bounds.Dx(), bounds.Dy()
 		for level >= 0 {
@@ -281,8 +274,12 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 			return nil
 		}
 	}
+
 	if level > 6 {
 		level = 6
+	}
+	if level < -6 {
+		level = -6
 	}
 
 	// TODO: Add (*mipmap).drawImage and move the below code.
@@ -297,6 +294,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		colorm = nil
 	}
 
+	a, b, c, d, tx, ty := geom.elements()
 	if level == 0 {
 		src := img.mipmap.original()
 		vs := vertexSlice(4)
@@ -305,11 +303,11 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	} else if src := img.mipmap.level(bounds, level); src != nil {
 		w, h := src.Size()
-		s := 1 << uint(level)
-		a *= float32(s)
-		b *= float32(s)
-		c *= float32(s)
-		d *= float32(s)
+		s := pow2(level)
+		a *= s
+		b *= s
+		c *= s
+		d *= s
 		vs := vertexSlice(4)
 		graphics.PutQuadVertices(vs, src, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()

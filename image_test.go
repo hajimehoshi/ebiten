@@ -940,36 +940,42 @@ func TestImageCopy(t *testing.T) {
 	img1.Fill(color.Transparent)
 }
 
+// Issue #611, #907
 func TestImageStretch(t *testing.T) {
-	img0, _ := NewImage(16, 17, FilterDefault)
+	const w = 16
 
-	pix := make([]byte, 4*16*17)
-	for i := 0; i < 16*16; i++ {
-		pix[4*i] = 0xff
-		pix[4*i+3] = 0xff
-	}
-	for i := 0; i < 16; i++ {
-		pix[4*(16*16+i)+1] = 0xff
-		pix[4*(16*16+i)+3] = 0xff
-	}
-	img0.ReplacePixels(pix)
+	dst, _ := NewImage(w, 4096, FilterDefault)
+loop:
+	for h := 1; h <= 32; h++ {
+		src, _ := NewImage(w, h+1, FilterDefault)
 
-	// TODO: 4096 doesn't pass on MacBook Pro (#611).
-	const h = 4000
-	img1, _ := NewImage(16, h, FilterDefault)
-	for i := 1; i < h; i++ {
-		img1.Clear()
-		op := &DrawImageOptions{}
-		op.GeoM.Scale(1, float64(i)/16)
-		img1.DrawImage(img0.SubImage(image.Rect(0, 0, 16, 16)).(*Image), op)
-		for j := -1; j <= 1; j++ {
-			got := img1.At(0, i+j).(color.RGBA)
-			want := color.RGBA{}
-			if j < 0 {
-				want = color.RGBA{0xff, 0, 0, 0xff}
-			}
-			if got != want {
-				t.Fatalf("At(%d, %d) (i=%d): got: %#v, want: %#v", 0, i+j, i, got, want)
+		pix := make([]byte, 4*w*(h+1))
+		for i := 0; i < w*h; i++ {
+			pix[4*i] = 0xff
+			pix[4*i+3] = 0xff
+		}
+		for i := 0; i < w; i++ {
+			pix[4*(w*h+i)+1] = 0xff
+			pix[4*(w*h+i)+3] = 0xff
+		}
+		src.ReplacePixels(pix)
+
+		_, dh := dst.Size()
+		for i := 32; i < dh; i += 32 {
+			dst.Clear()
+			op := &DrawImageOptions{}
+			op.GeoM.Scale(1, float64(i)/float64(h))
+			dst.DrawImage(src.SubImage(image.Rect(0, 0, w, h)).(*Image), op)
+			for j := -2; j <= 2; j++ {
+				got := dst.At(0, i+j).(color.RGBA)
+				want := color.RGBA{}
+				if j < 0 {
+					want = color.RGBA{0xff, 0, 0, 0xff}
+				}
+				if got != want {
+					t.Errorf("At(%d, %d) (height=%d, scale=%d/%d): got: %#v, want: %#v", 0, i+j, h, i, h, got, want)
+					continue loop
+				}
 			}
 		}
 	}

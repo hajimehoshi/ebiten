@@ -21,13 +21,12 @@ import (
 	. "github.com/hajimehoshi/ebiten"
 )
 
-func TestMipmapLevel(t *testing.T) {
+func TestMipmapLevelForDownscale(t *testing.T) {
 	inf := float32(math.Inf(1))
 	cases := []struct {
 		In  float32
 		Out int
 	}{
-		{0, -1},
 		{1, 0},
 		{-1, 0},
 		{2, 0},
@@ -55,7 +54,7 @@ func TestMipmapLevel(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := MipmapLevel(c.In)
+		got := MipmapLevelForDownscale(c.In)
 		want := c.Out
 		if got != want {
 			t.Errorf("MipmapLevel(%v): got %v, want %v", c.In, got, want)
