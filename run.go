@@ -17,7 +17,6 @@ package ebiten
 import (
 	"image"
 	"sync/atomic"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -27,10 +26,6 @@ import (
 )
 
 var _ = __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__
-
-// isPlayground indicates whether the current environment is the Go Playground (play.golang.org) or not.
-// The fixed time is explicitly defined. See "About the Playground" at play.golang.org.
-var isPlayground = time.Now().UnixNano() == 1257894000000000000
 
 // TPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = 60

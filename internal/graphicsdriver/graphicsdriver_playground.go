@@ -27,7 +27,7 @@ import (
 )
 
 func Get() driver.Graphics {
-	if !isPlayground {
+	if !driver.IsPlayground {
 		panic("ebiten: a graphics driver is not implemented on this environment")
 	}
 	// TODO: Implement this

@@ -17,7 +17,12 @@ package driver
 import (
 	"errors"
 	"image"
+	"time"
 )
+
+// IsPlayground indicates whether the current environment is the Go Playground (play.golang.org) or not.
+// The fixed time is explicitly defined. See "About the Playground" at play.golang.org.
+var IsPlayground = time.Now().UnixNano() == 1257894000000000000
 
 type UIContext interface {
 	SetSize(width, height int, scale float64)
