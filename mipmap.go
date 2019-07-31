@@ -60,26 +60,6 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		return img
 	}
 
-	size := r.Size()
-	w, h := size.X, size.Y
-
-	w2, h2 := w, h
-	if level > 0 {
-		for i := 0; i < level; i++ {
-			w2 /= 2
-			h2 /= 2
-			if w == 0 || h == 0 {
-				imgs[level] = nil
-				return nil
-			}
-		}
-	} else {
-		for i := 0; i < -level; i++ {
-			w2 *= 2
-			h2 *= 2
-		}
-	}
-
 	var src *shareable.Image
 	vs := vertexSlice(4)
 	var filter driver.Filter
@@ -94,18 +74,44 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			imgs[level] = nil
 			return nil
 		}
+		w, h := src.Size()
 		graphics.PutQuadVertices(vs, src, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterLinear
-	case level < 0:
+	case level == -1:
 		src = m.orig
-		s := pow2(-level)
-		graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, s, 0, 0, s, 0, 0, 1, 1, 1, 1)
+		graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
+		filter = driver.FilterNearest
+	case level < -1:
+		src = m.level(r, level+1)
+		if src == nil {
+			imgs[level] = nil
+			return nil
+		}
+		w, h := src.Size()
+		graphics.PutQuadVertices(vs, src, 0, 0, w, h, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))
 	}
 	is := graphics.QuadIndices()
 
+	size := r.Size()
+	w2, h2 := size.X, size.Y
+	if level > 0 {
+		for i := 0; i < level; i++ {
+			w2 /= 2
+			h2 /= 2
+			if w2 == 0 || h2 == 0 {
+				imgs[level] = nil
+				return nil
+			}
+		}
+	} else {
+		for i := 0; i < -level; i++ {
+			w2 *= 2
+			h2 *= 2
+		}
+	}
 	s := shareable.NewImage(w2, h2)
 	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
 	imgs[level] = s
