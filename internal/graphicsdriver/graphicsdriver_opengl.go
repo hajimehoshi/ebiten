@@ -16,13 +16,13 @@
 
 // As the Go playground tries to compile this with CGO_ENABLED=0 and GOOS=linux, check Cgo on build tags.
 
-package ebiten
+package graphicsdriver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-func graphicsDriver() driver.Graphics {
+func Get() driver.Graphics {
 	return opengl.Get()
 }

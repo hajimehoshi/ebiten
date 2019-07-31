@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin freebsd linux,cgo windows
-// +build !android
-// +build !ios
-// +build !js
+// +build android ios
 
-package ebiten
+package uidriver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/glfw"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-func uiDriver() driver.UI {
-	return glfw.Get()
+func Get() driver.UI {
+	return mobile.Get()
 }

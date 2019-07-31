@@ -15,7 +15,7 @@
 // +build darwin,!ios
 // +build !js
 
-package ebiten
+package graphicsdriver
 
 // #cgo CFLAGS: -x objective-c
 // #cgo LDFLAGS: -framework Foundation
@@ -47,7 +47,7 @@ var (
 	isMetalSupportedOnce sync.Once
 )
 
-func graphicsDriver() driver.Graphics {
+func Get() driver.Graphics {
 	isMetalSupportedOnce.Do(func() {
 		// On old mac devices like iMac 2011, Metal is not supported (#779).
 		if _, err := mtl.CreateSystemDefaultDevice(); err != nil {

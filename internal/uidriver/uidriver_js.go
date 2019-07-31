@@ -12,24 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !darwin
-// +build !freebsd
-// +build !ios
-// +build !js
-// +build !linux,cgo !cgo
-// +build !windows
+// +build js
 
-package ebiten
+package uidriver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/js"
 )
 
-func graphicsDriver() driver.Graphics {
-	if !isPlayground {
-		panic("ebiten: a graphics driver is not implemented on this environment")
-	}
-	// TODO: Implement this
-	return nil
+func Get() driver.UI {
+	return js.Get()
 }

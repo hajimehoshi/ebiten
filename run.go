@@ -21,6 +21,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/internal/uidriver"
 	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
@@ -142,7 +144,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 		defer atomic.StoreInt32(&isRunning, 0)
 	}
 
-	if err := uiDriver().Run(width, height, scale, title, c, graphicsDriver()); err != nil {
+	if err := uidriver.Get().Run(width, height, scale, title, c, graphicsdriver.Get()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}
@@ -164,7 +166,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	theUIContext.Store(c)
 
 	atomic.StoreInt32(&isRunning, 1)
-	return uiDriver().RunWithoutMainLoop(width, height, scale, title, c, graphicsDriver())
+	return uidriver.Get().RunWithoutMainLoop(width, height, scale, title, c, graphicsdriver.Get())
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
@@ -196,7 +198,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 //
 // ScreenSizeInFullscreen must be called on the main thread before ebiten.Run, and is concurrent-safe after ebiten.Run.
 func ScreenSizeInFullscreen() (int, int) {
-	return uiDriver().ScreenSizeInFullscreen()
+	return uidriver.Get().ScreenSizeInFullscreen()
 }
 
 // MonitorSize is deprecated as of 1.8.0-alpha. Use ScreenSizeInFullscreen instead.
@@ -214,7 +216,7 @@ func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	uiDriver().SetScreenSize(width, height)
+	uidriver.Get().SetScreenSize(width, height)
 }
 
 // SetScreenScale changes the scale of the screen.
@@ -230,7 +232,7 @@ func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
-	uiDriver().SetScreenScale(scale)
+	uidriver.Get().SetScreenScale(scale)
 }
 
 // ScreenScale returns the current screen scale.
@@ -239,7 +241,7 @@ func SetScreenScale(scale float64) {
 //
 // ScreenScale is concurrent-safe.
 func ScreenScale() float64 {
-	return uiDriver().ScreenScale()
+	return uidriver.Get().ScreenScale()
 }
 
 // IsCursorVisible returns a boolean value indicating whether
@@ -249,7 +251,7 @@ func ScreenScale() float64 {
 //
 // IsCursorVisible is concurrent-safe.
 func IsCursorVisible() bool {
-	return uiDriver().IsCursorVisible()
+	return uidriver.Get().IsCursorVisible()
 }
 
 // SetCursorVisible changes the state of cursor visiblity.
@@ -258,7 +260,7 @@ func IsCursorVisible() bool {
 //
 // SetCursorVisible is concurrent-safe.
 func SetCursorVisible(visible bool) {
-	uiDriver().SetCursorVisible(visible)
+	uidriver.Get().SetCursorVisible(visible)
 }
 
 // SetCursorVisibility is deprecated as of 1.6.0-alpha. Use SetCursorVisible instead.
@@ -273,7 +275,7 @@ func SetCursorVisibility(visible bool) {
 //
 // IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
-	return uiDriver().IsFullscreen()
+	return uidriver.Get().IsFullscreen()
 }
 
 // SetFullscreen changes the current mode to fullscreen or not.
@@ -294,7 +296,7 @@ func IsFullscreen() bool {
 //
 // SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
-	uiDriver().SetFullscreen(fullscreen)
+	uidriver.Get().SetFullscreen(fullscreen)
 }
 
 // IsRunnableInBackground returns a boolean value indicating whether
@@ -302,7 +304,7 @@ func SetFullscreen(fullscreen bool) {
 //
 // IsRunnableInBackground is concurrent-safe.
 func IsRunnableInBackground() bool {
-	return uiDriver().IsRunnableInBackground()
+	return uidriver.Get().IsRunnableInBackground()
 }
 
 // SetWindowDecorated sets the state if the window is decorated.
@@ -316,14 +318,14 @@ func IsRunnableInBackground() bool {
 //
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
-	uiDriver().SetWindowDecorated(decorated)
+	uidriver.Get().SetWindowDecorated(decorated)
 }
 
 // IsWindowDecorated reports whether the window is decorated.
 //
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
-	return uiDriver().IsWindowDecorated()
+	return uidriver.Get().IsWindowDecorated()
 }
 
 // setWindowResizable is unexported until specification is determined (#320)
@@ -341,14 +343,14 @@ func IsWindowDecorated() bool {
 //
 // setWindowResizable is concurrent-safe.
 func setWindowResizable(resizable bool) {
-	uiDriver().SetWindowResizable(resizable)
+	uidriver.Get().SetWindowResizable(resizable)
 }
 
 // IsWindowResizable reports whether the window is resizable.
 //
 // IsWindowResizable is concurrent-safe.
 func IsWindowResizable() bool {
-	return uiDriver().IsWindowResizable()
+	return uidriver.Get().IsWindowResizable()
 }
 
 // SetRunnableInBackground sets the state if the game runs even in background.
@@ -363,7 +365,7 @@ func IsWindowResizable() bool {
 //
 // SetRunnableInBackground is concurrent-safe.
 func SetRunnableInBackground(runnableInBackground bool) {
-	uiDriver().SetRunnableInBackground(runnableInBackground)
+	uidriver.Get().SetRunnableInBackground(runnableInBackground)
 }
 
 // SetWindowTitle sets the title of the window.
@@ -372,7 +374,7 @@ func SetRunnableInBackground(runnableInBackground bool) {
 //
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {
-	uiDriver().SetWindowTitle(title)
+	uidriver.Get().SetWindowTitle(title)
 }
 
 // SetWindowIcon sets the icon of the game window.
@@ -396,7 +398,7 @@ func SetWindowTitle(title string) {
 //
 // SetWindowIcon is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
-	uiDriver().SetWindowIcon(iconImages)
+	uidriver.Get().SetWindowIcon(iconImages)
 }
 
 // DeviceScaleFactor returns a device scale factor value of the current monitor which the window belongs to.
@@ -409,7 +411,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // DeviceScaleFactor must be called on the main thread before ebiten.Run, and is concurrent-safe after ebiten.Run.
 func DeviceScaleFactor() float64 {
-	return uiDriver().DeviceScaleFactor()
+	return uidriver.Get().DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether
@@ -417,7 +419,7 @@ func DeviceScaleFactor() float64 {
 //
 // IsVsyncEnabled is concurrent-safe.
 func IsVsyncEnabled() bool {
-	return uiDriver().IsVsyncEnabled()
+	return uidriver.Get().IsVsyncEnabled()
 }
 
 // SetVsyncEnabled sets a boolean value indicating whether
@@ -435,7 +437,7 @@ func IsVsyncEnabled() bool {
 //
 // SetVsyncEnabled is concurrent-safe.
 func SetVsyncEnabled(enabled bool) {
-	uiDriver().SetVsyncEnabled(enabled)
+	uidriver.Get().SetVsyncEnabled(enabled)
 }
 
 // MaxTPS returns the current maximum TPS.

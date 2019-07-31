@@ -21,13 +21,15 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
+	"github.com/hajimehoshi/ebiten/internal/uidriver"
 )
 
 func init() {
-	shareable.SetGraphicsDriver(graphicsDriver())
-	graphicscommand.SetGraphicsDriver(graphicsDriver())
+	shareable.SetGraphicsDriver(graphicsdriver.Get())
+	graphicscommand.SetGraphicsDriver(graphicsdriver.Get())
 }
 
 func newUIContext(f func(*Image) error) *uiContext {
@@ -63,7 +65,7 @@ func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) 
 	// Round up the screensize not to cause glitches e.g. on Xperia (#622)
 	w := int(math.Ceil(float64(screenWidth) * screenScale))
 	h := int(math.Ceil(float64(screenHeight) * screenScale))
-	px0, py0, px1, py1 := uiDriver().ScreenPadding()
+	px0, py0, px1, py1 := uidriver.Get().ScreenPadding()
 	c.screen = newImageWithScreenFramebuffer(w+int(math.Ceil(px0+px1)), h+int(math.Ceil(py0+py1)))
 	c.screenWidth = w
 	c.screenHeight = h
@@ -106,7 +108,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 			return err
 		}
 
-		uiDriver().Input().ResetForFrame()
+		uidriver.Get().Input().ResetForFrame()
 		afterFrameUpdate()
 	}
 
@@ -115,7 +117,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 	op := &DrawImageOptions{}
 
-	switch vd := graphicsDriver().VDirection(); vd {
+	switch vd := graphicsdriver.Get().VDirection(); vd {
 	case driver.VDownward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
