@@ -961,12 +961,15 @@ loop:
 		src.ReplacePixels(pix)
 
 		_, dh := dst.Size()
-		for i := 32; i < dh; i += 32 {
+		for i := 0; i < dh; {
 			dst.Clear()
 			op := &DrawImageOptions{}
 			op.GeoM.Scale(1, float64(i)/float64(h))
 			dst.DrawImage(src.SubImage(image.Rect(0, 0, w, h)).(*Image), op)
-			for j := -2; j <= 2; j++ {
+			for j := -1; j <= 1; j++ {
+				if i+j < 0 {
+					continue
+				}
 				got := dst.At(0, i+j).(color.RGBA)
 				want := color.RGBA{}
 				if j < 0 {
@@ -976,6 +979,14 @@ loop:
 					t.Errorf("At(%d, %d) (height=%d, scale=%d/%d): got: %#v, want: %#v", 0, i+j, h, i, h, got, want)
 					continue loop
 				}
+			}
+			switch i % 32 {
+			case 31, 0:
+				i++
+			case 1:
+				i += 32 - 2
+			default:
+				panic("not reached")
 			}
 		}
 	}
