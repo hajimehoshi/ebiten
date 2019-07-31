@@ -37,7 +37,7 @@ import (
 var (
 	glContextCh = make(chan gl.Context)
 
-	// renderCh recieves when updating starts.
+	// renderCh receives when updating starts.
 	renderCh = make(chan struct{})
 
 	// renderEndCh receives when updating finishes.

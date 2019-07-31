@@ -164,7 +164,7 @@ func (m *mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch.
 	const tooBigScale = 128
 	if sx, sy := geomScaleSize(geom); sx >= tooBigScale || sy >= tooBigScale {
-		// If the filter is not nearest, the target needs to be rendered with gradiation. Don't use mipmaps.
+		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
 		if filter != driver.FilterNearest {
 			return 0
 		}
