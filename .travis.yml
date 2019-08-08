@@ -9,7 +9,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - libasound2-dev
-      - libgles2-mesa-dev
+      - libgl1-mesa-dev
       - libalut-dev
       - libxcursor-dev
       - libxi-dev
