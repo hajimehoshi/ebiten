@@ -18,6 +18,9 @@ addons:
       - libxxf86vm-dev
   chrome: stable
 
+services:
+  - xvfb
+
 install:
   - mkdir /tmp/work
   - cd /tmp/work
@@ -38,8 +41,6 @@ install:
 
 before_script:
   - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - sleep 3
 
 script:
   - cd /tmp/work
