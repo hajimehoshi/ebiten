@@ -12,28 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin freebsd js linux windows
-// +build !android
-// +build !ios
-
-package mobile
-
-import (
-	"github.com/hajimehoshi/ebiten"
-)
-
-// Empty implementation of this package.
-// Package mobile is buildable for non-mobile platforms so that godoc can show comments.
-
-func update() error {
-	return nil
-}
-
-func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
-}
+package ebitenmobileview
 
 func updateTouchesOnAndroid(action int, id int, x, y int) {
+	switch action {
+	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
+		touches[id] = position{x, y}
+		updateTouches()
+	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
+		delete(touches, id)
+		updateTouches()
+	}
 }
 
 func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
+	panic("mobile: updateTouchesOnIOSImpl must not be called on Android")
 }

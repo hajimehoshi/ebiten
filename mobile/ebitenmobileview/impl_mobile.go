@@ -14,29 +14,39 @@
 
 // +build android ios
 
-package mobile
+package ebitenmobileview
 
 import (
+	"errors"
+
+	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-type position struct {
-	x int
-	y int
-}
-
 var (
-	touches = map[int]position{}
+	chError <-chan error
+	running bool
 )
 
-func updateTouches() {
-	ts := []*mobile.Touch{}
-	for id, position := range touches {
-		ts = append(ts, &mobile.Touch{
-			ID: id,
-			X:  position.x,
-			Y:  position.y,
-		})
+func update() error {
+	if chError == nil {
+		return errors.New("mobile: chError must not be nil: Start is not called yet?")
 	}
-	mobile.Get().UpdateInput(ts)
+	if !running {
+		return errors.New("mobile: start must be called ahead of update")
+	}
+
+	select {
+	case err := <-chError:
+		return err
+	default:
+	}
+
+	mobile.Get().Render()
+	return nil
+}
+
+func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
+	running = true
+	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
 }

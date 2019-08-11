@@ -12,41 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
+// +build darwin freebsd js linux windows
+// +build !android
+// +build !ios
 
-package mobile
+package ebitenmobileview
 
 import (
-	"errors"
-
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-var (
-	chError <-chan error
-	running bool
-)
+// Empty implementation of this package.
+// Package mobile is buildable for non-mobile platforms so that godoc can show comments.
 
 func update() error {
-	if chError == nil {
-		return errors.New("mobile: chError must not be nil: Start is not called yet?")
-	}
-	if !running {
-		return errors.New("mobile: start must be called ahead of update")
-	}
-
-	select {
-	case err := <-chError:
-		return err
-	default:
-	}
-
-	mobile.Get().Render()
 	return nil
 }
 
 func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
-	running = true
-	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
+}
+
+func updateTouchesOnAndroid(action int, id int, x, y int) {
+}
+
+func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
 }

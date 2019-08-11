@@ -14,7 +14,7 @@
 
 // +build ios
 
-package mobile
+package ebitenmobileview
 
 import (
 	"fmt"

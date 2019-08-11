@@ -12,19 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mobile
+// +build android ios
 
-func updateTouchesOnAndroid(action int, id int, x, y int) {
-	switch action {
-	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
-		touches[id] = position{x, y}
-		updateTouches()
-	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
-		delete(touches, id)
-		updateTouches()
-	}
+package ebitenmobileview
+
+import (
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
+)
+
+type position struct {
+	x int
+	y int
 }
 
-func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
-	panic("mobile: updateTouchesOnIOSImpl must not be called on Android")
+var (
+	touches = map[int]position{}
+)
+
+func updateTouches() {
+	ts := []*mobile.Touch{}
+	for id, position := range touches {
+		ts = append(ts, &mobile.Touch{
+			ID: id,
+			X:  position.x,
+			Y:  position.y,
+		})
+	}
+	mobile.Get().UpdateInput(ts)
 }

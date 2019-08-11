@@ -21,17 +21,8 @@
 package mobile
 
 import (
-	"runtime"
-	"sync"
-
 	"github.com/hajimehoshi/ebiten"
-)
-
-var (
-	// mobileMutex is a mutex required for each function.
-	// For example, on Android, Update can be called from a different thread:
-	// https://developer.android.com/reference/android/opengl/GLSurfaceView.Renderer
-	mobileMutex sync.Mutex
+	"github.com/hajimehoshi/ebiten/mobile/ebitenmobileview"
 )
 
 // Start starts the game and returns immediately.
@@ -44,10 +35,8 @@ var (
 //
 // Start always returns nil as of 1.5.0-alpha.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
-
-	start(f, width, height, scale, title)
+	ebitenmobileview.SetUpdateFunc(f)
+	ebitenmobileview.Run(width, height, scale, title)
 	return nil
 }
 
@@ -64,13 +53,7 @@ func Start(f func(*ebiten.Image) error, width, height int, scale float64, title 
 //
 // Update returns error when 1) OpenGL error happens, or 2) f in Start returns error samely as ebiten.Run.
 func Update() error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
-
-	return update()
+	return ebitenmobileview.Update()
 }
 
 // UpdateTouchesOnAndroid updates the touch state on Android.
@@ -107,10 +90,7 @@ func Update() error {
 //
 // For more details, see https://github.com/hajimehoshi/ebiten/wiki/Android.
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
-
-	updateTouchesOnAndroid(action, id, x, y)
+	ebitenmobileview.UpdateTouchesOnAndroid(action, id, x, y)
 }
 
 // UpdateTouchesOnIOS updates the touch state on iOS.
@@ -151,8 +131,9 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 //
 // For more details, see https://github.com/hajimehoshi/ebiten/wiki/iOS.
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
+	ebitenmobileview.UpdateTouchesOnIOS(phase, ptr, x, y)
+}
 
-	updateTouchesOnIOSImpl(phase, ptr, x, y)
+func SetUpdateFunc(f func(*ebiten.Image) error) {
+	ebitenmobileview.SetUpdateFunc(f)
 }
