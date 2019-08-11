@@ -37,8 +37,8 @@ import (
 //
 // Start always returns nil as of 1.5.0-alpha.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
-	ebitenmobileview.SetUpdateFunc(f)
-	ebitenmobileview.Run(width, height, scale)
+	ebitenmobileview.Set(f, width, height)
+	ebitenmobileview.Run(scale)
 	return nil
 }
 
@@ -136,6 +136,6 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	ebitenmobileview.UpdateTouchesOnIOS(phase, ptr, x, y)
 }
 
-func SetUpdateFunc(f func(*ebiten.Image) error) {
-	ebitenmobileview.SetUpdateFunc(f)
+func Set(updateFunc func(*ebiten.Image) error, screenWidth, screenHeight int) {
+	ebitenmobileview.Set(updateFunc, screenWidth, screenHeight)
 }

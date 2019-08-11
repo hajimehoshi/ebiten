@@ -25,52 +25,70 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-var (
-	// mobileMutex is a mutex required for each function.
+var theState state
+
+type state struct {
+	updateFunc   func(*ebiten.Image) error
+	screenWidth  int
+	screenHeight int
+
+	// m is a mutex required for each function.
 	// For example, on Android, Update can be called from a different thread:
 	// https://developer.android.com/reference/android/opengl/GLSurfaceView.Renderer
-	mobileMutex sync.Mutex
-)
+	m sync.Mutex
+}
 
-func Run(width, height int, scale float64) {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
+func Run(scale float64) {
+	theState.m.Lock()
+	defer theState.m.Unlock()
 
-	if updateFunc == nil {
+	if theState.updateFunc == nil {
 		panic("ebitenmobileview: SetUpdateFunc must be called before Run")
 	}
-	start(updateFunc, width, height, scale)
+	start(theState.updateFunc, theState.screenWidth, theState.screenHeight, scale)
 }
 
 func Update() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
+	theState.m.Lock()
+	defer theState.m.Unlock()
 
 	return update()
 }
 
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
+	theState.m.Lock()
+	defer theState.m.Unlock()
 
 	updateTouchesOnAndroid(action, id, x, y)
 }
 
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
+	theState.m.Lock()
+	defer theState.m.Unlock()
 
 	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }
 
-var updateFunc func(*ebiten.Image) error
+func ScreenWidth() int {
+	theState.m.Lock()
+	defer theState.m.Unlock()
+	return theState.screenWidth
+}
 
-func SetUpdateFunc(f func(*ebiten.Image) error) {
-	mobileMutex.Lock()
-	defer mobileMutex.Unlock()
+func ScreenHeight() int {
+	theState.m.Lock()
+	defer theState.m.Unlock()
+	return theState.screenHeight
+}
 
-	updateFunc = f
+func Set(updateFunc func(*ebiten.Image) error, screenWidth, screenHeight int) {
+	theState.m.Lock()
+	defer theState.m.Unlock()
+
+	theState.updateFunc = updateFunc
+	theState.screenWidth = screenWidth
+	theState.screenHeight = screenHeight
 }
