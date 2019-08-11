@@ -33,10 +33,12 @@ import (
 //
 // Start is concurrent-safe.
 //
+// The argument title is ignored. This is for backward compatibility.
+//
 // Start always returns nil as of 1.5.0-alpha.
 func Start(f func(*ebiten.Image) error, width, height int, scale float64, title string) error {
 	ebitenmobileview.SetUpdateFunc(f)
-	ebitenmobileview.Run(width, height, scale, title)
+	ebitenmobileview.Run(width, height, scale)
 	return nil
 }
 

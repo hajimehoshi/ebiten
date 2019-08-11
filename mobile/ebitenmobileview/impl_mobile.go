@@ -46,7 +46,8 @@ func update() error {
 	return nil
 }
 
-func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
+func start(f func(*ebiten.Image) error, width, height int, scale float64) {
 	running = true
-	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, title)
+	// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
+	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, "")
 }

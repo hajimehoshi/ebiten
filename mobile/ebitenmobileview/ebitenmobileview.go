@@ -14,8 +14,8 @@
 
 // Package ebitenmobileview offers functions for OpenGL/Metal view of mobiles.
 //
-// The functions are not intended for public usages, and there is no guarantee of
-// backward compatibility.
+// The functions are not intended for public usages.
+// There is no guarantee of backward compatibility.
 package ebitenmobileview
 
 import (
@@ -32,14 +32,14 @@ var (
 	mobileMutex sync.Mutex
 )
 
-func Run(width, height int, scale float64, title string) {
+func Run(width, height int, scale float64) {
 	mobileMutex.Lock()
 	defer mobileMutex.Unlock()
 
 	if updateFunc == nil {
 		panic("ebitenmobileview: SetUpdateFunc must be called before Run")
 	}
-	start(updateFunc, width, height, scale, title)
+	start(updateFunc, width, height, scale)
 }
 
 func Update() error {

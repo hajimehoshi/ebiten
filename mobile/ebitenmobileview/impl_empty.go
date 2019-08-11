@@ -29,7 +29,7 @@ func update() error {
 	return nil
 }
 
-func start(f func(*ebiten.Image) error, width, height int, scale float64, title string) {
+func start(f func(*ebiten.Image) error, width, height int, scale float64) {
 }
 
 func updateTouchesOnAndroid(action int, id int, x, y int) {
