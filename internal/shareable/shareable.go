@@ -73,9 +73,6 @@ func init() {
 }
 
 func resolveDeferred() {
-	deferredM.Lock()
-	defer deferredM.Unlock()
-
 	for _, f := range deferred {
 		f()
 	}
@@ -151,8 +148,7 @@ var (
 
 	imagesToMakeShared = map[*Image]struct{}{}
 
-	deferred  []func()
-	deferredM sync.Mutex
+	deferred []func()
 )
 
 // isShareable reports whether the new allocation can use the shareable backends.
@@ -388,9 +384,7 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte) {
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
 func (i *Image) disposeFromFinalizer() {
-	deferredM.Lock()
-	defer deferredM.Unlock()
-
+	// deferred doesn't have to be, and should not be protected by a mutex.
 	deferred = append(deferred, func() {
 		i.dispose(true)
 	})
