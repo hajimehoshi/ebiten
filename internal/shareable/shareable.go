@@ -201,6 +201,14 @@ func (i *Image) IsSharedForTesting() bool {
 	return i.isShared()
 }
 
+type vertexPutterWithoutLock struct {
+	*Image
+}
+
+func (i vertexPutterWithoutLock) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
+	i.putVertex(dst, dx, dy, sx, sy, bx0, by0, bx1, by1, cr, cg, cb, ca)
+}
+
 func (i *Image) ensureNotShared() {
 	if i.backend == nil {
 		i.allocate(false)
@@ -214,7 +222,7 @@ func (i *Image) ensureNotShared() {
 	_, _, w, h := i.region()
 	newImg := restorable.NewImage(w, h)
 	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, i, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	graphics.PutQuadVertices(vs, vertexPutterWithoutLock{i}, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 
@@ -271,9 +279,16 @@ func (i *Image) Size() (width, height int) {
 
 // PutVertices puts the given dst with vertices that can be passed to DrawTriangles.
 func (i *Image) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	i.putVertex(dst, dx, dy, sx, sy, bx0, by0, bx1, by1, cr, cg, cb, ca)
+}
+
+func (i *Image) putVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	if i.backend == nil {
 		i.allocate(true)
 	}
+
 	ox, oy, _, _ := i.region()
 	oxf, oyf := float32(ox), float32(oy)
 	i.backend.restorable.PutVertex(dst, dx, dy, sx+oxf, sy+oyf, bx0+oxf, by0+oyf, bx1+oxf, by1+oyf, cr, cg, cb, ca)
