@@ -164,7 +164,6 @@ func (i *images) resolveDeferred() {
 // resolveStaleImages resolves stale images.
 func (i *images) resolveStaleImages() {
 	i.lastTarget = nil
-	i.resolveDeferred()
 	for img := range i.images {
 		img.resolveStale()
 	}
