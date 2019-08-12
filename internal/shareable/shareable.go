@@ -143,6 +143,8 @@ var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
 
+	backendsOnce sync.Once
+
 	// theBackends is a set of actually shared images.
 	theBackends = []*backend{}
 
@@ -570,15 +572,30 @@ func InitializeGraphicsDriverState() error {
 	return restorable.InitializeGraphicsDriverState()
 }
 
-func ResolveStaleImages() {
+func EndFrame() error {
 	backendsM.Lock()
-	defer backendsM.Unlock()
 	restorable.ResolveStaleImages()
+	return restorable.Error()
 }
 
-func RestoreIfNeeded() error {
-	backendsM.Lock()
-	defer backendsM.Unlock()
+func BeginFrame() error {
+	// Unlock except for the first time.
+	//
+	// In each frame, restoring images and resolving images happen respectively:
+	//
+	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
+	//
+	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
+	// (#913).
+	defer func() {
+		firsttime := false
+		backendsOnce.Do(func() {
+			firsttime = true
+		})
+		if !firsttime {
+			backendsM.Unlock()
+		}
+	}()
 	return restorable.RestoreIfNeeded()
 }
 
@@ -586,10 +603,4 @@ func DumpImages(dir string) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	return restorable.DumpImages(dir)
-}
-
-func Error() error {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	return restorable.Error()
 }

@@ -121,9 +121,6 @@ func init() {
 //
 // Note that Dispose is not called automatically.
 func NewImage(width, height int) *Image {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
-
 	i := &Image{
 		image: graphicscommand.NewImage(width, height),
 	}
@@ -175,9 +172,6 @@ func (i *Image) MakeVolatile() {
 //
 // Note that Dispose is not called automatically.
 func NewScreenFramebufferImage(width, height int) *Image {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
-
 	i := &Image{
 		image:  graphicscommand.NewScreenFramebufferImage(width, height),
 		screen: true,
@@ -188,8 +182,6 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) Clear() {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
 	theImages.makeStaleIfDependingOn(i)
 	i.clear()
 }
@@ -300,9 +292,6 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 //
 // ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
-
 	w, h := i.image.Size()
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
@@ -356,9 +345,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 // DrawTriangles draws a given image img to the image.
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
-
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
 	}
@@ -413,9 +399,6 @@ func (i *Image) readPixelsFromGPUIfNeeded() {
 //
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (byte, byte, byte, byte) {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
-
 	w, h := i.image.Size()
 	if x < 0 || y < 0 || w <= x || h <= y {
 		return 0, 0, 0, 0
@@ -541,9 +524,6 @@ func (i *Image) restore() {
 //
 // After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
-	theImages.m.Lock()
-	defer theImages.m.Unlock()
-
 	theImages.remove(i)
 	i.image.Dispose()
 	i.image = nil

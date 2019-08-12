@@ -81,9 +81,6 @@ func (c *uiContext) initializeIfNeeded() error {
 		}
 		c.initialized = true
 	}
-	if err := c.restoreIfNeeded(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -94,6 +91,9 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
 	if err := c.initializeIfNeeded(); err != nil {
+		return err
+	}
+	if err := shareable.BeginFrame(); err != nil {
 		return err
 	}
 	for i := 0; i < updateCount; i++ {
@@ -141,16 +141,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	}
 	_ = c.screen.DrawImage(c.offscreen, op)
 
-	shareable.ResolveStaleImages()
-
-	if err := shareable.Error(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *uiContext) restoreIfNeeded() error {
-	if err := shareable.RestoreIfNeeded(); err != nil {
+	if err := shareable.EndFrame(); err != nil {
 		return err
 	}
 	return nil

@@ -16,7 +16,6 @@ package restorable
 
 import (
 	"path/filepath"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
@@ -41,9 +40,6 @@ func EnableRestoringForTesting() {
 type images struct {
 	images     map[*Image]struct{}
 	lastTarget *Image
-
-	m    sync.Mutex
-	once sync.Once
 }
 
 // theImages represents the images for the current process.
@@ -56,9 +52,6 @@ var theImages = &images{
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() {
-	// Until the begin o the frame (by RestoreIfNeeded, any operations are locked.
-	theImages.m.Lock()
-
 	graphicscommand.FlushCommands()
 	if !needsRestoring() {
 		return
@@ -70,24 +63,6 @@ func ResolveStaleImages() {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func RestoreIfNeeded() error {
-	// Unlock except for the first time.
-	//
-	// In each frame, restoring images and resolving images happen respectively:
-	//
-	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
-	//
-	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
-	// (#913).
-	defer func() {
-		firsttime := false
-		theImages.once.Do(func() {
-			firsttime = true
-		})
-		if !firsttime {
-			theImages.m.Unlock()
-		}
-	}()
-
 	if !needsRestoring() {
 		return nil
 	}
