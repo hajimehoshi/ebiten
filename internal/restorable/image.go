@@ -121,7 +121,8 @@ func init() {
 //
 // Note that Dispose is not called automatically.
 func NewImage(width, height int) *Image {
-	// As this should not affect the information for restoring, this doesn't have to be deferred.
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 
 	i := &Image{
 		image: graphicscommand.NewImage(width, height),
@@ -174,7 +175,8 @@ func (i *Image) MakeVolatile() {
 //
 // Note that Dispose is not called automatically.
 func NewScreenFramebufferImage(width, height int) *Image {
-	// As this should not affect the information for restoring, this doesn't have to be deferred.
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 
 	i := &Image{
 		image:  graphicscommand.NewScreenFramebufferImage(width, height),
@@ -186,18 +188,8 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) Clear() {
-	select {
-	case theImages.deferCh <- struct{}{}:
-		break
-	default:
-		theImages.deferUntilBeginFrame(i.Clear)
-		return
-	}
-
-	defer func() {
-		<-theImages.deferCh
-	}()
-
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 	theImages.makeStaleIfDependingOn(i)
 	i.clear()
 }
@@ -308,19 +300,8 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 //
 // ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	select {
-	case theImages.deferCh <- struct{}{}:
-		break
-	default:
-		theImages.deferUntilBeginFrame(func() {
-			i.ReplacePixels(pixels, x, y, width, height)
-		})
-		return
-	}
-
-	defer func() {
-		<-theImages.deferCh
-	}()
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 
 	w, h := i.image.Size()
 	if width <= 0 || height <= 0 {
@@ -375,19 +356,8 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 // DrawTriangles draws a given image img to the image.
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
-	select {
-	case theImages.deferCh <- struct{}{}:
-		break
-	default:
-		theImages.deferUntilBeginFrame(func() {
-			i.DrawTriangles(img, vertices, indices, colorm, mode, filter, address)
-		})
-		return
-	}
-
-	defer func() {
-		<-theImages.deferCh
-	}()
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
@@ -443,11 +413,8 @@ func (i *Image) readPixelsFromGPUIfNeeded() {
 //
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (byte, byte, byte, byte) {
-	// As At can be affected by deferred functions, and At itself cannot be deferred, lock this operation.
-	theImages.deferCh <- struct{}{}
-	defer func() {
-		<-theImages.deferCh
-	}()
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 
 	w, h := i.image.Size()
 	if x < 0 || y < 0 || w <= x || h <= y {
@@ -574,16 +541,8 @@ func (i *Image) restore() {
 //
 // After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
-	select {
-	case theImages.deferCh <- struct{}{}:
-		break
-	default:
-		theImages.deferUntilBeginFrame(i.Dispose)
-		return
-	}
-	defer func() {
-		<-theImages.deferCh
-	}()
+	theImages.m.Lock()
+	defer theImages.m.Unlock()
 
 	theImages.remove(i)
 	i.image.Dispose()

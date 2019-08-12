@@ -42,17 +42,13 @@ type images struct {
 	images     map[*Image]struct{}
 	lastTarget *Image
 
-	deferred  []func()
-	mDeferred sync.Mutex
-	deferCh   chan struct{}
-
+	m    sync.Mutex
 	once sync.Once
 }
 
 // theImages represents the images for the current process.
 var theImages = &images{
-	images:  map[*Image]struct{}{},
-	deferCh: make(chan struct{}, 1),
+	images: map[*Image]struct{}{},
 }
 
 // ResolveStaleImages flushes the queued draw commands and resolves
@@ -62,7 +58,7 @@ var theImages = &images{
 func ResolveStaleImages() {
 	defer func() {
 		// Until the begin o the frame (by RestoreIfNeeded, any operations are deferred.
-		theImages.deferCh <- struct{}{}
+		theImages.m.Lock()
 	}()
 
 	graphicscommand.FlushCommands()
@@ -89,11 +85,8 @@ func RestoreIfNeeded() error {
 		firsttime = true
 	})
 	if !firsttime {
-		<-theImages.deferCh
+		theImages.m.Unlock()
 	}
-
-	// Deferred functions should be resolved after restoring.
-	defer theImages.resolveDeferred()
 
 	if !needsRestoring() {
 		return nil
@@ -144,22 +137,6 @@ func (i *images) add(img *Image) {
 func (i *images) remove(img *Image) {
 	i.makeStaleIfDependingOnImpl(img)
 	delete(i.images, img)
-}
-
-func (i *images) deferUntilBeginFrame(f func()) {
-	i.mDeferred.Lock()
-	defer i.mDeferred.Unlock()
-	i.deferred = append(i.deferred, f)
-}
-
-func (i *images) resolveDeferred() {
-	i.mDeferred.Lock()
-	defer i.mDeferred.Unlock()
-
-	for _, f := range i.deferred {
-		f()
-	}
-	i.deferred = nil
 }
 
 // resolveStaleImages resolves stale images.

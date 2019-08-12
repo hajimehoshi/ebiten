@@ -382,18 +382,25 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte) {
 	return i.backend.restorable.At(x+ox, y+oy)
 }
 
-func (i *Image) Dispose() {
+// disposeFromFinalizer disposes images, but the actual operation is deferred.
+// disposeFromFinalizer is called from finalizers.
+//
+// A function from finalizer must not be blocked, but disposing operation can be blocked.
+// Defer this operation until it becomes safe. (#913)
+func (i *Image) disposeFromFinalizer() {
 	deferredM.Lock()
 	defer deferredM.Unlock()
 
-	// Defer actual disposing until disposing can finish completely.
-	// Otherwise, ClearPixels can be deferred in between frames, and delayed ClearPixels can affect other images.
-	// (#913)
-	//
-	// TODO: Other operations should be deferred too?
 	deferred = append(deferred, func() {
 		i.dispose(true)
 	})
+}
+
+func (i *Image) Dispose() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	i.dispose(true)
 }
 
 func (i *Image) dispose(markDisposed bool) {
@@ -480,7 +487,7 @@ func (i *Image) allocate(shareable bool) {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height),
 		}
-		runtime.SetFinalizer(i, (*Image).Dispose)
+		runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 		return
 	}
 
@@ -488,7 +495,7 @@ func (i *Image) allocate(shareable bool) {
 		if n, ok := b.TryAlloc(i.width, i.height); ok {
 			i.backend = b
 			i.node = n
-			runtime.SetFinalizer(i, (*Image).Dispose)
+			runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 			return
 		}
 	}
@@ -512,7 +519,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 	i.backend = b
 	i.node = n
-	runtime.SetFinalizer(i, (*Image).Dispose)
+	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 }
 
 func (i *Image) MakeVolatile() {
@@ -544,7 +551,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		},
 		neverShared: true,
 	}
-	runtime.SetFinalizer(i, (*Image).Dispose)
+	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 	return i
 }
 
