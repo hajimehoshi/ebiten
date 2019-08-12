@@ -16,6 +16,7 @@ package restorable
 
 import (
 	"path/filepath"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 )
@@ -40,11 +41,18 @@ func EnableRestoringForTesting() {
 type images struct {
 	images     map[*Image]struct{}
 	lastTarget *Image
+
+	deferred  []func()
+	mDeferred sync.Mutex
+	deferCh   chan struct{}
+
+	once sync.Once
 }
 
 // theImages represents the images for the current process.
 var theImages = &images{
-	images: map[*Image]struct{}{},
+	images:  map[*Image]struct{}{},
+	deferCh: make(chan struct{}, 1),
 }
 
 // ResolveStaleImages flushes the queued draw commands and resolves
@@ -52,6 +60,11 @@ var theImages = &images{
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() {
+	defer func() {
+		// Until the begin o the frame (by RestoreIfNeeded, any operations are deferred.
+		theImages.deferCh <- struct{}{}
+	}()
+
 	graphicscommand.FlushCommands()
 	if !needsRestoring() {
 		return
@@ -63,6 +76,25 @@ func ResolveStaleImages() {
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
 func RestoreIfNeeded() error {
+	// Unlock except for the first time.
+	//
+	// In each frame, restoring images and resolving images happen respectively:
+	//
+	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
+	//
+	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
+	// (#913).
+	firsttime := false
+	theImages.once.Do(func() {
+		firsttime = true
+	})
+	if !firsttime {
+		<-theImages.deferCh
+	}
+
+	// Deferred functions should be resolved after restoring.
+	defer theImages.resolveDeferred()
+
 	if !needsRestoring() {
 		return nil
 	}
@@ -113,9 +145,26 @@ func (i *images) remove(img *Image) {
 	delete(i.images, img)
 }
 
+func (i *images) deferUntilBeginFrame(f func()) {
+	i.mDeferred.Lock()
+	defer i.mDeferred.Unlock()
+	i.deferred = append(i.deferred, f)
+}
+
+func (i *images) resolveDeferred() {
+	i.mDeferred.Lock()
+	defer i.mDeferred.Unlock()
+
+	for _, f := range i.deferred {
+		f()
+	}
+	i.deferred = nil
+}
+
 // resolveStaleImages resolves stale images.
 func (i *images) resolveStaleImages() {
 	i.lastTarget = nil
+	i.resolveDeferred()
 	for img := range i.images {
 		img.resolveStale()
 	}
