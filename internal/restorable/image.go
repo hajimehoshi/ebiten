@@ -444,8 +444,11 @@ func (i *Image) readPixelsFromGPUIfNeeded() {
 //
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (byte, byte, byte, byte) {
-	// As this should not affect the information for restoring, this doesn't have to be deferred.
-	// TODO: If there are deferred operations, At doesn't return the correct color. Fix this (#913).
+	// As At can be affected by deferred functions, and At itself cannot be deferred, lock this operation.
+	theImages.deferCh <- struct{}{}
+	defer func() {
+		<-theImages.deferCh
+	}()
 
 	w, h := i.image.Size()
 	if x < 0 || y < 0 || w <= x || h <= y {
