@@ -50,6 +50,7 @@ func init() {
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		backendsM.Lock()
 		defer backendsM.Unlock()
+
 		once.Do(func() {
 			if len(theBackends) != 0 {
 				panic("shareable: all the images must be not-shared before the game starts")
@@ -64,9 +65,21 @@ func init() {
 				maxSize = 512
 			}
 		})
+
+		resolveDeferred()
 		makeImagesShared()
 		return nil
 	})
+}
+
+func resolveDeferred() {
+	deferredM.Lock()
+	defer deferredM.Unlock()
+
+	for _, f := range deferred {
+		f()
+	}
+	deferred = nil
 }
 
 // MaxCountForShare represents the time duration when the image can become shared.
@@ -137,6 +150,9 @@ var (
 	theBackends = []*backend{}
 
 	imagesToMakeShared = map[*Image]struct{}{}
+
+	deferred  []func()
+	deferredM sync.Mutex
 )
 
 // isShareable reports whether the new allocation can use the shareable backends.
@@ -367,9 +383,17 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte) {
 }
 
 func (i *Image) Dispose() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	i.dispose(true)
+	deferredM.Lock()
+	defer deferredM.Unlock()
+
+	// Defer actual disposing until disposing can finish completely.
+	// Otherwise, ClearPixels can be deferred in between frames, and delayed ClearPixels can affect other images.
+	// (#913)
+	//
+	// TODO: Other operations should be deferred too?
+	deferred = append(deferred, func() {
+		i.dispose(true)
+	})
 }
 
 func (i *Image) dispose(markDisposed bool) {
