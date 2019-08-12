@@ -15,7 +15,6 @@
 package restorable
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
@@ -525,7 +524,7 @@ func (i *Image) hasDependency() bool {
 }
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
-func (i *Image) restore() error {
+func (i *Image) restore() {
 	w, h := i.Size()
 
 	// Dispose the internal image after getting its size for safety.
@@ -538,16 +537,15 @@ func (i *Image) restore() error {
 		i.basePixels = Pixels{}
 		i.drawTrianglesHistory = nil
 		i.stale = false
-		return nil
+		return
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
 		i.clear()
-		return nil
+		return
 	}
 	if i.stale {
-		// TODO: panic here?
-		return errors.New("restorable: pixels must not be stale when restoring")
+		panic("restorable: pixels must not be stale when restoring")
 	}
 
 	gimg := graphicscommand.NewImage(w, h)
@@ -570,7 +568,6 @@ func (i *Image) restore() error {
 	i.image = gimg
 	i.drawTrianglesHistory = nil
 	i.stale = false
-	return nil
 }
 
 // Dispose disposes the image.

@@ -119,7 +119,8 @@ func RestoreIfNeeded() error {
 	if err := graphicscommand.ResetGraphicsDriverState(); err != nil {
 		return err
 	}
-	return theImages.restore()
+	theImages.restore()
+	return nil
 }
 
 // DumpImages dumps all the current images to the specified directory.
@@ -194,7 +195,7 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 // restore restores the images.
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func (i *images) restore() error {
+func (i *images) restore() {
 	if !needsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
@@ -251,11 +252,8 @@ func (i *images) restore() error {
 	}
 
 	for _, img := range sorted {
-		if err := img.restore(); err != nil {
-			return err
-		}
+		img.restore()
 	}
-	return nil
 }
 
 // InitializeGraphicsDriverState initializes the graphics driver state.
