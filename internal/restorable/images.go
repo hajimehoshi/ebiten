@@ -57,7 +57,7 @@ var theImages = &images{
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() {
 	// Until the begin o the frame (by RestoreIfNeeded, any operations are locked.
-	defer theImages.m.Lock()
+	theImages.m.Lock()
 
 	graphicscommand.FlushCommands()
 	if !needsRestoring() {
