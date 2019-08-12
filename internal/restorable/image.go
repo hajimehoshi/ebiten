@@ -574,6 +574,17 @@ func (i *Image) restore() error {
 //
 // After disposing, calling the function of the image causes unexpected results.
 func (i *Image) Dispose() {
+	select {
+	case theImages.deferCh <- struct{}{}:
+		break
+	default:
+		theImages.deferUntilBeginFrame(i.Dispose)
+		return
+	}
+	defer func() {
+		<-theImages.deferCh
+	}()
+
 	theImages.remove(i)
 	i.image.Dispose()
 	i.image = nil
