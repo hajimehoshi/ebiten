@@ -78,13 +78,15 @@ func RestoreIfNeeded() error {
 	//
 	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
 	// (#913).
-	firsttime := false
-	theImages.once.Do(func() {
-		firsttime = true
-	})
-	if !firsttime {
-		theImages.m.Unlock()
-	}
+	defer func() {
+		firsttime := false
+		theImages.once.Do(func() {
+			firsttime = true
+		})
+		if !firsttime {
+			theImages.m.Unlock()
+		}
+	}()
 
 	if !needsRestoring() {
 		return nil
