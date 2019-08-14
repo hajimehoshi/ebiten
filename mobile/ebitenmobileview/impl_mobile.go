@@ -30,10 +30,10 @@ var (
 
 func update() error {
 	if chError == nil {
-		return errors.New("mobile: chError must not be nil: Start is not called yet?")
+		return errors.New("ebitenmobileview: chError must not be nil: Start is not called yet?")
 	}
 	if !running {
-		return errors.New("mobile: start must be called ahead of update")
+		return errors.New("ebitenmobileview: start must be called ahead of update")
 	}
 
 	select {
