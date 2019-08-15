@@ -81,7 +81,7 @@ func resolveDeferred() {
 
 // MaxCountForShare represents the time duration when the image can become shared.
 //
-// This value is expoted for testing.
+// This value is exported for testing.
 const MaxCountForShare = 10
 
 func makeImagesShared() {
