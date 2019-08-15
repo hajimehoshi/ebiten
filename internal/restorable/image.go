@@ -472,24 +472,20 @@ func (i *Image) hasDependency() bool {
 }
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
-func (i *Image) restore() {
-	w, h := i.Size()
-
-	// Dispose the internal image after getting its size for safety.
-	i.image.Dispose()
-	i.image = nil
+func (i *Image) restore(width, height int) {
+	// Do not dispose the image here. The image should be already disposed.
 
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
+		i.image = graphicscommand.NewScreenFramebufferImage(width, height)
 		i.basePixels = Pixels{}
 		i.drawTrianglesHistory = nil
 		i.stale = false
 		return
 	}
 	if i.volatile {
-		i.image = graphicscommand.NewImage(w, h)
+		i.image = graphicscommand.NewImage(width, height)
 		i.clear()
 		return
 	}
@@ -497,7 +493,7 @@ func (i *Image) restore() {
 		panic("restorable: pixels must not be stale when restoring")
 	}
 
-	gimg := graphicscommand.NewImage(w, h)
+	gimg := graphicscommand.NewImage(width, height)
 	// Clear the image explicitly.
 	if i != emptyImage {
 		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
@@ -515,7 +511,7 @@ func (i *Image) restore() {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
-		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, w, h)
+		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, width, height)
 	}
 
 	i.image = gimg

@@ -152,6 +152,17 @@ func (i *images) restore() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
 
+	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
+	// TODO: Write a test to confirm that ID duplication never happens.
+	sizes := map[*Image]struct{ w, h int }{}
+	for i := range i.images {
+		// Keep the size before disposing i.image.
+		w, h := i.Size()
+		sizes[i] = struct{ w, h int }{w, h}
+		i.image.Dispose()
+		i.image = nil
+	}
+
 	// Let's do topological sort based on dependencies of drawing history.
 	// It is assured that there are not loops since cyclic drawing makes images stale.
 	type edge struct {
@@ -204,7 +215,8 @@ func (i *images) restore() {
 	}
 
 	for _, img := range sorted {
-		img.restore()
+		s := sizes[img]
+		img.restore(s.w, s.h)
 	}
 }
 
