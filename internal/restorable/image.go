@@ -30,10 +30,8 @@ type Pixels struct {
 // Apply applies the Pixels state to the given image especially for restoring.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
 	if p.rectToPixels == nil {
-		clearImage(img)
 		return
 	}
-
 	p.rectToPixels.apply(img)
 }
 
