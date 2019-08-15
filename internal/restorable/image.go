@@ -500,7 +500,11 @@ func (i *Image) restore() {
 
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
-	clearImage(gimg)
+	if i != emptyImage {
+		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
+		// It is OK to skip this since emptyImage has its entire pixel information.
+		clearImage(gimg)
+	}
 	i.basePixels.Apply(gimg)
 
 	for _, c := range i.drawTrianglesHistory {
