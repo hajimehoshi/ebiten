@@ -101,11 +101,6 @@ func (i *Image) Dispose() {
 	theCommandQueue.Enqueue(c)
 }
 
-func (i *Image) Size() (int, int) {
-	// i.image can be nil before initializing.
-	return i.width, i.height
-}
-
 func (i *Image) InternalSize() (int, int) {
 	return i.internalWidth, i.internalHeight
 }

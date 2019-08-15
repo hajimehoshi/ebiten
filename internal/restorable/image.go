@@ -75,6 +75,9 @@ type drawTrianglesHistoryItem struct {
 type Image struct {
 	image *graphicscommand.Image
 
+	width  int
+	height int
+
 	basePixels Pixels
 
 	// drawTrianglesHistory is a set of draw-image commands.
@@ -100,6 +103,8 @@ func init() {
 	const w, h = 16, 16
 	emptyImage = &Image{
 		image:    graphicscommand.NewImage(w, h),
+		width:    w,
+		height:   h,
 		priority: true,
 	}
 	pix := make([]byte, 4*w*h)
@@ -120,7 +125,9 @@ func init() {
 // Note that Dispose is not called automatically.
 func NewImage(width, height int) *Image {
 	i := &Image{
-		image: graphicscommand.NewImage(width, height),
+		image:  graphicscommand.NewImage(width, height),
+		width:  width,
+		height: height,
 	}
 	i.clear()
 	theImages.add(i)
@@ -172,6 +179,8 @@ func (i *Image) MakeVolatile() {
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		image:  graphicscommand.NewScreenFramebufferImage(width, height),
+		width:  width,
+		height: height,
 		screen: true,
 	}
 	i.clear()
@@ -238,7 +247,8 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 
 // Size returns the image's size.
 func (i *Image) Size() (int, int) {
-	return i.image.Size()
+	// Do not acccess i.image since i.image can be nil after disposing.
+	return i.width, i.height
 }
 
 // internalSize returns the size of the internal texture.
@@ -290,7 +300,7 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 //
 // ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	w, h := i.image.Size()
+	w, h := i.Size()
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
 	}
@@ -397,7 +407,7 @@ func (i *Image) readPixelsFromGPUIfNeeded() {
 //
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (byte, byte, byte, byte) {
-	w, h := i.image.Size()
+	w, h := i.Size()
 	if x < 0 || y < 0 || w <= x || h <= y {
 		return 0, 0, 0, 0
 	}
@@ -472,20 +482,21 @@ func (i *Image) hasDependency() bool {
 }
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
-func (i *Image) restore(width, height int) {
+func (i *Image) restore() {
+	w, h := i.Size()
 	// Do not dispose the image here. The image should be already disposed.
 
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
 		// be changed.
-		i.image = graphicscommand.NewScreenFramebufferImage(width, height)
+		i.image = graphicscommand.NewScreenFramebufferImage(w, h)
 		i.basePixels = Pixels{}
 		i.drawTrianglesHistory = nil
 		i.stale = false
 		return
 	}
 	if i.volatile {
-		i.image = graphicscommand.NewImage(width, height)
+		i.image = graphicscommand.NewImage(w, h)
 		i.clear()
 		return
 	}
@@ -493,7 +504,7 @@ func (i *Image) restore(width, height int) {
 		panic("restorable: pixels must not be stale when restoring")
 	}
 
-	gimg := graphicscommand.NewImage(width, height)
+	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
 	if i != emptyImage {
 		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
@@ -511,7 +522,7 @@ func (i *Image) restore(width, height int) {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
-		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, width, height)
+		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, w, h)
 	}
 
 	i.image = gimg

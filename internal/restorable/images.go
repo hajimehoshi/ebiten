@@ -154,11 +154,7 @@ func (i *images) restore() {
 
 	// Dispose all the images ahead of restoring. A current texture ID and a new texture ID can be duplicated.
 	// TODO: Write a test to confirm that ID duplication never happens.
-	sizes := map[*Image]struct{ w, h int }{}
 	for i := range i.images {
-		// Keep the size before disposing i.image.
-		w, h := i.Size()
-		sizes[i] = struct{ w, h int }{w, h}
 		i.image.Dispose()
 		i.image = nil
 	}
@@ -215,8 +211,7 @@ func (i *images) restore() {
 	}
 
 	for _, img := range sorted {
-		s := sizes[img]
-		img.restore(s.w, s.h)
+		img.restore()
 	}
 }
 
