@@ -479,6 +479,7 @@ func (i *Image) restore() {
 
 	// Dispose the internal image after getting its size for safety.
 	i.image.Dispose()
+	i.image = nil
 
 	if i.screen {
 		// The screen image should also be recreated because framebuffer might
