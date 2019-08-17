@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/mobile/ebitenmobileview"
 )
 
-// Game defines a necessary function for a mobile game.
+// Game defines necessary functions for a mobile game.
 type Game interface {
 	// Update updates a game by one frame.
 	Update(*ebiten.Image) error
