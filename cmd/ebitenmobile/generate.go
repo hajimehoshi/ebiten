@@ -12,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build ios
+//go:generate file2byteslice -package=main -input=gobind.go -output=gobind.src.go -var gobindsrc
 
-// TODO: Embed this header file to .framework by an original command.
-
-#import <UIKit/UIKit.h>
-
-@interface EbitenViewController : UIViewController
-@end
+package main
