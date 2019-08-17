@@ -18,10 +18,8 @@
 // There is no guarantee of backward compatibility.
 package ebitenmobileview
 
-// #include <stdint.h>
-import "C"
-
 import (
+	"math"
 	"runtime"
 )
 
@@ -30,10 +28,32 @@ type ViewRectSetter interface {
 }
 
 func Layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
-	var x, y, width, height C.int
-	ebitenLayout(C.int(viewWidth), C.int(viewHeight), &x, &y, &width, &height)
+	theState.m.Lock()
+	defer theState.m.Unlock()
+
+	if theState.game == nil {
+		panic("ebitenmobileview: SetGame must be called before ebitenLayout")
+	}
+
+	w, h := theState.game.Layout(int(viewWidth), int(viewHeight))
+	scaleX := float64(viewWidth) / float64(w)
+	scaleY := float64(viewHeight) / float64(h)
+	scale := math.Min(scaleX, scaleY)
+
+	width := int(math.Ceil(float64(w) * scale))
+	height := int(math.Ceil(float64(h) * scale))
+	x := (viewWidth - width) / 2
+	y := (viewHeight - height) / 2
+
+	if !theState.running {
+		start(theState.game.Update, w, h, scale)
+		theState.running = true
+	} else {
+		// TODO: Change the screen size
+	}
+
 	if viewRectSetter != nil {
-		viewRectSetter.SetViewRect(int(x), int(y), int(width), int(height))
+		viewRectSetter.SetViewRect(x, y, width, height)
 	}
 }
 
@@ -48,9 +68,9 @@ func Update() error {
 }
 
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
-	ebitenUpdateTouchesOnAndroid((C.int)(action), (C.int)(id), (C.int)(x), (C.int)(y))
+	updateTouchesOnAndroid(action, id, x, y)
 }
 
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
-	ebitenUpdateTouchesOnIOS((C.int)(phase), (C.uintptr_t)(ptr), (C.int)(x), (C.int)(y))
+	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }

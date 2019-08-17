@@ -20,8 +20,6 @@ package ebitenmobileview
 import "C"
 
 import (
-	"math"
-	"runtime"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten"
