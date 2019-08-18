@@ -362,9 +362,9 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 		// m is not used for updating vsync in setScreenSize so far, but
 		// it should be OK since any goroutines can't reach here when
 		// the game already starts and setScreenSize can be called.
-		u.m.RLock()
+		u.m.Lock()
 		u.vsync = enabled
-		u.m.RUnlock()
+		u.m.Unlock()
 		return
 	}
 	_ = u.t.Call(func() error {
