@@ -68,7 +68,7 @@ type UserInterface struct {
 	input    Input
 
 	t *thread.Thread
-	m sync.Mutex
+	m sync.RWMutex
 }
 
 const (
@@ -178,9 +178,9 @@ func getCachedMonitor(wx, wy int) (*cachedMonitor, bool) {
 }
 
 func (u *UserInterface) isRunning() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.running
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -191,9 +191,9 @@ func (u *UserInterface) setRunning(running bool) {
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.initFullscreen
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -204,9 +204,9 @@ func (u *UserInterface) setInitFullscreen(initFullscreen bool) {
 }
 
 func (u *UserInterface) isInitCursorVisible() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.initCursorVisible
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -217,9 +217,9 @@ func (u *UserInterface) setInitCursorVisible(visible bool) {
 }
 
 func (u *UserInterface) isInitWindowDecorated() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.initWindowDecorated
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -230,9 +230,9 @@ func (u *UserInterface) setInitWindowDecorated(decorated bool) {
 }
 
 func (u *UserInterface) isRunnableInBackground() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.runnableInBackground
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -243,9 +243,9 @@ func (u *UserInterface) setRunnableInBackground(runnableInBackground bool) {
 }
 
 func (u *UserInterface) isInitWindowResizable() bool {
-	u.m.Lock()
+	u.m.RLock()
 	v := u.initWindowResizable
-	u.m.Unlock()
+	u.m.RUnlock()
 	return v
 }
 
@@ -256,9 +256,9 @@ func (u *UserInterface) setInitWindowResizable(resizable bool) {
 }
 
 func (u *UserInterface) getInitIconImages() []image.Image {
-	u.m.Lock()
+	u.m.RLock()
 	i := u.initIconImages
-	u.m.Unlock()
+	u.m.RUnlock()
 	return i
 }
 
@@ -362,9 +362,9 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 		// m is not used for updating vsync in setScreenSize so far, but
 		// it should be OK since any goroutines can't reach here when
 		// the game already starts and setScreenSize can be called.
-		u.m.Lock()
+		u.m.RLock()
 		u.vsync = enabled
-		u.m.Unlock()
+		u.m.RUnlock()
 		return
 	}
 	_ = u.t.Call(func() error {
@@ -374,9 +374,9 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 }
 
 func (u *UserInterface) IsVsyncEnabled() bool {
-	u.m.Lock()
+	u.m.RLock()
 	r := u.vsync
-	u.m.Unlock()
+	u.m.RUnlock()
 	return r
 }
 
@@ -822,9 +822,9 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 			return err
 		}
 
-		u.m.Lock()
+		u.m.RLock()
 		vsync := u.vsync
-		u.m.Unlock()
+		u.m.RUnlock()
 
 		_ = u.t.Call(func() error {
 			if !vsync {
