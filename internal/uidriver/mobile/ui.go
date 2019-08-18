@@ -104,16 +104,8 @@ type UserInterface struct {
 	m sync.RWMutex
 }
 
-var (
-	deviceScaleVal  float64
-	deviceScaleOnce sync.Once
-)
-
-func getDeviceScale() float64 {
-	deviceScaleOnce.Do(func() {
-		deviceScaleVal = devicescale.GetAt(0, 0)
-	})
-	return deviceScaleVal
+func deviceScale() float64 {
+	return devicescale.GetAt(0, 0)
 }
 
 // appMain is the main routine for gomobile-build mode.
@@ -149,7 +141,7 @@ func (u *UserInterface) appMain(a app.App) {
 		case touch.Event:
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
-				s := getDeviceScale()
+				s := deviceScale()
 				x, y := float64(e.X)/s, float64(e.Y)/s
 				// TODO: Is it ok to cast from int64 to int here?
 				touches[e.Sequence] = &Touch{
@@ -239,7 +231,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 	if sizeChanged {
 		width = u.width
 		height = u.height
-		actualScale = u.scaleImpl() * getDeviceScale()
+		actualScale = u.scaleImpl() * deviceScale()
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
@@ -252,7 +244,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 
 func (u *UserInterface) ActualScale() float64 {
 	u.m.Lock()
-	s := u.scaleImpl() * getDeviceScale()
+	s := u.scaleImpl() * deviceScale()
 	u.m.Unlock()
 	return s
 }
@@ -351,7 +343,7 @@ func (u *UserInterface) updateFullscreenScaleIfNeeded() {
 	if scale > scaleY {
 		scale = scaleY
 	}
-	u.fullscreenScale = scale / getDeviceScale()
+	u.fullscreenScale = scale / deviceScale()
 	u.sizeChanged = true
 }
 
@@ -366,7 +358,7 @@ func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 	if u.fullscreenScale == 0 {
 		return 0, 0, 0, 0
 	}
-	s := u.fullscreenScale * getDeviceScale()
+	s := u.fullscreenScale * deviceScale()
 	ox := (float64(u.fullscreenWidthPx) - float64(u.width)*s) / 2
 	oy := (float64(u.fullscreenHeightPx) - float64(u.height)*s) / 2
 	return ox, oy, ox, oy
@@ -375,7 +367,7 @@ func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()
-	as := s * getDeviceScale()
+	as := s * deviceScale()
 	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
 
@@ -436,7 +428,7 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
-	return getDeviceScale()
+	return deviceScale()
 }
 
 func (u *UserInterface) Input() driver.Input {
