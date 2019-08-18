@@ -105,17 +105,14 @@ type UserInterface struct {
 }
 
 var (
-	deviceScaleVal float64
-	deviceScaleM   sync.Mutex
+	deviceScaleVal  float64
+	deviceScaleOnce sync.Once
 )
 
 func getDeviceScale() float64 {
-	deviceScaleM.Lock()
-	defer deviceScaleM.Unlock()
-
-	if deviceScaleVal == 0 {
+	deviceScaleOnce.Do(func() {
 		deviceScaleVal = devicescale.GetAt(0, 0)
-	}
+	})
 	return deviceScaleVal
 }
 
