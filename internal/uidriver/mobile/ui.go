@@ -376,11 +376,9 @@ func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	u.m.Lock()
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()
 	as := s * getDeviceScale()
-	u.m.Unlock()
 	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
 
