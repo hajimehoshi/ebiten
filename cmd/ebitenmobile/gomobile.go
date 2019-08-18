@@ -24,16 +24,12 @@ import (
 
 const gomobileHash = "597adff16ade9d88626f8caea514bb189b8c74ee"
 
-func runGo(args ...string) error {
-	env := []string{
-		"GO111MODULE=on",
-	}
-
+func runCommand(command string, args []string, env []string) error {
 	if buildX || buildN {
 		for _, e := range env {
 			fmt.Printf("%s ", e)
 		}
-		fmt.Print("go")
+		fmt.Print(command)
 		for _, arg := range args {
 			fmt.Printf(" %s", arg)
 		}
@@ -44,12 +40,21 @@ func runGo(args ...string) error {
 		return nil
 	}
 
-	cmd := exec.Command("go", args...)
-	cmd.Env = append(os.Environ(), env...)
+	cmd := exec.Command(command, args...)
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("go %v failed: %v\n%v", args, string(out), err)
+		return fmt.Errorf("%s %v failed: %v\n%v", command, args, string(out), err)
 	}
 	return nil
+}
+
+func runGo(args ...string) error {
+	env := []string{
+		"GO111MODULE=on",
+	}
+	return runCommand("go", args, env)
 }
 
 func prepareGomobileCommands() error {
@@ -62,7 +67,12 @@ func prepareGomobileCommands() error {
 	if path := os.Getenv("PATH"); path != "" {
 		newpath += string(filepath.ListSeparator) + path
 	}
-	os.Setenv("PATH", newpath)
+	if buildX || buildN {
+		fmt.Printf("PATH=%s\n", newpath)
+	}
+	if !buildN {
+		os.Setenv("PATH", newpath)
+	}
 
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -104,7 +114,9 @@ func prepareGomobileCommands() error {
 		return err
 	}
 
-	// TODO: Create a gobind wrapper
+	if err := runCommand("gomobile", []string{"init"}, nil); err != nil {
+		return err
+	}
 
 	return nil
 }
