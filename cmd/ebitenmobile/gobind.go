@@ -212,6 +212,7 @@ package {{.JavaPkg}}.{{.PrefixLower}};
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.ViewGroup;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
@@ -279,6 +280,10 @@ public class EbitenView extends ViewGroup {
         }
     }
 
+    protected void onErrorOnGameUpdate(Exception e) {
+        Log.e("Go", e.toString());
+    }
+
     private EbitenSurfaceView ebitenSurfaceView_;
     private boolean initialized_ = false;
 }
@@ -290,7 +295,8 @@ package {{.JavaPkg}}.{{.PrefixLower}};
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 
@@ -298,10 +304,11 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
+import {{.JavaPkg}}.{{.PrefixLower}}.EbitenView;
 
 class EbitenSurfaceView extends GLSurfaceView {
 
-    private class EbitenRenderer implements Renderer {
+    private class EbitenRenderer implements GLSurfaceView.Renderer {
 
         private boolean errored_ = false;
 
@@ -312,10 +319,13 @@ class EbitenSurfaceView extends GLSurfaceView {
             }
             try {
                 Ebitenmobileview.update();
-            } catch (Exception e) {
-                for (String line : e.toString().split("\\n")) {
-                    Log.e("Go Error", line);
-                }
+            } catch (final Exception e) {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onErrorOnGameUpdate(e);
+                    }
+                });
                 errored_ = true;
             }
         }
@@ -365,6 +375,10 @@ class EbitenSurfaceView extends GLSurfaceView {
             Ebitenmobileview.updateTouchesOnAndroid(e.getActionMasked(), id, (int)pxToDp(x), (int)pxToDp(y));
         }
         return true;
+    }
+
+    private void onErrorOnGameUpdate(Exception e) {
+        ((EbitenView)getParent()).onErrorOnGameUpdate(e);
     }
 
     private double deviceScale_ = 0.0;
