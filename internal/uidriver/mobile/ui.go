@@ -269,19 +269,16 @@ func (u *UserInterface) scaleImpl() float64 {
 }
 
 func (u *UserInterface) update(context driver.UIContext) error {
-render:
-	for {
-		t := time.NewTimer(500 * time.Millisecond)
-		defer t.Stop()
+	t := time.NewTimer(500 * time.Millisecond)
+	defer t.Stop()
 
-		select {
-		case <-renderCh:
-			break render
-		case <-t.C:
-			context.SuspendAudio()
-			continue
-		}
+	select {
+	case <-renderCh:
+	case <-t.C:
+		context.SuspendAudio()
+		<-renderCh
 	}
+
 	context.ResumeAudio()
 
 	defer func() {
