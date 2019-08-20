@@ -108,11 +108,22 @@ func prepareGomobileCommands() error {
 	if err := os.Mkdir("src", 0755); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobindsrc, 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join("src", "gobind.go"), gobind_go, 0644); err != nil {
 		return err
 	}
-
-	if err := runGo("build", "-o", filepath.Join("bin", "gobind"), "-tags", "ebitenmobilegobind", filepath.Join("src", "gobind.go")); err != nil {
+	if err := ioutil.WriteFile(filepath.Join("src", "coffeecatch.c.go"), coffeecatch_c_go, 0644); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filepath.Join("src", "coffeecatch.h.go"), coffeecatch_h_go, 0644); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filepath.Join("src", "coffeejni.c.go"), coffeejni_c_go, 0644); err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(filepath.Join("src", "coffeejni.h.go"), coffeejni_h_go, 0644); err != nil {
+		return err
+	}
+	if err := runGo("build", "-o", filepath.Join("bin", "gobind"), "-tags", "ebitenmobilegobind", "./src"); err != nil {
 		return err
 	}
 
