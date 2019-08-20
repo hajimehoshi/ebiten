@@ -578,7 +578,8 @@ func (i *Image) resolvePendingPixels(draw bool) {
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
 //
-// Calling Dispose is not mandatory thanks to GC, but Dispose is useful if you care memory usage.
+// Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
+// However, calling Dispose explicitly is helpful if memory usage matters.
 //
 // When the image is disposed, Dipose does nothing.
 //
