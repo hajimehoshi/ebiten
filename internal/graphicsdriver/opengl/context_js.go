@@ -90,6 +90,11 @@ var (
 	unsignedShort       = contextPrototype.Get("UNSIGNED_SHORT")
 )
 
+// temporaryBuffer is a temporary buffer used at gl.readPixels.
+// The read data is converted to Go's byte slice as soon as possible.
+// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
+var temporaryBuffer = js.Global().Get("ArrayBuffer").New(16)
+
 type contextImpl struct {
 	gl            js.Value
 	lastProgramID programID
@@ -191,7 +196,14 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 
 	c.bindFramebuffer(f.native)
 
-	p := js.Global().Get("Uint8Array").New(4 * width * height)
+	l := 4 * width * height
+	if bufl := temporaryBuffer.Get("byteLength").Int(); bufl < l {
+		for bufl < l {
+			bufl *= 2
+		}
+		temporaryBuffer = js.Global().Get("ArrayBuffer").New(bufl)
+	}
+	p := js.Global().Get("Uint8Array").New(temporaryBuffer, 0, l)
 	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
 
 	return jsutil.Uint8ArrayToSlice(p), nil
