@@ -172,7 +172,7 @@ func (i *Image) disposeMipmaps() {
 // case is when you use an offscreen as a render source. An offscreen doesn't
 // share the texture atlas with high probability.
 //
-// For more performance tips, see https://github.com/hajimehoshi/ebiten/wiki/Performance-Tips.
+// For more performance tips, see https://ebiten.org/performancetips.html
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
