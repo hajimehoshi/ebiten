@@ -128,8 +128,7 @@ var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
 
-	backendsOnce sync.Once
-	initOnce     sync.Once
+	initOnce sync.Once
 
 	// theBackends is a set of actually shared images.
 	theBackends = []*backend{}
@@ -139,13 +138,8 @@ var (
 	deferred []func()
 )
 
-// isShareable reports whether the new allocation can use the shareable backends.
-//
-// isShareable retruns false before the graphics driver is available.
-// After the graphics driver is available, read-only images will be automatically on the shareable backends by
-// (*Image).makeShared().
-func isShareable() bool {
-	return minSize > 0 && maxSize > 0
+func init() {
+	backendsM.Lock()
 }
 
 type Image struct {
@@ -472,7 +466,7 @@ func (i *Image) IsVolatile() bool {
 }
 
 func NewImage(width, height int) *Image {
-	// Actual allocation is done lazily.
+	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
 		width:  width,
 		height: height,
@@ -480,8 +474,8 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) shareable() bool {
-	if !isShareable() {
-		return false
+	if minSize == 0 || maxSize == 0 {
+		panic("shareable: minSize or maxSize must be initialized")
 	}
 	if i.neverShared {
 		return false
@@ -575,8 +569,6 @@ func EndFrame() error {
 }
 
 func BeginFrame() error {
-	// Unlock except for the first time.
-	//
 	// In each frame, restoring images and resolving images happen respectively:
 	//
 	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
@@ -584,13 +576,7 @@ func BeginFrame() error {
 	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
 	// (#913).
 	defer func() {
-		firsttime := false
-		backendsOnce.Do(func() {
-			firsttime = true
-		})
-		if !firsttime {
-			backendsM.Unlock()
-		}
+		backendsM.Unlock()
 	}()
 
 	var err error

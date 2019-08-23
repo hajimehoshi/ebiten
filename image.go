@@ -19,12 +19,38 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
+
+var (
+	// imageQueue represents a queue for image operations that are ordered before the game starts (BeginFrame).
+	// Before the game starts, the package shareable doesn't determine the minimum/maximum texture sizes (#879).
+	// Instead of accessing the package shareable, defer the image operations until the game starts (#921).
+	imageQueue  []func()
+	imageQueueM sync.Mutex
+)
+
+func enqueueImageOp(f func()) {
+	imageQueueM.Lock()
+	defer imageQueueM.Unlock()
+
+	imageQueue = append(imageQueue, f)
+}
+
+func flushImageOps() {
+	imageQueueM.Lock()
+	defer imageQueueM.Unlock()
+
+	for _, f := range imageQueue {
+		f()
+	}
+	imageQueue = nil
+}
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
@@ -85,6 +111,20 @@ func (i *Image) Clear() error {
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
+
+	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		enqueueImageOp(func() {
+			r, g, b, a := clr.RGBA()
+			i.Fill(color.RGBA64{
+				R: uint16(r),
+				G: uint16(g),
+				B: uint16(b),
+				A: uint16(a),
+			})
+		})
+		return nil
+	}
+
 	if i.isDisposed() {
 		return nil
 	}
@@ -147,6 +187,15 @@ func (i *Image) disposeMipmaps() {
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
+
+	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		enqueueImageOp(func() {
+			op := *options
+			i.DrawImage(img, &op)
+		})
+		return nil
+	}
+
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
@@ -357,6 +406,19 @@ const MaxIndicesNum = graphics.IndicesNum
 // Note that this API is experimental.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
+
+	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		enqueueImageOp(func() {
+			vs := make([]Vertex, len(vertices))
+			copy(vs, vertices)
+			is := make([]uint16, len(indices))
+			copy(is, indices)
+			op := *options
+			i.DrawTriangles(vs, is, img, &op)
+		})
+		return
+	}
+
 	if i.isDisposed() {
 		return
 	}
@@ -556,6 +618,14 @@ func (i *Image) resolvePendingPixels(draw bool) {
 // Dipose always return nil as of 1.5.0-alpha.
 func (i *Image) Dispose() error {
 	i.copyCheck()
+
+	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		enqueueImageOp(func() {
+			i.Dispose()
+		})
+		return nil
+	}
+
 	if i.isDisposed() {
 		return nil
 	}
@@ -580,6 +650,16 @@ func (i *Image) Dispose() error {
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
+
+	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		enqueueImageOp(func() {
+			px := make([]byte, len(p))
+			copy(px, p)
+			i.ReplacePixels(px)
+		})
+		return nil
+	}
+
 	if i.isDisposed() {
 		return nil
 	}
@@ -663,6 +743,13 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // When the image is disposed, makeVolatile does nothing.
 func (i *Image) makeVolatile() {
+	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		enqueueImageOp(func() {
+			i.makeVolatile()
+		})
+		return
+	}
+
 	if i.isDisposed() {
 		return
 	}

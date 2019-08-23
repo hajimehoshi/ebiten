@@ -86,6 +86,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 	// Images are available after shareable is initialized.
 	atomic.StoreInt32(&isImageAvailable, 1)
+	flushImageOps()
 
 	for i := 0; i < updateCount; i++ {
 		c.offscreen.Clear()
