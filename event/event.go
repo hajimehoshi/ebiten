@@ -66,26 +66,24 @@ type Event interface {
 
 // Basic is a basic event
 type Basic struct {
-	Any struct {
-		Source
-		time.Time
-		Kind
-	}
+	BasicSource	Source
+	BasicTime	time.Time
+	BasicKind	Kind
 }
 
 // Source returns the source of the basic event
 func (b *Basic) Source() Source {
-	return b.Any.Source
+	return b.BasicSource
 }
 
 // Time stamp returns the tie stamp of the basic event
 func (b *Basic) Time() time.Time {
-	return b.Any.Time
+	return b.BasicTime
 }
 
 // Kind returns the kind of the event.
 func (b *Basic) Kind() Kind {
-	return b.Any.Kind
+	return b.BasicKind
 }
 
 // Code of a key press
@@ -219,8 +217,3 @@ type Touch struct {
 	Primary bool
 }
 
-// NewChannel returns a channel on which you can listen for incoming events
-func NewChannel() chan<- Event {
-	// TODO
-	return nil
-}
