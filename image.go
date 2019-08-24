@@ -78,14 +78,6 @@ func (i *Image) Clear() error {
 	return nil
 }
 
-var emptyImage *Image
-
-func init() {
-	emptyImage, _ = NewImage(1, 1, FilterDefault)
-	// (*Image).Fill uses emptyImage, then Fill cannot be called here.
-	emptyImage.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff})
-}
-
 // Fill fills the image with a solid color.
 //
 // When the image is disposed, Fill does nothing.
@@ -104,27 +96,8 @@ func (i *Image) Fill(clr color.Color) error {
 
 	i.resolvePendingPixels(false)
 
-	r, g, b, a := clr.RGBA()
-	rf, gf, bf, af := 0.0, 0.0, 0.0, 0.0
-	if a > 0 {
-		rf = float64(r) / float64(a)
-		gf = float64(g) / float64(a)
-		bf = float64(b) / float64(a)
-		af = float64(a) / 0xffff
-	}
-
-	sw, sh := emptyImage.Size()
-	dw, dh := i.Size()
-
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(float64(dw)/float64(sw), float64(dh)/float64(sh))
-	op.ColorM.Scale(rf, gf, bf, af)
-	// TODO: Use the previous composite mode if possible.
-	if af < 1.0 {
-		op.CompositeMode = CompositeModeCopy
-	}
-	// TODO: As all the pixels will be changed, this image can reset the information for restoring.
-	i.DrawImage(emptyImage, op)
+	i.mipmap.original().Fill(clr)
+	i.disposeMipmaps()
 	return nil
 }
 

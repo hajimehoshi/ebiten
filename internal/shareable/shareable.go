@@ -16,6 +16,7 @@ package shareable
 
 import (
 	"fmt"
+	"image/color"
 	"runtime"
 	"sync"
 
@@ -327,6 +328,28 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if !img.isShared() && img.shareable() {
 		imagesToMakeShared[img] = struct{}{}
 	}
+}
+
+func (i *Image) Fill(clr color.Color) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if i.disposed {
+		panic("shareable: the drawing target image must not be disposed (Fill)")
+	}
+	if i.backend == nil {
+		if _, _, _, a := clr.RGBA(); a == 0 {
+			return
+		}
+	}
+
+	i.ensureNotShared()
+
+	x, y, width, height := i.region()
+	i.backend.restorable.Fill(clr, x, y, width, height)
+
+	i.nonUpdatedCount = 0
+	delete(imagesToMakeShared, i)
 }
 
 // ClearFramebuffer clears the image with a color. This affects not only the (0, 0)-(width, height) region but also

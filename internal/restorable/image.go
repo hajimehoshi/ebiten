@@ -16,6 +16,7 @@ package restorable
 
 import (
 	"fmt"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -100,7 +101,9 @@ type Image struct {
 var emptyImage *Image
 
 func init() {
-	const w, h = 16, 16
+	// Use a big-enough image as an rendering source. By enlarging with x128, this can reach to 16384.
+	// See #907 for details.
+	const w, h = 128, 128
 	emptyImage = &Image{
 		image:    graphicscommand.NewImage(w, h),
 		width:    w,
@@ -227,6 +230,40 @@ func (i *Image) clear() {
 	i.basePixels = Pixels{}
 	i.drawTrianglesHistory = nil
 	i.stale = false
+}
+
+// Fill fills the specified part of the image with a solid color.
+func (i *Image) Fill(clr color.Color, x, y, width, height int) {
+	// If all the pixels will be changed, reset the information for restoring.
+	if w, h := i.Size(); x == 0 && y == 0 && width == w && height == h {
+		i.basePixels = Pixels{}
+		i.drawTrianglesHistory = nil
+		i.stale = false
+	}
+
+	var rf, gf, bf, af float32
+	if r, g, b, a := clr.RGBA(); a > 0 {
+		rf = float32(r) / float32(a)
+		gf = float32(g) / float32(a)
+		bf = float32(b) / float32(a)
+		af = float32(a) / 0xffff
+	}
+
+	// TODO: Use the previous composite mode if possible.
+	compositemode := driver.CompositeModeSourceOver
+	if af < 1.0 {
+		compositemode = driver.CompositeModeCopy
+	}
+
+	dw, dh := width, height
+	sw, sh := emptyImage.Size()
+	vs := make([]float32, 4*graphics.VertexFloatNum)
+	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
+		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), float32(x), float32(y),
+		rf, gf, bf, af)
+	is := graphics.QuadIndices()
+
+	i.DrawTriangles(emptyImage, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
 }
 
 func (i *Image) IsVolatile() bool {
