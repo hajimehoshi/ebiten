@@ -724,7 +724,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	return i, nil
 }
 
-func newImageWithScreenFramebuffer(width, height int) *Image {
+func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		mipmap: newMipmap(shareable.NewScreenFramebufferImage(width, height)),
 		filter: FilterDefault,

@@ -67,7 +67,7 @@ func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) 
 	w := int(math.Ceil(float64(screenWidth) * screenScale))
 	h := int(math.Ceil(float64(screenHeight) * screenScale))
 	px0, py0, px1, py1 := uidriver.Get().ScreenPadding()
-	c.screen = newImageWithScreenFramebuffer(w+int(math.Ceil(px0+px1)), h+int(math.Ceil(py0+py1)))
+	c.screen = newScreenFramebufferImage(w+int(math.Ceil(px0+px1)), h+int(math.Ceil(py0+py1)))
 	c.screenWidth = w
 	c.screenHeight = h
 

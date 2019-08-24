@@ -166,6 +166,7 @@ type Image struct {
 	width    int
 	height   int
 	disposed bool
+	screen   bool
 
 	backend *backend
 
@@ -494,6 +495,14 @@ func (i *Image) allocate(shareable bool) {
 		panic("shareable: the image is already allocated")
 	}
 
+	if i.screen {
+		i.backend = &backend{
+			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
+		}
+		runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
+		return
+	}
+
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height),
@@ -550,19 +559,13 @@ func (i *Image) Dump(path string) error {
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	r := restorable.NewScreenFramebufferImage(width, height)
+	// Actual allocation is done lazily.
 	i := &Image{
-		width:  width,
-		height: height,
-		backend: &backend{
-			restorable: r,
-		},
+		width:       width,
+		height:      height,
+		screen:      true,
 		neverShared: true,
 	}
-	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 	return i
 }
 
