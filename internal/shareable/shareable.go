@@ -342,15 +342,6 @@ func (i *Image) ClearFramebuffer() {
 	i.backend.restorable.Clear()
 }
 
-func (i *Image) ResetRestoringState() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	if i.backend == nil {
-		return
-	}
-	i.backend.restorable.ResetRestoringState()
-}
-
 func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
