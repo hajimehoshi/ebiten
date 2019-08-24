@@ -17,7 +17,6 @@
 package web
 
 import (
-	"runtime"
 	"strings"
 	"syscall/js"
 )
