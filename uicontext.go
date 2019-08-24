@@ -17,6 +17,7 @@ package ebiten
 import (
 	"fmt"
 	"math"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -96,6 +97,10 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	if err := shareable.BeginFrame(); err != nil {
 		return err
 	}
+
+	// Images are available after shareable is initialized.
+	atomic.StoreInt32(&isImageAvailable, 1)
+
 	for i := 0; i < updateCount; i++ {
 		c.offscreen.Clear()
 		// Mipmap images should be disposed by fill.

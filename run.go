@@ -22,7 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/internal/uidriver"
-	"github.com/hajimehoshi/ebiten/internal/web"
 )
 
 var _ = __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__
@@ -47,7 +46,7 @@ func CurrentFPS() float64 {
 var (
 	isDrawingSkipped = int32(0)
 	currentMaxTPS    = int32(DefaultTPS)
-	isRunning        = int32(0)
+	isImageAvailable = int32(0)
 )
 
 func setDrawingSkipped(skipped bool) {
@@ -133,12 +132,6 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	c := newUIContext(f)
 	theUIContext.Store(c)
 
-	atomic.StoreInt32(&isRunning, 1)
-	// On GopherJS, run returns immediately.
-	if !web.IsGopherJS() {
-		defer atomic.StoreInt32(&isRunning, 0)
-	}
-
 	if err := uidriver.Get().Run(width, height, scale, title, c, graphicsdriver.Get()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
@@ -160,7 +153,6 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	c := newUIContext(f)
 	theUIContext.Store(c)
 
-	atomic.StoreInt32(&isRunning, 1)
 	return uidriver.Get().RunWithoutMainLoop(width, height, scale, title, c, graphicsdriver.Get())
 }
 

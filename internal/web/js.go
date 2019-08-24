@@ -22,10 +22,6 @@ import (
 	"syscall/js"
 )
 
-func IsGopherJS() bool {
-	return runtime.GOOS != "js"
-}
-
 func IsBrowser() bool {
 	return true
 }
