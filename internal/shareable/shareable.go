@@ -47,25 +47,9 @@ func min(a, b int) int {
 }
 
 func init() {
-	var once sync.Once
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		backendsM.Lock()
 		defer backendsM.Unlock()
-
-		once.Do(func() {
-			if len(theBackends) != 0 {
-				panic("shareable: all the images must be not-shared before the game starts")
-			}
-			if graphicsDriver.HasHighPrecisionFloat() {
-				minSize = 1024
-				// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
-				// not enough evidences that bigger textures works correctly.
-				maxSize = min(4096, graphicsDriver.MaxImageSize())
-			} else {
-				minSize = 512
-				maxSize = 512
-			}
-		})
 
 		resolveDeferred()
 		makeImagesShared()
@@ -612,6 +596,21 @@ func BeginFrame() error {
 	var err error
 	initOnce.Do(func() {
 		err = restorable.InitializeGraphicsDriverState()
+		if err != nil {
+			return
+		}
+		if len(theBackends) != 0 {
+			panic("shareable: all the images must be not-shared before the game starts")
+		}
+		if graphicsDriver.HasHighPrecisionFloat() {
+			minSize = 1024
+			// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
+			// not enough evidences that bigger textures works correctly.
+			maxSize = min(4096, graphicsDriver.MaxImageSize())
+		} else {
+			minSize = 512
+			maxSize = 512
+		}
 	})
 	if err != nil {
 		return err
