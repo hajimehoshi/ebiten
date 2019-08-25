@@ -35,6 +35,26 @@ var (
 	needsEnqueueImageOps = true
 )
 
+func checkNeedsEnqueueImageOp(location string) {
+	imageQueueM.Lock()
+	defer imageQueueM.Unlock()
+
+	if needsEnqueueImageOps {
+		panic(fmt.Sprintf("ebiten: %s is not available before the game starts", location))
+	}
+}
+
+func enqueueImageOpIfNeeded(f func() func()) bool {
+	imageQueueM.Lock()
+	defer imageQueueM.Unlock()
+
+	if !needsEnqueueImageOps {
+		return false
+	}
+	imageQueue = append(imageQueue, f())
+	return true
+}
+
 func flushImageOpsIfNeeded() {
 	imageQueueM.Lock()
 
@@ -117,21 +137,19 @@ func (i *Image) Clear() error {
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
-	imageQueueM.Lock()
-	if needsEnqueueImageOps {
+	if enqueueImageOpIfNeeded(func() func() {
 		r, g, b, a := clr.RGBA()
-		imageQueue = append(imageQueue, func() {
+		return func() {
 			i.Fill(color.RGBA64{
 				R: uint16(r),
 				G: uint16(g),
 				B: uint16(b),
 				A: uint16(a),
 			})
-		})
-		imageQueueM.Unlock()
+		}
+	}) {
 		return nil
 	}
-	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return nil
@@ -196,16 +214,14 @@ func (i *Image) disposeMipmaps() {
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 
-	imageQueueM.Lock()
-	if needsEnqueueImageOps {
+	if enqueueImageOpIfNeeded(func() func() {
 		op := *options
-		imageQueue = append(imageQueue, func() {
+		return func() {
 			i.DrawImage(img, &op)
-		})
-		imageQueueM.Unlock()
+		}
+	}) {
 		return nil
 	}
-	imageQueueM.Unlock()
 
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
@@ -418,20 +434,18 @@ const MaxIndicesNum = graphics.IndicesNum
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
-	imageQueueM.Lock()
-	if needsEnqueueImageOps {
+	if enqueueImageOpIfNeeded(func() func() {
 		vs := make([]Vertex, len(vertices))
 		copy(vs, vertices)
 		is := make([]uint16, len(indices))
 		copy(is, indices)
 		op := *options
-		imageQueue = append(imageQueue, func() {
+		return func() {
 			i.DrawTriangles(vs, is, img, &op)
-		})
-		imageQueueM.Unlock()
+		}
+	}) {
 		return
 	}
-	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return
@@ -542,12 +556,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
-	imageQueueM.Lock()
-	n := needsEnqueueImageOps
-	imageQueueM.Unlock()
-	if n {
-		panic("ebiten: (*Image).At is not available outside the main loop so far")
-	}
+	checkNeedsEnqueueImageOp("(*Image).At")
 
 	if i.isDisposed() {
 		return color.RGBA{}
@@ -568,12 +577,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // If the image is disposed, Set does nothing.
 func (img *Image) Set(x, y int, clr color.Color) {
-	imageQueueM.Lock()
-	n := needsEnqueueImageOps
-	imageQueueM.Unlock()
-	if n {
-		panic("ebiten: (*Image).Set is not available outside the main loop so far")
-	}
+	checkNeedsEnqueueImageOp("(*Image).Set")
 
 	img.copyCheck()
 	if img.isDisposed() {
@@ -639,15 +643,13 @@ func (i *Image) resolvePendingPixels(draw bool) {
 func (i *Image) Dispose() error {
 	i.copyCheck()
 
-	imageQueueM.Lock()
-	if needsEnqueueImageOps {
-		imageQueue = append(imageQueue, func() {
+	if enqueueImageOpIfNeeded(func() func() {
+		return func() {
 			i.Dispose()
-		})
-		imageQueueM.Unlock()
+		}
+	}) {
 		return nil
 	}
-	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return nil
@@ -674,17 +676,15 @@ func (i *Image) Dispose() error {
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
 
-	imageQueueM.Lock()
-	if needsEnqueueImageOps {
+	if enqueueImageOpIfNeeded(func() func() {
 		px := make([]byte, len(p))
 		copy(px, p)
-		imageQueue = append(imageQueue, func() {
+		return func() {
 			i.ReplacePixels(px)
-		})
-		imageQueueM.Unlock()
+		}
+	}) {
 		return nil
 	}
-	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return nil
@@ -769,15 +769,13 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // When the image is disposed, makeVolatile does nothing.
 func (i *Image) makeVolatile() {
-	imageQueueM.Lock()
-	if needsEnqueueImageOps {
-		imageQueue = append(imageQueue, func() {
+	if enqueueImageOpIfNeeded(func() func() {
+		return func() {
 			i.makeVolatile()
-		})
-		imageQueueM.Unlock()
+		}
+	}) {
 		return
 	}
-	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return
