@@ -20,7 +20,6 @@ import (
 	"image/color"
 	"math"
 	"sync"
-	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -31,21 +30,27 @@ var (
 	// imageQueue represents a queue for image operations that are ordered before the game starts (BeginFrame).
 	// Before the game starts, the package shareable doesn't determine the minimum/maximum texture sizes (#879).
 	// Instead of accessing the package shareable, defer the image operations until the game starts (#921).
-	imageQueue  []func()
-	imageQueueM sync.Mutex
+	imageQueue           []func()
+	imageQueueM          sync.Mutex
+	needsEnqueueImageOps = true
 )
 
-func enqueueImageOp(f func()) {
+func flushImageOpsIfNeeded() {
 	imageQueueM.Lock()
-	defer imageQueueM.Unlock()
 
-	imageQueue = append(imageQueue, f)
-}
+	if !needsEnqueueImageOps {
+		if len(imageQueue) > 0 {
+			panic("ebiten: len(imageQueue) must be 0 after the game starts")
+		}
+		imageQueueM.Unlock()
+		return
+	}
 
-func flushImageOps() {
-	imageQueueM.Lock()
-	defer imageQueueM.Unlock()
+	// Set this flag false first, or the image operations will be queued again.
+	needsEnqueueImageOps = false
+	imageQueueM.Unlock()
 
+	// As a new item will not be enqueued any longer, mutex does not have to, or should not be used.
 	for _, f := range imageQueue {
 		f()
 	}
@@ -112,9 +117,10 @@ func (i *Image) Clear() error {
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
+	imageQueueM.Lock()
+	if needsEnqueueImageOps {
 		r, g, b, a := clr.RGBA()
-		enqueueImageOp(func() {
+		imageQueue = append(imageQueue, func() {
 			i.Fill(color.RGBA64{
 				R: uint16(r),
 				G: uint16(g),
@@ -122,8 +128,10 @@ func (i *Image) Fill(clr color.Color) error {
 				A: uint16(a),
 			})
 		})
+		imageQueueM.Unlock()
 		return nil
 	}
+	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return nil
@@ -188,13 +196,16 @@ func (i *Image) disposeMipmaps() {
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
+	imageQueueM.Lock()
+	if needsEnqueueImageOps {
 		op := *options
-		enqueueImageOp(func() {
+		imageQueue = append(imageQueue, func() {
 			i.DrawImage(img, &op)
 		})
+		imageQueueM.Unlock()
 		return nil
 	}
+	imageQueueM.Unlock()
 
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
@@ -407,17 +418,20 @@ const MaxIndicesNum = graphics.IndicesNum
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
+	imageQueueM.Lock()
+	if needsEnqueueImageOps {
 		vs := make([]Vertex, len(vertices))
 		copy(vs, vertices)
 		is := make([]uint16, len(indices))
 		copy(is, indices)
 		op := *options
-		enqueueImageOp(func() {
+		imageQueue = append(imageQueue, func() {
 			i.DrawTriangles(vs, is, img, &op)
 		})
+		imageQueueM.Unlock()
 		return
 	}
+	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return
@@ -528,7 +542,10 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
+	imageQueueM.Lock()
+	n := needsEnqueueImageOps
+	imageQueueM.Unlock()
+	if n {
 		panic("ebiten: (*Image).At is not available outside the main loop so far")
 	}
 
@@ -551,7 +568,10 @@ func (i *Image) At(x, y int) color.Color {
 //
 // If the image is disposed, Set does nothing.
 func (img *Image) Set(x, y int, clr color.Color) {
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
+	imageQueueM.Lock()
+	n := needsEnqueueImageOps
+	imageQueueM.Unlock()
+	if n {
 		panic("ebiten: (*Image).Set is not available outside the main loop so far")
 	}
 
@@ -619,12 +639,15 @@ func (i *Image) resolvePendingPixels(draw bool) {
 func (i *Image) Dispose() error {
 	i.copyCheck()
 
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
-		enqueueImageOp(func() {
+	imageQueueM.Lock()
+	if needsEnqueueImageOps {
+		imageQueue = append(imageQueue, func() {
 			i.Dispose()
 		})
+		imageQueueM.Unlock()
 		return nil
 	}
+	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return nil
@@ -651,14 +674,17 @@ func (i *Image) Dispose() error {
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
 
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
+	imageQueueM.Lock()
+	if needsEnqueueImageOps {
 		px := make([]byte, len(p))
 		copy(px, p)
-		enqueueImageOp(func() {
+		imageQueue = append(imageQueue, func() {
 			i.ReplacePixels(px)
 		})
+		imageQueueM.Unlock()
 		return nil
 	}
+	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return nil
@@ -743,12 +769,15 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // When the image is disposed, makeVolatile does nothing.
 func (i *Image) makeVolatile() {
-	if atomic.LoadInt32(&isImageAvailable) == 0 {
-		enqueueImageOp(func() {
+	imageQueueM.Lock()
+	if needsEnqueueImageOps {
+		imageQueue = append(imageQueue, func() {
 			i.makeVolatile()
 		})
+		imageQueueM.Unlock()
 		return
 	}
+	imageQueueM.Unlock()
 
 	if i.isDisposed() {
 		return

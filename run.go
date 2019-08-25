@@ -46,7 +46,6 @@ func CurrentFPS() float64 {
 var (
 	isDrawingSkipped = int32(0)
 	currentMaxTPS    = int32(DefaultTPS)
-	isImageAvailable = int32(0)
 )
 
 func setDrawingSkipped(skipped bool) {
