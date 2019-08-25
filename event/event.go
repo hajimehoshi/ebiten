@@ -1,7 +1,5 @@
 package event
 
-import "time"
-
 // Kind is the detailed type of the event
 type Kind int
 
@@ -56,34 +54,19 @@ type Source interface {
 
 // Events implement this interface
 type Event interface {
-	// Source of the event
-	Source() Source
-	// Time the event was sent, in seconds after the program started
-	Time() time.Time
 	// Detailed type of the event
-	Kind() Kind
+	EventKind() Kind
 }
 
 // Basic is a basic event
 type Basic struct {
-	BasicSource	Source
-	BasicTime	time.Time
-	BasicKind	Kind
+	Kind	Kind
 }
 
-// Source returns the source of the basic event
-func (b *Basic) Source() Source {
-	return b.BasicSource
-}
-
-// Time stamp returns the tie stamp of the basic event
-func (b *Basic) Time() time.Time {
-	return b.BasicTime
-}
 
 // Kind returns the kind of the event.
-func (b *Basic) Kind() Kind {
-	return b.BasicKind
+func (b *Basic) EventKind() Kind {
+	return b.Kind
 }
 
 // Code of a key press
@@ -162,10 +145,6 @@ type Mouse struct {
 	DX MouseDelta
 	// Change in Y since last event
 	DY MouseDelta
-	// Change in Z since last event
-	DZ MouseDelta
-	// Change in W since last event
-	DW MouseDelta
 
 	// Which button was pressed, if any.
 	MouseButton
@@ -212,6 +191,8 @@ type Touch struct {
 	DX TouchDelta
 	// Change in Y since last event
 	DY TouchDelta
+	// Pressure of applied touch
+	TouchPressure
 
 	// Is the touch event primary or not.
 	Primary bool
