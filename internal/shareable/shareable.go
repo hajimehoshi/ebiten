@@ -145,6 +145,7 @@ var (
 	backendsM sync.Mutex
 
 	backendsOnce sync.Once
+	initOnce     sync.Once
 
 	// theBackends is a set of actually shared images.
 	theBackends = []*backend{}
@@ -583,12 +584,6 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	return i
 }
 
-func InitializeGraphicsDriverState() error {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	return restorable.InitializeGraphicsDriverState()
-}
-
 func EndFrame() error {
 	backendsM.Lock()
 	restorable.ResolveStaleImages()
@@ -613,6 +608,15 @@ func BeginFrame() error {
 			backendsM.Unlock()
 		}
 	}()
+
+	var err error
+	initOnce.Do(func() {
+		err = restorable.InitializeGraphicsDriverState()
+	})
+	if err != nil {
+		return err
+	}
+
 	return restorable.RestoreIfNeeded()
 }
 

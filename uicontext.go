@@ -46,7 +46,6 @@ type uiContext struct {
 	screenWidth  int
 	screenHeight int
 	screenScale  float64
-	initialized  bool
 	offsetX      float64
 	offsetY      float64
 }
@@ -75,25 +74,12 @@ func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) 
 	c.offsetY = py0
 }
 
-func (c *uiContext) initializeIfNeeded() error {
-	if !c.initialized {
-		if err := shareable.InitializeGraphicsDriverState(); err != nil {
-			return err
-		}
-		c.initialized = true
-	}
-	return nil
-}
-
 func (c *uiContext) Update(afterFrameUpdate func()) error {
 	tps := int(MaxTPS())
 	updateCount := clock.Update(tps)
 
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
-	if err := c.initializeIfNeeded(); err != nil {
-		return err
-	}
 	if err := shareable.BeginFrame(); err != nil {
 		return err
 	}
