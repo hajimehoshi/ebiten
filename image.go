@@ -113,8 +113,8 @@ func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
 	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		r, g, b, a := clr.RGBA()
 		enqueueImageOp(func() {
-			r, g, b, a := clr.RGBA()
 			i.Fill(color.RGBA64{
 				R: uint16(r),
 				G: uint16(g),
@@ -189,8 +189,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
 
 	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		op := *options
 		enqueueImageOp(func() {
-			op := *options
 			i.DrawImage(img, &op)
 		})
 		return nil
@@ -408,12 +408,12 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	i.copyCheck()
 
 	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		vs := make([]Vertex, len(vertices))
+		copy(vs, vertices)
+		is := make([]uint16, len(indices))
+		copy(is, indices)
+		op := *options
 		enqueueImageOp(func() {
-			vs := make([]Vertex, len(vertices))
-			copy(vs, vertices)
-			is := make([]uint16, len(indices))
-			copy(is, indices)
-			op := *options
 			i.DrawTriangles(vs, is, img, &op)
 		})
 		return
@@ -652,9 +652,9 @@ func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
 
 	if atomic.LoadInt32(&isImageAvailable) == 0 {
+		px := make([]byte, len(p))
+		copy(px, p)
 		enqueueImageOp(func() {
-			px := make([]byte, len(p))
-			copy(px, p)
 			i.ReplacePixels(px)
 		})
 		return nil
