@@ -139,6 +139,14 @@ var (
 )
 
 func init() {
+	// Lock the mutex before a frame begins.
+	//
+	// In each frame, restoring images and resolving images happen respectively:
+	//
+	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
+	//
+	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
+	// (#913).
 	backendsM.Lock()
 }
 
@@ -564,20 +572,13 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func EndFrame() error {
 	backendsM.Lock()
+
 	restorable.ResolveStaleImages()
 	return restorable.Error()
 }
 
 func BeginFrame() error {
-	// In each frame, restoring images and resolving images happen respectively:
-	//
-	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
-	//
-	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
-	// (#913).
-	defer func() {
-		backendsM.Unlock()
-	}()
+	defer backendsM.Unlock()
 
 	var err error
 	initOnce.Do(func() {
