@@ -55,7 +55,7 @@ type GamepadAxes struct {
 	// Axis the game pad that changed, if any
 	Axis int
 	// Position of the axis after the change
-	Position int
+	Position float32
 }
 
 // GamePadAxis is for event where a button on a game pad changes.
@@ -65,7 +65,7 @@ type GamepadButton struct {
         // Button that was pressed, if any.
 	Button int
 	// Position of the button after the change.
-	Position int
+	Position float32
 }
 
 
@@ -90,17 +90,17 @@ type Mouse struct {
 	Basic
 
 	// X position of the event
-	X int
+	X float32
 	// Y position of the event
-	Y int
+	Y float32
 	// Wheel is the position of the mouse wheel
-	Wheel int
+	Wheel float32
 	// DeltaX is the change in X since last event
-	DeltaX int
+	DeltaX float32
 	// DeltaY is the change in Y since last event
-	DeltaY int
+	DeltaY float32
 	// DeltaWheelis the change in the wheel position since last event
-	DeltaWheel int
+	DeltaWheel float32
 }
 
 
@@ -116,7 +116,7 @@ type MouseButton struct {
 	// Button that was pressed.
 	Button int
 	// Pressure applied on the mouse click
-	Pressure int
+	Pressure float32
 }
 
 type MouseButtonDown struct {
@@ -175,15 +175,15 @@ type Touch struct {
 	// Touch ID that caused the touch event
 	ID int
 	// X position of the event
-	X int
+	X float32
 	// Y position of the event
-	Y int
+	Y float32
 	// Change in X since last event
-	DeltaX int
+	DeltaX float32
 	// Change in Y since last event
-	DeltaY int
+	DeltaY float32
 	// Pressure of applied touch
-	Pressure int
+	Pressure float32
 
 	// Is the touch event primary or not.
 	Primary bool
