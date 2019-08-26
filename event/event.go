@@ -50,17 +50,17 @@ type gamepad struct {
 	ID int
 }
 
-// GamePadAxis is for event where an axis on a game pad changes.
+// GamepadAxis is for event where an axis on a game pad changes.
 type GamepadAxis struct { 	
 	// gamepad, because this  a game pad event
 	gamepad
-	// Axis the game pad that changed, if any
+	// Axis of the game pad that changed, if any
 	Axis int
 	// Position of the axis after the change
 	Position float32
 }
 
-func NewGamePadAxis(id, axis int, position float32) GamepadAxis {
+func NewGamepadAxis(id, axis int, position float32) GamepadAxis {
     return GamepadAxis{gamepad:gamepad{ID: id}, Axis: axis, Position: position}
 } 
 
@@ -78,6 +78,7 @@ func newGamepadButton(id, button int, position float32) gamepadButton {
     return gamepadButton{gamepad:gamepad{ID: id}, Button: button, Position: position}
 }
 
+//GamepadButtonDown is a game pad button press event
 type GamepadButtonDown struct { 
 	// GamepadButton because it is a game pad button event
 	gamepadButton
@@ -88,6 +89,7 @@ func NewGamepadButtonDown(id, button int, position float32) GamepadButtonDown {
 } 
 
 
+//GamepadButtonUp is a game pad button release event
 type GamepadButtonUp struct { 
 	// GamepadButton because it is a game pad button event
 	gamepadButton
@@ -97,15 +99,29 @@ func NewGamepadButtonUp(id, button int, position float32) GamepadButtonUp {
     return GamepadButtonUp{gamepadButton:newGamepadButton(id, button, position)}
 } 
 
-type GamepadConfiguration struct { 
+//GamepadAttach happens when a new game pad is attached
+type GamepadAttach struct { 
+	// gamepad because it is a game pad related
+	gamepad
+	// Amount of axes the game pad has.
+	Axes int
+	// Amount of buttons it has.
+	Buttons int 
+}
+
+func NewGamepadAttach(id, axes, buttons int) GamepadAttach {
+    return GamepadAttach{gamepad:gamepad{ID: id}, Axes: axes, Buttons: buttons}
+} 
+
+//GamepadDetach happens when a game pad is detached
+type GamepadDetach struct { 
 	// gamepad because it is a game pad related
 	gamepad
 }
 
-func NewGamepadConfiguration(id int) GamepadConfiguration {
-    return GamepadConfiguration{gamepad:gamepad{ID: id}}
-} 
-
+func NewGamepadDetach(id int) GamepadDetach {
+    return GamepadDetach{gamepad:gamepad{ID: id}}
+}
 
 // mouse related event data
 type mouse struct {
@@ -173,8 +189,8 @@ type MouseButtonUp struct {
 	mouseButton
 }
 
-func NewMouseButtonUp(x, y, wheel, deltax, deltay, deltawheel float32, button int, pressure float32) MouseButtonDown {
-    return MouseButtonDown{mouseButton: 
+func NewMouseButtonUp(x, y, wheel, deltax, deltay, deltawheel float32, button int, pressure float32) MouseButtonUp {
+    return MouseButtonUp{mouseButton: 
         newMouseButton(x, y, wheel, deltax, deltay, deltawheel, button, pressure),
     }
 }
@@ -299,4 +315,20 @@ type TouchCancel struct {
 func NewTouchCancel(id int, x, y, deltax, deltay, pressure float32, primary bool) TouchCancel {
     return TouchCancel{touch: newTouch(id, x, y, deltax, deltay, pressure, primary)}
 }
+
+
+type Channel chan Event
+
+func (c Channel) KeyCharacter(code, modifiers int, character rune) {
+	c <- NewKeyCharacter(code, modifiers, character)
+}
+
+func (c Channel) KeyUp(code, modifiers int) {
+	c <- NewKeyUp(code, modifiers)
+}
+
+func (c Channel) KeyDown(code, modifiers int) {
+	c <- NewKeyUp(code, modifiers)
+}
+
 
