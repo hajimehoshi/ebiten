@@ -50,9 +50,9 @@ type Gamepad struct {
 
 // GamePadAxis is for event where an axis on a game pad changes.
 type GamepadAxes struct { 	
-	// Gamepad, becase this  a game pad event
+	// Gamepad, because this  a game pad event
 	Gamepad
-	// Axis of the game pad that changed, if any
+	// Axis the game pad that changed, if any
 	Axis int
 	// Position of the axis after the change
 	Position int
@@ -60,7 +60,9 @@ type GamepadAxes struct {
 
 // GamePadAxis is for event where a button on a game pad changes.
 type GamepadButton struct { 
-	// Button that was pressed, if any.
+	// Gamepad, because this is a game pad event
+        Gamepad
+        // Button that was pressed, if any.
 	Button int
 	// Position of the button after the change.
 	Position int
