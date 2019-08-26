@@ -25,11 +25,17 @@ import (
 )
 
 type Pixels struct {
+	baseColor    color.RGBA
 	rectToPixels *rectToPixels
 }
 
 // Apply applies the Pixels state to the given image especially for restoring.
 func (p *Pixels) Apply(img *graphicscommand.Image) {
+	// Pixels doesn't clear the image. This is a caller's responsibility.
+	if p.baseColor != (color.RGBA{}) {
+		fillImage(img, p.baseColor)
+	}
+
 	if p.rectToPixels == nil {
 		return
 	}
@@ -58,7 +64,7 @@ func (p *Pixels) At(i, j int) (byte, byte, byte, byte) {
 			return r, g, b, a
 		}
 	}
-	return 0, 0, 0, 0
+	return p.baseColor.R, p.baseColor.G, p.baseColor.B, p.baseColor.A
 }
 
 // drawTrianglesHistoryItem is an item for history of draw-image commands.
@@ -163,6 +169,9 @@ func (i *Image) Extend(width, height int) *Image {
 	newImg := NewImage(width, height)
 	i.basePixels.Apply(newImg.image)
 
+	if i.basePixels.baseColor != (color.RGBA{}) {
+		panic("restorable: baseColor must be empty at Extend")
+	}
 	newImg.basePixels = i.basePixels
 
 	i.Dispose()
@@ -233,20 +242,29 @@ func (i *Image) clear() {
 }
 
 // Fill fills the specified part of the image with a solid color.
-func (i *Image) Fill(clr color.Color, x, y, width, height int) {
-	// If all the pixels will be changed, reset the information for restoring.
-	if w, h := i.Size(); x == 0 && y == 0 && width == w && height == h {
-		i.basePixels = Pixels{}
-		i.drawTrianglesHistory = nil
-		i.stale = false
+func (i *Image) Fill(clr color.Color) {
+	i.basePixels = Pixels{
+		baseColor: color.RGBAModel.Convert(clr).(color.RGBA),
+	}
+	i.drawTrianglesHistory = nil
+	i.stale = false
+
+	// Do not call i.DrawTriangles as emptyImage is special (#928).
+	// baseColor is updated instead.
+	fillImage(i.image, i.basePixels.baseColor)
+}
+
+func fillImage(i *graphicscommand.Image, clr color.RGBA) {
+	if i == emptyImage.image {
+		panic("restorable: fillImage cannot be called on emptyImage")
 	}
 
 	var rf, gf, bf, af float32
-	if r, g, b, a := clr.RGBA(); a > 0 {
-		rf = float32(r) / float32(a)
-		gf = float32(g) / float32(a)
-		bf = float32(b) / float32(a)
-		af = float32(a) / 0xffff
+	if clr.A > 0 {
+		rf = float32(clr.R) / float32(clr.A)
+		gf = float32(clr.G) / float32(clr.A)
+		bf = float32(clr.B) / float32(clr.A)
+		af = float32(clr.A) / 0xff
 	}
 
 	// TODO: Use the previous composite mode if possible.
@@ -255,15 +273,16 @@ func (i *Image) Fill(clr color.Color, x, y, width, height int) {
 		compositemode = driver.CompositeModeCopy
 	}
 
-	dw, dh := width, height
+	// TODO: Integrate with clearColor
+	dw, dh := i.InternalSize()
 	sw, sh := emptyImage.Size()
 	vs := make([]float32, 4*graphics.VertexFloatNum)
 	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
-		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), float32(x), float32(y),
+		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
 		rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
-	i.DrawTriangles(emptyImage, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
+	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
 }
 
 func (i *Image) IsVolatile() bool {

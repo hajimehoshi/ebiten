@@ -332,8 +332,8 @@ func (i *Image) Fill(clr color.Color) {
 
 	i.ensureNotShared()
 
-	x, y, width, height := i.region()
-	i.backend.restorable.Fill(clr, x, y, width, height)
+	// As *restorable.Image is an independent image, it is fine to fill the entire image.
+	i.backend.restorable.Fill(clr)
 
 	i.nonUpdatedCount = 0
 	delete(imagesToMakeShared, i)
