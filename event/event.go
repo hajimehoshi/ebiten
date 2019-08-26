@@ -1,132 +1,86 @@
 package event
 
-// Kind is the detailed type of the event
-type Kind int
-
-// Kind constants
-const (
-	// When a gamepad axis changes in value
-	KindGamepadAxis = Kind(iota)
-	// When a gamepad button is pressed
-	KindGamepadButtonDown
-	// When a gamepad button is released
-	KindGamepadButtonUp
-	// When a gamepad is added or removed to the system.
-	KindGamepadConfiguration
-
-	// When a keyboard key is pressed
-	KindKeyDown
-	// When a keyboard key is released
-	KindKeyUp
-	// When a character of text is typed on the keyboard.
-	KindKeyCharacter
-
-	// When a gamepad axis changes in value.
-	KindMouseAxes
-	// When a mouse button is pressed
-	KindMouseButtonDown
-	// When a mouse button is released
-	KindMouseButtonUp
-	// When the mouse enters the display window
-	KindMouseEnter
-	// When the mouse leaves the display
-	KindMouseLeave
-
-	// When the application is ready to update the next frame on the view port
-	KindViewUpdate
-	// When the size of the application's view port changes
-	KindViewSize
-
-	// When a touch begins
-	KindTouchBegin
-	// When a touch ends
-	KindTouchEnd
-	// When a touch moved, ie is dragged
-	KindTouchMove
-	// When a touch is canceled
-	KindTouchCancel
-)
-
-// Source is the source, or origin of an event
-type Source interface {
-	Name() string
-}
-
 // Events implement this interface
 type Event interface {
-	// Detailed type of the event
-	EventKind() Kind
+	// Marker method, to avoid non-event accidentaly being used as events.
+	IsEvent()
 }
 
-// Basic is a basic event
-type Basic struct {
-	Kind	Kind
+// BasicEvent is a basic event
+type Basic struct { }
+
+// Implement the event marker method
+func (b *Basic) IsEvent() {
 }
-
-
-// Kind returns the kind of the event.
-func (b *Basic) EventKind() Kind {
-	return b.Kind
-}
-
-// Code of a key press
-type KeyCode int
-
-// Modifiers of a key press
-type KeyModifiers int
-
-// Character of a key press, for KindKeyCharacter in particular
-type KeyCharacter rune
 
 // Keyboard related events
 type Key struct {
 	// Basic event
 	Basic
 	// Code of the key pressed or released
-	KeyCode
-	// Character typed
-	KeyCharacter
+	Code int
 	// Key board modifiers
-	KeyModifiers
+	Modifiers int
 }
 
-// Gamepad axis index
-type GamepadAxis int
+type KeyCharacter struct { 
+	// Key, as this is a key event
+	Key
+	// Character typed
+	Character rune
+}
 
-// Gamepad or mouse button index
-type GamepadButton int
+type KeyDown struct {
+	// Key, as this is a key event
+	Key
+}
 
-// Which gamepad or mouse index caused the event
-type GamepadID int
-
-// Position for a gamepad event
-type GamepadPosition float32
+type KeyUp struct {
+	// Key, as this is a key event
+	Key
+}
 
 // Gamepad related events
 type Gamepad struct {
 	// Basic event
 	Basic
 	// Which gamepad caused the event
-	GamepadID
-	// Which gamepad axis changed, if any
-	GamepadAxis
-	// which button was pressed, if any.
-	GamepadButton
-	// Position of the axis or button after the change
-	GamepadPosition
+	ID int
 }
 
-// Mouse button index
-type MouseButton int
+// GamePadAxis is for event where an axis on a game pad changes.
+type GamepadAxes struct { 	
+	// Gamepad, becase this  a game pad event
+	Gamepad
+	// Axis of the game pad that changed, if any
+	Axis int
+	// Position of the axis after the change
+	Position int
+}
 
-// Change in position for a mouse
-type MouseDelta float32
+// GamePadAxis is for event where a button on a game pad changes.
+type GamepadButton struct { 
+	// Button that was pressed, if any.
+	Button int
+	// Position of the button after the change.
+	Position int
+}
 
-// Pressure applied for a mouse
-type MousePressure float32
 
-// Position for a mouse event
-type MousePosition float32
+type GamepadButtonDown struct { 
+	// GamepadButton because it is a game pad button event
+	GamepadButton
+}
+
+type GamepadButtonUp struct { 
+	// GamepadButton because it is a game pad button event
+	GamepadButton
+}
+
+type GamepadConfiguration struct { 
+	// Gamepad because it is a game pad related
+	Gamepad
+}
 
 // Mouse related events
 type Mouse struct {
@@ -134,22 +88,55 @@ type Mouse struct {
 	Basic
 
 	// X position of the event
-	X MousePosition
+	X int
 	// Y position of the event
-	Y MousePosition
-	// Z position of the event
-	Z MousePosition
-	// W position of the event
-	W MousePosition
-	// Change in X since last event
-	DX MouseDelta
-	// Change in Y since last event
-	DY MouseDelta
+	Y int
+	// Wheel is the position of the mouse wheel
+	Wheel int
+	// DeltaX is the change in X since last event
+	DeltaX int
+	// DeltaY is the change in Y since last event
+	DeltaY int
+	// DeltaWheelis the change in the wheel position since last event
+	DeltaWheel int
+}
 
-	// Which button was pressed, if any.
-	MouseButton
+
+//MouseAxes is a mouse axis event
+type MouseAxis struct {
+	// Mouse because this is a mouse event
+	Mouse
+}
+
+type MouseButton struct {
+	// Mouse because this is a mouse event
+	Mouse
+	// Button that was pressed.
+	Button int
 	// Pressure applied on the mouse click
-	MousePressure
+	Pressure int
+}
+
+type MouseButtonDown struct {
+	//MouseButton because this is a mouse button event
+	MouseButton
+}
+
+type MouseButtonUp struct {
+	//MouseButton because this is a mouse button event
+	MouseButton
+}
+
+// When the mouse enters the view window
+type MouseEnter struct {
+	// Mouse because this is a mouse event
+	Mouse
+}
+
+// When the mouse leaves the view window
+type MouseLeave struct {
+	// Mouse because this is a mouse event
+	Mouse
 }
 
 // View port related events.
@@ -166,35 +153,60 @@ type View struct {
 	Y float32
 }
 
-// Touch ID button index
-type TouchID int
+// When the application is ready to update the next frame on the view port
+type ViewUpdate struct {
+	// View because this is a view event
+	View
+}
 
-// Change in position for a touch event
-type TouchDelta float32
+// When the size of the application's view port changes
+type ViewSize struct {
+	// View because this is a view event
+	View
+}
 
-// Pressure applied for a touch event
-type TouchPressure float32
-
-// Position for a touch event
-type TouchPosition float32
 
 // Touch related events
 type Touch struct {
 	// Basic event
 	Basic
 	// Touch ID that caused the touch event
-	TouchID
+	ID int
 	// X position of the event
-	X TouchPosition
+	X int
 	// Y position of the event
-	Y  TouchPosition
-	DX TouchDelta
+	Y int
+	// Change in X since last event
+	DeltaX int
 	// Change in Y since last event
-	DY TouchDelta
+	DeltaY int
 	// Pressure of applied touch
-	TouchPressure
+	Pressure int
 
 	// Is the touch event primary or not.
 	Primary bool
 }
+
+// When a touch begins
+type TouchBegin struct {
+	// Touch because this is a touch event
+	Touch
+}
+
+// When a touch ends
+type TouchEnd struct {
+	// Touch because this is a touch event
+	Touch
+}
+
+ // When a touch moved, ie is dragged
+type TouchMoved struct {
+	Touch
+}
+
+// When a touch is canceled
+type TouchCancel struct { 
+	Touch
+}
+
 
