@@ -1,130 +1,77 @@
+// event is a package that models events that occur during the execution of a program
 package event
 
-// Events implement this interface. It is empty for now
-// because there are no general methods required of events yet.
+// Event is an interface that custom events should implement. 
+// It is empty for now because there are no general methods 
+// required of events yet.
 type Event interface {
 }
 
+// KeyCharacter is an event that occurs when a character is actually typed on 
+// the keyboard. This may be provided by an input method.
+type KeyCharacter struct { 
+	// Code of the key pressed or released
+	Code int
+	// Key board modifiers
+	Modifiers int
+	// Character typed
+	Character rune
+}
 
-
-// key is data for keyboard related events
-type key struct {
+// KeyDown is an event that occurs when a key is pressed on the keyboard.
+type KeyDown struct {
 	// Code of the key pressed or released
 	Code int
 	// Key board modifiers
 	Modifiers int
 }
 
-type KeyCharacter struct { 
-	// Key, as this is a key event
-	key
-	// Character typed
-	Character rune
-}
-
-func NewKeyCharacter(code, modifiers int, character rune) KeyCharacter {
-    return KeyCharacter{key:key{Code: code, Modifiers: modifiers}, Character: character}
-} 
-
-type KeyDown struct {
-	// Key, as this is a key event
-	key
-}
-
-func NewKeyDown(code, modifiers int) KeyDown {
-    return KeyDown{key:key{Code: code, Modifiers: modifiers}}
-} 
-
-type KeyUp struct {
-	// Key, as this is a key event
-	key
-}
-
-func NewKeyUp(code, modifiers int) KeyUp {
-    return KeyUp{key:key{Code: code, Modifiers: modifiers}}
-} 
-
-// Gamepad related event data
-type gamepad struct {
-	// Which gamepad caused the event
-	ID int
-}
+// KeyUp is an event that occurs when a key is released on the keyboard.
+// The data is the same as for a KeyDown event
+type KeyUp KeyDown
 
 // GamepadAxis is for event where an axis on a game pad changes.
 type GamepadAxis struct { 	
-	// gamepad, because this  a game pad event
-	gamepad
+	// Which gamepad caused the event
+	ID int
 	// Axis of the game pad that changed, if any
 	Axis int
 	// Position of the axis after the change
 	Position float32
 }
 
-func NewGamepadAxis(id, axis int, position float32) GamepadAxis {
-    return GamepadAxis{gamepad:gamepad{ID: id}, Axis: axis, Position: position}
-} 
-
-// GamePadAxis is data for event where a button on a game pad changes.
-type gamepadButton struct { 
-	// gamepad, because this is a game pad event
-    gamepad
+//GamepadButtonDown is a game pad button press event.
+type GamepadButtonDown struct { 
+	// Which gamepad caused the event
+	ID int
     // Button that was pressed, if any.
 	Button int
 	// Position of the button after the change.
 	Position float32
 }
 
-func newGamepadButton(id, button int, position float32) gamepadButton {
-    return gamepadButton{gamepad:gamepad{ID: id}, Button: button, Position: position}
-}
+//GamepadButtonDown is a game pad button release event.
+//The data is identical to a GamePadButtonDown event.
+type GamepadButtonUp GamepadButtonDown
 
-//GamepadButtonDown is a game pad button press event
-type GamepadButtonDown struct { 
-	// GamepadButton because it is a game pad button event
-	gamepadButton
-}
-
-func NewGamepadButtonDown(id, button int, position float32) GamepadButtonDown {
-    return GamepadButtonDown{gamepadButton:newGamepadButton(id, button, position)}
-} 
-
-
-//GamepadButtonUp is a game pad button release event
-type GamepadButtonUp struct { 
-	// GamepadButton because it is a game pad button event
-	gamepadButton
-}
-
-func NewGamepadButtonUp(id, button int, position float32) GamepadButtonUp {
-    return GamepadButtonUp{gamepadButton:newGamepadButton(id, button, position)}
-} 
-
-//GamepadAttach happens when a new game pad is attached
+//GamepadAttach happens when a new game pad is attached.
 type GamepadAttach struct { 
-	// gamepad because it is a game pad related
-	gamepad
+	// Which gamepad caused the event
+	ID int
 	// Amount of axes the game pad has.
 	Axes int
 	// Amount of buttons it has.
 	Buttons int 
 }
 
-func NewGamepadAttach(id, axes, buttons int) GamepadAttach {
-    return GamepadAttach{gamepad:gamepad{ID: id}, Axes: axes, Buttons: buttons}
-} 
-
-//GamepadDetach happens when a game pad is detached
+//GamepadDetach happens when a game pad is detached.
 type GamepadDetach struct { 
-	// gamepad because it is a game pad related
-	gamepad
+	// Which gamepad caused the event
+	ID int
 }
 
-func NewGamepadDetach(id int) GamepadDetach {
-    return GamepadDetach{gamepad:gamepad{ID: id}}
-}
-
-// mouse related event data
-type mouse struct {
+//MouseAxes is a mouse axis event.
+type MouseAxis struct {
 	// X position of the event
 	X float32
 	// Y position of the event
@@ -139,196 +86,97 @@ type mouse struct {
 	DeltaWheel float32
 }
 
-func newMouse(x, y, wheel, deltax, deltay, deltawheel float32) mouse {
-    return mouse{X:x, Y:y, Wheel: wheel, 
-        DeltaX: deltax, DeltaY: deltay, DeltaWheel: deltawheel}
-}
-
-//MouseAxes is a mouse axis event
-type MouseAxis struct {
-	// Mouse because this is a mouse event
-	mouse
-}
-
-func NewMouseAxis(x, y, wheel, deltax, deltay, deltawheel float32) MouseAxis {
-    return MouseAxis{ mouse: newMouse(x, y, wheel, deltax, deltay, deltawheel) }
-}
-
-type mouseButton struct {
-    // Mouse event data
-    mouse
+//MouseButtonDown is a mouse button press event.
+type MouseButtonDown struct {
+	// X position of the event
+	X float32
+	// Y position of the event
+	Y float32
+	// Wheel is the position of the mouse wheel
+	Wheel float32
+	// DeltaX is the change in X since last event
+	DeltaX float32
+	// DeltaY is the change in Y since last event
+	DeltaY float32
+	// DeltaWheelis the change in the wheel position since last event
+	DeltaWheel float32
 	// Button that was pressed.
 	Button int
 	// Pressure applied on the mouse click
 	Pressure float32
 }
 
-func newMouseButton(x, y, wheel, deltax, deltay, deltawheel float32, button int, pressure float32) mouseButton {
-    return mouseButton{ 
-        mouse: newMouse(x, y, wheel, deltax, deltay, deltawheel), 
-        Button: button,
-        Pressure: pressure,
-    }
-}
+//MouseButtonDown is a mouse button Release event.
+// The data is identical to a MouseButtonDown event.
+type MouseButtonUp MouseButtonDown
 
-
-type MouseButtonDown struct {
-	//MouseButton because this is a mouse button event
-	mouseButton
-}
-
-func NewMouseButtonDown(x, y, wheel, deltax, deltay, deltawheel float32, button int, pressure float32) MouseButtonDown {
-    return MouseButtonDown{mouseButton: 
-        newMouseButton(x, y, wheel, deltax, deltay, deltawheel, button, pressure),
-    }
-}
-
-
-type MouseButtonUp struct {
-	//MouseButton because this is a mouse button event
-	mouseButton
-}
-
-func NewMouseButtonUp(x, y, wheel, deltax, deltay, deltawheel float32, button int, pressure float32) MouseButtonUp {
-    return MouseButtonUp{mouseButton: 
-        newMouseButton(x, y, wheel, deltax, deltay, deltawheel, button, pressure),
-    }
-}
-
-// When the mouse enters the view window
+// MouseEnter occurs when the mouse enters the view window.
 type MouseEnter struct {
-	// Mouse because this is a mouse event
-	mouse
-}
-
-func NewMouseEnter(x, y, wheel, deltax, deltay, deltawheel float32) MouseEnter {
-    return MouseEnter{ mouse: newMouse(x, y, wheel, deltax, deltay, deltawheel) }
-}
-
-
-// When the mouse leaves the view window
-type MouseLeave struct {
-	// Mouse because this is a mouse event
-	mouse
-}
-
-func NewMouseLeave(x, y, wheel, deltax, deltay, deltawheel float32) MouseLeave {
-    return MouseLeave{ mouse: newMouse(x, y, wheel, deltax, deltay, deltawheel) }
-}
-
-
-// view port related events.
-type view struct {
-	// Actual, real width of the display
-	Width float32
-	// Actual, real height of the display
-	Height float32
-	// X position of the display on the screen
+	// X position of the event
 	X float32
-	// Y position of the display on the screen
+	// Y position of the event
+	Y float32
+	// Wheel is the position of the mouse wheel
+	Wheel float32
+	// DeltaX is the change in X since last mouse event
+	DeltaX float32
+	// DeltaY is the change in Y since last mouse event
+	DeltaY float32
+	// DeltaWheelis the change in the wheel position since last mouse event
+	DeltaWheel float32	
+}
+
+// MouseLeave occurs when the mouse leaves the view window.
+// The data is identical to MouseEnter
+type MouseLeave MouseEnter
+
+// ViewUpdate occurs when the application is ready to update 
+// the next frame on the view port.
+type ViewUpdate struct {
+	// No data neccesary, for now.
+}
+
+// ViewSize ocurs when the size of the application's view port changes.
+type ViewSize struct {
+	// Actual, real width of the view
+	Width float32
+	// Actual, real height of the view
+	Height float32
+	// X position of the view on the physical screen
+	X float32
+	// Y position of the view on the physical screen
 	Y float32
 }
 
-func newView(width, height, x, y float32) view {
-    return view{ Width: width, Height:height, X: x, Y: y}
-}
-
-// When the application is ready to update the next frame on the view port
-type ViewUpdate struct {
-	// View because this is a view event
-	view
-}
-
-func NewViewUpdate(width, height, x, y float32) ViewUpdate {
-    return ViewUpdate{ view: view{ Width: width, Height:height, X: x, Y: y}}
-}
-
-// When the size of the application's view port changes
-type ViewSize struct {
-	// View because this is a view event
-	view
-}
-
-func NewViewSize(width, height, x, y float32) ViewSize {
-    return ViewSize{ view: view{ Width: width, Height:height, X: x, Y: y}}
-}
-
-// touch related event data
-type touch struct {
+// TouchBegin occurs when a touch begins.
+type TouchBegin struct {
 	// Touch ID that caused the touch event
 	ID int
 	// X position of the event
 	X float32
 	// Y position of the event
 	Y float32
-	// Change in X since last event
+	// Change in X since last touch event
 	DeltaX float32
-	// Change in Y since last event
+	// Change in Y since last touch event
 	DeltaY float32
 	// Pressure of applied touch
 	Pressure float32
-
-	// Is the touch event primary or not.
+	// Is the touch event primary or not
 	Primary bool
 }
 
-func newTouch(id int, x, y, deltax, deltay, pressure float32, primary bool) touch {
-    return touch{ID: id, X:x, Y:y, DeltaX: deltax, DeltaY: deltay, 
-        Pressure: pressure, Primary: primary}
-}
+// TouchEnd occuurs when a touch ends.
+// The data is the same as for a TouchBegin event.
+type TouchEnd TouchBegin
 
+ // TouchMoved occurs when a touch moved, or in other words, is dragged.
+ // The data is the same as for a TouchBegin event.
+type TouchMoved TouchBegin
 
-// When a touch begins
-type TouchBegin struct {
-	// Touch because this is a touch event
-	touch
-}
-
-func NewTouchBegin(id int, x, y, deltax, deltay, pressure float32, primary bool) TouchBegin {
-    return TouchBegin{touch: newTouch(id, x, y, deltax, deltay, pressure, primary)}
-}
-
-// When a touch ends
-type TouchEnd struct {
-	// Touch because this is a touch event
-	touch
-}
-
-func NewTouchEnd(id int, x, y, deltax, deltay, pressure float32, primary bool) TouchEnd {
-    return TouchEnd{touch: newTouch(id, x, y, deltax, deltay, pressure, primary)}
-}
-
- // When a touch moved, ie is dragged
-type TouchMoved struct {
-	touch
-}
-
-func NewTouchMoved(id int, x, y, deltax, deltay, pressure float32, primary bool) TouchMoved {
-    return TouchMoved{touch: newTouch(id, x, y, deltax, deltay, pressure, primary)}
-}
-
-// When a touch is canceled
+// TouchCancel occurs when a touch is canceled.
 type TouchCancel struct { 
-	touch
+	// Touch ID of the touch that is now canceled.
+	ID int
 }
-
-func NewTouchCancel(id int, x, y, deltax, deltay, pressure float32, primary bool) TouchCancel {
-    return TouchCancel{touch: newTouch(id, x, y, deltax, deltay, pressure, primary)}
-}
-
-
-type Channel chan Event
-
-func (c Channel) KeyCharacter(code, modifiers int, character rune) {
-	c <- NewKeyCharacter(code, modifiers, character)
-}
-
-func (c Channel) KeyUp(code, modifiers int) {
-	c <- NewKeyUp(code, modifiers)
-}
-
-func (c Channel) KeyDown(code, modifiers int) {
-	c <- NewKeyUp(code, modifiers)
-}
-
 
