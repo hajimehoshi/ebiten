@@ -1,15 +1,15 @@
 // event is a package that models events that occur during the execution of a program
 package event
 
-// Event is an interface that custom events should implement. 
-// It is empty for now because there are no general methods 
+// Event is an interface that custom events should implement.
+// It is empty for now because there are no general methods
 // required of events yet.
 type Event interface {
 }
 
-// KeyCharacter is an event that occurs when a character is actually typed on 
+// KeyCharacter is an event that occurs when a character is actually typed on
 // the keyboard. This may be provided by an input method.
-type KeyCharacter struct { 
+type KeyCharacter struct {
 	// Code of the key pressed or released
 	Code int
 	// Key board modifiers
@@ -31,7 +31,7 @@ type KeyDown struct {
 type KeyUp KeyDown
 
 // GamepadAxis is for event where an axis on a game pad changes.
-type GamepadAxis struct { 	
+type GamepadAxis struct {
 	// Which gamepad caused the event
 	ID int
 	// Axis of the game pad that changed, if any
@@ -41,10 +41,10 @@ type GamepadAxis struct {
 }
 
 //GamepadButtonDown is a game pad button press event.
-type GamepadButtonDown struct { 
+type GamepadButtonDown struct {
 	// Which gamepad caused the event
 	ID int
-    // Button that was pressed, if any.
+	// Button that was pressed, if any.
 	Button int
 	// Position of the button after the change.
 	Position float32
@@ -55,17 +55,17 @@ type GamepadButtonDown struct {
 type GamepadButtonUp GamepadButtonDown
 
 //GamepadAttach happens when a new game pad is attached.
-type GamepadAttach struct { 
+type GamepadAttach struct {
 	// Which gamepad caused the event
 	ID int
 	// Amount of axes the game pad has.
 	Axes int
 	// Amount of buttons it has.
-	Buttons int 
+	Buttons int
 }
 
 //GamepadDetach happens when a game pad is detached.
-type GamepadDetach struct { 
+type GamepadDetach struct {
 	// Which gamepad caused the event
 	ID int
 }
@@ -123,14 +123,14 @@ type MouseEnter struct {
 	// DeltaY is the change in Y since last mouse event
 	DeltaY float32
 	// DeltaWheelis the change in the wheel position since last mouse event
-	DeltaWheel float32	
+	DeltaWheel float32
 }
 
 // MouseLeave occurs when the mouse leaves the view window.
 // The data is identical to MouseEnter
 type MouseLeave MouseEnter
 
-// ViewUpdate occurs when the application is ready to update 
+// ViewUpdate occurs when the application is ready to update
 // the next frame on the view port.
 type ViewUpdate struct {
 	// No data neccesary, for now.
@@ -170,13 +170,12 @@ type TouchBegin struct {
 // The data is the same as for a TouchBegin event.
 type TouchEnd TouchBegin
 
- // TouchMoved occurs when a touch moved, or in other words, is dragged.
- // The data is the same as for a TouchBegin event.
+// TouchMoved occurs when a touch moved, or in other words, is dragged.
+// The data is the same as for a TouchBegin event.
 type TouchMoved TouchBegin
 
 // TouchCancel occurs when a touch is canceled.
-type TouchCancel struct { 
+type TouchCancel struct {
 	// Touch ID of the touch that is now canceled.
 	ID int
 }
-
