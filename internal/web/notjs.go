@@ -16,10 +16,6 @@
 
 package web
 
-func IsGopherJS() bool {
-	return false
-}
-
 func IsBrowser() bool {
 	return false
 }

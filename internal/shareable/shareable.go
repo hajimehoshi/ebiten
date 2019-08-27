@@ -16,6 +16,7 @@ package shareable
 
 import (
 	"fmt"
+	"image/color"
 	"runtime"
 	"sync"
 
@@ -46,25 +47,9 @@ func min(a, b int) int {
 }
 
 func init() {
-	var once sync.Once
 	hooks.AppendHookOnBeforeUpdate(func() error {
 		backendsM.Lock()
 		defer backendsM.Unlock()
-
-		once.Do(func() {
-			if len(theBackends) != 0 {
-				panic("shareable: all the images must be not-shared before the game starts")
-			}
-			if graphicsDriver.HasHighPrecisionFloat() {
-				minSize = 1024
-				// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
-				// not enough evidences that bigger textures works correctly.
-				maxSize = min(4096, graphicsDriver.MaxImageSize())
-			} else {
-				minSize = 512
-				maxSize = 512
-			}
-		})
 
 		resolveDeferred()
 		makeImagesShared()
@@ -143,7 +128,7 @@ var (
 	// backendsM is a mutex for critical sections of the backend and packing.Node objects.
 	backendsM sync.Mutex
 
-	backendsOnce sync.Once
+	initOnce sync.Once
 
 	// theBackends is a set of actually shared images.
 	theBackends = []*backend{}
@@ -153,19 +138,23 @@ var (
 	deferred []func()
 )
 
-// isShareable reports whether the new allocation can use the shareable backends.
-//
-// isShareable retruns false before the graphics driver is available.
-// After the graphics driver is available, read-only images will be automatically on the shareable backends by
-// (*Image).makeShared().
-func isShareable() bool {
-	return minSize > 0 && maxSize > 0
+func init() {
+	// Lock the mutex before a frame begins.
+	//
+	// In each frame, restoring images and resolving images happen respectively:
+	//
+	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
+	//
+	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
+	// (#913).
+	backendsM.Lock()
 }
 
 type Image struct {
 	width    int
 	height   int
 	disposed bool
+	screen   bool
 
 	backend *backend
 
@@ -328,6 +317,28 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 }
 
+func (i *Image) Fill(clr color.Color) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if i.disposed {
+		panic("shareable: the drawing target image must not be disposed (Fill)")
+	}
+	if i.backend == nil {
+		if _, _, _, a := clr.RGBA(); a == 0 {
+			return
+		}
+	}
+
+	i.ensureNotShared()
+
+	// As *restorable.Image is an independent image, it is fine to fill the entire image.
+	i.backend.restorable.Fill(clr)
+
+	i.nonUpdatedCount = 0
+	delete(imagesToMakeShared, i)
+}
+
 // ClearFramebuffer clears the image with a color. This affects not only the (0, 0)-(width, height) region but also
 // the whole framebuffer region.
 func (i *Image) ClearFramebuffer() {
@@ -339,15 +350,6 @@ func (i *Image) ClearFramebuffer() {
 	i.ensureNotShared()
 
 	i.backend.restorable.Clear()
-}
-
-func (i *Image) ResetRestoringState() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	if i.backend == nil {
-		return
-	}
-	i.backend.restorable.ResetRestoringState()
 }
 
 func (i *Image) ReplacePixels(p []byte) {
@@ -472,7 +474,7 @@ func (i *Image) IsVolatile() bool {
 }
 
 func NewImage(width, height int) *Image {
-	// Actual allocation is done lazily.
+	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
 		width:  width,
 		height: height,
@@ -480,8 +482,8 @@ func NewImage(width, height int) *Image {
 }
 
 func (i *Image) shareable() bool {
-	if !isShareable() {
-		return false
+	if minSize == 0 || maxSize == 0 {
+		panic("shareable: minSize or maxSize must be initialized")
 	}
 	if i.neverShared {
 		return false
@@ -492,6 +494,14 @@ func (i *Image) shareable() bool {
 func (i *Image) allocate(shareable bool) {
 	if i.backend != nil {
 		panic("shareable: the image is already allocated")
+	}
+
+	if i.screen {
+		i.backend = &backend{
+			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
+		}
+		runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
+		return
 	}
 
 	if !shareable || !i.shareable() {
@@ -550,52 +560,49 @@ func (i *Image) Dump(path string) error {
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	r := restorable.NewScreenFramebufferImage(width, height)
+	// Actual allocation is done lazily.
 	i := &Image{
-		width:  width,
-		height: height,
-		backend: &backend{
-			restorable: r,
-		},
+		width:       width,
+		height:      height,
+		screen:      true,
 		neverShared: true,
 	}
-	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 	return i
-}
-
-func InitializeGraphicsDriverState() error {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	return restorable.InitializeGraphicsDriverState()
 }
 
 func EndFrame() error {
 	backendsM.Lock()
+
 	restorable.ResolveStaleImages()
 	return restorable.Error()
 }
 
 func BeginFrame() error {
-	// Unlock except for the first time.
-	//
-	// In each frame, restoring images and resolving images happen respectively:
-	//
-	//   [Restore -> Resolve] -> [Restore -> Resolve] -> ...
-	//
-	// Between each frame, any image operations are not permitted, or stale images would remain when restoring
-	// (#913).
-	defer func() {
-		firsttime := false
-		backendsOnce.Do(func() {
-			firsttime = true
-		})
-		if !firsttime {
-			backendsM.Unlock()
+	defer backendsM.Unlock()
+
+	var err error
+	initOnce.Do(func() {
+		err = restorable.InitializeGraphicsDriverState()
+		if err != nil {
+			return
 		}
-	}()
+		if len(theBackends) != 0 {
+			panic("shareable: all the images must be not-shared before the game starts")
+		}
+		if graphicsDriver.HasHighPrecisionFloat() {
+			minSize = 1024
+			// Use 4096 as a maximum size whatever size the graphics driver accepts. There are
+			// not enough evidences that bigger textures works correctly.
+			maxSize = min(4096, graphicsDriver.MaxImageSize())
+		} else {
+			minSize = 512
+			maxSize = 512
+		}
+	})
+	if err != nil {
+		return err
+	}
+
 	return restorable.RestoreIfNeeded()
 }
 

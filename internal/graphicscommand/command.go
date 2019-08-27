@@ -16,6 +16,7 @@ package graphicscommand
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -171,6 +172,10 @@ func (q *commandQueue) Enqueue(command command) {
 	q.commands = append(q.commands, command)
 }
 
+func fract(x float32) float32 {
+	return x - float32(math.Floor(float64(x)))
+}
+
 // Flush flushes the command queue.
 func (q *commandQueue) Flush() {
 	if q.err != nil {
@@ -184,10 +189,31 @@ func (q *commandQueue) Flush() {
 	}
 
 	if theGraphicsDriver.HasHighPrecisionFloat() {
-		// Adjust texels.
+		const dstAdjustmentFactor = 1.0 / 256.0
 		const texelAdjustmentFactor = 1.0 / 512.0
+
 		for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
 			s := q.srcSizes[i]
+
+			// Adjust the destination position to avoid jaggy (#929).
+			// This is not a perfect solution since texels on a texture can take a position on borders
+			// which can cause jaggy. But adjusting only edges should work in most cases.
+			// The ideal solution is to fix shaders, but this makes the applications slow by adding 'if'
+			// branches.
+			switch f := fract(vs[i*graphics.VertexFloatNum+0]); {
+			case 0.5-dstAdjustmentFactor <= f && f < 0.5:
+				vs[i*graphics.VertexFloatNum+0] -= f - (0.5 - dstAdjustmentFactor)
+			case 0.5 <= f && f < 0.5+dstAdjustmentFactor:
+				vs[i*graphics.VertexFloatNum+0] += (0.5 + dstAdjustmentFactor) - f
+			}
+			switch f := fract(vs[i*graphics.VertexFloatNum+1]); {
+			case 0.5-dstAdjustmentFactor <= f && f < 0.5:
+				vs[i*graphics.VertexFloatNum+1] -= f - (0.5 - dstAdjustmentFactor)
+			case 0.5 <= f && f < 0.5+dstAdjustmentFactor:
+				vs[i*graphics.VertexFloatNum+1] += (0.5 + dstAdjustmentFactor) - f
+			}
+
+			// Adjust regions not to violate neighborhoods (#317, #558, #724).
 			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
 			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 		}

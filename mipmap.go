@@ -144,10 +144,6 @@ func (m *mipmap) clearFramebuffer() {
 	m.orig.ClearFramebuffer()
 }
 
-func (m *mipmap) resetRestoringState() {
-	m.orig.ResetRestoringState()
-}
-
 // mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
 //
 // mipmapLevel panics if det is NaN or 0.

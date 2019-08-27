@@ -760,3 +760,23 @@ func TestClearPixels(t *testing.T) {
 	// After clearing, the regions will be available again.
 	img.ReplacePixels(make([]byte, 4*8*4), 0, 0, 8, 4)
 }
+
+func TestFill(t *testing.T) {
+	const w, h = 16, 16
+	img := NewImage(w, h)
+	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
+	ResolveStaleImages()
+	if err := RestoreIfNeeded(); err != nil {
+		t.Fatal(err)
+	}
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			r, g, b, a := img.At(i, j)
+			got := color.RGBA{r, g, b, a}
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			if got != want {
+				t.Errorf("img.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

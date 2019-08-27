@@ -19,12 +19,63 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"sync/atomic"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
+
+var (
+	// imageQueue represents a queue for image operations that are ordered before the game starts (BeginFrame).
+	// Before the game starts, the package shareable doesn't determine the minimum/maximum texture sizes (#879).
+	// Instead of accessing the package shareable, defer the image operations until the game starts (#921).
+	imageQueue           []func()
+	imageQueueM          sync.Mutex
+	needsEnqueueImageOps = true
+)
+
+func checkNeedsEnqueueImageOp(location string) {
+	imageQueueM.Lock()
+	defer imageQueueM.Unlock()
+
+	if needsEnqueueImageOps {
+		panic(fmt.Sprintf("ebiten: %s is not available before the game starts", location))
+	}
+}
+
+func enqueueImageOpIfNeeded(f func() func()) bool {
+	imageQueueM.Lock()
+	defer imageQueueM.Unlock()
+
+	if !needsEnqueueImageOps {
+		return false
+	}
+	imageQueue = append(imageQueue, f())
+	return true
+}
+
+func flushImageOpsIfNeeded() {
+	imageQueueM.Lock()
+
+	if !needsEnqueueImageOps {
+		if len(imageQueue) > 0 {
+			panic("ebiten: len(imageQueue) must be 0 after the game starts")
+		}
+		imageQueueM.Unlock()
+		return
+	}
+
+	// Set this flag false first, or the image operations will be queued again.
+	needsEnqueueImageOps = false
+	imageQueueM.Unlock()
+
+	// As a new item will not be enqueued any longer, mutex does not have to, or should not be used.
+	for _, f := range imageQueue {
+		f()
+	}
+	imageQueue = nil
+}
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
@@ -78,14 +129,6 @@ func (i *Image) Clear() error {
 	return nil
 }
 
-var emptyImage *Image
-
-func init() {
-	emptyImage, _ = NewImage(1, 1, FilterDefault)
-	// (*Image).Fill uses emptyImage, then Fill cannot be called here.
-	emptyImage.ReplacePixels([]byte{0xff, 0xff, 0xff, 0xff})
-}
-
 // Fill fills the image with a solid color.
 //
 // When the image is disposed, Fill does nothing.
@@ -93,6 +136,21 @@ func init() {
 // Fill always returns nil as of 1.5.0-alpha.
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
+
+	if enqueueImageOpIfNeeded(func() func() {
+		r, g, b, a := clr.RGBA()
+		return func() {
+			i.Fill(color.RGBA64{
+				R: uint16(r),
+				G: uint16(g),
+				B: uint16(b),
+				A: uint16(a),
+			})
+		}
+	}) {
+		return nil
+	}
+
 	if i.isDisposed() {
 		return nil
 	}
@@ -104,30 +162,8 @@ func (i *Image) Fill(clr color.Color) error {
 
 	i.resolvePendingPixels(false)
 
-	r, g, b, a := clr.RGBA()
-	rf, gf, bf, af := 0.0, 0.0, 0.0, 0.0
-	if a > 0 {
-		rf = float64(r) / float64(a)
-		gf = float64(g) / float64(a)
-		bf = float64(b) / float64(a)
-		af = float64(a) / 0xffff
-	}
-
-	sw, sh := emptyImage.Size()
-	dw, dh := i.Size()
-
-	op := &DrawImageOptions{}
-	op.GeoM.Scale(float64(dw)/float64(sw), float64(dh)/float64(sh))
-	op.ColorM.Scale(rf, gf, bf, af)
-	// TODO: Use the previous composite mode if possible.
-	if af < 1.0 {
-		op.CompositeMode = CompositeModeCopy
-	}
-	// As Fill will change all the pixels of the image into the same color, all the information for restoring
-	// will be invalidated.
-	// TODO: This is a little hacky. Is there a better way?
-	i.mipmap.resetRestoringState()
-	i.DrawImage(emptyImage, op)
+	i.mipmap.original().Fill(clr)
+	i.disposeMipmaps()
 	return nil
 }
 
@@ -177,6 +213,16 @@ func (i *Image) disposeMipmaps() {
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
+
+	if enqueueImageOpIfNeeded(func() func() {
+		op := *options
+		return func() {
+			i.DrawImage(img, &op)
+		}
+	}) {
+		return nil
+	}
+
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
@@ -387,6 +433,20 @@ const MaxIndicesNum = graphics.IndicesNum
 // Note that this API is experimental.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
+
+	if enqueueImageOpIfNeeded(func() func() {
+		vs := make([]Vertex, len(vertices))
+		copy(vs, vertices)
+		is := make([]uint16, len(indices))
+		copy(is, indices)
+		op := *options
+		return func() {
+			i.DrawTriangles(vs, is, img, &op)
+		}
+	}) {
+		return
+	}
+
 	if i.isDisposed() {
 		return
 	}
@@ -496,9 +556,7 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
-	if atomic.LoadInt32(&isRunning) == 0 {
-		panic("ebiten: (*Image).At is not available outside the main loop so far")
-	}
+	checkNeedsEnqueueImageOp("(*Image).At")
 
 	if i.isDisposed() {
 		return color.RGBA{}
@@ -519,9 +577,7 @@ func (i *Image) At(x, y int) color.Color {
 //
 // If the image is disposed, Set does nothing.
 func (img *Image) Set(x, y int, clr color.Color) {
-	if atomic.LoadInt32(&isRunning) == 0 {
-		panic("ebiten: (*Image).Set is not available outside the main loop so far")
-	}
+	checkNeedsEnqueueImageOp("(*Image).Set")
 
 	img.copyCheck()
 	if img.isDisposed() {
@@ -586,6 +642,15 @@ func (i *Image) resolvePendingPixels(draw bool) {
 // Dipose always return nil as of 1.5.0-alpha.
 func (i *Image) Dispose() error {
 	i.copyCheck()
+
+	if enqueueImageOpIfNeeded(func() func() {
+		return func() {
+			i.Dispose()
+		}
+	}) {
+		return nil
+	}
+
 	if i.isDisposed() {
 		return nil
 	}
@@ -610,6 +675,17 @@ func (i *Image) Dispose() error {
 // ReplacePixels always returns nil as of 1.5.0-alpha.
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
+
+	if enqueueImageOpIfNeeded(func() func() {
+		px := make([]byte, len(p))
+		copy(px, p)
+		return func() {
+			i.ReplacePixels(px)
+		}
+	}) {
+		return nil
+	}
+
 	if i.isDisposed() {
 		return nil
 	}
@@ -693,6 +769,14 @@ func NewImage(width, height int, filter Filter) (*Image, error) {
 //
 // When the image is disposed, makeVolatile does nothing.
 func (i *Image) makeVolatile() {
+	if enqueueImageOpIfNeeded(func() func() {
+		return func() {
+			i.makeVolatile()
+		}
+	}) {
+		return
+	}
+
 	if i.isDisposed() {
 		return
 	}
@@ -724,7 +808,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	return i, nil
 }
 
-func newImageWithScreenFramebuffer(width, height int) *Image {
+func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
 		mipmap: newMipmap(shareable.NewScreenFramebufferImage(width, height)),
 		filter: FilterDefault,
