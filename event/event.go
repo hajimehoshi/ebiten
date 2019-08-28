@@ -25,9 +25,11 @@ type Event interface {
 // KeyCharacter is an event that occurs when a character is actually typed on
 // the keyboard. This may be provided by an input method.
 type KeyCharacter struct {
-	// Code of the key pressed or released.
+	// Code of the key typed.
+	// TODO: this should change later from an int to an enumeration type.
 	Code int
-	// Key board modifiers.
+	// Modifiers are the modifiers pressed together with the key.
+	// TODO: this should change later from an int to an enumeration type.
 	Modifiers int
 	// Character typed.
 	Character rune
@@ -36,8 +38,10 @@ type KeyCharacter struct {
 // KeyDown is an event that occurs when a key is pressed on the keyboard.
 type KeyDown struct {
 	// Code of the key pressed or released.
+	// TODO: this should change later from an int to an enumeration type.
 	Code int
-	// Key board modifiers.
+	// Modifiers are the modifiers pressed together with the key.
+	// TODO: this should change later from an int to an enumeration type.
 	Modifiers int
 }
 
@@ -49,7 +53,7 @@ type KeyUp KeyDown
 type GamepadAxis struct {
 	// ID represents which gamepad caused the event.
 	ID int
-	// Axis of the gamepad that changed, if any.
+	// Axis of the gamepad that changed.
 	Axis int
 	// Position of the axis after the change.
 	// It varies between -1.0 and 1.0.
@@ -93,18 +97,22 @@ type MouseAxis struct {
 	X float32
 	// Y position of the mouse pointer.
 	Y float32
-	// W is the vertical position of the mouse wheel.
-	W float32
-	// Z is the horizontal position of the mouse wheel.
-	Z float32
-	// DeltaX is the change in X since last event.
+	// DeltaX is the change in X since the last mouse event.
 	DeltaX float32
-	// DeltaY is the change in Y since last event.
+	// DeltaY is the change in Y since the last mouse event.
 	DeltaY float32
-	// DeltaW is the change in W since last mouse event.
-	DeltaW float32
-	// DeltaW is the change in Z since last mouse event.
-	DeltaZ float32
+}
+
+// MouseWheel is a mouse wheel event.
+type MouseWheel struct {
+	// Vertical is the vertical position of the mouse wheel.
+	Vertical float32
+	// Horizontal is the horizontal position of the mouse wheel.
+	Horizontal float32
+	// DeltaVertical is the change in Vertical since the last MouseWheel event.
+	DeltaVertical float32
+	// DeltaHorizontal is the change in Horizontal since the last MouseWheel event.
+	DeltaHorizontal float32
 }
 
 // MouseButtonDown is a mouse button press event.
@@ -113,19 +121,12 @@ type MouseButtonDown struct {
 	X float32
 	// Y position of the mouse pointer.
 	Y float32
-	// W is the vertical position of the mouse wheel.
-	W float32
-	// Z is the horizontal position of the mouse wheel.
-	Z float32
-	// DeltaX is the change in X since last event.
+	// DeltaX is the change in X since the last mouse event.
 	DeltaX float32
-	// DeltaY is the change in Y since last event.
+	// DeltaY is the change in Y since the last mouse event.
 	DeltaY float32
-	// DeltaW is the change in W since last mouse event.
-	DeltaW float32
-	// DeltaW is the change in Z since last mouse event.
-	DeltaZ float32
 	// Button that was pressed.
+	// TODO: this should change later from an int to an enumeration type
 	Button int
 	// Pressure applied on the mouse click.
 	// It varies between 0.0 for not pressed, and 1.0 for completely pressed.
@@ -142,18 +143,10 @@ type MouseEnter struct {
 	X float32
 	// Y position of the mouse pointer.
 	Y float32
-	// W is the vertical position of the mouse wheel.
-	W float32
-	// Z is the horizontal position of the mouse wheel.
-	Z float32
 	// DeltaX is the change in X since last mouse event.
 	DeltaX float32
 	// DeltaY is the change in Y since last mouse event.
 	DeltaY float32
-	// DeltaW is the change in W since last mouse event.
-	DeltaW float32
-	// DeltaW is the change in Z last mouse event.
-	DeltaZ float32
 }
 
 // MouseLeave occurs when the mouse leaves the view window.
@@ -166,11 +159,11 @@ type ViewUpdate struct {
 	// No data neccesary, for now.
 }
 
-// ViewSize ocurs when the size of the application's view port changes.
+// ViewSize occurs when the size of the application's view port changes.
 type ViewSize struct {
-	// Actual, real width of the view.
+	// Width is the actual, real width of the view.
 	Width float32
-	// Actual, real height of the view.
+	// Height is the actual, real height of the view.
 	Height float32
 	// X position of the view on the physical screen.
 	X float32
@@ -180,32 +173,42 @@ type ViewSize struct {
 
 // TouchBegin occurs when a touch begins.
 type TouchBegin struct {
-	// Touch ID that caused the touch event.
+	// ID of the touch that caused the touch event.
 	ID int
 	// X position of the event.
 	X float32
 	// Y position of the event.
 	Y float32
-	// Change in X since last touch event.
-	DeltaX float32
-	// Change in Y since last touch event.
-	DeltaY float32
 	// Pressure of applied touch.
 	Pressure float32
-	// Primary represents whether the touch event primary or not.
+	// Primary represents whether the touch event is the primary touch or not.
 	Primary bool
 }
 
-// TouchEnd occuurs when a touch ends.
-// The data is the same as for a TouchBegin event.
-type TouchEnd TouchBegin
-
 // TouchMoved occurs when a touch moved, or in other words, is dragged.
-// The data is the same as for a TouchBegin event.
-type TouchMoved TouchBegin
+type TouchMoved struct {
+	// ID of the touch that caused the touch event.
+	ID int
+	// X position of the event.
+	X float32
+	// Y position of the event.
+	Y float32
+	// DeltaX is the change in X since last touch event.
+	DeltaX float32
+	// Deltay is the change in Y since last touch event.
+	DeltaY float32
+	// Pressure of applied touch.
+	Pressure float32
+	// Primary represents whether the touch event is the primary touch or not.
+	Primary bool
+}
+
+// TouchEnd occurs when a touch ends.
+// The data is the same as for a TouchMoved event.
+type TouchEnd TouchMoved
 
 // TouchCancel occurs when a touch is canceled.
 type TouchCancel struct {
-	// Touch ID of the touch that is now canceled.
+	// ID of the touch that caused the touch event.
 	ID int
 }
