@@ -25,19 +25,19 @@ type Event interface {
 // KeyCharacter is an event that occurs when a character is actually typed on
 // the keyboard. This may be provided by an input method.
 type KeyCharacter struct {
-	// Code of the key typed.
+	// Code is the key code of the key typed.
 	// TODO: this should change later from an int to an enumeration type.
 	Code int
 	// Modifiers are the modifiers pressed together with the key.
 	// TODO: this should change later from an int to an enumeration type.
 	Modifiers int
-	// Character typed.
+	// Character is the character that was typed.
 	Character rune
 }
 
 // KeyDown is an event that occurs when a key is pressed on the keyboard.
 type KeyDown struct {
-	// Code of the key pressed or released.
+	// Code is the key code of the key pressed or released.
 	// TODO: this should change later from an int to an enumeration type.
 	Code int
 	// Modifiers are the modifiers pressed together with the key.
@@ -53,9 +53,9 @@ type KeyUp KeyDown
 type GamepadAxis struct {
 	// ID represents which gamepad caused the event.
 	ID int
-	// Axis of the gamepad that changed.
+	// Axis is the axis of the game pad that changed position.
 	Axis int
-	// Position of the axis after the change.
+	// Position is the psoition of the axis after the change.
 	// It varies between -1.0 and 1.0.
 	Position float32
 }
@@ -64,9 +64,9 @@ type GamepadAxis struct {
 type GamepadButtonDown struct {
 	// ID represents which gamepad caused the event.
 	ID int
-	// Button that was pressed, if any.
+	// Button is the button that was pressed on the game pad.
 	Button int
-	// Pressure applied to the gamepad button.
+	// Pressure is the pressure that is applied to the gamepad button.
 	// It varies between 0.0 for not pressed, and 1.0 for completely pressed.
 	Pressure float32
 }
@@ -91,44 +91,40 @@ type GamepadDetach struct {
 	ID int
 }
 
-// MouseAxes is a mouse axis event.
-type MouseAxis struct {
-	// X position of the mouse pointer.
+// MouseMove is a mouse movement event.
+type MouseMove struct {
+	// X is the X position of the mouse pointer.
 	X float32
-	// Y position of the mouse pointer.
+	// Y is the Y position of the mouse pointer.
 	Y float32
-	// DeltaX is the change in X since the last mouse event.
+	// DeltaX is the change in X since the last MouseMove event.
 	DeltaX float32
-	// DeltaY is the change in Y since the last mouse event.
+	// DeltaY is the change in Y since the last MouseMove event.
 	DeltaY float32
 }
 
 // MouseWheel is a mouse wheel event.
 type MouseWheel struct {
-	// Vertical is the vertical position of the mouse wheel.
-	Vertical float32
-	// Horizontal is the horizontal position of the mouse wheel.
-	Horizontal float32
-	// DeltaVertical is the change in Vertical since the last MouseWheel event.
-	DeltaVertical float32
-	// DeltaHorizontal is the change in Horizontal since the last MouseWheel event.
-	DeltaHorizontal float32
+	// X is the X position of the mouse wheel.
+	X float32
+	// Y is the Y position of the mouse wheel.
+	Y float32
+	// DeltaX is the change in X since the last MouseWheel event.
+	DeltaX float32
+	// DeltaY is the change in Y since the last MouseWheel event.
+	DeltaY float32
 }
 
 // MouseButtonDown is a mouse button press event.
 type MouseButtonDown struct {
-	// X position of the mouse pointer.
+	// X is the X position of the mouse pointer.
 	X float32
-	// Y position of the mouse pointer.
+	// Y is the Y position of the mouse pointer.
 	Y float32
-	// DeltaX is the change in X since the last mouse event.
-	DeltaX float32
-	// DeltaY is the change in Y since the last mouse event.
-	DeltaY float32
-	// Button that was pressed.
+	// Button is the button on the mouse that was pressed.
 	// TODO: this should change later from an int to an enumeration type
 	Button int
-	// Pressure applied on the mouse click.
+	// Pressure is the pressure applied on the mouse button.
 	// It varies between 0.0 for not pressed, and 1.0 for completely pressed.
 	Pressure float32
 }
@@ -139,14 +135,10 @@ type MouseButtonUp MouseButtonDown
 
 // MouseEnter occurs when the mouse enters the view window.
 type MouseEnter struct {
-	// X position of the mouse pointer.
+	// X is the X position of the mouse pointer.
 	X float32
-	// Y position of the mouse pointer.
+	// Y is the Y position of the mouse pointer.
 	Y float32
-	// DeltaX is the change in X since last mouse event.
-	DeltaX float32
-	// DeltaY is the change in Y since last mouse event.
-	DeltaY float32
 }
 
 // MouseLeave occurs when the mouse leaves the view window.
@@ -165,33 +157,33 @@ type ViewSize struct {
 	Width float32
 	// Height is the actual, real height of the view.
 	Height float32
-	// X position of the view on the physical screen.
+	// X is the X position of the view on the physical screen.
 	X float32
-	// Y position of the view on the physical screen.
+	// Y is the Y position of the view on the physical screen.
 	Y float32
 }
 
 // TouchBegin occurs when a touch begins.
 type TouchBegin struct {
-	// ID of the touch that caused the touch event.
+	// ID identifies the touch that caused the touch event.
 	ID int
-	// X position of the event.
+	// X is the X position of the touch.
 	X float32
-	// Y position of the event.
+	// Y is the Y position of the touch.
 	Y float32
-	// Pressure of applied touch.
+	// Pressure is the pressure applied to the touch.
 	Pressure float32
 	// Primary represents whether the touch event is the primary touch or not.
 	Primary bool
 }
 
-// TouchMoved occurs when a touch moved, or in other words, is dragged.
-type TouchMoved struct {
-	// ID of the touch that caused the touch event.
+// TouchMove occurs when a touch moved, or in other words, is dragged.
+type TouchMove struct {
+	// ID identifies the touch that caused the touch event.
 	ID int
-	// X position of the event.
+	// X is the X position of the touch.
 	X float32
-	// Y position of the event.
+	// Y is the Y position of the touch.
 	Y float32
 	// DeltaX is the change in X since last touch event.
 	DeltaX float32
@@ -205,10 +197,12 @@ type TouchMoved struct {
 
 // TouchEnd occurs when a touch ends.
 // The data is the same as for a TouchMoved event.
-type TouchEnd TouchMoved
+type TouchEnd TouchMove
 
 // TouchCancel occurs when a touch is canceled.
+// This can happen in various situations, depending on the underlying platform, 
+// for example when the aplication loses focus.
 type TouchCancel struct {
-	// ID of the touch that caused the touch event.
+	// ID identifies the touch that caused the touch event.
 	ID int
 }
