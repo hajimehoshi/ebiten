@@ -14,6 +14,9 @@
 
 // Package event is a package that models events that occur during
 // the execution of a program.
+//
+// This package is still experimental and there is no guarantee for
+// backward compatibility so far.
 package event
 
 // Event is an interface that custom events should implement.
