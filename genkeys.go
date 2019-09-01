@@ -351,9 +351,7 @@ const (
 )
 `
 
-type KeyNames []string
-
-func (k KeyNames) digit(name string) int {
+func digitKey(name string) int {
 	if len(name) != 1 {
 		return -1
 	}
@@ -364,7 +362,7 @@ func (k KeyNames) digit(name string) int {
 	return int(c - '0')
 }
 
-func (k KeyNames) alphabet(name string) rune {
+func alphabetKey(name string) rune {
 	if len(name) != 1 {
 		return -1
 	}
@@ -375,7 +373,7 @@ func (k KeyNames) alphabet(name string) rune {
 	return c
 }
 
-func (k KeyNames) function(name string) int {
+func functionKey(name string) int {
 	if len(name) < 2 {
 		return -1
 	}
@@ -389,44 +387,38 @@ func (k KeyNames) function(name string) int {
 	return i
 }
 
-func (k KeyNames) Len() int {
-	return len(k)
-}
-
-func (k KeyNames) Less(i, j int) bool {
-	k0, k1 := k[i], k[j]
-	d0, d1 := k.digit(k0), k.digit(k1)
-	a0, a1 := k.alphabet(k0), k.alphabet(k1)
-	f0, f1 := k.function(k0), k.function(k1)
-	if d0 != -1 {
-		if d1 != -1 {
-			return d0 < d1
+func keyNamesLess(k []string) func(i, j int) bool {
+	return func(i, j int) bool {
+		k0, k1 := k[i], k[j]
+		d0, d1 := digitKey(k0), digitKey(k1)
+		a0, a1 := alphabetKey(k0), alphabetKey(k1)
+		f0, f1 := functionKey(k0), functionKey(k1)
+		if d0 != -1 {
+			if d1 != -1 {
+				return d0 < d1
+			}
+			return true
 		}
-		return true
-	}
-	if a0 != -1 {
+		if a0 != -1 {
+			if d1 != -1 {
+				return false
+			}
+			if a1 != -1 {
+				return a0 < a1
+			}
+			return true
+		}
 		if d1 != -1 {
 			return false
 		}
 		if a1 != -1 {
-			return a0 < a1
+			return false
 		}
-		return true
+		if f0 != -1 && f1 != -1 {
+			return f0 < f1
+		}
+		return k0 < k1
 	}
-	if d1 != -1 {
-		return false
-	}
-	if a1 != -1 {
-		return false
-	}
-	if f0 != -1 && f1 != -1 {
-		return f0 < f1
-	}
-	return k0 < k1
-}
-
-func (k KeyNames) Swap(i, j int) {
-	k[i], k[j] = k[j], k[i]
 }
 
 const license = `// Copyright 2013 The Ebiten Authors
@@ -467,8 +459,8 @@ func main() {
 		namesWithoutMods = append(namesWithoutMods, n)
 	}
 
-	sort.Sort(KeyNames(names))
-	sort.Sort(KeyNames(namesWithoutMods))
+	sort.Slice(names, keyNamesLess(names))
+	sort.Slice(namesWithoutMods, keyNamesLess(namesWithoutMods))
 	sort.Strings(codes)
 
 	for path, tmpl := range map[string]string{
@@ -505,17 +497,28 @@ func main() {
 			buildTag = "// +build js"
 		}
 		// NOTE: According to godoc, maps are automatically sorted by key.
-		if err := tmpl.Execute(f, map[string]interface{}{
-			"License":             license,
-			"DoNotEdit":           doNotEdit,
-			"BuildTag":            buildTag,
-			"NameToJSKeyCodes":    nameToJSKeyCodes,
-			"KeyCodeToNameEdge":   keyCodeToNameEdge,
-			"Codes":               codes,
-			"KeyNames":            names,
-			"LastKeyName":         names[len(names)-1],
-			"KeyNamesWithoutMods": namesWithoutMods,
-			"NameToGLFWKeys":      nameToGLFWKeys,
+		if err := tmpl.Execute(f, struct {
+			License             string
+			DoNotEdit           string
+			BuildTag            string
+			NameToJSKeyCodes    map[string][]string
+			KeyCodeToNameEdge   map[int]string
+			Codes               []string
+			KeyNames            []string
+			LastKeyName         string
+			KeyNamesWithoutMods []string
+			NameToGLFWKeys      map[string]glfw.Key
+		}{
+			License:             license,
+			DoNotEdit:           doNotEdit,
+			BuildTag:            buildTag,
+			NameToJSKeyCodes:    nameToJSKeyCodes,
+			KeyCodeToNameEdge:   keyCodeToNameEdge,
+			Codes:               codes,
+			KeyNames:            names,
+			LastKeyName:         names[len(names)-1],
+			KeyNamesWithoutMods: namesWithoutMods,
+			NameToGLFWKeys:      nameToGLFWKeys,
 		}); err != nil {
 			log.Fatal(err)
 		}
