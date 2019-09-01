@@ -42,7 +42,29 @@ func InputChars() []rune {
 //
 // IsKeyPressed is concurrent-safe.
 func IsKeyPressed(key Key) bool {
-	return uidriver.Get().Input().IsKeyPressed(driver.Key(key))
+	// There are keys that are invalid values as ebiten.Key (e.g., driver.KeyLeftAlt).
+	// Skip such values.
+	if !key.isValid() {
+		return false
+	}
+
+	var keys []driver.Key
+	switch key {
+	case KeyAlt:
+		keys = append(keys, driver.KeyLeftAlt, driver.KeyRightAlt)
+	case KeyControl:
+		keys = append(keys, driver.KeyLeftControl, driver.KeyRightControl)
+	case KeyShift:
+		keys = append(keys, driver.KeyLeftShift, driver.KeyRightShift)
+	default:
+		keys = append(keys, driver.Key(key))
+	}
+	for _, k := range keys {
+		if uidriver.Get().Input().IsKeyPressed(k) {
+			return true
+		}
+	}
+	return false
 }
 
 // CursorPosition returns a position of a mouse cursor relative to the game screen (window). The cursor position is

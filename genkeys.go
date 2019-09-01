@@ -88,10 +88,13 @@ func init() {
 	nameToJSKeyCodes = map[string][]string{
 		"Comma":        {"Comma"},
 		"Period":       {"Period"},
-		"Alt":          {"AltLeft", "AltRight"},
+		"LeftAlt":      {"AltLeft"},
+		"RightAlt":     {"AltRight"},
 		"CapsLock":     {"CapsLock"},
-		"Control":      {"ControlLeft", "ControlRight"},
-		"Shift":        {"ShiftLeft", "ShiftRight"},
+		"LeftControl":  {"ControlLeft"},
+		"RightControl": {"ControlRight"},
+		"LeftShift":    {"ShiftLeft"},
+		"RightShift":   {"ShiftRight"},
 		"Enter":        {"Enter"},
 		"Space":        {"Space"},
 		"Tab":          {"Tab"},
@@ -164,13 +167,14 @@ func init() {
 }
 
 func init() {
+	// TODO: How should we treat modifier keys? Now 'left' modifier keys are available.
 	keyCodeToNameEdge = map[int]string{
 		0xbc: "Comma",
 		0xbe: "Period",
-		0x12: "Alt",
+		0x12: "LeftAlt",
 		0x14: "CapsLock",
-		0x11: "Control",
-		0x10: "Shift",
+		0x11: "LeftControl",
+		0x10: "LeftShift",
 		0x0D: "Enter",
 		0x20: "Space",
 		0x09: "Tab",
@@ -249,9 +253,22 @@ type Key int
 
 // Keys.
 const (
-{{range $index, $name := .EbitenKeyNames}}Key{{$name}} Key = Key(driver.Key{{$name}})
-{{end}}	KeyMax Key = Key{{.LastEbitenKeyName}}
+{{range $index, $name := .EbitenKeyNamesWithoutMods}}Key{{$name}} Key = Key(driver.Key{{$name}})
+{{end}}	KeyAlt Key = Key(driver.KeyReserved0)
+	KeyControl Key = Key(driver.KeyReserved1)
+	KeyShift Key = Key(driver.KeyReserved2)
+	KeyMax Key = KeyShift
 )
+
+func (k Key) isValid() bool {
+	switch k {
+	{{range $name := .EbitenKeyNames}}case Key{{$name}}:
+		return true
+	{{end}}
+	default:
+		return false
+	}
+}
 
 // String returns a string representing the key.
 //
@@ -282,8 +299,10 @@ package driver
 type Key int
 
 const (
-{{range $index, $name := .EbitenKeyNames}}Key{{$name}}{{if eq $index 0}} Key = iota{{end}}
-{{end}}
+{{range $index, $name := .DriverKeyNames}}Key{{$name}}{{if eq $index 0}} Key = iota{{end}}
+{{end}}	KeyReserved0
+	KeyReserved1
+	KeyReserved2
 )
 `
 
@@ -301,14 +320,8 @@ import (
 )
 
 var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
-{{range $index, $name := .EbitenKeyNamesWithoutMods}}glfw.Key{{$name}}: driver.Key{{$name}},
+{{range $index, $name := .DriverKeyNames}}glfw.Key{{$name}}: driver.Key{{$name}},
 {{end}}
-	glfw.KeyLeftAlt:      driver.KeyAlt,
-	glfw.KeyRightAlt:     driver.KeyAlt,
-	glfw.KeyLeftControl:  driver.KeyControl,
-	glfw.KeyRightControl: driver.KeyControl,
-	glfw.KeyLeftShift:    driver.KeyShift,
-	glfw.KeyRightShift:   driver.KeyShift,
 }
 `
 
@@ -442,15 +455,31 @@ func main() {
 
 	ebitenKeyNames := []string{}
 	ebitenKeyNamesWithoutMods := []string{}
+	driverKeyNames := []string{}
 	for name := range nameToJSKeyCodes {
-		ebitenKeyNames = append(ebitenKeyNames, name)
-		if name != "Alt" && name != "Control" && name != "Shift" {
+		driverKeyNames = append(driverKeyNames, name)
+		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") {
+			ebitenKeyNames = append(ebitenKeyNames, name)
 			ebitenKeyNamesWithoutMods = append(ebitenKeyNamesWithoutMods, name)
+			continue
+		}
+		if name == "LeftAlt" {
+			ebitenKeyNames = append(ebitenKeyNames, "Alt")
+			continue
+		}
+		if name == "LeftControl" {
+			ebitenKeyNames = append(ebitenKeyNames, "Control")
+			continue
+		}
+		if name == "LeftShift" {
+			ebitenKeyNames = append(ebitenKeyNames, "Shift")
+			continue
 		}
 	}
 
 	sort.Slice(ebitenKeyNames, keyNamesLess(ebitenKeyNames))
 	sort.Slice(ebitenKeyNamesWithoutMods, keyNamesLess(ebitenKeyNamesWithoutMods))
+	sort.Slice(driverKeyNames, keyNamesLess(driverKeyNames))
 
 	for path, tmpl := range map[string]string{
 		"keys.go":                        ebitenKeysTmpl,
@@ -494,7 +523,7 @@ func main() {
 			KeyCodeToNameEdge         map[int]string
 			EbitenKeyNames            []string
 			EbitenKeyNamesWithoutMods []string
-			LastEbitenKeyName         string
+			DriverKeyNames            []string
 			NameToGLFWKeys            map[string]glfw.Key
 		}{
 			License:                   license,
@@ -504,7 +533,7 @@ func main() {
 			KeyCodeToNameEdge:         keyCodeToNameEdge,
 			EbitenKeyNames:            ebitenKeyNames,
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
-			LastEbitenKeyName:         ebitenKeyNames[len(ebitenKeyNames)-1],
+			DriverKeyNames:            driverKeyNames,
 			NameToGLFWKeys:            nameToGLFWKeys,
 		}); err != nil {
 			log.Fatal(err)

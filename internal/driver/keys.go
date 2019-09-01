@@ -55,13 +55,11 @@ const (
 	KeyX
 	KeyY
 	KeyZ
-	KeyAlt
 	KeyApostrophe
 	KeyBackslash
 	KeyBackspace
 	KeyCapsLock
 	KeyComma
-	KeyControl
 	KeyDelete
 	KeyDown
 	KeyEnd
@@ -101,7 +99,10 @@ const (
 	KeyKPMultiply
 	KeyKPSubtract
 	KeyLeft
+	KeyLeftAlt
 	KeyLeftBracket
+	KeyLeftControl
+	KeyLeftShift
 	KeyMenu
 	KeyMinus
 	KeyNumLock
@@ -111,12 +112,17 @@ const (
 	KeyPeriod
 	KeyPrintScreen
 	KeyRight
+	KeyRightAlt
 	KeyRightBracket
+	KeyRightControl
+	KeyRightShift
 	KeyScrollLock
 	KeySemicolon
-	KeyShift
 	KeySlash
 	KeySpace
 	KeyTab
 	KeyUp
+	KeyReserved0
+	KeyReserved1
+	KeyReserved2
 )

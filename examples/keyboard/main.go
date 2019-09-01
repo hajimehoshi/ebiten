@@ -46,7 +46,7 @@ func init() {
 }
 
 func update(screen *ebiten.Image) error {
-	pressed := []ebiten.Key{}
+	var pressed []ebiten.Key
 	for k := ebiten.Key(0); k <= ebiten.KeyMax; k++ {
 		if ebiten.IsKeyPressed(k) {
 			pressed = append(pressed, k)

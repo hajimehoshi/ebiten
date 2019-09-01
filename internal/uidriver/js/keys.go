@@ -56,9 +56,6 @@ var keyToCodes = map[driver.Key][]string{
 	driver.KeyA: {
 		"KeyA",
 	},
-	driver.KeyAlt: {
-		"AltLeft", "AltRight",
-	},
 	driver.KeyApostrophe: {
 		"Quote",
 	},
@@ -79,9 +76,6 @@ var keyToCodes = map[driver.Key][]string{
 	},
 	driver.KeyComma: {
 		"Comma",
-	},
-	driver.KeyControl: {
-		"ControlLeft", "ControlRight",
 	},
 	driver.KeyD: {
 		"KeyD",
@@ -227,8 +221,17 @@ var keyToCodes = map[driver.Key][]string{
 	driver.KeyLeft: {
 		"ArrowLeft",
 	},
+	driver.KeyLeftAlt: {
+		"AltLeft",
+	},
 	driver.KeyLeftBracket: {
 		"BracketLeft",
+	},
+	driver.KeyLeftControl: {
+		"ControlLeft",
+	},
+	driver.KeyLeftShift: {
+		"ShiftLeft",
 	},
 	driver.KeyM: {
 		"KeyM",
@@ -275,8 +278,17 @@ var keyToCodes = map[driver.Key][]string{
 	driver.KeyRight: {
 		"ArrowRight",
 	},
+	driver.KeyRightAlt: {
+		"AltRight",
+	},
 	driver.KeyRightBracket: {
 		"BracketRight",
+	},
+	driver.KeyRightControl: {
+		"ControlRight",
+	},
+	driver.KeyRightShift: {
+		"ShiftRight",
 	},
 	driver.KeyS: {
 		"KeyS",
@@ -286,9 +298,6 @@ var keyToCodes = map[driver.Key][]string{
 	},
 	driver.KeySemicolon: {
 		"Semicolon",
-	},
-	driver.KeyShift: {
-		"ShiftLeft", "ShiftRight",
 	},
 	driver.KeySlash: {
 		"Slash",
@@ -329,9 +338,9 @@ var keyCodeToKeyEdge = map[int]driver.Key{
 	8:   driver.KeyBackspace,
 	9:   driver.KeyTab,
 	13:  driver.KeyEnter,
-	16:  driver.KeyShift,
-	17:  driver.KeyControl,
-	18:  driver.KeyAlt,
+	16:  driver.KeyLeftShift,
+	17:  driver.KeyLeftControl,
+	18:  driver.KeyLeftAlt,
 	19:  driver.KeyPause,
 	20:  driver.KeyCapsLock,
 	27:  driver.KeyEscape,

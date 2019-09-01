@@ -65,13 +65,11 @@ const (
 	KeyX            Key = Key(driver.KeyX)
 	KeyY            Key = Key(driver.KeyY)
 	KeyZ            Key = Key(driver.KeyZ)
-	KeyAlt          Key = Key(driver.KeyAlt)
 	KeyApostrophe   Key = Key(driver.KeyApostrophe)
 	KeyBackslash    Key = Key(driver.KeyBackslash)
 	KeyBackspace    Key = Key(driver.KeyBackspace)
 	KeyCapsLock     Key = Key(driver.KeyCapsLock)
 	KeyComma        Key = Key(driver.KeyComma)
-	KeyControl      Key = Key(driver.KeyControl)
 	KeyDelete       Key = Key(driver.KeyDelete)
 	KeyDown         Key = Key(driver.KeyDown)
 	KeyEnd          Key = Key(driver.KeyEnd)
@@ -124,13 +122,223 @@ const (
 	KeyRightBracket Key = Key(driver.KeyRightBracket)
 	KeyScrollLock   Key = Key(driver.KeyScrollLock)
 	KeySemicolon    Key = Key(driver.KeySemicolon)
-	KeyShift        Key = Key(driver.KeyShift)
 	KeySlash        Key = Key(driver.KeySlash)
 	KeySpace        Key = Key(driver.KeySpace)
 	KeyTab          Key = Key(driver.KeyTab)
 	KeyUp           Key = Key(driver.KeyUp)
-	KeyMax          Key = KeyUp
+	KeyAlt          Key = Key(driver.KeyReserved0)
+	KeyControl      Key = Key(driver.KeyReserved1)
+	KeyShift        Key = Key(driver.KeyReserved2)
+	KeyMax          Key = KeyShift
 )
+
+func (k Key) isValid() bool {
+	switch k {
+	case Key0:
+		return true
+	case Key1:
+		return true
+	case Key2:
+		return true
+	case Key3:
+		return true
+	case Key4:
+		return true
+	case Key5:
+		return true
+	case Key6:
+		return true
+	case Key7:
+		return true
+	case Key8:
+		return true
+	case Key9:
+		return true
+	case KeyA:
+		return true
+	case KeyB:
+		return true
+	case KeyC:
+		return true
+	case KeyD:
+		return true
+	case KeyE:
+		return true
+	case KeyF:
+		return true
+	case KeyG:
+		return true
+	case KeyH:
+		return true
+	case KeyI:
+		return true
+	case KeyJ:
+		return true
+	case KeyK:
+		return true
+	case KeyL:
+		return true
+	case KeyM:
+		return true
+	case KeyN:
+		return true
+	case KeyO:
+		return true
+	case KeyP:
+		return true
+	case KeyQ:
+		return true
+	case KeyR:
+		return true
+	case KeyS:
+		return true
+	case KeyT:
+		return true
+	case KeyU:
+		return true
+	case KeyV:
+		return true
+	case KeyW:
+		return true
+	case KeyX:
+		return true
+	case KeyY:
+		return true
+	case KeyZ:
+		return true
+	case KeyAlt:
+		return true
+	case KeyApostrophe:
+		return true
+	case KeyBackslash:
+		return true
+	case KeyBackspace:
+		return true
+	case KeyCapsLock:
+		return true
+	case KeyComma:
+		return true
+	case KeyControl:
+		return true
+	case KeyDelete:
+		return true
+	case KeyDown:
+		return true
+	case KeyEnd:
+		return true
+	case KeyEnter:
+		return true
+	case KeyEqual:
+		return true
+	case KeyEscape:
+		return true
+	case KeyF1:
+		return true
+	case KeyF2:
+		return true
+	case KeyF3:
+		return true
+	case KeyF4:
+		return true
+	case KeyF5:
+		return true
+	case KeyF6:
+		return true
+	case KeyF7:
+		return true
+	case KeyF8:
+		return true
+	case KeyF9:
+		return true
+	case KeyF10:
+		return true
+	case KeyF11:
+		return true
+	case KeyF12:
+		return true
+	case KeyGraveAccent:
+		return true
+	case KeyHome:
+		return true
+	case KeyInsert:
+		return true
+	case KeyKP0:
+		return true
+	case KeyKP1:
+		return true
+	case KeyKP2:
+		return true
+	case KeyKP3:
+		return true
+	case KeyKP4:
+		return true
+	case KeyKP5:
+		return true
+	case KeyKP6:
+		return true
+	case KeyKP7:
+		return true
+	case KeyKP8:
+		return true
+	case KeyKP9:
+		return true
+	case KeyKPAdd:
+		return true
+	case KeyKPDecimal:
+		return true
+	case KeyKPDivide:
+		return true
+	case KeyKPEnter:
+		return true
+	case KeyKPEqual:
+		return true
+	case KeyKPMultiply:
+		return true
+	case KeyKPSubtract:
+		return true
+	case KeyLeft:
+		return true
+	case KeyLeftBracket:
+		return true
+	case KeyMenu:
+		return true
+	case KeyMinus:
+		return true
+	case KeyNumLock:
+		return true
+	case KeyPageDown:
+		return true
+	case KeyPageUp:
+		return true
+	case KeyPause:
+		return true
+	case KeyPeriod:
+		return true
+	case KeyPrintScreen:
+		return true
+	case KeyRight:
+		return true
+	case KeyRightBracket:
+		return true
+	case KeyScrollLock:
+		return true
+	case KeySemicolon:
+		return true
+	case KeyShift:
+		return true
+	case KeySlash:
+		return true
+	case KeySpace:
+		return true
+	case KeyTab:
+		return true
+	case KeyUp:
+		return true
+
+	default:
+		return false
+	}
+}
 
 // String returns a string representing the key.
 //
