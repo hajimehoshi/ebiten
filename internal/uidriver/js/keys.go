@@ -22,316 +22,110 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var keyToCodes = map[driver.Key][]string{
-	driver.Key0: {
-		"Digit0",
-	},
-	driver.Key1: {
-		"Digit1",
-	},
-	driver.Key2: {
-		"Digit2",
-	},
-	driver.Key3: {
-		"Digit3",
-	},
-	driver.Key4: {
-		"Digit4",
-	},
-	driver.Key5: {
-		"Digit5",
-	},
-	driver.Key6: {
-		"Digit6",
-	},
-	driver.Key7: {
-		"Digit7",
-	},
-	driver.Key8: {
-		"Digit8",
-	},
-	driver.Key9: {
-		"Digit9",
-	},
-	driver.KeyA: {
-		"KeyA",
-	},
-	driver.KeyApostrophe: {
-		"Quote",
-	},
-	driver.KeyB: {
-		"KeyB",
-	},
-	driver.KeyBackslash: {
-		"Backslash",
-	},
-	driver.KeyBackspace: {
-		"Backspace",
-	},
-	driver.KeyC: {
-		"KeyC",
-	},
-	driver.KeyCapsLock: {
-		"CapsLock",
-	},
-	driver.KeyComma: {
-		"Comma",
-	},
-	driver.KeyD: {
-		"KeyD",
-	},
-	driver.KeyDelete: {
-		"Delete",
-	},
-	driver.KeyDown: {
-		"ArrowDown",
-	},
-	driver.KeyE: {
-		"KeyE",
-	},
-	driver.KeyEnd: {
-		"End",
-	},
-	driver.KeyEnter: {
-		"Enter",
-	},
-	driver.KeyEqual: {
-		"Equal",
-	},
-	driver.KeyEscape: {
-		"Escape",
-	},
-	driver.KeyF: {
-		"KeyF",
-	},
-	driver.KeyF1: {
-		"F1",
-	},
-	driver.KeyF10: {
-		"F10",
-	},
-	driver.KeyF11: {
-		"F11",
-	},
-	driver.KeyF12: {
-		"F12",
-	},
-	driver.KeyF2: {
-		"F2",
-	},
-	driver.KeyF3: {
-		"F3",
-	},
-	driver.KeyF4: {
-		"F4",
-	},
-	driver.KeyF5: {
-		"F5",
-	},
-	driver.KeyF6: {
-		"F6",
-	},
-	driver.KeyF7: {
-		"F7",
-	},
-	driver.KeyF8: {
-		"F8",
-	},
-	driver.KeyF9: {
-		"F9",
-	},
-	driver.KeyG: {
-		"KeyG",
-	},
-	driver.KeyGraveAccent: {
-		"Backquote",
-	},
-	driver.KeyH: {
-		"KeyH",
-	},
-	driver.KeyHome: {
-		"Home",
-	},
-	driver.KeyI: {
-		"KeyI",
-	},
-	driver.KeyInsert: {
-		"Insert",
-	},
-	driver.KeyJ: {
-		"KeyJ",
-	},
-	driver.KeyK: {
-		"KeyK",
-	},
-	driver.KeyKP0: {
-		"Numpad0",
-	},
-	driver.KeyKP1: {
-		"Numpad1",
-	},
-	driver.KeyKP2: {
-		"Numpad2",
-	},
-	driver.KeyKP3: {
-		"Numpad3",
-	},
-	driver.KeyKP4: {
-		"Numpad4",
-	},
-	driver.KeyKP5: {
-		"Numpad5",
-	},
-	driver.KeyKP6: {
-		"Numpad6",
-	},
-	driver.KeyKP7: {
-		"Numpad7",
-	},
-	driver.KeyKP8: {
-		"Numpad8",
-	},
-	driver.KeyKP9: {
-		"Numpad9",
-	},
-	driver.KeyKPAdd: {
-		"NumpadAdd",
-	},
-	driver.KeyKPDecimal: {
-		"NumpadDecimal",
-	},
-	driver.KeyKPDivide: {
-		"NumpadDivide",
-	},
-	driver.KeyKPEnter: {
-		"NumpadEnter",
-	},
-	driver.KeyKPEqual: {
-		"NumpadEqual",
-	},
-	driver.KeyKPMultiply: {
-		"NumpadMultiply",
-	},
-	driver.KeyKPSubtract: {
-		"NumpadSubtract",
-	},
-	driver.KeyL: {
-		"KeyL",
-	},
-	driver.KeyLeft: {
-		"ArrowLeft",
-	},
-	driver.KeyLeftAlt: {
-		"AltLeft",
-	},
-	driver.KeyLeftBracket: {
-		"BracketLeft",
-	},
-	driver.KeyLeftControl: {
-		"ControlLeft",
-	},
-	driver.KeyLeftShift: {
-		"ShiftLeft",
-	},
-	driver.KeyM: {
-		"KeyM",
-	},
-	driver.KeyMenu: {
-		"ContextMenu",
-	},
-	driver.KeyMinus: {
-		"Minus",
-	},
-	driver.KeyN: {
-		"KeyN",
-	},
-	driver.KeyNumLock: {
-		"NumLock",
-	},
-	driver.KeyO: {
-		"KeyO",
-	},
-	driver.KeyP: {
-		"KeyP",
-	},
-	driver.KeyPageDown: {
-		"PageDown",
-	},
-	driver.KeyPageUp: {
-		"PageUp",
-	},
-	driver.KeyPause: {
-		"Pause",
-	},
-	driver.KeyPeriod: {
-		"Period",
-	},
-	driver.KeyPrintScreen: {
-		"PrintScreen",
-	},
-	driver.KeyQ: {
-		"KeyQ",
-	},
-	driver.KeyR: {
-		"KeyR",
-	},
-	driver.KeyRight: {
-		"ArrowRight",
-	},
-	driver.KeyRightAlt: {
-		"AltRight",
-	},
-	driver.KeyRightBracket: {
-		"BracketRight",
-	},
-	driver.KeyRightControl: {
-		"ControlRight",
-	},
-	driver.KeyRightShift: {
-		"ShiftRight",
-	},
-	driver.KeyS: {
-		"KeyS",
-	},
-	driver.KeyScrollLock: {
-		"ScrollLock",
-	},
-	driver.KeySemicolon: {
-		"Semicolon",
-	},
-	driver.KeySlash: {
-		"Slash",
-	},
-	driver.KeySpace: {
-		"Space",
-	},
-	driver.KeyT: {
-		"KeyT",
-	},
-	driver.KeyTab: {
-		"Tab",
-	},
-	driver.KeyU: {
-		"KeyU",
-	},
-	driver.KeyUp: {
-		"ArrowUp",
-	},
-	driver.KeyV: {
-		"KeyV",
-	},
-	driver.KeyW: {
-		"KeyW",
-	},
-	driver.KeyX: {
-		"KeyX",
-	},
-	driver.KeyY: {
-		"KeyY",
-	},
-	driver.KeyZ: {
-		"KeyZ",
-	},
+var keyToCode = map[driver.Key]string{
+	driver.Key0:            "Digit0",
+	driver.Key1:            "Digit1",
+	driver.Key2:            "Digit2",
+	driver.Key3:            "Digit3",
+	driver.Key4:            "Digit4",
+	driver.Key5:            "Digit5",
+	driver.Key6:            "Digit6",
+	driver.Key7:            "Digit7",
+	driver.Key8:            "Digit8",
+	driver.Key9:            "Digit9",
+	driver.KeyA:            "KeyA",
+	driver.KeyApostrophe:   "Quote",
+	driver.KeyB:            "KeyB",
+	driver.KeyBackslash:    "Backslash",
+	driver.KeyBackspace:    "Backspace",
+	driver.KeyC:            "KeyC",
+	driver.KeyCapsLock:     "CapsLock",
+	driver.KeyComma:        "Comma",
+	driver.KeyD:            "KeyD",
+	driver.KeyDelete:       "Delete",
+	driver.KeyDown:         "ArrowDown",
+	driver.KeyE:            "KeyE",
+	driver.KeyEnd:          "End",
+	driver.KeyEnter:        "Enter",
+	driver.KeyEqual:        "Equal",
+	driver.KeyEscape:       "Escape",
+	driver.KeyF:            "KeyF",
+	driver.KeyF1:           "F1",
+	driver.KeyF10:          "F10",
+	driver.KeyF11:          "F11",
+	driver.KeyF12:          "F12",
+	driver.KeyF2:           "F2",
+	driver.KeyF3:           "F3",
+	driver.KeyF4:           "F4",
+	driver.KeyF5:           "F5",
+	driver.KeyF6:           "F6",
+	driver.KeyF7:           "F7",
+	driver.KeyF8:           "F8",
+	driver.KeyF9:           "F9",
+	driver.KeyG:            "KeyG",
+	driver.KeyGraveAccent:  "Backquote",
+	driver.KeyH:            "KeyH",
+	driver.KeyHome:         "Home",
+	driver.KeyI:            "KeyI",
+	driver.KeyInsert:       "Insert",
+	driver.KeyJ:            "KeyJ",
+	driver.KeyK:            "KeyK",
+	driver.KeyKP0:          "Numpad0",
+	driver.KeyKP1:          "Numpad1",
+	driver.KeyKP2:          "Numpad2",
+	driver.KeyKP3:          "Numpad3",
+	driver.KeyKP4:          "Numpad4",
+	driver.KeyKP5:          "Numpad5",
+	driver.KeyKP6:          "Numpad6",
+	driver.KeyKP7:          "Numpad7",
+	driver.KeyKP8:          "Numpad8",
+	driver.KeyKP9:          "Numpad9",
+	driver.KeyKPAdd:        "NumpadAdd",
+	driver.KeyKPDecimal:    "NumpadDecimal",
+	driver.KeyKPDivide:     "NumpadDivide",
+	driver.KeyKPEnter:      "NumpadEnter",
+	driver.KeyKPEqual:      "NumpadEqual",
+	driver.KeyKPMultiply:   "NumpadMultiply",
+	driver.KeyKPSubtract:   "NumpadSubtract",
+	driver.KeyL:            "KeyL",
+	driver.KeyLeft:         "ArrowLeft",
+	driver.KeyLeftAlt:      "AltLeft",
+	driver.KeyLeftBracket:  "BracketLeft",
+	driver.KeyLeftControl:  "ControlLeft",
+	driver.KeyLeftShift:    "ShiftLeft",
+	driver.KeyM:            "KeyM",
+	driver.KeyMenu:         "ContextMenu",
+	driver.KeyMinus:        "Minus",
+	driver.KeyN:            "KeyN",
+	driver.KeyNumLock:      "NumLock",
+	driver.KeyO:            "KeyO",
+	driver.KeyP:            "KeyP",
+	driver.KeyPageDown:     "PageDown",
+	driver.KeyPageUp:       "PageUp",
+	driver.KeyPause:        "Pause",
+	driver.KeyPeriod:       "Period",
+	driver.KeyPrintScreen:  "PrintScreen",
+	driver.KeyQ:            "KeyQ",
+	driver.KeyR:            "KeyR",
+	driver.KeyRight:        "ArrowRight",
+	driver.KeyRightAlt:     "AltRight",
+	driver.KeyRightBracket: "BracketRight",
+	driver.KeyRightControl: "ControlRight",
+	driver.KeyRightShift:   "ShiftRight",
+	driver.KeyS:            "KeyS",
+	driver.KeyScrollLock:   "ScrollLock",
+	driver.KeySemicolon:    "Semicolon",
+	driver.KeySlash:        "Slash",
+	driver.KeySpace:        "Space",
+	driver.KeyT:            "KeyT",
+	driver.KeyTab:          "Tab",
+	driver.KeyU:            "KeyU",
+	driver.KeyUp:           "ArrowUp",
+	driver.KeyV:            "KeyV",
+	driver.KeyW:            "KeyW",
+	driver.KeyX:            "KeyX",
+	driver.KeyY:            "KeyY",
+	driver.KeyZ:            "KeyZ",
 }
 
 var keyCodeToKeyEdge = map[int]driver.Key{

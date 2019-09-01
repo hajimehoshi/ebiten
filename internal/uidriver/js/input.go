@@ -128,10 +128,8 @@ func (i *Input) ResetForFrame() {
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if i.keyPressed != nil {
-		for _, c := range keyToCodes[key] {
-			if i.keyPressed[c] {
-				return true
-			}
+		if i.keyPressed[keyToCode[key]] {
+			return true
 		}
 	}
 	if i.keyPressedEdge != nil {
@@ -275,12 +273,12 @@ func (i *Input) Update(e js.Value) {
 			return
 		}
 		cs := c.String()
-		if cs == keyToCodes[driver.KeyUp][0] ||
-			cs == keyToCodes[driver.KeyDown][0] ||
-			cs == keyToCodes[driver.KeyLeft][0] ||
-			cs == keyToCodes[driver.KeyRight][0] ||
-			cs == keyToCodes[driver.KeyBackspace][0] ||
-			cs == keyToCodes[driver.KeyTab][0] {
+		if cs == keyToCode[driver.KeyUp] ||
+			cs == keyToCode[driver.KeyDown] ||
+			cs == keyToCode[driver.KeyLeft] ||
+			cs == keyToCode[driver.KeyRight] ||
+			cs == keyToCode[driver.KeyBackspace] ||
+			cs == keyToCode[driver.KeyTab] {
 			e.Call("preventDefault")
 		}
 		i.keyDown(cs)

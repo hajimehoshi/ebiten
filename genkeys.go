@@ -34,7 +34,7 @@ import (
 
 var (
 	nameToGLFWKeys    map[string]glfw.Key
-	nameToJSKeyCodes  map[string][]string
+	nameToJSKeyCode   map[string]string
 	keyCodeToNameEdge map[int]string
 )
 
@@ -85,68 +85,68 @@ func init() {
 		"Menu":         glfw.KeyMenu,
 		"Last":         glfw.KeyLast,
 	}
-	nameToJSKeyCodes = map[string][]string{
-		"Comma":        {"Comma"},
-		"Period":       {"Period"},
-		"LeftAlt":      {"AltLeft"},
-		"RightAlt":     {"AltRight"},
-		"CapsLock":     {"CapsLock"},
-		"LeftControl":  {"ControlLeft"},
-		"RightControl": {"ControlRight"},
-		"LeftShift":    {"ShiftLeft"},
-		"RightShift":   {"ShiftRight"},
-		"Enter":        {"Enter"},
-		"Space":        {"Space"},
-		"Tab":          {"Tab"},
-		"Delete":       {"Delete"},
-		"End":          {"End"},
-		"Home":         {"Home"},
-		"Insert":       {"Insert"},
-		"PageDown":     {"PageDown"},
-		"PageUp":       {"PageUp"},
-		"Down":         {"ArrowDown"},
-		"Left":         {"ArrowLeft"},
-		"Right":        {"ArrowRight"},
-		"Up":           {"ArrowUp"},
-		"Escape":       {"Escape"},
-		"Backspace":    {"Backspace"},
-		"Apostrophe":   {"Quote"},
-		"Minus":        {"Minus"},
-		"Slash":        {"Slash"},
-		"Semicolon":    {"Semicolon"},
-		"Equal":        {"Equal"},
-		"LeftBracket":  {"BracketLeft"},
-		"Backslash":    {"Backslash"},
-		"RightBracket": {"BracketRight"},
-		"GraveAccent":  {"Backquote"},
-		"NumLock":      {"NumLock"},
-		"Pause":        {"Pause"},
-		"PrintScreen":  {"PrintScreen"},
-		"ScrollLock":   {"ScrollLock"},
-		"Menu":         {"ContextMenu"},
+	nameToJSKeyCode = map[string]string{
+		"Comma":        "Comma",
+		"Period":       "Period",
+		"LeftAlt":      "AltLeft",
+		"RightAlt":     "AltRight",
+		"CapsLock":     "CapsLock",
+		"LeftControl":  "ControlLeft",
+		"RightControl": "ControlRight",
+		"LeftShift":    "ShiftLeft",
+		"RightShift":   "ShiftRight",
+		"Enter":        "Enter",
+		"Space":        "Space",
+		"Tab":          "Tab",
+		"Delete":       "Delete",
+		"End":          "End",
+		"Home":         "Home",
+		"Insert":       "Insert",
+		"PageDown":     "PageDown",
+		"PageUp":       "PageUp",
+		"Down":         "ArrowDown",
+		"Left":         "ArrowLeft",
+		"Right":        "ArrowRight",
+		"Up":           "ArrowUp",
+		"Escape":       "Escape",
+		"Backspace":    "Backspace",
+		"Apostrophe":   "Quote",
+		"Minus":        "Minus",
+		"Slash":        "Slash",
+		"Semicolon":    "Semicolon",
+		"Equal":        "Equal",
+		"LeftBracket":  "BracketLeft",
+		"Backslash":    "Backslash",
+		"RightBracket": "BracketRight",
+		"GraveAccent":  "Backquote",
+		"NumLock":      "NumLock",
+		"Pause":        "Pause",
+		"PrintScreen":  "PrintScreen",
+		"ScrollLock":   "ScrollLock",
+		"Menu":         "ContextMenu",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
 		nameToGLFWKeys[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
-		nameToJSKeyCodes[string(c)] = []string{"Digit" + string(c)}
+		nameToJSKeyCode[string(c)] = "Digit" + string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
 		nameToGLFWKeys[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
-		nameToJSKeyCodes[string(c)] = []string{"Key" + string(c)}
+		nameToJSKeyCode[string(c)] = "Key" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
 		nameToGLFWKeys[name] = glfw.KeyF1 + glfw.Key(i) - 1
-		nameToJSKeyCodes[name] = []string{name}
+		nameToJSKeyCode[name] = name
 	}
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
 	for c := '0'; c <= '9'; c++ {
 		name := "KP" + string(c)
 		nameToGLFWKeys[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
-		nameToJSKeyCodes[name] = []string{"Numpad" + string(c)}
+		nameToJSKeyCode[name] = "Numpad" + string(c)
 	}
 
 	nameToGLFWKeys["KPDecimal"] = glfw.KeyKPDecimal
@@ -157,13 +157,13 @@ func init() {
 	nameToGLFWKeys["KPEnter"] = glfw.KeyKPEnter
 	nameToGLFWKeys["KPEqual"] = glfw.KeyKPEqual
 
-	nameToJSKeyCodes["KPDecimal"] = []string{"NumpadDecimal"}
-	nameToJSKeyCodes["KPDivide"] = []string{"NumpadDivide"}
-	nameToJSKeyCodes["KPMultiply"] = []string{"NumpadMultiply"}
-	nameToJSKeyCodes["KPSubtract"] = []string{"NumpadSubtract"}
-	nameToJSKeyCodes["KPAdd"] = []string{"NumpadAdd"}
-	nameToJSKeyCodes["KPEnter"] = []string{"NumpadEnter"}
-	nameToJSKeyCodes["KPEqual"] = []string{"NumpadEqual"}
+	nameToJSKeyCode["KPDecimal"] = "NumpadDecimal"
+	nameToJSKeyCode["KPDivide"] = "NumpadDivide"
+	nameToJSKeyCode["KPMultiply"] = "NumpadMultiply"
+	nameToJSKeyCode["KPSubtract"] = "NumpadSubtract"
+	nameToJSKeyCode["KPAdd"] = "NumpadAdd"
+	nameToJSKeyCode["KPEnter"] = "NumpadEnter"
+	nameToJSKeyCode["KPEqual"] = "NumpadEqual"
 }
 
 func init() {
@@ -337,10 +337,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var keyToCodes = map[driver.Key][]string{
-{{range $name, $codes := .NameToJSKeyCodes}}driver.Key{{$name}}: []string{
-{{range $code := $codes}}"{{$code}}",{{end}}
-},
+var keyToCode = map[driver.Key]string{
+{{range $name, $code := .NameToJSKeyCode}}driver.Key{{$name}}: {{$code | printf "%q"}},
 {{end}}
 }
 
@@ -456,7 +454,7 @@ func main() {
 	ebitenKeyNames := []string{}
 	ebitenKeyNamesWithoutMods := []string{}
 	driverKeyNames := []string{}
-	for name := range nameToJSKeyCodes {
+	for name := range nameToJSKeyCode {
 		driverKeyNames = append(driverKeyNames, name)
 		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") {
 			ebitenKeyNames = append(ebitenKeyNames, name)
@@ -519,7 +517,7 @@ func main() {
 			License                   string
 			DoNotEdit                 string
 			BuildTag                  string
-			NameToJSKeyCodes          map[string][]string
+			NameToJSKeyCode           map[string]string
 			KeyCodeToNameEdge         map[int]string
 			EbitenKeyNames            []string
 			EbitenKeyNamesWithoutMods []string
@@ -529,7 +527,7 @@ func main() {
 			License:                   license,
 			DoNotEdit:                 doNotEdit,
 			BuildTag:                  buildTag,
-			NameToJSKeyCodes:          nameToJSKeyCodes,
+			NameToJSKeyCode:           nameToJSKeyCode,
 			KeyCodeToNameEdge:         keyCodeToNameEdge,
 			EbitenKeyNames:            ebitenKeyNames,
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
