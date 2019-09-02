@@ -12,24 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !android
-// +build !darwin
-// +build !freebsd
-// +build !ios
-// +build !js
-// +build !linux,cgo !cgo
-// +build !windows
+// +build android ios
 
-package uidriver
+package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-func Get() driver.UI {
-	if !driver.IsPlayground {
-		panic("ebiten: a UI driver is not implemented on this environment")
-	}
-	// TODO: Implement this
-	return nil
+func uiDriver() driver.UI {
+	return mobile.Get()
 }

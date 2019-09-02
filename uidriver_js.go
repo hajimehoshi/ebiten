@@ -14,13 +14,13 @@
 
 // +build js
 
-package uidriver
+package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/js"
 )
 
-func Get() driver.UI {
+func uiDriver() driver.UI {
 	return js.Get()
 }

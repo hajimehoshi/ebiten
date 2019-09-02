@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin freebsd linux,cgo windows
 // +build !android
+// +build !darwin
+// +build !freebsd
 // +build !ios
 // +build !js
+// +build !linux,cgo !cgo
+// +build !windows
 
-package uidriver
+package ebiten
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/glfw"
 )
 
-func Get() driver.UI {
-	return glfw.Get()
+func uiDriver() driver.UI {
+	if !driver.IsPlayground {
+		panic("ebiten: a UI driver is not implemented on this environment (Cgo is not enabled?)")
+	}
+	// TODO: Implement this
+	return nil
 }

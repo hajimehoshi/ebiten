@@ -12,15 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
+// +build !android
+// +build !darwin
+// +build !freebsd
+// +build !ios
+// +build !js
+// +build !linux,cgo !cgo
+// +build !windows
 
-package uidriver
+package graphicsdriver
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-func Get() driver.UI {
-	return mobile.Get()
+func graphicsDriver() driver.Graphics {
+	if !driver.IsPlayground {
+		panic("ebiten: a graphics driver is not implemented on this environment: isn't cgo disabled?")
+	}
+	// TODO: Implement this
+	return nil
 }
