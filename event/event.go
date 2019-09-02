@@ -30,9 +30,8 @@ type Event interface {
 type KeyboardKeyCharacter struct {
 	// Key is the key code of the key typed.
 	Key Key
-	// Modifiers are the modifiers pressed together with the key.
-	// TODO: this should change later from an int to an enumeration type.
-	Modifiers int
+	// Modifier is the logical-or value of the modifiers pressed together with the key.
+	Modifier Modifier
 	// Character is the character that was typed.
 	Character rune
 }
@@ -41,9 +40,8 @@ type KeyboardKeyCharacter struct {
 type KeyboardKeyDown struct {
 	// Key is the key code of the key pressed or released.
 	Key Key
-	// Modifiers are the modifiers pressed together with the key.
-	// TODO: this should change later from an int to an enumeration type.
-	Modifiers int
+	// Modifier is the logical-or value of the modifiers pressed together with the key.
+	Modifier Modifier
 }
 
 // KeyboardKeyUp is an event that occurs when a key is released on the keyboard.
