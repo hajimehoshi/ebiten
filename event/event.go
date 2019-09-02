@@ -25,12 +25,11 @@ package event
 type Event interface {
 }
 
-// KeyCharacter is an event that occurs when a character is actually typed on
+// KeyboardKeyCharacter is an event that occurs when a character is actually typed on
 // the keyboard. This may be provided by an input method.
-type KeyCharacter struct {
-	// Code is the key code of the key typed.
-	// TODO: this should change later from an int to an enumeration type.
-	Code int
+type KeyboardKeyCharacter struct {
+	// Key is the key code of the key typed.
+	Key Key
 	// Modifiers are the modifiers pressed together with the key.
 	// TODO: this should change later from an int to an enumeration type.
 	Modifiers int
@@ -38,19 +37,18 @@ type KeyCharacter struct {
 	Character rune
 }
 
-// KeyDown is an event that occurs when a key is pressed on the keyboard.
-type KeyDown struct {
-	// Code is the key code of the key pressed or released.
-	// TODO: this should change later from an int to an enumeration type.
-	Code int
+// KeyboardKeyDown is an event that occurs when a key is pressed on the keyboard.
+type KeyboardKeyDown struct {
+	// Key is the key code of the key pressed or released.
+	Key Key
 	// Modifiers are the modifiers pressed together with the key.
 	// TODO: this should change later from an int to an enumeration type.
 	Modifiers int
 }
 
-// KeyUp is an event that occurs when a key is released on the keyboard.
-// The data is the same as for a KeyDown event.
-type KeyUp KeyDown
+// KeyboardKeyUp is an event that occurs when a key is released on the keyboard.
+// The data is the same as for a KeyboardKeyDown event.
+type KeyboardKeyUp KeyboardKeyDown
 
 // GamepadAxis is for event where an axis on a gamepad changes.
 type GamepadAxis struct {

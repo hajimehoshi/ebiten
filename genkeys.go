@@ -306,6 +306,24 @@ const (
 )
 `
 
+const eventKeysTmpl = `{{.License}}
+
+{{.DoNotEdit}}
+
+package event
+
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
+type Key int
+
+const (
+{{range $index, $name := .DriverKeyNames}}Key{{$name}} Key = Key(driver.Key{{$name}})
+{{end}}
+)
+`
+
 const uidriverGlfwKeysTmpl = `{{.License}}
 
 {{.DoNotEdit}}
@@ -480,11 +498,12 @@ func main() {
 	sort.Slice(driverKeyNames, keyNamesLess(driverKeyNames))
 
 	for path, tmpl := range map[string]string{
-		"keys.go":                        ebitenKeysTmpl,
+		"event/keys.go":                  eventKeysTmpl,
 		"internal/driver/keys.go":        driverKeysTmpl,
 		"internal/glfw/keys.go":          glfwKeysTmpl,
 		"internal/uidriver/glfw/keys.go": uidriverGlfwKeysTmpl,
 		"internal/uidriver/js/keys.go":   uidriverJsKeysTmpl,
+		"keys.go":                        ebitenKeysTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
