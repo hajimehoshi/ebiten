@@ -344,6 +344,11 @@ func (d *Driver) SetWindow(window uintptr) {
 	})
 }
 
+func (d *Driver) SetUIView(uiview uintptr) {
+	// TODO: Should this be called on the main thread?
+	d.view.setUIView(uiview)
+}
+
 func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 	d.t.Call(func() error {
 		if d.vb != (mtl.Buffer{}) {
@@ -352,8 +357,8 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 		if d.ib != (mtl.Buffer{}) {
 			d.ib.Release()
 		}
-		d.vb = d.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), mtl.ResourceStorageModeManaged)
-		d.ib = d.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), mtl.ResourceStorageModeManaged)
+		d.vb = d.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&vertices[0]), unsafe.Sizeof(vertices[0])*uintptr(len(vertices)), resourceStorageMode)
+		d.ib = d.view.getMTLDevice().MakeBufferWithBytes(unsafe.Pointer(&indices[0]), unsafe.Sizeof(indices[0])*uintptr(len(indices)), resourceStorageMode)
 		return nil
 	})
 }
@@ -404,11 +409,8 @@ func (d *Driver) NewImage(width, height int) (driver.Image, error) {
 		PixelFormat: mtl.PixelFormatRGBA8UNorm,
 		Width:       graphics.InternalImageSize(width),
 		Height:      graphics.InternalImageSize(height),
-		StorageMode: mtl.StorageModeManaged,
-
-		// MTLTextureUsageRenderTarget might cause a problematic render result. Not sure the reason.
-		// Usage: mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget
-		Usage: mtl.TextureUsageShaderRead,
+		StorageMode: storageMode,
+		Usage:       textureUsage,
 	}
 	var t mtl.Texture
 	d.t.Call(func() error {

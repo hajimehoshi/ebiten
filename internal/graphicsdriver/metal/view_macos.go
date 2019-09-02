@@ -18,58 +18,16 @@
 package metal
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ns"
 )
-
-type view struct {
-	window uintptr
-
-	device mtl.Device
-	ml     ca.MetalLayer
-}
 
 func (v *view) setWindow(window uintptr) {
 	v.window = window
 }
 
-func (v *view) setDrawableSize(width, height int) {
-	v.ml.SetDrawableSize(width, height)
-}
-
-func (v *view) getMTLDevice() mtl.Device {
-	return v.device
-}
-
-func (v *view) setDisplaySyncEnabled(enabled bool) {
-	// TODO: Now SetVsyncEnabled is called only from the main thread, and d.t.Run is not available since
-	// recursive function call via Run is forbidden.
-	// Fix this to use d.t.Run to avoid confusion.
-	v.ml.SetDisplaySyncEnabled(enabled)
-}
-
-func (v *view) colorPixelFormat() mtl.PixelFormat {
-	return v.ml.PixelFormat()
-}
-
-func (v *view) reset() error {
-	var err error
-	v.device, err = mtl.CreateSystemDefaultDevice()
-	if err != nil {
-		return err
-	}
-
-	v.ml = ca.MakeMetalLayer()
-	v.ml.SetDevice(v.device)
-	// https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat
-	//
-	// The pixel format for a Metal layer must be MTLPixelFormatBGRA8Unorm,
-	// MTLPixelFormatBGRA8Unorm_sRGB, MTLPixelFormatRGBA16Float, MTLPixelFormatBGRA10_XR, or
-	// MTLPixelFormatBGRA10_XR_sRGB.
-	v.ml.SetPixelFormat(mtl.PixelFormatBGRA8UNorm)
-	v.ml.SetMaximumDrawableCount(3)
-	return nil
+func (v *view) setUIView(uiview uintptr) {
+	panic("metal: setUIView is not available on macOS")
 }
 
 func (v *view) update() {
@@ -79,11 +37,10 @@ func (v *view) update() {
 	cocoaWindow.ContentView().SetWantsLayer(true)
 }
 
-func (v *view) drawable() ca.MetalDrawable {
-	d, err := v.ml.NextDrawable()
-	if err != nil {
-		// Drawable is nil. This can happen at the initial state. Let's wait and see.
-		return ca.MetalDrawable{}
-	}
-	return d
-}
+const (
+	// MTLTextureUsageRenderTarget might cause a problematic render result. Not sure the reason.
+	textureUsage = mtl.TextureUsageShaderRead
+
+	storageMode         = mtl.StorageModeManaged
+	resourceStorageMode = mtl.ResourceStorageModeManaged
+)

@@ -1,4 +1,4 @@
-// Copyright 2018 The Ebiten Authors
+// Copyright 2019 The Ebiten Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android darwin,ios,386 darwin,ios,amd64 freebsd js linux windows
+// +build darwin,ios,arm darwin,ios,arm64
 
-// As the Go playground tries to compile this with CGO_ENABLED=0 and GOOS=linux, check Cgo on build tags.
-
-package ebiten
+package ebitenmobileview
 
 import (
-	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
 )
 
-func graphicsDriver() driver.Graphics {
-	return opengl.Get()
+func setUIView(uiview uintptr) {
+	metal.Get().SetUIView(uiview)
 }

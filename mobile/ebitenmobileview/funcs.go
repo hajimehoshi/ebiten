@@ -81,3 +81,7 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	updateTouchesOnIOSImpl(phase, ptr, x, y)
 }
+
+func SetUIView(uiview int64) {
+	setUIView(uintptr(uiview))
+}

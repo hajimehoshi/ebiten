@@ -17,46 +17,49 @@
 
 package metal
 
+// #cgo CFLAGS: -x objective-c
+// #cgo LDFLAGS: -framework UIKit
+//
+// #import <UIKit/UIKit.h>
+//
+// static void addSublayer(void* view, void* sublayer) {
+//   CALayer* layer = ((UIView*)view).layer;
+//   [layer addSublayer:(CALayer*)sublayer];
+// }
+//
+// static void setFrame(void* cametal, void* uiview) {
+//   CGSize size = ((UIView*)uiview).frame.size;
+//   ((CALayer*)cametal).frame = CGRectMake(0, 0, size.width, size.height);
+// }
+import "C"
+
 import (
-	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
+	"unsafe"
+
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 )
 
-type view struct {
-}
-
 func (v *view) setWindow(window uintptr) {
-	panic("metal: setWindow cannot be called on iOS")
+	panic("metal: setWindow is not available on iOS")
 }
 
-func (v *view) setDrawableSize(width, height int) {
-	// Do nothing
-}
-
-func (v *view) getMTLDevice() mtl.Device {
-	// TODO: Implement this
-	return mtl.Device{}
-}
-
-func (v *view) setDisplaySyncEnabled(enabled bool) {
-	// Do nothing
-}
-
-func (v *view) colorPixelFormat() mtl.PixelFormat {
-	// TODO: Implement this
-	return 0
-}
-
-func (v *view) reset() error {
-	// Do nothing
-	return nil
+func (v *view) setUIView(uiview uintptr) {
+	v.uiview = uiview
 }
 
 func (v *view) update() {
-	// Do nothing
+	v.once.Do(func() {
+		if v.ml.Layer() == nil {
+			panic("metal: CAMetalLayer is not initialized yet")
+		}
+		C.addSublayer(unsafe.Pointer(v.uiview), v.ml.Layer())
+	})
+	C.setFrame(v.ml.Layer(), unsafe.Pointer(v.uiview))
 }
 
-func (v *view) drawable() ca.MetalDrawable {
-	// TODO: Implemnt this
-	return ca.MetalDrawable{}
-}
+const (
+	textureUsage = mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget
+
+	storageMode         = mtl.StorageModeShared
+	resourceStorageMode = mtl.ResourceStorageModeShared
+)

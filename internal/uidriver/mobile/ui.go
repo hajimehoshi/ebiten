@@ -34,6 +34,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
 var (
@@ -61,7 +62,14 @@ func (u *UserInterface) Render() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-renderEndCh
-		cancel()
+		if u.t != nil {
+			u.t.Call(func() error {
+				cancel()
+				return nil
+			})
+		} else {
+			cancel()
+		}
 	}()
 
 	if u.graphics.IsGL() {
@@ -79,9 +87,9 @@ func (u *UserInterface) Render() {
 			}
 		}
 		return
+	} else {
+		u.t.Loop(ctx)
 	}
-
-	// TODO: Create and run the thread loop like the GLFW driver does.
 }
 
 type UserInterface struct {
@@ -99,6 +107,7 @@ type UserInterface struct {
 
 	input Input
 
+	t        *thread.Thread
 	glWorker gl.Worker
 
 	m sync.RWMutex
@@ -211,6 +220,9 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 			ctx, u.glWorker = gl.NewContext()
 		}
 		graphics.(*opengl.Driver).SetMobileGLContext(ctx)
+	} else {
+		u.t = thread.New()
+		graphics.SetThread(u.t)
 	}
 
 	// Force to set the screen size
