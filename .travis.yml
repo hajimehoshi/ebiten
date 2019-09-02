@@ -50,7 +50,6 @@ script:
   - gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
   - GOOS=windows GOARCH=amd64 go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
   - GOOS=windows GOARCH=386 go build -tags example -v github.com/hajimehoshi/ebiten/examples/...
-  - CGO_ENABLED=0 go vet github.com/hajimehoshi/ebiten # This is necessary for the Go playground
 
 # - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
 
