@@ -18,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
+// Modifier is a bit set of modifier keys on a keyboard.
 type Modifier int
 
 const (
