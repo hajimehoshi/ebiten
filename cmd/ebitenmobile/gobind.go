@@ -287,7 +287,7 @@ public class EbitenView extends ViewGroup {
 
     public void onResume() {
         if (initialized_) {
-            ebitenSurfaceView_.onPause();
+            ebitenSurfaceView_.onResume();
         }
     }
 
