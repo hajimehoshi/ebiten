@@ -280,6 +280,7 @@ type rpsKey struct {
 	filter        driver.Filter
 	address       driver.Address
 	compositeMode driver.CompositeMode
+	screen        bool
 }
 
 type Driver struct {
@@ -511,46 +512,54 @@ func (d *Driver) Reset() error {
 			}
 		}
 
-		for _, cm := range []bool{false, true} {
-			for _, a := range []driver.Address{
-				driver.AddressClampToZero,
-				driver.AddressRepeat,
-			} {
-				for _, f := range []driver.Filter{
-					driver.FilterNearest,
-					driver.FilterLinear,
+		for _, screen := range []bool{false, true} {
+			for _, cm := range []bool{false, true} {
+				for _, a := range []driver.Address{
+					driver.AddressClampToZero,
+					driver.AddressRepeat,
 				} {
-					for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
-						cmi := 0
-						if cm {
-							cmi = 1
-						}
-						fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
-						if err != nil {
-							return err
-						}
-						rpld := mtl.RenderPipelineDescriptor{
-							VertexFunction:   vs,
-							FragmentFunction: fs,
-						}
-						rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
-						rpld.ColorAttachments[0].BlendingEnabled = true
+					for _, f := range []driver.Filter{
+						driver.FilterNearest,
+						driver.FilterLinear,
+					} {
+						for c := driver.CompositeModeSourceOver; c <= driver.CompositeModeMax; c++ {
+							cmi := 0
+							if cm {
+								cmi = 1
+							}
+							fs, err := lib.MakeFunction(fmt.Sprintf("FragmentShader_%d_%d_%d", cmi, f, a))
+							if err != nil {
+								return err
+							}
+							rpld := mtl.RenderPipelineDescriptor{
+								VertexFunction:   vs,
+								FragmentFunction: fs,
+							}
 
-						src, dst := c.Operations()
-						rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
-						rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
-						rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
-						rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
-						rps, err := d.view.getMTLDevice().MakeRenderPipelineState(rpld)
-						if err != nil {
-							return err
+							pix := mtl.PixelFormatRGBA8UNorm
+							if screen {
+								pix = d.view.colorPixelFormat()
+							}
+							rpld.ColorAttachments[0].PixelFormat = pix
+							rpld.ColorAttachments[0].BlendingEnabled = true
+
+							src, dst := c.Operations()
+							rpld.ColorAttachments[0].DestinationAlphaBlendFactor = conv(dst)
+							rpld.ColorAttachments[0].DestinationRGBBlendFactor = conv(dst)
+							rpld.ColorAttachments[0].SourceAlphaBlendFactor = conv(src)
+							rpld.ColorAttachments[0].SourceRGBBlendFactor = conv(src)
+							rps, err := d.view.getMTLDevice().MakeRenderPipelineState(rpld)
+							if err != nil {
+								return err
+							}
+							d.rpss[rpsKey{
+								screen:        screen,
+								useColorM:     cm,
+								filter:        f,
+								address:       a,
+								compositeMode: c,
+							}] = rps
 						}
-						d.rpss[rpsKey{
-							useColorM:     cm,
-							filter:        f,
-							address:       a,
-							compositeMode: c,
-						}] = rps
 					}
 				}
 			}
@@ -604,6 +613,7 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, 
 			rce.SetRenderPipelineState(d.screenRPS)
 		} else {
 			rce.SetRenderPipelineState(d.rpss[rpsKey{
+				screen:        d.dst.screen,
 				useColorM:     colorM != nil,
 				filter:        filter,
 				address:       address,
