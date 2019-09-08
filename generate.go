@@ -15,4 +15,5 @@
 package ebiten
 
 //go:generate go run genkeys.go
+//go:generate go run genevents.go
 //go:generate gofmt -s -w .
