@@ -24,6 +24,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -498,12 +499,12 @@ func main() {
 	sort.Slice(driverKeyNames, keyNamesLess(driverKeyNames))
 
 	for path, tmpl := range map[string]string{
-		"event/keys.go":                  eventKeysTmpl,
-		"internal/driver/keys.go":        driverKeysTmpl,
-		"internal/glfw/keys.go":          glfwKeysTmpl,
-		"internal/uidriver/glfw/keys.go": uidriverGlfwKeysTmpl,
-		"internal/uidriver/js/keys.go":   uidriverJsKeysTmpl,
-		"keys.go":                        ebitenKeysTmpl,
+		filepath.Join("event", "keys.go"):                        eventKeysTmpl,
+		filepath.Join("internal", "driver", "keys.go"):           driverKeysTmpl,
+		filepath.Join("internal", "glfw", "keys.go"):             glfwKeysTmpl,
+		filepath.Join("internal", "uidriver", "glfw", "keys.go"): uidriverGlfwKeysTmpl,
+		filepath.Join("internal", "uidriver", "js", "keys.go"):   uidriverJsKeysTmpl,
+		filepath.Join("keys.go"):                                 ebitenKeysTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
