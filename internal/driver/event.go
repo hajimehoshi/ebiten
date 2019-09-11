@@ -54,7 +54,7 @@ type GamepadAxis struct {
 	// Axis is the axis of the game pad that changed position.
 	Axis int
 
-	// Position is the psoition of the axis after the change. It varies between -1.0 and 1.0.
+	// Position is the position of the axis after the change. It varies between -1.0 and 1.0.
 	Position float32
 }
 

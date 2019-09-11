@@ -30,7 +30,7 @@ type Event struct {
 }
 
 func (e *Event) Name() string {
-	return strings.Split(e.Comment, " ")[0]
+	return strings.SplitN(e.Comment, " ", 2)[0]
 }
 
 type Member struct {
@@ -39,7 +39,7 @@ type Member struct {
 }
 
 func (m *Member) Name() string {
-	return strings.Split(m.Comment, " ")[0]
+	return strings.SplitN(m.Comment, " ", 2)[0]
 }
 
 var (
@@ -164,7 +164,7 @@ var (
 					Type:    "int",
 				},
 				{
-					Comment: "Position is the psoition of the axis after the change. It varies between -1.0 and 1.0.",
+					Comment: "Position is the position of the axis after the change. It varies between -1.0 and 1.0.",
 					Type:    "float32",
 				},
 			},
