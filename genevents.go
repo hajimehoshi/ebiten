@@ -211,7 +211,7 @@ var (
 					Type:    "float32",
 				},
 				{
-					Comment: " Y is the Y position of the mouse pointer. This value is expressed in device independent pixels.",
+					Comment: "Y is the Y position of the mouse pointer. This value is expressed in device independent pixels.",
 					Type:    "float32",
 				},
 				{
@@ -325,6 +325,8 @@ var eventTmpl = template.Must(template.New("event.go").Parse(`{{.License}}
 
 package {{.Package}}
 
+type Event interface{}
+
 {{range .Events}}// {{.Comment}}
 type {{.Name}} struct {
 {{range .Members}}	// {{.Comment}}
@@ -336,10 +338,41 @@ type {{.Name}} struct {
 {{end}}
 `))
 
+var chanTmpl = template.Must(template.New("chan.go").Parse(`{{.License}}
+
+{{.DoNotEdit}}
+
+package {{.Package}}
+
+import (
+	"fmt"
+
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
+func convertCh(driverCh chan driver.Event) (chan Event) {
+	ch := make(chan Event)
+	go func() {
+		defer close(ch)
+
+		for v := range driverCh {
+			switch v := v.(type) {
+			{{range .Events}}case driver.{{.Name}}:
+				ch <- {{.Name}}(v)
+			{{end}}default:
+				panic(fmt.Sprintf("event: unknown event: %v", v))
+			}
+		}
+	}()
+	return ch
+}
+`))
+
 func main() {
-	for _, path := range []string{
-		filepath.Join("event", "event.go"),
-		filepath.Join("internal", "driver", "event.go"),
+	for path, tmpl := range map[string]*template.Template{
+		filepath.Join("event", "event.go"):              eventTmpl,
+		filepath.Join("event", "chan.go"):               chanTmpl,
+		filepath.Join("internal", "driver", "event.go"): eventTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
@@ -350,7 +383,7 @@ func main() {
 		tokens := strings.Split(path, string(filepath.Separator))
 		pkg := tokens[len(tokens)-2]
 
-		if err := eventTmpl.Execute(f, struct {
+		if err := tmpl.Execute(f, struct {
 			License   string
 			DoNotEdit string
 			Package   string

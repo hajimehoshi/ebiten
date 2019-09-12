@@ -317,10 +317,10 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-type Key int
+type Key = driver.Key
 
 const (
-{{range $index, $name := .DriverKeyNames}}Key{{$name}} Key = Key(driver.Key{{$name}})
+{{range $index, $name := .DriverKeyNames}}Key{{$name}} = driver.Key{{$name}}
 {{end}}
 )
 `

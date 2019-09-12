@@ -16,6 +16,8 @@
 
 package driver
 
+type Event interface{}
+
 // KeyboardKeyCharacter is an event that occurs when a character is actually typed on the keyboard. This may be provided by an input method.
 type KeyboardKeyCharacter struct {
 	// Key is the key code of the key typed.
@@ -105,8 +107,8 @@ type MouseMove struct {
 	// X is the X position of the mouse pointer. This value is expressed in device independent pixels.
 	X float32
 
-	//  Y is the Y position of the mouse pointer. This value is expressed in device independent pixels.
-	float32
+	// Y is the Y position of the mouse pointer. This value is expressed in device independent pixels.
+	Y float32
 
 	// DeltaX is the change in X since the last MouseMove event. This value is expressed in device independent pixels.
 	DeltaX float32

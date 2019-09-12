@@ -19,12 +19,12 @@ import (
 )
 
 // Modifier is a bit set of modifier keys on a keyboard.
-type Modifier int
+type Modifier = driver.Modifier
 
 const (
-	ModifierShift    Modifier = Modifier(driver.ModifierShift)
-	ModifierControl  Modifier = Modifier(driver.ModifierControl)
-	ModifierAlt      Modifier = Modifier(driver.ModifierAlt)
-	ModifierCapsLock Modifier = Modifier(driver.ModifierCapsLock)
-	ModifierNumLock  Modifier = Modifier(driver.ModifierNumLock)
+	ModifierShift    = driver.ModifierShift
+	ModifierControl  = driver.ModifierControl
+	ModifierAlt      = driver.ModifierAlt
+	ModifierCapsLock = driver.ModifierCapsLock
+	ModifierNumLock  = driver.ModifierNumLock
 )
