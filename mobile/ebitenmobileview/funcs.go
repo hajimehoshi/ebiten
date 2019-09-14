@@ -49,7 +49,7 @@ func Layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 		start(theState.game.Update, w, h, scale)
 		theState.running = true
 	} else {
-		// TODO: Change the screen size
+		setScreenSize(w, h, scale)
 	}
 
 	if viewRectSetter != nil {

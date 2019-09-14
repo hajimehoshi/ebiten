@@ -51,3 +51,8 @@ func start(f func(*ebiten.Image) error, width, height int, scale float64) {
 	// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, "")
 }
+
+func setScreenSize(width, height int, scale float64) {
+	ebiten.SetScreenSize(width, height)
+	ebiten.SetScreenScale(scale)
+}
