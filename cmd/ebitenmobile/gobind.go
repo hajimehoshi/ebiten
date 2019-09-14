@@ -321,18 +321,26 @@ public class EbitenView extends ViewGroup {
         });
     }
 
-    public void onPause() {
+    // suspendGame suspends the game.
+    // It is recommended to call this when the application is being suspended e.g.,
+    // Activity's onPause is called.
+    public void suspendGame() {
         if (initialized_) {
             ebitenSurfaceView_.onPause();
         }
     }
 
-    public void onResume() {
+    // resumeGame resumes the game.
+    // It is recommended to call this when the application is being resumed e.g.,
+    // Activity's onResume is called.
+    public void resumeGame() {
         if (initialized_) {
             ebitenSurfaceView_.onResume();
         }
     }
 
+    // onErrorOnGameUpdate is called on the main thread when an error happens when updating a game.
+    // You can define your own error handler, e.g., using Crashlytics, by overwriting this method.
     protected void onErrorOnGameUpdate(Exception e) {
         Log.e("Go", e.toString());
     }
