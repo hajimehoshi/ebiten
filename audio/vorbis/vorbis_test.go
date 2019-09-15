@@ -15,7 +15,6 @@
 package vorbis_test
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/jfreymuth/oggvorbis"
@@ -35,10 +34,7 @@ func init() {
 }
 
 func TestMono(t *testing.T) {
-	bs, err := ioutil.ReadFile("test_mono.ogg")
-	if err != nil {
-		t.Fatal(err)
-	}
+	bs := test_mono_ogg
 
 	s, err := Decode(audioContext, audio.BytesReadSeekCloser(bs))
 	if err != nil {
@@ -64,10 +60,7 @@ func TestMono(t *testing.T) {
 }
 
 func TestTooShort(t *testing.T) {
-	bs, err := ioutil.ReadFile("test_tooshort.ogg")
-	if err != nil {
-		t.Fatal(err)
-	}
+	bs := test_tooshort_ogg
 
 	s, err := Decode(audioContext, audio.BytesReadSeekCloser(bs))
 	if err != nil {
