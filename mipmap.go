@@ -17,6 +17,7 @@ package ebiten
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -46,15 +47,35 @@ func newScreenFramebufferMipmap(width, height int) *mipmap {
 }
 
 func (m *mipmap) original() *shareable.Image {
+	// TODO: Remove this
 	return m.orig
 }
 
 func (m *mipmap) makeVolatile() {
 	m.orig.MakeVolatile()
+	m.disposeMipmaps()
 }
 
 func (m *mipmap) dump(name string) error {
 	return m.orig.Dump(name)
+}
+
+func (m *mipmap) fill(clr color.Color) {
+	m.orig.Fill(clr)
+	m.disposeMipmaps()
+}
+
+func (m *mipmap) replacePixels(pix []byte) {
+	m.orig.ReplacePixels(pix)
+	m.disposeMipmaps()
+}
+
+func (m *mipmap) size() (int, int) {
+	return m.orig.Size()
+}
+
+func (m *mipmap) at(x, y int) (r, g, b, a byte) {
+	return m.orig.At(x, y)
 }
 
 func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {

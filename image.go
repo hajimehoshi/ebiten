@@ -161,8 +161,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 	i.resolvePendingPixels(false)
 
-	i.mipmap.original().Fill(clr)
-	i.disposeMipmaps()
+	i.mipmap.fill(clr)
 	return nil
 }
 
@@ -533,7 +532,7 @@ func (i *Image) Bounds() image.Rectangle {
 		panic("ebiten: the image is already disposed")
 	}
 	if !i.isSubImage() {
-		w, h := i.mipmap.original().Size()
+		w, h := i.mipmap.size()
 		return image.Rect(0, 0, w, h)
 	}
 	return i.bounds
@@ -564,7 +563,7 @@ func (i *Image) At(x, y int) color.Color {
 		return color.RGBA{}
 	}
 	i.resolvePendingPixels(true)
-	r, g, b, a := i.mipmap.original().At(x, y)
+	r, g, b, a := i.mipmap.at(x, y)
 	return color.RGBA{r, g, b, a}
 }
 
@@ -595,7 +594,7 @@ func (img *Image) Set(x, y int, clr color.Color) {
 		idx := 0
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
-				r, g, b, a := img.mipmap.original().At(i, j)
+				r, g, b, a := img.mipmap.at(i, j)
 				pix[4*idx] = r
 				pix[4*idx+1] = g
 				pix[4*idx+2] = b
@@ -697,8 +696,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if l := 4 * s.X * s.Y; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	i.mipmap.original().ReplacePixels(p)
-	i.disposeMipmaps()
+	i.mipmap.replacePixels(p)
 	return nil
 }
 
@@ -779,7 +777,6 @@ func (i *Image) makeVolatile() {
 		return
 	}
 	i.mipmap.makeVolatile()
-	i.disposeMipmaps()
 }
 
 // NewImageFromImage creates a new image with the given image (source).
