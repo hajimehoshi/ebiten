@@ -488,9 +488,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 			float32(r.Min.X), float32(r.Min.Y), float32(r.Max.X), float32(r.Max.Y),
 			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
-	is := make([]uint16, len(indices))
-	copy(is, indices)
-	i.mipmap.original().DrawTriangles(src, vs, is, options.ColorM.impl, mode, filter, driver.Address(options.Address))
+	i.mipmap.original().DrawTriangles(src, vs, indices, options.ColorM.impl, mode, filter, driver.Address(options.Address))
 	i.disposeMipmaps()
 }
 

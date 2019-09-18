@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
@@ -57,79 +56,6 @@ func genNextID() int {
 	return id
 }
 
-var delayedCommands []interface{}
-
-type drawTrianglesCommandArgs struct {
-	dst      *Image
-	src      *Image
-	vertices []float32
-	indices  []uint16
-	color    *affine.ColorM
-	mode     driver.CompositeMode
-	filter   driver.Filter
-	address  driver.Address
-}
-
-func enqueueDelayedCommand(c interface{}) {
-	delayedCommands = append(delayedCommands, c)
-}
-
-func flushDelayedCommandsFor(dstID int) {
-	// Choose commands that are needed to solve an image that ID is dstID.
-	indices := map[int]struct{}{}
-	ids := map[int]struct{}{dstID: {}}
-	for len(ids) > 0 {
-		newIDs := map[int]struct{}{}
-		for i, c := range delayedCommands {
-			if _, ok := indices[i]; ok {
-				continue
-			}
-			switch c := c.(type) {
-			case *drawTrianglesCommandArgs:
-				if _, ok := ids[c.dst.id]; ok {
-					indices[i] = struct{}{}
-					newIDs[c.src.id] = struct{}{}
-				}
-			case command:
-				if _, ok := ids[c.Dst().id]; ok {
-					indices[i] = struct{}{}
-				}
-			default:
-				panic(fmt.Sprintf("graphicscommands: unexpected command: %v", c))
-			}
-		}
-		ids = newIDs
-	}
-
-	// Enqueue the chosen commands. Replace the used command with nil.
-	var sortedIndices []int
-	for i := range indices {
-		sortedIndices = append(sortedIndices, i)
-	}
-	sort.Ints(sortedIndices)
-	for _, i := range sortedIndices {
-		switch c := delayedCommands[i].(type) {
-		case *drawTrianglesCommandArgs:
-			theCommandQueue.EnqueueDrawTrianglesCommand(c.dst, c.src, c.vertices, c.indices, c.color, c.mode, c.filter, c.address)
-		case command:
-			theCommandQueue.Enqueue(c)
-		default:
-			panic(fmt.Sprintf("graphicscommands: unexpected command: %v", c))
-		}
-		delayedCommands[i] = nil
-	}
-
-	// Remove the used commands from delayedCommands.
-	var newDelayedCommands []interface{}
-	for _, c := range delayedCommands {
-		if c == nil {
-			continue
-		}
-		newDelayedCommands = append(newDelayedCommands, c)
-	}
-	delayedCommands = newDelayedCommands
-}
-
 // NewImage returns a new image.
 //
 // Note that the image is not initialized yet.
@@ -146,7 +72,7 @@ func NewImage(width, height int) *Image {
 		width:  width,
 		height: height,
 	}
-	enqueueDelayedCommand(c)
+	theCommandQueue.Enqueue(c)
 	return i
 }
 
@@ -164,16 +90,15 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		width:  width,
 		height: height,
 	}
-	enqueueDelayedCommand(c)
+	theCommandQueue.Enqueue(c)
 	return i
 }
 
 func (i *Image) Dispose() {
-	// TODO: We can remove unnecessary commands from delayedCommand.
 	c := &disposeCommand{
 		target: i,
 	}
-	enqueueDelayedCommand(c)
+	theCommandQueue.Enqueue(c)
 }
 
 func (i *Image) InternalSize() (int, int) {
@@ -191,20 +116,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
-	// vertices and indices are created internally and it is fine to assume they are immutable.
-	enqueueDelayedCommand(&drawTrianglesCommandArgs{
-		dst:      i,
-		src:      src,
-		vertices: vertices,
-		indices:  indices,
-		color:    clr,
-		mode:     mode,
-		filter:   filter,
-		address:  address,
-	})
-	if i.screen {
-		flushDelayedCommandsFor(i.id)
-	}
+	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
 		i.lastCommand = lastCommandClear
@@ -216,7 +128,6 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 // Pixels returns the image's pixels.
 // Pixels might return nil when OpenGL error happens.
 func (i *Image) Pixels() []byte {
-	flushDelayedCommandsFor(i.id)
 	c := &pixelsCommand{
 		result: nil,
 		img:    i,
@@ -243,7 +154,7 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 		width:  width,
 		height: height,
 	}
-	enqueueDelayedCommand(c)
+	theCommandQueue.Enqueue(c)
 	i.lastCommand = lastCommandReplacePixels
 }
 
