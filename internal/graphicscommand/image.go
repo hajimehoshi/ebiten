@@ -95,6 +95,18 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) Dispose() {
+	// If i is 4
+	// 1->2
+	// 1->4
+	// 4->3
+	// 3->4
+	// ?->4
+	// 4->5
+	// ...
+	// 消せるのは
+	// 最新からさかのぼって 4 が src になるところまで
+	// 直接作用しているやつだけ
+
 	c := &disposeCommand{
 		target: i,
 	}
