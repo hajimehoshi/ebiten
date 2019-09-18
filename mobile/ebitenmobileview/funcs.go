@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
-
 // Package ebitenmobileview offers functions for OpenGL/Metal view of mobiles.
 //
 // The functions are not intended for public usages.

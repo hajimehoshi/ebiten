@@ -16,6 +16,11 @@
 
 package ebitenmobileview
 
+// #cgo ios LDFLAGS: -framework UIKit -framework GLKit -framework QuartzCore -framework OpenGLES
+//
+// #include <stdint.h>
+import "C"
+
 import (
 	"errors"
 

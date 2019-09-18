@@ -12,8 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ebitenmobileview offers functions for OpenGL/Metal view of mobiles.
-//
-// The functions are not intended for public usages.
-// There is no guarantee of backward compatibility.
+// +build !android
+// +build !ios
+
 package ebitenmobileview
+
+import (
+	"github.com/hajimehoshi/ebiten"
+)
+
+func update() error {
+	return nil
+}
+
+func start(f func(*ebiten.Image) error, width, height int, scale float64) {
+}
+
+func setScreenSize(width, height int, scale float64) {
+}
+
+func updateTouchesOnAndroid(action int, id int, x, y int) {
+}
+
+func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
+}

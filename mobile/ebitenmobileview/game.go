@@ -12,14 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
-
 package ebitenmobileview
-
-// #cgo ios LDFLAGS: -framework UIKit -framework GLKit -framework QuartzCore -framework OpenGLES
-//
-// #include <stdint.h>
-import "C"
 
 import (
 	"sync"
