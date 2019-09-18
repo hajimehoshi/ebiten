@@ -52,7 +52,7 @@ func takeScreenshot(screen *Image) error {
 		return err
 	}
 
-	if err := screen.mipmap.orig.Dump(newname); err != nil {
+	if err := screen.mipmap.dump(newname); err != nil {
 		return err
 	}
 

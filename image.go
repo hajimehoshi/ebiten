@@ -23,7 +23,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
 var (
@@ -748,9 +747,8 @@ type DrawImageOptions struct {
 //
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
-	s := shareable.NewImage(width, height)
 	i := &Image{
-		mipmap: newMipmap(s),
+		mipmap: newMipmap(width, height),
 		filter: filter,
 	}
 	i.addr = i
@@ -780,7 +778,7 @@ func (i *Image) makeVolatile() {
 	if i.isDisposed() {
 		return
 	}
-	i.mipmap.orig.MakeVolatile()
+	i.mipmap.makeVolatile()
 	i.disposeMipmaps()
 }
 
@@ -797,9 +795,8 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 	width, height := size.X, size.Y
 
-	s := shareable.NewImage(width, height)
 	i := &Image{
-		mipmap: newMipmap(s),
+		mipmap: newMipmap(width, height),
 		filter: filter,
 	}
 	i.addr = i
@@ -810,7 +807,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 
 func newScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		mipmap: newMipmap(shareable.NewScreenFramebufferImage(width, height)),
+		mipmap: newScreenFramebufferMipmap(width, height),
 		filter: FilterDefault,
 	}
 	i.addr = i

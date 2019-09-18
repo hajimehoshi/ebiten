@@ -31,15 +31,30 @@ type mipmap struct {
 	imgs map[image.Rectangle]levelToImage
 }
 
-func newMipmap(s *shareable.Image) *mipmap {
+func newMipmap(width, height int) *mipmap {
 	return &mipmap{
-		orig: s,
+		orig: shareable.NewImage(width, height),
+		imgs: map[image.Rectangle]levelToImage{},
+	}
+}
+
+func newScreenFramebufferMipmap(width, height int) *mipmap {
+	return &mipmap{
+		orig: shareable.NewScreenFramebufferImage(width, height),
 		imgs: map[image.Rectangle]levelToImage{},
 	}
 }
 
 func (m *mipmap) original() *shareable.Image {
 	return m.orig
+}
+
+func (m *mipmap) makeVolatile() {
+	m.orig.MakeVolatile()
+}
+
+func (m *mipmap) dump(name string) error {
+	return m.orig.Dump(name)
 }
 
 func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
