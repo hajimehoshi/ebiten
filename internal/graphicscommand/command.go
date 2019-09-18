@@ -53,6 +53,7 @@ type command interface {
 	AddNumVertices(n int)
 	AddNumIndices(n int)
 	CanMerge(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) bool
+	Dst() *Image
 }
 
 type size struct {
@@ -412,6 +413,10 @@ func (c *drawTrianglesCommand) CanMerge(dst, src *Image, color *affine.ColorM, m
 	return true
 }
 
+func (c *drawTrianglesCommand) Dst() *Image {
+	return c.dst
+}
+
 // replacePixelsCommand represents a command to replace pixels of an image.
 type replacePixelsCommand struct {
 	dst    *Image
@@ -448,6 +453,10 @@ func (c *replacePixelsCommand) AddNumIndices(n int) {
 
 func (c *replacePixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) bool {
 	return false
+}
+
+func (c *replacePixelsCommand) Dst() *Image {
+	return c.dst
 }
 
 type pixelsCommand struct {
@@ -487,6 +496,10 @@ func (c *pixelsCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode dri
 	return false
 }
 
+func (c *pixelsCommand) Dst() *Image {
+	return c.img
+}
+
 // disposeCommand represents a command to dispose an image.
 type disposeCommand struct {
 	target *Image
@@ -518,6 +531,10 @@ func (c *disposeCommand) AddNumIndices(n int) {
 
 func (c *disposeCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) bool {
 	return false
+}
+
+func (c *disposeCommand) Dst() *Image {
+	return c.target
 }
 
 // newImageCommand represents a command to create an empty image with given width and height.
@@ -559,6 +576,10 @@ func (c *newImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode d
 	return false
 }
 
+func (c *newImageCommand) Dst() *Image {
+	return c.result
+}
+
 // newScreenFramebufferImageCommand is a command to create a special image for the screen.
 type newScreenFramebufferImageCommand struct {
 	result *Image
@@ -593,6 +614,10 @@ func (c *newScreenFramebufferImageCommand) AddNumIndices(n int) {
 
 func (c *newScreenFramebufferImageCommand) CanMerge(dst, src *Image, color *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) bool {
 	return false
+}
+
+func (c *newScreenFramebufferImageCommand) Dst() *Image {
+	return c.result
 }
 
 // ResetGraphicsDriverState resets or initializes the current graphics driver state.
