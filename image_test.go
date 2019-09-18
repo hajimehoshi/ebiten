@@ -1785,3 +1785,69 @@ func TestImageFillingAndEdges(t *testing.T) {
 		}
 	}
 }
+
+func TestImageDrawTrianglesAndMutateArgs(t *testing.T) {
+	const w, h = 16, 16
+	dst, _ := NewImage(w, h, FilterDefault)
+	src, _ := NewImage(w, h, FilterDefault)
+	clr := color.RGBA{0xff, 0, 0, 0xff}
+	src.Fill(clr)
+
+	vs := []Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   w,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   0,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   w,
+			SrcY:   h,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, nil)
+	vs[0].SrcX = w
+	vs[0].SrcY = h
+	is[5] = 0
+
+	for j := 0; j < w; j++ {
+		for i := 0; i < w; i++ {
+			got := dst.At(i, j)
+			want := clr
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got %v, want %v", i, j, got, want)
+			}
+		}
+	}
+}
