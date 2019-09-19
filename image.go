@@ -477,17 +477,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 		filter = driver.Filter(img.filter)
 	}
 
-	vs := vertexSlice(len(vertices))
-	src := img.mipmap.original()
-	r := img.Bounds()
-	for idx, v := range vertices {
-		src.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum],
-			float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY,
-			float32(r.Min.X), float32(r.Min.Y), float32(r.Max.X), float32(r.Max.Y),
-			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
-	}
-	i.mipmap.original().DrawTriangles(src, vs, indices, options.ColorM.impl, mode, filter, driver.Address(options.Address))
-	i.disposeMipmaps()
+	i.mipmap.drawTriangles(img.mipmap, img.Bounds(), vertices, indices, options.ColorM.impl, mode, filter, driver.Address(options.Address))
 }
 
 // SubImage returns an image representing the portion of the image p visible through r. The returned value shares pixels with the original image.

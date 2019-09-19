@@ -20,6 +20,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 	"github.com/hajimehoshi/ebiten/internal/shareable"
@@ -76,6 +77,18 @@ func (m *mipmap) size() (int, int) {
 
 func (m *mipmap) at(x, y int) (r, g, b, a byte) {
 	return m.orig.At(x, y)
+}
+
+func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []Vertex, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+	vs := vertexSlice(len(vertices))
+	for idx, v := range vertices {
+		src.orig.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum],
+			float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY,
+			float32(bounds.Min.X), float32(bounds.Min.Y), float32(bounds.Max.X), float32(bounds.Max.Y),
+			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
+	}
+	m.orig.DrawTriangles(src.orig, vs, indices, clr, mode, filter, address)
+	m.disposeMipmaps()
 }
 
 func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
