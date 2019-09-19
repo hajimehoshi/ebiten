@@ -21,18 +21,18 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
+	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
-type levelToImage map[int]*shareable.Image
+type levelToImage map[int]*buffered.Image
 
 type mipmap struct {
 	width    int
 	height   int
 	volatile bool
-	orig     *shareable.Image
+	orig     *buffered.Image
 	imgs     map[image.Rectangle]levelToImage
 }
 
@@ -41,7 +41,7 @@ func newMipmap(width, height int, volatile bool) *mipmap {
 		width:    width,
 		height:   height,
 		volatile: volatile,
-		orig:     shareable.NewImage(width, height, volatile),
+		orig:     buffered.NewImage(width, height, volatile),
 		imgs:     map[image.Rectangle]levelToImage{},
 	}
 }
@@ -50,7 +50,7 @@ func newScreenFramebufferMipmap(width, height int) *mipmap {
 	return &mipmap{
 		width:  width,
 		height: height,
-		orig:   shareable.NewScreenFramebufferImage(width, height),
+		orig:   buffered.NewScreenFramebufferImage(width, height),
 		imgs:   map[image.Rectangle]levelToImage{},
 	}
 }
@@ -126,7 +126,7 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
 		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
-	} else if shared := src.level(bounds, level); shared != nil {
+	} else if buf := src.level(bounds, level); buf != nil {
 		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
 		s := pow2(level)
 		a *= s
@@ -135,7 +135,7 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 		d *= s
 		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
-		m.orig.DrawTriangles(shared, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+		m.orig.DrawTriangles(buf, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	}
 	m.disposeMipmaps()
 }
@@ -164,11 +164,13 @@ func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []V
 		vs[i*graphics.VertexFloatNum+10] = v.ColorB
 		vs[i*graphics.VertexFloatNum+11] = v.ColorA
 	}
-	m.orig.DrawTriangles(src.orig, vs, indices, colorm, mode, filter, address)
+	is := make([]uint16, len(indices))
+	copy(is, indices)
+	m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, address)
 	m.disposeMipmaps()
 }
 
-func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
+func (m *mipmap) level(r image.Rectangle, level int) *buffered.Image {
 	if level == 0 {
 		panic("ebiten: level must be non-zero at level")
 	}
@@ -186,7 +188,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		return img
 	}
 
-	var src *shareable.Image
+	var src *buffered.Image
 	var vs []float32
 	var filter driver.Filter
 	switch {
@@ -226,7 +228,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		imgs[level] = nil
 		return nil
 	}
-	s := shareable.NewImage(w2, h2, m.volatile)
+	s := buffered.NewImage(w2, h2, m.volatile)
 	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
 	imgs[level] = s
 

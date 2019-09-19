@@ -18,62 +18,10 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
-
-var (
-	// imageQueue represents a queue for image operations that are ordered before the game starts (BeginFrame).
-	// Before the game starts, the package shareable doesn't determine the minimum/maximum texture sizes (#879).
-	// Instead of accessing the package shareable, defer the image operations until the game starts (#921).
-	imageQueue           []func()
-	imageQueueM          sync.Mutex
-	needsEnqueueImageOps = true
-)
-
-func checkNeedsEnqueueImageOp(location string) {
-	imageQueueM.Lock()
-	defer imageQueueM.Unlock()
-
-	if needsEnqueueImageOps {
-		panic(fmt.Sprintf("ebiten: %s is not available before the game starts", location))
-	}
-}
-
-func enqueueImageOpIfNeeded(f func() func()) bool {
-	imageQueueM.Lock()
-	defer imageQueueM.Unlock()
-
-	if !needsEnqueueImageOps {
-		return false
-	}
-	imageQueue = append(imageQueue, f())
-	return true
-}
-
-func flushImageOpsIfNeeded() {
-	imageQueueM.Lock()
-
-	if !needsEnqueueImageOps {
-		if len(imageQueue) > 0 {
-			panic("ebiten: len(imageQueue) must be 0 after the game starts")
-		}
-		imageQueueM.Unlock()
-		return
-	}
-
-	// Set this flag false first, or the image operations will be queued again.
-	needsEnqueueImageOps = false
-	imageQueueM.Unlock()
-
-	// As a new item will not be enqueued any longer, mutex does not have to, or should not be used.
-	for _, f := range imageQueue {
-		f()
-	}
-	imageQueue = nil
-}
 
 // Image represents a rectangle set of pixels.
 // The pixel format is alpha-premultiplied RGBA.
@@ -135,15 +83,6 @@ func (i *Image) Clear() error {
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
-	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
-	if enqueueImageOpIfNeeded(func() func() {
-		return func() {
-			i.Fill(rgba)
-		}
-	}) {
-		return nil
-	}
-
 	if i.isDisposed() {
 		return nil
 	}
@@ -155,7 +94,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 	i.resolvePendingPixels(false)
 
-	i.mipmap.fill(rgba)
+	i.mipmap.fill(color.RGBAModel.Convert(clr).(color.RGBA))
 	return nil
 }
 
@@ -198,15 +137,6 @@ func (i *Image) Fill(clr color.Color) error {
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	i.copyCheck()
-
-	if enqueueImageOpIfNeeded(func() func() {
-		op := *options
-		return func() {
-			i.DrawImage(img, &op)
-		}
-	}) {
-		return nil
-	}
 
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
@@ -355,19 +285,6 @@ const MaxIndicesNum = graphics.IndicesNum
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
-	if enqueueImageOpIfNeeded(func() func() {
-		vs := make([]Vertex, len(vertices))
-		copy(vs, vertices)
-		is := make([]uint16, len(indices))
-		copy(is, indices)
-		op := *options
-		return func() {
-			i.DrawTriangles(vs, is, img, &op)
-		}
-	}) {
-		return
-	}
-
 	if i.isDisposed() {
 		return
 	}
@@ -467,8 +384,6 @@ func (i *Image) ColorModel() color.Model {
 //
 // At can't be called outside the main loop (ebiten.Run's updating function) starts (as of version 1.4.0-alpha).
 func (i *Image) At(x, y int) color.Color {
-	checkNeedsEnqueueImageOp("(*Image).At")
-
 	if i.isDisposed() {
 		return color.RGBA{}
 	}
@@ -488,8 +403,6 @@ func (i *Image) At(x, y int) color.Color {
 //
 // If the image is disposed, Set does nothing.
 func (img *Image) Set(x, y int, clr color.Color) {
-	checkNeedsEnqueueImageOp("(*Image).Set")
-
 	img.copyCheck()
 	if img.isDisposed() {
 		return
@@ -554,14 +467,6 @@ func (i *Image) resolvePendingPixels(draw bool) {
 func (i *Image) Dispose() error {
 	i.copyCheck()
 
-	if enqueueImageOpIfNeeded(func() func() {
-		return func() {
-			i.Dispose()
-		}
-	}) {
-		return nil
-	}
-
 	if i.isDisposed() {
 		return nil
 	}
@@ -587,16 +492,6 @@ func (i *Image) Dispose() error {
 func (i *Image) ReplacePixels(p []byte) error {
 	i.copyCheck()
 
-	if enqueueImageOpIfNeeded(func() func() {
-		px := make([]byte, len(p))
-		copy(px, p)
-		return func() {
-			i.ReplacePixels(px)
-		}
-	}) {
-		return nil
-	}
-
 	if i.isDisposed() {
 		return nil
 	}
@@ -609,7 +504,10 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if l := 4 * s.X * s.Y; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
-	i.mipmap.replacePixels(p)
+
+	px := make([]byte, len(p))
+	copy(px, p)
+	i.mipmap.replacePixels(px)
 	return nil
 }
 

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
@@ -77,12 +78,9 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
-	if err := shareable.BeginFrame(); err != nil {
+	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
-
-	// Images are available after shareable is initialized.
-	flushImageOpsIfNeeded()
 
 	for i := 0; i < updateCount; i++ {
 		c.offscreen.Clear()
@@ -129,7 +127,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	}
 	_ = c.screen.DrawImage(c.offscreen, op)
 
-	if err := shareable.EndFrame(); err != nil {
+	if err := buffered.EndFrame(); err != nil {
 		return err
 	}
 	return nil
