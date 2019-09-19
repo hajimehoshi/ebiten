@@ -105,6 +105,22 @@ func (i *Image) InternalSize() (int, int) {
 	return i.internalWidth, i.internalHeight
 }
 
+// DrawTriangles draws triangles with the given image.
+//
+// The vertex floats are:
+//
+//   0:  Destination X in pixels
+//   1:  Destination Y in pixels
+//   2:  Source X in texels
+//   3:  Source Y in texels
+//   4:  Bounds of the source min X in texels
+//   5:  Bounds of the source min Y in texels
+//   6:  Bounds of the source max X in texels
+//   7:  Bounds of the source max Y in texels
+//   8:  Color R [0.0-1.0]
+//   9:  Color G
+//   10: Color B
+//   11: Color Y
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if src.screen {
 		panic("graphicscommand: the screen image cannot be the rendering source")

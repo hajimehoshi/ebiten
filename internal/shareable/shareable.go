@@ -282,7 +282,26 @@ func (i *Image) putVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, 
 
 	ox, oy, _, _ := i.region()
 	oxf, oyf := float32(ox), float32(oy)
-	i.backend.restorable.PutVertex(dst, dx, dy, sx+oxf, sy+oyf, bx0+oxf, by0+oyf, bx1+oxf, by1+oyf, cr, cg, cb, ca)
+
+	// Specifying a range explicitly here is redundant but this helps optimization
+	// to eliminate boundary checks.
+	//
+	// VertexFloatNum is better than 12 in terms of code maintenanceability, but in GopherJS, optimization
+	// might not work.
+	vs := dst[0:12]
+
+	vs[0] = dx
+	vs[1] = dy
+	vs[2] = sx + oxf
+	vs[3] = sy + oyf
+	vs[4] = bx0 + oxf
+	vs[5] = by0 + oyf
+	vs[6] = bx1 + oxf
+	vs[7] = by1 + oyf
+	vs[8] = cr
+	vs[9] = cg
+	vs[10] = cb
+	vs[11] = ca
 }
 
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {

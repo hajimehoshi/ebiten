@@ -205,6 +205,16 @@ func (i *Image) Clear() {
 	i.clear()
 }
 
+// quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
+func quadVertices(dx0, dy0, dx1, dy1, u0, v0, u1, v1, cr, cg, cb, ca float32) []float32 {
+	return []float32{
+		dx0, dy0, u0, v0, u0, v0, u1, v1, cr, cg, cb, ca,
+		dx1, dy0, u1, v0, u0, v0, u1, v1, cr, cg, cb, ca,
+		dx0, dy1, u0, v1, u0, v0, u1, v1, cr, cg, cb, ca,
+		dx1, dy1, u1, v1, u0, v0, u1, v1, cr, cg, cb, ca,
+	}
+}
+
 // clearImage clears a graphicscommand.Image.
 // This does nothing to do with a restorable.Image's rendering state.
 func clearImage(img *graphicscommand.Image) {
@@ -218,11 +228,7 @@ func clearImage(img *graphicscommand.Image) {
 	// The rendering target size needs to be its 'internal' size instead of the exposed size to avoid glitches on
 	// mobile platforms (See the change 1e1f309a).
 	dw, dh := img.InternalSize()
-	sw, sh := emptyImage.Size()
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
-		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
-		0, 0, 0, 0)
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 1, 1, 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	// The first DrawTriangles must be clear mode for initialization.
 	// TODO: Can the graphicscommand package hide this knowledge?
@@ -275,11 +281,7 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 
 	// TODO: Integrate with clearColor
 	dw, dh := i.InternalSize()
-	sw, sh := emptyImage.Size()
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, emptyImage, 0, 0, sw, sh,
-		float32(dw)/float32(sw), 0, 0, float32(dh)/float32(sh), 0, 0,
-		rf, gf, bf, af)
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 1, 1, rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
 	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
@@ -298,29 +300,6 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 func (i *Image) Size() (int, int) {
 	// Do not acccess i.image since i.image can be nil after disposing.
 	return i.width, i.height
-}
-
-func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	// Specifying a range explicitly here is redundant but this helps optimization
-	// to eliminate boundary checks.
-	//
-	// VertexFloatNum is better than 12 in terms of code maintenanceability, but in GopherJS, optimization
-	// might not work.
-	vs = vs[0:12]
-
-	w, h := i.image.InternalSize()
-	vs[0] = dx
-	vs[1] = dy
-	vs[2] = sx / float32(w)
-	vs[3] = sy / float32(h)
-	vs[4] = bx0 / float32(w)
-	vs[5] = by0 / float32(h)
-	vs[6] = bx1 / float32(w)
-	vs[7] = by1 / float32(h)
-	vs[8] = cr
-	vs[9] = cg
-	vs[10] = cb
-	vs[11] = ca
 }
 
 // makeStale makes the image stale.
@@ -395,7 +374,22 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 }
 
-// DrawTriangles draws a given image img to the image.
+// DrawTriangles draws triangles with the given image.
+//
+// The vertex floats are:
+//
+//   0:  Destination X in pixels
+//   1:  Destination Y in pixels
+//   2:  Source X in pixels (not texels!)
+//   3:  Source Y in pixels
+//   4:  Bounds of the source min X in pixels
+//   5:  Bounds of the source min Y in pixels
+//   6:  Bounds of the source max X in pixels
+//   7:  Bounds of the source max Y in pixels
+//   8:  Color R [0.0-1.0]
+//   9:  Color G
+//   10: Color B
+//   11: Color Y
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if i.priority {
 		panic("restorable: DrawTriangles cannot be called on a priority image")
@@ -404,6 +398,16 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		return
 	}
 	theImages.makeStaleIfDependingOn(i)
+
+	w, h := img.image.InternalSize()
+	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
+		vertices[i*graphics.VertexFloatNum+2] /= float32(w)
+		vertices[i*graphics.VertexFloatNum+3] /= float32(h)
+		vertices[i*graphics.VertexFloatNum+4] /= float32(w)
+		vertices[i*graphics.VertexFloatNum+5] /= float32(h)
+		vertices[i*graphics.VertexFloatNum+6] /= float32(w)
+		vertices[i*graphics.VertexFloatNum+7] /= float32(h)
+	}
 
 	if img.stale || img.volatile || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
