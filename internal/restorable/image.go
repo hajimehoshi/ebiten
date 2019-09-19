@@ -300,11 +300,6 @@ func (i *Image) Size() (int, int) {
 	return i.width, i.height
 }
 
-// internalSize returns the size of the internal texture.
-func (i *Image) internalSize() (int, int) {
-	return i.image.InternalSize()
-}
-
 func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
@@ -313,7 +308,7 @@ func (i *Image) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, b
 	// might not work.
 	vs = vs[0:12]
 
-	w, h := i.internalSize()
+	w, h := i.image.InternalSize()
 	vs[0] = dx
 	vs[1] = dy
 	vs[2] = sx / float32(w)
