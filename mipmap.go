@@ -47,11 +47,6 @@ func newScreenFramebufferMipmap(width, height int) *mipmap {
 	}
 }
 
-func (m *mipmap) original() *shareable.Image {
-	// TODO: Remove this
-	return m.orig
-}
-
 func (m *mipmap) makeVolatile() {
 	m.orig.MakeVolatile()
 	m.disposeMipmaps()
@@ -79,7 +74,72 @@ func (m *mipmap) at(x, y int) (r, g, b, a byte) {
 	return m.orig.At(x, y)
 }
 
-func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []Vertex, indices []uint16, clr *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
+	if det := geom.det(); det == 0 {
+		return
+	} else if math.IsNaN(float64(det)) {
+		return
+	}
+
+	level := src.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
+
+	if level > 0 {
+		// If the image can be scaled into 0 size, adjust the level. (#839)
+		w, h := bounds.Dx(), bounds.Dy()
+		for level >= 0 {
+			s := 1 << uint(level)
+			if w/s == 0 || h/s == 0 {
+				level--
+				continue
+			}
+			break
+		}
+
+		if level < 0 {
+			// As the render source is too small, nothing is rendered.
+			return
+		}
+	}
+
+	if level > 6 {
+		level = 6
+	}
+	if level < -6 {
+		level = -6
+	}
+
+	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
+	if colorm.ScaleOnly() {
+		body, _ := colorm.UnsafeElements()
+		cr = body[0]
+		cg = body[5]
+		cb = body[10]
+		ca = body[15]
+		colorm = nil
+	}
+
+	a, b, c, d, tx, ty := geom.elements()
+	if level == 0 {
+		vs := vertexSlice(4)
+		graphics.PutQuadVertices(vs, src.orig, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		is := graphics.QuadIndices()
+		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+	} else if shared := src.level(bounds, level); shared != nil {
+		w, h := shared.Size()
+		s := pow2(level)
+		a *= s
+		b *= s
+		c *= s
+		d *= s
+		vs := vertexSlice(4)
+		graphics.PutQuadVertices(vs, shared, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		is := graphics.QuadIndices()
+		m.orig.DrawTriangles(shared, vs, is, colorm, mode, filter, driver.AddressClampToZero)
+	}
+	m.disposeMipmaps()
+}
+
+func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []Vertex, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	vs := vertexSlice(len(vertices))
 	for idx, v := range vertices {
 		src.orig.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum],
@@ -87,7 +147,7 @@ func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []V
 			float32(bounds.Min.X), float32(bounds.Min.Y), float32(bounds.Max.X), float32(bounds.Max.Y),
 			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
 	}
-	m.orig.DrawTriangles(src.orig, vs, indices, clr, mode, filter, address)
+	m.orig.DrawTriangles(src.orig, vs, indices, colorm, mode, filter, address)
 	m.disposeMipmaps()
 }
 
@@ -237,7 +297,7 @@ func (m *mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter
 	if filter != driver.FilterLinear {
 		return 0
 	}
-	if m.original().IsVolatile() {
+	if m.orig.IsVolatile() {
 		return 0
 	}
 

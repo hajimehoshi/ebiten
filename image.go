@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"math"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -165,13 +164,6 @@ func (i *Image) Fill(clr color.Color) error {
 	return nil
 }
 
-func (i *Image) disposeMipmaps() {
-	if i.isDisposed() {
-		panic("ebiten: the image is already disposed at disposeMipmap")
-	}
-	i.mipmap.disposeMipmaps()
-}
-
 // DrawImage draws the given image on the image i.
 //
 // DrawImage accepts the options. For details, see the document of
@@ -289,71 +281,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = driver.Filter(img.filter)
 	}
 
-	if det := geom.det(); det == 0 {
-		return nil
-	} else if math.IsNaN(float64(det)) {
-		return nil
-	}
-
-	level := img.mipmap.mipmapLevel(geom, bounds.Dx(), bounds.Dy(), filter)
-
-	if level > 0 {
-		// If the image can be scaled into 0 size, adjust the level. (#839)
-		w, h := bounds.Dx(), bounds.Dy()
-		for level >= 0 {
-			s := 1 << uint(level)
-			if w/s == 0 || h/s == 0 {
-				level--
-				continue
-			}
-			break
-		}
-
-		if level < 0 {
-			// As the render source is too small, nothing is rendered.
-			return nil
-		}
-	}
-
-	if level > 6 {
-		level = 6
-	}
-	if level < -6 {
-		level = -6
-	}
-
-	// TODO: Add (*mipmap).drawImage and move the below code.
-	colorm := options.ColorM.impl
-	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
-	if colorm.ScaleOnly() {
-		body, _ := colorm.UnsafeElements()
-		cr = body[0]
-		cg = body[5]
-		cb = body[10]
-		ca = body[15]
-		colorm = nil
-	}
-
-	a, b, c, d, tx, ty := geom.elements()
-	if level == 0 {
-		src := img.mipmap.original()
-		vs := vertexSlice(4)
-		graphics.PutQuadVertices(vs, src, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
-		is := graphics.QuadIndices()
-		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, driver.AddressClampToZero)
-	} else if src := img.mipmap.level(bounds, level); src != nil {
-		w, h := src.Size()
-		s := pow2(level)
-		a *= s
-		b *= s
-		c *= s
-		d *= s
-		vs := vertexSlice(4)
-		graphics.PutQuadVertices(vs, src, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
-		is := graphics.QuadIndices()
-		i.mipmap.original().DrawTriangles(src, vs, is, colorm, mode, filter, driver.AddressClampToZero)
-	}
-	i.disposeMipmaps()
+	i.mipmap.drawImage(img.mipmap, img.Bounds(), geom, options.ColorM.impl, mode, filter)
 	return nil
 }
 
