@@ -43,24 +43,13 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-type testVertexPutter struct {
-	w float32
-	h float32
-}
-
-func (t *testVertexPutter) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	vs[0] = dx
-	vs[1] = dy
-	vs[2] = sx
-	vs[3] = sy
-	vs[4] = bx0
-	vs[5] = by0
-	vs[6] = bx1
-	vs[7] = by1
-	vs[8] = cr
-	vs[9] = cg
-	vs[10] = cb
-	vs[11] = ca
+func quadVertices(w, h float32) []float32 {
+	return []float32{
+		0, 0, 0, 0, 0, 0, w, h, 1, 1, 1, 1,
+		w, 0, w, 0, 0, 0, w, h, 1, 1, 1, 1,
+		0, w, 0, h, 0, 0, w, h, 1, 1, 1, 1,
+		w, h, w, h, 0, 0, w, h, 1, 1, 1, 1,
+	}
 }
 
 func TestClear(t *testing.T) {
@@ -68,8 +57,7 @@ func TestClear(t *testing.T) {
 	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
 
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, &testVertexPutter{w / 2, h / 2}, 0, 0, w/2, h/2, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
 
@@ -94,10 +82,9 @@ func TestReplacePixelsPartAfterDrawTriangles(t *testing.T) {
 	}()
 	const w, h = 32, 32
 	clr := NewImage(w, h)
-	src := NewImage(16, 16)
+	src := NewImage(w/2, h/2)
 	dst := NewImage(w, h)
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, &testVertexPutter{w / 2, h / 2}, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := quadVertices(w/2, h/2)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(clr, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
