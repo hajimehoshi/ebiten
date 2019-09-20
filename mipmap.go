@@ -29,21 +29,27 @@ import (
 type levelToImage map[int]*shareable.Image
 
 type mipmap struct {
-	orig *shareable.Image
-	imgs map[image.Rectangle]levelToImage
+	width  int
+	height int
+	orig   *shareable.Image
+	imgs   map[image.Rectangle]levelToImage
 }
 
 func newMipmap(width, height int) *mipmap {
 	return &mipmap{
-		orig: shareable.NewImage(width, height),
-		imgs: map[image.Rectangle]levelToImage{},
+		width:  width,
+		height: height,
+		orig:   shareable.NewImage(width, height),
+		imgs:   map[image.Rectangle]levelToImage{},
 	}
 }
 
 func newScreenFramebufferMipmap(width, height int) *mipmap {
 	return &mipmap{
-		orig: shareable.NewScreenFramebufferImage(width, height),
-		imgs: map[image.Rectangle]levelToImage{},
+		width:  width,
+		height: height,
+		orig:   shareable.NewScreenFramebufferImage(width, height),
+		imgs:   map[image.Rectangle]levelToImage{},
 	}
 }
 
@@ -67,7 +73,7 @@ func (m *mipmap) replacePixels(pix []byte) {
 }
 
 func (m *mipmap) size() (int, int) {
-	return m.orig.Size()
+	return m.width, m.height
 }
 
 func (m *mipmap) at(x, y int) (r, g, b, a byte) {
@@ -124,7 +130,7 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 		is := graphics.QuadIndices()
 		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	} else if shared := src.level(bounds, level); shared != nil {
-		w, h := shared.Size()
+		w, h := sizeForLevel(bounds.Dx(), bounds.Dy(), level)
 		s := pow2(level)
 		a *= s
 		b *= s
@@ -197,7 +203,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			imgs[level] = nil
 			return nil
 		}
-		w, h := src.Size()
+		w, h := sizeForLevel(r.Dx(), r.Dy(), level-1)
 		vs = quadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterLinear
 	case level == -1:
@@ -210,7 +216,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			imgs[level] = nil
 			return nil
 		}
-		w, h := src.Size()
+		w, h := sizeForLevel(r.Dx(), r.Dy(), level+1)
 		vs = quadVertices(0, 0, w, h, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterNearest
 	default:
@@ -218,28 +224,36 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	}
 	is := graphics.QuadIndices()
 
-	size := r.Size()
-	w2, h2 := size.X, size.Y
-	if level > 0 {
-		for i := 0; i < level; i++ {
-			w2 /= 2
-			h2 /= 2
-			if w2 == 0 || h2 == 0 {
-				imgs[level] = nil
-				return nil
-			}
-		}
-	} else {
-		for i := 0; i < -level; i++ {
-			w2 *= 2
-			h2 *= 2
-		}
+	w2, h2 := sizeForLevel(r.Dx(), r.Dy(), level)
+	if w2 == 0 || h2 == 0 {
+		imgs[level] = nil
+		return nil
 	}
 	s := shareable.NewImage(w2, h2)
 	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
 	imgs[level] = s
 
 	return imgs[level]
+}
+
+func sizeForLevel(origWidth, origHeight int, level int) (width, height int) {
+	width = origWidth
+	height = origHeight
+	if level > 0 {
+		for i := 0; i < level; i++ {
+			width /= 2
+			height /= 2
+			if width == 0 || height == 0 {
+				return 0, 0
+			}
+		}
+	} else {
+		for i := 0; i < -level; i++ {
+			width *= 2
+			height *= 2
+		}
+	}
+	return
 }
 
 func (m *mipmap) isDisposed() bool {

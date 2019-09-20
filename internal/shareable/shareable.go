@@ -257,10 +257,6 @@ func (i *Image) region() (x, y, width, height int) {
 	return i.node.Region()
 }
 
-func (i *Image) Size() (width, height int) {
-	return i.width, i.height
-}
-
 // DrawTriangles draws triangles with the given image.
 //
 // The vertex floats are:
