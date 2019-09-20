@@ -79,10 +79,6 @@ func makeImagesShared() {
 	}
 }
 
-func MakeImagesSharedForTesting() {
-	makeImagesShared()
-}
-
 type backend struct {
 	restorable *restorable.Image
 
@@ -184,12 +180,6 @@ func (i *Image) moveTo(dst *Image) {
 
 func (i *Image) isShared() bool {
 	return i.node != nil
-}
-
-func (i *Image) IsSharedForTesting() bool {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	return i.isShared()
 }
 
 func (i *Image) ensureNotShared() {
