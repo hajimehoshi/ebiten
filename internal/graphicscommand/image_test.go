@@ -49,15 +49,14 @@ type testVertexPutter struct {
 }
 
 func (t *testVertexPutter) PutVertex(vs []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	// The implementation is basically same as restorable.(*Image).PutVertex.
 	vs[0] = dx
 	vs[1] = dy
-	vs[2] = sx / t.w
-	vs[3] = sy / t.h
-	vs[4] = bx0 / t.w
-	vs[5] = by0 / t.h
-	vs[6] = bx1 / t.w
-	vs[7] = by1 / t.h
+	vs[2] = sx
+	vs[3] = sy
+	vs[4] = bx0
+	vs[5] = by0
+	vs[6] = bx1
+	vs[7] = by1
 	vs[8] = cr
 	vs[9] = cg
 	vs[10] = cb
