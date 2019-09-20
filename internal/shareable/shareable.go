@@ -252,8 +252,7 @@ func (i *Image) region() (x, y, width, height int) {
 		panic("shareable: backend must not be nil: not allocated yet?")
 	}
 	if !i.isShared() {
-		w, h := i.backend.restorable.Size()
-		return 0, 0, w, h
+		return 0, 0, i.width, i.height
 	}
 	return i.node.Region()
 }

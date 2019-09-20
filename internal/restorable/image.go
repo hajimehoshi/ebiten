@@ -153,9 +153,8 @@ func NewImage(width, height int) *Image {
 //
 // Extend panics when the image is stale.
 func (i *Image) Extend(width, height int) *Image {
-	w, h := i.Size()
-	if w > width || h > height {
-		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", w, h, width, height))
+	if i.width > width || i.height > height {
+		panic(fmt.Sprintf("restorable: the original size (%d, %d) cannot be extended to (%d, %d)", i.width, i.height, width, height))
 	}
 
 	if i.stale {
@@ -298,12 +297,6 @@ func (i *Image) BasePixelsForTesting() *Pixels {
 	return &i.basePixels
 }
 
-// Size returns the image's size.
-func (i *Image) Size() (int, int) {
-	// Do not acccess i.image since i.image can be nil after disposing.
-	return i.width, i.height
-}
-
 // makeStale makes the image stale.
 func (i *Image) makeStale() {
 	i.basePixels = Pixels{}
@@ -325,10 +318,10 @@ func (i *Image) ClearPixels(x, y, width, height int) {
 //
 // ReplacePixels for a part is forbidden if the image is rendered with DrawTriangles or Fill.
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	w, h := i.Size()
 	if width <= 0 || height <= 0 {
 		panic("restorable: width/height must be positive")
 	}
+	w, h := i.width, i.height
 	if x < 0 || y < 0 || w <= x || h <= y || x+width <= 0 || y+height <= 0 || w < x+width || h < y+height {
 		panic(fmt.Sprintf("restorable: out of range x: %d, y: %d, width: %d, height: %d", x, y, width, height))
 	}
@@ -447,8 +440,7 @@ func (i *Image) readPixelsFromGPUIfNeeded() {
 //
 // Note that this must not be called until context is available.
 func (i *Image) At(x, y int) (byte, byte, byte, byte) {
-	w, h := i.Size()
-	if x < 0 || y < 0 || w <= x || h <= y {
+	if x < 0 || y < 0 || i.width <= x || i.height <= y {
 		return 0, 0, 0, 0
 	}
 
@@ -469,9 +461,8 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
 func (i *Image) readPixelsFromGPU() {
-	w, h := i.Size()
 	i.basePixels = Pixels{}
-	i.basePixels.AddOrReplace(i.image.Pixels(), 0, 0, w, h)
+	i.basePixels.AddOrReplace(i.image.Pixels(), 0, 0, i.width, i.height)
 	i.drawTrianglesHistory = nil
 	i.stale = false
 }
@@ -523,7 +514,7 @@ func (i *Image) hasDependency() bool {
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
 func (i *Image) restore() {
-	w, h := i.Size()
+	w, h := i.width, i.height
 	// Do not dispose the image here. The image should be already disposed.
 
 	if i.screen {
