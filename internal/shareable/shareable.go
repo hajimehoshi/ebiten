@@ -262,29 +262,22 @@ func (i *Image) Size() (width, height int) {
 	return i.width, i.height
 }
 
-// PutVertices puts the given dst with vertices that can be passed to DrawTriangles.
-func (i *Image) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	// Specifying a range explicitly here is redundant but this helps optimization
-	// to eliminate boundary checks.
-	//
-	// VertexFloatNum is better than 12 in terms of code maintenanceability, but in GopherJS, optimization
-	// might not work.
-	vs := dst[0:12]
-
-	vs[0] = dx
-	vs[1] = dy
-	vs[2] = sx
-	vs[3] = sy
-	vs[4] = bx0
-	vs[5] = by0
-	vs[6] = bx1
-	vs[7] = by1
-	vs[8] = cr
-	vs[9] = cg
-	vs[10] = cb
-	vs[11] = ca
-}
-
+// DrawTriangles draws triangles with the given image.
+//
+// The vertex floats are:
+//
+//   0:  Destination X in pixels
+//   1:  Destination Y in pixels
+//   2:  Source X in pixels (the upper-left is (0, 0))
+//   3:  Source Y in pixels
+//   4:  Bounds of the source min X in pixels
+//   5:  Bounds of the source min Y in pixels
+//   6:  Bounds of the source max X in pixels
+//   7:  Bounds of the source max Y in pixels
+//   8:  Color R [0.0-1.0]
+//   9:  Color G
+//   10: Color B
+//   11: Color Y
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	backendsM.Lock()
 	defer backendsM.Unlock()

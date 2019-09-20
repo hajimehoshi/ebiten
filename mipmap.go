@@ -120,8 +120,7 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 
 	a, b, c, d, tx, ty := geom.elements()
 	if level == 0 {
-		vs := vertexSlice(4)
-		graphics.PutQuadVertices(vs, src.orig, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
 		m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	} else if shared := src.level(bounds, level); shared != nil {
@@ -131,8 +130,7 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 		b *= s
 		c *= s
 		d *= s
-		vs := vertexSlice(4)
-		graphics.PutQuadVertices(vs, shared, 0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
+		vs := quadVertices(0, 0, w, h, a, b, c, d, tx, ty, cr, cg, cb, ca)
 		is := graphics.QuadIndices()
 		m.orig.DrawTriangles(shared, vs, is, colorm, mode, filter, driver.AddressClampToZero)
 	}
@@ -140,12 +138,28 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 }
 
 func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []Vertex, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+	bx0 := float32(bounds.Min.X)
+	by0 := float32(bounds.Min.Y)
+	bx1 := float32(bounds.Max.X)
+	by1 := float32(bounds.Max.Y)
+
+	// TODO: Needs boundary check optimization?
+	// See https://go101.org/article/bounds-check-elimination.html
+
 	vs := vertexSlice(len(vertices))
-	for idx, v := range vertices {
-		src.orig.PutVertex(vs[idx*graphics.VertexFloatNum:(idx+1)*graphics.VertexFloatNum],
-			float32(v.DstX), float32(v.DstY), v.SrcX, v.SrcY,
-			float32(bounds.Min.X), float32(bounds.Min.Y), float32(bounds.Max.X), float32(bounds.Max.Y),
-			v.ColorR, v.ColorG, v.ColorB, v.ColorA)
+	for i, v := range vertices {
+		vs[i*graphics.VertexFloatNum] = v.DstX
+		vs[i*graphics.VertexFloatNum+1] = v.DstY
+		vs[i*graphics.VertexFloatNum+2] = v.SrcX
+		vs[i*graphics.VertexFloatNum+3] = v.SrcY
+		vs[i*graphics.VertexFloatNum+4] = bx0
+		vs[i*graphics.VertexFloatNum+5] = by0
+		vs[i*graphics.VertexFloatNum+6] = bx1
+		vs[i*graphics.VertexFloatNum+7] = by1
+		vs[i*graphics.VertexFloatNum+8] = v.ColorR
+		vs[i*graphics.VertexFloatNum+9] = v.ColorG
+		vs[i*graphics.VertexFloatNum+10] = v.ColorB
+		vs[i*graphics.VertexFloatNum+11] = v.ColorA
 	}
 	m.orig.DrawTriangles(src.orig, vs, indices, colorm, mode, filter, address)
 	m.disposeMipmaps()
@@ -170,12 +184,12 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	}
 
 	var src *shareable.Image
-	vs := vertexSlice(4)
+	var vs []float32
 	var filter driver.Filter
 	switch {
 	case level == 1:
 		src = m.orig
-		graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		vs = quadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterLinear
 	case level > 1:
 		src = m.level(r, level-1)
@@ -184,11 +198,11 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			return nil
 		}
 		w, h := src.Size()
-		graphics.PutQuadVertices(vs, src, 0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
+		vs = quadVertices(0, 0, w, h, 0.5, 0, 0, 0.5, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterLinear
 	case level == -1:
 		src = m.orig
-		graphics.PutQuadVertices(vs, src, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
+		vs = quadVertices(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterNearest
 	case level < -1:
 		src = m.level(r, level+1)
@@ -197,7 +211,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 			return nil
 		}
 		w, h := src.Size()
-		graphics.PutQuadVertices(vs, src, 0, 0, w, h, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
+		vs = quadVertices(0, 0, w, h, 2, 0, 0, 2, 0, 0, 1, 1, 1, 1)
 		filter = driver.FilterNearest
 	default:
 		panic(fmt.Sprintf("ebiten: invalid level: %d", level))

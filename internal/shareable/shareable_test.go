@@ -44,6 +44,23 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
+	dx0 := float32(x)
+	dy0 := float32(y)
+	dx1 := float32(x) + float32(sw)*scalex
+	dy1 := float32(y) + float32(sh)
+	sx0 := float32(0)
+	sy0 := float32(0)
+	sx1 := float32(sw)
+	sy1 := float32(sh)
+	return []float32{
+		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+	}
+}
+
 const bigSize = 2049
 
 func TestEnsureNotShared(t *testing.T) {
@@ -85,8 +102,7 @@ func TestEnsureNotShared(t *testing.T) {
 		dy1 = size * 3 / 4
 	)
 	// img4.ensureNotShared() should be called.
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, img3, 0, 0, size/2, size/2, 1, 0, 0, 1, size/4, size/4, 1, 1, 1, 1)
+	vs := quadVertices(size/2, size/2, size/4, size/4, 1)
 	is := graphics.QuadIndices()
 	img4.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	want := false
@@ -150,8 +166,7 @@ func TestReshared(t *testing.T) {
 	}
 
 	// Use img1 as a render target.
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, img2, 0, 0, size, size, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := quadVertices(size, size, 0, 0, 1)
 	is := graphics.QuadIndices()
 	img1.DrawTriangles(img2, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	if got, want := img1.IsSharedForTesting(), false; got != want {
@@ -277,8 +292,7 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	}
 	src.ReplacePixels(pix)
 
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, src, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 	dst.ReplacePixels(pix)
@@ -313,8 +327,7 @@ func TestSmallImages(t *testing.T) {
 	}
 	src.ReplacePixels(pix)
 
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, src, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 
@@ -349,8 +362,7 @@ func TestLongImages(t *testing.T) {
 	src.ReplacePixels(pix)
 
 	const scale = 120
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, src, 0, 0, w, h, scale, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := quadVertices(w, h, 0, 0, scale)
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 
