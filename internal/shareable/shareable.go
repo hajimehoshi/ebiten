@@ -192,14 +192,6 @@ func (i *Image) IsSharedForTesting() bool {
 	return i.isShared()
 }
 
-type vertexPutterWithoutLock struct {
-	*Image
-}
-
-func (i vertexPutterWithoutLock) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	i.putVertex(dst, dx, dy, sx, sy, bx0, by0, bx1, by1, cr, cg, cb, ca)
-}
-
 func (i *Image) ensureNotShared() {
 	if i.backend == nil {
 		i.allocate(false)
@@ -210,10 +202,22 @@ func (i *Image) ensureNotShared() {
 		return
 	}
 
-	_, _, w, h := i.region()
+	ox, oy, w, h := i.region()
+	dx0 := float32(0)
+	dy0 := float32(0)
+	dx1 := float32(w)
+	dy1 := float32(h)
+	sx0 := float32(ox)
+	sy0 := float32(oy)
+	sx1 := float32(ox + w)
+	sy1 := float32(oy + h)
 	newImg := restorable.NewImage(w, h)
-	vs := make([]float32, 4*graphics.VertexFloatNum)
-	graphics.PutQuadVertices(vs, vertexPutterWithoutLock{i}, 0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	vs := []float32{
+		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
+	}
 	is := graphics.QuadIndices()
 	newImg.DrawTriangles(i.backend.restorable, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 
@@ -270,19 +274,6 @@ func (i *Image) Size() (width, height int) {
 
 // PutVertices puts the given dst with vertices that can be passed to DrawTriangles.
 func (i *Image) PutVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	i.putVertex(dst, dx, dy, sx, sy, bx0, by0, bx1, by1, cr, cg, cb, ca)
-}
-
-func (i *Image) putVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, by1 float32, cr, cg, cb, ca float32) {
-	if i.backend == nil {
-		i.allocate(true)
-	}
-
-	ox, oy, _, _ := i.region()
-	oxf, oyf := float32(ox), float32(oy)
-
 	// Specifying a range explicitly here is redundant but this helps optimization
 	// to eliminate boundary checks.
 	//
@@ -292,12 +283,12 @@ func (i *Image) putVertex(dst []float32, dx, dy, sx, sy float32, bx0, by0, bx1, 
 
 	vs[0] = dx
 	vs[1] = dy
-	vs[2] = sx + oxf
-	vs[3] = sy + oyf
-	vs[4] = bx0 + oxf
-	vs[5] = by0 + oyf
-	vs[6] = bx1 + oxf
-	vs[7] = by1 + oyf
+	vs[2] = sx
+	vs[3] = sy
+	vs[4] = bx0
+	vs[5] = by0
+	vs[6] = bx1
+	vs[7] = by1
 	vs[8] = cr
 	vs[9] = cg
 	vs[10] = cb
@@ -324,6 +315,17 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	// i and img might share the same texture even though i != img.
 	if i.backend.restorable == img.backend.restorable {
 		panic("shareable: Image.DrawTriangles: img must be different from the receiver")
+	}
+
+	ox, oy, _, _ := img.region()
+	oxf, oyf := float32(ox), float32(oy)
+	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
+		vertices[i*graphics.VertexFloatNum+2] += oxf
+		vertices[i*graphics.VertexFloatNum+3] += oyf
+		vertices[i*graphics.VertexFloatNum+4] += oxf
+		vertices[i*graphics.VertexFloatNum+5] += oyf
+		vertices[i*graphics.VertexFloatNum+6] += oxf
+		vertices[i*graphics.VertexFloatNum+7] += oyf
 	}
 
 	i.backend.restorable.DrawTriangles(img.backend.restorable, vertices, indices, colorm, mode, filter, address)
