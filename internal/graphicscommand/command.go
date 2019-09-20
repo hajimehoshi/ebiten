@@ -195,6 +195,14 @@ func (q *commandQueue) Flush() {
 		for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
 			s := q.srcSizes[i]
 
+			// Convert pixels to texels.
+			vs[i*graphics.VertexFloatNum+2] /= s.width
+			vs[i*graphics.VertexFloatNum+3] /= s.height
+			vs[i*graphics.VertexFloatNum+4] /= s.width
+			vs[i*graphics.VertexFloatNum+5] /= s.height
+			vs[i*graphics.VertexFloatNum+6] /= s.width
+			vs[i*graphics.VertexFloatNum+7] /= s.height
+
 			// Adjust the destination position to avoid jaggy (#929).
 			// This is not a perfect solution since texels on a texture can take a position on borders
 			// which can cause jaggy. But adjusting only edges should work in most cases.

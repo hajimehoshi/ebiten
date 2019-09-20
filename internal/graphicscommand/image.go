@@ -37,13 +37,11 @@ const (
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image          driver.Image
-	width          int
-	height         int
-	internalWidth  int
-	internalHeight int
-	screen         bool
-	id             int
+	image  driver.Image
+	width  int
+	height int
+	screen bool
+	id     int
 
 	lastCommand lastCommand
 }
@@ -61,11 +59,9 @@ func genNextID() int {
 // Note that the image is not initialized yet.
 func NewImage(width, height int) *Image {
 	i := &Image{
-		width:          width,
-		height:         height,
-		internalWidth:  graphics.InternalImageSize(width),
-		internalHeight: graphics.InternalImageSize(height),
-		id:             genNextID(),
+		width:  width,
+		height: height,
+		id:     genNextID(),
 	}
 	c := &newImageCommand{
 		result: i,
@@ -78,12 +74,10 @@ func NewImage(width, height int) *Image {
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{
-		width:          width,
-		height:         height,
-		internalWidth:  graphics.InternalImageSize(width),
-		internalHeight: graphics.InternalImageSize(height),
-		screen:         true,
-		id:             genNextID(),
+		width:  width,
+		height: height,
+		screen: true,
+		id:     genNextID(),
 	}
 	c := &newScreenFramebufferImageCommand{
 		result: i,
@@ -102,7 +96,7 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) InternalSize() (int, int) {
-	return i.internalWidth, i.internalHeight
+	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 }
 
 // DrawTriangles draws triangles with the given image.
@@ -111,12 +105,12 @@ func (i *Image) InternalSize() (int, int) {
 //
 //   0:  Destination X in pixels
 //   1:  Destination Y in pixels
-//   2:  Source X in texels
-//   3:  Source Y in texels
-//   4:  Bounds of the source min X in texels
-//   5:  Bounds of the source min Y in texels
-//   6:  Bounds of the source max X in texels
-//   7:  Bounds of the source max Y in texels
+//   2:  Source X in pixels (not texels!)
+//   3:  Source Y in pixels
+//   4:  Bounds of the source min X in pixels
+//   5:  Bounds of the source min Y in pixels
+//   6:  Bounds of the source max X in pixels
+//   7:  Bounds of the source max Y in pixels
 //   8:  Color R [0.0-1.0]
 //   9:  Color G
 //   10: Color B

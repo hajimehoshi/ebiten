@@ -206,12 +206,12 @@ func (i *Image) Clear() {
 }
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
-func quadVertices(dx0, dy0, dx1, dy1, u0, v0, u1, v1, cr, cg, cb, ca float32) []float32 {
+func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32) []float32 {
 	return []float32{
-		dx0, dy0, u0, v0, u0, v0, u1, v1, cr, cg, cb, ca,
-		dx1, dy0, u1, v0, u0, v0, u1, v1, cr, cg, cb, ca,
-		dx0, dy1, u0, v1, u0, v0, u1, v1, cr, cg, cb, ca,
-		dx1, dy1, u1, v1, u0, v0, u1, v1, cr, cg, cb, ca,
+		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
+		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
+		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
+		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
 	}
 }
 
@@ -228,7 +228,8 @@ func clearImage(img *graphicscommand.Image) {
 	// The rendering target size needs to be its 'internal' size instead of the exposed size to avoid glitches on
 	// mobile platforms (See the change 1e1f309a).
 	dw, dh := img.InternalSize()
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 1, 1, 0, 0, 0, 0)
+	sw, sh := emptyImage.image.InternalSize()
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, float32(sw), float32(sh), 0, 0, 0, 0)
 	is := graphics.QuadIndices()
 	// The first DrawTriangles must be clear mode for initialization.
 	// TODO: Can the graphicscommand package hide this knowledge?
@@ -281,7 +282,8 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 
 	// TODO: Integrate with clearColor
 	dw, dh := i.InternalSize()
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, 1, 1, rf, gf, bf, af)
+	sw, sh := emptyImage.image.InternalSize()
+	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, float32(sw), float32(sh), rf, gf, bf, af)
 	is := graphics.QuadIndices()
 
 	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
@@ -398,16 +400,6 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 		return
 	}
 	theImages.makeStaleIfDependingOn(i)
-
-	w, h := img.image.InternalSize()
-	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
-		vertices[i*graphics.VertexFloatNum+2] /= float32(w)
-		vertices[i*graphics.VertexFloatNum+3] /= float32(h)
-		vertices[i*graphics.VertexFloatNum+4] /= float32(w)
-		vertices[i*graphics.VertexFloatNum+5] /= float32(h)
-		vertices[i*graphics.VertexFloatNum+6] /= float32(w)
-		vertices[i*graphics.VertexFloatNum+7] /= float32(h)
-	}
 
 	if img.stale || img.volatile || i.screen || !needsRestoring() || i.volatile {
 		i.makeStale()
