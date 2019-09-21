@@ -259,14 +259,14 @@ func (m *mipmap) isDisposed() bool {
 
 func (m *mipmap) dispose() {
 	m.disposeMipmaps()
-	m.orig.Dispose()
+	m.orig.MarkDisposed()
 	m.orig = nil
 }
 
 func (m *mipmap) disposeMipmaps() {
 	for _, a := range m.imgs {
 		for _, img := range a {
-			img.Dispose()
+			img.MarkDisposed()
 		}
 	}
 	for k := range m.imgs {

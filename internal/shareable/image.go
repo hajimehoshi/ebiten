@@ -58,10 +58,14 @@ func init() {
 }
 
 func resolveDeferred() {
-	for _, f := range deferred {
+	deferredM.Lock()
+	fs := deferred
+	deferred = nil
+	deferredM.Unlock()
+
+	for _, f := range fs {
 		f()
 	}
-	deferred = nil
 }
 
 // MaxCountForShare represents the time duration when the image can become shared.
@@ -132,6 +136,9 @@ var (
 	imagesToMakeShared = map[*Image]struct{}{}
 
 	deferred []func()
+
+	// deferredM is a mutext for the slice operations. This must not be used for other usages.
+	deferredM sync.Mutex
 )
 
 func init() {
@@ -395,23 +402,18 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte) {
 	return i.backend.restorable.At(x+ox, y+oy)
 }
 
-// disposeFromFinalizer disposes images, but the actual operation is deferred.
-// disposeFromFinalizer is called from finalizers.
+// MarkDisposed marks the image as disposed. The actual operation is deferred.
+// MarkDisposed can be called from finalizers.
 //
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
-func (i *Image) disposeFromFinalizer() {
+func (i *Image) MarkDisposed() {
 	// deferred doesn't have to be, and should not be protected by a mutex.
+	deferredM.Lock()
 	deferred = append(deferred, func() {
 		i.dispose(true)
 	})
-}
-
-func (i *Image) Dispose() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	i.dispose(true)
+	deferredM.Unlock()
 }
 
 func (i *Image) dispose(markDisposed bool) {
@@ -488,7 +490,7 @@ func (i *Image) allocate(shareable bool) {
 		panic("shareable: the image is already allocated")
 	}
 
-	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
+	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
 	if i.screen {
 		i.backend = &backend{
