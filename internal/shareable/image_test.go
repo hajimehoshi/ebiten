@@ -66,22 +66,22 @@ const bigSize = 2049
 func TestEnsureNotShared(t *testing.T) {
 	// Create img1 and img2 with this size so that the next images are allocated
 	// with non-upper-left location.
-	img1 := NewImage(bigSize, 100)
+	img1 := NewImage(bigSize, 100, false)
 	defer img1.Dispose()
 	// Ensure img1's region is allocated.
 	img1.ReplacePixels(make([]byte, 4*bigSize*100))
 
-	img2 := NewImage(100, bigSize)
+	img2 := NewImage(100, bigSize, false)
 	defer img2.Dispose()
 	img2.ReplacePixels(make([]byte, 4*100*bigSize))
 
 	const size = 32
 
-	img3 := NewImage(size/2, size/2)
+	img3 := NewImage(size/2, size/2, false)
 	defer img3.Dispose()
 	img3.ReplacePixels(make([]byte, (size/2)*(size/2)*4))
 
-	img4 := NewImage(size, size)
+	img4 := NewImage(size, size, false)
 	defer img4.Dispose()
 
 	pix := make([]byte, size*size*4)
@@ -133,18 +133,18 @@ func TestEnsureNotShared(t *testing.T) {
 func TestReshared(t *testing.T) {
 	const size = 16
 
-	img0 := NewImage(size, size)
+	img0 := NewImage(size, size, false)
 	defer img0.Dispose()
 	img0.ReplacePixels(make([]byte, 4*size*size))
 
-	img1 := NewImage(size, size)
+	img1 := NewImage(size, size, false)
 	defer img1.Dispose()
 	img1.ReplacePixels(make([]byte, 4*size*size))
 	if got, want := img1.IsSharedForTesting(), true; got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 
-	img2 := NewImage(size, size)
+	img2 := NewImage(size, size, false)
 	defer img2.Dispose()
 	pix := make([]byte, 4*size*size)
 	for j := 0; j < size; j++ {
@@ -157,8 +157,7 @@ func TestReshared(t *testing.T) {
 	}
 	img2.ReplacePixels(pix)
 
-	img3 := NewImage(size, size)
-	img3.MakeVolatile()
+	img3 := NewImage(size, size, true /* volatile */)
 	defer img3.Dispose()
 	img1.ReplacePixels(make([]byte, 4*size*size))
 	if got, want := img3.IsSharedForTesting(), false; got != want {
@@ -224,7 +223,7 @@ func TestReshared(t *testing.T) {
 
 func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
-	img0 := NewImage(w0, h0)
+	img0 := NewImage(w0, h0, false)
 	defer img0.Dispose()
 	p0 := make([]byte, 4*w0*h0)
 	for i := 0; i < w0*h0; i++ {
@@ -236,7 +235,7 @@ func TestExtend(t *testing.T) {
 	img0.ReplacePixels(p0)
 
 	const w1, h1 = 1025, 100
-	img1 := NewImage(w1, h1)
+	img1 := NewImage(w1, h1, false)
 	defer img1.Dispose()
 	p1 := make([]byte, 4*w1*h1)
 	for i := 0; i < w1*h1; i++ {
@@ -278,9 +277,9 @@ func TestExtend(t *testing.T) {
 
 func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 	const w, h = 256, 256
-	src := NewImage(w, h)
+	src := NewImage(w, h, false)
 	defer src.Dispose()
-	dst := NewImage(w, h)
+	dst := NewImage(w, h, false)
 	defer dst.Dispose()
 
 	pix := make([]byte, 4*w*h)
@@ -313,9 +312,9 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 // Issue #887
 func TestSmallImages(t *testing.T) {
 	const w, h = 4, 8
-	src := NewImage(w, h)
+	src := NewImage(w, h, false)
 	defer src.Dispose()
-	dst := NewImage(w, h)
+	dst := NewImage(w, h, false)
 	defer dst.Dispose()
 
 	pix := make([]byte, 4*w*h)
@@ -347,9 +346,9 @@ func TestSmallImages(t *testing.T) {
 // Issue #887
 func TestLongImages(t *testing.T) {
 	const w, h = 1, 6
-	src := NewImage(w, h)
+	src := NewImage(w, h, false)
 	defer src.Dispose()
-	dst := NewImage(256, 256)
+	dst := NewImage(256, 256, false)
 	defer dst.Dispose()
 
 	pix := make([]byte, 4*w*h)
@@ -382,10 +381,10 @@ func TestLongImages(t *testing.T) {
 func TestDisposeImmediately(t *testing.T) {
 	// This tests restorable.Image.ClearPixels is called but ReplacePixels is not called.
 
-	img0 := NewImage(16, 16)
+	img0 := NewImage(16, 16, false)
 	img0.EnsureNotSharedForTesting()
 
-	img1 := NewImage(16, 16)
+	img1 := NewImage(16, 16, false)
 	img1.EnsureNotSharedForTesting()
 
 	// img0 and img1 should share the same backend in 99.9999% possibility.

@@ -70,7 +70,7 @@ func sameColors(c1, c2 color.RGBA, delta int) bool {
 }
 
 func TestRestore(t *testing.T) {
-	img0 := NewImage(1, 1)
+	img0 := NewImage(1, 1, false)
 	defer img0.Dispose()
 
 	clr0 := color.RGBA{0x00, 0x00, 0x00, 0xff}
@@ -87,7 +87,7 @@ func TestRestore(t *testing.T) {
 }
 
 func TestRestoreWithoutDraw(t *testing.T) {
-	img0 := NewImage(1024, 1024)
+	img0 := NewImage(1024, 1024, false)
 	defer img0.Dispose()
 
 	// If there is no drawing command on img0, img0 is cleared when restored.
@@ -129,7 +129,7 @@ func TestRestoreChain(t *testing.T) {
 	const num = 10
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(1, 1)
+		img := NewImage(1, 1, false)
 		imgs = append(imgs, img)
 	}
 	defer func() {
@@ -165,7 +165,7 @@ func TestRestoreChain2(t *testing.T) {
 	)
 	imgs := []*Image{}
 	for i := 0; i < num; i++ {
-		img := NewImage(w, h)
+		img := NewImage(w, h, false)
 		imgs = append(imgs, img)
 	}
 	defer func() {
@@ -209,10 +209,10 @@ func TestRestoreOverrideSource(t *testing.T) {
 		w = 1
 		h = 1
 	)
-	img0 := NewImage(w, h)
-	img1 := NewImage(w, h)
-	img2 := NewImage(w, h)
-	img3 := NewImage(w, h)
+	img0 := NewImage(w, h, false)
+	img1 := NewImage(w, h, false)
+	img2 := NewImage(w, h, false)
+	img3 := NewImage(w, h, false)
 	defer func() {
 		img3.Dispose()
 		img2.Dispose()
@@ -286,11 +286,11 @@ func TestRestoreComplexGraph(t *testing.T) {
 	img0 := newImageFromImage(base)
 	img1 := newImageFromImage(base)
 	img2 := newImageFromImage(base)
-	img3 := NewImage(w, h)
-	img4 := NewImage(w, h)
-	img5 := NewImage(w, h)
-	img6 := NewImage(w, h)
-	img7 := NewImage(w, h)
+	img3 := NewImage(w, h, false)
+	img4 := NewImage(w, h, false)
+	img5 := NewImage(w, h, false)
+	img6 := NewImage(w, h, false)
+	img7 := NewImage(w, h, false)
 	defer func() {
 		img7.Dispose()
 		img6.Dispose()
@@ -386,7 +386,7 @@ func TestRestoreComplexGraph(t *testing.T) {
 
 func newImageFromImage(rgba *image.RGBA) *Image {
 	s := rgba.Bounds().Size()
-	img := NewImage(s.X, s.Y)
+	img := NewImage(s.X, s.Y, false)
 	img.ReplacePixels(rgba.Pix, 0, 0, s.X, s.Y)
 	return img
 }
@@ -403,7 +403,7 @@ func TestRestoreRecursive(t *testing.T) {
 	base.Pix[3] = 0xff
 
 	img0 := newImageFromImage(base)
-	img1 := NewImage(w, h)
+	img1 := NewImage(w, h, false)
 	defer func() {
 		img1.Dispose()
 		img0.Dispose()
@@ -446,7 +446,7 @@ func TestRestoreRecursive(t *testing.T) {
 }
 
 func TestReplacePixels(t *testing.T) {
-	img := NewImage(17, 31)
+	img := NewImage(17, 31, false)
 	defer img.Dispose()
 
 	pix := make([]byte, 4*4*4)
@@ -489,7 +489,7 @@ func TestDrawTrianglesAndReplacePixels(t *testing.T) {
 	base.Pix[3] = 0xff
 	img0 := newImageFromImage(base)
 	defer img0.Dispose()
-	img1 := NewImage(2, 1)
+	img1 := NewImage(2, 1, false)
 	defer img1.Dispose()
 
 	vs := quadVertices(1, 1, 0, 0)
@@ -548,7 +548,7 @@ func TestReplacePixelsPart(t *testing.T) {
 		pix[i] = 0xff
 	}
 
-	img := NewImage(4, 4)
+	img := NewImage(4, 4, false)
 	// This doesn't make the image stale. Its base pixels are available.
 	img.ReplacePixels(pix, 1, 1, 2, 2)
 
@@ -619,9 +619,9 @@ func TestReplacePixelsPart(t *testing.T) {
 
 func TestReplacePixelsOnly(t *testing.T) {
 	const w, h = 128, 128
-	img0 := NewImage(w, h)
+	img0 := NewImage(w, h, false)
 	defer img0.Dispose()
-	img1 := NewImage(1, 1)
+	img1 := NewImage(1, 1, false)
 	defer img1.Dispose()
 
 	for i := 0; i < w*h; i += 5 {
@@ -667,9 +667,8 @@ func TestReplacePixelsOnly(t *testing.T) {
 // Issue #793
 func TestReadPixelsFromVolatileImage(t *testing.T) {
 	const w, h = 16, 16
-	dst := NewImage(w, h)
-	dst.MakeVolatile()
-	src := NewImage(w, h)
+	dst := NewImage(w, h, true /* volatile */)
+	src := NewImage(w, h, false)
 
 	// First, make sure that dst has pixels
 	dst.ReplacePixels(make([]byte, 4*w*h), 0, 0, w, h)
@@ -695,8 +694,8 @@ func TestReadPixelsFromVolatileImage(t *testing.T) {
 
 func TestAllowReplacePixelsAfterDrawTriangles(t *testing.T) {
 	const w, h = 16, 16
-	src := NewImage(w, h)
-	dst := NewImage(w, h)
+	src := NewImage(w, h, false)
+	dst := NewImage(w, h, false)
 
 	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
@@ -713,8 +712,8 @@ func TestDisallowReplacePixelsForPartAfterDrawTriangles(t *testing.T) {
 	}()
 
 	const w, h = 16, 16
-	src := NewImage(w, h)
-	dst := NewImage(w, h)
+	src := NewImage(w, h, false)
+	dst := NewImage(w, h, false)
 
 	vs := quadVertices(w, h, 0, 0)
 	is := graphics.QuadIndices()
@@ -728,7 +727,7 @@ func TestExtend(t *testing.T) {
 	}
 
 	const w, h = 16, 16
-	orig := NewImage(w, h)
+	orig := NewImage(w, h, false)
 	pix := make([]byte, 4*w*h)
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
@@ -760,7 +759,7 @@ func TestExtend(t *testing.T) {
 
 func TestClearPixels(t *testing.T) {
 	const w, h = 16, 16
-	img := NewImage(w, h)
+	img := NewImage(w, h, false)
 	img.ReplacePixels(make([]byte, 4*4*4), 0, 0, 4, 4)
 	img.ReplacePixels(make([]byte, 4*4*4), 4, 0, 4, 4)
 	img.ClearPixels(0, 0, 4, 4)
@@ -772,7 +771,7 @@ func TestClearPixels(t *testing.T) {
 
 func TestFill(t *testing.T) {
 	const w, h = 16, 16
-	img := NewImage(w, h)
+	img := NewImage(w, h, false)
 	img.Fill(color.RGBA{0xff, 0, 0, 0xff})
 	ResolveStaleImages()
 	if err := RestoreIfNeeded(); err != nil {

@@ -663,38 +663,16 @@ type DrawImageOptions struct {
 //
 // Error returned by NewImage is always nil as of 1.5.0-alpha.
 func NewImage(width, height int, filter Filter) (*Image, error) {
+	return newImage(width, height, filter, false), nil
+}
+
+func newImage(width, height int, filter Filter, volatile bool) *Image {
 	i := &Image{
-		mipmap: newMipmap(width, height),
+		mipmap: newMipmap(width, height, volatile),
 		filter: filter,
 	}
 	i.addr = i
-	return i, nil
-}
-
-// makeVolatile makes the image 'volatile'.
-// A volatile image is always cleared at the start of a frame.
-//
-// This is suitable for offscreen images that pixels are changed often.
-//
-// Regular non-volatile images need to record drawing history or read its pixels from GPU if necessary so that all
-// the images can be restored automatically from the context lost. However, such recording the drawing history or
-// reading pixels from GPU are expensive operations. Volatile images can skip such oprations, but the image content
-// is cleared every frame instead.
-//
-// When the image is disposed, makeVolatile does nothing.
-func (i *Image) makeVolatile() {
-	if enqueueImageOpIfNeeded(func() func() {
-		return func() {
-			i.makeVolatile()
-		}
-	}) {
-		return
-	}
-
-	if i.isDisposed() {
-		return
-	}
-	i.mipmap.makeVolatile()
+	return i
 }
 
 // NewImageFromImage creates a new image with the given image (source).
@@ -711,7 +689,7 @@ func NewImageFromImage(source image.Image, filter Filter) (*Image, error) {
 	width, height := size.X, size.Y
 
 	i := &Image{
-		mipmap: newMipmap(width, height),
+		mipmap: newMipmap(width, height, false),
 		filter: filter,
 	}
 	i.addr = i

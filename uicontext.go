@@ -56,8 +56,8 @@ func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) 
 	if c.offscreen != nil {
 		_ = c.offscreen.Dispose()
 	}
-	c.offscreen, _ = NewImage(screenWidth, screenHeight, FilterDefault)
-	c.offscreen.makeVolatile()
+
+	c.offscreen = newImage(screenWidth, screenHeight, FilterDefault, true)
 
 	// Round up the screensize not to cause glitches e.g. on Xperia (#622)
 	w := int(math.Ceil(float64(screenWidth) * screenScale))

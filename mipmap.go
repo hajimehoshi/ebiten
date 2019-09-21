@@ -29,18 +29,20 @@ import (
 type levelToImage map[int]*shareable.Image
 
 type mipmap struct {
-	width  int
-	height int
-	orig   *shareable.Image
-	imgs   map[image.Rectangle]levelToImage
+	width    int
+	height   int
+	volatile bool
+	orig     *shareable.Image
+	imgs     map[image.Rectangle]levelToImage
 }
 
-func newMipmap(width, height int) *mipmap {
+func newMipmap(width, height int, volatile bool) *mipmap {
 	return &mipmap{
-		width:  width,
-		height: height,
-		orig:   shareable.NewImage(width, height),
-		imgs:   map[image.Rectangle]levelToImage{},
+		width:    width,
+		height:   height,
+		volatile: volatile,
+		orig:     shareable.NewImage(width, height, volatile),
+		imgs:     map[image.Rectangle]levelToImage{},
 	}
 }
 
@@ -51,11 +53,6 @@ func newScreenFramebufferMipmap(width, height int) *mipmap {
 		orig:   shareable.NewScreenFramebufferImage(width, height),
 		imgs:   map[image.Rectangle]levelToImage{},
 	}
-}
-
-func (m *mipmap) makeVolatile() {
-	m.orig.MakeVolatile()
-	m.disposeMipmaps()
 }
 
 func (m *mipmap) dump(name string) error {
@@ -176,7 +173,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		panic("ebiten: level must be non-zero at level")
 	}
 
-	if m.orig.IsVolatile() {
+	if m.volatile {
 		panic("ebiten: mipmap images for a volatile image is not implemented yet")
 	}
 
@@ -229,7 +226,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *shareable.Image {
 		imgs[level] = nil
 		return nil
 	}
-	s := shareable.NewImage(w2, h2)
+	s := shareable.NewImage(w2, h2, m.volatile)
 	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
 	imgs[level] = s
 
@@ -325,7 +322,7 @@ func (m *mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter
 	if filter != driver.FilterLinear {
 		return 0
 	}
-	if m.orig.IsVolatile() {
+	if m.volatile {
 		return 0
 	}
 

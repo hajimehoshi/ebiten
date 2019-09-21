@@ -150,6 +150,7 @@ type Image struct {
 	width    int
 	height   int
 	disposed bool
+	volatile bool
 	screen   bool
 
 	backend *backend
@@ -165,8 +166,6 @@ type Image struct {
 	//
 	// ReplacePixels doesn't affect this value since ReplacePixels can be done on shared images.
 	nonUpdatedCount int
-
-	neverShared bool
 }
 
 func (i *Image) moveTo(dst *Image) {
@@ -201,7 +200,7 @@ func (i *Image) ensureNotShared() {
 	sy0 := float32(oy)
 	sx1 := float32(ox + w)
 	sy1 := float32(oy + h)
-	newImg := restorable.NewImage(w, h)
+	newImg := restorable.NewImage(w, h, i.volatile)
 	vs := []float32{
 		dx0, dy0, sx0, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
 		dx1, dy0, sx1, sy0, sx0, sy0, sx1, sy1, 1, 1, 1, 1,
@@ -231,7 +230,7 @@ func (i *Image) makeShared() {
 		panic("shareable: makeShared cannot be called on a non-shareable image")
 	}
 
-	newI := NewImage(i.width, i.height)
+	newI := NewImage(i.width, i.height, i.volatile)
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
@@ -462,21 +461,12 @@ func (i *Image) dispose(markDisposed bool) {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func (i *Image) IsVolatile() bool {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	if i.backend == nil {
-		// Not allocated yet. Only non-volatile images can do lazy allocation so far.
-		return false
-	}
-	return i.backend.restorable.IsVolatile()
-}
-
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, volatile bool) *Image {
 	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
-		width:  width,
-		height: height,
+		width:    width,
+		height:   height,
+		volatile: volatile,
 	}
 }
 
@@ -484,7 +474,10 @@ func (i *Image) shareable() bool {
 	if minSize == 0 || maxSize == 0 {
 		panic("shareable: minSize or maxSize must be initialized")
 	}
-	if i.neverShared {
+	if i.volatile {
+		return false
+	}
+	if i.screen {
 		return false
 	}
 	return i.width <= maxSize && i.height <= maxSize
@@ -505,7 +498,7 @@ func (i *Image) allocate(shareable bool) {
 
 	if !shareable || !i.shareable() {
 		i.backend = &backend{
-			restorable: restorable.NewImage(i.width, i.height),
+			restorable: restorable.NewImage(i.width, i.height, i.volatile),
 		}
 		runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 		return
@@ -528,7 +521,7 @@ func (i *Image) allocate(shareable bool) {
 	}
 
 	b := &backend{
-		restorable: restorable.NewImage(size, size),
+		restorable: restorable.NewImage(size, size, i.volatile),
 		page:       packing.NewPage(size, maxSize),
 	}
 	theBackends = append(theBackends, b)
@@ -542,15 +535,6 @@ func (i *Image) allocate(shareable bool) {
 	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 }
 
-func (i *Image) MakeVolatile() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-
-	i.ensureNotShared()
-	i.backend.restorable.MakeVolatile()
-	i.neverShared = true
-}
-
 func (i *Image) Dump(path string) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -561,10 +545,9 @@ func (i *Image) Dump(path string) error {
 func NewScreenFramebufferImage(width, height int) *Image {
 	// Actual allocation is done lazily.
 	i := &Image{
-		width:       width,
-		height:      height,
-		screen:      true,
-		neverShared: true,
+		width:  width,
+		height: height,
+		screen: true,
 	}
 	return i
 }

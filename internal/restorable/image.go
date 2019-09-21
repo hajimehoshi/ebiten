@@ -129,14 +129,20 @@ func init() {
 
 // NewImage creates an empty image with the given size.
 //
+// volatile indicates whether the image is volatile. Regular non-volatile images need to record drawing history or
+// read its pixels from GPU if necessary so that all the images can be restored automatically from the context lost.
+// However, such recording the drawing history or reading pixels from GPU are expensive operations. Volatile images
+// can skip such oprations, but the image content is cleared every frame instead.
+//
 // The returned image is cleared.
 //
 // Note that Dispose is not called automatically.
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{
-		image:  graphicscommand.NewImage(width, height),
-		width:  width,
-		height: height,
+		image:    graphicscommand.NewImage(width, height),
+		width:    width,
+		height:   height,
+		volatile: volatile,
 	}
 	i.clear()
 	theImages.add(i)
@@ -165,7 +171,7 @@ func (i *Image) Extend(width, height int) *Image {
 		panic("restorable: Extend after DrawTriangles is forbidden")
 	}
 
-	newImg := NewImage(width, height)
+	newImg := NewImage(width, height, i.volatile)
 	i.basePixels.Apply(newImg.image)
 
 	if i.basePixels.baseColor != (color.RGBA{}) {
@@ -176,10 +182,6 @@ func (i *Image) Extend(width, height int) *Image {
 	i.Dispose()
 
 	return newImg
-}
-
-func (i *Image) MakeVolatile() {
-	i.volatile = true
 }
 
 // NewScreenFramebufferImage creates a special image that framebuffer is one for the screen.
@@ -286,10 +288,6 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 	is := graphics.QuadIndices()
 
 	i.DrawTriangles(emptyImage.image, vs, is, nil, compositemode, driver.FilterNearest, driver.AddressClampToZero)
-}
-
-func (i *Image) IsVolatile() bool {
-	return i.volatile
 }
 
 // BasePixelsForTesting returns the image's basePixels for testing.
