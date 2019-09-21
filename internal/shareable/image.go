@@ -488,11 +488,12 @@ func (i *Image) allocate(shareable bool) {
 		panic("shareable: the image is already allocated")
 	}
 
+	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
+
 	if i.screen {
 		i.backend = &backend{
 			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
 		}
-		runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 		return
 	}
 
@@ -500,7 +501,6 @@ func (i *Image) allocate(shareable bool) {
 		i.backend = &backend{
 			restorable: restorable.NewImage(i.width, i.height, i.volatile),
 		}
-		runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 		return
 	}
 
@@ -508,7 +508,6 @@ func (i *Image) allocate(shareable bool) {
 		if n, ok := b.TryAlloc(i.width, i.height); ok {
 			i.backend = b
 			i.node = n
-			runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 			return
 		}
 	}
@@ -532,7 +531,6 @@ func (i *Image) allocate(shareable bool) {
 	}
 	i.backend = b
 	i.node = n
-	runtime.SetFinalizer(i, (*Image).disposeFromFinalizer)
 }
 
 func (i *Image) Dump(path string) error {
