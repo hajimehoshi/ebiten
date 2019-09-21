@@ -250,9 +250,9 @@ func (i *Image) clear() {
 }
 
 // Fill fills the specified part of the image with a solid color.
-func (i *Image) Fill(clr color.Color) {
+func (i *Image) Fill(clr color.RGBA) {
 	i.basePixels = Pixels{
-		baseColor: color.RGBAModel.Convert(clr).(color.RGBA),
+		baseColor: clr,
 	}
 	i.drawTrianglesHistory = nil
 	i.stale = false

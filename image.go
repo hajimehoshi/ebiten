@@ -135,15 +135,10 @@ func (i *Image) Clear() error {
 func (i *Image) Fill(clr color.Color) error {
 	i.copyCheck()
 
+	rgba := color.RGBAModel.Convert(clr).(color.RGBA)
 	if enqueueImageOpIfNeeded(func() func() {
-		r, g, b, a := clr.RGBA()
 		return func() {
-			i.Fill(color.RGBA64{
-				R: uint16(r),
-				G: uint16(g),
-				B: uint16(b),
-				A: uint16(a),
-			})
+			i.Fill(rgba)
 		}
 	}) {
 		return nil
@@ -160,7 +155,7 @@ func (i *Image) Fill(clr color.Color) error {
 
 	i.resolvePendingPixels(false)
 
-	i.mipmap.fill(clr)
+	i.mipmap.fill(rgba)
 	return nil
 }
 

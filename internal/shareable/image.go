@@ -322,7 +322,7 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	}
 }
 
-func (i *Image) Fill(clr color.Color) {
+func (i *Image) Fill(clr color.RGBA) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

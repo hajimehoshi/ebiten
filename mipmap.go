@@ -59,7 +59,7 @@ func (m *mipmap) dump(name string) error {
 	return m.orig.Dump(name)
 }
 
-func (m *mipmap) fill(clr color.Color) {
+func (m *mipmap) fill(clr color.RGBA) {
 	m.orig.Fill(clr)
 	m.disposeMipmaps()
 }
