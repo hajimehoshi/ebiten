@@ -131,7 +131,22 @@ func main() {
 }
 
 func doBind(args []string, flagset *flag.FlagSet) error {
-	pkgs, err := packages.Load(nil, flagset.Args()[0])
+	tags := buildTags
+	cfg := &packages.Config{}
+	switch buildTarget {
+	case "android":
+		cfg.Env = append(os.Environ(), "GOOS=android")
+	case "ios":
+		cfg.Env = append(os.Environ(), "GOOS=darwin")
+		if tags != "" {
+			tags += " "
+		}
+		tags += "ios"
+	}
+	cfg.BuildFlags = []string{"-tags", tags}
+	cfg.Mode |= packages.NeedName
+
+	pkgs, err := packages.Load(cfg, flagset.Args()[0])
 	if err != nil {
 		return err
 	}
