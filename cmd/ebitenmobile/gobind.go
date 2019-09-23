@@ -51,37 +51,58 @@ func main() {
 	}
 }
 
-func run() error {
+func invokeOriginalGobind(lang string) (pkgName string, err error) {
 	cmd := exec.Command("gobind-original", os.Args[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return err
+		return "", err
 	}
 
-	pkgs, err := packages.Load(nil, flag.Args()[0])
+	cfgtags := strings.Join(strings.Split(*tags, ","), " ")
+	cfg := &packages.Config{}
+	switch lang {
+	case "java":
+		cfg.Env = append(os.Environ(), "GOOS=android")
+	case "objc":
+		cfg.Env = append(os.Environ(), "GOOS=darwin")
+		if cfgtags != "" {
+			cfgtags += " "
+		}
+		cfgtags += "ios"
+	}
+	cfg.BuildFlags = []string{"-tags", cfgtags}
+	pkgs, err := packages.Load(cfg, flag.Args()[0])
 	if err != nil {
-		return err
+		return "", err
 	}
-	prefixLower := *prefix + pkgs[0].Name
-	prefixUpper := strings.Title(*prefix) + strings.Title(pkgs[0].Name)
+	return pkgs[0].Name, nil
+}
 
+func run() error {
 	writeFile := func(filename string, content string) error {
 		if err := ioutil.WriteFile(filepath.Join(*outdir, filename), []byte(content), 0644); err != nil {
 			return err
 		}
 		return nil
 	}
-	replacePrefixes := func(content string) string {
-		content = strings.ReplaceAll(content, "{{.PrefixUpper}}", prefixUpper)
-		content = strings.ReplaceAll(content, "{{.PrefixLower}}", prefixLower)
-		content = strings.ReplaceAll(content, "{{.JavaPkg}}", *javaPkg)
-		return content
-	}
 
 	// Add additional files.
 	langs := strings.Split(*lang, ",")
 	for _, lang := range langs {
+		pkgName, err := invokeOriginalGobind(lang)
+		if err != nil {
+			return err
+		}
+		prefixLower := *prefix + pkgName
+		prefixUpper := strings.Title(*prefix) + strings.Title(pkgName)
+		replacePrefixes := func(content string) string {
+			content = strings.ReplaceAll(content, "{{.PrefixUpper}}", prefixUpper)
+			content = strings.ReplaceAll(content, "{{.PrefixLower}}", prefixLower)
+			content = strings.ReplaceAll(content, "{{.JavaPkg}}", *javaPkg)
+			return content
+		}
+
 		switch lang {
 		case "objc":
 			// iOS

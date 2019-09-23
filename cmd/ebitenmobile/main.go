@@ -144,7 +144,6 @@ func doBind(args []string, flagset *flag.FlagSet) error {
 		tags += "ios"
 	}
 	cfg.BuildFlags = []string{"-tags", tags}
-	cfg.Mode |= packages.NeedName
 
 	pkgs, err := packages.Load(cfg, flagset.Args()[0])
 	if err != nil {
