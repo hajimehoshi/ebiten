@@ -32,7 +32,7 @@ func Layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	defer theState.m.Unlock()
 
 	if theState.game == nil {
-		panic("ebitenmobileview: SetGame must be called before ebitenLayout")
+		panic("ebitenmobileview: SetGame must be called before Layout")
 	}
 
 	w, h := theState.game.Layout(int(viewWidth), int(viewHeight))
