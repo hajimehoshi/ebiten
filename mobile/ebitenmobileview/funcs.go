@@ -30,9 +30,16 @@ type ViewRectSetter interface {
 func Layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	theState.m.Lock()
 	defer theState.m.Unlock()
+	layout(viewWidth, viewHeight, viewRectSetter)
+}
 
+func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	if theState.game == nil {
-		panic("ebitenmobileview: SetGame must be called before Layout")
+		// It is fine to override the existing function since only the last layout result matters.
+		theState.delayedLayout = func() {
+			layout(viewWidth, viewHeight, viewRectSetter)
+		}
+		return
 	}
 
 	w, h := theState.game.Layout(int(viewWidth), int(viewHeight))

@@ -34,6 +34,8 @@ type state struct {
 
 	running bool
 
+	delayedLayout func()
+
 	// m is a mutex required for each function.
 	// For example, on Android, Update can be called from a different thread:
 	// https://developer.android.com/reference/android/opengl/GLSurfaceView.Renderer
@@ -45,4 +47,9 @@ func SetGame(game game) {
 	defer theState.m.Unlock()
 
 	theState.game = game
+
+	if theState.delayedLayout != nil {
+		theState.delayedLayout()
+		theState.delayedLayout = nil
+	}
 }
