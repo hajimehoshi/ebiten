@@ -303,7 +303,8 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 
 	ox, oy, _, _ := img.region()
 	oxf, oyf := float32(ox), float32(oy)
-	for i := 0; i < len(vertices)/graphics.VertexFloatNum; i++ {
+	n := len(vertices) / graphics.VertexFloatNum
+	for i := 0; i < n; i++ {
 		vertices[i*graphics.VertexFloatNum+2] += oxf
 		vertices[i*graphics.VertexFloatNum+3] += oyf
 		vertices[i*graphics.VertexFloatNum+4] += oxf

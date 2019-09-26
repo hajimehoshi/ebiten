@@ -192,7 +192,8 @@ func (q *commandQueue) Flush() {
 		const dstAdjustmentFactor = 1.0 / 256.0
 		const texelAdjustmentFactor = 1.0 / 512.0
 
-		for i := 0; i < q.nvertices/graphics.VertexFloatNum; i++ {
+		n := q.nvertices / graphics.VertexFloatNum
+		for i := 0; i < n; i++ {
 			s := q.srcSizes[i]
 
 			// Convert pixels to texels.
