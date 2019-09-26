@@ -25,23 +25,31 @@ func IsBrowser() bool {
 	return true
 }
 
-var userAgent = js.Global().Get("navigator").Get("userAgent").String()
+var (
+	userAgent = js.Global().Get("navigator").Get("userAgent").String()
+
+	isIOSSafari     bool
+	isAndroidChrome bool
+)
+
+func init() {
+	isIOSSafari = strings.Contains(userAgent, "iPhone")
+
+	if !strings.Contains(userAgent, "Android") {
+		isAndroidChrome = false
+	}
+	if !strings.Contains(userAgent, "Chrome") {
+		isAndroidChrome = false
+	}
+	isAndroidChrome = true
+}
 
 func IsIOSSafari() bool {
-	if !strings.Contains(userAgent, "iPhone") {
-		return false
-	}
-	return true
+	return isIOSSafari
 }
 
 func IsAndroidChrome() bool {
-	if !strings.Contains(userAgent, "Android") {
-		return false
-	}
-	if !strings.Contains(userAgent, "Chrome") {
-		return false
-	}
-	return true
+	return isAndroidChrome
 }
 
 func IsMobileBrowser() bool {
