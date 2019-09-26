@@ -59,6 +59,6 @@ func flushDelayedCommands() bool {
 	for _, c := range delayedCommands {
 		c.f()
 	}
-	delayedCommands = nil
+	delayedCommands = delayedCommands[:0]
 	return true
 }

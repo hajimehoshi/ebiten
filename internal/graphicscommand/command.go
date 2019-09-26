@@ -269,7 +269,7 @@ func (q *commandQueue) Flush() {
 		q.commands = q.commands[nc:]
 	}
 	theGraphicsDriver.End()
-	q.commands = nil
+	q.commands = q.commands[:0]
 	q.nvertices = 0
 	q.nindices = 0
 	q.tmpNumIndices = 0
