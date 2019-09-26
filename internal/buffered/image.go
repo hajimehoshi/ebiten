@@ -30,77 +30,130 @@ func BeginFrame() error {
 	if err := shareable.BeginFrame(); err != nil {
 		return err
 	}
-	makeDelayedCommandFlushable()
-
+	flushDelayedCommands()
 	return nil
 }
 
 func EndFrame() error {
-	if !flushDelayedCommands() {
-		panic("buffered: the command queue must be available at EndFrame")
-	}
 	return shareable.EndFrame()
 }
 
 func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{}
-	enqueueDelayedCommand(func() {
-		i.img = shareable.NewImage(width, height, volatile)
-	})
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img = shareable.NewImage(width, height, volatile)
+		})
+		delayedCommandsM.Unlock()
+		return i
+	}
+	delayedCommandsM.Unlock()
+
+	i.img = shareable.NewImage(width, height, volatile)
 	return i
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{}
-	enqueueDelayedCommand(func() {
-		i.img = shareable.NewScreenFramebufferImage(width, height)
-	})
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img = shareable.NewScreenFramebufferImage(width, height)
+		})
+		delayedCommandsM.Unlock()
+		return i
+	}
+	delayedCommandsM.Unlock()
+
+	i.img = shareable.NewScreenFramebufferImage(width, height)
 	return i
 }
 
 func (i *Image) MarkDisposed() {
-	enqueueDelayedCommand(func() {
-		i.img.MarkDisposed()
-	})
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img.MarkDisposed()
+		})
+	}
+	delayedCommandsM.Unlock()
 }
 
 func (i *Image) At(x, y int) (r, g, b, a byte) {
-	if !flushDelayedCommands() {
+	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at At")
 	}
 	return i.img.At(x, y)
 }
 
 func (i *Image) Dump(name string) error {
-	if !flushDelayedCommands() {
+	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at Dump")
 	}
 	return i.img.Dump(name)
 }
 
 func (i *Image) Fill(clr color.RGBA) {
-	enqueueDelayedCommand(func() {
-		i.img.Fill(clr)
-	})
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img.Fill(clr)
+		})
+		delayedCommandsM.Unlock()
+		return
+	}
+	delayedCommandsM.Unlock()
+
+	i.img.Fill(clr)
 }
 
 func (i *Image) ClearFramebuffer() {
-	enqueueDelayedCommand(func() {
-		i.img.ClearFramebuffer()
-	})
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img.ClearFramebuffer()
+		})
+		delayedCommandsM.Unlock()
+		return
+	}
+	delayedCommandsM.Unlock()
+
+	i.img.ClearFramebuffer()
 }
 
 func (i *Image) ReplacePixels(pix []byte) {
-	enqueueDelayedCommand(func() {
-		i.img.ReplacePixels(pix)
-	})
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img.ReplacePixels(pix)
+		})
+		delayedCommandsM.Unlock()
+		return
+	}
+	delayedCommandsM.Unlock()
+
+	i.img.ReplacePixels(pix)
 }
 
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if i == src {
 		panic("buffered: Image.DrawTriangles: src must be different from the receiver")
 	}
-	enqueueDelayedCommand(func() {
-		i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
-	})
+
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
+		})
+		delayedCommandsM.Unlock()
+		return
+	}
+	delayedCommandsM.Unlock()
+
+	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
 }
