@@ -18,10 +18,6 @@ import (
 	"sync"
 )
 
-type command struct {
-	f func()
-}
-
 var (
 	delayedCommandsFlushable bool
 
@@ -30,7 +26,7 @@ var (
 	// sizes (#879).
 	//
 	// TODO: Flush the commands only when necessary (#921).
-	delayedCommands  []*command
+	delayedCommands  []func()
 	delayedCommandsM sync.Mutex
 )
 
@@ -42,9 +38,7 @@ func makeDelayedCommandFlushable() {
 
 func enqueueDelayedCommand(f func()) {
 	delayedCommandsM.Lock()
-	delayedCommands = append(delayedCommands, &command{
-		f: f,
-	})
+	delayedCommands = append(delayedCommands, f)
 	delayedCommandsM.Unlock()
 }
 
@@ -57,7 +51,7 @@ func flushDelayedCommands() bool {
 	}
 
 	for _, c := range delayedCommands {
-		c.f()
+		c()
 	}
 	delayedCommands = delayedCommands[:0]
 	return true
