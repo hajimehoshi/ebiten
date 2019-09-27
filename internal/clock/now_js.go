@@ -21,10 +21,15 @@ import (
 	"time"
 )
 
+var (
+	jsPerformance = js.Global().Get("performance")
+	jsNow         = jsPerformance.Get("now").Call("bind", jsPerformance)
+)
+
 func now() int64 {
 	// time.Now() is not reliable until GopherJS supports performance.now().
 	//
 	// performance.now is monotonic:
 	// https://www.w3.org/TR/hr-time-2/#sec-monotonic-clock
-	return int64(js.Global().Get("performance").Call("now").Float() * float64(time.Millisecond))
+	return int64(jsNow.Invoke().Float() * float64(time.Millisecond))
 }
