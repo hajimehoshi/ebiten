@@ -45,7 +45,7 @@ type Game interface {
 //
 // SetGame is epxected to be called only once.
 //
-// SetGame is expected to be called at initialization phase like an init function.
+// SetGame can be called anytime. Until SetGame is called, the game does not start.
 func SetGame(game Game) {
 	ebitenmobileview.SetGame(game)
 }
