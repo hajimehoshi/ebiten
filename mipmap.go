@@ -372,22 +372,30 @@ func pow2(power int) float32 {
 	return x
 }
 
-func maxf32(values ...float32) float32 {
-	max := float32(math.Inf(-1))
-	for _, v := range values {
-		if max < v {
-			max = v
-		}
+func maxf32(a, b, c, d float32) float32 {
+	max := a
+	if max < b {
+		max = b
+	}
+	if max < c {
+		max = c
+	}
+	if max < d {
+		max = d
 	}
 	return max
 }
 
-func minf32(values ...float32) float32 {
-	min := float32(math.Inf(1))
-	for _, v := range values {
-		if min > v {
-			min = v
-		}
+func minf32(a, b, c, d float32) float32 {
+	min := a
+	if min > b {
+		min = b
+	}
+	if min > c {
+		min = c
+	}
+	if min > d {
+		min = d
 	}
 	return min
 }
