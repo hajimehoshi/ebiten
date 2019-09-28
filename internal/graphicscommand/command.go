@@ -233,11 +233,12 @@ func (q *commandQueue) Flush() {
 	}
 
 	theGraphicsDriver.Begin()
-	for len(q.commands) > 0 {
+	cs := q.commands
+	for len(cs) > 0 {
 		nv := 0
 		ne := 0
 		nc := 0
-		for _, c := range q.commands {
+		for _, c := range cs {
 			if c.NumIndices() > graphics.IndicesNum {
 				panic(fmt.Sprintf("graphicscommand: c.NumIndices() must be <= graphics.IndicesNum but not at Flush: c.NumIndices(): %d, graphics.IndicesNum: %d", c.NumIndices(), graphics.IndicesNum))
 			}
@@ -254,7 +255,7 @@ func (q *commandQueue) Flush() {
 			vs = vs[nv:]
 		}
 		indexOffset := 0
-		for _, c := range q.commands[:nc] {
+		for _, c := range cs[:nc] {
 			if err := c.Exec(indexOffset); err != nil {
 				q.err = err
 				return
@@ -271,7 +272,7 @@ func (q *commandQueue) Flush() {
 			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 			theGraphicsDriver.Flush()
 		}
-		q.commands = q.commands[nc:]
+		cs = cs[nc:]
 	}
 	theGraphicsDriver.End()
 	q.commands = q.commands[:0]
