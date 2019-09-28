@@ -99,8 +99,8 @@ func (q *commandQueue) appendVertices(vertices []float32, width, height float32)
 	}
 	copy(q.vertices[q.nvertices:], vertices)
 
-	n := len(vertices)/graphics.VertexFloatNum
-	base := q.nvertices/graphics.VertexFloatNum
+	n := len(vertices) / graphics.VertexFloatNum
+	base := q.nvertices / graphics.VertexFloatNum
 	for i := 0; i < n; i++ {
 		idx := base + i
 		q.srcSizes[idx].width = width
