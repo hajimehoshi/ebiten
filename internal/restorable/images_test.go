@@ -803,7 +803,8 @@ func TestMutateSlices(t *testing.T) {
 	src.ReplacePixels(pix, 0, 0, w, h)
 
 	vs := quadVertices(w, h, 0, 0)
-	is := graphics.QuadIndices()
+	is := make([]uint16, len(graphics.QuadIndices()))
+	copy(is, graphics.QuadIndices())
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
 	for i := range vs {
 		vs[i] = 0
