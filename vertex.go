@@ -41,7 +41,6 @@ func (v *verticesBackend) slice(n int, last bool) []float32 {
 			l *= 2
 		}
 		v.backend = make([]float32, l)
-		println(l)
 		v.head = 0
 	}
 
