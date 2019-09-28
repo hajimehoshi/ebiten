@@ -158,7 +158,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst, src *Image, vertices []f
 	}
 
 	n := len(vertices) / graphics.VertexFloatNum
-	q.appendVertices(vertices, float32(graphics.InternalImageSize(src.width)), float32(graphics.InternalImageSize(src.height)))
+	iw, ih := src.InternalSize()
+	q.appendVertices(vertices, float32(iw), float32(ih))
 	q.appendIndices(indices, uint16(q.nextIndex))
 	q.nextIndex += n
 	q.tmpNumIndices += len(indices)

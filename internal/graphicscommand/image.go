@@ -37,11 +37,13 @@ const (
 
 // Image represents an image that is implemented with OpenGL.
 type Image struct {
-	image  driver.Image
-	width  int
-	height int
-	screen bool
-	id     int
+	image          driver.Image
+	width          int
+	height         int
+	internalWidth  int
+	internalHeight int
+	screen         bool
+	id             int
 
 	lastCommand lastCommand
 }
@@ -96,7 +98,13 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) InternalSize() (int, int) {
-	return graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	if i.internalWidth == 0 {
+		i.internalWidth = graphics.InternalImageSize(i.width)
+	}
+	if i.internalHeight == 0 {
+		i.internalHeight = graphics.InternalImageSize(i.height)
+	}
+	return i.internalWidth, i.internalHeight
 }
 
 // DrawTriangles draws triangles with the given image.
