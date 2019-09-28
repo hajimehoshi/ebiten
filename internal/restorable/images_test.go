@@ -788,3 +788,43 @@ func TestFill(t *testing.T) {
 		}
 	}
 }
+
+func TestMutateSlices(t *testing.T) {
+	const w, h = 16, 16
+	dst := NewImage(w, h, false)
+	src := NewImage(w, h, false)
+	pix := make([]byte, 4*w*h)
+	for i := 0; i < w*h; i++ {
+		pix[4*i] = byte(i)
+		pix[4*i+1] = byte(i)
+		pix[4*i+2] = byte(i)
+		pix[4*i+3] = 0xff
+	}
+	src.ReplacePixels(pix, 0, 0, w, h)
+
+	vs := quadVertices(w, h, 0, 0)
+	is := graphics.QuadIndices()
+	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeSourceOver, driver.FilterNearest, driver.AddressClampToZero)
+	for i := range vs {
+		vs[i] = 0
+	}
+	for i := range is {
+		is[i] = 0
+	}
+	ResolveStaleImages()
+	if err := RestoreIfNeeded(); err != nil {
+		t.Fatal(err)
+	}
+
+	for j := 0; j < h; j++ {
+		for i := 0; i < w; i++ {
+			r, g, b, a := src.At(i, j)
+			want := color.RGBA{r, g, b, a}
+			r, g, b, a = dst.At(i, j)
+			got := color.RGBA{r, g, b, a}
+			if !sameColors(got, want, 1) {
+				t.Errorf("(%d, %d): got %v, want %v", i, j, got, want)
+			}
+		}
+	}
+}
