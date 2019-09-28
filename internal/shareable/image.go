@@ -281,7 +281,7 @@ func (i *Image) region() (x, y, width, height int) {
 //   11: Color Y
 func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	backendsM.Lock()
-	defer backendsM.Unlock()
+	// Do not use defer for performance.
 
 	if img.disposed {
 		panic("shareable: the drawing source image must not be disposed (DrawTriangles)")
@@ -321,6 +321,8 @@ func (i *Image) DrawTriangles(img *Image, vertices []float32, indices []uint16, 
 	if !img.isShared() && img.shareable() {
 		imagesToMakeShared[img] = struct{}{}
 	}
+
+	backendsM.Unlock()
 }
 
 func (i *Image) Fill(clr color.RGBA) {
