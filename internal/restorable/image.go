@@ -413,10 +413,14 @@ func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, ind
 	}
 	// All images must be resolved and not stale each after frame.
 	// So we don't have to care if image is stale or not here.
+
+	// vertices is generated at ebiten package and doesn't have to be copied so far.
+	is := make([]uint16, len(indices))
+	copy(is, indices)
 	item := &drawTrianglesHistoryItem{
 		image:    image,
 		vertices: vertices,
-		indices:  indices,
+		indices:  is,
 		colorm:   colorm,
 		mode:     mode,
 		filter:   filter,
