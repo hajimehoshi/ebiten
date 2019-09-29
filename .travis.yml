@@ -1,8 +1,5 @@
 language: go
 
-go:
-  - "1.13"
-
 addons:
   apt:
     sources:
@@ -22,21 +19,39 @@ services:
   - xvfb
 
 install:
+  # Install Go 1.13.1 manualy
+  # See https://travis-ci.community/t/goos-js-goarch-wasm-go-run-fails-panic-newosproc-not-implemented/1651
+  - wget -O go.tar.gz https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz
+  - tar -C ~ -xzf go.tar.gz
+  - rm go.tar.gz
+  - export GOROOT=~/go
+  - export GOPATH=/home/travis/gopath
+  - export PATH=$GOROOT/bin:$PATH
+  - go version
+  - go env
+
+  # Install Go 1.12.10
   - go get golang.org/dl/go1.12.10
   - go1.12.10 download
+
+  # Make the working directory
   - mkdir /tmp/work
   - cd /tmp/work
   - go mod init example.com/m
   - go get github.com/hajimehoshi/ebiten@$TRAVIS_BRANCH
-  - # wasmbrowsertest
+
+  # wasmbrowsertest
   - GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
   - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
-  - # GopherJS
+
+  # GopherJS
   - GO111MODULE=off go get -tags example github.com/hajimehoshi/ebiten/... 
   - GO111MODULE=off go1.12.10 get github.com/gopherjs/gopherjs
-  - # gjbt
+
+  # gjbt
   - GO111MODULE=off go1.12.10 get myitcv.io/cmd/gjbt
-  - # Chrome
+
+  # Chrome
   - mkdir /tmp/google-chrome-bin
   - ln -s /usr/bin/google-chrome-stable /tmp/google-chrome-bin/google-chrome
   - export PATH=/tmp/google-chrome-bin:$PATH
