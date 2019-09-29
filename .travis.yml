@@ -1,5 +1,3 @@
-language: go
-
 addons:
   apt:
     sources:
