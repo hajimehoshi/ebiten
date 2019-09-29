@@ -22,20 +22,20 @@ services:
   - xvfb
 
 install:
-  - go get golang.org/dl/go1.12.9
-  - go1.12.9 download
+  - go get golang.org/dl/go1.12.10
+  - go1.12.10 download
   - mkdir /tmp/work
   - cd /tmp/work
   - go mod init example.com/m
   - go get github.com/hajimehoshi/ebiten@$TRAVIS_BRANCH
+  - # wasmbrowsertest
+  - GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
+  - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
   - # GopherJS
   - GO111MODULE=off go get -tags example github.com/hajimehoshi/ebiten/... 
-  - GO111MODULE=off go1.12.9 get github.com/gopherjs/gopherjs
+  - GO111MODULE=off go1.12.10 get github.com/gopherjs/gopherjs
   - # gjbt
-  - GO111MODULE=off go1.12.9 get myitcv.io/cmd/gjbt
-  - # wasmbrowsertest
-  - go get github.com/agnivade/wasmbrowsertest
-  - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
+  - GO111MODULE=off go1.12.10 get myitcv.io/cmd/gjbt
   - # Chrome
   - mkdir /tmp/google-chrome-bin
   - ln -s /usr/bin/google-chrome-stable /tmp/google-chrome-bin/google-chrome
@@ -54,8 +54,8 @@ script:
   - GOOS=js GOARCH=wasm go test -v github.com/hajimehoshi/ebiten/...
   - GOOS=windows GOARCH=amd64 go build -tags example -v github.com/hajimehoshi/ebiten/...
   - GOOS=windows GOARCH=386 go build -tags example -v github.com/hajimehoshi/ebiten/...
-  - GO111MODULE=off go1.12.9 run github.com/gopherjs/gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
-  - GO111MODULE=off go1.12.9 run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
+  - GO111MODULE=off go1.12.10 run github.com/gopherjs/gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
+  - GO111MODULE=off go1.12.10 run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
 
 # - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
 
