@@ -51,13 +51,6 @@ func Ptr(data interface{}) unsafe.Pointer {
 	return addr
 }
 
-// PtrOffset takes a pointer offset and returns a GL-compatible pointer.
-// Useful for functions such as glVertexAttribPointer that take pointer
-// parameters indicating an offset rather than an absolute memory address.
-func PtrOffset(offset int) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(offset))
-}
-
 // Str takes a null-terminated Go string and returns its GL-compatible address.
 // This function reaches into Go string storage in an unsafe way so the caller
 // must ensure the string is not garbage collected.

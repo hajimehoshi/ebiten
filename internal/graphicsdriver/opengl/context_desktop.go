@@ -401,7 +401,7 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
 	_ = c.t.Call(func() error {
-		gl.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), gl.PtrOffset(offset))
+		gl.VertexAttribPointer(uint32(index), int32(size), uint32(dataType), false, int32(stride), uintptr(offset))
 		return nil
 	})
 }
@@ -477,7 +477,7 @@ func (c *context) deleteBuffer(b buffer) {
 
 func (c *context) drawElements(len int, offsetInBytes int) {
 	_ = c.t.Call(func() error {
-		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, gl.PtrOffset(offsetInBytes))
+		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, uintptr(offsetInBytes))
 		return nil
 	})
 }

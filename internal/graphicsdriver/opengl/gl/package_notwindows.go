@@ -562,7 +562,7 @@ package gl
 // typedef void  (APIENTRYP GPDRAWCOMMANDSSTATESNV)(GLuint  buffer, const GLintptr * indirects, const GLsizei * sizes, const GLuint * states, const GLuint * fbos, GLuint  count);
 // typedef void  (APIENTRYP GPDRAWELEMENTARRAYAPPLE)(GLenum  mode, GLint  first, GLsizei  count);
 // typedef void  (APIENTRYP GPDRAWELEMENTARRAYATI)(GLenum  mode, GLsizei  count);
-// typedef void  (APIENTRYP GPDRAWELEMENTS)(GLenum  mode, GLsizei  count, GLenum  type, const void * indices);
+// typedef void  (APIENTRYP GPDRAWELEMENTS)(GLenum  mode, GLsizei  count, GLenum  type, const uintptr_t indices);
 // typedef void  (APIENTRYP GPDRAWELEMENTSBASEVERTEX)(GLenum  mode, GLsizei  count, GLenum  type, const void * indices, GLint  basevertex);
 // typedef void  (APIENTRYP GPDRAWELEMENTSINDIRECT)(GLenum  mode, GLenum  type, const void * indirect);
 // typedef void  (APIENTRYP GPDRAWELEMENTSINSTANCEDARB)(GLenum  mode, GLsizei  count, GLenum  type, const void * indices, GLsizei  primcount);
@@ -2746,7 +2746,7 @@ package gl
 // typedef void  (APIENTRYP GPVERTEXATTRIBP4UI)(GLuint  index, GLenum  type, GLboolean  normalized, GLuint  value);
 // typedef void  (APIENTRYP GPVERTEXATTRIBP4UIV)(GLuint  index, GLenum  type, GLboolean  normalized, const GLuint * value);
 // typedef void  (APIENTRYP GPVERTEXATTRIBPARAMETERIAMD)(GLuint  index, GLenum  pname, GLint  param);
-// typedef void  (APIENTRYP GPVERTEXATTRIBPOINTER)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const void * pointer);
+// typedef void  (APIENTRYP GPVERTEXATTRIBPOINTER)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const uintptr_t pointer);
 // typedef void  (APIENTRYP GPVERTEXATTRIBPOINTERARB)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const void * pointer);
 // typedef void  (APIENTRYP GPVERTEXATTRIBPOINTERNV)(GLuint  index, GLint  fsize, GLenum  type, GLsizei  stride, const void * pointer);
 // typedef void  (APIENTRYP GPVERTEXATTRIBS1DVNV)(GLuint  index, GLsizei  count, const GLdouble * v);
@@ -4267,7 +4267,7 @@ package gl
 // static void  glowDrawElementArrayATI(GPDRAWELEMENTARRAYATI fnptr, GLenum  mode, GLsizei  count) {
 //   (*fnptr)(mode, count);
 // }
-// static void  glowDrawElements(GPDRAWELEMENTS fnptr, GLenum  mode, GLsizei  count, GLenum  type, const void * indices) {
+// static void  glowDrawElements(GPDRAWELEMENTS fnptr, GLenum  mode, GLsizei  count, GLenum  type, const uintptr_t indices) {
 //   (*fnptr)(mode, count, type, indices);
 // }
 // static void  glowDrawElementsBaseVertex(GPDRAWELEMENTSBASEVERTEX fnptr, GLenum  mode, GLsizei  count, GLenum  type, const void * indices, GLint  basevertex) {
@@ -10819,7 +10819,7 @@ package gl
 // static void  glowVertexAttribParameteriAMD(GPVERTEXATTRIBPARAMETERIAMD fnptr, GLuint  index, GLenum  pname, GLint  param) {
 //   (*fnptr)(index, pname, param);
 // }
-// static void  glowVertexAttribPointer(GPVERTEXATTRIBPOINTER fnptr, GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const void * pointer) {
+// static void  glowVertexAttribPointer(GPVERTEXATTRIBPOINTER fnptr, GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const uintptr_t pointer) {
 //   (*fnptr)(index, size, type, normalized, stride, pointer);
 // }
 // static void  glowVertexAttribPointerARB(GPVERTEXATTRIBPOINTERARB fnptr, GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const void * pointer) {
@@ -15735,8 +15735,8 @@ func DrawElementArrayATI(mode uint32, count int32) {
 }
 
 // render primitives from array data
-func DrawElements(mode uint32, count int32, xtype uint32, indices unsafe.Pointer) {
-	C.glowDrawElements(gpDrawElements, (C.GLenum)(mode), (C.GLsizei)(count), (C.GLenum)(xtype), indices)
+func DrawElements(mode uint32, count int32, xtype uint32, indices uintptr) {
+	C.glowDrawElements(gpDrawElements, (C.GLenum)(mode), (C.GLsizei)(count), (C.GLenum)(xtype), C.uintptr_t(indices))
 }
 
 // render primitives from array data with a per-element offset
@@ -23063,8 +23063,8 @@ func VertexAttribParameteriAMD(index uint32, pname uint32, param int32) {
 }
 
 // define an array of generic vertex attribute data
-func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer unsafe.Pointer) {
-	C.glowVertexAttribPointer(gpVertexAttribPointer, (C.GLuint)(index), (C.GLint)(size), (C.GLenum)(xtype), (C.GLboolean)(boolToInt(normalized)), (C.GLsizei)(stride), pointer)
+func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer uintptr) {
+	C.glowVertexAttribPointer(gpVertexAttribPointer, (C.GLuint)(index), (C.GLint)(size), (C.GLenum)(xtype), (C.GLboolean)(boolToInt(normalized)), (C.GLsizei)(stride), C.uintptr_t(pointer))
 }
 func VertexAttribPointerARB(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer unsafe.Pointer) {
 	C.glowVertexAttribPointerARB(gpVertexAttribPointerARB, (C.GLuint)(index), (C.GLint)(size), (C.GLenum)(xtype), (C.GLboolean)(boolToInt(normalized)), (C.GLsizei)(stride), pointer)

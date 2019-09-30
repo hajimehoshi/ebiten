@@ -4477,7 +4477,7 @@ func DrawElementArrayATI(mode uint32, count int32) {
 }
 
 // render primitives from array data
-func DrawElements(mode uint32, count int32, xtype uint32, indices unsafe.Pointer) {
+func DrawElements(mode uint32, count int32, xtype uint32, indices uintptr) {
 	syscall.Syscall6(gpDrawElements, 4, uintptr(mode), uintptr(count), uintptr(xtype), uintptr(indices), 0, 0)
 }
 
@@ -11805,7 +11805,7 @@ func VertexAttribParameteriAMD(index uint32, pname uint32, param int32) {
 }
 
 // define an array of generic vertex attribute data
-func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer unsafe.Pointer) {
+func VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer uintptr) {
 	syscall.Syscall6(gpVertexAttribPointer, 6, uintptr(index), uintptr(size), uintptr(xtype), boolToUintptr(normalized), uintptr(stride), uintptr(pointer))
 }
 func VertexAttribPointerARB(index uint32, size int32, xtype uint32, normalized bool, stride int32, pointer unsafe.Pointer) {
