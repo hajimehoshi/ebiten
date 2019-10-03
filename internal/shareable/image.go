@@ -388,8 +388,9 @@ func (i *Image) replacePixels(p []byte) {
 
 func (i *Image) At(x, y int) (byte, byte, byte, byte) {
 	backendsM.Lock()
-	defer backendsM.Unlock()
-	return i.at(x, y)
+	r, g, b, a := i.at(x, y)
+	backendsM.Unlock()
+	return r, g, b, a
 }
 
 func (i *Image) at(x, y int) (byte, byte, byte, byte) {
