@@ -391,7 +391,7 @@ func (i *Image) At(x, y int) color.Color {
 		return color.RGBA{}
 	}
 	// TODO: Use pending pixels
-	i.resolvePendingPixels(false)
+	i.resolvePendingPixels(true)
 	r, g, b, a := i.mipmap.at(x, y)
 	return color.RGBA{r, g, b, a}
 }
