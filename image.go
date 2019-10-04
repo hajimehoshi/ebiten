@@ -92,7 +92,7 @@ func (i *Image) Fill(clr color.Color) error {
 		panic("ebiten: render to a subimage is not implemented (Fill)")
 	}
 
-	i.resolvePendingPixels(false)
+	i.invalidatePendingPixels()
 
 	i.mipmap.fill(color.RGBAModel.Convert(clr).(color.RGBA))
 	return nil
@@ -151,7 +151,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 	}
 
 	img.resolvePendingPixels(true)
-	i.resolvePendingPixels(true)
+	i.resolvePendingPixels(false)
 
 	// Calculate vertices before locking because the user can do anything in
 	// options.ImageParts interface without deadlock (e.g. Call Image functions).
@@ -294,7 +294,7 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 	}
 
 	img.resolvePendingPixels(true)
-	i.resolvePendingPixels(true)
+	i.resolvePendingPixels(false)
 
 	if len(indices)%3 != 0 {
 		panic("ebiten: len(indices) % 3 must be 0")
@@ -390,7 +390,8 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
 		return color.RGBA{}
 	}
-	i.resolvePendingPixels(true)
+	// TODO: Use pending pixels
+	i.resolvePendingPixels(false)
 	r, g, b, a := i.mipmap.at(x, y)
 	return color.RGBA{r, g, b, a}
 }
@@ -437,9 +438,17 @@ func (img *Image) Set(x, y int, clr color.Color) {
 	img.pendingPixels[4*(x+y*w)+3] = byte(a >> 8)
 }
 
-func (i *Image) resolvePendingPixels(draw bool) {
+func (i *Image) invalidatePendingPixels() {
 	if i.isSubImage() {
-		i.original.resolvePendingPixels(draw)
+		i.original.invalidatePendingPixels()
+		return
+	}
+	i.pendingPixels = nil
+}
+
+func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
+	if i.isSubImage() {
+		i.original.resolvePendingPixels(keepPendingPixels)
 		return
 	}
 
@@ -447,13 +456,10 @@ func (i *Image) resolvePendingPixels(draw bool) {
 		return
 	}
 
-	if !draw {
+	i.mipmap.replacePixels(i.pendingPixels)
+	if !keepPendingPixels {
 		i.pendingPixels = nil
-		return
 	}
-
-	i.ReplacePixels(i.pendingPixels)
-	i.pendingPixels = nil
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.
@@ -474,7 +480,7 @@ func (i *Image) Dispose() error {
 		return nil
 	}
 	i.mipmap.dispose()
-	i.resolvePendingPixels(false)
+	i.invalidatePendingPixels()
 	return nil
 }
 
@@ -499,7 +505,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isSubImage() {
 		panic("ebiten: render to a subimage is not implemented (ReplacePixels)")
 	}
-	i.resolvePendingPixels(false)
+	i.invalidatePendingPixels()
 	s := i.Bounds().Size()
 	if l := 4 * s.X * s.Y; len(p) != l {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
