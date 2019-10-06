@@ -66,7 +66,7 @@ func getPixel(x, y uint) int {
 
 func makeBall(x, y float64) *cp.Shape {
 	body := cp.NewBody(1.0, cp.INFINITY)
-	body.SetPosition(cp.Vector{x, y})
+	body.SetPosition(cp.Vector{X: x, Y: y})
 
 	shape := cp.NewCircle(body, 0.95, cp.Vector{})
 	shape.SetElasticity(0)
@@ -144,7 +144,7 @@ func main() {
 	}
 
 	body = space.AddBody(cp.NewBody(1e9, cp.INFINITY))
-	body.SetPosition(cp.Vector{-1000, 225})
+	body.SetPosition(cp.Vector{X: -1000, Y: 225})
 	body.SetVelocity(400, 0)
 
 	shape = space.AddShape(cp.NewCircle(body, 8, cp.Vector{}))
