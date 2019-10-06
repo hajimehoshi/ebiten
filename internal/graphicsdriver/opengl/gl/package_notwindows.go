@@ -7,60 +7,53 @@ package gl
 
 // #cgo darwin        LDFLAGS: -framework OpenGL
 // #cgo linux freebsd LDFLAGS: -lGL
-// #cgo windows       LDFLAGS: -lopengl32
-// #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
-// #ifndef WIN32_LEAN_AND_MEAN
-// #define WIN32_LEAN_AND_MEAN 1
-// #endif
-// #include <windows.h>
-// #endif
+//
 // #ifndef APIENTRY
-// #define APIENTRY
+//   #define APIENTRY
 // #endif
+//
 // #ifndef APIENTRYP
-// #define APIENTRYP APIENTRY *
+//   #define APIENTRYP APIENTRY *
 // #endif
+//
 // #ifndef GLAPI
-// #define GLAPI extern
+//   #define GLAPI extern
 // #endif
+//
 // #include <stddef.h>
+//
 // #ifndef GLEXT_64_TYPES_DEFINED
-// /* This code block is duplicated in glxext.h, so must be protected */
-// #define GLEXT_64_TYPES_DEFINED
-// /* Define int32_t, int64_t, and uint64_t types for UST/MSC */
-// /* (as used in the GL_EXT_timer_query extension). */
-// #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-// #include <inttypes.h>
-// #elif defined(__sun__) || defined(__digital__)
-// #include <inttypes.h>
-// #if defined(__STDC__)
-// #if defined(__arch64__) || defined(_LP64)
-// typedef long int int64_t;
-// typedef unsigned long int uint64_t;
-// #else
-// typedef long long int int64_t;
-// typedef unsigned long long int uint64_t;
-// #endif /* __arch64__ */
-// #endif /* __STDC__ */
-// #elif defined( __VMS ) || defined(__sgi)
-// #include <inttypes.h>
-// #elif defined(__SCO__) || defined(__USLC__)
-// #include <stdint.h>
-// #elif defined(__UNIXOS2__) || defined(__SOL64__)
-// typedef long int int32_t;
-// typedef long long int int64_t;
-// typedef unsigned long long int uint64_t;
-// #elif defined(_WIN32) && defined(__GNUC__)
-// #include <stdint.h>
-// #elif defined(_WIN32)
-// typedef __int32 int32_t;
-// typedef __int64 int64_t;
-// typedef unsigned __int64 uint64_t;
-// #else
-// /* Fallback if nothing above works */
-// #include <inttypes.h>
+//   /* This code block is duplicated in glxext.h, so must be protected */
+//   #define GLEXT_64_TYPES_DEFINED
+//   /* Define int32_t, int64_t, and uint64_t types for UST/MSC */
+//   /* (as used in the GL_EXT_timer_query extension). */
+//   #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+//     #include <inttypes.h>
+//   #elif defined(__sun__) || defined(__digital__)
+//     #include <inttypes.h>
+//     #if defined(__STDC__)
+//       #if defined(__arch64__) || defined(_LP64)
+//         typedef long int int64_t;
+//         typedef unsigned long int uint64_t;
+//       #else
+//         typedef long long int int64_t;
+//         typedef unsigned long long int uint64_t;
+//       #endif /* __arch64__ */
+//     #endif /* __STDC__ */
+//   #elif defined( __VMS ) || defined(__sgi)
+//     #include <inttypes.h>
+//   #elif defined(__SCO__) || defined(__USLC__)
+//     #include <stdint.h>
+//   #elif defined(__UNIXOS2__) || defined(__SOL64__)
+//     typedef long int int32_t;
+//     typedef long long int int64_t;
+//     typedef unsigned long long int uint64_t;
+//   #else
+//     /* Fallback if nothing above works */
+//     #include <inttypes.h>
+//   #endif
 // #endif
-// #endif
+//
 // typedef unsigned int GLenum;
 // typedef unsigned char GLboolean;
 // typedef unsigned int GLbitfield;
@@ -95,8 +88,7 @@ package gl
 // typedef int64_t GLint64EXT;
 // typedef uint64_t GLuint64EXT;
 // typedef uintptr_t GLsync;
-// struct _cl_context;
-// struct _cl_event;
+//
 // typedef void (APIENTRY *GLDEBUGPROC)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
 // typedef void (APIENTRY *GLDEBUGPROCARB)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
 // typedef void (APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
@@ -166,6 +158,7 @@ package gl
 // typedef void  (APIENTRYP GPUSEPROGRAM)(GLuint  program);
 // typedef void  (APIENTRYP GPVERTEXATTRIBPOINTER)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const uintptr_t pointer);
 // typedef void  (APIENTRYP GPVIEWPORT)(GLint  x, GLint  y, GLsizei  width, GLsizei  height);
+//
 // static void  glowAttachShader(GPATTACHSHADER fnptr, GLuint  program, GLuint  shader) {
 //   (*fnptr)(program, shader);
 // }
@@ -353,6 +346,7 @@ package gl
 //   (*fnptr)(x, y, width, height);
 // }
 import "C"
+
 import (
 	"errors"
 	"unsafe"
