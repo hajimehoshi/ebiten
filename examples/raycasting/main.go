@@ -206,9 +206,9 @@ func handleMovement() {
 
 func rayVertices(x1, y1, x2, y2, x3, y3 float64) []ebiten.Vertex {
 	return []ebiten.Vertex{
-		{float32(x1), float32(y1), 0, 0, 1, 1, 1, 1},
-		{float32(x2), float32(y2), 0, 0, 1, 1, 1, 1},
-		{float32(x3), float32(y3), 0, 0, 1, 1, 1, 1},
+		{DstX: float32(x1), DstY: float32(y1), SrcX: 0, SrcY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: float32(x2), DstY: float32(y2), SrcX: 0, SrcY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: float32(x3), DstY: float32(y3), SrcX: 0, SrcY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
 	}
 }
 
