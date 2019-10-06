@@ -331,198 +331,198 @@ func Viewport(x int32, y int32, width int32, height int32) {
 
 // InitWithProcAddrFunc intializes the package using the specified OpenGL
 // function pointer loading function. For more cases Init should be used
-func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
-	gpAttachShader = uintptr(getProcAddr("glAttachShader"))
+func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
+	gpAttachShader = getProcAddr("glAttachShader")
 	if gpAttachShader == 0 {
 		return errors.New("glAttachShader")
 	}
-	gpBindAttribLocation = uintptr(getProcAddr("glBindAttribLocation"))
+	gpBindAttribLocation = getProcAddr("glBindAttribLocation")
 	if gpBindAttribLocation == 0 {
 		return errors.New("glBindAttribLocation")
 	}
-	gpBindBuffer = uintptr(getProcAddr("glBindBuffer"))
+	gpBindBuffer = getProcAddr("glBindBuffer")
 	if gpBindBuffer == 0 {
 		return errors.New("glBindBuffer")
 	}
-	gpBindFramebufferEXT = uintptr(getProcAddr("glBindFramebufferEXT"))
-	gpBindTexture = uintptr(getProcAddr("glBindTexture"))
+	gpBindFramebufferEXT = getProcAddr("glBindFramebufferEXT")
+	gpBindTexture = getProcAddr("glBindTexture")
 	if gpBindTexture == 0 {
 		return errors.New("glBindTexture")
 	}
-	gpBlendFunc = uintptr(getProcAddr("glBlendFunc"))
+	gpBlendFunc = getProcAddr("glBlendFunc")
 	if gpBlendFunc == 0 {
 		return errors.New("glBlendFunc")
 	}
-	gpBufferData = uintptr(getProcAddr("glBufferData"))
+	gpBufferData = getProcAddr("glBufferData")
 	if gpBufferData == 0 {
 		return errors.New("glBufferData")
 	}
-	gpBufferSubData = uintptr(getProcAddr("glBufferSubData"))
+	gpBufferSubData = getProcAddr("glBufferSubData")
 	if gpBufferSubData == 0 {
 		return errors.New("glBufferSubData")
 	}
-	gpCheckFramebufferStatusEXT = uintptr(getProcAddr("glCheckFramebufferStatusEXT"))
-	gpCompileShader = uintptr(getProcAddr("glCompileShader"))
+	gpCheckFramebufferStatusEXT = getProcAddr("glCheckFramebufferStatusEXT")
+	gpCompileShader = getProcAddr("glCompileShader")
 	if gpCompileShader == 0 {
 		return errors.New("glCompileShader")
 	}
-	gpCreateProgram = uintptr(getProcAddr("glCreateProgram"))
+	gpCreateProgram = getProcAddr("glCreateProgram")
 	if gpCreateProgram == 0 {
 		return errors.New("glCreateProgram")
 	}
-	gpCreateShader = uintptr(getProcAddr("glCreateShader"))
+	gpCreateShader = getProcAddr("glCreateShader")
 	if gpCreateShader == 0 {
 		return errors.New("glCreateShader")
 	}
-	gpDeleteBuffers = uintptr(getProcAddr("glDeleteBuffers"))
+	gpDeleteBuffers = getProcAddr("glDeleteBuffers")
 	if gpDeleteBuffers == 0 {
 		return errors.New("glDeleteBuffers")
 	}
-	gpDeleteFramebuffersEXT = uintptr(getProcAddr("glDeleteFramebuffersEXT"))
-	gpDeleteProgram = uintptr(getProcAddr("glDeleteProgram"))
+	gpDeleteFramebuffersEXT = getProcAddr("glDeleteFramebuffersEXT")
+	gpDeleteProgram = getProcAddr("glDeleteProgram")
 	if gpDeleteProgram == 0 {
 		return errors.New("glDeleteProgram")
 	}
-	gpDeleteShader = uintptr(getProcAddr("glDeleteShader"))
+	gpDeleteShader = getProcAddr("glDeleteShader")
 	if gpDeleteShader == 0 {
 		return errors.New("glDeleteShader")
 	}
-	gpDeleteTextures = uintptr(getProcAddr("glDeleteTextures"))
+	gpDeleteTextures = getProcAddr("glDeleteTextures")
 	if gpDeleteTextures == 0 {
 		return errors.New("glDeleteTextures")
 	}
-	gpDisableVertexAttribArray = uintptr(getProcAddr("glDisableVertexAttribArray"))
+	gpDisableVertexAttribArray = getProcAddr("glDisableVertexAttribArray")
 	if gpDisableVertexAttribArray == 0 {
 		return errors.New("glDisableVertexAttribArray")
 	}
-	gpDrawElements = uintptr(getProcAddr("glDrawElements"))
+	gpDrawElements = getProcAddr("glDrawElements")
 	if gpDrawElements == 0 {
 		return errors.New("glDrawElements")
 	}
-	gpEnable = uintptr(getProcAddr("glEnable"))
+	gpEnable = getProcAddr("glEnable")
 	if gpEnable == 0 {
 		return errors.New("glEnable")
 	}
-	gpEnableVertexAttribArray = uintptr(getProcAddr("glEnableVertexAttribArray"))
+	gpEnableVertexAttribArray = getProcAddr("glEnableVertexAttribArray")
 	if gpEnableVertexAttribArray == 0 {
 		return errors.New("glEnableVertexAttribArray")
 	}
-	gpFlush = uintptr(getProcAddr("glFlush"))
+	gpFlush = getProcAddr("glFlush")
 	if gpFlush == 0 {
 		return errors.New("glFlush")
 	}
-	gpFramebufferTexture2DEXT = uintptr(getProcAddr("glFramebufferTexture2DEXT"))
-	gpGenBuffers = uintptr(getProcAddr("glGenBuffers"))
+	gpFramebufferTexture2DEXT = getProcAddr("glFramebufferTexture2DEXT")
+	gpGenBuffers = getProcAddr("glGenBuffers")
 	if gpGenBuffers == 0 {
 		return errors.New("glGenBuffers")
 	}
-	gpGenFramebuffersEXT = uintptr(getProcAddr("glGenFramebuffersEXT"))
-	gpGenTextures = uintptr(getProcAddr("glGenTextures"))
+	gpGenFramebuffersEXT = getProcAddr("glGenFramebuffersEXT")
+	gpGenTextures = getProcAddr("glGenTextures")
 	if gpGenTextures == 0 {
 		return errors.New("glGenTextures")
 	}
-	gpGetDoublei_v = uintptr(getProcAddr("glGetDoublei_v"))
-	gpGetDoublei_vEXT = uintptr(getProcAddr("glGetDoublei_vEXT"))
-	gpGetError = uintptr(getProcAddr("glGetError"))
+	gpGetDoublei_v = getProcAddr("glGetDoublei_v")
+	gpGetDoublei_vEXT = getProcAddr("glGetDoublei_vEXT")
+	gpGetError = getProcAddr("glGetError")
 	if gpGetError == 0 {
 		return errors.New("glGetError")
 	}
-	gpGetFloati_v = uintptr(getProcAddr("glGetFloati_v"))
-	gpGetFloati_vEXT = uintptr(getProcAddr("glGetFloati_vEXT"))
-	gpGetIntegeri_v = uintptr(getProcAddr("glGetIntegeri_v"))
-	gpGetIntegerui64i_vNV = uintptr(getProcAddr("glGetIntegerui64i_vNV"))
-	gpGetIntegerv = uintptr(getProcAddr("glGetIntegerv"))
+	gpGetFloati_v = getProcAddr("glGetFloati_v")
+	gpGetFloati_vEXT = getProcAddr("glGetFloati_vEXT")
+	gpGetIntegeri_v = getProcAddr("glGetIntegeri_v")
+	gpGetIntegerui64i_vNV = getProcAddr("glGetIntegerui64i_vNV")
+	gpGetIntegerv = getProcAddr("glGetIntegerv")
 	if gpGetIntegerv == 0 {
 		return errors.New("glGetIntegerv")
 	}
-	gpGetPointeri_vEXT = uintptr(getProcAddr("glGetPointeri_vEXT"))
-	gpGetProgramiv = uintptr(getProcAddr("glGetProgramiv"))
+	gpGetPointeri_vEXT = getProcAddr("glGetPointeri_vEXT")
+	gpGetProgramiv = getProcAddr("glGetProgramiv")
 	if gpGetProgramiv == 0 {
 		return errors.New("glGetProgramiv")
 	}
-	gpGetShaderInfoLog = uintptr(getProcAddr("glGetShaderInfoLog"))
+	gpGetShaderInfoLog = getProcAddr("glGetShaderInfoLog")
 	if gpGetShaderInfoLog == 0 {
 		return errors.New("glGetShaderInfoLog")
 	}
-	gpGetShaderiv = uintptr(getProcAddr("glGetShaderiv"))
+	gpGetShaderiv = getProcAddr("glGetShaderiv")
 	if gpGetShaderiv == 0 {
 		return errors.New("glGetShaderiv")
 	}
-	gpGetTransformFeedbacki64_v = uintptr(getProcAddr("glGetTransformFeedbacki64_v"))
-	gpGetTransformFeedbacki_v = uintptr(getProcAddr("glGetTransformFeedbacki_v"))
-	gpGetUniformLocation = uintptr(getProcAddr("glGetUniformLocation"))
+	gpGetTransformFeedbacki64_v = getProcAddr("glGetTransformFeedbacki64_v")
+	gpGetTransformFeedbacki_v = getProcAddr("glGetTransformFeedbacki_v")
+	gpGetUniformLocation = getProcAddr("glGetUniformLocation")
 	if gpGetUniformLocation == 0 {
 		return errors.New("glGetUniformLocation")
 	}
-	gpGetUnsignedBytei_vEXT = uintptr(getProcAddr("glGetUnsignedBytei_vEXT"))
-	gpGetVertexArrayIntegeri_vEXT = uintptr(getProcAddr("glGetVertexArrayIntegeri_vEXT"))
-	gpGetVertexArrayPointeri_vEXT = uintptr(getProcAddr("glGetVertexArrayPointeri_vEXT"))
-	gpIsFramebufferEXT = uintptr(getProcAddr("glIsFramebufferEXT"))
-	gpIsProgram = uintptr(getProcAddr("glIsProgram"))
+	gpGetUnsignedBytei_vEXT = getProcAddr("glGetUnsignedBytei_vEXT")
+	gpGetVertexArrayIntegeri_vEXT = getProcAddr("glGetVertexArrayIntegeri_vEXT")
+	gpGetVertexArrayPointeri_vEXT = getProcAddr("glGetVertexArrayPointeri_vEXT")
+	gpIsFramebufferEXT = getProcAddr("glIsFramebufferEXT")
+	gpIsProgram = getProcAddr("glIsProgram")
 	if gpIsProgram == 0 {
 		return errors.New("glIsProgram")
 	}
-	gpIsTexture = uintptr(getProcAddr("glIsTexture"))
+	gpIsTexture = getProcAddr("glIsTexture")
 	if gpIsTexture == 0 {
 		return errors.New("glIsTexture")
 	}
-	gpLinkProgram = uintptr(getProcAddr("glLinkProgram"))
+	gpLinkProgram = getProcAddr("glLinkProgram")
 	if gpLinkProgram == 0 {
 		return errors.New("glLinkProgram")
 	}
-	gpPixelStorei = uintptr(getProcAddr("glPixelStorei"))
+	gpPixelStorei = getProcAddr("glPixelStorei")
 	if gpPixelStorei == 0 {
 		return errors.New("glPixelStorei")
 	}
-	gpReadPixels = uintptr(getProcAddr("glReadPixels"))
+	gpReadPixels = getProcAddr("glReadPixels")
 	if gpReadPixels == 0 {
 		return errors.New("glReadPixels")
 	}
-	gpShaderSource = uintptr(getProcAddr("glShaderSource"))
+	gpShaderSource = getProcAddr("glShaderSource")
 	if gpShaderSource == 0 {
 		return errors.New("glShaderSource")
 	}
-	gpTexImage2D = uintptr(getProcAddr("glTexImage2D"))
+	gpTexImage2D = getProcAddr("glTexImage2D")
 	if gpTexImage2D == 0 {
 		return errors.New("glTexImage2D")
 	}
-	gpTexParameteri = uintptr(getProcAddr("glTexParameteri"))
+	gpTexParameteri = getProcAddr("glTexParameteri")
 	if gpTexParameteri == 0 {
 		return errors.New("glTexParameteri")
 	}
-	gpTexSubImage2D = uintptr(getProcAddr("glTexSubImage2D"))
+	gpTexSubImage2D = getProcAddr("glTexSubImage2D")
 	if gpTexSubImage2D == 0 {
 		return errors.New("glTexSubImage2D")
 	}
-	gpUniform1f = uintptr(getProcAddr("glUniform1f"))
+	gpUniform1f = getProcAddr("glUniform1f")
 	if gpUniform1f == 0 {
 		return errors.New("glUniform1f")
 	}
-	gpUniform1i = uintptr(getProcAddr("glUniform1i"))
+	gpUniform1i = getProcAddr("glUniform1i")
 	if gpUniform1i == 0 {
 		return errors.New("glUniform1i")
 	}
-	gpUniform2fv = uintptr(getProcAddr("glUniform2fv"))
+	gpUniform2fv = getProcAddr("glUniform2fv")
 	if gpUniform2fv == 0 {
 		return errors.New("glUniform2fv")
 	}
-	gpUniform4fv = uintptr(getProcAddr("glUniform4fv"))
+	gpUniform4fv = getProcAddr("glUniform4fv")
 	if gpUniform4fv == 0 {
 		return errors.New("glUniform4fv")
 	}
-	gpUniformMatrix4fv = uintptr(getProcAddr("glUniformMatrix4fv"))
+	gpUniformMatrix4fv = getProcAddr("glUniformMatrix4fv")
 	if gpUniformMatrix4fv == 0 {
 		return errors.New("glUniformMatrix4fv")
 	}
-	gpUseProgram = uintptr(getProcAddr("glUseProgram"))
+	gpUseProgram = getProcAddr("glUseProgram")
 	if gpUseProgram == 0 {
 		return errors.New("glUseProgram")
 	}
-	gpVertexAttribPointer = uintptr(getProcAddr("glVertexAttribPointer"))
+	gpVertexAttribPointer = getProcAddr("glVertexAttribPointer")
 	if gpVertexAttribPointer == 0 {
 		return errors.New("glVertexAttribPointer")
 	}
-	gpViewport = uintptr(getProcAddr("glViewport"))
+	gpViewport = getProcAddr("glViewport")
 	if gpViewport == 0 {
 		return errors.New("glViewport")
 	}
