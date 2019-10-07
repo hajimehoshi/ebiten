@@ -33,12 +33,10 @@ import (
 type direction int
 
 const (
-	width     = 800
-	height    = 600
-	drawScale = 1
-	wwidth    = drawScale * width
-	wheight   = drawScale * height
-	amount    = width / 32
+	width  = 800
+	height = 600
+	scale  = 2
+	amount = width / 32
 )
 
 const (
@@ -330,9 +328,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(drawScale, drawScale)
-	screen.DrawImage(canvas, op)
+	screen.DrawImage(canvas, nil)
 	ebitenutil.DebugPrintAt(
 		screen,
 		fmt.Sprintf("TPS: %0.2f, FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()),
@@ -362,7 +358,7 @@ func draw(screen *ebiten.Image) {
 
 func main() {
 	ebiten.SetMaxTPS(250)
-	if err := ebiten.Run(update, wwidth, wheight, 2, "Squirals"); err != nil {
+	if err := ebiten.Run(update, width, height, scale, "Squirals"); err != nil {
 		if err == quit {
 			return
 		}
