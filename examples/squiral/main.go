@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"image/color"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
@@ -30,20 +29,11 @@ import (
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
-type direction int
-
 const (
-	width  = 800
-	height = 600
-	scale  = 2
-	amount = width / 32
-)
-
-const (
-	east direction = iota
-	south
-	west
-	north
+	width         = 800
+	height        = 600
+	scale         = 1
+	numOfSquirals = width / 32
 )
 
 type palette struct {
@@ -90,32 +80,31 @@ var (
 	colorCycle      = 0
 	canvas          *ebiten.Image
 	auto            *automaton
-	once            sync.Once
 	blocker         = color.RGBA{0, 0, 0, 254}
 	free            = color.RGBA{0, 0, 0, 0}
 
-	rotors = [2][3]direction{
-		[3]direction{1, 0, 3},
-		[3]direction{3, 0, 1},
+	rotors = [2][3]int{
+		[3]int{1, 0, 3},
+		[3]int{3, 0, 1},
 	}
 
 	// east, south, west, north
-	dirs   = [4]tup{tup{1, 0}, tup{0, 1}, tup{-1, 0}, tup{0, -1}}
-	outers = [2][2]tup{
-		[2]tup{tup{0, 1}, tup{0, -1}}, // east, west
-		[2]tup{tup{1, 0}, tup{-1, 0}}, // south, north
+	dirs   = [4]vec2{vec2{1, 0}, vec2{0, 1}, vec2{-1, 0}, vec2{0, -1}}
+	outers = [2][2]vec2{
+		[2]vec2{vec2{0, 1}, vec2{0, -1}}, // east, west
+		[2]vec2{vec2{1, 0}, vec2{-1, 0}}, // south, north
 	}
 )
 
-type tup struct {
+type vec2 struct {
 	x int
 	y int
 }
 
 type squiral struct {
 	speed int
-	pos   tup
-	dir   direction
+	pos   vec2
+	dir   int
 	rot   int
 	col   color.Color
 	dead  bool
@@ -140,7 +129,7 @@ func (s *squiral) spawn() {
 	s.speed = rand.Intn(5) + 1
 	s.pos.x = rx
 	s.pos.y = ry
-	s.dir = direction(rand.Intn(5))
+	s.dir = rand.Intn(5)
 
 	colorCycle = (colorCycle + 1) % len(palettes[selectedPalette].colors)
 	s.col = palettes[selectedPalette].colors[colorCycle]
@@ -166,7 +155,7 @@ func (s *squiral) step(debug int) {
 		dir := (s.dir + next) % 4
 		off := dirs[dir]
 		// Peek all targets by priority.
-		target := tup{
+		target := vec2{
 			x: x + off.x,
 			y: y + off.y,
 		}
@@ -176,7 +165,7 @@ func (s *squiral) step(debug int) {
 
 			// a. Test if next cell in direction dir does not have
 			// the same color as this squiral.
-			ntarg := tup{
+			ntarg := vec2{
 				x: target.x + off.x,
 				y: target.y + off.y,
 			}
@@ -189,7 +178,7 @@ func (s *squiral) step(debug int) {
 			// b. Test all outer fields for the color of the
 			// squiral itself.
 			horivert := dir % 2
-			xtarg := tup{}
+			xtarg := vec2{}
 			set := true
 			for _, out := range outers[horivert] {
 				xtarg.x = target.x + out.x
@@ -230,7 +219,7 @@ func (s *squiral) step(debug int) {
 }
 
 type automaton struct {
-	squirals [amount]squiral
+	squirals [numOfSquirals]squiral
 	colorMap [width][height]color.Color
 }
 
@@ -248,13 +237,13 @@ func (au *automaton) init() {
 		}
 	}
 
-	for i := 0; i < amount; i++ {
+	for i := 0; i < numOfSquirals; i++ {
 		auto.squirals[i].spawn()
 	}
 }
 
 func (au *automaton) step() {
-	for i := 0; i < amount; i++ {
+	for i := 0; i < numOfSquirals; i++ {
 		for s := 0; s < au.squirals[i].speed; s++ {
 			au.squirals[i].step(i)
 			if au.squirals[i].dead {
@@ -264,7 +253,7 @@ func (au *automaton) step() {
 	}
 }
 
-func setpix(xy tup, col color.Color) {
+func setpix(xy vec2, col color.Color) {
 	canvas.Set(xy.x, xy.y, col)
 	auto.colorMap[xy.x][xy.y] = col
 }
