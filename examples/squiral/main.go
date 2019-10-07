@@ -27,7 +27,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"golang.org/x/image/colornames"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 type direction int
@@ -44,9 +44,6 @@ const (
 	south
 	west
 	north
-
-	horizontal direction = iota
-	vertical
 )
 
 type palette struct {
@@ -55,12 +52,10 @@ type palette struct {
 }
 
 var (
-	quit = fmt.Errorf("quit")
-
-	background = colornames.Black
+	background = color.Black
 
 	palettes = []palette{
-		palette{
+		{
 			name: "sand dunes",
 			colors: []color.Color{
 				color.RGBA{0xF2, 0x74, 0x05, 0xFF}, //#F27405
@@ -70,7 +65,7 @@ var (
 				color.RGBA{0x73, 0x2A, 0x19, 0xFF}, //#732A19
 			},
 		},
-		palette{
+		{
 			name: "mono desert sand",
 			colors: []color.Color{
 				color.RGBA{0x7F, 0x6C, 0x52, 0xFF}, //#7F6C52
@@ -80,7 +75,7 @@ var (
 				color.RGBA{0xCC, 0xAE, 0x84, 0xFF}, //#CCAE84
 			},
 		},
-		palette{
+		{
 			name: "land sea gradient",
 			colors: []color.Color{
 				color.RGBA{0x00, 0xA2, 0xE8, 0xFF}, //#00A2E8
@@ -281,7 +276,7 @@ func init() {
 		panic(err)
 	}
 	canvas = c
-	canvas.Fill(colornames.Black)
+	canvas.Fill(background)
 
 	auto = &automaton{}
 	auto.init()
@@ -290,28 +285,21 @@ func init() {
 func update(screen *ebiten.Image) error {
 	reset := false
 
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-		return quit
-	}
-
-	if ebiten.IsKeyPressed(ebiten.KeyB) {
-		if background == colornames.White {
-			background = colornames.Black
+	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
+		if background == color.White {
+			background = color.Black
 		} else {
-			background = colornames.White
+			background = color.White
 		}
 		reset = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyT) {
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyT) {
 		selectedPalette = (selectedPalette + 1) % len(palettes)
 		reset = true
-	}
-
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		reset = true
 	}
 
 	if reset {
-		screen.Fill(background)
 		canvas.Fill(background)
 		auto.init()
 	}
@@ -336,22 +324,22 @@ func draw(screen *ebiten.Image) {
 	)
 	ebitenutil.DebugPrintAt(
 		screen,
-		"left mouse click: respawn",
+		"[r]: respawn",
 		1, 16,
 	)
 	ebitenutil.DebugPrintAt(
 		screen,
-		"b: toggle background (white/black)",
+		"[b]: toggle background (white/black)",
 		1, 32,
 	)
 	ebitenutil.DebugPrintAt(
 		screen,
-		fmt.Sprintf("t: cycle theme (current: %s)", palettes[selectedPalette].name),
+		fmt.Sprintf("[t]: cycle theme (current: %s)", palettes[selectedPalette].name),
 		1, 48,
 	)
 	ebitenutil.DebugPrintAt(
 		screen,
-		"esc: quit",
+		"[esc]: quit",
 		1, 64,
 	)
 }
@@ -359,9 +347,6 @@ func draw(screen *ebiten.Image) {
 func main() {
 	ebiten.SetMaxTPS(250)
 	if err := ebiten.Run(update, width, height, scale, "Squirals"); err != nil {
-		if err == quit {
-			return
-		}
 		panic(err)
 	}
 }
