@@ -48,31 +48,31 @@ var (
 		{
 			name: "sand dunes",
 			colors: []color.Color{
-				color.RGBA{0xF2, 0x74, 0x05, 0xFF}, //#F27405
-				color.RGBA{0xD9, 0x52, 0x04, 0xFF}, //#D95204
-				color.RGBA{0x40, 0x18, 0x01, 0xFF}, //#401801
-				color.RGBA{0xA6, 0x2F, 0x03, 0xFF}, //#A62F03
-				color.RGBA{0x73, 0x2A, 0x19, 0xFF}, //#732A19
+				color.RGBA{0xF2, 0x74, 0x05, 0xFF}, // #F27405
+				color.RGBA{0xD9, 0x52, 0x04, 0xFF}, // #D95204
+				color.RGBA{0x40, 0x18, 0x01, 0xFF}, // #401801
+				color.RGBA{0xA6, 0x2F, 0x03, 0xFF}, // #A62F03
+				color.RGBA{0x73, 0x2A, 0x19, 0xFF}, // #732A19
 			},
 		},
 		{
 			name: "mono desert sand",
 			colors: []color.Color{
-				color.RGBA{0x7F, 0x6C, 0x52, 0xFF}, //#7F6C52
-				color.RGBA{0xFF, 0xBA, 0x58, 0xFF}, //#FFBA58
-				color.RGBA{0xFF, 0xD9, 0xA5, 0xFF}, //#FFD9A5
-				color.RGBA{0x7F, 0x50, 0x0F, 0xFF}, //#7F500F
-				color.RGBA{0xCC, 0xAE, 0x84, 0xFF}, //#CCAE84
+				color.RGBA{0x7F, 0x6C, 0x52, 0xFF}, // #7F6C52
+				color.RGBA{0xFF, 0xBA, 0x58, 0xFF}, // #FFBA58
+				color.RGBA{0xFF, 0xD9, 0xA5, 0xFF}, // #FFD9A5
+				color.RGBA{0x7F, 0x50, 0x0F, 0xFF}, // #7F500F
+				color.RGBA{0xCC, 0xAE, 0x84, 0xFF}, // #CCAE84
 			},
 		},
 		{
 			name: "land sea gradient",
 			colors: []color.Color{
-				color.RGBA{0x00, 0xA2, 0xE8, 0xFF}, //#00A2E8
-				color.RGBA{0x67, 0xA3, 0xF5, 0xFF}, //#67A3F5
-				color.RGBA{0xFF, 0xFF, 0xD5, 0xFF}, //#FFFFD5
-				color.RGBA{0xDD, 0xE8, 0x0C, 0xFF}, //#DDE80C
-				color.RGBA{0x74, 0x9A, 0x0D, 0xFF}, //#749A0D
+				color.RGBA{0x00, 0xA2, 0xE8, 0xFF}, // #00A2E8
+				color.RGBA{0x67, 0xA3, 0xF5, 0xFF}, // #67A3F5
+				color.RGBA{0xFF, 0xFF, 0xD5, 0xFF}, // #FFFFD5
+				color.RGBA{0xDD, 0xE8, 0x0C, 0xFF}, // #DDE80C
+				color.RGBA{0x74, 0x9A, 0x0D, 0xFF}, // #749A0D
 			},
 		},
 	}
@@ -80,8 +80,9 @@ var (
 	colorCycle      = 0
 	canvas          *ebiten.Image
 	auto            *automaton
-	blocker         = color.RGBA{0, 0, 0, 254}
-	free            = color.RGBA{0, 0, 0, 0}
+	// blocker is an arbitrary color used to prevent the
+	// squirals from leaving the canvas.
+	blocker = color.RGBA{0, 0, 0, 254}
 
 	// dirCycles defines by offset which direction a squiral
 	// should try next for the two cases:
@@ -136,7 +137,7 @@ func (s *squiral) spawn() {
 	for dx := -2; dx <= 2; dx++ {
 		for dy := -2; dy <= 2; dy++ {
 			tx, ty := rx+dx, ry+dy
-			if auto.colorMap[tx][ty] != free {
+			if auto.colorMap[tx][ty] != background {
 				s.dead = true
 				return
 			}
@@ -176,7 +177,7 @@ func (s *squiral) step(debug int) {
 			x: x + off.x,
 			y: y + off.y,
 		}
-		if auto.colorMap[target.x][target.y] == free {
+		if auto.colorMap[target.x][target.y] == background {
 			// If the target is free we need to also check the
 			// surrounding cells.
 
@@ -249,7 +250,7 @@ func (au *automaton) init() {
 			if x == 0 || x == width-1 || y == 0 || y == height-1 {
 				auto.colorMap[x][y] = blocker
 			} else {
-				auto.colorMap[x][y] = free
+				auto.colorMap[x][y] = background
 			}
 		}
 	}
