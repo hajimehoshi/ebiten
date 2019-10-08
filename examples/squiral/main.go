@@ -83,14 +83,31 @@ var (
 	blocker         = color.RGBA{0, 0, 0, 254}
 	free            = color.RGBA{0, 0, 0, 0}
 
-	rotors = [2][3]int{
-		[3]int{1, 0, 3},
-		[3]int{3, 0, 1},
+	// dirCycles defines by offset which direction a squiral
+	// should try next for the two cases:
+	// clockwise:
+	//	1. try to turn right (index+1)
+	//  2. try to go straight (index+0)
+	//  3. try to turn left (index+3)
+	// counter-clockwise:
+	//  1. try to turn left (index+3)
+	//  2. try to go straight (index+0)
+	//  3. try to turn right (index+1)
+	dirCycles = [2][3]int{
+		[3]int{1, 0, 3}, // cw
+		[3]int{3, 0, 1}, // ccw
 	}
 
-	// east, south, west, north
-	dirs   = [4]vec2{vec2{1, 0}, vec2{0, 1}, vec2{-1, 0}, vec2{0, -1}}
-	outers = [2][2]vec2{
+	// dirs contains vectors for the directions: east, south, west, north
+	// in the specified order.
+	dirs = [4]vec2{vec2{1, 0}, vec2{0, 1}, vec2{-1, 0}, vec2{0, -1}}
+
+	// neighbors defines neighboring cells depending on the moving
+	// direction of the squiral:
+	// index of 0 -> squiral moves vertically,
+	// index of 1 -> squiral moves horizontally.
+	// These neighbors are tested for "collisions" during simulation.
+	neighbors = [2][2]vec2{
 		[2]vec2{vec2{0, 1}, vec2{0, -1}}, // east, west
 		[2]vec2{vec2{1, 0}, vec2{-1, 0}}, // south, north
 	}
@@ -129,7 +146,7 @@ func (s *squiral) spawn() {
 	s.speed = rand.Intn(5) + 1
 	s.pos.x = rx
 	s.pos.y = ry
-	s.dir = rand.Intn(5)
+	s.dir = rand.Intn(4)
 
 	colorCycle = (colorCycle + 1) % len(palettes[selectedPalette].colors)
 	s.col = palettes[selectedPalette].colors[colorCycle]
@@ -151,7 +168,7 @@ func (s *squiral) step(debug int) {
 
 	// 1. try to advance the spiral in its rotation
 	// direction (clockwise or counter-clockwise).
-	for _, next := range rotors[s.rot] {
+	for _, next := range dirCycles[s.rot] {
 		dir := (s.dir + next) % 4
 		off := dirs[dir]
 		// Peek all targets by priority.
@@ -180,7 +197,7 @@ func (s *squiral) step(debug int) {
 			horivert := dir % 2
 			xtarg := vec2{}
 			set := true
-			for _, out := range outers[horivert] {
+			for _, out := range neighbors[horivert] {
 				xtarg.x = target.x + out.x
 				xtarg.y = target.y + out.y
 
@@ -260,10 +277,7 @@ func setpix(xy vec2, col color.Color) {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
-	c, err := ebiten.NewImage(width, height, ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
+	c, _ := ebiten.NewImage(width, height, ebiten.FilterDefault)
 	canvas = c
 	canvas.Fill(background)
 
@@ -309,7 +323,7 @@ func draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(
 		screen,
 		fmt.Sprintf("TPS: %0.2f, FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()),
-		1, 1,
+		1, 0,
 	)
 	ebitenutil.DebugPrintAt(
 		screen,
@@ -325,11 +339,6 @@ func draw(screen *ebiten.Image) {
 		screen,
 		fmt.Sprintf("[t]: cycle theme (current: %s)", palettes[selectedPalette].name),
 		1, 48,
-	)
-	ebitenutil.DebugPrintAt(
-		screen,
-		"[esc]: quit",
-		1, 64,
 	)
 }
 
