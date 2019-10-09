@@ -12,11 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin,ios,!arm
-// +build darwin,ios,!arm64
+// +build darwin,ios
+// +build !arm
+// +build !arm64
 
 package ebitenmobileview
 
-func setUIView(uiview uintptr) {
-	panic("ebitenmobileview: setUIView is not available on this platform")
+import (
+	"runtime"
+)
+
+func SetUIView(uiview int64) {
+	panic("ebitenmobileview: SetUIView is not available on GOARCH=" + runtime.GOARCH)
 }

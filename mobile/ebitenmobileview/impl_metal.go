@@ -20,6 +20,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
 )
 
-func setUIView(uiview uintptr) {
-	metal.Get().SetUIView(uiview)
+func SetUIView(uiview int64) {
+	metal.Get().SetUIView(uintptr(uiview))
 }
