@@ -274,7 +274,7 @@ var (
 			Members: membersTouch,
 		},
 		{
-			Comment: "TouchCancel occurs when a touch is canceled. This can happen in various situations, depending on the underlying platform, for example when the aplication loses focus.",
+			Comment: "TouchCancel occurs when a touch is canceled. This can happen in various situations, depending on the underlying platform, for example when the application loses focus.",
 			Members: []Member{
 				{
 					Comment: "ID identifies the touch that caused the touch event.",

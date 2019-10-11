@@ -24,8 +24,8 @@ import (
 type rectToPixels struct {
 	m map[image.Rectangle][]byte
 
-	lastr   image.Rectangle
-	lastpix []byte
+	lastR   image.Rectangle
+	lastPix []byte
 }
 
 func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
@@ -45,8 +45,8 @@ func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 		if r == newr {
 			// Replace the region.
 			rtp.m[r] = copied
-			if r == rtp.lastr {
-				rtp.lastpix = copied
+			if r == rtp.lastR {
+				rtp.lastPix = copied
 			}
 			return
 		}
@@ -57,8 +57,8 @@ func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 
 	// Add the region.
 	rtp.m[newr] = copied
-	if newr == rtp.lastr {
-		rtp.lastpix = copied
+	if newr == rtp.lastR {
+		rtp.lastPix = copied
 	}
 }
 
@@ -84,16 +84,16 @@ func (rtp *rectToPixels) at(i, j int) (byte, byte, byte, byte, bool) {
 	var pix []byte
 
 	var r *image.Rectangle
-	if pt := image.Pt(i, j); pt.In(rtp.lastr) {
-		r = &rtp.lastr
-		pix = rtp.lastpix
+	if pt := image.Pt(i, j); pt.In(rtp.lastR) {
+		r = &rtp.lastR
+		pix = rtp.lastPix
 	} else {
 		for rr := range rtp.m {
 			if pt.In(rr) {
 				r = &rr
-				rtp.lastr = rr
+				rtp.lastR = rr
 				pix = rtp.m[rr]
-				rtp.lastpix = pix
+				rtp.lastPix = pix
 				break
 			}
 		}
