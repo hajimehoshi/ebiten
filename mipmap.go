@@ -77,6 +77,10 @@ func (m *mipmap) at(x, y int) (r, g, b, a byte) {
 	return m.orig.At(x, y)
 }
 
+func (m *mipmap) set(x, y int, r, g, b, a byte) {
+	m.orig.Set(x, y, r, g, b, a)
+}
+
 func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
 	if det := geom.det(); det == 0 {
 		return

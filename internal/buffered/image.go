@@ -23,7 +23,11 @@ import (
 )
 
 type Image struct {
-	img *shareable.Image
+	img    *shareable.Image
+	width  int
+	height int
+
+	pendingPixels []byte
 }
 
 func BeginFrame() error {
@@ -44,6 +48,8 @@ func NewImage(width, height int, volatile bool) *Image {
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
 			i.img = shareable.NewImage(width, height, volatile)
+			i.width = width
+			i.height = height
 		})
 		delayedCommandsM.Unlock()
 		return i
@@ -51,6 +57,8 @@ func NewImage(width, height int, volatile bool) *Image {
 	delayedCommandsM.Unlock()
 
 	i.img = shareable.NewImage(width, height, volatile)
+	i.width = width
+	i.height = height
 	return i
 }
 
@@ -60,6 +68,8 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
 			i.img = shareable.NewScreenFramebufferImage(width, height)
+			i.width = width
+			i.height = height
 		})
 		delayedCommandsM.Unlock()
 		return i
@@ -67,7 +77,24 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	delayedCommandsM.Unlock()
 
 	i.img = shareable.NewScreenFramebufferImage(width, height)
+	i.width = width
+	i.height = height
 	return i
+}
+
+func (i *Image) invalidatePendingPixels() {
+	i.pendingPixels = nil
+}
+
+func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
+	if i.pendingPixels == nil {
+		return
+	}
+
+	i.img.ReplacePixels(i.pendingPixels)
+	if !keepPendingPixels {
+		i.pendingPixels = nil
+	}
 }
 
 func (i *Image) MarkDisposed() {
@@ -76,8 +103,12 @@ func (i *Image) MarkDisposed() {
 		delayedCommands = append(delayedCommands, func() {
 			i.img.MarkDisposed()
 		})
+		delayedCommandsM.Unlock()
+		return
 	}
 	delayedCommandsM.Unlock()
+
+	i.invalidatePendingPixels()
 }
 
 func (i *Image) At(x, y int) (r, g, b, a byte) {
@@ -86,7 +117,46 @@ func (i *Image) At(x, y int) (r, g, b, a byte) {
 	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at At")
 	}
+	// TODO: Use pending pixels
+	i.resolvePendingPixels(true)
 	return i.img.At(x, y)
+}
+
+func (i *Image) Set(x, y int, r, g, b, a byte) {
+	delayedCommandsM.Lock()
+	if needsToDelayCommands {
+		delayedCommands = append(delayedCommands, func() {
+			i.set(x, y, r, g, b, a)
+		})
+		delayedCommandsM.Unlock()
+		return
+	}
+	delayedCommandsM.Unlock()
+
+	i.set(x, y, r, g, b, a)
+}
+
+func (img *Image) set(x, y int, r, g, b, a byte) {
+	w, h := img.width, img.height
+	if img.pendingPixels == nil {
+		pix := make([]byte, 4*w*h)
+		idx := 0
+		for j := 0; j < h; j++ {
+			for i := 0; i < w; i++ {
+				r, g, b, a := img.img.At(i, j)
+				pix[4*idx] = r
+				pix[4*idx+1] = g
+				pix[4*idx+2] = b
+				pix[4*idx+3] = a
+				idx++
+			}
+		}
+		img.pendingPixels = pix
+	}
+	img.pendingPixels[4*(x+y*w)] = r
+	img.pendingPixels[4*(x+y*w)+1] = g
+	img.pendingPixels[4*(x+y*w)+2] = b
+	img.pendingPixels[4*(x+y*w)+3] = a
 }
 
 func (i *Image) Dump(name string) error {
@@ -109,6 +179,7 @@ func (i *Image) Fill(clr color.RGBA) {
 	}
 	delayedCommandsM.Unlock()
 
+	i.invalidatePendingPixels()
 	i.img.Fill(clr)
 }
 
@@ -137,6 +208,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 	}
 	delayedCommandsM.Unlock()
 
+	i.invalidatePendingPixels()
 	i.img.ReplacePixels(pix)
 }
 
@@ -155,5 +227,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	}
 	delayedCommandsM.Unlock()
 
+	src.resolvePendingPixels(true)
+	i.resolvePendingPixels(false)
 	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
 }
