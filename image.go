@@ -408,7 +408,7 @@ func (img *Image) Set(x, y int, clr color.Color) {
 	if img.isDisposed() {
 		return
 	}
-	if img.isSubImage() && !image.Pt(x, y).In(img.bounds) {
+	if !image.Pt(x, y).In(img.Bounds()) {
 		return
 	}
 	if img.isSubImage() {
