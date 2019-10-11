@@ -95,13 +95,13 @@ var (
 	//  2. try to go straight (index+0)
 	//  3. try to turn right (index+1)
 	dirCycles = [2][3]int{
-		[3]int{1, 0, 3}, // cw
-		[3]int{3, 0, 1}, // ccw
+		{1, 0, 3}, // cw
+		{3, 0, 1}, // ccw
 	}
 
 	// dirs contains vectors for the directions: east, south, west, north
 	// in the specified order.
-	dirs = [4]vec2{vec2{1, 0}, vec2{0, 1}, vec2{-1, 0}, vec2{0, -1}}
+	dirs = [4]vec2{{1, 0}, {0, 1}, {-1, 0}, {0, -1}}
 
 	// neighbors defines neighboring cells depending on the moving
 	// direction of the squiral:
@@ -109,8 +109,8 @@ var (
 	// index of 1 -> squiral moves horizontally.
 	// These neighbors are tested for "collisions" during simulation.
 	neighbors = [2][2]vec2{
-		[2]vec2{vec2{0, 1}, vec2{0, -1}}, // east, west
-		[2]vec2{vec2{1, 0}, vec2{-1, 0}}, // south, north
+		{{0, 1}, {0, -1}}, // east, west
+		{{1, 0}, {-1, 0}}, // south, north
 	}
 )
 
