@@ -22,23 +22,19 @@ package ebitenmobileview
 import "C"
 
 import (
-	"errors"
-
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
 var (
 	chError <-chan error
-	running bool
 )
 
 func update() error {
 	if chError == nil {
-		return errors.New("ebitenmobileview: chError must not be nil: Start is not called yet?")
-	}
-	if !running {
-		return errors.New("ebitenmobileview: start must be called ahead of update")
+		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
+		// this.
+		return nil
 	}
 
 	select {
@@ -52,7 +48,6 @@ func update() error {
 }
 
 func start(f func(*ebiten.Image) error, width, height int, scale float64) {
-	running = true
 	// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
 	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, "")
 }
