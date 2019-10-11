@@ -21,6 +21,8 @@ package ebitenmobileview
 import (
 	"math"
 	"runtime"
+
+	"github.com/hajimehoshi/ebiten"
 )
 
 type ViewRectSetter interface {
@@ -52,11 +54,12 @@ func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	x := (viewWidth - width) / 2
 	y := (viewHeight - height) / 2
 
-	if !theState.running {
-		start(theState.game.Update, w, h, scale)
-		theState.running = true
+	if theState.isRunning() {
+		ebiten.SetScreenSize(w, h)
+		ebiten.SetScreenScale(scale)
 	} else {
-		setScreenSize(w, h, scale)
+		// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
+		theState.errorCh = ebiten.RunWithoutMainLoop(theState.game.Update, w, h, scale, "")
 	}
 
 	if viewRectSetter != nil {

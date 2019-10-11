@@ -22,37 +22,22 @@ package ebitenmobileview
 import "C"
 
 import (
-	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-var (
-	chError <-chan error
-)
-
 func update() error {
-	if chError == nil {
+	if !theState.isRunning() {
 		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
 		// this.
 		return nil
 	}
 
 	select {
-	case err := <-chError:
+	case err := <-theState.errorCh:
 		return err
 	default:
 	}
 
 	mobile.Get().Render()
 	return nil
-}
-
-func start(f func(*ebiten.Image) error, width, height int, scale float64) {
-	// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
-	chError = ebiten.RunWithoutMainLoop(f, width, height, scale, "")
-}
-
-func setScreenSize(width, height int, scale float64) {
-	ebiten.SetScreenSize(width, height)
-	ebiten.SetScreenScale(scale)
 }
