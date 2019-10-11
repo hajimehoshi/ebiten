@@ -21,11 +21,8 @@ func update() error {
 	return nil
 }
 
-func updateTouchesOnAndroid(action int, id int, x, y int) {
+func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 }
 
-func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
-}
-
-func setUIView(uiview uintptr) {
+func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 }

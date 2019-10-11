@@ -43,11 +43,11 @@ func getIDFromPtr(ptr int64) int {
 	return id
 }
 
-func updateTouchesOnAndroid(action int, id int, x, y int) {
+func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	panic("ebitenmobileview: updateTouchesOnAndroid must not be called on iOS")
 }
 
-func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
+func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)

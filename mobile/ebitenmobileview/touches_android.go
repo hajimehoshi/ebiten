@@ -14,7 +14,7 @@
 
 package ebitenmobileview
 
-func updateTouchesOnAndroid(action int, id int, x, y int) {
+func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
 		touches[id] = position{x, y}
@@ -25,6 +25,6 @@ func updateTouchesOnAndroid(action int, id int, x, y int) {
 	}
 }
 
-func updateTouchesOnIOSImpl(phase int, ptr int64, x, y int) {
+func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	panic("ebitenmobileview: updateTouchesOnIOSImpl must not be called on Android")
 }
