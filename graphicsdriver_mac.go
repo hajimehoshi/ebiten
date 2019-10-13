@@ -14,6 +14,7 @@
 
 // +build darwin,!ios
 // +build !js
+// +build !ebitengl
 
 package ebiten
 

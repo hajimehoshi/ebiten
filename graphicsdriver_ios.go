@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // +build darwin,ios,arm darwin,ios,arm64
+// +build !ebitengl
 
 package ebiten
 
