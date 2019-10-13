@@ -222,7 +222,7 @@ func (u *UserInterface) update() error {
 }
 
 func (u *UserInterface) loop(context driver.UIContext) <-chan error {
-	u.context = context
+	u.init(context)
 
 	ch := make(chan error)
 	var cf js.Func
@@ -253,6 +253,37 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	return ch
 }
 
+func (u *UserInterface) init(context driver.UIContext) {
+	u.context = context
+	window.Call("addEventListener", "focus", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		u.windowFocus = true
+		if u.suspended() {
+			u.context.SuspendAudio()
+		} else {
+			u.context.ResumeAudio()
+		}
+		return nil
+	}))
+	window.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		u.windowFocus = false
+		if u.suspended() {
+			u.context.SuspendAudio()
+		} else {
+			u.context.ResumeAudio()
+		}
+		return nil
+	}))
+	document.Call("addEventListener", "visibilitychange", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		u.pageVisible = !document.Get("hidden").Bool()
+		if u.suspended() {
+			u.context.SuspendAudio()
+		} else {
+			u.context.ResumeAudio()
+		}
+		return nil
+	}))
+}
+
 func init() {
 	if document.Get("body") == js.Null() {
 		ch := make(chan struct{})
@@ -263,33 +294,6 @@ func init() {
 		<-ch
 	}
 
-	window.Call("addEventListener", "focus", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		theUI.windowFocus = true
-		if theUI.suspended() {
-			theUI.context.SuspendAudio()
-		} else {
-			theUI.context.ResumeAudio()
-		}
-		return nil
-	}))
-	window.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		theUI.windowFocus = false
-		if theUI.suspended() {
-			theUI.context.SuspendAudio()
-		} else {
-			theUI.context.ResumeAudio()
-		}
-		return nil
-	}))
-	document.Call("addEventListener", "visibilitychange", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		theUI.pageVisible = !document.Get("hidden").Bool()
-		if theUI.suspended() {
-			theUI.context.SuspendAudio()
-		} else {
-			theUI.context.ResumeAudio()
-		}
-		return nil
-	}))
 	window.Call("addEventListener", "resize", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		theUI.updateScreenSize()
 		return nil
