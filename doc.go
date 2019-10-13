@@ -39,23 +39,25 @@
 //         }
 //     }
 //
-// The EBITEN_SCREENSHOT_KEY environment variable specifies the key
-// to take a screenshot. For example, if you run your game with
-// `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
-// by pressing Q key. This works only on desktops.
-//
-// The EBITEN_INTERNAL_IMAGES_KEY environment variable specifies the key
-// to dump all the internal images. This is valid only when the build tag
-// 'ebitendebug' is specified. This works only on desktops.
-//
 // In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
 // statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions that
 // must be called on the main thread under some conditions (typically, before ebiten.Run is called).
 //
+// Environment variables
+//
+// `EBITEN_SCREENSHOT_KEY` environment variable specifies the key
+// to take a screenshot. For example, if you run your game with
+// `EBITEN_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
+// by pressing Q key. This works only on desktops.
+//
+// `EBITEN_INTERNAL_IMAGES_KEY` environment variable specifies the key
+// to dump all the internal images. This is valid only when the build tag
+// 'ebitendebug' is specified. This works only on desktops.
+//
 // Build tags
 //
-// 'ebitendebug' outputs a log of graphics commands. This is useful to know what happens in Ebiten. In general, the
+// `ebitendebug` outputs a log of graphics commands. This is useful to know what happens in Ebiten. In general, the
 // number of graphics commands affects the performance of your game.
 //
-// 'ebitengl' forces to use OpenGL in any environments.
+// `ebitengl` forces to use OpenGL in any environments.
 package ebiten
