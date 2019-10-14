@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -73,13 +72,7 @@ func createRandomIconImage() image.Image {
 	return img
 }
 
-var terminated = errors.New("terminated")
-
 func update(screen *ebiten.Image) error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
-		return terminated
-	}
-
 	screenScale := ebiten.ScreenScale()
 	const d = 16
 	screenWidth, screenHeight := screen.Size()
@@ -187,7 +180,6 @@ Press C key to switch the cursor visibility
 Press I key to change the window icon
 Press V key to switch vsync
 Press T key to switch TPS (ticks per second)
-Press Q key to quit
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
@@ -222,7 +214,7 @@ func main() {
 
 	ebiten.SetWindowDecorated(*windowDecorated)
 
-	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil && err != terminated {
+	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
 	}
 }
