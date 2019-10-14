@@ -33,7 +33,6 @@ type UserInterface struct {
 	width                int
 	height               int
 	scale                float64
-	fullscreen           bool
 	runnableInBackground bool
 	vsync                bool
 
@@ -75,11 +74,11 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 }
 
 func (u *UserInterface) SetScreenSize(width, height int) {
-	u.setScreenSize(width, height, u.scale, u.fullscreen)
+	u.setScreenSize(width, height)
 }
 
 func (u *UserInterface) SetScreenScale(scale float64) {
-	u.setScreenSize(u.width, u.height, scale, u.fullscreen)
+	u.scale = scale
 }
 
 func (u *UserInterface) ScreenScale() float64 {
@@ -87,11 +86,11 @@ func (u *UserInterface) ScreenScale() float64 {
 }
 
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
-	u.setScreenSize(u.width, u.height, u.scale, fullscreen)
+	// Do nothing
 }
 
 func (u *UserInterface) IsFullscreen() bool {
-	return u.fullscreen
+	return false
 }
 
 func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
@@ -164,9 +163,6 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 }
 
 func (u *UserInterface) getScale() float64 {
-	if !u.fullscreen {
-		return u.scale
-	}
 	body := document.Get("body")
 	bw := body.Get("clientWidth").Float()
 	bh := body.Get("clientHeight").Float()
@@ -432,8 +428,10 @@ func init() {
 }
 
 func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+	// scale is ignored.
+
 	document.Set("title", title)
-	u.setScreenSize(width, height, scale, u.fullscreen)
+	u.setScreenSize(width, height)
 	canvas.Call("focus")
 	ch := u.loop(context)
 	if runtime.GOARCH == "wasm" {
@@ -454,15 +452,12 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 	panic("js: RunWithoutMainLoop is not implemented")
 }
 
-func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscreen bool) bool {
-	if u.width == width && u.height == height &&
-		u.scale == scale && fullscreen == u.fullscreen {
+func (u *UserInterface) setScreenSize(width, height int) bool {
+	if u.width == width && u.height == height {
 		return false
 	}
 	u.width = width
 	u.height = height
-	u.scale = scale
-	u.fullscreen = fullscreen
 	u.updateScreenSize()
 	return true
 }

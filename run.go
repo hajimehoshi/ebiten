@@ -94,12 +94,19 @@ var theUIContext atomic.Value
 // The screen size is based on the given values (width and height).
 //
 // A window size is based on the given values (width, height and scale).
-// scale is used to enlarge the screen.
+//
+// scale is used to enlarge the screen on desktops.
+// scale is ignored on browsers or mobiles.
 // Note that the actual screen is multiplied not only by the given scale but also
 // by the device scale on high-DPI display.
 // If you pass inverse of the device scale,
 // you can disable this automatical device scaling as a result.
 // You can get the device scale by DeviceScaleFactor function.
+//
+// On browsers, the scale is automatically adjusted.
+// It is strongly recommended to use iframe if you embed an Ebiten application in your website.
+//
+// On mobiles, if you use ebitenmobile command, the scale is automatically adjusted.
 //
 // Run must be called on the main thread.
 // Note that Ebiten bounds the main goroutine to the main OS thread by runtime.LockOSThread.
@@ -203,13 +210,21 @@ func SetScreenSize(width, height int) {
 	uiDriver().SetScreenSize(width, height)
 }
 
-// SetScreenScale changes the scale of the screen.
+// SetScreenScale changes the scale of the screen on desktops.
 //
 // Note that the actual screen is multiplied not only by the given scale but also
 // by the device scale on high-DPI display.
 // If you pass inverse of the device scale,
 // you can disable this automatical device scaling as a result.
 // You can get the device scale by DeviceScaleFactor function.
+//
+// On browsers, SetScreenScale saves the given value and affects the returned value of ScreenScale,
+// but does not affect actual rendering.
+//
+// On mobiles, SetScreenScale works, but usually the user doesn't have to call this.
+// Instead, ebitenmobile calls this automatically.
+//
+// SetScreenScale panics if scale is not a positive number.
 //
 // SetScreenScale is concurrent-safe.
 func SetScreenScale(scale float64) {
@@ -220,6 +235,8 @@ func SetScreenScale(scale float64) {
 }
 
 // ScreenScale returns the current screen scale.
+//
+// ScreenScale returns a value set by SetScreenScale or Run on browsers.
 //
 // If Run is not called, this returns 0.
 //
@@ -255,14 +272,14 @@ func SetCursorVisibility(visible bool) {
 // IsFullscreen returns a boolean value indicating whether
 // the current mode is fullscreen or not.
 //
-// IsFullscreen always returns false on mobiles.
+// IsFullscreen always returns false on browsers and mobiles.
 //
 // IsFullscreen is concurrent-safe.
 func IsFullscreen() bool {
 	return uiDriver().IsFullscreen()
 }
 
-// SetFullscreen changes the current mode to fullscreen or not.
+// SetFullscreen changes the current mode to fullscreen or not on desktops.
 //
 // On fullscreen mode, the game screen is automatically enlarged
 // to fit with the monitor. The current scale value is ignored.
@@ -270,13 +287,7 @@ func IsFullscreen() bool {
 // On desktops, Ebiten uses 'windowed' fullscreen mode, which doesn't change
 // your monitor's resolution.
 //
-// On browsers, the game screen is resized to fit with the body element (client) size.
-// Additionally, the game screen is automatically resized when the body element is resized.
-// Note that this has nothing to do with 'screen' which is outside of 'window'.
-// It is recommended to put Ebiten game in an iframe, and if you want to make the game 'fullscreen'
-// on browsers with Fullscreen API, you can do this by applying the API to the iframe.
-//
-// SetFullscreen does nothing on mobiles.
+// SetFullscreen does nothing on browsers or mobiles.
 //
 // SetFullscreen is concurrent-safe.
 func SetFullscreen(fullscreen bool) {
