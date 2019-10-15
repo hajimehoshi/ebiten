@@ -45,6 +45,10 @@ type UserInterface struct {
 
 	context driver.UIContext
 	input   Input
+
+	// pseudoScale is a value to store 'scale'. This doesn't affect actual rendering.
+	// This is for backward compatibility.
+	pseudoScale float64
 }
 
 var theUI = &UserInterface{
@@ -78,11 +82,11 @@ func (u *UserInterface) SetScreenSize(width, height int) {
 }
 
 func (u *UserInterface) SetScreenScale(scale float64) {
-	u.scale = scale
+	u.pseudoScale = scale
 }
 
 func (u *UserInterface) ScreenScale() float64 {
-	return u.scale
+	return u.pseudoScale
 }
 
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
@@ -117,8 +121,8 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	rect := canvas.Call("getBoundingClientRect")
 	x -= rect.Get("left").Int()
 	y -= rect.Get("top").Int()
-	scale := u.getScale()
-	return int(float64(x) / scale), int(float64(y) / scale)
+	s := u.scale
+	return int(float64(x) / s), int(float64(y) / s)
 }
 
 func (u *UserInterface) IsCursorVisible() bool {
@@ -162,25 +166,13 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) getScale() float64 {
-	body := document.Get("body")
-	bw := body.Get("clientWidth").Float()
-	bh := body.Get("clientHeight").Float()
-	sw := bw / float64(u.width)
-	sh := bh / float64(u.height)
-	if sw > sh {
-		return sh
-	}
-	return sw
-}
-
 func (u *UserInterface) actualScreenScale() float64 {
 	// CSS imageRendering property seems useful to enlarge the screen,
 	// but doesn't work in some cases (#306):
 	// * Chrome just after restoring the lost context
 	// * Safari
 	// Let's use the devicePixelRatio as it is here.
-	return u.getScale() * devicescale.GetAt(0, 0)
+	return u.scale * devicescale.GetAt(0, 0)
 }
 
 func (u *UserInterface) updateSize() {
@@ -472,13 +464,23 @@ func (u *UserInterface) setScreenSize(width, height int) bool {
 }
 
 func (u *UserInterface) updateScreenSize() {
+	body := document.Get("body")
+	bw := body.Get("clientWidth").Float()
+	bh := body.Get("clientHeight").Float()
+	sw := bw / float64(u.width)
+	sh := bh / float64(u.height)
+	if sw > sh {
+		u.scale = sh
+	} else {
+		u.scale = sw
+	}
+
 	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
 	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))
 	canvasStyle := canvas.Get("style")
 
-	s := u.getScale()
-	cssWidth := int(float64(u.width) * s)
-	cssHeight := int(float64(u.height) * s)
+	cssWidth := int(float64(u.width) * u.scale)
+	cssHeight := int(float64(u.height) * u.scale)
 	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
 	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
 
