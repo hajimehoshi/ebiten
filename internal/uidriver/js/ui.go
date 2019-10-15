@@ -338,6 +338,9 @@ func init() {
 
 	// Keyboard
 	canvas.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Focus the canvas explicitly to activate tha game (#961).
+		canvas.Call("focus")
+
 		e := args[0]
 		// Don't 'preventDefault' on keydown events or keypress events wouldn't work (#715).
 		theUI.input.Update(e)
@@ -358,6 +361,9 @@ func init() {
 
 	// Mouse
 	canvas.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Focus the canvas explicitly to activate tha game (#961).
+		canvas.Call("focus")
+
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
@@ -384,6 +390,9 @@ func init() {
 
 	// Touch
 	canvas.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Focus the canvas explicitly to activate tha game (#961).
+		canvas.Call("focus")
+
 		e := args[0]
 		e.Call("preventDefault")
 		theUI.input.Update(e)
