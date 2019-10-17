@@ -134,9 +134,29 @@ func init() {
 	}
 }
 
+func leftTouched() bool {
+	for _, id := range ebiten.TouchIDs() {
+		x, _ := ebiten.TouchPosition(id)
+		if x < screenWidth/2 {
+			return true
+		}
+	}
+	return false
+}
+
+func rightTouched() bool {
+	for _, id := range ebiten.TouchIDs() {
+		x, _ := ebiten.TouchPosition(id)
+		if x >= screenWidth/2 {
+			return true
+		}
+	}
+	return false
+}
+
 func update(screen *ebiten.Image) error {
 	// Decrease the nubmer of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+	if ebiten.IsKeyPressed(ebiten.KeyLeft) || leftTouched() {
 		sprites.num -= 20
 		if sprites.num < MinSprites {
 			sprites.num = MinSprites
@@ -144,7 +164,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	// Increase the nubmer of the sprites.
-	if ebiten.IsKeyPressed(ebiten.KeyRight) {
+	if ebiten.IsKeyPressed(ebiten.KeyRight) || rightTouched() {
 		sprites.num += 20
 		if MaxSprites < sprites.num {
 			sprites.num = MaxSprites
