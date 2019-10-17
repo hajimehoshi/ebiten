@@ -49,8 +49,10 @@ func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	scaleY := float64(viewHeight) / float64(h)
 	scale := math.Min(scaleX, scaleY)
 
-	width := int(math.Ceil(float64(w) * scale))
-	height := int(math.Ceil(float64(h) * scale))
+	// To convert a logical offscreen size to the actual screen size, use Math.floor to use smaller and safer
+	// values, or glitches can appear (#956).
+	width := int(math.Floor(float64(w) * scale))
+	height := int(math.Floor(float64(h) * scale))
 	x := (viewWidth - width) / 2
 	y := (viewHeight - height) / 2
 

@@ -377,20 +377,16 @@ public class EbitenView extends ViewGroup {
             initialized_ = true;
         }
 
-        int widthInDp = (int)Math.floor(pxToDp(right - left));
-        int heightInDp = (int)Math.floor(pxToDp(bottom - top));
+        int widthInDp = (int)Math.ceil(pxToDp(right - left));
+        int heightInDp = (int)Math.ceil(pxToDp(bottom - top));
         Ebitenmobileview.layout(widthInDp, heightInDp, new ViewRectSetter() {
             @Override
             public void setViewRect(long xInDp, long yInDp, long widthInDp, long heightInDp) {
-                int width = (int)Math.ceil(dpToPx(widthInDp));
-                int height = (int)Math.ceil(dpToPx(heightInDp));
-                int x = (int)Math.ceil(dpToPx(xInDp));
-                int y = (int)Math.ceil(dpToPx(yInDp));
-                // Use even numbers to avoid glitches (#956).
-                final int xInPx = x / 2 * 2;
-                final int yInPx = y / 2 * 2;
-                final int widthInPx = width / 2 * 2;
-                final int heightInPx = height / 2 * 2;
+                // Use Math.floor to use smaller and safer values, or glitches can appear (#956).
+                final int widthInPx = (int)Math.floor(dpToPx(widthInDp));
+                final int heightInPx = (int)Math.floor(dpToPx(heightInDp));
+                final int xInPx = (int)Math.floor(dpToPx(xInDp));
+                final int yInPx = (int)Math.floor(dpToPx(yInDp));
                 new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
