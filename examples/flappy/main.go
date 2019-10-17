@@ -245,7 +245,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	case ModeTitle:
 		texts = []string{"FLAPPY GOPHER", "", "", "", "", "PRESS SPACE KEY", "", "OR TOUCH SCREEN"}
 	case ModeGameOver:
-		texts = []string{"", "GAMEOVER!"}
+		texts = []string{"", "GAME OVER!"}
 	}
 	for i, l := range texts {
 		x := (screenWidth - len(l)*fontSize) / 2
