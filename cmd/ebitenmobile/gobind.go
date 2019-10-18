@@ -362,21 +362,22 @@ public class EbitenView extends ViewGroup {
     public EbitenView(Context context) {
         super(context);
         ebitenSurfaceView_ = new EbitenSurfaceView(context);
+        initialize();
     }
 
     public EbitenView(Context context, AttributeSet attrs) {
         super(context, attrs);
         ebitenSurfaceView_ = new EbitenSurfaceView(context, attrs);
+        initialize();
+    }
+
+    private void initialize() {
+        LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        addView(ebitenSurfaceView_, params);
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        if (!initialized_) {
-            LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-            addView(ebitenSurfaceView_, params);
-            initialized_ = true;
-        }
-
         int widthInDp = (int)Math.ceil(pxToDp(right - left));
         int heightInDp = (int)Math.ceil(pxToDp(bottom - top));
         Ebitenmobileview.layout(widthInDp, heightInDp, new ViewRectSetter() {
@@ -401,18 +402,14 @@ public class EbitenView extends ViewGroup {
     // It is recommended to call this when the application is being suspended e.g.,
     // Activity's onPause is called.
     public void suspendGame() {
-        if (initialized_) {
-            ebitenSurfaceView_.onPause();
-        }
+        ebitenSurfaceView_.onPause();
     }
 
     // resumeGame resumes the game.
     // It is recommended to call this when the application is being resumed e.g.,
     // Activity's onResume is called.
     public void resumeGame() {
-        if (initialized_) {
-            ebitenSurfaceView_.onResume();
-        }
+        ebitenSurfaceView_.onResume();
     }
 
     // onErrorOnGameUpdate is called on the main thread when an error happens when updating a game.
@@ -422,7 +419,6 @@ public class EbitenView extends ViewGroup {
     }
 
     private EbitenSurfaceView ebitenSurfaceView_;
-    private boolean initialized_ = false;
 }
 `
 
