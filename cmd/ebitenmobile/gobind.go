@@ -361,17 +361,16 @@ public class EbitenView extends ViewGroup {
 
     public EbitenView(Context context) {
         super(context);
-        ebitenSurfaceView_ = new EbitenSurfaceView(context);
         initialize();
     }
 
     public EbitenView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        ebitenSurfaceView_ = new EbitenSurfaceView(context, attrs);
         initialize();
     }
 
     private void initialize() {
+        ebitenSurfaceView_ = new EbitenSurfaceView(getContext());
         LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         addView(ebitenSurfaceView_, params);
     }
