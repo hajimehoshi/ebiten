@@ -230,6 +230,19 @@ func (q *commandQueue) Flush() {
 			vs[i*graphics.VertexFloatNum+6] -= 1.0 / s.width * texelAdjustmentFactor
 			vs[i*graphics.VertexFloatNum+7] -= 1.0 / s.height * texelAdjustmentFactor
 		}
+	} else {
+		n := q.nvertices / graphics.VertexFloatNum
+		for i := 0; i < n; i++ {
+			s := q.srcSizes[i]
+
+			// Convert pixels to texels.
+			vs[i*graphics.VertexFloatNum+2] /= s.width
+			vs[i*graphics.VertexFloatNum+3] /= s.height
+			vs[i*graphics.VertexFloatNum+4] /= s.width
+			vs[i*graphics.VertexFloatNum+5] /= s.height
+			vs[i*graphics.VertexFloatNum+6] /= s.width
+			vs[i*graphics.VertexFloatNum+7] /= s.height
+		}
 	}
 
 	theGraphicsDriver.Begin()
