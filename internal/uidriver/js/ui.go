@@ -22,12 +22,11 @@ import (
 	"runtime"
 	"strconv"
 	"syscall/js"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
-
-var canvas js.Value
 
 type UserInterface struct {
 	width                int
@@ -37,8 +36,6 @@ type UserInterface struct {
 	vsync                bool
 
 	sizeChanged bool
-	windowFocus bool
-	pageVisible bool
 	contextLost bool
 
 	lastActualScale float64
@@ -53,8 +50,6 @@ type UserInterface struct {
 
 var theUI = &UserInterface{
 	sizeChanged: true,
-	windowFocus: true,
-	pageVisible: true,
 	vsync:       true,
 }
 
@@ -69,6 +64,7 @@ func Get() *UserInterface {
 var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
+	canvas                js.Value
 	requestAnimationFrame = window.Get("requestAnimationFrame")
 	setTimeout            = window.Get("setTimeout")
 )
@@ -189,7 +185,17 @@ func (u *UserInterface) updateSize() {
 }
 
 func (u *UserInterface) suspended() bool {
-	return !u.runnableInBackground && (!u.windowFocus || !u.pageVisible)
+	if u.runnableInBackground {
+		return false
+	}
+
+	if !document.Call("hasFocus").Bool() {
+		return true
+	}
+	if document.Get("hidden").Bool() {
+		return true
+	}
+	return false
 }
 
 func (u *UserInterface) update() error {
@@ -210,7 +216,7 @@ func (u *UserInterface) update() error {
 }
 
 func (u *UserInterface) loop(context driver.UIContext) <-chan error {
-	u.init(context)
+	u.context = context
 
 	ch := make(chan error)
 	var cf js.Func
@@ -238,38 +244,23 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	go func() {
 		f(js.Value{}, nil)
 	}()
-	return ch
-}
 
-func (u *UserInterface) init(context driver.UIContext) {
-	u.context = context
-	window.Call("addEventListener", "focus", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		u.windowFocus = true
-		if u.suspended() {
-			u.context.SuspendAudio()
-		} else {
-			u.context.ResumeAudio()
+	// Run another loop to watch suspended() as the above update function is never called when the tab is hidden.
+	// To check the document's visiblity, visibilitychange event should usually be used. However, this event is
+	// not reliable and sometimes it is not fired (#961). Then, watch the state regularly instead.
+	go func() {
+		t := time.NewTicker(100 * time.Millisecond)
+		defer t.Stop()
+		for range t.C {
+			if u.suspended() {
+				u.context.SuspendAudio()
+			} else {
+				u.context.ResumeAudio()
+			}
 		}
-		return nil
-	}))
-	window.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		u.windowFocus = false
-		if u.suspended() {
-			u.context.SuspendAudio()
-		} else {
-			u.context.ResumeAudio()
-		}
-		return nil
-	}))
-	document.Call("addEventListener", "visibilitychange", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		u.pageVisible = !document.Get("hidden").Bool()
-		if u.suspended() {
-			u.context.SuspendAudio()
-		} else {
-			u.context.ResumeAudio()
-		}
-		return nil
-	}))
+	}()
+
+	return ch
 }
 
 func init() {
