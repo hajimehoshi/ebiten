@@ -7,8 +7,8 @@ github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGw
 github.com/hajimehoshi/bitmapfont v1.2.0/go.mod h1:h9QrPk6Ktb2neObTlAbma6Ini1xgMjbJ3w7ysmD7IOU=
 github.com/hajimehoshi/go-mp3 v0.2.1/go.mod h1:Rr+2P46iH6PwTPVgSsEwBkon0CK5DxCAeX/Rp65DCTE=
 github.com/hajimehoshi/oto v0.3.4/go.mod h1:PgjqsBJff0efqL2nlMJidJgVJywLn6M4y8PI4TfeWfA=
-github.com/hajimehoshi/oto v0.5.1-0.20191019203439-04a72248e2c5 h1:Ww0x7U0EN86t49jtVnAz+ZWUvGsRvf848YBm7oD4g30=
-github.com/hajimehoshi/oto v0.5.1-0.20191019203439-04a72248e2c5/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
+github.com/hajimehoshi/oto v0.5.1-0.20191020075729-f3f4fd0fe645 h1:DsaE/JmFb9f1bEepa8CLGIDNJiMDBaL2zTiTHsXQZ90=
+github.com/hajimehoshi/oto v0.5.1-0.20191020075729-f3f4fd0fe645/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
 github.com/jakecoffman/cp v0.1.0 h1:sgSYEGUgfwiT447fRjloa2c5b6UyYP+7muR3gQK+Ep0=
 github.com/jakecoffman/cp v0.1.0/go.mod h1:a3xPx9N8RyFAACD644t2dj/nK4SuLg1v+jL61m2yVo4=
 github.com/jfreymuth/oggvorbis v1.0.0/go.mod h1:abe6F9QRjuU9l+2jek3gj46lu40N4qlYxh2grqkLEDM=
