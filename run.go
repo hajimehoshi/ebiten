@@ -105,7 +105,7 @@ var theUIContext atomic.Value
 //
 // On browsers, the scale is automatically adjusted.
 // It is strongly recommended to use iframe if you embed an Ebiten application in your website.
-// scale works as above as of 1.10.0-alpha.
+// scale works as this as of 1.10.0-alpha.
 // Before that, scale affected the rendering scale.
 //
 // On mobiles, if you use ebitenmobile command, the scale is automatically adjusted.
@@ -222,7 +222,7 @@ func SetScreenSize(width, height int) {
 //
 // On browsers, SetScreenScale saves the given value and affects the returned value of ScreenScale,
 // but does not affect actual rendering.
-// SetScreenScale works as above as of 1.10.0-alpha.
+// SetScreenScale works as this as of 1.10.0-alpha.
 // Before that, SetScreenScale affected the rendering scale.
 //
 // On mobiles, SetScreenScale works, but usually the user doesn't have to call this.
@@ -276,7 +276,7 @@ func SetCursorVisibility(visible bool) {
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
 // IsFullscreen always returns false on browsers.
-// IsFullscreen works as above as of 1.10.0-alpha.
+// IsFullscreen works as this as of 1.10.0-alpha.
 // Before that, IsFullscreen reported whether the current mode is fullscreen or not.
 //
 // IsFullscreen always returns false on mobiles.
@@ -295,7 +295,7 @@ func IsFullscreen() bool {
 // your monitor's resolution.
 //
 // SetFullscreen does nothing on browsers.
-// SetFullscreen works as above as of 1.10.0-alpha.
+// SetFullscreen works as this as of 1.10.0-alpha.
 // Before that, SetFullscreen affected the fullscreen mode.
 //
 // SetFullscreen does nothing on mobiles.
