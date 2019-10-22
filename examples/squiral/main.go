@@ -345,7 +345,7 @@ func draw(screen *ebiten.Image) {
 
 func main() {
 	ebiten.SetMaxTPS(250)
-	if err := ebiten.Run(update, width, height, scale, "Squirals"); err != nil {
+	if err := ebiten.Run(update, width, height, scale, "Squirals (Ebiten Demo)"); err != nil {
 		panic(err)
 	}
 }
