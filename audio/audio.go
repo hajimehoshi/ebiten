@@ -185,8 +185,25 @@ func (c *Context) removePlayer(p *playerImpl) {
 // On some browsers, user interaction like click or pressing keys is required to start audio.
 func (c *Context) IsReady() bool {
 	c.m.Lock()
+	defer c.m.Unlock()
+
 	r := c.ready
-	c.m.Unlock()
+	if r {
+		return r
+	}
+	if len(c.players) != 0 {
+		return r
+	}
+
+	// Create another goroutine since (*Player).Play can lock the context's mutex.
+	go func() {
+		// The audio context is never ready unless there is a player. This is
+		// problematic when a user tries to play audio after the context is ready.
+		// Play a dummy player to avoid the blocking (#969).
+		p, _ := NewPlayerFromBytes(c, make([]byte, bytesPerSample))
+		p.Play()
+	}()
+
 	return r
 }
 
