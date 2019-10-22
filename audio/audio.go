@@ -200,7 +200,8 @@ func (c *Context) IsReady() bool {
 		// The audio context is never ready unless there is a player. This is
 		// problematic when a user tries to play audio after the context is ready.
 		// Play a dummy player to avoid the blocking (#969).
-		p, _ := NewPlayerFromBytes(c, make([]byte, bytesPerSample))
+		// Use a long enough buffer so that writing doesn't finish immediately (#970).
+		p, _ := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
 		p.Play()
 	}()
 
