@@ -17,9 +17,9 @@ services:
   - xvfb
 
 install:
-  # Install Go 1.13.1 manualy
+  # Install Go 1.13.3 manualy
   # See https://travis-ci.community/t/goos-js-goarch-wasm-go-run-fails-panic-newosproc-not-implemented/1651
-  - wget -O go.tar.gz https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz
+  - wget -O go.tar.gz https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
   - tar -C ~ -xzf go.tar.gz
   - rm go.tar.gz
   - export GOROOT=~/go
@@ -28,9 +28,9 @@ install:
   - go version
   - go env
 
-  # Install Go 1.12.10
-  - go get golang.org/dl/go1.12.10
-  - go1.12.10 download
+  # Install Go 1.12.12
+  - go get golang.org/dl/go1.12.12
+  - go1.12.12 download
 
   # Make the working directory
   - mkdir /tmp/work
@@ -44,10 +44,10 @@ install:
 
   # GopherJS
   - GO111MODULE=off go get -tags example github.com/hajimehoshi/ebiten/... 
-  - GO111MODULE=off go1.12.10 get github.com/gopherjs/gopherjs
+  - GO111MODULE=off go1.12.12 get github.com/gopherjs/gopherjs
 
   # gjbt
-  - GO111MODULE=off go1.12.10 get myitcv.io/cmd/gjbt
+  - GO111MODULE=off go1.12.12 get myitcv.io/cmd/gjbt
 
   # Chrome
   - mkdir /tmp/google-chrome-bin
@@ -76,8 +76,8 @@ script:
   - GOOS=js GOARCH=wasm go test -v github.com/hajimehoshi/ebiten/...
 
   # GopherJS
-  - GO111MODULE=off go1.12.10 run github.com/gopherjs/gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
-  - GO111MODULE=off go1.12.10 run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
+  - GO111MODULE=off go1.12.12 run github.com/gopherjs/gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
+  - GO111MODULE=off go1.12.12 run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
 
 # - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
 
