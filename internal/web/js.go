@@ -37,9 +37,11 @@ func init() {
 
 	if !strings.Contains(userAgent, "Android") {
 		isAndroidChrome = false
+		return
 	}
 	if !strings.Contains(userAgent, "Chrome") {
 		isAndroidChrome = false
+		return
 	}
 	isAndroidChrome = true
 }
