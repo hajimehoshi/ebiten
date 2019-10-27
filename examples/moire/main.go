@@ -70,6 +70,8 @@ func update(screen *ebiten.Image) error {
 			screenScale = 2
 		case 2:
 			screenScale = 1
+		case 0:
+			// screenScale can be 0 on browsers or mobiles. Ignore this.
 		default:
 			panic("not reached")
 		}
@@ -77,7 +79,9 @@ func update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		fullscreen = !fullscreen
 	}
-	ebiten.SetScreenScale(screenScale)
+	if screenScale > 0 {
+		ebiten.SetScreenScale(screenScale)
+	}
 	ebiten.SetFullscreen(fullscreen)
 
 	if ebiten.IsDrawingSkipped() {
