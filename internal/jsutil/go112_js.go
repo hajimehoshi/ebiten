@@ -35,10 +35,11 @@ func ArrayBufferToSlice(value js.Value) []byte {
 	return Uint8ArrayToSlice(js.Global().Get("Uint8Array").New(value))
 }
 
-func SliceToTypedArray(s interface{}) (js.Value, func()) {
+func CopySliceToJS(dst js.Value, src interface{}) {
 	// Note that TypedArrayOf cannot work correcly on Wasm.
 	// See https://github.com/golang/go/issues/31980
 
-	a := js.TypedArrayOf(s)
-	return a.Value, func() { a.Release() }
+	a := js.TypedArrayOf(src)
+	dst.Call("set", a)
+	a.Release()
 }

@@ -27,7 +27,7 @@ func TestArrayBufferToSlice(t *testing.T) {
 	// TODO
 }
 
-func TestSliceToTypedArray(t *testing.T) {
+func TestCopySliceToJS(t *testing.T) {
 	tests := []struct {
 		in  interface{}
 		out js.Value
@@ -66,12 +66,9 @@ func TestSliceToTypedArray(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got, free := SliceToTypedArray(test.in)
-		defer free()
+		got := test.out.Get("constructor").New(test.out.Get("length"))
+		CopySliceToJS(got, test.in)
 		want := test.out
-		if got.Get("constructor") != want.Get("constructor") {
-			t.Errorf("class: got: %s, want: %s", got.Get("constructor").Get("name"), want.Get("constructor").Get("name"))
-		}
 		if got.Length() != want.Length() {
 			t.Errorf("length: got: %d, want: %d", got.Length(), want.Length())
 		}

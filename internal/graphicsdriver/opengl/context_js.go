@@ -90,11 +90,6 @@ var (
 	unsignedShort       = contextPrototype.Get("UNSIGNED_SHORT")
 )
 
-// temporaryBuffer is a temporary buffer used at gl.readPixels.
-// The read data is converted to Go's byte slice as soon as possible.
-// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
-var temporaryBuffer = js.Global().Get("ArrayBuffer").New(16)
-
 type contextImpl struct {
 	gl            js.Value
 	lastProgramID programID
@@ -196,14 +191,7 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 
 	c.bindFramebuffer(f.native)
 
-	l := 4 * width * height
-	if bufl := temporaryBuffer.Get("byteLength").Int(); bufl < l {
-		for bufl < l {
-			bufl *= 2
-		}
-		temporaryBuffer = js.Global().Get("ArrayBuffer").New(bufl)
-	}
-	p := js.Global().Get("Uint8Array").New(temporaryBuffer, 0, l)
+	p := jsutil.TemporaryUint8Array(4 * width * height)
 	gl.Call("readPixels", 0, 0, width, height, rgba, unsignedByte, p)
 
 	return jsutil.Uint8ArrayToSlice(p), nil
@@ -240,9 +228,9 @@ func (c *context) texSubImage2D(t textureNative, pixels []byte, x, y, width, hei
 	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
 	//                    GLsizei width, GLsizei height,
 	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-	p, free := jsutil.SliceToTypedArray(pixels)
-	gl.Call("texSubImage2D", texture2d, 0, x, y, width, height, rgba, unsignedByte, p)
-	free()
+	arr := jsutil.TemporaryUint8Array(len(pixels))
+	jsutil.CopySliceToJS(arr, pixels)
+	gl.Call("texSubImage2D", texture2d, 0, x, y, width, height, rgba, unsignedByte, arr)
 }
 
 func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
@@ -380,9 +368,10 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 	case 4:
 		gl.Call("uniform4f", js.Value(l), v[0], v[1], v[2], v[3])
 	case 16:
-		arr, free := jsutil.SliceToTypedArray(v)
+		arr8 := jsutil.TemporaryUint8Array(len(v) * 4)
+		arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(v))
+		jsutil.CopySliceToJS(arr, v)
 		gl.Call("uniformMatrix4fv", js.Value(l), false, arr)
-		free()
 	default:
 		panic(fmt.Sprintf("opengl: invalid uniform floats num: %d", len(v)))
 	}
@@ -433,17 +422,19 @@ func (c *context) bindBuffer(bufferType bufferType, b buffer) {
 func (c *context) arrayBufferSubData(data []float32) {
 	c.ensureGL()
 	gl := c.gl
-	arr, free := jsutil.SliceToTypedArray(data)
+	arr8 := jsutil.TemporaryUint8Array(len(data) * 4)
+	arr := js.Global().Get("Float32Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
+	jsutil.CopySliceToJS(arr, data)
 	gl.Call("bufferSubData", int(arrayBuffer), 0, arr)
-	free()
 }
 
 func (c *context) elementArrayBufferSubData(data []uint16) {
 	c.ensureGL()
 	gl := c.gl
-	arr, free := jsutil.SliceToTypedArray(data)
+	arr8 := jsutil.TemporaryUint8Array(len(data) * 2)
+	arr := js.Global().Get("Uint16Array").New(arr8.Get("buffer"), arr8.Get("byteOffset"), len(data))
+	jsutil.CopySliceToJS(arr, data)
 	gl.Call("bufferSubData", int(elementArrayBuffer), 0, arr)
-	free()
 }
 
 func (c *context) deleteBuffer(b buffer) {

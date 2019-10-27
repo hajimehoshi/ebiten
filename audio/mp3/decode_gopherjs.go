@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/audio"
-	"github.com/hajimehoshi/ebiten/internal/jsutil"
 )
 
 // TODO: This just uses decodeAudioData, that can treat audio files other than MP3.
@@ -176,9 +175,9 @@ func init() {
 
 func float32ArrayToSlice(arr js.Value) []float32 {
 	f := make([]float32, arr.Length())
-	a, free := jsutil.SliceToTypedArray(f)
+	a := js.TypedArrayOf(f)
 	a.Call("set", arr)
-	free()
+	a.Release()
 	return f
 }
 
@@ -197,7 +196,8 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	// TODO: 1 is a correct second argument?
 	oc := offlineAudioContextClass.New(2, 1, context.SampleRate())
 
-	u8, free := jsutil.SliceToTypedArray(buf)
+	u8 := js.TypedArrayOf(buf)
+	defer u8.Release()
 	a := u8.Get("buffer").Call("slice", u8.Get("byteOffset"), u8.Get("byteOffset").Int()+u8.Get("byteLength").Int())
 
 	succeeded := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -231,7 +231,6 @@ func decode(context *audio.Context, buf []byte, try int) (*Stream, error) {
 	defer failed.Release()
 
 	oc.Call("decodeAudioData", a, succeeded, failed)
-	free()
 
 	timeout := time.Duration(math.Pow(2, float64(try))) * time.Second
 	t := time.NewTimer(timeout)

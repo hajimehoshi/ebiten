@@ -96,60 +96,14 @@ func sliceToByteSlice(s interface{}) (bs []byte) {
 	return
 }
 
-var temporaryBuffer = js.Global().Get("ArrayBuffer").New(16)
-
-func getTemporaryUint8Array(size int) js.Value {
-	if l := temporaryBuffer.Get("byteLength").Int(); l < size {
-		for l < size {
-			l *= 2
-		}
-		temporaryBuffer = js.Global().Get("ArrayBuffer").New(l)
-	}
-	return js.Global().Get("Uint8Array").New(temporaryBuffer, 0, size)
-}
-
-func SliceToTypedArray(s interface{}) (js.Value, func()) {
-	switch s := s.(type) {
-	case []int8:
-		a := getTemporaryUint8Array(len(s))
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Int8Array").New(buf, a.Get("byteOffset"), a.Get("byteLength")), func() {}
-	case []int16:
-		a := getTemporaryUint8Array(len(s) * 2)
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Int16Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/2), func() {}
-	case []int32:
-		a := getTemporaryUint8Array(len(s) * 4)
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Int32Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/4), func() {}
+func CopySliceToJS(dst js.Value, src interface{}) {
+	switch s := src.(type) {
 	case []uint8:
-		a := getTemporaryUint8Array(len(s))
-		js.CopyBytesToJS(a, s)
-		return a, func() {}
-	case []uint16:
-		a := getTemporaryUint8Array(len(s) * 2)
+		js.CopyBytesToJS(dst, s)
+	case []int8, []int16, []int32, []uint16, []uint32, []float32, []float64:
+		a := js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), dst.Get("byteLength"))
 		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Uint16Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/2), func() {}
-	case []uint32:
-		a := getTemporaryUint8Array(len(s) * 4)
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Uint32Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/4), func() {}
-	case []float32:
-		a := getTemporaryUint8Array(len(s) * 4)
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Float32Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/4), func() {}
-	case []float64:
-		a := getTemporaryUint8Array(len(s) * 8)
-		js.CopyBytesToJS(a, sliceToByteSlice(s))
-		buf := a.Get("buffer")
-		return js.Global().Get("Float64Array").New(buf, a.Get("byteOffset"), a.Get("byteLength").Int()/8), func() {}
 	default:
-		panic(fmt.Sprintf("jsutil: unexpected value at SliceToTypedArray: %T", s))
+		panic(fmt.Sprintf("jsutil: unexpected value at CopySliceToJS: %T", s))
 	}
 }
