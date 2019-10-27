@@ -424,6 +424,7 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, cont
 
 	document.Set("title", title)
 	u.setScreenSize(width, height)
+	u.pseudoScale = scale
 	canvas.Call("focus")
 	ch := u.loop(context)
 	if runtime.GOARCH == "wasm" {

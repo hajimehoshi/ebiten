@@ -108,8 +108,6 @@ func update(screen *ebiten.Image) error {
 			screenScale = 2
 		case 2:
 			screenScale = 0.75
-		case 0:
-			// screenScale can be 0 on browsers or mobiles. Ignore this.
 		default:
 			panic("not reached")
 		}
@@ -142,9 +140,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	ebiten.SetScreenSize(screenWidth, screenHeight)
-	if screenScale > 0 {
-		ebiten.SetScreenScale(screenScale)
-	}
+	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisible(cursorVisible)

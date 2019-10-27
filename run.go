@@ -240,7 +240,7 @@ func SetScreenScale(scale float64) {
 
 // ScreenScale returns the current screen scale.
 //
-// ScreenScale returns a value set by SetScreenScale or Run on browsers.
+// On browsers, this value does not affect actual rendering.
 //
 // If Run is not called, this returns 0.
 //
