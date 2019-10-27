@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build js !wasm
-
 package stb
 
 // stbvorbis.js
@@ -21,4 +19,4 @@ package stb
 // License: Apache License 2.0
 // Commit:  ac1c2ee9d24eb6085eb1e968f55e0fb32cacc03a
 
-//go:generate file2byteslice -package=stb -input=stbvorbis.js -output=stbvorbis.js.go -var=stbvorbis_js -buildtags "js !wasm"
+//go:generate file2byteslice -package=stb -input=stbvorbis.js -output=stbvorbis.js.go -var=stbvorbis_js -buildtags "js,!wasm"
