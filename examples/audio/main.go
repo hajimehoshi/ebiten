@@ -28,6 +28,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/audio"
+	"github.com/hajimehoshi/ebiten/audio/mp3"
 	"github.com/hajimehoshi/ebiten/audio/vorbis"
 	"github.com/hajimehoshi/ebiten/audio/wav"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
@@ -47,6 +48,24 @@ var (
 	playerCurrentColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
 )
 
+type musicType int
+
+const (
+	typeOgg musicType = iota
+	typeMP3
+)
+
+func (t musicType) String() string {
+	switch t {
+	case typeOgg:
+		return "Ogg"
+	case typeMP3:
+		return "MP3"
+	default:
+		panic("not reached")
+	}
+}
+
 // Player represents the current audio state.
 type Player struct {
 	audioContext *audio.Context
@@ -56,6 +75,7 @@ type Player struct {
 	seBytes      []byte
 	seCh         chan []byte
 	volume128    int
+	musicType    musicType
 }
 
 func playerBarRect() (x, y, w, h int) {
@@ -65,11 +85,31 @@ func playerBarRect() (x, y, w, h int) {
 	return
 }
 
-func NewPlayer(audioContext *audio.Context) (*Player, error) {
+func NewPlayer(audioContext *audio.Context, musicType musicType) (*Player, error) {
+	type audioStream interface {
+		audio.ReadSeekCloser
+		Length() int64
+	}
+
 	const bytesPerSample = 4 // TODO: This should be defined in audio package
-	s, err := vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
-	if err != nil {
-		return nil, err
+
+	var s audioStream
+
+	switch musicType {
+	case typeOgg:
+		var err error
+		s, err = vorbis.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Ragtime_ogg))
+		if err != nil {
+			return nil, err
+		}
+	case typeMP3:
+		var err error
+		s, err = mp3.Decode(audioContext, audio.BytesReadSeekCloser(raudio.Classic_mp3))
+		if err != nil {
+			return nil, err
+		}
+	default:
+		panic("not reached")
 	}
 	p, err := audio.NewPlayer(audioContext, s)
 	if err != nil {
@@ -81,6 +121,7 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
 		volume128:    128,
 		seCh:         make(chan []byte),
+		musicType:    musicType,
 	}
 	if player.total == 0 {
 		player.total = 1
@@ -100,6 +141,10 @@ func NewPlayer(audioContext *audio.Context) (*Player, error) {
 		player.seCh <- b
 	}()
 	return player, nil
+}
+
+func (p *Player) Close() error {
+	return p.audioPlayer.Close()
 }
 
 func (p *Player) update() error {
@@ -208,25 +253,65 @@ Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
 Press B to switch the run-in-background state
+Press A to switch Ogg and MP3
 Current Time: %s
-Current Volume: %d/128`, ebiten.CurrentTPS(), currentTimeStr, int(p.audioPlayer.Volume()*128))
+Current Volume: %d/128
+Type: %s`, ebiten.CurrentTPS(), currentTimeStr, int(p.audioPlayer.Volume()*128), musicPlayer.musicType)
 	ebitenutil.DebugPrint(screen, msg)
 }
 
 var (
-	musicPlayer *Player
+	musicPlayer   *Player
+	musicPlayerCh = make(chan *Player)
+	errCh         = make(chan error)
 )
 
 func update(screen *ebiten.Image) error {
-	if err := musicPlayer.update(); err != nil {
+	select {
+	case p := <-musicPlayerCh:
+		musicPlayer = p
+	case err := <-errCh:
 		return err
+	default:
+	}
+
+	if musicPlayer != nil && inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		var t musicType
+		switch musicPlayer.musicType {
+		case typeOgg:
+			t = typeMP3
+		case typeMP3:
+			t = typeOgg
+		default:
+			panic("not reached")
+		}
+
+		musicPlayer.Close()
+		musicPlayer = nil
+
+		go func() {
+			p, err := NewPlayer(audio.CurrentContext(), t)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			musicPlayerCh <- p
+		}()
+	}
+
+	if musicPlayer != nil {
+		if err := musicPlayer.update(); err != nil {
+			return err
+		}
 	}
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
 
-	musicPlayer.draw(screen)
+	if musicPlayer != nil {
+		musicPlayer.draw(screen)
+	}
 	return nil
 }
 
@@ -236,7 +321,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	musicPlayer, err = NewPlayer(audioContext)
+	musicPlayer, err = NewPlayer(audioContext, typeOgg)
 	if err != nil {
 		log.Fatal(err)
 	}
