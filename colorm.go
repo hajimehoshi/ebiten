@@ -35,6 +35,8 @@ const ColorMDim = affine.ColorMDim
 // The initial value is identity.
 type ColorM struct {
 	impl *affine.ColorM
+
+	_ [0]func() // Marks as non-comparable.
 }
 
 // String returns a string representation of ColorM.
