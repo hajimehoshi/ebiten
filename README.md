@@ -13,6 +13,8 @@ Ebiten is an open-source game library, with which you can develop 2D games with 
 
 <p><a href="https://ebiten.org/examples/flappy.html"><img src="https://ebiten.org/images/examples/flappy.png" width="640" height="480" alt="flappy"></a></p>
 
+![Overview](https://ebiten.org/images/overview.png)
+
 ## Platforms
 
 * Windows (No Cgo!)
