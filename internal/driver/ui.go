@@ -17,7 +17,6 @@ package driver
 import (
 	"errors"
 	"image"
-	"time"
 )
 
 type UIContext interface {
