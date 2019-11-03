@@ -4,16 +4,16 @@ Ebiten is an open source project and we would appricate your conributions!
 
 There are some rules for Ebiten contribution.
 
-## Ask us when you are not sure
+## Asking us when you are not sure
 
 You can ask us by [creating a GitHub issue](https://github.com/hajimehoshi/ebiten/issues/new) or at [Gophers Slack](https://invite.slack.golangbridge.org/)'s #ebiten channel.
 
-## Follow the Go convention
+## Following the Go convention
 
 Please follow the Go convension like [Effective Go](https://golang.org/doc/effective_go.html).
 For example, formatting by `go fmt` is required.
 
-## Add copyright comments to each file
+## Adding copyright comments to each file
 
 ```go
 // Copyright [YYYY] The Ebiten Authors
@@ -33,7 +33,7 @@ For example, formatting by `go fmt` is required.
 
 You don't have to update existing files' license comments.
 
-## Add build tags for examples
+## Adding build tags for examples
 
 ```go
 // +build example jsgo
@@ -42,3 +42,7 @@ You don't have to update existing files' license comments.
 `example` is to prevent from installing executions by `go get github.com/hajimehoshi/ebiten/...`.
 
 `jsgo` is to make the examples work on [jsgo.io](https://jsgo.io/).
+
+## Documentation
+
+See the [documents](https://ebiten.org/implementation.html) about internal implementation.
