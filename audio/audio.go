@@ -63,17 +63,19 @@ type Context struct {
 	sampleRate int
 	err        error
 	ready      bool
+	suspended  bool
 
 	players map[*playerImpl]struct{}
 
-	m         sync.Mutex
-	semaphore chan struct{}
+	m sync.Mutex
 }
 
 var (
 	theContext     *Context
 	theContextLock sync.Mutex
 )
+
+var emptyBytes = make([]byte, 256)
 
 // NewContext creates a new audio context with the given sample rate.
 //
@@ -99,16 +101,19 @@ func NewContext(sampleRate int) (*Context, error) {
 		c:          newContext(sampleRate),
 		players:    map[*playerImpl]struct{}{},
 		inited:     make(chan struct{}),
-		semaphore:  make(chan struct{}, 1),
 	}
 	theContext = c
 
 	h := getHook()
 	h.OnSuspendAudio(func() {
-		c.semaphore <- struct{}{}
+		c.m.Lock()
+		c.suspended = true
+		c.m.Unlock()
 	})
 	h.OnResumeAudio(func() {
-		<-c.semaphore
+		c.m.Lock()
+		c.suspended = false
+		c.m.Unlock()
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
@@ -455,10 +460,14 @@ func (p *playerImpl) read() ([]byte, bool) {
 
 	const bufSize = 2048
 
-	p.context.semaphore <- struct{}{}
-	defer func() {
-		<-p.context.semaphore
-	}()
+	// If audio is suspended, fill zero values not to cause delay (#975).
+	// TODO: Oto's players should be able to be suspended and resumed.
+	p.context.m.Lock()
+	s := p.context.suspended
+	p.context.m.Unlock()
+	if s {
+		return emptyBytes, true
+	}
 
 	newBuf := make([]byte, bufSize-len(p.buf))
 	n, err := p.src.Read(newBuf)
