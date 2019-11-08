@@ -85,6 +85,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 
 func (i *Image) invalidatePendingPixels() {
 	i.pixels = nil
+	i.needsToResolvePixels = false
 }
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
