@@ -27,7 +27,8 @@ type Image struct {
 	width  int
 	height int
 
-	pendingPixels []byte
+	pixels               []byte
+	needsToResolvePixels bool
 }
 
 func BeginFrame() error {
@@ -83,18 +84,19 @@ func NewScreenFramebufferImage(width, height int) *Image {
 }
 
 func (i *Image) invalidatePendingPixels() {
-	i.pendingPixels = nil
+	i.pixels = nil
 }
 
 func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
-	if i.pendingPixels == nil {
+	if !i.needsToResolvePixels {
 		return
 	}
 
-	i.img.ReplacePixels(i.pendingPixels)
+	i.img.ReplacePixels(i.pixels)
 	if !keepPendingPixels {
-		i.pendingPixels = nil
+		i.pixels = nil
 	}
+	i.needsToResolvePixels = false
 }
 
 func (i *Image) MarkDisposed() {
@@ -138,7 +140,7 @@ func (i *Image) Set(x, y int, r, g, b, a byte) {
 
 func (img *Image) set(x, y int, r, g, b, a byte) {
 	w, h := img.width, img.height
-	if img.pendingPixels == nil {
+	if img.pixels == nil {
 		pix := make([]byte, 4*w*h)
 		idx := 0
 		for j := 0; j < h; j++ {
@@ -151,12 +153,13 @@ func (img *Image) set(x, y int, r, g, b, a byte) {
 				idx++
 			}
 		}
-		img.pendingPixels = pix
+		img.pixels = pix
 	}
-	img.pendingPixels[4*(x+y*w)] = r
-	img.pendingPixels[4*(x+y*w)+1] = g
-	img.pendingPixels[4*(x+y*w)+2] = b
-	img.pendingPixels[4*(x+y*w)+3] = a
+	img.pixels[4*(x+y*w)] = r
+	img.pixels[4*(x+y*w)+1] = g
+	img.pixels[4*(x+y*w)+2] = b
+	img.pixels[4*(x+y*w)+3] = a
+	img.needsToResolvePixels = true
 }
 
 func (i *Image) Dump(name string) error {
