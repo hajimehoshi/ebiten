@@ -33,17 +33,8 @@ var (
 )
 
 func init() {
-	isIOSSafari = strings.Contains(userAgent, "iPhone")
-
-	if !strings.Contains(userAgent, "Android") {
-		isAndroidChrome = false
-		return
-	}
-	if !strings.Contains(userAgent, "Chrome") {
-		isAndroidChrome = false
-		return
-	}
-	isAndroidChrome = true
+	isIOSSafari = strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iPad")
+	isAndroidChrome = strings.Contains(userAgent, "Android") && strings.Contains(userAgent, "Chrome")
 }
 
 func IsIOSSafari() bool {
