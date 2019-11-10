@@ -822,15 +822,7 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 			return err
 		}
 
-		u.m.RLock()
-		vsync := u.vsync
-		u.m.RUnlock()
-
 		_ = u.t.Call(func() error {
-			if !vsync {
-				u.swapBuffers()
-				return nil
-			}
 			u.swapBuffers()
 			return nil
 		})
