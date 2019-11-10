@@ -586,7 +586,7 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 }
 
 func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext) error {
-	_ = u.t.Call(func() error {
+	if err := u.t.Call(func() error {
 		if u.graphics.IsGL() {
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -682,7 +682,9 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 			u.reqHeight = h
 		})
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 
 	var w uintptr
 	_ = u.t.Call(func() error {
