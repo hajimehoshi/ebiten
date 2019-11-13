@@ -92,7 +92,10 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
-	i.driver.context.flush()
+	if i.driver.drawCalled {
+		i.driver.context.flush()
+	}
+	i.driver.drawCalled = false
 	i.driver.context.texSubImage2D(i.textureNative, p, x, y, width, height)
 }
 

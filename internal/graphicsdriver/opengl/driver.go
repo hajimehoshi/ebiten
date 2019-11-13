@@ -32,6 +32,9 @@ func Get() *Driver {
 type Driver struct {
 	state   openGLState
 	context context
+
+	// drawCalled is true just after Draw is called. This holds true until ReplacePixels is called.
+	drawCalled bool
 }
 
 func (d *Driver) SetThread(thread *thread.Thread) {
@@ -108,6 +111,7 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 }
 
 func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	d.drawCalled = true
 	if err := d.useProgram(mode, colorM, filter, address); err != nil {
 		return err
 	}
