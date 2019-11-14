@@ -823,6 +823,13 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 		})
 	}()
 	for {
+		unfocused := u.window.GetAttrib(glfw.Focused) == glfw.False
+
+		var t1, t2 time.Time
+
+		if unfocused {
+			t1 = time.Now()
+		}
 		if err := u.update(context); err != nil {
 			return err
 		}
@@ -831,6 +838,19 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 			u.swapBuffers()
 			return nil
 		})
+		if unfocused {
+			t2 = time.Now()
+		}
+
+		// When a window is not focused, SwapBuffers might return immediately and CPU might be busy.
+		// Mitigate this by sleeping (#982).
+		if unfocused {
+			d := t2.Sub(t1)
+			const wait = time.Second / 60
+			if d < wait {
+				time.Sleep(wait - d)
+			}
+		}
 	}
 }
 
