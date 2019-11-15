@@ -328,8 +328,15 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
+	// TODO: Avoid copying if possible (#983)
+	var copiedPixels []byte
 	if pixels != nil {
-		i.image.ReplacePixels(pixels, x, y, width, height)
+		copiedPixels = make([]byte, len(pixels))
+		copy(copiedPixels, pixels)
+	}
+
+	if pixels != nil {
+		i.image.ReplacePixels(copiedPixels, x, y, width, height)
 	} else {
 		// TODO: When pixels == nil, we don't have to care the pixel state there. In such cases, the image
 		// accepts only ReplacePixels and not Fill or DrawTriangles.
@@ -339,7 +346,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 
 	if x == 0 && y == 0 && width == w && height == h {
 		if pixels != nil {
-			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
+			i.basePixels.AddOrReplace(copiedPixels, 0, 0, w, h)
 		} else {
 			i.basePixels.Remove(0, 0, w, h)
 		}
@@ -361,7 +368,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if pixels != nil {
-		i.basePixels.AddOrReplace(pixels, x, y, width, height)
+		i.basePixels.AddOrReplace(copiedPixels, x, y, width, height)
 	} else {
 		i.basePixels.Remove(x, y, width, height)
 	}
