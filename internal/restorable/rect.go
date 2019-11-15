@@ -37,16 +37,13 @@ func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 		rtp.m = map[image.Rectangle][]byte{}
 	}
 
-	copied := make([]byte, len(pixels))
-	copy(copied, pixels)
-
 	newr := image.Rect(x, y, x+width, y+height)
 	for r := range rtp.m {
 		if r == newr {
 			// Replace the region.
-			rtp.m[r] = copied
+			rtp.m[r] = pixels
 			if r == rtp.lastR {
-				rtp.lastPix = copied
+				rtp.lastPix = pixels
 			}
 			return
 		}
@@ -56,9 +53,9 @@ func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 	}
 
 	// Add the region.
-	rtp.m[newr] = copied
+	rtp.m[newr] = pixels
 	if newr == rtp.lastR {
-		rtp.lastPix = copied
+		rtp.lastPix = pixels
 	}
 }
 
