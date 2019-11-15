@@ -829,3 +829,70 @@ func TestMutateSlices(t *testing.T) {
 		}
 	}
 }
+
+func TestReplacePixelsAndModify(t *testing.T) {
+	const w, h = 16, 16
+	img := NewImage(w, h, false)
+
+	pix := make([]byte, 4*w*h)
+	for i := 0; i < w*h; i++ {
+		pix[4*i] = byte(i)
+		pix[4*i+1] = byte(i)
+		pix[4*i+2] = byte(i)
+		pix[4*i+3] = byte(i)
+	}
+	img.ReplacePixels(pix, 0, 0, w, h)
+
+	// Modify pix after ReplacePixels
+	for i := 0; i < w*h; i++ {
+		pix[4*i] = 0
+		pix[4*i+1] = 0
+		pix[4*i+2] = 0
+		pix[4*i+3] = 0
+	}
+
+	for i := 0; i < w*h; i++ {
+		want := color.RGBA{byte(i), byte(i), byte(i), byte(i)}
+		r, g, b, a := img.At(i%w, i/w)
+		got := color.RGBA{r, g, b, a}
+		if got != want {
+			t.Errorf("At(%d, %d): got: %v, want: %v", i%w, i/w, got, want)
+		}
+	}
+}
+
+func TestReplacePixelsPartAndModify(t *testing.T) {
+	const w, h = 16, 16
+	const w2, h2 = 8, 8
+	img := NewImage(w, h, false)
+
+	pix := make([]byte, 4*w2*h2)
+	for i := 0; i < w2*h2; i++ {
+		pix[4*i] = byte(i)
+		pix[4*i+1] = byte(i)
+		pix[4*i+2] = byte(i)
+		pix[4*i+3] = byte(i)
+	}
+	img.ReplacePixels(pix, 4, 4, w2, h2)
+
+	// Modify pix after ReplacePixels
+	for i := 0; i < w2*h2; i++ {
+		pix[4*i] = 0
+		pix[4*i+1] = 0
+		pix[4*i+2] = 0
+		pix[4*i+3] = 0
+	}
+
+	idx := 0
+	for j := 4; j < 4+h2; j++ {
+		for i := 4; i < 4+w2; i++ {
+			want := color.RGBA{byte(idx), byte(idx), byte(idx), byte(idx)}
+			r, g, b, a := img.At(i, j)
+			got := color.RGBA{r, g, b, a}
+			if got != want {
+				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+			idx++
+		}
+	}
+}
