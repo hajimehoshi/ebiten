@@ -155,13 +155,15 @@ func (i *Image) Pixels() []byte {
 	return c.result
 }
 
-func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 	// ReplacePixels for a part might invalidate the current image that are drawn by DrawTriangles (#593, #738).
 	if i.lastCommand == lastCommandDrawTriangles {
 		if x != 0 || y != 0 || i.width != width || i.height != height {
 			panic("graphicscommand: ReplacePixels for a part after DrawTriangles is forbidden")
 		}
 	}
+	pixels := make([]byte, len(p))
+	copy(pixels, p)
 	c := &replacePixelsCommand{
 		dst:    i,
 		pixels: pixels,

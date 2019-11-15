@@ -354,8 +354,19 @@ func TestImageReplacePixels(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-
-	// p cannot be modified as of 1.11.0-alpha.
+	// Even if p is changed after calling ReplacePixel, img0 uses the original values.
+	for i := range p {
+		p[i] = 0
+	}
+	for j := 0; j < img0.Bounds().Size().Y; j++ {
+		for i := 0; i < img0.Bounds().Size().X; i++ {
+			got := img0.At(i, j)
+			want := color.RGBA{0x80, 0x80, 0x80, 0x80}
+			if got != want {
+				t.Errorf("img0 At(%d, %d): got %#v; want %#v", i, j, got, want)
+			}
+		}
+	}
 }
 
 func TestImageReplacePixelsNil(t *testing.T) {
