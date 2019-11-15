@@ -328,13 +328,6 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	// For this purpuse, images should remember which part of that is used for DrawTriangles.
 	theImages.makeStaleIfDependingOn(i)
 
-	// pixels are taken by graphicscommand.Image. Copy it for the later usage.
-	var copied []byte
-	if needsRestoring() && pixels != nil {
-		copied = make([]byte, len(pixels))
-		copy(copied, pixels)
-	}
-
 	if pixels != nil {
 		i.image.ReplacePixels(pixels, x, y, width, height)
 	} else {
@@ -344,20 +337,14 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 		i.image.ReplacePixels(make([]byte, 4*width*height), x, y, width, height)
 	}
 
-	// pixels are no longer available. Use copied when necessary.
-
 	if x == 0 && y == 0 && width == w && height == h {
-		i.drawTrianglesHistory = nil
-		i.stale = false
 		if pixels != nil {
-			if needsRestoring() {
-				i.basePixels.AddOrReplace(copied, 0, 0, w, h)
-			} else {
-				i.makeStale()
-			}
+			i.basePixels.AddOrReplace(pixels, 0, 0, w, h)
 		} else {
 			i.basePixels.Remove(0, 0, w, h)
 		}
+		i.drawTrianglesHistory = nil
+		i.stale = false
 		return
 	}
 
@@ -374,11 +361,7 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	if pixels != nil {
-		if needsRestoring() {
-			i.basePixels.AddOrReplace(copied, x, y, width, height)
-		} else {
-			i.makeStale()
-		}
+		i.basePixels.AddOrReplace(pixels, x, y, width, height)
 	} else {
 		i.basePixels.Remove(x, y, width, height)
 	}

@@ -28,7 +28,6 @@ type rectToPixels struct {
 	lastPix []byte
 }
 
-// addOrReplace takes the ownership of pixels.
 func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 	if len(pixels) != 4*width*height {
 		panic(fmt.Sprintf("restorable: len(pixels) must be %d but %d", 4*width*height, len(pixels)))
@@ -38,13 +37,16 @@ func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 		rtp.m = map[image.Rectangle][]byte{}
 	}
 
+	copied := make([]byte, len(pixels))
+	copy(copied, pixels)
+
 	newr := image.Rect(x, y, x+width, y+height)
 	for r := range rtp.m {
 		if r == newr {
 			// Replace the region.
-			rtp.m[r] = pixels
+			rtp.m[r] = copied
 			if r == rtp.lastR {
-				rtp.lastPix = pixels
+				rtp.lastPix = copied
 			}
 			return
 		}
@@ -54,9 +56,9 @@ func (rtp *rectToPixels) addOrReplace(pixels []byte, x, y, width, height int) {
 	}
 
 	// Add the region.
-	rtp.m[newr] = pixels
+	rtp.m[newr] = copied
 	if newr == rtp.lastR {
-		rtp.lastPix = pixels
+		rtp.lastPix = copied
 	}
 }
 
