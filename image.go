@@ -432,6 +432,9 @@ func (i *Image) Dispose() error {
 //
 // The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
 //
+// ReplacePixels takes the ownership of the given p. This means that p must not be modified after ReplacePixels is
+// called.
+//
 // ReplacePixels may be slow (as for implementation, this calls glTexSubImage2D).
 //
 // When len(p) is not appropriate, ReplacePixels panics.
