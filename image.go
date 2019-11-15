@@ -454,9 +454,7 @@ func (i *Image) ReplacePixels(p []byte) error {
 		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
 	}
 
-	px := make([]byte, len(p))
-	copy(px, p)
-	i.mipmap.replacePixels(px)
+	i.mipmap.replacePixels(p)
 	return nil
 }
 
