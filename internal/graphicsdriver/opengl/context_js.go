@@ -470,7 +470,3 @@ func (c *context) flush() {
 func (c *context) needsRestoring() bool {
 	return !web.IsMobileBrowser()
 }
-
-func (c *context) canUsePBO() bool {
-	return false
-}
