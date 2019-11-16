@@ -205,7 +205,9 @@ func (i *Image) ReplacePixels(pix []byte) {
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
-			i.img.ReplacePixels(pix)
+			copied := make([]byte, len(pix))
+			copy(copied, pix)
+			i.img.ReplacePixels(copied)
 		})
 		delayedCommandsM.Unlock()
 		return
