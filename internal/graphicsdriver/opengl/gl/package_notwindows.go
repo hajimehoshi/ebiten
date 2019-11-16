@@ -144,6 +144,7 @@ package gl
 // typedef GLboolean  (APIENTRYP GPISPROGRAM)(GLuint  program);
 // typedef GLboolean  (APIENTRYP GPISTEXTURE)(GLuint  texture);
 // typedef void  (APIENTRYP GPLINKPROGRAM)(GLuint  program);
+// typedef void * (APIENTRYP GPMAPBUFFER)(GLenum  target, GLenum  access);
 // typedef void  (APIENTRYP GPPIXELSTOREI)(GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPREADPIXELS)(GLint  x, GLint  y, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, void * pixels);
 // typedef void  (APIENTRYP GPSHADERSOURCE)(GLuint  shader, GLsizei  count, const GLchar *const* string, const GLint * length);
@@ -155,6 +156,7 @@ package gl
 // typedef void  (APIENTRYP GPUNIFORM2FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORM4FV)(GLint  location, GLsizei  count, const GLfloat * value);
 // typedef void  (APIENTRYP GPUNIFORMMATRIX4FV)(GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value);
+// typedef GLboolean  (APIENTRYP GPUNMAPBUFFER)(GLenum  target);
 // typedef void  (APIENTRYP GPUSEPROGRAM)(GLuint  program);
 // typedef void  (APIENTRYP GPVERTEXATTRIBPOINTER)(GLuint  index, GLint  size, GLenum  type, GLboolean  normalized, GLsizei  stride, const uintptr_t pointer);
 // typedef void  (APIENTRYP GPVIEWPORT)(GLint  x, GLint  y, GLsizei  width, GLsizei  height);
@@ -303,6 +305,9 @@ package gl
 // static void  glowLinkProgram(GPLINKPROGRAM fnptr, GLuint  program) {
 //   (*fnptr)(program);
 // }
+// static void * glowMapBuffer(GPMAPBUFFER fnptr, GLenum  target, GLenum  access) {
+//   return (*fnptr)(target, access);
+// }
 // static void  glowPixelStorei(GPPIXELSTOREI fnptr, GLenum  pname, GLint  param) {
 //   (*fnptr)(pname, param);
 // }
@@ -335,6 +340,9 @@ package gl
 // }
 // static void  glowUniformMatrix4fv(GPUNIFORMMATRIX4FV fnptr, GLint  location, GLsizei  count, GLboolean  transpose, const GLfloat * value) {
 //   (*fnptr)(location, count, transpose, value);
+// }
+// static GLboolean  glowUnmapBuffer(GPUNMAPBUFFER fnptr, GLenum  target) {
+//   return (*fnptr)(target);
 // }
 // static void  glowUseProgram(GPUSEPROGRAM fnptr, GLuint  program) {
 //   (*fnptr)(program);
@@ -401,6 +409,7 @@ var (
 	gpIsProgram                   C.GPISPROGRAM
 	gpIsTexture                   C.GPISTEXTURE
 	gpLinkProgram                 C.GPLINKPROGRAM
+	gpMapBuffer                   C.GPMAPBUFFER
 	gpPixelStorei                 C.GPPIXELSTOREI
 	gpReadPixels                  C.GPREADPIXELS
 	gpShaderSource                C.GPSHADERSOURCE
@@ -412,6 +421,7 @@ var (
 	gpUniform2fv                  C.GPUNIFORM2FV
 	gpUniform4fv                  C.GPUNIFORM4FV
 	gpUniformMatrix4fv            C.GPUNIFORMMATRIX4FV
+	gpUnmapBuffer                 C.GPUNMAPBUFFER
 	gpUseProgram                  C.GPUSEPROGRAM
 	gpVertexAttribPointer         C.GPVERTEXATTRIBPOINTER
 	gpViewport                    C.GPVIEWPORT
@@ -616,6 +626,11 @@ func LinkProgram(program uint32) {
 	C.glowLinkProgram(gpLinkProgram, (C.GLuint)(program))
 }
 
+func MapBuffer(target uint32, access uint32) unsafe.Pointer {
+	ret := C.glowMapBuffer(gpMapBuffer, (C.GLenum)(target), (C.GLenum)(access))
+	return (unsafe.Pointer)(ret)
+}
+
 func PixelStorei(pname uint32, param int32) {
 	C.glowPixelStorei(gpPixelStorei, (C.GLenum)(pname), (C.GLint)(param))
 }
@@ -658,6 +673,11 @@ func Uniform4fv(location int32, count int32, value *float32) {
 
 func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
 	C.glowUniformMatrix4fv(gpUniformMatrix4fv, (C.GLint)(location), (C.GLsizei)(count), (C.GLboolean)(boolToInt(transpose)), (*C.GLfloat)(unsafe.Pointer(value)))
+}
+
+func UnmapBuffer(target uint32) bool {
+	ret := C.glowUnmapBuffer(gpUnmapBuffer, (C.GLenum)(target))
+	return ret == TRUE
 }
 
 func UseProgram(program uint32) {
@@ -813,6 +833,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	if gpLinkProgram == nil {
 		return errors.New("glLinkProgram")
 	}
+	gpMapBuffer = (C.GPMAPBUFFER)(getProcAddr("glMapBuffer"))
+	if gpMapBuffer == nil {
+		return errors.New("glMapBuffer")
+	}
 	gpPixelStorei = (C.GPPIXELSTOREI)(getProcAddr("glPixelStorei"))
 	if gpPixelStorei == nil {
 		return errors.New("glPixelStorei")
@@ -856,6 +880,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) unsafe.Pointer) error {
 	gpUniformMatrix4fv = (C.GPUNIFORMMATRIX4FV)(getProcAddr("glUniformMatrix4fv"))
 	if gpUniformMatrix4fv == nil {
 		return errors.New("glUniformMatrix4fv")
+	}
+	gpUnmapBuffer = (C.GPUNMAPBUFFER)(getProcAddr("glUnmapBuffer"))
+	if gpUnmapBuffer == nil {
+		return errors.New("glUnmapBuffer")
 	}
 	gpUseProgram = (C.GPUSEPROGRAM)(getProcAddr("glUseProgram"))
 	if gpUseProgram == nil {

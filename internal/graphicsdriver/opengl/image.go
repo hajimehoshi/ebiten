@@ -22,6 +22,7 @@ type Image struct {
 	driver        *Driver
 	textureNative textureNative
 	framebuffer   *framebuffer
+	pbo           buffer
 	width         int
 	height        int
 	screen        bool
@@ -32,6 +33,10 @@ func (i *Image) IsInvalidated() bool {
 }
 
 func (i *Image) Dispose() {
+	thePBOState.ensurePBOUnmapped()
+	if i.pbo != *new(buffer) {
+		i.driver.context.deleteBuffer(i.pbo)
+	}
 	if i.framebuffer != nil {
 		i.framebuffer.delete(&i.driver.context)
 	}
@@ -53,6 +58,7 @@ func (i *Image) setViewport() error {
 }
 
 func (i *Image) Pixels() ([]byte, error) {
+	thePBOState.ensurePBOUnmapped()
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
@@ -96,7 +102,13 @@ func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
 		i.driver.context.flush()
 	}
 	i.driver.drawCalled = false
-	i.driver.context.texSubImage2D(i.textureNative, p, x, y, width, height)
+
+	if canUsePBO {
+		thePBOState.mapPBOIfNecessary(i)
+		thePBOState.draw(p, x, y, width, height)
+	} else {
+		i.driver.context.texSubImage2D(i.textureNative, p, x, y, width, height)
+	}
 }
 
 func (i *Image) SetAsSource() {

@@ -58,6 +58,7 @@ var (
 	gpIsProgram                   uintptr
 	gpIsTexture                   uintptr
 	gpLinkProgram                 uintptr
+	gpMapBuffer                   uintptr
 	gpPixelStorei                 uintptr
 	gpReadPixels                  uintptr
 	gpShaderSource                uintptr
@@ -69,6 +70,7 @@ var (
 	gpUniform2fv                  uintptr
 	gpUniform4fv                  uintptr
 	gpUniformMatrix4fv            uintptr
+	gpUnmapBuffer                 uintptr
 	gpUseProgram                  uintptr
 	gpVertexAttribPointer         uintptr
 	gpViewport                    uintptr
@@ -269,6 +271,11 @@ func IsTexture(texture uint32) bool {
 	return ret != 0
 }
 
+func MapBuffer(target uint32, access uint32) unsafe.Pointer {
+	ret, _, _ := syscall.Syscall(gpMapBuffer, 2, uintptr(target), uintptr(access), 0)
+	return unsafe.Pointer(ret)
+}
+
 func LinkProgram(program uint32) {
 	syscall.Syscall(gpLinkProgram, 1, uintptr(program), 0, 0)
 }
@@ -315,6 +322,11 @@ func Uniform4fv(location int32, count int32, value *float32) {
 
 func UniformMatrix4fv(location int32, count int32, transpose bool, value *float32) {
 	syscall.Syscall6(gpUniformMatrix4fv, 4, uintptr(location), uintptr(count), boolToUintptr(transpose), uintptr(unsafe.Pointer(value)), 0, 0)
+}
+
+func UnmapBuffer(target uint32) bool {
+	ret, _, _ := syscall.Syscall(gpUnmapBuffer, 1, uintptr(target), 0, 0)
+	return ret != 0
 }
 
 func UseProgram(program uint32) {
@@ -466,6 +478,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	if gpIsTexture == 0 {
 		return errors.New("glIsTexture")
 	}
+	gpMapBuffer = getProcAddr("glMapBuffer")
+	if gpMapBuffer == 0 {
+		return errors.New("glMapBuffer")
+	}
 	gpLinkProgram = getProcAddr("glLinkProgram")
 	if gpLinkProgram == 0 {
 		return errors.New("glLinkProgram")
@@ -513,6 +529,10 @@ func InitWithProcAddrFunc(getProcAddr func(name string) uintptr) error {
 	gpUniformMatrix4fv = getProcAddr("glUniformMatrix4fv")
 	if gpUniformMatrix4fv == 0 {
 		return errors.New("glUniformMatrix4fv")
+	}
+	gpUnmapBuffer = getProcAddr("glUnmapBuffer")
+	if gpUnmapBuffer == 0 {
+		return errors.New("glUnmapBuffer")
 	}
 	gpUseProgram = getProcAddr("glUseProgram")
 	if gpUseProgram == 0 {

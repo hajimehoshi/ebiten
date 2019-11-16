@@ -20,6 +20,8 @@ const (
 	ARRAY_BUFFER         = 0x8892
 	ELEMENT_ARRAY_BUFFER = 0x8893
 	DYNAMIC_DRAW         = 0x88E8
+	STREAM_DRAW          = 0x88E0
+	PIXEL_UNPACK_BUFFER  = 0x88EC
 	SHORT                = 0x1402
 	FLOAT                = 0x1406
 
@@ -56,6 +58,7 @@ const (
 	UNSIGNED_BYTE        = 0x1401
 	UNSIGNED_SHORT       = 0x1403
 	VERTEX_SHADER        = 0x8B31
+	WRITE_ONLY           = 0x88B9
 )
 
 // Init initializes the OpenGL bindings by loading the function pointers (for

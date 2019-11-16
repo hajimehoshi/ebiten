@@ -1,0 +1,87 @@
+// Copyright 2019 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// +build darwin freebsd linux windows
+// +build !js
+// +build !android
+// +build !ios
+
+package opengl
+
+import (
+	"reflect"
+	"runtime"
+	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/internal/graphics"
+)
+
+const canUsePBO = true
+
+type pboState struct {
+	image     *Image
+	mappedPBO unsafe.Pointer
+}
+
+var thePBOState pboState
+
+func (s *pboState) mapPBOIfNecessary(img *Image) {
+	if s.image == img {
+		return
+	}
+
+	s.ensurePBOUnmapped()
+
+	if img.pbo == *new(buffer) {
+		w, h := graphics.InternalImageSize(img.width), graphics.InternalImageSize(img.height)
+		img.pbo = img.driver.context.newPixelBufferObject(w, h)
+	}
+	s.image = img
+	s.mappedPBO = img.driver.context.mapPixelBuffer(img.pbo)
+
+	if s.mappedPBO == nil {
+		panic("opengl: mapPixelBuffer failed")
+	}
+}
+
+func (s *pboState) draw(pix []byte, x, y, width, height int) {
+	w, h := graphics.InternalImageSize(s.image.width), graphics.InternalImageSize(s.image.height)
+
+	var mapped []byte
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mapped))
+	sh.Data = uintptr(s.mappedPBO)
+	sh.Len = 4 * w * h
+	sh.Cap = 4 * w * h
+
+	stride := 4 * w
+	offset := 4 * (y*w + x)
+	for j := 0; j < height; j++ {
+		copy(mapped[offset+stride*j:offset+stride*j+4*width], pix[4*width*j:4*width*(j+1)])
+	}
+
+	runtime.KeepAlive(mapped)
+}
+
+func (s *pboState) ensurePBOUnmapped() {
+	if s.mappedPBO == nil {
+		return
+	}
+
+	i := s.image
+	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
+	i.driver.context.unmapPixelBuffer(i.pbo, i.textureNative, w, h)
+
+	s.image = nil
+	s.mappedPBO = nil
+}

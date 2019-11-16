@@ -22,6 +22,7 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
@@ -508,4 +509,43 @@ func (c *context) flush() {
 
 func (c *context) needsRestoring() bool {
 	return false
+}
+
+func (c *context) newPixelBufferObject(width, height int) buffer {
+	var bf buffer
+	_ = c.t.Call(func() error {
+		var b uint32
+		gl.GenBuffers(1, &b)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, b)
+		gl.BufferData(gl.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gl.STREAM_DRAW)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+		bf = buffer(b)
+		return nil
+	})
+	return bf
+}
+
+func (c *context) mapPixelBuffer(buffer buffer) unsafe.Pointer {
+	var ptr unsafe.Pointer
+	_ = c.t.Call(func() error {
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
+		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.WRITE_ONLY)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+		return nil
+	})
+	return ptr
+}
+
+func (c *context) unmapPixelBuffer(buffer buffer, t textureNative, width, height int) {
+	_ = c.t.Call(func() error {
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
+		gl.UnmapBuffer(gl.PIXEL_UNPACK_BUFFER)
+		return nil
+	})
+	c.bindTexture(t)
+	_ = c.t.Call(func() error {
+		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+		return nil
+	})
 }
