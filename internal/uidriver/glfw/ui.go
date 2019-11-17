@@ -823,7 +823,14 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 		})
 	}()
 	for {
-		unfocused := u.window.GetAttrib(glfw.Focused) == glfw.False
+		var unfocused bool
+
+		// On Windows, the focusing state might be always false (#987).
+		// On Windows, even if a window is in another workspace, vsync seems to work.
+		// Then let's assume the window is alwasy 'focused' as a workaround.
+		if runtime.GOOS != "windows" {
+			unfocused = u.window.GetAttrib(glfw.Focused) == glfw.False
+		}
 
 		var t1, t2 time.Time
 
