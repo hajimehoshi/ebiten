@@ -211,7 +211,7 @@ func walk(n *Node, f func(n *Node) error) error {
 
 func (p *Page) Extend(count int) bool {
 	if p.rollbackExtension != nil {
-		panic("packing: Extend cannot be called just after Extend")
+		panic("packing: Extend cannot be called without rolling back or commiting")
 	}
 
 	if p.size >= p.maxSize {
