@@ -86,8 +86,6 @@ func IsRunningSlowly() bool {
 	return IsDrawingSkipped()
 }
 
-var theUIContext atomic.Value
-
 // Run runs the game.
 // f is a function which is called at every frame.
 // The argument (*Image) is the render target that represents the screen.
@@ -136,8 +134,6 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	f = (&imageDumper{f: f}).update
 
 	c := newUIContext(f)
-	theUIContext.Store(c)
-
 	if err := uiDriver().Run(width, height, scale, title, c, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
@@ -157,8 +153,6 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 	f = (&imageDumper{f: f}).update
 
 	c := newUIContext(f)
-	theUIContext.Store(c)
-
 	return uiDriver().RunWithoutMainLoop(width, height, scale, title, c, graphicsDriver())
 }
 
