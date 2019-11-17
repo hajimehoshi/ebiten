@@ -207,11 +207,14 @@ func walk(n *Node, f func(n *Node) error) error {
 	return nil
 }
 
-func (p *Page) Extend() bool {
+func (p *Page) Extend(count int) bool {
 	if p.size >= p.maxSize {
 		return false
 	}
-	newSize := p.size * 2
+	newSize := p.size
+	for i := 0; i < count; i++ {
+		newSize *= 2
+	}
 	edgeNodes := []*Node{}
 	abort := errors.New("abort")
 	aborted := false

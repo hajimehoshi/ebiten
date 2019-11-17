@@ -257,7 +257,7 @@ func TestExtend(t *testing.T) {
 	p := NewPage(1024, 4096)
 	s := p.Size()
 	p.Alloc(s/2, s/2)
-	p.Extend()
+	p.Extend(1)
 	if p.Size() != s*2 {
 		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
 	}
@@ -281,7 +281,7 @@ func TestExtend2(t *testing.T) {
 	p.Alloc(s/2, s/2)
 	p.Free(n1)
 	p.Free(n2)
-	p.Extend()
+	p.Extend(1)
 	if p.Size() != s*2 {
 		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
 	}

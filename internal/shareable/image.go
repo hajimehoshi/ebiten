@@ -91,16 +91,17 @@ type backend struct {
 }
 
 func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
-	// If the region is allocated without any extension, it's fine.
+	// If the region is allocated without any extension, that's fine.
 	if n := b.page.Alloc(width, height); n != nil {
 		return n, true
 	}
 
 	// Simulate the extending the page and calculate the appropriate page size.
+	// By simulating, we can avoid unnecessary extention of underlying textures.
 	page := b.page.Clone()
 	nExtended := 0
 	for {
-		if !page.Extend() {
+		if !page.Extend(1) {
 			// The page can't be extended any more. Return as failure.
 			return nil, false
 		}
@@ -111,9 +112,7 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		}
 	}
 
-	for i := 0; i < nExtended; i++ {
-		b.page.Extend()
-	}
+	b.page.Extend(nExtended)
 	s := b.page.Size()
 	b.restorable = b.restorable.Extend(s, s)
 
