@@ -96,23 +96,21 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 		return n, true
 	}
 
-	// Simulate the extending the page and calculate the appropriate page size.
-	// By simulating, we can avoid unnecessary extention of underlying textures.
-	page := b.page.Clone()
-	nExtended := 0
+	nExtended := 1
 	for {
-		if !page.Extend(1) {
+		if !b.page.Extend(nExtended) {
 			// The page can't be extended any more. Return as failure.
 			return nil, false
 		}
 		nExtended++
-		if n := page.Alloc(width, height); n != nil {
+		if n := b.page.Alloc(width, height); n != nil {
 			// The page is just for emulation, so we don't have to free it.
+			b.page.CommitExtension()
 			break
 		}
+		b.page.RollbackExtension()
 	}
 
-	b.page.Extend(nExtended)
 	s := b.page.Size()
 	b.restorable = b.restorable.Extend(s, s)
 

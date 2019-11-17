@@ -261,14 +261,30 @@ func TestExtend(t *testing.T) {
 	if p.Size() != s*2 {
 		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
 	}
-	if p.Alloc(s*3/2, s*2) == nil {
+	n0 := p.Alloc(s*3/2, s*2)
+	if n0 == nil {
 		t.Errorf("p.Alloc failed: width: %d, height: %d", s*3/2, s*2)
 	}
-	if p.Alloc(s/2, s*3/2) == nil {
+	n1 := p.Alloc(s/2, s*3/2)
+	if n1 == nil {
 		t.Errorf("p.Alloc failed: width: %d, height: %d", s/2, s*3/2)
 	}
 	if p.Alloc(1, 1) != nil {
 		t.Errorf("p.Alloc must fail: width: %d, height: %d", 1, 1)
+	}
+	p.Free(n1)
+	p.Free(n0)
+
+	p.RollbackExtension()
+
+	if got, want := p.Size(), s; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+	if p.Alloc(s*3/2, s*2) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s*3/2, s*2)
+	}
+	if p.Alloc(s/2, s*3/2) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s/2, s*3/2)
 	}
 }
 
@@ -285,13 +301,30 @@ func TestExtend2(t *testing.T) {
 	if p.Size() != s*2 {
 		t.Errorf("p.Size(): got: %d, want: %d", p.Size(), s*2)
 	}
-	if p.Alloc(s, s*2) == nil {
+
+	n3 := p.Alloc(s, s*2)
+	if n3 == nil {
 		t.Errorf("p.Alloc failed: width: %d, height: %d", s, s*2)
 	}
-	if p.Alloc(s, s) == nil {
+	n4 := p.Alloc(s, s)
+	if n4 == nil {
 		t.Errorf("p.Alloc failed: width: %d, height: %d", s, s)
 	}
 	if p.Alloc(s, s) != nil {
 		t.Errorf("p.Alloc must fail: width: %d, height: %d", s, s)
+	}
+	p.Free(n4)
+	p.Free(n3)
+
+	p.RollbackExtension()
+
+	if got, want := p.Size(), s; got != want {
+		t.Errorf("p.Size(): got: %d, want: %d", got, want)
+	}
+	if p.Alloc(s, s*2) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s, s*2)
+	}
+	if p.Alloc(s, s) != nil {
+		t.Errorf("p.Alloc(%d, %d) must fail but not", s, s)
 	}
 }

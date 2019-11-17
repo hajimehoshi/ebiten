@@ -27,6 +27,8 @@ type Page struct {
 	root    *Node
 	size    int
 	maxSize int
+
+	rollbackExtension func()
 }
 
 func NewPage(initSize int, maxSize int) *Page {
@@ -208,6 +210,10 @@ func walk(n *Node, f func(n *Node) error) error {
 }
 
 func (p *Page) Extend(count int) bool {
+	if p.rollbackExtension != nil {
+		panic("packing: Extend cannot be called just after Extend")
+	}
+
 	if p.size >= p.maxSize {
 		return false
 	}
@@ -230,6 +236,8 @@ func (p *Page) Extend(count int) bool {
 		return nil
 	})
 	if aborted {
+		origRoot := *p.root
+
 		leftUpper := p.root
 		leftLower := &Node{
 			x:      0,
@@ -264,13 +272,35 @@ func (p *Page) Extend(count int) bool {
 		}
 		left.parent = p.root
 		right.parent = p.root
+
+		origSize := p.size
+		p.rollbackExtension = func() {
+			p.size = origSize
+			p.root = &origRoot
+		}
 	} else {
+		origSize := p.size
+		origWidths := map[*Node]int{}
+		origHeights := map[*Node]int{}
+
 		for _, n := range edgeNodes {
 			if n.x+n.width == p.size {
+				origWidths[n] = n.width
 				n.width += newSize - p.size
 			}
 			if n.y+n.height == p.size {
+				origHeights[n] = n.height
 				n.height += newSize - p.size
+			}
+		}
+
+		p.rollbackExtension = func() {
+			p.size = origSize
+			for n, w := range origWidths {
+				n.width = w
+			}
+			for n, h := range origHeights {
+				n.height = h
 			}
 		}
 	}
@@ -279,32 +309,19 @@ func (p *Page) Extend(count int) bool {
 	return true
 }
 
-func (n *Node) clone() *Node {
-	if n == nil {
-		return nil
+// RollbackExtension rollbacks Extend call once.
+func (p *Page) RollbackExtension() {
+	if p.rollbackExtension == nil {
+		panic("packing: RollbackExtension cannot be called without Extend")
 	}
-	cloned := &Node{
-		x:      n.x,
-		y:      n.y,
-		width:  n.width,
-		height: n.height,
-		used:   n.used,
-		child0: n.child0.clone(),
-		child1: n.child1.clone(),
-	}
-	if cloned.child0 != nil {
-		cloned.child0.parent = cloned
-	}
-	if cloned.child1 != nil {
-		cloned.child1.parent = cloned
-	}
-	return cloned
+	p.rollbackExtension()
+	p.rollbackExtension = nil
 }
 
-func (p *Page) Clone() *Page {
-	return &Page{
-		root:    p.root.clone(),
-		size:    p.size,
-		maxSize: p.maxSize,
+// CommitExtension commits Extend call.
+func (p *Page) CommitExtension() {
+	if p.rollbackExtension == nil {
+		panic("packing: RollbackExtension cannot be called without Extend")
 	}
+	p.rollbackExtension = nil
 }
