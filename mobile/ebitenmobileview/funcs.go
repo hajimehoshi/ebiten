@@ -25,6 +25,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
 type ViewRectSetter interface {
@@ -59,8 +60,8 @@ func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	y := (viewHeight - height) / 2
 
 	if theState.isRunning() {
-		ebiten.SetScreenSize(w, h)
-		ebiten.SetScreenScale(scale)
+		mobile.Get().SetScreenSize(w, h)
+		mobile.Get().SetScreenScale(scale)
 	} else {
 		// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
 		theState.errorCh = ebiten.RunWithoutMainLoop(theState.game.Update, w, h, scale, "")
