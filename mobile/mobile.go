@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build android ios
+
 // Package mobile provides functions for mobile platforms (Android and iOS).
 //
 // This package is used when you use `ebitenmobile bind`.
