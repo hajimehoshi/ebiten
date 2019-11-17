@@ -38,6 +38,6 @@ func update() error {
 	default:
 	}
 
-	mobile.Get().Render()
+	mobile.Get().Update()
 	return nil
 }

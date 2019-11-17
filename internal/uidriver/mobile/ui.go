@@ -57,7 +57,7 @@ func Get() *UserInterface {
 	return theUI
 }
 
-func (u *UserInterface) Render() {
+func (u *UserInterface) Update() {
 	renderCh <- struct{}{}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
