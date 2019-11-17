@@ -23,6 +23,7 @@ import (
 	"context"
 	"image"
 	"math"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -608,7 +609,9 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		glfw.WindowHint(glfw.Resizable, resizable)
 
 		// Set the window visible explicitly or the application freezes on Wayland (#974).
-		glfw.WindowHint(glfw.Visible, glfw.True)
+		if os.Getenv("WAYLAND_DISPLAY") != "" {
+			glfw.WindowHint(glfw.Visible, glfw.True)
+		}
 
 		// As a start, create a window with temporary size to create OpenGL context thread.
 		window, err := glfw.CreateWindow(16, 16, "", nil, nil)
