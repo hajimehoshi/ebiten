@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android ios
-
 // Package mobile provides functions for mobile platforms (Android and iOS).
 //
 // This package is used when you use `ebitenmobile bind`.
@@ -23,7 +21,6 @@ package mobile
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/mobile/ebitenmobileview"
 )
 
 // Game defines necessary functions for a mobile game.
@@ -49,5 +46,5 @@ type Game interface {
 //
 // SetGame can be called anytime. Until SetGame is called, the game does not start.
 func SetGame(game Game) {
-	ebitenmobileview.SetGame(game)
+	setGame(game)
 }
