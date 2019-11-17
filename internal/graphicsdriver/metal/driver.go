@@ -299,6 +299,8 @@ type Driver struct {
 	src *Image
 	dst *Image
 
+	drawCalled bool
+
 	maxImageSize int
 
 	t *thread.Thread
@@ -577,6 +579,8 @@ func (d *Driver) Reset() error {
 }
 
 func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, colorM *affine.ColorM, filter driver.Filter, address driver.Address) error {
+	d.drawCalled = true
+
 	if err := d.t.Call(func() error {
 		d.view.update()
 
@@ -806,9 +810,13 @@ func (i *Image) SetAsSource() {
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
-	i.driver.flush(true, false)
+	d := i.driver
+	if d.drawCalled {
+		d.flush(true, false)
+		d.drawCalled = false
+	}
 
-	i.driver.t.Call(func() error {
+	d.t.Call(func() error {
 		i.texture.ReplaceRegion(mtl.Region{
 			Origin: mtl.Origin{X: x, Y: y, Z: 0},
 			Size:   mtl.Size{Width: width, Height: height, Depth: 1},
