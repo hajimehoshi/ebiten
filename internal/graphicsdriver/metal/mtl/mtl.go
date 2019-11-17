@@ -31,7 +31,7 @@ import (
 )
 
 // #cgo !ios CFLAGS: -mmacosx-version-min=10.11
-// #cgo LDFLAGS: -framework Metal -framework Foundation
+// #cgo LDFLAGS: -framework Metal -framework CoreGraphics -framework Foundation
 //
 // #include <stdlib.h>
 // #include "mtl.h"
