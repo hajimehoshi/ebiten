@@ -128,7 +128,7 @@ func (i *Image) Fill(clr color.Color) error {
 // case is when you use an offscreen as a render source. An offscreen doesn't
 // share the texture atlas with high probability.
 //
-// For more performance tips, see https://ebiten.org/performancetips.html
+// For more performance tips, see https://ebiten.org/documents/performancetips.html
 //
 // DrawImage always returns nil as of 1.5.0-alpha.
 func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
