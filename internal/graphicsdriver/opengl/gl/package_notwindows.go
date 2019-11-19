@@ -626,9 +626,9 @@ func LinkProgram(program uint32) {
 	C.glowLinkProgram(gpLinkProgram, (C.GLuint)(program))
 }
 
-func MapBuffer(target uint32, access uint32) unsafe.Pointer {
+func MapBuffer(target uint32, access uint32) uintptr {
 	ret := C.glowMapBuffer(gpMapBuffer, (C.GLenum)(target), (C.GLenum)(access))
-	return (unsafe.Pointer)(ret)
+	return ret
 }
 
 func PixelStorei(pname uint32, param int32) {

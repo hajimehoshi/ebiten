@@ -271,9 +271,9 @@ func IsTexture(texture uint32) bool {
 	return ret != 0
 }
 
-func MapBuffer(target uint32, access uint32) unsafe.Pointer {
+func MapBuffer(target uint32, access uint32) uintptr {
 	ret, _, _ := syscall.Syscall(gpMapBuffer, 2, uintptr(target), uintptr(access), 0)
-	return unsafe.Pointer(ret)
+	return ret
 }
 
 func LinkProgram(program uint32) {

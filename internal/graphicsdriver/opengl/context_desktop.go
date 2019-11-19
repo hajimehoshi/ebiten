@@ -22,7 +22,6 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl/gl"
@@ -525,9 +524,9 @@ func (c *context) newPixelBufferObject(width, height int) buffer {
 	return bf
 }
 
-func (c *context) mapPixelBuffer(buffer buffer, t textureNative) unsafe.Pointer {
+func (c *context) mapPixelBuffer(buffer buffer, t textureNative) uintptr {
 	c.bindTexture(t)
-	var ptr unsafe.Pointer
+	var ptr uintptr
 	_ = c.t.Call(func() error {
 		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
 		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.READ_WRITE)

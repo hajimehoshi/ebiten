@@ -30,7 +30,7 @@ const canUsePBO = true
 
 type pboState struct {
 	image     *Image
-	mappedPBO unsafe.Pointer
+	mappedPBO uintptr
 	mapped    []byte
 }
 
@@ -44,13 +44,13 @@ func (s *pboState) mapPBO(img *Image) {
 	s.image = img
 	s.mappedPBO = img.driver.context.mapPixelBuffer(img.pbo, img.textureNative)
 
-	if s.mappedPBO == nil {
+	if s.mappedPBO == 0 {
 		panic("opengl: mapPixelBuffer failed")
 	}
 
 	var mapped []byte
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mapped))
-	sh.Data = uintptr(s.mappedPBO)
+	sh.Data = s.mappedPBO
 	sh.Len = 4 * w * h
 	sh.Cap = 4 * w * h
 	s.mapped = mapped
@@ -71,6 +71,6 @@ func (s *pboState) unmapPBO() {
 	i.driver.context.unmapPixelBuffer(i.pbo, w, h)
 
 	s.image = nil
-	s.mappedPBO = nil
+	s.mappedPBO = 0
 	s.mapped = nil
 }
