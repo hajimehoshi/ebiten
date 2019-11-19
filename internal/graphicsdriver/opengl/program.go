@@ -265,8 +265,6 @@ func (d *Driver) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, fi
 		panic("source image is not set")
 	}
 
-	thePBOState.ensurePBOUnmapped()
-
 	if err := destination.setViewport(); err != nil {
 		return err
 	}

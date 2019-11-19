@@ -36,13 +36,7 @@ type pboState struct {
 
 var thePBOState pboState
 
-func (s *pboState) mapPBOIfNecessary(img *Image) {
-	if s.image == img {
-		return
-	}
-
-	s.ensurePBOUnmapped()
-
+func (s *pboState) mapPBO(img *Image) {
 	if img.pbo == *new(buffer) {
 		w, h := graphics.InternalImageSize(img.width), graphics.InternalImageSize(img.height)
 		img.pbo = img.driver.context.newPixelBufferObject(w, h)
@@ -73,11 +67,7 @@ func (s *pboState) draw(pix []byte, x, y, width, height int) {
 	runtime.KeepAlive(mapped)
 }
 
-func (s *pboState) ensurePBOUnmapped() {
-	if s.mappedPBO == nil {
-		return
-	}
-
+func (s *pboState) unmapPBO() {
 	i := s.image
 	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
 	i.driver.context.unmapPixelBuffer(i.pbo, i.textureNative, w, h)

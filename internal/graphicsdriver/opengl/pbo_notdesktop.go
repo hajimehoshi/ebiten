@@ -22,7 +22,7 @@ type pboState struct{}
 
 var thePBOState pboState
 
-func (s *pboState) mapPBOIfNecessary(img *Image) {
+func (s *pboState) mapPBO(img *Image) {
 	panic("opengl: PBO is not available in this environment")
 }
 
@@ -30,6 +30,6 @@ func (s *pboState) draw(pix []byte, x, y, width, height int) {
 	panic("opengl: PBO is not available in this environment")
 }
 
-func (s *pboState) ensurePBOUnmapped() {
-	// Do nothing
+func (s *pboState) unmapPBO() {
+	panic("opengl: PBO is not available in this environment")
 }

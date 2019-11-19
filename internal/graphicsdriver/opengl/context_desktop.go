@@ -530,7 +530,6 @@ func (c *context) mapPixelBuffer(buffer buffer) unsafe.Pointer {
 	_ = c.t.Call(func() error {
 		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
 		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.WRITE_ONLY)
-		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
 		return nil
 	})
 	return ptr
@@ -538,7 +537,6 @@ func (c *context) mapPixelBuffer(buffer buffer) unsafe.Pointer {
 
 func (c *context) unmapPixelBuffer(buffer buffer, t textureNative, width, height int) {
 	_ = c.t.Call(func() error {
-		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
 		gl.UnmapBuffer(gl.PIXEL_UNPACK_BUFFER)
 		return nil
 	})
