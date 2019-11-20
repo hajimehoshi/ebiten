@@ -21,7 +21,6 @@ package opengl
 
 import (
 	"reflect"
-	"runtime"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/graphics"
@@ -32,13 +31,14 @@ const canUsePBO = true
 type pboState struct {
 	image     *Image
 	mappedPBO unsafe.Pointer
+	mapped    []byte
 }
 
 var thePBOState pboState
 
 func (s *pboState) mapPBO(img *Image) {
+	w, h := graphics.InternalImageSize(img.width), graphics.InternalImageSize(img.height)
 	if img.pbo == *new(buffer) {
-		w, h := graphics.InternalImageSize(img.width), graphics.InternalImageSize(img.height)
 		img.pbo = img.driver.context.newPixelBufferObject(w, h)
 	}
 	s.image = img
@@ -47,24 +47,22 @@ func (s *pboState) mapPBO(img *Image) {
 	if s.mappedPBO == nil {
 		panic("opengl: mapPixelBuffer failed")
 	}
-}
-
-func (s *pboState) draw(pix []byte, x, y, width, height int) {
-	w, h := graphics.InternalImageSize(s.image.width), graphics.InternalImageSize(s.image.height)
 
 	var mapped []byte
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mapped))
 	sh.Data = uintptr(s.mappedPBO)
 	sh.Len = 4 * w * h
 	sh.Cap = 4 * w * h
+	s.mapped = mapped
+}
 
+func (s *pboState) draw(pix []byte, x, y, width, height int) {
+	w := graphics.InternalImageSize(s.image.width)
 	stride := 4 * w
 	offset := 4 * (y*w + x)
 	for j := 0; j < height; j++ {
-		copy(mapped[offset+stride*j:offset+stride*j+4*width], pix[4*width*j:4*width*(j+1)])
+		copy(s.mapped[offset+stride*j:offset+stride*j+4*width], pix[4*width*j:4*width*(j+1)])
 	}
-
-	runtime.KeepAlive(mapped)
 }
 
 func (s *pboState) unmapPBO() {
@@ -74,4 +72,5 @@ func (s *pboState) unmapPBO() {
 
 	s.image = nil
 	s.mappedPBO = nil
+	s.mapped = nil
 }
