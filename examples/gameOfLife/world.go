@@ -121,7 +121,7 @@ func renderCharacter(x, y int, isAlive bool, background *ebiten.Image) {
 		ebitenutil.DrawRect(
 			background,
 			float64(x), float64(y),
-			32, 32,
+			1, 1,
 			color.RGBA{255, 137, 0, 250},
 		)
 	}
