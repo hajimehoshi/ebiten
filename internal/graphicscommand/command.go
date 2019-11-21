@@ -434,21 +434,17 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst, src *Image,
 
 // replacePixelsCommand represents a command to replace pixels of an image.
 type replacePixelsCommand struct {
-	dst    *Image
-	pixels []byte
-	x      int
-	y      int
-	width  int
-	height int
+	dst  *Image
+	args []*driver.ReplacePixelsArgs
 }
 
 func (c *replacePixelsCommand) String() string {
-	return fmt.Sprintf("replace-pixels: dst: %d, x: %d, y: %d, width: %d, height: %d", c.dst.id, c.x, c.y, c.width, c.height)
+	return fmt.Sprintf("replace-pixels: dst: %d, len(args): %d", c.dst.id, len(c.args))
 }
 
 // Exec executes the replacePixelsCommand.
 func (c *replacePixelsCommand) Exec(indexOffset int) error {
-	c.dst.image.ReplacePixels(c.pixels, c.x, c.y, c.width, c.height)
+	c.dst.image.ReplacePixels(c.args)
 	return nil
 }
 

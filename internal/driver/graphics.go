@@ -44,7 +44,15 @@ type Image interface {
 	Pixels() ([]byte, error)
 	SetAsDestination()
 	SetAsSource()
-	ReplacePixels(pixels []byte, x, y, width, height int)
+	ReplacePixels(args []*ReplacePixelsArgs)
+}
+
+type ReplacePixelsArgs struct {
+	Pixels []byte
+	X      int
+	Y      int
+	Width  int
+	Height int
 }
 
 type VDirection int

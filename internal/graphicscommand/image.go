@@ -45,6 +45,8 @@ type Image struct {
 	screen         bool
 	id             int
 
+	bufferedRP []*driver.ReplacePixelsArgs
+
 	lastCommand lastCommand
 }
 
@@ -88,6 +90,18 @@ func NewScreenFramebufferImage(width, height int) *Image {
 	}
 	theCommandQueue.Enqueue(c)
 	return i
+}
+
+func (i *Image) resolveBufferedReplacePixels() {
+	if len(i.bufferedRP) == 0 {
+		return
+	}
+	c := &replacePixelsCommand{
+		dst:  i,
+		args: i.bufferedRP,
+	}
+	theCommandQueue.Enqueue(c)
+	i.bufferedRP = nil
 }
 
 func (i *Image) Dispose() {
@@ -134,6 +148,9 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		}
 	}
 
+	src.resolveBufferedReplacePixels()
+	i.resolveBufferedReplacePixels()
+
 	theCommandQueue.EnqueueDrawTrianglesCommand(i, src, vertices, indices, clr, mode, filter, address)
 
 	if i.lastCommand == lastCommandNone && !i.screen {
@@ -146,6 +163,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 // Pixels returns the image's pixels.
 // Pixels might return nil when OpenGL error happens.
 func (i *Image) Pixels() []byte {
+	i.resolveBufferedReplacePixels()
 	c := &pixelsCommand{
 		result: nil,
 		img:    i,
@@ -162,15 +180,13 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 			panic("graphicscommand: ReplacePixels for a part after DrawTriangles is forbidden")
 		}
 	}
-	c := &replacePixelsCommand{
-		dst:    i,
-		pixels: pixels,
-		x:      x,
-		y:      y,
-		width:  width,
-		height: height,
-	}
-	theCommandQueue.Enqueue(c)
+	i.bufferedRP = append(i.bufferedRP, &driver.ReplacePixelsArgs{
+		Pixels: pixels,
+		X:      x,
+		Y:      y,
+		Width:  width,
+		Height: height,
+	})
 	i.lastCommand = lastCommandReplacePixels
 }
 

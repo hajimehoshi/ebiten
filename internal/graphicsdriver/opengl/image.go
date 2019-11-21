@@ -15,16 +15,9 @@
 package opengl
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
-
-type bufferedRP struct {
-	pixels []byte
-	x      int
-	y      int
-	width  int
-	height int
-}
 
 type Image struct {
 	driver        *Driver
@@ -34,8 +27,6 @@ type Image struct {
 	width         int
 	height        int
 	screen        bool
-
-	bufferedRPs []bufferedRP
 }
 
 func (i *Image) IsInvalidated() bool {
@@ -55,7 +46,6 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) SetAsDestination() {
-	i.resolveReplacePixels()
 	i.driver.state.destination = i
 }
 
@@ -68,7 +58,6 @@ func (i *Image) setViewport() error {
 }
 
 func (i *Image) Pixels() ([]byte, error) {
-	i.resolveReplacePixels()
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
@@ -101,33 +90,13 @@ func (i *Image) ensureFramebuffer() error {
 	return nil
 }
 
-func (i *Image) ReplacePixels(p []byte, x, y, width, height int) {
+func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	if i.screen {
 		panic("opengl: ReplacePixels cannot be called on the screen, that doesn't have a texture")
 	}
-
-	i.bufferedRPs = append(i.bufferedRPs, bufferedRP{
-		pixels: p,
-		x:      x,
-		y:      y,
-		width:  width,
-		height: height,
-	})
-}
-
-func (i *Image) SetAsSource() {
-	i.resolveReplacePixels()
-	i.driver.state.source = i
-}
-
-func (i *Image) resolveReplacePixels() {
-	if len(i.bufferedRPs) == 0 {
+	if len(args) == 0 {
 		return
 	}
-
-	defer func() {
-		i.bufferedRPs = nil
-	}()
 
 	// glFlush is necessary on Android.
 	// glTexSubImage2D didn't work without this hack at least on Nexus 5x and NuAns NEO [Reloaded] (#211).
@@ -137,15 +106,19 @@ func (i *Image) resolveReplacePixels() {
 	i.driver.drawCalled = false
 
 	if !canUsePBO {
-		for _, rp := range i.bufferedRPs {
-			i.driver.context.texSubImage2D(i.textureNative, rp.pixels, rp.x, rp.y, rp.width, rp.height)
+		for _, a := range args {
+			i.driver.context.texSubImage2D(i.textureNative, a.Pixels, a.X, a.Y, a.Width, a.Height)
 		}
 		return
 	}
 
 	thePBOState.mapPBO(i)
-	for _, rp := range i.bufferedRPs {
-		thePBOState.draw(rp.pixels, rp.x, rp.y, rp.width, rp.height)
+	for _, a := range args {
+		thePBOState.draw(a.Pixels, a.X, a.Y, a.Width, a.Height)
 	}
 	thePBOState.unmapPBO()
+}
+
+func (i *Image) SetAsSource() {
+	i.driver.state.source = i
 }

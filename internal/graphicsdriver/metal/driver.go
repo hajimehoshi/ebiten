@@ -809,7 +809,7 @@ func (i *Image) SetAsSource() {
 	})
 }
 
-func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
+func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	d := i.driver
 	if d.drawCalled {
 		d.flush(true, false)
@@ -817,10 +817,12 @@ func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
 	}
 
 	d.t.Call(func() error {
-		i.texture.ReplaceRegion(mtl.Region{
-			Origin: mtl.Origin{X: x, Y: y, Z: 0},
-			Size:   mtl.Size{Width: width, Height: height, Depth: 1},
-		}, 0, unsafe.Pointer(&pixels[0]), 4*width)
+		for _, a := range args {
+			i.texture.ReplaceRegion(mtl.Region{
+				Origin: mtl.Origin{X: a.X, Y: a.Y, Z: 0},
+				Size:   mtl.Size{Width: a.Width, Height: a.Height, Depth: 1},
+			}, 0, unsafe.Pointer(&a.Pixels[0]), 4*a.Width)
+		}
 		return nil
 	})
 }
