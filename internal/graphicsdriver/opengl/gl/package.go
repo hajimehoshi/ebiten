@@ -47,6 +47,7 @@ const (
 	MAX_TEXTURE_SIZE     = 0x0D33
 	NEAREST              = 0x2600
 	NO_ERROR             = 0
+	READ_WRITE           = 0x88BA
 	RGBA                 = 0x1908
 	TEXTURE_2D           = 0x0DE1
 	TEXTURE_MAG_FILTER   = 0x2800

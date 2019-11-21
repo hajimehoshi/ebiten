@@ -529,7 +529,7 @@ func (c *context) mapPixelBuffer(buffer buffer) unsafe.Pointer {
 	var ptr unsafe.Pointer
 	_ = c.t.Call(func() error {
 		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.WRITE_ONLY)
+		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.READ_WRITE)
 		return nil
 	})
 	return ptr
