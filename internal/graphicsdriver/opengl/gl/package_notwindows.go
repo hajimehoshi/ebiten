@@ -305,8 +305,8 @@ package gl
 // static void  glowLinkProgram(GPLINKPROGRAM fnptr, GLuint  program) {
 //   (*fnptr)(program);
 // }
-// static void * glowMapBuffer(GPMAPBUFFER fnptr, GLenum  target, GLenum  access) {
-//   return (*fnptr)(target, access);
+// static uintptr_t glowMapBuffer(GPMAPBUFFER fnptr, GLenum  target, GLenum  access) {
+//   return (uintptr_t)(*fnptr)(target, access);
 // }
 // static void  glowPixelStorei(GPPIXELSTOREI fnptr, GLenum  pname, GLint  param) {
 //   (*fnptr)(pname, param);
@@ -628,7 +628,7 @@ func LinkProgram(program uint32) {
 
 func MapBuffer(target uint32, access uint32) uintptr {
 	ret := C.glowMapBuffer(gpMapBuffer, (C.GLenum)(target), (C.GLenum)(access))
-	return ret
+	return uintptr(ret)
 }
 
 func PixelStorei(pname uint32, param int32) {
