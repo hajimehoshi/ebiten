@@ -42,7 +42,7 @@ func (s *pboState) mapPBO(img *Image) {
 		img.pbo = img.driver.context.newPixelBufferObject(w, h)
 	}
 	s.image = img
-	s.mappedPBO = img.driver.context.mapPixelBuffer(img.pbo)
+	s.mappedPBO = img.driver.context.mapPixelBuffer(img.pbo, img.textureNative)
 
 	if s.mappedPBO == nil {
 		panic("opengl: mapPixelBuffer failed")
@@ -68,7 +68,7 @@ func (s *pboState) draw(pix []byte, x, y, width, height int) {
 func (s *pboState) unmapPBO() {
 	i := s.image
 	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
-	i.driver.context.unmapPixelBuffer(i.pbo, i.textureNative, w, h)
+	i.driver.context.unmapPixelBuffer(i.pbo, w, h)
 
 	s.image = nil
 	s.mappedPBO = nil
