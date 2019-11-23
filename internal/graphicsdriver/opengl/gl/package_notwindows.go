@@ -144,7 +144,7 @@ package gl
 // typedef GLboolean  (APIENTRYP GPISPROGRAM)(GLuint  program);
 // typedef GLboolean  (APIENTRYP GPISTEXTURE)(GLuint  texture);
 // typedef void  (APIENTRYP GPLINKPROGRAM)(GLuint  program);
-// typedef void * (APIENTRYP GPMAPBUFFER)(GLenum  target, GLenum  access);
+// typedef uintptr_t (APIENTRYP GPMAPBUFFER)(GLenum  target, GLenum  access);
 // typedef void  (APIENTRYP GPPIXELSTOREI)(GLenum  pname, GLint  param);
 // typedef void  (APIENTRYP GPREADPIXELS)(GLint  x, GLint  y, GLsizei  width, GLsizei  height, GLenum  format, GLenum  type, void * pixels);
 // typedef void  (APIENTRYP GPSHADERSOURCE)(GLuint  shader, GLsizei  count, const GLchar *const* string, const GLint * length);
