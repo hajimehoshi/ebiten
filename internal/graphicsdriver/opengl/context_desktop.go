@@ -529,7 +529,7 @@ func (c *context) mapPixelBuffer(buffer buffer, t textureNative) uintptr {
 	var ptr uintptr
 	_ = c.t.Call(func() error {
 		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-		// Even though only the part of the buffer is updated, that's fine.
+		// Even though the buffer is partly updated, GL_WRITE_ONLY is fine.
 		// https://stackoverflow.com/questions/30248594/write-only-glmapbuffer-what-if-i-dont-write-it-all
 		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.WRITE_ONLY)
 		return nil
