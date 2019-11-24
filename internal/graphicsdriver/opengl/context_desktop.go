@@ -540,7 +540,7 @@ func (c *context) mapPixelBuffer(buffer buffer, t textureNative) uintptr {
 func (c *context) unmapPixelBuffer(buffer buffer, width, height int) {
 	_ = c.t.Call(func() error {
 		gl.UnmapBuffer(gl.PIXEL_UNPACK_BUFFER)
-		gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
+		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
 		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
 		return nil
 	})
