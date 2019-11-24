@@ -22,8 +22,6 @@ package opengl
 import (
 	"reflect"
 	"unsafe"
-
-	"github.com/hajimehoshi/ebiten/internal/graphics"
 )
 
 const canUsePBO = true
@@ -37,7 +35,7 @@ type pboState struct {
 var thePBOState pboState
 
 func (s *pboState) mapPBO(img *Image) {
-	w, h := graphics.InternalImageSize(img.width), graphics.InternalImageSize(img.height)
+	w, h := img.width, img.height
 	if img.pbo == *new(buffer) {
 		img.pbo = img.driver.context.newPixelBufferObject(w, h)
 	}
@@ -57,7 +55,7 @@ func (s *pboState) mapPBO(img *Image) {
 }
 
 func (s *pboState) draw(pix []byte, x, y, width, height int) {
-	w := graphics.InternalImageSize(s.image.width)
+	w := s.image.width
 	stride := 4 * w
 	offset := 4 * (y*w + x)
 	for j := 0; j < height; j++ {
@@ -67,8 +65,7 @@ func (s *pboState) draw(pix []byte, x, y, width, height int) {
 
 func (s *pboState) unmapPBO() {
 	i := s.image
-	w, h := graphics.InternalImageSize(i.width), graphics.InternalImageSize(i.height)
-	i.driver.context.unmapPixelBuffer(i.pbo, w, h)
+	i.driver.context.unmapPixelBuffer(i.pbo, i.width, i.height)
 
 	s.image = nil
 	s.mappedPBO = 0
