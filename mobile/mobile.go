@@ -24,21 +24,7 @@ import (
 )
 
 // Game defines necessary functions for a mobile game.
-type Game interface {
-	// Update updates a game by one frame.
-	Update(*ebiten.Image) error
-
-	// Layout accepts a native view size in DP (device-independent pixels) and returns the game's logical screen
-	// size.
-	//
-	// The screen scale is automatically adjusted to fit the view.
-	//
-	// Layout is called at an initialization and whenever the view size is changed.
-	//
-	// You can return a fixed screen size if you don't care, or you can also return a calculated screen size
-	// adjusted with the given view size.
-	Layout(viewWidth, viewHeight int) (screenWidth, screenHeight int)
-}
+type Game = ebiten.Game
 
 // SetGame sets a mobile game.
 //

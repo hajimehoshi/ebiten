@@ -24,6 +24,25 @@ import (
 
 var _ = __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__
 
+// Game defines necessary functions for a game.
+//
+// Note: This interface is not used anywhere yet.
+type Game interface {
+	// Update updates a game by one frame.
+	Update(*Image) error
+
+	// Layout accepts a native outside size in DP (device-independent pixels) and returns the game's logical
+	// screen size.
+	//
+	// The screen scale is automatically adjusted to fit the outside.
+	//
+	// Layout is called at an initialization and whenever the outside size is changed.
+	//
+	// You can return a fixed screen size if you don't care, or you can also return a calculated screen size
+	// adjusted with the given outside size.
+	Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int)
+}
+
 // TPS represents a default ticks per second, that represents how many times game updating happens in a second.
 const DefaultTPS = 60
 
