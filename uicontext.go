@@ -73,8 +73,7 @@ func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) 
 }
 
 func (c *uiContext) Update(afterFrameUpdate func()) error {
-	tps := int(MaxTPS())
-	updateCount := clock.Update(tps)
+	updateCount := clock.Update(MaxTPS())
 
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
