@@ -22,7 +22,8 @@ import (
 )
 
 var (
-	debugPrintTextImage *ebiten.Image
+	debugPrintTextImage     *ebiten.Image
+	debugPrintTextSubImages = map[rune]*ebiten.Image{}
 )
 
 func init() {
@@ -66,13 +67,18 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int, shadow bool) {
 			y += ch
 			continue
 		}
-		n := w / cw
-		sx := (int(c) % n) * cw
-		sy := (int(c) / n) * ch
+		s, ok := debugPrintTextSubImages[c]
+		if !ok {
+			n := w / cw
+			sx := (int(c) % n) * cw
+			sy := (int(c) / n) * ch
+			s = debugPrintTextImage.SubImage(image.Rect(sx, sy, sx+cw, sy+ch)).(*ebiten.Image)
+			debugPrintTextSubImages[c] = s
+		}
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(x), float64(y))
 		op.GeoM.Translate(float64(ox+1), float64(oy))
-		_ = rt.DrawImage(debugPrintTextImage.SubImage(image.Rect(sx, sy, sx+cw, sy+ch)).(*ebiten.Image), op)
+		_ = rt.DrawImage(s, op)
 		x += cw
 	}
 }
