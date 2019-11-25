@@ -17,7 +17,7 @@
 #include "ns.h"
 #import <Cocoa/Cocoa.h>
 
-void *Window_ContentView(uintptr_t window) {
+void *Window_ContentView(void *window) {
   return ((NSWindow *)window).contentView;
 }
 

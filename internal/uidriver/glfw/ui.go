@@ -27,6 +27,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -101,7 +102,7 @@ func init() {
 	if err := initialize(); err != nil {
 		panic(err)
 	}
-	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.MonitorEvent) {
+	glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
 		cacheMonitors()
 	})
 	cacheMonitors()
@@ -692,7 +693,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		return err
 	}
 
-	var w uintptr
+	var w unsafe.Pointer
 	_ = u.t.Call(func() error {
 		w = u.nativeWindow()
 		return nil

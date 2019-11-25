@@ -19,15 +19,15 @@ import (
 )
 
 type (
-	Action       int
-	ErrorCode    int
-	Hint         int
-	InputMode    int
-	Joystick     int
-	Key          int
-	ModifierKey  int
-	MouseButton  int
-	MonitorEvent int
+	Action          int
+	ErrorCode       int
+	Hint            int
+	InputMode       int
+	Joystick        int
+	Key             int
+	ModifierKey     int
+	MouseButton     int
+	PeripheralEvent int
 )
 
 const (

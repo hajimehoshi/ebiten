@@ -23,7 +23,7 @@ void *MakeMetalLayer() {
   // TODO: Enable colorspace on iOS: this will be available as of iOS 13.0.
 #if !TARGET_OS_IPHONE
   CGColorSpaceRef colorspace =
-    CGColorSpaceCreateWithName(kCGColorSpaceDisplayP3);
+      CGColorSpaceCreateWithName(kCGColorSpaceDisplayP3);
   layer.colorspace = colorspace;
   CGColorSpaceRelease(colorspace);
 #endif

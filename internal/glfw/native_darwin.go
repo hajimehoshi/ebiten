@@ -14,6 +14,10 @@
 
 package glfw
 
-func (w *Window) GetCocoaWindow() uintptr {
+import (
+	"unsafe"
+)
+
+func (w *Window) GetCocoaWindow() unsafe.Pointer {
 	return w.w.GetCocoaWindow()
 }

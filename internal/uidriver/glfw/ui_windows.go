@@ -165,6 +165,6 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *UserInterface) nativeWindow() uintptr {
+func (u *UserInterface) nativeWindow() unsafe.Pointer {
 	return u.window.GetWin32Window()
 }

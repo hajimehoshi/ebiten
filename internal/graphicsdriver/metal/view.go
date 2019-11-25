@@ -18,13 +18,14 @@ package metal
 
 import (
 	"sync"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 )
 
 type view struct {
-	window uintptr
+	window unsafe.Pointer
 	uiview uintptr
 
 	device mtl.Device

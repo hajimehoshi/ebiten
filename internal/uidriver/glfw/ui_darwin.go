@@ -22,7 +22,7 @@ package glfw
 //
 // #import <AppKit/AppKit.h>
 //
-// static void currentMonitorPos(uintptr_t windowPtr, int* x, int* y) {
+// static void currentMonitorPos(void* windowPtr, int* x, int* y) {
 //   NSScreen* screen = [NSScreen mainScreen];
 //   if (windowPtr) {
 //     NSWindow* window = (NSWindow*)windowPtr;
@@ -42,6 +42,8 @@ package glfw
 import "C"
 
 import (
+	"unsafe"
+
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
@@ -58,7 +60,7 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	y := C.int(0)
 	// Note: [NSApp mainWindow] is nil when it doesn't have its border. Use u.window here.
 	win := u.window.GetCocoaWindow()
-	C.currentMonitorPos(C.uintptr_t(win), &x, &y)
+	C.currentMonitorPos(win, &x, &y)
 	for _, m := range glfw.GetMonitors() {
 		mx, my := m.GetPos()
 		if int(x) == mx && int(y) == my {
@@ -68,6 +70,6 @@ func (u *UserInterface) currentMonitorFromPosition() *glfw.Monitor {
 	return glfw.GetPrimaryMonitor()
 }
 
-func (u *UserInterface) nativeWindow() uintptr {
+func (u *UserInterface) nativeWindow() unsafe.Pointer {
 	return u.window.GetCocoaWindow()
 }

@@ -14,8 +14,12 @@
 
 package glfw
 
-func (w *Window) GetWin32Window() uintptr {
+import (
+	"unsafe"
+)
+
+func (w *Window) GetWin32Window() unsafe.Pointer {
 	r := glfwDLL.call("glfwGetWin32Window", w.w)
 	panicError()
-	return r
+	return unsafe.Pointer(r)
 }

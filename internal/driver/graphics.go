@@ -15,6 +15,8 @@
 package driver
 
 import (
+	"unsafe"
+
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
@@ -23,7 +25,7 @@ type Graphics interface {
 	SetThread(thread *thread.Thread)
 	Begin()
 	End()
-	SetWindow(window uintptr)
+	SetWindow(window unsafe.Pointer)
 	SetVertices(vertices []float32, indices []uint16)
 	Flush()
 	NewImage(width, height int) (Image, error)

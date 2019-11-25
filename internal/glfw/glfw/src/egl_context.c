@@ -1,8 +1,8 @@
 //========================================================================
-// GLFW 3.2 EGL - www.glfw.org
+// GLFW 3.3 EGL - www.glfw.org
 //------------------------------------------------------------------------
 // Copyright (c) 2002-2006 Marcus Geelnard
-// Copyright (c) 2006-2016 Camilla Berglund <elmindreda@glfw.org>
+// Copyright (c) 2006-2019 Camilla Löwy <elmindreda@glfw.org>
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -23,6 +23,8 @@
 // 3. This notice may not be removed or altered from any source
 //    distribution.
 //
+//========================================================================
+// Please use C89 style variable declarations in this file because VS 2010
 //========================================================================
 
 #include "internal.h"
@@ -113,7 +115,7 @@ static GLFWbool chooseEGLConfig(const _GLFWctxconfig* ctxconfig,
         _GLFWfbconfig* u = usableConfigs + usableCount;
 
         // Only consider RGB(A) EGLConfigs
-        if (!(getEGLConfigAttrib(n, EGL_COLOR_BUFFER_TYPE) & EGL_RGB_BUFFER))
+        if (getEGLConfigAttrib(n, EGL_COLOR_BUFFER_TYPE) != EGL_RGB_BUFFER)
             continue;
 
         // Only consider window EGLConfigs
@@ -121,9 +123,25 @@ static GLFWbool chooseEGLConfig(const _GLFWctxconfig* ctxconfig,
             continue;
 
 #if defined(_GLFW_X11)
+        XVisualInfo vi = {0};
+
         // Only consider EGLConfigs with associated Visuals
-        if (!getEGLConfigAttrib(n, EGL_NATIVE_VISUAL_ID))
+        vi.visualid = getEGLConfigAttrib(n, EGL_NATIVE_VISUAL_ID);
+        if (!vi.visualid)
             continue;
+
+        if (desired->transparent)
+        {
+            int count;
+            XVisualInfo* vis = XGetVisualInfo(_glfw.x11.display,
+                                              VisualIDMask, &vi,
+                                              &count);
+            if (vis)
+            {
+                u->transparent = _glfwIsVisualTransparentX11(vis[0].visual);
+                XFree(vis);
+            }
+        }
 #endif // _GLFW_X11
 
         if (ctxconfig->client == GLFW_OPENGL_ES_API)
@@ -199,12 +217,12 @@ static void makeContextCurrentEGL(_GLFWwindow* window)
         }
     }
 
-    _glfwPlatformSetCurrentContext(window);
+    _glfwPlatformSetTls(&_glfw.contextSlot, window);
 }
 
 static void swapBuffersEGL(_GLFWwindow* window)
 {
-    if (window != _glfwPlatformGetCurrentContext())
+    if (window != _glfwPlatformGetTls(&_glfw.contextSlot))
     {
         _glfwInputError(GLFW_PLATFORM_ERROR,
                         "EGL: The context must be current on the calling thread when swapping buffers");
@@ -233,7 +251,7 @@ static int extensionSupportedEGL(const char* extension)
 
 static GLFWglproc getProcAddressEGL(const char* procname)
 {
-    _GLFWwindow* window = _glfwPlatformGetCurrentContext();
+    _GLFWwindow* window = _glfwPlatformGetTls(&_glfw.contextSlot);
 
     if (window->context.egl.client)
     {
@@ -286,11 +304,15 @@ GLFWbool _glfwInitEGL(void)
     int i;
     const char* sonames[] =
     {
-#if defined(_GLFW_WIN32)
+#if defined(_GLFW_EGL_LIBRARY)
+        _GLFW_EGL_LIBRARY,
+#elif defined(_GLFW_WIN32)
         "libEGL.dll",
         "EGL.dll",
 #elif defined(_GLFW_COCOA)
         "libEGL.dylib",
+#elif defined(__CYGWIN__)
+        "libEGL-1.so",
 #else
         "libEGL.so.1",
 #endif
@@ -315,37 +337,37 @@ GLFWbool _glfwInitEGL(void)
 
     _glfw.egl.prefix = (strncmp(sonames[i], "lib", 3) == 0);
 
-    _glfw.egl.GetConfigAttrib = (PFNEGLGETCONFIGATTRIBPROC)
+    _glfw.egl.GetConfigAttrib = (PFN_eglGetConfigAttrib)
         _glfw_dlsym(_glfw.egl.handle, "eglGetConfigAttrib");
-    _glfw.egl.GetConfigs = (PFNEGLGETCONFIGSPROC)
+    _glfw.egl.GetConfigs = (PFN_eglGetConfigs)
         _glfw_dlsym(_glfw.egl.handle, "eglGetConfigs");
-    _glfw.egl.GetDisplay = (PFNEGLGETDISPLAYPROC)
+    _glfw.egl.GetDisplay = (PFN_eglGetDisplay)
         _glfw_dlsym(_glfw.egl.handle, "eglGetDisplay");
-    _glfw.egl.GetError = (PFNEGLGETERRORPROC)
+    _glfw.egl.GetError = (PFN_eglGetError)
         _glfw_dlsym(_glfw.egl.handle, "eglGetError");
-    _glfw.egl.Initialize = (PFNEGLINITIALIZEPROC)
+    _glfw.egl.Initialize = (PFN_eglInitialize)
         _glfw_dlsym(_glfw.egl.handle, "eglInitialize");
-    _glfw.egl.Terminate = (PFNEGLTERMINATEPROC)
+    _glfw.egl.Terminate = (PFN_eglTerminate)
         _glfw_dlsym(_glfw.egl.handle, "eglTerminate");
-    _glfw.egl.BindAPI = (PFNEGLBINDAPIPROC)
+    _glfw.egl.BindAPI = (PFN_eglBindAPI)
         _glfw_dlsym(_glfw.egl.handle, "eglBindAPI");
-    _glfw.egl.CreateContext = (PFNEGLCREATECONTEXTPROC)
+    _glfw.egl.CreateContext = (PFN_eglCreateContext)
         _glfw_dlsym(_glfw.egl.handle, "eglCreateContext");
-    _glfw.egl.DestroySurface = (PFNEGLDESTROYSURFACEPROC)
+    _glfw.egl.DestroySurface = (PFN_eglDestroySurface)
         _glfw_dlsym(_glfw.egl.handle, "eglDestroySurface");
-    _glfw.egl.DestroyContext = (PFNEGLDESTROYCONTEXTPROC)
+    _glfw.egl.DestroyContext = (PFN_eglDestroyContext)
         _glfw_dlsym(_glfw.egl.handle, "eglDestroyContext");
-    _glfw.egl.CreateWindowSurface = (PFNEGLCREATEWINDOWSURFACEPROC)
+    _glfw.egl.CreateWindowSurface = (PFN_eglCreateWindowSurface)
         _glfw_dlsym(_glfw.egl.handle, "eglCreateWindowSurface");
-    _glfw.egl.MakeCurrent = (PFNEGLMAKECURRENTPROC)
+    _glfw.egl.MakeCurrent = (PFN_eglMakeCurrent)
         _glfw_dlsym(_glfw.egl.handle, "eglMakeCurrent");
-    _glfw.egl.SwapBuffers = (PFNEGLSWAPBUFFERSPROC)
+    _glfw.egl.SwapBuffers = (PFN_eglSwapBuffers)
         _glfw_dlsym(_glfw.egl.handle, "eglSwapBuffers");
-    _glfw.egl.SwapInterval = (PFNEGLSWAPINTERVALPROC)
+    _glfw.egl.SwapInterval = (PFN_eglSwapInterval)
         _glfw_dlsym(_glfw.egl.handle, "eglSwapInterval");
-    _glfw.egl.QueryString = (PFNEGLQUERYSTRINGPROC)
+    _glfw.egl.QueryString = (PFN_eglQueryString)
         _glfw_dlsym(_glfw.egl.handle, "eglQueryString");
-    _glfw.egl.GetProcAddress = (PFNEGLGETPROCADDRESSPROC)
+    _glfw.egl.GetProcAddress = (PFN_eglGetProcAddress)
         _glfw_dlsym(_glfw.egl.handle, "eglGetProcAddress");
 
     if (!_glfw.egl.GetConfigAttrib ||
@@ -399,6 +421,10 @@ GLFWbool _glfwInitEGL(void)
         extensionSupportedEGL("EGL_KHR_create_context_no_error");
     _glfw.egl.KHR_gl_colorspace =
         extensionSupportedEGL("EGL_KHR_gl_colorspace");
+    _glfw.egl.KHR_get_all_proc_addresses =
+        extensionSupportedEGL("EGL_KHR_get_all_proc_addresses");
+    _glfw.egl.KHR_context_flush_control =
+        extensionSupportedEGL("EGL_KHR_context_flush_control");
 
     return GLFW_TRUE;
 }
@@ -420,11 +446,11 @@ void _glfwTerminateEGL(void)
     }
 }
 
-#define setEGLattrib(attribName, attribValue) \
+#define setAttrib(a, v) \
 { \
-    attribs[index++] = attribName; \
-    attribs[index++] = attribValue; \
-    assert((size_t) index < sizeof(attribs) / sizeof(attribs[0])); \
+    assert(((size_t) index + 1) < sizeof(attribs) / sizeof(attribs[0])); \
+    attribs[index++] = a; \
+    attribs[index++] = v; \
 }
 
 // Create the OpenGL or OpenGL ES context
@@ -436,6 +462,7 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
     EGLint attribs[40];
     EGLConfig config;
     EGLContext share = NULL;
+    int index = 0;
 
     if (!_glfw.egl.display)
     {
@@ -476,7 +503,7 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
 
     if (_glfw.egl.KHR_create_context)
     {
-        int index = 0, mask = 0, flags = 0;
+        int mask = 0, flags = 0;
 
         if (ctxconfig->client == GLFW_OPENGL_API)
         {
@@ -487,12 +514,6 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
                 mask |= EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR;
             else if (ctxconfig->profile == GLFW_OPENGL_COMPAT_PROFILE)
                 mask |= EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR;
-
-            if (_glfw.egl.KHR_create_context_no_error)
-            {
-                if (ctxconfig->noerror)
-                    flags |= EGL_CONTEXT_OPENGL_NO_ERROR_KHR;
-            }
         }
 
         if (ctxconfig->debug)
@@ -502,44 +523,57 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
         {
             if (ctxconfig->robustness == GLFW_NO_RESET_NOTIFICATION)
             {
-                setEGLattrib(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR,
-                             EGL_NO_RESET_NOTIFICATION_KHR);
+                setAttrib(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR,
+                          EGL_NO_RESET_NOTIFICATION_KHR);
             }
             else if (ctxconfig->robustness == GLFW_LOSE_CONTEXT_ON_RESET)
             {
-                setEGLattrib(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR,
-                             EGL_LOSE_CONTEXT_ON_RESET_KHR);
+                setAttrib(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR,
+                          EGL_LOSE_CONTEXT_ON_RESET_KHR);
             }
 
             flags |= EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR;
         }
 
+        if (ctxconfig->noerror)
+        {
+            if (_glfw.egl.KHR_create_context_no_error)
+                setAttrib(EGL_CONTEXT_OPENGL_NO_ERROR_KHR, GLFW_TRUE);
+        }
+
         if (ctxconfig->major != 1 || ctxconfig->minor != 0)
         {
-            setEGLattrib(EGL_CONTEXT_MAJOR_VERSION_KHR, ctxconfig->major);
-            setEGLattrib(EGL_CONTEXT_MINOR_VERSION_KHR, ctxconfig->minor);
+            setAttrib(EGL_CONTEXT_MAJOR_VERSION_KHR, ctxconfig->major);
+            setAttrib(EGL_CONTEXT_MINOR_VERSION_KHR, ctxconfig->minor);
         }
 
         if (mask)
-            setEGLattrib(EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, mask);
+            setAttrib(EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, mask);
 
         if (flags)
-            setEGLattrib(EGL_CONTEXT_FLAGS_KHR, flags);
-
-        setEGLattrib(EGL_NONE, EGL_NONE);
+            setAttrib(EGL_CONTEXT_FLAGS_KHR, flags);
     }
     else
     {
-        int index = 0;
-
         if (ctxconfig->client == GLFW_OPENGL_ES_API)
-            setEGLattrib(EGL_CONTEXT_CLIENT_VERSION, ctxconfig->major);
-
-        setEGLattrib(EGL_NONE, EGL_NONE);
+            setAttrib(EGL_CONTEXT_CLIENT_VERSION, ctxconfig->major);
     }
 
-    // Context release behaviors (GL_KHR_context_flush_control) are not yet
-    // supported on EGL but are not a hard constraint, so ignore and continue
+    if (_glfw.egl.KHR_context_flush_control)
+    {
+        if (ctxconfig->release == GLFW_RELEASE_BEHAVIOR_NONE)
+        {
+            setAttrib(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR,
+                      EGL_CONTEXT_RELEASE_BEHAVIOR_NONE_KHR);
+        }
+        else if (ctxconfig->release == GLFW_RELEASE_BEHAVIOR_FLUSH)
+        {
+            setAttrib(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR,
+                      EGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_KHR);
+        }
+    }
+
+    setAttrib(EGL_NONE, EGL_NONE);
 
     window->context.egl.handle = eglCreateContext(_glfw.egl.display,
                                                   config, share, attribs);
@@ -559,12 +593,10 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
         if (fbconfig->sRGB)
         {
             if (_glfw.egl.KHR_gl_colorspace)
-            {
-                setEGLattrib(EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_SRGB_KHR);
-            }
+                setAttrib(EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_SRGB_KHR);
         }
 
-        setEGLattrib(EGL_NONE, EGL_NONE);
+        setAttrib(EGL_NONE, EGL_NONE);
     }
 
     window->context.egl.surface =
@@ -583,12 +615,15 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
     window->context.egl.config = config;
 
     // Load the appropriate client library
+    if (!_glfw.egl.KHR_get_all_proc_addresses)
     {
         int i;
         const char** sonames;
         const char* es1sonames[] =
         {
-#if defined(_GLFW_WIN32)
+#if defined(_GLFW_GLESV1_LIBRARY)
+            _GLFW_GLESV1_LIBRARY,
+#elif defined(_GLFW_WIN32)
             "GLESv1_CM.dll",
             "libGLES_CM.dll",
 #elif defined(_GLFW_COCOA)
@@ -601,11 +636,15 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
         };
         const char* es2sonames[] =
         {
-#if defined(_GLFW_WIN32)
+#if defined(_GLFW_GLESV2_LIBRARY)
+            _GLFW_GLESV2_LIBRARY,
+#elif defined(_GLFW_WIN32)
             "GLESv2.dll",
             "libGLESv2.dll",
 #elif defined(_GLFW_COCOA)
             "libGLESv2.dylib",
+#elif defined(__CYGWIN__)
+            "libGLESv2-2.so",
 #else
             "libGLESv2.so.2",
 #endif
@@ -613,7 +652,9 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
         };
         const char* glsonames[] =
         {
-#if defined(_GLFW_WIN32)
+#if defined(_GLFW_OPENGL_LIBRARY)
+            _GLFW_OPENGL_LIBRARY,
+#elif defined(_GLFW_WIN32)
 #elif defined(_GLFW_COCOA)
 #else
             "libGL.so.1",
@@ -661,12 +702,13 @@ GLFWbool _glfwCreateContextEGL(_GLFWwindow* window,
     return GLFW_TRUE;
 }
 
-#undef setEGLattrib
+#undef setAttrib
 
 // Returns the Visual and depth of the chosen EGLConfig
 //
 #if defined(_GLFW_X11)
-GLFWbool _glfwChooseVisualEGL(const _GLFWctxconfig* ctxconfig,
+GLFWbool _glfwChooseVisualEGL(const _GLFWwndconfig* wndconfig,
+                              const _GLFWctxconfig* ctxconfig,
                               const _GLFWfbconfig* fbconfig,
                               Visual** visual, int* depth)
 {

@@ -250,12 +250,12 @@ func (i *Input) update(window *glfw.Window, scale float64) {
 	i.cursorY = int(y / scale)
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		i.gamepads[id].valid = false
-		if !glfw.JoystickPresent(id) {
+		if !id.Present() {
 			continue
 		}
 		i.gamepads[id].valid = true
 
-		axes32 := glfw.GetJoystickAxes(id)
+		axes32 := id.GetAxes()
 		i.gamepads[id].axisNum = len(axes32)
 		for a := 0; a < len(i.gamepads[id].axes); a++ {
 			if len(axes32) <= a {
@@ -264,7 +264,7 @@ func (i *Input) update(window *glfw.Window, scale float64) {
 			}
 			i.gamepads[id].axes[a] = float64(axes32[a])
 		}
-		buttons := glfw.GetJoystickButtons(id)
+		buttons := id.GetButtons()
 		i.gamepads[id].buttonNum = len(buttons)
 		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
 			if len(buttons) <= b {

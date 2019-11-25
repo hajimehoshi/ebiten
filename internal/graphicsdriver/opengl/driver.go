@@ -16,6 +16,7 @@ package opengl
 
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -49,7 +50,7 @@ func (d *Driver) End() {
 	// Do nothing.
 }
 
-func (d *Driver) SetWindow(window uintptr) {
+func (d *Driver) SetWindow(window unsafe.Pointer) {
 	// Do nothing.
 }
 
