@@ -32,6 +32,7 @@ import (
 )
 
 func run() error {
+	// TODO: Use go/packages with specifying build tags so that stdlibfuzz can be avoided.
 	dir := filepath.Join(runtime.GOROOT(), "src", "image", "png")
 
 	files, err := ioutil.ReadDir(dir)
