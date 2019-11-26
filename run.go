@@ -333,8 +333,6 @@ func IsRunnableInBackground() bool {
 // SetWindowDecorated works only on desktops.
 // SetWindowDecorated does nothing on other platforms.
 //
-// SetWindowDecorated panics if SetWindowDecorated is called after Run.
-//
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
 	uiDriver().SetWindowDecorated(decorated)

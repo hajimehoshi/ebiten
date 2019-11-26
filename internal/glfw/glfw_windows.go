@@ -114,6 +114,11 @@ func (w *Window) GetAttrib(attrib Hint) int {
 	return int(r)
 }
 
+func (w *Window) SetAttrib(attrib Hint, value int) {
+	glfwDLL.call("glfwSetWindowAttrib", w.w, uintptr(attrib), uintptr(value))
+	panicError()
+}
+
 func (w *Window) GetCursorPos() (x, y float64) {
 	glfwDLL.call("glfwGetCursorPos", w.w, uintptr(unsafe.Pointer(&x)), uintptr(unsafe.Pointer(&y)))
 	panicError()

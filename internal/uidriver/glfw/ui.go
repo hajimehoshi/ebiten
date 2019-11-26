@@ -386,6 +386,7 @@ func (u *UserInterface) SetWindowTitle(title string) {
 	if !u.isRunning() {
 		return
 	}
+	u.title = title
 	_ = u.t.Call(func() error {
 		u.window.SetTitle(title)
 		return nil
@@ -503,19 +504,19 @@ func (u *UserInterface) SetWindowDecorated(decorated bool) {
 		return
 	}
 
-	panic("ui: SetWindowDecorated can't be called after Run so far.")
+	_ = u.t.Call(func() error {
+		v := glfw.False
+		if decorated {
+			v = glfw.True
+		}
+		u.window.SetAttrib(glfw.Decorated, v)
 
-	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
-	// If SetAttrib exists, the implementation would be:
-	//
-	//     _ = u.t.Call(func() error {
-	//         v := glfw.False
-	//         if decorated {
-	//             v = glfw.True
-	//         }
-	//     })
-	//     u.window.SetAttrib(glfw.Decorated, v)
-	//     return nil
+		// The title can be lost when the decoration is gone. Recover this.
+		if v == glfw.True {
+			u.window.SetTitle(u.title)
+		}
+		return nil
+	})
 }
 
 func (u *UserInterface) IsWindowResizable() bool {
@@ -649,7 +650,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		// currentMonitor returns the monitor for the active window when possible and then the monitor for
 		// the foreground window as fallback. In the current situation, the current window is hidden and
 		// there is not the active window but the foreground window. After showing the current window, the
-		// current window will be the active window. Thus, currentMonitor retuls varies before and after
+		// current window will be the active window. Thus, currentMonitor result varies before and after
 		// showing the window.
 		m := u.currentMonitor()
 		mx, my := m.GetPos()

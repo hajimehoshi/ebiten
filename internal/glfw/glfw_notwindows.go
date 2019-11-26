@@ -94,6 +94,10 @@ func (w *Window) GetAttrib(attrib Hint) int {
 	return w.w.GetAttrib(glfw.Hint(attrib))
 }
 
+func (w *Window) SetAttrib(attrib Hint, value int) {
+	w.w.SetAttrib(glfw.Hint(attrib), value)
+}
+
 func (w *Window) GetCursorPos() (x, y float64) {
 	return w.w.GetCursorPos()
 }

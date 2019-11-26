@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -32,10 +31,6 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/inpututil"
-)
-
-var (
-	windowDecorated = flag.Bool("windowdecorated", true, "whether the window is decorated")
 )
 
 func init() {
@@ -81,6 +76,7 @@ func update(screen *ebiten.Image) error {
 	cursorVisible := ebiten.IsCursorVisible()
 	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.MaxTPS()
+	decorated := ebiten.IsWindowDecorated()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 		screenHeight += d
@@ -138,6 +134,9 @@ func update(screen *ebiten.Image) error {
 			panic("not reached")
 		}
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		decorated = !decorated
+	}
 
 	ebiten.SetScreenSize(screenWidth, screenHeight)
 	ebiten.SetScreenScale(screenScale)
@@ -146,6 +145,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetCursorVisible(cursorVisible)
 	ebiten.SetVsyncEnabled(vsyncEnabled)
 	ebiten.SetMaxTPS(tps)
+	ebiten.SetWindowDecorated(decorated)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -180,6 +180,7 @@ Press C key to switch the cursor visibility
 Press I key to change the window icon (only for desktops)
 Press V key to switch vsync
 Press T key to switch TPS (ticks per second)
+Press D key to switch the window decoration
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
@@ -189,8 +190,6 @@ Device Scale Factor: %0.2f`, x, y, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFP
 }
 
 func main() {
-	flag.Parse()
-
 	fmt.Printf("Device scale factor: %0.2f\n", ebiten.DeviceScaleFactor())
 	w, h := ebiten.ScreenSizeInFullscreen()
 	fmt.Printf("Screen size in fullscreen: %d, %d\n", w, h)
@@ -211,8 +210,6 @@ func main() {
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
-
-	ebiten.SetWindowDecorated(*windowDecorated)
 
 	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)
