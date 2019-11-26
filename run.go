@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"image"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/clock"
@@ -326,50 +325,6 @@ func IsRunnableInBackground() bool {
 	return uiDriver().IsRunnableInBackground()
 }
 
-// SetWindowDecorated sets the state if the window is decorated.
-//
-// The window is decorated by default.
-//
-// SetWindowDecorated works only on desktops.
-// SetWindowDecorated does nothing on other platforms.
-//
-// SetWindowDecorated is concurrent-safe.
-func SetWindowDecorated(decorated bool) {
-	uiDriver().SetWindowDecorated(decorated)
-}
-
-// IsWindowDecorated reports whether the window is decorated.
-//
-// IsWindowDecorated is concurrent-safe.
-func IsWindowDecorated() bool {
-	return uiDriver().IsWindowDecorated()
-}
-
-// setWindowResizable is unexported until specification is determined (#320)
-//
-// setWindowResizable sets the state if the window is resizable.
-//
-// The window is not resizable by default.
-//
-// When the window is resizable, the image size given via the update function can be changed by resizing.
-//
-// setWindowResizable works only on desktops.
-// setWindowResizable does nothing on other platforms.
-//
-// setWindowResizable panics if setWindowResizable is called after Run.
-//
-// setWindowResizable is concurrent-safe.
-func setWindowResizable(resizable bool) {
-	uiDriver().SetWindowResizable(resizable)
-}
-
-// IsWindowResizable reports whether the window is resizable.
-//
-// IsWindowResizable is concurrent-safe.
-func IsWindowResizable() bool {
-	return uiDriver().IsWindowResizable()
-}
-
 // SetRunnableInBackground sets the state if the game runs even in background.
 //
 // If the given value is true, the game runs in background e.g. when losing focus.
@@ -383,39 +338,6 @@ func IsWindowResizable() bool {
 // SetRunnableInBackground is concurrent-safe.
 func SetRunnableInBackground(runnableInBackground bool) {
 	uiDriver().SetRunnableInBackground(runnableInBackground)
-}
-
-// SetWindowTitle sets the title of the window.
-//
-// SetWindowTitle does nothing on mobiles.
-//
-// SetWindowTitle is concurrent-safe.
-func SetWindowTitle(title string) {
-	uiDriver().SetWindowTitle(title)
-}
-
-// SetWindowIcon sets the icon of the game window.
-//
-// If len(iconImages) is 0, SetWindowIcon reverts the icon to the default one.
-//
-// For desktops, see the document of glfwSetWindowIcon of GLFW 3.2:
-//
-//     This function sets the icon of the specified window.
-//     If passed an array of candidate images, those of or closest to the sizes
-//     desired by the system are selected.
-//     If no images are specified, the window reverts to its default icon.
-//
-//     The desired image sizes varies depending on platform and system settings.
-//     The selected images will be rescaled as needed.
-//     Good sizes include 16x16, 32x32 and 48x48.
-//
-// As macOS windows don't have icons, SetWindowIcon doesn't work on macOS.
-//
-// SetWindowIcon doesn't work on browsers or mobiles.
-//
-// SetWindowIcon is concurrent-safe.
-func SetWindowIcon(iconImages []image.Image) {
-	uiDriver().SetWindowIcon(iconImages)
 }
 
 // DeviceScaleFactor returns a device scale factor value of the current monitor which the window belongs to.
