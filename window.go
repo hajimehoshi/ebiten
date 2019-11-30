@@ -100,6 +100,8 @@ func SetWindowIcon(iconImages []image.Image) {
 // WindowPosition panics before Run is called.
 //
 // WindowPosition returns (0, 0) on browsers and mobiles.
+//
+// WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
 	return uiDriver().WindowPosition()
 }
@@ -109,6 +111,8 @@ func WindowPosition() (x, y int) {
 // SetWindowPosition works before and after Run is called.
 //
 // SetWindowPosition does nothing on browsers and mobiles.
+//
+// SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
 	uiDriver().SetWindowPosition(x, y)
 }

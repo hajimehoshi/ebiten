@@ -271,6 +271,29 @@ func (u *UserInterface) setInitIconImages(iconImages []image.Image) {
 	u.m.Unlock()
 }
 
+func (u *UserInterface) getInitWindowPosition() (int, int, bool) {
+	u.m.RLock()
+	defer u.m.RUnlock()
+	if u.initWindowPositionX != nil && u.initWindowPositionY != nil {
+		return *u.initWindowPositionX, *u.initWindowPositionY, true
+	}
+	return 0, 0, false
+}
+
+func (u *UserInterface) setInitWindowPosition(x, y int) {
+	u.m.Lock()
+	defer u.m.Unlock()
+
+	if u.initWindowPositionX == nil {
+		u.initWindowPositionX = new(int)
+	}
+	if u.initWindowPositionY == nil {
+		u.initWindowPositionY = new(int)
+	}
+	*u.initWindowPositionX = x
+	*u.initWindowPositionY = y
+}
+
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidth, u.initFullscreenHeight
@@ -668,11 +691,8 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		x, y := 0, 0
-		if u.initWindowPositionX != nil && u.initWindowPositionY != nil {
-			x = *u.initWindowPositionX
-			y = *u.initWindowPositionY
-		} else {
+		x, y, ok := u.getInitWindowPosition()
+		if !ok {
 			x = mx + (v.Width-w)/2
 			y = my + (v.Height-h)/3
 		}
@@ -1006,14 +1026,7 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 
 func (u *UserInterface) SetWindowPosition(x, y int) {
 	if !u.isRunning() {
-		if u.initWindowPositionX == nil {
-			u.initWindowPositionX = new(int)
-		}
-		if u.initWindowPositionY == nil {
-			u.initWindowPositionY = new(int)
-		}
-		*u.initWindowPositionX = x
-		*u.initWindowPositionY = y
+		u.setInitWindowPosition(x, y)
 		return
 	}
 	_ = u.t.Call(func() error {
