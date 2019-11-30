@@ -60,8 +60,8 @@ type UserInterface struct {
 	initCursorVisible    bool
 	initWindowDecorated  bool
 	initWindowResizable  bool
-	initWindowPositionX  *int
-	initWindowPositionY  *int
+	initWindowPositionX  int
+	initWindowPositionY  int
 	initIconImages       []image.Image
 
 	reqWidth  int
@@ -86,6 +86,8 @@ var (
 		origPosY:            invalidPos,
 		initCursorVisible:   true,
 		initWindowDecorated: true,
+		initWindowPositionX: invalidPos,
+		initWindowPositionY: invalidPos,
 		vsync:               true,
 	}
 )
@@ -271,27 +273,21 @@ func (u *UserInterface) setInitIconImages(iconImages []image.Image) {
 	u.m.Unlock()
 }
 
-func (u *UserInterface) getInitWindowPosition() (int, int, bool) {
+func (u *UserInterface) getInitWindowPosition() (int, int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	if u.initWindowPositionX != nil && u.initWindowPositionY != nil {
-		return *u.initWindowPositionX, *u.initWindowPositionY, true
+	if u.initWindowPositionX != invalidPos && u.initWindowPositionY != invalidPos {
+		return u.initWindowPositionX, u.initWindowPositionY
 	}
-	return 0, 0, false
+	return invalidPos, invalidPos
 }
 
 func (u *UserInterface) setInitWindowPosition(x, y int) {
 	u.m.Lock()
 	defer u.m.Unlock()
 
-	if u.initWindowPositionX == nil {
-		u.initWindowPositionX = new(int)
-	}
-	if u.initWindowPositionY == nil {
-		u.initWindowPositionY = new(int)
-	}
-	*u.initWindowPositionX = x
-	*u.initWindowPositionY = y
+	u.initWindowPositionX = x
+	u.initWindowPositionY = y
 }
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
@@ -691,8 +687,8 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		x, y, ok := u.getInitWindowPosition()
-		if !ok {
+		x, y := u.getInitWindowPosition()
+		if x == invalidPos || y == invalidPos {
 			x = mx + (v.Width-w)/2
 			y = my + (v.Height-h)/3
 		}
