@@ -451,6 +451,14 @@ func (u *UserInterface) WindowPosition() (int, int) {
 	return 0, 0
 }
 
+func (u *UserInterface) SetScreenTransparent(transparent bool) {
+	// Do nothing
+}
+
+func (u *UserInterface) IsScreenTransparent() bool {
+	return false
+}
+
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

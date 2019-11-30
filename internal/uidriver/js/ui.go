@@ -34,6 +34,7 @@ type UserInterface struct {
 	scale                float64
 	runnableInBackground bool
 	vsync                bool
+	running              bool
 
 	sizeChanged bool
 	contextLost bool
@@ -156,6 +157,9 @@ func (u *UserInterface) IsWindowResizable() bool {
 
 func (u *UserInterface) SetWindowResizable(decorated bool) {
 	// Do nothing
+	if u.running {
+		panic("js: SetWindowResizable can't be called after the main loop starts")
+	}
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
@@ -426,6 +430,7 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, cont
 	u.setScreenSize(width, height)
 	u.pseudoScale = scale
 	canvas.Call("focus")
+	u.running = true
 	ch := u.loop(context)
 	if runtime.GOARCH == "wasm" {
 		return <-ch
@@ -434,6 +439,9 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, cont
 	// On GopherJS, the main goroutine cannot be blocked due to the bug (gopherjs/gopherjs#826).
 	// Return immediately.
 	go func() {
+		defer func() {
+			u.running = false
+		}()
 		if err := <-ch; err != nil {
 			log.Fatal(err)
 		}
@@ -484,7 +492,28 @@ func (u *UserInterface) SetWindowPosition(x, y int) {
 }
 
 func (u *UserInterface) WindowPosition() (int, int) {
+	if !u.running {
+		panic("js: WindowPosition can't be called before the main loop starts")
+	}
 	return 0, 0
+}
+
+func (u *UserInterface) SetScreenTransparent(transparent bool) {
+	if u.running {
+		panic("js: SetScreenTransparent can't be called after the main loop starts")
+	}
+
+	bodyStyle := document.Get("body").Get("style")
+	if transparent {
+		bodyStyle.Set("backgroundColor", "transparent")
+	} else {
+		bodyStyle.Set("backgroundColor", "#000")
+	}
+}
+
+func (u *UserInterface) IsScreenTransparent() bool {
+	bodyStyle := document.Get("body").Get("style")
+	return bodyStyle.Get("backgroundColor").String() == "transparent"
 }
 
 func (u *UserInterface) Input() driver.Input {

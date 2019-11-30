@@ -46,6 +46,7 @@ type UI interface {
 	ScreenScale() float64
 	ScreenSizeInFullscreen() (int, int)
 	WindowPosition() (int, int)
+	IsScreenTransparent() bool
 
 	SetCursorVisible(visible bool)
 	SetFullscreen(fullscreen bool)
@@ -58,6 +59,7 @@ type UI interface {
 	SetWindowResizable(resizable bool)
 	SetWindowTitle(title string)
 	SetWindowPosition(x, y int)
+	SetScreenTransparent(transparent bool)
 
 	Input() Input
 }

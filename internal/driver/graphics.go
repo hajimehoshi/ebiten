@@ -26,6 +26,7 @@ type Graphics interface {
 	Begin()
 	End()
 	SetWindow(window unsafe.Pointer)
+	SetTransparent(transparent bool)
 	SetVertices(vertices []float32, indices []uint16)
 	Flush()
 	NewImage(width, height int) (Image, error)

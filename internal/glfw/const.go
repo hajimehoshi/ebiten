@@ -73,13 +73,14 @@ const (
 )
 
 const (
-	ClientAPI           = Hint(0x00022001)
-	ContextVersionMajor = Hint(0x00022002)
-	ContextVersionMinor = Hint(0x00022003)
-	Decorated           = Hint(0x00020005)
-	Focused             = Hint(0x00020001)
-	Resizable           = Hint(0x00020003)
-	Visible             = Hint(0x00020004)
+	ClientAPI              = Hint(0x00022001)
+	ContextVersionMajor    = Hint(0x00022002)
+	ContextVersionMinor    = Hint(0x00022003)
+	Decorated              = Hint(0x00020005)
+	Focused                = Hint(0x00020001)
+	Resizable              = Hint(0x00020003)
+	TransparentFramebuffer = Hint(0x0002000A)
+	Visible                = Hint(0x00020004)
 )
 
 const (

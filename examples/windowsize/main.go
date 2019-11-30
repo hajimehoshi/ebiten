@@ -37,7 +37,8 @@ import (
 )
 
 var (
-	flagWindowPosition = flag.String("windowposition", "", "window position (e.g., 100,200)")
+	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
+	flagScreenTransparent = flag.Bool("screentransparent", false, "screen transparent")
 )
 
 func init() {
@@ -86,6 +87,7 @@ func update(screen *ebiten.Image) error {
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
 	positionX, positionY := ebiten.WindowPosition()
+	transparent := ebiten.IsScreenTransparent()
 
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
 		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
@@ -182,7 +184,9 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
-	screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
+	if !transparent {
+		screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
+	}
 	w, h := gophersImage.Size()
 	w2, h2 := screen.Size()
 	op := &ebiten.DrawImageOptions{}
@@ -261,6 +265,7 @@ func main() {
 	if x, y, ok := parseWindowPosition(); ok {
 		ebiten.SetWindowPosition(x, y)
 	}
+	ebiten.SetScreenTransparent(*flagScreenTransparent)
 
 	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

@@ -293,15 +293,14 @@ type Driver struct {
 
 	screenDrawable ca.MetalDrawable
 
-	vb mtl.Buffer
-	ib mtl.Buffer
-
+	vb  mtl.Buffer
+	ib  mtl.Buffer
 	src *Image
 	dst *Image
 
-	drawCalled bool
-
+	transparent  bool
 	maxImageSize int
+	drawCalled   bool
 
 	t *thread.Thread
 
@@ -440,6 +439,10 @@ func (d *Driver) NewScreenFramebufferImage(width, height int) (driver.Image, err
 	}, nil
 }
 
+func (d *Driver) SetTransparent(transparent bool) {
+	d.transparent = transparent
+}
+
 func (d *Driver) Reset() error {
 	if err := d.t.Call(func() error {
 		if d.cq != (mtl.CommandQueue{}) {
@@ -454,6 +457,9 @@ func (d *Driver) Reset() error {
 
 		if err := d.view.reset(); err != nil {
 			return err
+		}
+		if d.transparent {
+			d.view.ml.SetOpaque(false)
 		}
 
 		replaces := map[string]string{

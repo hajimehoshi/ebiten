@@ -53,16 +53,17 @@ type UserInterface struct {
 
 	lastActualScale float64
 
-	initMonitor          *glfw.Monitor
-	initFullscreenWidth  int
-	initFullscreenHeight int
-	initFullscreen       bool
-	initCursorVisible    bool
-	initWindowDecorated  bool
-	initWindowResizable  bool
-	initWindowPositionX  int
-	initWindowPositionY  int
-	initIconImages       []image.Image
+	initMonitor           *glfw.Monitor
+	initFullscreenWidth   int
+	initFullscreenHeight  int
+	initFullscreen        bool
+	initCursorVisible     bool
+	initWindowDecorated   bool
+	initWindowResizable   bool
+	initWindowPositionX   int
+	initWindowPositionY   int
+	initScreenTransparent bool
+	initIconImages        []image.Image
 
 	reqWidth  int
 	reqHeight int
@@ -258,6 +259,19 @@ func (u *UserInterface) setInitWindowResizable(resizable bool) {
 	u.m.Lock()
 	u.initWindowResizable = resizable
 	u.m.Unlock()
+}
+
+func (u *UserInterface) isInitScreenTransparent() bool {
+	u.m.RLock()
+	v := u.initScreenTransparent
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setInitScreenTransparent(transparent bool) {
+	u.m.RLock()
+	u.initScreenTransparent = transparent
+	u.m.RUnlock()
 }
 
 func (u *UserInterface) getInitIconImages() []image.Image {
@@ -617,12 +631,18 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 			glfw.WindowHint(glfw.ClientAPI, glfw.NoAPI)
 		}
 
-		// 'decorated' must be solved before creating a window (#556).
 		decorated := glfw.False
 		if u.isInitWindowDecorated() {
 			decorated = glfw.True
 		}
 		glfw.WindowHint(glfw.Decorated, decorated)
+
+		transparent := glfw.False
+		if u.isInitScreenTransparent() {
+			transparent = glfw.True
+		}
+		glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
+		u.graphics.SetTransparent(u.isInitScreenTransparent())
 
 		resizable := glfw.False
 		if u.isInitWindowResizable() {
@@ -1048,6 +1068,26 @@ func (u *UserInterface) WindowPosition() (int, int) {
 		return nil
 	})
 	return x, y
+}
+
+func (u *UserInterface) SetScreenTransparent(transparent bool) {
+	if !u.isRunning() {
+		u.setInitScreenTransparent(transparent)
+		return
+	}
+	panic("ui: SetScreenTransparent can't be called after Run.")
+}
+
+func (u *UserInterface) IsScreenTransparent() bool {
+	if !u.isRunning() {
+		return u.isInitScreenTransparent()
+	}
+	val := false
+	_ = u.t.Call(func() error {
+		val = u.window.GetAttrib(glfw.TransparentFramebuffer) == glfw.True
+		return nil
+	})
+	return val
 }
 
 func (u *UserInterface) Input() driver.Input {

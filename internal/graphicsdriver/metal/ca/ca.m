@@ -38,6 +38,10 @@ void MetalLayer_SetDevice(void *metalLayer, void *device) {
   ((CAMetalLayer *)metalLayer).device = (id<MTLDevice>)device;
 }
 
+void MetalLayer_SetOpaque(void *metalLayer, BOOL opaque) {
+  ((CAMetalLayer *)metalLayer).opaque = opaque;
+}
+
 const char *MetalLayer_SetPixelFormat(void *metalLayer, uint16_t pixelFormat) {
   @try {
     ((CAMetalLayer *)metalLayer).pixelFormat = (MTLPixelFormat)pixelFormat;

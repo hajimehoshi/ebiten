@@ -411,3 +411,17 @@ func SetMaxTPS(tps int) {
 	}
 	atomic.StoreInt32(&currentMaxTPS, int32(tps))
 }
+
+// IsScreenTransparent reports whether the window is transparent.
+func IsScreenTransparent() bool {
+	return uiDriver().IsScreenTransparent()
+}
+
+// SetScreenTransparent sets the state if the window is transparent.
+//
+// SetScreenTransparent panics if SetScreenTransparent is called after Run.
+//
+// SetScreenTransparent does nothing on mobiles.
+func SetScreenTransparent(transparent bool) {
+	uiDriver().SetScreenTransparent(transparent)
+}

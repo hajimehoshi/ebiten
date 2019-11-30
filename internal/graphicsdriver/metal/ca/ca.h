@@ -16,12 +16,14 @@
 
 #include <stdint.h>
 
+typedef signed char BOOL;
 typedef unsigned long uint_t;
 
 void *MakeMetalLayer();
 
 uint16_t MetalLayer_PixelFormat(void *metalLayer);
 void MetalLayer_SetDevice(void *metalLayer, void *device);
+void MetalLayer_SetOpaque(void *metalLayer, BOOL opaque);
 const char *MetalLayer_SetPixelFormat(void *metalLayer, uint16_t pixelFormat);
 const char *MetalLayer_SetMaximumDrawableCount(void *metalLayer,
                                                uint_t maximumDrawableCount);

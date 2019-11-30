@@ -78,6 +78,15 @@ func (ml MetalLayer) SetDevice(device mtl.Device) {
 	C.MetalLayer_SetDevice(ml.metalLayer, device.Device())
 }
 
+// SetOpaque a Boolean value indicating whether the layer contains completely opaque content.
+func (ml MetalLayer) SetOpaque(opaque bool) {
+	if opaque {
+		C.MetalLayer_SetOpaque(ml.metalLayer, 1)
+	} else {
+		C.MetalLayer_SetOpaque(ml.metalLayer, 0)
+	}
+}
+
 // SetPixelFormat controls the pixel format of textures for rendering layer content.
 //
 // The pixel format for a Metal layer must be PixelFormatBGRA8UNorm, PixelFormatBGRA8UNormSRGB,

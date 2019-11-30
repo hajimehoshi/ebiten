@@ -54,6 +54,10 @@ func (d *Driver) SetWindow(window unsafe.Pointer) {
 	// Do nothing.
 }
 
+func (d *Driver) SetTransparent(transparent bool) {
+	// Do nothings.
+}
+
 func (d *Driver) checkSize(width, height int) {
 	if width < 1 {
 		panic(fmt.Sprintf("opengl: width (%d) must be equal or more than %d", width, 1))
