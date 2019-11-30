@@ -198,7 +198,8 @@ func update(screen *ebiten.Image) error {
 	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
 		tpsStr = fmt.Sprintf("%d", t)
 	}
-	msg := fmt.Sprintf(`Press shift + arrow keys to change the window size
+	msg := fmt.Sprintf(`Press arrow keys to move the window
+Press shift + arrow keys to change the window size
 Press S key to change the window scale (only for desktops)
 Press F key to switch the fullscreen state (only for desktops)
 Press B key to switch the run-in-background state
