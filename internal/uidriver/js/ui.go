@@ -479,6 +479,10 @@ func (u *UserInterface) updateScreenSize() {
 	u.sizeChanged = true
 }
 
+func (u *UserInterface) SetWindowPosition(x, y int) {
+	// Do nothing
+}
+
 func (u *UserInterface) WindowPosition() (int, int) {
 	return 0, 0
 }

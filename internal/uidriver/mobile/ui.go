@@ -443,6 +443,10 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
+func (u *UserInterface) SetWindowPosition(x, y int) {
+	// Do nothing
+}
+
 func (u *UserInterface) WindowPosition() (int, int) {
 	return 0, 0
 }

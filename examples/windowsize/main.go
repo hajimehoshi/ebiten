@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -25,6 +26,8 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hajimehoshi/ebiten"
@@ -33,7 +36,12 @@ import (
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
+var (
+	flagWindowPosition = flag.String("windowposition", "", "window position (e.g., 100,200)")
+)
+
 func init() {
+	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 }
 
@@ -77,22 +85,38 @@ func update(screen *ebiten.Image) error {
 	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
+	positionX, positionY := ebiten.WindowPosition()
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
-		screenHeight += d
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
-		if 16 < screenHeight && d < screenHeight {
-			screenHeight -= d
+	if ebiten.IsKeyPressed(ebiten.KeyShift) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+			screenHeight += d
 		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		if 16 < screenWidth && d < screenWidth {
-			screenWidth -= d
+		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+			if 16 < screenHeight && d < screenHeight {
+				screenHeight -= d
+			}
 		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-		screenWidth += d
+		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+			if 16 < screenWidth && d < screenWidth {
+				screenWidth -= d
+			}
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+			screenWidth += d
+		}
+	} else {
+		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+			positionY -= 4
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+			positionY += 4
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+			positionX -= 4
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
+			positionX += 4
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		switch screenScale {
@@ -146,6 +170,7 @@ func update(screen *ebiten.Image) error {
 	ebiten.SetVsyncEnabled(vsyncEnabled)
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
+	ebiten.SetWindowPosition(positionX, positionY)
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
@@ -173,7 +198,7 @@ func update(screen *ebiten.Image) error {
 	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
 		tpsStr = fmt.Sprintf("%d", t)
 	}
-	msg := fmt.Sprintf(`Press arrow keys to change the window size
+	msg := fmt.Sprintf(`Press shift + arrow keys to change the window size
 Press S key to change the window scale (only for desktops)
 Press F key to switch the fullscreen state (only for desktops)
 Press B key to switch the run-in-background state
@@ -189,6 +214,25 @@ FPS: %0.2f
 Device Scale Factor: %0.2f`, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
+}
+
+func parseWindowPosition() (int, int, bool) {
+	if *flagWindowPosition == "" {
+		return 0, 0, false
+	}
+	tokens := strings.Split(*flagWindowPosition, ",")
+	if len(tokens) != 2 {
+		return 0, 0, false
+	}
+	x, err := strconv.Atoi(tokens[0])
+	if err != nil {
+		return 0, 0, false
+	}
+	y, err := strconv.Atoi(tokens[1])
+	if err != nil {
+		return 0, 0, false
+	}
+	return x, y, true
 }
 
 func main() {
@@ -212,6 +256,10 @@ func main() {
 	gophersImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	ebiten.SetWindowIcon([]image.Image{createRandomIconImage()})
+
+	if x, y, ok := parseWindowPosition(); ok {
+		ebiten.SetWindowPosition(x, y)
+	}
 
 	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
 		log.Fatal(err)

@@ -36,15 +36,11 @@ import (
 )
 
 type UserInterface struct {
-	title                string
-	window               *glfw.Window
-	width                int
-	windowWidth          int
-	height               int
-	initMonitor          *glfw.Monitor
-	initFullscreenWidth  int
-	initFullscreenHeight int
-
+	title           string
+	window          *glfw.Window
+	width           int
+	windowWidth     int
+	height          int
 	scale           float64
 	fullscreenScale float64
 
@@ -57,11 +53,16 @@ type UserInterface struct {
 
 	lastActualScale float64
 
-	initFullscreen      bool
-	initCursorVisible   bool
-	initWindowDecorated bool
-	initWindowResizable bool
-	initIconImages      []image.Image
+	initMonitor          *glfw.Monitor
+	initFullscreenWidth  int
+	initFullscreenHeight int
+	initFullscreen       bool
+	initCursorVisible    bool
+	initWindowDecorated  bool
+	initWindowResizable  bool
+	initWindowPositionX  *int
+	initWindowPositionY  *int
+	initIconImages       []image.Image
 
 	reqWidth  int
 	reqHeight int
@@ -667,8 +668,14 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		u.window.SetTitle(title)
 		u.window.Show()
 
-		x := mx + (v.Width-w)/2
-		y := my + (v.Height-h)/3
+		x, y := 0, 0
+		if u.initWindowPositionX != nil && u.initWindowPositionY != nil {
+			x = *u.initWindowPositionX
+			y = *u.initWindowPositionY
+		} else {
+			x = mx + (v.Width-w)/2
+			y = my + (v.Height-h)/3
+		}
 		// Adjusting the position is needed only when the monitor is primary. (#829)
 		if mx == 0 && my == 0 {
 			x, y = adjustWindowPosition(x, y)
@@ -995,6 +1002,24 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	}
 	// Get the monitor which the current window belongs to. This requires OS API.
 	return u.currentMonitorFromPosition()
+}
+
+func (u *UserInterface) SetWindowPosition(x, y int) {
+	if !u.isRunning() {
+		if u.initWindowPositionX == nil {
+			u.initWindowPositionX = new(int)
+		}
+		if u.initWindowPositionY == nil {
+			u.initWindowPositionY = new(int)
+		}
+		*u.initWindowPositionX = x
+		*u.initWindowPositionY = y
+		return
+	}
+	_ = u.t.Call(func() error {
+		u.window.SetPos(x, y)
+		return nil
+	})
 }
 
 func (u *UserInterface) WindowPosition() (int, int) {
