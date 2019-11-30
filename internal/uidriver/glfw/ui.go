@@ -125,7 +125,7 @@ func initialize() error {
 	}
 	if w == nil {
 		// This can happen on Windows Remote Desktop (#903).
-		panic("ui: glfw.CreateWindow must not return nil")
+		panic("glfw: glfw.CreateWindow must not return nil")
 	}
 
 	// TODO: Fix this hack. currentMonitorImpl now requires u.window on POSIX.
@@ -321,7 +321,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 
 func (u *UserInterface) SetScreenSize(width, height int) {
 	if !u.isRunning() {
-		panic("ui: Run is not called yet")
+		panic("glfw: SetScreenSize can't be called before the main loop starts")
 	}
 	_ = u.t.Call(func() error {
 		// TODO: What if the window is maximized? (#320)
@@ -332,7 +332,7 @@ func (u *UserInterface) SetScreenSize(width, height int) {
 
 func (u *UserInterface) SetScreenScale(scale float64) {
 	if !u.isRunning() {
-		panic("ui: Run is not called yet")
+		panic("glfw: SetScreenScale can't be called before the main loop starts")
 	}
 	_ = u.t.Call(func() error {
 		// TODO: What if the window is maximized? (#320)
@@ -356,7 +356,7 @@ func (u *UserInterface) ScreenScale() float64 {
 // isFullscreen must be called from the main thread.
 func (u *UserInterface) isFullscreen() bool {
 	if !u.isRunning() {
-		panic("ui: the game must be running at isFullscreen")
+		panic("glfw: isFullscreen can't be called before the main loop starts")
 	}
 	return u.window.GetMonitor() != nil
 }
@@ -571,7 +571,7 @@ func (u *UserInterface) SetWindowResizable(resizable bool) {
 		return
 	}
 
-	panic("ui: SetWindowResizable can't be called after Run so far.")
+	panic("glfw: SetWindowResizable can't be called after the main loop so far.")
 
 	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
 }
@@ -1056,7 +1056,7 @@ func (u *UserInterface) SetWindowPosition(x, y int) {
 
 func (u *UserInterface) WindowPosition() (int, int) {
 	if !u.isRunning() {
-		panic("ui: Run is not called yet")
+		panic("glfw: WindowPosition can't be called before the main loop starts")
 	}
 	x, y := 0, 0
 	_ = u.t.Call(func() error {
@@ -1075,7 +1075,7 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 		u.setInitScreenTransparent(transparent)
 		return
 	}
-	panic("ui: SetScreenTransparent can't be called after Run.")
+	panic("glfw: SetScreenTransparent can't be called after the main loop starts")
 }
 
 func (u *UserInterface) IsScreenTransparent() bool {
