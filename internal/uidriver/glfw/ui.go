@@ -1026,6 +1026,9 @@ func (u *UserInterface) SetWindowPosition(x, y int) {
 		return
 	}
 	_ = u.t.Call(func() error {
+		if u.isFullscreen() {
+			return nil
+		}
 		u.window.SetPos(x, y)
 		return nil
 	})
@@ -1037,6 +1040,10 @@ func (u *UserInterface) WindowPosition() (int, int) {
 	}
 	x, y := 0, 0
 	_ = u.t.Call(func() error {
+		if u.isFullscreen() {
+			x, y = u.origPosX, u.origPosY
+			return nil
+		}
 		x, y = u.window.GetPos()
 		return nil
 	})

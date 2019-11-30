@@ -99,6 +99,8 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition panics before Run is called.
 //
+// WindowPosition returns the last window position on fullscreen mode.
+//
 // WindowPosition returns (0, 0) on browsers and mobiles.
 //
 // WindowPosition is concurrent-safe.
@@ -109,6 +111,8 @@ func WindowPosition() (x, y int) {
 // SetWindowPosition sets the window position.
 //
 // SetWindowPosition works before and after Run is called.
+//
+// SetWindowPosition does nothing on fullscreen mode.
 //
 // SetWindowPosition does nothing on browsers and mobiles.
 //
