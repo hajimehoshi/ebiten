@@ -997,6 +997,18 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	return u.currentMonitorFromPosition()
 }
 
+func (u *UserInterface) WindowPosition() (int, int) {
+	if !u.isRunning() {
+		panic("ui: Run is not called yet")
+	}
+	x, y := 0, 0
+	_ = u.t.Call(func() error {
+		x, y = u.window.GetPos()
+		return nil
+	})
+	return x, y
+}
+
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

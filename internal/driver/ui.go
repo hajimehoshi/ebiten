@@ -32,6 +32,9 @@ type UIContext interface {
 var RegularTermination = errors.New("regular termination")
 
 type UI interface {
+	Run(width, height int, scale float64, title string, context UIContext, graphics Graphics) error
+	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext, graphics Graphics) <-chan error
+
 	DeviceScaleFactor() float64
 	IsCursorVisible() bool
 	IsFullscreen() bool
@@ -39,11 +42,11 @@ type UI interface {
 	IsVsyncEnabled() bool
 	IsWindowDecorated() bool
 	IsWindowResizable() bool
-	Run(width, height int, scale float64, title string, context UIContext, graphics Graphics) error
-	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext, graphics Graphics) <-chan error
 	ScreenPadding() (x0, y0, x1, y1 float64)
 	ScreenScale() float64
 	ScreenSizeInFullscreen() (int, int)
+	WindowPosition() (int, int)
+
 	SetCursorVisible(visible bool)
 	SetFullscreen(fullscreen bool)
 	SetRunnableInBackground(runnableInBackground bool)
@@ -54,5 +57,6 @@ type UI interface {
 	SetWindowIcon(iconImages []image.Image)
 	SetWindowResizable(resizable bool)
 	SetWindowTitle(title string)
+
 	Input() Input
 }

@@ -443,6 +443,10 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
+func (u *UserInterface) WindowPosition() (int, int) {
+	return 0, 0
+}
+
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

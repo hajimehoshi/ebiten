@@ -479,6 +479,10 @@ func (u *UserInterface) updateScreenSize() {
 	u.sizeChanged = true
 }
 
+func (u *UserInterface) WindowPosition() (int, int) {
+	return 0, 0
+}
+
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

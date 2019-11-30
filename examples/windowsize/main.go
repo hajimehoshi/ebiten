@@ -167,7 +167,8 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Translate(dx, dy)
 	screen.DrawImage(gophersImage, op)
 
-	x, y := ebiten.CursorPosition()
+	wx, wy := ebiten.WindowPosition()
+	cx, cy := ebiten.CursorPosition()
 	tpsStr := "Uncapped"
 	if t := ebiten.MaxTPS(); t != ebiten.UncappedTPS {
 		tpsStr = fmt.Sprintf("%d", t)
@@ -181,10 +182,11 @@ Press I key to change the window icon (only for desktops)
 Press V key to switch vsync
 Press T key to switch TPS (ticks per second)
 Press D key to switch the window decoration
+Windows Position: (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, x, y, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }

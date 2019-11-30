@@ -94,3 +94,12 @@ func SetWindowTitle(title string) {
 func SetWindowIcon(iconImages []image.Image) {
 	uiDriver().SetWindowIcon(iconImages)
 }
+
+// WindowPosition returns the window position.
+//
+// WindowPosition panics before Run is called.
+//
+// WindowPosition returns (0, 0) on browsers and mobiles.
+func WindowPosition() (int, int) {
+	return uiDriver().WindowPosition()
+}
