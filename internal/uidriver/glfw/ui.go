@@ -995,12 +995,6 @@ func (u *UserInterface) forceSetScreenSize(width, height int, scale float64, ful
 			x := u.origPosX
 			y := u.origPosY
 			u.window.SetPos(x, y)
-			// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but work
-			// with two or more SetPos.
-			if runtime.GOOS == "darwin" {
-				u.window.SetPos(x+1, y)
-				u.window.SetPos(x, y)
-			}
 			u.origPosX = invalidPos
 			u.origPosY = invalidPos
 		}
