@@ -144,7 +144,7 @@ func NewImage(width, height int, volatile bool) *Image {
 		height:   height,
 		volatile: volatile,
 	}
-	i.clear()
+	fillImage(i.image, color.RGBA{})
 	theImages.add(i)
 	return i
 }
@@ -196,14 +196,9 @@ func NewScreenFramebufferImage(width, height int) *Image {
 		height: height,
 		screen: true,
 	}
-	i.clear()
+	fillImage(i.image, color.RGBA{})
 	theImages.add(i)
 	return i
-}
-
-func (i *Image) Clear() {
-	theImages.makeStaleIfDependingOn(i)
-	i.clear()
 }
 
 // quadVertices returns vertices to render a quad. These values are passed to graphicscommand.Image.
@@ -214,39 +209,6 @@ func quadVertices(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca float32
 		dx0, dy1, sx0, sy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
 		dx1, dy1, sx1, sy1, sx0, sy0, sx1, sy1, cr, cg, cb, ca,
 	}
-}
-
-// clearImage clears a graphicscommand.Image.
-// This does nothing to do with a restorable.Image's rendering state.
-func clearImage(img *graphicscommand.Image) {
-	if img == emptyImage.image {
-		panic("restorable: clearImage cannot be called on emptyImage")
-	}
-
-	// There are not 'drawTrianglesHistoryItem's for this image and emptyImage.
-	// As emptyImage is a priority image, this is restored before other regular images are restored.
-
-	// The rendering target size needs to be its 'internal' size instead of the exposed size to avoid glitches on
-	// mobile platforms (See the change 1e1f309a).
-	dw, dh := img.InternalSize()
-	sw, sh := emptyImage.image.InternalSize()
-	vs := quadVertices(0, 0, float32(dw), float32(dh), 0, 0, float32(sw), float32(sh), 0, 0, 0, 0)
-	is := graphics.QuadIndices()
-	// The first DrawTriangles must be clear mode for initialization.
-	// TODO: Can the graphicscommand package hide this knowledge?
-	img.DrawTriangles(emptyImage.image, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
-}
-
-func (i *Image) clear() {
-	if i.priority {
-		panic("restorable: clear cannot be called on a priority image")
-	}
-
-	clearImage(i.image)
-
-	i.basePixels = Pixels{}
-	i.drawTrianglesHistory = nil
-	i.stale = false
 }
 
 // Fill fills the specified part of the image with a solid color.
@@ -277,7 +239,10 @@ func fillImage(i *graphicscommand.Image, clr color.RGBA) {
 
 	// TODO: Use the previous composite mode if possible.
 	compositemode := driver.CompositeModeSourceOver
-	if af < 1.0 {
+	switch {
+	case af == 0.0:
+		compositemode = driver.CompositeModeClear
+	case af < 1.0:
 		compositemode = driver.CompositeModeCopy
 	}
 
@@ -538,7 +503,7 @@ func (i *Image) restore() {
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
-		i.clear()
+		fillImage(i.image, color.RGBA{})
 		return
 	}
 	if i.stale {
@@ -548,9 +513,9 @@ func (i *Image) restore() {
 	gimg := graphicscommand.NewImage(w, h)
 	// Clear the image explicitly.
 	if i != emptyImage {
-		// As clearImage uses emptyImage, clearImage cannot be called on emptyImage.
+		// As fillImage uses emptyImage, fillImage cannot be called on emptyImage.
 		// It is OK to skip this since emptyImage has its entire pixel information.
-		clearImage(gimg)
+		fillImage(gimg, color.RGBA{})
 	}
 	i.basePixels.Apply(gimg)
 

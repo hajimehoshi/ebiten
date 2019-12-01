@@ -187,20 +187,6 @@ func (i *Image) Fill(clr color.RGBA) {
 	i.img.Fill(clr)
 }
 
-func (i *Image) ClearFramebuffer() {
-	delayedCommandsM.Lock()
-	if needsToDelayCommands {
-		delayedCommands = append(delayedCommands, func() {
-			i.img.ClearFramebuffer()
-		})
-		delayedCommandsM.Unlock()
-		return
-	}
-	delayedCommandsM.Unlock()
-
-	i.img.ClearFramebuffer()
-}
-
 func (i *Image) ReplacePixels(pix []byte) {
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {

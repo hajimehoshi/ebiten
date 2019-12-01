@@ -344,19 +344,6 @@ func (i *Image) Fill(clr color.RGBA) {
 	delete(imagesToMakeShared, i)
 }
 
-// ClearFramebuffer clears the image with a color. This affects not only the (0, 0)-(width, height) region but also
-// the whole framebuffer region.
-func (i *Image) ClearFramebuffer() {
-	backendsM.Lock()
-	defer backendsM.Unlock()
-	if i.disposed {
-		panic("shareable: the drawing target image must not be disposed (Fill)")
-	}
-	i.ensureNotShared()
-
-	i.backend.restorable.Clear()
-}
-
 func (i *Image) ReplacePixels(p []byte) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
