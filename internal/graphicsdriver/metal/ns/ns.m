@@ -25,6 +25,6 @@ void View_SetLayer(void *view, void *layer) {
   ((NSView *)view).layer = (CALayer *)layer;
 }
 
-void View_SetWantsLayer(void *view, BOOL wantsLayer) {
-  ((NSView *)view).wantsLayer = wantsLayer;
+void View_SetWantsLayer(void *view, unsigned char wantsLayer) {
+  ((NSView *)view).wantsLayer = (BOOL)wantsLayer;
 }
