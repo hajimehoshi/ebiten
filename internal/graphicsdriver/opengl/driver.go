@@ -47,7 +47,9 @@ func (d *Driver) Begin() {
 }
 
 func (d *Driver) End() {
-	// Do nothing.
+	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
+	// TODO: examples/sprites worked without this. Is this really needed?
+	d.context.flush()
 }
 
 func (d *Driver) SetWindow(window unsafe.Pointer) {
@@ -126,10 +128,6 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, 
 	// As glFlush() causes performance problems, this should be avoided as much as possible.
 	// Let's wait and see, and file a new issue when this problem is newly found.
 	return nil
-}
-
-func (d *Driver) Flush() {
-	d.context.flush()
 }
 
 func (d *Driver) SetVsyncEnabled(enabled bool) {

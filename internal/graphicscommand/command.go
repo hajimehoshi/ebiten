@@ -274,10 +274,6 @@ func (q *commandQueue) Flush() {
 			// introduced than drawTrianglesCommand.
 			indexOffset += c.NumIndices()
 		}
-		if 0 < nc {
-			// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
-			theGraphicsDriver.Flush()
-		}
 		cs = cs[nc:]
 	}
 	theGraphicsDriver.End()

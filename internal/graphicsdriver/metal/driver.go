@@ -364,10 +364,6 @@ func (d *Driver) SetVertices(vertices []float32, indices []uint16) {
 	})
 }
 
-func (d *Driver) Flush() {
-	// On Metal, flushing command buffers only once is enough except for manipulating pixels. Do not call flush.
-}
-
 func (d *Driver) flush(wait bool, present bool) {
 	d.t.Call(func() error {
 		if d.cb == (mtl.CommandBuffer{}) {
