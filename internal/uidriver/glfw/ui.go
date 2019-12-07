@@ -622,6 +622,59 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 	panic("glfw: RunWithoutMainLoop is not implemented")
 }
 
+// createWindow creates a GLFW window.
+//
+// createWindow must be called from the main thread.
+//
+// createWindow does not set the position or size so far.
+func (u *UserInterface) createWindow() error {
+	if u.window != nil {
+		panic("glfw: u.window must not exist at createWindow")
+	}
+
+	// As a start, create a window with temporary size to create OpenGL context thread.
+	window, err := glfw.CreateWindow(16, 16, "", nil, nil)
+	if err != nil {
+		return err
+	}
+	u.window = window
+
+	if u.graphics.IsGL() {
+		u.window.MakeContextCurrent()
+	}
+
+	u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
+	u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
+
+	// Solve the initial properties of the window.
+	mode := glfw.CursorNormal
+	if !u.isInitCursorVisible() {
+		mode = glfw.CursorHidden
+	}
+	u.window.SetInputMode(glfw.CursorMode, mode)
+	u.window.SetTitle(u.title)
+	// TODO: Set icons
+
+	u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
+		if u.window.GetAttrib(glfw.Resizable) == glfw.False {
+			return
+		}
+		if u.isFullscreen() {
+			return
+		}
+
+		s := u.glfwScale()
+		w := int(float64(width) / u.scale / s)
+		h := int(float64(height) / u.scale / s)
+		u.reqWidth = w
+		u.reqHeight = h
+	})
+
+	u.window.Show()
+
+	return nil
+}
+
 func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext) error {
 	if err := u.t.Call(func() error {
 		if u.graphics.IsGL() {
@@ -655,26 +708,9 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 			glfw.WindowHint(glfw.Visible, glfw.True)
 		}
 
-		// As a start, create a window with temporary size to create OpenGL context thread.
-		window, err := glfw.CreateWindow(16, 16, "", nil, nil)
-		if err != nil {
+		if err := u.createWindow(); err != nil {
 			return err
 		}
-		u.window = window
-
-		if u.graphics.IsGL() {
-			u.window.MakeContextCurrent()
-		}
-
-		u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
-		u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
-
-		// Solve the initial properties of the window.
-		mode := glfw.CursorNormal
-		if !u.isInitCursorVisible() {
-			mode = glfw.CursorHidden
-		}
-		u.window.SetInputMode(glfw.CursorMode, mode)
 
 		if i := u.getInitIconImages(); i != nil {
 			u.window.SetIcon(i)
@@ -705,7 +741,6 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 
 		u.title = title
 		u.window.SetTitle(title)
-		u.window.Show()
 
 		x, y := u.getInitWindowPosition()
 		if x == invalidPos || y == invalidPos {
@@ -718,20 +753,6 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		}
 		u.window.SetPos(x, y)
 
-		u.window.SetSizeCallback(func(_ *glfw.Window, width, height int) {
-			if u.window.GetAttrib(glfw.Resizable) == glfw.False {
-				return
-			}
-			if u.isFullscreen() {
-				return
-			}
-
-			s := u.glfwScale()
-			w := int(float64(width) / u.scale / s)
-			h := int(float64(height) / u.scale / s)
-			u.reqWidth = w
-			u.reqHeight = h
-		})
 		return nil
 	}); err != nil {
 		return err
