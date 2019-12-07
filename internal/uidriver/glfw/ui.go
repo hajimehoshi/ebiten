@@ -871,13 +871,19 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}
 
 	// Update the screen size when the window is resizable.
-	// TODO: Need locks.
-	w, h := u.reqWidth, u.reqHeight
+	var w, h int
+	_ = u.t.Call(func() error {
+		w, h = u.reqWidth, u.reqHeight
+		return nil
+	})
 	if w != 0 || h != 0 {
 		u.setScreenSize(w, h, u.scale, u.isFullscreen(), u.vsync)
 	}
-	u.reqWidth = 0
-	u.reqHeight = 0
+	_ = u.t.Call(func() error {
+		u.reqWidth = 0
+		u.reqHeight = 0
+		return nil
+	})
 	return nil
 }
 
