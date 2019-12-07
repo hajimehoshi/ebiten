@@ -51,7 +51,7 @@ type UserInterface struct {
 	runnableInBackground bool
 	vsync                bool
 
-	lastActualScale float64
+	lastMonitorScale float64
 
 	initMonitor           *glfw.Monitor
 	initFullscreenWidth   int
@@ -773,23 +773,22 @@ func (u *UserInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *UserInterface) actualScreenScale() float64 {
+	return u.getScale() * u.monitorScale()
+}
+
+// monitorScale must be called from the main thread.
+func (u *UserInterface) monitorScale() float64 {
 	// Avoid calling monitor.GetPos if we have the monitor position cached already.
 	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
-		return u.getScale() * devicescale.GetAt(cm.x, cm.y)
+		return devicescale.GetAt(cm.x, cm.y)
 	}
-	return u.getScale() * devicescale.GetAt(u.currentMonitor().GetPos())
+	return devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {
-	actualScale := 0.0
 	sizeChanged := false
-	// TODO: Is it possible to reduce 'runOnMainThread' calls?
 	_ = u.t.Call(func() error {
-		actualScale = u.actualScreenScale()
-		if u.lastActualScale != actualScale {
-			u.forceSetScreenSize(u.width, u.height, u.scale, u.isFullscreen(), u.vsync)
-		}
-		u.lastActualScale = actualScale
+		u.setScreenSize(u.width, u.height, u.scale, u.isFullscreen(), u.vsync)
 
 		if !u.toChangeSize {
 			return nil
@@ -800,6 +799,11 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 		return nil
 	})
 	if sizeChanged {
+		actualScale := 0.0
+		_ = u.t.Call(func() error {
+			actualScale = u.actualScreenScale()
+			return nil
+		})
 		context.SetSize(u.width, u.height, actualScale)
 	}
 }
@@ -917,16 +921,11 @@ func (u *UserInterface) swapBuffers() {
 }
 
 // setScreenSize must be called from the main thread.
-func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) bool {
-	if u.width == width && u.height == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync {
-		return false
+func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) {
+	if u.width == width && u.height == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastMonitorScale == u.monitorScale() {
+		return
 	}
-	u.forceSetScreenSize(width, height, scale, fullscreen, vsync)
-	return true
-}
 
-// forceSetScreenSize must be called from the main thread.
-func (u *UserInterface) forceSetScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) {
 	// On Windows, giving a too small width doesn't call a callback (#165).
 	// To prevent hanging up, return asap if the width is too small.
 	// 252 is an arbitrary number and I guess this is small enough.
@@ -952,6 +951,7 @@ func (u *UserInterface) forceSetScreenSize(width, height int, scale float64, ful
 	u.scale = scale
 	u.fullscreenScale = 0
 	u.vsync = vsync
+	u.lastMonitorScale = u.monitorScale()
 
 	// To make sure the current existing framebuffers are rendered,
 	// swap buffers here before SetSize is called.
