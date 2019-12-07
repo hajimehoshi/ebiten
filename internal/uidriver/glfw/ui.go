@@ -982,6 +982,7 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 			u.window.SetMonitor(m, 0, 0, v.Width, v.Height, v.RefreshRate)
 
 			// Swapping buffer is necesary to prevent the image lag (#1004).
+			// TODO: This might not work when vsync is disabled.
 			if u.graphics.IsGL() {
 				glfw.PollEvents()
 				u.swapBuffers()
@@ -991,6 +992,7 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 				if u.graphics.IsGL() {
 					// When OpenGL is used, swapping buffer is enough to solve the image-lag
 					// issue (#1004). Rather, recreating window destroys GPU resources.
+					// TODO: This might not work when vsync is disabled.
 					u.window.SetMonitor(nil, 0, 0, 16, 16, 0)
 					glfw.PollEvents()
 					u.swapBuffers()
