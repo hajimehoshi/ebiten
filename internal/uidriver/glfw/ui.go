@@ -747,8 +747,8 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	u.setScreenSize(width, height, scale, false, u.vsync)
 
 	_ = u.t.Call(func() error {
-		// Get the window size before showing since window.Show might change the current
-		// monitor which affects deviceDependentWindowSize result.
+		// Get the window size before showing it. Showing the window might change the current monitor which
+		// affects deviceDependentWindowSize result.
 		w, h := u.deviceDependentWindowSize()
 
 		u.title = title
