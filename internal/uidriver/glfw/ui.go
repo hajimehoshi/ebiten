@@ -134,9 +134,8 @@ func initialize() error {
 	theUI.window = w
 	theUI.initMonitor = theUI.currentMonitorFromPosition()
 	v := theUI.initMonitor.GetVideoMode()
-	s := theUI.glfwScale()
-	theUI.initFullscreenWidth = int(float64(v.Width) / s)
-	theUI.initFullscreenHeight = int(float64(v.Height) / s)
+	theUI.initFullscreenWidth = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
+	theUI.initFullscreenHeight = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
 	theUI.window.Destroy()
 	theUI.window = nil
 
@@ -306,19 +305,29 @@ func (u *UserInterface) setInitWindowPosition(x, y int) {
 	u.initWindowPositionY = y
 }
 
+// toDeviceIndependentPixel must be called from the main thread.
+func (u *UserInterface) toDeviceIndependentPixel(x float64) float64 {
+	return x / u.glfwScale()
+}
+
+// toDeviceDependentPixel must be called from the main thread.
+func (u *UserInterface) toDeviceDependentPixel(x float64) float64 {
+	return x * u.glfwScale()
+}
+
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	if !u.isRunning() {
 		return u.initFullscreenWidth, u.initFullscreenHeight
 	}
 
-	var v *glfw.VidMode
-	s := 0.0
+	var w, h int
 	_ = u.t.Call(func() error {
-		v = u.currentMonitor().GetVideoMode()
-		s = u.glfwScale()
+		v := u.currentMonitor().GetVideoMode()
+		w = int(u.toDeviceIndependentPixel(float64(v.Width)))
+		h = int(u.toDeviceIndependentPixel(float64(v.Height)))
 		return nil
 	})
-	return int(float64(v.Width) / s), int(float64(v.Height) / s)
+	return w, h
 }
 
 func (u *UserInterface) SetScreenSize(width, height int) {
@@ -446,21 +455,18 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	d := 0.0
 	sx := 0.0
 	sy := 0.0
-	gs := 0.0
-	vw := 0.0
-	vh := 0.0
+	mx := 0.0
+	my := 0.0
 	_ = u.t.Call(func() error {
-		d = u.deviceScaleFactor()
 		sx = float64(u.width) * u.actualScreenScale()
 		sy = float64(u.height) * u.actualScreenScale()
-		gs = u.glfwScale()
 
-		v := u.window.GetMonitor().GetVideoMode()
-		vw, vh = float64(v.Width), float64(v.Height)
+		v := u.currentMonitor().GetVideoMode()
+		d = u.deviceScaleFactor()
+		mx = u.toDeviceIndependentPixel(float64(v.Width)) * d
+		my = u.toDeviceIndependentPixel(float64(v.Height)) * d
 		return nil
 	})
-	mx := vw * d / gs
-	my := vh * d / gs
 
 	ox := (mx - sx) / 2
 	oy := (my - sy) / 2
@@ -659,9 +665,8 @@ func (u *UserInterface) createWindow() error {
 			return
 		}
 
-		s := u.glfwScale()
-		w := int(float64(width) / u.scale / s)
-		h := int(float64(height) / u.scale / s)
+		w := int(u.toDeviceIndependentPixel(float64(width)) / u.scale)
+		h := int(u.toDeviceIndependentPixel(float64(height)) / u.scale)
 		u.reqWidth = w
 		u.reqHeight = h
 	})
@@ -745,8 +750,8 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 
 	_ = u.t.Call(func() error {
 		// Get the window size before showing since window.Show might change the current
-		// monitor which affects glfwSize result.
-		w, h := u.glfwSize()
+		// monitor which affects deviceDependentWindowSize result.
+		w, h := u.deviceDependentWindowSize()
 
 		u.title = title
 		u.window.SetTitle(title)
@@ -774,10 +779,10 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	return u.loop(context)
 }
 
-// getSize must be called from the main thread.
-func (u *UserInterface) glfwSize() (int, int) {
-	w := int(float64(u.windowWidth) * u.getScale() * u.glfwScale())
-	h := int(float64(u.height) * u.getScale() * u.glfwScale())
+// deviceDependentWindowSize must be called from the main thread.
+func (u *UserInterface) deviceDependentWindowSize() (int, int) {
+	w := int(u.toDeviceDependentPixel(float64(u.windowWidth) * u.getScale()))
+	h := int(u.toDeviceDependentPixel(float64(u.height) * u.getScale()))
 	return w, h
 }
 
@@ -787,9 +792,9 @@ func (u *UserInterface) getScale() float64 {
 		return u.scale
 	}
 	if u.fullscreenScale == 0 {
-		v := u.window.GetMonitor().GetVideoMode()
-		sw := float64(v.Width) / u.glfwScale() / float64(u.width)
-		sh := float64(v.Height) / u.glfwScale() / float64(u.height)
+		v := u.currentMonitor().GetVideoMode()
+		sw := u.toDeviceIndependentPixel(float64(v.Width)) / float64(u.width)
+		sh := u.toDeviceIndependentPixel(float64(v.Height)) / float64(u.height)
 		s := sw
 		if s > sh {
 			s = sh
@@ -848,7 +853,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	_ = u.t.Call(func() error {
 		glfw.PollEvents()
 
-		u.input.update(u.window, u.getScale()*u.glfwScale())
+		u.input.update(u.window)
 
 		defer hooks.ResumeAudio()
 
@@ -1018,14 +1023,14 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 			}
 
 			oldW, oldH := u.window.GetSize()
-			newW, newH := u.glfwSize()
+			newW, newH := u.deviceDependentWindowSize()
 			if oldW != newW || oldH != newH {
 				ch := make(chan struct{})
 				u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
 					u.window.SetFramebufferSizeCallback(nil)
 					close(ch)
 				})
-				u.window.SetSize(u.glfwSize())
+				u.window.SetSize(newW, newH)
 			event:
 				for {
 					glfw.PollEvents()

@@ -47,6 +47,8 @@ type Input struct {
 	touches            map[int]pos // This is not updated until GLFW 3.3 is available (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
+
+	m sync.RWMutex
 }
 
 type pos struct {
@@ -55,15 +57,15 @@ type pos struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	i.ui.m.RLock()
+	i.m.RLock()
 	cx, cy := i.cursorX, i.cursorY
-	i.ui.m.RUnlock()
+	i.m.RUnlock()
 	return i.ui.adjustPosition(cx, cy)
 }
 
 func (i *Input) GamepadIDs() []int {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if len(i.gamepads) == 0 {
 		return nil
 	}
@@ -77,8 +79,8 @@ func (i *Input) GamepadIDs() []int {
 }
 
 func (i *Input) GamepadAxisNum(id int) int {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
 		return 0
 	}
@@ -86,8 +88,8 @@ func (i *Input) GamepadAxisNum(id int) int {
 }
 
 func (i *Input) GamepadAxis(id int, axis int) float64 {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
 		return 0
 	}
@@ -95,8 +97,8 @@ func (i *Input) GamepadAxis(id int, axis int) float64 {
 }
 
 func (i *Input) GamepadButtonNum(id int) int {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
 		return 0
 	}
@@ -104,8 +106,8 @@ func (i *Input) GamepadButtonNum(id int) int {
 }
 
 func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if len(i.gamepads) <= id {
 		return false
 	}
@@ -113,8 +115,8 @@ func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool
 }
 
 func (i *Input) TouchIDs() []int {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 
 	if len(i.touches) == 0 {
 		return nil
@@ -128,7 +130,7 @@ func (i *Input) TouchIDs() []int {
 }
 
 func (i *Input) TouchPosition(id int) (x, y int) {
-	i.ui.m.RLock()
+	i.m.RLock()
 	found := false
 	var p pos
 	for tid, pos := range i.touches {
@@ -138,7 +140,7 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 			break
 		}
 	}
-	i.ui.m.RUnlock()
+	i.m.RUnlock()
 
 	if !found {
 		return 0, 0
@@ -147,21 +149,21 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	return i.runeBuffer
 }
 
 func (i *Input) ResetForFrame() {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	i.runeBuffer = i.runeBuffer[:0]
 	i.scrollX, i.scrollY = 0, 0
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if i.keyPressed == nil {
 		i.keyPressed = map[glfw.Key]bool{}
 	}
@@ -177,8 +179,8 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 }
 
 func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	if i.mouseButtonPressed == nil {
 		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
 	}
@@ -194,8 +196,8 @@ func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
 }
 
 func (i *Input) Wheel() (xoff, yoff float64) {
-	i.ui.m.RLock()
-	defer i.ui.m.RUnlock()
+	i.m.RLock()
+	defer i.m.RUnlock()
 	return i.scrollX, i.scrollY
 }
 
@@ -209,21 +211,21 @@ func (i *Input) appendRuneBuffer(char rune) {
 	if !unicode.IsPrint(char) {
 		return
 	}
-	i.ui.m.Lock()
+	i.m.Lock()
 	i.runeBuffer = append(i.runeBuffer, char)
-	i.ui.m.Unlock()
+	i.m.Unlock()
 }
 
 func (i *Input) setWheel(xoff, yoff float64) {
-	i.ui.m.Lock()
+	i.m.Lock()
 	i.scrollX = xoff
 	i.scrollY = yoff
-	i.ui.m.Unlock()
+	i.m.Unlock()
 }
 
-func (i *Input) update(window *glfw.Window, scale float64) {
-	i.ui.m.Lock()
-	defer i.ui.m.Unlock()
+func (i *Input) update(window *glfw.Window) {
+	i.m.Lock()
+	defer i.m.Unlock()
 
 	i.onceCallback.Do(func() {
 		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
@@ -246,8 +248,8 @@ func (i *Input) update(window *glfw.Window, scale float64) {
 		i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
 	}
 	x, y := window.GetCursorPos()
-	i.cursorX = int(x / scale)
-	i.cursorY = int(y / scale)
+	i.cursorX = int(i.ui.toDeviceIndependentPixel(x) / i.ui.getScale())
+	i.cursorY = int(i.ui.toDeviceIndependentPixel(y) / i.ui.getScale())
 	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 		i.gamepads[id].valid = false
 		if !id.Present() {
