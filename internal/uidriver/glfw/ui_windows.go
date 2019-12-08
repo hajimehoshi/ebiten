@@ -22,7 +22,6 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 

@@ -21,7 +21,6 @@ package glfw
 import (
 	"unsafe"
 
-	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
