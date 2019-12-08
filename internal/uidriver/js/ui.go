@@ -26,6 +26,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 )
 
 type UserInterface struct {
@@ -204,10 +205,10 @@ func (u *UserInterface) suspended() bool {
 
 func (u *UserInterface) update() error {
 	if u.suspended() {
-		u.context.SuspendAudio()
+		hooks.SuspendAudio()
 		return nil
 	}
-	u.context.ResumeAudio()
+	hooks.ResumeAudio()
 
 	u.input.UpdateGamepads()
 	u.updateSize()
@@ -257,9 +258,9 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 		defer t.Stop()
 		for range t.C {
 			if u.suspended() {
-				u.context.SuspendAudio()
+				hooks.SuspendAudio()
 			} else {
-				u.context.ResumeAudio()
+				hooks.ResumeAudio()
 			}
 		}
 	}()

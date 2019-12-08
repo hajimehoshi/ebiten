@@ -131,11 +131,3 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	}
 	return nil
 }
-
-func (c *uiContext) SuspendAudio() {
-	hooks.SuspendAudio()
-}
-
-func (c *uiContext) ResumeAudio() {
-	hooks.ResumeAudio()
-}

@@ -34,6 +34,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/thread"
 )
 
@@ -276,11 +277,11 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	select {
 	case <-renderCh:
 	case <-t.C:
-		context.SuspendAudio()
+		hooks.SuspendAudio()
 		<-renderCh
 	}
 
-	context.ResumeAudio()
+	hooks.ResumeAudio()
 
 	defer func() {
 		renderEndCh <- struct{}{}
