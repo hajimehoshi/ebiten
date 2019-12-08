@@ -41,7 +41,6 @@ type UserInterface struct {
 	title            string
 	window           *glfw.Window
 	screenWidthInDP  int
-	windowWidthInDP  int
 	screenHeightInDP int
 	scale            float64
 	fullscreenScale  float64
@@ -440,13 +439,15 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 		return 0, 0, 0, 0
 	}
 	if !u.IsFullscreen() {
-		if u.screenWidthInDP == u.windowWidthInDP {
+		w, _ := u.window.GetSize()
+		wf := u.toDeviceIndependentPixel(float64(w)) / u.getScale()
+		if u.screenWidthInDP == int(wf) {
 			return 0, 0, 0, 0
 		}
 		// The window width can be bigger than the game screen width (#444).
 		ox := 0.0
 		_ = u.t.Call(func() error {
-			ox = (float64(u.windowWidthInDP)*u.actualScreenScale() - float64(u.screenWidthInDP)*u.actualScreenScale()) / 2
+			ox = (wf*u.actualScreenScale() - float64(u.screenWidthInDP)*u.actualScreenScale()) / 2
 			return nil
 		})
 		return ox, 0, ox, 0
@@ -749,7 +750,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	_ = u.t.Call(func() error {
 		// Get the window size before showing it. Showing the window might change the current monitor which
 		// affects deviceDependentWindowSize result.
-		w, h := u.deviceDependentWindowSize()
+		w, h := u.window.GetSize()
 
 		u.title = title
 		u.window.SetTitle(title)
@@ -776,13 +777,6 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	})
 	u.graphics.SetWindow(w)
 	return u.loop(context)
-}
-
-// deviceDependentWindowSize must be called from the main thread.
-func (u *UserInterface) deviceDependentWindowSize() (int, int) {
-	w := int(u.toDeviceDependentPixel(float64(u.windowWidthInDP) * u.getScale()))
-	h := int(u.toDeviceDependentPixel(float64(u.screenHeightInDP) * u.getScale()))
-	return w, h
 }
 
 // getScale must be called from the main thread.
@@ -952,14 +946,6 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 			return nil
 		}
 
-		// On Windows, giving a too small width doesn't call a callback (#165).
-		// To prevent hanging up, return asap if the width is too small.
-		// 252 is an arbitrary number and I guess this is small enough.
-		minWindowWidth := 252
-		if u.window.GetAttrib(glfw.Decorated) == glfw.False {
-			minWindowWidth = 1
-		}
-
 		if width < 1 {
 			width = 1
 		}
@@ -968,11 +954,6 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 		}
 
 		u.screenWidthInDP = width
-		u.windowWidthInDP = width
-		s := scale * u.deviceScaleFactor()
-		if int(float64(width)*s) < minWindowWidth {
-			u.windowWidthInDP = int(math.Ceil(float64(minWindowWidth) / s))
-		}
 		u.screenHeightInDP = height
 		u.scale = scale
 		u.fullscreenScale = 0
@@ -1022,8 +1003,23 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 				}
 			}
 
+			// On Windows, giving a too small width doesn't call a callback (#165).
+			// To prevent hanging up, return asap if the width is too small.
+			// 252 is an arbitrary number and I guess this is small enough.
+			minWindowWidth := 252
+			if u.window.GetAttrib(glfw.Decorated) == glfw.False {
+				minWindowWidth = 1
+			}
+			windowWidthInDP := width
+			s := scale * u.deviceScaleFactor()
+			if int(float64(width)*s) < minWindowWidth {
+				windowWidthInDP = int(math.Ceil(float64(minWindowWidth) / s))
+			}
+
 			oldW, oldH := u.window.GetSize()
-			if newW, newH := u.deviceDependentWindowSize(); oldW != newW || oldH != newH {
+			newW := int(u.toDeviceDependentPixel(float64(windowWidthInDP) * u.getScale()))
+			newH := int(u.toDeviceDependentPixel(float64(u.screenHeightInDP) * u.getScale()))
+			if oldW != newW || oldH != newH {
 				ch := make(chan struct{})
 				u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
 					u.window.SetFramebufferSizeCallback(nil)
