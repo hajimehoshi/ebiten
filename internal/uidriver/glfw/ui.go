@@ -671,8 +671,6 @@ func (u *UserInterface) createWindow() error {
 		u.reqHeight = h
 	})
 
-	u.window.Show()
-
 	return nil
 }
 
@@ -766,6 +764,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 			x, y = adjustWindowPosition(x, y)
 		}
 		u.window.SetPos(x, y)
+		u.window.Show()
 
 		return nil
 	})
@@ -1018,13 +1017,13 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 						// TODO: This should return an error.
 						panic(fmt.Sprintf("glfw: failed to recreate window: %v", err))
 					}
+					u.window.Show()
 					windowRecreated = true
 				}
 			}
 
 			oldW, oldH := u.window.GetSize()
-			newW, newH := u.deviceDependentWindowSize()
-			if oldW != newW || oldH != newH {
+			if newW, newH := u.deviceDependentWindowSize(); oldW != newW || oldH != newH {
 				ch := make(chan struct{})
 				u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
 					u.window.SetFramebufferSizeCallback(nil)
