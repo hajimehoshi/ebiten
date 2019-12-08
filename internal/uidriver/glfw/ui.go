@@ -53,7 +53,7 @@ type UserInterface struct {
 	runnableInBackground bool
 	vsync                bool
 
-	lastMonitorScale float64
+	lastDeviceScaleFactor float64
 
 	initMonitor           *glfw.Monitor
 	initFullscreenWidth   int
@@ -450,13 +450,12 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	vw := 0.0
 	vh := 0.0
 	_ = u.t.Call(func() error {
-		m := u.window.GetMonitor()
-		d = devicescale.GetAt(m.GetPos())
+		d = u.deviceScaleFactor()
 		sx = float64(u.width) * u.actualScreenScale()
 		sy = float64(u.height) * u.actualScreenScale()
 		gs = u.glfwScale()
 
-		v := m.GetVideoMode()
+		v := u.window.GetMonitor().GetVideoMode()
 		vw, vh = float64(v.Width), float64(v.Height)
 		return nil
 	})
@@ -565,17 +564,26 @@ func (u *UserInterface) SetWindowResizable(resizable bool) {
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
-	f := 0.0
 	if !u.isRunning() {
 		return devicescale.GetAt(u.initMonitor.GetPos())
 	}
 
+	f := 0.0
 	_ = u.t.Call(func() error {
-		m := u.currentMonitor()
-		f = devicescale.GetAt(m.GetPos())
+		f = u.deviceScaleFactor()
 		return nil
 	})
 	return f
+}
+
+// deviceScaleFactor must be called from the main thread.
+func (u *UserInterface) deviceScaleFactor() float64 {
+	// Avoid calling monitor.GetPos if we have the monitor position cached already.
+	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
+		return devicescale.GetAt(cm.x, cm.y)
+	}
+	// TODO: When is this reached?
+	return devicescale.GetAt(u.currentMonitor().GetPos())
 }
 
 func init() {
@@ -793,16 +801,7 @@ func (u *UserInterface) getScale() float64 {
 
 // actualScreenScale must be called from the main thread.
 func (u *UserInterface) actualScreenScale() float64 {
-	return u.getScale() * u.monitorScale()
-}
-
-// monitorScale must be called from the main thread.
-func (u *UserInterface) monitorScale() float64 {
-	// Avoid calling monitor.GetPos if we have the monitor position cached already.
-	if cm, ok := getCachedMonitor(u.window.GetPos()); ok {
-		return devicescale.GetAt(cm.x, cm.y)
-	}
-	return devicescale.GetAt(u.currentMonitor().GetPos())
+	return u.getScale() * u.deviceScaleFactor()
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {
@@ -945,7 +944,7 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 	windowRecreated := false
 
 	_ = u.t.Call(func() error {
-		if u.width == width && u.height == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastMonitorScale == u.monitorScale() {
+		if u.width == width && u.height == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 			return nil
 		}
 
@@ -966,7 +965,7 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 
 		u.width = width
 		u.windowWidth = width
-		s := scale * devicescale.GetAt(u.currentMonitor().GetPos())
+		s := scale * u.deviceScaleFactor()
 		if int(float64(width)*s) < minWindowWidth {
 			u.windowWidth = int(math.Ceil(float64(minWindowWidth) / s))
 		}
@@ -974,7 +973,7 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 		u.scale = scale
 		u.fullscreenScale = 0
 		u.vsync = vsync
-		u.lastMonitorScale = u.monitorScale()
+		u.lastDeviceScaleFactor = u.deviceScaleFactor()
 
 		// To make sure the current existing framebuffers are rendered,
 		// swap buffers here before SetSize is called.
