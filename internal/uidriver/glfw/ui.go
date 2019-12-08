@@ -38,13 +38,13 @@ import (
 )
 
 type UserInterface struct {
-	title           string
-	window          *glfw.Window
-	width           int
-	windowWidth     int
-	height          int
-	scale           float64
-	fullscreenScale float64
+	title            string
+	window           *glfw.Window
+	screenWidthInDP  int
+	windowWidthInDP  int
+	screenHeightInDP int
+	scale            float64
+	fullscreenScale  float64
 
 	running              bool
 	toChangeSize         bool
@@ -55,17 +55,17 @@ type UserInterface struct {
 
 	lastDeviceScaleFactor float64
 
-	initMonitor           *glfw.Monitor
-	initFullscreenWidth   int
-	initFullscreenHeight  int
-	initFullscreen        bool
-	initCursorVisible     bool
-	initWindowDecorated   bool
-	initWindowResizable   bool
-	initWindowPositionX   int
-	initWindowPositionY   int
-	initScreenTransparent bool
-	initIconImages        []image.Image
+	initMonitor              *glfw.Monitor
+	initFullscreenWidthInDP  int
+	initFullscreenHeightInDP int
+	initFullscreen           bool
+	initCursorVisible        bool
+	initWindowDecorated      bool
+	initWindowResizable      bool
+	initWindowPositionX      int
+	initWindowPositionY      int
+	initScreenTransparent    bool
+	initIconImages           []image.Image
 
 	reqWidth  int
 	reqHeight int
@@ -134,8 +134,8 @@ func initialize() error {
 	theUI.window = w
 	theUI.initMonitor = theUI.currentMonitorFromPosition()
 	v := theUI.initMonitor.GetVideoMode()
-	theUI.initFullscreenWidth = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
-	theUI.initFullscreenHeight = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
+	theUI.initFullscreenWidthInDP = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
+	theUI.initFullscreenHeightInDP = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
 	theUI.window.Destroy()
 	theUI.window = nil
 
@@ -317,7 +317,7 @@ func (u *UserInterface) toDeviceDependentPixel(x float64) float64 {
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	if !u.isRunning() {
-		return u.initFullscreenWidth, u.initFullscreenHeight
+		return u.initFullscreenWidthInDP, u.initFullscreenHeightInDP
 	}
 
 	var w, h int
@@ -341,7 +341,7 @@ func (u *UserInterface) SetScreenScale(scale float64) {
 	if !u.isRunning() {
 		panic("glfw: SetScreenScale can't be called before the main loop starts")
 	}
-	u.setScreenSize(u.width, u.height, scale, u.isFullscreen(), u.vsync)
+	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, scale, u.isFullscreen(), u.vsync)
 }
 
 func (u *UserInterface) ScreenScale() float64 {
@@ -381,7 +381,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		u.setInitFullscreen(fullscreen)
 		return
 	}
-	u.setScreenSize(u.width, u.height, u.scale, fullscreen, u.vsync)
+	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, fullscreen, u.vsync)
 }
 
 func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
@@ -403,7 +403,7 @@ func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 		u.m.Unlock()
 		return
 	}
-	u.setScreenSize(u.width, u.height, u.scale, u.isFullscreen(), enabled)
+	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, u.isFullscreen(), enabled)
 }
 
 func (u *UserInterface) IsVsyncEnabled() bool {
@@ -440,13 +440,13 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 		return 0, 0, 0, 0
 	}
 	if !u.IsFullscreen() {
-		if u.width == u.windowWidth {
+		if u.screenWidthInDP == u.windowWidthInDP {
 			return 0, 0, 0, 0
 		}
 		// The window width can be bigger than the game screen width (#444).
 		ox := 0.0
 		_ = u.t.Call(func() error {
-			ox = (float64(u.windowWidth)*u.actualScreenScale() - float64(u.width)*u.actualScreenScale()) / 2
+			ox = (float64(u.windowWidthInDP)*u.actualScreenScale() - float64(u.screenWidthInDP)*u.actualScreenScale()) / 2
 			return nil
 		})
 		return ox, 0, ox, 0
@@ -458,8 +458,8 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 	mx := 0.0
 	my := 0.0
 	_ = u.t.Call(func() error {
-		sx = float64(u.width) * u.actualScreenScale()
-		sy = float64(u.height) * u.actualScreenScale()
+		sx = float64(u.screenWidthInDP) * u.actualScreenScale()
+		sy = float64(u.screenHeightInDP) * u.actualScreenScale()
 
 		v := u.currentMonitor().GetVideoMode()
 		d = u.deviceScaleFactor()
@@ -780,8 +780,8 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 
 // deviceDependentWindowSize must be called from the main thread.
 func (u *UserInterface) deviceDependentWindowSize() (int, int) {
-	w := int(u.toDeviceDependentPixel(float64(u.windowWidth) * u.getScale()))
-	h := int(u.toDeviceDependentPixel(float64(u.height) * u.getScale()))
+	w := int(u.toDeviceDependentPixel(float64(u.windowWidthInDP) * u.getScale()))
+	h := int(u.toDeviceDependentPixel(float64(u.screenHeightInDP) * u.getScale()))
 	return w, h
 }
 
@@ -792,8 +792,8 @@ func (u *UserInterface) getScale() float64 {
 	}
 	if u.fullscreenScale == 0 {
 		v := u.currentMonitor().GetVideoMode()
-		sw := u.toDeviceIndependentPixel(float64(v.Width)) / float64(u.width)
-		sh := u.toDeviceIndependentPixel(float64(v.Height)) / float64(u.height)
+		sw := u.toDeviceIndependentPixel(float64(v.Width)) / float64(u.screenWidthInDP)
+		sh := u.toDeviceIndependentPixel(float64(v.Height)) / float64(u.screenHeightInDP)
 		s := sw
 		if s > sh {
 			s = sh
@@ -809,7 +809,7 @@ func (u *UserInterface) actualScreenScale() float64 {
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {
-	u.setScreenSize(u.width, u.height, u.scale, u.isFullscreen(), u.vsync)
+	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, u.isFullscreen(), u.vsync)
 
 	sizeChanged := false
 	_ = u.t.Call(func() error {
@@ -827,7 +827,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 			actualScale = u.actualScreenScale()
 			return nil
 		})
-		context.SetSize(u.width, u.height, actualScale)
+		context.SetSize(u.screenWidthInDP, u.screenHeightInDP, actualScale)
 	}
 }
 
@@ -842,7 +842,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}
 
 	if u.isInitFullscreen() {
-		u.setScreenSize(u.width, u.height, u.scale, true, u.vsync)
+		u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, true, u.vsync)
 		u.setInitFullscreen(false)
 	}
 
@@ -948,7 +948,7 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 	windowRecreated := false
 
 	_ = u.t.Call(func() error {
-		if u.width == width && u.height == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
+		if u.screenWidthInDP == width && u.screenHeightInDP == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 			return nil
 		}
 
@@ -967,13 +967,13 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 			height = 1
 		}
 
-		u.width = width
-		u.windowWidth = width
+		u.screenWidthInDP = width
+		u.windowWidthInDP = width
 		s := scale * u.deviceScaleFactor()
 		if int(float64(width)*s) < minWindowWidth {
-			u.windowWidth = int(math.Ceil(float64(minWindowWidth) / s))
+			u.windowWidthInDP = int(math.Ceil(float64(minWindowWidth) / s))
 		}
-		u.height = height
+		u.screenHeightInDP = height
 		u.scale = scale
 		u.fullscreenScale = 0
 		u.vsync = vsync
