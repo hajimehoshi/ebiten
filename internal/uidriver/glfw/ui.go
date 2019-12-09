@@ -23,7 +23,6 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"math"
 	"os"
 	"runtime"
 	"sync"
@@ -38,12 +37,13 @@ import (
 )
 
 type UserInterface struct {
-	title            string
-	window           *glfw.Window
-	screenWidthInDP  int
-	screenHeightInDP int
-	scale            float64
-	fullscreenScale  float64
+	title  string
+	window *glfw.Window
+
+	// windowWidth and windowHeight represents a window size.
+	// The unit is device-dependent pixels.
+	windowWidth  int
+	windowHeight int
 
 	running              bool
 	toChangeSize         bool
@@ -329,32 +329,6 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return w, h
 }
 
-func (u *UserInterface) SetScreenSize(width, height int) {
-	if !u.isRunning() {
-		panic("glfw: SetScreenSize can't be called before the main loop starts")
-	}
-	u.setScreenSize(width, height, u.scale, u.isFullscreen(), u.vsync)
-}
-
-func (u *UserInterface) SetScreenScale(scale float64) {
-	if !u.isRunning() {
-		panic("glfw: SetScreenScale can't be called before the main loop starts")
-	}
-	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, scale, u.isFullscreen(), u.vsync)
-}
-
-func (u *UserInterface) ScreenScale() float64 {
-	if !u.isRunning() {
-		return 0
-	}
-	s := 0.0
-	_ = u.t.Call(func() error {
-		s = u.scale
-		return nil
-	})
-	return s
-}
-
 // isFullscreen must be called from the main thread.
 func (u *UserInterface) isFullscreen() bool {
 	if !u.isRunning() {
@@ -380,7 +354,22 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		u.setInitFullscreen(fullscreen)
 		return
 	}
-	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, fullscreen, u.vsync)
+
+	var update bool
+	_ = u.t.Call(func() error {
+		update = u.isFullscreen() != fullscreen
+		return nil
+	})
+	if !update {
+		return
+	}
+
+	var w, h int
+	_ = u.t.Call(func() error {
+		w, h = u.windowWidth, u.windowHeight
+		return nil
+	})
+	u.setWindowSize(w, h, fullscreen, u.vsync)
 }
 
 func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
@@ -394,15 +383,20 @@ func (u *UserInterface) IsRunnableInBackground() bool {
 func (u *UserInterface) SetVsyncEnabled(enabled bool) {
 	if !u.isRunning() {
 		// In general, m is used for locking init* values.
-		// m is not used for updating vsync in setScreenSize so far, but
+		// m is not used for updating vsync in setWindowSize so far, but
 		// it should be OK since any goroutines can't reach here when
-		// the game already starts and setScreenSize can be called.
+		// the game already starts and setWindowSize can be called.
 		u.m.Lock()
 		u.vsync = enabled
 		u.m.Unlock()
 		return
 	}
-	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, u.isFullscreen(), enabled)
+	var w, h int
+	_ = u.t.Call(func() error {
+		w, h = u.windowWidth, u.windowHeight
+		return nil
+	})
+	u.setWindowSize(w, h, u.isFullscreen(), enabled)
 }
 
 func (u *UserInterface) IsVsyncEnabled() bool {
@@ -432,59 +426,6 @@ func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
 		u.window.SetIcon(iconImages)
 		return nil
 	})
-}
-
-func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
-	if !u.isRunning() {
-		return 0, 0, 0, 0
-	}
-	if !u.IsFullscreen() {
-		w, _ := u.window.GetSize()
-		wf := u.toDeviceIndependentPixel(float64(w)) / u.getScale()
-		if u.screenWidthInDP == int(wf) {
-			return 0, 0, 0, 0
-		}
-		// The window width can be bigger than the game screen width (#444).
-		ox := 0.0
-		_ = u.t.Call(func() error {
-			ox = (wf*u.actualScreenScale() - float64(u.screenWidthInDP)*u.actualScreenScale()) / 2
-			return nil
-		})
-		return ox, 0, ox, 0
-	}
-
-	d := 0.0
-	sx := 0.0
-	sy := 0.0
-	mx := 0.0
-	my := 0.0
-	_ = u.t.Call(func() error {
-		sx = float64(u.screenWidthInDP) * u.actualScreenScale()
-		sy = float64(u.screenHeightInDP) * u.actualScreenScale()
-
-		v := u.currentMonitor().GetVideoMode()
-		d = u.deviceScaleFactor()
-		mx = u.toDeviceIndependentPixel(float64(v.Width)) * d
-		my = u.toDeviceIndependentPixel(float64(v.Height)) * d
-		return nil
-	})
-
-	ox := (mx - sx) / 2
-	oy := (my - sy) / 2
-	return ox, oy, (mx - sx) - ox, (my - sy) - oy
-}
-
-func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	if !u.isRunning() {
-		return x, y
-	}
-	ox, oy, _, _ := u.ScreenPadding()
-	s := 0.0
-	_ = u.t.Call(func() error {
-		s = u.actualScreenScale()
-		return nil
-	})
-	return x - int(ox/s), y - int(oy/s)
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
@@ -684,11 +625,8 @@ func (u *UserInterface) createWindow() error {
 		if u.isFullscreen() {
 			return
 		}
-
-		w := int(u.toDeviceIndependentPixel(float64(width)) / u.scale)
-		h := int(u.toDeviceIndependentPixel(float64(height)) / u.scale)
-		u.reqWidth = w
-		u.reqHeight = h
+		u.reqWidth = width
+		u.reqHeight = height
 	})
 
 	return nil
@@ -699,6 +637,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		m      *glfw.Monitor
 		mx, my int
 		v      *glfw.VidMode
+		ww, wh int
 	)
 
 	if err := u.t.Call(func() error {
@@ -757,6 +696,9 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		mx, my = m.GetPos()
 		v = m.GetVideoMode()
 
+		ww = int(u.toDeviceDependentPixel(float64(width) * scale))
+		wh = int(u.toDeviceDependentPixel(float64(height) * scale))
+
 		return nil
 	}); err != nil {
 		return err
@@ -764,7 +706,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 
 	// The game is in window mode (not fullscreen mode) at the first state.
 	// Don't refer u.initFullscreen here to avoid some GLFW problems.
-	u.setScreenSize(width, height, scale, false, u.vsync)
+	u.setWindowSize(ww, wh, false, u.vsync)
 
 	_ = u.t.Call(func() error {
 		// Get the window size before showing it. Showing the window might change the current monitor which
@@ -798,31 +740,13 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	return u.loop(context)
 }
 
-// getScale must be called from the main thread.
-func (u *UserInterface) getScale() float64 {
-	if !u.isFullscreen() {
-		return u.scale
-	}
-	if u.fullscreenScale == 0 {
-		v := u.currentMonitor().GetVideoMode()
-		sw := u.toDeviceIndependentPixel(float64(v.Width)) / float64(u.screenWidthInDP)
-		sh := u.toDeviceIndependentPixel(float64(v.Height)) / float64(u.screenHeightInDP)
-		s := sw
-		if s > sh {
-			s = sh
-		}
-		u.fullscreenScale = s
-	}
-	return u.fullscreenScale
-}
-
-// actualScreenScale must be called from the main thread.
-func (u *UserInterface) actualScreenScale() float64 {
-	return u.getScale() * u.deviceScaleFactor()
-}
-
 func (u *UserInterface) updateSize(context driver.UIContext) {
-	u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, u.isFullscreen(), u.vsync)
+	var w, h int
+	_ = u.t.Call(func() error {
+		w, h = u.windowWidth, u.windowHeight
+		return nil
+	})
+	u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
 
 	sizeChanged := false
 	_ = u.t.Call(func() error {
@@ -835,12 +759,21 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 		return nil
 	})
 	if sizeChanged {
-		actualScale := 0.0
+		var w, h float64
 		_ = u.t.Call(func() error {
-			actualScale = u.actualScreenScale()
+			var ww, wh int
+			if u.isFullscreen() {
+				v := u.currentMonitor().GetVideoMode()
+				ww = v.Width
+				wh = v.Height
+			} else {
+				ww, wh = u.windowWidth, u.windowHeight
+			}
+			w = u.toDeviceIndependentPixel(float64(ww))
+			h = u.toDeviceIndependentPixel(float64(wh))
 			return nil
 		})
-		context.SetSize(u.screenWidthInDP, u.screenHeightInDP, actualScale)
+		context.Layout(w, h)
 	}
 }
 
@@ -855,7 +788,12 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}
 
 	if u.isInitFullscreen() {
-		u.setScreenSize(u.screenWidthInDP, u.screenHeightInDP, u.scale, true, u.vsync)
+		var w, h int
+		_ = u.t.Call(func() error {
+			w, h = u.window.GetSize()
+			return nil
+		})
+		u.setWindowSize(w, h, true, u.vsync)
 		u.setInitFullscreen(false)
 	}
 
@@ -866,7 +804,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 		glfw.PollEvents()
 		return nil
 	})
-	u.input.update(u.window)
+	u.input.update(u.window, context)
 	_ = u.t.Call(func() error {
 		defer hooks.ResumeAudio()
 
@@ -895,7 +833,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 		return nil
 	})
 	if w != 0 || h != 0 {
-		u.setScreenSize(w, h, u.scale, u.isFullscreen(), u.vsync)
+		u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
 	}
 	_ = u.t.Call(func() error {
 		u.reqWidth = 0
@@ -958,11 +896,11 @@ func (u *UserInterface) swapBuffers() {
 	}
 }
 
-func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscreen bool, vsync bool) {
+func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync bool) {
 	windowRecreated := false
 
 	_ = u.t.Call(func() error {
-		if u.screenWidthInDP == width && u.screenHeightInDP == height && u.scale == scale && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
+		if u.windowWidth == width && u.windowHeight == height && u.isFullscreen() == fullscreen && u.vsync == vsync && u.lastDeviceScaleFactor == u.deviceScaleFactor() {
 			return nil
 		}
 
@@ -973,10 +911,6 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 			height = 1
 		}
 
-		u.screenWidthInDP = width
-		u.screenHeightInDP = height
-		u.scale = scale
-		u.fullscreenScale = 0
 		u.vsync = vsync
 		u.lastDeviceScaleFactor = u.deviceScaleFactor()
 
@@ -1025,20 +959,34 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 
 			// On Windows, giving a too small width doesn't call a callback (#165).
 			// To prevent hanging up, return asap if the width is too small.
-			// 252 is an arbitrary number and I guess this is small enough.
-			minWindowWidth := 252
+			// 126 is an arbitrary number and I guess this is small enough.
+			minWindowWidth := int(u.toDeviceDependentPixel(126))
 			if u.window.GetAttrib(glfw.Decorated) == glfw.False {
 				minWindowWidth = 1
 			}
-			windowWidthInDP := width
-			s := scale * u.deviceScaleFactor()
-			if int(float64(width)*s) < minWindowWidth {
-				windowWidthInDP = int(math.Ceil(float64(minWindowWidth) / s))
+			if width < minWindowWidth {
+				width = minWindowWidth
 			}
 
+			if u.origPosX != invalidPos && u.origPosY != invalidPos {
+				x := u.origPosX
+				y := u.origPosY
+				u.window.SetPos(x, y)
+				// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
+				// work with two or more SetPos.
+				if runtime.GOOS == "darwin" {
+					u.window.SetPos(x+1, y)
+					u.window.SetPos(x, y)
+				}
+				u.origPosX = invalidPos
+				u.origPosY = invalidPos
+			}
+
+			// Set the window size after the position. The order matters.
+			// In the opposite order, the window size might not be correct when going back from fullscreen with multi monitors.
 			oldW, oldH := u.window.GetSize()
-			newW := int(u.toDeviceDependentPixel(float64(windowWidthInDP) * u.getScale()))
-			newH := int(u.toDeviceDependentPixel(float64(u.screenHeightInDP) * u.getScale()))
+			newW := width
+			newH := height
 			if oldW != newW || oldH != newH {
 				ch := make(chan struct{})
 				u.window.SetFramebufferSizeCallback(func(_ *glfw.Window, _, _ int) {
@@ -1057,23 +1005,13 @@ func (u *UserInterface) setScreenSize(width, height int, scale float64, fullscre
 				}
 			}
 
-			if u.origPosX != invalidPos && u.origPosY != invalidPos {
-				x := u.origPosX
-				y := u.origPosY
-				u.window.SetPos(x, y)
-				// Dirty hack for macOS (#703). Rendering doesn't work correctly with one SetPos, but
-				// work with two or more SetPos.
-				if runtime.GOOS == "darwin" {
-					u.window.SetPos(x+1, y)
-					u.window.SetPos(x, y)
-				}
-				u.origPosX = invalidPos
-				u.origPosY = invalidPos
-			}
-
 			// Window title might be lost on macOS after coming back from fullscreen.
 			u.window.SetTitle(u.title)
 		}
+
+		// As width might be updated, update windowWidth/Height here.
+		u.windowWidth = width
+		u.windowHeight = height
 
 		if u.graphics.IsGL() {
 			// SwapInterval is affected by the current monitor of the window.
@@ -1160,6 +1098,19 @@ func (u *UserInterface) IsScreenTransparent() bool {
 		return nil
 	})
 	return val
+}
+
+func (u *UserInterface) SetWindowSize(width, height int) {
+	if !u.isRunning() {
+		panic("glfw: SetWindowSize can't be called before the main loop starts")
+	}
+	w := int(u.toDeviceDependentPixel(float64(width)))
+	h := int(u.toDeviceDependentPixel(float64(height)))
+	u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
+}
+
+func (u *UserInterface) CanHaveWindow() bool {
+	return true
 }
 
 func (u *UserInterface) Input() driver.Input {

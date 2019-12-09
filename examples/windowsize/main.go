@@ -165,6 +165,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	ebiten.SetScreenSize(screenWidth, screenHeight)
+	// TODO: Add a flag for compatibility mode and call SetScreenScale only when the flag is on.
 	ebiten.SetScreenScale(screenScale)
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)

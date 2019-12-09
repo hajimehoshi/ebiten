@@ -17,6 +17,7 @@ package ebiten
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/clock"
@@ -31,45 +32,99 @@ func init() {
 	graphicscommand.SetGraphicsDriver(graphicsDriver())
 }
 
-func newUIContext(f func(*Image) error) *uiContext {
+func newUIContext(f func(*Image) error, width, height int, scaleForWindow float64) *uiContext {
 	return &uiContext{
-		f: f,
+		f:              f,
+		screenWidth:    width,
+		screenHeight:   height,
+		scaleForWindow: scaleForWindow,
 	}
 }
 
 type uiContext struct {
-	f            func(*Image) error
-	offscreen    *Image
-	screen       *Image
-	screenWidth  int
-	screenHeight int
-	screenScale  float64
-	offsetX      float64
-	offsetY      float64
+	f              func(*Image) error
+	offscreen      *Image
+	screen         *Image
+	screenWidth    int
+	screenHeight   int
+	screenScale    float64
+	scaleForWindow float64
+	offsetX        float64
+	offsetY        float64
+
+	reqWidth  int
+	reqHeight int
+	m         sync.Mutex
 }
 
-func (c *uiContext) SetSize(screenWidth, screenHeight int, screenScale float64) {
-	c.screenScale = screenScale
+var theUIContext *uiContext
 
-	if c.screen != nil {
-		_ = c.screen.Dispose()
+func (c *uiContext) resolveSize() (int, int) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	if c.reqWidth != 0 || c.reqHeight != 0 {
+		c.screenWidth = c.reqWidth
+		c.screenHeight = c.reqHeight
+		c.reqWidth = 0
+		c.reqHeight = 0
 	}
 	if c.offscreen != nil {
-		_ = c.offscreen.Dispose()
+		if w, h := c.offscreen.Size(); w != c.screenWidth || h != c.screenHeight {
+			// The offscreen might still be used somewhere. Do not Dispose it. Finalizer will do that.
+			c.offscreen = nil
+		}
+	}
+	if c.offscreen == nil {
+		c.offscreen = newImage(c.screenWidth, c.screenHeight, FilterDefault, true)
+	}
+	return c.screenWidth, c.screenHeight
+}
+
+func (c *uiContext) size() (int, int) {
+	return c.resolveSize()
+}
+
+func (c *uiContext) setScaleForWindow(scale float64) {
+	c.scaleForWindow = scale
+}
+
+func (c *uiContext) getScaleForWindow() float64 {
+	return c.scaleForWindow
+}
+
+func (c *uiContext) SetScreenSize(width, height int) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	// TODO: Use the interface Game's Layout and then update screenWidth and screenHeight, then this function
+	// is no longer needed.
+	c.reqWidth = width
+	c.reqHeight = height
+}
+
+func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
+	if c.screen != nil {
+		_ = c.screen.Dispose()
+		c.screen = nil
 	}
 
-	c.offscreen = newImage(screenWidth, screenHeight, FilterDefault, true)
+	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
+	d := uiDriver().DeviceScaleFactor()
+	c.screen = newScreenFramebufferImage(int(outsideWidth*d), int(outsideHeight*d))
 
-	// Round up the screensize not to cause glitches e.g. on Xperia (#622)
-	w := int(math.Ceil(float64(screenWidth) * screenScale))
-	h := int(math.Ceil(float64(screenHeight) * screenScale))
-	px0, py0, px1, py1 := uiDriver().ScreenPadding()
-	c.screen = newScreenFramebufferImage(w+int(math.Ceil(px0+px1)), h+int(math.Ceil(py0+py1)))
-	c.screenWidth = w
-	c.screenHeight = h
+	sw, sh := c.resolveSize()
+	scaleX := float64(outsideWidth) / float64(sw) * d
+	scaleY := float64(outsideHeight) / float64(sh) * d
+	c.screenScale = math.Min(scaleX, scaleY)
+	if uiDriver().CanHaveWindow() && !uiDriver().IsFullscreen() {
+		// When the UI driver cannot have a window, scaleForWindow is updated only via setScaleFowWindow.
+		c.scaleForWindow = c.screenScale / d
+	}
 
-	c.offsetX = px0
-	c.offsetY = py0
+	width := float64(sw) * c.screenScale
+	height := float64(sh) * c.screenScale
+	c.offsetX = (float64(outsideWidth)*d - width) / 2
+	c.offsetY = (float64(outsideHeight)*d - height) / 2
 }
 
 func (c *uiContext) Update(afterFrameUpdate func()) error {
@@ -82,17 +137,17 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	}
 
 	for i := 0; i < updateCount; i++ {
+		// Mipmap images should be disposed by Clear.
 		c.offscreen.Clear()
-		// Mipmap images should be disposed by fill.
 
 		setDrawingSkipped(i < updateCount-1)
+
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
 		if err := c.f(c.offscreen); err != nil {
 			return err
 		}
-
 		uiDriver().Input().ResetForFrame()
 		afterFrameUpdate()
 	}
@@ -107,7 +162,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
 		op.GeoM.Scale(c.screenScale, -c.screenScale)
-		op.GeoM.Translate(0, float64(c.screenHeight))
+		op.GeoM.Translate(0, float64(c.screenHeight)*c.screenScale)
 	case driver.VUpward:
 		op.GeoM.Scale(c.screenScale, c.screenScale)
 	default:
@@ -130,4 +185,9 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 		return err
 	}
 	return nil
+}
+
+func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {
+	d := uiDriver().DeviceScaleFactor()
+	return (x*d - c.offsetX) / c.screenScale, (y*d - c.offsetY) / c.screenScale
 }

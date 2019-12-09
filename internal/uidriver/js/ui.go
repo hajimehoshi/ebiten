@@ -20,7 +20,6 @@ import (
 	"image"
 	"log"
 	"runtime"
-	"strconv"
 	"syscall/js"
 	"time"
 
@@ -30,9 +29,6 @@ import (
 )
 
 type UserInterface struct {
-	width                int
-	height               int
-	scale                float64
 	runnableInBackground bool
 	vsync                bool
 	running              bool
@@ -40,14 +36,10 @@ type UserInterface struct {
 	sizeChanged bool
 	contextLost bool
 
-	lastActualScale float64
+	lastDeviceScaleFactor float64
 
 	context driver.UIContext
 	input   Input
-
-	// pseudoScale is a value to store 'scale'. This doesn't affect actual rendering.
-	// This is for backward compatibility.
-	pseudoScale float64
 }
 
 var theUI = &UserInterface{
@@ -75,18 +67,6 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return window.Get("innerWidth").Int(), window.Get("innerHeight").Int()
 }
 
-func (u *UserInterface) SetScreenSize(width, height int) {
-	u.setScreenSize(width, height)
-}
-
-func (u *UserInterface) SetScreenScale(scale float64) {
-	u.pseudoScale = scale
-}
-
-func (u *UserInterface) ScreenScale() float64 {
-	return u.pseudoScale
-}
-
 func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
@@ -111,24 +91,11 @@ func (u *UserInterface) IsVsyncEnabled() bool {
 	return u.vsync
 }
 
-func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
-	return 0, 0, 0, 0
-}
-
-func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	rect := canvas.Call("getBoundingClientRect")
-	x -= rect.Get("left").Int()
-	y -= rect.Get("top").Int()
-	s := u.scale
-	return int(float64(x) / s), int(float64(y) / s)
-}
-
 func (u *UserInterface) CursorMode() driver.CursorMode {
 	if canvas.Get("style").Get("cursor").String() != "none" {
 		return driver.CursorModeVisible
-	} else {
-		return driver.CursorModeHidden
 	}
+	return driver.CursorModeHidden
 }
 
 func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
@@ -150,6 +117,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 }
 
 func (u *UserInterface) SetWindowTitle(title string) {
+	// TODO: As the page should be in an iframe, this might be useless.
 	document.Set("title", title)
 }
 
@@ -171,34 +139,31 @@ func (u *UserInterface) IsWindowResizable() bool {
 
 func (u *UserInterface) SetWindowResizable(decorated bool) {
 	// Do nothing
-	if u.running {
-		panic("js: SetWindowResizable can't be called after the main loop starts")
-	}
+}
+
+func (u *UserInterface) SetWindowSize(width, height int) {
+	// TODO: This is too tricky: Even though browsers don't have windows, SetWindowSize is called whenever the
+	// screen size is changed. Fix this hack.
+	u.sizeChanged = true
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
 	return devicescale.GetAt(0, 0)
 }
 
-func (u *UserInterface) actualScreenScale() float64 {
-	// CSS imageRendering property seems useful to enlarge the screen,
-	// but doesn't work in some cases (#306):
-	// * Chrome just after restoring the lost context
-	// * Safari
-	// Let's use the devicePixelRatio as it is here.
-	return u.scale * devicescale.GetAt(0, 0)
-}
-
 func (u *UserInterface) updateSize() {
-	a := u.actualScreenScale()
-	if u.lastActualScale != a {
+	a := u.DeviceScaleFactor()
+	if u.lastDeviceScaleFactor != a {
 		u.updateScreenSize()
 	}
-	u.lastActualScale = a
+	u.lastDeviceScaleFactor = a
 
 	if u.sizeChanged {
 		u.sizeChanged = false
-		u.context.SetSize(u.width, u.height, a)
+		body := document.Get("body")
+		bw := body.Get("clientWidth").Float()
+		bh := body.Get("clientHeight").Float()
+		u.context.Layout(bw, bh)
 	}
 }
 
@@ -306,6 +271,7 @@ func init() {
 	canvas = document.Call("createElement", "canvas")
 	canvas.Set("width", 16)
 	canvas.Set("height", 16)
+
 	document.Get("body").Call("appendChild", canvas)
 
 	htmlStyle := document.Get("documentElement").Get("style")
@@ -315,13 +281,9 @@ func init() {
 
 	bodyStyle := document.Get("body").Get("style")
 	bodyStyle.Set("backgroundColor", "#000")
-	bodyStyle.Set("position", "relative")
 	bodyStyle.Set("height", "100%")
 	bodyStyle.Set("margin", "0")
 	bodyStyle.Set("padding", "0")
-	bodyStyle.Set("display", "flex")
-	bodyStyle.Set("alignItems", "center")
-	bodyStyle.Set("justifyContent", "center")
 
 	// TODO: This is OK as long as the game is in an independent iframe.
 	// What if the canvas is embedded in a HTML directly?
@@ -331,7 +293,10 @@ func init() {
 	}))
 
 	canvasStyle := canvas.Get("style")
-	canvasStyle.Set("position", "absolute")
+	canvasStyle.Set("width", "100%")
+	canvasStyle.Set("height", "100%")
+	canvasStyle.Set("margin", "0")
+	canvasStyle.Set("padding", "0")
 
 	// Make the canvas focusable.
 	canvas.Call("setAttribute", "tabindex", 1)
@@ -438,11 +403,7 @@ func init() {
 }
 
 func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
-	// scale is ignored.
-
 	document.Set("title", title)
-	u.setScreenSize(width, height)
-	u.pseudoScale = scale
 	canvas.Call("focus")
 	u.running = true
 	ch := u.loop(context)
@@ -467,37 +428,12 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 	panic("js: RunWithoutMainLoop is not implemented")
 }
 
-func (u *UserInterface) setScreenSize(width, height int) bool {
-	if u.width == width && u.height == height {
-		return false
-	}
-	u.width = width
-	u.height = height
-	u.updateScreenSize()
-	return true
-}
-
 func (u *UserInterface) updateScreenSize() {
 	body := document.Get("body")
-	bw := body.Get("clientWidth").Float()
-	bh := body.Get("clientHeight").Float()
-	sw := bw / float64(u.width)
-	sh := bh / float64(u.height)
-	if sw > sh {
-		u.scale = sh
-	} else {
-		u.scale = sw
-	}
-
-	canvas.Set("width", int(float64(u.width)*u.actualScreenScale()))
-	canvas.Set("height", int(float64(u.height)*u.actualScreenScale()))
-	canvasStyle := canvas.Get("style")
-
-	cssWidth := int(float64(u.width) * u.scale)
-	cssHeight := int(float64(u.height) * u.scale)
-	canvasStyle.Set("width", strconv.Itoa(cssWidth)+"px")
-	canvasStyle.Set("height", strconv.Itoa(cssHeight)+"px")
-
+	bw := int(body.Get("clientWidth").Float() * u.DeviceScaleFactor())
+	bh := int(body.Get("clientHeight").Float() * u.DeviceScaleFactor())
+	canvas.Set("width", bw)
+	canvas.Set("height", bh)
 	u.sizeChanged = true
 }
 
@@ -528,6 +464,10 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 func (u *UserInterface) IsScreenTransparent() bool {
 	bodyStyle := document.Get("body").Get("style")
 	return bodyStyle.Get("backgroundColor").String() == "transparent"
+}
+
+func (u *UserInterface) CanHaveWindow() bool {
+	return false
 }
 
 func (u *UserInterface) Input() driver.Input {

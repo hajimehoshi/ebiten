@@ -63,7 +63,7 @@ func (i *Input) CursorPosition() (x, y int) {
 		cx, cy = i.cursorX, i.cursorY
 		return nil
 	})
-	return i.ui.adjustPosition(cx, cy)
+	return cx, cy
 }
 
 func (i *Input) GamepadIDs() []int {
@@ -181,7 +181,7 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 	if !found {
 		return 0, 0
 	}
-	return i.ui.adjustPosition(p.X, p.Y)
+	return p.X, p.Y
 }
 
 func (i *Input) RuneBuffer() []rune {
@@ -284,7 +284,8 @@ func (i *Input) setWheel(xoff, yoff float64) {
 	i.scrollY = yoff
 }
 
-func (i *Input) update(window *glfw.Window) {
+func (i *Input) update(window *glfw.Window, context driver.UIContext) {
+	var cx, cy float64
 	_ = i.ui.t.Call(func() error {
 		i.onceCallback.Do(func() {
 			window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
@@ -306,9 +307,17 @@ func (i *Input) update(window *glfw.Window) {
 		for gb := range glfwMouseButtonToMouseButton {
 			i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
 		}
-		x, y := window.GetCursorPos()
-		i.cursorX = int(i.ui.toDeviceIndependentPixel(x) / i.ui.getScale())
-		i.cursorY = int(i.ui.toDeviceIndependentPixel(y) / i.ui.getScale())
+		cx, cy = window.GetCursorPos()
+		cx = i.ui.toDeviceIndependentPixel(cx)
+		cy = i.ui.toDeviceIndependentPixel(cy)
+		return nil
+	})
+
+	cx, cy = context.AdjustPosition(cx, cy)
+
+	_ = i.ui.t.Call(func() error {
+		i.cursorX, i.cursorY = int(cx), int(cy)
+
 		for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
 			i.gamepads[id].valid = false
 			if !id.Present() {

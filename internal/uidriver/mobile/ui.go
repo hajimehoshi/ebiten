@@ -139,7 +139,7 @@ func (u *UserInterface) appMain(a app.App) {
 				glctx = nil
 			}
 		case size.Event:
-			u.setGBuildImpl(e.WidthPx, e.HeightPx)
+			u.setGBuild(e.WidthPx, e.HeightPx)
 		case paint.Event:
 			if glctx == nil || e.External {
 				continue
@@ -236,30 +236,37 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {
-	width, height := 0, 0
-	actualScale := 0.0
+	var width, height float64
 
 	u.m.Lock()
 	sizeChanged := u.sizeChanged
 	if sizeChanged {
-		width = u.width
-		height = u.height
-		actualScale = u.scaleImpl() * deviceScale()
+		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
+			s := u.scaleImpl()
+			width = float64(u.width) * s
+			height = float64(u.height) * s
+		} else {
+			// gomobile build
+			d := deviceScale()
+			width = float64(u.gbuildWidthPx) / d
+			height = float64(u.gbuildHeightPx) / d
+		}
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
 
 	if sizeChanged {
-		// Sizing also calls GL functions
-		context.SetSize(width, height, actualScale)
-	}
-}
+		// Dirty hack to set the offscreen size for gomobile-bind.
+		// TODO: Remove this. The layouting logic must be in the package ebiten, not here.
+		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
+			context.(interface {
+				SetScreenSize(width, height int)
+			}).SetScreenSize(u.width, u.height)
+		}
 
-func (u *UserInterface) ActualScale() float64 {
-	u.m.Lock()
-	s := u.scaleImpl() * deviceScale()
-	u.m.Unlock()
-	return s
+		// Sizing also calls GL functions
+		context.Layout(width, height)
+	}
 }
 
 func (u *UserInterface) scaleImpl() float64 {
@@ -295,47 +302,26 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	return nil
 }
 
-func (u *UserInterface) ScreenSize() (int, int) {
-	u.m.Lock()
-	w, h := u.width, u.height
-	u.m.Unlock()
-	return w, h
-}
-
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	// TODO: This function should return gbuildWidthPx, gbuildHeightPx,
 	// but these values are not initialized until the main loop starts.
 	return 0, 0
 }
 
-func (u *UserInterface) SetScreenSize(width, height int) {
+func (u *UserInterface) SetScreenSizeAndScale(width, height int, scale float64) {
+	// Called from ebitenmobileview.
 	u.m.Lock()
-	if u.width != width || u.height != height {
+	if u.width != width || u.height != height || u.scale != scale {
 		u.width = width
 		u.height = height
+		u.scale = scale
 		u.updateGBuildScaleIfNeeded()
 		u.sizeChanged = true
 	}
 	u.m.Unlock()
 }
 
-func (u *UserInterface) SetScreenScale(scale float64) {
-	u.m.Lock()
-	if u.scale != scale {
-		u.scale = scale
-		u.sizeChanged = true
-	}
-	u.m.Unlock()
-}
-
-func (u *UserInterface) ScreenScale() float64 {
-	u.m.RLock()
-	s := u.scale
-	u.m.RUnlock()
-	return s
-}
-
-func (u *UserInterface) setGBuildImpl(widthPx, heightPx int) {
+func (u *UserInterface) setGBuild(widthPx, heightPx int) {
 	u.m.Lock()
 	u.gbuildWidthPx = widthPx
 	u.gbuildHeightPx = heightPx
@@ -348,6 +334,7 @@ func (u *UserInterface) updateGBuildScaleIfNeeded() {
 	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
 		return
 	}
+
 	w, h := u.width, u.height
 	scaleX := float64(u.gbuildWidthPx) / float64(w)
 	scaleY := float64(u.gbuildHeightPx) / float64(h)
@@ -359,14 +346,8 @@ func (u *UserInterface) updateGBuildScaleIfNeeded() {
 	u.sizeChanged = true
 }
 
-func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
-	u.m.Lock()
-	x0, y0, x1, y1 = u.screenPaddingImpl()
-	u.m.Unlock()
-	return
-}
-
 func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
+	// TODO: Replace this with UIContext's Layout.
 	if u.gbuildScale == 0 {
 		return 0, 0, 0, 0
 	}
@@ -377,6 +358,7 @@ func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
+	// TODO: Replace this with UIContext's AdjustPosition.
 	ox, oy, _, _ := u.screenPaddingImpl()
 	s := u.scaleImpl()
 	as := s * deviceScale()
@@ -456,6 +438,14 @@ func (u *UserInterface) SetScreenTransparent(transparent bool) {
 }
 
 func (u *UserInterface) IsScreenTransparent() bool {
+	return false
+}
+
+func (u *UserInterface) SetWindowSize(width, height int) {
+	// Do nothing
+}
+
+func (u *UserInterface) CanHaveWindow() bool {
 	return false
 }
 

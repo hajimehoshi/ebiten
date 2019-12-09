@@ -151,8 +151,8 @@ func IsRunningSlowly() bool {
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
 	f = (&imageDumper{f: f}).update
 
-	c := newUIContext(f)
-	if err := uiDriver().Run(width, height, scale, title, c, graphicsDriver()); err != nil {
+	theUIContext = newUIContext(f, width, height, scale)
+	if err := uiDriver().Run(width, height, scale, title, theUIContext, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}
@@ -170,8 +170,8 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
 	f = (&imageDumper{f: f}).update
 
-	c := newUIContext(f)
-	return uiDriver().RunWithoutMainLoop(width, height, scale, title, c, graphicsDriver())
+	theUIContext = newUIContext(f, width, height, scale)
+	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext, graphicsDriver())
 }
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
@@ -221,7 +221,12 @@ func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	uiDriver().SetScreenSize(width, height)
+	if theUIContext == nil {
+		panic("ebiten: SetScreenSize can't be called before the main loop starts")
+	}
+	theUIContext.SetScreenSize(width, height)
+	s := theUIContext.getScaleForWindow()
+	uiDriver().SetWindowSize(int(float64(width)*s), int(float64(height)*s))
 }
 
 // SetScreenScale changes the scale of the screen on desktops.
@@ -243,11 +248,18 @@ func SetScreenSize(width, height int) {
 // SetScreenScale panics if scale is not a positive number.
 //
 // SetScreenScale is concurrent-safe.
+//
+// TODO: Deprecate this function.
 func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
-	uiDriver().SetScreenScale(scale)
+	if theUIContext == nil {
+		panic("ebiten: SetScreenScale can't be called before the main loop starts")
+	}
+	theUIContext.setScaleForWindow(scale)
+	w, h := theUIContext.size()
+	uiDriver().SetWindowSize(int(float64(w)*scale), int(float64(h)*scale))
 }
 
 // ScreenScale returns the current screen scale.
@@ -257,8 +269,13 @@ func SetScreenScale(scale float64) {
 // If Run is not called, this returns 0.
 //
 // ScreenScale is concurrent-safe.
+//
+// TODO: Deprecate this function.
 func ScreenScale() float64 {
-	return uiDriver().ScreenScale()
+	if theUIContext == nil {
+		panic("ebiten: ScreenScale can't be called before the main loop starts")
+	}
+	return theUIContext.getScaleForWindow()
 }
 
 // CursorMode returns the current cursor mode.

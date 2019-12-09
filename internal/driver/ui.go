@@ -20,8 +20,9 @@ import (
 )
 
 type UIContext interface {
-	SetSize(width, height int, scale float64)
 	Update(afterFrameUpdate func()) error
+	Layout(outsideWidth, outsideHeight float64)
+	AdjustPosition(x, y float64) (float64, float64)
 }
 
 // RegularTermination represents a regular termination.
@@ -40,23 +41,21 @@ type UI interface {
 	IsVsyncEnabled() bool
 	IsWindowDecorated() bool
 	IsWindowResizable() bool
-	ScreenPadding() (x0, y0, x1, y1 float64)
-	ScreenScale() float64
 	ScreenSizeInFullscreen() (int, int)
 	WindowPosition() (int, int)
 	IsScreenTransparent() bool
+	CanHaveWindow() bool // TODO: Create a 'Widnow' interface.
 
 	SetCursorMode(mode CursorMode)
 	SetFullscreen(fullscreen bool)
 	SetRunnableInBackground(runnableInBackground bool)
-	SetScreenScale(scale float64)
-	SetScreenSize(width, height int)
 	SetVsyncEnabled(enabled bool)
 	SetWindowDecorated(decorated bool)
 	SetWindowIcon(iconImages []image.Image)
 	SetWindowResizable(resizable bool)
 	SetWindowTitle(title string)
 	SetWindowPosition(x, y int)
+	SetWindowSize(width, height int)
 	SetScreenTransparent(transparent bool)
 
 	Input() Input

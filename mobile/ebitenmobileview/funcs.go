@@ -60,8 +60,7 @@ func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 	y := (viewHeight - height) / 2
 
 	if theState.isRunning() {
-		mobile.Get().SetScreenSize(w, h)
-		mobile.Get().SetScreenScale(scale)
+		mobile.Get().SetScreenSizeAndScale(w, h, scale)
 	} else {
 		// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
 		theState.errorCh = ebiten.RunWithoutMainLoop(theState.game.Update, w, h, scale, "")

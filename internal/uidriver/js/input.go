@@ -51,7 +51,8 @@ type Input struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	return i.ui.adjustPosition(i.cursorX, i.cursorY)
+	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY))
+	return int(xf), int(yf)
 }
 
 func (i *Input) GamepadIDs() []int {
@@ -110,7 +111,8 @@ func (i *Input) TouchIDs() []int {
 func (i *Input) TouchPosition(id int) (x, y int) {
 	for tid, pos := range i.touches {
 		if id == tid {
-			return i.ui.adjustPosition(pos.X, pos.Y)
+			x, y := i.ui.context.AdjustPosition(float64(pos.X), float64(pos.Y))
+			return int(x), int(y)
 		}
 	}
 	return 0, 0
