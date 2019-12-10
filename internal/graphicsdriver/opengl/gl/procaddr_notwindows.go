@@ -21,9 +21,9 @@ package gl
 #cgo darwin CFLAGS: -DTAG_DARWIN
 #cgo darwin LDFLAGS: -framework OpenGL
 #cgo linux freebsd CFLAGS: -DTAG_POSIX
-#cgo linux freebsd LDFLAGS: -lGL
+#cgo linux freebsd pkg-config: gl
 #cgo egl CFLAGS: -DTAG_EGL
-#cgo egl LDFLAGS: -lEGL
+#cgo egl pkg-config: egl
 // Check the EGL tag first as it takes priority over the platform's default
 // configuration of WGL/GLX/CGL.
 #if defined(TAG_EGL)

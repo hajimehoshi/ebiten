@@ -5,8 +5,8 @@
 
 package gl
 
-// #cgo darwin        LDFLAGS: -framework OpenGL
-// #cgo linux freebsd LDFLAGS: -lGL
+// #cgo darwin LDFLAGS: -framework OpenGL
+// #cgo linux freebsd pkg-config: gl
 //
 // #ifndef APIENTRY
 //   #define APIENTRY
