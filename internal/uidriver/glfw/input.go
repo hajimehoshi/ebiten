@@ -47,8 +47,6 @@ type Input struct {
 	touches            map[int]pos // This is not updated until GLFW 3.3 is available (#417)
 	runeBuffer         []rune
 	ui                 *UserInterface
-
-	m sync.RWMutex
 }
 
 type pos struct {
@@ -57,91 +55,129 @@ type pos struct {
 }
 
 func (i *Input) CursorPosition() (x, y int) {
-	i.m.RLock()
-	cx, cy := i.cursorX, i.cursorY
-	i.m.RUnlock()
+	if !i.ui.isRunning() {
+		return 0, 0
+	}
+	var cx, cy int
+	_ = i.ui.t.Call(func() error {
+		cx, cy = i.cursorX, i.cursorY
+		return nil
+	})
 	return i.ui.adjustPosition(cx, cy)
 }
 
 func (i *Input) GamepadIDs() []int {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if len(i.gamepads) == 0 {
+	if !i.ui.isRunning() {
 		return nil
 	}
-	r := []int{}
-	for id, g := range i.gamepads {
-		if g.valid {
-			r = append(r, id)
+	var r []int
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) == 0 {
+			return nil
 		}
-	}
+		for id, g := range i.gamepads {
+			if g.valid {
+				r = append(r, id)
+			}
+		}
+		return nil
+	})
 	return r
 }
 
 func (i *Input) GamepadAxisNum(id int) int {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if len(i.gamepads) <= id {
+	if !i.ui.isRunning() {
 		return 0
 	}
-	return i.gamepads[id].axisNum
+	var r int
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) <= id {
+			return nil
+		}
+		r = i.gamepads[id].axisNum
+		return nil
+	})
+	return r
 }
 
 func (i *Input) GamepadAxis(id int, axis int) float64 {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if len(i.gamepads) <= id {
+	if !i.ui.isRunning() {
 		return 0
 	}
-	return i.gamepads[id].axes[axis]
+	var r float64
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) <= id {
+			return nil
+		}
+		r = i.gamepads[id].axes[axis]
+		return nil
+	})
+	return r
 }
 
 func (i *Input) GamepadButtonNum(id int) int {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if len(i.gamepads) <= id {
+	if !i.ui.isRunning() {
 		return 0
 	}
-	return i.gamepads[id].buttonNum
+	var r int
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) <= id {
+			return nil
+		}
+		r = i.gamepads[id].buttonNum
+		return nil
+	})
+	return r
 }
 
 func (i *Input) IsGamepadButtonPressed(id int, button driver.GamepadButton) bool {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if len(i.gamepads) <= id {
+	if !i.ui.isRunning() {
 		return false
 	}
-	return i.gamepads[id].buttonPressed[button]
+	var r bool
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) <= id {
+			return nil
+		}
+		r = i.gamepads[id].buttonPressed[button]
+		return nil
+	})
+	return r
 }
 
 func (i *Input) TouchIDs() []int {
-	i.m.RLock()
-	defer i.m.RUnlock()
-
-	if len(i.touches) == 0 {
+	if !i.ui.isRunning() {
 		return nil
 	}
-
 	var ids []int
-	for id := range i.touches {
-		ids = append(ids, id)
-	}
+	_ = i.ui.t.Call(func() error {
+		if len(i.touches) == 0 {
+			return nil
+		}
+		for id := range i.touches {
+			ids = append(ids, id)
+		}
+		return nil
+	})
 	return ids
 }
 
 func (i *Input) TouchPosition(id int) (x, y int) {
-	i.m.RLock()
-	found := false
-	var p pos
-	for tid, pos := range i.touches {
-		if id == tid {
-			p = pos
-			found = true
-			break
-		}
+	if !i.ui.isRunning() {
+		return 0, 0
 	}
-	i.m.RUnlock()
-
+	var found bool
+	var p pos
+	_ = i.ui.t.Call(func() error {
+		for tid, pos := range i.touches {
+			if id == tid {
+				p = pos
+				found = true
+				break
+			}
+		}
+		return nil
+	})
 	if !found {
 		return 0, 0
 	}
@@ -149,56 +185,83 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	return i.runeBuffer
+	if !i.ui.isRunning() {
+		return nil
+	}
+	var r []rune
+	_ = i.ui.t.Call(func() error {
+		r = i.runeBuffer
+		return nil
+	})
+	return r
 }
 
 func (i *Input) ResetForFrame() {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	i.runeBuffer = i.runeBuffer[:0]
-	i.scrollX, i.scrollY = 0, 0
+	if !i.ui.isRunning() {
+		return
+	}
+	_ = i.ui.t.Call(func() error {
+		i.runeBuffer = i.runeBuffer[:0]
+		i.scrollX, i.scrollY = 0, 0
+		return nil
+	})
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if i.keyPressed == nil {
-		i.keyPressed = map[glfw.Key]bool{}
+	if !i.ui.isRunning() {
+		return false
 	}
-	for gk, k := range glfwKeyCodeToKey {
-		if k != key {
-			continue
+	var r bool
+	_ = i.ui.t.Call(func() error {
+		if i.keyPressed == nil {
+			i.keyPressed = map[glfw.Key]bool{}
 		}
-		if i.keyPressed[gk] {
-			return true
+		for gk, k := range glfwKeyCodeToKey {
+			if k != key {
+				continue
+			}
+			if i.keyPressed[gk] {
+				r = true
+				return nil
+			}
 		}
-	}
-	return false
+		return nil
+	})
+	return r
 }
 
 func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
+	if !i.ui.isRunning() {
+		return false
 	}
-	for gb, b := range glfwMouseButtonToMouseButton {
-		if b != button {
-			continue
+	var r bool
+	_ = i.ui.t.Call(func() error {
+		if i.mouseButtonPressed == nil {
+			i.mouseButtonPressed = map[glfw.MouseButton]bool{}
 		}
-		if i.mouseButtonPressed[gb] {
-			return true
+		for gb, b := range glfwMouseButtonToMouseButton {
+			if b != button {
+				continue
+			}
+			if i.mouseButtonPressed[gb] {
+				r = true
+				return nil
+			}
 		}
-	}
-	return false
+		return nil
+	})
+	return r
 }
 
 func (i *Input) Wheel() (xoff, yoff float64) {
-	i.m.RLock()
-	defer i.m.RUnlock()
-	return i.scrollX, i.scrollY
+	if !i.ui.isRunning() {
+		return 0, 0
+	}
+	_ = i.ui.t.Call(func() error {
+		xoff, yoff = i.scrollX, i.scrollY
+		return nil
+	})
+	return
 }
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
@@ -208,72 +271,70 @@ var glfwMouseButtonToMouseButton = map[glfw.MouseButton]driver.MouseButton{
 }
 
 func (i *Input) appendRuneBuffer(char rune) {
+	// As this function is called from GLFW callbacks, the current thread is main.
 	if !unicode.IsPrint(char) {
 		return
 	}
-	i.m.Lock()
 	i.runeBuffer = append(i.runeBuffer, char)
-	i.m.Unlock()
 }
 
 func (i *Input) setWheel(xoff, yoff float64) {
-	i.m.Lock()
+	// As this function is called from GLFW callbacks, the current thread is main.
 	i.scrollX = xoff
 	i.scrollY = yoff
-	i.m.Unlock()
 }
 
 func (i *Input) update(window *glfw.Window) {
-	i.m.Lock()
-	defer i.m.Unlock()
+	_ = i.ui.t.Call(func() error {
+		i.onceCallback.Do(func() {
+			window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+				i.appendRuneBuffer(char)
+			})
+			window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
+				i.setWheel(xoff, yoff)
+			})
+		})
+		if i.keyPressed == nil {
+			i.keyPressed = map[glfw.Key]bool{}
+		}
+		for gk := range glfwKeyCodeToKey {
+			i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
+		}
+		if i.mouseButtonPressed == nil {
+			i.mouseButtonPressed = map[glfw.MouseButton]bool{}
+		}
+		for gb := range glfwMouseButtonToMouseButton {
+			i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
+		}
+		x, y := window.GetCursorPos()
+		i.cursorX = int(i.ui.toDeviceIndependentPixel(x) / i.ui.getScale())
+		i.cursorY = int(i.ui.toDeviceIndependentPixel(y) / i.ui.getScale())
+		for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
+			i.gamepads[id].valid = false
+			if !id.Present() {
+				continue
+			}
+			i.gamepads[id].valid = true
 
-	i.onceCallback.Do(func() {
-		window.SetCharModsCallback(func(w *glfw.Window, char rune, mods glfw.ModifierKey) {
-			i.appendRuneBuffer(char)
-		})
-		window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
-			i.setWheel(xoff, yoff)
-		})
+			axes32 := id.GetAxes()
+			i.gamepads[id].axisNum = len(axes32)
+			for a := 0; a < len(i.gamepads[id].axes); a++ {
+				if len(axes32) <= a {
+					i.gamepads[id].axes[a] = 0
+					continue
+				}
+				i.gamepads[id].axes[a] = float64(axes32[a])
+			}
+			buttons := id.GetButtons()
+			i.gamepads[id].buttonNum = len(buttons)
+			for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
+				if len(buttons) <= b {
+					i.gamepads[id].buttonPressed[b] = false
+					continue
+				}
+				i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
+			}
+		}
+		return nil
 	})
-	if i.keyPressed == nil {
-		i.keyPressed = map[glfw.Key]bool{}
-	}
-	for gk := range glfwKeyCodeToKey {
-		i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
-	}
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[glfw.MouseButton]bool{}
-	}
-	for gb := range glfwMouseButtonToMouseButton {
-		i.mouseButtonPressed[gb] = window.GetMouseButton(gb) == glfw.Press
-	}
-	x, y := window.GetCursorPos()
-	i.cursorX = int(i.ui.toDeviceIndependentPixel(x) / i.ui.getScale())
-	i.cursorY = int(i.ui.toDeviceIndependentPixel(y) / i.ui.getScale())
-	for id := glfw.Joystick(0); id < glfw.Joystick(len(i.gamepads)); id++ {
-		i.gamepads[id].valid = false
-		if !id.Present() {
-			continue
-		}
-		i.gamepads[id].valid = true
-
-		axes32 := id.GetAxes()
-		i.gamepads[id].axisNum = len(axes32)
-		for a := 0; a < len(i.gamepads[id].axes); a++ {
-			if len(axes32) <= a {
-				i.gamepads[id].axes[a] = 0
-				continue
-			}
-			i.gamepads[id].axes[a] = float64(axes32[a])
-		}
-		buttons := id.GetButtons()
-		i.gamepads[id].buttonNum = len(buttons)
-		for b := 0; b < len(i.gamepads[id].buttonPressed); b++ {
-			if len(buttons) <= b {
-				i.gamepads[id].buttonPressed[b] = false
-				continue
-			}
-			i.gamepads[id].buttonPressed[b] = glfw.Action(buttons[b]) == glfw.Press
-		}
-	}
 }

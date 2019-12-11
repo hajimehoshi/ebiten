@@ -845,9 +845,10 @@ func (u *UserInterface) update(context driver.UIContext) error {
 
 	_ = u.t.Call(func() error {
 		glfw.PollEvents()
-
-		u.input.update(u.window)
-
+		return nil
+	})
+	u.input.update(u.window)
+	_ = u.t.Call(func() error {
 		defer hooks.ResumeAudio()
 
 		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
