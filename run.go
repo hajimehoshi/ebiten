@@ -212,9 +212,9 @@ func MonitorSize() (int, int) {
 }
 
 // SetScreenSize changes the (logical) size of the screen.
-// This doesn't affect the current scale of the screen.
+// SetScreenSize adjusts the window size on desktops without changing its scale.
 //
-// Unit is device-independent pixel.
+// The unit is device-independent pixel.
 //
 // SetScreenSize is concurrent-safe.
 func SetScreenSize(width, height int) {
