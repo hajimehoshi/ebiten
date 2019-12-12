@@ -100,9 +100,9 @@ type UserInterface struct {
 	sizeChanged bool
 
 	// Used for gomobile-build
-	fullscreenScale    float64
-	fullscreenWidthPx  int
-	fullscreenHeightPx int
+	gbuildScale    float64
+	gbuildWidthPx  int
+	gbuildHeightPx int
 
 	graphics driver.Graphics
 
@@ -139,7 +139,7 @@ func (u *UserInterface) appMain(a app.App) {
 				glctx = nil
 			}
 		case size.Event:
-			u.setFullscreenImpl(e.WidthPx, e.HeightPx)
+			u.setGBuildImpl(e.WidthPx, e.HeightPx)
 		case paint.Event:
 			if glctx == nil || e.External {
 				continue
@@ -264,8 +264,8 @@ func (u *UserInterface) ActualScale() float64 {
 
 func (u *UserInterface) scaleImpl() float64 {
 	scale := u.scale
-	if u.fullscreenScale != 0 {
-		scale = u.fullscreenScale
+	if u.gbuildScale != 0 {
+		scale = u.gbuildScale
 	}
 	return scale
 }
@@ -303,7 +303,7 @@ func (u *UserInterface) ScreenSize() (int, int) {
 }
 
 func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
-	// TODO: This function should return fullscreenWidthPx, fullscreenHeightPx,
+	// TODO: This function should return gbuildWidthPx, gbuildHeightPx,
 	// but these values are not initialized until the main loop starts.
 	return 0, 0
 }
@@ -313,7 +313,7 @@ func (u *UserInterface) SetScreenSize(width, height int) {
 	if u.width != width || u.height != height {
 		u.width = width
 		u.height = height
-		u.updateFullscreenScaleIfNeeded()
+		u.updateGBuildScaleIfNeeded()
 		u.sizeChanged = true
 	}
 	u.m.Unlock()
@@ -335,28 +335,27 @@ func (u *UserInterface) ScreenScale() float64 {
 	return s
 }
 
-func (u *UserInterface) setFullscreenImpl(widthPx, heightPx int) {
-	// This implementation is only for gomobile-build so far.
+func (u *UserInterface) setGBuildImpl(widthPx, heightPx int) {
 	u.m.Lock()
-	u.fullscreenWidthPx = widthPx
-	u.fullscreenHeightPx = heightPx
-	u.updateFullscreenScaleIfNeeded()
+	u.gbuildWidthPx = widthPx
+	u.gbuildHeightPx = heightPx
+	u.updateGBuildScaleIfNeeded()
 	u.sizeChanged = true
 	u.m.Unlock()
 }
 
-func (u *UserInterface) updateFullscreenScaleIfNeeded() {
-	if u.fullscreenWidthPx == 0 || u.fullscreenHeightPx == 0 {
+func (u *UserInterface) updateGBuildScaleIfNeeded() {
+	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
 		return
 	}
 	w, h := u.width, u.height
-	scaleX := float64(u.fullscreenWidthPx) / float64(w)
-	scaleY := float64(u.fullscreenHeightPx) / float64(h)
+	scaleX := float64(u.gbuildWidthPx) / float64(w)
+	scaleY := float64(u.gbuildHeightPx) / float64(h)
 	scale := scaleX
 	if scale > scaleY {
 		scale = scaleY
 	}
-	u.fullscreenScale = scale / deviceScale()
+	u.gbuildScale = scale / deviceScale()
 	u.sizeChanged = true
 }
 
@@ -368,12 +367,12 @@ func (u *UserInterface) ScreenPadding() (x0, y0, x1, y1 float64) {
 }
 
 func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
-	if u.fullscreenScale == 0 {
+	if u.gbuildScale == 0 {
 		return 0, 0, 0, 0
 	}
-	s := u.fullscreenScale * deviceScale()
-	ox := (float64(u.fullscreenWidthPx) - float64(u.width)*s) / 2
-	oy := (float64(u.fullscreenHeightPx) - float64(u.height)*s) / 2
+	s := u.gbuildScale * deviceScale()
+	ox := (float64(u.gbuildWidthPx) - float64(u.width)*s) / 2
+	oy := (float64(u.gbuildHeightPx) - float64(u.height)*s) / 2
 	return ox, oy, ox, oy
 }
 
