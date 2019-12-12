@@ -298,7 +298,7 @@ func IsCursorCaptured() bool {
 // The system cursor is invisible and locked to the game window when captured.
 // Setting captured to false sets the cursor to visible.
 //
-// SetCursorCaptured does nothing on mobile or JS.
+// SetCursorCaptured does nothing on mobiles/JS/browsers.
 //
 // SetCursorVisible unlocks the cursor as well.
 // SetCursorVisible(false) can be used to unlock the cursor
