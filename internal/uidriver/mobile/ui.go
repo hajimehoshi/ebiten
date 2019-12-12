@@ -388,7 +388,15 @@ func (u *UserInterface) IsCursorVisible() bool {
 	return false
 }
 
+func (u *UserInterface) IsCursorCaptured() bool {
+	return false
+}
+
 func (u *UserInterface) SetCursorVisible(visible bool) {
+	// Do nothing
+}
+
+func (u *UserInterface) SetCursorCaptured(captured bool) {
 	// Do nothing
 }
 

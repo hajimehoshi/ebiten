@@ -285,6 +285,31 @@ func SetCursorVisibility(visible bool) {
 	SetCursorVisible(visible)
 }
 
+// IsCursorCaptured returns a boolean valued indicating whether
+// the cursor is captured or not.
+//
+// IsCursorCaptured always returns false on mobile and JS.
+//
+// IsCursorCaptured is concurrent-safe.
+func IsCursorCaptured() bool {
+	return uiDriver().IsCursorCaptured()
+}
+
+// SetCursorCaptured changes the capture state of the cursor.
+// The system cursor is invisible and locked to the game window when captured.
+// Setting captured to false sets the cursor to visible.
+//
+// SetCursorCaptured does nothing on mobile or JS.
+//
+// SetCursorVisible unlocks the cursor as well.
+// SetCursorVisible(false) can be used to unlock the cursor
+// to an invisible state.
+//
+// SetCursorCaptured is concurrent-safe.
+func SetCursorCaptured(captured bool) {
+	uiDriver().SetCursorCaptured(captured)
+}
+
 // IsFullscreen reports whether the current mode is fullscreen or not.
 //
 // IsFullscreen always returns false on browsers.

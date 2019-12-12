@@ -35,6 +35,7 @@ type UI interface {
 
 	DeviceScaleFactor() float64
 	IsCursorVisible() bool
+	IsCursorCaptured() bool
 	IsFullscreen() bool
 	IsRunnableInBackground() bool
 	IsVsyncEnabled() bool
@@ -47,6 +48,7 @@ type UI interface {
 	IsScreenTransparent() bool
 
 	SetCursorVisible(visible bool)
+	SetCursorCaptured(captured bool)
 	SetFullscreen(fullscreen bool)
 	SetRunnableInBackground(runnableInBackground bool)
 	SetScreenScale(scale float64)

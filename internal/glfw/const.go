@@ -90,9 +90,10 @@ const (
 )
 
 const (
-	CursorHidden = 0x00034002
-	CursorNormal = 0x00034001
-	NoAPI        = 0
+	CursorDisabled = 0x00034003
+	CursorHidden   = 0x00034002
+	CursorNormal   = 0x00034001
+	NoAPI          = 0
 )
 
 const (

@@ -59,6 +59,7 @@ type UserInterface struct {
 	initFullscreenHeightInDP int
 	initFullscreen           bool
 	initCursorVisible        bool
+	initCursorCaptured       bool
 	initWindowDecorated      bool
 	initWindowResizable      bool
 	initWindowPositionX      int
@@ -219,6 +220,19 @@ func (u *UserInterface) isInitCursorVisible() bool {
 func (u *UserInterface) setInitCursorVisible(visible bool) {
 	u.m.Lock()
 	u.initCursorVisible = visible
+	u.m.Unlock()
+}
+
+func (u *UserInterface) isInitCursorCaptured() bool {
+	u.m.RLock()
+	v := u.initCursorCaptured
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setInitCursorCaptured(captured bool) {
+	u.m.Lock()
+	u.initCursorCaptured = captured
 	u.m.Unlock()
 }
 
@@ -499,6 +513,18 @@ func (u *UserInterface) IsCursorVisible() bool {
 	return v
 }
 
+func (u *UserInterface) IsCursorCaptured() bool {
+	if !u.isRunning() {
+		return u.isInitCursorCaptured()
+	}
+	v := false
+	_ = u.t.Call(func() error {
+		v = u.window.GetInputMode(glfw.CursorMode) == glfw.CursorDisabled
+		return nil
+	})
+	return v
+}
+
 func (u *UserInterface) SetCursorVisible(visible bool) {
 	if !u.isRunning() {
 		u.setInitCursorVisible(visible)
@@ -508,6 +534,21 @@ func (u *UserInterface) SetCursorVisible(visible bool) {
 		c := glfw.CursorNormal
 		if !visible {
 			c = glfw.CursorHidden
+		}
+		u.window.SetInputMode(glfw.CursorMode, c)
+		return nil
+	})
+}
+
+func (u *UserInterface) SetCursorCaptured(captured bool) {
+	if !u.isRunning() {
+		u.setInitCursorCaptured(captured)
+		return
+	}
+	_ = u.t.Call(func() error {
+		c := glfw.CursorNormal
+		if captured {
+			c = glfw.CursorDisabled
 		}
 		u.window.SetInputMode(glfw.CursorMode, c)
 		return nil

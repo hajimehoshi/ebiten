@@ -128,12 +128,20 @@ func (u *UserInterface) IsCursorVisible() bool {
 	return canvas.Get("style").Get("cursor").String() != "none"
 }
 
+func (u *UserInterface) IsCursorCaptured() bool {
+	return false
+}
+
 func (u *UserInterface) SetCursorVisible(visible bool) {
 	if visible {
 		canvas.Get("style").Set("cursor", "auto")
 	} else {
 		canvas.Get("style").Set("cursor", "none")
 	}
+}
+
+func (u *UserInterface) SetCursorCaptured(captured bool) {
+	// Do nothing
 }
 
 func (u *UserInterface) SetWindowTitle(title string) {
