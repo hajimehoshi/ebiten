@@ -261,52 +261,48 @@ func ScreenScale() float64 {
 	return uiDriver().ScreenScale()
 }
 
-// IsCursorVisible returns a boolean value indicating whether
-// the cursor is visible or not.
+// CursorMode returns the current cursor mode.
 //
-// IsCursorVisible always returns false on mobiles.
+// On browsers, only CursorModeVisible and CursorModeHidden are supported.
 //
-// IsCursorVisible is concurrent-safe.
+// CursorMode returns 0 on mobiles.
+//
+// CursorMode is concurrent-safe.
+func CursorMode() InputCursorMode {
+	return InputCursorMode(uiDriver().CursorMode())
+}
+
+// SetCursorMode sets the render and capture mode of the mouse cursor.
+// CursorModeVisible sets the cursor to always be visible.
+// CursorModeHidden hides the system cursor when over the window.
+// CursorModeCaptured hides the system cursor and locks it to the window.
+//
+// On browsers, only CursorModeVisible and CursorModeHidden are supported.
+//
+// SetCursorMode does nothing on mobiles.
+//
+// SetCursorMode is concurrent-safe.
+func SetCursorMode(mode InputCursorMode) {
+	uiDriver().SetCursorMode(driver.CursorMode(mode))
+}
+
+// IsCursorVisible is deprecated as of 1.11.0-alpha.2. Use CursorMode instead.
 func IsCursorVisible() bool {
-	return uiDriver().IsCursorVisible()
+	return CursorMode() == CursorModeVisible
 }
 
-// SetCursorVisible changes the state of cursor visiblity.
-//
-// SetCursorVisible does nothing on mobiles.
-//
-// SetCursorVisible is concurrent-safe.
+// SetCursorVisible is deprecated as of 1.11.0-alpha.2. Use SetCursorMode instead.
 func SetCursorVisible(visible bool) {
-	uiDriver().SetCursorVisible(visible)
+	if visible {
+		SetCursorMode(CursorModeVisible)
+	} else {
+		SetCursorMode(CursorModeHidden)
+	}
 }
 
-// SetCursorVisibility is deprecated as of 1.6.0-alpha. Use SetCursorVisible instead.
+// SetCursorVisibility is deprecated as of 1.6.0-alpha. Use SetCursorMode instead.
 func SetCursorVisibility(visible bool) {
 	SetCursorVisible(visible)
-}
-
-// IsCursorCaptured reports whether the cursor is captured or not.
-//
-// IsCursorCaptured always returns false on mobiles or browsers.
-//
-// IsCursorCaptured is concurrent-safe.
-func IsCursorCaptured() bool {
-	return uiDriver().IsCursorCaptured()
-}
-
-// SetCursorCaptured changes the capture state of the cursor.
-// The system cursor is invisible and locked to the game window when captured.
-// Setting captured to false sets the cursor to visible.
-//
-// SetCursorCaptured does nothing on mobiles or browsers.
-//
-// SetCursorVisible unlocks the cursor as well.
-// SetCursorVisible(false) can be used to unlock the cursor
-// to an invisible state.
-//
-// SetCursorCaptured is concurrent-safe.
-func SetCursorCaptured(captured bool) {
-	uiDriver().SetCursorCaptured(captured)
 }
 
 // IsFullscreen reports whether the current mode is fullscreen or not.

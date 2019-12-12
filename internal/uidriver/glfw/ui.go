@@ -58,8 +58,7 @@ type UserInterface struct {
 	initFullscreenWidthInDP  int
 	initFullscreenHeightInDP int
 	initFullscreen           bool
-	initCursorVisible        bool
-	initCursorCaptured       bool
+	initCursorMode           driver.CursorMode
 	initWindowDecorated      bool
 	initWindowResizable      bool
 	initWindowPositionX      int
@@ -87,7 +86,7 @@ var (
 	theUI = &UserInterface{
 		origPosX:            invalidPos,
 		origPosY:            invalidPos,
-		initCursorVisible:   true,
+		initCursorMode:      driver.CursorModeVisible,
 		initWindowDecorated: true,
 		initWindowPositionX: invalidPos,
 		initWindowPositionY: invalidPos,
@@ -210,29 +209,16 @@ func (u *UserInterface) setInitFullscreen(initFullscreen bool) {
 	u.m.Unlock()
 }
 
-func (u *UserInterface) isInitCursorVisible() bool {
+func (u *UserInterface) getInitCursorMode() driver.CursorMode {
 	u.m.RLock()
-	v := u.initCursorVisible
+	v := u.initCursorMode
 	u.m.RUnlock()
 	return v
 }
 
-func (u *UserInterface) setInitCursorVisible(visible bool) {
+func (u *UserInterface) setInitCursorMode(mode driver.CursorMode) {
 	u.m.Lock()
-	u.initCursorVisible = visible
-	u.m.Unlock()
-}
-
-func (u *UserInterface) isInitCursorCaptured() bool {
-	u.m.RLock()
-	v := u.initCursorCaptured
-	u.m.RUnlock()
-	return v
-}
-
-func (u *UserInterface) setInitCursorCaptured(captured bool) {
-	u.m.Lock()
-	u.initCursorCaptured = captured
+	u.initCursorMode = mode
 	u.m.Unlock()
 }
 
@@ -501,54 +487,39 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	return x - int(ox/s), y - int(oy/s)
 }
 
-func (u *UserInterface) IsCursorVisible() bool {
+func (u *UserInterface) CursorMode() driver.CursorMode {
 	if !u.isRunning() {
-		return u.isInitCursorVisible()
+		return u.getInitCursorMode()
 	}
-	v := false
+	v := driver.CursorModeVisible
 	_ = u.t.Call(func() error {
-		v = u.window.GetInputMode(glfw.CursorMode) == glfw.CursorNormal
-		return nil
-	})
-	return v
-}
-
-func (u *UserInterface) IsCursorCaptured() bool {
-	if !u.isRunning() {
-		return u.isInitCursorCaptured()
-	}
-	v := false
-	_ = u.t.Call(func() error {
-		v = u.window.GetInputMode(glfw.CursorMode) == glfw.CursorDisabled
-		return nil
-	})
-	return v
-}
-
-func (u *UserInterface) SetCursorVisible(visible bool) {
-	if !u.isRunning() {
-		u.setInitCursorVisible(visible)
-		return
-	}
-	_ = u.t.Call(func() error {
-		c := glfw.CursorNormal
-		if !visible {
-			c = glfw.CursorHidden
+		switch u.window.GetInputMode(glfw.CursorMode) {
+		case glfw.CursorHidden:
+			v = driver.CursorModeHidden
+		case glfw.CursorDisabled:
+			v = driver.CursorModeCaptured
 		}
-		u.window.SetInputMode(glfw.CursorMode, c)
 		return nil
 	})
+	return v
 }
 
-func (u *UserInterface) SetCursorCaptured(captured bool) {
+func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	if !u.isRunning() {
-		u.setInitCursorCaptured(captured)
+		u.setInitCursorMode(mode)
 		return
 	}
 	_ = u.t.Call(func() error {
-		c := glfw.CursorNormal
-		if captured {
+		c := glfw.NoAPI
+		switch mode {
+		case driver.CursorModeVisible:
+			c = glfw.CursorNormal
+		case driver.CursorModeHidden:
+			c = glfw.CursorHidden
+		case driver.CursorModeCaptured:
 			c = glfw.CursorDisabled
+		default:
+			return nil
 		}
 		u.window.SetInputMode(glfw.CursorMode, c)
 		return nil
@@ -690,10 +661,12 @@ func (u *UserInterface) createWindow() error {
 	u.window.SetInputMode(glfw.StickyMouseButtonsMode, glfw.True)
 	u.window.SetInputMode(glfw.StickyKeysMode, glfw.True)
 
-	// Solve the initial properties of the window.
 	mode := glfw.CursorNormal
-	if !u.isInitCursorVisible() {
+	switch u.getInitCursorMode() {
+	case driver.CursorModeHidden:
 		mode = glfw.CursorHidden
+	case driver.CursorModeCaptured:
+		mode = glfw.CursorDisabled
 	}
 	u.window.SetInputMode(glfw.CursorMode, mode)
 	u.window.SetTitle(u.title)

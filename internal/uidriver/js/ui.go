@@ -123,25 +123,30 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	return int(float64(x) / s), int(float64(y) / s)
 }
 
-func (u *UserInterface) IsCursorVisible() bool {
-	// The initial value is an empty string, so don't compare with "auto" here.
-	return canvas.Get("style").Get("cursor").String() != "none"
+func (u *UserInterface) CursorMode() driver.CursorMode {
+	if u.IsCursorVisible {
+		return driver.CursorModeVisible
+	} else {
+		return driver.CursorModeHidden
+	}
 }
 
-func (u *UserInterface) IsCursorCaptured() bool {
-	return false
-}
+func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
+	var visible bool
+	switch mode {
+	case driver.CursorModeVisible:
+		visible = true
+	case driver.CursorModeHidden:
+		visible = false
+	default:
+		visible = canvas.Get("style").Get("cursor").String() != "none"
+	}
 
-func (u *UserInterface) SetCursorVisible(visible bool) {
 	if visible {
 		canvas.Get("style").Set("cursor", "auto")
 	} else {
 		canvas.Get("style").Set("cursor", "none")
 	}
-}
-
-func (u *UserInterface) SetCursorCaptured(captured bool) {
-	// Do nothing
 }
 
 func (u *UserInterface) SetWindowTitle(title string) {

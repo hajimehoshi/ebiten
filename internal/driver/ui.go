@@ -34,8 +34,7 @@ type UI interface {
 	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext, graphics Graphics) <-chan error
 
 	DeviceScaleFactor() float64
-	IsCursorVisible() bool
-	IsCursorCaptured() bool
+	CursorMode() CursorMode
 	IsFullscreen() bool
 	IsRunnableInBackground() bool
 	IsVsyncEnabled() bool
@@ -47,8 +46,7 @@ type UI interface {
 	WindowPosition() (int, int)
 	IsScreenTransparent() bool
 
-	SetCursorVisible(visible bool)
-	SetCursorCaptured(captured bool)
+	SetCursorMode(mode CursorMode)
 	SetFullscreen(fullscreen bool)
 	SetRunnableInBackground(runnableInBackground bool)
 	SetScreenScale(scale float64)
