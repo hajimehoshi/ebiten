@@ -285,10 +285,9 @@ func SetCursorVisibility(visible bool) {
 	SetCursorVisible(visible)
 }
 
-// IsCursorCaptured returns a boolean valued indicating whether
-// the cursor is captured or not.
+// IsCursorCaptured reports whether the cursor is captured or not.
 //
-// IsCursorCaptured always returns false on mobile and JS.
+// IsCursorCaptured always returns false on mobiles/JS/browsers.
 //
 // IsCursorCaptured is concurrent-safe.
 func IsCursorCaptured() bool {
