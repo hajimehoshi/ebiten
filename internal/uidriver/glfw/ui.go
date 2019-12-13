@@ -493,7 +493,8 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 	}
 	var v driver.CursorMode
 	_ = u.t.Call(func() error {
-		switch u.window.GetInputMode(glfw.CursorMode) {
+		mode := u.window.GetInputMode(glfw.CursorMode)
+		switch mode {
 		case glfw.CursorNormal:
 			v = driver.CursorModeVisible
 		case glfw.CursorHidden:
@@ -501,7 +502,7 @@ func (u *UserInterface) CursorMode() driver.CursorMode {
 		case glfw.CursorDisabled:
 			v = driver.CursorModeCaptured
 		default:
-			panic("Invalid cursor mode")
+			panic(fmt.Sprintf("invalid cursor mode: %d", mode))
 		}
 		return nil
 	})
@@ -514,7 +515,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 		return
 	}
 	_ = u.t.Call(func() error {
-		c := glfw.NoAPI
+		var c int
 		switch mode {
 		case driver.CursorModeVisible:
 			c = glfw.CursorNormal
@@ -523,7 +524,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 		case driver.CursorModeCaptured:
 			c = glfw.CursorDisabled
 		default:
-			panic("Invalid cursor mode")
+			panic(fmt.Sprintf("invalid cursor mode: %d", mode))
 		}
 		u.window.SetInputMode(glfw.CursorMode, c)
 		return nil
