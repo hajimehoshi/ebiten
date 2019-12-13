@@ -384,7 +384,7 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
-	return 0
+	return driver.CursorModeHidden
 }
 
 func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {

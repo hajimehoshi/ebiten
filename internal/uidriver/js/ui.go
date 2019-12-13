@@ -139,7 +139,7 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	case driver.CursorModeHidden:
 		visible = false
 	default:
-		visible = canvas.Get("style").Get("cursor").String() != "none"
+		return
 	}
 
 	if visible {

@@ -265,11 +265,11 @@ func ScreenScale() float64 {
 //
 // On browsers, only CursorModeVisible and CursorModeHidden are supported.
 //
-// CursorMode returns 0 on mobiles.
+// CursorMode returns CursorModeHidden on mobiles.
 //
 // CursorMode is concurrent-safe.
-func CursorMode() InputCursorMode {
-	return InputCursorMode(uiDriver().CursorMode())
+func CursorMode() CursorModeType {
+	return CursorModeType(uiDriver().CursorMode())
 }
 
 // SetCursorMode sets the render and capture mode of the mouse cursor.
@@ -282,16 +282,16 @@ func CursorMode() InputCursorMode {
 // SetCursorMode does nothing on mobiles.
 //
 // SetCursorMode is concurrent-safe.
-func SetCursorMode(mode InputCursorMode) {
+func SetCursorMode(mode CursorModeType) {
 	uiDriver().SetCursorMode(driver.CursorMode(mode))
 }
 
-// IsCursorVisible is deprecated as of 1.11.0-alpha.2. Use CursorMode instead.
+// IsCursorVisible is deprecated as of 1.11.0-alpha. Use CursorMode instead.
 func IsCursorVisible() bool {
 	return CursorMode() == CursorModeVisible
 }
 
-// SetCursorVisible is deprecated as of 1.11.0-alpha.2. Use SetCursorMode instead.
+// SetCursorVisible is deprecated as of 1.11.0-alpha. Use SetCursorMode instead.
 func SetCursorVisible(visible bool) {
 	if visible {
 		SetCursorMode(CursorModeVisible)
