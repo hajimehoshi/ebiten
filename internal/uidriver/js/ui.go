@@ -124,7 +124,7 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
-	if u.IsCursorVisible {
+	if canvas.Get("style").Get("cursor").String() != "none" {
 		return driver.CursorModeVisible
 	} else {
 		return driver.CursorModeHidden
