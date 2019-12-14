@@ -383,11 +383,11 @@ func (u *UserInterface) adjustPosition(x, y int) (int, int) {
 	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
 }
 
-func (u *UserInterface) IsCursorVisible() bool {
-	return false
+func (u *UserInterface) CursorMode() driver.CursorMode {
+	return driver.CursorModeHidden
 }
 
-func (u *UserInterface) SetCursorVisible(visible bool) {
+func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	// Do nothing
 }
 
