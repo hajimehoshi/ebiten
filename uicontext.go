@@ -33,9 +33,10 @@ func init() {
 }
 
 type defaultGame struct {
-	update func(screen *Image) error
-	width  int
-	height int
+	update  func(screen *Image) error
+	width   int
+	height  int
+	context *uiContext
 }
 
 func (d *defaultGame) Update(screen *Image) error {
@@ -44,19 +45,21 @@ func (d *defaultGame) Update(screen *Image) error {
 
 func (d *defaultGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	// Ignore the outside size.
-	return d.width, d.height
-}
-
-func (d *defaultGame) setScreenSize(width, height int) {
-	d.width = width
-	d.height = height
+	d.context.m.Lock()
+	w, h := d.width, d.height
+	d.context.m.Unlock()
+	return w, h
 }
 
 func newUIContext(game Game, width, height int, scaleForWindow float64) *uiContext {
-	return &uiContext{
+	u := &uiContext{
 		game:           game,
 		scaleForWindow: scaleForWindow,
 	}
+	if g, ok := game.(*defaultGame); ok {
+		g.context = u
+	}
+	return u
 }
 
 type uiContext struct {
@@ -82,17 +85,20 @@ func (c *uiContext) setScaleForWindow(scale float64) {
 	if !ok {
 		panic("ebiten: setScaleForWindow must be called when Run is used")
 	}
-	w, h := g.width, g.height
+
 	c.m.Lock()
+	defer c.m.Unlock()
+
+	w, h := g.width, g.height
 	c.scaleForWindow = scale
 	uiDriver().SetWindowSize(int(float64(w)*scale), int(float64(h)*scale))
-	c.m.Unlock()
 }
 
 func (c *uiContext) getScaleForWindow() float64 {
 	if _, ok := c.game.(*defaultGame); !ok {
 		panic("ebiten: getScaleForWindow must be called when Run is used")
 	}
+
 	c.m.Lock()
 	s := c.scaleForWindow
 	c.m.Unlock()
@@ -100,14 +106,16 @@ func (c *uiContext) getScaleForWindow() float64 {
 }
 
 func (c *uiContext) SetScreenSize(width, height int) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
 	g, ok := c.game.(*defaultGame)
 	if !ok {
 		panic("ebiten: SetScreenSize must be called when Run is used")
 	}
-	g.setScreenSize(width, height)
+
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	g.width = width
+	g.height = height
 	s := c.scaleForWindow
 	uiDriver().SetWindowSize(int(float64(width)*s), int(float64(height)*s))
 }
