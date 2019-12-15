@@ -80,26 +80,29 @@ func (c *uiContext) resolveSize() (int, int) {
 	return c.screenWidth, c.screenHeight
 }
 
-func (c *uiContext) size() (int, int) {
-	return c.resolveSize()
-}
-
 func (c *uiContext) setScaleForWindow(scale float64) {
+	w, h := c.resolveSize()
+	c.m.Lock()
 	c.scaleForWindow = scale
+	uiDriver().SetWindowSize(int(float64(w)*scale), int(float64(h)*scale))
+	c.m.Unlock()
 }
 
 func (c *uiContext) getScaleForWindow() float64 {
-	return c.scaleForWindow
+	c.m.Lock()
+	s := c.scaleForWindow
+	c.m.Unlock()
+	return s
 }
 
 func (c *uiContext) SetScreenSize(width, height int) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	// TODO: Use the interface Game's Layout and then update screenWidth and screenHeight, then this function
-	// is no longer needed.
 	c.reqWidth = width
 	c.reqHeight = height
+	s := c.scaleForWindow
+	uiDriver().SetWindowSize(int(float64(width)*s), int(float64(height)*s))
 }
 
 func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {

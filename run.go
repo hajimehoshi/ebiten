@@ -225,8 +225,6 @@ func SetScreenSize(width, height int) {
 		panic("ebiten: SetScreenSize can't be called before the main loop starts")
 	}
 	theUIContext.SetScreenSize(width, height)
-	s := theUIContext.getScaleForWindow()
-	uiDriver().SetWindowSize(int(float64(width)*s), int(float64(height)*s))
 }
 
 // SetScreenScale changes the scale of the screen on desktops.
@@ -258,8 +256,6 @@ func SetScreenScale(scale float64) {
 		panic("ebiten: SetScreenScale can't be called before the main loop starts")
 	}
 	theUIContext.setScaleForWindow(scale)
-	w, h := theUIContext.size()
-	uiDriver().SetWindowSize(int(float64(w)*scale), int(float64(h)*scale))
 }
 
 // ScreenScale returns the current screen scale.
