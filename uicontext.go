@@ -66,10 +66,7 @@ type uiContext struct {
 	game           Game
 	offscreen      *Image
 	screen         *Image
-	screenScale    float64
 	scaleForWindow float64
-	offsetX        float64
-	offsetY        float64
 
 	outsideSizeUpdated bool
 	outsideWidth       float64
@@ -156,17 +153,32 @@ func (c *uiContext) updateOffscreen() {
 	d := uiDriver().DeviceScaleFactor()
 	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 
+	if uiDriver().CanHaveWindow() && !uiDriver().IsFullscreen() {
+		c.setScaleForWindow(c.screenScale() / d)
+	}
+}
+
+func (c *uiContext) screenScale() float64 {
+	if c.offscreen == nil {
+		return 0
+	}
+	sw, sh := c.offscreen.Size()
+	d := uiDriver().DeviceScaleFactor()
 	scaleX := c.outsideWidth / float64(sw) * d
 	scaleY := c.outsideHeight / float64(sh) * d
-	c.screenScale = math.Min(scaleX, scaleY)
-	if uiDriver().CanHaveWindow() && !uiDriver().IsFullscreen() {
-		c.setScaleForWindow(c.screenScale / d)
-	}
+	return math.Min(scaleX, scaleY)
+}
 
-	width := float64(sw) * c.screenScale
-	height := float64(sh) * c.screenScale
-	c.offsetX = (c.outsideWidth*d - width) / 2
-	c.offsetY = (c.outsideHeight*d - height) / 2
+func (c *uiContext) offsets() (float64, float64) {
+	if c.offscreen == nil {
+		return 0, 0
+	}
+	sw, sh := c.offscreen.Size()
+	d := uiDriver().DeviceScaleFactor()
+	s := c.screenScale()
+	width := float64(sw) * s
+	height := float64(sh) * s
+	return (c.outsideWidth*d - width) / 2, (c.outsideHeight*d - height) / 2
 }
 
 func (c *uiContext) Update(afterFrameUpdate func()) error {
@@ -201,25 +213,26 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 	op := &DrawImageOptions{}
 
+	s := c.screenScale()
 	switch vd := graphicsDriver().VDirection(); vd {
 	case driver.VDownward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
-		op.GeoM.Scale(c.screenScale, -c.screenScale)
+		op.GeoM.Scale(s, -s)
 		_, h := c.offscreen.Size()
-		op.GeoM.Translate(0, float64(h)*c.screenScale)
+		op.GeoM.Translate(0, float64(h)*s)
 	case driver.VUpward:
-		op.GeoM.Scale(c.screenScale, c.screenScale)
+		op.GeoM.Scale(s, s)
 	default:
 		panic(fmt.Sprintf("ebiten: invalid v-direction: %d", vd))
 	}
 
-	op.GeoM.Translate(c.offsetX, c.offsetY)
+	op.GeoM.Translate(c.offsets())
 	op.CompositeMode = CompositeModeCopy
 
 	// filterScreen works with >=1 scale, but does not well with <1 scale.
 	// Use regular FilterLinear instead so far (#669).
-	if c.screenScale >= 1 {
+	if s >= 1 {
 		op.Filter = filterScreen
 	} else {
 		op.Filter = FilterLinear
@@ -234,5 +247,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 func (c *uiContext) AdjustPosition(x, y float64) (float64, float64) {
 	d := uiDriver().DeviceScaleFactor()
-	return (x*d - c.offsetX) / c.screenScale, (y*d - c.offsetY) / c.screenScale
+	ox, oy := c.offsets()
+	s := c.screenScale()
+	return (x*d - ox) / s, (y*d - oy) / s
 }
