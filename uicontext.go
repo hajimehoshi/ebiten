@@ -32,56 +32,57 @@ func init() {
 	graphicscommand.SetGraphicsDriver(graphicsDriver())
 }
 
-func newUIContext(f func(*Image) error, width, height int, scaleForWindow float64) *uiContext {
+type defaultGame struct {
+	update func(screen *Image) error
+	width  int
+	height int
+}
+
+func (d *defaultGame) Update(screen *Image) error {
+	return d.update(screen)
+}
+
+func (d *defaultGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	// Ignore the outside size.
+	return d.width, d.height
+}
+
+func (d *defaultGame) setScreenSize(width, height int) {
+	d.width = width
+	d.height = height
+}
+
+func newUIContext(game Game, width, height int, scaleForWindow float64) *uiContext {
 	return &uiContext{
-		f:              f,
-		screenWidth:    width,
-		screenHeight:   height,
+		game:           game,
 		scaleForWindow: scaleForWindow,
 	}
 }
 
 type uiContext struct {
-	f              func(*Image) error
+	game           Game
 	offscreen      *Image
 	screen         *Image
-	screenWidth    int
-	screenHeight   int
 	screenScale    float64
 	scaleForWindow float64
 	offsetX        float64
 	offsetY        float64
 
-	reqWidth  int
-	reqHeight int
-	m         sync.Mutex
+	outsideSizeUpdated bool
+	outsideWidth       float64
+	outsideHeight      float64
+
+	m sync.Mutex
 }
 
 var theUIContext *uiContext
 
-func (c *uiContext) resolveSize() (int, int) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	if c.reqWidth != 0 || c.reqHeight != 0 {
-		c.screenWidth = c.reqWidth
-		c.screenHeight = c.reqHeight
-		c.reqWidth = 0
-		c.reqHeight = 0
-	}
-	if c.offscreen != nil {
-		if w, h := c.offscreen.Size(); w != c.screenWidth || h != c.screenHeight {
-			// The offscreen might still be used somewhere. Do not Dispose it. Finalizer will do that.
-			c.offscreen = nil
-		}
-	}
-	if c.offscreen == nil {
-		c.offscreen = newImage(c.screenWidth, c.screenHeight, FilterDefault, true)
-	}
-	return c.screenWidth, c.screenHeight
-}
-
 func (c *uiContext) setScaleForWindow(scale float64) {
-	w, h := c.resolveSize()
+	g, ok := c.game.(*defaultGame)
+	if !ok {
+		panic("ebiten: setScaleForWindow must be called when Run is used")
+	}
+	w, h := g.width, g.height
 	c.m.Lock()
 	c.scaleForWindow = scale
 	uiDriver().SetWindowSize(int(float64(w)*scale), int(float64(h)*scale))
@@ -89,6 +90,9 @@ func (c *uiContext) setScaleForWindow(scale float64) {
 }
 
 func (c *uiContext) getScaleForWindow() float64 {
+	if _, ok := c.game.(*defaultGame); !ok {
+		panic("ebiten: getScaleForWindow must be called when Run is used")
+	}
 	c.m.Lock()
 	s := c.scaleForWindow
 	c.m.Unlock()
@@ -99,35 +103,62 @@ func (c *uiContext) SetScreenSize(width, height int) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	c.reqWidth = width
-	c.reqHeight = height
+	g, ok := c.game.(*defaultGame)
+	if !ok {
+		panic("ebiten: SetScreenSize must be called when Run is used")
+	}
+	g.setScreenSize(width, height)
 	s := c.scaleForWindow
 	uiDriver().SetWindowSize(int(float64(width)*s), int(float64(height)*s))
 }
 
 func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
+	c.outsideSizeUpdated = true
+	c.outsideWidth = outsideWidth
+	c.outsideHeight = outsideHeight
+}
+
+func (c *uiContext) updateOffscreen() {
+	sw, sh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
+
+	if c.offscreen != nil && !c.outsideSizeUpdated {
+		if w, h := c.offscreen.Size(); w == sw && h == sh {
+			return
+		}
+	}
+	c.outsideSizeUpdated = false
+
 	if c.screen != nil {
 		_ = c.screen.Dispose()
 		c.screen = nil
 	}
 
+	if c.offscreen != nil {
+		if w, h := c.offscreen.Size(); w != sw || h != sh {
+			_ = c.offscreen.Dispose()
+			c.offscreen = nil
+		}
+	}
+	if c.offscreen == nil {
+		c.offscreen = newImage(sw, sh, FilterDefault, true)
+	}
+	c.SetScreenSize(sw, sh)
+
 	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
 	d := uiDriver().DeviceScaleFactor()
-	c.screen = newScreenFramebufferImage(int(outsideWidth*d), int(outsideHeight*d))
+	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 
-	sw, sh := c.resolveSize()
-	scaleX := float64(outsideWidth) / float64(sw) * d
-	scaleY := float64(outsideHeight) / float64(sh) * d
+	scaleX := c.outsideWidth / float64(sw) * d
+	scaleY := c.outsideHeight / float64(sh) * d
 	c.screenScale = math.Min(scaleX, scaleY)
 	if uiDriver().CanHaveWindow() && !uiDriver().IsFullscreen() {
-		// When the UI driver cannot have a window, scaleForWindow is updated only via setScaleFowWindow.
-		c.scaleForWindow = c.screenScale / d
+		c.setScaleForWindow(c.screenScale / d)
 	}
 
 	width := float64(sw) * c.screenScale
 	height := float64(sh) * c.screenScale
-	c.offsetX = (float64(outsideWidth)*d - width) / 2
-	c.offsetY = (float64(outsideHeight)*d - height) / 2
+	c.offsetX = (c.outsideWidth*d - width) / 2
+	c.offsetY = (c.outsideHeight*d - height) / 2
 }
 
 func (c *uiContext) Update(afterFrameUpdate func()) error {
@@ -140,6 +171,8 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 	}
 
 	for i := 0; i < updateCount; i++ {
+		c.updateOffscreen()
+
 		// Mipmap images should be disposed by Clear.
 		c.offscreen.Clear()
 
@@ -148,7 +181,7 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 		if err := hooks.RunBeforeUpdateHooks(); err != nil {
 			return err
 		}
-		if err := c.f(c.offscreen); err != nil {
+		if err := c.game.Update(c.offscreen); err != nil {
 			return err
 		}
 		uiDriver().Input().ResetForFrame()
@@ -165,7 +198,8 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.
 		op.GeoM.Scale(c.screenScale, -c.screenScale)
-		op.GeoM.Translate(0, float64(c.screenHeight)*c.screenScale)
+		_, h := c.offscreen.Size()
+		op.GeoM.Translate(0, float64(h)*c.screenScale)
 	case driver.VUpward:
 		op.GeoM.Scale(c.screenScale, c.screenScale)
 	default:

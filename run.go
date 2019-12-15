@@ -149,9 +149,13 @@ func IsRunningSlowly() bool {
 //
 // Don't call Run twice or more in one process.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
-	f = (&imageDumper{f: f}).update
+	game := &defaultGame{
+		update: (&imageDumper{f: f}).update,
+		width:  width,
+		height: height,
+	}
 
-	theUIContext = newUIContext(f, width, height, scale)
+	theUIContext = newUIContext(game, width, height, scale)
 	if err := uiDriver().Run(width, height, scale, title, theUIContext, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
@@ -168,9 +172,13 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // Ebiten users should NOT call RunWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
 func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
-	f = (&imageDumper{f: f}).update
+	game := &defaultGame{
+		update: (&imageDumper{f: f}).update,
+		width:  width,
+		height: height,
+	}
 
-	theUIContext = newUIContext(f, width, height, scale)
+	theUIContext = newUIContext(game, width, height, scale)
 	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext, graphicsDriver())
 }
 
