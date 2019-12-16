@@ -155,7 +155,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 		height: height,
 	}
 
-	theUIContext = newUIContext(game, width, height, scale)
+	theUIContext = newUIContext(game, scale)
 	if err := uiDriver().Run(width, height, scale, title, theUIContext, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
@@ -178,7 +178,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 		height: height,
 	}
 
-	theUIContext = newUIContext(game, width, height, scale)
+	theUIContext = newUIContext(game, scale)
 	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext, graphicsDriver())
 }
 

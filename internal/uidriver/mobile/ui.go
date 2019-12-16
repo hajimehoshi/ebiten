@@ -94,9 +94,11 @@ func (u *UserInterface) Update() {
 }
 
 type UserInterface struct {
-	width       int
-	height      int
-	scale       float64
+	// TODO: Remove these members: the driver layer should not care about the game screen size.
+	width  int
+	height int
+	scale  float64
+
 	sizeChanged bool
 
 	// Used for gomobile-build

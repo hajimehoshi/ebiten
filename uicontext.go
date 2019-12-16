@@ -51,7 +51,7 @@ func (d *defaultGame) Layout(outsideWidth, outsideHeight int) (screenWidth, scre
 	return w, h
 }
 
-func newUIContext(game Game, width, height int, scaleForWindow float64) *uiContext {
+func newUIContext(game Game, scaleForWindow float64) *uiContext {
 	u := &uiContext{
 		game:           game,
 		scaleForWindow: scaleForWindow,
