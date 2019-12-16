@@ -39,7 +39,7 @@ import (
 )
 
 var (
-	glContextCh = make(chan gl.Context)
+	glContextCh = make(chan gl.Context, 1)
 
 	// renderCh receives when updating starts.
 	renderCh = make(chan struct{})
@@ -102,10 +102,11 @@ type UserInterface struct {
 	sizeChanged bool
 
 	// Used for gomobile-build
-	gbuildScale    float64
-	gbuildWidthPx  int
-	gbuildHeightPx int
+	gbuildWidthPx   int
+	gbuildHeightPx  int
+	setGBuildSizeCh chan struct{}
 
+	context  driver.UIContext
 	graphics driver.Graphics
 
 	input Input
@@ -123,6 +124,7 @@ func deviceScale() float64 {
 // appMain is the main routine for gomobile-build mode.
 func (u *UserInterface) appMain(a app.App) {
 	var glctx gl.Context
+	var sizeInited bool
 	touches := map[touch.Sequence]*Touch{}
 	for e := range a.Events() {
 		switch e := a.Filter(e).(type) {
@@ -141,8 +143,13 @@ func (u *UserInterface) appMain(a app.App) {
 				glctx = nil
 			}
 		case size.Event:
-			u.setGBuild(e.WidthPx, e.HeightPx)
+			u.setGBuildSize(e.WidthPx, e.HeightPx)
+			sizeInited = true
 		case paint.Event:
+			if !sizeInited {
+				a.Send(paint.Event{})
+				continue
+			}
 			if glctx == nil || e.External {
 				continue
 			}
@@ -151,6 +158,9 @@ func (u *UserInterface) appMain(a app.App) {
 			a.Publish()
 			a.Send(paint.Event{})
 		case touch.Event:
+			if !sizeInited {
+				continue
+			}
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
 				s := deviceScale()
@@ -174,8 +184,11 @@ func (u *UserInterface) appMain(a app.App) {
 }
 
 func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+	// TODO: Remove width/height/scale arguments. They are not used from gomobile-build.
+
+	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(width, height, scale, title, context, graphics, true); err != nil {
+		if err := u.run(16, 16, 1, title, context, graphics, true); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -192,6 +205,7 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 			ch <- err
 		}
 	}()
+
 	return ch
 }
 
@@ -211,6 +225,7 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	u.height = height
 	u.scale = scale
 	u.sizeChanged = true
+	u.context = context
 	u.graphics = graphics
 	u.m.Unlock()
 	// title is ignored?
@@ -226,6 +241,11 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 	} else {
 		u.t = thread.New()
 		graphics.SetThread(u.t)
+	}
+
+	// If gomobile-build is used, wait for the outside size fixed.
+	if u.setGBuildSizeCh != nil {
+		<-u.setGBuildSizeCh
 	}
 
 	// Force to set the screen size
@@ -244,7 +264,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 	sizeChanged := u.sizeChanged
 	if sizeChanged {
 		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-			s := u.scaleImpl()
+			s := u.scale
 			width = float64(u.width) * s
 			height = float64(u.height) * s
 		} else {
@@ -269,14 +289,6 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 		// Sizing also calls GL functions
 		context.Layout(width, height)
 	}
-}
-
-func (u *UserInterface) scaleImpl() float64 {
-	scale := u.scale
-	if u.gbuildScale != 0 {
-		scale = u.gbuildScale
-	}
-	return scale
 }
 
 func (u *UserInterface) update(context driver.UIContext) error {
@@ -317,54 +329,28 @@ func (u *UserInterface) SetScreenSizeAndScale(width, height int, scale float64) 
 		u.width = width
 		u.height = height
 		u.scale = scale
-		u.updateGBuildScaleIfNeeded()
 		u.sizeChanged = true
 	}
 	u.m.Unlock()
 }
 
-func (u *UserInterface) setGBuild(widthPx, heightPx int) {
+func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 	u.m.Lock()
 	u.gbuildWidthPx = widthPx
 	u.gbuildHeightPx = heightPx
-	u.updateGBuildScaleIfNeeded()
 	u.sizeChanged = true
+	close(u.setGBuildSizeCh)
 	u.m.Unlock()
 }
 
-func (u *UserInterface) updateGBuildScaleIfNeeded() {
-	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-		return
-	}
-
-	w, h := u.width, u.height
-	scaleX := float64(u.gbuildWidthPx) / float64(w)
-	scaleY := float64(u.gbuildHeightPx) / float64(h)
-	scale := scaleX
-	if scale > scaleY {
-		scale = scaleY
-	}
-	u.gbuildScale = scale / deviceScale()
-	u.sizeChanged = true
-}
-
-func (u *UserInterface) screenPaddingImpl() (x0, y0, x1, y1 float64) {
-	// TODO: Replace this with UIContext's Layout.
-	if u.gbuildScale == 0 {
-		return 0, 0, 0, 0
-	}
-	s := u.gbuildScale * deviceScale()
-	ox := (float64(u.gbuildWidthPx) - float64(u.width)*s) / 2
-	oy := (float64(u.gbuildHeightPx) - float64(u.height)*s) / 2
-	return ox, oy, ox, oy
-}
-
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	// TODO: Replace this with UIContext's AdjustPosition.
-	ox, oy, _, _ := u.screenPaddingImpl()
-	s := u.scaleImpl()
-	as := s * deviceScale()
-	return int(float64(x)/s - ox/as), int(float64(y)/s - oy/as)
+	// This function's caller already protects this function by the mutex.
+	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
+		s := u.scale
+		return int(float64(x) / s), int(float64(y) / s)
+	}
+	xf, yf := u.context.AdjustPosition(float64(x), float64(y))
+	return int(xf), int(yf)
 }
 
 func (u *UserInterface) CursorMode() driver.CursorMode {
