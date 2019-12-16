@@ -142,6 +142,10 @@ func (u *UserInterface) SetWindowResizable(decorated bool) {
 	// Do nothing
 }
 
+func (u *UserInterface) WindowSize() (int, int) {
+	return 0, 0
+}
+
 func (u *UserInterface) SetWindowSize(width, height int) {
 	// TODO: This is too tricky: Even though browsers don't have windows, SetWindowSize is called whenever the
 	// screen size is changed. Fix this hack.

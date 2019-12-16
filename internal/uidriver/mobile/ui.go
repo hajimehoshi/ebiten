@@ -433,6 +433,10 @@ func (u *UserInterface) SetWindowSize(width, height int) {
 	// Do nothing
 }
 
+func (u *UserInterface) WindowSize() (int, int) {
+	return 0, 0
+}
+
 func (u *UserInterface) CanHaveWindow() bool {
 	return false
 }

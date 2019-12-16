@@ -37,6 +37,22 @@ import (
 )
 
 var (
+	// flagLegacy represents whether the legacy APIs are used or not.
+	// If flagLegacy is true, these legacy APIs are used:
+	//
+	//   * ebiten.Run
+	//   * ebiten.ScreenScale
+	//   * ebiten.SetScreenScale
+	//   * ebiten.SetScreenSize
+	//
+	// If flagLegacy is false, these APIs are used:
+	//
+	//   * ebiten.RunGame
+	//   * ebiten.SetWindowSize
+	//   * ebiten.WindowSize
+	flagLegacy = flag.Bool("legacy", false, "use the legacy API")
+
+	flagFullscreen        = flag.Bool("fullscreen", false, "fullscreen")
 	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
 	flagScreenTransparent = flag.Bool("screentransparent", false, "screen transparent")
 )
@@ -76,10 +92,32 @@ func createRandomIconImage() image.Image {
 	return img
 }
 
-func update(screen *ebiten.Image) error {
-	screenScale := ebiten.ScreenScale()
-	const d = 16
-	screenWidth, screenHeight := screen.Size()
+type game struct {
+	width  int
+	height int
+}
+
+func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	// Ignore the outside size. This means that the offscreen is not adjusted with the outside world.
+	return g.width, g.height
+}
+
+func (g *game) Update(screen *ebiten.Image) error {
+	var (
+		screenWidth  int
+		screenHeight int
+		screenScale  float64
+	)
+	if *flagLegacy {
+		screenWidth, screenHeight = screen.Size()
+		screenScale = ebiten.ScreenScale()
+	} else {
+		screenWidth = g.width
+		screenHeight = g.height
+		ww, _ := ebiten.WindowSize()
+		screenScale = float64(ww) / float64(g.width)
+	}
+
 	fullscreen := ebiten.IsFullscreen()
 	runnableInBackground := ebiten.IsRunnableInBackground()
 	cursorVisible := ebiten.IsCursorVisible()
@@ -89,6 +127,7 @@ func update(screen *ebiten.Image) error {
 	positionX, positionY := ebiten.WindowPosition()
 	transparent := ebiten.IsScreenTransparent()
 
+	const d = 16
 	if ebiten.IsKeyPressed(ebiten.KeyShift) {
 		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
 			screenHeight += d
@@ -164,9 +203,14 @@ func update(screen *ebiten.Image) error {
 		decorated = !decorated
 	}
 
-	ebiten.SetScreenSize(screenWidth, screenHeight)
-	// TODO: Add a flag for compatibility mode and call SetScreenScale only when the flag is on.
-	ebiten.SetScreenScale(screenScale)
+	if *flagLegacy {
+		ebiten.SetScreenSize(screenWidth, screenHeight)
+		ebiten.SetScreenScale(screenScale)
+	} else {
+		g.width = screenWidth
+		g.height = screenHeight
+		ebiten.SetWindowSize(int(float64(screenWidth)*screenScale), int(float64(screenHeight)*screenScale))
+	}
 	ebiten.SetFullscreen(fullscreen)
 	ebiten.SetRunnableInBackground(runnableInBackground)
 	ebiten.SetCursorVisible(cursorVisible)
@@ -268,7 +312,27 @@ func main() {
 	}
 	ebiten.SetScreenTransparent(*flagScreenTransparent)
 
-	if err := ebiten.Run(update, initScreenWidth, initScreenHeight, initScreenScale, "Window Size (Ebiten Demo)"); err != nil {
-		log.Fatal(err)
+	g := &game{
+		width:  initScreenWidth,
+		height: initScreenHeight,
+	}
+
+	if *flagFullscreen {
+		ebiten.SetFullscreen(true)
+	}
+
+	const title = "Window Size (Ebiten Demo)"
+	if *flagLegacy {
+		if err := ebiten.Run(g.Update, g.width, g.height, initScreenScale, title); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		w := int(float64(g.width) * initScreenScale)
+		h := int(float64(g.height) * initScreenScale)
+		ebiten.SetWindowSize(w, h)
+		ebiten.SetWindowTitle(title)
+		if err := ebiten.RunGame(g); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

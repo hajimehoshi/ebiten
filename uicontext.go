@@ -86,7 +86,7 @@ var theUIContext *uiContext
 func (c *uiContext) setScaleForWindow(scale float64) {
 	g, ok := c.game.(*defaultGame)
 	if !ok {
-		panic("ebiten: setScaleForWindow must be called when Run is used")
+		panic("ebiten: setScaleForWindow can be called only when Run is used")
 	}
 
 	c.m.Lock()
@@ -99,7 +99,7 @@ func (c *uiContext) setScaleForWindow(scale float64) {
 
 func (c *uiContext) getScaleForWindow() float64 {
 	if _, ok := c.game.(*defaultGame); !ok {
-		panic("ebiten: getScaleForWindow must be called when Run is used")
+		panic("ebiten: getScaleForWindow can be called only when Run is used")
 	}
 
 	c.m.Lock()
@@ -115,7 +115,7 @@ func (c *uiContext) getScaleForWindow() float64 {
 func (c *uiContext) SetScreenSize(width, height int) {
 	g, ok := c.game.(*defaultGame)
 	if !ok {
-		panic("ebiten: SetScreenSize must be called when Run is used")
+		panic("ebiten: SetScreenSize can be called only when Run is used")
 	}
 
 	c.m.Lock()
@@ -157,7 +157,11 @@ func (c *uiContext) updateOffscreen() {
 	if c.offscreen == nil {
 		c.offscreen = newImage(sw, sh, FilterDefault, true)
 	}
-	c.SetScreenSize(sw, sh)
+
+	// The window size is automatically adjusted when Run is used.
+	if _, ok := c.game.(*defaultGame); ok {
+		c.SetScreenSize(sw, sh)
+	}
 
 	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
 	d := uiDriver().DeviceScaleFactor()

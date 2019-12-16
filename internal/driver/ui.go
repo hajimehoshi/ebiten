@@ -43,6 +43,7 @@ type UI interface {
 	IsWindowResizable() bool
 	ScreenSizeInFullscreen() (int, int)
 	WindowPosition() (int, int)
+	WindowSize() (int, int)
 	IsScreenTransparent() bool
 	MonitorPosition() (int, int)
 	CanHaveWindow() bool // TODO: Create a 'Widnow' interface.

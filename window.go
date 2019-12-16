@@ -55,7 +55,7 @@ func IsWindowDecorated() bool {
 // setWindowResizable works only on desktops.
 // setWindowResizable does nothing on other platforms.
 //
-// setWindowResizable panics if setWindowResizable is called after Run.
+// setWindowResizable panics if setWindowResizable is called after the main loop.
 //
 // setWindowResizable is concurrent-safe.
 func setWindowResizable(resizable bool) {
@@ -104,7 +104,7 @@ func SetWindowIcon(iconImages []image.Image) {
 
 // WindowPosition returns the window position.
 //
-// WindowPosition panics before Run is called.
+// WindowPosition panics if the main loop does not start yet.
 //
 // WindowPosition returns the last window position on fullscreen mode.
 //
@@ -119,8 +119,6 @@ func WindowPosition() (x, y int) {
 }
 
 // SetWindowPosition sets the window position.
-//
-// SetWindowPosition works before and after Run is called.
 //
 // SetWindowPosition does nothing on fullscreen mode.
 //
@@ -184,4 +182,18 @@ func fixWindowPosition(width, height int) {
 	} else {
 		uiDriver().SetWindowPosition(initWindowPositionX, initWindowPositionY)
 	}
+}
+
+// WindowSize returns the window size. On fullscreen mode, WindowSize returns the original window size.
+//
+// WindowSize is concurrent-safe.
+func WindowSize() (int, int) {
+	return uiDriver().WindowSize()
+}
+
+// SetWindowSize sets the window size. On fullscreen mode, SetWindowSize sets the original window size.
+//
+// SetWindowSize is concurrent-safe.
+func SetWindowSize(width, height int) {
+	uiDriver().SetWindowSize(width, height)
 }

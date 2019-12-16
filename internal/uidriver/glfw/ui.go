@@ -64,6 +64,8 @@ type UserInterface struct {
 	initWindowResizable      bool
 	initWindowPositionXInDP  int
 	initWindowPositionYInDP  int
+	initWindowWidthInDP      int
+	initWindowHeightInDP     int
 	initScreenTransparent    bool
 	initIconImages           []image.Image
 
@@ -80,17 +82,19 @@ type UserInterface struct {
 const (
 	maxInt     = int(^uint(0) >> 1)
 	minInt     = -maxInt - 1
-	invalidPos = minInt
+	invalidVal = minInt
 )
 
 var (
 	theUI = &UserInterface{
-		origPosX:                invalidPos,
-		origPosY:                invalidPos,
+		origPosX:                invalidVal,
+		origPosY:                invalidVal,
 		initCursorMode:          driver.CursorModeVisible,
 		initWindowDecorated:     true,
-		initWindowPositionXInDP: invalidPos,
-		initWindowPositionYInDP: invalidPos,
+		initWindowPositionXInDP: invalidVal,
+		initWindowPositionYInDP: invalidVal,
+		initWindowWidthInDP:     invalidVal,
+		initWindowHeightInDP:    invalidVal,
 		vsync:                   true,
 	}
 )
@@ -302,10 +306,10 @@ func (u *UserInterface) setInitIconImages(iconImages []image.Image) {
 func (u *UserInterface) getInitWindowPosition() (int, int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	if u.initWindowPositionXInDP != invalidPos && u.initWindowPositionYInDP != invalidPos {
+	if u.initWindowPositionXInDP != invalidVal && u.initWindowPositionYInDP != invalidVal {
 		return u.initWindowPositionXInDP, u.initWindowPositionYInDP
 	}
-	return invalidPos, invalidPos
+	return invalidVal, invalidVal
 }
 
 func (u *UserInterface) setInitWindowPosition(x, y int) {
@@ -314,6 +318,19 @@ func (u *UserInterface) setInitWindowPosition(x, y int) {
 
 	u.initWindowPositionXInDP = x
 	u.initWindowPositionYInDP = y
+}
+
+func (u *UserInterface) getInitWindowSize() (int, int) {
+	u.m.Lock()
+	w, h := u.initWindowWidthInDP, u.initWindowHeightInDP
+	u.m.Unlock()
+	return w, h
+}
+
+func (u *UserInterface) setInitWindowSize(width, height int) {
+	u.m.Lock()
+	u.initWindowWidthInDP, u.initWindowHeightInDP = width, height
+	u.m.Unlock()
 }
 
 // toDeviceIndependentPixel must be called from the main thread.
@@ -695,12 +712,16 @@ func (u *UserInterface) run(context driver.UIContext) error {
 	}
 
 	u.SetWindowPosition(u.getInitWindowPosition())
+	if w, h := u.getInitWindowSize(); w != invalidVal && h != invalidVal {
+		w = int(u.toDeviceDependentPixel(float64(w)))
+		h = int(u.toDeviceDependentPixel(float64(h)))
+		u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
+	}
 
 	_ = u.t.Call(func() error {
 		u.title = u.getInitTitle()
 		u.window.SetTitle(u.title)
 		u.window.Show()
-
 		return nil
 	})
 
@@ -892,7 +913,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 		u.swapBuffers()
 
 		if fullscreen {
-			if u.origPosX == invalidPos || u.origPosY == invalidPos {
+			if u.origPosX == invalidVal || u.origPosY == invalidVal {
 				u.origPosX, u.origPosY = u.window.GetPos()
 			}
 			m := u.currentMonitor()
@@ -941,7 +962,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 				width = minWindowWidth
 			}
 
-			if u.origPosX != invalidPos && u.origPosY != invalidPos {
+			if u.origPosX != invalidVal && u.origPosY != invalidVal {
 				x := u.origPosX
 				y := u.origPosY
 				u.window.SetPos(x, y)
@@ -951,8 +972,8 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 					u.window.SetPos(x+1, y)
 					u.window.SetPos(x, y)
 				}
-				u.origPosX = invalidPos
-				u.origPosY = invalidPos
+				u.origPosX = invalidVal
+				u.origPosY = invalidVal
 			}
 
 			// Set the window size after the position. The order matters.
@@ -1083,9 +1104,19 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return val
 }
 
+func (u *UserInterface) WindowSize() (int, int) {
+	if !u.isRunning() {
+		return u.getInitWindowSize()
+	}
+	w := int(u.toDeviceIndependentPixel(float64(u.windowWidth)))
+	h := int(u.toDeviceIndependentPixel(float64(u.windowHeight)))
+	return w, h
+}
+
 func (u *UserInterface) SetWindowSize(width, height int) {
 	if !u.isRunning() {
-		panic("glfw: SetWindowSize can't be called before the main loop starts")
+		u.setInitWindowSize(width, height)
+		return
 	}
 	w := int(u.toDeviceDependentPixel(float64(width)))
 	h := int(u.toDeviceDependentPixel(float64(height)))
