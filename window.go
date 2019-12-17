@@ -16,6 +16,13 @@ package ebiten
 
 import (
 	"image"
+	"sync"
+)
+
+const (
+	maxInt     = int(^uint(0) >> 1)
+	minInt     = -maxInt - 1
+	invalidPos = minInt
 )
 
 // SetWindowDecorated sets the state if the window is decorated.
@@ -105,6 +112,9 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
+	if x, y, ok := initWindowPosition(); ok {
+		return x, y
+	}
 	return uiDriver().WindowPosition()
 }
 
@@ -118,5 +128,60 @@ func WindowPosition() (x, y int) {
 //
 // SetWindowPosition is concurrent-safe.
 func SetWindowPosition(x, y int) {
+	if setInitWindowPosition(x, y) {
+		return
+	}
 	uiDriver().SetWindowPosition(x, y)
+}
+
+var (
+	windowM             sync.Mutex
+	mainLoopStarted     bool
+	initWindowPositionX = invalidPos
+	initWindowPositionY = invalidPos
+)
+
+func initWindowPosition() (x, y int, ok bool) {
+	windowM.Lock()
+	defer windowM.Unlock()
+	if mainLoopStarted {
+		return 0, 0, false
+	}
+	if initWindowPositionX == invalidPos || initWindowPositionY == invalidPos {
+		return 0, 0, false
+	}
+	return initWindowPositionX, initWindowPositionY, true
+}
+
+func setInitWindowPosition(x, y int) bool {
+	windowM.Lock()
+	defer windowM.Unlock()
+	if mainLoopStarted {
+		return false
+	}
+	initWindowPositionX, initWindowPositionY = x, y
+	return true
+}
+
+func fixWindowPosition(width, height int) {
+	windowM.Lock()
+	defer windowM.Unlock()
+
+	defer func() {
+		mainLoopStarted = true
+	}()
+
+	if !uiDriver().CanHaveWindow() {
+		return
+	}
+
+	if initWindowPositionX == invalidPos || initWindowPositionY == invalidPos {
+		mx, my := uiDriver().MonitorPosition()
+		sw, sh := uiDriver().ScreenSizeInFullscreen()
+		x := mx + (sw-width)/2
+		y := my + (sh-height)/3
+		uiDriver().SetWindowPosition(x, y)
+	} else {
+		uiDriver().SetWindowPosition(initWindowPositionX, initWindowPositionY)
+	}
 }

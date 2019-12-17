@@ -129,14 +129,12 @@ func initialize() error {
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
 
-	// TODO: Fix this hack. currentMonitor now requires u.window on POSIX.
+	// Create a window and leave it as it is: this affects the result of currentMonitorFromPosition.
 	theUI.window = w
 	theUI.initMonitor = theUI.currentMonitor()
 	v := theUI.initMonitor.GetVideoMode()
 	theUI.initFullscreenWidthInDP = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
 	theUI.initFullscreenHeightInDP = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
-	theUI.window.Destroy()
-	theUI.window = nil
 
 	return nil
 }
@@ -568,7 +566,7 @@ func (u *UserInterface) Run(width, height int, scale float64, title string, uico
 	go func() {
 		defer cancel()
 		defer close(ch)
-		if err := u.run(width, height, scale, title, uicontext); err != nil {
+		if err := u.run(title, uicontext); err != nil {
 			ch <- err
 		}
 	}()
@@ -632,15 +630,12 @@ func (u *UserInterface) createWindow() error {
 	return nil
 }
 
-func (u *UserInterface) run(width, height int, scale float64, title string, context driver.UIContext) error {
-	var (
-		m      *glfw.Monitor
-		mx, my int
-		v      *glfw.VidMode
-		ww, wh int
-	)
-
+func (u *UserInterface) run(title string, context driver.UIContext) error {
 	if err := u.t.Call(func() error {
+		// The window is created at initialize().
+		u.window.Destroy()
+		u.window = nil
+
 		if u.graphics.IsGL() {
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -679,53 +674,16 @@ func (u *UserInterface) run(width, height int, scale float64, title string, cont
 		if i := u.getInitIconImages(); i != nil {
 			u.window.SetIcon(i)
 		}
-
-		// Get the monitor before showing the window.
-		//
-		// On Windows, there are two types of windows:
-		//
-		//   active window:     The window that has input-focus and attached to the calling thread.
-		//   foreground window: The window that has input-focus: this can be in another process
-		//
-		// currentMonitor returns the monitor for the active window when possible and then the monitor for
-		// the foreground window as fallback. In the current situation, the current window is hidden and
-		// there is not the active window but the foreground window. After showing the current window, the
-		// current window will be the active window. Thus, currentMonitor result varies before and after
-		// showing the window.
-		m = u.currentMonitor()
-		mx, my = m.GetPos()
-		v = m.GetVideoMode()
-
-		ww = int(u.toDeviceDependentPixel(float64(width) * scale))
-		wh = int(u.toDeviceDependentPixel(float64(height) * scale))
-
 		return nil
 	}); err != nil {
 		return err
 	}
 
-	// The game is in window mode (not fullscreen mode) at the first state.
-	// Don't refer u.initFullscreen here to avoid some GLFW problems.
-	u.setWindowSize(ww, wh, false, u.vsync)
+	u.SetWindowPosition(u.getInitWindowPosition())
 
 	_ = u.t.Call(func() error {
-		// Get the window size before showing it. Showing the window might change the current monitor which
-		// affects deviceDependentWindowSize result.
-		w, h := u.window.GetSize()
-
 		u.title = title
 		u.window.SetTitle(title)
-
-		x, y := u.getInitWindowPosition()
-		if x == invalidPos || y == invalidPos {
-			x = mx + (v.Width-w)/2
-			y = my + (v.Height-h)/3
-		}
-		// Adjusting the position is needed only when the monitor is primary. (#829)
-		if mx == 0 && my == 0 {
-			x, y = adjustWindowPosition(x, y)
-		}
-		u.window.SetPos(x, y)
 		u.window.Show()
 
 		return nil
@@ -1042,9 +1000,11 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 //
 // currentMonitor must be called on the main thread.
 func (u *UserInterface) currentMonitor() *glfw.Monitor {
-	w := u.window
-	if m := w.GetMonitor(); m != nil {
-		return m
+	if w := u.window; w != nil {
+		// TODO: When is the monitor nil?
+		if m := w.GetMonitor(); m != nil {
+			return m
+		}
 	}
 	// Get the monitor which the current window belongs to. This requires OS API.
 	return u.currentMonitorFromPosition()
@@ -1058,10 +1018,11 @@ func (u *UserInterface) SetWindowPosition(x, y int) {
 	_ = u.t.Call(func() error {
 		xf := u.toDeviceDependentPixel(float64(x))
 		yf := u.toDeviceDependentPixel(float64(y))
+		x, y := adjustWindowPosition(int(xf), int(yf))
 		if u.isFullscreen() {
-			u.origPosX, u.origPosY = int(xf), int(yf)
+			u.origPosX, u.origPosY = x, y
 		} else {
-			u.window.SetPos(int(xf), int(yf))
+			u.window.SetPos(x, y)
 		}
 		return nil
 	})
@@ -1114,6 +1075,23 @@ func (u *UserInterface) SetWindowSize(width, height int) {
 	w := int(u.toDeviceDependentPixel(float64(width)))
 	h := int(u.toDeviceDependentPixel(float64(height)))
 	u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
+}
+
+func (u *UserInterface) MonitorPosition() (int, int) {
+	if !u.isRunning() {
+		return u.monitorPosition()
+	}
+	var mx, my int
+	_ = u.t.Call(func() error {
+		mx, my = u.monitorPosition()
+		return nil
+	})
+	return mx, my
+}
+
+func (u *UserInterface) monitorPosition() (int, int) {
+	// TODO: toDeviceIndependentPixel might be required.
+	return u.currentMonitor().GetPos()
 }
 
 func (u *UserInterface) CanHaveWindow() bool {

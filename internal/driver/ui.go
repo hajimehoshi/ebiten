@@ -44,6 +44,7 @@ type UI interface {
 	ScreenSizeInFullscreen() (int, int)
 	WindowPosition() (int, int)
 	IsScreenTransparent() bool
+	MonitorPosition() (int, int)
 	CanHaveWindow() bool // TODO: Create a 'Widnow' interface.
 
 	SetCursorMode(mode CursorMode)
