@@ -36,15 +36,28 @@ install:
   - mkdir /tmp/work
   - cd /tmp/work
   - go mod init example.com/m
-  - go get github.com/hajimehoshi/ebiten@$TRAVIS_COMMIT
+  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then go get github.com/hajimehoshi/ebiten@$TRAVIS_COMMIT; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go get github.com/hajimehoshi/ebiten; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then curl -L -o ebiten.zip https://github.com/$TRAVIS_PULL_REQUEST_SLUG/archive/$TRAVIS_COMMIT.zip; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then unzip ebiten.zip; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then mv ./ebiten-$TRAVIS_COMMIT ebiten; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go mod edit -replace=github.com/hajimehoshi/ebiten=./ebiten; fi
 
   # wasmbrowsertest
   - GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
   - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
 
   # GopherJS
-  - GO111MODULE=off go get -tags example github.com/hajimehoshi/ebiten/... 
   - GO111MODULE=off go1.12.12 get github.com/gopherjs/gopherjs
+  - mkdir -p $GOPATH/src/github.com/hajimehoshi
+  - cd $GOPATH/src/github.com/hajimehoshi
+  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then curl -L -o ebiten.zip https://github.com/hajimehoshi/ebiten/archive/$TRAVIS_COMMIT.zip; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then curl -L -o ebiten.zip https://github.com/$TRAVIS_PULL_REQUEST_SLUG/archive/$TRAVIS_COMMIT.zip; fi
+  - unzip ebiten.zip
+  - mv ./ebiten-$TRAVIS_COMMIT ebiten
+  - cd ./ebiten
+  - GO111MODULE=off go get -d -tags=example ./...
+  - cd /tmp/work
 
   # gjbt
   - GO111MODULE=off go1.12.12 get myitcv.io/cmd/gjbt
@@ -64,19 +77,19 @@ script:
   - cd /tmp/work
 
   # go vet
-  - go vet -tags example -v github.com/hajimehoshi/ebiten/...
+  - go vet -tags=example -v github.com/hajimehoshi/ebiten/...
 
   # go build
-  - go build -tags example -v github.com/hajimehoshi/ebiten/...
-  - GOOS=windows GOARCH=amd64 go build -tags example -v github.com/hajimehoshi/ebiten/...
-  - GOOS=windows GOARCH=386 go build -tags example -v github.com/hajimehoshi/ebiten/...
+  - go build -tags=example -v github.com/hajimehoshi/ebiten/...
+  - GOOS=windows GOARCH=amd64 go build -tags=example -v github.com/hajimehoshi/ebiten/...
+  - GOOS=windows GOARCH=386 go build -tags=example -v github.com/hajimehoshi/ebiten/...
 
   # go test
   - go test -v github.com/hajimehoshi/ebiten/...
   - GOOS=js GOARCH=wasm go test -v github.com/hajimehoshi/ebiten/...
 
   # GopherJS
-  - GO111MODULE=off go1.12.12 run github.com/gopherjs/gopherjs build --tags example -v github.com/hajimehoshi/ebiten/examples/blocks
+  - GO111MODULE=off go1.12.12 run github.com/gopherjs/gopherjs build --tags=example -v github.com/hajimehoshi/ebiten/examples/blocks
   - GO111MODULE=off go1.12.12 run myitcv.io/cmd/gjbt github.com/hajimehoshi/ebiten # TODO: Test the subdirectories
 
 # - test -z $(gofmt -s -l $GOPATH/src/github.com/hajimehoshi/ebiten)
