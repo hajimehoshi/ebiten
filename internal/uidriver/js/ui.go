@@ -26,6 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
+	"github.com/hajimehoshi/ebiten/internal/jsutil"
 )
 
 type UserInterface struct {
@@ -247,7 +248,7 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 }
 
 func init() {
-	if document.Get("body") == js.Null() {
+	if jsutil.Equal(document.Get("body"), js.Null()) {
 		ch := make(chan struct{})
 		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			close(ch)
