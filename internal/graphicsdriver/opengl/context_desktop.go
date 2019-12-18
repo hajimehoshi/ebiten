@@ -35,6 +35,30 @@ type (
 	buffer            uint32
 )
 
+func (t textureNative) equal(rhs textureNative) bool {
+	return t == rhs
+}
+
+func (f framebufferNative) equal(rhs framebufferNative) bool {
+	return f == rhs
+}
+
+func (s shader) equal(rhs shader) bool {
+	return s == rhs
+}
+
+func (b buffer) equal(rhs buffer) bool {
+	return b == rhs
+}
+
+func (u uniformLocation) equal(rhs uniformLocation) bool {
+	return u == rhs
+}
+
+func (p program) equal(rhs program) bool {
+	return p == rhs
+}
+
 var InvalidTexture textureNative
 
 type (

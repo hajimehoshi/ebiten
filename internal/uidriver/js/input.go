@@ -21,6 +21,7 @@ import (
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/jsutil"
 )
 
 type pos struct {
@@ -218,7 +219,7 @@ func (i *Input) setMouseCursor(x, y int) {
 
 func (i *Input) UpdateGamepads() {
 	nav := js.Global().Get("navigator")
-	if nav.Get("getGamepads") == js.Undefined() {
+	if jsutil.Equal(nav.Get("getGamepads"), js.Undefined()) {
 		return
 	}
 	gamepads := nav.Call("getGamepads")
@@ -226,7 +227,7 @@ func (i *Input) UpdateGamepads() {
 	for id := 0; id < l; id++ {
 		i.gamepads[id].valid = false
 		gamepad := gamepads.Index(id)
-		if gamepad == js.Undefined() || gamepad == js.Null() {
+		if jsutil.Equal(gamepad, js.Undefined()) || jsutil.Equal(gamepad, js.Null()) {
 			continue
 		}
 		i.gamepads[id].valid = true
@@ -259,7 +260,7 @@ func (i *Input) Update(e js.Value) {
 	switch e.Get("type").String() {
 	case "keydown":
 		c := e.Get("code")
-		if c == js.Undefined() {
+		if jsutil.Equal(c, js.Undefined()) {
 			code := e.Get("keyCode").Int()
 			if keyCodeToKeyEdge[code] == driver.KeyUp ||
 				keyCodeToKeyEdge[code] == driver.KeyDown ||
@@ -287,7 +288,7 @@ func (i *Input) Update(e js.Value) {
 			i.runeBuffer = append(i.runeBuffer, r)
 		}
 	case "keyup":
-		if e.Get("code") == js.Undefined() {
+		if jsutil.Equal(e.Get("code"), js.Undefined()) {
 			// Assume that UA is Edge.
 			code := e.Get("keyCode").Int()
 			i.keyUpEdge(code)

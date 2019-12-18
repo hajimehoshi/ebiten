@@ -41,6 +41,30 @@ type (
 	}
 )
 
+func (t textureNative) equal(rhs textureNative) bool {
+	return jsutil.Equal(js.Value(t), js.Value(rhs))
+}
+
+func (f framebufferNative) equal(rhs framebufferNative) bool {
+	return jsutil.Equal(js.Value(f), js.Value(rhs))
+}
+
+func (s shader) equal(rhs shader) bool {
+	return jsutil.Equal(js.Value(s), js.Value(rhs))
+}
+
+func (b buffer) equal(rhs buffer) bool {
+	return jsutil.Equal(js.Value(b), js.Value(rhs))
+}
+
+func (u uniformLocation) equal(rhs uniformLocation) bool {
+	return jsutil.Equal(js.Value(u), js.Value(rhs))
+}
+
+func (p program) equal(rhs program) bool {
+	return jsutil.Equal(p.value, rhs.value) && p.id == rhs.id
+}
+
 var InvalidTexture = textureNative(js.Null())
 
 func getProgramID(p program) programID {
@@ -101,11 +125,11 @@ type contextImpl struct {
 }
 
 func (c *context) ensureGL() {
-	if c.gl != (js.Value{}) {
+	if !jsutil.Equal(c.gl, js.Value{}) {
 		return
 	}
 
-	if js.Global().Get("WebGLRenderingContext") == js.Undefined() {
+	if jsutil.Equal(js.Global().Get("WebGLRenderingContext"), js.Undefined()) {
 		panic("opengl: WebGL is not supported")
 	}
 	// TODO: Define id?
@@ -114,9 +138,9 @@ func (c *context) ensureGL() {
 	attr.Set("alpha", true)
 	attr.Set("premultipliedAlpha", true)
 	gl := canvas.Call("getContext", "webgl", attr)
-	if gl == js.Null() {
+	if jsutil.Equal(gl, js.Null()) {
 		gl = canvas.Call("getContext", "experimental-webgl", attr)
-		if gl == js.Null() {
+		if jsutil.Equal(gl, js.Null()) {
 			panic("opengl: getContext failed")
 		}
 	}
@@ -161,7 +185,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	c.ensureGL()
 	gl := c.gl
 	t := gl.Call("createTexture")
-	if t == js.Null() {
+	if jsutil.Equal(t, js.Null()) {
 		return textureNative(js.Null()), errors.New("opengl: glGenTexture failed")
 	}
 	gl.Call("pixelStorei", unpackAlignment, 4)
@@ -221,7 +245,7 @@ func (c *context) deleteTexture(t textureNative) {
 	if !gl.Call("isTexture", js.Value(t)).Bool() {
 		return
 	}
-	if c.lastTexture == t {
+	if c.lastTexture.equal(t) {
 		c.lastTexture = textureNative(js.Null())
 	}
 	gl.Call("deleteTexture", js.Value(t))
@@ -274,7 +298,7 @@ func (c *context) deleteFramebuffer(f framebufferNative) {
 	// If a framebuffer to be deleted is bound, a newly bound framebuffer
 	// will be a default framebuffer.
 	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glDeleteFramebuffers.xml
-	if c.lastFramebuffer == f {
+	if c.lastFramebuffer.equal(f) {
 		c.lastFramebuffer = framebufferNative(js.Null())
 		c.lastViewportWidth = 0
 		c.lastViewportHeight = 0
@@ -286,7 +310,7 @@ func (c *context) newShader(shaderType shaderType, source string) (shader, error
 	c.ensureGL()
 	gl := c.gl
 	s := gl.Call("createShader", int(shaderType))
-	if s == js.Null() {
+	if jsutil.Equal(s, js.Null()) {
 		return shader(js.Null()), fmt.Errorf("opengl: glCreateShader failed: shader type: %d", shaderType)
 	}
 
@@ -310,7 +334,7 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	c.ensureGL()
 	gl := c.gl
 	v := gl.Call("createProgram")
-	if v == js.Null() {
+	if jsutil.Equal(v, js.Null()) {
 		return program{}, errors.New("opengl: glCreateProgram failed")
 	}
 

@@ -35,7 +35,7 @@ func (i *Image) Dispose() {
 	if i.framebuffer != nil {
 		i.framebuffer.delete(&i.driver.context)
 	}
-	if i.textureNative != *new(textureNative) {
+	if !i.textureNative.equal(*new(textureNative)) {
 		i.driver.context.deleteTexture(i.textureNative)
 	}
 }

@@ -183,10 +183,10 @@ func (s *openGLState) reset(context *context) error {
 	// On browsers (at least Chrome), buffers are already detached from the context
 	// and must not be deleted by DeleteBuffer.
 	if !web.IsBrowser() {
-		if s.arrayBuffer != zeroBuffer {
+		if !s.arrayBuffer.equal(zeroBuffer) {
 			context.deleteBuffer(s.arrayBuffer)
 		}
-		if s.elementArrayBuffer != zeroBuffer {
+		if !s.elementArrayBuffer.equal(zeroBuffer) {
 			context.deleteBuffer(s.elementArrayBuffer)
 		}
 	}
@@ -278,9 +278,9 @@ func (d *Driver) useProgram(mode driver.CompositeMode, colorM *affine.ColorM, fi
 		filter:    filter,
 		address:   address,
 	}]
-	if d.state.lastProgram != program {
+	if !d.state.lastProgram.equal(program) {
 		d.context.useProgram(program)
-		if d.state.lastProgram == zeroProgram {
+		if d.state.lastProgram.equal(zeroProgram) {
 			theArrayBufferLayout.enable(&d.context, program)
 			d.context.bindBuffer(arrayBuffer, d.state.arrayBuffer)
 			d.context.bindBuffer(elementArrayBuffer, d.state.elementArrayBuffer)
