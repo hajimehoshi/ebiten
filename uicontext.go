@@ -63,9 +63,15 @@ func newUIContext(game Game, scaleForWindow float64) *uiContext {
 }
 
 type uiContext struct {
-	game           Game
-	offscreen      *Image
-	screen         *Image
+	game      Game
+	offscreen *Image
+	screen    *Image
+
+	// scaleForWindow is the scale of a window. This doesn't represent the scale on fullscreen. This value works
+	// only on desktops.
+	//
+	// scaleForWindow is for backward compatibility and is used to calculate the window size when SetScreenSize
+	// is called.
 	scaleForWindow float64
 
 	outsideSizeUpdated bool
@@ -102,6 +108,10 @@ func (c *uiContext) getScaleForWindow() float64 {
 	return s
 }
 
+// SetScreenSize sets the (logical) screen size and adjusts the window size.
+//
+// SetScreenSize is for backward compatibility. This is called from ebiten.SetScreenSize and
+// uidriver/mobile.UserInterface.
 func (c *uiContext) SetScreenSize(width, height int) {
 	g, ok := c.game.(*defaultGame)
 	if !ok {
@@ -153,12 +163,9 @@ func (c *uiContext) updateOffscreen() {
 	d := uiDriver().DeviceScaleFactor()
 	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 
-	if uiDriver().CanHaveWindow() && !uiDriver().IsFullscreen() {
-		// TODO: Update the scale for window. In the current implementation, this can cause an infinite loop:
-		// e.g., when the size is 854 and the scale is 0.75, the calculated outside size is 640.5. This is
-		// rounded to 640, and then the scale is updated.
-		// c.setScaleForWindow(c.screenScale() / d)
-	}
+	// Do not have to update scaleForWindow since this is used only for backward compatibility.
+	// Then, if a window is resizable, scaleForWindow (= ebiten.ScreenScale) might not match with the actual
+	// scale. This is fine since ebiten.ScreenScale will be deprecated.
 }
 
 func (c *uiContext) screenScale() float64 {
