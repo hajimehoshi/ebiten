@@ -97,14 +97,15 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	}
 
 	nExtended := 1
+	var n *packing.Node
 	for {
 		if !b.page.Extend(nExtended) {
 			// The page can't be extended any more. Return as failure.
 			return nil, false
 		}
 		nExtended++
-		if n := b.page.Alloc(width, height); n != nil {
-			// The page is just for emulation, so we don't have to free it.
+		n = b.page.Alloc(width, height)
+		if n != nil {
 			b.page.CommitExtension()
 			break
 		}
@@ -114,7 +115,6 @@ func (b *backend) TryAlloc(width, height int) (*packing.Node, bool) {
 	s := b.page.Size()
 	b.restorable = b.restorable.Extend(s, s)
 
-	n := b.page.Alloc(width, height)
 	if n == nil {
 		panic("shareable: Alloc result must not be nil at TryAlloc")
 	}

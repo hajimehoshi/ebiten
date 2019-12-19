@@ -393,4 +393,17 @@ func TestDisposeImmediately(t *testing.T) {
 	img1.MarkDisposed()
 }
 
+// Issue #1028
+func TestExtendWithBigImage(t *testing.T) {
+	img0 := NewImage(1, 1, false)
+	defer img0.MarkDisposed()
+
+	img0.ReplacePixels(make([]byte, 4*1*1))
+
+	img1 := NewImage(1025, 1025, false)
+	defer img1.MarkDisposed()
+
+	img1.ReplacePixels(make([]byte, 4*1025*1025))
+}
+
 // TODO: Add tests to extend shareable image out of the main loop
