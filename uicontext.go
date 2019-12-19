@@ -154,7 +154,10 @@ func (c *uiContext) updateOffscreen() {
 	c.screen = newScreenFramebufferImage(int(c.outsideWidth*d), int(c.outsideHeight*d))
 
 	if uiDriver().CanHaveWindow() && !uiDriver().IsFullscreen() {
-		c.setScaleForWindow(c.screenScale() / d)
+		// TODO: Update the scale for window. In the current implementation, this can cause an infinite loop:
+		// e.g., when the size is 854 and the scale is 0.75, the calculated outside size is 640.5. This is
+		// rounded to 640, and then the scale is updated.
+		// c.setScaleForWindow(c.screenScale() / d)
 	}
 }
 
