@@ -183,7 +183,7 @@ func (u *UserInterface) appMain(a app.App) {
 	}
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(title string, context driver.UIContext, graphics driver.Graphics) error {
 	// TODO: Remove width/height/scale arguments. They are not used from gomobile-build.
 
 	u.setGBuildSizeCh = make(chan struct{})

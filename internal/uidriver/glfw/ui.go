@@ -554,7 +554,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, uicontext driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(title string, uicontext driver.UIContext, graphics driver.Graphics) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
 	u.graphics = graphics

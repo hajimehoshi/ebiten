@@ -403,7 +403,7 @@ func init() {
 	}))
 }
 
-func (u *UserInterface) Run(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(title string, context driver.UIContext, graphics driver.Graphics) error {
 	document.Set("title", title)
 	canvas.Call("focus")
 	u.running = true
