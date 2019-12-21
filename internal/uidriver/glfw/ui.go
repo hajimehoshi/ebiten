@@ -1056,10 +1056,13 @@ func (u *UserInterface) SetWindowPosition(x, y int) {
 		return
 	}
 	_ = u.t.Call(func() error {
+		xf := u.toDeviceDependentPixel(float64(x))
+		yf := u.toDeviceDependentPixel(float64(y))
 		if u.isFullscreen() {
-			return nil
+			u.origPosX, u.origPosY = int(xf), int(yf)
+		} else {
+			u.window.SetPos(int(xf), int(yf))
 		}
-		u.window.SetPos(x, y)
 		return nil
 	})
 }
@@ -1070,11 +1073,15 @@ func (u *UserInterface) WindowPosition() (int, int) {
 	}
 	x, y := 0, 0
 	_ = u.t.Call(func() error {
+		var wx, wy int
 		if u.isFullscreen() {
-			x, y = u.origPosX, u.origPosY
-			return nil
+			wx, wy = u.origPosX, u.origPosY
+		} else {
+			wx, wy = u.window.GetPos()
 		}
-		x, y = u.window.GetPos()
+		xf := u.toDeviceIndependentPixel(float64(wx))
+		yf := u.toDeviceIndependentPixel(float64(wy))
+		x, y = int(xf), int(yf)
 		return nil
 	})
 	return x, y
