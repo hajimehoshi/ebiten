@@ -31,6 +31,9 @@ type Game interface {
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size.
 	//
+	// On desktops, the outside is a window or a monitor (fullscreen mode). On browsers, the outside is a body
+	// element. On mobiles, the outside is the phone's entire screen.
+	//
 	// The screen scale is automatically adjusted to fit the outside.
 	//
 	// Layout is called at an initialization and whenever the outside size is changed.

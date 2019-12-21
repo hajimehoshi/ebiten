@@ -77,7 +77,7 @@
 //
 // In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
 // statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebiten functions that
-// must be called on the main thread under some conditions (typically, before ebiten.Run is called).
+// must be called on the main thread under some conditions (typically, before ebiten.RunGame is called).
 //
 // Environment variables
 //
