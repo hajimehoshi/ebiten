@@ -61,8 +61,8 @@ type UserInterface struct {
 	initCursorMode           driver.CursorMode
 	initWindowDecorated      bool
 	initWindowResizable      bool
-	initWindowPositionX      int
-	initWindowPositionY      int
+	initWindowPositionXInDP  int
+	initWindowPositionYInDP  int
 	initScreenTransparent    bool
 	initIconImages           []image.Image
 
@@ -84,13 +84,13 @@ const (
 
 var (
 	theUI = &UserInterface{
-		origPosX:            invalidPos,
-		origPosY:            invalidPos,
-		initCursorMode:      driver.CursorModeVisible,
-		initWindowDecorated: true,
-		initWindowPositionX: invalidPos,
-		initWindowPositionY: invalidPos,
-		vsync:               true,
+		origPosX:                invalidPos,
+		origPosY:                invalidPos,
+		initCursorMode:          driver.CursorModeVisible,
+		initWindowDecorated:     true,
+		initWindowPositionXInDP: invalidPos,
+		initWindowPositionYInDP: invalidPos,
+		vsync:                   true,
 	}
 )
 
@@ -290,8 +290,8 @@ func (u *UserInterface) setInitIconImages(iconImages []image.Image) {
 func (u *UserInterface) getInitWindowPosition() (int, int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	if u.initWindowPositionX != invalidPos && u.initWindowPositionY != invalidPos {
-		return u.initWindowPositionX, u.initWindowPositionY
+	if u.initWindowPositionXInDP != invalidPos && u.initWindowPositionYInDP != invalidPos {
+		return u.initWindowPositionXInDP, u.initWindowPositionYInDP
 	}
 	return invalidPos, invalidPos
 }
@@ -300,8 +300,8 @@ func (u *UserInterface) setInitWindowPosition(x, y int) {
 	u.m.Lock()
 	defer u.m.Unlock()
 
-	u.initWindowPositionX = x
-	u.initWindowPositionY = y
+	u.initWindowPositionXInDP = x
+	u.initWindowPositionYInDP = y
 }
 
 // toDeviceIndependentPixel must be called from the main thread.
