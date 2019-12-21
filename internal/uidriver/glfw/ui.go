@@ -129,9 +129,9 @@ func initialize() error {
 		panic("glfw: glfw.CreateWindow must not return nil")
 	}
 
-	// TODO: Fix this hack. currentMonitorImpl now requires u.window on POSIX.
+	// TODO: Fix this hack. currentMonitor now requires u.window on POSIX.
 	theUI.window = w
-	theUI.initMonitor = theUI.currentMonitorFromPosition()
+	theUI.initMonitor = theUI.currentMonitor()
 	v := theUI.initMonitor.GetVideoMode()
 	theUI.initFullscreenWidthInDP = int(theUI.toDeviceIndependentPixel(float64(v.Width)))
 	theUI.initFullscreenHeightInDP = int(theUI.toDeviceIndependentPixel(float64(v.Height)))
