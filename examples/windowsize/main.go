@@ -108,16 +108,16 @@ func update(screen *ebiten.Image) error {
 		}
 	} else {
 		if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
-			positionY -= 4
+			positionY -= d
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
-			positionY += 4
+			positionY += d
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-			positionX -= 4
+			positionX -= d
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-			positionX += 4
+			positionX += d
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
