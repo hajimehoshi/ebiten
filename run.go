@@ -157,7 +157,8 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 
 	theUIContext = newUIContext(game, scale)
 	fixWindowPosition(int(float64(width)*scale), int(float64(height)*scale))
-	if err := uiDriver().Run(title, theUIContext, graphicsDriver()); err != nil {
+	SetWindowTitle(title)
+	if err := uiDriver().Run(theUIContext, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}

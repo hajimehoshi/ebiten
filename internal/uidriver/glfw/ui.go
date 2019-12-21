@@ -55,6 +55,7 @@ type UserInterface struct {
 	lastDeviceScaleFactor float64
 
 	initMonitor              *glfw.Monitor
+	initTitle                string
 	initFullscreenWidthInDP  int
 	initFullscreenHeightInDP int
 	initFullscreen           bool
@@ -192,6 +193,19 @@ func (u *UserInterface) setRunning(running bool) {
 	u.m.Lock()
 	u.running = running
 	u.m.Unlock()
+}
+
+func (u *UserInterface) getInitTitle() string {
+	u.m.RLock()
+	v := u.initTitle
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setInitTitle(title string) {
+	u.m.RLock()
+	u.initTitle = title
+	u.m.RUnlock()
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -406,6 +420,7 @@ func (u *UserInterface) IsVsyncEnabled() bool {
 
 func (u *UserInterface) SetWindowTitle(title string) {
 	if !u.isRunning() {
+		u.setInitTitle(title)
 		return
 	}
 	u.title = title
@@ -554,7 +569,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) Run(title string, uicontext driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(uicontext driver.UIContext, graphics driver.Graphics) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
 	u.graphics = graphics
@@ -566,7 +581,7 @@ func (u *UserInterface) Run(title string, uicontext driver.UIContext, graphics d
 	go func() {
 		defer cancel()
 		defer close(ch)
-		if err := u.run(title, uicontext); err != nil {
+		if err := u.run(uicontext); err != nil {
 			ch <- err
 		}
 	}()
@@ -630,7 +645,7 @@ func (u *UserInterface) createWindow() error {
 	return nil
 }
 
-func (u *UserInterface) run(title string, context driver.UIContext) error {
+func (u *UserInterface) run(context driver.UIContext) error {
 	if err := u.t.Call(func() error {
 		// The window is created at initialize().
 		u.window.Destroy()
@@ -682,8 +697,8 @@ func (u *UserInterface) run(title string, context driver.UIContext) error {
 	u.SetWindowPosition(u.getInitWindowPosition())
 
 	_ = u.t.Call(func() error {
-		u.title = title
-		u.window.SetTitle(title)
+		u.title = u.getInitTitle()
+		u.window.SetTitle(u.title)
 		u.window.Show()
 
 		return nil

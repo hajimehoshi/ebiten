@@ -31,7 +31,7 @@ type UIContext interface {
 var RegularTermination = errors.New("regular termination")
 
 type UI interface {
-	Run(title string, context UIContext, graphics Graphics) error
+	Run(context UIContext, graphics Graphics) error
 	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext, graphics Graphics) <-chan error
 
 	DeviceScaleFactor() float64
