@@ -115,7 +115,12 @@ func (g *game) Update(screen *ebiten.Image) error {
 		screenWidth = g.width
 		screenHeight = g.height
 		ww, _ := ebiten.WindowSize()
-		screenScale = float64(ww) / float64(g.width)
+		if ww > 0 {
+			screenScale = float64(ww) / float64(g.width)
+		} else {
+			// ebiten.WindowSize can return (0, 0) on browsers or mobiles.
+			screenScale = 1
+		}
 	}
 
 	fullscreen := ebiten.IsFullscreen()
