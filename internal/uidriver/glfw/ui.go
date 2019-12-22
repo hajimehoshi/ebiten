@@ -552,10 +552,14 @@ func (u *UserInterface) SetWindowResizable(resizable bool) {
 		u.setInitWindowResizable(resizable)
 		return
 	}
-
-	panic("glfw: SetWindowResizable can't be called after the main loop so far.")
-
-	// TODO: Now SetAttrib doesn't exist on GLFW 3.2. Revisit later (#556).
+	_ = u.t.Call(func() error {
+		v := glfw.False
+		if resizable {
+			v = glfw.True
+		}
+		u.window.SetAttrib(glfw.Resizable, v)
+		return nil
+	})
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {

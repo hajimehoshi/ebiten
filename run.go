@@ -153,6 +153,9 @@ func IsRunningSlowly() bool {
 //
 // Don't call Run twice or more in one process.
 func Run(f func(*Image) error, width, height int, scale float64, title string) error {
+	if IsWindowResizable() {
+		panic("ebiten: a resizable window works with RunGame, not Run")
+	}
 	game := &defaultGame{
 		update: (&imageDumper{f: f}).update,
 		width:  width,

@@ -184,6 +184,18 @@ func (c *uiContext) updateOffscreen() {
 	// scale. This is fine since ebiten.ScreenScale will be deprecated.
 }
 
+func (c *uiContext) setWindowResizable(resizable bool) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if resizable && c.game != nil {
+		if _, ok := c.game.(*defaultGame); ok {
+			panic("ebiten: a resizable window works with RunGame, not Run")
+		}
+	}
+	uiDriver().SetWindowResizable(resizable)
+}
+
 func (c *uiContext) screenScale() float64 {
 	if c.offscreen == nil {
 		return 0

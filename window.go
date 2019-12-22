@@ -62,11 +62,22 @@ func setWindowResizable(resizable bool) {
 	uiDriver().SetWindowResizable(resizable)
 }
 
-// IsWindowResizable reports whether the window is resizable.
+// IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
+// On the other environments, IsWindowResizable always returns false.
 //
 // IsWindowResizable is concurrent-safe.
 func IsWindowResizable() bool {
 	return uiDriver().IsWindowResizable()
+}
+
+// SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
+// On the other environments, SetWindowResizable does nothing.
+//
+// If SetWindowResizable is called with true and Run is used, SetWindowResizable panics. Use RunGame instead.
+//
+// SetWindowResizable is concurrent-safe.
+func SetWindowResizable(resizable bool) {
+	theUIContext.setWindowResizable(resizable)
 }
 
 // SetWindowTitle sets the title of the window.
