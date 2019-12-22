@@ -207,11 +207,11 @@ func RunGame(game Game) error {
 	if uiDriver().CanHaveWindow() {
 		fixWindowPosition(WindowSize())
 	}
-	return runGame(game, 1)
+	return runGame(game, 0)
 }
 
 func runGame(game Game, scale float64) error {
-	theUIContext = newUIContext(game, scale)
+	theUIContext.set(game, scale)
 	if err := uiDriver().Run(theUIContext, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
@@ -232,8 +232,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 		width:  width,
 		height: height,
 	}
-
-	theUIContext = newUIContext(game, scale)
+	theUIContext.set(game, scale)
 	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext, graphicsDriver())
 }
 
@@ -252,9 +251,6 @@ func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	if theUIContext == nil {
-		panic("ebiten: SetScreenSize can't be called before the main loop starts")
-	}
 	theUIContext.SetScreenSize(width, height)
 }
 
@@ -263,17 +259,11 @@ func SetScreenScale(scale float64) {
 	if scale <= 0 {
 		panic("ebiten: scale must be positive")
 	}
-	if theUIContext == nil {
-		panic("ebiten: SetScreenScale can't be called before the main loop starts")
-	}
 	theUIContext.setScaleForWindow(scale)
 }
 
 // ScreenScale is deprecated as of 1.11.0-alpha. Use WindowSize instead.
 func ScreenScale() float64 {
-	if theUIContext == nil {
-		panic("ebiten: ScreenScale can't be called before the main loop starts")
-	}
 	return theUIContext.getScaleForWindow()
 }
 

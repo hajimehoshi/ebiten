@@ -51,17 +51,6 @@ func (d *defaultGame) Layout(outsideWidth, outsideHeight int) (screenWidth, scre
 	return w, h
 }
 
-func newUIContext(game Game, scaleForWindow float64) *uiContext {
-	u := &uiContext{
-		game:           game,
-		scaleForWindow: scaleForWindow,
-	}
-	if g, ok := game.(*defaultGame); ok {
-		g.context = u
-	}
-	return u
-}
-
 type uiContext struct {
 	game      Game
 	offscreen *Image
@@ -81,16 +70,31 @@ type uiContext struct {
 	m sync.Mutex
 }
 
-var theUIContext *uiContext
+var theUIContext = &uiContext{}
+
+func (c *uiContext) set(game Game, scaleForWindow float64) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.game = game
+
+	if g, ok := game.(*defaultGame); ok {
+		c.scaleForWindow = scaleForWindow
+		g.context = c
+	}
+}
 
 func (c *uiContext) setScaleForWindow(scale float64) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.game == nil {
+		panic("ebiten: setScaleForWindow can be called only after the main loop starts")
+	}
+
 	g, ok := c.game.(*defaultGame)
 	if !ok {
 		panic("ebiten: setScaleForWindow can be called only when Run is used")
 	}
-
-	c.m.Lock()
-	defer c.m.Unlock()
 
 	w, h := g.width, g.height
 	c.scaleForWindow = scale
@@ -98,13 +102,17 @@ func (c *uiContext) setScaleForWindow(scale float64) {
 }
 
 func (c *uiContext) getScaleForWindow() float64 {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.game == nil {
+		panic("ebiten: getScaleForWindow can be called only after the main loop starts")
+	}
+
 	if _, ok := c.game.(*defaultGame); !ok {
 		panic("ebiten: getScaleForWindow can be called only when Run is used")
 	}
-
-	c.m.Lock()
 	s := c.scaleForWindow
-	c.m.Unlock()
 	return s
 }
 
@@ -113,13 +121,17 @@ func (c *uiContext) getScaleForWindow() float64 {
 // SetScreenSize is for backward compatibility. This is called from ebiten.SetScreenSize and
 // uidriver/mobile.UserInterface.
 func (c *uiContext) SetScreenSize(width, height int) {
+	c.m.Lock()
+	defer c.m.Unlock()
+
+	if c.game == nil {
+		panic("ebiten: SetScreenSize can be called only after the main loop starts")
+	}
+
 	g, ok := c.game.(*defaultGame)
 	if !ok {
 		panic("ebiten: SetScreenSize can be called only when Run is used")
 	}
-
-	c.m.Lock()
-	defer c.m.Unlock()
 
 	g.width = width
 	g.height = height
