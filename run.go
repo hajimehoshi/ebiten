@@ -176,10 +176,10 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every frame.
-// game's Layout function is called when necessary, and you can specify the logical screen size in the function.
+// game's Layout function is called when necessary, and you can specify the logical screen size by the function.
 //
 // RunGame is a more flexibile form of Run due to 'Layout' function.
-// The window is resizable if you use RunGame, while you cannot if you use Run.
+// You can make a resizable window if you use RunGame, while you cannot if you use Run.
 // RunGame is more sophisticated way than Run and hides the notion of 'scale'.
 //
 // While Run specifies the window size, RunGame does not.
