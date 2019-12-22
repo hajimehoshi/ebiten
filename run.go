@@ -158,20 +158,11 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 		width:  width,
 		height: height,
 	}
-
-	theUIContext = newUIContext(game, scale)
 	ww, wh := int(float64(width)*scale), int(float64(height)*scale)
 	fixWindowPosition(ww, wh)
 	SetWindowSize(ww, wh)
 	SetWindowTitle(title)
-	if err := uiDriver().Run(theUIContext, graphicsDriver()); err != nil {
-		if err == driver.RegularTermination {
-			return nil
-		}
-		return err
-	}
-
-	return nil
+	return runGame(game, scale)
 }
 
 // RunGame starts the main loop and runs the game.
@@ -216,7 +207,11 @@ func RunGame(game Game) error {
 	if uiDriver().CanHaveWindow() {
 		fixWindowPosition(WindowSize())
 	}
-	theUIContext = newUIContext(game, 1)
+	return runGame(game, 1)
+}
+
+func runGame(game Game, scale float64) error {
+	theUIContext = newUIContext(game, scale)
 	if err := uiDriver().Run(theUIContext, graphicsDriver()); err != nil {
 		if err == driver.RegularTermination {
 			return nil
