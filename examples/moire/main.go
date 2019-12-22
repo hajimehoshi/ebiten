@@ -33,18 +33,18 @@ const (
 )
 
 var (
-	dots       []uint8
+	dots       []byte
 	dotsWidth  int
 	dotsHeight int
 )
 
-func getDots(width, height int) []uint8 {
+func getDots(width, height int) []byte {
 	if dotsWidth == width && dotsHeight == height {
 		return dots
 	}
 	dotsWidth = width
 	dotsHeight = height
-	dots = make([]uint8, width*height*4)
+	dots = make([]byte, width*height*4)
 	for j := 0; j < height; j++ {
 		for i := 0; i < width; i++ {
 			if (i+j)%2 == 0 {
@@ -58,27 +58,34 @@ func getDots(width, height int) []uint8 {
 	return dots
 }
 
-func update(screen *ebiten.Image) error {
-	screenScale := ebiten.ScreenScale()
+type game struct {
+	scale float64
+}
+
+func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return screenWidth, screenHeight
+}
+
+func (g *game) Update(screen *ebiten.Image) error {
 	fullscreen := ebiten.IsFullscreen()
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		switch screenScale {
+		switch g.scale {
 		case 1:
-			screenScale = 1.5
+			g.scale = 1.5
 		case 1.5:
-			screenScale = 2
+			g.scale = 2
 		case 2:
-			screenScale = 1
+			g.scale = 1
 		default:
 			panic("not reached")
 		}
+		ebiten.SetWindowSize(int(screenWidth*g.scale), int(screenHeight*g.scale))
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		fullscreen = !fullscreen
+		ebiten.SetFullscreen(fullscreen)
 	}
-	ebiten.SetScreenScale(screenScale)
-	ebiten.SetFullscreen(fullscreen)
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
@@ -89,7 +96,13 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, initScreenScale, "Moire (Ebiten Demo)"); err != nil {
+	g := &game{
+		scale: initScreenScale,
+	}
+	ebiten.SetWindowSize(screenWidth*initScreenScale, screenHeight*initScreenScale)
+	ebiten.SetWindowTitle("Moire (Ebiten Demo)")
+	ebiten.SetWindowResizable(true)
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
