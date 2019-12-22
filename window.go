@@ -184,14 +184,20 @@ func fixWindowPosition(width, height int) {
 	}
 }
 
-// WindowSize returns the window size. On fullscreen mode, WindowSize returns the original window size.
+// WindowSize returns the window size on desktops.
+// WindowSize returns (0, 0) on other environments.
+//
+// On fullscreen mode, WindowSize returns the original window size.
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
 	return uiDriver().WindowSize()
 }
 
-// SetWindowSize sets the window size. On fullscreen mode, SetWindowSize sets the original window size.
+// SetWindowSize sets the window size on desktops.
+// SetWindowSize does nothing on other environments.
+//
+// On fullscreen mode, SetWindowSize sets the original window size.
 //
 // SetWindowSize panics if width or height is not a positive number.
 //
