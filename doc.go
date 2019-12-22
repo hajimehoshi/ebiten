@@ -16,8 +16,10 @@
 //
 // You can start the game by calling the function RunGame.
 //
+//     // Game implements ebiten.Game interface.
 //     type Game struct{}
 //
+//     // Update proceeds the game state.
 //     // Update is called every frame (1/60 [s]).
 //     func (g *Game) Update(screen *ebiten.Image) error {
 //
@@ -52,6 +54,7 @@
 //
 // For backward compatibility, you can use a shorthand style Run.
 //
+//     // update proceeds the game state.
 //     // update is called every frame (1/60 [s]).
 //     func update(screen *ebiten.Image) error {
 //
