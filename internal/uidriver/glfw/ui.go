@@ -82,19 +82,19 @@ type UserInterface struct {
 const (
 	maxInt     = int(^uint(0) >> 1)
 	minInt     = -maxInt - 1
-	invalidVal = minInt
+	invalidPos = minInt
 )
 
 var (
 	theUI = &UserInterface{
-		origPosX:                invalidVal,
-		origPosY:                invalidVal,
+		origPosX:                invalidPos,
+		origPosY:                invalidPos,
 		initCursorMode:          driver.CursorModeVisible,
 		initWindowDecorated:     true,
-		initWindowPositionXInDP: invalidVal,
-		initWindowPositionYInDP: invalidVal,
-		initWindowWidthInDP:     invalidVal,
-		initWindowHeightInDP:    invalidVal,
+		initWindowPositionXInDP: invalidPos,
+		initWindowPositionYInDP: invalidPos,
+		initWindowWidthInDP:     640,
+		initWindowHeightInDP:    480,
 		vsync:                   true,
 	}
 )
@@ -306,10 +306,10 @@ func (u *UserInterface) setInitIconImages(iconImages []image.Image) {
 func (u *UserInterface) getInitWindowPosition() (int, int) {
 	u.m.RLock()
 	defer u.m.RUnlock()
-	if u.initWindowPositionXInDP != invalidVal && u.initWindowPositionYInDP != invalidVal {
+	if u.initWindowPositionXInDP != invalidPos && u.initWindowPositionYInDP != invalidPos {
 		return u.initWindowPositionXInDP, u.initWindowPositionYInDP
 	}
-	return invalidVal, invalidVal
+	return invalidPos, invalidPos
 }
 
 func (u *UserInterface) setInitWindowPosition(x, y int) {
@@ -712,11 +712,10 @@ func (u *UserInterface) run(context driver.UIContext) error {
 	}
 
 	u.SetWindowPosition(u.getInitWindowPosition())
-	if w, h := u.getInitWindowSize(); w != invalidVal && h != invalidVal {
-		w = int(u.toDeviceDependentPixel(float64(w)))
-		h = int(u.toDeviceDependentPixel(float64(h)))
-		u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
-	}
+	ww, wh := u.getInitWindowSize()
+	ww = int(u.toDeviceDependentPixel(float64(ww)))
+	wh = int(u.toDeviceDependentPixel(float64(wh)))
+	u.setWindowSize(ww, wh, u.isFullscreen(), u.vsync)
 
 	_ = u.t.Call(func() error {
 		u.title = u.getInitTitle()
@@ -913,7 +912,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 		u.swapBuffers()
 
 		if fullscreen {
-			if u.origPosX == invalidVal || u.origPosY == invalidVal {
+			if u.origPosX == invalidPos || u.origPosY == invalidPos {
 				u.origPosX, u.origPosY = u.window.GetPos()
 			}
 			m := u.currentMonitor()
@@ -962,7 +961,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 				width = minWindowWidth
 			}
 
-			if u.origPosX != invalidVal && u.origPosY != invalidVal {
+			if u.origPosX != invalidPos && u.origPosY != invalidPos {
 				x := u.origPosX
 				y := u.origPosY
 				u.window.SetPos(x, y)
@@ -972,8 +971,8 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 					u.window.SetPos(x+1, y)
 					u.window.SetPos(x, y)
 				}
-				u.origPosX = invalidVal
-				u.origPosY = invalidVal
+				u.origPosX = invalidPos
+				u.origPosY = invalidPos
 			}
 
 			// Set the window size after the position. The order matters.

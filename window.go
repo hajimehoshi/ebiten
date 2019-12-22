@@ -193,7 +193,12 @@ func WindowSize() (int, int) {
 
 // SetWindowSize sets the window size. On fullscreen mode, SetWindowSize sets the original window size.
 //
+// SetWindowSize panics if width or height is not a positive number.
+//
 // SetWindowSize is concurrent-safe.
 func SetWindowSize(width, height int) {
+	if width <= 0 || height <= 0 {
+		panic("ebiten: width and height must be positive")
+	}
 	uiDriver().SetWindowSize(width, height)
 }

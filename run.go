@@ -182,7 +182,11 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // The window is resizable if you use RunGame, while you cannot if you use Run.
 // RunGame is more sophisticated way than Run and hides the notion of 'scale'.
 //
-// On desktops, SetWindowSize must be called before RunGame is called.
+// While Run specifies the window size, RunGame does not.
+// You need to call SetWindowSize before RunGame if you want.
+// Otherwise, a default window size is adopted.
+//
+// Some functions (ScreenScale, SetScreenScale, SetScreenSize) are not available with RunGame.
 //
 // A window size is based on the given values (width, height and scale).
 //
@@ -210,11 +214,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
 	if uiDriver().CanHaveWindow() {
-		w, h := WindowSize()
-		if w < 0 || h < 0 {
-			panic("ebiten: SetWindowSize must be called before RunGame on desktops")
-		}
-		fixWindowPosition(w, h)
+		fixWindowPosition(WindowSize())
 	}
 	theUIContext = newUIContext(game, 1)
 	if err := uiDriver().Run(theUIContext, graphicsDriver()); err != nil {
