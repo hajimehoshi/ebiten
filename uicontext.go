@@ -147,6 +147,9 @@ func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
 
 func (c *uiContext) updateOffscreen() {
 	sw, sh := c.game.Layout(int(c.outsideWidth), int(c.outsideHeight))
+	if sw <= 0 || sh <= 0 {
+		panic("ebiten: Layout must return positive numbers")
+	}
 
 	if c.offscreen != nil && !c.outsideSizeUpdated {
 		if w, h := c.offscreen.Size(); w == sw && h == sh {

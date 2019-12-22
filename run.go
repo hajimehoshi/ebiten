@@ -36,7 +36,9 @@ type Game interface {
 	//
 	// The screen scale is automatically adjusted to fit the outside.
 	//
-	// Layout is called at an initialization and whenever the outside size is changed.
+	// Layout is called almost every frame.
+	//
+	// If Layout returns non-positive numbers, the caller can panic.
 	//
 	// You can return a fixed screen size if you don't care, or you can also return a calculated screen size
 	// adjusted with the given outside size.
