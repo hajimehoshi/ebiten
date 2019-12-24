@@ -34,14 +34,19 @@ const (
 //
 // SetWindowDecorated is concurrent-safe.
 func SetWindowDecorated(decorated bool) {
-	uiDriver().SetWindowDecorated(decorated)
+	if w := uiDriver().Window(); w != nil {
+		w.SetDecorated(decorated)
+	}
 }
 
 // IsWindowDecorated reports whether the window is decorated.
 //
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
-	return uiDriver().IsWindowDecorated()
+	if w := uiDriver().Window(); w != nil {
+		return w.IsDecorated()
+	}
+	return false
 }
 
 // setWindowResizable is unexported until specification is determined (#320)
@@ -59,7 +64,9 @@ func IsWindowDecorated() bool {
 //
 // setWindowResizable is concurrent-safe.
 func setWindowResizable(resizable bool) {
-	uiDriver().SetWindowResizable(resizable)
+	if w := uiDriver().Window(); w != nil {
+		w.SetResizable(resizable)
+	}
 }
 
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
@@ -67,7 +74,10 @@ func setWindowResizable(resizable bool) {
 //
 // IsWindowResizable is concurrent-safe.
 func IsWindowResizable() bool {
-	return uiDriver().IsWindowResizable()
+	if w := uiDriver().Window(); w != nil {
+		return w.IsResizable()
+	}
+	return false
 }
 
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
@@ -82,11 +92,15 @@ func SetWindowResizable(resizable bool) {
 
 // SetWindowTitle sets the title of the window.
 //
+// SetWindowTitle updated the title on browsers, but now does nothing on browsers as of 1.11.0-alpha.
+//
 // SetWindowTitle does nothing on mobiles.
 //
 // SetWindowTitle is concurrent-safe.
 func SetWindowTitle(title string) {
-	uiDriver().SetWindowTitle(title)
+	if w := uiDriver().Window(); w != nil {
+		w.SetTitle(title)
+	}
 }
 
 // SetWindowIcon sets the icon of the game window.
@@ -110,7 +124,9 @@ func SetWindowTitle(title string) {
 //
 // SetWindowIcon is concurrent-safe.
 func SetWindowIcon(iconImages []image.Image) {
-	uiDriver().SetWindowIcon(iconImages)
+	if w := uiDriver().Window(); w != nil {
+		w.SetIcon(iconImages)
+	}
 }
 
 // WindowPosition returns the window position.
@@ -126,7 +142,10 @@ func WindowPosition() (x, y int) {
 	if x, y, ok := initWindowPosition(); ok {
 		return x, y
 	}
-	return uiDriver().WindowPosition()
+	if w := uiDriver().Window(); w != nil {
+		return w.Position()
+	}
+	return 0, 0
 }
 
 // SetWindowPosition sets the window position.
@@ -140,7 +159,9 @@ func SetWindowPosition(x, y int) {
 	if setInitWindowPosition(x, y) {
 		return
 	}
-	uiDriver().SetWindowPosition(x, y)
+	if w := uiDriver().Window(); w != nil {
+		w.SetPosition(x, y)
+	}
 }
 
 var (
@@ -180,7 +201,8 @@ func fixWindowPosition(width, height int) {
 		mainLoopStarted = true
 	}()
 
-	if !uiDriver().CanHaveWindow() {
+	w := uiDriver().Window()
+	if w == nil {
 		return
 	}
 
@@ -189,9 +211,9 @@ func fixWindowPosition(width, height int) {
 		sw, sh := uiDriver().ScreenSizeInFullscreen()
 		x := mx + (sw-width)/2
 		y := my + (sh-height)/3
-		uiDriver().SetWindowPosition(x, y)
+		w.SetPosition(x, y)
 	} else {
-		uiDriver().SetWindowPosition(initWindowPositionX, initWindowPositionY)
+		w.SetPosition(initWindowPositionX, initWindowPositionY)
 	}
 }
 
@@ -202,7 +224,10 @@ func fixWindowPosition(width, height int) {
 //
 // WindowSize is concurrent-safe.
 func WindowSize() (int, int) {
-	return uiDriver().WindowSize()
+	if w := uiDriver().Window(); w != nil {
+		return w.Size()
+	}
+	return 0, 0
 }
 
 // SetWindowSize sets the window size on desktops.
@@ -217,5 +242,7 @@ func SetWindowSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	uiDriver().SetWindowSize(width, height)
+	if w := uiDriver().Window(); w != nil {
+		w.SetSize(width, height)
+	}
 }

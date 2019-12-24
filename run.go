@@ -209,9 +209,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 //
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
-	if uiDriver().CanHaveWindow() {
-		fixWindowPosition(WindowSize())
-	}
+	fixWindowPosition(WindowSize())
 	return runGame(game, 0)
 }
 

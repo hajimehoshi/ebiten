@@ -19,7 +19,6 @@ package mobile
 import (
 	"context"
 	"fmt"
-	"image"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -377,30 +376,6 @@ func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) SetWindowTitle(title string) {
-	// Do nothing
-}
-
-func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
-	// Do nothing
-}
-
-func (u *UserInterface) IsWindowDecorated() bool {
-	return false
-}
-
-func (u *UserInterface) SetWindowDecorated(decorated bool) {
-	// Do nothing
-}
-
-func (u *UserInterface) IsWindowResizable() bool {
-	return false
-}
-
-func (u *UserInterface) SetWindowResizable(decorated bool) {
-	// Do nothing
-}
-
 func (u *UserInterface) IsVsyncEnabled() bool {
 	return true
 }
@@ -413,31 +388,11 @@ func (u *UserInterface) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
-func (u *UserInterface) SetWindowPosition(x, y int) {
-	// Do nothing
-}
-
-func (u *UserInterface) WindowPosition() (int, int) {
-	return 0, 0
-}
-
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
 	// Do nothing
 }
 
 func (u *UserInterface) IsScreenTransparent() bool {
-	return false
-}
-
-func (u *UserInterface) SetWindowSize(width, height int) {
-	// Do nothing
-}
-
-func (u *UserInterface) WindowSize() (int, int) {
-	return 0, 0
-}
-
-func (u *UserInterface) CanHaveWindow() bool {
 	return false
 }
 
@@ -447,6 +402,10 @@ func (u *UserInterface) MonitorPosition() (int, int) {
 
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
+}
+
+func (u *UserInterface) Window() driver.Window {
+	return nil
 }
 
 type Touch struct {

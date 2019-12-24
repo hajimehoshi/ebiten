@@ -39,26 +39,33 @@ type UI interface {
 	IsFullscreen() bool
 	IsRunnableInBackground() bool
 	IsVsyncEnabled() bool
-	IsWindowDecorated() bool
-	IsWindowResizable() bool
 	ScreenSizeInFullscreen() (int, int)
-	WindowPosition() (int, int)
-	WindowSize() (int, int)
 	IsScreenTransparent() bool
 	MonitorPosition() (int, int)
-	CanHaveWindow() bool // TODO: Create a 'Widnow' interface.
 
 	SetCursorMode(mode CursorMode)
 	SetFullscreen(fullscreen bool)
 	SetRunnableInBackground(runnableInBackground bool)
 	SetVsyncEnabled(enabled bool)
-	SetWindowDecorated(decorated bool)
-	SetWindowIcon(iconImages []image.Image)
-	SetWindowResizable(resizable bool)
-	SetWindowTitle(title string)
-	SetWindowPosition(x, y int)
-	SetWindowSize(width, height int)
 	SetScreenTransparent(transparent bool)
 
 	Input() Input
+	Window() Window
+}
+
+type Window interface {
+	IsDecorated() bool
+	SetDecorated(decorated bool)
+
+	IsResizable() bool
+	SetResizable(resizable bool)
+
+	Position() (int, int)
+	SetPosition(x, y int)
+
+	Size() (int, int)
+	SetSize(width, height int)
+
+	SetIcon(iconImages []image.Image)
+	SetTitle(title string)
 }

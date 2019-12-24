@@ -17,7 +17,6 @@
 package js
 
 import (
-	"image"
 	"log"
 	"runtime"
 	"syscall/js"
@@ -115,41 +114,6 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 	} else {
 		canvas.Get("style").Set("cursor", "none")
 	}
-}
-
-func (u *UserInterface) SetWindowTitle(title string) {
-	// TODO: As the page should be in an iframe, this might be useless.
-	document.Set("title", title)
-}
-
-func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
-	// Do nothing
-}
-
-func (u *UserInterface) IsWindowDecorated() bool {
-	return false
-}
-
-func (u *UserInterface) SetWindowDecorated(decorated bool) {
-	// Do nothing
-}
-
-func (u *UserInterface) IsWindowResizable() bool {
-	return false
-}
-
-func (u *UserInterface) SetWindowResizable(decorated bool) {
-	// Do nothing
-}
-
-func (u *UserInterface) WindowSize() (int, int) {
-	return 0, 0
-}
-
-func (u *UserInterface) SetWindowSize(width, height int) {
-	// TODO: This is too tricky: Even though browsers don't have windows, SetWindowSize is called whenever the
-	// screen size is changed. Fix this hack.
-	u.sizeChanged = true
 }
 
 func (u *UserInterface) DeviceScaleFactor() float64 {
@@ -441,17 +405,6 @@ func (u *UserInterface) updateScreenSize() {
 	u.sizeChanged = true
 }
 
-func (u *UserInterface) SetWindowPosition(x, y int) {
-	// Do nothing
-}
-
-func (u *UserInterface) WindowPosition() (int, int) {
-	if !u.running {
-		panic("js: WindowPosition can't be called before the main loop starts")
-	}
-	return 0, 0
-}
-
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
 	if u.running {
 		panic("js: SetScreenTransparent can't be called after the main loop starts")
@@ -474,10 +427,10 @@ func (u *UserInterface) MonitorPosition() (int, int) {
 	return 0, 0
 }
 
-func (u *UserInterface) CanHaveWindow() bool {
-	return false
-}
-
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
+}
+
+func (u *UserInterface) Window() driver.Window {
+	return nil
 }

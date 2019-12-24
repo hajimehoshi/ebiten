@@ -96,9 +96,11 @@ func (c *uiContext) setScaleForWindow(scale float64) {
 		panic("ebiten: setScaleForWindow can be called only when Run is used")
 	}
 
-	w, h := g.width, g.height
-	c.scaleForWindow = scale
-	uiDriver().SetWindowSize(int(float64(w)*scale), int(float64(h)*scale))
+	if w := uiDriver().Window(); w != nil {
+		ww, wh := g.width, g.height
+		c.scaleForWindow = scale
+		w.SetSize(int(float64(ww)*scale), int(float64(wh)*scale))
+	}
 }
 
 func (c *uiContext) getScaleForWindow() float64 {
@@ -135,8 +137,10 @@ func (c *uiContext) SetScreenSize(width, height int) {
 
 	g.width = width
 	g.height = height
-	s := c.scaleForWindow
-	uiDriver().SetWindowSize(int(float64(width)*s), int(float64(height)*s))
+	if w := uiDriver().Window(); w != nil {
+		s := c.scaleForWindow
+		w.SetSize(int(float64(width)*s), int(float64(height)*s))
+	}
 }
 
 func (c *uiContext) Layout(outsideWidth, outsideHeight float64) {
@@ -196,7 +200,9 @@ func (c *uiContext) setWindowResizable(resizable bool) {
 			panic("ebiten: a resizable window works with RunGame, not Run")
 		}
 	}
-	uiDriver().SetWindowResizable(resizable)
+	if w := uiDriver().Window(); w != nil {
+		w.SetResizable(resizable)
+	}
 }
 
 func (c *uiContext) screenScale() float64 {

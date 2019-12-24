@@ -74,6 +74,7 @@ type UserInterface struct {
 
 	graphics driver.Graphics
 	input    Input
+	iwindow  window
 
 	t *thread.Thread
 	m sync.RWMutex
@@ -101,6 +102,7 @@ var (
 
 func init() {
 	theUI.input.ui = theUI
+	theUI.iwindow.ui = theUI
 }
 
 func Get() *UserInterface {
@@ -435,29 +437,6 @@ func (u *UserInterface) IsVsyncEnabled() bool {
 	return r
 }
 
-func (u *UserInterface) SetWindowTitle(title string) {
-	if !u.isRunning() {
-		u.setInitTitle(title)
-		return
-	}
-	u.title = title
-	_ = u.t.Call(func() error {
-		u.window.SetTitle(title)
-		return nil
-	})
-}
-
-func (u *UserInterface) SetWindowIcon(iconImages []image.Image) {
-	if !u.isRunning() {
-		u.setInitIconImages(iconImages)
-		return
-	}
-	_ = u.t.Call(func() error {
-		u.window.SetIcon(iconImages)
-		return nil
-	})
-}
-
 func (u *UserInterface) CursorMode() driver.CursorMode {
 	if !u.isRunning() {
 		return u.getInitCursorMode()
@@ -498,66 +477,6 @@ func (u *UserInterface) SetCursorMode(mode driver.CursorMode) {
 			panic(fmt.Sprintf("invalid cursor mode: %d", mode))
 		}
 		u.window.SetInputMode(glfw.CursorMode, c)
-		return nil
-	})
-}
-
-func (u *UserInterface) IsWindowDecorated() bool {
-	if !u.isRunning() {
-		return u.isInitWindowDecorated()
-	}
-	v := false
-	_ = u.t.Call(func() error {
-		v = u.window.GetAttrib(glfw.Decorated) == glfw.True
-		return nil
-	})
-	return v
-}
-
-func (u *UserInterface) SetWindowDecorated(decorated bool) {
-	if !u.isRunning() {
-		u.setInitWindowDecorated(decorated)
-		return
-	}
-
-	_ = u.t.Call(func() error {
-		v := glfw.False
-		if decorated {
-			v = glfw.True
-		}
-		u.window.SetAttrib(glfw.Decorated, v)
-
-		// The title can be lost when the decoration is gone. Recover this.
-		if v == glfw.True {
-			u.window.SetTitle(u.title)
-		}
-		return nil
-	})
-}
-
-func (u *UserInterface) IsWindowResizable() bool {
-	if !u.isRunning() {
-		return u.isInitWindowResizable()
-	}
-	v := false
-	_ = u.t.Call(func() error {
-		v = u.window.GetAttrib(glfw.Resizable) == glfw.True
-		return nil
-	})
-	return v
-}
-
-func (u *UserInterface) SetWindowResizable(resizable bool) {
-	if !u.isRunning() {
-		u.setInitWindowResizable(resizable)
-		return
-	}
-	_ = u.t.Call(func() error {
-		v := glfw.False
-		if resizable {
-			v = glfw.True
-		}
-		u.window.SetAttrib(glfw.Resizable, v)
 		return nil
 	})
 }
@@ -715,7 +634,7 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		return err
 	}
 
-	u.SetWindowPosition(u.getInitWindowPosition())
+	u.iwindow.SetPosition(u.getInitWindowPosition())
 	ww, wh := u.getInitWindowSize()
 	ww = int(u.toDeviceDependentPixel(float64(ww)))
 	wh = int(u.toDeviceDependentPixel(float64(wh)))
@@ -1049,44 +968,6 @@ func (u *UserInterface) currentMonitor() *glfw.Monitor {
 	return u.currentMonitorFromPosition()
 }
 
-func (u *UserInterface) SetWindowPosition(x, y int) {
-	if !u.isRunning() {
-		u.setInitWindowPosition(x, y)
-		return
-	}
-	_ = u.t.Call(func() error {
-		xf := u.toDeviceDependentPixel(float64(x))
-		yf := u.toDeviceDependentPixel(float64(y))
-		x, y := adjustWindowPosition(int(xf), int(yf))
-		if u.isFullscreen() {
-			u.origPosX, u.origPosY = x, y
-		} else {
-			u.window.SetPos(x, y)
-		}
-		return nil
-	})
-}
-
-func (u *UserInterface) WindowPosition() (int, int) {
-	if !u.isRunning() {
-		panic("glfw: WindowPosition can't be called before the main loop starts")
-	}
-	x, y := 0, 0
-	_ = u.t.Call(func() error {
-		var wx, wy int
-		if u.isFullscreen() {
-			wx, wy = u.origPosX, u.origPosY
-		} else {
-			wx, wy = u.window.GetPos()
-		}
-		xf := u.toDeviceIndependentPixel(float64(wx))
-		yf := u.toDeviceIndependentPixel(float64(wy))
-		x, y = int(xf), int(yf)
-		return nil
-	})
-	return x, y
-}
-
 func (u *UserInterface) SetScreenTransparent(transparent bool) {
 	if !u.isRunning() {
 		u.setInitScreenTransparent(transparent)
@@ -1107,25 +988,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 	return val
 }
 
-func (u *UserInterface) WindowSize() (int, int) {
-	if !u.isRunning() {
-		return u.getInitWindowSize()
-	}
-	w := int(u.toDeviceIndependentPixel(float64(u.windowWidth)))
-	h := int(u.toDeviceIndependentPixel(float64(u.windowHeight)))
-	return w, h
-}
-
-func (u *UserInterface) SetWindowSize(width, height int) {
-	if !u.isRunning() {
-		u.setInitWindowSize(width, height)
-		return
-	}
-	w := int(u.toDeviceDependentPixel(float64(width)))
-	h := int(u.toDeviceDependentPixel(float64(height)))
-	u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
-}
-
 func (u *UserInterface) MonitorPosition() (int, int) {
 	if !u.isRunning() {
 		return u.monitorPosition()
@@ -1143,10 +1005,10 @@ func (u *UserInterface) monitorPosition() (int, int) {
 	return u.currentMonitor().GetPos()
 }
 
-func (u *UserInterface) CanHaveWindow() bool {
-	return true
-}
-
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
+}
+
+func (u *UserInterface) Window() driver.Window {
+	return &u.iwindow
 }
