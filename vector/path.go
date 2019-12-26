@@ -32,7 +32,7 @@ func init() {
 	emptyImage.Fill(color.White)
 }
 
-// Path represents a collection of paths.
+// Path represents a collection of path segments.
 type Path struct {
 	segs [][]math.Segment
 	cur  math.Point
