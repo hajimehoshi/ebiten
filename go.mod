@@ -8,7 +8,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/bitmapfont v1.2.0
 	github.com/hajimehoshi/go-mp3 v0.2.1
-	github.com/hajimehoshi/oto v0.5.4-0.20191218145825-0644fbe4140c
+	github.com/hajimehoshi/oto v0.5.4
 	github.com/jakecoffman/cp v0.1.0
 	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
