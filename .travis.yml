@@ -38,7 +38,7 @@ install:
   - go mod init example.com/m
   - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then go get github.com/hajimehoshi/ebiten@$TRAVIS_COMMIT; fi
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go get github.com/hajimehoshi/ebiten; fi
-  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then wget -O ebiten.zip https://github.com/$TRAVIS_PULL_REQUEST_SLUG/archive/$TRAVIS_COMMIT.zip; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then wget -O ebiten.zip https://github.com/hajimehoshi/ebiten/archive/$TRAVIS_COMMIT.zip; fi
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then unzip ebiten.zip; fi
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then mv ./ebiten-$TRAVIS_COMMIT ebiten; fi
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go mod edit -replace=github.com/hajimehoshi/ebiten=./ebiten; fi
@@ -51,8 +51,7 @@ install:
   - GO111MODULE=off go1.12.14 get github.com/gopherjs/gopherjs
   - mkdir -p $GOPATH/src/github.com/hajimehoshi
   - cd $GOPATH/src/github.com/hajimehoshi
-  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then wget -O ebiten.zip https://github.com/hajimehoshi/ebiten/archive/$TRAVIS_COMMIT.zip; fi
-  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then wget -O ebiten.zip https://github.com/$TRAVIS_PULL_REQUEST_SLUG/archive/$TRAVIS_COMMIT.zip; fi
+  - wget -O ebiten.zip https://github.com/hajimehoshi/ebiten/archive/$TRAVIS_COMMIT.zip
   - unzip ebiten.zip
   - mv ./ebiten-$TRAVIS_COMMIT ebiten
   - cd ./ebiten
