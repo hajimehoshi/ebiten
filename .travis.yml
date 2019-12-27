@@ -36,7 +36,12 @@ install:
   - mkdir /tmp/work
   - cd /tmp/work
   - go mod init example.com/m
-  - go get github.com/hajimehoshi/ebiten@$TRAVIS_COMMIT
+  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then go get github.com/hajimehoshi/ebiten@$TRAVIS_COMMIT; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go get github.com/hajimehoshi/ebiten; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then wget -O ebiten.zip https://github.com/hajimehoshi/ebiten/archive/$TRAVIS_COMMIT.zip; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then unzip ebiten.zip; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then mv ./ebiten-$TRAVIS_COMMIT ebiten; fi
+  - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go mod edit -replace=github.com/hajimehoshi/ebiten=./ebiten; fi
 
   # wasmbrowsertest
   - GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
