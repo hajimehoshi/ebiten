@@ -123,6 +123,15 @@ func TestTriangulate(t *testing.T) {
 		{
 			In: []Point{
 				{0, 0},
+				{0.5, 0.5},
+				{1.5, 1.5},
+				{1, 1},
+			},
+			Out: nil,
+		},
+		{
+			In: []Point{
+				{0, 0},
 				{0, 1},
 				{1, 1},
 			},
