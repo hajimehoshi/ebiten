@@ -31,6 +31,7 @@ type pos struct {
 
 type gamePad struct {
 	valid         bool
+	name          string
 	axisNum       int
 	axes          [16]float64
 	buttonNum     int
@@ -54,6 +55,20 @@ type Input struct {
 func (i *Input) CursorPosition() (x, y int) {
 	xf, yf := i.ui.context.AdjustPosition(float64(i.cursorX), float64(i.cursorY))
 	return int(xf), int(yf)
+}
+
+func (i *Input) GamepadGUID(id int) string {
+	return ""
+}
+
+// GamepadName returns a string containing some information about the controller.
+// A PS2 controller returned "810-3-USB Gamepad" on Firefox
+// A Xbox 360 controller returned "xinput" on Firefox and "Xbox 360 Controller (XInput STANDARD GAMEPAD)" on Chrome
+func (i *Input) GamepadName(id int) string {
+	if len(i.gamepads) <= id {
+		return ""
+	}
+	return i.gamepads[id].name
 }
 
 func (i *Input) GamepadIDs() []int {
@@ -233,6 +248,7 @@ func (i *Input) UpdateGamepads() {
 			continue
 		}
 		i.gamepads[id].valid = true
+		i.gamepads[id].name = gamepad.Get("id").String()
 
 		axes := gamepad.Get("axes")
 		axesNum := axes.Get("length").Int()

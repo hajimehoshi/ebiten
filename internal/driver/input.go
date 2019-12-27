@@ -16,6 +16,8 @@ package driver
 
 type Input interface {
 	CursorPosition() (x, y int)
+	GamepadGUID(id int) string
+	GamepadName(id int) string
 	GamepadAxis(id int, axis int) float64
 	GamepadAxisNum(id int) int
 	GamepadButtonNum(id int) int

@@ -29,6 +29,8 @@ import (
 
 type gamePad struct {
 	valid         bool
+	guid          string
+	name          string
 	axisNum       int
 	axes          [16]float64
 	buttonNum     int
@@ -80,6 +82,36 @@ func (i *Input) GamepadIDs() []int {
 				r = append(r, id)
 			}
 		}
+		return nil
+	})
+	return r
+}
+
+func (i *Input) GamepadGUID(id int) string {
+	if !i.ui.isRunning() {
+		return ""
+	}
+	var r string
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) <= id {
+			return nil
+		}
+		r = i.gamepads[id].guid
+		return nil
+	})
+	return r
+}
+
+func (i *Input) GamepadName(id int) string {
+	if !i.ui.isRunning() {
+		return ""
+	}
+	var r string
+	_ = i.ui.t.Call(func() error {
+		if len(i.gamepads) <= id {
+			return nil
+		}
+		r = i.gamepads[id].name
 		return nil
 	})
 	return r
@@ -324,6 +356,8 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 				continue
 			}
 			i.gamepads[id].valid = true
+			i.gamepads[id].guid = id.GetGUID()
+			i.gamepads[id].name = id.GetName()
 
 			axes32 := id.GetAxes()
 			i.gamepads[id].axisNum = len(axes32)
