@@ -48,10 +48,24 @@ func (p *Path) MoveTo(x, y float32) {
 // LineTo updates the current position to (x, y).
 func (p *Path) LineTo(x, y float32) {
 	if len(p.segs) == 0 {
-		p.segs = append(p.segs, []math.Point{{X: 0, Y: 0}})
+		p.segs = append(p.segs, []math.Point{p.cur})
 	}
 	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], math.Point{X: x, Y: y})
 	p.cur = math.Point{X: x, Y: y}
+}
+
+func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
+	c := p.cur
+	dist := float64((x-c.X)*(x-c.X) + (y-c.Y)*(y-c.Y))
+	num := 1.0
+	for num*num < dist {
+		num *= 2
+	}
+	for t := float32(0.0); t <= 1; t += 1.0 / 128.0 {
+		xf := t*t*x + 2*t*(1-t)*cpx + (1-t)*(1-t)*c.X
+		yf := t*t*y + 2*t*(1-t)*cpy + (1-t)*(1-t)*c.Y
+		p.LineTo(xf, yf)
+	}
 }
 
 func (p *Path) Fill(dst *ebiten.Image, clr color.Color) {

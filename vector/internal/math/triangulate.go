@@ -34,7 +34,7 @@ func InTriangle(pt, pt0, pt1, pt2 Point) bool {
 	c0 := cross(Vector{pt.X - pt0.X, pt.Y - pt0.Y}, Vector{pt1.X - pt0.X, pt1.Y - pt0.Y})
 	c1 := cross(Vector{pt.X - pt1.X, pt.Y - pt1.Y}, Vector{pt2.X - pt1.X, pt2.Y - pt1.Y})
 	c2 := cross(Vector{pt.X - pt2.X, pt.Y - pt2.Y}, Vector{pt0.X - pt2.X, pt0.Y - pt2.Y})
-	return (c0 < 0 && c1 < 0 && c2 < 0) || (c0 > 0 && c1 > 0 && c2 > 0)
+	return (c0 <= 0 && c1 <= 0 && c2 <= 0) || (c0 >= 0 && c1 >= 0 && c2 >= 0)
 }
 
 func Triangulate(pts []Point) []uint16 {
@@ -60,12 +60,12 @@ dup:
 
 	// Determine the direction of the polygon from the upper-left point.
 	var upperLeft int
-	for _, i := range currentIndices {
+	for ci, i := range currentIndices {
 		if pts[upperLeft].X < pts[i].X {
-			upperLeft = int(i)
+			upperLeft = int(ci)
 		}
 		if pts[upperLeft].X == pts[i].X && pts[upperLeft].Y < pts[i].Y {
-			upperLeft = int(i)
+			upperLeft = int(ci)
 		}
 	}
 	i0, i1, i2 := adjacentIndices(currentIndices, upperLeft)

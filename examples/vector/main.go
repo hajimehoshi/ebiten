@@ -46,7 +46,14 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.LineTo(70, 30)
 	path.LineTo(70, 20)
 
-	// TODO: Draw other letters like B, I, T, E, N
+	// B
+	path.MoveTo(80, 20)
+	path.LineTo(80, 70)
+	path.LineTo(100, 70)
+	path.QuadraticCurveTo(130, 57.5, 100, 45)
+	path.QuadraticCurveTo(130, 32.5, 100, 20)
+
+	// TODO: Draw other letters like I, T, E, N
 
 	path.Fill(screen, color.White)
 }
