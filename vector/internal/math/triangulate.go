@@ -31,6 +31,18 @@ func adjacentIndices(indices []uint16, idx int) (uint16, uint16, uint16) {
 }
 
 func InTriangle(pt, pt0, pt1, pt2 Point) bool {
+	if pt.X <= pt0.X && pt.X <= pt1.X && pt.X <= pt2.X {
+		return false
+	}
+	if pt.X >= pt0.X && pt.X >= pt1.X && pt.X >= pt2.X {
+		return false
+	}
+	if pt.Y <= pt0.Y && pt.Y <= pt1.Y && pt.Y <= pt2.Y {
+		return false
+	}
+	if pt.Y >= pt0.Y && pt.Y >= pt1.Y && pt.Y >= pt2.Y {
+		return false
+	}
 	c0 := cross(Vector{pt.X - pt0.X, pt.Y - pt0.Y}, Vector{pt1.X - pt0.X, pt1.Y - pt0.Y})
 	c1 := cross(Vector{pt.X - pt1.X, pt.Y - pt1.Y}, Vector{pt2.X - pt1.X, pt2.Y - pt1.Y})
 	c2 := cross(Vector{pt.X - pt2.X, pt.Y - pt2.Y}, Vector{pt0.X - pt2.X, pt0.Y - pt2.Y})
