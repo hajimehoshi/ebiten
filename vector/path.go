@@ -54,13 +54,30 @@ func (p *Path) LineTo(x, y float32) {
 	p.cur = math.Point{X: x, Y: y}
 }
 
-func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
-	c := p.cur
-	dist := float64((x-c.X)*(x-c.X) + (y-c.Y)*(y-c.Y))
-	num := 1.0
-	for num*num < dist {
+func nseg(x0, y0, x1, y1 float32) int {
+	distx := x1 - x0
+	if distx < 0 {
+		distx = -distx
+	}
+	disty := y1 - y0
+	if disty < 0 {
+		disty = -disty
+	}
+	dist := distx
+	if dist < disty {
+		dist = disty
+	}
+
+	num := 1
+	for float32(num) < dist {
 		num *= 2
 	}
+	return num
+}
+
+func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
+	c := p.cur
+	num := nseg(c.X, c.Y, x, y)
 	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
 		xf := (1-t)*(1-t)*c.X + 2*t*(1-t)*cpx + t*t*x
 		yf := (1-t)*(1-t)*c.Y + 2*t*(1-t)*cpy + t*t*y
@@ -70,11 +87,7 @@ func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
 
 func (p *Path) BezierCurveTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
 	c := p.cur
-	dist := float64((x-c.X)*(x-c.X) + (y-c.Y)*(y-c.Y))
-	num := 1.0
-	for num*num < dist {
-		num *= 2
-	}
+	num := nseg(c.X, c.Y, x, y)
 	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
 		xf := (1-t)*(1-t)*(1-t)*c.X + 3*(1-t)*(1-t)*t*cp0x + 3*(1-t)*t*t*cp1x + t*t*t*x
 		yf := (1-t)*(1-t)*(1-t)*c.Y + 3*(1-t)*(1-t)*t*cp0y + 3*(1-t)*t*t*cp1y + t*t*t*y
