@@ -98,6 +98,34 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.Fill(screen, color.White)
 }
 
+func drawEbitenLogo(screen *ebiten.Image, x, y int) {
+	const unit = 16
+
+	var path vector.Path
+	xf, yf := float32(x), float32(y)
+
+	path.MoveTo(xf, yf+4*unit)
+	path.LineTo(xf, yf+6*unit)
+	path.LineTo(xf+2*unit, yf+6*unit)
+	path.LineTo(xf+2*unit, yf+5*unit)
+	path.LineTo(xf+3*unit, yf+5*unit)
+	path.LineTo(xf+3*unit, yf+4*unit)
+	path.LineTo(xf+4*unit, yf+4*unit)
+	path.LineTo(xf+4*unit, yf+2*unit)
+	path.LineTo(xf+6*unit, yf+2*unit)
+	path.LineTo(xf+6*unit, yf+1*unit)
+	path.LineTo(xf+5*unit, yf+1*unit)
+	path.LineTo(xf+5*unit, yf)
+	path.LineTo(xf+4*unit, yf)
+	path.LineTo(xf+4*unit, yf+2*unit)
+	path.LineTo(xf+2*unit, yf+2*unit)
+	path.LineTo(xf+2*unit, yf+3*unit)
+	path.LineTo(xf+unit, yf+3*unit)
+	path.LineTo(xf+unit, yf+4*unit)
+
+	path.Fill(screen, color.RGBA{0xdb, 0x56, 0x20, 0xff})
+}
+
 var counter = 0
 
 func update(screen *ebiten.Image) error {
@@ -107,6 +135,7 @@ func update(screen *ebiten.Image) error {
 	}
 
 	drawEbitenText(screen)
+	drawEbitenLogo(screen, 20, 80)
 	return nil
 }
 

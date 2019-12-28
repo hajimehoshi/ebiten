@@ -45,34 +45,9 @@ func Triangulate(pts []Point) []uint16 {
 	var currentIndices []uint16
 
 	// Remove duplicated points
-dup:
 	for i := range pts {
-		for j := 0; j < i; j++ {
-			if pts[i] == pts[j] {
-				continue dup
-			}
-		}
 		currentIndices = append(currentIndices, uint16(i))
 	}
-	if len(currentIndices) < 3 {
-		return nil
-	}
-
-	// Determine the direction of the polygon from the upper-left point.
-	var upperLeft int
-	for ci, i := range currentIndices {
-		if pts[upperLeft].X < pts[i].X {
-			upperLeft = int(ci)
-		}
-		if pts[upperLeft].X == pts[i].X && pts[upperLeft].Y < pts[i].Y {
-			upperLeft = int(ci)
-		}
-	}
-	i0, i1, i2 := adjacentIndices(currentIndices, upperLeft)
-	pt0 := pts[i0]
-	pt1 := pts[i1]
-	pt2 := pts[i2]
-	clockwise := triangleCross(pt0, pt1, pt2) < 0
 
 	var indices []uint16
 
@@ -81,25 +56,43 @@ dup:
 	for len(currentIndices) >= 3 {
 		// Calculate cross-products and remove unneeded vertices.
 		cs := make([]float32, len(currentIndices))
-		idx := -1
+		idxToRemove := -1
+
+		// Determine the direction of the polygon from the upper-left point.
+		var upperLeft int
 		for i := range currentIndices {
+			next := (i + 1) % len(currentIndices)
+			if pts[currentIndices[i]] == pts[currentIndices[next]] {
+				idxToRemove = next
+				break
+			}
+
 			i0, i1, i2 := adjacentIndices(currentIndices, i)
 			pt0 := pts[i0]
 			pt1 := pts[i1]
 			pt2 := pts[i2]
 			c := triangleCross(pt0, pt1, pt2)
 			if c == 0 {
-				idx = i
+				idxToRemove = i
 				break
 			}
 			cs[i] = c
+
+			if pts[currentIndices[upperLeft]].X > pts[currentIndices[i]].X {
+				upperLeft = i
+			} else if pts[currentIndices[upperLeft]].X == pts[currentIndices[i]].X &&
+				pts[currentIndices[upperLeft]].Y > pts[currentIndices[i]].Y {
+				upperLeft = i
+			}
 		}
-		if idx != -1 {
-			currentIndices = append(currentIndices[:idx], currentIndices[idx+1:]...)
+		if idxToRemove != -1 {
+			currentIndices = append(currentIndices[:idxToRemove], currentIndices[idxToRemove+1:]...)
 			continue
 		}
 
-		idx = -1
+		clockwise := cs[upperLeft] < 0
+
+		idx := -1
 	index:
 		for i := range currentIndices {
 			i0, i1, i2 := adjacentIndices(currentIndices, i)
@@ -117,6 +110,10 @@ dup:
 			}
 			for j := range currentIndices {
 				if l := len(currentIndices); j == (i+l-1)%l || j == i || j == (i+1)%l {
+					continue
+				}
+				jj := currentIndices[j]
+				if pts[i0] == pts[jj] || pts[i1] == pts[jj] || pts[i2] == pts[jj] {
 					continue
 				}
 				if InTriangle(pts[currentIndices[j]], pt0, pt1, pt2) {
