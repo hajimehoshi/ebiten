@@ -44,8 +44,21 @@ func Triangulate(pts []Point) []uint16 {
 
 	var currentIndices []uint16
 
-	// Remove duplicated points
+	// Split pts into the two point groups if there are the same points.
 	for i := range pts {
+		for j := 0; j < i; j++ {
+			if pts[i] == pts[j] {
+				is0 := Triangulate(pts[j:i])
+				for idx := range is0 {
+					is0[idx] += uint16(j)
+				}
+				is1 := Triangulate(append(pts[i:], pts[:j]...))
+				for idx := range is1 {
+					is1[idx] = uint16((int(is1[idx]) + i) % len(pts))
+				}
+				return append(is0, is1...)
+			}
+		}
 		currentIndices = append(currentIndices, uint16(i))
 	}
 
@@ -61,12 +74,6 @@ func Triangulate(pts []Point) []uint16 {
 		// Determine the direction of the polygon from the upper-left point.
 		var upperLeft int
 		for i := range currentIndices {
-			next := (i + 1) % len(currentIndices)
-			if pts[currentIndices[i]] == pts[currentIndices[next]] {
-				idxToRemove = next
-				break
-			}
-
 			i0, i1, i2 := adjacentIndices(currentIndices, i)
 			pt0 := pts[i0]
 			pt1 := pts[i1]
@@ -110,10 +117,6 @@ func Triangulate(pts []Point) []uint16 {
 			}
 			for j := range currentIndices {
 				if l := len(currentIndices); j == (i+l-1)%l || j == i || j == (i+1)%l {
-					continue
-				}
-				jj := currentIndices[j]
-				if pts[i0] == pts[jj] || pts[i1] == pts[jj] || pts[i2] == pts[jj] {
 					continue
 				}
 				if InTriangle(pts[currentIndices[j]], pt0, pt1, pt2) {
