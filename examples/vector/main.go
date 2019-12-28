@@ -17,10 +17,13 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/vector"
 )
 
@@ -95,7 +98,7 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.LineTo(320, 55)
 	path.LineTo(290, 20)
 
-	path.Fill(screen, color.White)
+	path.Fill(screen, color.RGBA{0xdb, 0x56, 0x20, 0xff})
 }
 
 func drawEbitenLogo(screen *ebiten.Image, x, y int) {
@@ -104,6 +107,7 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int) {
 	var path vector.Path
 	xf, yf := float32(x), float32(y)
 
+	// TODO: Add curves
 	path.MoveTo(xf, yf+4*unit)
 	path.LineTo(xf, yf+6*unit)
 	path.LineTo(xf+2*unit, yf+6*unit)
@@ -126,6 +130,38 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int) {
 	path.Fill(screen, color.RGBA{0xdb, 0x56, 0x20, 0xff})
 }
 
+func maxCounter(index int) int {
+	return 128 + (17*index+32)%64
+}
+
+func drawWave(screen *ebiten.Image, counter int) {
+	var path vector.Path
+
+	const npoints = 8
+	indexToPoint := func(i int, counter int) (float32, float32) {
+		x, y := float32(i*screenWidth/(npoints-1)), float32(screenHeight/2)
+		y += float32(30 * math.Sin(float64(counter)*2*math.Pi/float64(maxCounter(i))))
+		return x, y
+	}
+
+	for i := 0; i <= npoints; i++ {
+		if i == 0 {
+			path.MoveTo(indexToPoint(i, counter))
+			continue
+		}
+		cpx0, cpy0 := indexToPoint(i-1, counter)
+		x, y := indexToPoint(i, counter)
+		cpx1, cpy1 := x, y
+		cpx0 += 30
+		cpx1 -= 30
+		path.BezierCurveTo(cpx0, cpy0, cpx1, cpy1, x, y)
+	}
+	path.LineTo(screenWidth, screenHeight)
+	path.LineTo(0, screenHeight)
+
+	path.Fill(screen, color.RGBA{0x33, 0x66, 0xff, 0xff})
+}
+
 var counter = 0
 
 func update(screen *ebiten.Image) error {
@@ -134,8 +170,12 @@ func update(screen *ebiten.Image) error {
 		return nil
 	}
 
+	screen.Fill(color.White)
 	drawEbitenText(screen)
-	drawEbitenLogo(screen, 20, 80)
+	drawEbitenLogo(screen, 20, 90)
+	drawWave(screen, counter)
+
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 	return nil
 }
 

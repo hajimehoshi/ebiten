@@ -61,9 +61,23 @@ func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
 	for num*num < dist {
 		num *= 2
 	}
-	for t := float32(0.0); t <= 1; t += 1.0 / 128.0 {
-		xf := t*t*x + 2*t*(1-t)*cpx + (1-t)*(1-t)*c.X
-		yf := t*t*y + 2*t*(1-t)*cpy + (1-t)*(1-t)*c.Y
+	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
+		xf := (1-t)*(1-t)*c.X + 2*t*(1-t)*cpx + t*t*x
+		yf := (1-t)*(1-t)*c.Y + 2*t*(1-t)*cpy + t*t*y
+		p.LineTo(xf, yf)
+	}
+}
+
+func (p *Path) BezierCurveTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
+	c := p.cur
+	dist := float64((x-c.X)*(x-c.X) + (y-c.Y)*(y-c.Y))
+	num := 1.0
+	for num*num < dist {
+		num *= 2
+	}
+	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
+		xf := (1-t)*(1-t)*(1-t)*c.X + 3*(1-t)*(1-t)*t*cp0x + 3*(1-t)*t*t*cp1x + t*t*t*x
+		yf := (1-t)*(1-t)*(1-t)*c.Y + 3*(1-t)*(1-t)*t*cp0y + 3*(1-t)*t*t*cp1y + t*t*t*y
 		p.LineTo(xf, yf)
 	}
 }
