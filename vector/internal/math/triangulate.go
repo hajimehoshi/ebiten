@@ -18,12 +18,12 @@ import (
 	"fmt"
 )
 
-func cross(v0, v1 Vector) float32 {
-	return v0.X*v1.Y - v0.Y*v1.X
+func cross(v0x, v0y, v1x, v1y float32) float32 {
+	return v0x*v1y - v0y*v1x
 }
 
 func triangleCross(pt0, pt1, pt2 Point) float32 {
-	return cross(Vector{pt1.X - pt0.X, pt1.Y - pt0.Y}, Vector{pt2.X - pt1.X, pt2.Y - pt1.Y})
+	return cross(pt1.X-pt0.X, pt1.Y-pt0.Y, pt2.X-pt1.X, pt2.Y-pt1.Y)
 }
 
 func adjacentIndices(indices []uint16, idx int) (uint16, uint16, uint16) {
@@ -43,9 +43,9 @@ func InTriangle(pt, pt0, pt1, pt2 Point) bool {
 	if pt.Y >= pt0.Y && pt.Y >= pt1.Y && pt.Y >= pt2.Y {
 		return false
 	}
-	c0 := cross(Vector{pt.X - pt0.X, pt.Y - pt0.Y}, Vector{pt1.X - pt0.X, pt1.Y - pt0.Y})
-	c1 := cross(Vector{pt.X - pt1.X, pt.Y - pt1.Y}, Vector{pt2.X - pt1.X, pt2.Y - pt1.Y})
-	c2 := cross(Vector{pt.X - pt2.X, pt.Y - pt2.Y}, Vector{pt0.X - pt2.X, pt0.Y - pt2.Y})
+	c0 := cross(pt.X-pt0.X, pt.Y-pt0.Y, pt1.X-pt0.X, pt1.Y-pt0.Y)
+	c1 := cross(pt.X-pt1.X, pt.Y-pt1.Y, pt2.X-pt1.X, pt2.Y-pt1.Y)
+	c2 := cross(pt.X-pt2.X, pt.Y-pt2.Y, pt0.X-pt2.X, pt0.Y-pt2.Y)
 	return (c0 <= 0 && c1 <= 0 && c2 <= 0) || (c0 >= 0 && c1 >= 0 && c2 >= 0)
 }
 

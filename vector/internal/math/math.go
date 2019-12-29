@@ -24,8 +24,3 @@ type Point struct {
 	X float32
 	Y float32
 }
-
-type Vector struct {
-	X float32
-	Y float32
-}
