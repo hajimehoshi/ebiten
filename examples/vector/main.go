@@ -175,7 +175,7 @@ func update(screen *ebiten.Image) error {
 	drawEbitenLogo(screen, 20, 90)
 	drawWave(screen, counter)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()))
 	return nil
 }
 
