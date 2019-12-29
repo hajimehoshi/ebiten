@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package math_test
+package triangulate_test
 
 import (
 	"reflect"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten/vector/internal/math"
+	. "github.com/hajimehoshi/ebiten/vector/internal/triangulate"
 )
 
 func TestIsInTriangle(t *testing.T) {
