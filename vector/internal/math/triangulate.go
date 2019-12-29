@@ -127,11 +127,11 @@ func Triangulate(pts []Point) []uint16 {
 			pt0 := pts[i0]
 			pt1 := pts[i1]
 			pt2 := pts[i2]
-			for j := range currentIndices {
-				if l := len(currentIndices); j == (i+l-1)%l || j == i || j == (i+1)%l {
+			for _, j := range currentIndices {
+				if j == i0 || j == i1 || j == i2 {
 					continue
 				}
-				if InTriangle(pts[currentIndices[j]], pt0, pt1, pt2) {
+				if InTriangle(pts[j], pt0, pt1, pt2) {
 					// If the triangle includes another point, the triangle is not an ear.
 					continue index
 				}
