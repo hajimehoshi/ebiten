@@ -114,11 +114,6 @@ func Triangulate(pts []Point) []uint16 {
 		idx := -1
 	index:
 		for i := range currentIndices {
-			i0, i1, i2 := adjacentIndices(currentIndices, i)
-			pt0 := pts[i0]
-			pt1 := pts[i1]
-			pt2 := pts[i2]
-
 			c := cs[i]
 			if c == 0 {
 				panic("math: cross value must not be 0")
@@ -127,6 +122,11 @@ func Triangulate(pts []Point) []uint16 {
 				// The angle is more than 180 degrees. This is not an ear.
 				continue
 			}
+
+			i0, i1, i2 := adjacentIndices(currentIndices, i)
+			pt0 := pts[i0]
+			pt1 := pts[i1]
+			pt2 := pts[i2]
 			for j := range currentIndices {
 				if l := len(currentIndices); j == (i+l-1)%l || j == i || j == (i+1)%l {
 					continue
