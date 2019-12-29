@@ -15,6 +15,7 @@
 package triangulate_test
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
@@ -300,5 +301,28 @@ func TestTriangulate(t *testing.T) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("Triangulate(%v): got: %v, want: %v", tc.In, got, want)
 		}
+	}
+}
+
+var benchmarkPath []Point
+
+func init() {
+	const (
+		w = 640
+		h = 480
+	)
+	var p []Point
+	for i := 0; i < w; i++ {
+		x := float32(i)
+		y := h/2 + 80*float32(math.Sin(2*math.Pi*float64(i)/40))
+		p = append(p, Point{X: x, Y: y})
+	}
+	p = append(p, Point{w, h}, Point{0, h})
+	benchmarkPath = p
+}
+
+func BenchmarkTriangulate(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		Triangulate(benchmarkPath)
 	}
 }
