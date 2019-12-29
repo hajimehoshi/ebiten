@@ -229,14 +229,23 @@ func (c *uiContext) offsets() (float64, float64) {
 }
 
 func (c *uiContext) Update(afterFrameUpdate func()) error {
-	updateCount := clock.Update(MaxTPS())
-
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
+	if err := c.update(afterFrameUpdate); err != nil {
+		return err
+	}
+	if err := buffered.EndFrame(); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (c *uiContext) update(afterFrameUpdate func()) error {
+	updateCount := clock.Update(MaxTPS())
 	for i := 0; i < updateCount; i++ {
 		c.updateOffscreen()
 
@@ -253,6 +262,11 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 		}
 		uiDriver().Input().ResetForFrame()
 		afterFrameUpdate()
+	}
+
+	// c.screen might be nil when updateCount is 0 in the initial state (#1039).
+	if c.screen == nil {
+		return nil
 	}
 
 	// This clear is needed for fullscreen mode or some mobile platforms (#622).
@@ -285,10 +299,6 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 		op.Filter = FilterLinear
 	}
 	_ = c.screen.DrawImage(c.offscreen, op)
-
-	if err := buffered.EndFrame(); err != nil {
-		return err
-	}
 	return nil
 }
 
