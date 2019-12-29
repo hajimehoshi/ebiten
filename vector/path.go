@@ -19,9 +19,10 @@ package vector
 
 import (
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/vector/internal/math"
+	vmath "github.com/hajimehoshi/ebiten/vector/internal/math"
 )
 
 var emptyImage *ebiten.Image
@@ -33,14 +34,14 @@ func init() {
 
 // Path represents a collection of path segments.
 type Path struct {
-	segs [][]math.Point
-	cur  math.Point
+	segs [][]vmath.Point
+	cur  vmath.Point
 }
 
 // MoveTo skips the current position of the path to the given position (x, y) without adding any strokes.
 func (p *Path) MoveTo(x, y float32) {
-	p.cur = math.Point{X: x, Y: y}
-	p.segs = append(p.segs, []math.Point{p.cur})
+	p.cur = vmath.Point{X: x, Y: y}
+	p.segs = append(p.segs, []vmath.Point{p.cur})
 }
 
 // LineTo adds a line segument to the path, which starts from the current position and ends to the given position (x, y).
@@ -48,10 +49,10 @@ func (p *Path) MoveTo(x, y float32) {
 // LineTo updates the current position to (x, y).
 func (p *Path) LineTo(x, y float32) {
 	if len(p.segs) == 0 {
-		p.segs = append(p.segs, []math.Point{p.cur})
+		p.segs = append(p.segs, []vmath.Point{p.cur})
 	}
-	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], math.Point{X: x, Y: y})
-	p.cur = math.Point{X: x, Y: y}
+	p.segs[len(p.segs)-1] = append(p.segs[len(p.segs)-1], vmath.Point{X: x, Y: y})
+	p.cur = vmath.Point{X: x, Y: y}
 }
 
 func nseg(x0, y0, x1, y1 float32) int {
@@ -68,11 +69,7 @@ func nseg(x0, y0, x1, y1 float32) int {
 		dist = disty
 	}
 
-	num := 1
-	for float32(num) < dist {
-		num *= 2
-	}
-	return num
+	return int(math.Ceil(float64(dist)))
 }
 
 func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
@@ -122,7 +119,7 @@ func (p *Path) Fill(dst *ebiten.Image, clr color.Color) {
 				ColorA: af,
 			})
 		}
-		for _, idx := range math.Triangulate(seg) {
+		for _, idx := range vmath.Triangulate(seg) {
 			indices = append(indices, idx+base)
 		}
 		base += uint16(len(seg))
