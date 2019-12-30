@@ -39,6 +39,10 @@ func (s *pboState) mapPBO(img *Image) {
 	if img.pbo == *new(buffer) {
 		img.pbo = img.driver.context.newPixelBufferObject(w, h)
 	}
+	if img.pbo == *new(buffer) {
+		panic("opengl: newPixelBufferObject failed")
+	}
+
 	s.image = img
 	s.mappedPBO = img.driver.context.mapPixelBuffer(img.pbo, img.textureNative)
 
