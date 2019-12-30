@@ -72,7 +72,7 @@ func nseg(x0, y0, x1, y1 float32) int {
 	return int(math.Ceil(float64(dist)))
 }
 
-func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
+func (p *Path) QuadTo(cpx, cpy, x, y float32) {
 	c := p.cur
 	num := nseg(c.X, c.Y, x, y)
 	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {
@@ -82,7 +82,7 @@ func (p *Path) QuadraticCurveTo(cpx, cpy, x, y float32) {
 	}
 }
 
-func (p *Path) BezierCurveTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
+func (p *Path) CubicTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
 	c := p.cur
 	num := nseg(c.X, c.Y, x, y)
 	for t := float32(0.0); t <= 1; t += 1.0 / float32(num) {

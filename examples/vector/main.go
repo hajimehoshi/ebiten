@@ -53,8 +53,8 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.MoveTo(80, 20)
 	path.LineTo(80, 70)
 	path.LineTo(100, 70)
-	path.QuadraticCurveTo(150, 57.5, 100, 45)
-	path.QuadraticCurveTo(150, 32.5, 100, 20)
+	path.QuadTo(150, 57.5, 100, 45)
+	path.QuadTo(150, 32.5, 100, 20)
 
 	// I
 	path.MoveTo(140, 20)
@@ -154,7 +154,7 @@ func drawWave(screen *ebiten.Image, counter int) {
 		cpx1, cpy1 := x, y
 		cpx0 += 30
 		cpx1 -= 30
-		path.BezierCurveTo(cpx0, cpy0, cpx1, cpy1, x, y)
+		path.CubicTo(cpx0, cpy0, cpx1, cpy1, x, y)
 	}
 	path.LineTo(screenWidth, screenHeight)
 	path.LineTo(0, screenHeight)
