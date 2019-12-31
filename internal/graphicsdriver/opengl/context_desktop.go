@@ -548,22 +548,19 @@ func (c *context) newPixelBufferObject(width, height int) buffer {
 	return bf
 }
 
-func (c *context) mapPixelBuffer(buffer buffer) uintptr {
-	var ptr uintptr
-	_ = c.t.Call(func() error {
-		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-		// Even though the buffer is partly updated, GL_WRITE_ONLY is fine.
-		// https://stackoverflow.com/questions/30248594/write-only-glmapbuffer-what-if-i-dont-write-it-all
-		ptr = gl.MapBuffer(gl.PIXEL_UNPACK_BUFFER, gl.WRITE_ONLY)
-		return nil
-	})
-	return ptr
-}
-
-func (c *context) unmapPixelBuffer(buffer buffer, t textureNative, width, height int) {
+func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
 	c.bindTexture(t)
 	_ = c.t.Call(func() error {
-		gl.UnmapBuffer(gl.PIXEL_UNPACK_BUFFER)
+		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
+
+		stride := 4 * width
+		for _, a := range args {
+			offset := 4 * (a.Y*width + a.X)
+			for j := 0; j < a.Height; j++ {
+				gl.BufferSubData(gl.PIXEL_UNPACK_BUFFER, offset+stride*j, 4*a.Width, gl.Ptr(a.Pixels[4*a.Width*j:4*a.Width*(j+1)]))
+			}
+		}
+
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
 		gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
 		return nil

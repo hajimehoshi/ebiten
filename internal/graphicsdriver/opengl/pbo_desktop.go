@@ -20,9 +20,6 @@
 package opengl
 
 import (
-	"reflect"
-	"unsafe"
-
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
@@ -37,23 +34,5 @@ func drawPixelsWithPBO(img *Image, args []*driver.ReplacePixelsArgs) {
 		panic("opengl: newPixelBufferObject failed")
 	}
 
-	mappedPBO := img.driver.context.mapPixelBuffer(img.pbo)
-	if mappedPBO == 0 {
-		panic("opengl: mapPixelBuffer failed")
-	}
-
-	var mapped []byte
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mapped))
-	sh.Data = mappedPBO
-	sh.Len = 4 * w * h
-	sh.Cap = 4 * w * h
-
-	for _, a := range args {
-		stride := 4 * w
-		offset := 4 * (a.Y*w + a.X)
-		for j := 0; j < a.Height; j++ {
-			copy(mapped[offset+stride*j:offset+stride*j+4*a.Width], a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
-		}
-	}
-	img.driver.context.unmapPixelBuffer(img.pbo, img.textureNative, w, h)
+	img.driver.context.replacePixelsWithPBO(img.pbo, img.textureNative, w, h, args)
 }
