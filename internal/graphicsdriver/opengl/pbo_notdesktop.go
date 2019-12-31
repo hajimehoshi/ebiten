@@ -16,20 +16,12 @@
 
 package opengl
 
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
 const canUsePBO = false
 
-type pboState struct{}
-
-var thePBOState pboState
-
-func (s *pboState) mapPBO(img *Image) {
-	panic("opengl: PBO is not available in this environment")
-}
-
-func (s *pboState) draw(pix []byte, x, y, width, height int) {
-	panic("opengl: PBO is not available in this environment")
-}
-
-func (s *pboState) unmapPBO() {
+func drawPixelsWithPBO(img *Image, args []*driver.ReplacePixelsArgs) {
 	panic("opengl: PBO is not available in this environment")
 }

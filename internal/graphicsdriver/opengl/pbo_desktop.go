@@ -22,19 +22,13 @@ package opengl
 import (
 	"reflect"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
 const canUsePBO = true
 
-type pboState struct {
-	image     *Image
-	mappedPBO uintptr
-	mapped    []byte
-}
-
-var thePBOState pboState
-
-func (s *pboState) mapPBO(img *Image) {
+func drawPixelsWithPBO(img *Image, args []*driver.ReplacePixelsArgs) {
 	w, h := img.width, img.height
 	if img.pbo == *new(buffer) {
 		img.pbo = img.driver.context.newPixelBufferObject(w, h)
@@ -43,35 +37,23 @@ func (s *pboState) mapPBO(img *Image) {
 		panic("opengl: newPixelBufferObject failed")
 	}
 
-	s.image = img
-	s.mappedPBO = img.driver.context.mapPixelBuffer(img.pbo)
-
-	if s.mappedPBO == 0 {
+	mappedPBO := img.driver.context.mapPixelBuffer(img.pbo)
+	if mappedPBO == 0 {
 		panic("opengl: mapPixelBuffer failed")
 	}
 
 	var mapped []byte
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&mapped))
-	sh.Data = s.mappedPBO
+	sh.Data = mappedPBO
 	sh.Len = 4 * w * h
 	sh.Cap = 4 * w * h
-	s.mapped = mapped
-}
 
-func (s *pboState) draw(pix []byte, x, y, width, height int) {
-	w := s.image.width
-	stride := 4 * w
-	offset := 4 * (y*w + x)
-	for j := 0; j < height; j++ {
-		copy(s.mapped[offset+stride*j:offset+stride*j+4*width], pix[4*width*j:4*width*(j+1)])
+	for _, a := range args {
+		stride := 4 * w
+		offset := 4 * (a.Y*w + a.X)
+		for j := 0; j < a.Height; j++ {
+			copy(mapped[offset+stride*j:offset+stride*j+4*a.Width], a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
+		}
 	}
-}
-
-func (s *pboState) unmapPBO() {
-	i := s.image
-	i.driver.context.unmapPixelBuffer(i.pbo, i.textureNative, i.width, i.height)
-
-	s.image = nil
-	s.mappedPBO = 0
-	s.mapped = nil
+	img.driver.context.unmapPixelBuffer(img.pbo, img.textureNative, w, h)
 }

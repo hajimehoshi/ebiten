@@ -112,11 +112,7 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 		return
 	}
 
-	thePBOState.mapPBO(i)
-	for _, a := range args {
-		thePBOState.draw(a.Pixels, a.X, a.Y, a.Width, a.Height)
-	}
-	thePBOState.unmapPBO()
+	drawPixelsWithPBO(i, args)
 }
 
 func (i *Image) SetAsSource() {
