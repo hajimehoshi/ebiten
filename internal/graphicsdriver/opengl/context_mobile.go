@@ -177,12 +177,6 @@ func (c *context) isTexture(t textureNative) bool {
 	return gl.IsTexture(mgl.Texture(t))
 }
 
-func (c *context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
-	c.bindTexture(t)
-	gl := c.gl
-	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, x, y, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, p)
-}
-
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	gl := c.gl
 	f := gl.CreateFramebuffer()
@@ -392,4 +386,46 @@ func (c *context) flush() {
 
 func (c *context) needsRestoring() bool {
 	return true
+}
+
+func (c *context) canUsePBO() bool {
+	// The implementation for PBO is almost done, but not finished yet due to Go mobile interface.
+	// See golang/go#36355.
+	return false
+}
+
+func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	c.bindTexture(t)
+	gl := c.gl
+	for _, a := range args {
+		gl.TexSubImage2D(mgl.TEXTURE_2D, 0, a.X, a.Y, a.Width, a.Height, mgl.RGBA, mgl.UNSIGNED_BYTE, a.Pixels)
+	}
+}
+
+func (c *context) newPixelBufferObject(width, height int) buffer {
+	gl := c.gl
+	b := gl.CreateBuffer()
+	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, b)
+	gl.BufferInit(mgl.PIXEL_UNPACK_BUFFER, 4*width*height, mgl.STREAM_DRAW)
+	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
+	return buffer(b)
+}
+
+func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	c.bindTexture(t)
+	gl := c.gl
+	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer(buffer))
+
+	stride := 4 * width
+	for _, a := range args {
+		offset := 4 * (a.Y*width + a.X)
+		for j := 0; j < a.Height; j++ {
+			gl.BufferSubData(mgl.PIXEL_UNPACK_BUFFER, offset+stride*j, a.Pixels[4*a.Width*j:4*a.Width*(j+1)])
+		}
+	}
+
+	// This implementation is still wrong since TexSubImage2D cannot take an offset integer.
+	// See golang/go#36355.
+	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
+	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
 }

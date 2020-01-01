@@ -72,47 +72,102 @@ func getProgramID(p program) programID {
 }
 
 var (
+	vertexShader       shaderType
+	fragmentShader     shaderType
+	arrayBuffer        bufferType
+	elementArrayBuffer bufferType
+	dynamicDraw        bufferUsage
+	streamDraw         bufferUsage
+	pixelUnpackBuffer  bufferType
+	short              dataType
+	float              dataType
+
+	zero             operation
+	one              operation
+	srcAlpha         operation
+	dstAlpha         operation
+	oneMinusSrcAlpha operation
+	oneMinusDstAlpha operation
+
+	blend               js.Value
+	clampToEdge         js.Value
+	compileStatus       js.Value
+	colorAttachment0    js.Value
+	framebuffer_        js.Value
+	framebufferBinding  js.Value
+	framebufferComplete js.Value
+	highFloat           js.Value
+	linkStatus          js.Value
+	maxTextureSize      js.Value
+	nearest             js.Value
+	noError             js.Value
+	rgba                js.Value
+	texture2d           js.Value
+	textureMagFilter    js.Value
+	textureMinFilter    js.Value
+	textureWrapS        js.Value
+	textureWrapT        js.Value
+	triangles           js.Value
+	unpackAlignment     js.Value
+	unsignedByte        js.Value
+	unsignedShort       js.Value
+
+	isWebGL2Available bool
+)
+
+func init() {
 	// Accessing the prototype is rquired on Safari.
-	contextPrototype = js.Global().Get("WebGLRenderingContext").Get("prototype")
+	var contextPrototype js.Value
+	if !jsutil.Equal(js.Global().Get("WebGL2RenderingContext"), js.Undefined()) {
+		contextPrototype = js.Global().Get("WebGL2RenderingContext").Get("prototype")
+		isWebGL2Available = true
+	} else {
+		contextPrototype = js.Global().Get("WebGLRenderingContext").Get("prototype")
+	}
 
-	vertexShader       = shaderType(contextPrototype.Get("VERTEX_SHADER").Int())
-	fragmentShader     = shaderType(contextPrototype.Get("FRAGMENT_SHADER").Int())
-	arrayBuffer        = bufferType(contextPrototype.Get("ARRAY_BUFFER").Int())
+	vertexShader = shaderType(contextPrototype.Get("VERTEX_SHADER").Int())
+	fragmentShader = shaderType(contextPrototype.Get("FRAGMENT_SHADER").Int())
+	arrayBuffer = bufferType(contextPrototype.Get("ARRAY_BUFFER").Int())
 	elementArrayBuffer = bufferType(contextPrototype.Get("ELEMENT_ARRAY_BUFFER").Int())
-	dynamicDraw        = bufferUsage(contextPrototype.Get("DYNAMIC_DRAW").Int())
-	short              = dataType(contextPrototype.Get("SHORT").Int())
-	float              = dataType(contextPrototype.Get("FLOAT").Int())
+	dynamicDraw = bufferUsage(contextPrototype.Get("DYNAMIC_DRAW").Int())
+	streamDraw = bufferUsage(contextPrototype.Get("STREAM_DRAW").Int())
+	short = dataType(contextPrototype.Get("SHORT").Int())
+	float = dataType(contextPrototype.Get("FLOAT").Int())
 
-	zero             = operation(contextPrototype.Get("ZERO").Int())
-	one              = operation(contextPrototype.Get("ONE").Int())
-	srcAlpha         = operation(contextPrototype.Get("SRC_ALPHA").Int())
-	dstAlpha         = operation(contextPrototype.Get("DST_ALPHA").Int())
+	zero = operation(contextPrototype.Get("ZERO").Int())
+	one = operation(contextPrototype.Get("ONE").Int())
+	srcAlpha = operation(contextPrototype.Get("SRC_ALPHA").Int())
+	dstAlpha = operation(contextPrototype.Get("DST_ALPHA").Int())
 	oneMinusSrcAlpha = operation(contextPrototype.Get("ONE_MINUS_SRC_ALPHA").Int())
 	oneMinusDstAlpha = operation(contextPrototype.Get("ONE_MINUS_DST_ALPHA").Int())
 
-	blend               = contextPrototype.Get("BLEND")
-	clampToEdge         = contextPrototype.Get("CLAMP_TO_EDGE")
-	compileStatus       = contextPrototype.Get("COMPILE_STATUS")
-	colorAttachment0    = contextPrototype.Get("COLOR_ATTACHMENT0")
-	framebuffer_        = contextPrototype.Get("FRAMEBUFFER")
-	framebufferBinding  = contextPrototype.Get("FRAMEBUFFER_BINDING")
+	blend = contextPrototype.Get("BLEND")
+	clampToEdge = contextPrototype.Get("CLAMP_TO_EDGE")
+	compileStatus = contextPrototype.Get("COMPILE_STATUS")
+	colorAttachment0 = contextPrototype.Get("COLOR_ATTACHMENT0")
+	framebuffer_ = contextPrototype.Get("FRAMEBUFFER")
+	framebufferBinding = contextPrototype.Get("FRAMEBUFFER_BINDING")
 	framebufferComplete = contextPrototype.Get("FRAMEBUFFER_COMPLETE")
-	highFloat           = contextPrototype.Get("HIGH_FLOAT")
-	linkStatus          = contextPrototype.Get("LINK_STATUS")
-	maxTextureSize      = contextPrototype.Get("MAX_TEXTURE_SIZE")
-	nearest             = contextPrototype.Get("NEAREST")
-	noError             = contextPrototype.Get("NO_ERROR")
-	rgba                = contextPrototype.Get("RGBA")
-	texture2d           = contextPrototype.Get("TEXTURE_2D")
-	textureMagFilter    = contextPrototype.Get("TEXTURE_MAG_FILTER")
-	textureMinFilter    = contextPrototype.Get("TEXTURE_MIN_FILTER")
-	textureWrapS        = contextPrototype.Get("TEXTURE_WRAP_S")
-	textureWrapT        = contextPrototype.Get("TEXTURE_WRAP_T")
-	triangles           = contextPrototype.Get("TRIANGLES")
-	unpackAlignment     = contextPrototype.Get("UNPACK_ALIGNMENT")
-	unsignedByte        = contextPrototype.Get("UNSIGNED_BYTE")
-	unsignedShort       = contextPrototype.Get("UNSIGNED_SHORT")
-)
+	highFloat = contextPrototype.Get("HIGH_FLOAT")
+	linkStatus = contextPrototype.Get("LINK_STATUS")
+	maxTextureSize = contextPrototype.Get("MAX_TEXTURE_SIZE")
+	nearest = contextPrototype.Get("NEAREST")
+	noError = contextPrototype.Get("NO_ERROR")
+	rgba = contextPrototype.Get("RGBA")
+	texture2d = contextPrototype.Get("TEXTURE_2D")
+	textureMagFilter = contextPrototype.Get("TEXTURE_MAG_FILTER")
+	textureMinFilter = contextPrototype.Get("TEXTURE_MIN_FILTER")
+	textureWrapS = contextPrototype.Get("TEXTURE_WRAP_S")
+	textureWrapT = contextPrototype.Get("TEXTURE_WRAP_T")
+	triangles = contextPrototype.Get("TRIANGLES")
+	unpackAlignment = contextPrototype.Get("UNPACK_ALIGNMENT")
+	unsignedByte = contextPrototype.Get("UNSIGNED_BYTE")
+	unsignedShort = contextPrototype.Get("UNSIGNED_SHORT")
+
+	if isWebGL2Available {
+		pixelUnpackBuffer = bufferType(contextPrototype.Get("PIXEL_UNPACK_BUFFER").Int())
+	}
+}
 
 type contextImpl struct {
 	gl            js.Value
@@ -124,19 +179,22 @@ func (c *context) ensureGL() {
 		return
 	}
 
-	if jsutil.Equal(js.Global().Get("WebGLRenderingContext"), js.Undefined()) {
-		panic("opengl: WebGL is not supported")
-	}
 	// TODO: Define id?
 	canvas := js.Global().Get("document").Call("querySelector", "canvas")
 	attr := js.Global().Get("Object").New()
 	attr.Set("alpha", true)
 	attr.Set("premultipliedAlpha", true)
-	gl := canvas.Call("getContext", "webgl", attr)
-	if jsutil.Equal(gl, js.Null()) {
-		gl = canvas.Call("getContext", "experimental-webgl", attr)
+
+	var gl js.Value
+	if isWebGL2Available {
+		gl = canvas.Call("getContext", "webgl2", attr)
+	} else {
+		gl = canvas.Call("getContext", "webgl", attr)
 		if jsutil.Equal(gl, js.Null()) {
-			panic("opengl: getContext failed")
+			gl = canvas.Call("getContext", "experimental-webgl", attr)
+			if jsutil.Equal(gl, js.Null()) {
+				panic("opengl: getContext failed")
+			}
 		}
 	}
 
@@ -243,18 +301,6 @@ func (c *context) isTexture(t textureNative) bool {
 	c.ensureGL()
 	gl := c.gl
 	return gl.Call("isTexture", js.Value(t)).Bool()
-}
-
-func (c *context) texSubImage2D(t textureNative, pixels []byte, x, y, width, height int) {
-	c.bindTexture(t)
-	c.ensureGL()
-	gl := c.gl
-	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-	//                    GLsizei width, GLsizei height,
-	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
-	arr := jsutil.TemporaryUint8Array(len(pixels))
-	jsutil.CopySliceToJS(arr, pixels)
-	gl.Call("texSubImage2D", texture2d, 0, x, y, width, height, rgba, unsignedByte, arr)
 }
 
 func (c *context) newFramebuffer(t textureNative) (framebufferNative, error) {
@@ -493,4 +539,55 @@ func (c *context) flush() {
 
 func (c *context) needsRestoring() bool {
 	return !web.IsMobileBrowser()
+}
+
+func (c *context) canUsePBO() bool {
+	return isWebGL2Available
+}
+
+func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	c.ensureGL()
+	c.bindTexture(t)
+	gl := c.gl
+	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+	//                    GLsizei width, GLsizei height,
+	//                    GLenum format, GLenum type, ArrayBufferView? pixels);
+	for _, a := range args {
+		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
+		jsutil.CopySliceToJS(arr, a.Pixels)
+		gl.Call("texSubImage2D", texture2d, 0, a.X, a.Y, a.Width, a.Height, rgba, unsignedByte, arr)
+	}
+}
+
+func (c *context) newPixelBufferObject(width, height int) buffer {
+	c.ensureGL()
+	gl := c.gl
+	b := gl.Call("createBuffer")
+	gl.Call("bindBuffer", int(pixelUnpackBuffer), js.Value(b))
+	gl.Call("bufferData", int(pixelUnpackBuffer), 4*width*height, int(streamDraw))
+	gl.Call("bindBuffer", int(pixelUnpackBuffer), nil)
+	return buffer(b)
+}
+
+func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	c.ensureGL()
+	c.bindTexture(t)
+	gl := c.gl
+	gl.Call("bindBuffer", int(pixelUnpackBuffer), js.Value(buffer))
+
+	stride := 4 * width
+	for _, a := range args {
+		arr := jsutil.TemporaryUint8Array(len(a.Pixels))
+		jsutil.CopySliceToJS(arr, a.Pixels)
+		offset := 4 * (a.Y*width + a.X)
+		for j := 0; j < a.Height; j++ {
+			gl.Call("bufferSubData", int(pixelUnpackBuffer), offset+stride*j, arr, 4*a.Width*j, 4*a.Width)
+		}
+	}
+
+	// void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+	//                    GLsizei width, GLsizei height,
+	//                    GLenum format, GLenum type, GLintptr offset);
+	gl.Call("texSubImage2D", texture2d, 0, 0, 0, width, height, rgba, unsignedByte, 0)
+	gl.Call("bindBuffer", int(pixelUnpackBuffer), nil)
 }

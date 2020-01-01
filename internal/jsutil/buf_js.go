@@ -18,7 +18,7 @@ import (
 	"syscall/js"
 )
 
-// temporaryBuffer is a temporary buffer used at gl.readPixels.
+// temporaryBuffer is a temporary buffer used at gl.readPixels or gl.texSubImage2D.
 // The read data is converted to Go's byte slice as soon as possible.
 // To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
 var temporaryBuffer = js.Global().Get("ArrayBuffer").New(16)

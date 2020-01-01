@@ -105,14 +105,19 @@ func (i *Image) ReplacePixels(args []*driver.ReplacePixelsArgs) {
 	}
 	i.driver.drawCalled = false
 
-	if !canUsePBO {
-		for _, a := range args {
-			i.driver.context.texSubImage2D(i.textureNative, a.Pixels, a.X, a.Y, a.Width, a.Height)
-		}
+	w, h := i.width, i.height
+	if !i.driver.context.canUsePBO() {
+		i.driver.context.texSubImage2D(i.textureNative, w, h, args)
 		return
 	}
+	if i.pbo.equal(*new(buffer)) {
+		i.pbo = i.driver.context.newPixelBufferObject(w, h)
+	}
+	if i.pbo.equal(*new(buffer)) {
+		panic("opengl: newPixelBufferObject failed")
+	}
 
-	drawPixelsWithPBO(i, args)
+	i.driver.context.replacePixelsWithPBO(i.pbo, i.textureNative, w, h, args)
 }
 
 func (i *Image) SetAsSource() {

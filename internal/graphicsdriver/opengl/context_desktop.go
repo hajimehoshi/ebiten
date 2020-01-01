@@ -228,14 +228,6 @@ func (c *context) isTexture(t textureNative) bool {
 	return r
 }
 
-func (c *context) texSubImage2D(t textureNative, p []byte, x, y, width, height int) {
-	c.bindTexture(t)
-	_ = c.t.Call(func() error {
-		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(x), int32(y), int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(p))
-		return nil
-	})
-}
-
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var framebuffer framebufferNative
 	var f uint32
@@ -532,6 +524,14 @@ func (c *context) flush() {
 
 func (c *context) needsRestoring() bool {
 	return false
+}
+
+func (c *context) canUsePBO() bool {
+	return true
+}
+
+func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	panic("opengl: texSubImage2D is not implemented on this environment")
 }
 
 func (c *context) newPixelBufferObject(width, height int) buffer {
