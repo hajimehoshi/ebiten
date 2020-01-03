@@ -72,7 +72,7 @@ func (u *UserInterface) Update() {
 		}
 	}()
 
-	if u.graphics.IsGL() {
+	if u.Graphics().IsGL() {
 		if u.glWorker == nil {
 			panic("mobile: glWorker must be initialized but not")
 		}
@@ -105,8 +105,7 @@ type UserInterface struct {
 	gbuildHeightPx  int
 	setGBuildSizeCh chan struct{}
 
-	context  driver.UIContext
-	graphics driver.Graphics
+	context driver.UIContext
 
 	input Input
 
@@ -182,12 +181,12 @@ func (u *UserInterface) appMain(a app.App) {
 	}
 }
 
-func (u *UserInterface) Run(context driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(context driver.UIContext) error {
 	// TODO: Remove width/height/scale arguments. They are not used from gomobile-build.
 
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(16, 16, 1, context, graphics, true); err != nil {
+		if err := u.run(16, 16, 1, context, true); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -196,12 +195,12 @@ func (u *UserInterface) Run(context driver.UIContext, graphics driver.Graphics) 
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
+func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext) <-chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
 		// title is ignored?
-		if err := u.run(width, height, scale, context, graphics, false); err != nil {
+		if err := u.run(width, height, scale, context, false); err != nil {
 			ch <- err
 		}
 	}()
@@ -209,7 +208,7 @@ func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, tit
 	return ch
 }
 
-func (u *UserInterface) run(width, height int, scale float64, context driver.UIContext, graphics driver.Graphics, mainloop bool) (err error) {
+func (u *UserInterface) run(width, height int, scale float64, context driver.UIContext, mainloop bool) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -226,20 +225,19 @@ func (u *UserInterface) run(width, height int, scale float64, context driver.UIC
 	u.scale = scale
 	u.sizeChanged = true
 	u.context = context
-	u.graphics = graphics
 	u.m.Unlock()
 
-	if graphics.IsGL() {
+	if u.Graphics().IsGL() {
 		var ctx gl.Context
 		if mainloop {
 			ctx = <-glContextCh
 		} else {
 			ctx, u.glWorker = gl.NewContext()
 		}
-		graphics.(*opengl.Driver).SetMobileGLContext(ctx)
+		u.Graphics().(*opengl.Driver).SetMobileGLContext(ctx)
 	} else {
 		u.t = thread.New()
-		graphics.SetThread(u.t)
+		u.Graphics().SetThread(u.t)
 	}
 
 	// If gomobile-build is used, wait for the outside size fixed.

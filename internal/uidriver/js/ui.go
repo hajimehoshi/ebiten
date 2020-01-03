@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/internal/devicescale"
 	"github.com/hajimehoshi/ebiten/internal/driver"
+	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
 	"github.com/hajimehoshi/ebiten/internal/jsutil"
 )
@@ -371,7 +372,7 @@ func init() {
 	}))
 }
 
-func (u *UserInterface) Run(context driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(context driver.UIContext) error {
 	canvas.Call("focus")
 	u.running = true
 	ch := u.loop(context)
@@ -392,7 +393,7 @@ func (u *UserInterface) Run(context driver.UIContext, graphics driver.Graphics) 
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
+func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext) <-chan error {
 	panic("js: RunWithoutMainLoop is not implemented")
 }
 
@@ -433,4 +434,8 @@ func (u *UserInterface) Input() driver.Input {
 
 func (u *UserInterface) Window() driver.Window {
 	return nil
+}
+
+func (*UserInterface) Graphics() driver.Graphics {
+	return opengl.Get()
 }

@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin,ios,arm darwin,ios,arm64
+// +build ios,arm ios,arm64
 // +build !ebitengl
 
-package ebiten
+package mobile
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 )
 
-func graphicsDriver() driver.Graphics {
+func (*UserInterface) Graphics() driver.Graphics {
 	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
 		panic(fmt.Sprintf("ebiten: mtl.CreateSystemDefaultDevice failed on iOS: %v", err))
 	}

@@ -215,7 +215,7 @@ func RunGame(game Game) error {
 
 func runGame(game Game, scale float64) error {
 	theUIContext.set(game, scale)
-	if err := uiDriver().Run(theUIContext, graphicsDriver()); err != nil {
+	if err := uiDriver().Run(theUIContext); err != nil {
 		if err == driver.RegularTermination {
 			return nil
 		}
@@ -236,7 +236,7 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 		height: height,
 	}
 	theUIContext.set(game, scale)
-	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext, graphicsDriver())
+	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext)
 }
 
 // ScreenSizeInFullscreen is deprecated as of 1.11.0-alpha.

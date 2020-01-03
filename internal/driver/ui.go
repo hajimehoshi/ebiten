@@ -31,8 +31,8 @@ type UIContext interface {
 var RegularTermination = errors.New("regular termination")
 
 type UI interface {
-	Run(context UIContext, graphics Graphics) error
-	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext, graphics Graphics) <-chan error
+	Run(context UIContext) error
+	RunWithoutMainLoop(width, height int, scale float64, title string, context UIContext) <-chan error
 
 	DeviceScaleFactor() float64
 	CursorMode() CursorMode
@@ -51,6 +51,7 @@ type UI interface {
 
 	Input() Input
 	Window() Window
+	Graphics() Graphics
 }
 
 type Window interface {

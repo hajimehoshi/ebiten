@@ -28,8 +28,8 @@ import (
 )
 
 func init() {
-	shareable.SetGraphicsDriver(graphicsDriver())
-	graphicscommand.SetGraphicsDriver(graphicsDriver())
+	shareable.SetGraphicsDriver(uiDriver().Graphics())
+	graphicscommand.SetGraphicsDriver(uiDriver().Graphics())
 }
 
 type defaultGame struct {
@@ -275,7 +275,7 @@ func (c *uiContext) update(afterFrameUpdate func()) error {
 	op := &DrawImageOptions{}
 
 	s := c.screenScale()
-	switch vd := graphicsDriver().VDirection(); vd {
+	switch vd := uiDriver().Graphics().VDirection(); vd {
 	case driver.VDownward:
 		// c.screen is special: its Y axis is down to up,
 		// and the origin point is lower left.

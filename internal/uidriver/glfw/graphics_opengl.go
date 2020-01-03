@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build android darwin,ios,386 darwin,ios,amd64 freebsd js linux windows ebitengl
+// +build freebsd js linux windows ebitengl
 
-package ebiten
+package glfw
 
 import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-func graphicsDriver() driver.Graphics {
+func (*UserInterface) Graphics() driver.Graphics {
 	return opengl.Get()
 }

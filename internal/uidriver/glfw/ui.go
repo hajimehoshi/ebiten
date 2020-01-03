@@ -72,9 +72,8 @@ type UserInterface struct {
 	reqWidth  int
 	reqHeight int
 
-	graphics driver.Graphics
-	input    Input
-	iwindow  window
+	input   Input
+	iwindow window
 
 	t *thread.Thread
 	m sync.RWMutex
@@ -509,11 +508,10 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func (u *UserInterface) Run(uicontext driver.UIContext, graphics driver.Graphics) error {
+func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	// Initialize the main thread first so the thread is available at u.run (#809).
 	u.t = thread.New()
-	u.graphics = graphics
-	u.graphics.SetThread(u.t)
+	u.Graphics().SetThread(u.t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -532,7 +530,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext, graphics driver.Graphics
 	return <-ch
 }
 
-func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext, graphics driver.Graphics) <-chan error {
+func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext) <-chan error {
 	panic("glfw: RunWithoutMainLoop is not implemented")
 }
 
@@ -553,7 +551,7 @@ func (u *UserInterface) createWindow() error {
 	}
 	u.window = window
 
-	if u.graphics.IsGL() {
+	if u.Graphics().IsGL() {
 		u.window.MakeContextCurrent()
 	}
 
@@ -591,7 +589,7 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		u.window.Destroy()
 		u.window = nil
 
-		if u.graphics.IsGL() {
+		if u.Graphics().IsGL() {
 			glfw.WindowHint(glfw.ContextVersionMajor, 2)
 			glfw.WindowHint(glfw.ContextVersionMinor, 1)
 		} else {
@@ -609,7 +607,7 @@ func (u *UserInterface) run(context driver.UIContext) error {
 			transparent = glfw.True
 		}
 		glfw.WindowHint(glfw.TransparentFramebuffer, transparent)
-		u.graphics.SetTransparent(u.isInitScreenTransparent())
+		u.Graphics().SetTransparent(u.isInitScreenTransparent())
 
 		resizable := glfw.False
 		if u.isInitWindowResizable() {
@@ -652,7 +650,7 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		w = u.nativeWindow()
 		return nil
 	})
-	u.graphics.SetWindow(w)
+	u.Graphics().SetWindow(w)
 	return u.loop(context)
 }
 
@@ -807,7 +805,7 @@ func (u *UserInterface) loop(context driver.UIContext) error {
 
 // swapBuffers must be called from the main thread.
 func (u *UserInterface) swapBuffers() {
-	if u.graphics.IsGL() {
+	if u.Graphics().IsGL() {
 		u.window.SwapBuffers()
 	}
 }
@@ -844,13 +842,13 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 
 			// Swapping buffer is necesary to prevent the image lag (#1004).
 			// TODO: This might not work when vsync is disabled.
-			if u.graphics.IsGL() {
+			if u.Graphics().IsGL() {
 				glfw.PollEvents()
 				u.swapBuffers()
 			}
 		} else {
 			if u.window.GetMonitor() != nil {
-				if u.graphics.IsGL() {
+				if u.Graphics().IsGL() {
 					// When OpenGL is used, swapping buffer is enough to solve the image-lag
 					// issue (#1004). Rather, recreating window destroys GPU resources.
 					// TODO: This might not work when vsync is disabled.
@@ -929,7 +927,7 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 		u.windowWidth = width
 		u.windowHeight = height
 
-		if u.graphics.IsGL() {
+		if u.Graphics().IsGL() {
 			// SwapInterval is affected by the current monitor of the window.
 			// This needs to be called at least after SetMonitor.
 			// Without SwapInterval after SetMonitor, vsynch doesn't work (#375).
@@ -943,14 +941,14 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 				glfw.SwapInterval(0)
 			}
 		}
-		u.graphics.SetVsyncEnabled(vsync)
+		u.Graphics().SetVsyncEnabled(vsync)
 
 		u.toChangeSize = true
 		return nil
 	})
 
 	if windowRecreated {
-		u.graphics.SetWindow(u.nativeWindow())
+		u.Graphics().SetWindow(u.nativeWindow())
 	}
 }
 
