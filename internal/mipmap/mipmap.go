@@ -26,6 +26,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
+var graphicsDriver driver.Graphics
+
+func SetGraphicsDriver(graphics driver.Graphics) {
+	graphicsDriver = graphics
+}
+
 func BeginFrame() error {
 	return shareable.BeginFrame()
 }
@@ -126,8 +132,9 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom *GeoM, colo
 	if level > 6 {
 		level = 6
 	}
-	if level < -6 {
-		level = -6
+	// If tooBigScale is 4, level -10 means that the maximum scale is 4 * 2^10 = 4096. This should be enough.
+	if level < -10 {
+		level = -10
 	}
 
 	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
@@ -293,7 +300,10 @@ func (m *Mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter
 
 	// Use 'negative' mipmap to render edges correctly (#611, #907).
 	// It looks like 128 is the enlargement factor that causes edge missings to pass the test TestImageStretch.
-	const tooBigScale = 128
+	var tooBigScale float32 = 128
+	if !graphicsDriver.HasHighPrecisionFloat() {
+		tooBigScale = 4
+	}
 	if sx, sy := geomScaleSize(geom); sx >= tooBigScale || sy >= tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
 		if filter != driver.FilterNearest {
