@@ -650,7 +650,9 @@ func (u *UserInterface) run(context driver.UIContext) error {
 		w = u.nativeWindow()
 		return nil
 	})
-	u.Graphics().SetWindow(w)
+	if g, ok := u.Graphics().(interface{ SetWindow(unsafe.Pointer) }); ok {
+		g.SetWindow(w)
+	}
 	return u.loop(context)
 }
 
@@ -948,7 +950,9 @@ func (u *UserInterface) setWindowSize(width, height int, fullscreen bool, vsync 
 	})
 
 	if windowRecreated {
-		u.Graphics().SetWindow(u.nativeWindow())
+		if g, ok := u.Graphics().(interface{ SetWindow(unsafe.Pointer) }); ok {
+			g.SetWindow(u.nativeWindow())
+		}
 	}
 }
 

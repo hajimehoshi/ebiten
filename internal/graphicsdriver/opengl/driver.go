@@ -16,7 +16,6 @@ package opengl
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
 	"github.com/hajimehoshi/ebiten/internal/driver"
@@ -50,10 +49,6 @@ func (d *Driver) End() {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
 	d.context.flush()
-}
-
-func (d *Driver) SetWindow(window unsafe.Pointer) {
-	// Do nothing.
 }
 
 func (d *Driver) SetTransparent(transparent bool) {
