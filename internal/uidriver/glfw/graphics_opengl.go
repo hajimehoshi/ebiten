@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build freebsd js linux windows ebitengl
+// +build freebsd linux windows ebitengl
+// +build !js
 
 package glfw
 
