@@ -53,6 +53,7 @@ func NewWorld(width, height int, maxInitLiveCells int) *World {
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	world = NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10))
 }
 
 // init inits world with a random state.
@@ -156,7 +157,7 @@ const (
 )
 
 var (
-	world  = NewWorld(screenWidth, screenHeight, int((screenWidth*screenHeight)/10))
+	world  *World
 	pixels = make([]byte, screenWidth*screenHeight*4)
 )
 
