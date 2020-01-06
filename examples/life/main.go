@@ -157,7 +157,7 @@ const (
 )
 
 var (
-	world  = NewWorld(screenWidth, screenHeight, 0)
+	world  *World
 	pixels = make([]byte, screenWidth*screenHeight*4)
 )
 
