@@ -58,8 +58,6 @@ type levelToImage map[int]*shareable.Image
 // Mipmap is a set of shareable.Image sorted by the order of mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
-	width    int
-	height   int
 	volatile bool
 	orig     *shareable.Image
 	imgs     map[image.Rectangle]levelToImage
@@ -67,8 +65,6 @@ type Mipmap struct {
 
 func New(width, height int, volatile bool) *Mipmap {
 	return &Mipmap{
-		width:    width,
-		height:   height,
 		volatile: volatile,
 		orig:     shareable.NewImage(width, height, volatile),
 		imgs:     map[image.Rectangle]levelToImage{},
@@ -77,10 +73,8 @@ func New(width, height int, volatile bool) *Mipmap {
 
 func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 	return &Mipmap{
-		width:  width,
-		height: height,
-		orig:   shareable.NewScreenFramebufferImage(width, height),
-		imgs:   map[image.Rectangle]levelToImage{},
+		orig: shareable.NewScreenFramebufferImage(width, height),
+		imgs: map[image.Rectangle]levelToImage{},
 	}
 }
 
@@ -259,10 +253,6 @@ func sizeForLevel(origWidth, origHeight int, level int) (width, height int) {
 		}
 	}
 	return
-}
-
-func (m *Mipmap) isDisposed() bool {
-	return m.orig == nil
 }
 
 func (m *Mipmap) MarkDisposed() {
