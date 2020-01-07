@@ -15,6 +15,5 @@
 package ebiten
 
 var (
-	CopyImage               = copyImage
-	MipmapLevelForDownscale = mipmapLevelForDownscale
+	CopyImage = copyImage
 )

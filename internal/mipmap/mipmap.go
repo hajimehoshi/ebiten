@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package mipmap
 
 import (
 	"fmt"
@@ -21,67 +21,82 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/internal/affine"
-	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphics"
+	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
 
-type levelToImage map[int]*buffered.Image
+func BeginFrame() error {
+	return shareable.BeginFrame()
+}
 
-type mipmap struct {
+func EndFrame() error {
+	return shareable.EndFrame()
+}
+
+type GeoM struct {
+	A  float32
+	B  float32
+	C  float32
+	D  float32
+	Tx float32
+	Ty float32
+}
+
+func (g *GeoM) det() float32 {
+	return g.A*g.D - g.B*g.C
+}
+
+type levelToImage map[int]*shareable.Image
+
+// Mipmap is a set of shareable.Image sorted by the order of mipmap level.
+// The level 0 image is a regular image and higher-level images are used for mipmap.
+type Mipmap struct {
 	width    int
 	height   int
 	volatile bool
-	orig     *buffered.Image
+	orig     *shareable.Image
 	imgs     map[image.Rectangle]levelToImage
 }
 
-func newMipmap(width, height int, volatile bool) *mipmap {
-	return &mipmap{
+func New(width, height int, volatile bool) *Mipmap {
+	return &Mipmap{
 		width:    width,
 		height:   height,
 		volatile: volatile,
-		orig:     buffered.NewImage(width, height, volatile),
+		orig:     shareable.NewImage(width, height, volatile),
 		imgs:     map[image.Rectangle]levelToImage{},
 	}
 }
 
-func newScreenFramebufferMipmap(width, height int) *mipmap {
-	return &mipmap{
+func NewScreenFramebufferMipmap(width, height int) *Mipmap {
+	return &Mipmap{
 		width:  width,
 		height: height,
-		orig:   buffered.NewScreenFramebufferImage(width, height),
+		orig:   shareable.NewScreenFramebufferImage(width, height),
 		imgs:   map[image.Rectangle]levelToImage{},
 	}
 }
 
-func (m *mipmap) dump(name string) error {
+func (m *Mipmap) Dump(name string) error {
 	return m.orig.Dump(name)
 }
 
-func (m *mipmap) fill(clr color.RGBA) {
+func (m *Mipmap) Fill(clr color.RGBA) {
 	m.orig.Fill(clr)
 	m.disposeMipmaps()
 }
 
-func (m *mipmap) replacePixels(pix []byte) {
+func (m *Mipmap) ReplacePixels(pix []byte) {
 	m.orig.ReplacePixels(pix)
 	m.disposeMipmaps()
 }
 
-func (m *mipmap) size() (int, int) {
-	return m.width, m.height
-}
-
-func (m *mipmap) at(x, y int) (r, g, b, a byte) {
+func (m *Mipmap) At(x, y int) (r, g, b, a byte) {
 	return m.orig.At(x, y)
 }
 
-func (m *mipmap) set(x, y int, r, g, b, a byte) {
-	m.orig.Set(x, y, r, g, b, a)
-}
-
-func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
+func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom *GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
 	if det := geom.det(); det == 0 {
 		return
 	} else if math.IsNaN(float64(det)) {
@@ -130,7 +145,7 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 		panic("ebiten: Mipmap must not be used when the filter is FilterScreen")
 	}
 
-	a, b, c, d, tx, ty := geom.elements()
+	a, b, c, d, tx, ty := geom.A, geom.B, geom.C, geom.D, geom.Tx, geom.Ty
 	if level == 0 {
 		vs := quadVertices(bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y, a, b, c, d, tx, ty, cr, cg, cb, ca, screen)
 		is := graphics.QuadIndices()
@@ -149,37 +164,12 @@ func (m *mipmap) drawImage(src *mipmap, bounds image.Rectangle, geom *GeoM, colo
 	m.disposeMipmaps()
 }
 
-func (m *mipmap) drawTriangles(src *mipmap, bounds image.Rectangle, vertices []Vertex, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
-	bx0 := float32(bounds.Min.X)
-	by0 := float32(bounds.Min.Y)
-	bx1 := float32(bounds.Max.X)
-	by1 := float32(bounds.Max.Y)
-
-	// TODO: Needs boundary check optimization?
-	// See https://go101.org/article/bounds-check-elimination.html
-
-	vs := vertexSlice(len(vertices), false)
-	for i, v := range vertices {
-		vs[i*graphics.VertexFloatNum] = v.DstX
-		vs[i*graphics.VertexFloatNum+1] = v.DstY
-		vs[i*graphics.VertexFloatNum+2] = v.SrcX
-		vs[i*graphics.VertexFloatNum+3] = v.SrcY
-		vs[i*graphics.VertexFloatNum+4] = bx0
-		vs[i*graphics.VertexFloatNum+5] = by0
-		vs[i*graphics.VertexFloatNum+6] = bx1
-		vs[i*graphics.VertexFloatNum+7] = by1
-		vs[i*graphics.VertexFloatNum+8] = v.ColorR
-		vs[i*graphics.VertexFloatNum+9] = v.ColorG
-		vs[i*graphics.VertexFloatNum+10] = v.ColorB
-		vs[i*graphics.VertexFloatNum+11] = v.ColorA
-	}
-	is := make([]uint16, len(indices))
-	copy(is, indices)
-	m.orig.DrawTriangles(src.orig, vs, is, colorm, mode, filter, address)
+func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address)
 	m.disposeMipmaps()
 }
 
-func (m *mipmap) level(r image.Rectangle, level int) *buffered.Image {
+func (m *Mipmap) level(r image.Rectangle, level int) *shareable.Image {
 	if level == 0 {
 		panic("ebiten: level must be non-zero at level")
 	}
@@ -197,7 +187,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *buffered.Image {
 		return img
 	}
 
-	var src *buffered.Image
+	var src *shareable.Image
 	var vs []float32
 	var filter driver.Filter
 	switch {
@@ -237,7 +227,7 @@ func (m *mipmap) level(r image.Rectangle, level int) *buffered.Image {
 		imgs[level] = nil
 		return nil
 	}
-	s := buffered.NewImage(w2, h2, m.volatile)
+	s := shareable.NewImage(w2, h2, m.volatile)
 	s.DrawTriangles(src, vs, is, nil, driver.CompositeModeCopy, filter, driver.AddressClampToZero)
 	imgs[level] = s
 
@@ -264,17 +254,17 @@ func sizeForLevel(origWidth, origHeight int, level int) (width, height int) {
 	return
 }
 
-func (m *mipmap) isDisposed() bool {
+func (m *Mipmap) isDisposed() bool {
 	return m.orig == nil
 }
 
-func (m *mipmap) dispose() {
+func (m *Mipmap) MarkDisposed() {
 	m.disposeMipmaps()
 	m.orig.MarkDisposed()
 	m.orig = nil
 }
 
-func (m *mipmap) disposeMipmaps() {
+func (m *Mipmap) disposeMipmaps() {
 	for _, a := range m.imgs {
 		for _, img := range a {
 			img.MarkDisposed()
@@ -288,7 +278,7 @@ func (m *mipmap) disposeMipmaps() {
 // mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
 //
 // mipmapLevel panics if det is NaN or 0.
-func (m *mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter) int {
+func (m *Mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter) int {
 	det := geom.det()
 	if math.IsNaN(float64(det)) {
 		panic("ebiten: det must be finite at mipmapLevel")
@@ -338,10 +328,10 @@ func (m *mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter
 	}
 
 	// This is a separate function for testing.
-	return mipmapLevelForDownscale(det)
+	return MipmapLevelForDownscale(det)
 }
 
-func mipmapLevelForDownscale(det float32) int {
+func MipmapLevelForDownscale(det float32) int {
 	if math.IsNaN(float64(det)) {
 		panic("ebiten: det must be finite at mipmapLevelForDownscale")
 	}
@@ -401,7 +391,7 @@ func minf32(a, b, c, d float32) float32 {
 }
 
 func geomScaleSize(geom *GeoM) (sx, sy float32) {
-	a, b, c, d, _, _ := geom.elements()
+	a, b, c, d := geom.A, geom.B, geom.C, geom.D
 	// (0, 1)
 	x0 := 0*a + 1*b
 	y0 := 0*c + 1*d

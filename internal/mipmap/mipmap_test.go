@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten_test
+package mipmap_test
 
 import (
 	"math"
 	"testing"
 
-	. "github.com/hajimehoshi/ebiten"
+	. "github.com/hajimehoshi/ebiten/internal/mipmap"
 )
 
 func TestMipmapLevelForDownscale(t *testing.T) {

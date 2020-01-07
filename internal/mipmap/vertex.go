@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ebiten
+package mipmap
 
 import (
 	"sync"
@@ -70,7 +70,6 @@ func quadVertices(sx0, sy0, sx1, sy1 int, a, b, c, d, tx, ty float32, cr, cg, cb
 	vs := vertexSlice(4, last)
 	_ = vs[:48]
 
-	// For each values, see the comment at shareable.(*Image).DrawTriangles.
 	vs[0] = tx
 	vs[1] = ty
 	vs[2] = u0
