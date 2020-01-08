@@ -104,6 +104,7 @@ type UserInterface struct {
 	gbuildWidthPx   int
 	gbuildHeightPx  int
 	setGBuildSizeCh chan struct{}
+	once            sync.Once
 
 	context driver.UIContext
 
@@ -336,7 +337,9 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 	u.gbuildWidthPx = widthPx
 	u.gbuildHeightPx = heightPx
 	u.sizeChanged = true
-	close(u.setGBuildSizeCh)
+	u.once.Do(func() {
+		close(u.setGBuildSizeCh)
+	})
 	u.m.Unlock()
 }
 
