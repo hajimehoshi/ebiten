@@ -235,6 +235,14 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	return theWindows.add(w), nil
 }
 
+func (j Joystick) GetGUID() string {
+	return glfw.Joystick(j).GetGUID()
+}
+
+func (j Joystick) GetName() string {
+	return glfw.Joystick(j).GetName()
+}
+
 func (j Joystick) GetAxes() []float32 {
 	return glfw.Joystick(j).GetAxes()
 }

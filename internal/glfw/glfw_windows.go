@@ -311,6 +311,40 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	return theGLFWWindows.add(w), nil
 }
 
+func (j Joystick) GetGUID() string {
+	ptr := glfwDLL.call("glfwGetJoystickGUID", uintptr(j))
+	panicError()
+	var backed [256]byte
+	as := backed[:0]
+	for i := int32(0); ; i++ {
+		b := *(*byte)(unsafe.Pointer(ptr))
+		ptr += unsafe.Sizeof(byte(0))
+		if b == 0 {
+			break
+		}
+		as = append(as, b)
+	}
+	r := string(as)
+	return r
+}
+
+func (j Joystick) GetName() string {
+	ptr := glfwDLL.call("glfwGetJoystickName", uintptr(j))
+	panicError()
+	var backed [256]byte
+	as := backed[:0]
+	for i := int32(0); ; i++ {
+		b := *(*byte)(unsafe.Pointer(ptr))
+		ptr += unsafe.Sizeof(byte(0))
+		if b == 0 {
+			break
+		}
+		as = append(as, b)
+	}
+	r := string(as)
+	return r
+}
+
 func (j Joystick) GetAxes() []float32 {
 	var l int32
 	ptr := glfwDLL.call("glfwGetJoystickAxes", uintptr(j), uintptr(unsafe.Pointer(&l)))

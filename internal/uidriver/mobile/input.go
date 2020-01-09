@@ -42,6 +42,14 @@ func (i *Input) GamepadIDs() []int {
 	return nil
 }
 
+func (i *Input) GamepadGUID(id int) string {
+	return ""
+}
+
+func (i *Input) GamepadName(id int) string {
+	return ""
+}
+
 func (i *Input) GamepadAxisNum(id int) int {
 	return 0
 }
