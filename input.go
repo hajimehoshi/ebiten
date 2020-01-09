@@ -94,9 +94,9 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 
 // GamepadGUID returns a string with the uuid.
 //
-// GamepadGUID is concurrent-safe.
-//
 // GamepadGUID always returns an empty string on browsers and mobiles.
+//
+// GamepadGUID is concurrent-safe.
 func GamepadGUID(id int) string {
 	return uiDriver().Input().GamepadGUID(id)
 }
@@ -104,13 +104,14 @@ func GamepadGUID(id int) string {
 // GamepadName returns a string with the name.
 // This function may vary in how it returns descriptions for the same device across platforms
 // for example the following drivers/platforms see a Xbox One controller as the following:
-// - Windows: "Xbox Controller"
-// - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
-// - Firefox: "xinput"
 //
-// GamepadName is concurrent-safe.
+//   - Windows: "Xbox Controller"
+//   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
+//   - Firefox: "xinput"
 //
 // GamepadName always returns an empty string on mobiles.
+//
+// GamepadName is concurrent-safe.
 func GamepadName(id int) string {
 	return uiDriver().Input().GamepadName(id)
 }
