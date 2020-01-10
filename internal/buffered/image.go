@@ -222,6 +222,8 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
+			src.resolvePendingPixels(true)
+			i.resolvePendingPixels(false)
 			i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
 		})
 		delayedCommandsM.Unlock()
