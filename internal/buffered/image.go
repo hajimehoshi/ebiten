@@ -222,15 +222,17 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
-			src.resolvePendingPixels(true)
-			i.resolvePendingPixels(false)
-			i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
+			i.drawImage(src, bounds, g, colorm, mode, filter)
 		})
 		delayedCommandsM.Unlock()
 		return
 	}
 	delayedCommandsM.Unlock()
 
+	i.drawImage(src, bounds, g, colorm, mode, filter)
+}
+
+func (i *Image) drawImage(src *Image, bounds image.Rectangle, g *mipmap.GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
 	i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
@@ -244,15 +246,16 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
-			src.resolvePendingPixels(true)
-			i.resolvePendingPixels(false)
-			i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
+			i.drawTriangles(src, vertices, indices, colorm, mode, filter, address)
 		})
 		delayedCommandsM.Unlock()
 		return
 	}
 	delayedCommandsM.Unlock()
+	i.drawTriangles(src, vertices, indices, colorm, mode, filter, address)
+}
 
+func (i *Image) drawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
 	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
