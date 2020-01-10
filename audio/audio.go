@@ -525,10 +525,6 @@ func (p *Player) Seek(offset time.Duration) error {
 }
 
 func (p *playerImpl) Seek(offset time.Duration) error {
-	if _, ok := p.src.(io.Seeker); !ok {
-		panic("audio: player to be sought must be io.Seeker")
-	}
-
 	p.m.Lock()
 	defer p.m.Unlock()
 
