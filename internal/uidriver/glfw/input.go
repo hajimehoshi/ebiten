@@ -87,7 +87,7 @@ func (i *Input) GamepadIDs() []int {
 	return r
 }
 
-func (i *Input) GamepadGUID(id int) string {
+func (i *Input) GamepadSDLID(id int) string {
 	if !i.ui.isRunning() {
 		return ""
 	}
@@ -356,6 +356,7 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 				continue
 			}
 			i.gamepads[id].valid = true
+			// Note that GLFW's gamepad GUID follows SDL's GUID.
 			i.gamepads[id].guid = id.GetGUID()
 			i.gamepads[id].name = id.GetName()
 
