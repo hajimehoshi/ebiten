@@ -42,7 +42,7 @@ func (i *Input) GamepadIDs() []int {
 	return nil
 }
 
-func (i *Input) GamepadGUID(id int) string {
+func (i *Input) GamepadSDLID(id int) string {
 	return ""
 }
 

@@ -57,7 +57,9 @@ func (i *Input) CursorPosition() (x, y int) {
 	return int(xf), int(yf)
 }
 
-func (i *Input) GamepadGUID(id int) string {
+func (i *Input) GamepadSDLID(id int) string {
+	// TODO: Implement this. See the implementation of SDL:
+	// https://github.com/spurious/SDL-mirror/blob/master/src/joystick/emscripten/SDL_sysjoystick.c
 	return ""
 }
 
