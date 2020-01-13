@@ -24,15 +24,8 @@ import (
 
 var theState state
 
-// game is not exported since gomobile complains.
-// TODO: Report this error.
-type game interface {
-	Update(*ebiten.Image) error
-	Layout(viewWidth, viewHeight int) (screenWidth, screenHeight int)
-}
-
 type state struct {
-	game game
+	game ebiten.Game
 
 	delayedLayout func()
 
@@ -44,7 +37,7 @@ type state struct {
 	m sync.Mutex
 }
 
-func SetGame(game game) {
+func SetGame(game ebiten.Game) {
 	theState.m.Lock()
 	defer theState.m.Unlock()
 
