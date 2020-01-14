@@ -228,7 +228,7 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCa
 func (w *Window) SetFocusCallback(cbfun FocusCallback) (previous FocusCallback) {
 	var gcb uintptr
 	if cbfun != nil {
-		gcb = windwos.NewCallbackCDecl(func(window uintptr, focused bool) uintptr {
+		gcb = windows.NewCallbackCDecl(func(window uintptr, focused bool) uintptr {
 			cbfun(theGLFWWindows.get(window), focused)
 			return 0
 		})
