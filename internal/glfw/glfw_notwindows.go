@@ -178,6 +178,17 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous SizeCallback) {
 	return nil // TODO
 }
 
+func (w *Window) SetFocusCallback(cbfun FocusCallback) (previous FocusCallback) {
+	var gcb glfw.FocusCallback
+	if cbfun != nil {
+		gcb = func(window *glfw.Window, focused bool) {
+			cbfun(theWindows.get(window), focused)
+		}
+	}
+	w.w.SetFocusCallback(gcb)
+	return nil
+}
+
 func (w *Window) SetIcon(images []image.Image) {
 	w.w.SetIcon(images)
 }

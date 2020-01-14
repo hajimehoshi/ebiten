@@ -346,6 +346,16 @@ func SetFullscreen(fullscreen bool) {
 	uiDriver().SetFullscreen(fullscreen)
 }
 
+// IsForeground returns a boolean value indicating whether
+// the game is in focus or in the foreground.
+//
+// IsForeground will only return true if IsRunnableInBackground is false.
+//
+// IsForeground is concurrent-safe.
+func IsForeground() bool {
+	return uiDriver().IsForeground()
+}
+
 // IsRunnableInBackground returns a boolean value indicating whether
 // the game runs even in background.
 //

@@ -51,6 +51,7 @@ type UserInterface struct {
 	origPosY             int
 	runnableInBackground bool
 	vsync                bool
+	foreground           bool
 
 	lastDeviceScaleFactor float64
 
@@ -252,6 +253,19 @@ func (u *UserInterface) setInitWindowDecorated(decorated bool) {
 	u.m.Unlock()
 }
 
+func (u *UserInterface) isForeground() bool {
+	u.m.RLock()
+	v := u.foreground
+	u.m.RUnlock()
+	return v
+}
+
+func (u *UserInterface) setIsForeground(foreground bool) {
+	u.m.Lock()
+	u.foreground = foreground
+	u.m.Unlock()
+}
+
 func (u *UserInterface) isRunnableInBackground() bool {
 	u.m.RLock()
 	v := u.runnableInBackground
@@ -400,6 +414,10 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		return nil
 	})
 	u.setWindowSize(w, h, fullscreen, u.vsync)
+}
+
+func (u *UserInterface) IsForeground() bool {
+	return u.isForeground()
 }
 
 func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
@@ -578,6 +596,10 @@ func (u *UserInterface) createWindow() error {
 		}
 		u.reqWidth = width
 		u.reqHeight = height
+	})
+
+	u.window.SetFocusCallback(func(_ *glfw.Window, focused bool) {
+		u.setIsForeground(focused)
 	})
 
 	return nil
