@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin
 // +build !js
 // +build !ebitengl
 
@@ -30,40 +29,35 @@ package glfw
 import "C"
 
 import (
-	"sync"
-
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/internal/graphicsdriver/opengl"
 )
 
-var (
-	// isMetalSupported represents whether Metal is supported.
-	isMetalSupported = true
+var graphics driver.Graphics
 
-	// isMetalSupportedOnce initializes isMetalSupported.
-	//
-	// Use sync.Once instead of init function to avoid init-order dependency (#886).
-	isMetalSupportedOnce sync.Once
-)
+func supportsMetal() bool {
+	// On old mac devices like iMac 2011, Metal is not supported (#779).
+	if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
+		return false
+	}
+	// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
+	// Use the OpenGL in macOS 10.11 or older.
+	if C.getMacOSMinorVersion() <= 11 {
+		return false
+	}
+	return true
+}
+
+func init() {
+	if supportsMetal() {
+		graphics = metal.Get()
+		return
+	}
+	graphics = opengl.Get()
+}
 
 func (*UserInterface) Graphics() driver.Graphics {
-	isMetalSupportedOnce.Do(func() {
-		// On old mac devices like iMac 2011, Metal is not supported (#779).
-		if _, err := mtl.CreateSystemDefaultDevice(); err != nil {
-			isMetalSupported = false
-			return
-		}
-		// On macOS 10.11 El Capitan, there is a rendering issue on Metal (#781).
-		// Use the OpenGL in macOS 10.11 or older.
-		if C.getMacOSMinorVersion() <= 11 {
-			isMetalSupported = false
-			return
-		}
-	})
-	if isMetalSupported {
-		return metal.Get()
-	}
-	return opengl.Get()
+	return graphics
 }

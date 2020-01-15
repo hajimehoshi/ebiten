@@ -254,7 +254,7 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 	}
 
 	for i, name := range attributes {
-		gl.BindAttribLocation(p, mgl.Attrib{uint(i)}, name)
+		gl.BindAttribLocation(p, mgl.Attrib{Value: uint(i)}, name)
 	}
 
 	gl.LinkProgram(p)
@@ -314,17 +314,17 @@ func (c *context) uniformFloats(p program, location string, v []float32) {
 
 func (c *context) vertexAttribPointer(p program, index int, size int, dataType dataType, stride int, offset int) {
 	gl := c.gl
-	gl.VertexAttribPointer(mgl.Attrib{uint(index)}, size, mgl.Enum(dataType), false, stride, offset)
+	gl.VertexAttribPointer(mgl.Attrib{Value: uint(index)}, size, mgl.Enum(dataType), false, stride, offset)
 }
 
 func (c *context) enableVertexAttribArray(p program, index int) {
 	gl := c.gl
-	gl.EnableVertexAttribArray(mgl.Attrib{uint(index)})
+	gl.EnableVertexAttribArray(mgl.Attrib{Value: uint(index)})
 }
 
 func (c *context) disableVertexAttribArray(p program, index int) {
 	gl := c.gl
-	gl.DisableVertexAttribArray(mgl.Attrib{uint(index)})
+	gl.DisableVertexAttribArray(mgl.Attrib{Value: uint(index)})
 }
 
 func (c *context) newArrayBuffer(size int) buffer {
