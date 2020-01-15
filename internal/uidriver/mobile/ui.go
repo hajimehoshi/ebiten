@@ -370,6 +370,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) IsForeground() {
+	// TODO
 	return true
 }
 

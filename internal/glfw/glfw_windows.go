@@ -225,19 +225,6 @@ func (w *Window) SetSizeCallback(cbfun SizeCallback) (previous FramebufferSizeCa
 	return nil // TODO
 }
 
-func (w *Window) SetFocusCallback(cbfun FocusCallback) (previous FocusCallback) {
-	var gcb uintptr
-	if cbfun != nil {
-		gcb = windows.NewCallbackCDecl(func(window uintptr, focused bool) uintptr {
-			cbfun(theGLFWWindows.get(window), focused)
-			return 0
-		})
-	}
-	glfwDLL.call("glfwSetWindowFocusCallback", w.w, gcb)
-	panicError()
-	return nil
-}
-
 func (w *Window) SetIcon(images []image.Image) {
 	gimgs := make([]glfwImage, len(images))
 	defer runtime.KeepAlive(gimgs)

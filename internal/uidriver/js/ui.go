@@ -77,6 +77,7 @@ func (u *UserInterface) IsFullscreen() bool {
 }
 
 func (u *UserInterface) IsForeground() bool {
+	// TODO
 	return true
 }
 

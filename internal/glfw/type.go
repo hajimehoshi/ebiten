@@ -21,7 +21,6 @@ type (
 	FramebufferSizeCallback func(w *Window, width int, height int)
 	ScrollCallback          func(w *Window, xoff float64, yoff float64)
 	SizeCallback            func(w *Window, width int, height int)
-	FocusCallback           func(w *Window, focused bool)
 )
 
 type VidMode struct {
