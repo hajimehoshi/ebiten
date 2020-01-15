@@ -402,16 +402,17 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	u.setWindowSize(w, h, fullscreen, u.vsync)
 }
 
-func (u *UserInterface) IsForeground() (foreground bool) {
+func (u *UserInterface) IsForeground() bool {
 	if !u.isRunning() {
-		foreground = true
-	} else {
-		_ = u.t.Call(func() error {
-			foreground = u.window.GetAttrib(glfw.Focused) == glfw.True
-			return nil
-		})
+		return false
 	}
-	return
+
+	var foreground bool
+	_ = u.t.Call(func() error {
+		foreground = u.window.GetAttrib(glfw.Focused) == glfw.True
+		return nil
+	})
+	return foreground
 }
 
 func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
