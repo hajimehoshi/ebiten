@@ -369,6 +369,11 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
+func (u *UserInterface) IsForeground() {
+	// TODO: implement this
+	return true
+}
+
 func (u *UserInterface) IsRunnableInBackground() bool {
 	return false
 }

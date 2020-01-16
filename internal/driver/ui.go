@@ -37,6 +37,7 @@ type UI interface {
 	DeviceScaleFactor() float64
 	CursorMode() CursorMode
 	IsFullscreen() bool
+	IsForeground() bool
 	IsRunnableInBackground() bool
 	IsVsyncEnabled() bool
 	ScreenSizeInFullscreen() (int, int)
