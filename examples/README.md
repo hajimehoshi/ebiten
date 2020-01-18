@@ -16,7 +16,7 @@ and access `http://127.0.0.1:8080/github.com/hajimehoshi/ebiten/examples`.
 
 ## Android
 
-Install [gomobile](https://godoc.org/golang.org/x/mobile/cmd/gomobile) first.
+Install [gomobile](https://pkg.go.dev/golang.org/x/mobile/cmd/gomobile) first.
 
 ```sh
 gomobile install -tags=example github.com/hajimehoshi/ebiten/examples/rotate
