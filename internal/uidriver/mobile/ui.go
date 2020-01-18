@@ -369,7 +369,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) IsForeground() {
+func (u *UserInterface) IsForeground() bool {
 	// TODO: implement this
 	return true
 }
