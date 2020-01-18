@@ -53,7 +53,7 @@ func update(screen *ebiten.Image) error {
 			// Alpha scale should be 1.0/49.0, but accumulating 1/49 49 times doesn't reach to 1, because
 			// the final color is affected by the destination alpha when CompositeModeSourceOver is used.
 			// This composite mode is the default mode. See how this is calculated at the doc:
-			// https://godoc.org/github.com/hajimehoshi/ebiten#CompositeMode
+			// https://pkg.go.dev/github.com/hajimehoshi/ebiten#CompositeMode
 			//
 			// Use a higher value than 1.0/49.0. Here, 1.0/25.0 here to get a reasonable result.
 			op.ColorM.Scale(1, 1, 1, 1.0/25.0)
