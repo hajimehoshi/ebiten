@@ -174,11 +174,7 @@ func fract(x float32) float32 {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush() {
-	if q.err != nil {
-		return
-	}
-
+func (q *commandQueue) Flush() error {
 	es := q.indices
 	vs := q.vertices
 	if recordLog() {
@@ -263,8 +259,7 @@ func (q *commandQueue) Flush() {
 		indexOffset := 0
 		for _, c := range cs[:nc] {
 			if err := c.Exec(indexOffset); err != nil {
-				q.err = err
-				return
+				return err
 			}
 			if recordLog() {
 				fmt.Printf("%s\n", c)
@@ -282,16 +277,12 @@ func (q *commandQueue) Flush() {
 	q.nindices = 0
 	q.tmpNumIndices = 0
 	q.nextIndex = 0
-}
-
-// Error returns an OpenGL error for the last command.
-func Error() error {
-	return theCommandQueue.err
+	return nil
 }
 
 // FlushCommands flushes the command queue.
-func FlushCommands() {
-	theCommandQueue.Flush()
+func FlushCommands() error {
+	return theCommandQueue.Flush()
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.

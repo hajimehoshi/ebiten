@@ -162,15 +162,17 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 
 // Pixels returns the image's pixels.
 // Pixels might return nil when OpenGL error happens.
-func (i *Image) Pixels() []byte {
+func (i *Image) Pixels() ([]byte, error) {
 	i.resolveBufferedReplacePixels()
 	c := &pixelsCommand{
 		result: nil,
 		img:    i,
 	}
 	theCommandQueue.Enqueue(c)
-	theCommandQueue.Flush()
-	return c.result
+	if err := theCommandQueue.Flush(); err != nil {
+		return nil, err
+	}
+	return c.result, nil
 }
 
 func (i *Image) ReplacePixels(pixels []byte, x, y, width, height int) {
@@ -221,8 +223,12 @@ func (i *Image) Dump(path string) error {
 	}
 	defer f.Close()
 
+	pix, err := i.Pixels()
+	if err != nil {
+		return err
+	}
 	if err := png.Encode(f, &image.RGBA{
-		Pix:    i.Pixels(),
+		Pix:    pix,
 		Stride: 4 * i.width,
 		Rect:   image.Rect(0, 0, i.width, i.height),
 	}); err != nil {

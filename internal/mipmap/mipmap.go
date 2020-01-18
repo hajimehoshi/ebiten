@@ -92,7 +92,7 @@ func (m *Mipmap) ReplacePixels(pix []byte) {
 	m.disposeMipmaps()
 }
 
-func (m *Mipmap) At(x, y int) (r, g, b, a byte) {
+func (m *Mipmap) At(x, y int) (r, g, b, a byte, err error) {
 	return m.orig.At(x, y)
 }
 

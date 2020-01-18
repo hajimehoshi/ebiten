@@ -61,7 +61,10 @@ func TestClear(t *testing.T) {
 	is := graphics.QuadIndices()
 	dst.DrawTriangles(src, vs, is, nil, driver.CompositeModeClear, driver.FilterNearest, driver.AddressClampToZero)
 
-	pix := dst.Pixels()
+	pix, err := dst.Pixels()
+	if err != nil {
+		t.Fatal(err)
+	}
 	for j := 0; j < h/2; j++ {
 		for i := 0; i < w/2; i++ {
 			idx := 4 * (i + w*j)

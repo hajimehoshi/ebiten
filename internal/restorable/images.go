@@ -51,12 +51,14 @@ var theImages = &images{
 // all stale images.
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
-func ResolveStaleImages() {
-	graphicscommand.FlushCommands()
-	if !needsRestoring() {
-		return
+func ResolveStaleImages() error {
+	if err := graphicscommand.FlushCommands(); err != nil {
+		return err
 	}
-	theImages.resolveStaleImages()
+	if !needsRestoring() {
+		return nil
+	}
+	return theImages.resolveStaleImages()
 }
 
 // RestoreIfNeeded restores the images.
@@ -76,7 +78,11 @@ func RestoreIfNeeded() error {
 			if img.screen {
 				continue
 			}
-			r = img.isInvalidated()
+			var err error
+			r, err = img.isInvalidated()
+			if err != nil {
+				return err
+			}
 			break
 		}
 		if !r {
@@ -87,8 +93,7 @@ func RestoreIfNeeded() error {
 	if err := graphicscommand.ResetGraphicsDriverState(); err != nil {
 		return err
 	}
-	theImages.restore()
-	return nil
+	return theImages.restore()
 }
 
 // DumpImages dumps all the current images to the specified directory.
@@ -115,11 +120,14 @@ func (i *images) remove(img *Image) {
 }
 
 // resolveStaleImages resolves stale images.
-func (i *images) resolveStaleImages() {
+func (i *images) resolveStaleImages() error {
 	i.lastTarget = nil
 	for img := range i.images {
-		img.resolveStale()
+		if err := img.resolveStale(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // makeStaleIfDependingOn makes all the images stale that depend on target.
@@ -147,7 +155,7 @@ func (i *images) makeStaleIfDependingOnImpl(target *Image) {
 // restore restores the images.
 //
 // Restoring means to make all *graphicscommand.Image objects have their textures and framebuffers.
-func (i *images) restore() {
+func (i *images) restore() error {
 	if !needsRestoring() {
 		panic("restorable: restore cannot be called when restoring is disabled")
 	}
@@ -211,15 +219,14 @@ func (i *images) restore() {
 	}
 
 	for _, img := range sorted {
-		img.restore()
+		if err := img.restore(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // InitializeGraphicsDriverState initializes the graphics driver state.
 func InitializeGraphicsDriverState() error {
 	return graphicscommand.ResetGraphicsDriverState()
-}
-
-func Error() error {
-	return graphicscommand.Error()
 }

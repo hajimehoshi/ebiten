@@ -402,26 +402,34 @@ func (i *Image) appendDrawTrianglesHistory(image *Image, vertices []float32, ind
 	i.drawTrianglesHistory = append(i.drawTrianglesHistory, item)
 }
 
-func (i *Image) readPixelsFromGPUIfNeeded() {
+func (i *Image) readPixelsFromGPUIfNeeded() error {
 	if len(i.drawTrianglesHistory) > 0 || i.stale {
-		graphicscommand.FlushCommands()
-		i.readPixelsFromGPU()
+		if err := graphicscommand.FlushCommands(); err != nil {
+			return err
+		}
+		if err := i.readPixelsFromGPU(); err != nil {
+			return err
+		}
 		i.drawTrianglesHistory = nil
 		i.stale = false
 	}
+	return nil
 }
 
 // At returns a color value at (x, y).
 //
 // Note that this must not be called until context is available.
-func (i *Image) At(x, y int) (byte, byte, byte, byte) {
+func (i *Image) At(x, y int) (byte, byte, byte, byte, error) {
 	if x < 0 || y < 0 || i.width <= x || i.height <= y {
-		return 0, 0, 0, 0
+		return 0, 0, 0, 0, nil
 	}
 
-	i.readPixelsFromGPUIfNeeded()
+	if err := i.readPixelsFromGPUIfNeeded(); err != nil {
+		return 0, 0, 0, 0, err
+	}
 
-	return i.basePixels.At(x, y)
+	r, g, b, a := i.basePixels.At(x, y)
+	return r, g, b, a, nil
 }
 
 // makeStaleIfDependingOn makes the image stale if the image depends on target.
@@ -435,29 +443,34 @@ func (i *Image) makeStaleIfDependingOn(target *Image) {
 }
 
 // readPixelsFromGPU reads the pixels from GPU and resolves the image's 'stale' state.
-func (i *Image) readPixelsFromGPU() {
+func (i *Image) readPixelsFromGPU() error {
+	pix, err := i.image.Pixels()
+	if err != nil {
+		return err
+	}
 	i.basePixels = Pixels{}
-	i.basePixels.AddOrReplace(i.image.Pixels(), 0, 0, i.width, i.height)
+	i.basePixels.AddOrReplace(pix, 0, 0, i.width, i.height)
 	i.drawTrianglesHistory = nil
 	i.stale = false
+	return nil
 }
 
 // resolveStale resolves the image's 'stale' state.
-func (i *Image) resolveStale() {
+func (i *Image) resolveStale() error {
 	if !needsRestoring() {
-		return
+		return nil
 	}
 
 	if i.volatile {
-		return
+		return nil
 	}
 	if i.screen {
-		return
+		return nil
 	}
 	if !i.stale {
-		return
+		return nil
 	}
-	i.readPixelsFromGPU()
+	return i.readPixelsFromGPU()
 }
 
 // dependsOn returns a boolean value indicating whether the image depends on target.
@@ -488,7 +501,7 @@ func (i *Image) hasDependency() bool {
 }
 
 // Restore restores *graphicscommand.Image from the pixels using its state.
-func (i *Image) restore() {
+func (i *Image) restore() error {
 	w, h := i.width, i.height
 	// Do not dispose the image here. The image should be already disposed.
 
@@ -499,12 +512,12 @@ func (i *Image) restore() {
 		i.basePixels = Pixels{}
 		i.drawTrianglesHistory = nil
 		i.stale = false
-		return
+		return nil
 	}
 	if i.volatile {
 		i.image = graphicscommand.NewImage(w, h)
 		fillImage(i.image, color.RGBA{})
-		return
+		return nil
 	}
 	if i.stale {
 		panic("restorable: pixels must not be stale when restoring")
@@ -528,12 +541,17 @@ func (i *Image) restore() {
 
 	if len(i.drawTrianglesHistory) > 0 {
 		i.basePixels = Pixels{}
-		i.basePixels.AddOrReplace(gimg.Pixels(), 0, 0, w, h)
+		pix, err := gimg.Pixels()
+		if err != nil {
+			return err
+		}
+		i.basePixels.AddOrReplace(pix, 0, 0, w, h)
 	}
 
 	i.image = gimg
 	i.drawTrianglesHistory = nil
 	i.stale = false
+	return nil
 }
 
 // Dispose disposes the image.
@@ -551,10 +569,12 @@ func (i *Image) Dispose() {
 // isInvalidated returns a boolean value indicating whether the image is invalidated.
 //
 // If an image is invalidated, GL context is lost and all the images should be restored asap.
-func (i *Image) isInvalidated() bool {
+func (i *Image) isInvalidated() (bool, error) {
 	// FlushCommands is required because c.offscreen.impl might not have an actual texture.
-	graphicscommand.FlushCommands()
-	return i.image.IsInvalidated()
+	if err := graphicscommand.FlushCommands(); err != nil {
+		return false, err
+	}
+	return i.image.IsInvalidated(), nil
 }
 
 func (i *Image) Dump(path string) error {

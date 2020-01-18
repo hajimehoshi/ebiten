@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/clock"
@@ -69,6 +70,8 @@ type uiContext struct {
 	outsideWidth       float64
 	outsideHeight      float64
 
+	err atomic.Value
+
 	m sync.Mutex
 }
 
@@ -83,6 +86,10 @@ func (c *uiContext) set(game Game, scaleForWindow float64) {
 		c.scaleForWindow = scaleForWindow
 		g.context = c
 	}
+}
+
+func (c *uiContext) setError(err error) {
+	c.err.Store(err)
 }
 
 func (c *uiContext) setScaleForWindow(scale float64) {
@@ -233,6 +240,9 @@ func (c *uiContext) offsets() (float64, float64) {
 func (c *uiContext) Update(afterFrameUpdate func()) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
+	if err, ok := c.err.Load().(error); ok && err != nil {
+		return err
+	}
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}
