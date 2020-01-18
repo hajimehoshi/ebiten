@@ -112,7 +112,10 @@ func TestEnsureNotShared(t *testing.T) {
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
-			r, g, b, a := img4.At(i, j)
+			r, g, b, a, err := img4.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			got := color.RGBA{r, g, b, a}
 			var want color.RGBA
 			if i < dx0 || dx1 <= i || j < dy0 || dy1 <= j {
@@ -174,18 +177,25 @@ func TestReshared(t *testing.T) {
 
 	// Use img1 as a render source.
 	for i := 0; i < MaxCountForShare; i++ {
-		MakeImagesSharedForTesting()
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
 		img0.DrawTriangles(img1, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 		if got, want := img1.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
 		}
 	}
-	MakeImagesSharedForTesting()
+	if err := MakeImagesSharedForTesting(); err != nil {
+		t.Fatal(err)
+	}
 
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			r, g, b, a := img1.At(i, j)
+			r, g, b, a, err := img1.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			got := color.RGBA{r, g, b, a}
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
@@ -201,7 +211,10 @@ func TestReshared(t *testing.T) {
 	for j := 0; j < size; j++ {
 		for i := 0; i < size; i++ {
 			want := color.RGBA{byte(i + j), byte(i + j), byte(i + j), byte(i + j)}
-			r, g, b, a := img1.At(i, j)
+			r, g, b, a, err := img1.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			got := color.RGBA{r, g, b, a}
 			if got != want {
 				t.Errorf("got: %v, want: %v", got, want)
@@ -211,7 +224,9 @@ func TestReshared(t *testing.T) {
 
 	// Use img3 as a render source. img3 never uses a shared texture.
 	for i := 0; i < MaxCountForShare*2; i++ {
-		MakeImagesSharedForTesting()
+		if err := MakeImagesSharedForTesting(); err != nil {
+			t.Fatal(err)
+		}
 		img0.DrawTriangles(img3, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressClampToZero)
 		if got, want := img3.IsSharedForTesting(), false; got != want {
 			t.Errorf("got: %v, want: %v", got, want)
@@ -249,7 +264,10 @@ func TestExtend(t *testing.T) {
 
 	for j := 0; j < h0; j++ {
 		for i := 0; i < w0; i++ {
-			r, g, b, a := img0.At(i, j)
+			r, g, b, a, err := img0.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			got := color.RGBA{r, g, b, a}
 			c := byte(i + w0*j)
 			want := color.RGBA{c, c, c, c}
@@ -261,7 +279,10 @@ func TestExtend(t *testing.T) {
 
 	for j := 0; j < h1; j++ {
 		for i := 0; i < w1; i++ {
-			r, g, b, a := img1.At(i, j)
+			r, g, b, a, err := img1.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			got := color.RGBA{r, g, b, a}
 			c := byte(i + w1*j)
 			want := color.RGBA{c, c, c, c}
@@ -298,7 +319,10 @@ func TestReplacePixelsAfterDrawTriangles(t *testing.T) {
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			r, g, b, a := dst.At(i, j)
+			r, g, b, a, err := dst.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			got := color.RGBA{r, g, b, a}
 			c := byte(i + w*j)
 			want := color.RGBA{c, c, c, c}
@@ -332,7 +356,10 @@ func TestSmallImages(t *testing.T) {
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w; i++ {
-			r, _, _, a := dst.At(i, j)
+			r, _, _, a, err := dst.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if got, want := r, byte(0xff); got != want {
 				t.Errorf("At(%d, %d) red: got: %d, want: %d", i, j, got, want)
 			}
@@ -367,7 +394,10 @@ func TestLongImages(t *testing.T) {
 
 	for j := 0; j < h; j++ {
 		for i := 0; i < w*scale; i++ {
-			r, _, _, a := dst.At(i, j)
+			r, _, _, a, err := dst.At(i, j)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if got, want := r, byte(0xff); got != want {
 				t.Errorf("At(%d, %d) red: got: %d, want: %d", i, j, got, want)
 			}

@@ -52,8 +52,7 @@ func init() {
 		defer backendsM.Unlock()
 
 		resolveDeferred()
-		makeImagesShared()
-		return nil
+		return makeImagesShared()
 	})
 }
 
@@ -73,14 +72,17 @@ func resolveDeferred() {
 // This value is exported for testing.
 const MaxCountForShare = 10
 
-func makeImagesShared() {
+func makeImagesShared() error {
 	for i := range imagesToMakeShared {
 		i.nonUpdatedCount++
 		if i.nonUpdatedCount >= MaxCountForShare {
-			i.makeShared()
+			if err := i.makeShared(); err != nil {
+				return err
+			}
 		}
 		delete(imagesToMakeShared, i)
 	}
+	return nil
 }
 
 type backend struct {
@@ -220,14 +222,14 @@ func (i *Image) ensureNotShared() {
 	}
 }
 
-func (i *Image) makeShared() {
+func (i *Image) makeShared() error {
 	if i.backend == nil {
 		i.allocate(true)
-		return
+		return nil
 	}
 
 	if i.isShared() {
-		return
+		return nil
 	}
 
 	if !i.shareable() {
@@ -238,7 +240,10 @@ func (i *Image) makeShared() {
 	pixels := make([]byte, 4*i.width*i.height)
 	for y := 0; y < i.height; y++ {
 		for x := 0; x < i.width; x++ {
-			r, g, b, a := i.at(x, y)
+			r, g, b, a, err := i.at(x, y)
+			if err != nil {
+				return err
+			}
 			pixels[4*(x+i.width*y)] = r
 			pixels[4*(x+i.width*y)+1] = g
 			pixels[4*(x+i.width*y)+2] = b
@@ -248,6 +253,7 @@ func (i *Image) makeShared() {
 	newI.replacePixels(pixels)
 	newI.moveTo(i)
 	i.nonUpdatedCount = 0
+	return nil
 }
 
 func (i *Image) region() (x, y, width, height int) {
@@ -370,21 +376,21 @@ func (i *Image) replacePixels(p []byte) {
 	i.backend.restorable.ReplacePixels(p, x, y, w, h)
 }
 
-func (i *Image) At(x, y int) (byte, byte, byte, byte) {
+func (i *Image) At(x, y int) (byte, byte, byte, byte, error) {
 	backendsM.Lock()
-	r, g, b, a := i.at(x, y)
+	r, g, b, a, err := i.at(x, y)
 	backendsM.Unlock()
-	return r, g, b, a
+	return r, g, b, a, err
 }
 
-func (i *Image) at(x, y int) (byte, byte, byte, byte) {
+func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 	if i.backend == nil {
-		return 0, 0, 0, 0
+		return 0, 0, 0, 0, nil
 	}
 
 	ox, oy, w, h := i.region()
 	if x < 0 || y < 0 || x >= w || y >= h {
-		return 0, 0, 0, 0
+		return 0, 0, 0, 0, nil
 	}
 
 	return i.backend.restorable.At(x+ox, y+oy)
@@ -543,8 +549,7 @@ func NewScreenFramebufferImage(width, height int) *Image {
 func EndFrame() error {
 	backendsM.Lock()
 
-	restorable.ResolveStaleImages()
-	return restorable.Error()
+	return restorable.ResolveStaleImages()
 }
 
 func BeginFrame() error {

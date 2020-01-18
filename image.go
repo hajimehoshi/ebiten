@@ -401,7 +401,10 @@ func (i *Image) At(x, y int) color.Color {
 	if i.isSubImage() && !image.Pt(x, y).In(i.bounds) {
 		return color.RGBA{}
 	}
-	r, g, b, a := i.buffered.At(x, y)
+	r, g, b, a, err := i.buffered.At(x, y)
+	if err != nil {
+		theUIContext.setError(err)
+	}
 	return color.RGBA{r, g, b, a}
 }
 
@@ -425,7 +428,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	}
 
 	r, g, b, a := clr.RGBA()
-	i.buffered.Set(x, y, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8))
+	if err := i.buffered.Set(x, y, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8)); err != nil {
+		theUIContext.setError(err)
+	}
 }
 
 // Dispose disposes the image data. After disposing, most of image functions do nothing and returns meaningless values.

@@ -24,21 +24,24 @@ var (
 	// delayedCommands represents a queue for image operations that are ordered before the game starts
 	// (BeginFrame). Before the game starts, the package shareable doesn't determine the minimum/maximum texture
 	// sizes (#879).
-	delayedCommands  []func()
+	delayedCommands  []func() error
 	delayedCommandsM sync.Mutex
 )
 
-func flushDelayedCommands() {
+func flushDelayedCommands() error {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if !needsToDelayCommands {
-		return
+		return nil
 	}
 
 	for _, c := range delayedCommands {
-		c()
+		if err := c(); err != nil {
+			return err
+		}
 	}
 	delayedCommands = delayedCommands[:0]
 	needsToDelayCommands = false
+	return nil
 }

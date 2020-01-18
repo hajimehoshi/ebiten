@@ -69,6 +69,9 @@ type uiContext struct {
 	outsideWidth       float64
 	outsideHeight      float64
 
+	err     error
+	errOnce sync.Once
+
 	m sync.Mutex
 }
 
@@ -83,6 +86,12 @@ func (c *uiContext) set(game Game, scaleForWindow float64) {
 		c.scaleForWindow = scaleForWindow
 		g.context = c
 	}
+}
+
+func (c *uiContext) setError(err error) {
+	c.errOnce.Do(func() {
+		c.err = err
+	})
 }
 
 func (c *uiContext) setScaleForWindow(scale float64) {
@@ -233,6 +242,9 @@ func (c *uiContext) offsets() (float64, float64) {
 func (c *uiContext) Update(afterFrameUpdate func()) error {
 	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
 
+	if c.err != nil {
+		return c.err
+	}
 	if err := buffered.BeginFrame(); err != nil {
 		return err
 	}

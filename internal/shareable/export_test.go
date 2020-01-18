@@ -14,8 +14,8 @@
 
 package shareable
 
-func MakeImagesSharedForTesting() {
-	makeImagesShared()
+func MakeImagesSharedForTesting() error {
+	return makeImagesShared()
 }
 
 func (i *Image) IsSharedForTesting() bool {
