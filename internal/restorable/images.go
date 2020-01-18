@@ -52,7 +52,9 @@ var theImages = &images{
 //
 // ResolveStaleImages is intended to be called at the end of a frame.
 func ResolveStaleImages() error {
-	graphicscommand.FlushCommands()
+	if err := graphicscommand.FlushCommands(); err != nil {
+		return err
+	}
 	if !needsRestoring() {
 		return nil
 	}
