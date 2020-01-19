@@ -389,8 +389,8 @@ func (c *context) needsRestoring() bool {
 }
 
 func (c *context) canUsePBO() bool {
-	// The implementation for PBO is almost done, but not finished yet due to Go mobile interface.
-	// See golang/go#36355.
+	// On Android, using PBO might slow the applications, especially when coming back from the context lost.
+	// Let's not use PBO until we find a good solution.
 	return false
 }
 
@@ -412,6 +412,8 @@ func (c *context) newPixelBufferObject(width, height int) buffer {
 }
 
 func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+	// This implementation is not used yet so far. See the comment at canUsePBO.
+
 	c.bindTexture(t)
 	gl := c.gl
 	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer(buffer))
@@ -424,8 +426,6 @@ func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, he
 		}
 	}
 
-	// This implementation is still wrong since TexSubImage2D cannot take an offset integer.
-	// See golang/go#36355.
 	gl.TexSubImage2D(mgl.TEXTURE_2D, 0, 0, 0, width, height, mgl.RGBA, mgl.UNSIGNED_BYTE, nil)
 	gl.BindBuffer(mgl.PIXEL_UNPACK_BUFFER, mgl.Buffer{0})
 }
