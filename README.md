@@ -7,7 +7,7 @@
 
 Ebiten is an open-source game library, with which you can develop 2D games with simple API for multi platforms in the Go programming language.
 
-* [Website (ebiten.org)](https://ebiten.org/)
+* [Website (ebiten.org)](https://ebiten.org)
 * [API Reference](https://pkg.go.dev/github.com/hajimehoshi/ebiten)
 * [Cheat Sheet](https://ebiten.org/documents/cheatsheet.html)
 
@@ -27,7 +27,7 @@ Ebiten is an open-source game library, with which you can develop 2D games with 
 
 Note: Gamepad and keyboard are not available on Android/iOS.
 
-For installation on desktops, see [the installation instruction](https://ebiten.org/install.html).
+For installation on desktops, see [the installation instruction](https://ebiten.org/documents/install.html).
 
 ## Features
 

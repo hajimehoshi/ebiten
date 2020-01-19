@@ -45,4 +45,4 @@ You don't have to update existing files' license comments.
 
 ## Documentation
 
-See the [documents](https://ebiten.org/implementation.html) about internal implementation.
+See the [documents](https://ebiten.org/documents/implementation.html) about internal implementation.
