@@ -92,6 +92,19 @@ func prepareGomobileCommands() error {
 		os.Chdir(pwd)
 	}()
 
+	// Hack to enable go-list at the temporary directory.
+	f, err := os.Create("main.go")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.WriteString("package main\n"); err != nil {
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		return err
+	}
+
 	if err := runGo("mod", "init", "ebitenmobiletemporary"); err != nil {
 		return err
 	}
