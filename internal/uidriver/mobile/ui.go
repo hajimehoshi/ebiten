@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
-	"time"
 
 	"golang.org/x/mobile/app"
 	"golang.org/x/mobile/event/lifecycle"
@@ -46,7 +45,9 @@ var (
 	// renderEndCh receives when updating finishes.
 	renderEndCh = make(chan struct{})
 
-	theUI = &UserInterface{}
+	theUI = &UserInterface{
+		foreground: true,
+	}
 )
 
 func init() {
@@ -58,6 +59,13 @@ func Get() *UserInterface {
 }
 
 func (u *UserInterface) Update() {
+	u.m.Lock()
+	fg := u.foreground
+	u.m.Unlock()
+	if !fg {
+		return
+	}
+
 	renderCh <- struct{}{}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -99,6 +107,7 @@ type UserInterface struct {
 	scale  float64
 
 	sizeChanged bool
+	foreground  bool
 
 	// Used for gomobile-build
 	gbuildWidthPx   int
@@ -130,6 +139,7 @@ func (u *UserInterface) appMain(a app.App) {
 		case lifecycle.Event:
 			switch e.Crosses(lifecycle.StageVisible) {
 			case lifecycle.CrossOn:
+				u.SetForeground(true)
 				glctx, _ = e.DrawContext.(gl.Context)
 				// Assume that glctx is always a same instance.
 				// Then, only once initializing should be enough.
@@ -139,6 +149,7 @@ func (u *UserInterface) appMain(a app.App) {
 				}
 				a.Send(paint.Event{})
 			case lifecycle.CrossOff:
+				u.SetForeground(false)
 				glctx = nil
 			}
 		case size.Event:
@@ -179,6 +190,18 @@ func (u *UserInterface) appMain(a app.App) {
 			}
 			u.input.update(ts)
 		}
+	}
+}
+
+func (u *UserInterface) SetForeground(foreground bool) {
+	u.m.Lock()
+	u.foreground = foreground
+	u.m.Unlock()
+
+	if foreground {
+		hooks.ResumeAudio()
+	} else {
+		hooks.SuspendAudio()
 	}
 }
 
@@ -290,18 +313,7 @@ func (u *UserInterface) updateSize(context driver.UIContext) {
 }
 
 func (u *UserInterface) update(context driver.UIContext) error {
-	t := time.NewTimer(500 * time.Millisecond)
-	defer t.Stop()
-
-	select {
-	case <-renderCh:
-	case <-t.C:
-		hooks.SuspendAudio()
-		<-renderCh
-	}
-
-	hooks.ResumeAudio()
-
+	<-renderCh
 	defer func() {
 		renderEndCh <- struct{}{}
 	}()
@@ -370,8 +382,10 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 }
 
 func (u *UserInterface) IsForeground() bool {
-	// TODO: implement this
-	return true
+	u.m.Lock()
+	fg := u.foreground
+	u.m.Unlock()
+	return fg
 }
 
 func (u *UserInterface) IsRunnableInBackground() bool {

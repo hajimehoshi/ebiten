@@ -80,3 +80,11 @@ func Update() error {
 
 	return update()
 }
+
+func Suspend() {
+	mobile.Get().SetForeground(false)
+}
+
+func Resume() {
+	mobile.Get().SetForeground(true)
+}
