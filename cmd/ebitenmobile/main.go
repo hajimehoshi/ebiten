@@ -170,8 +170,6 @@ func doBind(args []string, flagset *flag.FlagSet) error {
 	}
 
 	cmd := exec.Command("gomobile", args...)
-	cmd.Env = append(cmd.Env, os.Environ()...)
-	cmd.Env = append(cmd.Env, "GO111MODULE=off")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
