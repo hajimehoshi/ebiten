@@ -280,6 +280,10 @@ func (g *game) Update(screen *ebiten.Image) error {
 	} else {
 		msgR = "Press R key to switch the window resizable state (only for desktops)\n"
 	}
+	fg := "Yes"
+	if !ebiten.IsForeground() {
+		fg = "No"
+	}
 
 	msg := fmt.Sprintf(`Press arrow keys to move the window
 Press shift + arrow keys to change the window size
@@ -290,11 +294,13 @@ Press I key to change the window icon (only for desktops)
 Press V key to switch vsync
 Press T key to switch TPS (ticks per second)
 Press D key to switch the window decoration (only for desktops)
-%sWindows Position: (%d, %d)
+%s
+IsForeground?: %s
+Windows Position: (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgS, msgR, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgS, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
