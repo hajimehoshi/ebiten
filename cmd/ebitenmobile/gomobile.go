@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 )
 
 const gomobileHash = "82c397c4c5279f331dce14d734fda7060e4a3691"
@@ -55,8 +54,7 @@ func runGo(args ...string) error {
 	env := []string{
 		"GO111MODULE=on",
 	}
-	gocmd := filepath.Join(runtime.GOROOT(), "bin", "go")
-	return runCommand(gocmd, args, env)
+	return runCommand("go", args, env)
 }
 
 func prepareGomobileCommands() error {

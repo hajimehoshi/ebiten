@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 
@@ -46,8 +45,7 @@ func goEnv(name string) string {
 	if val := os.Getenv(name); val != "" {
 		return val
 	}
-	gocmd := filepath.Join(runtime.GOROOT(), "bin", "go")
-	val, err := exec.Command(gocmd, "env", name).Output()
+	val, err := exec.Command("go", "env", name).Output()
 	if err != nil {
 		panic(err)
 	}
