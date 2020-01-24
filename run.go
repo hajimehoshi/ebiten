@@ -240,11 +240,13 @@ func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, 
 }
 
 // ScreenSizeInFullscreen is deprecated as of 1.11.0-alpha.
+// Use SetFulllscreen, RunGame and the interface Game's Layout instead.
 func ScreenSizeInFullscreen() (int, int) {
 	return uiDriver().ScreenSizeInFullscreen()
 }
 
 // MonitorSize is deprecated as of 1.8.0-alpha.
+// Use SetFulllscreen, RunGame and the interface Game's Layout instead.
 func MonitorSize() (int, int) {
 	return ScreenSizeInFullscreen()
 }
