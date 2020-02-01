@@ -187,16 +187,16 @@ func handleMovement() {
 	}
 
 	// +1/-1 is to stop player before it reaches the border
-	if px >= screenHeight-padding {
-		px = screenHeight - padding - 1
+	if px >= screenWidth-padding {
+		px = screenWidth - padding - 1
 	}
 
 	if px <= padding {
 		px = padding + 1
 	}
 
-	if py >= screenWidth-padding {
-		py = screenWidth - padding - 1
+	if py >= screenHeight-padding {
+		py = screenHeight - padding - 1
 	}
 
 	if py <= padding {
