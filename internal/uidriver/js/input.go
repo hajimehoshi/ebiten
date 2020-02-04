@@ -17,6 +17,7 @@
 package js
 
 import (
+	"encoding/hex"
 	"syscall/js"
 	"unicode"
 
@@ -58,9 +59,14 @@ func (i *Input) CursorPosition() (x, y int) {
 }
 
 func (i *Input) GamepadSDLID(id int) string {
-	// TODO: Implement this. See the implementation of SDL:
-	// https://github.com/spurious/SDL-mirror/blob/master/src/joystick/emscripten/SDL_sysjoystick.c
-	return ""
+	// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
+	// https://hg.libsdl.org/SDL/file/bc90ce38f1e2/src/joystick/emscripten/SDL_sysjoystick.c#l385
+	if len(i.gamepads) <= id {
+		return ""
+	}
+	var sdlid [16]byte
+	copy(sdlid[:], []byte(i.gamepads[id].name))
+	return hex.EncodeToString(sdlid[:])
 }
 
 // GamepadName returns a string containing some information about the controller.

@@ -83,7 +83,7 @@ func update(screen *ebiten.Image) error {
 	str := ""
 	if len(ids) > 0 {
 		for _, id := range ids {
-			str += fmt.Sprintf("Gamepad (ID: %d):\n", id)
+			str += fmt.Sprintf("Gamepad (ID: %d, SDL ID: %s):\n", id, ebiten.GamepadSDLID(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(pressedButtons[id], ", "))
 			str += "\n"
