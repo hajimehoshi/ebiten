@@ -78,8 +78,8 @@ func NewScreenFramebufferMipmap(width, height int) *Mipmap {
 	}
 }
 
-func (m *Mipmap) Dump(name string) error {
-	return m.orig.Dump(name)
+func (m *Mipmap) Dump(name string, blackbg bool) error {
+	return m.orig.Dump(name, blackbg)
 }
 
 func (m *Mipmap) Fill(clr color.RGBA) {

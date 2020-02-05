@@ -170,13 +170,13 @@ func (img *Image) set(x, y int, r, g, b, a byte) error {
 	return nil
 }
 
-func (i *Image) Dump(name string) error {
+func (i *Image) Dump(name string, blackbg bool) error {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 	if needsToDelayCommands {
 		panic("buffered: the command queue is not available yet at Dump")
 	}
-	return i.img.Dump(name)
+	return i.img.Dump(name, blackbg)
 }
 
 func (i *Image) Fill(clr color.RGBA) {

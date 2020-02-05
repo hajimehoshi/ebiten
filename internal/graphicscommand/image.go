@@ -209,8 +209,10 @@ func (i *Image) IsInvalidated() bool {
 // Dump dumps the image to the specified path.
 // In the path, '*' is replaced with the image's ID.
 //
+// If blackbg is true, any alpha values in the dumped image will be 255.
+//
 // This is for testing usage.
-func (i *Image) Dump(path string) error {
+func (i *Image) Dump(path string, blackbg bool) error {
 	// Screen image cannot be dumped.
 	if i.screen {
 		return nil
@@ -227,6 +229,13 @@ func (i *Image) Dump(path string) error {
 	if err != nil {
 		return err
 	}
+
+	if blackbg {
+		for i := 0; i < len(pix)/4; i++ {
+			pix[4*i+3] = 0xff
+		}
+	}
+
 	if err := png.Encode(f, &image.RGBA{
 		Pix:    pix,
 		Stride: 4 * i.width,

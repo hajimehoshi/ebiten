@@ -529,11 +529,11 @@ func (i *Image) allocate(shareable bool) {
 	i.node = n
 }
 
-func (i *Image) Dump(path string) error {
+func (i *Image) Dump(path string, blackbg bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	return i.backend.restorable.Dump(path)
+	return i.backend.restorable.Dump(path, blackbg)
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {

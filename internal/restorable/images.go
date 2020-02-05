@@ -101,7 +101,7 @@ func RestoreIfNeeded() error {
 // This is for testing usage.
 func DumpImages(dir string) error {
 	for img := range theImages.images {
-		if err := img.Dump(filepath.Join(dir, "*.png")); err != nil {
+		if err := img.Dump(filepath.Join(dir, "*.png"), false); err != nil {
 			return err
 		}
 	}

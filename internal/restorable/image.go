@@ -577,6 +577,6 @@ func (i *Image) isInvalidated() (bool, error) {
 	return i.image.IsInvalidated(), nil
 }
 
-func (i *Image) Dump(path string) error {
-	return i.image.Dump(path)
+func (i *Image) Dump(path string, blackbg bool) error {
+	return i.image.Dump(path, blackbg)
 }
