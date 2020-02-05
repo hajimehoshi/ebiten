@@ -170,6 +170,22 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 	return runGame(game, scale)
 }
 
+type imageDumperGame struct {
+	game Game
+	d    *imageDumper
+}
+
+func (i *imageDumperGame) Update(screen *Image) error {
+	if i.d == nil {
+		i.d = &imageDumper{f: i.game.Update}
+	}
+	return i.d.update(screen)
+}
+
+func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return i.game.Layout(outsideWidth, outsideHeight)
+}
+
 // RunGame starts the main loop and runs the game.
 // game's Update function is called every frame.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
@@ -210,7 +226,7 @@ func Run(f func(*Image) error, width, height int, scale float64, title string) e
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
-	return runGame(game, 0)
+	return runGame(&imageDumperGame{game: game}, 0)
 }
 
 func runGame(game Game, scale float64) error {
