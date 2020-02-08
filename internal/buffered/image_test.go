@@ -15,6 +15,7 @@
 package buffered_test
 
 import (
+	"errors"
 	"image/color"
 	"os"
 	"testing"
@@ -34,19 +35,29 @@ func runOnMainThread(f func()) {
 }
 
 func TestMain(m *testing.M) {
+	codeCh := make(chan int)
+	endCh := make(chan struct{})
 	go func() {
-		os.Exit(m.Run())
+		code := m.Run()
+		close(endCh)
+		codeCh <- code
+		close(codeCh)
 	}()
 
-	for {
-		if err := ebiten.Run(func(*ebiten.Image) error {
-			f := <-mainCh
+	rt := errors.New("regular termination")
+	if err := ebiten.Run(func(*ebiten.Image) error {
+		select {
+		case f := <-mainCh:
 			f()
-			return nil
-		}, 320, 240, 1, ""); err != nil {
-			panic(err)
+		case <-endCh:
+			return rt
 		}
+		return nil
+	}, 320, 240, 1, ""); err != nil && err != rt {
+		panic(err)
 	}
+
+	os.Exit(<-codeCh)
 }
 
 type testResult struct {
