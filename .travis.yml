@@ -32,9 +32,9 @@ install:
   - go get golang.org/dl/go1.12.16
   - go1.12.16 download
 
-  # Install Go 1.14 beta1
-  - go get golang.org/dl/go1.14beta1
-  - go1.14beta1 download
+  # Install Go 1.14rc1
+  - go get golang.org/dl/go1.14rc1
+  - go1.14rc1 download
 
   # Make the working directory
   - mkdir /tmp/work
@@ -48,7 +48,7 @@ install:
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go mod edit -replace=github.com/hajimehoshi/ebiten=./ebiten; fi
 
   # wasmbrowsertest
-  - GO111MODULE=off go1.14beta1 get github.com/agnivade/wasmbrowsertest
+  - GO111MODULE=off go1.14rc1 get github.com/agnivade/wasmbrowsertest
   - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
 
   # GopherJS
@@ -89,7 +89,7 @@ script:
 
   # go test
   - go test -v github.com/hajimehoshi/ebiten/...
-  - GOOS=js GOARCH=wasm go1.14beta1 test -v github.com/hajimehoshi/ebiten/...
+  - GOOS=js GOARCH=wasm go1.14rc1 test -v github.com/hajimehoshi/ebiten/...
 
   # GopherJS
   - GO111MODULE=off go1.12.16 run github.com/gopherjs/gopherjs build --tags=example -v github.com/hajimehoshi/ebiten/examples/blocks
