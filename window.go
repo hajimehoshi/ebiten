@@ -139,7 +139,7 @@ func SetWindowIcon(iconImages []image.Image) {
 //
 // WindowPosition is concurrent-safe.
 func WindowPosition() (x, y int) {
-	if x, y, ok := initWindowPosition(); ok {
+	if x, y, ok := getInitWindowPosition(); ok {
 		return x, y
 	}
 	if w := uiDriver().Window(); w != nil {
@@ -165,31 +165,36 @@ func SetWindowPosition(x, y int) {
 }
 
 var (
-	windowM             sync.Mutex
-	mainLoopStarted     bool
-	initWindowPositionX = invalidPos
-	initWindowPositionY = invalidPos
+	windowM            sync.Mutex
+	initWindowPosition = &struct {
+		x int
+		y int
+	}{
+		x: invalidPos,
+		y: invalidPos,
+	}
 )
 
-func initWindowPosition() (x, y int, ok bool) {
+func getInitWindowPosition() (x, y int, ok bool) {
 	windowM.Lock()
 	defer windowM.Unlock()
-	if mainLoopStarted {
+	if initWindowPosition == nil {
 		return 0, 0, false
 	}
-	if initWindowPositionX == invalidPos || initWindowPositionY == invalidPos {
+	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
 		return 0, 0, false
 	}
-	return initWindowPositionX, initWindowPositionY, true
+	return initWindowPosition.x, initWindowPosition.y, true
 }
 
 func setInitWindowPosition(x, y int) bool {
 	windowM.Lock()
 	defer windowM.Unlock()
-	if mainLoopStarted {
+	if initWindowPosition == nil {
 		return false
 	}
-	initWindowPositionX, initWindowPositionY = x, y
+	initWindowPosition.x = x
+	initWindowPosition.y = y
 	return true
 }
 
@@ -198,7 +203,7 @@ func fixWindowPosition(width, height int) {
 	defer windowM.Unlock()
 
 	defer func() {
-		mainLoopStarted = true
+		initWindowPosition = nil
 	}()
 
 	w := uiDriver().Window()
@@ -206,14 +211,14 @@ func fixWindowPosition(width, height int) {
 		return
 	}
 
-	if initWindowPositionX == invalidPos || initWindowPositionY == invalidPos {
+	if initWindowPosition.x == invalidPos || initWindowPosition.y == invalidPos {
 		mx, my := uiDriver().MonitorPosition()
 		sw, sh := uiDriver().ScreenSizeInFullscreen()
 		x := mx + (sw-width)/2
 		y := my + (sh-height)/3
 		w.SetPosition(x, y)
 	} else {
-		w.SetPosition(initWindowPositionX, initWindowPositionY)
+		w.SetPosition(initWindowPosition.x, initWindowPosition.y)
 	}
 }
 
