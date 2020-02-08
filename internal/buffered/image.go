@@ -45,7 +45,10 @@ func EndFrame() error {
 
 func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{}
+
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			i.img = mipmap.New(width, height, volatile)
@@ -53,10 +56,8 @@ func NewImage(width, height int, volatile bool) *Image {
 			i.height = height
 			return nil
 		})
-		delayedCommandsM.Unlock()
 		return i
 	}
-	delayedCommandsM.Unlock()
 
 	i.img = mipmap.New(width, height, volatile)
 	i.width = width
@@ -66,7 +67,10 @@ func NewImage(width, height int, volatile bool) *Image {
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{}
+
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			i.img = mipmap.NewScreenFramebufferMipmap(width, height)
@@ -74,10 +78,9 @@ func NewScreenFramebufferImage(width, height int) *Image {
 			i.height = height
 			return nil
 		})
-		delayedCommandsM.Unlock()
+
 		return i
 	}
-	delayedCommandsM.Unlock()
 
 	i.img = mipmap.NewScreenFramebufferMipmap(width, height)
 	i.width = width
@@ -104,15 +107,15 @@ func (i *Image) resolvePendingPixels(keepPendingPixels bool) {
 
 func (i *Image) MarkDisposed() {
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			i.img.MarkDisposed()
 			return nil
 		})
-		delayedCommandsM.Unlock()
 		return
 	}
-	delayedCommandsM.Unlock()
 
 	i.invalidatePendingPixels()
 }
@@ -130,14 +133,13 @@ func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
 
 func (i *Image) Set(x, y int, r, g, b, a byte) error {
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			return i.set(x, y, r, g, b, a)
 		})
-		delayedCommandsM.Unlock()
 		return nil
 	}
-	delayedCommandsM.Unlock()
 
 	return i.set(x, y, r, g, b, a)
 }
@@ -181,15 +183,15 @@ func (i *Image) Dump(name string, blackbg bool) error {
 
 func (i *Image) Fill(clr color.RGBA) {
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			i.img.Fill(clr)
 			return nil
 		})
-		delayedCommandsM.Unlock()
 		return
 	}
-	delayedCommandsM.Unlock()
 
 	i.invalidatePendingPixels()
 	i.img.Fill(clr)
@@ -197,6 +199,8 @@ func (i *Image) Fill(clr color.RGBA) {
 
 func (i *Image) ReplacePixels(pix []byte) {
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			copied := make([]byte, len(pix))
@@ -204,10 +208,8 @@ func (i *Image) ReplacePixels(pix []byte) {
 			i.img.ReplacePixels(copied)
 			return nil
 		})
-		delayedCommandsM.Unlock()
 		return
 	}
-	delayedCommandsM.Unlock()
 
 	i.invalidatePendingPixels()
 	i.img.ReplacePixels(pix)
@@ -228,15 +230,15 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 	}
 
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			i.drawImage(src, bounds, g, colorm, mode, filter)
 			return nil
 		})
-		delayedCommandsM.Unlock()
 		return
 	}
-	delayedCommandsM.Unlock()
 
 	i.drawImage(src, bounds, g, colorm, mode, filter)
 }
@@ -253,15 +255,15 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 	}
 
 	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
 			i.drawTriangles(src, vertices, indices, colorm, mode, filter, address)
 			return nil
 		})
-		delayedCommandsM.Unlock()
 		return
 	}
-	delayedCommandsM.Unlock()
 	i.drawTriangles(src, vertices, indices, colorm, mode, filter, address)
 }
 
