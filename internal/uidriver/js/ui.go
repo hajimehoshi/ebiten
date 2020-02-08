@@ -178,7 +178,10 @@ func (u *UserInterface) update() error {
 func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	u.context = context
 
-	ch := make(chan error)
+	errCh := make(chan error)
+	reqStopAudioCh := make(chan struct{})
+	resStopAudioCh := make(chan struct{})
+
 	var cf js.Func
 	f := func(this js.Value, args []js.Value) interface{} {
 		if u.contextLost {
@@ -187,8 +190,11 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 		}
 
 		if err := u.update(); err != nil {
-			ch <- err
-			close(ch)
+			close(reqStopAudioCh)
+			<-resStopAudioCh
+
+			errCh <- err
+			close(errCh)
 			return nil
 		}
 		if u.vsync {
@@ -209,18 +215,37 @@ func (u *UserInterface) loop(context driver.UIContext) <-chan error {
 	// To check the document's visiblity, visibilitychange event should usually be used. However, this event is
 	// not reliable and sometimes it is not fired (#961). Then, watch the state regularly instead.
 	go func() {
-		t := time.NewTicker(100 * time.Millisecond)
-		defer t.Stop()
-		for range t.C {
-			if u.suspended() {
-				hooks.SuspendAudio()
-			} else {
-				hooks.ResumeAudio()
+		defer close(resStopAudioCh)
+
+		const interval = 100 * time.Millisecond
+		t := time.NewTicker(interval)
+		defer func() {
+			t.Stop()
+
+			// This is a dirty hack. (*time.Ticker).Stop() just marks the timer 'deleted' [1] and
+			// something might run even after Stop. On Wasm, this causes an issue to execute Go program
+			// even after finishing (#1027). Sleep for the interval time duration to ensure that
+			// everything related to the timer is finished.
+			//
+			// [1] runtime.deltimer
+			time.Sleep(interval)
+		}()
+
+		for {
+			select {
+			case <-t.C:
+				if u.suspended() {
+					hooks.SuspendAudio()
+				} else {
+					hooks.ResumeAudio()
+				}
+			case <-reqStopAudioCh:
+				return
 			}
 		}
 	}()
 
-	return ch
+	return errCh
 }
 
 func init() {
