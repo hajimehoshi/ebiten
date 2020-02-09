@@ -54,6 +54,7 @@ type UI interface {
 
 	IsScreenTransparent() bool
 	SetScreenTransparent(transparent bool)
+	SetInitFocused(focused bool)
 
 	Input() Input
 	Window() Window

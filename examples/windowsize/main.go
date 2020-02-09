@@ -61,6 +61,7 @@ var (
 	flagFloating          = flag.Bool("floating", false, "make the window floating")
 	flagMaximize          = flag.Bool("maximize", false, "maximize the window")
 	flagVsync             = flag.Bool("vsync", true, "enable vsync")
+	flagInitFocused       = flag.Bool("initfocused", true, "whether the window is focused on start")
 )
 
 func init() {
@@ -418,6 +419,11 @@ func main() {
 			log.Println("-autoadjusting flag cannot work with -legacy flag")
 		}
 		ebiten.SetWindowResizable(true)
+	}
+
+	ebiten.SetInitFocused(*flagInitFocused)
+	if !*flagInitFocused {
+		ebiten.SetRunnableOnUnfocused(true)
 	}
 
 	const title = "Window Size (Ebiten Demo)"

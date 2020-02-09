@@ -72,6 +72,7 @@ type UserInterface struct {
 	initWindowMaximized      bool
 	initScreenTransparent    bool
 	initIconImages           []image.Image
+	initFocused              bool
 
 	vsyncInited bool
 
@@ -102,6 +103,8 @@ var (
 		initWindowPositionYInDP: invalidPos,
 		initWindowWidthInDP:     640,
 		initWindowHeightInDP:    480,
+		initFocused:             true,
+		vsync:                   true,
 	}
 )
 
@@ -371,6 +374,18 @@ func (u *UserInterface) isInitWindowMaximized() bool {
 func (u *UserInterface) setInitWindowMaximized(floating bool) {
 	u.m.Lock()
 	u.initWindowMaximized = floating
+}
+
+func (u *UserInterface) isInitFocused() bool {
+	u.m.Lock()
+	v := u.initFocused
+	u.m.Unlock()
+	return v
+}
+
+func (u *UserInterface) setInitFocused(focused bool) {
+	u.m.Lock()
+	u.initFocused = focused
 	u.m.Unlock()
 }
 
@@ -692,6 +707,12 @@ func (u *UserInterface) run() error {
 			floating = glfw.True
 		}
 		glfw.WindowHint(glfw.Floating, floating)
+
+		focused := glfw.False
+		if u.isInitFocused() {
+			focused = glfw.True
+		}
+		glfw.WindowHint(glfw.FocusOnShow, focused)
 
 		// Set the window visible explicitly or the application freezes on Wayland (#974).
 		if os.Getenv("WAYLAND_DISPLAY") != "" {
@@ -1107,6 +1128,30 @@ func (u *UserInterface) ResetForFrame() {
 	// The offscreens must be updated every frame (#490).
 	u.updateSize()
 	u.input.resetForFrame()
+}
+
+func (u *UserInterface) MonitorPosition() (int, int) {
+	if !u.isRunning() {
+		return u.monitorPosition()
+	}
+	var mx, my int
+	_ = u.t.Call(func() error {
+		mx, my = u.monitorPosition()
+		return nil
+	})
+	return mx, my
+}
+
+func (u *UserInterface) SetInitFocused(focused bool) {
+	if u.isRunning() {
+		panic("ui: SetInitFocused must be called before the main loop")
+	}
+	u.setInitFocused(focused)
+}
+
+func (u *UserInterface) monitorPosition() (int, int) {
+	// TODO: toDeviceIndependentPixel might be required.
+	return u.currentMonitor().GetPos()
 }
 
 func (u *UserInterface) Input() driver.Input {

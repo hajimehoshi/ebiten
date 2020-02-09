@@ -441,6 +441,10 @@ func (u *UserInterface) ResetForFrame() {
 	u.input.resetForFrame()
 }
 
+func (u *UserInterface) SetInitFocused(focused bool) {
+	// Do nothing
+}
+
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }

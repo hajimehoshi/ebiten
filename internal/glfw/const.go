@@ -79,6 +79,7 @@ const (
 	Decorated              = Hint(0x00020005)
 	Floating               = Hint(0x00020007)
 	Focused                = Hint(0x00020001)
+	FocusOnShow            = Hint(0x0002000C)
 	Iconified              = Hint(0x00020002)
 	Maximized              = Hint(0x00020008)
 	Resizable              = Hint(0x00020003)
