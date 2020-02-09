@@ -470,6 +470,8 @@ func SetMaxTPS(tps int) {
 }
 
 // IsScreenTransparent reports whether the window is transparent.
+//
+// IsScreenTransparent is concurrent-safe.
 func IsScreenTransparent() bool {
 	return uiDriver().IsScreenTransparent()
 }
@@ -479,6 +481,8 @@ func IsScreenTransparent() bool {
 // SetScreenTransparent panics if SetScreenTransparent is called after the main loop.
 //
 // SetScreenTransparent does nothing on mobiles.
+//
+// SetScreenTransparent is concurrent-safe.
 func SetScreenTransparent(transparent bool) {
 	uiDriver().SetScreenTransparent(transparent)
 }
