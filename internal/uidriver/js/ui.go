@@ -33,7 +33,6 @@ type UserInterface struct {
 	runnableInBackground bool
 	vsync                bool
 	running              bool
-	initFocused          bool
 
 	sizeChanged bool
 	contextLost bool
@@ -47,7 +46,6 @@ type UserInterface struct {
 var theUI = &UserInterface{
 	sizeChanged: true,
 	vsync:       true,
-	initFocused: true,
 }
 
 func init() {
@@ -407,9 +405,7 @@ func init() {
 }
 
 func (u *UserInterface) Run(context driver.UIContext) error {
-	if u.initFocused {
-		canvas.Call("focus")
-	}
+	canvas.Call("focus")
 	u.running = true
 	ch := u.loop(context)
 	if runtime.GOARCH == "wasm" {
@@ -462,13 +458,6 @@ func (u *UserInterface) IsScreenTransparent() bool {
 
 func (u *UserInterface) MonitorPosition() (int, int) {
 	return 0, 0
-}
-
-func (u *UserInterface) SetInitFocused(focused bool) {
-	if u.running {
-		panic("ui: SetInitFocused must be called before the main loop")
-	}
-	u.initFocused = focused
 }
 
 func (u *UserInterface) Input() driver.Input {

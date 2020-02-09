@@ -49,7 +49,6 @@ type UI interface {
 	SetRunnableInBackground(runnableInBackground bool)
 	SetVsyncEnabled(enabled bool)
 	SetScreenTransparent(transparent bool)
-	SetInitFocused(focused bool)
 
 	Input() Input
 	Window() Window

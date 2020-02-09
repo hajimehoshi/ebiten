@@ -486,17 +486,3 @@ func IsScreenTransparent() bool {
 func SetScreenTransparent(transparent bool) {
 	uiDriver().SetScreenTransparent(transparent)
 }
-
-// SetInitFocused sets whether the application is focused on show.
-// The default value is true, i.e., the application is focused.
-// Note that the application does not proceed if this is not focused by default.
-// This behavior can be changed by SetRunnableInBackground.
-//
-// SetInitFocused does nothing on mobile.
-//
-// SetInitFocused panics if this is called after the main loop.
-//
-// SetInitFocused is cuncurrent-safe.
-func SetInitFocused(focused bool) {
-	uiDriver().SetInitFocused(focused)
-}

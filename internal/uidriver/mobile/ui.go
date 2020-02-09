@@ -420,10 +420,6 @@ func (u *UserInterface) MonitorPosition() (int, int) {
 	return 0, 0
 }
 
-func (u *UserInterface) SetInitFocused(focused bool) {
-	// Do nothing
-}
-
 func (u *UserInterface) Input() driver.Input {
 	return &u.input
 }
