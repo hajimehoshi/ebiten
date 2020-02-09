@@ -68,6 +68,7 @@ type UserInterface struct {
 	initWindowHeightInDP     int
 	initScreenTransparent    bool
 	initIconImages           []image.Image
+	initFocused              bool
 
 	reqWidth  int
 	reqHeight int
@@ -95,6 +96,7 @@ var (
 		initWindowPositionYInDP: invalidPos,
 		initWindowWidthInDP:     640,
 		initWindowHeightInDP:    480,
+		initFocused:             true,
 		vsync:                   true,
 	}
 )
@@ -331,6 +333,19 @@ func (u *UserInterface) getInitWindowSize() (int, int) {
 func (u *UserInterface) setInitWindowSize(width, height int) {
 	u.m.Lock()
 	u.initWindowWidthInDP, u.initWindowHeightInDP = width, height
+	u.m.Unlock()
+}
+
+func (u *UserInterface) isInitFocused() bool {
+	u.m.Lock()
+	v := u.initFocused
+	u.m.Unlock()
+	return v
+}
+
+func (u *UserInterface) setInitFocused(focused bool) {
+	u.m.Lock()
+	u.initFocused = focused
 	u.m.Unlock()
 }
 
@@ -627,6 +642,12 @@ func (u *UserInterface) run(context driver.UIContext) error {
 			resizable = glfw.True
 		}
 		glfw.WindowHint(glfw.Resizable, resizable)
+
+		focused := glfw.False
+		if u.isInitFocused() {
+			focused = glfw.True
+		}
+		glfw.WindowHint(glfw.FocusOnShow, focused)
 
 		// Set the window visible explicitly or the application freezes on Wayland (#974).
 		if os.Getenv("WAYLAND_DISPLAY") != "" {
@@ -1013,6 +1034,13 @@ func (u *UserInterface) MonitorPosition() (int, int) {
 		return nil
 	})
 	return mx, my
+}
+
+func (u *UserInterface) SetInitFocused(focused bool) {
+	if u.isRunning() {
+		panic("ui: SetInitFocused must be called before the main loop")
+	}
+	u.setInitFocused(focused)
 }
 
 func (u *UserInterface) monitorPosition() (int, int) {

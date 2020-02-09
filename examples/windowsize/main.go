@@ -58,6 +58,7 @@ var (
 	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
 	flagScreenTransparent = flag.Bool("screentransparent", false, "screen transparent")
 	flagAutoAdjusting     = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
+	flagInitFocused       = flag.Bool("initfocused", true, "whether the window is focused on start")
 )
 
 func init() {
@@ -368,6 +369,11 @@ func main() {
 			log.Println("-autoadjusting flag cannot work with -legacy flag")
 		}
 		ebiten.SetWindowResizable(true)
+	}
+
+	ebiten.SetInitFocused(*flagInitFocused)
+	if !*flagInitFocused {
+		ebiten.SetRunnableInBackground(true)
 	}
 
 	const title = "Window Size (Ebiten Demo)"
