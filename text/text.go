@@ -285,6 +285,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		if r == '\n' {
 			fx = fixed.I(x)
 			fy += face.Metrics().Height
+			prevR = rune(-1)
 			continue
 		}
 
