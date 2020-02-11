@@ -47,6 +47,7 @@ var (
 
 	theUI = &UserInterface{
 		foreground: true,
+		errCh:      make(chan error),
 
 		// Give a default outside size so that the game can start without initializing them.
 		outsideWidth:  640,
@@ -64,12 +65,18 @@ func Get() *UserInterface {
 }
 
 // Update is called from mobile/ebitenmobileview.
-func (u *UserInterface) Update() {
+func (u *UserInterface) Update() error {
+	select {
+	case err := <-u.errCh:
+		return err
+	default:
+	}
+
 	u.m.Lock()
 	fg := u.foreground
 	u.m.Unlock()
 	if !fg {
-		return
+		return nil
 	}
 
 	renderCh <- struct{}{}
@@ -100,10 +107,11 @@ func (u *UserInterface) Update() {
 				break loop
 			}
 		}
-		return
+		return nil
 	} else {
 		u.t.Loop(ctx)
 	}
+	return nil
 }
 
 type UserInterface struct {
@@ -112,6 +120,7 @@ type UserInterface struct {
 
 	sizeChanged bool
 	foreground  bool
+	errCh       chan error
 
 	// Used for gomobile-build
 	gbuildWidthPx   int
@@ -221,17 +230,13 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) <-chan error {
-	ch := make(chan error)
+func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 	go func() {
-		defer close(ch)
 		// title is ignored?
 		if err := u.run(context, false); err != nil {
-			ch <- err
+			u.errCh <- err
 		}
 	}()
-
-	return ch
 }
 
 func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error) {

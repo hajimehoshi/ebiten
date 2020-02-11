@@ -243,11 +243,11 @@ func runGame(game Game, scale float64) error {
 //
 // Ebiten users should NOT call RunGameWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
-func RunGameWithoutMainLoop(game Game) <-chan error {
+func RunGameWithoutMainLoop(game Game) {
 	game = &imageDumperGame{game: game}
 	fixWindowPosition(WindowSize())
 	theUIContext.set(game, 0)
-	return uiDriver().RunWithoutMainLoop(theUIContext)
+	uiDriver().RunWithoutMainLoop(theUIContext)
 }
 
 // ScreenSizeInFullscreen is deprecated as of 1.11.0-alpha.

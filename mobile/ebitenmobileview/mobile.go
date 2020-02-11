@@ -36,9 +36,7 @@ import (
 var theState state
 
 type state struct {
-	game ebiten.Game
-
-	errorCh <-chan error
+	started bool
 
 	// m is a mutex required for each function.
 	// For example, on Android, Update can be called from a different thread:
@@ -47,18 +45,18 @@ type state struct {
 }
 
 func (s *state) isRunning() bool {
-	return s.game != nil && s.errorCh != nil
+	return s.started
 }
 
 func SetGame(game ebiten.Game) {
 	theState.m.Lock()
 	defer theState.m.Unlock()
 
-	if theState.game != nil {
+	if theState.started {
 		panic("ebitenmobileview: SetGame cannot be called twice or more")
 	}
-	theState.game = game
-	theState.errorCh = ebiten.RunGameWithoutMainLoop(theState.game)
+	ebiten.RunGameWithoutMainLoop(game)
+	theState.started = true
 }
 
 func Layout(viewWidth, viewHeight float64) {
@@ -75,21 +73,13 @@ func Update() error {
 
 	theState.m.Lock()
 	defer theState.m.Unlock()
-
-	if !theState.isRunning() {
+	if !theState.started {
 		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
 		// this.
 		return nil
 	}
 
-	select {
-	case err := <-theState.errorCh:
-		return err
-	default:
-	}
-
-	mobile.Get().Update()
-	return nil
+	return mobile.Get().Update()
 }
 
 func Suspend() {

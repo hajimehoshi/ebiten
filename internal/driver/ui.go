@@ -32,7 +32,7 @@ var RegularTermination = errors.New("regular termination")
 
 type UI interface {
 	Run(context UIContext) error
-	RunWithoutMainLoop(context UIContext) <-chan error
+	RunWithoutMainLoop(context UIContext)
 
 	DeviceScaleFactor() float64
 	CursorMode() CursorMode

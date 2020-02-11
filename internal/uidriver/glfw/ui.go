@@ -543,7 +543,7 @@ func (u *UserInterface) Run(uicontext driver.UIContext) error {
 	return <-ch
 }
 
-func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) <-chan error {
+func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 	panic("glfw: RunWithoutMainLoop is not implemented")
 }
 
