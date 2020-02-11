@@ -27,25 +27,42 @@ import "C"
 
 import (
 	"runtime"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
+var theState state
+
+type state struct {
+	game ebiten.Game
+
+	errorCh <-chan error
+
+	// m is a mutex required for each function.
+	// For example, on Android, Update can be called from a different thread:
+	// https://developer.android.com/reference/android/opengl/GLSurfaceView.Renderer
+	m sync.Mutex
+}
+
+func (s *state) isRunning() bool {
+	return s.game != nil && s.errorCh != nil
+}
+
+func SetGame(game ebiten.Game) {
+	theState.m.Lock()
+	defer theState.m.Unlock()
+
+	if theState.game != nil {
+		panic("ebitenmobileview: SetGame cannot be called twice or more")
+	}
+	theState.game = game
+}
+
 func Layout(viewWidth, viewHeight float64) {
 	theState.m.Lock()
 	defer theState.m.Unlock()
-	layout(viewWidth, viewHeight)
-}
-
-func layout(viewWidth, viewHeight float64) {
-	if theState.game == nil {
-		// It is fine to override the existing function since only the last layout result matters.
-		theState.delayedLayout = func() {
-			layout(viewWidth, viewHeight)
-		}
-		return
-	}
 
 	mobile.Get().SetOutsideSize(viewWidth, viewHeight)
 	if !theState.isRunning() {
@@ -54,16 +71,13 @@ func layout(viewWidth, viewHeight float64) {
 }
 
 func Update() error {
+	// Lock the OS thread since graphics functions (GL) must be called on this thread.
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	theState.m.Lock()
 	defer theState.m.Unlock()
 
-	return update()
-}
-
-func update() error {
 	if !theState.isRunning() {
 		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
 		// this.
