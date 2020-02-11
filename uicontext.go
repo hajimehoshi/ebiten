@@ -23,17 +23,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/buffered"
 	"github.com/hajimehoshi/ebiten/internal/clock"
 	"github.com/hajimehoshi/ebiten/internal/driver"
-	"github.com/hajimehoshi/ebiten/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/internal/hooks"
-	"github.com/hajimehoshi/ebiten/internal/mipmap"
-	"github.com/hajimehoshi/ebiten/internal/shareable"
 )
-
-func init() {
-	mipmap.SetGraphicsDriver(uiDriver().Graphics())
-	shareable.SetGraphicsDriver(uiDriver().Graphics())
-	graphicscommand.SetGraphicsDriver(uiDriver().Graphics())
-}
 
 type defaultGame struct {
 	update  func(screen *Image) error

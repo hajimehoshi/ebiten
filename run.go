@@ -21,8 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var _ = __EBITEN_REQUIRES_GO_VERSION_1_12_OR_LATER__
-
 // Game defines necessary functions for a game.
 type Game interface {
 	// Update updates a game by one frame.
