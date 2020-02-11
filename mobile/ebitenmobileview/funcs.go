@@ -26,54 +26,30 @@ package ebitenmobileview
 import "C"
 
 import (
-	"math"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
-type ViewRectSetter interface {
-	SetViewRect(x, y, width, height int)
-}
-
-func Layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
+func Layout(viewWidth, viewHeight float64) {
 	theState.m.Lock()
 	defer theState.m.Unlock()
-	layout(viewWidth, viewHeight, viewRectSetter)
+	layout(viewWidth, viewHeight)
 }
 
-func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
+func layout(viewWidth, viewHeight float64) {
 	if theState.game == nil {
 		// It is fine to override the existing function since only the last layout result matters.
 		theState.delayedLayout = func() {
-			layout(viewWidth, viewHeight, viewRectSetter)
+			layout(viewWidth, viewHeight)
 		}
 		return
 	}
 
-	// TODO: Layout must be called every frame like uiContext already did.
-	w, h := theState.game.Layout(int(viewWidth), int(viewHeight))
-	scaleX := float64(viewWidth) / float64(w)
-	scaleY := float64(viewHeight) / float64(h)
-	scale := math.Min(scaleX, scaleY)
-
-	// To convert a logical offscreen size to the actual screen size, use Math.floor to use smaller and safer
-	// values, or glitches can appear (#956).
-	width := int(math.Floor(float64(w) * scale))
-	height := int(math.Floor(float64(h) * scale))
-	x := (viewWidth - width) / 2
-	y := (viewHeight - height) / 2
-
-	if theState.isRunning() {
-		mobile.Get().SetScreenSizeAndScale(w, h, scale)
-	} else {
-		// The last argument 'title' is not used on mobile platforms, so just pass an empty string.
-		theState.errorCh = ebiten.RunWithoutMainLoop(theState.game.Update, w, h, scale, "")
-	}
-
-	if viewRectSetter != nil {
-		viewRectSetter.SetViewRect(x, y, width, height)
+	mobile.Get().SetOutsideSize(viewWidth, viewHeight)
+	if !theState.isRunning() {
+		theState.errorCh = ebiten.RunGameWithoutMainLoop(theState.game)
 	}
 }
 

@@ -238,19 +238,16 @@ func runGame(game Game, scale float64) error {
 	return nil
 }
 
-// RunWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
-// Different from Run, RunWithoutMainLoop returns immediately.
+// RunGameWithoutMainLoop runs the game, but don't call the loop on the main (UI) thread.
+// Different from Run, RunGameWithoutMainLoop returns immediately.
 //
-// Ebiten users should NOT call RunWithoutMainLoop.
+// Ebiten users should NOT call RunGameWithoutMainLoop.
 // Instead, functions in github.com/hajimehoshi/ebiten/mobile package calls this.
-func RunWithoutMainLoop(f func(*Image) error, width, height int, scale float64, title string) <-chan error {
-	game := &defaultGame{
-		update: (&imageDumper{f: f}).update,
-		width:  width,
-		height: height,
-	}
-	theUIContext.set(game, scale)
-	return uiDriver().RunWithoutMainLoop(width, height, scale, title, theUIContext)
+func RunGameWithoutMainLoop(game Game) <-chan error {
+	game = &imageDumperGame{game: game}
+	fixWindowPosition(WindowSize())
+	theUIContext.set(game, 0)
+	return uiDriver().RunWithoutMainLoop(theUIContext)
 }
 
 // ScreenSizeInFullscreen is deprecated as of 1.11.0-alpha.
@@ -270,7 +267,7 @@ func SetScreenSize(width, height int) {
 	if width <= 0 || height <= 0 {
 		panic("ebiten: width and height must be positive")
 	}
-	theUIContext.SetScreenSize(width, height)
+	theUIContext.setScreenSize(width, height)
 }
 
 // SetScreenScale is deprecated as of 1.11.0-alpha. Use SetWindowSize instead.

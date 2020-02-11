@@ -425,7 +425,7 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext) <-chan error {
+func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) <-chan error {
 	panic("js: RunWithoutMainLoop is not implemented")
 }
 

@@ -118,11 +118,10 @@ func (c *uiContext) getScaleForWindow() float64 {
 	return s
 }
 
-// SetScreenSize sets the (logical) screen size and adjusts the window size.
+// setScreenSize sets the (logical) screen size and adjusts the window size.
 //
-// SetScreenSize is for backward compatibility. This is called from ebiten.SetScreenSize and
-// uidriver/mobile.UserInterface.
-func (c *uiContext) SetScreenSize(width, height int) {
+// setScreenSize is for backward compatibility. This is called from ebiten.SetScreenSize.
+func (c *uiContext) setScreenSize(width, height int) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
@@ -179,7 +178,7 @@ func (c *uiContext) updateOffscreen() {
 
 	// The window size is automatically adjusted when Run is used.
 	if _, ok := c.game.(*defaultGame); ok {
-		c.SetScreenSize(sw, sh)
+		c.setScreenSize(sw, sh)
 	}
 
 	// TODO: This is duplicated with mobile/ebitenmobileview/funcs.go. Refactor this.
