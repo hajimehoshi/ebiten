@@ -587,13 +587,11 @@ func (d *Driver) Draw(indexLen int, indexOffset int, mode driver.CompositeMode, 
 		d.view.update()
 
 		rpd := mtl.RenderPassDescriptor{}
-		if d.dst.screen {
-			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionDontCare
-			rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
-		} else {
-			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
-			rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
-		}
+		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
+		// (#1019). Always using mtl.LoadActionLoad is safe.
+		rpd.ColorAttachments[0].LoadAction = mtl.LoadActionLoad
+		rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+
 		var t mtl.Texture
 		if d.dst.screen {
 			if d.screenDrawable == (ca.MetalDrawable{}) {
