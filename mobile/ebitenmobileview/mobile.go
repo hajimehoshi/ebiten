@@ -58,6 +58,7 @@ func SetGame(game ebiten.Game) {
 		panic("ebitenmobileview: SetGame cannot be called twice or more")
 	}
 	theState.game = game
+	theState.errorCh = ebiten.RunGameWithoutMainLoop(theState.game)
 }
 
 func Layout(viewWidth, viewHeight float64) {
@@ -65,9 +66,6 @@ func Layout(viewWidth, viewHeight float64) {
 	defer theState.m.Unlock()
 
 	mobile.Get().SetOutsideSize(viewWidth, viewHeight)
-	if !theState.isRunning() {
-		theState.errorCh = ebiten.RunGameWithoutMainLoop(theState.game)
-	}
 }
 
 func Update() error {

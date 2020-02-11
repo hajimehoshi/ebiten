@@ -47,6 +47,11 @@ var (
 
 	theUI = &UserInterface{
 		foreground: true,
+
+		// Give a default outside size so that the game can start without initializing them.
+		outsideWidth:  640,
+		outsideHeight: 480,
+		sizeChanged:   true,
 	}
 )
 
