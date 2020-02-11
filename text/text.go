@@ -261,7 +261,8 @@ func colorToColorM(clr color.Color) ebiten.ColorM {
 // Be careful that this doesn't represent left-upper corner position.
 // clr is the color for text rendering.
 //
-// The \n newline character puts the following text on the next line.
+// The '\n' newline character puts the following text on the next line.
+// Line height is based on Metrics().Height of the font.
 //
 // Glyphs used for rendering are cached in least-recently-used way.
 // It is OK to call Draw with a same text and a same face at every frame in terms of performance.
