@@ -20,6 +20,11 @@
 // There is no guarantee of backward compatibility.
 package ebitenmobileview
 
+// #cgo ios LDFLAGS: -framework UIKit -framework GLKit -framework QuartzCore -framework OpenGLES
+//
+// #include <stdint.h>
+import "C"
+
 import (
 	"math"
 	"runtime"
@@ -80,6 +85,23 @@ func Update() error {
 	defer theState.m.Unlock()
 
 	return update()
+}
+
+func update() error {
+	if !theState.isRunning() {
+		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
+		// this.
+		return nil
+	}
+
+	select {
+	case err := <-theState.errorCh:
+		return err
+	default:
+	}
+
+	mobile.Get().Update()
+	return nil
 }
 
 func Suspend() {
