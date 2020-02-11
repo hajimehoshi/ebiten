@@ -72,10 +72,7 @@ func (u *UserInterface) Update() error {
 	default:
 	}
 
-	u.m.Lock()
-	fg := u.foreground
-	u.m.Unlock()
-	if !fg {
+	if !u.IsForeground() {
 		return nil
 	}
 
@@ -84,6 +81,7 @@ func (u *UserInterface) Update() error {
 	go func() {
 		<-renderEndCh
 		if u.t != nil {
+			// If there is a (main) thread, ensure that cancel is called after every other task is done.
 			u.t.Call(func() error {
 				cancel()
 				return nil
