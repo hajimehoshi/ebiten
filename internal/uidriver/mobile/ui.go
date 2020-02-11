@@ -58,6 +58,7 @@ func Get() *UserInterface {
 	return theUI
 }
 
+// Update is called from mobile/ebitenmobileview.
 func (u *UserInterface) Update() {
 	u.m.Lock()
 	fg := u.foreground
@@ -332,6 +333,7 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
+// SetScreenSizeAndScale is called from mobile/ebitenmobileview.
 func (u *UserInterface) SetScreenSizeAndScale(width, height int, scale float64) {
 	// Called from ebitenmobileview.
 	u.m.Lock()

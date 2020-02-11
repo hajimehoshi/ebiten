@@ -47,6 +47,7 @@ func layout(viewWidth, viewHeight int, viewRectSetter ViewRectSetter) {
 		return
 	}
 
+	// TODO: Layout must be called every frame like uiContext already did.
 	w, h := theState.game.Layout(int(viewWidth), int(viewHeight))
 	scaleX := float64(viewWidth) / float64(w)
 	scaleY := float64(viewHeight) / float64(h)
