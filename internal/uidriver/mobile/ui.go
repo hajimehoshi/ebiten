@@ -47,6 +47,12 @@ var (
 
 	theUI = &UserInterface{
 		foreground: true,
+		errCh:      make(chan error),
+
+		// Give a default outside size so that the game can start without initializing them.
+		outsideWidth:  640,
+		outsideHeight: 480,
+		sizeChanged:   true,
 	}
 )
 
@@ -58,12 +64,16 @@ func Get() *UserInterface {
 	return theUI
 }
 
-func (u *UserInterface) Update() {
-	u.m.Lock()
-	fg := u.foreground
-	u.m.Unlock()
-	if !fg {
-		return
+// Update is called from mobile/ebitenmobileview.
+func (u *UserInterface) Update() error {
+	select {
+	case err := <-u.errCh:
+		return err
+	default:
+	}
+
+	if !u.IsForeground() {
+		return nil
 	}
 
 	renderCh <- struct{}{}
@@ -71,6 +81,7 @@ func (u *UserInterface) Update() {
 	go func() {
 		<-renderEndCh
 		if u.t != nil {
+			// If there is a (main) thread, ensure that cancel is called after every other task is done.
 			u.t.Call(func() error {
 				cancel()
 				return nil
@@ -94,20 +105,20 @@ func (u *UserInterface) Update() {
 				break loop
 			}
 		}
-		return
+		return nil
 	} else {
 		u.t.Loop(ctx)
 	}
+	return nil
 }
 
 type UserInterface struct {
-	// TODO: Remove these members: the driver layer should not care about the game screen size.
-	width  int
-	height int
-	scale  float64
+	outsideWidth  float64
+	outsideHeight float64
 
 	sizeChanged bool
 	foreground  bool
+	errCh       chan error
 
 	// Used for gomobile-build
 	gbuildWidthPx   int
@@ -206,11 +217,9 @@ func (u *UserInterface) SetForeground(foreground bool) {
 }
 
 func (u *UserInterface) Run(context driver.UIContext) error {
-	// TODO: Remove width/height/scale arguments. They are not used from gomobile-build.
-
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(16, 16, 1, context, true); err != nil {
+		if err := u.run(context, true); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -219,20 +228,16 @@ func (u *UserInterface) Run(context driver.UIContext) error {
 	return nil
 }
 
-func (u *UserInterface) RunWithoutMainLoop(width, height int, scale float64, title string, context driver.UIContext) <-chan error {
-	ch := make(chan error)
+func (u *UserInterface) RunWithoutMainLoop(context driver.UIContext) {
 	go func() {
-		defer close(ch)
 		// title is ignored?
-		if err := u.run(width, height, scale, context, false); err != nil {
-			ch <- err
+		if err := u.run(context, false); err != nil {
+			u.errCh <- err
 		}
 	}()
-
-	return ch
 }
 
-func (u *UserInterface) run(width, height int, scale float64, context driver.UIContext, mainloop bool) (err error) {
+func (u *UserInterface) run(context driver.UIContext, mainloop bool) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -244,9 +249,6 @@ func (u *UserInterface) run(width, height int, scale float64, context driver.UIC
 	}()
 
 	u.m.Lock()
-	u.width = width
-	u.height = height
-	u.scale = scale
 	u.sizeChanged = true
 	u.context = context
 	u.m.Unlock()
@@ -279,36 +281,26 @@ func (u *UserInterface) run(width, height int, scale float64, context driver.UIC
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {
-	var width, height float64
+	var outsideWidth, outsideHeight float64
 
 	u.m.Lock()
 	sizeChanged := u.sizeChanged
 	if sizeChanged {
 		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-			s := u.scale
-			width = float64(u.width) * s
-			height = float64(u.height) * s
+			outsideWidth = u.outsideWidth
+			outsideHeight = u.outsideHeight
 		} else {
 			// gomobile build
 			d := deviceScale()
-			width = float64(u.gbuildWidthPx) / d
-			height = float64(u.gbuildHeightPx) / d
+			outsideWidth = float64(u.gbuildWidthPx) / d
+			outsideHeight = float64(u.gbuildHeightPx) / d
 		}
 	}
 	u.sizeChanged = false
 	u.m.Unlock()
 
 	if sizeChanged {
-		// Dirty hack to set the offscreen size for gomobile-bind.
-		// TODO: Remove this. The layouting logic must be in the package ebiten, not here.
-		if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-			context.(interface {
-				SetScreenSize(width, height int)
-			}).SetScreenSize(u.width, u.height)
-		}
-
-		// Sizing also calls GL functions
-		context.Layout(width, height)
+		context.Layout(outsideWidth, outsideHeight)
 	}
 }
 
@@ -332,13 +324,13 @@ func (u *UserInterface) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (u *UserInterface) SetScreenSizeAndScale(width, height int, scale float64) {
+// SetOutsideSize is called from mobile/ebitenmobileview.
+func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
 	// Called from ebitenmobileview.
 	u.m.Lock()
-	if u.width != width || u.height != height || u.scale != scale {
-		u.width = width
-		u.height = height
-		u.scale = scale
+	if u.outsideWidth != outsideWidth || u.outsideHeight != outsideHeight {
+		u.outsideWidth = outsideWidth
+		u.outsideHeight = outsideHeight
 		u.sizeChanged = true
 	}
 	u.m.Unlock()
@@ -356,11 +348,6 @@ func (u *UserInterface) setGBuildSize(widthPx, heightPx int) {
 }
 
 func (u *UserInterface) adjustPosition(x, y int) (int, int) {
-	// This function's caller already protects this function by the mutex.
-	if u.gbuildWidthPx == 0 || u.gbuildHeightPx == 0 {
-		s := u.scale
-		return int(float64(x) / s), int(float64(y) / s)
-	}
 	xf, yf := u.context.AdjustPosition(float64(x), float64(y))
 	return int(xf), int(yf)
 }

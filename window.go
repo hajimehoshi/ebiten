@@ -49,26 +49,6 @@ func IsWindowDecorated() bool {
 	return false
 }
 
-// setWindowResizable is unexported until specification is determined (#320)
-//
-// setWindowResizable sets the state if the window is resizable.
-//
-// The window is not resizable by default.
-//
-// When the window is resizable, the image size given via the update function can be changed by resizing.
-//
-// setWindowResizable works only on desktops.
-// setWindowResizable does nothing on other platforms.
-//
-// setWindowResizable panics if setWindowResizable is called after the main loop.
-//
-// setWindowResizable is concurrent-safe.
-func setWindowResizable(resizable bool) {
-	if w := uiDriver().Window(); w != nil {
-		w.SetResizable(resizable)
-	}
-}
-
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
 // On the other environments, IsWindowResizable always returns false.
 //
@@ -82,6 +62,8 @@ func IsWindowResizable() bool {
 
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
 // On the other environments, SetWindowResizable does nothing.
+//
+// The window is not resizable by default.
 //
 // If SetWindowResizable is called with true and Run is used, SetWindowResizable panics. Use RunGame instead.
 //
