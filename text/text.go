@@ -261,6 +261,9 @@ func colorToColorM(clr color.Color) ebiten.ColorM {
 // Be careful that this doesn't represent left-upper corner position.
 // clr is the color for text rendering.
 //
+// The '\n' newline character puts the following text on the next line.
+// Line height is based on Metrics().Height of the font.
+//
 // Glyphs used for rendering are cached in least-recently-used way.
 // It is OK to call Draw with a same text and a same face at every frame in terms of performance.
 //
@@ -271,7 +274,7 @@ func colorToColorM(clr color.Color) ebiten.ColorM {
 func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Color) {
 	textM.Lock()
 
-	fx := fixed.I(x)
+	fx, fy := fixed.I(x), fixed.I(y)
 	prevR := rune(-1)
 
 	runes := []rune(text)
@@ -282,7 +285,14 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 		if prevR >= 0 {
 			fx += face.Kern(prevR, r)
 		}
-		drawGlyph(dst, face, r, glyphImgs[i], fx, fixed.I(y), colorm)
+		if r == '\n' {
+			fx = fixed.I(x)
+			fy += face.Metrics().Height
+			prevR = rune(-1)
+			continue
+		}
+
+		drawGlyph(dst, face, r, glyphImgs[i], fx, fy, colorm)
 		fx += glyphAdvance(face, r)
 
 		prevR = r
