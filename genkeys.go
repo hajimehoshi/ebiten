@@ -343,7 +343,7 @@ var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
 {{end}}
 }
 
-var keyCodeToglfwKey = map[driver.Key]glfw.Key{
+var keyCodeToGLFWKey = map[driver.Key]glfw.Key{
 {{range $index, $name := .DriverKeyNames}}driver.Key{{$name}}: glfw.Key{{$name}},
 {{end}}
 }

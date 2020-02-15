@@ -132,7 +132,7 @@ var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
 	glfw.KeyUp:           driver.KeyUp,
 }
 
-var keyCodeToglfwKey = map[driver.Key]glfw.Key{
+var keyCodeToGLFWKey = map[driver.Key]glfw.Key{
 	driver.Key0:            glfw.Key0,
 	driver.Key1:            glfw.Key1,
 	driver.Key2:            glfw.Key2,

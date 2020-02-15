@@ -248,7 +248,7 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 		if i.keyPressed == nil {
 			i.keyPressed = map[glfw.Key]bool{}
 		}
-		gk, ok := keyCodeToglfwKey[key]
+		gk, ok := keyCodeToGLFWKey[key]
 		if ok && i.keyPressed[gk] {
 			r = true
 			return nil
