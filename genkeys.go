@@ -342,6 +342,11 @@ var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
 {{range $index, $name := .DriverKeyNames}}glfw.Key{{$name}}: driver.Key{{$name}},
 {{end}}
 }
+
+var keyCodeToGLFWKey = map[driver.Key]glfw.Key{
+{{range $index, $name := .DriverKeyNames}}driver.Key{{$name}}: glfw.Key{{$name}},
+{{end}}
+}
 `
 
 const uidriverJsKeysTmpl = `{{.License}}
