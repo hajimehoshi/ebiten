@@ -206,3 +206,43 @@ func TestSetAndReplacePixelsBeforeMain(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+var testReplacePixelsAndModifyBeforeMainResult = func() testResult {
+	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	pix := make([]byte, 4*16*16)
+	for i := 0; i < len(pix)/4; i++ {
+		pix[4*i] = 1
+		pix[4*i+1] = 2
+		pix[4*i+2] = 3
+		pix[4*i+3] = 4
+	}
+	img.ReplacePixels(pix)
+	// After calling ReplacePixels, modifying pix must not affect the result.
+	for i := 0; i < len(pix)/4; i++ {
+		pix[4*i] = 5
+		pix[4*i+1] = 6
+		pix[4*i+2] = 7
+		pix[4*i+3] = 8
+	}
+
+	ch := make(chan color.RGBA, 1)
+	go func() {
+		runOnMainThread(func() {
+			ch <- img.At(0, 0).(color.RGBA)
+		})
+	}()
+
+	return testResult{
+		want: color.RGBA{1, 2, 3, 4},
+		got:  ch,
+	}
+}()
+
+func TestReplacePixelsAndModifyBeforeMain(t *testing.T) {
+	got := <-testReplacePixelsAndModifyBeforeMainResult.got
+	want := testReplacePixelsAndModifyBeforeMainResult.want
+
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}

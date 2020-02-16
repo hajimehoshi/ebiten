@@ -222,6 +222,9 @@ func (i *Image) ReplacePixels(pix []byte) {
 	i.img.ReplacePixels(pix)
 }
 
+// DrawTriangles draws the src image with the given vertices.
+//
+// Copying vertices and indices is the caller's responsibility.
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if i == src {
 		panic("buffered: Image.DrawTriangles: src must be different from the receiver")
@@ -232,6 +235,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 		delayedCommands = append(delayedCommands, func() {
 			src.resolvePendingPixels(true)
 			i.resolvePendingPixels(false)
+			// Arguments are not copied. Copying is the caller's responsibility.
 			i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
 		})
 		delayedCommandsM.Unlock()
