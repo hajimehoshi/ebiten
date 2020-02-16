@@ -15,6 +15,7 @@
 package buffered
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
@@ -131,44 +132,6 @@ func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
 	return i.img.At(x, y)
 }
 
-func (i *Image) Set(x, y int, r, g, b, a byte) error {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-	if needsToDelayCommands {
-		delayedCommands = append(delayedCommands, func() error {
-			return i.Set(x, y, r, g, b, a)
-		})
-		return nil
-	}
-
-	w, h := i.width, i.height
-	if i.pixels == nil {
-		pix := make([]byte, 4*w*h)
-		idx := 0
-		img := i.img
-		for j := 0; j < h; j++ {
-			for i := 0; i < w; i++ {
-				r, g, b, a, err := img.At(i, j)
-				if err != nil {
-					return err
-				}
-				pix[4*idx] = r
-				pix[4*idx+1] = g
-				pix[4*idx+2] = b
-				pix[4*idx+3] = a
-				idx++
-			}
-		}
-		i.pixels = pix
-	}
-	i.pixels[4*(x+y*w)] = r
-	i.pixels[4*(x+y*w)+1] = g
-	i.pixels[4*(x+y*w)+2] = b
-	i.pixels[4*(x+y*w)+3] = a
-	i.needsToResolvePixels = true
-	return nil
-}
-
 func (i *Image) Dump(name string, blackbg bool) error {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
@@ -194,7 +157,11 @@ func (i *Image) Fill(clr color.RGBA) {
 	i.img.Fill(clr)
 }
 
-func (i *Image) ReplacePixels(pix []byte) {
+func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
+	if l := 4 * width * height; len(pix) != l {
+		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
+	}
+
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
@@ -202,14 +169,43 @@ func (i *Image) ReplacePixels(pix []byte) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		delayedCommands = append(delayedCommands, func() error {
-			i.ReplacePixels(copied)
+			i.ReplacePixels(copied, x, y, width, height)
 			return nil
 		})
-		return
+		return nil
 	}
 
-	i.invalidatePendingPixels()
-	i.img.ReplacePixels(pix)
+	if x == 0 && y == 0 && width == i.width && height == i.height {
+		i.invalidatePendingPixels()
+		i.img.ReplacePixels(pix)
+		return nil
+	}
+
+	if i.pixels == nil {
+		pix := make([]byte, 4*i.width*i.height)
+		idx := 0
+		img := i.img
+		sw, sh := i.width, i.height
+		for j := 0; j < sh; j++ {
+			for i := 0; i < sw; i++ {
+				r, g, b, a, err := img.At(i, j)
+				if err != nil {
+					return err
+				}
+				pix[4*idx] = r
+				pix[4*idx+1] = g
+				pix[4*idx+2] = b
+				pix[4*idx+3] = a
+				idx++
+			}
+		}
+		i.pixels = pix
+	}
+	for j := 0; j < height; j++ {
+		copy(i.pixels[4*((j+y)*i.width+x):], pix[4*j*width:4*(j+1)*width])
+	}
+	i.needsToResolvePixels = true
+	return nil
 }
 
 func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty float32, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {

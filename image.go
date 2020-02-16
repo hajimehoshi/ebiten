@@ -15,7 +15,6 @@
 package ebiten
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 
@@ -428,7 +427,8 @@ func (i *Image) Set(x, y int, clr color.Color) {
 	}
 
 	r, g, b, a := clr.RGBA()
-	if err := i.buffered.Set(x, y, byte(r>>8), byte(g>>8), byte(b>>8), byte(a>>8)); err != nil {
+	pix := []byte{byte(r >> 8), byte(g >> 8), byte(b >> 8), byte(a >> 8)}
+	if err := i.buffered.ReplacePixels(pix, x, y, 1, 1); err != nil {
 		theUIContext.setError(err)
 	}
 }
@@ -477,11 +477,9 @@ func (i *Image) ReplacePixels(p []byte) error {
 		panic("ebiten: render to a subimage is not implemented (ReplacePixels)")
 	}
 	s := i.Bounds().Size()
-	if l := 4 * s.X * s.Y; len(p) != l {
-		panic(fmt.Sprintf("ebiten: len(p) was %d but must be %d", len(p), l))
+	if err := i.buffered.ReplacePixels(p, 0, 0, s.X, s.Y); err != nil {
+		theUIContext.setError(err)
 	}
-
-	i.buffered.ReplacePixels(p)
 	return nil
 }
 
