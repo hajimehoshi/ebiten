@@ -67,6 +67,7 @@ var (
 	buildGcflags    string // -gcflags
 	buildLdflags    string // -ldflags
 	buildTarget     string // -target
+	buildTrimpath   bool   // -trimpath
 	buildWork       bool   // -work
 	buildBundleID   string // -bundleid
 	buildIOSVersion string // -iosversion
@@ -99,6 +100,7 @@ func main() {
 	flagset.BoolVar(&buildN, "n", false, "")
 	flagset.BoolVar(&buildV, "v", false, "")
 	flagset.BoolVar(&buildX, "x", false, "")
+	flagset.BoolVar(&buildTrimpath, "trimpath", false, "")
 	flagset.BoolVar(&buildWork, "work", false, "")
 	flagset.StringVar(&bindJavaPkg, "javapkg", "", "")
 	flagset.StringVar(&bindPrefix, "prefix", "", "")
