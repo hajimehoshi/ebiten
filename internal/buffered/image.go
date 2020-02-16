@@ -136,22 +136,19 @@ func (i *Image) Set(x, y int, r, g, b, a byte) error {
 	defer delayedCommandsM.Unlock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			return i.set(x, y, r, g, b, a)
+			return i.Set(x, y, r, g, b, a)
 		})
 		return nil
 	}
 
-	return i.set(x, y, r, g, b, a)
-}
-
-func (img *Image) set(x, y int, r, g, b, a byte) error {
-	w, h := img.width, img.height
-	if img.pixels == nil {
+	w, h := i.width, i.height
+	if i.pixels == nil {
 		pix := make([]byte, 4*w*h)
 		idx := 0
+		img := i.img
 		for j := 0; j < h; j++ {
 			for i := 0; i < w; i++ {
-				r, g, b, a, err := img.img.At(i, j)
+				r, g, b, a, err := img.At(i, j)
 				if err != nil {
 					return err
 				}
@@ -162,13 +159,13 @@ func (img *Image) set(x, y int, r, g, b, a byte) error {
 				idx++
 			}
 		}
-		img.pixels = pix
+		i.pixels = pix
 	}
-	img.pixels[4*(x+y*w)] = r
-	img.pixels[4*(x+y*w)+1] = g
-	img.pixels[4*(x+y*w)+2] = b
-	img.pixels[4*(x+y*w)+3] = a
-	img.needsToResolvePixels = true
+	i.pixels[4*(x+y*w)] = r
+	i.pixels[4*(x+y*w)+1] = g
+	i.pixels[4*(x+y*w)+2] = b
+	i.pixels[4*(x+y*w)+3] = a
+	i.needsToResolvePixels = true
 	return nil
 }
 
@@ -259,15 +256,12 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			i.drawTriangles(src, vertices, indices, colorm, mode, filter, address)
+			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address)
 			return nil
 		})
 		return
 	}
-	i.drawTriangles(src, vertices, indices, colorm, mode, filter, address)
-}
 
-func (i *Image) drawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
 	i.img.DrawTriangles(src.img, vertices, indices, colorm, mode, filter, address)
