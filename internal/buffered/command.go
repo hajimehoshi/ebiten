@@ -29,19 +29,23 @@ var (
 )
 
 func flushDelayedCommands() error {
-	delayedCommandsM.Lock()
-	defer delayedCommandsM.Unlock()
-
-	if !needsToDelayCommands {
-		return nil
-	}
-
-	for _, c := range delayedCommands {
-		if err := c(); err != nil {
+	fs := getDelayedFuncsAndClear()
+	for _, f := range fs {
+		if err := f(); err != nil {
 			return err
 		}
 	}
-	delayedCommands = delayedCommands[:0]
-	needsToDelayCommands = false
 	return nil
+
+}
+
+func getDelayedFuncsAndClear() []func() error {
+	delayedCommandsM.Lock()
+	defer delayedCommandsM.Unlock()
+
+	fs := make([]func() error, len(delayedCommands))
+	copy(fs, delayedCommands)
+	delayedCommands = nil
+	needsToDelayCommands = false
+	return fs
 }

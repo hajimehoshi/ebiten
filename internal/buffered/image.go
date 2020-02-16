@@ -45,47 +45,47 @@ func EndFrame() error {
 
 func NewImage(width, height int, volatile bool) *Image {
 	i := &Image{}
+	i.initialize(width, height, volatile)
+	return i
+}
 
+func (i *Image) initialize(width, height int, volatile bool) {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			i.img = mipmap.New(width, height, volatile)
-			i.width = width
-			i.height = height
+			i.initialize(width, height, volatile)
 			return nil
 		})
-		return i
+		return
 	}
-
 	i.img = mipmap.New(width, height, volatile)
 	i.width = width
 	i.height = height
-	return i
 }
 
 func NewScreenFramebufferImage(width, height int) *Image {
 	i := &Image{}
+	i.initializeAsScreenFramebuffer(width, height)
+	return i
+}
 
+func (i *Image) initializeAsScreenFramebuffer(width, height int) {
 	delayedCommandsM.Lock()
 	defer delayedCommandsM.Unlock()
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			i.img = mipmap.NewScreenFramebufferMipmap(width, height)
-			i.width = width
-			i.height = height
+			i.initializeAsScreenFramebuffer(width, height)
 			return nil
 		})
-
-		return i
+		return
 	}
 
 	i.img = mipmap.NewScreenFramebufferMipmap(width, height)
 	i.width = width
 	i.height = height
-	return i
 }
 
 func (i *Image) invalidatePendingPixels() {
@@ -111,8 +111,7 @@ func (i *Image) MarkDisposed() {
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			i.invalidatePendingPixels()
-			i.img.MarkDisposed()
+			i.MarkDisposed()
 			return nil
 		})
 		return
@@ -188,8 +187,7 @@ func (i *Image) Fill(clr color.RGBA) {
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			i.invalidatePendingPixels()
-			i.img.Fill(clr)
+			i.Fill(clr)
 			return nil
 		})
 		return
@@ -205,10 +203,9 @@ func (i *Image) ReplacePixels(pix []byte) {
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
-			i.invalidatePendingPixels()
 			copied := make([]byte, len(pix))
 			copy(copied, pix)
-			i.img.ReplacePixels(copied)
+			i.ReplacePixels(copied)
 			return nil
 		})
 		return
