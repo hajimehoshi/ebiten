@@ -199,9 +199,9 @@ func (i *Image) ReplacePixels(pix []byte) {
 	defer delayedCommandsM.Unlock()
 
 	if needsToDelayCommands {
+		copied := make([]byte, len(pix))
+		copy(copied, pix)
 		delayedCommands = append(delayedCommands, func() error {
-			copied := make([]byte, len(pix))
-			copy(copied, pix)
 			i.ReplacePixels(copied)
 			return nil
 		})
@@ -246,6 +246,9 @@ func (i *Image) drawImage(src *Image, bounds image.Rectangle, g *mipmap.GeoM, co
 	i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
 }
 
+// DrawTriangles draws the src image with the given vertices.
+//
+// Copying vertices and indices is the caller's responsibility.
 func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
 	if i == src {
 		panic("buffered: Image.DrawTriangles: src must be different from the receiver")
@@ -256,6 +259,7 @@ func (i *Image) DrawTriangles(src *Image, vertices []float32, indices []uint16, 
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
+			// Arguments are not copied. Copying is the caller's responsibility.
 			i.DrawTriangles(src, vertices, indices, colorm, mode, filter, address)
 			return nil
 		})
