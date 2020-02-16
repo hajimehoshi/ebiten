@@ -111,13 +111,14 @@ func (i *Image) MarkDisposed() {
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
+			i.invalidatePendingPixels()
 			i.img.MarkDisposed()
 			return nil
 		})
 		return
 	}
-
 	i.invalidatePendingPixels()
+	i.img.MarkDisposed()
 }
 
 func (i *Image) At(x, y int) (r, g, b, a byte, err error) {
@@ -187,6 +188,7 @@ func (i *Image) Fill(clr color.RGBA) {
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
+			i.invalidatePendingPixels()
 			i.img.Fill(clr)
 			return nil
 		})
@@ -203,6 +205,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() error {
+			i.invalidatePendingPixels()
 			copied := make([]byte, len(pix))
 			copy(copied, pix)
 			i.img.ReplacePixels(copied)
