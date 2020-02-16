@@ -104,6 +104,7 @@ func (i *Image) MarkDisposed() {
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
+			i.invalidatePendingPixels()
 			i.img.MarkDisposed()
 		})
 		delayedCommandsM.Unlock()
@@ -112,6 +113,7 @@ func (i *Image) MarkDisposed() {
 	delayedCommandsM.Unlock()
 
 	i.invalidatePendingPixels()
+	i.img.MarkDisposed()
 }
 
 func (i *Image) At(x, y int) (r, g, b, a byte) {
@@ -176,6 +178,7 @@ func (i *Image) Fill(clr color.RGBA) {
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
+			i.invalidatePendingPixels()
 			i.img.Fill(clr)
 		})
 		delayedCommandsM.Unlock()
@@ -205,6 +208,7 @@ func (i *Image) ReplacePixels(pix []byte) {
 	delayedCommandsM.Lock()
 	if needsToDelayCommands {
 		delayedCommands = append(delayedCommands, func() {
+			i.invalidatePendingPixels()
 			copied := make([]byte, len(pix))
 			copy(copied, pix)
 			i.img.ReplacePixels(copied)

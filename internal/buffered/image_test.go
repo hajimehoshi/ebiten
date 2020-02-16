@@ -141,3 +141,68 @@ func TestDrawTrianglesBeforeMain(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+var testSetAndFillBeforeMainResult = func() testResult {
+	clr := color.RGBA{1, 2, 3, 4}
+	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	img.Set(0, 0, clr)
+	img.Fill(color.RGBA{5, 6, 7, 8})
+	img.Set(1, 0, clr)
+
+	ch := make(chan color.RGBA, 1)
+	go func() {
+		runOnMainThread(func() {
+			ch <- img.At(0, 0).(color.RGBA)
+		})
+	}()
+
+	return testResult{
+		want: color.RGBA{5, 6, 7, 8},
+		got:  ch,
+	}
+}()
+
+func TestSetAndFillBeforeMain(t *testing.T) {
+	got := <-testSetAndFillBeforeMainResult.got
+	want := testSetAndFillBeforeMainResult.want
+
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+var testSetAndReplacePixelsBeforeMainResult = func() testResult {
+	clr := color.RGBA{1, 2, 3, 4}
+	img, _ := ebiten.NewImage(16, 16, ebiten.FilterDefault)
+	img.Set(0, 0, clr)
+	pix := make([]byte, 4*16*16)
+	for i := 0; i < len(pix)/4; i++ {
+		pix[4*i] = 5
+		pix[4*i+1] = 6
+		pix[4*i+2] = 7
+		pix[4*i+3] = 8
+	}
+	img.ReplacePixels(pix)
+	img.Set(1, 0, clr)
+
+	ch := make(chan color.RGBA, 1)
+	go func() {
+		runOnMainThread(func() {
+			ch <- img.At(0, 0).(color.RGBA)
+		})
+	}()
+
+	return testResult{
+		want: color.RGBA{5, 6, 7, 8},
+		got:  ch,
+	}
+}()
+
+func TestSetAndReplacePixelsBeforeMain(t *testing.T) {
+	got := <-testSetAndReplacePixelsBeforeMainResult.got
+	want := testSetAndReplacePixelsBeforeMainResult.want
+
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
