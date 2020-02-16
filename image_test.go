@@ -1852,3 +1852,53 @@ func TestImageDrawTrianglesAndMutateArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestImageReplacePixelsOnSubImage(t *testing.T) {
+	dst, _ := NewImage(17, 31, FilterDefault)
+	dst.Fill(color.RGBA{0xff, 0, 0, 0xff})
+
+	pix0 := make([]byte, 4*5*3)
+	idx := 0
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 5; i++ {
+			pix0[4*idx] = 0
+			pix0[4*idx+1] = 0xff
+			pix0[4*idx+2] = 0
+			pix0[4*idx+3] = 0xff
+			idx++
+		}
+	}
+	r0 := image.Rect(4, 5, 9, 8)
+	dst.SubImage(r0).(*Image).ReplacePixels(pix0)
+
+	pix1 := make([]byte, 4*5*3)
+	idx = 0
+	for j := 0; j < 3; j++ {
+		for i := 0; i < 5; i++ {
+			pix1[4*idx] = 0
+			pix1[4*idx+1] = 0
+			pix1[4*idx+2] = 0xff
+			pix1[4*idx+3] = 0xff
+			idx++
+		}
+	}
+	r1 := image.Rect(11, 10, 16, 13)
+	dst.SubImage(r1).(*Image).ReplacePixels(pix1)
+
+	for j := 0; j < 31; j++ {
+		for i := 0; i < 17; i++ {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{0xff, 0, 0, 0xff}
+			p := image.Pt(i, j)
+			switch {
+			case p.In(r0):
+				want = color.RGBA{0, 0xff, 0, 0xff}
+			case p.In(r1):
+				want = color.RGBA{0, 0, 0xff, 0xff}
+			}
+			if got != want {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

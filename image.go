@@ -472,12 +472,8 @@ func (i *Image) ReplacePixels(p []byte) error {
 	if i.isDisposed() {
 		return nil
 	}
-	// TODO: Implement this.
-	if i.isSubImage() {
-		panic("ebiten: render to a subimage is not implemented (ReplacePixels)")
-	}
-	s := i.Bounds().Size()
-	if err := i.buffered.ReplacePixels(p, 0, 0, s.X, s.Y); err != nil {
+	r := i.Bounds()
+	if err := i.buffered.ReplacePixels(p, r.Min.X, r.Min.Y, r.Dx(), r.Dy()); err != nil {
 		theUIContext.setError(err)
 	}
 	return nil

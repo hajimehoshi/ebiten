@@ -181,6 +181,7 @@ func (i *Image) ReplacePixels(pix []byte, x, y, width, height int) error {
 		return nil
 	}
 
+	// TODO: Can we use (*restorable.Image).ReplacePixels?
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
 		idx := 0
