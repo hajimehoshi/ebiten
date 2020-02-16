@@ -457,9 +457,9 @@ func (i *Image) Dispose() error {
 
 // ReplacePixels replaces the pixels of the image with p.
 //
-// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (image width) * (image height).
+// The given p must represent RGBA pre-multiplied alpha values. len(p) must equal to 4 * (bounds width) * (bounds height).
 //
-// ReplacePixels may be slow (as for implementation, this calls glTexSubImage2D).
+// ReplacePixels works on a sub-image.
 //
 // When len(p) is not appropriate, ReplacePixels panics.
 //
