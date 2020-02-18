@@ -30,3 +30,21 @@ func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	panic("ebitenmobileview: updateTouchesOnIOSImpl must not be called on Android")
 }
+
+func OnKeyDownOnAndroid(keyCode int) {
+	key, ok := androidKeyToDriverKey[keyCode]
+	if !ok {
+		return
+	}
+	keys[key] = struct{}{}
+	updateInput()
+}
+
+func OnKeyUpOnAndroid(keyCode int) {
+	key, ok := androidKeyToDriverKey[keyCode]
+	if !ok {
+		return
+	}
+	delete(keys, key)
+	updateInput()
+}

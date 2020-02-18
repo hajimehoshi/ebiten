@@ -28,6 +28,7 @@ type pos struct {
 type Input struct {
 	cursorX int
 	cursorY int
+	keys    map[driver.Key]struct{}
 	touches map[int]pos
 	ui      *UserInterface
 }
@@ -98,7 +99,14 @@ func (i *Input) RuneBuffer() []rune {
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
-	return false
+	i.ui.m.RLock()
+	defer i.ui.m.RUnlock()
+
+	if i.keys == nil {
+		return false
+	}
+	_, ok := i.keys[key]
+	return ok
 }
 
 func (i *Input) Wheel() (xoff, yoff float64) {
@@ -109,8 +117,15 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) update(touches []*Touch) {
+func (i *Input) update(keys map[driver.Key]struct{}, touches []*Touch) {
 	i.ui.m.Lock()
+	defer i.ui.m.Unlock()
+
+	i.keys = map[driver.Key]struct{}{}
+	for k := range keys {
+		i.keys[k] = struct{}{}
+	}
+
 	i.touches = map[int]pos{}
 	for _, t := range touches {
 		i.touches[t.ID] = pos{
@@ -118,7 +133,6 @@ func (i *Input) update(touches []*Touch) {
 			Y: t.Y,
 		}
 	}
-	i.ui.m.Unlock()
 }
 
 func (i *Input) ResetForFrame() {

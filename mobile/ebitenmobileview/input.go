@@ -17,6 +17,7 @@
 package ebitenmobileview
 
 import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/uidriver/mobile"
 )
 
@@ -26,6 +27,7 @@ type position struct {
 }
 
 var (
+	keys    = map[driver.Key]struct{}{}
 	touches = map[int]position{}
 )
 
@@ -38,5 +40,5 @@ func updateInput() {
 			Y:  position.y,
 		})
 	}
-	mobile.Get().UpdateInput(ts)
+	mobile.Get().UpdateInput(keys, ts)
 }

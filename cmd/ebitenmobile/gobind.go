@@ -338,6 +338,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.ViewGroup;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
@@ -352,10 +353,6 @@ public class EbitenView extends ViewGroup {
 
     private double pxToDp(double x) {
         return x / getDeviceScale();
-    }
-
-    private double dpToPx(double x) {
-        return x * getDeviceScale();
     }
 
     private double deviceScale_ = 0.0;
@@ -382,6 +379,18 @@ public class EbitenView extends ViewGroup {
         double widthInDp = pxToDp(right - left);
         double heightInDp = pxToDp(bottom - top);
         Ebitenmobileview.layout(widthInDp, heightInDp);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        Ebitenmobileview.onKeyDownOnAndroid(keyCode);
+        return true;
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        Ebitenmobileview.onKeyUpOnAndroid(keyCode);
+        return true;
     }
 
     // suspendGame suspends the game.

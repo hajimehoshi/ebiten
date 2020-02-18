@@ -199,7 +199,8 @@ func (u *UserInterface) appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(ts)
+			// TODO: Give keyboard keys.
+			u.input.update(nil, ts)
 		}
 	}
 }
@@ -421,6 +422,6 @@ type Touch struct {
 	Y  int
 }
 
-func (u *UserInterface) UpdateInput(touches []*Touch) {
-	u.input.update(touches)
+func (u *UserInterface) UpdateInput(keys map[driver.Key]struct{}, touches []*Touch) {
+	u.input.update(keys, touches)
 }

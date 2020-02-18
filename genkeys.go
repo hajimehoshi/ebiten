@@ -35,6 +35,7 @@ import (
 
 var (
 	nameToGLFWKey     map[string]glfw.Key
+	nameToAndroidKey  map[string]int
 	nameToJSKey       map[string]string
 	edgeKeyCodeToName map[int]string
 )
@@ -93,6 +94,56 @@ func init() {
 		"KPEqual":      glfw.KeyKPEqual,
 		"Last":         glfw.KeyLast,
 	}
+
+	// https://developer.android.com/reference/android/view/KeyEvent
+	nameToAndroidKey = map[string]int{
+		"Comma":        55,
+		"Period":       56,
+		"LeftAlt":      57,
+		"RightAlt":     58,
+		"CapsLock":     115,
+		"LeftControl":  113,
+		"RightControl": 114,
+		"LeftShift":    59,
+		"RightShift":   60,
+		"Enter":        66,
+		"Space":        62,
+		"Tab":          61,
+		"Delete":       112, // KEYCODE_FORWARD_DEL
+		"End":          123,
+		"Home":         122,
+		"Insert":       124,
+		"PageDown":     93,
+		"PageUp":       92,
+		"Down":         20,
+		"Left":         21,
+		"Right":        22,
+		"Up":           19,
+		"Escape":       111,
+		"Backspace":    67, // KEYCODE_DEL
+		"Apostrophe":   75,
+		"Minus":        69,
+		"Slash":        76,
+		"Semicolon":    74,
+		"Equal":        70,
+		"LeftBracket":  71,
+		"Backslash":    73,
+		"RightBracket": 72,
+		"GraveAccent":  68,
+		"NumLock":      143,
+		"Pause":        121, // KEYCODE_BREAK
+		"PrintScreen":  120, // KEYCODE_SYSRQ
+		"ScrollLock":   116,
+		"Menu":         82,
+		"KPDecimal":    158,
+		"KPDivide":     154,
+		"KPMultiply":   155,
+		"KPSubtract":   156,
+		"KPAdd":        157,
+		"KPEnter":      160,
+		"KPEqual":      161,
+	}
+
 	nameToJSKey = map[string]string{
 		"Comma":        "Comma",
 		"Period":       "Period",
@@ -140,20 +191,24 @@ func init() {
 		"KPEnter":      "NumpadEnter",
 		"KPEqual":      "NumpadEqual",
 	}
+
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
 		nameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
+		nameToAndroidKey[string(c)] = int(7 + c - '0')
 		nameToJSKey[string(c)] = "Digit" + string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
 		nameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
+		nameToAndroidKey[string(c)] = int(29 + c - 'A')
 		nameToJSKey[string(c)] = "Key" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
 		nameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
+		nameToAndroidKey[name] = 131 + i - 1
 		nameToJSKey[name] = name
 	}
 	// Numpad
@@ -161,6 +216,7 @@ func init() {
 	for c := '0'; c <= '9'; c++ {
 		name := "KP" + string(c)
 		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
+		nameToAndroidKey[name] = int(144 + c - '0')
 		nameToJSKey[name] = "Numpad" + string(c)
 	}
 }
@@ -384,6 +440,24 @@ const (
 )
 `
 
+const mobileAndroidKeysTmpl = `{{.License}}
+
+{{.DoNotEdit}}
+
+{{.BuildTag}}
+
+package ebitenmobileview
+
+import (
+	"github.com/hajimehoshi/ebiten/internal/driver"
+)
+
+var androidKeyToDriverKey = map[int]driver.Key{
+{{range $name, $code := .NameToAndroidKey}}{{$code}}: driver.Key{{$name}},
+{{end}}
+}
+`
+
 func digitKey(name string) int {
 	if len(name) != 1 {
 		return -1
@@ -502,12 +576,13 @@ func main() {
 	sort.Slice(driverKeyNames, keyNamesLess(driverKeyNames))
 
 	for path, tmpl := range map[string]string{
-		filepath.Join("event", "keys.go"):                        eventKeysTmpl,
-		filepath.Join("internal", "driver", "keys.go"):           driverKeysTmpl,
-		filepath.Join("internal", "glfw", "keys.go"):             glfwKeysTmpl,
-		filepath.Join("internal", "uidriver", "glfw", "keys.go"): uidriverGlfwKeysTmpl,
-		filepath.Join("internal", "uidriver", "js", "keys.go"):   uidriverJsKeysTmpl,
-		filepath.Join("keys.go"):                                 ebitenKeysTmpl,
+		filepath.Join("event", "keys.go"):                              eventKeysTmpl,
+		filepath.Join("internal", "driver", "keys.go"):                 driverKeysTmpl,
+		filepath.Join("internal", "glfw", "keys.go"):                   glfwKeysTmpl,
+		filepath.Join("internal", "uidriver", "glfw", "keys.go"):       uidriverGlfwKeysTmpl,
+		filepath.Join("internal", "uidriver", "js", "keys.go"):         uidriverJsKeysTmpl,
+		filepath.Join("keys.go"):                                       ebitenKeysTmpl,
+		filepath.Join("mobile", "ebitenmobileview", "keys_android.go"): mobileAndroidKeysTmpl,
 	} {
 		f, err := os.Create(path)
 		if err != nil {
@@ -546,6 +621,7 @@ func main() {
 			EbitenKeyNamesWithoutMods []string
 			DriverKeyNames            []string
 			NameToGLFWKey             map[string]glfw.Key
+			NameToAndroidKey          map[string]int
 		}{
 			License:                   license,
 			DoNotEdit:                 doNotEdit,
@@ -556,6 +632,7 @@ func main() {
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
 			DriverKeyNames:            driverKeyNames,
 			NameToGLFWKey:             nameToGLFWKey,
+			NameToAndroidKey:          nameToAndroidKey,
 		}); err != nil {
 			log.Fatal(err)
 		}
