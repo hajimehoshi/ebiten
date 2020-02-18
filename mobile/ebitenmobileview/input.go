@@ -29,7 +29,7 @@ var (
 	touches = map[int]position{}
 )
 
-func updateTouches() {
+func updateInput() {
 	ts := []*mobile.Touch{}
 	for id, position := range touches {
 		ts = append(ts, &mobile.Touch{
