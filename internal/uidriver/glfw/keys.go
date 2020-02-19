@@ -26,7 +26,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
+var glfwKeyToDriverKey = map[glfw.Key]driver.Key{
 	glfw.Key0:            driver.Key0,
 	glfw.Key1:            driver.Key1,
 	glfw.Key2:            driver.Key2,
@@ -132,7 +132,7 @@ var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
 	glfw.KeyUp:           driver.KeyUp,
 }
 
-var keyCodeToGLFWKey = map[driver.Key]glfw.Key{
+var driverKeyToGLFWKey = map[driver.Key]glfw.Key{
 	driver.Key0:            glfw.Key0,
 	driver.Key1:            glfw.Key1,
 	driver.Key2:            glfw.Key2,

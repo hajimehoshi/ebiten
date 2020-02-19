@@ -34,13 +34,13 @@ import (
 )
 
 var (
-	nameToGLFWKeys    map[string]glfw.Key
-	nameToJSKeyCode   map[string]string
-	keyCodeToNameEdge map[int]string
+	nameToGLFWKey     map[string]glfw.Key
+	nameToJSKey       map[string]string
+	edgeKeyCodeToName map[int]string
 )
 
 func init() {
-	nameToGLFWKeys = map[string]glfw.Key{
+	nameToGLFWKey = map[string]glfw.Key{
 		"Unknown":      glfw.KeyUnknown,
 		"Space":        glfw.KeySpace,
 		"Apostrophe":   glfw.KeyApostrophe,
@@ -86,7 +86,7 @@ func init() {
 		"Menu":         glfw.KeyMenu,
 		"Last":         glfw.KeyLast,
 	}
-	nameToJSKeyCode = map[string]string{
+	nameToJSKey = map[string]string{
 		"Comma":        "Comma",
 		"Period":       "Period",
 		"LeftAlt":      "AltLeft",
@@ -128,48 +128,48 @@ func init() {
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		nameToGLFWKeys[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
-		nameToJSKeyCode[string(c)] = "Digit" + string(c)
+		nameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
+		nameToJSKey[string(c)] = "Digit" + string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		nameToGLFWKeys[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
-		nameToJSKeyCode[string(c)] = "Key" + string(c)
+		nameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
+		nameToJSKey[string(c)] = "Key" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
-		nameToGLFWKeys[name] = glfw.KeyF1 + glfw.Key(i) - 1
-		nameToJSKeyCode[name] = name
+		nameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
+		nameToJSKey[name] = name
 	}
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
 	for c := '0'; c <= '9'; c++ {
 		name := "KP" + string(c)
-		nameToGLFWKeys[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
-		nameToJSKeyCode[name] = "Numpad" + string(c)
+		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
+		nameToJSKey[name] = "Numpad" + string(c)
 	}
 
-	nameToGLFWKeys["KPDecimal"] = glfw.KeyKPDecimal
-	nameToGLFWKeys["KPDivide"] = glfw.KeyKPDivide
-	nameToGLFWKeys["KPMultiply"] = glfw.KeyKPMultiply
-	nameToGLFWKeys["KPSubtract"] = glfw.KeyKPSubtract
-	nameToGLFWKeys["KPAdd"] = glfw.KeyKPAdd
-	nameToGLFWKeys["KPEnter"] = glfw.KeyKPEnter
-	nameToGLFWKeys["KPEqual"] = glfw.KeyKPEqual
+	nameToGLFWKey["KPDecimal"] = glfw.KeyKPDecimal
+	nameToGLFWKey["KPDivide"] = glfw.KeyKPDivide
+	nameToGLFWKey["KPMultiply"] = glfw.KeyKPMultiply
+	nameToGLFWKey["KPSubtract"] = glfw.KeyKPSubtract
+	nameToGLFWKey["KPAdd"] = glfw.KeyKPAdd
+	nameToGLFWKey["KPEnter"] = glfw.KeyKPEnter
+	nameToGLFWKey["KPEqual"] = glfw.KeyKPEqual
 
-	nameToJSKeyCode["KPDecimal"] = "NumpadDecimal"
-	nameToJSKeyCode["KPDivide"] = "NumpadDivide"
-	nameToJSKeyCode["KPMultiply"] = "NumpadMultiply"
-	nameToJSKeyCode["KPSubtract"] = "NumpadSubtract"
-	nameToJSKeyCode["KPAdd"] = "NumpadAdd"
-	nameToJSKeyCode["KPEnter"] = "NumpadEnter"
-	nameToJSKeyCode["KPEqual"] = "NumpadEqual"
+	nameToJSKey["KPDecimal"] = "NumpadDecimal"
+	nameToJSKey["KPDivide"] = "NumpadDivide"
+	nameToJSKey["KPMultiply"] = "NumpadMultiply"
+	nameToJSKey["KPSubtract"] = "NumpadSubtract"
+	nameToJSKey["KPAdd"] = "NumpadAdd"
+	nameToJSKey["KPEnter"] = "NumpadEnter"
+	nameToJSKey["KPEqual"] = "NumpadEqual"
 }
 
 func init() {
 	// TODO: How should we treat modifier keys? Now 'left' modifier keys are available.
-	keyCodeToNameEdge = map[int]string{
+	edgeKeyCodeToName = map[int]string{
 		0xbc: "Comma",
 		0xbe: "Period",
 		0x12: "LeftAlt",
@@ -219,19 +219,19 @@ func init() {
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
-		keyCodeToNameEdge[int(c)] = string(c)
+		edgeKeyCodeToName[int(c)] = string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
-		keyCodeToNameEdge[int(c)] = string(c)
+		edgeKeyCodeToName[int(c)] = string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
-		keyCodeToNameEdge[0x70+i-1] = "F" + strconv.Itoa(i)
+		edgeKeyCodeToName[0x70+i-1] = "F" + strconv.Itoa(i)
 	}
 	// Numpad keys
 	for c := '0'; c <= '9'; c++ {
-		keyCodeToNameEdge[0x60+int(c-'0')] = "KP" + string(c)
+		edgeKeyCodeToName[0x60+int(c-'0')] = "KP" + string(c)
 	}
 }
 
@@ -282,7 +282,7 @@ func (k Key) String() string {
 	return ""
 }
 
-func keyNameToKey(name string) (Key, bool) {
+func keyNameToKeyCode(name string) (Key, bool) {
 	switch strings.ToLower(name) {
 	{{range $name := .EbitenKeyNames}}case {{$name | printf "%q" | ToLower}}:
 		return Key{{$name}}, true
@@ -338,12 +338,12 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/glfw"
 )
 
-var glfwKeyCodeToKey = map[glfw.Key]driver.Key{
+var glfwKeyToDriverKey = map[glfw.Key]driver.Key{
 {{range $index, $name := .DriverKeyNames}}glfw.Key{{$name}}: driver.Key{{$name}},
 {{end}}
 }
 
-var keyCodeToGLFWKey = map[driver.Key]glfw.Key{
+var driverKeyToGLFWKey = map[driver.Key]glfw.Key{
 {{range $index, $name := .DriverKeyNames}}driver.Key{{$name}}: glfw.Key{{$name}},
 {{end}}
 }
@@ -361,13 +361,13 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var keyToCode = map[driver.Key]string{
-{{range $name, $code := .NameToJSKeyCode}}driver.Key{{$name}}: {{$code | printf "%q"}},
+var driverKeyToJSKey = map[driver.Key]string{
+{{range $name, $code := .NameToJSKey}}driver.Key{{$name}}: {{$code | printf "%q"}},
 {{end}}
 }
 
-var keyCodeToKeyEdge = map[int]driver.Key{
-{{range $code, $name := .KeyCodeToNameEdge}}{{$code}}: driver.Key{{$name}},
+var edgeKeyCodeToDriverKey = map[int]driver.Key{
+{{range $code, $name := .EdgeKeyCodeToName}}{{$code}}: driver.Key{{$name}},
 {{end}}
 }
 `
@@ -381,7 +381,7 @@ const glfwKeysTmpl = `{{.License}}
 package glfw
 
 const (
-{{range $name, $key := .NameToGLFWKeys}}Key{{$name}} = Key({{$key}})
+{{range $name, $key := .NameToGLFWKey}}Key{{$name}} = Key({{$key}})
 {{end}}
 )
 `
@@ -478,7 +478,7 @@ func main() {
 	ebitenKeyNames := []string{}
 	ebitenKeyNamesWithoutMods := []string{}
 	driverKeyNames := []string{}
-	for name := range nameToJSKeyCode {
+	for name := range nameToJSKey {
 		driverKeyNames = append(driverKeyNames, name)
 		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") {
 			ebitenKeyNames = append(ebitenKeyNames, name)
@@ -542,22 +542,22 @@ func main() {
 			License                   string
 			DoNotEdit                 string
 			BuildTag                  string
-			NameToJSKeyCode           map[string]string
-			KeyCodeToNameEdge         map[int]string
+			NameToJSKey               map[string]string
+			EdgeKeyCodeToName         map[int]string
 			EbitenKeyNames            []string
 			EbitenKeyNamesWithoutMods []string
 			DriverKeyNames            []string
-			NameToGLFWKeys            map[string]glfw.Key
+			NameToGLFWKey             map[string]glfw.Key
 		}{
 			License:                   license,
 			DoNotEdit:                 doNotEdit,
 			BuildTag:                  buildTag,
-			NameToJSKeyCode:           nameToJSKeyCode,
-			KeyCodeToNameEdge:         keyCodeToNameEdge,
+			NameToJSKey:               nameToJSKey,
+			EdgeKeyCodeToName:         edgeKeyCodeToName,
 			EbitenKeyNames:            ebitenKeyNames,
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
 			DriverKeyNames:            driverKeyNames,
-			NameToGLFWKeys:            nameToGLFWKeys,
+			NameToGLFWKey:             nameToGLFWKey,
 		}); err != nil {
 			log.Fatal(err)
 		}

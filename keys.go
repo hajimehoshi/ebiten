@@ -549,7 +549,7 @@ func (k Key) String() string {
 	return ""
 }
 
-func keyNameToKey(name string) (Key, bool) {
+func keyNameToKeyCode(name string) (Key, bool) {
 	switch strings.ToLower(name) {
 	case "0":
 		return Key0, true

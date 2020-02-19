@@ -112,7 +112,7 @@ func (i *imageDumper) update(screen *Image) error {
 		i.keyState = map[Key]int{}
 
 		if keyname := os.Getenv(envScreenshotKey); keyname != "" {
-			if key, ok := keyNameToKey(keyname); ok {
+			if key, ok := keyNameToKeyCode(keyname); ok {
 				i.hasScreenshotKey = true
 				i.screenshotKey = key
 			}
@@ -120,7 +120,7 @@ func (i *imageDumper) update(screen *Image) error {
 
 		if keyname := os.Getenv(envInternalImagesKey); keyname != "" {
 			if isDebug() {
-				if key, ok := keyNameToKey(keyname); ok {
+				if key, ok := keyNameToKeyCode(keyname); ok {
 					i.hasDumpInternalImagesKey = true
 					i.dumpInternalImagesKey = key
 				}

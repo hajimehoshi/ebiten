@@ -248,7 +248,7 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 		if i.keyPressed == nil {
 			i.keyPressed = map[glfw.Key]bool{}
 		}
-		gk, ok := keyCodeToGLFWKey[key]
+		gk, ok := driverKeyToGLFWKey[key]
 		if ok && i.keyPressed[gk] {
 			r = true
 			return nil
@@ -326,7 +326,7 @@ func (i *Input) update(window *glfw.Window, context driver.UIContext) {
 		if i.keyPressed == nil {
 			i.keyPressed = map[glfw.Key]bool{}
 		}
-		for gk := range glfwKeyCodeToKey {
+		for gk := range glfwKeyToDriverKey {
 			i.keyPressed[gk] = window.GetKey(gk) == glfw.Press
 		}
 		if i.mouseButtonPressed == nil {

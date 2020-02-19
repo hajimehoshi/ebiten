@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var keyToCode = map[driver.Key]string{
+var driverKeyToJSKey = map[driver.Key]string{
 	driver.Key0:            "Digit0",
 	driver.Key1:            "Digit1",
 	driver.Key2:            "Digit2",
@@ -128,7 +128,7 @@ var keyToCode = map[driver.Key]string{
 	driver.KeyZ:            "KeyZ",
 }
 
-var keyCodeToKeyEdge = map[int]driver.Key{
+var edgeKeyCodeToDriverKey = map[int]driver.Key{
 	8:   driver.KeyBackspace,
 	9:   driver.KeyTab,
 	13:  driver.KeyEnter,

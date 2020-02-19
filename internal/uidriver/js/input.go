@@ -154,12 +154,12 @@ func (i *Input) ResetForFrame() {
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if i.keyPressed != nil {
-		if i.keyPressed[keyToCode[key]] {
+		if i.keyPressed[driverKeyToJSKey[key]] {
 			return true
 		}
 	}
 	if i.keyPressedEdge != nil {
-		for c, k := range keyCodeToKeyEdge {
+		for c, k := range edgeKeyCodeToDriverKey {
 			if k != key {
 				continue
 			}
@@ -288,24 +288,24 @@ func (i *Input) Update(e js.Value) {
 		c := e.Get("code")
 		if jsutil.Equal(c, js.Undefined()) {
 			code := e.Get("keyCode").Int()
-			if keyCodeToKeyEdge[code] == driver.KeyUp ||
-				keyCodeToKeyEdge[code] == driver.KeyDown ||
-				keyCodeToKeyEdge[code] == driver.KeyLeft ||
-				keyCodeToKeyEdge[code] == driver.KeyRight ||
-				keyCodeToKeyEdge[code] == driver.KeyBackspace ||
-				keyCodeToKeyEdge[code] == driver.KeyTab {
+			if edgeKeyCodeToDriverKey[code] == driver.KeyUp ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyDown ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyLeft ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyRight ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyBackspace ||
+				edgeKeyCodeToDriverKey[code] == driver.KeyTab {
 				e.Call("preventDefault")
 			}
 			i.keyDownEdge(code)
 			return
 		}
 		cs := c.String()
-		if cs == keyToCode[driver.KeyUp] ||
-			cs == keyToCode[driver.KeyDown] ||
-			cs == keyToCode[driver.KeyLeft] ||
-			cs == keyToCode[driver.KeyRight] ||
-			cs == keyToCode[driver.KeyBackspace] ||
-			cs == keyToCode[driver.KeyTab] {
+		if cs == driverKeyToJSKey[driver.KeyUp] ||
+			cs == driverKeyToJSKey[driver.KeyDown] ||
+			cs == driverKeyToJSKey[driver.KeyLeft] ||
+			cs == driverKeyToJSKey[driver.KeyRight] ||
+			cs == driverKeyToJSKey[driver.KeyBackspace] ||
+			cs == driverKeyToJSKey[driver.KeyTab] {
 			e.Call("preventDefault")
 		}
 		i.keyDown(cs)
