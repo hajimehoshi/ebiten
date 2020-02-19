@@ -84,6 +84,13 @@ func init() {
 		"RightAlt":     glfw.KeyRightAlt,
 		"RightSuper":   glfw.KeyRightSuper,
 		"Menu":         glfw.KeyMenu,
+		"KPDecimal":    glfw.KeyKPDecimal,
+		"KPDivide":     glfw.KeyKPDivide,
+		"KPMultiply":   glfw.KeyKPMultiply,
+		"KPSubtract":   glfw.KeyKPSubtract,
+		"KPAdd":        glfw.KeyKPAdd,
+		"KPEnter":      glfw.KeyKPEnter,
+		"KPEqual":      glfw.KeyKPEqual,
 		"Last":         glfw.KeyLast,
 	}
 	nameToJSKey = map[string]string{
@@ -125,6 +132,13 @@ func init() {
 		"PrintScreen":  "PrintScreen",
 		"ScrollLock":   "ScrollLock",
 		"Menu":         "ContextMenu",
+		"KPDecimal":    "NumpadDecimal",
+		"KPDivide":     "NumpadDivide",
+		"KPMultiply":   "NumpadMultiply",
+		"KPSubtract":   "NumpadSubtract",
+		"KPAdd":        "NumpadAdd",
+		"KPEnter":      "NumpadEnter",
+		"KPEqual":      "NumpadEqual",
 	}
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
@@ -149,22 +163,6 @@ func init() {
 		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
 		nameToJSKey[name] = "Numpad" + string(c)
 	}
-
-	nameToGLFWKey["KPDecimal"] = glfw.KeyKPDecimal
-	nameToGLFWKey["KPDivide"] = glfw.KeyKPDivide
-	nameToGLFWKey["KPMultiply"] = glfw.KeyKPMultiply
-	nameToGLFWKey["KPSubtract"] = glfw.KeyKPSubtract
-	nameToGLFWKey["KPAdd"] = glfw.KeyKPAdd
-	nameToGLFWKey["KPEnter"] = glfw.KeyKPEnter
-	nameToGLFWKey["KPEqual"] = glfw.KeyKPEqual
-
-	nameToJSKey["KPDecimal"] = "NumpadDecimal"
-	nameToJSKey["KPDivide"] = "NumpadDivide"
-	nameToJSKey["KPMultiply"] = "NumpadMultiply"
-	nameToJSKey["KPSubtract"] = "NumpadSubtract"
-	nameToJSKey["KPAdd"] = "NumpadAdd"
-	nameToJSKey["KPEnter"] = "NumpadEnter"
-	nameToJSKey["KPEqual"] = "NumpadEqual"
 }
 
 func init() {
