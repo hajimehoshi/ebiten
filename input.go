@@ -39,6 +39,8 @@ func InputChars() []rune {
 //   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
 //   - KeyPrintScreen is only treated at keyup event.
 //
+// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keys.
+//
 // IsKeyPressed is concurrent-safe.
 func IsKeyPressed(key Key) bool {
 	// There are keys that are invalid values as ebiten.Key (e.g., driver.KeyLeftAlt).
