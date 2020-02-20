@@ -39,8 +39,6 @@ func InputChars() []rune {
 //   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
 //   - KeyPrintScreen is only treated at keyup event.
 //
-// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keys.
-//
 // IsKeyPressed is concurrent-safe.
 func IsKeyPressed(key Key) bool {
 	// There are keys that are invalid values as ebiten.Key (e.g., driver.KeyLeftAlt).
@@ -52,13 +50,13 @@ func IsKeyPressed(key Key) bool {
 	var keys []driver.Key
 	switch key {
 	case KeyAlt:
-		keys = append(keys, driver.KeyLeftAlt, driver.KeyRightAlt)
+		keys = []driver.Key{driver.KeyLeftAlt, driver.KeyRightAlt}
 	case KeyControl:
-		keys = append(keys, driver.KeyLeftControl, driver.KeyRightControl)
+		keys = []driver.Key{driver.KeyLeftControl, driver.KeyRightControl}
 	case KeyShift:
-		keys = append(keys, driver.KeyLeftShift, driver.KeyRightShift)
+		keys = []driver.Key{driver.KeyLeftShift, driver.KeyRightShift}
 	default:
-		keys = append(keys, driver.Key(key))
+		keys = []driver.Key{driver.Key(key)}
 	}
 	for _, k := range keys {
 		if uiDriver().Input().IsKeyPressed(k) {
