@@ -20,7 +20,7 @@ import (
 
 // Thread represents an OS thread.
 type Thread struct {
-	funcs chan func() error
+	funcs   chan func() error
 	results chan error
 }
 
@@ -29,7 +29,7 @@ type Thread struct {
 // It is assumed that the OS thread is fixed by runtime.LockOSThread when New is called.
 func New() *Thread {
 	return &Thread{
-		funcs: make(chan func() error),
+		funcs:   make(chan func() error),
 		results: make(chan error),
 	}
 }
@@ -54,5 +54,5 @@ loop:
 // Do not call this from the same thread. This would block forever.
 func (t *Thread) Call(f func() error) error {
 	t.funcs <- f
-	return <- t.results
+	return <-t.results
 }
