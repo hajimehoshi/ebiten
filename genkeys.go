@@ -34,10 +34,10 @@ import (
 )
 
 var (
-	nameToGLFWKey     map[string]glfw.Key
-	nameToAndroidKey  map[string]int
-	nameToJSKey       map[string]string
-	edgeKeyCodeToName map[int]string
+	nameToGLFWKey             map[string]glfw.Key
+	androidKeyToDriverKeyName map[int]string
+	nameToJSKey               map[string]string // TODO: Rename this
+	edgeKeyCodeToName         map[int]string
 )
 
 func init() {
@@ -96,52 +96,52 @@ func init() {
 	}
 
 	// https://developer.android.com/reference/android/view/KeyEvent
-	nameToAndroidKey = map[string]int{
-		"Comma":        55,
-		"Period":       56,
-		"LeftAlt":      57,
-		"RightAlt":     58,
-		"CapsLock":     115,
-		"LeftControl":  113,
-		"RightControl": 114,
-		"LeftShift":    59,
-		"RightShift":   60,
-		"Enter":        66,
-		"Space":        62,
-		"Tab":          61,
-		"Delete":       112, // KEYCODE_FORWARD_DEL
-		"End":          123,
-		"Home":         122,
-		"Insert":       124,
-		"PageDown":     93,
-		"PageUp":       92,
-		"Down":         20,
-		"Left":         21,
-		"Right":        22,
-		"Up":           19,
-		"Escape":       111,
-		"Backspace":    67, // KEYCODE_DEL
-		"Apostrophe":   75,
-		"Minus":        69,
-		"Slash":        76,
-		"Semicolon":    74,
-		"Equal":        70,
-		"LeftBracket":  71,
-		"Backslash":    73,
-		"RightBracket": 72,
-		"GraveAccent":  68,
-		"NumLock":      143,
-		"Pause":        121, // KEYCODE_BREAK
-		"PrintScreen":  120, // KEYCODE_SYSRQ
-		"ScrollLock":   116,
-		"Menu":         82,
-		"KPDecimal":    158,
-		"KPDivide":     154,
-		"KPMultiply":   155,
-		"KPSubtract":   156,
-		"KPAdd":        157,
-		"KPEnter":      160,
-		"KPEqual":      161,
+	androidKeyToDriverKeyName = map[int]string{
+		55:  "KeyComma",
+		56:  "KeyPeriod",
+		57:  "KeyLeftAlt",
+		58:  "KeyRightAlt",
+		115: "KeyCapsLock",
+		113: "KeyLeftControl",
+		114: "KeyRightControl",
+		59:  "KeyLeftShift",
+		60:  "KeyRightShift",
+		66:  "KeyEnter",
+		62:  "KeySpace",
+		61:  "KeyTab",
+		112: "KeyDelete", // KEYCODE_FORWARD_DEL
+		123: "KeyEnd",
+		122: "KeyHome",
+		124: "KeyInsert",
+		93:  "KeyPageDown",
+		92:  "KeyPageUp",
+		20:  "KeyDown",
+		21:  "KeyLeft",
+		22:  "KeyRight",
+		19:  "KeyUp",
+		111: "KeyEscape",
+		67:  "KeyBackspace", // KEYCODE_DEL
+		75:  "KeyApostrophe",
+		69:  "KeyMinus",
+		76:  "KeySlash",
+		74:  "KeySemicolon",
+		70:  "KeyEqual",
+		71:  "KeyLeftBracket",
+		73:  "KeyBackslash",
+		72:  "KeyRightBracket",
+		68:  "KeyGraveAccent",
+		143: "KeyNumLock",
+		121: "KeyPause",       // KEYCODE_BREAK
+		120: "KeyPrintScreen", // KEYCODE_SYSRQ
+		116: "KeyScrollLock",
+		82:  "KeyMenu",
+		158: "KeyKPDecimal",
+		154: "KeyKPDivide",
+		155: "KeyKPMultiply",
+		156: "KeyKPSubtract",
+		157: "KeyKPAdd",
+		160: "KeyKPEnter",
+		161: "KeyKPEqual",
 	}
 
 	nameToJSKey = map[string]string{
@@ -195,20 +195,20 @@ func init() {
 	// ASCII: 0 - 9
 	for c := '0'; c <= '9'; c++ {
 		nameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
-		nameToAndroidKey[string(c)] = int(7 + c - '0')
+		androidKeyToDriverKeyName[7+int(c)-'0'] = string(c)
 		nameToJSKey[string(c)] = "Digit" + string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
 		nameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
-		nameToAndroidKey[string(c)] = int(29 + c - 'A')
+		androidKeyToDriverKeyName[29+int(c)-'A'] = string(c)
 		nameToJSKey[string(c)] = "Key" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
 		nameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
-		nameToAndroidKey[name] = 131 + i - 1
+		androidKeyToDriverKeyName[131+i-1] = name
 		nameToJSKey[name] = name
 	}
 	// Numpad
@@ -216,7 +216,7 @@ func init() {
 	for c := '0'; c <= '9'; c++ {
 		name := "KP" + string(c)
 		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
-		nameToAndroidKey[name] = int(144 + c - '0')
+		androidKeyToDriverKeyName[144+int(c)-'0'] = name
 		nameToJSKey[name] = "Numpad" + string(c)
 	}
 }
@@ -452,8 +452,8 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var androidKeyToDriverKey = map[int]driver.Key{
-{{range $name, $code := .NameToAndroidKey}}{{$code}}: driver.Key{{$name}},
+var androidKeyToDriverKeyName = map[int]driver.Key{
+{{range $key, $name := .AndroidKeyToDriverKeyName}}{{$key}}: driver.Key{{$name}},
 {{end}}
 }
 `
@@ -621,7 +621,7 @@ func main() {
 			EbitenKeyNamesWithoutMods []string
 			DriverKeyNames            []string
 			NameToGLFWKey             map[string]glfw.Key
-			NameToAndroidKey          map[string]int
+			AndroidKeyToDriverKeyName map[int]string
 		}{
 			License:                   license,
 			DoNotEdit:                 doNotEdit,
@@ -632,7 +632,7 @@ func main() {
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
 			DriverKeyNames:            driverKeyNames,
 			NameToGLFWKey:             nameToGLFWKey,
-			NameToAndroidKey:          nameToAndroidKey,
+			AndroidKeyToDriverKeyName: androidKeyToDriverKeyName,
 		}); err != nil {
 			log.Fatal(err)
 		}
