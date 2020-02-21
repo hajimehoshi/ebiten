@@ -96,7 +96,7 @@ func (m *Mipmap) At(x, y int) (r, g, b, a byte, err error) {
 	return m.orig.At(x, y)
 }
 
-func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom *GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
+func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
 	if det := geom.det(); det == 0 {
 		return
 	} else if math.IsNaN(float64(det)) {
@@ -275,7 +275,7 @@ func (m *Mipmap) disposeMipmaps() {
 // mipmapLevel returns an appropriate mipmap level for the given determinant of a geometry matrix.
 //
 // mipmapLevel panics if det is NaN or 0.
-func (m *Mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter) int {
+func (m *Mipmap) mipmapLevel(geom GeoM, width, height int, filter driver.Filter) int {
 	det := geom.det()
 	if math.IsNaN(float64(det)) {
 		panic("ebiten: det must be finite at mipmapLevel")
@@ -294,7 +294,7 @@ func (m *Mipmap) mipmapLevel(geom *GeoM, width, height int, filter driver.Filter
 	if !graphicsDriver.HasHighPrecisionFloat() {
 		tooBigScale = 4
 	}
-	if sx, sy := geomScaleSize(geom); sx >= tooBigScale || sy >= tooBigScale {
+	if sx, sy := geomScaleSize(&geom); sx >= tooBigScale || sy >= tooBigScale {
 		// If the filter is not nearest, the target needs to be rendered with graduation. Don't use mipmaps.
 		if filter != driver.FilterNearest {
 			return 0
