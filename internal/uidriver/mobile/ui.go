@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"golang.org/x/mobile/app"
+	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
@@ -144,8 +145,13 @@ func deviceScale() float64 {
 func (u *UserInterface) appMain(a app.App) {
 	var glctx gl.Context
 	var sizeInited bool
+
 	touches := map[touch.Sequence]*Touch{}
+	keys := map[driver.Key]struct{}{}
+
 	for e := range a.Events() {
+		var updateInput bool
+
 		switch e := a.Filter(e).(type) {
 		case lifecycle.Event:
 			switch e.Crosses(lifecycle.StageVisible) {
@@ -195,12 +201,27 @@ func (u *UserInterface) appMain(a app.App) {
 			case touch.TypeEnd:
 				delete(touches, e.Sequence)
 			}
+			updateInput = true
+		case key.Event:
+			k, ok := gbuildKeyToDriverKey[e.Code]
+			if !ok {
+				continue
+			}
+			switch e.Direction {
+			case key.DirPress, key.DirNone:
+				keys[k] = struct{}{}
+			case key.DirRelease:
+				delete(keys, k)
+			}
+			updateInput = true
+		}
+
+		if updateInput {
 			ts := []*Touch{}
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			// TODO: Give keyboard keys.
-			u.input.update(nil, ts)
+			u.input.update(keys, ts)
 		}
 	}
 }
