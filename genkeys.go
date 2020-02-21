@@ -36,7 +36,7 @@ import (
 var (
 	nameToGLFWKey             map[string]glfw.Key
 	androidKeyToDriverKeyName map[int]string
-	nameToJSKey               map[string]string // TODO: Rename this
+	driverKeyNameToJSKey      map[string]string
 	edgeKeyCodeToName         map[int]string
 )
 
@@ -144,7 +144,7 @@ func init() {
 		161: "KeyKPEqual",
 	}
 
-	nameToJSKey = map[string]string{
+	driverKeyNameToJSKey = map[string]string{
 		"Comma":        "Comma",
 		"Period":       "Period",
 		"LeftAlt":      "AltLeft",
@@ -196,20 +196,20 @@ func init() {
 	for c := '0'; c <= '9'; c++ {
 		nameToGLFWKey[string(c)] = glfw.Key0 + glfw.Key(c) - '0'
 		androidKeyToDriverKeyName[7+int(c)-'0'] = string(c)
-		nameToJSKey[string(c)] = "Digit" + string(c)
+		driverKeyNameToJSKey[string(c)] = "Digit" + string(c)
 	}
 	// ASCII: A - Z
 	for c := 'A'; c <= 'Z'; c++ {
 		nameToGLFWKey[string(c)] = glfw.KeyA + glfw.Key(c) - 'A'
 		androidKeyToDriverKeyName[29+int(c)-'A'] = string(c)
-		nameToJSKey[string(c)] = "Key" + string(c)
+		driverKeyNameToJSKey[string(c)] = "Key" + string(c)
 	}
 	// Function keys
 	for i := 1; i <= 12; i++ {
 		name := "F" + strconv.Itoa(i)
 		nameToGLFWKey[name] = glfw.KeyF1 + glfw.Key(i) - 1
 		androidKeyToDriverKeyName[131+i-1] = name
-		nameToJSKey[name] = name
+		driverKeyNameToJSKey[name] = name
 	}
 	// Numpad
 	// https://www.w3.org/TR/uievents-code/#key-numpad-section
@@ -217,7 +217,7 @@ func init() {
 		name := "KP" + string(c)
 		nameToGLFWKey[name] = glfw.KeyKP0 + glfw.Key(c) - '0'
 		androidKeyToDriverKeyName[144+int(c)-'0'] = name
-		nameToJSKey[name] = "Numpad" + string(c)
+		driverKeyNameToJSKey[name] = "Numpad" + string(c)
 	}
 }
 
@@ -416,7 +416,7 @@ import (
 )
 
 var driverKeyToJSKey = map[driver.Key]string{
-{{range $name, $code := .NameToJSKey}}driver.Key{{$name}}: {{$code | printf "%q"}},
+{{range $name, $code := .DriverKeyNameToJSKey}}driver.Key{{$name}}: {{$code | printf "%q"}},
 {{end}}
 }
 
@@ -550,7 +550,7 @@ func main() {
 	ebitenKeyNames := []string{}
 	ebitenKeyNamesWithoutMods := []string{}
 	driverKeyNames := []string{}
-	for name := range nameToJSKey {
+	for name := range driverKeyNameToJSKey {
 		driverKeyNames = append(driverKeyNames, name)
 		if !strings.HasSuffix(name, "Alt") && !strings.HasSuffix(name, "Control") && !strings.HasSuffix(name, "Shift") {
 			ebitenKeyNames = append(ebitenKeyNames, name)
@@ -615,7 +615,7 @@ func main() {
 			License                   string
 			DoNotEdit                 string
 			BuildTag                  string
-			NameToJSKey               map[string]string
+			DriverKeyNameToJSKey      map[string]string
 			EdgeKeyCodeToName         map[int]string
 			EbitenKeyNames            []string
 			EbitenKeyNamesWithoutMods []string
@@ -626,7 +626,7 @@ func main() {
 			License:                   license,
 			DoNotEdit:                 doNotEdit,
 			BuildTag:                  buildTag,
-			NameToJSKey:               nameToJSKey,
+			DriverKeyNameToJSKey:      driverKeyNameToJSKey,
 			EdgeKeyCodeToName:         edgeKeyCodeToName,
 			EbitenKeyNames:            ebitenKeyNames,
 			EbitenKeyNamesWithoutMods: ebitenKeyNamesWithoutMods,
