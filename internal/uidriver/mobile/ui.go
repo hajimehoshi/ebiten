@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"unicode"
 
 	"golang.org/x/mobile/app"
 	"golang.org/x/mobile/event/key"
@@ -151,6 +152,7 @@ func (u *UserInterface) appMain(a app.App) {
 
 	for e := range a.Events() {
 		var updateInput bool
+		var runes []rune
 
 		switch e := a.Filter(e).(type) {
 		case lifecycle.Event:
@@ -204,14 +206,20 @@ func (u *UserInterface) appMain(a app.App) {
 			updateInput = true
 		case key.Event:
 			k, ok := gbuildKeyToDriverKey[e.Code]
-			if !ok {
-				continue
+			if ok {
+				switch e.Direction {
+				case key.DirPress, key.DirNone:
+					keys[k] = struct{}{}
+				case key.DirRelease:
+					delete(keys, k)
+				}
 			}
+
 			switch e.Direction {
 			case key.DirPress, key.DirNone:
-				keys[k] = struct{}{}
-			case key.DirRelease:
-				delete(keys, k)
+				if e.Rune != -1 && unicode.IsPrint(e.Rune) {
+					runes = []rune{e.Rune}
+				}
 			}
 			updateInput = true
 		}
@@ -221,7 +229,7 @@ func (u *UserInterface) appMain(a app.App) {
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(keys, nil, ts)
+			u.input.update(keys, runes, ts)
 		}
 	}
 }

@@ -14,6 +14,10 @@
 
 package ebitenmobileview
 
+import (
+	"unicode"
+)
+
 func UpdateTouchesOnAndroid(action int, id int, x, y int) {
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
@@ -37,8 +41,8 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int) {
 		return
 	}
 	keys[key] = struct{}{}
-	if unicodeChar != 0 {
-		runes = []rune{rune(unicodeChar)}
+	if r := rune(unicodeChar); r != 0 && unicode.IsPrint(r) {
+		runes = []rune{r}
 	}
 	updateInput()
 }
