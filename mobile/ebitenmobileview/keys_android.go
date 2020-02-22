@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var androidKeyToDriverKeyName = map[int]driver.Key{
+var androidKeyToDriverKey = map[int]driver.Key{
 	7:   driver.Key0,
 	8:   driver.Key1,
 	9:   driver.Key2,

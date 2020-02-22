@@ -520,7 +520,7 @@ import (
 	"github.com/hajimehoshi/ebiten/internal/driver"
 )
 
-var androidKeyToDriverKeyName = map[int]driver.Key{
+var androidKeyToDriverKey = map[int]driver.Key{
 {{range $key, $name := .AndroidKeyToDriverKeyName}}{{$key}}: driver.Key{{$name}},
 {{end}}
 }
