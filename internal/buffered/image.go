@@ -214,7 +214,7 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 		panic("buffered: Image.DrawImage: src must be different from the receiver")
 	}
 
-	g := &mipmap.GeoM{
+	g := mipmap.GeoM{
 		A:  a,
 		B:  b,
 		C:  c,
@@ -237,7 +237,7 @@ func (i *Image) DrawImage(src *Image, bounds image.Rectangle, a, b, c, d, tx, ty
 	i.drawImage(src, bounds, g, colorm, mode, filter)
 }
 
-func (i *Image) drawImage(src *Image, bounds image.Rectangle, g *mipmap.GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
+func (i *Image) drawImage(src *Image, bounds image.Rectangle, g mipmap.GeoM, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter) {
 	src.resolvePendingPixels(true)
 	i.resolvePendingPixels(false)
 	i.img.DrawImage(src.img, bounds, g, colorm, mode, filter)
