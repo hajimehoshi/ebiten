@@ -28,6 +28,7 @@ type position struct {
 
 var (
 	keys    = map[driver.Key]struct{}{}
+	runes   []rune
 	touches = map[int]position{}
 )
 
@@ -40,5 +41,5 @@ func updateInput() {
 			Y:  position.y,
 		})
 	}
-	mobile.Get().UpdateInput(keys, ts)
+	mobile.Get().UpdateInput(keys, runes, ts)
 }

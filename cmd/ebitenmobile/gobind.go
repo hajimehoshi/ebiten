@@ -383,7 +383,7 @@ public class EbitenView extends ViewGroup {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Ebitenmobileview.onKeyDownOnAndroid(keyCode);
+        Ebitenmobileview.onKeyDownOnAndroid(keyCode, event.getUnicodeChar());
         return true;
     }
 

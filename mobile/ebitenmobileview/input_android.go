@@ -31,12 +31,15 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y int) {
 	panic("ebitenmobileview: updateTouchesOnIOSImpl must not be called on Android")
 }
 
-func OnKeyDownOnAndroid(keyCode int) {
+func OnKeyDownOnAndroid(keyCode int, unicodeChar int) {
 	key, ok := androidKeyToDriverKey[keyCode]
 	if !ok {
 		return
 	}
 	keys[key] = struct{}{}
+	if unicodeChar != 0 {
+		runes = []rune{rune(unicodeChar)}
+	}
 	updateInput()
 }
 

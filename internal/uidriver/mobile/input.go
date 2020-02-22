@@ -29,6 +29,7 @@ type Input struct {
 	cursorX int
 	cursorY int
 	keys    map[driver.Key]struct{}
+	runes   []rune
 	touches map[int]pos
 	ui      *UserInterface
 }
@@ -95,7 +96,7 @@ func (i *Input) TouchPosition(id int) (x, y int) {
 }
 
 func (i *Input) RuneBuffer() []rune {
-	return nil
+	return i.runes
 }
 
 func (i *Input) IsKeyPressed(key driver.Key) bool {
@@ -117,7 +118,7 @@ func (i *Input) IsMouseButtonPressed(key driver.MouseButton) bool {
 	return false
 }
 
-func (i *Input) update(keys map[driver.Key]struct{}, touches []*Touch) {
+func (i *Input) update(keys map[driver.Key]struct{}, runes []rune, touches []*Touch) {
 	i.ui.m.Lock()
 	defer i.ui.m.Unlock()
 
@@ -125,6 +126,9 @@ func (i *Input) update(keys map[driver.Key]struct{}, touches []*Touch) {
 	for k := range keys {
 		i.keys[k] = struct{}{}
 	}
+
+	i.runes = make([]rune, len(runes))
+	copy(i.runes, runes)
 
 	i.touches = map[int]pos{}
 	for _, t := range touches {
@@ -136,5 +140,5 @@ func (i *Input) update(keys map[driver.Key]struct{}, touches []*Touch) {
 }
 
 func (i *Input) ResetForFrame() {
-	// Do nothing
+	i.runes = nil
 }
