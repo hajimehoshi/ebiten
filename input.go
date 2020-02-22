@@ -27,6 +27,10 @@ import (
 // "Control" and modifier keys should be handled with IsKeyPressed.
 //
 // InputChars is concurrent-safe.
+//
+// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
+//
+// Keyboards don't work on iOS yet (#1090).
 func InputChars() []rune {
 	rb := uiDriver().Input().RuneBuffer()
 	return append(make([]rune, 0, len(rb)), rb...)
@@ -39,9 +43,11 @@ func InputChars() []rune {
 //   - KeyKPEnter and KeyKPEqual are recognized as KeyEnter and KeyEqual.
 //   - KeyPrintScreen is only treated at keyup event.
 //
-// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keys.
-//
 // IsKeyPressed is concurrent-safe.
+//
+// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
+//
+// Keyboards don't work on iOS yet (#1090).
 func IsKeyPressed(key Key) bool {
 	// There are keys that are invalid values as ebiten.Key (e.g., driver.KeyLeftAlt).
 	// Skip such values.
