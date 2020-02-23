@@ -22,6 +22,7 @@ import (
 type Thread struct {
 	funcs   chan func() error
 	results chan error
+	closed  chan struct{}
 }
 
 // New creates a new thread.
@@ -31,6 +32,7 @@ func New() *Thread {
 	return &Thread{
 		funcs:   make(chan func() error),
 		results: make(chan error),
+		closed:  make(chan struct{}),
 	}
 }
 
@@ -38,6 +40,9 @@ func New() *Thread {
 //
 // Loop must be called on the thread.
 func (t *Thread) Loop(context context.Context) {
+	defer close(t.closed)
+	defer close(t.results)
+	defer close(t.funcs)
 loop:
 	for {
 		select {
@@ -53,6 +58,10 @@ loop:
 //
 // Do not call this from the same thread. This would block forever.
 func (t *Thread) Call(f func() error) error {
-	t.funcs <- f
-	return <-t.results
+	select {
+	case t.funcs <- f:
+		return <-t.results
+	case <-t.closed:
+		panic("thread: this thread is already terminated")
+	}
 }
