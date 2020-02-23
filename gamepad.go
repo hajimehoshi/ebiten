@@ -56,4 +56,27 @@ const (
 	GamepadButton30  GamepadButton = GamepadButton(driver.GamepadButton30)
 	GamepadButton31  GamepadButton = GamepadButton(driver.GamepadButton31)
 	GamepadButtonMax GamepadButton = GamepadButton31
+
+	GamepadButtonA          = GamepadButton0
+	GamepadButtonB          = GamepadButton1
+	GamepadButtonX          = GamepadButton2
+	GamepadButtonY          = GamepadButton3
+	GamepadButtonLB         = GamepadButton4
+	GamepadButtonRB         = GamepadButton5
+	GamepadButtonBack       = GamepadButton6
+	GamepadButtonStart      = GamepadButton7
+	GamepadButtonSystem     = GamepadButton8
+	GamepadButtonLeftStick  = GamepadButton9
+	GamepadButtonRightStick = GamepadButton10
+	GamepadButtonDpadUp     = GamepadButton11
+	GamepadButtonDpadRight  = GamepadButton12
+	GamepadButtonDpadDown   = GamepadButton13
+	GamepadButtonDpadLeft   = GamepadButton14
+
+	GamepadAxisLeftX  int = 0
+	GamepadAxisLeftY  int = 1
+	GamepadAxisLT     int = 2
+	GamepadAxisRightX int = 3
+	GamepadAxisRightY int = 4
+	GamepadAxisRT     int = 5
 )
