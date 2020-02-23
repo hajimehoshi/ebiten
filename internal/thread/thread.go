@@ -57,6 +57,8 @@ loop:
 // Call calls f on the thread.
 //
 // Do not call this from the same thread. This would block forever.
+//
+// Call panics when Loop already ends.
 func (t *Thread) Call(f func() error) error {
 	select {
 	case t.funcs <- f:
