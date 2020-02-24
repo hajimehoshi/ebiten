@@ -339,6 +339,7 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 
 import {{.JavaPkg}}.ebitenmobileview.Ebitenmobileview;
@@ -393,6 +394,17 @@ public class EbitenView extends ViewGroup {
         return true;
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        for (int i = 0; i < e.getPointerCount(); i++) {
+            int id = e.getPointerId(i);
+            int x = (int)e.getX(i);
+            int y = (int)e.getY(i);
+            Ebitenmobileview.updateTouchesOnAndroid(e.getActionMasked(), id, (int)pxToDp(x), (int)pxToDp(y));
+        }
+        return true;
+    }
+
     // suspendGame suspends the game.
     // It is recommended to call this when the application is being suspended e.g.,
     // Activity's onPause is called.
@@ -428,7 +440,6 @@ import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
-import android.view.MotionEvent;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -483,28 +494,6 @@ class EbitenSurfaceView extends GLSurfaceView {
         setEGLContextClientVersion(2);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
         setRenderer(new EbitenRenderer());
-    }
-
-    private double getDeviceScale() {
-        if (deviceScale_ == 0.0) {
-            deviceScale_ = getResources().getDisplayMetrics().density;
-        }
-        return deviceScale_;
-    }
-
-    private double pxToDp(double x) {
-        return x / getDeviceScale();
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent e) {
-        for (int i = 0; i < e.getPointerCount(); i++) {
-            int id = e.getPointerId(i);
-            int x = (int)e.getX(i);
-            int y = (int)e.getY(i);
-            Ebitenmobileview.updateTouchesOnAndroid(e.getActionMasked(), id, (int)pxToDp(x), (int)pxToDp(y));
-        }
-        return true;
     }
 
     private void onErrorOnGameUpdate(Exception e) {
