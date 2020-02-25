@@ -492,9 +492,11 @@ func (c *context) deleteBuffer(b buffer) {
 }
 
 func (c *context) drawElements(len int, offsetInBytes int) {
-	_ = c.t.Call(func() error {
+	_ = c.t.BoolCall2(uintptr(len), uintptr(offsetInBytes), func(param1, param2 uintptr) bool {
+		len := int32(param1)
+		offsetInBytes := param2
 		gl.DrawElements(gl.TRIANGLES, int32(len), gl.UNSIGNED_SHORT, uintptr(offsetInBytes))
-		return nil
+		return true
 	})
 }
 
