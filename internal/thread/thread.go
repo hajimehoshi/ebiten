@@ -84,6 +84,8 @@ loop:
 				callResult.flag = c.func2ReturnsBool(c.params[0], c.params[1])
 			case typeReturn2:
 				callResult.result1, callResult.result2 = c.funcReturns2()
+			default:
+				panic("Internal error in thread.go - invalid function type encountered.")
 			}
 			t.results <- callResult
 		case <-context.Done():
