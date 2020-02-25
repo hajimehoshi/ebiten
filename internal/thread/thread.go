@@ -94,7 +94,7 @@ loop:
 	}
 }
 
-// Call calls f on the thread.
+// Call calls f on the thread. Takes 0 parameters, returns error.
 //
 // Do not call this from the same thread. This would block forever.
 //
@@ -113,7 +113,7 @@ func (t *Thread) Call(f func() error) error {
 	}
 }
 
-// Call calls f on the thread.
+// Call calls f on the thread. Takes 1 uintptr parameter, returns bool.
 //
 // Do not call this from the same thread. This would block forever.
 //
@@ -133,7 +133,7 @@ func (t *Thread) BoolCall1(param1 uintptr, f func(uintptr) bool) bool {
 	}
 }
 
-// Call calls f on the thread.
+// Call calls f on the thread. Takes 2 uintptr parameters, returns bool.
 //
 // Do not call this from the same thread. This would block forever.
 //
@@ -153,7 +153,7 @@ func (t *Thread) BoolCall2(param1, param2 uintptr, f func(uintptr, uintptr) bool
 	}
 }
 
-// Call calls f on the thread.
+// Call calls f on the thread. Takes 0 parameters, returns 2 uintptrs.
 //
 // Do not call this from the same thread. This would block forever.
 //
