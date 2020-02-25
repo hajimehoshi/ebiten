@@ -22,7 +22,7 @@ type functionType int
 
 const (
 	type0ParamsReturnError functionType = iota
-	type1ParamsReturnBool
+	type1ParamReturnBool
 	type2ParamsReturnBool
 	typeReturn2
 )
@@ -78,7 +78,7 @@ loop:
 			switch c.funcType {
 			case type0ParamsReturnError:
 				callResult.err = c.func0ReturnsError()
-			case type1ParamsReturnBool:
+			case type1ParamReturnBool:
 				callResult.flag = c.func1ReturnsBool(c.params[0])
 			case type2ParamsReturnBool:
 				callResult.flag = c.func2ReturnsBool(c.params[0], c.params[1])
@@ -120,7 +120,7 @@ func (t *Thread) Call(f func() error) error {
 // Call panics when Loop already ends.
 func (t *Thread) BoolCall1(param1 uintptr, f func(uintptr) bool) bool {
 	thisCall := call{
-		funcType:         type1ParamsReturnBool,
+		funcType:         type1ParamReturnBool,
 		func1ReturnsBool: f,
 		params:           [MaxPublicParams]uintptr{param1, 0},
 	}
