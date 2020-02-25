@@ -11,7 +11,7 @@ import (
 func Test0ParamsReturnError(t *testing.T) {
 	const errorString = "foobar"
 	var err error
-	err = thread.Call(func () error {
+	err = thread.Call(func() error {
 		return errors.New(errorString)
 	})
 
@@ -19,7 +19,7 @@ func Test0ParamsReturnError(t *testing.T) {
 		t.Error("Error string was wrong")
 	}
 
-	err = thread.Call(func () error {
+	err = thread.Call(func() error {
 		return nil
 	})
 
@@ -33,7 +33,7 @@ func Test1ParamReturnsBool(t *testing.T) {
 	f := func(param uintptr) bool {
 		return param > 10
 	}
-	
+
 	result = thread.BoolCall1(11, f)
 	if !result {
 		t.Error("Should return true with param above 10")
@@ -50,7 +50,7 @@ func Test2ParamsReturnsBool(t *testing.T) {
 	f := func(param1, param2 uintptr) bool {
 		return param1 > 10 && param2 > 10
 	}
-	
+
 	result = thread.BoolCall2(11, 11, f)
 	if !result {
 		t.Error("Should return true with both params above 10")
@@ -69,7 +69,7 @@ func Test2ParamsReturnsBool(t *testing.T) {
 
 func TestReturns2(t *testing.T) {
 	var r1, r2 uintptr
-	
+
 	r1, r2 = thread.CallReturn2(func() (uintptr, uintptr) {
 		return 100, 100
 	})
@@ -86,6 +86,7 @@ func TestReturns2(t *testing.T) {
 }
 
 var thread *Thread
+
 func TestMain(m *testing.M) {
 	// Start the thread
 	ctx, cancel := context.WithCancel(context.Background())
