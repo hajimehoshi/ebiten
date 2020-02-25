@@ -28,18 +28,19 @@ const (
 )
 
 const MaxPublicParams = 2
+
 type call struct {
-	funcType functionType
+	funcType          functionType
 	func0ReturnsError func() error
-	func1ReturnsBool func(uintptr) bool
-	func2ReturnsBool func(uintptr, uintptr) bool
-	funcReturns2 func() (uintptr, uintptr)
-	params [MaxPublicParams]uintptr
+	func1ReturnsBool  func(uintptr) bool
+	func2ReturnsBool  func(uintptr, uintptr) bool
+	funcReturns2      func() (uintptr, uintptr)
+	params            [MaxPublicParams]uintptr
 }
 
 type result struct {
-	err error
-	flag bool
+	err     error
+	flag    bool
 	result1 uintptr
 	result2 uintptr
 }
@@ -98,7 +99,7 @@ loop:
 // Call panics when Loop already ends.
 func (t *Thread) Call(f func() error) error {
 	thisCall := call{
-		funcType: type0ParamsReturnError,
+		funcType:          type0ParamsReturnError,
 		func0ReturnsError: f,
 	}
 	select {
@@ -117,9 +118,9 @@ func (t *Thread) Call(f func() error) error {
 // Call panics when Loop already ends.
 func (t *Thread) BoolCall1(param1 uintptr, f func(uintptr) bool) bool {
 	thisCall := call{
-		funcType: type1ParamsReturnBool,
+		funcType:         type1ParamsReturnBool,
 		func1ReturnsBool: f,
-		params: [MaxPublicParams]uintptr{param1, 0},
+		params:           [MaxPublicParams]uintptr{param1, 0},
 	}
 	select {
 	case t.calls <- thisCall:
@@ -137,9 +138,9 @@ func (t *Thread) BoolCall1(param1 uintptr, f func(uintptr) bool) bool {
 // Call panics when Loop already ends.
 func (t *Thread) BoolCall2(param1, param2 uintptr, f func(uintptr, uintptr) bool) bool {
 	thisCall := call{
-		funcType: type2ParamsReturnBool,
+		funcType:         type2ParamsReturnBool,
 		func2ReturnsBool: f,
-		params: [MaxPublicParams]uintptr{param1, param2},
+		params:           [MaxPublicParams]uintptr{param1, param2},
 	}
 	select {
 	case t.calls <- thisCall:
@@ -157,7 +158,7 @@ func (t *Thread) BoolCall2(param1, param2 uintptr, f func(uintptr, uintptr) bool
 // Call panics when Loop already ends.
 func (t *Thread) CallReturn2(f func() (uintptr, uintptr)) (uintptr, uintptr) {
 	thisCall := call{
-		funcType: typeReturn2,
+		funcType:     typeReturn2,
 		funcReturns2: f,
 	}
 	select {
