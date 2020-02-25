@@ -50,7 +50,7 @@ func (w glfwWindows) add(win uintptr) *Window {
 	if win == 0 {
 		return nil
 	}
-	ww := &Window{win}
+	ww := &Window{win, [...]uintptr{win, 0, 0}, [...]uintptr{0, 0}}
 	glfwWindowsM.Lock()
 	w[win] = ww
 	glfwWindowsM.Unlock()
@@ -100,6 +100,8 @@ func (m *Monitor) GetVideoMode() *VidMode {
 
 type Window struct {
 	w uintptr
+	glfwParams [3]uintptr
+	glfwOutParams [2]uintptr
 }
 
 func (w *Window) Destroy() {
@@ -132,7 +134,8 @@ func (w *Window) GetInputMode(mode InputMode) int {
 }
 
 func (w *Window) GetKey(key Key) Action {
-	r := glfwDLL.call("glfwGetKey", w.w, uintptr(key))
+	w.glfwParams[1] = uintptr(key)
+	r := glfwDLL.call("glfwGetKey", w.glfwParams[:2]...)
 	panicError()
 	return Action(r)
 }
@@ -153,10 +156,11 @@ func (w *Window) GetMouseButton(button MouseButton) Action {
 }
 
 func (w *Window) GetPos() (int, int) {
-	var x, y int32
-	glfwDLL.call("glfwGetWindowPos", w.w, uintptr(unsafe.Pointer(&x)), uintptr(unsafe.Pointer(&y)))
+	w.glfwParams[1] = uintptr(unsafe.Pointer(&w.glfwOutParams[0]))
+	w.glfwParams[2] = uintptr(unsafe.Pointer(&w.glfwOutParams[1]))
+	glfwDLL.call("glfwGetWindowPos", w.glfwParams[:]...)
 	panicError()
-	return int(x), int(y)
+	return int(w.glfwOutParams[0]), int(w.glfwOutParams[1])
 }
 
 func (w *Window) GetSize() (int, int) {
