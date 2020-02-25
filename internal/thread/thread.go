@@ -18,8 +18,16 @@ import (
 	"context"
 )
 
+type functionType int
+
+const (
+	type0ParamsReturnError functionType = iota
+	type2ParamsReturnBool
+)
+
 const MaxPublicParams = 3
 type call struct {
+	funcType functionType
 	func0ReturnsError func() error
 	func2ReturnsBool func(uintptr, uintptr) bool
 	params [MaxPublicParams]uintptr
@@ -60,9 +68,10 @@ loop:
 		select {
 		case c := <-t.calls:
 			var callResult result
-			if c.func0ReturnsError != nil {
+			switch c.funcType {
+			case type0ParamsReturnError:
 				callResult.err = c.func0ReturnsError()
-			} else if c.func2ReturnsBool != nil {
+			case type2ParamsReturnBool:
 				callResult.flag = c.func2ReturnsBool(c.params[0], c.params[1])
 			}
 			t.results <- callResult
@@ -79,6 +88,7 @@ loop:
 // Call panics when Loop already ends.
 func (t *Thread) Call(f func() error) error {
 	thisCall := call{
+		funcType: type0ParamsReturnError,
 		func0ReturnsError: f,
 	}
 	select {
@@ -97,6 +107,7 @@ func (t *Thread) Call(f func() error) error {
 // Call panics when Loop already ends.
 func (t *Thread) BoolCall2(param1, param2 uintptr, f func(uintptr, uintptr) bool) bool {
 	thisCall := call{
+		funcType: type2ParamsReturnBool,
 		func2ReturnsBool: f,
 		params: [MaxPublicParams]uintptr{param1, param2, 0},
 	}
