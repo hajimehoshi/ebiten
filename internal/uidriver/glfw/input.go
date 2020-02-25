@@ -245,13 +245,13 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 		return false
 	}
 	return i.ui.t.BoolCall2(uintptr(unsafe.Pointer(i)), uintptr(key), func(param1, param2 uintptr) bool {
-		innerInput := (*Input)(unsafe.Pointer(param1))
-		innerKey := driver.Key(param2)
-		if innerInput.keyPressed == nil {
-			innerInput.keyPressed = map[glfw.Key]bool{}
+		i := (*Input)(unsafe.Pointer(param1))
+		key := driver.Key(param2)
+		if i.keyPressed == nil {
+			i.keyPressed = map[glfw.Key]bool{}
 		}
-		gk, ok := driverKeyToGLFWKey[innerKey]
-		if ok && innerInput.keyPressed[gk] {
+		gk, ok := driverKeyToGLFWKey[key]
+		if ok && i.keyPressed[gk] {
 			return true
 		}
 		return false

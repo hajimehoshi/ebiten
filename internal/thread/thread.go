@@ -23,9 +23,10 @@ type functionType int
 const (
 	type0ParamsReturnError functionType = iota
 	type2ParamsReturnBool
+	type4ParamsReturnBool
 )
 
-const MaxPublicParams = 3
+const MaxPublicParams = 2
 type call struct {
 	funcType functionType
 	func0ReturnsError func() error
@@ -109,7 +110,7 @@ func (t *Thread) BoolCall2(param1, param2 uintptr, f func(uintptr, uintptr) bool
 	thisCall := call{
 		funcType: type2ParamsReturnBool,
 		func2ReturnsBool: f,
-		params: [MaxPublicParams]uintptr{param1, param2, 0},
+		params: [MaxPublicParams]uintptr{param1, param2},
 	}
 	select {
 	case t.calls <- thisCall:
