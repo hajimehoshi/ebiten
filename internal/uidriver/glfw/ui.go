@@ -756,11 +756,11 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	}
 
 	// Update the screen size when the window is resizable.
-	var w, h int
-	_ = u.t.Call(func() error {
-		w, h = u.reqWidth, u.reqHeight
-		return nil
+	r1, r2 := u.t.CallReturn2(func() (uintptr, uintptr) {
+		w, h := u.reqWidth, u.reqHeight
+		return uintptr(w), uintptr(h)
 	})
+	w, h := int(r1), int(r2)
 	if w != 0 || h != 0 {
 		u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
 	}
