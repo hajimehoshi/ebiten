@@ -670,11 +670,10 @@ func (u *UserInterface) run(context driver.UIContext) error {
 }
 
 func (u *UserInterface) updateSize(context driver.UIContext) {
-	var w, h int
-	_ = u.t.Call(func() error {
-		w, h = u.windowWidth, u.windowHeight
-		return nil
+	r1, r2 := u.t.CallReturn2(func() (uintptr, uintptr) {
+		return uintptr(u.windowWidth), uintptr(u.windowHeight)
 	})
+	w, h := int(r1), int(r2)
 	u.setWindowSize(w, h, u.isFullscreen(), u.vsync)
 
 	sizeChanged := false
