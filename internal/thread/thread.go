@@ -22,6 +22,7 @@ type functionType int
 
 const (
 	type0ParamsReturnError functionType = iota
+	type1ParamsReturnBool
 	type2ParamsReturnBool
 	typeReturn2
 )
@@ -30,6 +31,7 @@ const MaxPublicParams = 2
 type call struct {
 	funcType functionType
 	func0ReturnsError func() error
+	func1ReturnsBool func(uintptr) bool
 	func2ReturnsBool func(uintptr, uintptr) bool
 	funcReturns2 func() (uintptr, uintptr)
 	params [MaxPublicParams]uintptr
@@ -75,6 +77,8 @@ loop:
 			switch c.funcType {
 			case type0ParamsReturnError:
 				callResult.err = c.func0ReturnsError()
+			case type1ParamsReturnBool:
+				callResult.flag = c.func1ReturnsBool(c.params[0])
 			case type2ParamsReturnBool:
 				callResult.flag = c.func2ReturnsBool(c.params[0], c.params[1])
 			case typeReturn2:
@@ -101,6 +105,26 @@ func (t *Thread) Call(f func() error) error {
 	case t.calls <- thisCall:
 		result := <-t.results
 		return result.err
+	case <-t.closed:
+		panic("thread: this thread is already terminated")
+	}
+}
+
+// Call calls f on the thread.
+//
+// Do not call this from the same thread. This would block forever.
+//
+// Call panics when Loop already ends.
+func (t *Thread) BoolCall1(param1 uintptr, f func(uintptr) bool) bool {
+	thisCall := call{
+		funcType: type1ParamsReturnBool,
+		func1ReturnsBool: f,
+		params: [MaxPublicParams]uintptr{param1, 0},
+	}
+	select {
+	case t.calls <- thisCall:
+		result := <-t.results
+		return result.flag
 	case <-t.closed:
 		panic("thread: this thread is already terminated")
 	}

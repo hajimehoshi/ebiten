@@ -199,9 +199,10 @@ func (c *context) framebufferPixels(f *framebuffer, width, height int) ([]byte, 
 }
 
 func (c *context) bindTextureImpl(t textureNative) {
-	_ = c.t.Call(func() error {
+	_ = c.t.BoolCall1(uintptr(t), func(param1 uintptr) bool {
+		t := uint32(param1)
 		gl.BindTexture(gl.TEXTURE_2D, uint32(t))
-		return nil
+		return true
 	})
 }
 
