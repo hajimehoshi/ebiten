@@ -18,10 +18,22 @@ import (
 	"context"
 )
 
+const MaxPublicParams = 3
+type call struct {
+	func0ReturnsError func() error
+	func2ReturnsBool func(uintptr, uintptr) bool
+	params [MaxPublicParams]uintptr
+}
+
+type result struct {
+	err error
+	flag bool
+}
+
 // Thread represents an OS thread.
 type Thread struct {
-	funcs   chan func() error
-	results chan error
+	calls   chan call
+	results chan result
 	closed  chan struct{}
 }
 
@@ -30,8 +42,8 @@ type Thread struct {
 // It is assumed that the OS thread is fixed by runtime.LockOSThread when New is called.
 func New() *Thread {
 	return &Thread{
-		funcs:   make(chan func() error),
-		results: make(chan error),
+		calls:   make(chan call),
+		results: make(chan result),
 		closed:  make(chan struct{}),
 	}
 }
@@ -42,12 +54,18 @@ func New() *Thread {
 func (t *Thread) Loop(context context.Context) {
 	defer close(t.closed)
 	defer close(t.results)
-	defer close(t.funcs)
+	defer close(t.calls)
 loop:
 	for {
 		select {
-		case f := <-t.funcs:
-			t.results <- f()
+		case c := <-t.calls:
+			var callResult result
+			if c.func0ReturnsError != nil {
+				callResult.err = c.func0ReturnsError()
+			} else if c.func2ReturnsBool != nil {
+				callResult.flag = c.func2ReturnsBool(c.params[0], c.params[1])
+			}
+			t.results <- callResult
 		case <-context.Done():
 			break loop
 		}
@@ -60,9 +78,32 @@ loop:
 //
 // Call panics when Loop already ends.
 func (t *Thread) Call(f func() error) error {
+	thisCall := call{
+		func0ReturnsError: f,
+	}
 	select {
-	case t.funcs <- f:
-		return <-t.results
+	case t.calls <- thisCall:
+		result := <-t.results
+		return result.err
+	case <-t.closed:
+		panic("thread: this thread is already terminated")
+	}
+}
+
+// Call calls f on the thread.
+//
+// Do not call this from the same thread. This would block forever.
+//
+// Call panics when Loop already ends.
+func (t *Thread) BoolCall2(param1, param2 uintptr, f func(uintptr, uintptr) bool) bool {
+	thisCall := call{
+		func2ReturnsBool: f,
+		params: [MaxPublicParams]uintptr{param1, param2, 0},
+	}
+	select {
+	case t.calls <- thisCall:
+		result := <-t.results
+		return result.flag
 	case <-t.closed:
 		panic("thread: this thread is already terminated")
 	}

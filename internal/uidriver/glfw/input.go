@@ -22,6 +22,7 @@ package glfw
 import (
 	"sync"
 	"unicode"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/internal/driver"
 	"github.com/hajimehoshi/ebiten/internal/glfw"
@@ -243,19 +244,18 @@ func (i *Input) IsKeyPressed(key driver.Key) bool {
 	if !i.ui.isRunning() {
 		return false
 	}
-	var r bool
-	_ = i.ui.t.Call(func() error {
-		if i.keyPressed == nil {
-			i.keyPressed = map[glfw.Key]bool{}
+	return i.ui.t.BoolCall2(uintptr(unsafe.Pointer(i)), uintptr(key), func(param1, param2 uintptr) bool {
+		innerInput := (*Input)(unsafe.Pointer(param1))
+		innerKey := driver.Key(param2)
+		if innerInput.keyPressed == nil {
+			innerInput.keyPressed = map[glfw.Key]bool{}
 		}
-		gk, ok := driverKeyToGLFWKey[key]
-		if ok && i.keyPressed[gk] {
-			r = true
-			return nil
+		gk, ok := driverKeyToGLFWKey[innerKey]
+		if ok && innerInput.keyPressed[gk] {
+			return true
 		}
-		return nil
+		return false
 	})
-	return r
 }
 
 func (i *Input) IsMouseButtonPressed(button driver.MouseButton) bool {
