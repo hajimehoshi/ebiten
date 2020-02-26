@@ -17,9 +17,9 @@ services:
   - xvfb
 
 install:
-  # Install Go 1.13.7 manualy
+  # Install Go 1.14 manualy
   # See https://travis-ci.community/t/goos-js-goarch-wasm-go-run-fails-panic-newosproc-not-implemented/1651
-  - wget -O go.tar.gz https://dl.google.com/go/go1.13.7.linux-amd64.tar.gz
+  - wget -O go.tar.gz https://dl.google.com/go/go1.14.linux-amd64.tar.gz
   - tar -C ~ -xzf go.tar.gz
   - rm go.tar.gz
   - export GOROOT=~/go
@@ -31,10 +31,6 @@ install:
   # Install Go 1.12.16
   - go get golang.org/dl/go1.12.16
   - go1.12.16 download
-
-  # Install Go 1.14rc1
-  - go get golang.org/dl/go1.14rc1
-  - go1.14rc1 download
 
   # Make the working directory
   - mkdir /tmp/work
@@ -48,7 +44,7 @@ install:
   - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then go mod edit -replace=github.com/hajimehoshi/ebiten=./ebiten; fi
 
   # wasmbrowsertest
-  - GO111MODULE=off go1.14rc1 get github.com/agnivade/wasmbrowsertest
+  - GO111MODULE=off go get github.com/agnivade/wasmbrowsertest
   - mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
 
   # GopherJS
@@ -89,7 +85,7 @@ script:
 
   # go test
   - go test -v github.com/hajimehoshi/ebiten/...
-  - GOOS=js GOARCH=wasm go1.14rc1 test -v github.com/hajimehoshi/ebiten/...
+  - GOOS=js GOARCH=wasm go test -v github.com/hajimehoshi/ebiten/...
 
   # GopherJS
   - GO111MODULE=off go1.12.16 run github.com/gopherjs/gopherjs build --tags=example -v github.com/hajimehoshi/ebiten/examples/blocks
