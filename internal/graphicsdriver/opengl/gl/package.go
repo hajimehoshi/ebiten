@@ -15,7 +15,7 @@
 package gl
 
 const (
-	VERTEX_SHADEDR       = 0x8B31
+	VERTEX_SHADER        = 0x8B31
 	FRAGMENT_SHADER      = 0x8B30
 	ARRAY_BUFFER         = 0x8892
 	ELEMENT_ARRAY_BUFFER = 0x8893
@@ -58,7 +58,6 @@ const (
 	UNPACK_ALIGNMENT     = 0x0CF5
 	UNSIGNED_BYTE        = 0x1401
 	UNSIGNED_SHORT       = 0x1403
-	VERTEX_SHADER        = 0x8B31
 	WRITE_ONLY           = 0x88B9
 )
 
