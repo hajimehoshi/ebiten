@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 const gomobileHash = "2b26a4705d2481ef30846d291bd450445e2b5bdd"
@@ -55,6 +56,15 @@ func runGo(args ...string) error {
 		"GO111MODULE=on",
 	}
 	return runCommand("go", args, env)
+}
+
+// exe adds the .exe extension to the given filename.
+// Without .exe, the executable won't be found by exec.LookPath on Windows (#1096).
+func exe(filename string) string {
+	if runtime.GOOS == "windows" {
+		return filename + ".exe"
+	}
+	return filename
 }
 
 func prepareGomobileCommands() error {
@@ -96,10 +106,10 @@ func prepareGomobileCommands() error {
 	if err := runGo("get", "golang.org/x/mobile@"+gomobileHash); err != nil {
 		return err
 	}
-	if err := runGo("build", "-o", filepath.Join("bin", "gomobile"), "golang.org/x/mobile/cmd/gomobile"); err != nil {
+	if err := runGo("build", "-o", exe(filepath.Join("bin", "gomobile")), "golang.org/x/mobile/cmd/gomobile"); err != nil {
 		return err
 	}
-	if err := runGo("build", "-o", filepath.Join("bin", "gobind-original"), "golang.org/x/mobile/cmd/gobind"); err != nil {
+	if err := runGo("build", "-o", exe(filepath.Join("bin", "gobind-original")), "golang.org/x/mobile/cmd/gobind"); err != nil {
 		return err
 	}
 
@@ -110,7 +120,7 @@ func prepareGomobileCommands() error {
 		return err
 	}
 
-	if err := runGo("build", "-o", filepath.Join("bin", "gobind"), "-tags", "ebitenmobilegobind", filepath.Join("src", "gobind.go")); err != nil {
+	if err := runGo("build", "-o", exe(filepath.Join("bin", "gobind")), "-tags", "ebitenmobilegobind", filepath.Join("src", "gobind.go")); err != nil {
 		return err
 	}
 
