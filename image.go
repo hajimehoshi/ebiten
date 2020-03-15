@@ -197,7 +197,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) error {
 		filter = driver.Filter(img.filter)
 	}
 
-	a, b, c, d, tx, ty := geom.elements()
+	a, b, c, d, tx, ty := geom.elements32()
 	i.buffered.DrawImage(img.buffered, img.Bounds(), a, b, c, d, tx, ty, options.ColorM.impl, mode, filter)
 	return nil
 }
