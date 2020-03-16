@@ -55,6 +55,7 @@ func (p *Path) LineTo(x, y float32) {
 	p.cur = triangulate.Point{X: x, Y: y}
 }
 
+// nseg returns a number of segments based on the given two points (x0, y0) and (x1, y1).
 func nseg(x0, y0, x1, y1 float32) int {
 	distx := x1 - x0
 	if distx < 0 {
@@ -72,6 +73,7 @@ func nseg(x0, y0, x1, y1 float32) int {
 	return int(math.Ceil(float64(dist)))
 }
 
+// QuadTo adds a quadratic Bézier curve to the path.
 func (p *Path) QuadTo(cpx, cpy, x, y float32) {
 	c := p.cur
 	num := nseg(c.X, c.Y, x, y)
@@ -82,6 +84,7 @@ func (p *Path) QuadTo(cpx, cpy, x, y float32) {
 	}
 }
 
+// CubicTo adds a cubic Bézier curve to the path.
 func (p *Path) CubicTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
 	c := p.cur
 	num := nseg(c.X, c.Y, x, y)
@@ -92,7 +95,9 @@ func (p *Path) CubicTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
 	}
 }
 
+// FillOptions represents options to fill a path.
 type FillOptions struct {
+	// Color is a color to fill with.
 	Color color.Color
 }
 
