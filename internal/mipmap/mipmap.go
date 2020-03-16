@@ -132,7 +132,7 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 	}
 
 	cr, cg, cb, ca := float32(1), float32(1), float32(1), float32(1)
-	if colorm.ScaleOnly() {
+	if colorm != nil && colorm.ScaleOnly() {
 		body, _ := colorm.UnsafeElements()
 		cr = body[0]
 		cg = body[5]
@@ -166,6 +166,23 @@ func (m *Mipmap) DrawImage(src *Mipmap, bounds image.Rectangle, geom GeoM, color
 }
 
 func (m *Mipmap) DrawTriangles(src *Mipmap, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address) {
+	// TODO: Use a mipmap? (#909)
+
+	if colorm != nil && colorm.ScaleOnly() {
+		body, _ := colorm.UnsafeElements()
+		cr := body[0]
+		cg := body[5]
+		cb := body[10]
+		ca := body[15]
+		colorm = nil
+		const n = graphics.VertexFloatNum
+		for i := 0; i < len(vertices)/n; i++ {
+			vertices[i*n+8] *= cr
+			vertices[i*n+9] *= cg
+			vertices[i*n+10] *= cb
+			vertices[i*n+11] *= ca
+		}
+	}
 	m.orig.DrawTriangles(src.orig, vertices, indices, colorm, mode, filter, address)
 	m.disposeMipmaps()
 }
