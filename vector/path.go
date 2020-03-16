@@ -92,18 +92,28 @@ func (p *Path) CubicTo(cp0x, cp0y, cp1x, cp1y, x, y float32) {
 	}
 }
 
-func (p *Path) Fill(dst *ebiten.Image, clr color.Color) {
+type FillOptions struct {
+	Color color.Color
+}
+
+// Fill fills the region of the path with the given options op.
+func (p *Path) Fill(dst *ebiten.Image, op *FillOptions) {
 	var vertices []ebiten.Vertex
 	var indices []uint16
 
-	r, g, b, a := clr.RGBA()
-	var rf, gf, bf, af float32
-	if a > 0 {
-		rf = float32(r) / float32(a)
-		gf = float32(g) / float32(a)
-		bf = float32(b) / float32(a)
-		af = float32(a) / 0xffff
+	if op.Color == nil {
+		return
 	}
+
+	r, g, b, a := op.Color.RGBA()
+	var rf, gf, bf, af float32
+	if a == 0 {
+		return
+	}
+	rf = float32(r) / float32(a)
+	gf = float32(g) / float32(a)
+	bf = float32(b) / float32(a)
+	af = float32(a) / 0xffff
 
 	var base uint16
 	for _, seg := range p.segs {

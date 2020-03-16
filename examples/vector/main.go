@@ -98,7 +98,10 @@ func drawEbitenText(screen *ebiten.Image) {
 	path.LineTo(320, 55)
 	path.LineTo(290, 20)
 
-	path.Fill(screen, color.RGBA{0xdb, 0x56, 0x20, 0xff})
+	op := &vector.FillOptions{
+		Color: color.RGBA{0xdb, 0x56, 0x20, 0xff},
+	}
+	path.Fill(screen, op)
 }
 
 func drawEbitenLogo(screen *ebiten.Image, x, y int) {
@@ -127,7 +130,10 @@ func drawEbitenLogo(screen *ebiten.Image, x, y int) {
 	path.LineTo(xf+unit, yf+3*unit)
 	path.LineTo(xf+unit, yf+4*unit)
 
-	path.Fill(screen, color.RGBA{0xdb, 0x56, 0x20, 0xff})
+	op := &vector.FillOptions{
+		Color: color.RGBA{0xdb, 0x56, 0x20, 0xff},
+	}
+	path.Fill(screen, op)
 }
 
 func maxCounter(index int) int {
@@ -159,7 +165,10 @@ func drawWave(screen *ebiten.Image, counter int) {
 	path.LineTo(screenWidth, screenHeight)
 	path.LineTo(0, screenHeight)
 
-	path.Fill(screen, color.RGBA{0x33, 0x66, 0xff, 0xff})
+	op := &vector.FillOptions{
+		Color: color.RGBA{0x33, 0x66, 0xff, 0xff},
+	}
+	path.Fill(screen, op)
 }
 
 var counter = 0

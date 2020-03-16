@@ -49,6 +49,7 @@ func InTriangle(pt, pt0, pt1, pt2 Point) bool {
 	return (c0 <= 0 && c1 <= 0 && c2 <= 0) || (c0 >= 0 && c1 >= 0 && c2 >= 0)
 }
 
+// Triangulate triangulates the region surrounded by the points pts and returnes the point indices.
 func Triangulate(pts []Point) []uint16 {
 	if len(pts) < 3 {
 		return nil
@@ -78,6 +79,7 @@ func Triangulate(pts []Point) []uint16 {
 
 	// Triangulation by Ear Clipping.
 	// https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
+	// TODO: Adopt a more efficient algorithm.
 	for len(currentIndices) >= 3 {
 		// Calculate cross-products and remove unneeded vertices.
 		cs := make([]float32, len(currentIndices))
