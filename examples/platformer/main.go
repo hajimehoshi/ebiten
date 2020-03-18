@@ -25,6 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	rplatformer "github.com/hajimehoshi/ebiten/examples/resources/images/platformer"
+	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
 const (
@@ -34,7 +35,6 @@ const (
 )
 
 var (
-	loadedSprite    *ebiten.Image
 	leftSprite      *ebiten.Image
 	rightSprite     *ebiten.Image
 	idleSprite      *ebiten.Image
@@ -68,26 +68,71 @@ func init() {
 	backgroundImage, _ = ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 }
 
-var (
-	charX = 50
-	charY = 380
+const (
+	unit    = 16
+	groundY = 380
 )
+
+type char struct {
+	x  int
+	y  int
+	vx int
+	vy int
+}
+
+func (c *char) tryJump() {
+	// Now the character can jump anytime, even when the character is not on the ground.
+	// If you want to restrict the character to jump only when it is on the ground, you can add an 'if' clause:
+	//
+	//     if gopher.y == groundY * unit {
+	//         ...
+	gopher.vy = -10 * unit
+}
+
+func (c *char) update() {
+	c.x += c.vx
+	c.y += c.vy
+	if c.y > groundY*unit {
+		c.y = groundY * unit
+	}
+	if c.vx > 0 {
+		c.vx -= 4
+	} else if c.vx < 0 {
+		c.vx += 4
+	}
+	if c.vy < 20*unit {
+		c.vy += 8
+	}
+}
+
+func (c *char) draw(screen *ebiten.Image) {
+	s := idleSprite
+	switch {
+	case c.vx > 0:
+		s = rightSprite
+	case c.vx < 0:
+		s = leftSprite
+	}
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(0.5, 0.5)
+	op.GeoM.Translate(float64(c.x)/unit, float64(c.y)/unit)
+	screen.DrawImage(s, op)
+}
+
+var gopher = &char{x: 50 * unit, y: groundY * unit}
 
 func update(screen *ebiten.Image) error {
 	// Controls
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		// Selects preloaded sprite
-		loadedSprite = leftSprite
-		// Moves character 3px right
-		charX -= 3
+		gopher.vx = -4 * unit
 	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
-		// Selects preloaded sprite
-		loadedSprite = rightSprite
-		// Moves character 3px left
-		charX += 3
-	} else {
-		loadedSprite = idleSprite
+		gopher.vx = 4 * unit
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		gopher.tryJump()
+	}
+	gopher.update()
 
 	if ebiten.IsDrawingSkipped() {
 		return nil
@@ -98,15 +143,12 @@ func update(screen *ebiten.Image) error {
 	op.GeoM.Scale(0.5, 0.5)
 	screen.DrawImage(backgroundImage, op)
 
-	// Draws selected sprite image
-	op = &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(0.5, 0.5)
-	op.GeoM.Translate(float64(charX), float64(charY))
-	screen.DrawImage(loadedSprite, op)
+	// Draws the Gopher
+	gopher.draw(screen)
 
-	// TPS counter
-	fps := fmt.Sprintf("TPS: %f", ebiten.CurrentTPS())
-	ebitenutil.DebugPrint(screen, fps)
+	// Show the message
+	msg := fmt.Sprintf("TPS: %0.2f\nPress the space key to jump.", ebiten.CurrentTPS())
+	ebitenutil.DebugPrint(screen, msg)
 
 	return nil
 }
