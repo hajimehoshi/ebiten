@@ -29,8 +29,8 @@ import (
 
 const (
 	// Settings
-	screenWidth  = 1024
-	screenHeight = 512
+	screenWidth  = 960
+	screenHeight = 540
 )
 
 var (
