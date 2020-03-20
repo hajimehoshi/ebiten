@@ -68,6 +68,9 @@ type Window interface {
 	Size() (int, int)
 	SetSize(width, height int)
 
+	IsFloating() bool
+	SetFloating(floating bool)
+
 	SetIcon(iconImages []image.Image)
 	SetTitle(title string)
 }

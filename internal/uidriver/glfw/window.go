@@ -89,6 +89,33 @@ func (w *window) SetResizable(resizable bool) {
 	})
 }
 
+func (w *window) IsFloating() bool {
+	if !w.ui.isRunning() {
+		return w.ui.isInitWindowFloating()
+	}
+	var v bool
+	_ = w.ui.t.Call(func() error {
+		v = w.ui.window.GetAttrib(glfw.Floating) == glfw.True
+		return nil
+	})
+	return v
+}
+
+func (w *window) SetFloating(floating bool) {
+	if !w.ui.isRunning() {
+		w.ui.setInitWindowFloating(floating)
+		return
+	}
+	_ = w.ui.t.Call(func() error {
+		v := glfw.False
+		if floating {
+			v = glfw.True
+		}
+		w.ui.window.SetAttrib(glfw.Floating, v)
+		return nil
+	})
+}
+
 func (w *window) Position() (int, int) {
 	if !w.ui.isRunning() {
 		panic("glfw: WindowPosition can't be called before the main loop starts")

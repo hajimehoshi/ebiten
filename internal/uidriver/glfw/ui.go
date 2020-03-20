@@ -66,6 +66,7 @@ type UserInterface struct {
 	initWindowPositionYInDP  int
 	initWindowWidthInDP      int
 	initWindowHeightInDP     int
+	initWindowFloating       bool
 	initScreenTransparent    bool
 	initIconImages           []image.Image
 
@@ -331,6 +332,19 @@ func (u *UserInterface) getInitWindowSize() (int, int) {
 func (u *UserInterface) setInitWindowSize(width, height int) {
 	u.m.Lock()
 	u.initWindowWidthInDP, u.initWindowHeightInDP = width, height
+	u.m.Unlock()
+}
+
+func (u *UserInterface) isInitWindowFloating() bool {
+	u.m.Lock()
+	f := u.initWindowFloating
+	u.m.Unlock()
+	return f
+}
+
+func (u *UserInterface) setInitWindowFloating(floating bool) {
+	u.m.Lock()
+	u.initWindowFloating = floating
 	u.m.Unlock()
 }
 
@@ -627,6 +641,12 @@ func (u *UserInterface) run(context driver.UIContext) error {
 			resizable = glfw.True
 		}
 		glfw.WindowHint(glfw.Resizable, resizable)
+
+		floating := glfw.False
+		if u.isInitWindowFloating() {
+			floating = glfw.True
+		}
+		glfw.WindowHint(glfw.Floating, floating)
 
 		// Set the window visible explicitly or the application freezes on Wayland (#974).
 		if os.Getenv("WAYLAND_DISPLAY") != "" {

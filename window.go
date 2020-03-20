@@ -25,6 +25,16 @@ const (
 	invalidPos = minInt
 )
 
+// IsWindowDecorated reports whether the window is decorated.
+//
+// IsWindowDecorated is concurrent-safe.
+func IsWindowDecorated() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsDecorated()
+	}
+	return false
+}
+
 // SetWindowDecorated sets the state if the window is decorated.
 //
 // The window is decorated by default.
@@ -37,16 +47,6 @@ func SetWindowDecorated(decorated bool) {
 	if w := uiDriver().Window(); w != nil {
 		w.SetDecorated(decorated)
 	}
-}
-
-// IsWindowDecorated reports whether the window is decorated.
-//
-// IsWindowDecorated is concurrent-safe.
-func IsWindowDecorated() bool {
-	if w := uiDriver().Window(); w != nil {
-		return w.IsDecorated()
-	}
-	return false
 }
 
 // IsWindowResizable reports whether the window is resizable by the user's dragging on desktops.
@@ -231,5 +231,24 @@ func SetWindowSize(width, height int) {
 	}
 	if w := uiDriver().Window(); w != nil {
 		w.SetSize(width, height)
+	}
+}
+
+// IsWindowFloating reports whether the window is always shown above all the other windows.
+//
+// IsWindowFloating is concurrent-safe.
+func IsWindowFloating() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsFloating()
+	}
+	return false
+}
+
+// SetWindowFloating sets the state whether the window is always shown above all the other windows.
+//
+// SetWindowFloating is concurrent-safe.
+func SetWindowFloating(float bool) {
+	if w := uiDriver().Window(); w != nil {
+		w.SetFloating(float)
 	}
 }

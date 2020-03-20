@@ -77,6 +77,7 @@ const (
 	ContextVersionMajor    = Hint(0x00022002)
 	ContextVersionMinor    = Hint(0x00022003)
 	Decorated              = Hint(0x00020005)
+	Floating               = Hint(0x00020007)
 	Focused                = Hint(0x00020001)
 	Resizable              = Hint(0x00020003)
 	TransparentFramebuffer = Hint(0x0002000A)

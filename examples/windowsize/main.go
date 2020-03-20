@@ -58,6 +58,7 @@ var (
 	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
 	flagScreenTransparent = flag.Bool("screentransparent", false, "screen transparent")
 	flagAutoAdjusting     = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
+	flagFloating          = flag.Bool("floating", false, "make the window floating")
 )
 
 func init() {
@@ -137,6 +138,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	decorated := ebiten.IsWindowDecorated()
 	positionX, positionY := ebiten.WindowPosition()
 	transparent := ebiten.IsScreenTransparent()
+	floating := ebiten.IsWindowFloating()
 	resizable := ebiten.IsWindowResizable()
 
 	const d = 16
@@ -218,6 +220,9 @@ func (g *game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
 		decorated = !decorated
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
+		floating = !floating
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		resizable = !resizable
 	}
@@ -239,6 +244,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	ebiten.SetMaxTPS(tps)
 	ebiten.SetWindowDecorated(decorated)
 	ebiten.SetWindowPosition(positionX, positionY)
+	ebiten.SetWindowFloating(floating)
 	if !*flagLegacy {
 		// A resizable window is available only with RunGame.
 		ebiten.SetWindowResizable(resizable)
@@ -294,6 +300,7 @@ Press I key to change the window icon (only for desktops)
 Press V key to switch vsync
 Press T key to switch TPS (ticks per second)
 Press D key to switch the window decoration (only for desktops)
+Press L key to switch the window floating state (only for desktops)
 %s
 IsForeground?: %s
 Windows Position: (%d, %d)
@@ -362,6 +369,9 @@ func main() {
 
 	if *flagFullscreen {
 		ebiten.SetFullscreen(true)
+	}
+	if *flagFloating {
+		ebiten.SetWindowFloating(true)
 	}
 	if *flagAutoAdjusting {
 		if *flagLegacy {
