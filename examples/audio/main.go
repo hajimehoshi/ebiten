@@ -163,9 +163,9 @@ func (p *Player) update() error {
 	p.playSEIfNeeded()
 	p.updateVolumeIfNeeded()
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
-		b := ebiten.IsRunnableInBackground()
-		ebiten.SetRunnableInBackground(!b)
+	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
+		b := ebiten.IsRunnableOnUnfocused()
+		ebiten.SetRunnableOnUnfocused(!b)
 	}
 	return nil
 }
@@ -252,7 +252,7 @@ func (p *Player) draw(screen *ebiten.Image) {
 Press S to toggle Play/Pause
 Press P to play SE
 Press Z or X to change volume of the music
-Press B to switch the run-in-background state
+Press U to switch the runnable-on-unfocused state
 Press A to switch Ogg and MP3
 Current Time: %s
 Current Volume: %d/128

@@ -38,7 +38,7 @@ type UI interface {
 	CursorMode() CursorMode
 	IsFullscreen() bool
 	IsFocused() bool
-	IsRunnableInBackground() bool
+	IsRunnableOnUnfocused() bool
 	IsVsyncEnabled() bool
 	ScreenSizeInFullscreen() (int, int)
 	IsScreenTransparent() bool
@@ -46,7 +46,7 @@ type UI interface {
 
 	SetCursorMode(mode CursorMode)
 	SetFullscreen(fullscreen bool)
-	SetRunnableInBackground(runnableInBackground bool)
+	SetRunnableOnUnfocused(runnableOnUnfocused bool)
 	SetVsyncEnabled(enabled bool)
 	SetScreenTransparent(transparent bool)
 

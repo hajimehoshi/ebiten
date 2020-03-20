@@ -405,11 +405,11 @@ func (u *UserInterface) IsFocused() bool {
 	return fg
 }
 
-func (u *UserInterface) IsRunnableInBackground() bool {
+func (u *UserInterface) IsRunnableOnUnfocused() bool {
 	return false
 }
 
-func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
+func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	// Do nothing
 }
 

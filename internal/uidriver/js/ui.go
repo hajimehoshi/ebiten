@@ -30,9 +30,9 @@ import (
 )
 
 type UserInterface struct {
-	runnableInBackground bool
-	vsync                bool
-	running              bool
+	runnableOnUnfocused bool
+	vsync               bool
+	running             bool
 
 	sizeChanged bool
 	contextLost bool
@@ -80,12 +80,12 @@ func (u *UserInterface) IsFocused() bool {
 	return u.isFocused()
 }
 
-func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
-	u.runnableInBackground = runnableInBackground
+func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+	u.runnableOnUnfocused = runnableOnUnfocused
 }
 
-func (u *UserInterface) IsRunnableInBackground() bool {
-	return u.runnableInBackground
+func (u *UserInterface) IsRunnableOnUnfocused() bool {
+	return u.runnableOnUnfocused
 }
 
 func (u *UserInterface) SetVsyncEnabled(enabled bool) {
@@ -142,7 +142,7 @@ func (u *UserInterface) updateSize() {
 }
 
 func (u *UserInterface) suspended() bool {
-	if u.runnableInBackground {
+	if u.runnableOnUnfocused {
 		return false
 	}
 	return !u.isFocused()

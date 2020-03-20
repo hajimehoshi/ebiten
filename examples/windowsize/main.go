@@ -131,7 +131,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	}
 
 	fullscreen := ebiten.IsFullscreen()
-	runnableInBackground := ebiten.IsRunnableInBackground()
+	runnableOnUnfocused := ebiten.IsRunnableOnUnfocused()
 	cursorVisible := ebiten.IsCursorVisible()
 	vsyncEnabled := ebiten.IsVsyncEnabled()
 	tps := ebiten.MaxTPS()
@@ -194,8 +194,8 @@ func (g *game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		fullscreen = !fullscreen
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyB) {
-		runnableInBackground = !runnableInBackground
+	if inpututil.IsKeyJustPressed(ebiten.KeyU) {
+		runnableOnUnfocused = !runnableOnUnfocused
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		cursorVisible = !cursorVisible
@@ -238,7 +238,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 		}
 	}
 	ebiten.SetFullscreen(fullscreen)
-	ebiten.SetRunnableInBackground(runnableInBackground)
+	ebiten.SetRunnableOnUnfocused(runnableOnUnfocused)
 	ebiten.SetCursorVisible(cursorVisible)
 	ebiten.SetVsyncEnabled(vsyncEnabled)
 	ebiten.SetMaxTPS(tps)
@@ -294,7 +294,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	msg := fmt.Sprintf(`Press arrow keys to move the window
 Press shift + arrow keys to change the window size
 %sPress F key to switch the fullscreen state (only for desktops)
-Press B key to switch the run-in-background state
+Press U key to switch the runnable-on-unfocused state
 Press C key to switch the cursor visibility
 Press I key to change the window icon (only for desktops)
 Press V key to switch vsync

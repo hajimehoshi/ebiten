@@ -138,7 +138,7 @@ func IsRunningSlowly() bool {
 // This is not related to framerate (display's refresh rate).
 //
 // f is not called when the window is in background by default.
-// This setting is configurable with SetRunnableInBackground.
+// This setting is configurable with SetRunnableOnUnfocused.
 //
 // The given scale is ignored on fullscreen mode or gomobile-build mode.
 //
@@ -208,7 +208,7 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // This is not related to framerate (display's refresh rate).
 //
 // game's Update is not called when the window is in background by default.
-// This setting is configurable with SetRunnableInBackground.
+// This setting is configurable with SetRunnableOnUnfocused.
 //
 // The given scale is ignored on fullscreen mode or gomobile-build mode.
 //
@@ -362,22 +362,27 @@ func SetFullscreen(fullscreen bool) {
 // IsFocused returns a boolean value indicating whether
 // the game is in focus or in the foreground.
 //
-// IsFocused will only return true if IsRunnableInBackground is false.
+// IsFocused will only return true if IsRunnableOnUnfocused is false.
 //
 // IsFocused is concurrent-safe.
 func IsFocused() bool {
 	return uiDriver().IsFocused()
 }
 
-// IsRunnableInBackground returns a boolean value indicating whether
+// IsRunnableOnUnfocused returns a boolean value indicating whether
 // the game runs even in background.
 //
-// IsRunnableInBackground is concurrent-safe.
-func IsRunnableInBackground() bool {
-	return uiDriver().IsRunnableInBackground()
+// IsRunnableOnUnfocused is concurrent-safe.
+func IsRunnableOnUnfocused() bool {
+	return uiDriver().IsRunnableOnUnfocused()
 }
 
-// SetRunnableInBackground sets the state if the game runs even in background.
+// IsRunnableInBackground is deprecated as of 1.11.0-alpha. Use IsRunnableOnUnfocused instead.
+func IsRunnableInBackground() bool {
+	return IsRunnableOnUnfocused()
+}
+
+// SetRunnableOnUnfocused sets the state if the game runs even in background.
 //
 // If the given value is true, the game runs in background e.g. when losing focus.
 // The initial state is false.
@@ -385,11 +390,16 @@ func IsRunnableInBackground() bool {
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
 // This is because browsers throttles background tabs not to often update.
 //
-// SetRunnableInBackground does nothing on mobiles so far.
+// SetRunnableOnUnfocused does nothing on mobiles so far.
 //
-// SetRunnableInBackground is concurrent-safe.
+// SetRunnableOnUnfocused is concurrent-safe.
+func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+	uiDriver().SetRunnableOnUnfocused(runnableOnUnfocused)
+}
+
+// SetRunnableInBackground is deprecated as of 1.11.0-alpha. Use SetRunnableOnUnfocused instead.
 func SetRunnableInBackground(runnableInBackground bool) {
-	uiDriver().SetRunnableInBackground(runnableInBackground)
+	SetRunnableOnUnfocused(runnableInBackground)
 }
 
 // DeviceScaleFactor returns a device scale factor value of the current monitor which the window belongs to.

@@ -45,12 +45,12 @@ type UserInterface struct {
 	windowWidth  int
 	windowHeight int
 
-	running              bool
-	toChangeSize         bool
-	origPosX             int
-	origPosY             int
-	runnableInBackground bool
-	vsync                bool
+	running             bool
+	toChangeSize        bool
+	origPosX            int
+	origPosY            int
+	runnableOnUnfocused bool
+	vsync               bool
 
 	lastDeviceScaleFactor float64
 
@@ -253,16 +253,16 @@ func (u *UserInterface) setInitWindowDecorated(decorated bool) {
 	u.m.Unlock()
 }
 
-func (u *UserInterface) isRunnableInBackground() bool {
+func (u *UserInterface) isRunnableOnUnfocused() bool {
 	u.m.RLock()
-	v := u.runnableInBackground
+	v := u.runnableOnUnfocused
 	u.m.RUnlock()
 	return v
 }
 
-func (u *UserInterface) setRunnableInBackground(runnableInBackground bool) {
+func (u *UserInterface) setRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.m.Lock()
-	u.runnableInBackground = runnableInBackground
+	u.runnableOnUnfocused = runnableOnUnfocused
 	u.m.Unlock()
 }
 
@@ -429,12 +429,12 @@ func (u *UserInterface) IsFocused() bool {
 	return focused
 }
 
-func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
-	u.setRunnableInBackground(runnableInBackground)
+func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
+	u.setRunnableOnUnfocused(runnableOnUnfocused)
 }
 
-func (u *UserInterface) IsRunnableInBackground() bool {
-	return u.isRunnableInBackground()
+func (u *UserInterface) IsRunnableOnUnfocused() bool {
+	return u.isRunnableOnUnfocused()
 }
 
 func (u *UserInterface) SetVsyncEnabled(enabled bool) {
@@ -757,7 +757,7 @@ func (u *UserInterface) update(context driver.UIContext) error {
 	_ = u.t.Call(func() error {
 		defer hooks.ResumeAudio()
 
-		for !u.isRunnableInBackground() && u.window.GetAttrib(glfw.Focused) == 0 {
+		for !u.isRunnableOnUnfocused() && u.window.GetAttrib(glfw.Focused) == 0 {
 			hooks.SuspendAudio()
 			// Wait for an arbitrary period to avoid busy loop.
 			time.Sleep(time.Second / 60)
