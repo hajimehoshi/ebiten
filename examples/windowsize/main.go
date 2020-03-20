@@ -287,7 +287,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 		msgR = "Press R key to switch the window resizable state (only for desktops)\n"
 	}
 	fg := "Yes"
-	if !ebiten.IsForeground() {
+	if !ebiten.IsFocused() {
 		fg = "No"
 	}
 
@@ -302,7 +302,7 @@ Press T key to switch TPS (ticks per second)
 Press D key to switch the window decoration (only for desktops)
 Press L key to switch the window floating state (only for desktops)
 %s
-IsForeground?: %s
+IsFocused?: %s
 Windows Position: (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s

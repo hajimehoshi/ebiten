@@ -76,8 +76,8 @@ func (u *UserInterface) IsFullscreen() bool {
 	return false
 }
 
-func (u *UserInterface) IsForeground() bool {
-	return u.isForeground()
+func (u *UserInterface) IsFocused() bool {
+	return u.isFocused()
 }
 
 func (u *UserInterface) SetRunnableInBackground(runnableInBackground bool) {
@@ -145,10 +145,10 @@ func (u *UserInterface) suspended() bool {
 	if u.runnableInBackground {
 		return false
 	}
-	return !u.isForeground()
+	return !u.isFocused()
 }
 
-func (u *UserInterface) isForeground() bool {
+func (u *UserInterface) isFocused() bool {
 	if !document.Call("hasFocus").Bool() {
 		return false
 	}

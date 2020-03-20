@@ -74,7 +74,7 @@ func (u *UserInterface) Update() error {
 	default:
 	}
 
-	if !u.IsForeground() {
+	if !u.IsFocused() {
 		return nil
 	}
 
@@ -398,7 +398,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	// Do nothing
 }
 
-func (u *UserInterface) IsForeground() bool {
+func (u *UserInterface) IsFocused() bool {
 	u.m.Lock()
 	fg := u.foreground
 	u.m.Unlock()
