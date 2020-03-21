@@ -130,8 +130,20 @@ func (w *Window) GetSize() (width, height int) {
 	return w.w.GetSize()
 }
 
+func (w *Window) Iconify() {
+	w.w.Iconify()
+}
+
 func (w *Window) MakeContextCurrent() {
 	w.w.MakeContextCurrent()
+}
+
+func (w *Window) Maximize() {
+	w.w.Maximize()
+}
+
+func (w *Window) Restore() {
+	w.w.Restore()
 }
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (previous CharModsCallback) {

@@ -166,8 +166,18 @@ func (w *Window) GetSize() (int, int) {
 	return int(width), int(height)
 }
 
+func (w *Window) Iconify() {
+	glfwDLL.call("glfwIconifyWindow", w.w)
+	panicError()
+}
+
 func (w *Window) MakeContextCurrent() {
 	glfwDLL.call("glfwMakeContextCurrent", w.w)
+	panicError()
+}
+
+func (w *Window) Maximize() {
+	glfwDLL.call("glfwMaximizeWindow", w.w)
 	panicError()
 }
 

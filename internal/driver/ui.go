@@ -71,6 +71,13 @@ type Window interface {
 	IsFloating() bool
 	SetFloating(floating bool)
 
+	Maximize()
+	IsMaximized() bool
+
+	Minimize()
+	IsMinimized() bool
+
 	SetIcon(iconImages []image.Image)
 	SetTitle(title string)
+	Restore()
 }

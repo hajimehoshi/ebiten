@@ -236,6 +236,8 @@ func SetWindowSize(width, height int) {
 
 // IsWindowFloating reports whether the window is always shown above all the other windows.
 //
+// IsWindowFloating returns false on browsers and mobiles.
+//
 // IsWindowFloating is concurrent-safe.
 func IsWindowFloating() bool {
 	if w := uiDriver().Window(); w != nil {
@@ -246,9 +248,70 @@ func IsWindowFloating() bool {
 
 // SetWindowFloating sets the state whether the window is always shown above all the other windows.
 //
+// SetWindowFloating does nothing on browsers or mobiles.
+//
 // SetWindowFloating is concurrent-safe.
 func SetWindowFloating(float bool) {
 	if w := uiDriver().Window(); w != nil {
 		w.SetFloating(float)
+	}
+}
+
+// MaximizeWindow maximizes the window.
+//
+// On some environments like macOS, MaximizeWindow requres that the window is resizable.
+//
+// MaximizeWindow does nothing on browsers or mobiles.
+//
+// MaximizeWindow is concurrent-safe.
+func MaximizeWindow() {
+	if w := uiDriver().Window(); w != nil {
+		w.Maximize()
+	}
+}
+
+// IsWindowMaximized reports whether the window is maximized or not.
+//
+// IsWindowMaximized always returns false on browsers and mobiles.
+//
+// IsWindowMaximized is concurrent-safe.
+func IsWindowMaximized() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsMaximized()
+	}
+	return false
+}
+
+// MinimizeWindow minimizes the window.
+//
+// If the main loop does not start yet, MinimizeWindow does nothing.
+//
+// MinimizeWindow does nothing on browsers or mobiles.
+//
+// MinimizeWindow is concurrent-safe.
+func MinimizeWindow() {
+	if w := uiDriver().Window(); w != nil {
+		w.Minimize()
+	}
+}
+
+// IsWindowMinimized reports whether the window is minimized or not.
+//
+// IsWindowMinimized always returns false on browsers and mobiles.
+//
+// IsWindowMinimized is concurrent-safe.
+func IsWindowMinimized() bool {
+	if w := uiDriver().Window(); w != nil {
+		return w.IsMinimized()
+	}
+	return false
+}
+
+// RestoreWindow restores the window from its maximized or minimized state.
+//
+// RestoreWindow is concurrent-safe.
+func RestoreWindow() {
+	if w := uiDriver().Window(); w != nil {
+		w.Restore()
 	}
 }

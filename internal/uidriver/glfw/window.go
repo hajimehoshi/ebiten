@@ -116,6 +116,63 @@ func (w *window) SetFloating(floating bool) {
 	})
 }
 
+func (w *window) IsMaximized() bool {
+	if !w.ui.isRunning() {
+		return w.ui.isInitWindowMaximized()
+	}
+	var v bool
+	_ = w.ui.t.Call(func() error {
+		v = w.ui.window.GetAttrib(glfw.Maximized) == glfw.True
+		return nil
+	})
+	return v
+}
+
+func (w *window) Maximize() {
+	if !w.ui.isRunning() {
+		w.ui.setInitWindowMaximized(true)
+		return
+	}
+	_ = w.ui.t.Call(func() error {
+		w.ui.window.Maximize()
+		return nil
+	})
+}
+
+func (w *window) IsMinimized() bool {
+	if !w.ui.isRunning() {
+		return false
+	}
+	var v bool
+	_ = w.ui.t.Call(func() error {
+		v = w.ui.window.GetAttrib(glfw.Iconified) == glfw.True
+		return nil
+	})
+	return v
+}
+
+func (w *window) Minimize() {
+	if !w.ui.isRunning() {
+		// Do nothing
+		return
+	}
+	_ = w.ui.t.Call(func() error {
+		w.ui.window.Iconify()
+		return nil
+	})
+}
+
+func (w *window) Restore() {
+	if !w.ui.isRunning() {
+		// Do nothing
+		return
+	}
+	_ = w.ui.t.Call(func() error {
+		w.ui.window.Restore()
+		return nil
+	})
+}
+
 func (w *window) Position() (int, int) {
 	if !w.ui.isRunning() {
 		panic("glfw: WindowPosition can't be called before the main loop starts")

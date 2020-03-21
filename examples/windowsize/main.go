@@ -55,10 +55,12 @@ var (
 	flagLegacy = flag.Bool("legacy", false, "use the legacy API")
 
 	flagFullscreen        = flag.Bool("fullscreen", false, "fullscreen")
+	flagResizable         = flag.Bool("resizable", false, "make the window resizable")
 	flagWindowPosition    = flag.String("windowposition", "", "window position (e.g., 100,200)")
 	flagScreenTransparent = flag.Bool("screentransparent", false, "screen transparent")
 	flagAutoAdjusting     = flag.Bool("autoadjusting", false, "make the game screen auto-adjusting")
 	flagFloating          = flag.Bool("floating", false, "make the window floating")
+	flagMaximize          = flag.Bool("maximize", false, "maximize the window")
 )
 
 func init() {
@@ -226,6 +228,9 @@ func (g *game) Update(screen *ebiten.Image) error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		resizable = !resizable
 	}
+	maximize := inpututil.IsKeyJustPressed(ebiten.KeyM)
+	minimize := inpututil.IsKeyJustPressed(ebiten.KeyI)
+	restore := inpututil.IsKeyJustPressed(ebiten.KeyE)
 
 	if toUpdateWindowSize {
 		if *flagLegacy {
@@ -245,6 +250,15 @@ func (g *game) Update(screen *ebiten.Image) error {
 	ebiten.SetWindowDecorated(decorated)
 	ebiten.SetWindowPosition(positionX, positionY)
 	ebiten.SetWindowFloating(floating)
+	if maximize {
+		ebiten.MaximizeWindow()
+	}
+	if minimize {
+		ebiten.MinimizeWindow()
+	}
+	if restore {
+		ebiten.RestoreWindow()
+	}
 	if !*flagLegacy {
 		// A resizable window is available only with RunGame.
 		ebiten.SetWindowResizable(resizable)
@@ -279,6 +293,18 @@ func (g *game) Update(screen *ebiten.Image) error {
 		tpsStr = fmt.Sprintf("%d", t)
 	}
 
+	var lines []string
+	if !ebiten.IsWindowMaximized() {
+		lines = append(lines, "Press M key to maximize the window")
+	}
+	if !ebiten.IsWindowMinimized() {
+		lines = append(lines, "Press I key to minimize the window")
+	}
+	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
+		lines = append(lines, "Press E key to restore the window from maximized/minimized state")
+	}
+	msgM := strings.Join(lines, "\n")
+
 	var msgS string
 	var msgR string
 	if *flagLegacy {
@@ -302,12 +328,13 @@ Press T key to switch TPS (ticks per second)
 Press D key to switch the window decoration (only for desktops)
 Press L key to switch the window floating state (only for desktops)
 %s
+%s
 IsFocused?: %s
 Windows Position: (%d, %d)
 Cursor: (%d, %d)
 TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
-Device Scale Factor: %0.2f`, msgS, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
+Device Scale Factor: %0.2f`, msgS, msgM, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
@@ -370,8 +397,14 @@ func main() {
 	if *flagFullscreen {
 		ebiten.SetFullscreen(true)
 	}
+	if *flagResizable {
+		ebiten.SetWindowResizable(true)
+	}
 	if *flagFloating {
 		ebiten.SetWindowFloating(true)
+	}
+	if *flagMaximize {
+		ebiten.MaximizeWindow()
 	}
 	if *flagAutoAdjusting {
 		if *flagLegacy {
