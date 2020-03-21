@@ -109,7 +109,7 @@ func setDrawingSkipped(skipped bool) {
 //
 // IsDrawingSkipped is useful if you use Run function or RunGame function without implementing Game's Draw.
 // Otherwise, i.e., if you use RunGame function with implementing Game's Draw, IsDrawingSkipped should not be used.
-// If you use RunGame and Draw, IsDrawingSkipped always returns false.
+// If you use RunGame and Draw, IsDrawingSkipped always returns true.
 //
 // IsDrawingSkipped is concurrent-safe.
 func IsDrawingSkipped() bool {
