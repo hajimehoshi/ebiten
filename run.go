@@ -219,7 +219,7 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 
 	i.game.(interface{ Draw(*Image) }).Draw(screen)
 
-	// Call dump explicitly. IsDrawingSkipped alwasy returns true when Draw is defined.
+	// Call dump explicitly. IsDrawingSkipped always returns true when Draw is defined.
 	if i.d == nil {
 		i.d = &imageDumper{f: i.game.Update}
 	}
