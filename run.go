@@ -202,10 +202,28 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 
 type imageDumperGameWithDraw struct {
 	imageDumperGame
+	err error
+}
+
+func (i *imageDumperGameWithDraw) Update(screen *Image) error {
+	if i.err != nil {
+		return i.err
+	}
+	return i.imageDumperGame.Update(screen)
 }
 
 func (i *imageDumperGameWithDraw) Draw(screen *Image) {
+	if i.err != nil {
+		return
+	}
+
 	i.game.(interface{ Draw(*Image) }).Draw(screen)
+
+	// Call dump explicitly. IsDrawingSkipped alwasy returns true when Draw is defined.
+	if i.d == nil {
+		i.d = &imageDumper{f: i.game.Update}
+	}
+	i.err = i.d.dump(screen)
 }
 
 // RunGame starts the main loop and runs the game.
@@ -254,7 +272,9 @@ func (i *imageDumperGameWithDraw) Draw(screen *Image) {
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
 	if _, ok := game.(interface{ Draw(*Image) }); ok {
-		return runGame(&imageDumperGameWithDraw{imageDumperGame{game: game}}, 0)
+		return runGame(&imageDumperGameWithDraw{
+			imageDumperGame: imageDumperGame{game: game},
+		}, 0)
 	}
 	return runGame(&imageDumperGame{game: game}, 0)
 }

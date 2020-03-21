@@ -158,6 +158,10 @@ func (i *imageDumper) update(screen *Image) error {
 		return nil
 	}
 
+	return i.dump(screen)
+}
+
+func (i *imageDumper) dump(screen *Image) error {
 	if i.toTakeScreenshot {
 		i.toTakeScreenshot = false
 		if err := takeScreenshot(screen); err != nil {
