@@ -23,8 +23,21 @@ import (
 
 // Game defines necessary functions for a game.
 type Game interface {
-	// Update updates a game by one frame.
+	// Update updates a game by one tick.
+	//
+	// Basically Update updates the game logic, and whether Update draws the screen depends on the existence of
+	// Draw implementation.
+	//
+	// With Draw, Update updates only the game logic and Draw draws the screen. This is recommended.
+	//
+	// Without Draw, Update updates the game logic and also draws the screen. This is a legacy way.
 	Update(*Image) error
+
+	// Draw draws the game screen by one frame.
+	//
+	// Draw is an optional function for backward compatibility.
+	//
+	// Draw(*Image) error
 
 	// Layout accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size.
@@ -94,13 +107,16 @@ func setDrawingSkipped(skipped bool) {
 //        return nil
 //    }
 //
+// IsDrawingSkipped is useful if you use Run function or RunGame function without implementing Game's Draw.
+// Otherwise, i.e., if you use RunGame function with implementing Game's Draw, IsDrawingSkipped should not be used.
+// If you use RunGame and Draw, IsDrawingSkipped always returns false.
+//
 // IsDrawingSkipped is concurrent-safe.
 func IsDrawingSkipped() bool {
 	return atomic.LoadInt32(&isDrawingSkipped) != 0
 }
 
-// IsRunningSlowly is deprecated as of 1.8.0-alpha.
-// Use IsDrawingSkipped instead.
+// IsRunningSlowly is deprecated as of 1.8.0-alpha. Use Game's Draw function instead.
 func IsRunningSlowly() bool {
 	return IsDrawingSkipped()
 }
@@ -184,9 +200,22 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 	return i.game.Layout(outsideWidth, outsideHeight)
 }
 
+type imageDumperGameWithDraw struct {
+	imageDumperGame
+}
+
+func (i *imageDumperGameWithDraw) Draw(screen *Image) {
+	i.game.(interface{ Draw(*Image) }).Draw(screen)
+}
+
 // RunGame starts the main loop and runs the game.
-// game's Update function is called every frame.
+// game's Update function is called every tick to update the gmae logic.
+// game's Draw function is, if it exists, called every frame to draw the screen.
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
+//
+// game must implement Game interface.
+// Game's Draw function is optional, but it is recommended to implement Draw to seperate updating the logic and
+// rendering.
 //
 // RunGame is a more flexibile form of Run due to 'Layout' function.
 // You can make a resizable window if you use RunGame, while you cannot if you use Run.
@@ -224,6 +253,9 @@ func (i *imageDumperGame) Layout(outsideWidth, outsideHeight int) (screenWidth, 
 // Don't call RunGame twice or more in one process.
 func RunGame(game Game) error {
 	fixWindowPosition(WindowSize())
+	if _, ok := game.(interface{ Draw(*Image) }); ok {
+		return runGame(&imageDumperGameWithDraw{imageDumperGame{game: game}}, 0)
+	}
 	return runGame(&imageDumperGame{game: game}, 0)
 }
 

@@ -99,8 +99,9 @@ func createRandomIconImage() image.Image {
 }
 
 type game struct {
-	width  int
-	height int
+	width       int
+	height      int
+	transparent bool
 }
 
 func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -139,7 +140,7 @@ func (g *game) Update(screen *ebiten.Image) error {
 	tps := ebiten.MaxTPS()
 	decorated := ebiten.IsWindowDecorated()
 	positionX, positionY := ebiten.WindowPosition()
-	transparent := ebiten.IsScreenTransparent()
+	g.transparent = ebiten.IsScreenTransparent()
 	floating := ebiten.IsWindowFloating()
 	resizable := ebiten.IsWindowResizable()
 
@@ -269,12 +270,11 @@ func (g *game) Update(screen *ebiten.Image) error {
 	}
 
 	count++
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
-	if !transparent {
+func (g *game) Draw(screen *ebiten.Image) {
+	if !g.transparent {
 		screen.Fill(color.RGBA{0x80, 0x80, 0xc0, 0xff})
 	}
 	w, h := gophersImage.Size()
@@ -336,7 +336,6 @@ TPS: Current: %0.2f / Max: %s
 FPS: %0.2f
 Device Scale Factor: %0.2f`, msgS, msgM, msgR, fg, wx, wy, cx, cy, ebiten.CurrentTPS(), tpsStr, ebiten.CurrentFPS(), ebiten.DeviceScaleFactor())
 	ebitenutil.DebugPrint(screen, msg)
-	return nil
 }
 
 func parseWindowPosition() (int, int, bool) {

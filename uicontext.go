@@ -248,22 +248,46 @@ func (c *uiContext) Update(afterFrameUpdate func()) error {
 
 func (c *uiContext) update(afterFrameUpdate func()) error {
 	updateCount := clock.Update(MaxTPS())
-	for i := 0; i < updateCount; i++ {
-		c.updateOffscreen()
+
+	if game, ok := c.game.(interface{ Draw(*Image) }); ok {
+		for i := 0; i < updateCount; i++ {
+			c.updateOffscreen()
+
+			// Rendering should be always skipped.
+			setDrawingSkipped(true)
+
+			if err := hooks.RunBeforeUpdateHooks(); err != nil {
+				return err
+			}
+			if err := c.game.Update(c.offscreen); err != nil {
+				return err
+			}
+			uiDriver().Input().ResetForFrame()
+			afterFrameUpdate()
+		}
 
 		// Mipmap images should be disposed by Clear.
 		c.offscreen.Clear()
 
-		setDrawingSkipped(i < updateCount-1)
+		game.Draw(c.offscreen)
+	} else {
+		for i := 0; i < updateCount; i++ {
+			c.updateOffscreen()
 
-		if err := hooks.RunBeforeUpdateHooks(); err != nil {
-			return err
+			// Mipmap images should be disposed by Clear.
+			c.offscreen.Clear()
+
+			setDrawingSkipped(i < updateCount-1)
+
+			if err := hooks.RunBeforeUpdateHooks(); err != nil {
+				return err
+			}
+			if err := c.game.Update(c.offscreen); err != nil {
+				return err
+			}
+			uiDriver().Input().ResetForFrame()
+			afterFrameUpdate()
 		}
-		if err := c.game.Update(c.offscreen); err != nil {
-			return err
-		}
-		uiDriver().Input().ResetForFrame()
-		afterFrameUpdate()
 	}
 
 	// c.screen might be nil when updateCount is 0 in the initial state (#1039).
